@@ -164,7 +164,8 @@ The ones that would catch a real regression:
 > `21-walking-the-app.md` — `22-screen-tests.md` for the 19 screen tests, and
 > `23-interaction-tests.md` for the 17 that press things, and
 > `24-whole-screen-tests.md` for the 19 that let a screen fetch, and
-> `25-remaining-screens.md` for the 30 covering the last six screens
+> `25-remaining-screens.md` for the 30 covering the last six screens, and
+> `26-place-photography.md` for why the heroes are still not photographs
 > that now stand between those bugs and a release.
 
 1. **Nested transaction.** Redeeming an offer opened a transaction and called a

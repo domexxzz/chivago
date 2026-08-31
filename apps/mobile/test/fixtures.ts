@@ -67,7 +67,7 @@ export const place = (over: Partial<ScoredPlace> = {}): ScoredPlace => ({
     th: 'เงียบตอนเจ็ดโมง มีร่มเงาทางเหนือ และน้ำใส',
   },
   tags: ['Swimming', 'Sunrise'],
-  photoUrl: null,
+  photo: null,
   metrics: { crowdDensity: 1.4, aqi: 42, safetyIndex: 8.1, walkability: 7.6 },
   healthyScore: 82,
   breakdown: {

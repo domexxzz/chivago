@@ -47,19 +47,24 @@ for (const p of SEED_PLACES) {
   const safety = SAFETY_PHRASES[p.id]!;
   db.prepare(
     `INSERT INTO places (id, name_en, name_th, short, layer, lat, lng, meta,
-       blurb_en, blurb_th, tags, photo_url, safety_label_en, safety_label_th,
+       blurb_en, blurb_th, tags, photo_url, photo_credit, photo_licence, photo_source,
+       safety_label_en, safety_label_th,
        crowd_density, aqi, safety_index, walkability)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(id) DO UPDATE SET
        name_en=excluded.name_en, name_th=excluded.name_th, short=excluded.short,
        layer=excluded.layer, lat=excluded.lat, lng=excluded.lng, meta=excluded.meta,
        blurb_en=excluded.blurb_en, blurb_th=excluded.blurb_th, tags=excluded.tags,
+       photo_url=excluded.photo_url, photo_credit=excluded.photo_credit,
+       photo_licence=excluded.photo_licence, photo_source=excluded.photo_source,
        safety_label_en=excluded.safety_label_en, safety_label_th=excluded.safety_label_th,
        crowd_density=excluded.crowd_density, aqi=excluded.aqi,
        safety_index=excluded.safety_index, walkability=excluded.walkability`,
   ).run(
     p.id, p.name.en, p.name.th, p.short, p.layer, p.lat, p.lng, p.meta,
-    p.blurb.en, p.blurb.th, JSON.stringify(p.tags), p.photoUrl,
+    p.blurb.en, p.blurb.th, JSON.stringify(p.tags),
+    p.photo?.url ?? null, p.photo?.credit ?? null,
+    p.photo?.licence ?? null, p.photo?.sourceUrl ?? null,
     safety.en, safety.th,
     p.metrics.crowdDensity, p.metrics.aqi, p.metrics.safetyIndex, p.metrics.walkability,
   );

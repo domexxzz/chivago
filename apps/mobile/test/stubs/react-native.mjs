@@ -1,5 +1,5 @@
 /**
- * `react-native-web`, with two substitutions.
+ * `react-native-web`, with three substitutions.
  *
  * Its `Modal` renders through a DOM portal into `document.body`. There is no
  * DOM here, so a mounted sheet came back as an empty tree and every assertion
@@ -10,6 +10,11 @@
  * a test sees exactly what a phone would once the sheet is up. What it does
  * NOT model is the modal-ness: focus trapping, the back-button dismiss, or
  * anything below it being unreachable.
+ *
+ * `Image` reaches for `window` while measuring, so it is replaced by a node
+ * that keeps `accessibilityLabel` and the source uri and draws nothing. What
+ * it does NOT model is loading at all: a broken URL, a slow one, and a
+ * missing one are indistinguishable here.
  *
  * `TextInput` reaches for `document` in a mount effect, for the same reason.
  * The replacement keeps the props a test drives it through — `value`,
@@ -26,6 +31,14 @@ export { default } from 'react-native-web';
 
 export const Modal = ({ visible = true, children }) =>
   (visible ? createElement(View, null, children) : null);
+
+export const Image = ({ source, accessibilityLabel, style }) =>
+  createElement(View, {
+    accessibilityLabel,
+    accessibilityRole: 'image',
+    'data-uri': typeof source === 'object' && source !== null ? source.uri : source,
+    style,
+  });
 
 export const TextInput = ({ value, onChangeText, accessibilityLabel, placeholder }) =>
   createElement(

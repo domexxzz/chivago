@@ -65,6 +65,11 @@ CREATE TABLE IF NOT EXISTS places (
   blurb_th      TEXT NOT NULL,
   tags          TEXT NOT NULL DEFAULT '[]',
   photo_url     TEXT,
+  -- The terms the photograph arrived under. Nullable together with the url:
+  -- a photo with no credit is one we cannot legally publish.
+  photo_credit  TEXT,
+  photo_licence TEXT,
+  photo_source  TEXT,
   safety_label_en TEXT NOT NULL,
   safety_label_th TEXT NOT NULL,
   -- Baseline metrics. AQI is overwritten by the live feed on read.

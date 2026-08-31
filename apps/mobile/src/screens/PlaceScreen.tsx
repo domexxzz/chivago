@@ -11,7 +11,7 @@
 
 import React from 'react';
 import * as Location from 'expo-location';
-import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import { strings, type ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
@@ -90,16 +90,7 @@ export function PlaceScreen({
 
       {place.data ? (
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* 16:9 hero. Real photography renders through grayscale(1)
-              contrast(1.08); imagery is NEVER tinted. */}
-          <View
-            style={{
-              height: 150,
-              backgroundColor: color.neutral300,
-              borderBottomWidth: layout.ruleStrong,
-              borderBottomColor: color.text,
-            }}
-          />
+          <Hero place={place.data} />
 
           <View style={{ paddingHorizontal: gutter, paddingTop: 16 }}>
             <Heading size={26} tracking={-0.52}>{place.data.name.en}</Heading>
@@ -316,5 +307,95 @@ function BreakdownSheet({
         </View>
       </View>
     </Modal>
+  );
+}
+
+/**
+ * The 16:9 hero.
+ *
+ * A photograph when there is one, and something deliberate when there is not.
+ * The grey rectangle it replaces was the single loudest "prototype" signal in
+ * the app, and a placeholder that admits what it is beats one that looks like
+ * a failed image load.
+ *
+ * Photography renders through grayscale(1) contrast(1.08) per the design, and
+ * imagery is NEVER tinted.
+ */
+export function Hero({ place }: { place: ScoredPlace }) {
+  return (
+    <View
+      style={{
+        height: 150,
+        borderBottomWidth: layout.ruleStrong,
+        borderBottomColor: color.text,
+        backgroundColor: color.surface,
+      }}
+    >
+      {place.photo ? (
+        <>
+          <Image
+            source={{ uri: place.photo.url }}
+            accessibilityLabel={`${place.name.en}, photographed by ${place.photo.credit}`}
+            resizeMode="cover"
+            style={{ width: '100%', height: '100%' }}
+          />
+          {/*
+            The credit rides ON the image. Most licences require attribution to
+            appear with the work, and one that does not still deserves it.
+          */}
+          <View
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              backgroundColor: color.bg,
+              paddingVertical: 4,
+              paddingHorizontal: 8,
+            }}
+          >
+            <Label size={9} tracking={0.08} colour={color.neutral600}>
+              {`${place.photo.credit} · ${place.photo.licence}`}
+            </Label>
+          </View>
+        </>
+      ) : (
+        <PlaceholderHero place={place} />
+      )}
+    </View>
+  );
+}
+
+/**
+ * What stands in for a photograph, built from the place's own data.
+ *
+ * Deliberately graphic rather than photographic: bands keyed to the layer and
+ * a contour line whose height follows the Healthy Score. It is not pretending
+ * to be a picture of anywhere, which is the point - a generated image of a
+ * real beach presented as that beach would be a fabrication, and the one
+ * thing this app never does is claim more than it knows.
+ */
+function PlaceholderHero({ place }: { place: ScoredPlace }) {
+  const bands = 7;
+  const lift = place.healthyScore / 100;
+  return (
+    <View style={{ flex: 1, overflow: 'hidden' }}>
+      {Array.from({ length: bands }, (_, i) => (
+        <View
+          key={i}
+          style={{
+            flex: 1,
+            backgroundColor: i / bands < lift ? color.neutral200 : color.neutral100,
+            borderBottomWidth: 1,
+            borderBottomColor: color.neutral300,
+            opacity: 0.5 + (i / bands) * 0.5,
+          }}
+        />
+      ))}
+      <View style={{ position: 'absolute', left: gutter, bottom: 12 }}>
+        <Label size={9} tracking={0.14} colour={color.neutral600}>
+          {`${place.layer} · no photograph yet`}
+        </Label>
+      </View>
+    </View>
   );
 }

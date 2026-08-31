@@ -24,6 +24,7 @@ interface PlaceRow {
   id: string; name_en: string; name_th: string; short: string; layer: string;
   lat: number; lng: number; meta: string; blurb_en: string; blurb_th: string;
   tags: string; photo_url: string | null;
+  photo_credit: string | null; photo_licence: string | null; photo_source: string | null;
   safety_label_en: string; safety_label_th: string;
   crowd_density: number; aqi: number; safety_index: number; walkability: number;
 }
@@ -38,7 +39,16 @@ const toPlace = (r: PlaceRow): Place & { safetyLabel: { en: string; th: string }
   meta: r.meta,
   blurb: { en: r.blurb_en, th: r.blurb_th },
   tags: JSON.parse(r.tags) as string[],
-  photoUrl: r.photo_url,
+  // A photograph is only usable with its credit, so the whole record is
+  // present or the whole record is null. Half of one is not shippable.
+  photo: r.photo_url && r.photo_credit
+    ? {
+      url: r.photo_url,
+      credit: r.photo_credit,
+      licence: r.photo_licence ?? 'Unknown',
+      sourceUrl: r.photo_source,
+    }
+    : null,
   metrics: {
     crowdDensity: r.crowd_density,
     aqi: r.aqi,

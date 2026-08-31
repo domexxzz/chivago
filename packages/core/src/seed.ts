@@ -51,7 +51,7 @@ export const SEED_PLACES: Place[] = [
       th: 'อ่าวทรายขาว ช่วงสายถึงบ่ายคนเยอะ ปลายหาดฝั่งเหนือเงียบกว่า',
     },
     tags: ['Beach', 'Walking route', 'Safe area', 'Quest here'],
-    photoUrl: null,
+    photo: null,
     metrics: { aqi: 42, crowdDensity: 3.0, safetyIndex: 6.77, walkability: 8.1 },
   },
   {
@@ -67,7 +67,7 @@ export const SEED_PLACES: Place[] = [
       th: 'น้ำตกสองชั้นในเขตป่าอนุรักษ์ คะแนนสุขภาวะสูงสุดของเกาะ',
     },
     tags: ['Green space', 'Hidden gem', 'Walking route', 'Air excellent'],
-    photoUrl: null,
+    photo: null,
     metrics: { aqi: 18, crowdDensity: 0.4, safetyIndex: 8.85, walkability: 6.9 },
   },
   {
@@ -83,7 +83,7 @@ export const SEED_PLACES: Place[] = [
       th: 'ย่านเก่าบ่อผุด ร้านค้าที่รับแต้มสีเขียว 12 ร้าน',
     },
     tags: ['Healthy food', 'Local experience', 'Marketplace', 'Safe area'],
-    photoUrl: null,
+    photo: null,
     metrics: { aqi: 31, crowdDensity: 1.4, safetyIndex: 6.33, walkability: 9.0 },
   },
   {
@@ -99,7 +99,7 @@ export const SEED_PLACES: Place[] = [
       th: 'ศาลาโยคะกลางแจ้งเหนือหาดละไม คลาสเช้า 06:30',
     },
     tags: ['Wellness', 'Quiet', 'Points accepted'],
-    photoUrl: null,
+    photo: null,
     metrics: { aqi: 24, crowdDensity: 0.5, safetyIndex: 7.39, walkability: 7.4 },
   },
   {
@@ -115,7 +115,7 @@ export const SEED_PLACES: Place[] = [
       th: 'แปลงเพาะกล้าป่าชายเลนโดยชุมชนทางใต้ของเกาะ',
     },
     tags: ['Green space', 'Quest here', 'Community'],
-    photoUrl: null,
+    photo: null,
     metrics: { aqi: 20, crowdDensity: 0.3, safetyIndex: 5.13, walkability: 5.2 },
   },
 ];

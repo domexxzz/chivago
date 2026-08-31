@@ -15,7 +15,7 @@ import { mountScreen, offline, refuses, server, settle } from './interact.ts';
 import { control, resetControl } from './stubs/native.mjs';
 import { place, progress, quest, review, shield, summary } from './fixtures.ts';
 
-import { PlaceScreen } from '../src/screens/PlaceScreen.tsx';
+import { Hero, PlaceScreen } from '../src/screens/PlaceScreen.tsx';
 import { ReviewsBlock } from '../src/screens/PlaceReviews.tsx';
 import { QuestDetailScreen } from '../src/screens/QuestDetail.tsx';
 import { SafetyScreen } from '../src/screens/SafetyScreen.tsx';
@@ -818,5 +818,43 @@ describe('the price outlook on the trip screen', () => {
       assert.doesNotMatch(ui.text(), /A night on Samui/, 'and the price half is simply absent');
       ui.unmount();
     } finally { net.restore(); }
+  });
+});
+
+describe('the place hero, with and without a photograph', () => {
+
+  test('a photograph carries its credit and licence on the image', async () => {
+    // Most licences require attribution to appear WITH the work. A credit
+    // buried in a settings screen is a licence violation waiting to be found.
+    const ui = await mountScreen(h(Hero, {
+      place: place({
+        photo: {
+          url: 'https://images.example/chaweng.jpg',
+          credit: 'Somchai P.',
+          licence: 'CC BY-SA 4.0',
+          sourceUrl: 'https://commons.example/chaweng',
+        },
+      }),
+    }));
+    const said = ui.text();
+    assert.match(said, /Somchai P\./);
+    assert.match(said, /CC BY-SA 4\.0/);
+    assert.ok(ui.find(/photographed by Somchai P\./), 'the screen reader gets the credit too');
+    ui.unmount();
+  });
+
+  test('with no photograph it says so, rather than looking like a failed load', async () => {
+    // The grey rectangle this replaces was the loudest "prototype" signal in
+    // the app. A placeholder that admits what it is beats one that does not.
+    const ui = await mountScreen(h(Hero, { place: place({ photo: null }) }));
+    assert.match(ui.text(), /no photograph yet/i);
+    ui.unmount();
+  });
+
+  test('the placeholder never claims to be a picture of the place', async () => {
+    const ui = await mountScreen(h(Hero, { place: place({ photo: null }) }));
+    const labels = ui.labels().join(' ');
+    assert.doesNotMatch(labels, /photographed by/i, 'a drawing must not be credited as a photo');
+    ui.unmount();
   });
 });

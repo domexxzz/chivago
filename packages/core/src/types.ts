@@ -68,14 +68,39 @@ export interface Place {
   meta: string;
   blurb: Bilingual;
   tags: string[];
-  /** 16:9 hero. Null until real Koh Samui photography is licensed. */
-  photoUrl: string | null;
+  /**
+   * 16:9 hero. Null until real Koh Samui photography is licensed.
+   *
+   * A bare URL is not enough to ship: every licence worth using - Unsplash,
+   * Creative Commons, a hotel's own press pack - requires the credit to
+   * travel with the image. Storing the URL alone is how a photograph ends up
+   * on screen with nobody able to say who took it or under what terms, which
+   * is a licence violation waiting to be noticed.
+   */
+  photo: PlacePhoto | null;
   metrics: PlaceMetrics;
   /** Per-metric provenance, so the UI can say "live" vs "computed daily". */
   readings?: Partial<Record<keyof PlaceMetrics, MetricReading>>;
 }
 
 /** A place with its score computed. What GET /places actually returns. */
+/**
+ * A photograph and the terms it arrived under.
+ *
+ * `credit` is rendered ON the image, not buried in a settings screen: most
+ * licences require attribution to appear with the work, and one that does not
+ * still deserves it.
+ */
+export interface PlacePhoto {
+  url: string;
+  /** Photographer or rights holder, as they wish to be named. */
+  credit: string;
+  /** e.g. "Unsplash License", "CC BY-SA 4.0", "Used with permission". */
+  licence: string;
+  /** Where it came from, so the terms can be checked without asking us. */
+  sourceUrl: string | null;
+}
+
 export interface ScoredPlace extends Place {
   healthyScore: number;
   breakdown: ScoreBreakdown;
