@@ -1,0 +1,822 @@
+/**
+ * The six screens the first whole-screen pass left out.
+ *
+ * Same harness as `whole-screens.test.ts`: a route table for the network, and
+ * a mount that waits for whatever the screen fetches. Two of these screens also
+ * touch native APIs — location for a check-in, the camera for quest proof — so
+ * the Expo stub now carries a `control` a test can steer.
+ */
+
+import { describe, test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createElement as h } from 'react';
+
+import { mountScreen, offline, refuses, server, settle } from './interact.ts';
+import { control, resetControl } from './stubs/native.mjs';
+import { place, progress, quest, review, shield, summary } from './fixtures.ts';
+
+import { PlaceScreen } from '../src/screens/PlaceScreen.tsx';
+import { ReviewsBlock } from '../src/screens/PlaceReviews.tsx';
+import { QuestDetailScreen } from '../src/screens/QuestDetail.tsx';
+import { SafetyScreen } from '../src/screens/SafetyScreen.tsx';
+import { TripScreen } from '../src/screens/TripScreen.tsx';
+import { OnboardingScreen } from '../src/screens/Onboarding.tsx';
+import { ImpactScreen } from '../src/screens/ImpactScreen.tsx';
+
+const noop = () => {};
+
+const priceRoutes = {
+  'POST /prices': {
+    today: {
+      category: 'stay', date: '2026-12-30',
+      band: { low: 2900, typical: 3550, high: 4200, currency: 'THB' },
+      isFestival: true,
+      drivers: [
+        { label: { en: 'Peak season', th: 'ฤดูท่องเที่ยวสูงสุด' }, effect: 1.5 },
+        { label: { en: 'New Year', th: 'ปีใหม่' }, effect: 1.7 },
+      ],
+      confidence: 'rough',
+      caveat: {
+        en: 'A range, not a quote. Modelled from season and typical rates as of 2026-09-01; no partner inventory yet.',
+        th: 'เป็นช่วงราคา ไม่ใช่ราคาจอง คำนวณจากฤดูกาลและค่าเฉลี่ย',
+      },
+    },
+    outlook: [
+      { month: '2026-11', label: { en: 'Wettest month', th: 'เดือนฝนชุก' }, band: { low: 850, typical: 1050, high: 1250, currency: 'THB' }, hasFestival: true, confidence: 'rough' },
+      { month: '2026-12', label: { en: 'Peak season', th: 'ฤดูสูงสุด' }, band: { low: 1700, typical: 2100, high: 2500, currency: 'THB' }, hasFestival: true, confidence: 'rough' },
+    ],
+    cheapest: { month: '2026-11', label: { en: 'Wettest month', th: 'เดือนฝนชุก' }, band: { low: 850, typical: 1050, high: 1250, currency: 'THB' }, hasFestival: true, confidence: 'rough' },
+  },
+};
+
+
+
+describe('a place, and checking in to it', () => {
+  const props = (over = {}) => ({
+    placeId: 'chaweng', onBack: noop, onAddToTrip: noop, onSafePath: noop,
+    onToast: noop, onPointsChanged: noop, ...over,
+  });
+
+  test('it fetches the place and today\'s check-ins, and shows the score', async () => {
+    const net = server({
+      'GET /places/chaweng': place(),
+      'GET /checkins/today': [],
+      'GET /places/chaweng/reviews': { reviews: [], mine: null, canReview: false, reported: [] },
+    });
+    try {
+      const ui = await mountScreen(h(PlaceScreen, props()));
+      // Three fetches, not two: the screen carries the reviews block.
+      assert.deepEqual(
+        net.calls.map((c) => c.path).sort(),
+        ['/checkins/today', '/places/chaweng', '/places/chaweng/reviews'],
+      );
+      assert.deepEqual(net.missing, []);
+
+      const said = ui.text();
+      assert.match(said, /Chaweng Beach/);
+      assert.match(said, /82/, 'the healthy score');
+      assert.match(said, /Check in here/, 'a place not yet visited today offers the check-in');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a place already checked in today says so instead of offering again', async () => {
+    // Server state, not screen state: it survives a reinstall.
+    const net = server({ 'GET /places/chaweng': place(), 'GET /checkins/today': ['chaweng'] });
+    try {
+      const ui = await mountScreen(h(PlaceScreen, props()));
+      assert.match(ui.text(), /Already checked in here today/);
+      assert.doesNotMatch(ui.text(), /Check in here/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('checking in sends the phone\'s position and reports the award', async () => {
+    let toasted = '';
+    let pointsChanged = 0;
+    const net = server({
+      'GET /places/chaweng': place(),
+      'GET /checkins/today': [],
+      'POST /places/chaweng/checkin': {
+        placeId: 'chaweng', placeName: 'Chaweng Beach', awarded: true, pointsAwarded: 40,
+        balances: { trip: 360, green: 1240 }, exp: 40, distanceM: 18,
+      },
+    });
+    try {
+      const ui = await mountScreen(h(PlaceScreen, props({
+        onToast: (m: string) => { toasted = m; },
+        onPointsChanged: () => { pointsChanged += 1; },
+      })));
+
+      await ui.pressText(/Check in here/);
+      await settle();
+
+      const posted = net.calls.find((c) => c.method === 'POST');
+      assert.ok(posted, 'a check-in must reach the server');
+      // The client sends coordinates and the SERVER decides the geofence.
+      // A client that judged its own distance is a client that can lie.
+      assert.deepEqual(posted.body, { lat: 9.5357, lng: 100.0617 });
+      assert.match(toasted, /\+40 Trip Points/);
+      assert.equal(pointsChanged, 1);
+      ui.unmount();
+    } finally { net.restore(); resetControl(); }
+  });
+
+  test('a refused location never reaches the server', async () => {
+    let toasted = '';
+    const net = server({ 'GET /places/chaweng': place(), 'GET /checkins/today': [] });
+    try {
+      control.permission = { granted: false, status: 'denied' };
+      const ui = await mountScreen(h(PlaceScreen, props({ onToast: (m: string) => { toasted = m; } })));
+
+      await ui.pressText(/Check in here/);
+      await settle();
+
+      assert.match(toasted, /Location permission/);
+      assert.equal(net.calls.filter((c) => c.method === 'POST').length, 0);
+      ui.unmount();
+    } finally { net.restore(); resetControl(); }
+  });
+
+  test('standing too far away shows the server\'s reason, not a client guess', async () => {
+    let toasted = '';
+    const net = server({
+      'GET /places/chaweng': place(),
+      'GET /checkins/today': [],
+      'POST /places/chaweng/checkin': refuses('TOO_FAR', 'You need to be at the place to check in — about 800 m away'),
+    });
+    try {
+      const ui = await mountScreen(h(PlaceScreen, props({ onToast: (m: string) => { toasted = m; } })));
+      await ui.pressText(/Check in here/);
+      await settle();
+
+      assert.match(toasted, /about 800 m away/);
+      ui.unmount();
+    } finally { net.restore(); resetControl(); }
+  });
+
+  test('a place that will not load offers a retry rather than a blank page', async () => {
+    const net = server({ 'GET /places/chaweng': offline(), 'GET /checkins/today': [] });
+    try {
+      const ui = await mountScreen(h(PlaceScreen, props()));
+      assert.match(ui.text(), /offline/i);
+      assert.ok(ui.find(/retry/i));
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+});
+
+describe('the reviews block, which fetches its own list', () => {
+  const props = (over = {}) => ({
+    placeId: 'chaweng', summary: summary({ count: 1, average: 5, distribution: [0, 0, 0, 0, 1] }),
+    justCheckedIn: false, onToast: noop, onPointsChanged: noop, ...over,
+  });
+  const body = (over = {}) => ({ reviews: [], mine: null, canReview: false, reported: [], ...over });
+
+  test('reviews that arrive are listed, with the verification leading', async () => {
+    const net = server({
+      'GET /places/chaweng/reviews': body({
+        reviews: [review({ body: 'Quiet at 7am, shade at the north end.' })],
+      }),
+    });
+    try {
+      const ui = await mountScreen(h(ReviewsBlock, props()));
+      const said = ui.text();
+      assert.match(said, /Quiet at 7am/);
+      assert.match(said, /verified|Checked in/i, 'the check-in is what makes a review trustworthy');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('someone who has been here is offered the write control', async () => {
+    const net = server({ 'GET /places/chaweng/reviews': body({ canReview: true }) });
+    try {
+      const ui = await mountScreen(h(ReviewsBlock, props()));
+      assert.match(ui.text(), /Write|Review/i, 'a past visitor may write');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('someone who has never been here is not offered it', async () => {
+    const net = server({ 'GET /places/chaweng/reviews': body({ canReview: false }) });
+    try {
+      const ui = await mountScreen(h(ReviewsBlock, props()));
+      assert.doesNotMatch(ui.text(), /Write a review/i);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a failed fetch says so instead of looking like an unreviewed place', async () => {
+    // The block used to `return` on failure with no state recorded at all:
+    // no message, no retry, and canReview stuck false — so a traveller who HAD
+    // been here silently lost the ability to write. An empty list and a broken
+    // list must not look the same.
+    const net = server({
+      'GET /places/chaweng/reviews': refuses('REVIEWS_DOWN', 'Reviews are unavailable right now.'),
+    });
+    try {
+      const ui = await mountScreen(h(ReviewsBlock, props()));
+      assert.match(ui.text(), /Reviews are unavailable right now\./);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a review taken down is still shown to its own author, with why', async () => {
+    const net = server({
+      'GET /places/chaweng/reviews': body({
+        canReview: true,
+        // The reason travels as a KEY and is rendered per reader. The
+        // traveller must never be shown the literal `personal_data`.
+        mine: {
+          review: review({ id: 'r9', body: 'My own words.' }),
+          hiddenAt: '2026-08-31T05:00:00.000Z',
+          hiddenReasonKey: 'personal_data',
+          appeal: null,
+        },
+      }),
+    });
+    try {
+      const ui = await mountScreen(h(ReviewsBlock, props()));
+      const said = ui.text();
+      assert.match(said, /My own words\./, 'a review that silently vanishes is the worst version');
+      assert.match(said, /Identifies an individual by name or contact details/, 'and it must say why');
+      assert.doesNotMatch(said, /personal_data/, 'the key is never shown to a reader');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+});
+
+describe('a quest, from joining to verification', () => {
+  const props = (over = {}) => ({
+    questId: 'q1', onBack: noop, onOpenWallet: noop, onToast: noop,
+    onPointsChanged: noop, ...over,
+  });
+  const detail = (p: unknown = null) => ({ quest: quest(), progress: p });
+
+  test('an unjoined quest shows the reward, the host, and one way in', async () => {
+    const net = server({ 'GET /quests/q1': detail(null) });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      const said = ui.text();
+      assert.match(said, /Beach Cleanup/);
+      assert.match(said, /Samui Municipality/, 'a quest without a host is not verifiable');
+      assert.match(said, /150/, 'the reward');
+      assert.match(said, /Join this quest/);
+      assert.doesNotMatch(said, /I'm at the site/, 'you cannot arrive before you join');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('joining posts, and the screen moves on to arriving', async () => {
+    // Joining reloads the quest rather than trusting the POST's own reply, so
+    // the route has to answer the way the server would the second time.
+    let joined = false;
+    const net = server({
+      'GET /quests/q1': () => detail(joined ? progress({ stage: 'joined' }) : null),
+      'POST /quests/q1/join': () => { joined = true; return progress({ stage: 'joined' }); },
+    });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      await ui.pressText(/Join this quest/);
+      await settle();
+
+      assert.ok(net.calls.some((c) => c.method === 'POST' && c.path === '/quests/q1/join'));
+      assert.match(ui.text(), /I'm at the site/, 'the next step should be offered');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('arriving sends the position the server will geofence', async () => {
+    const net = server({
+      'GET /quests/q1': detail(progress({ stage: 'joined' })),
+      'POST /quests/q1/arrive': progress({ stage: 'arrived', arrivedAt: '2026-08-31T02:00:00.000Z' }),
+    });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      await ui.pressText(/I'm at the site/);
+      await settle();
+
+      const posted = net.calls.find((c) => c.path === '/quests/q1/arrive');
+      assert.ok(posted, 'arriving must reach the server');
+      assert.deepEqual(posted.body, { lat: 9.5357, lng: 100.0617 });
+      ui.unmount();
+    } finally { net.restore(); resetControl(); }
+  });
+
+  test('a quest awaiting the host says who is checking, not "done"', async () => {
+    const net = server({
+      'GET /quests/q1': detail(progress({ stage: 'host_verification', proofSubmittedAt: '2026-08-31T03:00:00.000Z' })),
+    });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      const said = ui.text();
+      assert.match(said, /Samui Municipality/, 'the traveller should know who is deciding');
+      assert.doesNotMatch(said, /Join this quest/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a rejected quest shows the reason in the reader\'s language', async () => {
+    // The rejection is stored bilingual because the reviewer and the volunteer
+    // rarely share a language.
+    const net = server({
+      'GET /quests/q1': detail(progress({
+        stage: 'arrived',
+        rejectedAt: '2026-08-31T04:00:00.000Z',
+        rejectionReason: { en: 'The photo has no location data', th: 'รูปไม่มีข้อมูลตำแหน่ง' },
+      })),
+    });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      assert.match(ui.text(), /The photo has no location data/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a quest that will not load never renders a half-quest', async () => {
+    const net = server({ 'GET /quests/q1': refuses('GONE', 'That quest has ended.') });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      const said = ui.text();
+      assert.match(said, /That quest has ended\./);
+      assert.doesNotMatch(said, /Join this quest/, 'no CTA without a quest behind it');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+});
+
+describe('the safety shield', () => {
+  const props = (over = {}) => ({
+    alert: null, onFire: noop, onCancel: noop, onShare: noop, firing: false, ...over,
+  });
+  const alert = {
+    id: 's1', status: 'dispatching' as const, lat: 9.5357, lng: 100.0617,
+    locationLabel: 'Bophut, 400 m', firedAt: '2026-08-31T05:00:00.000Z',
+    acknowledgedAt: null, acknowledgedBy: null, nearestHospital: 'Bandon International Hospital',
+    note: null, shareUrl: 'https://chiva.go/s/abc', lastPositionAt: null,
+    dispatches: [], contactsReached: 2, contactsTotal: 3,
+  };
+
+  test('every shield service is listed with its own state', async () => {
+    const net = server({ 'GET /shield': shield() });
+    try {
+      const ui = await mountScreen(h(SafetyScreen, props()));
+      const said = ui.text();
+      assert.match(said, /One-tap SOS/);
+      assert.match(said, /Thai interpreter/);
+      assert.match(said, /Live location share/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a live alert counts only the contacts actually reached', async () => {
+    // "2 of 3" is counted from real dispatch attempts. A screen that claimed
+    // everyone had been reached would be the worst possible lie here.
+    const net = server({ 'GET /shield': shield() });
+    try {
+      const ui = await mountScreen(h(SafetyScreen, props({ alert })));
+      const said = ui.text();
+      assert.match(said, /2 of 3 contacts reached/);
+      assert.match(said, /Bophut, 400 m/, 'the location is on screen');
+      assert.match(said, /Nobody has picked this up yet/, 'unacknowledged must say so');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('it never implies ChivaGo is the ambulance', async () => {
+    // The single most important sentence in the app. It must survive any
+    // rewording of this screen.
+    const net = server({ 'GET /shield': shield() });
+    try {
+      const ui = await mountScreen(h(SafetyScreen, props({ alert })));
+      const said = ui.text();
+      assert.match(said, /cannot send an ambulance/i);
+      assert.match(said, /1669/, 'the real emergency number, on screen, always');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('the shield list failing does not take the SOS control with it', async () => {
+    // The one screen where a failed fetch must never remove a control: the
+    // service list is informational, firing an SOS is not.
+    const net = server({ 'GET /shield': offline() });
+    try {
+      const ui = await mountScreen(h(SafetyScreen, props()));
+      assert.match(ui.text(), /offline/i, 'the failure is stated');
+      assert.match(ui.text(), /SOS/i, 'and the SOS is still there');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+});
+
+describe('the trip day, planned by the server', () => {
+  const trip = { dayNumber: 2, dateLabel: 'Mon 31 Aug', walkingKm: 0, pointsToday: 0, airLabel: '', items: [] };
+  const props = (over = {}) => ({ trip, onBack: noop, ...over });
+
+  const plan = (over = {}) => ({
+    energy: 'moderate',
+    walkingKm: 4.4,
+    totalKm: 36.1,
+    fareTHB: 82,
+    pointsAvailable: 550,
+    dropped: [],
+    items: [
+      {
+        time: '06:30', minutes: 75, kind: 'place',
+        name: { en: 'Na Muang Waterfall', th: 'น้ำตกหน้าเมือง' }, tag: 'Green',
+        placeId: 'namuang', questId: null, isPointsRelated: false,
+        why: { en: 'Scores 89 today — air excellent', th: 'วันนี้ได้ 89 คะแนน' },
+      },
+      {
+        time: '07:45', minutes: 24, kind: 'transit',
+        name: { en: 'Songthaew', th: 'สองแถว' }, tag: 'Transit',
+        placeId: null, questId: null, isPointsRelated: false, mode: 'songthaew', km: 6,
+        waitMinutes: 8, fareTHB: 68,
+        why: { en: '6 km on the ring road — cheapest, stops on request', th: '6 กม. ทางถนนรอบเกาะ' },
+      },
+      {
+        time: '08:09', minutes: 45, kind: 'quest',
+        name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด' }, tag: 'Quest',
+        placeId: null, questId: 'q1', isPointsRelated: true,
+        why: { en: '150 Green Points, and you are already here', th: 'ได้ 150 แต้มกรีน' },
+      },
+    ],
+    ...over,
+  });
+
+  test('the planned day arrives and every stop is on it', async () => {
+    const net = server({ 'POST /trip/plan': plan() });
+    try {
+      const ui = await mountScreen(h(TripScreen, props()));
+      const said = ui.text();
+      assert.match(said, /06:30/);
+      assert.match(said, /Na Muang Waterfall/);
+      assert.match(said, /Beach Cleanup/);
+      assert.match(said, /4\.4 km/, 'walking is shown to one decimal');
+      assert.match(said, /\+550/, 'the points the day puts on offer');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('every row says why it is there', async () => {
+    // The reason is the feature. A row without one is a row nobody can argue
+    // with, which is the failure mode this screen exists to avoid.
+    const net = server({ 'POST /trip/plan': plan() });
+    try {
+      const ui = await mountScreen(h(TripScreen, props()));
+      const said = ui.text();
+      assert.match(said, /Scores 89 today/);
+      assert.match(said, /cheapest, stops on request/);
+      assert.match(said, /already here/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a ride shows moving, waiting and fare as three separate facts', async () => {
+    // Folding the wait into the ride is the lie that makes a plan wrong.
+    const net = server({ 'POST /trip/plan': plan() });
+    try {
+      const ui = await mountScreen(h(TripScreen, props()));
+      const said = ui.text();
+      assert.match(said, /Songthaew · 6 km/);
+      assert.match(said, /16 min moving/, '24 total minus 8 waiting');
+      assert.match(said, /8 min wait/);
+      assert.match(said, /฿68/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('the day totals what it costs to get around', async () => {
+    const net = server({ 'POST /trip/plan': plan() });
+    try {
+      const ui = await mountScreen(h(TripScreen, props()));
+      assert.match(ui.text(), /FARES/i);
+      assert.match(ui.text(), /฿82/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('asking for a gentle day replans, and says so to the server', async () => {
+    const net = server({ 'POST /trip/plan': (body) => plan({ energy: (body as { energy?: string }).energy ?? 'moderate' }) });
+    try {
+      const ui = await mountScreen(h(TripScreen, props()));
+      // The screen also fetches prices on mount, so count only the plans.
+      const plans = () => net.calls.filter((c) => c.path === '/trip/plan');
+      assert.equal(plans().length, 1);
+
+      await ui.press('Gentle day');
+      await settle();
+
+      assert.equal(plans().length, 2, 'changing the energy must replan');
+      assert.deepEqual(plans()[1]!.body, { energy: 'gentle' });
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('what the planner left out is on screen, with the reason', async () => {
+    // A day that silently omits a place is indistinguishable from a day that
+    // never knew about it.
+    const net = server({
+      'POST /trip/plan': plan({
+        dropped: [{
+          name: { en: 'Chaweng Beach', th: 'หาดเฉวง' },
+          reason: { en: 'Air is 140 AQI — unhealthy at any hour', th: 'อากาศ 140 AQI ไม่ดีต่อสุขภาพ' },
+        }],
+      }),
+    });
+    try {
+      const ui = await mountScreen(h(TripScreen, props()));
+      const said = ui.text();
+      assert.match(said, /Chaweng Beach/);
+      assert.match(said, /140 AQI/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a plan that will not load offers a retry, not a blank day', async () => {
+    const net = server({ 'POST /trip/plan': offline() });
+    try {
+      const ui = await mountScreen(h(TripScreen, props()));
+      assert.match(ui.text(), /offline/i);
+      assert.ok(ui.find(/retry/i));
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('going back is one press, and reaches the caller', async () => {
+    let back = 0;
+    const net = server({ 'POST /trip/plan': plan() });
+    try {
+      const ui = await mountScreen(h(TripScreen, props({ onBack: () => { back += 1; } })));
+      await ui.press(/back/i);
+      assert.equal(back, 1);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+});
+
+describe('onboarding, three steps and out', () => {
+  test('it starts on step one and does not skip ahead', async () => {
+    const ui = await mountScreen(h(OnboardingScreen, { onFinish: noop }));
+    const said = ui.text();
+    assert.match(said, /Step 1 of 3/);
+    assert.match(said, /Wellness & spa/, 'the first question is about purpose');
+    assert.doesNotMatch(said, /Gentle/, 'step two is not on screen yet');
+    ui.unmount();
+  });
+
+  test('walking all three steps hands back exactly what was picked', async () => {
+    let answers: unknown = null;
+    const ui = await mountScreen(h(OnboardingScreen, {
+      onFinish: (a: unknown) => { answers = a; },
+    }));
+
+    await ui.press(/^Nature & green space\./);
+    await ui.press(/^Volunteering\./);
+    await ui.pressText('Continue');
+
+    assert.match(ui.text(), /Step 2 of 3/);
+    await ui.press(/^Moderate/);
+    await ui.pressText('Continue');
+
+    assert.match(ui.text(), /Step 3 of 3/);
+    await ui.press(/^Air quality alerts\./);
+    await ui.pressText('Enter ChivaGo');
+
+    assert.deepEqual(answers, {
+      purposes: ['nature', 'volunteering'],
+      activity: 'moderate',
+      watch: ['air'],
+    });
+    ui.unmount();
+  });
+
+  test('activity level is single-select, because two answers make the weighting meaningless', async () => {
+    let answers: { activity: string | null } | null = null;
+    const ui = await mountScreen(h(OnboardingScreen, {
+      onFinish: (a: { activity: string | null }) => { answers = a; },
+    }));
+
+    await ui.pressText('Continue');
+    await ui.press(/^Gentle/);
+    await ui.press(/^Full days/);
+    await ui.pressText('Continue');
+    await ui.pressText('Enter ChivaGo');
+
+    assert.equal(answers!.activity, 'full', 'the second pick replaces the first, never adds');
+    ui.unmount();
+  });
+
+  test('a purpose picked twice is unpicked, not counted twice', async () => {
+    let answers: { purposes: string[] } | null = null;
+    const ui = await mountScreen(h(OnboardingScreen, {
+      onFinish: (a: { purposes: string[] }) => { answers = a; },
+    }));
+
+    await ui.press(/^Quiet, away from crowds\./);
+    await ui.press(/^Quiet, away from crowds\./);
+    await ui.pressText('Continue');
+    await ui.pressText('Continue');
+    await ui.pressText('Enter ChivaGo');
+
+    assert.deepEqual(answers!.purposes, []);
+    ui.unmount();
+  });
+
+  test('skipping answers nothing rather than answering wrongly', async () => {
+    // A default of "wellness, moderate, everything" would be a fabricated
+    // profile, and the Healthy Score is weighted from these.
+    let answers: unknown = null;
+    const ui = await mountScreen(h(OnboardingScreen, {
+      onFinish: (a: unknown) => { answers = a; },
+    }));
+
+    await ui.pressText(/Skip/);
+    assert.deepEqual(answers, { purposes: [], activity: null, watch: [] });
+    ui.unmount();
+  });
+
+  test('the PDPA notice is on screen before the answers are submitted', async () => {
+    // It sits on the last step, which is the last moment before onFinish
+    // fires and anything is stored. Nothing leaves the screen before then.
+    const ui = await mountScreen(h(OnboardingScreen, { onFinish: noop }));
+    assert.doesNotMatch(ui.text(), /stored to personalise/, 'not needed on step one');
+
+    await ui.pressText('Continue');
+    await ui.pressText('Continue');
+
+    const said = ui.text();
+    assert.match(said, /Step 3 of 3/);
+    assert.match(said, /Location and health preferences are stored to personalise/);
+    assert.match(said, /change or delete them any time/, 'and it must say the right to erasure');
+    ui.unmount();
+  });
+});
+
+describe('Chiva Balance and the mood check-in', () => {
+  const impactProps = { onToast: noop, refreshKey: 0 };
+  const stats = [{ key: 'waste', label: { en: 'Waste collected', th: 'ขยะ' }, value: 12, unit: 'kg' }];
+  const community = { year: 2026, metrics: [] };
+
+  const balance = (over = {}) => ({
+    total: 74,
+    days: 3,
+    note: null,
+    components: [
+      { key: 'rest', label: { en: 'How you have felt', th: 'ความรู้สึกของคุณ' }, display: '2 check-ins', subScore: 75, weight: 0.3, source: 'self-reported' },
+      { key: 'movement', label: { en: 'Movement', th: 'การเคลื่อนไหว' }, display: '5.6 km a day', subScore: 96, weight: 0.2, source: 'measured' },
+      { key: 'air', label: { en: 'Air you have breathed', th: 'อากาศ' }, display: '31 AQI average', subScore: 88, weight: 0.15, source: 'measured' },
+    ],
+    ...over,
+  });
+
+  const routes = (b: unknown) => ({
+    'GET /impact/me': stats,
+    'GET /impact/community': community,
+    'GET /wellness/balance': b,
+  });
+
+  test('every component says whether it was measured or self-reported', async () => {
+    // Four of five come from what happened and one from what somebody said.
+    // Hiding which is which is how a wellbeing number stops being trustworthy.
+    const net = server(routes(balance()));
+    try {
+      const ui = await mountScreen(h(ImpactScreen, impactProps));
+      const said = ui.text();
+      assert.match(said, /74/, 'the balance figure');
+      assert.match(said, /MEASURED/);
+      assert.match(said, /YOU TOLD US/);
+      assert.match(said, /5\.6 km a day/, 'the raw value, not just the sub-score');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a trip too short to judge shows the reason, never a zero', async () => {
+    const net = server(routes(balance({
+      total: null,
+      components: [],
+      note: { en: 'Not enough of the trip yet — 1 of 3 places visited', th: 'ข้อมูลยังไม่พอ' },
+    })));
+    try {
+      const ui = await mountScreen(h(ImpactScreen, impactProps));
+      const said = ui.text();
+      assert.match(said, /Not enough of the trip yet/);
+      assert.doesNotMatch(said, /Chiva Balance · สมดุลชีวา\s*0\b/, 'a zero would be a lie');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('checking in a mood sends the key and replans nothing on its own', async () => {
+    let toasted = '';
+    const net = server({
+      ...routes(balance()),
+      'POST /wellness/mood': { at: '2026-09-01T02:00:00.000Z', mood: 'drained', note: null },
+    });
+    try {
+      const ui = await mountScreen(h(ImpactScreen, {
+        ...impactProps, onToast: (m: string) => { toasted = m; },
+      }));
+
+      await ui.press('I feel Drained');
+      await settle();
+
+      const posted = net.calls.find((c) => c.path === '/wellness/mood');
+      assert.ok(posted, 'the mood must reach the server');
+      assert.deepEqual(posted.body, { mood: 'drained', note: null });
+      assert.match(toasted, /short, quiet day/i, 'it should say what the day will become');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('it never presents itself as health advice', async () => {
+    // This is a travel app reading a mood as a preference. The disclaimer is
+    // not decoration; it is the line that keeps the feature honest.
+    const net = server(routes(balance()));
+    try {
+      const ui = await mountScreen(h(ImpactScreen, impactProps));
+      const said = ui.text();
+      assert.match(said, /not health advice/i);
+      assert.match(said, /ไม่ใช่คำแนะนำทางการแพทย์/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a failed balance does not take the impact figures with it', async () => {
+    const net = server({
+      'GET /impact/me': stats,
+      'GET /impact/community': community,
+      'GET /wellness/balance': offline(),
+    });
+    try {
+      const ui = await mountScreen(h(ImpactScreen, impactProps));
+      assert.match(ui.text(), /12 kg/, 'the impact half is fine');
+      assert.match(ui.text(), /offline/i, 'and the balance half says why it is not');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+});
+
+describe('the price outlook on the trip screen', () => {
+  const trip = { dayNumber: 2, dateLabel: 'Tue 1 Sept', walkingKm: 0, pointsToday: 0, airLabel: '', items: [] };
+  const emptyPlan = {
+    energy: 'moderate', walkingKm: 0, totalKm: 0, fareTHB: 0,
+    pointsAvailable: 0, dropped: [], items: [],
+  };
+
+  test('it shows a band, never a single price', async () => {
+    // People budget against this. A single number reads as a quote and we
+    // have nothing to quote from.
+    const net = server({ 'POST /trip/plan': emptyPlan, ...priceRoutes });
+    try {
+      const ui = await mountScreen(h(TripScreen, { trip, onBack: noop }));
+      const said = ui.text();
+      assert.match(said, /฿2,900–4,200/, 'the band, low to high');
+      assert.doesNotMatch(said, /฿3,550\b(?!–)/, 'the typical price must not stand alone');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('it shows how sure it is, and what it cannot see', async () => {
+    const net = server({ 'POST /trip/plan': emptyPlan, ...priceRoutes });
+    try {
+      const ui = await mountScreen(h(TripScreen, { trip, onBack: noop }));
+      const said = ui.text();
+      assert.match(said, /ROUGH/, 'the confidence must be on screen');
+      assert.match(said, /not a quote/i);
+      assert.match(said, /no partner inventory yet/i);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('it names what moved the price, with the size of each effect', async () => {
+    const net = server({ 'POST /trip/plan': emptyPlan, ...priceRoutes });
+    try {
+      const ui = await mountScreen(h(TripScreen, { trip, onBack: noop }));
+      const said = ui.text();
+      assert.match(said, /Peak season \+50%/);
+      assert.match(said, /New Year \+70%/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('the cheapest month is marked, and festival months are flagged', async () => {
+    const net = server({ 'POST /trip/plan': emptyPlan, ...priceRoutes });
+    try {
+      const ui = await mountScreen(h(TripScreen, { trip, onBack: noop }));
+      const said = ui.text();
+      assert.match(said, /2026-11/);
+      assert.match(said, /festival/i, 'nobody should book into one unknowingly');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a failed price fetch does not take the day plan with it', async () => {
+    const net = server({ 'POST /trip/plan': emptyPlan, 'POST /prices': offline() });
+    try {
+      const ui = await mountScreen(h(TripScreen, { trip, onBack: noop }));
+      assert.match(ui.text(), /Gentle/, 'the planner half is still there');
+      assert.doesNotMatch(ui.text(), /A night on Samui/, 'and the price half is simply absent');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+});

@@ -1,0 +1,65 @@
+{
+  "expo": {
+    "name": "ChivaGo",
+    "slug": "chivago",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "chivago",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#f3f2f2"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.chivago.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "ChivaGo uses your location to check you in at quest sites, show nearby places, and share your position with your emergency contacts if you trigger SOS.",
+        "NSCameraUsageDescription": "ChivaGo uses the camera to capture geo-tagged proof photos for Green Quests.",
+        "NSPhotoLibraryUsageDescription": "ChivaGo lets you attach existing photos as quest proof.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "If you trigger SOS, ChivaGo keeps sharing your location with your emergency contacts and the duty desk even when your phone is locked, until you cancel the alert. It is never used at any other time.",
+        "UIBackgroundModes": [
+          "location"
+        ]
+      }
+    },
+    "android": {
+      "package": "com.chivago.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#f3f2f2"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "CAMERA"
+      ]
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "If you trigger SOS, ChivaGo keeps sharing your location with your emergency contacts and the duty desk even when your phone is locked, until you cancel the alert.",
+          "locationWhenInUsePermission": "ChivaGo uses your location to check you in at quest sites and show nearby places.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ChivaGo lets you attach photos as quest proof."
+        }
+      ]
+    ]
+  }
+}

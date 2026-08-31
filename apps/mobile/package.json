@@ -1,0 +1,49 @@
+{
+  "name": "@chivago/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\" && node --test --experimental-strip-types --import ./test/register.mjs \"test/*.test.ts\""
+  },
+  "dependencies": {
+    "@babel/runtime": "^8.0.0",
+    "@chivago/core": "workspace:*",
+    "@chivago/tokens": "workspace:*",
+    "@expo-google-fonts/anuphan": "^0.4.1",
+    "@expo-google-fonts/archivo": "^0.2.3",
+    "@expo-google-fonts/ibm-plex-mono": "^0.4.1",
+    "@expo-google-fonts/ibm-plex-sans-thai": "^0.4.1",
+    "@expo-google-fonts/noto-sans-thai": "^0.2.3",
+    "@expo/metro-runtime": "~4.0.1",
+    "expo": "~52.0.0",
+    "expo-device": "~7.0.2",
+    "expo-font": "~13.0.0",
+    "expo-haptics": "~14.0.0",
+    "expo-image-picker": "~16.0.0",
+    "expo-location": "~18.0.0",
+    "expo-notifications": "~0.29.11",
+    "expo-secure-store": "~14.0.1",
+    "expo-status-bar": "~2.0.0",
+    "expo-task-manager": "~12.0.6",
+    "lucide-react-native": "^0.469.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-native": "0.76.6",
+    "react-native-safe-area-context": "4.12.0",
+    "react-native-svg": "15.8.0",
+    "react-native-web": "~0.19.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "~18.3.12",
+    "react-test-renderer": "18.3.1",
+    "sucrase": "^3.35.1",
+    "typescript": "^5.9.3"
+  }
+}

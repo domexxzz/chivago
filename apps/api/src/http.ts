@@ -1,0 +1,124 @@
+/**
+ * HTTP helpers: the response envelope and the error mapping.
+ *
+ * Every route returns the same shape so the client has exactly one branch to
+ * write. Errors are mapped to codes the app can act on - `OUTSIDE_GEOFENCE`
+ * drives a specific message, `INSUFFICIENT_POINTS` drives another.
+ */
+
+import type { Context } from 'hono';
+import type { ApiFailure, ApiSuccess } from '@chivago/core';
+import { InsufficientPoints } from './wallet-service.ts';
+import { InvalidTransition, OutsideGeofence } from './quest-service.ts';
+import {
+  AlreadyReported, AppealAlreadyOpen, CannotReportOwn, InvalidRating, NeverVisited,
+  NothingToAppeal, NotYourReview, ReportRateLimited, TakedownRateLimited,
+} from './place-review-service.ts';
+
+export const ok = <T>(c: Context, data: T, meta?: ApiSuccess<T>['meta']) =>
+  c.json<ApiSuccess<T>>({ ok: true, data, ...(meta ? { meta } : {}) });
+
+export const fail = (c: Context, code: string, error: string, status = 400) =>
+  c.json<ApiFailure>({ ok: false, code, error }, status as 400);
+
+/**
+ * Turn a thrown error into a response.
+ *
+ * Unknown errors return a generic message and log the detail server-side: an
+ * error string is an information leak, and the user cannot act on a stack
+ * trace anyway.
+ */
+export function handleError(c: Context, err: unknown) {
+  if (err instanceof OutsideGeofence) {
+    return fail(
+      c,
+      'OUTSIDE_GEOFENCE',
+      `You need to be within ${err.radiusM} m of the site to check in. You are about ${Math.round(err.distanceM)} m away.`,
+      403,
+    );
+  }
+  if (err instanceof TakedownRateLimited) {
+    return fail(
+      c,
+      'TAKEDOWN_RATE_LIMITED',
+      `Take-down limit reached for now. Try again in about ${err.retryAfterMinutes} minutes, `
+      + 'or ask a second moderator to look.',
+      429,
+    );
+  }
+  if (err instanceof NotYourReview) {
+    return fail(c, 'NOT_YOUR_REVIEW', 'Only the author can appeal a review.', 403);
+  }
+  if (err instanceof NothingToAppeal) {
+    return fail(c, 'NOTHING_TO_APPEAL', 'This review is published — there is nothing to appeal.');
+  }
+  if (err instanceof AppealAlreadyOpen) {
+    return fail(c, 'APPEAL_OPEN', 'Your appeal is already waiting for a moderator.', 409);
+  }
+  if (err instanceof ReportRateLimited) {
+    return fail(
+      c,
+      'REPORT_RATE_LIMITED',
+      `You have reported a lot recently. Try again in about ${err.retryAfterMinutes} minutes.`,
+      429,
+    );
+  }
+  if (err instanceof AlreadyReported) {
+    // 409, not 400. They did nothing wrong - they already did this.
+    return fail(c, 'ALREADY_REPORTED', 'You have already reported this review.', 409);
+  }
+  if (err instanceof CannotReportOwn) {
+    return fail(
+      c,
+      'CANNOT_REPORT_OWN',
+      'This is your own review — you can edit or delete it instead.',
+      400,
+    );
+  }
+  if (err instanceof NeverVisited) {
+    return fail(
+      c,
+      'NEVER_VISITED',
+      // Says what to do, not just what went wrong. The user can act on this.
+      'Check in at this place before reviewing it — reviews here come from people who were actually there.',
+      403,
+    );
+  }
+  if (err instanceof InvalidRating) {
+    return fail(c, 'INVALID_RATING', 'A rating must be a whole number from 1 to 5.');
+  }
+  if (err instanceof InvalidTransition) {
+    return fail(c, 'INVALID_TRANSITION', err.message, 409);
+  }
+  if (err instanceof InsufficientPoints) {
+    return fail(
+      c,
+      'INSUFFICIENT_POINTS',
+      // Name the currency. With two balances "not enough points" is not an
+      // answer - the other one may be full, and the user cannot act without
+      // knowing which.
+      `You need ${err.required - err.balance} more ${err.currency === 'green' ? 'Green' : 'Trip'} Points.`,
+      402,
+    );
+  }
+  console.error('[chivago] unhandled', err);
+  return fail(c, 'INTERNAL', 'Something went wrong on our side.', 500);
+}
+
+/**
+ * Identify the caller.
+ *
+ * The pilot uses a device-scoped id header rather than accounts: the product
+ * has no sign-up, and under Thailand's PDPA the least personal data you can
+ * collect is the safest amount. Swap for a real session when accounts land -
+ * every route reads the user through this one function.
+ */
+export function userId(c: Context): string {
+  return c.req.header('x-chivago-user') ?? 'demo-user';
+}
+
+/** Parse a numeric query param, or return the fallback. */
+export function num(v: string | undefined, fallback: number): number {
+  const n = v === undefined ? NaN : Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}

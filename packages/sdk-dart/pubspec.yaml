@@ -1,0 +1,14 @@
+name: chivago
+description: Dart client for the ChivaGo API. Written against contract/api-contract.json.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  http: ^1.2.0
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0

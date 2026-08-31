@@ -1,0 +1,320 @@
+/**
+ * Place detail - score breakdown first, opinion second.
+ *
+ * The design shows the four metrics as a bare 2x2 grid. This adds one thing the
+ * design does not have and the handoff explicitly worries about: a
+ * "How is this calculated?" disclosure. A wellness score aimed at tourists that
+ * nobody can interrogate is a trust problem and, in some markets, a regulatory
+ * one. The breakdown comes straight from the server so it can never drift from
+ * the number above it.
+ */
+
+import React from 'react';
+import * as Location from 'expo-location';
+import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { X } from 'lucide-react-native';
+import { strings, type ScoredPlace } from '@chivago/core';
+import { api } from '../api/client.ts';
+import { useAsync } from '../state/store.tsx';
+import { color, gutter, layout, radius } from '../theme/index.ts';
+import { AccentNumeral, Body, Heading, Label, Thai } from '../components/Type.tsx';
+import { Button, Tag } from '../components/Button.tsx';
+import { PushHeader } from '../components/Shell.tsx';
+import { ErrorState, LoadingState } from '../components/States.tsx';
+import { ReviewsBlock } from './PlaceReviews.tsx';
+
+export function PlaceScreen({
+  placeId, onBack, onAddToTrip, onSafePath, onToast, onPointsChanged,
+}: {
+  placeId: string;
+  onBack: () => void;
+  onAddToTrip: () => void;
+  onSafePath: () => void;
+  onToast: (msg: string) => void;
+  onPointsChanged: () => void;
+}) {
+  const place = useAsync(() => api.place(placeId), [placeId]);
+  const [showBreakdown, setShowBreakdown] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [checkedIn, setCheckedIn] = React.useState(false);
+
+  React.useEffect(() => {
+    // Whether they already checked in today is server state, not screen
+    // state: it survives a reinstall, and it is the same answer on every
+    // device they own.
+    void api.checkinsToday().then((res) => {
+      if (res.ok) setCheckedIn(res.data.includes(placeId));
+    });
+  }, [placeId]);
+
+  /**
+   * Check in. Real GPS, checked SERVER-side against the place.
+   *
+   * The phone never decides whether it is close enough - a client that judges
+   * its own geofence is a client that can be told to lie.
+   */
+  const checkIn = async () => {
+    setBusy(true);
+    const perm = await Location.requestForegroundPermissionsAsync();
+    if (!perm.granted) {
+      setBusy(false);
+      onToast('Location permission is needed to check in here.');
+      return;
+    }
+    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    const res = await api.checkIn(placeId, {
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
+    });
+    setBusy(false);
+    if (!res.ok) { onToast(res.error); return; }
+    // Also the gate on reviewing: a check-in is what makes one writable, so
+    // the review block must open in the same beat rather than on a reload.
+    setCheckedIn(true);
+    // `awarded: false` means they are here and already checked in today. Say
+    // so warmly - a second visit is the behaviour we want, not a mistake.
+    onToast(
+      res.data.awarded
+        ? strings.checkin.awarded(res.data.pointsAwarded).en
+        : strings.checkin.already.en,
+    );
+    if (res.data.awarded) onPointsChanged();
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      <PushHeader context={strings.place.context.en} onBack={onBack} />
+
+      {place.loading ? <LoadingState /> : null}
+      {place.error ? <ErrorState message={place.error} onRetry={place.reload} /> : null}
+
+      {place.data ? (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/* 16:9 hero. Real photography renders through grayscale(1)
+              contrast(1.08); imagery is NEVER tinted. */}
+          <View
+            style={{
+              height: 150,
+              backgroundColor: color.neutral300,
+              borderBottomWidth: layout.ruleStrong,
+              borderBottomColor: color.text,
+            }}
+          />
+
+          <View style={{ paddingHorizontal: gutter, paddingTop: 16 }}>
+            <Heading size={26} tracking={-0.52}>{place.data.name.en}</Heading>
+            <Thai size={11} style={{ marginTop: 4 }}>{place.data.name.th}</Thai>
+
+            <ScoreBlock place={place.data} onExplain={() => setShowBreakdown(true)} />
+            <MetricGrid place={place.data} />
+
+            <Body style={{ marginTop: 16 }}>{place.data.blurb.en}</Body>
+            <Thai size={11} style={{ marginTop: 8 }}>{place.data.blurb.th}</Thai>
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16 }}>
+              {place.data.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}
+            </View>
+
+            <Button
+              label={checkedIn ? strings.checkin.already.en : strings.checkin.cta.en}
+              thai={checkedIn ? undefined : strings.checkin.cta.th}
+              onPress={checkIn}
+              disabled={busy || checkedIn}
+              height={48}
+              style={{ marginTop: 24 }}
+            />
+            <Button
+              label={strings.place.addToRoute.en}
+              thai={strings.place.addToRoute.th}
+              onPress={onAddToTrip}
+              variant="secondary"
+              height={44}
+              style={{ marginTop: 10 }}
+            />
+            <Button
+              label={strings.place.safePath.en}
+              onPress={onSafePath}
+              variant="secondary"
+              height={44}
+              style={{ marginTop: 10 }}
+            />
+
+            <ReviewsBlock
+              placeId={placeId}
+              summary={place.data.reviews}
+              justCheckedIn={checkedIn}
+              onToast={onToast}
+              onPointsChanged={() => {
+                onPointsChanged();
+                // The average moved, so the header figure is now stale.
+                place.reload();
+              }}
+            />
+
+            <View style={{ height: 32 }} />
+          </View>
+        </ScrollView>
+      ) : null}
+
+      {place.data ? (
+        <BreakdownSheet
+          place={place.data}
+          visible={showBreakdown}
+          onClose={() => setShowBreakdown(false)}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+function ScoreBlock({ place, onExplain }: { place: ScoredPlace; onExplain: () => void }) {
+  return (
+    <View
+      style={{
+        borderTopWidth: layout.ruleStrong,
+        borderTopColor: color.text,
+        borderBottomWidth: 1,
+        borderBottomColor: color.neutral300,
+        paddingVertical: 12,
+        marginTop: 14,
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 12 }}>
+        <AccentNumeral size={44}>{place.healthyScore}</AccentNumeral>
+        <View>
+          <Label size={10} tracking={0.14}>{strings.place.healthyScore.en}</Label>
+          <Thai size={11} style={{ marginTop: 2 }}>{strings.place.healthyScore.th}</Thai>
+        </View>
+      </View>
+      <Button label={strings.place.howCalculated.en} onPress={onExplain} variant="ghost" />
+    </View>
+  );
+}
+
+function MetricGrid({ place }: { place: ScoredPlace }) {
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+      {place.breakdown.components.map((c, i) => (
+        <View
+          key={c.key}
+          style={{
+            width: '50%',
+            paddingVertical: 12,
+            paddingRight: 12,
+            borderRightWidth: i % 2 === 0 ? 1 : 0,
+            borderRightColor: color.neutral300,
+            borderBottomWidth: 1,
+            borderBottomColor: color.neutral300,
+          }}
+        >
+          <Label size={10} tracking={0.12}>{c.label.en}</Label>
+          <Heading size={17} style={{ marginTop: 4 }}>{c.display}</Heading>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * The score explainer.
+ *
+ * Shows each component's raw value, its normalised sub-score, the weight
+ * applied for THIS user, and where the reading came from. Everything is server
+ * output - the client does no arithmetic, so the sheet cannot disagree with the
+ * headline number.
+ */
+function BreakdownSheet({
+  place, visible, onClose,
+}: { place: ScoredPlace; visible: boolean; onClose: () => void }) {
+  const { breakdown } = place;
+  const air = place.readings?.aqi;
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(32,30,29,0.45)', justifyContent: 'flex-end' }}>
+        <View style={{ backgroundColor: color.bg, maxHeight: '86%' }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: gutter,
+              paddingVertical: 14,
+              borderBottomWidth: layout.ruleStrong,
+              borderBottomColor: color.text,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Heading size={20}>{strings.place.howCalculated.en}</Heading>
+              <Thai size={11} style={{ marginTop: 2 }}>{strings.place.howCalculated.th}</Thai>
+            </View>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12}>
+              <X size={20} color={color.text} strokeWidth={2} />
+            </Pressable>
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: gutter }}>
+            <Body size={13} colour={color.neutral700}>
+              {`The Healthy Score is a weighted composite of four signals. Weighting is set by your wellness profile — ${breakdown.profileApplied}.`}
+            </Body>
+
+            {breakdown.components.map((c) => (
+              <View
+                key={c.key}
+                style={{
+                  paddingVertical: 14,
+                  borderBottomWidth: 1,
+                  borderBottomColor: color.neutral300,
+                }}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <Heading size={15}>{c.label.en}</Heading>
+                  <Heading size={15} colour={color.accent700}>{`${Math.round(c.subScore)} / 100`}</Heading>
+                </View>
+                <Thai size={11} style={{ marginTop: 2 }}>{c.label.th}</Thai>
+
+                <View style={{ height: 6, backgroundColor: color.neutral300, marginTop: 10 }}>
+                  <View style={{ width: `${c.subScore}%`, height: '100%', backgroundColor: color.text }} />
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>
+                  <Label size={10} tracking={0.1}>{`Reading · ${c.display}`}</Label>
+                  <Label size={10} tracking={0.1}>{`Weight · ${Math.round(c.weight * 100)}%`}</Label>
+                  <Label size={10} tracking={0.1} colour={c.provenance === 'live' ? color.accent700 : color.neutral600}>
+                    {strings.place.provenance[c.provenance].en}
+                  </Label>
+                </View>
+              </View>
+            ))}
+
+            <View
+              style={{
+                borderWidth: layout.ruleStrong,
+                borderColor: color.text,
+                borderRadius: radius.md,
+                padding: 14,
+                marginTop: 18,
+              }}
+            >
+              <Label size={10} tracking={0.14} colour={color.accent700}>Where the air reading comes from</Label>
+              <Body size={13} style={{ marginTop: 8 }}>
+                {air?.source ?? 'Seeded baseline'}
+              </Body>
+              {/* Said plainly, because the alternative is implying a precision
+                  the data does not have. Thailand has no air monitoring station
+                  on Koh Samui; the nearest is ~87 km away on the mainland. */}
+              <Body size={13} colour={color.neutral700} style={{ marginTop: 8 }}>
+                Air is modelled for an ~11 km area, not this exact spot. Thailand has no
+                monitoring station on Koh Samui — the nearest is about 87 km away on the
+                mainland — so island-wide readings are the honest resolution today.
+              </Body>
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
