@@ -13,7 +13,7 @@ import { createElement as h } from 'react';
 
 import { mountScreen, offline, refuses, server, settle } from './interact.ts';
 import { control, resetControl } from './stubs/native.mjs';
-import { place, progress, quest, review, shield, summary } from './fixtures.ts';
+import { place, progress, quest, review, shield, summary, wallet } from './fixtures.ts';
 
 import { Hero, PlaceScreen } from '../src/screens/PlaceScreen.tsx';
 import { ReviewsBlock } from '../src/screens/PlaceReviews.tsx';
@@ -22,6 +22,7 @@ import { SafetyScreen } from '../src/screens/SafetyScreen.tsx';
 import { TripScreen } from '../src/screens/TripScreen.tsx';
 import { OnboardingScreen } from '../src/screens/Onboarding.tsx';
 import { ImpactScreen } from '../src/screens/ImpactScreen.tsx';
+import { WalletScreen } from '../src/screens/WalletScreen.tsx';
 
 const noop = () => {};
 
@@ -856,5 +857,108 @@ describe('the place hero, with and without a photograph', () => {
     const labels = ui.labels().join(' ');
     assert.doesNotMatch(labels, /photographed by/i, 'a drawing must not be credited as a photo');
     ui.unmount();
+  });
+});
+
+describe('the companion collection on the wallet', () => {
+  const walletProps = {
+    onOpenMarket: noop, refreshKey: 0, notifications: [], unread: 0,
+    onMarkRead: noop, onMarkAllRead: noop, onOpenQuest: noop,
+  };
+
+  const species = (over = {}) => ({
+    key: 'green-turtle', layer: 'Safe',
+    name: { en: 'Green sea turtle', th: 'เต่าตนุ' },
+    scientific: 'Chelonia mydas',
+    eggName: { en: 'Beach egg', th: 'ไข่จากหาดทราย' },
+    habitat: { en: 'Sand beaches', th: 'หาดทราย' },
+    fact: {
+      en: 'Returns to the beach it hatched on to nest, decades later.',
+      th: 'กลับมาวางไข่ที่หาดเดิมที่ตัวเองฟักออกมา',
+    },
+    status: 'EN', ...over,
+  });
+
+  const routes = (companions: unknown[], summary = { found: 1, total: 5, grown: 0 }) => ({
+    'GET /wallet': wallet(),
+    'GET /companions': { companions, summary, speciesAsOf: '2026-09-01' },
+  });
+
+  test('an egg keeps the species hidden — that is what an egg is for', async () => {
+    const net = server(routes([{
+      species: species(), stage: 'egg',
+      evidence: { layer: 'Safe', placesVisited: 1, questsVerified: 0 },
+      nextStep: { en: 'Check in at 1 more Safe place to hatch this egg', th: 'เช็กอินอีก 1 แห่ง' },
+    }]));
+    try {
+      const ui = await mountScreen(h(WalletScreen, walletProps));
+      const said = ui.text();
+      assert.match(said, /Beach egg/, 'an egg is named for its habitat, not a filter chip');
+      assert.doesNotMatch(said, /Green sea turtle/, 'an egg must not name what is inside it');
+      assert.doesNotMatch(said, /Chelonia mydas/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a hatched companion teaches something true about a real animal', async () => {
+    const net = server(routes([{
+      species: species(), stage: 'hatchling',
+      evidence: { layer: 'Safe', placesVisited: 2, questsVerified: 0 },
+      nextStep: { en: 'Have a host verify one Safe quest', th: 'ให้ผู้จัดยืนยันหนึ่งครั้ง' },
+    }]));
+    try {
+      const ui = await mountScreen(h(WalletScreen, walletProps));
+      const said = ui.text();
+      assert.match(said, /Green sea turtle/);
+      assert.match(said, /Chelonia mydas/, 'the binomial, so it is checkable');
+      assert.match(said, /IUCN EN/);
+      assert.match(said, /Returns to the beach it hatched on/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('every unfinished companion says what would move it on', async () => {
+    // A locked slot with no stated lever is the shape of a slot machine.
+    const net = server(routes([{
+      species: species(), stage: 'egg',
+      evidence: { layer: 'Safe', placesVisited: 1, questsVerified: 0 },
+      nextStep: { en: 'Check in at 1 more Safe place to hatch this egg', th: 'เช็กอินอีก 1 แห่ง' },
+    }]));
+    try {
+      const ui = await mountScreen(h(WalletScreen, walletProps));
+      assert.match(ui.text(), /Check in at 1 more Safe place/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('an empty collection invites the first check-in, not five locked slots', async () => {
+    const net = server(routes([], { found: 0, total: 5, grown: 0 }));
+    try {
+      const ui = await mountScreen(h(WalletScreen, walletProps));
+      const said = ui.text();
+      assert.match(said, /Check in anywhere on the island/);
+      assert.match(said, /0\/5/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('the species data carries the date it was recorded', async () => {
+    // Conservation status ages. This app does not make claims it cannot date.
+    const net = server(routes([]));
+    try {
+      const ui = await mountScreen(h(WalletScreen, walletProps));
+      assert.match(ui.text(), /recorded 2026-09-01/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a failed companion fetch does not take the wallet with it', async () => {
+    const net = server({ 'GET /wallet': wallet(), 'GET /companions': offline() });
+    try {
+      const ui = await mountScreen(h(WalletScreen, walletProps));
+      assert.match(ui.text(), /1,240/, 'the balance is still there');
+      assert.doesNotMatch(ui.text(), /Companions ·/, 'and the collection is simply absent');
+      ui.unmount();
+    } finally { net.restore(); }
   });
 });

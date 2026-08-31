@@ -8,7 +8,7 @@
 
 import type {
   ApiResponse, Balances, Bilingual, ImpactStat, LedgerEntry, NotificationKind, Offer, Quest,
-  ChivaBalance, MonthOutlook, MoodCheckin, MoodKey, PriceCategory, PriceForecast,
+  ChivaBalance, Companion, MonthOutlook, MoodCheckin, MoodKey, PriceCategory, PriceForecast,
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
   WellnessProfile,
 } from '@chivago/core';
@@ -257,6 +257,20 @@ export const api = {
   markNotificationRead: (id: string) =>
     post<{ unread: number }>(`/notifications/${id}/read`),
   markAllNotificationsRead: () => post<{ unread: number }>('/notifications/read-all'),
+
+  // -- companions ---------------------------------------------------------
+  /**
+   * One creature per habitat, at the stage this traveller's evidence reached.
+   *
+   * Derived server-side from the ledger and never stored, so there is no
+   * route that grants one and nothing to keep in sync.
+   */
+  companions: () =>
+    get<{
+      companions: Companion[];
+      summary: { found: number; total: number; grown: number };
+      speciesAsOf: string;
+    }>('/companions'),
 
   // -- price forecast -----------------------------------------------------
   /**

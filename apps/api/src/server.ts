@@ -28,14 +28,17 @@ import {
   reviewsFor, withdrawReview, writeReview,
 } from './place-review-service.ts';
 import {
-  cheapestMonth, forecastPrice, islandDay, isReportReasonKey,
+  SPECIES_AS_OF, cheapestMonth, collectionSummary, companionsFor,
+  forecastPrice, islandDay, isReportReasonKey,
   outlookAhead, planDay, routeBiasFor, smartRoute,
 } from '@chivago/core';
 import {
   arriveAtQuest, getAllProgress, getProgress, joinQuest, resolveVerification, submitProof,
 } from './quest-service.ts';
 import { consoleRoutes } from './console/routes.ts';
-import { UnknownMood, balanceFor, latestMood, moodHistory, recordMood } from './wellness-service.ts';
+import {
+  UnknownMood, balanceFor, habitatEvidenceFor, latestMood, moodHistory, recordMood,
+} from './wellness-service.ts';
 import {
   disableDevice, dispatch, inbox, InvalidPushToken, markAllRead, markRead,
   registerDevice, unreadCount,
@@ -616,6 +619,23 @@ app.post('/vouchers/:code/redeem', (c) => {
   db.prepare("UPDATE vouchers SET status = 'redeemed', redeemed_at = ? WHERE code = ?").run(
     new Date().toISOString(), code);
   return ok(c, { alreadyRedeemed: false });
+});
+
+// ---------------------------------------------------------------------------
+// Companions
+// ---------------------------------------------------------------------------
+
+/**
+ * One creature per habitat, at the stage this traveller's evidence has reached.
+ *
+ * Derived on read from the ledger, never stored: the collection IS the
+ * evidence, so there is nothing to keep in sync and nothing that can be
+ * granted by any route.
+ */
+app.get('/companions', (c) => {
+  const evidence = habitatEvidenceFor(db, userId(c));
+  const companions = companionsFor(evidence);
+  return ok(c, { companions, summary: collectionSummary(companions), speciesAsOf: SPECIES_AS_OF });
 });
 
 // ---------------------------------------------------------------------------

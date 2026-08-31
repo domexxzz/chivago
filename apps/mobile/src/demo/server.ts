@@ -14,7 +14,8 @@
  */
 
 import {
-  cheapestMonth, chivaBalance, forecastPrice, islandDay,
+  SPECIES_AS_OF, cheapestMonth, chivaBalance, collectionSummary, companionsFor,
+  forecastPrice, islandDay,
   outlookAhead, planDay, progressionFor, routeBiasFor, smartRoute,
 } from '@chivago/core';
 import snapshot from './fixtures.json';
@@ -284,6 +285,26 @@ export function installDemoServer(apiBase: string): void {
     if (method === 'GET') {
       if (path === '/checkins/today') return answer(state.checkins);
       if (path === '/wellness/balance') return answer(balanceNow());
+      if (path === '/companions') {
+        // The real derivation over this session's own check-ins: eggs appear
+        // because the visitor actually went somewhere, not because a fixture
+        // said so.
+        const places = state.routes['/places'] as { id: string; layer: string }[];
+        const byLayer = new Map<string, number>();
+        for (const id of state.checkins) {
+          const p = places.find((x) => x.id === id);
+          if (p) byLayer.set(p.layer, (byLayer.get(p.layer) ?? 0) + 1);
+        }
+        const evidence = [...byLayer].map(([layer, placesVisited]) => ({
+          layer, placesVisited, questsVerified: 0,
+        }));
+        const companions = companionsFor(evidence as never);
+        return answer({
+          companions,
+          summary: collectionSummary(companions),
+          speciesAsOf: SPECIES_AS_OF,
+        });
+      }
       if (path === '/wellness/mood') return answer(state.moods);
       if (path in state.routes) return answer(state.routes[path]);
     }

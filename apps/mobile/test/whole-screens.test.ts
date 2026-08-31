@@ -32,10 +32,17 @@ const walletProps = {
 
 describe('the wallet screen, fetching its own wallet', () => {
   test('it asks for /wallet and shows both purses once it arrives', async () => {
-    const net = server({ 'GET /wallet': wallet() });
+    const net = server({
+      'GET /wallet': wallet(),
+      'GET /companions': { companions: [], summary: { found: 0, total: 5, grown: 0 }, speciesAsOf: '2026-09-01' },
+    });
     try {
       const ui = await mountScreen(h(WalletScreen, walletProps));
-      assert.deepEqual(net.calls.map((c) => `${c.method} ${c.path}`), ['GET /wallet']);
+      // Two fetches: the purse and the companion collection.
+      assert.deepEqual(
+        net.calls.map((c) => `${c.method} ${c.path}`).sort(),
+        ['GET /companions', 'GET /wallet'],
+      );
       assert.deepEqual(net.missing, [], 'the screen fetched something untabled');
 
       const said = ui.text();
@@ -82,7 +89,10 @@ describe('the wallet screen, fetching its own wallet', () => {
       await ui.press(/retry/i);
       await settle();
 
-      assert.equal(net.calls.length, 2, 'retry should have refetched');
+      assert.equal(
+        net.calls.filter((c) => c.path === '/wallet').length, 2,
+        'retry should have refetched the wallet',
+      );
       assert.match(ui.text(), /1,240/, 'the recovered wallet should render');
       assert.doesNotMatch(ui.text(), /Try again in a moment\./);
       ui.unmount();

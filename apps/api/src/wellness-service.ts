@@ -10,7 +10,8 @@
 import { randomUUID } from 'node:crypto';
 import {
   chivaBalance, isMoodKey,
-  type BalanceInput, type ChivaBalance, type MoodCheckin, type MoodKey,
+  type BalanceInput, type ChivaBalance, type HabitatEvidence,
+  type MoodCheckin, type MoodKey,
 } from '@chivago/core';
 import { rows, type DB } from './db.ts';
 
@@ -109,4 +110,50 @@ export const ESTIMATED_KM_PER_STOP = 1.4;
 
 export function balanceFor(db: DB, userId: string, now = new Date()): ChivaBalance {
   return chivaBalance(balanceInputFor(db, userId, now));
+}
+
+/**
+ * What somebody has done, per habitat, for the companion collection.
+ *
+ * Read from the LEDGER, like every other derived fact in this service. A
+ * companions table would be a second record of things the ledger already
+ * holds, and two records of one fact eventually disagree.
+ *
+ * `placesVisited` counts DISTINCT places: checking in twice at the same beach
+ * is one place, so the collection rewards covering a habitat rather than
+ * loitering in it. `questsVerified` counts only quests a host approved, which
+ * is the same standard Green Points are held to.
+ */
+export function habitatEvidenceFor(db: DB, userId: string): HabitatEvidence[] {
+  const checkins = rows<{ layer: string; places: number }>(
+    db.prepare(
+      `SELECT p.layer AS layer, COUNT(DISTINCT p.id) AS places
+       FROM ledger l
+       JOIN places p ON p.id = substr(l.source_ref, 9, instr(substr(l.source_ref, 9), ':') - 1)
+       WHERE l.user_id = ? AND l.kind = 'checkin'
+       GROUP BY p.layer`,
+    ).all(userId),
+  );
+
+  const quests = rows<{ layer: string; verified: number }>(
+    db.prepare(
+      `SELECT p.layer AS layer, COUNT(DISTINCT q.id) AS verified
+       FROM ledger l
+       JOIN quests q ON q.id = substr(l.source_ref, 7, instr(substr(l.source_ref, 7), ':') - 1)
+       JOIN places p ON p.lat = q.lat AND p.lng = q.lng
+       WHERE l.user_id = ? AND l.kind = 'quest_reward'
+       GROUP BY p.layer`,
+    ).all(userId),
+  );
+
+  const byLayer = new Map<string, HabitatEvidence>();
+  const at = (layer: string) => {
+    if (!byLayer.has(layer)) {
+      byLayer.set(layer, { layer: layer as HabitatEvidence['layer'], placesVisited: 0, questsVerified: 0 });
+    }
+    return byLayer.get(layer)!;
+  };
+  for (const r of checkins) at(r.layer).placesVisited = r.places;
+  for (const r of quests) at(r.layer).questsVerified = r.verified;
+  return [...byLayer.values()];
 }

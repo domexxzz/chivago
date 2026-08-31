@@ -20,6 +20,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import {
   formatAmount, formatLedgerDate, levelProgressPct, strings,
   type Wallet,
+  type Companion,
 } from '@chivago/core';
 import { api, type InboxItem } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
@@ -40,6 +41,7 @@ export function WalletScreen({
   onOpenQuest: (id: string) => void;
 }) {
   const wallet = useAsync(() => api.wallet(), [refreshKey]);
+  const companions = useAsync(() => api.companions(), [refreshKey]);
 
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
@@ -57,6 +59,7 @@ export function WalletScreen({
           />
           <LevelBlock wallet={wallet.data} />
           <RankLadder wallet={wallet.data} />
+          <Companions data={companions.data} />
           <Ledger wallet={wallet.data} onOpenMarket={onOpenMarket} />
         </>
       ) : null}
@@ -361,6 +364,115 @@ function Inbox({
           </Pressable>
         );
       })}
+    </View>
+  );
+}
+
+/**
+ * The companion collection - one creature per habitat.
+ *
+ * Deliberately NOT a shop and NOT a gacha. Each stage is a picture of the
+ * evidence behind it: an egg means you were somewhere, a hatchling means you
+ * covered the habitat, and a grown animal means a host verified work you did
+ * there. Nothing here can be bought, rolled for, or granted by any route.
+ *
+ * The species are real Samui animals with their binomials and one true fact,
+ * so the collection teaches something even to somebody who never checks in
+ * again.
+ */
+function Companions({
+  data,
+}: {
+  data: {
+    companions: Companion[];
+    summary: { found: number; total: number; grown: number };
+    speciesAsOf: string;
+  } | null;
+}) {
+  if (!data) return null;
+  const { companions, summary } = data;
+
+  return (
+    <View style={{ borderTopWidth: layout.ruleStrong, borderTopColor: color.text, paddingTop: 18 }}>
+      <View style={{
+        flexDirection: 'row', justifyContent: 'space-between',
+        alignItems: 'baseline', paddingHorizontal: gutter,
+      }}>
+        <Label size={10} tracking={0.16}>Companions · สัตว์ประจำถิ่น</Label>
+        <Label size={10} tracking={0.12} colour={color.neutral600}>
+          {`${summary.found}/${summary.total} · ${summary.grown} GROWN`}
+        </Label>
+      </View>
+
+      {companions.length === 0 ? (
+        // Not five locked slots. An empty collection with a lever you cannot
+        // see is the shape of a slot machine.
+        <View style={{ paddingHorizontal: gutter, paddingTop: 12 }}>
+          <Body size={13} colour={color.neutral700}>
+            Check in anywhere on the island to find your first egg.
+          </Body>
+          <Thai size={11} style={{ marginTop: 4 }}>เช็กอินที่ไหนก็ได้บนเกาะ เพื่อพบไข่ใบแรก</Thai>
+        </View>
+      ) : null}
+
+      {companions.map((c) => (
+        <View
+          key={c.species.key}
+          style={{
+            marginTop: 12,
+            marginHorizontal: gutter,
+            padding: 14,
+            borderWidth: c.stage === 'grown' ? layout.ruleStrong : 1,
+            borderColor: c.stage === 'grown' ? color.accent : color.neutral400,
+            borderRadius: radius.md,
+          }}
+        >
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Heading size={16} colour={c.stage === 'grown' ? color.accent : color.text}>
+                {c.stage === 'egg' ? c.species.eggName.en : c.species.name.en}
+              </Heading>
+              <Thai size={11} style={{ marginTop: 2 }}>
+                {c.stage === 'egg' ? c.species.eggName.th : c.species.name.th}
+              </Thai>
+            </View>
+            <Label size={9} tracking={0.12} colour={color.neutral600}>
+              {c.stage.toUpperCase()}
+            </Label>
+          </View>
+
+          {/* An egg keeps the species hidden - that is the whole point of one. */}
+          {c.stage !== 'egg' ? (
+            <>
+              <Label
+                size={9}
+                tracking={0.06}
+                colour={color.neutral500}
+                style={{ marginTop: 8, textTransform: 'none' }}
+              >
+                {`${c.species.scientific} · IUCN ${c.species.status}`}
+              </Label>
+              <Body size={13} colour={color.neutral600} style={{ marginTop: 6 }}>
+                {c.species.fact.en}
+              </Body>
+              <Thai size={10} style={{ marginTop: 3 }}>{c.species.fact.th}</Thai>
+            </>
+          ) : null}
+
+          {/* What would move it on. Never a locked slot with no explanation. */}
+          {c.nextStep ? (
+            <Body size={13} colour={color.accent700} style={{ marginTop: 10 }}>
+              {c.nextStep.en}
+            </Body>
+          ) : null}
+        </View>
+      ))}
+
+      <View style={{ paddingHorizontal: gutter, paddingTop: 12 }}>
+        <Label size={9} tracking={0.06} colour={color.neutral500} style={{ textTransform: 'none' }}>
+          {`Species and conservation status recorded ${data.speciesAsOf}.`}
+        </Label>
+      </View>
     </View>
   );
 }
