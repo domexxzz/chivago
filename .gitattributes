@@ -1,0 +1,36 @@
+# Line endings.
+#
+# The working tree held a mix of CRLF and LF - the repo was built on Windows
+# with tools that disagreed - and that mix cost real time: an edit anchored on
+# a CRLF line silently failed to match the same line written with LF.
+#
+# `eol=lf` checks out LF on every platform rather than deferring to whatever
+# core.autocrlf happens to be on the machine doing the clone. Every tool this
+# project runs (node, pnpm, expo, dart) is happy with LF on Windows, so there
+# is nothing to gain from the round trip.
+* text=auto eol=lf
+
+# Binary formats, declared before anyone adds one.
+#
+# `text=auto` usually detects these on its own, but "usually" is how a font or
+# a photograph gets corrupted by a newline conversion. The roadmap has real
+# Samui photography arriving; this is here first on purpose.
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.webp   binary
+*.gif    binary
+*.ico    binary
+*.pdf    binary
+*.zip    binary
+*.ttf    binary
+*.otf    binary
+*.woff   binary
+*.woff2  binary
+*.mp4    binary
+*.db     binary
+
+# Generated. Collapsed in diffs and excluded from language statistics, because
+# a lockfile changing is not a change anybody reviews line by line.
+pnpm-lock.yaml   linguist-generated=true -diff
+pubspec.lock     linguist-generated=true -diff
