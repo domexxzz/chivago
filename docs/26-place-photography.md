@@ -86,9 +86,36 @@ under "Thailand". A wrong photograph is worse than none: it is the same
 category of error as a pin labelled with its layer, which this project has
 already shipped once.
 
+## What is now on screen
+
+Three of five, sourced from Wikimedia Commons with the licence read from the
+API rather than the page, so the strings are exact:
+
+| Place | Photographer | Licence |
+| --- | --- | --- |
+| Chaweng Beach | Wipkinger (Wikivoyage) | Public domain |
+| Na Muang Waterfall | Koudkeu | CC BY-SA 4.0 |
+| Fisherman's Village | Ruta Badina | CC BY-SA 3.0 |
+| Lamai Yoga Shala | — | no photograph |
+| Thong Krut Mangrove | — | no photograph |
+
+The two gaps are gaps on purpose. Lamai Yoga Shala is a business rather than a
+landmark and Commons has nothing of it; a picture of Lamai Beach under that
+name would be a photograph of somewhere else. Commons has no imagery of the
+Thong Krut mangrove either, and the nearest candidate — Ang Thong Marine Park —
+is forty kilometres away and a different place.
+
+The first search for the village returned two photographs of beer bottles taken
+in Bophut restaurants. They matched the search term and not the subject, which
+is exactly the failure the "check it is OF the place" note above exists for.
+
+Images are hotlinked to Commons' 1280px thumbnail rather than the 4000px
+original: a 4 MB JPEG for a 150px hero is the wrong trade on the one-bar
+connection this app is designed around.
+
 ## Still owed
 
-- **The five photographs themselves.** Everything above is the receiving end.
+- **Two of the five.** See the table above for why.
 - **No local caching.** Remote images are fetched every time the place screen
   opens, which on a beach with one bar of signal is the wrong trade.
 - **The test harness does not model loading.** `Image` is stubbed because

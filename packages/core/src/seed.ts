@@ -51,7 +51,15 @@ export const SEED_PLACES: Place[] = [
       th: 'อ่าวทรายขาว ช่วงสายถึงบ่ายคนเยอะ ปลายหาดฝั่งเหนือเงียบกว่า',
     },
     tags: ['Beach', 'Walking route', 'Safe area', 'Quest here'],
-    photo: null,
+    // Wikimedia Commons. Public domain, so attribution is not legally
+    // required - given anyway, because a photograph nobody is credited for is
+    // a photograph nobody can be asked about.
+    photo: {
+      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Chaweng_Beach_on_Ko_Samui.JPG/1280px-Chaweng_Beach_on_Ko_Samui.JPG',
+      credit: 'Wipkinger (Wikivoyage)',
+      licence: 'Public domain',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:Chaweng_Beach_on_Ko_Samui.JPG',
+    },
     metrics: { aqi: 42, crowdDensity: 3.0, safetyIndex: 6.77, walkability: 8.1 },
   },
   {
@@ -67,7 +75,14 @@ export const SEED_PLACES: Place[] = [
       th: 'น้ำตกสองชั้นในเขตป่าอนุรักษ์ คะแนนสุขภาวะสูงสุดของเกาะ',
     },
     tags: ['Green space', 'Hidden gem', 'Walking route', 'Air excellent'],
-    photo: null,
+    // Wikimedia Commons. CC BY-SA 4.0 - attribution is MANDATORY and the
+    // licence string must be exact; BY-SA 4.0 is not BY 4.0.
+    photo: {
+      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Namuang_waterfall_2.jpg/1280px-Namuang_waterfall_2.jpg',
+      credit: 'Koudkeu',
+      licence: 'CC BY-SA 4.0',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:Namuang_waterfall_2.jpg',
+    },
     metrics: { aqi: 18, crowdDensity: 0.4, safetyIndex: 8.85, walkability: 6.9 },
   },
   {
@@ -83,7 +98,14 @@ export const SEED_PLACES: Place[] = [
       th: 'ย่านเก่าบ่อผุด ร้านค้าที่รับแต้มสีเขียว 12 ร้าน',
     },
     tags: ['Healthy food', 'Local experience', 'Marketplace', 'Safe area'],
-    photo: null,
+    // Wikimedia Commons. CC BY-SA 3.0 - a different version from Na Muang's,
+    // and stored as its own string rather than rounded to "CC BY-SA".
+    photo: {
+      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Pier_in_Bophut_village_in_Ko_Samui.jpg/1280px-Pier_in_Bophut_village_in_Ko_Samui.jpg',
+      credit: 'Ruta Badina',
+      licence: 'CC BY-SA 3.0',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:Pier_in_Bophut_village_in_Ko_Samui.jpg',
+    },
     metrics: { aqi: 31, crowdDensity: 1.4, safetyIndex: 6.33, walkability: 9.0 },
   },
   {
@@ -99,6 +121,9 @@ export const SEED_PLACES: Place[] = [
       th: 'ศาลาโยคะกลางแจ้งเหนือหาดละไม คลาสเช้า 06:30',
     },
     tags: ['Wellness', 'Quiet', 'Points accepted'],
+    // No photograph. Lamai Yoga Shala is a business, not a landmark, and
+    // Commons has nothing of it. Substituting a picture of Lamai Beach would
+    // be a photograph of somewhere else with this place's name under it.
     photo: null,
     metrics: { aqi: 24, crowdDensity: 0.5, safetyIndex: 7.39, walkability: 7.4 },
   },
@@ -115,6 +140,9 @@ export const SEED_PLACES: Place[] = [
       th: 'แปลงเพาะกล้าป่าชายเลนโดยชุมชนทางใต้ของเกาะ',
     },
     tags: ['Green space', 'Quest here', 'Community'],
+    // No photograph. Commons has no imagery of the Thong Krut mangrove, and
+    // the nearest thing - Ang Thong Marine Park - is a different place
+    // forty kilometres away.
     photo: null,
     metrics: { aqi: 20, crowdDensity: 0.3, safetyIndex: 5.13, walkability: 5.2 },
   },

@@ -489,6 +489,19 @@ export function migrate(db: DB): string[] {
   `);
 
   /**
+   * The terms a place photograph arrived under.
+   *
+   * `photo_url` shipped in the first schema; the credit did not, which made
+   * every licence worth using unusable. Added as columns rather than a fresh
+   * table so an existing database picks them up - CREATE TABLE IF NOT EXISTS
+   * does nothing to a table that already exists, which is exactly how this
+   * was noticed.
+   */
+  if (addColumn(db, 'places', 'photo_credit', 'TEXT')) applied.push('places.photo_credit');
+  if (addColumn(db, 'places', 'photo_licence', 'TEXT')) applied.push('places.photo_licence');
+  if (addColumn(db, 'places', 'photo_source', 'TEXT')) applied.push('places.photo_source');
+
+  /**
    * Mood check-ins.
    *
    * One row per check-in rather than a current-mood column: the whole point

@@ -21,7 +21,7 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import Svg, { Path, Polygon, Line } from 'react-native-svg';
 import { isHighScore, type ScoredPlace } from '@chivago/core';
 import { CHIP, layoutPins, tilt } from './map-geometry.ts';
@@ -206,11 +206,27 @@ export function SamuiMap({
   onSelect: (place: ScoredPlace) => void;
   height?: number;
 }) {
-  const [size, setSize] = React.useState({ width: 0, height });
+  /**
+   * The map is full-bleed, so the window IS its width.
+   *
+   * It used to wait for `onLayout` and render nothing until that arrived.
+   * On web that callback comes from a ResizeObserver which, for an element
+   * whose size never changes after it is observed, may never fire at all -
+   * and when it did not, the map drew an empty box with a legend in it and
+   * said nothing. No error, no missing data: five pins simply absent.
+   *
+   * The window dimension is the floor, and `onLayout` still refines it if it
+   * ever arrives with something different (a tablet split view, a resize).
+   * A map that depends on a callback that may not come is a map that
+   * sometimes is not there.
+   */
+  const { width: windowWidth } = useWindowDimensions();
+  const [measured, setMeasured] = React.useState(0);
+  const width = measured > 0 ? measured : windowWidth;
 
   return (
     <View
-      onLayout={(e) => setSize({ width: e.nativeEvent.layout.width, height })}
+      onLayout={(e) => setMeasured(e.nativeEvent.layout.width)}
       style={{
         height,
         backgroundColor: color.neutral200,
@@ -218,10 +234,10 @@ export function SamuiMap({
         borderBottomColor: color.text,
       }}
     >
-      {size.width > 0 ? <IslandShape width={size.width} height={height} /> : null}
+      {width > 0 ? <IslandShape width={width} height={height} /> : null}
 
-      {size.width > 0
-        ? layoutPins(places, size.width, height).map(({ place, left, top }) => (
+      {width > 0
+        ? layoutPins(places, width, height).map(({ place, left, top }) => (
             <View
               key={place.id}
               style={{
