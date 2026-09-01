@@ -1,4 +1,4 @@
 .vercel
-dist/
+dist*/
 .vercel/
 .env.local

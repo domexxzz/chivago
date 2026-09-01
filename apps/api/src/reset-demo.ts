@@ -260,10 +260,16 @@ function seed(db: DB): void {
 
   // Contacts, so the SOS panel reports a real reached-count rather than the
   // prototype's fixed copy.
+  //
+  // The numbers are deliberately, visibly invented - repeated digits on the
+  // mobile prefix. This snapshot is captured into a PUBLIC demo build, and a
+  // plausible-looking Samui landline on a page anybody can open is somebody
+  // else's phone ringing. Thailand has no reserved test range, so obviousness
+  // is the whole safeguard.
   const contacts: [string, string, string][] = [
     ['Mae', '+66811111111', 'Mother'],
     ['Somchai', '+66822222222', 'Friend'],
-    ['Hotel front desk', '+6677420000', 'Accommodation'],
+    ['Hotel front desk', '+66833333333', 'Accommodation'],
   ];
   for (const [name, phone, relationship] of contacts) {
     db.prepare(
