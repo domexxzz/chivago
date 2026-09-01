@@ -9,7 +9,8 @@
     "seed": "node --experimental-strip-types src/seed-db.ts",
     "test": "node --test --experimental-strip-types \"src/*.test.ts\" \"src/console/*.test.ts\"",
     "typecheck": "tsc --noEmit",
-    "contract": "node --experimental-strip-types src/capture-contract.ts"
+    "contract": "node --experimental-strip-types src/capture-contract.ts",
+    "demo:reset": "node --experimental-strip-types src/reset-demo.ts"
   },
   "dependencies": {
     "@chivago/core": "workspace:*",
