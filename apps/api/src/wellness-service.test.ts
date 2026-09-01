@@ -2,7 +2,10 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { openTestDb, type DB } from './db.ts';
-import { balanceFor, latestMood, moodHistory, recordMood, UnknownMood } from './wellness-service.ts';
+import { companionsFor } from '@chivago/core';
+import {
+  balanceFor, habitatEvidenceFor, latestMood, moodHistory, recordMood, UnknownMood,
+} from './wellness-service.ts';
 
 let db: DB;
 const NOW = new Date('2026-08-31T06:00:00.000Z');
@@ -125,5 +128,81 @@ describe('Chiva Balance, from what actually happened', () => {
     checkin('shala', '2026-08-30');
     checkin('chaweng', '2026-08-31');
     assert.equal(balanceFor(db, 'u2', NOW).total, null);
+  });
+});
+
+/**
+ * The evidence behind the companion collection.
+ *
+ * Read from the ledger like everything else, so these tests write ledger rows
+ * and ask what the query makes of them - never a companions table, which does
+ * not exist and must not start existing.
+ */
+describe('habitat evidence, counted in island days', () => {
+  const found = (layer: string) =>
+    habitatEvidenceFor(db, 'u1').find((e) => e.layer === layer);
+
+  test('one check-in is one day', () => {
+    place('namuang', 'Green');
+    checkin('namuang', '2026-08-29');
+    assert.equal(found('Green')?.visitDays, 1);
+  });
+
+  test('coming back to the same place on another day counts twice', () => {
+    // This is the whole fix. The island has one place per habitat, so if a
+    // return visit did not count, no egg could ever hatch.
+    place('namuang', 'Green');
+    checkin('namuang', '2026-08-29');
+    checkin('namuang', '2026-08-30');
+    assert.equal(found('Green')?.visitDays, 2);
+  });
+
+  test('two places in one habitat on one day is still one day', () => {
+    // The anti-loitering rule, unchanged in intent: a day out is a day out,
+    // however many stops it had.
+    place('namuang', 'Green');
+    place('secret-falls', 'Green');
+    checkin('namuang', '2026-08-29');
+    checkin('secret-falls', '2026-08-29');
+    assert.equal(found('Green')?.visitDays, 1);
+  });
+
+  test('habitats are counted apart from each other', () => {
+    place('namuang', 'Green');
+    place('chaweng', 'Safe');
+    checkin('namuang', '2026-08-29');
+    checkin('chaweng', '2026-08-29');
+    checkin('chaweng', '2026-08-30');
+    assert.equal(found('Green')?.visitDays, 1);
+    assert.equal(found('Safe')?.visitDays, 2);
+  });
+
+  test('somebody else\'s days are not yours', () => {
+    place('namuang', 'Green');
+    checkin('namuang', '2026-08-29');
+    db.prepare(
+      `INSERT INTO ledger (id, user_id, label, occurred_at, host, amount, currency, exp, kind, source_ref)
+       VALUES (?,?,?,?,?,?,?,?,?,?)`,
+    ).run('l-u2', 'u2', 'Checked in', '2026-08-30T03:00:00.000Z', 'ChivaGo',
+      20, 'trip', 20, 'checkin', 'checkin:namuang:u2:2026-08-30');
+    assert.equal(found('Green')?.visitDays, 1);
+  });
+
+  test('a habitat nobody has been to does not appear at all', () => {
+    place('namuang', 'Green');
+    place('chaweng', 'Safe');
+    checkin('namuang', '2026-08-29');
+    assert.equal(found('Safe'), undefined, 'an absent habitat is absent, not zero');
+  });
+
+  test('two days at one place hatches the egg end to end', () => {
+    // The query, the threshold and the stage rule together, on the island as
+    // it is actually seeded: one place in the habitat, visited twice.
+    place('namuang', 'Green');
+    checkin('namuang', '2026-08-29');
+    checkin('namuang', '2026-08-30');
+    const companion = companionsFor(habitatEvidenceFor(db, 'u1'))
+      .find((c) => c.species.layer === 'Green');
+    assert.equal(companion?.stage, 'hatchling');
   });
 });

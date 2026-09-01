@@ -119,15 +119,20 @@ export function balanceFor(db: DB, userId: string, now = new Date()): ChivaBalan
  * companions table would be a second record of things the ledger already
  * holds, and two records of one fact eventually disagree.
  *
- * `placesVisited` counts DISTINCT places: checking in twice at the same beach
- * is one place, so the collection rewards covering a habitat rather than
- * loitering in it. `questsVerified` counts only quests a host approved, which
+ * `visitDays` counts DISTINCT island days: checking in twice at the same beach
+ * in one afternoon is one day, so the collection rewards coming back rather
+ * than loitering. `questsVerified` counts only quests a host approved, which
  * is the same standard Green Points are held to.
+ *
+ * The day is read from the source_ref, not recomputed from occurred_at. The
+ * check-in's idempotency key already ends in the island date it was written
+ * against; deriving a second day here - with a hardcoded +7, say - would be a
+ * second definition of "day" that can disagree with the first.
  */
 export function habitatEvidenceFor(db: DB, userId: string): HabitatEvidence[] {
-  const checkins = rows<{ layer: string; places: number }>(
+  const checkins = rows<{ layer: string; days: number }>(
     db.prepare(
-      `SELECT p.layer AS layer, COUNT(DISTINCT p.id) AS places
+      `SELECT p.layer AS layer, COUNT(DISTINCT substr(l.source_ref, -10)) AS days
        FROM ledger l
        JOIN places p ON p.id = substr(l.source_ref, 9, instr(substr(l.source_ref, 9), ':') - 1)
        WHERE l.user_id = ? AND l.kind = 'checkin'
@@ -149,11 +154,11 @@ export function habitatEvidenceFor(db: DB, userId: string): HabitatEvidence[] {
   const byLayer = new Map<string, HabitatEvidence>();
   const at = (layer: string) => {
     if (!byLayer.has(layer)) {
-      byLayer.set(layer, { layer: layer as HabitatEvidence['layer'], placesVisited: 0, questsVerified: 0 });
+      byLayer.set(layer, { layer: layer as HabitatEvidence['layer'], visitDays: 0, questsVerified: 0 });
     }
     return byLayer.get(layer)!;
   };
-  for (const r of checkins) at(r.layer).placesVisited = r.places;
+  for (const r of checkins) at(r.layer).visitDays = r.days;
   for (const r of quests) at(r.layer).questsVerified = r.verified;
   return [...byLayer.values()];
 }

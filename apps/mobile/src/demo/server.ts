@@ -23,6 +23,20 @@ import snapshot from './fixtures.json';
 type Json = Record<string, unknown>;
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
+/**
+ * Days the demo visitor had already spent in each habitat before opening this.
+ *
+ * A companion hatches on a SECOND day in a habitat, and a demo is one
+ * sitting. Without a prior day nothing here could ever hatch, and the
+ * collection would be a row of eggs with no way to open them - which is
+ * exactly the bug this seeding exists to stop hiding.
+ *
+ * This is seeded history, not a seeded result: the stage is still computed
+ * by the real `companionsFor` from days it is given, and a visitor who
+ * checks in nowhere still sees nothing in Wellness or Quest.
+ */
+const PRIOR_DAYS: Record<string, number> = { Green: 1, Safe: 1, Food: 0, Wellness: 0, Quest: 0 };
+
 const state = {
   routes: clone(snapshot) as Record<string, unknown>,
   checkins: [] as string[],
@@ -290,13 +304,21 @@ export function installDemoServer(apiBase: string): void {
         // because the visitor actually went somewhere, not because a fixture
         // said so.
         const places = state.routes['/places'] as { id: string; layer: string }[];
-        const byLayer = new Map<string, number>();
+        // Today counts once per habitat however many stops it had - the same
+        // rule the server applies, which is why this is a Set and not a tally.
+        const todayIn = new Set<string>();
         for (const id of state.checkins) {
           const p = places.find((x) => x.id === id);
-          if (p) byLayer.set(p.layer, (byLayer.get(p.layer) ?? 0) + 1);
+          if (p) todayIn.add(p.layer);
         }
-        const evidence = [...byLayer].map(([layer, placesVisited]) => ({
-          layer, placesVisited, questsVerified: 0,
+        const byLayer = new Map<string, number>();
+        for (const [layer, prior] of Object.entries(PRIOR_DAYS)) {
+          const days = prior + (todayIn.has(layer) ? 1 : 0);
+          if (days > 0) byLayer.set(layer, days);
+        }
+        for (const layer of todayIn) if (!byLayer.has(layer)) byLayer.set(layer, 1);
+        const evidence = [...byLayer].map(([layer, visitDays]) => ({
+          layer, visitDays, questsVerified: 0,
         }));
         const companions = companionsFor(evidence as never);
         return answer({

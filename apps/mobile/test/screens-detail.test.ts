@@ -1095,7 +1095,7 @@ describe('the companion collection on the wallet', () => {
   test('an egg keeps the species hidden — that is what an egg is for', async () => {
     const net = server(routes([{
       species: species(), stage: 'egg',
-      evidence: { layer: 'Safe', placesVisited: 1, questsVerified: 0 },
+      evidence: { layer: 'Safe', visitDays: 1, questsVerified: 0 },
       nextStep: { en: 'Check in at 1 more Safe place to hatch this egg', th: 'เช็กอินอีก 1 แห่ง' },
     }]));
     try {
@@ -1111,7 +1111,7 @@ describe('the companion collection on the wallet', () => {
   test('a hatched companion teaches something true about a real animal', async () => {
     const net = server(routes([{
       species: species(), stage: 'hatchling',
-      evidence: { layer: 'Safe', placesVisited: 2, questsVerified: 0 },
+      evidence: { layer: 'Safe', visitDays: 2, questsVerified: 0 },
       nextStep: { en: 'Have a host verify one Safe quest', th: 'ให้ผู้จัดยืนยันหนึ่งครั้ง' },
     }]));
     try {
@@ -1129,7 +1129,7 @@ describe('the companion collection on the wallet', () => {
     // A locked slot with no stated lever is the shape of a slot machine.
     const net = server(routes([{
       species: species(), stage: 'egg',
-      evidence: { layer: 'Safe', placesVisited: 1, questsVerified: 0 },
+      evidence: { layer: 'Safe', visitDays: 1, questsVerified: 0 },
       nextStep: { en: 'Check in at 1 more Safe place to hatch this egg', th: 'เช็กอินอีก 1 แห่ง' },
     }]));
     try {

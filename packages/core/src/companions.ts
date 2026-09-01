@@ -133,8 +133,8 @@ export const LAYERS_WITH_SPECIES = Object.keys(SPECIES) as LayerKey[];
 /** What somebody has done in one habitat. All of it verifiable. */
 export interface HabitatEvidence {
   layer: LayerKey;
-  /** Distinct places checked in at, in this habitat. Geofenced, self-verified. */
-  placesVisited: number;
+  /** Distinct island days checked in on, in this habitat. Geofenced, self-verified. */
+  visitDays: number;
   /** Quests in this habitat a HOST approved. The Green-Point standard. */
   questsVerified: number;
 }
@@ -147,8 +147,20 @@ export interface Companion {
   nextStep: Bilingual | null;
 }
 
-/** Distinct places in a habitat needed before an egg hatches. */
-export const HATCH_AT_PLACES = 2;
+/**
+ * Distinct DAYS in a habitat before an egg hatches.
+ *
+ * This counted distinct PLACES until it was tested against the island that
+ * actually exists: there is one seeded place per habitat, so two places in
+ * one habitat was unreachable and no egg could ever hatch. A mechanic that
+ * cannot complete is worse than no mechanic - it is a promise on screen with
+ * nothing behind it.
+ *
+ * Days keeps what places were reaching for. Two check-ins at one beach in one
+ * afternoon is still one day, so it rewards coming back rather than
+ * loitering, and it does not require an island bigger than this one.
+ */
+export const HATCH_AT_DAYS = 2;
 
 /**
  * The stage one habitat's evidence has reached.
@@ -159,8 +171,8 @@ export const HATCH_AT_PLACES = 2;
  */
 export function stageFor(evidence: HabitatEvidence): CompanionStage | null {
   if (evidence.questsVerified > 0) return 'grown';
-  if (evidence.placesVisited >= HATCH_AT_PLACES) return 'hatchling';
-  if (evidence.placesVisited >= 1) return 'egg';
+  if (evidence.visitDays >= HATCH_AT_DAYS) return 'hatchling';
+  if (evidence.visitDays >= 1) return 'egg';
   return null;
 }
 
@@ -176,10 +188,10 @@ function nextStepFor(
       th: `ให้ผู้จัดภารกิจยืนยันภารกิจสาย${s.layer} หนึ่งครั้ง เพื่อให้${s.name.th}โตเต็มวัย`,
     };
   }
-  const left = HATCH_AT_PLACES - evidence.placesVisited;
+  const left = HATCH_AT_DAYS - evidence.visitDays;
   return {
-    en: `Check in at ${left} more ${s.layer} place${left === 1 ? '' : 's'} to hatch this egg`,
-    th: `เช็กอินสถานที่สาย${s.layer} อีก ${left} แห่ง เพื่อฟักไข่ใบนี้`,
+    en: `Check in here on ${left} more day${left === 1 ? '' : 's'} to hatch this egg`,
+    th: `เช็กอินที่นี่อีก ${left} วัน เพื่อฟักไข่ใบนี้`,
   };
 }
 
@@ -194,7 +206,7 @@ function nextStepFor(
 export function companionsFor(evidence: HabitatEvidence[]): Companion[] {
   const byLayer = new Map(evidence.map((e) => [e.layer, e]));
   return LAYERS_WITH_SPECIES.flatMap((layer) => {
-    const e = byLayer.get(layer) ?? { layer, placesVisited: 0, questsVerified: 0 };
+    const e = byLayer.get(layer) ?? { layer, visitDays: 0, questsVerified: 0 };
     const stage = stageFor(e);
     if (stage === null) return [];
     const species = SPECIES[layer];
