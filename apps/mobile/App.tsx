@@ -36,6 +36,7 @@ import { ImpactScreen } from './src/screens/ImpactScreen.tsx';
 import { HomeScreen } from './src/screens/HomeScreen.tsx';
 import { PassportScreen } from './src/screens/PassportScreen.tsx';
 import { AccountScreen } from './src/screens/AccountScreen.tsx';
+import { PartyScreen } from './src/screens/PartyScreen.tsx';
 import { SafetyScreen } from './src/screens/SafetyScreen.tsx';
 import { TripScreen, type TripState } from './src/screens/TripScreen.tsx';
 import { ConciergeScreen } from './src/screens/ConciergeScreen.tsx';
@@ -276,6 +277,7 @@ export default function App() {
             onOpenPassport={() => nav.push('passport')}
             onOpenImpact={() => nav.push('impact')}
             onOpenConcierge={() => nav.push('concierge')}
+            onOpenParty={() => nav.push('party')}
             onOpenSafety={() => nav.selectTab('safety')}
           />
         );
@@ -285,6 +287,9 @@ export default function App() {
 
       case 'account':
         return <AccountScreen onBack={nav.pop} onToast={toast.show} />;
+
+      case 'party':
+        return <PartyScreen onBack={nav.pop} onToast={toast.show} />;
 
       case 'impact':
         return <ImpactScreen onToast={toast.show} refreshKey={walletKey} />;

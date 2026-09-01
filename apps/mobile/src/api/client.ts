@@ -11,7 +11,7 @@ import type {
   ApiResponse, Balances, Bilingual, ImpactStat, LedgerEntry, NotificationKind, Offer, Quest,
   ChivaBalance, Companion, MonthOutlook, MoodCheckin, MoodKey, PriceCategory, PriceForecast,
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
-  WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence,
+  WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
 } from '@chivago/core';
 
 /**
@@ -210,6 +210,24 @@ export const api = {
 
   revokeDevice: (label: string) =>
     post<{ removed: number }>('/account/devices/revoke', { label }),
+
+  // -- party --------------------------------------------------------------
+  /** Who I am travelling with. `party: null` means solo, which is a real state. */
+  party: () =>
+    get<{
+      party: { id: string; name: string; createdBy: string; createdAt: string } | null;
+      summary: PartySummary;
+      doesNot: Bilingual[];
+    }>('/party'),
+
+  createParty: (name: string) =>
+    post<{ party: { id: string; name: string }; code: string }>('/party', { name }),
+
+  joinParty: (code: string) =>
+    post<{ party: { id: string; name: string } }>('/party/join', { code }),
+
+  leaveParty: () => post<{ left: boolean }>('/party/leave', {}),
+  disbandParty: () => post<{ disbanded: boolean }>('/party/disband', {}),
 
   /**
    * Who is doing the work. Hosts ranked by approvals, plus the caller's own

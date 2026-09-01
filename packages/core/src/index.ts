@@ -9,6 +9,7 @@ export * from './concierge.ts';
 export * from './provinces.ts';
 export * from './sponsorship.ts';
 export * from './standing.ts';
+export * from './party.ts';
 export * from './companions.ts';
 export * from './province-companions.ts';
 export * from './price-forecast.ts';

@@ -26,7 +26,7 @@
 
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { ChevronRight, Compass, MessageCircle, Shield, Sparkles } from 'lucide-react-native';
+import { ChevronRight, Compass, MessageCircle, Shield, Sparkles, Users } from 'lucide-react-native';
 import {
   greetingFor, isHighScore, passportProgress, strings,
   type Quest, type QuestProgress, type ScoredPlace,
@@ -89,7 +89,7 @@ export function questOrder(
 
 export function HomeScreen({
   onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenPassport,
-  onOpenImpact, onOpenConcierge, onOpenSafety, now = new Date(),
+  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, now = new Date(),
 }: {
   onOpenMap: () => void;
   onOpenQuests: () => void;
@@ -99,6 +99,7 @@ export function HomeScreen({
   onOpenImpact: () => void;
   onOpenConcierge: () => void;
   onOpenSafety: () => void;
+  onOpenParty: () => void;
   /** Injected so the greeting is testable rather than whatever the clock says. */
   now?: Date;
 }) {
@@ -124,6 +125,7 @@ export function HomeScreen({
         onOpenConcierge={onOpenConcierge}
         onOpenImpact={onOpenImpact}
         onOpenSafety={onOpenSafety}
+        onOpenParty={onOpenParty}
       />
       <View style={{ height: 28 }} />
     </ScrollView>
@@ -506,12 +508,12 @@ function Figure({
 // ---------------------------------------------------------------------------
 
 function Doors({
-  onOpenMap, onOpenConcierge, onOpenImpact, onOpenSafety,
+  onOpenMap, onOpenConcierge, onOpenImpact, onOpenSafety, onOpenParty,
 }: {
   onOpenMap: () => void; onOpenConcierge: () => void;
-  onOpenImpact: () => void; onOpenSafety: () => void;
+  onOpenImpact: () => void; onOpenSafety: () => void; onOpenParty: () => void;
 }) {
-  // Four, not twelve. A grid of twelve icons is what a Home screen becomes
+  // Five, not twelve. A grid of twelve icons is what a Home screen becomes
   // when nobody decided what the traveller is most likely to want.
   // Untyped on purpose: annotating the icon narrower than LucideIcon fights
   // the library's own forwardRef signature for nothing.
@@ -520,12 +522,13 @@ function Doors({
     { Icon: MessageCircle, en: 'Ask', th: 'ถาม', onPress: onOpenConcierge },
     { Icon: Sparkles, en: strings.tabs.impact.en, th: strings.tabs.impact.th, onPress: onOpenImpact },
     { Icon: Shield, en: strings.tabs.safety.en, th: strings.tabs.safety.th, onPress: onOpenSafety },
+    { Icon: Users, en: 'Group', th: 'กลุ่ม', onPress: onOpenParty },
   ];
 
   return (
     <View style={{ paddingTop: 22 }}>
       <SectionHead en="Go" th="ไปต่อ" />
-      <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: gutter }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: gutter }}>
         {doors.map(({ Icon, en, th, onPress }) => (
           <Pressable
             key={en}
@@ -533,7 +536,9 @@ function Doors({
             accessibilityRole="button"
             accessibilityLabel={`${en}. ${th}`}
             style={{
-              flex: 1, minHeight: 76, paddingVertical: 12, gap: 6,
+              // Basis rather than flex:1 — five doors wrap to a second row,
+              // and equal flex would stretch a lone survivor across the width.
+              flexBasis: '30%', flexGrow: 1, minHeight: 76, paddingVertical: 12, gap: 6,
               alignItems: 'center', justifyContent: 'center',
               backgroundColor: color.brandSoft,
               borderRadius: radius.md,

@@ -38,7 +38,7 @@ import { EMPTY_PROFILE } from '@chivago/core';
 export type ScreenKey =
   | 'onboarding' | 'home' | 'map' | 'place' | 'quests' | 'quest'
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
-  | 'companion' | 'passport' | 'account';
+  | 'companion' | 'passport' | 'account' | 'party';
 
 /**
  * Five tabs, and Impact is no longer one of them.
@@ -77,7 +77,7 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   // All three are reached from a door on Home, so Home stays lit behind them
   // and a tab tap returns there rather than stranding the reader on a screen
   // no tab owns. `impact` in particular has no tab of its own any more.
-  concierge: 'home', impact: 'home', passport: 'home',
+  concierge: 'home', impact: 'home', passport: 'home', party: 'home',
   quests: 'quests', quest: 'quests',
   wallet: 'wallet', market: 'wallet',
   // Both reached from the wallet, so its tab stays lit behind them.

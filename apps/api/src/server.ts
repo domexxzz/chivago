@@ -16,6 +16,9 @@ import { pathToFileURL } from 'node:url';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import {
+  PartyRefused, activePartyFor, createParty, disbandParty, joinParty, leaveParty, membersOf,
+} from './party-service.ts';
+import {
   LINK_CODE_TTL_MS, LinkCodeRefused, claimLinkCode, devicesFor, issueLinkCode,
   // Aliased: `registerDevice` is already the push-token function next door,
   // and two different registrations under one name is how the wrong one gets
@@ -38,7 +41,8 @@ import {
   reviewsFor, withdrawReview, writeReview,
 } from './place-review-service.ts';
 import {
-  RANKED_BY, SPECIES_AS_OF, cheapestMonth, collectionSummary, companionsFor,
+  JOIN_REFUSAL, PARTY_DOES_NOT, RANKED_BY, SPECIES_AS_OF, cheapestMonth,
+  collectionSummary, companionsFor, summarise,
   forecastPrice, islandDay, isReportReasonKey,
   outlookAhead, planDay, rankHosts, routeBiasFor, smartRoute,
 } from '@chivago/core';
@@ -815,6 +819,65 @@ app.get('/standing', (c) => {
     participants: travellers.filter((t) => t.greenVerified > 0).length,
     rankedBy: RANKED_BY,
   });
+});
+
+// ---------------------------------------------------------------------------
+// Parties
+//
+// A party is a VIEW over what its members separately earned. There is no
+// shared wallet and no transfer route below, and there never will be: Green
+// means a named host checked the work, so it cannot arrive by standing next to
+// somebody who did it.
+// ---------------------------------------------------------------------------
+
+/** Who I am travelling with, and what we have done between us. */
+app.get('/party', (c) => {
+  const me = userId(c);
+  const party = activePartyFor(db, me);
+  if (!party) {
+    // Solo is a real state, not an empty one - it is what everybody starts as.
+    return ok(c, { party: null, summary: summarise([]), doesNot: PARTY_DOES_NOT });
+  }
+  return ok(c, {
+    party,
+    summary: summarise(membersOf(db, party.id, me)),
+    doesNot: PARTY_DOES_NOT,
+  });
+});
+
+/** Start one. The code is returned here and only its hash is stored. */
+app.post('/party', async (c) => {
+  const body = await c.req.json<{ name?: string }>().catch(() => ({} as { name?: string }));
+  const { party, code } = createParty(db, userId(c), body.name ?? '');
+  return ok(c, { party, code });
+});
+
+app.post('/party/join', async (c) => {
+  const body = await c.req.json<{ code?: string }>().catch(() => ({} as { code?: string }));
+  if (!body.code) return fail(c, 'CODE_REQUIRED', 'Enter the code from whoever started the group.');
+  try {
+    return ok(c, { party: joinParty(db, userId(c), body.code) });
+  } catch (err) {
+    if (err instanceof PartyRefused) {
+      // Four reasons, four sentences. "Could not join" sends somebody to
+      // retype a code that was never the problem.
+      return fail(c, `PARTY_${err.reason.toUpperCase().replace('-', '_')}`,
+        JOIN_REFUSAL[err.reason].en, 400);
+    }
+    throw err;
+  }
+});
+
+app.post('/party/leave', (c) => ok(c, { left: leaveParty(db, userId(c)) > 0 }));
+
+/** Only the founder may disband; the party survives anyone else leaving. */
+app.post('/party/disband', (c) => {
+  const party = activePartyFor(db, userId(c));
+  if (!party) return fail(c, 'NO_PARTY', 'You are not in a group.', 404);
+  if (!disbandParty(db, userId(c), party.id)) {
+    return fail(c, 'NOT_YOURS', 'Only whoever started this group can disband it.', 403);
+  }
+  return ok(c, { disbanded: true });
 });
 
 app.get('/companions', (c) => {

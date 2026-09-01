@@ -22,5 +22,6 @@ export const Phone = Icon;
 export const Send = Icon;
 export const Shield = Icon;
 export const Sparkles = Icon;
+export const Users = Icon;
 export const Wallet = Icon;
 export const X = Icon;

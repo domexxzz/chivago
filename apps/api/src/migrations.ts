@@ -583,5 +583,39 @@ export function migrate(db: DB): string[] {
   applied.push('device_keys');
   applied.push('link_codes');
 
+  // -- Parties --------------------------------------------------------------
+  //
+  // Who somebody is travelling with. There is no points table here and there
+  // never will be: a party aggregates what its members separately earned, so
+  // the only rows needed are who is in it.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS parties (
+      id           TEXT PRIMARY KEY,
+      name         TEXT NOT NULL,
+      -- The join code, hashed like every other credential in this schema. It
+      -- is long-lived rather than single-use, which is the trade for letting a
+      -- group of eight join over a weekend without re-reading it each time.
+      code_hash    TEXT NOT NULL UNIQUE,
+      created_by   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at   TEXT NOT NULL,
+      -- Disbanded rather than deleted, so a member's history of "who was I
+      -- travelling with in September" survives the group breaking up.
+      disbanded_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS party_members (
+      party_id  TEXT NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
+      user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      joined_at TEXT NOT NULL,
+      -- Left rather than removed, for the same reason. A row that vanishes
+      -- takes the answer to "were they there when we did that" with it.
+      left_at   TEXT,
+      PRIMARY KEY (party_id, user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_party_members_user ON party_members(user_id, left_at);
+  `);
+  applied.push('parties');
+  applied.push('party_members');
+
   return applied;
 }
