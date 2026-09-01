@@ -5,7 +5,7 @@ import { progressionFor, SEED_PLACES } from '@chivago/core';
 import { Balances, LevelBlock, RankLadder, Ledger } from '../src/screens/WalletScreen.tsx';
 import { MapHeader } from '../src/screens/MapScreen.tsx';
 import { PurseChips, OfferRow } from '../src/screens/MarketScreen.tsx';
-import { QuestRow } from '../src/screens/QuestsScreen.tsx';
+import { QuestRow } from '../src/screens/MissionsScreen.tsx';
 import { ReviewRow } from '../src/screens/PlaceReviews.tsx';
 import { PinChip } from '../src/components/SamuiMap.tsx';
 import { h, html, labels, text } from './render.ts';

@@ -10,7 +10,7 @@ import type {
   ApiResponse, Balances, Bilingual, ImpactStat, LedgerEntry, NotificationKind, Offer, Quest,
   ChivaBalance, Companion, MonthOutlook, MoodCheckin, MoodKey, PriceCategory, PriceForecast,
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
-  WellnessProfile,
+  WellnessProfile, HostStanding, TravellerStanding,
 } from '@chivago/core';
 
 /**
@@ -176,6 +176,19 @@ export const api = {
   places: () => get<ScoredPlace[]>('/places'),
   /** Which provinces this traveller has been to. The arithmetic is in core. */
   passport: () => get<{ visited: string[] }>('/passport'),
+
+  /**
+   * Who is doing the work. Hosts ranked by approvals, plus the caller's own
+   * record — never other travellers' names, which is a PDPA question nobody
+   * has been asked. `participants` is a count and needs no consent.
+   */
+  standing: () =>
+    get<{
+      hosts: HostStanding[];
+      you: TravellerStanding | null;
+      participants: number;
+      rankedBy: Bilingual;
+    }>('/standing'),
   place: (id: string) => get<ScoredPlace>(`/places/${id}`),
 
   // -- quests -------------------------------------------------------------

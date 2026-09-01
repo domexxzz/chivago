@@ -31,13 +31,14 @@ import {
   reviewsFor, withdrawReview, writeReview,
 } from './place-review-service.ts';
 import {
-  SPECIES_AS_OF, cheapestMonth, collectionSummary, companionsFor,
+  RANKED_BY, SPECIES_AS_OF, cheapestMonth, collectionSummary, companionsFor,
   forecastPrice, islandDay, isReportReasonKey,
-  outlookAhead, planDay, routeBiasFor, smartRoute,
+  outlookAhead, planDay, rankHosts, routeBiasFor, smartRoute,
 } from '@chivago/core';
 import {
   arriveAtQuest, getAllProgress, getProgress, joinQuest, resolveVerification, submitProof,
 } from './quest-service.ts';
+import { hostStandings, travellerStandings } from './standing-service.ts';
 import { consoleRoutes } from './console/routes.ts';
 import {
   UnknownMood, balanceFor, habitatEvidenceFor, latestMood, moodHistory, recordMood,
@@ -644,6 +645,32 @@ app.post('/vouchers/:code/redeem', (c) => {
  * traveller has actually been.
  */
 app.get('/passport', (c) => ok(c, { visited: visitedProvincesFor(db, userId(c)) }));
+
+/**
+ * The standing.
+ *
+ * Hosts ranked by approvals, and the caller's OWN record — never a list of
+ * other travellers' names. That is a deliberate omission twice over:
+ *
+ *  - there is one traveller on this island, so a ranking of them would be a
+ *    mirror, and `isRankable` in core makes the screen say so;
+ *  - publishing a Thai user's name and activity beside a leaderboard is a
+ *    PDPA question this product has not asked anybody yet, and the honest
+ *    default until it does is not to publish it. `participants` is a count,
+ *    which needs no consent to state.
+ */
+app.get('/standing', (c) => {
+  const me = userId(c);
+  const travellers = travellerStandings(db);
+  const mine = travellers.find((t) => t.userId === me) ?? null;
+
+  return ok(c, {
+    hosts: rankHosts(hostStandings(db)),
+    you: mine,
+    participants: travellers.filter((t) => t.greenVerified > 0).length,
+    rankedBy: RANKED_BY,
+  });
+});
 
 app.get('/companions', (c) => {
   const evidence = habitatEvidenceFor(db, userId(c));

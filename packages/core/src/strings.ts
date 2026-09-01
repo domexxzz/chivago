@@ -25,7 +25,7 @@ export const strings = {
   tabs: {
     home: t('Home', 'หน้าแรก'),
     map: t('Map', 'แผนที่'),
-    quests: t('Quests', 'ภารกิจ'),
+    quests: t('Missions', 'ภารกิจ'),
     wallet: t('Wallet', 'กระเป๋าแต้ม'),
     impact: t('Impact', 'ผลลัพธ์'),
     safety: t('Safety', 'ความปลอดภัย'),
@@ -123,7 +123,7 @@ export const strings = {
 
   // -- Quests -------------------------------------------------------------
   quests: {
-    title: t('Green Quest', 'ภารกิจสีเขียว'),
+    title: t('Missions', 'ภารกิจสีเขียว'),
     subtitle: t('Complete quests for the environment, earn points', 'ทำภารกิจเพื่อสิ่งแวดล้อม แลกเป็นแต้ม'),
     filters: {
       today: t('Today', 'วันนี้'),

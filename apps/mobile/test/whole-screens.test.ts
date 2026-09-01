@@ -18,7 +18,7 @@ import { mountScreen, offline, refuses, server, settle } from './interact.ts';
 import { offer, quest, wallet } from './fixtures.ts';
 
 import { WalletScreen } from '../src/screens/WalletScreen.tsx';
-import { QuestsScreen } from '../src/screens/QuestsScreen.tsx';
+import { MissionsScreen } from '../src/screens/MissionsScreen.tsx';
 import { MarketScreen } from '../src/screens/MarketScreen.tsx';
 import { ImpactScreen } from '../src/screens/ImpactScreen.tsx';
 import { MapScreen } from '../src/screens/MapScreen.tsx';
@@ -122,7 +122,7 @@ describe('the quests screen, fetching its list', () => {
       ]),
     });
     try {
-      const ui = await mountScreen(h(QuestsScreen, { onOpen: noop }));
+      const ui = await mountScreen(h(MissionsScreen, { onOpen: noop, onOpenMarket: noop }));
       const said = ui.text();
       assert.match(said, /Beach Cleanup/);
       assert.match(said, /Coral Nursery/);
@@ -134,7 +134,7 @@ describe('the quests screen, fetching its list', () => {
   test('an empty island says so rather than showing a blank page', async () => {
     const net = server({ 'GET /quests': listed([]) });
     try {
-      const ui = await mountScreen(h(QuestsScreen, { onOpen: noop }));
+      const ui = await mountScreen(h(MissionsScreen, { onOpen: noop, onOpenMarket: noop }));
       assert.doesNotMatch(ui.text(), /Loading/i);
       assert.ok(ui.text().length > 40, 'an empty list must still explain itself');
       ui.unmount();
@@ -151,7 +151,7 @@ describe('the quests screen, fetching its list', () => {
       ]),
     });
     try {
-      const ui = await mountScreen(h(QuestsScreen, { onOpen: noop }));
+      const ui = await mountScreen(h(MissionsScreen, { onOpen: noop, onOpenMarket: noop }));
       assert.match(ui.text(), /Beach Cleanup/);
       assert.doesNotMatch(ui.text(), /Coral Nursery/, 'a weekend quest is not today');
 
@@ -160,7 +160,12 @@ describe('the quests screen, fetching its list', () => {
       await ui.pressText(/weekend/i);
 
       assert.match(ui.text(), /Coral Nursery/);
-      assert.equal(net.calls.length, 1, 'filtering must not hit the network again');
+      // Count THIS call, not every call the screen makes. Missions also loads
+      // the standing, the offers and the purse, and a bare total would go up
+      // whenever a section was added — measuring the wrong thing and failing
+      // for the wrong reason, which is what it did.
+      const questCalls = net.calls.filter((c) => c.path.startsWith('/quests'));
+      assert.equal(questCalls.length, 1, 'filtering must not re-fetch the quest list');
       ui.unmount();
     } finally { net.restore(); }
   });

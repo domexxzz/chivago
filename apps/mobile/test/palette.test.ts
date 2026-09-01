@@ -6,7 +6,7 @@ import { createElement as h } from 'react';
 import type { ReactTestInstance } from 'react-test-renderer';
 
 import { color, currencyTone } from '../src/theme/index.ts';
-import { QuestRow } from '../src/screens/QuestsScreen.tsx';
+import { QuestRow } from '../src/screens/MissionsScreen.tsx';
 import { OfferRow } from '../src/screens/MarketScreen.tsx';
 import { mount } from './interact.ts';
 import * as fx from './fixtures.ts';

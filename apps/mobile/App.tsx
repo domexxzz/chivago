@@ -28,7 +28,7 @@ import { LoadingState } from './src/components/States.tsx';
 import { OnboardingScreen } from './src/screens/Onboarding.tsx';
 import { MapScreen } from './src/screens/MapScreen.tsx';
 import { PlaceScreen } from './src/screens/PlaceScreen.tsx';
-import { QuestsScreen } from './src/screens/QuestsScreen.tsx';
+import { MissionsScreen } from './src/screens/MissionsScreen.tsx';
 import { QuestDetailScreen } from './src/screens/QuestDetail.tsx';
 import { WalletScreen } from './src/screens/WalletScreen.tsx';
 import { MarketScreen } from './src/screens/MarketScreen.tsx';
@@ -220,7 +220,12 @@ export default function App() {
         );
 
       case 'quests':
-        return <QuestsScreen onOpen={(id) => nav.push('quest', { questId: id })} />;
+        return (
+          <MissionsScreen
+            onOpen={(id) => nav.push('quest', { questId: id })}
+            onOpenMarket={() => nav.push('market')}
+          />
+        );
 
       case 'quest':
         return (

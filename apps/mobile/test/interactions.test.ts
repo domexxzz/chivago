@@ -5,7 +5,7 @@ import { createElement as h } from 'react';
 import { REVIEW_TRIP_POINTS } from '@chivago/core';
 import { ComposeSheet, ReportSheet, AppealSheet, ReviewRow } from '../src/screens/PlaceReviews.tsx';
 import { OfferRow } from '../src/screens/MarketScreen.tsx';
-import { QuestRow } from '../src/screens/QuestsScreen.tsx';
+import { QuestRow } from '../src/screens/MissionsScreen.tsx';
 import { fakeFetch, mount, type FakeCall } from './interact.ts';
 import * as fx from './fixtures.ts';
 
