@@ -15,13 +15,17 @@ import {
   login, logout, pruneSessions, readCookie, resolveSession,
   SESSION_COOKIE, SESSION_TTL_MS, type HostSession,
 } from '../host-auth.ts';
-import { isRejectionReasonKey } from '@chivago/core';
+import {
+  isRejectionReasonKey, sponsorOutcome, type Sponsor, type Sponsorship,
+} from '@chivago/core';
+import { listQuests } from '../repo.ts';
+import { sponsorPage } from './sponsor.ts';
 import { pendingQueue, queueStats, recentDecisions, reviewItem } from '../review-service.ts';
 import {
   DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, localeFromAcceptLanguage, type Locale,
 } from './i18n.ts';
 import { readPhotoForHost } from '../uploads.ts';
-import { resolveVerification } from '../quest-service.ts';
+import { questCountsFor, resolveVerification } from '../quest-service.ts';
 import { detailPage, historyPage, loginPage, messagePage, queuePage } from './views.ts';
 import { sosDeskPage } from './sos-desk.ts';
 import { acknowledgeAlert, liveAlerts, recentAlerts, resolveAlert } from '../sos-service.ts';
@@ -249,6 +253,49 @@ export function consoleRoutes(db: DB): Hono {
    * rule: only issue keys to organisations that have agreed to watch this
    * screen. See docs/08-sos-dispatch.md.
    */
+  /**
+   * The sponsor's view of their own money.
+   *
+   * PILOT SHAPE. There is no sponsors table yet, because there are no
+   * contracts yet — so the funding is declared here, in one visible constant,
+   * rather than in a database that would imply an agreement nobody has signed.
+   * The COUNTS underneath it are real: read from quest_progress and the
+   * ledger, the same rows a host's Approve click writes.
+   *
+   * When the first sponsor actually signs, this constant becomes a table and
+   * nothing else on this page changes.
+   */
+  app.get('/sponsor', (c) => {
+    const session = currentSession(c)!;
+
+    const sponsor: Sponsor = {
+      id: 'samui-green',
+      name: { en: 'Samui Green Foundation', th: 'มูลนิธิสมุยสีเขียว' },
+      kind: 'ngo',
+    };
+    const sponsorships: Sponsorship[] = [
+      { sponsorId: sponsor.id, questId: 'q2', fundedTHB: 40_000, perVerifiedTHB: 400, startedAt: '2026-08-01T00:00:00.000Z' },
+      { sponsorId: sponsor.id, questId: 'q3', fundedTHB: 25_000, perVerifiedTHB: 300, startedAt: '2026-08-01T00:00:00.000Z' },
+    ];
+
+    const counts = questCountsFor(db, sponsorships.map((s) => s.questId));
+    const outcome = sponsorOutcome(sponsor, sponsorships, counts);
+
+    const names = new Map(listQuests(db).map((q) => [q.id, q.name.en]));
+    const rows = sponsorships.map((s) => {
+      const found = counts.find((x) => x.questId === s.questId);
+      return {
+        questId: s.questId,
+        name: names.get(s.questId) ?? s.questId,
+        joined: found?.joined ?? 0,
+        verified: found?.verified ?? 0,
+        fundedTHB: s.fundedTHB,
+      };
+    });
+
+    return c.html(sponsorPage(localeFor(c), session.hostName, session.reviewer, outcome, rows));
+  });
+
   app.get('/sos', (c) => {
     const session = currentSession(c)!;
     const live = liveAlerts(db);

@@ -17,7 +17,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { rows, transact, type DB } from './db.ts';
-import { isRejectionReasonKey, rejectionMessage, type ProofPhoto, type Balances, type Currency, type QuestProgress, type QuestStage,
+import { isRejectionReasonKey, rejectionMessage, type QuestCounts, type ProofPhoto, type Balances, type Currency, type QuestProgress, type QuestStage,
   type RejectionReasonKey } from '@chivago/core';
 import { awardQuestReward, getBalances } from './wallet-service.ts';
 import { enqueue } from './notification-service.ts';
@@ -145,6 +145,60 @@ export function getAllProgress(db: DB, userId: string): Record<string, QuestProg
 }
 
 /** Join a quest. Idempotent - re-joining an in-flight quest returns it unchanged. */
+/**
+ * What each funded quest actually produced.
+ *
+ * Counted from `quest_progress`, which records the timestamp of every stage
+ * transition — so `verified` here is the same fact a host clicked Approve on,
+ * not a status somebody set. The four counts are independent columns rather
+ * than a derived stage, because a traveller who joined, arrived and was then
+ * rejected has to appear in three of them and not vanish from the first two.
+ */
+export function questCountsFor(db: DB, questIds: string[]): QuestCounts[] {
+  if (questIds.length === 0) return [];
+  const holes = questIds.map(() => '?').join(',');
+  const found = rows<{
+    quest_id: string; joined: number; arrived: number; verified: number; rejected: number;
+  }>(
+    db.prepare(
+      `SELECT quest_id,
+              COUNT(joined_at)   AS joined,
+              COUNT(arrived_at)  AS arrived,
+              COUNT(verified_at) AS verified,
+              COUNT(rejected_at) AS rejected
+       FROM quest_progress
+       WHERE quest_id IN (${holes})
+       GROUP BY quest_id`,
+    ).all(...questIds),
+  );
+
+  // Green Points issued for the quest, read from the ledger rather than from
+  // the quest's advertised reward: a reward can be edited, a ledger row cannot.
+  const points = new Map(
+    rows<{ quest_id: string; total: number }>(
+      db.prepare(
+        `SELECT substr(l.source_ref, 7, instr(substr(l.source_ref, 7), ':') - 1) AS quest_id,
+                SUM(l.amount) AS total
+         FROM ledger l
+         WHERE l.kind = 'quest_reward' AND l.currency = 'green'
+         GROUP BY quest_id`,
+      ).all(),
+    ).map((r) => [r.quest_id, r.total]),
+  );
+
+  return questIds.map((id) => {
+    const r = found.find((f) => f.quest_id === id);
+    return {
+      questId: id,
+      joined: r?.joined ?? 0,
+      arrived: r?.arrived ?? 0,
+      verified: r?.verified ?? 0,
+      rejected: r?.rejected ?? 0,
+      greenPointsIssued: points.get(id) ?? 0,
+    };
+  });
+}
+
 export function joinQuest(db: DB, userId: string, questId: string): QuestProgress {
   const existing = getProgress(db, userId, questId);
   if (existing) return existing;
