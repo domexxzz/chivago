@@ -1,1 +1,2058 @@
-{"/places":[{"id":"chaweng","name":{"en":"Chaweng Beach","th":"หาดเฉวง"},"short":"Chaweng","layer":"Safe","lat":9.5357,"lng":100.0617,"meta":"Beach · Crowded now · Air good","blurb":{"en":"Long white-sand bay. Busiest between 10:00-15:00 — the north end stays quiet and has the cleanest water reading this week.","th":"อ่าวทรายขาว ช่วงสายถึงบ่ายคนเยอะ ปลายหาดฝั่งเหนือเงียบกว่า"},"tags":["Beach","Walking route","Safe area","Quest here"],"photo":{"url":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Chaweng_Beach_on_Ko_Samui.JPG/1280px-Chaweng_Beach_on_Ko_Samui.JPG","credit":"Wipkinger (Wikivoyage)","licence":"Public domain","sourceUrl":"https://commons.wikimedia.org/wiki/File:Chaweng_Beach_on_Ko_Samui.JPG"},"metrics":{"crowdDensity":3,"aqi":33,"safetyIndex":6.77,"walkability":8.1},"safetyLabel":{"en":"Patrolled","th":"มีสายตรวจ"},"readings":{"aqi":{"value":33,"provenance":"live","observedAt":"2026-08-31T18:00:00.000Z","source":"Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"}},"healthyScore":75,"breakdown":{"total":75,"components":[{"key":"crowdDensity","label":{"en":"Crowd level","th":"ความหนาแน่น"},"display":"High","subScore":46.7,"weight":0.25,"provenance":"live"},{"key":"aqi","label":{"en":"Air quality","th":"คุณภาพอากาศ"},"display":"33 AQI","subScore":88.2,"weight":0.3,"provenance":"live"},{"key":"safetyIndex","label":{"en":"Safety","th":"ความปลอดภัย"},"display":"Patrolled","subScore":77.7,"weight":0.25,"provenance":"daily"},{"key":"walkability","label":{"en":"Walkability","th":"การเดินเท้า"},"display":"8.1 / 10","subScore":88.8,"weight":0.2,"provenance":"daily"}],"profileApplied":"Island baseline"},"reviews":{"count":0,"average":null,"distribution":[0,0,0,0,0]}},{"id":"namuang","name":{"en":"Na Muang Waterfall","th":"น้ำตกหน้าเมือง"},"short":"Na Muang","layer":"Green","lat":9.4611,"lng":99.9908,"meta":"Green space · Quiet · Air excellent","blurb":{"en":"Two-tier waterfall inside protected forest. Highest Healthy Score on the island — low crowd, excellent air, 1.2 km shaded walk from the car park.","th":"น้ำตกสองชั้นในเขตป่าอนุรักษ์ คะแนนสุขภาวะสูงสุดของเกาะ"},"tags":["Green space","Hidden gem","Walking route","Air excellent"],"photo":{"url":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Namuang_waterfall_2.jpg/1280px-Namuang_waterfall_2.jpg","credit":"Koudkeu","licence":"CC BY-SA 4.0","sourceUrl":"https://commons.wikimedia.org/wiki/File:Namuang_waterfall_2.jpg"},"metrics":{"crowdDensity":0.4,"aqi":33,"safetyIndex":8.85,"walkability":6.9},"safetyLabel":{"en":"Ranger post","th":"มีจุดเจ้าหน้าที่"},"readings":{"aqi":{"value":33,"provenance":"live","observedAt":"2026-08-31T18:00:00.000Z","source":"Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"}},"healthyScore":89,"breakdown":{"total":89,"components":[{"key":"crowdDensity","label":{"en":"Crowd level","th":"ความหนาแน่น"},"display":"Low","subScore":92.9,"weight":0.25,"provenance":"live"},{"key":"aqi","label":{"en":"Air quality","th":"คุณภาพอากาศ"},"display":"33 AQI","subScore":88.2,"weight":0.3,"provenance":"live"},{"key":"safetyIndex","label":{"en":"Safety","th":"ความปลอดภัย"},"display":"Ranger post","subScore":94.9,"weight":0.25,"provenance":"daily"},{"key":"walkability","label":{"en":"Walkability","th":"การเดินเท้า"},"display":"6.9 / 10","subScore":79,"weight":0.2,"provenance":"daily"}],"profileApplied":"Island baseline"},"reviews":{"count":0,"average":null,"distribution":[0,0,0,0,0]}},{"id":"fisherman","name":{"en":"Fisherman's Village","th":"หมู่บ้านชาวประมง"},"short":"Fisherman's","layer":"Food","lat":9.5573,"lng":100.0596,"meta":"Healthy food · Local · Evening","blurb":{"en":"Bophut old town. Twelve verified merchants accept Green Points; Friday walking street from 17:00.","th":"ย่านเก่าบ่อผุด ร้านค้าที่รับแต้มสีเขียว 12 ร้าน"},"tags":["Healthy food","Local experience","Marketplace","Safe area"],"photo":{"url":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Pier_in_Bophut_village_in_Ko_Samui.jpg/1280px-Pier_in_Bophut_village_in_Ko_Samui.jpg","credit":"Ruta Badina","licence":"CC BY-SA 3.0","sourceUrl":"https://commons.wikimedia.org/wiki/File:Pier_in_Bophut_village_in_Ko_Samui.jpg"},"metrics":{"crowdDensity":1.4,"aqi":33,"safetyIndex":6.33,"walkability":9},"safetyLabel":{"en":"Verified zone","th":"เขตตรวจสอบแล้ว"},"readings":{"aqi":{"value":33,"provenance":"live","observedAt":"2026-08-31T18:00:00.000Z","source":"Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"}},"healthyScore":82,"breakdown":{"total":82,"components":[{"key":"crowdDensity","label":{"en":"Crowd level","th":"ความหนาแน่น"},"display":"Medium","subScore":72,"weight":0.25,"provenance":"live"},{"key":"aqi","label":{"en":"Air quality","th":"คุณภาพอากาศ"},"display":"33 AQI","subScore":88.2,"weight":0.3,"provenance":"live"},{"key":"safetyIndex","label":{"en":"Safety","th":"ความปลอดภัย"},"display":"Verified zone","subScore":73.3,"weight":0.25,"provenance":"daily"},{"key":"walkability","label":{"en":"Walkability","th":"การเดินเท้า"},"display":"9.0 / 10","subScore":94.7,"weight":0.2,"provenance":"daily"}],"profileApplied":"Island baseline"},"reviews":{"count":0,"average":null,"distribution":[0,0,0,0,0]}},{"id":"shala","name":{"en":"Lamai Yoga Shala","th":"ลามัย โยคะ ศาลา"},"short":"Lamai Shala","layer":"Wellness","lat":9.4693,"lng":100.0446,"meta":"Wellness · Sunrise class · Quiet","blurb":{"en":"Open-air shala above Lamai. Sunrise class 06:30, breathwork 17:00. Points-redeemable drop-in.","th":"ศาลาโยคะกลางแจ้งเหนือหาดละไม คลาสเช้า 06:30"},"tags":["Wellness","Quiet","Points accepted"],"photo":null,"metrics":{"crowdDensity":0.5,"aqi":33,"safetyIndex":7.39,"walkability":7.4},"safetyLabel":{"en":"Verified","th":"ยืนยันแล้ว"},"readings":{"aqi":{"value":33,"provenance":"live","observedAt":"2026-08-31T18:00:00.000Z","source":"Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"}},"healthyScore":87,"breakdown":{"total":87,"components":[{"key":"crowdDensity","label":{"en":"Crowd level","th":"ความหนาแน่น"},"display":"Low","subScore":90.7,"weight":0.25,"provenance":"live"},{"key":"aqi","label":{"en":"Air quality","th":"คุณภาพอากาศ"},"display":"33 AQI","subScore":88.2,"weight":0.3,"provenance":"live"},{"key":"safetyIndex","label":{"en":"Safety","th":"ความปลอดภัย"},"display":"Verified","subScore":83.9,"weight":0.25,"provenance":"daily"},{"key":"walkability","label":{"en":"Walkability","th":"การเดินเท้า"},"display":"7.4 / 10","subScore":83.2,"weight":0.2,"provenance":"daily"}],"profileApplied":"Island baseline"},"reviews":{"count":0,"average":null,"distribution":[0,0,0,0,0]}},{"id":"mangrove","name":{"en":"Thong Krut Mangrove","th":"ป่าชายเลนท้องกรูด"},"short":"Thong Krut","layer":"Quest","lat":9.4179,"lng":99.9433,"meta":"Restoration site · Quest active","blurb":{"en":"Community-managed mangrove nursery on the south shore. Active planting quest most weekends.","th":"แปลงเพาะกล้าป่าชายเลนโดยชุมชนทางใต้ของเกาะ"},"tags":["Green space","Quest here","Community"],"photo":null,"metrics":{"crowdDensity":0.3,"aqi":33,"safetyIndex":5.13,"walkability":5.2},"safetyLabel":{"en":"Guide required","th":"ต้องมีไกด์"},"readings":{"aqi":{"value":33,"provenance":"live","observedAt":"2026-08-31T18:00:00.000Z","source":"Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"}},"healthyScore":77,"breakdown":{"total":77,"components":[{"key":"crowdDensity","label":{"en":"Crowd level","th":"ความหนาแน่น"},"display":"Low","subScore":95,"weight":0.25,"provenance":"live"},{"key":"aqi","label":{"en":"Air quality","th":"คุณภาพอากาศ"},"display":"33 AQI","subScore":88.2,"weight":0.3,"provenance":"live"},{"key":"safetyIndex","label":{"en":"Safety","th":"ความปลอดภัย"},"display":"Guide required","subScore":59.1,"weight":0.25,"provenance":"daily"},{"key":"walkability","label":{"en":"Walkability","th":"การเดินเท้า"},"display":"5.2 / 10","subScore":62,"weight":0.2,"provenance":"daily"}],"profileApplied":"Island baseline"},"reviews":{"count":0,"average":null,"distribution":[0,0,0,0,0]}}],"/places/chaweng":{"id":"chaweng","name":{"en":"Chaweng Beach","th":"หาดเฉวง"},"short":"Chaweng","layer":"Safe","lat":9.5357,"lng":100.0617,"meta":"Beach · Crowded now · Air good","blurb":{"en":"Long white-sand bay. Busiest between 10:00-15:00 — the north end stays quiet and has the cleanest water reading this week.","th":"อ่าวทรายขาว ช่วงสายถึงบ่ายคนเยอะ ปลายหาดฝั่งเหนือเงียบกว่า"},"tags":["Beach","Walking route","Safe area","Quest here"],"photo":{"url":"https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Chaweng_Beach_on_Ko_Samui.JPG/1280px-Chaweng_Beach_on_Ko_Samui.JPG","credit":"Wipkinger (Wikivoyage)","licence":"Public domain","sourceUrl":"https://commons.wikimedia.org/wiki/File:Chaweng_Beach_on_Ko_Samui.JPG"},"metrics":{"crowdDensity":3,"aqi":33,"safetyIndex":6.77,"walkability":8.1},"safetyLabel":{"en":"Patrolled","th":"มีสายตรวจ"},"readings":{"aqi":{"value":33,"provenance":"live","observedAt":"2026-08-31T18:00:00.000Z","source":"Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"}},"healthyScore":75,"breakdown":{"total":75,"components":[{"key":"crowdDensity","label":{"en":"Crowd level","th":"ความหนาแน่น"},"display":"High","subScore":46.7,"weight":0.25,"provenance":"live"},{"key":"aqi","label":{"en":"Air quality","th":"คุณภาพอากาศ"},"display":"33 AQI","subScore":88.2,"weight":0.3,"provenance":"live"},{"key":"safetyIndex","label":{"en":"Safety","th":"ความปลอดภัย"},"display":"Patrolled","subScore":77.7,"weight":0.25,"provenance":"daily"},{"key":"walkability","label":{"en":"Walkability","th":"การเดินเท้า"},"display":"8.1 / 10","subScore":88.8,"weight":0.2,"provenance":"daily"}],"profileApplied":"Island baseline"},"reviews":{"count":0,"average":null,"distribution":[0,0,0,0,0]}},"/places/chaweng/reviews":{"reviews":[],"mine":null,"canReview":false,"reported":[]},"/places/namuang":{"id":"namuang","name":{"en":"Na Muang Waterfall","th":"น้ำตกหน้าเมือง"},"short":"Na Muang","layer":"Green","lat":9.4611,"lng":99.9908,"meta":"Green space · Quiet · Air excellent","blurb":{"en":"Two-tier waterfall inside protected forest. Highest Healthy Score on the island — low crowd, excellent air, 1.2 km shaded walk from the car park.","th":"น้ำตกสองชั้นในเขตป่าอนุรักษ์ คะแนนสุขภาวะสูงสุดของเกาะ"},"tags":["Green space","Hidden gem","Walking route","Air excellent"],"photo":{"url":"https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Namuang_waterfall_2.jpg/1280px-Namuang_waterfall_2.jpg","credit":"Koudkeu","licence":"CC BY-SA 4.0","sourceUrl":"https://commons.wikimedia.org/wiki/File:Namuang_waterfall_2.jpg"},"metrics":{"crowdDensity":0.4,"aqi":33,"safetyIndex":8.85,"walkability":6.9},"safetyLabel":{"en":"Ranger post","th":"มีจุดเจ้าหน้าที่"},"readings":{"aqi":{"value":33,"provenance":"live","observedAt":"2026-08-31T18:00:00.000Z","source":"Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"}},"healthyScore":89,"breakdown":{"total":89,"components":[{"key":"crowdDensity","label":{"en":"Crowd level","th":"ความหนาแน่น"},"display":"Low","subScore":92.9,"weight":0.25,"provenance":"live"},{"key":"aqi","label":{"en":"Air quality","th":"คุณภาพอากาศ"},"display":"33 AQI","subScore":88.2,"weight":0.3,"provenance":"live"},{"key":"safetyIndex","label":{"en":"Safety","th":"ความปลอดภัย"},"display":"Ranger post","subScore":94.9,"weight":0.25,"provenance":"daily"},{"key":"walkability","label":{"en":"Walkability","th":"การเดินเท้า"},"display":"6.9 / 10","subScore":79,"weight":0.2,"provenance":"daily"}],"profileApplied":"Island baseline"},"reviews":{"count":0,"average":null,"distribution":[0,0,0,0,0]}},"/places/namuang/reviews":{"reviews":[],"mine":null,"canReview":false,"reported":[]},"/places/fisherman":{"id":"fisherman","name":{"en":"Fisherman's Village","th":"หมู่บ้านชาวประมง"},"short":"Fisherman's","layer":"Food","lat":9.5573,"lng":100.0596,"meta":"Healthy food · Local · Evening","blurb":{"en":"Bophut old town. Twelve verified merchants accept Green Points; Friday walking street from 17:00.","th":"ย่านเก่าบ่อผุด ร้านค้าที่รับแต้มสีเขียว 12 ร้าน"},"tags":["Healthy food","Local experience","Marketplace","Safe area"],"photo":{"url":"https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Pier_in_Bophut_village_in_Ko_Samui.jpg/1280px-Pier_in_Bophut_village_in_Ko_Samui.jpg","credit":"Ruta Badina","licence":"CC BY-SA 3.0","sourceUrl":"https://commons.wikimedia.org/wiki/File:Pier_in_Bophut_village_in_Ko_Samui.jpg"},"metrics":{"crowdDensity":1.4,"aqi":33,"safetyIndex":6.33,"walkability":9},"safetyLabel":{"en":"Verified zone","th":"เขตตรวจสอบแล้ว"},"readings":{"aqi":{"value":33,"provenance":"live","observedAt":"2026-08-31T18:00:00.000Z","source":"Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"}},"healthyScore":82,"breakdown":{"total":82,"components":[{"key":"crowdDensity","label":{"en":"Crowd level","th":"ความหนาแน่น"},"display":"Medium","subScore":72,"weight":0.25,"provenance":"live"},{"key":"aqi","label":{"en":"Air quality","th":"คุณภาพอากาศ"},"display":"33 AQI","subScore":88.2,"weight":0.3,"provenance":"live"},{"key":"safetyIndex","label":{"en":"Safety","th":"ความปลอดภัย"},"display":"Verified zone","subScore":73.3,"weight":0.25,"provenance":"daily"},{"key":"walkability","label":{"en":"Walkability","th":"การเดินเท้า"},"display":"9.0 / 10","subScore":94.7,"weight":0.2,"provenance":"daily"}],"profileApplied":"Island baseline"},"reviews":{"count":0,"average":null,"distribution":[0,0,0,0,0]}},"/places/fisherman/reviews":{"reviews":[],"mine":null,"canReview":false,"reported":[]},"/places/shala":{"id":"shala","name":{"en":"Lamai Yoga Shala","th":"ลามัย โยคะ ศาลา"},"short":"Lamai Shala","layer":"Wellness","lat":9.4693,"lng":100.0446,"meta":"Wellness · Sunrise class · Quiet","blurb":{"en":"Open-air shala above Lamai. Sunrise class 06:30, breathwork 17:00. Points-redeemable drop-in.","th":"ศาลาโยคะกลางแจ้งเหนือหาดละไม คลาสเช้า 06:30"},"tags":["Wellness","Quiet","Points accepted"],"photo":null,"metrics":{"crowdDensity":0.5,"aqi":33,"safetyIndex":7.39,"walkability":7.4},"safetyLabel":{"en":"Verified","th":"ยืนยันแล้ว"},"readings":{"aqi":{"value":33,"provenance":"live","observedAt":"2026-08-31T18:00:00.000Z","source":"Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"}},"healthyScore":87,"breakdown":{"total":87,"components":[{"key":"crowdDensity","label":{"en":"Crowd level","th":"ความหนาแน่น"},"display":"Low","subScore":90.7,"weight":0.25,"provenance":"live"},{"key":"aqi","label":{"en":"Air quality","th":"คุณภาพอากาศ"},"display":"33 AQI","subScore":88.2,"weight":0.3,"provenance":"live"},{"key":"safetyIndex","label":{"en":"Safety","th":"ความปลอดภัย"},"display":"Verified","subScore":83.9,"weight":0.25,"provenance":"daily"},{"key":"walkability","label":{"en":"Walkability","th":"การเดินเท้า"},"display":"7.4 / 10","subScore":83.2,"weight":0.2,"provenance":"daily"}],"profileApplied":"Island baseline"},"reviews":{"count":0,"average":null,"distribution":[0,0,0,0,0]}},"/places/shala/reviews":{"reviews":[],"mine":null,"canReview":false,"reported":[]},"/places/mangrove":{"id":"mangrove","name":{"en":"Thong Krut Mangrove","th":"ป่าชายเลนท้องกรูด"},"short":"Thong Krut","layer":"Quest","lat":9.4179,"lng":99.9433,"meta":"Restoration site · Quest active","blurb":{"en":"Community-managed mangrove nursery on the south shore. Active planting quest most weekends.","th":"แปลงเพาะกล้าป่าชายเลนโดยชุมชนทางใต้ของเกาะ"},"tags":["Green space","Quest here","Community"],"photo":null,"metrics":{"crowdDensity":0.3,"aqi":33,"safetyIndex":5.13,"walkability":5.2},"safetyLabel":{"en":"Guide required","th":"ต้องมีไกด์"},"readings":{"aqi":{"value":33,"provenance":"live","observedAt":"2026-08-31T18:00:00.000Z","source":"Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"}},"healthyScore":77,"breakdown":{"total":77,"components":[{"key":"crowdDensity","label":{"en":"Crowd level","th":"ความหนาแน่น"},"display":"Low","subScore":95,"weight":0.25,"provenance":"live"},{"key":"aqi","label":{"en":"Air quality","th":"คุณภาพอากาศ"},"display":"33 AQI","subScore":88.2,"weight":0.3,"provenance":"live"},{"key":"safetyIndex","label":{"en":"Safety","th":"ความปลอดภัย"},"display":"Guide required","subScore":59.1,"weight":0.25,"provenance":"daily"},{"key":"walkability","label":{"en":"Walkability","th":"การเดินเท้า"},"display":"5.2 / 10","subScore":62,"weight":0.2,"provenance":"daily"}],"profileApplied":"Island baseline"},"reviews":{"count":0,"average":null,"distribution":[0,0,0,0,0]}},"/places/mangrove/reviews":{"reviews":[],"mine":null,"canReview":false,"reported":[]},"/quests":{"quests":[{"id":"q2","code":"MG-11","name":{"en":"Mangrove Planting","th":"ปลูกป่าชายเลน"},"where":"Thong Krut","duration":"2 hr","rewardPoints":400,"rewardCurrency":"green","host":{"id":"h-samui-green","name":"Samui Green Foundation (NGO)","type":"ngo"},"kind":"weekend","lat":9.4179,"lng":99.9433,"geofenceRadiusM":300},{"id":"q3","code":"CR-02","name":{"en":"Coral Nursery Check","th":"ตรวจแปลงปะการัง"},"where":"Taling Ngam","duration":"90 min","rewardPoints":300,"rewardCurrency":"green","host":{"id":"h-ocean-lab","name":"Ocean Lab · Hotel partner","type":"hotel"},"kind":"weekend","lat":9.4478,"lng":99.9294,"geofenceRadiusM":400},{"id":"q1","code":"BC-04","name":{"en":"Beach Cleanup","th":"เก็บขยะชายหาด"},"where":"Chaweng Beach","duration":"45 min","rewardPoints":150,"rewardCurrency":"green","host":{"id":"h-samui-muni","name":"Samui Municipality","type":"municipality"},"kind":"today","lat":9.5357,"lng":100.0617,"geofenceRadiusM":250},{"id":"q5","code":"FD-07","name":{"en":"Fisherman’s Village food trail","th":"เส้นทางอาหารหมู่บ้านชาวประมง"},"where":"Bophut","duration":"90 min","rewardPoints":120,"rewardCurrency":"trip","host":{"id":"h-fisherman-village","name":"Fisherman's Village Traders","type":"community"},"kind":"today","lat":9.5589,"lng":100.0672,"geofenceRadiusM":350},{"id":"q6","code":"TP-03","name":{"en":"Big Buddha morning walk","th":"เดินเช้าพระใหญ่"},"where":"Bang Rak","duration":"45 min","rewardPoints":80,"rewardCurrency":"trip","host":{"id":"h-chivago","name":"ChivaGo","type":"platform"},"kind":"today","lat":9.5581,"lng":100.0631,"geofenceRadiusM":300},{"id":"q4","code":"WK-01","name":{"en":"Walk, don’t ride","th":"เดินแทนการใช้รถ"},"where":"Island-wide","duration":"Daily","rewardPoints":60,"rewardCurrency":"green","host":{"id":"h-chivago","name":"ChivaGo","type":"platform"},"kind":"today","lat":9.512,"lng":100.0136,"geofenceRadiusM":12000}],"progress":{}},"/quests/q2":{"quest":{"id":"q2","code":"MG-11","name":{"en":"Mangrove Planting","th":"ปลูกป่าชายเลน"},"where":"Thong Krut","duration":"2 hr","rewardPoints":400,"rewardCurrency":"green","host":{"id":"h-samui-green","name":"Samui Green Foundation (NGO)","type":"ngo"},"kind":"weekend","lat":9.4179,"lng":99.9433,"geofenceRadiusM":300},"progress":null},"/quests/q3":{"quest":{"id":"q3","code":"CR-02","name":{"en":"Coral Nursery Check","th":"ตรวจแปลงปะการัง"},"where":"Taling Ngam","duration":"90 min","rewardPoints":300,"rewardCurrency":"green","host":{"id":"h-ocean-lab","name":"Ocean Lab · Hotel partner","type":"hotel"},"kind":"weekend","lat":9.4478,"lng":99.9294,"geofenceRadiusM":400},"progress":null},"/quests/q1":{"quest":{"id":"q1","code":"BC-04","name":{"en":"Beach Cleanup","th":"เก็บขยะชายหาด"},"where":"Chaweng Beach","duration":"45 min","rewardPoints":150,"rewardCurrency":"green","host":{"id":"h-samui-muni","name":"Samui Municipality","type":"municipality"},"kind":"today","lat":9.5357,"lng":100.0617,"geofenceRadiusM":250},"progress":null},"/quests/q5":{"quest":{"id":"q5","code":"FD-07","name":{"en":"Fisherman’s Village food trail","th":"เส้นทางอาหารหมู่บ้านชาวประมง"},"where":"Bophut","duration":"90 min","rewardPoints":120,"rewardCurrency":"trip","host":{"id":"h-fisherman-village","name":"Fisherman's Village Traders","type":"community"},"kind":"today","lat":9.5589,"lng":100.0672,"geofenceRadiusM":350},"progress":null},"/quests/q6":{"quest":{"id":"q6","code":"TP-03","name":{"en":"Big Buddha morning walk","th":"เดินเช้าพระใหญ่"},"where":"Bang Rak","duration":"45 min","rewardPoints":80,"rewardCurrency":"trip","host":{"id":"h-chivago","name":"ChivaGo","type":"platform"},"kind":"today","lat":9.5581,"lng":100.0631,"geofenceRadiusM":300},"progress":null},"/quests/q4":{"quest":{"id":"q4","code":"WK-01","name":{"en":"Walk, don’t ride","th":"เดินแทนการใช้รถ"},"where":"Island-wide","duration":"Daily","rewardPoints":60,"rewardCurrency":"green","host":{"id":"h-chivago","name":"ChivaGo","type":"platform"},"kind":"today","lat":9.512,"lng":100.0136,"geofenceRadiusM":12000},"progress":null},"/profile":{"purposes":[],"activity":null,"watch":[],"completedAt":"2026-08-30T19:24:30.400Z"},"/checkins/today":[],"/wallet":{"balances":{"trip":320,"green":1240},"progression":{"exp":1560,"level":3,"intoLevel":60,"levelSpan":1200,"rank":{"index":1,"key":"newcomer","label":{"en":"Newcomer","th":"ผู้มาใหม่"}},"nextRank":{"index":2,"key":"wanderer","label":{"en":"Wanderer","th":"นักเดินทาง"}},"nextRankAtLevel":5,"ladder":[{"index":1,"key":"newcomer","label":{"en":"Newcomer","th":"ผู้มาใหม่"},"fromLevel":1,"earned":true},{"index":2,"key":"wanderer","label":{"en":"Wanderer","th":"นักเดินทาง"},"fromLevel":5,"earned":false},{"index":3,"key":"islandExplorer","label":{"en":"Island Explorer","th":"นักสำรวจเกาะ"},"fromLevel":10,"earned":false},{"index":4,"key":"samuiInsider","label":{"en":"Samui Insider","th":"คนในสมุย"},"fromLevel":20,"earned":false},{"index":5,"key":"chivaLegend","label":{"en":"Chiva Legend","th":"ตำนานชีวา"},"fromLevel":35,"earned":false}]},"ledger":[{"id":"8ebbba43-46c9-4371-a721-2c9aa7861739","label":"Pilot opening balance","occurredAt":"2026-08-31T14:49:14.541Z","host":"ChivaGo · pilot seed","amount":1240,"currency":"green","exp":1240,"kind":"adjustment","sourceRef":"opening:green:demo-user"},{"id":"d7c97219-3a0f-4420-906c-06c639770980","label":"Pilot opening balance","occurredAt":"2026-08-31T14:49:14.538Z","host":"ChivaGo · pilot seed","amount":320,"currency":"trip","exp":320,"kind":"adjustment","sourceRef":"opening:trip:demo-user"}]},"/offers":[{"id":"o1","category":"Café","name":"Cold brew + banana bread","merchant":"Sabeinglae Coffee, Bophut","merchantShort":"Sabeinglae Coffee","costPoints":180,"currency":"trip","imageUrl":null,"available":true},{"id":"o2","category":"Healthy food","name":"Southern Thai wellness set","merchant":"Baan Yai Kitchen, Maenam","merchantShort":"Baan Yai Kitchen","costPoints":350,"currency":"trip","imageUrl":null,"available":true},{"id":"o3","category":"Wellness","name":"Sunrise yoga drop-in","merchant":"Lamai Yoga Shala","merchantShort":"Lamai Yoga Shala","costPoints":500,"currency":"trip","imageUrl":null,"available":true},{"id":"o6","category":"Marine","name":"Reef-safe snorkel set, half day","merchant":"Ocean Lab · Taling Ngam","merchantShort":"Ocean Lab","costPoints":600,"currency":"green","imageUrl":null,"available":true},{"id":"o4","category":"Hotel","name":"Late checkout, 16:00","merchant":"Anantara partner hotels","merchantShort":"Anantara","costPoints":800,"currency":"trip","imageUrl":null,"available":true},{"id":"o5","category":"Local experience","name":"Longtail trip to Koh Taen","merchant":"Thong Krut Boat Co-op","merchantShort":"Thong Krut Boat Co-op","costPoints":1200,"currency":"green","imageUrl":null,"available":true}],"/vouchers":[],"/impact/me":[{"key":"wasteCollected","label":{"en":"Waste collected","th":"ขยะที่เก็บได้"},"value":0,"unit":"kg"},{"key":"mangrovesPlanted","label":{"en":"Mangroves planted","th":"ต้นโกงกางที่ปลูก"},"value":0,"unit":""},{"key":"volunteerTime","label":{"en":"Volunteer time","th":"เวลาอาสาสมัคร"},"value":0,"unit":"hr"},{"key":"questsVerified","label":{"en":"Quests verified","th":"ภารกิจที่ผ่านการตรวจ"},"value":0,"unit":""}],"/impact/community":{"year":2026,"metrics":[{"key":"wasteCollected","label":{"en":"Waste collected","th":"ขยะที่เก็บได้"},"actual":2500,"target":3000,"unit":"kg"},{"key":"treesPlanted","label":{"en":"Trees planted","th":"ต้นไม้ที่ปลูก"},"actual":1000,"target":1500,"unit":""},{"key":"volunteerHours","label":{"en":"Volunteer hours","th":"ชั่วโมงอาสาสมัคร"},"actual":1200,"target":1620,"unit":"hr"},{"key":"participants","label":{"en":"Participants","th":"ผู้เข้าร่วม"},"actual":500,"target":1000,"unit":""},{"key":"activities","label":{"en":"Community activities","th":"กิจกรรมชุมชน"},"actual":20,"target":50,"unit":""}]},"/notifications":{"items":[],"unread":0},"/notifications/quiet":{"enabled":true,"from":null,"until":null},"/shield":[{"key":"tracking","label":{"en":"Live Tracking","th":"ติดตามตำแหน่งสด"},"note":{"en":"Shared with 2 family contacts","th":"แชร์กับผู้ติดต่อในครอบครัว 2 คน"},"state":"on"},{"key":"safePath","label":{"en":"Safe Path","th":"เส้นทางปลอดภัย"},"note":{"en":"Night routing avoids 3 unlit stretches","th":"เส้นทางกลางคืนเลี่ยงช่วงไม่มีไฟ 3 จุด"},"state":"on"},{"key":"antiScam","label":{"en":"Anti-Scam","th":"ป้องกันการหลอกลวง"},"note":{"en":"6 QR merchants verified this trip","th":"ตรวจสอบร้านค้า QR แล้ว 6 ร้านในทริปนี้"},"state":"on"},{"key":"emergency","label":{"en":"Emergency Assistance","th":"ความช่วยเหลือฉุกเฉิน"},"note":{"en":"Bangkok Hospital Samui · 4.1 km","th":"โรงพยาบาลกรุงเทพสมุย · 4.1 กม."},"state":"ready"},{"key":"language","label":{"en":"Language Help","th":"ช่วยเหลือด้านภาษา"},"note":{"en":"Thai↔English interpreter on call","th":"ล่ามไทย-อังกฤษพร้อมให้บริการ"},"state":"ready"}],"/sos":null,"/sos/contacts":[],"/health":{"status":"up","time":"2026-08-31T18:01:27.966Z"}}
+{
+  "/health": {
+    "status": "up",
+    "time": "2026-09-01T07:21:40.292Z"
+  },
+  "/profile": {
+    "purposes": [
+      "nature",
+      "food"
+    ],
+    "activity": "moderate",
+    "watch": [
+      "air"
+    ],
+    "completedAt": "2026-08-27T07:17:25.197Z"
+  },
+  "/places": [
+    {
+      "id": "chaweng",
+      "name": {
+        "en": "Chaweng Beach",
+        "th": "หาดเฉวง"
+      },
+      "short": "Chaweng",
+      "layer": "Safe",
+      "lat": 9.5357,
+      "lng": 100.0617,
+      "meta": "Beach · Crowded now · Air good",
+      "blurb": {
+        "en": "Long white-sand bay. Busiest between 10:00-15:00 — the north end stays quiet and has the cleanest water reading this week.",
+        "th": "อ่าวทรายขาว ช่วงสายถึงบ่ายคนเยอะ ปลายหาดฝั่งเหนือเงียบกว่า"
+      },
+      "tags": [
+        "Beach",
+        "Walking route",
+        "Safe area",
+        "Quest here"
+      ],
+      "photo": {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Chaweng_Beach_on_Ko_Samui.JPG/1280px-Chaweng_Beach_on_Ko_Samui.JPG",
+        "credit": "Wipkinger (Wikivoyage)",
+        "licence": "Public domain",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chaweng_Beach_on_Ko_Samui.JPG"
+      },
+      "metrics": {
+        "crowdDensity": 3,
+        "aqi": 42,
+        "safetyIndex": 6.77,
+        "walkability": 8.1
+      },
+      "safetyLabel": {
+        "en": "Patrolled",
+        "th": "มีสายตรวจ"
+      },
+      "readings": {
+        "aqi": {
+          "value": 42,
+          "provenance": "live",
+          "observedAt": "2026-09-01T07:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+        }
+      },
+      "healthyScore": 75,
+      "breakdown": {
+        "total": 75,
+        "components": [
+          {
+            "key": "crowdDensity",
+            "label": {
+              "en": "Crowd level",
+              "th": "ความหนาแน่น"
+            },
+            "display": "High",
+            "subScore": 46.7,
+            "weight": 0.23,
+            "provenance": "live"
+          },
+          {
+            "key": "aqi",
+            "label": {
+              "en": "Air quality",
+              "th": "คุณภาพอากาศ"
+            },
+            "display": "42 AQI",
+            "subScore": 83.8,
+            "weight": 0.349,
+            "provenance": "live"
+          },
+          {
+            "key": "safetyIndex",
+            "label": {
+              "en": "Safety",
+              "th": "ความปลอดภัย"
+            },
+            "display": "Patrolled",
+            "subScore": 77.7,
+            "weight": 0.214,
+            "provenance": "daily"
+          },
+          {
+            "key": "walkability",
+            "label": {
+              "en": "Walkability",
+              "th": "การเดินเท้า"
+            },
+            "display": "8.1 / 10",
+            "subScore": 88.8,
+            "weight": 0.206,
+            "provenance": "daily"
+          }
+        ],
+        "profileApplied": "Your profile (nature + food, moderate)"
+      },
+      "reviews": {
+        "count": 0,
+        "average": null,
+        "distribution": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "namuang",
+      "name": {
+        "en": "Na Muang Waterfall",
+        "th": "น้ำตกหน้าเมือง"
+      },
+      "short": "Na Muang",
+      "layer": "Green",
+      "lat": 9.4611,
+      "lng": 99.9908,
+      "meta": "Green space · Quiet · Air excellent",
+      "blurb": {
+        "en": "Two-tier waterfall inside protected forest. Highest Healthy Score on the island — low crowd, excellent air, 1.2 km shaded walk from the car park.",
+        "th": "น้ำตกสองชั้นในเขตป่าอนุรักษ์ คะแนนสุขภาวะสูงสุดของเกาะ"
+      },
+      "tags": [
+        "Green space",
+        "Hidden gem",
+        "Walking route",
+        "Air excellent"
+      ],
+      "photo": {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Namuang_waterfall_2.jpg/1280px-Namuang_waterfall_2.jpg",
+        "credit": "Koudkeu",
+        "licence": "CC BY-SA 4.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Namuang_waterfall_2.jpg"
+      },
+      "metrics": {
+        "crowdDensity": 0.4,
+        "aqi": 42,
+        "safetyIndex": 8.85,
+        "walkability": 6.9
+      },
+      "safetyLabel": {
+        "en": "Ranger post",
+        "th": "มีจุดเจ้าหน้าที่"
+      },
+      "readings": {
+        "aqi": {
+          "value": 42,
+          "provenance": "live",
+          "observedAt": "2026-09-01T07:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+        }
+      },
+      "healthyScore": 87,
+      "breakdown": {
+        "total": 87,
+        "components": [
+          {
+            "key": "crowdDensity",
+            "label": {
+              "en": "Crowd level",
+              "th": "ความหนาแน่น"
+            },
+            "display": "Low",
+            "subScore": 92.9,
+            "weight": 0.23,
+            "provenance": "live"
+          },
+          {
+            "key": "aqi",
+            "label": {
+              "en": "Air quality",
+              "th": "คุณภาพอากาศ"
+            },
+            "display": "42 AQI",
+            "subScore": 83.8,
+            "weight": 0.349,
+            "provenance": "live"
+          },
+          {
+            "key": "safetyIndex",
+            "label": {
+              "en": "Safety",
+              "th": "ความปลอดภัย"
+            },
+            "display": "Ranger post",
+            "subScore": 94.9,
+            "weight": 0.214,
+            "provenance": "daily"
+          },
+          {
+            "key": "walkability",
+            "label": {
+              "en": "Walkability",
+              "th": "การเดินเท้า"
+            },
+            "display": "6.9 / 10",
+            "subScore": 79,
+            "weight": 0.206,
+            "provenance": "daily"
+          }
+        ],
+        "profileApplied": "Your profile (nature + food, moderate)"
+      },
+      "reviews": {
+        "count": 0,
+        "average": null,
+        "distribution": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "fisherman",
+      "name": {
+        "en": "Fisherman's Village",
+        "th": "หมู่บ้านชาวประมง"
+      },
+      "short": "Fisherman's",
+      "layer": "Food",
+      "lat": 9.5573,
+      "lng": 100.0596,
+      "meta": "Healthy food · Local · Evening",
+      "blurb": {
+        "en": "Bophut old town. Twelve verified merchants accept Green Points; Friday walking street from 17:00.",
+        "th": "ย่านเก่าบ่อผุด ร้านค้าที่รับแต้มสีเขียว 12 ร้าน"
+      },
+      "tags": [
+        "Healthy food",
+        "Local experience",
+        "Marketplace",
+        "Safe area"
+      ],
+      "photo": {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Pier_in_Bophut_village_in_Ko_Samui.jpg/1280px-Pier_in_Bophut_village_in_Ko_Samui.jpg",
+        "credit": "Ruta Badina",
+        "licence": "CC BY-SA 3.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Pier_in_Bophut_village_in_Ko_Samui.jpg"
+      },
+      "metrics": {
+        "crowdDensity": 1.4,
+        "aqi": 42,
+        "safetyIndex": 6.33,
+        "walkability": 9
+      },
+      "safetyLabel": {
+        "en": "Verified zone",
+        "th": "เขตตรวจสอบแล้ว"
+      },
+      "readings": {
+        "aqi": {
+          "value": 42,
+          "provenance": "live",
+          "observedAt": "2026-09-01T07:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+        }
+      },
+      "healthyScore": 81,
+      "breakdown": {
+        "total": 81,
+        "components": [
+          {
+            "key": "crowdDensity",
+            "label": {
+              "en": "Crowd level",
+              "th": "ความหนาแน่น"
+            },
+            "display": "Medium",
+            "subScore": 72,
+            "weight": 0.23,
+            "provenance": "live"
+          },
+          {
+            "key": "aqi",
+            "label": {
+              "en": "Air quality",
+              "th": "คุณภาพอากาศ"
+            },
+            "display": "42 AQI",
+            "subScore": 83.8,
+            "weight": 0.349,
+            "provenance": "live"
+          },
+          {
+            "key": "safetyIndex",
+            "label": {
+              "en": "Safety",
+              "th": "ความปลอดภัย"
+            },
+            "display": "Verified zone",
+            "subScore": 73.3,
+            "weight": 0.214,
+            "provenance": "daily"
+          },
+          {
+            "key": "walkability",
+            "label": {
+              "en": "Walkability",
+              "th": "การเดินเท้า"
+            },
+            "display": "9.0 / 10",
+            "subScore": 94.7,
+            "weight": 0.206,
+            "provenance": "daily"
+          }
+        ],
+        "profileApplied": "Your profile (nature + food, moderate)"
+      },
+      "reviews": {
+        "count": 0,
+        "average": null,
+        "distribution": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "shala",
+      "name": {
+        "en": "Lamai Yoga Shala",
+        "th": "ลามัย โยคะ ศาลา"
+      },
+      "short": "Lamai Shala",
+      "layer": "Wellness",
+      "lat": 9.4693,
+      "lng": 100.0446,
+      "meta": "Wellness · Sunrise class · Quiet",
+      "blurb": {
+        "en": "Open-air shala above Lamai. Sunrise class 06:30, breathwork 17:00. Points-redeemable drop-in.",
+        "th": "ศาลาโยคะกลางแจ้งเหนือหาดละไม คลาสเช้า 06:30"
+      },
+      "tags": [
+        "Wellness",
+        "Quiet",
+        "Points accepted"
+      ],
+      "photo": null,
+      "metrics": {
+        "crowdDensity": 0.5,
+        "aqi": 42,
+        "safetyIndex": 7.39,
+        "walkability": 7.4
+      },
+      "safetyLabel": {
+        "en": "Verified",
+        "th": "ยืนยันแล้ว"
+      },
+      "readings": {
+        "aqi": {
+          "value": 42,
+          "provenance": "live",
+          "observedAt": "2026-09-01T07:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+        }
+      },
+      "healthyScore": 85,
+      "breakdown": {
+        "total": 85,
+        "components": [
+          {
+            "key": "crowdDensity",
+            "label": {
+              "en": "Crowd level",
+              "th": "ความหนาแน่น"
+            },
+            "display": "Low",
+            "subScore": 90.7,
+            "weight": 0.23,
+            "provenance": "live"
+          },
+          {
+            "key": "aqi",
+            "label": {
+              "en": "Air quality",
+              "th": "คุณภาพอากาศ"
+            },
+            "display": "42 AQI",
+            "subScore": 83.8,
+            "weight": 0.349,
+            "provenance": "live"
+          },
+          {
+            "key": "safetyIndex",
+            "label": {
+              "en": "Safety",
+              "th": "ความปลอดภัย"
+            },
+            "display": "Verified",
+            "subScore": 83.9,
+            "weight": 0.214,
+            "provenance": "daily"
+          },
+          {
+            "key": "walkability",
+            "label": {
+              "en": "Walkability",
+              "th": "การเดินเท้า"
+            },
+            "display": "7.4 / 10",
+            "subScore": 83.2,
+            "weight": 0.206,
+            "provenance": "daily"
+          }
+        ],
+        "profileApplied": "Your profile (nature + food, moderate)"
+      },
+      "reviews": {
+        "count": 0,
+        "average": null,
+        "distribution": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "mangrove",
+      "name": {
+        "en": "Thong Krut Mangrove",
+        "th": "ป่าชายเลนท้องกรูด"
+      },
+      "short": "Thong Krut",
+      "layer": "Quest",
+      "lat": 9.4179,
+      "lng": 99.9433,
+      "meta": "Restoration site · Quest active",
+      "blurb": {
+        "en": "Community-managed mangrove nursery on the south shore. Active planting quest most weekends.",
+        "th": "แปลงเพาะกล้าป่าชายเลนโดยชุมชนทางใต้ของเกาะ"
+      },
+      "tags": [
+        "Green space",
+        "Quest here",
+        "Community"
+      ],
+      "photo": null,
+      "metrics": {
+        "crowdDensity": 0.3,
+        "aqi": 42,
+        "safetyIndex": 5.13,
+        "walkability": 5.2
+      },
+      "safetyLabel": {
+        "en": "Guide required",
+        "th": "ต้องมีไกด์"
+      },
+      "readings": {
+        "aqi": {
+          "value": 42,
+          "provenance": "live",
+          "observedAt": "2026-09-01T07:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+        }
+      },
+      "healthyScore": 77,
+      "breakdown": {
+        "total": 77,
+        "components": [
+          {
+            "key": "crowdDensity",
+            "label": {
+              "en": "Crowd level",
+              "th": "ความหนาแน่น"
+            },
+            "display": "Low",
+            "subScore": 95,
+            "weight": 0.23,
+            "provenance": "live"
+          },
+          {
+            "key": "aqi",
+            "label": {
+              "en": "Air quality",
+              "th": "คุณภาพอากาศ"
+            },
+            "display": "42 AQI",
+            "subScore": 83.8,
+            "weight": 0.349,
+            "provenance": "live"
+          },
+          {
+            "key": "safetyIndex",
+            "label": {
+              "en": "Safety",
+              "th": "ความปลอดภัย"
+            },
+            "display": "Guide required",
+            "subScore": 59.1,
+            "weight": 0.214,
+            "provenance": "daily"
+          },
+          {
+            "key": "walkability",
+            "label": {
+              "en": "Walkability",
+              "th": "การเดินเท้า"
+            },
+            "display": "5.2 / 10",
+            "subScore": 62,
+            "weight": 0.206,
+            "provenance": "daily"
+          }
+        ],
+        "profileApplied": "Your profile (nature + food, moderate)"
+      },
+      "reviews": {
+        "count": 0,
+        "average": null,
+        "distribution": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "/places/chaweng": {
+    "id": "chaweng",
+    "name": {
+      "en": "Chaweng Beach",
+      "th": "หาดเฉวง"
+    },
+    "short": "Chaweng",
+    "layer": "Safe",
+    "lat": 9.5357,
+    "lng": 100.0617,
+    "meta": "Beach · Crowded now · Air good",
+    "blurb": {
+      "en": "Long white-sand bay. Busiest between 10:00-15:00 — the north end stays quiet and has the cleanest water reading this week.",
+      "th": "อ่าวทรายขาว ช่วงสายถึงบ่ายคนเยอะ ปลายหาดฝั่งเหนือเงียบกว่า"
+    },
+    "tags": [
+      "Beach",
+      "Walking route",
+      "Safe area",
+      "Quest here"
+    ],
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/df/Chaweng_Beach_on_Ko_Samui.JPG/1280px-Chaweng_Beach_on_Ko_Samui.JPG",
+      "credit": "Wipkinger (Wikivoyage)",
+      "licence": "Public domain",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Chaweng_Beach_on_Ko_Samui.JPG"
+    },
+    "metrics": {
+      "crowdDensity": 3,
+      "aqi": 42,
+      "safetyIndex": 6.77,
+      "walkability": 8.1
+    },
+    "safetyLabel": {
+      "en": "Patrolled",
+      "th": "มีสายตรวจ"
+    },
+    "readings": {
+      "aqi": {
+        "value": 42,
+        "provenance": "live",
+        "observedAt": "2026-09-01T07:00:00.000Z",
+        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+      }
+    },
+    "healthyScore": 75,
+    "breakdown": {
+      "total": 75,
+      "components": [
+        {
+          "key": "crowdDensity",
+          "label": {
+            "en": "Crowd level",
+            "th": "ความหนาแน่น"
+          },
+          "display": "High",
+          "subScore": 46.7,
+          "weight": 0.23,
+          "provenance": "live"
+        },
+        {
+          "key": "aqi",
+          "label": {
+            "en": "Air quality",
+            "th": "คุณภาพอากาศ"
+          },
+          "display": "42 AQI",
+          "subScore": 83.8,
+          "weight": 0.349,
+          "provenance": "live"
+        },
+        {
+          "key": "safetyIndex",
+          "label": {
+            "en": "Safety",
+            "th": "ความปลอดภัย"
+          },
+          "display": "Patrolled",
+          "subScore": 77.7,
+          "weight": 0.214,
+          "provenance": "daily"
+        },
+        {
+          "key": "walkability",
+          "label": {
+            "en": "Walkability",
+            "th": "การเดินเท้า"
+          },
+          "display": "8.1 / 10",
+          "subScore": 88.8,
+          "weight": 0.206,
+          "provenance": "daily"
+        }
+      ],
+      "profileApplied": "Your profile (nature + food, moderate)"
+    },
+    "reviews": {
+      "count": 0,
+      "average": null,
+      "distribution": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "/places/chaweng/reviews": {
+    "reviews": [],
+    "mine": null,
+    "canReview": true,
+    "reported": []
+  },
+  "/places/namuang": {
+    "id": "namuang",
+    "name": {
+      "en": "Na Muang Waterfall",
+      "th": "น้ำตกหน้าเมือง"
+    },
+    "short": "Na Muang",
+    "layer": "Green",
+    "lat": 9.4611,
+    "lng": 99.9908,
+    "meta": "Green space · Quiet · Air excellent",
+    "blurb": {
+      "en": "Two-tier waterfall inside protected forest. Highest Healthy Score on the island — low crowd, excellent air, 1.2 km shaded walk from the car park.",
+      "th": "น้ำตกสองชั้นในเขตป่าอนุรักษ์ คะแนนสุขภาวะสูงสุดของเกาะ"
+    },
+    "tags": [
+      "Green space",
+      "Hidden gem",
+      "Walking route",
+      "Air excellent"
+    ],
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Namuang_waterfall_2.jpg/1280px-Namuang_waterfall_2.jpg",
+      "credit": "Koudkeu",
+      "licence": "CC BY-SA 4.0",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Namuang_waterfall_2.jpg"
+    },
+    "metrics": {
+      "crowdDensity": 0.4,
+      "aqi": 42,
+      "safetyIndex": 8.85,
+      "walkability": 6.9
+    },
+    "safetyLabel": {
+      "en": "Ranger post",
+      "th": "มีจุดเจ้าหน้าที่"
+    },
+    "readings": {
+      "aqi": {
+        "value": 42,
+        "provenance": "live",
+        "observedAt": "2026-09-01T07:00:00.000Z",
+        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+      }
+    },
+    "healthyScore": 87,
+    "breakdown": {
+      "total": 87,
+      "components": [
+        {
+          "key": "crowdDensity",
+          "label": {
+            "en": "Crowd level",
+            "th": "ความหนาแน่น"
+          },
+          "display": "Low",
+          "subScore": 92.9,
+          "weight": 0.23,
+          "provenance": "live"
+        },
+        {
+          "key": "aqi",
+          "label": {
+            "en": "Air quality",
+            "th": "คุณภาพอากาศ"
+          },
+          "display": "42 AQI",
+          "subScore": 83.8,
+          "weight": 0.349,
+          "provenance": "live"
+        },
+        {
+          "key": "safetyIndex",
+          "label": {
+            "en": "Safety",
+            "th": "ความปลอดภัย"
+          },
+          "display": "Ranger post",
+          "subScore": 94.9,
+          "weight": 0.214,
+          "provenance": "daily"
+        },
+        {
+          "key": "walkability",
+          "label": {
+            "en": "Walkability",
+            "th": "การเดินเท้า"
+          },
+          "display": "6.9 / 10",
+          "subScore": 79,
+          "weight": 0.206,
+          "provenance": "daily"
+        }
+      ],
+      "profileApplied": "Your profile (nature + food, moderate)"
+    },
+    "reviews": {
+      "count": 0,
+      "average": null,
+      "distribution": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "/places/namuang/reviews": {
+    "reviews": [],
+    "mine": null,
+    "canReview": true,
+    "reported": []
+  },
+  "/places/fisherman": {
+    "id": "fisherman",
+    "name": {
+      "en": "Fisherman's Village",
+      "th": "หมู่บ้านชาวประมง"
+    },
+    "short": "Fisherman's",
+    "layer": "Food",
+    "lat": 9.5573,
+    "lng": 100.0596,
+    "meta": "Healthy food · Local · Evening",
+    "blurb": {
+      "en": "Bophut old town. Twelve verified merchants accept Green Points; Friday walking street from 17:00.",
+      "th": "ย่านเก่าบ่อผุด ร้านค้าที่รับแต้มสีเขียว 12 ร้าน"
+    },
+    "tags": [
+      "Healthy food",
+      "Local experience",
+      "Marketplace",
+      "Safe area"
+    ],
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c0/Pier_in_Bophut_village_in_Ko_Samui.jpg/1280px-Pier_in_Bophut_village_in_Ko_Samui.jpg",
+      "credit": "Ruta Badina",
+      "licence": "CC BY-SA 3.0",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Pier_in_Bophut_village_in_Ko_Samui.jpg"
+    },
+    "metrics": {
+      "crowdDensity": 1.4,
+      "aqi": 42,
+      "safetyIndex": 6.33,
+      "walkability": 9
+    },
+    "safetyLabel": {
+      "en": "Verified zone",
+      "th": "เขตตรวจสอบแล้ว"
+    },
+    "readings": {
+      "aqi": {
+        "value": 42,
+        "provenance": "live",
+        "observedAt": "2026-09-01T07:00:00.000Z",
+        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+      }
+    },
+    "healthyScore": 81,
+    "breakdown": {
+      "total": 81,
+      "components": [
+        {
+          "key": "crowdDensity",
+          "label": {
+            "en": "Crowd level",
+            "th": "ความหนาแน่น"
+          },
+          "display": "Medium",
+          "subScore": 72,
+          "weight": 0.23,
+          "provenance": "live"
+        },
+        {
+          "key": "aqi",
+          "label": {
+            "en": "Air quality",
+            "th": "คุณภาพอากาศ"
+          },
+          "display": "42 AQI",
+          "subScore": 83.8,
+          "weight": 0.349,
+          "provenance": "live"
+        },
+        {
+          "key": "safetyIndex",
+          "label": {
+            "en": "Safety",
+            "th": "ความปลอดภัย"
+          },
+          "display": "Verified zone",
+          "subScore": 73.3,
+          "weight": 0.214,
+          "provenance": "daily"
+        },
+        {
+          "key": "walkability",
+          "label": {
+            "en": "Walkability",
+            "th": "การเดินเท้า"
+          },
+          "display": "9.0 / 10",
+          "subScore": 94.7,
+          "weight": 0.206,
+          "provenance": "daily"
+        }
+      ],
+      "profileApplied": "Your profile (nature + food, moderate)"
+    },
+    "reviews": {
+      "count": 0,
+      "average": null,
+      "distribution": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "/places/fisherman/reviews": {
+    "reviews": [],
+    "mine": null,
+    "canReview": true,
+    "reported": []
+  },
+  "/places/shala": {
+    "id": "shala",
+    "name": {
+      "en": "Lamai Yoga Shala",
+      "th": "ลามัย โยคะ ศาลา"
+    },
+    "short": "Lamai Shala",
+    "layer": "Wellness",
+    "lat": 9.4693,
+    "lng": 100.0446,
+    "meta": "Wellness · Sunrise class · Quiet",
+    "blurb": {
+      "en": "Open-air shala above Lamai. Sunrise class 06:30, breathwork 17:00. Points-redeemable drop-in.",
+      "th": "ศาลาโยคะกลางแจ้งเหนือหาดละไม คลาสเช้า 06:30"
+    },
+    "tags": [
+      "Wellness",
+      "Quiet",
+      "Points accepted"
+    ],
+    "photo": null,
+    "metrics": {
+      "crowdDensity": 0.5,
+      "aqi": 42,
+      "safetyIndex": 7.39,
+      "walkability": 7.4
+    },
+    "safetyLabel": {
+      "en": "Verified",
+      "th": "ยืนยันแล้ว"
+    },
+    "readings": {
+      "aqi": {
+        "value": 42,
+        "provenance": "live",
+        "observedAt": "2026-09-01T07:00:00.000Z",
+        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+      }
+    },
+    "healthyScore": 85,
+    "breakdown": {
+      "total": 85,
+      "components": [
+        {
+          "key": "crowdDensity",
+          "label": {
+            "en": "Crowd level",
+            "th": "ความหนาแน่น"
+          },
+          "display": "Low",
+          "subScore": 90.7,
+          "weight": 0.23,
+          "provenance": "live"
+        },
+        {
+          "key": "aqi",
+          "label": {
+            "en": "Air quality",
+            "th": "คุณภาพอากาศ"
+          },
+          "display": "42 AQI",
+          "subScore": 83.8,
+          "weight": 0.349,
+          "provenance": "live"
+        },
+        {
+          "key": "safetyIndex",
+          "label": {
+            "en": "Safety",
+            "th": "ความปลอดภัย"
+          },
+          "display": "Verified",
+          "subScore": 83.9,
+          "weight": 0.214,
+          "provenance": "daily"
+        },
+        {
+          "key": "walkability",
+          "label": {
+            "en": "Walkability",
+            "th": "การเดินเท้า"
+          },
+          "display": "7.4 / 10",
+          "subScore": 83.2,
+          "weight": 0.206,
+          "provenance": "daily"
+        }
+      ],
+      "profileApplied": "Your profile (nature + food, moderate)"
+    },
+    "reviews": {
+      "count": 0,
+      "average": null,
+      "distribution": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "/places/shala/reviews": {
+    "reviews": [],
+    "mine": null,
+    "canReview": true,
+    "reported": []
+  },
+  "/places/mangrove": {
+    "id": "mangrove",
+    "name": {
+      "en": "Thong Krut Mangrove",
+      "th": "ป่าชายเลนท้องกรูด"
+    },
+    "short": "Thong Krut",
+    "layer": "Quest",
+    "lat": 9.4179,
+    "lng": 99.9433,
+    "meta": "Restoration site · Quest active",
+    "blurb": {
+      "en": "Community-managed mangrove nursery on the south shore. Active planting quest most weekends.",
+      "th": "แปลงเพาะกล้าป่าชายเลนโดยชุมชนทางใต้ของเกาะ"
+    },
+    "tags": [
+      "Green space",
+      "Quest here",
+      "Community"
+    ],
+    "photo": null,
+    "metrics": {
+      "crowdDensity": 0.3,
+      "aqi": 42,
+      "safetyIndex": 5.13,
+      "walkability": 5.2
+    },
+    "safetyLabel": {
+      "en": "Guide required",
+      "th": "ต้องมีไกด์"
+    },
+    "readings": {
+      "aqi": {
+        "value": 42,
+        "provenance": "live",
+        "observedAt": "2026-09-01T07:00:00.000Z",
+        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+      }
+    },
+    "healthyScore": 77,
+    "breakdown": {
+      "total": 77,
+      "components": [
+        {
+          "key": "crowdDensity",
+          "label": {
+            "en": "Crowd level",
+            "th": "ความหนาแน่น"
+          },
+          "display": "Low",
+          "subScore": 95,
+          "weight": 0.23,
+          "provenance": "live"
+        },
+        {
+          "key": "aqi",
+          "label": {
+            "en": "Air quality",
+            "th": "คุณภาพอากาศ"
+          },
+          "display": "42 AQI",
+          "subScore": 83.8,
+          "weight": 0.349,
+          "provenance": "live"
+        },
+        {
+          "key": "safetyIndex",
+          "label": {
+            "en": "Safety",
+            "th": "ความปลอดภัย"
+          },
+          "display": "Guide required",
+          "subScore": 59.1,
+          "weight": 0.214,
+          "provenance": "daily"
+        },
+        {
+          "key": "walkability",
+          "label": {
+            "en": "Walkability",
+            "th": "การเดินเท้า"
+          },
+          "display": "5.2 / 10",
+          "subScore": 62,
+          "weight": 0.206,
+          "provenance": "daily"
+        }
+      ],
+      "profileApplied": "Your profile (nature + food, moderate)"
+    },
+    "reviews": {
+      "count": 0,
+      "average": null,
+      "distribution": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "/places/mangrove/reviews": {
+    "reviews": [],
+    "mine": null,
+    "canReview": true,
+    "reported": []
+  },
+  "/quests": {
+    "quests": [
+      {
+        "id": "q2",
+        "code": "MG-11",
+        "name": {
+          "en": "Mangrove Planting",
+          "th": "ปลูกป่าชายเลน"
+        },
+        "where": "Thong Krut",
+        "duration": "2 hr",
+        "rewardPoints": 400,
+        "rewardCurrency": "green",
+        "host": {
+          "id": "h-samui-green",
+          "name": "Samui Green Foundation (NGO)",
+          "type": "ngo"
+        },
+        "kind": "weekend",
+        "lat": 9.4179,
+        "lng": 99.9433,
+        "geofenceRadiusM": 300
+      },
+      {
+        "id": "q3",
+        "code": "CR-02",
+        "name": {
+          "en": "Coral Nursery Check",
+          "th": "ตรวจแปลงปะการัง"
+        },
+        "where": "Taling Ngam",
+        "duration": "90 min",
+        "rewardPoints": 300,
+        "rewardCurrency": "green",
+        "host": {
+          "id": "h-ocean-lab",
+          "name": "Ocean Lab · Hotel partner",
+          "type": "hotel"
+        },
+        "kind": "weekend",
+        "lat": 9.4478,
+        "lng": 99.9294,
+        "geofenceRadiusM": 400
+      },
+      {
+        "id": "q1",
+        "code": "BC-04",
+        "name": {
+          "en": "Beach Cleanup",
+          "th": "เก็บขยะชายหาด"
+        },
+        "where": "Chaweng Beach",
+        "duration": "45 min",
+        "rewardPoints": 150,
+        "rewardCurrency": "green",
+        "host": {
+          "id": "h-samui-muni",
+          "name": "Samui Municipality",
+          "type": "municipality"
+        },
+        "kind": "today",
+        "lat": 9.5357,
+        "lng": 100.0617,
+        "geofenceRadiusM": 250
+      },
+      {
+        "id": "q5",
+        "code": "FD-07",
+        "name": {
+          "en": "Fisherman’s Village food trail",
+          "th": "เส้นทางอาหารหมู่บ้านชาวประมง"
+        },
+        "where": "Bophut",
+        "duration": "90 min",
+        "rewardPoints": 120,
+        "rewardCurrency": "trip",
+        "host": {
+          "id": "h-fisherman-village",
+          "name": "Fisherman's Village Traders",
+          "type": "community"
+        },
+        "kind": "today",
+        "lat": 9.5589,
+        "lng": 100.0672,
+        "geofenceRadiusM": 350
+      },
+      {
+        "id": "q6",
+        "code": "TP-03",
+        "name": {
+          "en": "Big Buddha morning walk",
+          "th": "เดินเช้าพระใหญ่"
+        },
+        "where": "Bang Rak",
+        "duration": "45 min",
+        "rewardPoints": 80,
+        "rewardCurrency": "trip",
+        "host": {
+          "id": "h-chivago",
+          "name": "ChivaGo",
+          "type": "platform"
+        },
+        "kind": "today",
+        "lat": 9.5581,
+        "lng": 100.0631,
+        "geofenceRadiusM": 300
+      },
+      {
+        "id": "q4",
+        "code": "WK-01",
+        "name": {
+          "en": "Walk, don’t ride",
+          "th": "เดินแทนการใช้รถ"
+        },
+        "where": "Island-wide",
+        "duration": "Daily",
+        "rewardPoints": 60,
+        "rewardCurrency": "green",
+        "host": {
+          "id": "h-chivago",
+          "name": "ChivaGo",
+          "type": "platform"
+        },
+        "kind": "today",
+        "lat": 9.512,
+        "lng": 100.0136,
+        "geofenceRadiusM": 12000
+      }
+    ],
+    "progress": {
+      "q1": {
+        "questId": "q1",
+        "userId": "demo-user",
+        "stage": "complete",
+        "joinedAt": "2026-09-01T07:17:25.261Z",
+        "arrivedAt": "2026-09-01T07:17:25.263Z",
+        "proofSubmittedAt": "2026-09-01T07:17:25.264Z",
+        "verifiedAt": "2026-09-01T07:17:25.265Z",
+        "rejectedAt": null,
+        "rejectionReason": null
+      },
+      "q2": {
+        "questId": "q2",
+        "userId": "demo-user",
+        "stage": "complete",
+        "joinedAt": "2026-09-01T07:17:25.267Z",
+        "arrivedAt": "2026-09-01T07:17:25.268Z",
+        "proofSubmittedAt": "2026-09-01T07:17:25.269Z",
+        "verifiedAt": "2026-09-01T07:17:25.270Z",
+        "rejectedAt": null,
+        "rejectionReason": null
+      },
+      "q4": {
+        "questId": "q4",
+        "userId": "demo-user",
+        "stage": "complete",
+        "joinedAt": "2026-09-01T07:17:25.271Z",
+        "arrivedAt": "2026-09-01T07:17:25.272Z",
+        "proofSubmittedAt": "2026-09-01T07:17:25.273Z",
+        "verifiedAt": "2026-09-01T07:17:25.274Z",
+        "rejectedAt": null,
+        "rejectionReason": null
+      },
+      "q5": {
+        "questId": "q5",
+        "userId": "demo-user",
+        "stage": "complete",
+        "joinedAt": "2026-09-01T07:17:25.275Z",
+        "arrivedAt": "2026-09-01T07:17:25.276Z",
+        "proofSubmittedAt": "2026-09-01T07:17:25.277Z",
+        "verifiedAt": "2026-09-01T07:17:25.278Z",
+        "rejectedAt": null,
+        "rejectionReason": null
+      }
+    }
+  },
+  "/quests/q1": {
+    "quest": {
+      "id": "q1",
+      "code": "BC-04",
+      "name": {
+        "en": "Beach Cleanup",
+        "th": "เก็บขยะชายหาด"
+      },
+      "where": "Chaweng Beach",
+      "duration": "45 min",
+      "rewardPoints": 150,
+      "rewardCurrency": "green",
+      "host": {
+        "id": "h-samui-muni",
+        "name": "Samui Municipality",
+        "type": "municipality"
+      },
+      "kind": "today",
+      "lat": 9.5357,
+      "lng": 100.0617,
+      "geofenceRadiusM": 250
+    },
+    "progress": {
+      "questId": "q1",
+      "userId": "demo-user",
+      "stage": "complete",
+      "joinedAt": "2026-09-01T07:17:25.261Z",
+      "arrivedAt": "2026-09-01T07:17:25.263Z",
+      "proofSubmittedAt": "2026-09-01T07:17:25.264Z",
+      "verifiedAt": "2026-09-01T07:17:25.265Z",
+      "rejectedAt": null,
+      "rejectionReason": null
+    }
+  },
+  "/quests/q2": {
+    "quest": {
+      "id": "q2",
+      "code": "MG-11",
+      "name": {
+        "en": "Mangrove Planting",
+        "th": "ปลูกป่าชายเลน"
+      },
+      "where": "Thong Krut",
+      "duration": "2 hr",
+      "rewardPoints": 400,
+      "rewardCurrency": "green",
+      "host": {
+        "id": "h-samui-green",
+        "name": "Samui Green Foundation (NGO)",
+        "type": "ngo"
+      },
+      "kind": "weekend",
+      "lat": 9.4179,
+      "lng": 99.9433,
+      "geofenceRadiusM": 300
+    },
+    "progress": {
+      "questId": "q2",
+      "userId": "demo-user",
+      "stage": "complete",
+      "joinedAt": "2026-09-01T07:17:25.267Z",
+      "arrivedAt": "2026-09-01T07:17:25.268Z",
+      "proofSubmittedAt": "2026-09-01T07:17:25.269Z",
+      "verifiedAt": "2026-09-01T07:17:25.270Z",
+      "rejectedAt": null,
+      "rejectionReason": null
+    }
+  },
+  "/quests/q3": {
+    "quest": {
+      "id": "q3",
+      "code": "CR-02",
+      "name": {
+        "en": "Coral Nursery Check",
+        "th": "ตรวจแปลงปะการัง"
+      },
+      "where": "Taling Ngam",
+      "duration": "90 min",
+      "rewardPoints": 300,
+      "rewardCurrency": "green",
+      "host": {
+        "id": "h-ocean-lab",
+        "name": "Ocean Lab · Hotel partner",
+        "type": "hotel"
+      },
+      "kind": "weekend",
+      "lat": 9.4478,
+      "lng": 99.9294,
+      "geofenceRadiusM": 400
+    },
+    "progress": null
+  },
+  "/quests/q4": {
+    "quest": {
+      "id": "q4",
+      "code": "WK-01",
+      "name": {
+        "en": "Walk, don’t ride",
+        "th": "เดินแทนการใช้รถ"
+      },
+      "where": "Island-wide",
+      "duration": "Daily",
+      "rewardPoints": 60,
+      "rewardCurrency": "green",
+      "host": {
+        "id": "h-chivago",
+        "name": "ChivaGo",
+        "type": "platform"
+      },
+      "kind": "today",
+      "lat": 9.512,
+      "lng": 100.0136,
+      "geofenceRadiusM": 12000
+    },
+    "progress": {
+      "questId": "q4",
+      "userId": "demo-user",
+      "stage": "complete",
+      "joinedAt": "2026-09-01T07:17:25.271Z",
+      "arrivedAt": "2026-09-01T07:17:25.272Z",
+      "proofSubmittedAt": "2026-09-01T07:17:25.273Z",
+      "verifiedAt": "2026-09-01T07:17:25.274Z",
+      "rejectedAt": null,
+      "rejectionReason": null
+    }
+  },
+  "/quests/q5": {
+    "quest": {
+      "id": "q5",
+      "code": "FD-07",
+      "name": {
+        "en": "Fisherman’s Village food trail",
+        "th": "เส้นทางอาหารหมู่บ้านชาวประมง"
+      },
+      "where": "Bophut",
+      "duration": "90 min",
+      "rewardPoints": 120,
+      "rewardCurrency": "trip",
+      "host": {
+        "id": "h-fisherman-village",
+        "name": "Fisherman's Village Traders",
+        "type": "community"
+      },
+      "kind": "today",
+      "lat": 9.5589,
+      "lng": 100.0672,
+      "geofenceRadiusM": 350
+    },
+    "progress": {
+      "questId": "q5",
+      "userId": "demo-user",
+      "stage": "complete",
+      "joinedAt": "2026-09-01T07:17:25.275Z",
+      "arrivedAt": "2026-09-01T07:17:25.276Z",
+      "proofSubmittedAt": "2026-09-01T07:17:25.277Z",
+      "verifiedAt": "2026-09-01T07:17:25.278Z",
+      "rejectedAt": null,
+      "rejectionReason": null
+    }
+  },
+  "/quests/q6": {
+    "quest": {
+      "id": "q6",
+      "code": "TP-03",
+      "name": {
+        "en": "Big Buddha morning walk",
+        "th": "เดินเช้าพระใหญ่"
+      },
+      "where": "Bang Rak",
+      "duration": "45 min",
+      "rewardPoints": 80,
+      "rewardCurrency": "trip",
+      "host": {
+        "id": "h-chivago",
+        "name": "ChivaGo",
+        "type": "platform"
+      },
+      "kind": "today",
+      "lat": 9.5581,
+      "lng": 100.0631,
+      "geofenceRadiusM": 300
+    },
+    "progress": null
+  },
+  "/checkins/today": [
+    "chaweng",
+    "fisherman"
+  ],
+  "/wallet": {
+    "balances": {
+      "trip": 640,
+      "green": 1850
+    },
+    "progression": {
+      "exp": 2490,
+      "level": 3,
+      "intoLevel": 990,
+      "levelSpan": 1200,
+      "rank": {
+        "index": 1,
+        "key": "newcomer",
+        "label": {
+          "en": "Newcomer",
+          "th": "ผู้มาใหม่"
+        }
+      },
+      "nextRank": {
+        "index": 2,
+        "key": "wanderer",
+        "label": {
+          "en": "Wanderer",
+          "th": "นักเดินทาง"
+        }
+      },
+      "nextRankAtLevel": 5,
+      "ladder": [
+        {
+          "index": 1,
+          "key": "newcomer",
+          "label": {
+            "en": "Newcomer",
+            "th": "ผู้มาใหม่"
+          },
+          "fromLevel": 1,
+          "earned": true
+        },
+        {
+          "index": 2,
+          "key": "wanderer",
+          "label": {
+            "en": "Wanderer",
+            "th": "นักเดินทาง"
+          },
+          "fromLevel": 5,
+          "earned": false
+        },
+        {
+          "index": 3,
+          "key": "islandExplorer",
+          "label": {
+            "en": "Island Explorer",
+            "th": "นักสำรวจเกาะ"
+          },
+          "fromLevel": 10,
+          "earned": false
+        },
+        {
+          "index": 4,
+          "key": "samuiInsider",
+          "label": {
+            "en": "Samui Insider",
+            "th": "คนในสมุย"
+          },
+          "fromLevel": 20,
+          "earned": false
+        },
+        {
+          "index": 5,
+          "key": "chivaLegend",
+          "label": {
+            "en": "Chiva Legend",
+            "th": "ตำนานชีวา"
+          },
+          "fromLevel": 35,
+          "earned": false
+        }
+      ]
+    },
+    "ledger": [
+      {
+        "id": "2cc274c3-d385-41ab-9595-9874d6d7111f",
+        "label": "Fisherman’s Village food trail",
+        "occurredAt": "2026-09-01T07:17:25.278Z",
+        "host": "Fisherman's Village Traders",
+        "amount": 120,
+        "currency": "trip",
+        "exp": 120,
+        "kind": "quest_reward",
+        "sourceRef": "quest:q5:user:demo-user"
+      },
+      {
+        "id": "b0b2f5c5-61f4-4927-a207-b6b708570f88",
+        "label": "Walk, don’t ride",
+        "occurredAt": "2026-09-01T07:17:25.274Z",
+        "host": "ChivaGo",
+        "amount": 60,
+        "currency": "green",
+        "exp": 60,
+        "kind": "quest_reward",
+        "sourceRef": "quest:q4:user:demo-user"
+      },
+      {
+        "id": "15de063e-31c2-42eb-a726-d6d04c790245",
+        "label": "Mangrove Planting",
+        "occurredAt": "2026-09-01T07:17:25.270Z",
+        "host": "Samui Green Foundation (NGO)",
+        "amount": 400,
+        "currency": "green",
+        "exp": 400,
+        "kind": "quest_reward",
+        "sourceRef": "quest:q2:user:demo-user"
+      },
+      {
+        "id": "bac18d8e-57ca-4845-b2fc-3f346d1174a4",
+        "label": "Beach Cleanup",
+        "occurredAt": "2026-09-01T07:17:25.266Z",
+        "host": "Samui Municipality",
+        "amount": 150,
+        "currency": "green",
+        "exp": 150,
+        "kind": "quest_reward",
+        "sourceRef": "quest:q1:user:demo-user"
+      },
+      {
+        "id": "8dce1326-14cb-4e5c-b317-f9b997d8adcc",
+        "label": "Pilot opening balance",
+        "occurredAt": "2026-09-01T07:17:25.219Z",
+        "host": "ChivaGo · pilot seed",
+        "amount": 1240,
+        "currency": "green",
+        "exp": 1240,
+        "kind": "adjustment",
+        "sourceRef": "opening:green:demo-user"
+      },
+      {
+        "id": "f5bf832c-271e-4b0a-a9ba-347a3b99b415",
+        "label": "Pilot opening balance",
+        "occurredAt": "2026-09-01T07:17:25.217Z",
+        "host": "ChivaGo · pilot seed",
+        "amount": 320,
+        "currency": "trip",
+        "exp": 320,
+        "kind": "adjustment",
+        "sourceRef": "opening:trip:demo-user"
+      },
+      {
+        "id": "e0a2ce5c-dc89-44ad-b3ec-89a0ab0c00b1",
+        "label": "Checked in · Fisherman's Village",
+        "occurredAt": "2026-09-01T07:17:25.197Z",
+        "host": "ChivaGo · self check-in",
+        "amount": 20,
+        "currency": "trip",
+        "exp": 20,
+        "kind": "checkin",
+        "sourceRef": "checkin:fisherman:user:demo-user:2026-09-01"
+      },
+      {
+        "id": "a8f47b88-50f7-4814-be67-6ea8343682d0",
+        "label": "Checked in · Chaweng Beach",
+        "occurredAt": "2026-09-01T07:17:25.197Z",
+        "host": "ChivaGo · self check-in",
+        "amount": 20,
+        "currency": "trip",
+        "exp": 20,
+        "kind": "checkin",
+        "sourceRef": "checkin:chaweng:user:demo-user:2026-09-01"
+      },
+      {
+        "id": "7cdf4274-ac4c-4380-bb28-d84b0219660f",
+        "label": "Checked in · Chaweng Beach",
+        "occurredAt": "2026-08-31T07:17:25.197Z",
+        "host": "ChivaGo · self check-in",
+        "amount": 20,
+        "currency": "trip",
+        "exp": 20,
+        "kind": "checkin",
+        "sourceRef": "checkin:chaweng:user:demo-user:2026-08-31"
+      },
+      {
+        "id": "f8d16cc3-9ac9-463f-80f2-a6d38217637f",
+        "label": "Checked in · Fisherman's Village",
+        "occurredAt": "2026-08-31T07:17:25.197Z",
+        "host": "ChivaGo · self check-in",
+        "amount": 20,
+        "currency": "trip",
+        "exp": 20,
+        "kind": "checkin",
+        "sourceRef": "checkin:fisherman:user:demo-user:2026-08-31"
+      },
+      {
+        "id": "3be2ff0a-b953-4ee0-8ce1-55f404b97aec",
+        "label": "Checked in · Thong Krut Mangrove",
+        "occurredAt": "2026-08-30T07:17:25.197Z",
+        "host": "ChivaGo · self check-in",
+        "amount": 20,
+        "currency": "trip",
+        "exp": 20,
+        "kind": "checkin",
+        "sourceRef": "checkin:mangrove:user:demo-user:2026-08-30"
+      },
+      {
+        "id": "93dcfcdb-ed2d-4ca7-8820-f09d5468e7aa",
+        "label": "Checked in · Na Muang Waterfall",
+        "occurredAt": "2026-08-30T07:17:25.197Z",
+        "host": "ChivaGo · self check-in",
+        "amount": 20,
+        "currency": "trip",
+        "exp": 20,
+        "kind": "checkin",
+        "sourceRef": "checkin:namuang:user:demo-user:2026-08-30"
+      },
+      {
+        "id": "39dbdd5b-0bd3-4661-9a09-0eafdb2cf5d5",
+        "label": "Checked in · Lamai Yoga Shala",
+        "occurredAt": "2026-08-29T07:17:25.197Z",
+        "host": "ChivaGo · self check-in",
+        "amount": 20,
+        "currency": "trip",
+        "exp": 20,
+        "kind": "checkin",
+        "sourceRef": "checkin:shala:user:demo-user:2026-08-29"
+      },
+      {
+        "id": "006582d1-46df-450e-a293-9f65486bbde1",
+        "label": "Checked in · Fisherman's Village",
+        "occurredAt": "2026-08-29T07:17:25.197Z",
+        "host": "ChivaGo · self check-in",
+        "amount": 20,
+        "currency": "trip",
+        "exp": 20,
+        "kind": "checkin",
+        "sourceRef": "checkin:fisherman:user:demo-user:2026-08-29"
+      },
+      {
+        "id": "5581afe5-5b9a-4a3e-9eb8-5c770044541b",
+        "label": "Checked in · Na Muang Waterfall",
+        "occurredAt": "2026-08-28T07:17:25.197Z",
+        "host": "ChivaGo · self check-in",
+        "amount": 20,
+        "currency": "trip",
+        "exp": 20,
+        "kind": "checkin",
+        "sourceRef": "checkin:namuang:user:demo-user:2026-08-28"
+      },
+      {
+        "id": "bec69b29-a728-4a7c-b312-d3cb606e9820",
+        "label": "Checked in · Chaweng Beach",
+        "occurredAt": "2026-08-28T07:17:25.197Z",
+        "host": "ChivaGo · self check-in",
+        "amount": 20,
+        "currency": "trip",
+        "exp": 20,
+        "kind": "checkin",
+        "sourceRef": "checkin:chaweng:user:demo-user:2026-08-28"
+      }
+    ]
+  },
+  "/offers": [
+    {
+      "id": "o1",
+      "category": "Café",
+      "name": "Cold brew + banana bread",
+      "merchant": "Sabeinglae Coffee, Bophut",
+      "merchantShort": "Sabeinglae Coffee",
+      "costPoints": 180,
+      "currency": "trip",
+      "imageUrl": null,
+      "available": true
+    },
+    {
+      "id": "o2",
+      "category": "Healthy food",
+      "name": "Southern Thai wellness set",
+      "merchant": "Baan Yai Kitchen, Maenam",
+      "merchantShort": "Baan Yai Kitchen",
+      "costPoints": 350,
+      "currency": "trip",
+      "imageUrl": null,
+      "available": true
+    },
+    {
+      "id": "o3",
+      "category": "Wellness",
+      "name": "Sunrise yoga drop-in",
+      "merchant": "Lamai Yoga Shala",
+      "merchantShort": "Lamai Yoga Shala",
+      "costPoints": 500,
+      "currency": "trip",
+      "imageUrl": null,
+      "available": true
+    },
+    {
+      "id": "o6",
+      "category": "Marine",
+      "name": "Reef-safe snorkel set, half day",
+      "merchant": "Ocean Lab · Taling Ngam",
+      "merchantShort": "Ocean Lab",
+      "costPoints": 600,
+      "currency": "green",
+      "imageUrl": null,
+      "available": true
+    },
+    {
+      "id": "o4",
+      "category": "Hotel",
+      "name": "Late checkout, 16:00",
+      "merchant": "Anantara partner hotels",
+      "merchantShort": "Anantara",
+      "costPoints": 800,
+      "currency": "trip",
+      "imageUrl": null,
+      "available": true
+    },
+    {
+      "id": "o5",
+      "category": "Local experience",
+      "name": "Longtail trip to Koh Taen",
+      "merchant": "Thong Krut Boat Co-op",
+      "merchantShort": "Thong Krut Boat Co-op",
+      "costPoints": 1200,
+      "currency": "green",
+      "imageUrl": null,
+      "available": true
+    }
+  ],
+  "/vouchers": [],
+  "/impact/me": [
+    {
+      "key": "wasteCollected",
+      "label": {
+        "en": "Waste collected",
+        "th": "ขยะที่เก็บได้"
+      },
+      "value": 12.8,
+      "unit": "kg"
+    },
+    {
+      "key": "mangrovesPlanted",
+      "label": {
+        "en": "Mangroves planted",
+        "th": "ต้นโกงกางที่ปลูก"
+      },
+      "value": 34,
+      "unit": ""
+    },
+    {
+      "key": "volunteerTime",
+      "label": {
+        "en": "Volunteer time",
+        "th": "เวลาอาสาสมัคร"
+      },
+      "value": 4.3,
+      "unit": "hr"
+    },
+    {
+      "key": "questsVerified",
+      "label": {
+        "en": "Quests verified",
+        "th": "ภารกิจที่ผ่านการตรวจ"
+      },
+      "value": 4,
+      "unit": ""
+    }
+  ],
+  "/impact/community": {
+    "year": 2026,
+    "metrics": [
+      {
+        "key": "wasteCollected",
+        "label": {
+          "en": "Waste collected",
+          "th": "ขยะที่เก็บได้"
+        },
+        "actual": 2500,
+        "target": 3000,
+        "unit": "kg"
+      },
+      {
+        "key": "treesPlanted",
+        "label": {
+          "en": "Trees planted",
+          "th": "ต้นไม้ที่ปลูก"
+        },
+        "actual": 1000,
+        "target": 1500,
+        "unit": ""
+      },
+      {
+        "key": "volunteerHours",
+        "label": {
+          "en": "Volunteer hours",
+          "th": "ชั่วโมงอาสาสมัคร"
+        },
+        "actual": 1200,
+        "target": 1620,
+        "unit": "hr"
+      },
+      {
+        "key": "participants",
+        "label": {
+          "en": "Participants",
+          "th": "ผู้เข้าร่วม"
+        },
+        "actual": 500,
+        "target": 1000,
+        "unit": ""
+      },
+      {
+        "key": "activities",
+        "label": {
+          "en": "Community activities",
+          "th": "กิจกรรมชุมชน"
+        },
+        "actual": 20,
+        "target": 50,
+        "unit": ""
+      }
+    ]
+  },
+  "/notifications": {
+    "items": [
+      {
+        "id": "36604d3e-838c-4398-8592-b25999594012",
+        "kind": "quest_approved",
+        "title": {
+          "en": "Quest verified",
+          "th": "ภารกิจผ่านการตรวจสอบ"
+        },
+        "body": {
+          "en": "Fisherman's Village Traders approved Fisherman’s Village food trail. +120 Green Points added.",
+          "th": "Fisherman's Village Traders อนุมัติ Fisherman’s Village food trail แล้ว ได้รับ 120 แต้มสีเขียว"
+        },
+        "data": {
+          "screen": "wallet",
+          "questId": "q5"
+        },
+        "createdAt": "2026-09-01T07:17:25.278Z",
+        "readAt": null
+      },
+      {
+        "id": "5806f220-25e2-425a-8729-1025fa1ed838",
+        "kind": "quest_approved",
+        "title": {
+          "en": "Quest verified",
+          "th": "ภารกิจผ่านการตรวจสอบ"
+        },
+        "body": {
+          "en": "ChivaGo approved Walk, don’t ride. +60 Green Points added.",
+          "th": "ChivaGo อนุมัติ Walk, don’t ride แล้ว ได้รับ 60 แต้มสีเขียว"
+        },
+        "data": {
+          "screen": "wallet",
+          "questId": "q4"
+        },
+        "createdAt": "2026-09-01T07:17:25.274Z",
+        "readAt": null
+      },
+      {
+        "id": "52cd711e-71cb-49fa-ac8b-d3fbe2744e5a",
+        "kind": "quest_approved",
+        "title": {
+          "en": "Quest verified",
+          "th": "ภารกิจผ่านการตรวจสอบ"
+        },
+        "body": {
+          "en": "Samui Green Foundation (NGO) approved Mangrove Planting. +400 Green Points added.",
+          "th": "Samui Green Foundation (NGO) อนุมัติ Mangrove Planting แล้ว ได้รับ 400 แต้มสีเขียว"
+        },
+        "data": {
+          "screen": "wallet",
+          "questId": "q2"
+        },
+        "createdAt": "2026-09-01T07:17:25.270Z",
+        "readAt": null
+      },
+      {
+        "id": "0ff1a112-e0f7-4cab-8ebf-aba8b593425d",
+        "kind": "quest_approved",
+        "title": {
+          "en": "Quest verified",
+          "th": "ภารกิจผ่านการตรวจสอบ"
+        },
+        "body": {
+          "en": "Samui Municipality approved Beach Cleanup. +150 Green Points added.",
+          "th": "Samui Municipality อนุมัติ Beach Cleanup แล้ว ได้รับ 150 แต้มสีเขียว"
+        },
+        "data": {
+          "screen": "wallet",
+          "questId": "q1"
+        },
+        "createdAt": "2026-09-01T07:17:25.266Z",
+        "readAt": null
+      }
+    ],
+    "unread": 4
+  },
+  "/notifications/quiet": {
+    "enabled": true,
+    "from": null,
+    "until": null
+  },
+  "/shield": [
+    {
+      "key": "tracking",
+      "label": {
+        "en": "Live Tracking",
+        "th": "ติดตามตำแหน่งสด"
+      },
+      "note": {
+        "en": "Shared with 2 family contacts",
+        "th": "แชร์กับผู้ติดต่อในครอบครัว 2 คน"
+      },
+      "state": "on"
+    },
+    {
+      "key": "safePath",
+      "label": {
+        "en": "Safe Path",
+        "th": "เส้นทางปลอดภัย"
+      },
+      "note": {
+        "en": "Night routing avoids 3 unlit stretches",
+        "th": "เส้นทางกลางคืนเลี่ยงช่วงไม่มีไฟ 3 จุด"
+      },
+      "state": "on"
+    },
+    {
+      "key": "antiScam",
+      "label": {
+        "en": "Anti-Scam",
+        "th": "ป้องกันการหลอกลวง"
+      },
+      "note": {
+        "en": "6 QR merchants verified this trip",
+        "th": "ตรวจสอบร้านค้า QR แล้ว 6 ร้านในทริปนี้"
+      },
+      "state": "on"
+    },
+    {
+      "key": "emergency",
+      "label": {
+        "en": "Emergency Assistance",
+        "th": "ความช่วยเหลือฉุกเฉิน"
+      },
+      "note": {
+        "en": "Bangkok Hospital Samui · 4.1 km",
+        "th": "โรงพยาบาลกรุงเทพสมุย · 4.1 กม."
+      },
+      "state": "ready"
+    },
+    {
+      "key": "language",
+      "label": {
+        "en": "Language Help",
+        "th": "ช่วยเหลือด้านภาษา"
+      },
+      "note": {
+        "en": "Thai↔English interpreter on call",
+        "th": "ล่ามไทย-อังกฤษพร้อมให้บริการ"
+      },
+      "state": "ready"
+    }
+  ],
+  "/sos": null,
+  "/sos/contacts": [
+    {
+      "id": "ec-mae",
+      "name": "Mae",
+      "phone": "+66811111111",
+      "relationship": "Mother",
+      "linkedUserId": null
+    },
+    {
+      "id": "ec-somchai",
+      "name": "Somchai",
+      "phone": "+66822222222",
+      "relationship": "Friend",
+      "linkedUserId": null
+    },
+    {
+      "id": "ec-hotel-front-desk",
+      "name": "Hotel front desk",
+      "phone": "+6677420000",
+      "relationship": "Accommodation",
+      "linkedUserId": null
+    }
+  ]
+}
