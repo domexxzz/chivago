@@ -287,6 +287,17 @@ export const strings = {
       'แจ้งโรงพยาบาลกรุงเทพสมุยแล้ว · แชร์ตำแหน่งกับผู้ติดต่อ 2 คน · ล่ามไทย-อังกฤษกำลังเข้าร่วม',
     ),
     cancelAlert: t('Cancel alert', 'ยกเลิกการแจ้งเตือน'),
+    /**
+     * The window between the hold completing and the alert going out.
+     *
+     * Worded as a countdown, not a question. "Sending in 4" tells someone who
+     * pressed by accident exactly how long they have; "Are you sure?" makes
+     * someone who meant it stop and answer. The default has to favour the
+     * person in trouble.
+     */
+    sosSending: (s: number) => t(`Sending in ${s}`, `ส่งใน ${s} วินาที`),
+    sosStop: t('Stop', 'หยุด'),
+    sosStopped: t('Stopped. Nothing was sent.', 'หยุดแล้ว ยังไม่ได้ส่งอะไรออกไป'),
     antiScamFooter: t(
       'Anti-Scam checks every booking QR against the verified merchant registry before you pay.',
       'ระบบตรวจสอบ QR ทุกการจองกับทะเบียนร้านค้าที่ยืนยันแล้วก่อนคุณชำระเงิน',

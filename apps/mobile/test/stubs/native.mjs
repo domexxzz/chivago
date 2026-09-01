@@ -37,6 +37,16 @@ export const addNotificationResponseReceivedListener = noop;
 export const getLastNotificationResponseAsync = noop;
 export const setBadgeCountAsync = noop;
 export const requestForegroundPermissionsAsync = async () => control.permission;
+/**
+ * Checking permission WITHOUT prompting for it.
+ *
+ * The SOS asks this one, not the request- variant, because an emergency is
+ * the worst moment to raise a system dialog. It was missing here, so every
+ * call threw a TypeError into the screen's own catch and the alert quietly
+ * fired with no position - exactly the silent failure this file warns about.
+ */
+export const getForegroundPermissionsAsync = async () => control.permission;
+export const getBackgroundPermissionsAsync = async () => control.permission;
 export const requestBackgroundPermissionsAsync = async () => control.permission;
 export const getCurrentPositionAsync = async () => control.position;
 export const Accuracy = { Balanced: 3, High: 4, Lowest: 1 };

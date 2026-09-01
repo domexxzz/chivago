@@ -19,7 +19,9 @@ import { Animated, Linking, Pressable, ScrollView, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { Phone } from 'lucide-react-native';
-import { strings, type ShieldService } from '@chivago/core';
+import {
+  EMERGENCY_AS_OF, emergencyNear, strings, type ShieldService,
+} from '@chivago/core';
 import type { SosAlertRecord } from '../api/client.ts';
 import { SOS_RADIUS } from '@chivago/tokens';
 import { api } from '../api/client.ts';
@@ -66,7 +68,13 @@ export function SafetyScreen({
         onShare={onShare}
         firing={firing}
       />
-      <EmergencyNumbers />
+      {/*
+        Once an alert is live we know where the caller is, so the island
+        stations sort by distance from them. With no alert there is no
+        position to sort by, and the list stays in its printed order rather
+        than asking for GPS the user has not offered.
+      */}
+      <EmergencyNumbers at={alert ? { lat: alert.lat, lng: alert.lng } : null} />
 
       <View
         style={{
@@ -139,6 +147,19 @@ function SosSection({
   const holdTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const tickTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /**
+   * Seconds left before the alert goes out, or null when nothing is counting.
+   *
+   * The hold proves intent. It does not prove the intent was right: a pocket
+   * press and a real emergency clear 1200 ms identically. This is the window
+   * to take it back, and it is the only thing standing between a false alarm
+   * and a dispatch nobody asked for.
+   */
+  const [countdown, setCountdown] = React.useState<number | null>(null);
+  const countdownTimer = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  /** The fix fetched during the countdown, so the wait buys something. */
+  const fix = React.useRef<{ lat: number; lng: number } | null>(null);
+
   const clearTimers = React.useCallback(() => {
     if (holdTimer.current) clearTimeout(holdTimer.current);
     if (tickTimer.current) clearTimeout(tickTimer.current);
@@ -146,7 +167,15 @@ function SosSection({
     tickTimer.current = null;
   }, []);
 
-  React.useEffect(() => () => clearTimers(), [clearTimers]);
+  const stopCountdown = React.useCallback(() => {
+    if (countdownTimer.current) clearInterval(countdownTimer.current);
+    countdownTimer.current = null;
+    fix.current = null;
+    setCountdown(null);
+  }, []);
+
+  // A timer that outlives its screen would fire an alert nobody is looking at.
+  React.useEffect(() => () => { clearTimers(); stopCountdown(); }, [clearTimers, stopCountdown]);
 
   // The expanding ring while an alert is live.
   React.useEffect(() => {
@@ -158,8 +187,48 @@ function SosSection({
     return () => loop.stop();
   }, [armed, pulse]);
 
+  /**
+   * Ask for a position while the countdown runs.
+   *
+   * Best-effort on purpose. An emergency must fire whether or not the fix
+   * arrives - the server falls back to the last known area - so nothing here
+   * is allowed to block or throw into the countdown.
+   */
+  const locate = async () => {
+    try {
+      const perm = await Location.getForegroundPermissionsAsync();
+      if (!perm.granted) return;
+      const pos = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      fix.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    } catch {
+      // No fix. Fire without one rather than wait for one.
+    }
+  };
+
+  const beginCountdown = () => {
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    void locate();
+    const seconds = Math.round(motion.sosCountdownMs / 1000);
+    setCountdown(seconds);
+    let left = seconds;
+    countdownTimer.current = setInterval(() => {
+      left -= 1;
+      if (left > 0) {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        setCountdown(left);
+        return;
+      }
+      // Read the fix before clearing, then fire with whatever we managed to get.
+      const at = fix.current ?? undefined;
+      stopCountdown();
+      onFire(at);
+    }, 1000);
+  };
+
   const startHold = () => {
-    if (armed || firing) return;
+    if (armed || firing || countdown !== null) return;
     Animated.timing(hold, {
       toValue: 1,
       duration: motion.sosHoldMs,
@@ -171,27 +240,15 @@ function SosSection({
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }, motion.sosTickMs);
 
-    holdTimer.current = setTimeout(async () => {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      // Best-effort location: an emergency must fire whether or not the fix
-      // arrives. The server falls back to the last known area.
-      try {
-        const perm = await Location.getForegroundPermissionsAsync();
-        if (perm.granted) {
-          const pos = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-          onFire({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          return;
-        }
-      } catch {
-        // Fall through and fire without a fix rather than blocking.
-      }
-      onFire();
-    }, motion.sosHoldMs);
+    holdTimer.current = setTimeout(beginCountdown, motion.sosHoldMs);
   };
 
   const endHold = () => {
+    // Lifting a finger cancels the HOLD, never the countdown. Once the
+    // countdown has started the alert is committed: somebody knocked over, or
+    // dropping the phone, must not silently lose the help they just asked for.
+    // It stops at the Stop control, deliberately, or it does not stop.
+    if (countdown !== null) return;
     clearTimers();
     Animated.timing(hold, { toValue: 0, duration: 160, useNativeDriver: false }).start();
   };
@@ -224,19 +281,21 @@ function SosSection({
         <Pressable
           onPressIn={startHold}
           onPressOut={endHold}
-          disabled={armed || firing}
+          disabled={armed || firing || countdown !== null}
           accessibilityRole="button"
           accessibilityLabel={
             armed
               ? `${strings.safety.sosArmed.en}. ${strings.safety.dispatchDetail.en}`
-              : `SOS. ${strings.safety.sosIdle.en}, 1.2 seconds`
+              : countdown !== null
+                ? `SOS. ${strings.safety.sosSending(countdown).en}. ${strings.safety.sosStop.en} to take it back`
+                : `SOS. ${strings.safety.sosIdle.en}, 1.2 seconds`
           }
           style={{
             width: 150,
             height: 150,
             borderRadius: SOS_RADIUS,
             borderWidth: 3,
-            borderColor: color.accent,
+            borderColor: countdown !== null ? color.accent2 : color.accent,
             backgroundColor: armed ? color.accent : color.bg,
             alignItems: 'center',
             justifyContent: 'center',
@@ -252,22 +311,62 @@ function SosSection({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: color.accent200,
+                backgroundColor: countdown !== null ? color.accent2 : color.accent200,
                 height: hold.interpolate({ inputRange: [0, 1], outputRange: [0, 150] }),
               }}
             />
           ) : null}
-          <Heading size={34} colour={armed ? color.bg : color.accent700} tracking={0.68}>SOS</Heading>
+          {/*
+            While counting, the number IS the control's face. "SOS" is what you
+            press; the seconds are what is happening, and nothing else in the
+            circle should compete with them.
+          */}
+          <Heading
+            size={countdown !== null ? 52 : 34}
+            colour={countdown !== null ? color.bg : armed ? color.bg : color.accent700}
+            tracking={countdown !== null ? -1 : 0.68}
+          >
+            {countdown !== null ? String(countdown) : 'SOS'}
+          </Heading>
           <Label
             size={10}
             tracking={0.14}
-            colour={armed ? color.bg : color.accent700}
+            colour={countdown !== null || armed ? color.bg : color.accent700}
             style={{ marginTop: 4 }}
           >
-            {armed ? strings.safety.sosArmed.en : strings.safety.sosIdle.en}
+            {countdown !== null
+              ? strings.safety.sosSending(countdown).en
+              : armed ? strings.safety.sosArmed.en : strings.safety.sosIdle.en}
           </Label>
         </Pressable>
       </View>
+
+      {/*
+        The way out. Full width and directly under the thumb, because a person
+        who has just realised their pocket called an ambulance has about four
+        seconds and no patience for a small target.
+      */}
+      {countdown !== null ? (
+        <View style={{ marginTop: 16 }}>
+          <Button
+            label={strings.safety.sosStop.en}
+            thai={strings.safety.sosStop.th}
+            variant="secondary"
+            height={56}
+            onPress={stopCountdown}
+            // Carries the countdown ring's coral, so the eye that is already
+            // on the circle finds this without reading anything.
+            style={{
+              borderWidth: layout.ruleStrong,
+              borderColor: color.accent2,
+              backgroundColor: color.surface,
+            }}
+          />
+          <Thai size={10} colour={color.neutral600} style={{ marginTop: 8, textAlign: 'center' }}>
+            {strings.safety.sosSending(countdown).th}
+          </Thai>
+        </View>
+      ) : null}
 
       {alert ? <DispatchPanel alert={alert} onCancel={onCancel} onShare={onShare} /> : null}
     </View>
@@ -390,24 +489,25 @@ function DispatchPanel({
  * here because an app-mediated dispatch can fail - no signal, dead battery, our
  * own outage - and the user must never be left with only our button.
  */
-function EmergencyNumbers() {
-  const numbers: { dial: string; en: string; th: string }[] = [
-    { dial: '1669', en: strings.safety.numbers.ems.en, th: strings.safety.numbers.ems.th },
-    { dial: '1155', en: strings.safety.numbers.touristPolice.en, th: strings.safety.numbers.touristPolice.th },
-    { dial: '191', en: strings.safety.numbers.police.en, th: strings.safety.numbers.police.th },
-  ];
+function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
+  const numbers = emergencyNear(at);
+  const national = numbers.filter((n) => n.scope === 'national');
+  const island = numbers.filter((n) => n.scope === 'island');
+
   return (
     <View style={{ paddingHorizontal: gutter, paddingBottom: 8 }}>
       <Label size={10} tracking={0.14}>
         {`${strings.safety.callDirect.en} · ${strings.safety.callDirect.th}`}
       </Label>
+
+      {/* The national lines: free, no credit needed, answered anywhere. */}
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
-        {numbers.map((n) => (
+        {national.map((n) => (
           <Pressable
-            key={n.dial}
+            key={n.key}
             onPress={() => void Linking.openURL(`tel:${n.dial}`)}
             accessibilityRole="button"
-            accessibilityLabel={`${n.en}. ${n.th}`}
+            accessibilityLabel={`${n.name.en}. ${n.name.th}. ${n.printed}`}
             style={{
               flex: 1,
               alignItems: 'center',
@@ -421,11 +521,59 @@ function EmergencyNumbers() {
             <Phone size={16} color={color.text} strokeWidth={2} />
             <Heading size={16}>{n.dial}</Heading>
             <Label size={9} tracking={0.06} style={{ textAlign: 'center' }}>
-              {n.en.split(' · ')[0]}
+              {n.name.en}
             </Label>
           </Pressable>
         ))}
       </View>
+
+      {/*
+        The stations on the island, nearest first once we know where you are.
+        A hotline dispatches; these are the people who actually arrive, and on
+        Samui the difference is twenty minutes of road.
+      */}
+      {island.map((n) => (
+        <Pressable
+          key={n.key}
+          onPress={() => void Linking.openURL(`tel:${n.dial}`)}
+          accessibilityRole="button"
+          accessibilityLabel={`${n.name.en}. ${n.name.th}. ${n.printed}`}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            marginTop: 8,
+            paddingVertical: 11,
+            paddingHorizontal: 12,
+            borderWidth: 1,
+            borderColor: color.neutral400,
+            borderRadius: radius.sm,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Heading size={14}>{n.name.en}</Heading>
+            <Thai size={10} style={{ marginTop: 2 }}>{n.name.th}</Thai>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Heading size={13} colour={color.accent}>{n.printed}</Heading>
+            {n.km !== null ? (
+              <Label size={9} tracking={0.06} colour={color.neutral600}>
+                {`${n.km} km away`}
+              </Label>
+            ) : null}
+          </View>
+        </Pressable>
+      ))}
+
+      {/* Where the numbers came from, and when. They change. */}
+      <Label
+        size={9}
+        tracking={0.06}
+        colour={color.neutral500}
+        style={{ marginTop: 12, textTransform: 'none' }}
+      >
+        {`Official numbers, checked ${EMERGENCY_AS_OF}.`}
+      </Label>
     </View>
   );
 }

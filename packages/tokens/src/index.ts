@@ -182,6 +182,17 @@ export const motion = {
   toastMs: 2200,
   sosHoldMs: 1200,
   sosTickMs: 600,
+  /**
+   * The window to take it back.
+   *
+   * A 1200 ms hold proves intent; it does not prove the intent was right.
+   * A pocket press, a hold you meant to abort, a child with the phone - all
+   * of them clear the hold and none of them want an ambulance. Five seconds
+   * is long enough to notice and stop, short enough that nobody who really
+   * needs help is meaningfully delayed. The location fix is fetched during
+   * this window, so the wait buys something even when it is not used.
+   */
+  sosCountdownMs: 5000,
   screenEnterMs: 220,
   screenEnterTranslate: 10,
   scanSweepMs: 1400,

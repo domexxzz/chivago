@@ -24,6 +24,15 @@ export interface Mounted {
   labels(): string[];
   /** Fire a press on the first node whose accessibility label matches. */
   press(label: string | RegExp): Promise<void>;
+  /**
+   * Begin and end a press-and-hold, separately.
+   *
+   * The SOS is the one control in the app where the two halves mean
+   * different things - the press starts a timer and the release cancels it -
+   * so a single `press` cannot exercise it at all.
+   */
+  pressIn(label: string | RegExp): Promise<void>;
+  pressOut(label: string | RegExp): Promise<void>;
   /** Fire a text change on the first TextInput. */
   type(value: string, label?: string | RegExp): Promise<void>;
   /** The node whose accessibility label matches, or undefined. */
@@ -93,6 +102,22 @@ export function mount(element: ReactElement): Mounted {
         throw new Error(`"${String(label)}" is labelled but has no onPress`);
       }
       await act(async () => { node.props.onPress(); });
+    },
+    async pressIn(label) {
+      const node = withLabel(label);
+      if (!node) throw new Error(`no pressable labelled ${String(label)}`);
+      if (typeof node.props.onPressIn !== 'function') {
+        throw new Error(`"${String(label)}" is labelled but has no onPressIn`);
+      }
+      await act(async () => { node.props.onPressIn(); });
+    },
+    async pressOut(label) {
+      const node = withLabel(label);
+      if (!node) throw new Error(`no pressable labelled ${String(label)}`);
+      if (typeof node.props.onPressOut !== 'function') {
+        throw new Error(`"${String(label)}" is labelled but has no onPressOut`);
+      }
+      await act(async () => { node.props.onPressOut(); });
     },
     async pressText(want) {
       const hits = renderer.root

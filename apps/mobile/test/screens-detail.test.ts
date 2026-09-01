@@ -7,10 +7,12 @@
  * the Expo stub now carries a `control` a test can steer.
  */
 
-import { describe, test } from 'node:test';
+import { describe, mock, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 
+import { act } from 'react-test-renderer';
+import { motion } from '@chivago/tokens';
 import { mountScreen, offline, refuses, server, settle } from './interact.ts';
 import { control, resetControl } from './stubs/native.mjs';
 import { place, progress, quest, review, shield, summary, wallet } from './fixtures.ts';
@@ -407,6 +409,212 @@ describe('the safety shield', () => {
       assert.match(ui.text(), /SOS/i, 'and the SOS is still there');
       ui.unmount();
     } finally { net.restore(); }
+  });
+
+  test('the island stations are on screen, not just the hotlines', async () => {
+    // 1669 dispatches. These are the people who arrive. On an island where a
+    // wrong turn costs twenty minutes, naming the station is the whole point.
+    const net = server({ 'GET /shield': shield() });
+    try {
+      const ui = await mountScreen(h(SafetyScreen, props()));
+      const said = ui.text();
+      assert.match(said, /Koh Samui Hospital/);
+      assert.match(said, /0-7791-3200/, 'printed the way it is dialled locally');
+      assert.match(said, /Bophut Police Station/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('with an alert live, the nearest station comes first', async () => {
+    // The alert fixture is in Bophut. Bophut station is 2.4 km away and Koh
+    // Samui station is 14 km. A list that puts the far one first is a list
+    // that sends help the long way round.
+    const net = server({ 'GET /shield': shield() });
+    try {
+      const ui = await mountScreen(h(SafetyScreen, props({ alert })));
+      const said = ui.text();
+      const bophut = said.indexOf('Bophut Police Station');
+      const samui = said.indexOf('Koh Samui Police Station');
+      assert.ok(bophut > -1 && samui > -1, 'both stations are listed');
+      assert.ok(bophut < samui, 'the 2.4 km station is above the 14 km one');
+      assert.match(said, /2\.4 km away/, 'and it says how far, so the wait makes sense');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('with no alert it shows no distances rather than made-up ones', async () => {
+    // No alert means no position. An app that prints a distance it cannot
+    // know is worse here than one that prints none.
+    const net = server({ 'GET /shield': shield() });
+    try {
+      const ui = await mountScreen(h(SafetyScreen, props()));
+      assert.doesNotMatch(ui.text(), /km away/, 'no distance without a position');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('every number on screen can be dialled', async () => {
+    // A directory that reads well and does not dial is a poster.
+    const net = server({ 'GET /shield': shield() });
+    try {
+      const ui = await mountScreen(h(SafetyScreen, props()));
+      const said = ui.labels().join(' | ');
+      for (const n of ['1669', '191', '1155', '0-7791-3200', '0-7741-4567']) {
+        assert.match(said, new RegExp(n.replace(/-/g, '\-')), `${n} has no dial control`);
+      }
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('the directory says when it was last checked', async () => {
+    // Numbers change. A directory with no date is a directory nobody can tell
+    // is stale - the same reason every photo carries its licence and date.
+    const net = server({ 'GET /shield': shield() });
+    try {
+      assert.match((await mountScreen(h(SafetyScreen, props()))).text(), /checked \d{4}-\d{2}-\d{2}/);
+    } finally { net.restore(); }
+  });
+
+  test('the shield list failing leaves the official numbers standing', async () => {
+    // Our own service list is a fetch. The national lines are not, and must not
+    // disappear with it - that is the failure mode the whole design guards.
+    const net = server({ 'GET /shield': offline() });
+    try {
+      const said = (await mountScreen(h(SafetyScreen, props()))).text();
+      assert.match(said, /1669/);
+      assert.match(said, /Koh Samui Hospital/);
+    } finally { net.restore(); }
+  });
+});
+
+/**
+ * The five seconds between the hold and the dispatch.
+ *
+ * Time is mocked rather than waited out: a 1200 ms hold plus a 5000 ms
+ * countdown is six seconds per test, and six seconds of real waiting is how a
+ * suite stops being run. Timers are enabled only AFTER the screen has mounted
+ * and settled, so the mount's own fetch is not caught by the mock and left
+ * hanging on a clock nobody is ticking.
+ */
+describe('the SOS countdown, which is the only way back', () => {
+  const alertOf = () => null;
+  const shieldRoute = () => ({ 'GET /shield': shield() });
+  const SOS = /^SOS\./;
+
+  /** Push the clock forward and let React see what changed. */
+  const advance = async (ms: number) => {
+    await act(async () => { mock.timers.tick(ms); });
+    await act(async () => {});
+  };
+
+  const start = async (over: Record<string, unknown> = {}) => {
+    const fired: (undefined | { lat: number; lng: number })[] = [];
+    const ui = await mountScreen(h(SafetyScreen, {
+      alert: alertOf(), onCancel: noop, onShare: noop, firing: false,
+      onFire: (pos?: { lat: number; lng: number }) => { fired.push(pos); },
+      ...over,
+    }));
+    mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
+    return { ui, fired };
+  };
+
+  test('completing the hold does NOT fire - it starts a countdown', async () => {
+    // The bug this guards: a 1200 ms hold that dispatches on the 1200th
+    // millisecond gives a pocket press no way back at all.
+    const net = server(shieldRoute());
+    try {
+      const { ui, fired } = await start();
+      await ui.pressIn(SOS);
+      await advance(motion.sosHoldMs);
+      assert.deepEqual(fired, [], 'nothing was sent at the end of the hold');
+      assert.match(ui.text(), /Sending in 5/, 'and the way back is on screen');
+      ui.unmount();
+    } finally { mock.timers.reset(); net.restore(); }
+  });
+
+  test('it counts down out loud, second by second', async () => {
+    const net = server(shieldRoute());
+    try {
+      const { ui } = await start();
+      await ui.pressIn(SOS);
+      await advance(motion.sosHoldMs);
+      await advance(1000);
+      assert.match(ui.text(), /Sending in 4/);
+      await advance(2000);
+      assert.match(ui.text(), /Sending in 2/);
+      ui.unmount();
+    } finally { mock.timers.reset(); net.restore(); }
+  });
+
+  test('Stop takes it back, and nothing is sent', async () => {
+    const net = server(shieldRoute());
+    try {
+      const { ui, fired } = await start();
+      await ui.pressIn(SOS);
+      await advance(motion.sosHoldMs);
+      await ui.pressText(/Stop/);
+      await advance(motion.sosCountdownMs * 2);
+      assert.deepEqual(fired, [], 'Stop means stop, even after the clock runs out');
+      assert.doesNotMatch(ui.text(), /Sending in/);
+      ui.unmount();
+    } finally { mock.timers.reset(); net.restore(); }
+  });
+
+  test('letting go of the button does not cancel the countdown', async () => {
+    // Somebody knocked off a bike lets go of the phone. That must not be read
+    // as changing their mind.
+    const net = server(shieldRoute());
+    try {
+      const { ui, fired } = await start();
+      await ui.pressIn(SOS);
+      await advance(motion.sosHoldMs);
+      await ui.pressOut(SOS);
+      assert.match(ui.text(), /Sending in/, 'still counting after the release');
+      await advance(motion.sosCountdownMs);
+      assert.equal(fired.length, 1, 'and it went out');
+      ui.unmount();
+    } finally { mock.timers.reset(); net.restore(); }
+  });
+
+  test('releasing DURING the hold cancels it, as it always did', async () => {
+    const net = server(shieldRoute());
+    try {
+      const { ui, fired } = await start();
+      await ui.pressIn(SOS);
+      await advance(motion.sosHoldMs - 200);
+      await ui.pressOut(SOS);
+      await advance(motion.sosHoldMs + motion.sosCountdownMs);
+      assert.deepEqual(fired, [], 'an aborted hold never becomes an alert');
+      ui.unmount();
+    } finally { mock.timers.reset(); net.restore(); }
+  });
+
+  test('it fires once, with the position found during the wait', async () => {
+    // The countdown is not dead time: the fix is fetched while it runs, so a
+    // dispatch that would have gone out with no location goes out with one.
+    const net = server(shieldRoute());
+    try {
+      const { ui, fired } = await start();
+      await ui.pressIn(SOS);
+      await advance(motion.sosHoldMs);
+      await advance(motion.sosCountdownMs);
+      assert.equal(fired.length, 1, 'exactly one alert, not one per tick');
+      assert.deepEqual(fired[0], { lat: 9.5357, lng: 100.0617 });
+      ui.unmount();
+    } finally { mock.timers.reset(); net.restore(); }
+  });
+
+  test('leaving the screen mid-countdown does not fire it later', async () => {
+    // A timer that outlives its screen sends an alert nobody is watching.
+    const net = server(shieldRoute());
+    try {
+      const { ui, fired } = await start();
+      await ui.pressIn(SOS);
+      await advance(motion.sosHoldMs);
+      ui.unmount();
+      await advance(motion.sosCountdownMs * 2);
+      assert.deepEqual(fired, []);
+    } finally { mock.timers.reset(); net.restore(); }
   });
 });
 
