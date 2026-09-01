@@ -1,7 +1,7 @@
 {
   "/health": {
     "status": "up",
-    "time": "2026-09-01T15:18:44.437Z"
+    "time": "2026-09-01T15:51:53.464Z"
   },
   "/profile": {
     "purposes": [
@@ -12,7 +12,7 @@
     "watch": [
       "air"
     ],
-    "completedAt": "2026-08-27T15:18:43.731Z"
+    "completedAt": "2026-08-27T15:51:41.601Z"
   },
   "/places": [
     {
@@ -57,7 +57,7 @@
           "value": 42,
           "provenance": "live",
           "observedAt": "2026-09-01T15:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
       "healthyScore": 75,
@@ -165,7 +165,7 @@
           "value": 42,
           "provenance": "live",
           "observedAt": "2026-09-01T15:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
       "healthyScore": 87,
@@ -273,7 +273,7 @@
           "value": 42,
           "provenance": "live",
           "observedAt": "2026-09-01T15:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
       "healthyScore": 81,
@@ -375,7 +375,7 @@
           "value": 42,
           "provenance": "live",
           "observedAt": "2026-09-01T15:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
       "healthyScore": 77,
@@ -474,15 +474,15 @@
         "walkability": 7.4
       },
       "safetyLabel": {
-        "en": "Verified",
-        "th": "ยืนยันแล้ว"
+        "en": "Verified zone",
+        "th": "เขตตรวจสอบแล้ว"
       },
       "readings": {
         "aqi": {
           "value": 42,
           "provenance": "live",
           "observedAt": "2026-09-01T15:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
       "healthyScore": 85,
@@ -517,7 +517,7 @@
               "en": "Safety",
               "th": "ความปลอดภัย"
             },
-            "display": "Verified",
+            "display": "Verified zone",
             "subScore": 83.9,
             "weight": 0.214,
             "provenance": "daily"
@@ -591,7 +591,7 @@
         "value": 42,
         "provenance": "live",
         "observedAt": "2026-09-01T15:00:00.000Z",
-        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
       }
     },
     "healthyScore": 75,
@@ -705,7 +705,7 @@
         "value": 42,
         "provenance": "live",
         "observedAt": "2026-09-01T15:00:00.000Z",
-        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
       }
     },
     "healthyScore": 87,
@@ -819,7 +819,7 @@
         "value": 42,
         "provenance": "live",
         "observedAt": "2026-09-01T15:00:00.000Z",
-        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
       }
     },
     "healthyScore": 81,
@@ -924,15 +924,15 @@
       "walkability": 7.4
     },
     "safetyLabel": {
-      "en": "Verified",
-      "th": "ยืนยันแล้ว"
+      "en": "Verified zone",
+      "th": "เขตตรวจสอบแล้ว"
     },
     "readings": {
       "aqi": {
         "value": 42,
         "provenance": "live",
         "observedAt": "2026-09-01T15:00:00.000Z",
-        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
       }
     },
     "healthyScore": 85,
@@ -967,7 +967,7 @@
             "en": "Safety",
             "th": "ความปลอดภัย"
           },
-          "display": "Verified",
+          "display": "Verified zone",
           "subScore": 83.9,
           "weight": 0.214,
           "provenance": "daily"
@@ -1040,7 +1040,7 @@
         "value": 42,
         "provenance": "live",
         "observedAt": "2026-09-01T15:00:00.000Z",
-        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
       }
     },
     "healthyScore": 77,
@@ -1246,10 +1246,10 @@
         "questId": "q1",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-01T15:18:43.794Z",
-        "arrivedAt": "2026-09-01T15:18:43.796Z",
-        "proofSubmittedAt": "2026-09-01T15:18:43.797Z",
-        "verifiedAt": "2026-09-01T15:18:43.798Z",
+        "joinedAt": "2026-09-01T15:51:41.666Z",
+        "arrivedAt": "2026-09-01T15:51:41.668Z",
+        "proofSubmittedAt": "2026-09-01T15:51:41.669Z",
+        "verifiedAt": "2026-09-01T15:51:41.670Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1257,10 +1257,10 @@
         "questId": "q2",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-01T15:18:43.800Z",
-        "arrivedAt": "2026-09-01T15:18:43.800Z",
-        "proofSubmittedAt": "2026-09-01T15:18:43.801Z",
-        "verifiedAt": "2026-09-01T15:18:43.802Z",
+        "joinedAt": "2026-09-01T15:51:41.672Z",
+        "arrivedAt": "2026-09-01T15:51:41.673Z",
+        "proofSubmittedAt": "2026-09-01T15:51:41.681Z",
+        "verifiedAt": "2026-09-01T15:51:41.682Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1268,10 +1268,10 @@
         "questId": "q4",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-01T15:18:43.804Z",
-        "arrivedAt": "2026-09-01T15:18:43.805Z",
-        "proofSubmittedAt": "2026-09-01T15:18:43.805Z",
-        "verifiedAt": "2026-09-01T15:18:43.806Z",
+        "joinedAt": "2026-09-01T15:51:41.684Z",
+        "arrivedAt": "2026-09-01T15:51:41.685Z",
+        "proofSubmittedAt": "2026-09-01T15:51:41.686Z",
+        "verifiedAt": "2026-09-01T15:51:41.687Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1279,10 +1279,10 @@
         "questId": "q5",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-01T15:18:43.807Z",
-        "arrivedAt": "2026-09-01T15:18:43.809Z",
-        "proofSubmittedAt": "2026-09-01T15:18:43.809Z",
-        "verifiedAt": "2026-09-01T15:18:43.810Z",
+        "joinedAt": "2026-09-01T15:51:41.688Z",
+        "arrivedAt": "2026-09-01T15:51:41.689Z",
+        "proofSubmittedAt": "2026-09-01T15:51:41.689Z",
+        "verifiedAt": "2026-09-01T15:51:41.690Z",
         "rejectedAt": null,
         "rejectionReason": null
       }
@@ -1314,10 +1314,10 @@
       "questId": "q1",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-01T15:18:43.794Z",
-      "arrivedAt": "2026-09-01T15:18:43.796Z",
-      "proofSubmittedAt": "2026-09-01T15:18:43.797Z",
-      "verifiedAt": "2026-09-01T15:18:43.798Z",
+      "joinedAt": "2026-09-01T15:51:41.666Z",
+      "arrivedAt": "2026-09-01T15:51:41.668Z",
+      "proofSubmittedAt": "2026-09-01T15:51:41.669Z",
+      "verifiedAt": "2026-09-01T15:51:41.670Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1348,10 +1348,10 @@
       "questId": "q2",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-01T15:18:43.800Z",
-      "arrivedAt": "2026-09-01T15:18:43.800Z",
-      "proofSubmittedAt": "2026-09-01T15:18:43.801Z",
-      "verifiedAt": "2026-09-01T15:18:43.802Z",
+      "joinedAt": "2026-09-01T15:51:41.672Z",
+      "arrivedAt": "2026-09-01T15:51:41.673Z",
+      "proofSubmittedAt": "2026-09-01T15:51:41.681Z",
+      "verifiedAt": "2026-09-01T15:51:41.682Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1406,10 +1406,10 @@
       "questId": "q4",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-01T15:18:43.804Z",
-      "arrivedAt": "2026-09-01T15:18:43.805Z",
-      "proofSubmittedAt": "2026-09-01T15:18:43.805Z",
-      "verifiedAt": "2026-09-01T15:18:43.806Z",
+      "joinedAt": "2026-09-01T15:51:41.684Z",
+      "arrivedAt": "2026-09-01T15:51:41.685Z",
+      "proofSubmittedAt": "2026-09-01T15:51:41.686Z",
+      "verifiedAt": "2026-09-01T15:51:41.687Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1440,10 +1440,10 @@
       "questId": "q5",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-01T15:18:43.807Z",
-      "arrivedAt": "2026-09-01T15:18:43.809Z",
-      "proofSubmittedAt": "2026-09-01T15:18:43.809Z",
-      "verifiedAt": "2026-09-01T15:18:43.810Z",
+      "joinedAt": "2026-09-01T15:51:41.688Z",
+      "arrivedAt": "2026-09-01T15:51:41.689Z",
+      "proofSubmittedAt": "2026-09-01T15:51:41.689Z",
+      "verifiedAt": "2026-09-01T15:51:41.690Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1558,9 +1558,9 @@
     },
     "ledger": [
       {
-        "id": "febe9b4d-29e5-49bb-bcd8-024c57f4b03e",
+        "id": "269d72cc-4593-4161-865c-59646f0b7341",
         "label": "Fisherman’s Village food trail",
-        "occurredAt": "2026-09-01T15:18:43.811Z",
+        "occurredAt": "2026-09-01T15:51:41.691Z",
         "host": "Fisherman's Village Traders",
         "amount": 120,
         "currency": "trip",
@@ -1569,9 +1569,9 @@
         "sourceRef": "quest:q5:user:demo-user"
       },
       {
-        "id": "6953e68d-e7b7-49a1-9b50-02de89b5457a",
+        "id": "35b8a085-c668-4ace-86e0-385d6468ba95",
         "label": "Walk, don’t ride",
-        "occurredAt": "2026-09-01T15:18:43.806Z",
+        "occurredAt": "2026-09-01T15:51:41.687Z",
         "host": "ChivaGo",
         "amount": 60,
         "currency": "green",
@@ -1580,9 +1580,9 @@
         "sourceRef": "quest:q4:user:demo-user"
       },
       {
-        "id": "055731fd-94fd-4625-a7b5-de2dd2d59f45",
+        "id": "f0a2964f-eaf6-45c4-8fc8-55c6c5218648",
         "label": "Mangrove Planting",
-        "occurredAt": "2026-09-01T15:18:43.802Z",
+        "occurredAt": "2026-09-01T15:51:41.682Z",
         "host": "Samui Green Foundation (NGO)",
         "amount": 400,
         "currency": "green",
@@ -1591,9 +1591,9 @@
         "sourceRef": "quest:q2:user:demo-user"
       },
       {
-        "id": "4ef6a170-aa4c-4ada-ae1a-df7127201b25",
+        "id": "3e92316f-cd63-45b0-b765-5f758864a14a",
         "label": "Beach Cleanup",
-        "occurredAt": "2026-09-01T15:18:43.798Z",
+        "occurredAt": "2026-09-01T15:51:41.670Z",
         "host": "Samui Municipality",
         "amount": 150,
         "currency": "green",
@@ -1602,9 +1602,9 @@
         "sourceRef": "quest:q1:user:demo-user"
       },
       {
-        "id": "af99a5dc-d402-4540-93e4-35def5125d1e",
+        "id": "c60d53a2-ff53-489a-9027-f2dd6ccf3687",
         "label": "Pilot opening balance",
-        "occurredAt": "2026-09-01T15:18:43.757Z",
+        "occurredAt": "2026-09-01T15:51:41.628Z",
         "host": "ChivaGo · pilot seed",
         "amount": 1240,
         "currency": "green",
@@ -1613,9 +1613,9 @@
         "sourceRef": "opening:green:demo-user"
       },
       {
-        "id": "e086950a-0fd4-421e-8233-f5d681f22640",
+        "id": "a5cef3ac-215f-4db0-ae3c-75284885f345",
         "label": "Pilot opening balance",
-        "occurredAt": "2026-09-01T15:18:43.756Z",
+        "occurredAt": "2026-09-01T15:51:41.627Z",
         "host": "ChivaGo · pilot seed",
         "amount": 320,
         "currency": "trip",
@@ -1624,9 +1624,9 @@
         "sourceRef": "opening:trip:demo-user"
       },
       {
-        "id": "0a0cbfa5-683b-4030-9dfc-dcf8ca8f83f8",
+        "id": "2920c9ae-b377-4bb4-b504-e78516bb3ef5",
         "label": "Checked in · Fisherman's Village",
-        "occurredAt": "2026-09-01T15:18:43.731Z",
+        "occurredAt": "2026-09-01T15:51:41.601Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1635,9 +1635,9 @@
         "sourceRef": "checkin:fisherman:user:demo-user:2026-09-01"
       },
       {
-        "id": "0bdbf99d-a860-4552-b782-19d1cbe00e82",
+        "id": "446db430-2211-41be-94b6-48cbffa8bb36",
         "label": "Checked in · Chaweng Beach",
-        "occurredAt": "2026-09-01T15:18:43.731Z",
+        "occurredAt": "2026-09-01T15:51:41.601Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1646,9 +1646,9 @@
         "sourceRef": "checkin:chaweng:user:demo-user:2026-09-01"
       },
       {
-        "id": "976fc05c-f055-40ad-b082-2df7dc506652",
+        "id": "31edc3e6-bb34-44ae-9690-c19a028b1a4e",
         "label": "Checked in · Chaweng Beach",
-        "occurredAt": "2026-08-31T15:18:43.731Z",
+        "occurredAt": "2026-08-31T15:51:41.601Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1657,9 +1657,9 @@
         "sourceRef": "checkin:chaweng:user:demo-user:2026-08-31"
       },
       {
-        "id": "fc6fe33f-8366-4532-b2c7-2199694d02e3",
+        "id": "adc43542-a626-402e-a011-38822f26b6cd",
         "label": "Checked in · Fisherman's Village",
-        "occurredAt": "2026-08-31T15:18:43.731Z",
+        "occurredAt": "2026-08-31T15:51:41.601Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1668,9 +1668,9 @@
         "sourceRef": "checkin:fisherman:user:demo-user:2026-08-31"
       },
       {
-        "id": "8cc25376-2abb-421f-94b4-8e3784c7190d",
+        "id": "36507d68-72a0-408a-89c5-0a0a368d0cbc",
         "label": "Checked in · Thong Krut Mangrove",
-        "occurredAt": "2026-08-30T15:18:43.731Z",
+        "occurredAt": "2026-08-30T15:51:41.601Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1679,9 +1679,9 @@
         "sourceRef": "checkin:mangrove:user:demo-user:2026-08-30"
       },
       {
-        "id": "e497ffe6-611a-4bc0-91da-6108eebc7dbc",
+        "id": "1a844798-6c0c-4241-b3c1-4158bc0072be",
         "label": "Checked in · Na Muang Waterfall",
-        "occurredAt": "2026-08-30T15:18:43.731Z",
+        "occurredAt": "2026-08-30T15:51:41.601Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1690,9 +1690,9 @@
         "sourceRef": "checkin:namuang:user:demo-user:2026-08-30"
       },
       {
-        "id": "2f08d66c-79b4-45e6-a992-0a3f5ab73184",
+        "id": "23fa679c-7279-4755-8165-4e39e47475a0",
         "label": "Checked in · Lamai Beach",
-        "occurredAt": "2026-08-29T15:18:43.731Z",
+        "occurredAt": "2026-08-29T15:51:41.601Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1701,9 +1701,9 @@
         "sourceRef": "checkin:lamai:user:demo-user:2026-08-29"
       },
       {
-        "id": "35697bbf-9df0-419d-85a9-89d9affbeeef",
+        "id": "046c96c6-13e3-4a93-8bb5-68ec15f1065f",
         "label": "Checked in · Fisherman's Village",
-        "occurredAt": "2026-08-29T15:18:43.731Z",
+        "occurredAt": "2026-08-29T15:51:41.601Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1712,9 +1712,9 @@
         "sourceRef": "checkin:fisherman:user:demo-user:2026-08-29"
       },
       {
-        "id": "e5974412-566b-42bc-914e-49ada563d14b",
+        "id": "24f1314b-c2f8-4695-8fda-0daf7f9d221a",
         "label": "Checked in · Na Muang Waterfall",
-        "occurredAt": "2026-08-28T15:18:43.731Z",
+        "occurredAt": "2026-08-28T15:51:41.601Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1723,9 +1723,9 @@
         "sourceRef": "checkin:namuang:user:demo-user:2026-08-28"
       },
       {
-        "id": "0d60d8be-150c-4819-b42f-9a0fb5481faf",
+        "id": "245867f4-acea-403b-8a43-157f26972018",
         "label": "Checked in · Chaweng Beach",
-        "occurredAt": "2026-08-28T15:18:43.731Z",
+        "occurredAt": "2026-08-28T15:51:41.601Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1762,8 +1762,8 @@
       "id": "o3",
       "category": "Wellness",
       "name": "Sunrise yoga drop-in",
-      "merchant": "Lamai Yoga Shala",
-      "merchantShort": "Lamai Yoga Shala",
+      "merchant": "Baan Yoga, Lamai",
+      "merchantShort": "Baan Yoga",
       "costPoints": 500,
       "currency": "trip",
       "imageUrl": null,
@@ -1900,7 +1900,7 @@
   "/notifications": {
     "items": [
       {
-        "id": "78c02681-46cf-4d94-a6aa-57f95c29755e",
+        "id": "63289dad-4538-4b4c-8b4c-2356ff83d6e7",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -1914,11 +1914,11 @@
           "screen": "wallet",
           "questId": "q5"
         },
-        "createdAt": "2026-09-01T15:18:43.811Z",
+        "createdAt": "2026-09-01T15:51:41.691Z",
         "readAt": null
       },
       {
-        "id": "0f79b015-2f3d-4be7-a0f0-6a92d209cd8d",
+        "id": "4c111386-f2d3-4aae-955f-6fd2d7bb904a",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -1932,11 +1932,11 @@
           "screen": "wallet",
           "questId": "q4"
         },
-        "createdAt": "2026-09-01T15:18:43.807Z",
+        "createdAt": "2026-09-01T15:51:41.687Z",
         "readAt": null
       },
       {
-        "id": "62b83212-9ead-4ddc-9f36-2605fb569de9",
+        "id": "53659c8a-4754-4eef-ae34-722763bd50ac",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -1950,11 +1950,11 @@
           "screen": "wallet",
           "questId": "q2"
         },
-        "createdAt": "2026-09-01T15:18:43.803Z",
+        "createdAt": "2026-09-01T15:51:41.683Z",
         "readAt": null
       },
       {
-        "id": "0d4f92ad-82b4-4f12-94b5-fea52938a200",
+        "id": "937051b8-29ce-4715-b72d-7d75a1e97f47",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -1968,7 +1968,7 @@
           "screen": "wallet",
           "questId": "q1"
         },
-        "createdAt": "2026-09-01T15:18:43.799Z",
+        "createdAt": "2026-09-01T15:51:41.671Z",
         "readAt": null
       }
     ],

@@ -300,8 +300,13 @@ export const SEED_OFFERS: Offer[] = [
     id: 'o3',
     category: 'Wellness',
     name: 'Sunrise yoga drop-in',
-    merchant: 'Lamai Yoga Shala',
-    merchantShort: 'Lamai Yoga Shala',
+    // Was "Lamai Yoga Shala", which is the name this seed used for a PLACE
+    // until that place was replaced by Lamai Beach for being unphotographable.
+    // Leaving it here sold vouchers for a venue the same file calls fictional.
+    // Follows the house pattern the other merchants already use: name, then
+    // the district it trades in.
+    merchant: 'Baan Yoga, Lamai',
+    merchantShort: 'Baan Yoga',
     costPoints: 500,
     currency: 'trip',
     imageUrl: null,
