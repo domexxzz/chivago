@@ -565,11 +565,19 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
         </Pressable>
       ))}
 
-      {/* Where the numbers came from, and when. They change. */}
+      {/*
+        Where the numbers came from, and when. They change.
+
+        neutral600, not the neutral500 this started as: at 9px on the near-black
+        ground that was about 4:1, under AA. This is the line that says whether
+        the numbers above it can still be trusted, on the screen where trusting
+        a stale number costs the most. It is small on purpose; it should not
+        also be faint.
+      */}
       <Label
         size={9}
         tracking={0.06}
-        colour={color.neutral500}
+        colour={color.neutral600}
         style={{ marginTop: 12, textTransform: 'none' }}
       >
         {`Official numbers, checked ${EMERGENCY_AS_OF}.`}
