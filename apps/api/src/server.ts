@@ -41,6 +41,7 @@ import {
 import { consoleRoutes } from './console/routes.ts';
 import {
   UnknownMood, balanceFor, habitatEvidenceFor, latestMood, moodHistory, recordMood,
+  visitedProvincesFor,
 } from './wellness-service.ts';
 import {
   disableDevice, dispatch, inbox, InvalidPushToken, markAllRead, markRead,
@@ -635,6 +636,15 @@ app.post('/vouchers/:code/redeem', (c) => {
  * evidence, so there is nothing to keep in sync and nothing that can be
  * granted by any route.
  */
+/**
+ * The passport: which provinces have been visited, out of all 77.
+ *
+ * The client owns the province list and the arithmetic — it is pure and it
+ * ships in core. The server owns the one thing only it knows: where this
+ * traveller has actually been.
+ */
+app.get('/passport', (c) => ok(c, { visited: visitedProvincesFor(db, userId(c)) }));
+
 app.get('/companions', (c) => {
   const evidence = habitatEvidenceFor(db, userId(c));
   const companions = companionsFor(evidence);

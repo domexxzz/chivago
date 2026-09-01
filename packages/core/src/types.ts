@@ -69,6 +69,14 @@ export interface Place {
   blurb: Bilingual;
   tags: string[];
   /**
+   * ISO 3166-2:TH code of the province this place is in.
+   *
+   * The passport counts provinces, and a province is only visited because a
+   * PLACE in it was. Without this the passport would have to be its own
+   * record of where somebody went, which is a second copy of the ledger.
+   */
+  province: string;
+  /**
    * 16:9 hero. Null until real Koh Samui photography is licensed.
    *
    * A bare URL is not enough to ship: every licence worth using - Unsplash,

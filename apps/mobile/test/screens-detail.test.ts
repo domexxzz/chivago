@@ -23,6 +23,7 @@ import { QuestDetailScreen } from '../src/screens/QuestDetail.tsx';
 import { SafetyScreen } from '../src/screens/SafetyScreen.tsx';
 import { ConciergeScreen } from '../src/screens/ConciergeScreen.tsx';
 import { CompanionHomeScreen } from '../src/screens/CompanionHome.tsx';
+import { PassportScreen } from '../src/screens/PassportScreen.tsx';
 import { companionsFor } from '@chivago/core';
 import { TripScreen } from '../src/screens/TripScreen.tsx';
 import { OnboardingScreen } from '../src/screens/Onboarding.tsx';
@@ -1303,6 +1304,64 @@ describe('a companion at home', () => {
       assert.match(said, /offline/i, 'the failure is stated');
       assert.match(said, /Green sea turtle/, 'and the companion is still there');
       ui.unmount();
+    } finally { net.restore(); }
+  });
+});
+
+describe('the passport, which shows a country it has not finished', () => {
+  test('all 77 provinces are on screen, not just the open ones', async () => {
+    // The failure this guards: quietly rendering the two we built and calling
+    // it a passport. A traveller from Nong Khai finds out in one tap.
+    const net = server({ 'GET /passport': { visited: [] } });
+    try {
+      const ui = await mountScreen(h(PassportScreen, {}));
+      const said = ui.text();
+      for (const p of ['หนองคาย', 'แม่ฮ่องสอน', 'นราธิวาส', 'กรุงเทพมหานคร', 'สุราษฎร์ธานี']) {
+        assert.match(said, new RegExp(p), `${p} is missing from the passport`);
+      }
+      assert.match(said, /\/ 77/, 'the denominator is not the whole country');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a visited province is counted, and the count is out of 77', async () => {
+    const net = server({ 'GET /passport': { visited: ['TH-84'] } });
+    try {
+      const said = (await mountScreen(h(PassportScreen, {}))).text();
+      assert.match(said, /1\s*\/ 77/);
+    } finally { net.restore(); }
+  });
+
+  test('it says how many provinces are actually open', async () => {
+    // Two. Saying so out loud is what stops the other 75 reading as broken.
+    const net = server({ 'GET /passport': { visited: [] } });
+    try {
+      const said = (await mountScreen(h(PassportScreen, {}))).text();
+      assert.match(said, /2 provinces are open/);
+      assert.match(said, /not yet built/i);
+    } finally { net.restore(); }
+  });
+
+  test('every region is shown with its own count', async () => {
+    const net = server({ 'GET /passport': { visited: ['TH-84'] } });
+    try {
+      const said = (await mountScreen(h(PassportScreen, {}))).text();
+      for (const r of ['Northern', 'Northeastern', 'Central', 'Eastern', 'Western', 'Southern']) {
+        assert.match(said, new RegExp(r));
+      }
+      assert.match(said, /1 \/ 14/, 'the southern count did not move for Surat Thani');
+    } finally { net.restore(); }
+  });
+
+  test('a failed fetch costs the stamps, not the country', async () => {
+    // The province list is local and pure. Only "where have I been" is remote,
+    // so losing the network should leave a readable passport with none stamped.
+    const net = server({ 'GET /passport': offline() });
+    try {
+      const said = (await mountScreen(h(PassportScreen, {}))).text();
+      assert.match(said, /offline/i);
+      assert.match(said, /เชียงใหม่/, 'the country vanished with the request');
+      assert.match(said, /0\s*\/ 77/);
     } finally { net.restore(); }
   });
 });

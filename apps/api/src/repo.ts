@@ -23,6 +23,7 @@ import { summariesFor } from './place-review-service.ts';
 interface PlaceRow {
   id: string; name_en: string; name_th: string; short: string; layer: string;
   lat: number; lng: number; meta: string; blurb_en: string; blurb_th: string;
+  province: string | null;
   tags: string; photo_url: string | null;
   photo_credit: string | null; photo_licence: string | null; photo_source: string | null;
   safety_label_en: string; safety_label_th: string;
@@ -34,6 +35,9 @@ const toPlace = (r: PlaceRow): Place & { safetyLabel: { en: string; th: string }
   name: { en: r.name_en, th: r.name_th },
   short: r.short,
   layer: r.layer as Place['layer'],
+  // Null only for a row written before the column existed. Surat Thani is the
+  // pilot, so it is the honest fallback rather than an empty string.
+  province: r.province ?? 'TH-84',
   lat: r.lat,
   lng: r.lng,
   meta: r.meta,

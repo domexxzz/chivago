@@ -43,6 +43,8 @@ export const SEED_PLACES: Place[] = [
     name: { en: 'Chaweng Beach', th: 'หาดเฉวง' },
     short: 'Chaweng',
     layer: 'Safe',
+    // Ko Samui is in Surat Thani.
+    province: 'TH-84',
     lat: 9.5357,
     lng: 100.0617,
     meta: 'Beach · Crowded now · Air good',
@@ -67,6 +69,8 @@ export const SEED_PLACES: Place[] = [
     name: { en: 'Na Muang Waterfall', th: 'น้ำตกหน้าเมือง' },
     short: 'Na Muang',
     layer: 'Green',
+    // Ko Samui is in Surat Thani.
+    province: 'TH-84',
     lat: 9.4611,
     lng: 99.9908,
     meta: 'Green space · Quiet · Air excellent',
@@ -90,6 +94,8 @@ export const SEED_PLACES: Place[] = [
     name: { en: "Fisherman's Village", th: 'หมู่บ้านชาวประมง' },
     short: "Fisherman's",
     layer: 'Food',
+    // Ko Samui is in Surat Thani.
+    province: 'TH-84',
     lat: 9.5573,
     lng: 100.0596,
     meta: 'Healthy food · Local · Evening',
@@ -113,6 +119,8 @@ export const SEED_PLACES: Place[] = [
     name: { en: 'Lamai Beach', th: 'หาดละไม' },
     short: 'Lamai',
     layer: 'Wellness',
+    // Ko Samui is in Surat Thani.
+    province: 'TH-84',
     lat: 9.4693,
     lng: 100.0446,
     meta: 'Wellness · South end · Quiet',
@@ -146,6 +154,8 @@ export const SEED_PLACES: Place[] = [
     name: { en: 'Thong Krut Mangrove', th: 'ป่าชายเลนท้องกรูด' },
     short: 'Thong Krut',
     layer: 'Quest',
+    // Ko Samui is in Surat Thani.
+    province: 'TH-84',
     lat: 9.4179,
     lng: 99.9433,
     meta: 'Restoration site · Quest active',

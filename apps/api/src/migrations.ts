@@ -523,6 +523,12 @@ export function migrate(db: DB): string[] {
   `);
   applied.push('mood_checkins');
 
+  // Which province a place is in, so the passport counts provinces from the
+  // ledger rather than keeping a second record of where somebody went.
+  if (addColumn(db, 'places', 'province', 'TEXT')) {
+    applied.push('places.province');
+  }
+
   // Which batch a take-down belonged to, so the audit page can show that it
   // was authorised by two people rather than taken alone.
   if (addColumn(db, 'moderation_log', 'batch_id', 'TEXT')) {

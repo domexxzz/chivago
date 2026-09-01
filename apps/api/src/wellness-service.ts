@@ -129,6 +129,27 @@ export function balanceFor(db: DB, userId: string, now = new Date()): ChivaBalan
  * against; deriving a second day here - with a hardcoded +7, say - would be a
  * second definition of "day" that can disagree with the first.
  */
+/**
+ * Provinces this traveller has actually set foot in.
+ *
+ * Read from the ledger through the place they checked in at, like every other
+ * derived fact here. A passport keeping its own list of provinces would be a
+ * second record of the same journey, and two records of one fact eventually
+ * disagree — the mistake this codebase has now avoided the same way three
+ * times: visits, companions, and now this.
+ */
+export function visitedProvincesFor(db: DB, userId: string): string[] {
+  const found = rows<{ province: string }>(
+    db.prepare(
+      `SELECT DISTINCT p.province AS province
+       FROM ledger l
+       JOIN places p ON p.id = substr(l.source_ref, 9, instr(substr(l.source_ref, 9), ':') - 1)
+       WHERE l.user_id = ? AND l.kind = 'checkin' AND p.province IS NOT NULL`,
+    ).all(userId),
+  );
+  return found.map((r) => r.province);
+}
+
 export function habitatEvidenceFor(db: DB, userId: string): HabitatEvidence[] {
   const checkins = rows<{ layer: string; days: number }>(
     db.prepare(

@@ -174,6 +174,8 @@ export const api = {
 
   // -- places -------------------------------------------------------------
   places: () => get<ScoredPlace[]>('/places'),
+  /** Which provinces this traveller has been to. The arithmetic is in core. */
+  passport: () => get<{ visited: string[] }>('/passport'),
   place: (id: string) => get<ScoredPlace>(`/places/${id}`),
 
   // -- quests -------------------------------------------------------------
