@@ -312,8 +312,15 @@ export function LayerChips({
           accessibilityState={{ checked: on }}
           accessibilityLabel={`${key} layer`}
           style={{
+            // 44 is not decoration. At paddingVertical 6 these came out 28px
+            // tall - a third under the iOS floor - and they are the primary
+            // control on the first screen, pressed one-handed on a boat, on a
+            // scooter, with wet hands. minHeight rather than more padding, so
+            // the target is guaranteed whatever the font metrics do.
+            minHeight: 44,
+            justifyContent: 'center',
             paddingVertical: 6,
-            paddingHorizontal: 11,
+            paddingHorizontal: 14,
             borderWidth: 2,
             borderRadius: radius.sm,
             borderColor: on ? color.accent : color.neutral400,

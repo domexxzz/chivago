@@ -154,6 +154,7 @@ export default function App() {
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
             onOpenQuest={(id) => nav.push('quest', { questId: id })}
             onSeeAllQuests={() => nav.selectTab('quests')}
+            onOpenWallet={() => nav.selectTab('wallet')}
             balances={balances}
           />
         );

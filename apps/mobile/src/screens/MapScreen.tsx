@@ -21,6 +21,7 @@ import { ErrorState, LoadingState } from '../components/States.tsx';
 
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
+  onOpenWallet,
 }: {
   layers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
@@ -29,6 +30,7 @@ export function MapScreen({
   onOpenQuest: (id: string) => void;
   onSeeAllQuests: () => void;
   balances: Balances;
+  onOpenWallet: () => void;
 }) {
   const places = useAsync(() => api.places(), []);
   const quests = useAsync(() => api.quests('today'), []);
@@ -40,6 +42,7 @@ export function MapScreen({
     <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]}>
       <MapHeader
         balances={balances}
+        onOpenWallet={onOpenWallet}
         mode={mode}
         onToggleMode={() => setMode(mode === 'map' ? 'feed' : 'map')}
       />
@@ -129,8 +132,11 @@ export function MapScreen({
 }
 
 export function MapHeader({
-  balances, mode, onToggleMode,
-}: { balances: Balances; mode: MapMode; onToggleMode: () => void }) {
+  balances, mode, onToggleMode, onOpenWallet,
+}: {
+  balances: Balances; mode: MapMode;
+  onToggleMode: () => void; onOpenWallet: () => void;
+}) {
   return (
     <View
       style={{
@@ -160,30 +166,49 @@ export function MapHeader({
             : <LayoutGrid size={16} color={color.text} strokeWidth={2} />}
         </IconButton>
 
-        <View
+        {/*
+          Both currencies, each NAMED.
+          
+          This read "1,850 G · 640 T". The difference between the two - one
+          vouched for by a host, one seen only by the phone - is the whole
+          product, and it was compressed into two letters nobody can decode on
+          first sight. A word costs a few pixels; an unreadable balance costs
+          the pitch.
+
+          It is a button now, too. The full explanation lives in the Wallet and
+          a balance you cannot tap is a dead end - the reader's obvious next
+          question has no answer anywhere near the thing that raised it.
+        */}
+        <Pressable
+          onPress={onOpenWallet}
+          accessibilityRole="button"
+          accessibilityLabel={
+            `${balances.green.toLocaleString('en-US')} ${strings.common.greenPoints.en}, `
+            + `${strings.common.greenPointsNote.en}. `
+            + `${balances.trip.toLocaleString('en-US')} ${strings.common.tripPoints.en}, `
+            + `${strings.common.tripPointsNote.en}. Open wallet.`
+          }
           style={{
             borderLeftWidth: layout.ruleStrong,
             borderLeftColor: color.text,
             paddingLeft: 10,
+            minHeight: 44,
+            justifyContent: 'center',
           }}
         >
-          {/* Both currencies. One figure here would silently be the wrong
-              one half the time, and a check-in that moves nothing visible
-              reads as a check-in that failed. */}
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-            <Heading size={22} colour={color.accent700}>
-              {`${balances.green.toLocaleString('en-US')} G`}
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
+            <Heading size={21} colour={color.accent700}>
+              {balances.green.toLocaleString('en-US')}
             </Heading>
-            <Heading size={14} colour={color.neutral700}>
-              {`${balances.trip.toLocaleString('en-US')} T`}
-            </Heading>
+            <Label size={10} tracking={0.1} colour={color.accent700}>GREEN</Label>
           </View>
-          {/* "GREEN POINTS" sat under BOTH figures — describing one of them and
-              lying about the other. The letter now rides on each number, the
-              same way the marketplace does it, and the caption names what the
-              pair actually is. */}
-          <Label size={9} tracking={0.12}>{strings.wallet.balance.en}</Label>
-        </View>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5, marginTop: 1 }}>
+            <Heading size={14} colour={color.neutral700}>
+              {balances.trip.toLocaleString('en-US')}
+            </Heading>
+            <Label size={9} tracking={0.1} colour={color.neutral700}>TRIP</Label>
+          </View>
+        </Pressable>
       </View>
     </View>
   );

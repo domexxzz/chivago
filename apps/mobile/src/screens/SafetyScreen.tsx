@@ -500,8 +500,15 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
         {`${strings.safety.callDirect.en} · ${strings.safety.callDirect.th}`}
       </Label>
 
-      {/* The national lines: free, no credit needed, answered anywhere. */}
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+      {/*
+        The national lines: free, no credit needed, answered anywhere.
+
+        Two by two, not four across. Four across gives each button 82px on a
+        390px phone and 65px on an SE, which wraps three of the four labels
+        and turns the row into a puzzle on the one screen where reading speed
+        is the whole point. Two by two gives each 170px and one clean line.
+      */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
         {national.map((n) => (
           <Pressable
             key={n.key}
@@ -509,10 +516,10 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
             accessibilityRole="button"
             accessibilityLabel={`${n.name.en}. ${n.name.th}. ${n.printed}`}
             style={{
-              flex: 1,
+              width: '48%',
               alignItems: 'center',
               gap: 6,
-              paddingVertical: 12,
+              paddingVertical: 14,
               borderWidth: layout.ruleStrong,
               borderColor: color.text,
               borderRadius: radius.sm,

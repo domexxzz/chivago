@@ -65,20 +65,34 @@ describe('the wallet says which purse is which', () => {
   });
 });
 
-describe('the map header does not caption one currency over two figures', () => {
-  const header = () =>
-    text(h(MapHeader, { balances: { trip: 320, green: 1240 }, mode: 'map', onToggleMode: () => {} }));
+describe('the map header names both currencies, in words', () => {
+  const props = { balances: { trip: 320, green: 1240 }, mode: 'map' as const, onToggleMode: () => {}, onOpenWallet: () => {} };
+  const header = () => text(h(MapHeader, props));
 
-  test('each figure carries its own letter', () => {
-    assert.match(header(), /1,240 G/);
-    assert.match(header(), /320 T/);
+  test('each figure carries its currency as a WORD, not a letter', () => {
+    // It read "1,240 G · 320 T". The difference between the two - one vouched
+    // for by a host, one seen only by the phone - is the whole product, and it
+    // was compressed into two letters a first-time reader cannot decode.
+    assert.match(header(), /1,240\s*GREEN/);
+    assert.match(header(), /320\s*TRIP/);
   });
 
-  test('the caption names the pair, not one of them', () => {
+  test('no caption sits under both figures describing one of them', () => {
     // It read GREEN POINTS under both numbers: describing one and lying about
-    // the other. Found only by opening the app.
-    assert.match(header(), /Balance/i);
+    // the other. Found only by opening the app. Each row labels itself now, so
+    // there is no shared caption left to be wrong.
     assert.doesNotMatch(header(), /Green Points/i);
+    assert.doesNotMatch(header(), /Trip Points/i);
+  });
+
+  test('the screen reader is told what the two actually mean', () => {
+    // Sighted readers get a word and a tap through to the Wallet. Somebody on
+    // a screen reader gets neither unless it is said here.
+    const said = labels(h(MapHeader, props)).join(' | ');
+    assert.match(said, /Verified by a host/i, 'green is not explained');
+    assert.match(said, /Earned as you explore/i, 'trip is not explained');
+    assert.match(said, /1,240/);
+    assert.match(said, /320/);
   });
 });
 

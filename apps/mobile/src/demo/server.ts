@@ -346,19 +346,44 @@ export function installDemoServer(apiBase: string): void {
   }) as typeof fetch;
 }
 
-/** A visible, unmissable mark that nothing here is saved. */
+/**
+ * A visible, unmissable mark that nothing here is saved.
+ *
+ * A STRIP AT THE TOP, not a floating tag. It used to sit at `bottom: 78px`,
+ * just above the tab bar, where it floated over whatever content happened to
+ * be there - which on the map screen was the middle of the "Join this quest"
+ * button. A watermark that covers the primary action is worse than no
+ * watermark: the reviewer it exists to inform is the same person it stops from
+ * using the thing.
+ *
+ * So it reserves its own space instead of borrowing someone else's. The strip
+ * is fixed to the top and `#root` is inset by exactly its height, so nothing
+ * in the app is ever underneath it. `box-sizing: border-box` matters here: the
+ * root is a full-height flex column, and without it the inset would push the
+ * tab bar off the bottom of the screen.
+ */
 export function markAsDemo(): void {
   if (typeof document === 'undefined') return;
+
+  const HEIGHT = 20;
+
   const el = document.createElement('div');
-  el.textContent = 'DEMO · ข้อมูลไม่ถูกบันทึก';
+  el.textContent = 'DEMO · ข้อมูลไม่ถูกบันทึก · nothing is saved';
   el.setAttribute('role', 'note');
   Object.assign(el.style, {
-    position: 'fixed', bottom: '78px', left: '0', zIndex: '9999',
+    position: 'fixed', top: '0', left: '0', right: '0', zIndex: '9999',
+    height: `${HEIGHT}px`,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
     // Coral, the deck's counter-accent: a warning that reads as a warning
     // without competing with the lime the whole app is built on.
     background: '#f87153', color: '#071812',
     font: '600 9px/1 Anuphan, system-ui, sans-serif', letterSpacing: '0.12em',
-    padding: '6px 9px', pointerEvents: 'none',
+    pointerEvents: 'none',
   } as Partial<CSSStyleDeclaration>);
   document.body.appendChild(el);
+
+  const style = document.createElement('style');
+  style.textContent =
+    `#root { box-sizing: border-box; padding-top: ${HEIGHT}px; }`;
+  document.head.appendChild(style);
 }
