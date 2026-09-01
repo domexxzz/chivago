@@ -10,7 +10,7 @@ import type {
   ApiResponse, Balances, Bilingual, ImpactStat, LedgerEntry, NotificationKind, Offer, Quest,
   ChivaBalance, Companion, MonthOutlook, MoodCheckin, MoodKey, PriceCategory, PriceForecast,
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
-  WellnessProfile, HostStanding, TravellerStanding,
+  WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence,
 } from '@chivago/core';
 
 /**
@@ -175,7 +175,15 @@ export const api = {
   // -- places -------------------------------------------------------------
   places: () => get<ScoredPlace[]>('/places'),
   /** Which provinces this traveller has been to. The arithmetic is in core. */
-  passport: () => get<{ visited: string[] }>('/passport'),
+  /**
+   * Where they have been, and the evidence behind each province's companion.
+   *
+   * Only provinces with evidence come back — the other seventy-five sealed
+   * eggs are assembled locally by `provinceCompanions`, which already has the
+   * country and the species list.
+   */
+  passport: () =>
+    get<{ visited: string[]; evidence: ProvinceEvidence[] }>('/passport'),
 
   /**
    * Who is doing the work. Hosts ranked by approvals, plus the caller's own

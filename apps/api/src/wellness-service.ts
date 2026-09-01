@@ -10,7 +10,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   chivaBalance, isMoodKey,
-  type BalanceInput, type ChivaBalance, type HabitatEvidence,
+  type BalanceInput, type ChivaBalance, type HabitatEvidence, type ProvinceEvidence,
   type MoodCheckin, type MoodKey,
 } from '@chivago/core';
 import { rows, type DB } from './db.ts';
@@ -148,6 +148,58 @@ export function visitedProvincesFor(db: DB, userId: string): string[] {
     ).all(userId),
   );
   return found.map((r) => r.province);
+}
+
+/**
+ * The same evidence, split by PROVINCE as well as habitat.
+ *
+ * One companion per province needs to know not just what somebody did but
+ * where in the country they did it, so this is `habitatEvidenceFor` with one
+ * more column in the GROUP BY. It is deliberately not a second source of
+ * truth: both read the same ledger rows through the same source_ref, so the
+ * island totals and the per-province totals cannot disagree.
+ *
+ * Only provinces with evidence come back. The other seventy-something are
+ * supplied by `provinceCompanions` in core, which owns the full list of 77 —
+ * sending 77 mostly-empty rows over a beach connection to say "nothing here"
+ * would be paying for the app's own static data on every request.
+ */
+export function provinceEvidenceFor(db: DB, userId: string): ProvinceEvidence[] {
+  const checkins = rows<{ code: string; layer: string; days: number }>(
+    db.prepare(
+      `SELECT p.province AS code, p.layer AS layer,
+              COUNT(DISTINCT substr(l.source_ref, -10)) AS days
+       FROM ledger l
+       JOIN places p ON p.id = substr(l.source_ref, 9, instr(substr(l.source_ref, 9), ':') - 1)
+       WHERE l.user_id = ? AND l.kind = 'checkin' AND p.province IS NOT NULL
+       GROUP BY p.province, p.layer`,
+    ).all(userId),
+  );
+
+  const quests = rows<{ code: string; layer: string; verified: number }>(
+    db.prepare(
+      `SELECT p.province AS code, p.layer AS layer, COUNT(DISTINCT q.id) AS verified
+       FROM ledger l
+       JOIN quests q ON q.id = substr(l.source_ref, 7, instr(substr(l.source_ref, 7), ':') - 1)
+       JOIN places p ON p.lat = q.lat AND p.lng = q.lng
+       WHERE l.user_id = ? AND l.kind = 'quest_reward' AND p.province IS NOT NULL
+       GROUP BY p.province, p.layer`,
+    ).all(userId),
+  );
+
+  const byKey = new Map<string, ProvinceEvidence>();
+  const at = (code: string, layer: string) => {
+    const key = `${code}|${layer}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        code, layer: layer as ProvinceEvidence['layer'], visitDays: 0, questsVerified: 0,
+      });
+    }
+    return byKey.get(key)!;
+  };
+  for (const r of checkins) at(r.code, r.layer).visitDays = r.days;
+  for (const r of quests) at(r.code, r.layer).questsVerified = r.verified;
+  return [...byKey.values()];
 }
 
 export function habitatEvidenceFor(db: DB, userId: string): HabitatEvidence[] {

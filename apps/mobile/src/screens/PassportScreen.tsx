@@ -24,8 +24,8 @@
 import React from 'react';
 import { ScrollView, View } from 'react-native';
 import {
-  PROVINCES, REGIONS, passportProgress, provincesIn,
-  type Province, type Region,
+  PROVINCES, REGIONS, passportProgress, provinceCollection, provinceCompanions, provincesIn,
+  type Province, type ProvinceCompanion, type Region,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
@@ -42,6 +42,17 @@ export function PassportScreen() {
   const passport = useAsync(() => api.passport(), []);
   const visited = new Set(passport.data?.visited ?? []);
   const progress = passportProgress([...visited]);
+
+  /*
+    The companions are assembled HERE, from the small evidence payload plus the
+    country and species lists the client already ships. Seventy-five of the
+    seventy-seven are sealed eggs, and sending seventy-five rows over a beach
+    connection to say "nothing here" would be paying to be told the app's own
+    static data.
+  */
+  const companions = provinceCompanions(passport.data?.evidence ?? []);
+  const byCode = new Map(companions.map((c) => [c.province.code, c]));
+  const collection = provinceCollection(companions);
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
@@ -74,6 +85,22 @@ export function PassportScreen() {
         <Thai size={11} colour={color.brandSoft} style={{ marginTop: 4 }}>
           เก็บให้ครบทั่วไทย · เปิดแล้ว {progress.open} จังหวัด
         </Thai>
+
+        {/*
+          The collection, on the same panel as the stamps, because they are the
+          same seventy-seven things counted twice — where you have been, and
+          what is living there because you went.
+        */}
+        <View
+          style={{
+            flexDirection: 'row', gap: 18, marginTop: 16,
+            paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.18)',
+          }}
+        >
+          <HeroFigure value={collection.found} label="Companions" thai="เพื่อนร่วมทาง" />
+          <HeroFigure value={collection.grown} label="Grown" thai="โตเต็มวัย" />
+          <HeroFigure value={collection.sealed} label="Sealed" thai="ยังไม่เปิด" />
+        </View>
       </View>
 
       {passport.loading ? <LoadingState /> : null}
@@ -88,6 +115,7 @@ export function PassportScreen() {
           key={region.key}
           region={region}
           visited={visited}
+          byCode={byCode}
           count={progress.byRegion.find((r) => r.region.key === region.key)!}
         />
       ))}
@@ -128,11 +156,12 @@ function Legend() {
 }
 
 function RegionBlock({
-  region, visited, count,
+  region, visited, count, byCode,
 }: {
   region: Region;
   visited: Set<string>;
   count: { visited: number; total: number };
+  byCode: Map<string, ProvinceCompanion>;
 }) {
   return (
     <View style={{ marginTop: 20, paddingHorizontal: gutter }}>
@@ -156,7 +185,12 @@ function RegionBlock({
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
         {provincesIn(region.key).map((p) => (
-          <Stamp key={p.code} province={p} state={stateOf(p, visited)} />
+          <Stamp
+            key={p.code}
+            province={p}
+            state={stateOf(p, visited)}
+            companion={byCode.get(p.code) ?? null}
+          />
         ))}
       </View>
     </View>
@@ -170,7 +204,9 @@ function RegionBlock({
  * set rather than as a list. The three states differ in weight rather than in
  * shape, so the grid still reads as one country.
  */
-function Stamp({ province, state }: { province: Province; state: StampState }) {
+function Stamp({
+  province, state, companion,
+}: { province: Province; state: StampState; companion: ProvinceCompanion | null }) {
   const stamped = state === 'stamped';
   const open = state === 'open';
 
@@ -208,6 +244,48 @@ function Stamp({ province, state }: { province: Province; state: StampState }) {
       >
         {province.name.en}
       </Label>
+
+      {/*
+        What is living there, and ONLY when it is actually known. A sealed
+        province says nothing about its animal, because nobody has surveyed it
+        — that silence is the honest half of a seventy-seven creature
+        collection, and filling it with a guess is the whole thing this design
+        refuses to do.
+      */}
+      {companion?.species ? (
+        <Label
+          size={9}
+          tracking={0.04}
+          colour={stamped ? color.surface : color.accent700}
+          style={{ marginTop: 4, textTransform: 'none' }}
+        >
+          {`${STAGE_MARK[companion.state] ?? ''} ${companion.species.name.en}`}
+        </Label>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * The ladder, as one character each.
+ *
+ * A word per stage would not fit seventy-seven times and a colour alone would
+ * carry the whole meaning, which fails for anybody who cannot separate the
+ * two greens. The mark is redundant with the colour on purpose.
+ */
+const STAGE_MARK: Partial<Record<ProvinceCompanion['state'], string>> = {
+  egg: '○', hatchling: '◐', grown: '●',
+};
+
+/** One figure on the inverted hero panel. */
+function HeroFigure({ value, label, thai }: { value: number; label: string; thai: string }) {
+  return (
+    <View>
+      <Heading size={22} colour={color.surface}>{value}</Heading>
+      <Label size={9} tracking={0.08} colour={color.brandSoft} style={{ marginTop: 2 }}>
+        {label}
+      </Label>
+      <Thai size={10} colour={color.brandSoft}>{thai}</Thai>
     </View>
   );
 }

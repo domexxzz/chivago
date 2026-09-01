@@ -41,7 +41,7 @@ import {
 import { hostStandings, travellerStandings } from './standing-service.ts';
 import { consoleRoutes } from './console/routes.ts';
 import {
-  UnknownMood, balanceFor, habitatEvidenceFor, latestMood, moodHistory, recordMood,
+  UnknownMood, balanceFor, habitatEvidenceFor, latestMood, moodHistory, provinceEvidenceFor, recordMood,
   visitedProvincesFor,
 } from './wellness-service.ts';
 import {
@@ -644,7 +644,17 @@ app.post('/vouchers/:code/redeem', (c) => {
  * ships in core. The server owns the one thing only it knows: where this
  * traveller has actually been.
  */
-app.get('/passport', (c) => ok(c, { visited: visitedProvincesFor(db, userId(c)) }));
+app.get('/passport', (c) => ok(c, {
+  visited: visitedProvincesFor(db, userId(c)),
+  /*
+    Only the provinces this traveller has evidence in — one or two rows, not
+    77. The full country and the species list are static core data the client
+    already ships, so `provinceCompanions` assembles the other seventy-five
+    sealed eggs locally rather than being told about them over a beach
+    connection on every request.
+  */
+  evidence: provinceEvidenceFor(db, userId(c)),
+}));
 
 /**
  * The standing.

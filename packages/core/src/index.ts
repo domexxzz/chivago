@@ -10,6 +10,7 @@ export * from './provinces.ts';
 export * from './sponsorship.ts';
 export * from './standing.ts';
 export * from './companions.ts';
+export * from './province-companions.ts';
 export * from './price-forecast.ts';
 export * from './smart-route.ts';
 export * from './wellness.ts';

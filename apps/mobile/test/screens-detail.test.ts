@@ -1353,6 +1353,48 @@ describe('the passport, which shows a country it has not finished', () => {
     } finally { net.restore(); }
   });
 
+  test('a province with evidence names the animal living there', async () => {
+    // Surat Thani, with a host-verified quest in the Safe habitat.
+    const net = server({
+      'GET /passport': {
+        visited: ['TH-84'],
+        evidence: [{ code: 'TH-84', layer: 'Safe', visitDays: 3, questsVerified: 1 }],
+      },
+    });
+    try {
+      const said = (await mountScreen(h(PassportScreen, {}))).text();
+      assert.match(said, /Green sea turtle/, 'the companion for a grown province is missing');
+      assert.match(said, /Companions/);
+    } finally { net.restore(); }
+  });
+
+  test('a province nobody has surveyed names no animal at all', async () => {
+    // The heart of it. Seventy-five sealed eggs, and not one invented species
+    // among them — a collection game that would rather say "not known yet".
+    const net = server({ 'GET /passport': { visited: [], evidence: [] } });
+    try {
+      const said = (await mountScreen(h(PassportScreen, {}))).text();
+      // Every species name in the app. None may appear without evidence.
+      for (const animal of ['Green sea turtle', 'Dusky langur']) {
+        assert.doesNotMatch(said, new RegExp(animal), `${animal} was claimed for a sealed province`);
+      }
+      assert.match(said, /75/, 'the sealed count is not shown');
+    } finally { net.restore(); }
+  });
+
+  test('the collection is counted against 77, like the stamps', async () => {
+    const net = server({
+      'GET /passport': {
+        visited: ['TH-84'],
+        evidence: [{ code: 'TH-84', layer: 'Safe', visitDays: 1, questsVerified: 0 }],
+      },
+    });
+    try {
+      const said = (await mountScreen(h(PassportScreen, {}))).text();
+      assert.match(said, /\/ 77/);
+    } finally { net.restore(); }
+  });
+
   test('a failed fetch costs the stamps, not the country', async () => {
     // The province list is local and pure. Only "where have I been" is remote,
     // so losing the network should leave a readable passport with none stamped.
