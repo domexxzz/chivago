@@ -523,6 +523,53 @@ export function migrate(db: DB): string[] {
   `);
   applied.push('mood_checkins');
 
+  /*
+    Give mood_checkins the foreign key it shipped without.
+    ------------------------------------------------------
+    A PDPA defect, found by auditing what `DELETE /profile` actually removes.
+    Every other user-owned table cascades; this one had no `REFERENCES` at all,
+    so deleting a traveller took their wallet, ledger, moods' NEIGHBOURS — and
+    left the mood rows themselves behind, free-text notes included. Somebody
+    exercising their right to erasure kept a record of how they felt.
+
+    SQLite cannot add a constraint with ALTER TABLE, so the table is rebuilt.
+    The copy is filtered on the user still existing, which is what deletes the
+    rows already orphaned by deletions that happened before this ran — the
+    migration is the erasure those requests were owed.
+  */
+  // Raw `.all()` rather than the `rows` helper: db.ts imports this file, so
+  // importing back from it would close a cycle for one type assertion.
+  const moodFks = db
+    .prepare("SELECT `from` AS col FROM pragma_foreign_key_list('mood_checkins')")
+    .all() as unknown as { col: string }[];
+  const moodHasFk = moodFks.some((f) => f.col === 'user_id');
+
+  if (!moodHasFk) {
+    // Constraint enforcement is suspended for the swap, per SQLite's own
+    // documented procedure for altering a table, and restored immediately.
+    db.exec('PRAGMA foreign_keys = OFF');
+    db.exec(`
+      BEGIN;
+      CREATE TABLE mood_checkins_rebuilt (
+        id       TEXT PRIMARY KEY,
+        user_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        mood     TEXT NOT NULL,
+        note     TEXT,
+        at       TEXT NOT NULL
+      );
+      INSERT INTO mood_checkins_rebuilt (id, user_id, mood, note, at)
+        SELECT m.id, m.user_id, m.mood, m.note, m.at
+        FROM mood_checkins m
+        WHERE EXISTS (SELECT 1 FROM users u WHERE u.id = m.user_id);
+      DROP TABLE mood_checkins;
+      ALTER TABLE mood_checkins_rebuilt RENAME TO mood_checkins;
+      CREATE INDEX IF NOT EXISTS idx_mood_user_at ON mood_checkins(user_id, at DESC);
+      COMMIT;
+    `);
+    db.exec('PRAGMA foreign_keys = ON');
+    applied.push('mood_checkins.user_id → users ON DELETE CASCADE');
+  }
+
   // Which province a place is in, so the passport counts provinces from the
   // ledger rather than keeping a second record of where somebody went.
   if (addColumn(db, 'places', 'province', 'TEXT')) {

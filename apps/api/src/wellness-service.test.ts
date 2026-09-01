@@ -206,3 +206,33 @@ describe('habitat evidence, counted in island days', () => {
     assert.equal(companion?.stage, 'hatchling');
   });
 });
+
+describe('erasure actually erases', () => {
+  test('deleting a user takes their mood history with them', () => {
+    // PDPA. `mood_checkins` shipped with no foreign key while every other
+    // user-owned table cascaded, so DELETE /profile removed the wallet, the
+    // ledger and the emergency contacts — and left behind how somebody said
+    // they felt, free-text note included, still keyed to the deleted id.
+    const db = openTestDb();
+    const now = new Date().toISOString();
+    db.prepare('INSERT INTO users (id, display_name, created_at) VALUES (?,?,?)')
+      .run('ana', 'Ana', now);
+    db.prepare('INSERT INTO mood_checkins (id, user_id, mood, note, at) VALUES (?,?,?,?,?)')
+      .run('m1', 'ana', 'anxious', 'felt unwell after the boat', now);
+
+    db.prepare('DELETE FROM users WHERE id = ?').run('ana');
+
+    const left = db.prepare('SELECT COUNT(*) AS c FROM mood_checkins').get() as { c: number };
+    assert.equal(left.c, 0, 'a deleted traveller kept a record of how they felt');
+  });
+
+  test('the index survived the table being rebuilt', () => {
+    // The migration drops and recreates the table. An index quietly lost in a
+    // rebuild is a slow query nobody attributes to a migration months later.
+    const db = openTestDb();
+    const idx = db.prepare(
+      "SELECT COUNT(*) AS c FROM sqlite_master WHERE type='index' AND name='idx_mood_user_at'",
+    ).get() as { c: number };
+    assert.equal(idx.c, 1);
+  });
+});
