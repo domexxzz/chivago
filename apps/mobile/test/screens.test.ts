@@ -8,7 +8,9 @@ import { PurseChips, OfferRow } from '../src/screens/MarketScreen.tsx';
 import { QuestRow } from '../src/screens/QuestsScreen.tsx';
 import { ReviewRow } from '../src/screens/PlaceReviews.tsx';
 import { PinChip } from '../src/components/SamuiMap.tsx';
-import { h, labels, text } from './render.ts';
+import { h, html, labels, text } from './render.ts';
+import { LAYERS_WITH_SPECIES, SPECIES } from '@chivago/core';
+import { Creature, hasCreatureMark } from '../src/components/Creature.tsx';
 import * as fx from './fixtures.ts';
 
 /**
@@ -207,5 +209,45 @@ describe('the seed data the pins render', () => {
     const spoken = labels(pin).join(' ');
     assert.match(shown, /Na Muang/);
     assert.match(spoken, /Na Muang Waterfall/);
+  });
+});
+
+/**
+ * The drawings.
+ *
+ * They contribute no text, so every other test on this screen passes with the
+ * artwork deleted. These are the only ones that would notice.
+ */
+describe('every companion has a face', () => {
+  test('every species in the data has a mark drawn for it', () => {
+    // The guard that matters: add a sixth habitat and its animal, forget to
+    // draw it, and the collection silently shows an egg that never opens.
+    for (const layer of LAYERS_WITH_SPECIES) {
+      assert.ok(
+        hasCreatureMark(SPECIES[layer].key),
+        `${SPECIES[layer].name.en} (${SPECIES[layer].key}) has no drawing`,
+      );
+    }
+  });
+
+  test('it renders for every species at every stage', () => {
+    // A smoke test with teeth: the first version of these marks reached for an
+    // SVG shape the test stub did not export, and an ES module namespace is
+    // built statically, so it threw at import rather than drawing nothing.
+    for (const layer of LAYERS_WITH_SPECIES) {
+      for (const stage of ['egg', 'hatchling', 'grown'] as const) {
+        assert.doesNotThrow(
+          () => html(h(Creature, { species: SPECIES[layer].key, stage })),
+          `${SPECIES[layer].key} at ${stage} does not draw`,
+        );
+      }
+    }
+  });
+
+  test('an unknown species falls back to the egg rather than crashing', () => {
+    // Species data can arrive from the server ahead of a client that knows how
+    // to draw it. An egg is the honest thing to show for something we have no
+    // picture of, and it is the one drawing that promises nothing.
+    assert.doesNotThrow(() => html(h(Creature, { species: 'sea-monster', stage: 'grown' })));
   });
 });

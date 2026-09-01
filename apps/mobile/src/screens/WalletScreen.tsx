@@ -26,6 +26,7 @@ import { api, type InboxItem } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label, Thai } from '../components/Type.tsx';
+import { Creature } from '../components/Creature.tsx';
 import { Button } from '../components/Button.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 
@@ -427,7 +428,13 @@ function Companions({
             borderRadius: radius.md,
           }}
         >
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            {/*
+              The animal, before its name. A collection of five creatures that
+              showed none of them was asking the reader to do the imagining on
+              the one screen whose whole job is to be a reward.
+            */}
+            <Creature species={c.species.key} stage={c.stage} size={52} />
             <View style={{ flex: 1 }}>
               <Heading size={16} colour={c.stage === 'grown' ? color.accent : color.text}>
                 {c.stage === 'egg' ? c.species.eggName.en : c.species.name.en}

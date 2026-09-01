@@ -35,7 +35,29 @@ const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
  * by the real `companionsFor` from days it is given, and a visitor who
  * checks in nowhere still sees nothing in Wellness or Quest.
  */
-const PRIOR_DAYS: Record<string, number> = { Green: 1, Safe: 1, Food: 0, Wellness: 0, Quest: 0 };
+/**
+ * What the demo visitor had already done before opening this, per habitat.
+ *
+ * Mirrors what `demo:reset` seeds on the real API, because two demos of one
+ * product that disagree are worse than one demo. `days` hatch an egg at two;
+ * `verified` is a host-approved quest, the only thing that grows a companion.
+ *
+ * The spread is chosen so all three stages are on screen at once - an egg, a
+ * hatchling and a grown animal side by side is the only way the difference
+ * between them explains itself. The first version gave one day to two
+ * habitats and no verified quests at all, so the collection was two eggs and
+ * nothing else: five drawn animals that nobody opening the demo could see.
+ *
+ * Wellness is deliberately left at one day. It is the egg the presenter
+ * hatches live by checking in at Shala.
+ */
+const PRIOR: Record<string, { days: number; verified: number }> = {
+  Safe:     { days: 3, verified: 1 },
+  Quest:    { days: 1, verified: 1 },
+  Food:     { days: 3, verified: 0 },
+  Green:    { days: 2, verified: 0 },
+  Wellness: { days: 1, verified: 0 },
+};
 
 const state = {
   routes: clone(snapshot) as Record<string, unknown>,
@@ -311,15 +333,12 @@ export function installDemoServer(apiBase: string): void {
           const p = places.find((x) => x.id === id);
           if (p) todayIn.add(p.layer);
         }
-        const byLayer = new Map<string, number>();
-        for (const [layer, prior] of Object.entries(PRIOR_DAYS)) {
-          const days = prior + (todayIn.has(layer) ? 1 : 0);
-          if (days > 0) byLayer.set(layer, days);
-        }
-        for (const layer of todayIn) if (!byLayer.has(layer)) byLayer.set(layer, 1);
-        const evidence = [...byLayer].map(([layer, visitDays]) => ({
-          layer, visitDays, questsVerified: 0,
-        }));
+        const evidence = Object.entries(PRIOR).flatMap(([layer, prior]) => {
+          const visitDays = prior.days + (todayIn.has(layer) ? 1 : 0);
+          return visitDays > 0
+            ? [{ layer, visitDays, questsVerified: prior.verified }]
+            : [];
+        });
         const companions = companionsFor(evidence as never);
         return answer({
           companions,
