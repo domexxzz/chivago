@@ -170,7 +170,7 @@ export const SAFETY_PHRASES: Record<string, { en: string; th: string }> = {
   chaweng: { en: 'Patrolled', th: 'มีสายตรวจ' },
   namuang: { en: 'Ranger post', th: 'มีจุดเจ้าหน้าที่' },
   fisherman: { en: 'Verified zone', th: 'เขตตรวจสอบแล้ว' },
-  lamai: { en: 'Verified', th: 'ยืนยันแล้ว' },
+  lamai: { en: 'Verified zone', th: 'เขตตรวจสอบแล้ว' },
   mangrove: { en: 'Guide required', th: 'ต้องมีไกด์' },
 };
 

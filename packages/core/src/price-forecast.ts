@@ -171,7 +171,7 @@ export function forecastPrice(
   // Day of week in island time, not the caller's.
   const weekday = new Date(`${date}T12:00:00+07:00`).getUTCDay();
   if (weekday === 5 || weekday === 6) {
-    drivers.push({ label: { en: 'Weekend', th: 'วันหยุดสุดสัปดาห์' }, effect: WEEKEND_EFFECT });
+    drivers.push({ label: { en: 'Weekend', th: 'สุดสัปดาห์' }, effect: WEEKEND_EFFECT });
   }
 
   // A scooter is hired from a shop that does not care what week it is.

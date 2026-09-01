@@ -172,7 +172,11 @@ export const strings = {
       'You can leave this screen — we will notify you when the host responds.',
       'ออกจากหน้านี้ได้ เราจะแจ้งเตือนเมื่อผู้จัดตรวจสอบเสร็จ',
     ),
-    verified: t('Verified', 'ตรวจสอบแล้ว'),
+    // A host vouched for the proof. ยืนยัน, not ตรวจสอบ: the same word the
+    // concierge, the reviews notice and the merchant registry already use
+    // wherever a person stands behind something. ตรวจสอบ is inspection, and
+    // it belongs to the safety labels, which is where it now stays.
+    verified: t('Verified', 'ยืนยันแล้ว'),
     verifiedDetail: (kg: number) =>
       t(
         `Green Points added · ${kg} kg waste logged to Samui impact ledger`,
