@@ -187,7 +187,7 @@ describe('calibration against the approved design comps', () => {
     chaweng: 74,
     namuang: 91,
     fisherman: 82,
-    shala: 88,
+    lamai: 88,
     mangrove: 79,
   };
 
@@ -208,9 +208,10 @@ describe('calibration against the approved design comps', () => {
     assert.equal(ranked[0]!.id, 'namuang');
   });
 
-  test('exactly Na Muang and Lamai Shala cross the accent-pin threshold', () => {
+  test('exactly Na Muang and Lamai cross the accent-pin threshold', () => {
     const high = SEED_PLACES.filter((p) => isHighScore(healthyScore(p.metrics))).map((p) => p.id);
-    assert.deepEqual(high.sort(), ['namuang', 'shala']);
+        // Sorted, so the expectation is sorted too: 'lamai' precedes 'namuang'.
+    assert.deepEqual(high.sort(), ['lamai', 'namuang']);
     assert.equal(HIGH_SCORE_THRESHOLD, 85);
   });
 });

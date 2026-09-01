@@ -33,7 +33,7 @@ const checkin = (placeId: string, day: string) => {
 
 const seedThree = () => {
   place('namuang', 'Green', 24, 0.6);
-  place('shala', 'Wellness', 28, 0.5);
+  place('lamai', 'Wellness', 28, 0.5);
   place('chaweng', 'Safe', 42, 1.9);
 };
 
@@ -86,7 +86,7 @@ describe('Chiva Balance, from what actually happened', () => {
   test('visits come from the ledger, not a second table that could disagree', () => {
     seedThree();
     checkin('namuang', '2026-08-29');
-    checkin('shala', '2026-08-30');
+    checkin('lamai', '2026-08-30');
     checkin('chaweng', '2026-08-31');
     const b = balanceFor(db, 'u1', NOW);
     assert.ok(b.total !== null, 'three check-ins should be enough to score');
@@ -96,7 +96,7 @@ describe('Chiva Balance, from what actually happened', () => {
   test('a check-in outside the window does not count', () => {
     seedThree();
     checkin('namuang', '2026-08-01');
-    checkin('shala', '2026-08-02');
+    checkin('lamai', '2026-08-02');
     checkin('chaweng', '2026-08-03');
     assert.equal(balanceFor(db, 'u1', NOW).total, null, 'a trip from three weeks ago is not this trip');
   });
@@ -104,7 +104,7 @@ describe('Chiva Balance, from what actually happened', () => {
   test('how someone felt moves the number', () => {
     seedThree();
     checkin('namuang', '2026-08-29');
-    checkin('shala', '2026-08-30');
+    checkin('lamai', '2026-08-30');
     checkin('chaweng', '2026-08-31');
     const before = balanceFor(db, 'u1', NOW).total!;
     recordMood(db, 'u1', { mood: 'drained' }, NOW);
@@ -115,7 +115,7 @@ describe('Chiva Balance, from what actually happened', () => {
   test('the self-reported part is labelled as such', () => {
     seedThree();
     checkin('namuang', '2026-08-29');
-    checkin('shala', '2026-08-30');
+    checkin('lamai', '2026-08-30');
     checkin('chaweng', '2026-08-31');
     const b = balanceFor(db, 'u1', NOW);
     const rest = b.components.find((c) => c.key === 'rest')!;
@@ -125,7 +125,7 @@ describe('Chiva Balance, from what actually happened', () => {
 
   test('one person\'s trip does not score another\'s', () => {
     checkin('namuang', '2026-08-29');
-    checkin('shala', '2026-08-30');
+    checkin('lamai', '2026-08-30');
     checkin('chaweng', '2026-08-31');
     assert.equal(balanceFor(db, 'u2', NOW).total, null);
   });

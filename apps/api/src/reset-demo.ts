@@ -161,7 +161,7 @@ const quest = (id: string) => {
  *    Food three days, Green two, Wellness ONE - which puts an egg, a hatchling
  *    and a grown companion on screen together. The single Wellness day is
  *    deliberate: it leaves the presenter an egg to hatch live by checking in
- *    at Shala, which is the one moment in the demo where the mechanic is shown
+ *    at Lamai, which is the one moment in the demo where the mechanic is shown
  *    working rather than described.
  *  - Enough days for the Healthy Score to hold a baseline. Below that it shows
  *    its "too short to judge" state, which is correct and undemonstrative.
@@ -173,7 +173,7 @@ const quest = (id: string) => {
  */
 const HISTORY: { day: number; places: string[]; mood: MoodKey | null }[] = [
   { day: 4, places: ['chaweng', 'namuang'], mood: 'steady' },
-  { day: 3, places: ['fisherman', 'shala'], mood: 'bright' },
+  { day: 3, places: ['fisherman', 'lamai'], mood: 'bright' },
   { day: 2, places: ['namuang', 'mangrove'], mood: 'tense' },
   { day: 1, places: ['fisherman', 'chaweng'], mood: 'steady' },
   { day: 0, places: ['chaweng', 'fisherman'], mood: 'bright' },

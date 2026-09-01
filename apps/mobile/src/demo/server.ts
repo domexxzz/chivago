@@ -49,7 +49,7 @@ const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
  * nothing else: five drawn animals that nobody opening the demo could see.
  *
  * Wellness is deliberately left at one day. It is the egg the presenter
- * hatches live by checking in at Shala.
+ * hatches live by checking in at Lamai.
  */
 const PRIOR: Record<string, { days: number; verified: number }> = {
   Safe:     { days: 3, verified: 1 },

@@ -3,7 +3,7 @@
  * re-run after a schema change or a content edit.
  */
 
-import { openDb } from './db.ts';
+import { openDb, rows } from './db.ts';
 import { generateApiKey, hashApiKey } from './host-auth.ts';
 import {
   RANKS, SEED_HOSTS, SEED_OFFERS, SEED_PLACES, SEED_QUESTS, SAFETY_PHRASES,
@@ -124,6 +124,35 @@ for (const [key, en, th, actual, target, unit] of COMMUNITY) {
        actual=excluded.actual, target=excluded.target, unit=excluded.unit, year=excluded.year`,
   ).run(key, en, th, actual, target, unit, YEAR);
 }
+
+/**
+ * Content removed from the seed is removed from the database.
+ *
+ * Without this the seed can only ever ADD. Renaming a place - which happened
+ * when the fictional "Lamai Yoga Shala" became the real Lamai Beach - left the
+ * old row behind forever, and the app served six places from a seed of five.
+ * A ghost that only appears in the running system and never in the source is
+ * the hardest kind of wrong to notice.
+ *
+ * `ON DELETE CASCADE` on place_reviews means a pruned place takes its reviews
+ * with it, which is correct: they are reviews of somewhere that is no longer
+ * in the pilot.
+ *
+ * Reported rather than silent. Deleting content is not a thing to do quietly.
+ */
+function prune(table: string, keep: string[]): void {
+  const holes = keep.map(() => '?').join(',');
+  const gone = rows<{ id: string }>(
+    db.prepare(`SELECT id FROM ${table} WHERE id NOT IN (${holes})`).all(...keep),
+  );
+  if (gone.length === 0) return;
+  db.prepare(`DELETE FROM ${table} WHERE id NOT IN (${holes})`).run(...keep);
+  console.log(`[chivago] pruned ${gone.length} ${table} no longer in the seed: ${gone.map((g) => g.id).join(', ')}`);
+}
+
+prune('places', SEED_PLACES.map((p) => p.id));
+prune('quests', SEED_QUESTS.map((q) => q.id));
+prune('offers', SEED_OFFERS.map((o) => o.id));
 
 const counts = {
   hosts: (db.prepare('SELECT COUNT(*) n FROM hosts').get() as { n: number }).n,

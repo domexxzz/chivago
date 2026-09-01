@@ -109,22 +109,36 @@ export const SEED_PLACES: Place[] = [
     metrics: { aqi: 31, crowdDensity: 1.4, safetyIndex: 6.33, walkability: 9.0 },
   },
   {
-    id: 'shala',
-    name: { en: 'Lamai Yoga Shala', th: 'ลามัย โยคะ ศาลา' },
-    short: 'Lamai Shala',
+    id: 'lamai',
+    name: { en: 'Lamai Beach', th: 'หาดละไม' },
+    short: 'Lamai',
     layer: 'Wellness',
     lat: 9.4693,
     lng: 100.0446,
-    meta: 'Wellness · Sunrise class · Quiet',
+    meta: 'Wellness · South end · Quiet',
     blurb: {
-      en: 'Open-air shala above Lamai. Sunrise class 06:30, breathwork 17:00. Points-redeemable drop-in.',
-      th: 'ศาลาโยคะกลางแจ้งเหนือหาดละไม คลาสเช้า 06:30',
+      en: 'The south end of Lamai, away from the strip. Calm water, shade by mid-afternoon, and the quietest stretch of sand on this coast.',
+      th: 'ปลายหาดละไมฝั่งใต้ ห่างจากย่านร้านค้า น้ำนิ่ง มีร่มเงาช่วงบ่าย และเป็นช่วงที่เงียบที่สุดของชายฝั่งนี้',
     },
-    tags: ['Wellness', 'Quiet', 'Points accepted'],
-    // No photograph. Lamai Yoga Shala is a business, not a landmark, and
-    // Commons has nothing of it. Substituting a picture of Lamai Beach would
-    // be a photograph of somewhere else with this place's name under it.
-    photo: null,
+    tags: ['Wellness', 'Quiet', 'Swimming'],
+    /*
+      This slot used to be "Lamai Yoga Shala" - a plausible-sounding business
+      with no photograph, because Commons has nothing of it and a business is
+      not a landmark. The note here read: substituting a picture of Lamai Beach
+      would be a photograph of somewhere else with this place's name under it.
+      That was right, and it left the choice between an unphotographable name
+      and a dishonest image.
+      The third option was to name the place that the photograph actually
+      shows. Same coast, same coordinates, same role in the app - and now the
+      picture and the name agree, which is the standard the other four already
+      met.
+    */
+    photo: {
+      url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Lamai_Beach.jpg/1280px-Lamai_Beach.jpg',
+      credit: 'Koudkeu',
+      licence: 'CC BY-SA 4.0',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:Lamai_Beach.jpg',
+    },
     metrics: { aqi: 24, crowdDensity: 0.5, safetyIndex: 7.39, walkability: 7.4 },
   },
   {
@@ -156,7 +170,7 @@ export const SAFETY_PHRASES: Record<string, { en: string; th: string }> = {
   chaweng: { en: 'Patrolled', th: 'มีสายตรวจ' },
   namuang: { en: 'Ranger post', th: 'มีจุดเจ้าหน้าที่' },
   fisherman: { en: 'Verified zone', th: 'เขตตรวจสอบแล้ว' },
-  shala: { en: 'Verified', th: 'ยืนยันแล้ว' },
+  lamai: { en: 'Verified', th: 'ยืนยันแล้ว' },
   mangrove: { en: 'Guide required', th: 'ต้องมีไกด์' },
 };
 

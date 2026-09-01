@@ -48,7 +48,7 @@ const ROUTES = [
   '/places/chaweng', '/places/chaweng/reviews',
   '/places/namuang', '/places/namuang/reviews',
   '/places/fisherman', '/places/fisherman/reviews',
-  '/places/shala', '/places/shala/reviews',
+  '/places/lamai', '/places/lamai/reviews',
   '/places/mangrove', '/places/mangrove/reviews',
   '/quests',
   '/quests/q1', '/quests/q2', '/quests/q3',

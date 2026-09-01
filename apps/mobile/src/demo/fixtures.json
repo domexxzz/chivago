@@ -1,7 +1,7 @@
 {
   "/health": {
     "status": "up",
-    "time": "2026-09-01T07:25:08.359Z"
+    "time": "2026-09-01T15:18:44.437Z"
   },
   "/profile": {
     "purposes": [
@@ -12,7 +12,7 @@
     "watch": [
       "air"
     ],
-    "completedAt": "2026-08-27T07:24:59.836Z"
+    "completedAt": "2026-08-27T15:18:43.731Z"
   },
   "/places": [
     {
@@ -56,7 +56,7 @@
         "aqi": {
           "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-01T07:00:00.000Z",
+          "observedAt": "2026-09-01T15:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
@@ -164,7 +164,7 @@
         "aqi": {
           "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-01T07:00:00.000Z",
+          "observedAt": "2026-09-01T15:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
@@ -272,7 +272,7 @@
         "aqi": {
           "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-01T07:00:00.000Z",
+          "observedAt": "2026-09-01T15:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
@@ -340,108 +340,6 @@
       }
     },
     {
-      "id": "shala",
-      "name": {
-        "en": "Lamai Yoga Shala",
-        "th": "ลามัย โยคะ ศาลา"
-      },
-      "short": "Lamai Shala",
-      "layer": "Wellness",
-      "lat": 9.4693,
-      "lng": 100.0446,
-      "meta": "Wellness · Sunrise class · Quiet",
-      "blurb": {
-        "en": "Open-air shala above Lamai. Sunrise class 06:30, breathwork 17:00. Points-redeemable drop-in.",
-        "th": "ศาลาโยคะกลางแจ้งเหนือหาดละไม คลาสเช้า 06:30"
-      },
-      "tags": [
-        "Wellness",
-        "Quiet",
-        "Points accepted"
-      ],
-      "photo": null,
-      "metrics": {
-        "crowdDensity": 0.5,
-        "aqi": 42,
-        "safetyIndex": 7.39,
-        "walkability": 7.4
-      },
-      "safetyLabel": {
-        "en": "Verified",
-        "th": "ยืนยันแล้ว"
-      },
-      "readings": {
-        "aqi": {
-          "value": 42,
-          "provenance": "live",
-          "observedAt": "2026-09-01T07:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
-        }
-      },
-      "healthyScore": 85,
-      "breakdown": {
-        "total": 85,
-        "components": [
-          {
-            "key": "crowdDensity",
-            "label": {
-              "en": "Crowd level",
-              "th": "ความหนาแน่น"
-            },
-            "display": "Low",
-            "subScore": 90.7,
-            "weight": 0.23,
-            "provenance": "live"
-          },
-          {
-            "key": "aqi",
-            "label": {
-              "en": "Air quality",
-              "th": "คุณภาพอากาศ"
-            },
-            "display": "42 AQI",
-            "subScore": 83.8,
-            "weight": 0.349,
-            "provenance": "live"
-          },
-          {
-            "key": "safetyIndex",
-            "label": {
-              "en": "Safety",
-              "th": "ความปลอดภัย"
-            },
-            "display": "Verified",
-            "subScore": 83.9,
-            "weight": 0.214,
-            "provenance": "daily"
-          },
-          {
-            "key": "walkability",
-            "label": {
-              "en": "Walkability",
-              "th": "การเดินเท้า"
-            },
-            "display": "7.4 / 10",
-            "subScore": 83.2,
-            "weight": 0.206,
-            "provenance": "daily"
-          }
-        ],
-        "profileApplied": "Your profile (nature + food, moderate)"
-      },
-      "reviews": {
-        "count": 0,
-        "average": null,
-        "distribution": [
-          0,
-          0,
-          0,
-          0,
-          0
-        ]
-      }
-    },
-    {
       "id": "mangrove",
       "name": {
         "en": "Thong Krut Mangrove",
@@ -476,7 +374,7 @@
         "aqi": {
           "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-01T07:00:00.000Z",
+          "observedAt": "2026-09-01T15:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
@@ -542,6 +440,113 @@
           0
         ]
       }
+    },
+    {
+      "id": "lamai",
+      "name": {
+        "en": "Lamai Beach",
+        "th": "หาดละไม"
+      },
+      "short": "Lamai",
+      "layer": "Wellness",
+      "lat": 9.4693,
+      "lng": 100.0446,
+      "meta": "Wellness · South end · Quiet",
+      "blurb": {
+        "en": "The south end of Lamai, away from the strip. Calm water, shade by mid-afternoon, and the quietest stretch of sand on this coast.",
+        "th": "ปลายหาดละไมฝั่งใต้ ห่างจากย่านร้านค้า น้ำนิ่ง มีร่มเงาช่วงบ่าย และเป็นช่วงที่เงียบที่สุดของชายฝั่งนี้"
+      },
+      "tags": [
+        "Wellness",
+        "Quiet",
+        "Swimming"
+      ],
+      "photo": {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Lamai_Beach.jpg/1280px-Lamai_Beach.jpg",
+        "credit": "Koudkeu",
+        "licence": "CC BY-SA 4.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Lamai_Beach.jpg"
+      },
+      "metrics": {
+        "crowdDensity": 0.5,
+        "aqi": 42,
+        "safetyIndex": 7.39,
+        "walkability": 7.4
+      },
+      "safetyLabel": {
+        "en": "Verified",
+        "th": "ยืนยันแล้ว"
+      },
+      "readings": {
+        "aqi": {
+          "value": 42,
+          "provenance": "live",
+          "observedAt": "2026-09-01T15:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+        }
+      },
+      "healthyScore": 85,
+      "breakdown": {
+        "total": 85,
+        "components": [
+          {
+            "key": "crowdDensity",
+            "label": {
+              "en": "Crowd level",
+              "th": "ความหนาแน่น"
+            },
+            "display": "Low",
+            "subScore": 90.7,
+            "weight": 0.23,
+            "provenance": "live"
+          },
+          {
+            "key": "aqi",
+            "label": {
+              "en": "Air quality",
+              "th": "คุณภาพอากาศ"
+            },
+            "display": "42 AQI",
+            "subScore": 83.8,
+            "weight": 0.349,
+            "provenance": "live"
+          },
+          {
+            "key": "safetyIndex",
+            "label": {
+              "en": "Safety",
+              "th": "ความปลอดภัย"
+            },
+            "display": "Verified",
+            "subScore": 83.9,
+            "weight": 0.214,
+            "provenance": "daily"
+          },
+          {
+            "key": "walkability",
+            "label": {
+              "en": "Walkability",
+              "th": "การเดินเท้า"
+            },
+            "display": "7.4 / 10",
+            "subScore": 83.2,
+            "weight": 0.206,
+            "provenance": "daily"
+          }
+        ],
+        "profileApplied": "Your profile (nature + food, moderate)"
+      },
+      "reviews": {
+        "count": 0,
+        "average": null,
+        "distribution": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
     }
   ],
   "/places/chaweng": {
@@ -585,7 +590,7 @@
       "aqi": {
         "value": 42,
         "provenance": "live",
-        "observedAt": "2026-09-01T07:00:00.000Z",
+        "observedAt": "2026-09-01T15:00:00.000Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -699,7 +704,7 @@
       "aqi": {
         "value": 42,
         "provenance": "live",
-        "observedAt": "2026-09-01T07:00:00.000Z",
+        "observedAt": "2026-09-01T15:00:00.000Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -813,7 +818,7 @@
       "aqi": {
         "value": 42,
         "provenance": "live",
-        "observedAt": "2026-09-01T07:00:00.000Z",
+        "observedAt": "2026-09-01T15:00:00.000Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -886,27 +891,32 @@
     "canReview": true,
     "reported": []
   },
-  "/places/shala": {
-    "id": "shala",
+  "/places/lamai": {
+    "id": "lamai",
     "name": {
-      "en": "Lamai Yoga Shala",
-      "th": "ลามัย โยคะ ศาลา"
+      "en": "Lamai Beach",
+      "th": "หาดละไม"
     },
-    "short": "Lamai Shala",
+    "short": "Lamai",
     "layer": "Wellness",
     "lat": 9.4693,
     "lng": 100.0446,
-    "meta": "Wellness · Sunrise class · Quiet",
+    "meta": "Wellness · South end · Quiet",
     "blurb": {
-      "en": "Open-air shala above Lamai. Sunrise class 06:30, breathwork 17:00. Points-redeemable drop-in.",
-      "th": "ศาลาโยคะกลางแจ้งเหนือหาดละไม คลาสเช้า 06:30"
+      "en": "The south end of Lamai, away from the strip. Calm water, shade by mid-afternoon, and the quietest stretch of sand on this coast.",
+      "th": "ปลายหาดละไมฝั่งใต้ ห่างจากย่านร้านค้า น้ำนิ่ง มีร่มเงาช่วงบ่าย และเป็นช่วงที่เงียบที่สุดของชายฝั่งนี้"
     },
     "tags": [
       "Wellness",
       "Quiet",
-      "Points accepted"
+      "Swimming"
     ],
-    "photo": null,
+    "photo": {
+      "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Lamai_Beach.jpg/1280px-Lamai_Beach.jpg",
+      "credit": "Koudkeu",
+      "licence": "CC BY-SA 4.0",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Lamai_Beach.jpg"
+    },
     "metrics": {
       "crowdDensity": 0.5,
       "aqi": 42,
@@ -921,7 +931,7 @@
       "aqi": {
         "value": 42,
         "provenance": "live",
-        "observedAt": "2026-09-01T07:00:00.000Z",
+        "observedAt": "2026-09-01T15:00:00.000Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -988,7 +998,7 @@
       ]
     }
   },
-  "/places/shala/reviews": {
+  "/places/lamai/reviews": {
     "reviews": [],
     "mine": null,
     "canReview": true,
@@ -1029,7 +1039,7 @@
       "aqi": {
         "value": 42,
         "provenance": "live",
-        "observedAt": "2026-09-01T07:00:00.000Z",
+        "observedAt": "2026-09-01T15:00:00.000Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -1236,10 +1246,10 @@
         "questId": "q1",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-01T07:24:59.928Z",
-        "arrivedAt": "2026-09-01T07:24:59.930Z",
-        "proofSubmittedAt": "2026-09-01T07:24:59.931Z",
-        "verifiedAt": "2026-09-01T07:24:59.934Z",
+        "joinedAt": "2026-09-01T15:18:43.794Z",
+        "arrivedAt": "2026-09-01T15:18:43.796Z",
+        "proofSubmittedAt": "2026-09-01T15:18:43.797Z",
+        "verifiedAt": "2026-09-01T15:18:43.798Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1247,10 +1257,10 @@
         "questId": "q2",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-01T07:24:59.936Z",
-        "arrivedAt": "2026-09-01T07:24:59.937Z",
-        "proofSubmittedAt": "2026-09-01T07:24:59.938Z",
-        "verifiedAt": "2026-09-01T07:24:59.939Z",
+        "joinedAt": "2026-09-01T15:18:43.800Z",
+        "arrivedAt": "2026-09-01T15:18:43.800Z",
+        "proofSubmittedAt": "2026-09-01T15:18:43.801Z",
+        "verifiedAt": "2026-09-01T15:18:43.802Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1258,10 +1268,10 @@
         "questId": "q4",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-01T07:24:59.941Z",
-        "arrivedAt": "2026-09-01T07:24:59.942Z",
-        "proofSubmittedAt": "2026-09-01T07:24:59.943Z",
-        "verifiedAt": "2026-09-01T07:24:59.944Z",
+        "joinedAt": "2026-09-01T15:18:43.804Z",
+        "arrivedAt": "2026-09-01T15:18:43.805Z",
+        "proofSubmittedAt": "2026-09-01T15:18:43.805Z",
+        "verifiedAt": "2026-09-01T15:18:43.806Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1269,10 +1279,10 @@
         "questId": "q5",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-01T07:24:59.946Z",
-        "arrivedAt": "2026-09-01T07:24:59.947Z",
-        "proofSubmittedAt": "2026-09-01T07:24:59.948Z",
-        "verifiedAt": "2026-09-01T07:24:59.949Z",
+        "joinedAt": "2026-09-01T15:18:43.807Z",
+        "arrivedAt": "2026-09-01T15:18:43.809Z",
+        "proofSubmittedAt": "2026-09-01T15:18:43.809Z",
+        "verifiedAt": "2026-09-01T15:18:43.810Z",
         "rejectedAt": null,
         "rejectionReason": null
       }
@@ -1304,10 +1314,10 @@
       "questId": "q1",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-01T07:24:59.928Z",
-      "arrivedAt": "2026-09-01T07:24:59.930Z",
-      "proofSubmittedAt": "2026-09-01T07:24:59.931Z",
-      "verifiedAt": "2026-09-01T07:24:59.934Z",
+      "joinedAt": "2026-09-01T15:18:43.794Z",
+      "arrivedAt": "2026-09-01T15:18:43.796Z",
+      "proofSubmittedAt": "2026-09-01T15:18:43.797Z",
+      "verifiedAt": "2026-09-01T15:18:43.798Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1338,10 +1348,10 @@
       "questId": "q2",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-01T07:24:59.936Z",
-      "arrivedAt": "2026-09-01T07:24:59.937Z",
-      "proofSubmittedAt": "2026-09-01T07:24:59.938Z",
-      "verifiedAt": "2026-09-01T07:24:59.939Z",
+      "joinedAt": "2026-09-01T15:18:43.800Z",
+      "arrivedAt": "2026-09-01T15:18:43.800Z",
+      "proofSubmittedAt": "2026-09-01T15:18:43.801Z",
+      "verifiedAt": "2026-09-01T15:18:43.802Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1396,10 +1406,10 @@
       "questId": "q4",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-01T07:24:59.941Z",
-      "arrivedAt": "2026-09-01T07:24:59.942Z",
-      "proofSubmittedAt": "2026-09-01T07:24:59.943Z",
-      "verifiedAt": "2026-09-01T07:24:59.944Z",
+      "joinedAt": "2026-09-01T15:18:43.804Z",
+      "arrivedAt": "2026-09-01T15:18:43.805Z",
+      "proofSubmittedAt": "2026-09-01T15:18:43.805Z",
+      "verifiedAt": "2026-09-01T15:18:43.806Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1430,10 +1440,10 @@
       "questId": "q5",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-01T07:24:59.946Z",
-      "arrivedAt": "2026-09-01T07:24:59.947Z",
-      "proofSubmittedAt": "2026-09-01T07:24:59.948Z",
-      "verifiedAt": "2026-09-01T07:24:59.949Z",
+      "joinedAt": "2026-09-01T15:18:43.807Z",
+      "arrivedAt": "2026-09-01T15:18:43.809Z",
+      "proofSubmittedAt": "2026-09-01T15:18:43.809Z",
+      "verifiedAt": "2026-09-01T15:18:43.810Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1548,9 +1558,9 @@
     },
     "ledger": [
       {
-        "id": "e0761bfa-d2ef-4081-b6cf-b8fbaf7394ac",
+        "id": "febe9b4d-29e5-49bb-bcd8-024c57f4b03e",
         "label": "Fisherman’s Village food trail",
-        "occurredAt": "2026-09-01T07:24:59.949Z",
+        "occurredAt": "2026-09-01T15:18:43.811Z",
         "host": "Fisherman's Village Traders",
         "amount": 120,
         "currency": "trip",
@@ -1559,9 +1569,9 @@
         "sourceRef": "quest:q5:user:demo-user"
       },
       {
-        "id": "3f6f9d36-17e8-428e-9a2a-40bfa82cc0ef",
+        "id": "6953e68d-e7b7-49a1-9b50-02de89b5457a",
         "label": "Walk, don’t ride",
-        "occurredAt": "2026-09-01T07:24:59.945Z",
+        "occurredAt": "2026-09-01T15:18:43.806Z",
         "host": "ChivaGo",
         "amount": 60,
         "currency": "green",
@@ -1570,9 +1580,9 @@
         "sourceRef": "quest:q4:user:demo-user"
       },
       {
-        "id": "0ec61152-b0ec-4023-8258-09814110b3c4",
+        "id": "055731fd-94fd-4625-a7b5-de2dd2d59f45",
         "label": "Mangrove Planting",
-        "occurredAt": "2026-09-01T07:24:59.940Z",
+        "occurredAt": "2026-09-01T15:18:43.802Z",
         "host": "Samui Green Foundation (NGO)",
         "amount": 400,
         "currency": "green",
@@ -1581,9 +1591,9 @@
         "sourceRef": "quest:q2:user:demo-user"
       },
       {
-        "id": "dfe83032-6740-47f5-bd97-f59c06ee6e33",
+        "id": "4ef6a170-aa4c-4ada-ae1a-df7127201b25",
         "label": "Beach Cleanup",
-        "occurredAt": "2026-09-01T07:24:59.934Z",
+        "occurredAt": "2026-09-01T15:18:43.798Z",
         "host": "Samui Municipality",
         "amount": 150,
         "currency": "green",
@@ -1592,9 +1602,9 @@
         "sourceRef": "quest:q1:user:demo-user"
       },
       {
-        "id": "1f16de23-0a93-4954-ab38-4f0ddcc71b03",
+        "id": "af99a5dc-d402-4540-93e4-35def5125d1e",
         "label": "Pilot opening balance",
-        "occurredAt": "2026-09-01T07:24:59.871Z",
+        "occurredAt": "2026-09-01T15:18:43.757Z",
         "host": "ChivaGo · pilot seed",
         "amount": 1240,
         "currency": "green",
@@ -1603,9 +1613,9 @@
         "sourceRef": "opening:green:demo-user"
       },
       {
-        "id": "808c3359-ba56-42d3-9e8c-c116bd148014",
+        "id": "e086950a-0fd4-421e-8233-f5d681f22640",
         "label": "Pilot opening balance",
-        "occurredAt": "2026-09-01T07:24:59.869Z",
+        "occurredAt": "2026-09-01T15:18:43.756Z",
         "host": "ChivaGo · pilot seed",
         "amount": 320,
         "currency": "trip",
@@ -1614,9 +1624,9 @@
         "sourceRef": "opening:trip:demo-user"
       },
       {
-        "id": "dd02f08c-391e-471f-b839-7aa2b59151ae",
+        "id": "0a0cbfa5-683b-4030-9dfc-dcf8ca8f83f8",
         "label": "Checked in · Fisherman's Village",
-        "occurredAt": "2026-09-01T07:24:59.836Z",
+        "occurredAt": "2026-09-01T15:18:43.731Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1625,9 +1635,9 @@
         "sourceRef": "checkin:fisherman:user:demo-user:2026-09-01"
       },
       {
-        "id": "d4ff9a0c-8a3c-4301-ba15-228324350706",
+        "id": "0bdbf99d-a860-4552-b782-19d1cbe00e82",
         "label": "Checked in · Chaweng Beach",
-        "occurredAt": "2026-09-01T07:24:59.836Z",
+        "occurredAt": "2026-09-01T15:18:43.731Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1636,9 +1646,9 @@
         "sourceRef": "checkin:chaweng:user:demo-user:2026-09-01"
       },
       {
-        "id": "dd441619-b5c1-4fe2-97e0-b3c117613ca7",
+        "id": "976fc05c-f055-40ad-b082-2df7dc506652",
         "label": "Checked in · Chaweng Beach",
-        "occurredAt": "2026-08-31T07:24:59.836Z",
+        "occurredAt": "2026-08-31T15:18:43.731Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1647,9 +1657,9 @@
         "sourceRef": "checkin:chaweng:user:demo-user:2026-08-31"
       },
       {
-        "id": "3d6ff43c-7235-4ae6-8b63-1ac210ee503d",
+        "id": "fc6fe33f-8366-4532-b2c7-2199694d02e3",
         "label": "Checked in · Fisherman's Village",
-        "occurredAt": "2026-08-31T07:24:59.836Z",
+        "occurredAt": "2026-08-31T15:18:43.731Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1658,9 +1668,9 @@
         "sourceRef": "checkin:fisherman:user:demo-user:2026-08-31"
       },
       {
-        "id": "bcb431ea-83aa-4373-b43d-b3eee852a3cd",
+        "id": "8cc25376-2abb-421f-94b4-8e3784c7190d",
         "label": "Checked in · Thong Krut Mangrove",
-        "occurredAt": "2026-08-30T07:24:59.836Z",
+        "occurredAt": "2026-08-30T15:18:43.731Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1669,9 +1679,9 @@
         "sourceRef": "checkin:mangrove:user:demo-user:2026-08-30"
       },
       {
-        "id": "7dd4faf3-22e9-4e88-ace6-f899972be225",
+        "id": "e497ffe6-611a-4bc0-91da-6108eebc7dbc",
         "label": "Checked in · Na Muang Waterfall",
-        "occurredAt": "2026-08-30T07:24:59.836Z",
+        "occurredAt": "2026-08-30T15:18:43.731Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1680,20 +1690,20 @@
         "sourceRef": "checkin:namuang:user:demo-user:2026-08-30"
       },
       {
-        "id": "86d39197-7db1-42c9-ad41-1b7201ccefe3",
-        "label": "Checked in · Lamai Yoga Shala",
-        "occurredAt": "2026-08-29T07:24:59.836Z",
+        "id": "2f08d66c-79b4-45e6-a992-0a3f5ab73184",
+        "label": "Checked in · Lamai Beach",
+        "occurredAt": "2026-08-29T15:18:43.731Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
         "exp": 20,
         "kind": "checkin",
-        "sourceRef": "checkin:shala:user:demo-user:2026-08-29"
+        "sourceRef": "checkin:lamai:user:demo-user:2026-08-29"
       },
       {
-        "id": "ccff7706-ec63-4cf3-b732-213861e87082",
+        "id": "35697bbf-9df0-419d-85a9-89d9affbeeef",
         "label": "Checked in · Fisherman's Village",
-        "occurredAt": "2026-08-29T07:24:59.836Z",
+        "occurredAt": "2026-08-29T15:18:43.731Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1702,9 +1712,9 @@
         "sourceRef": "checkin:fisherman:user:demo-user:2026-08-29"
       },
       {
-        "id": "8f20de9c-04b8-4929-bea0-d473497ba60b",
+        "id": "e5974412-566b-42bc-914e-49ada563d14b",
         "label": "Checked in · Na Muang Waterfall",
-        "occurredAt": "2026-08-28T07:24:59.836Z",
+        "occurredAt": "2026-08-28T15:18:43.731Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1713,9 +1723,9 @@
         "sourceRef": "checkin:namuang:user:demo-user:2026-08-28"
       },
       {
-        "id": "5d85393e-3717-439d-942e-09e49761d978",
+        "id": "0d60d8be-150c-4819-b42f-9a0fb5481faf",
         "label": "Checked in · Chaweng Beach",
-        "occurredAt": "2026-08-28T07:24:59.836Z",
+        "occurredAt": "2026-08-28T15:18:43.731Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1890,7 +1900,7 @@
   "/notifications": {
     "items": [
       {
-        "id": "c748ea22-b188-4d0d-9c7f-f035e44c79de",
+        "id": "78c02681-46cf-4d94-a6aa-57f95c29755e",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -1904,11 +1914,11 @@
           "screen": "wallet",
           "questId": "q5"
         },
-        "createdAt": "2026-09-01T07:24:59.950Z",
+        "createdAt": "2026-09-01T15:18:43.811Z",
         "readAt": null
       },
       {
-        "id": "3cf222ac-a982-4f71-aa0e-f1394eb437f2",
+        "id": "0f79b015-2f3d-4be7-a0f0-6a92d209cd8d",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -1922,11 +1932,11 @@
           "screen": "wallet",
           "questId": "q4"
         },
-        "createdAt": "2026-09-01T07:24:59.945Z",
+        "createdAt": "2026-09-01T15:18:43.807Z",
         "readAt": null
       },
       {
-        "id": "6138997b-b5b9-464e-9778-0e2708b99c82",
+        "id": "62b83212-9ead-4ddc-9f36-2605fb569de9",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -1940,11 +1950,11 @@
           "screen": "wallet",
           "questId": "q2"
         },
-        "createdAt": "2026-09-01T07:24:59.940Z",
+        "createdAt": "2026-09-01T15:18:43.803Z",
         "readAt": null
       },
       {
-        "id": "e1dbb827-b0f2-4576-abb2-301b03a6edca",
+        "id": "0d4f92ad-82b4-4f12-94b5-fea52938a200",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -1958,7 +1968,7 @@
           "screen": "wallet",
           "questId": "q1"
         },
-        "createdAt": "2026-09-01T07:24:59.935Z",
+        "createdAt": "2026-09-01T15:18:43.799Z",
         "readAt": null
       }
     ],
