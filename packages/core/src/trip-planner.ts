@@ -363,6 +363,8 @@ function reasonFor(place: ScoredPlace, matchesPurpose: boolean, km: number): Bil
   }
   return {
     en: `Scores ${place.healthyScore} today — ${place.meta}`,
-    th: `วันนี้ได้ ${place.healthyScore} คะแนน`,
+    // The meta is the part that says WHY the score is what it is. Dropping it
+    // left the Thai reader a bare number and the English reader a reason.
+    th: `วันนี้ได้ ${place.healthyScore} คะแนน — ${place.meta}`,
   };
 }

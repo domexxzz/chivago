@@ -161,7 +161,9 @@ export const strings = {
       'ภาพถ่ายพร้อมพิกัด และน้ำหนักขยะที่เก็บได้ ตรวจสอบโดยผู้จัดภายใน 24 ชม.',
     ),
     weightLabel: t('Waste collected (kg)', 'น้ำหนักขยะที่เก็บได้ (กก.)'),
-    verifying: (host: string) => t(`Verifying with ${host}…`, 'กำลังตรวจสอบหลักฐาน'),
+    // The Thai said only 'checking the proof' and dropped WHO is checking it.
+    // A traveller waiting on a decision has one question, and it is which host.
+    verifying: (host: string) => t(`Verifying with ${host}…`, `${host} กำลังตรวจสอบหลักฐาน`),
     /**
      * Verification can legitimately take up to 24h, so this screen must be
      * leavable and the result must arrive as a notification.
