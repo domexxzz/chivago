@@ -35,11 +35,20 @@ import { EMPTY_PROFILE } from '@chivago/core';
 // ---------------------------------------------------------------------------
 
 export type ScreenKey =
-  | 'onboarding' | 'map' | 'place' | 'quests' | 'quest'
+  | 'onboarding' | 'home' | 'map' | 'place' | 'quests' | 'quest'
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
-  | 'companion';
+  | 'companion' | 'passport';
 
-export type TabKey = 'map' | 'quests' | 'wallet' | 'impact' | 'safety';
+/**
+ * Five tabs, and Impact is no longer one of them.
+ *
+ * Home had to go somewhere, and six tabs is one more than a 375px bar can
+ * carry without the labels becoming decoration. Impact is the Chiva Balance -
+ * a summary somebody checks, not a place they live - so it moved to a door on
+ * Home, which is where summaries belong. Nothing about the screen changed and
+ * it is one line to put back.
+ */
+export type TabKey = 'home' | 'map' | 'quests' | 'wallet' | 'safety';
 
 interface NavState {
   screen: ScreenKey;
@@ -59,19 +68,20 @@ export interface Nav extends NavState {
   activeTab: TabKey;
 }
 
-const TAB_SCREENS: TabKey[] = ['map', 'quests', 'wallet', 'impact', 'safety'];
+const TAB_SCREENS: TabKey[] = ['home', 'map', 'quests', 'wallet', 'safety'];
 
 /** Which tab should read as active while a pushed screen is on top. */
 const OWNING_TAB: Record<ScreenKey, TabKey> = {
-  onboarding: 'map', map: 'map', place: 'map', trip: 'map',
-  // Reached from the map, so the map tab stays lit and a tab tap returns
-  // there rather than stranding the reader on a screen no tab owns.
-  concierge: 'map',
+  onboarding: 'home', home: 'home', map: 'map', place: 'map', trip: 'map',
+  // All three are reached from a door on Home, so Home stays lit behind them
+  // and a tab tap returns there rather than stranding the reader on a screen
+  // no tab owns. `impact` in particular has no tab of its own any more.
+  concierge: 'home', impact: 'home', passport: 'home',
   quests: 'quests', quest: 'quests',
   wallet: 'wallet', market: 'wallet',
   // Reached from the collection, so the wallet tab stays lit behind it.
   companion: 'wallet',
-  impact: 'impact', safety: 'safety',
+  safety: 'safety',
 };
 
 export function useNav(initial: ScreenKey = 'onboarding'): Nav {

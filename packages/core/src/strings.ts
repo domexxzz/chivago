@@ -23,6 +23,7 @@ const t = (en: string, th: string): Bilingual => ({ en, th });
 export const strings = {
   // -- App shell ----------------------------------------------------------
   tabs: {
+    home: t('Home', 'หน้าแรก'),
     map: t('Map', 'แผนที่'),
     quests: t('Quests', 'ภารกิจ'),
     wallet: t('Wallet', 'กระเป๋าแต้ม'),

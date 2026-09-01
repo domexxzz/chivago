@@ -33,6 +33,8 @@ import { QuestDetailScreen } from './src/screens/QuestDetail.tsx';
 import { WalletScreen } from './src/screens/WalletScreen.tsx';
 import { MarketScreen } from './src/screens/MarketScreen.tsx';
 import { ImpactScreen } from './src/screens/ImpactScreen.tsx';
+import { HomeScreen } from './src/screens/HomeScreen.tsx';
+import { PassportScreen } from './src/screens/PassportScreen.tsx';
 import { SafetyScreen } from './src/screens/SafetyScreen.tsx';
 import { TripScreen, type TripState } from './src/screens/TripScreen.tsx';
 import { ConciergeScreen } from './src/screens/ConciergeScreen.tsx';
@@ -71,7 +73,7 @@ export default function App() {
       nav.selectTab('wallet');
       setWalletKey((k) => k + 1);
     } else {
-      nav.selectTab('map');
+      nav.selectTab('home');
     }
   }, [nav]);
 
@@ -118,7 +120,7 @@ export default function App() {
   React.useEffect(() => {
     if (!profileLoaded || jumpedIn.current) return;
     jumpedIn.current = true;
-    if (onboarded) nav.selectTab('map');
+    if (onboarded) nav.selectTab('home');
   }, [profileLoaded, onboarded, nav]);
 
   // Wait for the profile as well as the fonts. Rendering onboarding first and
@@ -145,7 +147,7 @@ export default function App() {
               // does is how you get a permanent no. By here they have just told
               // us what they want watched.
               void notifications.enablePush('en');
-              nav.selectTab('map');
+              nav.selectTab('home');
             }}
           />
         );
@@ -254,6 +256,23 @@ export default function App() {
             refreshKey={walletKey}
           />
         );
+
+      case 'home':
+        return (
+          <HomeScreen
+            onOpenMap={() => nav.selectTab('map')}
+            onOpenQuests={() => nav.selectTab('quests')}
+            onOpenQuest={(id) => nav.push('quest', { questId: id })}
+            onOpenWallet={() => nav.selectTab('wallet')}
+            onOpenPassport={() => nav.push('passport')}
+            onOpenImpact={() => nav.push('impact')}
+            onOpenConcierge={() => nav.push('concierge')}
+            onOpenSafety={() => nav.selectTab('safety')}
+          />
+        );
+
+      case 'passport':
+        return <PassportScreen />;
 
       case 'impact':
         return <ImpactScreen onToast={toast.show} refreshKey={walletKey} />;

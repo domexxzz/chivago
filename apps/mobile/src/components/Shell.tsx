@@ -4,19 +4,27 @@
 
 import React from 'react';
 import { Animated, Pressable, View } from 'react-native';
-import { BarChart3, ChevronLeft, Leaf, Map as MapIcon, Shield, Wallet } from 'lucide-react-native';
+import { ChevronLeft, House, Leaf, Map as MapIcon, Shield, Wallet } from 'lucide-react-native';
 import { strings } from '@chivago/core';
 import { color, gutter, headerGutter, layout, motion, onFill, radius, ruleStrong, ruleStrongTop, shadow } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from './Type.tsx';
 import { IconButton } from './Button.tsx';
 
-export type TabKey = 'map' | 'quests' | 'wallet' | 'impact' | 'safety';
+/**
+ * Declared in state/store.tsx and re-exported here rather than written twice.
+ *
+ * It WAS written twice - the same union in both files, with nothing keeping
+ * them equal. Adding Home meant editing both, which is exactly the moment two
+ * copies of one fact start to disagree.
+ */
+export type { TabKey } from '../state/store.tsx';
+import type { TabKey } from '../state/store.tsx';
 
 const TAB_ICONS = {
-  map: MapIcon, quests: Leaf, wallet: Wallet, impact: BarChart3, safety: Shield,
+  home: House, map: MapIcon, quests: Leaf, wallet: Wallet, safety: Shield,
 } as const;
 
-const TAB_ORDER: TabKey[] = ['map', 'quests', 'wallet', 'impact', 'safety'];
+const TAB_ORDER: TabKey[] = ['home', 'map', 'quests', 'wallet', 'safety'];
 
 /**
  * Five tabs, 66px, 2px ink top rule.
