@@ -86,9 +86,10 @@ describe('pin de-collision', () => {
   test('the highest-scoring place keeps its true position', () => {
     // Priority order matters: the pin the product most wants read is placed
     // first, so it never gets nudged.
+    // Found by id rather than taken from the front: the array now comes back
+    // in PAINT order (far to near), and this test is about placement.
     const pins = layoutPins(scored, W, H);
-    const best = pins[0]!;
-    assert.equal(best.place.id, 'namuang');
+    const best = pins.find((p) => p.place.id === 'namuang')!;
     // Against the TILTED anchor: the ground plane the island is drawn on is
     // the same one the pins stand on, so "true position" means the tilted one.
     const flat = project(best.place.lat, best.place.lng);
@@ -142,5 +143,86 @@ describe('de-collision preserves geography', () => {
     for (const pin of layoutPins(scored, W, H)) {
       assert.ok(pin.top >= 0 && pin.top <= H, `${pin.place.id} at ${pin.top} escaped 0..${H}`);
     }
+  });
+});
+
+/**
+ * The island silhouette the component draws.
+ *
+ * Duplicated here on purpose. The point of the test below is that the drawn
+ * coastline and the projected coordinates agree, and a test that imported the
+ * shape from the thing it is checking would pass by construction.
+ */
+const ISLAND_PLAN = '28,4 62,0 86,18 96,46 88,74 66,96 34,100 12,78 4,44 14,18';
+
+const islandPolygon = ISLAND_PLAN.split(' ').map((pair) => {
+  const [x, y] = pair.split(',').map(Number) as [number, number];
+  return tilt(x / 100, y / 100);
+});
+
+/** Ray casting. Small enough to read, which matters more here than speed. */
+function insideIsland(pt: { x: number; y: number }): boolean {
+  let inside = false;
+  for (let i = 0, j = islandPolygon.length - 1; i < islandPolygon.length; j = i, i += 1) {
+    const a = islandPolygon[i]!;
+    const b = islandPolygon[j]!;
+    const straddles = (a.y > pt.y) !== (b.y > pt.y);
+    if (straddles && pt.x < ((b.x - a.x) * (pt.y - a.y)) / (b.y - a.y) + a.x) inside = !inside;
+  }
+  return inside;
+}
+
+describe('real coordinates land on the drawn island', () => {
+  // The silhouette is traced from a design comp, not from survey data, while
+  // the pins come from true latitude and longitude. Those two facts are only
+  // compatible by luck, and today the luck holds — every seeded place lands on
+  // land. Nothing guaranteed it would, and a new place added along a coast is
+  // exactly what would put a pin in the sea with no test to notice.
+  for (const place of SEED_PLACES) {
+    test(`${place.name.en} is on land`, () => {
+      const flat = project(place.lat, place.lng);
+      assert.ok(
+        insideIsland(tilt(flat.x, flat.y)),
+        `${place.name.en} projects into open sea — the silhouette and the coordinates have drifted apart`,
+      );
+    });
+  }
+
+  test('a point well outside the bounding box is NOT on land', () => {
+    // Guards the guard: a containment test that returns true for everything
+    // would pass the whole suite above while checking nothing.
+    const far = project(SAMUI_BBOX.minLat - 0.5, SAMUI_BBOX.minLng - 0.5);
+    assert.equal(insideIsland(tilt(far.x, far.y)), false);
+  });
+});
+
+describe('pins paint far to near', () => {
+  test('the array comes back in depth order, not score order', () => {
+    // Absolutely-positioned siblings paint in document order, so whatever is
+    // last sits in front. In a tilted scene that has to be the NEAREST pin.
+    const pins = layoutPins(scored, W, H);
+    for (let i = 1; i < pins.length; i += 1) {
+      assert.ok(
+        pins[i]!.top >= pins[i - 1]!.top,
+        `pin ${i} (${pins[i]!.place.name.en}) paints before a nearer one`,
+      );
+    }
+  });
+
+  test('a distant low-scoring pin cannot occlude a near high-scoring one', () => {
+    // The exact inversion the old return order produced: placement ran by
+    // score, so a low scorer in the north was painted after a high scorer in
+    // the south, and the far chip covered the near one.
+    const north: ScoredPlace = { ...scored[0]!, id: 'north', lat: SAMUI_BBOX.maxLat - 0.01, lng: 100.0, healthyScore: 40 };
+    const south: ScoredPlace = { ...scored[0]!, id: 'south', lat: SAMUI_BBOX.minLat + 0.01, lng: 100.0, healthyScore: 95 };
+
+    const order = layoutPins([north, south], W, H).map((p) => p.place.id);
+    assert.deepEqual(order, ['north', 'south'], 'the far pin was painted last, over the near one');
+  });
+
+  test('every place still appears exactly once', () => {
+    // A sort is a cheap place to lose a row.
+    const ids = layoutPins(scored, W, H).map((p) => p.place.id).sort();
+    assert.deepEqual(ids, SEED_PLACES.map((p) => p.id).sort());
   });
 });

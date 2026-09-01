@@ -255,6 +255,29 @@ export function SamuiMap({
 
       {/* Legend: the island average today. */}
       <MapLegend places={places} />
+      <ShapeNote />
+    </View>
+  );
+}
+
+/**
+ * What the drawing is, and what it is not.
+ *
+ * The silhouette is traced from a design comp; the pins are projected from
+ * true latitude and longitude. Both of those are fine, and a reader looking at
+ * an authoritative-looking island is owed the difference — this map is a
+ * diagram with real points on it, not survey data, and somebody should not
+ * navigate a boat by the coastline.
+ *
+ * Bottom-left, small, and permanent. A disclosure behind a tap is a disclosure
+ * for the people who already suspected.
+ */
+function ShapeNote() {
+  return (
+    <View style={{ position: 'absolute', left: 12, bottom: 12, maxWidth: 168 }}>
+      <Label size={9} tracking={0.04} colour={color.neutral600} style={{ textTransform: 'none' }}>
+        Stylised coastline. Pin positions are real coordinates.
+      </Label>
     </View>
   );
 }

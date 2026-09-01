@@ -115,21 +115,6 @@ export function layoutPins(
     const anchorTop = y * height;
     let top = anchorTop;
 
-    // Resolve collisions by searching outward from the true position for the
-    // nearest free slot, trying first the direction that preserves north/south
-    // order.
-    //
-    // Direction matters: a naive "always push up" inverts the geography.
-    // Chaweng is south of Fisherman's Village, but being lower-scoring it is
-    // placed second, and pushing it up put the southern place above the
-    // northern one. On a map that is not a cosmetic flaw - it is wrong
-    // information.
-    //
-    // An outward scan rather than a hop-off-the-clash loop, because hopping
-    // can land on a THIRD chip and ping-pong until it gives up - which it did
-    // silently, returning a pin that still overlapped. The scan tries every
-    // slot in order of distance from the truth and stops at the first free
-    // one, so it only fails when the viewport genuinely has no room.
     // Resolve collisions by pushing AWAY from whatever is in the way, in the
     // direction that preserves north/south order.
     //
@@ -153,5 +138,24 @@ export function layoutPins(
 
     placed.push({ place, left, top, anchor: anchorTop });
   }
-  return placed.map(({ place, left, top }) => ({ place, left, top }));
+
+  /*
+    PLACEMENT order and PAINT order are two different questions, and answering
+    them with one array was a 3D bug.
+
+    Placement runs highest-score-first, so the pin the product most wants read
+    never gets nudged off its true spot. Painting must run FAR-TO-NEAR, because
+    absolutely-positioned siblings paint in document order and this is a tilted
+    scene: whatever is drawn last sits in front.
+
+    Returning the placement order meant a low-scoring pin in the north — far
+    away, up the plane — was painted after a high-scoring one in the south, so
+    the distant chip occluded the near one. On a flat map that is a z-index
+    quibble; on a tilted one the depth cue is the whole illusion, and reversing
+    it makes the island read inside-out.
+  */
+  return placed
+    .slice()
+    .sort((a, b) => a.top - b.top)
+    .map(({ place, left, top }) => ({ place, left, top }));
 }
