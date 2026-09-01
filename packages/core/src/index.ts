@@ -7,6 +7,7 @@ export * from './trip-planner.ts';
 export * from './emergency.ts';
 export * from './concierge.ts';
 export * from './provinces.ts';
+export * from './sponsorship.ts';
 export * from './companions.ts';
 export * from './price-forecast.ts';
 export * from './smart-route.ts';
