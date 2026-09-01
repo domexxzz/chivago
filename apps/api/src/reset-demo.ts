@@ -24,7 +24,9 @@ import { openDb, type DB } from './db.ts';
 import { checkIn } from './checkin-service.ts';
 import { joinQuest, arriveAtQuest, submitProof, resolveVerification } from './quest-service.ts';
 import { recordMood, balanceFor, habitatEvidenceFor, moodHistory } from './wellness-service.ts';
-import { getBalances, getExp, getLedger } from './wallet-service.ts';
+import {
+  ensureWallet, getBalances, getExp, getLedger, grantOpeningBalance,
+} from './wallet-service.ts';
 import { getPersonalImpact, getShield, listOffers, listQuests } from './repo.ts';
 import {
   companionsFor, islandDateKey, SEED_PLACES, SEED_QUESTS, type MoodKey,
@@ -189,8 +191,24 @@ const VERIFIED_QUESTS = ['q1', 'q2', 'q4', 'q5'] as const;
 
 function seed(db: DB): void {
   db.prepare('INSERT INTO users (id, display_name, locale, created_at) VALUES (?,?,?,?)')
-    .run(USER, 'Demo Traveller', 'en', daysAgo(3).toISOString());
-  db.prepare('INSERT INTO wallets (user_id) VALUES (?)').run(USER);
+    .run(USER, 'Demo Traveller', 'en', daysAgo(5).toISOString());
+
+  /*
+   * Provisioned exactly as the server provisions it.
+   *
+   * The pilot has no sign-up, so `server.ts` does these two on EVERY request
+   * for whoever is asking. That means the opening balance lands the moment the
+   * app makes its first call - and since this script empties the ledger, it
+   * empties the grant's own idempotency record too, so the grant comes back.
+   *
+   * Doing it here rather than leaving it to the first request is the whole
+   * point: otherwise --walk passes on a wallet nobody will ever see, and the
+   * first number on stage is 640/1850 against a script that just said
+   * 320/610. A check that validates a state the app immediately changes is
+   * worse than no check, because it is trusted.
+   */
+  ensureWallet(db, USER);
+  grantOpeningBalance(db, USER);
 
   // Onboarding, so the Healthy Score has a profile to weight itself by.
   db.prepare(
@@ -199,7 +217,7 @@ function seed(db: DB): void {
      VALUES (?,?,?,?,?,?,?)`,
   ).run(
     USER, JSON.stringify(['nature', 'food']), 'moderate', JSON.stringify(['air']),
-    daysAgo(3).toISOString(), '2026-01', daysAgo(3).toISOString(),
+    daysAgo(5).toISOString(), '2026-01', daysAgo(5).toISOString(),
   );
 
   // Check-ins through the real geofenced service, at the real coordinates. A

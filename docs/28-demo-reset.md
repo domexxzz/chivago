@@ -64,9 +64,34 @@ Two currencies that differ by evidence is the product's central claim, and a
 demo that can only spend one of them proves half of it — the wrong half,
 since Green is the one an auditor would ask about.
 
-Resulting wallet: **320 Trip · 610 Green · 930 EXP**, which affords one offer
-in each currency. Not two, not ten. Enough to show the redeem flow and watch
-the balance drop.
+Earned by the seeded history: **200 Trip from check-ins, 610 Green and 120
+Trip from four host-verified quests.**
+
+### The opening balance, and why the script grants it
+
+On top of that the wallet carries the pilot opening balance — 320 Trip and
+1,240 Green, labelled `Pilot opening balance` in the ledger. The script does
+not invent this. `server.ts` provisions every user on *every request*, since
+the pilot has no sign-up, and part of that is `grantOpeningBalance`. The
+grant is idempotent per user through its `source_ref` — but the reset empties
+the ledger, which empties that record too, so the grant comes back the moment
+the app makes its first call.
+
+So the script grants it itself. Otherwise `--walk` passes on 320/610 and the
+first number on stage is 640/1,850 — a check that validates a state the app
+immediately changes, which is worse than no check because it is trusted.
+This was found by starting the server and comparing, not by reading the code.
+
+Final wallet: **640 Trip · 1,850 Green · 2,490 EXP**, with three Trip offers
+and two Green offers affordable.
+
+> **A decision left open.** 1,240 of the 1,850 Green Points came from the
+> grant, not from evidence — and "Green is host-verified" is the claim the
+> whole two-currency design rests on. It is fully visible in the ledger, so
+> nothing is hidden, but a judge reading that screen sees a number that is
+> mostly a gift. `CHIVAGO_OPENING_GREEN=0` turns it off and leaves 610 Green,
+> every point of it earned through host verification. That is a product call,
+> not a technical one.
 
 ---
 
@@ -77,15 +102,15 @@ routes call, and exits non-zero naming anything that would open empty.
 
 ```
 [chivago] walking the demo:
-  PASS  Wallet           320 trip · 610 green · 930 exp
-  PASS  Wallet history   14 entries
+  PASS  Wallet           640 trip · 1850 green · 2490 exp
+  PASS  Wallet history   16 entries
   PASS  Chiva Balance    74 from 5 components
   PASS  Mood history     5 check-ins
   PASS  Companions       Green:hatchling Wellness:egg Food:hatchling Safe:grown Quest:grown
   PASS  Impact           4/4 figures above zero
   PASS  Safety           5 services · 3 contacts · no live alert
   PASS  Quests           6 quests, 4 today
-  PASS  Marketplace      1 trip · 1 green affordable of 6
+  PASS  Marketplace      3 trip · 2 green affordable of 6
 
 [chivago] every screen has something to show.
 ```
