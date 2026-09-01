@@ -4,6 +4,7 @@ export * from './types.ts';
 export * from './healthy-score.ts';
 export * from './progression.ts';
 export * from './trip-planner.ts';
+export * from './emergency.ts';
 export * from './companions.ts';
 export * from './price-forecast.ts';
 export * from './smart-route.ts';
