@@ -94,11 +94,23 @@ export interface InboxItem {
 }
 
 /**
- * The dev host. A physical phone cannot reach the laptop on `localhost`, so
- * this must be the LAN address in real device testing - set EXPO_PUBLIC_API_URL.
+ * Where the API is.
+ *
+ * A physical phone cannot reach the laptop on `localhost`, so real device
+ * testing needs the LAN address in EXPO_PUBLIC_API_URL.
+ *
+ * `same-origin` is the sentinel for the build the API serves itself, behind a
+ * tunnel or on a host. Every request then goes to whatever hostname the page
+ * was loaded from, which is the only value that survives a tunnel handing out
+ * a fresh random name every run. A literal empty string would have done the
+ * same job and been indistinguishable from an unset variable, which is exactly
+ * the kind of ambiguity that produces a build pointing at localhost in front
+ * of an audience.
  */
 export const API_BASE =
-  process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8787';
+  process.env.EXPO_PUBLIC_API_URL === 'same-origin'
+    ? ''
+    : process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8787';
 
 /** Device-scoped identity. No sign-up: the least personal data is the safest. */
 let deviceUser = 'demo-user';

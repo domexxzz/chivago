@@ -9,6 +9,9 @@
 
 import { randomUUID } from 'node:crypto';
 import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
+import { existsSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -981,6 +984,37 @@ function nearestArea(lat: number, lng: number): string {
  * on a real port and hope nothing else held it. The contract capture needs
  * exactly that in-process access, and so would any future route test.
  */
+/**
+ * Serve the built web app from the API itself, when there is one to serve.
+ *
+ * ONE ORIGIN, and that is the whole point. A tunnel gives out a fresh random
+ * hostname every run, so a web build with the API baked into it would have to
+ * be rebuilt and redeployed before every demo - and would be wrong the moment
+ * the tunnel reconnected. Served from here, the app talks to the origin it was
+ * loaded from: no rebuild, no CORS, no stale hostname, one link to hand over.
+ *
+ * Mounted LAST so it can never shadow an API route, and only when the
+ * directory actually exists - `pnpm --filter @chivago/api start` on a dev
+ * machine with no web build should still be an API, not a 500.
+ *
+ * Set CHIVAGO_WEB_DIR to point at the export. Nothing is served without it.
+ */
+const webDir = process.env.CHIVAGO_WEB_DIR;
+
+if (webDir !== undefined && existsSync(join(webDir, 'index.html'))) {
+  // `serveStatic` resolves `root` against the process cwd, which is not where
+  // this file lives and not where the build lands. Relative-ise it once here
+  // rather than depending on how the server happened to be launched.
+  const root = relative(process.cwd(), webDir).split(sep).join('/') || '.';
+
+  app.get('/', serveStatic({ path: `${root}/index.html` }));
+  app.use('/_expo/*', serveStatic({ root }));
+  app.use('/assets/*', serveStatic({ root }));
+  app.get('/favicon.ico', serveStatic({ path: `${root}/favicon.ico` }));
+
+  console.log(`[chivago] serving the web app from ${webDir}`);
+}
+
 const isEntryPoint = process.argv[1] !== undefined
   && import.meta.url === pathToFileURL(process.argv[1]).href;
 

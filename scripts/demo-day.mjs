@@ -1,0 +1,203 @@
+/**
+ * One command, from a cold repo to a link a judge can open on their own phone.
+ *
+ *   node scripts/demo-day.mjs
+ *
+ * What it does, in order, stopping the moment anything is wrong:
+ *
+ *   1. Seeds the pilot content, if the database has none.
+ *   2. Runs `demo:reset --walk`, which puts the traveller state into a known
+ *      shape AND refuses to continue if any screen would open empty.
+ *   3. Builds the web app in SAME-ORIGIN mode, so it talks to whatever host it
+ *      is served from rather than a hostname baked in at build time.
+ *   4. Starts the API, serving that build itself. One origin, no CORS.
+ *   5. Opens a Cloudflare tunnel and prints the public URL.
+ *
+ * WHY A TUNNEL AND NOT A DEPLOY. This runs the real backend - the real
+ * geofence, the real host verification, the real SQLite file on this laptop -
+ * so a judge checking in on their phone and a host approving it in the console
+ * are two people using one system, which is the thing worth demonstrating and
+ * the thing a static build cannot show. It also needs no card, no account and
+ * no rebuild when the URL changes.
+ *
+ * WHAT IT COSTS. The laptop has to stay awake and online. If the venue wifi
+ * dies, this dies with it - which is why the static demo stays deployed as the
+ * fallback that works with no server at all.
+ *
+ * `cloudflared` is the only thing needed that is not already in this repo:
+ *   winget install --id Cloudflare.cloudflared
+ *   brew install cloudflared
+ * Without it everything still runs; you get a LAN address instead of a public
+ * one, which is enough when the judges are on the same wifi.
+ */
+
+import { spawn, spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { networkInterfaces } from 'node:os';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+const WEB_DIR = join(ROOT, 'apps', 'mobile', 'dist-live');
+const PORT = process.env.PORT ?? '8787';
+
+const children = [];
+let shuttingDown = false;
+
+// ---------------------------------------------------------------------------
+
+const rule = () => console.log('─'.repeat(64));
+const step = (n, what) => console.log(`\n[${n}/5] ${what}`);
+const die = (why, fix) => {
+  console.error(`\n  STOPPED: ${why}`);
+  if (fix) console.error(`  ${fix}`);
+  shutdown(1);
+};
+
+function run(command, args, { cwd = ROOT, env = {} } = {}) {
+  const r = spawnSync(command, args, {
+    cwd,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+    env: { ...process.env, ...env },
+  });
+  return r.status === 0;
+}
+
+function shutdown(code = 0) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  for (const child of children) {
+    try { child.kill(); } catch { /* already gone */ }
+  }
+  process.exit(code);
+}
+
+process.on('SIGINT', () => shutdown(0));
+process.on('SIGTERM', () => shutdown(0));
+
+/** The LAN address, for when there is no tunnel but there is shared wifi. */
+function lanAddress() {
+  for (const addresses of Object.values(networkInterfaces())) {
+    for (const a of addresses ?? []) {
+      if (a.family === 'IPv4' && !a.internal) return a.address;
+    }
+  }
+  return null;
+}
+
+const hasCloudflared = spawnSync('cloudflared', ['--version'], {
+  stdio: 'ignore',
+  shell: process.platform === 'win32',
+}).status === 0;
+
+// ---------------------------------------------------------------------------
+
+rule();
+console.log('ChivaGo · demo day');
+rule();
+
+step(1, 'Seeding the pilot content');
+if (!run('pnpm', ['--filter', '@chivago/api', 'seed'])) {
+  die('the content seed failed', 'Nothing else can work without places and quests.');
+}
+
+step(2, 'Resetting the traveller state, and checking every screen has something to show');
+if (!run('pnpm', ['--filter', '@chivago/api', 'demo:reset', '--walk'])) {
+  // --walk already named the empty screen. Do not paper over it: a demo that
+  // starts with a known-blank screen is the failure this whole script exists
+  // to catch, and catching it here means catching it before the audience.
+  die('a screen would open empty', 'Fix what --walk named above, then run this again.');
+}
+
+step(3, 'Building the web app in same-origin mode');
+// --clear is NOT optional, and this is not caution.
+//
+// Metro inlines EXPO_PUBLIC_* at transform time and caches the result keyed on
+// the source, not on the environment. Build the demo once and this build reuses
+// those modules: the demo server gets installed, `installDemoServer` folds to
+// unconditional, and the app answers every request from a snapshot while the
+// screen says it is talking to the real backend. It was caught by grepping the
+// bundle, which is not a thing anybody does on the morning of a demo.
+if (!run('npx', ['expo', 'export', '--platform', 'web', '--output-dir', 'dist-live', '--clear'], {
+  cwd: join(ROOT, 'apps', 'mobile'),
+  // NOT the demo build: this one talks to the real API it is served from.
+  env: { EXPO_PUBLIC_API_URL: 'same-origin', EXPO_PUBLIC_DEMO: '' },
+})) {
+  die('the web build failed');
+}
+if (!run('node', ['scripts/flatten-assets.mjs', 'dist-live'], {
+  cwd: join(ROOT, 'apps', 'mobile'),
+})) {
+  die('flattening the fonts failed', 'Every font would 404 and the app would hang on its splash.');
+}
+if (!existsSync(join(WEB_DIR, 'index.html'))) {
+  die('the build produced no index.html');
+}
+
+step(4, 'Starting the API, serving that build');
+const api = spawn('node', ['--experimental-strip-types', 'src/server.ts'], {
+  cwd: join(ROOT, 'apps', 'api'),
+  stdio: ['ignore', 'pipe', 'inherit'],
+  env: { ...process.env, PORT, CHIVAGO_WEB_DIR: WEB_DIR },
+});
+children.push(api);
+api.on('exit', (code) => {
+  if (!shuttingDown) die(`the API exited with code ${code}`);
+});
+
+await new Promise((resolve, reject) => {
+  const timer = setTimeout(() => reject(new Error('the API did not start in 30s')), 30_000);
+  api.stdout.on('data', (chunk) => {
+    const line = String(chunk);
+    process.stdout.write(`      ${line}`);
+    if (line.includes('listening')) { clearTimeout(timer); resolve(); }
+  });
+}).catch((error) => die(error.message));
+
+step(5, hasCloudflared ? 'Opening a public tunnel' : 'No tunnel — cloudflared is not installed');
+
+const lan = lanAddress();
+
+if (!hasCloudflared) {
+  rule();
+  console.log('\n  Running, but only on this network.\n');
+  console.log(`      This laptop   http://localhost:${PORT}`);
+  if (lan) console.log(`      Same wifi     http://${lan}:${PORT}`);
+  console.log('\n  For a link that works from any network:');
+  console.log('      winget install --id Cloudflare.cloudflared');
+  console.log('      brew install cloudflared\n');
+  console.log('  Ctrl+C to stop.');
+  rule();
+} else {
+  const tunnel = spawn('cloudflared', [
+    'tunnel', '--no-autoupdate', '--url', `http://localhost:${PORT}`,
+  ], { stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32' });
+  children.push(tunnel);
+
+  let announced = false;
+  const watch = (chunk) => {
+    const text = String(chunk);
+    const url = text.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/i)?.[0];
+    if (!url || announced) return;
+    announced = true;
+
+    console.log('');
+    rule();
+    console.log('\n  Open this. It is the real backend, not the static demo.\n');
+    console.log(`      ${url}\n`);
+    console.log('  The host console, which the static demo cannot show at all:\n');
+    console.log(`      ${url}/console\n`);
+    if (lan) console.log(`      (same wifi, no tunnel: http://${lan}:${PORT})\n`);
+    console.log('  Everything a judge does here is written to the SQLite file on');
+    console.log('  this laptop. Re-run this script to put it all back.\n');
+    console.log('  Ctrl+C to stop.');
+    rule();
+  };
+  tunnel.stdout.on('data', watch);
+  tunnel.stderr.on('data', watch);
+
+  tunnel.on('exit', (code) => {
+    if (!shuttingDown) die(`the tunnel exited with code ${code}`);
+  });
+}

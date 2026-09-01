@@ -1,0 +1,47 @@
+# What must never enter the build context.
+#
+# Two of these are correctness, not tidiness.
+#
+# `node_modules` carries platform-native binaries built for the host machine;
+# copying them into a Linux image produces failures that read as dependency
+# problems and are not. The image installs its own.
+#
+# `apps/api/data` is the LOCAL DATABASE. It holds seeded host api_key_hash
+# values and whatever traveller data this machine has. Baking it into an image
+# would ship real credentials to a registry, and would also mean the deployed
+# app starts on a copy of somebody's laptop instead of an empty volume.
+node_modules
+**/node_modules
+.pnpm-store
+apps/api/data
+
+# Build output. The image builds its own web bundle; a stale dist copied in
+# could be a DEMO build, which would answer from a snapshot behind a URL
+# claiming to be the real API.
+dist*/
+**/dist*/
+build/
+.expo
+**/.expo
+
+# Deploy identity and secrets. Never.
+.env
+.env.*
+.vercel
+**/.vercel
+
+# History and tooling the runtime has no use for.
+.git
+.gitignore
+.github
+docs
+contract
+*.md
+!README.md
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.log
