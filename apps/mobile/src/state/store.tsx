@@ -38,7 +38,7 @@ import { EMPTY_PROFILE } from '@chivago/core';
 export type ScreenKey =
   | 'onboarding' | 'home' | 'map' | 'place' | 'quests' | 'quest'
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
-  | 'companion' | 'passport';
+  | 'companion' | 'passport' | 'account';
 
 /**
  * Five tabs, and Impact is no longer one of them.
@@ -80,8 +80,8 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   concierge: 'home', impact: 'home', passport: 'home',
   quests: 'quests', quest: 'quests',
   wallet: 'wallet', market: 'wallet',
-  // Reached from the collection, so the wallet tab stays lit behind it.
-  companion: 'wallet',
+  // Both reached from the wallet, so its tab stays lit behind them.
+  companion: 'wallet', account: 'wallet',
   safety: 'safety',
 };
 

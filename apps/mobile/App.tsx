@@ -35,6 +35,7 @@ import { MarketScreen } from './src/screens/MarketScreen.tsx';
 import { ImpactScreen } from './src/screens/ImpactScreen.tsx';
 import { HomeScreen } from './src/screens/HomeScreen.tsx';
 import { PassportScreen } from './src/screens/PassportScreen.tsx';
+import { AccountScreen } from './src/screens/AccountScreen.tsx';
 import { SafetyScreen } from './src/screens/SafetyScreen.tsx';
 import { TripScreen, type TripState } from './src/screens/TripScreen.tsx';
 import { ConciergeScreen } from './src/screens/ConciergeScreen.tsx';
@@ -245,6 +246,7 @@ export default function App() {
           <WalletScreen
             onOpenCompanion={(c) => { setCompanion(c); nav.push('companion'); }}
             onOpenMarket={() => nav.push('market')}
+            onOpenAccount={() => nav.push('account')}
             refreshKey={walletKey}
             notifications={notifications.items}
             unread={notifications.unread}
@@ -280,6 +282,9 @@ export default function App() {
 
       case 'passport':
         return <PassportScreen />;
+
+      case 'account':
+        return <AccountScreen onBack={nav.pop} onToast={toast.show} />;
 
       case 'impact':
         return <ImpactScreen onToast={toast.show} refreshKey={walletKey} />;

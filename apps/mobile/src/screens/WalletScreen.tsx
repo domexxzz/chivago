@@ -17,6 +17,7 @@
 
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
 import {
   formatAmount, formatLedgerDate, levelProgressPct, strings,
   type Wallet,
@@ -32,9 +33,11 @@ import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 
 export function WalletScreen({
   onOpenCompanion,
-  onOpenMarket, refreshKey, notifications, unread, onMarkRead, onMarkAllRead, onOpenQuest,
+  onOpenMarket, onOpenAccount, refreshKey, notifications, unread, onMarkRead, onMarkAllRead,
+  onOpenQuest,
 }: {
   onOpenMarket: () => void;
+  onOpenAccount: () => void;
   refreshKey: number;
   notifications: InboxItem[];
   unread: number;
@@ -64,9 +67,43 @@ export function WalletScreen({
           <RankLadder wallet={wallet.data} />
           <Companions data={companions.data} onOpenCompanion={onOpenCompanion} />
           <Ledger wallet={wallet.data} onOpenMarket={onOpenMarket} />
+          <AccountRow onOpenAccount={onOpenAccount} />
         </>
       ) : null}
     </ScrollView>
+  );
+}
+
+/**
+ * The way to a second phone.
+ *
+ * At the bottom of the wallet on purpose: everything above it is what the
+ * traveller would lose if this phone were their only one, so the invitation to
+ * add another reads as a consequence of the list rather than a settings item.
+ */
+function AccountRow({ onOpenAccount }: { onOpenAccount: () => void }) {
+  return (
+    <Pressable
+      onPress={onOpenAccount}
+      accessibilityRole="button"
+      accessibilityLabel="Your account. Add another phone, or see which phones are signed in."
+      style={{
+        marginHorizontal: gutter, marginTop: 18, marginBottom: 28,
+        padding: 14, minHeight: 44,
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+        borderWidth: 1, borderColor: color.neutral300, borderRadius: radius.md,
+        backgroundColor: color.surface,
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        <Heading size={15}>Your account</Heading>
+        <Thai size={11} style={{ marginTop: 2 }}>บัญชีของคุณ</Thai>
+        <Label size={9} tracking={0.04} colour={color.neutral600} style={{ marginTop: 5, textTransform: 'none' }}>
+          Add another phone so none of this depends on keeping this one.
+        </Label>
+      </View>
+      <ChevronRight size={18} color={color.brand} strokeWidth={2} />
+    </Pressable>
   );
 }
 
