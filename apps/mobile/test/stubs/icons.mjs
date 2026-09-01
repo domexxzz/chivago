@@ -1,4 +1,9 @@
-/** Icons carry no text. Every name resolves to a component that renders nothing. */
+/**
+ * Icons carry no text. Every name resolves to a component that renders nothing.
+ *
+ * GENERATED — do not edit by hand. Re-run after adding an icon:
+ *   node apps/mobile/test/stubs/gen-icons.mjs
+ */
 const Icon = () => null;
 export default Icon;
 export const ArrowRight = Icon;
@@ -11,7 +16,9 @@ export const LayoutGrid = Icon;
 export const Leaf = Icon;
 export const List = Icon;
 export const Map = Icon;
+export const MessageCircle = Icon;
 export const Phone = Icon;
+export const Send = Icon;
 export const Shield = Icon;
 export const Wallet = Icon;
 export const X = Icon;

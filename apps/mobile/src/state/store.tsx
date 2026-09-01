@@ -36,7 +36,7 @@ import { EMPTY_PROFILE } from '@chivago/core';
 
 export type ScreenKey =
   | 'onboarding' | 'map' | 'place' | 'quests' | 'quest'
-  | 'wallet' | 'market' | 'impact' | 'safety' | 'trip';
+  | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge';
 
 export type TabKey = 'map' | 'quests' | 'wallet' | 'impact' | 'safety';
 
@@ -63,6 +63,9 @@ const TAB_SCREENS: TabKey[] = ['map', 'quests', 'wallet', 'impact', 'safety'];
 /** Which tab should read as active while a pushed screen is on top. */
 const OWNING_TAB: Record<ScreenKey, TabKey> = {
   onboarding: 'map', map: 'map', place: 'map', trip: 'map',
+  // Reached from the map, so the map tab stays lit and a tab tap returns
+  // there rather than stranding the reader on a screen no tab owns.
+  concierge: 'map',
   quests: 'quests', quest: 'quests',
   wallet: 'wallet', market: 'wallet',
   impact: 'impact', safety: 'safety',

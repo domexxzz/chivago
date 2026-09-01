@@ -21,6 +21,7 @@ import { Hero, PlaceScreen } from '../src/screens/PlaceScreen.tsx';
 import { ReviewsBlock } from '../src/screens/PlaceReviews.tsx';
 import { QuestDetailScreen } from '../src/screens/QuestDetail.tsx';
 import { SafetyScreen } from '../src/screens/SafetyScreen.tsx';
+import { ConciergeScreen } from '../src/screens/ConciergeScreen.tsx';
 import { TripScreen } from '../src/screens/TripScreen.tsx';
 import { OnboardingScreen } from '../src/screens/Onboarding.tsx';
 import { ImpactScreen } from '../src/screens/ImpactScreen.tsx';
@@ -1166,6 +1167,62 @@ describe('the companion collection on the wallet', () => {
       const ui = await mountScreen(h(WalletScreen, walletProps));
       assert.match(ui.text(), /1,240/, 'the balance is still there');
       assert.doesNotMatch(ui.text(), /Companions ·/, 'and the collection is simply absent');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+});
+
+describe('the concierge screen, which answers without a server', () => {
+  const props = (over = {}) => ({ onOpenPlace: noop, onAction: noop, ...over });
+
+  test('it opens with questions, not an empty box', async () => {
+    // An empty chat makes the reader guess what it is for. They guess
+    // something it cannot do, and then they stop typing.
+    const net = server({ 'GET /places': [place()] });
+    try {
+      const ui = await mountScreen(h(ConciergeScreen, props()));
+      const said = ui.text();
+      assert.match(said, /Try asking/i);
+      assert.match(said, /Somewhere quiet/i);
+      assert.match(said, /ที่เงียบ/, 'the openers are offered in Thai too');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('asking in English answers in English, with a reason', async () => {
+    const net = server({ 'GET /places': [place()] });
+    try {
+      const ui = await mountScreen(h(ConciergeScreen, props()));
+      await ui.pressText(/Somewhere quiet/);
+      const said = ui.text();
+      assert.match(said, /Quietest right now/i);
+      assert.match(said, /people per 100/, 'recommended with no measurement behind it');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a place suggestion is a control, not a sentence about a place', async () => {
+    const opened: string[] = [];
+    const net = server({ 'GET /places': [place()] });
+    try {
+      const ui = await mountScreen(h(ConciergeScreen, props({
+        onOpenPlace: (id: string) => { opened.push(id); },
+      })));
+      await ui.pressText(/Somewhere quiet/);
+      await ui.pressText(/Chaweng/);
+      assert.deepEqual(opened, ['chaweng'], 'the suggestion did not open the place');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('the places fetch failing does not take the chat with it', async () => {
+    // The concierge is pure; only its data comes over the network. Losing the
+    // island should cost recommendations, not the whole screen.
+    const net = server({ 'GET /places': offline() });
+    try {
+      const ui = await mountScreen(h(ConciergeScreen, props()));
+      assert.match(ui.text(), /offline/i, 'the failure is stated');
+      assert.match(ui.text(), /Try asking/i, 'and the chat is still usable');
       ui.unmount();
     } finally { net.restore(); }
   });

@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { ChevronRight, LayoutGrid, List } from 'lucide-react-native';
+import { ChevronRight, LayoutGrid, List, MessageCircle } from 'lucide-react-native';
 import { strings, type Balances, type Quest, type ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync, type LayerKey } from '../state/store.tsx';
@@ -21,6 +21,7 @@ import { ErrorState, LoadingState } from '../components/States.tsx';
 
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
+  onAskConcierge,
   onOpenWallet,
 }: {
   layers: Record<LayerKey, boolean>;
@@ -29,6 +30,7 @@ export function MapScreen({
   onOpenPlace: (id: string) => void;
   onOpenQuest: (id: string) => void;
   onSeeAllQuests: () => void;
+  onAskConcierge: () => void;
   balances: Balances;
   onOpenWallet: () => void;
 }) {
@@ -118,6 +120,40 @@ export function MapScreen({
           </Body>
         </View>
         <ChevronRight size={20} color={color.accent} strokeWidth={2} />
+      </Pressable>
+
+      {/*
+        The concierge's front door, under the planner rather than beside it.
+        The planner answers "what should I do today" in one shot; this answers
+        the question somebody has when they cannot phrase that one yet. Quieter
+        on purpose - two equally loud front doors is no front door at all.
+      */}
+      <Pressable
+        onPress={onAskConcierge}
+        accessibilityRole="button"
+        accessibilityLabel="Ask the concierge. Ask in Thai or English."
+        style={{
+          marginTop: 10,
+          marginHorizontal: gutter,
+          minHeight: 44,
+          paddingVertical: 12,
+          paddingHorizontal: 16,
+          borderWidth: 1,
+          borderColor: color.neutral400,
+          borderRadius: radius.md,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+        }}
+      >
+        <MessageCircle size={18} color={color.neutral700} strokeWidth={2} />
+        <View style={{ flex: 1 }}>
+          <Heading size={14}>Ask where to go</Heading>
+          <Thai size={10} colour={color.neutral600} style={{ marginTop: 2 }}>
+            ถามได้ทั้งภาษาไทยและอังกฤษ
+          </Thai>
+        </View>
+        <ChevronRight size={18} color={color.neutral600} strokeWidth={2} />
       </Pressable>
 
       <QuestsNearYou

@@ -35,6 +35,7 @@ import { MarketScreen } from './src/screens/MarketScreen.tsx';
 import { ImpactScreen } from './src/screens/ImpactScreen.tsx';
 import { SafetyScreen } from './src/screens/SafetyScreen.tsx';
 import { TripScreen, type TripState } from './src/screens/TripScreen.tsx';
+import { ConciergeScreen } from './src/screens/ConciergeScreen.tsx';
 
 export default function App() {
   // Both families are bundled locally rather than fetched at runtime: the app
@@ -145,6 +146,21 @@ export default function App() {
           />
         );
 
+      case 'concierge':
+        return (
+          <ConciergeScreen
+            onOpenPlace={(id) => nav.push('place', { placeId: id })}
+            onAction={(action) => {
+              // The concierge hands OFF rather than reimplementing a screen.
+              if (action === 'plan' || action === 'route' || action === 'price') {
+                nav.push('trip');
+                return;
+              }
+              nav.selectTab(action);
+            }}
+          />
+        );
+
       case 'map':
         return (
           <MapScreen
@@ -154,6 +170,7 @@ export default function App() {
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
             onOpenQuest={(id) => nav.push('quest', { questId: id })}
             onSeeAllQuests={() => nav.selectTab('quests')}
+            onAskConcierge={() => nav.push('concierge')}
             onOpenWallet={() => nav.selectTab('wallet')}
             balances={balances}
           />
