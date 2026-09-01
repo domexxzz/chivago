@@ -19,62 +19,117 @@
 // ---------------------------------------------------------------------------
 
 export const color = {
-  /** App background / screen ground - the deck's --ink */
-  bg: '#071812',
-  /** Inset panels (proof-upload box) - --ink-2 */
-  surface: '#0c2419',
+  /** App background / screen ground - the light sky the cards sit on */
+  bg: '#eaf2fc',
+  /** Cards and inset panels. White, so a card reads as a card without a border */
+  surface: '#ffffff',
   /** Foreground: body + heading text, strong rules, active tab fill, toast */
-  text: '#edf3ec',
+  text: '#0e2a4f',
   /** Primary action, Green Points value, verified state, score >= 85 pins */
-  accent: '#b7f04b',
+  accent: '#25874c',
   /** Counter-accent: warnings, crowding, the one thing that must not read green */
-  accent2: '#f87153',
-  /** Section rules - the deck's --line-d, lime at low alpha */
-  divider: 'rgba(183,240,75,0.16)',
+  accent2: '#d32f24',
+  /** Section rules - a cool hairline, not a tinted glow */
+  divider: 'rgba(14,42,79,0.10)',
+
+  /**
+   * The brand blue. Navigation, chips, links, the map, anything that is the
+   * app speaking rather than the island reporting.
+   *
+   * NEW, and deliberately not `accent`. Making blue the accent would have
+   * turned Green Points blue, and the one thing the palette must never do is
+   * let the verified currency stop looking verified.
+   */
+  brand: '#1e6fd9',
+  brandDeep: '#143a6b',
+  brandSoft: '#dbe9fb',
+
+  /**
+   * The call to action. One orange, used sparingly: the button that starts
+   * something. Not a warning - warnings are `accent2`, which is red for the
+   * same reason it has always been the counter-accent.
+   */
+  cta: '#f26430',
+  /**
+   * The same orange, darkened until WHITE text passes on it (4.50 vs 3.16).
+   * Two oranges rather than one because the vivid one only works with ink on
+   * top, and a design system that leaves that to memory gets white-on-orange
+   * buttons at 3.16:1 within a week.
+   */
+  ctaDeep: '#cc4610',
+  ctaSoft: '#ffe6dc',
+
+  /** Points, levels, badges. The only decorative-feeling colour, kept for it. */
+  gold: '#f5a623',
+  goldSoft: '#fdf0d6',
 
   /** Ground-ward end of the ramp. */
-  neutral100: '#0a1f17',
-  neutral200: '#10291d',
-  neutral300: '#1c3a2b',
-  neutral400: '#2b4c3a',
-  neutral500: '#5b7466',
-  neutral600: '#7e9a8a',
-  /** The workhorse secondary text - the deck's --sage */
-  neutral700: '#8fa89a',
-  neutral800: '#b9cbbf',
+  neutral100: '#f4f8fd',
+  neutral200: '#e8eff8',
+  neutral300: '#d8e3f0',
+  neutral400: '#bccbdf',
+  neutral500: '#8fa2bb',
+  neutral600: '#6b7f9c',
+  /** The workhorse secondary text - readable on white at small sizes */
+  neutral700: '#54688a',
+  neutral800: '#33486a',
   /** Text-ward end. Also the shadow colour, which stays near-black on purpose. */
-  neutral900: '#03110b',
+  neutral900: '#081a30',
 
-  accent100: '#12300a',
-  accent200: '#1c4a10',
-  accent300: '#2f6b17',
-  accent400: '#4f951b',
-  accent500: '#7fbf1f',
-  accent600: '#9ad935',
-  /** Accent TEXT on the dark ground. Bright, not deep - the ground inverted. */
-  accent700: '#b7f04b',
-  accent800: '#cef47e',
-  accent900: '#eafbc9',
+  accent100: '#eaf7ef',
+  accent200: '#cdebd9',
+  accent300: '#9fd8b7',
+  accent400: '#66c18d',
+  accent500: '#3faa6d',
+  accent600: '#25874c',
+  /**
+   * Accent TEXT on the light ground. DEEP, not bright - the ground inverted.
+   * On the dark scheme this was the brightest lime; the role is unchanged and
+   * the value flips, which is the whole reason the ramp is named by role.
+   */
+  accent700: '#1f7a44',
+  accent800: '#175c33',
+  accent900: '#0e3d21',
 
-  /** Coral ramp, for the counter-accent's soft fills. */
-  coral: '#f87153',
-  coralSoft: '#fde6df',
-  coralDeep: '#8a2f1c',
+  /** Counter-accent ramp, for its soft fills. */
+  coral: '#d32f24',
+  coralSoft: '#fde7e4',
+  coralDeep: '#8f1d15',
 
-  /** Paper, for the rare inverted surface (a voucher, a printed thing). */
-  paper: '#f5f7f2',
-  mist: '#eaf6da',
+  /**
+   * The rare INVERTED surface: a hero panel, a profile card, the 3D map.
+   * On a dark scheme this was paper; on a light one the inversion is navy.
+   * The role is "the surface that is the opposite of the page".
+   */
+  paper: '#143a6b',
+  mist: '#0e2a4f',
 } as const;
 
 /**
- * Contrast rule:
- * lime on the ink ground is ~11:1 - safe at ANY size, unlike the old mono-red
- * which was fill-only. `accent700` is kept as the paragraph-accent name so no
- * screen had to change, and now resolves to the same bright lime.
+ * Contrast, measured — and enforced by contrast.test.ts, not by this comment.
  *
- * Green Points finally render GREEN. The deck's whole identity is the lime, so
- * the eco opt-in that existed to escape a mono-red palette is now the default
- * and the flag is gone.
+ *   text       on bg        12.72:1   any size
+ *   text       on surface   14.36:1   any size
+ *   neutral700 on surface    5.64:1   body and small labels
+ *   neutral600 on surface    4.08:1   LARGE TEXT AND ICONS ONLY
+ *   accent700  on surface    5.35:1   accent paragraphs
+ *   brand      on surface    4.85:1   links and labels
+ *   accent2    on surface    5.00:1   warnings
+ *   white      on accent     4.52:1   the Green Points button
+ *   white      on brand      4.85:1
+ *   white      on ctaDeep    4.72:1
+ *   INK        on cta        4.54:1   white is 3.16 and fails
+ *
+ * That last pair is the trap. The design's orange is vivid and unreadable
+ * under white text, so it is kept vivid and the LABEL changes colour — which
+ * is why cta and ctaDeep are two tokens rather than one with a note.
+ *
+ * Four of these were wrong when this comment first claimed them, including
+ * both button fills. The numbers are now generated from the values and a test
+ * fails if any of them drifts.
+ *
+ * Green Points still render green — an actual green now rather than a lime,
+ * so verified reads as verified to someone who has never seen the app.
  */
 // ---------------------------------------------------------------------------
 // Spacing

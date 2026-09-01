@@ -6,9 +6,10 @@
   "types": "src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node -e \"import('./src/index.ts')\" || true"
+    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\""
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@types/node": "^24.0.0"
   }
 }
