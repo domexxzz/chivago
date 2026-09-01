@@ -32,7 +32,7 @@
  */
 
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -88,8 +88,29 @@ function lanAddress() {
 
 const hasCloudflared = spawnSync('cloudflared', ['--version'], {
   stdio: 'ignore',
-  shell: process.platform === 'win32',
 }).status === 0;
+
+/**
+ * Is another cloudflared already running on this machine?
+ *
+ * Worth saying out loud before starting one. A laptop that hosts somebody's
+ * live site through a named tunnel is not an unusual laptop, and two tunnels
+ * from one machine is the setup most likely to produce a symptom nobody can
+ * attribute: requests succeeding or failing depending on which connector the
+ * edge happened to pick.
+ *
+ * This does not stop the run - ours is isolated by --config and cannot touch
+ * theirs. It stops the ten minutes of confusion later.
+ */
+function otherTunnelRunning() {
+  const ps = process.platform === 'win32'
+    ? spawnSync('tasklist', ['/FI', 'IMAGENAME eq cloudflared.exe', '/FO', 'CSV', '/NH'], { encoding: 'utf8' })
+    : spawnSync('pgrep', ['-c', 'cloudflared'], { encoding: 'utf8' });
+  const out = `${ps.stdout ?? ''}`.trim();
+  return process.platform === 'win32'
+    ? out.toLowerCase().includes('cloudflared.exe')
+    : Number(out) > 0;
+}
 
 // ---------------------------------------------------------------------------
 
@@ -157,6 +178,13 @@ await new Promise((resolve, reject) => {
 
 step(5, hasCloudflared ? 'Opening a public tunnel' : 'No tunnel — cloudflared is not installed');
 
+if (hasCloudflared && otherTunnelRunning()) {
+  console.log('');
+  console.log('      NOTE: cloudflared is already running on this machine.');
+  console.log('      Ours runs isolated (--config of its own) and cannot touch it,');
+  console.log('      but if another site on this laptop misbehaves, start here.');
+}
+
 const lan = lanAddress();
 
 if (!hasCloudflared) {
@@ -170,17 +198,96 @@ if (!hasCloudflared) {
   console.log('  Ctrl+C to stop.');
   rule();
 } else {
+  // ISOLATED FROM THIS MACHINE'S CLOUDFLARED, which is the important part.
+  //
+  // cloudflared reads ~/.cloudflared/config.yml by default. On a machine that
+  // already runs a named tunnel, that config names a tunnel and a credentials
+  // file - so `cloudflared tunnel --url ...` quietly authenticates as somebody
+  // else's production tunnel and registers a connector on it. That happened
+  // here, against a live site, and the only reason nothing broke is luck.
+  //
+  // `--config` pointing at our own empty file stops it reading theirs. A quick
+  // tunnel needs no credentials, so there is nothing else to supply.
+  const isolatedConfig = join(ROOT, 'node_modules', '.cache', 'chivago-tunnel.yml');
+  mkdirSync(dirname(isolatedConfig), { recursive: true });
+  writeFileSync(isolatedConfig, [
+    '# Deliberately empty.',
+    '#',
+    '# Its only job is to occupy --config so cloudflared cannot fall back to',
+    '# ~/.cloudflared/config.yml and borrow whatever tunnel lives there.',
+    '',
+  ].join('\n'), 'utf8');
+
+  // NO SHELL. On Windows `shell: true` concatenates the args instead of
+  // escaping them - Node warns about it - and `--url` arrived mangled, so
+  // cloudflared opened a tunnel with no origin behind it. It still printed a
+  // perfectly good URL. Every request to that URL returned 404.
   const tunnel = spawn('cloudflared', [
-    'tunnel', '--no-autoupdate', '--url', `http://localhost:${PORT}`,
-  ], { stdio: ['ignore', 'pipe', 'pipe'], shell: process.platform === 'win32' });
+    'tunnel', '--config', isolatedConfig, '--no-autoupdate',
+    '--url', `http://localhost:${PORT}`,
+  ], { stdio: ['ignore', 'pipe', 'pipe'] });
   children.push(tunnel);
 
   let announced = false;
+
   const watch = (chunk) => {
     const text = String(chunk);
+    // Cloudflared's own output goes to the operator. The first version of this
+    // swallowed everything that was not the URL, so the one run that failed
+    // failed silently and the diagnosis had to come from curl.
+    for (const line of text.split('\n')) {
+      if (line.trim() && !/\btrycloudflare\.com\b/.test(line)) {
+        console.log(`      ${line.trim()}`);
+      }
+    }
+
     const url = text.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/i)?.[0];
     if (!url || announced) return;
     announced = true;
+    void announce(url);
+  };
+
+  tunnel.stdout.on('data', watch);
+  tunnel.stderr.on('data', watch);
+
+  tunnel.on('exit', (code) => {
+    if (!shuttingDown) die(`the tunnel exited with code ${code}`);
+  });
+
+  /**
+   * Print the link only once it has actually served something.
+   *
+   * A printed URL is a promise, and this script printed one that 404'd on
+   * every path: the tunnel was up, the edge answered, and there was nothing
+   * behind it. Handing that to a judge is worse than handing them nothing,
+   * because they will try it once and stop.
+   */
+  async function announce(url) {
+    process.stdout.write('\n      checking the tunnel actually serves the app');
+
+    let served = false;
+    for (let attempt = 0; attempt < 20 && !served; attempt += 1) {
+      await new Promise((r) => { setTimeout(r, 1000); });
+      process.stdout.write('.');
+      try {
+        const res = await fetch(`${url}/health`, { redirect: 'manual' });
+        served = res.ok;
+      } catch { /* the tunnel is still coming up */ }
+    }
+    console.log('');
+
+    if (!served) {
+      console.log('');
+      rule();
+      console.log('\n  The tunnel is up but is not reaching this machine.\n');
+      console.log(`      ${url}/health did not answer\n`);
+      console.log('  The app itself is fine — use the local address instead:\n');
+      console.log(`      http://localhost:${PORT}`);
+      if (lan) console.log(`      http://${lan}:${PORT}   (anyone on this wifi)`);
+      console.log('\n  Ctrl+C to stop.');
+      rule();
+      return;
+    }
 
     console.log('');
     rule();
@@ -193,11 +300,5 @@ if (!hasCloudflared) {
     console.log('  this laptop. Re-run this script to put it all back.\n');
     console.log('  Ctrl+C to stop.');
     rule();
-  };
-  tunnel.stdout.on('data', watch);
-  tunnel.stderr.on('data', watch);
-
-  tunnel.on('exit', (code) => {
-    if (!shuttingDown) die(`the tunnel exited with code ${code}`);
-  });
+  }
 }
