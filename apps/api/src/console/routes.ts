@@ -16,10 +16,13 @@ import {
   SESSION_COOKIE, SESSION_TTL_MS, type HostSession,
 } from '../host-auth.ts';
 import {
-  isRejectionReasonKey, sponsorOutcome, type Sponsor, type Sponsorship,
+  esgReport, isRejectionReasonKey, sponsorOutcome,
+  type EsgPeriod, type Sponsor, type Sponsorship,
 } from '@chivago/core';
 import { listQuests } from '../repo.ts';
 import { sponsorPage } from './sponsor.ts';
+import { esgPage } from './esg.ts';
+import { activityInPeriod } from '../esg-service.ts';
 import { pendingQueue, queueStats, recentDecisions, reviewItem } from '../review-service.ts';
 import {
   DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, localeFromAcceptLanguage, type Locale,
@@ -294,6 +297,46 @@ export function consoleRoutes(db: DB): Hono {
     });
 
     return c.html(sponsorPage(localeFor(c), session.hostName, session.reviewer, outcome, rows));
+  });
+
+  /**
+   * The same funding, read as an ESG filing rather than a sponsor update.
+   *
+   * PILOT SHAPE, like the sponsor page: the partner and the funding are
+   * constants here because no contract exists yet, and a table would imply an
+   * agreement nobody has signed. The ACTIVITY underneath is real, read from
+   * quest_progress inside the stated period.
+   *
+   * The period defaults to the current calendar year, which is the one an
+   * annual report is filed against. `?from=&to=` overrides it, because a
+   * partner's fiscal year is very often not January to December.
+   */
+  app.get('/esg', (c) => {
+    const session = currentSession(c)!;
+
+    const partner: Sponsor = {
+      id: 'samui-green',
+      name: { en: 'Samui Green Foundation', th: 'มูลนิธิสมุยสีเขียว' },
+      kind: 'ngo',
+    };
+    const funded = [
+      { questId: 'q2', fundedTHB: 40_000, perVerifiedTHB: 400 },
+      { questId: 'q3', fundedTHB: 25_000, perVerifiedTHB: 300 },
+    ];
+
+    const year = new Date().getUTCFullYear();
+    const isDate = (v: string | undefined): v is string => /^\d{4}-\d{2}-\d{2}$/.test(v ?? '');
+    const from = c.req.query('from');
+    const to = c.req.query('to');
+    const period: EsgPeriod = {
+      from: isDate(from) ? from : `${year}-01-01`,
+      to: isDate(to) ? to : `${year}-12-31`,
+    };
+
+    const { classified, excludedUnclassified } = activityInPeriod(db, funded, period);
+    const report = esgReport(partner, period, classified, excludedUnclassified);
+
+    return c.html(esgPage(localeFor(c), session.hostName, session.reviewer, report));
   });
 
   app.get('/sos', (c) => {

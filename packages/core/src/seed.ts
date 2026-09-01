@@ -191,6 +191,7 @@ export const SAFETY_PHRASES: Record<string, { en: string; th: string }> = {
 export const SEED_QUESTS: Quest[] = [
   {
     id: 'q1',
+    esgPillar: 'environmental',
     code: 'BC-04',
     name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด' },
     where: 'Chaweng Beach',
@@ -205,6 +206,7 @@ export const SEED_QUESTS: Quest[] = [
   },
   {
     id: 'q2',
+    esgPillar: 'environmental',
     code: 'MG-11',
     name: { en: 'Mangrove Planting', th: 'ปลูกป่าชายเลน' },
     where: 'Thong Krut',
@@ -219,6 +221,7 @@ export const SEED_QUESTS: Quest[] = [
   },
   {
     id: 'q3',
+    esgPillar: 'environmental',
     code: 'CR-02',
     name: { en: 'Coral Nursery Check', th: 'ตรวจแปลงปะการัง' },
     where: 'Taling Ngam',
@@ -233,6 +236,7 @@ export const SEED_QUESTS: Quest[] = [
   },
   {
     id: 'q4',
+    esgPillar: 'environmental',
     code: 'WK-01',
     name: { en: 'Walk, don’t ride', th: 'เดินแทนการใช้รถ' },
     where: 'Island-wide',
@@ -249,6 +253,7 @@ export const SEED_QUESTS: Quest[] = [
   },
   {
     id: 'q5',
+    esgPillar: 'social',
     code: 'FD-07',
     name: { en: 'Fisherman’s Village food trail', th: 'เส้นทางอาหารหมู่บ้านชาวประมง' },
     where: 'Bophut',

@@ -180,6 +180,15 @@ export interface QuestHost {
 
 export interface Quest {
   id: string;
+  /**
+   * Which ESG pillar this reports under, if any.
+   *
+   * Optional and often absent, deliberately. An ESG report EXCLUDES an
+   * unclassified activity and says how many it excluded, rather than guessing
+   * a pillar from the habitat layer — that guess would be right for a beach
+   * cleanup and wrong for half the others, inside a document somebody signs.
+   */
+  esgPillar?: 'environmental' | 'social' | 'governance';
   /** Two-letter + number code shown in the 44x44 ink square. Not an icon. */
   code: string;
   name: Bilingual;

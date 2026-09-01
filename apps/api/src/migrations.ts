@@ -617,5 +617,15 @@ export function migrate(db: DB): string[] {
   applied.push('parties');
   applied.push('party_members');
 
+  // Which ESG pillar a quest reports under.
+  //
+  // NULLABLE on purpose, and quests without one are EXCLUDED from an ESG
+  // report rather than guessed at. Deriving a pillar from the place's habitat
+  // layer would be defensible for a beach cleanup and wrong for half the
+  // others, and the wrongness would land inside a document somebody signs.
+  if (addColumn(db, 'quests', 'esg_pillar', 'TEXT')) {
+    applied.push('quests.esg_pillar');
+  }
+
   return applied;
 }
