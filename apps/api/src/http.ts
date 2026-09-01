@@ -15,6 +15,15 @@ import {
   NothingToAppeal, NotYourReview, ReportRateLimited, TakedownRateLimited,
 } from './place-review-service.ts';
 
+/**
+ * What the auth middleware puts on the context.
+ *
+ * Declared here rather than in server.ts because `userId` below is the only
+ * thing that reads it, and a variable whose shape lives away from its reader
+ * drifts from it.
+ */
+export type AppEnv = { Variables: { userId?: string } };
+
 export const ok = <T>(c: Context, data: T, meta?: ApiSuccess<T>['meta']) =>
   c.json<ApiSuccess<T>>({ ok: true, data, ...(meta ? { meta } : {}) });
 
@@ -108,13 +117,21 @@ export function handleError(c: Context, err: unknown) {
 /**
  * Identify the caller.
  *
- * The pilot uses a device-scoped id header rather than accounts: the product
- * has no sign-up, and under Thailand's PDPA the least personal data you can
- * collect is the safest amount. Swap for a real session when accounts land -
- * every route reads the user through this one function.
+ * Accounts have landed, and this is where they arrive: the auth middleware in
+ * server.ts resolves a device key and stores the user on the context, so every
+ * route that already read the caller through this one function got
+ * authentication without changing a line.
+ *
+ * The `x-chivago-user` header behind it is the PILOT path, kept alive only
+ * while no account exists — see `openIdentityAllowed` in server.ts, which
+ * closes it automatically the moment the first device registers. Under
+ * Thailand's PDPA the least personal data you can collect is the safest
+ * amount, and a header was the least; it was also unauthenticated, which is
+ * why it is now on a timer rather than a promise.
  */
 export function userId(c: Context): string {
-  return c.req.header('x-chivago-user') ?? 'demo-user';
+  const authenticated = (c as unknown as Context<AppEnv>).get('userId');
+  return authenticated ?? c.req.header('x-chivago-user') ?? 'demo-user';
 }
 
 /** Parse a numeric query param, or return the fallback. */

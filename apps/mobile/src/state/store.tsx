@@ -15,6 +15,7 @@
 
 import React from 'react';
 import { api, type InboxItem, type Result } from '../api/client.ts';
+import { ensureAccount } from '../api/account.ts';
 import {
   onNotificationTap, registerForPush, setBadge, unregisterPush, type DeepLink,
 } from '../notifications/push.ts';
@@ -191,7 +192,33 @@ export function useAsync<T>(
 /** Bump when the privacy notice changes - PDPA consent is version-specific. */
 export const CONSENT_VERSION = '2026-08-01';
 
-export function useProfile() {
+/**
+ * Get this phone a key before anything else asks the server a question.
+ *
+ * Every other request carries the device key in a header, so it has to exist
+ * first — a profile fetched before registration would go out unauthenticated
+ * and, once the pilot's header path closes, come back 401.
+ *
+ * `ready` turns true even when registration FAILED, which is deliberate: an
+ * offline first launch should get the app, not a sign-in wall it cannot pass.
+ * The app runs signed-out and tries again next launch.
+ */
+export function useAccount() {
+  const [ready, setReady] = React.useState(false);
+  const [registered, setRegistered] = React.useState(false);
+
+  React.useEffect(() => {
+    void ensureAccount(api, { locale: 'en' }).then((res) => {
+      setRegistered(res.registered);
+      setReady(true);
+    });
+  }, []);
+
+  return { ready, registered };
+}
+
+/** `enabled` gates the first fetch on the account existing. */
+export function useProfile(enabled = true) {
   const [profile, setProfile] = React.useState<WellnessProfile>(EMPTY_PROFILE);
   /**
    * Whether the server has answered yet.
@@ -203,6 +230,7 @@ export function useProfile() {
   const [loaded, setLoaded] = React.useState(false);
 
   React.useEffect(() => {
+    if (!enabled) return;
     void api.getProfile().then((res) => {
       if (res.ok) setProfile(res.data);
       // Loaded either way: a failed request must not hold the app on a
@@ -210,7 +238,7 @@ export function useProfile() {
       // recoverable; a permanent splash is neither.
       setLoaded(true);
     });
-  }, []);
+  }, [enabled]);
 
   const save = React.useCallback(async (next: Partial<WellnessProfile>) => {
     // Optimistic locally - a wellness preference is not money, and the screen

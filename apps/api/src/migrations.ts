@@ -535,5 +535,53 @@ export function migrate(db: DB): string[] {
     applied.push('moderation_log.batch_id');
   }
 
+  // -- Accounts -------------------------------------------------------------
+  //
+  // Until now a caller said who they were in a header and the server believed
+  // it. That was defensible with one user and no way to be a second one; it
+  // stops being defensible the moment two people exist, because reading
+  // somebody else's wallet, moods and emergency contacts would take one
+  // changed header.
+  db.exec(`
+    -- One row per DEVICE, not per person: a person may hold several, and the
+    -- point of the whole table is that a device can prove which person it is.
+    CREATE TABLE IF NOT EXISTS device_keys (
+      -- SHA-256 of the token, hex. Not scrypt, and the difference is entropy
+      -- rather than effort: scrypt exists to make guessing a human-chosen
+      -- password expensive, and these tokens are 256 random bits, which no
+      -- amount of hashing speed brings within reach. Hashing at all is so a
+      -- leaked database backup does not contain usable keys.
+      key_hash     TEXT PRIMARY KEY,
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      -- What the person would call this phone. Optional, and never required:
+      -- under PDPA the least personal data is the safest amount.
+      label        TEXT,
+      created_at   TEXT NOT NULL,
+      last_seen_at TEXT,
+      -- Revoked rather than deleted, so "this phone was removed on the 3rd"
+      -- stays answerable. A revoked row still refuses the key.
+      revoked_at   TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_device_keys_user ON device_keys(user_id);
+
+    -- A short-lived code that moves an account onto a second phone.
+    --
+    -- No password and no email anywhere in this design. The safest credential
+    -- is the one that is never collected: a tourist gets their progress onto a
+    -- new phone by reading eight characters off the old one.
+    CREATE TABLE IF NOT EXISTS link_codes (
+      code_hash  TEXT PRIMARY KEY,
+      user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      -- Single use. Set on claim, and checked before the expiry is, so a
+      -- replayed code reads as "already used" rather than "expired".
+      claimed_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_link_codes_user ON link_codes(user_id);
+  `);
+  applied.push('device_keys');
+  applied.push('link_codes');
+
   return applied;
 }

@@ -6,6 +6,7 @@
  * typed failure instead of an unhandled rejection.
  */
 
+import { deviceKey } from './account.ts';
 import type {
   ApiResponse, Balances, Bilingual, ImpactStat, LedgerEntry, NotificationKind, Offer, Quest,
   ChivaBalance, Companion, MonthOutlook, MoodCheckin, MoodKey, PriceCategory, PriceForecast,
@@ -134,6 +135,11 @@ async function call<T>(
       signal: ctl.signal,
       headers: {
         'content-type': 'application/json',
+        // The device key when this phone has one; the pilot header otherwise.
+        // The server refuses the header the moment any account exists, so this
+        // is a migration path with an end date rather than a permanent
+        // back door.
+        ...(deviceKey() ? { 'x-chivago-device-key': deviceKey()! } : {}),
         'x-chivago-user': deviceUser,
         ...init.headers,
       },
@@ -184,6 +190,26 @@ export const api = {
    */
   passport: () =>
     get<{ visited: string[]; evidence: ProvinceEvidence[] }>('/passport'),
+
+  // -- account ------------------------------------------------------------
+  /** First run only. The key comes back once and goes straight to the keychain. */
+  register: (body: { label?: string; locale?: string }) =>
+    post<{ userId: string; deviceKey: string }>('/devices', body),
+
+  account: () =>
+    get<{ userId: string; devices: { label: string | null; createdAt: string; lastSeenAt: string | null; current: boolean }[] }>(
+      '/account',
+    ),
+
+  /** A code to read aloud to another phone. Ten minutes, single use. */
+  linkCode: () => post<{ code: string; expiresInMs: number }>('/account/link-code', {}),
+
+  /** Join this phone to the account that issued the code. */
+  claimLink: (code: string, label?: string) =>
+    post<{ userId: string; deviceKey: string }>('/account/claim', { code, label }),
+
+  revokeDevice: (label: string) =>
+    post<{ removed: number }>('/account/devices/revoke', { label }),
 
   /**
    * Who is doing the work. Hosts ranked by approvals, plus the caller's own

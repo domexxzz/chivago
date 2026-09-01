@@ -20,7 +20,7 @@ import { emptyBalances, strings, type Balances, type ItineraryItem } from '@chiv
 import { api } from './src/api/client.ts';
 import { color } from './src/theme/index.ts';
 import {
-  useLayers, useNav, useNotifications, useProfile, useSos, useToast, type ScreenKey,
+  useAccount, useLayers, useNav, useNotifications, useProfile, useSos, useToast, type ScreenKey,
 } from './src/state/store.tsx';
 import type { DeepLink } from './src/notifications/push.ts';
 import { ScreenTransition, SosBanner, TabBar, Toast } from './src/components/Shell.tsx';
@@ -55,7 +55,9 @@ export default function App() {
   // Route state: it belongs to the pushed screen and dies with it.
   const [companion, setCompanion] = React.useState<Companion | null>(null);
   const toast = useToast();
-  const { profile, loaded: profileLoaded, save } = useProfile();
+  // The account first: every other request carries its key in a header.
+  const account = useAccount();
+  const { profile, loaded: profileLoaded, save } = useProfile(account.ready);
   const { layers, toggle } = useLayers();
   const sos = useSos(toast.show);
 
@@ -125,7 +127,7 @@ export default function App() {
 
   // Wait for the profile as well as the fonts. Rendering onboarding first and
   // snapping to the map a moment later is worse than a beat of loading.
-  if (!fontsReady || !profileLoaded) {
+  if (!fontsReady || !account.ready || !profileLoaded) {
     return (
       <SafeAreaProvider>
         <View style={{ flex: 1, backgroundColor: color.bg, justifyContent: 'center' }}>

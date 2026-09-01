@@ -15,10 +15,17 @@ import { join, relative, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import {
+  LINK_CODE_TTL_MS, LinkCodeRefused, claimLinkCode, devicesFor, issueLinkCode,
+  // Aliased: `registerDevice` is already the push-token function next door,
+  // and two different registrations under one name is how the wrong one gets
+  // called at three in the morning.
+  registerDevice as registerAccountDevice, resolveDevice, revokeDevice,
+} from './account-service.ts';
 import { logger } from 'hono/logger';
 
 import { openDb, transact } from './db.ts';
-import { fail, handleError, num, ok, userId } from './http.ts';
+import { fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
 import {
   getCommunityImpact, getOffer, getPersonalImpact, getProfile,
   getQuest, getScoredPlace, getShield, listOffers, listQuests, listScoredPlaces,
@@ -63,7 +70,7 @@ import { MAX_PHOTOS_PER_PROOF, storePhoto, UnsupportedUpload } from './uploads.t
 import type { Voucher, WellnessProfile } from '@chivago/core';
 
 const db = openDb();
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 const push = expoTransport();
 
@@ -182,13 +189,52 @@ app.get('/sos/live/:token', (c) => {
 // Expo web target are. Locked to explicit origins in production.
 app.use('*', cors({ origin: process.env.CHIVAGO_ORIGINS?.split(',') ?? '*' }));
 
-/** Every request implicitly provisions its user. The pilot has no sign-up. */
+/**
+ * Is the old unauthenticated header path still open?
+ *
+ * It closes BY ITSELF the moment the first device registers, which is the
+ * whole point: an env var somebody has to remember to flip before launch is an
+ * env var that ships unflipped. While the database holds no accounts there is
+ * nobody to impersonate, so the pilot's header identity is harmless; the
+ * instant a real account exists it becomes a way to read that person's wallet,
+ * moods and emergency contacts, and it stops working in the same instant.
+ *
+ * `CHIVAGO_OPEN_IDENTITY=1` forces it open for the demo capture scripts and
+ * the contract tests, which drive the API by user id and have no keychain.
+ */
+function openIdentityAllowed(): boolean {
+  if (process.env.CHIVAGO_OPEN_IDENTITY === '1') return true;
+  return db.prepare('SELECT 1 FROM device_keys LIMIT 1').get() === undefined;
+}
+
+/**
+ * Authenticate, then provision.
+ *
+ * A device key is checked BEFORE the header is read, and a key that does not
+ * resolve is refused outright rather than falling back — a fallback would mean
+ * a revoked phone silently kept working by dropping its own credential.
+ */
 app.use('*', async (c, next) => {
   // The console and the public live-location page both authenticate
   // themselves; neither should be handed a traveller account and a wallet.
   if (c.req.path.startsWith('/console') || c.req.path.startsWith('/sos/live/')) {
     return next();
   }
+
+  const key = c.req.header('x-chivago-device-key');
+  if (key !== undefined) {
+    const resolved = resolveDevice(db, key);
+    if (resolved === null) {
+      return fail(c, 'UNAUTHENTICATED', 'This device is not signed in.', 401);
+    }
+    c.set('userId', resolved);
+  } else if (!c.req.path.startsWith('/devices') && !c.req.path.startsWith('/account/claim')
+             && !openIdentityAllowed()) {
+    // Registering and claiming are how a device GETS a key, so they cannot
+    // require one. Everything else must now prove who it is.
+    return fail(c, 'UNAUTHENTICATED', 'Sign in on this device to continue.', 401);
+  }
+
   const id = userId(c);
   db.prepare('INSERT OR IGNORE INTO users (id, display_name, created_at) VALUES (?,?,?)').run(
     id, 'Traveller', new Date().toISOString());
@@ -200,6 +246,95 @@ app.use('*', async (c, next) => {
 app.onError((err, c) => handleError(c, err));
 
 app.get('/health', (c) => ok(c, { status: 'up', time: new Date().toISOString() }));
+
+// ---------------------------------------------------------------------------
+// Accounts
+//
+// No password and no email anywhere below. A device is handed a random key
+// once, and a person moves their account to a second phone by reading eight
+// characters off the first. The least personal data is the safest amount, and
+// a credential that was never collected cannot leak.
+// ---------------------------------------------------------------------------
+
+/**
+ * A new traveller on a new phone.
+ *
+ * Unauthenticated by necessity: this is how a device gets its first key.
+ *
+ * KNOWN GAP: nothing rate-limits this, so a script can mint accounts. That
+ * costs a row and an opening balance and buys nothing — there is no referral
+ * bonus and no traveller ranking to stuff — but it is a real hole and it is
+ * written down here rather than left for somebody to find.
+ */
+app.post('/devices', async (c) => {
+  const body = await c.req.json<{ displayName?: string; label?: string; locale?: string }>()
+    .catch(() => ({} as { displayName?: string; label?: string; locale?: string }));
+
+  const created = registerAccountDevice(db, {
+    displayName: body.displayName?.trim() || undefined,
+    label: body.label?.trim() || undefined,
+    locale: body.locale === 'th' ? 'th' : 'en',
+  });
+  ensureWallet(db, created.userId);
+  grantOpeningBalance(db, created.userId);
+
+  // The key is returned HERE and never again. Only its hash is stored.
+  return ok(c, created);
+});
+
+/** Who this device is signed in as, and which phones share the account. */
+app.get('/account', (c) => ok(c, {
+  userId: userId(c),
+  devices: devicesFor(db, userId(c), c.req.header('x-chivago-device-key')),
+}));
+
+/**
+ * A code to put this account on another phone.
+ *
+ * Ten minutes, single use, and issuing a new one kills the old — so a person
+ * tapping the button four times leaves one live credential, not four.
+ */
+app.post('/account/link-code', (c) => {
+  const code = issueLinkCode(db, userId(c));
+  return ok(c, { code, expiresInMs: LINK_CODE_TTL_MS });
+});
+
+/**
+ * Join this device to the account that issued the code.
+ *
+ * Unauthenticated, like registration, because the new phone has no key yet —
+ * the CODE is the credential, which is why it is short-lived and single use.
+ */
+app.post('/account/claim', async (c) => {
+  const body = await c.req.json<{ code?: string; label?: string }>()
+    .catch(() => ({} as { code?: string; label?: string }));
+  if (!body.code) return fail(c, 'CODE_REQUIRED', 'Enter the code shown on your other phone.');
+
+  try {
+    return ok(c, claimLinkCode(db, body.code, { label: body.label?.trim() || undefined }));
+  } catch (err) {
+    if (err instanceof LinkCodeRefused) {
+      // Three different sentences, because they need three different actions.
+      const said = {
+        unknown: 'That code is not one of ours. Check the characters and try again.',
+        expired: 'That code has expired. Ask your other phone for a new one.',
+        used: 'That code has already been used. Ask your other phone for a new one.',
+      }[err.reason];
+      return fail(c, `LINK_${err.reason.toUpperCase()}`, said, 400);
+    }
+    throw err;
+  }
+});
+
+/** Stop trusting a phone. Revoked rather than deleted, so the record survives. */
+app.post('/account/devices/revoke', async (c) => {
+  const body = await c.req.json<{ label?: string }>()
+    .catch(() => ({} as { label?: string }));
+  if (!body.label) return fail(c, 'LABEL_REQUIRED', 'Which phone should be removed?');
+  const removed = revokeDevice(db, userId(c), body.label);
+  if (removed === 0) return fail(c, 'NO_SUCH_DEVICE', 'No phone by that name is on this account.', 404);
+  return ok(c, { removed });
+});
 
 // ---------------------------------------------------------------------------
 // Profile
