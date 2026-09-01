@@ -36,6 +36,8 @@ import { ImpactScreen } from './src/screens/ImpactScreen.tsx';
 import { SafetyScreen } from './src/screens/SafetyScreen.tsx';
 import { TripScreen, type TripState } from './src/screens/TripScreen.tsx';
 import { ConciergeScreen } from './src/screens/ConciergeScreen.tsx';
+import { CompanionHomeScreen } from './src/screens/CompanionHome.tsx';
+import type { Companion } from '@chivago/core';
 
 export default function App() {
   // Both families are bundled locally rather than fetched at runtime: the app
@@ -48,6 +50,8 @@ export default function App() {
   });
 
   const nav = useNav('onboarding');
+  // Route state: it belongs to the pushed screen and dies with it.
+  const [companion, setCompanion] = React.useState<Companion | null>(null);
   const toast = useToast();
   const { profile, loaded: profileLoaded, save } = useProfile();
   const { layers, toggle } = useLayers();
@@ -146,6 +150,16 @@ export default function App() {
           />
         );
 
+      case 'companion':
+        return companion ? (
+          <CompanionHomeScreen
+            companion={companion}
+            onBack={nav.pop}
+            onOpenPlace={(id) => nav.push('place', { placeId: id })}
+            onFindQuest={() => nav.selectTab('quests')}
+          />
+        ) : null;
+
       case 'concierge':
         return (
           <ConciergeScreen
@@ -220,6 +234,7 @@ export default function App() {
       case 'wallet':
         return (
           <WalletScreen
+            onOpenCompanion={(c) => { setCompanion(c); nav.push('companion'); }}
             onOpenMarket={() => nav.push('market')}
             refreshKey={walletKey}
             notifications={notifications.items}

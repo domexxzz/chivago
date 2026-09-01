@@ -22,6 +22,8 @@ import { ReviewsBlock } from '../src/screens/PlaceReviews.tsx';
 import { QuestDetailScreen } from '../src/screens/QuestDetail.tsx';
 import { SafetyScreen } from '../src/screens/SafetyScreen.tsx';
 import { ConciergeScreen } from '../src/screens/ConciergeScreen.tsx';
+import { CompanionHomeScreen } from '../src/screens/CompanionHome.tsx';
+import { companionsFor } from '@chivago/core';
 import { TripScreen } from '../src/screens/TripScreen.tsx';
 import { OnboardingScreen } from '../src/screens/Onboarding.tsx';
 import { ImpactScreen } from '../src/screens/ImpactScreen.tsx';
@@ -1223,6 +1225,83 @@ describe('the concierge screen, which answers without a server', () => {
       const ui = await mountScreen(h(ConciergeScreen, props()));
       assert.match(ui.text(), /offline/i, 'the failure is stated');
       assert.match(ui.text(), /Try asking/i, 'and the chat is still usable');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+});
+
+/**
+ * The companion's room.
+ *
+ * Borrowed shape, different engine — so the tests that matter are the ones
+ * that would catch it drifting back into a pet simulator.
+ */
+describe('a companion at home', () => {
+  const grown = () => companionsFor([{ layer: 'Safe' as const, visitDays: 3, questsVerified: 1 }])[0]!;
+  const egg = () => companionsFor([{ layer: 'Wellness' as const, visitDays: 1, questsVerified: 0 }])[0]!;
+  const props = (over = {}) => ({
+    companion: grown(), onBack: noop, onOpenPlace: noop, onFindQuest: noop, ...over,
+  });
+
+  test('the meters are the habitat measured, not a decay clock', async () => {
+    // The whole reason this screen is not a pet simulator. Every bar has to be
+    // a reading from somewhere real, and has to say where.
+    const net = server({ 'GET /places': [place({ layer: 'Safe', metrics: { aqi: 42, crowdDensity: 3, safetyIndex: 7, walkability: 8 } })] });
+    try {
+      const ui = await mountScreen(h(CompanionHomeScreen, props()));
+      const said = ui.text();
+      assert.match(said, /42 AQI/, 'the air reading is not shown');
+      assert.match(said, /per 100/, 'the crowding reading is not shown');
+      assert.match(said, /Measured at/i, 'it does not say the numbers were measured');
+      assert.doesNotMatch(said, /hungry|hunger|feed|sleepy|energy/i, 'a need meter crept in');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('an egg keeps its species hidden here too', async () => {
+    const net = server({ 'GET /places': [place({ layer: 'Wellness' })] });
+    try {
+      const ui = await mountScreen(h(CompanionHomeScreen, props({ companion: egg() })));
+      const said = ui.text();
+      assert.doesNotMatch(said, /hornbill/i, 'the egg named the species inside it');
+      assert.match(said, /egg/i);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('every unfinished companion says what would move it on', async () => {
+    const net = server({ 'GET /places': [place({ layer: 'Wellness' })] });
+    try {
+      assert.match((await mountScreen(h(CompanionHomeScreen, props({ companion: egg() })))).text(), /Next/);
+    } finally { net.restore(); }
+  });
+
+  test('the actions send you outside, not deeper into the app', async () => {
+    // The reference has three buttons that all resolve on screen. A companion
+    // here only moves because somebody went somewhere.
+    const opened: string[] = [];
+    let quests = 0;
+    const net = server({ 'GET /places': [place({ id: 'chaweng', layer: 'Safe' })] });
+    try {
+      const ui = await mountScreen(h(CompanionHomeScreen, props({
+        onOpenPlace: (id: string) => { opened.push(id); },
+        onFindQuest: () => { quests += 1; },
+      })));
+      await ui.pressText(/Go there/);
+      await ui.pressText(/Find a quest here/);
+      assert.deepEqual(opened, ['chaweng']);
+      assert.equal(quests, 1);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('losing the places fetch costs the meters, not the screen', async () => {
+    const net = server({ 'GET /places': offline() });
+    try {
+      const ui = await mountScreen(h(CompanionHomeScreen, props()));
+      const said = ui.text();
+      assert.match(said, /offline/i, 'the failure is stated');
+      assert.match(said, /Green sea turtle/, 'and the companion is still there');
       ui.unmount();
     } finally { net.restore(); }
   });

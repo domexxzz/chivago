@@ -31,6 +31,7 @@ import { Button } from '../components/Button.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 
 export function WalletScreen({
+  onOpenCompanion,
   onOpenMarket, refreshKey, notifications, unread, onMarkRead, onMarkAllRead, onOpenQuest,
 }: {
   onOpenMarket: () => void;
@@ -40,6 +41,7 @@ export function WalletScreen({
   onMarkRead: (id: string) => void;
   onMarkAllRead: () => void;
   onOpenQuest: (id: string) => void;
+  onOpenCompanion: (c: Companion) => void;
 }) {
   const wallet = useAsync(() => api.wallet(), [refreshKey]);
   const companions = useAsync(() => api.companions(), [refreshKey]);
@@ -60,7 +62,7 @@ export function WalletScreen({
           />
           <LevelBlock wallet={wallet.data} />
           <RankLadder wallet={wallet.data} />
-          <Companions data={companions.data} />
+          <Companions data={companions.data} onOpenCompanion={onOpenCompanion} />
           <Ledger wallet={wallet.data} onOpenMarket={onOpenMarket} />
         </>
       ) : null}
@@ -382,6 +384,7 @@ function Inbox({
  * again.
  */
 function Companions({
+  onOpenCompanion,
   data,
 }: {
   data: {
@@ -389,6 +392,7 @@ function Companions({
     summary: { found: number; total: number; grown: number };
     speciesAsOf: string;
   } | null;
+  onOpenCompanion: (c: Companion) => void;
 }) {
   if (!data) return null;
   const { companions, summary } = data;
@@ -417,8 +421,11 @@ function Companions({
       ) : null}
 
       {companions.map((c) => (
-        <View
+        <Pressable
           key={c.species.key}
+          onPress={() => onOpenCompanion(c)}
+          accessibilityRole="button"
+          accessibilityLabel={`${c.species.name.en}, ${c.stage}. Visit its home.`}
           style={{
             marginTop: 12,
             marginHorizontal: gutter,
@@ -472,7 +479,7 @@ function Companions({
               {c.nextStep.en}
             </Body>
           ) : null}
-        </View>
+        </Pressable>
       ))}
 
       <View style={{ paddingHorizontal: gutter, paddingTop: 12 }}>
