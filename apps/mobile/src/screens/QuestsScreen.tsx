@@ -11,7 +11,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { strings, type Quest, type QuestProgress } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, radius } from '../theme/index.ts';
+import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 
@@ -95,12 +95,13 @@ function SegmentedFilter({
               paddingVertical: 9,
               paddingHorizontal: 4,
               alignItems: 'center',
-              backgroundColor: active ? color.accent : 'transparent',
+              // A filter is the app sorting its own list. Brand, not evidence.
+              backgroundColor: active ? color.brand : 'transparent',
               borderRightWidth: i < options.length - 1 ? 1 : 0,
               borderRightColor: color.neutral300,
             }}
           >
-            <Label size={11} tracking={0.1} colour={active ? color.bg : color.neutral700}>{label}</Label>
+            <Label size={11} tracking={0.1} colour={active ? onFill.brand : color.neutral700}>{label}</Label>
           </Pressable>
         );
       })}
@@ -151,8 +152,13 @@ export function QuestRow({
             <Heading size={16}>{quest.name.en}</Heading>
             <Thai size={11} style={{ marginTop: 2 }}>{quest.name.th}</Thai>
           </View>
-          <View style={{ backgroundColor: color.accent, paddingVertical: 3, paddingHorizontal: 7, borderRadius: radius.sm }}>
-            <Heading size={13} colour={color.bg}>
+          {/*
+            Coloured by CURRENCY, not by "this is a reward". A Trip Point
+            reward in the verified green told the traveller a host had checked
+            something before they had even left the list screen.
+          */}
+          <View style={{ backgroundColor: currencyTone(quest.rewardCurrency).fill, paddingVertical: 3, paddingHorizontal: 7, borderRadius: radius.sm }}>
+            <Heading size={13} colour={currencyTone(quest.rewardCurrency).on}>
               {`+${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'G' : 'T'}`}
             </Heading>
           </View>

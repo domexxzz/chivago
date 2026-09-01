@@ -20,7 +20,7 @@ export function LoadingState({ label }: { label?: string }) {
       accessibilityLabel={label ?? strings.common.loading.en}
       style={{ paddingVertical: 48, alignItems: 'center', gap: 12 }}
     >
-      <ActivityIndicator color={color.accent} />
+      <ActivityIndicator color={color.brand} />
       <Label size={10} tracking={0.14}>{label ?? strings.common.loading.en}</Label>
     </View>
   );

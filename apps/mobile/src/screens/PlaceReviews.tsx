@@ -20,7 +20,7 @@ import {
   type PlaceReview, type ReportReasonKey, type ReviewSummary,
 } from '@chivago/core';
 import { api, type MyReviewState } from '../api/client.ts';
-import { color, gutter, layout, radius } from '../theme/index.ts';
+import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState } from '../components/States.tsx';
@@ -349,11 +349,13 @@ export function ComposeSheet({
                     justifyContent: 'center',
                     borderWidth: layout.ruleStrong,
                     borderRadius: radius.sm,
-                    borderColor: n <= rating ? color.accent : color.neutral400,
-                    backgroundColor: n <= rating ? color.accent : 'transparent',
+                    // A rating the traveller sets themselves. Gold, like every
+                    // other self-reported figure in the app.
+                    borderColor: n <= rating ? color.gold : color.neutral400,
+                    backgroundColor: n <= rating ? color.gold : 'transparent',
                   }}
                 >
-                  <Heading size={16} colour={n <= rating ? color.bg : color.neutral500}>{n}</Heading>
+                  <Heading size={16} colour={n <= rating ? onFill.gold : color.neutral500}>{n}</Heading>
                 </Pressable>
               ))}
             </View>
@@ -517,16 +519,16 @@ export function ReasonPicker({
               padding: 12,
               borderWidth: layout.ruleStrong,
               borderRadius: radius.sm,
-              borderColor: picked ? color.accent : color.neutral400,
-              backgroundColor: picked ? color.accent : 'transparent',
+              borderColor: picked ? color.brand : color.neutral400,
+              backgroundColor: picked ? color.brand : 'transparent',
             }}
           >
-            <Heading size={13} colour={picked ? color.bg : color.text}>
+            <Heading size={13} colour={picked ? onFill.brand : color.text}>
               {REPORT_REASONS[key].en}
             </Heading>
             <Thai
               size={10}
-              colour={picked ? color.bg : color.neutral600}
+              colour={picked ? onFill.brand : color.neutral600}
               style={{ marginTop: 2 }}
             >
               {REPORT_REASONS[key].th}
@@ -593,11 +595,13 @@ export function TakenDownNotice({
         marginTop: 16,
         padding: 14,
         borderWidth: layout.ruleStrong,
-        borderColor: color.accent,
+        // "Taken down" is a moderation outcome. It was bordered in the success
+        // green, which read as though the removal were an achievement.
+        borderColor: color.neutral400,
         borderRadius: radius.sm,
       }}
     >
-      <Label size={10} tracking={0.14} colour={color.accent700}>
+      <Label size={10} tracking={0.14} colour={color.neutral700}>
         {strings.reviews.takenDown.en}
       </Label>
       <Body size={13} style={{ marginTop: 8 }}>

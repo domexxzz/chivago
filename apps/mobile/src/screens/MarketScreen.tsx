@@ -18,7 +18,7 @@ import {
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, radius } from '../theme/index.ts';
+import { color, currencyTone, gutter, layout, radius } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -151,10 +151,12 @@ export function OfferRow({
           paddingHorizontal: 10,
           borderWidth: layout.ruleStrong,
           borderRadius: radius.sm,
-          borderColor: affordable ? color.accent : color.neutral400,
+          // The price is in a currency, so it wears that currency's colour;
+          // affordability only decides whether it is lit or greyed.
+          borderColor: affordable ? currencyTone(offer.currency).text : color.neutral400,
         }}
       >
-        <Heading size={12} colour={affordable ? color.accent : color.neutral500}>
+        <Heading size={12} colour={affordable ? currencyTone(offer.currency).text : color.neutral500}>
           {`${offer.costPoints.toLocaleString('en-US')} ${offer.currency === 'green' ? 'G' : 'T'}`}
         </Heading>
       </Pressable>

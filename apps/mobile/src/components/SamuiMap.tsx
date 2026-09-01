@@ -25,7 +25,7 @@ import { Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import Svg, { Path, Polygon, Line } from 'react-native-svg';
 import { isHighScore, type ScoredPlace } from '@chivago/core';
 import { CHIP, layoutPins, tilt } from './map-geometry.ts';
-import { color, layout, radius, shadow } from '../theme/index.ts';
+import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Heading, Label } from './Type.tsx';
 
 /**
@@ -119,7 +119,7 @@ function IslandShape({ width, height }: { width: number; height: number }) {
       <Polygon
         points={poly(ISLAND)}
         fill={color.neutral300}
-        stroke={color.accent}
+        stroke={color.brand}
         strokeWidth={2}
         strokeLinejoin="round"
       />
@@ -130,7 +130,7 @@ function IslandShape({ width, height }: { width: number; height: number }) {
       <Polygon
         points={poly(MASSIF, -massifDrop)}
         fill={color.neutral400}
-        stroke={color.accent}
+        stroke={color.brand}
         strokeWidth={1.5}
         strokeOpacity={0.55}
         strokeLinejoin="round"
@@ -182,8 +182,8 @@ export function PinChip({
           },
         ]}
       >
-        <Heading size={13} colour={high ? color.bg : color.text}>{place.healthyScore}</Heading>
-        <Label size={9} tracking={0.1} colour={high ? color.bg : color.text}>{place.short}</Label>
+        <Heading size={13} colour={high ? onFill.accent : color.text}>{place.healthyScore}</Heading>
+        <Label size={9} tracking={0.1} colour={high ? onFill.accent : color.text}>{place.short}</Label>
       </View>
       {/* The 2x16 ink stem that pins the chip to its point. */}
       <View style={{ width: 2, height: 16, backgroundColor: color.text }} />
@@ -281,7 +281,8 @@ function MapLegend({ places }: { places: ScoredPlace[] }) {
     >
       <Label size={9} tracking={0.12}>{`Healthy Score · ${avg} avg today`}</Label>
       <View style={{ width: 64, height: 6, backgroundColor: color.neutral300, marginTop: 6 }}>
-        <View style={{ width: `${avg}%`, height: '100%', backgroundColor: color.accent }} />
+        {/* Green only when the average has earned it - see ImpactScreen. */}
+        <View style={{ width: `${avg}%`, height: '100%', backgroundColor: isHighScore(avg) ? color.accent : color.neutral600 }} />
       </View>
     </View>
   );
@@ -323,11 +324,12 @@ export function LayerChips({
             paddingHorizontal: 14,
             borderWidth: 2,
             borderRadius: radius.sm,
-            borderColor: on ? color.accent : color.neutral400,
-            backgroundColor: on ? color.accent : 'transparent',
+            // A layer switch is a map control, not a measurement.
+            borderColor: on ? color.brand : color.neutral400,
+            backgroundColor: on ? color.brand : 'transparent',
           }}
         >
-          <Label size={11} tracking={0.06} colour={on ? color.bg : color.neutral700}>{key}</Label>
+          <Label size={11} tracking={0.06} colour={on ? onFill.brand : color.neutral700}>{key}</Label>
         </Pressable>
       ))}
     </ScrollView>

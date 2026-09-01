@@ -10,7 +10,7 @@
 import React from 'react';
 import { Pressable, View, type ViewStyle } from 'react-native';
 import { ArrowRight } from 'lucide-react-native';
-import { color, layout, radius } from '../theme/index.ts';
+import { color, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Thai } from './Type.tsx';
 
 type Variant = 'primary' | 'secondary' | 'ghost';
@@ -42,12 +42,23 @@ export function Button({
     }
     switch (variant) {
       case 'primary':
-        // Hover / press is one step past base on the accent ramp.
-        return { bg: pressed ? color.accent600 : color.accent, fg: color.bg, border: 'transparent' };
+        // ORANGE, not green. The primary button is "start something", and
+        // green in this product means "a host verified this". A green Start
+        // button teaches the traveller that green is just how buttons look,
+        // and the Green Points figure loses the only thing it had.
+        //
+        // The label colour travels WITH the fill rather than staying put:
+        // ink on the vivid orange, white on the pressed dark one. Both come
+        // from onFill, so the press state cannot land on the 3.04:1 pairing
+        // that holding one label colour across both would produce.
+        return pressed
+          ? { bg: color.ctaDeep, fg: onFill.ctaDeep, border: 'transparent' }
+          : { bg: color.cta, fg: onFill.cta, border: 'transparent' };
       case 'secondary':
         return { bg: pressed ? color.neutral200 : 'transparent', fg: color.text, border: color.divider };
       case 'ghost':
-        return { bg: 'transparent', fg: color.accent700, border: 'transparent' };
+        // A text link is the app speaking, so it is brand blue.
+        return { bg: 'transparent', fg: color.brand, border: 'transparent' };
     }
   })();
 
@@ -136,21 +147,28 @@ export function IconButton({
   );
 }
 
-/** A wrapping tag chip. 1px divider border, uppercase 11px. */
+/**
+ * A wrapping tag chip. 1px divider border, uppercase 11px.
+ *
+ * `points` was called `accent`, and its one caller passes `isPointsRelated` -
+ * so a tag meaning "you COULD earn points here" was rendering in the colour
+ * that means a host already verified something. Gold: it is the game layer,
+ * and it is a promise rather than a receipt.
+ */
 export function Tag({
-  children, accent = false,
-}: { children: React.ReactNode; accent?: boolean }) {
+  children, points = false,
+}: { children: React.ReactNode; points?: boolean }) {
   return (
     <View
       style={{
         borderWidth: 1,
-        borderColor: accent ? color.accent : color.divider,
+        borderColor: points ? color.gold : color.divider,
         borderRadius: radius.sm,
         paddingVertical: 3,
         paddingHorizontal: 8,
       }}
     >
-      <Body size={13} colour={accent ? color.accent700 : color.neutral700} style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.66, lineHeight: 14 }}>
+      <Body size={13} colour={points ? color.goldDeep : color.neutral700} style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.66, lineHeight: 14 }}>
         {children}
       </Body>
     </View>

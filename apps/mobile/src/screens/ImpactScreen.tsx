@@ -12,7 +12,7 @@
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import {
-  MOODS, MOOD_KEYS, strings,
+  MOODS, MOOD_KEYS, isHighScore, strings,
   type ChivaBalance, type MoodKey,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
@@ -214,7 +214,10 @@ function BalanceBlock({
                 >
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
                     <Heading size={13}>{c.label.en}</Heading>
-                    <Heading size={13} colour={color.accent}>{c.subScore}</Heading>
+                    {/* Green when the component has earned it, ink otherwise. */}
+                    <Heading size={13} colour={isHighScore(c.subScore) ? color.accent700 : color.text}>
+                      {c.subScore}
+                    </Heading>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 3 }}>
                     <Body size={13} colour={color.neutral600}>{c.display}</Body>

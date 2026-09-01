@@ -6,7 +6,7 @@ import React from 'react';
 import { Animated, Pressable, View } from 'react-native';
 import { BarChart3, ChevronLeft, Leaf, Map as MapIcon, Shield, Wallet } from 'lucide-react-native';
 import { strings } from '@chivago/core';
-import { color, gutter, headerGutter, layout, motion, radius, ruleStrong, ruleStrongTop, shadow } from '../theme/index.ts';
+import { color, gutter, headerGutter, layout, motion, onFill, radius, ruleStrong, ruleStrongTop, shadow } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from './Type.tsx';
 import { IconButton } from './Button.tsx';
 
@@ -36,7 +36,9 @@ export function TabBar({
       {TAB_ORDER.map((key) => {
         const isActive = key === active;
         const Icon = TAB_ICONS[key];
-        const fg = isActive ? color.bg : color.neutral700;
+        // White on brand, not `bg` on brand: the page tint is not white and
+        // drops this 9px label to 4.30:1. onFill carries the measured pair.
+        const fg = isActive ? onFill.brand : color.neutral700;
         return (
           <Pressable
             key={key}
@@ -49,7 +51,9 @@ export function TabBar({
               alignItems: 'center',
               justifyContent: 'center',
               gap: layout.tabLabelGap,
-              backgroundColor: isActive ? color.accent : 'transparent',
+              // Brand blue. Navigation is the app speaking about itself; it is
+              // not evidence about the island, so it does not get the green.
+              backgroundColor: isActive ? color.brand : 'transparent',
             }}
           >
             <Icon size={layout.tabIconSize} color={fg} strokeWidth={2} />
@@ -124,7 +128,7 @@ export function Toast({ message }: { message: string | null }) {
         },
       ]}
     >
-      <Body size={13} colour={color.bg}>{message}</Body>
+      <Body size={13} colour={onFill.text}>{message}</Body>
     </Animated.View>
   );
 }
@@ -155,11 +159,18 @@ export function SosBanner({ onPress }: { onPress: () => void }) {
       onPress={onPress}
       accessibilityRole="alert"
       accessibilityLabel={`${strings.safety.activeBanner.en}. ${strings.safety.activeBanner.th}`}
-      style={{ backgroundColor: color.accent, paddingVertical: 10, paddingHorizontal: gutter }}
+      /*
+       * Coral, and this was the palette's worst bug. The banner reads "SOS
+       * active - your location is being shared" and it was painted in the
+       * same green that means a host verified something: the success colour,
+       * on a live emergency, pulsing. Whatever else red means to a traveller
+       * in trouble, it does not mean everything is fine.
+       */
+      style={{ backgroundColor: color.accent2, paddingVertical: 10, paddingHorizontal: gutter }}
     >
       <Animated.View style={{ opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.72] }) }}>
-        <Heading size={13} colour={color.bg}>{strings.safety.activeBanner.en}</Heading>
-        <Thai size={11} colour={color.bg} style={{ opacity: 0.9, marginTop: 2 }}>
+        <Heading size={13} colour={onFill.accent2}>{strings.safety.activeBanner.en}</Heading>
+        <Thai size={11} colour={onFill.accent2} style={{ opacity: 0.9, marginTop: 2 }}>
           {strings.safety.activeBanner.th}
         </Thai>
       </Animated.View>

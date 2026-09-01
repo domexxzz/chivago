@@ -19,7 +19,7 @@ import {
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, radius } from '../theme/index.ts';
+import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Tag } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -146,10 +146,10 @@ function EnergyPicker({
               flex: 1,
               paddingVertical: 11,
               alignItems: 'center',
-              backgroundColor: active ? color.accent : 'transparent',
+              backgroundColor: active ? color.brand : 'transparent',
             }}
           >
-            <Label size={10} tracking={0.12} colour={active ? color.bg : color.neutral700}>
+            <Label size={10} tracking={0.12} colour={active ? onFill.brand : color.neutral700}>
               {ENERGY_LABEL[key].en}
             </Label>
           </Pressable>
@@ -217,7 +217,7 @@ function PlanRow({ item, onPress }: { item: PlanItem; onPress?: () => void }) {
 
         {!transit ? (
           <View style={{ flexDirection: 'row', marginTop: 8 }}>
-            <Tag accent={item.isPointsRelated}>{item.tag}</Tag>
+            <Tag points={item.isPointsRelated}>{item.tag}</Tag>
           </View>
         ) : null}
       </View>
@@ -298,7 +298,14 @@ function PriceOutlook({
         <Label size={10} tracking={0.16}>A night on Samui · ราคาที่พักต่อคืน</Label>
 
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 8 }}>
-          <Heading size={30} colour={color.accent}>
+          {/*
+            Ink, not green. This is a PREDICTION - it ships with a confidence
+            level and a caveat two blocks below it - and green in this app is
+            reserved for things a host checked. A forecast wearing the verified
+            colour is the most expensive kind of lie this palette could tell,
+            because the traveller books on it.
+          */}
+          <Heading size={30} colour={color.text}>
             {`฿${today.band.low.toLocaleString()}–${today.band.high.toLocaleString()}`}
           </Heading>
           <Label size={9} tracking={0.12} colour={color.neutral600} style={{ marginBottom: 8 }}>
@@ -334,10 +341,10 @@ function PriceOutlook({
           return (
             <View key={m.month} style={{ marginTop: 9 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
-                <Body size={13} colour={best ? color.accent : color.neutral700}>
+                <Body size={13} colour={best ? color.brand : color.neutral700}>
                   {`${m.month}  ${m.label.en}${m.hasFestival ? ' · festival' : ''}`}
                 </Body>
-                <Body size={13} colour={best ? color.accent : color.neutral600}>
+                <Body size={13} colour={best ? color.brand : color.neutral600}>
                   {`฿${m.band.typical.toLocaleString()}`}
                 </Body>
               </View>
@@ -346,7 +353,9 @@ function PriceOutlook({
                   style={{
                     width: `${Math.round((m.band.typical / peak) * 100)}%`,
                     height: '100%',
-                    backgroundColor: best ? color.accent : color.neutral500,
+                    // "Cheapest month" is the app's recommendation, not a
+                    // measurement of the island. Brand.
+                    backgroundColor: best ? color.brand : color.neutral500,
                   }}
                 />
               </View>

@@ -26,7 +26,7 @@ import {
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, motion, radius } from '../theme/index.ts';
+import { color, gutter, layout, motion, onFill, radius } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -440,19 +440,26 @@ function VerifyingPanel({ host }: { host: string }) {
   );
 }
 
-/** Success. Full accent fill, bg text - the one place red runs as a field. */
+/**
+ * Success. A full green field - and this is the screen that earns it: a host
+ * approved the submission, so the colour is making a claim the ledger can back.
+ *
+ * (The comment here used to say "the one place red runs as a field", left over
+ * from the dark palette. Green is now scarce enough that this really is close
+ * to the only place it runs as a field.)
+ */
 function SuccessPanel({
   points, onOpenWallet,
 }: { points: number; onOpenWallet: () => void }) {
   return (
     <View style={{ backgroundColor: color.accent, padding: 20, borderRadius: radius.md }}>
-      <Label size={10} tracking={0.16} colour={color.bg} style={{ opacity: 0.85 }}>
+      <Label size={10} tracking={0.16} colour={onFill.accent} style={{ opacity: 0.85 }}>
         {strings.quest.verified.en}
       </Label>
-      <Heading size={40} colour={color.bg} tracking={-0.8} style={{ marginTop: 8 }}>
+      <Heading size={40} colour={onFill.accent} tracking={-0.8} style={{ marginTop: 8 }}>
         {`+${points}`}
       </Heading>
-      <Body size={13} colour={color.bg} style={{ marginTop: 8 }}>
+      <Body size={13} colour={onFill.accent} style={{ marginTop: 8 }}>
         {strings.quest.verifiedDetail(4.2).en}
       </Body>
       <Button

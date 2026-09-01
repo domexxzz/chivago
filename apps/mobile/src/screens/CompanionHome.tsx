@@ -161,7 +161,8 @@ export function CompanionHomeScreen({
           }}
         >
           <Label size={9} tracking={0.14} colour={color.neutral600}>Next</Label>
-          <Body size={14} colour={color.accent} style={{ marginTop: 6 }}>{nextStep.en}</Body>
+          {/* An instruction, not a receipt: "do this next" has not happened yet. */}
+          <Body size={14} colour={color.ctaDeep} style={{ marginTop: 6 }}>{nextStep.en}</Body>
           <Thai size={11} style={{ marginTop: 4 }}>{nextStep.th}</Thai>
         </View>
       ) : null}
@@ -315,11 +316,11 @@ function Action({
       style={{
         flexDirection: 'row', alignItems: 'center', gap: 12,
         minHeight: 44, paddingVertical: 14, paddingHorizontal: 16,
-        borderWidth: layout.ruleStrong, borderColor: color.accent, borderRadius: radius.md,
+        borderWidth: layout.ruleStrong, borderColor: color.brand, borderRadius: radius.md,
       }}
     >
       <View style={{ flex: 1 }}>
-        <Heading size={15} colour={color.accent}>{label}</Heading>
+        <Heading size={15} colour={color.brand}>{label}</Heading>
         <Thai size={10} style={{ marginTop: 2 }}>{thai}</Thai>
         <Label
           size={9}
@@ -330,7 +331,7 @@ function Action({
           {detail}
         </Label>
       </View>
-      <ChevronRight size={18} color={color.accent} strokeWidth={2} />
+      <ChevronRight size={18} color={color.brand} strokeWidth={2} />
     </Pressable>
   );
 }

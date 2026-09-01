@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
-import { color } from './index.ts';
+import { color, onFill } from './index.ts';
 
 /**
  * The palette's contrast claims, enforced.
@@ -75,6 +75,35 @@ describe('a filled button can carry a label', () => {
     // is the whole reason `cta` and `ctaDeep` are two different tokens.
     assert.ok(ratio(color.text, color.cta) >= AA_TEXT, 'ink no longer passes on cta');
     assert.ok(ratio(color.surface, color.cta) < AA_TEXT, 'white now passes on cta — merge the two oranges');
+  });
+});
+
+describe('every filled surface has a label colour that works on it', () => {
+  // The map is the contract. Iterating it means a fill added later cannot be
+  // shipped without a measured label colour, and the loop fails naming it.
+  for (const [fill, label] of Object.entries(onFill)) {
+    test(`${fill} carries its label`, () => {
+      const r = ratio(label, color[fill as keyof typeof color]);
+      assert.ok(r >= AA_TEXT, `onFill.${fill} is ${r.toFixed(2)}:1, needs ${AA_TEXT}`);
+    });
+  }
+
+  test('the page tint is never the label — it is not white and it costs half a point', () => {
+    // The bug this map exists to prevent. `bg` looks white in a diff and is
+    // not: on the green fill it lands at 4.00:1, under AA, and it was the
+    // colour of the 9px tab label on every screen.
+    const tinted = ratio(color.bg, color.accent);
+    const white = ratio(color.surface, color.accent);
+    assert.ok(tinted < AA_TEXT, 'bg now passes on accent — this guard can go');
+    assert.ok(white >= AA_TEXT);
+    assert.ok(white - tinted > 0.4, 'the gap closed; re-check whether onFill is still earning its keep');
+  });
+
+  test('white on gold is a trap and stays documented as one', () => {
+    // 2.03:1. Gold is the game layer's colour and the most tempting thing in
+    // the palette to put a white number on.
+    assert.ok(ratio(color.surface, color.gold) < AA_LARGE, 'white now works on gold — update onFill');
+    assert.ok(ratio(color.text, color.gold) >= AA_TEXT);
   });
 });
 

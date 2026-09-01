@@ -21,11 +21,11 @@
 import React from 'react';
 import { Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Send, Phone } from 'lucide-react-native';
-import { OPENERS, answer, type Reply } from '@chivago/core';
+import { OPENERS, answer, isHighScore, type Reply } from '@chivago/core';
 import type { ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, radius } from '../theme/index.ts';
+import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 
@@ -133,11 +133,13 @@ function Asked({ text }: { text: string }) {
           maxWidth: '84%',
           paddingVertical: 10,
           paddingHorizontal: 14,
-          backgroundColor: color.accent,
+          // The traveller's own message. A chat bubble is the conversation,
+          // not a verified fact about the island.
+          backgroundColor: color.brand,
           borderRadius: radius.md,
         }}
       >
-        <Body size={14} colour={color.bg}>{text}</Body>
+        <Body size={14} colour={onFill.brand}>{text}</Body>
       </View>
     </View>
   );
@@ -225,7 +227,14 @@ function Answered({
               {s.because.en}
             </Label>
           </View>
-          <Heading size={20} colour={color.accent}>{s.healthyScore}</Heading>
+          {/*
+            Green only when the score has earned it. Painting every score green
+            made the colour mean "this is a score" rather than "this one is
+            good", which is the same as not colouring it at all.
+          */}
+          <Heading size={20} colour={isHighScore(s.healthyScore) ? color.accent700 : color.text}>
+            {s.healthyScore}
+          </Heading>
         </Pressable>
       ))}
 
@@ -241,11 +250,11 @@ function Answered({
             marginTop: 10,
             paddingHorizontal: 16,
             borderWidth: layout.ruleStrong,
-            borderColor: color.accent,
+            borderColor: color.ctaDeep,
             borderRadius: radius.sm,
           }}
         >
-          <Heading size={14} colour={color.accent}>{ACTION_LABEL[reply.action]}</Heading>
+          <Heading size={14} colour={color.ctaDeep}>{ACTION_LABEL[reply.action]}</Heading>
         </Pressable>
       ) : null}
     </View>
@@ -306,12 +315,12 @@ function Composer({
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: radius.sm,
-          backgroundColor: value.trim().length === 0 ? color.neutral300 : color.accent,
+          backgroundColor: value.trim().length === 0 ? color.neutral300 : color.brand,
         }}
       >
         <Send
           size={17}
-          color={value.trim().length === 0 ? color.neutral600 : color.bg}
+          color={value.trim().length === 0 ? color.neutral600 : onFill.brand}
           strokeWidth={2}
         />
       </Pressable>

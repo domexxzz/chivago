@@ -13,7 +13,7 @@ import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { strings, type ActivityKey, type PurposeKey, type WatchKey } from '@chivago/core';
-import { color, gutter, layout, radius, ruleStrong, ruleHair } from '../theme/index.ts';
+import { color, gutter, layout, onFill, radius, ruleStrong, ruleHair } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 
@@ -86,7 +86,8 @@ export function OnboardingScreen({
             style={{
               flex: 1,
               height: 4,
-              backgroundColor: i <= step ? color.accent : color.neutral300,
+              // Where you are in a flow. The app narrating itself: brand.
+              backgroundColor: i <= step ? color.brand : color.neutral300,
             }}
           />
         ))}
@@ -132,12 +133,12 @@ export function OnboardingScreen({
                   alignItems: 'center',
                   justifyContent: 'center',
                   borderWidth: 2,
-                  borderColor: on ? color.accent : color.neutral400,
-                  backgroundColor: on ? color.accent : 'transparent',
+                  borderColor: on ? color.brand : color.neutral400,
+                  backgroundColor: on ? color.brand : 'transparent',
                   borderRadius: radius.sm,
                 }}
               >
-                {on ? <Check size={14} color={color.bg} strokeWidth={3} /> : null}
+                {on ? <Check size={14} color={onFill.brand} strokeWidth={3} /> : null}
               </View>
             </Pressable>
           );

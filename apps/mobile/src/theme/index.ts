@@ -7,13 +7,39 @@
 
 import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 import {
-  color, font, gutter, headerGutter, layout, microLabel, motion, radius, shadow, space,
+  color, font, gutter, headerGutter, layout, microLabel, motion, onFill, radius, shadow, space,
   THAI_LINE_HEIGHT_RATIO, type,
 } from '@chivago/tokens';
 
 export {
-  color, font, gutter, headerGutter, layout, microLabel, motion, radius, shadow, space, type,
+  color, font, gutter, headerGutter, layout, microLabel, motion, onFill, radius, shadow, space, type,
 };
+
+/**
+ * The two currencies, coloured by the one thing that separates them.
+ *
+ * Green Points are host-verified; Trip Points are self-verified. That is the
+ * whole distinction the product rests on, and every reward badge, ledger row
+ * and market price rendered both of them in the SAME GREEN - so a traveller
+ * looking at "+120 T" saw the colour that means a host checked it, and nobody
+ * had checked anything.
+ *
+ * A function rather than a ternary at each call site, because the ternary was
+ * already copied to four screens and had drifted at two of them.
+ *
+ * `fill` is a background, `text` is a label on the page, `on` is the label
+ * that goes ON the fill - which differ, because bright gold carries ink and
+ * green carries white.
+ */
+export const currency = {
+  green: { fill: color.accent, text: color.accent700, on: onFill.accent },
+  trip: { fill: color.gold, text: color.goldDeep, on: onFill.gold },
+} as const;
+
+export type CurrencyKey = keyof typeof currency;
+
+/** Tolerates the wire's string type without widening every caller. */
+export const currencyTone = (c: string) => (c === 'green' ? currency.green : currency.trip);
 
 /**
  * A 2px ink rule. Modernist's primary organising device - it never softens into
@@ -90,10 +116,16 @@ export const styles = StyleSheet.create({
   /** Photo placeholder, until real Koh Samui photography is licensed. */
   photoPlaceholder: { backgroundColor: color.neutral300 },
 
-  /** Focus ring. Never the platform default. */
+  /**
+   * Focus ring. Never the platform default.
+   *
+   * Brand, not accent: a focus ring is the app pointing at something, and
+   * green in this product means a host verified it. A green ring around an
+   * empty text field is the interface making a claim it cannot support.
+   */
   focusRing: {
     borderWidth: 2,
-    borderColor: color.accent,
+    borderColor: color.brand,
   },
 
   disabled: { opacity: layout.disabledOpacity },

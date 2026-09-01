@@ -26,7 +26,7 @@ import type { SosAlertRecord } from '../api/client.ts';
 import { SOS_RADIUS } from '@chivago/tokens';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, motion, radius } from '../theme/index.ts';
+import { color, gutter, layout, motion, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
@@ -46,13 +46,13 @@ export function SafetyScreen({
     <ScrollView showsVerticalScrollIndicator={false}>
       {/* The design's only inverted header - it carries the mode change. */}
       <View style={{ backgroundColor: color.text, paddingHorizontal: gutter, paddingVertical: 18 }}>
-        <Label size={10} tracking={0.16} colour={color.bg} style={{ opacity: 0.7 }}>
+        <Label size={10} tracking={0.16} colour={onFill.text} style={{ opacity: 0.7 }}>
           {strings.safety.kicker.en}
         </Label>
-        <Heading size={26} colour={color.bg} tracking={-0.52} style={{ marginTop: 6 }}>
+        <Heading size={26} colour={onFill.text} tracking={-0.52} style={{ marginTop: 6 }}>
           {strings.safety.title.en}
         </Heading>
-        <Thai size={11} colour={color.bg} style={{ opacity: 0.75, marginTop: 4 }}>
+        <Thai size={11} colour={onFill.text} style={{ opacity: 0.75, marginTop: 4 }}>
           {strings.safety.subtitle.th}
         </Thai>
       </View>
@@ -110,7 +110,7 @@ function ServiceRow({ service }: { service: ShieldService }) {
         style={{
           width: 10,
           height: 10,
-          backgroundColor: on ? color.accent : color.neutral400,
+          backgroundColor: on ? color.brand : color.neutral400,
           borderRadius: radius.sm,
         }}
       />
@@ -269,7 +269,7 @@ function SosSection({
               height: 150,
               borderRadius: SOS_RADIUS,
               borderWidth: 2,
-              borderColor: color.accent,
+              borderColor: color.accent2,
               opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0] }),
               transform: [
                 { scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 2.1] }) },
@@ -295,8 +295,18 @@ function SosSection({
             height: 150,
             borderRadius: SOS_RADIUS,
             borderWidth: 3,
-            borderColor: countdown !== null ? color.accent2 : color.accent,
-            backgroundColor: armed ? color.accent : color.bg,
+            /*
+              One colour for the whole control, in every state.
+              It used to sit GREEN at rest and turn coral only while counting
+              down - and then go green again once armed, so the strongest
+              success colour in the palette marked a live emergency. An SOS
+              button is red before anything happens to it, the way every
+              physical one a traveller has ever seen is red.
+              The states are told apart by FILL, which is a bigger change than
+              a hue swap anyway: ring, then sweeping fill, then solid.
+            */
+            borderColor: color.accent2,
+            backgroundColor: armed ? color.accent2 : color.bg,
             alignItems: 'center',
             justifyContent: 'center',
             overflow: 'hidden',
@@ -311,7 +321,7 @@ function SosSection({
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backgroundColor: countdown !== null ? color.accent2 : color.accent200,
+                backgroundColor: countdown !== null ? color.accent2 : color.coralSoft,
                 height: hold.interpolate({ inputRange: [0, 1], outputRange: [0, 150] }),
               }}
             />
@@ -323,7 +333,7 @@ function SosSection({
           */}
           <Heading
             size={countdown !== null ? 52 : 34}
-            colour={countdown !== null ? color.bg : armed ? color.bg : color.accent700}
+            colour={countdown !== null ? onFill.accent2 : armed ? onFill.accent2 : color.coralDeep}
             tracking={countdown !== null ? -1 : 0.68}
           >
             {countdown !== null ? String(countdown) : 'SOS'}
@@ -331,7 +341,7 @@ function SosSection({
           <Label
             size={10}
             tracking={0.14}
-            colour={countdown !== null || armed ? color.bg : color.accent700}
+            colour={countdown !== null || armed ? onFill.accent2 : color.coralDeep}
             style={{ marginTop: 4 }}
           >
             {countdown !== null
@@ -389,13 +399,19 @@ function DispatchPanel({
     <View
       style={{
         borderWidth: layout.ruleStrong,
-        borderColor: color.accent,
+        /*
+          Coral: this frame is up while an emergency is running and possibly
+          unacknowledged. The one line inside it that DOES go green is the one
+          that says a named human has the alert - which is the only verified
+          good news on the screen, and now the only green on it.
+        */
+        borderColor: color.accent2,
         borderRadius: radius.md,
         padding: 16,
         marginTop: 20,
       }}
     >
-      <Heading size={15} colour={color.accent700}>
+      <Heading size={15} colour={color.coralDeep}>
         {strings.safety.dispatching(alert.locationLabel).en}
       </Heading>
       <Thai size={11} style={{ marginTop: 2 }}>
@@ -562,7 +578,8 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
             <Thai size={10} style={{ marginTop: 2 }}>{n.name.th}</Thai>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <Heading size={13} colour={color.accent}>{n.printed}</Heading>
+            {/* A phone number is a thing to tap, not a thing a host verified. */}
+            <Heading size={13} colour={color.brand}>{n.printed}</Heading>
             {n.km !== null ? (
               <Label size={9} tracking={0.06} colour={color.neutral600}>
                 {`${n.km} km away`}

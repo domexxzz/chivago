@@ -4,14 +4,29 @@
  * Single source of truth for every colour, space, radius, shadow and type step.
  * Never hard-code a hex, a font name or a px value that a token already carries.
  *
- * The deck is DARK-FIRST: a deep green-black ground (#071812) carrying one
- * bright accent (lime #B7F04B) and one warm counter-accent (coral #F87153).
- * The app follows it. Every screen reads its colour through these names, so
- * the whole theme moves from this file and nowhere else.
+ * The scheme is LIGHT: a pale sky ground carrying a brand blue, one green, one
+ * orange and one coral. It was dark-first (ink #071812, lime #B7F04B) until the
+ * mockups moved; every screen reads its colour through these names, so the whole
+ * theme moved from this file and nowhere else.
  *
  * The neutral ramp keeps its ROLE and inverts its lightness: low numbers sit
  * closest to the ground, high numbers closest to the text. `neutral300` was a
  * hairline on paper and is a hairline on ink; nothing downstream had to change.
+ *
+ * WHAT EACH COLOUR IS ALLOWED TO MEAN - the rule the screens are held to, and
+ * the reason there are five of them rather than one:
+ *
+ *   accent  green   EVIDENCE. A host verified it, or the island measured it.
+ *   brand   blue    The app speaking: nav, selection, links, map, focus.
+ *   cta     orange  Start something. The button, and little else.
+ *   gold            The game layer: levels, ranks, ratings, Trip Points.
+ *   accent2 coral   Danger and warnings, including a live SOS.
+ *
+ * Green was doing all five of those jobs at once - the primary button, the
+ * active tab, a star rating the traveller set themselves, a hotel price
+ * FORECAST, and the banner reading "SOS active". A colour that means five
+ * things means none of them, and the one it needed to mean is the only claim
+ * this product makes. It is now used in 23 places instead of 74.
  */
 
 // ---------------------------------------------------------------------------
@@ -59,9 +74,22 @@ export const color = {
   ctaDeep: '#cc4610',
   ctaSoft: '#ffe6dc',
 
-  /** Points, levels, badges. The only decorative-feeling colour, kept for it. */
+  /**
+   * Points, levels, badges - and Trip Points, the SELF-verified currency.
+   *
+   * Green Points and Trip Points differ by evidence, and until now they
+   * differed by nothing else on screen: both rendered green, so a reward a
+   * traveller granted themselves wore the colour that means a host checked.
+   * Gold is the game layer. Green is the evidence layer.
+   */
   gold: '#f5a623',
   goldSoft: '#fdf0d6',
+  /**
+   * Gold as TEXT. The bright gold is 2.03:1 on white - unreadable as a label
+   * and unreadable under one. Same split as cta/ctaDeep, for the same reason:
+   * the vivid value is kept for fills and the readable one carries type.
+   */
+  goldDeep: '#8f5a00',
 
   /** Ground-ward end of the ramp. */
   neutral100: '#f4f8fd',
@@ -131,6 +159,34 @@ export const color = {
  * Green Points still render green — an actual green now rather than a lime,
  * so verified reads as verified to someone who has never seen the app.
  */
+/**
+ * The label colour for every filled surface, so no screen has to remember.
+ *
+ * `bg` is a TINTED near-white (#eaf2fc), and using it as a label on a fill
+ * costs about half a ratio point: white on `accent` is 4.52:1, but `bg` on
+ * `accent` is 4.00:1 and fails. Seventeen call sites were doing exactly that,
+ * including the 9px tab label, because "the light colour" and "white" look
+ * identical in a diff.
+ *
+ * Two of these are ink rather than white, and that is the whole reason this
+ * map exists: `cta` and `gold` are vivid enough that white drops to 3.16:1
+ * and 2.03:1 on them. A system that leaves that to memory ships a gold badge
+ * with an unreadable label. Every pair here is asserted in contrast.test.ts.
+ */
+export const onFill = {
+  accent: color.surface,
+  /** The ink fill: the toast, the inverted Safety header, the "live near" chip. */
+  text: color.surface,
+  accent2: color.surface,
+  brand: color.surface,
+  brandDeep: color.surface,
+  ctaDeep: color.surface,
+  paper: color.surface,
+  /** Ink, not white. Both fills are too light to carry a white label. */
+  cta: color.text,
+  gold: color.text,
+} as const satisfies Record<string, string>;
+
 // ---------------------------------------------------------------------------
 // Spacing
 // ---------------------------------------------------------------------------
@@ -166,9 +222,12 @@ export const shadow = {
   md: { shadowColor: color.neutral900, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   lg: { shadowColor: color.neutral900, shadowOpacity: 0.6, shadowRadius: 40, shadowOffset: { width: 0, height: 18 }, elevation: 16 },
   /**
-   * The deck's signature: lime light bleeding off an active control.
-   * Only ever on something the traveller can act on RIGHT NOW - a live SOS,
-   * the primary CTA, a selected pin. A glow on a static panel is noise.
+   * A light bleeding off an active control - a live SOS, a selected pin.
+   *
+   * UNUSED, and left that way deliberately. It was written for the dark scheme,
+   * where a lime glow read as energy on near-black; on a pale ground it reads as
+   * a smudge. It also carries `accent`, so switching it on would put the
+   * evidence green around whatever it touched.
    */
   glow: { shadowColor: color.accent, shadowOpacity: 0.55, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 8 },
 } as const;

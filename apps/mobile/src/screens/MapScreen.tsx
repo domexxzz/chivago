@@ -13,7 +13,7 @@ import { ChevronRight, LayoutGrid, List, MessageCircle } from 'lucide-react-nati
 import { strings, type Balances, type Quest, type ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync, type LayerKey } from '../state/store.tsx';
-import { color, gutter, layout, radius } from '../theme/index.ts';
+import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button, IconButton } from '../components/Button.tsx';
 import { LayerChips, PlaceFeedRow, SamuiMap, type MapMode } from '../components/SamuiMap.tsx';
@@ -69,7 +69,7 @@ export function MapScreen({
                     borderRadius: radius.sm,
                   }}
                 >
-                  <Label size={10} tracking={0.14} colour={color.bg}>
+                  <Label size={10} tracking={0.14} colour={onFill.text}>
                     {strings.map.liveNear(visible.length).en}
                   </Label>
                 </View>
@@ -104,7 +104,8 @@ export function MapScreen({
           marginHorizontal: gutter,
           padding: 16,
           borderWidth: layout.ruleStrong,
-          borderColor: color.accent,
+          // The one control on this screen that starts something.
+          borderColor: color.ctaDeep,
           borderRadius: radius.md,
           flexDirection: 'row',
           alignItems: 'center',
@@ -113,13 +114,13 @@ export function MapScreen({
         }}
       >
         <View style={{ flex: 1 }}>
-          <Heading size={17} colour={color.accent}>{strings.trip.planCta.en}</Heading>
+          <Heading size={17} colour={color.ctaDeep}>{strings.trip.planCta.en}</Heading>
           <Thai size={11} style={{ marginTop: 3 }}>{strings.trip.planCta.th}</Thai>
           <Body size={13} colour={color.neutral600} style={{ marginTop: 6 }}>
             {strings.trip.planBlurb.en}
           </Body>
         </View>
-        <ChevronRight size={20} color={color.accent} strokeWidth={2} />
+        <ChevronRight size={20} color={color.ctaDeep} strokeWidth={2} />
       </Pressable>
 
       {/*
@@ -287,8 +288,8 @@ export function QuestsNearYou({
               <Heading size={17}>{top.name.en}</Heading>
               <Thai size={11} style={{ marginTop: 3 }}>{`${top.name.th} · ${top.where}`}</Thai>
             </View>
-            <View style={{ backgroundColor: color.accent, paddingVertical: 4, paddingHorizontal: 8, borderRadius: radius.sm }}>
-              <Heading size={13} colour={color.bg}>
+            <View style={{ backgroundColor: currencyTone(top.rewardCurrency).fill, paddingVertical: 4, paddingHorizontal: 8, borderRadius: radius.sm }}>
+              <Heading size={13} colour={currencyTone(top.rewardCurrency).on}>
                 {`+${top.rewardPoints} ${top.rewardCurrency === 'green' ? 'G' : 'T'}`}
               </Heading>
             </View>
@@ -304,7 +305,7 @@ export function QuestsNearYou({
             onPress={() => onOpen(top.id)}
             height={44}
             style={{ marginTop: 12 }}
-            icon={<ChevronRight size={18} color={color.bg} strokeWidth={2} />}
+            icon={<ChevronRight size={18} color={onFill.cta} strokeWidth={2} />}
           />
         </View>
       ) : null}

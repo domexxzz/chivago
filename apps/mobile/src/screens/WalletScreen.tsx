@@ -24,7 +24,7 @@ import {
 } from '@chivago/core';
 import { api, type InboxItem } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, radius } from '../theme/index.ts';
+import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { Button } from '../components/Button.tsx';
@@ -154,8 +154,14 @@ export function LevelBlock({ wallet }: { wallet: Wallet }) {
         </Label>
       </View>
       <Thai size={11} style={{ marginTop: 2 }}>{p.rank.label.th}</Thai>
+      {/*
+        Gold. A level is earned by activity, not granted by a host - it is the
+        game layer, and painting it in the verified green made progression look
+        like proof. The two things a judge must be able to tell apart at a
+        glance are exactly these.
+      */}
       <View style={{ height: 10, backgroundColor: color.neutral300, marginTop: 10 }}>
-        <View style={{ width: `${pct}%`, height: '100%', backgroundColor: color.accent }} />
+        <View style={{ width: `${pct}%`, height: '100%', backgroundColor: color.gold }} />
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
         <Label size={9} tracking={0.06} colour={color.neutral600}>
@@ -197,17 +203,17 @@ export function RankLadder({ wallet }: { wallet: Wallet }) {
               padding: 4,
               borderWidth: layout.ruleStrong,
               borderRadius: radius.sm,
-              borderColor: rank.earned ? color.accent : color.neutral400,
-              backgroundColor: rank.earned ? color.accent : 'transparent',
+              borderColor: rank.earned ? color.gold : color.neutral400,
+              backgroundColor: rank.earned ? color.gold : 'transparent',
             }}
           >
-            <Heading size={15} colour={rank.earned ? color.bg : color.neutral500}>
+            <Heading size={15} colour={rank.earned ? onFill.gold : color.neutral500}>
               {String(rank.index).padStart(2, '0')}
             </Heading>
             <Label
               size={9}
               tracking={0.06}
-              colour={rank.earned ? color.bg : color.neutral500}
+              colour={rank.earned ? onFill.gold : color.neutral500}
               style={{ textAlign: 'center', fontSize: 8 }}
             >
               {rank.label.en}
@@ -254,10 +260,13 @@ export function Ledger({ wallet, onOpenMarket }: { wallet: Wallet; onOpenMarket:
             Credits carry their CURRENCY's colour, debits neutral-600 with
             U+2212, not a hyphen.
 
-            Green earns the lime; Trip earns plain ink. The two purses are the
+            Green earns the green; Trip earns gold. The two purses are the
             centre of the design and the header already separates them this
             way - a ledger that painted both the same colour would undo the
             distinction one line below the place it was made.
+
+            Trip used to be plain ink here, which was not wrong so much as
+            silent: it read as "no colour" rather than as the other currency.
           */}
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
             <Heading
@@ -265,7 +274,7 @@ export function Ledger({ wallet, onOpenMarket }: { wallet: Wallet; onOpenMarket:
               colour={
                 entry.amount < 0
                   ? color.neutral600
-                  : entry.currency === 'green' ? color.accent700 : color.text
+                  : currencyTone(entry.currency).text
               }
             >
               {formatAmount(entry.amount)}
@@ -316,8 +325,8 @@ function Inbox({
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Label size={10} tracking={0.14}>{strings.notifications.title.en}</Label>
           {unread > 0 ? (
-            <View style={{ backgroundColor: color.accent, paddingHorizontal: 6, paddingVertical: 2 }}>
-              <Heading size={11} colour={color.bg}>{unread}</Heading>
+            <View style={{ backgroundColor: color.brand, paddingHorizontal: 6, paddingVertical: 2 }}>
+              <Heading size={11} colour={onFill.brand}>{unread}</Heading>
             </View>
           ) : null}
         </View>
@@ -352,7 +361,7 @@ function Inbox({
                 width: 8,
                 height: 8,
                 marginTop: 6,
-                backgroundColor: isUnread ? color.accent : 'transparent',
+                backgroundColor: isUnread ? color.brand : 'transparent',
               }}
             />
             <View style={{ flex: 1 }}>
