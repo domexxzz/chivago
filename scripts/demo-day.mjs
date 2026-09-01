@@ -76,14 +76,34 @@ function shutdown(code = 0) {
 process.on('SIGINT', () => shutdown(0));
 process.on('SIGTERM', () => shutdown(0));
 
-/** The LAN address, for when there is no tunnel but there is shared wifi. */
+/**
+ * The address a judge on the same wifi can actually reach.
+ *
+ * "First non-internal IPv4" is wrong on any real laptop. This one offered
+ * 100.74.113.113 first - a Tailscale address, reachable only by devices on
+ * that private network - and the script would have printed it under the words
+ * "same wifi". A wrong address presented confidently is worse than none: it
+ * sends someone to a page that never loads and no one can explain why.
+ *
+ * So: prefer genuine private LAN ranges, and skip the two that look like LAN
+ * addresses and are not - CGNAT (100.64/10, where Tailscale lives) and the
+ * Docker/WSL bridge on 172.17.
+ */
 function lanAddress() {
-  for (const addresses of Object.values(networkInterfaces())) {
+  const candidates = [];
+  for (const [name, addresses] of Object.entries(networkInterfaces())) {
     for (const a of addresses ?? []) {
-      if (a.family === 'IPv4' && !a.internal) return a.address;
+      if (a.family !== 'IPv4' || a.internal) continue;
+      const [a1, a2] = a.address.split('.').map(Number);
+      if (a1 === 100 && a2 >= 64 && a2 <= 127) continue;        // CGNAT / Tailscale
+      if (a1 === 172 && a2 >= 16 && a2 <= 31) continue;         // Docker / WSL bridge
+      if (a1 === 169 && a2 === 254) continue;                   // link-local, no DHCP
+      const real = a1 === 192 && a2 === 168 ? 0 : a1 === 10 ? 1 : 2;
+      candidates.push({ address: a.address, rank: real, name });
     }
   }
-  return null;
+  candidates.sort((x, y) => x.rank - y.rank);
+  return candidates[0]?.address ?? null;
 }
 
 const hasCloudflared = spawnSync('cloudflared', ['--version'], {
@@ -211,10 +231,17 @@ if (!hasCloudflared) {
   const isolatedConfig = join(ROOT, 'node_modules', '.cache', 'chivago-tunnel.yml');
   mkdirSync(dirname(isolatedConfig), { recursive: true });
   writeFileSync(isolatedConfig, [
-    '# Deliberately empty.',
+    '# Written by scripts/demo-day.mjs. Not for editing.',
     '#',
-    '# Its only job is to occupy --config so cloudflared cannot fall back to',
-    '# ~/.cloudflared/config.yml and borrow whatever tunnel lives there.',
+    '# It occupies --config so cloudflared cannot fall back to',
+    '# ~/.cloudflared/config.yml and borrow whatever tunnel lives there. It',
+    '# cannot be empty: cloudflared rejects an empty config file outright.',
+    '#',
+    '# http2 rather than the default QUIC, because plenty of venue and office',
+    '# networks drop outbound UDP on 7844 - this one does. When that happens',
+    '# the tunnel still registers and still prints a URL. It just cannot carry',
+    '# traffic, which looks exactly like success until somebody opens the link.',
+    'protocol: http2',
     '',
   ].join('\n'), 'utf8');
 
