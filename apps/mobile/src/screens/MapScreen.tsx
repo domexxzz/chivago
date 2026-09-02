@@ -10,11 +10,11 @@
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { ChevronRight, LayoutGrid, List, MessageCircle } from 'lucide-react-native';
-import { strings, type Balances, type Quest, type ScoredPlace } from '@chivago/core';
+import { greetingFor, strings, type Balances, type Quest, type ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync, type LayerKey } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
-import { Body, Heading, Label, Thai } from '../components/Type.tsx';
+import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button, IconButton } from '../components/Button.tsx';
 import { LayerChips, PlaceFeedRow, SamuiMap, type MapMode } from '../components/SamuiMap.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
@@ -39,7 +39,15 @@ export function MapScreen({
   const quests = useAsync(() => api.quests('today'), []);
   const [mode, setMode] = React.useState<MapMode>('map');
 
-  const visible = (places.data ?? []).filter((p) => layers[p.layer]);
+  // Memoised, and the handler with it: the web map rebuilds every DOM marker
+  // when either changes identity, and a fresh array plus a fresh arrow on
+  // every render - every toast, every SOS poll - was rebuilding five
+  // markers a few times a minute for nothing.
+  const visible = React.useMemo(
+    () => (places.data ?? []).filter((p) => layers[p.layer]),
+    [places.data, layers],
+  );
+  const onSelect = React.useCallback((p: ScoredPlace) => onOpenPlace(p.id), [onOpenPlace]);
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]}>
@@ -57,7 +65,7 @@ export function MapScreen({
         <>
           <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
           {mode === 'map' ? (
-            <SamuiMap places={visible} onSelect={(p) => onOpenPlace(p.id)} />
+            <SamuiMap places={visible} onSelect={onSelect} />
           ) : (
             <View>
               <View style={{ paddingHorizontal: gutter, paddingVertical: 10 }}>
@@ -151,7 +159,7 @@ export function MapScreen({
       >
         <MessageCircle size={18} color={color.neutral700} strokeWidth={2} />
         <View style={{ flex: 1 }}>
-          <Heading size={14}>{t({ en: 'Ask where to go', th: 'ถามได้ทั้งภาษาไทยและอังกฤษ' })}</Heading>
+          <Heading size={14}>{t({ en: 'Ask where to go', th: 'ถามว่าไปไหนดี' })}</Heading>
         </View>
         <ChevronRight size={18} color={color.neutral600} strokeWidth={2} />
       </Pressable>
@@ -186,7 +194,12 @@ export function MapHeader({
       }}
     >
       <View style={{ flex: 1 }}>
-        <Label size={10} tracking={0.16}>{t(strings.map.greeting('John'))}</Label>
+        {/*
+          Island time, like Home. This read "Good morning, John" at every hour
+          of the day for an app that collects no names - a prototype string
+          that outlived the prototype by fifty commits.
+        */}
+        <Label size={10} tracking={0.16}>{t(greetingFor(new Date()))}</Label>
         <Heading size={24} tracking={-0.48} style={{ marginTop: 4 }}>{t(strings.map.island)}</Heading>
       </View>
 

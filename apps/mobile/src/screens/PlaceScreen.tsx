@@ -17,7 +17,7 @@ import { strings, type ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius } from '../theme/index.ts';
-import { AccentNumeral, Body, Heading, Label, Thai } from '../components/Type.tsx';
+import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button, Tag } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
@@ -42,7 +42,10 @@ export function PlaceScreen({
   // the primary path stays primary.
   const [offerNote, setOfferNote] = React.useState(false);
   const [noted, setNoted] = React.useState(false);
-  const [notesLeft, setNotesLeft] = React.useState(0);
+  // Null until the server has said. It started at 0, so a failed fetch of
+  // the quota - offline, the same moment a check-in tends to fail - turned
+  // the offer into a disabled "all stamps for this year are used".
+  const [notesLeft, setNotesLeft] = React.useState<number | null>(null);
 
   React.useEffect(() => {
     // Whether they already checked in today is server state, not screen

@@ -7,17 +7,15 @@
  *
  * Resolved for v1: ship B/A's flat-fill treatment with the layer chips, drawn
  * as real vector geography, and keep C available as a first-class fallback
- * (see `MapMode`). Reasoning:
- *  - The isometric board in the prototype is a CSS 3D trick over a fake island.
- *    Faking it in the app would be worse; doing it properly needs MapLibre with
- *    pitch 52 / bearing -38, which is a native module and a dev build.
- *  - This component draws the island as SVG from real coordinates, so it runs
- *    everywhere today AND is a straight swap for MapLibre later: the projection
- *    and the marker layer are already separated from the basemap.
+ * (see `MapMode`).
  *
- * TO SWAP IN MAPLIBRE: replace <IslandShape> with the map view, keep
- * `project()` for nothing (the SDK projects), and keep <PinChip> as a
- * screen-space marker that ignores pitch.
+ * WHERE THIS STANDS NOW. On the web the real island ships: `TerrainMap.tsx`
+ * is MapLibre GL over Terrarium elevation at pitch 60 / bearing -18, and this
+ * file hands over to it (see `inBrowser` below). On a phone the SVG island
+ * here is still what draws, because MapLibre native is a native module and
+ * a dev build, and the app has never met one. The projection and the pin
+ * layer are separate from the basemap so that swap, when it comes, replaces
+ * <IslandShape> and keeps <PinChip>.
  */
 
 import React from 'react';

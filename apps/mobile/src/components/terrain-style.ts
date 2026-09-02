@@ -69,7 +69,7 @@ const dem = {
  * The style, written here rather than pulled from a hosted one.
  *
  * A hosted style is a hundred layers of somebody else's colour scheme, and it
- * would make the hero look like every other map. This is nine layers in
+ * would make the hero look like every other map. This is seven layers in
  * ChivaGo's own tokens. The sea is the same blue as every button in the app
  * at less than half strength, the land is the surface colour, the mountain is
  * shaded in the brand's deep blue - and the only saturated thing on the

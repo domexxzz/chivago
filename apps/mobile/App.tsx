@@ -58,7 +58,7 @@ export default function App() {
   // The language. Resolved once before the first screen (stored choice, else
   // the phone's), and a change re-renders from here, which reaches every
   // t() below: nothing in this tree is memoised against its parent.
-  useLocale();
+  const locale = useLocale();
   const [localeReady, setLocaleReady] = React.useState(false);
   React.useEffect(() => { void loadLocale().then(() => setLocaleReady(true)); }, []);
   // Route state: it belongs to the pushed screen and dies with it.
@@ -68,7 +68,7 @@ export default function App() {
   const account = useAccount();
   const { profile, loaded: profileLoaded, save } = useProfile(account.ready);
   const { layers, toggle } = useLayers();
-  const sos = useSos(toast.show);
+  const sos = useSos(toast.show, account.ready);
 
   /**
    * Where a tapped notification lands.
@@ -88,7 +88,19 @@ export default function App() {
     }
   }, [nav]);
 
-  const notifications = useNotifications(openFromNotification);
+  const notifications = useNotifications(openFromNotification, account.ready);
+
+  /**
+   * The push service renders in the device's language, and it learns that
+   * language at registration. A traveller who switches on the Account screen
+   * re-registers with the new one, so the next "quest approved" arrives in
+   * the language they just chose rather than the one the phone had at install.
+   */
+  const pushGranted = notifications.pushGranted;
+  const enablePush = notifications.enablePush;
+  React.useEffect(() => {
+    if (localeReady && pushGranted) void enablePush(locale);
+  }, [locale, localeReady, pushGranted, enablePush]);
 
   /** Bumped whenever the server-owned balance may have changed. */
   const [walletKey, setWalletKey] = React.useState(0);
@@ -105,8 +117,10 @@ export default function App() {
 
   const [balances, setBalances] = React.useState<Balances>(emptyBalances());
   React.useEffect(() => {
+    // Not before the account: see useSos.
+    if (!account.ready) return;
     void api.wallet().then((res) => { if (res.ok) setBalances(res.data.balances); });
-  }, [walletKey]);
+  }, [walletKey, account.ready]);
 
   const [trip, setTrip] = React.useState<TripState>({
     dayNumber: 2,
@@ -166,7 +180,7 @@ export default function App() {
               // you ask once, and asking before the user knows what the app
               // does is how you get a permanent no. By here they have just told
               // us what they want watched.
-              void notifications.enablePush('en');
+              void notifications.enablePush(locale);
               nav.selectTab('home');
             }}
           />

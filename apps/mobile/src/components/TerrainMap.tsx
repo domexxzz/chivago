@@ -129,10 +129,18 @@ export function TerrainMap({
       `error` for a single 404 tile at the edge of coverage, and losing the
       whole map over one missing tile would be worse than the gap.
     */
+    // Tear the map down once, whether it failed or the screen left. A failed
+    // map used to keep its GL context alive behind the fallback text until
+    // the screen unmounted - a context the phone counts against a small
+    // budget, held for a map nobody could see.
+    const bail = () => {
+      if (map.current) { map.current.remove(); map.current = null; }
+    };
+
     m.on('error', (e) => {
       const message = (e as { error?: Error }).error?.message ?? String(e);
       console.error('[chivago] map:', message);
-      if (/source|style|layer/i.test(message)) setFailed(true);
+      if (/source|style|layer/i.test(message)) { setFailed(true); bail(); }
     });
 
     // Zoom buttons are for a mouse. On a phone they sat over Pha-ngan, and
@@ -142,7 +150,7 @@ export function TerrainMap({
     m.addControl(new AttributionControl({ compact: true }), 'bottom-left');
     map.current = m;
 
-    return () => { m.remove(); map.current = null; };
+    return bail;
   }, []);
 
   /*
