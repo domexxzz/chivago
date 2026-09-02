@@ -10,7 +10,10 @@
     "typecheck": "pnpm -r typecheck",
     "seed": "pnpm --filter @chivago/api seed",
     "test:dart": "cd packages/sdk-dart && dart test",
-    "contract": "pnpm --filter @chivago/api contract"
+    "contract": "pnpm --filter @chivago/api contract",
+    "test:scripts": "node --test scripts/*.test.mjs",
+    "thai:review": "node scripts/thai-review.mjs --html thai-review.html",
+    "thai:apply": "node scripts/thai-apply.mjs"
   },
   "packageManager": "pnpm@10.33.0",
   "engines": {

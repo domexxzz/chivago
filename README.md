@@ -18,6 +18,16 @@ report a number it cannot trace back to it.
 
 ---
 
+## Try it
+
+**https://chivago-demo-sigma.vercel.app** — the static demo build. Nothing
+is saved (the strip at the top says so): every screen answers from a snapshot
+captured from the real API after `demo:reset`, writes mutate an in-memory
+copy, and a reload starts over. The host console, real geofencing and real
+host verification are not in it; those need the API, below. Rebuild it with
+`pnpm --filter @chivago/mobile demo:web` and host `apps/mobile/dist-demo`
+anywhere static.
+
 ## Run it
 
 **Node 22.15 or newer** (the Dockerfile and CI use 24). `node:sqlite` is
@@ -185,10 +195,14 @@ reading if this section is.
   nothing of it, and a photograph of somewhere else with this place's name under
   it is worse than a blank.
 - **Thai copy has not been read by a native speaker.** The bulk of it is in
-  `packages/core/src/strings.ts` and `apps/api/src/console/i18n.ts`, but
-  `node scripts/thai-review.mjs` finds 440-odd EN/TH pairs across 23 files
-  and lists what a machine can honestly flag. CI prints that report on every
-  run; it does not fail the build, because only a person can close it.
+  `packages/core/src/strings.ts` and `apps/api/src/console/i18n.ts`, but it
+  is 447 EN/TH pairs across 23 files. `pnpm thai:review` writes
+  `thai-review.html`: one self-contained page with every pair in source
+  order, the machine's 20 flags, and an editable Thai field. The reviewer
+  presses *Export corrections* and sends back a block of JSON;
+  `pnpm thai:apply corrections.json` writes it into the source literal by
+  literal and refuses anything that has moved. CI prints the flag count on
+  every run; it does not fail the build, because only a person can close it.
 - **The app has never run on a physical device.** Web and simulator only.
   Location, the camera, background tracking and push have not met hardware.
 - **Accounts are free to mint, and each one used to come with a balance.**
