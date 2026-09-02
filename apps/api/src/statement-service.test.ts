@@ -189,3 +189,16 @@ describe('what a traveller is told', () => {
     assert.deepEqual(statementsIncluding(db, 'nobody'), []);
   });
 });
+
+describe('the same day, either side of the issue', () => {
+  test('work approved on the day of issue but AFTER it is not on record', () => {
+    // A statement issued at 10:00 counts Ana at 09:00. Bo, approved at 11:00
+    // on the same day, matches the line by (day, quest) - and the first
+    // version told Bo they were on record in a statement that counts Ana.
+    approvedOn('ana', 'q3', '2026-08-14T09:00:00.000Z');
+    const s = issueStatement(db, 'h-lab', Q3, 'Nok', new Date('2026-08-14T10:00:00.000Z'));
+    approvedOn('bo', 'q3', '2026-08-14T11:00:00.000Z');
+    assert.equal(statementsIncluding(db, 'bo').length, 0, 'the statement was issued before Bo was approved');
+    assert.deepEqual(statementsIncluding(db, 'ana').map((f) => f.id), [s.id]);
+  });
+});

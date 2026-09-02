@@ -210,6 +210,13 @@ const publicLocale = (c: { req: { header: (n: string) => string | undefined } })
 
 app.get('/statements/:id', (c) => {
   const statement = readStatement(db, c.req.param('id'));
+  // Any origin. This route is registered before the CORS middleware on
+  // purpose (it must not be provisioned as a traveller), which also meant
+  // it carried no CORS header at all - so the verify page's promise that
+  // "anyone can fetch this and recompute the digest" was false from a
+  // browser on any other origin. A public, read-only, immutable record has
+  // nothing to protect from a cross-origin read.
+  c.header('access-control-allow-origin', '*');
   if (!statement) return fail(c, 'NO_STATEMENT', 'No statement has that id.', 404);
   c.header('cache-control', 'public, max-age=300');
   return ok(c, statement);
