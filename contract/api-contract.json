@@ -520,7 +520,7 @@
                 "language": "string",
                 "placeId": "string",
                 "rating": "number",
-                "updatedAt": "string",
+                "updatedAt": "null",
                 "visitedAt": "string"
               }
             }
@@ -540,7 +540,7 @@
               "language": "string",
               "placeId": "string",
               "rating": "number",
-              "updatedAt": "string",
+              "updatedAt": "null",
               "visitedAt": "string"
             }
           }

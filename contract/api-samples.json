@@ -1,7 +1,7 @@
 {
   "health": {
     "status": "up",
-    "time": "2026-09-02T13:24:33.112Z"
+    "time": "2026-09-02T13:51:28.716Z"
   },
   "profile": {
     "purposes": [],
@@ -52,8 +52,8 @@
         "aqi": {
           "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T13:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+          "observedAt": "2026-09-02T13:24:34.215Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
       "healthyScore": 74,
@@ -161,8 +161,8 @@
         "aqi": {
           "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T13:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+          "observedAt": "2026-09-02T13:24:34.212Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
       "healthyScore": 88,
@@ -270,8 +270,8 @@
         "aqi": {
           "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T13:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+          "observedAt": "2026-09-02T13:24:34.279Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
       "healthyScore": 81,
@@ -373,8 +373,8 @@
         "aqi": {
           "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T13:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+          "observedAt": "2026-09-02T13:24:34.285Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
       "healthyScore": 76,
@@ -481,8 +481,8 @@
         "aqi": {
           "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T13:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+          "observedAt": "2026-09-02T13:24:34.212Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
       "healthyScore": 86,
@@ -685,7 +685,7 @@
         "kind": "weekend",
         "lat": 9.4179,
         "lng": 99.9433,
-        "geofenceRadiusM": 300
+        "geofenceRadiusM": 120
       },
       {
         "id": "q3",
@@ -712,7 +712,7 @@
         "kind": "weekend",
         "lat": 9.4478,
         "lng": 99.9294,
-        "geofenceRadiusM": 400
+        "geofenceRadiusM": 120
       },
       {
         "id": "q1",
@@ -739,7 +739,7 @@
         "kind": "today",
         "lat": 9.5357,
         "lng": 100.0617,
-        "geofenceRadiusM": 250
+        "geofenceRadiusM": 80
       },
       {
         "id": "q5",
@@ -766,7 +766,7 @@
         "kind": "today",
         "lat": 9.5589,
         "lng": 100.0672,
-        "geofenceRadiusM": 350
+        "geofenceRadiusM": 100
       },
       {
         "id": "q6",
@@ -793,7 +793,7 @@
         "kind": "today",
         "lat": 9.5581,
         "lng": 100.0631,
-        "geofenceRadiusM": 300
+        "geofenceRadiusM": 80
       },
       {
         "id": "q4",
@@ -851,13 +851,13 @@
       "kind": "today",
       "lat": 9.5357,
       "lng": 100.0617,
-      "geofenceRadiusM": 250
+      "geofenceRadiusM": 80
     },
     "progress": null
   },
   "wallet": {
     "balances": {
-      "trip": 20,
+      "trip": 200,
       "green": 1240
     },
     "progression": {
@@ -937,34 +937,22 @@
     },
     "ledger": [
       {
-        "id": "3fa4937c-3cf0-4f09-aa78-a31091be33c9",
+        "id": "618d036b-3aaa-4156-b24d-4496fc2fd2a1",
         "label": "Cold brew + banana bread redeemed",
         "subject": "Cold brew + banana bread",
-        "occurredAt": "2026-09-02T13:24:33.087Z",
+        "occurredAt": "2026-09-02T13:51:28.701Z",
         "host": "Sabeinglae Coffee",
         "amount": -180,
         "currency": "trip",
         "exp": 0,
         "kind": "redemption",
-        "sourceRef": "voucher:90917709-7afe-4c27-aac0-d7017276b306"
+        "sourceRef": "voucher:f6886f4f-be3a-4a36-a1b2-205ea0c9e8cc"
       },
       {
-        "id": "24e74500-0ba1-4dbf-aa5e-cb3cf87a7ea8",
-        "label": "Cold brew + banana bread redeemed",
-        "subject": "Cold brew + banana bread",
-        "occurredAt": "2026-09-02T12:10:19.027Z",
-        "host": "Sabeinglae Coffee",
-        "amount": -180,
-        "currency": "trip",
-        "exp": 0,
-        "kind": "redemption",
-        "sourceRef": "voucher:7779f56f-2623-48f7-ba28-f1eefd224856"
-      },
-      {
-        "id": "3530b945-e209-4ac9-b6f0-045a63be88e9",
+        "id": "360785c0-3644-4faa-b6da-7e2c46372aad",
         "label": "Review · Chaweng Beach",
         "subject": "Chaweng Beach",
-        "occurredAt": "2026-09-02T12:10:19.018Z",
+        "occurredAt": "2026-09-02T13:51:28.692Z",
         "host": "ChivaGo · verified visit",
         "amount": 40,
         "currency": "trip",
@@ -973,10 +961,10 @@
         "sourceRef": "review:chaweng:user:contract-capture"
       },
       {
-        "id": "c4bc21e8-5b9e-440b-aad6-8bf19b96b1c5",
+        "id": "aaae8bdd-c9db-45b1-ac85-c5e4e71d7f7d",
         "label": "Checked in · Chaweng Beach",
         "subject": "Chaweng Beach",
-        "occurredAt": "2026-09-02T12:10:18.972Z",
+        "occurredAt": "2026-09-02T13:51:28.674Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -985,10 +973,10 @@
         "sourceRef": "checkin:chaweng:user:contract-capture:2026-09-02"
       },
       {
-        "id": "4068178a-02e6-4e95-a3f7-cf9e80ef8b86",
+        "id": "3744984c-eda2-4c0b-b411-f8913a3eecba",
         "label": "Pilot opening balance",
         "subject": null,
-        "occurredAt": "2026-09-02T12:10:18.964Z",
+        "occurredAt": "2026-09-02T13:51:28.672Z",
         "host": "ChivaGo · pilot seed",
         "amount": 1240,
         "currency": "green",
@@ -997,10 +985,10 @@
         "sourceRef": "opening:green:contract-capture"
       },
       {
-        "id": "f7ffbb28-769b-4371-98e3-862201ac8cc3",
+        "id": "98a0413f-8d84-4054-a9b8-fd9f9f069c89",
         "label": "Pilot opening balance",
         "subject": null,
-        "occurredAt": "2026-09-02T12:10:18.962Z",
+        "occurredAt": "2026-09-02T13:51:28.670Z",
         "host": "ChivaGo · pilot seed",
         "amount": 320,
         "currency": "trip",
@@ -1080,26 +1068,14 @@
   ],
   "vouchers": [
     {
-      "id": "90917709-7afe-4c27-aac0-d7017276b306",
+      "id": "f6886f4f-be3a-4a36-a1b2-205ea0c9e8cc",
       "offerId": "o1",
       "userId": "contract-capture",
       "merchant": "Sabeinglae Coffee, Bophut",
-      "code": "CG-90917709",
+      "code": "CG-F6886F4F",
       "costPoints": 180,
-      "issuedAt": "2026-09-02T13:24:33.087Z",
-      "expiresAt": "2026-10-02T13:24:33.087Z",
-      "redeemedAt": null,
-      "status": "active"
-    },
-    {
-      "id": "7779f56f-2623-48f7-ba28-f1eefd224856",
-      "offerId": "o1",
-      "userId": "contract-capture",
-      "merchant": "Sabeinglae Coffee, Bophut",
-      "code": "CG-7779F56F",
-      "costPoints": 180,
-      "issuedAt": "2026-09-02T12:10:19.026Z",
-      "expiresAt": "2026-10-02T12:10:19.026Z",
+      "issuedAt": "2026-09-02T13:51:28.701Z",
+      "expiresAt": "2026-10-02T13:51:28.701Z",
       "redeemedAt": null,
       "status": "active"
     }
@@ -1205,8 +1181,8 @@
         "th": "ติดตามตำแหน่งสด"
       },
       "note": {
-        "en": "Shared with 2 contacts during an SOS",
-        "th": "แชร์กับผู้ติดต่อ 2 คนเมื่อกด SOS"
+        "en": "Shared with 1 contact during an SOS",
+        "th": "แชร์กับผู้ติดต่อ 1 คนเมื่อกด SOS"
       },
       "state": "ready"
     },
@@ -1292,30 +1268,30 @@
   "reviews": {
     "reviews": [
       {
-        "id": "e0c741b2-761a-4b65-8261-5c1a4a0ab7f8",
+        "id": "754ed779-ca3f-40b9-9428-8eb61b402415",
         "placeId": "chaweng",
         "authorId": "contract-capture",
         "authorName": "Traveller",
         "rating": 5,
         "body": "Quiet at 7am and the water is clean, worth the early start.",
         "language": "en",
-        "visitedAt": "2026-09-02T12:10:18.972Z",
-        "createdAt": "2026-09-02T12:10:19.018Z",
-        "updatedAt": "2026-09-02T13:24:33.079Z"
+        "visitedAt": "2026-09-02T13:51:28.674Z",
+        "createdAt": "2026-09-02T13:51:28.692Z",
+        "updatedAt": null
       }
     ],
     "mine": {
       "review": {
-        "id": "e0c741b2-761a-4b65-8261-5c1a4a0ab7f8",
+        "id": "754ed779-ca3f-40b9-9428-8eb61b402415",
         "placeId": "chaweng",
         "authorId": "contract-capture",
         "authorName": "Traveller",
         "rating": 5,
         "body": "Quiet at 7am and the water is clean, worth the early start.",
         "language": "en",
-        "visitedAt": "2026-09-02T12:10:18.972Z",
-        "createdAt": "2026-09-02T12:10:19.018Z",
-        "updatedAt": "2026-09-02T13:24:33.079Z"
+        "visitedAt": "2026-09-02T13:51:28.674Z",
+        "createdAt": "2026-09-02T13:51:28.692Z",
+        "updatedAt": null
       },
       "hiddenAt": null,
       "hiddenReasonKey": null,
@@ -1326,14 +1302,7 @@
   },
   "sosContacts": [
     {
-      "id": "c0772ef2-149e-413e-bc59-e5fe78eafd49",
-      "name": "Malee",
-      "phone": "+66800000000",
-      "relationship": "sister",
-      "linkedUserId": null
-    },
-    {
-      "id": "4c5f216d-213d-47c7-bec1-8748e9b70c22",
+      "id": "7622d952-55ea-4739-99a7-1d3776c122b5",
       "name": "Malee",
       "phone": "+66800000000",
       "relationship": "sister",
@@ -1346,7 +1315,7 @@
     "awarded": false,
     "pointsAwarded": 0,
     "balances": {
-      "trip": 20,
+      "trip": 200,
       "green": 1240
     },
     "exp": 1620,
@@ -1354,16 +1323,16 @@
   },
   "writeReview": {
     "review": {
-      "id": "e0c741b2-761a-4b65-8261-5c1a4a0ab7f8",
+      "id": "754ed779-ca3f-40b9-9428-8eb61b402415",
       "placeId": "chaweng",
       "authorId": "contract-capture",
       "authorName": "Traveller",
       "rating": 4,
       "body": "Busier after nine when the boats arrive, but still worth it.",
       "language": "en",
-      "visitedAt": "2026-09-02T12:10:18.972Z",
-      "createdAt": "2026-09-02T12:10:19.018Z",
-      "updatedAt": "2026-09-02T13:24:34.699Z"
+      "visitedAt": "2026-09-02T13:51:28.674Z",
+      "createdAt": "2026-09-02T13:51:28.692Z",
+      "updatedAt": "2026-09-02T13:51:28.968Z"
     },
     "created": false,
     "pointsAwarded": 0

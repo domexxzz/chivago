@@ -13,7 +13,7 @@ import type {
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
 } from '@chivago/core';
-import type { SelfVisitResult, SelfVisitSummary } from '@chivago/core';
+import type { Fix, SelfVisitResult, SelfVisitSummary } from '@chivago/core';
 
 /**
  * What POST /places/:id/checkin answers with.
@@ -267,13 +267,15 @@ export const api = {
   quest: (id: string) =>
     get<{ quest: Quest; progress: QuestProgress | null }>(`/quests/${id}`),
   joinQuest: (id: string) => post<QuestProgress>(`/quests/${id}/join`),
-  arriveAtQuest: (id: string, pos: { lat: number; lng: number }) =>
+  arriveAtQuest: (id: string, pos: Fix) =>
     post<QuestProgress>(`/quests/${id}/arrive`, pos),
   submitProof: (
     id: string,
     payload: {
       photos: { uri: string; lat: number | null; lng: number | null; takenAt: string | null }[];
       weightKg: number | null;
+      /** Where the volunteer is at submission - the second in-fence sample. */
+      position: Fix;
     },
   ) => post<{ progress: QuestProgress; proofId: string }>(`/quests/${id}/proof`, payload),
 
@@ -282,8 +284,8 @@ export const api = {
    * Check in at a place. The server does the geofence check, not us: a client
    * that decides whether it is close enough is a client that can lie.
    */
-  checkIn: (placeId: string, coords: { lat: number; lng: number }) =>
-    post<CheckinResult>(`/places/${placeId}/checkin`, coords),
+  checkIn: (placeId: string, fix: Fix) =>
+    post<CheckinResult>(`/places/${placeId}/checkin`, fix),
   checkinsToday: () => get<string[]>('/checkins/today'),
 
   // -- self-issued visits: recorded, not scored ---------------------------

@@ -166,19 +166,35 @@ class ChivagoClient {
   ///
   /// `awarded: false` means you are here and already checked in today. That is
   /// a success, not a refusal.
+  ///
+  /// `accuracyM` is the fix's own error radius. Send it: a fix wider than the
+  /// place's fence is refused, and the server would rather say so than guess.
   Future<Result<CheckinResult>> checkIn(
     String placeId, {
     required double lat,
     required double lng,
+    double? accuracyM,
   }) =>
       _post(
         '/places/$placeId/checkin',
         (d) => CheckinResult.fromJson(d as Map<String, dynamic>),
-        {'lat': lat, 'lng': lng},
+        {'lat': lat, 'lng': lng, if (accuracyM != null) 'accuracyM': accuracyM},
       );
 
   Future<Result<List<String>>> checkinsToday() =>
       _get('/checkins/today', (d) => (d as List<dynamic>).cast<String>());
+
+  // -- recorded, not scored ----------------------------------------------
+  /// Stamps the traveller issued themselves, and how many the year still
+  /// allows. They pay nothing and unlock nothing; the passport draws them
+  /// dashed.
+  Future<Result<SelfVisits>> selfVisits() =>
+      _get('/visits/self', (d) => SelfVisits.fromJson(d as Map<String, dynamic>));
+
+  /// Which provinces this traveller has been to - verified and self-reported
+  /// kept apart - plus the evidence the companions grow from.
+  Future<Result<Passport>> passport() =>
+      _get('/passport', (d) => Passport.fromJson(d as Map<String, dynamic>));
 
   // -- quests ---------------------------------------------------------------
 

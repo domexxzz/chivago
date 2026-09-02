@@ -143,16 +143,28 @@ public final class ChivagoClient: @unchecked Sendable {
     ///
     /// `awarded == false` means you are here and already checked in today. That
     /// is a success, not a refusal.
-    public func checkIn(placeID: String, lat: Double, lng: Double) async throws -> CheckinResult {
+    public func checkIn(placeID: String, lat: Double, lng: Double, accuracyM: Double? = nil) async throws -> CheckinResult {
         try await post(
             "/places/\(placeID)/checkin",
-            body: Coordinates(lat: lat, lng: lng),
+            body: Coordinates(lat: lat, lng: lng, accuracyM: accuracyM),
             as: CheckinResult.self
         )
     }
 
     public func checkinsToday() async throws -> [String] {
         try await get("/checkins/today", as: [String].self)
+    }
+
+    // MARK: Recorded, not scored
+
+    /// Stamps the traveller issued themselves, and how many the year still allows.
+    public func selfVisits() async throws -> SelfVisits {
+        try await get("/visits/self", as: SelfVisits.self)
+    }
+
+    /// Verified and self-reported provinces, kept apart, plus the companions' evidence.
+    public func passport() async throws -> Passport {
+        try await get("/passport", as: Passport.self)
     }
 
     // MARK: - Quests
@@ -210,7 +222,8 @@ public final class ChivagoClient: @unchecked Sendable {
 
 // MARK: - Request and wrapper bodies
 
-struct Coordinates: Encodable { let lat: Double; let lng: Double }
+/// `accuracyM` is the fix's own error radius; a fix wider than the fence is refused.
+struct Coordinates: Encodable { let lat: Double; let lng: Double; let accuracyM: Double? }
 struct NewDevice: Encodable { let label: String?; let locale: String? }
 struct NewReview: Encodable { let rating: Int; let body: String? }
 struct NewReport: Encodable { let reason: String; let note: String? }

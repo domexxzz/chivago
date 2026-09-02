@@ -17,10 +17,11 @@
  */
 
 import { CHECKIN_RADIUS_M, CHECKIN_TRIP_POINTS, islandDateKey } from '@chivago/core';
-import type { Balances } from '@chivago/core';
+import type { Balances, Fix } from '@chivago/core';
 import { row, type DB } from './db.ts';
 import { distanceMetres, OutsideGeofence } from './quest-service.ts';
 import { awardCheckin } from './wallet-service.ts';
+import { assertPresence, recordFix } from './presence-service.ts';
 
 export interface CheckinResult {
   placeId: string;
@@ -44,7 +45,7 @@ export interface CheckinResult {
  */
 export function checkIn(
   db: DB,
-  args: { userId: string; placeId: string; lat: number; lng: number; now?: Date },
+  args: { userId: string; placeId: string; now?: Date } & Fix,
 ): CheckinResult | null {
   const place = row<{ id: string; name_en: string; lat: number; lng: number }>(
     db.prepare('SELECT id, name_en, lat, lng FROM places WHERE id = ?').get(args.placeId),
@@ -60,6 +61,12 @@ export function checkIn(
   }
 
   const now = args.now ?? new Date();
+  // The second signal: mocked, too coarse, or too fast since the last fix.
+  // After the fence, so 'too far' is still the first thing an honest
+  // traveller hears. See packages/core/src/presence.ts.
+  const fix: Fix = { lat: args.lat, lng: args.lng, accuracyM: args.accuracyM, mocked: args.mocked };
+  assertPresence(db, { userId: args.userId, fix, radiusM: CHECKIN_RADIUS_M, now });
+
   const movement = awardCheckin(db, {
     userId: args.userId,
     placeId: place.id,
@@ -68,6 +75,7 @@ export function checkIn(
     dayKey: islandDateKey(now),
     occurredAt: now.toISOString(),
   });
+  recordFix(db, args.userId, fix, now);
 
   return {
     placeId: place.id,

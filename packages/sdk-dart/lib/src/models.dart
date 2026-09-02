@@ -646,3 +646,68 @@ class CheckinResult {
   final int exp;
   final int distanceM;
 }
+
+// ---------------------------------------------------------------------------
+// The passport, and stamps on the traveller's word
+// ---------------------------------------------------------------------------
+
+/// What one province's companion grows from. Read from the ledger; never
+/// from a self-issued stamp.
+class ProvinceEvidence {
+  const ProvinceEvidence({
+    required this.code,
+    required this.layer,
+    required this.visitDays,
+    required this.questsVerified,
+  });
+
+  factory ProvinceEvidence.fromJson(Map<String, dynamic> json) => ProvinceEvidence(
+        code: json['code'] as String,
+        layer: json['layer'] as String,
+        visitDays: json['visitDays'] as int,
+        questsVerified: json['questsVerified'] as int,
+      );
+
+  /// ISO 3166-2:TH code.
+  final String code;
+  final String layer;
+  final int visitDays;
+  final int questsVerified;
+}
+
+class Passport {
+  const Passport({
+    required this.visited,
+    required this.selfReported,
+    required this.evidence,
+  });
+
+  factory Passport.fromJson(Map<String, dynamic> json) => Passport(
+        visited: (json['visited'] as List<dynamic>).cast<String>(),
+        selfReported: (json['selfReported'] as List<dynamic>).cast<String>(),
+        evidence: (json['evidence'] as List<dynamic>)
+            .map((e) => ProvinceEvidence.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
+  /// Provinces a geofence put the traveller in. Solid stamps.
+  final List<String> visited;
+
+  /// Provinces the traveller SAYS they were in. Dashed stamps, never merged
+  /// into [visited].
+  final List<String> selfReported;
+  final List<ProvinceEvidence> evidence;
+}
+
+/// Recorded, not scored: the stamps a traveller issued themselves.
+class SelfVisits {
+  const SelfVisits({required this.places, required this.remainingThisYear});
+
+  factory SelfVisits.fromJson(Map<String, dynamic> json) => SelfVisits(
+        places: (json['places'] as List<dynamic>).cast<String>(),
+        remainingThisYear: json['remainingThisYear'] as int,
+      );
+
+  final List<String> places;
+  final int remainingThisYear;
+}

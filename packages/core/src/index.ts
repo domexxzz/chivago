@@ -20,4 +20,5 @@ export * from './seed.ts';
 export * from './strings.ts';
 export * from './wallet.ts';
 export * from './visits.ts';
+export * from './presence.ts';
 export * from './greeting.ts';

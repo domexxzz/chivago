@@ -87,6 +87,8 @@ describe('the checked-in contract', () => {
       'offers', 'vouchers', 'impactMe', 'impactCommunity', 'shield',
       'notifications', 'quietHours', 'checkinsToday', 'reviews', 'sosContacts',
       'checkin', 'writeReview',
+      // Recorded, not scored (docs/29): both SDKs decode these now.
+      'selfVisits', 'passport',
     ];
     assert.deepEqual(Object.keys(recorded.shapes).sort(), [...expected].sort());
   });

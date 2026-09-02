@@ -22,7 +22,7 @@ const USER = 'contract-capture';
  * a state where every collection has something in it first.
  */
 const WARM_UP: { path: string; body?: unknown }[] = [
-  { path: '/places/chaweng/checkin', body: { lat: 9.5357, lng: 100.0617 } },
+  { path: '/places/chaweng/checkin', body: { lat: 9.5357, lng: 100.0617, accuracyM: 12 } },
   {
     path: '/places/chaweng/reviews',
     body: { rating: 5, body: 'Quiet at 7am and the water is clean, worth the early start.' },
@@ -55,7 +55,7 @@ export const ENDPOINTS: { name: string; path: string; body?: unknown }[] = [
   { name: 'passport', path: '/passport' },
   { name: 'reviews', path: '/places/chaweng/reviews' },
   { name: 'sosContacts', path: '/sos/contacts' },
-  { name: 'checkin', path: '/places/chaweng/checkin', body: { lat: 9.5357, lng: 100.0617 } },
+  { name: 'checkin', path: '/places/chaweng/checkin', body: { lat: 9.5357, lng: 100.0617, accuracyM: 12 } },
   {
     name: 'writeReview',
     path: '/places/chaweng/reviews',

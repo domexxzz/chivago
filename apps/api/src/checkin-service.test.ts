@@ -6,6 +6,7 @@ import { openTestDb, type DB } from './db.ts';
 import { getBalances, getExp, getLedger } from './wallet-service.ts';
 import { OutsideGeofence } from './quest-service.ts';
 import { checkedInToday, checkIn } from './checkin-service.ts';
+import { FixTooCoarse, ImpossibleTravel, MockedLocation } from './presence-service.ts';
 
 let db: DB;
 const USER = 'u1';
@@ -57,6 +58,36 @@ describe('presence', () => {
 
   test('a place that does not exist is null, not a crash', () => {
     assert.equal(checkIn(db, { userId: USER, placeId: 'nowhere', ...SITE }), null);
+  });
+});
+
+describe('the second signal', () => {
+  test('a simulated fix is refused, and nothing is paid', () => {
+    assert.throws(() => checkIn(db, { userId: USER, placeId: PLACE, ...SITE, mocked: true }), MockedLocation);
+    assert.equal(getBalances(db, USER).trip, 0);
+  });
+
+  test('a fix too coarse to be inside the fence is refused', () => {
+    assert.throws(() => checkIn(db, { userId: USER, placeId: PLACE, ...SITE, accuracyM: 800 }), FixTooCoarse);
+  });
+
+  test('two check-ins across the island in the same minute is teleporting', () => {
+    db.prepare(
+      `INSERT INTO places (id, name_en, name_th, short, layer, lat, lng, meta,
+         blurb_en, blurb_th, tags, safety_label_en, safety_label_th,
+         crowd_density, aqi, safety_index, walkability)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ).run('thongkrut', 'Thong Krut', 'x', 'TK', 'Green', 9.4179, 99.9433, 'Mangrove', 'x', 'x', '[]',
+          'Quiet', 'x', 1, 30, 7, 6);
+    const t0 = new Date('2026-10-14T03:00:00Z');
+    checkIn(db, { userId: USER, placeId: PLACE, ...SITE, now: t0 });
+    assert.throws(
+      () => checkIn(db, { userId: USER, placeId: 'thongkrut', lat: 9.4179, lng: 99.9433, now: new Date(t0.getTime() + 30_000) }),
+      ImpossibleTravel,
+    );
+    // Half an hour later it is a scooter ride, and it pays.
+    const r = checkIn(db, { userId: USER, placeId: 'thongkrut', lat: 9.4179, lng: 99.9433, now: new Date(t0.getTime() + 30 * 60_000) })!;
+    assert.equal(r.awarded, true);
   });
 });
 

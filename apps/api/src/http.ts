@@ -11,6 +11,8 @@ import type { ApiFailure, ApiSuccess } from '@chivago/core';
 import { InsufficientPoints } from './wallet-service.ts';
 import { InvalidTransition, OutsideGeofence } from './quest-service.ts';
 import { SelfVisitQuotaReached } from './visit-service.ts';
+import { FixTooCoarse, ImpossibleTravel, MockedLocation } from './presence-service.ts';
+import { TooSoonAfterArrival } from './quest-service.ts';
 import {
   AlreadyReported, AppealAlreadyOpen, CannotReportOwn, InvalidRating, NeverVisited,
   NothingToAppeal, NotYourReview, ReportRateLimited, TakedownRateLimited,
@@ -47,6 +49,12 @@ export function handleError(c: Context, err: unknown) {
       403,
     );
   }
+  // The second signal on the geofence - docs/30. All 403 like the fence
+  // itself, and all of them land on the recorded-not-scored path in the app.
+  if (err instanceof MockedLocation) return fail(c, 'MOCK_LOCATION', err.message, 403);
+  if (err instanceof FixTooCoarse) return fail(c, 'FIX_TOO_COARSE', err.message, 403);
+  if (err instanceof ImpossibleTravel) return fail(c, 'IMPOSSIBLE_TRAVEL', err.message, 403);
+  if (err instanceof TooSoonAfterArrival) return fail(c, 'TOO_SOON', err.message, 409);
   if (err instanceof SelfVisitQuotaReached) {
     // 429, not 400: the request was well-formed, and the traveller can simply
     // come back next year.

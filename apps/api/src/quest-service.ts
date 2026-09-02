@@ -17,8 +17,9 @@
 
 import { randomUUID } from 'node:crypto';
 import { rows, transact, type DB } from './db.ts';
-import { isRejectionReasonKey, rejectionMessage, type QuestCounts, type ProofPhoto, type Balances, type Currency, type QuestProgress, type QuestStage,
+import { isRejectionReasonKey, rejectionMessage, QUEST_MIN_DWELL_MIN, type Fix, type QuestCounts, type ProofPhoto, type Balances, type Currency, type QuestProgress, type QuestStage,
   type RejectionReasonKey } from '@chivago/core';
+import { assertPresence, recordFix } from './presence-service.ts';
 import { awardQuestReward, getBalances } from './wallet-service.ts';
 import { enqueue } from './notification-service.ts';
 
@@ -26,6 +27,19 @@ export class InvalidTransition extends Error {
   constructor(from: QuestStage | null, to: QuestStage) {
     super(`invalid quest transition: ${from ?? 'none'} -> ${to}`);
     this.name = 'InvalidTransition';
+  }
+}
+
+/**
+ * Proof filed too soon after arriving. Turf calls the missing thing
+ * 'staying'; a photograph from the road is what it prices out.
+ */
+export class TooSoonAfterArrival extends Error {
+  minutesSinceArrival: number;
+  constructor(minutes: number) {
+    super(`Proof came ${Math.max(0, Math.round(minutes))} min after arriving; give it at least ${QUEST_MIN_DWELL_MIN}.`);
+    this.name = 'TooSoonAfterArrival';
+    this.minutesSinceArrival = minutes;
   }
 }
 
@@ -229,7 +243,8 @@ export function arriveAtQuest(
   db: DB,
   userId: string,
   questId: string,
-  position: { lat: number; lng: number },
+  position: Fix,
+  now = new Date(),
 ): QuestProgress {
   const progress = getProgress(db, userId, questId);
   if (!progress || !ALLOWED[progress.stage].includes('arrived')) {
@@ -245,17 +260,28 @@ export function arriveAtQuest(
   if (distance > quest.geofence_radius_m) {
     throw new OutsideGeofence(distance, quest.geofence_radius_m);
   }
+  // The second signal, after the fence. See packages/core/src/presence.ts.
+  assertPresence(db, { userId, fix: position, radiusM: quest.geofence_radius_m, now });
 
   db.prepare(
     `UPDATE quest_progress SET stage = 'arrived', arrived_at = ?
      WHERE user_id = ? AND quest_id = ?`,
-  ).run(new Date().toISOString(), userId, questId);
+  ).run(now.toISOString(), userId, questId);
+  recordFix(db, userId, position, now);
   return getProgress(db, userId, questId)!;
 }
 
 export interface ProofInput {
   photos: ProofPhoto[];
   weightKg: number | null;
+  /**
+   * Where the volunteer is NOW, at submission. Arrival proved they got
+   * there; this proves they were still there when the work was done. The
+   * route requires it; the service accepts its absence for tests and for a
+   * client that already uploaded out of band, and enforces the dwell time
+   * regardless, because that needs only the clock.
+   */
+  position?: Fix | null;
 }
 
 /**
@@ -270,6 +296,7 @@ export function submitProof(
   userId: string,
   questId: string,
   input: ProofInput,
+  at = new Date(),
 ): { progress: QuestProgress; proofId: string } {
   const progress = getProgress(db, userId, questId);
   if (!progress || !ALLOWED[progress.stage].includes('proof_submitted')) {
@@ -279,7 +306,26 @@ export function submitProof(
     throw new Error('proof requires at least one photo');
   }
 
-  const now = new Date().toISOString();
+  // Dwell: needs only the clock, so it is enforced whether or not a position
+  // came with the proof.
+  const arrivedAt = progress.arrivedAt ? Date.parse(progress.arrivedAt) : Number.NaN;
+  const minutesSinceArrival = (at.getTime() - arrivedAt) / 60_000;
+  if (!Number.isFinite(minutesSinceArrival) || minutesSinceArrival < QUEST_MIN_DWELL_MIN) {
+    throw new TooSoonAfterArrival(minutesSinceArrival);
+  }
+
+  // A second in-fence sample, when the client sent one.
+  if (input.position) {
+    const quest = db
+      .prepare('SELECT lat, lng, geofence_radius_m FROM quests WHERE id = ?')
+      .get(questId) as unknown as QuestGeo | undefined;
+    if (!quest) throw new Error(`unknown quest: ${questId}`);
+    const distance = distanceMetres(input.position, { lat: quest.lat, lng: quest.lng });
+    if (distance > quest.geofence_radius_m) throw new OutsideGeofence(distance, quest.geofence_radius_m);
+    assertPresence(db, { userId, fix: input.position, radiusM: quest.geofence_radius_m, now: at });
+  }
+
+  const now = at.toISOString();
   const proofId = randomUUID();
 
   return transact(db, () => {
@@ -295,6 +341,7 @@ export function submitProof(
        WHERE user_id = ? AND quest_id = ?`,
     ).run(now, userId, questId);
 
+    if (input.position) recordFix(db, userId, input.position, at);
     return { progress: getProgress(db, userId, questId)!, proofId };
   });
 }

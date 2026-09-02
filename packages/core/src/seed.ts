@@ -202,7 +202,7 @@ export const SEED_QUESTS: Quest[] = [
     kind: 'today',
     lat: 9.5357,
     lng: 100.0617,
-    geofenceRadiusM: 250,
+    geofenceRadiusM: 80,
   },
   {
     id: 'q2',
@@ -217,7 +217,7 @@ export const SEED_QUESTS: Quest[] = [
     kind: 'weekend',
     lat: 9.4179,
     lng: 99.9433,
-    geofenceRadiusM: 300,
+    geofenceRadiusM: 120,
   },
   {
     id: 'q3',
@@ -232,7 +232,7 @@ export const SEED_QUESTS: Quest[] = [
     kind: 'weekend',
     lat: 9.4478,
     lng: 99.9294,
-    geofenceRadiusM: 400,
+    geofenceRadiusM: 120,
   },
   {
     id: 'q4',
@@ -266,7 +266,7 @@ export const SEED_QUESTS: Quest[] = [
     kind: 'today',
     lat: 9.5589,
     lng: 100.0672,
-    geofenceRadiusM: 350,
+    geofenceRadiusM: 100,
   },
   {
     id: 'q6',
@@ -280,7 +280,7 @@ export const SEED_QUESTS: Quest[] = [
     kind: 'today',
     lat: 9.5581,
     lng: 100.0631,
-    geofenceRadiusM: 300,
+    geofenceRadiusM: 80,
   },
 ];
 
@@ -375,6 +375,14 @@ export const SEED_OFFERS: Offer[] = [
  * routinely 30-50 m out under tree cover.
  */
 export const CHECKIN_RADIUS_M = 250;
+
+/*
+  Quest sites are narrower - 80 to 120 m, set per quest above - because a
+  site is a point and a place is not. Ingress interacts at 40 m; a beach
+  clean 'arrived at' from a cafe four streets back is what 250 m allowed.
+  The only quest wider than 120 m is the one whose site is the island.
+  `presence.test.ts` in core holds the seed to this.
+*/
 
 /** Trip Points per check-in. Small on purpose - presence is weak evidence. */
 export const CHECKIN_TRIP_POINTS = 20;

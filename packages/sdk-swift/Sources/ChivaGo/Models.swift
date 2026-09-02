@@ -279,3 +279,28 @@ public struct ApiError: Error, Sendable {
 extension ApiError: LocalizedError {
     public var errorDescription: String? { message }
 }
+
+// MARK: - The passport, and stamps on the traveller's word
+
+/// What one province's companion grows from. Read from the ledger; never from a self-issued stamp.
+public struct ProvinceEvidence: Codable, Sendable {
+    /// ISO 3166-2:TH code.
+    public let code: String
+    public let layer: String
+    public let visitDays: Int
+    public let questsVerified: Int
+}
+
+public struct Passport: Codable, Sendable {
+    /// Provinces a geofence put the traveller in. Solid stamps.
+    public let visited: [String]
+    /// Provinces the traveller SAYS they were in. Dashed stamps, never merged into `visited`.
+    public let selfReported: [String]
+    public let evidence: [ProvinceEvidence]
+}
+
+/// Recorded, not scored: the stamps a traveller issued themselves.
+public struct SelfVisits: Codable, Sendable {
+    public let places: [String]
+    public let remainingThisYear: Int
+}

@@ -45,7 +45,7 @@ import {
   JOIN_REFUSAL, PARTY_DOES_NOT, RANKED_BY, SPECIES_AS_OF, cheapestMonth,
   collectionSummary, companionsFor, summarise,
   forecastPrice, islandDay, isReportReasonKey, isRejectionReasonKey,
-  outlookAhead, planDay, rankHosts, routeBiasFor, smartRoute,
+  outlookAhead, planDay, rankHosts, routeBiasFor, smartRoute, type Fix
 } from '@chivago/core';
 import {
   arriveAtQuest, getAllProgress, getProgress, joinQuest, resolveVerification, submitProof,
@@ -470,12 +470,18 @@ app.get('/places/:id', async (c) => {
  * behaviour the product wants, and answering it in red would be a rebuke.
  */
 app.post('/places/:id/checkin', async (c) => {
-  const body = (await c.req.json().catch(() => ({}))) as { lat?: number; lng?: number };
+  const body = (await c.req.json().catch(() => ({}))) as {
+    lat?: number; lng?: number; accuracyM?: number | null; mocked?: boolean;
+  };
   if (typeof body.lat !== 'number' || typeof body.lng !== 'number') {
     return fail(c, 'BAD_REQUEST', 'lat and lng are required');
   }
+  // The whole fix, not just the point: the second signal (docs/30) reads
+  // accuracy and the mock flag, and a route that dropped them would leave
+  // the service checking nothing. Caught live, not by the unit tests.
   const result = checkIn(db, {
-    userId: userId(c), placeId: c.req.param('id'), lat: body.lat, lng: body.lng,
+    userId: userId(c), placeId: c.req.param('id'),
+    ...readFix({ lat: body.lat, lng: body.lng, accuracyM: body.accuracyM, mocked: body.mocked }),
   });
   return result ? ok(c, result) : fail(c, 'NOT_FOUND', 'No such place', 404);
 });
@@ -623,13 +629,27 @@ app.get('/quests/:id', (c) => {
 app.post('/quests/:id/join', (c) =>
   ok(c, joinQuest(db, userId(c), c.req.param('id'))));
 
+/**
+ * The fix a client sends, with the two fields the second signal reads. A
+ * client that sends neither is an older one and is still accepted.
+ */
+function readFix(body: { lat: number; lng: number; accuracyM?: number | null; mocked?: boolean }): Fix {
+  return {
+    lat: body.lat,
+    lng: body.lng,
+    accuracyM: typeof body.accuracyM === 'number' ? body.accuracyM : null,
+    mocked: body.mocked === true,
+  };
+}
+
 /** Arrival is geofence-verified, not taken on trust. */
 app.post('/quests/:id/arrive', async (c) => {
-  const body = (await c.req.json()) as { lat?: number; lng?: number };
+  const body = (await c.req.json()) as { lat?: number; lng?: number; accuracyM?: number | null; mocked?: boolean };
   if (typeof body.lat !== 'number' || typeof body.lng !== 'number') {
     return fail(c, 'LOCATION_REQUIRED', 'Your location is needed to check in at the site.');
   }
-  return ok(c, arriveAtQuest(db, userId(c), c.req.param('id'), { lat: body.lat, lng: body.lng }));
+  return ok(c, arriveAtQuest(db, userId(c), c.req.param('id'),
+    readFix({ lat: body.lat, lng: body.lng, accuracyM: body.accuracyM, mocked: body.mocked })));
 });
 
 /**
@@ -680,6 +700,11 @@ app.post('/quests/:id/proof', async (c) => {
     const weightRaw = form.weightKg;
     const weightKg = weightRaw ? Number(weightRaw) : null;
 
+    // Where the volunteer is now - the second in-fence sample. Required:
+    // a shape without it would be the weaker path a tampered client picks.
+    const position = parsePosition(form.position);
+    if (!position) return fail(c, 'LOCATION_REQUIRED', 'Your location is needed to submit proof.');
+
     // The state machine runs first: an invalid transition must not leave
     // orphaned files on disk.
     const result = submitProof(db, id, questId, {
@@ -690,6 +715,7 @@ app.post('/quests/:id/proof', async (c) => {
         takenAt: meta[i]?.takenAt ?? null,
       })),
       weightKg: Number.isFinite(weightKg) ? weightKg : null,
+      position,
     });
 
     try {
@@ -715,15 +741,29 @@ app.post('/quests/:id/proof', async (c) => {
   const body = (await c.req.json()) as {
     photos?: { uri: string; lat: number | null; lng: number | null; takenAt: string | null }[];
     weightKg?: number | null;
+    position?: unknown;
   };
+  const position = parsePosition(body.position);
+  if (!position) return fail(c, 'LOCATION_REQUIRED', 'Your location is needed to submit proof.');
   return ok(
     c,
     submitProof(db, id, questId, {
       photos: body.photos ?? [],
       weightKg: body.weightKg ?? null,
+      position,
     }),
   );
 });
+
+/** A position from a form field (JSON string) or a JSON body. Null when absent or malformed. */
+function parsePosition(raw: unknown): Fix | null {
+  let v: unknown = raw;
+  if (typeof v === 'string') { try { v = JSON.parse(v); } catch { return null; } }
+  if (!v || typeof v !== 'object') return null;
+  const o = v as Record<string, unknown>;
+  if (typeof o.lat !== 'number' || typeof o.lng !== 'number') return null;
+  return readFix({ lat: o.lat, lng: o.lng, accuracyM: typeof o.accuracyM === 'number' ? o.accuracyM : null, mocked: o.mocked === true });
+}
 
 /**
  * The host's verification decision.

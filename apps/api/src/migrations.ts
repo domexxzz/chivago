@@ -777,5 +777,19 @@ export function migrate(db: DB): string[] {
       ON self_visits(user_id, year_key);
   `);
 
+  // -- The last fix the server accepted from each traveller ---------------
+  //
+  // So the next one can be judged against it: two fixes across the island
+  // half a minute apart is teleporting. One row per user, overwritten - the
+  // history is not the point, the speed is. See packages/core/src/presence.ts.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS last_fix (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      lat     REAL NOT NULL,
+      lng     REAL NOT NULL,
+      at      TEXT NOT NULL
+    );
+  `);
+
   return applied;
 }

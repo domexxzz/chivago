@@ -4,16 +4,8 @@ import { test, describe, beforeEach } from 'node:test';
 import { openTestDb, type DB } from './db.ts';
 import { applyMovement, ensureWallet, getBalances, getLedger } from './wallet-service.ts';
 import { inbox } from './notification-service.ts';
-import {
-  arriveAtQuest,
-  distanceMetres,
-  getProgress,
-  InvalidTransition,
-  joinQuest,
-  OutsideGeofence,
-  resolveVerification,
-  submitProof,
-} from './quest-service.ts';
+import { arriveAtQuest, distanceMetres, getProgress, InvalidTransition, joinQuest, OutsideGeofence, resolveVerification, submitProof, TooSoonAfterArrival } from './quest-service.ts';
+import { FixTooCoarse, MockedLocation } from './presence-service.ts';
 
 let db: DB;
 const USER = 'u1';
@@ -43,10 +35,13 @@ beforeEach(() => {
         'h1', 'today', SITE.lat, SITE.lng, 250);
 });
 
+/** Fifteen minutes from now: past the dwell floor, so a proof is not a drive-by. */
+const afterDwell = () => new Date(Date.now() + 15 * 60_000);
+
 const runToVerification = () => {
   joinQuest(db, USER, QUEST);
   arriveAtQuest(db, USER, QUEST, SITE);
-  return submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: 4.2 });
+  return submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: 4.2 }, afterDwell());
 };
 
 /**
@@ -84,7 +79,7 @@ describe('the happy path', () => {
     const arrived = arriveAtQuest(db, USER, QUEST, SITE);
     assert.equal(arrived.stage, 'arrived');
 
-    const { progress, proofId } = submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: 4.2 });
+    const { progress, proofId } = submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: 4.2 }, afterDwell());
     assert.equal(progress.stage, 'host_verification');
 
     assert.equal(getBalances(db, USER).green, 1240, 'no points before the host verifies');
@@ -114,6 +109,46 @@ describe('the client cannot award itself points', () => {
     // A second callback is now an invalid transition out of `complete`.
     assert.throws(() => resolveVerification(db, args), InvalidTransition);
     assert.equal(getBalances(db, USER).green, 1390, 'paid exactly once');
+  });
+});
+
+describe('the second signal on the site', () => {
+  test('proof a minute after arriving is a drive-by, and is refused', () => {
+    joinQuest(db, USER, QUEST);
+    arriveAtQuest(db, USER, QUEST, SITE);
+    assert.throws(
+      () => submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: 4.2 }, new Date(Date.now() + 60_000)),
+      TooSoonAfterArrival,
+    );
+    assert.equal(getProgress(db, USER, QUEST)!.stage, 'arrived', 'nothing moved');
+  });
+
+  test('proof with a position outside the site is refused even after the dwell', () => {
+    joinQuest(db, USER, QUEST);
+    arriveAtQuest(db, USER, QUEST, SITE);
+    const namuang = { lat: 9.4611, lng: 99.9908 };
+    assert.throws(
+      () => submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: 4.2, position: namuang }, afterDwell()),
+      OutsideGeofence,
+    );
+  });
+
+  test('proof with a second in-fence position, after the dwell, goes to the host', () => {
+    joinQuest(db, USER, QUEST);
+    arriveAtQuest(db, USER, QUEST, { ...SITE, accuracyM: 9 });
+    const { progress } = submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: 4.2, position: { ...SITE, accuracyM: 11 } }, afterDwell());
+    assert.equal(progress.stage, 'host_verification');
+  });
+
+  test('arrival on a simulated fix is refused, and the stage does not move', () => {
+    joinQuest(db, USER, QUEST);
+    assert.throws(() => arriveAtQuest(db, USER, QUEST, { ...SITE, mocked: true }), MockedLocation);
+    assert.equal(getProgress(db, USER, QUEST)!.stage, 'joined');
+  });
+
+  test('arrival on a fix wider than the site is refused', () => {
+    joinQuest(db, USER, QUEST);
+    assert.throws(() => arriveAtQuest(db, USER, QUEST, { ...SITE, accuracyM: 600 }), FixTooCoarse);
   });
 });
 
@@ -200,7 +235,7 @@ describe('rejection - the path the design omits', () => {
       reasonKey: 'no_work_shown',
     });
 
-    const second = submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: 4.2 });
+    const second = submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: 4.2 }, afterDwell());
     assert.equal(second.progress.stage, 'host_verification');
     assert.equal(second.progress.rejectionReason, null, 'stale rejection cleared');
 
@@ -283,7 +318,7 @@ describe('notifying the volunteer — the loop this closes', () => {
       userId: USER, questId: QUEST, proofId: first.proofId, approved: false,
       reasonKey: 'no_work_shown',
     });
-    const second = submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: 4.2 });
+    const second = submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: 4.2 }, afterDwell());
     resolveVerification(db, {
       userId: USER, questId: QUEST, proofId: second.proofId, approved: true,
     });

@@ -54,6 +54,9 @@ const daysAgo = (n: number): Date => new Date(NOW.getTime() - n * 86_400_000);
  * references it, and a foreign key error is a better outcome than an orphan.
  */
 const TRAVELLER_TABLES = [
+  // Recorded, not scored (docs/29) and the second signal (docs/30): both are
+  // the traveller's, and a demo reset starts them from nothing.
+  'self_visits', 'last_fix',
   'ledger', 'wallets', 'profiles',
   'mood_checkins', 'quest_progress', 'proofs', 'proof_files', 'vouchers',
   'place_reviews', 'review_reports', 'review_appeals', 'review_batches',
@@ -227,9 +230,13 @@ function seed(db: DB): void {
   // Check-ins through the real geofenced service, at the real coordinates. A
   // quietly refused one would leave a seeded state the app cannot produce, so
   // anything short of an award is fatal rather than skipped.
+  // Two hours between places on a day. The second signal (docs/30) refuses
+  // two beaches in the same instant as teleporting, and it is right to: a
+  // history the machine would refuse is not a history worth showing.
   for (const day of HISTORY) {
-    const at = daysAgo(day.day);
-    for (const id of day.places) {
+    const dayAt = daysAgo(day.day);
+    for (const [i, id] of day.places.entries()) {
+      const at = new Date(daysAgo(day.day).getTime() + i * 2 * 3_600_000);
       const p = place(id);
       const result = checkIn(db, { userId: USER, placeId: id, lat: p.lat, lng: p.lng, now: at });
       if (result === null) throw new Error(`check-in at ${id} was refused outright`);
@@ -237,25 +244,35 @@ function seed(db: DB): void {
         throw new Error(`check-in at ${id} on ${islandDateKey(at)} awarded nothing`);
       }
     }
-    if (day.mood) recordMood(db, USER, { mood: day.mood }, at);
+    if (day.mood) recordMood(db, USER, { mood: day.mood }, dayAt);
   }
 
   // Each quest driven through the real state machine at the real coordinates.
   // An invalid transition or a failed geofence throws, which is the point: a
   // seeded state the app itself could not produce is not worth demonstrating.
-  for (const id of VERIFIED_QUESTS) {
+  // Each quest three hours apart, and proof forty-five minutes after arrival:
+  // the second signal (docs/30) refuses two sites in the same minute and a
+  // proof filed on arrival, and a demo the machine would refuse is not worth
+  // showing.
+  for (const [i, id] of VERIFIED_QUESTS.entries()) {
     const q = quest(id);
+    // Afternoon of the day before, three hours apart, clear of that day's
+    // morning check-ins.
+    const arrivedAt = new Date(daysAgo(1).getTime() + (8 + i * 3) * 3_600_000);
+    const provedAt = new Date(arrivedAt.getTime() + 45 * 60_000);
+    const here = { lat: q.lat, lng: q.lng, accuracyM: 8 };
     joinQuest(db, USER, q.id);
-    arriveAtQuest(db, USER, q.id, { lat: q.lat, lng: q.lng });
+    arriveAtQuest(db, USER, q.id, here, arrivedAt);
     const { proofId } = submitProof(db, USER, q.id, {
       photos: [{
         uri: `demo://proof/${q.id}.jpg`,
         lat: q.lat,
         lng: q.lng,
-        takenAt: daysAgo(1).toISOString(),
+        takenAt: provedAt.toISOString(),
       }],
       weightKg: 3.2,
-    });
+      position: here,
+    }, provedAt);
     resolveVerification(db, {
       userId: USER, questId: q.id, proofId, approved: true,
       reviewedBy: 'Demo host', reviewNote: null,

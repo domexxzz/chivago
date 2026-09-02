@@ -82,6 +82,8 @@ export function QuestDetailScreen({
     const res = await api.arriveAtQuest(questId, {
       lat: pos.coords.latitude,
       lng: pos.coords.longitude,
+      accuracyM: pos.coords.accuracy ?? null,
+      mocked: pos.mocked ?? false,
     });
     setBusy(false);
     if (res.ok) data.reload();
@@ -120,9 +122,25 @@ export function QuestDetailScreen({
 
   const submit = async () => {
     setBusy(true);
+    // A second position, taken now. Arrival proved they got here; this
+    // proves they were still here when the work was done. See docs/30.
+    let pos: Location.LocationObject;
+    try {
+      pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    } catch {
+      setBusy(false);
+      onToast(t(strings.checkin.noFix));
+      return;
+    }
     const res = await api.submitProof(questId, {
       photos,
       weightKg: weight ? Number(weight) : null,
+      position: {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracyM: pos.coords.accuracy ?? null,
+        mocked: pos.mocked ?? false,
+      },
     });
     setBusy(false);
     if (res.ok) { setPhotos([]); setWeight(''); data.reload(); }

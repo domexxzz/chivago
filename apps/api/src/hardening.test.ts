@@ -198,3 +198,30 @@ describe('the air cross-check is finally applied', () => {
     assert.equal(out.provenance, 'live');
   });
 });
+
+describe('the second signal reaches the service through the route', () => {
+  // Caught live, not by the unit tests: the route parsed lat and lng, dropped
+  // accuracy and the mock flag on the floor, and the service checked nothing.
+  before(() => {
+    db.prepare(
+      `INSERT OR IGNORE INTO places (id, name_en, name_th, short, layer, lat, lng, meta,
+         blurb_en, blurb_th, tags, safety_label_en, safety_label_th,
+         crowd_density, aqi, safety_index, walkability)
+       VALUES ('p-signal','Signal Beach','x','Sig','Green',9.5357,100.0617,'Beach','x','x','[]',
+               'Patrolled','x',2,40,7,8)`,
+    ).run();
+  });
+
+  test('a check-in that says it is mocked is refused at the route', async () => {
+    const raw = await post('/places/p-signal/checkin', { lat: 9.5357, lng: 100.0617, accuracyM: 8, mocked: true });
+    assert.equal(raw.status, 403);
+    assert.equal((await json(raw)).code, 'MOCK_LOCATION');
+  });
+
+  test('a check-in whose fix is wider than the fence is refused at the route', async () => {
+    const raw = await post('/places/p-signal/checkin', { lat: 9.5357, lng: 100.0617, accuracyM: 900 });
+    assert.equal(raw.status, 403);
+    assert.equal((await json(raw)).code, 'FIX_TOO_COARSE');
+  });
+});
+

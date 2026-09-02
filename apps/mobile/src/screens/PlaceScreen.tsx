@@ -85,9 +85,13 @@ export function PlaceScreen({
       setOfferNote(true);
       return;
     }
+    // The fix's own accuracy and mock flag travel with it - the second
+    // signal the server reads. See docs/30.
     const res = await api.checkIn(placeId, {
       lat: pos.coords.latitude,
       lng: pos.coords.longitude,
+      accuracyM: pos.coords.accuracy ?? null,
+      mocked: pos.mocked ?? false,
     });
     setBusy(false);
     if (!res.ok) { onToast(res.error); setOfferNote(true); return; }

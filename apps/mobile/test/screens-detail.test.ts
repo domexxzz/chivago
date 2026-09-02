@@ -124,7 +124,7 @@ describe('a place, and checking in to it', () => {
       assert.ok(posted, 'a check-in must reach the server');
       // The client sends coordinates and the SERVER decides the geofence.
       // A client that judged its own distance is a client that can lie.
-      assert.deepEqual(posted.body, { lat: 9.5357, lng: 100.0617 });
+      assert.deepEqual(posted.body, { lat: 9.5357, lng: 100.0617, accuracyM: 12, mocked: false });
       assert.match(toasted, /\+40 Trip Points/);
       assert.equal(pointsChanged, 1);
       ui.unmount();
@@ -317,7 +317,7 @@ describe('a quest, from joining to verification', () => {
 
       const posted = net.calls.find((c) => c.path === '/quests/q1/arrive');
       assert.ok(posted, 'arriving must reach the server');
-      assert.deepEqual(posted.body, { lat: 9.5357, lng: 100.0617 });
+      assert.deepEqual(posted.body, { lat: 9.5357, lng: 100.0617, accuracyM: 12, mocked: false });
       ui.unmount();
     } finally { net.restore(); resetControl(); }
   });
