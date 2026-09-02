@@ -208,7 +208,10 @@ function writeCache(db: DB, key: string, reading: AirReading): void {
     `INSERT INTO air_cache (grid_key, aqi, pm25, fetched_at) VALUES (?, ?, ?, ?)
      ON CONFLICT(grid_key) DO UPDATE SET aqi = excluded.aqi, pm25 = excluded.pm25,
        fetched_at = excluded.fetched_at`,
-  ).run(key, reading.aqi, reading.pm25, reading.observedAt);
+  // `fetched_at` is WHEN WE ASKED, which is what a TTL is about. It used to
+  // store the model's own hourly timestamp, so a reading fetched at :59 was
+  // "stale" a minute later and the upstream was asked again on the next pan.
+  ).run(key, reading.aqi, reading.pm25, new Date().toISOString());
 }
 
 /**
@@ -218,28 +221,80 @@ function writeCache(db: DB, key: string, reading: AirReading): void {
  * nothing: if every source fails, the caller gets `fallbackAqi` (the seeded
  * baseline) marked `stale`, and the Healthy Score weights it down accordingly.
  */
+export interface AirSources {
+  fetchLive: (lat: number, lng: number) => Promise<AirReading>;
+  fetchGround: () => Promise<number | null>;
+}
+
+const LIVE_SOURCES: AirSources = { fetchLive: fetchLiveAir, fetchGround: fetchGroundCrossCheck };
+
+/** The ground station's cache slot. One station, one row, same TTL. */
+const GROUND_KEY = `ground:${NEAREST_GROUND_STATION.id}`;
+
+/**
+ * The nearest ground reading, cached like the model is.
+ *
+ * Air4Thai is one request for the whole country, so it is asked at most once
+ * per TTL however many places are scored, and a failure is remembered as
+ * "no reading" for the same window rather than retried on every map pan.
+ */
+async function groundReading(db: DB, sources: AirSources): Promise<number | null> {
+  const cached = readCache(db, GROUND_KEY);
+  if (cached && cached.provenance === 'live') return cached.aqi < 0 ? null : cached.aqi;
+  const ground = await sources.fetchGround();
+  writeCache(db, GROUND_KEY, {
+    // -1 stands for "asked, and there was nothing": Air4Thai's own sentinel
+    // for an offline sensor, reused here so the miss is cached too.
+    aqi: ground ?? -1, pm25: null, provenance: 'live', source: 'Air4Thai',
+    observedAt: new Date().toISOString(),
+  });
+  return ground;
+}
+
+/**
+ * The function the routes actually call.
+ *
+ * Never throws. Air is a nice-to-have on a map screen and a hard dependency on
+ * nothing: if every source fails, the caller gets `fallbackAqi` (the seeded
+ * baseline) marked `stale`, and the Healthy Score weights it down accordingly.
+ *
+ * The ground cross-check documented at the top of this file is applied HERE.
+ * For its first forty commits it was implemented, exported, tested in
+ * isolation, and never called - so `estimated` was a provenance the score
+ * could weight and no reading could ever carry. `sources` is injectable so
+ * a test can hand in a station that disagrees.
+ */
 export async function getAir(
   db: DB,
   lat: number,
   lng: number,
   fallbackAqi: number,
+  sources: AirSources = LIVE_SOURCES,
 ): Promise<AirReading> {
   const key = gridKey(lat, lng);
   const cached = readCache(db, key);
-  if (cached && cached.provenance === 'live') return cached;
 
-  try {
-    const live = await fetchLiveAir(lat, lng);
-    writeCache(db, key, live);
-    return live;
-  } catch {
-    if (cached) return cached;
-    return {
-      aqi: fallbackAqi,
-      pm25: null,
-      provenance: 'stale',
-      source: 'Seeded baseline — live feed unavailable',
-      observedAt: new Date().toISOString(),
-    };
+  let reading: AirReading;
+  if (cached && cached.provenance === 'live') {
+    reading = cached;
+  } else {
+    try {
+      reading = await sources.fetchLive(lat, lng);
+      writeCache(db, key, reading);
+    } catch {
+      if (cached) return cached;
+      return {
+        aqi: fallbackAqi,
+        pm25: null,
+        provenance: 'stale',
+        source: 'Seeded baseline — live feed unavailable',
+        observedAt: new Date().toISOString(),
+      };
+    }
   }
+
+  // A cross-check that fails must degrade nothing: null means "no opinion".
+  let ground: number | null = null;
+  try { ground = await groundReading(db, sources); } catch { ground = null; }
+  return reconcile(reading, ground);
 }
