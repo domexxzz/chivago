@@ -181,7 +181,7 @@ function BalanceBlock({
   return (
     <View style={{ marginTop: 24, borderTopWidth: layout.ruleStrong, borderTopColor: color.text }}>
       <View style={{ paddingHorizontal: gutter, paddingTop: 18 }}>
-        <Label size={10} tracking={0.16}>Chiva Balance · สมดุลชีวา</Label>
+        <Label size={10} tracking={0.16}>{t({ en: 'Chiva Balance', th: 'สมดุลชีวา' })}</Label>
 
         {loading ? <LoadingState /> : null}
         {error ? <ErrorState message={error} onRetry={onRetry} /> : null}
@@ -242,9 +242,7 @@ function BalanceBlock({
 function MoodRow({ onMood }: { onMood: (mood: MoodKey) => void }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 8 }}>
-      <Label size={10} tracking={0.14} colour={color.neutral600}>
-        How are you today? · วันนี้เป็นอย่างไรบ้าง
-      </Label>
+      <Label size={10} tracking={0.14} colour={color.neutral600}>{t({ en: 'How are you today?', th: 'วันนี้เป็นอย่างไรบ้าง' })}</Label>
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
         {MOOD_KEYS.map((key) => (
           <Pressable

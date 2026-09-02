@@ -114,8 +114,10 @@ describe('the phone you are holding', () => {
     restore = s.restore;
     const ui = await mountScreen(h(AccountScreen, props));
 
-    assert.match(ui.text(), /IN USE/);
-    assert.doesNotMatch(ui.text(), /REMOVE/, 'the current phone offered to remove itself');
+    // Case-insensitive: `Label` uppercases in CSS, and the copy is now a
+    // translatable pair written in sentence case (Thai has no case to shout).
+    assert.match(ui.text(), /in use/i);
+    assert.doesNotMatch(ui.text(), /remove/i, 'the current phone offered to remove itself');
     ui.unmount();
   });
 
@@ -128,7 +130,7 @@ describe('the phone you are holding', () => {
     });
     restore = s.restore;
     const ui = await mountScreen(h(AccountScreen, props));
-    assert.match(ui.text(), /REMOVE/);
+    assert.match(ui.text(), /remove/i);
     assert.match(ui.labels().join(' '), /Remove Old phone from the account/);
     ui.unmount();
   });

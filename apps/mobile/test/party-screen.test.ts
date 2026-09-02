@@ -68,7 +68,7 @@ describe('travelling on your own', () => {
     const ui = await mountScreen(h(PartyScreen, props));
     await ui.pressText(/Start a group/);
     assert.match(ui.text(), /K7M2QP/);
-    assert.match(ui.text(), /SHARE THIS CODE/);
+    assert.match(ui.text(), /share this code/i);
     ui.unmount();
   });
 
@@ -136,7 +136,7 @@ describe('travelling together', () => {
     // screen — in the panel promising not to show one — and asserting against
     // the whole page would have failed on the disclosure doing its job.
     const rows = said.slice(said.indexOf('Who is here'), said.indexOf('WHAT A GROUP'));
-    assert.match(rows, /VERIFIED/);
+    assert.match(rows, /verified/i);
     assert.doesNotMatch(rows, /balance/i, 'a balance reached the member rows');
     assert.doesNotMatch(rows, /610/, 'a green total was shown against a member');
 

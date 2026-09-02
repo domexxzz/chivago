@@ -69,9 +69,7 @@ export function PassportScreen() {
           backgroundColor: color.paper,
         }}
       >
-        <Label size={10} tracking={0.16} colour={color.brandSoft}>
-          Province passport · พาสปอร์ตจังหวัด
-        </Label>
+        <Label size={10} tracking={0.16} colour={color.brandSoft}>{t({ en: 'Province passport', th: 'พาสปอร์ตจังหวัด' })}</Label>
 
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 10 }}>
           <Heading size={44} colour={color.surface} tracking={-1}>
@@ -83,7 +81,7 @@ export function PassportScreen() {
         <Body size={13} colour={color.brandSoft} style={{ marginTop: 6 }}>
           {t({
             en: `${progress.open} provinces are open today. The rest of Thailand is listed and not yet built.`,
-            th: `เก็บให้ครบทั่วไทย · เปิดแล้ว ${progress.open} จังหวัด`,
+            th: `เปิดแล้ว ${progress.open} จังหวัดในวันนี้ จังหวัดที่เหลือทั่วไทยมีอยู่ในรายการแต่ยังไม่เปิด`,
           })}
         </Body>
 
@@ -123,8 +121,10 @@ export function PassportScreen() {
 
       <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 36 }}>
         <Label size={9} tracking={0.06} colour={color.neutral600} style={{ textTransform: 'none' }}>
-          A province opens when it has real places, measured air and crowding, a
-          licensed photograph and a host who can verify a quest. Not before.
+          {t({
+            en: 'A province opens when it has real places, measured air and crowding, a licensed photograph and a host who can verify a quest. Not before.',
+            th: 'จังหวัดจะเปิดเมื่อมีสถานที่จริง ค่าอากาศและความหนาแน่นที่วัดได้ ภาพถ่ายที่มีสิทธิ์ใช้ และผู้จัดที่ตรวจภารกิจได้ ไม่เปิดก่อนหน้านั้น',
+          })}
         </Label>
       </View>
     </ScrollView>

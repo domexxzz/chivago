@@ -84,7 +84,9 @@ export function MapScreen({
           )}
           {visible.length === 0 ? (
             <View style={{ padding: gutter }}>
-              <Body colour={color.neutral700}>No places match the active layers.</Body>
+              <Body colour={color.neutral700}>
+                {t({ en: 'No places match the active layers.', th: 'ไม่มีสถานที่ตรงกับตัวกรองที่เลือก' })}
+              </Body>
             </View>
           ) : null}
         </>
@@ -234,13 +236,13 @@ export function MapHeader({
             <Heading size={21} colour={color.accent700}>
               {balances.green.toLocaleString('en-US')}
             </Heading>
-            <Label size={10} tracking={0.1} colour={color.accent700}>GREEN</Label>
+            <Label size={10} tracking={0.1} colour={color.accent700}>{t(strings.wallet.green)}</Label>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5, marginTop: 1 }}>
             <Heading size={14} colour={color.neutral700}>
               {balances.trip.toLocaleString('en-US')}
             </Heading>
-            <Label size={9} tracking={0.1} colour={color.neutral700}>TRIP</Label>
+            <Label size={9} tracking={0.1} colour={color.neutral700}>{t(strings.wallet.trip)}</Label>
           </View>
         </Pressable>
       </View>

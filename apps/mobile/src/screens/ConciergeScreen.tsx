@@ -60,7 +60,7 @@ export function ConciergeScreen({
   return (
     <View style={{ flex: 1, backgroundColor: color.bg }}>
       <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 12 }}>
-        <Label size={10} tracking={0.16}>Concierge · ผู้ช่วยแนะนำ</Label>
+        <Label size={10} tracking={0.16}>{t({ en: 'Concierge', th: 'ผู้ช่วยแนะนำ' })}</Label>
         <Heading size={24} tracking={-0.48} style={{ marginTop: 6 }}>{t({ en: 'Ask me where to go', th: 'ถามได้ทั้งภาษาไทยและอังกฤษ' })}</Heading>
       </View>
 
@@ -98,7 +98,7 @@ export function ConciergeScreen({
 function Openers({ onPick }: { onPick: (text: string) => void }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 6 }}>
-      <Label size={9} tracking={0.14} colour={color.neutral600}>Try asking</Label>
+      <Label size={9} tracking={0.14} colour={color.neutral600}>{t({ en: 'Try asking', th: 'ลองถามว่า' })}</Label>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
         {OPENERS.map((o) => (
           <Pressable
@@ -288,7 +288,7 @@ function Composer({
         onChangeText={onChange}
         onSubmitEditing={onSend}
         returnKeyType="send"
-        placeholder="Ask in Thai or English…"
+        placeholder={t({ en: 'Ask in Thai or English…', th: 'ถามเป็นไทยหรืออังกฤษก็ได้…' })}
         placeholderTextColor={color.neutral500}
         accessibilityLabel="Ask the concierge"
         style={{

@@ -189,7 +189,7 @@ function Conditions({
               {avg}
             </Heading>
             <Label size={10} tracking={0.12} colour={color.brandSoft}>
-              HEALTHY SCORE · AVERAGE
+              {`${t(strings.place.healthyScore)} · ${t({ en: 'Average', th: 'เฉลี่ย' })}`}
             </Label>
           </View>
 
@@ -212,7 +212,7 @@ function Conditions({
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, minHeight: 44 }}
           >
             <Label size={10} tracking={0.1} colour={color.surface}>
-              SEE EVERY PLACE
+              {t({ en: 'See every place', th: 'ดูทุกสถานที่' })}
             </Label>
             <ChevronRight size={16} color={color.surface} strokeWidth={2} />
           </Pressable>
@@ -254,7 +254,7 @@ function Today({
         <ErrorState message={quests.error} onRetry={quests.reload} />
       ) : quests.loading ? (
         <Body size={13} colour={color.neutral600} style={{ paddingHorizontal: gutter }}>
-          Loading today’s missions…
+          {t({ en: 'Loading today’s missions…', th: 'กำลังโหลดภารกิจวันนี้…' })}
         </Body>
       ) : ordered.length === 0 ? (
         /*
@@ -273,13 +273,13 @@ function Today({
               <Body size={13} colour={color.accent700}>
                 {t({
                   en: `All ${finished} of today’s missions are done. Nothing left to verify until tomorrow.`,
-                  th: `ทำภารกิจวันนี้ครบทั้ง ${finished} รายการแล้ว`,
+                  th: `ทำภารกิจวันนี้ครบทั้ง ${finished} รายการแล้ว ไม่มีอะไรรอตรวจจนถึงพรุ่งนี้`,
                 })}
               </Body>
             </>
           ) : (
             <>
-              <Body size={13} colour={color.neutral700}>{t({ en: 'No missions running today. The map still works, and the weekend list usually has something.', th: 'วันนี้ยังไม่มีภารกิจ' })}</Body>
+              <Body size={13} colour={color.neutral700}>{t({ en: 'No missions running today. The map still works, and the weekend list usually has something.', th: 'วันนี้ยังไม่มีภารกิจ แผนที่ยังใช้ได้ และรายการสุดสัปดาห์มักมีให้ทำ' })}</Body>
             </>
           )}
           <Button
@@ -350,9 +350,7 @@ function QuestCard({
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
         <View style={{ flex: 1 }}>
           {started ? (
-            <Label size={9} tracking={0.14} colour={color.brand} style={{ marginBottom: 4 }}>
-              IN PROGRESS · กำลังทำอยู่
-            </Label>
+            <Label size={9} tracking={0.14} colour={color.brand} style={{ marginBottom: 4 }}>{t({ en: 'IN PROGRESS', th: 'กำลังทำอยู่' })}</Label>
           ) : null}
           <Heading size={16}>{t(quest.name)}</Heading>
 

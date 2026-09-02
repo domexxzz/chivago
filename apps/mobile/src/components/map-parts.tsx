@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { isHighScore, type ScoredPlace } from '@chivago/core';
+import { isHighScore, strings, type ScoredPlace } from '@chivago/core';
 import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Heading, Label } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
@@ -98,7 +98,17 @@ export function MapLegend({ places }: { places: ScoredPlace[] }) {
 /**
  * The layer chips. Each place carries exactly one layer key, so the filter is a
  * straight predicate rather than a set intersection.
+ *
+ * The KEY is state and stays English; what the chip says is the layer's name in
+ * the reader's language. They used to be the same string, so a Thai reader got
+ * a row of English on the first screen they see.
  */
+/** A layer's name in the reader's language, or its key if it is not a known layer. */
+const layerName = (key: string): string => {
+  const named = (strings.map.layers as Record<string, { en: string; th: string } | undefined>)[key];
+  return named ? t(named) : key;
+};
+
 export function LayerChips({
   layers, onToggle,
 }: {
@@ -118,7 +128,7 @@ export function LayerChips({
           onPress={() => onToggle(key)}
           accessibilityRole="switch"
           accessibilityState={{ checked: on }}
-          accessibilityLabel={`${key} layer`}
+          accessibilityLabel={`${layerName(key)} layer`}
           style={{
             // 44 is not decoration. At paddingVertical 6 these came out 28px
             // tall - a third under the iOS floor - and they are the primary
@@ -139,7 +149,7 @@ export function LayerChips({
             backgroundColor: on ? color.brand : 'transparent',
           }}
         >
-          <Label size={11} tracking={0.06} colour={on ? onFill.brand : color.neutral700}>{key}</Label>
+          <Label size={11} tracking={0.06} colour={on ? onFill.brand : color.neutral700}>{layerName(key)}</Label>
         </Pressable>
       ))}
     </ScrollView>

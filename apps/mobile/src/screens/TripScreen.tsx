@@ -93,7 +93,7 @@ export function TripScreen({
                 value={`+${plan.data.pointsAvailable}`}
                 accent
               />
-              <Stat label="Fares" value={`฿${plan.data.fareTHB}`} />
+              <Stat label={t({ en: 'Fares', th: 'ค่าเดินทาง' })} value={`฿${plan.data.fareTHB}`} />
             </View>
 
             {plan.data.items.length === 0 ? (
@@ -237,7 +237,7 @@ function Dropped({ dropped }: { dropped: TripPlan['dropped'] }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 20 }}>
       <Label size={10} tracking={0.14} colour={color.neutral600}>
-        Left out of today
+        {t({ en: 'Left out of today', th: 'ไม่ได้อยู่ในแผนวันนี้' })}
       </Label>
       {dropped.map((d) => (
         <View
@@ -293,7 +293,7 @@ function PriceOutlook({
   return (
     <View style={{ marginTop: 26, borderTopWidth: layout.ruleStrong, borderTopColor: color.text }}>
       <View style={{ paddingHorizontal: gutter, paddingTop: 18 }}>
-        <Label size={10} tracking={0.16}>A night on Samui · ราคาที่พักต่อคืน</Label>
+        <Label size={10} tracking={0.16}>{t({ en: 'A night on Samui', th: 'ราคาที่พักต่อคืน' })}</Label>
 
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 8 }}>
           {/*

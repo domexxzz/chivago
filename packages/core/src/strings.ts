@@ -1,16 +1,22 @@
 /**
- * Every UI string in the app, bilingual.
+ * Every shared UI string in the app, in both languages.
  *
- * The app is not "switchable" between languages - it shows BOTH. English is the
- * primary line, Thai is a secondary caption underneath. That is a deliberate
- * product decision for a destination where the audience is roughly half
- * international and half domestic.
+ * The app shows ONE at a time, chosen from the phone's locale and switchable on
+ * the Account screen - see `apps/mobile/src/i18n/locale.ts`. It used to print
+ * both, English with the Thai captioned underneath, which doubled the length of
+ * every screen on a phone. The pairs are still authored together here so a
+ * translation can never drift from what it translates.
+ *
+ * The exception is anything an emergency responder might read off a
+ * traveller's phone - the SOS banner, the Safety screen, the emergency numbers.
+ * Those keep both languages whatever the app is set to.
  *
  * WHY ONE FILE
  * Handoff open question 8: "all Thai strings in this bundle were authored for
- * design and need a native review pass before release." Keeping every Thai
- * string here makes that review a single pass over a single file, rather than a
- * hunt through 40 components. Do not inline a Thai string in a component.
+ * design and need a native review pass before release." Keeping the shared ones
+ * here makes that review mostly a single pass over a single file. Screen-local
+ * copy may be paired inline as `t({ en, th })`; `pnpm thai:review` collects
+ * both shapes, so nothing written either way escapes the review.
  *
  * REVIEW STATUS: th strings are DESIGN DRAFT. Not yet reviewed by a native
  * speaker. See docs/04-open-questions.md.
@@ -224,6 +230,9 @@ export const strings = {
     expNote: t('EXP is never spent', 'EXP ไม่ถูกหักเมื่อใช้แต้ม'),
     ledger: t('Ledger', 'ประวัติแต้ม'),
     spendPoints: t('Spend points', 'ใช้แต้ม'),
+    /** The two purses, named. Shown beside a figure, so short. */
+    green: t('Green', 'เขียว'),
+    trip: t('Trip', 'ทริป'),
 
     emptyLedger: t('No activity yet — join a quest to start earning', 'ยังไม่มีรายการ เริ่มจากเข้าร่วมภารกิจ'),
   },

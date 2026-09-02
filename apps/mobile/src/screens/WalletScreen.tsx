@@ -99,7 +99,10 @@ function AccountRow({ onOpenAccount }: { onOpenAccount: () => void }) {
       <View style={{ flex: 1 }}>
         <Heading size={15}>{t({ en: 'Your account', th: 'บัญชีของคุณ' })}</Heading>
         <Label size={9} tracking={0.04} colour={color.neutral600} style={{ marginTop: 5, textTransform: 'none' }}>
-          Add another phone so none of this depends on keeping this one.
+          {t({
+            en: 'Add another phone so none of this depends on keeping this one.',
+            th: 'เพิ่มอีกเครื่อง เพื่อไม่ให้ทุกอย่างขึ้นกับเครื่องนี้เครื่องเดียว',
+          })}
         </Label>
       </View>
       <ChevronRight size={18} color={color.brand} strokeWidth={2} />
@@ -446,9 +449,9 @@ function Companions({
         flexDirection: 'row', justifyContent: 'space-between',
         alignItems: 'baseline', paddingHorizontal: gutter,
       }}>
-        <Label size={10} tracking={0.16}>Companions · สัตว์ประจำถิ่น</Label>
+        <Label size={10} tracking={0.16}>{t({ en: 'Companions', th: 'สัตว์ประจำถิ่น' })}</Label>
         <Label size={10} tracking={0.12} colour={color.neutral600}>
-          {`${summary.found}/${summary.total} · ${summary.grown} GROWN`}
+          {`${summary.found}/${summary.total} · ${summary.grown} ${t({ en: 'grown', th: 'โตเต็มวัย' })}`}
         </Label>
       </View>
 

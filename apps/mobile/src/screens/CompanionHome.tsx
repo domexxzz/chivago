@@ -158,7 +158,7 @@ export function CompanionHomeScreen({
             borderWidth: 1, borderColor: color.neutral400, borderRadius: radius.md,
           }}
         >
-          <Label size={9} tracking={0.14} colour={color.neutral600}>Next</Label>
+          <Label size={9} tracking={0.14} colour={color.neutral600}>{t({ en: 'Next', th: 'ต่อไป' })}</Label>
           {/* An instruction, not a receipt: "do this next" has not happened yet. */}
           <Body size={14} colour={color.ctaDeep} style={{ marginTop: 6 }}>{t(nextStep)}</Body>
 
@@ -234,9 +234,7 @@ function HabitatCondition({
 
   return (
     <View style={{ marginTop: 20, paddingHorizontal: gutter }}>
-      <Label size={9} tracking={0.14} colour={color.neutral600}>
-        Its home today · ถิ่นอาศัยวันนี้
-      </Label>
+      <Label size={9} tracking={0.14} colour={color.neutral600}>{t({ en: 'Its home today', th: 'ถิ่นอาศัยวันนี้' })}</Label>
 
       <Meter
         label="Air"

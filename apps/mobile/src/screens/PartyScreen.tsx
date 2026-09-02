@@ -40,7 +40,7 @@ export function PartyScreen({
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <PushHeader context="Travelling with · ไปกับใคร" onBack={onBack} />
+      <PushHeader context={t({ en: 'Travelling with', th: 'ไปกับใคร' })} onBack={onBack} />
 
       {party.error ? <ErrorState message={party.error} onRetry={party.reload} /> : null}
       {party.loading && !data ? <LoadingState /> : null}
@@ -135,11 +135,12 @@ function Alone({
               borderRadius: radius.md, backgroundColor: color.surface,
             }}
           >
-            <Label size={10} tracking={0.12} colour={color.neutral600}>SHARE THIS CODE</Label>
+            <Label size={10} tracking={0.12} colour={color.neutral600}>
+              {t({ en: 'Share this code', th: 'ให้เพื่อนกรอกรหัสนี้' })}
+            </Label>
             <Heading size={32} colour={color.brandDeep} tracking={5} style={{ marginTop: 6 }}>
               {made}
             </Heading>
-            <Thai size={10} style={{ marginTop: 6 }}>ให้เพื่อนกรอกรหัสนี้</Thai>
           </View>
         )}
       </View>
@@ -177,7 +178,7 @@ function Alone({
             }}
           >
             <Heading size={14} colour={code.trim().length === 0 ? color.neutral600 : onFill.cta}>
-              Join
+              {t({ en: 'Join', th: 'เข้าร่วม' })}
             </Heading>
           </Pressable>
         </View>
@@ -256,7 +257,7 @@ function Members({ summary }: { summary: PartySummary }) {
             </Label>
           </View>
 
-          {m.you ? <Label size={9} tracking={0.1} colour={color.brand}>YOU</Label> : null}
+          {m.you ? <Label size={9} tracking={0.1} colour={color.brand}>{t({ en: 'You', th: 'คุณ' })}</Label> : null}
 
           {/*
             What they EARNED, never what they hold. Earned is an achievement and
@@ -268,7 +269,7 @@ function Members({ summary }: { summary: PartySummary }) {
             <Heading size={15} colour={m.greenEarned > 0 ? color.accent700 : color.neutral500}>
               {m.missionsVerified}
             </Heading>
-            <Label size={9} tracking={0.06} colour={color.neutral600}>VERIFIED</Label>
+            <Label size={9} tracking={0.06} colour={color.neutral600}>{t({ en: 'Verified', th: 'ยืนยันแล้ว' })}</Label>
           </View>
         </View>
       ))}
@@ -285,9 +286,7 @@ function DoesNot({ items }: { items: Bilingual[] }) {
         borderWidth: 1, borderColor: color.neutral300,
       }}
     >
-      <Label size={10} tracking={0.14} colour={color.neutral700}>
-        WHAT A GROUP DOES NOT DO · สิ่งที่กลุ่มไม่ได้ทำ
-      </Label>
+      <Label size={10} tracking={0.14} colour={color.neutral700}>{t({ en: 'WHAT A GROUP DOES NOT DO', th: 'สิ่งที่กลุ่มไม่ได้ทำ' })}</Label>
       {items.map((d) => (
         <View key={t(d)} style={{ marginTop: 10 }}>
           <Body size={13} colour={color.neutral800}>{t(d)}</Body>
@@ -323,7 +322,10 @@ function Leave({
         scary modal would imply otherwise.
       */}
       <Label size={9} tracking={0.04} colour={color.neutral600} style={{ marginTop: 8, textTransform: 'none' }}>
-        Your points, stamps and companions stay with you. They always were yours.
+        {t({
+          en: 'Your points, stamps and companions stay with you. They always were yours.',
+          th: 'แต้ม แสตมป์ และเพื่อนร่วมทางยังอยู่กับคุณ เป็นของคุณมาตลอด',
+        })}
       </Label>
     </View>
   );

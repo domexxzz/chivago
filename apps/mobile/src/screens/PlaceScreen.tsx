@@ -294,7 +294,9 @@ function BreakdownSheet({
                 marginTop: 18,
               }}
             >
-              <Label size={10} tracking={0.14} colour={color.accent700}>Where the air reading comes from</Label>
+              <Label size={10} tracking={0.14} colour={color.accent700}>
+                {t({ en: 'Where the air reading comes from', th: 'ค่าอากาศนี้มาจากไหน' })}
+              </Label>
               <Body size={13} style={{ marginTop: 8 }}>
                 {air?.source ?? 'Seeded baseline'}
               </Body>
@@ -302,9 +304,10 @@ function BreakdownSheet({
                   the data does not have. Thailand has no air monitoring station
                   on Koh Samui; the nearest is ~87 km away on the mainland. */}
               <Body size={13} colour={color.neutral700} style={{ marginTop: 8 }}>
-                Air is modelled for an ~11 km area, not this exact spot. Thailand has no
-                monitoring station on Koh Samui — the nearest is about 87 km away on the
-                mainland — so island-wide readings are the honest resolution today.
+                {t({
+                  en: 'Air is modelled for an ~11 km area, not this exact spot. Thailand has no monitoring station on Koh Samui — the nearest is about 87 km away on the mainland — so island-wide readings are the honest resolution today.',
+                  th: 'ค่าอากาศเป็นแบบจำลองครอบคลุมพื้นที่ราว 11 กม. ไม่ใช่จุดนี้จุดเดียว เกาะสมุยไม่มีสถานีตรวจวัดอากาศ สถานีที่ใกล้ที่สุดอยู่ห่างราว 87 กม. บนฝั่ง ค่าระดับเกาะจึงเป็นความละเอียดที่ตรงไปตรงมาที่สุดในวันนี้',
+                })}
               </Body>
             </View>
           </ScrollView>

@@ -75,8 +75,10 @@ describe('the map header names both currencies, in words', () => {
     // It read "1,240 G · 320 T". The difference between the two - one vouched
     // for by a host, one seen only by the phone - is the whole product, and it
     // was compressed into two letters a first-time reader cannot decode.
-    assert.match(header(), /1,240\s*GREEN/);
-    assert.match(header(), /320\s*TRIP/);
+    // Case-insensitive: the caps are the stylesheet's, and the words are now
+    // a translatable pair written in sentence case.
+    assert.match(header(), /1,240\s*green/i);
+    assert.match(header(), /320\s*trip/i);
   });
 
   test('no caption sits under both figures describing one of them', () => {

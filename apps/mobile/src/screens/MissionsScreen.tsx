@@ -196,10 +196,10 @@ export function QuestRow({
           {/* Progress is surfaced on the row so a half-finished quest is not
               lost behind a tap. The design has no such affordance. */}
           {progress && progress.stage !== 'complete' ? (
-            <Label size={10} tracking={0.1} colour={color.accent700}>· IN PROGRESS</Label>
+            <Label size={10} tracking={0.1} colour={color.accent700}>{`· ${t({ en: 'In progress', th: 'กำลังทำ' })}`}</Label>
           ) : null}
           {progress?.stage === 'complete' ? (
-            <Label size={10} tracking={0.1} colour={color.accent700}>· DONE</Label>
+            <Label size={10} tracking={0.1} colour={color.accent700}>{`· ${t({ en: 'Done', th: 'เสร็จแล้ว' })}`}</Label>
           ) : null}
         </View>
       </View>
@@ -234,7 +234,7 @@ function Standing() {
         <ErrorState message={standing.error} onRetry={standing.reload} />
       ) : standing.loading || !data ? (
         <Body size={13} colour={color.neutral600} style={{ paddingHorizontal: gutter }}>
-          Loading…
+          {t(strings.common.loading)}
         </Body>
       ) : (
         <>
@@ -250,18 +250,16 @@ function Standing() {
                 backgroundColor: color.brandSoft, borderRadius: radius.md,
               }}
             >
-              <Label size={9} tracking={0.12} colour={color.brandDeep}>
-                YOUR RECORD · ผลงานของคุณ
-              </Label>
+              <Label size={9} tracking={0.12} colour={color.brandDeep}>{t({ en: 'YOUR RECORD', th: 'ผลงานของคุณ' })}</Label>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
                 <Heading size={26} colour={color.brandDeep}>{data.you.missionsVerified}</Heading>
                 <Body size={13} colour={color.brandDeep}>
-                  {`mission${data.you.missionsVerified === 1 ? '' : 's'} verified · ${data.you.greenVerified.toLocaleString('en-US')} G earned`}
+                  {t({
+                    en: `mission${data.you.missionsVerified === 1 ? '' : 's'} verified · ${data.you.greenVerified.toLocaleString('en-US')} G earned`,
+                    th: `ครั้งที่ผ่านการตรวจ · ได้ ${data.you.greenVerified.toLocaleString('en-US')} แต้มเขียว`,
+                  })}
                 </Body>
               </View>
-              <Thai size={10} colour={color.brandDeep} style={{ marginTop: 3 }}>
-                {`ผ่านการตรวจ ${data.you.missionsVerified} ครั้ง · ได้ ${data.you.greenVerified.toLocaleString('en-US')} แต้มเขียว`}
-              </Thai>
             </View>
           ) : null}
 
@@ -273,13 +271,13 @@ function Standing() {
           {!isRankable(data.participants) ? (
             <View style={{ paddingHorizontal: gutter, paddingBottom: 12 }}>
               <Body size={13} colour={color.neutral700}>
-                {data.participants === 1
-                  ? 'One traveller has verified points so far, so there is no traveller ranking yet. The hosts below are real.'
-                  : 'Nobody has verified points yet, so there is no traveller ranking. The hosts below are real.'}
+                {t({
+                  en: data.participants === 1
+                    ? 'One traveller has verified points so far, so there is no traveller ranking yet. The hosts below are real.'
+                    : 'Nobody has verified points yet, so there is no traveller ranking. The hosts below are real.',
+                  th: 'ยังจัดอันดับนักเดินทางไม่ได้ เพราะยังมีคนน้อยเกินไป ผู้จัดภารกิจด้านล่างเป็นของจริง',
+                })}
               </Body>
-              <Thai size={11} style={{ marginTop: 4 }}>
-                ยังจัดอันดับนักเดินทางไม่ได้ เพราะยังมีคนน้อยเกินไป
-              </Thai>
             </View>
           ) : null}
 
@@ -331,7 +329,7 @@ function HostRow({ host, place }: { host: HostStanding; place: number }) {
 
       <View style={{ alignItems: 'flex-end' }}>
         <Heading size={17} colour={idle ? color.neutral500 : color.accent700}>{host.verified}</Heading>
-        <Label size={9} tracking={0.08} colour={color.neutral600}>VERIFIED</Label>
+        <Label size={9} tracking={0.08} colour={color.neutral600}>{t(strings.quest.verified)}</Label>
         {host.greenIssued > 0 ? (
           <Label size={9} tracking={0.06} colour={color.accent700} style={{ marginTop: 2 }}>
             {`${host.greenIssued.toLocaleString('en-US')} G`}
@@ -378,10 +376,10 @@ function PartnerRewards({ onOpenMarket }: { onOpenMarket: () => void }) {
       {offers.error ? (
         <ErrorState message={offers.error} onRetry={offers.reload} />
       ) : offers.loading ? (
-        <Body size={13} colour={color.neutral600} style={{ paddingHorizontal: gutter }}>Loading…</Body>
+        <Body size={13} colour={color.neutral600} style={{ paddingHorizontal: gutter }}>{t(strings.common.loading)}</Body>
       ) : shown.length === 0 ? (
         <Body size={13} colour={color.neutral700} style={{ paddingHorizontal: gutter }}>
-          No partner rewards are available right now.
+          {t({ en: 'No partner rewards are available right now.', th: 'ตอนนี้ยังไม่มีสิทธิพิเศษจากพาร์ตเนอร์' })}
         </Body>
       ) : (
         <>

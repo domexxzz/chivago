@@ -82,7 +82,9 @@ function Summary({ count }: { count: number }) {
         borderRadius: radius.md, backgroundColor: color.paper,
       }}
     >
-      <Label size={10} tracking={0.16} colour={color.brandSoft}>SIGNED IN ON THIS PHONE</Label>
+      <Label size={10} tracking={0.16} colour={color.brandSoft}>
+        {t({ en: 'Signed in on this phone', th: 'เข้าใช้งานบนเครื่องนี้' })}
+      </Label>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 10 }}>
         <Heading size={34} colour={color.surface} tracking={-0.8}>{count}</Heading>
         <Body size={14} colour={color.brandSoft}>
@@ -139,7 +141,7 @@ function ShowCode({ onToast }: { onToast: (msg: string) => void }) {
     <Section en="Add another phone" th="เพิ่มเครื่องที่สอง">
       {code === null ? (
         <>
-          <Body size={13} colour={color.neutral700}>{t({ en: 'Your points, passport and companions move with you. The other phone keeps its own key — nothing is copied across.', th: 'แต้ม พาสปอร์ต และเพื่อนร่วมทางจะย้ายตามไปด้วย' })}</Body>
+          <Body size={13} colour={color.neutral700}>{t({ en: 'Your points, passport and companions move with you. The other phone keeps its own key — nothing is copied across.', th: 'แต้ม พาสปอร์ต และเพื่อนร่วมทางจะย้ายตามไปด้วย เครื่องอีกเครื่องจะมีกุญแจของตัวเอง ไม่มีการคัดลอกข้อมูลข้ามเครื่อง' })}</Body>
           <Button
             label={busy ? 'Asking…' : 'Show a code'}
             thai="ขอรหัส"
@@ -306,7 +308,7 @@ function Phones({
             not one to offer next to a list of other people's phones.
           */}
           {d.current ? (
-            <Label size={9} tracking={0.1} colour={color.brand}>IN USE</Label>
+            <Label size={9} tracking={0.1} colour={color.brand}>{t({ en: 'In use', th: 'ใช้อยู่' })}</Label>
           ) : (
             <Pressable
               onPress={async () => {
@@ -321,7 +323,7 @@ function Phones({
                 borderWidth: 1, borderColor: color.accent2, borderRadius: radius.sm,
               }}
             >
-              <Label size={10} tracking={0.08} colour={color.accent2}>REMOVE</Label>
+              <Label size={10} tracking={0.08} colour={color.accent2}>{t({ en: 'Remove', th: 'นำออก' })}</Label>
             </Pressable>
           )}
         </View>
@@ -449,8 +451,8 @@ function QuietHours({ onToast }: { onToast: (msg: string) => void }) {
 
           {enabled ? (
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 14 }}>
-              <HourStepper label="From · ตั้งแต่" value={from} onStep={(d) => step('from', d)} name="start" />
-              <HourStepper label="Until · จนถึง" value={until} onStep={(d) => step('until', d)} name="end" />
+              <HourStepper label={t({ en: 'From', th: 'ตั้งแต่' })} value={from} onStep={(d) => step('from', d)} name="start" />
+              <HourStepper label={t({ en: 'Until', th: 'จนถึง' })} value={until} onStep={(d) => step('until', d)} name="end" />
             </View>
           ) : null}
 
@@ -494,10 +496,8 @@ function NoRecovery() {
         borderWidth: 1, borderColor: color.neutral300,
       }}
     >
-      <Label size={10} tracking={0.14} colour={color.neutral700}>
-        WHAT WE DO NOT KEEP · สิ่งที่เราไม่เก็บ
-      </Label>
-      <Body size={13} colour={color.neutral800} style={{ marginTop: 8 }}>{t({ en: 'No password, no email, no phone number. There is nothing about you here that could leak, because none of it was ever collected.', th: 'ไม่มีรหัสผ่าน ไม่มีอีเมล ไม่มีเบอร์โทร' })}</Body>
+      <Label size={10} tracking={0.14} colour={color.neutral700}>{t({ en: 'WHAT WE DO NOT KEEP', th: 'สิ่งที่เราไม่เก็บ' })}</Label>
+      <Body size={13} colour={color.neutral800} style={{ marginTop: 8 }}>{t({ en: 'No password, no email, no phone number. There is nothing about you here that could leak, because none of it was ever collected.', th: 'ไม่มีรหัสผ่าน ไม่มีอีเมล ไม่มีเบอร์โทร ไม่มีข้อมูลของคุณที่นี่ให้รั่วไหล เพราะเราไม่เคยเก็บมาตั้งแต่ต้น' })}</Body>
 
       {/*
         The consequence, said plainly and on the same card as the benefit. A
@@ -506,7 +506,7 @@ function NoRecovery() {
         owed the sentence — beside the button that prevents it, not in a help
         page they reach afterwards.
       */}
-      <Body size={13} colour={color.coralDeep} style={{ marginTop: 12 }}>{t({ en: 'The trade: if this is your only phone and you lose it, the account goes with it. Add a second phone before that matters.', th: 'ข้อแลกเปลี่ยน: ถ้ามีเครื่องเดียวแล้วหาย บัญชีจะหายไปด้วย' })}</Body>
+      <Body size={13} colour={color.coralDeep} style={{ marginTop: 12 }}>{t({ en: 'The trade: if this is your only phone and you lose it, the account goes with it. Add a second phone before that matters.', th: 'ข้อแลกเปลี่ยน: ถ้ามีเครื่องเดียวแล้วหาย บัญชีจะหายไปด้วย เพิ่มเครื่องที่สองไว้ก่อนจะถึงตอนนั้น' })}</Body>
     </View>
   );
 }
