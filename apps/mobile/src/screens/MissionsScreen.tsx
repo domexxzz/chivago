@@ -322,8 +322,14 @@ function HostRow({ host, place }: { host: HostStanding; place: number }) {
             to them, not that they came last.
           */}
           {idle
-            ? `${host.questsPosted} posted · waiting for a first submission`
-            : `${host.questsPosted} posted · ${host.pending} awaiting review`}
+            ? t({
+              en: `${host.questsPosted} posted · waiting for a first submission`,
+              th: `ตั้งไว้ ${host.questsPosted} ภารกิจ · ยังไม่มีใครส่งหลักฐาน`,
+            })
+            : t({
+              en: `${host.questsPosted} posted · ${host.pending} awaiting review`,
+              th: `ตั้งไว้ ${host.questsPosted} ภารกิจ · รอตรวจ ${host.pending}`,
+            })}
         </Label>
       </View>
 

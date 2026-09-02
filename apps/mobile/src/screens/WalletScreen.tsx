@@ -19,11 +19,14 @@ import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import {
-  formatAmount, formatLedgerDate, levelProgressPct, strings,
+  ledgerDate,
+  ledgerLine,
+  formatAmount, levelProgressPct, strings,
   type Wallet,
   type Companion,
 } from '@chivago/core';
 import { api, type InboxItem } from '../api/client.ts';
+import { STAGE_LABEL } from './CompanionHome.tsx';
 import { useAsync } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label, Thai } from '../components/Type.tsx';
@@ -208,7 +211,7 @@ export function LevelBlock({ wallet }: { wallet: Wallet }) {
         </Label>
         <Label size={9} tracking={0.06} colour={color.neutral600}>
           {p.nextRank
-            ? strings.wallet.toNextRank(p.nextRankAtLevel! - p.level, t(p.nextRank.label)).en
+            ? t(strings.wallet.toNextRank(p.nextRankAtLevel! - p.level, t(p.nextRank.label)))
             : t(strings.wallet.topRank)}
         </Label>
       </View>
@@ -290,9 +293,9 @@ export function Ledger({ wallet, onOpenMarket }: { wallet: Wallet; onOpenMarket:
           }}
         >
           <View style={{ flex: 1 }}>
-            <Heading size={14}>{entry.label}</Heading>
+            <Heading size={14}>{t(ledgerLine(entry))}</Heading>
             <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 2 }}>
-              {`${formatLedgerDate(entry.occurredAt, now)} · ${entry.host}`}
+              {`${t(ledgerDate(entry.occurredAt, now))} · ${entry.host}`}
             </Label>
           </View>
           {/*
@@ -407,7 +410,7 @@ function Inbox({
               <Heading size={14}>{t(item.title)}</Heading>
               <Body size={13} colour={color.neutral800} style={{ marginTop: 6 }}>{t(item.body)}</Body>
               <Label size={10} tracking={0.1} style={{ marginTop: 6 }}>
-                {formatLedgerDate(item.createdAt, now)}
+                {t(ledgerDate(item.createdAt, now))}
               </Label>
             </View>
           </Pressable>
@@ -487,11 +490,11 @@ function Companions({
             <Creature species={c.species.key} stage={c.stage} size={52} />
             <View style={{ flex: 1 }}>
               <Heading size={16} colour={c.stage === 'grown' ? color.accent : color.text}>
-                {c.stage === 'egg' ? c.species.eggName.en : t(c.species.name)}
+                {c.stage === 'egg' ? t(c.species.eggName) : t(c.species.name)}
               </Heading>
             </View>
             <Label size={9} tracking={0.12} colour={color.neutral600}>
-              {c.stage.toUpperCase()}
+              {t(STAGE_LABEL[c.stage])}
             </Label>
           </View>
 
@@ -523,7 +526,10 @@ function Companions({
 
       <View style={{ paddingHorizontal: gutter, paddingTop: 12 }}>
         <Label size={9} tracking={0.06} colour={color.neutral500} style={{ textTransform: 'none' }}>
-          {`Species and conservation status recorded ${data.speciesAsOf}.`}
+          {t({
+            en: `Species and conservation status recorded ${data.speciesAsOf}.`,
+            th: `ข้อมูลชนิดพันธุ์และสถานะการอนุรักษ์ บันทึกเมื่อ ${data.speciesAsOf}`,
+          })}
         </Label>
       </View>
     </View>

@@ -1,7 +1,7 @@
 {
   "/health": {
     "status": "up",
-    "time": "2026-09-02T00:36:08.461Z"
+    "time": "2026-09-02T11:47:17.892Z"
   },
   "/profile": {
     "purposes": [
@@ -12,7 +12,7 @@
     "watch": [
       "air"
     ],
-    "completedAt": "2026-08-28T00:36:07.336Z"
+    "completedAt": "2026-08-28T11:47:02.725Z"
   },
   "/places": [
     {
@@ -45,7 +45,7 @@
       },
       "metrics": {
         "crowdDensity": 3,
-        "aqi": 45,
+        "aqi": 42,
         "safetyIndex": 6.77,
         "walkability": 8.1
       },
@@ -55,15 +55,15 @@
       },
       "readings": {
         "aqi": {
-          "value": 45,
+          "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-02T00:00:00.000Z",
+          "observedAt": "2026-09-02T11:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
-      "healthyScore": 74,
+      "healthyScore": 75,
       "breakdown": {
-        "total": 74,
+        "total": 75,
         "components": [
           {
             "key": "crowdDensity",
@@ -82,8 +82,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "45 AQI",
-            "subScore": 82.4,
+            "display": "42 AQI",
+            "subScore": 83.8,
             "weight": 0.349,
             "provenance": "live"
           },
@@ -154,7 +154,7 @@
       },
       "metrics": {
         "crowdDensity": 0.4,
-        "aqi": 45,
+        "aqi": 42,
         "safetyIndex": 8.85,
         "walkability": 6.9
       },
@@ -164,9 +164,9 @@
       },
       "readings": {
         "aqi": {
-          "value": 45,
+          "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-02T00:00:00.000Z",
+          "observedAt": "2026-09-02T11:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
@@ -191,8 +191,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "45 AQI",
-            "subScore": 82.4,
+            "display": "42 AQI",
+            "subScore": 83.8,
             "weight": 0.349,
             "provenance": "live"
           },
@@ -263,7 +263,7 @@
       },
       "metrics": {
         "crowdDensity": 1.4,
-        "aqi": 45,
+        "aqi": 42,
         "safetyIndex": 6.33,
         "walkability": 9
       },
@@ -273,9 +273,9 @@
       },
       "readings": {
         "aqi": {
-          "value": 45,
+          "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-02T00:00:00.000Z",
+          "observedAt": "2026-09-02T11:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
@@ -300,8 +300,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "45 AQI",
-            "subScore": 82.4,
+            "display": "42 AQI",
+            "subScore": 83.8,
             "weight": 0.349,
             "provenance": "live"
           },
@@ -324,6 +324,109 @@
             },
             "display": "9.0 / 10",
             "subScore": 94.7,
+            "weight": 0.206,
+            "provenance": "daily"
+          }
+        ],
+        "profileApplied": "Your profile (nature + food, moderate)"
+      },
+      "reviews": {
+        "count": 0,
+        "average": null,
+        "distribution": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "mangrove",
+      "name": {
+        "en": "Thong Krut Mangrove",
+        "th": "ป่าชายเลนท้องกรูด"
+      },
+      "short": "Thong Krut",
+      "layer": "Quest",
+      "province": "TH-84",
+      "lat": 9.4179,
+      "lng": 99.9433,
+      "meta": "Restoration site · Quest active",
+      "blurb": {
+        "en": "Community-managed mangrove nursery on the south shore. Active planting quest most weekends.",
+        "th": "แปลงเพาะกล้าป่าชายเลนโดยชุมชนทางใต้ของเกาะ"
+      },
+      "tags": [
+        "Green space",
+        "Quest here",
+        "Community"
+      ],
+      "photo": null,
+      "metrics": {
+        "crowdDensity": 0.3,
+        "aqi": 42,
+        "safetyIndex": 5.13,
+        "walkability": 5.2
+      },
+      "safetyLabel": {
+        "en": "Guide required",
+        "th": "ต้องมีไกด์"
+      },
+      "readings": {
+        "aqi": {
+          "value": 42,
+          "provenance": "live",
+          "observedAt": "2026-09-02T11:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+        }
+      },
+      "healthyScore": 77,
+      "breakdown": {
+        "total": 77,
+        "components": [
+          {
+            "key": "crowdDensity",
+            "label": {
+              "en": "Crowd level",
+              "th": "ความหนาแน่น"
+            },
+            "display": "Low",
+            "subScore": 95,
+            "weight": 0.23,
+            "provenance": "live"
+          },
+          {
+            "key": "aqi",
+            "label": {
+              "en": "Air quality",
+              "th": "คุณภาพอากาศ"
+            },
+            "display": "42 AQI",
+            "subScore": 83.8,
+            "weight": 0.349,
+            "provenance": "live"
+          },
+          {
+            "key": "safetyIndex",
+            "label": {
+              "en": "Safety",
+              "th": "ความปลอดภัย"
+            },
+            "display": "Guide required",
+            "subScore": 59.1,
+            "weight": 0.214,
+            "provenance": "daily"
+          },
+          {
+            "key": "walkability",
+            "label": {
+              "en": "Walkability",
+              "th": "การเดินเท้า"
+            },
+            "display": "5.2 / 10",
+            "subScore": 62,
             "weight": 0.206,
             "provenance": "daily"
           }
@@ -371,7 +474,7 @@
       },
       "metrics": {
         "crowdDensity": 0.5,
-        "aqi": 45,
+        "aqi": 42,
         "safetyIndex": 7.39,
         "walkability": 7.4
       },
@@ -381,9 +484,9 @@
       },
       "readings": {
         "aqi": {
-          "value": 45,
+          "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-02T00:00:00.000Z",
+          "observedAt": "2026-09-02T11:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
@@ -408,8 +511,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "45 AQI",
-            "subScore": 82.4,
+            "display": "42 AQI",
+            "subScore": 83.8,
             "weight": 0.349,
             "provenance": "live"
           },
@@ -432,109 +535,6 @@
             },
             "display": "7.4 / 10",
             "subScore": 83.2,
-            "weight": 0.206,
-            "provenance": "daily"
-          }
-        ],
-        "profileApplied": "Your profile (nature + food, moderate)"
-      },
-      "reviews": {
-        "count": 0,
-        "average": null,
-        "distribution": [
-          0,
-          0,
-          0,
-          0,
-          0
-        ]
-      }
-    },
-    {
-      "id": "mangrove",
-      "name": {
-        "en": "Thong Krut Mangrove",
-        "th": "ป่าชายเลนท้องกรูด"
-      },
-      "short": "Thong Krut",
-      "layer": "Quest",
-      "province": "TH-84",
-      "lat": 9.4179,
-      "lng": 99.9433,
-      "meta": "Restoration site · Quest active",
-      "blurb": {
-        "en": "Community-managed mangrove nursery on the south shore. Active planting quest most weekends.",
-        "th": "แปลงเพาะกล้าป่าชายเลนโดยชุมชนทางใต้ของเกาะ"
-      },
-      "tags": [
-        "Green space",
-        "Quest here",
-        "Community"
-      ],
-      "photo": null,
-      "metrics": {
-        "crowdDensity": 0.3,
-        "aqi": 45,
-        "safetyIndex": 5.13,
-        "walkability": 5.2
-      },
-      "safetyLabel": {
-        "en": "Guide required",
-        "th": "ต้องมีไกด์"
-      },
-      "readings": {
-        "aqi": {
-          "value": 45,
-          "provenance": "live",
-          "observedAt": "2026-09-02T00:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
-        }
-      },
-      "healthyScore": 76,
-      "breakdown": {
-        "total": 76,
-        "components": [
-          {
-            "key": "crowdDensity",
-            "label": {
-              "en": "Crowd level",
-              "th": "ความหนาแน่น"
-            },
-            "display": "Low",
-            "subScore": 95,
-            "weight": 0.23,
-            "provenance": "live"
-          },
-          {
-            "key": "aqi",
-            "label": {
-              "en": "Air quality",
-              "th": "คุณภาพอากาศ"
-            },
-            "display": "45 AQI",
-            "subScore": 82.4,
-            "weight": 0.349,
-            "provenance": "live"
-          },
-          {
-            "key": "safetyIndex",
-            "label": {
-              "en": "Safety",
-              "th": "ความปลอดภัย"
-            },
-            "display": "Guide required",
-            "subScore": 59.1,
-            "weight": 0.214,
-            "provenance": "daily"
-          },
-          {
-            "key": "walkability",
-            "label": {
-              "en": "Walkability",
-              "th": "การเดินเท้า"
-            },
-            "display": "5.2 / 10",
-            "subScore": 62,
             "weight": 0.206,
             "provenance": "daily"
           }
@@ -584,7 +584,7 @@
     },
     "metrics": {
       "crowdDensity": 3,
-      "aqi": 45,
+      "aqi": 42,
       "safetyIndex": 6.77,
       "walkability": 8.1
     },
@@ -594,15 +594,15 @@
     },
     "readings": {
       "aqi": {
-        "value": 45,
+        "value": 42,
         "provenance": "live",
-        "observedAt": "2026-09-02T00:36:09.335Z",
+        "observedAt": "2026-09-02T11:47:19.033Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
-    "healthyScore": 74,
+    "healthyScore": 75,
     "breakdown": {
-      "total": 74,
+      "total": 75,
       "components": [
         {
           "key": "crowdDensity",
@@ -621,8 +621,8 @@
             "en": "Air quality",
             "th": "คุณภาพอากาศ"
           },
-          "display": "45 AQI",
-          "subScore": 82.4,
+          "display": "42 AQI",
+          "subScore": 83.8,
           "weight": 0.349,
           "provenance": "live"
         },
@@ -699,7 +699,7 @@
     },
     "metrics": {
       "crowdDensity": 0.4,
-      "aqi": 45,
+      "aqi": 42,
       "safetyIndex": 8.85,
       "walkability": 6.9
     },
@@ -709,9 +709,9 @@
     },
     "readings": {
       "aqi": {
-        "value": 45,
+        "value": 42,
         "provenance": "live",
-        "observedAt": "2026-09-02T00:36:09.338Z",
+        "observedAt": "2026-09-02T11:47:19.044Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -736,8 +736,8 @@
             "en": "Air quality",
             "th": "คุณภาพอากาศ"
           },
-          "display": "45 AQI",
-          "subScore": 82.4,
+          "display": "42 AQI",
+          "subScore": 83.8,
           "weight": 0.349,
           "provenance": "live"
         },
@@ -814,7 +814,7 @@
     },
     "metrics": {
       "crowdDensity": 1.4,
-      "aqi": 45,
+      "aqi": 42,
       "safetyIndex": 6.33,
       "walkability": 9
     },
@@ -824,9 +824,9 @@
     },
     "readings": {
       "aqi": {
-        "value": 45,
+        "value": 42,
         "provenance": "live",
-        "observedAt": "2026-09-02T00:36:09.337Z",
+        "observedAt": "2026-09-02T11:47:18.992Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -851,8 +851,8 @@
             "en": "Air quality",
             "th": "คุณภาพอากาศ"
           },
-          "display": "45 AQI",
-          "subScore": 82.4,
+          "display": "42 AQI",
+          "subScore": 83.8,
           "weight": 0.349,
           "provenance": "live"
         },
@@ -928,7 +928,7 @@
     },
     "metrics": {
       "crowdDensity": 0.5,
-      "aqi": 45,
+      "aqi": 42,
       "safetyIndex": 7.39,
       "walkability": 7.4
     },
@@ -938,9 +938,9 @@
     },
     "readings": {
       "aqi": {
-        "value": 45,
+        "value": 42,
         "provenance": "live",
-        "observedAt": "2026-09-02T00:36:09.338Z",
+        "observedAt": "2026-09-02T11:47:19.044Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -965,8 +965,8 @@
             "en": "Air quality",
             "th": "คุณภาพอากาศ"
           },
-          "display": "45 AQI",
-          "subScore": 82.4,
+          "display": "42 AQI",
+          "subScore": 83.8,
           "weight": 0.349,
           "provenance": "live"
         },
@@ -1037,7 +1037,7 @@
     "photo": null,
     "metrics": {
       "crowdDensity": 0.3,
-      "aqi": 45,
+      "aqi": 42,
       "safetyIndex": 5.13,
       "walkability": 5.2
     },
@@ -1047,15 +1047,15 @@
     },
     "readings": {
       "aqi": {
-        "value": 45,
+        "value": 42,
         "provenance": "live",
-        "observedAt": "2026-09-02T00:36:09.338Z",
+        "observedAt": "2026-09-02T11:47:19.038Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
-    "healthyScore": 76,
+    "healthyScore": 77,
     "breakdown": {
-      "total": 76,
+      "total": 77,
       "components": [
         {
           "key": "crowdDensity",
@@ -1074,8 +1074,8 @@
             "en": "Air quality",
             "th": "คุณภาพอากาศ"
           },
-          "display": "45 AQI",
-          "subScore": 82.4,
+          "display": "42 AQI",
+          "subScore": 83.8,
           "weight": 0.349,
           "provenance": "live"
         },
@@ -1256,10 +1256,10 @@
         "questId": "q1",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T00:36:07.353Z",
-        "arrivedAt": "2026-09-02T00:36:07.354Z",
-        "proofSubmittedAt": "2026-09-02T00:36:07.354Z",
-        "verifiedAt": "2026-09-02T00:36:07.354Z",
+        "joinedAt": "2026-09-02T11:47:02.783Z",
+        "arrivedAt": "2026-09-02T11:47:02.784Z",
+        "proofSubmittedAt": "2026-09-02T11:47:02.785Z",
+        "verifiedAt": "2026-09-02T11:47:02.786Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1267,10 +1267,10 @@
         "questId": "q2",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T00:36:07.354Z",
-        "arrivedAt": "2026-09-02T00:36:07.354Z",
-        "proofSubmittedAt": "2026-09-02T00:36:07.355Z",
-        "verifiedAt": "2026-09-02T00:36:07.355Z",
+        "joinedAt": "2026-09-02T11:47:02.787Z",
+        "arrivedAt": "2026-09-02T11:47:02.788Z",
+        "proofSubmittedAt": "2026-09-02T11:47:02.789Z",
+        "verifiedAt": "2026-09-02T11:47:02.790Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1278,10 +1278,10 @@
         "questId": "q4",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T00:36:07.355Z",
-        "arrivedAt": "2026-09-02T00:36:07.355Z",
-        "proofSubmittedAt": "2026-09-02T00:36:07.355Z",
-        "verifiedAt": "2026-09-02T00:36:07.355Z",
+        "joinedAt": "2026-09-02T11:47:02.791Z",
+        "arrivedAt": "2026-09-02T11:47:02.792Z",
+        "proofSubmittedAt": "2026-09-02T11:47:02.793Z",
+        "verifiedAt": "2026-09-02T11:47:02.794Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1289,10 +1289,10 @@
         "questId": "q5",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T00:36:07.355Z",
-        "arrivedAt": "2026-09-02T00:36:07.356Z",
-        "proofSubmittedAt": "2026-09-02T00:36:07.356Z",
-        "verifiedAt": "2026-09-02T00:36:07.356Z",
+        "joinedAt": "2026-09-02T11:47:02.795Z",
+        "arrivedAt": "2026-09-02T11:47:02.796Z",
+        "proofSubmittedAt": "2026-09-02T11:47:02.797Z",
+        "verifiedAt": "2026-09-02T11:47:02.797Z",
         "rejectedAt": null,
         "rejectionReason": null
       }
@@ -1390,10 +1390,10 @@
         "questId": "q1",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T00:36:07.353Z",
-        "arrivedAt": "2026-09-02T00:36:07.354Z",
-        "proofSubmittedAt": "2026-09-02T00:36:07.354Z",
-        "verifiedAt": "2026-09-02T00:36:07.354Z",
+        "joinedAt": "2026-09-02T11:47:02.783Z",
+        "arrivedAt": "2026-09-02T11:47:02.784Z",
+        "proofSubmittedAt": "2026-09-02T11:47:02.785Z",
+        "verifiedAt": "2026-09-02T11:47:02.786Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1401,10 +1401,10 @@
         "questId": "q2",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T00:36:07.354Z",
-        "arrivedAt": "2026-09-02T00:36:07.354Z",
-        "proofSubmittedAt": "2026-09-02T00:36:07.355Z",
-        "verifiedAt": "2026-09-02T00:36:07.355Z",
+        "joinedAt": "2026-09-02T11:47:02.787Z",
+        "arrivedAt": "2026-09-02T11:47:02.788Z",
+        "proofSubmittedAt": "2026-09-02T11:47:02.789Z",
+        "verifiedAt": "2026-09-02T11:47:02.790Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1412,10 +1412,10 @@
         "questId": "q4",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T00:36:07.355Z",
-        "arrivedAt": "2026-09-02T00:36:07.355Z",
-        "proofSubmittedAt": "2026-09-02T00:36:07.355Z",
-        "verifiedAt": "2026-09-02T00:36:07.355Z",
+        "joinedAt": "2026-09-02T11:47:02.791Z",
+        "arrivedAt": "2026-09-02T11:47:02.792Z",
+        "proofSubmittedAt": "2026-09-02T11:47:02.793Z",
+        "verifiedAt": "2026-09-02T11:47:02.794Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1423,10 +1423,10 @@
         "questId": "q5",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T00:36:07.355Z",
-        "arrivedAt": "2026-09-02T00:36:07.356Z",
-        "proofSubmittedAt": "2026-09-02T00:36:07.356Z",
-        "verifiedAt": "2026-09-02T00:36:07.356Z",
+        "joinedAt": "2026-09-02T11:47:02.795Z",
+        "arrivedAt": "2026-09-02T11:47:02.796Z",
+        "proofSubmittedAt": "2026-09-02T11:47:02.797Z",
+        "verifiedAt": "2026-09-02T11:47:02.797Z",
         "rejectedAt": null,
         "rejectionReason": null
       }
@@ -1458,10 +1458,10 @@
       "questId": "q1",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-02T00:36:07.353Z",
-      "arrivedAt": "2026-09-02T00:36:07.354Z",
-      "proofSubmittedAt": "2026-09-02T00:36:07.354Z",
-      "verifiedAt": "2026-09-02T00:36:07.354Z",
+      "joinedAt": "2026-09-02T11:47:02.783Z",
+      "arrivedAt": "2026-09-02T11:47:02.784Z",
+      "proofSubmittedAt": "2026-09-02T11:47:02.785Z",
+      "verifiedAt": "2026-09-02T11:47:02.786Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1492,10 +1492,10 @@
       "questId": "q2",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-02T00:36:07.354Z",
-      "arrivedAt": "2026-09-02T00:36:07.354Z",
-      "proofSubmittedAt": "2026-09-02T00:36:07.355Z",
-      "verifiedAt": "2026-09-02T00:36:07.355Z",
+      "joinedAt": "2026-09-02T11:47:02.787Z",
+      "arrivedAt": "2026-09-02T11:47:02.788Z",
+      "proofSubmittedAt": "2026-09-02T11:47:02.789Z",
+      "verifiedAt": "2026-09-02T11:47:02.790Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1550,10 +1550,10 @@
       "questId": "q4",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-02T00:36:07.355Z",
-      "arrivedAt": "2026-09-02T00:36:07.355Z",
-      "proofSubmittedAt": "2026-09-02T00:36:07.355Z",
-      "verifiedAt": "2026-09-02T00:36:07.355Z",
+      "joinedAt": "2026-09-02T11:47:02.791Z",
+      "arrivedAt": "2026-09-02T11:47:02.792Z",
+      "proofSubmittedAt": "2026-09-02T11:47:02.793Z",
+      "verifiedAt": "2026-09-02T11:47:02.794Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1584,10 +1584,10 @@
       "questId": "q5",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-02T00:36:07.355Z",
-      "arrivedAt": "2026-09-02T00:36:07.356Z",
-      "proofSubmittedAt": "2026-09-02T00:36:07.356Z",
-      "verifiedAt": "2026-09-02T00:36:07.356Z",
+      "joinedAt": "2026-09-02T11:47:02.795Z",
+      "arrivedAt": "2026-09-02T11:47:02.796Z",
+      "proofSubmittedAt": "2026-09-02T11:47:02.797Z",
+      "verifiedAt": "2026-09-02T11:47:02.797Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1828,9 +1828,10 @@
     },
     "ledger": [
       {
-        "id": "46284494-e8a3-4f21-8bfe-0d40a0afe8e7",
+        "id": "6c1c306f-8967-44c8-8f2c-074daeb670f2",
         "label": "Fisherman’s Village food trail",
-        "occurredAt": "2026-09-02T00:36:07.356Z",
+        "subject": "Fisherman’s Village food trail",
+        "occurredAt": "2026-09-02T11:47:02.797Z",
         "host": "Fisherman's Village Traders",
         "amount": 120,
         "currency": "trip",
@@ -1839,9 +1840,10 @@
         "sourceRef": "quest:q5:user:demo-user"
       },
       {
-        "id": "156c7882-989f-4982-9779-e55929296e7c",
+        "id": "cabba57c-1fbf-4591-9674-9134a8c73a71",
         "label": "Walk, don’t ride",
-        "occurredAt": "2026-09-02T00:36:07.355Z",
+        "subject": "Walk, don’t ride",
+        "occurredAt": "2026-09-02T11:47:02.794Z",
         "host": "ChivaGo",
         "amount": 60,
         "currency": "green",
@@ -1850,9 +1852,10 @@
         "sourceRef": "quest:q4:user:demo-user"
       },
       {
-        "id": "ce384595-cec9-4958-8ad3-d818c33c5d5a",
+        "id": "74b040a3-42c3-4623-ac1f-06eea54650d1",
         "label": "Mangrove Planting",
-        "occurredAt": "2026-09-02T00:36:07.355Z",
+        "subject": "Mangrove Planting",
+        "occurredAt": "2026-09-02T11:47:02.790Z",
         "host": "Samui Green Foundation (NGO)",
         "amount": 400,
         "currency": "green",
@@ -1861,9 +1864,10 @@
         "sourceRef": "quest:q2:user:demo-user"
       },
       {
-        "id": "403dd6fb-ca6e-40f7-a4c0-08f019ce27bd",
+        "id": "708b92c3-0250-483a-b1a0-c106577d491e",
         "label": "Beach Cleanup",
-        "occurredAt": "2026-09-02T00:36:07.354Z",
+        "subject": "Beach Cleanup",
+        "occurredAt": "2026-09-02T11:47:02.786Z",
         "host": "Samui Municipality",
         "amount": 150,
         "currency": "green",
@@ -1872,9 +1876,10 @@
         "sourceRef": "quest:q1:user:demo-user"
       },
       {
-        "id": "fd7fcf4e-d172-4913-9927-d0a63d18ed7f",
+        "id": "acd98d6a-9471-47e2-8f71-9a5ccb37b4d4",
         "label": "Pilot opening balance",
-        "occurredAt": "2026-09-02T00:36:07.341Z",
+        "subject": null,
+        "occurredAt": "2026-09-02T11:47:02.750Z",
         "host": "ChivaGo · pilot seed",
         "amount": 1240,
         "currency": "green",
@@ -1883,9 +1888,10 @@
         "sourceRef": "opening:green:demo-user"
       },
       {
-        "id": "ce551efe-9432-42e5-a0ee-fa625654bb4d",
+        "id": "0a42368a-3847-4bcf-a77e-561c2fef1288",
         "label": "Pilot opening balance",
-        "occurredAt": "2026-09-02T00:36:07.341Z",
+        "subject": null,
+        "occurredAt": "2026-09-02T11:47:02.748Z",
         "host": "ChivaGo · pilot seed",
         "amount": 320,
         "currency": "trip",
@@ -1894,9 +1900,10 @@
         "sourceRef": "opening:trip:demo-user"
       },
       {
-        "id": "c2ca3ea7-1359-448d-9ddb-f28f5dead4ec",
+        "id": "15428fbf-8222-45e8-aa59-394a8ab96617",
         "label": "Checked in · Fisherman's Village",
-        "occurredAt": "2026-09-02T00:36:07.336Z",
+        "subject": "Fisherman's Village",
+        "occurredAt": "2026-09-02T11:47:02.725Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1905,9 +1912,10 @@
         "sourceRef": "checkin:fisherman:user:demo-user:2026-09-02"
       },
       {
-        "id": "e29e5e15-3daf-486b-915f-069d5ebd1265",
+        "id": "f02f5bfd-791b-4039-88ae-6fd09326d61f",
         "label": "Checked in · Chaweng Beach",
-        "occurredAt": "2026-09-02T00:36:07.336Z",
+        "subject": "Chaweng Beach",
+        "occurredAt": "2026-09-02T11:47:02.725Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1916,9 +1924,10 @@
         "sourceRef": "checkin:chaweng:user:demo-user:2026-09-02"
       },
       {
-        "id": "1f385356-5da5-448a-bd06-fdcc1ce4007c",
+        "id": "6ad394eb-37a5-4939-8e7f-8a3b3f002d9b",
         "label": "Checked in · Chaweng Beach",
-        "occurredAt": "2026-09-01T00:36:07.336Z",
+        "subject": "Chaweng Beach",
+        "occurredAt": "2026-09-01T11:47:02.725Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1927,9 +1936,10 @@
         "sourceRef": "checkin:chaweng:user:demo-user:2026-09-01"
       },
       {
-        "id": "fafe9beb-d256-4866-9cde-2f6c2fea196f",
+        "id": "67a85bb4-df74-4b39-8474-4a2323e46f84",
         "label": "Checked in · Fisherman's Village",
-        "occurredAt": "2026-09-01T00:36:07.336Z",
+        "subject": "Fisherman's Village",
+        "occurredAt": "2026-09-01T11:47:02.725Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1938,9 +1948,10 @@
         "sourceRef": "checkin:fisherman:user:demo-user:2026-09-01"
       },
       {
-        "id": "8ba90417-4066-4d85-a36b-94347990079f",
+        "id": "0a02c340-a3ec-41e0-8e38-509964582c08",
         "label": "Checked in · Thong Krut Mangrove",
-        "occurredAt": "2026-08-31T00:36:07.336Z",
+        "subject": "Thong Krut Mangrove",
+        "occurredAt": "2026-08-31T11:47:02.725Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1949,9 +1960,10 @@
         "sourceRef": "checkin:mangrove:user:demo-user:2026-08-31"
       },
       {
-        "id": "7dbeebeb-5115-4f2d-b6dd-eb5342711e25",
+        "id": "df19a753-0915-4228-bc70-bd04e4fad0b2",
         "label": "Checked in · Na Muang Waterfall",
-        "occurredAt": "2026-08-31T00:36:07.336Z",
+        "subject": "Na Muang Waterfall",
+        "occurredAt": "2026-08-31T11:47:02.725Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1960,9 +1972,10 @@
         "sourceRef": "checkin:namuang:user:demo-user:2026-08-31"
       },
       {
-        "id": "0662df36-ba72-49b3-a78a-190615055ca5",
+        "id": "e330c520-cd89-42ec-a010-852e123160a3",
         "label": "Checked in · Lamai Beach",
-        "occurredAt": "2026-08-30T00:36:07.336Z",
+        "subject": "Lamai Beach",
+        "occurredAt": "2026-08-30T11:47:02.725Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1971,9 +1984,10 @@
         "sourceRef": "checkin:lamai:user:demo-user:2026-08-30"
       },
       {
-        "id": "c8e87060-a90a-4baf-bf38-bcf0982348cb",
+        "id": "b2f0d18e-ce70-44d4-bea4-f034b1026d80",
         "label": "Checked in · Fisherman's Village",
-        "occurredAt": "2026-08-30T00:36:07.336Z",
+        "subject": "Fisherman's Village",
+        "occurredAt": "2026-08-30T11:47:02.725Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1982,9 +1996,10 @@
         "sourceRef": "checkin:fisherman:user:demo-user:2026-08-30"
       },
       {
-        "id": "7b8adae1-8796-4ea7-8ed6-632d11a5dc09",
+        "id": "06a36f18-87dc-44bf-bdb9-d883267c80d9",
         "label": "Checked in · Na Muang Waterfall",
-        "occurredAt": "2026-08-29T00:36:07.336Z",
+        "subject": "Na Muang Waterfall",
+        "occurredAt": "2026-08-29T11:47:02.725Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1993,9 +2008,10 @@
         "sourceRef": "checkin:namuang:user:demo-user:2026-08-29"
       },
       {
-        "id": "9b1dc465-e8fa-433f-adfa-74f8177b1ce3",
+        "id": "74eb8774-cafc-4ecf-92bd-4e267853536e",
         "label": "Checked in · Chaweng Beach",
-        "occurredAt": "2026-08-29T00:36:07.336Z",
+        "subject": "Chaweng Beach",
+        "occurredAt": "2026-08-29T11:47:02.725Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -2170,7 +2186,7 @@
   "/notifications": {
     "items": [
       {
-        "id": "21aa92ca-b082-44d1-9378-cfd81dbeb4d9",
+        "id": "650eb5b0-845a-480b-b5cb-6610222a1b60",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -2184,11 +2200,11 @@
           "screen": "wallet",
           "questId": "q5"
         },
-        "createdAt": "2026-09-02T00:36:07.356Z",
+        "createdAt": "2026-09-02T11:47:02.798Z",
         "readAt": null
       },
       {
-        "id": "a295a158-9503-4c0a-b1f9-f6e1ad714159",
+        "id": "049b4879-c3ea-487b-816f-96e5cc048b7f",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -2202,11 +2218,11 @@
           "screen": "wallet",
           "questId": "q4"
         },
-        "createdAt": "2026-09-02T00:36:07.355Z",
+        "createdAt": "2026-09-02T11:47:02.794Z",
         "readAt": null
       },
       {
-        "id": "373e6f9e-776d-47ff-921e-7f6dac2c9bce",
+        "id": "9ac999f9-22a7-4204-9ae2-e8b829c23dc9",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -2220,11 +2236,11 @@
           "screen": "wallet",
           "questId": "q2"
         },
-        "createdAt": "2026-09-02T00:36:07.355Z",
+        "createdAt": "2026-09-02T11:47:02.790Z",
         "readAt": null
       },
       {
-        "id": "d2415f89-09a4-4573-b235-3be0ffc2850f",
+        "id": "537ed897-ee3d-4a3a-b25f-2470faeee368",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -2238,7 +2254,7 @@
           "screen": "wallet",
           "questId": "q1"
         },
-        "createdAt": "2026-09-02T00:36:07.354Z",
+        "createdAt": "2026-09-02T11:47:02.786Z",
         "readAt": null
       }
     ],

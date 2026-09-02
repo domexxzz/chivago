@@ -288,7 +288,19 @@ export interface Balances {
 
 export interface LedgerEntry {
   id: string;
+  /**
+   * The English sentence the row was written with. Kept as the fallback for
+   * rows recorded before `subject` existed, and for a `kind` the app does not
+   * know how to phrase.
+   */
   label: string;
+  /**
+   * What the row is ABOUT, with no sentence around it: the quest, the place,
+   * the offer. Null for rows with no subject and for rows older than the
+   * column. The app writes the sentence around it in the reader's language -
+   * see `ledgerLine` in @chivago/core.
+   */
+  subject?: string | null;
   /** ISO 8601. The UI formats this as Today / Yesterday / "12 Oct". */
   occurredAt: string;
   /** Every entry names the verifying host. Non-negotiable for trust. */

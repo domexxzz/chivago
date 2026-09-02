@@ -735,5 +735,17 @@ export function migrate(db: DB): string[] {
     applied.push('sos_alerts.lat/lng nullable');
   }
 
+  // -- A ledger row the reader's own language can compose ------------------
+  // `label` is a finished English sentence: "Checked in · Lamai Beach". The
+  // app now shows one language, so a Thai reader met English in their own
+  // wallet. The SUBJECT - the quest, the place, the offer - is the only part
+  // that is data; everything around it is a sentence the client can write in
+  // whichever language is being read, from the `kind` it already receives.
+  //
+  // Additive on purpose. The ledger is append-only and rows written before
+  // this have no subject; they keep rendering their stored English label,
+  // which is what they actually said at the time.
+  if (addColumn(db, 'ledger', 'subject', 'TEXT')) applied.push('ledger.subject');
+
   return applied;
 }

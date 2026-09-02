@@ -84,7 +84,7 @@ export function PlaceScreen({
     // so warmly - a second visit is the behaviour we want, not a mistake.
     onToast(
       res.data.awarded
-        ? strings.checkin.awarded(res.data.pointsAwarded).en
+        ? t(strings.checkin.awarded(res.data.pointsAwarded))
         : t(strings.checkin.already),
     );
     if (res.data.awarded) onPointsChanged();
@@ -114,7 +114,7 @@ export function PlaceScreen({
             </View>
 
             <Button
-              label={checkedIn ? strings.checkin.already.en : t(strings.checkin.cta)}
+              label={checkedIn ? t(strings.checkin.already) : t(strings.checkin.cta)}
               thai={checkedIn ? undefined : strings.checkin.cta.th}
               onPress={checkIn}
               disabled={busy || checkedIn}

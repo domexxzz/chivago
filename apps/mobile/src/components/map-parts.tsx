@@ -86,7 +86,7 @@ export function MapLegend({ places }: { places: ScoredPlace[] }) {
         borderRadius: radius.sm,
       }}
     >
-      <Label size={9} tracking={0.12}>{`Healthy Score · ${avg} avg today`}</Label>
+      <Label size={9} tracking={0.12}>{t(strings.map.legend(avg))}</Label>
       <View style={{ width: 64, height: 6, backgroundColor: color.neutral300, marginTop: 6 }}>
         {/* Green only when the average has earned it - see ImpactScreen. */}
         <View style={{ width: `${avg}%`, height: '100%', backgroundColor: isHighScore(avg) ? color.accent : color.neutral600 }} />

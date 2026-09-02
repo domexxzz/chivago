@@ -191,7 +191,7 @@ function BalanceBlock({
             // A number built from one afternoon is a guess wearing a number's
             // clothes. Say so instead of printing a zero.
             <View style={{ marginTop: 12 }}>
-              <Body colour={color.neutral700}>{balance.note?.en}</Body>
+              <Body colour={color.neutral700}>{t(balance.note)}</Body>
             </View>
           ) : (
             <>

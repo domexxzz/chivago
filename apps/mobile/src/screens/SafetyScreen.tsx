@@ -118,11 +118,16 @@ function ServiceRow({ service }: { service: ShieldService }) {
       />
       <View style={{ flex: 1 }}>
         <Heading size={15}>{service.label.en}</Heading>
-        <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 2 }}>
+        <Thai always size={10} style={{ marginTop: 1 }}>{service.label.th}</Thai>
+        <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 3 }}>
           {service.note.en}
         </Label>
+        <Thai always size={10} style={{ marginTop: 1 }}>{service.note.th}</Thai>
       </View>
-      <Label size={10} tracking={0.12}>{strings.safety.states[service.state].en}</Label>
+      <View style={{ alignItems: 'flex-end' }}>
+        <Label size={10} tracking={0.12}>{strings.safety.states[service.state].en}</Label>
+        <Thai always size={9}>{strings.safety.states[service.state].th}</Thai>
+      </View>
     </View>
   );
 }
@@ -548,6 +553,7 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
             <Label size={9} tracking={0.06} style={{ textAlign: 'center' }}>
               {n.name.en}
             </Label>
+            <Thai always size={9} style={{ textAlign: 'center' }}>{n.name.th}</Thai>
           </Pressable>
         ))}
       </View>

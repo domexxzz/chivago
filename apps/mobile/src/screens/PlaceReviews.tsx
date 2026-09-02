@@ -14,7 +14,8 @@ import React from 'react';
 import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import {
-  APPEAL_MAX_MESSAGE, formatLedgerDate, isModerationReasonKey, MODERATION_REASONS,
+  ledgerDate,
+  APPEAL_MAX_MESSAGE, isModerationReasonKey, MODERATION_REASONS,
   REPORT_MAX_NOTE, REPORT_REASON_KEYS, REPORT_REASONS,
   REVIEW_MAX_BODY, strings,
   type PlaceReview, type ReportReasonKey, type ReviewSummary,
@@ -92,7 +93,7 @@ export function ReviewsBlock({
 
       {canReview ? (
         <Button
-          label={mine ? strings.reviews.edit.en : t(strings.reviews.write)}
+          label={mine ? t(strings.reviews.edit) : t(strings.reviews.write)}
           onPress={() => setComposing(true)}
           variant="secondary"
           height={44}
@@ -208,14 +209,14 @@ export function ReviewRow({
           below is a different traveller.
         */}
         <Heading size={14}>
-          {isMine ? strings.reviews.yours.en : t(strings.reviews.verifiedVisit)}
+          {isMine ? t(strings.reviews.yours) : t(strings.reviews.verifiedVisit)}
         </Heading>
         <Label size={11} tracking={0.08}>{`${review.rating} / 5`}</Label>
       </View>
 
       {/* When they were THERE, not when they typed. */}
       <Label size={10} tracking={0} colour={color.neutral600} style={{ textTransform: 'none', marginTop: 3 }}>
-        {strings.reviews.visited(formatLedgerDate(review.visitedAt, now)).en}
+        {t(strings.reviews.visited(t(ledgerDate(review.visitedAt, now))))}
       </Label>
 
       {review.body ? (
@@ -226,7 +227,7 @@ export function ReviewRow({
           traveller's own words is a quote they never said. */}
       {review.body && review.language !== 'en' ? (
         <Label size={9} tracking={0.06} colour={color.neutral600} style={{ marginTop: 6 }}>
-          {strings.reviews.inLanguage(review.language.toUpperCase()).en}
+          {t(strings.reviews.inLanguage(review.language.toUpperCase()))}
         </Label>
       ) : null}
 
@@ -240,7 +241,7 @@ export function ReviewRow({
           accessibilityRole="button"
           accessibilityLabel={
             alreadyReported
-              ? strings.reviews.reportedAlready.en
+              ? t(strings.reviews.reportedAlready)
               : t(strings.reviews.reportTitle)
           }
           hitSlop={8}
@@ -248,7 +249,7 @@ export function ReviewRow({
         >
           <Label size={9} tracking={0.1} colour={color.neutral600}>
             {alreadyReported
-              ? strings.reviews.reportedAlready.en
+              ? t(strings.reviews.reportedAlready)
               : t(strings.reviews.report)}
           </Label>
         </Pressable>
@@ -294,9 +295,9 @@ export function ComposeSheet({
     if (!res.ok) { onSaved(res.error); return; }
     onSaved(
       res.data.pointsAwarded > 0
-        ? strings.reviews.posted(res.data.pointsAwarded).en
+        ? t(strings.reviews.posted(res.data.pointsAwarded))
         : res.data.created
-          ? strings.reviews.tooShortForPoints(40).en
+          ? t(strings.reviews.tooShortForPoints(40))
           : t(strings.reviews.updated),
     );
   };
@@ -324,7 +325,7 @@ export function ComposeSheet({
             }}
           >
             <Heading size={16}>
-              {existing ? strings.reviews.edit.en : t(strings.reviews.write)}
+              {existing ? t(strings.reviews.edit) : t(strings.reviews.write)}
             </Heading>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12}>
               <X size={20} color={color.text} />
@@ -451,7 +452,7 @@ export function ReportSheet({
     setBusy(true);
     const res = await api.reportReview(review.id, { reason, note: note.trim() || null });
     setBusy(false);
-    onSent(res.ok ? strings.reviews.reported.en : res.error);
+    onSent(res.ok ? t(strings.reviews.reported) : res.error);
   };
 
   return (
@@ -580,7 +581,7 @@ export function TakenDownNotice({
 }: { state: MyReviewState; onAppeal: () => void }) {
   const reasonKey = state.hiddenReasonKey;
   const reason = reasonKey && isModerationReasonKey(reasonKey)
-    ? MODERATION_REASONS[reasonKey].en
+    ? t(MODERATION_REASONS[reasonKey])
     : null;
   const appeal = state.appeal;
 
@@ -601,7 +602,7 @@ export function TakenDownNotice({
       </Label>
       <Body size={13} style={{ marginTop: 8 }}>
         {reason
-          ? strings.reviews.takenDownExplain(reason).en
+          ? t(strings.reviews.takenDownExplain(reason))
           : t(strings.reviews.takenDown)}
       </Body>
       {state.review.body ? (
@@ -623,7 +624,7 @@ export function TakenDownNotice({
       ) : (
         <Label size={10} tracking={0.1} colour={color.neutral700} style={{ marginTop: 12 }}>
           {appeal.outcome === 'declined'
-            ? strings.reviews.appealDeclined.en
+            ? t(strings.reviews.appealDeclined)
             : t(strings.reviews.appealPending)}
         </Label>
       )}
@@ -656,7 +657,7 @@ export function AppealSheet({
     setBusy(true);
     const res = await api.appealReview(state.review.id, message.trim());
     setBusy(false);
-    onSent(res.ok ? strings.reviews.appealSent.en : res.error);
+    onSent(res.ok ? t(strings.reviews.appealSent) : res.error);
   };
 
   return (

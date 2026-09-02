@@ -82,6 +82,7 @@ export function getExp(db: DB, userId: string): number {
 interface LedgerRow {
   id: string;
   label: string;
+  subject: string | null;
   occurred_at: string;
   host: string;
   amount: number;
@@ -91,11 +92,12 @@ interface LedgerRow {
   source_ref: string;
 }
 
-const LEDGER_COLUMNS = 'id, label, occurred_at, host, amount, currency, exp, kind, source_ref';
+const LEDGER_COLUMNS = 'id, label, subject, occurred_at, host, amount, currency, exp, kind, source_ref';
 
 const toLedgerEntry = (r: LedgerRow): LedgerEntry => ({
   id: r.id,
   label: r.label,
+  subject: r.subject,
   occurredAt: r.occurred_at,
   host: r.host,
   amount: r.amount,
@@ -129,6 +131,13 @@ export function getWallet(db: DB, userId: string): Wallet {
 export interface MovementInput {
   userId: string;
   label: string;
+  /**
+   * The thing this row is ABOUT - a quest, a place, an offer - with no
+   * sentence around it. `label` is the English sentence; this is the part the
+   * client needs to write that sentence in the reader's language. Null where
+   * there is no subject, e.g. the pilot opening balance.
+   */
+  subject?: string | null;
   host: string;
   /** Signed. Positive credits, negative debits. */
   amount: number;
@@ -196,9 +205,9 @@ export function applyMovement(db: DB, input: MovementInput): MovementResult {
 
     db.prepare(
       `INSERT INTO ledger
-         (id, user_id, label, occurred_at, host, amount, currency, exp, kind, source_ref)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(id, userId, input.label, occurredAt, input.host, amount, currency,
+         (id, user_id, label, subject, occurred_at, host, amount, currency, exp, kind, source_ref)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(id, userId, input.label, input.subject ?? null, occurredAt, input.host, amount, currency,
           expDelta, input.kind, sourceRef);
 
     db.prepare(
@@ -214,7 +223,7 @@ export function applyMovement(db: DB, input: MovementInput): MovementResult {
           : { ...balances, trip: balances.trip + amount },
       exp: getExp(db, userId),
       entry: {
-        id, label: input.label, occurredAt, host: input.host,
+        id, label: input.label, subject: input.subject ?? null, occurredAt, host: input.host,
         amount, currency, exp: expDelta, kind: input.kind, sourceRef,
       },
     };
@@ -241,6 +250,7 @@ export function awardQuestReward(
   return applyMovement(db, {
     userId: args.userId,
     label: args.questName,
+    subject: args.questName,
     host: args.host,
     amount: args.points,
     currency: args.currency,
@@ -273,6 +283,7 @@ export function awardCheckin(
   return applyMovement(db, {
     userId: args.userId,
     label: `Checked in · ${args.placeName}`,
+    subject: args.placeName,
     // Named honestly. A self-verified row must not carry a municipality's name
     // in the column the whole ledger uses to mean "who vouched for this".
     host: 'ChivaGo · self check-in',
@@ -309,6 +320,7 @@ export function spendOnVoucher(
   return applyMovement(db, {
     userId: args.userId,
     label: `${args.offerName} redeemed`,
+    subject: args.offerName,
     host: args.merchant,
     amount: -Math.abs(args.costPoints),
     currency: args.currency,

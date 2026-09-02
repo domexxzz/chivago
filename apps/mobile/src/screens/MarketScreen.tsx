@@ -27,7 +27,7 @@ import { t } from '../i18n/locale.ts';
 
 /** Currency as it reads mid-sentence, e.g. "180 more Trip Points". */
 const currencyName = (c: Offer['currency']): string =>
-  c === 'green' ? strings.common.greenPoints.en : t(strings.common.tripPoints);
+  c === 'green' ? t(strings.common.greenPoints) : t(strings.common.tripPoints);
 
 /**
  * Both balances in the header.

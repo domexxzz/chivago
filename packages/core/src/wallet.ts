@@ -12,7 +12,7 @@
  */
 
 import { QUIET_FROM_HOUR, QUIET_UNTIL_HOUR } from './strings.ts';
-import type { Balances, Currency, LedgerEntry } from './types.ts';
+import type { Balances, Bilingual, Currency, LedgerEntry } from './types.ts';
 
 export const emptyBalances = (): Balances => ({ trip: 0, green: 0 });
 
@@ -61,19 +61,27 @@ function islandDayNumber(d: Date): number {
 }
 
 /**
- * Relative date label: Today / Yesterday / "12 Oct", in island time.
+ * Relative date label in both languages: Today / Yesterday / "12 Oct".
+ *
  * `now` is injected so this is pure and testable - never read the clock here.
+ * The two nearest days are WORDS, so they need translating; everything older
+ * is a date, and `Intl` writes it in each language's own convention rather
+ * than us transliterating month names by hand.
  */
-export function formatLedgerDate(iso: string, now: Date): string {
+export function ledgerDate(iso: string, now: Date): Bilingual {
   const days = islandDayNumber(now) - islandDayNumber(new Date(iso));
-  if (days <= 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  return new Intl.DateTimeFormat('en-GB', {
+  if (days <= 0) return { en: 'Today', th: 'วันนี้' };
+  if (days === 1) return { en: 'Yesterday', th: 'เมื่อวาน' };
+  const on = (locale: string) => new Intl.DateTimeFormat(locale, {
     timeZone: ISLAND_TZ,
     day: 'numeric',
     month: 'short',
   }).format(new Date(iso));
+  return { en: on('en-GB'), th: on('th-TH') };
 }
+
+/** The English label alone. Kept for callers that compose an English sentence. */
+export const formatLedgerDate = (iso: string, now: Date): string => ledgerDate(iso, now).en;
 
 /**
  * Can this balance afford this cost?
@@ -149,4 +157,37 @@ export function nextQuietHoursEnd(
   const base = Date.UTC(get('year'), get('month') - 1, get('day') + dayOffset, untilHour);
   // Asia/Bangkok is UTC+7 year round - no daylight saving to reason about.
   return new Date(base - 7 * 3_600_000);
+}
+
+/**
+ * What a ledger row says, in both languages.
+ *
+ * The server writes `label` as a finished English sentence - "Checked in ·
+ * Lamai Beach" - because for most of this project the app printed English with
+ * Thai captioned underneath. It shows one language now, so that sentence was
+ * the last place a Thai reader met English in their own wallet.
+ *
+ * The row also carries the two things needed to write the sentence again: the
+ * `kind` of movement and its `subject` - the quest, the place, the offer, with
+ * no sentence around it. Everything else is phrasing, and phrasing belongs to
+ * whoever is reading.
+ *
+ * Falls back to the stored label for a row with no subject (the pilot opening
+ * balance, and every row written before the column existed) and for a kind
+ * this function has no phrasing for. That fallback is honest: it is what the
+ * row actually said when it was written.
+ */
+export function ledgerLine(
+  entry: Pick<LedgerEntry, 'kind' | 'label'> & { subject?: string | null },
+): Bilingual {
+  const subject = entry.subject?.trim();
+  if (!subject) return { en: entry.label, th: entry.label };
+  switch (entry.kind) {
+    // The quest's own name IS the sentence. Nothing to phrase around it.
+    case 'quest_reward': return { en: subject, th: subject };
+    case 'checkin': return { en: `Checked in · ${subject}`, th: `เช็กอินที่ ${subject}` };
+    case 'review': return { en: `Review · ${subject}`, th: `รีวิว ${subject}` };
+    case 'redemption': return { en: `${subject} redeemed`, th: `แลก ${subject}` };
+    default: return { en: entry.label, th: entry.label };
+  }
 }

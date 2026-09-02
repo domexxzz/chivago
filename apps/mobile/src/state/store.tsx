@@ -24,6 +24,7 @@ import {
 } from '../location/background.ts';
 import { deviceUserId, setDeviceUser } from '../api/client.ts';
 import { motion } from '../theme/index.ts';
+import { t } from '../i18n/locale.ts';
 import type { WellnessProfile } from '@chivago/core';
 import { strings } from '@chivago/core';
 import { Share } from 'react-native';
@@ -398,12 +399,12 @@ export function useSos(onError: (message: string) => void) {
     if (!alert?.shareUrl) return;
     try {
       await Share.share({
-        message: `${strings.safety.shareMessage.en}
+        message: `${t(strings.safety.shareMessage)}
 ${alert.shareUrl}`,
         url: alert.shareUrl,
       });
     } catch {
-      onError(strings.safety.shareFailed.en);
+      onError(t(strings.safety.shareFailed));
     }
   }, [alert, onError]);
 

@@ -62,7 +62,8 @@ function useBreath(): Animated.Value {
   return breath;
 }
 
-const STAGE_LABEL: Record<Companion['stage'], { en: string; th: string }> = {
+/** The three stages, named. Exported: the wallet lists the same creatures. */
+export const STAGE_LABEL: Record<Companion['stage'], { en: string; th: string }> = {
   egg: { en: 'Egg', th: 'ไข่' },
   hatchling: { en: 'Hatchling', th: 'ลูกอ่อน' },
   grown: { en: 'Grown', th: 'โตเต็มวัย' },
@@ -134,7 +135,7 @@ export function CompanionHomeScreen({
           colour={grown ? color.accent : color.text}
           style={{ marginTop: 18 }}
         >
-          {stage === 'egg' ? species.eggName.en : t(species.name)}
+          {stage === 'egg' ? t(species.eggName) : t(species.name)}
         </Heading>
 
         <View

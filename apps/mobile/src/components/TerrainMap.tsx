@@ -27,10 +27,11 @@ import {
 // MapLibre's own stylesheet. Without it the zoom/pitch control renders as
 // three unstyled buttons stacked in the corner.
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { isHighScore, type ScoredPlace } from '@chivago/core';
+import { isHighScore, strings, type ScoredPlace } from '@chivago/core';
 import { color, onFill } from '../theme/index.ts';
 import { Label } from './Type.tsx';
 import { MapLegend } from './map-parts.tsx';
+import { t } from '../i18n/locale.ts';
 import {
   HERO, SAMUI_BOUNDS, chivagoStyle, crowdOffsets, heroPose, introPose, settleEasing,
 } from './terrain-style.ts';
@@ -163,7 +164,7 @@ export function TerrainMap({
     for (const place of places) {
       const el = document.createElement('button');
       el.type = 'button';
-      el.setAttribute('aria-label', `${place.name.en}, Healthy Score ${place.healthyScore}`);
+      el.setAttribute('aria-label', `${t(place.name)}, ${t(strings.place.healthyScore)} ${place.healthyScore}`);
       const high = isHighScore(place.healthyScore);
       el.style.cssText = [
         'display:flex', 'align-items:center', 'gap:5px',

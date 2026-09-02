@@ -363,7 +363,7 @@ function QuestCard({
             anything, and an anonymous mission is just a task list.
           */}
           <Label size={9} tracking={0.06} colour={color.neutral600} style={{ marginTop: 4, textTransform: 'none' }}>
-            {`Verified by ${quest.host.name}`}
+            {t(strings.quests.by(quest.host.name))}
           </Label>
         </View>
 
@@ -504,23 +504,23 @@ function Doors({
   // Untyped on purpose: annotating the icon narrower than LucideIcon fights
   // the library's own forwardRef signature for nothing.
   const doors = [
-    { Icon: Compass, en: t(strings.tabs.map), th: strings.tabs.map.th, onPress: onOpenMap },
-    { Icon: MessageCircle, en: 'Ask', th: 'ถาม', onPress: onOpenConcierge },
-    { Icon: Sparkles, en: t(strings.tabs.impact), th: strings.tabs.impact.th, onPress: onOpenImpact },
-    { Icon: Shield, en: t(strings.tabs.safety), th: strings.tabs.safety.th, onPress: onOpenSafety },
-    { Icon: Users, en: 'Group', th: 'กลุ่ม', onPress: onOpenParty },
+    { Icon: Compass, name: strings.tabs.map, onPress: onOpenMap },
+    { Icon: MessageCircle, name: { en: 'Ask', th: 'ถาม' }, onPress: onOpenConcierge },
+    { Icon: Sparkles, name: strings.tabs.impact, onPress: onOpenImpact },
+    { Icon: Shield, name: strings.tabs.safety, onPress: onOpenSafety },
+    { Icon: Users, name: { en: 'Group', th: 'กลุ่ม' }, onPress: onOpenParty },
   ];
 
   return (
     <View style={{ paddingTop: 22 }}>
       <SectionHead en="Go" th="ไปต่อ" />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: gutter }}>
-        {doors.map(({ Icon, en, th, onPress }) => (
+        {doors.map(({ Icon, name, onPress }) => (
           <Pressable
-            key={en}
+            key={name.en}
             onPress={onPress}
             accessibilityRole="button"
-            accessibilityLabel={`${en}. ${th}`}
+            accessibilityLabel={t(name)}
             style={{
               // Basis rather than flex:1 — five doors wrap to a second row,
               // and equal flex would stretch a lone survivor across the width.
@@ -531,7 +531,7 @@ function Doors({
             }}
           >
             <Icon size={20} color={color.brandDeep} strokeWidth={2} />
-            <Label size={9} tracking={0.08} colour={color.brandDeep}>{en}</Label>
+            <Label size={9} tracking={0.08} colour={color.brandDeep}>{t(name)}</Label>
           </Pressable>
         ))}
       </View>

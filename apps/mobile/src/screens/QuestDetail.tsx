@@ -150,7 +150,7 @@ export function QuestDetailScreen({
 
   return (
     <View style={{ flex: 1 }}>
-      <PushHeader context={quest ? strings.quest.context(quest.code).en : ''} onBack={onBack} />
+      <PushHeader context={quest ? t(strings.quest.context(quest.code)) : ''} onBack={onBack} />
 
       {data.loading ? <LoadingState /> : null}
       {data.error ? <ErrorState message={data.error} onRetry={data.reload} /> : null}

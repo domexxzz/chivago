@@ -137,11 +137,13 @@ function credit(
   label: string,
   host: string,
   kind: string,
+  /** What the row is about, so the app can phrase it in the reader's language. */
+  subject: string | null = null,
 ) {
   const w = wallet();
   w.balances[currency] += amount;
   w.ledger.unshift({
-    id: id('l'), label, occurredAt: now(), host,
+    id: id('l'), label, subject, occurredAt: now(), host,
     amount, currency, exp: Math.max(0, amount), kind,
     sourceRef: `demo:${state.seq}`,
   });
@@ -179,7 +181,7 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     const already = state.checkins.includes(placeId);
     if (!already) {
       state.checkins.push(placeId);
-      credit(20, 'trip', `Checked in · ${place?.short ?? placeId}`, 'ChivaGo', 'checkin');
+      credit(20, 'trip', `Checked in · ${place?.short ?? placeId}`, 'ChivaGo', 'checkin', String(place?.short ?? placeId));
       // A check-in is what makes a review writable — the same gate as the API.
       const key = `/places/${placeId}/reviews`;
       const r = state.routes[key] as Json;
