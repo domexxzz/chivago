@@ -127,6 +127,16 @@ message is the last thing that person needs.
 - **Acknowledging twice does not re-notify** or overwrite the first responder.
 - **Contacts are scoped to their owner.** An id alone is not enough to edit
   someone else's emergency list.
+- **A linked contact is only pushed with their say-so.** Anyone can type
+  anyone's user id into a contact; a push goes to that user only if they have
+  listed the traveller on their own list. Otherwise the row is recorded as
+  `unavailable` — "they have not added you as a contact" — so the traveller
+  knows to send the link. Mutual listing is the consent this pilot can record.
+- **No fix is recorded as no fix.** An alert fired by a phone that could not
+  get a position has `lat`/`lng` null and the label *Position unknown*. The
+  desk and the live page say so instead of drawing a pin; the first version
+  substituted Bophut, and nothing on the desk could tell that pin from a real
+  one. A later fix still updates it.
 - **PDPA erasure reaches the emergency list.** Deleting a user removes their
   contacts and their alerts. Tested.
 - **The banner no longer says "help is on the way."** It says the location is

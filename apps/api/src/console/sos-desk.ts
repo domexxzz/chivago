@@ -61,6 +61,7 @@ function alertCard(
   escalations: EscalationRecord[],
   summary: TrailSummary,
   locale: Locale,
+  csrf: string,
 ): Raw {
   const waiting = minutesSince(alert.firedAt);
   const unacknowledged = alert.status === 'dispatching';
@@ -82,7 +83,9 @@ function alertCard(
           </div>
           <h3 style="margin:6px 0 2px">${alert.locationLabel}</h3>
           <div class="muted">
-            ${alert.lat.toFixed(5)}, ${alert.lng.toFixed(5)} ·
+            ${alert.lat !== null && alert.lng !== null
+              ? `${alert.lat.toFixed(5)}, ${alert.lng.toFixed(5)}`
+              : 'POSITION UNKNOWN — their phone gave no fix · ไม่ทราบตำแหน่ง'} ·
             fired ${formatWaiting(waiting / 60, locale)}
             ${alert.lastPositionAt ? html` · moved ${formatDateTime(alert.lastPositionAt, locale)}` : ''}
           </div>
@@ -136,10 +139,12 @@ function alertCard(
       </div>
 
       <div class="actions" style="margin-top:16px">
-        <a class="btn btn-secondary" style="padding:10px 16px;text-decoration:none"
-           href="${mapsUrl(alert.lat, alert.lng)}" target="_blank" rel="noopener noreferrer">
-          Open in Maps
-        </a>
+        ${alert.lat !== null && alert.lng !== null
+          ? html`<a class="btn btn-secondary" style="padding:10px 16px;text-decoration:none"
+               href="${mapsUrl(alert.lat, alert.lng)}" target="_blank" rel="noopener noreferrer">
+              Open in Maps
+            </a>`
+          : ''}
         <a class="btn btn-secondary" style="padding:10px 16px;text-decoration:none"
            href="${alert.shareUrl}" target="_blank" rel="noopener noreferrer">
           Live page
@@ -147,11 +152,13 @@ function alertCard(
         ${
           unacknowledged
             ? html`<form method="post" action="/console/sos/${alert.id}/acknowledge">
+                 <input type="hidden" name="csrf" value="${csrf}">
                  <button class="btn btn-primary" type="submit" style="padding:10px 18px">
                    I have this — tell them
                  </button>
                </form>`
             : html`<form method="post" action="/console/sos/${alert.id}/resolve">
+                 <input type="hidden" name="csrf" value="${csrf}">
                  <button class="btn btn-secondary" type="submit" style="padding:10px 18px">
                    Close alert
                  </button>
@@ -171,6 +178,7 @@ export function sosDeskPage(
   escalations: Record<string, EscalationRecord[]> = {},
   trails: Record<string, TrailSummary> = {},
   canModerate = false,
+  csrf = '',
 ): string {
   const unacknowledged = live.filter((a) => a.status === 'dispatching').length;
   const escalatedCount = live.filter(
@@ -217,6 +225,7 @@ export function sosDeskPage(
                 silentForSeconds: null, lastSource: null, movingAwayFromStart: false,
               },
               locale,
+              csrf,
             ),
           )
     }

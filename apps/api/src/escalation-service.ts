@@ -24,7 +24,7 @@
 import { randomUUID } from 'node:crypto';
 import { row, rows, transact, type DB } from './db.ts';
 import { enqueue } from './notification-service.ts';
-import { listContacts, liveAlerts, type SosAlertRecord, displayNameOf } from './sos-service.ts';
+import { liveAlerts, pushableContacts, type SosAlertRecord, displayNameOf } from './sos-service.ts';
 import type { OncallTransport } from './push/webhook.ts';
 
 export type Rung = 'nudge_1' | 'oncall' | 'nudge_2';
@@ -101,8 +101,10 @@ export interface EscalationOutcome {
 // Firing a rung
 // ---------------------------------------------------------------------------
 
-const mapsUrl = (lat: number, lng: number) =>
-  `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+const mapsUrl = (lat: number | null, lng: number | null): string | null =>
+  lat === null || lng === null
+    ? null
+    : `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
 /**
  * Fire one rung, once.
@@ -148,7 +150,9 @@ export async function fireRung(
   if (rung === 'nudge_1') {
     // Re-alert contacts who use the app. The first push may have arrived while
     // their phone was face-down on a table.
-    for (const contact of listContacts(db, alert.userId)) {
+    // Only contacts who listed the traveller back - the same consent rule
+    // the first alert applied. A stranger's user id is not a contact.
+    for (const contact of pushableContacts(db, alert.userId)) {
       if (!contact.linkedUserId) continue;
       enqueue(db, {
         userId: contact.linkedUserId,

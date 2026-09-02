@@ -66,8 +66,9 @@ export interface DispatchRecord {
 export interface SosAlertRecord {
   id: string;
   status: 'dispatching' | 'acknowledged' | 'resolved' | 'cancelled';
-  lat: number;
-  lng: number;
+  /** Null when the phone had no fix to give. The server no longer invents one. */
+  lat: number | null;
+  lng: number | null;
   locationLabel: string;
   firedAt: string;
   acknowledgedAt: string | null;
@@ -81,6 +82,13 @@ export interface SosAlertRecord {
   /** Counted from real attempts, never asserted. */
   contactsReached: number;
   contactsTotal: number;
+}
+
+/** When non-urgent pushes are held. Hours are island-local, 0–23. */
+export interface QuietPreference {
+  enabled: boolean;
+  from: number | null;
+  until: number | null;
 }
 
 /** One entry in the in-app inbox. Bilingual, unlike the push. */
@@ -336,6 +344,13 @@ export const api = {
   markNotificationRead: (id: string) =>
     post<{ unread: number }>(`/notifications/${id}/read`),
   markAllNotificationsRead: () => post<{ unread: number }>('/notifications/read-all'),
+  /**
+   * Quiet hours, per person. Island time. `from`/`until` null means the
+   * default (22:00–07:00). SOS ignores this and always will.
+   */
+  quietHours: () => get<QuietPreference>('/notifications/quiet'),
+  setQuietHours: (pref: Partial<QuietPreference>) =>
+    call<QuietPreference>('/notifications/quiet', { method: 'PUT', body: JSON.stringify(pref) }),
 
   // -- companions ---------------------------------------------------------
   /**

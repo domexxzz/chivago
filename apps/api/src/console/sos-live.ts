@@ -44,10 +44,12 @@ export function sosLivePage(view: PublicAlertView | null): string {
     <div class="card">
       <div class="kicker">Location · ตำแหน่ง</div>
       <div class="big">${esc(view.locationLabel)}</div>
-      <div class="coords">${view.lat.toFixed(5)}, ${view.lng.toFixed(5)}</div>
-      <a class="btn" href="${MAPS(view.lat, view.lng)}" target="_blank" rel="noopener noreferrer">
-        Open in Maps · เปิดในแผนที่
-      </a>
+      ${view.lat !== null && view.lng !== null
+        ? `<div class="coords">${view.lat.toFixed(5)}, ${view.lng.toFixed(5)}</div>
+           <a class="btn" href="${MAPS(view.lat, view.lng)}" target="_blank" rel="noopener noreferrer">
+             Open in Maps · เปิดในแผนที่
+           </a>`
+        : `<div class="coords">Their phone has not been able to say where they are. · โทรศัพท์ยังบอกตำแหน่งไม่ได้</div>`}
       <p class="muted" data-updated="${esc(updated)}">
         Updated <time>${esc(new Date(updated).toLocaleString('en-GB'))}</time>.
         This page refreshes itself.<br>

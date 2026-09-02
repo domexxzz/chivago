@@ -130,8 +130,15 @@ export interface SosAlertRecord {
   id: string;
   userId: string;
   status: 'dispatching' | 'acknowledged' | 'resolved' | 'cancelled';
-  lat: number;
-  lng: number;
+  /**
+   * NULL when the phone had no fix to give - permission refused, GPS dead.
+   * The first version substituted a fixed point on the island, so the desk
+   * drew a confident pin at Bophut for somebody who could have been anywhere.
+   * An unknown position is a fact the desk needs; a made-up one is a lie it
+   * cannot detect.
+   */
+  lat: number | null;
+  lng: number | null;
   locationLabel: string;
   firedAt: string;
   acknowledgedAt: string | null;
@@ -257,8 +264,9 @@ const logDispatch = (
 
 export interface FireInput {
   userId: string;
-  lat: number;
-  lng: number;
+  /** Null when the phone could not say. Never substitute a default. */
+  lat: number | null;
+  lng: number | null;
   locationLabel: string;
   nearestHospital?: string;
   /** Optional free text from the user, e.g. "motorbike accident". */
@@ -291,7 +299,7 @@ export function fireAlert(db: DB, input: FireInput): SosAlertRecord {
     ).run(
       id, input.userId, input.lat, input.lng, input.locationLabel, now,
       input.nearestHospital ?? 'Bangkok Hospital Samui',
-      token, input.lat, input.lng, now, input.note ?? null,
+      token, input.lat, input.lng, input.lat === null ? null : now, input.note ?? null,
     );
 
     const contacts = listContacts(db, input.userId);
@@ -311,6 +319,23 @@ export function fireAlert(db: DB, input: FireInput): SosAlertRecord {
 
     // -- Channel 2: push to contacts who are also users --------------------
     for (const contact of contacts) {
+      if (contact.linkedUserId && !listsBack(db, contact.linkedUserId, input.userId)) {
+        // A linked user who has NOT listed this traveller as their own
+        // contact never agreed to be woken at 03:00 by them. Anyone could
+        // type anyone's user id here, and without this rule that was a way
+        // to push an emergency at a stranger through their quiet hours. The
+        // row is recorded as unavailable - with the reason - rather than
+        // skipped, so the traveller knows this contact was NOT reached.
+        logDispatch(db, id, {
+          channel: 'push',
+          target: contact.id,
+          targetLabel: contact.name,
+          status: 'unavailable',
+          detail: 'They have not added you as a contact in their app, so nothing is pushed to them — send them the link.',
+          attemptedAt: now,
+        });
+        continue;
+      }
       if (contact.linkedUserId) {
         enqueue(db, {
           userId: contact.linkedUserId,
@@ -363,6 +388,27 @@ export function fireAlert(db: DB, input: FireInput): SosAlertRecord {
   });
 
   return alert;
+}
+
+/**
+ * Has `linkedUserId` listed `userId` as one of THEIR emergency contacts?
+ *
+ * Consent, in the only form this pilot can record it: two people who each
+ * put the other on their list have agreed to hear from each other in an
+ * emergency. One side alone is a claim about somebody else.
+ */
+export const listsBack = (db: DB, linkedUserId: string, userId: string): boolean =>
+  row<{ n: number }>(
+    db.prepare(
+      'SELECT 1 AS n FROM emergency_contacts WHERE user_id = ? AND linked_user_id = ? LIMIT 1',
+    ).get(linkedUserId, userId),
+  ) !== undefined;
+
+/** Contacts of `userId` who use the app AND have listed them back. */
+export function pushableContacts(db: DB, userId: string): EmergencyContact[] {
+  return listContacts(db, userId).filter(
+    (c) => c.linkedUserId !== null && listsBack(db, c.linkedUserId, userId),
+  );
 }
 
 export const displayNameOf = (db: DB, userId: string): string =>
@@ -482,8 +528,9 @@ export function recentAlerts(db: DB, limit = 50): SosAlertRecord[] {
 export interface PublicAlertView {
   status: SosAlertRecord['status'];
   name: string;
-  lat: number;
-  lng: number;
+  /** Null while live if the phone gave no fix; null once the alert ends. */
+  lat: number | null;
+  lng: number | null;
   locationLabel: string;
   firedAt: string;
   lastPositionAt: string | null;
@@ -502,9 +549,10 @@ export function publicView(db: DB, token: string): PublicAlertView | null {
     status: alert.status,
     name: displayNameOf(db, alert.userId),
     // A resolved alert stops reporting position. The link showed where someone
-    // was during an emergency; it is not a permanent tracker.
-    lat: live ? alert.lat : 0,
-    lng: live ? alert.lng : 0,
+    // was during an emergency; it is not a permanent tracker. Null, not 0:
+    // (0, 0) is a real place in the Gulf of Guinea.
+    lat: live ? alert.lat : null,
+    lng: live ? alert.lng : null,
     locationLabel: live ? alert.locationLabel : '',
     firedAt: alert.firedAt,
     lastPositionAt: live ? alert.lastPositionAt : null,
