@@ -67,7 +67,17 @@ export function QuestDetailScreen({
       onToast('Location permission is needed to check in at the site.');
       return;
     }
-    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    // A fix can time out or fail under tree cover. Without the catch that
+    // rejection left `busy` true and the button dead until the screen was
+    // reopened - at the site, with the volunteer standing there.
+    let pos: Location.LocationObject;
+    try {
+      pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    } catch {
+      setBusy(false);
+      onToast(strings.checkin.noFix.en);
+      return;
+    }
     const res = await api.arriveAtQuest(questId, {
       lat: pos.coords.latitude,
       lng: pos.coords.longitude,
@@ -83,7 +93,15 @@ export function QuestDetailScreen({
     const picker = perm.granted
       ? ImagePicker.launchCameraAsync
       : ImagePicker.launchImageLibraryAsync;
-    const result = await picker({ quality: 0.7, exif: true });
+    let result: ImagePicker.ImagePickerResult;
+    try {
+      result = await picker({ quality: 0.7, exif: true });
+    } catch {
+      // A picker that will not open (no camera, a denied gallery) is not a
+      // crash. The volunteer can try the other source.
+      onToast(strings.quest.photoUnavailable.en);
+      return;
+    }
     if (result.canceled || !result.assets[0]) return;
 
     const asset = result.assets[0];
@@ -114,9 +132,20 @@ export function QuestDetailScreen({
     } else onToast(res.error);
   };
 
+  /**
+   * Tell the app the balance moved - once per arrival at `complete`.
+   *
+   * The callback lives in a ref on purpose. The parent hands down an inline
+   * arrow that is a new function on every render, and the callback's own job
+   * is to bump a counter that re-renders the parent. Keyed on the callback,
+   * this effect re-fired on every render it caused: opening any finished quest
+   * refetched the wallet and the inbox in a loop that never ended.
+   */
+  const onPointsChangedRef = React.useRef(onPointsChanged);
+  React.useEffect(() => { onPointsChangedRef.current = onPointsChanged; });
   React.useEffect(() => {
-    if (stage === 'complete') onPointsChanged();
-  }, [stage, onPointsChanged]);
+    if (stage === 'complete') onPointsChangedRef.current();
+  }, [stage]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -337,6 +366,7 @@ function ProofBox({
               ) : isAdd ? (
                 <Button
                   label=""
+                  accessibilityLabel={strings.quest.addPhoto.en}
                   onPress={onAddPhoto}
                   variant="ghost"
                   icon={<Camera size={20} color={color.neutral700} strokeWidth={2} />}

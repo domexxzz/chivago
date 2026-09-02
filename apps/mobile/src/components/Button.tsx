@@ -28,11 +28,13 @@ interface ButtonProps {
   style?: ViewStyle;
   /** Inverts to the bg colour, for use on an accent fill. */
   inverted?: boolean;
+  /** What a screen reader says. Required in practice when `label` is empty. */
+  accessibilityLabel?: string;
 }
 
 export function Button({
   label, thai, onPress, variant = 'primary', height = 48,
-  disabled = false, icon, style, inverted = false,
+  disabled = false, icon, style, inverted = false, accessibilityLabel,
 }: ButtonProps) {
   const [pressed, setPressed] = React.useState(false);
 
@@ -66,14 +68,20 @@ export function Button({
     icon === null ? null : (icon ?? (variant === 'primary' ? <ArrowRight size={18} color={palette.fg} strokeWidth={2} /> : null));
 
   if (variant === 'ghost') {
+    // A ghost with an icon and no label is an icon button - the camera tile on
+    // the proof form. It used to render nothing at all: the icon was assembled
+    // above and then never placed, so the tile was an empty 64px square with
+    // no name for a screen reader.
     return (
       <Pressable
         onPress={onPress}
         disabled={disabled}
         accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? (thai ? `${label}. ${thai}` : label || undefined)}
         style={[{ paddingVertical: 4, paddingHorizontal: 4, alignSelf: 'flex-start' }, disabled && { opacity: layout.disabledOpacity }, style]}
       >
-        <Heading size={13} colour={palette.fg}>{label}</Heading>
+        {label ? <Heading size={13} colour={palette.fg}>{label}</Heading> : null}
+        {trailing}
       </Pressable>
     );
   }
@@ -85,7 +93,7 @@ export function Button({
       onPressOut={() => setPressed(false)}
       disabled={disabled}
       accessibilityRole="button"
-      accessibilityLabel={thai ? `${label}. ${thai}` : label}
+      accessibilityLabel={accessibilityLabel ?? (thai ? `${label}. ${thai}` : label)}
       style={[
         {
           height,

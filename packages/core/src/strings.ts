@@ -190,6 +190,11 @@ export const strings = {
       'You need to be at the site to check in',
       'คุณต้องอยู่ในพื้นที่ภารกิจเพื่อเช็คอิน',
     ),
+    addPhoto: t('Add a photo', 'เพิ่มรูปถ่าย'),
+    photoUnavailable: t(
+      'Could not open the camera or photos. Try the other one',
+      'เปิดกล้องหรือคลังรูปไม่ได้ ลองอีกทางหนึ่ง',
+    ),
     queuedOffline: t(
       'Saved — will upload when you have signal',
       'บันทึกแล้ว จะอัปโหลดเมื่อมีสัญญาณ',
@@ -366,6 +371,12 @@ export const strings = {
   // -- Check-in -----------------------------------------------------------
   checkin: {
     cta: t('Check in here', 'เช็กอินที่นี่'),
+    // The phone could not get a fix at all - tree cover, a timeout, a
+    // simulator. Different from a refused permission and from being too far.
+    noFix: t(
+      'Could not get your position. Move into the open and try again',
+      'หาตำแหน่งไม่ได้ ลองย้ายไปที่โล่งแล้วลองใหม่',
+    ),
     awarded: (n: number) =>
       t(`Checked in · +${n} Trip Points`, `เช็กอินแล้ว ได้ ${n} แต้มทริป`),
     // Warm, not red. Coming back to a place you liked is the behaviour the

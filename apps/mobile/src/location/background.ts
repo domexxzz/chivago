@@ -26,6 +26,7 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import * as SecureStore from 'expo-secure-store';
 import { API_BASE } from '../api/client.ts';
+import { loadDeviceKey } from '../api/account.ts';
 
 export const SOS_LOCATION_TASK = 'chivago-sos-location';
 
@@ -104,9 +105,22 @@ export async function sendFixes(userId: string, fresh: QueuedFix[]): Promise<boo
   if (all.length === 0) return true;
 
   try {
+    // The device key, not just the user header. The server refuses the bare
+    // header the moment any account exists - which every phone running this
+    // app has, because it registers on first launch. Without the key every
+    // fix sent during an emergency came back 401 and the desk saw only the
+    // point where the button was pressed. Read fresh, because this may run in
+    // a JS context the app never initialised.
+    const key = await loadDeviceKey();
+    const headers: Record<string, string> = {
+      'content-type': 'application/json',
+      'x-chivago-user': userId,
+    };
+    if (key) headers['x-chivago-device-key'] = key;
+
     const res = await fetch(`${API_BASE}/sos/position`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-chivago-user': userId },
+      headers,
       body: JSON.stringify({
         fixes: all.map((f) => ({
           lat: f.lat,

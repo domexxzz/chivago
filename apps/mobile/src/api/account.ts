@@ -30,6 +30,22 @@ let cached: string | null = null;
 /** The key, or null before `ensureAccount` has run. Never throws. */
 export const deviceKey = (): string | null => cached;
 
+/**
+ * The key, read from the keychain if memory does not have it.
+ *
+ * For code that runs OUTSIDE the app's JS context: the background location
+ * task can be started by the OS after the app was killed, in a fresh runtime
+ * where `cached` is null even though the phone has a key. Reading it fresh is
+ * the difference between a position update the server accepts and a 401 on
+ * every fix during an emergency. Never throws.
+ */
+export async function loadDeviceKey(): Promise<string | null> {
+  if (cached) return cached;
+  const stored = await read();
+  if (stored) cached = stored;
+  return cached;
+}
+
 async function read(): Promise<string | null> {
   try {
     return await SecureStore.getItemAsync(KEY_SLOT);

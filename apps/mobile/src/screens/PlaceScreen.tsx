@@ -61,7 +61,15 @@ export function PlaceScreen({
       onToast('Location permission is needed to check in here.');
       return;
     }
-    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    // A fix that times out or fails must release the button, not strand it.
+    let pos: Location.LocationObject;
+    try {
+      pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    } catch {
+      setBusy(false);
+      onToast(strings.checkin.noFix.en);
+      return;
+    }
     const res = await api.checkIn(placeId, {
       lat: pos.coords.latitude,
       lng: pos.coords.longitude,
