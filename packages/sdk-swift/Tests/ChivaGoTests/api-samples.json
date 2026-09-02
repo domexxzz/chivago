@@ -1,7 +1,7 @@
 {
   "health": {
     "status": "up",
-    "time": "2026-09-01T22:06:32.190Z"
+    "time": "2026-09-02T14:25:50.154Z"
   },
   "profile": {
     "purposes": [],
@@ -40,7 +40,7 @@
       },
       "metrics": {
         "crowdDensity": 3,
-        "aqi": 42,
+        "aqi": 40,
         "safetyIndex": 6.77,
         "walkability": 8.1
       },
@@ -50,9 +50,9 @@
       },
       "readings": {
         "aqi": {
-          "value": 42,
+          "value": 40,
           "provenance": "live",
-          "observedAt": "2026-09-01T22:00:00.000Z",
+          "observedAt": "2026-09-02T14:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
@@ -77,8 +77,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "42 AQI",
-            "subScore": 83.8,
+            "display": "40 AQI",
+            "subScore": 84.8,
             "weight": 0.3,
             "provenance": "live"
           },
@@ -149,7 +149,7 @@
       },
       "metrics": {
         "crowdDensity": 0.4,
-        "aqi": 42,
+        "aqi": 40,
         "safetyIndex": 8.85,
         "walkability": 6.9
       },
@@ -159,9 +159,9 @@
       },
       "readings": {
         "aqi": {
-          "value": 42,
+          "value": 40,
           "provenance": "live",
-          "observedAt": "2026-09-01T22:00:00.000Z",
+          "observedAt": "2026-09-02T14:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
@@ -186,8 +186,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "42 AQI",
-            "subScore": 83.8,
+            "display": "40 AQI",
+            "subScore": 84.8,
             "weight": 0.3,
             "provenance": "live"
           },
@@ -258,7 +258,7 @@
       },
       "metrics": {
         "crowdDensity": 1.4,
-        "aqi": 42,
+        "aqi": 40,
         "safetyIndex": 6.33,
         "walkability": 9
       },
@@ -268,15 +268,15 @@
       },
       "readings": {
         "aqi": {
-          "value": 42,
+          "value": 40,
           "provenance": "live",
-          "observedAt": "2026-09-01T22:00:00.000Z",
+          "observedAt": "2026-09-02T14:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
-      "healthyScore": 80,
+      "healthyScore": 81,
       "breakdown": {
-        "total": 80,
+        "total": 81,
         "components": [
           {
             "key": "crowdDensity",
@@ -295,8 +295,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "42 AQI",
-            "subScore": 83.8,
+            "display": "40 AQI",
+            "subScore": 84.8,
             "weight": 0.3,
             "provenance": "live"
           },
@@ -319,6 +319,109 @@
             },
             "display": "9.0 / 10",
             "subScore": 94.7,
+            "weight": 0.2,
+            "provenance": "daily"
+          }
+        ],
+        "profileApplied": "Island baseline"
+      },
+      "reviews": {
+        "count": 0,
+        "average": null,
+        "distribution": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "mangrove",
+      "name": {
+        "en": "Thong Krut Mangrove",
+        "th": "ป่าชายเลนท้องกรูด"
+      },
+      "short": "Thong Krut",
+      "layer": "Quest",
+      "province": "TH-84",
+      "lat": 9.4179,
+      "lng": 99.9433,
+      "meta": "Restoration site · Quest active",
+      "blurb": {
+        "en": "Community-managed mangrove nursery on the south shore. Active planting quest most weekends.",
+        "th": "แปลงเพาะกล้าป่าชายเลนโดยชุมชนทางใต้ของเกาะ"
+      },
+      "tags": [
+        "Green space",
+        "Quest here",
+        "Community"
+      ],
+      "photo": null,
+      "metrics": {
+        "crowdDensity": 0.3,
+        "aqi": 40,
+        "safetyIndex": 5.13,
+        "walkability": 5.2
+      },
+      "safetyLabel": {
+        "en": "Guide required",
+        "th": "ต้องมีไกด์"
+      },
+      "readings": {
+        "aqi": {
+          "value": 40,
+          "provenance": "live",
+          "observedAt": "2026-09-02T14:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+        }
+      },
+      "healthyScore": 76,
+      "breakdown": {
+        "total": 76,
+        "components": [
+          {
+            "key": "crowdDensity",
+            "label": {
+              "en": "Crowd level",
+              "th": "ความหนาแน่น"
+            },
+            "display": "Low",
+            "subScore": 95,
+            "weight": 0.25,
+            "provenance": "live"
+          },
+          {
+            "key": "aqi",
+            "label": {
+              "en": "Air quality",
+              "th": "คุณภาพอากาศ"
+            },
+            "display": "40 AQI",
+            "subScore": 84.8,
+            "weight": 0.3,
+            "provenance": "live"
+          },
+          {
+            "key": "safetyIndex",
+            "label": {
+              "en": "Safety",
+              "th": "ความปลอดภัย"
+            },
+            "display": "Guide required",
+            "subScore": 59.1,
+            "weight": 0.25,
+            "provenance": "daily"
+          },
+          {
+            "key": "walkability",
+            "label": {
+              "en": "Walkability",
+              "th": "การเดินเท้า"
+            },
+            "display": "5.2 / 10",
+            "subScore": 62,
             "weight": 0.2,
             "provenance": "daily"
           }
@@ -366,7 +469,7 @@
       },
       "metrics": {
         "crowdDensity": 0.5,
-        "aqi": 42,
+        "aqi": 40,
         "safetyIndex": 7.39,
         "walkability": 7.4
       },
@@ -376,15 +479,15 @@
       },
       "readings": {
         "aqi": {
-          "value": 42,
+          "value": 40,
           "provenance": "live",
-          "observedAt": "2026-09-01T22:00:00.000Z",
+          "observedAt": "2026-09-02T14:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
-      "healthyScore": 85,
+      "healthyScore": 86,
       "breakdown": {
-        "total": 85,
+        "total": 86,
         "components": [
           {
             "key": "crowdDensity",
@@ -403,8 +506,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "42 AQI",
-            "subScore": 83.8,
+            "display": "40 AQI",
+            "subScore": 84.8,
             "weight": 0.3,
             "provenance": "live"
           },
@@ -427,109 +530,6 @@
             },
             "display": "7.4 / 10",
             "subScore": 83.2,
-            "weight": 0.2,
-            "provenance": "daily"
-          }
-        ],
-        "profileApplied": "Island baseline"
-      },
-      "reviews": {
-        "count": 0,
-        "average": null,
-        "distribution": [
-          0,
-          0,
-          0,
-          0,
-          0
-        ]
-      }
-    },
-    {
-      "id": "mangrove",
-      "name": {
-        "en": "Thong Krut Mangrove",
-        "th": "ป่าชายเลนท้องกรูด"
-      },
-      "short": "Thong Krut",
-      "layer": "Quest",
-      "province": "TH-84",
-      "lat": 9.4179,
-      "lng": 99.9433,
-      "meta": "Restoration site · Quest active",
-      "blurb": {
-        "en": "Community-managed mangrove nursery on the south shore. Active planting quest most weekends.",
-        "th": "แปลงเพาะกล้าป่าชายเลนโดยชุมชนทางใต้ของเกาะ"
-      },
-      "tags": [
-        "Green space",
-        "Quest here",
-        "Community"
-      ],
-      "photo": null,
-      "metrics": {
-        "crowdDensity": 0.3,
-        "aqi": 42,
-        "safetyIndex": 5.13,
-        "walkability": 5.2
-      },
-      "safetyLabel": {
-        "en": "Guide required",
-        "th": "ต้องมีไกด์"
-      },
-      "readings": {
-        "aqi": {
-          "value": 42,
-          "provenance": "live",
-          "observedAt": "2026-09-01T22:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
-        }
-      },
-      "healthyScore": 76,
-      "breakdown": {
-        "total": 76,
-        "components": [
-          {
-            "key": "crowdDensity",
-            "label": {
-              "en": "Crowd level",
-              "th": "ความหนาแน่น"
-            },
-            "display": "Low",
-            "subScore": 95,
-            "weight": 0.25,
-            "provenance": "live"
-          },
-          {
-            "key": "aqi",
-            "label": {
-              "en": "Air quality",
-              "th": "คุณภาพอากาศ"
-            },
-            "display": "42 AQI",
-            "subScore": 83.8,
-            "weight": 0.3,
-            "provenance": "live"
-          },
-          {
-            "key": "safetyIndex",
-            "label": {
-              "en": "Safety",
-              "th": "ความปลอดภัย"
-            },
-            "display": "Guide required",
-            "subScore": 59.1,
-            "weight": 0.25,
-            "provenance": "daily"
-          },
-          {
-            "key": "walkability",
-            "label": {
-              "en": "Walkability",
-              "th": "การเดินเท้า"
-            },
-            "display": "5.2 / 10",
-            "subScore": 62,
             "weight": 0.2,
             "provenance": "daily"
           }
@@ -579,7 +579,7 @@
     },
     "metrics": {
       "crowdDensity": 3,
-      "aqi": 42,
+      "aqi": 40,
       "safetyIndex": 6.77,
       "walkability": 8.1
     },
@@ -589,9 +589,9 @@
     },
     "readings": {
       "aqi": {
-        "value": 42,
+        "value": 40,
         "provenance": "live",
-        "observedAt": "2026-09-01T22:00:00.000Z",
+        "observedAt": "2026-09-02T14:25:51.237Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -616,8 +616,8 @@
             "en": "Air quality",
             "th": "คุณภาพอากาศ"
           },
-          "display": "42 AQI",
-          "subScore": 83.8,
+          "display": "40 AQI",
+          "subScore": 84.8,
           "weight": 0.3,
           "provenance": "live"
         },
@@ -667,8 +667,14 @@
           "en": "Mangrove Planting",
           "th": "ปลูกป่าชายเลน"
         },
-        "where": "Thong Krut",
-        "duration": "2 hr",
+        "where": {
+          "en": "Thong Krut",
+          "th": "ท้องกรูด"
+        },
+        "duration": {
+          "en": "2 hr",
+          "th": "2 ชั่วโมง"
+        },
         "rewardPoints": 400,
         "rewardCurrency": "green",
         "host": {
@@ -679,7 +685,7 @@
         "kind": "weekend",
         "lat": 9.4179,
         "lng": 99.9433,
-        "geofenceRadiusM": 300
+        "geofenceRadiusM": 120
       },
       {
         "id": "q3",
@@ -688,8 +694,14 @@
           "en": "Coral Nursery Check",
           "th": "ตรวจแปลงปะการัง"
         },
-        "where": "Taling Ngam",
-        "duration": "90 min",
+        "where": {
+          "en": "Taling Ngam",
+          "th": "ตลิ่งงาม"
+        },
+        "duration": {
+          "en": "90 min",
+          "th": "90 นาที"
+        },
         "rewardPoints": 300,
         "rewardCurrency": "green",
         "host": {
@@ -700,7 +712,7 @@
         "kind": "weekend",
         "lat": 9.4478,
         "lng": 99.9294,
-        "geofenceRadiusM": 400
+        "geofenceRadiusM": 120
       },
       {
         "id": "q1",
@@ -709,8 +721,14 @@
           "en": "Beach Cleanup",
           "th": "เก็บขยะชายหาด"
         },
-        "where": "Chaweng Beach",
-        "duration": "45 min",
+        "where": {
+          "en": "Chaweng Beach",
+          "th": "หาดเฉวง"
+        },
+        "duration": {
+          "en": "45 min",
+          "th": "45 นาที"
+        },
         "rewardPoints": 150,
         "rewardCurrency": "green",
         "host": {
@@ -721,7 +739,7 @@
         "kind": "today",
         "lat": 9.5357,
         "lng": 100.0617,
-        "geofenceRadiusM": 250
+        "geofenceRadiusM": 80
       },
       {
         "id": "q5",
@@ -730,8 +748,14 @@
           "en": "Fisherman’s Village food trail",
           "th": "เส้นทางอาหารหมู่บ้านชาวประมง"
         },
-        "where": "Bophut",
-        "duration": "90 min",
+        "where": {
+          "en": "Bophut",
+          "th": "บ่อผุด"
+        },
+        "duration": {
+          "en": "90 min",
+          "th": "90 นาที"
+        },
         "rewardPoints": 120,
         "rewardCurrency": "trip",
         "host": {
@@ -742,7 +766,7 @@
         "kind": "today",
         "lat": 9.5589,
         "lng": 100.0672,
-        "geofenceRadiusM": 350
+        "geofenceRadiusM": 100
       },
       {
         "id": "q6",
@@ -751,8 +775,14 @@
           "en": "Big Buddha morning walk",
           "th": "เดินเช้าพระใหญ่"
         },
-        "where": "Bang Rak",
-        "duration": "45 min",
+        "where": {
+          "en": "Bang Rak",
+          "th": "บางรัก"
+        },
+        "duration": {
+          "en": "45 min",
+          "th": "45 นาที"
+        },
         "rewardPoints": 80,
         "rewardCurrency": "trip",
         "host": {
@@ -763,7 +793,7 @@
         "kind": "today",
         "lat": 9.5581,
         "lng": 100.0631,
-        "geofenceRadiusM": 300
+        "geofenceRadiusM": 80
       },
       {
         "id": "q4",
@@ -772,8 +802,14 @@
           "en": "Walk, don’t ride",
           "th": "เดินแทนการใช้รถ"
         },
-        "where": "Island-wide",
-        "duration": "Daily",
+        "where": {
+          "en": "Island-wide",
+          "th": "ทั่วทั้งเกาะ"
+        },
+        "duration": {
+          "en": "Daily",
+          "th": "ทุกวัน"
+        },
         "rewardPoints": 60,
         "rewardCurrency": "green",
         "host": {
@@ -797,8 +833,14 @@
         "en": "Beach Cleanup",
         "th": "เก็บขยะชายหาด"
       },
-      "where": "Chaweng Beach",
-      "duration": "45 min",
+      "where": {
+        "en": "Chaweng Beach",
+        "th": "หาดเฉวง"
+      },
+      "duration": {
+        "en": "45 min",
+        "th": "45 นาที"
+      },
       "rewardPoints": 150,
       "rewardCurrency": "green",
       "host": {
@@ -809,7 +851,7 @@
       "kind": "today",
       "lat": 9.5357,
       "lng": 100.0617,
-      "geofenceRadiusM": 250
+      "geofenceRadiusM": 80
     },
     "progress": null
   },
@@ -895,20 +937,22 @@
     },
     "ledger": [
       {
-        "id": "84d4318e-2e56-41f4-a9ca-92823c6f5529",
+        "id": "fec8ff75-26f7-41cf-bfd3-a69c533218bf",
         "label": "Cold brew + banana bread redeemed",
-        "occurredAt": "2026-09-01T22:06:32.186Z",
+        "subject": "Cold brew + banana bread",
+        "occurredAt": "2026-09-02T14:25:50.121Z",
         "host": "Sabeinglae Coffee",
         "amount": -180,
         "currency": "trip",
         "exp": 0,
         "kind": "redemption",
-        "sourceRef": "voucher:834e3c4a-f709-4957-b652-0887c4182b9b"
+        "sourceRef": "voucher:53e9a8a9-7b19-4e6f-949f-4aa36391708c"
       },
       {
-        "id": "d86f3f54-295a-4df6-86a2-744444151bc3",
+        "id": "f603711e-8476-471f-ac9d-402af45e54c1",
         "label": "Review · Chaweng Beach",
-        "occurredAt": "2026-09-01T22:06:32.184Z",
+        "subject": "Chaweng Beach",
+        "occurredAt": "2026-09-02T14:25:50.113Z",
         "host": "ChivaGo · verified visit",
         "amount": 40,
         "currency": "trip",
@@ -917,9 +961,10 @@
         "sourceRef": "review:chaweng:user:contract-capture"
       },
       {
-        "id": "c8ac58fa-495b-4776-a89b-a37ce0fa068f",
+        "id": "8b1dd5ea-d010-4aa1-b4b0-86766ad22f38",
         "label": "Checked in · Chaweng Beach",
-        "occurredAt": "2026-09-01T22:06:32.169Z",
+        "subject": "Chaweng Beach",
+        "occurredAt": "2026-09-02T14:25:50.077Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -928,9 +973,10 @@
         "sourceRef": "checkin:chaweng:user:contract-capture:2026-09-02"
       },
       {
-        "id": "d3d5952b-4c5d-42f3-aa37-1073f0d70fda",
+        "id": "cbee7e87-f76e-4b10-9e7a-e888799b1655",
         "label": "Pilot opening balance",
-        "occurredAt": "2026-09-01T22:06:32.167Z",
+        "subject": null,
+        "occurredAt": "2026-09-02T14:25:50.070Z",
         "host": "ChivaGo · pilot seed",
         "amount": 1240,
         "currency": "green",
@@ -939,9 +985,10 @@
         "sourceRef": "opening:green:contract-capture"
       },
       {
-        "id": "993890e6-fb0a-480f-937d-7c1732d773ea",
+        "id": "0e175b81-85dd-41e8-a82b-9b84fb8aad9e",
         "label": "Pilot opening balance",
-        "occurredAt": "2026-09-01T22:06:32.167Z",
+        "subject": null,
+        "occurredAt": "2026-09-02T14:25:50.069Z",
         "host": "ChivaGo · pilot seed",
         "amount": 320,
         "currency": "trip",
@@ -1021,14 +1068,14 @@
   ],
   "vouchers": [
     {
-      "id": "834e3c4a-f709-4957-b652-0887c4182b9b",
+      "id": "53e9a8a9-7b19-4e6f-949f-4aa36391708c",
       "offerId": "o1",
       "userId": "contract-capture",
       "merchant": "Sabeinglae Coffee, Bophut",
-      "code": "CG-834E3C4A",
+      "code": "CG-53E9A8A9",
       "costPoints": 180,
-      "issuedAt": "2026-09-01T22:06:32.186Z",
-      "expiresAt": "2026-10-01T22:06:32.186Z",
+      "issuedAt": "2026-09-02T14:25:50.121Z",
+      "expiresAt": "2026-10-02T14:25:50.121Z",
       "redeemedAt": null,
       "status": "active"
     }
@@ -1134,10 +1181,10 @@
         "th": "ติดตามตำแหน่งสด"
       },
       "note": {
-        "en": "Shared with 2 family contacts",
-        "th": "แชร์กับผู้ติดต่อในครอบครัว 2 คน"
+        "en": "Shared with 1 contact during an SOS",
+        "th": "แชร์กับผู้ติดต่อ 1 คนเมื่อกด SOS"
       },
-      "state": "on"
+      "state": "ready"
     },
     {
       "key": "safePath",
@@ -1170,8 +1217,8 @@
         "th": "ความช่วยเหลือฉุกเฉิน"
       },
       "note": {
-        "en": "Bangkok Hospital Samui · 4.1 km",
-        "th": "โรงพยาบาลกรุงเทพสมุย · 4.1 กม."
+        "en": "1669 · Bangkok Hospital Samui",
+        "th": "1669 · โรงพยาบาลกรุงเทพสมุย"
       },
       "state": "ready"
     },
@@ -1200,32 +1247,53 @@
   "checkinsToday": [
     "chaweng"
   ],
+  "selfVisits": {
+    "places": [],
+    "remainingThisYear": 10
+  },
+  "passport": {
+    "visited": [
+      "TH-84"
+    ],
+    "selfReported": [],
+    "evidence": [
+      {
+        "code": "TH-84",
+        "layer": "Safe",
+        "visitDays": 1,
+        "questsVerified": 0
+      }
+    ]
+  },
+  "myStatements": {
+    "statements": []
+  },
   "reviews": {
     "reviews": [
       {
-        "id": "08fcb3ef-d7e5-4d69-a86b-54fc869a25fb",
+        "id": "96613896-793d-4c4a-9215-c1b43e2f21dd",
         "placeId": "chaweng",
         "authorId": "contract-capture",
         "authorName": "Traveller",
         "rating": 5,
         "body": "Quiet at 7am and the water is clean, worth the early start.",
         "language": "en",
-        "visitedAt": "2026-09-01T22:06:32.169Z",
-        "createdAt": "2026-09-01T22:06:32.184Z",
+        "visitedAt": "2026-09-02T14:25:50.077Z",
+        "createdAt": "2026-09-02T14:25:50.113Z",
         "updatedAt": null
       }
     ],
     "mine": {
       "review": {
-        "id": "08fcb3ef-d7e5-4d69-a86b-54fc869a25fb",
+        "id": "96613896-793d-4c4a-9215-c1b43e2f21dd",
         "placeId": "chaweng",
         "authorId": "contract-capture",
         "authorName": "Traveller",
         "rating": 5,
         "body": "Quiet at 7am and the water is clean, worth the early start.",
         "language": "en",
-        "visitedAt": "2026-09-01T22:06:32.169Z",
-        "createdAt": "2026-09-01T22:06:32.184Z",
+        "visitedAt": "2026-09-02T14:25:50.077Z",
+        "createdAt": "2026-09-02T14:25:50.113Z",
         "updatedAt": null
       },
       "hiddenAt": null,
@@ -1237,7 +1305,7 @@
   },
   "sosContacts": [
     {
-      "id": "a39375e7-5d07-4a63-8389-917c1c7af9b9",
+      "id": "b78022e2-5ce5-4bcf-9c8d-77c89da29a1e",
       "name": "Malee",
       "phone": "+66800000000",
       "relationship": "sister",
@@ -1258,16 +1326,16 @@
   },
   "writeReview": {
     "review": {
-      "id": "08fcb3ef-d7e5-4d69-a86b-54fc869a25fb",
+      "id": "96613896-793d-4c4a-9215-c1b43e2f21dd",
       "placeId": "chaweng",
       "authorId": "contract-capture",
       "authorName": "Traveller",
       "rating": 4,
       "body": "Busier after nine when the boats arrive, but still worth it.",
       "language": "en",
-      "visitedAt": "2026-09-01T22:06:32.169Z",
-      "createdAt": "2026-09-01T22:06:32.184Z",
-      "updatedAt": "2026-09-01T22:06:33.091Z"
+      "visitedAt": "2026-09-02T14:25:50.077Z",
+      "createdAt": "2026-09-02T14:25:50.113Z",
+      "updatedAt": "2026-09-02T14:25:51.581Z"
     },
     "created": false,
     "pointsAwarded": 0

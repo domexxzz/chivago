@@ -95,6 +95,21 @@ describe('the checked-in contract', () => {
     assert.deepEqual(Object.keys(recorded.shapes).sort(), [...expected].sort());
   });
 
+  test('the Swift package carries the same samples, byte for byte', () => {
+    // Swift tests decode a bundled COPY of contract/api-samples.json. A copy
+    // that has drifted is a Swift suite passing or failing against a server
+    // that no longer exists - and there is no Swift toolchain on the machine
+    // this runs on, so this is the only place the drift can be seen early.
+    const swiftCopy = join(
+      process.cwd(), '..', '..', 'packages', 'sdk-swift', 'Tests', 'ChivaGoTests', 'api-samples.json',
+    );
+    assert.ok(existsSync(swiftCopy), 'the Swift package has lost its samples');
+    assert.equal(
+      readFileSync(swiftCopy, 'utf8'), readFileSync(SAMPLES, 'utf8'),
+      'packages/sdk-swift/Tests/ChivaGoTests/api-samples.json has drifted from contract/api-samples.json - run pnpm contract',
+    );
+  });
+
   test('what is NOT covered is written down', () => {
     const recorded = load<Recorded>(CONTRACT);
     // An uncovered shape that LOOKS covered is worse than a known gap. These

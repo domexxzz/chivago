@@ -137,10 +137,17 @@ if (process.argv[1]?.includes('capture-contract')) {
     `${JSON.stringify({ shapes: result.shapes, uncovered: result.uncovered }, null, 2)}
 `,
   );
+  const samples = `${JSON.stringify(result.samples, null, 2)}
+`;
+  writeFileSync(join(dir, 'api-samples.json'), samples);
+  // The Swift package cannot read outside itself, so its tests carry a COPY
+  // of the samples as a bundle resource. Written here, in the same breath,
+  // because a copy that is refreshed by hand is a copy that is not: it went
+  // stale the day quests turned bilingual and failed CI on five pushes
+  // before anybody read the Swift job.
   writeFileSync(
-    join(dir, 'api-samples.json'),
-    `${JSON.stringify(result.samples, null, 2)}
-`,
+    join(process.cwd(), '..', '..', 'packages', 'sdk-swift', 'Tests', 'ChivaGoTests', 'api-samples.json'),
+    samples,
   );
   console.log(`[chivago] captured ${Object.keys(result.shapes).length} endpoints -> ${target}`);
   if (result.uncovered.length > 0) {

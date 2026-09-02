@@ -2,9 +2,25 @@
 
 What exists, what runs, and what is honestly not there yet.
 
+> **Status as of 2026-09-02.** 64 commits since 2026-09-01; `main` deploys to
+> https://chivago-demo.vercel.app as a static demo (no API behind it). 17
+> screens, 66 API routes, 27 console routes, 35 tables, about 35,700 lines
+> of source and 17,000 of tests; 1,316 TypeScript tests, 11 Dart, 10 Swift
+> (Swift runs only in CI). Of the competitive read's seven recommendations,
+> 01-04 are built and documented (`docs/partners/`, `docs/29`, `docs/30`,
+> `docs/31`); 05 (Thai law), 06 (no point economy before a sponsor signs)
+> and 07 (open all 77 provinces Roadside-style) are not started. The CI Swift
+> job failed on five pushes from `eec0c76` because the Swift package's copy
+> of `contract/api-samples.json` was refreshed by hand and was not; the
+> capture now writes the copy and a test holds the two identical. The
+> sections below are the build-time record and are kept as written.
+
 ---
 
-## Screens — all 10 from the handoff
+## Screens — the ten from the handoff
+
+Seven more exist now: Home, Missions, Passport, Companion, Party, Account and
+Place reviews. See `25-remaining-screens.md` and `27-companions.md`.
 
 | Route | Screen | Status |
 | --- | --- | --- |
@@ -75,7 +91,7 @@ after     trip 0 · green 1610 · exp 1790
 
 ---
 
-## Tests: 602 + 10 Dart
+## Tests: 1,316 + 11 Dart + 10 Swift (as of 2026-09-02; the table below is the build-time count)
 
 | Package | Tests | Covers |
 | --- | --- | --- |
