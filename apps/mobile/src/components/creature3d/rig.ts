@@ -24,6 +24,7 @@
 
 import type { CompanionStage, LayerKey } from '@chivago/core';
 import { islandHour } from '@chivago/core';
+import { dayArc, mix } from '../island-clock.ts';
 import type { CreatureKey } from '../Creature.tsx';
 
 // ---------------------------------------------------------------------------
@@ -160,12 +161,6 @@ export interface Lighting {
   glowVisible: boolean;
 }
 
-const mix = (a: string, b: string, k: number): string => {
-  const pa = parseInt(a.slice(1), 16);
-  const pb = parseInt(b.slice(1), 16);
-  const ch = (shift: number) => Math.round(((pa >> shift) & 255) * (1 - k) + ((pb >> shift) & 255) * k);
-  return `#${((ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).padStart(6, '0')}`;
-};
 
 /**
  * The light for an hour of the day, 0–23, island time.
@@ -178,10 +173,8 @@ const mix = (a: string, b: string, k: number): string => {
  */
 export function lightingFor(hour: number): Lighting {
   const h = ((hour % 24) + 24) % 24;
-  const day = h >= 6 && h < 18.5;
-  // 0 at the horizon, 1 at noon.
-  const arc = day ? Math.sin(((h - 6) / 12.5) * Math.PI) : 0;
-  const golden = day ? Math.max(0, 1 - arc * 2.2) : 0;
+  // The same sun the map is drawn under - see island-clock.ts.
+  const { day, arc, golden } = dayArc(h);
   const sunColour = day ? mix('#fff4dd', '#ffb268', golden) : '#9fb4dc';
   return {
     // Night is a bright tropical moon over water, not a cellar. The first

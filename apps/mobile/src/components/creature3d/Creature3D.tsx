@@ -27,6 +27,7 @@ import React from 'react';
 import * as THREE from 'three';
 import type { CompanionStage, LayerKey } from '@chivago/core';
 import type { CreatureKey } from '../Creature.tsx';
+import { hourFrom } from '../island-clock.ts';
 import {
   HABITATS, LOOKS, REACTION_MS, headRatio, lightingFor, lightingNow, motionScale, placements, speckles, stageScale,
 } from './rig.ts';
@@ -603,10 +604,8 @@ export function Creature3D({ species, stage, height = 320, label, onTap }: Creat
     const habitat = HABITATS[look.layer];
     // `?hour=14` shows the room at that island hour. For looking at it, and
     // for a demo given at midnight that wants to show the beach in daylight.
-    const hourOverride = Number(new URLSearchParams(window.location.search).get('hour'));
-    const light = Number.isFinite(hourOverride) && window.location.search.includes('hour=')
-      ? lightingFor(hourOverride)
-      : lightingNow();
+    const hourOverride = hourFrom(window.location.search);
+    const light = hourOverride === null ? lightingNow() : lightingFor(hourOverride);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'low-power' });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));

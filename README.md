@@ -85,7 +85,7 @@ EXPO_PUBLIC_API_URL=http://192.168.1.42:8787 pnpm mobile
 pnpm test
 ```
 
-**1,357 tests** — 307 core, 710 API, 315 mobile, 25 tokens — plus 11 in the Dart
+**1,376 tests** — 307 core, 710 API, 334 mobile, 25 tokens — plus 11 in the Dart
 SDK (`pnpm test:dart`) and 10 in the Swift one (`swift test`). `pnpm typecheck`
 covers all four packages. `.github/workflows/ci.yml` runs all of it on every
 push, on Linux and macOS, so the numbers above are checked by a machine nobody
@@ -167,6 +167,15 @@ animal on the ground it lives on, lit by the island's clock, breathing,
 blinking, looking at your finger and answering a tap the way that animal
 would (`docs/33-companions-in-3d.md`). It wants nothing: the meters under it
 are still the habitat's measured air and crowding.
+
+**A map you could set out into.** On the web the island is real terrain —
+OpenStreetMap's coastline, the elevation model's mountain — coloured by its
+true height from the sand to the cloud on Khao Pom, lit by the island's clock
+from a golden dawn to a blue night, with the ferry lines as the dotted routes
+of a chart and every quest on today's list standing where the work is: an X
+that pulses gold until you join it and goes green only once a host has
+verified (`docs/34-the-adventure-map.md`). The jungle is olive, on purpose:
+no layer wears the evidence green.
 
 **Accounts with no password and no email.** A device holds a random key; moving
 to a second phone means reading eight characters off the first. The least

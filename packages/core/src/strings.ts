@@ -100,6 +100,10 @@ export const strings = {
     legend: (avg: number) => t(`Healthy Score · ${avg} avg today`, `คะแนนสุขภาวะ · เฉลี่ย ${avg} วันนี้`),
     liveNear: (n: number) => t(`Live · ${n} places near you`, `สด · ${n} สถานที่ใกล้คุณ`),
     questsNearYou: t('Quests near you', 'ภารกิจใกล้คุณ'),
+    /** A quest's mark on the map: what it is, where, and what it pays. */
+    questPin: (points: number) => t(`Quest · +${points} points`, `ภารกิจ · +${points} แต้ม`),
+    /** The compass rose. Tapping it returns the camera to the island view. */
+    compass: t('Compass. Return to the island view', 'เข็มทิศ แตะเพื่อกลับมุมมองเกาะ'),
     layers: {
       Green: t('Green', 'สีเขียว'),
       Wellness: t('Wellness', 'สุขภาพ'),

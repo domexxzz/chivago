@@ -2,9 +2,13 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  CROWD_M, HERO, PIN_NUDGE_PX, SAMUI_BOUNDS, chivagoStyle, crowdOffsets, heroPose, introPose, settleEasing,
+  CROWD_M, DRIFT, HERO, PIN_NUDGE_PX, QUEST_FAN_PX, QUEST_MARK_OFFSET, SAMUI_BOUNDS, chivagoStyle, crowdOffsets, heroPose,
+  introPose, landColours, paletteFor, questMark, questOffsets, settleEasing,
 } from '../src/components/terrain-style.ts';
-import { SAMUI_BBOX } from '@chivago/core';
+import { SUNRISE, SUNSET, dayArc, hourFrom, hueOf, luminance, mix } from '../src/components/island-clock.ts';
+import { lightingFor } from '../src/components/creature3d/rig.ts';
+import { heroHeight } from '../src/components/SamuiMap.tsx';
+import { SAMUI_BBOX, type QuestProgress } from '@chivago/core';
 import { color } from '../src/theme/index.ts';
 
 /**
@@ -16,14 +20,17 @@ import { color } from '../src/theme/index.ts';
  */
 
 const style = chivagoStyle();
-const layer = (id: string) => {
-  const found = style.layers.find((l) => l.id === id);
+const layer = (id: string, from = style) => {
+  const found = from.layers.find((l) => l.id === id);
   assert.ok(found, `no layer '${id}'`);
   return found;
 };
 
+/** A day's worth of hours: dawn, morning, noon, afternoon, dusk, night. */
+const HOURS = [0, 3, 6.25, 8, 12, 15, 17.5, 18.4, 19, 21, 23.9];
+
 describe('green is for verified evidence, and nothing on the map wears it', () => {
-  test('no layer uses any green from the accent ramp', () => {
+  test('no layer uses any green from the accent ramp, at any hour', () => {
     // `accent2` is the red. Everything else called accent is the green a host
     // verified, and a forest in it would spend that meaning on trees.
     const greens = Object.entries(color)
@@ -31,12 +38,193 @@ describe('green is for verified evidence, and nothing on the map wears it', () =
       .map(([, hex]) => hex.toLowerCase());
     assert.ok(greens.length >= 5, 'the green ramp should exist');
 
-    for (const l of style.layers) {
-      const painted = JSON.stringify({ paint: l.paint, layout: l.layout }).toLowerCase();
-      for (const green of greens) {
-        assert.ok(!painted.includes(green), `layer '${l.id}' is painted ${green}`);
+    for (const hour of HOURS) {
+      for (const l of chivagoStyle(hour).layers) {
+        const painted = JSON.stringify({ paint: l.paint, layout: l.layout }).toLowerCase();
+        for (const green of greens) {
+          assert.ok(!painted.includes(green), `at ${hour}h, layer '${l.id}' is painted ${green}`);
+        }
       }
     }
+  });
+
+  test("the island's greens are olive, held twenty-five degrees of hue from the evidence emerald", () => {
+    // A jungle is green. The rule is not "no green"; it is that a forest and
+    // a verified score must never be the same green - so every land colour
+    // in every hour's palette sits well to the yellow side of the accent.
+    const emerald = hueOf(color.accent);
+    for (const hour of HOURS) {
+      for (const hex of landColours(paletteFor(hour))) {
+        const gap = Math.abs(hueOf(hex) - emerald);
+        assert.ok(Math.min(gap, 360 - gap) >= 25, `at ${hour}h, ${hex} (hue ${hueOf(hex).toFixed(0)}) is too close to the evidence green (hue ${emerald.toFixed(0)})`);
+      }
+    }
+  });
+});
+
+describe('the map is lit by the island clock', () => {
+  test('the sun rises at six and sets at half past, the same clock the companion room keeps', () => {
+    assert.equal(SUNRISE, 6);
+    assert.equal(SUNSET, 18.5);
+    assert.equal(dayArc(5.9).day, false);
+    assert.equal(dayArc(6).day, true);
+    assert.equal(dayArc(18.4).day, true);
+    assert.equal(dayArc(18.5).day, false);
+    assert.ok(dayArc(12.25).arc > 0.99, 'noon is the top of the arc');
+    assert.ok(dayArc(6.5).golden > 0.6 && dayArc(12).golden === 0, 'golden at the edges, none at noon');
+    // The room and the map cannot disagree: the rig reads the same arc.
+    assert.equal(lightingFor(23).glowVisible, true);
+    assert.equal(lightingFor(12).glowVisible, false);
+  });
+
+  test('night is darker than noon, dawn is warmer, and the sea is never lighter than the sand', () => {
+    const noon = paletteFor(12), dawn = paletteFor(6.5), night = paletteFor(22);
+    assert.equal(noon.night, false);
+    assert.equal(night.night, true);
+    assert.ok(luminance(night.sea) < luminance(noon.sea));
+    assert.ok(luminance(night.sky) < luminance(noon.sky));
+    assert.ok(luminance(night.lowland) < luminance(noon.lowland));
+    const warmth = (hex: string) => parseInt(hex.slice(1, 3), 16) - parseInt(hex.slice(5, 7), 16);
+    assert.ok(warmth(dawn.sky) > warmth(noon.sky), 'a dawn sky is peach, a noon sky is blue');
+    assert.ok(warmth(dawn.highlight) > warmth(noon.highlight), 'the low sun is gold');
+    for (const hour of HOURS) {
+      const p = paletteFor(hour);
+      assert.ok(luminance(p.sea) < luminance(p.sand), `at ${hour}h the sea outshines the beach`);
+      assert.ok(luminance(p.ink) !== luminance(p.halo), `at ${hour}h a label has no contrast with its halo`);
+    }
+  });
+
+  test('a night map is not a cellar: the labels invert and the shallows still read', () => {
+    const night = paletteFor(21);
+    assert.ok(luminance(night.ink) > luminance(night.halo), 'light ink on a dark halo after dark');
+    assert.ok(luminance(paletteFor(12).ink) < luminance(paletteFor(12).halo));
+    assert.ok(luminance(night.shallow) > luminance(night.deep), 'the reef flat is paler than the deep, even by moonlight');
+  });
+
+  test('the hillshade sun moves: east in the morning, west in the evening, fixed to the map', () => {
+    const hill = (h: number) => layer('hillshade', chivagoStyle(h)).paint as Record<string, unknown>;
+    assert.ok((hill(7)['hillshade-illumination-direction'] as number) < 120, 'morning light from the east');
+    assert.ok((hill(17)['hillshade-illumination-direction'] as number) > 240, 'evening light from the west');
+    assert.equal(hill(12)['hillshade-illumination-anchor'], 'map');
+    assert.equal(paletteFor(12).illumination, paletteFor(12.0).illumination);
+  });
+
+  test('hours wrap, and mixing is a straight line', () => {
+    assert.deepEqual(paletteFor(25), paletteFor(1));
+    assert.deepEqual(paletteFor(-2), paletteFor(22));
+    assert.equal(mix('#000000', '#ffffff', 0.5), '#808080');
+    assert.equal(mix('#102030', '#102030', 0.3), '#102030');
+  });
+
+  test('`?hour=` is an override, and a typo is not midnight', () => {
+    assert.equal(hourFrom('?hour=13'), 13);
+    assert.equal(hourFrom('?x=1&hour=6.5'), 6.5);
+    assert.equal(hourFrom(''), null);
+    assert.equal(hourFrom('?hour='), null);
+    assert.equal(hourFrom('?hour=noon'), null);
+  });
+});
+
+describe('the land is coloured by its real height', () => {
+  test('a colour-relief layer reads the terrarium elevation and sits under the hillshade and the sea', () => {
+    const relief = layer('relief') as { type: string; source: string; paint: Record<string, unknown> };
+    assert.equal(relief.type, 'color-relief');
+    const src = style.sources[relief.source] as { type: string; encoding?: string };
+    assert.equal(src.type, 'raster-dem');
+    assert.equal(src.encoding, 'terrarium');
+    const order = style.layers.map((l) => l.id);
+    assert.ok(order.indexOf('relief') < order.indexOf('hillshade'));
+    assert.ok(order.indexOf('relief') < order.indexOf('sea'));
+  });
+
+  test('the stops climb from the reef to the top of Khao Pom, and the top is the real height', () => {
+    const relief = layer('relief') as { paint: { 'color-relief-color': unknown[] } };
+    const expr = relief.paint['color-relief-color'];
+    const stops = expr.slice(3).filter((_, i) => i % 2 === 0) as number[];
+    for (let i = 1; i < stops.length; i += 1) assert.ok(stops[i]! > stops[i - 1]!, 'stops must ascend');
+    assert.ok(stops[0]! < 0, 'there is bathymetry');
+    const top = stops[stops.length - 1]!;
+    assert.ok(top >= 630 && top <= 660, `Khao Pom is 635 m; the top stop is ${top}`);
+  });
+
+  test('the mountain is exaggerated, and it says by how much', () => {
+    assert.ok(HERO.exaggeration >= 1 && HERO.exaggeration <= 2.5, 'a hill, not an alp');
+  });
+
+  test('buildings stand up only when the camera is close enough for a house to be a house', () => {
+    const b = layer('buildings') as { type: string; minzoom?: number };
+    assert.equal(b.type, 'fill-extrusion');
+    assert.ok((b.minzoom ?? 0) >= 12);
+  });
+
+  test('the ferry lines are dotted routes, not roads across the sea', () => {
+    const ferry = layer('ferry') as { paint: Record<string, unknown> };
+    const dash = ferry.paint['line-dasharray'] as number[];
+    assert.ok(dash[0]! < dash[1]!, 'a dot and a gap');
+  });
+});
+
+describe('what a quest\'s mark says', () => {
+  const at = (stage: QuestProgress['stage'], rejectedAt: string | null = null): QuestProgress => ({
+    questId: 'q', userId: 'u', stage, joinedAt: '2026-09-01', arrivedAt: null, proofSubmittedAt: null,
+    verifiedAt: null, rejectedAt, rejectionReason: null,
+  });
+
+  test('open until joined, active while it is yours, done only once a host verified', () => {
+    assert.equal(questMark(undefined), 'open');
+    assert.equal(questMark(null), 'open');
+    assert.equal(questMark(at('joined')), 'active');
+    assert.equal(questMark(at('arrived')), 'active');
+    assert.equal(questMark(at('proof_submitted')), 'active');
+    assert.equal(questMark(at('host_verification')), 'active');
+    assert.equal(questMark(at('complete')), 'done');
+  });
+
+  test('a rejected proof puts the X back on the chart', () => {
+    assert.equal(questMark(at('proof_submitted', '2026-09-02')), 'open');
+  });
+
+  test('the mark stands beside the place it shares a point with, not under it', () => {
+    const [dx, dy] = QUEST_MARK_OFFSET;
+    assert.ok(dx > 0 && dy > 0 && Math.hypot(dx, dy) < 40);
+  });
+
+  test('three quests on one beach are three marks in a row, and a quest alone keeps its place', () => {
+    const chaweng = { lat: 9.5357, lng: 100.0617 };
+    const fan = questOffsets([
+      { id: 'a', ...chaweng },
+      { id: 'b', lat: chaweng.lat + 0.001, lng: chaweng.lng },
+      { id: 'c', lat: chaweng.lat, lng: chaweng.lng + 0.002 },
+      { id: 'far', lat: 9.4179, lng: 99.9433 },
+    ]);
+    assert.deepEqual(fan.get('far'), QUEST_MARK_OFFSET, 'Thong Krut is on its own');
+    const xs = ['a', 'b', 'c'].map((id) => fan.get(id)![0]);
+    assert.deepEqual(xs, [QUEST_MARK_OFFSET[0] - QUEST_FAN_PX, QUEST_MARK_OFFSET[0], QUEST_MARK_OFFSET[0] + QUEST_FAN_PX]);
+    for (const id of ['a', 'b', 'c']) assert.equal(fan.get(id)![1], QUEST_MARK_OFFSET[1], 'fanned sideways, not down');
+    assert.ok(QUEST_FAN_PX >= 40, 'a mark is 38 px wide; the fan must clear it');
+  });
+
+  test('the golden hour is visible: half past five is warmer than one o\'clock, by a margin', () => {
+    const warmth = (hex: string) => parseInt(hex.slice(1, 3), 16) - parseInt(hex.slice(5, 7), 16);
+    const one = paletteFor(13), late = paletteFor(17.5);
+    assert.ok(warmth(late.sand) - warmth(one.sand) > 40, 'the sand is gilded');
+    assert.ok(warmth(late.highlight) - warmth(one.highlight) > 60, 'the low sun is gold');
+    assert.ok(luminance(late.sea) < luminance(one.sea) + 0.02, 'the sea does not brighten at dusk');
+  });
+});
+
+describe('the camera keeps turning, for a while', () => {
+  test('the drift is slow, bounded, and short of a full turn', () => {
+    assert.ok(DRIFT.degrees > 0 && DRIFT.degrees < 90);
+    assert.ok(DRIFT.ms >= 20_000 && DRIFT.ms <= 90_000);
+    // Degrees per second: slower than a clock's second hand.
+    assert.ok(DRIFT.degrees / (DRIFT.ms / 1000) < 1);
+  });
+
+  test('the hero grows with the screen and stops where the list is still in view', () => {
+    assert.equal(heroHeight(390), 344);
+    assert.ok(heroHeight(1024) > 344 && heroHeight(1024) < 560);
+    assert.equal(heroHeight(1900), 560);
   });
 });
 
