@@ -14,10 +14,11 @@ export interface OncallPage {
   text: string;
   alertId: string;
   locationLabel: string;
-  lat: number;
-  lng: number;
+  /** Null when the phone gave no fix. Say "position unknown", never (0, 0). */
+  lat: number | null;
+  lng: number | null;
   minutesOpen: number;
-  mapsUrl: string;
+  mapsUrl: string | null;
   liveUrl: string;
   deskUrl: string;
 }

@@ -54,6 +54,12 @@ Air4Thai is kept as a **cross-check, not a source**: if the model and the neares
 ground station diverge by more than 40 AQI (roughly a full EPA category), the
 reading is downgraded to `estimated` and the Healthy Score weights it lower.
 
+> For the first forty commits that paragraph described code that was written,
+> exported and tested in isolation — and never called from `getAir`. It is
+> applied now: the station is asked once per cache window however many places
+> are scored, a station that is down changes nothing, and a test hands in a
+> station that disagrees and reads `estimated` back.
+
 ### The honest fix
 
 **Three low-cost PM2.5 sensors** — Chaweng, Lamai, Na Muang — would cost less

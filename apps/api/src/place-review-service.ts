@@ -487,6 +487,11 @@ export function hideReview(
   if (!isModerationReasonKey(args.reasonKey)) return null;
   const item = moderationItem(db, args.reviewId);
   if (!item) return null;
+  // Already down: nothing to do, and in particular no second "your review
+  // was removed" to the author, no second log row, no second allowance
+  // spent. A batch that overlaps a unilateral take-down used to re-hide and
+  // re-notify, and the docstring on batches claimed it skipped them.
+  if (item.hiddenAt) return item;
 
   const at = args.now ?? new Date();
   // Checked BEFORE the transaction: a refusal must leave no trace, and a
@@ -546,52 +551,63 @@ export function hideReview(
  * never validly removed, and leaving a mark on it would follow the author
  * around for a decision that was reversed.
  */
-export function restoreReview(db: DB, reviewId: string, moderator = ''): ModerationItem | null {
-  const changed = db
-    .prepare(
-      `UPDATE place_reviews
-       SET hidden_at = NULL, hidden_by = NULL, hidden_reason_key = NULL, hidden_reason = NULL
-       WHERE id = ?`,
-    )
-    .run(reviewId);
-  if (Number(changed.changes) === 0) return null;
+export function restoreReview(
+  db: DB, reviewId: string, moderator = '', now = new Date(),
+): ModerationItem | null {
+  // ONE transaction, like the take-down it reverses. Five writes that must
+  // agree - the review, the author's notification, the reports, the appeal,
+  // the log - used to run unbracketed, so a failure halfway left a review
+  // published with its reports still open and no log of who put it back.
+  return transact(db, () => {
+    const changed = db
+      .prepare(
+        `UPDATE place_reviews
+         SET hidden_at = NULL, hidden_by = NULL, hidden_reason_key = NULL, hidden_reason = NULL
+         WHERE id = ? AND hidden_at IS NOT NULL`,
+      )
+      .run(reviewId);
+    if (Number(changed.changes) === 0) return null;
 
-  // The other half of review_hidden. Telling someone their words were removed
-  // and never telling them they are back is the wrong way round: the bad news
-  // travels and the good news does not.
-  const item = moderationItem(db, reviewId);
-  if (item) {
-    enqueue(db, {
-      userId: item.authorId,
-      kind: 'review_restored',
-      params: { place: item.placeName },
-      data: { screen: 'place', placeId: item.placeId },
-      dedupeKey: `review-restored:${reviewId}:${new Date().toISOString()}`,
+    const at = now.toISOString();
+
+    // The other half of review_hidden. Telling someone their words were
+    // removed and never telling them they are back is the wrong way round:
+    // the bad news travels and the good news does not.
+    const item = moderationItem(db, reviewId);
+    if (item) {
+      enqueue(db, {
+        userId: item.authorId,
+        kind: 'review_restored',
+        params: { place: item.placeName },
+        data: { screen: 'place', placeId: item.placeId },
+        dedupeKey: `review-restored:${reviewId}:${at}`,
+        now,
+      });
+    }
+
+    // Putting it back is also a decision about the reports. Leaving them
+    // open would send the same review round the queue again tomorrow.
+    // 'kept' from the reporter's point of view: whatever they flagged is
+    // published again, and that is the answer they need.
+    resolveReports(db, reviewId, moderator, 'kept', now);
+
+    // An open appeal asked for precisely this. Leaving it open would put the
+    // review back and still show it in the appeal queue tomorrow.
+    db.prepare(
+      `UPDATE review_appeals SET outcome = 'upheld', resolved_at = ?, resolved_by = ?
+       WHERE review_id = ? AND resolved_at IS NULL`,
+    ).run(at, moderator, reviewId);
+
+    logAction(db, {
+      action: 'restore',
+      reviewId,
+      placeId: item?.placeId ?? null,
+      moderator,
+      actedAt: at,
     });
-  }
 
-  // Putting it back is also a decision about the reports. Leaving them open
-  // would send the same review round the queue again tomorrow.
-  // 'kept' from the reporter's point of view: whatever they flagged is
-  // published again, and that is the answer they need.
-  resolveReports(db, reviewId, moderator, 'kept');
-
-  // An open appeal asked for precisely this. Leaving it open would put the
-  // review back and still show it in the appeal queue tomorrow.
-  db.prepare(
-    `UPDATE review_appeals SET outcome = 'upheld', resolved_at = ?, resolved_by = ?
-     WHERE review_id = ? AND resolved_at IS NULL`,
-  ).run(new Date().toISOString(), moderator, reviewId);
-
-  logAction(db, {
-    action: 'restore',
-    reviewId,
-    placeId: item?.placeId ?? null,
-    moderator,
-    actedAt: new Date().toISOString(),
+    return moderationItem(db, reviewId);
   });
-
-  return moderationItem(db, reviewId);
 }
 
 /**

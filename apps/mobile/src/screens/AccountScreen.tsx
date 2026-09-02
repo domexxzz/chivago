@@ -62,6 +62,7 @@ export function AccountScreen({
             onToast={onToast}
             key={refresh}
           />
+          <QuietHours onToast={onToast} />
           <NoRecovery />
         </>
       ) : null}
@@ -344,6 +345,123 @@ function Phones({
         </View>
       ))}
     </Section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Quiet hours
+// ---------------------------------------------------------------------------
+
+const DEFAULT_FROM = 22;
+const DEFAULT_UNTIL = 7;
+const hh = (h: number) => `${String(h).padStart(2, '0')}:00`;
+
+/**
+ * When non-urgent pushes wait until morning.
+ *
+ * The API has had this since the accountability work; the app had no way to
+ * reach it, so the island default (22:00–07:00) was the only setting anyone
+ * ever had - wrong for a night-shift worker and wrong again for somebody who
+ * would rather be woken than miss a quest result. Two steppers, not a time
+ * picker: the setting is an hour, and a picker with minutes implies a
+ * precision the server does not keep.
+ *
+ * SOS is exempt and the card says so. Nobody can mute an emergency,
+ * including themselves.
+ */
+function QuietHours({ onToast }: { onToast: (msg: string) => void }) {
+  const pref = useAsync(() => api.quietHours(), []);
+  const [busy, setBusy] = React.useState(false);
+
+  const enabled = pref.data?.enabled ?? true;
+  const from = pref.data?.from ?? DEFAULT_FROM;
+  const until = pref.data?.until ?? DEFAULT_UNTIL;
+
+  const save = async (next: { enabled?: boolean; from?: number; until?: number }) => {
+    if (busy) return;
+    setBusy(true);
+    const res = await api.setQuietHours({ enabled, from, until, ...next });
+    setBusy(false);
+    if (res.ok) pref.reload();
+    else onToast(res.error);
+  };
+
+  const step = (which: 'from' | 'until', delta: number) => {
+    const current = which === 'from' ? from : until;
+    void save({ [which]: (current + delta + 24) % 24 });
+  };
+
+  return (
+    <Section en="QUIET HOURS" th="ช่วงเวลาเงียบ">
+      {pref.error ? <ErrorState message={pref.error} onRetry={pref.reload} /> : null}
+      {pref.data ? (
+        <View
+          style={{
+            padding: 16, borderRadius: radius.md, backgroundColor: color.surface,
+            borderWidth: 1, borderColor: color.neutral300,
+          }}
+        >
+          <Pressable
+            onPress={() => void save({ enabled: !enabled })}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: enabled }}
+            accessibilityLabel={enabled ? 'Quiet hours on. Turn off' : 'Quiet hours off. Turn on'}
+            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44 }}
+          >
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Heading size={15}>{enabled ? `Held ${hh(from)} – ${hh(until)}` : 'Off — notify me any time'}</Heading>
+              <Thai size={11} style={{ marginTop: 2 }}>
+                {enabled ? `พักการแจ้งเตือน ${hh(from)} – ${hh(until)} เวลาเกาะ` : 'ปิด แจ้งเตือนได้ทุกเวลา'}
+              </Thai>
+            </View>
+            <View
+              style={{
+                width: 44, height: 26, borderRadius: radius.lg, padding: 3,
+                backgroundColor: enabled ? color.brand : color.neutral300,
+                alignItems: enabled ? 'flex-end' : 'flex-start',
+              }}
+            >
+              <View style={{ width: 20, height: 20, borderRadius: radius.lg, backgroundColor: onFill.brand }} />
+            </View>
+          </Pressable>
+
+          {enabled ? (
+            <View style={{ flexDirection: 'row', gap: 12, marginTop: 14 }}>
+              <HourStepper label="From · ตั้งแต่" value={from} onStep={(d) => step('from', d)} name="start" />
+              <HourStepper label="Until · จนถึง" value={until} onStep={(d) => step('until', d)} name="end" />
+            </View>
+          ) : null}
+
+          <Body size={13} colour={color.neutral700} style={{ marginTop: 14 }}>
+            Island time. An SOS from a contact always comes through — nobody can
+            mute an emergency, including you.
+          </Body>
+          <Thai size={11} style={{ marginTop: 2 }}>
+            เวลาเกาะ · SOS จากผู้ติดต่อจะแจ้งเสมอ ไม่มีใครปิดเสียงเหตุฉุกเฉินได้
+          </Thai>
+        </View>
+      ) : null}
+    </Section>
+  );
+}
+
+function HourStepper({
+  label, value, onStep, name,
+}: { label: string; value: number; onStep: (delta: number) => void; name: string }) {
+  const btn = { width: 40, height: 40, alignItems: 'center' as const, justifyContent: 'center' as const, borderRadius: radius.sm, borderWidth: 1, borderColor: color.neutral300 };
+  return (
+    <View style={{ flex: 1 }}>
+      <Label size={9} tracking={0.12} colour={color.neutral700}>{label}</Label>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+        <Pressable onPress={() => onStep(-1)} accessibilityRole="button" accessibilityLabel={`Earlier ${name}`} style={btn}>
+          <Heading size={16}>−</Heading>
+        </Pressable>
+        <Heading size={18}>{hh(value)}</Heading>
+        <Pressable onPress={() => onStep(1)} accessibilityRole="button" accessibilityLabel={`Later ${name}`} style={btn}>
+          <Heading size={16}>+</Heading>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 

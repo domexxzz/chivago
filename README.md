@@ -64,7 +64,7 @@ EXPO_PUBLIC_API_URL=http://192.168.1.42:8787 pnpm mobile
 pnpm test
 ```
 
-**1,185 tests** — 273 core, 629 API, 258 mobile, 25 tokens — plus 11 in the Dart
+**1,213 tests** — 273 core, 653 API, 262 mobile, 25 tokens — plus 11 in the Dart
 SDK (`pnpm test:dart`) and 9 in the Swift one (`swift test`). `pnpm typecheck`
 covers all four packages. `.github/workflows/ci.yml` runs all of it on every
 push, on Linux and macOS, so the numbers above are checked by a machine nobody
@@ -196,11 +196,16 @@ reading if this section is.
   production config sets the opening balance to zero, because a gift handed to
   every unauthenticated registration was a voucher printer. The limit is a
   speed bump, not a wall: a pool of addresses defeats it.
-- **The Bophut default.** `POST /sos` without coordinates records the alert at
-  a fixed point on the island rather than refusing, because a traveller who
-  denied location permission must still be able to fire. That position is a
-  placeholder and the desk cannot yet tell it from a real one; making
-  `lat`/`lng` nullable is a table rebuild and is the next honest fix.
+- **A contact who has not added you back is not pushed.** Anyone can type
+  anyone's user id into their emergency list, so a push to a linked user goes
+  out only when that user has listed the traveller on *their* list too. The
+  attempt is recorded as unavailable with the reason, so the traveller sees
+  that contact was not reached. Mutual listing is the only consent this pilot
+  can record; a proper invitation flow would be better.
+- **The Air4Thai cross-check is one station 87 km away.** It is applied now
+  (a reading that disagrees with it by a full EPA category is marked
+  *estimated*), but it can only ever say "the model and the mainland
+  disagree", never which is right for the island.
 - **Air quality is an ~11 km area reading**, not a per-place measurement.
   Thailand has no monitoring station on Koh Samui — see `docs/05-research.md`.
   This is the most consequential finding of the build.

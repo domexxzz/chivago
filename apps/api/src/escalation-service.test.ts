@@ -164,6 +164,8 @@ describe('what each rung actually does', () => {
 
   test('nudge 1 re-alerts contacts who use the app', async () => {
     addContact(db, { userId: 'u1', name: 'Mae', linkedUserId: 'fam' });
+    // They list each other: that is the consent a push needs.
+    addContact(db, { userId: 'fam', name: 'John', linkedUserId: 'u1' });
     fireOld(LADDER[0]!.afterSeconds + 5);
     await sweep(db, fakeOncall());
 
@@ -182,7 +184,7 @@ describe('what each rung actually does', () => {
     assert.match(page.text, /unacknowledged/i);
     assert.equal(page.alertId, alert.id);
     assert.equal(page.locationLabel, 'Chaweng, 120 m');
-    assert.match(page.mapsUrl, /9\.5357/);
+    assert.match(page.mapsUrl ?? '', /9\.5357/);
     assert.match(page.liveUrl, /\/sos\/live\//);
     assert.match(page.deskUrl, /\/console\/sos$/);
     assert.ok(page.minutesOpen >= 5);
@@ -292,6 +294,8 @@ describe('what a contact is told, by name', () => {
     // first version filled {name} with the location label, so a mother read
     // that "Chaweng, 120 m's alert" was unanswered and had to work out whose.
     addContact(db, { userId: 'u1', name: 'Mae', linkedUserId: 'fam' });
+    // They list each other: that is the consent a push needs.
+    addContact(db, { userId: 'fam', name: 'John', linkedUserId: 'u1' });
     const alert = fireOld(130);
     await fireRung(db, alert, 'nudge_1', noOncall());
 

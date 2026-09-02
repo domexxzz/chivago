@@ -74,7 +74,9 @@ export function SafetyScreen({
         position to sort by, and the list stays in its printed order rather
         than asking for GPS the user has not offered.
       */}
-      <EmergencyNumbers at={alert ? { lat: alert.lat, lng: alert.lng } : null} />
+      <EmergencyNumbers
+        at={alert && alert.lat !== null && alert.lng !== null ? { lat: alert.lat, lng: alert.lng } : null}
+      />
 
       <View
         style={{

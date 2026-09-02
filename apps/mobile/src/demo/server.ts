@@ -16,7 +16,7 @@
 import {
   SPECIES_AS_OF, cheapestMonth, chivaBalance, collectionSummary, companionsFor,
   forecastPrice, islandDay,
-  outlookAhead, planDay, progressionFor, routeBiasFor, smartRoute,
+  outlookAhead, planDay, progressionFor, routeBiasFor, smartRoute, summarise,
 } from '@chivago/core';
 import snapshot from './fixtures.json';
 
@@ -64,7 +64,41 @@ const state = {
   checkins: [] as string[],
   /** Mood check-ins, appended the way the server appends them. */
   moods: [] as { at: string; mood: string; note: string | null }[],
+  /** The party this session started, if any. One visitor, so never joined. */
+  party: null as { id: string; name: string; createdBy: string; createdAt: string; code: string } | null,
   seq: 0,
+};
+
+/**
+ * A refusal, in the envelope the client already understands.
+ *
+ * The real API says no with a code the app branches on - PARTY_UNKNOWN,
+ * LINK_UNKNOWN - and the screens render that sentence. A demo that answered
+ * every write with success would be demonstrating a product that cannot say
+ * no, which is not this one.
+ */
+class Refused {
+  constructor(readonly code: string, readonly error: string) {}
+}
+const refuse = (code: string, error: string) => new Refused(code, error);
+
+/** The party screen, computed from this session rather than replayed. */
+const partyNow = () => {
+  const fixture = state.routes['/party'] as { doesNot: unknown };
+  if (!state.party) return { party: null, summary: summarise([]), doesNot: fixture.doesNot };
+  const w = wallet();
+  const green = w.ledger.filter((r) => r.kind === 'quest_reward' && r.currency === 'green');
+  const { code: _code, ...party } = state.party;
+  return {
+    party,
+    summary: summarise([{
+      userId: 'demo-user', displayName: 'Traveller', you: true,
+      missionsVerified: green.length,
+      greenEarned: green.reduce((n, r) => n + (r.amount as number), 0),
+      provinces: ['TH-84'],
+    }]),
+    doesNot: fixture.doesNot,
+  };
 };
 
 /**
@@ -117,6 +151,27 @@ function credit(
 
 /** Writes, in the order a traveller meets them. */
 const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
+  // -- accounts and parties: the four screens that were "Not in the demo
+  // build" since they arrived, because nobody re-captured after adding them.
+  'POST /devices': () => ({ userId: 'demo-user', deviceKey: 'chvg_dev_demo-build-only' }),
+  'POST /account/link-code': () => ({ code: 'DEMO' + String(++state.seq).padStart(4, '0'), expiresInMs: 600_000 }),
+  // There is one visitor and one phone, so there is nothing to claim from.
+  'POST /account/claim': () => refuse('LINK_UNKNOWN', 'That code is not one this demo issued. Nothing is saved here, so there is no second phone to link.'),
+  'POST /account/devices/revoke': () => refuse('NO_SUCH_DEVICE', 'This demo has one phone: the one you are holding.'),
+  'POST /party': (body) => {
+    state.party = {
+      id: id('party'), name: String(body.name ?? 'Our trip') || 'Our trip',
+      createdBy: 'demo-user', createdAt: now(), code: `DM${String(++state.seq).padStart(4, '0')}`,
+    };
+    const { code, ...party } = state.party;
+    return { party, code };
+  },
+  // Joining needs a second traveller, and a demo has exactly one. Refusing
+  // with the real code is more honest than inventing a companion.
+  'POST /party/join': () => refuse('PARTY_UNKNOWN', 'No party has that code. Nothing is saved in this demo, so there is nobody else to join.'),
+  'POST /party/leave': () => { state.party = null; return { left: true }; },
+  'POST /party/disband': () => { state.party = null; return { disbanded: true }; },
+
   'POST /places/:id/checkin': (_b, m) => {
     const placeId = m[1]!;
     const place = (state.routes['/places'] as Json[])
@@ -309,7 +364,7 @@ export function installDemoServer(apiBase: string): void {
     const url = typeof input === 'string' ? input : String((input as Request).url ?? input);
     if (!url.startsWith(apiBase)) return real(input as RequestInfo, init);
 
-    const path = url.slice(apiBase.length).split('?')[0]!;
+    const [path, query] = url.slice(apiBase.length).split('?') as [string, string | undefined];
     const method = (init?.method ?? 'GET').toUpperCase();
     const body = init?.body ? (JSON.parse(String(init.body)) as Json) : {};
 
@@ -347,13 +402,27 @@ export function installDemoServer(apiBase: string): void {
         });
       }
       if (path === '/wellness/mood') return answer(state.moods);
+      if (path === '/party') return answer(partyNow());
+      // A filtered list is its own capture. The query used to be stripped
+      // and the full list answered, so "quests near you" led with a weekend
+      // quest on a Tuesday.
+      if (query && `${path}?${query}` in state.routes) return answer(state.routes[`${path}?${query}`]);
       if (path in state.routes) return answer(state.routes[path]);
     }
 
     for (const p of PATTERNS) {
       if (p.method !== method) continue;
       const m = path.match(p.re);
-      if (m) return answer(writes[p.key]!(body, m));
+      if (m) {
+        const result = writes[p.key]!(body, m);
+        if (result instanceof Refused) {
+          return new Response(
+            JSON.stringify({ ok: false, code: result.code, error: result.error }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+        return answer(result);
+      }
     }
 
     // Unknown route: say so in the envelope the client already understands,

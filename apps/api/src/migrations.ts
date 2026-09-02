@@ -674,5 +674,66 @@ export function migrate(db: DB): string[] {
     applied.push('quests.esg_pillar');
   }
 
+  /*
+    Let an alert exist without a position.
+    ---------------------------------------
+    `lat` and `lng` were NOT NULL, so `POST /sos` from a phone that could not
+    get a fix - permission refused, GPS dead, a basement - substituted a fixed
+    point at Bophut. The desk then drew a confident pin for somebody who could
+    have been anywhere on the island, and nothing on it could tell that pin
+    from a real one. In the one module whose rule is "never claim what did
+    not happen", that was the largest claim of all.
+
+    SQLite cannot drop NOT NULL with ALTER TABLE, so the table is rebuilt the
+    same way mood_checkins was. Children (sos_dispatch, sos_positions,
+    sos_escalations) reference sos_alerts by name; with constraint enforcement
+    suspended for the swap, the drop-and-rename leaves those references
+    pointing at the new table.
+  */
+  const sosCols = db
+    .prepare("SELECT name, \"notnull\" AS nn FROM pragma_table_info('sos_alerts')")
+    .all() as unknown as { name: string; nn: number }[];
+  if (sosCols.find((c) => c.name === 'lat')?.nn === 1) {
+    db.exec('PRAGMA foreign_keys = OFF');
+    db.exec(`
+      BEGIN;
+      CREATE TABLE sos_alerts_rebuilt (
+        id                  TEXT PRIMARY KEY,
+        user_id             TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        status              TEXT NOT NULL,
+        lat                 REAL,
+        lng                 REAL,
+        location_label      TEXT NOT NULL,
+        fired_at            TEXT NOT NULL,
+        resolved_at         TEXT,
+        nearest_hospital    TEXT NOT NULL,
+        contacts_notified   INTEGER NOT NULL DEFAULT 0,
+        interpreter_joining INTEGER NOT NULL DEFAULT 0,
+        share_token         TEXT,
+        acknowledged_at     TEXT,
+        acknowledged_by     TEXT,
+        last_lat            REAL,
+        last_lng            REAL,
+        last_position_at    TEXT,
+        note                TEXT
+      );
+      INSERT INTO sos_alerts_rebuilt
+        (id, user_id, status, lat, lng, location_label, fired_at, resolved_at,
+         nearest_hospital, contacts_notified, interpreter_joining, share_token,
+         acknowledged_at, acknowledged_by, last_lat, last_lng, last_position_at, note)
+        SELECT id, user_id, status, lat, lng, location_label, fired_at, resolved_at,
+               nearest_hospital, contacts_notified, interpreter_joining, share_token,
+               acknowledged_at, acknowledged_by, last_lat, last_lng, last_position_at, note
+        FROM sos_alerts;
+      DROP TABLE sos_alerts;
+      ALTER TABLE sos_alerts_rebuilt RENAME TO sos_alerts;
+      CREATE INDEX IF NOT EXISTS idx_sos_active ON sos_alerts(user_id, status);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_sos_share ON sos_alerts(share_token);
+      COMMIT;
+    `);
+    db.exec('PRAGMA foreign_keys = ON');
+    applied.push('sos_alerts.lat/lng nullable');
+  }
+
   return applied;
 }

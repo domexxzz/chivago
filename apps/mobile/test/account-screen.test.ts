@@ -3,7 +3,7 @@ import { test, describe, afterEach } from 'node:test';
 import { createElement as h } from 'react';
 
 import { AccountScreen, countdown, groupCode } from '../src/screens/AccountScreen.tsx';
-import { mountScreen, server, refuses, offline } from './interact.ts';
+import { mountScreen, server, refuses, offline, settle } from './interact.ts';
 
 /**
  * The account screen.
@@ -185,6 +185,70 @@ describe('entering a code', () => {
 
     await ui.pressText(/^Join$/);
     assert.deepEqual(calls, [], 'an empty code was sent to the server');
+    ui.unmount();
+  });
+});
+
+describe('quiet hours, which the API had and the app could not reach', () => {
+  const quiet = (over = {}) => ({ enabled: true, from: null, until: null, ...over });
+
+  test('the default window is shown as island hours, with the SOS exemption beside it', async () => {
+    const net = server({ 'GET /account': devices(), 'GET /notifications/quiet': quiet() });
+    restore = net.restore;
+    const ui = await mountScreen(h(AccountScreen, props));
+    assert.match(ui.text(), /Held 22:00 – 07:00/);
+    assert.match(ui.text(), /nobody can\s+mute an emergency/);
+    assert.match(ui.text(), /ไม่มีใครปิดเสียงเหตุฉุกเฉินได้/);
+    ui.unmount();
+  });
+
+  test('turning it off sends enabled:false and reads the server back', async () => {
+    let enabled = true;
+    const net = server({
+      'GET /account': devices(),
+      'GET /notifications/quiet': () => quiet({ enabled }),
+      'PUT /notifications/quiet': (body: { enabled: boolean }) => { enabled = body.enabled; return quiet({ enabled }); },
+    });
+    restore = net.restore;
+    const ui = await mountScreen(h(AccountScreen, props));
+    await ui.press(/Quiet hours on/);
+    await settle();
+    const put = net.calls.find((c) => c.method === 'PUT' && c.path === '/notifications/quiet');
+    assert.ok(put, 'nothing was saved');
+    assert.equal((put.body as { enabled: boolean }).enabled, false);
+    assert.match(ui.text(), /Off — notify me any time/);
+    ui.unmount();
+  });
+
+  test('stepping the start back an hour saves 21, and it wraps past midnight', async () => {
+    let from: number | null = null;
+    const net = server({
+      'GET /account': devices(),
+      'GET /notifications/quiet': () => quiet({ from }),
+      'PUT /notifications/quiet': (body: { from: number }) => { from = body.from; return quiet({ from }); },
+    });
+    restore = net.restore;
+    const ui = await mountScreen(h(AccountScreen, props));
+    await ui.press('Earlier start');
+    await settle();
+    assert.equal(from, 21);
+    assert.match(ui.text(), /Held 21:00 – 07:00/);
+    ui.unmount();
+  });
+
+  test('a refused save is toasted and the setting stays as it was', async () => {
+    let said = '';
+    const net = server({
+      'GET /account': devices(),
+      'GET /notifications/quiet': quiet(),
+      'PUT /notifications/quiet': refuses('INTERNAL', 'Could not save that.'),
+    });
+    restore = net.restore;
+    const ui = await mountScreen(h(AccountScreen, { ...props, onToast: (m: string) => { said = m; } }));
+    await ui.press('Later end');
+    await settle();
+    assert.equal(said, 'Could not save that.');
+    assert.match(ui.text(), /Held 22:00 – 07:00/);
     ui.unmount();
   });
 });

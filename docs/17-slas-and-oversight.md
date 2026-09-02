@@ -102,8 +102,9 @@ Which comparison applies is now decided by whether `from` is after `until`, and
 - ~~The moderator watch has no history.~~ **Replaced** — it now compares
   against each moderator's own median, and adds an overturn rate that catches
   somebody doing nothing at all. See `18-moderator-watch.md`.
-- **No settings screen** for quiet hours. The API is there; the app has no UI,
-  so today only a client that calls `PUT /notifications/quiet` can change it.
+- ~~**No settings screen** for quiet hours.~~ **Built** — a card on the
+  account screen: an on/off switch and two hour steppers, island time, with
+  the SOS exemption printed beside it. Four screen tests.
 - **The overdue sweep does not escalate.** It tells the person waiting and
   nobody else. A proof unreviewed for a week should reach a human at the host,
   not just apologise to the volunteer again.

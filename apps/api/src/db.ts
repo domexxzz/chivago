@@ -208,8 +208,10 @@ CREATE TABLE IF NOT EXISTS sos_alerts (
   id                 TEXT PRIMARY KEY,
   user_id            TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   status             TEXT NOT NULL,
-  lat                REAL NOT NULL,
-  lng                REAL NOT NULL,
+  -- Nullable: a phone with no fix still gets to fire. See migrations.ts for
+  -- the rebuild that relaxed this on databases created before it was.
+  lat                REAL,
+  lng                REAL,
   location_label     TEXT NOT NULL,
   fired_at           TEXT NOT NULL,
   resolved_at        TEXT,

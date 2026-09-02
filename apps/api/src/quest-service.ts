@@ -66,8 +66,13 @@ const ALLOWED: Record<QuestStage, QuestStage[]> = {
   joined: ['arrived'],
   arrived: ['proof_submitted'],
   proof_submitted: ['host_verification'],
-  // Rejection sends the user back to resubmit; approval completes.
-  host_verification: ['complete', 'proof_submitted'],
+  // Approval completes. A rejection moves the user back to `arrived` (see
+  // resolveVerification), and it is from THERE that they resubmit - so there
+  // is no path from verification straight back to a new submission. There
+  // used to be, and it let one volunteer file proof after proof against a
+  // quest already in the host's queue: a pile of pending rows for one piece
+  // of work, all but one of them orphaned the moment any was decided.
+  host_verification: ['complete'],
   complete: [],
 };
 

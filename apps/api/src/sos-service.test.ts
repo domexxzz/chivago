@@ -112,6 +112,8 @@ describe('the count is COUNTED, never asserted', () => {
 
   test('a contact who uses the app is pushed and counted', () => {
     addContact(db, { userId: 'u1', name: 'Mae', linkedUserId: 'fam' });
+    // They list each other: that is the consent a push needs.
+    addContact(db, { userId: 'fam', name: 'John', linkedUserId: 'u1' });
     const alert = fire();
     assert.equal(alert.contactsTotal, 1);
     assert.equal(alert.contactsReached, 1);
@@ -139,6 +141,8 @@ describe('the count is COUNTED, never asserted', () => {
   test('mixed contacts report a mixed, truthful result', () => {
     delete process.env.CHIVAGO_SMS_PROVIDER;
     addContact(db, { userId: 'u1', name: 'Mae', linkedUserId: 'fam' });
+    // They list each other: that is the consent a push needs.
+    addContact(db, { userId: 'fam', name: 'John', linkedUserId: 'u1' });
     addContact(db, { userId: 'u1', name: 'Papa', phone: '0812345678' });
     const alert = fire();
     assert.equal(alert.contactsTotal, 2);
@@ -229,8 +233,8 @@ describe('the public share link', () => {
 
     const view = publicView(db, token)!;
     assert.equal(view.live, false);
-    assert.equal(view.lat, 0, 'position must be withheld');
-    assert.equal(view.lng, 0);
+    assert.equal(view.lat, null, 'position must be withheld');
+    assert.equal(view.lng, null);
     assert.equal(view.locationLabel, '');
     assert.equal(view.lastPositionAt, null);
   });
@@ -240,12 +244,15 @@ describe('the public share link', () => {
     const token = tokenOf(alert.shareUrl);
     resolveAlert(db, alert.id, 'Nok');
     assert.equal(publicView(db, token)!.live, false);
-    assert.equal(publicView(db, token)!.lat, 0);
+    // Null, not 0: (0, 0) is a real place in the Gulf of Guinea.
+    assert.equal(publicView(db, token)!.lat, null);
   });
 
   test('exposes only what a family member needs, and nothing else', () => {
     // Anyone holding the URL sees this. It must not become a profile.
     addContact(db, { userId: 'u1', name: 'Mae', linkedUserId: 'fam' });
+    // They list each other: that is the consent a push needs.
+    addContact(db, { userId: 'fam', name: 'John', linkedUserId: 'u1' });
     const alert = fire({ note: 'motorbike accident' });
     const view = publicView(db, tokenOf(alert.shareUrl))!;
 
@@ -295,5 +302,20 @@ describe('the duty desk sees every alert, not just its own hosts', () => {
     fire();
     cancelAlert(db, 'u1');
     assert.equal(liveAlerts(db).length, 0);
+  });
+});
+
+describe('a linked contact is only pushed with their say-so', () => {
+  test('somebody who has NOT listed you back is recorded as unavailable, not pushed', () => {
+    // Anyone can type anyone's user id into a contact. Without this rule that
+    // was a way to push an emergency at a stranger through their quiet hours.
+    addContact(db, { userId: 'u1', name: 'Stranger', linkedUserId: 'fam' });
+    const alert = fireAlert(db, { userId: 'u1', ...CHAWENG, locationLabel: 'Chaweng' });
+    const push = alert.dispatches.find((d) => d.channel === 'push');
+    assert.ok(push, 'the attempt is still recorded so the traveller sees it was not reached');
+    assert.equal(push.status, 'unavailable');
+    assert.match(push.detail ?? '', /not added you/);
+    assert.equal(alert.contactsReached, 0);
+    assert.equal(inbox(db, 'fam').length, 0, 'nothing was pushed at them');
   });
 });

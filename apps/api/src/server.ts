@@ -43,7 +43,7 @@ import {
 import {
   JOIN_REFUSAL, PARTY_DOES_NOT, RANKED_BY, SPECIES_AS_OF, cheapestMonth,
   collectionSummary, companionsFor, summarise,
-  forecastPrice, islandDay, isReportReasonKey,
+  forecastPrice, islandDay, isReportReasonKey, isRejectionReasonKey,
   outlookAhead, planDay, rankHosts, routeBiasFor, smartRoute,
 } from '@chivago/core';
 import {
@@ -397,7 +397,23 @@ app.get('/profile', (c) => ok(c, getProfile(db, userId(c))));
  */
 app.put('/profile', async (c) => {
   const id = userId(c);
-  const body = (await c.req.json()) as Partial<WellnessProfile> & { consentVersion?: string };
+  const raw = (await c.req.json().catch(() => null)) as unknown;
+  if (!raw || typeof raw !== 'object') return fail(c, 'INVALID_PROFILE', 'A profile is an object.');
+  const body = raw as Partial<WellnessProfile> & { consentVersion?: unknown };
+  const isStringList = (v: unknown): v is string[] =>
+    Array.isArray(v) && v.every((x) => typeof x === 'string');
+  if (body.purposes !== undefined && !isStringList(body.purposes)) {
+    return fail(c, 'INVALID_PROFILE', 'purposes must be a list of keys.');
+  }
+  if (body.watch !== undefined && !isStringList(body.watch)) {
+    return fail(c, 'INVALID_PROFILE', 'watch must be a list of keys.');
+  }
+  if (body.activity !== undefined && body.activity !== null && typeof body.activity !== 'string') {
+    return fail(c, 'INVALID_PROFILE', 'activity must be a key or null.');
+  }
+  if (body.consentVersion !== undefined && typeof body.consentVersion !== 'string') {
+    return fail(c, 'INVALID_PROFILE', 'consentVersion must be a string.');
+  }
   const now = new Date().toISOString();
   db.prepare(
     `INSERT INTO profiles (user_id, purposes, activity, watch, completed_at, consent_version, consented_at)
@@ -500,13 +516,18 @@ app.get('/places/:id/reviews', (c) => {
  */
 app.post('/places/:id/reviews', async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as {
-    rating?: number; body?: string; language?: string;
+    rating?: unknown; body?: unknown; language?: unknown;
   };
+  // A body that is not text is a client bug, and a 400 says so; the first
+  // version let an object through to `.trim()` and answered 500.
+  if (body.body !== undefined && body.body !== null && typeof body.body !== 'string') {
+    return fail(c, 'INVALID_BODY', 'A review body is text.');
+  }
   const result = writeReview(db, {
     userId: userId(c),
     placeId: c.req.param('id'),
     rating: Number(body.rating),
-    body: body.body ?? null,
+    body: typeof body.body === 'string' ? body.body : null,
     language: typeof body.language === 'string' ? body.language.slice(0, 16) : undefined,
   });
   return ok(c, result);
@@ -529,15 +550,18 @@ app.delete('/places/:id/reviews', (c) => {
  * censorship tool.
  */
 app.post('/reviews/:id/report', async (c) => {
-  const body = (await c.req.json().catch(() => ({}))) as { reason?: string; note?: string };
+  const body = (await c.req.json().catch(() => ({}))) as { reason?: unknown; note?: unknown };
   if (!isReportReasonKey(body.reason)) {
     return fail(c, 'INVALID_REASON', 'Pick a reason for the report.');
+  }
+  if (body.note !== undefined && body.note !== null && typeof body.note !== 'string') {
+    return fail(c, 'INVALID_NOTE', 'A note is text.');
   }
   const report = reportReview(db, {
     reviewId: c.req.param('id'),
     reporterId: userId(c),
     reasonKey: body.reason,
-    note: body.note ?? null,
+    note: typeof body.note === 'string' ? body.note : null,
   });
   return report ? ok(c, report) : fail(c, 'NOT_FOUND', 'No such review', 404);
 });
@@ -549,8 +573,8 @@ app.post('/reviews/:id/report', async (c) => {
  * came down; this is how they answer.
  */
 app.post('/reviews/:id/appeal', async (c) => {
-  const body = (await c.req.json().catch(() => ({}))) as { message?: string };
-  const message = String(body.message ?? '').trim();
+  const body = (await c.req.json().catch(() => ({}))) as { message?: unknown };
+  const message = typeof body.message === 'string' ? body.message.trim() : '';
   if (message.length < 10) {
     return fail(c, 'APPEAL_TOO_SHORT', 'Tell the moderator what you think they got wrong.');
   }
@@ -621,9 +645,23 @@ app.post('/quests/:id/proof', async (c) => {
 
     // EXIF is read on the device, where the original file still has it, and
     // sent alongside. Re-encoding on the phone routinely strips it.
-    const meta = JSON.parse(String(form.meta ?? '[]')) as {
-      lat: number | null; lng: number | null; takenAt: string | null;
-    }[];
+    let meta: { lat: number | null; lng: number | null; takenAt: string | null }[];
+    try {
+      const parsed: unknown = JSON.parse(String(form.meta ?? '[]'));
+      if (!Array.isArray(parsed)) throw new Error('meta is not a list');
+      meta = parsed.map((m: unknown) => {
+        const o = (m && typeof m === 'object' ? m : {}) as Record<string, unknown>;
+        return {
+          lat: typeof o.lat === 'number' ? o.lat : null,
+          lng: typeof o.lng === 'number' ? o.lng : null,
+          takenAt: typeof o.takenAt === 'string' ? o.takenAt : null,
+        };
+      });
+    } catch {
+      // Malformed metadata is the client's mistake and gets a 400 that names
+      // it, not the 500 the first version answered with.
+      return fail(c, 'INVALID_META', 'Photo metadata must be a JSON list of {lat, lng, takenAt}.');
+    }
     const weightRaw = form.weightKg;
     const weightKg = weightRaw ? Number(weightRaw) : null;
 
@@ -691,12 +729,20 @@ app.post('/internal/verify', async (c) => {
 
   // Scope the machine path the same way the console is scoped. The shared
   // secret is an operator credential, not a licence to approve another host's
-  // work - callers must name the host they are acting for.
-  if (body.hostId && !hostOwnsQuest(db, body.hostId, body.questId)) {
+  // work - callers MUST name the host they are acting for. The first version
+  // only checked the host when one was given, so omitting it was a way round
+  // the check; the comment above it said "must" and the code said "may".
+  if (typeof body.hostId !== 'string' || !body.hostId) {
+    return fail(c, 'HOST_REQUIRED', 'Name the host you are acting for.', 400);
+  }
+  if (!hostOwnsQuest(db, body.hostId, body.questId)) {
     return fail(c, 'FORBIDDEN', 'That quest belongs to another host', 403);
   }
+  if (body.reason !== undefined && !isRejectionReasonKey(body.reason)) {
+    return fail(c, 'INVALID_REASON', 'Not a rejection reason this app knows.', 400);
+  }
 
-  const result = resolveVerification(db, { ...body, reviewedBy: body.hostId ?? 'automation' });
+  const result = resolveVerification(db, { ...body, reviewedBy: body.hostId });
   flushNotifications();
   return ok(c, result);
 });
@@ -1148,17 +1194,21 @@ app.get('/sos', (c) => ok(c, activeAlert(db, userId(c))));
 app.post('/sos', async (c) => {
   const id = userId(c);
   const body = (await c.req.json().catch(() => ({}))) as {
-    lat?: number; lng?: number; note?: string;
+    lat?: unknown; lng?: unknown; note?: unknown;
   };
-  const lat = body.lat ?? 9.5573;
-  const lng = body.lng ?? 100.0596;
+  // No fix is recorded as no fix. The first version substituted Bophut, and
+  // the desk could not tell that pin from a real one.
+  const hasFix = typeof body.lat === 'number' && Number.isFinite(body.lat)
+    && typeof body.lng === 'number' && Number.isFinite(body.lng);
+  const lat = hasFix ? (body.lat as number) : null;
+  const lng = hasFix ? (body.lng as number) : null;
 
   const alert = fireAlert(db, {
     userId: id,
     lat,
     lng,
-    locationLabel: nearestArea(lat, lng),
-    note: body.note ?? null,
+    locationLabel: hasFix ? nearestArea(lat!, lng!) : 'Position unknown · ไม่ทราบตำแหน่ง',
+    note: typeof body.note === 'string' ? body.note.slice(0, 500) : null,
   });
   // Push to contacts NOW rather than on the next dispatch tick. Up to a minute
   // of latency is acceptable for a quest approval; it is not for this.
