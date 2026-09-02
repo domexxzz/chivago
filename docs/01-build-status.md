@@ -13,7 +13,9 @@ What exists, what runs, and what is honestly not there yet.
 > job failed on five pushes from `eec0c76` because the Swift package's copy
 > of `contract/api-samples.json` was refreshed by hand and was not; the
 > capture now writes the copy and a test holds the two identical. The
-> sections below are the build-time record and are kept as written.
+> sections below are the build-time record and are kept as written. The
+> same status in Thai, with the seven recommendations and what is owed, is
+> `32-status-2026-09-02.md`.
 
 ---
 

@@ -24,6 +24,9 @@ Everything downstream — the leaderboard, the sponsor's report, the ESG filing,
 the companions, the passport — is derived from that one ledger, and refuses to
 report a number it cannot trace back to it.
 
+**Status as of 2026-09-02:** [`docs/01-build-status.md`](docs/01-build-status.md)
+in English, [`docs/32-status-2026-09-02.md`](docs/32-status-2026-09-02.md) in Thai.
+
 ---
 
 ## Try it
