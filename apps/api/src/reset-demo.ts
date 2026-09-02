@@ -23,6 +23,7 @@
 import { openDb, type DB } from './db.ts';
 import { checkIn } from './checkin-service.ts';
 import { joinQuest, arriveAtQuest, submitProof, resolveVerification } from './quest-service.ts';
+import { issueStatement } from './statement-service.ts';
 import { recordMood, balanceFor, habitatEvidenceFor, moodHistory } from './wellness-service.ts';
 import {
   ensureWallet, getBalances, getExp, getLedger, grantOpeningBalance,
@@ -57,6 +58,9 @@ const TRAVELLER_TABLES = [
   // Recorded, not scored (docs/29) and the second signal (docs/30): both are
   // the traveller's, and a demo reset starts them from nothing.
   'self_visits', 'last_fix',
+  // A statement is the pilot's record ABOUT travellers (docs/31). With the
+  // travellers gone it would describe nobody, so it goes with them.
+  'statements',
   'ledger', 'wallets', 'profiles',
   'mood_checkins', 'quest_progress', 'proofs', 'proof_files', 'vouchers',
   'place_reviews', 'review_reports', 'review_appeals', 'review_batches',
@@ -277,6 +281,15 @@ function seed(db: DB): void {
       userId: USER, questId: q.id, proofId, approved: true,
       reviewedBy: 'Demo host', reviewNote: null,
     });
+  }
+
+  // One host files its statement (docs/31), so the demo can show a verified
+  // quest as being on somebody's record. The municipality, because q1 is the
+  // first quest anyone opens. Approval is stamped at reset time, inside the
+  // calendar year the statement covers.
+  {
+    const year = new Date().getUTCFullYear();
+    issueStatement(db, quest('q1').host.id, { from: `${year}-01-01`, to: `${year}-12-31` }, 'Demo host');
   }
 
   // Contacts, so the SOS panel reports a real reached-count rather than the

@@ -64,6 +64,8 @@ export const consoleStrings = {
   moderation: c('รีวิว', 'Reviews'),
   sponsor: c('ผู้สนับสนุน', 'Sponsor'),
   esg: c('รายงาน ESG', 'ESG'),
+  statement: c('รายการกิจกรรม', 'Statement'),
+  periodOutOfOrder: c('วันที่เริ่มต้นอยู่หลังวันที่สิ้นสุด เลือกช่วงวันที่ใหม่', 'The start date is after the end date. Choose the period again.'),
   moderationTitle: c('ดูแลรีวิวจากนักเดินทาง', 'Traveller reviews'),
   moderationBlurb: c(
     'ทุกรีวิวที่นี่มาจากคนที่เช็กอินที่สถานที่นั้นจริง การยืนยันนี้ทำให้รีวิวปลอมแพงขึ้น แต่ไม่ได้ทำให้เป็นไปไม่ได้ — คนที่ไปจริงก็ยังเขียนเรื่องที่ต้องนำออกได้',

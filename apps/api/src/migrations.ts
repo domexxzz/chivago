@@ -791,5 +791,29 @@ export function migrate(db: DB): string[] {
     );
   `);
 
+  // -- Statements of verified activity: the evidence layer -----------------
+  //
+  // Issued once and never edited. The trigger makes SQLite refuse an UPDATE,
+  // so the only way to change what a hotel filed is to issue another one;
+  // the digest is recomputed on read so a row replaced behind the trigger is
+  // refused too. DELETE is allowed: a demo reset clears travellers and the
+  // statements about them together. See packages/core/src/statement.ts.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS statements (
+      id           TEXT PRIMARY KEY,
+      host_id      TEXT NOT NULL REFERENCES hosts(id),
+      period_from  TEXT NOT NULL,
+      period_to    TEXT NOT NULL,
+      issued_at    TEXT NOT NULL,
+      issued_by    TEXT,
+      body         TEXT NOT NULL,
+      digest       TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_statements_host ON statements(host_id, issued_at);
+    CREATE TRIGGER IF NOT EXISTS statements_are_append_only
+      BEFORE UPDATE ON statements
+      BEGIN SELECT RAISE(ABORT, 'statements are append-only: issue another'); END;
+  `);
+
   return applied;
 }

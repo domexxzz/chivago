@@ -184,11 +184,33 @@ export const strings = {
     // wherever a person stands behind something. ตรวจสอบ is inspection, and
     // it belongs to the safety labels, which is where it now stays.
     verified: t('Verified', 'ยืนยันแล้ว'),
-    verifiedDetail: (kg: number) =>
+    /**
+     * The weight is the one on the proof the host approved, or nothing. A
+     * number the app does not hold is not printed: this panel used to say
+     * 4.2 kg to everyone, next to a statement that said 3.2.
+     */
+    verifiedDetail: (kg: number | null) =>
+      kg === null
+        ? t(
+          'Green Points added · logged to the Samui impact ledger',
+          'เพิ่มแต้มสีเขียวแล้ว · บันทึกลงบัญชีผลลัพธ์เกาะสมุย',
+        )
+        : t(
+          `Green Points added · ${kg} kg waste logged to Samui impact ledger`,
+          `เพิ่มแต้มสีเขียวแล้ว · บันทึกขยะ ${kg} กก. ลงบัญชีผลลัพธ์เกาะสมุย`,
+        ),
+    /**
+     * The host filed this verification in a statement anyone can check - the
+     * guest-facing half of the evidence layer (docs/31). The traveller is told
+     * their work became a record somebody handed on, and can open it.
+     */
+    onRecord: t('On record', 'อยู่ในบันทึกแล้ว'),
+    onRecordDetail: (host: string, id: string, from: string, to: string) =>
       t(
-        `Green Points added · ${kg} kg waste logged to Samui impact ledger`,
-        `เพิ่มแต้มสีเขียวแล้ว · บันทึกขยะ ${kg} กก. ลงบัญชีผลลัพธ์เกาะสมุย`,
+        `${host} filed this in statement ${id}, covering ${from} to ${to}.`,
+        `${host} บันทึกงานนี้ไว้ในรายการกิจกรรม ${id} ช่วง ${from} ถึง ${to}`,
       ),
+    onRecordCheck: t('Anyone can check this statement', 'ใครก็ตรวจสอบรายการนี้ได้'),
     /** The design has no rejection state. Real host review rejects submissions. */
     rejected: t('Proof not accepted', 'หลักฐานไม่ผ่าน'),
     resubmit: t('Submit new proof', 'ส่งหลักฐานใหม่'),

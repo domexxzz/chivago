@@ -251,3 +251,14 @@ band.
 - **Native Thai review.** The Thai copy is design draft. Two files, listed above.
 - **More languages.** The switcher and `Locale` type take a third language
   without restructuring, but nothing else is prepared for one.
+
+---
+
+## The statement page
+
+`/console/statement` — this host's own verified activity for a period, drafted
+free and issued on purpose. Issuing writes an immutable record with a public id
+(`CG-2026-XXXXXX`) and a SHA-256 digest; `/verify/<id>` on the API shows the
+same record to anyone, with no session. Scoped to the host's own quests: a
+hotel that also sponsors an NGO's cleanup has the ESG page for that. See
+`31-the-evidence-layer.md`.

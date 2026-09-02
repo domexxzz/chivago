@@ -196,6 +196,14 @@ class ChivagoClient {
   Future<Result<Passport>> passport() =>
       _get('/passport', (d) => Passport.fromJson(d as Map<String, dynamic>));
 
+  // -- the evidence layer --------------------------------------------------
+  /// Statements a host filed that count this traveller's verified work. The
+  /// id is public: `/verify/<id>` on the API shows anyone the same record.
+  Future<Result<List<FiledStatement>>> myStatements() => _get(
+        '/me/statements',
+        (d) => _list((d as Map<String, dynamic>)['statements'], FiledStatement.fromJson),
+      );
+
   // -- quests ---------------------------------------------------------------
 
   Future<Result<List<Quest>>> quests() => _get(

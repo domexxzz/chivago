@@ -60,6 +60,7 @@ const ROUTES = [
   '/quests/q4', '/quests/q5', '/quests/q6',
   '/checkins/today',
   '/visits/self',
+  '/me/statements',
   // Four screens that were ErrorState("Not in the demo build") since they
   // arrived, because nobody re-captured after adding them.
   '/passport',

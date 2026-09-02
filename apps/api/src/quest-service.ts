@@ -99,6 +99,7 @@ interface ProgressRow {
   rejected_at: string | null;
   rejection_reason: string | null;
   rejection_reason_key: string | null;
+  weight_kg: number | null;
 }
 
 /**
@@ -116,8 +117,11 @@ export function getProgress(db: DB, userId: string, questId: string): QuestProgr
   const row = db
     .prepare(
       `SELECT stage, joined_at, arrived_at, proof_submitted_at, verified_at,
-              rejected_at, rejection_reason, rejection_reason_key
-       FROM quest_progress WHERE user_id = ? AND quest_id = ?`,
+              rejected_at, rejection_reason, rejection_reason_key,
+              (SELECT p.weight_kg FROM proofs p
+                WHERE p.user_id = qp.user_id AND p.quest_id = qp.quest_id AND p.approved = 1
+                ORDER BY p.reviewed_at DESC LIMIT 1) AS weight_kg
+       FROM quest_progress qp WHERE qp.user_id = ? AND qp.quest_id = ?`,
     )
     .get(userId, questId) as unknown as ProgressRow | undefined;
   if (!row) return null;
@@ -129,6 +133,7 @@ export function getProgress(db: DB, userId: string, questId: string): QuestProgr
     arrivedAt: row.arrived_at,
     proofSubmittedAt: row.proof_submitted_at,
     verifiedAt: row.verified_at,
+    weightKg: row.weight_kg ?? null,
     rejectedAt: row.rejected_at,
     rejectionReason: toRejection(row),
   };
@@ -140,8 +145,11 @@ export function getAllProgress(db: DB, userId: string): Record<string, QuestProg
     db
       .prepare(
         `SELECT quest_id, stage, joined_at, arrived_at, proof_submitted_at, verified_at,
-                rejected_at, rejection_reason, rejection_reason_key
-         FROM quest_progress WHERE user_id = ?`,
+                rejected_at, rejection_reason, rejection_reason_key,
+              (SELECT p.weight_kg FROM proofs p
+                WHERE p.user_id = qp.user_id AND p.quest_id = qp.quest_id AND p.approved = 1
+                ORDER BY p.reviewed_at DESC LIMIT 1) AS weight_kg
+         FROM quest_progress qp WHERE qp.user_id = ?`,
       )
       .all(userId),
   );
@@ -156,6 +164,7 @@ export function getAllProgress(db: DB, userId: string): Record<string, QuestProg
       arrivedAt: r.arrived_at,
       proofSubmittedAt: r.proof_submitted_at,
       verifiedAt: r.verified_at,
+      weightKg: r.weight_kg ?? null,
       rejectedAt: r.rejected_at,
       rejectionReason: toRejection(r),
     };

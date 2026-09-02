@@ -16,7 +16,7 @@
  */
 
 import React from 'react';
-import { Animated, ScrollView, TextInput, View } from 'react-native';
+import { Animated, Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera } from 'lucide-react-native';
@@ -24,7 +24,7 @@ import {
   QUEST_STAGES, stageIndex, strings,
   type Bilingual, type ProofPhoto, type Quest, type QuestProgress, type QuestStage,
 } from '@chivago/core';
-import { api } from '../api/client.ts';
+import { API_BASE, api, type FiledStatement, type Result } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, motion, onFill, radius } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label, Thai } from '../components/Type.tsx';
@@ -50,6 +50,18 @@ export function QuestDetailScreen({
   const quest = data.data?.quest ?? null;
   const progress = data.data?.progress ?? null;
   const stage: QuestStage | null = progress?.stage ?? null;
+
+  /*
+    Whose record this is on. Asked only once the host has verified, because
+    before that there is nothing to be on; and read softly below, so a
+    statement route that fails never takes the verification panel with it.
+  */
+  const filed = useAsync<{ statements: FiledStatement[] }>(() => {
+    if (stage === 'complete') return api.myStatements();
+    const none: Result<{ statements: FiledStatement[] }> = { ok: true, data: { statements: [] } };
+    return Promise.resolve(none);
+  }, [stage]);
+  const onRecord = filed.data?.statements.find((s) => s.quests.some((q) => q.id === questId)) ?? null;
 
   const join = async () => {
     setBusy(true);
@@ -209,8 +221,13 @@ export function QuestDetailScreen({
             ) : null}
             {stage === 'host_verification' ? <VerifyingPanel host={quest.host.name} /> : null}
             {stage === 'complete' ? (
-              <SuccessPanel points={quest.rewardPoints} onOpenWallet={onOpenWallet} />
+              <SuccessPanel
+                points={quest.rewardPoints}
+                weightKg={progress?.weightKg ?? null}
+                onOpenWallet={onOpenWallet}
+              />
             ) : null}
+            {stage === 'complete' && onRecord ? <OnRecordPanel statement={onRecord} /> : null}
           </View>
         </ScrollView>
       ) : null}
@@ -489,8 +506,8 @@ function VerifyingPanel({ host }: { host: string }) {
  * to the only place it runs as a field.)
  */
 function SuccessPanel({
-  points, onOpenWallet,
-}: { points: number; onOpenWallet: () => void }) {
+  points, weightKg, onOpenWallet,
+}: { points: number; weightKg: number | null; onOpenWallet: () => void }) {
   return (
     <View style={{ backgroundColor: color.accent, padding: 20, borderRadius: radius.md }}>
       <Label size={10} tracking={0.16} colour={onFill.accent} style={{ opacity: 0.85 }}>
@@ -500,7 +517,7 @@ function SuccessPanel({
         {`+${points}`}
       </Heading>
       <Body size={13} colour={onFill.accent} style={{ marginTop: 8 }}>
-        {t(strings.quest.verifiedDetail(4.2))}
+        {t(strings.quest.verifiedDetail(weightKg))}
       </Body>
       <Button
         label={t(strings.quest.ctaWallet)}
@@ -510,6 +527,32 @@ function SuccessPanel({
         style={{ marginTop: 16 }}
         icon={null}
       />
+    </View>
+  );
+}
+
+/**
+ * The guest-facing half of the evidence layer (docs/31). A host filed this
+ * verification in a statement with a public id; the traveller is told so and
+ * can open the same page an auditor would. Quiet, below the green field: the
+ * points are theirs, the record is the host's. The static demo has no API to
+ * open the page on, so there the link is left off rather than left dead.
+ */
+function OnRecordPanel({ statement }: { statement: FiledStatement }) {
+  const url = `${API_BASE}/verify/${encodeURIComponent(statement.id)}`;
+  return (
+    <View style={{ marginTop: 12, padding: 16, borderWidth: 1, borderColor: color.neutral300, borderRadius: radius.md }}>
+      <Label size={10} tracking={0.16} colour={color.neutral600}>{t(strings.quest.onRecord)}</Label>
+      <Body size={13} style={{ marginTop: 6 }}>
+        {t(strings.quest.onRecordDetail(
+          statement.host.name, statement.id, statement.period.from, statement.period.to,
+        ))}
+      </Body>
+      {process.env.EXPO_PUBLIC_DEMO === '1' ? null : (
+        <Pressable accessibilityRole="link" onPress={() => { void Linking.openURL(url); }} style={{ marginTop: 8 }}>
+          <Body size={13} colour={color.brand}>{t(strings.quest.onRecordCheck)}</Body>
+        </Pressable>
+      )}
     </View>
   );
 }

@@ -1,10 +1,18 @@
 # ChivaGo
 
-**Smart Wellness & Sustainable Tourism.** Pilot region: Koh Samui, Thailand.
+**The evidence layer hotels do not have.** Pilot region: Koh Samui, Thailand.
 
-Shifts travel from *เที่ยวให้สนุก* (travel for fun) to **เที่ยวอย่างสุขภาพดี**
-(travel healthily) — wellness, safety and measurable environmental impact in one
-app, bilingual EN/TH throughout.
+A hotel's sustainability numbers are its own: HCMI and CHSB are computed and
+submitted by the hotel, and Thailand's CF-Hotels is a carbon calculator the
+hotel fills in itself. None of them can show a third party that a specific
+thing happened on a specific day with somebody standing behind it. ChivaGo
+produces exactly that — activity a named host verified, inside a geofence, on
+a date — as a **statement anyone can check**, attached to the report a hotel
+already files. It measures no building and replaces no number.
+
+For the traveller it is a wellness-travel app, bilingual EN/TH throughout:
+*เที่ยวให้สนุก* (travel for fun) becomes **เที่ยวอย่างสุขภาพดี** (travel
+healthily), with safety and the island's condition on the same screen.
 
 One idea holds the whole product together:
 
@@ -74,7 +82,7 @@ EXPO_PUBLIC_API_URL=http://192.168.1.42:8787 pnpm mobile
 pnpm test
 ```
 
-**1,213 tests** — 273 core, 653 API, 262 mobile, 25 tokens — plus 11 in the Dart
+**1,315 tests** — 307 core, 706 API, 277 mobile, 25 tokens — plus 11 in the Dart
 SDK (`pnpm test:dart`) and 9 in the Swift one (`swift test`). `pnpm typecheck`
 covers all four packages. `.github/workflows/ci.yml` runs all of it on every
 push, on Linux and macOS, so the numbers above are checked by a machine nobody
@@ -105,6 +113,7 @@ Most of them exist because something was actually wrong. The ones worth knowing:
 | `apps/api/src/standing-service.test.ts` | The pilot's 1,240-point opening grant is not counted as verified achievement. |
 | `packages/core/src/sponsorship.test.ts` | `SponsorOutcome` has no field for reach, impressions or estimated value — structurally, so nobody can fill one in. |
 | `packages/core/src/esg.test.ts` | No `tco2e` field exists. One person who did three activities is one participant, not three. |
+| `apps/api/src/statement-service.test.ts` | A statement cannot be edited, is refused on read if its digest no longer matches, and names nobody. Work verified after it was issued is not in it. |
 | `packages/tokens/src/contrast.test.ts` | Every filled surface has a measured label colour. Four claimed ratios were wrong when this was written. |
 | `apps/mobile/test/palette.test.ts` | A Trip-Point reward is never painted in the verified green. |
 | `apps/mobile/test/reachable.test.ts` | Every screen in the navigator has a case in `App`. The passport once shipped complete and unreachable. |
@@ -168,6 +177,14 @@ Scoped so no host can see or decide another host's submissions.
 verified, not with joins, and prints what it does not measure. The ESG report
 adds a period, a stated boundary, distinct participant counts, and names three
 things it will not claim: carbon, independent assurance, and additionality.
+
+**A statement a hotel can file.** A host issues a statement of what it
+verified in a period: per activity per day, counted, with nobody named. It is
+written once, refused an edit by the database, and carries a public id and a
+SHA-256 digest — `/verify/<id>` shows the same record to anyone holding the
+hotel's report. It adds a fourth refusal to the ESG three: it is not a
+property carbon figure and does not replace HCMI, CHSB or CF-Hotels. The
+traveller whose work it counts is told which statement it is on.
 
 **Safety.** SOS persists across navigation, backgrounding and restart, reports
 the truth about every delivery channel, escalates when nobody answers, and

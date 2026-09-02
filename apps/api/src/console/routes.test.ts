@@ -755,3 +755,81 @@ describe('signing in is metered', () => {
     assert.equal(res.status, 303);
   });
 });
+
+describe('the statement page', () => {
+  const approve = (questId: string, at: string) => {
+    db.prepare(
+      "UPDATE quest_progress SET stage = 'complete', verified_at = ? WHERE user_id = 'u1' AND quest_id = ?",
+    ).run(at, questId);
+    db.prepare(
+      "UPDATE proofs SET reviewed_at = ?, approved = 1, reviewed_by = 'Nok' WHERE quest_id = ?",
+    ).run(at, questId);
+  };
+  const year = new Date().getUTCFullYear();
+  const issue = (token: string, from: string, to: string, csrf?: string) =>
+    app.request('/statement', {
+      method: 'POST',
+      headers: { ...withCookie(token), 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ csrf: csrf ?? __csrfFor(resolveSession(db, token)!), from, to }),
+    });
+  const count = () =>
+    (db.prepare('SELECT COUNT(*) AS n FROM statements').get() as unknown as { n: number }).n;
+
+  test("drafts this host's verified activity, and nothing of another host's", async () => {
+    approve('q-lab', iso(2));
+    approve('q-muni', iso(2));
+    const lab = await signIn(LAB_KEY);
+    const res = await app.request('/statement', { headers: withCookie(lab) });
+    assert.equal(res.status, 200);
+    const page = await res.text();
+    assert.match(page, /Ocean Lab/);
+    assert.match(page, /Issue this statement/);
+    assert.match(page, /Quest q-lab/);
+    assert.doesNotMatch(page, /Quest q-muni/, "another host's quest was drafted into this statement");
+    assert.match(page, /Nothing issued yet/);
+  });
+
+  test('issuing writes an immutable record with a public id, and the page then lists it', async () => {
+    approve('q-lab', iso(2));
+    const lab = await signIn(LAB_KEY, 'Nok Suwannee');
+    const res = await issue(lab, `${year}-01-01`, `${year}-12-31`);
+    assert.equal(res.status, 303);
+    const location = res.headers.get('location') ?? '';
+    const id = /issued=(CG-\d{4}-[0-9A-Z]{6})/.exec(location)?.[1];
+    assert.ok(id, `no statement id in ${location}`);
+
+    const row = db.prepare('SELECT host_id, issued_by, digest FROM statements WHERE id = ?').get(id) as
+      unknown as { host_id: string; issued_by: string; digest: string };
+    assert.equal(row.host_id, 'h-lab');
+    assert.equal(row.issued_by, 'Nok Suwannee', 'the person who issued it is on the record');
+    assert.throws(
+      () => db.prepare("UPDATE statements SET body = '{}' WHERE id = ?").run(id),
+      /append-only/,
+    );
+
+    const page = await (await app.request(`/statement?issued=${id}`, { headers: withCookie(lab) })).text();
+    assert.match(page, new RegExp(id!));
+    assert.match(page, new RegExp(row.digest.slice(0, 12)));
+    assert.match(page, /\/verify\//, 'the public link is on the page');
+  });
+
+  test('a stale csrf issues nothing', async () => {
+    const lab = await signIn(LAB_KEY);
+    const res = await issue(lab, `${year}-01-01`, `${year}-12-31`, 'not-this-session');
+    assert.equal(res.status, 403);
+    assert.equal(count(), 0);
+  });
+
+  test('a period out of order is refused before anything is written', async () => {
+    const lab = await signIn(LAB_KEY);
+    const res = await issue(lab, `${year}-12-31`, `${year}-01-01`);
+    assert.equal(res.status, 400);
+    assert.equal(count(), 0);
+  });
+
+  test('signed out, it is the login redirect like every other page', async () => {
+    const res = await app.request('/statement');
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.get('location'), '/console/login');
+  });
+});

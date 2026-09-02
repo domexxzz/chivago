@@ -364,6 +364,103 @@ describe('a quest, from joining to verification', () => {
   });
 });
 
+describe('a verified quest, and whose record it is on', () => {
+  const props = () => ({
+    questId: 'q1', onBack: noop, onOpenWallet: noop, onToast: noop, onPointsChanged: noop,
+  });
+  const done = () => ({
+    quest: quest(),
+    progress: progress({ stage: 'complete', verifiedAt: '2026-08-31T05:00:00.000Z' }),
+  });
+  const filed = {
+    statements: [{
+      id: 'CG-2026-7K3M9Q',
+      host: { id: 'h1', name: 'Samui Municipality', type: 'municipality' },
+      period: { from: '2026-01-01', to: '2026-12-31' },
+      issuedAt: '2026-09-01T02:00:00.000Z',
+      quests: [{ id: 'q1', name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด' } }],
+    }],
+  };
+
+  test('says which statement the host filed it in, by public id', async () => {
+    const net = server({ 'GET /quests/q1': done(), 'GET /me/statements': filed });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      await settle();
+      const said = ui.text();
+      assert.match(said, /Verified/);
+      assert.match(said, /On record/);
+      assert.match(said, /CG-2026-7K3M9Q/, 'the public id, so the traveller can quote it');
+      assert.match(said, /Samui Municipality filed this/);
+      assert.match(said, /Anyone can check/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('a statement that counts other quests is not this one\'s', async () => {
+    const other = {
+      statements: [{ ...filed.statements[0], quests: [{ id: 'q2', name: { en: 'Mangrove Planting', th: 'ปลูกป่าชายเลน' } }] }],
+    };
+    const net = server({ 'GET /quests/q1': done(), 'GET /me/statements': other });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      await settle();
+      assert.match(ui.text(), /Verified/);
+      assert.doesNotMatch(ui.text(), /On record/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('the statement route failing leaves the verification standing', async () => {
+    const net = server({
+      'GET /quests/q1': done(),
+      'GET /me/statements': refuses('STATEMENTS_DOWN', 'Statements are unavailable right now.'),
+    });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      await settle();
+      assert.match(ui.text(), /Verified/);
+      assert.doesNotMatch(ui.text(), /On record|unavailable/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('the weight it reports is the one on the approved proof, or none at all', async () => {
+    // It used to say 4.2 kg to everyone. A statement next to it said 3.2.
+    const weighed = server({
+      'GET /quests/q1': { quest: quest(), progress: progress({ stage: 'complete', weightKg: 3.2 }) },
+      'GET /me/statements': { statements: [] },
+    });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      await settle();
+      assert.match(ui.text(), /3\.2 kg waste logged/);
+      ui.unmount();
+    } finally { weighed.restore(); }
+    const unweighed = server({
+      'GET /quests/q1': { quest: quest(), progress: progress({ stage: 'complete', weightKg: null }) },
+      'GET /me/statements': { statements: [] },
+    });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      await settle();
+      assert.match(ui.text(), /logged to the Samui impact ledger/);
+      assert.doesNotMatch(ui.text(), /kg waste|4\.2/, 'a number the app does not hold');
+      ui.unmount();
+    } finally { unweighed.restore(); }
+  });
+
+  test('an unverified quest never asks whose record it is on', async () => {
+    const net = server({ 'GET /quests/q1': { quest: quest(), progress: progress({ stage: 'joined' }) } });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      await settle();
+      assert.ok(!net.calls.some((c) => c.path === '/me/statements'), 'nothing to be on yet');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+});
+
 describe('the safety shield', () => {
   const props = (over = {}) => ({
     alert: null, onFire: noop, onCancel: noop, onShare: noop, firing: false, ...over,

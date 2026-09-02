@@ -22,6 +22,8 @@ import {
 import { listQuests } from '../repo.ts';
 import { sponsorPage } from './sponsor.ts';
 import { esgPage } from './esg.ts';
+import { statementPage } from './statement.ts';
+import { InvalidPeriod, draftStatement, issueStatement, statementsFor } from '../statement-service.ts';
 import { activityInPeriod } from '../esg-service.ts';
 import { pendingQueue, queueStats, recentDecisions, reviewItem } from '../review-service.ts';
 import {
@@ -116,6 +118,20 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
 
   /** Whether to draw the Reviews tab at all. Hidden, not disabled. */
   const canModerate = (s: HostSession) => s.role === 'moderator';
+
+  /**
+   * A reporting period, from a query string or a form. Defaults to the
+   * current calendar year, which is what an annual report is filed against;
+   * a fiscal year that is not January to December overrides it.
+   */
+  const readPeriod = (from: unknown, to: unknown): EsgPeriod => {
+    const year = new Date().getUTCFullYear();
+    const isDate = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+    return {
+      from: isDate(from) ? from : `${year}-01-01`,
+      to: isDate(to) ? to : `${year}-12-31`,
+    };
+  };
 
   /**
    * Which language to render in.
@@ -372,19 +388,56 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       { questId: 'q3', fundedTHB: 25_000, perVerifiedTHB: 300 },
     ];
 
-    const year = new Date().getUTCFullYear();
-    const isDate = (v: string | undefined): v is string => /^\d{4}-\d{2}-\d{2}$/.test(v ?? '');
-    const from = c.req.query('from');
-    const to = c.req.query('to');
-    const period: EsgPeriod = {
-      from: isDate(from) ? from : `${year}-01-01`,
-      to: isDate(to) ? to : `${year}-12-31`,
-    };
+    const period = readPeriod(c.req.query('from'), c.req.query('to'));
 
     const { classified, excludedUnclassified } = activityInPeriod(db, funded, period);
     const report = esgReport(partner, period, classified, excludedUnclassified);
 
     return c.html(esgPage(localeFor(c), session.hostName, session.reviewer, report));
+  });
+
+  /**
+   * The statement of verified activity (docs/31): what THIS host approved,
+   * for a period, drafted free and issued on purpose. Scoped by session -
+   * a host can only ever state its own quests.
+   */
+  app.get('/statement', (c) => {
+    const session = currentSession(c)!;
+    const period = readPeriod(c.req.query('from'), c.req.query('to'));
+    if (period.from > period.to) {
+      return c.html(messagePage(localeFor(c), 'statement', 'periodOutOfOrder', '/console/statement'), 400);
+    }
+    return c.html(statementPage({
+      locale: localeFor(c),
+      hostName: session.hostName,
+      reviewer: session.reviewer,
+      canModerate: canModerate(session),
+      draft: draftStatement(db, session.hostId, period, new Date(), session.reviewer),
+      issued: statementsFor(db, session.hostId),
+      csrf: csrfFor(session),
+      origin: new URL(c.req.url).origin,
+      justIssued: c.req.query('issued') ?? null,
+    }));
+  });
+
+  app.post('/statement', async (c) => {
+    const session = currentSession(c)!;
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/statement'), 403);
+    }
+    // The period comes from the form, not the query string: what is issued
+    // is what was on screen when the button was pressed.
+    const period = readPeriod(form.from, form.to);
+    try {
+      const issued = issueStatement(db, session.hostId, period, session.reviewer);
+      return c.redirect(`/console/statement?issued=${encodeURIComponent(issued.id)}`, 303);
+    } catch (e) {
+      if (e instanceof InvalidPeriod) {
+        return c.html(messagePage(localeFor(c), 'statement', 'periodOutOfOrder', '/console/statement'), 400);
+      }
+      throw e;
+    }
   });
 
   app.get('/sos', (c) => {

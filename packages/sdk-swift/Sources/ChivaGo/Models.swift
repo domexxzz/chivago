@@ -304,3 +304,26 @@ public struct SelfVisits: Codable, Sendable {
     public let places: [String]
     public let remainingThisYear: Int
 }
+
+// MARK: - The evidence layer: statements a host filed
+
+/// A statement a host issued that counts this traveller's verified work. The id is public;
+/// `/verify/<id>` on the API shows anyone the same record. Nothing about anyone else is in here.
+public struct FiledStatement: Codable, Sendable {
+    public struct Period: Codable, Sendable {
+        public let from: String
+        public let to: String
+    }
+
+    public struct FiledQuest: Codable, Sendable {
+        public let id: String
+        public let name: Bilingual
+    }
+
+    /// `CG-<year>-<six characters>`, Crockford base32.
+    public let id: String
+    public let host: QuestHost
+    public let period: Period
+    public let issuedAt: String
+    public let quests: [FiledQuest]
+}

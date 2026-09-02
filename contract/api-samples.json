@@ -1,7 +1,7 @@
 {
   "health": {
     "status": "up",
-    "time": "2026-09-02T13:51:28.716Z"
+    "time": "2026-09-02T14:25:50.154Z"
   },
   "profile": {
     "purposes": [],
@@ -40,7 +40,7 @@
       },
       "metrics": {
         "crowdDensity": 3,
-        "aqi": 41,
+        "aqi": 40,
         "safetyIndex": 6.77,
         "walkability": 8.1
       },
@@ -50,10 +50,10 @@
       },
       "readings": {
         "aqi": {
-          "value": 41,
+          "value": 40,
           "provenance": "live",
-          "observedAt": "2026-09-02T13:24:34.215Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "observedAt": "2026-09-02T14:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
       "healthyScore": 74,
@@ -77,8 +77,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "41 AQI",
-            "subScore": 84.3,
+            "display": "40 AQI",
+            "subScore": 84.8,
             "weight": 0.3,
             "provenance": "live"
           },
@@ -149,7 +149,7 @@
       },
       "metrics": {
         "crowdDensity": 0.4,
-        "aqi": 41,
+        "aqi": 40,
         "safetyIndex": 8.85,
         "walkability": 6.9
       },
@@ -159,10 +159,10 @@
       },
       "readings": {
         "aqi": {
-          "value": 41,
+          "value": 40,
           "provenance": "live",
-          "observedAt": "2026-09-02T13:24:34.212Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "observedAt": "2026-09-02T14:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
       "healthyScore": 88,
@@ -186,8 +186,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "41 AQI",
-            "subScore": 84.3,
+            "display": "40 AQI",
+            "subScore": 84.8,
             "weight": 0.3,
             "provenance": "live"
           },
@@ -258,7 +258,7 @@
       },
       "metrics": {
         "crowdDensity": 1.4,
-        "aqi": 41,
+        "aqi": 40,
         "safetyIndex": 6.33,
         "walkability": 9
       },
@@ -268,10 +268,10 @@
       },
       "readings": {
         "aqi": {
-          "value": 41,
+          "value": 40,
           "provenance": "live",
-          "observedAt": "2026-09-02T13:24:34.279Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "observedAt": "2026-09-02T14:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
       "healthyScore": 81,
@@ -295,8 +295,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "41 AQI",
-            "subScore": 84.3,
+            "display": "40 AQI",
+            "subScore": 84.8,
             "weight": 0.3,
             "provenance": "live"
           },
@@ -361,7 +361,7 @@
       "photo": null,
       "metrics": {
         "crowdDensity": 0.3,
-        "aqi": 41,
+        "aqi": 40,
         "safetyIndex": 5.13,
         "walkability": 5.2
       },
@@ -371,10 +371,10 @@
       },
       "readings": {
         "aqi": {
-          "value": 41,
+          "value": 40,
           "provenance": "live",
-          "observedAt": "2026-09-02T13:24:34.285Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "observedAt": "2026-09-02T14:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
       "healthyScore": 76,
@@ -398,8 +398,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "41 AQI",
-            "subScore": 84.3,
+            "display": "40 AQI",
+            "subScore": 84.8,
             "weight": 0.3,
             "provenance": "live"
           },
@@ -469,7 +469,7 @@
       },
       "metrics": {
         "crowdDensity": 0.5,
-        "aqi": 41,
+        "aqi": 40,
         "safetyIndex": 7.39,
         "walkability": 7.4
       },
@@ -479,10 +479,10 @@
       },
       "readings": {
         "aqi": {
-          "value": 41,
+          "value": 40,
           "provenance": "live",
-          "observedAt": "2026-09-02T13:24:34.212Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "observedAt": "2026-09-02T14:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
       "healthyScore": 86,
@@ -506,8 +506,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "41 AQI",
-            "subScore": 84.3,
+            "display": "40 AQI",
+            "subScore": 84.8,
             "weight": 0.3,
             "provenance": "live"
           },
@@ -579,7 +579,7 @@
     },
     "metrics": {
       "crowdDensity": 3,
-      "aqi": 41,
+      "aqi": 40,
       "safetyIndex": 6.77,
       "walkability": 8.1
     },
@@ -589,9 +589,9 @@
     },
     "readings": {
       "aqi": {
-        "value": 41,
+        "value": 40,
         "provenance": "live",
-        "observedAt": "2026-09-02T13:24:34.215Z",
+        "observedAt": "2026-09-02T14:25:51.237Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -616,8 +616,8 @@
             "en": "Air quality",
             "th": "คุณภาพอากาศ"
           },
-          "display": "41 AQI",
-          "subScore": 84.3,
+          "display": "40 AQI",
+          "subScore": 84.8,
           "weight": 0.3,
           "provenance": "live"
         },
@@ -937,22 +937,22 @@
     },
     "ledger": [
       {
-        "id": "618d036b-3aaa-4156-b24d-4496fc2fd2a1",
+        "id": "fec8ff75-26f7-41cf-bfd3-a69c533218bf",
         "label": "Cold brew + banana bread redeemed",
         "subject": "Cold brew + banana bread",
-        "occurredAt": "2026-09-02T13:51:28.701Z",
+        "occurredAt": "2026-09-02T14:25:50.121Z",
         "host": "Sabeinglae Coffee",
         "amount": -180,
         "currency": "trip",
         "exp": 0,
         "kind": "redemption",
-        "sourceRef": "voucher:f6886f4f-be3a-4a36-a1b2-205ea0c9e8cc"
+        "sourceRef": "voucher:53e9a8a9-7b19-4e6f-949f-4aa36391708c"
       },
       {
-        "id": "360785c0-3644-4faa-b6da-7e2c46372aad",
+        "id": "f603711e-8476-471f-ac9d-402af45e54c1",
         "label": "Review · Chaweng Beach",
         "subject": "Chaweng Beach",
-        "occurredAt": "2026-09-02T13:51:28.692Z",
+        "occurredAt": "2026-09-02T14:25:50.113Z",
         "host": "ChivaGo · verified visit",
         "amount": 40,
         "currency": "trip",
@@ -961,10 +961,10 @@
         "sourceRef": "review:chaweng:user:contract-capture"
       },
       {
-        "id": "aaae8bdd-c9db-45b1-ac85-c5e4e71d7f7d",
+        "id": "8b1dd5ea-d010-4aa1-b4b0-86766ad22f38",
         "label": "Checked in · Chaweng Beach",
         "subject": "Chaweng Beach",
-        "occurredAt": "2026-09-02T13:51:28.674Z",
+        "occurredAt": "2026-09-02T14:25:50.077Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -973,10 +973,10 @@
         "sourceRef": "checkin:chaweng:user:contract-capture:2026-09-02"
       },
       {
-        "id": "3744984c-eda2-4c0b-b411-f8913a3eecba",
+        "id": "cbee7e87-f76e-4b10-9e7a-e888799b1655",
         "label": "Pilot opening balance",
         "subject": null,
-        "occurredAt": "2026-09-02T13:51:28.672Z",
+        "occurredAt": "2026-09-02T14:25:50.070Z",
         "host": "ChivaGo · pilot seed",
         "amount": 1240,
         "currency": "green",
@@ -985,10 +985,10 @@
         "sourceRef": "opening:green:contract-capture"
       },
       {
-        "id": "98a0413f-8d84-4054-a9b8-fd9f9f069c89",
+        "id": "0e175b81-85dd-41e8-a82b-9b84fb8aad9e",
         "label": "Pilot opening balance",
         "subject": null,
-        "occurredAt": "2026-09-02T13:51:28.670Z",
+        "occurredAt": "2026-09-02T14:25:50.069Z",
         "host": "ChivaGo · pilot seed",
         "amount": 320,
         "currency": "trip",
@@ -1068,14 +1068,14 @@
   ],
   "vouchers": [
     {
-      "id": "f6886f4f-be3a-4a36-a1b2-205ea0c9e8cc",
+      "id": "53e9a8a9-7b19-4e6f-949f-4aa36391708c",
       "offerId": "o1",
       "userId": "contract-capture",
       "merchant": "Sabeinglae Coffee, Bophut",
-      "code": "CG-F6886F4F",
+      "code": "CG-53E9A8A9",
       "costPoints": 180,
-      "issuedAt": "2026-09-02T13:51:28.701Z",
-      "expiresAt": "2026-10-02T13:51:28.701Z",
+      "issuedAt": "2026-09-02T14:25:50.121Z",
+      "expiresAt": "2026-10-02T14:25:50.121Z",
       "redeemedAt": null,
       "status": "active"
     }
@@ -1265,32 +1265,35 @@
       }
     ]
   },
+  "myStatements": {
+    "statements": []
+  },
   "reviews": {
     "reviews": [
       {
-        "id": "754ed779-ca3f-40b9-9428-8eb61b402415",
+        "id": "96613896-793d-4c4a-9215-c1b43e2f21dd",
         "placeId": "chaweng",
         "authorId": "contract-capture",
         "authorName": "Traveller",
         "rating": 5,
         "body": "Quiet at 7am and the water is clean, worth the early start.",
         "language": "en",
-        "visitedAt": "2026-09-02T13:51:28.674Z",
-        "createdAt": "2026-09-02T13:51:28.692Z",
+        "visitedAt": "2026-09-02T14:25:50.077Z",
+        "createdAt": "2026-09-02T14:25:50.113Z",
         "updatedAt": null
       }
     ],
     "mine": {
       "review": {
-        "id": "754ed779-ca3f-40b9-9428-8eb61b402415",
+        "id": "96613896-793d-4c4a-9215-c1b43e2f21dd",
         "placeId": "chaweng",
         "authorId": "contract-capture",
         "authorName": "Traveller",
         "rating": 5,
         "body": "Quiet at 7am and the water is clean, worth the early start.",
         "language": "en",
-        "visitedAt": "2026-09-02T13:51:28.674Z",
-        "createdAt": "2026-09-02T13:51:28.692Z",
+        "visitedAt": "2026-09-02T14:25:50.077Z",
+        "createdAt": "2026-09-02T14:25:50.113Z",
         "updatedAt": null
       },
       "hiddenAt": null,
@@ -1302,7 +1305,7 @@
   },
   "sosContacts": [
     {
-      "id": "7622d952-55ea-4739-99a7-1d3776c122b5",
+      "id": "b78022e2-5ce5-4bcf-9c8d-77c89da29a1e",
       "name": "Malee",
       "phone": "+66800000000",
       "relationship": "sister",
@@ -1323,16 +1326,16 @@
   },
   "writeReview": {
     "review": {
-      "id": "754ed779-ca3f-40b9-9428-8eb61b402415",
+      "id": "96613896-793d-4c4a-9215-c1b43e2f21dd",
       "placeId": "chaweng",
       "authorId": "contract-capture",
       "authorName": "Traveller",
       "rating": 4,
       "body": "Busier after nine when the boats arrive, but still worth it.",
       "language": "en",
-      "visitedAt": "2026-09-02T13:51:28.674Z",
-      "createdAt": "2026-09-02T13:51:28.692Z",
-      "updatedAt": "2026-09-02T13:51:28.968Z"
+      "visitedAt": "2026-09-02T14:25:50.077Z",
+      "createdAt": "2026-09-02T14:25:50.113Z",
+      "updatedAt": "2026-09-02T14:25:51.581Z"
     },
     "created": false,
     "pointsAwarded": 0

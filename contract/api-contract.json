@@ -502,6 +502,13 @@
         }
       }
     },
+    "myStatements": {
+      "object": {
+        "statements": {
+          "array": "unknown"
+        }
+      }
+    },
     "reviews": {
       "object": {
         "canReview": "boolean",
@@ -601,6 +608,7 @@
     "notifications.items",
     "selfVisits.places",
     "passport.selfReported",
+    "myStatements.statements",
     "reviews.reported"
   ]
 }

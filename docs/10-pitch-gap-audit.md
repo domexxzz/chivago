@@ -3,6 +3,11 @@
 Audited 2026-08-31 against the "Chiva Go Samui" hackathon deck
 (artifact 95558d28, 12 slides) and the code in this repo.
 
+> **Updated 2026-09-02.** The pitch itself has changed since this audit: the
+> product is now presented as the evidence layer a hotel's own reporting
+> lacks, not as a travel app with impact features. See
+> `31-the-evidence-layer.md`. The gaps below are unchanged by that.
+
 The deck pitches a national Wellness Travel OS. This repo builds the Koh Samui
 mobile app from `design_handoff_chivago`. Those are not the same scope, and the
 difference is not a criticism of either — but a pitch that claims a feature is

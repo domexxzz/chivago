@@ -167,6 +167,13 @@ public final class ChivagoClient: @unchecked Sendable {
         try await get("/passport", as: Passport.self)
     }
 
+    // MARK: The evidence layer
+
+    /// Statements a host filed that count this traveller's verified work. The id is public.
+    public func myStatements() async throws -> [FiledStatement] {
+        try await get("/me/statements", as: FiledStatementList.self).statements
+    }
+
     // MARK: - Quests
 
     public func quests() async throws -> [Quest] {
@@ -234,6 +241,7 @@ struct ReviewList: Decodable { let reviews: [PlaceReview] }
 struct WriteReviewResponse: Decodable { let review: PlaceReview }
 struct RedeemResponse: Decodable { let voucher: Voucher }
 struct ReportResponse: Decodable { let id: String }
+struct FiledStatementList: Decodable { let statements: [FiledStatement] }
 
 /// Erases an `Encodable` so one `send` can take any body.
 ///

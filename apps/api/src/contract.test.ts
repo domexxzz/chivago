@@ -89,6 +89,8 @@ describe('the checked-in contract', () => {
       'checkin', 'writeReview',
       // Recorded, not scored (docs/29): both SDKs decode these now.
       'selfVisits', 'passport',
+      // The evidence layer (docs/31): the statements a traveller's work is on.
+      'myStatements',
     ];
     assert.deepEqual(Object.keys(recorded.shapes).sort(), [...expected].sort());
   });

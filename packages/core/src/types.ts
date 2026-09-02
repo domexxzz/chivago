@@ -238,6 +238,12 @@ export interface QuestProgress {
   arrivedAt: string | null;
   proofSubmittedAt: string | null;
   verifiedAt: string | null;
+  /**
+   * The weight on the proof the host approved, in kg, when the quest records
+   * one. Read from the ledger so the success panel prints the real figure or
+   * none - it used to print 4.2 kg to everyone.
+   */
+  weightKg?: number | null;
   /** Set when the host rejects. The UI must handle this - the design does not. */
   rejectedAt: string | null;
   /**

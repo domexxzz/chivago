@@ -19,6 +19,7 @@ const { readCookie } = await import('./host-auth.ts');
 const { getAir, CROSS_CHECK_TOLERANCE } = await import('./air.ts');
 type AirSources = import('./air.ts').AirSources;
 const { openTestDb } = await import('./db.ts');
+const { issueStatement } = await import('./statement-service.ts');
 
 const json = async (res: Response) => (await res.json()) as { ok: boolean; data?: any; code?: string; error?: string };
 
@@ -225,3 +226,62 @@ describe('the second signal reaches the service through the route', () => {
   });
 });
 
+describe('a statement is checkable by anyone', () => {
+  // The evidence layer's public half (docs/31): the record a hotel prints an
+  // id from has to open for a stranger with no account, no key and no reason
+  // to trust the hotel.
+  let issued: { id: string; digest: string };
+
+  before(() => {
+    const at = '2026-08-14T04:00:00.000Z';
+    db.prepare("INSERT OR IGNORE INTO users (id, display_name, created_at) VALUES ('u-stmt','u-stmt',?)").run(at);
+    db.prepare(
+      `INSERT OR IGNORE INTO quests (id,code,name_en,name_th,where_label,duration,reward_points,
+         host_id,kind,lat,lng,geofence_radius_m)
+       VALUES ('q-b','QB','Quest B','x','Chaweng','45 min',150,'h-b','today',9.5357,100.0617,120)`,
+    ).run();
+    db.prepare(
+      `INSERT OR IGNORE INTO quest_progress (user_id, quest_id, stage, joined_at, arrived_at,
+         proof_submitted_at, verified_at) VALUES ('u-stmt','q-b','complete',?,?,?,?)`,
+    ).run(at, at, at, at);
+    issued = issueStatement(
+      db, 'h-b', { from: '2026-07-01', to: '2026-09-30' }, 'Nok', new Date('2026-10-01T02:00:00.000Z'),
+    );
+  });
+
+  test('the JSON needs no key, carries the digest, and names nobody', async () => {
+    const res = await app.request(`/statements/${issued.id}`);
+    assert.equal(res.status, 200);
+    const body = await json(res);
+    assert.equal(body.data.digest, issued.digest);
+    assert.equal(body.data.host.name, 'Host B');
+    assert.equal(body.data.verified, 1);
+    assert.doesNotMatch(JSON.stringify(body), /u-stmt/, 'a traveller id reached a public record');
+  });
+
+  test('the page is the same record for a person, with the digest in full', async () => {
+    const res = await app.request(`/verify/${issued.id}`);
+    assert.equal(res.status, 200);
+    const page = await res.text();
+    assert.match(page, new RegExp(issued.digest));
+    assert.match(page, /Host B/);
+    assert.match(page, /does not replace HCMI, CHSB or CF-Hotels/, 'the hotel refusal, on the public page');
+  });
+
+  test('an id nobody issued is a 404 that says how to re-read the id', async () => {
+    const page = await app.request('/verify/CG-2026-000000');
+    assert.equal(page.status, 404);
+    assert.match(await page.text(), /no I, L, O or U/);
+    const api = await app.request('/statements/CG-2026-000000');
+    assert.equal(api.status, 404);
+    assert.equal((await json(api)).code, 'NO_STATEMENT');
+  });
+
+  test('the traveller route is not public', async () => {
+    const anon = await app.request('/me/statements');
+    assert.equal(anon.status, 401, 'whose statements, without a device?');
+    const mine = await json(await app.request('/me/statements', { headers: auth() }));
+    assert.equal(mine.ok, true);
+    assert.deepEqual(mine.data.statements, [], 'this device has verified nothing');
+  });
+});

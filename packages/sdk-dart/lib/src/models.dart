@@ -711,3 +711,56 @@ class SelfVisits {
   final List<String> places;
   final int remainingThisYear;
 }
+
+// ---------------------------------------------------------------------------
+// The evidence layer: statements a host filed
+// ---------------------------------------------------------------------------
+
+/// One of the traveller's quests, as a statement names it.
+class FiledQuest {
+  const FiledQuest({required this.id, required this.name});
+
+  factory FiledQuest.fromJson(Map<String, dynamic> json) => FiledQuest(
+        id: json['id'] as String,
+        name: Bilingual.fromJson(json['name'] as Map<String, dynamic>),
+      );
+
+  final String id;
+  final Bilingual name;
+}
+
+/// A statement a host issued that counts this traveller's verified work. The
+/// id is public; `/verify/<id>` on the API shows anyone the same record, and
+/// nothing about anyone else is in here.
+class FiledStatement {
+  const FiledStatement({
+    required this.id,
+    required this.host,
+    required this.periodFrom,
+    required this.periodTo,
+    required this.issuedAt,
+    required this.quests,
+  });
+
+  factory FiledStatement.fromJson(Map<String, dynamic> json) {
+    final period = json['period'] as Map<String, dynamic>;
+    return FiledStatement(
+      id: json['id'] as String,
+      host: QuestHost.fromJson(json['host'] as Map<String, dynamic>),
+      periodFrom: period['from'] as String,
+      periodTo: period['to'] as String,
+      issuedAt: json['issuedAt'] as String,
+      quests: (json['quests'] as List<dynamic>)
+          .map((q) => FiledQuest.fromJson(q as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  /// `CG-<year>-<six characters>`, Crockford base32.
+  final String id;
+  final QuestHost host;
+  final String periodFrom;
+  final String periodTo;
+  final String issuedAt;
+  final List<FiledQuest> quests;
+}

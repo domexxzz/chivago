@@ -36,6 +36,9 @@ import {
 import { ensureWallet, getWallet, grantOpeningBalance, spendOnVoucher } from './wallet-service.ts';
 import { checkedInToday, checkIn } from './checkin-service.ts';
 import { recordSelfVisit, selfReportedProvincesFor, selfVisitsFor } from './visit-service.ts';
+import { readStatement, statementsIncluding } from './statement-service.ts';
+import { statementMissingPage, verifyPage } from './console/statement.ts';
+import { DEFAULT_LOCALE, localeFromAcceptLanguage } from './console/i18n.ts';
 import { getQuietPreference, setQuietPreference } from './notification-service.ts';
 import {
   appealTakedown, hasVisited, myReviewState, reportedByReader, reportReview,
@@ -194,6 +197,34 @@ app.get('/sos/live/:token', (c) => {
     'x-content-type-options': 'nosniff',
   });
 });
+
+/*
+  The evidence layer's public half (docs/31). A statement is checkable by
+  anyone holding its id: no account, no key, no trust in the hotel that filed
+  it. The JSON is the canonical record and the page is the same record laid
+  out for a person. Both are immutable once issued, hence cacheable - and
+  indexable, because a record nobody can find is not evidence.
+*/
+const publicLocale = (c: { req: { header: (n: string) => string | undefined } }) =>
+  localeFromAcceptLanguage(c.req.header('accept-language')) ?? DEFAULT_LOCALE;
+
+app.get('/statements/:id', (c) => {
+  const statement = readStatement(db, c.req.param('id'));
+  if (!statement) return fail(c, 'NO_STATEMENT', 'No statement has that id.', 404);
+  c.header('cache-control', 'public, max-age=300');
+  return ok(c, statement);
+});
+
+app.get('/verify/:id', (c) => {
+  const id = c.req.param('id');
+  const statement = readStatement(db, id);
+  const origin = new URL(c.req.url).origin;
+  return c.html(
+    statement ? verifyPage(publicLocale(c), statement, origin) : statementMissingPage(publicLocale(c), id),
+    statement ? 200 : 404,
+    { 'x-content-type-options': 'nosniff' },
+  );
+});
 // The mobile client is not a browser origin, but the host console and the
 // Expo web target are. Locked to explicit origins in production.
 app.use('*', cors({ origin: process.env.CHIVAGO_ORIGINS?.split(',') ?? '*' }));
@@ -225,8 +256,10 @@ function openIdentityAllowed(): boolean {
  */
 app.use('*', async (c, next) => {
   // The console and the public live-location page both authenticate
-  // themselves; neither should be handed a traveller account and a wallet.
-  if (c.req.path.startsWith('/console') || c.req.path.startsWith('/sos/live/')) {
+  // themselves, and a statement is public by design; none of them should be
+  // handed a traveller account and a wallet.
+  if (c.req.path.startsWith('/console') || c.req.path.startsWith('/sos/live/')
+      || c.req.path.startsWith('/verify/') || c.req.path.startsWith('/statements/')) {
     return next();
   }
 
@@ -927,6 +960,13 @@ app.post('/vouchers/:code/redeem', (c) => {
  * ships in core. The server owns the one thing only it knows: where this
  * traveller has actually been.
  */
+/**
+ * Statements a host filed that include this traveller's verified work - the
+ * guest-facing half of the evidence layer (docs/31). The hotel's record is
+ * something the guest whose work it counts can see and point at.
+ */
+app.get('/me/statements', (c) => ok(c, { statements: statementsIncluding(db, userId(c)) }));
+
 app.get('/passport', (c) => ok(c, {
   visited: visitedProvincesFor(db, userId(c)),
   // Drawn as a different stamp. Never merged into `visited`: a self-issued

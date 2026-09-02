@@ -79,12 +79,18 @@ interface LayoutOptions {
   reviewer?: string | null;
   /** Renders the nav only when signed in. */
   signedIn?: boolean;
-  activeNav?: 'queue' | 'history' | 'moderation' | 'sponsor' | 'esg';
+  activeNav?: 'queue' | 'history' | 'moderation' | 'sponsor' | 'esg' | 'statement';
   pendingCount?: number;
   /** Shows the Reviews tab. Moderators only - see place-review-service.ts. */
   canModerate?: boolean;
   /** Path to return to after switching language. */
   path?: string;
+  /**
+   * A page for a stranger: no session, no console nav, no language switcher
+   * (the locale cookie lives under /console and cannot reach it). The brand
+   * slot shows who the page is about rather than "Sign in".
+   */
+  publicPage?: boolean;
 }
 
 export function layout(options: LayoutOptions, body: Raw | string): string {
@@ -177,7 +183,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
 <body>
 <header class="bar">
   <div>
-    <div class="kicker">${esc(tr('brand'))}</div>
+    <div class="kicker">${esc(options.publicPage ? 'ChivaGo' : tr('brand'))}</div>
     <div class="brand">${esc(hostName ?? tr('signIn'))}</div>
   </div>
   <div style="display:flex;align-items:center">
@@ -191,19 +197,20 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
              ${canModerate ? `<a href="/console/reviews" class="${activeNav === 'moderation' ? 'on' : ''}">${tr('moderation')}</a>` : ''}
              <a href="/console/sponsor" class="${activeNav === 'sponsor' ? 'on' : ''}">${tr('sponsor')}</a>
              <a href="/console/esg" class="${activeNav === 'esg' ? 'on' : ''}">${tr('esg')}</a>
+             <a href="/console/statement" class="${activeNav === 'statement' ? 'on' : ''}">${tr('statement')}</a>
              <a href="/console/sos" style="border-color:var(--color-accent);color:var(--color-accent-700)">SOS</a>
              <a href="/console/logout">${tr('signOut')}</a>
            </nav>`
         : ''
     }
-    <div class="lang">
+    ${options.publicPage ? '' : `<div class="lang">
       ${LOCALES.map(
         (l) =>
           `<a href="/console/lang/${l}?to=${encodeURIComponent(returnTo)}" class="${
             l === locale ? 'on' : ''
           }" hreflang="${l}" lang="${l}">${esc(LOCALE_NAMES[l])}</a>`,
       ).join('')}
-    </div>
+    </div>`}
   </div>
 </header>
 ${reviewer ? `<p class="muted">${esc(tr('signedInAs'))} ${esc(reviewer)}</p>` : ''}

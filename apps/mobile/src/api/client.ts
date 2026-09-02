@@ -127,6 +127,18 @@ let deviceUser = 'demo-user';
 export const setDeviceUser = (id: string): void => { deviceUser = id; };
 export const deviceUserId = (): string => deviceUser;
 
+/**
+ * A statement a host issued that counts this traveller's verified work. The
+ * id is public: `/verify/<id>` on the API shows anyone the same record.
+ */
+export interface FiledStatement {
+  id: string;
+  host: { id: string; name: string; type: string };
+  period: { from: string; to: string };
+  issuedAt: string;
+  quests: { id: string; name: Bilingual }[];
+}
+
 export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; code: string; error: string };
@@ -292,6 +304,13 @@ export const api = {
   /** Stamp a place on the traveller's word. Pays nothing, unlocks nothing. */
   recordVisit: (placeId: string) => post<SelfVisitResult>(`/places/${placeId}/visits`, {}),
   selfVisits: () => get<SelfVisitSummary>('/visits/self'),
+
+  // -- the evidence layer -------------------------------------------------
+  /**
+   * Statements a host filed that include this traveller's verified work. See
+   * docs/31: the hotel's record, visible to the guest whose work it counts.
+   */
+  myStatements: () => get<{ statements: FiledStatement[] }>('/me/statements'),
 
   // -- reviews ------------------------------------------------------------
   /**
