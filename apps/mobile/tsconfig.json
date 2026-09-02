@@ -3,6 +3,10 @@
   "compilerOptions": {
     "strict": true,
     "allowImportingTsExtensions": true,
+    // Metro bundles ES modules, and the map needs a dynamic import to keep
+    // MapLibre out of the phone's bundle. Without this, `module` defaults to
+    // ES2015, which predates `import()`.
+    "module": "esnext",
     "noEmit": true,
     "jsx": "react-jsx"
   },
