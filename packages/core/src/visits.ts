@@ -41,7 +41,12 @@ export const selfVisitYearKey = (d: Date): string => islandDateKey(d).slice(0, 4
 
 export interface SelfVisit {
   placeId: string;
-  /** When the traveller says they were there. Always self-reported. */
+  /**
+   * When the stamp was issued - server time, not a date the traveller typed.
+   * A self-reported WHERE is the concession this feature makes; a
+   * self-reported WHEN would let a passport be back-dated from a sofa, and
+   * nothing reads this field for anything but "recorded on".
+   */
   visitedAt: string;
 }
 
