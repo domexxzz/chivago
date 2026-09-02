@@ -285,3 +285,19 @@ describe('copy holds up at every duration', () => {
     assert.ok(!nudge.body.th.includes('{minutes}'), nudge.body.th);
   });
 });
+
+describe('what a contact is told, by name', () => {
+  test('the re-alert names the TRAVELLER, not the place they are at', async () => {
+    // The template reads "{name}'s alert has been open {minutes} min". The
+    // first version filled {name} with the location label, so a mother read
+    // that "Chaweng, 120 m's alert" was unanswered and had to work out whose.
+    addContact(db, { userId: 'u1', name: 'Mae', linkedUserId: 'fam' });
+    const alert = fireOld(130);
+    await fireRung(db, alert, 'nudge_1', noOncall());
+
+    const theirs = inbox(db, 'fam').find((n) => n.kind === 'sos_contact_escalated');
+    assert.ok(theirs, 'the contact was not re-alerted');
+    assert.match(theirs.body.en, /^John's alert/);
+    assert.doesNotMatch(theirs.body.en, /Chaweng/);
+  });
+});

@@ -171,7 +171,11 @@ app.use('*', logger());
  * middleware below, which would provision a mobile user for a municipal
  * reviewer and hand them a wallet.
  */
-app.route('/console', consoleRoutes(db));
+app.route('/console', consoleRoutes(db, {
+  // A console approval should reach the volunteer's phone as fast as the
+  // automation path does. Without this it waited for the 60-second ticker.
+  afterDecision: () => flushNotifications(),
+}));
 
 /**
  * The public live-location page.
@@ -261,16 +265,55 @@ app.get('/health', (c) => ok(c, { status: 'up', time: new Date().toISOString() }
 // ---------------------------------------------------------------------------
 
 /**
+ * How many registrations one address may make per rolling hour.
+ *
+ * An opening balance is real money the moment a marketplace accepts it, and
+ * the first version of this route granted one to anybody who asked, as often
+ * as they asked: minting accounts was minting vouchers. The limit is per
+ * client address because that is the only handle an unauthenticated request
+ * has. It is generous - a family registering four phones on one hotel wifi
+ * fits with room to spare - and a script does not.
+ */
+const REGISTRATIONS_PER_HOUR = Number(process.env.CHIVAGO_REGISTRATIONS_PER_HOUR ?? 10);
+const REGISTRATION_WINDOW_MS = 60 * 60 * 1000;
+const registrations = new Map<string, number[]>();
+
+function clientAddress(c: { req: { header: (n: string) => string | undefined } }): string {
+  // Fly and every reverse proxy set this; the first hop is the client.
+  const forwarded = c.req.header('x-forwarded-for');
+  if (forwarded) return forwarded.split(',')[0]!.trim();
+  return c.req.header('x-real-ip') ?? 'local';
+}
+
+/** True if this address may register now; records the attempt if so. */
+export function allowRegistration(address: string, now = Date.now()): boolean {
+  const recent = (registrations.get(address) ?? []).filter((t) => now - t < REGISTRATION_WINDOW_MS);
+  if (recent.length >= REGISTRATIONS_PER_HOUR) {
+    registrations.set(address, recent);
+    return false;
+  }
+  recent.push(now);
+  registrations.set(address, recent);
+  return true;
+}
+
+/** Test seam: forget every address. */
+export const __resetRegistrationsForTests = (): void => { registrations.clear(); };
+
+/**
  * A new traveller on a new phone.
  *
  * Unauthenticated by necessity: this is how a device gets its first key.
- *
- * KNOWN GAP: nothing rate-limits this, so a script can mint accounts. That
- * costs a row and an opening balance and buys nothing — there is no referral
- * bonus and no traveller ranking to stuff — but it is a real hole and it is
- * written down here rather than left for somebody to find.
+ * Rate-limited per address (above), because it hands out an opening balance
+ * and "a script can mint accounts" turned out to mean "a script can mint
+ * vouchers". The limit is a speed bump, not a wall: a pool of addresses
+ * defeats it, and the production answer is `CHIVAGO_OPENING_GREEN=0` and
+ * `CHIVAGO_OPENING_TRIP=0` in the deployment, which fly.toml now sets.
  */
 app.post('/devices', async (c) => {
+  if (!allowRegistration(clientAddress(c))) {
+    return fail(c, 'TOO_MANY_REGISTRATIONS', 'Too many new accounts from this connection. Try again in an hour.', 429);
+  }
   const body = await c.req.json<{ displayName?: string; label?: string; locale?: string }>()
     .catch(() => ({} as { displayName?: string; label?: string; locale?: string }));
 

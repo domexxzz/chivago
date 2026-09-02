@@ -25,6 +25,14 @@ primary_region = "sin"
   # needs no cross-origin grant at all, and a wildcard on a deployment with a
   # host console behind it is a wildcard on the console too.
   CHIVAGO_ORIGINS = "https://chivago.fly.dev"
+  # No opening balance in production. The pilot's 320 Trip / 1,240 Green is a
+  # gift to try the app with, and a gift handed to every unauthenticated
+  # registration is a voucher printer. Green in particular is the currency an
+  # auditor is asked to trust; every point of it here must come through a host.
+  CHIVAGO_OPENING_TRIP = "0"
+  CHIVAGO_OPENING_GREEN = "0"
+  # Registrations per address per rolling hour. See `POST /devices`.
+  CHIVAGO_REGISTRATIONS_PER_HOUR = "10"
 
 # node:sqlite writes to a file. Without this the database is inside the
 # container layer and every deploy silently resets the pilot.
