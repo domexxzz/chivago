@@ -16,6 +16,7 @@ import { strings, type ActivityKey, type PurposeKey, type WatchKey } from '@chiv
 import { color, gutter, layout, onFill, radius, ruleStrong, ruleHair } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
+import { t } from '../i18n/locale.ts';
 
 type StepAnswer = PurposeKey[] | ActivityKey[] | WatchKey[];
 
@@ -94,10 +95,10 @@ export function OnboardingScreen({
       </View>
 
       <Label size={11} tracking={0.14} colour={color.accent700}>
-        {strings.onboarding.step(step + 1).en}
+        {t(strings.onboarding.step(step + 1))}
       </Label>
-      <Heading size={34} tracking={-0.85} style={{ marginTop: 8 }}>{current.title.en}</Heading>
-      <Thai size={11} style={{ marginTop: 6 }}>{current.title.th}</Thai>
+      <Heading size={34} tracking={-0.85} style={{ marginTop: 8 }}>{t(current.title)}</Heading>
+
 
       <ScrollView style={[ruleStrong, { flex: 1, marginTop: 20 }]} showsVerticalScrollIndicator={false}>
         {current.options.map(([key, copy]) => {
@@ -108,7 +109,7 @@ export function OnboardingScreen({
               onPress={() => toggle(key)}
               accessibilityRole={current.multi ? 'checkbox' : 'radio'}
               accessibilityState={{ checked: on }}
-              accessibilityLabel={`${copy.en}. ${copy.th}`}
+              accessibilityLabel={`${t(copy)}`}
               style={[
                 ruleHair,
                 {
@@ -123,8 +124,8 @@ export function OnboardingScreen({
               ]}
             >
               <View style={{ flex: 1 }}>
-                <Heading size={16}>{copy.en}</Heading>
-                <Thai size={11} style={{ marginTop: 2 }}>{copy.th}</Thai>
+                <Heading size={16}>{t(copy)}</Heading>
+
               </View>
               <View
                 style={{
@@ -147,15 +148,15 @@ export function OnboardingScreen({
         {/* PDPA notice, on the screen that actually collects the data. */}
         {step === 2 ? (
           <View style={{ paddingVertical: 14, paddingHorizontal: 12 }}>
-            <Body size={13} colour={color.neutral700}>{strings.onboarding.consent.en}</Body>
-            <Thai size={11} style={{ marginTop: 6 }}>{strings.onboarding.consent.th}</Thai>
+            <Body size={13} colour={color.neutral700}>{t(strings.onboarding.consent)}</Body>
+
           </View>
         ) : null}
       </ScrollView>
 
-      <Button label={current.cta.en} onPress={next} height={52} style={{ marginTop: 16 }} />
+      <Button label={t(current.cta)} onPress={next} height={52} style={{ marginTop: 16 }} />
       <Button
-        label={`${strings.common.skip.en} · ${strings.common.skip.th}`}
+        label={`${t(strings.common.skip)}`}
         onPress={finish}
         variant="ghost"
         style={{ marginTop: 10 }}

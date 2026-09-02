@@ -29,6 +29,7 @@ import { useAsync } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
+import { t } from '../i18n/locale.ts';
 
 type Filter = 'today' | 'weekend' | 'all';
 
@@ -51,8 +52,8 @@ export function MissionsScreen({
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
       <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 14 }}>
-        <Heading size={26} tracking={-0.52}>{strings.quests.title.en}</Heading>
-        <Thai size={11} style={{ marginTop: 4 }}>{strings.quests.subtitle.th}</Thai>
+        <Heading size={26} tracking={-0.52}>{t(strings.quests.title)}</Heading>
+
       </View>
 
       <SegmentedFilter value={filter} total={all.length} onChange={setFilter} />
@@ -61,7 +62,7 @@ export function MissionsScreen({
       {data.error ? <ErrorState message={data.error} onRetry={data.reload} /> : null}
 
       {!data.loading && visible.length === 0 ? (
-        <EmptyState en={strings.quests.empty.en} th={strings.quests.empty.th} />
+        <EmptyState en={t(strings.quests.empty)} th={strings.quests.empty.th} />
       ) : null}
 
       {visible.map((quest) => (
@@ -74,8 +75,8 @@ export function MissionsScreen({
       ))}
 
       <View style={{ paddingHorizontal: gutter, paddingVertical: 20 }}>
-        <Body size={13} colour={color.neutral700}>{strings.quests.footer.en}</Body>
-        <Thai size={11} style={{ marginTop: 8 }}>{strings.quests.footer.th}</Thai>
+        <Body size={13} colour={color.neutral700}>{t(strings.quests.footer)}</Body>
+
       </View>
 
       <Standing />
@@ -89,9 +90,9 @@ function SegmentedFilter({
   value, total, onChange,
 }: { value: Filter; total: number; onChange: (f: Filter) => void }) {
   const options: [Filter, string][] = [
-    ['today', strings.quests.filters.today.en],
-    ['weekend', strings.quests.filters.weekend.en],
-    ['all', `${strings.quests.filters.all.en} ${total}`],
+    ['today', t(strings.quests.filters.today)],
+    ['weekend', t(strings.quests.filters.weekend)],
+    ['all', `${t(strings.quests.filters.all)} ${total}`],
   ];
   return (
     <View
@@ -138,7 +139,7 @@ export function QuestRow({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={
-        `${quest.name.en}, ${quest.rewardPoints} `
+        `${t(quest.name)}, ${quest.rewardPoints} `
         + `${quest.rewardCurrency === 'green' ? 'Green' : 'Trip'} Points, `
         + `at ${quest.where}, by ${quest.host.name}`
       }
@@ -170,8 +171,8 @@ export function QuestRow({
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
           <View style={{ flex: 1 }}>
-            <Heading size={16}>{quest.name.en}</Heading>
-            <Thai size={11} style={{ marginTop: 2 }}>{quest.name.th}</Thai>
+            <Heading size={16}>{t(quest.name)}</Heading>
+
           </View>
           {/*
             Coloured by CURRENCY, not by "this is a reward". A Trip Point
@@ -191,7 +192,7 @@ export function QuestRow({
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
-          <Label size={10} tracking={0.1}>{strings.quests.by(quest.host.name).en}</Label>
+          <Label size={10} tracking={0.1}>{t(strings.quests.by(quest.host.name))}</Label>
           {/* Progress is surfaced on the row so a half-finished quest is not
               lost behind a tap. The design has no such affordance. */}
           {progress && progress.stage !== 'complete' ? (
@@ -225,8 +226,8 @@ function Standing() {
   return (
     <View style={{ paddingTop: 8 }}>
       <View style={{ paddingHorizontal: gutter, paddingBottom: 10 }}>
-        <Label size={10} tracking={0.14}>Who is doing the work</Label>
-        <Thai size={11} style={{ marginTop: 1 }}>ใครลงแรงบ้าง</Thai>
+        <Label size={10} tracking={0.14}>{t({ en: 'Who is doing the work', th: 'ใครลงแรงบ้าง' })}</Label>
+
       </View>
 
       {standing.error ? (
@@ -288,9 +289,9 @@ function Standing() {
 
           <View style={{ paddingHorizontal: gutter, paddingTop: 12 }}>
             <Label size={9} tracking={0.04} colour={color.neutral600} style={{ textTransform: 'none' }}>
-              {data.rankedBy.en}
+              {t(data.rankedBy)}
             </Label>
-            <Thai size={10} style={{ marginTop: 3 }}>{data.rankedBy.th}</Thai>
+
           </View>
         </>
       )}
@@ -370,8 +371,8 @@ function PartnerRewards({ onOpenMarket }: { onOpenMarket: () => void }) {
   return (
     <View style={{ paddingTop: 24 }}>
       <View style={{ paddingHorizontal: gutter, paddingBottom: 10 }}>
-        <Label size={10} tracking={0.14}>What the points buy</Label>
-        <Thai size={11} style={{ marginTop: 1 }}>แลกอะไรได้บ้าง</Thai>
+        <Label size={10} tracking={0.14}>{t({ en: 'What the points buy', th: 'แลกอะไรได้บ้าง' })}</Label>
+
       </View>
 
       {offers.error ? (

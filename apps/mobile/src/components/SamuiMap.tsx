@@ -47,6 +47,12 @@ const MASSIF = '42,30 64,26 74,44 66,62 46,66 34,50';
  */
 const SHAPE_PAD = { x: 0.03, y: 0.04 };
 
+/**
+ * Below this width the map is a phone, and five named pins overlap each other
+ * and the basemap's labels. Score-only pins, no zoom buttons - see PinChip.
+ */
+const COMPACT_BELOW = 480;
+
 /** Extrusion depths, as a fraction of the drawn height. */
 const DEPTH = { coast: 0.075, massif: 0.13 } as const;
 
@@ -191,23 +197,27 @@ export interface SamuiMapProps {
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;
   height?: number;
+  /** Score-only pins, no zoom buttons. Decided here from the width unless a caller says. */
+  compact?: boolean;
 }
 
 export function SamuiMap(props: SamuiMapProps) {
+  const { width } = useWindowDimensions();
+  const compact = props.compact ?? width < COMPACT_BELOW;
   if (TerrainMap) {
     return (
       <React.Suspense
         fallback={<View style={{ height: props.height ?? 344, backgroundColor: color.brandSoft }} />}
       >
-        <TerrainMap {...props} />
+        <TerrainMap {...props} compact={compact} />
       </React.Suspense>
     );
   }
-  return <IslandMap {...props} />;
+  return <IslandMap {...props} compact={compact} />;
 }
 
 function IslandMap({
-  places, onSelect, height = 344,
+  places, onSelect, height = 344, compact = false,
 }: SamuiMapProps) {
   /**
    * The map is full-bleed, so the window IS its width.
@@ -251,7 +261,7 @@ function IslandMap({
                 transform: [{ translateX: -CHIP.halfWidth }, { translateY: -40 }],
               }}
             >
-              <PinChip place={place} onPress={() => onSelect(place)} />
+              <PinChip place={place} onPress={() => onSelect(place)} compact={compact} />
             </View>
           ))
         : null}

@@ -23,10 +23,11 @@ import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
+import { t } from '../i18n/locale.ts';
 
 /** Currency as it reads mid-sentence, e.g. "180 more Trip Points". */
 const currencyName = (c: Offer['currency']): string =>
-  c === 'green' ? strings.common.greenPoints.en : strings.common.tripPoints.en;
+  c === 'green' ? strings.common.greenPoints.en : t(strings.common.tripPoints);
 
 /**
  * Both balances in the header.
@@ -69,7 +70,7 @@ export function MarketScreen({
       // nothing about how far off they are. With two currencies the toast must
       // also name WHICH one is short - the other may be full.
       const need = shortfall(balances, offer.currency, offer.costPoints);
-      onToast(`${strings.market.notEnough.en} — ${need} more ${currencyName(offer.currency)}.`);
+      onToast(`${t(strings.market.notEnough)} — ${need} more ${currencyName(offer.currency)}.`);
       return;
     }
     setBusy(true);
@@ -79,22 +80,22 @@ export function MarketScreen({
       setVoucher(res.data.voucher);
       wallet.reload();
       onPointsChanged();
-      onToast(strings.market.voucherSent(offer.merchantShort).en);
+      onToast(t(strings.market.voucherSent(offer.merchantShort)));
     } else onToast(res.error);
   };
 
   return (
     <View style={{ flex: 1 }}>
       <PushHeader
-        context={`${strings.market.context.en} · ${strings.market.context.th}`}
+        context={`${t(strings.market.context)}`}
         onBack={onBack}
         right={<PurseChips balances={balances} />}
       />
 
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={{ paddingHorizontal: gutter, paddingBottom: 14 }}>
-          <Body size={13} colour={color.neutral700}>{strings.market.intro.en}</Body>
-          <Thai size={11} style={{ marginTop: 6 }}>{strings.market.intro.th}</Thai>
+          <Body size={13} colour={color.neutral700}>{t(strings.market.intro)}</Body>
+
         </View>
 
         {offers.loading ? <LoadingState /> : null}
@@ -184,8 +185,8 @@ function VoucherSheet({ voucher, onClose }: { voucher: Voucher | null; onClose: 
         <View style={{ backgroundColor: color.bg, padding: gutter, paddingBottom: 32 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <View style={{ flex: 1 }}>
-              <Heading size={22}>{strings.market.voucherTitle.en}</Heading>
-              <Thai size={11} style={{ marginTop: 3 }}>{strings.market.voucherTitle.th}</Thai>
+              <Heading size={22}>{t(strings.market.voucherTitle)}</Heading>
+
             </View>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12}>
               <X size={20} color={color.text} strokeWidth={2} />
@@ -202,13 +203,13 @@ function VoucherSheet({ voucher, onClose }: { voucher: Voucher | null; onClose: 
               alignItems: 'center',
             }}
           >
-            <Label size={10} tracking={0.16}>{strings.market.voucherShow.en}</Label>
+            <Label size={10} tracking={0.16}>{t(strings.market.voucherShow)}</Label>
             <Heading size={30} tracking={1.2} style={{ marginTop: 12 }}>{voucher.code}</Heading>
             <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 12 }}>
               {voucher.merchant}
             </Label>
             <Label size={10} tracking={0.12} style={{ marginTop: 6 }}>
-              {strings.market.voucherExpires(expires).en}
+              {t(strings.market.voucherExpires(expires))}
             </Label>
           </View>
 

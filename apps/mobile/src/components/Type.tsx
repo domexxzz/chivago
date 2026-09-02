@@ -1,15 +1,26 @@
 /**
- * Bilingual text primitives.
+ * Text primitives.
  *
- * The app shows English AND Thai together - English as the primary line, Thai
- * as a caption underneath. Every screen uses these rather than raw <Text>, so
- * the two scripts can never accidentally share a font or a line-height.
+ * The app speaks one language at a time (see `i18n/locale.ts`): every string
+ * that has both goes through `t()`, and these primitives switch typeface with
+ * it, because Archivo carries no Thai glyphs and the two scripts must never
+ * share a line-height. The Thai caption survives for the sites that keep
+ * both languages on purpose - the SOS surfaces - and for literal copy that
+ * has not been paired yet, which it shows only when the app is in Thai.
  */
 
 import React from 'react';
 import { Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import type { Bilingual } from '@chivago/core';
 import { color, font, label as labelStyle, thaiText, type } from '../theme/index.ts';
+import { getLocale, t } from '../i18n/locale.ts';
+
+/** Thai line-height. Tone marks stack above the x-height and clip at Latin leading. */
+const THAI_LEADING = 1.45;
+
+/** In Thai, the Thai family and its leading; otherwise nothing to add. */
+const thaiFace = (size: number): TextStyle | null =>
+  getLocale() === 'th' ? { fontFamily: font.thai, lineHeight: Math.round(size * THAI_LEADING) } : null;
 
 interface HeadingProps {
   children: React.ReactNode;
@@ -25,6 +36,7 @@ export function Heading({ children, style, size = 26, colour = color.text, track
     <Text
       style={[
         { fontFamily: font.heading, fontSize: size, color: colour, lineHeight: Math.round(size * 1.12) },
+        thaiFace(size),
         tracking !== undefined && { letterSpacing: tracking },
         style,
       ]}
@@ -49,10 +61,17 @@ export function Body({ children, style, size = 14, colour = color.neutral800 }: 
   );
 }
 
-/** The Thai caption line. Noto Sans Thai, 1.45 line-height. */
+/**
+ * The Thai caption line.
+ *
+ * Shown when the app is in Thai, or `always`. `always` is for what an
+ * emergency responder might read off a traveller's phone - the SOS banner,
+ * the Safety screen - where the second language is the point, not padding.
+ */
 export function Thai({
-  children, size = 11, colour = color.neutral700, style,
-}: { children: React.ReactNode; size?: number; colour?: string; style?: TextStyle }) {
+  children, size = 11, colour = color.neutral700, style, always = false,
+}: { children: React.ReactNode; size?: number; colour?: string; style?: TextStyle; always?: boolean }) {
+  if (!always && getLocale() !== 'th') return null;
   return <Text style={[thaiText(size, colour), style]}>{children}</Text>;
 }
 
@@ -63,24 +82,25 @@ export function Label({
   children: React.ReactNode; size?: 9 | 10 | 11; tracking?: number;
   colour?: string; style?: TextStyle;
 }) {
-  return <Text style={[labelStyle(size, tracking, colour), style]}>{children}</Text>;
+  return <Text style={[labelStyle(size, tracking, colour), thaiFace(size), style]}>{children}</Text>;
 }
 
 /**
- * An English title with its Thai caption underneath - the single most repeated
- * pattern in the design. Extracted so the pairing (sizes, gap, colours) is
- * defined once.
+ * A title in the current language. It used to be the English with the Thai
+ * captioned beneath - the single most repeated pattern in the design, and the
+ * single biggest reason every screen ran long.
  */
 export function BilingualTitle({
-  value, size = 26, colour = color.text, thaiSize = 11, tracking, gap = 3, style,
+  value, size = 26, colour = color.text, tracking, style,
 }: {
-  value: Bilingual; size?: number; colour?: string; thaiSize?: number;
-  tracking?: number; gap?: number; style?: ViewStyle;
+  value: Bilingual; size?: number; colour?: string;
+  /** Kept for callers; nothing is captioned any more. */
+  thaiSize?: number; gap?: number;
+  tracking?: number; style?: ViewStyle;
 }) {
   return (
     <View style={style}>
-      <Heading size={size} colour={colour} tracking={tracking}>{value.en}</Heading>
-      {value.th ? <Thai size={thaiSize} style={{ marginTop: gap }}>{value.th}</Thai> : null}
+      <Heading size={size} colour={colour} tracking={tracking}>{t(value)}</Heading>
     </View>
   );
 }

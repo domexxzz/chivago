@@ -265,3 +265,44 @@ export function introPose(settled: Pose): Pose {
 
 /** Cubic ease-out: fast off the mark, gentle into place. */
 export const settleEasing = (t: number): number => 1 - (1 - t) ** 3;
+
+/**
+ * Real geography collides. Chaweng and Fisherman's Village are 2.4 km apart
+ * on the same coast, and at the hero zoom on a phone - tilted, so north-south
+ * distance is halved on screen - their pins sit on top of each other.
+ *
+ * Pins closer than this are pushed apart along the screen's vertical: the
+ * northern one up, the southern one down, half a pin each. The push is in
+ * screen pixels, so zooming in separates them naturally and the nudge fades
+ * into insignificance rather than compounding.
+ */
+export const CROWD_M = 4000;
+
+/** Half a pin, in CSS pixels. */
+export const PIN_NUDGE_PX = 16;
+
+/** Metres between two points, flat-earth: fine to a few kilometres at this latitude. */
+function metresBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const m = 111_320;
+  const dy = (a.lat - b.lat) * m;
+  const dx = (a.lng - b.lng) * m * Math.cos(((a.lat + b.lat) / 2) * (Math.PI / 180));
+  return Math.hypot(dx, dy);
+}
+
+/** Screen-pixel offsets, by place id, for pins that would otherwise overlap. */
+export function crowdOffsets(
+  places: readonly { id: string; lat: number; lng: number }[],
+): Map<string, [number, number]> {
+  const out = new Map<string, [number, number]>();
+  for (let i = 0; i < places.length; i += 1) {
+    for (let j = i + 1; j < places.length; j += 1) {
+      const a = places[i]!;
+      const b = places[j]!;
+      if (metresBetween(a, b) >= CROWD_M) continue;
+      const [north, south] = a.lat >= b.lat ? [a, b] : [b, a];
+      out.set(north.id, [0, -PIN_NUDGE_PX]);
+      out.set(south.id, [0, PIN_NUDGE_PX]);
+    }
+  }
+  return out;
+}

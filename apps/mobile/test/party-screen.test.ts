@@ -5,6 +5,7 @@ import { createElement as h } from 'react';
 import { PARTY_DOES_NOT, summarise } from '@chivago/core';
 import { PartyScreen } from '../src/screens/PartyScreen.tsx';
 import { mountScreen, server, refuses } from './interact.ts';
+import { __setLocaleForTests } from '../src/i18n/locale.ts';
 
 /**
  * The group screen.
@@ -144,13 +145,17 @@ describe('travelling together', () => {
     ui.unmount();
   });
 
-  test('what a group does not do is on the screen, in both languages', async () => {
+  test('what a group does not do is on the screen, in whichever language the app speaks', async () => {
     const s = server({ 'GET /party': together([member({ you: true })]) }); restore = s.restore;
     const ui = await mountScreen(h(PartyScreen, props));
-    const said = ui.text();
-    assert.match(said, /Share points/i);
-    assert.match(said, /ไม่แชร์แต้ม/);
+    assert.match(ui.text(), /Share points/i);
     ui.unmount();
+
+    __setLocaleForTests('th');
+    const thai = await mountScreen(h(PartyScreen, props));
+    assert.match(thai.text(), /ไม่แชร์แต้ม/);
+    thai.unmount();
+    __setLocaleForTests('en');
   });
 
   test('leaving says the points were always yours', async () => {

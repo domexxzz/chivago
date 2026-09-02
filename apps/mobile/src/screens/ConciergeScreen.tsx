@@ -28,6 +28,7 @@ import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
+import { t } from '../i18n/locale.ts';
 
 interface Turn {
   /** Null for the concierge's own opening line. */
@@ -60,8 +61,7 @@ export function ConciergeScreen({
     <View style={{ flex: 1, backgroundColor: color.bg }}>
       <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 12 }}>
         <Label size={10} tracking={0.16}>Concierge · ผู้ช่วยแนะนำ</Label>
-        <Heading size={24} tracking={-0.48} style={{ marginTop: 6 }}>Ask me where to go</Heading>
-        <Thai size={11} style={{ marginTop: 4 }}>ถามได้ทั้งภาษาไทยและอังกฤษ</Thai>
+        <Heading size={24} tracking={-0.48} style={{ marginTop: 6 }}>{t({ en: 'Ask me where to go', th: 'ถามได้ทั้งภาษาไทยและอังกฤษ' })}</Heading>
       </View>
 
       {places.loading ? <LoadingState /> : null}
@@ -102,10 +102,10 @@ function Openers({ onPick }: { onPick: (text: string) => void }) {
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
         {OPENERS.map((o) => (
           <Pressable
-            key={o.en}
-            onPress={() => onPick(o.en)}
+            key={t(o)}
+            onPress={() => onPick(t(o))}
             accessibilityRole="button"
-            accessibilityLabel={`${o.en}. ${o.th}`}
+            accessibilityLabel={`${t(o)}`}
             style={{
               minHeight: 44,
               justifyContent: 'center',
@@ -116,8 +116,7 @@ function Openers({ onPick }: { onPick: (text: string) => void }) {
               borderRadius: radius.sm,
             }}
           >
-            <Body size={13}>{o.en}</Body>
-            <Thai size={10} colour={color.neutral600}>{o.th}</Thai>
+            <Body size={13}>{t(o)}</Body>
           </Pressable>
         ))}
       </View>
@@ -178,7 +177,7 @@ function Answered({
               key={n.dial}
               onPress={() => void Linking.openURL(`tel:${n.dial}`)}
               accessibilityRole="button"
-              accessibilityLabel={`${n.name.en}. ${n.name.th}. ${n.printed}`}
+              accessibilityLabel={`${t(n.name)}. ${n.printed}`}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -203,7 +202,7 @@ function Answered({
           key={s.placeId}
           onPress={() => onOpenPlace(s.placeId)}
           accessibilityRole="button"
-          accessibilityLabel={`${s.name.en}. ${s.because.en}. Healthy Score ${s.healthyScore}`}
+          accessibilityLabel={`${t(s.name)}. ${t(s.because)}. Healthy Score ${s.healthyScore}`}
           style={{
             flexDirection: 'row',
             alignItems: 'center',
@@ -216,15 +215,14 @@ function Answered({
           }}
         >
           <View style={{ flex: 1 }}>
-            <Heading size={15}>{s.name.en}</Heading>
-            <Thai size={10} style={{ marginTop: 1 }}>{s.name.th}</Thai>
+            <Heading size={15}>{t(s.name)}</Heading>
             <Label
               size={9}
               tracking={0.04}
               colour={color.neutral600}
               style={{ marginTop: 6, textTransform: 'none' }}
             >
-              {s.because.en}
+              {t(s.because)}
             </Label>
           </View>
           {/*

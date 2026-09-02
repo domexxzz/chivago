@@ -31,6 +31,7 @@ import { AccentNumeral, Body, Heading, Label, Thai } from '../components/Type.ts
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
+import { t } from '../i18n/locale.ts';
 
 export function QuestDetailScreen({
   questId, onBack, onOpenWallet, onToast, onPointsChanged,
@@ -75,7 +76,7 @@ export function QuestDetailScreen({
       pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
     } catch {
       setBusy(false);
-      onToast(strings.checkin.noFix.en);
+      onToast(t(strings.checkin.noFix));
       return;
     }
     const res = await api.arriveAtQuest(questId, {
@@ -99,7 +100,7 @@ export function QuestDetailScreen({
     } catch {
       // A picker that will not open (no camera, a denied gallery) is not a
       // crash. The volunteer can try the other source.
-      onToast(strings.quest.photoUnavailable.en);
+      onToast(t(strings.quest.photoUnavailable));
       return;
     }
     if (result.canceled || !result.assets[0]) return;
@@ -128,7 +129,7 @@ export function QuestDetailScreen({
     // An offline submission is queued, not lost - beach and mangrove sites have
     // poor signal, which is exactly where proof gets taken.
     else if (res.code === 'NETWORK' || res.code === 'TIMEOUT') {
-      onToast(strings.quest.queuedOffline.en);
+      onToast(t(strings.quest.queuedOffline));
     } else onToast(res.error);
   };
 
@@ -157,14 +158,13 @@ export function QuestDetailScreen({
       {quest ? (
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
           <View style={{ paddingHorizontal: gutter }}>
-            <Heading size={28} tracking={-0.56}>{quest.name.en}</Heading>
-            <Thai size={11} style={{ marginTop: 4 }}>{quest.name.th}</Thai>
+            <Heading size={28} tracking={-0.56}>{t(quest.name)}</Heading>
           </View>
 
           <StatBand quest={quest} />
 
           <View style={{ paddingHorizontal: gutter, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: color.neutral300 }}>
-            <Label size={10} tracking={0.14}>{`${strings.quest.host.en} · ${strings.quest.host.th}`}</Label>
+            <Label size={10} tracking={0.14}>{`${t(strings.quest.host)}`}</Label>
             <Heading size={15} style={{ marginTop: 4 }}>{quest.host.name}</Heading>
           </View>
 
@@ -174,10 +174,10 @@ export function QuestDetailScreen({
             {progress?.rejectedAt ? <RejectionNotice reason={progress.rejectionReason} /> : null}
 
             {stage === null ? (
-              <Button label={strings.quest.ctaJoin.en} onPress={join} height={52} disabled={busy} />
+              <Button label={t(strings.quest.ctaJoin)} onPress={join} height={52} disabled={busy} />
             ) : null}
             {stage === 'joined' ? (
-              <Button label={strings.quest.ctaArrive.en} onPress={arrive} height={52} disabled={busy} />
+              <Button label={t(strings.quest.ctaArrive)} onPress={arrive} height={52} disabled={busy} />
             ) : null}
             {stage === 'arrived' ? (
               <ProofBox
@@ -215,13 +215,13 @@ function StatBand({ quest }: { quest: Quest }) {
       }}
     >
       <View style={{ flex: 1 }}>
-        <Label size={10} tracking={0.12}>{strings.quest.reward.en}</Label>
+        <Label size={10} tracking={0.12}>{t(strings.quest.reward)}</Label>
         <AccentNumeral size={22} style={{ marginTop: 4 }}>
           {`+${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'G' : 'T'}`}
         </AccentNumeral>
       </View>
       <View style={{ flex: 1, borderLeftWidth: 1, borderLeftColor: color.neutral300, paddingLeft: 14 }}>
-        <Label size={10} tracking={0.12}>{strings.quest.duration.en}</Label>
+        <Label size={10} tracking={0.12}>{t(strings.quest.duration)}</Label>
         <Heading size={22} style={{ marginTop: 4 }}>{quest.duration}</Heading>
       </View>
     </View>
@@ -236,7 +236,7 @@ function Timeline({ stage }: { stage: QuestStage | null }) {
   const current = stage ? stageIndex(stage) : -1;
   return (
     <View style={{ paddingHorizontal: gutter, marginTop: 20 }}>
-      <Label size={10} tracking={0.16}>{strings.quest.progress.en}</Label>
+      <Label size={10} tracking={0.16}>{t(strings.quest.progress)}</Label>
       <View
         style={{
           borderLeftWidth: layout.ruleStrong,
@@ -275,8 +275,7 @@ function Timeline({ stage }: { stage: QuestStage | null }) {
                 }}
               />
               <View style={{ flex: 1 }}>
-                <Heading size={14} colour={now ? color.accent700 : color.text}>{copy.en}</Heading>
-                <Thai size={11} style={{ marginTop: 2 }}>{copy.th}</Thai>
+                <Heading size={14} colour={now ? color.accent700 : color.text}>{t(copy)}</Heading>
               </View>
             </View>
           );
@@ -306,20 +305,15 @@ function RejectionNotice({ reason }: { reason: Bilingual | null }) {
         marginBottom: 16,
       }}
     >
-      <Label size={10} tracking={0.14} colour={color.accent700}>{strings.quest.rejected.en}</Label>
-      <Thai size={11} style={{ marginTop: 2 }}>{strings.quest.rejected.th}</Thai>
+      <Label size={10} tracking={0.14} colour={color.accent700}>{t(strings.quest.rejected)}</Label>
       {reason ? (
         <>
-          <Body size={13} style={{ marginTop: 10 }}>{reason.en}</Body>
-          {reason.th !== reason.en ? (
-            <Thai size={11} style={{ marginTop: 4 }}>{reason.th}</Thai>
-          ) : null}
+          <Body size={13} style={{ marginTop: 10 }}>{t(reason)}</Body>
         </>
       ) : null}
       <Body size={13} colour={color.neutral700} style={{ marginTop: 10 }}>
-        {strings.quest.resubmit.en}
+        {t(strings.quest.resubmit)}
       </Body>
-      <Thai size={11} style={{ marginTop: 2 }}>{strings.quest.resubmit.th}</Thai>
     </View>
   );
 }
@@ -342,7 +336,7 @@ function ProofBox({
       }}
     >
       <Label size={10} tracking={0.14}>
-        {`${strings.quest.submitProof.en} · ${strings.quest.submitProof.th}`}
+        {`${t(strings.quest.submitProof)}`}
       </Label>
 
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 14 }}>
@@ -366,7 +360,7 @@ function ProofBox({
               ) : isAdd ? (
                 <Button
                   label=""
-                  accessibilityLabel={strings.quest.addPhoto.en}
+                  accessibilityLabel={t(strings.quest.addPhoto)}
                   onPress={onAddPhoto}
                   variant="ghost"
                   icon={<Camera size={20} color={color.neutral700} strokeWidth={2} />}
@@ -378,14 +372,14 @@ function ProofBox({
         })}
       </View>
 
-      <Label size={10} tracking={0.12} style={{ marginTop: 14 }}>{strings.quest.weightLabel.en}</Label>
+      <Label size={10} tracking={0.12} style={{ marginTop: 14 }}>{t(strings.quest.weightLabel)}</Label>
       <TextInput
         value={weight}
         onChangeText={onWeight}
         keyboardType="decimal-pad"
         placeholder="0.0"
         placeholderTextColor={color.neutral500}
-        accessibilityLabel={strings.quest.weightLabel.en}
+        accessibilityLabel={t(strings.quest.weightLabel)}
         style={{
           borderWidth: 1,
           borderColor: color.neutral400,
@@ -400,11 +394,11 @@ function ProofBox({
       />
 
       <Body size={13} colour={color.neutral700} style={{ marginTop: 12 }}>
-        {strings.quest.proofHelper.en}
+        {t(strings.quest.proofHelper)}
       </Body>
 
       <Button
-        label={strings.quest.ctaSend.en}
+        label={t(strings.quest.ctaSend)}
         onPress={onSubmit}
         height={46}
         disabled={busy || photos.length === 0}
@@ -460,12 +454,10 @@ function VerifyingPanel({ host }: { host: string }) {
           ],
         }}
       />
-      <Heading size={16}>{strings.quest.verifying(host).en}</Heading>
-      <Thai size={11} style={{ marginTop: 4 }}>{strings.quest.verifying(host).th}</Thai>
+      <Heading size={16}>{t(strings.quest.verifying(host))}</Heading>
       <Body size={13} colour={color.neutral700} style={{ marginTop: 12 }}>
-        {strings.quest.verifyingLeavable.en}
+        {t(strings.quest.verifyingLeavable)}
       </Body>
-      <Thai size={11} style={{ marginTop: 6 }}>{strings.quest.verifyingLeavable.th}</Thai>
     </View>
   );
 }
@@ -484,16 +476,16 @@ function SuccessPanel({
   return (
     <View style={{ backgroundColor: color.accent, padding: 20, borderRadius: radius.md }}>
       <Label size={10} tracking={0.16} colour={onFill.accent} style={{ opacity: 0.85 }}>
-        {strings.quest.verified.en}
+        {t(strings.quest.verified)}
       </Label>
       <Heading size={40} colour={onFill.accent} tracking={-0.8} style={{ marginTop: 8 }}>
         {`+${points}`}
       </Heading>
       <Body size={13} colour={onFill.accent} style={{ marginTop: 8 }}>
-        {strings.quest.verifiedDetail(4.2).en}
+        {t(strings.quest.verifiedDetail(4.2))}
       </Body>
       <Button
-        label={strings.quest.ctaWallet.en}
+        label={t(strings.quest.ctaWallet)}
         onPress={onOpenWallet}
         inverted
         height={44}

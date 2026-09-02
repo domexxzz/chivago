@@ -12,6 +12,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { isHighScore, type ScoredPlace } from '@chivago/core';
 import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Heading, Label } from './Type.tsx';
+import { t } from '../i18n/locale.ts';
 
 /**
  * A map pin chip.
@@ -20,14 +21,14 @@ import { Heading, Label } from './Type.tsx';
  * place header can never disagree.
  */
 export function PinChip({
-  place, onPress,
-}: { place: ScoredPlace; onPress: () => void }) {
+  place, onPress, compact = false,
+}: { place: ScoredPlace; onPress: () => void; compact?: boolean }) {
   const high = isHighScore(place.healthyScore);
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${place.name.en}, Healthy Score ${place.healthyScore}`}
+      accessibilityLabel={`${t(place.name)}, Healthy Score ${place.healthyScore}`}
       style={{ alignItems: 'center' }}
     >
       <View
@@ -47,7 +48,15 @@ export function PinChip({
         ]}
       >
         <Heading size={13} colour={high ? onFill.accent : color.text}>{place.healthyScore}</Heading>
-        <Label size={9} tracking={0.1} colour={high ? onFill.accent : color.text}>{place.short}</Label>
+        {/*
+          On a phone-width map the five names overlapped each other and the
+          basemap's own labels; Fisherman's covered Chaweng entirely. Narrow
+          maps show the score alone - the name is one tap away, and the
+          screen reader still gets it from the label above.
+        */}
+        {compact ? null : (
+          <Label size={9} tracking={0.1} colour={high ? onFill.accent : color.text}>{place.short}</Label>
+        )}
       </View>
       {/* The 2x16 ink stem that pins the chip to its point. */}
       <View style={{ width: 2, height: 16, backgroundColor: color.text }} />
@@ -119,7 +128,10 @@ export function LayerChips({
             minHeight: 44,
             justifyContent: 'center',
             paddingVertical: 6,
-            paddingHorizontal: 14,
+            // 10, not 14: at 14 the five chips came to 396px and QUEST was cut
+            // off at the edge of a 390px phone, which reads as broken rather
+            // than scrollable. At 10 they fit with room on a 375px one.
+            paddingHorizontal: 10,
             borderWidth: 2,
             borderRadius: radius.sm,
             // A layer switch is a map control, not a measurement.
@@ -148,7 +160,7 @@ export function PlaceFeedRow({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${place.name.en}, Healthy Score ${place.healthyScore}. ${place.meta}`}
+      accessibilityLabel={`${t(place.name)}, Healthy Score ${place.healthyScore}. ${place.meta}`}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
@@ -163,7 +175,7 @@ export function PlaceFeedRow({
         <Heading size={24} colour={color.accent700}>{place.healthyScore}</Heading>
       </View>
       <View style={{ flex: 1 }}>
-        <Heading size={15}>{place.name.en}</Heading>
+        <Heading size={15}>{t(place.name)}</Heading>
         <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 2 }}>{place.meta}</Label>
         <View style={{ height: 4, backgroundColor: color.neutral300, marginTop: 8 }}>
           <View

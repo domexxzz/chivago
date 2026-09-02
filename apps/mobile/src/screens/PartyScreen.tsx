@@ -27,6 +27,7 @@ import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
+import { t } from '../i18n/locale.ts';
 
 /** Provinces open today. Two, and the passport says so on its own screen. */
 const OPEN_PROVINCES = 2;
@@ -107,24 +108,15 @@ function Alone({
         }}
       >
         <Label size={10} tracking={0.16} colour={color.brandSoft}>
-          {PARTY_KIND_LABEL.solo.en.toUpperCase()}
+          {t(PARTY_KIND_LABEL.solo).toUpperCase()}
         </Label>
         <Heading size={26} colour={color.surface} tracking={-0.5} style={{ marginTop: 8 }}>
-          You are travelling on your own
+          {t({ en: 'You are travelling on your own', th: 'คุณเดินทางคนเดียว · เชิญเพื่อนมาร่วมทางได้' })}
         </Heading>
-        <Thai size={11} colour={color.brandSoft} style={{ marginTop: 6 }}>
-          {PARTY_KIND_LABEL.solo.th} · เชิญเพื่อนมาร่วมทางได้
-        </Thai>
       </View>
 
       <View style={{ paddingHorizontal: gutter }}>
-        <Body size={13} colour={color.neutral700}>
-          A group does not share points — everyone keeps their own. What it adds
-          is the count of provinces you have reached between you.
-        </Body>
-        <Thai size={11} style={{ marginTop: 4 }}>
-          กลุ่มไม่แชร์แต้ม แต่ละคนได้ของตัวเอง สิ่งที่เพิ่มคือจำนวนจังหวัดที่ไปถึงรวมกัน
-        </Thai>
+        <Body size={13} colour={color.neutral700}>{t({ en: 'A group does not share points — everyone keeps their own. What it adds is the count of provinces you have reached between you.', th: 'กลุ่มไม่แชร์แต้ม แต่ละคนได้ของตัวเอง สิ่งที่เพิ่มคือจำนวนจังหวัดที่ไปถึงรวมกัน' })}</Body>
 
         {made === null ? (
           <Button
@@ -153,8 +145,7 @@ function Alone({
       </View>
 
       <View style={{ paddingHorizontal: gutter, paddingTop: 26 }}>
-        <Label size={10} tracking={0.14}>Have a code?</Label>
-        <Thai size={11} style={{ marginTop: 1, marginBottom: 10 }}>มีรหัสอยู่แล้ว?</Thai>
+        <Label size={10} tracking={0.14}>{t({ en: 'Have a code?', th: 'มีรหัสอยู่แล้ว?' })}</Label>
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TextInput
@@ -207,7 +198,7 @@ function Together({ name, summary }: { name: string; summary: PartySummary }) {
       style={{ margin: gutter, padding: 20, borderRadius: radius.md, backgroundColor: color.paper }}
     >
       <Label size={10} tracking={0.16} colour={color.brandSoft}>
-        {`${PARTY_KIND_LABEL[summary.kind].en.toUpperCase()} · ${summary.size}`}
+        {`${t(PARTY_KIND_LABEL[summary.kind]).toUpperCase()} · ${summary.size}`}
       </Label>
       <Heading size={26} colour={color.surface} tracking={-0.5} style={{ marginTop: 8 }}>
         {name}
@@ -226,8 +217,7 @@ function Together({ name, summary }: { name: string; summary: PartySummary }) {
 
       {next ? (
         <>
-          <Body size={13} colour={color.brandSoft} style={{ marginTop: 16 }}>{next.en}</Body>
-          <Thai size={11} colour={color.brandSoft} style={{ marginTop: 3 }}>{next.th}</Thai>
+          <Body size={13} colour={color.brandSoft} style={{ marginTop: 16 }}>{t(next)}</Body>
         </>
       ) : null}
     </View>
@@ -240,8 +230,7 @@ function Figure({
   return (
     <View>
       <Heading size={lead ? 40 : 26} colour={color.surface} tracking={-0.8}>{value}</Heading>
-      <Label size={9} tracking={0.08} colour={color.brandSoft} style={{ marginTop: 2 }}>{en}</Label>
-      <Thai size={10} colour={color.brandSoft}>{th}</Thai>
+      <Label size={9} tracking={0.08} colour={color.brandSoft} style={{ marginTop: 2 }}>{t({ en, th })}</Label>
     </View>
   );
 }
@@ -249,8 +238,7 @@ function Figure({
 function Members({ summary }: { summary: PartySummary }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 8 }}>
-      <Label size={10} tracking={0.14}>Who is here</Label>
-      <Thai size={11} style={{ marginTop: 1, marginBottom: 8 }}>ใครอยู่ในกลุ่ม</Thai>
+      <Label size={10} tracking={0.14}>{t({ en: 'Who is here', th: 'ใครอยู่ในกลุ่ม' })}</Label>
 
       {summary.members.map((m, i) => (
         <View
@@ -301,9 +289,8 @@ function DoesNot({ items }: { items: Bilingual[] }) {
         WHAT A GROUP DOES NOT DO · สิ่งที่กลุ่มไม่ได้ทำ
       </Label>
       {items.map((d) => (
-        <View key={d.en} style={{ marginTop: 10 }}>
-          <Body size={13} colour={color.neutral800}>{d.en}</Body>
-          <Thai size={11} style={{ marginTop: 2 }}>{d.th}</Thai>
+        <View key={t(d)} style={{ marginTop: 10 }}>
+          <Body size={13} colour={color.neutral800}>{t(d)}</Body>
         </View>
       ))}
     </View>

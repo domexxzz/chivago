@@ -24,6 +24,7 @@ import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Tag } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
+import { t } from '../i18n/locale.ts';
 
 export interface TripState {
   dayNumber: number;
@@ -58,7 +59,7 @@ export function TripScreen({
   return (
     <View style={{ flex: 1 }}>
       <PushHeader
-        context={strings.trip.context(trip.dayNumber, trip.dateLabel).en}
+        context={t(strings.trip.context(trip.dayNumber, trip.dateLabel))}
         onBack={onBack}
       />
 
@@ -84,11 +85,11 @@ export function TripScreen({
               }}
             >
               <Stat
-                label={strings.trip.walking.en}
+                label={t(strings.trip.walking)}
                 value={`${plan.data.walkingKm.toFixed(1)} km`}
               />
               <Stat
-                label={strings.trip.pointsToday.en}
+                label={t(strings.trip.pointsToday)}
                 value={`+${plan.data.pointsAvailable}`}
                 accent
               />
@@ -96,7 +97,7 @@ export function TripScreen({
             </View>
 
             {plan.data.items.length === 0 ? (
-              <EmptyState en={strings.trip.empty.en} th={strings.trip.empty.th} />
+              <EmptyState en={t(strings.trip.empty)} th={strings.trip.empty.th} />
             ) : null}
 
             {plan.data.items.map((item, i) => (
@@ -141,7 +142,7 @@ function EnergyPicker({
             onPress={() => onChange(key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            accessibilityLabel={`${ENERGY_LABEL[key].en} day`}
+            accessibilityLabel={`${t(ENERGY_LABEL[key])} day`}
             style={{
               flex: 1,
               paddingVertical: 11,
@@ -150,7 +151,7 @@ function EnergyPicker({
             }}
           >
             <Label size={10} tracking={0.12} colour={active ? onFill.brand : color.neutral700}>
-              {ENERGY_LABEL[key].en}
+              {t(ENERGY_LABEL[key])}
             </Label>
           </Pressable>
         );
@@ -188,7 +189,7 @@ function PlanRow({ item, onPress }: { item: PlanItem; onPress?: () => void }) {
       </View>
       <View style={{ flex: 1 }}>
         <Heading size={transit ? 12 : 15} colour={transit ? color.neutral600 : color.text}>
-          {transit ? `${item.name.en} · ${item.km} km` : item.name.en}
+          {transit ? `${t(item.name)} · ${item.km} km` : t(item.name)}
         </Heading>
 
         {/*
@@ -206,13 +207,10 @@ function PlanRow({ item, onPress }: { item: PlanItem; onPress?: () => void }) {
             ].filter(Boolean).join(' · ')}
           </Body>
         ) : null}
-        {!transit ? (
-          <Thai size={11} style={{ marginTop: 2 }}>{item.name.th}</Thai>
-        ) : null}
 
         {/* The reason. This is the whole point of planning it server-side. */}
         <Body size={13} colour={color.neutral600} style={{ marginTop: transit ? 2 : 6 }}>
-          {item.why.en}
+          {t(item.why)}
         </Body>
 
         {!transit ? (
@@ -243,7 +241,7 @@ function Dropped({ dropped }: { dropped: TripPlan['dropped'] }) {
       </Label>
       {dropped.map((d) => (
         <View
-          key={d.name.en}
+          key={t(d.name)}
           style={{
             marginTop: 10,
             padding: 12,
@@ -252,11 +250,11 @@ function Dropped({ dropped }: { dropped: TripPlan['dropped'] }) {
             borderRadius: radius.sm,
           }}
         >
-          <Heading size={13} colour={color.neutral700}>{d.name.en}</Heading>
+          <Heading size={13} colour={color.neutral700}>{t(d.name)}</Heading>
           <Body size={13} colour={color.neutral600} style={{ marginTop: 4 }}>
-            {d.reason.en}
+            {t(d.reason)}
           </Body>
-          <Thai size={10} style={{ marginTop: 3 }}>{d.reason.th}</Thai>
+
         </View>
       ))}
     </View>
@@ -317,7 +315,7 @@ function PriceOutlook({
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
           {today.drivers.map((d) => (
             <View
-              key={d.label.en}
+              key={t(d.label)}
               style={{
                 paddingVertical: 5,
                 paddingHorizontal: 10,
@@ -327,7 +325,7 @@ function PriceOutlook({
               }}
             >
               <Label size={9} tracking={0.08} colour={color.neutral700}>
-                {`${d.label.en} ${d.effect > 1 ? '+' : '−'}${Math.abs(Math.round((d.effect - 1) * 100))}%`}
+                {`${t(d.label)} ${d.effect > 1 ? '+' : '−'}${Math.abs(Math.round((d.effect - 1) * 100))}%`}
               </Label>
             </View>
           ))}
@@ -342,7 +340,7 @@ function PriceOutlook({
             <View key={m.month} style={{ marginTop: 9 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
                 <Body size={13} colour={best ? color.brand : color.neutral700}>
-                  {`${m.month}  ${m.label.en}${m.hasFestival ? ' · festival' : ''}`}
+                  {`${m.month}  ${t(m.label)}${m.hasFestival ? ' · festival' : ''}`}
                 </Body>
                 <Body size={13} colour={best ? color.brand : color.neutral600}>
                   {`฿${m.band.typical.toLocaleString()}`}
@@ -365,8 +363,8 @@ function PriceOutlook({
       </View>
 
       <View style={{ paddingHorizontal: gutter, paddingTop: 16 }}>
-        <Body size={13} colour={color.neutral600}>{today.caveat.en}</Body>
-        <Thai size={10} style={{ marginTop: 4 }}>{today.caveat.th}</Thai>
+        <Body size={13} colour={color.neutral600}>{t(today.caveat)}</Body>
+
       </View>
     </View>
   );

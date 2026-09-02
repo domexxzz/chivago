@@ -52,7 +52,7 @@ export function SafetyScreen({
         <Heading size={26} colour={onFill.text} tracking={-0.52} style={{ marginTop: 6 }}>
           {strings.safety.title.en}
         </Heading>
-        <Thai size={11} colour={onFill.text} style={{ opacity: 0.75, marginTop: 4 }}>
+        <Thai always size={11} colour={onFill.text} style={{ opacity: 0.75, marginTop: 4 }}>
           {strings.safety.subtitle.th}
         </Thai>
       </View>
@@ -87,7 +87,7 @@ export function SafetyScreen({
         }}
       >
         <Body size={13} colour={color.neutral700}>{strings.safety.antiScamFooter.en}</Body>
-        <Thai size={11} style={{ marginTop: 6 }}>{strings.safety.antiScamFooter.th}</Thai>
+        <Thai always size={11} style={{ marginTop: 6 }}>{strings.safety.antiScamFooter.th}</Thai>
       </View>
       <View style={{ height: 24 }} />
     </ScrollView>
@@ -362,7 +362,7 @@ function SosSection({
         <View style={{ marginTop: 16 }}>
           <Button
             label={strings.safety.sosStop.en}
-            thai={strings.safety.sosStop.th}
+            bilingual thai={strings.safety.sosStop.th}
             variant="secondary"
             height={56}
             onPress={stopCountdown}
@@ -374,7 +374,7 @@ function SosSection({
               backgroundColor: color.surface,
             }}
           />
-          <Thai size={10} colour={color.neutral600} style={{ marginTop: 8, textAlign: 'center' }}>
+          <Thai always size={10} colour={color.neutral600} style={{ marginTop: 8, textAlign: 'center' }}>
             {strings.safety.sosSending(countdown).th}
           </Thai>
         </View>
@@ -416,7 +416,7 @@ function DispatchPanel({
       <Heading size={15} colour={color.coralDeep}>
         {strings.safety.dispatching(alert.locationLabel).en}
       </Heading>
-      <Thai size={11} style={{ marginTop: 2 }}>
+      <Thai always size={11} style={{ marginTop: 2 }}>
         {strings.safety.dispatching(alert.locationLabel).th}
       </Thai>
 
@@ -427,7 +427,7 @@ function DispatchPanel({
             ? strings.safety.acknowledgedBy(alert.acknowledgedBy!).en
             : strings.safety.notAcknowledged.en}
         </Label>
-        <Thai size={11} style={{ marginTop: 2 }}>
+        <Thai always size={11} style={{ marginTop: 2 }}>
           {acknowledged
             ? strings.safety.acknowledgedBy(alert.acknowledgedBy!).th
             : strings.safety.notAcknowledged.th}
@@ -476,7 +476,7 @@ function DispatchPanel({
       {/* The channel that always works: their own messenger. */}
       <Button
         label={strings.safety.shareLink.en}
-        thai={strings.safety.shareLink.th}
+        bilingual thai={strings.safety.shareLink.th}
         onPress={onShare}
         height={48}
         style={{ marginTop: 16 }}
@@ -494,7 +494,7 @@ function DispatchPanel({
       <Body size={13} colour={color.accent700} style={{ marginTop: 14 }}>
         {strings.safety.cannotDispatch.en}
       </Body>
-      <Thai size={11} style={{ marginTop: 4 }}>{strings.safety.cannotDispatch.th}</Thai>
+      <Thai always size={11} style={{ marginTop: 4 }}>{strings.safety.cannotDispatch.th}</Thai>
     </View>
   );
 }
@@ -577,7 +577,7 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
         >
           <View style={{ flex: 1 }}>
             <Heading size={14}>{n.name.en}</Heading>
-            <Thai size={10} style={{ marginTop: 2 }}>{n.name.th}</Thai>
+            <Thai always size={10} style={{ marginTop: 2 }}>{n.name.th}</Thai>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             {/* A phone number is a thing to tap, not a thing a host verified. */}

@@ -12,16 +12,17 @@ import { strings } from '@chivago/core';
 import { color, gutter } from '../theme/index.ts';
 import { Body, Label, Thai } from './Type.tsx';
 import { Button } from './Button.tsx';
+import { t } from '../i18n/locale.ts';
 
 export function LoadingState({ label }: { label?: string }) {
   return (
     <View
       accessibilityRole="progressbar"
-      accessibilityLabel={label ?? strings.common.loading.en}
+      accessibilityLabel={label ?? t(strings.common.loading)}
       style={{ paddingVertical: 48, alignItems: 'center', gap: 12 }}
     >
       <ActivityIndicator color={color.brand} />
-      <Label size={10} tracking={0.14}>{label ?? strings.common.loading.en}</Label>
+      <Label size={10} tracking={0.14}>{label ?? t(strings.common.loading)}</Label>
     </View>
   );
 }
@@ -37,10 +38,10 @@ export function ErrorState({
   return (
     <View style={{ paddingHorizontal: gutter, paddingVertical: 32 }}>
       <Body colour={color.text}>{message}</Body>
-      <Thai size={11} style={{ marginTop: 6 }}>{strings.common.offline.th}</Thai>
+
       {onRetry ? (
         <Button
-          label={strings.common.retry.en}
+          label={t(strings.common.retry)}
           onPress={onRetry}
           variant="secondary"
           height={44}
@@ -54,8 +55,7 @@ export function ErrorState({
 export function EmptyState({ en, th }: { en: string; th: string }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingVertical: 40 }}>
-      <Body colour={color.neutral700}>{en}</Body>
-      <Thai size={11} style={{ marginTop: 6 }}>{th}</Thai>
+      <Body colour={color.neutral700}>{t({ en, th })}</Body>
     </View>
   );
 }

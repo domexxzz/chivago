@@ -30,6 +30,7 @@ import { AccentNumeral, Body, Heading, Label, Thai } from '../components/Type.ts
 import { Creature } from '../components/Creature.tsx';
 import { Button } from '../components/Button.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
+import { t } from '../i18n/locale.ts';
 
 export function WalletScreen({
   onOpenCompanion,
@@ -96,8 +97,7 @@ function AccountRow({ onOpenAccount }: { onOpenAccount: () => void }) {
       }}
     >
       <View style={{ flex: 1 }}>
-        <Heading size={15}>Your account</Heading>
-        <Thai size={11} style={{ marginTop: 2 }}>บัญชีของคุณ</Thai>
+        <Heading size={15}>{t({ en: 'Your account', th: 'บัญชีของคุณ' })}</Heading>
         <Label size={9} tracking={0.04} colour={color.neutral600} style={{ marginTop: 5, textTransform: 'none' }}>
           Add another phone so none of this depends on keeping this one.
         </Label>
@@ -130,14 +130,14 @@ export function Balances({ wallet }: { wallet: Wallet }) {
     >
       <Purse
         figure={wallet.balances.green}
-        label={strings.common.greenPoints.en}
-        note={strings.common.greenPointsNote.en}
+        label={t(strings.common.greenPoints)}
+        note={t(strings.common.greenPointsNote)}
         accent
       />
       <Purse
         figure={wallet.balances.trip}
-        label={strings.common.tripPoints.en}
-        note={strings.common.tripPointsNote.en}
+        label={t(strings.common.tripPoints)}
+        note={t(strings.common.tripPointsNote)}
       />
     </View>
   );
@@ -183,14 +183,13 @@ export function LevelBlock({ wallet }: { wallet: Wallet }) {
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-          <Heading size={14}>{strings.wallet.level(p.level).en}</Heading>
-          <Label size={11} tracking={0.1}>{p.rank.label.en}</Label>
+          <Heading size={14}>{t(strings.wallet.level(p.level))}</Heading>
+          <Label size={11} tracking={0.1}>{t(p.rank.label)}</Label>
         </View>
         <Label size={11} tracking={0} style={{ textTransform: 'none' }}>
-          {strings.wallet.levelBar(p.intoLevel, p.levelSpan).en}
+          {t(strings.wallet.levelBar(p.intoLevel, p.levelSpan))}
         </Label>
       </View>
-      <Thai size={11} style={{ marginTop: 2 }}>{p.rank.label.th}</Thai>
       {/*
         Gold. A level is earned by activity, not granted by a host - it is the
         game layer, and painting it in the verified green made progression look
@@ -202,12 +201,12 @@ export function LevelBlock({ wallet }: { wallet: Wallet }) {
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
         <Label size={9} tracking={0.06} colour={color.neutral600}>
-          {strings.wallet.expNote.en}
+          {t(strings.wallet.expNote)}
         </Label>
         <Label size={9} tracking={0.06} colour={color.neutral600}>
           {p.nextRank
-            ? strings.wallet.toNextRank(p.nextRankAtLevel! - p.level, p.nextRank.label.en).en
-            : strings.wallet.topRank.en}
+            ? strings.wallet.toNextRank(p.nextRankAtLevel! - p.level, t(p.nextRank.label)).en
+            : t(strings.wallet.topRank)}
         </Label>
       </View>
     </View>
@@ -225,12 +224,12 @@ export function RankLadder({ wallet }: { wallet: Wallet }) {
         borderBottomColor: color.neutral300,
       }}
     >
-      <Label size={10} tracking={0.14}>{strings.wallet.ranks.en}</Label>
+      <Label size={10} tracking={0.14}>{t(strings.wallet.ranks)}</Label>
       <View style={{ flexDirection: 'row', gap: 6, marginTop: 12 }}>
         {wallet.progression.ladder.map((rank) => (
           <View
             key={rank.key}
-            accessibilityLabel={`${rank.label.en}, ${rank.earned ? 'reached' : `locked until level ${rank.fromLevel}`}`}
+            accessibilityLabel={`${t(rank.label)}, ${rank.earned ? 'reached' : `locked until level ${rank.fromLevel}`}`}
             style={{
               flex: 1,
               aspectRatio: 1,
@@ -253,7 +252,7 @@ export function RankLadder({ wallet }: { wallet: Wallet }) {
               colour={rank.earned ? onFill.gold : color.neutral500}
               style={{ textAlign: 'center', fontSize: 8 }}
             >
-              {rank.label.en}
+              {t(rank.label)}
             </Label>
           </View>
         ))}
@@ -266,12 +265,12 @@ export function Ledger({ wallet, onOpenMarket }: { wallet: Wallet; onOpenMarket:
   return (
     <View style={{ paddingHorizontal: gutter, paddingVertical: 16 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Label size={10} tracking={0.14}>{strings.wallet.ledger.en}</Label>
-        <Button label={strings.wallet.spendPoints.en} onPress={onOpenMarket} variant="ghost" />
+        <Label size={10} tracking={0.14}>{t(strings.wallet.ledger)}</Label>
+        <Button label={t(strings.wallet.spendPoints)} onPress={onOpenMarket} variant="ghost" />
       </View>
 
       {wallet.ledger.length === 0 ? (
-        <EmptyState en={strings.wallet.emptyLedger.en} th={strings.wallet.emptyLedger.th} />
+        <EmptyState en={t(strings.wallet.emptyLedger)} th={strings.wallet.emptyLedger.th} />
       ) : null}
 
       {wallet.ledger.map((entry) => (
@@ -360,7 +359,7 @@ function Inbox({
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Label size={10} tracking={0.14}>{strings.notifications.title.en}</Label>
+          <Label size={10} tracking={0.14}>{t(strings.notifications.title)}</Label>
           {unread > 0 ? (
             <View style={{ backgroundColor: color.brand, paddingHorizontal: 6, paddingVertical: 2 }}>
               <Heading size={11} colour={onFill.brand}>{unread}</Heading>
@@ -368,7 +367,7 @@ function Inbox({
           ) : null}
         </View>
         {unread > 0 ? (
-          <Button label={strings.notifications.markAllRead.en} onPress={onMarkAllRead} variant="ghost" />
+          <Button label={t(strings.notifications.markAllRead)} onPress={onMarkAllRead} variant="ghost" />
         ) : null}
       </View>
 
@@ -383,7 +382,7 @@ function Inbox({
               if (questId && item.data.screen === 'quest') onOpenQuest(questId);
             }}
             accessibilityRole="button"
-            accessibilityLabel={`${item.title.en}. ${item.body.en}`}
+            accessibilityLabel={`${t(item.title)}. ${t(item.body)}`}
             style={{
               flexDirection: 'row',
               gap: 12,
@@ -402,10 +401,8 @@ function Inbox({
               }}
             />
             <View style={{ flex: 1 }}>
-              <Heading size={14}>{item.title.en}</Heading>
-              <Thai size={11} style={{ marginTop: 2 }}>{item.title.th}</Thai>
-              <Body size={13} colour={color.neutral800} style={{ marginTop: 6 }}>{item.body.en}</Body>
-              <Thai size={11} style={{ marginTop: 4 }}>{item.body.th}</Thai>
+              <Heading size={14}>{t(item.title)}</Heading>
+              <Body size={13} colour={color.neutral800} style={{ marginTop: 6 }}>{t(item.body)}</Body>
               <Label size={10} tracking={0.1} style={{ marginTop: 6 }}>
                 {formatLedgerDate(item.createdAt, now)}
               </Label>
@@ -459,10 +456,7 @@ function Companions({
         // Not five locked slots. An empty collection with a lever you cannot
         // see is the shape of a slot machine.
         <View style={{ paddingHorizontal: gutter, paddingTop: 12 }}>
-          <Body size={13} colour={color.neutral700}>
-            Check in anywhere on the island to find your first egg.
-          </Body>
-          <Thai size={11} style={{ marginTop: 4 }}>เช็กอินที่ไหนก็ได้บนเกาะ เพื่อพบไข่ใบแรก</Thai>
+          <Body size={13} colour={color.neutral700}>{t({ en: 'Check in anywhere on the island to find your first egg.', th: 'เช็กอินที่ไหนก็ได้บนเกาะ เพื่อพบไข่ใบแรก' })}</Body>
         </View>
       ) : null}
 
@@ -471,7 +465,7 @@ function Companions({
           key={c.species.key}
           onPress={() => onOpenCompanion(c)}
           accessibilityRole="button"
-          accessibilityLabel={`${c.species.name.en}, ${c.stage}. Visit its home.`}
+          accessibilityLabel={`${t(c.species.name)}, ${c.stage}. Visit its home.`}
           style={{
             marginTop: 12,
             marginHorizontal: gutter,
@@ -490,11 +484,8 @@ function Companions({
             <Creature species={c.species.key} stage={c.stage} size={52} />
             <View style={{ flex: 1 }}>
               <Heading size={16} colour={c.stage === 'grown' ? color.accent : color.text}>
-                {c.stage === 'egg' ? c.species.eggName.en : c.species.name.en}
+                {c.stage === 'egg' ? c.species.eggName.en : t(c.species.name)}
               </Heading>
-              <Thai size={11} style={{ marginTop: 2 }}>
-                {c.stage === 'egg' ? c.species.eggName.th : c.species.name.th}
-              </Thai>
             </View>
             <Label size={9} tracking={0.12} colour={color.neutral600}>
               {c.stage.toUpperCase()}
@@ -513,16 +504,15 @@ function Companions({
                 {`${c.species.scientific} · IUCN ${c.species.status}`}
               </Label>
               <Body size={13} colour={color.neutral600} style={{ marginTop: 6 }}>
-                {c.species.fact.en}
+                {t(c.species.fact)}
               </Body>
-              <Thai size={10} style={{ marginTop: 3 }}>{c.species.fact.th}</Thai>
             </>
           ) : null}
 
           {/* What would move it on. Never a locked slot with no explanation. */}
           {c.nextStep ? (
             <Body size={13} colour={color.accent700} style={{ marginTop: 10 }}>
-              {c.nextStep.en}
+              {t(c.nextStep)}
             </Body>
           ) : null}
         </Pressable>

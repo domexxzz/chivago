@@ -32,6 +32,7 @@ import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
+import { t } from '../i18n/locale.ts';
 
 type StampState = 'stamped' | 'open' | 'listed';
 
@@ -80,11 +81,11 @@ export function PassportScreen() {
         </View>
 
         <Body size={13} colour={color.brandSoft} style={{ marginTop: 6 }}>
-          {`${progress.open} provinces are open today. The rest of Thailand is listed and not yet built.`}
+          {t({
+            en: `${progress.open} provinces are open today. The rest of Thailand is listed and not yet built.`,
+            th: `เก็บให้ครบทั่วไทย · เปิดแล้ว ${progress.open} จังหวัด`,
+          })}
         </Body>
-        <Thai size={11} colour={color.brandSoft} style={{ marginTop: 4 }}>
-          เก็บให้ครบทั่วไทย · เปิดแล้ว {progress.open} จังหวัด
-        </Thai>
 
         {/*
           The collection, on the same panel as the stamps, because they are the
@@ -171,8 +172,8 @@ function RegionBlock({
           paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: color.divider,
         }}
       >
-        <Heading size={15}>{region.name.en}</Heading>
-        <Thai size={11} colour={color.neutral700}>{region.name.th}</Thai>
+        <Heading size={15}>{t(region.name)}</Heading>
+
         <Label
           size={9}
           tracking={0.08}
@@ -214,7 +215,7 @@ function Stamp({
     <View
       accessibilityRole="text"
       accessibilityLabel={
-        `${province.name.en}. ${
+        `${t(province.name)}. ${
           stamped ? 'Visited' : open ? 'Open, not yet visited' : 'Not open yet'
         }.`
       }
@@ -230,19 +231,14 @@ function Stamp({
         opacity: state === 'listed' ? 0.55 : 1,
       }}
     >
-      <Thai
-        size={12}
-        colour={stamped ? color.surface : open ? color.accent700 : color.neutral700}
-      >
-        {province.name.th}
-      </Thai>
+
       <Label
         size={9}
         tracking={0.06}
         colour={stamped ? color.accent100 : color.neutral600}
         style={{ marginTop: 2, textTransform: 'none' }}
       >
-        {province.name.en}
+        {t(province.name)}
       </Label>
 
       {/*
@@ -259,7 +255,7 @@ function Stamp({
           colour={stamped ? color.surface : color.accent700}
           style={{ marginTop: 4, textTransform: 'none' }}
         >
-          {`${STAGE_MARK[companion.state] ?? ''} ${companion.species.name.en}`}
+          {`${STAGE_MARK[companion.state] ?? ''} ${t(companion.species.name)}`}
         </Label>
       ) : null}
     </View>
@@ -283,9 +279,8 @@ function HeroFigure({ value, label, thai }: { value: number; label: string; thai
     <View>
       <Heading size={22} colour={color.surface}>{value}</Heading>
       <Label size={9} tracking={0.08} colour={color.brandSoft} style={{ marginTop: 2 }}>
-        {label}
+        {thai ? t({ en: label, th: thai }) : label}
       </Label>
-      <Thai size={10} colour={color.brandSoft}>{thai}</Thai>
     </View>
   );
 }

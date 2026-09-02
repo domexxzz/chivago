@@ -22,6 +22,7 @@ import { Button, Tag } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { ReviewsBlock } from './PlaceReviews.tsx';
+import { t } from '../i18n/locale.ts';
 
 export function PlaceScreen({
   placeId, onBack, onAddToTrip, onSafePath, onToast, onPointsChanged,
@@ -67,7 +68,7 @@ export function PlaceScreen({
       pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
     } catch {
       setBusy(false);
-      onToast(strings.checkin.noFix.en);
+      onToast(t(strings.checkin.noFix));
       return;
     }
     const res = await api.checkIn(placeId, {
@@ -84,14 +85,14 @@ export function PlaceScreen({
     onToast(
       res.data.awarded
         ? strings.checkin.awarded(res.data.pointsAwarded).en
-        : strings.checkin.already.en,
+        : t(strings.checkin.already),
     );
     if (res.data.awarded) onPointsChanged();
   };
 
   return (
     <View style={{ flex: 1 }}>
-      <PushHeader context={strings.place.context.en} onBack={onBack} />
+      <PushHeader context={t(strings.place.context)} onBack={onBack} />
 
       {place.loading ? <LoadingState /> : null}
       {place.error ? <ErrorState message={place.error} onRetry={place.reload} /> : null}
@@ -101,21 +102,19 @@ export function PlaceScreen({
           <Hero place={place.data} />
 
           <View style={{ paddingHorizontal: gutter, paddingTop: 16 }}>
-            <Heading size={26} tracking={-0.52}>{place.data.name.en}</Heading>
-            <Thai size={11} style={{ marginTop: 4 }}>{place.data.name.th}</Thai>
+            <Heading size={26} tracking={-0.52}>{t(place.data.name)}</Heading>
 
             <ScoreBlock place={place.data} onExplain={() => setShowBreakdown(true)} />
             <MetricGrid place={place.data} />
 
-            <Body style={{ marginTop: 16 }}>{place.data.blurb.en}</Body>
-            <Thai size={11} style={{ marginTop: 8 }}>{place.data.blurb.th}</Thai>
+            <Body style={{ marginTop: 16 }}>{t(place.data.blurb)}</Body>
 
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16 }}>
               {place.data.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}
             </View>
 
             <Button
-              label={checkedIn ? strings.checkin.already.en : strings.checkin.cta.en}
+              label={checkedIn ? strings.checkin.already.en : t(strings.checkin.cta)}
               thai={checkedIn ? undefined : strings.checkin.cta.th}
               onPress={checkIn}
               disabled={busy || checkedIn}
@@ -123,7 +122,7 @@ export function PlaceScreen({
               style={{ marginTop: 24 }}
             />
             <Button
-              label={strings.place.addToRoute.en}
+              label={t(strings.place.addToRoute)}
               thai={strings.place.addToRoute.th}
               onPress={onAddToTrip}
               variant="secondary"
@@ -131,7 +130,7 @@ export function PlaceScreen({
               style={{ marginTop: 10 }}
             />
             <Button
-              label={strings.place.safePath.en}
+              label={t(strings.place.safePath)}
               onPress={onSafePath}
               variant="secondary"
               height={44}
@@ -184,11 +183,10 @@ function ScoreBlock({ place, onExplain }: { place: ScoredPlace; onExplain: () =>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 12 }}>
         <AccentNumeral size={44}>{place.healthyScore}</AccentNumeral>
         <View>
-          <Label size={10} tracking={0.14}>{strings.place.healthyScore.en}</Label>
-          <Thai size={11} style={{ marginTop: 2 }}>{strings.place.healthyScore.th}</Thai>
+          <Label size={10} tracking={0.14}>{t(strings.place.healthyScore)}</Label>
         </View>
       </View>
-      <Button label={strings.place.howCalculated.en} onPress={onExplain} variant="ghost" />
+      <Button label={t(strings.place.howCalculated)} onPress={onExplain} variant="ghost" />
     </View>
   );
 }
@@ -209,7 +207,7 @@ function MetricGrid({ place }: { place: ScoredPlace }) {
             borderBottomColor: color.neutral300,
           }}
         >
-          <Label size={10} tracking={0.12}>{c.label.en}</Label>
+          <Label size={10} tracking={0.12}>{t(c.label)}</Label>
           <Heading size={17} style={{ marginTop: 4 }}>{c.display}</Heading>
         </View>
       ))}
@@ -247,8 +245,7 @@ function BreakdownSheet({
             }}
           >
             <View style={{ flex: 1 }}>
-              <Heading size={20}>{strings.place.howCalculated.en}</Heading>
-              <Thai size={11} style={{ marginTop: 2 }}>{strings.place.howCalculated.th}</Thai>
+              <Heading size={20}>{t(strings.place.howCalculated)}</Heading>
             </View>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12}>
               <X size={20} color={color.text} strokeWidth={2} />
@@ -270,10 +267,9 @@ function BreakdownSheet({
                 }}
               >
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <Heading size={15}>{c.label.en}</Heading>
+                  <Heading size={15}>{t(c.label)}</Heading>
                   <Heading size={15} colour={color.accent700}>{`${Math.round(c.subScore)} / 100`}</Heading>
                 </View>
-                <Thai size={11} style={{ marginTop: 2 }}>{c.label.th}</Thai>
 
                 <View style={{ height: 6, backgroundColor: color.neutral300, marginTop: 10 }}>
                   <View style={{ width: `${c.subScore}%`, height: '100%', backgroundColor: color.text }} />
@@ -283,7 +279,7 @@ function BreakdownSheet({
                   <Label size={10} tracking={0.1}>{`Reading · ${c.display}`}</Label>
                   <Label size={10} tracking={0.1}>{`Weight · ${Math.round(c.weight * 100)}%`}</Label>
                   <Label size={10} tracking={0.1} colour={c.provenance === 'live' ? color.accent700 : color.neutral600}>
-                    {strings.place.provenance[c.provenance].en}
+                    {t(strings.place.provenance[c.provenance])}
                   </Label>
                 </View>
               </View>
@@ -343,7 +339,7 @@ export function Hero({ place }: { place: ScoredPlace }) {
         <>
           <Image
             source={{ uri: place.photo.url }}
-            accessibilityLabel={`${place.name.en}, photographed by ${place.photo.credit}`}
+            accessibilityLabel={`${t(place.name)}, photographed by ${place.photo.credit}`}
             resizeMode="cover"
             style={{ width: '100%', height: '100%' }}
           />

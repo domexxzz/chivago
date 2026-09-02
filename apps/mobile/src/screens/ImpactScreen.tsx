@@ -21,6 +21,7 @@ import { color, gutter, layout, radius } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
+import { t } from '../i18n/locale.ts';
 
 export function ImpactScreen({
   onToast, refreshKey,
@@ -33,8 +34,8 @@ export function ImpactScreen({
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
       <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 14 }}>
-        <Heading size={26} tracking={-0.52}>{strings.impact.title.en}</Heading>
-        <Thai size={11} style={{ marginTop: 4 }}>{strings.impact.subtitle.th}</Thai>
+        <Heading size={26} tracking={-0.52}>{t(strings.impact.title)}</Heading>
+
       </View>
 
       {mine.loading || community.loading ? <LoadingState /> : null}
@@ -65,7 +66,7 @@ export function ImpactScreen({
               <Heading size={30} tracking={-0.6}>
                 {`${stat.value.toLocaleString('en-US')}${stat.unit ? ` ${stat.unit}` : ''}`}
               </Heading>
-              <Label size={10} tracking={0.12} style={{ marginTop: 6 }}>{stat.label.en}</Label>
+              <Label size={10} tracking={0.12} style={{ marginTop: 6 }}>{t(stat.label)}</Label>
             </View>
           ))}
         </View>
@@ -80,7 +81,7 @@ export function ImpactScreen({
           const res = await api.recordMood(mood);
           if (!res.ok) { onToast(res.error); return; }
           setMoodKey((n) => n + 1);
-          onToast(`${MOODS[mood].asks.en} · ${MOODS[mood].asks.th}`);
+          onToast(`${t(MOODS[mood].asks)}`);
         }}
       />
 
@@ -97,7 +98,7 @@ export function ImpactScreen({
       {community.data ? (
         <View style={{ paddingHorizontal: gutter, paddingTop: 20 }}>
           <Label size={10} tracking={0.16}>
-            {strings.impact.community(community.data.year).en}
+            {t(strings.impact.community(community.data.year))}
           </Label>
 
           {community.data.metrics.map((m) => {
@@ -106,7 +107,7 @@ export function ImpactScreen({
             return (
               <View key={m.key} style={{ marginTop: 16 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <Body size={13}>{m.label.en}</Body>
+                  <Body size={13}>{t(m.label)}</Body>
                   <Heading size={13}>
                     {`${m.actual.toLocaleString('en-US')}${m.unit ? ` ${m.unit}` : ''}`}
                   </Heading>
@@ -121,7 +122,7 @@ export function ImpactScreen({
                   />
                 </View>
                 <Label size={9} tracking={0.1} style={{ marginTop: 4 }}>
-                  {strings.impact.ofTarget(pct).en}
+                  {t(strings.impact.ofTarget(pct))}
                 </Label>
               </View>
             );
@@ -141,13 +142,13 @@ export function ImpactScreen({
         }}
       >
         <Label size={10} tracking={0.14} colour={color.accent700}>
-          {strings.impact.verifiedData.en}
+          {t(strings.impact.verifiedData)}
         </Label>
-        <Body size={13} style={{ marginTop: 8 }}>{strings.impact.verifiedBlurb.en}</Body>
-        <Thai size={11} style={{ marginTop: 6 }}>{strings.impact.verifiedBlurb.th}</Thai>
+        <Body size={13} style={{ marginTop: 8 }}>{t(strings.impact.verifiedBlurb)}</Body>
+
         <Button
-          label={strings.impact.exportCard.en}
-          onPress={() => onToast(strings.impact.exported.en)}
+          label={t(strings.impact.exportCard)}
+          onPress={() => onToast(t(strings.impact.exported))}
           variant="secondary"
           height={44}
           style={{ marginTop: 14 }}
@@ -191,7 +192,6 @@ function BalanceBlock({
             // clothes. Say so instead of printing a zero.
             <View style={{ marginTop: 12 }}>
               <Body colour={color.neutral700}>{balance.note?.en}</Body>
-              <Thai size={11} style={{ marginTop: 4 }}>{balance.note?.th}</Thai>
             </View>
           ) : (
             <>
@@ -213,7 +213,7 @@ function BalanceBlock({
                   }}
                 >
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
-                    <Heading size={13}>{c.label.en}</Heading>
+                    <Heading size={13}>{t(c.label)}</Heading>
                     {/* Green when the component has earned it, ink otherwise. */}
                     <Heading size={13} colour={isHighScore(c.subScore) ? color.accent700 : color.text}>
                       {c.subScore}
@@ -251,7 +251,7 @@ function MoodRow({ onMood }: { onMood: (mood: MoodKey) => void }) {
             key={key}
             onPress={() => onMood(key)}
             accessibilityRole="button"
-            accessibilityLabel={`I feel ${MOODS[key].label.en}`}
+            accessibilityLabel={`I feel ${t(MOODS[key].label)}`}
             style={{
               paddingVertical: 9,
               paddingHorizontal: 14,
@@ -260,17 +260,12 @@ function MoodRow({ onMood }: { onMood: (mood: MoodKey) => void }) {
               borderRadius: radius.lg,
             }}
           >
-            <Heading size={13}>{MOODS[key].label.en}</Heading>
-            <Thai size={10} style={{ marginTop: 1 }}>{MOODS[key].label.th}</Thai>
+            <Heading size={13}>{t(MOODS[key].label)}</Heading>
+
           </Pressable>
         ))}
       </View>
-      <Body size={13} colour={color.neutral600} style={{ marginTop: 10 }}>
-        This shapes the day we plan for you. It is not health advice.
-      </Body>
-      <Thai size={10} style={{ marginTop: 3 }}>
-        ใช้ปรับแผนเที่ยวให้เหมาะกับคุณ ไม่ใช่คำแนะนำทางการแพทย์
-      </Thai>
+      <Body size={13} colour={color.neutral600} style={{ marginTop: 10 }}>{t({ en: 'This shapes the day we plan for you. It is not health advice.', th: 'ใช้ปรับแผนเที่ยวให้เหมาะกับคุณ ไม่ใช่คำแนะนำทางการแพทย์' })}</Body>
     </View>
   );
 }

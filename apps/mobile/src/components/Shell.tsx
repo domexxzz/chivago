@@ -19,6 +19,7 @@ import { IconButton } from './Button.tsx';
  */
 export type { TabKey } from '../state/store.tsx';
 import type { TabKey } from '../state/store.tsx';
+import { t } from '../i18n/locale.ts';
 
 const TAB_ICONS = {
   home: House, map: MapIcon, quests: Leaf, wallet: Wallet, safety: Shield,
@@ -53,7 +54,7 @@ export function TabBar({
             onPress={() => onChange(key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
-            accessibilityLabel={`${strings.tabs[key].en}. ${strings.tabs[key].th}`}
+            accessibilityLabel={t(strings.tabs[key])}
             style={{
               flex: 1,
               alignItems: 'center',
@@ -65,7 +66,7 @@ export function TabBar({
             }}
           >
             <Icon size={layout.tabIconSize} color={fg} strokeWidth={2} />
-            <Label size={9} tracking={0.1} colour={fg}>{strings.tabs[key].en}</Label>
+            <Label size={9} tracking={0.1} colour={fg}>{t(strings.tabs[key])}</Label>
           </Pressable>
         );
       })}
@@ -90,7 +91,7 @@ export function PushHeader({
         paddingVertical: 12,
       }}
     >
-      <IconButton onPress={onBack} accessibilityLabel={strings.common.back.en}>
+      <IconButton onPress={onBack} accessibilityLabel={t(strings.common.back)}>
         <ChevronLeft size={18} color={color.text} strokeWidth={2} />
       </IconButton>
       <Label size={10} tracking={0.16} style={{ flex: 1 }}>{context}</Label>
@@ -177,10 +178,12 @@ export function SosBanner({ onPress }: { onPress: () => void }) {
       style={{ backgroundColor: color.accent2, paddingVertical: 10, paddingHorizontal: gutter }}
     >
       <Animated.View style={{ opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.72] }) }}>
+        {/* Both languages, always: a responder may be reading this phone. */}
         <Heading size={13} colour={onFill.accent2}>{strings.safety.activeBanner.en}</Heading>
-        <Thai size={11} colour={onFill.accent2} style={{ opacity: 0.9, marginTop: 2 }}>
+        <Thai always size={11} colour={onFill.accent2} style={{ opacity: 0.9, marginTop: 2 }}>
           {strings.safety.activeBanner.th}
         </Thai>
+
       </Animated.View>
     </Pressable>
   );

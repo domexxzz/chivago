@@ -34,6 +34,7 @@ import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { IconButton } from '../components/Button.tsx';
+import { t } from '../i18n/locale.ts';
 
 /**
  * A slow breath, and nothing else.
@@ -97,7 +98,7 @@ export function CompanionHomeScreen({
         <IconButton onPress={onBack} accessibilityLabel="Back to the collection">
           <ChevronLeft size={16} color={color.text} strokeWidth={2} />
         </IconButton>
-        <Label size={10} tracking={0.16}>{`${species.habitat.en} · ${species.habitat.th}`}</Label>
+        <Label size={10} tracking={0.16}>{`${t(species.habitat)}`}</Label>
       </View>
 
       {/*
@@ -133,11 +134,8 @@ export function CompanionHomeScreen({
           colour={grown ? color.accent : color.text}
           style={{ marginTop: 18 }}
         >
-          {stage === 'egg' ? species.eggName.en : species.name.en}
+          {stage === 'egg' ? species.eggName.en : t(species.name)}
         </Heading>
-        <Thai size={12} style={{ marginTop: 3 }}>
-          {stage === 'egg' ? species.eggName.th : species.name.th}
-        </Thai>
 
         <View
           style={{
@@ -147,7 +145,7 @@ export function CompanionHomeScreen({
           }}
         >
           <Label size={9} tracking={0.12} colour={grown ? color.accent : color.neutral700}>
-            {`${STAGE_LABEL[stage].en} · ${STAGE_LABEL[stage].th}`}
+            {`${t(STAGE_LABEL[stage])}`}
           </Label>
         </View>
       </View>
@@ -162,8 +160,8 @@ export function CompanionHomeScreen({
         >
           <Label size={9} tracking={0.14} colour={color.neutral600}>Next</Label>
           {/* An instruction, not a receipt: "do this next" has not happened yet. */}
-          <Body size={14} colour={color.ctaDeep} style={{ marginTop: 6 }}>{nextStep.en}</Body>
-          <Thai size={11} style={{ marginTop: 4 }}>{nextStep.th}</Thai>
+          <Body size={14} colour={color.ctaDeep} style={{ marginTop: 6 }}>{t(nextStep)}</Body>
+
         </View>
       ) : null}
 
@@ -175,8 +173,8 @@ export function CompanionHomeScreen({
           <Label size={9} tracking={0.14} colour={color.neutral600}>
             {`${species.scientific} · IUCN ${species.status}`}
           </Label>
-          <Body size={14} style={{ marginTop: 8 }}>{species.fact.en}</Body>
-          <Thai size={11} style={{ marginTop: 4 }}>{species.fact.th}</Thai>
+          <Body size={14} style={{ marginTop: 8 }}>{t(species.fact)}</Body>
+
         </View>
       ) : null}
 
@@ -189,7 +187,7 @@ export function CompanionHomeScreen({
           <Action
             label="Go there"
             thai={`ไปที่ ${habitat.name.th}`}
-            detail={`${habitat.name.en} · ${evidence.visitDays} ${evidence.visitDays === 1 ? 'day' : 'days'} so far`}
+            detail={`${t(habitat.name)} · ${evidence.visitDays} ${evidence.visitDays === 1 ? 'day' : 'days'} so far`}
             onPress={() => onOpenPlace(habitat.id)}
           />
         ) : null}
@@ -250,7 +248,7 @@ function HabitatCondition({
         label="Room to move"
         thai="ความพลุกพล่าน"
         value={room}
-        reading={`${crowd.en} · ${habitat.metrics.crowdDensity.toFixed(1)} per 100 m²`}
+        reading={`${t(crowd)} · ${habitat.metrics.crowdDensity.toFixed(1)} per 100 m²`}
       />
 
       <Label
@@ -259,7 +257,7 @@ function HabitatCondition({
         colour={color.neutral600}
         style={{ marginTop: 10, textTransform: 'none' }}
       >
-        Measured at {habitat.name.en}, not simulated. These move whether or not
+        Measured at {t(habitat.name)}, not simulated. These move whether or not
         you open the app.
       </Label>
     </View>
@@ -272,8 +270,7 @@ function Meter({
   return (
     <View style={{ marginTop: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-        <Heading size={13}>{label}</Heading>
-        <Thai size={10} colour={color.neutral600}>{thai}</Thai>
+        <Heading size={13}>{thai ? t({ en: label, th: thai }) : label}</Heading>
         <Label
           size={9}
           tracking={0.04}
@@ -320,8 +317,7 @@ function Action({
       }}
     >
       <View style={{ flex: 1 }}>
-        <Heading size={15} colour={color.brand}>{label}</Heading>
-        <Thai size={10} style={{ marginTop: 2 }}>{thai}</Thai>
+        <Heading size={15} colour={color.brand}>{thai ? t({ en: label, th: thai }) : label}</Heading>
         <Label
           size={9}
           tracking={0.04}

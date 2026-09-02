@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  HERO, SAMUI_BOUNDS, chivagoStyle, heroPose, introPose, settleEasing,
+  CROWD_M, HERO, PIN_NUDGE_PX, SAMUI_BOUNDS, chivagoStyle, crowdOffsets, heroPose, introPose, settleEasing,
 } from '../src/components/terrain-style.ts';
 import { SAMUI_BBOX } from '@chivago/core';
 import { color } from '../src/theme/index.ts';
@@ -103,6 +103,27 @@ describe('free, and stays free', () => {
       assert.doesNotMatch(url, /key=|token=|access_token|apikey/i, url);
     }
     assert.match(style.glyphs ?? '', /^https:\/\/tiles\.openfreemap\.org\//);
+  });
+});
+
+describe('pins that share a coast', () => {
+  const chaweng = { id: 'chaweng', lat: 9.531, lng: 100.062 };
+  const fishermans = { id: 'fishermans', lat: 9.556, lng: 100.045 };
+  const thongKrut = { id: 'thong-krut', lat: 9.416, lng: 99.972 };
+
+  test('two pins a beach apart are pushed apart, north up and south down', () => {
+    const nudge = crowdOffsets([chaweng, fishermans, thongKrut]);
+    assert.deepEqual(nudge.get('fishermans'), [0, -PIN_NUDGE_PX]);
+    assert.deepEqual(nudge.get('chaweng'), [0, PIN_NUDGE_PX]);
+  });
+
+  test('a pin on its own is left exactly on its place', () => {
+    const nudge = crowdOffsets([chaweng, fishermans, thongKrut]);
+    assert.equal(nudge.has('thong-krut'), false, 'Thong Krut is 15 km from anything');
+  });
+
+  test('the crowd radius is a few kilometres, not the whole island', () => {
+    assert.ok(CROWD_M >= 3000 && CROWD_M <= 6000);
   });
 });
 

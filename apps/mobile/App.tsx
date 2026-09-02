@@ -42,6 +42,7 @@ import { TripScreen, type TripState } from './src/screens/TripScreen.tsx';
 import { ConciergeScreen } from './src/screens/ConciergeScreen.tsx';
 import { CompanionHomeScreen } from './src/screens/CompanionHome.tsx';
 import type { Companion } from '@chivago/core';
+import { loadLocale, t, useLocale } from './src/i18n/locale.ts';
 
 export default function App() {
   // Both families are bundled locally rather than fetched at runtime: the app
@@ -54,6 +55,12 @@ export default function App() {
   });
 
   const nav = useNav('onboarding');
+  // The language. Resolved once before the first screen (stored choice, else
+  // the phone's), and a change re-renders from here, which reaches every
+  // t() below: nothing in this tree is memoised against its parent.
+  useLocale();
+  const [localeReady, setLocaleReady] = React.useState(false);
+  React.useEffect(() => { void loadLocale().then(() => setLocaleReady(true)); }, []);
   // Route state: it belongs to the pushed screen and dies with it.
   const [companion, setCompanion] = React.useState<Companion | null>(null);
   const toast = useToast();
@@ -138,7 +145,7 @@ export default function App() {
 
   // Wait for the profile as well as the fonts. Rendering onboarding first and
   // snapping to the map a moment later is worse than a beat of loading.
-  if (!fontsReady || !account.ready || !profileLoaded) {
+  if (!fontsReady || !account.ready || !profileLoaded || !localeReady) {
     return (
       <SafeAreaProvider>
         <View style={{ flex: 1, backgroundColor: color.bg, justifyContent: 'center' }}>
@@ -223,7 +230,7 @@ export default function App() {
                 },
                 1.2,
               );
-              toast.show(`${strings.place.addedToast.en} · ${strings.place.addedToast.th}`);
+              toast.show(`${t(strings.place.addedToast)}`);
               nav.push('trip');
             }}
             onSafePath={() => nav.selectTab('safety')}

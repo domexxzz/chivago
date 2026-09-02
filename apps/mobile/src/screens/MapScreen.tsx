@@ -18,6 +18,7 @@ import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button, IconButton } from '../components/Button.tsx';
 import { LayerChips, PlaceFeedRow, SamuiMap, type MapMode } from '../components/SamuiMap.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
+import { t } from '../i18n/locale.ts';
 
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
@@ -70,7 +71,7 @@ export function MapScreen({
                   }}
                 >
                   <Label size={10} tracking={0.14} colour={onFill.text}>
-                    {strings.map.liveNear(visible.length).en}
+                    {t(strings.map.liveNear(visible.length))}
                   </Label>
                 </View>
               </View>
@@ -114,10 +115,9 @@ export function MapScreen({
         }}
       >
         <View style={{ flex: 1 }}>
-          <Heading size={17} colour={color.ctaDeep}>{strings.trip.planCta.en}</Heading>
-          <Thai size={11} style={{ marginTop: 3 }}>{strings.trip.planCta.th}</Thai>
+          <Heading size={17} colour={color.ctaDeep}>{t(strings.trip.planCta)}</Heading>
           <Body size={13} colour={color.neutral600} style={{ marginTop: 6 }}>
-            {strings.trip.planBlurb.en}
+            {t(strings.trip.planBlurb)}
           </Body>
         </View>
         <ChevronRight size={20} color={color.ctaDeep} strokeWidth={2} />
@@ -149,10 +149,7 @@ export function MapScreen({
       >
         <MessageCircle size={18} color={color.neutral700} strokeWidth={2} />
         <View style={{ flex: 1 }}>
-          <Heading size={14}>Ask where to go</Heading>
-          <Thai size={10} colour={color.neutral600} style={{ marginTop: 2 }}>
-            ถามได้ทั้งภาษาไทยและอังกฤษ
-          </Thai>
+          <Heading size={14}>{t({ en: 'Ask where to go', th: 'ถามได้ทั้งภาษาไทยและอังกฤษ' })}</Heading>
         </View>
         <ChevronRight size={18} color={color.neutral600} strokeWidth={2} />
       </Pressable>
@@ -187,8 +184,8 @@ export function MapHeader({
       }}
     >
       <View style={{ flex: 1 }}>
-        <Label size={10} tracking={0.16}>{strings.map.greeting('John').en}</Label>
-        <Heading size={24} tracking={-0.48} style={{ marginTop: 4 }}>{strings.map.island.en}</Heading>
+        <Label size={10} tracking={0.16}>{t(strings.map.greeting('John'))}</Label>
+        <Heading size={24} tracking={-0.48} style={{ marginTop: 4 }}>{t(strings.map.island)}</Heading>
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -220,10 +217,10 @@ export function MapHeader({
           onPress={onOpenWallet}
           accessibilityRole="button"
           accessibilityLabel={
-            `${balances.green.toLocaleString('en-US')} ${strings.common.greenPoints.en}, `
-            + `${strings.common.greenPointsNote.en}. `
-            + `${balances.trip.toLocaleString('en-US')} ${strings.common.tripPoints.en}, `
-            + `${strings.common.tripPointsNote.en}. Open wallet.`
+            `${balances.green.toLocaleString('en-US')} ${t(strings.common.greenPoints)}, `
+            + `${t(strings.common.greenPointsNote)}. `
+            + `${balances.trip.toLocaleString('en-US')} ${t(strings.common.tripPoints)}, `
+            + `${t(strings.common.tripPointsNote)}. Open wallet.`
           }
           style={{
             borderLeftWidth: layout.ruleStrong,
@@ -269,8 +266,8 @@ export function QuestsNearYou({
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 16, paddingBottom: 24 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Label size={10} tracking={0.16}>{strings.map.questsNearYou.en}</Label>
-        <Button label={strings.common.seeAll.en} onPress={onSeeAll} variant="ghost" />
+        <Label size={10} tracking={0.16}>{t(strings.map.questsNearYou)}</Label>
+        <Button label={t(strings.common.seeAll)} onPress={onSeeAll} variant="ghost" />
       </View>
 
       {top ? (
@@ -285,8 +282,7 @@ export function QuestsNearYou({
         >
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
             <View style={{ flex: 1 }}>
-              <Heading size={17}>{top.name.en}</Heading>
-              <Thai size={11} style={{ marginTop: 3 }}>{`${top.name.th} · ${top.where}`}</Thai>
+              <Heading size={17}>{t(top.name)}</Heading>
             </View>
             <View style={{ backgroundColor: currencyTone(top.rewardCurrency).fill, paddingVertical: 4, paddingHorizontal: 8, borderRadius: radius.sm }}>
               <Heading size={13} colour={currencyTone(top.rewardCurrency).on}>
@@ -301,7 +297,7 @@ export function QuestsNearYou({
           </View>
 
           <Button
-            label={strings.quest.ctaJoin.en}
+            label={t(strings.quest.ctaJoin)}
             onPress={() => onOpen(top.id)}
             height={44}
             style={{ marginTop: 12 }}

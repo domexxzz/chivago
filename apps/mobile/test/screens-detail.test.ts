@@ -14,6 +14,7 @@ import { createElement as h } from 'react';
 import { act } from 'react-test-renderer';
 import { motion } from '@chivago/tokens';
 import { mountScreen, offline, refuses, server, settle } from './interact.ts';
+import { __setLocaleForTests } from '../src/i18n/locale.ts';
 import { control, resetControl } from './stubs/native.mjs';
 import { place, progress, quest, review, shield, summary, wallet } from './fixtures.ts';
 
@@ -784,8 +785,8 @@ describe('onboarding, three steps and out', () => {
       onFinish: (a: unknown) => { answers = a; },
     }));
 
-    await ui.press(/^Nature & green space\./);
-    await ui.press(/^Volunteering\./);
+    await ui.press(/^Nature & green space/);
+    await ui.press(/^Volunteering/);
     await ui.pressText('Continue');
 
     assert.match(ui.text(), /Step 2 of 3/);
@@ -793,7 +794,7 @@ describe('onboarding, three steps and out', () => {
     await ui.pressText('Continue');
 
     assert.match(ui.text(), /Step 3 of 3/);
-    await ui.press(/^Air quality alerts\./);
+    await ui.press(/^Air quality alerts/);
     await ui.pressText('Enter ChivaGo');
 
     assert.deepEqual(answers, {
@@ -826,8 +827,8 @@ describe('onboarding, three steps and out', () => {
       onFinish: (a: { purposes: string[] }) => { answers = a; },
     }));
 
-    await ui.press(/^Quiet, away from crowds\./);
-    await ui.press(/^Quiet, away from crowds\./);
+    await ui.press(/^Quiet, away from crowds/);
+    await ui.press(/^Quiet, away from crowds/);
     await ui.pressText('Continue');
     await ui.pressText('Continue');
     await ui.pressText('Enter ChivaGo');
@@ -947,10 +948,14 @@ describe('Chiva Balance and the mood check-in', () => {
     const net = server(routes(balance()));
     try {
       const ui = await mountScreen(h(ImpactScreen, impactProps));
-      const said = ui.text();
-      assert.match(said, /not health advice/i);
-      assert.match(said, /ไม่ใช่คำแนะนำทางการแพทย์/);
+      assert.match(ui.text(), /not health advice/i);
       ui.unmount();
+
+      __setLocaleForTests('th');
+      const thai = await mountScreen(h(ImpactScreen, impactProps));
+      assert.match(thai.text(), /ไม่ใช่คำแนะนำทางการแพทย์/);
+      thai.unmount();
+      __setLocaleForTests('en');
     } finally { net.restore(); }
   });
 
@@ -1187,8 +1192,13 @@ describe('the concierge screen, which answers without a server', () => {
       const said = ui.text();
       assert.match(said, /Try asking/i);
       assert.match(said, /Somewhere quiet/i);
-      assert.match(said, /ที่เงียบ/, 'the openers are offered in Thai too');
       ui.unmount();
+
+      __setLocaleForTests('th');
+      const thai = await mountScreen(h(ConciergeScreen, props()));
+      assert.match(thai.text(), /ที่เงียบ/, 'the openers are offered in Thai when the app is');
+      thai.unmount();
+      __setLocaleForTests('en');
     } finally { net.restore(); }
   });
 
@@ -1316,11 +1326,19 @@ describe('the passport, which shows a country it has not finished', () => {
     try {
       const ui = await mountScreen(h(PassportScreen, {}));
       const said = ui.text();
-      for (const p of ['หนองคาย', 'แม่ฮ่องสอน', 'นราธิวาส', 'กรุงเทพมหานคร', 'สุราษฎร์ธานี']) {
+      for (const p of ['Nong Khai', 'Mae Hong Son', 'Narathiwat', 'Bangkok', 'Surat Thani']) {
         assert.match(said, new RegExp(p), `${p} is missing from the passport`);
       }
       assert.match(said, /\/ 77/, 'the denominator is not the whole country');
       ui.unmount();
+
+      // And by their own names, for a reader from there.
+      __setLocaleForTests('th');
+      const thai = (await mountScreen(h(PassportScreen, {}))).text();
+      for (const p of ['หนองคาย', 'แม่ฮ่องสอน', 'นราธิวาส', 'กรุงเทพมหานคร', 'สุราษฎร์ธานี']) {
+        assert.match(thai, new RegExp(p), `${p} is missing from the Thai passport`);
+      }
+      __setLocaleForTests('en');
     } finally { net.restore(); }
   });
 
@@ -1402,7 +1420,7 @@ describe('the passport, which shows a country it has not finished', () => {
     try {
       const said = (await mountScreen(h(PassportScreen, {}))).text();
       assert.match(said, /offline/i);
-      assert.match(said, /เชียงใหม่/, 'the country vanished with the request');
+      assert.match(said, /Chiang Mai/, 'the country vanished with the request');
       assert.match(said, /0\s*\/ 77/);
     } finally { net.restore(); }
   });

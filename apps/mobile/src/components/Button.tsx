@@ -12,13 +12,19 @@ import { Pressable, View, type ViewStyle } from 'react-native';
 import { ArrowRight } from 'lucide-react-native';
 import { color, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Thai } from './Type.tsx';
+import { getLocale } from '../i18n/locale.ts';
 
 type Variant = 'primary' | 'secondary' | 'ghost';
 
 interface ButtonProps {
   label: string;
-  /** Optional Thai caption, right-aligned inside the button. */
+  /** The Thai for `label`. Shown INSTEAD of it when the app is in Thai. */
   thai?: string;
+  /**
+   * Keep both languages on the face of the button. Only for what an emergency
+   * responder might read off a traveller's phone.
+   */
+  bilingual?: boolean;
   onPress: () => void;
   variant?: Variant;
   height?: number;
@@ -34,9 +40,13 @@ interface ButtonProps {
 
 export function Button({
   label, thai, onPress, variant = 'primary', height = 48,
-  disabled = false, icon, style, inverted = false, accessibilityLabel,
+  disabled = false, icon, style, inverted = false, accessibilityLabel, bilingual = false,
 }: ButtonProps) {
   const [pressed, setPressed] = React.useState(false);
+  // One language at a time (see i18n/locale.ts). The Thai replaces the
+  // English rather than sitting beside it.
+  const text = !bilingual && thai && getLocale() === 'th' ? thai : label;
+  const caption = bilingual ? thai : undefined;
 
   const palette = (() => {
     if (inverted) {
@@ -77,10 +87,10 @@ export function Button({
         onPress={onPress}
         disabled={disabled}
         accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel ?? (thai ? `${label}. ${thai}` : label || undefined)}
+        accessibilityLabel={accessibilityLabel ?? (caption ? `${label}. ${caption}` : text || undefined)}
         style={[{ paddingVertical: 4, paddingHorizontal: 4, alignSelf: 'flex-start' }, disabled && { opacity: layout.disabledOpacity }, style]}
       >
-        {label ? <Heading size={13} colour={palette.fg}>{label}</Heading> : null}
+        {text ? <Heading size={13} colour={palette.fg}>{text}</Heading> : null}
         {trailing}
       </Pressable>
     );
@@ -93,7 +103,7 @@ export function Button({
       onPressOut={() => setPressed(false)}
       disabled={disabled}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? (thai ? `${label}. ${thai}` : label)}
+      accessibilityLabel={accessibilityLabel ?? (caption ? `${label}. ${caption}` : text)}
       style={[
         {
           height,
@@ -112,9 +122,9 @@ export function Button({
         style,
       ]}
     >
-      <Heading size={16} colour={palette.fg}>{label}</Heading>
+      <Heading size={16} colour={palette.fg}>{text}</Heading>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        {thai ? <Thai size={12} colour={palette.fg}>{thai}</Thai> : null}
+        {caption ? <Thai always size={12} colour={palette.fg}>{caption}</Thai> : null}
         {trailing}
       </View>
     </Pressable>

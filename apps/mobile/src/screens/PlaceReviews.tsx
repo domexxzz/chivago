@@ -24,6 +24,7 @@ import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState } from '../components/States.tsx';
+import { t } from '../i18n/locale.ts';
 
 export function ReviewsBlock({
   placeId, summary, justCheckedIn, onToast, onPointsChanged,
@@ -72,26 +73,26 @@ export function ReviewsBlock({
     <View style={{ marginTop: 24, borderTopWidth: layout.ruleStrong, borderTopColor: color.text, paddingTop: 16 }}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
         <Label size={10} tracking={0.14}>
-          {`${strings.reviews.title.en} · ${strings.reviews.title.th}`}
+          {`${t(strings.reviews.title)}`}
         </Label>
         {/* A place nobody has reviewed shows nothing here, not "0.0" - zero is
             a rating, and we have no basis for that claim. */}
         {summary.average !== null ? (
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
             <AccentNumeral size={22}>{summary.average.toFixed(1)}</AccentNumeral>
-            <Label size={10} tracking={0.1}>{strings.reviews.count(summary.count).en}</Label>
+            <Label size={10} tracking={0.1}>{t(strings.reviews.count(summary.count))}</Label>
           </View>
         ) : null}
       </View>
 
       <Body size={13} colour={color.neutral700} style={{ marginTop: 8 }}>
-        {strings.reviews.verifiedOnly.en}
+        {t(strings.reviews.verifiedOnly)}
       </Body>
-      <Thai size={10} style={{ marginTop: 4 }}>{strings.reviews.verifiedOnly.th}</Thai>
+
 
       {canReview ? (
         <Button
-          label={mine ? strings.reviews.edit.en : strings.reviews.write.en}
+          label={mine ? strings.reviews.edit.en : t(strings.reviews.write)}
           onPress={() => setComposing(true)}
           variant="secondary"
           height={44}
@@ -109,8 +110,8 @@ export function ReviewsBlock({
             borderRadius: radius.sm,
           }}
         >
-          <Body size={13} colour={color.neutral700}>{strings.reviews.lockedUntilCheckin.en}</Body>
-          <Thai size={10} style={{ marginTop: 4 }}>{strings.reviews.lockedUntilCheckin.th}</Thai>
+          <Body size={13} colour={color.neutral700}>{t(strings.reviews.lockedUntilCheckin)}</Body>
+
         </View>
       )}
 
@@ -125,7 +126,7 @@ export function ReviewsBlock({
 
       {!error && reviews.length === 0 ? (
         <Body size={13} colour={color.neutral600} style={{ marginTop: 16 }}>
-          {strings.reviews.none.en}
+          {t(strings.reviews.none)}
         </Body>
       ) : null}
 
@@ -173,7 +174,7 @@ export function ReviewsBlock({
         onWithdrawn={() => {
           setComposing(false);
           load();
-          onToast(strings.reviews.updated.en);
+          onToast(t(strings.reviews.updated));
         }}
       />
     </View>
@@ -207,7 +208,7 @@ export function ReviewRow({
           below is a different traveller.
         */}
         <Heading size={14}>
-          {isMine ? strings.reviews.yours.en : strings.reviews.verifiedVisit.en}
+          {isMine ? strings.reviews.yours.en : t(strings.reviews.verifiedVisit)}
         </Heading>
         <Label size={11} tracking={0.08}>{`${review.rating} / 5`}</Label>
       </View>
@@ -240,7 +241,7 @@ export function ReviewRow({
           accessibilityLabel={
             alreadyReported
               ? strings.reviews.reportedAlready.en
-              : strings.reviews.reportTitle.en
+              : t(strings.reviews.reportTitle)
           }
           hitSlop={8}
           style={{ alignSelf: 'flex-start', marginTop: 10, paddingVertical: 2 }}
@@ -248,7 +249,7 @@ export function ReviewRow({
           <Label size={9} tracking={0.1} colour={color.neutral600}>
             {alreadyReported
               ? strings.reviews.reportedAlready.en
-              : strings.reviews.report.en}
+              : t(strings.reviews.report)}
           </Label>
         </Pressable>
       )}
@@ -296,7 +297,7 @@ export function ComposeSheet({
         ? strings.reviews.posted(res.data.pointsAwarded).en
         : res.data.created
           ? strings.reviews.tooShortForPoints(40).en
-          : strings.reviews.updated.en,
+          : t(strings.reviews.updated),
     );
   };
 
@@ -323,7 +324,7 @@ export function ComposeSheet({
             }}
           >
             <Heading size={16}>
-              {existing ? strings.reviews.edit.en : strings.reviews.write.en}
+              {existing ? strings.reviews.edit.en : t(strings.reviews.write)}
             </Heading>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12}>
               <X size={20} color={color.text} />
@@ -332,7 +333,7 @@ export function ComposeSheet({
 
           <ScrollView style={{ paddingHorizontal: gutter }} keyboardShouldPersistTaps="handled">
             <Label size={10} tracking={0.12} style={{ marginTop: 16 }}>
-              {strings.reviews.rating(rating || 0).en}
+              {t(strings.reviews.rating(rating || 0))}
             </Label>
             <View style={{ flexDirection: 'row', gap: 6, marginTop: 8 }}>
               {[1, 2, 3, 4, 5].map((n) => (
@@ -341,7 +342,7 @@ export function ComposeSheet({
                   onPress={() => setRating(n)}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: rating === n }}
-                  accessibilityLabel={strings.reviews.rating(n).en}
+                  accessibilityLabel={t(strings.reviews.rating(n))}
                   style={{
                     flex: 1,
                     aspectRatio: 1,
@@ -361,16 +362,16 @@ export function ComposeSheet({
             </View>
 
             <Label size={10} tracking={0.12} style={{ marginTop: 18 }}>
-              {strings.reviews.placeholder.en}
+              {t(strings.reviews.placeholder)}
             </Label>
             <TextInput
               value={body}
               onChangeText={setBody}
               multiline
               maxLength={REVIEW_MAX_BODY}
-              placeholder={strings.reviews.placeholder.th}
+              placeholder={t(strings.reviews.placeholder)}
               placeholderTextColor={color.neutral500}
-              accessibilityLabel={strings.reviews.placeholder.en}
+              accessibilityLabel={t(strings.reviews.placeholder)}
               style={{
                 borderWidth: 1,
                 borderColor: color.neutral400,
@@ -390,11 +391,11 @@ export function ComposeSheet({
               {`${body.trim().length} / ${REVIEW_MAX_BODY}`}
             </Label>
             <Body size={13} colour={color.neutral700} style={{ marginTop: 10 }}>
-              {strings.reviews.tooShortForPoints(40).en}
+              {t(strings.reviews.tooShortForPoints(40))}
             </Body>
 
             <Button
-              label={strings.reviews.submit.en}
+              label={t(strings.reviews.submit)}
               onPress={save}
               disabled={busy || rating < 1}
               height={48}
@@ -402,7 +403,7 @@ export function ComposeSheet({
             />
             {existing ? (
               <Button
-                label={strings.reviews.remove.en}
+                label={t(strings.reviews.remove)}
                 onPress={withdraw}
                 disabled={busy}
                 variant="ghost"
@@ -468,7 +469,7 @@ export function ReportSheet({
               borderBottomColor: color.text,
             }}
           >
-            <Heading size={16}>{strings.reviews.reportTitle.en}</Heading>
+            <Heading size={16}>{t(strings.reviews.reportTitle)}</Heading>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12}>
               <X size={20} color={color.text} />
             </Pressable>
@@ -476,13 +477,13 @@ export function ReportSheet({
 
           <ScrollView style={{ paddingHorizontal: gutter }} keyboardShouldPersistTaps="handled">
             <Body size={13} colour={color.neutral700} style={{ marginTop: 14 }}>
-              {strings.reviews.reportBlurb.en}
+              {t(strings.reviews.reportBlurb)}
             </Body>
-            <Thai size={11} style={{ marginTop: 6 }}>{strings.reviews.reportBlurb.th}</Thai>
+
             <ReasonPicker reason={reason} onPick={setReason} />
             <NoteField note={note} onChange={setNote} />
             <Button
-              label={strings.reviews.reportSubmit.en}
+              label={t(strings.reviews.reportSubmit)}
               onPress={send}
               disabled={busy || reason === null}
               height={48}
@@ -503,7 +504,7 @@ export function ReasonPicker({
   return (
     <>
       <Label size={10} tracking={0.12} style={{ marginTop: 18 }}>
-        {strings.reviews.reportReason.en}
+        {t(strings.reviews.reportReason)}
       </Label>
       {REPORT_REASON_KEYS.map((key) => {
         const picked = reason === key;
@@ -513,7 +514,7 @@ export function ReasonPicker({
             onPress={() => onPick(key)}
             accessibilityRole="radio"
             accessibilityState={{ selected: picked }}
-            accessibilityLabel={REPORT_REASONS[key].en}
+            accessibilityLabel={t(REPORT_REASONS[key])}
             style={{
               marginTop: 8,
               padding: 12,
@@ -524,15 +525,9 @@ export function ReasonPicker({
             }}
           >
             <Heading size={13} colour={picked ? onFill.brand : color.text}>
-              {REPORT_REASONS[key].en}
+              {t(REPORT_REASONS[key])}
             </Heading>
-            <Thai
-              size={10}
-              colour={picked ? onFill.brand : color.neutral600}
-              style={{ marginTop: 2 }}
-            >
-              {REPORT_REASONS[key].th}
-            </Thai>
+
           </Pressable>
         );
       })}
@@ -544,7 +539,7 @@ function NoteField({ note, onChange }: { note: string; onChange: (v: string) => 
   return (
     <>
       <Label size={10} tracking={0.12} style={{ marginTop: 18 }}>
-        {strings.reviews.reportNote.en}
+        {t(strings.reviews.reportNote)}
       </Label>
       <TextInput
         value={note}
@@ -552,7 +547,7 @@ function NoteField({ note, onChange }: { note: string; onChange: (v: string) => 
         multiline
         maxLength={REPORT_MAX_NOTE}
         placeholderTextColor={color.neutral500}
-        accessibilityLabel={strings.reviews.reportNote.en}
+        accessibilityLabel={t(strings.reviews.reportNote)}
         style={{
           borderWidth: 1,
           borderColor: color.neutral400,
@@ -602,12 +597,12 @@ export function TakenDownNotice({
       }}
     >
       <Label size={10} tracking={0.14} colour={color.neutral700}>
-        {strings.reviews.takenDown.en}
+        {t(strings.reviews.takenDown)}
       </Label>
       <Body size={13} style={{ marginTop: 8 }}>
         {reason
           ? strings.reviews.takenDownExplain(reason).en
-          : strings.reviews.takenDown.en}
+          : t(strings.reviews.takenDown)}
       </Body>
       {state.review.body ? (
         <Body size={13} colour={color.neutral700} style={{ marginTop: 10 }}>
@@ -619,7 +614,7 @@ export function TakenDownNotice({
           rather than silently swallowing a second press. */}
       {appeal === null ? (
         <Button
-          label={strings.reviews.appeal.en}
+          label={t(strings.reviews.appeal)}
           onPress={onAppeal}
           variant="secondary"
           height={44}
@@ -629,7 +624,7 @@ export function TakenDownNotice({
         <Label size={10} tracking={0.1} colour={color.neutral700} style={{ marginTop: 12 }}>
           {appeal.outcome === 'declined'
             ? strings.reviews.appealDeclined.en
-            : strings.reviews.appealPending.en}
+            : t(strings.reviews.appealPending)}
         </Label>
       )}
     </View>
@@ -679,7 +674,7 @@ export function AppealSheet({
               borderBottomColor: color.text,
             }}
           >
-            <Heading size={16}>{strings.reviews.appealTitle.en}</Heading>
+            <Heading size={16}>{t(strings.reviews.appealTitle)}</Heading>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12}>
               <X size={20} color={color.text} />
             </Pressable>
@@ -687,9 +682,9 @@ export function AppealSheet({
 
           <ScrollView style={{ paddingHorizontal: gutter }} keyboardShouldPersistTaps="handled">
             <Body size={13} colour={color.neutral700} style={{ marginTop: 14 }}>
-              {strings.reviews.appealBlurb.en}
+              {t(strings.reviews.appealBlurb)}
             </Body>
-            <Thai size={11} style={{ marginTop: 6 }}>{strings.reviews.appealBlurb.th}</Thai>
+
 
             <TextInput
               value={message}
@@ -697,7 +692,7 @@ export function AppealSheet({
               multiline
               maxLength={APPEAL_MAX_MESSAGE}
               placeholderTextColor={color.neutral500}
-              accessibilityLabel={strings.reviews.appealTitle.en}
+              accessibilityLabel={t(strings.reviews.appealTitle)}
               style={{
                 borderWidth: 1,
                 borderColor: color.neutral400,
@@ -718,7 +713,7 @@ export function AppealSheet({
             </Label>
 
             <Button
-              label={strings.reviews.appealSubmit.en}
+              label={t(strings.reviews.appealSubmit)}
               onPress={send}
               disabled={busy || message.trim().length < 10}
               height={48}

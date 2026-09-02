@@ -37,6 +37,7 @@ import { color, currencyTone, gutter, layout, radius } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState } from '../components/States.tsx';
+import { t } from '../i18n/locale.ts';
 
 const HOME_QUEST_LIMIT = 3;
 
@@ -156,24 +157,16 @@ function Conditions({
       }}
     >
       <Label size={10} tracking={0.16} colour={color.brandSoft}>
-        {`${greeting.en} · Koh Samui`}
+        {`${t(greeting)} · ${t({ en: 'Koh Samui', th: 'เกาะสมุย' })}`}
       </Label>
-      <Thai size={11} colour={color.brandSoft} style={{ marginTop: 2 }}>
-        {`${greeting.th} · เกาะสมุย`}
-      </Thai>
 
       {places.error ? (
         // The block fails alone and says what is missing. It does not fall back
         // to a plausible number, which is the failure this whole app is about.
         <View style={{ marginTop: 14 }}>
-          <Body size={13} colour={color.surface}>
-            Conditions are unavailable right now.
-          </Body>
-          <Thai size={11} colour={color.brandSoft} style={{ marginTop: 3 }}>
-            ยังดึงข้อมูลสภาพพื้นที่ไม่ได้
-          </Thai>
+          <Body size={13} colour={color.surface}>{t({ en: 'Conditions are unavailable right now.', th: 'ยังดึงข้อมูลสภาพพื้นที่ไม่ได้' })}</Body>
           <Button
-            label={strings.common.retry.en}
+            label={t(strings.common.retry)}
             onPress={places.reload}
             variant="secondary"
             height={40}
@@ -201,11 +194,11 @@ function Conditions({
           </View>
 
           <Body size={13} colour={color.brandSoft} style={{ marginTop: 6 }}>
-            {`Across ${list.length} measured place${list.length === 1 ? '' : 's'} · ${strings.place.provenance[provenance].en}`}
+            {`${t({
+              en: `Across ${list.length} measured place${list.length === 1 ? '' : 's'}`,
+              th: `จาก ${list.length} สถานที่ที่วัดจริง`,
+            })} · ${t(strings.place.provenance[provenance])}`}
           </Body>
-          <Thai size={11} colour={color.brandSoft} style={{ marginTop: 3 }}>
-            {`จาก ${list.length} สถานที่ที่วัดจริง · ${strings.place.provenance[provenance].th}`}
-          </Thai>
 
           {/*
             The average is a summary; the numbers with a breakdown behind them
@@ -278,19 +271,15 @@ function Today({
           {finished > 0 ? (
             <>
               <Body size={13} colour={color.accent700}>
-                {`All ${finished} of today’s missions are done. Nothing left to verify until tomorrow.`}
+                {t({
+                  en: `All ${finished} of today’s missions are done. Nothing left to verify until tomorrow.`,
+                  th: `ทำภารกิจวันนี้ครบทั้ง ${finished} รายการแล้ว`,
+                })}
               </Body>
-              <Thai size={11} style={{ marginTop: 4 }}>
-                {`ทำภารกิจวันนี้ครบทั้ง ${finished} รายการแล้ว`}
-              </Thai>
             </>
           ) : (
             <>
-              <Body size={13} colour={color.neutral700}>
-                No missions running today. The map still works, and the weekend
-                list usually has something.
-              </Body>
-              <Thai size={11} style={{ marginTop: 4 }}>วันนี้ยังไม่มีภารกิจ</Thai>
+              <Body size={13} colour={color.neutral700}>{t({ en: 'No missions running today. The map still works, and the weekend list usually has something.', th: 'วันนี้ยังไม่มีภารกิจ' })}</Body>
             </>
           )}
           <Button
@@ -344,7 +333,7 @@ function QuestCard({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${quest.name.en}. ${quest.name.th}. ${quest.where}. ${started ? 'In progress' : 'Not started'}`}
+      accessibilityLabel={`${t(quest.name)}. ${quest.where}. ${started ? 'In progress' : 'Not started'}`}
       style={{
         marginHorizontal: gutter,
         marginTop: 10,
@@ -365,8 +354,8 @@ function QuestCard({
               IN PROGRESS · กำลังทำอยู่
             </Label>
           ) : null}
-          <Heading size={16}>{quest.name.en}</Heading>
-          <Thai size={11} style={{ marginTop: 2 }}>{quest.name.th}</Thai>
+          <Heading size={16}>{t(quest.name)}</Heading>
+
           <Body size={13} colour={color.neutral600} style={{ marginTop: 6 }}>
             {`${quest.where} · ${quest.duration}`}
           </Body>
@@ -497,8 +486,7 @@ function Figure({
         <Heading size={24} colour={tone}>{value}</Heading>
         {unit ? <Label size={10} tracking={0.08} colour={color.neutral600}>{unit}</Label> : null}
       </View>
-      <Label size={9} tracking={0.08} colour={color.neutral700} style={{ marginTop: 4 }}>{en}</Label>
-      <Thai size={10} style={{ marginTop: 1 }}>{th}</Thai>
+      <Label size={9} tracking={0.08} colour={color.neutral700} style={{ marginTop: 4 }}>{t({ en, th })}</Label>
     </Pressable>
   );
 }
@@ -518,10 +506,10 @@ function Doors({
   // Untyped on purpose: annotating the icon narrower than LucideIcon fights
   // the library's own forwardRef signature for nothing.
   const doors = [
-    { Icon: Compass, en: strings.tabs.map.en, th: strings.tabs.map.th, onPress: onOpenMap },
+    { Icon: Compass, en: t(strings.tabs.map), th: strings.tabs.map.th, onPress: onOpenMap },
     { Icon: MessageCircle, en: 'Ask', th: 'ถาม', onPress: onOpenConcierge },
-    { Icon: Sparkles, en: strings.tabs.impact.en, th: strings.tabs.impact.th, onPress: onOpenImpact },
-    { Icon: Shield, en: strings.tabs.safety.en, th: strings.tabs.safety.th, onPress: onOpenSafety },
+    { Icon: Sparkles, en: t(strings.tabs.impact), th: strings.tabs.impact.th, onPress: onOpenImpact },
+    { Icon: Shield, en: t(strings.tabs.safety), th: strings.tabs.safety.th, onPress: onOpenSafety },
     { Icon: Users, en: 'Group', th: 'กลุ่ม', onPress: onOpenParty },
   ];
 
@@ -556,8 +544,7 @@ function Doors({
 function SectionHead({ en, th }: { en: string; th: string }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingBottom: 10 }}>
-      <Label size={10} tracking={0.14}>{en}</Label>
-      <Thai size={11} style={{ marginTop: 1 }}>{th}</Thai>
+      <Label size={10} tracking={0.14}>{t({ en, th })}</Label>
     </View>
   );
 }

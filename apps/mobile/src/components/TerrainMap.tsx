@@ -32,7 +32,7 @@ import { color, onFill } from '../theme/index.ts';
 import { Label } from './Type.tsx';
 import { MapLegend } from './map-parts.tsx';
 import {
-  HERO, SAMUI_BOUNDS, chivagoStyle, heroPose, introPose, settleEasing,
+  HERO, SAMUI_BOUNDS, chivagoStyle, crowdOffsets, heroPose, introPose, settleEasing,
 } from './terrain-style.ts';
 
 /**
@@ -63,11 +63,13 @@ function foldAttribution(m: MapLibreMap): void {
 }
 
 export function TerrainMap({
-  places, onSelect, height = 344,
+  places, onSelect, height = 344, compact = false,
 }: {
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;
   height?: number;
+  /** Phone-width: score-only pins, no zoom buttons. Decided by `SamuiMap`. */
+  compact?: boolean;
 }) {
   const holder = React.useRef<HTMLDivElement | null>(null);
   const map = React.useRef<MapLibreMap | null>(null);
@@ -132,7 +134,10 @@ export function TerrainMap({
       if (/source|style|layer/i.test(message)) setFailed(true);
     });
 
-    m.addControl(new NavigationControl({ visualizePitch: true }), 'top-right');
+    // Zoom buttons are for a mouse. On a phone they sat over Pha-ngan, and
+    // pinch and drag already do everything they do. Read once, at mount: a
+    // phone does not become a desktop by rotating.
+    if (!compact) m.addControl(new NavigationControl({ visualizePitch: true }), 'top-right');
     m.addControl(new AttributionControl({ compact: true }), 'bottom-left');
     map.current = m;
 
@@ -151,6 +156,10 @@ export function TerrainMap({
     for (const marker of markers.current) marker.remove();
     markers.current = [];
 
+    // Score-only pins on a phone still collide where the places do; see
+    // crowdOffsets. At desktop width the named chips have room.
+    const nudge = compact ? crowdOffsets(places) : new Map<string, [number, number]>();
+
     for (const place of places) {
       const el = document.createElement('button');
       el.type = 'button';
@@ -165,16 +174,19 @@ export function TerrainMap({
         `color:${high ? onFill.accent : color.text}`,
         'box-shadow:0 2px 8px rgba(8,26,48,.28)',
       ].join(';');
-      el.innerHTML = `<span>${place.healthyScore}</span><span style="font-size:9px;letter-spacing:.1em;text-transform:uppercase">${place.short}</span>`;
+      // Score alone on a narrow map - see PinChip for why.
+      el.innerHTML = compact
+        ? `<span>${place.healthyScore}</span>`
+        : `<span>${place.healthyScore}</span><span style="font-size:9px;letter-spacing:.1em;text-transform:uppercase">${place.short}</span>`;
       el.addEventListener('click', () => onSelect(place));
 
       markers.current.push(
-        new Marker({ element: el })
+        new Marker({ element: el, offset: nudge.get(place.id) ?? [0, 0] })
           .setLngLat([place.lng, place.lat])
           .addTo(m),
       );
     }
-  }, [places, onSelect]);
+  }, [places, onSelect, compact]);
 
   if (failed) {
     return (

@@ -26,6 +26,7 @@ import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
+import { LOCALES, LOCALE_NAMES, setLocale, t, useLocale } from '../i18n/locale.ts';
 
 /** `RHW6FXT7` reads as two words. Eight unbroken characters do not. */
 export const groupCode = (code: string): string =>
@@ -46,7 +47,7 @@ export function AccountScreen({
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <PushHeader context="Your account · บัญชีของคุณ" onBack={onBack} />
+      <PushHeader context={t({ en: 'Your account', th: 'บัญชีของคุณ' })} onBack={onBack} />
 
       {account.error ? <ErrorState message={account.error} onRetry={account.reload} /> : null}
       {account.loading && !account.data ? <LoadingState /> : null}
@@ -62,6 +63,7 @@ export function AccountScreen({
             onToast={onToast}
             key={refresh}
           />
+          <Language />
           <QuietHours onToast={onToast} />
           <NoRecovery />
         </>
@@ -84,12 +86,9 @@ function Summary({ count }: { count: number }) {
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 10 }}>
         <Heading size={34} colour={color.surface} tracking={-0.8}>{count}</Heading>
         <Body size={14} colour={color.brandSoft}>
-          {count === 1 ? 'phone on this account' : 'phones on this account'}
+          {t({ en: count === 1 ? 'phone on this account' : 'phones on this account', th: 'เครื่องที่ใช้บัญชีนี้' })}
         </Body>
       </View>
-      <Thai size={11} colour={color.brandSoft} style={{ marginTop: 4 }}>
-        {`บัญชีนี้ใช้อยู่บน ${count} เครื่อง`}
-      </Thai>
     </View>
   );
 }
@@ -140,13 +139,7 @@ function ShowCode({ onToast }: { onToast: (msg: string) => void }) {
     <Section en="Add another phone" th="เพิ่มเครื่องที่สอง">
       {code === null ? (
         <>
-          <Body size={13} colour={color.neutral700}>
-            Your points, passport and companions move with you. The other phone
-            keeps its own key — nothing is copied across.
-          </Body>
-          <Thai size={11} style={{ marginTop: 4 }}>
-            แต้ม พาสปอร์ต และเพื่อนร่วมทางจะย้ายตามไปด้วย
-          </Thai>
+          <Body size={13} colour={color.neutral700}>{t({ en: 'Your points, passport and companions move with you. The other phone keeps its own key — nothing is copied across.', th: 'แต้ม พาสปอร์ต และเพื่อนร่วมทางจะย้ายตามไปด้วย' })}</Body>
           <Button
             label={busy ? 'Asking…' : 'Show a code'}
             thai="ขอรหัส"
@@ -178,12 +171,7 @@ function ShowCode({ onToast }: { onToast: (msg: string) => void }) {
             </Label>
           </View>
 
-          <Body size={13} colour={color.neutral700} style={{ marginTop: 12 }}>
-            Type this on the other phone. It works once, and only for ten minutes.
-          </Body>
-          <Thai size={11} style={{ marginTop: 4 }}>
-            พิมพ์รหัสนี้ในเครื่องอีกเครื่อง ใช้ได้ครั้งเดียว ภายในสิบนาที
-          </Thai>
+          <Body size={13} colour={color.neutral700} style={{ marginTop: 12 }}>{t({ en: 'Type this on the other phone. It works once, and only for ten minutes.', th: 'พิมพ์รหัสนี้ในเครื่องอีกเครื่อง ใช้ได้ครั้งเดียว ภายในสิบนาที' })}</Body>
           <Button
             label="Show a different code"
             thai="ขอรหัสใหม่"
@@ -234,13 +222,7 @@ function EnterCode({
 
   return (
     <Section en="Already have a code?" th="มีรหัสอยู่แล้ว?">
-      <Body size={13} colour={color.neutral700}>
-        Enter the code from your other phone. This phone will join that account
-        and leave whatever it had behind.
-      </Body>
-      <Thai size={11} style={{ marginTop: 4 }}>
-        เครื่องนี้จะย้ายไปบัญชีนั้น และทิ้งข้อมูลเดิมของเครื่องนี้ไว้
-      </Thai>
+      <Body size={13} colour={color.neutral700}>{t({ en: 'Enter the code from your other phone. This phone will join that account and leave whatever it had behind.', th: 'เครื่องนี้จะย้ายไปบัญชีนั้น และทิ้งข้อมูลเดิมของเครื่องนี้ไว้' })}</Body>
 
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
         <TextInput
@@ -349,6 +331,44 @@ function Phones({
 }
 
 // ---------------------------------------------------------------------------
+// Language
+// ---------------------------------------------------------------------------
+
+/**
+ * One language at a time - see i18n/locale.ts. Each language is named in
+ * itself, because "Thai" is not how a Thai speaker looks for Thai.
+ */
+function Language() {
+  const locale = useLocale();
+  return (
+    <Section en="Language" th="ภาษา">
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {LOCALES.map((l) => {
+          const on = l === locale;
+          return (
+            <Pressable
+              key={l}
+              onPress={() => setLocale(l)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: on }}
+              accessibilityLabel={LOCALE_NAMES[l]}
+              style={{
+                minHeight: 44, paddingHorizontal: 18, justifyContent: 'center',
+                borderWidth: 2, borderRadius: radius.sm,
+                borderColor: on ? color.brand : color.neutral400,
+                backgroundColor: on ? color.brand : 'transparent',
+              }}
+            >
+              <Heading size={14} colour={on ? onFill.brand : color.text}>{LOCALE_NAMES[l]}</Heading>
+            </Pressable>
+          );
+        })}
+      </View>
+    </Section>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Quiet hours
 // ---------------------------------------------------------------------------
 
@@ -409,10 +429,12 @@ function QuietHours({ onToast }: { onToast: (msg: string) => void }) {
             style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44 }}
           >
             <View style={{ flex: 1, paddingRight: 12 }}>
-              <Heading size={15}>{enabled ? `Held ${hh(from)} – ${hh(until)}` : 'Off — notify me any time'}</Heading>
-              <Thai size={11} style={{ marginTop: 2 }}>
-                {enabled ? `พักการแจ้งเตือน ${hh(from)} – ${hh(until)} เวลาเกาะ` : 'ปิด แจ้งเตือนได้ทุกเวลา'}
-              </Thai>
+              <Heading size={15}>
+                {t({
+                  en: enabled ? `Held ${hh(from)} – ${hh(until)}` : 'Off — notify me any time',
+                  th: enabled ? `พักการแจ้งเตือน ${hh(from)} – ${hh(until)} เวลาเกาะ` : 'ปิด แจ้งเตือนได้ทุกเวลา',
+                })}
+              </Heading>
             </View>
             <View
               style={{
@@ -432,13 +454,7 @@ function QuietHours({ onToast }: { onToast: (msg: string) => void }) {
             </View>
           ) : null}
 
-          <Body size={13} colour={color.neutral700} style={{ marginTop: 14 }}>
-            Island time. An SOS from a contact always comes through — nobody can
-            mute an emergency, including you.
-          </Body>
-          <Thai size={11} style={{ marginTop: 2 }}>
-            เวลาเกาะ · SOS จากผู้ติดต่อจะแจ้งเสมอ ไม่มีใครปิดเสียงเหตุฉุกเฉินได้
-          </Thai>
+          <Body size={13} colour={color.neutral700} style={{ marginTop: 14 }}>{t({ en: 'Island time. An SOS from a contact always comes through — nobody can mute an emergency, including you.', th: 'เวลาเกาะ · SOS จากผู้ติดต่อจะแจ้งเสมอ ไม่มีใครปิดเสียงเหตุฉุกเฉินได้' })}</Body>
         </View>
       ) : null}
     </Section>
@@ -481,13 +497,7 @@ function NoRecovery() {
       <Label size={10} tracking={0.14} colour={color.neutral700}>
         WHAT WE DO NOT KEEP · สิ่งที่เราไม่เก็บ
       </Label>
-      <Body size={13} colour={color.neutral800} style={{ marginTop: 8 }}>
-        No password, no email, no phone number. There is nothing about you here
-        that could leak, because none of it was ever collected.
-      </Body>
-      <Thai size={11} style={{ marginTop: 4 }}>
-        ไม่มีรหัสผ่าน ไม่มีอีเมล ไม่มีเบอร์โทร
-      </Thai>
+      <Body size={13} colour={color.neutral800} style={{ marginTop: 8 }}>{t({ en: 'No password, no email, no phone number. There is nothing about you here that could leak, because none of it was ever collected.', th: 'ไม่มีรหัสผ่าน ไม่มีอีเมล ไม่มีเบอร์โทร' })}</Body>
 
       {/*
         The consequence, said plainly and on the same card as the benefit. A
@@ -496,13 +506,7 @@ function NoRecovery() {
         owed the sentence — beside the button that prevents it, not in a help
         page they reach afterwards.
       */}
-      <Body size={13} colour={color.coralDeep} style={{ marginTop: 12 }}>
-        The trade: if this is your only phone and you lose it, the account goes
-        with it. Add a second phone before that matters.
-      </Body>
-      <Thai size={11} colour={color.coralDeep} style={{ marginTop: 4 }}>
-        ข้อแลกเปลี่ยน: ถ้ามีเครื่องเดียวแล้วหาย บัญชีจะหายไปด้วย
-      </Thai>
+      <Body size={13} colour={color.coralDeep} style={{ marginTop: 12 }}>{t({ en: 'The trade: if this is your only phone and you lose it, the account goes with it. Add a second phone before that matters.', th: 'ข้อแลกเปลี่ยน: ถ้ามีเครื่องเดียวแล้วหาย บัญชีจะหายไปด้วย' })}</Body>
     </View>
   );
 }
@@ -512,8 +516,7 @@ function Section({
 }: { en: string; th: string; children: React.ReactNode }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 24 }}>
-      <Label size={10} tracking={0.14}>{en}</Label>
-      <Thai size={11} style={{ marginTop: 1, marginBottom: 12 }}>{th}</Thai>
+      <Label size={10} tracking={0.14} style={{ marginBottom: 12 }}>{t({ en, th })}</Label>
       {children}
     </View>
   );

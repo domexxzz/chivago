@@ -4,6 +4,7 @@ import { createElement as h } from 'react';
 
 import { AccountScreen, countdown, groupCode } from '../src/screens/AccountScreen.tsx';
 import { mountScreen, server, refuses, offline, settle } from './interact.ts';
+import { __setLocaleForTests } from '../src/i18n/locale.ts';
 
 /**
  * The account screen.
@@ -61,9 +62,16 @@ describe('what the screen says', () => {
     const said = ui.text();
 
     assert.match(said, /if this is your only phone and you lose it, the account goes/i);
-    assert.match(said, /บัญชีจะหายไปด้วย/, 'the Thai reader was not told');
     assert.match(said, /No password, no email, no phone number/);
     ui.unmount();
+
+    // The same sentence, to a Thai reader, in Thai. One language at a time
+    // means the Thai is there when the app is in Thai, not under the English.
+    __setLocaleForTests('th');
+    const thai = await mountScreen(h(AccountScreen, props));
+    assert.match(thai.text(), /บัญชีจะหายไปด้วย/, 'the Thai reader was not told');
+    thai.unmount();
+    __setLocaleForTests('en');
   });
 
   test('it says what moves and what does not', async () => {
@@ -198,8 +206,13 @@ describe('quiet hours, which the API had and the app could not reach', () => {
     const ui = await mountScreen(h(AccountScreen, props));
     assert.match(ui.text(), /Held 22:00 – 07:00/);
     assert.match(ui.text(), /nobody can\s+mute an emergency/);
-    assert.match(ui.text(), /ไม่มีใครปิดเสียงเหตุฉุกเฉินได้/);
     ui.unmount();
+
+    __setLocaleForTests('th');
+    const thai = await mountScreen(h(AccountScreen, props));
+    assert.match(thai.text(), /ไม่มีใครปิดเสียงเหตุฉุกเฉินได้/);
+    thai.unmount();
+    __setLocaleForTests('en');
   });
 
   test('turning it off sends enabled:false and reads the server back', async () => {
