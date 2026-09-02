@@ -15,6 +15,11 @@
  *
  * Primitives rather than long path data. Every shape here can be read, checked
  * and adjusted by a person; a 400-character `d` attribute cannot.
+ *
+ * These marks are what a phone draws, and what the wallet's list draws
+ * everywhere. The room itself, on the web, is the three-dimensional animal in
+ * `creature3d/` — same five species, same primitives-not-models rule, its own
+ * colours (see `creature3d/rig.ts` for why). `CreatureScene.tsx` chooses.
  */
 
 import React from 'react';
