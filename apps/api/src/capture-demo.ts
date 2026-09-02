@@ -51,9 +51,20 @@ const ROUTES = [
   '/places/lamai', '/places/lamai/reviews',
   '/places/mangrove', '/places/mangrove/reviews',
   '/quests',
+  // The map's "quests near you" strip asks for today's only. Captured as its
+  // own key because the demo server strips query strings before matching,
+  // and answered the full list to a filtered request - a weekend quest led
+  // the strip on a Tuesday.
+  '/quests?filter=today',
   '/quests/q1', '/quests/q2', '/quests/q3',
   '/quests/q4', '/quests/q5', '/quests/q6',
   '/checkins/today',
+  // Four screens that were ErrorState("Not in the demo build") since they
+  // arrived, because nobody re-captured after adding them.
+  '/passport',
+  '/account',
+  '/party',
+  '/standing',
   '/wallet',
   '/offers',
   '/vouchers',
