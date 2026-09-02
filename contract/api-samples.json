@@ -1,7 +1,7 @@
 {
   "health": {
     "status": "up",
-    "time": "2026-09-02T12:10:19.057Z"
+    "time": "2026-09-02T13:24:33.112Z"
   },
   "profile": {
     "purposes": [],
@@ -40,7 +40,7 @@
       },
       "metrics": {
         "crowdDensity": 3,
-        "aqi": 42,
+        "aqi": 41,
         "safetyIndex": 6.77,
         "walkability": 8.1
       },
@@ -50,10 +50,10 @@
       },
       "readings": {
         "aqi": {
-          "value": 42,
+          "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:47:19.033Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "observedAt": "2026-09-02T13:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
       "healthyScore": 74,
@@ -77,8 +77,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "42 AQI",
-            "subScore": 83.8,
+            "display": "41 AQI",
+            "subScore": 84.3,
             "weight": 0.3,
             "provenance": "live"
           },
@@ -149,7 +149,7 @@
       },
       "metrics": {
         "crowdDensity": 0.4,
-        "aqi": 42,
+        "aqi": 41,
         "safetyIndex": 8.85,
         "walkability": 6.9
       },
@@ -159,10 +159,10 @@
       },
       "readings": {
         "aqi": {
-          "value": 42,
+          "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:47:19.044Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "observedAt": "2026-09-02T13:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
       "healthyScore": 88,
@@ -186,8 +186,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "42 AQI",
-            "subScore": 83.8,
+            "display": "41 AQI",
+            "subScore": 84.3,
             "weight": 0.3,
             "provenance": "live"
           },
@@ -258,7 +258,7 @@
       },
       "metrics": {
         "crowdDensity": 1.4,
-        "aqi": 42,
+        "aqi": 41,
         "safetyIndex": 6.33,
         "walkability": 9
       },
@@ -268,15 +268,15 @@
       },
       "readings": {
         "aqi": {
-          "value": 42,
+          "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:47:18.992Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "observedAt": "2026-09-02T13:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
-      "healthyScore": 80,
+      "healthyScore": 81,
       "breakdown": {
-        "total": 80,
+        "total": 81,
         "components": [
           {
             "key": "crowdDensity",
@@ -295,8 +295,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "42 AQI",
-            "subScore": 83.8,
+            "display": "41 AQI",
+            "subScore": 84.3,
             "weight": 0.3,
             "provenance": "live"
           },
@@ -361,7 +361,7 @@
       "photo": null,
       "metrics": {
         "crowdDensity": 0.3,
-        "aqi": 42,
+        "aqi": 41,
         "safetyIndex": 5.13,
         "walkability": 5.2
       },
@@ -371,10 +371,10 @@
       },
       "readings": {
         "aqi": {
-          "value": 42,
+          "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:47:19.038Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "observedAt": "2026-09-02T13:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
       "healthyScore": 76,
@@ -398,8 +398,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "42 AQI",
-            "subScore": 83.8,
+            "display": "41 AQI",
+            "subScore": 84.3,
             "weight": 0.3,
             "provenance": "live"
           },
@@ -469,7 +469,7 @@
       },
       "metrics": {
         "crowdDensity": 0.5,
-        "aqi": 42,
+        "aqi": 41,
         "safetyIndex": 7.39,
         "walkability": 7.4
       },
@@ -479,15 +479,15 @@
       },
       "readings": {
         "aqi": {
-          "value": 42,
+          "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:47:19.044Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+          "observedAt": "2026-09-02T13:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         }
       },
-      "healthyScore": 85,
+      "healthyScore": 86,
       "breakdown": {
-        "total": 85,
+        "total": 86,
         "components": [
           {
             "key": "crowdDensity",
@@ -506,8 +506,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "42 AQI",
-            "subScore": 83.8,
+            "display": "41 AQI",
+            "subScore": 84.3,
             "weight": 0.3,
             "provenance": "live"
           },
@@ -579,7 +579,7 @@
     },
     "metrics": {
       "crowdDensity": 3,
-      "aqi": 42,
+      "aqi": 41,
       "safetyIndex": 6.77,
       "walkability": 8.1
     },
@@ -589,9 +589,9 @@
     },
     "readings": {
       "aqi": {
-        "value": 42,
+        "value": 41,
         "provenance": "live",
-        "observedAt": "2026-09-02T11:47:19.033Z",
+        "observedAt": "2026-09-02T13:24:34.215Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -616,8 +616,8 @@
             "en": "Air quality",
             "th": "คุณภาพอากาศ"
           },
-          "display": "42 AQI",
-          "subScore": 83.8,
+          "display": "41 AQI",
+          "subScore": 84.3,
           "weight": 0.3,
           "provenance": "live"
         },
@@ -857,7 +857,7 @@
   },
   "wallet": {
     "balances": {
-      "trip": 200,
+      "trip": 20,
       "green": 1240
     },
     "progression": {
@@ -936,6 +936,18 @@
       ]
     },
     "ledger": [
+      {
+        "id": "3fa4937c-3cf0-4f09-aa78-a31091be33c9",
+        "label": "Cold brew + banana bread redeemed",
+        "subject": "Cold brew + banana bread",
+        "occurredAt": "2026-09-02T13:24:33.087Z",
+        "host": "Sabeinglae Coffee",
+        "amount": -180,
+        "currency": "trip",
+        "exp": 0,
+        "kind": "redemption",
+        "sourceRef": "voucher:90917709-7afe-4c27-aac0-d7017276b306"
+      },
       {
         "id": "24e74500-0ba1-4dbf-aa5e-cb3cf87a7ea8",
         "label": "Cold brew + banana bread redeemed",
@@ -1068,6 +1080,18 @@
   ],
   "vouchers": [
     {
+      "id": "90917709-7afe-4c27-aac0-d7017276b306",
+      "offerId": "o1",
+      "userId": "contract-capture",
+      "merchant": "Sabeinglae Coffee, Bophut",
+      "code": "CG-90917709",
+      "costPoints": 180,
+      "issuedAt": "2026-09-02T13:24:33.087Z",
+      "expiresAt": "2026-10-02T13:24:33.087Z",
+      "redeemedAt": null,
+      "status": "active"
+    },
+    {
       "id": "7779f56f-2623-48f7-ba28-f1eefd224856",
       "offerId": "o1",
       "userId": "contract-capture",
@@ -1181,8 +1205,8 @@
         "th": "ติดตามตำแหน่งสด"
       },
       "note": {
-        "en": "Shared with 1 contact during an SOS",
-        "th": "แชร์กับผู้ติดต่อ 1 คนเมื่อกด SOS"
+        "en": "Shared with 2 contacts during an SOS",
+        "th": "แชร์กับผู้ติดต่อ 2 คนเมื่อกด SOS"
       },
       "state": "ready"
     },
@@ -1247,6 +1271,24 @@
   "checkinsToday": [
     "chaweng"
   ],
+  "selfVisits": {
+    "places": [],
+    "remainingThisYear": 10
+  },
+  "passport": {
+    "visited": [
+      "TH-84"
+    ],
+    "selfReported": [],
+    "evidence": [
+      {
+        "code": "TH-84",
+        "layer": "Safe",
+        "visitDays": 1,
+        "questsVerified": 0
+      }
+    ]
+  },
   "reviews": {
     "reviews": [
       {
@@ -1259,7 +1301,7 @@
         "language": "en",
         "visitedAt": "2026-09-02T12:10:18.972Z",
         "createdAt": "2026-09-02T12:10:19.018Z",
-        "updatedAt": null
+        "updatedAt": "2026-09-02T13:24:33.079Z"
       }
     ],
     "mine": {
@@ -1273,7 +1315,7 @@
         "language": "en",
         "visitedAt": "2026-09-02T12:10:18.972Z",
         "createdAt": "2026-09-02T12:10:19.018Z",
-        "updatedAt": null
+        "updatedAt": "2026-09-02T13:24:33.079Z"
       },
       "hiddenAt": null,
       "hiddenReasonKey": null,
@@ -1289,6 +1331,13 @@
       "phone": "+66800000000",
       "relationship": "sister",
       "linkedUserId": null
+    },
+    {
+      "id": "4c5f216d-213d-47c7-bec1-8748e9b70c22",
+      "name": "Malee",
+      "phone": "+66800000000",
+      "relationship": "sister",
+      "linkedUserId": null
     }
   ],
   "checkin": {
@@ -1297,7 +1346,7 @@
     "awarded": false,
     "pointsAwarded": 0,
     "balances": {
-      "trip": 200,
+      "trip": 20,
       "green": 1240
     },
     "exp": 1620,
@@ -1314,7 +1363,7 @@
       "language": "en",
       "visitedAt": "2026-09-02T12:10:18.972Z",
       "createdAt": "2026-09-02T12:10:19.018Z",
-      "updatedAt": "2026-09-02T12:10:19.256Z"
+      "updatedAt": "2026-09-02T13:24:34.699Z"
     },
     "created": false,
     "pointsAwarded": 0

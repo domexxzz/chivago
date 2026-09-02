@@ -69,6 +69,7 @@ describe('a place, and checking in to it', () => {
     const net = server({
       'GET /places/chaweng': place(),
       'GET /checkins/today': [],
+      'GET /visits/self': { places: [], remainingThisYear: 10 },
       'GET /places/chaweng/reviews': { reviews: [], mine: null, canReview: false, reported: [] },
     });
     try {
@@ -76,7 +77,7 @@ describe('a place, and checking in to it', () => {
       // Three fetches, not two: the screen carries the reviews block.
       assert.deepEqual(
         net.calls.map((c) => c.path).sort(),
-        ['/checkins/today', '/places/chaweng', '/places/chaweng/reviews'],
+        ['/checkins/today', '/places/chaweng', '/places/chaweng/reviews', '/visits/self'],
       );
       assert.deepEqual(net.missing, []);
 
@@ -152,13 +153,23 @@ describe('a place, and checking in to it', () => {
       'GET /places/chaweng': place(),
       'GET /checkins/today': [],
       'POST /places/chaweng/checkin': refuses('TOO_FAR', 'You need to be at the place to check in — about 800 m away'),
+      'GET /visits/self': { places: [], remainingThisYear: 10 },
+      'POST /places/chaweng/visits': { placeId: 'chaweng', recorded: true, remainingThisYear: 9 },
     });
     try {
       const ui = await mountScreen(h(PlaceScreen, props({ onToast: (m: string) => { toasted = m; } })));
+      assert.ok(!ui.find(/Note that I was here/), 'the other half must not be offered before a check-in has failed');
       await ui.pressText(/Check in here/);
       await settle();
 
       assert.match(toasted, /about 800 m away/);
+
+      // Recorded, not scored: the refusal is followed by the other half.
+      assert.ok(ui.find(/Note that I was here/), 'a failed check-in should offer to note the visit');
+      await ui.pressText(/Note that I was here/);
+      await settle();
+      assert.match(toasted, /self-reported . 9 more this year/);
+      assert.equal(net.calls.filter((c) => c.method === 'POST' && c.path.endsWith('/visits')).length, 1);
       ui.unmount();
     } finally { net.restore(); resetControl(); }
   });
@@ -1368,6 +1379,19 @@ describe('the passport, which shows a country it has not finished', () => {
         assert.match(said, new RegExp(r));
       }
       assert.match(said, /1 \/ 14/, 'the southern count did not move for Surat Thani');
+    } finally { net.restore(); }
+  });
+
+  test('a self-reported stamp is shown as one, and counts for nothing', async () => {
+    // Recorded, not scored. Chiang Mai on the traveller's word appears in the
+    // legend's own state and leaves the Northern count exactly where it was.
+    const net = server({ 'GET /passport': { visited: ['TH-84'], selfReported: ['TH-50'] } });
+    try {
+      const ui = await mountScreen(h(PassportScreen, {}));
+      const said = ui.text();
+      assert.match(said, /Self-reported/, 'the legend must name the dashed state');
+      assert.match(said, /0 \/ 9/, 'a self-reported province inflated the Northern count');
+      assert.match(said, /1\s*\/ 77/, 'or the passport total');
     } finally { net.restore(); }
   });
 

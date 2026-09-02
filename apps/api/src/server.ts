@@ -35,6 +35,7 @@ import {
 } from './repo.ts';
 import { ensureWallet, getWallet, grantOpeningBalance, spendOnVoucher } from './wallet-service.ts';
 import { checkedInToday, checkIn } from './checkin-service.ts';
+import { recordSelfVisit, selfReportedProvincesFor, selfVisitsFor } from './visit-service.ts';
 import { getQuietPreference, setQuietPreference } from './notification-service.ts';
 import {
   appealTakedown, hasVisited, myReviewState, reportedByReader, reportReview,
@@ -482,6 +483,20 @@ app.post('/places/:id/checkin', async (c) => {
 /** Places already checked in today, so the app can show the state on return. */
 app.get('/checkins/today', (c) => ok(c, checkedInToday(db, userId(c))));
 
+/**
+ * A visit the phone could not prove. Recorded, not scored - see
+ * packages/core/src/visits.ts. It pays nothing and unlocks nothing; the
+ * passport shows it as what it is. The one refusal is the year's quota,
+ * mapped in http.ts with every other domain error.
+ */
+app.post('/places/:id/visits', (c) => {
+  const result = recordSelfVisit(db, { userId: userId(c), placeId: c.req.param('id') });
+  return result ? ok(c, result) : fail(c, 'NOT_FOUND', 'No such place', 404);
+});
+
+/** The traveller's self-issued stamps, so the place screen can say so on return. */
+app.get('/visits/self', (c) => ok(c, selfVisitsFor(db, userId(c))));
+
 // ---------------------------------------------------------------------------
 // Reviews
 //
@@ -874,6 +889,9 @@ app.post('/vouchers/:code/redeem', (c) => {
  */
 app.get('/passport', (c) => ok(c, {
   visited: visitedProvincesFor(db, userId(c)),
+  // Drawn as a different stamp. Never merged into `visited`: a self-issued
+  // stamp must not look like a geofenced one anywhere downstream.
+  selfReported: selfReportedProvincesFor(db, userId(c)),
   /*
     Only the provinces this traveller has evidence in — one or two rows, not
     77. The full country and the species list are static core data the client

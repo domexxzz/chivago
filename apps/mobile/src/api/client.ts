@@ -13,6 +13,7 @@ import type {
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
 } from '@chivago/core';
+import type { SelfVisitResult, SelfVisitSummary } from '@chivago/core';
 
 /**
  * What POST /places/:id/checkin answers with.
@@ -204,7 +205,7 @@ export const api = {
    * country and the species list.
    */
   passport: () =>
-    get<{ visited: string[]; evidence: ProvinceEvidence[] }>('/passport'),
+    get<{ visited: string[]; selfReported: string[]; evidence: ProvinceEvidence[] }>('/passport'),
 
   // -- account ------------------------------------------------------------
   /** First run only. The key comes back once and goes straight to the keychain. */
@@ -284,6 +285,11 @@ export const api = {
   checkIn: (placeId: string, coords: { lat: number; lng: number }) =>
     post<CheckinResult>(`/places/${placeId}/checkin`, coords),
   checkinsToday: () => get<string[]>('/checkins/today'),
+
+  // -- self-issued visits: recorded, not scored ---------------------------
+  /** Stamp a place on the traveller's word. Pays nothing, unlocks nothing. */
+  recordVisit: (placeId: string) => post<SelfVisitResult>(`/places/${placeId}/visits`, {}),
+  selfVisits: () => get<SelfVisitSummary>('/visits/self'),
 
   // -- reviews ------------------------------------------------------------
   /**

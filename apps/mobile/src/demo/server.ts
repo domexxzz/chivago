@@ -62,6 +62,8 @@ const PRIOR: Record<string, { days: number; verified: number }> = {
 const state = {
   routes: clone(snapshot) as Record<string, unknown>,
   checkins: [] as string[],
+  /** Self-issued stamps: recorded, not scored. */
+  selfVisits: [] as string[],
   /** Mood check-ins, appended the way the server appends them. */
   moods: [] as { at: string; mood: string; note: string | null }[],
   /** The party this session started, if any. One visitor, so never joined. */
@@ -192,6 +194,22 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
       awarded: !already, pointsAwarded: already ? 0 : 20,
       balances: wallet().balances, exp: already ? 0 : 20, distanceM: 18,
     };
+  },
+
+  // Recorded, not scored: a dashed stamp in the passport, nothing in the wallet.
+  'POST /places/:id/visits': (_b, m) => {
+    const placeId = m[1]!;
+    const already = state.selfVisits.includes(placeId);
+    if (!already) {
+      state.selfVisits.push(placeId);
+      const place = (state.routes['/places'] as Json[]).find((p) => p.id === placeId) as { province?: string } | undefined;
+      const passport = state.routes['/passport'] as { selfReported?: string[] };
+      if (place?.province && !(passport.selfReported ?? []).includes(place.province)) {
+        passport.selfReported = [...(passport.selfReported ?? []), place.province];
+      }
+      state.routes['/visits/self'] = { places: [...state.selfVisits], remainingThisYear: 10 - state.selfVisits.length };
+    }
+    return { placeId, recorded: !already, remainingThisYear: 10 - state.selfVisits.length };
   },
 
   'POST /places/:id/reviews': (body, m) => {

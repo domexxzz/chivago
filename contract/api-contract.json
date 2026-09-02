@@ -474,6 +474,34 @@
     "checkinsToday": {
       "array": "string"
     },
+    "selfVisits": {
+      "object": {
+        "places": {
+          "array": "unknown"
+        },
+        "remainingThisYear": "number"
+      }
+    },
+    "passport": {
+      "object": {
+        "evidence": {
+          "array": {
+            "object": {
+              "code": "string",
+              "layer": "string",
+              "questsVerified": "number",
+              "visitDays": "number"
+            }
+          }
+        },
+        "selfReported": {
+          "array": "unknown"
+        },
+        "visited": {
+          "array": "string"
+        }
+      }
+    },
     "reviews": {
       "object": {
         "canReview": "boolean",
@@ -492,7 +520,7 @@
                 "language": "string",
                 "placeId": "string",
                 "rating": "number",
-                "updatedAt": "null",
+                "updatedAt": "string",
                 "visitedAt": "string"
               }
             }
@@ -512,7 +540,7 @@
               "language": "string",
               "placeId": "string",
               "rating": "number",
-              "updatedAt": "null",
+              "updatedAt": "string",
               "visitedAt": "string"
             }
           }
@@ -571,6 +599,8 @@
     "profile.purposes",
     "profile.watch",
     "notifications.items",
+    "selfVisits.places",
+    "passport.selfReported",
     "reviews.reported"
   ]
 }

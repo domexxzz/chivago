@@ -51,6 +51,8 @@ export const ENDPOINTS: { name: string; path: string; body?: unknown }[] = [
   { name: 'notifications', path: '/notifications' },
   { name: 'quietHours', path: '/notifications/quiet' },
   { name: 'checkinsToday', path: '/checkins/today' },
+  { name: 'selfVisits', path: '/visits/self' },
+  { name: 'passport', path: '/passport' },
   { name: 'reviews', path: '/places/chaweng/reviews' },
   { name: 'sosContacts', path: '/sos/contacts' },
   { name: 'checkin', path: '/places/chaweng/checkin', body: { lat: 9.5357, lng: 100.0617 } },

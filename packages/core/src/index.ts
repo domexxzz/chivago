@@ -19,4 +19,5 @@ export * from './wellness.ts';
 export * from './seed.ts';
 export * from './strings.ts';
 export * from './wallet.ts';
+export * from './visits.ts';
 export * from './greeting.ts';

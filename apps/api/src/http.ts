@@ -10,6 +10,7 @@ import type { Context } from 'hono';
 import type { ApiFailure, ApiSuccess } from '@chivago/core';
 import { InsufficientPoints } from './wallet-service.ts';
 import { InvalidTransition, OutsideGeofence } from './quest-service.ts';
+import { SelfVisitQuotaReached } from './visit-service.ts';
 import {
   AlreadyReported, AppealAlreadyOpen, CannotReportOwn, InvalidRating, NeverVisited,
   NothingToAppeal, NotYourReview, ReportRateLimited, TakedownRateLimited,
@@ -45,6 +46,11 @@ export function handleError(c: Context, err: unknown) {
       `You need to be within ${err.radiusM} m of the site to check in. You are about ${Math.round(err.distanceM)} m away.`,
       403,
     );
+  }
+  if (err instanceof SelfVisitQuotaReached) {
+    // 429, not 400: the request was well-formed, and the traveller can simply
+    // come back next year.
+    return fail(c, 'VISIT_QUOTA', err.message, 429);
   }
   if (err instanceof TakedownRateLimited) {
     return fail(

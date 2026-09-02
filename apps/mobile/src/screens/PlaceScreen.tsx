@@ -38,6 +38,11 @@ export function PlaceScreen({
   const [showBreakdown, setShowBreakdown] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [checkedIn, setCheckedIn] = React.useState(false);
+  // The other half. Offered only once a check-in has actually failed, so
+  // the primary path stays primary.
+  const [offerNote, setOfferNote] = React.useState(false);
+  const [noted, setNoted] = React.useState(false);
+  const [notesLeft, setNotesLeft] = React.useState(0);
 
   React.useEffect(() => {
     // Whether they already checked in today is server state, not screen
@@ -45,6 +50,11 @@ export function PlaceScreen({
     // device they own.
     void api.checkinsToday().then((res) => {
       if (res.ok) setCheckedIn(res.data.includes(placeId));
+    });
+    void api.selfVisits().then((res) => {
+      if (!res.ok) return;
+      setNoted(res.data.places.includes(placeId));
+      setNotesLeft(res.data.remainingThisYear);
     });
   }, [placeId]);
 
@@ -60,6 +70,9 @@ export function PlaceScreen({
     if (!perm.granted) {
       setBusy(false);
       onToast('Location permission is needed to check in here.');
+      // A declined permission is the commonest way the phone cannot prove a
+      // visit. The other half is offered here too.
+      setOfferNote(true);
       return;
     }
     // A fix that times out or fails must release the button, not strand it.
@@ -69,6 +82,7 @@ export function PlaceScreen({
     } catch {
       setBusy(false);
       onToast(t(strings.checkin.noFix));
+      setOfferNote(true);
       return;
     }
     const res = await api.checkIn(placeId, {
@@ -76,7 +90,7 @@ export function PlaceScreen({
       lng: pos.coords.longitude,
     });
     setBusy(false);
-    if (!res.ok) { onToast(res.error); return; }
+    if (!res.ok) { onToast(res.error); setOfferNote(true); return; }
     // Also the gate on reviewing: a check-in is what makes one writable, so
     // the review block must open in the same beat rather than on a reload.
     setCheckedIn(true);
@@ -88,6 +102,22 @@ export function PlaceScreen({
         : t(strings.checkin.already),
     );
     if (res.data.awarded) onPointsChanged();
+  };
+
+  /**
+   * Stamp the passport on the traveller's word. Recorded, not scored - see
+   * packages/core/src/visits.ts. The button says what it does not pay.
+   */
+  const noteVisit = async () => {
+    setBusy(true);
+    const res = await api.recordVisit(placeId);
+    setBusy(false);
+    if (!res.ok) { onToast(res.error); return; }
+    setNoted(true);
+    setNotesLeft(res.data.remainingThisYear);
+    onToast(res.data.recorded
+      ? t(strings.checkin.noted(res.data.remainingThisYear))
+      : t(strings.checkin.notedAlready));
   };
 
   return (
@@ -121,6 +151,18 @@ export function PlaceScreen({
               height={48}
               style={{ marginTop: 24 }}
             />
+            {offerNote && !checkedIn ? (
+              <Button
+                label={noted
+                  ? t(strings.checkin.notedAlready)
+                  : notesLeft === 0 ? t(strings.checkin.quotaGone) : t(strings.checkin.noteOffer)}
+                onPress={noteVisit}
+                disabled={busy || noted || notesLeft === 0}
+                variant="secondary"
+                height={44}
+                style={{ marginTop: 10 }}
+              />
+            ) : null}
             <Button
               label={t(strings.place.addToRoute)}
               thai={strings.place.addToRoute.th}

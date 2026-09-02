@@ -756,5 +756,26 @@ export function migrate(db: DB): string[] {
   if (addColumn(db, 'quests', 'where_label_th', 'TEXT')) applied.push('quests.where_label_th');
   if (addColumn(db, 'quests', 'duration_th', 'TEXT')) applied.push('quests.duration_th');
 
+  // -- Self-issued visits: recorded, not scored ----------------------------
+  //
+  // A visit the phone could not prove. Its own table, deliberately: nothing
+  // here joins to the ledger, so nothing here can pay, hatch a companion or
+  // unlock a review. UNIQUE (user, place) because the second claim on the
+  // same beach is a duplicate. `year_key` is the ISLAND year the stamp
+  // counts against - see packages/core/src/visits.ts.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS self_visits (
+      id          TEXT PRIMARY KEY,
+      user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      place_id    TEXT NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+      visited_at  TEXT NOT NULL,
+      year_key    TEXT NOT NULL,
+      created_at  TEXT NOT NULL,
+      UNIQUE (user_id, place_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_self_visits_user_year
+      ON self_visits(user_id, year_key);
+  `);
+
   return applied;
 }

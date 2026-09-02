@@ -34,14 +34,20 @@ import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
-type StampState = 'stamped' | 'open' | 'listed';
+/** `noted` is a stamp on the traveller's word - recorded, not scored. Drawn dashed. */
+type StampState = 'stamped' | 'noted' | 'open' | 'listed';
 
-const stateOf = (p: Province, visited: Set<string>): StampState =>
-  (visited.has(p.code) ? 'stamped' : p.status === 'open' ? 'open' : 'listed');
+const stateOf = (p: Province, visited: Set<string>, noted: Set<string>): StampState =>
+  (visited.has(p.code) ? 'stamped'
+    : noted.has(p.code) ? 'noted'
+      : p.status === 'open' ? 'open' : 'listed');
 
 export function PassportScreen() {
   const passport = useAsync(() => api.passport(), []);
   const visited = new Set(passport.data?.visited ?? []);
+  // Kept apart from `visited` all the way down: the count above the grid is
+  // of stamps a geofence gave, and a self-issued one must not inflate it.
+  const noted = new Set(passport.data?.selfReported ?? []);
   const progress = passportProgress([...visited]);
 
   /*
@@ -114,6 +120,7 @@ export function PassportScreen() {
           key={region.key}
           region={region}
           visited={visited}
+          noted={noted}
           byCode={byCode}
           count={progress.byRegion.find((r) => r.region.key === region.key)!}
         />
@@ -134,6 +141,7 @@ export function PassportScreen() {
 function Legend() {
   const items: [StampState, string, string][] = [
     ['stamped', 'Been', 'ไปมาแล้ว'],
+    ['noted', 'Self-reported', 'บันทึกเอง'],
     ['open', 'Open', 'เปิดแล้ว'],
     ['listed', 'Not yet', 'ยังไม่เปิด'],
   ];
@@ -145,7 +153,8 @@ function Legend() {
             style={{
               width: 12, height: 12, borderRadius: 3,
               borderWidth: state === 'stamped' ? 0 : 1,
-              borderColor: state === 'open' ? color.accent : color.neutral400,
+              borderStyle: state === 'noted' ? 'dashed' : 'solid',
+              borderColor: state === 'open' ? color.accent : state === 'noted' ? color.neutral600 : color.neutral400,
               backgroundColor: state === 'stamped' ? color.accent : 'transparent',
             }}
           />
@@ -157,10 +166,11 @@ function Legend() {
 }
 
 function RegionBlock({
-  region, visited, count, byCode,
+  region, visited, noted, count, byCode,
 }: {
   region: Region;
   visited: Set<string>;
+  noted: Set<string>;
   count: { visited: number; total: number };
   byCode: Map<string, ProvinceCompanion>;
 }) {
@@ -189,7 +199,7 @@ function RegionBlock({
           <Stamp
             key={p.code}
             province={p}
-            state={stateOf(p, visited)}
+            state={stateOf(p, visited, noted)}
             companion={byCode.get(p.code) ?? null}
           />
         ))}
@@ -209,6 +219,7 @@ function Stamp({
   province, state, companion,
 }: { province: Province; state: StampState; companion: ProvinceCompanion | null }) {
   const stamped = state === 'stamped';
+  const noted = state === 'noted';
   const open = state === 'open';
 
   return (
@@ -216,7 +227,7 @@ function Stamp({
       accessibilityRole="text"
       accessibilityLabel={
         `${t(province.name)}. ${
-          stamped ? 'Visited' : open ? 'Open, not yet visited' : 'Not open yet'
+          stamped ? 'Visited' : noted ? 'Self-reported visit, not verified' : open ? 'Open, not yet visited' : 'Not open yet'
         }.`
       }
       style={{
@@ -225,7 +236,10 @@ function Stamp({
         paddingHorizontal: 11,
         borderRadius: radius.sm,
         borderWidth: stamped ? 0 : open ? layout.ruleStrong : 1,
-        borderColor: open ? color.accent : color.neutral300,
+        // Dashed: a claim, drawn as one. The solid stamps beside it keep
+        // meaning what they meant.
+        borderStyle: noted ? 'dashed' : 'solid',
+        borderColor: open ? color.accent : noted ? color.neutral600 : color.neutral300,
         backgroundColor: stamped ? color.accent : color.surface,
         // Listed provinces recede. They are present and findable, not offered.
         opacity: state === 'listed' ? 0.55 : 1,

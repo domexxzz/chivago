@@ -399,6 +399,21 @@ export const strings = {
         `You need to be at the place to check in — about ${m} m away`,
         `ต้องอยู่ที่สถานที่จริงถึงจะเช็กอินได้ ห่างประมาณ ${m} ม.`,
       ),
+    // The other half of a check-in. When the phone cannot prove it, the
+    // visit can still be RECORDED - in the passport, marked as self-reported
+    // - without being SCORED. Said plainly so nobody thinks the points come
+    // later.
+    noteOffer: t('Note that I was here · no points', 'บันทึกว่ามาแล้ว · ไม่ได้แต้ม'),
+    noted: (left: number) =>
+      t(
+        `Noted in your passport as self-reported · ${left} more this year`,
+        `บันทึกลงพาสปอร์ตแล้ว (ระบุว่าบันทึกเอง) เหลืออีก ${left} ครั้งในปีนี้`,
+      ),
+    notedAlready: t('Already noted here', 'บันทึกที่นี่ไว้แล้ว'),
+    quotaGone: t(
+      'All self-reported stamps for this year are used',
+      'โควตาบันทึกเองของปีนี้หมดแล้ว',
+    ),
   },
 
   // -- Reviews ------------------------------------------------------------

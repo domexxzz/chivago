@@ -1,7 +1,7 @@
 {
   "/health": {
     "status": "up",
-    "time": "2026-09-02T12:10:41.260Z"
+    "time": "2026-09-02T13:24:36.685Z"
   },
   "/profile": {
     "purposes": [
@@ -45,7 +45,7 @@
       },
       "metrics": {
         "crowdDensity": 3,
-        "aqi": 42,
+        "aqi": 41,
         "safetyIndex": 6.77,
         "walkability": 8.1
       },
@@ -55,9 +55,9 @@
       },
       "readings": {
         "aqi": {
-          "value": 42,
+          "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:47:19.033Z",
+          "observedAt": "2026-09-02T13:24:34.215Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
@@ -82,8 +82,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "42 AQI",
-            "subScore": 83.8,
+            "display": "41 AQI",
+            "subScore": 84.3,
             "weight": 0.349,
             "provenance": "live"
           },
@@ -154,7 +154,7 @@
       },
       "metrics": {
         "crowdDensity": 0.4,
-        "aqi": 42,
+        "aqi": 41,
         "safetyIndex": 8.85,
         "walkability": 6.9
       },
@@ -164,9 +164,9 @@
       },
       "readings": {
         "aqi": {
-          "value": 42,
+          "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:47:19.044Z",
+          "observedAt": "2026-09-02T13:24:34.212Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
@@ -191,8 +191,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "42 AQI",
-            "subScore": 83.8,
+            "display": "41 AQI",
+            "subScore": 84.3,
             "weight": 0.349,
             "provenance": "live"
           },
@@ -263,7 +263,7 @@
       },
       "metrics": {
         "crowdDensity": 1.4,
-        "aqi": 42,
+        "aqi": 41,
         "safetyIndex": 6.33,
         "walkability": 9
       },
@@ -273,9 +273,9 @@
       },
       "readings": {
         "aqi": {
-          "value": 42,
+          "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:47:18.992Z",
+          "observedAt": "2026-09-02T13:24:34.279Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
@@ -300,8 +300,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "42 AQI",
-            "subScore": 83.8,
+            "display": "41 AQI",
+            "subScore": 84.3,
             "weight": 0.349,
             "provenance": "live"
           },
@@ -366,7 +366,7 @@
       "photo": null,
       "metrics": {
         "crowdDensity": 0.3,
-        "aqi": 42,
+        "aqi": 41,
         "safetyIndex": 5.13,
         "walkability": 5.2
       },
@@ -376,9 +376,9 @@
       },
       "readings": {
         "aqi": {
-          "value": 42,
+          "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:47:19.038Z",
+          "observedAt": "2026-09-02T13:24:34.285Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
@@ -403,8 +403,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "42 AQI",
-            "subScore": 83.8,
+            "display": "41 AQI",
+            "subScore": 84.3,
             "weight": 0.349,
             "provenance": "live"
           },
@@ -474,7 +474,7 @@
       },
       "metrics": {
         "crowdDensity": 0.5,
-        "aqi": 42,
+        "aqi": 41,
         "safetyIndex": 7.39,
         "walkability": 7.4
       },
@@ -484,9 +484,9 @@
       },
       "readings": {
         "aqi": {
-          "value": 42,
+          "value": 41,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:47:19.044Z",
+          "observedAt": "2026-09-02T13:24:34.212Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
@@ -511,8 +511,8 @@
               "en": "Air quality",
               "th": "คุณภาพอากาศ"
             },
-            "display": "42 AQI",
-            "subScore": 83.8,
+            "display": "41 AQI",
+            "subScore": 84.3,
             "weight": 0.349,
             "provenance": "live"
           },
@@ -584,7 +584,7 @@
     },
     "metrics": {
       "crowdDensity": 3,
-      "aqi": 42,
+      "aqi": 41,
       "safetyIndex": 6.77,
       "walkability": 8.1
     },
@@ -594,9 +594,9 @@
     },
     "readings": {
       "aqi": {
-        "value": 42,
+        "value": 41,
         "provenance": "live",
-        "observedAt": "2026-09-02T11:47:19.033Z",
+        "observedAt": "2026-09-02T13:24:34.215Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -621,8 +621,8 @@
             "en": "Air quality",
             "th": "คุณภาพอากาศ"
           },
-          "display": "42 AQI",
-          "subScore": 83.8,
+          "display": "41 AQI",
+          "subScore": 84.3,
           "weight": 0.349,
           "provenance": "live"
         },
@@ -675,7 +675,7 @@
         "language": "en",
         "visitedAt": "2026-09-02T12:10:18.972Z",
         "createdAt": "2026-09-02T12:10:19.018Z",
-        "updatedAt": "2026-09-02T12:10:19.256Z"
+        "updatedAt": "2026-09-02T13:24:34.699Z"
       }
     ],
     "mine": null,
@@ -712,7 +712,7 @@
     },
     "metrics": {
       "crowdDensity": 0.4,
-      "aqi": 42,
+      "aqi": 41,
       "safetyIndex": 8.85,
       "walkability": 6.9
     },
@@ -722,9 +722,9 @@
     },
     "readings": {
       "aqi": {
-        "value": 42,
+        "value": 41,
         "provenance": "live",
-        "observedAt": "2026-09-02T11:47:19.044Z",
+        "observedAt": "2026-09-02T13:24:34.212Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -749,8 +749,8 @@
             "en": "Air quality",
             "th": "คุณภาพอากาศ"
           },
-          "display": "42 AQI",
-          "subScore": 83.8,
+          "display": "41 AQI",
+          "subScore": 84.3,
           "weight": 0.349,
           "provenance": "live"
         },
@@ -827,7 +827,7 @@
     },
     "metrics": {
       "crowdDensity": 1.4,
-      "aqi": 42,
+      "aqi": 41,
       "safetyIndex": 6.33,
       "walkability": 9
     },
@@ -837,9 +837,9 @@
     },
     "readings": {
       "aqi": {
-        "value": 42,
+        "value": 41,
         "provenance": "live",
-        "observedAt": "2026-09-02T11:47:18.992Z",
+        "observedAt": "2026-09-02T13:24:34.279Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -864,8 +864,8 @@
             "en": "Air quality",
             "th": "คุณภาพอากาศ"
           },
-          "display": "42 AQI",
-          "subScore": 83.8,
+          "display": "41 AQI",
+          "subScore": 84.3,
           "weight": 0.349,
           "provenance": "live"
         },
@@ -941,7 +941,7 @@
     },
     "metrics": {
       "crowdDensity": 0.5,
-      "aqi": 42,
+      "aqi": 41,
       "safetyIndex": 7.39,
       "walkability": 7.4
     },
@@ -951,9 +951,9 @@
     },
     "readings": {
       "aqi": {
-        "value": 42,
+        "value": 41,
         "provenance": "live",
-        "observedAt": "2026-09-02T11:47:19.044Z",
+        "observedAt": "2026-09-02T13:24:34.212Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -978,8 +978,8 @@
             "en": "Air quality",
             "th": "คุณภาพอากาศ"
           },
-          "display": "42 AQI",
-          "subScore": 83.8,
+          "display": "41 AQI",
+          "subScore": 84.3,
           "weight": 0.349,
           "provenance": "live"
         },
@@ -1050,7 +1050,7 @@
     "photo": null,
     "metrics": {
       "crowdDensity": 0.3,
-      "aqi": 42,
+      "aqi": 41,
       "safetyIndex": 5.13,
       "walkability": 5.2
     },
@@ -1060,9 +1060,9 @@
     },
     "readings": {
       "aqi": {
-        "value": 42,
+        "value": 41,
         "provenance": "live",
-        "observedAt": "2026-09-02T11:47:19.038Z",
+        "observedAt": "2026-09-02T13:24:34.285Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -1087,8 +1087,8 @@
             "en": "Air quality",
             "th": "คุณภาพอากาศ"
           },
-          "display": "42 AQI",
-          "subScore": 83.8,
+          "display": "41 AQI",
+          "subScore": 84.3,
           "weight": 0.349,
           "provenance": "live"
         },
@@ -1729,10 +1729,15 @@
     "chaweng",
     "fisherman"
   ],
+  "/visits/self": {
+    "places": [],
+    "remainingThisYear": 10
+  },
   "/passport": {
     "visited": [
       "TH-84"
     ],
+    "selfReported": [],
     "evidence": [
       {
         "code": "TH-84",
