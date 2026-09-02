@@ -64,6 +64,39 @@ const csrfValid = (session: HostSession, submitted: unknown): boolean => {
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 };
 
+const LOGIN_ATTEMPTS_PER_WINDOW = Number(process.env.CHIVAGO_LOGIN_ATTEMPTS ?? 10);
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const loginAttempts = new Map<string, number[]>();
+
+function clientAddress(c: { req: { header: (n: string) => string | undefined } }): string {
+  const forwarded = c.req.header('x-forwarded-for');
+  if (forwarded) return forwarded.split(',')[0]!.trim();
+  return c.req.header('x-real-ip') ?? 'local';
+}
+
+/**
+ * FAILED attempts are what is counted. A reviewer who signs in every morning
+ * is not the problem; somebody trying keys is, and a correct sign-in clears
+ * the slate for its address because the person at the keyboard has just
+ * proved who they are.
+ */
+export function loginBlocked(address: string, now = Date.now()): boolean {
+  const recent = (loginAttempts.get(address) ?? []).filter((t) => now - t < LOGIN_WINDOW_MS);
+  loginAttempts.set(address, recent);
+  return recent.length >= LOGIN_ATTEMPTS_PER_WINDOW;
+}
+
+export function noteLoginFailure(address: string, now = Date.now()): void {
+  const recent = (loginAttempts.get(address) ?? []).filter((t) => now - t < LOGIN_WINDOW_MS);
+  recent.push(now);
+  loginAttempts.set(address, recent);
+}
+
+export const clearLoginFailures = (address: string): void => { loginAttempts.delete(address); };
+
+/** Test seam: forget every address. */
+export const __resetLoginAttemptsForTests = (): void => { loginAttempts.clear(); };
+
 export interface ConsoleHooks {
   /** Runs after a proof decision commits. The server uses it to flush pushes. */
   afterDecision?: () => void;
@@ -134,12 +167,22 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
   app.get('/login', (c) => c.html(loginPage(localeFor(c))));
 
   app.post('/login', async (c) => {
+    // Every attempt costs a scrypt derivation PER HOST (the check is
+    // timing-uniform on purpose), so an unmetered login form was a CPU
+    // denial-of-service that needed no key at all. Ten tries a quarter hour
+    // is more than any person mistyping a 20-character key needs.
+    const address = clientAddress(c);
+    if (loginBlocked(address)) {
+      return c.text('Too many sign-in attempts from this connection. Try again in 15 minutes.', 429);
+    }
     const form = await c.req.parseBody();
     const key = String(form.key ?? '').trim();
     const reviewer = String(form.reviewer ?? '').trim() || null;
 
     pruneSessions(db);
     const session = login(db, key, reviewer);
+    if (session) clearLoginFailures(address);
+    else noteLoginFailure(address);
     if (!session) {
       // Deliberately vague: naming which half was wrong helps an attacker
       // enumerate valid keys.
@@ -359,20 +402,33 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       sosDeskPage(
         localeFor(c), session.hostName, session.reviewer,
         live, recentAlerts(db, 20), escalations, trails, canModerate(session),
+        csrfFor(session),
       ),
     );
   });
 
-  app.post('/sos/:id/acknowledge', (c) => {
+  // Both carry the CSRF token, like every other state change on this console.
+  // They were the two that did not, on the theory that SameSite=Strict was
+  // enough - and a forged "acknowledge" is the worst forgery this system
+  // has, because it tells someone in trouble that a named human has them.
+  app.post('/sos/:id/acknowledge', async (c) => {
     const session = currentSession(c)!;
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/sos'), 403);
+    }
     // The operator's NAME goes to the person in trouble, not "an operator".
     // Being told a human has you is the point.
     acknowledgeAlert(db, c.req.param('id'), session.reviewer ?? session.hostName);
     return c.redirect('/console/sos', 303);
   });
 
-  app.post('/sos/:id/resolve', (c) => {
+  app.post('/sos/:id/resolve', async (c) => {
     const session = currentSession(c)!;
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/sos'), 403);
+    }
     resolveAlert(db, c.req.param('id'), session.reviewer ?? session.hostName);
     return c.redirect('/console/sos', 303);
   });

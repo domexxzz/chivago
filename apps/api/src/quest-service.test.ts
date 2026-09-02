@@ -292,3 +292,20 @@ describe('notifying the volunteer — the loop this closes', () => {
     assert.deepEqual(kinds, ['quest_approved', 'quest_rejected'], 'newest first');
   });
 });
+
+describe('one piece of work, one proof in the queue', () => {
+  test('submitting again while the host is still deciding is refused', () => {
+    // The old machine allowed host_verification -> proof_submitted, so a
+    // volunteer could file proof after proof against one quest, each a new
+    // pending row, all but one orphaned the moment any was decided.
+    runToVerification();
+    assert.throws(
+      () => submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: 1 }),
+      (err: unknown) => err instanceof InvalidTransition,
+    );
+    const pending = (db.prepare(
+      'SELECT COUNT(*) AS n FROM proofs WHERE user_id = ? AND quest_id = ? AND reviewed_at IS NULL',
+    ).get(USER, QUEST) as { n: number }).n;
+    assert.equal(pending, 1);
+  });
+});

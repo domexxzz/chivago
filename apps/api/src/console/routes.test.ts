@@ -682,3 +682,76 @@ describe('bulk take-down needs two people', () => {
     assert.equal(pendingBatches(db).length, 0);
   });
 });
+
+describe('the SOS desk is guarded like every other state change', () => {
+  test('acknowledging without the CSRF token is refused, and the alert stays unacknowledged', async () => {
+    const { fireAlert, activeAlert } = await import('../sos-service.ts');
+    fireAlert(db, { userId: 'u1', lat: 9.5357, lng: 100.0617, locationLabel: 'Chaweng' });
+    const alertId = activeAlert(db, 'u1')!.id;
+    const muni = await signIn(MUNI_KEY);
+
+    const forged = await app.request(`/sos/${alertId}/acknowledge`, {
+      method: 'POST',
+      headers: { ...withCookie(muni), 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({}),
+    });
+    assert.equal(forged.status, 403);
+    assert.equal(activeAlert(db, 'u1')!.status, 'dispatching', 'a forged acknowledge told nobody anything');
+
+    const real = await app.request(`/sos/${alertId}/acknowledge`, {
+      method: 'POST',
+      headers: { ...withCookie(muni), 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ csrf: __csrfFor(resolveSession(db, muni)!) }),
+    });
+    assert.equal(real.status, 303);
+    assert.equal(activeAlert(db, 'u1')!.status, 'acknowledged');
+  });
+
+  test('the desk page carries the token in its forms', async () => {
+    const { fireAlert } = await import('../sos-service.ts');
+    fireAlert(db, { userId: 'u1', lat: 9.5357, lng: 100.0617, locationLabel: 'Chaweng' });
+    const muni = await signIn(MUNI_KEY);
+    const page = await (await app.request('/sos', { headers: withCookie(muni) })).text();
+    assert.match(page, /name="csrf" value="[A-Za-z0-9_-]+"/);
+  });
+
+  test('an alert with no position says so on the desk instead of drawing a pin', async () => {
+    const { fireAlert } = await import('../sos-service.ts');
+    fireAlert(db, { userId: 'u1', lat: null, lng: null, locationLabel: 'Position unknown' });
+    const muni = await signIn(MUNI_KEY);
+    const page = await (await app.request('/sos', { headers: withCookie(muni) })).text();
+    assert.match(page, /POSITION UNKNOWN/);
+    assert.doesNotMatch(page, /Open in Maps/);
+  });
+});
+
+describe('signing in is metered', () => {
+  test('the eleventh attempt from one address in a quarter hour is refused, whatever the key', async () => {
+    const { __resetLoginAttemptsForTests } = await import('./routes.ts');
+    __resetLoginAttemptsForTests();
+    const attempt = (key: string) => app.request('/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-forwarded-for': '203.0.113.50' },
+      body: new URLSearchParams({ key, reviewer: 'x' }),
+    });
+    for (let i = 0; i < 10; i += 1) {
+      assert.equal((await attempt('chv_WRONG-WRONG-WRONG-WRONG')).status, 401);
+    }
+    // Even the RIGHT key is refused now: the meter is on the address, and
+    // an attacker who guessed correctly on try eleven does not get in.
+    const eleventh = await attempt(MUNI_KEY);
+    assert.equal(eleventh.status, 429);
+    __resetLoginAttemptsForTests();
+  });
+
+  test('a different address is not affected', async () => {
+    const { __resetLoginAttemptsForTests } = await import('./routes.ts');
+    __resetLoginAttemptsForTests();
+    const res = await app.request('/login', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-forwarded-for': '203.0.113.51' },
+      body: new URLSearchParams({ key: MUNI_KEY, reviewer: 'Nok' }),
+    });
+    assert.equal(res.status, 303);
+  });
+});

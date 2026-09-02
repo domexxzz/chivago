@@ -243,7 +243,13 @@ export function readCookie(header: string | undefined, name: string): string | u
   if (!header) return undefined;
   for (const part of header.split(';')) {
     const [k, ...rest] = part.trim().split('=');
-    if (k === name) return decodeURIComponent(rest.join('='));
+    if (k === name) {
+      const raw = rest.join('=');
+      // A malformed percent-escape is a bad cookie, not a server error. The
+      // raw value cannot match any session token, so the request is simply
+      // signed out - which is the right answer to a cookie nobody set.
+      try { return decodeURIComponent(raw); } catch { return raw; }
+    }
   }
   return undefined;
 }
