@@ -1,7 +1,7 @@
 {
   "/health": {
     "status": "up",
-    "time": "2026-09-02T11:47:17.892Z"
+    "time": "2026-09-02T12:10:41.260Z"
   },
   "/profile": {
     "purposes": [
@@ -12,7 +12,7 @@
     "watch": [
       "air"
     ],
-    "completedAt": "2026-08-28T11:47:02.725Z"
+    "completedAt": "2026-08-28T12:09:53.845Z"
   },
   "/places": [
     {
@@ -57,8 +57,8 @@
         "aqi": {
           "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+          "observedAt": "2026-09-02T11:47:19.033Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
       "healthyScore": 75,
@@ -113,13 +113,13 @@
         "profileApplied": "Your profile (nature + food, moderate)"
       },
       "reviews": {
-        "count": 0,
-        "average": null,
+        "count": 1,
+        "average": 4,
         "distribution": [
           0,
           0,
           0,
-          0,
+          1,
           0
         ]
       }
@@ -166,8 +166,8 @@
         "aqi": {
           "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+          "observedAt": "2026-09-02T11:47:19.044Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
       "healthyScore": 87,
@@ -275,8 +275,8 @@
         "aqi": {
           "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+          "observedAt": "2026-09-02T11:47:18.992Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
       "healthyScore": 81,
@@ -378,8 +378,8 @@
         "aqi": {
           "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+          "observedAt": "2026-09-02T11:47:19.038Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
       "healthyScore": 77,
@@ -486,8 +486,8 @@
         "aqi": {
           "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-02T11:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+          "observedAt": "2026-09-02T11:47:19.044Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
       "healthyScore": 85,
@@ -652,19 +652,32 @@
       "profileApplied": "Your profile (nature + food, moderate)"
     },
     "reviews": {
-      "count": 0,
-      "average": null,
+      "count": 1,
+      "average": 4,
       "distribution": [
         0,
         0,
         0,
-        0,
+        1,
         0
       ]
     }
   },
   "/places/chaweng/reviews": {
-    "reviews": [],
+    "reviews": [
+      {
+        "id": "e0c741b2-761a-4b65-8261-5c1a4a0ab7f8",
+        "placeId": "chaweng",
+        "authorId": "contract-capture",
+        "authorName": "Traveller",
+        "rating": 4,
+        "body": "Busier after nine when the boats arrive, but still worth it.",
+        "language": "en",
+        "visitedAt": "2026-09-02T12:10:18.972Z",
+        "createdAt": "2026-09-02T12:10:19.018Z",
+        "updatedAt": "2026-09-02T12:10:19.256Z"
+      }
+    ],
     "mine": null,
     "canReview": true,
     "reported": []
@@ -1131,8 +1144,14 @@
           "en": "Mangrove Planting",
           "th": "ปลูกป่าชายเลน"
         },
-        "where": "Thong Krut",
-        "duration": "2 hr",
+        "where": {
+          "en": "Thong Krut",
+          "th": "ท้องกรูด"
+        },
+        "duration": {
+          "en": "2 hr",
+          "th": "2 ชั่วโมง"
+        },
         "rewardPoints": 400,
         "rewardCurrency": "green",
         "host": {
@@ -1152,8 +1171,14 @@
           "en": "Coral Nursery Check",
           "th": "ตรวจแปลงปะการัง"
         },
-        "where": "Taling Ngam",
-        "duration": "90 min",
+        "where": {
+          "en": "Taling Ngam",
+          "th": "ตลิ่งงาม"
+        },
+        "duration": {
+          "en": "90 min",
+          "th": "90 นาที"
+        },
         "rewardPoints": 300,
         "rewardCurrency": "green",
         "host": {
@@ -1173,8 +1198,14 @@
           "en": "Beach Cleanup",
           "th": "เก็บขยะชายหาด"
         },
-        "where": "Chaweng Beach",
-        "duration": "45 min",
+        "where": {
+          "en": "Chaweng Beach",
+          "th": "หาดเฉวง"
+        },
+        "duration": {
+          "en": "45 min",
+          "th": "45 นาที"
+        },
         "rewardPoints": 150,
         "rewardCurrency": "green",
         "host": {
@@ -1194,8 +1225,14 @@
           "en": "Fisherman’s Village food trail",
           "th": "เส้นทางอาหารหมู่บ้านชาวประมง"
         },
-        "where": "Bophut",
-        "duration": "90 min",
+        "where": {
+          "en": "Bophut",
+          "th": "บ่อผุด"
+        },
+        "duration": {
+          "en": "90 min",
+          "th": "90 นาที"
+        },
         "rewardPoints": 120,
         "rewardCurrency": "trip",
         "host": {
@@ -1215,8 +1252,14 @@
           "en": "Big Buddha morning walk",
           "th": "เดินเช้าพระใหญ่"
         },
-        "where": "Bang Rak",
-        "duration": "45 min",
+        "where": {
+          "en": "Bang Rak",
+          "th": "บางรัก"
+        },
+        "duration": {
+          "en": "45 min",
+          "th": "45 นาที"
+        },
         "rewardPoints": 80,
         "rewardCurrency": "trip",
         "host": {
@@ -1236,8 +1279,14 @@
           "en": "Walk, don’t ride",
           "th": "เดินแทนการใช้รถ"
         },
-        "where": "Island-wide",
-        "duration": "Daily",
+        "where": {
+          "en": "Island-wide",
+          "th": "ทั่วทั้งเกาะ"
+        },
+        "duration": {
+          "en": "Daily",
+          "th": "ทุกวัน"
+        },
         "rewardPoints": 60,
         "rewardCurrency": "green",
         "host": {
@@ -1256,10 +1305,10 @@
         "questId": "q1",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T11:47:02.783Z",
-        "arrivedAt": "2026-09-02T11:47:02.784Z",
-        "proofSubmittedAt": "2026-09-02T11:47:02.785Z",
-        "verifiedAt": "2026-09-02T11:47:02.786Z",
+        "joinedAt": "2026-09-02T12:09:53.907Z",
+        "arrivedAt": "2026-09-02T12:09:53.908Z",
+        "proofSubmittedAt": "2026-09-02T12:09:53.909Z",
+        "verifiedAt": "2026-09-02T12:09:53.910Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1267,10 +1316,10 @@
         "questId": "q2",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T11:47:02.787Z",
-        "arrivedAt": "2026-09-02T11:47:02.788Z",
-        "proofSubmittedAt": "2026-09-02T11:47:02.789Z",
-        "verifiedAt": "2026-09-02T11:47:02.790Z",
+        "joinedAt": "2026-09-02T12:09:53.911Z",
+        "arrivedAt": "2026-09-02T12:09:53.912Z",
+        "proofSubmittedAt": "2026-09-02T12:09:53.913Z",
+        "verifiedAt": "2026-09-02T12:09:53.914Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1278,10 +1327,10 @@
         "questId": "q4",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T11:47:02.791Z",
-        "arrivedAt": "2026-09-02T11:47:02.792Z",
-        "proofSubmittedAt": "2026-09-02T11:47:02.793Z",
-        "verifiedAt": "2026-09-02T11:47:02.794Z",
+        "joinedAt": "2026-09-02T12:09:53.916Z",
+        "arrivedAt": "2026-09-02T12:09:53.916Z",
+        "proofSubmittedAt": "2026-09-02T12:09:53.917Z",
+        "verifiedAt": "2026-09-02T12:09:53.918Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1289,10 +1338,10 @@
         "questId": "q5",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T11:47:02.795Z",
-        "arrivedAt": "2026-09-02T11:47:02.796Z",
-        "proofSubmittedAt": "2026-09-02T11:47:02.797Z",
-        "verifiedAt": "2026-09-02T11:47:02.797Z",
+        "joinedAt": "2026-09-02T12:09:53.919Z",
+        "arrivedAt": "2026-09-02T12:09:53.920Z",
+        "proofSubmittedAt": "2026-09-02T12:09:53.921Z",
+        "verifiedAt": "2026-09-02T12:09:53.922Z",
         "rejectedAt": null,
         "rejectionReason": null
       }
@@ -1307,8 +1356,14 @@
           "en": "Beach Cleanup",
           "th": "เก็บขยะชายหาด"
         },
-        "where": "Chaweng Beach",
-        "duration": "45 min",
+        "where": {
+          "en": "Chaweng Beach",
+          "th": "หาดเฉวง"
+        },
+        "duration": {
+          "en": "45 min",
+          "th": "45 นาที"
+        },
         "rewardPoints": 150,
         "rewardCurrency": "green",
         "host": {
@@ -1328,8 +1383,14 @@
           "en": "Fisherman’s Village food trail",
           "th": "เส้นทางอาหารหมู่บ้านชาวประมง"
         },
-        "where": "Bophut",
-        "duration": "90 min",
+        "where": {
+          "en": "Bophut",
+          "th": "บ่อผุด"
+        },
+        "duration": {
+          "en": "90 min",
+          "th": "90 นาที"
+        },
         "rewardPoints": 120,
         "rewardCurrency": "trip",
         "host": {
@@ -1349,8 +1410,14 @@
           "en": "Big Buddha morning walk",
           "th": "เดินเช้าพระใหญ่"
         },
-        "where": "Bang Rak",
-        "duration": "45 min",
+        "where": {
+          "en": "Bang Rak",
+          "th": "บางรัก"
+        },
+        "duration": {
+          "en": "45 min",
+          "th": "45 นาที"
+        },
         "rewardPoints": 80,
         "rewardCurrency": "trip",
         "host": {
@@ -1370,8 +1437,14 @@
           "en": "Walk, don’t ride",
           "th": "เดินแทนการใช้รถ"
         },
-        "where": "Island-wide",
-        "duration": "Daily",
+        "where": {
+          "en": "Island-wide",
+          "th": "ทั่วทั้งเกาะ"
+        },
+        "duration": {
+          "en": "Daily",
+          "th": "ทุกวัน"
+        },
         "rewardPoints": 60,
         "rewardCurrency": "green",
         "host": {
@@ -1390,10 +1463,10 @@
         "questId": "q1",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T11:47:02.783Z",
-        "arrivedAt": "2026-09-02T11:47:02.784Z",
-        "proofSubmittedAt": "2026-09-02T11:47:02.785Z",
-        "verifiedAt": "2026-09-02T11:47:02.786Z",
+        "joinedAt": "2026-09-02T12:09:53.907Z",
+        "arrivedAt": "2026-09-02T12:09:53.908Z",
+        "proofSubmittedAt": "2026-09-02T12:09:53.909Z",
+        "verifiedAt": "2026-09-02T12:09:53.910Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1401,10 +1474,10 @@
         "questId": "q2",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T11:47:02.787Z",
-        "arrivedAt": "2026-09-02T11:47:02.788Z",
-        "proofSubmittedAt": "2026-09-02T11:47:02.789Z",
-        "verifiedAt": "2026-09-02T11:47:02.790Z",
+        "joinedAt": "2026-09-02T12:09:53.911Z",
+        "arrivedAt": "2026-09-02T12:09:53.912Z",
+        "proofSubmittedAt": "2026-09-02T12:09:53.913Z",
+        "verifiedAt": "2026-09-02T12:09:53.914Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1412,10 +1485,10 @@
         "questId": "q4",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T11:47:02.791Z",
-        "arrivedAt": "2026-09-02T11:47:02.792Z",
-        "proofSubmittedAt": "2026-09-02T11:47:02.793Z",
-        "verifiedAt": "2026-09-02T11:47:02.794Z",
+        "joinedAt": "2026-09-02T12:09:53.916Z",
+        "arrivedAt": "2026-09-02T12:09:53.916Z",
+        "proofSubmittedAt": "2026-09-02T12:09:53.917Z",
+        "verifiedAt": "2026-09-02T12:09:53.918Z",
         "rejectedAt": null,
         "rejectionReason": null
       },
@@ -1423,10 +1496,10 @@
         "questId": "q5",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-09-02T11:47:02.795Z",
-        "arrivedAt": "2026-09-02T11:47:02.796Z",
-        "proofSubmittedAt": "2026-09-02T11:47:02.797Z",
-        "verifiedAt": "2026-09-02T11:47:02.797Z",
+        "joinedAt": "2026-09-02T12:09:53.919Z",
+        "arrivedAt": "2026-09-02T12:09:53.920Z",
+        "proofSubmittedAt": "2026-09-02T12:09:53.921Z",
+        "verifiedAt": "2026-09-02T12:09:53.922Z",
         "rejectedAt": null,
         "rejectionReason": null
       }
@@ -1440,8 +1513,14 @@
         "en": "Beach Cleanup",
         "th": "เก็บขยะชายหาด"
       },
-      "where": "Chaweng Beach",
-      "duration": "45 min",
+      "where": {
+        "en": "Chaweng Beach",
+        "th": "หาดเฉวง"
+      },
+      "duration": {
+        "en": "45 min",
+        "th": "45 นาที"
+      },
       "rewardPoints": 150,
       "rewardCurrency": "green",
       "host": {
@@ -1458,10 +1537,10 @@
       "questId": "q1",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-02T11:47:02.783Z",
-      "arrivedAt": "2026-09-02T11:47:02.784Z",
-      "proofSubmittedAt": "2026-09-02T11:47:02.785Z",
-      "verifiedAt": "2026-09-02T11:47:02.786Z",
+      "joinedAt": "2026-09-02T12:09:53.907Z",
+      "arrivedAt": "2026-09-02T12:09:53.908Z",
+      "proofSubmittedAt": "2026-09-02T12:09:53.909Z",
+      "verifiedAt": "2026-09-02T12:09:53.910Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1474,8 +1553,14 @@
         "en": "Mangrove Planting",
         "th": "ปลูกป่าชายเลน"
       },
-      "where": "Thong Krut",
-      "duration": "2 hr",
+      "where": {
+        "en": "Thong Krut",
+        "th": "ท้องกรูด"
+      },
+      "duration": {
+        "en": "2 hr",
+        "th": "2 ชั่วโมง"
+      },
       "rewardPoints": 400,
       "rewardCurrency": "green",
       "host": {
@@ -1492,10 +1577,10 @@
       "questId": "q2",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-02T11:47:02.787Z",
-      "arrivedAt": "2026-09-02T11:47:02.788Z",
-      "proofSubmittedAt": "2026-09-02T11:47:02.789Z",
-      "verifiedAt": "2026-09-02T11:47:02.790Z",
+      "joinedAt": "2026-09-02T12:09:53.911Z",
+      "arrivedAt": "2026-09-02T12:09:53.912Z",
+      "proofSubmittedAt": "2026-09-02T12:09:53.913Z",
+      "verifiedAt": "2026-09-02T12:09:53.914Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1508,8 +1593,14 @@
         "en": "Coral Nursery Check",
         "th": "ตรวจแปลงปะการัง"
       },
-      "where": "Taling Ngam",
-      "duration": "90 min",
+      "where": {
+        "en": "Taling Ngam",
+        "th": "ตลิ่งงาม"
+      },
+      "duration": {
+        "en": "90 min",
+        "th": "90 นาที"
+      },
       "rewardPoints": 300,
       "rewardCurrency": "green",
       "host": {
@@ -1532,8 +1623,14 @@
         "en": "Walk, don’t ride",
         "th": "เดินแทนการใช้รถ"
       },
-      "where": "Island-wide",
-      "duration": "Daily",
+      "where": {
+        "en": "Island-wide",
+        "th": "ทั่วทั้งเกาะ"
+      },
+      "duration": {
+        "en": "Daily",
+        "th": "ทุกวัน"
+      },
       "rewardPoints": 60,
       "rewardCurrency": "green",
       "host": {
@@ -1550,10 +1647,10 @@
       "questId": "q4",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-02T11:47:02.791Z",
-      "arrivedAt": "2026-09-02T11:47:02.792Z",
-      "proofSubmittedAt": "2026-09-02T11:47:02.793Z",
-      "verifiedAt": "2026-09-02T11:47:02.794Z",
+      "joinedAt": "2026-09-02T12:09:53.916Z",
+      "arrivedAt": "2026-09-02T12:09:53.916Z",
+      "proofSubmittedAt": "2026-09-02T12:09:53.917Z",
+      "verifiedAt": "2026-09-02T12:09:53.918Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1566,8 +1663,14 @@
         "en": "Fisherman’s Village food trail",
         "th": "เส้นทางอาหารหมู่บ้านชาวประมง"
       },
-      "where": "Bophut",
-      "duration": "90 min",
+      "where": {
+        "en": "Bophut",
+        "th": "บ่อผุด"
+      },
+      "duration": {
+        "en": "90 min",
+        "th": "90 นาที"
+      },
       "rewardPoints": 120,
       "rewardCurrency": "trip",
       "host": {
@@ -1584,10 +1687,10 @@
       "questId": "q5",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-09-02T11:47:02.795Z",
-      "arrivedAt": "2026-09-02T11:47:02.796Z",
-      "proofSubmittedAt": "2026-09-02T11:47:02.797Z",
-      "verifiedAt": "2026-09-02T11:47:02.797Z",
+      "joinedAt": "2026-09-02T12:09:53.919Z",
+      "arrivedAt": "2026-09-02T12:09:53.920Z",
+      "proofSubmittedAt": "2026-09-02T12:09:53.921Z",
+      "verifiedAt": "2026-09-02T12:09:53.922Z",
       "rejectedAt": null,
       "rejectionReason": null
     }
@@ -1600,8 +1703,14 @@
         "en": "Big Buddha morning walk",
         "th": "เดินเช้าพระใหญ่"
       },
-      "where": "Bang Rak",
-      "duration": "45 min",
+      "where": {
+        "en": "Bang Rak",
+        "th": "บางรัก"
+      },
+      "duration": {
+        "en": "45 min",
+        "th": "45 นาที"
+      },
       "rewardPoints": 80,
       "rewardCurrency": "trip",
       "host": {
@@ -1828,10 +1937,10 @@
     },
     "ledger": [
       {
-        "id": "6c1c306f-8967-44c8-8f2c-074daeb670f2",
+        "id": "458f7925-8e0e-43f3-9fc3-bbb6a7180570",
         "label": "Fisherman’s Village food trail",
         "subject": "Fisherman’s Village food trail",
-        "occurredAt": "2026-09-02T11:47:02.797Z",
+        "occurredAt": "2026-09-02T12:09:53.922Z",
         "host": "Fisherman's Village Traders",
         "amount": 120,
         "currency": "trip",
@@ -1840,10 +1949,10 @@
         "sourceRef": "quest:q5:user:demo-user"
       },
       {
-        "id": "cabba57c-1fbf-4591-9674-9134a8c73a71",
+        "id": "1a058194-d338-4d2b-adbf-fdd5a8d523ba",
         "label": "Walk, don’t ride",
         "subject": "Walk, don’t ride",
-        "occurredAt": "2026-09-02T11:47:02.794Z",
+        "occurredAt": "2026-09-02T12:09:53.918Z",
         "host": "ChivaGo",
         "amount": 60,
         "currency": "green",
@@ -1852,10 +1961,10 @@
         "sourceRef": "quest:q4:user:demo-user"
       },
       {
-        "id": "74b040a3-42c3-4623-ac1f-06eea54650d1",
+        "id": "9a511224-a067-4c1d-9d83-eb37b1c9fde6",
         "label": "Mangrove Planting",
         "subject": "Mangrove Planting",
-        "occurredAt": "2026-09-02T11:47:02.790Z",
+        "occurredAt": "2026-09-02T12:09:53.914Z",
         "host": "Samui Green Foundation (NGO)",
         "amount": 400,
         "currency": "green",
@@ -1864,10 +1973,10 @@
         "sourceRef": "quest:q2:user:demo-user"
       },
       {
-        "id": "708b92c3-0250-483a-b1a0-c106577d491e",
+        "id": "338d884e-4b7d-430a-86aa-769a3df67dac",
         "label": "Beach Cleanup",
         "subject": "Beach Cleanup",
-        "occurredAt": "2026-09-02T11:47:02.786Z",
+        "occurredAt": "2026-09-02T12:09:53.910Z",
         "host": "Samui Municipality",
         "amount": 150,
         "currency": "green",
@@ -1876,10 +1985,10 @@
         "sourceRef": "quest:q1:user:demo-user"
       },
       {
-        "id": "acd98d6a-9471-47e2-8f71-9a5ccb37b4d4",
+        "id": "bccbb3a8-ff23-4cae-a9cb-360855594bd0",
         "label": "Pilot opening balance",
         "subject": null,
-        "occurredAt": "2026-09-02T11:47:02.750Z",
+        "occurredAt": "2026-09-02T12:09:53.871Z",
         "host": "ChivaGo · pilot seed",
         "amount": 1240,
         "currency": "green",
@@ -1888,10 +1997,10 @@
         "sourceRef": "opening:green:demo-user"
       },
       {
-        "id": "0a42368a-3847-4bcf-a77e-561c2fef1288",
+        "id": "cfd9116c-ffa2-4337-af5e-6c68b739d186",
         "label": "Pilot opening balance",
         "subject": null,
-        "occurredAt": "2026-09-02T11:47:02.748Z",
+        "occurredAt": "2026-09-02T12:09:53.870Z",
         "host": "ChivaGo · pilot seed",
         "amount": 320,
         "currency": "trip",
@@ -1900,10 +2009,10 @@
         "sourceRef": "opening:trip:demo-user"
       },
       {
-        "id": "15428fbf-8222-45e8-aa59-394a8ab96617",
+        "id": "b1250243-6c03-4269-80cf-6974787063cb",
         "label": "Checked in · Fisherman's Village",
         "subject": "Fisherman's Village",
-        "occurredAt": "2026-09-02T11:47:02.725Z",
+        "occurredAt": "2026-09-02T12:09:53.845Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1912,10 +2021,10 @@
         "sourceRef": "checkin:fisherman:user:demo-user:2026-09-02"
       },
       {
-        "id": "f02f5bfd-791b-4039-88ae-6fd09326d61f",
+        "id": "34a207bb-78a4-4fd8-935c-be058ecadd88",
         "label": "Checked in · Chaweng Beach",
         "subject": "Chaweng Beach",
-        "occurredAt": "2026-09-02T11:47:02.725Z",
+        "occurredAt": "2026-09-02T12:09:53.845Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1924,10 +2033,10 @@
         "sourceRef": "checkin:chaweng:user:demo-user:2026-09-02"
       },
       {
-        "id": "6ad394eb-37a5-4939-8e7f-8a3b3f002d9b",
+        "id": "3b606405-75ab-44f7-824f-cbeed9f12b1a",
         "label": "Checked in · Chaweng Beach",
         "subject": "Chaweng Beach",
-        "occurredAt": "2026-09-01T11:47:02.725Z",
+        "occurredAt": "2026-09-01T12:09:53.845Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1936,10 +2045,10 @@
         "sourceRef": "checkin:chaweng:user:demo-user:2026-09-01"
       },
       {
-        "id": "67a85bb4-df74-4b39-8474-4a2323e46f84",
+        "id": "555acaaa-e06f-4eb2-8aa8-e0be1cf3b7db",
         "label": "Checked in · Fisherman's Village",
         "subject": "Fisherman's Village",
-        "occurredAt": "2026-09-01T11:47:02.725Z",
+        "occurredAt": "2026-09-01T12:09:53.845Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1948,10 +2057,10 @@
         "sourceRef": "checkin:fisherman:user:demo-user:2026-09-01"
       },
       {
-        "id": "0a02c340-a3ec-41e0-8e38-509964582c08",
+        "id": "ec4e7949-248c-4b6d-b76f-2d6e0a0328ce",
         "label": "Checked in · Thong Krut Mangrove",
         "subject": "Thong Krut Mangrove",
-        "occurredAt": "2026-08-31T11:47:02.725Z",
+        "occurredAt": "2026-08-31T12:09:53.845Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1960,10 +2069,10 @@
         "sourceRef": "checkin:mangrove:user:demo-user:2026-08-31"
       },
       {
-        "id": "df19a753-0915-4228-bc70-bd04e4fad0b2",
+        "id": "1ed5c707-8bbd-42db-b319-23418bf46e99",
         "label": "Checked in · Na Muang Waterfall",
         "subject": "Na Muang Waterfall",
-        "occurredAt": "2026-08-31T11:47:02.725Z",
+        "occurredAt": "2026-08-31T12:09:53.845Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1972,10 +2081,10 @@
         "sourceRef": "checkin:namuang:user:demo-user:2026-08-31"
       },
       {
-        "id": "e330c520-cd89-42ec-a010-852e123160a3",
+        "id": "338732f8-daeb-4cfa-a8f4-ebeb7cfb1acb",
         "label": "Checked in · Lamai Beach",
         "subject": "Lamai Beach",
-        "occurredAt": "2026-08-30T11:47:02.725Z",
+        "occurredAt": "2026-08-30T12:09:53.845Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1984,10 +2093,10 @@
         "sourceRef": "checkin:lamai:user:demo-user:2026-08-30"
       },
       {
-        "id": "b2f0d18e-ce70-44d4-bea4-f034b1026d80",
+        "id": "6f57a785-69e2-42dd-bcf8-1eb6ab65229f",
         "label": "Checked in · Fisherman's Village",
         "subject": "Fisherman's Village",
-        "occurredAt": "2026-08-30T11:47:02.725Z",
+        "occurredAt": "2026-08-30T12:09:53.845Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -1996,10 +2105,10 @@
         "sourceRef": "checkin:fisherman:user:demo-user:2026-08-30"
       },
       {
-        "id": "06a36f18-87dc-44bf-bdb9-d883267c80d9",
+        "id": "e722d695-ca1a-4e67-950a-774a2cf17eb2",
         "label": "Checked in · Na Muang Waterfall",
         "subject": "Na Muang Waterfall",
-        "occurredAt": "2026-08-29T11:47:02.725Z",
+        "occurredAt": "2026-08-29T12:09:53.845Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -2008,10 +2117,10 @@
         "sourceRef": "checkin:namuang:user:demo-user:2026-08-29"
       },
       {
-        "id": "74eb8774-cafc-4ecf-92bd-4e267853536e",
+        "id": "96a71977-9e89-48dd-95bd-9678abdb13c5",
         "label": "Checked in · Chaweng Beach",
         "subject": "Chaweng Beach",
-        "occurredAt": "2026-08-29T11:47:02.725Z",
+        "occurredAt": "2026-08-29T12:09:53.845Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -2186,7 +2295,7 @@
   "/notifications": {
     "items": [
       {
-        "id": "650eb5b0-845a-480b-b5cb-6610222a1b60",
+        "id": "8ac3b253-3648-4251-bab9-b88277e7a2cd",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -2200,11 +2309,11 @@
           "screen": "wallet",
           "questId": "q5"
         },
-        "createdAt": "2026-09-02T11:47:02.798Z",
+        "createdAt": "2026-09-02T12:09:53.922Z",
         "readAt": null
       },
       {
-        "id": "049b4879-c3ea-487b-816f-96e5cc048b7f",
+        "id": "a881a2c3-a16a-4095-9e20-ffec1a85432e",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -2218,11 +2327,11 @@
           "screen": "wallet",
           "questId": "q4"
         },
-        "createdAt": "2026-09-02T11:47:02.794Z",
+        "createdAt": "2026-09-02T12:09:53.918Z",
         "readAt": null
       },
       {
-        "id": "9ac999f9-22a7-4204-9ae2-e8b829c23dc9",
+        "id": "8bdd2aa9-b91e-4ef4-8071-1492d835e35f",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -2236,11 +2345,11 @@
           "screen": "wallet",
           "questId": "q2"
         },
-        "createdAt": "2026-09-02T11:47:02.790Z",
+        "createdAt": "2026-09-02T12:09:53.914Z",
         "readAt": null
       },
       {
-        "id": "537ed897-ee3d-4a3a-b25f-2470faeee368",
+        "id": "b095ea2c-22ad-437e-b2ad-bba122d0163f",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -2254,7 +2363,7 @@
           "screen": "wallet",
           "questId": "q1"
         },
-        "createdAt": "2026-09-02T11:47:02.786Z",
+        "createdAt": "2026-09-02T12:09:53.910Z",
         "readAt": null
       }
     ],

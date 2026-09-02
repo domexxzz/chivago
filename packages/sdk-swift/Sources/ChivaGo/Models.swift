@@ -1,6 +1,6 @@
 import Foundation
 
-/// A bilingual string. The app shows BOTH; a push shows one.
+/// A bilingual string. The app shows one at a time, chosen by the reader.
 public struct Bilingual: Codable, Sendable, Equatable {
     public let en: String
     public let th: String
@@ -181,8 +181,12 @@ public struct Quest: Codable, Sendable {
     /// Two letters and a number, shown in the ink square. Not an icon.
     public let code: String
     public let name: Bilingual
-    public let `where`: String
-    public let duration: String
+
+    /// Where the work happens, named the way a local would name it.
+    public let `where`: Bilingual
+
+    /// The ENGLISH is the parseable one - volunteer hours are read out of it.
+    public let duration: Bilingual
     public let rewardPoints: Int
 
     /// Which currency this pays. A property of the quest, never of the caller.

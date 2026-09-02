@@ -222,7 +222,7 @@ function StatBand({ quest }: { quest: Quest }) {
       </View>
       <View style={{ flex: 1, borderLeftWidth: 1, borderLeftColor: color.neutral300, paddingLeft: 14 }}>
         <Label size={10} tracking={0.12}>{t(strings.quest.duration)}</Label>
-        <Heading size={22} style={{ marginTop: 4 }}>{quest.duration}</Heading>
+        <Heading size={22} style={{ marginTop: 4 }}>{t(quest.duration)}</Heading>
       </View>
     </View>
   );

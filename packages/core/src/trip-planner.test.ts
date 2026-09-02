@@ -22,7 +22,8 @@ const profile = (over: Partial<WellnessProfile> = {}): WellnessProfile => ({
 const quest = (over: Partial<Quest> = {}): Quest => ({
   id: 'q1', code: 'BC-04',
   name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด' },
-  where: 'Chaweng Beach', duration: '45 min',
+  where: { en: 'Chaweng Beach', th: 'หาดเฉวง' },
+  duration: { en: '45 min', th: '45 นาที' },
   rewardPoints: 150, rewardCurrency: 'green',
   host: { id: 'h1', name: 'Samui Municipality', type: 'municipality' },
   kind: 'today', lat: 9.5357, lng: 100.0617, geofenceRadiusM: 250,

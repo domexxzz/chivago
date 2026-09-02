@@ -141,7 +141,7 @@ export function QuestRow({
       accessibilityLabel={
         `${t(quest.name)}, ${quest.rewardPoints} `
         + `${quest.rewardCurrency === 'green' ? 'Green' : 'Trip'} Points, `
-        + `at ${quest.where}, by ${quest.host.name}`
+        + `at ${t(quest.where)}, by ${quest.host.name}`
       }
       style={{
         flexDirection: 'row',
@@ -187,8 +187,8 @@ export function QuestRow({
         </View>
 
         <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-          <Label size={11} tracking={0} style={{ textTransform: 'none' }}>{quest.where}</Label>
-          <Label size={11} tracking={0} style={{ textTransform: 'none' }}>{quest.duration}</Label>
+          <Label size={11} tracking={0} style={{ textTransform: 'none' }}>{t(quest.where)}</Label>
+          <Label size={11} tracking={0} style={{ textTransform: 'none' }}>{t(quest.duration)}</Label>
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>

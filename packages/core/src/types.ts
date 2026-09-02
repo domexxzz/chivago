@@ -192,9 +192,17 @@ export interface Quest {
   /** Two-letter + number code shown in the 44x44 ink square. Not an icon. */
   code: string;
   name: Bilingual;
-  where: string;
-  /** Human duration, e.g. "45 min". */
-  duration: string;
+  /** Where the work happens, named the way a local would name it. */
+  where: Bilingual;
+  /**
+   * Human duration, e.g. "45 min".
+   *
+   * The ENGLISH is the machine-readable one: the ESG volunteer-hours figure
+   * parses minutes and hours out of it (`parseDurationHours` in the API), and
+   * a Thai numeral or unit would silently contribute zero hours to a report
+   * somebody signs. Write the Thai for the reader; keep the English parseable.
+   */
+  duration: Bilingual;
   rewardPoints: number;
   /** Which currency the reward pays in. Environmental work pays green. */
   rewardCurrency: Currency;

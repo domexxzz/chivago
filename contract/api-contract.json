@@ -215,7 +215,12 @@
           "array": {
             "object": {
               "code": "string",
-              "duration": "string",
+              "duration": {
+                "object": {
+                  "en": "string",
+                  "th": "string"
+                }
+              },
               "geofenceRadiusM": "number",
               "host": {
                 "object": {
@@ -236,7 +241,12 @@
               },
               "rewardCurrency": "string",
               "rewardPoints": "number",
-              "where": "string"
+              "where": {
+                "object": {
+                  "en": "string",
+                  "th": "string"
+                }
+              }
             }
           }
         }
@@ -248,7 +258,12 @@
         "quest": {
           "object": {
             "code": "string",
-            "duration": "string",
+            "duration": {
+              "object": {
+                "en": "string",
+                "th": "string"
+              }
+            },
             "geofenceRadiusM": "number",
             "host": {
               "object": {
@@ -269,7 +284,12 @@
             },
             "rewardCurrency": "string",
             "rewardPoints": "number",
-            "where": "string"
+            "where": {
+              "object": {
+                "en": "string",
+                "th": "string"
+              }
+            }
           }
         }
       }
@@ -293,7 +313,8 @@
               "kind": "string",
               "label": "string",
               "occurredAt": "string",
-              "sourceRef": "string"
+              "sourceRef": "string",
+              "subject": "string"
             }
           }
         },

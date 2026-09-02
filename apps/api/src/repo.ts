@@ -158,8 +158,9 @@ export async function getScoredPlace(
 }
 
 interface QuestRow {
-  id: string; code: string; name_en: string; name_th: string; where_label: string;
-  duration: string; reward_points: number; reward_currency: string; kind: string;
+  id: string; code: string; name_en: string; name_th: string;
+  where_label: string; where_label_th: string | null;
+  duration: string; duration_th: string | null; reward_points: number; reward_currency: string; kind: string;
   lat: number; lng: number;
   geofence_radius_m: number; host_id: string; host_name: string; host_type: string;
 }
@@ -168,8 +169,8 @@ const toQuest = (r: QuestRow): Quest => ({
   id: r.id,
   code: r.code,
   name: { en: r.name_en, th: r.name_th },
-  where: r.where_label,
-  duration: r.duration,
+  where: { en: r.where_label, th: r.where_label_th ?? r.where_label },
+  duration: { en: r.duration, th: r.duration_th ?? r.duration },
   rewardPoints: r.reward_points,
   rewardCurrency: r.reward_currency as Quest['rewardCurrency'],
   host: { id: r.host_id, name: r.host_name, type: r.host_type as Quest['host']['type'] },
@@ -180,7 +181,7 @@ const toQuest = (r: QuestRow): Quest => ({
 });
 
 const QUEST_SELECT = `
-  SELECT q.id, q.code, q.name_en, q.name_th, q.where_label, q.duration, q.reward_points,
+  SELECT q.id, q.code, q.name_en, q.name_th, q.where_label, q.where_label_th, q.duration, q.duration_th, q.reward_points,
          q.reward_currency,
          q.kind, q.lat, q.lng, q.geofence_radius_m,
          h.id AS host_id, h.name AS host_name, h.type AS host_type
@@ -273,7 +274,14 @@ export function getPersonalImpact(db: DB, userId: string): ImpactStat[] {
 
 const round1 = (n: number): number => Math.round(n * 10) / 10;
 
-/** "45 min" / "2 hr" / "90 min" / "Daily" -> hours. */
+/**
+ * "45 min" / "2 hr" / "90 min" / "Daily" -> hours.
+ *
+ * Reads the ENGLISH duration, always, and the query above selects that column
+ * by name rather than whatever the reader's language is. This number becomes
+ * volunteer hours in an ESG report; a Thai numeral or unit would parse as zero
+ * and quietly shrink a figure somebody signs.
+ */
 function parseDurationHours(duration: string): number {
   const min = /(\d+(?:\.\d+)?)\s*min/i.exec(duration);
   if (min) return Number(min[1]) / 60;

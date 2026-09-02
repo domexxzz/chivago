@@ -72,17 +72,20 @@ for (const p of SEED_PLACES) {
 
 for (const q of SEED_QUESTS) {
   db.prepare(
-    `INSERT INTO quests (id, code, name_en, name_th, where_label, duration, reward_points,
+    `INSERT INTO quests (id, code, name_en, name_th, where_label, where_label_th,
+       duration, duration_th, reward_points,
        reward_currency, host_id, kind, lat, lng, geofence_radius_m, esg_pillar)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(id) DO UPDATE SET
        code=excluded.code, name_en=excluded.name_en, name_th=excluded.name_th,
-       where_label=excluded.where_label, duration=excluded.duration,
+       where_label=excluded.where_label, where_label_th=excluded.where_label_th,
+       duration=excluded.duration, duration_th=excluded.duration_th,
        reward_points=excluded.reward_points, reward_currency=excluded.reward_currency,
        host_id=excluded.host_id, kind=excluded.kind,
        lat=excluded.lat, lng=excluded.lng, geofence_radius_m=excluded.geofence_radius_m,
        esg_pillar=excluded.esg_pillar`,
-  ).run(q.id, q.code, q.name.en, q.name.th, q.where, q.duration, q.rewardPoints,
+  ).run(q.id, q.code, q.name.en, q.name.th, q.where.en, q.where.th,
+        q.duration.en, q.duration.th, q.rewardPoints,
         q.rewardCurrency, q.host.id, q.kind, q.lat, q.lng, q.geofenceRadiusM,
         q.esgPillar ?? null);
 }

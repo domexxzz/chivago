@@ -310,11 +310,14 @@ export function planDay(req: PlanRequest): TripPlan {
     const quest = quests.find(
       (q) => !used.has(q.id) && distanceKm({ lat: q.lat, lng: q.lng }, place) < 2.5,
     );
-    if (quest && minutes + parseDuration(quest.duration) < DAY_END_MIN) {
+    // The ENGLISH duration, always: this is arithmetic, and a Thai numeral
+    // would parse as the fallback and quietly mis-plan the day. See the note
+    // on `Quest.duration`.
+    if (quest && minutes + parseDuration(quest.duration.en) < DAY_END_MIN) {
       used.add(quest.id);
       items.push({
         time: clock(minutes),
-        minutes: parseDuration(quest.duration),
+        minutes: parseDuration(quest.duration.en),
         kind: 'quest',
         name: quest.name,
         tag: 'Quest',
@@ -326,7 +329,7 @@ export function planDay(req: PlanRequest): TripPlan {
           th: `ได้ ${quest.rewardPoints} แต้ม${quest.rewardCurrency === 'green' ? 'กรีน' : 'ทริป'} และคุณอยู่ตรงนี้อยู่แล้ว`,
         },
       });
-      minutes += parseDuration(quest.duration);
+      minutes += parseDuration(quest.duration.en);
     }
   }
 

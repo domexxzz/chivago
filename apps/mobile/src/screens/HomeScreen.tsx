@@ -333,7 +333,7 @@ function QuestCard({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${t(quest.name)}. ${quest.where}. ${started ? 'In progress' : 'Not started'}`}
+      accessibilityLabel={`${t(quest.name)}. ${t(quest.where)}. ${started ? 'In progress' : 'Not started'}`}
       style={{
         marginHorizontal: gutter,
         marginTop: 10,
@@ -355,7 +355,7 @@ function QuestCard({
           <Heading size={16}>{t(quest.name)}</Heading>
 
           <Body size={13} colour={color.neutral600} style={{ marginTop: 6 }}>
-            {`${quest.where} · ${quest.duration}`}
+            {`${t(quest.where)} · ${t(quest.duration)}`}
           </Body>
           {/*
             The host is named on the card, not only inside the quest. The

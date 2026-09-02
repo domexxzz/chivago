@@ -747,5 +747,14 @@ export function migrate(db: DB): string[] {
   // which is what they actually said at the time.
   if (addColumn(db, 'ledger', 'subject', 'TEXT')) applied.push('ledger.subject');
 
+  // -- A quest that says where and how long in the reader's language --------
+  // `where_label` and `duration` were single English strings, written when the
+  // app printed English with Thai captioned underneath. It shows one language
+  // now, so a Thai reader met "Chaweng Beach · 45 min" on their own mission
+  // card. Additive, and nullable: a row without the Thai falls back to the
+  // English it already had, which is what it actually said.
+  if (addColumn(db, 'quests', 'where_label_th', 'TEXT')) applied.push('quests.where_label_th');
+  if (addColumn(db, 'quests', 'duration_th', 'TEXT')) applied.push('quests.duration_th');
+
   return applied;
 }

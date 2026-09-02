@@ -6,7 +6,7 @@
 /// appears in the captured contract, and nothing here invents one.
 library;
 
-/// A bilingual string. The app shows BOTH; a push shows one.
+/// A bilingual string. The app shows one at a time, chosen by the reader.
 class Bilingual {
   const Bilingual({required this.en, required this.th});
 
@@ -456,8 +456,8 @@ class Quest {
         id: json['id'] as String,
         code: json['code'] as String,
         name: Bilingual.fromJson(json['name'] as Map<String, dynamic>),
-        where: json['where'] as String,
-        duration: json['duration'] as String,
+        where: Bilingual.fromJson(json['where'] as Map<String, dynamic>),
+        duration: Bilingual.fromJson(json['duration'] as Map<String, dynamic>),
         rewardPoints: json['rewardPoints'] as int,
         rewardCurrency: Currency.parse(json['rewardCurrency'] as String),
         host: QuestHost.fromJson(json['host'] as Map<String, dynamic>),
@@ -472,8 +472,12 @@ class Quest {
   /// Two letters and a number, shown in the ink square. Not an icon.
   final String code;
   final Bilingual name;
-  final String where;
-  final String duration;
+
+  /// Where the work happens, named the way a local would name it.
+  final Bilingual where;
+
+  /// The ENGLISH is the parseable one - volunteer hours are read out of it.
+  final Bilingual duration;
   final int rewardPoints;
 
   /// Which currency this pays. A property of the quest, never of the caller.

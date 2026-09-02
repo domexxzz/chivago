@@ -294,8 +294,8 @@ export function QuestsNearYou({
           </View>
 
           <View style={{ flexDirection: 'row', gap: 14, marginTop: 12 }}>
-            <Label size={11} tracking={0} style={{ textTransform: 'none' }}>{top.where}</Label>
-            <Label size={11} tracking={0} style={{ textTransform: 'none' }}>{top.duration}</Label>
+            <Label size={11} tracking={0} style={{ textTransform: 'none' }}>{t(top.where)}</Label>
+            <Label size={11} tracking={0} style={{ textTransform: 'none' }}>{t(top.duration)}</Label>
           </View>
 
           <Button

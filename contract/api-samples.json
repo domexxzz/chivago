@@ -1,7 +1,7 @@
 {
   "health": {
     "status": "up",
-    "time": "2026-09-01T22:06:32.190Z"
+    "time": "2026-09-02T12:10:19.057Z"
   },
   "profile": {
     "purposes": [],
@@ -52,8 +52,8 @@
         "aqi": {
           "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-01T22:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+          "observedAt": "2026-09-02T11:47:19.033Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
       "healthyScore": 74,
@@ -161,8 +161,8 @@
         "aqi": {
           "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-01T22:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+          "observedAt": "2026-09-02T11:47:19.044Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
       "healthyScore": 88,
@@ -270,8 +270,8 @@
         "aqi": {
           "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-01T22:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+          "observedAt": "2026-09-02T11:47:18.992Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
       "healthyScore": 80,
@@ -338,114 +338,6 @@
       }
     },
     {
-      "id": "lamai",
-      "name": {
-        "en": "Lamai Beach",
-        "th": "หาดละไม"
-      },
-      "short": "Lamai",
-      "layer": "Wellness",
-      "province": "TH-84",
-      "lat": 9.4693,
-      "lng": 100.0446,
-      "meta": "Wellness · South end · Quiet",
-      "blurb": {
-        "en": "The south end of Lamai, away from the strip. Calm water, shade by mid-afternoon, and the quietest stretch of sand on this coast.",
-        "th": "ปลายหาดละไมฝั่งใต้ ห่างจากย่านร้านค้า น้ำนิ่ง มีร่มเงาช่วงบ่าย และเป็นช่วงที่เงียบที่สุดของชายฝั่งนี้"
-      },
-      "tags": [
-        "Wellness",
-        "Quiet",
-        "Swimming"
-      ],
-      "photo": {
-        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Lamai_Beach.jpg/1280px-Lamai_Beach.jpg",
-        "credit": "Koudkeu",
-        "licence": "CC BY-SA 4.0",
-        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Lamai_Beach.jpg"
-      },
-      "metrics": {
-        "crowdDensity": 0.5,
-        "aqi": 42,
-        "safetyIndex": 7.39,
-        "walkability": 7.4
-      },
-      "safetyLabel": {
-        "en": "Verified zone",
-        "th": "เขตตรวจสอบแล้ว"
-      },
-      "readings": {
-        "aqi": {
-          "value": 42,
-          "provenance": "live",
-          "observedAt": "2026-09-01T22:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
-        }
-      },
-      "healthyScore": 85,
-      "breakdown": {
-        "total": 85,
-        "components": [
-          {
-            "key": "crowdDensity",
-            "label": {
-              "en": "Crowd level",
-              "th": "ความหนาแน่น"
-            },
-            "display": "Low",
-            "subScore": 90.7,
-            "weight": 0.25,
-            "provenance": "live"
-          },
-          {
-            "key": "aqi",
-            "label": {
-              "en": "Air quality",
-              "th": "คุณภาพอากาศ"
-            },
-            "display": "42 AQI",
-            "subScore": 83.8,
-            "weight": 0.3,
-            "provenance": "live"
-          },
-          {
-            "key": "safetyIndex",
-            "label": {
-              "en": "Safety",
-              "th": "ความปลอดภัย"
-            },
-            "display": "Verified zone",
-            "subScore": 83.9,
-            "weight": 0.25,
-            "provenance": "daily"
-          },
-          {
-            "key": "walkability",
-            "label": {
-              "en": "Walkability",
-              "th": "การเดินเท้า"
-            },
-            "display": "7.4 / 10",
-            "subScore": 83.2,
-            "weight": 0.2,
-            "provenance": "daily"
-          }
-        ],
-        "profileApplied": "Island baseline"
-      },
-      "reviews": {
-        "count": 0,
-        "average": null,
-        "distribution": [
-          0,
-          0,
-          0,
-          0,
-          0
-        ]
-      }
-    },
-    {
       "id": "mangrove",
       "name": {
         "en": "Thong Krut Mangrove",
@@ -481,8 +373,8 @@
         "aqi": {
           "value": 42,
           "provenance": "live",
-          "observedAt": "2026-09-01T22:00:00.000Z",
-          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+          "observedAt": "2026-09-02T11:47:19.038Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
         }
       },
       "healthyScore": 76,
@@ -547,6 +439,114 @@
           0
         ]
       }
+    },
+    {
+      "id": "lamai",
+      "name": {
+        "en": "Lamai Beach",
+        "th": "หาดละไม"
+      },
+      "short": "Lamai",
+      "layer": "Wellness",
+      "province": "TH-84",
+      "lat": 9.4693,
+      "lng": 100.0446,
+      "meta": "Wellness · South end · Quiet",
+      "blurb": {
+        "en": "The south end of Lamai, away from the strip. Calm water, shade by mid-afternoon, and the quietest stretch of sand on this coast.",
+        "th": "ปลายหาดละไมฝั่งใต้ ห่างจากย่านร้านค้า น้ำนิ่ง มีร่มเงาช่วงบ่าย และเป็นช่วงที่เงียบที่สุดของชายฝั่งนี้"
+      },
+      "tags": [
+        "Wellness",
+        "Quiet",
+        "Swimming"
+      ],
+      "photo": {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Lamai_Beach.jpg/1280px-Lamai_Beach.jpg",
+        "credit": "Koudkeu",
+        "licence": "CC BY-SA 4.0",
+        "sourceUrl": "https://commons.wikimedia.org/wiki/File:Lamai_Beach.jpg"
+      },
+      "metrics": {
+        "crowdDensity": 0.5,
+        "aqi": 42,
+        "safetyIndex": 7.39,
+        "walkability": 7.4
+      },
+      "safetyLabel": {
+        "en": "Verified zone",
+        "th": "เขตตรวจสอบแล้ว"
+      },
+      "readings": {
+        "aqi": {
+          "value": 42,
+          "provenance": "live",
+          "observedAt": "2026-09-02T11:47:19.044Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
+        }
+      },
+      "healthyScore": 85,
+      "breakdown": {
+        "total": 85,
+        "components": [
+          {
+            "key": "crowdDensity",
+            "label": {
+              "en": "Crowd level",
+              "th": "ความหนาแน่น"
+            },
+            "display": "Low",
+            "subScore": 90.7,
+            "weight": 0.25,
+            "provenance": "live"
+          },
+          {
+            "key": "aqi",
+            "label": {
+              "en": "Air quality",
+              "th": "คุณภาพอากาศ"
+            },
+            "display": "42 AQI",
+            "subScore": 83.8,
+            "weight": 0.3,
+            "provenance": "live"
+          },
+          {
+            "key": "safetyIndex",
+            "label": {
+              "en": "Safety",
+              "th": "ความปลอดภัย"
+            },
+            "display": "Verified zone",
+            "subScore": 83.9,
+            "weight": 0.25,
+            "provenance": "daily"
+          },
+          {
+            "key": "walkability",
+            "label": {
+              "en": "Walkability",
+              "th": "การเดินเท้า"
+            },
+            "display": "7.4 / 10",
+            "subScore": 83.2,
+            "weight": 0.2,
+            "provenance": "daily"
+          }
+        ],
+        "profileApplied": "Island baseline"
+      },
+      "reviews": {
+        "count": 0,
+        "average": null,
+        "distribution": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
     }
   ],
   "place": {
@@ -591,7 +591,7 @@
       "aqi": {
         "value": 42,
         "provenance": "live",
-        "observedAt": "2026-09-01T22:00:00.000Z",
+        "observedAt": "2026-09-02T11:47:19.033Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       }
     },
@@ -667,8 +667,14 @@
           "en": "Mangrove Planting",
           "th": "ปลูกป่าชายเลน"
         },
-        "where": "Thong Krut",
-        "duration": "2 hr",
+        "where": {
+          "en": "Thong Krut",
+          "th": "ท้องกรูด"
+        },
+        "duration": {
+          "en": "2 hr",
+          "th": "2 ชั่วโมง"
+        },
         "rewardPoints": 400,
         "rewardCurrency": "green",
         "host": {
@@ -688,8 +694,14 @@
           "en": "Coral Nursery Check",
           "th": "ตรวจแปลงปะการัง"
         },
-        "where": "Taling Ngam",
-        "duration": "90 min",
+        "where": {
+          "en": "Taling Ngam",
+          "th": "ตลิ่งงาม"
+        },
+        "duration": {
+          "en": "90 min",
+          "th": "90 นาที"
+        },
         "rewardPoints": 300,
         "rewardCurrency": "green",
         "host": {
@@ -709,8 +721,14 @@
           "en": "Beach Cleanup",
           "th": "เก็บขยะชายหาด"
         },
-        "where": "Chaweng Beach",
-        "duration": "45 min",
+        "where": {
+          "en": "Chaweng Beach",
+          "th": "หาดเฉวง"
+        },
+        "duration": {
+          "en": "45 min",
+          "th": "45 นาที"
+        },
         "rewardPoints": 150,
         "rewardCurrency": "green",
         "host": {
@@ -730,8 +748,14 @@
           "en": "Fisherman’s Village food trail",
           "th": "เส้นทางอาหารหมู่บ้านชาวประมง"
         },
-        "where": "Bophut",
-        "duration": "90 min",
+        "where": {
+          "en": "Bophut",
+          "th": "บ่อผุด"
+        },
+        "duration": {
+          "en": "90 min",
+          "th": "90 นาที"
+        },
         "rewardPoints": 120,
         "rewardCurrency": "trip",
         "host": {
@@ -751,8 +775,14 @@
           "en": "Big Buddha morning walk",
           "th": "เดินเช้าพระใหญ่"
         },
-        "where": "Bang Rak",
-        "duration": "45 min",
+        "where": {
+          "en": "Bang Rak",
+          "th": "บางรัก"
+        },
+        "duration": {
+          "en": "45 min",
+          "th": "45 นาที"
+        },
         "rewardPoints": 80,
         "rewardCurrency": "trip",
         "host": {
@@ -772,8 +802,14 @@
           "en": "Walk, don’t ride",
           "th": "เดินแทนการใช้รถ"
         },
-        "where": "Island-wide",
-        "duration": "Daily",
+        "where": {
+          "en": "Island-wide",
+          "th": "ทั่วทั้งเกาะ"
+        },
+        "duration": {
+          "en": "Daily",
+          "th": "ทุกวัน"
+        },
         "rewardPoints": 60,
         "rewardCurrency": "green",
         "host": {
@@ -797,8 +833,14 @@
         "en": "Beach Cleanup",
         "th": "เก็บขยะชายหาด"
       },
-      "where": "Chaweng Beach",
-      "duration": "45 min",
+      "where": {
+        "en": "Chaweng Beach",
+        "th": "หาดเฉวง"
+      },
+      "duration": {
+        "en": "45 min",
+        "th": "45 นาที"
+      },
       "rewardPoints": 150,
       "rewardCurrency": "green",
       "host": {
@@ -895,20 +937,22 @@
     },
     "ledger": [
       {
-        "id": "84d4318e-2e56-41f4-a9ca-92823c6f5529",
+        "id": "24e74500-0ba1-4dbf-aa5e-cb3cf87a7ea8",
         "label": "Cold brew + banana bread redeemed",
-        "occurredAt": "2026-09-01T22:06:32.186Z",
+        "subject": "Cold brew + banana bread",
+        "occurredAt": "2026-09-02T12:10:19.027Z",
         "host": "Sabeinglae Coffee",
         "amount": -180,
         "currency": "trip",
         "exp": 0,
         "kind": "redemption",
-        "sourceRef": "voucher:834e3c4a-f709-4957-b652-0887c4182b9b"
+        "sourceRef": "voucher:7779f56f-2623-48f7-ba28-f1eefd224856"
       },
       {
-        "id": "d86f3f54-295a-4df6-86a2-744444151bc3",
+        "id": "3530b945-e209-4ac9-b6f0-045a63be88e9",
         "label": "Review · Chaweng Beach",
-        "occurredAt": "2026-09-01T22:06:32.184Z",
+        "subject": "Chaweng Beach",
+        "occurredAt": "2026-09-02T12:10:19.018Z",
         "host": "ChivaGo · verified visit",
         "amount": 40,
         "currency": "trip",
@@ -917,9 +961,10 @@
         "sourceRef": "review:chaweng:user:contract-capture"
       },
       {
-        "id": "c8ac58fa-495b-4776-a89b-a37ce0fa068f",
+        "id": "c4bc21e8-5b9e-440b-aad6-8bf19b96b1c5",
         "label": "Checked in · Chaweng Beach",
-        "occurredAt": "2026-09-01T22:06:32.169Z",
+        "subject": "Chaweng Beach",
+        "occurredAt": "2026-09-02T12:10:18.972Z",
         "host": "ChivaGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -928,9 +973,10 @@
         "sourceRef": "checkin:chaweng:user:contract-capture:2026-09-02"
       },
       {
-        "id": "d3d5952b-4c5d-42f3-aa37-1073f0d70fda",
+        "id": "4068178a-02e6-4e95-a3f7-cf9e80ef8b86",
         "label": "Pilot opening balance",
-        "occurredAt": "2026-09-01T22:06:32.167Z",
+        "subject": null,
+        "occurredAt": "2026-09-02T12:10:18.964Z",
         "host": "ChivaGo · pilot seed",
         "amount": 1240,
         "currency": "green",
@@ -939,9 +985,10 @@
         "sourceRef": "opening:green:contract-capture"
       },
       {
-        "id": "993890e6-fb0a-480f-937d-7c1732d773ea",
+        "id": "f7ffbb28-769b-4371-98e3-862201ac8cc3",
         "label": "Pilot opening balance",
-        "occurredAt": "2026-09-01T22:06:32.167Z",
+        "subject": null,
+        "occurredAt": "2026-09-02T12:10:18.962Z",
         "host": "ChivaGo · pilot seed",
         "amount": 320,
         "currency": "trip",
@@ -1021,14 +1068,14 @@
   ],
   "vouchers": [
     {
-      "id": "834e3c4a-f709-4957-b652-0887c4182b9b",
+      "id": "7779f56f-2623-48f7-ba28-f1eefd224856",
       "offerId": "o1",
       "userId": "contract-capture",
       "merchant": "Sabeinglae Coffee, Bophut",
-      "code": "CG-834E3C4A",
+      "code": "CG-7779F56F",
       "costPoints": 180,
-      "issuedAt": "2026-09-01T22:06:32.186Z",
-      "expiresAt": "2026-10-01T22:06:32.186Z",
+      "issuedAt": "2026-09-02T12:10:19.026Z",
+      "expiresAt": "2026-10-02T12:10:19.026Z",
       "redeemedAt": null,
       "status": "active"
     }
@@ -1134,10 +1181,10 @@
         "th": "ติดตามตำแหน่งสด"
       },
       "note": {
-        "en": "Shared with 2 family contacts",
-        "th": "แชร์กับผู้ติดต่อในครอบครัว 2 คน"
+        "en": "Shared with 1 contact during an SOS",
+        "th": "แชร์กับผู้ติดต่อ 1 คนเมื่อกด SOS"
       },
-      "state": "on"
+      "state": "ready"
     },
     {
       "key": "safePath",
@@ -1170,8 +1217,8 @@
         "th": "ความช่วยเหลือฉุกเฉิน"
       },
       "note": {
-        "en": "Bangkok Hospital Samui · 4.1 km",
-        "th": "โรงพยาบาลกรุงเทพสมุย · 4.1 กม."
+        "en": "1669 · Bangkok Hospital Samui",
+        "th": "1669 · โรงพยาบาลกรุงเทพสมุย"
       },
       "state": "ready"
     },
@@ -1203,29 +1250,29 @@
   "reviews": {
     "reviews": [
       {
-        "id": "08fcb3ef-d7e5-4d69-a86b-54fc869a25fb",
+        "id": "e0c741b2-761a-4b65-8261-5c1a4a0ab7f8",
         "placeId": "chaweng",
         "authorId": "contract-capture",
         "authorName": "Traveller",
         "rating": 5,
         "body": "Quiet at 7am and the water is clean, worth the early start.",
         "language": "en",
-        "visitedAt": "2026-09-01T22:06:32.169Z",
-        "createdAt": "2026-09-01T22:06:32.184Z",
+        "visitedAt": "2026-09-02T12:10:18.972Z",
+        "createdAt": "2026-09-02T12:10:19.018Z",
         "updatedAt": null
       }
     ],
     "mine": {
       "review": {
-        "id": "08fcb3ef-d7e5-4d69-a86b-54fc869a25fb",
+        "id": "e0c741b2-761a-4b65-8261-5c1a4a0ab7f8",
         "placeId": "chaweng",
         "authorId": "contract-capture",
         "authorName": "Traveller",
         "rating": 5,
         "body": "Quiet at 7am and the water is clean, worth the early start.",
         "language": "en",
-        "visitedAt": "2026-09-01T22:06:32.169Z",
-        "createdAt": "2026-09-01T22:06:32.184Z",
+        "visitedAt": "2026-09-02T12:10:18.972Z",
+        "createdAt": "2026-09-02T12:10:19.018Z",
         "updatedAt": null
       },
       "hiddenAt": null,
@@ -1237,7 +1284,7 @@
   },
   "sosContacts": [
     {
-      "id": "a39375e7-5d07-4a63-8389-917c1c7af9b9",
+      "id": "c0772ef2-149e-413e-bc59-e5fe78eafd49",
       "name": "Malee",
       "phone": "+66800000000",
       "relationship": "sister",
@@ -1258,16 +1305,16 @@
   },
   "writeReview": {
     "review": {
-      "id": "08fcb3ef-d7e5-4d69-a86b-54fc869a25fb",
+      "id": "e0c741b2-761a-4b65-8261-5c1a4a0ab7f8",
       "placeId": "chaweng",
       "authorId": "contract-capture",
       "authorName": "Traveller",
       "rating": 4,
       "body": "Busier after nine when the boats arrive, but still worth it.",
       "language": "en",
-      "visitedAt": "2026-09-01T22:06:32.169Z",
-      "createdAt": "2026-09-01T22:06:32.184Z",
-      "updatedAt": "2026-09-01T22:06:33.091Z"
+      "visitedAt": "2026-09-02T12:10:18.972Z",
+      "createdAt": "2026-09-02T12:10:19.018Z",
+      "updatedAt": "2026-09-02T12:10:19.256Z"
     },
     "created": false,
     "pointsAwarded": 0
