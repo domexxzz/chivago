@@ -17,8 +17,8 @@
     },
     {
       "name": "demo",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "4173", "--directory", "apps/mobile/dist-demo"],
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["apps/mobile/scripts/serve-demo.mjs", "apps/mobile/dist-demo", "4173"],
       "port": 4173,
       "url": "http://localhost:4173"
     }
