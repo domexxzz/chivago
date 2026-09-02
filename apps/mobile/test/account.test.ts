@@ -2,7 +2,8 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import {
-  __setCachedKeyForTests, adoptKey, deviceKey, ensureAccount, forgetKey,
+  __setCachedKeyForTests, __setStoreForTests, adoptKey, deviceKey, ensureAccount, forgetKey,
+  pickStore,
 } from '../src/api/account.ts';
 
 /**
@@ -81,5 +82,85 @@ describe('moving the account to this phone', () => {
     await ensureAccount(okRegister());
     await forgetKey();
     assert.equal(deviceKey(), null);
+  });
+});
+
+describe('where the key is kept', () => {
+  test('the keychain is used when the probe says it is there', async () => {
+    const seen: Record<string, string> = {};
+    const s = pickStore({
+      getItemAsync: async (k: string) => seen[k] ?? null,
+      setItemAsync: async (k: string, v: string) => { seen[k] = v; },
+      deleteItemAsync: async (k: string) => { delete seen[k]; },
+    }, true, undefined);
+    await s.set('chvg_dev_secure');
+    assert.equal(await s.get(), 'chvg_dev_secure');
+    await s.remove();
+    assert.equal(await s.get(), null);
+  });
+
+  test('on web the wrapper still exports functions that throw, and localStorage takes over', async () => {
+    // The trap the first fix fell into. On web the wrapper the app imports
+    // exports a real `getItemAsync` - it is the native module underneath that
+    // is `export default {}`, so the function exists and throws when called.
+    // A store chosen by `typeof fn === 'function'` picked the keychain, the
+    // throw was swallowed, and every browser reload registered a new account.
+    // The probe, not the presence of the function, decides.
+    const throwing = {
+      getItemAsync: async () => { throw new TypeError('getValueWithKeyAsync is not a function'); },
+      setItemAsync: async () => { throw new TypeError('setValueWithKeyAsync is not a function'); },
+    };
+    const web = new Map<string, string>();
+    const s = pickStore(throwing, false, {
+      getItem: (k) => web.get(k) ?? null,
+      setItem: (k, v) => { web.set(k, v); },
+      removeItem: (k) => { web.delete(k); },
+    });
+    await s.set('chvg_dev_web');
+    assert.equal(await s.get(), 'chvg_dev_web', 'the key did not survive into localStorage');
+    await s.remove();
+    assert.equal(await s.get(), null);
+  });
+
+  test('with nowhere to keep it the app still runs, one session at a time', async () => {
+    const s = pickStore({ getItemAsync: async () => null, setItemAsync: async () => {} }, false, undefined);
+    await s.set('chvg_dev_nowhere');
+    assert.equal(await s.get(), null);
+  });
+});
+
+describe('a request never leaves without a key that exists', () => {
+  test('after a reload, the first fetch reads the key from storage before sending', async () => {
+    // The reload case: memory is empty, storage is not. The old client read
+    // memory synchronously, sent nothing, and was refused - once per hook that
+    // fetches on mount, on every cold start.
+    __setCachedKeyForTests(null);
+    __setStoreForTests({
+      get: async () => 'chvg_dev_fromstorage',
+      set: async () => {},
+      remove: async () => {},
+    });
+
+    const headersSeen: Record<string, string>[] = [];
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (_url: string | URL | Request, init?: RequestInit) => {
+      headersSeen.push({ ...(init?.headers as Record<string, string>) });
+      return { ok: true, status: 200, json: async () => ({ ok: true, data: { userId: 'u', devices: [] } }) } as Response;
+    }) as typeof fetch;
+
+    try {
+      const { api } = await import('../src/api/client.ts');
+      await api.account();
+    } finally {
+      globalThis.fetch = original;
+      __setStoreForTests(pickStore({ getItemAsync: async () => null, setItemAsync: async () => {} }, false, undefined));
+    }
+
+    assert.equal(headersSeen.length, 1);
+    assert.equal(
+      headersSeen[0]!['x-chivago-device-key'],
+      'chvg_dev_fromstorage',
+      'the request went out before the key was read',
+    );
   });
 });

@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@chivago/api", "dev"],
+      "port": 8787,
+      "url": "http://localhost:8787"
+    },
+    {
+      "name": "mobile",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@chivago/mobile", "exec", "expo", "start", "--web", "--clear"],
+      "port": 8081,
+      "url": "http://localhost:8081"
+    }
+  ]
+}

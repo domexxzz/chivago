@@ -6,7 +6,7 @@
  * typed failure instead of an unhandled rejection.
  */
 
-import { deviceKey } from './account.ts';
+import { loadDeviceKey } from './account.ts';
 import type {
   ApiResponse, Balances, Bilingual, ImpactStat, LedgerEntry, NotificationKind, Offer, Quest,
   ChivaBalance, Companion, MonthOutlook, MoodCheckin, MoodKey, PriceCategory, PriceForecast,
@@ -138,6 +138,13 @@ async function call<T>(
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
+    // AWAITED, from storage if memory does not have it yet. The synchronous
+    // read it replaced was the source of a 401 on every cold start: hooks that
+    // fetch on mount - the SOS poll, the inbox, the wallet - fired before
+    // ensureAccount had read the keychain, went out with no key, and were
+    // refused because a key existed. Gating each hook would have been a fix
+    // per call site; waiting here is one fix for every request there is.
+    const key = await loadDeviceKey();
     const res = await fetch(`${API_BASE}${path}`, {
       ...init,
       signal: ctl.signal,
@@ -147,7 +154,7 @@ async function call<T>(
         // The server refuses the header the moment any account exists, so this
         // is a migration path with an end date rather than a permanent
         // back door.
-        ...(deviceKey() ? { 'x-chivago-device-key': deviceKey()! } : {}),
+        ...(key ? { 'x-chivago-device-key': key } : {}),
         'x-chivago-user': deviceUser,
         ...init.headers,
       },
