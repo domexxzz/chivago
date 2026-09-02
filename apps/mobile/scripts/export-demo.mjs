@@ -4,7 +4,7 @@
  *   pnpm --filter @chivago/mobile demo:web
  *
  * Then host `apps/mobile/dist-demo` anywhere static - it is what
- * chivago-demo-sigma.vercel.app serves. Nothing in it talks to a server;
+ * chivago-demo.vercel.app serves. Nothing in it talks to a server;
  * `src/demo/server.ts` answers every fetch from `src/demo/fixtures.json`,
  * which `pnpm --filter @chivago/api demo:capture` refreshes from a running
  * API after `demo:reset`.
