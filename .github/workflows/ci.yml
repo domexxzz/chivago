@@ -33,6 +33,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm test:scripts
       # The Thai copy audit is advisory until a native speaker has been through
       # it, so it reports and does not fail the build. It is here so the count
       # is visible on every run and a regression is a number that went up.

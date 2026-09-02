@@ -200,6 +200,15 @@ question that has not moved, because it cannot be closed by an engineer.
 **Still owed:** a native speaker. Particular attention to the safety and quest
 copy, where a mistranslation has consequences beyond awkwardness.
 
+> **Update.** "Two files" was true of the strings tables and false of the
+> product: the copy is 447 pairs across 23 files. What was missing was not a
+> reviewer but a way for one to work without reading a codebase. `pnpm
+> thai:review` now writes a single page with every pair, its context line and
+> an editable Thai field; the reviewer exports a JSON block and `pnpm
+> thai:apply` writes it back, refusing any correction whose original has
+> moved. The question is still open, but it is now a morning's work for the
+> right person rather than a reason nobody starts.
+
 ---
 
 ## 9. Bonus: things the design does not cover that production needs

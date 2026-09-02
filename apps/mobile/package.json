@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
-    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\" && node --test --experimental-strip-types --import ./test/register.mjs \"test/*.test.ts\""
+    "test": "node --test --experimental-strip-types \"src/**/*.test.ts\" && node --test --experimental-strip-types --import ./test/register.mjs \"test/*.test.ts\"",
+    "demo:web": "node scripts/export-demo.mjs"
   },
   "dependencies": {
     "@babel/runtime": "^8.0.0",
