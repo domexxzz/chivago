@@ -24,7 +24,7 @@
 import { randomUUID } from 'node:crypto';
 import { row, rows, transact, type DB } from './db.ts';
 import { enqueue } from './notification-service.ts';
-import { listContacts, liveAlerts, type SosAlertRecord } from './sos-service.ts';
+import { listContacts, liveAlerts, type SosAlertRecord, displayNameOf } from './sos-service.ts';
 import type { OncallTransport } from './push/webhook.ts';
 
 export type Rung = 'nudge_1' | 'oncall' | 'nudge_2';
@@ -153,7 +153,10 @@ export async function fireRung(
       enqueue(db, {
         userId: contact.linkedUserId,
         kind: 'sos_contact_escalated',
-        params: { name: alert.locationLabel, minutes },
+        // The traveller's NAME. The template reads "{name}'s alert has been
+        // open {minutes} min"; the first version put the location label here,
+        // so a mother was told that "Chaweng, 120 m's alert" was unanswered.
+        params: { name: displayNameOf(db, alert.userId), minutes },
         data: { screen: 'sos', shareToken: alert.shareUrl.split('/').pop() ?? '' },
         dedupeKey: `sos-escalate:${alert.id}:${rung}:${contact.id}`,
         now,

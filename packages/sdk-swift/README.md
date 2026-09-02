@@ -3,28 +3,32 @@
 A typed client for the ChivaGo API, for a SwiftUI app or any other Swift
 program.
 
-## ⚠ This package has never been compiled
+## Compiled, and tested in CI
 
-It was written on a Windows machine with **no Swift toolchain** — no `swiftc`,
-no Xcode. Every other package in this repository is built and tested before it
-is described as working; this one is not, and saying otherwise would be the
-plainest kind of lie.
+This package was written on a Windows machine with no Swift toolchain and
+went its first forty commits uncompiled, and the earlier version of this
+README said so in a warning box. It now builds under Swift 6.3, its decode
+tests pass against both the original capture and a fresh one, and
+`.github/workflows/ci.yml` runs `swift build` and `swift test` on macOS on
+every push. The three defects removed by inspection before any compiler saw
+the code (a self-recursive `AnyEncodable`, a shadowed `decoder`, default
+generic arguments) turned out to be the only ones.
 
-What that means in practice:
-
-- **Syntax and type errors are likely.** Nothing has checked them.
-- The models are a line-by-line mirror of `packages/sdk-dart`, which **is**
-  compiled and tested against real captured responses. Where the two differ,
-  the Dart one is the one that has been proven.
-- `Tests/ChivaGoTests/DecodeTests.swift` decodes the same captured payloads the
-  Dart tests use. On a machine with Swift, `swift test` is one command and will
-  tell you the truth in seconds.
-
-**First thing to do on a Mac:**
+`Tests/ChivaGoTests/DecodeTests.swift` decodes the same captured payloads the
+Dart tests use: `api-samples.json` here is a copy of the tracked
+`contract/api-samples.json` at the repository root.
 
 ```bash
 cd packages/sdk-swift && swift test
 ```
+
+## Accounts
+
+`ChivagoClient.registerDevice(baseURL:)` returns a device key **once**; build
+the client you keep with `deviceKey:` set. Without it the server answers 401
+to everything except registration the moment any account exists. Where the
+key is stored (Keychain, in practice) is the app's decision, not the
+transport's.
 
 ## Using it
 

@@ -87,6 +87,15 @@ export default function App() {
   const [walletKey, setWalletKey] = React.useState(0);
   const refreshWallet = React.useCallback(() => setWalletKey((k) => k + 1), []);
 
+  /**
+   * Stable, because QuestDetail runs it from an effect. An inline arrow here
+   * is a new function every render, and this function causes a render.
+   */
+  const onPointsChanged = React.useCallback(() => {
+    refreshWallet();
+    void notifications.refresh();
+  }, [refreshWallet, notifications.refresh]);
+
   const [balances, setBalances] = React.useState<Balances>(emptyBalances());
   React.useEffect(() => {
     void api.wallet().then((res) => { if (res.ok) setBalances(res.data.balances); });
@@ -238,7 +247,7 @@ export default function App() {
             onBack={nav.pop}
             onOpenWallet={() => nav.selectTab('wallet')}
             onToast={toast.show}
-            onPointsChanged={() => { refreshWallet(); void notifications.refresh(); }}
+            onPointsChanged={onPointsChanged}
           />
         );
 

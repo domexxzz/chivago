@@ -60,6 +60,10 @@ const TRAVELLER_TABLES = [
   'moderation_log', 'notifications', 'push_tokens',
   'sos_alerts', 'sos_dispatch', 'sos_escalations', 'sos_positions',
   'emergency_contacts',
+  // Accounts and parties are the traveller's, not the pilot's. Both arrived
+  // after this list was written, and the schema guard below did its job: the
+  // reset refused to run at all until they were classified.
+  'device_keys', 'link_codes', 'party_members', 'parties',
   'users',
 ] as const;
 

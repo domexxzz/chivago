@@ -167,3 +167,35 @@ describe('removing a phone', () => {
     assert.equal(res.code, 'NO_SUCH_DEVICE');
   });
 });
+
+describe('minting accounts is rate-limited per address', () => {
+  // The opening balance is real money the moment the marketplace accepts it.
+  // Before this, "a script can mint accounts" meant "a script can mint
+  // vouchers", and the README said it bought nothing.
+  const from = (address: string) => ({ 'x-forwarded-for': address });
+
+  test('the eleventh registration from one address in an hour is refused', async () => {
+    for (let i = 0; i < 10; i += 1) {
+      const res = await json(await post('/devices', { label: `phone ${i}` }, from('203.0.113.7')));
+      assert.equal(res.ok, true, `registration ${i + 1} should be allowed`);
+    }
+    const raw = await post('/devices', { label: 'phone 11' }, from('203.0.113.7'));
+    assert.equal(raw.status, 429);
+    const res = await json(raw);
+    assert.equal(res.code, 'TOO_MANY_REGISTRATIONS');
+  });
+
+  test('another address is not punished for it', async () => {
+    const res = await json(await post('/devices', { label: 'elsewhere' }, from('203.0.113.8')));
+    assert.equal(res.ok, true);
+    assert.match(res.data.deviceKey, /^chvg_dev_/);
+  });
+
+  test('a refused registration hands out no key and creates no user', async () => {
+    const before = (db.prepare('SELECT COUNT(*) AS n FROM users').get() as { n: number }).n;
+    const raw = await post('/devices', { label: 'phone 12' }, from('203.0.113.7'));
+    assert.equal(raw.status, 429);
+    const after = (db.prepare('SELECT COUNT(*) AS n FROM users').get() as { n: number }).n;
+    assert.equal(after, before, 'a refused registration must not provision anything');
+  });
+});

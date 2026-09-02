@@ -24,6 +24,8 @@ await client.writeReview('chaweng', rating: 5, body: 'Quiet at 7am.');
 - **No caching, no retries, no offline queue.** Those are decisions for the app,
   not the transport, and the mobile app's own queue is deliberately different
   from what a desktop tool would want.
-- **No auth.** The pilot identifies a caller by a device-scoped
-  `x-chivago-user` header and has no accounts. When accounts land this is where
-  the token goes.
+- **No key storage.** Accounts exist now: `ChivagoClient.registerDevice()`
+  returns a device key once, and every other call needs it in `deviceKey`
+  (the server answers 401 to a client without one the moment any account
+  exists). Where that key is kept — keychain, keystore, a file — is the app's
+  decision, not the transport's.

@@ -365,7 +365,7 @@ export function fireAlert(db: DB, input: FireInput): SosAlertRecord {
   return alert;
 }
 
-const displayNameOf = (db: DB, userId: string): string =>
+export const displayNameOf = (db: DB, userId: string): string =>
   row<{ display_name: string }>(
     db.prepare('SELECT display_name FROM users WHERE id = ?').get(userId),
   )?.display_name ?? 'A ChivaGo traveller';

@@ -85,12 +85,16 @@ throw — a socket that never opened is not the API declining.
 
 ## `packages/sdk-swift`
 
-**⚠ This package has never been compiled.**
+**Compiled now.** For its first forty commits this package had never met a
+compiler — written on a Windows machine with no Swift toolchain — and this
+document said so. It builds under Swift 6.3, its nine decode tests pass, and
+CI runs `swift test` on macOS on every push. The paragraphs below are kept
+because the three defects they describe were real and were found by reading.
 
 It was written on a Windows machine with no Swift toolchain — no `swiftc`, no
 Xcode. Every other package here is built and tested before being described as
-working. This one is not, and saying otherwise would be the plainest kind of
-lie.
+working. This one was not, and saying otherwise would have been the plainest
+kind of lie.
 
 Three defects were removed by inspection, because there was no compiler to catch
 them:
@@ -123,9 +127,11 @@ custom `dateDecodingStrategy` that tries both forms.
 - **No caching, retries or offline queue.** Those are decisions for the app, not
   the transport, and the mobile app's own queue is deliberately different from
   what a desktop tool would want.
-- **No auth.** The pilot identifies a caller by a device-scoped
-  `x-chivago-user` header and has no accounts. When accounts land, that is where
-  the token goes — in one place, in each client.
+- **No key storage.** Accounts landed (`ca0ccfa`) and, for a while, nobody
+  told the SDKs: the server refuses the bare `x-chivago-user` header the
+  moment any device key exists, so both clients returned 401 to everything on
+  any real database. Both now have `registerDevice()` and send
+  `x-chivago-device-key`. Where that key is kept is the app's decision.
 - **No console endpoints.** The host console is server-rendered HTML on purpose;
   there is no client-side API for it and there should not be one.
 

@@ -64,7 +64,12 @@ const csrfValid = (session: HostSession, submitted: unknown): boolean => {
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 };
 
-export function consoleRoutes(db: DB): Hono {
+export interface ConsoleHooks {
+  /** Runs after a proof decision commits. The server uses it to flush pushes. */
+  afterDecision?: () => void;
+}
+
+export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
   const app = new Hono();
 
   /** The Modernist stylesheet, so the console looks like the product. */
@@ -651,6 +656,7 @@ export function consoleRoutes(db: DB): Hono {
       reviewedBy: session.reviewer,
       reviewNote: note || null,
     });
+    hooks.afterDecision?.();
 
     return c.redirect('/console', 303);
   });

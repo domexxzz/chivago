@@ -115,6 +115,24 @@ void main() {
       expect(wallet.ledger, isNotEmpty);
     });
 
+    test('a place carries its province and a CREDITED photo, or none', () {
+      // The two fields the API grew after this SDK was written, and that it
+      // decoded as nothing for forty commits.
+      final places = (samples['places'] as List<dynamic>)
+          .map((e) => Place.fromJson(e as Map<String, dynamic>))
+          .toList();
+      expect(places, hasLength(5));
+      for (final p in places) {
+        expect(p.province, startsWith('TH-'), reason: p.id);
+      }
+      final chaweng = places.firstWhere((p) => p.id == 'chaweng');
+      expect(chaweng.photo, isNotNull, reason: 'Chaweng has a public-domain photograph');
+      expect(chaweng.photo!.credit, isNotEmpty);
+      expect(chaweng.photo!.licence, isNotEmpty);
+      final mangrove = places.firstWhere((p) => p.id == 'mangrove');
+      expect(mangrove.photo, isNull, reason: 'no photograph exists of the mangrove');
+    });
+
     test('spending granted no EXP, and the ledger says so', () {
       final wallet = Wallet.fromJson(samples['wallet'] as Map<String, dynamic>);
       final debits = wallet.ledger.where((e) => !e.isCredit);

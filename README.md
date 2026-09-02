@@ -20,6 +20,11 @@ report a number it cannot trace back to it.
 
 ## Run it
 
+**Node 22.15 or newer** (the Dockerfile and CI use 24). `node:sqlite` is
+unflagged from 22.13 and the mobile test harness's `module.registerHooks`
+exists from 22.15; on anything older every script below fails before it
+starts, and the error names a missing built-in rather than the version.
+
 Two processes. The API must be up before the app.
 
 ```bash
@@ -59,8 +64,18 @@ EXPO_PUBLIC_API_URL=http://192.168.1.42:8787 pnpm mobile
 pnpm test
 ```
 
-**1,174 tests** — 273 core, 623 API, 253 mobile, 25 tokens — plus 10 in the Dart
-SDK (`pnpm test:dart`). `pnpm typecheck` covers all four packages.
+**1,185 tests** — 273 core, 629 API, 258 mobile, 25 tokens — plus 11 in the Dart
+SDK (`pnpm test:dart`) and 9 in the Swift one (`swift test`). `pnpm typecheck`
+covers all four packages. `.github/workflows/ci.yml` runs all of it on every
+push, on Linux and macOS, so the numbers above are checked by a machine nobody
+owns rather than asserted here.
+
+The API's contract fixtures (`contract/*.json`) are **tracked**. They were
+ignored for the first forty commits, which meant five API tests and the whole
+Dart suite failed on every fresh clone, and the drift guard they exist for had
+no baseline to fire against — while the API renamed a field both SDKs still
+decoded. Regenerate with `pnpm contract` against a running server and review
+the diff like any other contract change.
 
 The suites run **one package at a time**, deliberately. In parallel they exhaust
 memory on an ordinary laptop: scrypt fails to derive a key — the exact failure
@@ -84,6 +99,9 @@ Most of them exist because something was actually wrong. The ones worth knowing:
 | `apps/mobile/test/palette.test.ts` | A Trip-Point reward is never painted in the verified green. |
 | `apps/mobile/test/reachable.test.ts` | Every screen in the navigator has a case in `App`. The passport once shipped complete and unreachable. |
 | `apps/mobile/src/components/map-geometry.test.ts` | Pins paint far-to-near, and every real coordinate lands on the drawn coastline. |
+| `apps/mobile/test/regressions.test.ts` | Three bugs a deep read found in the loops a render test cannot reach: a finished quest reports its points **once** even though the parent re-renders on the callback; the SOS position stream posts one fix and then **waits**, instead of chasing its own poll in a tight loop; a fix sent during an emergency carries the **device key**, without which the server refused every one of them. Each fails on the code as it was. |
+| `apps/api/src/account-routes.test.ts` (registrations) | The eleventh account from one address in an hour is refused, and a refused one provisions nothing. Minting accounts had meant minting vouchers. |
+| `apps/api/src/escalation-service.test.ts` (by name) | A re-alerted contact reads the **traveller's** name, not "Chaweng, 120 m's alert". |
 
 ---
 
@@ -166,11 +184,23 @@ reading if this section is.
 - **One place has no photograph.** Thong Krut Mangrove: Wikimedia Commons has
   nothing of it, and a photograph of somewhere else with this place's name under
   it is worse than a blank.
-- **Thai copy has not been read by a native speaker.** Two files:
-  `packages/core/src/strings.ts` and `apps/api/src/console/i18n.ts`.
+- **Thai copy has not been read by a native speaker.** The bulk of it is in
+  `packages/core/src/strings.ts` and `apps/api/src/console/i18n.ts`, but
+  `node scripts/thai-review.mjs` finds 440-odd EN/TH pairs across 23 files
+  and lists what a machine can honestly flag. CI prints that report on every
+  run; it does not fail the build, because only a person can close it.
 - **The app has never run on a physical device.** Web and simulator only.
-- **`POST /devices` is not rate-limited.** A script can mint accounts. It costs a
-  row and buys nothing today, and it is a real hole.
+  Location, the camera, background tracking and push have not met hardware.
+- **Accounts are free to mint, and each one used to come with a balance.**
+  `POST /devices` is now rate-limited per address (ten an hour) and the
+  production config sets the opening balance to zero, because a gift handed to
+  every unauthenticated registration was a voucher printer. The limit is a
+  speed bump, not a wall: a pool of addresses defeats it.
+- **The Bophut default.** `POST /sos` without coordinates records the alert at
+  a fixed point on the island rather than refusing, because a traveller who
+  denied location permission must still be able to fire. That position is a
+  placeholder and the desk cannot yet tell it from a real one; making
+  `lat`/`lng` nullable is a table rebuild and is the next honest fix.
 - **Air quality is an ~11 km area reading**, not a per-place measurement.
   Thailand has no monitoring station on Koh Samui — see `docs/05-research.md`.
   This is the most consequential finding of the build.
@@ -224,12 +254,13 @@ Roughly in order of what unblocks the most:
 1. **Open the third province.** Fieldwork, not code — the passport, the
    companions and the scoring already work for all 77. One more open province
    turns "77 provinces" from a promise into a pattern.
-2. **Thai copy review** by a native speaker. Two files, named above.
-3. **A rate limit on account registration**, before anyone real uses it.
-4. **Someone to watch the SOS desk**, and an SMS provider. Both are decisions.
-5. **A physical-device run.** Location, camera and push have never met real
-   hardware.
-6. **Booking** — only against a partner's real inventory. Agoda-grade UX is
+2. **Thai copy review** by a native speaker. Start from
+   `node scripts/thai-review.mjs --json`.
+3. **Someone to watch the SOS desk**, and an SMS provider. Both are decisions.
+4. **A physical-device run.** Location, camera, background tracking and push
+   have never met real hardware, and the SOS position stream in particular
+   was wrong in two ways that only a device would have shown.
+5. **Booking** — only against a partner's real inventory. Agoda-grade UX is
    reachable; Agoda-grade supply is contracts, availability and settlement, and
    a booking flow with nothing behind it would be the largest lie in an app
    whose whole argument is that it does not tell them.

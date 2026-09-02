@@ -31,6 +31,17 @@ Two registrations, and the second is not optional: `register()` covers ESM,
 `react-native-svg`. With the async hook alone the real Flow-typed package loads
 and fails.
 
+> **Superseded.** The paragraph above described a harness that ran on one
+> machine. On macOS and Linux with Node 22.20 and 24.11 the two hook chains
+> interfere — the sync chain's default `next()` returns `source: null` for
+> every CommonJS file and node refuses it — so nine of the eleven test files
+> could not load, and "253 mobile tests" was a number nobody else could
+> reproduce. `register.mjs` now installs the **synchronous hooks only** (they
+> see both `import` and `require` since Node 22.15) and rewrites the one
+> pattern the sync translator cannot survive: react-native-web's
+> `module.exports = exports.default;` where `default` is null. `loader.mjs`
+> is gone. The count is now 258, and CI runs it.
+
 Three things I got wrong on the way, each worth the comment they now carry:
 
 - **A catch-all `Proxy` for the native stubs.** An ES namespace is built by

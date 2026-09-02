@@ -15,6 +15,25 @@ public enum Currency: String, Codable, Sendable {
     case green
 }
 
+/// What `POST /devices` hands back. The key appears here and never again.
+public struct RegisteredDevice: Codable, Sendable {
+    public let userId: String
+    public let deviceKey: String
+}
+
+public struct AccountDevice: Codable, Sendable {
+    public let label: String?
+    public let createdAt: Date
+    public let lastSeenAt: Date?
+    /// The phone making this request.
+    public let current: Bool
+}
+
+public struct Account: Codable, Sendable {
+    public let userId: String
+    public let devices: [AccountDevice]
+}
+
 public struct Balances: Codable, Sendable {
     public let trip: Int
     public let green: Int
@@ -116,17 +135,30 @@ public struct ReviewSummary: Codable, Sendable {
     public let distribution: [Int]
 }
 
+/// A photograph WITH its credit. A bare URL cannot be shipped: the licence
+/// requires the credit to travel with the image, and the API resolves a url
+/// without one to null.
+public struct PlacePhoto: Codable, Sendable {
+    public let url: String
+    public let credit: String
+    public let licence: String
+    public let sourceUrl: String?
+}
+
 public struct Place: Codable, Sendable {
     public let id: String
     public let name: Bilingual
     public let short: String
     public let layer: String
+    /// ISO 3166-2:TH code. The passport is derived from these.
+    public let province: String
     public let lat: Double
     public let lng: Double
     public let meta: String
     public let blurb: Bilingual
     public let tags: [String]
-    public let photoUrl: String?
+    /// Nil where no licensed photograph exists.
+    public let photo: PlacePhoto?
     public let metrics: PlaceMetrics
     public let healthyScore: Double
     public let breakdown: ScoreBreakdown

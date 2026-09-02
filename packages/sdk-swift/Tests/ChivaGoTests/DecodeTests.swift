@@ -3,12 +3,15 @@ import XCTest
 
 /// Decoding tests against REAL responses captured from the running API.
 ///
-/// The same payloads the Dart SDK decodes, so the two clients are proven
-/// against identical evidence rather than against each author's imagination.
+/// The same payloads the Dart SDK decodes - `api-samples.json` here is a copy
+/// of the tracked `contract/api-samples.json` at the repository root, and the
+/// two are expected to match - so the two clients are proven against
+/// identical evidence rather than against each author's imagination.
 ///
-/// **This file has never been run.** The package was written on a machine with
-/// no Swift toolchain. On a Mac, `swift test` settles it in seconds — and these
-/// are the assertions that will tell you what, if anything, is wrong.
+/// The package was written on a machine with no Swift toolchain and went
+/// forty commits uncompiled. It now builds under Swift 6.3 and these
+/// assertions pass against both the original capture and a fresh one; CI runs
+/// `swift test` on every push.
 final class DecodeTests: XCTestCase {
 
     private func samples() throws -> [String: Any] {
@@ -25,6 +28,22 @@ final class DecodeTests: XCTestCase {
         let value = try XCTUnwrap(all[key], "no sample captured for \(key)")
         let data = try JSONSerialization.data(withJSONObject: value)
         return try ChivagoClient.makeDecoder().decode(T.self, from: data)
+    }
+
+    func testPlaceCarriesItsProvinceAndACreditedPhoto() throws {
+        // The two fields the API grew after the SDKs were written, and that
+        // the SDKs decoded as nothing for forty commits. A photograph is a
+        // record with a credit, never a bare URL.
+        let places = try decode("places", as: [Place].self)
+        XCTAssertEqual(places.count, 5)
+        for place in places {
+            XCTAssertTrue(place.province.hasPrefix("TH-"), place.id)
+        }
+        let chaweng = try XCTUnwrap(places.first { $0.id == "chaweng" })
+        let photo = try XCTUnwrap(chaweng.photo, "Chaweng has a public-domain photograph")
+        XCTAssertFalse(photo.credit.isEmpty)
+        XCTAssertFalse(photo.licence.isEmpty)
+        XCTAssertNil(places.first { $0.id == "mangrove" }?.photo, "no photograph exists of the mangrove")
     }
 
     func testWalletCarriesBothPursesAndTheLadder() throws {

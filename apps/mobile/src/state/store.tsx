@@ -22,7 +22,7 @@ import {
 import {
   rememberIdentity, sendFixes, startBackgroundTracking, stopBackgroundTracking,
 } from '../location/background.ts';
-import { deviceUserId } from '../api/client.ts';
+import { deviceUserId, setDeviceUser } from '../api/client.ts';
 import { motion } from '../theme/index.ts';
 import type { WellnessProfile } from '@chivago/core';
 import { strings } from '@chivago/core';
@@ -208,7 +208,18 @@ export function useAccount() {
   const [registered, setRegistered] = React.useState(false);
 
   React.useEffect(() => {
-    void ensureAccount(api, { locale: 'en' }).then((res) => {
+    void ensureAccount(api, { locale: 'en' }).then(async (res) => {
+      // Learn who this key belongs to. The user id is what the background
+      // task attributes fixes to and what `rememberIdentity` writes to disk;
+      // before this was wired, `deviceUserId()` answered 'demo-user' for the
+      // life of the app, on every phone.
+      if (res.key) {
+        const who = await api.account();
+        if (who.ok) {
+          setDeviceUser(who.data.userId);
+          void rememberIdentity(who.data.userId);
+        }
+      }
       setRegistered(res.registered);
       setReady(true);
     });
@@ -276,14 +287,31 @@ export function useSos(onError: (message: string) => void) {
   // after the app was killed, so identity has to be on disk before it needs it.
   React.useEffect(() => { void rememberIdentity(deviceUserId()); }, []);
 
+  /**
+   * What the effects below key on.
+   *
+   * NOT the alert object. `refresh()` sets a fresh object on every poll, and
+   * an effect keyed on the object is torn down and re-run on every one of
+   * them - which turned the 20-second position stream into a tight loop that
+   * posted a fix, refetched, and posted again with no pause, on the battery of
+   * someone who needed it. The id and status are the two facts the effects
+   * actually care about, and they only change when something happened.
+   */
+  const alertId = alert?.id ?? null;
+  const alertStatus = alert?.status ?? null;
+  const live = alertStatus === 'dispatching' || alertStatus === 'acknowledged';
+
+  // Once, on mount: is there an alert already running from before?
+  React.useEffect(() => { void refresh(); }, [refresh]);
+
   React.useEffect(() => {
-    void refresh();
     // Poll while an alert is live, so an operator picking it up reaches the
     // user without them touching anything. Idle polling is off - a battery
     // cost for nothing, and battery matters most in an emergency.
-    const id = setInterval(() => { if (alert) void refresh(); }, 15_000);
+    if (!alertId) return;
+    const id = setInterval(() => { void refresh(); }, 15_000);
     return () => clearInterval(id);
-  }, [refresh, alert]);
+  }, [refresh, alertId]);
 
   /**
    * Background tracking follows the alert's life exactly.
@@ -293,13 +321,12 @@ export function useSos(onError: (message: string) => void) {
    * the emergency it belonged to. That is a surveillance bug, not a feature.
    */
   React.useEffect(() => {
-    const live = alert && (alert.status === 'dispatching' || alert.status === 'acknowledged');
     if (live) {
       void startBackgroundTracking(deviceUserId());
     } else {
       void stopBackgroundTracking();
     }
-  }, [alert]);
+  }, [live]);
 
   /**
    * Stream position while an alert runs.
@@ -309,7 +336,7 @@ export function useSos(onError: (message: string) => void) {
    * 20s balances usefulness against draining the battery they may need.
    */
   React.useEffect(() => {
-    if (!alert || (alert.status !== 'dispatching' && alert.status !== 'acknowledged')) return;
+    if (!live) return;
     let cancelled = false;
 
     const tick = async () => {
@@ -340,7 +367,7 @@ export function useSos(onError: (message: string) => void) {
     void tick();
     const id = setInterval(tick, 20_000);
     return () => { cancelled = true; clearInterval(id); };
-  }, [alert]);
+  }, [live, alertId, refresh]);
 
   const fire = React.useCallback(
     async (pos?: { lat: number; lng: number }, note?: string) => {

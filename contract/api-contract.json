@@ -1,0 +1,555 @@
+{
+  "shapes": {
+    "health": {
+      "object": {
+        "status": "string",
+        "time": "string"
+      }
+    },
+    "profile": {
+      "object": {
+        "activity": "null",
+        "completedAt": "null",
+        "purposes": {
+          "array": "unknown"
+        },
+        "watch": {
+          "array": "unknown"
+        }
+      }
+    },
+    "places": {
+      "array": {
+        "object": {
+          "blurb": {
+            "object": {
+              "en": "string",
+              "th": "string"
+            }
+          },
+          "breakdown": {
+            "object": {
+              "components": {
+                "array": {
+                  "object": {
+                    "display": "string",
+                    "key": "string",
+                    "label": {
+                      "object": {
+                        "en": "string",
+                        "th": "string"
+                      }
+                    },
+                    "provenance": "string",
+                    "subScore": "number",
+                    "weight": "number"
+                  }
+                }
+              },
+              "profileApplied": "string",
+              "total": "number"
+            }
+          },
+          "healthyScore": "number",
+          "id": "string",
+          "lat": "number",
+          "layer": "string",
+          "lng": "number",
+          "meta": "string",
+          "metrics": {
+            "object": {
+              "aqi": "number",
+              "crowdDensity": "number",
+              "safetyIndex": "number",
+              "walkability": "number"
+            }
+          },
+          "name": {
+            "object": {
+              "en": "string",
+              "th": "string"
+            }
+          },
+          "photo": {
+            "object": {
+              "credit": "string",
+              "licence": "string",
+              "sourceUrl": "string",
+              "url": "string"
+            }
+          },
+          "province": "string",
+          "readings": {
+            "object": {
+              "aqi": {
+                "object": {
+                  "observedAt": "string",
+                  "provenance": "string",
+                  "source": "string",
+                  "value": "number"
+                }
+              }
+            }
+          },
+          "reviews": {
+            "object": {
+              "average": "number",
+              "count": "number",
+              "distribution": {
+                "array": "number"
+              }
+            }
+          },
+          "safetyLabel": {
+            "object": {
+              "en": "string",
+              "th": "string"
+            }
+          },
+          "short": "string",
+          "tags": {
+            "array": "string"
+          }
+        }
+      }
+    },
+    "place": {
+      "object": {
+        "blurb": {
+          "object": {
+            "en": "string",
+            "th": "string"
+          }
+        },
+        "breakdown": {
+          "object": {
+            "components": {
+              "array": {
+                "object": {
+                  "display": "string",
+                  "key": "string",
+                  "label": {
+                    "object": {
+                      "en": "string",
+                      "th": "string"
+                    }
+                  },
+                  "provenance": "string",
+                  "subScore": "number",
+                  "weight": "number"
+                }
+              }
+            },
+            "profileApplied": "string",
+            "total": "number"
+          }
+        },
+        "healthyScore": "number",
+        "id": "string",
+        "lat": "number",
+        "layer": "string",
+        "lng": "number",
+        "meta": "string",
+        "metrics": {
+          "object": {
+            "aqi": "number",
+            "crowdDensity": "number",
+            "safetyIndex": "number",
+            "walkability": "number"
+          }
+        },
+        "name": {
+          "object": {
+            "en": "string",
+            "th": "string"
+          }
+        },
+        "photo": {
+          "object": {
+            "credit": "string",
+            "licence": "string",
+            "sourceUrl": "string",
+            "url": "string"
+          }
+        },
+        "province": "string",
+        "readings": {
+          "object": {
+            "aqi": {
+              "object": {
+                "observedAt": "string",
+                "provenance": "string",
+                "source": "string",
+                "value": "number"
+              }
+            }
+          }
+        },
+        "reviews": {
+          "object": {
+            "average": "number",
+            "count": "number",
+            "distribution": {
+              "array": "number"
+            }
+          }
+        },
+        "safetyLabel": {
+          "object": {
+            "en": "string",
+            "th": "string"
+          }
+        },
+        "short": "string",
+        "tags": {
+          "array": "string"
+        }
+      }
+    },
+    "quests": {
+      "object": {
+        "progress": {
+          "object": {}
+        },
+        "quests": {
+          "array": {
+            "object": {
+              "code": "string",
+              "duration": "string",
+              "geofenceRadiusM": "number",
+              "host": {
+                "object": {
+                  "id": "string",
+                  "name": "string",
+                  "type": "string"
+                }
+              },
+              "id": "string",
+              "kind": "string",
+              "lat": "number",
+              "lng": "number",
+              "name": {
+                "object": {
+                  "en": "string",
+                  "th": "string"
+                }
+              },
+              "rewardCurrency": "string",
+              "rewardPoints": "number",
+              "where": "string"
+            }
+          }
+        }
+      }
+    },
+    "quest": {
+      "object": {
+        "progress": "null",
+        "quest": {
+          "object": {
+            "code": "string",
+            "duration": "string",
+            "geofenceRadiusM": "number",
+            "host": {
+              "object": {
+                "id": "string",
+                "name": "string",
+                "type": "string"
+              }
+            },
+            "id": "string",
+            "kind": "string",
+            "lat": "number",
+            "lng": "number",
+            "name": {
+              "object": {
+                "en": "string",
+                "th": "string"
+              }
+            },
+            "rewardCurrency": "string",
+            "rewardPoints": "number",
+            "where": "string"
+          }
+        }
+      }
+    },
+    "wallet": {
+      "object": {
+        "balances": {
+          "object": {
+            "green": "number",
+            "trip": "number"
+          }
+        },
+        "ledger": {
+          "array": {
+            "object": {
+              "amount": "number",
+              "currency": "string",
+              "exp": "number",
+              "host": "string",
+              "id": "string",
+              "kind": "string",
+              "label": "string",
+              "occurredAt": "string",
+              "sourceRef": "string"
+            }
+          }
+        },
+        "progression": {
+          "object": {
+            "exp": "number",
+            "intoLevel": "number",
+            "ladder": {
+              "array": {
+                "object": {
+                  "earned": "boolean",
+                  "fromLevel": "number",
+                  "index": "number",
+                  "key": "string",
+                  "label": {
+                    "object": {
+                      "en": "string",
+                      "th": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "level": "number",
+            "levelSpan": "number",
+            "nextRank": {
+              "object": {
+                "index": "number",
+                "key": "string",
+                "label": {
+                  "object": {
+                    "en": "string",
+                    "th": "string"
+                  }
+                }
+              }
+            },
+            "nextRankAtLevel": "number",
+            "rank": {
+              "object": {
+                "index": "number",
+                "key": "string",
+                "label": {
+                  "object": {
+                    "en": "string",
+                    "th": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "offers": {
+      "array": {
+        "object": {
+          "available": "boolean",
+          "category": "string",
+          "costPoints": "number",
+          "currency": "string",
+          "id": "string",
+          "imageUrl": "null",
+          "merchant": "string",
+          "merchantShort": "string",
+          "name": "string"
+        }
+      }
+    },
+    "vouchers": {
+      "array": {
+        "object": {
+          "code": "string",
+          "costPoints": "number",
+          "expiresAt": "string",
+          "id": "string",
+          "issuedAt": "string",
+          "merchant": "string",
+          "offerId": "string",
+          "redeemedAt": "null",
+          "status": "string",
+          "userId": "string"
+        }
+      }
+    },
+    "impactMe": {
+      "array": {
+        "object": {
+          "key": "string",
+          "label": {
+            "object": {
+              "en": "string",
+              "th": "string"
+            }
+          },
+          "unit": "string",
+          "value": "number"
+        }
+      }
+    },
+    "impactCommunity": {
+      "object": {
+        "metrics": {
+          "array": {
+            "object": {
+              "actual": "number",
+              "key": "string",
+              "label": {
+                "object": {
+                  "en": "string",
+                  "th": "string"
+                }
+              },
+              "target": "number",
+              "unit": "string"
+            }
+          }
+        },
+        "year": "number"
+      }
+    },
+    "shield": {
+      "array": {
+        "object": {
+          "key": "string",
+          "label": {
+            "object": {
+              "en": "string",
+              "th": "string"
+            }
+          },
+          "note": {
+            "object": {
+              "en": "string",
+              "th": "string"
+            }
+          },
+          "state": "string"
+        }
+      }
+    },
+    "notifications": {
+      "object": {
+        "items": {
+          "array": "unknown"
+        },
+        "unread": "number"
+      }
+    },
+    "quietHours": {
+      "object": {
+        "enabled": "boolean",
+        "from": "null",
+        "until": "null"
+      }
+    },
+    "checkinsToday": {
+      "array": "string"
+    },
+    "reviews": {
+      "object": {
+        "canReview": "boolean",
+        "mine": {
+          "object": {
+            "appeal": "null",
+            "hiddenAt": "null",
+            "hiddenReasonKey": "null",
+            "review": {
+              "object": {
+                "authorId": "string",
+                "authorName": "string",
+                "body": "string",
+                "createdAt": "string",
+                "id": "string",
+                "language": "string",
+                "placeId": "string",
+                "rating": "number",
+                "updatedAt": "null",
+                "visitedAt": "string"
+              }
+            }
+          }
+        },
+        "reported": {
+          "array": "unknown"
+        },
+        "reviews": {
+          "array": {
+            "object": {
+              "authorId": "string",
+              "authorName": "string",
+              "body": "string",
+              "createdAt": "string",
+              "id": "string",
+              "language": "string",
+              "placeId": "string",
+              "rating": "number",
+              "updatedAt": "null",
+              "visitedAt": "string"
+            }
+          }
+        }
+      }
+    },
+    "sosContacts": {
+      "array": {
+        "object": {
+          "id": "string",
+          "linkedUserId": "null",
+          "name": "string",
+          "phone": "string",
+          "relationship": "string"
+        }
+      }
+    },
+    "checkin": {
+      "object": {
+        "awarded": "boolean",
+        "balances": {
+          "object": {
+            "green": "number",
+            "trip": "number"
+          }
+        },
+        "distanceM": "number",
+        "exp": "number",
+        "placeId": "string",
+        "placeName": "string",
+        "pointsAwarded": "number"
+      }
+    },
+    "writeReview": {
+      "object": {
+        "created": "boolean",
+        "pointsAwarded": "number",
+        "review": {
+          "object": {
+            "authorId": "string",
+            "authorName": "string",
+            "body": "string",
+            "createdAt": "string",
+            "id": "string",
+            "language": "string",
+            "placeId": "string",
+            "rating": "number",
+            "updatedAt": "string",
+            "visitedAt": "string"
+          }
+        }
+      }
+    }
+  },
+  "uncovered": [
+    "profile.purposes",
+    "profile.watch",
+    "notifications.items",
+    "reviews.reported"
+  ]
+}

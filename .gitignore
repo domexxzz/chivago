@@ -26,9 +26,13 @@ apps/api/data/
 !.env.example
 .vercel/
 
-# Captured API responses used to keep the three clients in step. Regenerated
-# by `pnpm --filter @chivago/api contract` against a running server.
-contract/*.json
+# Captured API responses used to keep the three clients in step are TRACKED
+# (`contract/*.json`), on purpose. They were ignored for the first forty
+# commits, which meant `pnpm test` failed on every fresh clone and the drift
+# guard had no baseline to diff against - so it never fired, while the API
+# renamed a field the SDKs still decode. Regenerate with
+# `pnpm --filter @chivago/api contract` against a running server, and review
+# the diff like any other contract change.
 
 # Design handoff archive and its extraction. Large, binary, and already
 # distilled into packages/tokens.

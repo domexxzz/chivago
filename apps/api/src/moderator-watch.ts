@@ -113,6 +113,13 @@ export function moderatorWatch(db: DB, now = new Date()): ModeratorWatch[] {
   // Overturns: a take-down followed by a restore of the same review. The
   // restore may be by anyone - what is being measured is whether this
   // moderator's calls stand, not who reversed them.
+  //
+  // "Followed by" is decided by time, with the log's own insertion order as
+  // the tiebreak. Timestamps here are milliseconds, and a batch approval
+  // stamps every hide with one clock while a restore stamps its own, so a
+  // restore landing in the same millisecond as the hide it reverses was
+  // invisible to a strict `>` - an intermittent test failure under load, and
+  // in production a wrong call that never counted against anyone.
   const overturned = new Map<string, number>();
   for (const r of rows<{ moderator: string; n: number }>(
     db
@@ -123,7 +130,8 @@ export function moderatorWatch(db: DB, now = new Date()): ModeratorWatch[] {
            AND EXISTS (SELECT 1 FROM moderation_log rr
                        WHERE rr.review_id = h.review_id
                          AND rr.action = 'restore'
-                         AND rr.acted_at > h.acted_at)
+                         AND (rr.acted_at > h.acted_at
+                              OR (rr.acted_at = h.acted_at AND rr.rowid > h.rowid)))
          GROUP BY h.moderator`,
       )
       .all(),

@@ -305,13 +305,28 @@ export function getCommunityImpact(db: DB, year: number): CommunityMetric[] {
  * wired in one at a time without changing the client.
  */
 export function getShield(db: DB, userId: string): ShieldService[] {
-  const contacts = 2;
+  // COUNTED, like the SOS panel. The first version said "Shared with 2 family
+  // contacts" for everybody, including a traveller who had added none - the
+  // exact placeholder the dispatch panel was stripped of, surviving one screen
+  // over. Tracking is 'ready' with contacts and 'off' without, because it
+  // only ever runs during an alert and "on" would claim otherwise.
+  const contacts = (db.prepare('SELECT COUNT(*) AS n FROM emergency_contacts WHERE user_id = ?')
+    .get(userId) as { n: number }).n;
   const verifiedMerchants = db.prepare('SELECT COUNT(*) AS n FROM offers WHERE available = 1').get() as { n: number };
   return [
-    { key: 'tracking', label: { en: 'Live Tracking', th: 'ติดตามตำแหน่งสด' }, note: { en: `Shared with ${contacts} family contacts`, th: `แชร์กับผู้ติดต่อในครอบครัว ${contacts} คน` }, state: 'on' },
+    {
+      key: 'tracking',
+      label: { en: 'Live Tracking', th: 'ติดตามตำแหน่งสด' },
+      note: contacts > 0
+        ? { en: `Shared with ${contacts} ${contacts === 1 ? 'contact' : 'contacts'} during an SOS`, th: `แชร์กับผู้ติดต่อ ${contacts} คนเมื่อกด SOS` }
+        : { en: 'Add an emergency contact to share your position', th: 'เพิ่มผู้ติดต่อฉุกเฉินเพื่อแชร์ตำแหน่ง' },
+      state: contacts > 0 ? 'ready' : 'off',
+    },
     { key: 'safePath', label: { en: 'Safe Path', th: 'เส้นทางปลอดภัย' }, note: { en: 'Night routing avoids 3 unlit stretches', th: 'เส้นทางกลางคืนเลี่ยงช่วงไม่มีไฟ 3 จุด' }, state: 'on' },
     { key: 'antiScam', label: { en: 'Anti-Scam', th: 'ป้องกันการหลอกลวง' }, note: { en: `${verifiedMerchants.n} QR merchants verified this trip`, th: `ตรวจสอบร้านค้า QR แล้ว ${verifiedMerchants.n} ร้านในทริปนี้` }, state: 'on' },
-    { key: 'emergency', label: { en: 'Emergency Assistance', th: 'ความช่วยเหลือฉุกเฉิน' }, note: { en: 'Bangkok Hospital Samui · 4.1 km', th: 'โรงพยาบาลกรุงเทพสมุย · 4.1 กม.' }, state: 'ready' },
+    // No invented distance. The hospital is named; how far it is depends on
+    // where the traveller is, which this read model does not know.
+    { key: 'emergency', label: { en: 'Emergency Assistance', th: 'ความช่วยเหลือฉุกเฉิน' }, note: { en: '1669 · Bangkok Hospital Samui', th: '1669 · โรงพยาบาลกรุงเทพสมุย' }, state: 'ready' },
     { key: 'language', label: { en: 'Language Help', th: 'ช่วยเหลือด้านภาษา' }, note: { en: 'Thai↔English interpreter on call', th: 'ล่ามไทย-อังกฤษพร้อมให้บริการ' }, state: 'ready' },
   ];
 }

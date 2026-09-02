@@ -61,14 +61,23 @@ class ChivagoClient {
   ChivagoClient({
     required this.baseUrl,
     required this.userId,
+    this.deviceKey,
     http.Client? httpClient,
   }) : _http = httpClient ?? http.Client();
 
   final String baseUrl;
 
-  /// Device-scoped identity. The pilot has no accounts: under Thailand's PDPA
-  /// the least personal data you can collect is the safest amount.
+  /// Who the caller is. Informational once a [deviceKey] is set: the server
+  /// resolves identity from the key and ignores this header.
   final String userId;
+
+  /// This device's credential, from [registerDevice]. Without it the server
+  /// answers 401 to everything except registration the moment ANY account
+  /// exists - which every phone running the app has, because it registers on
+  /// first launch. The bare `x-chivago-user` header was the pilot's escape
+  /// hatch and it closed itself; a client built without a key is a client
+  /// that works only on an empty database.
+  final String? deviceKey;
 
   final http.Client _http;
 
@@ -76,8 +85,40 @@ class ChivagoClient {
 
   Map<String, String> get _headers => {
         'x-chivago-user': userId,
+        if (deviceKey != null) 'x-chivago-device-key': deviceKey!,
         'content-type': 'application/json',
       };
+
+  // -- account --------------------------------------------------------------
+
+  /// Register this device and receive its key - ONCE. Only a hash is stored
+  /// server-side, so a lost key is a lost account unless it was linked to a
+  /// second device first. Unauthenticated by necessity, and rate-limited per
+  /// address for that reason.
+  ///
+  /// Static because it is the one call made before a client has a key. Build
+  /// the client you will keep from the result.
+  static Future<Result<RegisteredDevice>> registerDevice(
+    String baseUrl, {
+    String? label,
+    String? locale,
+    http.Client? httpClient,
+  }) async {
+    final bootstrap = ChivagoClient(baseUrl: baseUrl, userId: '', httpClient: httpClient);
+    try {
+      return await bootstrap._post(
+        '/devices',
+        (d) => RegisteredDevice.fromJson(d as Map<String, dynamic>),
+        {'label': label, 'locale': locale},
+      );
+    } finally {
+      if (httpClient == null) bootstrap.close();
+    }
+  }
+
+  /// Who this key belongs to, and which phones share the account.
+  Future<Result<Account>> account() =>
+      _get('/account', (d) => Account.fromJson(d as Map<String, dynamic>));
 
   Future<Result<T>> _send<T>(
     String method,
