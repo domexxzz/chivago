@@ -61,6 +61,7 @@ void main() {
       for (final name in [
         'places', 'place', 'quests', 'wallet', 'offers', 'vouchers',
         'reviews', 'checkin', 'writeReview', 'checkinsToday',
+        'selfVisits', 'passport', 'myStatements',
       ]) {
         expect(shapes.containsKey(name), isTrue, reason: '$name not in the contract');
       }

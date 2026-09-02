@@ -169,16 +169,34 @@ class ChivagoClient {
   ///
   /// `accuracyM` is the fix's own error radius. Send it: a fix wider than the
   /// place's fence is refused, and the server would rather say so than guess.
+  ///
+  /// `mocked` is whether the OS flagged the fix as simulated. Send it when the
+  /// platform reports it (Android's `isFromMockProvider`); a mocked fix is
+  /// refused with MOCK_LOCATION.
   Future<Result<CheckinResult>> checkIn(
     String placeId, {
     required double lat,
     required double lng,
     double? accuracyM,
+    bool? mocked,
   }) =>
       _post(
         '/places/$placeId/checkin',
         (d) => CheckinResult.fromJson(d as Map<String, dynamic>),
-        {'lat': lat, 'lng': lng, if (accuracyM != null) 'accuracyM': accuracyM},
+        {
+          'lat': lat,
+          'lng': lng,
+          if (accuracyM != null) 'accuracyM': accuracyM,
+          if (mocked != null) 'mocked': mocked,
+        },
+      );
+
+  /// Note a visit the phone could not prove. Recorded, not scored: it pays
+  /// nothing, unlocks nothing, and reaches only the passport as a dashed
+  /// stamp. Ten a year; VISIT_QUOTA when they are spent.
+  Future<Result<SelfVisitResult>> recordVisit(String placeId) => _post(
+        '/places/$placeId/visits',
+        (d) => SelfVisitResult.fromJson(d as Map<String, dynamic>),
       );
 
   Future<Result<List<String>>> checkinsToday() =>

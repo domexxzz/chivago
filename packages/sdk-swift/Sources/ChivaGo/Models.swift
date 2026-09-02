@@ -86,6 +86,10 @@ public struct LedgerEntry: Codable, Sendable {
     public let exp: Int
     public let kind: String
     public let sourceRef: String
+    /// What the row is about - the quest, the place, the offer - with no
+    /// sentence around it, so a client can phrase the line in its own language.
+    /// Absent on rows written before the column existed.
+    public let subject: String?
 
     public var isCredit: Bool { amount >= 0 }
 }
@@ -302,6 +306,13 @@ public struct Passport: Codable, Sendable {
 /// Recorded, not scored: the stamps a traveller issued themselves.
 public struct SelfVisits: Codable, Sendable {
     public let places: [String]
+    public let remainingThisYear: Int
+}
+
+/// What `POST /places/:id/visits` answers. `recorded == false` is a place
+/// already stamped this way - a duplicate, not a second visit.
+public struct SelfVisitResult: Codable, Sendable {
+    public let recorded: Bool
     public let remainingThisYear: Int
 }
 

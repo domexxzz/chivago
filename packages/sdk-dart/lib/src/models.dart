@@ -180,11 +180,13 @@ class LedgerEntry {
     required this.exp,
     required this.kind,
     required this.sourceRef,
+    this.subject,
   });
 
   factory LedgerEntry.fromJson(Map<String, dynamic> json) => LedgerEntry(
         id: json['id'] as String,
         label: json['label'] as String,
+        subject: json['subject'] as String?,
         occurredAt: DateTime.parse(json['occurredAt'] as String),
         host: json['host'] as String,
         amount: json['amount'] as int,
@@ -209,6 +211,10 @@ class LedgerEntry {
   final int exp;
   final String kind;
   final String sourceRef;
+
+  /// What the row is about - the quest, the place, the offer - with no sentence
+  /// around it. Null on rows written before the column existed.
+  final String? subject;
 
   bool get isCredit => amount >= 0;
 }
@@ -700,6 +706,20 @@ class Passport {
 }
 
 /// Recorded, not scored: the stamps a traveller issued themselves.
+/// What `POST /places/:id/visits` answers. `recorded: false` is a place
+/// already stamped this way - a duplicate, not a second visit.
+class SelfVisitResult {
+  const SelfVisitResult({required this.recorded, required this.remainingThisYear});
+
+  factory SelfVisitResult.fromJson(Map<String, dynamic> json) => SelfVisitResult(
+        recorded: json['recorded'] as bool,
+        remainingThisYear: json['remainingThisYear'] as int,
+      );
+
+  final bool recorded;
+  final int remainingThisYear;
+}
+
 class SelfVisits {
   const SelfVisits({required this.places, required this.remainingThisYear});
 

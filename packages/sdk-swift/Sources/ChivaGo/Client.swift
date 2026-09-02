@@ -143,12 +143,23 @@ public final class ChivagoClient: @unchecked Sendable {
     ///
     /// `awarded == false` means you are here and already checked in today. That
     /// is a success, not a refusal.
-    public func checkIn(placeID: String, lat: Double, lng: Double, accuracyM: Double? = nil) async throws -> CheckinResult {
+    /// `mocked` is whether the OS flagged the fix as simulated; a mocked fix
+    /// is refused with MOCK_LOCATION. Send it when the platform reports it.
+    public func checkIn(
+        placeID: String, lat: Double, lng: Double, accuracyM: Double? = nil, mocked: Bool? = nil
+    ) async throws -> CheckinResult {
         try await post(
             "/places/\(placeID)/checkin",
-            body: Coordinates(lat: lat, lng: lng, accuracyM: accuracyM),
+            body: Coordinates(lat: lat, lng: lng, accuracyM: accuracyM, mocked: mocked),
             as: CheckinResult.self
         )
+    }
+
+    /// Note a visit the phone could not prove. Recorded, not scored: it pays
+    /// nothing, unlocks nothing, and reaches only the passport as a dashed
+    /// stamp. Ten a year; VISIT_QUOTA when they are spent.
+    public func recordVisit(placeID: String) async throws -> SelfVisitResult {
+        try await post("/places/\(placeID)/visits", as: SelfVisitResult.self)
     }
 
     public func checkinsToday() async throws -> [String] {
@@ -230,7 +241,7 @@ public final class ChivagoClient: @unchecked Sendable {
 // MARK: - Request and wrapper bodies
 
 /// `accuracyM` is the fix's own error radius; a fix wider than the fence is refused.
-struct Coordinates: Encodable { let lat: Double; let lng: Double; let accuracyM: Double? }
+struct Coordinates: Encodable { let lat: Double; let lng: Double; let accuracyM: Double?; let mocked: Bool? }
 struct NewDevice: Encodable { let label: String?; let locale: String? }
 struct NewReview: Encodable { let rating: Int; let body: String? }
 struct NewReport: Encodable { let reason: String; let note: String? }
