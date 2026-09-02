@@ -5,7 +5,7 @@ What exists, what runs, and what is honestly not there yet.
 > **Status as of 2026-09-02.** 64 commits since 2026-09-01; `main` deploys to
 > https://chivago-demo.vercel.app as a static demo (no API behind it). 17
 > screens, 66 API routes, 27 console routes, 35 tables, about 35,700 lines
-> of source and 17,000 of tests; 1,316 TypeScript tests, 11 Dart, 10 Swift
+> of source and 17,000 of tests; 1,317 TypeScript tests, 11 Dart, 10 Swift
 > (Swift runs only in CI). Of the competitive read's seven recommendations,
 > 01-04 are built and documented (`docs/partners/`, `docs/29`, `docs/30`,
 > `docs/31`); 05 (Thai law), 06 (no point economy before a sponsor signs)
@@ -91,7 +91,7 @@ after     trip 0 · green 1610 · exp 1790
 
 ---
 
-## Tests: 1,316 + 11 Dart + 10 Swift (as of 2026-09-02; the table below is the build-time count)
+## Tests: 1,317 + 11 Dart + 10 Swift (as of 2026-09-02; the table below is the build-time count)
 
 | Package | Tests | Covers |
 | --- | --- | --- |
