@@ -8,9 +8,12 @@
  * perfectly while decoding nothing. The failure surfaces on a traveller's
  * phone, in another language, weeks later.
  *
- * So the shape of every response the SDKs read is captured and checked in.
- * `contract.test.ts` re-captures it from the live app and fails when they
- * differ, and the failure names which path moved.
+ * So the shape of every response the SDKs read is captured and checked in
+ * (`contract/*.json`, tracked). `contract.test.ts` checks the samples against
+ * the shapes they were captured with; drift is caught when somebody re-runs
+ * `pnpm contract` and the diff of the tracked files names which path moved.
+ * The capture is not automatic - a running server is still needed - and that
+ * is the remaining gap.
  *
  * SHAPES, not values. What matters to a decoder is that `balances.green` is a
  * number and still called that. Whether it is 1240 today is nobody's business.

@@ -28,6 +28,56 @@ enum Currency {
   String get wire => name;
 }
 
+/// What `POST /devices` hands back. The key appears here and never again.
+class RegisteredDevice {
+  const RegisteredDevice({required this.userId, required this.deviceKey});
+
+  factory RegisteredDevice.fromJson(Map<String, dynamic> json) => RegisteredDevice(
+        userId: json['userId'] as String,
+        deviceKey: json['deviceKey'] as String,
+      );
+
+  final String userId;
+  final String deviceKey;
+}
+
+class AccountDevice {
+  const AccountDevice({
+    required this.label,
+    required this.createdAt,
+    required this.lastSeenAt,
+    required this.current,
+  });
+
+  factory AccountDevice.fromJson(Map<String, dynamic> json) => AccountDevice(
+        label: json['label'] as String?,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        lastSeenAt: json['lastSeenAt'] == null ? null : DateTime.parse(json['lastSeenAt'] as String),
+        current: json['current'] as bool,
+      );
+
+  final String? label;
+  final DateTime createdAt;
+  final DateTime? lastSeenAt;
+
+  /// The phone making this request.
+  final bool current;
+}
+
+class Account {
+  const Account({required this.userId, required this.devices});
+
+  factory Account.fromJson(Map<String, dynamic> json) => Account(
+        userId: json['userId'] as String,
+        devices: (json['devices'] as List<dynamic>)
+            .map((e) => AccountDevice.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
+  final String userId;
+  final List<AccountDevice> devices;
+}
+
 class Balances {
   const Balances({required this.trip, required this.green});
 
@@ -281,18 +331,43 @@ class ReviewSummary {
   final List<int> distribution;
 }
 
+/// A photograph WITH its credit. A bare URL cannot be shipped: Unsplash,
+/// Creative Commons and a hotel's press pack all require the credit to travel
+/// with the image, and the API resolves a url without one to null.
+class PlacePhoto {
+  const PlacePhoto({
+    required this.url,
+    required this.credit,
+    required this.licence,
+    required this.sourceUrl,
+  });
+
+  factory PlacePhoto.fromJson(Map<String, dynamic> json) => PlacePhoto(
+        url: json['url'] as String,
+        credit: json['credit'] as String,
+        licence: json['licence'] as String,
+        sourceUrl: json['sourceUrl'] as String?,
+      );
+
+  final String url;
+  final String credit;
+  final String licence;
+  final String? sourceUrl;
+}
+
 class Place {
   const Place({
     required this.id,
     required this.name,
     required this.short,
     required this.layer,
+    required this.province,
     required this.lat,
     required this.lng,
     required this.meta,
     required this.blurb,
     required this.tags,
-    required this.photoUrl,
+    required this.photo,
     required this.metrics,
     required this.healthyScore,
     required this.breakdown,
@@ -304,12 +379,15 @@ class Place {
         name: Bilingual.fromJson(json['name'] as Map<String, dynamic>),
         short: json['short'] as String,
         layer: json['layer'] as String,
+        province: json['province'] as String,
         lat: (json['lat'] as num).toDouble(),
         lng: (json['lng'] as num).toDouble(),
         meta: json['meta'] as String,
         blurb: Bilingual.fromJson(json['blurb'] as Map<String, dynamic>),
         tags: (json['tags'] as List<dynamic>).cast<String>(),
-        photoUrl: json['photoUrl'] as String?,
+        photo: json['photo'] == null
+            ? null
+            : PlacePhoto.fromJson(json['photo'] as Map<String, dynamic>),
         metrics: PlaceMetrics.fromJson(json['metrics'] as Map<String, dynamic>),
         healthyScore: (json['healthyScore'] as num).toDouble(),
         breakdown: ScoreBreakdown.fromJson(json['breakdown'] as Map<String, dynamic>),
@@ -320,12 +398,18 @@ class Place {
   final Bilingual name;
   final String short;
   final String layer;
+
+  /// ISO 3166-2:TH code. The passport is derived from these.
+  final String province;
   final double lat;
   final double lng;
   final String meta;
   final Bilingual blurb;
   final List<String> tags;
-  final String? photoUrl;
+
+  /// Null where no licensed photograph exists. The app draws a placeholder
+  /// that says so; it never shows somewhere else under this name.
+  final PlacePhoto? photo;
   final PlaceMetrics metrics;
   final double healthyScore;
   final ScoreBreakdown breakdown;

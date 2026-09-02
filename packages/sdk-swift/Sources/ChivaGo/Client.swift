@@ -12,18 +12,50 @@ import Foundation
 public final class ChivagoClient: @unchecked Sendable {
     public let baseURL: URL
 
-    /// Device-scoped identity. The pilot has no accounts: under Thailand's PDPA
-    /// the least personal data you can collect is the safest amount.
+    /// Who the caller is. Informational once `deviceKey` is set: the server
+    /// resolves identity from the key and ignores this header.
     public let userID: String
+
+    /// This device's credential, from `registerDevice`. Without it the server
+    /// answers 401 to everything except registration the moment ANY account
+    /// exists - which every phone running the app has, because it registers
+    /// on first launch. The bare `x-chivago-user` header was the pilot's
+    /// escape hatch and it closed itself.
+    public let deviceKey: String?
 
     private let session: URLSession
     private let decoder: JSONDecoder
 
-    public init(baseURL: URL, userID: String, session: URLSession = .shared) {
+    public init(baseURL: URL, userID: String, deviceKey: String? = nil, session: URLSession = .shared) {
         self.baseURL = baseURL
         self.userID = userID
+        self.deviceKey = deviceKey
         self.session = session
         self.decoder = ChivagoClient.makeDecoder()
+    }
+
+    // MARK: - Account
+
+    /// Register this device and receive its key - ONCE. Only a hash is stored
+    /// server-side. Unauthenticated by necessity and rate-limited per address.
+    /// Build the client you will keep from the result.
+    public static func registerDevice(
+        baseURL: URL,
+        label: String? = nil,
+        locale: String? = nil,
+        session: URLSession = .shared
+    ) async throws -> RegisteredDevice {
+        let bootstrap = ChivagoClient(baseURL: baseURL, userID: "", session: session)
+        return try await bootstrap.post(
+            "/devices",
+            body: NewDevice(label: label, locale: locale),
+            as: RegisteredDevice.self
+        )
+    }
+
+    /// Who this key belongs to, and which phones share the account.
+    public func account() async throws -> Account {
+        try await get("/account", as: Account.self)
     }
 
     /// A decoder that copes with the timestamps this API actually sends.
@@ -62,6 +94,9 @@ public final class ChivagoClient: @unchecked Sendable {
         var request = URLRequest(url: baseURL.appendingPathComponent(path))
         request.httpMethod = method
         request.setValue(userID, forHTTPHeaderField: "x-chivago-user")
+        if let deviceKey {
+            request.setValue(deviceKey, forHTTPHeaderField: "x-chivago-device-key")
+        }
         request.setValue("application/json", forHTTPHeaderField: "content-type")
         if let body {
             request.httpBody = try JSONEncoder().encode(AnyEncodable(body))
@@ -176,6 +211,7 @@ public final class ChivagoClient: @unchecked Sendable {
 // MARK: - Request and wrapper bodies
 
 struct Coordinates: Encodable { let lat: Double; let lng: Double }
+struct NewDevice: Encodable { let label: String?; let locale: String? }
 struct NewReview: Encodable { let rating: Int; let body: String? }
 struct NewReport: Encodable { let reason: String; let note: String? }
 struct EmptyBody: Encodable {}
