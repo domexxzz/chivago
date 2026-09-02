@@ -2,11 +2,18 @@
  * Text primitives.
  *
  * The app speaks one language at a time (see `i18n/locale.ts`): every string
- * that has both goes through `t()`, and these primitives switch typeface with
- * it, because Archivo carries no Thai glyphs and the two scripts must never
- * share a line-height. The Thai caption survives for the sites that keep
- * both languages on purpose - the SOS surfaces - and for literal copy that
- * has not been paired yet, which it shows only when the app is in Thai.
+ * that has both goes through `t()`. In Thai these primitives add the Thai
+ * LEADING - tone marks stack above the x-height and clip at Latin line-height
+ * - and nothing else. They do NOT switch typeface: the heading face in
+ * `packages/tokens` is IBM Plex Sans Thai 700, which carries both scripts.
+ * The first version of this file swapped every Heading and Label to the body
+ * face on the belief that "Archivo carries no Thai glyphs", which had been
+ * true two commits before the tokens replaced Archivo; the effect was that
+ * every heading, numeral, button face and the SOS control lost their weight
+ * the moment the language changed, and nobody opened the app in Thai to see.
+ * The Thai caption survives for the sites that keep both languages on purpose
+ * - the SOS surfaces - and for literal copy that has not been paired yet,
+ * which it shows only when the app is in Thai.
  */
 
 import React from 'react';
@@ -18,9 +25,9 @@ import { getLocale, t } from '../i18n/locale.ts';
 /** Thai line-height. Tone marks stack above the x-height and clip at Latin leading. */
 const THAI_LEADING = 1.45;
 
-/** In Thai, the Thai family and its leading; otherwise nothing to add. */
+/** In Thai, the Thai leading; otherwise nothing to add. The face stays. */
 const thaiFace = (size: number): TextStyle | null =>
-  getLocale() === 'th' ? { fontFamily: font.thai, lineHeight: Math.round(size * THAI_LEADING) } : null;
+  getLocale() === 'th' ? { lineHeight: Math.round(size * THAI_LEADING) } : null;
 
 interface HeadingProps {
   children: React.ReactNode;

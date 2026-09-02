@@ -18,7 +18,7 @@ import {
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius } from '../theme/index.ts';
-import { Body, Heading, Label, Thai } from '../components/Type.tsx';
+import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';

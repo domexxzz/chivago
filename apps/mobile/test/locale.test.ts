@@ -137,3 +137,34 @@ describe('what stays bilingual, on purpose', () => {
     assert.match(spoken, /Call 1669\. โทร 1669/);
   });
 });
+
+describe('the heading face in Thai', () => {
+  test('a Heading keeps the heading typeface in Thai - only the leading changes', async () => {
+    // The heading face is IBM Plex Sans Thai 700, which carries both scripts.
+    // The first version swapped every Heading and Label to the body face in
+    // Thai on the belief that the heading face had no Thai glyphs, and every
+    // heading, numeral and button lost its weight the moment the language
+    // changed - a regression only visible by opening the app in Thai.
+    const { create } = await import('react-test-renderer');
+    const { Text } = await import('react-native');
+    const { Heading, Label } = await import('../src/components/Type.tsx');
+    const { font } = await import('../src/theme/index.ts');
+    const flat = (style: unknown): Record<string, unknown> =>
+      Object.assign({}, ...(Array.isArray(style) ? style.flat(Infinity) : [style]).filter(Boolean));
+
+    __setLocaleForTests('th');
+    try {
+      const heading = create(h(Heading, { size: 24 }, 'ภารกิจ')).root.findByType(Text as never);
+      const hs = flat(heading.props.style);
+      assert.equal(hs.fontFamily, font.heading, 'the heading face carries Thai; it must not drop to the body face');
+      assert.equal(hs.lineHeight, Math.round(24 * 1.45), 'Thai leading still applies');
+
+      // A Label is set in the body face by the tokens in every language; what
+      // Thai must not change is the face it was given.
+      const label = create(h(Label, { size: 10 }, 'กระเป๋าแต้ม')).root.findByType(Text as never);
+      const ls = flat(label.props.style);
+      assert.equal(ls.fontFamily, font.body);
+      assert.equal(ls.lineHeight, Math.round(10 * 1.45));
+    } finally { __setLocaleForTests('en'); }
+  });
+});
