@@ -1,0 +1,67 @@
+# Every claim the README makes about tests, proven on a machine nobody owns.
+#
+# The suites run ONE PACKAGE AT A TIME (`--workspace-concurrency=1`), on
+# purpose: in parallel they exhaust memory on a 2-core runner exactly as they
+# do on a laptop - scrypt fails to derive a key and the mobile renderer takes
+# a hard OOM. Sequential costs a minute and is the difference between a suite
+# you trust and one you re-run.
+#
+# Node 24, matching the Dockerfile. `node:sqlite` is unflagged from 22.13 and
+# `module.registerHooks` (the mobile test harness) exists from 22.15; the
+# root package.json says so. Anything older fails before the first test.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      # The Thai copy audit is advisory until a native speaker has been through
+      # it, so it reports and does not fail the build. It is here so the count
+      # is visible on every run and a regression is a number that went up.
+      - run: node scripts/thai-review.mjs
+        continue-on-error: true
+
+  dart:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+        working-directory: packages/sdk-dart
+      - run: dart analyze
+        working-directory: packages/sdk-dart
+      # Decodes the tracked contract/api-samples.json from the repository root.
+      - run: dart test
+        working-directory: packages/sdk-dart
+
+  swift:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      # The package that "had never been compiled" for its first forty commits.
+      - run: swift build
+        working-directory: packages/sdk-swift
+      - run: swift test
+        working-directory: packages/sdk-swift
