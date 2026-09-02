@@ -1,3 +1,12 @@
+// The runtime behind `import()`. The web map is loaded lazily, and in the
+// static export that lazy chunk is a separate file that only this runtime
+// knows how to fetch. The dev server injects it, so `expo start` never
+// misses it; `expo export` does not, and without this line the first tap on
+// the Map tab in production threw "Requiring unknown module" and took the
+// whole app down to a blank page. Expo's metro config hoists this import to
+// the front of the bundle, so its position here is documentation, not
+// ordering.
+import '@expo/metro-runtime';
 import { registerRootComponent } from 'expo';
 import App from './App';
 
