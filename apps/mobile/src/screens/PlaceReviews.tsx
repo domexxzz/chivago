@@ -22,7 +22,7 @@ import {
 } from '@chivago/core';
 import { api, type MyReviewState } from '../api/client.ts';
 import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
-import { AccentNumeral, Body, Heading, Label, Thai } from '../components/Type.tsx';
+import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';

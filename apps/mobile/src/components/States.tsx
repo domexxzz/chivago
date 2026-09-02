@@ -10,7 +10,7 @@ import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { strings } from '@chivago/core';
 import { color, gutter } from '../theme/index.ts';
-import { Body, Label, Thai } from './Type.tsx';
+import { Body, Label } from './Type.tsx';
 import { Button } from './Button.tsx';
 import { t } from '../i18n/locale.ts';
 

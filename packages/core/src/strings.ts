@@ -96,7 +96,6 @@ export const strings = {
 
   // -- Map ----------------------------------------------------------------
   map: {
-    greeting: (name: string) => t(`Good morning, ${name}`, `สวัสดีตอนเช้า ${name}`),
     island: t('Koh Samui', 'เกาะสมุย'),
     legend: (avg: number) => t(`Healthy Score · ${avg} avg today`, `คะแนนสุขภาวะ · เฉลี่ย ${avg} วันนี้`),
     liveNear: (n: number) => t(`Live · ${n} places near you`, `สด · ${n} สถานที่ใกล้คุณ`),
@@ -216,7 +215,7 @@ export const strings = {
     resubmit: t('Submit new proof', 'ส่งหลักฐานใหม่'),
     outsideGeofence: t(
       'You need to be at the site to check in',
-      'คุณต้องอยู่ในพื้นที่ภารกิจเพื่อเช็คอิน',
+      'คุณต้องอยู่ในพื้นที่ภารกิจเพื่อเช็กอิน',
     ),
     addPhoto: t('Add a photo', 'เพิ่มรูปถ่าย'),
     photoUnavailable: t(

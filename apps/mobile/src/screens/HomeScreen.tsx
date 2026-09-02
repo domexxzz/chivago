@@ -34,7 +34,7 @@ import {
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, radius } from '../theme/index.ts';
-import { Body, Heading, Label, Thai } from '../components/Type.tsx';
+import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
@@ -312,7 +312,7 @@ function Today({
               }}
             >
               <Label size={10} tracking={0.12} colour={color.brand}>
-                {`${rest} MORE TODAY · อีก ${rest} ภารกิจ`}
+                {t({ en: `${rest} more today`, th: `อีก ${rest} ภารกิจวันนี้` })}
               </Label>
               <ChevronRight size={16} color={color.brand} strokeWidth={2} />
             </Pressable>

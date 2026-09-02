@@ -833,3 +833,11 @@ describe('the statement page', () => {
     assert.equal(res.headers.get('location'), '/console/login');
   });
 });
+
+describe('the statement draft with a period that is not a date', () => {
+  test('a thirteenth month is a 400, not a 500', async () => {
+    const lab = await signIn(LAB_KEY);
+    const res = await app.request('/statement?from=2026-13-01&to=2026-13-31', { headers: withCookie(lab) });
+    assert.equal(res.status, 400);
+  });
+});

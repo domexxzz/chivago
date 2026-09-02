@@ -85,8 +85,8 @@ EXPO_PUBLIC_API_URL=http://192.168.1.42:8787 pnpm mobile
 pnpm test
 ```
 
-**1,317 tests** — 307 core, 707 API, 278 mobile, 25 tokens — plus 11 in the Dart
-SDK (`pnpm test:dart`) and 9 in the Swift one (`swift test`). `pnpm typecheck`
+**1,343 tests** — 307 core, 710 API, 301 mobile, 25 tokens — plus 11 in the Dart
+SDK (`pnpm test:dart`) and 10 in the Swift one (`swift test`). `pnpm typecheck`
 covers all four packages. `.github/workflows/ci.yml` runs all of it on every
 push, on Linux and macOS, so the numbers above are checked by a machine nobody
 owns rather than asserted here.

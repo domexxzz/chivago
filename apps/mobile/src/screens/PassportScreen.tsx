@@ -30,7 +30,7 @@ import {
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius } from '../theme/index.ts';
-import { Body, Heading, Label, Thai } from '../components/Type.tsx';
+import { Body, Heading, Label } from '../components/Type.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -158,7 +158,7 @@ function Legend() {
               backgroundColor: state === 'stamped' ? color.accent : 'transparent',
             }}
           />
-          <Label size={9} tracking={0.06} colour={color.neutral700}>{`${en} · ${th}`}</Label>
+          <Label size={9} tracking={0.06} colour={color.neutral700}>{t({ en, th })}</Label>
         </View>
       ))}
     </View>

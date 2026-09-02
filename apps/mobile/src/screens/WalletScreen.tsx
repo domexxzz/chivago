@@ -29,7 +29,7 @@ import { api, type InboxItem } from '../api/client.ts';
 import { STAGE_LABEL } from './CompanionHome.tsx';
 import { useAsync } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
-import { AccentNumeral, Body, Heading, Label, Thai } from '../components/Type.tsx';
+import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { Button } from '../components/Button.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';

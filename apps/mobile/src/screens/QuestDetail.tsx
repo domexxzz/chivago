@@ -27,7 +27,7 @@ import {
 import { API_BASE, api, type FiledStatement, type Result } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, motion, onFill, radius } from '../theme/index.ts';
-import { AccentNumeral, Body, Heading, Label, Thai } from '../components/Type.tsx';
+import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';

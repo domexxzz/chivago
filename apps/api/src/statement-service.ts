@@ -244,6 +244,12 @@ export function statementsIncluding(db: DB, userId: string): FiledStatement[] {
     const quests = new Map<string, { id: string; name: Bilingual }>();
     for (const m of mine) {
       if (m.host_id !== s.host.id) continue;
+      // Work verified AFTER the statement was issued is not in it, however
+      // well its day and quest match a line. The first version matched on
+      // (day, quest) alone, so a volunteer approved at 11:00 was told they
+      // were on record in a statement issued at 10:00 that counted somebody
+      // else - the exact case the comment above promised could not happen.
+      if (m.verified_at > s.issuedAt) continue;
       const line = lines.get(`${m.verified_at.slice(0, 10)} ${m.quest_id}`);
       if (line) quests.set(m.quest_id, { id: m.quest_id, name: line.name });
     }

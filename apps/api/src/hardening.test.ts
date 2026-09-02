@@ -285,3 +285,12 @@ describe('a statement is checkable by anyone', () => {
     assert.deepEqual(mine.data.statements, [], 'this device has verified nothing');
   });
 });
+
+describe('the public statement record', () => {
+  test('is readable from any origin, as the verify page promises', async () => {
+    const raw = await app.request('/statements/CG-2026-000000', { headers: { origin: 'https://auditor.example' } });
+    assert.equal(raw.status, 404);
+    assert.equal(raw.headers.get('access-control-allow-origin'), '*',
+      'a browser-side verifier on another origin could not fetch the record it was told to recompute');
+  });
+});

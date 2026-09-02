@@ -21,8 +21,11 @@
  *      place anyone inside it. Refused, with both numbers.
  *   3. TRAVEL - the implied speed from the last accepted fix. Nothing on the
  *      ground approaches an airliner.
- *   4. DWELL - proof of work filed a minute after arriving is a drive-by. A
- *      second in-fence sample, ten minutes on, is what Turf calls staying.
+ *   4. DWELL - proof of work filed a minute after arriving is a drive-by.
+ *      The clock is the check: ten minutes between arrival and proof, always
+ *      enforced. The proof also carries a second in-fence position, which
+ *      the route requires and the service accepts the absence of for tests;
+ *      when present it is fenced and presence-checked like an arrival.
  *
  * None of these stop a patient attacker with a rooted phone. They stop the
  * cheap attacks, they cost an honest traveller nothing, and every refusal

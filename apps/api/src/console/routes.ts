@@ -407,12 +407,24 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     if (period.from > period.to) {
       return c.html(messagePage(localeFor(c), 'statement', 'periodOutOfOrder', '/console/statement'), 400);
     }
+    // `readPeriod` checks the shape, `draftStatement` checks the calendar:
+    // `2026-13-01` passed the first and threw out of the second, which the
+    // POST caught and this GET answered with a 500.
+    let draft;
+    try {
+      draft = draftStatement(db, session.hostId, period, new Date(), session.reviewer);
+    } catch (e) {
+      if (e instanceof InvalidPeriod) {
+        return c.html(messagePage(localeFor(c), 'statement', 'periodOutOfOrder', '/console/statement'), 400);
+      }
+      throw e;
+    }
     return c.html(statementPage({
       locale: localeFor(c),
       hostName: session.hostName,
       reviewer: session.reviewer,
       canModerate: canModerate(session),
-      draft: draftStatement(db, session.hostId, period, new Date(), session.reviewer),
+      draft,
       issued: statementsFor(db, session.hostId),
       csrf: csrfFor(session),
       origin: new URL(c.req.url).origin,

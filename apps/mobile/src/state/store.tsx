@@ -23,6 +23,7 @@ import {
   rememberIdentity, sendFixes, startBackgroundTracking, stopBackgroundTracking,
 } from '../location/background.ts';
 import { deviceUserId, setDeviceUser } from '../api/client.ts';
+import { deviceLocale } from '../i18n/locale.ts';
 import { motion } from '../theme/index.ts';
 import { t } from '../i18n/locale.ts';
 import type { WellnessProfile } from '@chivago/core';
@@ -209,7 +210,9 @@ export function useAccount() {
   const [registered, setRegistered] = React.useState(false);
 
   React.useEffect(() => {
-    void ensureAccount(api, { locale: 'en' }).then(async (res) => {
+    // The phone's language, so the server's copy of it is right from the
+    // first request. It was 'en' for everybody, and so was every push.
+    void ensureAccount(api, { locale: deviceLocale() }).then(async (res) => {
       // Learn who this key belongs to. The user id is what the background
       // task attributes fixes to and what `rememberIdentity` writes to disk;
       // before this was wired, `deviceUserId()` answered 'demo-user' for the
@@ -275,7 +278,15 @@ export function useProfile(enabled = true) {
  * that silently cancels the UI for an alert that is still dispatching, so the
  * source of truth is the server and this polls it.
  */
-export function useSos(onError: (message: string) => void) {
+/**
+ * `enabled` gates the first fetch on the account existing, like `useProfile`.
+ * On a first-ever launch the hooks that fetch on mount used to run before
+ * `ensureAccount` had registered, go out with no key, and be refused once
+ * each - three 401s in the server log that the "no 401 anywhere" check of
+ * the storage fix never saw, because that check reloaded a phone that
+ * already had a key.
+ */
+export function useSos(onError: (message: string) => void, enabled = true) {
   const [alert, setAlert] = React.useState<SosAlertRecord | null>(null);
   const [firing, setFiring] = React.useState(false);
 
@@ -302,8 +313,8 @@ export function useSos(onError: (message: string) => void) {
   const alertStatus = alert?.status ?? null;
   const live = alertStatus === 'dispatching' || alertStatus === 'acknowledged';
 
-  // Once, on mount: is there an alert already running from before?
-  React.useEffect(() => { void refresh(); }, [refresh]);
+  // Once the account exists: is there an alert already running from before?
+  React.useEffect(() => { if (enabled) void refresh(); }, [refresh, enabled]);
 
   React.useEffect(() => {
     // Poll while an alert is live, so an operator picking it up reaches the
@@ -439,7 +450,7 @@ export function useLayers() {
  * fetched on launch and after every decision, so the news reaches the user
  * either way.
  */
-export function useNotifications(onOpen: (link: DeepLink) => void) {
+export function useNotifications(onOpen: (link: DeepLink) => void, enabled = true) {
   const [items, setItems] = React.useState<InboxItem[]>([]);
   const [unread, setUnread] = React.useState(0);
   const [pushGranted, setPushGranted] = React.useState<boolean | null>(null);
@@ -453,9 +464,10 @@ export function useNotifications(onOpen: (link: DeepLink) => void) {
     void setBadge(res.data.unread);
   }, []);
 
+  // Gated on the account for the same reason as useSos: see there.
   React.useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (enabled) void refresh();
+  }, [refresh, enabled]);
 
   /**
    * Registration is deferred until AFTER onboarding.

@@ -27,7 +27,7 @@ import { isRankable, strings, type HostStanding, type Offer, type Quest, type Qu
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
-import { Body, Heading, Label, Thai } from '../components/Type.tsx';
+import { Body, Heading, Label } from '../components/Type.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -196,7 +196,7 @@ export function QuestRow({
           {/* Progress is surfaced on the row so a half-finished quest is not
               lost behind a tap. The design has no such affordance. */}
           {progress && progress.stage !== 'complete' ? (
-            <Label size={10} tracking={0.1} colour={color.accent700}>{`· ${t({ en: 'In progress', th: 'กำลังทำ' })}`}</Label>
+            <Label size={10} tracking={0.1} colour={color.accent700}>{`· ${t({ en: 'In progress', th: 'กำลังทำอยู่' })}`}</Label>
           ) : null}
           {progress?.stage === 'complete' ? (
             <Label size={10} tracking={0.1} colour={color.accent700}>{`· ${t({ en: 'Done', th: 'เสร็จแล้ว' })}`}</Label>

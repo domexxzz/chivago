@@ -26,7 +26,7 @@ import type { ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
-import { Body, Heading, Label, Thai } from '../components/Type.tsx';
+import { Body, Heading, Label } from '../components/Type.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -61,7 +61,7 @@ export function ConciergeScreen({
     <View style={{ flex: 1, backgroundColor: color.bg }}>
       <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 12 }}>
         <Label size={10} tracking={0.16}>{t({ en: 'Concierge', th: 'ผู้ช่วยแนะนำ' })}</Label>
-        <Heading size={24} tracking={-0.48} style={{ marginTop: 6 }}>{t({ en: 'Ask me where to go', th: 'ถามได้ทั้งภาษาไทยและอังกฤษ' })}</Heading>
+        <Heading size={24} tracking={-0.48} style={{ marginTop: 6 }}>{t({ en: 'Ask me where to go', th: 'ถามฉันว่าไปไหนดี' })}</Heading>
       </View>
 
       {places.loading ? <LoadingState /> : null}

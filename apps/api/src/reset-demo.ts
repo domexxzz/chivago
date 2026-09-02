@@ -240,7 +240,13 @@ function seed(db: DB): void {
   for (const day of HISTORY) {
     const dayAt = daysAgo(day.day);
     for (const [i, id] of day.places.entries()) {
-      const at = new Date(daysAgo(day.day).getTime() + i * 2 * 3_600_000);
+      // Two hours apart, ending AT the day's timestamp rather than starting
+      // from it. Counting forward put today's second check-in two hours into
+      // the future, so `last_fix.at` was ahead of the clock and every live
+      // check-in in the next two hours was "older than the last one known":
+      // unjudged by the travel check and never recorded. The demo of the
+      // second signal could not trip the second signal.
+      const at = new Date(daysAgo(day.day).getTime() - (day.places.length - 1 - i) * 2 * 3_600_000);
       const p = place(id);
       const result = checkIn(db, { userId: USER, placeId: id, lat: p.lat, lng: p.lng, now: at });
       if (result === null) throw new Error(`check-in at ${id} was refused outright`);

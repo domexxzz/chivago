@@ -14,7 +14,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { strings, type ActivityKey, type PurposeKey, type WatchKey } from '@chivago/core';
 import { color, gutter, layout, onFill, radius, ruleStrong, ruleHair } from '../theme/index.ts';
-import { Body, Heading, Label, Thai } from '../components/Type.tsx';
+import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { t } from '../i18n/locale.ts';
 

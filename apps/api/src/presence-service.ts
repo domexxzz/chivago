@@ -66,9 +66,11 @@ export function assertPresence(
   }
   const prev = lastFix(db, args.userId);
   // A fix OLDER than the last one known is left unjudged. A live client is
-  // always judged at server time, so only a backfilled history - the demo's
-  // five days, written newest last - can produce it, and a backfill is not
-  // travel. Judging it read as teleporting backwards in time.
+  // always judged at server time, so only a backfilled history can produce
+  // it - the demo reset drives yesterday's quests after today's check-ins -
+  // and a backfill is not travel. Judging it read as teleporting backwards.
+  // The flip side: a `last_fix.at` in the FUTURE silences this check until
+  // the clock catches up, which is why the reset must never write one.
   if (prev && now.getTime() >= new Date(prev.at).getTime()) {
     const elapsedMs = now.getTime() - new Date(prev.at).getTime();
     const v = impliedKmPerMin(prev, args.fix, elapsedMs);
