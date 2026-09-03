@@ -496,16 +496,24 @@ export function chivagoStyle(hour = 12): StyleSpecification {
  * the frame and Pha-ngan keeps the top.
  */
 export const HERO = {
-  pitch: 60,
+  /**
+   * Steeper than MapLibre's default ceiling of 60, which the map is told to
+   * allow (see MAX_PITCH). At sixty the horizon sits just above the frame
+   * and the hero is a tilted map; at sixty-six the sky comes in over Ko
+   * Pha-ngan and it is a view from somewhere; at sixty-nine, with the centre
+   * a little further south, the sky is a band and not a line.
+   */
+  pitch: 69,
   bearing: -18,
   zoomAboveFlat: 0.55,
-  latBelowMiddle: 0.02,
+  latBelowMiddle: 0.035,
   fitPadding: { top: 60, bottom: 8, left: 16, right: 16 },
   /**
-   * The one animated moment. Long enough that the mountain visibly rises,
-   * short enough that a traveller who came for the list is not kept waiting.
+   * The one animated moment: the approach by sea. Long enough that the
+   * island visibly comes up out of the haze, short enough that a traveller
+   * who came for the list is not kept waiting.
    */
-  introMs: 2600,
+  introMs: 3400,
   /**
    * How much taller than the truth the mountain stands. Samui is 25 km
    * across and 635 m high, so at true scale Khao Pom is a bump. Doubled it
@@ -521,6 +529,13 @@ export const HERO = {
  * dead is a screenshot. It is not essential: someone who asked their system
  * for less motion gets the settled frame and nothing moves.
  */
+/**
+ * How far over the camera may tip. MapLibre allows 85 with terrain; past
+ * about 75 the far tiles are a smear and the labels are unreadable, so the
+ * hero and the person dragging both stop here.
+ */
+export const MAX_PITCH = 75;
+
 export const DRIFT = {
   degrees: 16,
   ms: 45_000,
@@ -547,11 +562,18 @@ export function heroPose(flatZoom: number): Pose {
 }
 
 /**
- * Where the intro starts: lower, flatter, and turned a little further, so
- * the settle is a rise and a swing rather than a zoom.
+ * Where the intro starts: out at sea to the south, low over the water and
+ * turned well round, so the settle is an approach - the island coming up
+ * over the bow - rather than a zoom. The centre is still inside the box the
+ * map is locked to.
  */
 export function introPose(settled: Pose): Pose {
-  return { ...settled, zoom: settled.zoom - 0.5, pitch: 32, bearing: settled.bearing - 12 };
+  return {
+    zoom: settled.zoom - 1.1,
+    pitch: 72,
+    bearing: settled.bearing - 35,
+    center: [settled.center[0] + 0.03, settled.center[1] - 0.09],
+  };
 }
 
 /** Cubic ease-out: fast off the mark, gentle into place. */
@@ -794,4 +816,66 @@ export function swell(x: number, y: number, t: number): number {
 export function crest(h: number, shoulder = 0.84): number {
   if (h <= shoulder) return 0;
   return Math.min(1, (h - shoulder) / (1 - shoulder));
+}
+
+// ---------------------------------------------------------------------------
+// Cloud shadows, and the route
+// ---------------------------------------------------------------------------
+
+/**
+ * Cloud shadows. A tropical island under a fair-weather sky has clouds
+ * going over it all afternoon, and their shadows on the hills are half of
+ * what makes a landscape look like weather rather than a model. A few soft
+ * dark ellipses drift over the whole island's box on the trade wind and
+ * come round again; they are painted at low resolution because a shadow's
+ * edge is soft anyway.
+ */
+export const CLOUD_PX = 256;
+
+export interface Cloud { x: number; y: number; rx: number; ry: number; depth: number }
+
+/** Cloud count, and the wind: fractions of the box per second, west-south-west to east-north-east. */
+export const CLOUDS = 9;
+export const WIND = { x: 0.011, y: -0.004 } as const;
+
+function seeded(seed: number): () => number {
+  let s = seed >>> 0 || 1;
+  return () => {
+    s ^= s << 13; s >>>= 0;
+    s ^= s >> 17;
+    s ^= s << 5; s >>>= 0;
+    return (s >>> 0) / 4294967296;
+  };
+}
+
+/** The field of cloud shadows at a time in seconds, in 0–1 box units, wrapped. */
+export function cloudField(t: number): Cloud[] {
+  const next = seeded(1912);
+  const out: Cloud[] = [];
+  for (let i = 0; i < CLOUDS; i += 1) {
+    const x0 = next();
+    const y0 = next();
+    const rx = 0.05 + next() * 0.09;
+    const ry = rx * (0.45 + next() * 0.35);
+    const depth = 0.35 + next() * 0.4;
+    const wrap = (v: number) => ((v % 1) + 1) % 1;
+    out.push({ x: wrap(x0 + WIND.x * t), y: wrap(y0 + WIND.y * t), rx, ry, depth });
+  }
+  return out;
+}
+
+/**
+ * The sea routes crawl. A dash array has no phase in MapLibre, so the phase
+ * is a leading zero-length dash and a gap that grows: five arrays, cycled,
+ * and the dots walk along the ferry line toward the island.
+ */
+export const ROUTE_DASH: [number, number] = [0.1, 2.4];
+export const ROUTE_PHASES = 5;
+
+export function routeDash(phase: number): number[] {
+  const [dot, gap] = ROUTE_DASH;
+  const p = ((phase % ROUTE_PHASES) + ROUTE_PHASES) % ROUTE_PHASES;
+  if (p === 0) return [dot, gap];
+  const lead = ((dot + gap) * p) / ROUTE_PHASES;
+  return [0, lead, dot, gap - lead];
 }

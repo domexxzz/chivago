@@ -3,8 +3,9 @@ import { test, describe } from 'node:test';
 
 import {
   CROWD_M, DRIFT, FOG_BOUNDS, FOG_CORNERS, HERO, PIN_NUDGE_PX, QUEST_FAN_PX, QUEST_MARK_OFFSET, REVEAL_M,
-  SAMUI_BOUNDS, SWELLS, SWELL_FPS, SWELL_PX, chivagoStyle, crest, crowdOffsets, heroPose, introPose, landColours,
-  paletteFor, questMark, questOffsets, revealedPoints, reveals, settleEasing, swell,
+  MAX_PITCH, ROUTE_DASH, ROUTE_PHASES, SAMUI_BOUNDS, SWELLS, SWELL_FPS, SWELL_PX, WIND, chivagoStyle, cloudField,
+  crest, crowdOffsets, heroPose, introPose, landColours, paletteFor, questMark, questOffsets, revealedPoints, reveals,
+  routeDash, settleEasing, swell,
 } from '../src/components/terrain-style.ts';
 import { exploredCount } from '../src/components/map-parts.tsx';
 import { SUNRISE, SUNSET, dayArc, hourFrom, hueOf, luminance, mix } from '../src/components/island-clock.ts';
@@ -321,7 +322,11 @@ describe('where the camera sits', () => {
   test('the settled pose is lifted from the flat fit, inside the island, at a pitch MapLibre allows', () => {
     const pose = heroPose(10.2);
     assert.ok(Math.abs(pose.zoom - (10.2 + HERO.zoomAboveFlat)) < 1e-9);
-    assert.ok(pose.pitch <= 60, 'MapLibre clamps pitch to 60 by default; asking for more silently gets less');
+    // MapLibre clamps pitch to 60 by default and asking for more silently
+    // gets less; the map raises the ceiling to MAX_PITCH, and the hero
+    // sits above sixty so the horizon is in the frame, and below the ceiling.
+    assert.ok(pose.pitch > 60 && pose.pitch <= MAX_PITCH, 'the sky is in view');
+    assert.ok(MAX_PITCH <= 85, 'MapLibre allows no more');
     const [lng, lat] = pose.center;
     assert.ok(lng > SAMUI_BBOX.minLng && lng < SAMUI_BBOX.maxLng);
     assert.ok(lat > SAMUI_BBOX.minLat && lat < SAMUI_BBOX.maxLat);
@@ -337,10 +342,12 @@ describe('where the camera sits', () => {
   test('the intro starts lower, flatter and further round than where it settles', () => {
     const settled = heroPose(10.2);
     const intro = introPose(settled);
-    assert.ok(intro.zoom < settled.zoom);
-    assert.ok(intro.pitch < settled.pitch);
+    assert.ok(intro.zoom < settled.zoom, 'further off');
+    assert.ok(intro.pitch >= settled.pitch && intro.pitch <= MAX_PITCH, 'lower over the water');
     assert.notEqual(intro.bearing, settled.bearing);
-    assert.deepEqual(intro.center, settled.center, 'the intro is a rise and a swing, not a pan');
+    assert.ok(intro.center[1] < settled.center[1], 'the approach is from the sea to the south');
+    // And still inside the box the map is locked to, or the camera snaps.
+    assert.ok(intro.center[1] > SAMUI_BBOX.minLat - 0.14 && intro.center[0] < SAMUI_BBOX.maxLng + 0.14);
   });
 
   test('the settle easing starts at 0, ends at 1 and never overshoots', () => {
@@ -428,5 +435,37 @@ describe('the sea moves', () => {
     const total = SWELLS.reduce((a, s) => a + s.weight, 0);
     assert.ok(Math.abs(total - 1) < 1e-9, 'the weights sum to one so the height stays in range');
     for (const s of SWELLS) assert.ok(Number.isInteger(s.cx) && Number.isInteger(s.cy), 'integer cycles, or it does not tile');
+  });
+});
+
+describe('the weather', () => {
+  test('the same clouds every visit, drifting on the wind, and coming round again', () => {
+    assert.deepEqual(cloudField(0), cloudField(0));
+    const now = cloudField(0), later = cloudField(10);
+    assert.equal(now.length, later.length);
+    for (let i = 0; i < now.length; i += 1) {
+      for (const c of [now[i]!, later[i]!]) {
+        assert.ok(c.x >= 0 && c.x < 1 && c.y >= 0 && c.y < 1, 'wrapped into the box');
+        assert.ok(c.rx > 0 && c.ry > 0 && c.ry < c.rx, 'a shadow is wider than it is tall');
+        assert.ok(c.depth > 0 && c.depth < 1);
+      }
+      assert.notEqual(now[i]!.x, later[i]!.x, 'it moved');
+    }
+    // A full crossing takes a couple of minutes, not a couple of seconds.
+    assert.ok(1 / Math.hypot(WIND.x, WIND.y) > 60);
+  });
+
+  test('the route dots walk: five phases, each a step along, and back to the start', () => {
+    assert.deepEqual(routeDash(0), [...ROUTE_DASH]);
+    assert.deepEqual(routeDash(ROUTE_PHASES), routeDash(0));
+    const period = ROUTE_DASH[0] + ROUTE_DASH[1];
+    for (let p = 1; p < ROUTE_PHASES; p += 1) {
+      const d = routeDash(p);
+      assert.equal(d.length, 4);
+      assert.equal(d[0], 0, 'a zero-length lead is what shifts the phase');
+      const total = d.reduce((a, v) => a + v, 0);
+      assert.ok(Math.abs(total - period) < 1e-9, 'the period never changes, only the phase');
+      assert.ok(d[1]! > routeDash(p - 1)[1]! || p === 1, 'each phase is further along');
+    }
   });
 });

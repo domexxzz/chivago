@@ -99,6 +99,26 @@ moon leaves on water. Every wave is an integer number of cycles across the
 tile, which is what makes it tile without a seam; `swell()` and `crest()` are
 pure and tested. Reduce-motion gets one frame. A hidden tab gets none.
 
+## The view, the approach, the weather
+
+**The sky is in the frame.** MapLibre's default pitch ceiling is sixty,
+which puts the horizon just above the hero. The map raises the ceiling to
+`MAX_PITCH` and the hero sits at sixty-six: the sky comes in over Ko
+Pha-ngan, the fog runs to the horizon, and at half past five it is peach.
+
+**The approach is by sea.** The intro starts out to the south, low over the
+water and turned well round, and eases in over three and a half seconds
+with the island coming up over the bow. Not a zoom.
+
+**Cloud shadows.** Nine soft ellipses drift over the whole island's box on
+the trade wind and come round again, painted small because a shadow's edge
+is soft anyway and draped under the roads. `cloudField(t)` is pure and
+seeded, so it is the same afternoon every visit.
+
+**The route dots walk.** A dash array has no phase, so the ferry lines are
+cycled through five arrays with a growing zero-length lead, and the dots
+crawl toward the island with the tide.
+
 ## Still owed
 
 - **The native app.** The mist and the swell are web marks, like the quest

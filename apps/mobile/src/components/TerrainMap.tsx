@@ -36,10 +36,42 @@ import { MapLegend } from './map-parts.tsx';
 import { t } from '../i18n/locale.ts';
 import { hourFrom, mix } from './island-clock.ts';
 import {
-  DRIFT, FOG_CORNERS, FOG_PX, HERO, QUEST_MARK_OFFSET, REVEAL_FEATHER, SAMUI_BOUNDS, SWELL_FPS, SWELL_PX,
-  chivagoStyle, crest, crowdOffsets, heroPose, introPose, paletteFor, questMark, questOffsets, revealedPoints,
-  reveals, settleEasing, swell, type MapPalette,
+  CLOUD_PX, DRIFT, FOG_CORNERS, FOG_PX, HERO, MAX_PITCH, QUEST_MARK_OFFSET, REVEAL_FEATHER, ROUTE_PHASES,
+  SAMUI_BOUNDS, SWELL_FPS, SWELL_PX, chivagoStyle, cloudField, crest, crowdOffsets, heroPose, introPose, paletteFor,
+  questMark, questOffsets, revealedPoints, reveals, routeDash, settleEasing, swell, type MapPalette,
 } from './terrain-style.ts';
+
+/** Paint the cloud shadows for a moment: soft dark ellipses on a clear canvas. */
+function paintClouds(canvas: HTMLCanvasElement, palette: MapPalette, t: number): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const size = canvas.width;
+  ctx.clearRect(0, 0, size, size);
+  const ink = palette.night ? '20,30,60' : '16,24,64';
+  for (const c of cloudField(t)) {
+    // Drawn three times so a shadow leaving one edge is already arriving at
+    // the other; the field wraps.
+    for (const dx of [-1, 0, 1]) {
+      for (const dy of [-1, 0, 1]) {
+        const x = (c.x + dx) * size;
+        const y = (c.y + dy) * size;
+        const rx = c.rx * size;
+        const ry = c.ry * size;
+        if (x + rx < 0 || x - rx > size || y + ry < 0 || y - ry > size) continue;
+        const g = ctx.createRadialGradient(x, y, 0, x, y, 1);
+        g.addColorStop(0, `rgba(${ink},${c.depth})`);
+        g.addColorStop(0.6, `rgba(${ink},${c.depth * 0.6})`);
+        g.addColorStop(1, `rgba(${ink},0)`);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(rx, ry);
+        ctx.fillStyle = g;
+        ctx.fillRect(-1, -1, 2, 2);
+        ctx.restore();
+      }
+    }
+  }
+}
 
 /** A hex colour as three bytes. */
 const rgb = (hex: string): [number, number, number] => {
@@ -266,6 +298,7 @@ export function TerrainMap({
       ],
       minZoom: 9,
       maxZoom: 15.5,
+      maxPitch: MAX_PITCH,
       // Added by hand below, so it can be folded.
       attributionControl: false,
     });
@@ -292,9 +325,33 @@ export function TerrainMap({
       if (e.id !== 'sea-swell' || m.hasImage('sea-swell')) return;
       m.addImage('sea-swell', swellFrame(0));
     });
+    /*
+      The weather. Cloud shadows on a small canvas draped over the island,
+      repainted with the tide below; and the ferry routes' dots walking
+      toward the island, five dash arrays cycled. Both ride the same clock.
+    */
+    const cloudCanvas = document.createElement('canvas');
+    cloudCanvas.width = CLOUD_PX;
+    cloudCanvas.height = CLOUD_PX;
+    let routePhase = 0;
+    let tick = 0;
     const tide = still ? 0 : window.setInterval(() => {
       if (document.hidden || !m.hasImage('sea-swell')) return;
-      m.updateImage('sea-swell', swellFrame((performance.now() - born) / 1000));
+      const t = (performance.now() - born) / 1000;
+      m.updateImage('sea-swell', swellFrame(t));
+      tick += 1;
+      if (tick % 2 === 0) {
+        routePhase = (routePhase + 1) % ROUTE_PHASES;
+        if (m.getLayer('ferry')) m.setPaintProperty('ferry', 'line-dasharray', routeDash(routePhase));
+      }
+      if (tick % 3 === 0) {
+        const clouds = m.getSource('uncharted-weather') as { play?: () => void; pause?: () => void } | undefined;
+        if (clouds) {
+          paintClouds(cloudCanvas, paletteFor(hour), t);
+          clouds.play?.();
+          m.once('render', () => clouds.pause?.());
+        }
+      }
       m.triggerRepaint();
     }, 1000 / SWELL_FPS);
 
@@ -309,13 +366,24 @@ export function TerrainMap({
     fogCanvas.height = FOG_PX;
     const layFog = () => {
       if (!m.isStyleLoaded()) return;
-      paintFog(fogCanvas, paletteFor(hour), revealed.current);
-      if (m.getLayer('uncharted')) m.removeLayer('uncharted');
-      if (m.getSource('uncharted')) m.removeSource('uncharted');
+      const palette = paletteFor(hour);
+      paintFog(fogCanvas, palette, revealed.current);
+      for (const id of ['uncharted', 'uncharted-weather']) {
+        if (m.getLayer(id)) m.removeLayer(id);
+        if (m.getSource(id)) m.removeSource(id);
+      }
+      // The weather goes under the roads and the names; the mist over
+      // everything but the names.
+      paintClouds(cloudCanvas, palette, (performance.now() - born) / 1000);
+      m.addSource('uncharted-weather', { type: 'canvas', canvas: cloudCanvas, coordinates: FOG_CORNERS, animate: false });
+      m.addLayer({
+        id: 'uncharted-weather', type: 'raster', source: 'uncharted-weather',
+        paint: { 'raster-opacity': palette.night ? 0.22 : 0.5, 'raster-fade-duration': 0 },
+      }, 'streams');
       m.addSource('uncharted', { type: 'canvas', canvas: fogCanvas, coordinates: FOG_CORNERS, animate: false });
       m.addLayer({
         id: 'uncharted', type: 'raster', source: 'uncharted',
-        paint: { 'raster-opacity': paletteFor(hour).night ? 0.58 : 0.5, 'raster-fade-duration': 0 },
+        paint: { 'raster-opacity': palette.night ? 0.55 : 0.44, 'raster-fade-duration': 0 },
       }, 'place-labels');
     };
     fog.current = layFog;
