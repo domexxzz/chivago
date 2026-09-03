@@ -28,17 +28,99 @@ import {
 // three unstyled buttons stacked in the corner.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import {
-  isHighScore, islandHour, strings, type Quest, type QuestProgress, type ScoredPlace,
+  isHighScore, islandHour, strings, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { color, onFill } from '../theme/index.ts';
 import { Label } from './Type.tsx';
 import { MapLegend } from './map-parts.tsx';
 import { t } from '../i18n/locale.ts';
-import { hourFrom } from './island-clock.ts';
+import { hourFrom, mix } from './island-clock.ts';
 import {
-  DRIFT, HERO, QUEST_MARK_OFFSET, SAMUI_BOUNDS, chivagoStyle, crowdOffsets, heroPose, introPose,
-  paletteFor, questMark, questOffsets, settleEasing,
+  DRIFT, FOG_CORNERS, FOG_PX, HERO, QUEST_MARK_OFFSET, REVEAL_FEATHER, SAMUI_BOUNDS, SWELL_FPS, SWELL_PX,
+  chivagoStyle, crest, crowdOffsets, heroPose, introPose, paletteFor, questMark, questOffsets, revealedPoints,
+  reveals, settleEasing, swell, type MapPalette,
 } from './terrain-style.ts';
+
+/** A hex colour as three bytes. */
+const rgb = (hex: string): [number, number, number] => {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+
+/**
+ * Paint one frame of the sea into a pattern tile: the sea colour, a little
+ * deeper in the troughs, with the crests of the swell drawn over it - white
+ * by day, the moon's glitter by night.
+ */
+function paintSwell(out: Uint8ClampedArray, palette: MapPalette, t: number): void {
+  const sea = rgb(palette.sea);
+  const deep = rgb(palette.deep);
+  const crestColour = rgb(palette.night ? '#c9d7f2' : mix(palette.sea, '#ffffff', 0.6));
+  const crestMax = palette.night ? 0.7 : 0.55;
+  let i = 0;
+  for (let y = 0; y < SWELL_PX; y += 1) {
+    for (let x = 0; x < SWELL_PX; x += 1) {
+      const h = swell(x, y, t);
+      const trough = (1 - h) * 0.2;
+      const c = crest(h) * crestMax;
+      for (let ch = 0; ch < 3; ch += 1) {
+        const base = sea[ch]! * (1 - trough) + deep[ch]! * trough;
+        out[i + ch] = base * (1 - c) + crestColour[ch]! * c;
+      }
+      out[i + 3] = 255;
+      i += 4;
+    }
+  }
+}
+
+/** A tiny deterministic generator, so the mist has the same texture every visit. */
+function rng(seed: number): () => number {
+  let s = seed >>> 0 || 1;
+  return () => {
+    s ^= s << 13; s >>>= 0;
+    s ^= s >> 17;
+    s ^= s << 5; s >>>= 0;
+    return (s >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Paint the mist: a parchment haze with a little texture in it, cleared in
+ * a soft circle around every place this traveller has reached.
+ */
+function paintFog(canvas: HTMLCanvasElement, palette: MapPalette, points: { lat: number; lng: number }[]): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const size = canvas.width;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.clearRect(0, 0, size, size);
+  ctx.fillStyle = palette.night ? '#0e1834' : '#efe4c9';
+  ctx.fillRect(0, 0, size, size);
+  // Texture: a few dozen soft blobs, lighter and darker, so the haze reads
+  // as mist and not as a tint.
+  const next = rng(84);
+  for (let i = 0; i < 48; i += 1) {
+    const x = next() * size;
+    const y = next() * size;
+    const r = size * (0.06 + next() * 0.12);
+    const light = next() > 0.5;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, light ? 'rgba(255,255,255,0.14)' : 'rgba(40,30,10,0.10)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  ctx.globalCompositeOperation = 'destination-out';
+  for (const c of reveals(points, size)) {
+    const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r);
+    g.addColorStop(0, 'rgba(0,0,0,1)');
+    g.addColorStop(REVEAL_FEATHER, 'rgba(0,0,0,1)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(c.x - c.r, c.y - c.r, c.r * 2, c.r * 2);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
 
 /**
  * Whether this person asked their system for less motion.
@@ -138,13 +220,14 @@ const COMPASS_SVG = `<svg viewBox="0 0 46 46" aria-hidden="true">
 </svg>`;
 
 export function TerrainMap({
-  places, onSelect, quests = [], progress = {}, onOpenQuest, height = 344, compact = false,
+  places, onSelect, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false,
 }: {
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;
   quests?: Quest[];
   progress?: Record<string, QuestProgress>;
   onOpenQuest?: (id: string) => void;
+  explored?: ExploredPlace[];
   height?: number;
   /** Phone-width: score-only pins, no zoom buttons. Decided by `SamuiMap`. */
   compact?: boolean;
@@ -153,6 +236,11 @@ export function TerrainMap({
   const map = React.useRef<MapLibreMap | null>(null);
   const markers = React.useRef<Marker[]>([]);
   const [failed, setFailed] = React.useState(false);
+  // What the mist is painted from, readable from inside the map's own
+  // handlers without re-running the mount effect.
+  const revealed = React.useRef<{ lat: number; lng: number }[]>([]);
+  revealed.current = revealedPoints(explored, places);
+  const fog = React.useRef<(() => void) | null>(null);
 
   React.useEffect(() => {
     if (!holder.current || map.current) return;
@@ -182,6 +270,55 @@ export function TerrainMap({
       attributionControl: false,
     });
     holder.current.classList.toggle('cg-night', paletteFor(hour).night);
+
+    /*
+      The sea. A pattern tile the size of a stamp, repainted a dozen times a
+      second and pushed into the style's image atlas; the `sea` fill wears
+      it. MapLibre asks for it the first time it draws the layer, which is
+      before `load`, so the answer is given in that event rather than after.
+      Still, for anyone who asked for less motion: one frame, and no loop.
+    */
+    const swellA = new Uint8ClampedArray(SWELL_PX * SWELL_PX * 4);
+    const swellB = new Uint8ClampedArray(SWELL_PX * SWELL_PX * 4);
+    let flip = false;
+    const swellFrame = (t: number) => {
+      const data = flip ? swellA : swellB;
+      flip = !flip;
+      paintSwell(data, paletteFor(hour), t);
+      return { width: SWELL_PX, height: SWELL_PX, data };
+    };
+    const born = performance.now();
+    m.on('styleimagemissing', (e: { id: string }) => {
+      if (e.id !== 'sea-swell' || m.hasImage('sea-swell')) return;
+      m.addImage('sea-swell', swellFrame(0));
+    });
+    const tide = still ? 0 : window.setInterval(() => {
+      if (document.hidden || !m.hasImage('sea-swell')) return;
+      m.updateImage('sea-swell', swellFrame((performance.now() - born) / 1000));
+      m.triggerRepaint();
+    }, 1000 / SWELL_FPS);
+
+    /*
+      The mist. A canvas the size of the island's box and then some, painted
+      by paintFog and draped over everything but the names. Re-laid whenever
+      the places reached change, the light changes, or the style is swapped
+      under it - each of which is rare, so the source is simply replaced.
+    */
+    const fogCanvas = document.createElement('canvas');
+    fogCanvas.width = FOG_PX;
+    fogCanvas.height = FOG_PX;
+    const layFog = () => {
+      if (!m.isStyleLoaded()) return;
+      paintFog(fogCanvas, paletteFor(hour), revealed.current);
+      if (m.getLayer('uncharted')) m.removeLayer('uncharted');
+      if (m.getSource('uncharted')) m.removeSource('uncharted');
+      m.addSource('uncharted', { type: 'canvas', canvas: fogCanvas, coordinates: FOG_CORNERS, animate: false });
+      m.addLayer({
+        id: 'uncharted', type: 'raster', source: 'uncharted',
+        paint: { 'raster-opacity': paletteFor(hour).night ? 0.58 : 0.5, 'raster-fade-duration': 0 },
+      }, 'place-labels');
+    };
+    fog.current = layFog;
 
     /*
       Measure again once the page has settled. MapLibre reads the container
@@ -216,6 +353,7 @@ export function TerrainMap({
     };
     m.on('load', () => {
       m.setTerrain({ source: 'terrain', exaggeration: HERO.exaggeration });
+      layFog();
       if (still) return;
       m.once('moveend', drift);
       m.easeTo({ ...settled, duration: HERO.introMs, easing: settleEasing, essential: true });
@@ -233,7 +371,11 @@ export function TerrainMap({
       hour = now;
       m.setStyle(chivagoStyle(hour), { diff: true });
       holder.current?.classList.toggle('cg-night', paletteFor(hour).night);
-      m.once('style.load', () => m.setTerrain({ source: 'terrain', exaggeration: HERO.exaggeration }));
+      m.once('style.load', () => {
+        m.setTerrain({ source: 'terrain', exaggeration: HERO.exaggeration });
+        if (m.hasImage('sea-swell')) m.updateImage('sea-swell', swellFrame((performance.now() - born) / 1000));
+        layFog();
+      });
     }, 5 * 60_000);
 
     /*
@@ -254,7 +396,9 @@ export function TerrainMap({
     // budget, held for a map nobody could see.
     const bail = () => {
       window.clearInterval(relight);
+      window.clearInterval(tide);
       watcher?.disconnect();
+      fog.current = null;
       if (map.current) { map.current.remove(); map.current = null; }
     };
 
@@ -293,6 +437,9 @@ export function TerrainMap({
     map.current = m;
     return bail;
   }, []);
+
+  // The mist follows the places reached.
+  React.useEffect(() => { fog.current?.(); }, [explored, places]);
 
   /*
     Marks are plain DOM, positioned by MapLibre.
@@ -373,7 +520,7 @@ export function TerrainMap({
         ref={holder}
         style={{ position: 'absolute', inset: 0 }}
       />
-      <MapLegend places={places} />
+      <MapLegend places={places} explored={explored} />
     </View>
   );
 }

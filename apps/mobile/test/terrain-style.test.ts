@@ -2,9 +2,11 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  CROWD_M, DRIFT, HERO, PIN_NUDGE_PX, QUEST_FAN_PX, QUEST_MARK_OFFSET, SAMUI_BOUNDS, chivagoStyle, crowdOffsets, heroPose,
-  introPose, landColours, paletteFor, questMark, questOffsets, settleEasing,
+  CROWD_M, DRIFT, FOG_BOUNDS, FOG_CORNERS, HERO, PIN_NUDGE_PX, QUEST_FAN_PX, QUEST_MARK_OFFSET, REVEAL_M,
+  SAMUI_BOUNDS, SWELLS, SWELL_FPS, SWELL_PX, chivagoStyle, crest, crowdOffsets, heroPose, introPose, landColours,
+  paletteFor, questMark, questOffsets, revealedPoints, reveals, settleEasing, swell,
 } from '../src/components/terrain-style.ts';
+import { exploredCount } from '../src/components/map-parts.tsx';
 import { SUNRISE, SUNSET, dayArc, hourFrom, hueOf, luminance, mix } from '../src/components/island-clock.ts';
 import { lightingFor } from '../src/components/creature3d/rig.ts';
 import { heroHeight } from '../src/components/SamuiMap.tsx';
@@ -350,5 +352,81 @@ describe('where the camera sits', () => {
       assert.ok(v >= last && v <= 1);
       last = v;
     }
+  });
+});
+
+describe('uncharted: the mist lifts only where they have been', () => {
+  test('a visit clears a circle of a walkable size, in the right place on the canvas', () => {
+    assert.ok(REVEAL_M >= 500 && REVEAL_M <= 3000, 'a beach and a walk, not a province');
+    const centre = {
+      lat: (FOG_BOUNDS.minLat + FOG_BOUNDS.maxLat) / 2,
+      lng: (FOG_BOUNDS.minLng + FOG_BOUNDS.maxLng) / 2,
+    };
+    const [c] = reveals([centre], 1000);
+    assert.ok(Math.abs(c!.x - 500) < 1 && Math.abs(c!.y - 500) < 1, 'the middle of the box is the middle of the canvas');
+    const [big] = reveals([centre], 2000);
+    assert.ok(Math.abs(big!.r - c!.r * 2) < 1e-6, 'the radius scales with the canvas, so it is the same size on the ground');
+    assert.ok(c!.r > 5 && c!.r < 60, `1.5 km on a 1000 px canvas is a few pixels, not ${c!.r.toFixed(1)}`);
+    // North is up: a place further north is higher on the canvas.
+    const [n, s] = reveals([{ ...centre, lat: centre.lat + 0.1 }, centre], 1000);
+    assert.ok(n!.y < s!.y);
+  });
+
+  test('the canvas corners run north-west, north-east, south-east, south-west, as MapLibre wants', () => {
+    const [nw, ne, se, sw] = FOG_CORNERS;
+    assert.ok(nw[1] === ne[1] && nw[1] > se[1] && se[1] === sw[1]);
+    assert.ok(nw[0] === sw[0] && nw[0] < ne[0] && ne[0] === se[0]);
+    assert.ok(nw[0] < SAMUI_BBOX.minLng && ne[0] > SAMUI_BBOX.maxLng, 'the mist runs past the island');
+  });
+
+  test('the points come from the ledger through the places on screen; an unknown id clears nothing', () => {
+    const places = [{ id: 'chaweng', lat: 9.53, lng: 100.06 }, { id: 'lamai', lat: 9.47, lng: 100.05 }];
+    assert.deepEqual(revealedPoints([{ placeId: 'lamai' }, { placeId: 'nowhere' }], places), [{ lat: 9.47, lng: 100.05 }]);
+    assert.deepEqual(revealedPoints([], places), []);
+  });
+
+  test('nothing explored is the truthful start: the count is printed as zero', () => {
+    const places = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+    assert.equal(exploredCount(places, []), 0);
+    assert.equal(exploredCount(places, [{ placeId: 'b', firstAt: 'x', how: 'checkin' }, { placeId: 'zz', firstAt: 'x', how: 'self' }]), 1);
+  });
+});
+
+describe('the sea moves', () => {
+  test('the sea wears the swell pattern', () => {
+    const sea = layer('sea') as { paint: Record<string, unknown> };
+    assert.equal(sea.paint['fill-pattern'], 'sea-swell');
+  });
+
+  test('the pattern tiles: the left edge meets the right and the top meets the bottom', () => {
+    for (const t of [0, 1.3, 7.7]) {
+      for (let i = 0; i < SWELL_PX; i += 37) {
+        assert.ok(Math.abs(swell(0, i, t) - swell(SWELL_PX, i, t)) < 1e-9, `x seam at y=${i}`);
+        assert.ok(Math.abs(swell(i, 0, t) - swell(i, SWELL_PX, t)) < 1e-9, `y seam at x=${i}`);
+      }
+    }
+  });
+
+  test('the water is between the trough and the crest, and it moves', () => {
+    let changed = false;
+    for (let x = 0; x < SWELL_PX; x += 13) {
+      for (let y = 0; y < SWELL_PX; y += 17) {
+        const a = swell(x, y, 0);
+        assert.ok(a >= 0 && a <= 1);
+        if (Math.abs(a - swell(x, y, 2)) > 0.05) changed = true;
+      }
+    }
+    assert.ok(changed, 'two seconds later the sea is somewhere else');
+    assert.equal(crest(0.5), 0, 'no foam in a trough');
+    assert.equal(crest(1), 1, 'full foam on the top of a crest');
+    assert.ok(crest(0.9) > 0 && crest(0.9) < 1);
+  });
+
+  test('it is water, not a phone-warmer', () => {
+    assert.ok(SWELL_FPS >= 8 && SWELL_FPS <= 15);
+    assert.ok(SWELL_PX <= 256, 'a stamp, repainted; not a poster');
+    const total = SWELLS.reduce((a, s) => a + s.weight, 0);
+    assert.ok(Math.abs(total - 1) < 1e-9, 'the weights sum to one so the height stays in range');
+    for (const s of SWELLS) assert.ok(Number.isInteger(s.cx) && Number.isInteger(s.cy), 'integer cycles, or it does not tile');
   });
 });

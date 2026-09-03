@@ -21,7 +21,7 @@
 import React from 'react';
 import { Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import Svg, { Path, Polygon, Line } from 'react-native-svg';
-import { isHighScore, type Quest, type QuestProgress, type ScoredPlace } from '@chivago/core';
+import { isHighScore, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace } from '@chivago/core';
 import { CHIP, layoutPins, tilt } from './map-geometry.ts';
 import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Heading, Label } from './Type.tsx';
@@ -203,6 +203,11 @@ export interface SamuiMapProps {
   quests?: Quest[];
   progress?: Record<string, QuestProgress>;
   onOpenQuest?: (id: string) => void;
+  /**
+   * Where this traveller has been. The web map lifts its mist from these;
+   * both maps count them in the legend.
+   */
+  explored?: ExploredPlace[];
   height?: number;
   /** Score-only pins, no zoom buttons. Decided here from the width unless a caller says. */
   compact?: boolean;
@@ -236,7 +241,7 @@ export function SamuiMap(props: SamuiMapProps) {
 }
 
 function IslandMap({
-  places, onSelect, height = 344, compact = false,
+  places, onSelect, explored = [], height = 344, compact = false,
 }: SamuiMapProps) {
   /**
    * The map is full-bleed, so the window IS its width.
@@ -285,8 +290,8 @@ function IslandMap({
           ))
         : null}
 
-      {/* Legend: the island average today. */}
-      <MapLegend places={places} />
+      {/* Legend: the island average today, and how much of it they have reached. */}
+      <MapLegend places={places} explored={explored} />
       <ShapeNote />
     </View>
   );

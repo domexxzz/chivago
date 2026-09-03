@@ -13,7 +13,7 @@ import type {
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
 } from '@chivago/core';
-import type { Fix, SelfVisitResult, SelfVisitSummary } from '@chivago/core';
+import type { Explored, Fix, SelfVisitResult, SelfVisitSummary } from '@chivago/core';
 
 /**
  * What POST /places/:id/checkin answers with.
@@ -304,6 +304,8 @@ export const api = {
   /** Stamp a place on the traveller's word. Pays nothing, unlocks nothing. */
   recordVisit: (placeId: string) => post<SelfVisitResult>(`/places/${placeId}/visits`, {}),
   selfVisits: () => get<SelfVisitSummary>('/visits/self'),
+  /** Where they have been - check-ins and stamps - for the map to lift its mist from. */
+  explored: () => get<Explored>('/explored'),
 
   // -- the evidence layer -------------------------------------------------
   /**

@@ -11,7 +11,7 @@
 
 import { randomUUID } from 'node:crypto';
 import {
-  SELF_VISITS_PER_YEAR, selfVisitYearKey, type SelfVisitResult, type SelfVisitSummary,
+  SELF_VISITS_PER_YEAR, selfVisitYearKey, type Explored, type SelfVisitResult, type SelfVisitSummary,
 } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
 
@@ -64,6 +64,37 @@ export function recordSelfVisit(
   ).run(randomUUID(), args.userId, place.id, now.toISOString(), year, now.toISOString());
 
   return { placeId: place.id, recorded: true, remainingThisYear: remaining - 1 };
+}
+
+/**
+ * Every place this traveller has been to, earliest first, for the map.
+ *
+ * The check-ins come from the ledger - the same rows the passport and the
+ * companions read, through the same `source_ref` shape - and the stamps from
+ * `self_visits`. A place with both is reported once, as the check-in: the
+ * verified fact wins, and the map is not a second passport.
+ */
+export function exploredFor(db: DB, userId: string): Explored {
+  const checkins = rows<{ place_id: string; first_at: string }>(
+    db.prepare(
+      `SELECT substr(l.source_ref, 9, instr(substr(l.source_ref, 9), ':') - 1) AS place_id,
+              MIN(l.occurred_at) AS first_at
+       FROM ledger l
+       WHERE l.user_id = ? AND l.kind = 'checkin'
+       GROUP BY place_id`,
+    ).all(userId),
+  );
+  const stamps = rows<{ place_id: string; visited_at: string }>(
+    db.prepare(
+      `SELECT place_id, MIN(visited_at) AS visited_at FROM self_visits
+       WHERE user_id = ? GROUP BY place_id`,
+    ).all(userId),
+  );
+  const byPlace = new Map<string, Explored['places'][number]>();
+  for (const s of stamps) byPlace.set(s.place_id, { placeId: s.place_id, firstAt: s.visited_at, how: 'self' });
+  for (const c of checkins) byPlace.set(c.place_id, { placeId: c.place_id, firstAt: c.first_at, how: 'checkin' });
+  const places = [...byPlace.values()].sort((a, b) => a.firstAt.localeCompare(b.firstAt));
+  return { places };
 }
 
 /** The traveller's self-issued stamps, and how many more the year allows. */

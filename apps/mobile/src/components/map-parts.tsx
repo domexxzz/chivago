@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { isHighScore, strings, type ScoredPlace } from '@chivago/core';
+import { isHighScore, strings, type ExploredPlace, type ScoredPlace } from '@chivago/core';
 import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Heading, Label } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
@@ -66,9 +66,16 @@ export function PinChip({
 
 export type MapMode = 'map' | 'feed';
 
-export function MapLegend({ places }: { places: ScoredPlace[] }) {
+/** How many of the places on screen this traveller has been to. */
+export const exploredCount = (places: readonly { id: string }[], explored: readonly ExploredPlace[]): number => {
+  const been = new Set(explored.map((e) => e.placeId));
+  return places.filter((p) => been.has(p.id)).length;
+};
+
+export function MapLegend({ places, explored = [] }: { places: ScoredPlace[]; explored?: ExploredPlace[] }) {
   if (places.length === 0) return null;
   const avg = Math.round(places.reduce((a, p) => a + p.healthyScore, 0) / places.length);
+  const reached = exploredCount(places, explored);
   return (
     <View
       style={{
@@ -91,6 +98,13 @@ export function MapLegend({ places }: { places: ScoredPlace[] }) {
         {/* Green only when the average has earned it - see ImpactScreen. */}
         <View style={{ width: `${avg}%`, height: '100%', backgroundColor: isHighScore(avg) ? color.accent : color.neutral600 }} />
       </View>
+      {/*
+        The chart's own count: places reached, of the places shown. Zero is
+        printed, not hidden - an unexplored island is the truthful start.
+      */}
+      <Label size={9} tracking={0.12} colour={color.neutral700} style={{ marginTop: 6 }}>
+        {t(strings.map.explored(reached, places.length))}
+      </Label>
     </View>
   );
 }

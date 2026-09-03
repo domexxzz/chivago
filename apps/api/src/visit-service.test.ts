@@ -7,7 +7,7 @@ import { getBalances } from './wallet-service.ts';
 import { hasVisited } from './place-review-service.ts';
 import { visitedProvincesFor } from './wellness-service.ts';
 import {
-  SelfVisitQuotaReached, recordSelfVisit, selfReportedProvincesFor, selfVisitsFor,
+  SelfVisitQuotaReached, exploredFor, recordSelfVisit, selfReportedProvincesFor, selfVisitsFor,
 } from './visit-service.ts';
 
 /**
@@ -105,5 +105,47 @@ describe('the quota', () => {
       .run('u2', 'Ana', new Date().toISOString());
     recordSelfVisit(db, { userId: 'u2', placeId: PLACE });
     assert.equal(selfVisitsFor(db, USER).remainingThisYear, SELF_VISITS_PER_YEAR);
+  });
+});
+
+describe('where the traveller has been, for the map', () => {
+  const checkinRow = (placeId: string, day: string, at: string) =>
+    db.prepare(
+      `INSERT INTO ledger (id, user_id, label, occurred_at, host, amount, kind, currency, exp, source_ref)
+       VALUES (?, ?, 'Check-in', ?, 'island', 10, 'checkin', 'trip', 0, ?)`,
+    ).run(`l-${placeId}-${day}`, USER, at, `checkin:${placeId}:user:${USER}:${day}`);
+
+  test('nothing explored is an empty list, not an error', () => {
+    assert.deepEqual(exploredFor(db, USER), { places: [] });
+  });
+
+  test('a check-in explores its place, dated to the first one, however many times they came back', () => {
+    addPlace('lamai');
+    checkinRow(PLACE, '2026-09-02', '2026-09-02T03:00:00.000Z');
+    checkinRow(PLACE, '2026-09-01', '2026-09-01T03:00:00.000Z');
+    checkinRow('lamai', '2026-09-03', '2026-09-03T03:00:00.000Z');
+    assert.deepEqual(exploredFor(db, USER), { places: [
+      { placeId: PLACE, firstAt: '2026-09-01T03:00:00.000Z', how: 'checkin' },
+      { placeId: 'lamai', firstAt: '2026-09-03T03:00:00.000Z', how: 'checkin' },
+    ] });
+  });
+
+  test('a self-issued stamp explores too, and says so; a check-in at the same place wins', () => {
+    addPlace('lamai');
+    recordSelfVisit(db, { userId: USER, placeId: 'lamai', now: new Date('2026-08-30T02:00:00Z') });
+    recordSelfVisit(db, { userId: USER, placeId: PLACE, now: new Date('2026-08-31T02:00:00Z') });
+    checkinRow(PLACE, '2026-09-01', '2026-09-01T03:00:00.000Z');
+    const { places } = exploredFor(db, USER);
+    assert.deepEqual(places.map((p) => [p.placeId, p.how]), [['lamai', 'self'], [PLACE, 'checkin']]);
+  });
+
+  test("another traveller's visits are not this one's map", () => {
+    db.prepare('INSERT INTO users (id, display_name, created_at) VALUES (?,?,?)')
+      .run('u2', 'Ann', new Date().toISOString());
+    db.prepare(
+      `INSERT INTO ledger (id, user_id, label, occurred_at, host, amount, kind, currency, exp, source_ref)
+       VALUES ('l-x', 'u2', 'Check-in', '2026-09-01T03:00:00.000Z', 'island', 10, 'checkin', 'trip', 0, ?)`,
+    ).run(`checkin:${PLACE}:user:u2:2026-09-01`);
+    assert.deepEqual(exploredFor(db, USER).places, []);
   });
 });
