@@ -10,7 +10,9 @@
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { ChevronRight, LayoutGrid, List, MessageCircle } from 'lucide-react-native';
-import { greetingFor, strings, type Balances, type Quest, type ScoredPlace } from '@chivago/core';
+import {
+  greetingFor, strings, type Balances, type Quest, type QuestProgress, type ScoredPlace,
+} from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync, type LayerKey } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
@@ -19,6 +21,11 @@ import { Button, IconButton } from '../components/Button.tsx';
 import { LayerChips, PlaceFeedRow, SamuiMap, type MapMode } from '../components/SamuiMap.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+
+// Stable empties, so the map's marker effect is not re-run by a fresh `[]`
+// on every render while the quests are still loading.
+const NO_QUESTS: Quest[] = [];
+const NO_PROGRESS: Record<string, QuestProgress> = {};
 
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
@@ -65,7 +72,13 @@ export function MapScreen({
         <>
           <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
           {mode === 'map' ? (
-            <SamuiMap places={visible} onSelect={onSelect} />
+            <SamuiMap
+              places={visible}
+              onSelect={onSelect}
+              quests={quests.data?.quests ?? NO_QUESTS}
+              progress={quests.data?.progress ?? NO_PROGRESS}
+              onOpenQuest={onOpenQuest}
+            />
           ) : (
             <View>
               <View style={{ paddingHorizontal: gutter, paddingVertical: 10 }}>

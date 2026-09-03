@@ -24,43 +24,17 @@
  */
 
 import React from 'react';
-import { Animated, Easing, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { crowdLabel, type Companion, type ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
-import { Creature } from '../components/Creature.tsx';
+import { CreatureScene } from '../components/CreatureScene.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { IconButton } from '../components/Button.tsx';
 import { t } from '../i18n/locale.ts';
-
-/**
- * A slow breath, and nothing else.
- *
- * The reference bounces; a two-second rise and fall reads as alive without
- * asking to be watched. It also stops entirely under reduce-motion, which a
- * bounce cannot do gracefully.
- */
-function useBreath(): Animated.Value {
-  const breath = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(breath, {
-          toValue: 1, duration: 2000, easing: Easing.inOut(Easing.quad), useNativeDriver: true,
-        }),
-        Animated.timing(breath, {
-          toValue: 0, duration: 2000, easing: Easing.inOut(Easing.quad), useNativeDriver: true,
-        }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [breath]);
-  return breath;
-}
 
 /** The three stages, named. Exported: the wallet lists the same creatures. */
 export const STAGE_LABEL: Record<Companion['stage'], { en: string; th: string }> = {
@@ -78,7 +52,6 @@ export function CompanionHomeScreen({
   onFindQuest: () => void;
 }) {
   const places = useAsync(() => api.places(), []);
-  const breath = useBreath();
 
   const { species, stage, evidence, nextStep } = companion;
   const grown = stage === 'grown';
@@ -106,12 +79,17 @@ export function CompanionHomeScreen({
         The room. Deliberately the tallest thing on the screen: the creature is
         why anybody opened this, and a card would make it an item in a list
         again, which is what this screen exists to stop being.
+
+        On the web it is a real room - the animal in three dimensions on the
+        ground it lives on, lit by the island's clock (CreatureScene). It
+        looks at your finger and answers a tap. It does not want anything:
+        the meters below are the habitat's measured condition, as before.
       */}
       <View
         style={{
           marginHorizontal: gutter,
-          paddingVertical: 34,
-          alignItems: 'center',
+          alignItems: 'stretch',
+          overflow: 'hidden',
           backgroundColor: grown ? color.accent100 : color.surface,
           borderWidth: grown ? layout.ruleStrong : 1,
           borderColor: grown ? color.accent : color.neutral300,
@@ -119,17 +97,14 @@ export function CompanionHomeScreen({
           borderRadius: radius.md,
         }}
       >
-        <Animated.View
-          style={{
-            transform: [
-              { translateY: breath.interpolate({ inputRange: [0, 1], outputRange: [0, -6] }) },
-              { scale: breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.03] }) },
-            ],
-          }}
-        >
-          <Creature species={species.key} stage={stage} size={168} />
-        </Animated.View>
+        <CreatureScene
+          species={species.key}
+          stage={stage}
+          grown={grown}
+          label={`${stage === 'egg' ? t(species.eggName) : t(species.name)}, ${t(STAGE_LABEL[stage])}. ${t({ en: 'Tap to say hello', th: 'แตะเพื่อทักทาย' })}`}
+        />
 
+        <View style={{ alignItems: 'center', paddingBottom: 26 }}>
         <Heading
           size={22}
           colour={grown ? color.accent : color.text}
@@ -148,6 +123,7 @@ export function CompanionHomeScreen({
           <Label size={9} tracking={0.12} colour={grown ? color.accent : color.neutral700}>
             {`${t(STAGE_LABEL[stage])}`}
           </Label>
+        </View>
         </View>
       </View>
 

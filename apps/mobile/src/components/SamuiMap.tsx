@@ -21,7 +21,7 @@
 import React from 'react';
 import { Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import Svg, { Path, Polygon, Line } from 'react-native-svg';
-import { isHighScore, type ScoredPlace } from '@chivago/core';
+import { isHighScore, type Quest, type QuestProgress, type ScoredPlace } from '@chivago/core';
 import { CHIP, layoutPins, tilt } from './map-geometry.ts';
 import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Heading, Label } from './Type.tsx';
@@ -194,24 +194,45 @@ const TerrainMap = inBrowser
 export interface SamuiMapProps {
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;
+  /**
+   * Today's quests, marked where the work is. Drawn by the web map only:
+   * the native island is a diagram with real points on it, and a quest's X
+   * on a traced coastline would claim a precision the drawing does not have.
+   * On a phone the quests are the card under the map, as they were.
+   */
+  quests?: Quest[];
+  progress?: Record<string, QuestProgress>;
+  onOpenQuest?: (id: string) => void;
   height?: number;
   /** Score-only pins, no zoom buttons. Decided here from the width unless a caller says. */
   compact?: boolean;
 }
 
+/**
+ * How tall the hero is, for a width.
+ *
+ * A fixed 344 was a phone's number: on a wide screen it was a letterbox with
+ * an island squeezed into it, the mountain cropped by the header. The hero
+ * grows with the width, a little less than square, and stops where a
+ * desktop still has the list in view below it.
+ */
+export const heroHeight = (width: number): number =>
+  Math.round(Math.min(560, Math.max(344, width * 0.36)));
+
 export function SamuiMap(props: SamuiMapProps) {
   const { width } = useWindowDimensions();
   const compact = props.compact ?? width < COMPACT_BELOW;
+  const height = props.height ?? heroHeight(width);
   if (TerrainMap) {
     return (
       <React.Suspense
-        fallback={<View style={{ height: props.height ?? 344, backgroundColor: color.brandSoft }} />}
+        fallback={<View style={{ height, backgroundColor: color.brandSoft }} />}
       >
-        <TerrainMap {...props} compact={compact} />
+        <TerrainMap {...props} height={height} compact={compact} />
       </React.Suspense>
     );
   }
-  return <IslandMap {...props} compact={compact} />;
+  return <IslandMap {...props} height={height} compact={compact} />;
 }
 
 function IslandMap({
