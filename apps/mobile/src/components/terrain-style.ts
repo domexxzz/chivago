@@ -377,8 +377,10 @@ export function chivagoStyle(hour = 12): StyleSpecification {
       {
         id: 'sea', type: 'fill', source: 'osm', 'source-layer': 'water',
         // Not quite opaque: the reef flat in the relief shows through as
-        // shallows along the beaches.
-        paint: { 'fill-color': p.sea, 'fill-opacity': 0.8 },
+        // shallows along the beaches. The pattern is the moving water,
+        // painted by TerrainMap from `swell()` below; the colour stands in
+        // for the frame before the first pattern lands.
+        paint: { 'fill-color': p.sea, 'fill-pattern': 'sea-swell', 'fill-opacity': 0.8 },
       },
       // The streams that come off the mountain - Na Muang is a waterfall.
       {
@@ -494,16 +496,24 @@ export function chivagoStyle(hour = 12): StyleSpecification {
  * the frame and Pha-ngan keeps the top.
  */
 export const HERO = {
-  pitch: 60,
+  /**
+   * Steeper than MapLibre's default ceiling of 60, which the map is told to
+   * allow (see MAX_PITCH). At sixty the horizon sits just above the frame
+   * and the hero is a tilted map; at sixty-six the sky comes in over Ko
+   * Pha-ngan and it is a view from somewhere; at sixty-nine, with the centre
+   * a little further south, the sky is a band and not a line.
+   */
+  pitch: 69,
   bearing: -18,
   zoomAboveFlat: 0.55,
-  latBelowMiddle: 0.02,
+  latBelowMiddle: 0.035,
   fitPadding: { top: 60, bottom: 8, left: 16, right: 16 },
   /**
-   * The one animated moment. Long enough that the mountain visibly rises,
-   * short enough that a traveller who came for the list is not kept waiting.
+   * The one animated moment: the approach by sea. Long enough that the
+   * island visibly comes up out of the haze, short enough that a traveller
+   * who came for the list is not kept waiting.
    */
-  introMs: 2600,
+  introMs: 3400,
   /**
    * How much taller than the truth the mountain stands. Samui is 25 km
    * across and 635 m high, so at true scale Khao Pom is a bump. Doubled it
@@ -519,6 +529,13 @@ export const HERO = {
  * dead is a screenshot. It is not essential: someone who asked their system
  * for less motion gets the settled frame and nothing moves.
  */
+/**
+ * How far over the camera may tip. MapLibre allows 85 with terrain; past
+ * about 75 the far tiles are a smear and the labels are unreadable, so the
+ * hero and the person dragging both stop here.
+ */
+export const MAX_PITCH = 75;
+
 export const DRIFT = {
   degrees: 16,
   ms: 45_000,
@@ -545,11 +562,18 @@ export function heroPose(flatZoom: number): Pose {
 }
 
 /**
- * Where the intro starts: lower, flatter, and turned a little further, so
- * the settle is a rise and a swing rather than a zoom.
+ * Where the intro starts: out at sea to the south, low over the water and
+ * turned well round, so the settle is an approach - the island coming up
+ * over the bow - rather than a zoom. The centre is still inside the box the
+ * map is locked to.
  */
 export function introPose(settled: Pose): Pose {
-  return { ...settled, zoom: settled.zoom - 0.5, pitch: 32, bearing: settled.bearing - 12 };
+  return {
+    zoom: settled.zoom - 1.1,
+    pitch: 72,
+    bearing: settled.bearing - 35,
+    center: [settled.center[0] + 0.03, settled.center[1] - 0.09],
+  };
 }
 
 /** Cubic ease-out: fast off the mark, gentle into place. */
@@ -654,4 +678,204 @@ export function crowdOffsets(
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Uncharted
+// ---------------------------------------------------------------------------
+
+/**
+ * The mist. Everywhere this traveller has not been is drawn under a pale
+ * parchment haze - named, because a chart has names, but not yet seen - and
+ * it lifts, in a soft circle, around each place they have actually reached.
+ *
+ * The honest version of "exploration": it is derived from the ledger and
+ * the passport, and nothing else clears it. A place you have looked at is
+ * still mist; a place you stood at is not.
+ */
+
+/** How far a visit clears, in metres: the beach, and a walk either way. */
+export const REVEAL_M = 1500;
+
+/** Where the sharp centre of a cleared circle softens into the mist, as a fraction of its radius. */
+export const REVEAL_FEATHER = 0.55;
+
+/** The canvas the mist is painted on. Square, so a pixel is a pixel in both axes at this latitude. */
+export const FOG_PX = 1024;
+
+/**
+ * The mist's footprint: the island's box, padded so the haze runs to the edge
+ * of the frame at the hero pose rather than stopping in a straight line
+ * across the sea.
+ */
+export const FOG_PAD_DEG = 0.6;
+
+export const FOG_BOUNDS = {
+  minLng: SAMUI_BBOX.minLng - FOG_PAD_DEG,
+  maxLng: SAMUI_BBOX.maxLng + FOG_PAD_DEG,
+  minLat: SAMUI_BBOX.minLat - FOG_PAD_DEG,
+  maxLat: SAMUI_BBOX.maxLat + FOG_PAD_DEG,
+} as const;
+
+/** The four corners MapLibre wants for a canvas source: NW, NE, SE, SW. */
+export const FOG_CORNERS: [[number, number], [number, number], [number, number], [number, number]] = [
+  [FOG_BOUNDS.minLng, FOG_BOUNDS.maxLat],
+  [FOG_BOUNDS.maxLng, FOG_BOUNDS.maxLat],
+  [FOG_BOUNDS.maxLng, FOG_BOUNDS.minLat],
+  [FOG_BOUNDS.minLng, FOG_BOUNDS.minLat],
+];
+
+export interface Reveal { x: number; y: number; r: number }
+
+/**
+ * Where on the mist canvas each visited place clears a circle, in canvas
+ * pixels. The radius is in pixels too, from metres, so a circle is the same
+ * size on the ground whatever the canvas resolution.
+ */
+export function reveals(explored: readonly { lat: number; lng: number }[], size = FOG_PX): Reveal[] {
+  const lngSpan = FOG_BOUNDS.maxLng - FOG_BOUNDS.minLng;
+  const latSpan = FOG_BOUNDS.maxLat - FOG_BOUNDS.minLat;
+  const midLat = (FOG_BOUNDS.minLat + FOG_BOUNDS.maxLat) / 2;
+  const metresPerLat = 111_320;
+  const pxPerMetreY = size / (latSpan * metresPerLat);
+  const pxPerMetreX = size / (lngSpan * metresPerLat * Math.cos((midLat * Math.PI) / 180));
+  // A circle on the ground is very nearly a circle on this canvas; the mean
+  // of the two scales keeps it one.
+  const r = REVEAL_M * ((pxPerMetreX + pxPerMetreY) / 2);
+  return explored.map((p) => ({
+    x: ((p.lng - FOG_BOUNDS.minLng) / lngSpan) * size,
+    y: ((FOG_BOUNDS.maxLat - p.lat) / latSpan) * size,
+    r,
+  }));
+}
+
+/**
+ * Places the traveller has reached, as points, from the explored list and
+ * the places on screen. A visit to a place that is not on the map (a filter
+ * hid it) still clears its ground: they were there.
+ */
+export function revealedPoints(
+  explored: readonly { placeId: string }[],
+  places: readonly { id: string; lat: number; lng: number }[],
+): { lat: number; lng: number }[] {
+  const byId = new Map(places.map((p) => [p.id, p]));
+  const out: { lat: number; lng: number }[] = [];
+  for (const e of explored) {
+    const p = byId.get(e.placeId);
+    if (p) out.push({ lat: p.lat, lng: p.lng });
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// The swell
+// ---------------------------------------------------------------------------
+
+/**
+ * The sea moves. The `sea` fill is painted with a pattern the map redraws a
+ * dozen times a second: the sea colour with the crests of three crossing
+ * swells drifting over it, and by moonlight the glitter path a low moon
+ * leaves on water.
+ *
+ * It is a pattern, so it must tile. Every wave number here is an integer
+ * count of cycles across the pattern's width, which is what makes the left
+ * edge meet the right without a seam.
+ */
+
+/** The pattern's side, in pixels. */
+export const SWELL_PX = 256;
+
+/** Redraws per second. Enough for water; not enough to warm a phone. */
+export const SWELL_FPS = 12;
+
+/** Three swells: cycles across the pattern, direction, speed, weight. */
+export const SWELLS: { cx: number; cy: number; speed: number; weight: number }[] = [
+  // Finer than it first was: three cycles across the tile drew crests the
+  // size of clouds, and the sea read as snow. Eleven draws water.
+  { cx: 11, cy: 6, speed: 0.9, weight: 0.5 },
+  { cx: -7, cy: 13, speed: 0.6, weight: 0.3 },
+  { cx: 19, cy: -4, speed: 1.4, weight: 0.2 },
+];
+
+/**
+ * The height of the water at a pattern pixel, 0–1, at a time in seconds.
+ * Periodic in x and y with period SWELL_PX, by construction.
+ */
+export function swell(x: number, y: number, t: number): number {
+  const k = (2 * Math.PI) / SWELL_PX;
+  let h = 0;
+  for (const s of SWELLS) h += s.weight * Math.sin(k * (s.cx * x + s.cy * y) + s.speed * t);
+  // Weights sum to 1, so h is in [-1, 1].
+  return (h + 1) / 2;
+}
+
+/**
+ * How much crest shows at a height: nothing below the shoulder, then a
+ * quick rise to full - a crest is a line, not a gradient.
+ */
+export function crest(h: number, shoulder = 0.84): number {
+  if (h <= shoulder) return 0;
+  return Math.min(1, (h - shoulder) / (1 - shoulder));
+}
+
+// ---------------------------------------------------------------------------
+// Cloud shadows, and the route
+// ---------------------------------------------------------------------------
+
+/**
+ * Cloud shadows. A tropical island under a fair-weather sky has clouds
+ * going over it all afternoon, and their shadows on the hills are half of
+ * what makes a landscape look like weather rather than a model. A few soft
+ * dark ellipses drift over the whole island's box on the trade wind and
+ * come round again; they are painted at low resolution because a shadow's
+ * edge is soft anyway.
+ */
+export const CLOUD_PX = 256;
+
+export interface Cloud { x: number; y: number; rx: number; ry: number; depth: number }
+
+/** Cloud count, and the wind: fractions of the box per second, west-south-west to east-north-east. */
+export const CLOUDS = 9;
+export const WIND = { x: 0.011, y: -0.004 } as const;
+
+function seeded(seed: number): () => number {
+  let s = seed >>> 0 || 1;
+  return () => {
+    s ^= s << 13; s >>>= 0;
+    s ^= s >> 17;
+    s ^= s << 5; s >>>= 0;
+    return (s >>> 0) / 4294967296;
+  };
+}
+
+/** The field of cloud shadows at a time in seconds, in 0–1 box units, wrapped. */
+export function cloudField(t: number): Cloud[] {
+  const next = seeded(1912);
+  const out: Cloud[] = [];
+  for (let i = 0; i < CLOUDS; i += 1) {
+    const x0 = next();
+    const y0 = next();
+    const rx = 0.05 + next() * 0.09;
+    const ry = rx * (0.45 + next() * 0.35);
+    const depth = 0.35 + next() * 0.4;
+    const wrap = (v: number) => ((v % 1) + 1) % 1;
+    out.push({ x: wrap(x0 + WIND.x * t), y: wrap(y0 + WIND.y * t), rx, ry, depth });
+  }
+  return out;
+}
+
+/**
+ * The sea routes crawl. A dash array has no phase in MapLibre, so the phase
+ * is a leading zero-length dash and a gap that grows: five arrays, cycled,
+ * and the dots walk along the ferry line toward the island.
+ */
+export const ROUTE_DASH: [number, number] = [0.1, 2.4];
+export const ROUTE_PHASES = 5;
+
+export function routeDash(phase: number): number[] {
+  const [dot, gap] = ROUTE_DASH;
+  const p = ((phase % ROUTE_PHASES) + ROUTE_PHASES) % ROUTE_PHASES;
+  if (p === 0) return [dot, gap];
+  const lead = ((dot + gap) * p) / ROUTE_PHASES;
+  return [0, lead, dot, gap - lead];
 }

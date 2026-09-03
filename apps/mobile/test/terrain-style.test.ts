@@ -2,9 +2,12 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  CROWD_M, DRIFT, HERO, PIN_NUDGE_PX, QUEST_FAN_PX, QUEST_MARK_OFFSET, SAMUI_BOUNDS, chivagoStyle, crowdOffsets, heroPose,
-  introPose, landColours, paletteFor, questMark, questOffsets, settleEasing,
+  CROWD_M, DRIFT, FOG_BOUNDS, FOG_CORNERS, HERO, PIN_NUDGE_PX, QUEST_FAN_PX, QUEST_MARK_OFFSET, REVEAL_M,
+  MAX_PITCH, ROUTE_DASH, ROUTE_PHASES, SAMUI_BOUNDS, SWELLS, SWELL_FPS, SWELL_PX, WIND, chivagoStyle, cloudField,
+  crest, crowdOffsets, heroPose, introPose, landColours, paletteFor, questMark, questOffsets, revealedPoints, reveals,
+  routeDash, settleEasing, swell,
 } from '../src/components/terrain-style.ts';
+import { exploredCount } from '../src/components/map-parts.tsx';
 import { SUNRISE, SUNSET, dayArc, hourFrom, hueOf, luminance, mix } from '../src/components/island-clock.ts';
 import { lightingFor } from '../src/components/creature3d/rig.ts';
 import { heroHeight } from '../src/components/SamuiMap.tsx';
@@ -319,7 +322,11 @@ describe('where the camera sits', () => {
   test('the settled pose is lifted from the flat fit, inside the island, at a pitch MapLibre allows', () => {
     const pose = heroPose(10.2);
     assert.ok(Math.abs(pose.zoom - (10.2 + HERO.zoomAboveFlat)) < 1e-9);
-    assert.ok(pose.pitch <= 60, 'MapLibre clamps pitch to 60 by default; asking for more silently gets less');
+    // MapLibre clamps pitch to 60 by default and asking for more silently
+    // gets less; the map raises the ceiling to MAX_PITCH, and the hero
+    // sits above sixty so the horizon is in the frame, and below the ceiling.
+    assert.ok(pose.pitch > 60 && pose.pitch <= MAX_PITCH, 'the sky is in view');
+    assert.ok(MAX_PITCH <= 85, 'MapLibre allows no more');
     const [lng, lat] = pose.center;
     assert.ok(lng > SAMUI_BBOX.minLng && lng < SAMUI_BBOX.maxLng);
     assert.ok(lat > SAMUI_BBOX.minLat && lat < SAMUI_BBOX.maxLat);
@@ -335,10 +342,12 @@ describe('where the camera sits', () => {
   test('the intro starts lower, flatter and further round than where it settles', () => {
     const settled = heroPose(10.2);
     const intro = introPose(settled);
-    assert.ok(intro.zoom < settled.zoom);
-    assert.ok(intro.pitch < settled.pitch);
+    assert.ok(intro.zoom < settled.zoom, 'further off');
+    assert.ok(intro.pitch >= settled.pitch && intro.pitch <= MAX_PITCH, 'lower over the water');
     assert.notEqual(intro.bearing, settled.bearing);
-    assert.deepEqual(intro.center, settled.center, 'the intro is a rise and a swing, not a pan');
+    assert.ok(intro.center[1] < settled.center[1], 'the approach is from the sea to the south');
+    // And still inside the box the map is locked to, or the camera snaps.
+    assert.ok(intro.center[1] > SAMUI_BBOX.minLat - 0.14 && intro.center[0] < SAMUI_BBOX.maxLng + 0.14);
   });
 
   test('the settle easing starts at 0, ends at 1 and never overshoots', () => {
@@ -349,6 +358,114 @@ describe('where the camera sits', () => {
       const v = settleEasing(t);
       assert.ok(v >= last && v <= 1);
       last = v;
+    }
+  });
+});
+
+describe('uncharted: the mist lifts only where they have been', () => {
+  test('a visit clears a circle of a walkable size, in the right place on the canvas', () => {
+    assert.ok(REVEAL_M >= 500 && REVEAL_M <= 3000, 'a beach and a walk, not a province');
+    const centre = {
+      lat: (FOG_BOUNDS.minLat + FOG_BOUNDS.maxLat) / 2,
+      lng: (FOG_BOUNDS.minLng + FOG_BOUNDS.maxLng) / 2,
+    };
+    const [c] = reveals([centre], 1000);
+    assert.ok(Math.abs(c!.x - 500) < 1 && Math.abs(c!.y - 500) < 1, 'the middle of the box is the middle of the canvas');
+    const [big] = reveals([centre], 2000);
+    assert.ok(Math.abs(big!.r - c!.r * 2) < 1e-6, 'the radius scales with the canvas, so it is the same size on the ground');
+    assert.ok(c!.r > 5 && c!.r < 60, `1.5 km on a 1000 px canvas is a few pixels, not ${c!.r.toFixed(1)}`);
+    // North is up: a place further north is higher on the canvas.
+    const [n, s] = reveals([{ ...centre, lat: centre.lat + 0.1 }, centre], 1000);
+    assert.ok(n!.y < s!.y);
+  });
+
+  test('the canvas corners run north-west, north-east, south-east, south-west, as MapLibre wants', () => {
+    const [nw, ne, se, sw] = FOG_CORNERS;
+    assert.ok(nw[1] === ne[1] && nw[1] > se[1] && se[1] === sw[1]);
+    assert.ok(nw[0] === sw[0] && nw[0] < ne[0] && ne[0] === se[0]);
+    assert.ok(nw[0] < SAMUI_BBOX.minLng && ne[0] > SAMUI_BBOX.maxLng, 'the mist runs past the island');
+  });
+
+  test('the points come from the ledger through the places on screen; an unknown id clears nothing', () => {
+    const places = [{ id: 'chaweng', lat: 9.53, lng: 100.06 }, { id: 'lamai', lat: 9.47, lng: 100.05 }];
+    assert.deepEqual(revealedPoints([{ placeId: 'lamai' }, { placeId: 'nowhere' }], places), [{ lat: 9.47, lng: 100.05 }]);
+    assert.deepEqual(revealedPoints([], places), []);
+  });
+
+  test('nothing explored is the truthful start: the count is printed as zero', () => {
+    const places = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+    assert.equal(exploredCount(places, []), 0);
+    assert.equal(exploredCount(places, [{ placeId: 'b', firstAt: 'x', how: 'checkin' }, { placeId: 'zz', firstAt: 'x', how: 'self' }]), 1);
+  });
+});
+
+describe('the sea moves', () => {
+  test('the sea wears the swell pattern', () => {
+    const sea = layer('sea') as { paint: Record<string, unknown> };
+    assert.equal(sea.paint['fill-pattern'], 'sea-swell');
+  });
+
+  test('the pattern tiles: the left edge meets the right and the top meets the bottom', () => {
+    for (const t of [0, 1.3, 7.7]) {
+      for (let i = 0; i < SWELL_PX; i += 37) {
+        assert.ok(Math.abs(swell(0, i, t) - swell(SWELL_PX, i, t)) < 1e-9, `x seam at y=${i}`);
+        assert.ok(Math.abs(swell(i, 0, t) - swell(i, SWELL_PX, t)) < 1e-9, `y seam at x=${i}`);
+      }
+    }
+  });
+
+  test('the water is between the trough and the crest, and it moves', () => {
+    let changed = false;
+    for (let x = 0; x < SWELL_PX; x += 13) {
+      for (let y = 0; y < SWELL_PX; y += 17) {
+        const a = swell(x, y, 0);
+        assert.ok(a >= 0 && a <= 1);
+        if (Math.abs(a - swell(x, y, 2)) > 0.05) changed = true;
+      }
+    }
+    assert.ok(changed, 'two seconds later the sea is somewhere else');
+    assert.equal(crest(0.5), 0, 'no foam in a trough');
+    assert.equal(crest(1), 1, 'full foam on the top of a crest');
+    assert.ok(crest(0.9) > 0 && crest(0.9) < 1);
+  });
+
+  test('it is water, not a phone-warmer', () => {
+    assert.ok(SWELL_FPS >= 8 && SWELL_FPS <= 15);
+    assert.ok(SWELL_PX <= 256, 'a stamp, repainted; not a poster');
+    const total = SWELLS.reduce((a, s) => a + s.weight, 0);
+    assert.ok(Math.abs(total - 1) < 1e-9, 'the weights sum to one so the height stays in range');
+    for (const s of SWELLS) assert.ok(Number.isInteger(s.cx) && Number.isInteger(s.cy), 'integer cycles, or it does not tile');
+  });
+});
+
+describe('the weather', () => {
+  test('the same clouds every visit, drifting on the wind, and coming round again', () => {
+    assert.deepEqual(cloudField(0), cloudField(0));
+    const now = cloudField(0), later = cloudField(10);
+    assert.equal(now.length, later.length);
+    for (let i = 0; i < now.length; i += 1) {
+      for (const c of [now[i]!, later[i]!]) {
+        assert.ok(c.x >= 0 && c.x < 1 && c.y >= 0 && c.y < 1, 'wrapped into the box');
+        assert.ok(c.rx > 0 && c.ry > 0 && c.ry < c.rx, 'a shadow is wider than it is tall');
+        assert.ok(c.depth > 0 && c.depth < 1);
+      }
+      assert.notEqual(now[i]!.x, later[i]!.x, 'it moved');
+    }
+    // A full crossing takes a couple of minutes, not a couple of seconds.
+    assert.ok(1 / Math.hypot(WIND.x, WIND.y) > 60);
+  });
+
+  test('the route dots walk: five phases, each a step along, and back to the start', () => {
+    assert.deepEqual(routeDash(0), [...ROUTE_DASH]);
+    assert.deepEqual(routeDash(ROUTE_PHASES), routeDash(0));
+    const period = ROUTE_DASH[0] + ROUTE_DASH[1];
+    for (let p = 1; p < ROUTE_PHASES; p += 1) {
+      const d = routeDash(p);
+      assert.equal(d.length, 4);
+      assert.equal(d[0], 0, 'a zero-length lead is what shifts the phase');
+      const total = d.reduce((a, v) => a + v, 0);
+      assert.ok(Math.abs(total - period) < 1e-9, 'the period never changes, only the phase');
+      assert.ok(d[1]! > routeDash(p - 1)[1]! || p === 1, 'each phase is further along');
     }
   });
 });

@@ -11,7 +11,7 @@ import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { ChevronRight, LayoutGrid, List, MessageCircle } from 'lucide-react-native';
 import {
-  greetingFor, strings, type Balances, type Quest, type QuestProgress, type ScoredPlace,
+  greetingFor, strings, type Balances, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync, type LayerKey } from '../state/store.tsx';
@@ -26,6 +26,7 @@ import { t } from '../i18n/locale.ts';
 // on every render while the quests are still loading.
 const NO_QUESTS: Quest[] = [];
 const NO_PROGRESS: Record<string, QuestProgress> = {};
+const NO_EXPLORED: ExploredPlace[] = [];
 
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
@@ -44,6 +45,9 @@ export function MapScreen({
 }) {
   const places = useAsync(() => api.places(), []);
   const quests = useAsync(() => api.quests('today'), []);
+  // Where they have been. A failure here is a map with its mist down
+  // everywhere, which is the truthful default, so it is not surfaced.
+  const explored = useAsync(() => api.explored(), []);
   const [mode, setMode] = React.useState<MapMode>('map');
 
   // Memoised, and the handler with it: the web map rebuilds every DOM marker
@@ -78,6 +82,7 @@ export function MapScreen({
               quests={quests.data?.quests ?? NO_QUESTS}
               progress={quests.data?.progress ?? NO_PROGRESS}
               onOpenQuest={onOpenQuest}
+              explored={explored.data?.places ?? NO_EXPLORED}
             />
           ) : (
             <View>

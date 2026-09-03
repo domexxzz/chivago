@@ -102,6 +102,8 @@ export const strings = {
     questsNearYou: t('Quests near you', 'ภารกิจใกล้คุณ'),
     /** A quest's mark on the map: what it is, where, and what it pays. */
     questPin: (points: number) => t(`Quest · +${points} points`, `ภารกิจ · +${points} แต้ม`),
+    /** The legend's second line: how much of the chart this traveller has lifted the mist from. */
+    explored: (n: number, total: number) => t(`Explored · ${n} of ${total}`, `สำรวจแล้ว · ${n} จาก ${total}`),
     /** The compass rose. Tapping it returns the camera to the island view. */
     compass: t('Compass. Return to the island view', 'เข็มทิศ แตะเพื่อกลับมุมมองเกาะ'),
     layers: {

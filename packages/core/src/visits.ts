@@ -58,6 +58,27 @@ export interface SelfVisitResult {
   remainingThisYear: number;
 }
 
+/**
+ * Where this traveller has BEEN, for the map to lift its mist from.
+ *
+ * Derived, never stored: a place is explored because the ledger holds a
+ * geofenced check-in there, or because the traveller stamped it themselves.
+ * The two are kept apart in `how` for the same reason the passport keeps
+ * them apart - the map may draw them alike, but nothing downstream should
+ * be able to mistake one for the other.
+ */
+export interface ExploredPlace {
+  placeId: string;
+  /** The earliest visit of the kind named by `how`. */
+  firstAt: string;
+  how: 'checkin' | 'self';
+}
+
+export interface Explored {
+  /** Each place once. A place with both a check-in and a stamp is `checkin`. */
+  places: ExploredPlace[];
+}
+
 /** What the passport is told, beside the verified list. */
 export interface SelfVisitSummary {
   /** Place ids with a self-issued stamp. */

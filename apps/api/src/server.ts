@@ -35,7 +35,7 @@ import {
 } from './repo.ts';
 import { ensureWallet, getWallet, grantOpeningBalance, spendOnVoucher } from './wallet-service.ts';
 import { checkedInToday, checkIn } from './checkin-service.ts';
-import { recordSelfVisit, selfReportedProvincesFor, selfVisitsFor } from './visit-service.ts';
+import { exploredFor, recordSelfVisit, selfReportedProvincesFor, selfVisitsFor } from './visit-service.ts';
 import { readStatement, statementsIncluding } from './statement-service.ts';
 import { statementMissingPage, verifyPage } from './console/statement.ts';
 import { DEFAULT_LOCALE, localeFromAcceptLanguage } from './console/i18n.ts';
@@ -542,6 +542,13 @@ app.post('/places/:id/visits', (c) => {
 
 /** The traveller's self-issued stamps, so the place screen can say so on return. */
 app.get('/visits/self', (c) => ok(c, selfVisitsFor(db, userId(c))));
+
+/**
+ * Where this traveller has been - check-ins from the ledger, stamps from
+ * their own word - so the map can lift its mist from the places they have
+ * actually reached. Read-only and derived; nothing writes here.
+ */
+app.get('/explored', (c) => ok(c, exploredFor(db, userId(c))));
 
 // ---------------------------------------------------------------------------
 // Reviews

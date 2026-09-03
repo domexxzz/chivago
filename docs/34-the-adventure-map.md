@@ -76,12 +76,51 @@ map, as they were.
   the reason `TerrainMap` measures its container again on the next frame,
   on load, and on every resize after.
 
+## Uncharted, and the sea
+
+Two things the first version left owed, now built:
+
+**The mist.** Everywhere this traveller has not been is drawn under a pale
+parchment haze - named, because a chart has names, but not yet seen - and it
+lifts in a soft circle, a beach and a walk wide, around each place they have
+actually reached. It is the honest version of exploration: `GET /explored`
+derives the list from the ledger's geofenced check-ins and the passport's
+self-issued stamps, each place once with the check-in winning, and nothing
+else clears it. A place you have looked at is still mist; a place you stood
+at is not. The legend counts it - "Explored · 3 of 5" - and prints zero
+rather than hiding it, because an unexplored island is the truthful start.
+The haze is a canvas source painted by `paintFog`, so a cleared circle has
+a feathered edge and two that overlap simply overlap.
+
+**The swell.** The `sea` fill wears a pattern the map repaints twelve times
+a second: the sea colour, a little deeper in the troughs, with the crests of
+three crossing swells drifting over it, and by moonlight the glitter a low
+moon leaves on water. Every wave is an integer number of cycles across the
+tile, which is what makes it tile without a seam; `swell()` and `crest()` are
+pure and tested. Reduce-motion gets one frame. A hidden tab gets none.
+
+## The view, the approach, the weather
+
+**The sky is in the frame.** MapLibre's default pitch ceiling is sixty,
+which puts the horizon just above the hero. The map raises the ceiling to
+`MAX_PITCH` and the hero sits at sixty-six: the sky comes in over Ko
+Pha-ngan, the fog runs to the horizon, and at half past five it is peach.
+
+**The approach is by sea.** The intro starts out to the south, low over the
+water and turned well round, and eases in over three and a half seconds
+with the island coming up over the bow. Not a zoom.
+
+**Cloud shadows.** Nine soft ellipses drift over the whole island's box on
+the trade wind and come round again, painted small because a shadow's edge
+is soft anyway and draped under the roads. `cloudField(t)` is pure and
+seeded, so it is the same afternoon every visit.
+
+**The route dots walk.** A dash array has no phase, so the ferry lines are
+cycled through five arrays with a growing zero-length lead, and the dots
+crawl toward the island with the tide.
+
 ## Still owed
 
-- **Fog of war.** The ledger knows which places this person has been to;
-  the map could draw the rest as uncharted and reveal it as they go. That
-  is the honest version of "exploration", derived from evidence, and it is
-  not built.
-- **Water that moves.** The sea is a flat fill. A shader with a little
-  swell would be worth its weight.
-- **A native Thai read** of the two new strings, through the review page.
+- **The native app.** The mist and the swell are web marks, like the quest
+  X; the native island keeps its legend count and nothing else.
+- **A native Thai read** of the new strings, through the review page.
