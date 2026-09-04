@@ -85,7 +85,7 @@ EXPO_PUBLIC_API_URL=http://192.168.1.42:8787 pnpm mobile
 pnpm test
 ```
 
-**1,448 tests** — 334 core, 729 API, 360 mobile, 25 tokens — plus 11 in the Dart
+**1,450 tests** — 334 core, 731 API, 360 mobile, 25 tokens — plus 11 in the Dart
 SDK (`pnpm test:dart`) and 10 in the Swift one (`swift test`). `pnpm typecheck`
 covers all four packages. `.github/workflows/ci.yml` runs all of it on every
 push, on Linux and macOS, so the numbers above are checked by a machine nobody
@@ -167,6 +167,10 @@ animal on the ground it lives on, lit by the island's clock, breathing,
 blinking, looking at your finger and answering a tap the way that animal
 would (`docs/33-companions-in-3d.md`). It wants nothing: the meters under it
 are still the habitat's measured air and crowding.
+
+**The console in a pocket.** The host console fits a phone, and the queue's
+count moves without a reload — badge, tab title, and a browser notification
+when a host has asked for one (`docs/41-the-console-in-a-pocket.md`).
 
 **A party on one proof.** Party members inside the fence when a proof is
 taken ride it; the host sees them by name and one approval pays each of them
