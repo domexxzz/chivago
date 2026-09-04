@@ -259,6 +259,25 @@ describe('a statement is checkable by anyone', () => {
     assert.doesNotMatch(JSON.stringify(body), /u-stmt/, 'a traveller id reached a public record');
   });
 
+  test('the CSV and the PDF are the same record as files: public, with the id, the digest and the way home in them', async () => {
+    const csv = await app.request(`/statements/${issued.id}/csv`, { headers: { origin: 'https://auditor.example' } });
+    assert.equal(csv.status, 200);
+    assert.match(csv.headers.get('content-type') ?? '', /text\/csv/);
+    assert.equal(csv.headers.get('access-control-allow-origin'), '*');
+    const sheet = await csv.text();
+    assert.ok(sheet.includes(issued.id) && sheet.includes(issued.digest) && sheet.includes(`/verify/${issued.id}`));
+    assert.doesNotMatch(sheet, /u-stmt/, 'a traveller id reached a file');
+
+    const pdf = await app.request(`/statements/${issued.id}/pdf`);
+    assert.equal(pdf.status, 200);
+    assert.equal(pdf.headers.get('content-type'), 'application/pdf');
+    const bytes = Buffer.from(await pdf.arrayBuffer()).toString('latin1');
+    assert.ok(bytes.startsWith('%PDF-1.4') && bytes.includes(issued.id) && bytes.includes(issued.digest));
+
+    const missing = await app.request('/statements/CG-2026-000000/pdf');
+    assert.equal(missing.status, 404);
+  });
+
   test('the page is the same record for a person, with the digest in full', async () => {
     const res = await app.request(`/verify/${issued.id}`);
     assert.equal(res.status, 200);
