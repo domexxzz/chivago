@@ -56,6 +56,9 @@ export function migrate(db: DB): string[] {
   // `review_note` stays free text - a human sentence cannot be keyed, and the
   // console warns the reviewer that it will not be translated.
   if (addColumn(db, 'proofs', 'reason_key', 'TEXT')) applied.push('proofs.reason_key');
+  // Party members who were inside the fence when this proof was taken, as a
+  // JSON list of user ids. One review pays all of them (docs/40).
+  if (addColumn(db, 'proofs', 'party_present', 'TEXT')) applied.push('proofs.party_present');
   if (addColumn(db, 'quest_progress', 'rejection_reason_key', 'TEXT')) {
     applied.push('quest_progress.rejection_reason_key');
   }

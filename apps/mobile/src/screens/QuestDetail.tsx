@@ -161,7 +161,12 @@ export function QuestDetailScreen({
     };
     const res = await api.submitProof(questId, payload);
     setBusy(false);
-    if (res.ok) { setPhotos([]); setWeight(''); data.reload(); }
+    if (res.ok) {
+      setPhotos([]); setWeight(''); data.reload();
+      // The party that was in the fence rides this proof: say who.
+      const names = (res.data.partyPresent ?? []).map((m) => m.displayName);
+      if (names.length > 0) onToast(t(strings.quest.partyRides(names)));
+    }
     // An offline submission is queued, not lost - beach and mangrove sites have
     // poor signal, which is exactly where proof gets taken. Queued means
     // WRITTEN: the outbox (state/outbox.ts) holds it and tries again when

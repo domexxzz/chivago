@@ -344,3 +344,77 @@ describe('one piece of work, one proof in the queue', () => {
     assert.equal(pending, 1);
   });
 });
+
+describe('a party on one proof', () => {
+  const ANN = 'u2';
+  const BOB = 'u3';
+  const addUser = (id: string, name: string) => {
+    db.prepare('INSERT INTO users (id, display_name, created_at) VALUES (?,?,?)').run(id, name, new Date().toISOString());
+    ensureWallet(db, id);
+  };
+  const party = (...ids: string[]) => {
+    db.prepare(`INSERT INTO parties (id, name, code_hash, created_by, created_at) VALUES ('p1', 'Us', 'hash-abc', ?, ?)`).run(ids[0], new Date().toISOString());
+    for (const id of ids) db.prepare(`INSERT INTO party_members (party_id, user_id, joined_at) VALUES ('p1', ?, ?)`).run(id, new Date().toISOString());
+  };
+  const fixAt = (id: string, lat: number, lng: number, at: Date) =>
+    db.prepare('INSERT OR REPLACE INTO last_fix (user_id, lat, lng, at) VALUES (?, ?, ?, ?)').run(id, lat, lng, at.toISOString());
+
+  test('a member in the fence rides the proof, and one approval pays them both', () => {
+    addUser(ANN, 'Ann'); addUser(BOB, 'Bob');
+    party(USER, ANN, BOB);
+    const at = afterDwell();
+    fixAt(ANN, SITE.lat, SITE.lng, new Date(at.getTime() - 5 * 60_000));          // here, five minutes ago
+    fixAt(BOB, 9.4442, 99.9711, new Date(at.getTime() - 5 * 60_000));            // twelve kilometres away
+    joinQuest(db, USER, QUEST);
+    arriveAtQuest(db, USER, QUEST, SITE);
+    const { proofId, partyPresent } = submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: null }, at);
+    assert.deepEqual(partyPresent.map((m) => m.displayName), ['Ann']);
+    assert.equal(getProgress(db, ANN, QUEST)?.stage, 'host_verification', 'Ann waits on the host with John');
+    assert.equal(getProgress(db, BOB, QUEST), null, 'Bob was not there');
+
+    resolveVerification(db, { userId: USER, questId: QUEST, proofId, approved: true, reviewedBy: 'K.' });
+    assert.equal(getProgress(db, ANN, QUEST)?.stage, 'complete');
+    assert.equal(getBalances(db, ANN).green, 150, 'the same award, once');
+    assert.equal(getBalances(db, BOB).green, 0);
+    assert.equal(movements(ANN).filter((e) => e.kind === 'quest_reward').length, 1);
+  });
+
+  test('a member whose last fix is too old is not present, however close it was', () => {
+    addUser(ANN, 'Ann');
+    party(USER, ANN);
+    const at = afterDwell();
+    fixAt(ANN, SITE.lat, SITE.lng, new Date(at.getTime() - 45 * 60_000));
+    joinQuest(db, USER, QUEST);
+    arriveAtQuest(db, USER, QUEST, SITE);
+    const { partyPresent } = submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: null }, at);
+    assert.deepEqual(partyPresent, []);
+  });
+
+  test('a rejection sends the whole party back to arrived, with the reason', () => {
+    addUser(ANN, 'Ann');
+    party(USER, ANN);
+    const at = afterDwell();
+    fixAt(ANN, SITE.lat, SITE.lng, new Date(at.getTime() - 60_000));
+    joinQuest(db, USER, QUEST);
+    arriveAtQuest(db, USER, QUEST, SITE);
+    const { proofId } = submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: null }, at);
+    resolveVerification(db, { userId: USER, questId: QUEST, proofId, approved: false, reasonKey: 'no_work_shown' });
+    const ann = getProgress(db, ANN, QUEST)!;
+    assert.equal(ann.stage, 'arrived');
+    assert.ok(ann.rejectedAt, 'the refusal is on her record too');
+    assert.equal(getBalances(db, ANN).green, 0);
+  });
+
+  test('a member who already finished this quest does not ride it again', () => {
+    addUser(ANN, 'Ann');
+    party(USER, ANN);
+    db.prepare(`INSERT INTO quest_progress (user_id, quest_id, stage, joined_at, verified_at) VALUES (?, ?, 'complete', ?, ?)`)
+      .run(ANN, QUEST, new Date().toISOString(), new Date().toISOString());
+    const at = afterDwell();
+    fixAt(ANN, SITE.lat, SITE.lng, new Date(at.getTime() - 60_000));
+    joinQuest(db, USER, QUEST);
+    arriveAtQuest(db, USER, QUEST, SITE);
+    const { partyPresent } = submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: null }, at);
+    assert.deepEqual(partyPresent, []);
+  });
+});
