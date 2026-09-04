@@ -35,6 +35,8 @@ import { MarketScreen } from './src/screens/MarketScreen.tsx';
 import { ImpactScreen } from './src/screens/ImpactScreen.tsx';
 import { HomeScreen } from './src/screens/HomeScreen.tsx';
 import { PassportScreen } from './src/screens/PassportScreen.tsx';
+import { MascotsScreen } from './src/screens/MascotsScreen.tsx';
+import { MascotRoomScreen } from './src/screens/MascotRoom.tsx';
 import { AccountScreen } from './src/screens/AccountScreen.tsx';
 import { PartyScreen } from './src/screens/PartyScreen.tsx';
 import { SafetyScreen } from './src/screens/SafetyScreen.tsx';
@@ -313,7 +315,13 @@ export default function App() {
         );
 
       case 'passport':
-        return <PassportScreen />;
+        return <PassportScreen onOpenMascots={() => nav.push('mascots')} />;
+
+      case 'mascots':
+        return <MascotsScreen onBack={nav.pop} onOpen={(code) => nav.push('mascot', { code })} />;
+
+      case 'mascot':
+        return <MascotRoomScreen code={nav.code ?? 'TH-84'} onBack={nav.pop} />;
 
       case 'account':
         return <AccountScreen onBack={nav.pop} onToast={toast.show} />;

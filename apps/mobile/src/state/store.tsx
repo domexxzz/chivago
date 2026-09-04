@@ -40,7 +40,8 @@ import { EMPTY_PROFILE } from '@chivago/core';
 export type ScreenKey =
   | 'onboarding' | 'home' | 'map' | 'place' | 'quests' | 'quest'
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
-  | 'companion' | 'passport' | 'account' | 'party';
+  | 'companion' | 'passport' | 'account' | 'party'
+  | 'mascots' | 'mascot';
 
 /**
  * Five tabs, and Impact is no longer one of them.
@@ -59,11 +60,13 @@ interface NavState {
   /** Route params, not state - they belong to the route, not the app. */
   placeId: string | null;
   questId: string | null;
+  /** A province code, for the mascot's room. */
+  code: string | null;
 }
 
 export interface Nav extends NavState {
   /** Push onto the stack. Used by place / quest / market / trip. */
-  push: (screen: ScreenKey, params?: { placeId?: string; questId?: string }) => void;
+  push: (screen: ScreenKey, params?: { placeId?: string; questId?: string; code?: string }) => void;
   /** Pop back. Falls back to the map if the stack is empty. */
   pop: () => void;
   /** A tab tap RESETS the stack, per the handoff. */
@@ -80,6 +83,8 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   // and a tab tap returns there rather than stranding the reader on a screen
   // no tab owns. `impact` in particular has no tab of its own any more.
   concierge: 'home', impact: 'home', passport: 'home', party: 'home',
+  // The field guide and a mascot's room are doors off the passport.
+  mascots: 'home', mascot: 'home',
   quests: 'quests', quest: 'quests',
   wallet: 'wallet', market: 'wallet',
   // Both reached from the wallet, so its tab stays lit behind them.
@@ -89,16 +94,17 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
 
 export function useNav(initial: ScreenKey = 'onboarding'): Nav {
   const [state, setState] = React.useState<NavState>({
-    screen: initial, stack: [], placeId: null, questId: null,
+    screen: initial, stack: [], placeId: null, questId: null, code: null,
   });
 
   const push = React.useCallback(
-    (screen: ScreenKey, params?: { placeId?: string; questId?: string }) => {
+    (screen: ScreenKey, params?: { placeId?: string; questId?: string; code?: string }) => {
       setState((s) => ({
         screen,
         stack: [...s.stack, s.screen],
         placeId: params?.placeId ?? s.placeId,
         questId: params?.questId ?? s.questId,
+        code: params?.code ?? s.code,
       }));
     },
     [],

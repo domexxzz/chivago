@@ -85,7 +85,7 @@ EXPO_PUBLIC_API_URL=http://192.168.1.42:8787 pnpm mobile
 pnpm test
 ```
 
-**1,393 tests** — 307 core, 714 API, 347 mobile, 25 tokens — plus 11 in the Dart
+**1,406 tests** — 314 core, 714 API, 353 mobile, 25 tokens — plus 11 in the Dart
 SDK (`pnpm test:dart`) and 10 in the Swift one (`swift test`). `pnpm typecheck`
 covers all four packages. `.github/workflows/ci.yml` runs all of it on every
 push, on Linux and macOS, so the numbers above are checked by a machine nobody
@@ -167,6 +167,14 @@ animal on the ground it lives on, lit by the island's clock, breathing,
 blinking, looking at your finger and answering a tap the way that animal
 would (`docs/33-companions-in-3d.md`). It wants nothing: the meters under it
 are still the habitat's measured air and crowding.
+
+**Seventy-seven mascots, one per province.** The province's emblem drawn as a
+small creature — the white elephant on Chiang Mai's seal, Trang's dugong,
+Nonthaburi's durian, Loei's ghost masks — built from eight bodies and a box of
+parts by one renderer, in three dimensions on the web and as a mark on a phone.
+No two are the same creature, every card says what it is drawn from, and the
+guide hides nothing: a province's emblem is public (`docs/35-seventy-seven-mascots.md`).
+The Samui eggs stay sealed; a mascot is an emblem, not a wildlife claim.
 
 **A map you could set out into.** On the web the island is real terrain —
 OpenStreetMap's coastline, the elevation model's mountain — coloured by its

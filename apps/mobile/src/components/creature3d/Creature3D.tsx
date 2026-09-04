@@ -25,7 +25,7 @@
 
 import React from 'react';
 import * as THREE from 'three';
-import type { CompanionStage, LayerKey } from '@chivago/core';
+import type { CompanionStage, LayerKey, Mascot } from '@chivago/core';
 import type { CreatureKey } from '../Creature.tsx';
 import { hourFrom } from '../island-clock.ts';
 import {
@@ -36,139 +36,10 @@ import {
 // Small builders. Every animal is made of these and nothing else.
 // ---------------------------------------------------------------------------
 
-type Mat = THREE.MeshStandardMaterial;
-
-const matCache = new Map<string, Mat>();
-function mat(hex: string, opts: Partial<{ roughness: number; metalness: number; emissive: string; emissiveIntensity: number; flat: boolean }> = {}): Mat {
-  const key = `${hex}|${JSON.stringify(opts)}`;
-  const cached = matCache.get(key);
-  if (cached) return cached;
-  const m = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(hex),
-    roughness: opts.roughness ?? 0.82,
-    metalness: opts.metalness ?? 0,
-    flatShading: opts.flat ?? false,
-  });
-  if (opts.emissive) {
-    m.emissive = new THREE.Color(opts.emissive);
-    m.emissiveIntensity = opts.emissiveIntensity ?? 0.6;
-  }
-  matCache.set(key, m);
-  return m;
-}
-
-const shadowed = <T extends THREE.Object3D>(o: T): T => { o.castShadow = true; o.receiveShadow = true; return o; };
-
-/**
- * A soft round dot for the particles. Without a map a point is a square, and
- * a firefly is not a square. Drawn once on a tiny canvas: no asset to ship.
- */
-let dotTexture: THREE.Texture | null = null;
-function softDot(): THREE.Texture {
-  if (dotTexture) return dotTexture;
-  const c = document.createElement('canvas');
-  c.width = 64; c.height = 64;
-  const ctx = c.getContext('2d')!;
-  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-  g.addColorStop(0, 'rgba(255,255,255,1)');
-  g.addColorStop(0.35, 'rgba(255,255,255,0.8)');
-  g.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 64, 64);
-  dotTexture = new THREE.CanvasTexture(c);
-  return dotTexture;
-}
-
-function sphere(r: number, m: Mat, sx = 1, sy = 1, sz = 1): THREE.Mesh {
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 28, 20), m);
-  mesh.scale.set(sx, sy, sz);
-  return shadowed(mesh);
-}
-function capsule(r: number, len: number, m: Mat): THREE.Mesh {
-  return shadowed(new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 16), m));
-}
-function cone(r: number, h: number, m: Mat, segs = 20): THREE.Mesh {
-  return shadowed(new THREE.Mesh(new THREE.ConeGeometry(r, h, segs), m));
-}
-function cylinder(rTop: number, rBottom: number, h: number, m: Mat, segs = 14): THREE.Mesh {
-  return shadowed(new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBottom, h, segs), m));
-}
-function tube(points: [number, number, number][], r: number, m: Mat, taper = false): THREE.Mesh {
-  const curve = new THREE.CatmullRomCurve3(points.map(([x, y, z]) => new THREE.Vector3(x, y, z)));
-  const geom = new THREE.TubeGeometry(curve, 24, r, 10, false);
-  if (taper) {
-    // Thin toward the tip: a tail, a root, a claw's finger.
-    const pos = geom.attributes.position as THREE.BufferAttribute;
-    const n = 25; // tubular segments + 1
-    for (let i = 0; i < pos.count; i += 1) {
-      const seg = Math.floor(i / 11); // radial segments + 1
-      const k = 1 - (seg / n) * 0.7;
-      const p = curve.getPointAt(Math.min(1, seg / (n - 1)));
-      pos.setXYZ(i,
-        p.x + (pos.getX(i) - p.x) * k,
-        p.y + (pos.getY(i) - p.y) * k,
-        p.z + (pos.getZ(i) - p.z) * k);
-    }
-    pos.needsUpdate = true;
-    geom.computeVertexNormals();
-  }
-  return shadowed(new THREE.Mesh(geom, m));
-}
-function group(...children: THREE.Object3D[]): THREE.Group {
-  const g = new THREE.Group();
-  for (const c of children) g.add(c);
-  return g;
-}
-const at = <T extends THREE.Object3D>(o: T, x: number, y: number, z: number, rx = 0, ry = 0, rz = 0): T => {
-  o.position.set(x, y, z);
-  o.rotation.set(rx, ry, rz);
-  return o;
-};
-
-/** Two eyes with catchlights. The catchlight is what makes it look back. */
-function eyes(r: number, spread: number, y: number, z: number, m: Mat): { group: THREE.Group; lids: THREE.Mesh[] } {
-  const white = mat('#f8f6f0', { roughness: 0.35 });
-  const light = mat('#ffffff', { emissive: '#ffffff', emissiveIntensity: 1.4, roughness: 0.2 });
-  const lids: THREE.Mesh[] = [];
-  const g = new THREE.Group();
-  for (const side of [-1, 1]) {
-    // A large dark iris with a thin white rim and a bright catchlight high
-    // on the side toward the light. The rim is a rim, not goggles: the
-    // first pass drew the white wider than the iris and every animal
-    // looked as if it had been surprised in the dark.
-    const eye = sphere(r, m, 1, 1, 0.8);
-    eye.position.set(side * spread, y, z);
-    const catchlight = sphere(r * 0.3, light);
-    catchlight.position.set(side * spread + r * 0.3, y + r * 0.38, z + r * 0.62);
-    catchlight.castShadow = false;
-    const catchlight2 = sphere(r * 0.13, light);
-    catchlight2.position.set(side * spread - r * 0.28, y - r * 0.3, z + r * 0.68);
-    catchlight2.castShadow = false;
-    const ring = sphere(r * 1.06, white);
-    ring.position.set(side * spread, y, z - r * 0.2);
-    ring.scale.set(1, 1, 0.5);
-    g.add(ring, eye, catchlight, catchlight2);
-    lids.push(eye, catchlight, catchlight2, ring);
-  }
-  return { group: g, lids };
-}
-
-// ---------------------------------------------------------------------------
-// The animals. Each returns its rig: the parts the animator moves.
-// ---------------------------------------------------------------------------
-
-interface Rig {
-  root: THREE.Group;
-  body: THREE.Object3D;
-  head: THREE.Group;
-  /** Scaled in y to blink. */
-  lids: THREE.Mesh[];
-  /** Whatever the species swings, flaps, paddles or waves. */
-  limbs: THREE.Object3D[];
-  tail?: THREE.Object3D;
-  /** Where the animal rests in y when not moving. */
-  restY: number;
-}
+import {
+  at, capsule, cone, cylinder, eyes, group, mat, shadowed, softDot, sphere, tube, type Mat, type Rig,
+} from './primitives.ts';
+import { MASCOT_REACTION_MS, buildMascot, mascotCamera, mascotIdle } from './mascot-rig.ts';
 
 function buildLangur(c: (typeof LOOKS)['dusky-langur']['colours'], hr: number): Rig {
   const body = mat(c.body), belly = mat(c.belly), limb = mat(c.limb), face = mat(c.beak, { roughness: 0.7 });
@@ -430,6 +301,15 @@ function buildEgg(layer: LayerKey): Rig {
   return { root: g, body: egg, head: group(), lids: [], limbs: [], restY: 0 };
 }
 
+/** The stage as size: a hatchling is a smaller animal with a bigger head. */
+function scaled(rig: Rig, stage: CompanionStage): Rig {
+  const s = stageScale(stage);
+  rig.root.scale.setScalar(s);
+  rig.root.position.y *= s;
+  rig.restY *= s;
+  return rig;
+}
+
 function buildCreature(key: CreatureKey, stage: CompanionStage): Rig {
   const look = LOOKS[key];
   if (stage === 'egg') return buildEgg(look.layer);
@@ -581,7 +461,10 @@ function prefersReducedMotion(): boolean {
 }
 
 export interface Creature3DProps {
-  species: CreatureKey;
+  /** One of the five Samui species, or - */
+  species?: CreatureKey;
+  /** - one of the seventy-seven provincial mascots. One of the two. */
+  mascot?: Mascot;
   stage: CompanionStage;
   height?: number;
   /** Spoken name, for the canvas. */
@@ -590,7 +473,7 @@ export interface Creature3DProps {
   onTap?: () => void;
 }
 
-export function Creature3D({ species, stage, height = 320, label, onTap }: Creature3DProps) {
+export function Creature3D({ species, mascot, stage, height = 320, label, onTap }: Creature3DProps) {
   const holder = React.useRef<HTMLDivElement | null>(null);
   const tapRef = React.useRef(onTap);
   React.useEffect(() => { tapRef.current = onTap; });
@@ -600,8 +483,9 @@ export function Creature3D({ species, stage, height = 320, label, onTap }: Creat
     if (!el) return;
     const still = prefersReducedMotion();
     const motion = motionScale(still);
-    const look = LOOKS[species];
-    const habitat = HABITATS[look.layer];
+    const look = mascot ? null : LOOKS[species ?? 'dusky-langur'];
+    const layer: LayerKey = mascot ? mascot.habitat : look!.layer;
+    const habitat = HABITATS[layer];
     // `?hour=14` shows the room at that island hour. For looking at it, and
     // for a demo given at midnight that wants to show the beach in daylight.
     const hourOverride = hourFrom(window.location.search);
@@ -658,10 +542,12 @@ export function Creature3D({ species, stage, height = 320, label, onTap }: Creat
     fill.position.set(-2, 2, 4);
     scene.add(fill);
 
-    const { water, glow } = buildHabitat(look.layer, scene);
+    const { water, glow } = buildHabitat(layer, scene);
     glow.visible = light.glowVisible || habitat.particles === 'bubbles' || habitat.particles === 'sparkle';
 
-    const rig = buildCreature(species, stage);
+    const rig = mascot
+      ? (stage === 'egg' ? buildEgg(mascot.habitat) : scaled(buildMascot(mascot, stage), stage))
+      : buildCreature(species ?? 'dusky-langur', stage);
     const stageRoot = new THREE.Group();
     stageRoot.add(rig.root);
     scene.add(stageRoot);
@@ -675,8 +561,12 @@ export function Creature3D({ species, stage, height = 320, label, onTap }: Creat
     stageRoot.add(contact);
 
     const camera = new THREE.PerspectiveCamera(32, el.clientWidth / height, 0.1, 30);
-    const focusY = stage === 'egg' ? 0.42 : look.medium === 'air' ? 0.95 : look.eyeHeight * 0.75 * stageScale(stage) + 0.1;
-    const dist = stage === 'egg' ? 2.2 : look.medium === 'air' ? 3.1 : look.eyeHeight < 0.3 ? 1.9 : 2.5;
+    const cam = mascot ? mascotCamera(mascot) : null;
+    const focusY = stage === 'egg' ? 0.42
+      : cam ? cam.focusY * stageScale(stage) + 0.1
+        : look!.medium === 'air' ? 0.95 : look!.eyeHeight * 0.75 * stageScale(stage) + 0.1;
+    const dist = stage === 'egg' ? 2.2 : cam ? cam.dist : look!.medium === 'air' ? 3.1 : look!.eyeHeight < 0.3 ? 1.9 : 2.5;
+    const reactionMs = mascot ? MASCOT_REACTION_MS : REACTION_MS[species ?? 'dusky-langur'];
     camera.position.set(0.3, focusY + 0.55, dist);
     camera.lookAt(0, focusY, 0);
 
@@ -688,7 +578,7 @@ export function Creature3D({ species, stage, height = 320, label, onTap }: Creat
       const now = performance.now();
       if (now < reactUntil) return;
       reactStart = now;
-      reactUntil = now + REACTION_MS[species];
+      reactUntil = now + reactionMs;
       burst();
       tapRef.current?.();
     };
@@ -754,7 +644,7 @@ export function Creature3D({ species, stage, height = 320, label, onTap }: Creat
       stageRoot.rotation.y = yaw;
 
       const reacting = performance.now() < reactUntil;
-      const k = reacting ? (performance.now() - reactStart) / REACTION_MS[species] : 0; // 0..1 through the reaction
+      const k = reacting ? (performance.now() - reactStart) / reactionMs : 0; // 0..1 through the reaction
       const pulse = reacting ? Math.sin(k * Math.PI) : 0;
 
       // Breath. Egg wobbles instead.
@@ -785,7 +675,8 @@ export function Creature3D({ species, stage, height = 320, label, onTap }: Creat
       rig.head.rotation.x += ((-lookY * 0.35) - rig.head.rotation.x) * Math.min(1, dt * 5);
 
       // Species idle and reaction.
-      switch (species) {
+      if (mascot && stage !== 'egg') mascotIdle(rig, mascot, t, k, pulse, motion);
+      switch (mascot ? null : species) {
         case 'dusky-langur': {
           if (rig.tail) rig.tail.rotation.y = Math.sin(t * 1.1) * 0.25 * motion;
           rig.root.position.y = rig.restY + pulse * 0.28; // the hop
@@ -919,7 +810,7 @@ export function Creature3D({ species, stage, height = 320, label, onTap }: Creat
       renderer.dispose();
       el.removeChild(renderer.domElement);
     };
-  }, [species, stage, height, label]);
+  }, [species, mascot?.key, stage, height, label]);
 
   return <div ref={holder} style={{ width: '100%', height, borderRadius: 18, overflow: 'hidden' }} />;
 }

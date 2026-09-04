@@ -115,6 +115,22 @@ export const strings = {
     },
   },
 
+  // -- Mascots ------------------------------------------------------------
+  mascots: {
+    title: t('Seventy-seven mascots', 'มาสคอต 77 จังหวัด'),
+    door: t('The field guide: one mascot per province', 'คู่มือมาสคอต หนึ่งตัวต่อหนึ่งจังหวัด'),
+    /** The honest line under the title. A mascot is an emblem, not a wildlife claim. */
+    note: t(
+      'Each one is drawn from something the province is known by - its seal, a fruit, a festival, a legend. An emblem, not a claim about what lives there.',
+      'แต่ละตัววาดจากสิ่งที่จังหวัดนั้นเป็นที่รู้จัก เช่น ตราจังหวัด ผลไม้ ประเพณี หรือตำนาน เป็นสัญลักษณ์ ไม่ใช่คำกล่าวอ้างว่ามีสัตว์ชนิดนั้นอยู่จริง',
+    ),
+    met: t('Been there', 'ไปมาแล้ว'),
+    notMet: t('Not yet', 'ยังไม่เคยไป'),
+    tapToGreet: t('Tap to say hello', 'แตะเพื่อทักทาย'),
+    drawnFrom: t('Drawn from', 'วาดจาก'),
+    metCount: (n: number, total: number) => t(`${n} of ${total} met`, `พบแล้ว ${n} จาก ${total}`),
+  },
+
   // -- Place --------------------------------------------------------------
   place: {
     context: t('Place', 'สถานที่'),
