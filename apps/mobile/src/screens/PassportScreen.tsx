@@ -22,9 +22,10 @@
  */
 
 import React from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
 import {
-  PROVINCES, REGIONS, passportProgress, provinceCollection, provinceCompanions, provincesIn,
+  PROVINCES, REGIONS, passportProgress, provinceCollection, provinceCompanions, provincesIn, strings,
   type Province, type ProvinceCompanion, type Region,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
@@ -42,7 +43,7 @@ const stateOf = (p: Province, visited: Set<string>, noted: Set<string>): StampSt
     : noted.has(p.code) ? 'noted'
       : p.status === 'open' ? 'open' : 'listed');
 
-export function PassportScreen() {
+export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void } = {}) {
   const passport = useAsync(() => api.passport(), []);
   const visited = new Set(passport.data?.visited ?? []);
   // Kept apart from `visited` all the way down: the count above the grid is
@@ -107,6 +108,26 @@ export function PassportScreen() {
           <HeroFigure value={collection.sealed} label="Sealed" thai="ยังไม่เปิด" />
         </View>
       </View>
+
+      {/* The field guide: every province's mascot, shown, with a stamp on the ones reached. */}
+      {onOpenMascots ? (
+        <Pressable
+          onPress={onOpenMascots}
+          accessibilityRole="button"
+          accessibilityLabel={t(strings.mascots.door)}
+          style={{
+            marginHorizontal: gutter, marginBottom: 4, padding: 14, borderRadius: radius.md,
+            borderWidth: layout.ruleStrong, borderColor: color.text, backgroundColor: color.surface,
+            flexDirection: 'row', alignItems: 'center', gap: 12,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Heading size={15}>{t(strings.mascots.title)}</Heading>
+            <Body size={13} colour={color.neutral600} style={{ marginTop: 2 }}>{t(strings.mascots.door)}</Body>
+          </View>
+          <ChevronRight size={18} color={color.text} strokeWidth={2} />
+        </Pressable>
+      ) : null}
 
       {passport.loading ? <LoadingState /> : null}
       {passport.error ? (

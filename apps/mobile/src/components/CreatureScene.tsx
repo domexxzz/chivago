@@ -16,9 +16,10 @@
 
 import React from 'react';
 import { Animated, Easing, Platform, View, useWindowDimensions } from 'react-native';
-import type { CompanionStage } from '@chivago/core';
+import type { CompanionStage, Mascot } from '@chivago/core';
 import { color } from '../theme/index.ts';
 import { Creature, type CreatureKey } from './Creature.tsx';
+import { MascotMark } from './MascotMark.tsx';
 import { useReduceMotion } from './reduce-motion.ts';
 
 const inBrowser = Platform.OS === 'web'
@@ -52,10 +53,12 @@ const KNOWN: readonly CreatureKey[] = ['dusky-langur', 'pied-hornbill', 'brahmin
 const isKnown = (s: string): s is CreatureKey => (KNOWN as readonly string[]).includes(s);
 
 export function CreatureScene({
-  species, stage, label, onTap, grown,
+  species, mascot, stage, label, onTap, grown,
 }: {
   /** A species key. An unknown one falls back to the drawn egg, as `Creature` does. */
   species: string;
+  /** Or a provincial mascot, which takes precedence: its room, its body. */
+  mascot?: Mascot;
   stage: CompanionStage;
   /** Spoken name of what is on screen, e.g. "Dusky langur, grown". */
   label: string;
@@ -65,12 +68,14 @@ export function CreatureScene({
   const { width } = useWindowDimensions();
   const breath = useBreath();
 
-  if (Creature3D && isKnown(species)) {
+  if (Creature3D && (mascot || isKnown(species))) {
     // Taller on a wide screen, where there is room; a phone gets a square.
     const height = Math.round(Math.min(360, Math.max(260, width * 0.62)));
     return (
       <React.Suspense fallback={<View style={{ height, backgroundColor: grown ? color.accent100 : color.surface }} />}>
-        <Creature3D species={species} stage={stage} height={height} label={label} onTap={onTap} />
+        {mascot
+          ? <Creature3D mascot={mascot} stage={stage} height={height} label={label} onTap={onTap} />
+          : <Creature3D species={species as CreatureKey} stage={stage} height={height} label={label} onTap={onTap} />}
       </React.Suspense>
     );
   }
@@ -85,7 +90,9 @@ export function CreatureScene({
           ],
         }}
       >
-        <Creature species={species} stage={stage} size={168} />
+        {mascot && stage !== 'egg'
+          ? <MascotMark mascot={mascot} size={168} />
+          : <Creature species={species} stage={stage} size={168} />}
       </Animated.View>
     </View>
   );
