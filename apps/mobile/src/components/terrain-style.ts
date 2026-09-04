@@ -694,11 +694,9 @@ export function crowdOffsets(
  * still mist; a place you stood at is not.
  */
 
-/** How far a visit clears, in metres: the beach, and a walk either way. */
-export const REVEAL_M = 1500;
-
-/** Where the sharp centre of a cleared circle softens into the mist, as a fraction of its radius. */
-export const REVEAL_FEATHER = 0.55;
+/** How far a visit clears, and where its edge softens. Defined with the geometry; used by both maps. */
+export { REVEAL_M, REVEAL_FEATHER } from './map-geometry.ts';
+import { REVEAL_M } from './map-geometry.ts';
 
 /** The canvas the mist is painted on. Square, so a pixel is a pixel in both axes at this latitude. */
 export const FOG_PX = 1024;

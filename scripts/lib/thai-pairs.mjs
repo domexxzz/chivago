@@ -74,6 +74,10 @@ export function collectPairs(root, roots = SOURCE_ROOTS) {
           th,
           thQuote: quoteOf(m, 4),
           context: (lines[line - 2] ?? '').trim().slice(0, 90),
+          // `// thai: intentional` on the line says a second rendering of the
+          // same English is a decision, not a drift - "Good evening" is one
+          // English phrase for two Thai parts of the day, on purpose.
+          intentional: /\/\/\s*thai:\s*intentional/.test(lines[line - 1] ?? ''),
         });
       }
     }
@@ -101,7 +105,11 @@ export const slots = (s) => (s.match(/\$\{[^}]+\}/g) ?? [])
   .map((x) => x.replace(/\.(en|th)\b/g, '.LANG'));
 
 /** Latin that is fine inside Thai copy: brands, units, codes a Thai reader knows. */
-const ALLOWED_LATIN = /^(SOS|QR|AQI|EXP|ChivaGo|PDPA|LINE|WhatsApp|SMS|GPS|IUCN|LC|NT|VU|EN|CR|NE|km|kg|hr|Wi-Fi|Green|Trip|Points?|Level|Rank|Chiva|Balance|Safe|Food|Wellness|Quest|Koh|Samui|Chaweng|Lamai|Bophut|Nathon)$/i;
+// The reporting standards a Thai hotel's sustainability officer reads by
+// their initials - ESG, ISAE 3000, HCMI, CHSB, CF-Hotels - are not English
+// left in; translating them would make the report harder to check, not
+// easier.
+const ALLOWED_LATIN = /^(SOS|QR|AQI|EXP|ChivaGo|PDPA|LINE|WhatsApp|SMS|GPS|IUCN|LC|NT|VU|EN|CR|NE|km|kg|hr|Wi-Fi|Green|Trip|Points?|Level|Rank|Chiva|Balance|Safe|Food|Wellness|Quest|Koh|Samui|Chaweng|Lamai|Bophut|Nathon|ESG|ISAE|HCMI|CHSB|CF-Hotels|THB|PM2\.5|GHG|CO2|NGO)$/i;
 
 export const KINDS = ['not-thai', 'untranslated', 'lost-value', 'inconsistent', 'english-left-in', 'suspiciously-short'];
 
@@ -114,8 +122,11 @@ export function analyse(pairs) {
 
     if (!THAI.test(th)) {
       // A string of digits or a code is the same in both languages. That is
-      // not a translation that went missing.
-      if (/^[\d\s.,:/%+\-·]+$/.test(th) || th.trim() === en.trim()) continue;
+      // not a translation that went missing. Nor is a template that is
+      // nothing but interpolations and punctuation - `${preset.th} — ${note}`
+      // carries Thai; it just carries it in the values.
+      const bare = th.replace(/\$\{[^}]+\}/g, '').trim();
+      if (/^[\d\s.,:/%+\-·—]*$/.test(bare) || th.trim() === en.trim()) continue;
       add(pair, 'not-thai', 'The Thai side contains no Thai script at all.');
       continue;
     }
@@ -135,7 +146,9 @@ export function analyse(pairs) {
     // not. Interpolations are stripped first: `${s.layer}` is code, not a
     // word the reader sees, and counting its identifiers as "untranslated"
     // was most of the noise in the first version of this check.
-    const visible = th.replace(/\$\{[^}]+\}/g, ' ');
+    // Notification templates use `{host}`-style slots that are filled later;
+    // those are code too, and a Thai reader never sees the word inside.
+    const visible = th.replace(/\$\{[^}]+\}/g, ' ').replace(/\{[a-zA-Z_]+\}/g, ' ');
     const latin = visible.match(/\b[A-Za-z][A-Za-z'’-]{2,}\b/g) ?? [];
     const stray = [...new Set(latin.filter((w) => !ALLOWED_LATIN.test(w)))];
     if (stray.length > 0) {
@@ -167,6 +180,10 @@ export function analyse(pairs) {
   }
   for (const [english, variants] of byEnglish) {
     if (variants.size < 2 || english.length < 4) continue;
+    // Renderings marked intentional do not count as drift. If everything but
+    // one is intentional, there is nothing to look at.
+    const drifted = [...variants.values()].filter((ps) => !ps.every((p) => p.intentional));
+    if (drifted.length < 2) continue;
     const where = [...variants.entries()].map(([th, ps]) => ({ th, at: ps.map((p) => `${p.file}:${p.line}`), ids: ps.map((p) => p.id) }));
     const first = [...variants.values()][0][0];
     findings.push({

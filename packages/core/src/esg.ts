@@ -216,6 +216,6 @@ export function esgHeadline(report: EsgReport): Bilingual {
   const acts = report.verified;
   return {
     en: `${acts} ${acts === 1 ? 'activity' : 'activities'} verified by named hosts, involving ${people} ${people === 1 ? 'person' : 'people'}, with ${report.paidTHB.toLocaleString('en-US')} THB reaching community hosts.`,
-    th: `กิจกรรมผ่านการตรวจโดยผู้จัดที่ระบุชื่อได้ ${report.verified} ครั้ง มีผู้ร่วม ${people} คน และเงิน ${report.paidTHB.toLocaleString('en-US')} บาทถึงมือผู้จัดในชุมชน`,
+    th: `กิจกรรมที่ผ่านการตรวจโดยผู้จัดที่ระบุชื่อได้ ${acts} รายการ มีผู้เข้าร่วม ${people} คน และมีเงิน ${report.paidTHB.toLocaleString('en-US')} บาทถึงมือผู้จัดในชุมชน`,
   };
 }

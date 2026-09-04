@@ -119,8 +119,43 @@ seeded, so it is the same afternoon every visit.
 cycled through five arrays with a growing zero-length lead, and the dots
 crawl toward the island with the tide.
 
+## On a phone
+
+The drawn island - the traced decagon a phone renders, with real points on
+it - has the same weather now, in SVG, with no development build and no
+native module: it runs in Expo Go as it stands.
+
+- **The mist** is a mask: a parchment rectangle cleared by radial gradients
+  around the places reached, through the same projection and tilt as the
+  pins (`mistCircles` in `map-geometry.ts`), so the cleared circle sits on
+  the ground plane, foreshortened like the island.
+- **The water** is a tile of six crest marks repeated across the map and
+  slid one tile per loop on the native driver, behind the island.
+- **The cloud shadows** are the web map's own seeded `cloudField`, drawn
+  twice side by side and slid one width per crossing, over the island and
+  under the mist.
+- **Reduce-motion** is one hook for everything - `useReduceMotion` reads the
+  phone's setting and the web's media query - and the drawn mark's breath,
+  which had claimed to stop under it for some time, now does.
+
+`?map=drawn` on the web shows the phone's island in a browser, which is how
+this was looked at.
+
+## The Thai
+
+The review tooling no longer flags what it should not: `{host}`-style slots
+in notification templates, the initials of reporting standards (ESG, ISAE,
+HCMI, CHSB, CF-Hotels), a template that is nothing but interpolations, and a
+second rendering of one English phrase that is marked `// thai: intentional`
+on its line. The pile it hands a native reader went from 22 to 0 - which
+means the pile is now the whole 551 pairs, read for register rather than for
+mechanics, and the page at `scripts/thai-review.mjs --html` is that pile.
+Four things were changed in the source on the way: the ESG headline's
+count now interpolates the same variable in both languages, the Missions
+screen's Thai title is the tab's, the compass reads "กลับไปมุมมองทั้งเกาะ",
+and the two intentional variants are marked.
+
 ## Still owed
 
-- **The native app.** The mist and the swell are web marks, like the quest
-  X; the native island keeps its legend count and nothing else.
-- **A native Thai read** of the new strings, through the review page.
+- **A native Thai read** of the 551 pairs for register and naturalness, on
+  the review page. A machine has nothing more to say about them.

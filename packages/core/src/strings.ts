@@ -105,7 +105,7 @@ export const strings = {
     /** The legend's second line: how much of the chart this traveller has lifted the mist from. */
     explored: (n: number, total: number) => t(`Explored · ${n} of ${total}`, `สำรวจแล้ว · ${n} จาก ${total}`),
     /** The compass rose. Tapping it returns the camera to the island view. */
-    compass: t('Compass. Return to the island view', 'เข็มทิศ แตะเพื่อกลับมุมมองเกาะ'),
+    compass: t('Compass. Return to the island view', 'เข็มทิศ แตะเพื่อกลับไปมุมมองทั้งเกาะ'),
     layers: {
       Green: t('Green', 'สีเขียว'),
       Wellness: t('Wellness', 'สุขภาพ'),
@@ -134,7 +134,7 @@ export const strings = {
 
   // -- Quests -------------------------------------------------------------
   quests: {
-    title: t('Missions', 'ภารกิจสีเขียว'),
+    title: t('Missions', 'ภารกิจ'),
     subtitle: t('Complete quests for the environment, earn points', 'ทำภารกิจเพื่อสิ่งแวดล้อม แลกเป็นแต้ม'),
     filters: {
       today: t('Today', 'วันนี้'),
@@ -258,7 +258,7 @@ export const strings = {
     ledger: t('Ledger', 'ประวัติแต้ม'),
     spendPoints: t('Spend points', 'ใช้แต้ม'),
     /** The two purses, named. Shown beside a figure, so short. */
-    green: t('Green', 'เขียว'),
+    green: t('Green', 'เขียว'), // thai: intentional - a unit beside a number, not the layer's name
     trip: t('Trip', 'ทริป'),
 
     emptyLedger: t('No activity yet — join a quest to start earning', 'ยังไม่มีรายการ เริ่มจากเข้าร่วมภารกิจ'),

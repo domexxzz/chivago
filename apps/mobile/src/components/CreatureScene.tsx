@@ -19,6 +19,7 @@ import { Animated, Easing, Platform, View, useWindowDimensions } from 'react-nat
 import type { CompanionStage } from '@chivago/core';
 import { color } from '../theme/index.ts';
 import { Creature, type CreatureKey } from './Creature.tsx';
+import { useReduceMotion } from './reduce-motion.ts';
 
 const inBrowser = Platform.OS === 'web'
   && typeof document !== 'undefined'
@@ -31,7 +32,10 @@ const Creature3D = inBrowser
 /** A slow breath for the drawn mark. Stops under reduce-motion. */
 function useBreath(): Animated.Value {
   const breath = React.useRef(new Animated.Value(0)).current;
+  const still = useReduceMotion();
   React.useEffect(() => {
+    // The comment above said this for a while before it was true.
+    if (still) { breath.setValue(0); return undefined; }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(breath, { toValue: 1, duration: 2000, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
@@ -40,7 +44,7 @@ function useBreath(): Animated.Value {
     );
     loop.start();
     return () => loop.stop();
-  }, [breath]);
+  }, [breath, still]);
   return breath;
 }
 
