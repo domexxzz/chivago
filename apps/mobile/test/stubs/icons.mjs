@@ -19,6 +19,7 @@ export const List = Icon;
 export const Map = Icon;
 export const MessageCircle = Icon;
 export const Phone = Icon;
+export const Search = Icon;
 export const Send = Icon;
 export const Shield = Icon;
 export const Sparkles = Icon;

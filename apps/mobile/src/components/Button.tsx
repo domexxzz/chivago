@@ -1,10 +1,13 @@
 /**
  * Buttons.
  *
- * The Modernist signature: a button wider than its label starts the text at the
- * left padding edge, with any trailing icon pushed to the right. Centred labels
- * are forbidden by the system, so `justifyContent: space-between` is baked in
- * here rather than left to each caller.
+ * A capsule with a centred label and, on the primary, a trailing arrow. This
+ * was the Modernist flush-left button - text at the left edge, icon pushed
+ * right - until the look moved (docs/36): the reference the product now
+ * follows is a travel app of white cards and teal capsules, and a flush-left
+ * label inside a capsule reads as a mistake. The rule that survives is the
+ * one about colour: the primary is the brand speaking, never the evidence
+ * green.
  */
 
 import React from 'react';
@@ -54,20 +57,17 @@ export function Button({
     }
     switch (variant) {
       case 'primary':
-        // ORANGE, not green. The primary button is "start something", and
+        // BRAND, not green. The primary button is "start something", and
         // green in this product means "a host verified this". A green Start
         // button teaches the traveller that green is just how buttons look,
-        // and the Green Points figure loses the only thing it had.
-        //
-        // The label colour travels WITH the fill rather than staying put:
-        // ink on the vivid orange, white on the pressed dark one. Both come
-        // from onFill, so the press state cannot land on the 3.04:1 pairing
-        // that holding one label colour across both would produce.
+        // and the Green Points figure loses the only thing it had. It was
+        // orange for the same reason; the teal is the reference's, and the
+        // measured white-on-brand pair comes from onFill.
         return pressed
-          ? { bg: color.ctaDeep, fg: onFill.ctaDeep, border: 'transparent' }
-          : { bg: color.cta, fg: onFill.cta, border: 'transparent' };
+          ? { bg: color.brandDeep, fg: onFill.brandDeep, border: 'transparent' }
+          : { bg: color.brand, fg: onFill.brand, border: 'transparent' };
       case 'secondary':
-        return { bg: pressed ? color.neutral200 : 'transparent', fg: color.text, border: color.divider };
+        return { bg: pressed ? color.neutral200 : color.surface, fg: color.brand, border: color.neutral300 };
       case 'ghost':
         // A text link is the app speaking, so it is brand blue.
         return { bg: 'transparent', fg: color.brand, border: 'transparent' };
@@ -109,14 +109,14 @@ export function Button({
           height,
           flexDirection: 'row',
           alignItems: 'center',
-          // Flush left, never centred. This is the system signature.
-          justifyContent: 'space-between',
-          paddingLeft: 18,
-          paddingRight: 16,
+          // Centred in a capsule, with the arrow beside the label.
+          justifyContent: 'center',
+          gap: 8,
+          paddingHorizontal: 20,
           backgroundColor: palette.bg,
           borderWidth: variant === 'secondary' ? 1 : 0,
           borderColor: palette.border,
-          borderRadius: radius.md,
+          borderRadius: radius.lg,
         },
         disabled && { opacity: layout.disabledOpacity },
         style,

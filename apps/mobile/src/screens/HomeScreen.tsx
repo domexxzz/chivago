@@ -13,9 +13,16 @@
  * The order is the argument, the same way it is on the sponsor page:
  *
  *   1. What is true here now      measured, and labelled with its provenance
- *   2. What you can do today      real quests, yours first, honest when empty
- *   3. What you are carrying      the two purses, the passport, the companions
- *   4. Where else to go           four doors, not twelve
+ *   2. Where to go                a row of doors, and the measured places
+ *   3. What you can do today      real quests, yours first, honest when empty
+ *   4. What you are carrying      the two purses, the passport, the companions
+ *
+ * THE LOOK (docs/36). A teal header with a search field, a white card lifted
+ * over its bottom edge, a row of round doors, cards with photographs that
+ * scroll sideways. It is the shape of the reference the product now follows;
+ * what is IN the shapes is still the measured island - the search field asks
+ * the concierge, the photographs are the licensed ones, the score chip on a
+ * photo is the same number the map pin carries.
  *
  * INDEPENDENT FAILURE. Each block loads on its own `useAsync`, so a dead
  * /places does not blank the screen — the conditions block says it is down and
@@ -25,15 +32,15 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import { ChevronRight, Compass, MessageCircle, Shield, Sparkles, Users } from 'lucide-react-native';
+import { Image, Pressable, ScrollView, View } from 'react-native';
+import { ChevronRight, Compass, Leaf, MessageCircle, Search, Shield, Sparkles, Users, Wallet } from 'lucide-react-native';
 import {
   greetingFor, isHighScore, passportProgress, strings,
   type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, currencyTone, gutter, layout, radius } from '../theme/index.ts';
+import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState } from '../components/States.tsx';
@@ -90,7 +97,7 @@ export function questOrder(
 
 export function HomeScreen({
   onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenPassport,
-  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, now = new Date(),
+  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenPlace, now = new Date(),
 }: {
   onOpenMap: () => void;
   onOpenQuests: () => void;
@@ -101,6 +108,8 @@ export function HomeScreen({
   onOpenConcierge: () => void;
   onOpenSafety: () => void;
   onOpenParty: () => void;
+  /** A place card. Optional so the screen tests that predate the cards still render. */
+  onOpenPlace?: (id: string) => void;
   /** Injected so the greeting is testable rather than whatever the clock says. */
   now?: Date;
 }) {
@@ -112,7 +121,18 @@ export function HomeScreen({
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <Conditions now={now} places={places} onOpenMap={onOpenMap} />
+      <Hero now={now} wallet={wallet} onOpenWallet={onOpenWallet} onOpenConcierge={onOpenConcierge} />
+      <Conditions places={places} onOpenMap={onOpenMap} />
+      <Doors
+        onOpenMap={onOpenMap}
+        onOpenQuests={onOpenQuests}
+        onOpenWallet={onOpenWallet}
+        onOpenConcierge={onOpenConcierge}
+        onOpenImpact={onOpenImpact}
+        onOpenSafety={onOpenSafety}
+        onOpenParty={onOpenParty}
+      />
+      <Places places={places} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} />
       <Today quests={quests} onOpenQuest={onOpenQuest} onOpenQuests={onOpenQuests} />
       <Carrying
         wallet={wallet}
@@ -121,15 +141,86 @@ export function HomeScreen({
         onOpenWallet={onOpenWallet}
         onOpenPassport={onOpenPassport}
       />
-      <Doors
-        onOpenMap={onOpenMap}
-        onOpenConcierge={onOpenConcierge}
-        onOpenImpact={onOpenImpact}
-        onOpenSafety={onOpenSafety}
-        onOpenParty={onOpenParty}
-      />
       <View style={{ height: 28 }} />
     </ScrollView>
+  );
+}
+
+type Async<T> = { data: T | null; loading: boolean; error: string | null; reload: () => void };
+
+// ---------------------------------------------------------------------------
+// 0. The header: the island's name, your points, and a place to ask
+// ---------------------------------------------------------------------------
+
+function Hero({
+  now, wallet, onOpenWallet, onOpenConcierge,
+}: {
+  now: Date;
+  wallet: Async<{ balances: { green: number; trip: number } }>;
+  onOpenWallet: () => void;
+  onOpenConcierge: () => void;
+}) {
+  const greeting = greetingFor(now);
+  const green = wallet.data?.balances.green ?? null;
+  return (
+    <View
+      style={{
+        backgroundColor: color.brand,
+        paddingHorizontal: gutter,
+        paddingTop: 18,
+        // Room for the conditions card that overlaps the bottom edge.
+        paddingBottom: 46,
+        borderBottomLeftRadius: 28,
+        borderBottomRightRadius: 28,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          {/*
+            No name. The app collects none, and "Hi, Paul" on a screen that
+            has never asked who you are is the first lie the reference tells.
+          */}
+          <Label size={10} tracking={0.16} colour={color.brandSoft}>{t(greeting)}</Label>
+          <Heading size={26} tracking={-0.5} colour={onFill.brand} style={{ marginTop: 2 }}>
+            {t({ en: 'Koh Samui', th: 'เกาะสมุย' })}
+          </Heading>
+        </View>
+        {/* The verified purse, as a chip. Green means a host checked it - even here. */}
+        <Pressable
+          onPress={onOpenWallet}
+          accessibilityRole="button"
+          accessibilityLabel={`Green Points, ${green === null ? 'unknown' : green.toLocaleString('en-US')} G`}
+          style={{
+            flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36,
+            paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.lg,
+            backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)',
+          }}
+        >
+          <Leaf size={14} color={color.accent300} strokeWidth={2.2} />
+          <Heading size={14} colour={onFill.brand}>{green === null ? '—' : green.toLocaleString('en-US')}</Heading>
+          <Label size={9} tracking={0.1} colour={color.brandSoft}>G</Label>
+        </Pressable>
+      </View>
+
+      {/*
+        The search field is the concierge's door. It looks like search because
+        that is what a traveller reaches for; it asks a person-shaped thing
+        because a search over five places is not worth a field.
+      */}
+      <Pressable
+        onPress={onOpenConcierge}
+        accessibilityRole="button"
+        accessibilityLabel={t({ en: 'Ask where to go', th: 'ถามว่าไปไหนดี' })}
+        style={{
+          marginTop: 16, minHeight: 46, paddingHorizontal: 16,
+          flexDirection: 'row', alignItems: 'center', gap: 10,
+          backgroundColor: color.surface, borderRadius: radius.lg,
+        }}
+      >
+        <Search size={16} color={color.neutral600} strokeWidth={2} />
+        <Body size={14} colour={color.neutral600}>{t({ en: 'Where to go today?', th: 'วันนี้ไปไหนดี?' })}</Body>
+      </Pressable>
+    </View>
   );
 }
 
@@ -137,93 +228,181 @@ export function HomeScreen({
 // 1. What is true here now
 // ---------------------------------------------------------------------------
 
-type Async<T> = { data: T | null; loading: boolean; error: string | null; reload: () => void };
-
 function Conditions({
-  now, places, onOpenMap,
-}: { now: Date; places: Async<ScoredPlace[]>; onOpenMap: () => void }) {
-  const greeting = greetingFor(now);
+  places, onOpenMap,
+}: { places: Async<ScoredPlace[]>; onOpenMap: () => void }) {
   const list = places.data ?? [];
   const avg = islandAverage(list);
   const provenance = weakestProvenance(list);
 
   return (
     <View
-      style={{
-        margin: gutter,
-        padding: 22,
+      style={[shadow.card, {
+        marginHorizontal: gutter,
+        marginTop: -30,
+        padding: 18,
         borderRadius: radius.md,
-        backgroundColor: color.paper,
-      }}
+        backgroundColor: color.surface,
+      }]}
     >
-      <Label size={10} tracking={0.16} colour={color.brandSoft}>
-        {`${t(greeting)} · ${t({ en: 'Koh Samui', th: 'เกาะสมุย' })}`}
+      <Label size={10} tracking={0.14} colour={color.neutral700}>
+        {`${t(strings.place.healthyScore)} · ${t({ en: 'today', th: 'วันนี้' })}`}
       </Label>
 
       {places.error ? (
         // The block fails alone and says what is missing. It does not fall back
         // to a plausible number, which is the failure this whole app is about.
-        <View style={{ marginTop: 14 }}>
-          <Body size={13} colour={color.surface}>{t({ en: 'Conditions are unavailable right now.', th: 'ยังดึงข้อมูลสภาพพื้นที่ไม่ได้' })}</Body>
-          <Button
-            label={t(strings.common.retry)}
-            onPress={places.reload}
-            variant="secondary"
-            height={40}
-            style={{ marginTop: 10, borderColor: color.brandSoft }}
-            inverted
-          />
+        <View style={{ marginTop: 10 }}>
+          <Body size={13} colour={color.neutral800}>{t({ en: 'Conditions are unavailable right now.', th: 'ยังดึงข้อมูลสภาพพื้นที่ไม่ได้' })}</Body>
+          <Button label={t(strings.common.retry)} onPress={places.reload} variant="secondary" height={40} style={{ marginTop: 10 }} />
         </View>
       ) : avg === null ? (
-        <Body size={13} colour={color.brandSoft} style={{ marginTop: 14 }}>
+        <Body size={13} colour={color.neutral700} style={{ marginTop: 10 }}>
           {places.loading ? 'Reading the island…' : 'No measured places yet.'}
         </Body>
       ) : (
-        <>
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10, marginTop: 14 }}>
-            <Heading
-              size={44}
-              tracking={-1}
-              colour={isHighScore(avg) ? color.accent300 : color.surface}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8 }}>
+          <Heading size={44} tracking={-1} colour={isHighScore(avg) ? color.accent700 : color.text}>{avg}</Heading>
+          <View style={{ flex: 1 }}>
+            <Body size={13} colour={color.neutral800}>
+              {t({
+                en: `Average across ${list.length} measured place${list.length === 1 ? '' : 's'}`,
+                th: `เฉลี่ยจาก ${list.length} สถานที่ที่วัดจริง`,
+              })}
+            </Body>
+            <Label size={9} tracking={0.1} colour={color.neutral600} style={{ marginTop: 2 }}>
+              {t(strings.place.provenance[provenance])}
+            </Label>
+            {/*
+              The average is a summary; the numbers with a breakdown behind
+              them are the per-place ones. Saying so, and pointing at them, is
+              cheaper than defending an aggregate nobody can interrogate.
+            */}
+            <Pressable
+              onPress={onOpenMap}
+              accessibilityRole="button"
+              accessibilityLabel="See every place and how its score is calculated"
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, minHeight: 28 }}
             >
-              {avg}
-            </Heading>
-            <Label size={10} tracking={0.12} colour={color.brandSoft}>
-              {`${t(strings.place.healthyScore)} · ${t({ en: 'Average', th: 'เฉลี่ย' })}`}
-            </Label>
+              <Label size={10} tracking={0.1} colour={color.brand}>{t({ en: 'See every place', th: 'ดูทุกสถานที่' })}</Label>
+              <ChevronRight size={14} color={color.brand} strokeWidth={2} />
+            </Pressable>
           </View>
-
-          <Body size={13} colour={color.brandSoft} style={{ marginTop: 6 }}>
-            {`${t({
-              en: `Across ${list.length} measured place${list.length === 1 ? '' : 's'}`,
-              th: `จาก ${list.length} สถานที่ที่วัดจริง`,
-            })} · ${t(strings.place.provenance[provenance])}`}
-          </Body>
-
-          {/*
-            The average is a summary; the numbers with a breakdown behind them
-            are the per-place ones. Saying so, and pointing at them, is cheaper
-            than defending an aggregate nobody can interrogate.
-          */}
-          <Pressable
-            onPress={onOpenMap}
-            accessibilityRole="button"
-            accessibilityLabel="See every place and how its score is calculated"
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, minHeight: 44 }}
-          >
-            <Label size={10} tracking={0.1} colour={color.surface}>
-              {t({ en: 'See every place', th: 'ดูทุกสถานที่' })}
-            </Label>
-            <ChevronRight size={16} color={color.surface} strokeWidth={2} />
-          </Pressable>
-        </>
+        </View>
       )}
     </View>
   );
 }
 
 // ---------------------------------------------------------------------------
-// 2. What you can do today
+// 2. Where to go: the doors, and the measured places
+// ---------------------------------------------------------------------------
+
+function Doors({
+  onOpenMap, onOpenQuests, onOpenWallet, onOpenConcierge, onOpenImpact, onOpenSafety, onOpenParty,
+}: {
+  onOpenMap: () => void; onOpenQuests: () => void; onOpenWallet: () => void; onOpenConcierge: () => void;
+  onOpenImpact: () => void; onOpenSafety: () => void; onOpenParty: () => void;
+}) {
+  // Seven round doors in a row that scrolls, not a grid of twelve. Untyped on
+  // purpose: annotating the icon narrower than LucideIcon fights the
+  // library's own forwardRef signature for nothing.
+  const doors = [
+    { Icon: Compass, name: strings.tabs.map, onPress: onOpenMap },
+    { Icon: Sparkles, name: strings.tabs.quests, onPress: onOpenQuests },
+    { Icon: Wallet, name: strings.tabs.wallet, onPress: onOpenWallet },
+    { Icon: Shield, name: strings.tabs.safety, onPress: onOpenSafety },
+    { Icon: MessageCircle, name: { en: 'Ask', th: 'ถาม' }, onPress: onOpenConcierge },
+    { Icon: Leaf, name: strings.tabs.impact, onPress: onOpenImpact },
+    { Icon: Users, name: { en: 'Group', th: 'กลุ่ม' }, onPress: onOpenParty },
+  ];
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ paddingHorizontal: gutter, paddingTop: 18, gap: 14 }}
+    >
+      {doors.map(({ Icon, name, onPress }) => (
+        <Pressable
+          key={name.en}
+          onPress={onPress}
+          accessibilityRole="button"
+          accessibilityLabel={t(name)}
+          style={{ alignItems: 'center', gap: 6, width: 64 }}
+        >
+          <View
+            style={{
+              width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center',
+              backgroundColor: color.brandSoft,
+            }}
+          >
+            <Icon size={20} color={color.brand} strokeWidth={2} />
+          </View>
+          <Label size={9} tracking={0.06} colour={color.neutral800} style={{ textTransform: 'none' }}>{t(name)}</Label>
+        </Pressable>
+      ))}
+    </ScrollView>
+  );
+}
+
+function Places({
+  places, onOpenMap, onOpenPlace,
+}: { places: Async<ScoredPlace[]>; onOpenMap: () => void; onOpenPlace: (id: string) => void }) {
+  const list = places.data ?? [];
+  if (list.length === 0) return null;
+  return (
+    <View style={{ paddingTop: 22 }}>
+      <SectionHead en="Measured places" th="สถานที่ที่วัดจริง" onSeeAll={onOpenMap} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: gutter, gap: 12 }}>
+        {list.map((p) => <PlaceCard key={p.id} place={p} onPress={() => onOpenPlace(p.id)} />)}
+      </ScrollView>
+    </View>
+  );
+}
+
+/**
+ * A place, as a card with its photograph and its score.
+ *
+ * The photograph is the licensed one the place screen shows, credit and all,
+ * or no photograph: a card with a stock beach on it would be the aspirational
+ * Home this file's header refuses. The chip is the map pin's number, in the
+ * map pin's colours - green only past the threshold a host would recognise.
+ */
+function PlaceCard({ place, onPress }: { place: ScoredPlace; onPress: () => void }) {
+  const high = isHighScore(place.healthyScore);
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${t(place.name)}, ${t(strings.place.healthyScore)} ${place.healthyScore}`}
+      style={[shadow.card, { width: 172, backgroundColor: color.surface, borderRadius: radius.md, overflow: 'hidden' }]}
+    >
+      <View style={{ height: 112, backgroundColor: color.neutral200 }}>
+        {place.photo ? (
+          <Image source={{ uri: place.photo.url }} resizeMode="cover" style={{ width: '100%', height: '100%' }}
+            accessibilityLabel={`${t(place.name)}, photographed by ${place.photo.credit}`} />
+        ) : null}
+        <View
+          style={{
+            position: 'absolute', top: 8, left: 8, paddingVertical: 3, paddingHorizontal: 8, borderRadius: radius.lg,
+            backgroundColor: high ? color.accent : color.surface,
+          }}
+        >
+          <Heading size={12} colour={high ? onFill.accent : color.text}>{String(place.healthyScore)}</Heading>
+        </View>
+      </View>
+      <View style={{ padding: 10 }}>
+        <Heading size={14}>{t(place.name)}</Heading>
+        <Label size={9} tracking={0.04} colour={color.neutral600} style={{ marginTop: 3, textTransform: 'none' }} >
+          {place.meta}
+        </Label>
+      </View>
+    </Pressable>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 3. What you can do today
 // ---------------------------------------------------------------------------
 
 function Today({
@@ -238,7 +417,7 @@ function Today({
   /*
     Finished quests are not things you can do today, so they leave this list.
     The demo account has completed all four of today's, which rendered a
-    "Today" block listing four missions the traveller had already done — an
+    "Today" block listing four missions the traveller had already done - an
     invitation to repeat work that cannot be repeated.
   */
   const open = all.filter((q) => progress[q.id]?.stage !== 'complete');
@@ -247,8 +426,8 @@ function Today({
   const rest = open.length - ordered.length;
 
   return (
-    <View style={{ paddingTop: 6 }}>
-      <SectionHead en="Today" th="วันนี้" />
+    <View style={{ paddingTop: 22 }}>
+      <SectionHead en="Today" th="วันนี้" onSeeAll={onOpenQuests} />
 
       {quests.error ? (
         <ErrorState message={quests.error} onRetry={quests.reload} />
@@ -258,62 +437,37 @@ function Today({
         </Body>
       ) : ordered.length === 0 ? (
         /*
-          Said plainly, and not padded. The alternative — an "explore nearby!"
-          card with nothing behind it — is how an app teaches people that its
-          prompts do not mean anything.
-
-          Two different empty states, because they are two different days.
-          Having finished everything is an achievement and reads as one; there
-          being nothing to do is not the traveller's doing and should not be
-          dressed up as praise.
+          Said plainly, and not padded. Two different empty states, because
+          they are two different days: having finished everything is an
+          achievement and reads as one; there being nothing to do is not the
+          traveller's doing and should not be dressed up as praise.
         */
-        <View style={{ paddingHorizontal: gutter }}>
+        <View style={[shadow.card, { marginHorizontal: gutter, padding: 16, borderRadius: radius.md, backgroundColor: color.surface }]}>
           {finished > 0 ? (
-            <>
-              <Body size={13} colour={color.accent700}>
-                {t({
-                  en: `All ${finished} of today’s missions are done. Nothing left to verify until tomorrow.`,
-                  th: `ทำภารกิจวันนี้ครบทั้ง ${finished} รายการแล้ว ไม่มีอะไรรอตรวจจนถึงพรุ่งนี้`,
-                })}
-              </Body>
-            </>
+            <Body size={13} colour={color.accent700}>
+              {t({
+                en: `All ${finished} of today’s missions are done. Nothing left to verify until tomorrow.`,
+                th: `ทำภารกิจวันนี้ครบทั้ง ${finished} รายการแล้ว ไม่มีอะไรรอตรวจจนถึงพรุ่งนี้`,
+              })}
+            </Body>
           ) : (
-            <>
-              <Body size={13} colour={color.neutral700}>{t({ en: 'No missions running today. The map still works, and the weekend list usually has something.', th: 'วันนี้ยังไม่มีภารกิจ แผนที่ยังใช้ได้ และรายการสุดสัปดาห์มักมีให้ทำ' })}</Body>
-            </>
+            <Body size={13} colour={color.neutral700}>{t({ en: 'No missions running today. The map still works, and the weekend list usually has something.', th: 'วันนี้ยังไม่มีภารกิจ แผนที่ยังใช้ได้ และรายการสุดสัปดาห์มักมีให้ทำ' })}</Body>
           )}
-          <Button
-            label="See all missions"
-            thai="ดูภารกิจทั้งหมด"
-            onPress={onOpenQuests}
-            variant="secondary"
-            height={44}
-            style={{ marginTop: 12 }}
-          />
+          <Button label="See all missions" thai="ดูภารกิจทั้งหมด" onPress={onOpenQuests} variant="secondary" height={44} style={{ marginTop: 12 }} />
         </View>
       ) : (
         <>
           {ordered.map((q) => (
-            <QuestCard
-              key={q.id}
-              quest={q}
-              progress={progress[q.id] ?? null}
-              onPress={() => onOpenQuest(q.id)}
-            />
+            <QuestCard key={q.id} quest={q} progress={progress[q.id] ?? null} onPress={() => onOpenQuest(q.id)} />
           ))}
           {rest > 0 ? (
             <Pressable
               onPress={onOpenQuests}
               accessibilityRole="button"
               accessibilityLabel={`See all missions, ${rest} more`}
-              style={{
-                marginHorizontal: gutter, marginTop: 10, minHeight: 44,
-                flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-              }}
+              style={{ marginHorizontal: gutter, marginTop: 10, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
             >
-              <Label size={10} tracking={0.12} colour={color.brand}>
-                {t({ en: `${rest} more today`, th: `อีก ${rest} ภารกิจวันนี้` })}
-              </Label>
+              <Label size={10} tracking={0.12} colour={color.brand}>{t({ en: `${rest} more today`, th: `อีก ${rest} ภารกิจวันนี้` })}</Label>
               <ChevronRight size={16} color={color.brand} strokeWidth={2} />
             </Pressable>
           ) : null}
@@ -334,18 +488,18 @@ function QuestCard({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${t(quest.name)}. ${t(quest.where)}. ${started ? 'In progress' : 'Not started'}`}
-      style={{
+      style={[shadow.card, {
         marginHorizontal: gutter,
         marginTop: 10,
         padding: 14,
         backgroundColor: color.surface,
         borderRadius: radius.md,
-        borderWidth: started ? layout.ruleStrong : 1,
         // A quest already under way is the app reminding you of your own
-        // commitment, so it is outlined in brand — not in green, which would
+        // commitment, so it is outlined in brand - not in green, which would
         // say a host had already approved something nobody has done yet.
-        borderColor: started ? color.brand : color.neutral300,
-      }}
+        borderWidth: started ? layout.ruleStrong : 0,
+        borderColor: color.brand,
+      }]}
     >
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
         <View style={{ flex: 1 }}>
@@ -353,7 +507,6 @@ function QuestCard({
             <Label size={9} tracking={0.14} colour={color.brand} style={{ marginBottom: 4 }}>{t({ en: 'IN PROGRESS', th: 'กำลังทำอยู่' })}</Label>
           ) : null}
           <Heading size={16}>{t(quest.name)}</Heading>
-
           <Body size={13} colour={color.neutral600} style={{ marginTop: 6 }}>
             {`${t(quest.where)} · ${t(quest.duration)}`}
           </Body>
@@ -366,13 +519,7 @@ function QuestCard({
             {t(strings.quests.by(quest.host.name))}
           </Label>
         </View>
-
-        <View
-          style={{
-            backgroundColor: tone.fill,
-            paddingVertical: 4, paddingHorizontal: 8, borderRadius: radius.sm,
-          }}
-        >
+        <View style={{ backgroundColor: tone.fill, paddingVertical: 4, paddingHorizontal: 10, borderRadius: radius.lg }}>
           <Heading size={13} colour={tone.on}>
             {`+${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'G' : 'T'}`}
           </Heading>
@@ -383,7 +530,7 @@ function QuestCard({
 }
 
 // ---------------------------------------------------------------------------
-// 3. What you are carrying
+// 4. What you are carrying
 // ---------------------------------------------------------------------------
 
 function Carrying({
@@ -410,50 +557,17 @@ function Carrying({
           screen where somebody first learns there are two of them. Green is
           host-verified, gold is self-verified, and the labels say which.
         */}
-        <Figure
-          value={green === null ? '—' : green.toLocaleString('en-US')}
-          unit="G"
-          en="Green · verified"
-          th="ตรวจแล้ว"
-          tone={color.accent700}
-          onPress={onOpenWallet}
-        />
-        <Figure
-          value={trip === null ? '—' : trip.toLocaleString('en-US')}
-          unit="T"
-          en="Trip · self"
-          th="บันทึกเอง"
-          tone={color.goldDeep}
-          onPress={onOpenWallet}
-        />
+        <Figure value={green === null ? '—' : green.toLocaleString('en-US')} unit="G" en="Green · verified" th="ตรวจแล้ว" tone={color.accent700} onPress={onOpenWallet} />
+        <Figure value={trip === null ? '—' : trip.toLocaleString('en-US')} unit="T" en="Trip · self" th="บันทึกเอง" tone={color.goldDeep} onPress={onOpenWallet} />
       </View>
 
       <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: gutter, marginTop: 10 }}>
-        <Figure
-          value={stamps === null ? '—' : String(stamps.visited)}
-          unit={stamps === null ? '' : `/ ${stamps.total}`}
-          en="Provinces"
-          th="จังหวัด"
-          tone={color.brand}
-          onPress={onOpenPassport}
-        />
-        <Figure
-          value={found === null ? '—' : String(found.found)}
-          unit={found === null ? '' : `/ ${found.total}`}
-          en="Companions"
-          th="เพื่อนร่วมทาง"
-          tone={color.brand}
-          onPress={onOpenWallet}
-        />
+        <Figure value={stamps === null ? '—' : String(stamps.visited)} unit={stamps === null ? '' : `/ ${stamps.total}`} en="Provinces" th="จังหวัด" tone={color.brand} onPress={onOpenPassport} />
+        <Figure value={found === null ? '—' : String(found.found)} unit={found === null ? '' : `/ ${found.total}`} en="Companions" th="เพื่อนร่วมทาง" tone={color.brand} onPress={onOpenWallet} />
       </View>
 
       {wallet.error || passport.error || companions.error ? (
-        <Label
-          size={9}
-          tracking={0.04}
-          colour={color.neutral600}
-          style={{ paddingHorizontal: gutter, marginTop: 8, textTransform: 'none' }}
-        >
+        <Label size={9} tracking={0.04} colour={color.neutral600} style={{ paddingHorizontal: gutter, marginTop: 8, textTransform: 'none' }}>
           Some figures could not be loaded and are shown as —, not as zero.
         </Label>
       ) : null}
@@ -472,13 +586,7 @@ function Figure({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${en}, ${value} ${unit}`}
-      style={{
-        flex: 1, minHeight: 44, padding: 14,
-        backgroundColor: color.surface,
-        borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: color.neutral300,
-      }}
+      style={[shadow.card, { flex: 1, minHeight: 44, padding: 14, backgroundColor: color.surface, borderRadius: radius.md }]}
     >
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
         <Heading size={24} colour={tone}>{value}</Heading>
@@ -489,60 +597,16 @@ function Figure({
   );
 }
 
-// ---------------------------------------------------------------------------
-// 4. Where else to go
-// ---------------------------------------------------------------------------
-
-function Doors({
-  onOpenMap, onOpenConcierge, onOpenImpact, onOpenSafety, onOpenParty,
-}: {
-  onOpenMap: () => void; onOpenConcierge: () => void;
-  onOpenImpact: () => void; onOpenSafety: () => void; onOpenParty: () => void;
-}) {
-  // Five, not twelve. A grid of twelve icons is what a Home screen becomes
-  // when nobody decided what the traveller is most likely to want.
-  // Untyped on purpose: annotating the icon narrower than LucideIcon fights
-  // the library's own forwardRef signature for nothing.
-  const doors = [
-    { Icon: Compass, name: strings.tabs.map, onPress: onOpenMap },
-    { Icon: MessageCircle, name: { en: 'Ask', th: 'ถาม' }, onPress: onOpenConcierge },
-    { Icon: Sparkles, name: strings.tabs.impact, onPress: onOpenImpact },
-    { Icon: Shield, name: strings.tabs.safety, onPress: onOpenSafety },
-    { Icon: Users, name: { en: 'Group', th: 'กลุ่ม' }, onPress: onOpenParty },
-  ];
-
+/** A section's title, and the reference's "See all" beside it when there is a place to go. */
+function SectionHead({ en, th, onSeeAll }: { en: string; th: string; onSeeAll?: () => void }) {
   return (
-    <View style={{ paddingTop: 22 }}>
-      <SectionHead en="Go" th="ไปต่อ" />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: gutter }}>
-        {doors.map(({ Icon, name, onPress }) => (
-          <Pressable
-            key={name.en}
-            onPress={onPress}
-            accessibilityRole="button"
-            accessibilityLabel={t(name)}
-            style={{
-              // Basis rather than flex:1 — five doors wrap to a second row,
-              // and equal flex would stretch a lone survivor across the width.
-              flexBasis: '30%', flexGrow: 1, minHeight: 76, paddingVertical: 12, gap: 6,
-              alignItems: 'center', justifyContent: 'center',
-              backgroundColor: color.brandSoft,
-              borderRadius: radius.md,
-            }}
-          >
-            <Icon size={20} color={color.brandDeep} strokeWidth={2} />
-            <Label size={9} tracking={0.08} colour={color.brandDeep}>{t(name)}</Label>
-          </Pressable>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-function SectionHead({ en, th }: { en: string; th: string }) {
-  return (
-    <View style={{ paddingHorizontal: gutter, paddingBottom: 10 }}>
-      <Label size={10} tracking={0.14}>{t({ en, th })}</Label>
+    <View style={{ paddingHorizontal: gutter, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <Heading size={16}>{t({ en, th })}</Heading>
+      {onSeeAll ? (
+        <Pressable onPress={onSeeAll} accessibilityRole="button" accessibilityLabel={`${t({ en: 'See all', th: 'ดูทั้งหมด' })}: ${t({ en, th })}`} style={{ minHeight: 28, justifyContent: 'center' }}>
+          <Label size={10} tracking={0.1} colour={color.brand}>{t({ en: 'See all', th: 'ดูทั้งหมด' })}</Label>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
