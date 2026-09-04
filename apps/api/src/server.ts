@@ -242,7 +242,9 @@ app.get('/statements/:id/pdf', (c) => {
   c.header('cache-control', 'public, max-age=300');
   c.header('content-type', 'application/pdf');
   c.header('content-disposition', `inline; filename="${statement.id}.pdf"`);
-  return c.body(statementPdf(statement, new URL(c.req.url).origin));
+  // Hono's body wants an ArrayBuffer; the PDF is a fresh Uint8Array over
+  // one, so its buffer is exactly the file.
+  return c.body(statementPdf(statement, new URL(c.req.url).origin).buffer as ArrayBuffer);
 });
 
 app.get('/verify/:id', (c) => {
