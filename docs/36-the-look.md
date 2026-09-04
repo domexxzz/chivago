@@ -65,9 +65,10 @@ with the one difference that matters: the photograph is one of the island's
 licensed ones, credit and all, or none. The answers are cards; a chosen one
 is outlined in brand, not filled in the evidence green as it was.
 
-## Still owed
+## The third pass
 
-- The quest detail's stat band and timeline, and the safety services list,
-  are hairlined rows rather than cards. They read as quieter than Home now,
-  which is not wrong; a card treatment is a taste call left for a native
-  reader of the screens.
+The quest detail's stat band and progress rail, and the safety services,
+are cards; a service's state is a soft pill, brand when it is on. The
+safety header is the deep-teal inverted surface with rounded corners.
+Nothing of the look is still owed. What remains is a native reader's eye on
+the screens, which no pass by the author can supply.

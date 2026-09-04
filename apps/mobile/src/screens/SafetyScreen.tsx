@@ -26,7 +26,7 @@ import type { SosAlertRecord } from '../api/client.ts';
 import { SOS_RADIUS } from '@chivago/tokens';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, motion, onFill, radius } from '../theme/index.ts';
+import { color, gutter, layout, motion, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
@@ -45,7 +45,7 @@ export function SafetyScreen({
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
       {/* The design's only inverted header - it carries the mode change. */}
-      <View style={{ backgroundColor: color.text, paddingHorizontal: gutter, paddingVertical: 18 }}>
+      <View style={{ backgroundColor: color.mist, paddingHorizontal: gutter, paddingVertical: 18, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 }}>
         <Label size={10} tracking={0.16} colour={onFill.text} style={{ opacity: 0.7 }}>
           {strings.safety.kicker.en}
         </Label>
@@ -98,22 +98,23 @@ function ServiceRow({ service }: { service: ShieldService }) {
   const on = service.state === 'on';
   return (
     <View
-      style={{
+      style={[shadow.card, {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 14,
-        paddingVertical: 14,
-        paddingHorizontal: gutter,
-        borderBottomWidth: 1,
-        borderBottomColor: color.neutral300,
-      }}
+        marginHorizontal: gutter,
+        marginTop: 10,
+        padding: 14,
+        borderRadius: radius.md,
+        backgroundColor: color.surface,
+      }]}
     >
       <View
         style={{
           width: 10,
           height: 10,
           backgroundColor: on ? color.brand : color.neutral400,
-          borderRadius: radius.sm,
+          borderRadius: radius.lg,
         }}
       />
       <View style={{ flex: 1 }}>
@@ -124,9 +125,9 @@ function ServiceRow({ service }: { service: ShieldService }) {
         </Label>
         <Thai always size={10} style={{ marginTop: 1 }}>{service.note.th}</Thai>
       </View>
-      <View style={{ alignItems: 'flex-end' }}>
-        <Label size={10} tracking={0.12}>{strings.safety.states[service.state].en}</Label>
-        <Thai always size={9}>{strings.safety.states[service.state].th}</Thai>
+      <View style={{ alignItems: 'center', paddingVertical: 4, paddingHorizontal: 10, borderRadius: radius.lg, backgroundColor: on ? color.brandSoft : color.neutral200 }}>
+        <Label size={10} tracking={0.12} colour={on ? color.brand : color.neutral700}>{strings.safety.states[service.state].en}</Label>
+        <Thai always size={9} colour={on ? color.brand : color.neutral700}>{strings.safety.states[service.state].th}</Thai>
       </View>
     </View>
   );
