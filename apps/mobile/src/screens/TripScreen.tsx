@@ -96,6 +96,10 @@ export function TripScreen({
               <Stat label={t({ en: 'Fares', th: 'ค่าเดินทาง' })} value={`฿${plan.data.fareTHB}`} />
             </View>
 
+            {/* The inputs, before the output: what this day was planned from. */}
+            <View style={{ marginHorizontal: gutter, marginTop: 12, padding: 12, borderRadius: radius.md, backgroundColor: color.brandSoft }}>
+              <Body size={13} colour={color.brandDeep}>{t(plan.data.basis)}</Body>
+            </View>
             {plan.data.items.length === 0 ? (
               <EmptyState en={t(strings.trip.empty)} th={strings.trip.empty.th} />
             ) : null}

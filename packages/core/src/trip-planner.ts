@@ -46,6 +46,14 @@ export const MIDDAY = { from: 10 * 60, until: 15 * 60 } as const;
  */
 export const AIR_LIMIT = { shift: 80, avoid: 120 } as const;
 
+/**
+ * This many ChivaGo travellers checked in at a place in the last hour is a
+ * crowd the planner has actually seen, and it keeps a crowd-watcher out of
+ * there at midday - on top of the seeded estimate, which it now trusts
+ * less. Three, because two is a couple.
+ */
+export const LIVE_BUSY_CHECKINS = 3;
+
 export interface PlanRequest {
   profile: WellnessProfile | null;
   places: ScoredPlace[];
@@ -110,6 +118,13 @@ export interface TripPlan {
   energy: keyof typeof ENERGY_KM;
   /** What the planner could not fit, and why. Silence would be worse. */
   dropped: { name: Bilingual; reason: Bilingual }[];
+  /**
+   * What the day was planned FROM: how many measured places, how many with
+   * live air, what was being watched, how many quests were open. One
+   * sentence, so a traveller can see the inputs before arguing with the
+   * output.
+   */
+  basis: Bilingual;
 }
 
 const R = 6_371;
@@ -242,7 +257,9 @@ export function planDay(req: PlanRequest): TripPlan {
     // to mention it afterwards.
     const unbreathable = watchesAir && place.metrics.aqi > AIR_LIMIT.avoid;
     const badAir = watchesAir && place.metrics.aqi > AIR_LIMIT.shift;
-    const busy = watchesCrowd && place.metrics.crowdDensity > 2.2;
+    const seen = place.crowd?.checkinsLastHour ?? 0;
+    const liveBusy = watchesCrowd && seen >= LIVE_BUSY_CHECKINS;
+    const busy = liveBusy || (watchesCrowd && place.metrics.crowdDensity > 2.2);
     if (unbreathable || (midday && (badAir || busy))) {
       dropped.push({
         name: place.name,
@@ -250,6 +267,8 @@ export function planDay(req: PlanRequest): TripPlan {
           ? { en: `Air is ${place.metrics.aqi} AQI — unhealthy at any hour, so it is not in the plan`, th: `อากาศ ${place.metrics.aqi} AQI ไม่ดีต่อสุขภาพทุกช่วงเวลา จึงไม่จัดลงแผน` }
           : badAir
           ? { en: `Air was ${place.metrics.aqi} AQI at midday — moved out of the plan`, th: `อากาศ ${place.metrics.aqi} AQI ช่วงกลางวัน จึงไม่จัดลงแผน` }
+          : liveBusy
+          ? { en: `${seen} travellers checked in here in the last hour — kept out of the middle of the day`, th: `มีนักเดินทางเช็กอินที่นี่ ${seen} คนในชั่วโมงที่ผ่านมา จึงไม่จัดไว้กลางวัน` }
           : { en: 'Busiest hours — kept out of the middle of the day', th: 'ช่วงคนเยอะที่สุด จึงไม่จัดไว้กลางวัน' },
       });
       used.add(place.id);
@@ -338,6 +357,7 @@ export function planDay(req: PlanRequest): TripPlan {
     .reduce((n, i) => n + (quests.find((q) => q.id === i.questId)?.rewardPoints ?? 0), 0);
 
   return {
+    basis: basisFor({ energy, places, quests, watchesAir, watchesCrowd }),
     items,
     // What the day costs to get around. Named so nobody reads it as the
     // price of the day itself - entry fees and food are not in here.
@@ -369,5 +389,23 @@ function reasonFor(place: ScoredPlace, matchesPurpose: boolean, km: number): Bil
     // The meta is the part that says WHY the score is what it is. Dropping it
     // left the Thai reader a bare number and the English reader a reason.
     th: `วันนี้ได้ ${place.healthyScore} คะแนน — ${place.meta}`,
+  };
+}
+
+
+/** The sentence the plan was made from. */
+function basisFor(args: {
+  energy: keyof typeof ENERGY_KM; places: ScoredPlace[]; quests: Quest[]; watchesAir: boolean; watchesCrowd: boolean;
+}): Bilingual {
+  const live = args.places.filter((p) => p.readings?.aqi?.provenance === 'live').length;
+  const counted = args.places.filter((p) => p.crowd).length;
+  const watching = [args.watchesAir ? 'air' : null, args.watchesCrowd ? 'crowds' : null].filter(Boolean) as string[];
+  const watchingTh = [args.watchesAir ? 'อากาศ' : null, args.watchesCrowd ? 'ความแออัด' : null].filter(Boolean) as string[];
+  const energyTh = { gentle: 'เบา ๆ', moderate: 'ปานกลาง', full: 'เต็มวัน' }[args.energy];
+  return {
+    en: `A ${args.energy} day from ${args.places.length} measured place${args.places.length === 1 ? '' : 's'} (${live} with live air, ${counted} with an hourly head count)`
+      + `${watching.length ? `, watching ${watching.join(' and ')}` : ''}, with ${args.quests.length} quest${args.quests.length === 1 ? '' : 's'} open.`,
+    th: `วัน${energyTh} จาก ${args.places.length} สถานที่ที่วัดจริง (อากาศสด ${live} แห่ง นับคนรายชั่วโมง ${counted} แห่ง)`
+      + `${watchingTh.length ? ` ระวังเรื่อง${watchingTh.join('และ')}` : ''} มีภารกิจเปิด ${args.quests.length} รายการ`,
   };
 }
