@@ -31,7 +31,7 @@ in English, [`docs/32-status-2026-09-02.md`](docs/32-status-2026-09-02.md) in Th
 
 ## Try it
 
-**https://chivago-demo.vercel.app** — the static demo build. Nothing
+**https://chivago-demo-sigma.vercel.app** — the static demo build. Nothing
 is saved (the strip at the top says so): every screen answers from a snapshot
 captured from the real API after `demo:reset`, writes mutate an in-memory
 copy, and a reload starts over. The host console, real geofencing and real
