@@ -26,6 +26,8 @@ import {
 } from '@chivago/core';
 import { API_BASE, api, type FiledStatement, type Result } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
+import { enqueueProof, pendingFor } from '../state/outbox.ts';
+import { deviceOutbox } from '../state/outbox-device.ts';
 import { color, gutter, layout, motion, onFill, radius, shadow } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
@@ -45,6 +47,9 @@ export function QuestDetailScreen({
   const data = useAsync(() => api.quest(questId), [questId]);
   const [busy, setBusy] = React.useState(false);
   const [photos, setPhotos] = React.useState<ProofPhoto[]>([]);
+  // Proofs for this quest waiting in the outbox, so the screen can say so.
+  const [pending, setPending] = React.useState(0);
+  React.useEffect(() => { void pendingFor(deviceOutbox(), questId).then(setPending); }, [questId]);
   const [weight, setWeight] = React.useState('');
 
   const quest = data.data?.quest ?? null;
@@ -144,7 +149,7 @@ export function QuestDetailScreen({
       onToast(t(strings.checkin.noFix));
       return;
     }
-    const res = await api.submitProof(questId, {
+    const payload = {
       photos,
       weightKg: weight ? Number(weight) : null,
       position: {
@@ -153,12 +158,18 @@ export function QuestDetailScreen({
         accuracyM: pos.coords.accuracy ?? null,
         mocked: pos.mocked ?? false,
       },
-    });
+    };
+    const res = await api.submitProof(questId, payload);
     setBusy(false);
     if (res.ok) { setPhotos([]); setWeight(''); data.reload(); }
     // An offline submission is queued, not lost - beach and mangrove sites have
-    // poor signal, which is exactly where proof gets taken.
+    // poor signal, which is exactly where proof gets taken. Queued means
+    // WRITTEN: the outbox (state/outbox.ts) holds it and tries again when
+    // there is signal. For fifty commits this branch only showed the toast.
     else if (res.code === 'NETWORK' || res.code === 'TIMEOUT') {
+      await enqueueProof(deviceOutbox(), questId, payload);
+      setPhotos([]); setWeight('');
+      setPending((n) => n + 1);
       onToast(t(strings.quest.queuedOffline));
     } else onToast(res.error);
   };
@@ -208,6 +219,11 @@ export function QuestDetailScreen({
             ) : null}
             {stage === 'joined' ? (
               <Button label={t(strings.quest.ctaArrive)} onPress={arrive} height={52} disabled={busy} />
+            ) : null}
+            {pending > 0 ? (
+              <View style={{ marginHorizontal: gutter, marginTop: 12, padding: 12, borderRadius: radius.md, backgroundColor: color.brandSoft }}>
+                <Body size={13} colour={color.brandDeep}>{t(strings.quest.outboxPending(pending))}</Body>
+              </View>
             ) : null}
             {stage === 'arrived' ? (
               <ProofBox

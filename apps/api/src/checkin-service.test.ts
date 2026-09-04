@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
-import { CHECKIN_TRIP_POINTS } from '@chivago/core';
+import { CHECKIN_TRIP_POINTS, LOW_CARBON_TRIP_POINTS } from '@chivago/core';
 import { openTestDb, type DB } from './db.ts';
 import { getBalances, getExp, getLedger } from './wallet-service.ts';
 import { OutsideGeofence } from './quest-service.ts';
@@ -168,5 +168,50 @@ describe('what the app asks on return', () => {
       .run('u2', 'Other', new Date().toISOString());
     checkIn(db, { userId: USER, placeId: PLACE, ...SITE });
     assert.deepEqual(checkedInToday(db, 'u2'), []);
+  });
+});
+
+describe('the leg on foot', () => {
+  const addFisherman = () => db.prepare(
+    `INSERT INTO places (id, name_en, name_th, short, layer, lat, lng, meta,
+       blurb_en, blurb_th, tags, safety_label_en, safety_label_th,
+       crowd_density, aqi, safety_index, walkability)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+  ).run('fisherman', "Fisherman's Village", 'x', 'FV', 'Food', 9.5573, 100.0449, 'Market', 'x', 'x', '[]', 'Busy', 'x', 3, 40, 7, 8);
+  const FV = { lat: 9.5573, lng: 100.0449 };
+  const t0 = new Date('2026-10-14T03:00:00Z');
+
+  test('two check-ins a walk apart pay the check-in and the leg, as Trip Points, once', () => {
+    addFisherman();
+    const first = checkIn(db, { userId: USER, placeId: PLACE, ...SITE, now: t0 })!;
+    assert.equal(first.walk, null, 'the first check-in of the day closes no leg');
+    const second = checkIn(db, { userId: USER, placeId: 'fisherman', ...FV, now: new Date(t0.getTime() + 100 * 60_000) })!;
+    assert.ok(second.walk, 'a hundred minutes for 2.4 km is a walk');
+    assert.equal(second.walk!.fromPlaceId, PLACE);
+    assert.equal(second.walk!.points, LOW_CARBON_TRIP_POINTS);
+    assert.equal(getBalances(db, USER).trip, CHECKIN_TRIP_POINTS * 2 + LOW_CARBON_TRIP_POINTS);
+    assert.equal(getBalances(db, USER).green, 0, 'a measured leg is not a host verification');
+    const walkRows = getLedger(db, USER).filter((e) => e.kind === 'walk');
+    assert.equal(walkRows.length, 1);
+    assert.match(walkRows[0]!.label, /Walked · Chaweng Beach → Fisherman's Village/);
+    assert.match(walkRows[0]!.host, /measured leg/);
+  });
+
+  test('the same distance in ten minutes was a vehicle, and pays only the check-in', () => {
+    addFisherman();
+    checkIn(db, { userId: USER, placeId: PLACE, ...SITE, now: t0 });
+    const second = checkIn(db, { userId: USER, placeId: 'fisherman', ...FV, now: new Date(t0.getTime() + 10 * 60_000) })!;
+    assert.equal(second.walk, null);
+    assert.equal(getBalances(db, USER).trip, CHECKIN_TRIP_POINTS * 2);
+  });
+
+  test('a second check-in at the same beach closes no leg and pays nothing more', () => {
+    addFisherman();
+    checkIn(db, { userId: USER, placeId: PLACE, ...SITE, now: t0 });
+    checkIn(db, { userId: USER, placeId: 'fisherman', ...FV, now: new Date(t0.getTime() + 100 * 60_000) });
+    const again = checkIn(db, { userId: USER, placeId: 'fisherman', ...FV, now: new Date(t0.getTime() + 200 * 60_000) })!;
+    assert.equal(again.awarded, false);
+    assert.equal(again.walk, null);
+    assert.equal(getBalances(db, USER).trip, CHECKIN_TRIP_POINTS * 2 + LOW_CARBON_TRIP_POINTS);
   });
 });

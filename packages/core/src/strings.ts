@@ -251,6 +251,10 @@ export const strings = {
       'Could not open the camera or photos. Try the other one',
       'เปิดกล้องหรือคลังรูปไม่ได้ ลองอีกทางหนึ่ง',
     ),
+    /** What the quest screen says above the proof box while an upload waits. */
+    outboxPending: (n: number) => t(`${n} proof${n === 1 ? '' : 's'} waiting to upload. It will go when you have signal.`, `มีหลักฐาน ${n} ชุดรอส่ง จะส่งเองเมื่อมีสัญญาณ`),
+    outboxSent: t('A saved proof has been uploaded.', 'ส่งหลักฐานที่บันทึกไว้แล้ว'),
+    outboxDropped: t('A saved proof was refused by the server and has been removed. Open the quest to see why.', 'หลักฐานที่บันทึกไว้ถูกเซิร์ฟเวอร์ปฏิเสธและถูกลบออก เปิดภารกิจเพื่อดูเหตุผล'),
     queuedOffline: t(
       'Saved — will upload when you have signal',
       'บันทึกแล้ว จะอัปโหลดเมื่อมีสัญญาณ',
@@ -436,6 +440,8 @@ export const strings = {
       'Could not get your position. Move into the open and try again',
       'หาตำแหน่งไม่ได้ ลองย้ายไปที่โล่งแล้วลองใหม่',
     ),
+    /** The leg on foot that a check-in closed, paid beside it. */
+    walked: (n: number, from: string) => t(`+${n} T for walking here from ${from}`, `+${n} T ที่เดินมาจาก${from}`),
     awarded: (n: number) =>
       t(`Checked in · +${n} Trip Points`, `เช็กอินแล้ว ได้ ${n} แต้มทริป`),
     // Warm, not red. Coming back to a place you liked is the behaviour the

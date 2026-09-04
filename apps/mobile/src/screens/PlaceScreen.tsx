@@ -104,11 +104,11 @@ export function PlaceScreen({
     setCheckedIn(true);
     // `awarded: false` means they are here and already checked in today. Say
     // so warmly - a second visit is the behaviour we want, not a mistake.
-    onToast(
-      res.data.awarded
-        ? t(strings.checkin.awarded(res.data.pointsAwarded))
-        : t(strings.checkin.already),
-    );
+    const awardedLine = res.data.awarded
+      ? t(strings.checkin.awarded(res.data.pointsAwarded))
+      : t(strings.checkin.already);
+    // The leg that brought them here, said beside the check-in it closed.
+    onToast(res.data.walk ? `${awardedLine} · ${t(strings.checkin.walked(res.data.walk.points, res.data.walk.fromPlaceName))}` : awardedLine);
     if (res.data.awarded) onPointsChanged();
   };
 

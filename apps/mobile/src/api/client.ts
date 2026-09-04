@@ -38,6 +38,8 @@ export interface CheckinResult {
   placeId: string;
   placeName: string;
   awarded: boolean;
+  /** The leg on foot this check-in closed, paid beside it. See core low-carbon.ts. */
+  walk?: { fromPlaceId: string; fromPlaceName: string; metres: number; minutes: number; points: number } | null;
   pointsAwarded: number;
   balances: Balances;
   exp: number;
