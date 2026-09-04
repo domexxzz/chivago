@@ -26,7 +26,7 @@ import { ChevronRight } from 'lucide-react-native';
 import { isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
+import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
@@ -95,16 +95,8 @@ function SegmentedFilter({
     ['all', `${t(strings.quests.filters.all)} ${total}`],
   ];
   return (
-    <View
-      style={{
-        flexDirection: 'row',
-        borderTopWidth: layout.ruleStrong,
-        borderTopColor: color.text,
-        borderBottomWidth: 1,
-        borderBottomColor: color.neutral300,
-      }}
-    >
-      {options.map(([key, label], i) => {
+    <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: gutter, paddingBottom: 6 }}>
+      {options.map(([key, label]) => {
         const active = key === value;
         return (
           <Pressable
@@ -113,17 +105,19 @@ function SegmentedFilter({
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
             style={{
-              flex: 1,
-              paddingVertical: 9,
-              paddingHorizontal: 4,
+              minHeight: 36,
+              paddingVertical: 8,
+              paddingHorizontal: 16,
               alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: radius.lg,
               // A filter is the app sorting its own list. Brand, not evidence.
-              backgroundColor: active ? color.brand : 'transparent',
-              borderRightWidth: i < options.length - 1 ? 1 : 0,
-              borderRightColor: color.neutral300,
+              backgroundColor: active ? color.brand : color.surface,
+              borderWidth: 1,
+              borderColor: active ? color.brand : color.neutral300,
             }}
           >
-            <Label size={11} tracking={0.1} colour={active ? onFill.brand : color.neutral700}>{label}</Label>
+            <Label size={11} tracking={0.06} colour={active ? onFill.brand : color.neutral700} style={{ textTransform: 'none' }}>{label}</Label>
           </Pressable>
         );
       })}
@@ -143,29 +137,29 @@ export function QuestRow({
         + `${quest.rewardCurrency === 'green' ? 'Green' : 'Trip'} Points, `
         + `at ${t(quest.where)}, by ${quest.host.name}`
       }
-      style={{
+      style={[shadow.card, {
         flexDirection: 'row',
         gap: 14,
-        paddingVertical: 16,
-        paddingHorizontal: gutter,
-        borderBottomWidth: 1,
-        borderBottomColor: color.neutral300,
-      }}
+        padding: 14,
+        marginHorizontal: gutter,
+        marginTop: 10,
+        backgroundColor: color.surface,
+        borderRadius: radius.md,
+      }]}
     >
-      {/* The quest code in a 44x44 ink square. This IS the system's icon -
-          do not swap in an illustration. */}
+      {/* The quest code in a 44x44 tile. This IS the system's icon - do not
+          swap in an illustration. */}
       <View
         style={{
           width: 44,
           height: 44,
           alignItems: 'center',
           justifyContent: 'center',
-          borderWidth: layout.ruleStrong,
-          borderColor: color.text,
+          backgroundColor: color.brandSoft,
           borderRadius: radius.sm,
         }}
       >
-        <Heading size={11}>{quest.code}</Heading>
+        <Heading size={11} colour={color.brand}>{quest.code}</Heading>
       </View>
 
       <View style={{ flex: 1 }}>
@@ -179,7 +173,7 @@ export function QuestRow({
             reward in the verified green told the traveller a host had checked
             something before they had even left the list screen.
           */}
-          <View style={{ backgroundColor: currencyTone(quest.rewardCurrency).fill, paddingVertical: 3, paddingHorizontal: 7, borderRadius: radius.sm }}>
+          <View style={{ backgroundColor: currencyTone(quest.rewardCurrency).fill, paddingVertical: 3, paddingHorizontal: 9, borderRadius: radius.lg }}>
             <Heading size={13} colour={currencyTone(quest.rewardCurrency).on}>
               {`+${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'G' : 'T'}`}
             </Heading>

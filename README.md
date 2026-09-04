@@ -168,6 +168,11 @@ blinking, looking at your finger and answering a tap the way that animal
 would (`docs/33-companions-in-3d.md`). It wants nothing: the meters under it
 are still the habitat's measured air and crowding.
 
+**A look you would open.** Teal, white cards on a pale ground, capsule buttons,
+a search field that asks the concierge, photographs that scroll sideways —
+the shape of the travel app the owner set as the reference, with the measured
+island in it (`docs/36-the-look.md`). Green still means a host verified it.
+
 **Seventy-seven mascots, one per province.** The province's emblem drawn as a
 small creature — the white elephant on Chiang Mai's seal, Trang's dugong,
 Nonthaburi's durian, Loei's ghost masks — built from eight bodies and a box of

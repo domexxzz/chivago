@@ -35,7 +35,7 @@
 
 export const color = {
   /** App background / screen ground - the light sky the cards sit on */
-  bg: '#eaf2fc',
+  bg: '#eef4f5',
   /** Cards and inset panels. White, so a card reads as a card without a border */
   surface: '#ffffff',
   /** Foreground: body + heading text, strong rules, active tab fill, toast */
@@ -55,9 +55,9 @@ export const color = {
    * turned Green Points blue, and the one thing the palette must never do is
    * let the verified currency stop looking verified.
    */
-  brand: '#1e6fd9',
-  brandDeep: '#143a6b',
-  brandSoft: '#dbe9fb',
+  brand: '#0e7480',
+  brandDeep: '#0a4a52',
+  brandSoft: '#d7edef',
 
   /**
    * The call to action. One orange, used sparingly: the button that starts
@@ -92,17 +92,17 @@ export const color = {
   goldDeep: '#8f5a00',
 
   /** Ground-ward end of the ramp. */
-  neutral100: '#f4f8fd',
-  neutral200: '#e8eff8',
-  neutral300: '#d8e3f0',
-  neutral400: '#bccbdf',
-  neutral500: '#8fa2bb',
-  neutral600: '#6b7f9c',
+  neutral100: '#f5f9f9',
+  neutral200: '#e9f1f2',
+  neutral300: '#d7e4e6',
+  neutral400: '#b9cbcf',
+  neutral500: '#8ca2a8',
+  neutral600: '#6a808a',
   /** The workhorse secondary text - readable on white at small sizes */
-  neutral700: '#54688a',
-  neutral800: '#33486a',
+  neutral700: '#526a78',
+  neutral800: '#31485a',
   /** Text-ward end. Also the shadow colour, which stays near-black on purpose. */
-  neutral900: '#081a30',
+  neutral900: '#08202a',
 
   accent100: '#eaf7ef',
   accent200: '#cdebd9',
@@ -129,7 +129,7 @@ export const color = {
    * On a dark scheme this was paper; on a light one the inversion is navy.
    * The role is "the surface that is the opposite of the page".
    */
-  paper: '#143a6b',
+  paper: '#0b5561',
   mist: '#0e2a4f',
 } as const;
 
@@ -214,11 +214,17 @@ export const radius = { sm: 10, md: 18, lg: 999 } as const;
 export const SOS_RADIUS = 9999;
 
 // ---------------------------------------------------------------------------
-// Elevation - ONLY on map pin chips (sm) and the toast (md). Everything else flat.
+// Elevation: map pin chips (sm), the toast (md), and cards (card). Panels stay flat.
 // ---------------------------------------------------------------------------
 
 export const shadow = {
   sm: { shadowColor: color.neutral900, shadowOpacity: 0.45, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  /**
+   * A card lifted off the page: soft, wide, barely there. The look the app
+   * moved to (docs/36) is white cards on a pale ground, and a card with no
+   * edge and no shadow is a white rectangle on a white page.
+   */
+  card: { shadowColor: color.neutral900, shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
   md: { shadowColor: color.neutral900, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   lg: { shadowColor: color.neutral900, shadowOpacity: 0.6, shadowRadius: 40, shadowOffset: { width: 0, height: 18 }, elevation: 16 },
   /**

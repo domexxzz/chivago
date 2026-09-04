@@ -37,17 +37,17 @@ export function TabBar({
 }: { active: TabKey; onChange: (tab: TabKey) => void }) {
   return (
     <View
-      style={[
-        ruleStrongTop,
-        { flexDirection: 'row', height: layout.tabBarHeight, backgroundColor: color.bg },
-      ]}
+      style={{
+        flexDirection: 'row', height: layout.tabBarHeight, backgroundColor: color.surface,
+        borderTopWidth: layout.ruleHair, borderTopColor: color.neutral300,
+      }}
     >
       {TAB_ORDER.map((key) => {
         const isActive = key === active;
         const Icon = TAB_ICONS[key];
-        // White on brand, not `bg` on brand: the page tint is not white and
-        // drops this 9px label to 4.30:1. onFill carries the measured pair.
-        const fg = isActive ? onFill.brand : color.neutral700;
+        // The active tab is the brand speaking, on the white bar; the rest
+        // are quiet. No filled block: the reference's bar is icons on white.
+        const fg = isActive ? color.brand : color.neutral600;
         return (
           <Pressable
             key={key}
@@ -60,12 +60,9 @@ export function TabBar({
               alignItems: 'center',
               justifyContent: 'center',
               gap: layout.tabLabelGap,
-              // Brand blue. Navigation is the app speaking about itself; it is
-              // not evidence about the island, so it does not get the green.
-              backgroundColor: isActive ? color.brand : 'transparent',
             }}
           >
-            <Icon size={layout.tabIconSize} color={fg} strokeWidth={2} />
+            <Icon size={layout.tabIconSize + 2} color={fg} strokeWidth={isActive ? 2.4 : 2} />
             <Label size={9} tracking={0.1} colour={fg}>{t(strings.tabs[key])}</Label>
           </Pressable>
         );

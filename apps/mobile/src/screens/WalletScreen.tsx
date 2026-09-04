@@ -28,7 +28,7 @@ import {
 import { api, type InboxItem } from '../api/client.ts';
 import { STAGE_LABEL } from './CompanionHome.tsx';
 import { useAsync } from '../state/store.tsx';
-import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
+import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { Button } from '../components/Button.tsx';
@@ -124,15 +124,15 @@ function AccountRow({ onOpenAccount }: { onOpenAccount: () => void }) {
 export function Balances({ wallet }: { wallet: Wallet }) {
   return (
     <View
-      style={{
+      style={[shadow.card, {
         flexDirection: 'row',
-        paddingHorizontal: gutter,
-        paddingTop: 18,
-        paddingBottom: 14,
+        marginHorizontal: gutter,
+        marginTop: 16,
+        padding: 18,
         gap: 20,
-        borderBottomWidth: layout.ruleStrong,
-        borderBottomColor: color.text,
-      }}
+        backgroundColor: color.surface,
+        borderRadius: radius.md,
+      }]}
     >
       <Purse
         figure={wallet.balances.green}
@@ -180,12 +180,13 @@ export function LevelBlock({ wallet }: { wallet: Wallet }) {
   const pct = levelProgressPct(p.exp);
   return (
     <View
-      style={{
-        paddingHorizontal: gutter,
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: color.neutral300,
-      }}
+      style={[shadow.card, {
+        marginHorizontal: gutter,
+        marginTop: 12,
+        padding: 16,
+        backgroundColor: color.surface,
+        borderRadius: radius.md,
+      }]}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
