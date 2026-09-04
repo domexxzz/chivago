@@ -26,7 +26,7 @@ import {
 } from '@chivago/core';
 import { API_BASE, api, type FiledStatement, type Result } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, motion, onFill, radius } from '../theme/index.ts';
+import { color, gutter, layout, motion, onFill, radius, shadow } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -238,16 +238,14 @@ export function QuestDetailScreen({
 function StatBand({ quest }: { quest: Quest }) {
   return (
     <View
-      style={{
+      style={[shadow.card, {
         flexDirection: 'row',
         marginTop: 16,
-        paddingVertical: 12,
-        paddingHorizontal: gutter,
-        borderTopWidth: layout.ruleHair,
-        borderTopColor: color.neutral300,
-        borderBottomWidth: layout.ruleHair,
-        borderBottomColor: color.neutral300,
-      }}
+        marginHorizontal: gutter,
+        padding: 16,
+        borderRadius: radius.md,
+        backgroundColor: color.surface,
+      }]}
     >
       <View style={{ flex: 1 }}>
         <Label size={10} tracking={0.12}>{t(strings.quest.reward)}</Label>
@@ -270,12 +268,12 @@ function StatBand({ quest }: { quest: Quest }) {
 function Timeline({ stage }: { stage: QuestStage | null }) {
   const current = stage ? stageIndex(stage) : -1;
   return (
-    <View style={{ paddingHorizontal: gutter, marginTop: 20 }}>
+    <View style={[shadow.card, { marginHorizontal: gutter, marginTop: 12, padding: 16, borderRadius: radius.md, backgroundColor: color.surface }]}>
       <Label size={10} tracking={0.16}>{t(strings.quest.progress)}</Label>
       <View
         style={{
           borderLeftWidth: layout.ruleStrong,
-          borderLeftColor: color.text,
+          borderLeftColor: color.neutral300,
           paddingLeft: 16,
           marginTop: 12,
           marginLeft: 6,
@@ -304,8 +302,8 @@ function Timeline({ stage }: { stage: QuestStage | null }) {
                   marginLeft: -23,
                   marginTop: 5,
                   borderWidth: 2,
-                  borderRadius: radius.sm,
-                  backgroundColor: done || now ? color.accent : color.bg,
+                  borderRadius: radius.lg,
+                  backgroundColor: done || now ? color.accent : color.surface,
                   borderColor: reached ? color.accent : color.neutral400,
                 }}
               />
