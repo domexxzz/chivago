@@ -50,10 +50,24 @@ its provenance beside it, and every block still fails alone. The photographs
 are still the licensed ones, credit and all, and a place without one shows
 none.
 
+## The second pass
+
+The ink rule is a hairline everywhere it was used by name - `ruleStrong`
+keeps its name and means "a section boundary"; what a boundary looks like
+is decided in the theme, once - and the inline ink edges on the pushed
+screens (place, quest, safety, impact, market, concierge, passport, party,
+account, trip, reviews) are hairlines in the neutral the cards are edged
+with. The place hero is a rounded card with its credit riding on it. The
+inverted surface is deep teal.
+
+Onboarding opens the way the reference does - a photograph and a question -
+with the one difference that matters: the photograph is one of the island's
+licensed ones, credit and all, or none. The answers are cards; a chosen one
+is outlined in brand, not filled in the evidence green as it was.
+
 ## Still owed
 
-- The remaining pushed screens (place, quest, safety, party, account) carry
-  the tokens and the buttons but keep their rules and rows. They read as
-  older than Home and Missions now, and each deserves the card treatment.
-- Onboarding is the reference's strongest screen — a photograph and a
-  question — and this app's weakest. It wants the licensed photography.
+- The quest detail's stat band and timeline, and the safety services list,
+  are hairlined rows rather than cards. They read as quieter than Home now,
+  which is not wrong; a card treatment is a taste call left for a native
+  reader of the screens.

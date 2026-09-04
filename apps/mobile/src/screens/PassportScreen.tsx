@@ -117,7 +117,7 @@ export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void }
           accessibilityLabel={t(strings.mascots.door)}
           style={{
             marginHorizontal: gutter, marginBottom: 4, padding: 14, borderRadius: radius.md,
-            borderWidth: layout.ruleStrong, borderColor: color.text, backgroundColor: color.surface,
+            borderWidth: layout.ruleHair, borderColor: color.neutral300, backgroundColor: color.surface,
             flexDirection: 'row', alignItems: 'center', gap: 12,
           }}
         >

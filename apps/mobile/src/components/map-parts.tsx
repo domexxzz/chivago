@@ -85,8 +85,8 @@ export function MapLegend({ places, explored = [] }: { places: ScoredPlace[]; ex
         // them once the pins carried real coordinates.
         right: 12,
         bottom: 12,
-        borderWidth: layout.ruleStrong,
-        borderColor: color.text,
+        borderWidth: layout.ruleHair,
+        borderColor: color.neutral300,
         backgroundColor: color.bg,
         paddingVertical: 8,
         paddingHorizontal: 10,

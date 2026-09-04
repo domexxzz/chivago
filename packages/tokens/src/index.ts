@@ -130,7 +130,7 @@ export const color = {
    * The role is "the surface that is the opposite of the page".
    */
   paper: '#0b5561',
-  mist: '#0e2a4f',
+  mist: '#0a4a52',
 } as const;
 
 /**

@@ -243,10 +243,10 @@ function StatBand({ quest }: { quest: Quest }) {
         marginTop: 16,
         paddingVertical: 12,
         paddingHorizontal: gutter,
-        borderTopWidth: layout.ruleStrong,
-        borderTopColor: color.text,
-        borderBottomWidth: layout.ruleStrong,
-        borderBottomColor: color.text,
+        borderTopWidth: layout.ruleHair,
+        borderTopColor: color.neutral300,
+        borderBottomWidth: layout.ruleHair,
+        borderBottomColor: color.neutral300,
       }}
     >
       <View style={{ flex: 1 }}>
@@ -469,8 +469,8 @@ function VerifyingPanel({ host }: { host: string }) {
   return (
     <View
       style={{
-        borderWidth: layout.ruleStrong,
-        borderColor: color.text,
+        borderWidth: layout.ruleHair,
+        borderColor: color.neutral300,
         borderRadius: radius.md,
         padding: 18,
         overflow: 'hidden',

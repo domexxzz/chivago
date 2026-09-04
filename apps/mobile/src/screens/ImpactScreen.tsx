@@ -46,8 +46,8 @@ export function ImpactScreen({
           style={{
             flexDirection: 'row',
             flexWrap: 'wrap',
-            borderTopWidth: layout.ruleStrong,
-            borderTopColor: color.text,
+            borderTopWidth: layout.ruleHair,
+            borderTopColor: color.neutral300,
           }}
         >
           {mine.data.map((stat, i) => (
@@ -135,8 +135,8 @@ export function ImpactScreen({
           margin: gutter,
           marginTop: 24,
           marginBottom: 32,
-          borderWidth: layout.ruleStrong,
-          borderColor: color.text,
+          borderWidth: layout.ruleHair,
+          borderColor: color.neutral300,
           borderRadius: radius.md,
           padding: 16,
         }}
@@ -179,7 +179,7 @@ function BalanceBlock({
   onMood: (mood: MoodKey) => void;
 }) {
   return (
-    <View style={{ marginTop: 24, borderTopWidth: layout.ruleStrong, borderTopColor: color.text }}>
+    <View style={{ marginTop: 24, borderTopWidth: layout.ruleStrong, borderTopColor: color.neutral300 }}>
       <View style={{ paddingHorizontal: gutter, paddingTop: 18 }}>
         <Label size={10} tracking={0.16}>{t({ en: 'Chiva Balance', th: 'สมดุลชีวา' })}</Label>
 

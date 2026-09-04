@@ -71,7 +71,7 @@ export function ReviewsBlock({
   React.useEffect(load, [load]);
 
   return (
-    <View style={{ marginTop: 24, borderTopWidth: layout.ruleStrong, borderTopColor: color.text, paddingTop: 16 }}>
+    <View style={{ marginTop: 24, borderTopWidth: layout.ruleHair, borderTopColor: color.neutral300, paddingTop: 16 }}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
         <Label size={10} tracking={0.14}>
           {`${t(strings.reviews.title)}`}
@@ -320,8 +320,8 @@ export function ComposeSheet({
               justifyContent: 'space-between',
               paddingHorizontal: gutter,
               paddingVertical: 14,
-              borderBottomWidth: layout.ruleStrong,
-              borderBottomColor: color.text,
+              borderBottomWidth: layout.ruleHair,
+              borderBottomColor: color.neutral300,
             }}
           >
             <Heading size={16}>
@@ -466,8 +466,8 @@ export function ReportSheet({
               justifyContent: 'space-between',
               paddingHorizontal: gutter,
               paddingVertical: 14,
-              borderBottomWidth: layout.ruleStrong,
-              borderBottomColor: color.text,
+              borderBottomWidth: layout.ruleHair,
+              borderBottomColor: color.neutral300,
             }}
           >
             <Heading size={16}>{t(strings.reviews.reportTitle)}</Heading>
@@ -671,8 +671,8 @@ export function AppealSheet({
               justifyContent: 'space-between',
               paddingHorizontal: gutter,
               paddingVertical: 14,
-              borderBottomWidth: layout.ruleStrong,
-              borderBottomColor: color.text,
+              borderBottomWidth: layout.ruleHair,
+              borderBottomColor: color.neutral300,
             }}
           >
             <Heading size={16}>{t(strings.reviews.appealTitle)}</Heading>
