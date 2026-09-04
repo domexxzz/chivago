@@ -109,9 +109,44 @@ export interface PlacePhoto {
   sourceUrl: string | null;
 }
 
+/**
+ * How many ChivaGo travellers checked in at a place in the last hour.
+ *
+ * Counted from the ledger's geofenced check-ins - the same rows the wallet
+ * paid - so it is a number the island produced, not one somebody typed. It
+ * is NOT people per 100 m², and it does not pretend to be: the crowd metric
+ * stays what it is and is labelled as the estimate it is, while this figure
+ * is shown beside it as its own fact. The more the app is used, the more it
+ * means; on day one it is honest about being small.
+ */
+export interface LiveCrowd {
+  checkinsLastHour: number;
+  windowMinutes: number;
+  /** ISO 8601. When the count was taken. */
+  countedAt: string;
+}
+
+/** One island day of air readings, as recorded by this server. */
+export interface AirHistoryDay {
+  /** Island date key, YYYY-MM-DD. */
+  day: string;
+  min: number;
+  max: number;
+  avg: number;
+  samples: number;
+}
+
+export interface AirHistory {
+  /** The first recorded reading for this place's grid cell, or null if none yet. */
+  since: string | null;
+  days: AirHistoryDay[];
+}
+
 export interface ScoredPlace extends Place {
   healthyScore: number;
   breakdown: ScoreBreakdown;
+  /** Present on every place; zero when nobody has. Absent only on old snapshots. */
+  crowd?: LiveCrowd;
   /**
    * Traveller ratings, kept OUT of the Healthy Score on purpose.
    *

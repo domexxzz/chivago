@@ -27,7 +27,7 @@ import {
 } from './account-service.ts';
 import { logger } from 'hono/logger';
 
-import { openDb, transact } from './db.ts';
+import { openDb, row, transact } from './db.ts';
 import { fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
 import {
   getCommunityImpact, getOffer, getPersonalImpact, getProfile,
@@ -36,6 +36,7 @@ import {
 import { ensureWallet, getWallet, grantOpeningBalance, spendOnVoucher } from './wallet-service.ts';
 import { checkedInToday, checkIn } from './checkin-service.ts';
 import { exploredFor, recordSelfVisit, selfReportedProvincesFor, selfVisitsFor } from './visit-service.ts';
+import { airHistoryFor } from './crowd-service.ts';
 import { readStatement, statementsIncluding } from './statement-service.ts';
 import { statementMissingPage, verifyPage } from './console/statement.ts';
 import { DEFAULT_LOCALE, localeFromAcceptLanguage } from './console/i18n.ts';
@@ -495,6 +496,16 @@ app.get('/places', async (c) => {
     : undefined;
   const places = await listScoredPlaces(db, userId(c), bbox);
   return ok(c, places, { total: places.length });
+});
+
+/**
+ * The air over a place, by island day, as this server recorded it. Starts
+ * the day recording started and says so; nothing is invented backwards.
+ */
+app.get('/places/:id/history', (c) => {
+  const place = row<{ lat: number; lng: number }>(db.prepare('SELECT lat, lng FROM places WHERE id = ?').get(c.req.param('id')));
+  if (!place) return fail(c, 'NOT_FOUND', 'No such place', 404);
+  return ok(c, airHistoryFor(db, place.lat, place.lng));
 });
 
 app.get('/places/:id', async (c) => {

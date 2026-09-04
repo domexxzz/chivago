@@ -140,6 +140,13 @@ export const strings = {
     addedToast: t('Added to Day 2', 'เพิ่มแล้ว'),
     /** Opens the score breakdown sheet. A score nobody can interrogate is a trust risk. */
     howCalculated: t('How is this calculated?', 'คำนวณอย่างไร'),
+    /** The live count beside the crowd estimate. */
+    hereNow: t('Here now', 'ตอนนี้'),
+    /** The thirty-day air chart. */
+    airHistory: t('Air, last 30 days', 'อากาศ 30 วันที่ผ่านมา'),
+    airSince: (date: string) => t(`Recorded here since ${date}.`, `บันทึกที่นี่ตั้งแต่ ${date}`),
+    airNoHistory: t('No readings recorded here yet. The chart fills in as the server records the air, day by day.', 'ยังไม่มีค่าที่บันทึกไว้ที่นี่ กราฟจะค่อย ๆ เติมเมื่อเซิร์ฟเวอร์บันทึกค่าอากาศไปทีละวัน'),
+    airFewDays: (n: number) => t(`${n} day${n === 1 ? '' : 's'} recorded so far.`, `บันทึกแล้ว ${n} วัน`),
     provenance: {
       live: t('Live', 'ข้อมูลสด'),
       daily: t('Updated daily', 'อัปเดตรายวัน'),

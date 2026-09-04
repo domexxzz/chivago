@@ -212,6 +212,10 @@ function writeCache(db: DB, key: string, reading: AirReading): void {
   // store the model's own hourly timestamp, so a reading fetched at :59 was
   // "stale" a minute later and the upstream was asked again on the next pan.
   ).run(key, reading.aqi, reading.pm25, new Date().toISOString());
+  // And remembered: one row per observation hour, never rewritten.
+  db.prepare(
+    `INSERT OR IGNORE INTO air_history (grid_key, observed_at, aqi, pm25, fetched_at) VALUES (?, ?, ?, ?, ?)`,
+  ).run(key, reading.observedAt, reading.aqi, reading.pm25, new Date().toISOString());
 }
 
 /**

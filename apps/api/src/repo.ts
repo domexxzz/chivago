@@ -18,6 +18,7 @@ import type {
 import { computeHealthyScore, EMPTY_PROFILE } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
 import { getAir } from './air.ts';
+import { checkinsLastHour } from './crowd-service.ts';
 import { summariesFor } from './place-review-service.ts';
 
 interface PlaceRow {
@@ -114,6 +115,8 @@ export async function listScoredPlaces(
   // One grouped query for every place on screen. A per-place lookup would
   // turn a map pan into one round trip per pin.
   const reviews = summariesFor(db, placeRows.map((r) => r.id));
+  // And one for who is there now, from the ledger.
+  const crowds = checkinsLastHour(db, placeRows.map((r) => r.id));
 
   // Air lookups run concurrently; the cache keeps this to one upstream call per
   // ~1.1 km grid cell, so a full island read is a couple of requests at most.
@@ -124,7 +127,11 @@ export async function listScoredPlaces(
       const metrics = { ...place.metrics, aqi: air.aqi };
       const breakdown = computeHealthyScore(metrics, {
         profile,
-        provenance: { aqi: air.provenance },
+        // The crowd figure is the seed's survey estimate. It was scored as
+        // 'live' - the default - for the whole life of this file, which was
+        // a lie the score told about itself. Labelled, the score discounts
+        // it, and the live count sits beside it as its own fact.
+        provenance: { aqi: air.provenance, crowdDensity: 'estimated' },
         safetyPhrase: place.safetyLabel.en,
       });
       return {
@@ -137,7 +144,14 @@ export async function listScoredPlaces(
             observedAt: air.observedAt,
             source: air.source,
           },
+          crowdDensity: {
+            value: metrics.crowdDensity,
+            provenance: 'estimated',
+            observedAt: new Date().toISOString(),
+            source: 'Seeded survey estimate - no live density feed',
+          },
         },
+        crowd: crowds.get(place.id)!,
         healthyScore: breakdown.total,
         breakdown,
         reviews: reviews.get(place.id)!,
