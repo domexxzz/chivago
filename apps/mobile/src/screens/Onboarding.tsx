@@ -10,10 +10,12 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Image, Pressable, ScrollView, View } from 'react-native';
 import { Check } from 'lucide-react-native';
-import { strings, type ActivityKey, type PurposeKey, type WatchKey } from '@chivago/core';
-import { color, gutter, layout, onFill, radius, ruleStrong, ruleHair } from '../theme/index.ts';
+import { strings, type ActivityKey, type PurposeKey, type ScoredPlace, type WatchKey } from '@chivago/core';
+import { api } from '../api/client.ts';
+import { useAsync } from '../state/store.tsx';
+import { color, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { t } from '../i18n/locale.ts';
@@ -77,16 +79,43 @@ export function OnboardingScreen({
 
   const next = () => (step < 2 ? setStep(step + 1) : finish());
 
+  /*
+    The reference opens on a photograph and a question. This opens on the
+    same, with the one difference that matters: the photograph is one of the
+    island's licensed ones, credit and all, or no photograph at all. A stock
+    beach on the first screen would be the app's first invented claim.
+  */
+  const places = useAsync(() => api.places(), []);
+  const photo = (places.data as ScoredPlace[] | null)?.find((pl) => pl.photo) ?? null;
+
   return (
-    <View style={{ flex: 1, paddingHorizontal: 26, paddingTop: 22, paddingBottom: 22 }}>
+    <View style={{ flex: 1, backgroundColor: color.bg }}>
+      <View style={{ height: 200, backgroundColor: color.brand, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' }}>
+        {photo?.photo ? (
+          <>
+            <Image source={{ uri: photo.photo.url }} resizeMode="cover" style={{ width: '100%', height: '100%' }}
+              accessibilityLabel={`${t(photo.name)}, photographed by ${photo.photo.credit}`} />
+            <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: 'rgba(255,255,255,0.85)', paddingVertical: 3, paddingHorizontal: 8, borderTopLeftRadius: radius.sm }}>
+              <Label size={9} tracking={0.06} colour={color.neutral700} style={{ textTransform: 'none' }}>{`${photo.photo.credit} · ${photo.photo.licence}`}</Label>
+            </View>
+          </>
+        ) : null}
+        <View style={{ position: 'absolute', left: 26, bottom: 18 }}>
+          <Heading size={30} tracking={-0.6} colour={onFill.brand}>ChivaGo</Heading>
+          <Label size={10} tracking={0.14} colour={color.brandSoft}>{t({ en: 'Koh Samui', th: 'เกาะสมุย' })}</Label>
+        </View>
+      </View>
+
+      <View style={{ flex: 1, paddingHorizontal: 26, paddingTop: 18, paddingBottom: 22 }}>
       {/* Progress: 3 equal bars, filled up to AND INCLUDING the current step. */}
-      <View style={{ flexDirection: 'row', gap: 5, marginBottom: 26 }}>
+      <View style={{ flexDirection: 'row', gap: 6, marginBottom: 18 }}>
         {[0, 1, 2].map((i) => (
           <View
             key={i}
             style={{
               flex: 1,
-              height: 4,
+              height: 5,
+              borderRadius: radius.lg,
               // Where you are in a flow. The app narrating itself: brand.
               backgroundColor: i <= step ? color.brand : color.neutral300,
             }}
@@ -94,13 +123,12 @@ export function OnboardingScreen({
         ))}
       </View>
 
-      <Label size={11} tracking={0.14} colour={color.accent700}>
+      <Label size={11} tracking={0.14} colour={color.brand}>
         {t(strings.onboarding.step(step + 1))}
       </Label>
-      <Heading size={34} tracking={-0.85} style={{ marginTop: 8 }}>{t(current.title)}</Heading>
+      <Heading size={28} tracking={-0.6} style={{ marginTop: 6 }}>{t(current.title)}</Heading>
 
-
-      <ScrollView style={[ruleStrong, { flex: 1, marginTop: 20 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1, marginTop: 14 }} showsVerticalScrollIndicator={false}>
         {current.options.map(([key, copy]) => {
           const on = selected.includes(key);
           return (
@@ -111,15 +139,21 @@ export function OnboardingScreen({
               accessibilityState={{ checked: on }}
               accessibilityLabel={`${t(copy)}`}
               style={[
-                ruleHair,
+                shadow.card,
                 {
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: 12,
+                  marginTop: 8,
                   paddingVertical: 13,
-                  paddingHorizontal: 12,
-                  backgroundColor: on ? color.accent200 : 'transparent',
+                  paddingHorizontal: 14,
+                  borderRadius: radius.md,
+                  borderWidth: 1,
+                  // A choice is the traveller's, so it is brand - not the
+                  // evidence green, which it was.
+                  borderColor: on ? color.brand : color.surface,
+                  backgroundColor: on ? color.brandSoft : color.surface,
                 },
               ]}
             >
@@ -136,7 +170,7 @@ export function OnboardingScreen({
                   borderWidth: 2,
                   borderColor: on ? color.brand : color.neutral400,
                   backgroundColor: on ? color.brand : 'transparent',
-                  borderRadius: radius.sm,
+                  borderRadius: radius.lg,
                 }}
               >
                 {on ? <Check size={14} color={onFill.brand} strokeWidth={3} /> : null}
@@ -159,8 +193,9 @@ export function OnboardingScreen({
         label={`${t(strings.common.skip)}`}
         onPress={finish}
         variant="ghost"
-        style={{ marginTop: 10 }}
+        style={{ marginTop: 10, alignSelf: 'center' }}
       />
+      </View>
     </View>
   );
 }

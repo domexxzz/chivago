@@ -291,7 +291,7 @@ function PriceOutlook({
   const peak = Math.max(...outlook.map((m) => m.band.high), 1);
 
   return (
-    <View style={{ marginTop: 26, borderTopWidth: layout.ruleStrong, borderTopColor: color.text }}>
+    <View style={{ marginTop: 26, borderTopWidth: layout.ruleStrong, borderTopColor: color.neutral300 }}>
       <View style={{ paddingHorizontal: gutter, paddingTop: 18 }}>
         <Label size={10} tracking={0.16}>{t({ en: 'A night on Samui', th: 'ราคาที่พักต่อคืน' })}</Label>
 

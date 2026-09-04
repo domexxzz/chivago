@@ -543,8 +543,8 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
               alignItems: 'center',
               gap: 6,
               paddingVertical: 14,
-              borderWidth: layout.ruleStrong,
-              borderColor: color.text,
+              borderWidth: layout.ruleHair,
+              borderColor: color.neutral300,
               borderRadius: radius.sm,
             }}
           >

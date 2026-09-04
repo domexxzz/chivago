@@ -448,7 +448,7 @@ function Companions({
   const { companions, summary } = data;
 
   return (
-    <View style={{ borderTopWidth: layout.ruleStrong, borderTopColor: color.text, paddingTop: 18 }}>
+    <View style={{ borderTopWidth: layout.ruleHair, borderTopColor: color.neutral300, paddingTop: 18 }}>
       <View style={{
         flexDirection: 'row', justifyContent: 'space-between',
         alignItems: 'baseline', paddingHorizontal: gutter,

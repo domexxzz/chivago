@@ -16,7 +16,7 @@ import { X } from 'lucide-react-native';
 import { strings, type ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, radius } from '../theme/index.ts';
+import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button, Tag } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -218,8 +218,8 @@ function ScoreBlock({ place, onExplain }: { place: ScoredPlace; onExplain: () =>
   return (
     <View
       style={{
-        borderTopWidth: layout.ruleStrong,
-        borderTopColor: color.text,
+        borderTopWidth: layout.ruleHair,
+        borderTopColor: color.neutral300,
         borderBottomWidth: 1,
         borderBottomColor: color.neutral300,
         paddingVertical: 12,
@@ -289,8 +289,8 @@ function BreakdownSheet({
               justifyContent: 'space-between',
               paddingHorizontal: gutter,
               paddingVertical: 14,
-              borderBottomWidth: layout.ruleStrong,
-              borderBottomColor: color.text,
+              borderBottomWidth: layout.ruleHair,
+              borderBottomColor: color.neutral300,
             }}
           >
             <View style={{ flex: 1 }}>
@@ -336,8 +336,8 @@ function BreakdownSheet({
 
             <View
               style={{
-                borderWidth: layout.ruleStrong,
-                borderColor: color.text,
+                borderWidth: layout.ruleHair,
+                borderColor: color.neutral300,
                 borderRadius: radius.md,
                 padding: 14,
                 marginTop: 18,
@@ -380,12 +380,14 @@ function BreakdownSheet({
 export function Hero({ place }: { place: ScoredPlace }) {
   return (
     <View
-      style={{
-        height: 150,
-        borderBottomWidth: layout.ruleStrong,
-        borderBottomColor: color.text,
+      style={[shadow.card, {
+        height: 190,
+        marginHorizontal: gutter,
+        marginTop: 6,
+        borderRadius: radius.md,
+        overflow: 'hidden',
         backgroundColor: color.surface,
-      }}
+      }]}
     >
       {place.photo ? (
         <>

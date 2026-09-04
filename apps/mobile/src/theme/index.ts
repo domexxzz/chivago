@@ -42,17 +42,21 @@ export type CurrencyKey = keyof typeof currency;
 export const currencyTone = (c: string) => (c === 'green' ? currency.green : currency.trip);
 
 /**
- * A 2px ink rule. Modernist's primary organising device - it never softens into
- * a hairline and it is never replaced by whitespace.
+ * A section rule. This was the Modernist 2px ink rule - "it never softens
+ * into a hairline" - until the look moved (docs/36): on a page of white
+ * cards a black bar reads as a mistake, so the strong rule is a hairline in
+ * the neutral the cards are edged with. The name stays so every caller
+ * still means "a section boundary"; what a boundary looks like is decided
+ * here, once.
  */
 export const ruleStrong: ViewStyle = {
-  borderBottomWidth: layout.ruleStrong,
-  borderBottomColor: color.text,
+  borderBottomWidth: layout.ruleHair,
+  borderBottomColor: color.neutral300,
 };
 
 export const ruleStrongTop: ViewStyle = {
-  borderTopWidth: layout.ruleStrong,
-  borderTopColor: color.text,
+  borderTopWidth: layout.ruleHair,
+  borderTopColor: color.neutral300,
 };
 
 /** A 1px row separator. */

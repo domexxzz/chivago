@@ -195,8 +195,8 @@ function VoucherSheet({ voucher, onClose }: { voucher: Voucher | null; onClose: 
 
           <View
             style={{
-              borderWidth: layout.ruleStrong,
-              borderColor: color.text,
+              borderWidth: layout.ruleHair,
+              borderColor: color.neutral300,
               borderRadius: radius.md,
               padding: 20,
               marginTop: 18,

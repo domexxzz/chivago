@@ -306,8 +306,8 @@ export function QuestsNearYou({
       {top ? (
         <View
           style={{
-            borderWidth: layout.ruleStrong,
-            borderColor: color.text,
+            borderWidth: layout.ruleHair,
+            borderColor: color.neutral300,
             borderRadius: radius.md,
             padding: 14,
             marginTop: 10,
