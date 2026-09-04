@@ -186,6 +186,8 @@ export function ledgerLine(
     // The quest's own name IS the sentence. Nothing to phrase around it.
     case 'quest_reward': return { en: subject, th: subject };
     case 'checkin': return { en: `Checked in · ${subject}`, th: `เช็กอินที่ ${subject}` };
+    // A leg on foot between two check-ins: "Chaweng → Lamai".
+    case 'walk': return { en: `Walked · ${subject}`, th: `เดินมา ${subject}` };
     case 'review': return { en: `Review · ${subject}`, th: `รีวิว ${subject}` };
     case 'redemption': return { en: `${subject} redeemed`, th: `แลก ${subject}` };
     default: return { en: entry.label, th: entry.label };

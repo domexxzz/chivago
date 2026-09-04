@@ -18,6 +18,7 @@ import { IBMPlexMono_500Medium } from '@expo-google-fonts/ibm-plex-mono';
 
 import { emptyBalances, strings, type Balances, type ItineraryItem } from '@chivago/core';
 import { api } from './src/api/client.ts';
+import { useOutboxFlush } from './src/state/outbox-hook.ts';
 import { color } from './src/theme/index.ts';
 import {
   useAccount, useLayers, useNav, useNotifications, useProfile, useSos, useToast, type ScreenKey,
@@ -116,6 +117,9 @@ export default function App() {
     refreshWallet();
     void notifications.refresh();
   }, [refreshWallet, notifications.refresh]);
+
+  // Proofs saved without signal go when there is some. See state/outbox.ts.
+  useOutboxFlush(account.ready, toast.show, onPointsChanged);
 
   const [balances, setBalances] = React.useState<Balances>(emptyBalances());
   React.useEffect(() => {

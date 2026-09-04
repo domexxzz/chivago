@@ -349,6 +349,11 @@ function Places({
   places, onOpenMap, onOpenPlace,
 }: { places: Async<ScoredPlace[]>; onOpenMap: () => void; onOpenPlace: (id: string) => void }) {
   const list = places.data ?? [];
+  // Warm the photographs while there is signal: the place screen at the
+  // mangrove opens off the cache, not off a stalled request.
+  React.useEffect(() => {
+    for (const p of list) if (p.photo) void Image.prefetch(p.photo.url).catch(() => {});
+  }, [list]);
   if (list.length === 0) return null;
   return (
     <View style={{ paddingTop: 22 }}>

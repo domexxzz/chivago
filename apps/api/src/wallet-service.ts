@@ -296,6 +296,31 @@ export function awardCheckin(
 }
 
 /**
+ * A leg on foot between two check-ins. Self-verified: the phone measured it
+ * (packages/core/src/low-carbon.ts), no host did, so it pays Trip Points
+ * and says so in the host column. Once per pair per island day.
+ */
+export function awardWalk(
+  db: DB,
+  args: {
+    userId: string; fromId: string; fromName: string; toId: string; toName: string;
+    points: number; dayKey: string; occurredAt: string;
+  },
+): MovementResult {
+  return applyMovement(db, {
+    userId: args.userId,
+    label: `Walked · ${args.fromName} → ${args.toName}`,
+    subject: `${args.fromName} → ${args.toName}`,
+    host: 'ChivaGo · measured leg on foot',
+    amount: args.points,
+    currency: 'trip',
+    kind: 'walk',
+    sourceRef: `walk:${args.fromId}:${args.toId}:user:${args.userId}:${args.dayKey}`,
+    occurredAt: args.occurredAt,
+  });
+}
+
+/**
  * Spend points on an offer.
  *
  * Unlike an award, a redemption is intentionally repeatable - a user may buy

@@ -85,7 +85,7 @@ EXPO_PUBLIC_API_URL=http://192.168.1.42:8787 pnpm mobile
 pnpm test
 ```
 
-**1,419 tests** — 317 core, 721 API, 356 mobile, 25 tokens — plus 11 in the Dart
+**1,433 tests** — 324 core, 724 API, 360 mobile, 25 tokens — plus 11 in the Dart
 SDK (`pnpm test:dart`) and 10 in the Swift one (`swift test`). `pnpm typecheck`
 covers all four packages. `.github/workflows/ci.yml` runs all of it on every
 push, on Linux and macOS, so the numbers above are checked by a machine nobody
@@ -167,6 +167,12 @@ animal on the ground it lives on, lit by the island's clock, breathing,
 blinking, looking at your finger and answering a tap the way that animal
 would (`docs/33-companions-in-3d.md`). It wants nothing: the meters under it
 are still the habitat's measured air and crowding.
+
+**Saved means written.** A proof taken with no signal goes into an outbox and
+is sent when there is some; a proof the server refuses is dropped with its
+reason, not retried forever. And **the leg on foot**: two check-ins a walk
+apart on the same day pay Trip Points for the walk — measured by the phone,
+so never green (`docs/38-offline-and-the-leg-on-foot.md`).
 
 **The island counts itself.** Every place carries how many ChivaGo travellers
 checked in there in the last hour, counted from the ledger; and the air over
