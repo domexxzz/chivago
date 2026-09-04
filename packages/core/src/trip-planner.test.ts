@@ -161,3 +161,32 @@ describe('getting between stops', () => {
     }
   });
 });
+
+describe('the planner knows the crowd it has seen', () => {
+  const withCrowd = (n: number): ScoredPlace[] => scored().map((p) => ({
+    ...p,
+    crowd: { checkinsLastHour: p.id === 'chaweng' ? n : 0, windowMinutes: 60, countedAt: '2026-09-05T03:00:00.000Z' },
+  }));
+
+  test('three travellers checked in this hour keep a crowd-watcher out of there at midday, and the reason says the number', () => {
+    const plan = planDay({ profile: profile({ watch: ['crowd'] }), places: withCrowd(3), quests: [] });
+    const dropped = plan.dropped.find((d) => d.name.en === 'Chaweng Beach');
+    const scheduled = plan.items.find((i) => i.placeId === 'chaweng');
+    assert.ok(dropped || (scheduled && (scheduled.time < '10:00' || scheduled.time >= '15:00')), 'Chaweng was placed in the middle of a busy day');
+    if (dropped) assert.match(dropped.reason.en, /3 travellers checked in here in the last hour/);
+  });
+
+  test('someone who did not ask about crowds is not moved by them', () => {
+    const plan = planDay({ profile: profile(), places: withCrowd(9), quests: [] });
+    assert.ok(!plan.dropped.some((d) => /travellers checked in/.test(d.reason.en)));
+  });
+
+  test('the plan says what it was made from', () => {
+    const plan = planDay({ profile: profile({ watch: ['air', 'crowd'] }), places: withCrowd(0), quests: [quest()] });
+    assert.match(plan.basis.en, /A moderate day from 5 measured places/);
+    assert.match(plan.basis.en, /5 with an hourly head count/);
+    assert.match(plan.basis.en, /watching air and crowds/);
+    assert.match(plan.basis.en, /1 quest open/);
+    assert.match(plan.basis.th, /5 สถานที่ที่วัดจริง/);
+  });
+});
