@@ -226,6 +226,8 @@ export const consoleStrings = {
   rejectedCount: c('ไม่ผ่าน', 'rejected'),
   withYou: c('กับหน่วยงานของคุณ', 'with you'),
   weightLogged: c('น้ำหนักที่บันทึก', 'Weight logged'),
+  partyPresent: c('มาด้วยกัน (อยู่ในรัศมีตอนถ่ายหลักฐาน)', 'With them (inside the fence when this was taken)'),
+  partyPaysAll: c('อนุมัติครั้งเดียว จ่ายให้ทุกคนในรายชื่อนี้เท่ากัน', 'One approval pays everyone listed the same reward.'),
   none: c('ไม่มี', 'None'),
   photosHeading: c('ภาพถ่ายหลักฐาน', 'Photos'),
   noPhotos: c('ไม่มีภาพถ่ายแนบมากับหลักฐานนี้', 'No photos were uploaded with this submission.'),

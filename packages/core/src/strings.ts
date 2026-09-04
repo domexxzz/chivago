@@ -254,6 +254,11 @@ export const strings = {
     /** What the quest screen says above the proof box while an upload waits. */
     outboxPending: (n: number) => t(`${n} proof${n === 1 ? '' : 's'} waiting to upload. It will go when you have signal.`, `มีหลักฐาน ${n} ชุดรอส่ง จะส่งเองเมื่อมีสัญญาณ`),
     outboxSent: t('A saved proof has been uploaded.', 'ส่งหลักฐานที่บันทึกไว้แล้ว'),
+    /** After a proof goes in with party members in the fence. */
+    partyRides: (names: string[]) => t(
+      `Sent. ${names.join(', ')} ${names.length === 1 ? 'was' : 'were'} here too and will be verified with you.`,
+      `ส่งแล้ว ${names.join(', ')} อยู่ที่นี่ด้วยและจะได้รับการตรวจพร้อมคุณ`,
+    ),
     outboxDropped: t('A saved proof was refused by the server and has been removed. Open the quest to see why.', 'หลักฐานที่บันทึกไว้ถูกเซิร์ฟเวอร์ปฏิเสธและถูกลบออก เปิดภารกิจเพื่อดูเหตุผล'),
     queuedOffline: t(
       'Saved — will upload when you have signal',

@@ -293,7 +293,7 @@ export const api = {
       /** Where the volunteer is at submission - the second in-fence sample. */
       position: Fix;
     },
-  ) => post<{ progress: QuestProgress; proofId: string }>(`/quests/${id}/proof`, payload),
+  ) => post<{ progress: QuestProgress; proofId: string; partyPresent?: { userId: string; displayName: string }[] }>(`/quests/${id}/proof`, payload),
 
   // -- check-in -----------------------------------------------------------
   /**

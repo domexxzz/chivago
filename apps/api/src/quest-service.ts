@@ -20,6 +20,7 @@ import { rows, transact, type DB } from './db.ts';
 import { isRejectionReasonKey, rejectionMessage, QUEST_MIN_DWELL_MIN, type Fix, type QuestCounts, type ProofPhoto, type Balances, type Currency, type QuestProgress, type QuestStage,
   type RejectionReasonKey } from '@chivago/core';
 import { assertPresence, recordFix } from './presence-service.ts';
+import { activePartyFor } from './party-service.ts';
 import { awardQuestReward, getBalances } from './wallet-service.ts';
 import { enqueue } from './notification-service.ts';
 
@@ -300,13 +301,48 @@ export interface ProofInput {
  * user's point of view submitting IS entering review, and holding a separate
  * intermediate state would only create a screen nobody can act on.
  */
+/**
+ * How recently a party member's last fix must be, and it must be inside the
+ * fence, for them to count as present on a proof another member submits.
+ * Thirty minutes: the dwell is ten, and a phone in a pocket reports less
+ * often than that.
+ */
+export const PARTY_PRESENCE_MIN = 30;
+
+export interface PartyPresence { userId: string; displayName: string }
+
+/**
+ * The submitter's party members who are here too: an active party, a last
+ * fix inside this quest's fence, taken within PARTY_PRESENCE_MIN of now,
+ * and not already through this quest. The phone's word, twice over - the
+ * host still decides, once, for all of them.
+ */
+export function partyPresentAt(db: DB, userId: string, questId: string, at = new Date()): PartyPresence[] {
+  const party = activePartyFor(db, userId);
+  if (!party) return [];
+  const quest = db.prepare('SELECT lat, lng, geofence_radius_m FROM quests WHERE id = ?').get(questId) as unknown as QuestGeo | undefined;
+  if (!quest) return [];
+  const since = new Date(at.getTime() - PARTY_PRESENCE_MIN * 60_000).toISOString();
+  const members = db.prepare(
+    `SELECT m.user_id AS user_id, u.display_name AS display_name, f.lat, f.lng, f.at
+     FROM party_members m
+     JOIN users u ON u.id = m.user_id
+     JOIN last_fix f ON f.user_id = m.user_id
+     WHERE m.party_id = ? AND m.left_at IS NULL AND m.user_id != ? AND f.at >= ? AND f.at <= ?`,
+  ).all(party.id, userId, since, at.toISOString()) as unknown as { user_id: string; display_name: string; lat: number; lng: number; at: string }[];
+  return members
+    .filter((m) => distanceMetres(m, { lat: quest.lat, lng: quest.lng }) <= quest.geofence_radius_m)
+    .filter((m) => getProgress(db, m.user_id, questId)?.stage !== 'complete')
+    .map((m) => ({ userId: m.user_id, displayName: m.display_name }));
+}
+
 export function submitProof(
   db: DB,
   userId: string,
   questId: string,
   input: ProofInput,
   at = new Date(),
-): { progress: QuestProgress; proofId: string } {
+): { progress: QuestProgress; proofId: string; partyPresent: PartyPresence[] } {
   const progress = getProgress(db, userId, questId);
   if (!progress || !ALLOWED[progress.stage].includes('proof_submitted')) {
     throw new InvalidTransition(progress?.stage ?? null, 'proof_submitted');
@@ -338,10 +374,14 @@ export function submitProof(
   const proofId = randomUUID();
 
   return transact(db, () => {
+    if (input.position) recordFix(db, userId, input.position, at);
+    // The party, present: in the fence, recently, and not already done.
+    const present = partyPresentAt(db, userId, questId, at);
     db.prepare(
-      `INSERT INTO proofs (id, user_id, quest_id, photos, weight_kg, submitted_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-    ).run(proofId, userId, questId, JSON.stringify(input.photos), input.weightKg, now);
+      `INSERT INTO proofs (id, user_id, quest_id, photos, weight_kg, submitted_at, party_present)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ).run(proofId, userId, questId, JSON.stringify(input.photos), input.weightKg, now,
+          present.length > 0 ? JSON.stringify(present.map((m) => m.userId)) : null);
 
     db.prepare(
       `UPDATE quest_progress
@@ -350,9 +390,28 @@ export function submitProof(
        WHERE user_id = ? AND quest_id = ?`,
     ).run(now, userId, questId);
 
-    if (input.position) recordFix(db, userId, input.position, at);
-    return { progress: getProgress(db, userId, questId)!, proofId };
+    // Each present member rides this proof: joined and arrived if they had
+    // not, and waiting on the same host with the submitter.
+    for (const m of present) {
+      db.prepare(
+        `INSERT INTO quest_progress (user_id, quest_id, stage, joined_at, arrived_at, proof_submitted_at)
+         VALUES (?, ?, 'host_verification', ?, ?, ?)
+         ON CONFLICT(user_id, quest_id) DO UPDATE SET
+           stage = 'host_verification',
+           arrived_at = COALESCE(quest_progress.arrived_at, excluded.arrived_at),
+           proof_submitted_at = excluded.proof_submitted_at,
+           rejected_at = NULL, rejection_reason = NULL, rejection_reason_key = NULL`,
+      ).run(m.userId, questId, now, now, now);
+    }
+    return { progress: getProgress(db, userId, questId)!, proofId, partyPresent: present };
   });
+}
+
+/** Who rode a proof. */
+function partyOnProof(db: DB, proofId: string): string[] {
+  const found = db.prepare('SELECT party_present FROM proofs WHERE id = ?').get(proofId) as unknown as { party_present: string | null } | undefined;
+  if (!found?.party_present) return [];
+  try { return JSON.parse(found.party_present) as string[]; } catch { return []; }
 }
 
 export interface VerificationResult {
@@ -410,12 +469,15 @@ export function resolveVerification(
            review_note = ?, reason_key = ? WHERE id = ?`,
       ).run(now, args.reviewedBy ?? null, args.reviewNote ?? null, args.reasonKey ?? null, args.proofId);
       // Back to proof_submitted so the user can retake and resubmit. Their
-      // arrival still stands - they were there.
-      db.prepare(
-        `UPDATE quest_progress SET stage = 'arrived', rejected_at = ?,
-           rejection_reason = ?, rejection_reason_key = ?
-         WHERE user_id = ? AND quest_id = ?`,
-      ).run(now, args.reviewNote ?? null, args.reasonKey ?? null, args.userId, args.questId);
+      // arrival still stands - they were there. The party that rode this
+      // proof goes back with them: one proof, one decision.
+      for (const uid of [args.userId, ...partyOnProof(db, args.proofId)]) {
+        db.prepare(
+          `UPDATE quest_progress SET stage = 'arrived', rejected_at = ?,
+             rejection_reason = ?, rejection_reason_key = ?
+           WHERE user_id = ? AND quest_id = ? AND stage = 'host_verification'`,
+        ).run(now, args.reviewNote ?? null, args.reasonKey ?? null, uid, args.questId);
+      }
 
       // In the SAME transaction as the state change. If the decision is
       // recorded, the volunteer is guaranteed to be told - sending happens
@@ -459,6 +521,25 @@ export function resolveVerification(
       // environmental is a property of what was posted and verified.
       currency: quest.reward_currency as Currency,
     });
+    // The party that was there: the same approval, the same award each,
+    // idempotent by source_ref like the submitter's. Told the same way.
+    for (const uid of partyOnProof(db, args.proofId)) {
+      const theirs = getProgress(db, uid, args.questId);
+      if (!theirs || theirs.stage !== 'host_verification') continue;
+      db.prepare(`UPDATE quest_progress SET stage = 'complete', verified_at = ? WHERE user_id = ? AND quest_id = ?`)
+        .run(now, uid, args.questId);
+      awardQuestReward(db, {
+        userId: uid, questId: args.questId, questName: quest.name_en, host: quest.host_name,
+        points: quest.reward_points, currency: quest.reward_currency as Currency,
+      });
+      enqueue(db, {
+        userId: uid,
+        kind: 'quest_approved',
+        params: { host: quest.host_name, quest: quest.name_en, points: quest.reward_points },
+        data: { screen: 'wallet', questId: args.questId },
+        dedupeKey: `quest-approved:${args.questId}:${uid}`,
+      });
+    }
 
     // Recorded with the award, not after it. A user who is paid but never told
     // is the exact failure this feature exists to prevent, and only one

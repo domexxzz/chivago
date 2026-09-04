@@ -212,6 +212,14 @@ export function detailPage(
         </div>
       </div>
     </div>
+    ${item.partyPresent.length > 0 ? html`
+    <div class="grid" style="margin-top:0;border-top:0;grid-template-columns:1fr">
+      <div>
+        <div class="kicker">${tr('partyPresent')} · ${formatNumber(item.partyPresent.length, locale)}</div>
+        <div style="font-weight:800;font-size:15px;margin-top:4px">${item.partyPresent.map((n) => esc(n)).join(' · ')}</div>
+        <div class="muted">${tr('partyPaysAll')}</div>
+      </div>
+    </div>` : ''}
 
     <h4 style="margin-top:32px">${tr('photosHeading')}</h4>
     ${

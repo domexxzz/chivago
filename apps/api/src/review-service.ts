@@ -66,17 +66,19 @@ export interface ReviewItem {
   priorRejections: number;
   priorApprovals: number;
   arrivedAt: string | null;
+  /** Party members who were in the fence when this was taken. Approving pays them too. */
+  partyPresent: string[];
 }
 
 interface ProofRow {
   id: string; user_id: string; quest_id: string; weight_kg: number | null;
   submitted_at: string; quest_code: string; quest_name: string; quest_where: string;
   reward_points: number; geofence_radius_m: number; quest_lat: number; quest_lng: number;
-  arrived_at: string | null;
+  arrived_at: string | null; party_present: string | null;
 }
 
 const PROOF_SELECT = `
-  SELECT p.id, p.user_id, p.quest_id, p.weight_kg, p.submitted_at,
+  SELECT p.id, p.user_id, p.quest_id, p.weight_kg, p.submitted_at, p.party_present,
          q.code AS quest_code, q.name_en AS quest_name, q.where_label AS quest_where,
          q.reward_points, q.geofence_radius_m, q.lat AS quest_lat, q.lng AS quest_lng,
          qp.arrived_at
@@ -215,8 +217,14 @@ function toReviewItem(db: DB, hostId: string, p: ProofRow, now: Date): ReviewIte
   const photos = photosFor(db, p.id, site);
   const history = historyFor(db, hostId, p.user_id, p.id);
   const waitingHours = hoursBetween(p.submitted_at, now);
+  let partyIds: string[] = [];
+  try { partyIds = p.party_present ? (JSON.parse(p.party_present) as string[]) : []; } catch { partyIds = []; }
+  const partyPresent = partyIds.length === 0 ? [] : rows<{ display_name: string }>(
+    db.prepare(`SELECT display_name FROM users WHERE id IN (${partyIds.map(() => '?').join(',')})`).all(...partyIds),
+  ).map((r) => r.display_name);
 
   return {
+    partyPresent,
     proofId: p.id,
     questId: p.quest_id,
     questCode: p.quest_code,
