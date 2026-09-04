@@ -81,7 +81,7 @@ const TRAVELLER_TABLES = [
  */
 const KEPT_TABLES = [
   'places', 'quests', 'offers', 'hosts', 'host_sessions',
-  'community_metrics', 'air_cache',
+  'community_metrics', 'air_cache', 'air_history',
 ] as const;
 
 /**

@@ -23,6 +23,7 @@ import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { ReviewsBlock } from './PlaceReviews.tsx';
 import { t } from '../i18n/locale.ts';
+import { AirHistoryCard, HereNow } from '../components/PlaceLive.tsx';
 
 export function PlaceScreen({
   placeId, onBack, onAddToTrip, onSafePath, onToast, onPointsChanged,
@@ -143,6 +144,8 @@ export function PlaceScreen({
 
             <ScoreBlock place={place.data} onExplain={() => setShowBreakdown(true)} />
             <MetricGrid place={place.data} />
+            <HereNow crowd={place.data.crowd} />
+            <AirHistoryCard placeId={place.data.id} />
 
             <Body style={{ marginTop: 16 }}>{t(place.data.blurb)}</Body>
 

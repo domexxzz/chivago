@@ -524,6 +524,29 @@ export function migrate(db: DB): string[] {
   applied.push('mood_checkins');
 
   /*
+    Air, remembered.
+    ----------------
+    air_cache holds one row per grid cell: the latest reading, for the TTL.
+    Nothing kept what the air WAS, so "was yesterday better" had no answer
+    and the place screen could only ever say now. Every fresh fetch also
+    appends here, keyed by the model's own observation time so a re-fetch of
+    the same hour is not a second sample. Nothing is invented backwards: the
+    history starts the day the server started recording, and says so.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS air_history (
+      grid_key    TEXT NOT NULL,
+      observed_at TEXT NOT NULL,
+      aqi         REAL NOT NULL,
+      pm25        REAL,
+      fetched_at  TEXT NOT NULL,
+      PRIMARY KEY (grid_key, observed_at)
+    );
+    CREATE INDEX IF NOT EXISTS idx_air_history_cell ON air_history(grid_key, observed_at DESC);
+  `);
+  applied.push('air_history');
+
+  /*
     Give mood_checkins the foreign key it shipped without.
     ------------------------------------------------------
     A PDPA defect, found by auditing what `DELETE /profile` actually removes.

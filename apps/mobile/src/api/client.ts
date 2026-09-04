@@ -13,7 +13,7 @@ import type {
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
 } from '@chivago/core';
-import type { Explored, Fix, SelfVisitResult, SelfVisitSummary } from '@chivago/core';
+import type { AirHistory, Explored, Fix, SelfVisitResult, SelfVisitSummary } from '@chivago/core';
 
 /**
  * What POST /places/:id/checkin answers with.
@@ -270,6 +270,8 @@ export const api = {
       rankedBy: Bilingual;
     }>('/standing'),
   place: (id: string) => get<ScoredPlace>(`/places/${id}`),
+  /** The air over a place by island day, as the server recorded it. */
+  placeHistory: (id: string) => get<AirHistory>(`/places/${id}/history`),
 
   // -- quests -------------------------------------------------------------
   quests: (filter?: 'today' | 'weekend') =>
