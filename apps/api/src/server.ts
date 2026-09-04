@@ -46,10 +46,7 @@ import {
   reviewsFor, withdrawReview, writeReview,
 } from './place-review-service.ts';
 import {
-  JOIN_REFUSAL, PARTY_DOES_NOT, RANKED_BY, SPECIES_AS_OF, cheapestMonth,
-  collectionSummary, companionsFor, summarise,
-  forecastPrice, islandDay, isReportReasonKey, isRejectionReasonKey,
-  outlookAhead, planDay, rankHosts, routeBiasFor, smartRoute, type Fix
+  JOIN_REFUSAL, PARTY_DOES_NOT, RANKED_BY, SPECIES_AS_OF, cheapestMonth, collectionSummary, companionsFor, forecastPrice, isRejectionReasonKey, isReportReasonKey, islandDay, outlookAhead, planDay, rankHosts, routeBiasFor, smartRoute, statementCsv, statementPdf, summarise, type Fix,
 } from '@chivago/core';
 import {
   arriveAtQuest, getAllProgress, getProgress, joinQuest, resolveVerification, submitProof,
@@ -221,6 +218,31 @@ app.get('/statements/:id', (c) => {
   if (!statement) return fail(c, 'NO_STATEMENT', 'No statement has that id.', 404);
   c.header('cache-control', 'public, max-age=300');
   return ok(c, statement);
+});
+
+/**
+ * The same record as a file. CSV for a spreadsheet, PDF for a filing
+ * cabinet; both carry the id, the digest and the verify URL, so a forwarded
+ * copy still points home. Public and immutable, like the JSON.
+ */
+app.get('/statements/:id/csv', (c) => {
+  const statement = readStatement(db, c.req.param('id'));
+  c.header('access-control-allow-origin', '*');
+  if (!statement) return fail(c, 'NO_STATEMENT', 'No statement has that id.', 404);
+  c.header('cache-control', 'public, max-age=300');
+  c.header('content-type', 'text/csv; charset=utf-8');
+  c.header('content-disposition', `attachment; filename="${statement.id}.csv"`);
+  return c.body(statementCsv(statement, new URL(c.req.url).origin));
+});
+
+app.get('/statements/:id/pdf', (c) => {
+  const statement = readStatement(db, c.req.param('id'));
+  c.header('access-control-allow-origin', '*');
+  if (!statement) return fail(c, 'NO_STATEMENT', 'No statement has that id.', 404);
+  c.header('cache-control', 'public, max-age=300');
+  c.header('content-type', 'application/pdf');
+  c.header('content-disposition', `inline; filename="${statement.id}.pdf"`);
+  return c.body(statementPdf(statement, new URL(c.req.url).origin));
 });
 
 app.get('/verify/:id', (c) => {

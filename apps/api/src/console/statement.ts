@@ -171,7 +171,9 @@ export function statementPage(args: {
               <td>${esc(s.issuedAt.slice(0, 10))}${s.issuedBy ? html` · ${esc(s.issuedBy)}` : ''}</td>
               <td><strong>${s.verified}</strong></td>
               <td><code title="${esc(s.digest)}">${esc(s.digest.slice(0, 12))}…</code></td>
-              <td><a href="${esc(publicUrl(args.origin, s.id))}">${esc(publicUrl(args.origin, s.id))}</a></td>
+              <td><a href="${esc(publicUrl(args.origin, s.id))}">${esc(publicUrl(args.origin, s.id))}</a>
+                · <a href="${esc(`${args.origin}/statements/${encodeURIComponent(s.id)}/csv`)}">CSV</a>
+                · <a href="${esc(`${args.origin}/statements/${encodeURIComponent(s.id)}/pdf`)}">PDF</a></td>
             </tr>`)}
         </tbody>
       </table>
@@ -223,8 +225,10 @@ export function verifyPage(locale: Locale, s: ActivityStatement, origin: string)
       <p>
         Compare the id and the digest printed on the report with the ones here. The digest is
         SHA-256 of the canonical JSON at <a href="${esc(`${origin}/statements/${encodeURIComponent(s.id)}`)}">${esc(`${origin}/statements/${s.id}`)}</a>,
-        which anyone can fetch and recompute.
-        <span lang="th">เทียบรหัสและค่า digest ที่พิมพ์ในรายงานกับที่แสดงตรงนี้ ค่า digest คือ SHA-256 ของ JSON มาตรฐานตามลิงก์ ซึ่งใครก็ดึงมาคำนวณซ้ำได้</span>
+        which anyone can fetch and recompute. The same record as a file:
+        <a href="${esc(`${origin}/statements/${encodeURIComponent(s.id)}/csv`)}">CSV</a> ·
+        <a href="${esc(`${origin}/statements/${encodeURIComponent(s.id)}/pdf`)}">PDF</a>.
+        <span lang="th">เทียบรหัสและค่า digest ที่พิมพ์ในรายงานกับที่แสดงตรงนี้ ค่า digest คือ SHA-256 ของ JSON มาตรฐานตามลิงก์ ซึ่งใครก็ดึงมาคำนวณซ้ำได้ ดาวน์โหลดเป็นไฟล์ CSV หรือ PDF ได้จากลิงก์ด้านบน</span>
       </p>
       <p><code style="display:block;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.6;word-break:break-all;padding:10px 12px;border:1px solid var(--color-neutral-400)">${esc(s.digest)}</code></p>
       <p class="note">
