@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import { SAMUI_BBOX, SEED_PLACES, computeHealthyScore, type ScoredPlace } from '@chivago/core';
-import { CHIP, layoutPins, project, tilt } from './map-geometry.ts';
+import { CHIP, layoutPins, mistCircles, project, tilt } from './map-geometry.ts';
 
 const W = 390;
 const H = 344;
@@ -224,5 +224,30 @@ describe('pins paint far to near', () => {
     // A sort is a cheap place to lose a row.
     const ids = layoutPins(scored, W, H).map((p) => p.place.id).sort();
     assert.deepEqual(ids, SEED_PLACES.map((p) => p.id).sort());
+  });
+});
+
+describe('the mist on the drawn island', () => {
+  const W = 390, H = 344;
+  const places = SEED_PLACES.map((p) => ({ id: p.id, lat: p.lat, lng: p.lng }));
+
+  test('a cleared circle sits where the pin stands, through the same tilt', () => {
+    const [c] = mistCircles([{ placeId: 'chaweng' }], places, W, H);
+    const chaweng = places.find((p) => p.id === 'chaweng')!;
+    const flat = project(chaweng.lat, chaweng.lng);
+    const t = tilt(flat.x, flat.y);
+    assert.ok(Math.abs(c!.cx - t.x * W) < 1e-9 && Math.abs(c!.cy - t.y * H) < 1e-9);
+  });
+
+  test('it is a beach and a walk wide, foreshortened like the ground plane', () => {
+    const [c] = mistCircles([{ placeId: 'namuang' }], places, W, H);
+    assert.ok(c!.rx > 8 && c!.rx < 80, `rx ${c!.rx.toFixed(1)} px on a phone`);
+    assert.ok(c!.ry < c!.rx, 'squashed by the tilt, as the island is');
+  });
+
+  test('a place they reached that is filtered off the map still clears; an unknown id clears nothing', () => {
+    assert.equal(mistCircles([{ placeId: 'nowhere' }], places, W, H).length, 0);
+    assert.equal(mistCircles([{ placeId: 'lamai' }], places, W, H).length, 1);
+    assert.equal(mistCircles([], places, W, H).length, 0);
   });
 });

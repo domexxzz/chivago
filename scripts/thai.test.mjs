@@ -73,6 +73,33 @@ describe('collecting and checking', () => {
   });
 });
 
+const pair = (en, th) => ({ id: `${en}|${th}`, file: 'src/strings.ts', line: 1, en, th, thQuote: "'", context: '' });
+
+describe('what the checker has learned not to flag', () => {
+  test('a {slot} in a notification template is code, not English left in', () => {
+    const findings = analyse([pair('{host} approved {quest}.', '{host} อนุมัติ {quest} แล้ว')]);
+    assert.deepEqual(findings.filter((f) => f.kind === 'english-left-in'), []);
+  });
+
+  test('a reporting standard\'s initials stay as they are', () => {
+    const findings = analyse([pair('Not assured under ISAE 3000.', 'ไม่ได้รับรองตาม ISAE 3000'), pair('ESG report', 'รายงาน ESG')]);
+    assert.deepEqual(findings.filter((f) => f.kind === 'english-left-in'), []);
+  });
+
+  test('a template that is nothing but interpolations carries its Thai in the values', () => {
+    const findings = analyse([pair('${preset.en} — ${note}', '${preset.th} — ${note}')]);
+    assert.deepEqual(findings.filter((f) => f.kind === 'not-thai'), []);
+  });
+
+  test('a second rendering marked intentional is a decision, not drift', () => {
+    const a = { ...pair('Good evening', 'สวัสดีตอนเย็น'), line: 1 };
+    const b = { ...pair('Good evening', 'สวัสดีตอนค่ำ'), line: 2, intentional: true };
+    assert.deepEqual(analyse([a, b]).filter((f) => f.kind === 'inconsistent'), []);
+    const c = { ...pair('Good evening', 'สวัสดีตอนค่ำ'), line: 2 };
+    assert.equal(analyse([a, c]).filter((f) => f.kind === 'inconsistent').length, 1, 'unmarked, it is still drift');
+  });
+});
+
 describe('writing corrections back', () => {
   test('a correction lands on its literal and keeps the quote style', () => {
     const root = fixtureRoot();

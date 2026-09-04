@@ -85,7 +85,7 @@ EXPO_PUBLIC_API_URL=http://192.168.1.42:8787 pnpm mobile
 pnpm test
 ```
 
-**1,390 tests** — 307 core, 714 API, 344 mobile, 25 tokens — plus 11 in the Dart
+**1,393 tests** — 307 core, 714 API, 347 mobile, 25 tokens — plus 11 in the Dart
 SDK (`pnpm test:dart`) and 10 in the Swift one (`swift test`). `pnpm typecheck`
 covers all four packages. `.github/workflows/ci.yml` runs all of it on every
 push, on Linux and macOS, so the numbers above are checked by a machine nobody
@@ -176,7 +176,9 @@ of a chart and every quest on today's list standing where the work is: an X
 that pulses gold until you join it and goes green only once a host has
 verified; the sea moves; and everywhere you have not been is under a mist that
 lifts only where the ledger says you stood (`docs/34-the-adventure-map.md`).
-The jungle is olive, on purpose: no layer wears the evidence green.
+A phone gets the mist, the water and the cloud shadows in SVG, no native
+module needed. The jungle is olive, on purpose: no layer wears the evidence
+green.
 
 **Accounts with no password and no email.** A device holds a random key; moving
 to a second phone means reading eight characters off the first. The least

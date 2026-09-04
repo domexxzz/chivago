@@ -10,6 +10,16 @@
 import { SAMUI_BBOX, type ScoredPlace } from '@chivago/core';
 
 /**
+ * How far a visit clears the mist, in metres: the beach, and a walk either
+ * way. Shared by both maps, and kept here - the module with no renderer and
+ * no theme in it - so the geometry tests can run without a browser.
+ */
+export const REVEAL_M = 1500;
+
+/** Where the sharp centre of a cleared circle softens into the mist, as a fraction of its radius. */
+export const REVEAL_FEATHER = 0.55;
+
+/**
  * Inset into the drawn island rather than the raw viewport.
  *
  * The bounding box is a rectangle; the island inside it is not. A pin at the
@@ -158,4 +168,43 @@ export function layoutPins(
     .slice()
     .sort((a, b) => a.top - b.top)
     .map(({ place, left, top }) => ({ place, left, top }));
+}
+
+/**
+ * Where the drawn island's mist clears, in pixels, through the same
+ * projection and tilt as the pins - so a cleared circle sits around the
+ * chip that names the place, on the ground plane, foreshortened like it.
+ *
+ * The radius is `REVEAL_M` on the ground: a beach and a walk either way,
+ * the same distance the web map clears. A place the traveller reached that
+ * is not on screen (a filter hid it) still clears its ground: they were
+ * there.
+ */
+export interface MistCircle { cx: number; cy: number; rx: number; ry: number }
+
+export function mistCircles(
+  explored: readonly { placeId: string }[],
+  places: readonly { id: string; lat: number; lng: number }[],
+  width: number,
+  height: number,
+): MistCircle[] {
+  const { minLat, maxLat, minLng, maxLng } = SAMUI_BBOX;
+  const metresPerDeg = 111_320;
+  const latSpanM = (maxLat - minLat) * metresPerDeg;
+  const midLat = (minLat + maxLat) / 2;
+  const lngSpanM = (maxLng - minLng) * metresPerDeg * Math.cos((midLat * Math.PI) / 180);
+  const byId = new Map(places.map((p) => [p.id, p]));
+  const out: MistCircle[] = [];
+  for (const e of explored) {
+    const p = byId.get(e.placeId);
+    if (!p) continue;
+    const flat = project(p.lat, p.lng);
+    const { x, y } = tilt(flat.x, flat.y);
+    // How wide this row of the ground plane is drawn, as the tilt draws it.
+    const narrow = 1 - TILT.spread * (1 - flat.y);
+    const rx = (REVEAL_M / lngSpanM) * (1 - INSET.x * 2) * narrow * width;
+    const ry = (REVEAL_M / latSpanM) * (1 - INSET.y * 2) * TILT.squash * height;
+    out.push({ cx: x * width, cy: y * height, rx, ry });
+  }
+  return out;
 }
