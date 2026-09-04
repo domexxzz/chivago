@@ -100,6 +100,7 @@ export function queuePage(
       items.length === 0
         ? html`<div class="empty">
             <h4>${tr('nothingToReview')}</h4>
+    <p><button id="notify-me" type="button" class="btn" style="min-height:44px">${tr('notifyMe')}</button></p>
             <p class="muted">${tr('nothingToReviewBlurb')}</p>
           </div>`
         : items.map(

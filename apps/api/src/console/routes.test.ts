@@ -122,6 +122,21 @@ describe('authentication gate', () => {
   });
 });
 
+describe('the count the badge polls', () => {
+  test('answers this host\'s pending count as JSON, uncached, and nothing else', async () => {
+    const cookie = await signIn(MUNI_KEY);
+    const res = await app.request('/pending', { headers: withCookie(cookie) });
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get('cache-control'), 'no-store');
+    assert.deepEqual(await res.json(), { pending: 1 }, 'the municipality has one, the lab\'s is not counted');
+  });
+
+  test('is behind the session like every other page', async () => {
+    const res = await app.request('/pending');
+    assert.notEqual(res.status, 200);
+  });
+});
+
 describe('cross-host isolation — the rule the console exists to enforce', () => {
   test('the queue shows only this host submissions', async () => {
     const muni = await signIn(MUNI_KEY);

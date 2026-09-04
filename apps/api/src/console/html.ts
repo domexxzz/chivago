@@ -106,7 +106,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(title)} · ChivaGo Host Console</title>
+<title>${pendingCount ? `(${pendingCount}) ` : ''}${esc(title)} · ChivaGo Host Console</title>
 <link rel="stylesheet" href="/console/assets/modernist.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -178,6 +178,22 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
   .muted { color:var(--color-neutral-700); font-size:13px; }
   .empty { padding:64px 0; text-align:left; }
   @media (max-width:720px){ .grid { grid-template-columns:1fr; } }
+  /* A phone. Most hosts are a municipal officer or a market trader with a
+     phone, not a desk; the console has to work between two other things. */
+  @media (max-width:720px){
+    body { padding: 0 14px 48px; }
+    .bar { flex-direction:column; align-items:flex-start; gap:10px; padding:12px 0; }
+    .nav { flex-wrap:wrap; gap:4px; }
+    .nav a { padding:8px 10px; font-size:11px; }
+    .row { flex-direction:column; gap:8px; }
+    .photo img { width:100%; height:auto; max-height:60vh; }
+    .photos { flex-direction:column; }
+    table { display:block; overflow-x:auto; max-width:100%; }
+    textarea, input[type=text], input[type=password], select { width:100%; box-sizing:border-box; }
+    .actions form { width:100%; }
+    button { min-height:44px; }
+  }
+  #pending-badge:empty { display:none; }
 </style>
 </head>
 <body>
@@ -190,9 +206,9 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
     ${
       signedIn
         ? `<nav class="nav">
-             <a href="/console" class="${activeNav === 'queue' ? 'on' : ''}">${tr('queue')}${
+             <a href="/console" class="${activeNav === 'queue' ? 'on' : ''}">${tr('queue')}<span id="pending-badge">${
                pendingCount ? ` · ${pendingCount}` : ''
-             }</a>
+             }</span></a>
              <a href="/console/history" class="${activeNav === 'history' ? 'on' : ''}">${tr('history')}</a>
              ${canModerate ? `<a href="/console/reviews" class="${activeNav === 'moderation' ? 'on' : ''}">${tr('moderation')}</a>` : ''}
              <a href="/console/sponsor" class="${activeNav === 'sponsor' ? 'on' : ''}">${tr('sponsor')}</a>
@@ -215,6 +231,37 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
 </header>
 ${reviewer ? `<p class="muted">${esc(tr('signedInAs'))} ${esc(reviewer)}</p>` : ''}
 ${body instanceof Raw ? body.value : esc(body)}
+${signedIn ? `<script>
+(function(){
+  var base = document.title.replace(/^\(\d+\) /, '');
+  var last = ${Number(pendingCount ?? 0)};
+  var badge = document.getElementById('pending-badge');
+  function show(n){
+    document.title = (n ? '(' + n + ') ' : '') + base;
+    if (badge) badge.textContent = n ? ' · ' + n : '';
+  }
+  function poll(){
+    fetch('/console/pending', { credentials: 'same-origin', cache: 'no-store' })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(j){
+        if (!j) return;
+        if (j.pending > last && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification('ChivaGo', { body: ${JSON.stringify(tr('newProofWaiting'))}, tag: 'chivago-pending' });
+        }
+        last = j.pending; show(j.pending);
+      }).catch(function(){});
+  }
+  setInterval(poll, 60000);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) poll(); });
+  var ask = document.getElementById('notify-me');
+  if (ask && 'Notification' in window) {
+    if (Notification.permission === 'granted') ask.textContent = ${JSON.stringify(tr('notifyOn'))};
+    ask.addEventListener('click', function(){
+      Notification.requestPermission().then(function(p){ if (p === 'granted') ask.textContent = ${JSON.stringify(tr('notifyOn'))}; });
+    });
+  } else if (ask) { ask.style.display = 'none'; }
+})();
+</script>` : ''}
 </body>
 </html>`;
 }

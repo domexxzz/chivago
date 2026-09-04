@@ -255,6 +255,19 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     );
   });
 
+  /**
+   * The queue's count, for the page to poll. A host reviewing from a phone
+   * between two other things sees the badge and the tab title move without
+   * reloading, and - if they said yes to it - a notification when a new
+   * proof lands. Nothing more than the number: the proofs are behind the
+   * session like everything else.
+   */
+  app.get('/pending', (c) => {
+    const session = currentSession(c)!;
+    c.header('cache-control', 'no-store');
+    return c.json({ pending: queueStats(db, session.hostId).pending });
+  });
+
   app.get('/history', (c) => {
     const session = currentSession(c)!;
     return c.html(
