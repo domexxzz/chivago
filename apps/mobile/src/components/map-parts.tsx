@@ -21,8 +21,8 @@ import { t } from '../i18n/locale.ts';
  * place header can never disagree.
  */
 export function PinChip({
-  place, onPress, compact = false,
-}: { place: ScoredPlace; onPress: () => void; compact?: boolean }) {
+  place, onPress, compact = false, storied = false,
+}: { place: ScoredPlace; onPress: () => void; compact?: boolean; storied?: boolean }) {
   const high = isHighScore(place.healthyScore);
   return (
     <Pressable
@@ -43,7 +43,8 @@ export function PinChip({
             borderWidth: 2,
             borderRadius: radius.sm,
             backgroundColor: high ? color.accent : color.bg,
-            borderColor: high ? color.accent : color.text,
+            // Gold: the ring a place wears when it has a story on it (docs/45).
+            borderColor: storied ? color.gold : high ? color.accent : color.text,
           },
         ]}
       >

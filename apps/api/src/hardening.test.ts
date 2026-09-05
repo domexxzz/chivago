@@ -313,3 +313,29 @@ describe('the public statement record', () => {
       'a browser-side verifier on another origin could not fetch the record it was told to recompute');
   });
 });
+
+describe('the board in the room', () => {
+  test('is public, names the area, and polls the feed', async () => {
+    const res = await app.request('/board/ku-sriracha');
+    assert.equal(res.status, 200);
+    const page = await res.text();
+    assert.match(page, /KU Sriracha/);
+    assert.match(page, /\/areas\/ku-sriracha\/stories/);
+    assert.match(page, /setInterval\(tick, 3000\)/);
+  });
+
+  test('an area we do not have is not a board', async () => {
+    assert.equal((await app.request('/board/bangkok')).status, 404);
+  });
+
+  test('the feed is public, readable from any origin, and says the door is shut', async () => {
+    const raw = await app.request('/areas/ku-sriracha/stories');
+    // The map on the Expo dev origin and the board on a laptop both read
+    // this from another origin; without the header the map's rings never lit.
+    assert.equal(raw.headers.get('access-control-allow-origin'), '*');
+    const res = await json(raw);
+    assert.equal(res.ok, true);
+    assert.equal(res.data.open, false);
+    assert.deepEqual(res.data.stories, []);
+  });
+});

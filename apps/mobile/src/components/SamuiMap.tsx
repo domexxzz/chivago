@@ -359,6 +359,8 @@ export interface SamuiMapProps {
    * list until a campus drawing exists (docs/43).
    */
   area?: Area;
+  /** Places with an approved story on them, drawn with a gold ring (docs/45). */
+  storied?: ReadonlySet<string>;
 }
 
 /**
@@ -420,7 +422,7 @@ function CampusList({
 }
 
 function IslandMap({
-  places, onSelect, explored = [], height = 344, compact = false,
+  places, onSelect, explored = [], height = 344, compact = false, storied,
 }: SamuiMapProps) {
   /**
    * The map is full-bleed, so the window IS its width.
@@ -474,7 +476,7 @@ function IslandMap({
                 transform: [{ translateX: -CHIP.halfWidth }, { translateY: -40 }],
               }}
             >
-              <PinChip place={place} onPress={() => onSelect(place)} compact={compact} />
+              <PinChip place={place} onPress={() => onSelect(place)} compact={compact} storied={storied?.has(place.id) ?? false} />
             </View>
           ))
         : null}

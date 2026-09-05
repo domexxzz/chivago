@@ -53,6 +53,12 @@ export function MapScreen({
   const explored = useAsync(() => api.explored(), []);
   const [mode, setMode] = React.useState<MapMode>('map');
   const area = useArea();
+  // Which pins wear a story. One request for the whole area, public.
+  const areaStories = useAsync(() => api.areaStories(area.key), [area.key]);
+  const storied = React.useMemo(
+    () => new Set((areaStories.data?.stories ?? []).map((s) => s.placeId)),
+    [areaStories.data],
+  );
 
   // Memoised, and the handler with it: the web map rebuilds every DOM marker
   // when either changes identity, and a fresh array plus a fresh arrow on
@@ -89,6 +95,7 @@ export function MapScreen({
           {mode === 'map' ? (
             <SamuiMap
               area={area}
+              storied={storied}
               places={visible}
               onSelect={onSelect}
               quests={questsHere}

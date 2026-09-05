@@ -210,6 +210,7 @@ const MARK_CSS = `
 .cg-pin.cg-high .cg-chip{border-color:${color.accent};background:${color.accent};color:${onFill.accent}}
 .cg-stem{width:2px;height:18px;background:${color.text};opacity:.9}
 .cg-foot{width:14px;height:5px;border-radius:50%;background:rgba(8,26,48,.4);margin-top:-1px}
+.cg-pin.cg-storied .cg-chip{box-shadow:0 0 0 2px ${color.bg},0 0 0 5px ${color.gold}}
 .cg-night .cg-chip{box-shadow:0 0 0 2px rgba(255,255,255,.08),0 0 18px rgba(255,236,190,.55)}
 .cg-quest{display:flex;flex-direction:column;align-items:center;cursor:pointer;border:0;background:none;padding:0;width:56px;font-family:Anuphan,system-ui,sans-serif}
 .cg-ring{position:absolute;top:2px;left:50%;width:34px;height:34px;margin-left:-17px;border-radius:50%;
@@ -256,7 +257,7 @@ const COMPASS_SVG = `<svg viewBox="0 0 46 46" aria-hidden="true">
 const CAMPUS_STOREYS_M = 12;
 
 export function TerrainMap({
-  places, onSelect, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area,
+  places, onSelect, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area, storied,
 }: {
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;
@@ -269,6 +270,8 @@ export function TerrainMap({
   compact?: boolean;
   /** The island unless told otherwise. A campus is flat, framed at street zoom, and grows buildings. */
   area?: Area;
+  /** Places with an approved story on them: a gold ring on the chip (docs/45). */
+  storied?: ReadonlySet<string>;
 }) {
   const holder = React.useRef<HTMLDivElement | null>(null);
   const map = React.useRef<MapLibreMap | null>(null);
@@ -576,7 +579,7 @@ export function TerrainMap({
     places.forEach((place, i) => {
       const el = document.createElement('button');
       el.type = 'button';
-      el.className = `cg-pin${isHighScore(place.healthyScore) ? ' cg-high' : ''}`;
+      el.className = `cg-pin${isHighScore(place.healthyScore) ? ' cg-high' : ''}${storied?.has(place.id) ? ' cg-storied' : ''}`;
       el.setAttribute('aria-label', `${t(place.name)}, ${t(strings.place.healthyScore)} ${place.healthyScore}`);
       // Score alone on a narrow map - see PinChip for why.
       el.innerHTML = `<span class="cg-chip" style="animation-delay:${-(i * 0.7).toFixed(1)}s"><span>${place.healthyScore}</span>${
@@ -613,7 +616,7 @@ export function TerrainMap({
           .addTo(m),
       );
     }
-  }, [places, quests, progress, onSelect, onOpenQuest, compact]);
+  }, [places, quests, progress, onSelect, onOpenQuest, compact, storied]);
 
   if (failed) {
     return (

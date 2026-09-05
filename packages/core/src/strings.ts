@@ -134,6 +134,19 @@ export const strings = {
   // -- Place --------------------------------------------------------------
   place: {
     context: t('Place', 'สถานที่'),
+    // Stories (docs/44-45). The door's line is the honest one: no button that
+    // fails, a sentence that says when.
+    stories: t('Stories', 'สตอรี่'),
+    storiesEmpty: t('No stories here yet.', 'ยังไม่มีสตอรี่ที่นี่'),
+    storiesClosed: t('Stories open at the event, at the place.', 'สตอรี่เปิดรับที่งาน ณ สถานที่จริง'),
+    tellStory: t('Tell a story here', 'เล่าสตอรี่ที่นี่'),
+    storyPending: t('Sent. It shows once the team has looked at it', 'ส่งแล้ว จะขึ้นเมื่อทีมตรวจแล้ว'),
+    storyNoFix: t('Your position is needed to tell a story here.', 'ต้องมีตำแหน่งเพื่อเล่าสตอรี่ที่นี่'),
+    storyPickerUnavailable: t('The camera could not open.', 'เปิดกล้องไม่ได้'),
+    storyWebOnly: t('Video plays on the web for now.', 'วิดีโอเล่นบนเว็บก่อน'),
+    storyViewerHint: t('tap to continue', 'แตะเพื่อดูต่อ'),
+    storyPrev: t('Previous story', 'สตอรี่ก่อนหน้า'),
+    storyNext: t('Next story', 'สตอรี่ถัดไป'),
     healthyScore: t('Healthy Score', 'คะแนนสุขภาวะของพื้นที่'),
     addToRoute: t("Add to today's route", 'เพิ่มลงเส้นทาง'),
     safePath: t('Safe path from here', 'เส้นทางปลอดภัยจากที่นี่'),

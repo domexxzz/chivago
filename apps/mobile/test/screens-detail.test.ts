@@ -72,13 +72,14 @@ describe('a place, and checking in to it', () => {
       'GET /visits/self': { places: [], remainingThisYear: 10 },
       'GET /places/chaweng/reviews': { reviews: [], mine: null, canReview: false, reported: [] },
       'GET /places/chaweng/history': { since: null, days: [] },
+      'GET /places/chaweng/stories': { open: false, stories: [] },
     });
     try {
       const ui = await mountScreen(h(PlaceScreen, props()));
-      // Four fetches: the screen carries the reviews block and the air history.
+      // Six fetches: the screen carries the reviews block, the air history and the stories.
       assert.deepEqual(
         net.calls.map((c) => c.path).sort(),
-        ['/checkins/today', '/places/chaweng', '/places/chaweng/history', '/places/chaweng/reviews', '/visits/self'],
+        ['/checkins/today', '/places/chaweng', '/places/chaweng/history', '/places/chaweng/reviews', '/places/chaweng/stories', '/visits/self'],
       );
       assert.deepEqual(net.missing, []);
 

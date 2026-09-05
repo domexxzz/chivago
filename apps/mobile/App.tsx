@@ -198,6 +198,11 @@ export default function App() {
               // us what they want watched.
               void notifications.enablePush(locale);
               nav.selectTab('home');
+              // A first-time visitor who scanned a QR at a pin has just
+              // answered three questions to get here; the place they scanned
+              // is where they land, not Home.
+              const place = placeFromUrl();
+              if (place) nav.push('place', { placeId: place });
             }}
           />
         );

@@ -142,6 +142,28 @@ export interface FiledStatement {
   quests: { id: string; name: Bilingual }[];
 }
 
+/** A story on a place (docs/44). `media` and `poster` are paths under the API. */
+export interface Story {
+  id: string;
+  placeId: string;
+  kind: 'video' | 'photo';
+  caption: string;
+  status: 'pending' | 'approved' | 'hidden';
+  createdAt: string;
+  expiresAt: string;
+  durationS: number | null;
+  media: string;
+  poster: string;
+}
+
+/** What the phone picked: a path on the phone, or the File itself on the web. */
+export interface PickedMedia {
+  uri: string;
+  name: string;
+  type: string;
+  file?: Blob;
+}
+
 export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; code: string; error: string };
@@ -165,7 +187,8 @@ async function call<T>(
       ...init,
       signal: ctl.signal,
       headers: {
-        'content-type': 'application/json',
+        // A FormData body sets its own boundary; a JSON one says so.
+        ...(init.body instanceof FormData ? {} : { 'content-type': 'application/json' }),
         // The device key when this phone has one; the pilot header otherwise.
         // The server refuses the header the moment any account exists, so this
         // is a migration path with an end date rather than a permanent
@@ -198,6 +221,8 @@ const post = <T>(path: string, body?: unknown) =>
 const put = <T>(path: string, body: unknown) =>
   call<T>(path, { method: 'PUT', body: JSON.stringify(body) });
 const del = <T>(path: string) => call<T>(path, { method: 'DELETE' });
+/** A multipart POST. A minute, because a clip on one bar of signal is not a JSON envelope. */
+const upload = <T>(path: string, form: FormData) => call<T>(path, { method: 'POST', body: form }, 60_000);
 
 export const api = {
   health: () => get<{ status: string }>('/health'),
@@ -311,6 +336,26 @@ export const api = {
   selfVisits: () => get<SelfVisitSummary>('/visits/self'),
   /** Where they have been - check-ins and stamps - for the map to lift its mist from. */
   explored: () => get<Explored>('/explored'),
+
+  // -- stories (docs/44) ---------------------------------------------------
+  /** What is on the pin, and whether the door is open. */
+  stories: (placeId: string) => get<{ open: boolean; stories: Story[] }>(`/places/${placeId}/stories`),
+  /** Every approved story in an area: the rings on the map. */
+  areaStories: (area: AreaKey) =>
+    get<{ open: boolean; stories: (Story & { placeName: Bilingual })[] }>(`/areas/${area}/stories`),
+  /**
+   * Tell one. Multipart: the clip or photograph, a caption, and the fix the
+   * fence judges. On the web the picker hands over the File itself; on a
+   * phone it is a path, and React Native's FormData reads it.
+   */
+  tellStory: (placeId: string, args: { media: PickedMedia; caption: string; position: Fix }) => {
+    const form = new FormData();
+    if (args.media.file) form.append('file', args.media.file, args.media.name);
+    else form.append('file', { uri: args.media.uri, name: args.media.name, type: args.media.type } as unknown as Blob);
+    form.append('caption', args.caption);
+    form.append('position', JSON.stringify(args.position));
+    return upload<Story>(`/places/${placeId}/stories`, form);
+  },
 
   // -- the evidence layer -------------------------------------------------
   /**

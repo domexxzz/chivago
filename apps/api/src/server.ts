@@ -43,6 +43,7 @@ import {
 } from './story-service.ts';
 import { areaByKey, inArea, isAreaKey } from '@chivago/core';
 import { statementMissingPage, verifyPage } from './console/statement.ts';
+import { boardPage } from './board.ts';
 import { DEFAULT_LOCALE, localeFromAcceptLanguage } from './console/i18n.ts';
 import { getQuietPreference, setQuietPreference } from './notification-service.ts';
 import {
@@ -267,8 +268,13 @@ app.get('/statements/:id/pdf', (c) => {
 for (const which of ['media', 'poster'] as const) {
   app.get(`/stories/:id/${which}`, (c) => {
     const blob = readStoryMedia(db, c.req.param('id'), which);
+    // Registered before the CORS middleware, like the statement, and public
+    // for the same reason: a board on a laptop and the app on another origin
+    // both read it, and there is nothing in an approved clip to protect.
+    c.header('access-control-allow-origin', '*');
     if (!blob) return fail(c, 'NOT_FOUND', 'No such story.', 404);
     return c.body(new Uint8Array(blob.bytes), 200, {
+      'access-control-allow-origin': '*',
       'content-type': blob.mime,
       // Immutable once approved, gone in a week: a short public cache.
       'cache-control': 'public, max-age=300',
@@ -278,8 +284,16 @@ for (const which of ['media', 'poster'] as const) {
   });
 }
 
+/** The board itself: the page on the projector (docs/45). */
+app.get('/board/:area', (c) => {
+  const key = c.req.param('area');
+  if (!isAreaKey(key)) return c.text('No such area', 404);
+  return c.html(boardPage(areaByKey(key)), 200, { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
+});
+
 /** The board's feed: every approved story in an area. Public, for the screen in the room. */
 app.get('/areas/:key/stories', (c) => {
+  c.header('access-control-allow-origin', '*');
   c.header('cache-control', 'no-store');
   return ok(c, { open: storiesOpen(), stories: storiesInArea(db, c.req.param('key')) });
 });
@@ -329,7 +343,8 @@ app.use('*', async (c, next) => {
   // handed a traveller account and a wallet.
   if (c.req.path.startsWith('/console') || c.req.path.startsWith('/sos/live/')
       || c.req.path.startsWith('/verify/') || c.req.path.startsWith('/statements/')
-      || c.req.path.startsWith('/stories/') || c.req.path.startsWith('/areas/')) {
+      || c.req.path.startsWith('/stories/') || c.req.path.startsWith('/areas/')
+      || c.req.path.startsWith('/board/')) {
     return next();
   }
 

@@ -197,6 +197,12 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     };
   },
 
+  // Stories open at the event, at the place - never in the static demo.
+  'POST /places/:id/stories': () => refuse(
+    'STORIES_CLOSED',
+    'สตอรี่เปิดรับที่งานวันที่ 11 ก.ย. ที่ มก. ศรีราชา · Stories open at the event on 11 September, at the campus.',
+  ),
+
   // Recorded, not scored: a dashed stamp in the passport, nothing in the wallet.
   'POST /places/:id/visits': (_b, m) => {
     const placeId = m[1]!;
@@ -394,7 +400,8 @@ export function installDemoServer(apiBase: string): void {
 
     const [path, query] = url.slice(apiBase.length).split('?') as [string, string | undefined];
     const method = (init?.method ?? 'GET').toUpperCase();
-    const body = init?.body ? (JSON.parse(String(init.body)) as Json) : {};
+    // A JSON body is read; a FormData one (a story) is not, and is refused below.
+    const body = init?.body && typeof init.body === 'string' ? (JSON.parse(init.body) as Json) : {};
 
     const answer = (data: unknown) => new Response(
       JSON.stringify({ ok: true, data }),

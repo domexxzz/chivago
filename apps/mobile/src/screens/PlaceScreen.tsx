@@ -11,6 +11,7 @@
 
 import React from 'react';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import { Image, Modal, Pressable, ScrollView, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import { strings, type ScoredPlace } from '@chivago/core';
@@ -24,6 +25,7 @@ import { ErrorState, LoadingState } from '../components/States.tsx';
 import { ReviewsBlock } from './PlaceReviews.tsx';
 import { t } from '../i18n/locale.ts';
 import { AirHistoryCard, HereNow } from '../components/PlaceLive.tsx';
+import { StoriesBlock } from '../components/Stories.tsx';
 
 export function PlaceScreen({
   placeId, onBack, onAddToTrip, onSafePath, onToast, onPointsChanged,
@@ -47,6 +49,11 @@ export function PlaceScreen({
   // the quota - offline, the same moment a check-in tends to fail - turned
   // the offer into a disabled "all stamps for this year are used".
   const [notesLeft, setNotesLeft] = React.useState<number | null>(null);
+  // Stories (docs/44-45): what is on the pin, whether the door is open, and
+  // how many this device has sent that nobody has looked at yet.
+  const stories = useAsync(() => api.stories(placeId), [placeId]);
+  const [storiesPending, setStoriesPending] = React.useState(0);
+  const [telling, setTelling] = React.useState(false);
 
   React.useEffect(() => {
     // Whether they already checked in today is server state, not screen
@@ -128,6 +135,49 @@ export function PlaceScreen({
       : t(strings.checkin.notedAlready));
   };
 
+  /**
+   * Tell a story: the phone's own camera (a file input with `capture` on the
+   * web), then a fix, then the upload. Pending until the team has looked -
+   * the row does not change, the count does.
+   */
+  const tellStory = async () => {
+    let result: ImagePicker.ImagePickerResult | undefined;
+    try {
+      await ImagePicker.requestCameraPermissionsAsync().catch(() => null);
+      result = await ImagePicker.launchCameraAsync({ mediaTypes: ['videos', 'images'], videoMaxDuration: 10, quality: 0.7 });
+    } catch {
+      onToast(t(strings.place.storyPickerUnavailable));
+      return;
+    }
+    if (!result || result.canceled || !result.assets?.[0]) return;
+    const asset = result.assets[0];
+    setTelling(true);
+    let pos: Location.LocationObject;
+    try {
+      pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    } catch {
+      setTelling(false);
+      onToast(t(strings.place.storyNoFix));
+      return;
+    }
+    const res = await api.tellStory(placeId, {
+      media: {
+        uri: asset.uri,
+        name: asset.fileName ?? (asset.type === 'video' ? 'story.mp4' : 'story.jpg'),
+        type: asset.mimeType ?? (asset.type === 'video' ? 'video/mp4' : 'image/jpeg'),
+        file: (asset as { file?: Blob }).file,
+      },
+      caption: '',
+      position: {
+        lat: pos.coords.latitude, lng: pos.coords.longitude,
+        accuracyM: pos.coords.accuracy ?? null, mocked: pos.mocked ?? false,
+      },
+    });
+    setTelling(false);
+    if (res.ok) { setStoriesPending((n) => n + 1); onToast(t(strings.place.storyPending)); }
+    else onToast(res.error);
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <PushHeader context={t(strings.place.context)} onBack={onBack} />
@@ -146,6 +196,13 @@ export function PlaceScreen({
             <MetricGrid place={place.data} />
             <HereNow crowd={place.data.crowd} />
             <AirHistoryCard placeId={place.data.id} />
+            <StoriesBlock
+              open={stories.data?.open ?? false}
+              stories={stories.data?.stories ?? []}
+              pending={storiesPending}
+              busy={telling}
+              onTell={tellStory}
+            />
 
             <Body style={{ marginTop: 16 }}>{t(place.data.blurb)}</Body>
 

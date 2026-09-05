@@ -60,8 +60,7 @@ not the upload.
 
 ## Still owed
 
-- The screens (day three): the ring on the pin, the vertical viewer, "tell a
-  story" through the phone's own camera, the big-screen board.
+- ~~The screens (day three)~~ Built: docs/45.
 - Event mode (day four): the token in the QR, the registration limit for
   the day, the live API, the notice.
 - A device can tell three stories a day; a room of phones behind one NAT is
