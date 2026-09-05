@@ -1,4 +1,4 @@
-# 33 — KU Sriracha story hook: a feasibility read
+# 42 — KU Sriracha story hook: a feasibility read
 
 Written before any code, on 2026-09-05. The idea: map Kasetsart University's
 Si Racha campus as a second demo model, pin short story clips on it, and let
@@ -98,7 +98,10 @@ of the whole flow exists in every version, and is introduced as a recording.
   and say so on the map, rather than invent heights.
 - **The five-minute pitch**: the hook is 90 seconds; the QR is on screen
   before the pitch starts; the host approves two or three clips live.
-- **The public demo**: untouched. A second "event" build points at
+- **The public demo**: untouched. There are two static demos today,
+  chivago-demo.vercel.app (domezzxx's account, deployed from this machine)
+  and chivago-demo-sigma.vercel.app (electiction's, the one the README now
+  names); one of them has to be chosen. A second "event" build points at
   chivago.fly.dev on the same origin; uploads close after the event and the
   pages stay.
 
