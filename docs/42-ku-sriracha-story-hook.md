@@ -166,3 +166,21 @@ at thailibrary.in.th · in the repo: `fly.toml`, `apps/api/src/uploads.ts`,
 docs/05, docs/29, docs/30.
 
 Not checked: the university's filming rules, and the venue's network.
+
+## The calendar, from the date
+
+The pitch is **Friday 11 September 2026**, at the campus, one day. Counted
+back from it (today is Saturday the 5th; day one, the campus itself, is
+docs/43 and done):
+
+| Day | Date | Work | Done when |
+|---|---|---|---|
+| 2 | Sun 6 | Stories: the table, upload with the second signal, container sniff, ffmpeg to H.264 720p + poster, pending queue, 7-day expiry, "a host reviews where it hosts" | An iPhone `.mov` uploaded with curl plays on Android, and only after approval |
+| 3 | Mon 7 | The ring on the pin, the vertical viewer, "tell a story" via the phone's own camera, the console's pending page, the big-screen board polling every 3 s | Phone → approve → board inside 10 s |
+| 4 | Tue 8 | Event mode: uploads open only on the day, an event token in the QR, the registration limit for the day, `chivago.fly.dev` up, the QR, the PDPA notice, the team's own stories, the backup recording | A phone outside the team completes the flow from the QR |
+| 5 | Wed 9 | Rehearsal on the campus with five phones (iOS and Android) on the venue's Wi-Fi; fix what breaks | Three clean runs in a row on the real network |
+| — | Thu 10 | Freeze. Print the QR, load the team's clips, second rehearsal, sleep | Nothing changes after noon |
+| — | Fri 11 | Open uploads at the door, approve on stage, close uploads after the talk; clips deleted after 7 days | — |
+
+Owed by the team before day 4: photographs of the five places, the room and
+its Wi-Fi, and who stands at the console on stage.
