@@ -66,15 +66,19 @@ export function StoriesBlock({
       )}
 
       {open ? (
-        <Button
-          label={t(strings.place.tellStory)}
-          thai={strings.place.tellStory.th}
-          onPress={onTell}
-          disabled={busy}
-          variant="secondary"
-          height={44}
-          style={{ marginTop: 12 }}
-        />
+        <>
+          {/* The notice before the camera (docs/46). Going on is the consent. */}
+          <Body size={13} colour={color.neutral600} style={{ marginTop: 12 }}>{t(strings.place.storyNotice)}</Body>
+          <Button
+            label={t(strings.place.tellStory)}
+            thai={strings.place.tellStory.th}
+            onPress={onTell}
+            disabled={busy}
+            variant="secondary"
+            height={44}
+            style={{ marginTop: 8 }}
+          />
+        </>
       ) : (
         <Body size={13} colour={color.neutral600} style={{ marginTop: 10 }}>{t(strings.place.storiesClosed)}</Body>
       )}

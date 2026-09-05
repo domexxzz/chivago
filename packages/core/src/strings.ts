@@ -141,6 +141,11 @@ export const strings = {
     storiesClosed: t('Stories open at the event, at the place.', 'สตอรี่เปิดรับที่งาน ณ สถานที่จริง'),
     tellStory: t('Tell a story here', 'เล่าสตอรี่ที่นี่'),
     storyPending: t('Sent. It shows once the team has looked at it', 'ส่งแล้ว จะขึ้นเมื่อทีมตรวจแล้ว'),
+    /** The notice at the door (docs/46). Going on to record is the consent. */
+    storyNotice: t(
+      'Your clip shows on the screen at the event and stays in the app for 7 days. Film only people who are happy to be filmed.',
+      'คลิปของคุณจะขึ้นจอในงานและอยู่ในแอป 7 วัน ถ่ายเฉพาะคนที่ยินดีให้ถ่าย',
+    ),
     storyNoFix: t('Your position is needed to tell a story here.', 'ต้องมีตำแหน่งเพื่อเล่าสตอรี่ที่นี่'),
     storyPickerUnavailable: t('The camera could not open.', 'เปิดกล้องไม่ได้'),
     storyWebOnly: t('Video plays on the web for now.', 'วิดีโอเล่นบนเว็บก่อน'),

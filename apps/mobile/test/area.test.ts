@@ -7,7 +7,7 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { __setAreaForTests, areaFromUrl, getArea, placeFromUrl, setArea } from '../src/state/area.ts';
+import { __setAreaForTests, areaFromUrl, eventFromUrl, getArea, placeFromUrl, setArea } from '../src/state/area.ts';
 import { AREAS, areaOfProvince, inArea, nearestArea } from '@chivago/core';
 
 describe('the area from the page URL', () => {
@@ -55,5 +55,14 @@ describe('the place from the page URL', () => {
     assert.equal(placeFromUrl('?place=KU PARK'), null);
     assert.equal(placeFromUrl('?place=../etc'), null);
     assert.equal(placeFromUrl(''), null);
+  });
+});
+
+describe('the event token from the page URL', () => {
+  test('a QR code in the room carries ?event=, in a token’s shape or not at all', () => {
+    assert.equal(eventFromUrl('?area=ku-sriracha&event=K7M2xQ9pLm3vR8sT'), 'K7M2xQ9pLm3vR8sT');
+    assert.equal(eventFromUrl('?event=short'), null, 'too short to be one of ours');
+    assert.equal(eventFromUrl('?event=has spaces in it'), null);
+    assert.equal(eventFromUrl(''), null);
   });
 });

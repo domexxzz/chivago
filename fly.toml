@@ -33,6 +33,12 @@ primary_region = "sin"
   CHIVAGO_OPENING_GREEN = "0"
   # Registrations per address per rolling hour. See `POST /devices`.
   CHIVAGO_REGISTRATIONS_PER_HOUR = "10"
+  # The stories door (docs/46) is a moderator's switch in the console, not an
+  # env var, so it needs no deploy on the day. For the day itself, as secrets
+  # rather than here: `fly secrets set CHIVAGO_EVENT_TOKEN=<random>
+  # CHIVAGO_REGISTRATIONS_PER_HOUR=500`, and back to 10 after. Setting
+  # CHIVAGO_STORIES_OPEN=1 here would hold the door open through a deploy;
+  # leave it unset in production.
 
 # node:sqlite writes to a file. Without this the database is inside the
 # container layer and every deploy silently resets the pilot.

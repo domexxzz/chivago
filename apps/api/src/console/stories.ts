@@ -53,12 +53,29 @@ export function storiesPage(args: {
       What people at the places you host have sent. Nothing here is on a pin or a screen until you press Approve.
       <span lang="th">สิ่งที่คนที่อยู่ตรงสถานที่ที่คุณดูแลส่งมา จะไม่ขึ้นหมุดหรือจอจนกว่าจะกด Approve</span>
     </p>
-    <p class="note">
-      ${args.open
-    ? html`Uploads are <strong>open</strong>. <span lang="th">เปิดรับอัปโหลดอยู่</span>`
-    : html`Uploads are <strong>closed</strong> - the deployment opens them on the day with <code>CHIVAGO_STORIES_OPEN=1</code>. <span lang="th">ยังไม่เปิดรับอัปโหลด</span>`}
-      This page refreshes itself every ten seconds. <span lang="th">หน้านี้รีเฟรชเองทุกสิบวินาที</span>
-    </p>
+    <!--
+      The door. Its state for everyone; the handle for a moderator only, as
+      one button that does the opposite of the current state, so nobody on a
+      stage has to read two.
+    -->
+    <section class="panel" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+      <p style="margin:0;flex:1">
+        ${args.open
+    ? html`The door is <strong>open</strong>: people at the places can send stories. <span lang="th">ประตูเปิดอยู่ คนที่สถานที่ส่งสตอรี่ได้</span>`
+    : html`The door is <strong>closed</strong>: nobody can send a story. <span lang="th">ประตูปิดอยู่ ยังส่งสตอรี่ไม่ได้</span>`}
+      </p>
+      ${args.canModerate
+    ? html`
+      <form method="post" action="/console/stories/door">
+        <input type="hidden" name="csrf" value="${esc(args.csrf)}">
+        <input type="hidden" name="open" value="${args.open ? '0' : '1'}">
+        <button class="btn ${args.open ? 'btn-secondary' : 'btn-primary'}" type="submit">
+          ${args.open ? 'Close the door · ปิดประตู' : 'Open the door · เปิดประตู'}
+        </button>
+      </form>`
+    : html`<p class="note" style="margin:0">A moderator opens and closes it. <span lang="th">ผู้ดูแลระบบเป็นคนเปิดปิด</span></p>`}
+    </section>
+    <p class="note">This page refreshes itself every ten seconds. <span lang="th">หน้านี้รีเฟรชเองทุกสิบวินาที</span></p>
     <section>
       ${args.pending.length === 0
     ? html`<p class="empty">Nothing waiting. <span lang="th">ยังไม่มีอะไรรอ</span></p>`

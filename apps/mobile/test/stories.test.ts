@@ -84,3 +84,18 @@ describe('the place screen carries the block', () => {
     } finally { net.restore(); }
   });
 });
+
+describe('the notice at the door', () => {
+  test('an open door says what happens to the clip before offering the camera', async () => {
+    const ui = await mountScreen(h(StoriesBlock, { open: true, stories: [], pending: 0, busy: false, onTell: noop }));
+    assert.match(ui.text(), /stays in the app for 7 days/);
+    assert.match(ui.text(), /happy to be filmed/);
+    ui.unmount();
+  });
+
+  test('a shut door has no notice, because there is nothing to consent to', async () => {
+    const ui = await mountScreen(h(StoriesBlock, { open: false, stories: [], pending: 0, busy: false, onTell: noop }));
+    assert.doesNotMatch(ui.text(), /7 days/);
+    ui.unmount();
+  });
+});

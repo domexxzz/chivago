@@ -184,3 +184,7 @@ docs/43 and done):
 
 Owed by the team before day 4: photographs of the five places, the room and
 its Wi-Fi, and who stands at the console on stage.
+
+Days two, three and four landed on the 5th and 6th (docs/44, 45, 46), two days
+ahead of this table. What remains is the team's: the Fly deployment, the
+photographs, the rehearsal on the campus on the 9th.

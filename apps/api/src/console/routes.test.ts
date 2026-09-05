@@ -947,3 +947,50 @@ describe('the stories page', () => {
     assert.equal(row.status, 'pending');
   });
 });
+
+describe('the door', () => {
+  const MOD_KEY = 'chv_MODAA-MODBB-MODCC-MODDD';
+  beforeEach(() => {
+    db.prepare('INSERT INTO hosts (id,name,type,role,api_key_hash,created_at) VALUES (?,?,?,?,?,?)').run(
+      'h-mod', 'ChivaGo', 'platform', 'moderator', hashApiKey(MOD_KEY), new Date().toISOString());
+    delete process.env.CHIVAGO_STORIES_OPEN;
+  });
+
+  const door = (token: string, open: '0' | '1', csrf: string) => app.request('/stories/door', {
+    method: 'POST',
+    headers: { ...withCookie(token), 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf, open }),
+  });
+  const state = () => (db.prepare("SELECT value FROM settings WHERE key = 'stories_open'").get() as unknown as { value: string } | undefined)?.value ?? '0';
+
+  test('a moderator opens it and shuts it, and the page says which', async () => {
+    const mod = await signIn(MOD_KEY, 'Nok');
+    const shut = await (await app.request('/stories', { headers: withCookie(mod) })).text();
+    assert.match(shut, /The door is <strong>closed<\/strong>/);
+    assert.match(shut, /Open the door/);
+    const session = resolveSession(db, mod)!;
+    assert.equal((await door(mod, '1', __csrfFor(session))).status, 303);
+    assert.equal(state(), '1');
+    const open = await (await app.request('/stories', { headers: withCookie(mod) })).text();
+    assert.match(open, /The door is <strong>open<\/strong>/);
+    assert.match(open, /Close the door/);
+    assert.equal((await door(mod, '0', __csrfFor(session))).status, 303);
+    assert.equal(state(), '0');
+  });
+
+  test('a host is shown the state and no handle, and cannot throw it', async () => {
+    const muni = await signIn(MUNI_KEY, 'Nok');
+    const page = await (await app.request('/stories', { headers: withCookie(muni) })).text();
+    assert.match(page, /A moderator opens and closes it/);
+    assert.doesNotMatch(page, /Open the door/);
+    const session = resolveSession(db, muni)!;
+    assert.equal((await door(muni, '1', __csrfFor(session))).status, 404);
+    assert.equal(state(), '0');
+  });
+
+  test('a stale csrf throws nothing', async () => {
+    const mod = await signIn(MOD_KEY, 'Nok');
+    assert.equal((await door(mod, '1', 'not-this-session')).status, 403);
+    assert.equal(state(), '0');
+  });
+});

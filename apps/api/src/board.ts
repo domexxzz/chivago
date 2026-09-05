@@ -56,7 +56,7 @@ export function boardPage(area: Area): string {
   <div id="grid" class="grid"></div>
   <p id="empty" class="empty" hidden>ยังไม่มีสตอรี่ · No stories yet. Tap the QR, stand at a place, tell one.</p>
 </main>
-<footer>updates every 3 s · <span id="at"></span></footer>
+<footer>updates every 3 s · <span id="at"></span> · shown with the teller's consent, for 7 days · แสดงโดยความยินยอมของผู้เล่า และอยู่ 7 วัน</footer>
 <script>
   const feed = ${JSON.stringify(feed)};
   const grid = document.getElementById('grid');

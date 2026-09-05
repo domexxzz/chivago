@@ -24,7 +24,7 @@ import { sponsorPage } from './sponsor.ts';
 import { esgPage } from './esg.ts';
 import { statementPage } from './statement.ts';
 import { storiesPage } from './stories.ts';
-import { pendingStories, readStoryMedia, reviewStory, storiesOpen } from '../story-service.ts';
+import { pendingStories, readStoryMedia, reviewStory, setStoriesOpen, storiesOpen } from '../story-service.ts';
 import { InvalidPeriod, draftStatement, issueStatement, statementsFor } from '../statement-service.ts';
 import { activityInPeriod } from '../esg-service.ts';
 import { pendingQueue, queueStats, recentDecisions, reviewItem } from '../review-service.ts';
@@ -461,8 +461,24 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       canModerate: canModerate(session),
       pending: pendingStories(db, session.hostId),
       csrf: csrfFor(session),
-      open: storiesOpen(),
+      open: storiesOpen(db),
     }));
+  });
+
+  /**
+   * The door (docs/46). A moderator opens it when the first guest scans and
+   * shuts it when the talk ends, from the phone on the stage; a host that
+   * is not a moderator does not have the handle, and is not shown it.
+   */
+  app.post('/stories/door', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/stories'), 403);
+    }
+    setStoriesOpen(db, form.open === '1', session.reviewer ?? session.hostName);
+    return c.redirect('/console/stories', 303);
   });
 
   for (const which of ['media', 'poster'] as const) {

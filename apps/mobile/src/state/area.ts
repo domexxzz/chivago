@@ -45,30 +45,56 @@ export function placeFromUrl(search?: string): string | null {
   }
 }
 
-async function readStored(): Promise<AreaKey | null> {
+async function readSlot(slot: string): Promise<string | null> {
   try {
-    if (await SecureStore.isAvailableAsync()) {
-      const v = await SecureStore.getItemAsync(SLOT);
-      return isAreaKey(v) ? v : null;
-    }
+    if (await SecureStore.isAvailableAsync()) return await SecureStore.getItemAsync(slot);
   } catch { /* fall through to the browser */ }
   try {
-    if (typeof localStorage !== 'undefined') {
-      const v = localStorage.getItem(SLOT);
-      return isAreaKey(v) ? v : null;
-    }
+    if (typeof localStorage !== 'undefined') return localStorage.getItem(slot);
   } catch { /* nowhere to read from */ }
   return null;
 }
 
-async function persist(key: AreaKey): Promise<void> {
+async function writeSlot(slot: string, value: string): Promise<void> {
   try {
-    if (await SecureStore.isAvailableAsync()) { await SecureStore.setItemAsync(SLOT, key); return; }
+    if (await SecureStore.isAvailableAsync()) { await SecureStore.setItemAsync(slot, value); return; }
   } catch { /* fall through */ }
   try {
-    if (typeof localStorage !== 'undefined') localStorage.setItem(SLOT, key);
+    if (typeof localStorage !== 'undefined') localStorage.setItem(slot, value);
   } catch { /* the choice lasts this session */ }
 }
+
+async function readStored(): Promise<AreaKey | null> {
+  const v = await readSlot(SLOT);
+  return isAreaKey(v) ? v : null;
+}
+
+const persist = (key: AreaKey): Promise<void> => writeSlot(SLOT, key);
+
+/*
+  The event token (docs/46). A QR code in the room carries `?event=`; the
+  door on the day checks it. Kept beside the area, sent with every story,
+  and worthless a week later when the door is shut - so keeping it is safe.
+*/
+const EVENT_SLOT = 'chivago.event';
+let event: string | null = null;
+
+/** The token named in the page URL, in the shape a token has, or nothing. */
+export function eventFromUrl(search?: string): string | null {
+  try {
+    const query = search ?? (typeof window !== 'undefined' ? window.location?.search : undefined);
+    if (!query) return null;
+    const v = new URLSearchParams(query).get('event');
+    return v && /^[A-Za-z0-9_-]{8,64}$/.test(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+export const getEvent = (): string | null => event;
+
+/** Tests only. */
+export function __setEventForTests(token: string | null): void { event = token; }
 
 const announce = () => { listeners.forEach((l) => l()); };
 
@@ -76,6 +102,9 @@ const announce = () => { listeners.forEach((l) => l()); };
 export async function loadArea(): Promise<AreaKey> {
   const fromUrl = areaFromUrl();
   current = fromUrl ?? (await readStored()) ?? DEFAULT_AREA;
+  const token = eventFromUrl();
+  event = token ?? (await readSlot(EVENT_SLOT));
+  if (token) void writeSlot(EVENT_SLOT, token);
   // A QR code is a choice too; remember it so a reload without the query keeps the campus.
   if (fromUrl) void persist(fromUrl);
   announce();

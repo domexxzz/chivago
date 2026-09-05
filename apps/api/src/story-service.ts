@@ -25,7 +25,7 @@
  *   file goes with the row.
  */
 
-import { randomUUID } from 'node:crypto';
+import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
@@ -52,6 +52,12 @@ export class StoriesClosed extends Error {
   constructor() {
     super('Stories are not open right now. They open at the event, at the place.');
     this.name = 'StoriesClosed';
+  }
+}
+export class WrongEventToken extends Error {
+  constructor() {
+    super('This is not the event this door is open for. Scan the code in the room.');
+    this.name = 'WrongEventToken';
   }
 }
 export class StoryQuotaReached extends Error {
@@ -85,8 +91,42 @@ export class UnknownPlace extends Error {
   }
 }
 
-/** The one switch. Read at each upload, so the door can be opened and shut without a restart of anything but the env. */
-export const storiesOpen = (): boolean => process.env.CHIVAGO_STORIES_OPEN === '1';
+/**
+ * The door (docs/46). Two handles: a moderator's switch in the console, kept
+ * in `settings` so it takes effect on the next request with no restart; or
+ * `CHIVAGO_STORIES_OPEN=1` in the environment, for a rehearsal. Read at
+ * each upload.
+ */
+export function storiesOpen(db: DB): boolean {
+  if (process.env.CHIVAGO_STORIES_OPEN === '1') return true;
+  const r = row<{ value: string }>(db.prepare("SELECT value FROM settings WHERE key = 'stories_open'").get());
+  return r?.value === '1';
+}
+
+/** Open or shut the door, and remember who did. */
+export function setStoriesOpen(db: DB, open: boolean, by: string | null, now = new Date()): void {
+  db.prepare(
+    `INSERT INTO settings (key, value, updated_at, updated_by) VALUES ('stories_open', ?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at,
+       updated_by = excluded.updated_by`,
+  ).run(open ? '1' : '0', now.toISOString(), by);
+}
+
+/**
+ * The token the QR codes carry (docs/46). Set on the deployment for the day,
+ * it must come with every upload; unset, nothing is required - the dev
+ * server and the tests. Compared in constant time, like any secret.
+ */
+export const eventTokenRequired = (): boolean => (process.env.CHIVAGO_EVENT_TOKEN ?? '') !== '';
+
+export function eventTokenOk(given: string | null): boolean {
+  const want = process.env.CHIVAGO_EVENT_TOKEN ?? '';
+  if (want === '') return true;
+  if (!given) return false;
+  const a = Buffer.from(want);
+  const b = Buffer.from(given);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 /**
  * What the bytes are, from the bytes. MP4 and MOV both open with an `ftyp`
@@ -178,10 +218,13 @@ export async function submitStory(
     transcoder?: Transcoder;
     /** Tests open the door without an env var. */
     open?: boolean;
+    /** The event token from the QR code, when the deployment set one. */
+    event?: string | null;
   },
 ): Promise<Story> {
   const now = args.now ?? new Date();
-  if (!(args.open ?? storiesOpen())) throw new StoriesClosed();
+  if (!(args.open ?? storiesOpen(db))) throw new StoriesClosed();
+  if (!eventTokenOk(args.event ?? null)) throw new WrongEventToken();
   if (args.bytes.length > STORY_MAX_BYTES) throw new StoryTooLarge();
   if (args.bytes.length === 0) throw new UnsupportedStory('the file is empty');
   const caption = args.caption.trim().slice(0, STORY_CAPTION_MAX);

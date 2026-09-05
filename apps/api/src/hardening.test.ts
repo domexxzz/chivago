@@ -20,6 +20,7 @@ const { getAir, CROSS_CHECK_TOLERANCE } = await import('./air.ts');
 type AirSources = import('./air.ts').AirSources;
 const { openTestDb } = await import('./db.ts');
 const { issueStatement } = await import('./statement-service.ts');
+const { setStoriesOpen } = await import('./story-service.ts');
 
 const json = async (res: Response) => (await res.json()) as { ok: boolean; data?: any; code?: string; error?: string };
 
@@ -337,5 +338,23 @@ describe('the board in the room', () => {
     assert.equal(res.ok, true);
     assert.equal(res.data.open, false);
     assert.deepEqual(res.data.stories, []);
+  });
+});
+
+describe('the door on the feed follows the setting', () => {
+  // docs/46: a moderator's switch in the console, read on every request.
+  test('the pin and the area say open when the setting says so, and shut when it does not', async () => {
+    delete process.env.CHIVAGO_STORIES_OPEN;
+    setStoriesOpen(db, false, 'test');
+    let pin = await json(await app.request('/places/q-a-place/stories', { headers: auth() }));
+    let area = await json(await app.request('/areas/ku-sriracha/stories'));
+    assert.equal(pin.data.open, false);
+    assert.equal(area.data.open, false);
+    setStoriesOpen(db, true, 'test');
+    pin = await json(await app.request('/places/q-a-place/stories', { headers: auth() }));
+    area = await json(await app.request('/areas/ku-sriracha/stories'));
+    assert.equal(pin.data.open, true);
+    assert.equal(area.data.open, true);
+    setStoriesOpen(db, false, 'test');
   });
 });

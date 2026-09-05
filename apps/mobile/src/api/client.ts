@@ -7,6 +7,7 @@
  */
 
 import { loadDeviceKey } from './account.ts';
+import { getEvent } from '../state/area.ts';
 import type {
   AreaKey,
   ApiResponse, Balances, Bilingual, ImpactStat, LedgerEntry, NotificationKind, Offer, Quest,
@@ -354,6 +355,9 @@ export const api = {
     else form.append('file', { uri: args.media.uri, name: args.media.name, type: args.media.type } as unknown as Blob);
     form.append('caption', args.caption);
     form.append('position', JSON.stringify(args.position));
+    // The token from the QR code, when there was one (docs/46).
+    const event = getEvent();
+    if (event) form.append('event', event);
     return upload<Story>(`/places/${placeId}/stories`, form);
   },
 

@@ -9,8 +9,8 @@ import { OutsideGeofence } from './quest-service.ts';
 import { MockedLocation } from './presence-service.ts';
 import {
   STORIES_PER_DAY, STORY_MAX_BYTES, StoriesClosed, StoryNotFound, StoryQuotaReached, StoryTooLarge,
-  UnsupportedStory, canReviewStories, expireStories, pendingStories, readStoryMedia, reviewStory,
-  sniffStory, storiesAt, storiesInArea, submitStory,
+  UnsupportedStory, WrongEventToken, canReviewStories, eventTokenRequired, expireStories, pendingStories,
+  readStoryMedia, reviewStory, setStoriesOpen, sniffStory, storiesAt, storiesInArea, storiesOpen, submitStory,
 } from './story-service.ts';
 import type { Transcoder } from './transcode.ts';
 
@@ -204,5 +204,37 @@ describe('nothing lasts', () => {
     reviewStory(db, { hostId: 'h-ku', storyId: s.id, decision: 'approve', reviewer: 'Nok', now: later(1) });
     assert.equal(readStoryMedia(db, s.id, 'media', { now: later(2) })?.bytes.toString(), 'JPG-BYTES', 'the bytes served are ffmpeg’s, not the upload’s');
     assert.equal(readStoryMedia(db, s.id, 'poster', { now: later(2) })?.mime, 'image/jpeg');
+  });
+});
+
+describe('the door, from the console, and the token from the QR', () => {
+  test('a moderator opens the door as a setting, and shuts it, with no environment', async () => {
+    delete process.env.CHIVAGO_STORIES_OPEN;
+    assert.equal(storiesOpen(db), false);
+    setStoriesOpen(db, true, 'Nok', T);
+    assert.equal(storiesOpen(db), true);
+    const s = await submit({ open: undefined });
+    assert.equal(s.status, 'pending');
+    setStoriesOpen(db, false, 'Nok', later(1));
+    assert.equal(storiesOpen(db), false);
+    await assert.rejects(submit({ open: undefined, now: later(2) }), StoriesClosed);
+    const who = db.prepare("SELECT updated_by FROM settings WHERE key = 'stories_open'").get() as unknown as { updated_by: string };
+    assert.equal(who.updated_by, 'Nok');
+  });
+
+  test('with a token on the deployment, an upload needs the right one; without, none', async () => {
+    delete process.env.CHIVAGO_EVENT_TOKEN;
+    assert.equal(eventTokenRequired(), false);
+    assert.equal((await submit()).status, 'pending', 'no token configured, none needed');
+    process.env.CHIVAGO_EVENT_TOKEN = 'K7M2-the-room-on-the-11th';
+    try {
+      assert.equal(eventTokenRequired(), true);
+      await assert.rejects(submit({ now: later(1) }), WrongEventToken);
+      await assert.rejects(submit({ now: later(2), event: 'last-years-poster' }), WrongEventToken);
+      await assert.rejects(submit({ now: later(3), event: 'K7M2-the-room-on-the-11th-' }), WrongEventToken, 'a longer string is not a prefix match');
+      assert.equal((await submit({ now: later(4), event: 'K7M2-the-room-on-the-11th' })).status, 'pending');
+    } finally {
+      delete process.env.CHIVAGO_EVENT_TOKEN;
+    }
   });
 });

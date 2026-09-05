@@ -295,7 +295,7 @@ app.get('/board/:area', (c) => {
 app.get('/areas/:key/stories', (c) => {
   c.header('access-control-allow-origin', '*');
   c.header('cache-control', 'no-store');
-  return ok(c, { open: storiesOpen(), stories: storiesInArea(db, c.req.param('key')) });
+  return ok(c, { open: storiesOpen(db), stories: storiesInArea(db, c.req.param('key')) });
 });
 
 app.get('/verify/:id', (c) => {
@@ -1074,7 +1074,7 @@ app.get('/me/statements', (c) => ok(c, { statements: statementsIncluding(db, use
 // ---------------------------------------------------------------------------
 
 /** What is on the pin: approved, unexpired, newest first - and whether the door is open. */
-app.get('/places/:id/stories', (c) => ok(c, { open: storiesOpen(), stories: storiesAt(db, c.req.param('id')) }));
+app.get('/places/:id/stories', (c) => ok(c, { open: storiesOpen(db), stories: storiesAt(db, c.req.param('id')) }));
 
 /**
  * Tell one. Multipart: `file` (a clip or a photograph), `caption`, and
@@ -1097,6 +1097,8 @@ app.post('/places/:id/stories', async (c) => {
     bytes: Buffer.from(await file.arrayBuffer()),
     caption: typeof form.caption === 'string' ? form.caption : '',
     fix: position,
+    // The token from the QR code, when the deployment set one (docs/46).
+    event: typeof form.event === 'string' ? form.event : null,
   });
   return ok(c, story);
 });

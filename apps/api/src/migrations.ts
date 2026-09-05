@@ -870,5 +870,18 @@ export function migrate(db: DB): string[] {
     CREATE INDEX IF NOT EXISTS idx_stories_user ON stories(user_id, created_at);
   `);
 
+  // -- Settings: the few switches a moderator throws from the console -----
+  //
+  // The stories door lives here (docs/46), so it can be opened on the stage
+  // and shut after the talk without a deploy. Who and when are kept.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS settings (
+      key         TEXT PRIMARY KEY,
+      value       TEXT NOT NULL,
+      updated_at  TEXT NOT NULL,
+      updated_by  TEXT
+    );
+  `);
+
   return applied;
 }
