@@ -7,6 +7,9 @@
  */
 
 import type { Context } from 'hono';
+import {
+  StoriesClosed, StoryNotFound, StoryQuotaReached, StoryTooLarge, UnknownPlace, UnsupportedStory,
+} from './story-service.ts';
 import type { ApiFailure, ApiSuccess } from '@chivago/core';
 import { InsufficientPoints } from './wallet-service.ts';
 import { InvalidTransition, OutsideGeofence } from './quest-service.ts';
@@ -55,6 +58,12 @@ export function handleError(c: Context, err: unknown) {
   if (err instanceof FixTooCoarse) return fail(c, 'FIX_TOO_COARSE', err.message, 403);
   if (err instanceof ImpossibleTravel) return fail(c, 'IMPOSSIBLE_TRAVEL', err.message, 403);
   if (err instanceof TooSoonAfterArrival) return fail(c, 'TOO_SOON', err.message, 409);
+  if (err instanceof StoriesClosed) return fail(c, 'STORIES_CLOSED', err.message, 403);
+  if (err instanceof StoryQuotaReached) return fail(c, 'STORY_QUOTA', err.message, 429);
+  if (err instanceof StoryTooLarge) return fail(c, 'STORY_TOO_LARGE', err.message, 413);
+  if (err instanceof UnsupportedStory) return fail(c, 'UNSUPPORTED_STORY', err.message, 400);
+  if (err instanceof UnknownPlace) return fail(c, 'NOT_FOUND', err.message, 404);
+  if (err instanceof StoryNotFound) return fail(c, 'NOT_FOUND', err.message, 404);
   if (err instanceof SelfVisitQuotaReached) {
     // 429, not 400: the request was well-formed, and the traveller can simply
     // come back next year.

@@ -79,7 +79,7 @@ interface LayoutOptions {
   reviewer?: string | null;
   /** Renders the nav only when signed in. */
   signedIn?: boolean;
-  activeNav?: 'queue' | 'history' | 'moderation' | 'sponsor' | 'esg' | 'statement';
+  activeNav?: 'queue' | 'history' | 'moderation' | 'sponsor' | 'esg' | 'statement' | 'stories';
   pendingCount?: number;
   /** Shows the Reviews tab. Moderators only - see place-review-service.ts. */
   canModerate?: boolean;
@@ -214,6 +214,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
              <a href="/console/sponsor" class="${activeNav === 'sponsor' ? 'on' : ''}">${tr('sponsor')}</a>
              <a href="/console/esg" class="${activeNav === 'esg' ? 'on' : ''}">${tr('esg')}</a>
              <a href="/console/statement" class="${activeNav === 'statement' ? 'on' : ''}">${tr('statement')}</a>
+             <a href="/console/stories" class="${activeNav === 'stories' ? 'on' : ''}">${tr('stories')}</a>
              <a href="/console/sos" style="border-color:var(--color-accent);color:var(--color-accent-700)">SOS</a>
              <a href="/console/logout">${tr('signOut')}</a>
            </nav>`

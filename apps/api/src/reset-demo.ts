@@ -61,6 +61,8 @@ const TRAVELLER_TABLES = [
   // A statement is the pilot's record ABOUT travellers (docs/31). With the
   // travellers gone it would describe nobody, so it goes with them.
   'statements',
+  // Stories are the traveller's too (docs/44).
+  'stories',
   'ledger', 'wallets', 'profiles',
   'mood_checkins', 'quest_progress', 'proofs', 'proof_files', 'vouchers',
   'place_reviews', 'review_reports', 'review_appeals', 'review_batches',

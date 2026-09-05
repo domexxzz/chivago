@@ -65,6 +65,7 @@ export const consoleStrings = {
   sponsor: c('ผู้สนับสนุน', 'Sponsor'),
   esg: c('รายงาน ESG', 'ESG'),
   statement: c('รายการกิจกรรม', 'Statement'),
+  stories: c('สตอรี่', 'Stories'),
   periodOutOfOrder: c('วันที่เริ่มต้นอยู่หลังวันที่สิ้นสุด เลือกช่วงวันที่ใหม่', 'The start date is after the end date. Choose the period again.'),
   moderationTitle: c('ดูแลรีวิวจากนักเดินทาง', 'Traveller reviews'),
   moderationBlurb: c(

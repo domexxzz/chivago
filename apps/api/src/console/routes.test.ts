@@ -10,6 +10,10 @@ import {
 import { pendingBatches } from '../batch-service.ts';
 import { applyMovement, ensureWallet, getBalances } from '../wallet-service.ts';
 import { consoleRoutes, __csrfFor } from './routes.ts';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { submitStory } from '../story-service.ts';
 
 let db: DB;
 let app: ReturnType<typeof consoleRoutes>;
@@ -854,5 +858,92 @@ describe('the statement draft with a period that is not a date', () => {
     const lab = await signIn(LAB_KEY);
     const res = await app.request('/statement?from=2026-13-01&to=2026-13-31', { headers: withCookie(lab) });
     assert.equal(res.status, 400);
+  });
+});
+
+describe('the stories page', () => {
+  // A story at Chaweng, told by u1 standing there. The municipality hosts a
+  // quest on the island, so it reviews; Ocean Lab hosts one too (q-lab at
+  // Chaweng) - both are island hosts here, so a campus host is added to be
+  // the one that cannot.
+  let dir: string;
+  let storyId: string;
+  const fake = {
+    async video(_i: string, outMp4: string, outPoster: string) {
+      writeFileSync(outMp4, 'MP4-BYTES'); writeFileSync(outPoster, 'POSTER-BYTES'); return { durationS: 5 };
+    },
+    async photo(_i: string, outJpg: string) { writeFileSync(outJpg, 'JPG-BYTES'); },
+  };
+  const mp4 = () => Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypisom'), Buffer.alloc(32, 1)]);
+  const KU_KEY = 'chv_KUKUA-KUKUB-KUKUC-KUKUD';
+
+  beforeEach(async () => {
+    dir = mkdtempSync(join(tmpdir(), 'chivago-console-stories-'));
+    process.env.CHIVAGO_UPLOADS = dir;
+    db.prepare(
+      `INSERT INTO places (id, name_en, name_th, short, layer, province, lat, lng, meta, blurb_en, blurb_th, tags,
+         safety_label_en, safety_label_th, crowd_density, aqi, safety_index, walkability)
+       VALUES ('chaweng','Chaweng Beach','หาดเฉวง','Chaweng','Safe','TH-84',9.5357,100.0617,'','','','[]','x','x',1,20,6,7)`,
+    ).run();
+    db.prepare('INSERT INTO hosts (id,name,type,api_key_hash,created_at) VALUES (?,?,?,?,?)').run(
+      'h-ku', 'ChivaGo team · KU Sriracha', 'community', hashApiKey(KU_KEY), new Date().toISOString());
+    db.prepare(
+      `INSERT INTO quests (id,code,name_en,name_th,where_label,duration,reward_points,host_id,kind,lat,lng,geofence_radius_m)
+       VALUES ('q-ku','KU01','Campus clean-up','x','Sapandao','45 min',120,'h-ku','today',13.12189,100.92055,100)`,
+    ).run();
+    const s = await submitStory(db, {
+      userId: 'u1', placeId: 'chaweng', bytes: mp4(), caption: 'low tide',
+      fix: { lat: 9.5357, lng: 100.0617, accuracyM: 8 }, transcoder: fake, open: true,
+    });
+    storyId = s.id;
+  });
+  afterEach(() => { delete process.env.CHIVAGO_UPLOADS; rmSync(dir, { recursive: true, force: true }); });
+
+  const post = (token: string, path: string, csrf: string) => app.request(path, {
+    method: 'POST',
+    headers: { ...withCookie(token), 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf }),
+  });
+
+  test('the island host sees the island story, with its poster, and approves it', async () => {
+    const muni = await signIn(MUNI_KEY, 'Nok');
+    const page = await (await app.request('/stories', { headers: withCookie(muni) })).text();
+    assert.match(page, /low tide/);
+    assert.match(page, /Chaweng Beach/);
+    assert.match(page, new RegExp(`/console/stories/${storyId}/poster`));
+    const poster = await app.request(`/stories/${storyId}/poster`, { headers: withCookie(muni) });
+    assert.equal(poster.status, 200);
+    assert.equal(await poster.text(), 'POSTER-BYTES');
+
+    const session = resolveSession(db, muni)!;
+    const res = await post(muni, `/stories/${storyId}/approve`, __csrfFor(session));
+    assert.equal(res.status, 303);
+    const row = db.prepare('SELECT status, reviewed_by, reviewer_host FROM stories WHERE id = ?').get(storyId) as
+      unknown as { status: string; reviewed_by: string; reviewer_host: string };
+    assert.equal(row.status, 'approved');
+    assert.equal(row.reviewed_by, 'Nok');
+    assert.equal(row.reviewer_host, 'h-muni');
+    assert.doesNotMatch(await (await app.request('/stories', { headers: withCookie(muni) })).text(), /low tide/, 'approved is no longer waiting');
+  });
+
+  test('the campus host sees nothing of the island, cannot read its bytes, and cannot decide', async () => {
+    const ku = await signIn(KU_KEY, 'Team');
+    const page = await (await app.request('/stories', { headers: withCookie(ku) })).text();
+    assert.doesNotMatch(page, /low tide/);
+    assert.match(page, /Nothing waiting/);
+    assert.equal((await app.request(`/stories/${storyId}/poster`, { headers: withCookie(ku) })).status, 404);
+    const session = resolveSession(db, ku)!;
+    const res = await post(ku, `/stories/${storyId}/approve`, __csrfFor(session));
+    assert.equal(res.status, 404);
+    const row = db.prepare('SELECT status FROM stories WHERE id = ?').get(storyId) as unknown as { status: string };
+    assert.equal(row.status, 'pending');
+  });
+
+  test('a stale csrf decides nothing', async () => {
+    const muni = await signIn(MUNI_KEY);
+    const res = await post(muni, `/stories/${storyId}/hide`, 'not-this-session');
+    assert.equal(res.status, 403);
+    const row = db.prepare('SELECT status FROM stories WHERE id = ?').get(storyId) as unknown as { status: string };
+    assert.equal(row.status, 'pending');
   });
 });

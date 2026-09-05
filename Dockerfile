@@ -35,6 +35,9 @@ RUN cd apps/mobile \
 
 # --- the runtime image ------------------------------------------------------
 FROM node:24-slim AS runtime
+# ffmpeg, for stories (apps/api/src/transcode.ts): every clip is re-encoded to
+# H.264 so an iPhone's HEVC plays on an Android in the same room.
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 
 RUN corepack enable
 WORKDIR /repo

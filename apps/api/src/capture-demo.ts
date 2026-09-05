@@ -56,6 +56,18 @@ const ROUTES = [
   '/places/ku-viewpoint', '/places/ku-viewpoint/reviews', '/places/ku-viewpoint/history',
   '/places/ku-sports', '/places/ku-sports/reviews', '/places/ku-sports/history',
   '/places/ku-shops', '/places/ku-shops/reviews', '/places/ku-shops/history',
+  // Stories on every pin (docs/44): empty until the day, and honest about it.
+  '/places/chaweng/stories',
+  '/places/namuang/stories',
+  '/places/fisherman/stories',
+  '/places/lamai/stories',
+  '/places/mangrove/stories',
+  '/places/ku-library/stories',
+  '/places/ku-park/stories',
+  '/places/ku-viewpoint/stories',
+  '/places/ku-sports/stories',
+  '/places/ku-shops/stories',
+  '/areas/ku-sriracha/stories',
   '/quests',
   // The map's "quests near you" strip asks for today's only. Captured as its
   // own key because the demo server strips query strings before matching,

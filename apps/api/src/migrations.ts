@@ -844,5 +844,31 @@ export function migrate(db: DB): string[] {
       BEGIN SELECT RAISE(ABORT, 'statements are append-only: issue another'); END;
   `);
 
+  // -- Stories: a clip or a photograph, pinned on a place by someone there --
+  //
+  // Pending until a host approves; expires seven days on, file and all.
+  // See story-service.ts and docs/44.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS stories (
+      id            TEXT PRIMARY KEY,
+      place_id      TEXT NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+      user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      kind          TEXT NOT NULL CHECK (kind IN ('video','photo')),
+      caption       TEXT NOT NULL DEFAULT '',
+      media_path    TEXT NOT NULL,
+      media_mime    TEXT NOT NULL,
+      poster_path   TEXT,
+      duration_s    REAL,
+      status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','hidden')),
+      created_at    TEXT NOT NULL,
+      expires_at    TEXT NOT NULL,
+      reviewed_at   TEXT,
+      reviewed_by   TEXT,
+      reviewer_host TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_stories_place ON stories(place_id, status, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_stories_user ON stories(user_id, created_at);
+  `);
+
   return applied;
 }

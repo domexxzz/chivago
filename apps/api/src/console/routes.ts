@@ -23,6 +23,8 @@ import { listQuests } from '../repo.ts';
 import { sponsorPage } from './sponsor.ts';
 import { esgPage } from './esg.ts';
 import { statementPage } from './statement.ts';
+import { storiesPage } from './stories.ts';
+import { pendingStories, readStoryMedia, reviewStory, storiesOpen } from '../story-service.ts';
 import { InvalidPeriod, draftStatement, issueStatement, statementsFor } from '../statement-service.ts';
 import { activityInPeriod } from '../esg-service.ts';
 import { pendingQueue, queueStats, recentDecisions, reviewItem } from '../review-service.ts';
@@ -443,6 +445,57 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       origin: new URL(c.req.url).origin,
       justIssued: c.req.query('issued') ?? null,
     }));
+  });
+
+  /**
+   * Stories waiting for this host (docs/44). A host reviews where it hosts;
+   * a moderator anywhere. The page reloads itself, because it is open on a
+   * phone on a stage.
+   */
+  app.get('/stories', (c) => {
+    const session = currentSession(c)!;
+    return c.html(storiesPage({
+      locale: localeFor(c),
+      hostName: session.hostName,
+      reviewer: session.reviewer,
+      canModerate: canModerate(session),
+      pending: pendingStories(db, session.hostId),
+      csrf: csrfFor(session),
+      open: storiesOpen(),
+    }));
+  });
+
+  for (const which of ['media', 'poster'] as const) {
+    app.get(`/stories/:id/${which}`, (c) => {
+      const session = currentSession(c)!;
+      const blob = readStoryMedia(db, c.req.param('id'), which, { forHost: session.hostId });
+      if (!blob) return c.text('Not found', 404);
+      return c.body(new Uint8Array(blob.bytes), 200, {
+        'content-type': blob.mime,
+        'cache-control': 'private, no-store',
+        'content-security-policy': "default-src 'none'",
+        'x-content-type-options': 'nosniff',
+      });
+    });
+  }
+
+  app.post('/stories/:id/:decision', async (c) => {
+    const session = currentSession(c)!;
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/stories'), 403);
+    }
+    const decision = c.req.param('decision');
+    if (decision !== 'approve' && decision !== 'hide') return c.text('Not found', 404);
+    try {
+      reviewStory(db, { hostId: session.hostId, storyId: c.req.param('id'), decision, reviewer: session.reviewer });
+    } catch (e) {
+      if ((e as Error).name === 'StoryNotFound') {
+        return c.html(messagePage(localeFor(c), 'notFound', 'notInYourQueue', '/console/stories'), 404);
+      }
+      throw e;
+    }
+    return c.redirect('/console/stories', 303);
   });
 
   app.post('/statement', async (c) => {

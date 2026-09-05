@@ -38,6 +38,9 @@ import { checkedInToday, checkIn } from './checkin-service.ts';
 import { exploredFor, recordSelfVisit, selfReportedProvincesFor, selfVisitsFor } from './visit-service.ts';
 import { airHistoryFor } from './crowd-service.ts';
 import { readStatement, statementsIncluding } from './statement-service.ts';
+import {
+  expireStories, readStoryMedia, storiesAt, storiesInArea, storiesOpen, submitStory,
+} from './story-service.ts';
 import { areaByKey, inArea, isAreaKey } from '@chivago/core';
 import { statementMissingPage, verifyPage } from './console/statement.ts';
 import { DEFAULT_LOCALE, localeFromAcceptLanguage } from './console/i18n.ts';
@@ -115,6 +118,12 @@ const dispatchTimer = setInterval(flushNotifications, DISPATCH_INTERVAL_MS);
  * else.
  */
 const SLA_INTERVAL_MS = 3_600_000;
+// Seven days on, a story and its files go. Hourly; nobody is waiting on it.
+const storyTimer = setInterval(() => {
+  try { expireStories(db); } catch (e) { console.error('[chivago] story expiry:', (e as Error).message); }
+}, 3_600_000);
+storyTimer.unref();
+
 const slaTimer = setInterval(() => {
   try {
     const summary = sweepOverdue(db);
@@ -248,6 +257,33 @@ app.get('/statements/:id/pdf', (c) => {
   return c.body(statementPdf(statement, new URL(c.req.url).origin).buffer as ArrayBuffer);
 });
 
+/*
+  A story's bytes, public once a host approved it and gone a week later.
+  Before the traveller middleware for the same reason the statement is: the
+  big screen in the room and a browser on somebody's laptop hold no device
+  key. Pending and hidden are 404 here; a reviewing host reads pending
+  through the console.
+*/
+for (const which of ['media', 'poster'] as const) {
+  app.get(`/stories/:id/${which}`, (c) => {
+    const blob = readStoryMedia(db, c.req.param('id'), which);
+    if (!blob) return fail(c, 'NOT_FOUND', 'No such story.', 404);
+    return c.body(new Uint8Array(blob.bytes), 200, {
+      'content-type': blob.mime,
+      // Immutable once approved, gone in a week: a short public cache.
+      'cache-control': 'public, max-age=300',
+      'content-security-policy': "default-src 'none'",
+      'x-content-type-options': 'nosniff',
+    });
+  });
+}
+
+/** The board's feed: every approved story in an area. Public, for the screen in the room. */
+app.get('/areas/:key/stories', (c) => {
+  c.header('cache-control', 'no-store');
+  return ok(c, { open: storiesOpen(), stories: storiesInArea(db, c.req.param('key')) });
+});
+
 app.get('/verify/:id', (c) => {
   const id = c.req.param('id');
   const statement = readStatement(db, id);
@@ -292,7 +328,8 @@ app.use('*', async (c, next) => {
   // themselves, and a statement is public by design; none of them should be
   // handed a traveller account and a wallet.
   if (c.req.path.startsWith('/console') || c.req.path.startsWith('/sos/live/')
-      || c.req.path.startsWith('/verify/') || c.req.path.startsWith('/statements/')) {
+      || c.req.path.startsWith('/verify/') || c.req.path.startsWith('/statements/')
+      || c.req.path.startsWith('/stories/') || c.req.path.startsWith('/areas/')) {
     return next();
   }
 
@@ -1016,6 +1053,38 @@ app.post('/vouchers/:code/redeem', (c) => {
  * something the guest whose work it counts can see and point at.
  */
 app.get('/me/statements', (c) => ok(c, { statements: statementsIncluding(db, userId(c)) }));
+
+// ---------------------------------------------------------------------------
+// Stories (docs/44)
+// ---------------------------------------------------------------------------
+
+/** What is on the pin: approved, unexpired, newest first - and whether the door is open. */
+app.get('/places/:id/stories', (c) => ok(c, { open: storiesOpen(), stories: storiesAt(db, c.req.param('id')) }));
+
+/**
+ * Tell one. Multipart: `file` (a clip or a photograph), `caption`, and
+ * `position` as JSON - the fix the fence and the second signal judge.
+ * Pending until a host approves; the reply says so.
+ */
+app.post('/places/:id/stories', async (c) => {
+  const contentType = c.req.header('content-type') ?? '';
+  if (!contentType.includes('multipart/form-data')) {
+    return fail(c, 'MULTIPART_REQUIRED', 'Send the story as multipart/form-data with a file.');
+  }
+  const form = await c.req.parseBody();
+  const file = form.file;
+  if (!(file instanceof File)) return fail(c, 'FILE_REQUIRED', 'A clip or a photograph is needed.');
+  const position = parsePosition(form.position);
+  if (!position) return fail(c, 'LOCATION_REQUIRED', 'Your location is needed to tell a story here.');
+  const story = await submitStory(db, {
+    userId: userId(c),
+    placeId: c.req.param('id'),
+    bytes: Buffer.from(await file.arrayBuffer()),
+    caption: typeof form.caption === 'string' ? form.caption : '',
+    fix: position,
+  });
+  return ok(c, story);
+});
 
 app.get('/passport', (c) => ok(c, {
   visited: visitedProvincesFor(db, userId(c)),
