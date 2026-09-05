@@ -122,7 +122,12 @@ void main() {
       final places = (samples['places'] as List<dynamic>)
           .map((e) => Place.fromJson(e as Map<String, dynamic>))
           .toList();
-      expect(places, hasLength(5));
+      // The island's five and the campus's five (docs/43). Counted by
+      // province, so opening a third area does not fail a decode test.
+      expect(places.where((p) => p.province == 'TH-84'), hasLength(5));
+      expect(places.where((p) => p.province == 'TH-20'), hasLength(5));
+      expect(places.firstWhere((p) => p.id == 'ku-park').photo, isNull,
+          reason: 'the campus has no licensed photograph yet');
       for (final p in places) {
         expect(p.province, startsWith('TH-'), reason: p.id);
       }

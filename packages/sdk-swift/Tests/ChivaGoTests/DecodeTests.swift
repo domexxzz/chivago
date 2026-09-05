@@ -35,7 +35,11 @@ final class DecodeTests: XCTestCase {
         // the SDKs decoded as nothing for forty commits. A photograph is a
         // record with a credit, never a bare URL.
         let places = try decode("places", as: [Place].self)
-        XCTAssertEqual(places.count, 5)
+        // The island's five and the campus's five (docs/43), counted by
+        // province so a third area does not fail a decode test.
+        XCTAssertEqual(places.filter { $0.province == "TH-84" }.count, 5)
+        XCTAssertEqual(places.filter { $0.province == "TH-20" }.count, 5)
+        XCTAssertNil(places.first { $0.id == "ku-park" }?.photo, "the campus has no licensed photograph yet")
         for place in places {
             XCTAssertTrue(place.province.hasPrefix("TH-"), place.id)
         }
