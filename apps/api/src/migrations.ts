@@ -781,6 +781,9 @@ export function migrate(db: DB): string[] {
   // English it already had, which is what it actually said.
   if (addColumn(db, 'quests', 'where_label_th', 'TEXT')) applied.push('quests.where_label_th');
   if (addColumn(db, 'quests', 'duration_th', 'TEXT')) applied.push('quests.duration_th');
+  // A ground station within reach of the place, as JSON, or NULL for the
+  // island (docs/43). Read by air.ts; written by the seed.
+  if (addColumn(db, 'places', 'air_station', 'TEXT')) applied.push('places.air_station');
 
   // -- Self-issued visits: recorded, not scored ----------------------------
   //

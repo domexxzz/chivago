@@ -24,6 +24,8 @@ import { Send, Phone } from 'lucide-react-native';
 import { OPENERS, answer, isHighScore, type Reply } from '@chivago/core';
 import type { ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
+import { areaOfProvince } from '@chivago/core';
+import { useArea } from '../state/area.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
@@ -43,6 +45,7 @@ export function ConciergeScreen({
   onAction: (action: NonNullable<Reply['action']>) => void;
 }) {
   const places = useAsync(() => api.places(), []);
+  const area = useArea();
   const [turns, setTurns] = React.useState<Turn[]>([]);
   const [draft, setDraft] = React.useState('');
   const scroller = React.useRef<ScrollView>(null);
@@ -50,12 +53,13 @@ export function ConciergeScreen({
   const ask = React.useCallback((text: string) => {
     const question = text.trim();
     if (question.length === 0) return;
-    const ctx = { places: (places.data ?? []) as ScoredPlace[], quests: [] };
+    // The concierge speaks about the area on screen, not about a beach 400 km from the campus.
+    const ctx = { places: (places.data ?? []).filter((p) => areaOfProvince(p.province) === area.key) as ScoredPlace[], quests: [] };
     setTurns((prev) => [...prev, { asked: question, reply: answer(question, ctx) }]);
     setDraft('');
     // A reply that lands below the fold reads as no reply at all.
     requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: true }));
-  }, [places.data]);
+  }, [places.data, area.key]);
 
   return (
     <View style={{ flex: 1, backgroundColor: color.bg }}>

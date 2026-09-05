@@ -4,10 +4,17 @@ import { test, describe } from 'node:test';
 import { SAMUI_BBOX, SEED_PLACES, computeHealthyScore, type ScoredPlace } from '@chivago/core';
 import { CHIP, layoutPins, mistCircles, project, tilt } from './map-geometry.ts';
 
+/**
+ * The island's places only. The projection is Samui's bounding box and the
+ * silhouette is Samui's; the campus (TH-20) is drawn by a different map
+ * and would land in the Gulf of Thailand here, which is the point.
+ */
+const ISLAND_PLACES = SEED_PLACES.filter((p) => p.province === 'TH-84');
+
 const W = 390;
 const H = 344;
 
-const scored: ScoredPlace[] = SEED_PLACES.map((p) => {
+const scored: ScoredPlace[] = ISLAND_PLACES.map((p) => {
   const breakdown = computeHealthyScore(p.metrics);
   // Geometry does not read ratings; an empty roll-up keeps the fixture
   // honest without pretending these seeded places have reviews.
@@ -34,7 +41,7 @@ describe('projection', () => {
   });
 
   test('every seed place lands inside the drawn island, not in open sea', () => {
-    for (const p of SEED_PLACES) {
+    for (const p of ISLAND_PLACES) {
       const { x, y } = project(p.lat, p.lng);
       assert.ok(x > 0.1 && x < 0.9, `${p.id} x=${x.toFixed(2)} is off the island`);
       assert.ok(y > 0.1 && y < 0.9, `${p.id} y=${y.toFixed(2)} is off the island`);
@@ -42,8 +49,8 @@ describe('projection', () => {
   });
 
   test('real relative geography is preserved', () => {
-    const chaweng = SEED_PLACES.find((p) => p.id === 'chaweng')!;
-    const thongKrut = SEED_PLACES.find((p) => p.id === 'mangrove')!;
+    const chaweng = ISLAND_PLACES.find((p) => p.id === 'chaweng')!;
+    const thongKrut = ISLAND_PLACES.find((p) => p.id === 'mangrove')!;
     // Chaweng is on the north-east coast, Thong Krut on the south-west.
     assert.ok(project(chaweng.lat, chaweng.lng).x > project(thongKrut.lat, thongKrut.lng).x);
     assert.ok(project(chaweng.lat, chaweng.lng).y < project(thongKrut.lat, thongKrut.lng).y);
@@ -178,7 +185,7 @@ describe('real coordinates land on the drawn island', () => {
   // compatible by luck, and today the luck holds — every seeded place lands on
   // land. Nothing guaranteed it would, and a new place added along a coast is
   // exactly what would put a pin in the sea with no test to notice.
-  for (const place of SEED_PLACES) {
+  for (const place of ISLAND_PLACES) {
     test(`${place.name.en} is on land`, () => {
       const flat = project(place.lat, place.lng);
       assert.ok(
@@ -223,13 +230,13 @@ describe('pins paint far to near', () => {
   test('every place still appears exactly once', () => {
     // A sort is a cheap place to lose a row.
     const ids = layoutPins(scored, W, H).map((p) => p.place.id).sort();
-    assert.deepEqual(ids, SEED_PLACES.map((p) => p.id).sort());
+    assert.deepEqual(ids, ISLAND_PLACES.map((p) => p.id).sort());
   });
 });
 
 describe('the mist on the drawn island', () => {
   const W = 390, H = 344;
-  const places = SEED_PLACES.map((p) => ({ id: p.id, lat: p.lat, lng: p.lng }));
+  const places = ISLAND_PLACES.map((p) => ({ id: p.id, lat: p.lat, lng: p.lng }));
 
   test('a cleared circle sits where the pin stands, through the same tilt', () => {
     const [c] = mistCircles([{ placeId: 'chaweng' }], places, W, H);

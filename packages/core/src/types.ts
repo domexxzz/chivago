@@ -49,6 +49,19 @@ export interface MetricReading {
   source: string;
 }
 
+/**
+ * A Pollution Control Department station close enough to speak for a place.
+ * Air4Thai publishes one country-wide feed; this names the row in it.
+ */
+export interface AirStation {
+  /** Air4Thai station id, e.g. `o61`. */
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  distanceKm: number;
+}
+
 export interface Place {
   id: string;
   name: Bilingual;
@@ -87,6 +100,13 @@ export interface Place {
    */
   photo: PlacePhoto | null;
   metrics: PlaceMetrics;
+  /**
+   * A ground station within reach. When present the reading is measured
+   * there and says so; when absent, the ~11 km model is what there is.
+   * Samui has none - its nearest station is 87 km away and can only
+   * cross-check. The Si Racha campus has one 300 m from its centre.
+   */
+  airStation?: AirStation | null;
   /** Per-metric provenance, so the UI can say "live" vs "computed daily". */
   readings?: Partial<Record<keyof PlaceMetrics, MetricReading>>;
 }

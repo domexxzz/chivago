@@ -21,7 +21,8 @@
 import React from 'react';
 import { Animated, Easing, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, Line, Mask, Path, Polygon, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { isHighScore, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace } from '@chivago/core';
+import { isHighScore, type Area, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace } from '@chivago/core';
+import { t } from '../i18n/locale.ts';
 import { CHIP, REVEAL_FEATHER, layoutPins, mistCircles, tilt } from './map-geometry.ts';
 import { cloudField } from './terrain-style.ts';
 import { useReduceMotion } from './reduce-motion.ts';
@@ -352,6 +353,12 @@ export interface SamuiMapProps {
   height?: number;
   /** Score-only pins, no zoom buttons. Decided here from the width unless a caller says. */
   compact?: boolean;
+  /**
+   * Which area is framed. The web map draws either; the drawn island is
+   * Samui's silhouette and nothing else, so on a phone the campus is its
+   * list until a campus drawing exists (docs/43).
+   */
+  area?: Area;
 }
 
 /**
@@ -378,7 +385,38 @@ export function SamuiMap(props: SamuiMapProps) {
       </React.Suspense>
     );
   }
+  if (props.area && props.area.map !== 'island') {
+    return <CampusList places={props.places} onSelect={props.onSelect} height={height} />;
+  }
   return <IslandMap {...props} height={height} compact={compact} />;
+}
+
+/**
+ * The campus on a phone, until it has a drawing: the places, as rows, under
+ * a line that says why. Not the island silhouette with campus pins on it -
+ * that would put the library in the Gulf of Thailand.
+ */
+function CampusList({
+  places, onSelect, height,
+}: { places: ScoredPlace[]; onSelect: (place: ScoredPlace) => void; height: number }) {
+  return (
+    <View style={{ minHeight: Math.min(height, 200), backgroundColor: color.neutral200, paddingHorizontal: 18, paddingVertical: 14 }}>
+      <Label size={10} tracking={0.12} colour={color.neutral700}>
+        {t({ en: 'The campus map is on the web for now. Every place is listed here.', th: 'แผนที่แคมปัสมีบนเว็บก่อน ทุกสถานที่อยู่ในรายการนี้' })}
+      </Label>
+      {places.map((p) => (
+        <Pressable
+          key={p.id}
+          onPress={() => onSelect(p)}
+          accessibilityRole="button"
+          style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: color.neutral300 }}
+        >
+          <Heading size={15}>{t(p.name)}</Heading>
+          <Label size={11} colour={isHighScore(p.healthyScore) ? color.accent700 : color.neutral700}>{String(p.healthyScore)}</Label>
+        </Pressable>
+      ))}
+    </View>
+  );
 }
 
 function IslandMap({

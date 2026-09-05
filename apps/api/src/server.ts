@@ -38,6 +38,7 @@ import { checkedInToday, checkIn } from './checkin-service.ts';
 import { exploredFor, recordSelfVisit, selfReportedProvincesFor, selfVisitsFor } from './visit-service.ts';
 import { airHistoryFor } from './crowd-service.ts';
 import { readStatement, statementsIncluding } from './statement-service.ts';
+import { areaByKey, inArea, isAreaKey } from '@chivago/core';
 import { statementMissingPage, verifyPage } from './console/statement.ts';
 import { DEFAULT_LOCALE, localeFromAcceptLanguage } from './console/i18n.ts';
 import { getQuietPreference, setQuietPreference } from './notification-service.ts';
@@ -1224,13 +1225,18 @@ app.post('/trip/plan', async (c) => {
   const energy = asked === 'gentle' || asked === 'moderate' || asked === 'full' ? asked : undefined;
 
   const [places, profile] = [await listScoredPlaces(db, userId(c)), getProfile(db, userId(c))];
+  // A day is planned in one area. The client says which; an older client
+  // that says nothing gets everything, as before.
+  const framed = isAreaKey(body?.area) ? areaByKey(body.area) : null;
+  const inFrame = <T extends { lat: number; lng: number }>(list: T[]): T[] =>
+    framed ? list.filter((x) => inArea(framed, x)) : list;
   // The last mood check-in shapes the day unless the traveller asked for
   // something else out loud. That is the deck's "เส้นทางบรรโลงใจ".
   const mood = latestMood(db, userId(c));
   return ok(c, planDay({
     profile,
-    places,
-    quests: listQuests(db),
+    places: inFrame(places),
+    quests: inFrame(listQuests(db)),
     energy,
     bias: mood ? routeBiasFor(mood.mood) : undefined,
   }));
@@ -1447,6 +1453,9 @@ function nearestArea(lat: number, lng: number): string {
     { name: 'Maenam', lat: 9.5701, lng: 99.9964 },
     { name: 'Thong Krut', lat: 9.4179, lng: 99.9433 },
     { name: 'Na Muang', lat: 9.4611, lng: 99.9908 },
+    // The campus (docs/43), and the town it sits in.
+    { name: 'KU Sriracha', lat: 13.1205, lng: 100.9205 },
+    { name: 'Si Racha', lat: 13.1737, lng: 100.9312 },
   ];
   let best = areas[0]!;
   let bestD = Infinity;

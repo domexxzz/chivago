@@ -46,6 +46,7 @@ import { ConciergeScreen } from './src/screens/ConciergeScreen.tsx';
 import { CompanionHomeScreen } from './src/screens/CompanionHome.tsx';
 import type { Companion } from '@chivago/core';
 import { loadLocale, t, useLocale } from './src/i18n/locale.ts';
+import { loadArea, placeFromUrl } from './src/state/area.ts';
 
 export default function App() {
   // Both families are bundled locally rather than fetched at runtime: the app
@@ -64,6 +65,8 @@ export default function App() {
   const locale = useLocale();
   const [localeReady, setLocaleReady] = React.useState(false);
   React.useEffect(() => { void loadLocale().then(() => setLocaleReady(true)); }, []);
+  // The area the same way: the URL first, so a QR code on the campus lands there.
+  React.useEffect(() => { void loadArea(); }, []);
   // Route state: it belongs to the pushed screen and dies with it.
   const [companion, setCompanion] = React.useState<Companion | null>(null);
   const toast = useToast();
@@ -92,6 +95,7 @@ export default function App() {
   }, [nav]);
 
   const notifications = useNotifications(openFromNotification, account.ready);
+
 
   /**
    * The push service renders in the device's language, and it learns that
@@ -160,7 +164,13 @@ export default function App() {
   React.useEffect(() => {
     if (!profileLoaded || jumpedIn.current) return;
     jumpedIn.current = true;
-    if (onboarded) nav.selectTab('home');
+    if (onboarded) {
+      nav.selectTab('home');
+      // A QR code at a pin carries `?place=`; land on it, over Home, once the
+      // app has jumped in - a push before this point was wiped by the jump.
+      const place = placeFromUrl();
+      if (place) nav.push('place', { placeId: place });
+    }
   }, [profileLoaded, onboarded, nav]);
 
   // Wait for the profile as well as the fonts. Rendering onboarding first and

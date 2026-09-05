@@ -18,6 +18,7 @@ import {
   type ItineraryItem, type MonthOutlook, type PlanItem, type PriceForecast, type TripPlan,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
+import { useArea } from '../state/area.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
@@ -53,7 +54,8 @@ export function TripScreen({
   onOpenQuest?: (id: string) => void;
 }) {
   const [energy, setEnergy] = React.useState<Energy | null>(null);
-  const plan = useAsync(() => api.planTrip(energy ?? undefined), [energy]);
+  const area = useArea();
+  const plan = useAsync(() => api.planTrip(energy ?? undefined, area.key), [energy, area.key]);
   const prices = useAsync(() => api.prices('stay'), []);
 
   return (

@@ -17,6 +17,7 @@ import {
   SPECIES_AS_OF, cheapestMonth, chivaBalance, collectionSummary, companionsFor,
   forecastPrice, islandDay,
   outlookAhead, planDay, progressionFor, routeBiasFor, smartRoute, summarise,
+  areaByKey, inArea, isAreaKey,
 } from '@chivago/core';
 import snapshot from './fixtures.json';
 
@@ -312,15 +313,22 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     return entry;
   },
 
-  'POST /trip/plan': (body) => planDay({
+  'POST /trip/plan': (body) => {
+    // One area at a time, as the API does it.
+    const asked = (body as { area?: unknown }).area;
+    const framed = isAreaKey(asked) ? areaByKey(asked) : null;
+    const inFrame = <T extends { lat: number; lng: number }>(list: T[]): T[] =>
+      framed ? list.filter((x) => inArea(framed, x)) : list;
+    return planDay({
     profile: state.routes['/profile'] as never,
-    places: state.routes['/places'] as never,
-    quests: (state.routes['/quests'] as { quests: unknown[] }).quests as never,
+    places: inFrame(state.routes['/places'] as { lat: number; lng: number }[]) as never,
+    quests: inFrame((state.routes['/quests'] as { quests: { lat: number; lng: number }[] }).quests) as never,
     energy: (body as { energy?: 'gentle' | 'moderate' | 'full' }).energy,
     // The last mood shapes the day here too, or the demo would show the
     // check-in doing nothing.
     bias: state.moods[0] ? routeBiasFor(state.moods[0].mood as never) : undefined,
-  }),
+    });
+  },
 
   'PUT /profile': (body) => {
     state.routes['/profile'] = { ...(state.routes['/profile'] as Json), ...body };

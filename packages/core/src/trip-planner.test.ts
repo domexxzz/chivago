@@ -7,7 +7,8 @@ import { ENERGY_KM, distanceKm, planDay } from './trip-planner.ts';
 import { WALK_LIMIT_KM } from './smart-route.ts';
 import type { Quest, ScoredPlace, WellnessProfile } from './types.ts';
 
-const scored = (): ScoredPlace[] => SEED_PLACES.map((p) => {
+// The planner plans one area at a time; the screens hand it one. The island here.
+const scored = (): ScoredPlace[] => SEED_PLACES.filter((p) => p.province === 'TH-84').map((p) => {
   const breakdown = computeHealthyScore(p.metrics);
   return {
     ...p, healthyScore: breakdown.total, breakdown,

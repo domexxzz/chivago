@@ -154,10 +154,12 @@ points are issued by the server, idempotently, keyed `quest:<id>:user:<id>`.
 self-verified. They are separated in the ledger, in the colour system, and in
 every screen that spends or displays them.
 
-**Seventy-seven provinces.** Two are open — real places, measured air and
-crowding, a licensed photograph, a host who can verify. The other seventy-five
-are *listed*: real, findable, and not yet built. The passport's denominator is
-always 77.
+**Seventy-seven provinces.** Two are open — Koh Samui, and the Si Racha
+campus of Kasetsart University in Chon Buri (`docs/43`): real places, a named
+host who can verify, and on the campus the first air in the app measured on
+the ground, at a station 300 m away, rather than modelled. The other
+seventy-five are *listed*: real, findable, and not yet built. The passport's
+denominator is always 77.
 
 **A companion per province.** Grown on the same evidence ladder — checked in,
 came back, a host verified work. Seventy-five of them are **sealed eggs that

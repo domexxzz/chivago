@@ -50,6 +50,12 @@ const ROUTES = [
   '/places/fisherman', '/places/fisherman/reviews', '/places/fisherman/history',
   '/places/lamai', '/places/lamai/reviews', '/places/lamai/history',
   '/places/mangrove', '/places/mangrove/reviews', '/places/mangrove/history',
+  // The campus (docs/43).
+  '/places/ku-library', '/places/ku-library/reviews', '/places/ku-library/history',
+  '/places/ku-park', '/places/ku-park/reviews', '/places/ku-park/history',
+  '/places/ku-viewpoint', '/places/ku-viewpoint/reviews', '/places/ku-viewpoint/history',
+  '/places/ku-sports', '/places/ku-sports/reviews', '/places/ku-sports/history',
+  '/places/ku-shops', '/places/ku-shops/reviews', '/places/ku-shops/history',
   '/quests',
   // The map's "quests near you" strip asks for today's only. Captured as its
   // own key because the demo server strips query strings before matching,

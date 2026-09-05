@@ -14,6 +14,9 @@ import {
   greetingFor, strings, type Balances, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
+import { areaOfProvince, inArea } from '@chivago/core';
+import { setArea, useArea } from '../state/area.ts';
+import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { useAsync, type LayerKey } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
@@ -49,14 +52,19 @@ export function MapScreen({
   // everywhere, which is the truthful default, so it is not surfaced.
   const explored = useAsync(() => api.explored(), []);
   const [mode, setMode] = React.useState<MapMode>('map');
+  const area = useArea();
 
   // Memoised, and the handler with it: the web map rebuilds every DOM marker
   // when either changes identity, and a fresh array plus a fresh arrow on
   // every render - every toast, every SOS poll - was rebuilding five
   // markers a few times a minute for nothing.
   const visible = React.useMemo(
-    () => (places.data ?? []).filter((p) => layers[p.layer]),
-    [places.data, layers],
+    () => (places.data ?? []).filter((p) => layers[p.layer] && areaOfProvince(p.province) === area.key),
+    [places.data, layers, area.key],
+  );
+  const questsHere = React.useMemo(
+    () => (quests.data?.quests ?? NO_QUESTS).filter((q) => inArea(area, q)),
+    [quests.data, area],
   );
   const onSelect = React.useCallback((p: ScoredPlace) => onOpenPlace(p.id), [onOpenPlace]);
 
@@ -74,12 +82,16 @@ export function MapScreen({
 
       {places.data ? (
         <>
+          <View style={{ paddingHorizontal: gutter, paddingTop: 10 }}>
+            <AreaSwitch area={area.key} onChange={setArea} />
+          </View>
           <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
           {mode === 'map' ? (
             <SamuiMap
+              area={area}
               places={visible}
               onSelect={onSelect}
-              quests={quests.data?.quests ?? NO_QUESTS}
+              quests={questsHere}
               progress={quests.data?.progress ?? NO_PROGRESS}
               onOpenQuest={onOpenQuest}
               explored={explored.data?.places ?? NO_EXPLORED}
@@ -183,7 +195,7 @@ export function MapScreen({
       </Pressable>
 
       <QuestsNearYou
-        quests={quests.data?.quests ?? []}
+        quests={questsHere}
         error={quests.error}
         onRetry={quests.reload}
         onOpen={onOpenQuest}
@@ -199,6 +211,7 @@ export function MapHeader({
   balances: Balances; mode: MapMode;
   onToggleMode: () => void; onOpenWallet: () => void;
 }) {
+  const area = useArea();
   return (
     <View
       style={{
@@ -218,7 +231,7 @@ export function MapHeader({
           that outlived the prototype by fifty commits.
         */}
         <Label size={10} tracking={0.16}>{t(greetingFor(new Date()))}</Label>
-        <Heading size={24} tracking={-0.48} style={{ marginTop: 4 }}>{t(strings.map.island)}</Heading>
+        <Heading size={24} tracking={-0.48} style={{ marginTop: 4 }}>{t(area.name)}</Heading>
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>

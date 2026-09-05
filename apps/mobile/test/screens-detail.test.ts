@@ -831,7 +831,8 @@ describe('the trip day, planned by the server', () => {
       await settle();
 
       assert.equal(plans().length, 2, 'changing the energy must replan');
-      assert.deepEqual(plans()[1]!.body, { energy: 'gentle' });
+      // The area rides along: a day is planned in one area (docs/43).
+      assert.deepEqual(plans()[1]!.body, { energy: 'gentle', area: 'samui' });
       ui.unmount();
     } finally { net.restore(); }
   });

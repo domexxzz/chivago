@@ -33,6 +33,9 @@
 
 import React from 'react';
 import { Image, Pressable, ScrollView, View } from 'react-native';
+import { areaOfProvince, inArea, type Area, type AreaKey } from '@chivago/core';
+import { setArea, useArea } from '../state/area.ts';
+import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { ChevronRight, Compass, Leaf, MessageCircle, Search, Shield, Sparkles, Users, Wallet } from 'lucide-react-native';
 import {
   greetingFor, isHighScore, passportProgress, strings,
@@ -116,13 +119,30 @@ export function HomeScreen({
   const places = useAsync(() => api.places(), []);
   const quests = useAsync(() => api.quests('today'), []);
   const wallet = useAsync(() => api.wallet(), []);
+  /*
+    One area at a time. The API answers with every place and every quest;
+    the screen frames the island or the campus, whichever the traveller
+    chose - or the QR code did (docs/43).
+  */
+  const area = useArea();
+  const here = React.useMemo(
+    () => ({ ...places, data: places.data ? places.data.filter((p) => areaOfProvince(p.province) === area.key) : places.data }),
+    [places, area.key],
+  );
+  const todayHere = React.useMemo(
+    () => ({
+      ...quests,
+      data: quests.data ? { ...quests.data, quests: quests.data.quests.filter((q) => inArea(area, q)) } : quests.data,
+    }),
+    [quests, area],
+  );
   const passport = useAsync(() => api.passport(), []);
   const companions = useAsync(() => api.companions(), []);
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <Hero now={now} wallet={wallet} onOpenWallet={onOpenWallet} onOpenConcierge={onOpenConcierge} />
-      <Conditions places={places} onOpenMap={onOpenMap} />
+      <Hero now={now} wallet={wallet} area={area} onChangeArea={setArea} onOpenWallet={onOpenWallet} onOpenConcierge={onOpenConcierge} />
+      <Conditions places={here} onOpenMap={onOpenMap} />
       <Doors
         onOpenMap={onOpenMap}
         onOpenQuests={onOpenQuests}
@@ -132,8 +152,8 @@ export function HomeScreen({
         onOpenSafety={onOpenSafety}
         onOpenParty={onOpenParty}
       />
-      <Places places={places} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} />
-      <Today quests={quests} onOpenQuest={onOpenQuest} onOpenQuests={onOpenQuests} />
+      <Places places={here} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} />
+      <Today quests={todayHere} onOpenQuest={onOpenQuest} onOpenQuests={onOpenQuests} />
       <Carrying
         wallet={wallet}
         passport={passport}
@@ -153,10 +173,12 @@ type Async<T> = { data: T | null; loading: boolean; error: string | null; reload
 // ---------------------------------------------------------------------------
 
 function Hero({
-  now, wallet, onOpenWallet, onOpenConcierge,
+  now, wallet, area, onChangeArea, onOpenWallet, onOpenConcierge,
 }: {
   now: Date;
   wallet: Async<{ balances: { green: number; trip: number } }>;
+  area: Area;
+  onChangeArea: (next: AreaKey) => void;
   onOpenWallet: () => void;
   onOpenConcierge: () => void;
 }) {
@@ -182,8 +204,11 @@ function Hero({
           */}
           <Label size={10} tracking={0.16} colour={color.brandSoft}>{t(greeting)}</Label>
           <Heading size={26} tracking={-0.5} colour={onFill.brand} style={{ marginTop: 2 }}>
-            {t({ en: 'Koh Samui', th: 'เกาะสมุย' })}
+            {t(area.name)}
           </Heading>
+          <View style={{ marginTop: 10 }}>
+            <AreaSwitch area={area.key} onChange={onChangeArea} tone="inverted" />
+          </View>
         </View>
         {/* The verified purse, as a chip. Green means a host checked it - even here. */}
         <Pressable

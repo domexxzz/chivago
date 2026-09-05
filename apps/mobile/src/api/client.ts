@@ -8,6 +8,7 @@
 
 import { loadDeviceKey } from './account.ts';
 import type {
+  AreaKey,
   ApiResponse, Balances, Bilingual, ImpactStat, LedgerEntry, NotificationKind, Offer, Quest,
   ChivaBalance, Companion, MonthOutlook, MoodCheckin, MoodKey, PriceCategory, PriceForecast,
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
@@ -439,8 +440,8 @@ export const api = {
    * the quest geofences. `energy` overrides the profile's activity level for
    * this plan only - asking for a gentle day does not change who you are.
    */
-  planTrip: (energy?: 'gentle' | 'moderate' | 'full') =>
-    post<TripPlan>('/trip/plan', { energy }),
+  planTrip: (energy?: 'gentle' | 'moderate' | 'full', area?: AreaKey) =>
+    post<TripPlan>('/trip/plan', { energy, area }),
 
   // -- safety -------------------------------------------------------------
   shield: () => get<ShieldService[]>('/shield'),

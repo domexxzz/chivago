@@ -16,6 +16,7 @@ import type {
   WellnessProfile,
 } from '@chivago/core';
 import { computeHealthyScore, EMPTY_PROFILE } from '@chivago/core';
+import type { AirStation } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
 import { getAir } from './air.ts';
 import { checkinsLastHour } from './crowd-service.ts';
@@ -29,6 +30,7 @@ interface PlaceRow {
   photo_credit: string | null; photo_licence: string | null; photo_source: string | null;
   safety_label_en: string; safety_label_th: string;
   crowd_density: number; aqi: number; safety_index: number; walkability: number;
+  air_station: string | null;
 }
 
 const toPlace = (r: PlaceRow): Place & { safetyLabel: { en: string; th: string } } => ({
@@ -60,6 +62,7 @@ const toPlace = (r: PlaceRow): Place & { safetyLabel: { en: string; th: string }
     safetyIndex: r.safety_index,
     walkability: r.walkability,
   },
+  airStation: r.air_station ? (JSON.parse(r.air_station) as AirStation) : null,
   safetyLabel: { en: r.safety_label_en, th: r.safety_label_th },
 });
 
@@ -123,7 +126,7 @@ export async function listScoredPlaces(
   return Promise.all(
     placeRows.map(async (r) => {
       const place = toPlace(r);
-      const air = await getAir(db, place.lat, place.lng, place.metrics.aqi);
+      const air = await getAir(db, place.lat, place.lng, place.metrics.aqi, undefined, place.airStation);
       const metrics = { ...place.metrics, aqi: air.aqi };
       const breakdown = computeHealthyScore(metrics, {
         profile,

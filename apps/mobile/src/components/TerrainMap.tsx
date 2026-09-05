@@ -21,6 +21,7 @@
 
 import React from 'react';
 import { View } from 'react-native';
+import type { Area } from '@chivago/core';
 import {
   AttributionControl, Map as MapLibreMap, Marker, NavigationControl,
 } from 'maplibre-gl';
@@ -38,7 +39,7 @@ import { hourFrom, mix } from './island-clock.ts';
 import {
   CLOUD_PX, DRIFT, FOG_CORNERS, FOG_PX, HERO, MAX_PITCH, QUEST_MARK_OFFSET, REVEAL_FEATHER, ROUTE_PHASES,
   SAMUI_BOUNDS, SWELL_FPS, SWELL_PX, chivagoStyle, cloudField, crest, crowdOffsets, heroPose, introPose, paletteFor,
-  questMark, questOffsets, revealedPoints, reveals, routeDash, settleEasing, swell, type MapPalette,
+  questMark, questOffsets, revealedPoints, reveals, routeDash, settleEasing, swell, type MapPalette, type Pose,
 } from './terrain-style.ts';
 
 /** Paint the cloud shadows for a moment: soft dark ellipses on a clear canvas. */
@@ -251,8 +252,11 @@ const COMPASS_SVG = `<svg viewBox="0 0 46 46" aria-hidden="true">
 <text x="23" y="12.5" text-anchor="middle" font-family="Anuphan,system-ui,sans-serif" font-size="7" font-weight="700" fill="${color.text}">N</text>
 </svg>`;
 
+/** Four storeys, for every campus building OpenStreetMap has no height for. */
+const CAMPUS_STOREYS_M = 12;
+
 export function TerrainMap({
-  places, onSelect, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false,
+  places, onSelect, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area,
 }: {
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;
@@ -263,6 +267,8 @@ export function TerrainMap({
   height?: number;
   /** Phone-width: score-only pins, no zoom buttons. Decided by `SamuiMap`. */
   compact?: boolean;
+  /** The island unless told otherwise. A campus is flat, framed at street zoom, and grows buildings. */
+  area?: Area;
 }) {
   const holder = React.useRef<HTMLDivElement | null>(null);
   const map = React.useRef<MapLibreMap | null>(null);
@@ -280,6 +286,17 @@ export function TerrainMap({
 
     const still = prefersReducedMotion();
     let hour = hourNow();
+    /*
+      The campus (docs/43). Its box from the OpenStreetMap outline, a little
+      room around it; no terrain, because there is none to speak of; no
+      sea, no ferries, no mist - those are the island's; and the buildings
+      stand up, from the same OpenFreeMap tiles the roads already come from.
+    */
+    const campus = area?.map === 'campus';
+    const box: [[number, number], [number, number]] = area && campus
+      ? [[area.bbox.minLng - 0.002, area.bbox.minLat - 0.002], [area.bbox.maxLng + 0.002, area.bbox.maxLat + 0.002]]
+      : SAMUI_BOUNDS;
+    const slack = campus ? 0.01 : 0.14;
     const m = new MapLibreMap({
       container: holder.current,
       style: chivagoStyle(hour),
@@ -287,17 +304,17 @@ export function TerrainMap({
       // map projects through, so both implementations frame the same place.
       // Flat, first: the flat fit is the one thing that scales honestly with
       // the width of the screen, and the pose is lifted from it below.
-      bounds: SAMUI_BOUNDS,
+      bounds: box,
       fitBoundsOptions: { padding: HERO.fitPadding, bearing: HERO.bearing, pitch: 0 },
       // The hero is a view of one island, not a world map. Locking the frame
       // stops a stray scroll landing somebody in the Gulf of Thailand with no
       // way back.
       maxBounds: [
-        [SAMUI_BOUNDS[0][0] - 0.14, SAMUI_BOUNDS[0][1] - 0.14],
-        [SAMUI_BOUNDS[1][0] + 0.14, SAMUI_BOUNDS[1][1] + 0.14],
+        [box[0][0] - slack, box[0][1] - slack],
+        [box[1][0] + slack, box[1][1] + slack],
       ],
-      minZoom: 9,
-      maxZoom: 15.5,
+      minZoom: campus ? 14 : 9,
+      maxZoom: campus ? 18.5 : 15.5,
       maxPitch: MAX_PITCH,
       // Added by hand below, so it can be folded.
       attributionControl: false,
@@ -335,7 +352,7 @@ export function TerrainMap({
     cloudCanvas.height = CLOUD_PX;
     let routePhase = 0;
     let tick = 0;
-    const tide = still ? 0 : window.setInterval(() => {
+    const tide = (still || campus) ? 0 : window.setInterval(() => {
       if (document.hidden || !m.hasImage('sea-swell')) return;
       const t = (performance.now() - born) / 1000;
       m.updateImage('sea-swell', swellFrame(t));
@@ -365,7 +382,7 @@ export function TerrainMap({
     fogCanvas.width = FOG_PX;
     fogCanvas.height = FOG_PX;
     const layFog = () => {
-      if (!m.isStyleLoaded()) return;
+      if (campus || !m.isStyleLoaded()) return;
       const palette = paletteFor(hour);
       paintFog(fogCanvas, palette, revealed.current);
       for (const id of ['uncharted', 'uncharted-weather']) {
@@ -402,8 +419,20 @@ export function TerrainMap({
     const watcher = typeof ResizeObserver === 'function' ? new ResizeObserver(refit) : null;
     watcher?.observe(holder.current);
 
-    const settled = heroPose(m.getZoom());
-    m.jumpTo(still ? settled : introPose(settled));
+    /*
+      The island's pose is lifted from the flat fit and centred a little
+      south of the middle, for the mountain. The campus has no mountain and
+      a box the size of a village: centre on it, street zoom, a lower pitch
+      so the buildings read as buildings, and an intro that turns in place
+      rather than approaching from the sea it does not have.
+    */
+    const settled: Pose = campus && area
+      ? { zoom: 15.7, pitch: 55, bearing: -20, center: [area.center.lng, area.center.lat] }
+      : heroPose(m.getZoom());
+    const intro: Pose = campus
+      ? { ...settled, zoom: settled.zoom - 0.8, pitch: 68, bearing: settled.bearing - 35 }
+      : introPose(settled);
+    m.jumpTo(still ? settled : intro);
 
     /*
       The camera: a rise and a swing into the settled pose, then a slow turn
@@ -419,8 +448,26 @@ export function TerrainMap({
         essential: false,
       });
     };
+    /*
+      The buildings. OpenStreetMap knows the height of one building on the
+      campus, so the rest stand at four storeys - the same for all, which is
+      a drawing convention and not a measurement, and the legend says so.
+    */
+    const raiseBuildings = () => {
+      if (!campus || m.getLayer('campus-buildings')) return;
+      m.addLayer({
+        id: 'campus-buildings', type: 'fill-extrusion', source: 'osm', 'source-layer': 'building', minzoom: 13,
+        paint: {
+          'fill-extrusion-color': paletteFor(hour).night ? '#2c3e46' : '#d9d3c4',
+          'fill-extrusion-height': ['coalesce', ['get', 'render_height'], CAMPUS_STOREYS_M],
+          'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+          'fill-extrusion-opacity': 0.92,
+        },
+      }, m.getLayer('place-labels') ? 'place-labels' : undefined);
+    };
     m.on('load', () => {
-      m.setTerrain({ source: 'terrain', exaggeration: HERO.exaggeration });
+      if (!campus) m.setTerrain({ source: 'terrain', exaggeration: HERO.exaggeration });
+      raiseBuildings();
       layFog();
       if (still) return;
       m.once('moveend', drift);
@@ -440,7 +487,8 @@ export function TerrainMap({
       m.setStyle(chivagoStyle(hour), { diff: true });
       holder.current?.classList.toggle('cg-night', paletteFor(hour).night);
       m.once('style.load', () => {
-        m.setTerrain({ source: 'terrain', exaggeration: HERO.exaggeration });
+        if (!campus) m.setTerrain({ source: 'terrain', exaggeration: HERO.exaggeration });
+        raiseBuildings();
         if (m.hasImage('sea-swell')) m.updateImage('sea-swell', swellFrame((performance.now() - born) / 1000));
         layFog();
       });

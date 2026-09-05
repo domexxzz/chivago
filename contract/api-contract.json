@@ -21,6 +21,7 @@
     "places": {
       "array": {
         "object": {
+          "airStation": "null",
           "blurb": {
             "object": {
               "en": "string",
@@ -48,6 +49,13 @@
               },
               "profileApplied": "string",
               "total": "number"
+            }
+          },
+          "crowd": {
+            "object": {
+              "checkinsLastHour": "number",
+              "countedAt": "string",
+              "windowMinutes": "number"
             }
           },
           "healthyScore": "number",
@@ -88,6 +96,14 @@
                   "source": "string",
                   "value": "number"
                 }
+              },
+              "crowdDensity": {
+                "object": {
+                  "observedAt": "string",
+                  "provenance": "string",
+                  "source": "string",
+                  "value": "number"
+                }
               }
             }
           },
@@ -115,6 +131,7 @@
     },
     "place": {
       "object": {
+        "airStation": "null",
         "blurb": {
           "object": {
             "en": "string",
@@ -142,6 +159,13 @@
             },
             "profileApplied": "string",
             "total": "number"
+          }
+        },
+        "crowd": {
+          "object": {
+            "checkinsLastHour": "number",
+            "countedAt": "string",
+            "windowMinutes": "number"
           }
         },
         "healthyScore": "number",
@@ -176,6 +200,14 @@
         "readings": {
           "object": {
             "aqi": {
+              "object": {
+                "observedAt": "string",
+                "provenance": "string",
+                "source": "string",
+                "value": "number"
+              }
+            },
+            "crowdDensity": {
               "object": {
                 "observedAt": "string",
                 "provenance": "string",
@@ -578,7 +610,8 @@
         "exp": "number",
         "placeId": "string",
         "placeName": "string",
-        "pointsAwarded": "number"
+        "pointsAwarded": "number",
+        "walk": "null"
       }
     },
     "writeReview": {

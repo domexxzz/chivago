@@ -19,7 +19,8 @@
  * by live feeds in production - see docs/02-architecture.md.
  */
 
-import type { Offer, Place, Quest, QuestHost } from './types.ts';
+import type { Offer, Place, Quest, QuestHost, AirStation } from './types.ts';
+import { metresBetween } from './presence.ts';
 
 // ---------------------------------------------------------------------------
 // Hosts
@@ -31,11 +32,34 @@ export const SEED_HOSTS: Record<string, QuestHost> = {
   oceanLab: { id: 'h-ocean-lab', name: 'Ocean Lab · Hotel partner', type: 'hotel' },
   platform: { id: 'h-chivago', name: 'ChivaGo', type: 'platform' },
   community: { id: 'h-fisherman-village', name: "Fisherman's Village Traders", type: 'community' },
+  // The team, as a host, on the Si Racha campus: the named reviewer on
+  // stage when the campus is the venue. Its own record, so its statement
+  // and its queue never mix with the platform's island quests.
+  kuTeam: { id: 'h-ku-chivago', name: 'ChivaGo team · KU Sriracha', type: 'community' },
 };
 
 // ---------------------------------------------------------------------------
 // Places
 // ---------------------------------------------------------------------------
+
+/**
+ * Air4Thai station o61, สนามกีฬาเทศบาลแหลมฉบัง (Laem Chabang Municipal
+ * Stadium), 300 m from the centre of the Si Racha campus - read from the
+ * feed on 2026-09-05. The first ground station within reach of any place
+ * in the app; Samui's nearest is 87 km away and can only cross-check.
+ */
+export const KU_STATION = {
+  id: 'o61',
+  name: 'Laem Chabang Municipal Stadium (PCD o61)',
+  lat: 13.11923,
+  lng: 100.91855,
+} as const;
+
+/** The station, with how far it is from a place - to one decimal, as a sign would say it. */
+const kuStation = (lat: number, lng: number): AirStation => ({
+  ...KU_STATION,
+  distanceKm: Math.round(metresBetween({ lat, lng }, KU_STATION) / 100) / 10,
+});
 
 export const SEED_PLACES: Place[] = [
   {
@@ -170,6 +194,111 @@ export const SEED_PLACES: Place[] = [
     photo: null,
     metrics: { aqi: 20, crowdDensity: 0.3, safetyIndex: 5.13, walkability: 5.2 },
   },
+  /*
+    Kasetsart University, Si Racha campus - Chon Buri, TH-20.
+
+    Five places read from OpenStreetMap on 2026-09-05 (the campus outline is
+    way 1408248543; the library, the park, the viewpoint park, the sports
+    centre and the shops are all mapped features with these coordinates).
+    Every one carries station o61, 300 m from the campus centre: the first
+    places in the app whose air is measured on the ground.
+
+    The other metrics are the team's estimates pending a survey, exactly as
+    Samui's were; `aqi` is the station's AQI on the day the seed was written
+    and is overwritten live. No photograph: Commons had none of the campus,
+    only faculty logos, and the team's own photographs - used with permission
+    - are owed before any of these gets one.
+  */
+  {
+    id: 'ku-library',
+    name: { en: '10th Anniversary Memorial Library', th: 'หอสมุดอนุสรณ์ 10 ปี' },
+    short: 'Library',
+    layer: 'Safe',
+    province: 'TH-20',
+    lat: 13.12197,
+    lng: 100.91925,
+    meta: 'Library · Indoor · Air measured 300 m away',
+    blurb: {
+      en: 'The campus library. Quiet floors and cool air; the calmest indoor stop on the map.',
+      th: 'หอสมุดของวิทยาเขต ชั้นเงียบ อากาศเย็น จุดพักในร่มที่สงบที่สุดบนแผนที่',
+    },
+    tags: ['Library', 'Indoor', 'Quiet'],
+    photo: null,
+    metrics: { aqi: 22, crowdDensity: 1.8, safetyIndex: 6.6, walkability: 7.4 },
+    airStation: kuStation(13.12197, 100.91925),
+  },
+  {
+    id: 'ku-park',
+    name: { en: 'Campus park and lake', th: 'สวนและบึงในมหาวิทยาลัย' },
+    short: 'Park',
+    layer: 'Green',
+    province: 'TH-20',
+    lat: 13.12154,
+    lng: 100.91812,
+    meta: 'Park · Lakeside · Shade',
+    blurb: {
+      en: 'The park by the campus lake, with the sports fields beside it. Shade, water, and a loop worth walking.',
+      th: 'สวนริมบึงของวิทยาเขต ติดสนามกีฬา มีร่มเงา น้ำ และทางเดินวนรอบ',
+    },
+    tags: ['Green space', 'Walking route', 'Lake'],
+    photo: null,
+    metrics: { aqi: 22, crowdDensity: 0.6, safetyIndex: 6.0, walkability: 7.0 },
+    airStation: kuStation(13.12154, 100.91812),
+  },
+  {
+    id: 'ku-viewpoint',
+    name: { en: 'Sapandao viewpoint', th: 'จุดชมวิวสะพานดาว' },
+    short: 'Sapandao',
+    layer: 'Quest',
+    province: 'TH-20',
+    lat: 13.12189,
+    lng: 100.92055,
+    meta: 'Viewpoint park · Quest site',
+    blurb: {
+      en: 'The viewpoint park at the heart of the campus. Where the campus quests meet.',
+      th: 'สวนจุดชมวิวกลางวิทยาเขต จุดนัดพบของภารกิจในแคมปัส',
+    },
+    tags: ['Viewpoint', 'Quest here', 'Green space'],
+    photo: null,
+    metrics: { aqi: 22, crowdDensity: 0.4, safetyIndex: 6.0, walkability: 6.8 },
+    airStation: kuStation(13.12189, 100.92055),
+  },
+  {
+    id: 'ku-sports',
+    name: { en: 'Sports centre and fields', th: 'ศูนย์กีฬาและสนาม' },
+    short: 'Sports',
+    layer: 'Wellness',
+    province: 'TH-20',
+    lat: 13.12009,
+    lng: 100.91802,
+    meta: 'Sports · Three pitches · Pool in building 20',
+    blurb: {
+      en: 'The sports centre with three pitches beside it, and the pool in building 20 a short walk north. The place to move.',
+      th: 'ศูนย์กีฬาที่มีสนามสามสนามข้างกัน และสระว่ายน้ำในอาคาร 20 เดินไปทางเหนือไม่ไกล ที่สำหรับออกกำลัง',
+    },
+    tags: ['Exercise', 'Pitch', 'Pool'],
+    photo: null,
+    metrics: { aqi: 22, crowdDensity: 1.4, safetyIndex: 6.2, walkability: 7.0 },
+    airStation: kuStation(13.12009, 100.91802),
+  },
+  {
+    id: 'ku-shops',
+    name: { en: 'Shop row by building 25', th: 'แถวร้านค้าหน้าอาคาร 25' },
+    short: 'Shop row',
+    layer: 'Food',
+    province: 'TH-20',
+    lat: 13.1180,
+    lng: 100.92075,
+    meta: 'Cafés · Convenience store',
+    blurb: {
+      en: 'Two cafés and a convenience store at the south end of the campus, where the walkways meet.',
+      th: 'คาเฟ่สองร้านและร้านสะดวกซื้อทางใต้ของวิทยาเขต ตรงที่ทางเดินมาบรรจบกัน',
+    },
+    tags: ['Café', 'Convenience', 'Meeting point'],
+    photo: null,
+    metrics: { aqi: 22, crowdDensity: 2.6, safetyIndex: 6.6, walkability: 7.6 },
+    airStation: kuStation(13.1180, 100.92075),
+  },
 ];
 
 /**
@@ -182,6 +311,13 @@ export const SAFETY_PHRASES: Record<string, { en: string; th: string }> = {
   fisherman: { en: 'Verified zone', th: 'เขตตรวจสอบแล้ว' },
   lamai: { en: 'Verified zone', th: 'เขตตรวจสอบแล้ว' },
   mangrove: { en: 'Guide required', th: 'ต้องมีไกด์' },
+  // The campus: a university's grounds, with its own security. Not a claim
+  // of hours or patrols nobody has confirmed.
+  'ku-library': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'ku-park': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'ku-viewpoint': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'ku-sports': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'ku-shops': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
 };
 
 // ---------------------------------------------------------------------------
@@ -281,6 +417,39 @@ export const SEED_QUESTS: Quest[] = [
     lat: 9.5581,
     lng: 100.0631,
     geofenceRadiusM: 80,
+  },
+  /*
+    The campus quests, hosted by the team itself - the named host on stage
+    when the campus is the venue. Fences at campus size (docs/30).
+  */
+  {
+    id: 'q7',
+    esgPillar: 'environmental',
+    code: 'KU-01',
+    name: { en: 'Campus clean-up at Sapandao', th: 'เก็บขยะรอบจุดชมวิวสะพานดาว' },
+    where: { en: 'Sapandao viewpoint, KU Sriracha', th: 'จุดชมวิวสะพานดาว มก. ศรีราชา' },
+    duration: { en: '45 min', th: '45 นาที' },
+    rewardPoints: 120,
+    rewardCurrency: 'green',
+    host: SEED_HOSTS.kuTeam!,
+    kind: 'today',
+    lat: 13.12189,
+    lng: 100.92055,
+    geofenceRadiusM: 100,
+  },
+  {
+    id: 'q8',
+    code: 'KU-02',
+    name: { en: 'Lake loop on foot', th: 'เดินวนรอบบึง' },
+    where: { en: 'Campus park, KU Sriracha', th: 'สวนในมหาวิทยาลัย มก. ศรีราชา' },
+    duration: { en: '30 min', th: '30 นาที' },
+    rewardPoints: 60,
+    rewardCurrency: 'trip',
+    host: SEED_HOSTS.kuTeam!,
+    kind: 'today',
+    lat: 13.12154,
+    lng: 100.91812,
+    geofenceRadiusM: 120,
   },
 ];
 

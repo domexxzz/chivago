@@ -191,7 +191,14 @@ describe('calibration against the approved design comps', () => {
     mangrove: 79,
   };
 
-  for (const place of SEED_PLACES) {
+  test('every island place has a comp, and only island places do', () => {
+    // The campus places (TH-20) carry the team's estimates, not numbers a
+    // stakeholder signed off on. They are calibrated to nothing, on purpose.
+    const island = SEED_PLACES.filter((p) => p.province === 'TH-84').map((p) => p.id).sort();
+    assert.deepEqual(island, Object.keys(EXPECTED).sort());
+  });
+
+  for (const place of SEED_PLACES.filter((p) => p.id in EXPECTED)) {
     test(`${place.id} scores ${EXPECTED[place.id]} +/- 1`, () => {
       const got = healthyScore(place.metrics);
       assert.ok(
@@ -209,9 +216,20 @@ describe('calibration against the approved design comps', () => {
   });
 
   test('exactly Na Muang and Lamai cross the accent-pin threshold', () => {
-    const high = SEED_PLACES.filter((p) => isHighScore(healthyScore(p.metrics))).map((p) => p.id);
+    const high = SEED_PLACES.filter((p) => p.province === 'TH-84' && isHighScore(healthyScore(p.metrics))).map((p) => p.id);
         // Sorted, so the expectation is sorted too: 'lamai' precedes 'namuang'.
     assert.deepEqual(high.sort(), ['lamai', 'namuang']);
     assert.equal(HIGH_SCORE_THRESHOLD, 85);
+  });
+});
+
+describe('the campus scores stand on estimates', () => {
+  test('no campus place crosses the accent threshold on an estimate', () => {
+    // Walkability and safety on the campus are the team's estimates pending
+    // a survey. An estimate that earns the accent pin is a claim nobody has
+    // measured; the campus earns that colour when its numbers are.
+    for (const p of SEED_PLACES.filter((x) => x.province === 'TH-20')) {
+      assert.ok(!isHighScore(healthyScore(p.metrics)), `${p.id} scores ${healthyScore(p.metrics)} on estimates`);
+    }
   });
 });
