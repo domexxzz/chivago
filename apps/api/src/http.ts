@@ -37,6 +37,56 @@ export const ok = <T>(c: Context, data: T, meta?: ApiSuccess<T>['meta']) =>
 export const fail = (c: Context, code: string, error: string, status = 400) =>
   c.json<ApiFailure>({ ok: false, code, error }, status as 400);
 
+/** A request body past the ceiling a route set for it. Mapped to 413 below. */
+export class BodyTooLarge extends Error {
+  readonly maxBytes: number;
+  constructor(maxBytes: number) {
+    super(`The upload must be under ${Math.ceil(maxBytes / 1024 / 1024)} MB.`);
+    this.name = 'BodyTooLarge';
+    this.maxBytes = maxBytes;
+  }
+}
+
+/**
+ * A multipart body, read with a ceiling.
+ *
+ * `c.req.parseBody()` buffers the whole request before any route code runs,
+ * so a size check after it was a check on memory already spent: on the day
+ * of the pitch, one phone in the room posting a 2 GB file to the story route
+ * would have held the API in `formData()` with the file in RAM, and the
+ * story limit of 25 MB would have been consulted afterwards. Two refusals
+ * here, both before a byte is kept:
+ *
+ *  - the declared `content-length`, which every browser and both mobile
+ *    runtimes send for a FormData body, refuses an honest oversize at once;
+ *  - a chunked body with no declaration is counted as it arrives and cut
+ *    the moment it passes the ceiling, so an oversize that lies about its
+ *    size costs at most the ceiling.
+ *
+ * What comes back is the same `FormData` `parseBody` would have produced.
+ */
+export async function boundedForm(c: Context, maxBytes: number): Promise<FormData> {
+  const declared = Number(c.req.header('content-length'));
+  if (Number.isFinite(declared) && declared > maxBytes) throw new BodyTooLarge(maxBytes);
+  const stream = c.req.raw.body;
+  if (!stream) return new FormData();
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => undefined);
+      throw new BodyTooLarge(maxBytes);
+    }
+    chunks.push(value);
+  }
+  const contentType = c.req.header('content-type') ?? '';
+  return new Response(Buffer.concat(chunks), { headers: { 'content-type': contentType } }).formData();
+}
+
 /**
  * Turn a thrown error into a response.
  *
@@ -63,7 +113,10 @@ export function handleError(c: Context, err: unknown) {
   if (err instanceof WrongEventToken) return fail(c, 'EVENT_TOKEN', err.message, 403);
   if (err instanceof StoryQuotaReached) return fail(c, 'STORY_QUOTA', err.message, 429);
   if (err instanceof StoryTooLarge) return fail(c, 'STORY_TOO_LARGE', err.message, 413);
-  if (err instanceof UnsupportedStory) return fail(c, 'UNSUPPORTED_STORY', err.message, 400);
+  // `code` names the one case the app has its own words for: an iPhone's
+  // HEIC photograph on a server whose ffmpeg cannot read HEIF.
+  if (err instanceof UnsupportedStory) return fail(c, err.code, err.message, 400);
+  if (err instanceof BodyTooLarge) return fail(c, 'BODY_TOO_LARGE', err.message, 413);
   if (err instanceof UnknownPlace) return fail(c, 'NOT_FOUND', err.message, 404);
   if (err instanceof StoryNotFound) return fail(c, 'NOT_FOUND', err.message, 404);
   if (err instanceof SelfVisitQuotaReached) {

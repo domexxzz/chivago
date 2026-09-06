@@ -193,6 +193,10 @@ export function PlaceScreen({
     });
     setTelling(false);
     if (res.ok) { setStoriesPending((n) => n + 1); onToast(t(strings.place.storyPending)); }
+    // The two refusals a person can act on from where they stand get the
+    // app's own words, in their language; the rest carry the server's.
+    else if (res.code === 'STORY_TOO_LARGE') onToast(t(strings.place.storyTooLarge));
+    else if (res.code === 'STORY_HEIC') onToast(t(strings.place.storyHeic));
     else onToast(res.error);
   };
 

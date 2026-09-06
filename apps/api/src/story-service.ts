@@ -39,6 +39,13 @@ import { UnsupportedUpload, sniff, uploadRoot } from './uploads.ts';
 import { ffmpegTranscoder, type Transcoder } from './transcode.ts';
 
 export const STORY_MAX_BYTES = 25 * 1024 * 1024;
+/**
+ * The ceiling on the whole multipart request: the file, plus the caption,
+ * the position and the boundaries around them. Checked at the route before
+ * the body is read (`boundedForm`), so an oversize is refused from its
+ * `content-length` or cut as it streams, never buffered whole.
+ */
+export const STORY_FORM_MAX_BYTES = STORY_MAX_BYTES + 64 * 1024;
 export const STORY_CAPTION_MAX = 80;
 /** Three a day. Enough to tell a story, not enough to paper a pin. */
 export const STORIES_PER_DAY = 3;
@@ -73,9 +80,16 @@ export class StoryTooLarge extends Error {
   }
 }
 export class UnsupportedStory extends Error {
-  constructor(detail: string) {
+  /**
+   * `UNSUPPORTED_STORY` for most refusals; `STORY_HEIC` when the file was an
+   * iPhone HEIC photograph this server's ffmpeg could not read, which the
+   * app answers with its own words (Settings › Camera › Most Compatible).
+   */
+  readonly code: 'UNSUPPORTED_STORY' | 'STORY_HEIC';
+  constructor(detail: string, code: 'UNSUPPORTED_STORY' | 'STORY_HEIC' = 'UNSUPPORTED_STORY') {
     super(`That file could not be used as a story: ${detail}.`);
     this.name = 'UnsupportedStory';
+    this.code = code;
   }
 }
 export class StoryNotFound extends Error {
@@ -129,20 +143,51 @@ export function eventTokenOk(given: string | null): boolean {
 }
 
 /**
+ * The `ftyp` brands that mean a still picture in an ISO container. An
+ * iPhone's HEIC has the same `ftyp` box at offset 4 as an MP4 or a MOV; the
+ * brand is the difference. AVIF is the same box with an AV1 picture in it.
+ */
+const HEIF_BRANDS = new Set(['heic', 'heix', 'hevc', 'hevx', 'heim', 'heis', 'mif1', 'msf1']);
+const AVIF_BRANDS = new Set(['avif', 'avis']);
+
+/** The major brand of an `ftyp` box, and the compatible brands after it. */
+function ftypBrands(bytes: Buffer): string[] {
+  const size = bytes.readUInt32BE(0);
+  const end = Math.min(bytes.length, size >= 16 ? size : 32);
+  const brands: string[] = [];
+  // The major brand at 8; a minor version at 12; compatible brands from 16.
+  for (let at = 8; at + 4 <= end; at += at === 8 ? 8 : 4) brands.push(bytes.subarray(at, at + 4).toString('ascii'));
+  return brands;
+}
+
+/** How much of a file the photograph signatures need. */
+const SNIFF_BYTES = 64;
+
+/**
  * What the bytes are, from the bytes. MP4 and MOV both open with an `ftyp`
- * box at offset 4; WebM is Matroska's EBML header. Photographs go through
- * the proof sniffer, which already refuses everything but JPEG, PNG and
- * WebP. The declared content type is not consulted.
+ * box at offset 4 - and so does an iPhone's HEIC, which is a photograph and
+ * goes to the photo encode, not the video one. WebM is Matroska's EBML
+ * header. Everything else goes through the proof sniffer's JPEG, PNG and
+ * WebP signatures, on a prefix only: the proof sniffer's own size ceiling
+ * is a proof's, and a story's is checked before it gets here. The declared
+ * content type is not consulted.
  */
 export function sniffStory(bytes: Buffer): { kind: StoryKind; ext: string } {
-  if (bytes.length >= 12 && bytes.subarray(4, 8).toString('ascii') === 'ftyp') return { kind: 'video', ext: 'mp4' };
+  if (bytes.length >= 12 && bytes.subarray(4, 8).toString('ascii') === 'ftyp') {
+    const brands = ftypBrands(bytes);
+    // AVIF first: an AVIF lists `mif1` among its compatible brands, a HEIC
+    // never lists `avif`.
+    if (brands.some((b) => AVIF_BRANDS.has(b))) return { kind: 'photo', ext: 'avif' };
+    if (brands.some((b) => HEIF_BRANDS.has(b))) return { kind: 'photo', ext: 'heic' };
+    return { kind: 'video', ext: 'mp4' };
+  }
   if (bytes.length >= 4 && bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) {
     return { kind: 'video', ext: 'webm' };
   }
   try {
-    return { kind: 'photo', ext: sniff(bytes).ext };
+    return { kind: 'photo', ext: sniff(bytes.subarray(0, SNIFF_BYTES)).ext };
   } catch (e) {
-    if (e instanceof UnsupportedUpload) throw new UnsupportedStory('only MP4, MOV, WebM, JPEG, PNG and WebP are accepted');
+    if (e instanceof UnsupportedUpload) throw new UnsupportedStory('only MP4, MOV, WebM, HEIC, JPEG, PNG and WebP are accepted');
     throw e;
   }
 }
@@ -255,6 +300,14 @@ export async function submitStory(
     else await transcoder.photo(input, media);
   } catch (e) {
     for (const f of [input, media, poster]) rmSync(f, { force: true });
+    // An iPhone photograph on a server whose ffmpeg predates HEIF is the one
+    // refusal a person can do something about from where they stand.
+    if (ext === 'heic') {
+      throw new UnsupportedStory(
+        'an iPhone HEIC photograph could not be converted here - set Settings › Camera › Formats to Most Compatible, or send it as a JPEG',
+        'STORY_HEIC',
+      );
+    }
     throw new UnsupportedStory(`it could not be read (${(e as Error).message})`);
   } finally {
     rmSync(input, { force: true });
@@ -365,6 +418,21 @@ export function readStoryMedia(
   const path = which === 'poster' ? (r.poster_path ?? r.media_path) : r.media_path;
   if (!existsSync(path)) return null;
   return { bytes: readFileSync(path), mime: which === 'poster' ? 'image/jpeg' : r.media_mime };
+}
+
+/**
+ * The public media route's validator: a tag for a live story's bytes, null
+ * for anything the public may not have. The bytes never change while a
+ * story is live, so the id and the side are the whole tag; a browser's
+ * `if-none-match` is answered from the row alone, without reading the file,
+ * and a hidden or expired story stops answering at all.
+ */
+export function storyEtag(db: DB, storyId: string, which: 'media' | 'poster', now = new Date()): string | null {
+  const r = row<{ status: StoryStatus; expires_at: string }>(
+    db.prepare('SELECT status, expires_at FROM stories WHERE id = ?').get(storyId),
+  );
+  if (!r || r.status !== 'approved' || r.expires_at <= now.toISOString()) return null;
+  return `"${storyId}-${which}"`;
 }
 
 /** Seven days on, the row and its files go. Returns how many went. */

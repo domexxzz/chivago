@@ -20,12 +20,15 @@ export default noop;
 export const control = {
   permission: { granted: true, status: 'granted' },
   position: { coords: { latitude: 9.5357, longitude: 100.0617, accuracy: 12 } },
+  /** What the camera hands back. Cancelled by default: a test that wants a file says so. */
+  camera: { canceled: true, assets: [] },
 };
 
 /** Put the defaults back. Call it in a finally, like restoring fetch. */
 export const resetControl = () => {
   control.permission = { granted: true, status: 'granted' };
   control.position = { coords: { latitude: 9.5357, longitude: 100.0617, accuracy: 12 } };
+  control.camera = { canceled: true, assets: [] };
 };
 export const setNotificationHandler = noop;
 export const setNotificationChannelAsync = noop;
@@ -53,7 +56,7 @@ export const Accuracy = { Balanced: 3, High: 4, Lowest: 1 };
 export const hasStartedLocationUpdatesAsync = noop;
 export const startLocationUpdatesAsync = noop;
 export const stopLocationUpdatesAsync = noop;
-export const launchCameraAsync = noop;
+export const launchCameraAsync = async () => control.camera;
 export const launchImageLibraryAsync = noop;
 export const requestCameraPermissionsAsync = async () => control.permission;
 export const MediaTypeOptions = noop;

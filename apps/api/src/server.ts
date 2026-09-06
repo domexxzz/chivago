@@ -28,7 +28,7 @@ import {
 import { logger } from 'hono/logger';
 
 import { openDb, row, transact } from './db.ts';
-import { fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
+import { BodyTooLarge, boundedForm, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
 import {
   getCommunityImpact, getOffer, getPersonalImpact, getProfile,
   getQuest, getScoredPlace, getShield, listOffers, listQuests, listScoredPlaces,
@@ -39,7 +39,8 @@ import { exploredFor, recordSelfVisit, selfReportedProvincesFor, selfVisitsFor }
 import { airHistoryFor } from './crowd-service.ts';
 import { readStatement, statementsIncluding } from './statement-service.ts';
 import {
-  expireStories, readStoryMedia, storiesAt, storiesInArea, storiesOpen, submitStory,
+  STORY_FORM_MAX_BYTES, StoryTooLarge, expireStories, readStoryMedia, storiesAt, storiesInArea, storiesOpen,
+  storyEtag, submitStory,
 } from './story-service.ts';
 import { areaByKey, inArea, isAreaKey } from '@chivago/core';
 import { statementMissingPage, verifyPage } from './console/statement.ts';
@@ -78,7 +79,7 @@ import { sweep } from './escalation-service.ts';
 import { sweepOverdue } from './sla-service.ts';
 import { webhookTransport } from './push/webhook.ts';
 import { hostOwnsQuest, resolveSession, readCookie, SESSION_COOKIE } from './host-auth.ts';
-import { MAX_PHOTOS_PER_PROOF, storePhoto, UnsupportedUpload } from './uploads.ts';
+import { MAX_BYTES, MAX_PHOTOS_PER_PROOF, storePhoto, UnsupportedUpload } from './uploads.ts';
 import type { Voucher, WellnessProfile } from '@chivago/core';
 
 const db = openDb();
@@ -268,20 +269,33 @@ app.get('/statements/:id/pdf', (c) => {
 */
 for (const which of ['media', 'poster'] as const) {
   app.get(`/stories/:id/${which}`, (c) => {
-    const blob = readStoryMedia(db, c.req.param('id'), which);
+    const id = c.req.param('id');
     // Registered before the CORS middleware, like the statement, and public
     // for the same reason: a board on a laptop and the app on another origin
     // both read it, and there is nothing in an approved clip to protect.
     c.header('access-control-allow-origin', '*');
-    if (!blob) return fail(c, 'NOT_FOUND', 'No such story.', 404);
-    return c.body(new Uint8Array(blob.bytes), 200, {
+    /*
+      Revalidated on every play, never served from a cache on its own.
+      The first version gave these five minutes of public cache, which meant
+      a clip a host had just hidden could go on playing on the board and in
+      any browser that held it for up to five minutes - on stage, the one
+      place Hide has to be immediate. The bytes are immutable while a story
+      is live, so the tag below answers a revalidation with a 304 and no
+      bytes, and with a 404 the moment the story is hidden or expired.
+    */
+    const tag = storyEtag(db, id, which);
+    if (!tag) return fail(c, 'NOT_FOUND', 'No such story.', 404);
+    const headers = {
       'access-control-allow-origin': '*',
-      'content-type': blob.mime,
-      // Immutable once approved, gone in a week: a short public cache.
-      'cache-control': 'public, max-age=300',
+      'cache-control': 'no-cache',
+      etag: tag,
       'content-security-policy': "default-src 'none'",
       'x-content-type-options': 'nosniff',
-    });
+    };
+    if (c.req.header('if-none-match') === tag) return c.body(null, 304, headers);
+    const blob = readStoryMedia(db, id, which);
+    if (!blob) return fail(c, 'NOT_FOUND', 'No such story.', 404);
+    return c.body(new Uint8Array(blob.bytes), 200, { ...headers, 'content-type': blob.mime });
   });
 }
 
@@ -810,10 +824,10 @@ app.post('/quests/:id/proof', async (c) => {
   //  - JSON metadata only, kept for tests and for a client that has already
   //    uploaded out of band.
   if (contentType.includes('multipart/form-data')) {
-    const form = await c.req.parseBody({ all: true });
-    const files = (Array.isArray(form.photo) ? form.photo : [form.photo]).filter(
-      (f): f is File => f instanceof File,
-    );
+    // Read with a ceiling - three photos at the photo limit, plus the form
+    // around them - so an oversize is refused before it is in memory.
+    const form = await boundedForm(c, MAX_PHOTOS_PER_PROOF * MAX_BYTES + 64 * 1024);
+    const files = form.getAll('photo').filter((f): f is File => f instanceof File);
     if (files.length === 0) {
       return fail(c, 'PHOTO_REQUIRED', 'At least one photo is needed as proof.');
     }
@@ -825,7 +839,7 @@ app.post('/quests/:id/proof', async (c) => {
     // sent alongside. Re-encoding on the phone routinely strips it.
     let meta: { lat: number | null; lng: number | null; takenAt: string | null }[];
     try {
-      const parsed: unknown = JSON.parse(String(form.meta ?? '[]'));
+      const parsed: unknown = JSON.parse(String(form.get('meta') ?? '[]'));
       if (!Array.isArray(parsed)) throw new Error('meta is not a list');
       meta = parsed.map((m: unknown) => {
         const o = (m && typeof m === 'object' ? m : {}) as Record<string, unknown>;
@@ -840,12 +854,12 @@ app.post('/quests/:id/proof', async (c) => {
       // it, not the 500 the first version answered with.
       return fail(c, 'INVALID_META', 'Photo metadata must be a JSON list of {lat, lng, takenAt}.');
     }
-    const weightRaw = form.weightKg;
-    const weightKg = weightRaw ? Number(weightRaw) : null;
+    const weightRaw = form.get('weightKg');
+    const weightKg = typeof weightRaw === 'string' && weightRaw ? Number(weightRaw) : null;
 
     // Where the volunteer is now - the second in-fence sample. Required:
     // a shape without it would be the weaker path a tampered client picks.
-    const position = parsePosition(form.position);
+    const position = parsePosition(form.get('position'));
     if (!position) return fail(c, 'LOCATION_REQUIRED', 'Your location is needed to submit proof.');
 
     // The state machine runs first: an invalid transition must not leave
@@ -1094,19 +1108,30 @@ app.post('/places/:id/stories', async (c) => {
   if (!contentType.includes('multipart/form-data')) {
     return fail(c, 'MULTIPART_REQUIRED', 'Send the story as multipart/form-data with a file.');
   }
-  const form = await c.req.parseBody();
-  const file = form.file;
+  // The ceiling is applied while the body arrives, not after it is in memory:
+  // the first version parsed first and measured second, which on the day
+  // would have let anyone with the QR code fill the API's RAM with one file.
+  let form: FormData;
+  try {
+    form = await boundedForm(c, STORY_FORM_MAX_BYTES);
+  } catch (err) {
+    if (err instanceof BodyTooLarge) throw new StoryTooLarge();
+    throw err;
+  }
+  const file = form.get('file');
   if (!(file instanceof File)) return fail(c, 'FILE_REQUIRED', 'A clip or a photograph is needed.');
-  const position = parsePosition(form.position);
+  const position = parsePosition(form.get('position'));
   if (!position) return fail(c, 'LOCATION_REQUIRED', 'Your location is needed to tell a story here.');
+  const caption = form.get('caption');
+  const event = form.get('event');
   const story = await submitStory(db, {
     userId: userId(c),
     placeId: c.req.param('id'),
     bytes: Buffer.from(await file.arrayBuffer()),
-    caption: typeof form.caption === 'string' ? form.caption : '',
+    caption: typeof caption === 'string' ? caption : '',
     fix: position,
     // The token from the QR code, when the deployment set one (docs/46).
-    event: typeof form.event === 'string' ? form.event : null,
+    event: typeof event === 'string' ? event : null,
   });
   return ok(c, story);
 });

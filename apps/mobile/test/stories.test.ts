@@ -10,7 +10,8 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 
-import { mountScreen, server, settle } from './interact.ts';
+import { mountScreen, refuses, server, settle } from './interact.ts';
+import { control, resetControl } from './stubs/native.mjs';
 import * as fx from './fixtures.ts';
 import { StoriesBlock } from '../src/components/Stories.tsx';
 import { PlaceScreen } from '../src/screens/PlaceScreen.tsx';
@@ -97,5 +98,62 @@ describe('the notice at the door', () => {
     const ui = await mountScreen(h(StoriesBlock, { open: false, stories: [], pending: 0, busy: false, onTell: noop }));
     assert.doesNotMatch(ui.text(), /7 days/);
     ui.unmount();
+  });
+});
+
+describe('what the phone is told when the server says no', () => {
+  // Two refusals a person can act on from where they stand get the app's
+  // own words in their language; the first version showed the server's
+  // English sentence for every refusal.
+  const routes = (reply: unknown) => ({
+    'GET /places/chaweng': fx.place(),
+    'GET /checkins/today': [],
+    'GET /visits/self': { places: [], remainingThisYear: 10 },
+    'GET /places/chaweng/reviews': { reviews: [], mine: null, canReview: false, reported: [] },
+    'GET /places/chaweng/history': { since: null, days: [] },
+    'GET /places/chaweng/stories': { open: true, stories: [] },
+    'POST /places/chaweng/stories': reply,
+  });
+  // The web picker's asset: a Blob under `file`, which is how the browser
+  // hands the phone's camera roll to a page at the pitch.
+  const photo = {
+    canceled: false,
+    assets: [{
+      uri: 'blob:IMG_0001', type: 'image', fileName: 'IMG_0001.HEIC', mimeType: 'image/heic',
+      file: new Blob([new Uint8Array([0, 0, 0, 0x18])], { type: 'image/heic' }),
+    }],
+  };
+
+  const tell = async (reply: unknown) => {
+    const net = server(routes(reply));
+    const toasts: string[] = [];
+    control.camera = photo as typeof control.camera;
+    try {
+      const ui = await mountScreen(h(PlaceScreen, {
+        placeId: 'chaweng', onBack: noop, onAddToTrip: noop, onSafePath: noop, onToast: (m: string) => { toasts.push(m); }, onPointsChanged: noop,
+      }));
+      await ui.pressText(/Tell a story here/);
+      await settle();
+      ui.unmount();
+      assert.ok(net.calls.some((c) => c.method === 'POST' && c.path === '/places/chaweng/stories'), 'the story was never sent');
+      return toasts;
+    } finally { net.restore(); resetControl(); }
+  };
+
+  test('an iPhone HEIC the server could not convert: what to change in Settings, in the app’s words', async () => {
+    const toasts = await tell(refuses('STORY_HEIC', 'That file could not be used as a story: an iPhone HEIC photograph could not be converted here.'));
+    assert.equal(toasts.length, 1);
+    assert.match(toasts[0]!, /Most Compatible/);
+    assert.doesNotMatch(toasts[0]!, /could not be used as a story/, 'the server’s sentence, not the app’s');
+  });
+
+  test('too large: the limit and the remedy', async () => {
+    const toasts = await tell(refuses('STORY_TOO_LARGE', 'A story must be under 25 MB. Ten seconds is plenty.'));
+    assert.match(toasts[0]!, /over 25 MB/);
+  });
+
+  test('any other refusal still carries the server’s reason', async () => {
+    const toasts = await tell(refuses('STORY_QUOTA', 'That is 3 stories today already. Tomorrow is another day.'));
+    assert.match(toasts[0]!, /3 stories today/);
   });
 });

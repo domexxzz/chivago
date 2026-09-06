@@ -238,3 +238,64 @@ describe('the door, from the console, and the token from the QR', () => {
     }
   });
 });
+
+describe('what an iPhone sends', () => {
+  // The same `ftyp` box at offset 4 as an MP4; the brand is the difference.
+  const heic = (): Buffer => Buffer.concat([
+    Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypheic'), Buffer.from([0, 0, 0, 0]), Buffer.from('mif1heic'), Buffer.alloc(64, 4),
+  ]);
+  const mov = (): Buffer => Buffer.concat([
+    Buffer.from([0, 0, 0, 0x14]), Buffer.from('ftypqt  '), Buffer.from([0, 0, 0, 0]), Buffer.from('qt  '), Buffer.alloc(64, 5),
+  ]);
+  const avif = (): Buffer => Buffer.concat([
+    Buffer.from([0, 0, 0, 0x1c]), Buffer.from('ftypavif'), Buffer.from([0, 0, 0, 0]), Buffer.from('avifmif1miaf'), Buffer.alloc(64, 6),
+  ]);
+
+  test('a HEIC is a photograph and a MOV is a clip, by the brand in the same box', () => {
+    assert.deepEqual(sniffStory(heic()), { kind: 'photo', ext: 'heic' });
+    assert.deepEqual(sniffStory(avif()), { kind: 'photo', ext: 'avif' });
+    assert.deepEqual(sniffStory(mov()), { kind: 'video', ext: 'mp4' });
+  });
+
+  test('a HEIC the server can convert becomes a JPEG like any photograph', async () => {
+    const inputs: string[] = [];
+    const recording: Transcoder = {
+      ...fake,
+      async photo(input, outJpg) { inputs.push(input); writeFileSync(outJpg, 'JPG-BYTES'); },
+    };
+    const s = await submit({ bytes: heic(), transcoder: recording });
+    assert.equal(s.kind, 'photo');
+    assert.equal(inputs.length, 1, 'the photo encode ran, not the video one');
+    assert.match(inputs[0]!, /\.heic$/, 'ffmpeg was handed the file under its own extension');
+    assert.match(readStoryMedia(db, s.id, 'media', { forHost: 'h-ku' })!.mime, /image\/jpeg/);
+  });
+
+  test('a HEIC the server cannot convert is refused with words a person can act on', async () => {
+    // Not "it could not be read (…)": the first version sent the HEIC to
+    // the video encode and answered with ffmpeg's complaint about it.
+    await assert.rejects(submit({ bytes: heic(), transcoder: broken }), (e: unknown) => {
+      assert.ok(e instanceof UnsupportedStory);
+      assert.equal(e.code, 'STORY_HEIC');
+      assert.match(e.message, /Most Compatible/);
+      return true;
+    });
+    const left = (db.prepare('SELECT COUNT(*) AS n FROM stories').get() as unknown as { n: number }).n;
+    assert.equal(left, 0);
+  });
+
+  test('a clip that cannot be read is still refused as unreadable, with the general code', async () => {
+    await assert.rejects(submit({ transcoder: broken }), (e: unknown) => {
+      assert.ok(e instanceof UnsupportedStory);
+      assert.equal(e.code, 'UNSUPPORTED_STORY');
+      return true;
+    });
+  });
+
+  test('a photograph over the proof limit but under the story limit is a photograph', () => {
+    // The proof sniffer refuses anything over 8 MB; a story may be 25 MB,
+    // and is re-encoded. The first version ran the proof sniffer on the
+    // whole file and told a 9 MB JPEG it was "not JPEG, PNG or WebP".
+    const big = Buffer.concat([jpeg(), Buffer.alloc(9 * 1024 * 1024, 7)]);
+    assert.equal(sniffStory(big).kind, 'photo');
+  });
+});
