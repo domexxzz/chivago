@@ -2,6 +2,22 @@
 
 What exists, what runs, and what is honestly not there yet.
 
+> **Status as of 2026-09-07.** 123 commits since 2026-09-01 (58 since the
+> 2 September status); `main` is clean at `39c9ee2` and CI is green on
+> every commit of the day. 20 screens, 75 API routes, 32 console routes,
+> 38 tables, about 43,200 lines of source and 19,300 of tests; 1,556
+> TypeScript tests (core 360, api 772, mobile 374 + 25, tokens 25), 11 Dart,
+> 10 Swift. Since the 2nd: electiction's PR #4-#19 (docs/33-41), the four
+> days of the KU Sriracha plan (docs/42-46: the campus, stories, the story
+> screens, event mode), the rehearsal sheet for 9 September (docs/47), and
+> today the map that follows the area chip, the profile with a real standing,
+> seven medals for going to places, and a second traveller in the demo seed.
+> Not real yet: the live API on Fly (the team's, due Tuesday evening), a
+> take-down for an approved clip, and everything listed under "what is not
+> real" in `48-status-2026-09-07.md`, which is this status in Thai with the
+> seven recommendations, the week's calendar and what is owed. PR #20
+> (electiction, "before the room fills") is open, green, and needs a rebase.
+
 > **Status as of 2026-09-02.** 64 commits since 2026-09-01; `main` deploys to
 > https://chivago-demo.vercel.app as a static demo (no API behind it). 17
 > screens, 66 API routes, 27 console routes, 35 tables, about 35,700 lines
