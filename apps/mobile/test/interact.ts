@@ -144,6 +144,10 @@ export function mount(element: ReactElement): Mounted {
   };
 }
 
+/** A multipart body, duck-typed: the client's FormData need not be this file's constructor. */
+const isForm = (b: unknown): b is FormData =>
+  typeof b === 'object' && b !== null && typeof (b as FormData).entries === 'function';
+
 export interface FakeCall {
   method: string;
   path: string;
@@ -166,7 +170,10 @@ export function fakeFetch(
     const url = typeof input === 'string' ? input : String(input);
     const path = url.replace(/^https?:\/\/[^/]+/, '');
     const method = init?.method ?? 'GET';
-    const body = init?.body === undefined ? undefined : JSON.parse(String(init.body));
+    // A multipart body is recorded as its fields; a JSON one as its object.
+    const body = init?.body === undefined ? undefined
+      : isForm(init.body) ? Object.fromEntries(init.body)
+        : JSON.parse(String(init.body));
     calls.push({ method, path, body });
     const data = answer(path, method, body);
     return {
@@ -237,7 +244,9 @@ export function server(routes: Record<string, Reply>): {
     const full = url.replace(/^https?:\/\/[^/]+/, '');
     const bare = full.split('?')[0]!;
     const method = init?.method ?? 'GET';
-    const body = init?.body === undefined ? undefined : JSON.parse(String(init.body));
+    const body = init?.body === undefined ? undefined
+      : isForm(init.body) ? Object.fromEntries(init.body)
+        : JSON.parse(String(init.body));
     calls.push({ method, path: full, body });
 
     const key = [`${method} ${full}`, `${method} ${bare}`, full, bare]

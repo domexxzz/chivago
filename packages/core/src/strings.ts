@@ -148,6 +148,11 @@ export const strings = {
     ),
     storyNoFix: t('Your position is needed to tell a story here.', 'ต้องมีตำแหน่งเพื่อเล่าสตอรี่ที่นี่'),
     storyPickerUnavailable: t('The camera could not open.', 'เปิดกล้องไม่ได้'),
+    storyTooLarge: t('That file is over 25 MB. Ten seconds is plenty.', 'ไฟล์เกิน 25 MB ถ่ายสั้นๆ 10 วินาทีก็พอ'),
+    storyHeic: t(
+      'iPhone HEIC photos cannot be converted here yet. Set Settings › Camera › Formats to Most Compatible, or send a JPEG.',
+      'รูป HEIC จาก iPhone ยังแปลงที่นี่ไม่ได้ ไปที่ การตั้งค่า › กล้อง › รูปแบบ แล้วเลือก เข้ากันได้มากที่สุด หรือส่งเป็น JPEG แทน',
+    ),
     storyWebOnly: t('Video plays on the web for now.', 'วิดีโอเล่นบนเว็บก่อน'),
     storyViewerHint: t('tap to continue', 'แตะเพื่อดูต่อ'),
     storyPrev: t('Previous story', 'สตอรี่ก่อนหน้า'),

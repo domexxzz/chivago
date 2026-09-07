@@ -20,7 +20,11 @@ const { getAir, CROSS_CHECK_TOLERANCE } = await import('./air.ts');
 type AirSources = import('./air.ts').AirSources;
 const { openTestDb } = await import('./db.ts');
 const { issueStatement } = await import('./statement-service.ts');
-const { setStoriesOpen } = await import('./story-service.ts');
+const { setStoriesOpen, STORY_FORM_MAX_BYTES } = await import('./story-service.ts');
+const { MAX_BYTES, MAX_PHOTOS_PER_PROOF } = await import('./uploads.ts');
+const { mkdtempSync, rmSync, writeFileSync } = await import('node:fs');
+const { tmpdir } = await import('node:os');
+const { join } = await import('node:path');
 
 const json = async (res: Response) => (await res.json()) as { ok: boolean; data?: any; code?: string; error?: string };
 
@@ -356,5 +360,119 @@ describe('the door on the feed follows the setting', () => {
     assert.equal(pin.data.open, true);
     assert.equal(area.data.open, true);
     setStoriesOpen(db, false, 'test');
+  });
+});
+
+describe('before the room fills', () => {
+  // The day of the pitch: one QR code, one room, one API. What one phone in
+  // the room can do to it with a single request.
+  const multipart = { 'content-type': 'multipart/form-data; boundary=x' };
+  const MB = 1024 * 1024;
+
+  test('a story upload over the ceiling is refused from its content-length, before the body is read', async () => {
+    const raw = await app.request('/places/q-a-place/stories', {
+      method: 'POST',
+      headers: { ...auth(), ...multipart, 'content-length': String(STORY_FORM_MAX_BYTES + 1) },
+      body: '--x--',
+    });
+    assert.equal(raw.status, 413);
+    assert.equal((await json(raw)).code, 'STORY_TOO_LARGE');
+  });
+
+  test('a body that says nothing about its size is cut where the ceiling is', async () => {
+    // Chunked, no content-length, and it would go on for 200 MB. The
+    // server may read up to the ceiling and one chunk past it, and no more.
+    let pulled = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(ctl) {
+        pulled += 1;
+        if (pulled > 200) { ctl.close(); return; }
+        ctl.enqueue(new Uint8Array(MB));
+      },
+    });
+    const raw = await app.request('/places/q-a-place/stories', {
+      method: 'POST',
+      headers: { ...auth(), ...multipart },
+      body: stream,
+      // Node needs to be told a streaming request body is one-way.
+      duplex: 'half',
+    } as RequestInit);
+    assert.equal(raw.status, 413);
+    assert.equal((await json(raw)).code, 'STORY_TOO_LARGE');
+    assert.ok(pulled <= Math.ceil(STORY_FORM_MAX_BYTES / MB) + 2, `read ${pulled} MB of a body it should have cut at ${STORY_FORM_MAX_BYTES / MB | 0}`);
+  });
+
+  test('a proof upload has the same ceiling: three photos at the photo limit', async () => {
+    const raw = await app.request('/quests/q-a/proof', {
+      method: 'POST',
+      headers: { ...auth(), ...multipart, 'content-length': String(MAX_PHOTOS_PER_PROOF * MAX_BYTES + 128 * 1024) },
+      body: '--x--',
+    });
+    assert.equal(raw.status, 413);
+    assert.equal((await json(raw)).code, 'BODY_TOO_LARGE');
+  });
+
+  test('a proof under the ceiling is still parsed as a form', async () => {
+    const form = new FormData();
+    form.append('photo', new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])], { type: 'image/jpeg' }), 'a.jpg');
+    form.append('meta', '{not json');
+    const raw = await app.request('/quests/q-a/proof', { method: 'POST', headers: auth(), body: form });
+    assert.equal(raw.status, 400);
+    assert.equal((await json(raw)).code, 'INVALID_META', 'the bounded reader hands the route the same form parseBody did');
+  });
+});
+
+describe('Hide is immediate on the board', () => {
+  // The public media route used to carry five minutes of public cache; a
+  // clip a host had just hidden could go on playing for that long on stage.
+  const dir = mkdtempSync(join(tmpdir(), 'chivago-board-'));
+  const file = join(dir, 'clip.mp4');
+  writeFileSync(file, 'MP4-BYTES');
+
+  before(async () => {
+    const me = (await json(await app.request('/account', { headers: auth() }))).data.userId as string;
+    db.prepare(
+      `INSERT OR IGNORE INTO places (id, name_en, name_th, short, layer, province, lat, lng, meta, blurb_en, blurb_th, tags,
+         safety_label_en, safety_label_th, crowd_density, aqi, safety_index, walkability)
+       VALUES ('q-a-place','A place','A place','A place','Green','TH-20',13.12154,100.91812,'','','','[]','x','x',1,20,6,7)`,
+    ).run();
+    const now = new Date();
+    db.prepare(
+      `INSERT INTO stories (id, place_id, user_id, kind, caption, media_path, media_mime, poster_path, duration_s, status, created_at, expires_at)
+       VALUES ('s-board', 'q-a-place', ?, 'video', 'the board', ?, 'video/mp4', ?, 3, 'approved', ?, ?)`,
+    ).run(me, file, file, now.toISOString(), new Date(now.getTime() + 86_400_000).toISOString());
+  });
+
+  test('a live clip is served with a tag and told to revalidate on every play', async () => {
+    const raw = await app.request('/stories/s-board/media');
+    assert.equal(raw.status, 200);
+    assert.equal(raw.headers.get('cache-control'), 'no-cache');
+    assert.equal(raw.headers.get('access-control-allow-origin'), '*');
+    const tag = raw.headers.get('etag');
+    assert.ok(tag, 'no validator means every play downloads the clip again');
+    assert.equal(await raw.text(), 'MP4-BYTES');
+
+    const again = await app.request('/stories/s-board/media', { headers: { 'if-none-match': tag! } });
+    assert.equal(again.status, 304, 'a browser holding the bytes should be told to keep them, without the bytes');
+    assert.equal(again.headers.get('etag'), tag);
+  });
+
+  test('the moment it is hidden, the revalidation is a 404 and the board stops', async () => {
+    const tag = (await app.request('/stories/s-board/media')).headers.get('etag')!;
+    db.prepare(`UPDATE stories SET status = 'hidden' WHERE id = 's-board'`).run();
+    try {
+      const gone = await app.request('/stories/s-board/media', { headers: { 'if-none-match': tag } });
+      assert.equal(gone.status, 404);
+      assert.equal((await app.request('/stories/s-board/poster')).status, 404);
+    } finally {
+      db.prepare(`UPDATE stories SET status = 'approved' WHERE id = 's-board'`).run();
+    }
+  });
+
+  test('the poster carries its own tag', async () => {
+    const poster = await app.request('/stories/s-board/poster');
+    assert.equal(poster.status, 200);
+    assert.notEqual(poster.headers.get('etag'), (await app.request('/stories/s-board/media')).headers.get('etag'));
+    rmSync(dir, { recursive: true, force: true });
   });
 });
