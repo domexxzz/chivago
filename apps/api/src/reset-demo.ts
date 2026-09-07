@@ -41,6 +41,35 @@ const WALK = process.argv.includes('--walk');
 const NOW = new Date();
 const daysAgo = (n: number): Date => new Date(NOW.getTime() - n * 86_400_000);
 
+/** Midnight, island time, of the island date a moment falls on. Thailand has no DST. */
+const islandMidnight = (d: Date): number => new Date(`${islandDateKey(d)}T00:00:00+07:00`).getTime();
+
+/**
+ * When a day's last check-in happened: eight in the evening, island time, on a
+ * past day - and now, on today, so nothing seeded is ahead of the clock.
+ */
+const dayEndsAt = (day: number): Date =>
+  new Date(Math.min(islandMidnight(daysAgo(day)) + 20 * 3_600_000, NOW.getTime()));
+
+/**
+ * The i-th of n check-ins on a day: two hours apart, ending at the day's last
+ * one - unless that is within two hours of island midnight, when the spacing
+ * shrinks so every check-in stays on the same island date. Run at half past
+ * midnight, the old two-hours-back arithmetic put today's first check-in on
+ * yesterday's date, where yesterday had already checked in at that place,
+ * and the reset refused itself. Five minutes is the least the second signal
+ * (docs/30) will accept between two beaches; closer than that, say so.
+ */
+const checkInAt = (day: number, n: number, i: number): Date => {
+  const end = dayEndsAt(day);
+  const room = end.getTime() - islandMidnight(end) - 60_000;
+  const gap = Math.min(2 * 3_600_000, Math.floor(room / Math.max(1, n - 1)));
+  if (n > 1 && gap < 5 * 60_000) {
+    throw new Error(`too close to island midnight to seed ${n} check-ins on one day - run the reset after 00:${String(5 * (n - 1) + 1).padStart(2, '0')} island time`);
+  }
+  return new Date(end.getTime() - (n - 1 - i) * gap);
+};
+
 // ---------------------------------------------------------------------------
 // Reset
 // ---------------------------------------------------------------------------
@@ -252,7 +281,7 @@ function seed(db: DB): void {
       // check-in in the next two hours was "older than the last one known":
       // unjudged by the travel check and never recorded. The demo of the
       // second signal could not trip the second signal.
-      const at = new Date(daysAgo(day.day).getTime() - (day.places.length - 1 - i) * 2 * 3_600_000);
+      const at = checkInAt(day.day, day.places.length, i);
       const p = place(id);
       const result = checkIn(db, { userId: USER, placeId: id, lat: p.lat, lng: p.lng, now: at });
       if (result === null) throw new Error(`check-in at ${id} was refused outright`);
@@ -358,11 +387,12 @@ function seedSecondTraveller(db: DB): void {
   // app has not been given one.
   ensureWallet(db, SECOND);
 
-  // Check-ins through the real geofenced service, two hours apart and half
-  // an hour clear of the demo traveller's, at the real coordinates.
+  // Check-ins through the real geofenced service, two hours apart, at the
+  // real coordinates. The second signal is per traveller, so these need no
+  // clearance from the demo traveller's.
   for (const day of SECOND_HISTORY) {
     for (const [i, id] of day.places.entries()) {
-      const at = new Date(daysAgo(day.day).getTime() - (day.places.length - 1 - i) * 2 * 3_600_000 - 30 * 60_000);
+      const at = checkInAt(day.day, day.places.length, i);
       const p = place(id);
       const result = checkIn(db, { userId: SECOND, placeId: id, lat: p.lat, lng: p.lng, now: at });
       if (result === null || !result.awarded) {

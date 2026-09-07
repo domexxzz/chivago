@@ -69,11 +69,20 @@ describe('the campus is real, and its seed stays inside it', () => {
     }
   });
 
-  test('no campus place claims a photograph nobody licensed', () => {
-    // Wikimedia Commons had no photograph of the campus on 2026-09-05, only
-    // faculty logos. The team's own photographs, used with permission, are
-    // the honest fill - until then, null.
-    for (const p of kuPlaces) assert.equal(p.photo, null, `${p.id} has a photo from nowhere`);
+  test("every campus photograph is the team's own, credited, and ships with the app", () => {
+    // Wikimedia Commons, both Wikipedias, Openverse and Wikidata had no
+    // photograph of the campus (checked 2026-09-05 and again on the 8th),
+    // only faculty logos. The team's own photographs, taken on the campus,
+    // are the honest fill: each carries its credit, and its address is a
+    // path inside the app's own export rather than somebody else's server.
+    // That the file is really there is checked where the files live
+    // (apps/mobile/test/place-photos.test.ts).
+    for (const p of kuPlaces) {
+      assert.ok(p.photo, `${p.id} has no photograph`);
+      assert.match(p.photo.url, /^\/assets\/places\/[a-z0-9-]+\.jpg$/, `${p.id}: a campus photo must ship with the app`);
+      assert.match(p.photo.credit, /ChivaGo team/, `${p.id}: not the team's photograph`);
+      assert.ok(p.photo.licence && p.photo.sourceUrl, `${p.id}: no licence or source`);
+    }
   });
 
   test('every layer has a campus place, so every companion can hatch there', () => {
