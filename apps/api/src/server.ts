@@ -57,6 +57,7 @@ import {
   arriveAtQuest, getAllProgress, getProgress, joinQuest, resolveVerification, submitProof,
 } from './quest-service.ts';
 import { hostStandings, travellerStandings } from './standing-service.ts';
+import { medalsFor } from './medal-service.ts';
 import { consoleRoutes } from './console/routes.ts';
 import {
   UnknownMood, balanceFor, habitatEvidenceFor, latestMood, moodHistory, provinceEvidenceFor, recordMood,
@@ -637,6 +638,13 @@ app.get('/visits/self', (c) => ok(c, selfVisitsFor(db, userId(c))));
  * actually reached. Read-only and derived; nothing writes here.
  */
 app.get('/explored', (c) => ok(c, exploredFor(db, userId(c))));
+
+/**
+ * Medals, for going to places. Computed here from the check-ins, never on
+ * the phone - the phone compares two of these answers to know what a
+ * check-in just finished, and that is the whole of its arithmetic.
+ */
+app.get('/medals', (c) => ok(c, medalsFor(db, userId(c))));
 
 // ---------------------------------------------------------------------------
 // Reviews

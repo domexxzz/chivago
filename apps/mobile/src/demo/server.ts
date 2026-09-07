@@ -17,7 +17,7 @@ import {
   SPECIES_AS_OF, cheapestMonth, chivaBalance, collectionSummary, companionsFor,
   forecastPrice, islandDay,
   outlookAhead, planDay, progressionFor, routeBiasFor, smartRoute, summarise,
-  areaByKey, inArea, isAreaKey,
+  areaByKey, inArea, isAreaKey, medalsView, type ExploredPlace,
 } from '@chivago/core';
 import snapshot from './fixtures.json';
 
@@ -410,6 +410,19 @@ export function installDemoServer(apiBase: string): void {
 
     if (method === 'GET') {
       if (path === '/checkins/today') return answer(state.checkins);
+      if (path === '/medals') {
+        // The same rules the server runs, over the captured check-ins plus
+        // this session's own - so a check-in in the demo earns what it
+        // would earn for real, and nothing else.
+        const places = state.routes['/places'] as { id: string; province: string }[];
+        const explored = (state.routes['/explored'] as { places: ExploredPlace[] }).places;
+        const seen = new Set(explored.map((e) => e.placeId));
+        const now = new Date().toISOString();
+        const mine = state.checkins
+          .filter((id) => !seen.has(id))
+          .map((id): ExploredPlace => ({ placeId: id, firstAt: now, how: 'checkin' }));
+        return answer(medalsView([...explored, ...mine], places));
+      }
       if (path === '/wellness/balance') return answer(balanceNow());
       if (path === '/companions') {
         // The real derivation over this session's own check-ins: eggs appear

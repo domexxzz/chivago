@@ -40,6 +40,7 @@ import { MascotsScreen } from './src/screens/MascotsScreen.tsx';
 import { MascotRoomScreen } from './src/screens/MascotRoom.tsx';
 import { AccountScreen } from './src/screens/AccountScreen.tsx';
 import { ProfileScreen } from './src/screens/ProfileScreen.tsx';
+import { MedalsScreen } from './src/screens/MedalsScreen.tsx';
 import { PartyScreen } from './src/screens/PartyScreen.tsx';
 import { SafetyScreen } from './src/screens/SafetyScreen.tsx';
 import { TripScreen, type TripState } from './src/screens/TripScreen.tsx';
@@ -343,9 +344,13 @@ export default function App() {
             onOpenAccount={() => nav.push('account')}
             onOpenWallet={() => nav.selectTab('wallet')}
             onOpenPassport={() => nav.push('passport')}
+            onOpenMedals={() => nav.push('medals')}
             onOpenCompanion={(c) => { setCompanion(c); nav.push('companion'); }}
           />
         );
+
+      case 'medals':
+        return <MedalsScreen onBack={nav.pop} />;
 
       case 'passport':
         return <PassportScreen onOpenMascots={() => nav.push('mascots')} />;

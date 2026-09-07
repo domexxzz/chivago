@@ -73,13 +73,15 @@ describe('a place, and checking in to it', () => {
       'GET /places/chaweng/reviews': { reviews: [], mine: null, canReview: false, reported: [] },
       'GET /places/chaweng/history': { since: null, days: [] },
       'GET /places/chaweng/stories': { open: false, stories: [] },
+      'GET /medals': { medals: [], earned: 0, total: 0, basis: { en: 'x', th: 'x' } },
     });
     try {
       const ui = await mountScreen(h(PlaceScreen, props()));
-      // Six fetches: the screen carries the reviews block, the air history and the stories.
+      // Seven fetches: the screen carries the reviews block, the air history,
+      // the stories, and the medals as they stand before any check-in.
       assert.deepEqual(
         net.calls.map((c) => c.path).sort(),
-        ['/checkins/today', '/places/chaweng', '/places/chaweng/history', '/places/chaweng/reviews', '/places/chaweng/stories', '/visits/self'],
+        ['/checkins/today', '/medals', '/places/chaweng', '/places/chaweng/history', '/places/chaweng/reviews', '/places/chaweng/stories', '/visits/self'],
       );
       assert.deepEqual(net.missing, []);
 
@@ -105,12 +107,22 @@ describe('a place, and checking in to it', () => {
   test('checking in sends the phone\'s position and reports the award', async () => {
     let toasted = '';
     let pointsChanged = 0;
+    // The medals before and after: the server counts both, the phone compares.
+    const medal = (earned: boolean) => ({
+      key: 'first-steps', name: { en: 'First steps', th: 'ก้าวแรก' }, how: { en: 'x', th: 'x' }, mark: 'footprints',
+      earned, earnedAt: earned ? '2026-09-07T09:00:00Z' : null, progress: { done: earned ? 1 : 0, total: 1, unit: 'places' },
+    });
+    let checkedIn = false;
     const net = server({
       'GET /places/chaweng': place(),
       'GET /checkins/today': [],
-      'POST /places/chaweng/checkin': {
-        placeId: 'chaweng', placeName: 'Chaweng Beach', awarded: true, pointsAwarded: 40,
-        balances: { trip: 360, green: 1240 }, exp: 40, distanceM: 18,
+      'GET /medals': () => ({ medals: [medal(checkedIn)], earned: checkedIn ? 1 : 0, total: 1, basis: { en: 'x', th: 'x' } }),
+      'POST /places/chaweng/checkin': () => {
+        checkedIn = true;
+        return {
+          placeId: 'chaweng', placeName: 'Chaweng Beach', awarded: true, pointsAwarded: 40,
+          balances: { trip: 360, green: 1240 }, exp: 40, distanceM: 18,
+        };
       },
     });
     try {
@@ -128,6 +140,7 @@ describe('a place, and checking in to it', () => {
       // A client that judged its own distance is a client that can lie.
       assert.deepEqual(posted.body, { lat: 9.5357, lng: 100.0617, accuracyM: 12, mocked: false });
       assert.match(toasted, /\+40 Trip Points/);
+      assert.match(toasted, /Medal earned: First steps/, 'the medal this check-in finished is said beside the points');
       assert.equal(pointsChanged, 1);
       ui.unmount();
     } finally { net.restore(); resetControl(); }

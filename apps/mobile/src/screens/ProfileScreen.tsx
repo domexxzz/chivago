@@ -31,7 +31,7 @@ import {
 import type { LucideIcon } from 'lucide-react-native';
 import {
   MIN_FOR_RANKING, expAtLevel, isRankable, levelProgressPct, passportProgress, strings,
-  type Bilingual, type Companion, type RankKey, type TravellerStanding, type Wallet,
+  type Bilingual, type Companion, type MedalState, type MedalsView, type RankKey, type TravellerStanding, type Wallet,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync, type Async } from '../state/store.tsx';
@@ -39,6 +39,7 @@ import { bar, color, gutter, layout, onFill, radius, shadow } from '../theme/ind
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { IconButton } from '../components/Button.tsx';
 import { Creature } from '../components/Creature.tsx';
+import { MedalMark } from '../components/MedalMark.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { STAGE_LABEL } from './CompanionHome.tsx';
@@ -82,18 +83,20 @@ const companionName = (c: Companion): string =>
   c.stage === 'egg' ? t(c.species.eggName) : t(c.species.name);
 
 export function ProfileScreen({
-  onBack, onOpenAccount, onOpenWallet, onOpenPassport, onOpenCompanion,
+  onBack, onOpenAccount, onOpenWallet, onOpenPassport, onOpenMedals, onOpenCompanion,
 }: {
   onBack: () => void;
   onOpenAccount: () => void;
   onOpenWallet: () => void;
   onOpenPassport: () => void;
+  onOpenMedals: () => void;
   onOpenCompanion: (c: Companion) => void;
 }) {
   const wallet = useAsync(() => api.wallet(), []);
   const standing = useAsync(() => api.standing(), []);
   const passport = useAsync(() => api.passport(), []);
   const companions = useAsync(() => api.companions(), []);
+  const medals = useAsync(() => api.medals(), []);
   const lead = companions.data ? leadCompanion(companions.data.companions) : null;
   const name = standing.data?.you?.displayName ?? null;
 
@@ -120,6 +123,7 @@ export function ProfileScreen({
       ) : null}
 
       <StandingBlock standing={standing} />
+      <MedalsBlock medals={medals} onSeeAll={onOpenMedals} />
       <CompanionsBlock companions={companions} onOpenCompanion={onOpenCompanion} onSeeAll={onOpenWallet} />
       <Figures wallet={wallet} passport={passport} onOpenWallet={onOpenWallet} onOpenPassport={onOpenPassport} />
       <View style={{ height: 28 }} />
@@ -334,6 +338,79 @@ function Stat({ value, unit, label, tone }: { value: string; unit: string; label
         {unit ? <Label size={9} tracking={0.08} colour={color.neutral600}>{unit}</Label> : null}
       </View>
       <Label size={9} tracking={0.06} colour={color.neutral700} style={{ marginTop: 4, textTransform: 'none' }}>{label}</Label>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Medals: for going to places
+// ---------------------------------------------------------------------------
+
+/** How many medals the profile shows before "see all" takes over. */
+const MEDALS_ON_PROFILE = 6;
+
+/**
+ * Earned first, then the nearest to being earned, then the catalogue's
+ * order - so the six on the profile are the six with something to say.
+ */
+export function medalsToShow(medals: readonly MedalState[], limit = MEDALS_ON_PROFILE): MedalState[] {
+  const ratio = (m: MedalState) => (m.progress.total > 0 ? m.progress.done / m.progress.total : 0);
+  return medals
+    .map((m, i) => ({ m, i }))
+    .sort((a, b) => Number(b.m.earned) - Number(a.m.earned) || ratio(b.m) - ratio(a.m) || a.i - b.i)
+    .slice(0, limit)
+    .map((x) => x.m);
+}
+
+const medalStatus = (m: MedalState): string => {
+  if (m.earned) return t(strings.medals.earned);
+  return m.progress.unit === 'areas'
+    ? t(strings.medals.areas(m.progress.done, m.progress.total))
+    : t(strings.medals.places(m.progress.done, m.progress.total));
+};
+
+function MedalsBlock({ medals, onSeeAll }: { medals: Async<MedalsView>; onSeeAll: () => void }) {
+  const data = medals.data;
+  const title = t(strings.medals.context);
+  return (
+    <View style={{ paddingTop: 18 }}>
+      <View style={{ paddingHorizontal: gutter, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
+        <Heading size={16}>{title}</Heading>
+        <Pressable
+          onPress={onSeeAll}
+          accessibilityRole="button"
+          accessibilityLabel={`${t(strings.common.seeAll)}: ${title}`}
+          style={{ minHeight: 28, justifyContent: 'center' }}
+        >
+          <Label size={10} tracking={0.1} colour={color.brand}>
+            {data ? `${data.earned}/${data.total} · ${t(strings.common.seeAll)}` : t(strings.common.seeAll)}
+          </Label>
+        </Pressable>
+      </View>
+      {medals.error ? <ErrorState message={medals.error} onRetry={medals.reload} /> : null}
+      {data ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: gutter, marginTop: 8 }}>
+          {medalsToShow(data.medals).map((m) => (
+            <Pressable
+              key={m.key}
+              onPress={onSeeAll}
+              accessibilityRole="button"
+              accessibilityLabel={`${t(m.name)}, ${medalStatus(m)}`}
+              style={[shadow.card, {
+                flexBasis: '30%', flexGrow: 1, alignItems: 'center', padding: 12,
+                backgroundColor: color.surface, borderRadius: radius.md,
+                borderWidth: m.earned ? layout.ruleStrong : 1, borderColor: m.earned ? color.gold : color.neutral300,
+              }]}
+            >
+              <MedalMark mark={m.mark} earned={m.earned} size={60} />
+              <Heading size={13} style={{ marginTop: 8, textAlign: 'center' }}>{t(m.name)}</Heading>
+              <Label size={9} tracking={0.1} colour={m.earned ? color.goldDeep : color.neutral600} style={{ marginTop: 2, textTransform: 'none' }}>
+                {medalStatus(m)}
+              </Label>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }

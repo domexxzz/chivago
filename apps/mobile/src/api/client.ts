@@ -15,7 +15,7 @@ import type {
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
 } from '@chivago/core';
-import type { AirHistory, Explored, Fix, SelfVisitResult, SelfVisitSummary } from '@chivago/core';
+import type { AirHistory, Explored, Fix, MedalsView, SelfVisitResult, SelfVisitSummary } from '@chivago/core';
 
 /**
  * What POST /places/:id/checkin answers with.
@@ -339,6 +339,8 @@ export const api = {
   selfVisits: () => get<SelfVisitSummary>('/visits/self'),
   /** Where they have been - check-ins and stamps - for the map to lift its mist from. */
   explored: () => get<Explored>('/explored'),
+  /** Medals, for going to places. The server does the counting. */
+  medals: () => get<MedalsView>('/medals'),
 
   // -- stories (docs/44) ---------------------------------------------------
   /** What is on the pin, and whether the door is open. */

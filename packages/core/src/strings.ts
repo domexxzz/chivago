@@ -354,6 +354,19 @@ export const strings = {
     provinces: t('provinces', 'จังหวัด'),
   },
 
+  // -- Medals -------------------------------------------------------------
+  // For going to places. The rules are in medals.ts; these are the words.
+  medals: {
+    context: t('Medals', 'เหรียญตรา'),
+    earnedOf: (n: number, of: number) => t(`${n} of ${of} earned`, `ได้แล้ว ${n} จาก ${of}`),
+    earned: t('Earned', 'ได้แล้ว'),
+    earnedOn: (when: string) => t(`Earned · ${when}`, `ได้เมื่อ ${when}`),
+    places: (done: number, total: number) => t(`${done} / ${total} places`, `${done} / ${total} แห่ง`),
+    areas: (done: number, total: number) => t(`${done} / ${total} areas`, `${done} / ${total} พื้นที่`),
+    /** In the check-in toast, beside the points. */
+    justEarned: (name: string) => t(`Medal earned: ${name}`, `ได้เหรียญ ${name}`),
+  },
+
   // -- Marketplace --------------------------------------------------------
   market: {
     context: t('Marketplace', 'ใช้แต้ม'),

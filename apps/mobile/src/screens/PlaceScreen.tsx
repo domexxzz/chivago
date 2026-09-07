@@ -14,7 +14,7 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { Image, Modal, Pressable, ScrollView, View } from 'react-native';
 import { X } from 'lucide-react-native';
-import { strings, type ScoredPlace } from '@chivago/core';
+import { newlyEarned, strings, type MedalState, type MedalsView, type ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
@@ -54,6 +54,9 @@ export function PlaceScreen({
   const stories = useAsync(() => api.stories(placeId), [placeId]);
   const [storiesPending, setStoriesPending] = React.useState(0);
   const [telling, setTelling] = React.useState(false);
+  // The medals as they stood on arrival, so a check-in can say which one it
+  // finished. The server does the counting both times; the phone compares.
+  const medals = useAsync(() => api.medals(), [placeId]);
 
   React.useEffect(() => {
     // Whether they already checked in today is server state, not screen
@@ -115,9 +118,24 @@ export function PlaceScreen({
       ? t(strings.checkin.awarded(res.data.pointsAwarded))
       : t(strings.checkin.already);
     // The leg that brought them here, said beside the check-in it closed.
-    onToast(res.data.walk ? `${awardedLine} · ${t(strings.checkin.walked(res.data.walk.points, res.data.walk.fromPlaceName))}` : awardedLine);
+    const line = res.data.walk ? `${awardedLine} · ${t(strings.checkin.walked(res.data.walk.points, res.data.walk.fromPlaceName))}` : awardedLine;
+    // And any medal this check-in finished, beside that.
+    const fresh = await medalsFinishedBy(medals.data);
+    onToast([line, ...fresh.map((m) => t(strings.medals.justEarned(t(m.name))))].join(' · '));
+    if (fresh.length > 0) medals.reload();
     if (res.data.awarded) onPointsChanged();
   };
+
+  /**
+   * What a check-in just finished: the medals as the server counts them now,
+   * against how they stood when the screen opened. Nothing to compare
+   * against - the first answer never arrived - is nothing to announce.
+   */
+  async function medalsFinishedBy(before: MedalsView | null): Promise<MedalState[]> {
+    if (!before) return [];
+    const after = await api.medals();
+    return after.ok ? newlyEarned(before.medals, after.data.medals) : [];
+  }
 
   /**
    * Stamp the passport on the traveller's word. Recorded, not scored - see

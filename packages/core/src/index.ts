@@ -28,3 +28,4 @@ export * from './presence.ts';
 export * from './statement.ts';
 export * from './areas.ts';
 export * from './greeting.ts';
+export * from './medals.ts';
