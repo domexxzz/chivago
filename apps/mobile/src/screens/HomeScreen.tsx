@@ -36,7 +36,7 @@ import { Image, Pressable, ScrollView, View } from 'react-native';
 import { areaOfProvince, inArea, type Area, type AreaKey } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
-import { ChevronRight, Compass, Leaf, MessageCircle, Search, Shield, Sparkles, Users, Wallet } from 'lucide-react-native';
+import { ChevronRight, Compass, Leaf, MessageCircle, Search, Shield, Sparkles, UserRound, Users, Wallet } from 'lucide-react-native';
 import {
   greetingFor, isHighScore, passportProgress, strings,
   type Quest, type QuestProgress, type ScoredPlace,
@@ -100,7 +100,7 @@ export function questOrder(
 
 export function HomeScreen({
   onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenPassport,
-  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenPlace, now = new Date(),
+  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, now = new Date(),
 }: {
   onOpenMap: () => void;
   onOpenQuests: () => void;
@@ -111,6 +111,8 @@ export function HomeScreen({
   onOpenConcierge: () => void;
   onOpenSafety: () => void;
   onOpenParty: () => void;
+  /** The profile: the traveller's own record, from the button at the top right. */
+  onOpenProfile: () => void;
   /** A place card. Optional so the screen tests that predate the cards still render. */
   onOpenPlace?: (id: string) => void;
   /** Injected so the greeting is testable rather than whatever the clock says. */
@@ -141,7 +143,7 @@ export function HomeScreen({
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <Hero now={now} wallet={wallet} area={area} onChangeArea={setArea} onOpenWallet={onOpenWallet} onOpenConcierge={onOpenConcierge} />
+      <Hero now={now} wallet={wallet} area={area} onChangeArea={setArea} onOpenWallet={onOpenWallet} onOpenConcierge={onOpenConcierge} onOpenProfile={onOpenProfile} />
       <Conditions places={here} onOpenMap={onOpenMap} />
       <Doors
         onOpenMap={onOpenMap}
@@ -173,7 +175,7 @@ type Async<T> = { data: T | null; loading: boolean; error: string | null; reload
 // ---------------------------------------------------------------------------
 
 function Hero({
-  now, wallet, area, onChangeArea, onOpenWallet, onOpenConcierge,
+  now, wallet, area, onChangeArea, onOpenWallet, onOpenConcierge, onOpenProfile,
 }: {
   now: Date;
   wallet: Async<{ balances: { green: number; trip: number } }>;
@@ -181,6 +183,7 @@ function Hero({
   onChangeArea: (next: AreaKey) => void;
   onOpenWallet: () => void;
   onOpenConcierge: () => void;
+  onOpenProfile: () => void;
 }) {
   const greeting = greetingFor(now);
   const green = wallet.data?.balances.green ?? null;
@@ -224,6 +227,22 @@ function Hero({
           <Leaf size={14} color={color.accent300} strokeWidth={2.2} />
           <Heading size={14} colour={onFill.brand}>{green === null ? '—' : green.toLocaleString('en-US')}</Heading>
           <Label size={9} tracking={0.1} colour={color.brandSoft}>G</Label>
+        </Pressable>
+        {/*
+          The profile, top right, where every app keeps it. A drawn figure
+          rather than a photograph, because the app has none to show and
+          would not invent one.
+        */}
+        <Pressable
+          onPress={onOpenProfile}
+          accessibilityRole="button"
+          accessibilityLabel={t(strings.profile.context)}
+          style={{
+            width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
+            backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)',
+          }}
+        >
+          <UserRound size={18} color={onFill.brand} strokeWidth={2} />
         </Pressable>
       </View>
 

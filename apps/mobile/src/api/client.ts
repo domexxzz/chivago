@@ -296,6 +296,8 @@ export const api = {
       hosts: HostStanding[];
       you: TravellerStanding | null;
       participants: number;
+      /** The caller's own place among the participants, from 1. Null with no verified work. */
+      position: number | null;
       rankedBy: Bilingual;
     }>('/standing'),
   place: (id: string) => get<ScoredPlace>(`/places/${id}`),

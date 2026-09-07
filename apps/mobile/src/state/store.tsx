@@ -41,7 +41,7 @@ export type ScreenKey =
   | 'onboarding' | 'home' | 'map' | 'place' | 'quests' | 'quest'
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
   | 'companion' | 'passport' | 'account' | 'party'
-  | 'mascots' | 'mascot';
+  | 'mascots' | 'mascot' | 'profile';
 
 /**
  * Five tabs, and Impact is no longer one of them.
@@ -89,6 +89,8 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   wallet: 'wallet', market: 'wallet',
   // Both reached from the wallet, so its tab stays lit behind them.
   companion: 'wallet', account: 'wallet',
+  // The profile is the button at the top of Home.
+  profile: 'home',
   safety: 'safety',
 };
 

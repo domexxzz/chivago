@@ -106,6 +106,23 @@ export function rankTravellers(travellers: TravellerStanding[]): TravellerStandi
   );
 }
 
+/**
+ * Where one traveller stands, counted from the top - or null.
+ *
+ * Counted among PARTICIPANTS, the same people `participants` counts, so the
+ * two figures a screen puts side by side ("#2 of 5") are of the same set.
+ * Null for anyone with no verified points: a position belongs to somebody
+ * who did verified work, and "4th of 3" is the number a screen invents when
+ * it is not told that. Whether a position is worth showing at all is
+ * `isRankable`'s call, not this function's - one participant is first of
+ * one, and the screen decides whether to say so.
+ */
+export function positionOf(travellers: TravellerStanding[], userId: string): number | null {
+  const ranked = rankTravellers(travellers).filter((t) => t.greenVerified > 0);
+  const at = ranked.findIndex((t) => t.userId === userId);
+  return at === -1 ? null : at + 1;
+}
+
 export interface Standing {
   hosts: HostStanding[];
   travellers: TravellerStanding[];

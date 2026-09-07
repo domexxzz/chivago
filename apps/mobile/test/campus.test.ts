@@ -20,7 +20,7 @@ const noop = () => {};
 const props = {
   onOpenMap: noop, onOpenQuests: noop, onOpenQuest: noop, onOpenWallet: noop,
   onOpenPassport: noop, onOpenImpact: noop, onOpenConcierge: noop, onOpenSafety: noop,
-  onOpenParty: noop,
+  onOpenParty: noop, onOpenProfile: noop,
   now: new Date('2026-09-02T02:00:00Z'),
 };
 

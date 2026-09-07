@@ -314,6 +314,46 @@ export const strings = {
     emptyLedger: t('No activity yet — join a quest to start earning', 'ยังไม่มีรายการ เริ่มจากเข้าร่วมภารกิจ'),
   },
 
+  // -- Profile ------------------------------------------------------------
+  // One screen for the traveller's own record, reached from the top of
+  // Home. Nothing on it is new data; these are the words that sit it
+  // together.
+  profile: {
+    context: t('Profile', 'โปรไฟล์'),
+    /** The account's display name when the phone never gave one. */
+    traveller: t('Traveller', 'นักเดินทาง'),
+    account: t('Account and devices', 'บัญชีและอุปกรณ์'),
+    experience: t('Your experience', 'ประสบการณ์ของคุณ'),
+    levelChip: (level: number, exp: number) =>
+      t(`Level ${level} · ${exp.toLocaleString('en-US')} EXP`, `เลเวล ${level} · ${exp.toLocaleString('en-US')} EXP`),
+    // In EXP, not levels: the wallet says "2 levels to Wanderer", which is
+    // true and unhelpful to somebody deciding whether to do one more quest.
+    expToRank: (exp: number, rank: string) =>
+      t(`${exp.toLocaleString('en-US')} EXP to ${rank}`, `อีก ${exp.toLocaleString('en-US')} EXP ถึง ${rank}`),
+    ranks: t('Rank path', 'เส้นทางระดับ'),
+    reached: t('reached', 'ถึงแล้ว'),
+    lockedUntil: (level: number) => t(`from level ${level}`, `ตั้งแต่เลเวล ${level}`),
+    standing: t('Your standing', 'อันดับของคุณ'),
+    of: (n: number) => t(`of ${n} ${n === 1 ? 'participant' : 'participants'}`, `จาก ${n} คน`),
+    // The honest sentence for the island as it is today. A podium with one
+    // step on it implies a crowd that does not exist.
+    notRankable: (n: number, min: number) =>
+      t(
+        `Not a ranking yet: ${n} ${n === 1 ? 'participant' : 'participants'} with verified points, and a ranking needs ${min}.`,
+        `ยังไม่จัดอันดับ: มีผู้ร่วมที่มีแต้มตรวจแล้ว ${n} คน ต้องมีอย่างน้อย ${min} คน`,
+      ),
+    noVerifiedYet: t(
+      'No verified work yet. Finish a quest and its host checks it.',
+      'ยังไม่มีงานที่ตรวจแล้ว ทำภารกิจให้จบแล้วผู้จัดจะตรวจให้',
+    ),
+    verifiedPoints: t('Green · verified', 'แต้มสีเขียว · ตรวจแล้ว'),
+    missionsVerified: t('Missions verified', 'ภารกิจที่ตรวจแล้ว'),
+    companions: t('Companions', 'เพื่อนร่วมทาง'),
+    companionsEmpty: t('Check in anywhere to find your first egg.', 'เช็กอินที่ไหนก็ได้ เพื่อพบไข่ใบแรก'),
+    passport: t('Travel passport', 'พาสปอร์ตท่องเที่ยว'),
+    provinces: t('provinces', 'จังหวัด'),
+  },
+
   // -- Marketplace --------------------------------------------------------
   market: {
     context: t('Marketplace', 'ใช้แต้ม'),

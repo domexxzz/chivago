@@ -51,7 +51,7 @@ import {
   reviewsFor, withdrawReview, writeReview,
 } from './place-review-service.ts';
 import {
-  JOIN_REFUSAL, PARTY_DOES_NOT, RANKED_BY, SPECIES_AS_OF, cheapestMonth, collectionSummary, companionsFor, forecastPrice, isRejectionReasonKey, isReportReasonKey, islandDay, outlookAhead, planDay, rankHosts, routeBiasFor, smartRoute, statementCsv, statementPdf, summarise, type Fix,
+  JOIN_REFUSAL, PARTY_DOES_NOT, RANKED_BY, SPECIES_AS_OF, cheapestMonth, collectionSummary, companionsFor, forecastPrice, isRejectionReasonKey, isReportReasonKey, islandDay, outlookAhead, planDay, positionOf, rankHosts, routeBiasFor, smartRoute, statementCsv, statementPdf, summarise, type Fix,
 } from '@chivago/core';
 import {
   arriveAtQuest, getAllProgress, getProgress, joinQuest, resolveVerification, submitProof,
@@ -1140,6 +1140,9 @@ app.get('/standing', (c) => {
     hosts: rankHosts(hostStandings(db)),
     you: mine,
     participants: travellers.filter((t) => t.greenVerified > 0).length,
+    // The caller's own place in the table, and nobody else's: the profile
+    // shows "#2 of 5" without a single other name leaving the server.
+    position: positionOf(travellers, me),
     rankedBy: RANKED_BY,
   });
 });

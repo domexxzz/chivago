@@ -24,6 +24,7 @@ const noop = () => {};
 const props = {
   onOpenMap: noop, onOpenQuests: noop, onOpenQuest: noop, onOpenWallet: noop,
   onOpenPassport: noop, onOpenImpact: noop, onOpenConcierge: noop, onOpenSafety: noop,
+  onOpenProfile: noop,
   // Fixed, so the greeting is a fact about this test and not about the clock.
   now: new Date('2026-09-02T02:00:00Z'), // 09:00 on the island
 };
@@ -107,6 +108,15 @@ describe('what Home says', () => {
     assert.match(said, /82/, 'the island score is missing');
     assert.match(said, /Updated daily/, 'the provenance is not stated');
     assert.match(said, /1 measured place/, 'it did not say how many places it averaged');
+    ui.unmount();
+  });
+
+  test('the profile is one tap from the top of Home', async () => {
+    let opened = 0;
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, { ...props, onOpenProfile: () => { opened += 1; } }));
+    await ui.press('Profile');
+    assert.equal(opened, 1, 'the button at the top right opens the profile');
     ui.unmount();
   });
 

@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  MIN_FOR_RANKING, isRankable, rankHosts, rankTravellers, standingFrom,
+  MIN_FOR_RANKING, isRankable, positionOf, rankHosts, rankTravellers, standingFrom,
   type HostStanding, type TravellerStanding,
 } from './standing.ts';
 
@@ -122,5 +122,34 @@ describe('hosts are ranked on work done, not points claimed', () => {
     const s = standingFrom([], []);
     assert.deepEqual(s.hosts, []);
     assert.equal(s.participants, 0);
+  });
+});
+
+describe('a position is counted among participants, from the top', () => {
+  test('the most verified traveller is first, and ties follow the table', () => {
+    const rows = [
+      traveller({ userId: 'c', displayName: 'Cara', greenVerified: 100, missionsVerified: 1 }),
+      traveller({ userId: 'a', displayName: 'Ana', greenVerified: 400, missionsVerified: 2 }),
+      traveller({ userId: 'b', displayName: 'Bo', greenVerified: 100, missionsVerified: 3 }),
+    ];
+    assert.equal(positionOf(rows, 'a'), 1);
+    assert.equal(positionOf(rows, 'b'), 2);
+    assert.equal(positionOf(rows, 'c'), 3);
+  });
+
+  test('no verified points is no position, not last place', () => {
+    // "4th of 3" is the number a screen invents when it is not told this.
+    const rows = [
+      traveller({ userId: 'a', displayName: 'Ana', greenVerified: 400 }),
+      traveller({ userId: 'z', displayName: 'Zoe', greenVerified: 0 }),
+    ];
+    assert.equal(positionOf(rows, 'z'), null);
+    assert.equal(positionOf(rows, 'nobody'), null);
+    assert.equal(positionOf([], 'a'), null);
+  });
+
+  test('one participant is first of one; whether to say so is isRankable’s call', () => {
+    assert.equal(positionOf([traveller({ userId: 'a', greenVerified: 10 })], 'a'), 1);
+    assert.equal(isRankable(1), false);
   });
 });

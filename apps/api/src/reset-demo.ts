@@ -63,6 +63,9 @@ const TRAVELLER_TABLES = [
   'statements',
   // Stories are the traveller's too (docs/44).
   'stories',
+  // The door (docs/46) is operational state, not the pilot's: a reset shuts
+  // it, so a day starts with a moderator opening it on purpose.
+  'settings',
   'ledger', 'wallets', 'profiles',
   'mood_checkins', 'quest_progress', 'proofs', 'proof_files', 'vouchers',
   'place_reviews', 'review_reports', 'review_appeals', 'review_batches',
