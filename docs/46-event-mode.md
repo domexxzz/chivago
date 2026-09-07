@@ -79,8 +79,9 @@ reading of exactly this - is still owed, and this notice does not replace it.
    registered - the reset empties that table, and the first phone to open
    the app closes it again - and the code lives ten minutes. On the stage
    phone: the profile button, the gear, *Already have a code?*, the code.
-   The phone now shows 1,850 G, #1 of 2, and 5 of 7 medals. If a phone
-   registered first, reset again and repeat.
+   The phone now shows 610 G and 470 T (no opening gift in production, so
+   the figures are the verified and the walked ones only), #1 of 2, and 5 of
+   7 medals. If a phone registered first, reset again and repeat.
 5. `fly secrets set CHIVAGO_EVENT_TOKEN=<32 random characters> CHIVAGO_REGISTRATIONS_PER_HOUR=500`
 6. `python scripts/event-qr.py https://chivago.fly.dev --token <the same> --out qr/`
    and print: the room code at A3, the five place codes at A5. Do not commit

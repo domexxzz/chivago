@@ -11,22 +11,24 @@ https://claude.ai/code/artifact/2501375b-ded3-4277-adfa-63129b276861
 (ซ้อมใหญ่ 9 กันยา; ticks stay on the phone that made them); this file is the
 source.
 
-**As of Monday 7 September, 17:40** `https://chivago.fly.dev/health` does not
-answer: the deployment in docs/46 has not happened. Without it, Wednesday
-rehearses the static demo only (option A) and nothing in section 3 can run.
-It is the one line on this sheet with a hard deadline, and it is the team's:
-this machine has no Fly account.
+**As of Monday 7 September, 23:15** `https://chivago.fly.dev` is up: deployed
+from `main` after PR #20, seeded, demo reset walked (Standing #1 of 2), the
+event token set, the registration limit at 500, the six QR codes generated.
+What is still open on the server side is the link code for the stage phone,
+which has a ten-minute life and so is issued when the stage phone is in hand
+(section 0). The earlier note - that the deployment had not happened and was
+the team's to do - is no longer true.
 
 ## 0 · ก่อนวันพุธ · Before Wednesday — deadline Tue 8 Sep, 20:00
 
-- [ ] API ขึ้น Fly แล้ว จาก `main` ล่าสุด (มี fix แผนที่ 3a75d2d): `https://chivago.fly.dev/health` ตอบ 200
-      · The live API is up, built from current `main`, and answers (docs/46, steps 1–3)
+- [x] API ขึ้น Fly แล้ว จาก `main` หลังรวม PR #20 (7 ก.ย. 23:07 เวลาไทย): `https://chivago.fly.dev/health` ตอบ 200 · seed แล้ว · reset --walk ผ่าน 10 จอ · token ตั้งแล้ว · limit 500 ตั้งแล้ว
+      · Done on the 7th from this machine: deployed, seeded, reset walked, token and limit set (docs/46, steps 1–3, 5)
 - [ ] seed แล้ว จดคีย์ 2 ดอกบนกระดาษ ไม่ใช่ในแชต: ทีม (h-ku-chivago) และ moderator
       · Seed keys written on paper, not in chat: the team's and the platform host's (the moderator)
 - [ ] รัน demo reset บน Fly หลัง seed: `fly ssh console -C "node --experimental-strip-types apps/api/src/reset-demo.ts --walk"` ต้องเห็น PASS ทุกจอ และ `Standing #1 of 2` (นักเดินทางคนที่สองที่ทำภารกิจผ่านการตรวจ คือสิ่งที่ทำให้อันดับเป็นอันดับจริง)
       · Run the demo reset on Fly after the seed; the walk must print PASS on every screen, Standing #1 of 2 — the second traveller with one approved quest is what makes the standing a ranking
-- [ ] ทันทีหลัง reset ก่อนเครื่องไหนเปิดแอป: ขอรหัสผูกเครื่องของ demo-user ด้วย `curl -s -X POST https://chivago.fly.dev/account/link-code -H "x-chivago-user: demo-user"` (ได้ `code` ใช้ได้ 10 นาที; header นี้ใช้ได้เฉพาะตอนยังไม่มีเครื่องไหนลงทะเบียน) แล้วบนโทรศัพท์เวที: ไอคอนโปรไฟล์ → ฟันเฟือง → "มีรหัสอยู่แล้ว?" → ใส่รหัส → เครื่องบนเวทีกลายเป็น demo-user (ต้องเห็น 1,850 G, อันดับ #1 จาก 2 คน, เหรียญ 5/7)
-      · Immediately after the reset, before any phone opens the app, ask for demo-user's link code by header (open only while no device exists); enter it on the stage phone under Profile → gear → "Already have a code?" — the stage phone becomes the demo traveller: 1,850 G, #1 of 2, 5/7 medals
+- [ ] ทันทีหลัง reset ก่อนเครื่องไหนเปิดแอป: ขอรหัสผูกเครื่องของ demo-user ด้วย `curl -s -X POST https://chivago.fly.dev/account/link-code -H "x-chivago-user: demo-user"` (ได้ `code` ใช้ได้ 10 นาที; header นี้ใช้ได้เฉพาะตอนยังไม่มีเครื่องไหนลงทะเบียน) แล้วบนโทรศัพท์เวที: ไอคอนโปรไฟล์ → ฟันเฟือง → "มีรหัสอยู่แล้ว?" → ใส่รหัส → เครื่องบนเวทีกลายเป็น demo-user (ต้องเห็น 610 G / 470 T — บนเซิร์ฟเวอร์จริงไม่มีแต้มเปิดบัญชี ต่างจากเดโมสาธารณะที่โชว์ 1,850 G, อันดับ #1 จาก 2 คน, เหรียญ 5/7)
+      · Immediately after the reset, before any phone opens the app, ask for demo-user's link code by header (open only while no device exists); enter it on the stage phone under Profile → gear → "Already have a code?" — the stage phone becomes the demo traveller: 610 G / 470 T (no opening gift in production), #1 of 2, 5/7 medals
 - [ ] ถ้ามีเครื่องลงทะเบียนไปก่อนขอรหัส: รัน reset อีกครั้ง (ล้าง device_keys) แล้วทำข้อบนใหม่
       · If a phone registered before the code was asked for: reset again and repeat
 - [ ] ตั้ง secrets: `CHIVAGO_EVENT_TOKEN` (32 ตัวอักษรสุ่ม) และ `CHIVAGO_REGISTRATIONS_PER_HOUR=500`
