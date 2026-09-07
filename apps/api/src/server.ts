@@ -352,16 +352,29 @@ function openIdentityAllowed(): boolean {
  * resolve is refused outright rather than falling back — a fallback would mean
  * a revoked phone silently kept working by dropping its own credential.
  */
+/**
+ * What needs no traveller.
+ *
+ * The console and the public live-location page authenticate themselves; a
+ * statement, a story's media, an area's feed and the board are public by
+ * design. And the web app's own files and the health check, which the first
+ * real account must never lock: on the evening of 7 September, the instant
+ * the first phone registered on chivago.fly.dev, every font, the stylesheet,
+ * the favicon and /health answered 401, the app sat on LOADING for everyone
+ * after, and Fly's health check took the machine out of rotation. Nothing in
+ * the tests had asked for a font after registering.
+ */
+const PUBLIC_PREFIXES = [
+  '/console', '/sos/live/', '/verify/', '/statements/', '/stories/', '/areas/', '/board/',
+  '/_expo/', '/assets/',
+];
+const PUBLIC_PATHS = new Set(['/', '/index.html', '/favicon.ico', '/metadata.json', '/health']);
+const isPublicPath = (path: string): boolean =>
+  PUBLIC_PATHS.has(path) || PUBLIC_PREFIXES.some((p) => path.startsWith(p));
+
 app.use('*', async (c, next) => {
-  // The console and the public live-location page both authenticate
-  // themselves, and a statement is public by design; none of them should be
-  // handed a traveller account and a wallet.
-  if (c.req.path.startsWith('/console') || c.req.path.startsWith('/sos/live/')
-      || c.req.path.startsWith('/verify/') || c.req.path.startsWith('/statements/')
-      || c.req.path.startsWith('/stories/') || c.req.path.startsWith('/areas/')
-      || c.req.path.startsWith('/board/')) {
-    return next();
-  }
+  // None of these should be handed a traveller account and a wallet.
+  if (isPublicPath(c.req.path)) return next();
 
   const key = c.req.header('x-chivago-device-key');
   if (key !== undefined) {

@@ -199,3 +199,32 @@ describe('minting accounts is rate-limited per address', () => {
     assert.equal(after, before, 'a refused registration must not provision anything');
   });
 });
+
+describe('what stays public once a real account exists', () => {
+  // Caught live on chivago.fly.dev on the evening of 7 September: the moment
+  // the first phone registered, the header hole closed - correctly - and took
+  // the web app's fonts, its stylesheet, the favicon and /health with it. The
+  // app sat on LOADING for everyone after, and Fly's health check pulled the
+  // machine. A device exists in this database (the `before` above), so every
+  // path here is asked for the way a browser asks: with no key at all.
+  test('the health check answers without a key', async () => {
+    const res = await app.request('/health');
+    assert.equal(res.status, 200);
+  });
+
+  test('the web app\'s own files are never refused for want of a key', async () => {
+    // No web export is mounted in the tests, so these fall through to a 404
+    // - which is not a 401. The point is that authentication is not what
+    // stands between a browser and a font.
+    for (const path of ['/', '/index.html', '/favicon.ico', '/metadata.json',
+      '/_expo/static/js/web/index-abc.js', '/assets/fonts/Anuphan_600SemiBold.ttf']) {
+      const res = await app.request(path);
+      assert.notEqual(res.status, 401, `${path} was refused for want of a key`);
+    }
+  });
+
+  test('and the wallet still is', async () => {
+    const res = await app.request('/wallet');
+    assert.equal(res.status, 401);
+  });
+});
