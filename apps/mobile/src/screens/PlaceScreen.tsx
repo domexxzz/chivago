@@ -16,6 +16,7 @@ import { Image, Modal, Pressable, ScrollView, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import { newlyEarned, strings, type MedalState, type MedalsView, type ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
+import { photoUri } from '../api/photos.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
@@ -474,7 +475,7 @@ export function Hero({ place }: { place: ScoredPlace }) {
       {place.photo ? (
         <>
           <Image
-            source={{ uri: place.photo.url }}
+            source={{ uri: photoUri(place.photo.url) }}
             accessibilityLabel={`${t(place.name)}, photographed by ${place.photo.credit}`}
             resizeMode="cover"
             style={{ width: '100%', height: '100%' }}

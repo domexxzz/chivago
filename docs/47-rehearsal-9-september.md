@@ -157,8 +157,8 @@ not the one here. ทุกข้อ: ทำ อ่านที่แอปพ�
 
 - [ ] เดินครบ 5 จุด: จุดชมวิวสะพานดาว, สวนและบึง, หอสมุด, ศูนย์กีฬา, แถวร้านค้าหน้าอาคาร 25
       · All five places on foot
-- [ ] ที่ละจุด ถ่ายรูปสถานที่ (แนวนอน ไม่มีหน้าคนแปลกหน้า) สำหรับหน้าสถานที่
-      · A landscape photograph of each place for its screen (docs/46, still owed)
+- [ ] ที่ละจุด ถ่ายรูปสถานที่ (แนวนอน 16:9 ไม่มีหน้าคนแปลกหน้า) สำหรับหน้าสถานที่ — ไม่มีรูปที่มีสัญญาอนุญาตของจุดเหล่านี้ในแหล่งเปิดเลย (ตรวจ Wikimedia Commons และ Wikipedia 8 ก.ย.) จึงต้องถ่ายเอง; วางไฟล์ตามชื่อ id ใน `apps/mobile/public/assets/places/` (README ที่นั่นบอกขนาดและวิธีต่อสายเข้า seed ในห้านาที)
+      · A landscape 16:9 photograph of each place for its screen — no licensed photograph of these five exists in the open sources (Commons and Wikipedia checked on the 8th), so they are ours to take; drop them by place id into `apps/mobile/public/assets/places/`, where the README says the size and the five-minute wiring
 - [ ] เล่าสตอรี่ของทีม 3–5 คลิป: ประตูเปิด 10 นาที → approve → ปิดประตู; นี่คือคลิปบนจอตอนคนเดินเข้าห้องวันศุกร์ (อัดพุธ 9 อยู่ถึงพุธ 16)
       · Three to five team stories, door open ten minutes, approved, door closed; these are on the wall on Friday and last until the 16th
 - [ ] คลิปจากรอบ drills ที่ไม่ควรอยู่บนจอ: กด Hide ทั้งหมดในคอนโซล ก่อนปิดประตู

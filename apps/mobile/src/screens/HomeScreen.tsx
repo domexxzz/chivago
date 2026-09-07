@@ -35,6 +35,7 @@ import React from 'react';
 import { Image, Pressable, ScrollView, View } from 'react-native';
 import { areaOfProvince, inArea, type Area, type AreaKey } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
+import { photoUri } from '../api/photos.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { ChevronRight, Compass, Leaf, MessageCircle, Search, Shield, Sparkles, UserRound, Users, Wallet } from 'lucide-react-native';
 import {
@@ -396,7 +397,7 @@ function Places({
   // Warm the photographs while there is signal: the place screen at the
   // mangrove opens off the cache, not off a stalled request.
   React.useEffect(() => {
-    for (const p of list) if (p.photo) void Image.prefetch(p.photo.url).catch(() => {});
+    for (const p of list) if (p.photo) void Image.prefetch(photoUri(p.photo.url)).catch(() => {});
   }, [list]);
   if (list.length === 0) return null;
   return (
@@ -428,7 +429,7 @@ function PlaceCard({ place, onPress }: { place: ScoredPlace; onPress: () => void
     >
       <View style={{ height: 112, backgroundColor: color.neutral200 }}>
         {place.photo ? (
-          <Image source={{ uri: place.photo.url }} resizeMode="cover" style={{ width: '100%', height: '100%' }}
+          <Image source={{ uri: photoUri(place.photo.url) }} resizeMode="cover" style={{ width: '100%', height: '100%' }}
             accessibilityLabel={`${t(place.name)}, photographed by ${place.photo.credit}`} />
         ) : null}
         <View

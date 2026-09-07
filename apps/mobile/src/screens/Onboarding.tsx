@@ -14,6 +14,7 @@ import { Image, Pressable, ScrollView, View } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { strings, type ActivityKey, type PurposeKey, type ScoredPlace, type WatchKey } from '@chivago/core';
 import { api } from '../api/client.ts';
+import { photoUri } from '../api/photos.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
@@ -93,7 +94,7 @@ export function OnboardingScreen({
       <View style={{ height: 200, backgroundColor: color.brand, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' }}>
         {photo?.photo ? (
           <>
-            <Image source={{ uri: photo.photo.url }} resizeMode="cover" style={{ width: '100%', height: '100%' }}
+            <Image source={{ uri: photoUri(photo.photo.url) }} resizeMode="cover" style={{ width: '100%', height: '100%' }}
               accessibilityLabel={`${t(photo.name)}, photographed by ${photo.photo.credit}`} />
             <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: 'rgba(255,255,255,0.85)', paddingVertical: 3, paddingHorizontal: 8, borderTopLeftRadius: radius.sm }}>
               <Label size={9} tracking={0.06} colour={color.neutral700} style={{ textTransform: 'none' }}>{`${photo.photo.credit} · ${photo.photo.licence}`}</Label>
