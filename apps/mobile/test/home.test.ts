@@ -111,6 +111,13 @@ describe('what Home says', () => {
     ui.unmount();
   });
 
+  test('a place with no photograph says so, and wears its habitat rather than a grey box', async () => {
+    const s = server(routes({ '/places': [fx.place({ photo: null })] })); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+    assert.ok(ui.labels().includes('Chaweng Beach, no photograph yet'), 'the card announces the missing photograph');
+    ui.unmount();
+  });
+
   test('the profile is one tap from the top of Home', async () => {
     let opened = 0;
     const s = server(routes()); restore = s.restore;

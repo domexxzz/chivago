@@ -37,7 +37,10 @@ import { areaOfProvince, inArea, type Area, type AreaKey } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { photoUri } from '../api/photos.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
-import { ChevronRight, Compass, Leaf, MessageCircle, Search, Shield, Sparkles, UserRound, Users, Wallet } from 'lucide-react-native';
+import {
+  ChevronRight, Compass, HeartPulse, Leaf, MessageCircle, Search, Shield, Sparkles, Trees, UserRound, Users, Utensils, Wallet,
+} from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import {
   greetingFor, isHighScore, passportProgress, strings,
   type Quest, type QuestProgress, type ScoredPlace,
@@ -431,7 +434,9 @@ function PlaceCard({ place, onPress }: { place: ScoredPlace; onPress: () => void
         {place.photo ? (
           <Image source={{ uri: photoUri(place.photo.url) }} resizeMode="cover" style={{ width: '100%', height: '100%' }}
             accessibilityLabel={`${t(place.name)}, photographed by ${place.photo.credit}`} />
-        ) : null}
+        ) : (
+          <NoPhotograph place={place} />
+        )}
         <View
           style={{
             position: 'absolute', top: 8, left: 8, paddingVertical: 3, paddingHorizontal: 8, borderRadius: radius.lg,
@@ -644,6 +649,41 @@ function Figure({
       </View>
       <Label size={9} tracking={0.08} colour={color.neutral700} style={{ marginTop: 4 }}>{t({ en, th })}</Label>
     </Pressable>
+  );
+}
+
+/**
+ * A card with no photograph yet.
+ *
+ * Not a grey box, and not somebody else's photograph either: the five campus
+ * places had nothing under a licence anywhere in the open sources (Commons,
+ * Wikipedia, Openverse, checked on 8 September), so until the team's own
+ * photographs land in `public/assets/places/` the card wears its habitat -
+ * the layer's tint and mark - and says so to a screen reader. A picture of
+ * a different building would have been the one lie on the screen.
+ */
+const HABITAT: Record<string, { Mark: LucideIcon; tint: string; tone: string }> = {
+  Green: { Mark: Trees, tint: color.accent100, tone: color.accent500 },
+  Wellness: { Mark: HeartPulse, tint: color.brandSoft, tone: color.brand },
+  Food: { Mark: Utensils, tint: color.goldSoft, tone: color.gold },
+  Safe: { Mark: Shield, tint: color.neutral200, tone: color.neutral500 },
+  Quest: { Mark: Sparkles, tint: color.goldSoft, tone: color.goldDeep },
+};
+
+function NoPhotograph({ place }: { place: ScoredPlace }) {
+  const habitat = HABITAT[place.layer] ?? HABITAT.Safe!;
+  return (
+    <View
+      accessibilityLabel={`${t(place.name)}, ${t({ en: 'no photograph yet', th: 'ยังไม่มีรูป' })}`}
+      style={{ width: '100%', height: '100%', backgroundColor: habitat.tint, alignItems: 'center', justifyContent: 'center' }}
+    >
+      <View style={{ opacity: 0.45 }}>
+        <habitat.Mark size={44} color={habitat.tone} strokeWidth={1.6} />
+      </View>
+      <Label size={9} tracking={0.14} colour={habitat.tone} style={{ position: 'absolute', bottom: 8, right: 10, opacity: 0.9 }}>
+        {place.short}
+      </Label>
+    </View>
   );
 }
 
