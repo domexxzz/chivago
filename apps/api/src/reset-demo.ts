@@ -29,8 +29,9 @@ import {
   ensureWallet, getBalances, getExp, getLedger, grantOpeningBalance,
 } from './wallet-service.ts';
 import { getPersonalImpact, getShield, listOffers, listQuests } from './repo.ts';
+import { travellerStandings } from './standing-service.ts';
 import {
-  companionsFor, islandDateKey, SEED_PLACES, SEED_QUESTS, type MoodKey,
+  companionsFor, islandDateKey, isRankable, positionOf, SEED_PLACES, SEED_QUESTS, type MoodKey,
 } from '@chivago/core';
 
 const USER = process.env.CHIVAGO_DEMO_USER ?? 'demo-user';
@@ -294,6 +295,20 @@ function seed(db: DB): void {
     });
   }
 
+  /*
+   * A second traveller, so the standing is a ranking and not a mirror.
+   *
+   * One participant is not a ranking (standing.ts), and the profile says so
+   * rather than drawing a podium with one step. For the demo to show a
+   * position at all there has to be somebody else whose work a host has
+   * checked - so here is somebody else: two days on the island and one quest
+   * taken all the way through the municipality's approval, driven through
+   * the same services as everything above. Less than the demo traveller on
+   * purpose, so the presenter's own record is the one on top; and nothing of
+   * theirs but a count ever reaches a screen.
+   */
+  seedSecondTraveller(db);
+
   // One host files its statement (docs/31), so the demo can show a verified
   // quest as being on somebody's record. The municipality, because q1 is the
   // first quest anyone opens. Approval is stamped at reset time, inside the
@@ -325,6 +340,54 @@ function seed(db: DB): void {
       daysAgo(3).toISOString(),
     );
   }
+}
+
+const SECOND = 'demo-traveller-2';
+
+/** Two days on the island, both before the demo traveller's last two. */
+const SECOND_HISTORY: { day: number; places: string[] }[] = [
+  { day: 3, places: ['chaweng'] },
+  { day: 2, places: ['fisherman', 'chaweng'] },
+];
+
+function seedSecondTraveller(db: DB): void {
+  db.prepare('INSERT INTO users (id, display_name, locale, created_at) VALUES (?,?,?,?)')
+    .run(SECOND, 'Demo Traveller 2', 'th', daysAgo(4).toISOString());
+  // A wallet to credit, and no opening balance: a gift is not verified work
+  // and would not count anyway, but a second traveller who never opened the
+  // app has not been given one.
+  ensureWallet(db, SECOND);
+
+  // Check-ins through the real geofenced service, two hours apart and half
+  // an hour clear of the demo traveller's, at the real coordinates.
+  for (const day of SECOND_HISTORY) {
+    for (const [i, id] of day.places.entries()) {
+      const at = new Date(daysAgo(day.day).getTime() - (day.places.length - 1 - i) * 2 * 3_600_000 - 30 * 60_000);
+      const p = place(id);
+      const result = checkIn(db, { userId: SECOND, placeId: id, lat: p.lat, lng: p.lng, now: at });
+      if (result === null || !result.awarded) {
+        throw new Error(`second traveller: check-in at ${id} on ${islandDateKey(at)} was refused`);
+      }
+    }
+  }
+
+  // Beach Cleanup, all the way through the municipality's approval: 150 Green
+  // and one mission verified - a participant, and second to the presenter.
+  const q = quest('q1');
+  const arrivedAt = new Date(daysAgo(2).getTime() + 6 * 3_600_000);
+  const provedAt = new Date(arrivedAt.getTime() + 50 * 60_000);
+  const here = { lat: q.lat, lng: q.lng, accuracyM: 9 };
+  joinQuest(db, SECOND, q.id);
+  arriveAtQuest(db, SECOND, q.id, here, arrivedAt);
+  const { proofId } = submitProof(db, SECOND, q.id, {
+    photos: [{ uri: `demo://proof/${q.id}-second.jpg`, lat: q.lat, lng: q.lng, takenAt: provedAt.toISOString() }],
+    weightKg: 1.8,
+    position: here,
+  }, provedAt);
+  resolveVerification(db, {
+    userId: SECOND, questId: q.id, proofId, approved: true,
+    reviewedBy: 'Demo host', reviewNote: null,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -398,6 +461,19 @@ const CHECKS: Check[] = [
         }
       }
       return companions.map((c) => `${c.species.layer}:${c.stage}`).join(' ');
+    },
+  },
+  {
+    screen: 'Standing',
+    run: (db) => {
+      const travellers = travellerStandings(db);
+      const participants = travellers.filter((t) => t.greenVerified > 0).length;
+      if (!isRankable(participants)) {
+        throw new Error(`${participants} participant(s) - one traveller is a mirror, not a ranking`);
+      }
+      const position = positionOf(travellers, USER);
+      if (position !== 1) throw new Error(`the demo traveller is #${position}, not on top`);
+      return `#${position} of ${participants}`;
     },
   },
   {
