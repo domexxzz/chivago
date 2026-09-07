@@ -34,7 +34,7 @@ photograph, so it takes the photo encode - or, on a server whose ffmpeg
 cannot read HEIF, a refusal that says what to change in Settings), WebM by
 its EBML header, photographs by the proof sniffer's JPEG/PNG/WebP
 signatures. 25 MB at most, refused from the request's `content-length` or
-cut as it streams, never buffered whole first (docs/47); an 80-character
+cut as it streams, never buffered whole first (docs/49); an 80-character
 caption.
 
 ## The routes
@@ -44,7 +44,7 @@ caption.
 | `POST /places/:id/stories` | a device, multipart `file` + `caption` + `position` | 201 with the pending story, or the refusal that names why |
 | `GET /places/:id/stories` | a device | `{ open, stories }` — approved, unexpired, newest first |
 | `GET /areas/:key/stories` | anyone | the board's feed for the screen in the room |
-| `GET /stories/:id/media` · `/poster` | anyone | the bytes, approved only; revalidated on every play, so Hide is immediate (docs/47) |
+| `GET /stories/:id/media` · `/poster` | anyone | the bytes, approved only; revalidated on every play, so Hide is immediate (docs/49) |
 | `GET /console/stories` | a host | what is waiting where this host reviews; reloads itself every ten seconds |
 | `GET /console/stories/:id/media` · `/poster` | the reviewing host | a pending story's bytes, to decide |
 | `POST /console/stories/:id/approve` · `/hide` | the reviewing host, CSRF | the decision |

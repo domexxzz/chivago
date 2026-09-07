@@ -1,4 +1,4 @@
-# 47 — Before the room fills
+# 49 — Before the room fills
 
 Docs/44–46 built stories and the door for Friday 11 September at the Si
 Racha campus. A read of that code with the room in mind - one QR code, one
