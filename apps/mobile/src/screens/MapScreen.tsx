@@ -64,10 +64,14 @@ export function MapScreen({
   // when either changes identity, and a fresh array plus a fresh arrow on
   // every render - every toast, every SOS poll - was rebuilding five
   // markers a few times a minute for nothing.
-  const visible = React.useMemo(
-    () => (places.data ?? []).filter((p) => layers[p.layer] && areaOfProvince(p.province) === area.key),
-    [places.data, layers, area.key],
+  // Every place in the area, before the layers - kept apart so an empty map
+  // can say which of the two it is: the layers hiding everything, or an area
+  // the API has nothing in yet. One message blamed the layers for both.
+  const here = React.useMemo(
+    () => (places.data ?? []).filter((p) => areaOfProvince(p.province) === area.key),
+    [places.data, area.key],
   );
+  const visible = React.useMemo(() => here.filter((p) => layers[p.layer]), [here, layers]);
   const questsHere = React.useMemo(
     () => (quests.data?.quests ?? NO_QUESTS).filter((q) => inArea(area, q)),
     [quests.data, area],
@@ -94,6 +98,15 @@ export function MapScreen({
           <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
           {mode === 'map' ? (
             <SamuiMap
+              /*
+                A different area is a different map. The web map builds its
+                MapLibre instance once, on mount, with the area's box as the
+                edge it cannot scroll past; keyed by area, the chip tears
+                that map down and builds the other one, instead of moving
+                the pins around inside a frame locked to the wrong place -
+                which is what "KU Sriracha" over a map of Samui was.
+              */
+              key={area.key}
               area={area}
               storied={storied}
               places={visible}
@@ -130,7 +143,9 @@ export function MapScreen({
           {visible.length === 0 ? (
             <View style={{ padding: gutter }}>
               <Body colour={color.neutral700}>
-                {t({ en: 'No places match the active layers.', th: 'ไม่มีสถานที่ตรงกับตัวกรองที่เลือก' })}
+                {here.length === 0
+                  ? t({ en: 'No places in this area yet.', th: 'ยังไม่มีสถานที่ในพื้นที่นี้' })
+                  : t({ en: 'No places match the active layers.', th: 'ไม่มีสถานที่ตรงกับตัวกรองที่เลือก' })}
               </Body>
             </View>
           ) : null}

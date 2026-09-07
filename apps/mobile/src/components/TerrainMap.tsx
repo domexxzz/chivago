@@ -555,6 +555,10 @@ export function TerrainMap({
 
     map.current = m;
     return bail;
+    // Once per mount, on purpose: the box, the bounds and the pose are the
+    // area's, and MapLibre has no way to swap them under a live map.
+    // MapScreen keys this component by area, so a change of area is a fresh
+    // mount and a fresh map, not a map of the island asked to show the campus.
   }, []);
 
   // The mist follows the places reached.
