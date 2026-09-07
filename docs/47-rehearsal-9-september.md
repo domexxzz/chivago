@@ -23,6 +23,12 @@ this machine has no Fly account.
       · The live API is up, built from current `main`, and answers (docs/46, steps 1–3)
 - [ ] seed แล้ว จดคีย์ 2 ดอกบนกระดาษ ไม่ใช่ในแชต: ทีม (h-ku-chivago) และ moderator
       · Seed keys written on paper, not in chat: the team's and the platform host's (the moderator)
+- [ ] รัน demo reset บน Fly หลัง seed: `fly ssh console -C "node --experimental-strip-types apps/api/src/reset-demo.ts --walk"` ต้องเห็น PASS ทุกจอ และ `Standing #1 of 2` (นักเดินทางคนที่สองที่ทำภารกิจผ่านการตรวจ คือสิ่งที่ทำให้อันดับเป็นอันดับจริง)
+      · Run the demo reset on Fly after the seed; the walk must print PASS on every screen, Standing #1 of 2 — the second traveller with one approved quest is what makes the standing a ranking
+- [ ] ทันทีหลัง reset ก่อนเครื่องไหนเปิดแอป: ขอรหัสผูกเครื่องของ demo-user ด้วย `curl -s -X POST https://chivago.fly.dev/account/link-code -H "x-chivago-user: demo-user"` (ได้ `code` ใช้ได้ 10 นาที; header นี้ใช้ได้เฉพาะตอนยังไม่มีเครื่องไหนลงทะเบียน) แล้วบนโทรศัพท์เวที: ไอคอนโปรไฟล์ → ฟันเฟือง → "มีรหัสอยู่แล้ว?" → ใส่รหัส → เครื่องบนเวทีกลายเป็น demo-user (ต้องเห็น 1,850 G, อันดับ #1 จาก 2 คน, เหรียญ 5/7)
+      · Immediately after the reset, before any phone opens the app, ask for demo-user's link code by header (open only while no device exists); enter it on the stage phone under Profile → gear → "Already have a code?" — the stage phone becomes the demo traveller: 1,850 G, #1 of 2, 5/7 medals
+- [ ] ถ้ามีเครื่องลงทะเบียนไปก่อนขอรหัส: รัน reset อีกครั้ง (ล้าง device_keys) แล้วทำข้อบนใหม่
+      · If a phone registered before the code was asked for: reset again and repeat
 - [ ] ตั้ง secrets: `CHIVAGO_EVENT_TOKEN` (32 ตัวอักษรสุ่ม) และ `CHIVAGO_REGISTRATIONS_PER_HOUR=500`
       · Secrets set: the event token and the registration limit for the day
 - [ ] สร้าง QR ด้วย token จริง แล้วพิมพ์กระดาษธรรมดา 6 ใบ (ห้อง 1 + สถานที่ 5) ห้าม commit รูป
@@ -83,8 +89,8 @@ is over 25 MB (4K at 60 fps is), set the camera to 1080p at 30 fps and retry.
        · Map tab shows the campus with five pins; the chip switches the map both ways (fixed 7 Sep)
 3. [ ] สแกน QR หอสมุด → หน้า "หอสมุดอนุสรณ์ 10 ปี"
        · The library code lands on the library
-4. [ ] เช็กอินที่หอสมุด: ผ่านรั้ว 250 ม. และ second signal (ไม่ mock, accuracy พอ, ไม่เดินทางเร็วผิดปกติ)
-       · Check in at the library: the fence and the second signal both pass
+4. [ ] เช็กอินที่หอสมุด: ผ่านรั้ว 250 ม. และ second signal (ไม่ mock, accuracy พอ, ไม่เดินทางเร็วผิดปกติ); บนเครื่องที่ไม่เคยเปิดแอป ข้อความต้องเป็น "เช็กอินแล้ว ได้ 20 แต้มทริป · ได้เหรียญ ก้าวแรก"
+       · Check in at the library: the fence and the second signal both pass; on the phone that never opened the app the toast ends with the first medal
 5. [ ] "เล่าสตอรี่ที่นี่": เห็นข้อความ "คลิปของคุณจะขึ้นจอในงานและอยู่ในแอป 7 วัน ถ่ายเฉพาะคนที่ยินดีให้ถ่าย" → อัดไม่เกิน 10 วิ → ส่ง → "ส่งแล้ว จะขึ้นเมื่อทีมตรวจแล้ว"
        · Tell a story: the notice, record ten seconds at most, send, sent
 6. [ ] โทรศัพท์เวที: `/console/stories` โชว์คลิปภายใน 10 วิ (หน้า reload เองทุก 10 วิ) → ดูโปสเตอร์และเปิดคลิปดูให้จบ → "Approve · แสดง"
@@ -93,6 +99,8 @@ is over 25 MB (4K at 60 fps is), set the camera to 1080p at 30 fps and retry.
        · The board shows it within ten seconds of the approval; the count goes up by one
 8. [ ] กลับที่แอป: หมุดหอสมุดมีวงแหวนทอง แถว "สตอรี่" มีคลิป แตะแล้วเล่น (ไม่มีเสียง) แล้วปิดเองเมื่อจบ
        · Back on the phone: the gold ring on the pin, the row, the viewer plays muted and closes itself
+9. [ ] หน้าแรก → ไอคอนโปรไฟล์มุมขวาบน: เครื่องเวที (demo-user) เห็นอันดับ "#1 จาก 2 คน" และเหรียญ 5/7; เครื่องแขกเห็นเหรียญ "ก้าวแรก" ได้แล้ว และ "ทั่วแคมปัส 1/5"
+       · Home → the profile button: the stage phone shows #1 of 2 and 5/7 medals; a guest phone shows First steps earned and the campus at 1/5
 
 ผ่าน = ข้อ 1–8 ครบโดยไม่ต้องลองซ้ำขั้นไหน และ approve → board ไม่เกิน 10 วิ
 นับ 3 รอบติด ล้มรอบไหน แก้แล้วเริ่มนับใหม่ที่ 1
