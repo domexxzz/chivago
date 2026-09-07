@@ -10,18 +10,22 @@ animal in it.
 On the web, `apps/mobile/src/components/creature3d/Creature3D.tsx` renders a
 real-time scene: the animal built from primitives, on a patch of the ground it
 lives on, with the things that live there too, lit by the island's clock. A
-dusky langur in the forest at Na Muang; a green sea turtle on the sand at
-Chaweng with the sea behind it; a fiddler crab in mangrove mud under prop
-roots; a brahminy kite banking over a fishing shore; an egg in a nest.
+coconut macaque in the forest at Na Muang; a green sea turtle on the sand at
+Chaweng with the sea behind it; a water buffalo in the mangrove under prop
+roots; a day octopus on a fishing shore; a junglefowl on the hill; an egg in
+a nest. Since 8 September the five are built to the team's own reference art
+— upright, waving, in a sash and shorts — in `creature3d/companion-rig.ts`
+(`51-the-samui-five.md`); the room around them is what this note describes.
 
 It is alive in the ways an animal is and a mascot is not:
 
 - it **breathes**, and an egg wobbles instead;
 - it **blinks**, at intervals that are not a metronome;
 - it **looks at your finger**, head only, within what a neck allows;
-- it **answers a tap** the way that animal would — a langur hops and tilts its
-  head, a hornbill throws its bill up the way they call, a kite banks round,
-  a turtle tucks its head and peeks, a crab waves the claw;
+- it **answers a tap** the way that animal would — all five wave, as drawn,
+  and then the macaque hops and holds up its coconut, the junglefowl flaps
+  and hops, the octopus lifts its resting arms and squashes, the turtle tucks
+  its head and peeks, the buffalo tosses its horns and stamps;
 - it **turns slowly** while nobody is touching it, and you can drag it round.
 
 The light is the island's. `rig.ts` maps the hour in Bangkok to a sun that
@@ -35,9 +39,11 @@ beach in daylight.
 ## What it refuses
 
 **Primitives, still.** No model file, for the same reason the SVG marks have
-no photograph: a downloaded langur carries somebody's licence and somebody's
-idea of a langur. Every shape is a sphere, a capsule, a cone or a tube along
-a curve, placed by a number a person can read and change.
+no photograph: a downloaded monkey carries somebody's licence and somebody's
+idea of a monkey. Every shape is a sphere, a capsule, a cone or a tube along
+a curve, placed by a number a person can read and change. The one texture —
+the diamond lattice on the sashes and shorts — is drawn on a canvas at run
+time from three colours, so there is no image file either.
 
 **The animals wear their own colours.** The marks were tinted by stage
 because they were marks. A three-dimensional turtle is olive because a turtle
@@ -73,10 +79,10 @@ still image is the floor and the loop runs on top of it.
 
 ## Still owed
 
-- **Illustration is not modelling.** These are good primitives. A modeller
-  with a week would do better, and — unlike a photograph of a real place — a
-  sculpted langur is honestly a sculpture.
-- **No sound.** A hornbill's call would be worth having and would need a
+- **Illustration is not modelling.** These are good primitives, now built to
+  a picture. A modeller with a week would do better, and — unlike a
+  photograph of a real place — a sculpted macaque is honestly a sculpture.
+- **No sound.** A junglefowl's crow would be worth having and would need a
   recording somebody holds the rights to.
 - **The native app.** `expo-gl` and a development build; the rig would carry
   over as it stands.

@@ -73,6 +73,6 @@ describe('what it says about itself', () => {
   test('the Samui species are not replaced: the mascot for Surat Thani is an emblem, not an animal claim', () => {
     const surat = mascotFor('TH-84')!;
     assert.equal(surat.basis, 'produce');
-    assert.notEqual(surat.archetype, 'ape', 'the langur stays a species, not a mascot');
+    assert.notEqual(surat.archetype, 'ape', 'the macaque stays a species, not a mascot');
   });
 });

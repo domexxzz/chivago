@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  EVIDENCE_GREEN, HABITATS, LOOKS, REACTION_MS, headRatio, lightingFor, motionScale, placements,
+  EVIDENCE_GREEN, HABITATS, LEAF_GREEN, LOOKS, REACTION_MS, headRatio, lightingFor, motionScale, placements,
   speckles, stageScale,
 } from '../src/components/creature3d/rig.ts';
 import { SPECIES } from '@chivago/core';
@@ -25,25 +25,55 @@ describe('the animals wear their own colours', () => {
     }
   });
 
-  test('no animal wears the evidence green', () => {
-    // Green means a host verified something. A turtle is olive; a langur is
-    // slate. The stage is said by size and by the badge, never by the colour.
+  test('no animal wears the evidence green, in its fur or its clothes', () => {
+    // Green means a host verified something. A turtle is olive; a macaque is
+    // brown. The stage is said by size and by the badge, never by the colour.
     for (const look of Object.values(LOOKS)) {
-      for (const [part, hex] of Object.entries(look.colours)) {
+      for (const [part, hex] of [...Object.entries(look.colours), ...Object.entries(look.wear)]) {
         assert.notEqual(hex.toLowerCase(), EVIDENCE_GREEN, `${look.key}.${part}`);
         assert.match(hex, /^#[0-9a-f]{6}$/i, `${look.key}.${part} is not a hex colour`);
       }
     }
+    // The sprout on three of the heads is a leaf, and a leaf is green - but not that one.
+    assert.notEqual(LEAF_GREEN.toLowerCase(), EVIDENCE_GREEN);
   });
 
   test('the field marks are the ones you would name the animal by', () => {
-    // White eye rings, cream casque, chestnut wing, dark scutes, a yellow claw.
-    assert.ok(parseInt(LOOKS['dusky-langur'].colours.feature.slice(1), 16) > 0xeeeeee, 'langur rings are white');
-    assert.ok(LOOKS['pied-hornbill'].colours.body < '#333333', 'hornbill body is black');
-    const kite = LOOKS['brahminy-kite'].colours.feature;
-    const [r, g, b] = [1, 3, 5].map((i) => parseInt(kite.slice(i, i + 2), 16)) as [number, number, number];
-    assert.ok(r > g && g > b && r > 0x60, 'kite wing is chestnut: red over green over blue');
-    assert.notEqual(LOOKS['fiddler-crab'].colours.feature, LOOKS['fiddler-crab'].colours.body, 'the claw stands out');
+    // From the reference art: a tan face on a brown macaque holding a dark
+    // coconut; a golden crest and teal wings on a cream junglefowl; cream
+    // suckers on a coral octopus; dark spots on an olive turtle under a brown
+    // shell; dark horns on a brown buffalo.
+    const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
+    const light = (hex: string) => rgb(hex).reduce((a, b) => a + b, 0);
+    const m = LOOKS['coconut-macaque'].colours;
+    assert.ok(light(m.beak) > light(m.body), 'the macaque face is paler than its fur');
+    assert.ok(light(m.feature) < light(m.body), 'the coconut is darker than the fur');
+    const j = LOOKS['red-junglefowl'].colours;
+    assert.ok(light(j.body) > 600, 'the junglefowl is cream');
+    const [cr, cg, cb] = rgb(j.feature);
+    assert.ok(cr > cg && cg > cb, 'the crest is gold: red over green over blue');
+    const [tr, tg, tb] = rgb(j.accent!);
+    assert.ok(tg > tr && tb > tr, 'the wings are teal');
+    const o = LOOKS['day-octopus'].colours;
+    assert.ok(light(o.feature) > light(o.body), 'the suckers are paler than the arm');
+    const [or, og, ob] = rgb(o.body);
+    assert.ok(or > og && og > ob, 'the octopus is coral');
+    const t = LOOKS['green-turtle'].colours;
+    assert.ok(light(t.feature) < light(t.body), 'the spots are darker than the skin');
+    const [sr, sg, sb] = rgb(t.accent!);
+    assert.ok(sr > sg && sg > sb, 'the shell is brown');
+    const b = LOOKS['water-buffalo'].colours;
+    assert.ok(light(b.feature) < light(b.body) && light(b.feature) < 0x90, 'the horns are dark');
+  });
+
+  test('every one of the five is dressed, and in cloth that is not the evidence green', () => {
+    // The art puts all five in the same wardrobe: sash, shorts, rope belt.
+    for (const look of Object.values(LOOKS)) {
+      for (const part of ['sash', 'shorts', 'ink', 'accent', 'rope'] as const) {
+        assert.match(look.wear[part], /^#[0-9a-f]{6}$/i, `${look.key} has no ${part}`);
+      }
+      assert.notEqual(look.wear.ink, look.wear.sash, `${look.key}: the pattern would vanish on its own sash`);
+    }
   });
 });
 

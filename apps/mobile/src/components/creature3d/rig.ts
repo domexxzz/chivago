@@ -18,8 +18,9 @@
  *   - the light follows the island's clock, the same one the greeting reads.
  *   - reduce-motion means still. Not slower: still.
  *
- * Numbers are metres in a scene where a grown langur stands about 0.6 high,
- * because the camera maths is easier to read that way than in pixels.
+ * Numbers are metres in a scene where a grown companion stands about one
+ * high, head and all, because the camera maths is easier to read that way
+ * than in pixels.
  */
 
 import type { CompanionStage, LayerKey } from '@chivago/core';
@@ -40,11 +41,19 @@ export interface Look {
     body: string;
     belly: string;
     limb: string;
-    /** The one feature: eye rings, casque, chestnut wing, shell, the big claw. */
+    /** The one feature: the coconut, the gold crest, the suckers, the scutes, the horns. */
     feature: string;
     eye: string;
     beak: string;
+    /** A second colour where the art has one: the junglefowl's teal wings, the turtle's shell. */
+    accent?: string;
   };
+  /**
+   * What it wears. All five are drawn in the same wardrobe - a patterned
+   * sash, shorts, a rope belt - in their own colours. `ink` and `accent` are
+   * the diamond pattern's two colours on the `sash` and `shorts` grounds.
+   */
+  wear: { sash: string; shorts: string; ink: string; accent: string; rope: string };
   /** Where it lives in the frame: on the ground, in the air, or at the water. */
   medium: 'ground' | 'air' | 'shore' | 'mud';
   /** Height of the grown animal's eye line, in scene metres. */
@@ -52,37 +61,51 @@ export interface Look {
 }
 
 /**
- * Field-guide colours, not brand colours. A dusky langur is slate with a pale
- * belly; the hornbill is black and white with a cream casque; the kite is
- * chestnut under a white hood; the turtle is olive; the crab is the orange
- * of a claw waved at a rival. The eye is nearly black with a white catchlight
- * for all five - that is what makes a drawn animal look back at you.
+ * The team's own five, coloured from the reference art of 8 September
+ * (docs/51): a brown macaque with a tan face and a coconut in hand; a cream
+ * junglefowl with a golden crest, teal wings and orange feet; a coral
+ * octopus with cream suckers; an olive turtle with dark spots under a brown
+ * shell; a brown buffalo with dark horns. Mascot colours, and still none of
+ * them wears the app's evidence green. The eye is nearly black with a white
+ * catchlight for all five - that is what makes a drawn animal look back at
+ * you.
  */
 export const LOOKS: Record<CreatureKey, Look> = {
-  'dusky-langur': {
-    key: 'dusky-langur', layer: 'Green', medium: 'ground', eyeHeight: 0.62,
-    colours: { body: '#5a5d6b', belly: '#c9c3b8', limb: '#3f424e', feature: '#f4f1ea', eye: '#1a1410', beak: '#c98c84' },
+  'coconut-macaque': {
+    key: 'coconut-macaque', layer: 'Green', medium: 'ground', eyeHeight: 0.8,
+    colours: { body: '#8b5a2b', belly: '#e2b985', limb: '#6f4522', feature: '#5c3a1a', eye: '#1a1410', beak: '#e9c39a' },
+    wear: { sash: '#f4f1e6', shorts: '#bfe0f0', ink: '#2f7fb8', accent: '#f0a040', rope: '#c9a86a' },
   },
-  'pied-hornbill': {
-    key: 'pied-hornbill', layer: 'Wellness', medium: 'ground', eyeHeight: 0.58,
-    colours: { body: '#16181d', belly: '#f2efe6', limb: '#2b2d33', feature: '#f0e3b0', eye: '#1a1410', beak: '#e9dfa8' },
+  'red-junglefowl': {
+    key: 'red-junglefowl', layer: 'Wellness', medium: 'ground', eyeHeight: 0.8,
+    colours: { body: '#f1e4cc', belly: '#faf3e4', limb: '#e07a2f', feature: '#d9a531', eye: '#1a1410', beak: '#e8963b', accent: '#2a9d8f' },
+    wear: { sash: '#2b4a7a', shorts: '#4fb3b8', ink: '#f4f1e6', accent: '#e8963b', rope: '#c9a86a' },
   },
-  'brahminy-kite': {
-    key: 'brahminy-kite', layer: 'Food', medium: 'air', eyeHeight: 1.1,
-    colours: { body: '#8a3a1c', belly: '#f4efe4', limb: '#d9a531', feature: '#7a2f14', eye: '#1a1410', beak: '#e0c35a' },
+  'day-octopus': {
+    key: 'day-octopus', layer: 'Food', medium: 'shore', eyeHeight: 0.56,
+    colours: { body: '#e8825a', belly: '#f5dcc4', limb: '#e07a50', feature: '#f4dfc8', eye: '#1a1410', beak: '#c9613c' },
+    wear: { sash: '#f4f1e6', shorts: '#f4f1e6', ink: '#3b6fc4', accent: '#9fc3e8', rope: '#c9a86a' },
   },
   'green-turtle': {
-    key: 'green-turtle', layer: 'Safe', medium: 'shore', eyeHeight: 0.26,
-    colours: { body: '#6e7d3d', belly: '#d9d2a8', limb: '#5f6c3a', feature: '#4f5e2c', eye: '#1a1410', beak: '#8f9770' },
+    key: 'green-turtle', layer: 'Safe', medium: 'shore', eyeHeight: 0.8,
+    colours: { body: '#b3ab74', belly: '#e4d8b0', limb: '#9e975f', feature: '#6b6e3a', eye: '#1a1410', beak: '#7d6a3a', accent: '#8a5a34' },
+    wear: { sash: '#f4f1e6', shorts: '#f4f1e6', ink: '#2f5fb8', accent: '#9fc3e8', rope: '#c9a86a' },
   },
-  'fiddler-crab': {
-    key: 'fiddler-crab', layer: 'Quest', medium: 'mud', eyeHeight: 0.22,
-    colours: { body: '#d9622a', belly: '#f0b48a', limb: '#b94c1f', feature: '#f2c14e', eye: '#1a1410', beak: '#8a3a1c' },
+  'water-buffalo': {
+    key: 'water-buffalo', layer: 'Quest', medium: 'ground', eyeHeight: 0.8,
+    colours: { body: '#6b4423', belly: '#c79a6b', limb: '#553419', feature: '#3a2513', eye: '#1a1410', beak: '#d8b08a' },
+    wear: { sash: '#f4ead2', shorts: '#f4ead2', ink: '#2f7fb8', accent: '#f0a040', rope: '#4fb3b8' },
   },
 };
 
 /** The app's evidence green. No animal may wear it - see the file header. */
 export const EVIDENCE_GREEN = '#25874c';
+
+/**
+ * The leaf three of them wear on the head, as drawn. A leaf is green; the
+ * evidence green it is not, and the test holds the two apart.
+ */
+export const LEAF_GREEN = '#3f9a5f';
 
 // ---------------------------------------------------------------------------
 // Stage
@@ -206,13 +229,13 @@ export const lightingNow = (at = new Date()): Lighting => lightingFor(islandHour
  */
 export const motionScale = (reduceMotion: boolean): number => (reduceMotion ? 0 : 1);
 
-/** How long a tap's reaction lasts, per species. Birds are quick; a turtle is not. */
+/** How long a tap's reaction lasts, per species. A bird is quick; a turtle is not. */
 export const REACTION_MS: Record<CreatureKey, number> = {
-  'dusky-langur': 1100,
-  'pied-hornbill': 900,
-  'brahminy-kite': 1600,
-  'green-turtle': 1800,
-  'fiddler-crab': 1300,
+  'coconut-macaque': 1100,
+  'red-junglefowl': 1000,
+  'day-octopus': 1400,
+  'green-turtle': 1600,
+  'water-buffalo': 1300,
 };
 
 // ---------------------------------------------------------------------------
@@ -234,8 +257,8 @@ function rng(seed: number): () => number {
 
 /**
  * Where the props stand: a ring around the animal, never on it, and never
- * between it and the camera. Seeded by the layer so a langur's forest is
- * the same forest tomorrow.
+ * between it and the camera. Seeded by the layer so a macaque's grove is
+ * the same grove tomorrow.
  */
 export function placements(layer: LayerKey, count: number, inner = 1.1, outer = 2.6): Placement[] {
   const seed = [...layer].reduce((n, c) => n * 31 + c.charCodeAt(0), 7);

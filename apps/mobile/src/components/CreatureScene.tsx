@@ -49,7 +49,7 @@ function useBreath(): Animated.Value {
   return breath;
 }
 
-const KNOWN: readonly CreatureKey[] = ['dusky-langur', 'pied-hornbill', 'brahminy-kite', 'green-turtle', 'fiddler-crab'];
+const KNOWN: readonly CreatureKey[] = ['coconut-macaque', 'red-junglefowl', 'day-octopus', 'green-turtle', 'water-buffalo'];
 const isKnown = (s: string): s is CreatureKey => (KNOWN as readonly string[]).includes(s);
 
 export function CreatureScene({
@@ -60,7 +60,7 @@ export function CreatureScene({
   /** Or a provincial mascot, which takes precedence: its room, its body. */
   mascot?: Mascot;
   stage: CompanionStage;
-  /** Spoken name of what is on screen, e.g. "Dusky langur, grown". */
+  /** Spoken name of what is on screen, e.g. "Water buffalo, grown". */
   label: string;
   onTap?: () => void;
   grown: boolean;

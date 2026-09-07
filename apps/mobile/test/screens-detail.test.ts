@@ -1398,7 +1398,7 @@ describe('a companion at home', () => {
     try {
       const ui = await mountScreen(h(CompanionHomeScreen, props({ companion: egg() })));
       const said = ui.text();
-      assert.doesNotMatch(said, /hornbill/i, 'the egg named the species inside it');
+      assert.doesNotMatch(said, /junglefowl/i, 'the egg named the species inside it');
       assert.match(said, /egg/i);
       ui.unmount();
     } finally { net.restore(); }
@@ -1530,7 +1530,7 @@ describe('the passport, which shows a country it has not finished', () => {
     try {
       const said = (await mountScreen(h(PassportScreen, {}))).text();
       // Every species name in the app. None may appear without evidence.
-      for (const animal of ['Green sea turtle', 'Dusky langur']) {
+      for (const animal of ['Green sea turtle', 'Southern pig-tailed macaque', 'Water buffalo']) {
         assert.doesNotMatch(said, new RegExp(animal), `${animal} was claimed for a sealed province`);
       }
       assert.match(said, /75/, 'the sealed count is not shown');

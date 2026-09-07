@@ -49,15 +49,22 @@ check:
 
 | Habitat | Species | | IUCN |
 | --- | --- | --- | --- |
-| Green | Dusky langur · ค่างแว่นถิ่นใต้ | *Trachypithecus obscurus* | EN |
-| Wellness | Oriental pied hornbill · นกแก๊ก | *Anthracoceros albirostris* | LC |
-| Food | Brahminy kite · เหยี่ยวแดง | *Haliastur indus* | LC |
+| Green | Southern pig-tailed macaque · ลิงกัง | *Macaca nemestrina* | VU |
+| Wellness | Red junglefowl · ไก่ป่า | *Gallus gallus* | LC |
+| Food | Day octopus · หมึกสาย | *Octopus cyanea* | LC |
 | Safe | Green sea turtle · เต่าตนุ | *Chelonia mydas* | EN |
-| Quest | Fiddler crab · ปูก้ามดาบ | *Austruca / Tubuca* spp. | NE |
+| Quest | Water buffalo · ควาย | *Bubalus bubalis* | NE |
 
 Invented creatures would have been easier and would have taught nothing. An app
 whose whole argument is that the island is worth looking after can name what
 actually lives on it.
+
+Since 8 September the five are the team's own mascots — the animals people
+on Samui actually meet, drawn upright and waving — and the models and marks
+follow the team's reference art (`51-the-samui-five.md`, which also records
+the two decisions the art left open: which bird, and which room). The first
+five — dusky langur, pied hornbill, brahminy kite, fiddler crab, and the
+turtle drawn from above — are in the history.
 
 The conservation categories carry `SPECIES_AS_OF`, because IUCN status is
 exactly the kind of claim that ages — the same rule the fare table and the

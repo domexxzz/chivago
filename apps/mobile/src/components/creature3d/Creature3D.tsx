@@ -4,14 +4,18 @@
  * A real-time scene: the animal built from primitives with a small rig, lit
  * by the island's clock, on a patch of the ground it actually lives on, with
  * the things that live there too. It breathes, it blinks, it looks at your
- * finger, and it answers a tap the way that animal would - a langur hops, a
- * hornbill throws its bill up, a kite banks round, a turtle tucks its head
- * and peeks, a crab waves the claw.
+ * finger, and it answers a tap the way that animal would - every one of the
+ * five waves, as the team drew them, and then the macaque hops and holds up
+ * its coconut, the junglefowl flaps and hops, the octopus lifts all seven
+ * resting arms and squashes, the turtle tucks its head and peeks, the
+ * buffalo tosses its horns and stamps.
  *
  * PRIMITIVES, STILL. No model file, for the same reason the SVG marks have no
- * photograph: a downloaded langur carries somebody's licence and somebody's
- * idea of a langur. Every shape here is a sphere, a capsule, a cone or a
- * tube along a curve, placed by a number a person can read and change.
+ * photograph: a downloaded monkey carries somebody's licence and somebody's
+ * idea of a monkey. Every shape here is a sphere, a capsule, a cone or a
+ * tube along a curve, placed by a number a person can read and change. The
+ * five animals themselves are built in `companion-rig.ts`, to the team's
+ * reference art; this file owns the room around them.
  *
  * WHAT IT DOES NOT DO. It does not feed, level, decay or want anything: the
  * meters below it are the habitat's measured air and crowding, and nothing
@@ -36,243 +40,9 @@ import {
 // Small builders. Every animal is made of these and nothing else.
 // ---------------------------------------------------------------------------
 
-import {
-  at, capsule, cone, cylinder, eyes, group, mat, shadowed, softDot, sphere, tube, type Mat, type Rig,
-} from './primitives.ts';
+import { cylinder, group, mat, shadowed, softDot, sphere, tube, type Rig } from './primitives.ts';
 import { MASCOT_REACTION_MS, buildMascot, mascotCamera, mascotIdle } from './mascot-rig.ts';
-
-function buildLangur(c: (typeof LOOKS)['dusky-langur']['colours'], hr: number): Rig {
-  const body = mat(c.body), belly = mat(c.belly), limb = mat(c.limb), face = mat(c.beak, { roughness: 0.7 });
-  const torso = sphere(0.22, body, 1, 1.25, 0.95);
-  torso.position.y = 0.36;
-  const chest = sphere(0.15, belly, 1, 1.15, 0.8);
-  chest.position.set(0, 0.34, 0.11);
-  const head = group();
-  head.position.set(0, 0.66, 0.02);
-  head.scale.setScalar(hr);
-  const skull = sphere(0.19, body);
-  const facePatch = sphere(0.12, face, 1, 0.95, 0.7);
-  facePatch.position.set(0, -0.02, 0.13);
-  // The crest: a tuft, not a spike. Dusky langurs have a soft peak of fur.
-  const crest = sphere(0.075, body, 1, 1.2, 0.9);
-  crest.position.set(0, 0.19, -0.03);
-  const ey = eyes(0.045, 0.07, 0.02, 0.19, mat(c.eye, { roughness: 0.25 }));
-  // The white rings. THE feature.
-  const ringMat = mat(c.feature, { roughness: 0.5 });
-  for (const side of [-1, 1]) {
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.016, 10, 24), ringMat);
-    ring.position.set(side * 0.07, 0.02, 0.185);
-    head.add(ring);
-  }
-  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.007, 8, 16, Math.PI), mat(c.eye));
-  mouth.position.set(0, -0.06, 0.2);
-  mouth.rotation.z = Math.PI;
-  head.add(skull, facePatch, crest, ey.group, mouth);
-  const limbs: THREE.Object3D[] = [];
-  for (const side of [-1, 1]) {
-    const arm = capsule(0.045, 0.2, limb);
-    at(arm, side * 0.2, 0.36, 0.06, 0.5, 0, side * 0.25);
-    const leg = capsule(0.055, 0.18, limb);
-    at(leg, side * 0.13, 0.12, 0.02, -0.3, 0, side * 0.15);
-    const foot = sphere(0.055, limb, 1, 0.6, 1.4);
-    foot.position.set(side * 0.14, 0.03, 0.08);
-    limbs.push(arm, leg);
-    torso.parent; // no-op, keeps ordering obvious
-    limbs.push(foot);
-  }
-  const tail = tube([[0, 0.25, -0.18], [0.05, 0.05, -0.42], [-0.12, 0.28, -0.62], [-0.1, 0.62, -0.7]], 0.035, limb, true);
-  const root = group(torso, chest, head, tail, ...limbs);
-  return { root, body: torso, head, lids: ey.lids, limbs, tail, restY: 0 };
-}
-
-function buildHornbill(c: (typeof LOOKS)['pied-hornbill']['colours'], hr: number): Rig {
-  const body = mat(c.body, { roughness: 0.6 }), belly = mat(c.belly), bill = mat(c.beak, { roughness: 0.45 }), casque = mat(c.feature, { roughness: 0.4 });
-  const torso = sphere(0.2, body, 0.95, 1.15, 1.35);
-  torso.position.set(0, 0.36, -0.05);
-  torso.rotation.x = 0.25;
-  const chest = sphere(0.13, belly, 1, 1.1, 0.9);
-  chest.position.set(0, 0.3, 0.12);
-  const head = group();
-  head.position.set(0, 0.62, 0.14);
-  head.scale.setScalar(hr);
-  const skull = sphere(0.14, body);
-  const upper = cone(0.075, 0.42, bill, 16);
-  at(upper, 0, 0.0, 0.3, Math.PI / 2 + 0.25, 0, 0);
-  upper.scale.set(1, 1, 0.75);
-  const lower = cone(0.06, 0.34, bill, 16);
-  at(lower, 0, -0.045, 0.26, Math.PI / 2 + 0.15, 0, 0);
-  lower.scale.set(1, 1, 0.55);
-  const cas = sphere(0.075, casque, 1.9, 0.9, 1);
-  at(cas, 0, 0.1, 0.16, 0, 0, 0);
-  cas.rotation.x = -0.3;
-  const eyeRing = mat('#9bd3ff', { roughness: 0.5 });
-  const ey = eyes(0.03, 0.09, 0.03, 0.1, mat(c.eye, { roughness: 0.25 }));
-  for (const side of [-1, 1]) {
-    const patch = sphere(0.045, eyeRing, 1, 1, 0.4);
-    patch.position.set(side * 0.09, 0.03, 0.095);
-    head.add(patch);
-  }
-  head.add(skull, upper, lower, cas, ey.group);
-  const wings: THREE.Object3D[] = [];
-  for (const side of [-1, 1]) {
-    const wing = sphere(0.16, body, 0.35, 0.6, 1.3);
-    wing.position.set(side * 0.16, 0.4, -0.08);
-    wing.rotation.z = side * 0.35;
-    wings.push(wing);
-  }
-  const tailFeathers = group();
-  for (let i = -1; i <= 1; i += 1) {
-    const f = capsule(0.03, 0.34, i === 0 ? belly : body);
-    at(f, i * 0.05, 0.26, -0.42, Math.PI / 2 - 0.3, 0, i * 0.12);
-    tailFeathers.add(f);
-  }
-  const legs: THREE.Object3D[] = [];
-  const legMat = mat(c.limb, { roughness: 0.6 });
-  for (const side of [-1, 1]) {
-    const leg = cylinder(0.018, 0.02, 0.22, legMat, 8);
-    at(leg, side * 0.07, 0.13, 0.02, 0.1, 0, 0);
-    const foot = capsule(0.015, 0.09, legMat);
-    at(foot, side * 0.07, 0.02, 0.06, Math.PI / 2, 0, 0);
-    legs.push(leg, foot);
-  }
-  const root = group(torso, chest, head, ...wings, tailFeathers, ...legs);
-  return { root, body: torso, head, lids: ey.lids, limbs: [...wings, lower], tail: tailFeathers, restY: 0 };
-}
-
-function buildKite(c: (typeof LOOKS)['brahminy-kite']['colours'], hr: number): Rig {
-  const body = mat(c.body, { roughness: 0.7 }), hood = mat(c.belly), wingMat = mat(c.feature, { roughness: 0.7 }), beak = mat(c.beak, { roughness: 0.4 }), talon = mat(c.limb, { roughness: 0.5 });
-  const torso = sphere(0.16, body, 0.9, 0.85, 1.5);
-  torso.position.set(0, 0, 0);
-  const breast = sphere(0.14, hood, 0.95, 0.8, 1.05);
-  breast.position.set(0, -0.02, 0.1);
-  const head = group();
-  head.position.set(0, 0.06, 0.24);
-  head.scale.setScalar(hr);
-  const skull = sphere(0.11, hood);
-  const bk = cone(0.035, 0.11, beak, 12);
-  at(bk, 0, -0.01, 0.13, Math.PI / 2 + 0.5, 0, 0);
-  const ey = eyes(0.024, 0.06, 0.02, 0.085, mat(c.eye, { roughness: 0.25 }));
-  head.add(skull, bk, ey.group);
-  const wings: THREE.Object3D[] = [];
-  for (const side of [-1, 1]) {
-    const pivot = group();
-    pivot.position.set(side * 0.1, 0.04, 0);
-    const inner = sphere(0.3, wingMat, 1.15, 0.12, 0.5);
-    inner.position.set(side * 0.3, 0, 0);
-    const outer = sphere(0.26, wingMat, 1.1, 0.09, 0.42);
-    outer.position.set(side * 0.78, 0.02, -0.06);
-    outer.rotation.y = side * -0.25;
-    // Black-tipped primaries: the field mark seen from below.
-    const tips = sphere(0.14, mat('#1b1b1f'), 1, 0.08, 0.55);
-    tips.position.set(side * 1.02, 0.02, -0.1);
-    pivot.add(inner, outer, tips);
-    wings.push(pivot);
-  }
-  const tail = sphere(0.14, wingMat, 1.2, 0.08, 1);
-  tail.position.set(0, 0, -0.3);
-  const legs: THREE.Object3D[] = [];
-  for (const side of [-1, 1]) {
-    const leg = capsule(0.018, 0.08, talon);
-    at(leg, side * 0.05, -0.12, 0.02, 0.4, 0, 0);
-    legs.push(leg);
-  }
-  const root = group(torso, breast, head, ...wings, tail, ...legs);
-  root.position.y = 1.1;
-  return { root, body: torso, head, lids: ey.lids, limbs: wings, tail, restY: 1.1 };
-}
-
-function buildTurtle(c: (typeof LOOKS)['green-turtle']['colours'], hr: number): Rig {
-  const shell = mat(c.body, { roughness: 0.55 }), scute = mat(c.feature, { roughness: 0.5 }), skin = mat(c.limb, { roughness: 0.75 }), plastron = mat(c.belly);
-  const dome = sphere(0.36, shell, 1, 0.55, 1.2);
-  dome.position.y = 0.2;
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.36, 0.045, 10, 36), shell);
-  rim.rotation.x = Math.PI / 2;
-  rim.position.y = 0.19;
-  rim.scale.set(1, 1.2, 1);
-  shadowed(rim);
-  const under = sphere(0.34, plastron, 1, 0.22, 1.15);
-  under.position.y = 0.16;
-  // Scutes: a ring of five around a centre, as on the real carapace.
-  const scutes = group();
-  // Low plates that follow the dome, not pebbles sitting on it.
-  const centre = sphere(0.12, scute, 1, 0.16, 1.3);
-  centre.position.set(0, 0.383, 0);
-  scutes.add(centre);
-  for (let i = 0; i < 6; i += 1) {
-    const a = (i / 6) * Math.PI * 2;
-    const s = sphere(0.095, scute, 1, 0.14, 1.15);
-    s.position.set(Math.cos(a) * 0.2, 0.352 - Math.abs(Math.sin(a)) * 0.025, Math.sin(a) * 0.25);
-    s.rotation.set(Math.sin(a) * -0.5, 0, Math.cos(a) * 0.5);
-    scutes.add(s);
-  }
-  const head = group();
-  head.position.set(0, 0.2, 0.46);
-  head.scale.setScalar(hr);
-  const skull = sphere(0.1, skin, 1, 0.85, 1.25);
-  const ey = eyes(0.03, 0.065, 0.035, 0.08, mat(c.eye, { roughness: 0.25 }));
-  const beakLine = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.006, 8, 16, Math.PI), mat(c.beak));
-  beakLine.position.set(0, -0.02, 0.12);
-  beakLine.rotation.z = Math.PI;
-  head.add(skull, ey.group, beakLine);
-  const neck = capsule(0.07, 0.1, skin);
-  at(neck, 0, 0.19, 0.34, Math.PI / 2, 0, 0);
-  const flippers: THREE.Object3D[] = [];
-  for (const side of [-1, 1]) {
-    const front = sphere(0.19, skin, 1, 0.22, 0.5);
-    at(front, side * 0.36, 0.12, 0.2, 0, side * -0.55, side * -0.12);
-    const back = sphere(0.12, skin, 1, 0.22, 0.55);
-    at(back, side * 0.27, 0.11, -0.3, 0, side * 0.7, 0);
-    flippers.push(front, back);
-  }
-  const tail = cone(0.035, 0.12, skin, 10);
-  at(tail, 0, 0.13, -0.45, -Math.PI / 2, 0, 0);
-  const root = group(dome, rim, under, scutes, neck, head, ...flippers, tail);
-  return { root, body: dome, head, lids: ey.lids, limbs: flippers, tail, restY: 0 };
-}
-
-function buildCrab(c: (typeof LOOKS)['fiddler-crab']['colours'], hr: number): Rig {
-  const shell = mat(c.body, { roughness: 0.5 }), under = mat(c.belly), legMat = mat(c.limb, { roughness: 0.6 }), claw = mat(c.feature, { roughness: 0.45 });
-  const carapace = sphere(0.22, shell, 1.35, 0.6, 1);
-  carapace.position.y = 0.2;
-  const belly = sphere(0.2, under, 1.3, 0.3, 0.95);
-  belly.position.y = 0.15;
-  const head = group();
-  head.position.set(0, 0.28, 0.1);
-  head.scale.setScalar(hr);
-  const ey = eyes(0.04, 0.09, 0.14, 0.05, mat(c.eye, { roughness: 0.25 }));
-  for (const side of [-1, 1]) {
-    const stalk = cylinder(0.014, 0.018, 0.16, legMat, 8);
-    stalk.position.set(side * 0.09, 0.06, 0.05);
-    head.add(stalk);
-  }
-  head.add(ey.group);
-  const limbs: THREE.Object3D[] = [];
-  for (const side of [-1, 1]) {
-    for (let i = 0; i < 3; i += 1) {
-      const z = -0.12 + i * 0.12;
-      const leg = tube([[side * 0.2, 0.16, z], [side * 0.36, 0.26, z], [side * 0.5, 0.0, z + 0.02]], 0.018, legMat, true);
-      limbs.push(leg);
-    }
-  }
-  // The claw. One absurd claw, the whole animal.
-  const clawPivot = group();
-  clawPivot.position.set(0.22, 0.2, 0.16);
-  const arm = capsule(0.035, 0.12, claw);
-  at(arm, 0.08, 0.02, 0.02, 0, 0, -1.2);
-  const palm = sphere(0.13, claw, 1.35, 0.75, 0.9);
-  palm.position.set(0.24, 0.06, 0.06);
-  const fingerTop = cone(0.045, 0.22, claw, 12);
-  at(fingerTop, 0.42, 0.11, 0.06, 0, 0, -1.9);
-  const fingerBottom = cone(0.04, 0.2, claw, 12);
-  at(fingerBottom, 0.42, 0.0, 0.06, 0, 0, -1.4);
-  clawPivot.add(arm, palm, fingerTop, fingerBottom);
-  const small = capsule(0.02, 0.07, legMat);
-  at(small, -0.24, 0.16, 0.16, 0, 0, 1.1);
-  const smallTip = sphere(0.035, claw);
-  smallTip.position.set(-0.3, 0.13, 0.18);
-  const root = group(carapace, belly, head, ...limbs, clawPivot, small, smallTip);
-  return { root, body: carapace, head, lids: ey.lids, limbs, tail: clawPivot, restY: 0 };
-}
+import { buildCompanion, companionIdle } from './companion-rig.ts';
 
 function buildEgg(layer: LayerKey): Rig {
   const h = HABITATS[layer];
@@ -313,17 +83,7 @@ function scaled(rig: Rig, stage: CompanionStage): Rig {
 function buildCreature(key: CreatureKey, stage: CompanionStage): Rig {
   const look = LOOKS[key];
   if (stage === 'egg') return buildEgg(look.layer);
-  const hr = headRatio(stage);
-  const rig = key === 'dusky-langur' ? buildLangur(look.colours, hr)
-    : key === 'pied-hornbill' ? buildHornbill(look.colours, hr)
-      : key === 'brahminy-kite' ? buildKite(look.colours, hr)
-        : key === 'green-turtle' ? buildTurtle(look.colours, hr)
-          : buildCrab(look.colours, hr);
-  const s = stageScale(stage);
-  rig.root.scale.setScalar(s);
-  rig.root.position.y *= s;
-  rig.restY *= s;
-  return rig;
+  return scaled(buildCompanion(key, look, headRatio(stage)), stage);
 }
 
 // ---------------------------------------------------------------------------
@@ -483,7 +243,7 @@ export function Creature3D({ species, mascot, stage, height = 320, label, onTap 
     if (!el) return;
     const still = prefersReducedMotion();
     const motion = motionScale(still);
-    const look = mascot ? null : LOOKS[species ?? 'dusky-langur'];
+    const look = mascot ? null : LOOKS[species ?? 'coconut-macaque'];
     const layer: LayerKey = mascot ? mascot.habitat : look!.layer;
     const habitat = HABITATS[layer];
     // `?hour=14` shows the room at that island hour. For looking at it, and
@@ -547,7 +307,7 @@ export function Creature3D({ species, mascot, stage, height = 320, label, onTap 
 
     const rig = mascot
       ? (stage === 'egg' ? buildEgg(mascot.habitat) : scaled(buildMascot(mascot, stage), stage))
-      : buildCreature(species ?? 'dusky-langur', stage);
+      : buildCreature(species ?? 'coconut-macaque', stage);
     const stageRoot = new THREE.Group();
     stageRoot.add(rig.root);
     scene.add(stageRoot);
@@ -566,7 +326,7 @@ export function Creature3D({ species, mascot, stage, height = 320, label, onTap 
       : cam ? cam.focusY * stageScale(stage) + 0.1
         : look!.medium === 'air' ? 0.95 : look!.eyeHeight * 0.75 * stageScale(stage) + 0.1;
     const dist = stage === 'egg' ? 2.2 : cam ? cam.dist : look!.medium === 'air' ? 3.1 : look!.eyeHeight < 0.3 ? 1.9 : 2.5;
-    const reactionMs = mascot ? MASCOT_REACTION_MS : REACTION_MS[species ?? 'dusky-langur'];
+    const reactionMs = mascot ? MASCOT_REACTION_MS : REACTION_MS[species ?? 'coconut-macaque'];
     camera.position.set(0.3, focusY + 0.55, dist);
     camera.lookAt(0, focusY, 0);
 
@@ -676,61 +436,7 @@ export function Creature3D({ species, mascot, stage, height = 320, label, onTap 
 
       // Species idle and reaction.
       if (mascot && stage !== 'egg') mascotIdle(rig, mascot, t, k, pulse, motion);
-      switch (mascot ? null : species) {
-        case 'dusky-langur': {
-          if (rig.tail) rig.tail.rotation.y = Math.sin(t * 1.1) * 0.25 * motion;
-          rig.root.position.y = rig.restY + pulse * 0.28; // the hop
-          rig.head.rotation.z = pulse * 0.25; // and a happy tilt
-          for (const [i, limb] of rig.limbs.entries()) if (i % 3 === 0) limb.rotation.x = 0.5 + Math.sin(t * 1.6 + i) * 0.08 * motion - pulse * 0.9;
-          break;
-        }
-        case 'pied-hornbill': {
-          const [wl, wr, lower] = rig.limbs;
-          const flap = pulse * 0.9;
-          if (wl) wl.rotation.z = 0.35 + Math.sin(t * 2.2) * 0.04 * motion - flap;
-          if (wr) wr.rotation.z = -0.35 - Math.sin(t * 2.2) * 0.04 * motion + flap;
-          if (lower) lower.rotation.x = Math.PI / 2 + 0.15 + pulse * 0.35; // the bill opens
-          rig.head.rotation.x += -pulse * 0.5; // thrown up, the way they call
-          rig.head.position.y = 0.62 * headRatioSafe(stage) + Math.abs(Math.sin(t * 1.3)) * 0.01 * motion;
-          if (rig.tail) rig.tail.rotation.x = Math.sin(t * 0.8) * 0.06 * motion + pulse * 0.4;
-          break;
-        }
-        case 'brahminy-kite': {
-          const flap = Math.sin(t * 2.6) * 0.18 * motion + Math.sin(k * Math.PI * 4) * 0.5 * pulse;
-          for (const [i, w] of rig.limbs.entries()) w.rotation.z = (i === 0 ? 1 : -1) * (0.12 + flap);
-          rig.root.position.y = rig.restY + Math.sin(t * 0.9) * 0.08 * motion + pulse * 0.25;
-          rig.root.position.x = Math.sin(t * 0.45) * 0.35 * motion;
-          rig.root.rotation.z = -Math.cos(t * 0.45) * 0.18 * motion - pulse * 0.9; // banks into the turn
-          rig.root.rotation.x = -0.15;
-          if (rig.tail) rig.tail.rotation.y = Math.sin(t * 0.7) * 0.15 * motion;
-          break;
-        }
-        case 'green-turtle': {
-          for (const [i, f] of rig.limbs.entries()) {
-            const front = i < 2 || i === 2 ? i % 2 === 0 : false;
-            f.rotation.x = (front ? -0.12 : 0) + Math.sin(t * 1.1 + i * 1.3) * 0.16 * motion + pulse * 0.3;
-          }
-          // Tuck the head, then peek. That is a turtle's whole reaction.
-          const tuck = pulse > 0 ? Math.sin(Math.min(1, k * 1.6) * Math.PI) : 0;
-          rig.head.position.z = 0.46 - tuck * 0.22;
-          rig.head.scale.setScalar(headRatio(stage) * (1 - tuck * 0.12));
-          rig.root.position.y = rig.restY + Math.sin(t * 0.8) * 0.01 * motion;
-          if (rig.tail) rig.tail.rotation.z = Math.sin(t * 1.5) * 0.2 * motion;
-          break;
-        }
-        case 'fiddler-crab': {
-          // Wave the claw: the display, at rivals and at you.
-          if (rig.tail) {
-            rig.tail.rotation.z = Math.sin(t * 1.4) * 0.12 * motion + Math.abs(Math.sin(k * Math.PI * 3)) * 0.9 * pulse;
-            rig.tail.rotation.x = -pulse * 0.4;
-          }
-          // Sidestep on a tap, scuttle in place otherwise.
-          rig.root.position.x = Math.sin(k * Math.PI) * 0.35 * pulse;
-          for (const [i, leg] of rig.limbs.entries()) leg.position.y = Math.max(0, Math.sin(t * 9 + i * 1.7)) * 0.02 * (motion * 0.4 + pulse);
-          rig.head.position.y = 0.28 + Math.sin(t * 2.4) * 0.008 * motion;
-          break;
-        }
-      }
+      if (!mascot && stage !== 'egg') companionIdle(rig, species ?? 'coconut-macaque', t, k, pulse, motion, stage);
 
       // Water and glow.
       if (water && waterPos && waterBase) {
@@ -814,5 +520,3 @@ export function Creature3D({ species, mascot, stage, height = 320, label, onTap 
 
   return <div ref={holder} style={{ width: '100%', height, borderRadius: 18, overflow: 'hidden' }} />;
 }
-
-const headRatioSafe = (stage: CompanionStage): number => headRatio(stage);

@@ -1,17 +1,21 @@
 /**
  * The companions, drawn.
  *
- * The collection shipped as five bordered boxes of text. A page about a dusky
- * langur, a green sea turtle and a fiddler crab that contains no langur, no
- * turtle and no crab is asking the reader to do the imagining, on the one
- * screen in the app whose entire job is to be delightful.
+ * The collection shipped as five bordered boxes of text. A page about a
+ * coconut macaque, a green sea turtle and a water buffalo that contains no
+ * macaque, no turtle and no buffalo is asking the reader to do the
+ * imagining, on the one screen in the app whose entire job is to be
+ * delightful.
  *
- * DRAWN, NOT PHOTOGRAPHED, on purpose. These are real endangered animals and a
- * stock photograph would carry a licence, a photographer and a place - three
- * claims this project has no evidence for. A mark is honest about being a mark.
- * Each one is built from the single feature you would actually name the animal
- * by: the langur's white eye rings, the hornbill's casque, the kite's swept
- * wings, the turtle's scutes, the crab's one absurd claw.
+ * DRAWN, NOT PHOTOGRAPHED, on purpose. These are real animals and a stock
+ * photograph would carry a licence, a photographer and a place - three
+ * claims this project has no evidence for. A mark is honest about being a
+ * mark. Each one is built from the single feature you would actually name
+ * the animal by: the macaque's round ears and its coconut, the junglefowl's
+ * leaf crest, the octopus's arms, the turtle's sprout over its shell, the
+ * buffalo's horns. They follow the team's own reference art of 8 September
+ * (`docs/51-the-samui-five.md`) as far as a 64-pixel mark can: face-on, big
+ * eyed, and each with its own thing.
  *
  * Primitives rather than long path data. Every shape here can be read, checked
  * and adjusted by a person; a 400-character `d` attribute cannot.
@@ -31,11 +35,11 @@ import type { CompanionStage } from '@chivago/core';
 const BOX = 64;
 
 export type CreatureKey =
-  | 'dusky-langur'
-  | 'pied-hornbill'
-  | 'brahminy-kite'
+  | 'coconut-macaque'
+  | 'red-junglefowl'
+  | 'day-octopus'
   | 'green-turtle'
-  | 'fiddler-crab';
+  | 'water-buffalo';
 
 interface MarkProps {
   /** Line and fill colour. Set by the stage, not by the species. */
@@ -60,124 +64,147 @@ function Egg({ tone, soft }: MarkProps) {
   );
 }
 
-/** Trachypithecus obscurus. The white eye rings are the whole animal. */
-function DuskyLangur({ tone, soft }: MarkProps) {
+/** The sprout three of them wear on the head: a stem and a leaf. */
+function Sprout({ tone, soft, x, y }: MarkProps & { x: number; y: number }) {
   return (
     <G>
-      {/* Tail: longer than the body, which is true and also reads well. */}
-      <Path
-        d="M20 44 C 8 46, 6 30, 14 24"
-        stroke={tone}
-        strokeWidth={2.5}
-        fill="none"
-        strokeLinecap="round"
-      />
-      <Ellipse cx={32} cy={42} rx={13} ry={14} fill={soft} stroke={tone} strokeWidth={2.5} />
-      <Circle cx={32} cy={24} r={13} fill={soft} stroke={tone} strokeWidth={2.5} />
-      <Circle cx={27} cy={23} r={4.6} fill="none" stroke={tone} strokeWidth={2.2} />
-      <Circle cx={38} cy={23} r={4.6} fill="none" stroke={tone} strokeWidth={2.2} />
-      <Circle cx={27} cy={23} r={1.6} fill={tone} />
-      <Circle cx={38} cy={23} r={1.6} fill={tone} />
-      <Path d="M28 32 Q 32 35, 36 32" stroke={tone} strokeWidth={2} fill="none" strokeLinecap="round" />
+      <Line x1={x} y1={y} x2={x} y2={y - 4} stroke={tone} strokeWidth={1.6} strokeLinecap="round" />
+      <Path d={`M${x} ${y - 4} C ${x + 1} ${y - 8}, ${x + 5} ${y - 8}, ${x + 6} ${y - 5} C ${x + 4} ${y - 3}, ${x + 1} ${y - 3}, ${x} ${y - 4} Z`} fill={soft} stroke={tone} strokeWidth={1.5} strokeLinejoin="round" />
     </G>
   );
 }
 
-/** Anthracoceros albirostris. The bill and casque are two thirds of the bird. */
-function PiedHornbill({ tone, soft }: MarkProps) {
+/** Macaca nemestrina. Round ears, a tan face, and the coconut it was trained to pick. */
+function CoconutMacaque({ tone, soft }: MarkProps) {
   return (
     <G>
-      <Ellipse cx={38} cy={40} rx={16} ry={13} fill={soft} stroke={tone} strokeWidth={2.5} />
-      <Circle cx={28} cy={24} r={10} fill={soft} stroke={tone} strokeWidth={2.5} />
-      {/* The bill, downcurved, with the casque riding on top of it. */}
-      <Path
-        d="M20 22 L 4 27 C 9 32, 15 32, 20 30 Z"
-        fill={soft}
-        stroke={tone}
-        strokeWidth={2.5}
-        strokeLinejoin="round"
-      />
-      <Path d="M20 18 C 13 17, 8 20, 6 25" stroke={tone} strokeWidth={2.5} fill="none" strokeLinecap="round" />
-      <Circle cx={29} cy={22} r={1.9} fill={tone} />
-      <Path d="M50 46 L 60 52" stroke={tone} strokeWidth={2.5} strokeLinecap="round" />
+      {/* Tail, curled up behind: a pig-tail, which is the name. */}
+      <Path d="M22 50 C 12 52, 10 42, 16 40" stroke={tone} strokeWidth={2.4} fill="none" strokeLinecap="round" />
+      <Ellipse cx={30} cy={47} rx={11} ry={10} fill={soft} stroke={tone} strokeWidth={2.5} />
+      <Circle cx={18} cy={25} r={5} fill={soft} stroke={tone} strokeWidth={2.2} />
+      <Circle cx={44} cy={25} r={5} fill={soft} stroke={tone} strokeWidth={2.2} />
+      <Circle cx={31} cy={26} r={12} fill={soft} stroke={tone} strokeWidth={2.5} />
+      {/* The tuft. */}
+      <Path d="M29 14 L 31 9 L 33 14" stroke={tone} strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <Ellipse cx={31} cy={30} rx={7.5} ry={6} fill="none" stroke={tone} strokeWidth={1.6} opacity={0.7} />
+      <Circle cx={27} cy={24} r={1.8} fill={tone} />
+      <Circle cx={35} cy={24} r={1.8} fill={tone} />
+      <Path d="M28 32 Q 31 34.5, 34 32" stroke={tone} strokeWidth={1.8} fill="none" strokeLinecap="round" />
+      {/* The coconut, held out. */}
+      <Circle cx={49} cy={45} r={6} fill={soft} stroke={tone} strokeWidth={2.4} />
+      <Circle cx={47} cy={43} r={1} fill={tone} />
+      <Circle cx={51} cy={43} r={1} fill={tone} />
+      <Circle cx={49} cy={46.5} r={1} fill={tone} />
+      <Path d="M40 44 L 44 45" stroke={tone} strokeWidth={2.4} strokeLinecap="round" />
     </G>
   );
 }
 
-/** Haliastur indus. Seen from below, the way you actually see one. */
-function BrahminyKite({ tone, soft }: MarkProps) {
+/** Gallus gallus. The crest is drawn as leaves, the way the team drew it; the feet say chicken. */
+function RedJunglefowl({ tone, soft }: MarkProps) {
   return (
     <G>
-      <Path
-        d="M32 26 C 22 16, 10 16, 3 24 C 12 26, 22 30, 32 34 Z"
-        fill={soft}
-        stroke={tone}
-        strokeWidth={2.5}
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M32 26 C 42 16, 54 16, 61 24 C 52 26, 42 30, 32 34 Z"
-        fill={soft}
-        stroke={tone}
-        strokeWidth={2.5}
-        strokeLinejoin="round"
-      />
-      <Ellipse cx={32} cy={34} rx={5} ry={13} fill={soft} stroke={tone} strokeWidth={2.5} />
-      <Circle cx={32} cy={20} r={5} fill={soft} stroke={tone} strokeWidth={2.5} />
-      <Path d="M27 47 L 32 57 L 37 47" fill="none" stroke={tone} strokeWidth={2.5} strokeLinejoin="round" />
+      {/* The crest: four leaf feathers, the middle ones taller. */}
+      <Ellipse cx={22} cy={13} rx={3.4} ry={7} fill={soft} stroke={tone} strokeWidth={2} transform="rotate(-32 22 13)" />
+      <Ellipse cx={28.5} cy={9} rx={3.4} ry={7.5} fill={soft} stroke={tone} strokeWidth={2} transform="rotate(-10 28.5 9)" />
+      <Ellipse cx={35.5} cy={9} rx={3.4} ry={7.5} fill={soft} stroke={tone} strokeWidth={2} transform="rotate(10 35.5 9)" />
+      <Ellipse cx={42} cy={13} rx={3.4} ry={7} fill={soft} stroke={tone} strokeWidth={2} transform="rotate(32 42 13)" />
+      {/* Wings out at the sides, and the body under the head. */}
+      <Ellipse cx={17} cy={47} rx={6} ry={3.5} fill={soft} stroke={tone} strokeWidth={2} transform="rotate(-25 17 47)" />
+      <Ellipse cx={47} cy={47} rx={6} ry={3.5} fill={soft} stroke={tone} strokeWidth={2} transform="rotate(25 47 47)" />
+      <Ellipse cx={32} cy={48} rx={11} ry={8.5} fill={soft} stroke={tone} strokeWidth={2.5} />
+      <Circle cx={32} cy={30} r={13} fill={soft} stroke={tone} strokeWidth={2.5} />
+      {/* Tufts at the ears. */}
+      <Ellipse cx={17} cy={30} rx={5} ry={2.8} fill={soft} stroke={tone} strokeWidth={1.8} transform="rotate(-35 17 30)" />
+      <Ellipse cx={47} cy={30} rx={5} ry={2.8} fill={soft} stroke={tone} strokeWidth={1.8} transform="rotate(35 47 30)" />
+      <Circle cx={27} cy={29} r={2.2} fill={tone} />
+      <Circle cx={37} cy={29} r={2.2} fill={tone} />
+      {/* The beak: a small diamond. */}
+      <Path d="M32 32.5 L 34.5 35 L 32 37.5 L 29.5 35 Z" fill={tone} />
+      <Path d="M27 56 L 26 60 M 23 60 L 29 60" stroke={tone} strokeWidth={2.2} strokeLinecap="round" />
+      <Path d="M37 56 L 38 60 M 35 60 L 41 60" stroke={tone} strokeWidth={2.2} strokeLinecap="round" />
     </G>
   );
 }
 
-/** Chelonia mydas. From above, because that is how a snorkeller meets one. */
+/** Octopus cyanea. A dome, two eyes, and arms that never all agree. */
+function DayOctopus({ tone, soft }: MarkProps) {
+  return (
+    <G>
+      <Circle cx={32} cy={27} r={15} fill={soft} stroke={tone} strokeWidth={2.5} />
+      <Sprout tone={tone} soft={soft} x={32} y={12} />
+      <Circle cx={26} cy={27} r={2.4} fill={tone} />
+      <Circle cx={38} cy={27} r={2.4} fill={tone} />
+      <Path d="M29 34 Q 32 36.5, 35 34" stroke={tone} strokeWidth={1.8} fill="none" strokeLinecap="round" />
+      {/* Eight arms would be a scribble at this size. Six, in two directions, read as many. */}
+      <Path d="M20 37 C 10 41, 6 51, 12 57" stroke={tone} strokeWidth={2.6} fill="none" strokeLinecap="round" />
+      <Path d="M25 41 C 18 47, 18 57, 24 59" stroke={tone} strokeWidth={2.6} fill="none" strokeLinecap="round" />
+      <Path d="M32 42 C 30 49, 32 56, 34 59" stroke={tone} strokeWidth={2.6} fill="none" strokeLinecap="round" />
+      <Path d="M39 41 C 46 47, 46 57, 40 59" stroke={tone} strokeWidth={2.6} fill="none" strokeLinecap="round" />
+      <Path d="M44 37 C 54 41, 58 51, 52 57" stroke={tone} strokeWidth={2.6} fill="none" strokeLinecap="round" />
+      {/* One arm up, waving. */}
+      <Path d="M46 30 C 56 28, 60 20, 56 12" stroke={tone} strokeWidth={2.4} fill="none" strokeLinecap="round" />
+      {/* Suckers on the nearest arm. */}
+      <Circle cx={10} cy={49} r={1.2} fill={tone} />
+      <Circle cx={11} cy={53} r={1.2} fill={tone} />
+      <Circle cx={13.5} cy={56} r={1.2} fill={tone} />
+    </G>
+  );
+}
+
+/** Chelonia mydas. Face on, the sprout on its head, the shell behind it. */
 function GreenTurtle({ tone, soft }: MarkProps) {
   return (
     <G>
-      <Ellipse cx={20} cy={22} rx={8} ry={5} fill={soft} stroke={tone} strokeWidth={2.2} transform="rotate(-30 20 22)" />
-      <Ellipse cx={44} cy={22} rx={8} ry={5} fill={soft} stroke={tone} strokeWidth={2.2} transform="rotate(30 44 22)" />
-      <Ellipse cx={20} cy={47} rx={6} ry={4} fill={soft} stroke={tone} strokeWidth={2.2} transform="rotate(30 20 47)" />
-      <Ellipse cx={44} cy={47} rx={6} ry={4} fill={soft} stroke={tone} strokeWidth={2.2} transform="rotate(-30 44 47)" />
-      <Circle cx={32} cy={13} r={7} fill={soft} stroke={tone} strokeWidth={2.5} />
-      <Circle cx={29} cy={12} r={1.7} fill={tone} />
-      <Ellipse cx={32} cy={35} rx={17} ry={19} fill={soft} stroke={tone} strokeWidth={2.5} />
-      {/* Scutes. Three lines is enough to say "shell" and not one more. */}
-      <Line x1={32} y1={17} x2={32} y2={53} stroke={tone} strokeWidth={1.8} opacity={0.8} />
-      <Line x1={16} y1={30} x2={48} y2={30} stroke={tone} strokeWidth={1.8} opacity={0.8} />
-      <Line x1={17} y1={42} x2={47} y2={42} stroke={tone} strokeWidth={1.8} opacity={0.8} />
+      {/* The shell, behind everything, with its scutes. */}
+      <Ellipse cx={32} cy={44} rx={19} ry={13} fill={soft} stroke={tone} strokeWidth={2.5} />
+      <Path d="M20 37 L 26 36 M 38 36 L 44 37 M 16 46 L 22 46 M 42 46 L 48 46" stroke={tone} strokeWidth={1.6} opacity={0.7} strokeLinecap="round" />
+      {/* A flipper up, waving; the other down. */}
+      <Ellipse cx={14} cy={36} rx={7} ry={3.5} fill={soft} stroke={tone} strokeWidth={2.2} transform="rotate(-45 14 36)" />
+      <Ellipse cx={50} cy={45} rx={7} ry={3.5} fill={soft} stroke={tone} strokeWidth={2.2} transform="rotate(20 50 45)" />
+      <Ellipse cx={32} cy={46} rx={11} ry={9} fill={soft} stroke={tone} strokeWidth={2.2} />
+      <Ellipse cx={26} cy={58} rx={4.5} ry={2.5} fill={soft} stroke={tone} strokeWidth={2} />
+      <Ellipse cx={38} cy={58} rx={4.5} ry={2.5} fill={soft} stroke={tone} strokeWidth={2} />
+      <Circle cx={32} cy={23} r={12.5} fill={soft} stroke={tone} strokeWidth={2.5} />
+      {/* The spots on the head, and the sprout. */}
+      <Circle cx={25} cy={15} r={2.3} fill={tone} opacity={0.5} />
+      <Circle cx={32} cy={13} r={2.3} fill={tone} opacity={0.5} />
+      <Circle cx={39} cy={16} r={2.3} fill={tone} opacity={0.5} />
+      <Sprout tone={tone} soft={soft} x={33} y={10.5} />
+      <Circle cx={27} cy={24} r={2.2} fill={tone} />
+      <Circle cx={37} cy={24} r={2.2} fill={tone} />
+      <Path d="M29 30 Q 32 32.5, 35 30" stroke={tone} strokeWidth={1.8} fill="none" strokeLinecap="round" />
     </G>
   );
 }
 
-/** Austruca / Tubuca spp. One claw enormous, one tiny. Nothing else needed. */
-function FiddlerCrab({ tone, soft }: MarkProps) {
+/** Bubalus bubalis. The horns are the whole animal; the rest is the head between them. */
+function WaterBuffalo({ tone, soft }: MarkProps) {
   return (
     <G>
-      {/* The big claw, held up. This is the entire identification. */}
-      <Path
-        d="M14 34 L 6 22 C 3 16, 9 10, 14 14 L 20 22 Z"
-        fill={soft}
-        stroke={tone}
-        strokeWidth={2.5}
-        strokeLinejoin="round"
-      />
-      <Path d="M6 22 L 13 20" stroke={tone} strokeWidth={2} strokeLinecap="round" />
-      <Ellipse cx={36} cy={36} rx={17} ry={13} fill={soft} stroke={tone} strokeWidth={2.5} />
-      <Path d="M53 30 L 60 25" stroke={tone} strokeWidth={2.2} strokeLinecap="round" />
-      <Circle cx={31} cy={26} r={2.1} fill={tone} />
-      <Circle cx={41} cy={26} r={2.1} fill={tone} />
-      <Line x1={26} y1={48} x2={22} y2={56} stroke={tone} strokeWidth={2.2} strokeLinecap="round" />
-      <Line x1={36} y1={49} x2={36} y2={57} stroke={tone} strokeWidth={2.2} strokeLinecap="round" />
-      <Line x1={46} y1={48} x2={50} y2={56} stroke={tone} strokeWidth={2.2} strokeLinecap="round" />
+      {/* Horns: out, back, and up in one sweep each side. */}
+      <Path d="M22 22 C 8 20, 4 8, 14 6" stroke={tone} strokeWidth={3} fill="none" strokeLinecap="round" />
+      <Path d="M42 22 C 56 20, 60 8, 50 6" stroke={tone} strokeWidth={3} fill="none" strokeLinecap="round" />
+      <Ellipse cx={16} cy={30} rx={5} ry={3.2} fill={soft} stroke={tone} strokeWidth={2} transform="rotate(-20 16 30)" />
+      <Ellipse cx={48} cy={30} rx={5} ry={3.2} fill={soft} stroke={tone} strokeWidth={2} transform="rotate(20 48 30)" />
+      <Ellipse cx={32} cy={34} rx={14} ry={13} fill={soft} stroke={tone} strokeWidth={2.5} />
+      <Sprout tone={tone} soft={soft} x={33} y={21} />
+      <Circle cx={27} cy={30} r={2} fill={tone} />
+      <Circle cx={37} cy={30} r={2} fill={tone} />
+      <Ellipse cx={32} cy={42} rx={8.5} ry={5.5} fill={soft} stroke={tone} strokeWidth={2.2} />
+      <Circle cx={29} cy={42} r={1.3} fill={tone} />
+      <Circle cx={35} cy={42} r={1.3} fill={tone} />
+      <Path d="M28 53 L 28 58 M 36 53 L 36 58" stroke={tone} strokeWidth={2.6} strokeLinecap="round" />
     </G>
   );
 }
 
 const MARKS: Record<CreatureKey, (p: MarkProps) => React.JSX.Element> = {
-  'dusky-langur': DuskyLangur,
-  'pied-hornbill': PiedHornbill,
-  'brahminy-kite': BrahminyKite,
+  'coconut-macaque': CoconutMacaque,
+  'red-junglefowl': RedJunglefowl,
+  'day-octopus': DayOctopus,
   'green-turtle': GreenTurtle,
-  'fiddler-crab': FiddlerCrab,
+  'water-buffalo': WaterBuffalo,
 };
 
 export const hasCreatureMark = (key: string): key is CreatureKey => key in MARKS;
@@ -208,7 +235,7 @@ export function Creature({
       height={size}
       viewBox={`0 0 ${BOX} ${BOX}`}
       // Decorative: the name and stage are already read out beside it, and a
-      // screen reader announcing "drawing of a crab" after "Fiddler crab,
+      // screen reader announcing "drawing of a buffalo" after "Water buffalo,
       // grown" is noise, not access.
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"

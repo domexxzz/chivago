@@ -20,6 +20,12 @@
  * and one true fact each. Invented monsters would have been easier and would
  * have taught nothing; an app whose whole argument is that the island is worth
  * looking after can name what actually lives on it.
+ *
+ * The five are the team's own mascots, brought in on 8 September 2026
+ * (docs/51): the animals people on Samui actually meet - the coconut monkey,
+ * the junglefowl, the octopus, the turtle, the buffalo. Each still carries a
+ * scientific name, a habitat and one checkable fact, because a mascot that
+ * cannot be looked up is a cartoon, not a companion.
  */
 
 import type { Bilingual, LayerKey } from './types.ts';
@@ -58,45 +64,45 @@ export interface Species {
  * know - a biologist reading a stale category is the same credibility loss as
  * a judge finding an invented photograph.
  */
-export const SPECIES_AS_OF = '2026-09-01';
+export const SPECIES_AS_OF = '2026-09-08';
 
 export const SPECIES: Record<LayerKey, Species> = {
   Green: {
-    key: 'dusky-langur',
+    key: 'coconut-macaque',
     layer: 'Green',
-    name: { en: 'Dusky langur', th: 'ค่างแว่นถิ่นใต้' },
-    scientific: 'Trachypithecus obscurus',
-    eggName: { en: 'Forest egg', th: 'ไข่จากป่า' },
-    habitat: { en: 'Inland forest and waterfall canopy', th: 'ป่าในและเรือนยอดรอบน้ำตก' },
+    name: { en: 'Southern pig-tailed macaque', th: 'ลิงกัง' },
+    scientific: 'Macaca nemestrina',
+    eggName: { en: 'Grove egg', th: 'ไข่จากสวนมะพร้าว' },
+    habitat: { en: 'Coconut groves and the inland forest behind them', th: 'สวนมะพร้าวและป่าในด้านหลัง' },
     fact: {
-      en: 'Born bright orange, turning grey over its first six months.',
-      th: 'เกิดมาขนสีส้มสด แล้วค่อยเปลี่ยนเป็นสีเทาในหกเดือนแรก',
+      en: 'On Samui, trained macaques have picked the coconuts from the tall palms for generations.',
+      th: 'บนเกาะสมุย ลิงกังที่ฝึกแล้วเก็บมะพร้าวจากต้นสูงให้คนมาหลายชั่วอายุคน',
     },
-    status: 'EN',
+    status: 'VU',
   },
   Wellness: {
-    key: 'pied-hornbill',
+    key: 'red-junglefowl',
     layer: 'Wellness',
-    name: { en: 'Oriental pied hornbill', th: 'นกแก๊ก' },
-    scientific: 'Anthracoceros albirostris',
+    name: { en: 'Red junglefowl', th: 'ไก่ป่า' },
+    scientific: 'Gallus gallus',
     eggName: { en: 'Hill forest egg', th: 'ไข่จากป่าเนิน' },
     habitat: { en: 'Hill forest edges above the south coast', th: 'ชายป่าบนเนินเหนือชายฝั่งใต้' },
     fact: {
-      en: 'The female seals herself into a tree hollow to nest, fed through a slit by the male.',
-      th: 'ตัวเมียปิดตัวเองในโพรงไม้เพื่อทำรัง โดยตัวผู้ป้อนอาหารผ่านช่องแคบ',
+      en: 'The wild ancestor of every chicken on earth; the cock crows from the forest edge at first light.',
+      th: 'บรรพบุรุษป่าของไก่บ้านทุกตัวบนโลก ตัวผู้ขันจากชายป่าตอนฟ้าสาง',
     },
     status: 'LC',
   },
   Food: {
-    key: 'brahminy-kite',
+    key: 'day-octopus',
     layer: 'Food',
-    name: { en: 'Brahminy kite', th: 'เหยี่ยวแดง' },
-    scientific: 'Haliastur indus',
-    eggName: { en: 'Shore egg', th: 'ไข่จากชายฝั่ง' },
-    habitat: { en: 'Fishing villages and the shoreline they work', th: 'หมู่บ้านประมงและแนวชายฝั่งที่ทำกิน' },
+    name: { en: 'Day octopus', th: 'หมึกสาย' },
+    scientific: 'Octopus cyanea',
+    eggName: { en: 'Reef egg', th: 'ไข่จากแนวปะการัง' },
+    habitat: { en: 'Reefs and rock off the fishing villages', th: 'แนวปะการังและโขดหินนอกหมู่บ้านประมง' },
     fact: {
-      en: 'Follows the boats in, and takes what the nets leave behind.',
-      th: 'บินตามเรือประมงเข้าฝั่ง และกินสิ่งที่เหลือจากอวน',
+      en: 'Changes the colour and texture of its skin in under a second, and lives about a year.',
+      th: 'เปลี่ยนสีและผิวหนังได้ในเวลาไม่ถึงวินาที และมีอายุราวหนึ่งปี',
     },
     status: 'LC',
   },
@@ -114,16 +120,17 @@ export const SPECIES: Record<LayerKey, Species> = {
     status: 'EN',
   },
   Quest: {
-    key: 'fiddler-crab',
+    key: 'water-buffalo',
     layer: 'Quest',
-    name: { en: 'Fiddler crab', th: 'ปูก้ามดาบ' },
-    scientific: 'Austruca / Tubuca spp.',
-    eggName: { en: 'Mangrove egg', th: 'ไข่จากป่าชายเลน' },
-    habitat: { en: 'Mangrove mud at the tide line', th: 'เลนป่าชายเลนแนวน้ำขึ้นน้ำลง' },
+    name: { en: 'Water buffalo', th: 'ควาย' },
+    scientific: 'Bubalus bubalis',
+    eggName: { en: 'Field egg', th: 'ไข่จากทุ่ง' },
+    habitat: { en: 'The wet fields and the village arenas', th: 'ทุ่งนาน้ำขังและสังเวียนประจำหมู่บ้าน' },
     fact: {
-      en: 'Its burrowing aerates the mud that mangrove roots breathe through.',
-      th: 'การขุดรูของมันเติมอากาศให้เลนที่รากโกงกางใช้หายใจ',
+      en: 'Raised on the island for the village fights, where a bout ends when one of the two turns and walks away.',
+      th: 'เลี้ยงบนเกาะไว้ชนในสังเวียนหมู่บ้าน การชนจบลงเมื่อตัวหนึ่งหันหลังเดินออกไป',
     },
+    // The domestic buffalo is not assessed; its wild ancestor, Bubalus arnee, is EN.
     status: 'NE',
   },
 };
