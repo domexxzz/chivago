@@ -43,6 +43,17 @@ const routes = (over: Record<string, unknown> = {}) => ({
 let restore: (() => void) | null = null;
 afterEach(() => { restore?.(); restore = null; });
 
+/**
+ * The place cards, in the order they are rendered.
+ *
+ * De-duplicated: one Pressable renders as several nested nodes and the
+ * accessibility label rides on more than one of them, so the raw list has
+ * each card three times and `cards[1]` is the same card as `cards[0]`. That
+ * cost one confusing failure; the Set is here so it costs no more.
+ */
+const cardLabels = (ui: { labels: () => string[] }): string[] =>
+  [...new Set(ui.labels().filter((l) => /Healthy Score/.test(l)))];
+
 describe('the average does not launder its worst input', () => {
   test('it is the mean of the measured scores', () => {
     assert.equal(islandAverage([fx.place({ healthyScore: 80 }), fx.place({ healthyScore: 90 })]), 85);
@@ -132,6 +143,40 @@ describe('what Home says', () => {
         ui.labels().some((l) => /Chaweng Beach.*1\.5 km north-east of you/i.test(l)),
         'the distance is not spoken',
       );
+      ui.unmount();
+    } finally { resetControl(); }
+  });
+
+  test('the row is ordered nearest first, and says that it is', async () => {
+    // The row is scanned to choose where to go now, so proximity leads it.
+    // Served deliberately farthest-first, so passing means the sort ran and
+    // not that the fixture happened to arrive in the right order.
+    const far = fx.place({ id: 'namuang', name: { en: 'Na Muang Waterfall', th: 'น้ำตกหน้าเมือง' }, lat: 9.4682, lng: 99.9856 });
+    const near = fx.place();
+    const s = server(routes({ '/places': [far, near] })); restore = s.restore;
+    try {
+      control.position = { coords: { latitude: 9.5262, longitude: 100.0518, accuracy: 12 } };
+      const ui = await mountScreen(h(HomeScreen, props));
+      const cards = cardLabels(ui);
+      assert.match(cards[0] ?? '', /Chaweng Beach/, 'the nearer place is not first');
+      assert.match(cards[1] ?? '', /Na Muang/, 'the farther place is not second');
+      // And the head says why the order is what it is, like every other
+      // number on this screen names where it came from.
+      assert.match(ui.text(), /Nearest first/);
+      ui.unmount();
+    } finally { resetControl(); }
+  });
+
+  test('with no position the server order stands, and nothing claims otherwise', async () => {
+    const far = fx.place({ id: 'namuang', name: { en: 'Na Muang Waterfall', th: 'น้ำตกหน้าเมือง' }, lat: 9.4682, lng: 99.9856 });
+    const near = fx.place();
+    const s = server(routes({ '/places': [far, near] })); restore = s.restore;
+    try {
+      control.permission = { granted: false, status: 'denied' };
+      const ui = await mountScreen(h(HomeScreen, props));
+      const cards = cardLabels(ui);
+      assert.match(cards[0] ?? '', /Na Muang/, 'the server order was changed with no position to change it by');
+      assert.doesNotMatch(ui.text(), /Nearest first/, 'it claimed an order it had no basis for');
       ui.unmount();
     } finally { resetControl(); }
   });

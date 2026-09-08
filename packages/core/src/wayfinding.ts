@@ -157,6 +157,31 @@ export function wayThere(from: LatLng, to: LatLng): WayThere {
 }
 
 /**
+ * The same places, nearest first.
+ *
+ * A NEW ARRAY, always, and the caller's order untouched when there is no
+ * position: a row that silently reorders itself is bad enough without also
+ * reordering the array the caller still holds.
+ *
+ * Distances are computed once per place rather than inside the comparator,
+ * which would recompute two haversines for every comparison. Five places
+ * makes that free; the reason to write it this way is that the next caller
+ * will not be passing five.
+ *
+ * The sort is STABLE, which is a guarantee the language makes and this
+ * function relies on: two places the same distance away keep the order the
+ * server sent them in, so the tie is broken by whatever the server meant
+ * rather than by an accident of the sorting algorithm.
+ */
+export function nearestFirst<T extends LatLng>(places: readonly T[], here: LatLng | null): T[] {
+  if (!here) return [...places];
+  return places
+    .map((place) => ({ place, metres: metresBetween(here, place) }))
+    .sort((a, b) => a.metres - b.metres)
+    .map((d) => d.place);
+}
+
+/**
  * A Google Maps directions link for a destination.
  *
  * The `api=1` universal URL, which is the documented, versioned one: it opens

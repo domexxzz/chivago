@@ -122,7 +122,9 @@ for it.
 - `apps/mobile/test/home.test.ts` — the card carrying the distance, saying
   "Here" from inside the fence, and carrying nothing at all with no
   permission. That last one is asserted on the spoken label rather than on
-  the word "km", for the reason in the next section.
+  the word "km", for the reason in the next section. Plus the row ordered
+  nearest first from a fixture served farthest-first, so passing means the
+  sort ran rather than that the fixture happened to arrive in order.
 
 ## And on the cards, which is where the choice is actually made
 
@@ -151,11 +153,29 @@ The spoken label carries the distance and the compass point, so a screen
 reader user gets the fact the row is being scanned for rather than only the
 score.
 
+### Nearest first, and the row says so
+
+Once there is a position the row is ordered by it. `nearestFirst` in core
+returns a **new array** and leaves the caller's order alone when there is no
+position — the server meant something by its order, and with nothing better
+to say, nothing is said. The sort is stable, so two places the same distance
+away keep the order the server sent them in; the tie is broken by the
+server's meaning rather than by an accident of the algorithm.
+
+The section head then reads **"Nearest first"**. Every other number on this
+screen names where it came from — *Updated daily*, *Estimated*, *Counted
+from geofenced check-ins, not estimated*. An order that rearranges itself
+when somebody walks two streets, with nothing saying why, is the same kind
+of claim made silently. So it is labelled, and the label is absent exactly
+when the sort is.
+
+The photograph prefetch stayed keyed to the **served** list rather than the
+sorted one: the set of photographs to warm is the same set whichever end of
+it is on the left, and keying it to the sorted array would re-fetch them all
+the moment a position arrived.
+
 ## Still owed
 
-- **Sorting.** The row is still in the server's order. Nearest-first would be
-  a different claim — that proximity is what should decide — and it is the
-  owner's call, not a side effect of showing a number.
 - **The map's own "you are here" dot.** `TerrainMap.tsx` still never draws
   the traveller.
 - **"Safe path from here"** on the same screen switches to the Safety tab.

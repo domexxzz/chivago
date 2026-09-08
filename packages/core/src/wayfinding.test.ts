@@ -4,7 +4,7 @@ import { test, describe } from 'node:test';
 import {
   CHECKIN_RADIUS_M, WALK_KM_H, WALK_SUGGEST_MAX_M,
   bearingDegrees, compassPoint, formatDistance, hasArrived, isWalkable,
-  mapsDirectionsUrl, walkMinutes, wayThere,
+  mapsDirectionsUrl, metresBetween, nearestFirst, walkMinutes, wayThere,
 } from './index.ts';
 import { SEED_PLACES } from './seed.ts';
 
@@ -94,6 +94,55 @@ describe('arrival is not a distance', () => {
     assert.ok(!hasArrived(CHECKIN_RADIUS_M + 1));
     const chaweng = SEED_PLACES.find((p) => p.id === 'chaweng')!;
     assert.ok(wayThere(chaweng, chaweng).arrived);
+  });
+});
+
+describe('nearest first', () => {
+  const at = (id: string, lat: number, lng: number) => ({ id, lat, lng });
+
+  test('it orders by distance from where you are standing', () => {
+    const far = at('far', 9.60, 100.15);
+    const near = at('near', 9.5360, 100.0620);
+    const mid = at('mid', 9.55, 100.08);
+    assert.deepEqual(
+      nearestFirst([far, mid, near], CHAWENG).map((p) => p.id),
+      ['near', 'mid', 'far'],
+    );
+  });
+
+  test('the caller keeps its own order, and its own array', () => {
+    // A row that silently reorders itself is bad enough without also
+    // reordering the array the caller still holds.
+    const served = [at('a', 9.60, 100.15), at('b', 9.5360, 100.0620)];
+    const sorted = nearestFirst(served, CHAWENG);
+    assert.deepEqual(served.map((p) => p.id), ['a', 'b'], 'the input was mutated');
+    assert.notEqual(sorted, served, 'the same array came back');
+  });
+
+  test('no position means the server order, untouched', () => {
+    // The server meant something by its order. Without a position there is
+    // nothing better to say, so nothing is said.
+    const served = [at('a', 9.60, 100.15), at('b', 9.5360, 100.0620)];
+    assert.deepEqual(nearestFirst(served, null).map((p) => p.id), ['a', 'b']);
+  });
+
+  test('two places the same distance away keep the order the server sent', () => {
+    // Stable, so a tie is broken by whatever the server meant and not by an
+    // accident of the sort.
+    const east = at('east', CHAWENG.lat, CHAWENG.lng + 0.02);
+    const west = at('west', CHAWENG.lat, CHAWENG.lng - 0.02);
+    assert.deepEqual(nearestFirst([east, west], CHAWENG).map((p) => p.id), ['east', 'west']);
+    assert.deepEqual(nearestFirst([west, east], CHAWENG).map((p) => p.id), ['west', 'east']);
+  });
+
+  test('the real island, from Chaweng', () => {
+    const samui = SEED_PLACES.filter((p) => p.province === 'TH-84');
+    const order = nearestFirst(samui, CHAWENG);
+    assert.equal(order[0]!.id, 'chaweng', 'the beach you are standing on is not first');
+    const metres = order.map((p) => metresBetween(CHAWENG, p));
+    for (let i = 1; i < metres.length; i += 1) {
+      assert.ok(metres[i]! >= metres[i - 1]!, `${order[i]!.id} is nearer than the one before it`);
+    }
   });
 });
 

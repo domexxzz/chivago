@@ -178,6 +178,15 @@ export const strings = {
      * would wrap to three lines and the row would stop being scannable.
      */
     arrivedShort: t('Here', 'ที่นี่'),
+    /**
+     * Said above the row whenever a position has reordered it.
+     *
+     * Every other number on this screen names where it came from - "Updated
+     * daily", "Estimated", "Counted from geofenced check-ins". An order that
+     * changes when somebody walks two streets, with nothing saying why, is
+     * the same claim made silently.
+     */
+    nearestFirst: t('Nearest first', 'เรียงจากใกล้ที่สุด'),
     openInMaps: t('Open in Google Maps', 'เปิดใน Google Maps'),
     /**
      * Shown instead of the distance when the app has no position - permission

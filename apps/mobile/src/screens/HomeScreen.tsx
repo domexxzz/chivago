@@ -42,7 +42,7 @@ import {
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
-  greetingFor, isHighScore, passportProgress, strings, wayThere,
+  greetingFor, isHighScore, nearestFirst, passportProgress, strings, wayThere,
   type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
@@ -397,19 +397,32 @@ function Doors({
 function Places({
   places, onOpenMap, onOpenPlace,
 }: { places: Async<ScoredPlace[]>; onOpenMap: () => void; onOpenPlace: (id: string) => void }) {
-  const list = places.data ?? [];
+  const served = places.data ?? [];
   // ONE position for the whole row. A card that asked for its own would take
   // a fix per place, and the row would answer the same question five times.
   const here = useHere();
+  // Nearest first once there is a position, and the server's order until
+  // then. The head says which of the two you are looking at, because an
+  // order that changes when somebody walks two streets is a claim, and every
+  // other number on this screen names itself.
+  const list = React.useMemo(() => nearestFirst(served, here), [served, here]);
   // Warm the photographs while there is signal: the place screen at the
-  // mangrove opens off the cache, not off a stalled request.
+  // mangrove opens off the cache, not off a stalled request. Keyed to the
+  // SERVED list, not the sorted one - the set of photographs to warm is the
+  // same set whichever end of it is on the left, and keying it to the sorted
+  // array would fetch them all again the moment a position arrived.
   React.useEffect(() => {
-    for (const p of list) if (p.photo) void Image.prefetch(photoUri(p.photo.url)).catch(() => {});
-  }, [list]);
+    for (const p of served) if (p.photo) void Image.prefetch(photoUri(p.photo.url)).catch(() => {});
+  }, [served]);
   if (list.length === 0) return null;
   return (
     <View style={{ paddingTop: 22 }}>
-      <SectionHead en="Measured places" th="สถานที่ที่วัดจริง" onSeeAll={onOpenMap} />
+      <SectionHead
+        en="Measured places"
+        th="สถานที่ที่วัดจริง"
+        note={here ? t(strings.place.nearestFirst) : undefined}
+        onSeeAll={onOpenMap}
+      />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: gutter, gap: 12 }}>
         {list.map((p) => <PlaceCard key={p.id} place={p} here={here} onPress={() => onOpenPlace(p.id)} />)}
       </ScrollView>
@@ -721,10 +734,16 @@ function NoPhotograph({ place }: { place: ScoredPlace }) {
 }
 
 /** A section's title, and the reference's "See all" beside it when there is a place to go. */
-function SectionHead({ en, th, onSeeAll }: { en: string; th: string; onSeeAll?: () => void }) {
+function SectionHead({
+  en, th, note, onSeeAll,
+}: { en: string; th: string; note?: string; onSeeAll?: () => void }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-      <Heading size={16}>{t({ en, th })}</Heading>
+      <View>
+        <Heading size={16}>{t({ en, th })}</Heading>
+        {/* How the section is ordered, when something other than the server ordered it. */}
+        {note ? <Label size={9} tracking={0.08} colour={color.neutral600} style={{ marginTop: 2 }}>{note}</Label> : null}
+      </View>
       {onSeeAll ? (
         <Pressable onPress={onSeeAll} accessibilityRole="button" accessibilityLabel={`${t({ en: 'See all', th: 'ดูทั้งหมด' })}: ${t({ en, th })}`} style={{ minHeight: 28, justifyContent: 'center' }}>
           <Label size={10} tracking={0.1} colour={color.brand}>{t({ en: 'See all', th: 'ดูทั้งหมด' })}</Label>
