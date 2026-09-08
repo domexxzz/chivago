@@ -334,11 +334,7 @@ export const SEED_PLACES: Place[] = [
       library, 210 m from the park and 466 m from the ground station.
       Nothing here is guessed from the building's name.
 
-      NO PHOTOGRAPH, on purpose. Nobody on the team has been inside it, the
-      move was announced hours ago, and a stock photograph of a sports hall
-      would be a picture of somewhere else. The card draws its habitat and
-      says it has no photograph. The moment somebody takes one it drops in
-      at /assets/places/ku-building13.jpg with a credit, like the rest.
+      The photograph is the team's own, sent the night the venue moved.
     */
     id: 'ku-building13',
     name: { en: 'Building 13, Physical Education', th: 'อาคาร 13 พลศึกษา' },
@@ -353,10 +349,20 @@ export const SEED_PLACES: Place[] = [
       th: 'อาคารพลศึกษาใกล้ประตู 1 และเป็นสถานที่จัดงาน Sriracha Hackathon 2026 หลังย้ายมาจากห้องสมุด',
     },
     tags: ['Indoor', 'Event venue', 'By Gate 1'],
-    // Explicitly null rather than absent: `Place.photo` is nullable but
-    // required, so an omitted key is a type error rather than "no photo".
-    // Saying null out loud is also the honest word for it.
-    photo: null,
+    /*
+      The entrance, photographed by the team.
+
+      The building says its own name in the picture, in both scripts, which
+      is the cheapest proof there is that the file matches the place it is
+      filed under. One person stands on the steps at a distance where no
+      face is legible, so the README's rule about faces holds.
+    */
+    photo: {
+      url: '/assets/places/ku-building13.jpg',
+      credit: 'ChivaGo team · KU Sriracha',
+      licence: 'Team photograph',
+      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places',
+    },
     /*
       Air is the real reading from station o61, like every other campus
       place. The other three are the pilot's CONVENTION for an indoor

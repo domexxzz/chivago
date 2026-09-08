@@ -19,7 +19,8 @@ file placed here appeared under `dist-demo/assets/places/` after `demo:web`.
   Nothing lifted from the university's site, Facebook or a search.
 - **ไม่มีหน้าคนที่ไม่ยินยอม** · No face that did not agree (docs/46, PDPA).
 - **ชื่อไฟล์ = id ของสถานที่** ใน `packages/core/src/seed.ts`: `ku-library.jpg`,
-  `ku-park.jpg`, `ku-viewpoint.jpg`, `ku-sports.jpg`, `ku-shops.jpg`
+  `ku-park.jpg`, `ku-viewpoint.jpg`, `ku-sports.jpg`, `ku-shops.jpg`,
+  `ku-building13.jpg`
 - **แนวนอน 16:9** กว้าง 1600 px JPEG คุณภาพ 80 (ไฟล์ละไม่เกิน 400 KB) แอปครอปตรงกลาง
   · Landscape 16:9, 1600 px wide, JPEG at quality 80, under 400 KB; the app crops to the centre.
 

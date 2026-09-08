@@ -78,24 +78,21 @@ describe('the campus is real, and its seed stays inside it', () => {
     // That the file is really there is checked where the files live
     // (apps/mobile/test/place-photos.test.ts).
     /*
-      A campus place has the team's own photograph or NONE. The rule this
-      test exists for is that no campus photograph comes from nowhere, and
-      an empty slot breaks that rule in neither direction: the card draws
-      its habitat and says it has no photograph, which is true.
+      Every one of them again, including Building 13.
 
-      Building 13 arrived on the evening of 8 September, hours after the
-      organisers moved the hackathon into it, and nobody has been inside to
-      photograph it. A stock sports hall would be a picture of somewhere
-      else.
+      It spent an evening with an empty slot - it was added hours after the
+      organisers moved the hackathon into it, and nobody had been inside to
+      photograph it. The card said so in words rather than borrowing a stock
+      sports hall, and the test allowed the gap by name. The photograph
+      arrived the same night, so the rule is back to what it should be: a
+      campus place has the team's own photograph, or this fails.
     */
     for (const p of kuPlaces) {
-      if (!p.photo) continue;
+      assert.ok(p.photo, `${p.id} has no photograph`);
       assert.match(p.photo.url, /^\/assets\/places\/[a-z0-9-]+\.jpg$/, `${p.id}: a campus photo must ship with the app`);
       assert.match(p.photo.credit, /ChivaGo team/, `${p.id}: not the team's photograph`);
       assert.ok(p.photo.licence && p.photo.sourceUrl, `${p.id}: no licence or source`);
     }
-    // And the gap is visible rather than silent: exactly one, named.
-    assert.deepEqual(kuPlaces.filter((p) => !p.photo).map((p) => p.id), ['ku-building13']);
   });
 
   test('every layer has a campus place, so every companion can hatch there', () => {
