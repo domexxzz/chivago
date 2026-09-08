@@ -181,6 +181,18 @@ export default function App() {
     }
   }, [profileLoaded, onboarded, nav]);
 
+  /*
+    ABOVE THE EARLY RETURN, and it has to stay there.
+
+    The loading branch below returns before the rest of the component runs,
+    so a hook called after it runs on the second render and not the first.
+    React counts hooks per render and refuses the mismatch - error #310, a
+    blank screen and nothing else, which is exactly how this shipped for
+    eleven minutes on 8 September. Every hook in this component belongs above
+    that `if`.
+  */
+  const { fenceOff } = useServerConfig();
+
   // Wait for the profile as well as the fonts. Rendering onboarding first and
   // snapping to the map a moment later is worse than a beat of loading.
   if (!fontsReady || !account.ready || !profileLoaded || !localeReady) {
@@ -410,7 +422,6 @@ export default function App() {
   };
 
   const showTabs = nav.screen !== 'onboarding';
-  const { fenceOff } = useServerConfig();
 
   return (
     <SafeAreaProvider>

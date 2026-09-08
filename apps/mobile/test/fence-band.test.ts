@@ -66,3 +66,29 @@ describe("reading the server's own description", () => {
     } finally { fake.restore(); }
   });
 });
+
+/**
+ * The blank screen this shipped as, for eleven minutes.
+ *
+ * `useServerConfig` was added BELOW the loading early-return in App.tsx, so
+ * the first render called one fewer hook than the second. React counts hooks
+ * per render and throws #310, which renders as a white page with the whole
+ * app gone - no message, no fallback, on the live server.
+ *
+ * The rule is not "this hook goes at the top". It is that EVERY hook in a
+ * component goes above every conditional return, and this is the cheapest
+ * place to state it in a form that fails.
+ */
+describe('hooks in the app shell', () => {
+  test('every hook is called above the loading early-return', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const src = await readFile(new URL('../App.tsx', import.meta.url), 'utf8');
+    const guard = src.indexOf('if (!fontsReady');
+    assert.ok(guard > 0, 'the loading guard moved - update this test with it');
+    const after = src.slice(guard);
+    // The shell renders screens after this point; a `use*(` there is a hook
+    // that only runs on some renders.
+    const strays = [...after.matchAll(/\n\s+const [^\n]*\buse[A-Z]\w*\(/g)].map((m) => m[0].trim());
+    assert.deepEqual(strays, [], `hooks below the early return: ${strays.join(' | ')}`);
+  });
+});
