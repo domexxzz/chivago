@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  EVIDENCE_GREEN, HABITATS, LEAF_GREEN, LOOKS, REACTION_MS, headRatio, lightingFor, motionScale, placements,
+  COMPANION_HOUR, EVIDENCE_GREEN, HABITATS, LEAF_GREEN, LOOKS, REACTION_MS, headRatio, lightingFor, motionScale, placements,
   speckles, stageScale,
 } from '../src/components/creature3d/rig.ts';
 import { SPECIES } from '@chivago/core';
@@ -123,6 +123,26 @@ describe('the light follows the island clock', () => {
 
   test('fireflies show at night and not at noon', () => {
     assert.equal(lightingFor(12).glowVisible, false);
+  });
+
+  /*
+    The companion's room does not follow the clock, and this is the rule that
+    says so. Everything else on the island does; a portrait drawn inside a
+    card on a pale screen cannot, or after sunset the card is a dark hole in
+    a light page and the animal is a silhouette.
+  */
+  test('a companion is lit at the same bright hour whenever it is opened', () => {
+    const room = lightingFor(COMPANION_HOUR);
+    assert.ok(room.skyDim > 0.9, `the habitat colours arrive undimmed, got ${room.skyDim}`);
+    assert.equal(room.glowVisible, false, 'no fireflies at half past ten in the morning');
+    assert.ok(room.sun > 0.9, 'bright enough to read the animal by');
+  });
+
+  test('the light still comes from a direction, so the animal is not flat', () => {
+    // Straight overhead is the one bright hour that would flatten it.
+    const room = lightingFor(COMPANION_HOUR);
+    assert.ok(room.elevation < 0.85, `not directly overhead, got ${room.elevation}`);
+    assert.ok(Math.abs(room.azimuth) > 0.05, 'the sun is off to one side');
     assert.equal(lightingFor(21).glowVisible, true);
   });
 

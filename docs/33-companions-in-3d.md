@@ -9,7 +9,7 @@ animal in it.
 
 On the web, `apps/mobile/src/components/creature3d/Creature3D.tsx` renders a
 real-time scene: the animal built from primitives, on a patch of the ground it
-lives on, with the things that live there too, lit by the island's clock. A
+lives on, with the things that live there too, lit for a portrait. A
 coconut macaque in the forest at Na Muang; a green sea turtle on the sand at
 Chaweng with the sea behind it; a water buffalo in the mangrove under prop
 roots; a day octopus on a fishing shore; a junglefowl on the hill; an egg in
@@ -28,13 +28,36 @@ It is alive in the ways an animal is and a mascot is not:
   its head and peeks, the buffalo tosses its horns and stamps;
 - it **turns slowly** while nobody is touching it, and you can drag it round.
 
-The light is the island's. `rig.ts` maps the hour in Bangkok to a sun that
-rises at six and sets at half past, golden at the edges and white at noon, and
-to a blue moon at night that still lights the room — a companion opened after
-dinner, which is when people open it, is not a silhouette in a dark box.
-Fireflies show only when it is dark enough to see them. `?hour=13` on the
-URL shows the room at that hour, for a demo given at midnight that wants the
-beach in daylight.
+`rig.ts` maps an hour in Bangkok to a sun that rises at six and sets at half
+past, golden at the edges and white at noon, and to a blue moon at night that
+still lights the room. Fireflies show only when it is dark enough to see them.
+`?hour=13` on the URL shows the room at that hour.
+
+### The room is always daylight, and the clock is not welcome here
+
+For a fortnight the companion's room followed the island's clock, like the map
+and the greeting do, and the reasoning was sound: a companion opened at dinner
+should look like dinner. Even the night was tuned for it — a blue tropical
+moon rather than a cellar, after a first pass came out as a silhouette in a
+dark box.
+
+What that reasoning missed is WHERE this is drawn. The creature sits inside a
+card on a pale screen, and after sunset the card became a dark rectangle
+punched through a light page: the animal unreadable, its habitat gone, the
+whole panel looking like an image that had failed to load. No amount of
+moonlight fixes that, because the problem is the contrast between the panel
+and the page around it, not the brightness inside the panel.
+
+A companion is a PORTRAIT, not a window. It is the one picture the collection
+has of what that animal is, and it has to be legible at ten at night, which is
+when people open it. So the room is lit at `COMPANION_HOUR`, half past ten in
+the morning: high enough that the habitat's own colours arrive undimmed, far
+enough from noon that the light still comes from a direction and the animal
+still casts a shadow. Straight overhead would flatten it.
+
+The island's clock still runs everywhere it belongs — the map, the terrain,
+the greeting — and `?hour=` still wins here, so a demo can put the room at any
+hour on purpose.
 
 ## What it refuses
 

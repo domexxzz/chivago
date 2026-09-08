@@ -218,6 +218,21 @@ export function lightingFor(hour: number): Lighting {
 
 export const lightingNow = (at = new Date()): Lighting => lightingFor(islandHour(at));
 
+/**
+ * The hour a companion's room is always lit at.
+ *
+ * Late morning: the sun is high enough that `skyDim` is near one and the
+ * habitat's own colours arrive undimmed, and far enough from noon that the
+ * light still comes from a direction and the animal still casts a shadow.
+ * Straight overhead would flatten it.
+ *
+ * Why a fixed hour at all, when everything else on the island follows the
+ * clock: a companion is drawn inside a card on a pale screen, and at night
+ * that card became a dark rectangle in a light page. See the note in
+ * Creature3D.
+ */
+export const COMPANION_HOUR = 10.5;
+
 // ---------------------------------------------------------------------------
 // Motion
 // ---------------------------------------------------------------------------

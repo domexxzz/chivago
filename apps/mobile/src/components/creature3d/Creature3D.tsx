@@ -33,7 +33,7 @@ import type { CompanionStage, LayerKey, Mascot } from '@chivago/core';
 import type { CreatureKey } from '../Creature.tsx';
 import { hourFrom } from '../island-clock.ts';
 import {
-  HABITATS, LOOKS, REACTION_MS, headRatio, lightingFor, lightingNow, motionScale, placements, speckles, stageScale,
+  COMPANION_HOUR, HABITATS, LOOKS, REACTION_MS, headRatio, lightingFor, motionScale, placements, speckles, stageScale,
 } from './rig.ts';
 
 // ---------------------------------------------------------------------------
@@ -246,10 +246,26 @@ export function Creature3D({ species, mascot, stage, height = 320, label, onTap 
     const look = mascot ? null : LOOKS[species ?? 'coconut-macaque'];
     const layer: LayerKey = mascot ? mascot.habitat : look!.layer;
     const habitat = HABITATS[layer];
-    // `?hour=14` shows the room at that island hour. For looking at it, and
-    // for a demo given at midnight that wants to show the beach in daylight.
+    /*
+      The companion's room is always daylight.
+
+      It used to follow the island's clock, like the map and the greeting do,
+      and the reasoning was sound: a companion opened at dinner should look
+      like dinner. What that reasoning missed is WHERE this is drawn. The
+      creature sits in a card on a pale screen, and after sunset the card
+      became a dark rectangle punched through a light page - the animal a
+      silhouette, its habitat unreadable, the whole panel reading as an image
+      that failed to load.
+
+      A companion is a PORTRAIT, not a window. It is the one picture the
+      collection has of what that animal is, and it has to be legible at ten
+      at night, which is when people open it. The island's clock still runs
+      everywhere it belongs: the map, the terrain, the greeting.
+
+      `?hour=` still wins, so a demo can put this room at any hour on purpose.
+    */
     const hourOverride = hourFrom(window.location.search);
-    const light = hourOverride === null ? lightingNow() : lightingFor(hourOverride);
+    const light = lightingFor(hourOverride ?? COMPANION_HOUR);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'low-power' });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
