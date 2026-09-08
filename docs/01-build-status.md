@@ -2,11 +2,12 @@
 
 What exists, what runs, and what is honestly not there yet.
 
-> **Status as of 2026-09-08.** 135 commits since 2026-09-01; `main` is
-> clean at `972d231`, no pull request is open, and CI is green on every
-> commit since the 7th. 20 screens, 75 API routes, 32 console routes, 38
-> tables, about 43,400 lines of source and 19,700 of tests; 1,608 TypeScript
-> tests (core 360, api 787, mobile 382 + 25, tokens 25), 11 Dart, 10 Swift.
+> **Status as of 2026-09-08, afternoon.** 141 commits since 2026-09-01;
+> `main` is clean at `d401f08`, no pull request or issue is open, and CI is
+> green on every commit since the 7th. 20 screens, 75 API routes, 32 console
+> routes, 38 tables, about 43,400 lines of source and 19,700 of tests; 1,608
+> TypeScript tests (core 374, api 787, mobile 397 + 25, tokens 25), 11 Dart,
+> 10 Swift.
 > The live API is up at https://chivago.fly.dev since the evening of the 7th:
 > seeded, the demo reset walked (Standing #1 of 2), the event token and the
 > registration limit set, the console signed in, the six QR codes made. Its
@@ -15,9 +16,15 @@ What exists, what runs, and what is honestly not there yet.
 > 7 September status: electiction's PR #20 merged after a rebase (docs/49),
 > the five campus places have the team's own photographs shipped inside the
 > web export, a card without a photograph wears its habitat, and the demo
-> reset works in the two hours after island midnight. What is not real yet
-> is in `50-status-2026-09-08.md`, this status in Thai with the calendar
-> to the pitch on the 11th and what is owed.
+> reset works in the two hours after island midnight. This afternoon: the
+> five companions are the team's own Samui mascots, built to their reference
+> art (`51-the-samui-five.md`); a place says how far away it is, which way it
+> lies and how long the walk is, and opens a map that has the roads; the
+> place cards carry the distance and the row is ordered nearest first; and
+> both maps draw the traveller with the fix's own accuracy around them
+> (`52-getting-there.md`). What is not real yet is in
+> `50-status-2026-09-08.md`, this status in Thai with the calendar to the
+> pitch on the 11th and what is owed.
 
 > **Status as of 2026-09-02.** 64 commits since 2026-09-01; `main` deploys to
 > https://chivago-demo.vercel.app as a static demo (no API behind it). 17
