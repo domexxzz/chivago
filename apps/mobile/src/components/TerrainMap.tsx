@@ -33,7 +33,7 @@ import {
   isHighScore, islandHour, strings, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { color, onFill } from '../theme/index.ts';
-import { haloMetres, metreRing } from './map-geometry.ts';
+import { edgeNudge, haloMetres, metreRing, tightPins, type PinBox } from './map-geometry.ts';
 import type { Here } from '../state/here.ts';
 import { Label } from './Type.tsx';
 import { MapLegend } from './map-parts.tsx';
@@ -41,7 +41,7 @@ import { t } from '../i18n/locale.ts';
 import { hourFrom, mix } from './island-clock.ts';
 import {
   CLOUD_PX, DRIFT, FOG_CORNERS, FOG_PX, HERO, MAX_PITCH, QUEST_MARK_OFFSET, REVEAL_FEATHER, ROUTE_PHASES,
-  SAMUI_BOUNDS, SWELL_FPS, SWELL_PX, chivagoStyle, cloudField, crest, crowdOffsets, heroPose, introPose, paletteFor,
+  SAMUI_BOUNDS, SWELL_FPS, SWELL_PX, campusZoom, chivagoStyle, cloudField, crest, crowdOffsets, heroPose, introPose, paletteFor,
   questMark, questOffsets, revealedPoints, reveals, routeDash, settleEasing, swell, type MapPalette, type Pose,
 } from './terrain-style.ts';
 
@@ -221,12 +221,16 @@ const HERE_LAYER = 'chivago-here-fill';
 const WAY_SOURCE = 'chivago-way';
 const WAY_CASING = 'chivago-way-casing';
 const WAY_LINE = 'chivago-way-line';
+/** How often the pin names are re-decided while the camera is moving, in ms. */
+const RELABEL_MS = 200;
 const MARK_CSS = `
 .cg-pin{display:flex;flex-direction:column;align-items:center;cursor:pointer;border:0;background:none;padding:0;font-family:Anuphan,system-ui,sans-serif}
 .cg-chip{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:11px;font-size:13px;font-weight:700;line-height:1;
+  position:relative;
   border:2px solid ${color.text};background:${color.surface};color:${color.text};
   box-shadow:0 3px 10px rgba(8,26,48,.35);animation:cg-bob 3.2s ease-in-out infinite;will-change:transform}
 .cg-chip small{font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+.cg-pin.cg-tight .cg-chip small{display:none}
 .cg-pin.cg-high .cg-chip{border-color:${color.accent};background:${color.accent};color:${onFill.accent}}
 .cg-stem{width:2px;height:18px;background:${color.text};opacity:.9}
 .cg-foot{width:14px;height:5px;border-radius:50%;background:rgba(8,26,48,.4);margin-top:-1px}
@@ -254,6 +258,20 @@ const MARK_CSS = `
 @keyframes cg-pulse{0%{transform:scale(.7);opacity:.9}100%{transform:scale(2.1);opacity:0}}
 @media (prefers-reduced-motion: reduce){.cg-chip,.cg-ring,.cg-here i{animation:none}.cg-compass svg{transition:none}}
 `;
+
+/**
+ * Text on its way into innerHTML.
+ *
+ * The names are our own data, not a stranger's, so nothing here is expected
+ * to bite. But a mark is assembled as a STRING and handed to innerHTML, and
+ * a place called "Bo Phut & Fisherman's" would come out broken even without
+ * anyone being clever. Escaping is four characters of work and removes the
+ * whole question.
+ */
+function esc(text: string): string {
+  return text.replace(/[&<>"]/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] ?? c));
+}
 
 function ensureMarkCss(): void {
   if (document.getElementById(CSS_ID)) return;
@@ -357,6 +375,9 @@ export function TerrainMap({
   // Kept apart from `markers`, which is torn down and rebuilt whenever the
   // places change. The traveller is not a place and must not be swept up.
   const hereMark = React.useRef<Marker | null>(null);
+  // The place pins, kept in build order so the name declutter can measure
+  // them without hunting through the map's DOM for a class.
+  const pinEls = React.useRef<{ id: string; rank: number; el: HTMLElement }[]>([]);
   const [failed, setFailed] = React.useState(false);
   // What the mist is painted from, readable from inside the map's own
   // handlers without re-running the mount effect.
@@ -520,8 +541,9 @@ export function TerrainMap({
     const settled: Pose = campus && area
       // Sixty rather than fifty-five: the buildings still read as buildings,
       // and the ridge behind them now has somewhere to be. Bearing from the
-      // south-west, which is the side the campus climbs from.
-      ? { zoom: 16.2, pitch: 60, bearing: -24, center: [area.center.lng, area.center.lat] }
+      // south-west, which is the side the campus climbs from. The zoom is
+      // taken from the frame's width, not fixed: see campusZoom.
+      ? { zoom: campusZoom(holder.current?.clientWidth ?? 0), pitch: 60, bearing: -24, center: [area.center.lng, area.center.lat] }
       : heroPose(m.getZoom());
     const intro: Pose = campus
       ? { ...settled, zoom: settled.zoom - 0.8, pitch: 68, bearing: settled.bearing - 35 }
@@ -792,21 +814,33 @@ export function TerrainMap({
     for (const marker of markers.current) marker.remove();
     markers.current = [];
 
-    // Score-only pins on a phone still collide where the places do; see
-    // crowdOffsets. At desktop width the named chips have room.
+    // Pins on a phone still collide where the places do; see crowdOffsets.
+    // At desktop width they have room.
     const nudge = compact ? crowdOffsets(places) : new Map<string, [number, number]>();
 
+    pinEls.current = [];
     places.forEach((place, i) => {
       const el = document.createElement('button');
       el.type = 'button';
       el.className = `cg-pin${isHighScore(place.healthyScore) ? ' cg-high' : ''}${storied?.has(place.id) ? ' cg-storied' : ''}`;
       el.setAttribute('aria-label', `${t(place.name)}, ${t(strings.place.healthyScore)} ${place.healthyScore}`);
-      // Score alone on a narrow map - see PinChip for why.
-      el.innerHTML = `<span class="cg-chip" style="animation-delay:${-(i * 0.7).toFixed(1)}s"><span>${place.healthyScore}</span>${
-        compact ? '' : `<small>${place.short}</small>`
-      }</span><span class="cg-stem"></span><span class="cg-foot"></span>`;
+      /*
+        THE PIN SAYS WHAT IT IS, at every width.
+
+        The name used to be dropped on a phone, because five of them
+        overlapped each other and the basemap's own labels. That collision
+        was real; dropping every name was the wrong answer to it. A chip
+        reading "81" over a hillside tells you the air is good SOMEWHERE and
+        leaves you to tap five pins to find out where you would be going.
+
+        What ships instead is `relabel` at the foot of this effect: measure
+        what actually overlaps, and let only those pins fall back to the
+        score. The fallback is this same chip wearing `cg-tight`.
+      */
+      el.innerHTML = `<span class="cg-chip" style="animation-delay:${-(i * 0.7).toFixed(1)}s"><span>${place.healthyScore}</span><small>${esc(place.short)}</small></span><span class="cg-stem"></span><span class="cg-foot"></span>`;
       el.addEventListener('click', () => onSelect(place));
 
+      pinEls.current.push({ id: place.id, rank: place.healthyScore, el });
       markers.current.push(
         new Marker({ element: el, anchor: 'bottom', offset: nudge.get(place.id) ?? [0, 0] })
           .setLngLat([place.lng, place.lat])
@@ -827,7 +861,7 @@ export function TerrainMap({
       el.type = 'button';
       el.className = `cg-quest cg-${mark}`;
       el.setAttribute('aria-label', `${t(quest.name)}, ${t(quest.where)}. ${t(strings.map.questPin(quest.rewardPoints))}`);
-      el.innerHTML = `<span class="cg-ring"></span>${questGlyph(mark === 'done')}<span class="cg-tag">${quest.code} · +${quest.rewardPoints}</span>`;
+      el.innerHTML = `<span class="cg-ring"></span>${questGlyph(mark === 'done')}<span class="cg-tag">${esc(quest.code)} · +${quest.rewardPoints}</span>`;
       if (onOpenQuest) el.addEventListener('click', () => onOpenQuest(quest.id));
 
       markers.current.push(
@@ -836,6 +870,105 @@ export function TerrainMap({
           .addTo(m),
       );
     }
+
+    /*
+      Every name that fits, and no name that does not.
+
+      Two layout passes for the whole set rather than two per pin: measure
+      all of them wearing their names, then all of them without, and hand
+      the real rectangles to `tightPins`. Reading a rectangle flushes
+      layout, so batching the reads this way costs two flushes rather than
+      two per pin.
+
+      It runs when the camera STOPS. A name that flickered in and out
+      through a drag would read worse than one that settles a moment after
+      the map does, and the pins move under a pan anyway.
+    */
+    const boxOf = (el: HTMLElement): PinBox => {
+      const r = (el.querySelector('.cg-chip') ?? el).getBoundingClientRect();
+      return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    };
+    const relabel = () => {
+      const pins = pinEls.current;
+      if (pins.length === 0) return;
+      // Back to the unedited state first: names on, no edge slide. Deciding
+      // from boxes that carry the LAST pass's nudges would compound one
+      // frame's answer into the next.
+      for (const pin of pins) {
+        pin.el.classList.remove('cg-tight');
+        pin.el.querySelector<HTMLElement>('.cg-chip')?.style.setProperty('left', '0px');
+      }
+      const named = pins.map((pin) => boxOf(pin.el));
+      for (const pin of pins) pin.el.classList.add('cg-tight');
+      const slim = pins.map((pin) => boxOf(pin.el));
+      const tight = tightPins(
+        pins.map((pin, i) => ({ id: pin.id, rank: pin.rank, named: named[i]!, slim: slim[i]! })),
+      );
+      for (const pin of pins) pin.el.classList.toggle('cg-tight', tight.has(pin.id));
+
+      /*
+        And then, having decided what each chip SAYS, keep it on the map.
+
+        A place near the edge has its chip centred on its point, so half the
+        name hangs over the side and is cut off by the map's own overflow.
+        The chip slides back; the stem does not, so the pin still points at
+        the true position and the offset can be seen for what it is.
+
+        The slide is `left` on the chip, not a transform: a CSS animation
+        outranks an inline style, `.cg-chip` bobs on a transform keyframe,
+        and an inline `translateX` here would simply be thrown away. It is
+        the same trap the traveller's dot fell into - see the note at the
+        top of this file.
+      */
+      const frame = m.getContainer().getBoundingClientRect();
+      for (const pin of pins) {
+        const chip = pin.el.querySelector<HTMLElement>('.cg-chip');
+        if (!chip) continue;
+        chip.style.left = '0px';
+        const shift = edgeNudge(chip.getBoundingClientRect(), frame);
+        chip.style.left = `${shift}px`;
+      }
+    };
+    /*
+      And it has to keep up with a camera that does not stop.
+
+      Settling on `moveend` alone was measured and found wrong: the campus
+      pose is followed by a slow drift that runs until the first touch, so a
+      chip nudged onto the map at the end of the intro had wandered three
+      pixels back off it a second later. Five times a second while the
+      camera moves is enough to look fixed and cheap enough not to matter -
+      two layout reads for a handful of chips, against everything MapLibre
+      is already doing on the same frames.
+    */
+    let lastRun = 0;
+    let pending = 0;
+    const relabelSoon = () => {
+      const since = performance.now() - lastRun;
+      if (since >= RELABEL_MS) {
+        lastRun = performance.now();
+        relabel();
+      } else if (!pending) {
+        pending = window.setTimeout(() => {
+          pending = 0;
+          lastRun = performance.now();
+          relabel();
+        }, RELABEL_MS - since);
+      }
+    };
+    // One frame later, so MapLibre has placed every marker before any of
+    // them is measured. Before that they all sit at the map's origin and
+    // every box overlaps every other box.
+    const settle = requestAnimationFrame(relabel);
+    m.on('move', relabelSoon);
+    m.on('moveend', relabel);
+    m.on('resize', relabel);
+    return () => {
+      cancelAnimationFrame(settle);
+      if (pending) window.clearTimeout(pending);
+      m.off('move', relabelSoon);
+      m.off('moveend', relabel);
+      m.off('resize', relabel);
+    };
   }, [places, quests, progress, onSelect, onOpenQuest, compact, storied]);
 
   /*

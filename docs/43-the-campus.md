@@ -184,8 +184,17 @@ extrusion the same colour. Three things fixed that:
   from the light - the same illumination bearing the hillshade uses, so the
   buildings and the ground agree about where the sun is. A block with
   nothing under it floats.
-- **Closer.** The settled zoom went from 15.7 to 16.2. A building drawn six
-  pixels tall is a smudge whatever colour it is.
+- **Closer, but not by a fixed number.** The settled zoom went from 15.7 to
+  16.2, because a building drawn six pixels tall is a smudge whatever colour
+  it is. Sixteen point two was then judged against a laptop — and a single
+  zoom number frames a different amount of ground on every screen. On a
+  390-pixel phone it cropped two of the five places clean off the map: the
+  sports fields past the left edge, the viewpoint above the top, and a place
+  you cannot see is worse than one you cannot name. The campus is framed by
+  GROUND WIDTH now (`campusZoom`): every doubling of the container is worth
+  one zoom level, measured from the width the pose was actually judged
+  against, clamped either side so a narrow frame never backs off to a smudge
+  and a wide one never presses its nose against a single lecture hall.
 
 On a phone the drawn island is Samui's silhouette and nothing else, so the
 campus is its list until it has a drawing of its own. Not the island with

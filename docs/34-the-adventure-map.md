@@ -119,6 +119,49 @@ seeded, so it is the same afternoon every visit.
 cycled through five arrays with a growing zero-length lead, and the dots
 crawl toward the island with the tide.
 
+## Every pin says what it is
+
+For a fortnight a pin on a phone was a number and a stem. The reason was
+real: the five island names overlapped each other and the basemap's own
+labels, with Fisherman's Village covering Chaweng entirely, so the name was
+dropped below a width threshold and the map went quiet.
+
+That was the wrong half to drop. A chip reading **81** over a hillside says
+the air is good SOMEWHERE and leaves you to tap five pins to find out where
+you would be going — which is the question a map exists to answer. The names
+are back at every width, and what keeps them from piling up is measurement
+rather than a threshold.
+
+- **The rule** is `tightPins` in `map-geometry.ts`. Pins are taken in score
+  order; each keeps its name if its box clears everything already placed,
+  and otherwise falls back to the **slim** box — the score alone, which is
+  what the map drew before. The slim box still counts as occupied, because
+  the score has not gone anywhere.
+- **Nothing is hidden.** A pin that gives up its name keeps its number, its
+  tap target and its full screen-reader label, and gets the name back the
+  moment you zoom in far enough to separate them.
+- **The measuring** is two layout passes for the whole set, not two per pin:
+  everything is read wearing its name, then everything is read without one.
+  It runs five times a second while the camera moves, because the campus
+  pose is followed by a slow drift and a label decided once had wandered
+  three pixels off the map a second later.
+- **Chips at the edge slide back on.** A place near the frame's edge had
+  half its name cut off by the map's own overflow; `edgeNudge` slides the
+  chip up to 28 px to sit inside, and no further — past that the honest
+  picture is a clipped label, because the place itself is out of the
+  picture. The **stem does not move**, so the pin still points at the true
+  position and the offset can be seen for what it is.
+- **The slide is `left`, not a transform.** `.cg-chip` bobs on a transform
+  keyframe, and a CSS animation outranks an inline style, so an inline
+  `translateX` would simply be thrown away. It is the same trap the
+  traveller's dot fell into, one element down.
+
+What it looks like, measured in a real 390-pixel frame: on the campus, four
+of five named and all five on the map; on the island, the two best-scoring
+named and no overlapping words anywhere. The drawn island names all five,
+because `layoutPins` pushes chips apart vertically rather than deciding
+between them — the web map does not do that yet, and that is the gap.
+
 ## On a phone
 
 The drawn island - the traced decagon a phone renders, with real points on

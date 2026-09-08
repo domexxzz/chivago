@@ -536,7 +536,7 @@ function IslandMap({
                 transform: [{ translateX: -CHIP.halfWidth }, { translateY: -40 }],
               }}
             >
-              <PinChip place={place} onPress={() => onSelect(place)} compact={compact} storied={storied?.has(place.id) ?? false} />
+              <PinChip place={place} onPress={() => onSelect(place)} storied={storied?.has(place.id) ?? false} />
             </View>
           ))
         : null}

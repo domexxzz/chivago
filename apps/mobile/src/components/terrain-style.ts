@@ -744,6 +744,36 @@ export function questOffsets(
  * screen pixels, so zooming in separates them naturally and the nudge fades
  * into insignificance rather than compounding.
  */
+/**
+ * How close the campus camera stands, for a frame of a given width.
+ *
+ * The zoom used to be a single number, and a single number frames a
+ * different amount of GROUND on every screen. Sixteen point two was chosen
+ * against a laptop, where it holds the whole campus; on a 390-pixel phone
+ * the same number cropped two of the five places off the map entirely - the
+ * sports fields past the left edge, the viewpoint above the top - and a
+ * place you cannot see is worse than one you cannot name.
+ *
+ * So the campus is framed by ground width instead. Every doubling of the
+ * container is worth one zoom level, measured from the width the settled
+ * pose was actually judged against, which means a phone and a laptop look
+ * at the same campus rather than at the same number.
+ *
+ * The floor stops a very narrow frame from backing off until the buildings
+ * are six pixels of smudge, which is the state this map spent a fortnight
+ * in. The ceiling stops a wide desktop from pressing its nose against one
+ * lecture hall.
+ */
+export const CAMPUS_FRAME_PX = 620;
+export const CAMPUS_FRAME_ZOOM = 16.2;
+export const CAMPUS_ZOOM_RANGE = [15.4, 16.8] as const;
+
+export function campusZoom(widthPx: number): number {
+  const width = Math.max(240, widthPx || CAMPUS_FRAME_PX);
+  const wanted = CAMPUS_FRAME_ZOOM + Math.log2(width / CAMPUS_FRAME_PX);
+  return Math.min(CAMPUS_ZOOM_RANGE[1], Math.max(CAMPUS_ZOOM_RANGE[0], Number(wanted.toFixed(2))));
+}
+
 export const CROWD_M = 4000;
 
 /** Half a pin, in CSS pixels. */

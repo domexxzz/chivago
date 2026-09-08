@@ -21,8 +21,8 @@ import { t } from '../i18n/locale.ts';
  * place header can never disagree.
  */
 export function PinChip({
-  place, onPress, compact = false, storied = false,
-}: { place: ScoredPlace; onPress: () => void; compact?: boolean; storied?: boolean }) {
+  place, onPress, storied = false,
+}: { place: ScoredPlace; onPress: () => void; storied?: boolean }) {
   const high = isHighScore(place.healthyScore);
   return (
     <Pressable
@@ -50,14 +50,18 @@ export function PinChip({
       >
         <Heading size={13} colour={high ? onFill.accent : color.text}>{place.healthyScore}</Heading>
         {/*
-          On a phone-width map the five names overlapped each other and the
-          basemap's own labels; Fisherman's covered Chaweng entirely. Narrow
-          maps show the score alone - the name is one tap away, and the
-          screen reader still gets it from the label above.
+          The name rides with the score at every width.
+
+          It was dropped on a phone for a fortnight because the five names
+          overlapped each other, Fisherman's covering Chaweng entirely. The
+          collision was real and the answer was wrong: a chip reading "81"
+          over a coastline says the air is good SOMEWHERE, and leaves you to
+          tap five pins to find out where. Room is what was missing, and
+          `layoutPins` has always reserved a NAMED chip's footprint -
+          CHIP.halfWidth is 46, which is score plus name, not score alone.
+          So the names go back and the de-collision does its job.
         */}
-        {compact ? null : (
-          <Label size={9} tracking={0.1} colour={high ? onFill.accent : color.text}>{place.short}</Label>
-        )}
+        <Label size={9} tracking={0.1} colour={high ? onFill.accent : color.text}>{place.short}</Label>
       </View>
       {/* The 2x16 ink stem that pins the chip to its point. */}
       <View style={{ width: 2, height: 16, backgroundColor: color.text }} />

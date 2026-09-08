@@ -4,11 +4,15 @@ import { test, describe } from 'node:test';
 import {
   CROWD_M, DRIFT, FOG_BOUNDS, FOG_CORNERS, HERO, PIN_NUDGE_PX, QUEST_FAN_PX, QUEST_MARK_OFFSET, REVEAL_M,
   MAX_PITCH, ROUTE_DASH, ROUTE_PHASES, SAMUI_BOUNDS, SWELLS, SWELL_FPS, SWELL_PX, WIND, chivagoStyle, cloudField,
+  CAMPUS_FRAME_PX, CAMPUS_FRAME_ZOOM, CAMPUS_ZOOM_RANGE, campusZoom,
   crest, crowdOffsets, heroPose, introPose, landColours, paletteFor, questMark, questOffsets, revealedPoints, reveals,
   routeDash, settleEasing, swell,
 } from '../src/components/terrain-style.ts';
 import { exploredCount } from '../src/components/map-parts.tsx';
-import { HALO_MAX_M, HALO_MIN_M, haloMetres, insideSamui, metreRing } from '../src/components/map-geometry.ts';
+import {
+  EDGE_NUDGE_MAX_PX, HALO_MAX_M, HALO_MIN_M, LABEL_GAP_PX, boxesOverlap, edgeNudge, haloMetres, insideSamui,
+  metreRing, tightPins,
+} from '../src/components/map-geometry.ts';
 import { SUNRISE, SUNSET, dayArc, hourFrom, hueOf, luminance, mix } from '../src/components/island-clock.ts';
 import { lightingFor } from '../src/components/creature3d/rig.ts';
 import { heroHeight } from '../src/components/SamuiMap.tsx';
@@ -397,6 +401,151 @@ describe('you are here', () => {
     assert.ok(insideSamui(CHAWENG));
     assert.ok(!insideSamui({ lat: 13.1, lng: 100.92 }), 'KU Sriracha is not on Samui');
     assert.ok(!insideSamui({ lat: 9.5357, lng: 101.5 }));
+  });
+});
+
+/**
+ * Naming the pins.
+ *
+ * A pin used to show a score and nothing else on a phone, which told a
+ * traveller the air was good somewhere and left them to tap five pins to
+ * find out where. Every pin carries its name now, and this is the rule that
+ * keeps that from turning the map into a pile of overlapping words.
+ *
+ * The map itself needs a browser to measure anything. The DECISION does not:
+ * given rectangles, which pin has to give up its name is arithmetic, and
+ * arithmetic can be held to account here.
+ */
+/**
+ * The campus, framed by ground rather than by a number.
+ *
+ * A fixed zoom shows a different amount of the world on every screen. It was
+ * chosen against a laptop, and on a phone it cropped the sports fields and
+ * the viewpoint clean off the map - which is a worse failure than an
+ * unnamed pin, because you cannot tap what is not drawn.
+ */
+describe('the campus frame', () => {
+  test('the width it was judged at gives the zoom it was judged with', () => {
+    assert.equal(campusZoom(CAMPUS_FRAME_PX), CAMPUS_FRAME_ZOOM);
+  });
+
+  test('a doubling of the frame is worth a zoom level, so the ground is the same', () => {
+    // Checked inside the range, which allows only 0.6 either side of the
+    // judged zoom - a full doubling runs into the clamp, tested below.
+    const near = campusZoom(CAMPUS_FRAME_PX * 1.3);
+    const far = campusZoom(CAMPUS_FRAME_PX / 1.3);
+    const expected = 2 * Math.log2(1.3);
+    assert.ok(Math.abs((near - far) - expected) < 0.02, `${far} to ${near}, wanted ${expected} between`);
+  });
+
+  test('a phone stands back, a laptop leans in', () => {
+    const phone = campusZoom(390);
+    const laptop = campusZoom(900);
+    assert.ok(phone < CAMPUS_FRAME_ZOOM, 'a 390px frame is further out than 620px');
+    assert.ok(laptop > CAMPUS_FRAME_ZOOM, 'a 900px frame is closer in');
+  });
+
+  test('it never backs off until the buildings are a smudge, nor presses its nose to one hall', () => {
+    const [floor, ceiling] = CAMPUS_ZOOM_RANGE;
+    assert.equal(campusZoom(1), floor);
+    assert.equal(campusZoom(100_000), ceiling);
+    for (const width of [0, 240, 320, 390, 430, 627, 768, 900, 1440, 2560]) {
+      const z = campusZoom(width);
+      assert.ok(z >= floor && z <= ceiling, `${width}px gave ${z}`);
+    }
+  });
+
+  test('a container that has not been measured yet still gets a usable frame', () => {
+    // The pose is built inside the mount effect, and a lazy chunk landing in
+    // a scroll view can report zero width for one frame.
+    assert.equal(campusZoom(0), CAMPUS_FRAME_ZOOM);
+  });
+});
+
+describe('pins say what they are', () => {
+  const box = (left: number, top: number, width: number, height = 22) =>
+    ({ left, top, right: left + width, bottom: top + height });
+
+  test('two chips with the sea between them both keep their names', () => {
+    const tight = tightPins([
+      { id: 'a', rank: 90, named: box(0, 0, 90), slim: box(25, 0, 40) },
+      { id: 'b', rank: 80, named: box(300, 0, 90), slim: box(325, 0, 40) },
+    ]);
+    assert.equal(tight.size, 0);
+  });
+
+  test('when two cannot both fit, the better score keeps its name', () => {
+    // Chaweng and Fisherman's, near enough on screen to touch.
+    const tight = tightPins([
+      { id: 'fishermans', rank: 78, named: box(60, 0, 90), slim: box(85, 0, 40) },
+      { id: 'chaweng', rank: 86, named: box(0, 0, 90), slim: box(25, 0, 40) },
+    ]);
+    assert.deepEqual([...tight], ['fishermans']);
+  });
+
+  test('a pin that lost its name still takes up room', () => {
+    // The score does not vanish, so a third chip has to clear the SLIM box
+    // rather than treating the loser as empty ground.
+    const tight = tightPins([
+      { id: 'a', rank: 90, named: box(0, 0, 90), slim: box(25, 0, 40) },
+      { id: 'b', rank: 80, named: box(70, 0, 90), slim: box(95, 0, 40) },
+      { id: 'c', rank: 70, named: box(100, 0, 90), slim: box(125, 0, 40) },
+    ]);
+    assert.deepEqual([...tight].sort(), ['b', 'c']);
+  });
+
+  test('nothing is hidden outright - the losers are named, not removed', () => {
+    const pins = [
+      { id: 'a', rank: 90, named: box(0, 0, 90), slim: box(25, 0, 40) },
+      { id: 'b', rank: 80, named: box(10, 0, 90), slim: box(35, 0, 40) },
+    ];
+    const tight = tightPins(pins);
+    // Every id is still a pin on the map; `tight` only ever names the ones
+    // that fall back to their score.
+    assert.ok(tight.size < pins.length);
+  });
+
+  test('a tie resolves the same way every frame', () => {
+    const pins = [
+      { id: 'zulu', rank: 80, named: box(10, 0, 90), slim: box(35, 0, 40) },
+      { id: 'alfa', rank: 80, named: box(0, 0, 90), slim: box(25, 0, 40) },
+    ];
+    // Same input, either order in: the same pin gives way. A flicker between
+    // two equally good places would be worse than either outcome.
+    assert.deepEqual([...tightPins(pins)], ['zulu']);
+    assert.deepEqual([...tightPins([...pins].reverse())], ['zulu']);
+  });
+
+  test('chips that merely graze each other count as touching', () => {
+    // They bob by three pixels, so a rectangle measured now is not quite
+    // where the same chip sits a second later.
+    assert.ok(LABEL_GAP_PX >= 6);
+    assert.ok(boxesOverlap(box(0, 0, 90), box(94, 0, 90)), 'four pixels apart is touching');
+    assert.ok(!boxesOverlap(box(0, 0, 90), box(120, 0, 90)), 'thirty pixels apart is not');
+  });
+
+  test('chips on different rows do not fight', () => {
+    assert.ok(!boxesOverlap(box(0, 0, 90), box(0, 40, 90)));
+  });
+
+  test('a chip hanging over the edge slides back onto the map', () => {
+    const frame = { left: 0, right: 390 };
+    // The campus sports fields, nine pixels over the left edge at 390.
+    assert.equal(edgeNudge({ left: -9, right: 70 }, frame), 9);
+    assert.equal(edgeNudge({ left: 320, right: 400 }, frame), -10);
+  });
+
+  test('a chip that already fits is left where it is', () => {
+    assert.equal(edgeNudge({ left: 40, right: 130 }, { left: 0, right: 390 }), 0);
+  });
+
+  test('a chip too far out is left cut off rather than dragged in', () => {
+    // Past the cap the honest picture is a clipped label: the place itself
+    // is no longer really in the frame, and a name pulled back to the edge
+    // would point at nothing.
+    const far = edgeNudge({ left: -200, right: -110 }, { left: 0, right: 390 });
+    assert.equal(far, 0);
+    assert.ok(EDGE_NUDGE_MAX_PX < 200);
   });
 });
 

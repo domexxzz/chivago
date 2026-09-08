@@ -107,10 +107,19 @@ export function layoutPins(
   // against wherever a previous chip happened to be nudged to.
   const placed: (PlacedPin & { anchor: number })[] = [];
 
+  /*
+    Two chips clash when their footprints touch.
+
+    The horizontal reach is a FULL chip width - halfWidth twice over - not
+    the 1.6 it was while the chips on a phone showed a score and no name.
+    At 1.6 two chips 80 px apart were declared clear of each other and then
+    drawn 92 px wide, so they overlapped by a dozen pixels: fine for a pair
+    of numbers, a smudge once each of them carries a word.
+  */
   const collidingWith = (left: number, top: number): (PlacedPin & { anchor: number }) | undefined =>
     placed.find(
       (other) =>
-        Math.abs(other.left - left) < CHIP.halfWidth * 1.6 &&
+        Math.abs(other.left - left) < CHIP.halfWidth * 2 &&
         Math.abs(other.top - top) < CHIP.height + 6,
     );
 
@@ -263,3 +272,109 @@ export const HALO_MIN_M = 20;
 export const HALO_MAX_M = 250;
 export const haloMetres = (accuracyM: number | null): number =>
   Math.min(HALO_MAX_M, Math.max(HALO_MIN_M, accuracyM ?? HALO_MIN_M));
+
+// ---------------------------------------------------------------------------
+// Naming the pins
+// ---------------------------------------------------------------------------
+
+/**
+ * A chip's box on screen, in CSS pixels. The four numbers a DOMRect gives.
+ */
+export type PinBox = {
+  readonly left: number;
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+};
+
+/**
+ * Slack between two chips before they count as touching.
+ *
+ * Six pixels, not zero, for two reasons. Chips that merely graze each other
+ * read as one smudged label rather than as two places. And the chips BOB:
+ * a three-pixel CSS animation runs on every one of them, so a rectangle
+ * measured now is up to three pixels from where the same chip sits a second
+ * later. Six absorbs both.
+ */
+export const LABEL_GAP_PX = 6;
+
+/** Do these two boxes, with the slack above, share any ground? */
+export function boxesOverlap(a: PinBox, b: PinBox, gap = LABEL_GAP_PX): boolean {
+  return a.left - gap < b.right
+    && b.left - gap < a.right
+    && a.top - gap < b.bottom
+    && b.top - gap < a.bottom;
+}
+
+/**
+ * Which pins have to give up their name.
+ *
+ * A pin with no name is a number floating over a hillside: it tells you the
+ * air is good somewhere without telling you where you would be going. So
+ * every pin carries its name now, on a phone too - and this is what keeps
+ * that from turning the map into a pile of overlapping words.
+ *
+ * The rule is greedy and takes the pins in rank order: the first pin keeps
+ * its name, and each one after it keeps its name only if the named box
+ * clears everything already kept. A pin that cannot fit falls back to the
+ * SLIM box - the score alone, which is what the map drew before - and that
+ * slim box is what the pins after it have to clear, because the score is
+ * still on the screen taking up room.
+ *
+ * Two consequences worth saying out loud. A crowded pair is resolved in
+ * favour of the better score, so the place worth walking to is the one that
+ * gets named. And nothing is ever hidden outright: the losing pin keeps its
+ * number, its tap target and its screen-reader label, and gets its name back
+ * as soon as you zoom in far enough to separate them.
+ */
+export function tightPins(
+  pins: readonly { readonly id: string; readonly rank: number; readonly named: PinBox; readonly slim: PinBox }[],
+): Set<string> {
+  // Sorted by rank, then by id so a tie resolves the same way on every frame
+  // rather than flickering between two equally good places.
+  const order = [...pins].sort((a, b) => (b.rank - a.rank) || a.id.localeCompare(b.id));
+  const kept: PinBox[] = [];
+  const tight = new Set<string>();
+  for (const pin of order) {
+    const fits = !kept.some((box) => boxesOverlap(box, pin.named));
+    if (fits) kept.push(pin.named);
+    else {
+      tight.add(pin.id);
+      kept.push(pin.slim);
+    }
+  }
+  return tight;
+}
+
+/**
+ * The furthest a chip may slide to stay on the map.
+ *
+ * A place near the edge of the frame has its chip centred on its point, so
+ * half a chip hangs over the edge and the name is cut in half. Sliding the
+ * chip back costs a few pixels of accuracy and buys a readable name; the
+ * STEM does not move, so the pin still points at the true position and the
+ * offset is visible rather than hidden.
+ *
+ * Capped, because past a certain point the honest thing is a cut-off label:
+ * a chip dragged thirty pixels to stay on screen is a label for a place
+ * that is no longer really in the picture.
+ */
+export const EDGE_NUDGE_MAX_PX = 28;
+
+/**
+ * How far to slide a chip, in pixels, so it sits inside the frame.
+ * Positive is right. Zero when it already fits, or when no allowed slide
+ * would be enough.
+ */
+export function edgeNudge(
+  chip: { readonly left: number; readonly right: number },
+  frame: { readonly left: number; readonly right: number },
+  max = EDGE_NUDGE_MAX_PX,
+): number {
+  const wanted = chip.left < frame.left
+    ? frame.left - chip.left
+    : chip.right > frame.right
+      ? frame.right - chip.right
+      : 0;
+  return Math.abs(wanted) <= max ? Math.round(wanted) : 0;
+}
