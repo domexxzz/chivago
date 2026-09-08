@@ -449,6 +449,58 @@ export function chivagoStyle(hour = 12): StyleSpecification {
         },
       },
       // Roads as trails: a dark edge under a sand-coloured line.
+      /*
+        The small streets, and the paths between the buildings.
+
+        The four classes below this one are the island's roads seen from ten
+        kilometres, and they are all the style drew for a fortnight. A
+        university campus has NONE of them: its network is service roads,
+        residential streets and footways, so the campus rendered as blocks
+        standing in an open field with nothing running between them - which
+        is most of why it did not read as a place.
+
+        They appear at zoom 13, which is close enough that a service road is
+        a thing you could walk down and far enough that the island is not
+        suddenly a cobweb.
+      */
+      {
+        id: 'lanes-edge', type: 'line', source: 'osm', 'source-layer': 'transportation',
+        filter: ['in', ['get', 'class'], ['literal', ['tertiary', 'minor', 'service', 'track']]],
+        minzoom: 13,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': p.trailEdge,
+          'line-opacity': 0.5,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 13, 1.4, 18, 7],
+        },
+      },
+      {
+        id: 'lanes', type: 'line', source: 'osm', 'source-layer': 'transportation',
+        filter: ['in', ['get', 'class'], ['literal', ['tertiary', 'minor', 'service', 'track']]],
+        minzoom: 13,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': p.trail,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 13, 0.7, 18, 4.6],
+        },
+      },
+      /*
+        Footways as a dashed thread. Dashed because that is what a path is
+        on every map anyone has read, and because a campus's footways are
+        the shortcuts between the blocks rather than anything you drive.
+      */
+      {
+        id: 'paths', type: 'line', source: 'osm', 'source-layer': 'transportation',
+        filter: ['==', ['get', 'class'], 'path'],
+        minzoom: 14,
+        layout: { 'line-cap': 'round' },
+        paint: {
+          'line-color': p.trailEdge,
+          'line-opacity': 0.55,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 14, 0.8, 18, 2.4],
+          'line-dasharray': [2, 2],
+        },
+      },
       {
         id: 'roads-edge', type: 'line', source: 'osm', 'source-layer': 'transportation',
         filter: ['in', ['get', 'class'], ['literal', ['motorway', 'trunk', 'primary', 'secondary']]],

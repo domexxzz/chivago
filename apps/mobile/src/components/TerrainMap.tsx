@@ -295,6 +295,22 @@ const CAMPUS_STOREY_M = 3.4;
 const CAMPUS_DEFAULT_M = CAMPUS_STOREY_M * 3.5;
 
 /**
+ * The roof, as a band at the top of the wall.
+ *
+ * MapLibre paints every face of an extrusion the same colour, so a block is
+ * a solid lozenge and reads as a box rather than a building. Two layers fix
+ * that: the walls stop short, and a second extrusion sits on top of them in
+ * a roof colour. Under a metre, because what this is drawing is the edge of
+ * a roof seen from a kilometre away and not a storey.
+ *
+ * OpenStreetMap records NOTHING about these roofs - no shape, no material,
+ * no colour, on any of the 75. So the colour is a convention, like the
+ * heights, and is one colour for all of them rather than a per-building
+ * invention dressed up as a survey.
+ */
+const CAMPUS_ROOF_M = 1.3;
+
+/**
  * How much to lift the campus hill.
  *
  * The island runs at 2.0 because Khao Pom is 635 m seen from twelve
@@ -505,7 +521,7 @@ export function TerrainMap({
       // Sixty rather than fifty-five: the buildings still read as buildings,
       // and the ridge behind them now has somewhere to be. Bearing from the
       // south-west, which is the side the campus climbs from.
-      ? { zoom: 15.6, pitch: 60, bearing: -24, center: [area.center.lng, area.center.lat] }
+      ? { zoom: 16.2, pitch: 60, bearing: -24, center: [area.center.lng, area.center.lat] }
       : heroPose(m.getZoom());
     const intro: Pose = campus
       ? { ...settled, zoom: settled.zoom - 0.8, pitch: 68, bearing: settled.bearing - 35 }
@@ -557,6 +573,25 @@ export function TerrainMap({
         'apartments', S * 6,
         CAMPUS_DEFAULT_M,
       ];
+      /*
+        The shadow first, under everything: the footprint again, dark and
+        soft, pushed a few pixels away from the light. A block with nothing
+        under it floats; a block with a shadow stands on the hill. The
+        offset is derived from the same illumination bearing the hillshade
+        uses, so the buildings and the ground agree about where the sun is.
+      */
+      const theta = (paletteFor(hour).illumination * Math.PI) / 180;
+      const drop = night ? 4 : 8;
+      m.addLayer({
+        id: 'campus-shadows', type: 'fill', source: 'osm', 'source-layer': 'building', minzoom: 14,
+        paint: {
+          'fill-color': paletteFor(hour).shadow,
+          'fill-opacity': night ? 0.2 : 0.3,
+          'fill-translate': [-Math.sin(theta) * drop, Math.cos(theta) * drop],
+          'fill-translate-anchor': 'map',
+        },
+      }, m.getLayer('place-labels') ? 'place-labels' : undefined);
+
       m.addLayer({
         id: 'campus-buildings', type: 'fill-extrusion', source: 'osm', 'source-layer': 'building', minzoom: 13,
         paint: {
@@ -568,18 +603,43 @@ export function TerrainMap({
             does distinguish a teaching block from a hall from a shop.
           */
           'fill-extrusion-color': night ? '#2c3e46' : ['match', ['get', 'class'],
-            'dormitory', '#e3d3b8',
-            'apartments', '#e3d3b8',
-            'hospital', '#eee6d8',
-            'retail', '#e8dcc2',
-            'roof', '#d8cfbc',
-            'industrial', '#ded5c2',
-            '#e6ddcb',
+            'dormitory', '#efe7d6',
+            'apartments', '#efe7d6',
+            'hospital', '#f6f2e8',
+            'retail', '#f0e6d2',
+            'roof', '#e2dac9',
+            'industrial', '#e8e0d0',
+            '#f2ece0',
           ],
-          'fill-extrusion-height': ['coalesce', ['get', 'render_height'], byKind],
+          // The WALLS stop a roof's thickness short of the top, and the
+          // roof layer below picks up exactly where they stop. Adjacent
+          // rather than overlapping, so the two never fight for the same
+          // pixels in that band.
+          'fill-extrusion-height': ['max', 0, ['-', ['coalesce', ['get', 'render_height'], byKind], CAMPUS_ROOF_M]],
           'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
-          'fill-extrusion-opacity': 0.95,
+          'fill-extrusion-opacity': 0.97,
           'fill-extrusion-vertical-gradient': true,
+        },
+      }, m.getLayer('place-labels') ? 'place-labels' : undefined);
+
+      /*
+        The roof. One colour for all of them: the survey records no roof at
+        all on this campus, so a per-building roof would be fiction wearing
+        a survey's clothes. What it does buy is the line where wall meets
+        roof, which is most of what tells an eye "building" rather than
+        "box".
+      */
+      m.addLayer({
+        id: 'campus-roofs', type: 'fill-extrusion', source: 'osm', 'source-layer': 'building', minzoom: 13,
+        paint: {
+          // A light warm grey, which is what concrete and metal sheet read
+          // as from above. The first pass was a mud brown and every block
+          // came out a slab; the roof has to be LIGHTER than the eye expects
+          // or it swallows the whole building at this pitch.
+          'fill-extrusion-color': night ? '#1d2b33' : '#b8b2a6',
+          'fill-extrusion-height': ['coalesce', ['get', 'render_height'], byKind],
+          'fill-extrusion-base': ['max', 0, ['-', ['coalesce', ['get', 'render_height'], byKind], CAMPUS_ROOF_M]],
+          'fill-extrusion-opacity': 0.97,
         },
       }, m.getLayer('place-labels') ? 'place-labels' : undefined);
     };

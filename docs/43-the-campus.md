@@ -143,6 +143,18 @@ There is now a `grass` layer, and the woods firm up as the camera comes in
 (0.42 at island distance, 0.68 at campus distance), because a wood you are
 standing under is not a tint on a distant hillside.
 
+### The campus had no streets
+
+The style drew four road classes - motorway, trunk, primary, secondary -
+which are the island's roads seen from ten kilometres. A university campus
+has NONE of them. Its network is service roads, residential streets and
+footways, so the blocks stood in an open field with nothing running between
+them, and that is most of why it did not read as a place.
+
+Service roads, minor streets and tracks now draw from zoom 13, with the same
+casing-and-fill the main roads use; footways draw dashed from zoom 14,
+because a path is dashed on every map anyone has ever read.
+
 ### The buildings
 
 OpenStreetMap has **75 buildings** on this campus and the height of **two** of
@@ -155,6 +167,25 @@ the tint come from the kind, which is a DRAWING CONVENTION and not a
 measurement — but a convention keyed to something the survey actually
 recorded, which the old one (every building at four storeys, all in the same
 beige) was not. A hall of residence is taller than a shop, everywhere.
+
+A block still read as a lozenge, because MapLibre paints every face of an
+extrusion the same colour. Three things fixed that:
+
+- **A roof.** The walls stop 1.3 m short and a second extrusion sits on top
+  of them in a roof colour - adjacent rather than overlapping, so the two
+  never fight for the same pixels. What it buys is the line where wall meets
+  roof, which is most of what tells an eye building rather than box.
+  The survey records nothing about these roofs - no shape, no material, no
+  colour, on any of the 75 - so it is ONE colour for all of them rather than
+  a per-building invention dressed as a survey. It is also lighter than
+  instinct suggests: the first pass was a mud brown and at this pitch, where
+  the roof is most of what you see, every block came out a slab.
+- **A shadow.** The footprint again, dark and soft, pushed a few pixels away
+  from the light - the same illumination bearing the hillshade uses, so the
+  buildings and the ground agree about where the sun is. A block with
+  nothing under it floats.
+- **Closer.** The settled zoom went from 15.7 to 16.2. A building drawn six
+  pixels tall is a smudge whatever colour it is.
 
 On a phone the drawn island is Samui's silhouette and nothing else, so the
 campus is its list until it has a drawing of its own. Not the island with
