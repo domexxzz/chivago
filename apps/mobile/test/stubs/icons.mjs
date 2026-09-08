@@ -13,6 +13,7 @@ export const ChevronLeft = Icon;
 export const ChevronRight = Icon;
 export const Compass = Icon;
 export const Crown = Icon;
+export const ExternalLink = Icon;
 export const Footprints = Icon;
 export const GraduationCap = Icon;
 export const HeartPulse = Icon;

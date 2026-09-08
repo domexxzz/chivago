@@ -160,6 +160,32 @@ export const strings = {
     healthyScore: t('Healthy Score', 'คะแนนสุขภาวะของพื้นที่'),
     addToRoute: t("Add to today's route", 'เพิ่มลงเส้นทาง'),
     safePath: t('Safe path from here', 'เส้นทางปลอดภัยจากที่นี่'),
+    /**
+     * Getting there (docs/52). The heading is a question because that is the
+     * one the traveller is actually asking, and the answer under it is a
+     * distance rather than a route: this app hands the roads to a map that
+     * has them.
+     */
+    getThere: t('How far is it?', 'อยู่ไกลแค่ไหน'),
+    away: (distance: string, direction: string) =>
+      t(`${distance} ${direction} of you`, `ห่างไปทาง${direction} ${distance}`),
+    onFoot: (minutes: number) =>
+      t(`About ${minutes} min on foot`, `เดินราว ${minutes} นาที`),
+    /** Inside the 250 m fence. The check-in button above it will work. */
+    arrived: t("You're here", 'คุณอยู่ที่นี่แล้ว'),
+    openInMaps: t('Open in Google Maps', 'เปิดใน Google Maps'),
+    /**
+     * Shown instead of the distance when the app has no position - permission
+     * never given, or a fix that failed. It does not ask for the permission:
+     * the check-in button is where that conversation belongs, and a screen
+     * that nags for location to show a nice-to-have teaches people to say no
+     * to the one request that matters.
+     */
+    distanceUnknown: t(
+      'Distance needs your location. The map below works either way.',
+      'ต้องมีตำแหน่งของคุณจึงบอกระยะทางได้ ปุ่มด้านล่างใช้ได้อยู่แล้ว',
+    ),
+    mapsLeavesApp: t('Opens Google Maps', 'จะเปิดแอป Google Maps'),
     addedToast: t('Added to Day 2', 'เพิ่มแล้ว'),
     /** Opens the score breakdown sheet. A score nobody can interrogate is a trust risk. */
     howCalculated: t('How is this calculated?', 'คำนวณอย่างไร'),

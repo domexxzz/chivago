@@ -162,6 +162,67 @@ describe('a place, and checking in to it', () => {
     } finally { net.restore(); resetControl(); }
   });
 
+  test('it says how far away the place is, and which way', async () => {
+    // The distance existed before this and was only ever spoken while
+    // REFUSING a check-in. Chaweng is at 9.5357/100.0617; standing a little
+    // south-west of it is about 1.5 km away.
+    const net = server({ 'GET /places/chaweng': place(), 'GET /checkins/today': [] });
+    try {
+      control.position = { coords: { latitude: 9.5262, longitude: 100.0518, accuracy: 12 } };
+      const ui = await mountScreen(h(PlaceScreen, props()));
+      const said = ui.text();
+      assert.match(said, /1\.5 km/, 'the distance is not shown');
+      assert.match(said, /north-east/i, 'the direction is not shown');
+      assert.match(said, /on foot/i, 'the walk is not estimated');
+      assert.match(said, /Open in Google Maps/);
+      ui.unmount();
+    } finally { net.restore(); resetControl(); }
+  });
+
+  test('a place too far to walk to is not quoted as a walk', async () => {
+    // "About 105 min on foot" beside eight kilometres is not information
+    // anybody can use, and on this island in this heat it is bad advice.
+    const naMuang = place({ id: 'namuang', name: { en: 'Na Muang Waterfall', th: 'น้ำตกหน้าเมือง' }, lat: 9.4682, lng: 99.9856 });
+    const net = server({ 'GET /places/namuang': naMuang, 'GET /checkins/today': [] });
+    try {
+      const ui = await mountScreen(h(PlaceScreen, props({ placeId: 'namuang' })));
+      const said = ui.text();
+      assert.match(said, /km/, 'the distance is still shown');
+      assert.doesNotMatch(said, /on foot/i, 'an eight-kilometre walk was suggested');
+      assert.match(said, /Open in Google Maps/);
+      ui.unmount();
+    } finally { net.restore(); resetControl(); }
+  });
+
+  test('standing on the place reads as arrival, not as a distance', async () => {
+    // "250 m away" directly above a check-in button that works reads as a
+    // contradiction. The default stub position IS Chaweng.
+    const net = server({ 'GET /places/chaweng': place(), 'GET /checkins/today': [] });
+    try {
+      const ui = await mountScreen(h(PlaceScreen, props()));
+      const said = ui.text();
+      assert.match(said, /You're here/);
+      assert.doesNotMatch(said, /of you/, 'a distance was shown from inside the fence');
+      assert.match(said, /Open in Google Maps/, 'the map is offered wherever you stand');
+      ui.unmount();
+    } finally { net.restore(); resetControl(); }
+  });
+
+  test('no location permission costs the distance, not the map', async () => {
+    // And it raises no dialog to get one: a screen that nags for location to
+    // show a nice-to-have teaches people to refuse the request that matters.
+    const net = server({ 'GET /places/chaweng': place(), 'GET /checkins/today': [] });
+    try {
+      control.permission = { granted: false, status: 'denied' };
+      const ui = await mountScreen(h(PlaceScreen, props()));
+      const said = ui.text();
+      assert.match(said, /Distance needs your location/);
+      assert.doesNotMatch(said, /on foot/i, 'a walk was estimated with no position');
+      assert.match(said, /Open in Google Maps/);
+      ui.unmount();
+    } finally { net.restore(); resetControl(); }
+  });
+
   test('standing too far away shows the server\'s reason, not a client guess', async () => {
     let toasted = '';
     const net = server({

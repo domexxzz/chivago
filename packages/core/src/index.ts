@@ -25,6 +25,7 @@ export * from './crowd.ts';
 export * from './low-carbon.ts';
 export * from './statement-export.ts';
 export * from './presence.ts';
+export * from './wayfinding.ts';
 export * from './statement.ts';
 export * from './areas.ts';
 export * from './greeting.ts';

@@ -26,6 +26,7 @@ import { ErrorState, LoadingState } from '../components/States.tsx';
 import { ReviewsBlock } from './PlaceReviews.tsx';
 import { t } from '../i18n/locale.ts';
 import { AirHistoryCard, HereNow } from '../components/PlaceLive.tsx';
+import { GettingThere } from '../components/GettingThere.tsx';
 import { StoriesBlock } from '../components/Stories.tsx';
 
 export function PlaceScreen({
@@ -232,6 +233,12 @@ export function PlaceScreen({
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16 }}>
               {place.data.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}
             </View>
+
+            {/*
+              Directly above the check-in, because the two answer the same
+              question in order: how far away am I, and can I claim this yet.
+            */}
+            <GettingThere place={place.data} />
 
             <Button
               label={checkedIn ? t(strings.checkin.already) : t(strings.checkin.cta)}
