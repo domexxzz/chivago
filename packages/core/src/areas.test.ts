@@ -4,7 +4,7 @@ import { test, describe } from 'node:test';
 import {
   AREAS, DEFAULT_AREA, KU_SRIRACHA_BBOX, areaByKey, areaOfProvince, inArea, isAreaKey, nearestArea,
 } from './areas.ts';
-import { SEED_HOSTS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
+import { CHECKIN_RADIUS_M, SEED_HOSTS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
 import { QUEST_RADIUS_MAX_M, metresBetween } from './presence.ts';
 import { openProvinces } from './provinces.ts';
 
@@ -77,12 +77,25 @@ describe('the campus is real, and its seed stays inside it', () => {
     // path inside the app's own export rather than somebody else's server.
     // That the file is really there is checked where the files live
     // (apps/mobile/test/place-photos.test.ts).
+    /*
+      A campus place has the team's own photograph or NONE. The rule this
+      test exists for is that no campus photograph comes from nowhere, and
+      an empty slot breaks that rule in neither direction: the card draws
+      its habitat and says it has no photograph, which is true.
+
+      Building 13 arrived on the evening of 8 September, hours after the
+      organisers moved the hackathon into it, and nobody has been inside to
+      photograph it. A stock sports hall would be a picture of somewhere
+      else.
+    */
     for (const p of kuPlaces) {
-      assert.ok(p.photo, `${p.id} has no photograph`);
+      if (!p.photo) continue;
       assert.match(p.photo.url, /^\/assets\/places\/[a-z0-9-]+\.jpg$/, `${p.id}: a campus photo must ship with the app`);
       assert.match(p.photo.credit, /ChivaGo team/, `${p.id}: not the team's photograph`);
       assert.ok(p.photo.licence && p.photo.sourceUrl, `${p.id}: no licence or source`);
     }
+    // And the gap is visible rather than silent: exactly one, named.
+    assert.deepEqual(kuPlaces.filter((p) => !p.photo).map((p) => p.id), ['ku-building13']);
   });
 
   test('every layer has a campus place, so every companion can hatch there', () => {
@@ -101,5 +114,44 @@ describe('the campus quests', () => {
 
   test('one of them pays Green, so the verification loop can be shown on campus', () => {
     assert.ok(kuQuests.some((q) => q.rewardCurrency === 'green' && q.esgPillar === 'environmental'));
+  });
+});
+
+/**
+ * The hackathon venue.
+ *
+ * The organisers moved Sriracha Hackathon 2026 out of the library and into
+ * building 13 on the evening of 8 September, and people are meant to check in
+ * there to try the app. Coordinates from the Google Maps link in that
+ * announcement, not from the building's name.
+ */
+describe('building 13, where the hackathon actually is', () => {
+  const hall = SEED_PLACES.find((p) => p.id === 'ku-building13')!;
+
+  test('it is on the campus, inside the outline like every other campus place', () => {
+    assert.ok(hall, 'the venue is missing from the seed');
+    assert.ok(inArea(ku, hall));
+    assert.equal(hall.province, 'TH-20');
+  });
+
+  test('the coordinates are the ones from the announcement', () => {
+    // 13.1234148 / 100.9183455, the destination of maps.app.goo.gl/mkjEfXtv7Xqm374z6.
+    assert.equal(hall.lat, 13.1234148);
+    assert.equal(hall.lng, 100.9183455);
+  });
+
+  test('it is a short walk from the library it replaced', () => {
+    const library = SEED_PLACES.find((p) => p.id === 'ku-library')!;
+    const m = metresBetween(hall, library);
+    assert.ok(m < 400, `${Math.round(m)} m from the old venue, which is not "near"`);
+  });
+
+  test('its air comes from the same ground station as the rest of the campus', () => {
+    assert.equal(hall.airStation!.id, 'o61');
+    assert.ok(metresBetween(hall, hall.airStation!) < 1000);
+  });
+
+  test('the check-in fence reaches it, so somebody standing there can check in', () => {
+    assert.ok(CHECKIN_RADIUS_M >= 100, 'a hall needs a fence a person can stand inside');
   });
 });

@@ -324,6 +324,46 @@ export const SEED_PLACES: Place[] = [
     metrics: { aqi: 22, crowdDensity: 2.6, safetyIndex: 6.6, walkability: 7.6 },
     airStation: kuStation(13.1180, 100.92075),
   },
+  {
+    /*
+      The hackathon venue, added on the evening of 8 September when the
+      organisers moved the event here from the library.
+
+      The coordinates are the destination of the Google Maps link in that
+      announcement: 13.1234148 / 100.9183455, which puts it 188 m from the
+      library, 210 m from the park and 466 m from the ground station.
+      Nothing here is guessed from the building's name.
+
+      NO PHOTOGRAPH, on purpose. Nobody on the team has been inside it, the
+      move was announced hours ago, and a stock photograph of a sports hall
+      would be a picture of somewhere else. The card draws its habitat and
+      says it has no photograph. The moment somebody takes one it drops in
+      at /assets/places/ku-building13.jpg with a credit, like the rest.
+    */
+    id: 'ku-building13',
+    name: { en: 'Building 13, Physical Education', th: 'อาคาร 13 พลศึกษา' },
+    short: 'Building 13',
+    layer: 'Wellness',
+    province: 'TH-20',
+    lat: 13.1234148,
+    lng: 100.9183455,
+    meta: 'Sports hall · By Gate 1',
+    blurb: {
+      en: 'The physical education hall by Gate 1, and the venue for the Sriracha Hackathon 2026 after the move from the library.',
+      th: 'อาคารพลศึกษาใกล้ประตู 1 และเป็นสถานที่จัดงาน Sriracha Hackathon 2026 หลังย้ายมาจากห้องสมุด',
+    },
+    tags: ['Indoor', 'Event venue', 'By Gate 1'],
+    /*
+      Air is the real reading from station o61, like every other campus
+      place. The other three are the pilot's CONVENTION for an indoor
+      campus hall, set beside its neighbours rather than measured: nobody
+      has counted heads in this building or walked its paths with a
+      clipboard. The app labels a score built from these as estimated, and
+      that label is doing real work here.
+    */
+    metrics: { aqi: 22, crowdDensity: 1.6, safetyIndex: 6.4, walkability: 7.2 },
+    airStation: kuStation(13.1234148, 100.9183455),
+  },
 ];
 
 /**
@@ -343,6 +383,7 @@ export const SAFETY_PHRASES: Record<string, { en: string; th: string }> = {
   'ku-viewpoint': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'ku-sports': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'ku-shops': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'ku-building13': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
 };
 
 // ---------------------------------------------------------------------------
