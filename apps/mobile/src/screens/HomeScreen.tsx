@@ -37,6 +37,7 @@ import { areaOfProvince, inArea, type Area, type AreaKey } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { photoUri } from '../api/photos.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
+import { BoardFeed } from '../components/BoardFeed.tsx';
 import {
   ChevronRight, Compass, HeartPulse, Leaf, MessageCircle, Search, Shield, Sparkles, Trees, UserRound, Users, Utensils, Wallet,
 } from 'lucide-react-native';
@@ -160,6 +161,13 @@ export function HomeScreen({
         onOpenParty={onOpenParty}
       />
       <Places places={here} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} />
+      {/*
+        The board, under the places and above today's missions: it is what
+        other people did, which belongs after what is around you and before
+        what you could do next. Keyed by area, because the board of a campus
+        and the board of an island are two different rooms.
+      */}
+      <Board areaKey={area.key} onOpenPlace={onOpenPlace ?? onOpenMap} />
       <Today quests={todayHere} onOpenQuest={onOpenQuest} onOpenQuests={onOpenQuests} />
       <Carrying
         wallet={wallet}
@@ -734,6 +742,20 @@ function NoPhotograph({ place }: { place: ScoredPlace }) {
 }
 
 /** A section's title, and the reference's "See all" beside it when there is a place to go. */
+/** The area's board, fetched here so Home owns one request for it. */
+function Board({ areaKey, onOpenPlace }: { areaKey: string; onOpenPlace: (placeId: string) => void }) {
+  const board = useAsync(() => api.board(areaKey), [areaKey]);
+  return (
+    <BoardFeed
+      entries={board.data?.entries ?? null}
+      loading={board.loading}
+      error={board.error}
+      onRetry={board.reload}
+      onOpenPlace={onOpenPlace}
+    />
+  );
+}
+
 function SectionHead({
   en, th, note, onSeeAll,
 }: { en: string; th: string; note?: string; onSeeAll?: () => void }) {

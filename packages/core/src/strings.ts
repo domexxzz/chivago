@@ -251,6 +251,26 @@ export const strings = {
     },
   },
 
+  /**
+   * The board on Home: where the separate accounts in a room meet.
+   * See packages/core/src/board.ts for what is and is not on it.
+   */
+  board: {
+    title: t('The board', 'กระดาน'),
+    subtitle: t(
+      'What people here have posted. Tap one to open the place and add yours.',
+      'สิ่งที่คนแถวนี้โพสต์ไว้ แตะเพื่อเปิดสถานที่แล้วเพิ่มของคุณ',
+    ),
+    loading: t('Loading the board…', 'กำลังโหลดกระดาน…'),
+    /** Said plainly. A quiet board is a fact, not something to dress up. */
+    empty: t(
+      'Nothing on the board yet. Check in somewhere, then leave a review or a clip.',
+      'ยังไม่มีอะไรบนกระดาน เช็กอินสักที่แล้วเขียนรีวิวหรืออัปคลิปได้เลย',
+    ),
+    aClip: t('A clip', 'คลิป'),
+    aPhoto: t('A photo', 'รูป'),
+  },
+
   // -- Quests -------------------------------------------------------------
   quests: {
     title: t('Missions', 'ภารกิจ'),

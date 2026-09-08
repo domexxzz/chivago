@@ -30,6 +30,8 @@ import { logger } from 'hono/logger';
 import { openDb, row, transact } from './db.ts';
 import { BodyTooLarge, boundedForm, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
 import { publicConfig } from './fence.ts';
+import { boardFeed, type BoardEntry } from '@chivago/core';
+import { reviewsInArea } from './place-review-service.ts';
 import {
   getCommunityImpact, getOffer, getPersonalImpact, getProfile,
   getQuest, getScoredPlace, getShield, listOffers, listQuests, listScoredPlaces,
@@ -312,6 +314,46 @@ app.get('/areas/:key/stories', (c) => {
   c.header('access-control-allow-origin', '*');
   c.header('cache-control', 'no-store');
   return ok(c, { open: storiesOpen(db), stories: storiesInArea(db, c.req.param('key')) });
+});
+
+/**
+ * The board's feed for the app: everything an area has, newest first.
+ *
+ * Public and cross-origin like the projector's feed, because it is the same
+ * material and the same rule - approved stories only - and because the app
+ * draws it on Home before anybody has signed in.
+ *
+ * Two queries and one merge rather than a union in SQL: the two rows have
+ * nothing in common but a timestamp and a place, and a SELECT that pretended
+ * otherwise would need a column of nulls per side. See packages/core/board.ts.
+ */
+app.get('/areas/:key/board', (c) => {
+  c.header('access-control-allow-origin', '*');
+  c.header('cache-control', 'no-store');
+  const key = c.req.param('key');
+  const stories: BoardEntry[] = storiesInArea(db, key).map((s) => ({
+    kind: 'story',
+    id: s.id,
+    at: s.createdAt,
+    placeId: s.placeId,
+    placeName: s.placeName,
+    media: s.kind === 'video' ? 'video' : 'photo',
+    caption: s.caption,
+    mediaUrl: s.media,
+    posterUrl: s.poster,
+  }));
+  const reviews: BoardEntry[] = reviewsInArea(db, key).map((r) => ({
+    kind: 'review',
+    id: r.id,
+    at: r.createdAt,
+    placeId: r.placeId,
+    placeName: r.placeName,
+    rating: r.rating,
+    body: r.body,
+    authorName: r.authorName,
+    language: r.language,
+  }));
+  return ok(c, { open: storiesOpen(db), entries: boardFeed([...stories, ...reviews]) });
 });
 
 app.get('/verify/:id', (c) => {

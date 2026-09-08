@@ -15,7 +15,7 @@ import type {
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
 } from '@chivago/core';
-import type { AirHistory, Explored, Fix, MedalsView, SelfVisitResult, SelfVisitSummary } from '@chivago/core';
+import type { AirHistory, BoardEntry, Explored, Fix, MedalsView, SelfVisitResult, SelfVisitSummary } from '@chivago/core';
 
 /**
  * What POST /places/:id/checkin answers with.
@@ -334,6 +334,8 @@ export const api = {
   checkinsToday: () => get<string[]>('/checkins/today'),
   /** What the server says about itself. Public, and fetched before sign-in. */
   config: () => get<{ fenceOff: boolean }>('/config'),
+  /** The area's board: approved stories and visible reviews, newest first. */
+  board: (areaKey: string) => get<{ open: boolean; entries: BoardEntry[] }>(`/areas/${areaKey}/board`),
 
   // -- self-issued visits: recorded, not scored ---------------------------
   /** Stamp a place on the traveller's word. Pays nothing, unlocks nothing. */

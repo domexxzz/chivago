@@ -335,3 +335,67 @@ describe('one endpoint dying does not take the screen with it', () => {
     ui.unmount();
   });
 });
+
+/**
+ * The board on Home.
+ *
+ * Every phone here is its own account, so a room full of people using the app
+ * at once was a room full of private notebooks. The board is where they meet:
+ * an approved clip and a written review, newest first, each a door back into
+ * the place it came from. What these hold is that it shows real entries when
+ * there are any and says so plainly when there are none, because a board that
+ * always looks busy tells a reader nothing about whether anybody is here.
+ */
+describe('the board on Home', () => {
+  const boardRoute = (entries: unknown[]) => ({
+    '/areas/samui/board': { open: true, entries },
+  });
+
+  const aStory = {
+    kind: 'story', id: 's1', at: '2026-09-02T01:00:00.000Z', placeId: 'chaweng',
+    placeName: { en: 'Chaweng Beach', th: 'หาดเฉวง' },
+    media: 'video', caption: 'the tide going out', mediaUrl: '/m/s1', posterUrl: '/p/s1',
+  };
+  const aReview = {
+    kind: 'review', id: 'r1', at: '2026-09-02T00:30:00.000Z', placeId: 'chaweng',
+    placeName: { en: 'Chaweng Beach', th: 'หาดเฉวง' },
+    rating: 4, body: 'quiet before eight', authorName: 'Ana', language: 'en',
+  };
+
+  test('a clip and a review both reach the board, with where they came from', async () => {
+    const fake = server(routes(boardRoute([aStory, aReview])));
+    restore = fake.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+    const said = ui.text();
+    assert.match(said, /The board/);
+    assert.match(said, /the tide going out/);
+    assert.match(said, /quiet before eight/);
+    assert.match(said, /Chaweng Beach/);
+  });
+
+  test('an empty board says it is empty, and does not invent a card', async () => {
+    const fake = server(routes(boardRoute([])));
+    restore = fake.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+    const said = ui.text();
+    assert.match(said, /Nothing on the board yet/);
+    assert.doesNotMatch(said, /the tide going out/);
+  });
+
+  test('a board that will not load does not take the rest of Home with it', async () => {
+    const fake = server(routes({ '/areas/samui/board': offline() }));
+    restore = fake.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+    // The places and the missions are still there; only the board is missing.
+    assert.match(ui.text(), /Chaweng/);
+  });
+
+  test('each entry is a door into its place', async () => {
+    const opened: string[] = [];
+    const fake = server(routes(boardRoute([aReview])));
+    restore = fake.restore;
+    const ui = await mountScreen(h(HomeScreen, { ...props, onOpenPlace: (id: string) => opened.push(id) }));
+    await ui.pressText(/quiet before eight/);
+    assert.deepEqual(opened, ['chaweng']);
+  });
+});

@@ -26,7 +26,8 @@ import {
   isModerationReasonKey, isReportReasonKey,
   REPORT_LIMIT_PER_WINDOW, REPORT_MAX_NOTE, REPORT_WINDOW_MINUTES,
   APPEAL_MAX_MESSAGE, TAKEDOWN_LIMIT_PER_WINDOW, TAKEDOWN_WINDOW_MINUTES,
-  type ModerationReasonKey, type PlaceReview, type ReportOutcome,
+  areaByKey, inArea, isAreaKey,
+  type Bilingual, type ModerationReasonKey, type PlaceReview, type ReportOutcome,
   type ReportReasonKey, type ReviewSummary,
 } from '@chivago/core';
 import { row, rows, transact, type DB } from './db.ts';
@@ -1228,4 +1229,38 @@ export function filteredLog(db: DB, filter: LogFilter = {}, limit = 200): LogEnt
       .prepare(`SELECT * FROM moderation_log ${where} ORDER BY acted_at DESC, rowid DESC LIMIT ?`)
       .all(...args, limit),
   ).map(toLogEntry);
+}
+
+/**
+ * Every visible review in an area, newest first, for the board.
+ *
+ * Hidden ones are excluded here as everywhere else - a moderator's hide has
+ * to mean hidden on every surface at once, or the board becomes the place a
+ * removed review still lives. The place travels with each row so the board
+ * can name where it was written without a query per entry.
+ *
+ * The area filter is geographic rather than a column, like every other area
+ * question in this codebase, so it takes more rows than it needs and then
+ * keeps the ones inside the box.
+ */
+export function reviewsInArea(db: DB, areaKey: string, limit = 60): (PlaceReview & { placeName: Bilingual })[] {
+  if (!isAreaKey(areaKey)) return [];
+  const area = areaByKey(areaKey);
+  return rows<ReviewRow & { name_en: string; name_th: string; lat: number; lng: number }>(
+    db
+      .prepare(
+        `SELECT r.id, r.place_id, r.user_id, u.display_name, r.rating, r.body,
+                r.language, r.visited_at, r.created_at, r.updated_at,
+                p.name_en, p.name_th, p.lat, p.lng
+         FROM place_reviews r
+         JOIN users u ON u.id = r.user_id
+         JOIN places p ON p.id = r.place_id
+         WHERE r.hidden_at IS NULL
+         ORDER BY r.created_at DESC, r.rowid DESC LIMIT ?`,
+      )
+      .all(limit * 4),
+  )
+    .filter((r) => inArea(area, r))
+    .slice(0, limit)
+    .map((r) => ({ ...toReview(r), placeName: { en: r.name_en, th: r.name_th } }));
 }
