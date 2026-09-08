@@ -174,10 +174,70 @@ sorted one: the set of photographs to warm is the same set whichever end of
 it is on the left, and keying it to the sorted array would re-fetch them all
 the moment a position arrived.
 
+## And a dot on the map
+
+The map is where "where am I relative to these pins" is the whole question,
+so both maps now draw the traveller: the terrain map on the web, and the
+drawn island a phone falls back to.
+
+**The halo is the honest half.** A tight dot claims to be standing somewhere
+the phone might be fifty metres from. So the fix's own error radius is drawn
+around it — on the terrain map as **real ground**, a ring of lat/lng
+(`metreRing`), not a circle of pixels. The map is pitched sixty degrees; a
+pixel circle drawn on top of it would be an ellipse on the ground and would
+claim the fix is more certain to the north than to the east. A geographic
+ring goes through the same camera as the coastline and the pins, lands the
+way the ground lies, and scales with the zoom for nothing.
+
+The halo has a floor of 20 m and a ceiling of 250 m. A fix claiming three
+metres is being optimistic and a halo that small is a dot with a rim; a bad
+indoor fix must not cover the island with a claim that is true and useless.
+
+**Brand blue, not the evidence green.** This is where the phone thinks it is.
+Nobody has verified anything by standing there.
+
+**This screen watches.** Everywhere else takes one fix per mount, for the
+reason in the permission section. A dot is read as *current*, so a dot that
+does not move while somebody walks is worse than no dot — `useHere({ watch:
+true })`, five-metre interval, and the subscription removed on unmount. A
+test holds that: the watcher opens on mount, closes on unmount, and never
+opens without permission.
+
+**The drawn island only places a traveller who is on it.** `project` is
+linear and unclamped, so a position on the mainland would be placed
+confidently off the edge of a drawing that does not contain it. `insideSamui`
+gates it. On the drawing the halo is a fixed size rather than a measured one,
+because a metre on a diagram is not a metre.
+
+The dot sits **under** the pins: a place is somewhere to go, the dot is only
+where you started, and a dot must never cover a chip.
+
+Writing the test for this turned up something worth recording: **neither map
+draws in the node harness.** The web map needs a GL context, and the drawn
+island needs a window width — `useWindowDimensions` reports zero outside a
+browser, so `IslandMap` renders no pins at all and never has. What the
+harness *can* hold is the watcher, which is the part that leaks if it is
+wrong. The dot itself is verified in Chrome, on both maps.
+
+And it found a bug that only a screenshot could find. The dot's heartbeat
+was a CSS animation **on the marker element itself**, and a CSS animation
+outranks an inline style — so `transform: scale()` replaced the inline
+`transform: translate(...)` MapLibre places markers with, and the dot sat in
+the map's top-left corner while its inline style still read the correct
+position. Every DOM check agreed it was placed right; the picture showed it
+in the corner. The animation now lives on a child element, which is how the
+place pins have always avoided it (`.cg-chip` inside `.cg-pin`). This is the
+same trap `TerrainMap.tsx`'s header already documents for `position`, one
+cascade rule along, and the header now carries both.
+
+One rename came with it. `MapScreen` had a local called `here` meaning *the
+places in this area*; beside a traveller's own position that is two different
+heres one line apart, so it is now `areaPlaces`.
+
 ## Still owed
 
-- **The map's own "you are here" dot.** `TerrainMap.tsx` still never draws
-  the traveller.
+- **The phone's own map.** The drawn island now has the dot, but a phone
+  still has no MapLibre and so no accuracy drawn to the fix's real radius.
 - **"Safe path from here"** on the same screen switches to the Safety tab.
   It is the second button in the app that reads like navigation and is not.
 - **Apple Maps.** The universal Google URL opens the Google app on iOS if it

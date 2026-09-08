@@ -22,6 +22,8 @@ export const control = {
   position: { coords: { latitude: 9.5357, longitude: 100.0617, accuracy: 12 } },
   /** What the camera hands back. Cancelled by default: a test that wants a file says so. */
   camera: { canceled: true, assets: [] },
+  /** How many position watchers are open. A test asserts it returns to zero. */
+  watching: 0,
 };
 
 /** Put the defaults back. Call it in a finally, like restoring fetch. */
@@ -29,6 +31,7 @@ export const resetControl = () => {
   control.permission = { granted: true, status: 'granted' };
   control.position = { coords: { latitude: 9.5357, longitude: 100.0617, accuracy: 12 } };
   control.camera = { canceled: true, assets: [] };
+  control.watching = 0;
 };
 export const setNotificationHandler = noop;
 export const setNotificationChannelAsync = noop;
@@ -52,6 +55,18 @@ export const getForegroundPermissionsAsync = async () => control.permission;
 export const getBackgroundPermissionsAsync = async () => control.permission;
 export const requestBackgroundPermissionsAsync = async () => control.permission;
 export const getCurrentPositionAsync = async () => control.position;
+/**
+ * Watching, for the one screen that draws the traveller.
+ *
+ * Delivers the current fix once and hands back a subscription whose
+ * `remove` is recorded, so a test can hold the screen to cleaning up after
+ * itself: a watcher left running is the kind of leak nothing else notices.
+ */
+export const watchPositionAsync = async (_opts, cb) => {
+  control.watching += 1;
+  cb(control.position);
+  return { remove: () => { control.watching -= 1; } };
+};
 export const Accuracy = { Balanced: 3, High: 4, Lowest: 1 };
 export const hasStartedLocationUpdatesAsync = noop;
 export const startLocationUpdatesAsync = noop;

@@ -16,6 +16,7 @@ import {
 import { api } from '../api/client.ts';
 import { areaOfProvince, inArea } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
+import { useHere } from '../state/here.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { useAsync, type LayerKey } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
@@ -52,6 +53,10 @@ export function MapScreen({
   // everywhere, which is the truthful default, so it is not surfaced.
   const explored = useAsync(() => api.explored(), []);
   const [mode, setMode] = React.useState<MapMode>('map');
+  // WATCHED, unlike every other screen's one-shot: this is the one place
+  // that draws the traveller, and a dot that does not move while somebody
+  // walks is worse than no dot, because a dot is read as current.
+  const here = useHere({ watch: true });
   const area = useArea();
   // Which pins wear a story. One request for the whole area, public.
   const areaStories = useAsync(() => api.areaStories(area.key), [area.key]);
@@ -67,11 +72,15 @@ export function MapScreen({
   // Every place in the area, before the layers - kept apart so an empty map
   // can say which of the two it is: the layers hiding everything, or an area
   // the API has nothing in yet. One message blamed the layers for both.
-  const here = React.useMemo(
+  //
+  // Named for the area rather than `here`, which it was: with a traveller's
+  // own position on this screen, a list of places called "here" is two
+  // different heres one line apart.
+  const areaPlaces = React.useMemo(
     () => (places.data ?? []).filter((p) => areaOfProvince(p.province) === area.key),
     [places.data, area.key],
   );
-  const visible = React.useMemo(() => here.filter((p) => layers[p.layer]), [here, layers]);
+  const visible = React.useMemo(() => areaPlaces.filter((p) => layers[p.layer]), [areaPlaces, layers]);
   const questsHere = React.useMemo(
     () => (quests.data?.quests ?? NO_QUESTS).filter((q) => inArea(area, q)),
     [quests.data, area],
@@ -115,6 +124,7 @@ export function MapScreen({
               progress={quests.data?.progress ?? NO_PROGRESS}
               onOpenQuest={onOpenQuest}
               explored={explored.data?.places ?? NO_EXPLORED}
+              here={here}
             />
           ) : (
             <View>
@@ -143,7 +153,7 @@ export function MapScreen({
           {visible.length === 0 ? (
             <View style={{ padding: gutter }}>
               <Body colour={color.neutral700}>
-                {here.length === 0
+                {areaPlaces.length === 0
                   ? t({ en: 'No places in this area yet.', th: 'ยังไม่มีสถานที่ในพื้นที่นี้' })
                   : t({ en: 'No places match the active layers.', th: 'ไม่มีสถานที่ตรงกับตัวกรองที่เลือก' })}
               </Body>

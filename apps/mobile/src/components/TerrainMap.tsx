@@ -22,6 +22,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import type { Area } from '@chivago/core';
+import type maplibregl from 'maplibre-gl';
 import {
   AttributionControl, Map as MapLibreMap, Marker, NavigationControl,
 } from 'maplibre-gl';
@@ -32,6 +33,8 @@ import {
   isHighScore, islandHour, strings, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { color, onFill } from '../theme/index.ts';
+import { haloMetres, metreRing } from './map-geometry.ts';
+import type { Here } from '../state/here.ts';
 import { Label } from './Type.tsx';
 import { MapLegend } from './map-parts.tsx';
 import { t } from '../i18n/locale.ts';
@@ -199,8 +202,21 @@ function foldAttribution(m: MapLibreMap): void {
   declared later, and then every mark is laid out in a column under the
   first one - each exactly one mark's height lower than the place it names.
   The first version did that, and it looked like the pins had slid south.
+
+  AND NOTHING ANIMATES `transform` ON THE MARK ITSELF, for the same reason
+  one cascade rule along: MapLibre PLACES a marker with an inline transform,
+  and a CSS animation outranks an inline style. A `transform: scale()`
+  keyframe on the marker element therefore replaces the placement, and the
+  mark sits in the map's top-left corner while its inline style still reads
+  the right position - so every DOM check agrees and only a screenshot
+  disagrees. That is exactly how the traveller's dot shipped and was caught.
+  Every animation here rides a CHILD: `.cg-chip` inside `.cg-pin`, the `<i>`
+  inside `.cg-here`.
 */
 const CSS_ID = 'chivago-map-marks';
+/** The accuracy halo's source and fill. Named so the effect can find them again. */
+const HERE_SOURCE = 'chivago-here';
+const HERE_LAYER = 'chivago-here-fill';
 const MARK_CSS = `
 .cg-pin{display:flex;flex-direction:column;align-items:center;cursor:pointer;border:0;background:none;padding:0;font-family:Anuphan,system-ui,sans-serif}
 .cg-chip{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:11px;font-size:13px;font-weight:700;line-height:1;
@@ -223,12 +239,16 @@ const MARK_CSS = `
 .cg-quest.cg-active .cg-tag{background:${color.brand};color:${onFill.brand}}
 .cg-quest.cg-done .cg-tag{background:${color.accent};color:${onFill.accent}}
 .cg-night .cg-x{filter:drop-shadow(0 0 8px rgba(255,205,90,.85))}
+.cg-here{display:flex;align-items:center;justify-content:center;width:18px;height:18px}
+.cg-here i{display:block;width:18px;height:18px;border-radius:50%;background:${color.brand};border:3px solid #ffffff;
+  box-shadow:0 2px 8px rgba(8,26,48,.45);animation:cg-here-beat 2.6s ease-in-out infinite;will-change:transform}
+@keyframes cg-here-beat{0%,100%{transform:scale(1)}50%{transform:scale(1.14)}}
 .cg-compass{position:absolute;top:10px;left:10px;width:46px;height:46px;border-radius:50%;padding:0;cursor:pointer;
   border:2px solid ${color.text};background:rgba(255,250,236,.94);box-shadow:0 2px 8px rgba(8,26,48,.3);z-index:2}
 .cg-compass svg{width:100%;height:100%;transition:transform .2s ease-out}
 @keyframes cg-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 @keyframes cg-pulse{0%{transform:scale(.7);opacity:.9}100%{transform:scale(2.1);opacity:0}}
-@media (prefers-reduced-motion: reduce){.cg-chip,.cg-ring{animation:none}.cg-compass svg{transition:none}}
+@media (prefers-reduced-motion: reduce){.cg-chip,.cg-ring,.cg-here i{animation:none}.cg-compass svg{transition:none}}
 `;
 
 function ensureMarkCss(): void {
@@ -258,6 +278,7 @@ const CAMPUS_STOREYS_M = 12;
 
 export function TerrainMap({
   places, onSelect, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area, storied,
+  here = null,
 }: {
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;
@@ -272,10 +293,15 @@ export function TerrainMap({
   area?: Area;
   /** Places with an approved story on them: a gold ring on the chip (docs/45). */
   storied?: ReadonlySet<string>;
+  /** Where the traveller is, if the phone has said. Null draws nothing at all. */
+  here?: Here | null;
 }) {
   const holder = React.useRef<HTMLDivElement | null>(null);
   const map = React.useRef<MapLibreMap | null>(null);
   const markers = React.useRef<Marker[]>([]);
+  // Kept apart from `markers`, which is torn down and rebuilt whenever the
+  // places change. The traveller is not a place and must not be swept up.
+  const hereMark = React.useRef<Marker | null>(null);
   const [failed, setFailed] = React.useState(false);
   // What the mist is painted from, readable from inside the map's own
   // handlers without re-running the mount effect.
@@ -621,6 +647,84 @@ export function TerrainMap({
       );
     }
   }, [places, quests, progress, onSelect, onOpenQuest, compact, storied]);
+
+  /*
+    You are here.
+
+    A dot with a halo, and the halo is the honest half: the fix's own error
+    radius, drawn as REAL GROUND rather than as pixels, so it rides the
+    sixty-degree camera the way the coastline does (see `metreRing`). A tight
+    dot on its own would claim to be standing somewhere the phone might be
+    fifty metres from.
+
+    Its own effect, keyed only on the position, so a walking traveller moves
+    one marker instead of tearing down and rebuilding every pin on the map.
+    The layer needs a loaded style; the marker does not, and the position
+    usually arrives after the map has drawn - but "usually" is not a
+    guarantee, so the source waits for `load` when it has to.
+  */
+  React.useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+
+    const drawHalo = () => {
+      if (!map.current) return;
+      const ring = {
+        type: 'Feature' as const,
+        properties: {},
+        geometry: {
+          type: 'Polygon' as const,
+          // No position is an empty polygon rather than a removed layer: the
+          // halo goes away and the style keeps its shape.
+          coordinates: here ? [metreRing(here, haloMetres(here.accuracyM))] : [],
+        },
+      };
+      const existing = m.getSource(HERE_SOURCE) as maplibregl.GeoJSONSource | undefined;
+      if (existing) { existing.setData(ring); return; }
+      if (!here) return;
+      m.addSource(HERE_SOURCE, { type: 'geojson', data: ring });
+      m.addLayer({
+        id: HERE_LAYER,
+        type: 'fill',
+        source: HERE_SOURCE,
+        // Brand blue, not the evidence green: this is where the phone thinks
+        // it is, and nobody has verified anything by standing there.
+        paint: { 'fill-color': color.brand, 'fill-opacity': 0.18 },
+      });
+    };
+
+    if (m.isStyleLoaded()) drawHalo();
+    else m.once('load', drawHalo);
+
+    if (!here) {
+      hereMark.current?.remove();
+      hereMark.current = null;
+      return () => { m.off('load', drawHalo); };
+    }
+
+    if (hereMark.current) {
+      hereMark.current.setLngLat([here.lng, here.lat]);
+    } else {
+      const el = document.createElement('div');
+      el.className = 'cg-here';
+      /*
+        The beat lives on the CHILD, never on this element. MapLibre places a
+        marker with an inline `transform`, and a CSS ANIMATION on the same
+        element outranks an inline style - so a `transform: scale()` keyframe
+        here replaces the placement and the dot snaps to the map's top-left
+        corner. It did, until a screenshot showed it there. Same trap as the
+        `position` one in the header, one cascade rule along; the place pins
+        avoid it the same way, by animating `.cg-chip` inside `.cg-pin`.
+      */
+      el.innerHTML = '<i></i>';
+      el.setAttribute('role', 'img');
+      // A graphic that says something, not a control: there is nowhere to go
+      // by tapping where you already are.
+      el.setAttribute('aria-label', t(strings.map.youAreHere));
+      hereMark.current = new Marker({ element: el }).setLngLat([here.lng, here.lat]).addTo(m);
+    }
+    return () => { m.off('load', drawHalo); };
+  }, [here]);
 
   if (failed) {
     return (

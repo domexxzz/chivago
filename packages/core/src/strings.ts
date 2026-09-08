@@ -100,6 +100,12 @@ export const strings = {
     legend: (avg: number) => t(`Healthy Score · ${avg} avg today`, `คะแนนสุขภาวะ · เฉลี่ย ${avg} วันนี้`),
     liveNear: (n: number) => t(`Live · ${n} places near you`, `สด · ${n} สถานที่ใกล้คุณ`),
     questsNearYou: t('Quests near you', 'ภารกิจใกล้คุณ'),
+    /**
+     * The dot. Spoken, not tappable: there is nowhere to go by tapping where
+     * you already are, and a map full of buttons that do nothing is worse
+     * for a screen reader than a map with one graphic that says something.
+     */
+    youAreHere: t('You are here', 'คุณอยู่ตรงนี้'),
     /** A quest's mark on the map: what it is, where, and what it pays. */
     questPin: (points: number) => t(`Quest · +${points} points`, `ภารกิจ · +${points} แต้ม`),
     /** The legend's second line: how much of the chart this traveller has lifted the mist from. */

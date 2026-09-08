@@ -208,3 +208,58 @@ export function mistCircles(
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Where the traveller is
+// ---------------------------------------------------------------------------
+
+/** Inside the island's box, which is the only place the drawn island can put a point. */
+export const insideSamui = (p: { lat: number; lng: number }): boolean =>
+  p.lat >= SAMUI_BBOX.minLat && p.lat <= SAMUI_BBOX.maxLat
+  && p.lng >= SAMUI_BBOX.minLng && p.lng <= SAMUI_BBOX.maxLng;
+
+/**
+ * The accuracy halo, as a ring of real coordinates.
+ *
+ * GEOGRAPHY, NOT PIXELS, and that is the point. The terrain map is pitched
+ * sixty degrees, so a circle of pixels drawn on top of it is a circle on the
+ * screen and an ellipse on the ground - it would claim the fix is more
+ * certain to the north than to the east. A ring of lat/lng goes through the
+ * same camera as the coastline and the pins, so it lands on the ground the
+ * way the ground actually lies, and it scales with the zoom for free.
+ *
+ * Small-circle approximation: a degree of latitude is 111,320 m everywhere,
+ * a degree of longitude that times the cosine of the latitude. Over the tens
+ * of metres a GPS error circle covers, the error in that is millimetres.
+ */
+export function metreRing(
+  centre: { lat: number; lng: number },
+  metres: number,
+  points = 48,
+): [number, number][] {
+  const metresPerDeg = 111_320;
+  const dLat = metres / metresPerDeg;
+  const dLng = dLat / Math.max(0.01, Math.cos((centre.lat * Math.PI) / 180));
+  const ring: [number, number][] = [];
+  for (let i = 0; i < points; i += 1) {
+    const a = (i / points) * Math.PI * 2;
+    ring.push([centre.lng + Math.sin(a) * dLng, centre.lat + Math.cos(a) * dLat]);
+  }
+  // GeoJSON wants the ring closed: the last point is the first point.
+  ring.push(ring[0]!);
+  return ring;
+}
+
+/**
+ * How big to draw the halo, in metres.
+ *
+ * A fix that says it is accurate to three metres is usually being
+ * optimistic, and a halo that small is a dot with a rim. The floor is the
+ * radius at which the halo still reads as "about here" rather than as a
+ * decoration; the ceiling stops a bad indoor fix from covering the island
+ * with a claim that is true and useless.
+ */
+export const HALO_MIN_M = 20;
+export const HALO_MAX_M = 250;
+export const haloMetres = (accuracyM: number | null): number =>
+  Math.min(HALO_MAX_M, Math.max(HALO_MIN_M, accuracyM ?? HALO_MIN_M));

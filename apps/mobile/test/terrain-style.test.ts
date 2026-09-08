@@ -8,6 +8,7 @@ import {
   routeDash, settleEasing, swell,
 } from '../src/components/terrain-style.ts';
 import { exploredCount } from '../src/components/map-parts.tsx';
+import { HALO_MAX_M, HALO_MIN_M, haloMetres, insideSamui, metreRing } from '../src/components/map-geometry.ts';
 import { SUNRISE, SUNSET, dayArc, hourFrom, hueOf, luminance, mix } from '../src/components/island-clock.ts';
 import { lightingFor } from '../src/components/creature3d/rig.ts';
 import { heroHeight } from '../src/components/SamuiMap.tsx';
@@ -359,6 +360,43 @@ describe('where the camera sits', () => {
       assert.ok(v >= last && v <= 1);
       last = v;
     }
+  });
+});
+
+describe('you are here', () => {
+  const CHAWENG = { lat: 9.5357, lng: 100.0617 };
+
+  test('the halo is a closed ring of real ground, the right size', () => {
+    // Ground, not pixels: the terrain map is pitched sixty degrees, so a
+    // circle of pixels would claim the fix is more certain to the north
+    // than to the east.
+    const ring = metreRing(CHAWENG, 100);
+    assert.deepEqual(ring[0], ring[ring.length - 1], 'the ring is not closed');
+    const R = 6_371_000, toRad = (d: number) => (d * Math.PI) / 180;
+    for (const [lng, lat] of ring) {
+      const dLat = toRad(lat - CHAWENG.lat), dLng = toRad(lng - CHAWENG.lng);
+      const h = Math.sin(dLat / 2) ** 2
+        + Math.cos(toRad(CHAWENG.lat)) * Math.cos(toRad(lat)) * Math.sin(dLng / 2) ** 2;
+      const metres = 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+      assert.ok(Math.abs(metres - 100) < 1, `a point ${metres.toFixed(1)} m out, not 100`);
+    }
+  });
+
+  test('the halo has a floor and a ceiling', () => {
+    // A fix claiming three metres is being optimistic, and a halo that small
+    // is a dot with a rim. A bad indoor fix must not cover the island.
+    assert.equal(haloMetres(3), HALO_MIN_M);
+    assert.equal(haloMetres(null), HALO_MIN_M);
+    assert.equal(haloMetres(9_000), HALO_MAX_M);
+    assert.equal(haloMetres(60), 60);
+  });
+
+  test('the drawn island only places a traveller who is on it', () => {
+    // `project` is linear and unclamped, so a position on the mainland would
+    // be placed confidently off the edge of a drawing that does not contain it.
+    assert.ok(insideSamui(CHAWENG));
+    assert.ok(!insideSamui({ lat: 13.1, lng: 100.92 }), 'KU Sriracha is not on Samui');
+    assert.ok(!insideSamui({ lat: 9.5357, lng: 101.5 }));
   });
 });
 

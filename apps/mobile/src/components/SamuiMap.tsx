@@ -21,9 +21,10 @@
 import React from 'react';
 import { Animated, Easing, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, Line, Mask, Path, Polygon, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { isHighScore, type Area, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace } from '@chivago/core';
+import { isHighScore, strings, type Area, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace } from '@chivago/core';
 import { t } from '../i18n/locale.ts';
-import { CHIP, REVEAL_FEATHER, layoutPins, mistCircles, tilt } from './map-geometry.ts';
+import type { Here } from '../state/here.ts';
+import { CHIP, REVEAL_FEATHER, insideSamui, layoutPins, mistCircles, project, tilt } from './map-geometry.ts';
 import { cloudField } from './terrain-style.ts';
 import { useReduceMotion } from './reduce-motion.ts';
 import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
@@ -265,6 +266,40 @@ function DrawnClouds({ width, height, still }: { width: number; height: number; 
 }
 
 /**
+ * You are here, on the drawn island.
+ *
+ * A dot in brand blue with a white rim and a soft halo around it. The halo
+ * is not decoration: the phone's fix has an error radius, and a dot with a
+ * hard edge claims to be standing somewhere it might be fifty metres from.
+ * On the drawing it is a fixed size rather than a measured one, because this
+ * island is a diagram and a metre on it is not a metre - the terrain map is
+ * where the halo is drawn to the fix's real accuracy.
+ *
+ * Not the evidence green, which would say a host had verified something
+ * about where the traveller is standing. Nobody has.
+ */
+function YouAreHere({
+  width, height, here, still,
+}: { width: number; height: number; here: { lat: number; lng: number }; still: boolean }) {
+  const flat = project(here.lat, here.lng);
+  const { x, y } = tilt(flat.x, flat.y);
+  return (
+    // The label rides the View, not the Svg: a drawing is a drawing on every
+    // platform, and this is the one node a screen reader can be sure to meet.
+    <View
+      style={{ position: 'absolute', left: 0, top: 0 }}
+      pointerEvents="none"
+      accessibilityLabel={t(strings.map.youAreHere)}
+    >
+      <Svg width={width} height={height}>
+        <Circle cx={x * width} cy={y * height} r={still ? 15 : 17} fill={color.brand} opacity={0.16} />
+        <Circle cx={x * width} cy={y * height} r={7} fill={color.brand} stroke="#ffffff" strokeWidth={3} />
+      </Svg>
+    </View>
+  );
+}
+
+/**
  * The mist on the drawn island: a parchment haze over the whole map, cleared
  * in a feathered circle around every place the traveller has reached - the
  * same circles the web map clears, through the same transform as the pins.
@@ -361,6 +396,12 @@ export interface SamuiMapProps {
   area?: Area;
   /** Places with an approved story on them, drawn with a gold ring (docs/45). */
   storied?: ReadonlySet<string>;
+  /**
+   * Where the traveller is. Both maps draw it; the terrain map draws the
+   * fix's real accuracy as ground, the drawing draws a fixed halo, because
+   * a metre on a diagram is not a metre.
+   */
+  here?: Here | null;
 }
 
 /**
@@ -422,7 +463,7 @@ function CampusList({
 }
 
 function IslandMap({
-  places, onSelect, explored = [], height = 344, compact = false, storied,
+  places, onSelect, explored = [], height = 344, compact = false, storied, here = null,
 }: SamuiMapProps) {
   /**
    * The map is full-bleed, so the window IS its width.
@@ -463,6 +504,18 @@ function IslandMap({
       {width > 0 ? <IslandShape width={width} height={height} /> : null}
       {width > 0 ? <DrawnClouds width={width} height={height} still={still} /> : null}
       {width > 0 ? <DrawnMist width={width} height={height} explored={explored} places={places} /> : null}
+      {/*
+        You are here, on the drawing.
+
+        Under the pins on purpose: a place is somewhere to go and the dot is
+        only where you started, so a dot must never cover a chip. Drawn only
+        when the traveller is inside the island's box - this projection is
+        linear and unclamped, so a position on the mainland would be placed
+        confidently off the edge of a drawing that does not contain it.
+      */}
+      {width > 0 && here && insideSamui(here)
+        ? <YouAreHere width={width} height={height} here={here} still={still} />
+        : null}
 
       {width > 0
         ? layoutPins(places, width, height).map(({ place, left, top }) => (

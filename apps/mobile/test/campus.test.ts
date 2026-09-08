@@ -15,6 +15,7 @@ import { MapScreen } from '../src/screens/MapScreen.tsx';
 import { mountScreen, server } from './interact.ts';
 import * as fx from './fixtures.ts';
 import { __setAreaForTests } from '../src/state/area.ts';
+import { control, resetControl } from './stubs/native.mjs';
 
 const noop = () => {};
 const props = {
@@ -154,6 +155,43 @@ describe('the Map tab frames one area', () => {
     assert.match(ui.text(), /No places in this area yet/);
     assert.doesNotMatch(ui.text(), /active layers/);
     ui.unmount();
+  });
+
+  /*
+    The dot itself is checked in Chrome, not here, and for a reason worth
+    writing down: neither map draws in this harness. The web map needs a GL
+    context, and the DRAWN island needs a window width - `useWindowDimensions`
+    reports zero outside a browser, so `IslandMap` renders no pins at all and
+    never has. What IS testable here is the part that leaks if it is wrong:
+    the position watcher this screen opens, and closes.
+  */
+  test('the map screen watches the position, and closes the watcher after itself', async () => {
+    // The one screen that draws the traveller, and so the one that WATCHES:
+    // a dot that does not move while somebody walks is worse than no dot.
+    // A watcher left running is the kind of leak nothing else notices.
+    __setAreaForTests('samui');
+    const s = server(routes()); restore = s.restore;
+    try {
+      const ui = await mountScreen(h(MapScreen, mapProps));
+      assert.equal(control.watching, 1, 'the position is not being watched');
+      ui.unmount();
+      assert.equal(control.watching, 0, 'the watcher outlived the screen');
+    } finally { resetControl(); }
+  });
+
+  test('no location permission opens no watcher, and costs the map nothing', async () => {
+    // And raises no dialog to get one: the check-in is where that
+    // conversation belongs.
+    __setAreaForTests('samui');
+    const s = server(routes()); restore = s.restore;
+    try {
+      control.permission = { granted: false, status: 'denied' };
+      const ui = await mountScreen(h(MapScreen, mapProps));
+      assert.equal(control.watching, 0, 'a watcher was opened without permission');
+      assert.ok(!ui.labels().includes('You are here'));
+      assert.match(ui.text(), /Chaweng/, 'the map itself is unaffected');
+      ui.unmount();
+    } finally { resetControl(); }
   });
 
   test('every layer off is the layers’ doing, and says so', async () => {
