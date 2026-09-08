@@ -52,6 +52,26 @@ export function AccountScreen({
       {account.error ? <ErrorState message={account.error} onRetry={account.reload} /> : null}
       {account.loading && !account.data ? <LoadingState /> : null}
 
+      {/*
+        THE WAY BACK, when the account cannot be read at all.
+
+        A phone whose key was revoked - or wiped by a demo reset - gets 401 on
+        every request, so `account.data` never arrives and the screen used to
+        be an error and a Retry that could not succeed. The only door out of
+        that state is entering a code from another phone, and it was rendered
+        INSIDE the success branch, so the one screen that could rescue the
+        device hid its rescue behind the thing that was broken.
+
+        Claiming a code needs no key by design: the code IS the credential,
+        which is why it lasts ten minutes and works once. So it belongs here,
+        outside, where a signed-out phone can reach it. Seen twice on
+        chivago.fly.dev on 8 September, once on a phone with no devtools to
+        clear storage from.
+      */}
+      {!account.data && !account.loading ? (
+        <EnterCode onLinked={reload} onToast={onToast} />
+      ) : null}
+
       {account.data ? (
         <>
           <Summary count={account.data.devices.length} />

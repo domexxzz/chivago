@@ -267,3 +267,44 @@ describe('quiet hours, which the API had and the app could not reach', () => {
     ui.unmount();
   });
 });
+
+/**
+ * The way back, for a phone that cannot read its own account.
+ *
+ * A revoked key - or one wiped by a demo reset - answers 401 on every
+ * request, so the account never loads and the screen is an error beside a
+ * Retry that can never succeed. The only door out is a code from another
+ * phone, and for a fortnight that door was rendered inside the success
+ * branch: the one screen that could rescue the device hid its rescue behind
+ * the thing that was broken. Seen twice on the live server on 8 September,
+ * the second time on a phone with no devtools to clear storage from.
+ *
+ * Claiming a code needs no key by design. The code IS the credential.
+ */
+describe('a phone that is signed out can still get back in', () => {
+  test('the code field is on screen even when the account cannot be read', async () => {
+    const fake = server({ 'GET /account': refuses('UNAUTHENTICATED', 'This device is not signed in.') });
+    restore = fake.restore;
+    const ui = await mountScreen(h(AccountScreen, props));
+    const said = ui.text();
+    assert.match(said, /This device is not signed in/, 'it still says what is wrong');
+    assert.match(said, /Already have a code/i, 'and offers the one way out');
+    assert.match(said, /Join/);
+  });
+
+  test('a phone that is offline gets the same door', async () => {
+    const fake = server({ 'GET /account': offline() });
+    restore = fake.restore;
+    const ui = await mountScreen(h(AccountScreen, props));
+    assert.match(ui.text(), /Already have a code/i);
+  });
+
+  test('a signed-in phone is not offered the door twice', async () => {
+    const fake = server({ 'GET /account': devices() });
+    restore = fake.restore;
+    const ui = await mountScreen(h(AccountScreen, props));
+    const said = ui.text();
+    const shown = said.split(/Already have a code/i).length - 1;
+    assert.equal(shown, 1, `the code field is drawn once, got ${shown}`);
+  });
+});
