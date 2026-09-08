@@ -14,7 +14,8 @@ import React from 'react';
 import { View } from 'react-native';
 import Svg, { Line, Rect, Text as SvgText } from 'react-native-svg';
 import { Users } from 'lucide-react-native';
-import { CROWD_SOURCE, crowdLine, strings, type AirHistory, type LiveCrowd } from '@chivago/core';
+import { crowdLine, crowdSource, strings, type AirHistory, type LiveCrowd } from '@chivago/core';
+import { useServerConfig } from '../state/server-config.ts';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, radius, shadow } from '../theme/index.ts';
@@ -22,6 +23,10 @@ import { Body, Heading, Label } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
 
 export function HereNow({ crowd }: { crowd: LiveCrowd | undefined }) {
+  // Read before the early return: a hook cannot sit behind a condition, and
+  // the line under this number is the one place a reader learns whether the
+  // count was fenced. See apps/api/src/fence.ts.
+  const { fenceOff } = useServerConfig();
   if (!crowd) return null;
   return (
     <View
@@ -41,7 +46,7 @@ export function HereNow({ crowd }: { crowd: LiveCrowd | undefined }) {
         </View>
         <Body size={13} colour={color.neutral800}>{t(crowdLine(crowd))}</Body>
         <Label size={9} tracking={0.04} colour={color.neutral600} style={{ marginTop: 2, textTransform: 'none' }}>
-          {t(CROWD_SOURCE)}
+          {t(crowdSource(fenceOff))}
         </Label>
       </View>
     </View>

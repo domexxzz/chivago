@@ -53,6 +53,40 @@ not a point, and a check-in pays only self-verified Trip Points. A test in
 core holds the seed to this: every quest arrives within 120 m unless its
 site is the island.
 
+## The switch that opens the fence
+
+`CHIVAGO_FENCE_OFF=1` stops every distance check and every one of the four
+checks above. A check-in, a quest arrival and a story are then accepted from
+anywhere by anyone. It exists because exercising the flows end to end
+otherwise means faking a GPS fix on every device, and the owner asked for it
+by name after doing exactly that for an afternoon.
+
+The four checks go with the distance check rather than staying behind. They
+exist to make a CLAIMED POSITION credible, and with no position being checked
+they only produce refusals that read as bugs — the 450 km jump between an
+island beach and the Si Racha campus was refused as impossible travel, which
+was correct and useless.
+
+Two rules come with the switch, and they are the reason it is allowed to
+exist at all.
+
+**It is off unless the environment says so.** Not a settings row, not a
+console toggle: an environment variable, so turning it on is a deploy
+somebody performed on purpose and `git log` says when.
+
+**While it is on, the app says so.** `GET /config` reports it, publicly,
+because the warning has to be drawn before anybody signs in. The app wears a
+red band across the top of every screen that does not dismiss, and the line
+under a place's visitor count stops saying "Counted from geofenced check-ins"
+and says the server is not checking where anyone is instead.
+
+That second rule is the whole bargain. A system that quietly drops the check
+while still printing the claim is not a relaxed demo. It is a false statement
+about evidence, and this product has exactly one thing to sell: that its
+numbers came from somewhere. The tests hold both halves — `checkin-service.test.ts`
+for the switch, `crowd.test.ts` for the sentence, `fence-band.test.ts` for the
+band and for the app treating an unreachable server as fenced rather than open.
+
 ## What this does not do
 
 - It does not stop a rooted phone with a mock-location module that hides the

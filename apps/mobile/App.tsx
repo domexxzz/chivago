@@ -49,6 +49,8 @@ import { CompanionHomeScreen } from './src/screens/CompanionHome.tsx';
 import type { Companion } from '@chivago/core';
 import { loadLocale, t, useLocale } from './src/i18n/locale.ts';
 import { loadArea, placeFromUrl } from './src/state/area.ts';
+import { useServerConfig } from './src/state/server-config.ts';
+import { UnfencedBand } from './src/components/UnfencedBand.tsx';
 
 export default function App() {
   // Both families are bundled locally rather than fetched at runtime: the app
@@ -408,11 +410,17 @@ export default function App() {
   };
 
   const showTabs = nav.screen !== 'onboarding';
+  const { fenceOff } = useServerConfig();
 
   return (
     <SafeAreaProvider>
       <SafeAreaView style={{ flex: 1, backgroundColor: color.bg }} edges={['top', 'bottom']}>
         <StatusBar style="dark" />
+
+        {/* Above everything, on every screen, when the server has stopped
+            checking where anybody is. See apps/api/src/fence.ts: the switch
+            is allowed to exist only because the app is required to say so. */}
+        {fenceOff ? <UnfencedBand /> : null}
 
         <View style={{ flex: 1 }}>
           <ScreenTransition screenKey={nav.screen}>{renderScreen(nav.screen)}</ScreenTransition>

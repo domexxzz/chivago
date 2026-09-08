@@ -215,3 +215,70 @@ describe('the leg on foot', () => {
     assert.equal(getBalances(db, USER).trip, CHECKIN_TRIP_POINTS * 2 + LOW_CARBON_TRIP_POINTS);
   });
 });
+
+/**
+ * The switch that opens the fence.
+ *
+ * `CHIVAGO_FENCE_OFF=1` exists so the flows can be exercised without faking a
+ * GPS fix on every device. What these hold is the shape of the bargain: the
+ * distance check and the second signal BOTH stop, because half a check is
+ * only a refusal that reads as a bug; the switch is off unless the
+ * environment says otherwise; and the app is told, so it can say so. The last
+ * one is the reason the switch is allowed to exist at all - see fence.ts.
+ */
+describe('the fence, and the switch that opens it', () => {
+  const withFenceOff = <T>(run: () => T): T => {
+    const before = process.env.CHIVAGO_FENCE_OFF;
+    process.env.CHIVAGO_FENCE_OFF = '1';
+    try { return run(); } finally {
+      if (before === undefined) delete process.env.CHIVAGO_FENCE_OFF;
+      else process.env.CHIVAGO_FENCE_OFF = before;
+    }
+  };
+
+  test('closed by default: twelve kilometres away is refused', () => {
+    assert.throws(() => checkIn(db, { userId: USER, placeId: PLACE, ...FAR }), OutsideGeofence);
+  });
+
+  test('open: the same check-in from twelve kilometres away is taken', () => {
+    const result = withFenceOff(() => checkIn(db, { userId: USER, placeId: PLACE, ...FAR }));
+    assert.equal(result?.awarded, true);
+    assert.equal(result?.pointsAwarded, CHECKIN_TRIP_POINTS);
+  });
+
+  test('open: the second signal stops too, or it only refuses honest testers', () => {
+    // A fix the OS called fake, one too coarse to place anyone, and a jump
+    // no vehicle could make. All three are judgements about a POSITION, and
+    // there is no position being judged any more.
+    withFenceOff(() => {
+      assert.ok(checkIn(db, { userId: USER, placeId: PLACE, ...FAR, mocked: true, accuracyM: 5 })?.awarded);
+    });
+    const second = 'u-far';
+    db.prepare('INSERT INTO users (id, display_name, created_at) VALUES (?,?,?)')
+      .run(second, 'Far', new Date().toISOString());
+    withFenceOff(() => {
+      assert.ok(checkIn(db, { userId: second, placeId: PLACE, ...FAR, accuracyM: 9_000 })?.awarded);
+    });
+  });
+
+  test('open does not mean free: still once per place per island day', () => {
+    withFenceOff(() => {
+      assert.equal(checkIn(db, { userId: USER, placeId: PLACE, ...FAR })?.awarded, true);
+      const again = checkIn(db, { userId: USER, placeId: PLACE, ...FAR });
+      assert.equal(again?.awarded, false);
+      assert.equal(again?.pointsAwarded, 0);
+    });
+  });
+
+  test('open pays Trip Points and never Green, exactly as before', () => {
+    withFenceOff(() => { checkIn(db, { userId: USER, placeId: PLACE, ...FAR }); });
+    const balances = getBalances(db, USER);
+    assert.equal(balances.green, 0, 'no fence must never mean a Green Point');
+    assert.equal(balances.trip, CHECKIN_TRIP_POINTS);
+  });
+
+  test('the switch closes again when the variable goes', () => {
+    withFenceOff(() => { /* opened and shut inside */ });
+    assert.throws(() => checkIn(db, { userId: USER, placeId: PLACE, ...FAR }), OutsideGeofence);
+  });
+});

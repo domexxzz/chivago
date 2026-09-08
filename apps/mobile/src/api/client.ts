@@ -332,6 +332,8 @@ export const api = {
   checkIn: (placeId: string, fix: Fix) =>
     post<CheckinResult>(`/places/${placeId}/checkin`, fix),
   checkinsToday: () => get<string[]>('/checkins/today'),
+  /** What the server says about itself. Public, and fetched before sign-in. */
+  config: () => get<{ fenceOff: boolean }>('/config'),
 
   // -- self-issued visits: recorded, not scored ---------------------------
   /** Stamp a place on the traveller's word. Pays nothing, unlocks nothing. */

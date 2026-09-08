@@ -239,6 +239,18 @@ export function server(routes: Record<string, Reply>): {
   const original = globalThis.fetch;
   const calls: FakeCall[] = [];
 
+  /*
+    Every screen may ask the server to describe itself.
+
+    `/config` carries one field, `fenceOff`, and the app reads it to know
+    whether it may still call a visitor count geofenced - see
+    src/state/server-config.ts. It is answered here by default, as a fenced
+    server, so a test about the marketplace does not have to know about the
+    geofence. A test that cares passes its own `/config` and wins, because
+    the caller's routes are spread last.
+  */
+  const answered: Record<string, Reply> = { 'GET /config': { fenceOff: false }, ...routes };
+
   globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : String(input);
     const full = url.replace(/^https?:\/\/[^/]+/, '');
@@ -250,14 +262,14 @@ export function server(routes: Record<string, Reply>): {
     calls.push({ method, path: full, body });
 
     const key = [`${method} ${full}`, `${method} ${bare}`, full, bare]
-      .find((k) => Object.prototype.hasOwnProperty.call(routes, k));
+      .find((k) => Object.prototype.hasOwnProperty.call(answered, k));
 
     if (key === undefined) {
       missing.push(`${method} ${bare}`);
       return envelope({ ok: false, code: 'NO_ROUTE', error: `no route for ${method} ${bare}` });
     }
 
-    const route = routes[key];
+    const route = answered[key];
     const value = typeof route === 'function' ? (route as (b: unknown) => unknown)(body) : route;
 
     if (isMarked(value, '__throws')) {

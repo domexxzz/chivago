@@ -77,11 +77,14 @@ describe('a place, and checking in to it', () => {
     });
     try {
       const ui = await mountScreen(h(PlaceScreen, props()));
-      // Seven fetches: the screen carries the reviews block, the air history,
-      // the stories, and the medals as they stand before any check-in.
+      // Eight fetches: the screen carries the reviews block, the air history,
+      // the stories, and the medals as they stand before any check-in. Plus
+      // `/config`, which the visitor count reads to know whether it may still
+      // call itself geofenced - one request per launch, shared, not per
+      // screen. See src/state/server-config.ts.
       assert.deepEqual(
         net.calls.map((c) => c.path).sort(),
-        ['/checkins/today', '/medals', '/places/chaweng', '/places/chaweng/history', '/places/chaweng/reviews', '/places/chaweng/stories', '/visits/self'],
+        ['/checkins/today', '/config', '/medals', '/places/chaweng', '/places/chaweng/history', '/places/chaweng/reviews', '/places/chaweng/stories', '/visits/self'],
       );
       assert.deepEqual(net.missing, []);
 

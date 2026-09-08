@@ -29,6 +29,7 @@ import { logger } from 'hono/logger';
 
 import { openDb, row, transact } from './db.ts';
 import { BodyTooLarge, boundedForm, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
+import { publicConfig } from './fence.ts';
 import {
   getCommunityImpact, getOffer, getPersonalImpact, getProfile,
   getQuest, getScoredPlace, getShield, listOffers, listQuests, listScoredPlaces,
@@ -368,7 +369,7 @@ const PUBLIC_PREFIXES = [
   '/console', '/sos/live/', '/verify/', '/statements/', '/stories/', '/areas/', '/board/',
   '/_expo/', '/assets/',
 ];
-const PUBLIC_PATHS = new Set(['/', '/index.html', '/favicon.ico', '/metadata.json', '/health']);
+const PUBLIC_PATHS = new Set(['/', '/index.html', '/favicon.ico', '/metadata.json', '/health', '/config']);
 const isPublicPath = (path: string): boolean =>
   PUBLIC_PATHS.has(path) || PUBLIC_PREFIXES.some((p) => path.startsWith(p));
 
@@ -644,6 +645,15 @@ app.post('/places/:id/checkin', async (c) => {
 
 /** Places already checked in today, so the app can show the state on return. */
 app.get('/checkins/today', (c) => ok(c, checkedInToday(db, userId(c))));
+
+/**
+ * What the app needs to describe itself honestly, before anybody signs in.
+ *
+ * Public on purpose: the band that says presence is not being checked has to
+ * be drawn on the first screen, and the first screen is drawn before a device
+ * has a key. See fence.ts for why the app is REQUIRED to draw it.
+ */
+app.get('/config', (c) => ok(c, publicConfig()));
 
 /**
  * A visit the phone could not prove. Recorded, not scored - see

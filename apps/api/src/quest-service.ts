@@ -20,6 +20,7 @@ import { rows, transact, type DB } from './db.ts';
 import { isRejectionReasonKey, rejectionMessage, QUEST_MIN_DWELL_MIN, type Fix, type QuestCounts, type ProofPhoto, type Balances, type Currency, type QuestProgress, type QuestStage,
   type RejectionReasonKey } from '@chivago/core';
 import { assertPresence, recordFix } from './presence-service.ts';
+import { fenceOff } from './fence.ts';
 import { activePartyFor } from './party-service.ts';
 import { awardQuestReward, getBalances } from './wallet-service.ts';
 import { enqueue } from './notification-service.ts';
@@ -267,11 +268,12 @@ export function arriveAtQuest(
   if (!quest) throw new Error(`unknown quest: ${questId}`);
 
   const distance = distanceMetres(position, { lat: quest.lat, lng: quest.lng });
-  if (distance > quest.geofence_radius_m) {
+  // Unless this deployment has opened the fence on purpose. See fence.ts.
+  if (!fenceOff() && distance > quest.geofence_radius_m) {
     throw new OutsideGeofence(distance, quest.geofence_radius_m);
   }
   // The second signal, after the fence. See packages/core/src/presence.ts.
-  assertPresence(db, { userId, fix: position, radiusM: quest.geofence_radius_m, now });
+  if (!fenceOff()) assertPresence(db, { userId, fix: position, radiusM: quest.geofence_radius_m, now });
 
   db.prepare(
     `UPDATE quest_progress SET stage = 'arrived', arrived_at = ?
@@ -366,8 +368,10 @@ export function submitProof(
       .get(questId) as unknown as QuestGeo | undefined;
     if (!quest) throw new Error(`unknown quest: ${questId}`);
     const distance = distanceMetres(input.position, { lat: quest.lat, lng: quest.lng });
-    if (distance > quest.geofence_radius_m) throw new OutsideGeofence(distance, quest.geofence_radius_m);
-    assertPresence(db, { userId, fix: input.position, radiusM: quest.geofence_radius_m, now: at });
+    if (!fenceOff()) {
+      if (distance > quest.geofence_radius_m) throw new OutsideGeofence(distance, quest.geofence_radius_m);
+      assertPresence(db, { userId, fix: input.position, radiusM: quest.geofence_radius_m, now: at });
+    }
   }
 
   const now = at.toISOString();

@@ -22,6 +22,7 @@ import { row, type DB } from './db.ts';
 import { distanceMetres, OutsideGeofence } from './quest-service.ts';
 import { awardCheckin, awardWalk } from './wallet-service.ts';
 import { assertPresence, recordFix } from './presence-service.ts';
+import { fenceOff } from './fence.ts';
 
 export interface CheckinResult {
   placeId: string;
@@ -83,7 +84,9 @@ export function checkIn(
     { lat: place.lat, lng: place.lng },
     { lat: args.lat, lng: args.lng },
   );
-  if (distanceM > CHECKIN_RADIUS_M) {
+  // The fence, unless this deployment has deliberately opened it. See
+  // fence.ts: while it is open the app is required to say so on screen.
+  if (!fenceOff() && distanceM > CHECKIN_RADIUS_M) {
     throw new OutsideGeofence(distanceM, CHECKIN_RADIUS_M);
   }
 
@@ -92,7 +95,9 @@ export function checkIn(
   // After the fence, so 'too far' is still the first thing an honest
   // traveller hears. See packages/core/src/presence.ts.
   const fix: Fix = { lat: args.lat, lng: args.lng, accuracyM: args.accuracyM, mocked: args.mocked };
-  assertPresence(db, { userId: args.userId, fix, radiusM: CHECKIN_RADIUS_M, now });
+  // With no fence there is no position worth judging, and the travel check
+  // would refuse an honest tester who moved 450 km between two taps.
+  if (!fenceOff()) assertPresence(db, { userId: args.userId, fix, radiusM: CHECKIN_RADIUS_M, now });
 
   const movement = awardCheckin(db, {
     userId: args.userId,

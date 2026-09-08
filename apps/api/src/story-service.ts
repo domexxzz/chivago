@@ -35,6 +35,7 @@ import {
 import { row, rows, type DB } from './db.ts';
 import { OutsideGeofence } from './quest-service.ts';
 import { assertPresence, recordFix } from './presence-service.ts';
+import { fenceOff } from './fence.ts';
 import { UnsupportedUpload, sniff, uploadRoot } from './uploads.ts';
 import { ffmpegTranscoder, type Transcoder } from './transcode.ts';
 
@@ -277,8 +278,10 @@ export async function submitStory(
 
   const place = placeRef(db, args.placeId);
   const distance = metresBetween(args.fix, place);
-  if (distance > STORY_RADIUS_M) throw new OutsideGeofence(distance, STORY_RADIUS_M);
-  assertPresence(db, { userId: args.userId, fix: args.fix, radiusM: STORY_RADIUS_M, now });
+  if (!fenceOff()) {
+    if (distance > STORY_RADIUS_M) throw new OutsideGeofence(distance, STORY_RADIUS_M);
+    assertPresence(db, { userId: args.userId, fix: args.fix, radiusM: STORY_RADIUS_M, now });
+  }
 
   const since = new Date(now.getTime() - 24 * 3_600_000).toISOString();
   const today = row<{ n: number }>(

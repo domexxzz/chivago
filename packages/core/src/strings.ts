@@ -233,6 +233,11 @@ export const strings = {
     howCalculated: t('How is this calculated?', 'คำนวณอย่างไร'),
     /** The live count beside the crowd estimate. */
     hereNow: t('Here now', 'ตอนนี้'),
+    /** Drawn across the top while the server is not checking positions. */
+    unfenced: t(
+      'Location checks are OFF on this server. Anyone can check in from anywhere.',
+      'เซิร์ฟเวอร์นี้ปิดการตรวจตำแหน่ง ใครก็เช็กอินจากที่ไหนก็ได้',
+    ),
     /** The thirty-day air chart. */
     airHistory: t('Air, last 30 days', 'อากาศ 30 วันที่ผ่านมา'),
     airSince: (date: string) => t(`Recorded here since ${date}.`, `บันทึกที่นี่ตั้งแต่ ${date}`),
