@@ -41,14 +41,26 @@ primary_region = "sin"
   # auditor is asked to trust; every point of it here must come through a host.
   CHIVAGO_OPENING_TRIP = "0"
   CHIVAGO_OPENING_GREEN = "0"
-  # Registrations per address per rolling hour. See `POST /devices`.
-  CHIVAGO_REGISTRATIONS_PER_HOUR = "10"
+  # NO LIMIT ON REGISTRATIONS, on purpose.
+  #
+  # A hall of a hundred people shares one address, so any per-address limit
+  # refuses the back half of the room, and at a pitch that reads as the app
+  # being broken. Zero means no limit (see `POST /devices`), and it is only
+  # safe here because the opening balance above is zero: minting an account
+  # mints nothing. Put a number back before this deployment ever hands out
+  # points on registration.
+  CHIVAGO_REGISTRATIONS_PER_HOUR = "0"
   # The stories door (docs/46) is a moderator's switch in the console, not an
-  # env var, so it needs no deploy on the day. For the day itself, as secrets
-  # rather than here: `fly secrets set CHIVAGO_EVENT_TOKEN=<random>
-  # CHIVAGO_REGISTRATIONS_PER_HOUR=500`, and back to 10 after. Setting
-  # CHIVAGO_STORIES_OPEN=1 here would hold the door open through a deploy;
-  # leave it unset in production.
+  # env var, so it needs no deploy on the day. Setting CHIVAGO_STORIES_OPEN=1
+  # here would hold the door open through a deploy; leave it unset.
+  #
+  # CHIVAGO_EVENT_TOKEN IS DELIBERATELY UNSET. With a token, only a phone that
+  # arrived through the QR code in the room can post a clip; the owner asked
+  # for anyone reaching the app by any link to be able to do everything, so
+  # there is no token to carry. Nothing unapproved reaches a screen either
+  # way - a host still has to pass every clip - so what this opens is who may
+  # QUEUE one, not what appears. `fly secrets set CHIVAGO_EVENT_TOKEN=<random>`
+  # puts the gate back for a room that needs it.
 
 # node:sqlite writes to a file. Without this the database is inside the
 # container layer and every deploy silently resets the pilot.

@@ -185,6 +185,43 @@ describe('minting accounts is rate-limited per address', () => {
     assert.equal(res.code, 'TOO_MANY_REGISTRATIONS');
   });
 
+  /*
+    Zero means no limit, which is the setting an event runs on.
+
+    A hall of a hundred people shares one address, so any per-address limit
+    refuses the back half of the room, and at a pitch that looks exactly like
+    the app being broken. It is only safe where the opening balance is zero -
+    minting an account has to mint nothing - which is why the switch is an
+    environment variable a deployment sets on purpose and not a default.
+  */
+  test('zero means no limit, and the hundredth phone on one wifi still gets in', async () => {
+    const before = process.env.CHIVAGO_REGISTRATIONS_PER_HOUR;
+    process.env.CHIVAGO_REGISTRATIONS_PER_HOUR = '0';
+    try {
+      for (let i = 0; i < 25; i += 1) {
+        const res = await json(await post('/devices', { label: `phone ${i}` }, from('203.0.113.9')));
+        assert.equal(res.ok, true, `registration ${i + 1} should be allowed with no limit`);
+      }
+    } finally {
+      if (before === undefined) delete process.env.CHIVAGO_REGISTRATIONS_PER_HOUR;
+      else process.env.CHIVAGO_REGISTRATIONS_PER_HOUR = before;
+    }
+  });
+
+  test('the limit comes back the moment the variable does', async () => {
+    // Read at call time, not at import: a deployment changes it without a
+    // rebuild, and this test would pass by accident if it were a constant.
+    const before = process.env.CHIVAGO_REGISTRATIONS_PER_HOUR;
+    process.env.CHIVAGO_REGISTRATIONS_PER_HOUR = '1';
+    try {
+      assert.equal((await json(await post('/devices', { label: 'first' }, from('203.0.113.10')))).ok, true);
+      assert.equal((await post('/devices', { label: 'second' }, from('203.0.113.10'))).status, 429);
+    } finally {
+      if (before === undefined) delete process.env.CHIVAGO_REGISTRATIONS_PER_HOUR;
+      else process.env.CHIVAGO_REGISTRATIONS_PER_HOUR = before;
+    }
+  });
+
   test('another address is not punished for it', async () => {
     const res = await json(await post('/devices', { label: 'elsewhere' }, from('203.0.113.8')));
     assert.equal(res.ok, true);

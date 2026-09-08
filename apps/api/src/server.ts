@@ -464,7 +464,24 @@ app.get('/health', (c) => ok(c, { status: 'up', time: new Date().toISOString() }
  * has. It is generous - a family registering four phones on one hotel wifi
  * fits with room to spare - and a script does not.
  */
-const REGISTRATIONS_PER_HOUR = Number(process.env.CHIVAGO_REGISTRATIONS_PER_HOUR ?? 10);
+/**
+ * How many new accounts one address may open in an hour. ZERO MEANS NO LIMIT.
+ *
+ * Read at call time rather than at import, so a deployment can change it
+ * without a rebuild and so a test can set it either way.
+ *
+ * Zero is the right setting for an event, and only there. A hundred people
+ * on one hall's wifi share one address, so any per-address limit refuses the
+ * back half of the room - which at a pitch looks exactly like the app being
+ * broken. It is safe to turn off HERE because the opening balance on this
+ * deployment is zero (fly.toml), so minting an account mints nothing; on a
+ * deployment that hands out points, a script minting accounts is a script
+ * minting vouchers and this must stay switched on.
+ */
+const registrationsPerHour = (): number => {
+  const raw = Number(process.env.CHIVAGO_REGISTRATIONS_PER_HOUR ?? 10);
+  return Number.isFinite(raw) && raw >= 0 ? raw : 10;
+};
 const REGISTRATION_WINDOW_MS = 60 * 60 * 1000;
 const registrations = new Map<string, number[]>();
 
@@ -477,8 +494,12 @@ function clientAddress(c: { req: { header: (n: string) => string | undefined } }
 
 /** True if this address may register now; records the attempt if so. */
 export function allowRegistration(address: string, now = Date.now()): boolean {
+  const limit = registrationsPerHour();
+  // No limit at all, and nothing recorded either: a room of five hundred
+  // people would otherwise fill a map with timestamps nobody reads.
+  if (limit === 0) return true;
   const recent = (registrations.get(address) ?? []).filter((t) => now - t < REGISTRATION_WINDOW_MS);
-  if (recent.length >= REGISTRATIONS_PER_HOUR) {
+  if (recent.length >= limit) {
     registrations.set(address, recent);
     return false;
   }
