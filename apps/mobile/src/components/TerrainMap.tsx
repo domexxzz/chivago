@@ -277,8 +277,33 @@ const COMPASS_SVG = `<svg viewBox="0 0 46 46" aria-hidden="true">
 <text x="23" y="12.5" text-anchor="middle" font-family="Anuphan,system-ui,sans-serif" font-size="7" font-weight="700" fill="${color.text}">N</text>
 </svg>`;
 
-/** Four storeys, for every campus building OpenStreetMap has no height for. */
-const CAMPUS_STOREYS_M = 12;
+/**
+ * How tall to draw a campus building OpenStreetMap has no height for.
+ *
+ * The survey knows 75 buildings here and the HEIGHT of two of them - one of
+ * five storeys and one of eight. It does know what each building IS, for
+ * every one of them, so the drawing reads the kind rather than painting all
+ * seventy-five at one height, which is what it did.
+ *
+ * This is a DRAWING CONVENTION, not a measurement, and the legend says so.
+ * The difference from the old convention is that this one is keyed to
+ * something the survey actually recorded: a hall of residence is taller
+ * than a shop, everywhere, and OSM knows which is which.
+ */
+const CAMPUS_STOREY_M = 3.4;
+/** What the survey gives no kind for either. The old convention, kept. */
+const CAMPUS_DEFAULT_M = CAMPUS_STOREY_M * 3.5;
+
+/**
+ * How much to lift the campus hill.
+ *
+ * The island runs at 2.0 because Khao Pom is 635 m seen from twelve
+ * kilometres out. The campus is 180 m seen from one, and at 2.0 the ridge
+ * behind the library reads as an alp. A little over life size is enough to
+ * say "this place is on a slope", which is the true thing the flat version
+ * was hiding.
+ */
+const CAMPUS_EXAGGERATION = 1.15;
 
 export function TerrainMap({
   places, onSelect, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area, storied,
@@ -331,9 +356,16 @@ export function TerrainMap({
     let hour = hourNow();
     /*
       The campus (docs/43). Its box from the OpenStreetMap outline, a little
-      room around it; no terrain, because there is none to speak of; no
-      sea, no ferries, no mist - those are the island's; and the buildings
-      stand up, from the same OpenFreeMap tiles the roads already come from.
+      room around it; no sea, no ferries, no mist - those are the island's;
+      and the buildings stand up, from the same OpenFreeMap tiles the roads
+      already come from.
+
+      IT IS NOT FLAT, and this said it was for a fortnight. The elevation
+      model puts 180 m of relief inside the campus box - 10 m at the west
+      gate, 191 m at the ridge the Sapandao viewpoint is named for - which
+      is a hillside, not a village green. Terrain is on here for the same
+      reason it is on for the island, at a gentler exaggeration because
+      180 m over a kilometre and a half is already steep without help.
     */
     const campus = area?.map === 'campus';
     const box: [[number, number], [number, number]] = area && campus
@@ -470,7 +502,10 @@ export function TerrainMap({
       rather than approaching from the sea it does not have.
     */
     const settled: Pose = campus && area
-      ? { zoom: 15.7, pitch: 55, bearing: -20, center: [area.center.lng, area.center.lat] }
+      // Sixty rather than fifty-five: the buildings still read as buildings,
+      // and the ridge behind them now has somewhere to be. Bearing from the
+      // south-west, which is the side the campus climbs from.
+      ? { zoom: 15.6, pitch: 60, bearing: -24, center: [area.center.lng, area.center.lat] }
       : heroPose(m.getZoom());
     const intro: Pose = campus
       ? { ...settled, zoom: settled.zoom - 0.8, pitch: 68, bearing: settled.bearing - 35 }
@@ -492,24 +527,104 @@ export function TerrainMap({
       });
     };
     /*
-      The buildings. OpenStreetMap knows the height of one building on the
-      campus, so the rest stand at four storeys - the same for all, which is
-      a drawing convention and not a measurement, and the legend says so.
+      The buildings.
+
+      A measured height wins whenever the survey has one - two of the
+      seventy-five. Otherwise the height comes from what the building IS,
+      which the survey does record for all of them: see
+      CAMPUS_HEIGHT_BY_KIND. A convention, said out loud, and a better one
+      than seventy-five identical boxes.
+
+      The faces are lit like the ground is: the vertical gradient darkens
+      the base so a block reads as standing on the hill rather than pasted
+      onto it, and `fill-extrusion-vertical-gradient` is what MapLibre calls
+      that.
     */
     const raiseBuildings = () => {
       if (!campus || m.getLayer('campus-buildings')) return;
+      const night = paletteFor(hour).night;
+      const S = CAMPUS_STOREY_M;
+      // Written out rather than built in a loop, because MapLibre's
+      // expression types are tuples and a loop produces an array.
+      const byKind: maplibregl.ExpressionSpecification = ['match', ['get', 'class'],
+        // A roofed structure with no walls - a car park deck, a sala.
+        'roof', S,
+        'retail', S * 1.5,
+        'industrial', S * 2,
+        'university', S * 4,
+        'hospital', S * 4,
+        'dormitory', S * 6,
+        'apartments', S * 6,
+        CAMPUS_DEFAULT_M,
+      ];
       m.addLayer({
         id: 'campus-buildings', type: 'fill-extrusion', source: 'osm', 'source-layer': 'building', minzoom: 13,
         paint: {
-          'fill-extrusion-color': paletteFor(hour).night ? '#2c3e46' : '#d9d3c4',
-          'fill-extrusion-height': ['coalesce', ['get', 'render_height'], CAMPUS_STOREYS_M],
+          /*
+            Tinted by what the building IS, from the same survey tag the
+            height comes from. Not a claim about paint - nobody surveyed the
+            colour of the halls of residence - but a campus where every
+            block is the identical beige reads as a model, and the survey
+            does distinguish a teaching block from a hall from a shop.
+          */
+          'fill-extrusion-color': night ? '#2c3e46' : ['match', ['get', 'class'],
+            'dormitory', '#e3d3b8',
+            'apartments', '#e3d3b8',
+            'hospital', '#eee6d8',
+            'retail', '#e8dcc2',
+            'roof', '#d8cfbc',
+            'industrial', '#ded5c2',
+            '#e6ddcb',
+          ],
+          'fill-extrusion-height': ['coalesce', ['get', 'render_height'], byKind],
           'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
-          'fill-extrusion-opacity': 0.92,
+          'fill-extrusion-opacity': 0.95,
+          'fill-extrusion-vertical-gradient': true,
         },
       }, m.getLayer('place-labels') ? 'place-labels' : undefined);
     };
+    /*
+      The ground itself. The island is exaggerated hard because Khao Pom is
+      635 m seen from twelve kilometres out and needs the help; the campus
+      is 180 m seen from a kilometre and needs almost none - at the island's
+      figure the same hill reads as a cartoon alp behind the library.
+    */
+    const lift = () => m.setTerrain({
+      source: 'terrain',
+      exaggeration: campus ? CAMPUS_EXAGGERATION : HERO.exaggeration,
+    });
+
+    /*
+      The air, at the scale being looked through.
+
+      The style's fog is written for the island: the far edge of that frame
+      is Ko Pha-ngan twelve kilometres out, and blending the distance toward
+      the horizon is what makes the near beach read as near. The CAMPUS is a
+      kilometre and a half from edge to edge, and the same fog put a grey
+      wash over the ridge behind the library - haze where there is a
+      hillside, at a distance a person can walk in fifteen minutes.
+
+      So the ground blend is pushed almost all the way out and the
+      atmosphere thinned. It is still there, at the very back, because the
+      hills beyond the campus really are further away.
+    */
+    const clearTheAir = () => {
+      if (!campus) return;
+      const p = paletteFor(hour);
+      m.setSky({
+        'sky-color': p.sky,
+        'horizon-color': p.horizon,
+        'fog-color': p.fog,
+        'fog-ground-blend': 0.92,
+        'horizon-fog-blend': 0.9,
+        'sky-horizon-blend': 0.6,
+        'atmosphere-blend': 0.45,
+      });
+    };
+
     m.on('load', () => {
-      if (!campus) m.setTerrain({ source: 'terrain', exaggeration: HERO.exaggeration });
+      lift();
+      clearTheAir();
       raiseBuildings();
       layFog();
       if (still) return;
@@ -530,7 +645,8 @@ export function TerrainMap({
       m.setStyle(chivagoStyle(hour), { diff: true });
       holder.current?.classList.toggle('cg-night', paletteFor(hour).night);
       m.once('style.load', () => {
-        if (!campus) m.setTerrain({ source: 'terrain', exaggeration: HERO.exaggeration });
+        lift();
+        clearTheAir();
         raiseBuildings();
         if (m.hasImage('sea-swell')) m.updateImage('sea-swell', swellFrame((performance.now() - born) / 1000));
         layFog();

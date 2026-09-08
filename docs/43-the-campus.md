@@ -85,12 +85,76 @@ away. `?place=` on the URL opens a place at start-up, for the QR at a pin.
 ## The campus map
 
 On the web, `TerrainMap` takes the area. For the campus it frames the
-outline's box at street zoom (14 to 18.5), sets no terrain, lays no mist
-and paints no sea or ferries — those are the island's — and raises the
-buildings from the same OpenFreeMap tiles the roads already come from
-(`fill-extrusion` on the `building` layer). OpenStreetMap knows the height
-of one building on the campus, so the rest stand at four storeys: a drawing
-convention, not a measurement, and this document says so.
+outline's box at street zoom (14 to 18.5), lays no mist and paints no sea or
+ferries — those are the island's — and raises the buildings from the same
+OpenFreeMap tiles the roads already come from (`fill-extrusion` on the
+`building` layer).
+
+### The campus is not flat, and the map said it was
+
+For a fortnight this section read "sets no terrain", with a comment in the
+code explaining that a campus has no relief "to speak of". That was wrong,
+and it is why the map looked like a green sheet with beige boxes on it.
+
+Decoding the elevation tiles the island's map already uses, over the campus
+box:
+
+| | metres |
+| --- | --- |
+| west gate, lowest | 10.4 |
+| median | 37.8 |
+| the ridge, highest | 190.7 |
+| **relief across the campus** | **180.3** |
+
+One hundred and eighty metres is a hillside. The Sapandao viewpoint is named
+for being on top of it.
+
+Two things were hiding it. Terrain was switched off for the campus on the
+strength of that wrong belief. And the elevation source carried
+`maxzoom: 13` — invisible on the island, framed between zoom 9 and 15.5, and
+fatal on the campus at 14 to 18.5: a zoom-13 tile stretched to zoom 18 is
+one height sample per 250 m of ground, so even with terrain on it would have
+rendered as a smooth ramp. The archive has tiles to zoom 15 and returns 404
+at 16, so the source now says 15 — the floor of the real data, not a number
+picked for looks. That is sixteen times the samples over the same ground,
+and it sharpens the island's ridges too.
+
+The campus is lifted at 1.15 rather than the island's 2.0. Khao Pom is 635 m
+seen from twelve kilometres and needs the help; 180 m seen from one does
+not, and at 2.0 the ridge behind the library reads as an alp.
+
+### What else was flattening it
+
+**The fog.** The style's is written for the island, where the far edge of the
+frame is Ko Pha-ngan twelve kilometres out. Over a campus a kilometre and a
+half wide the same fog put a grey wash over a hillside fifteen minutes' walk
+away. The campus now gets its own sky with the ground blend pushed almost to
+the back.
+
+**The colour ramp.** It had four stops below 160 m, tuned for Samui's coconut
+plain — and the whole campus lives inside that range, so every pixel of it
+fell in one interpolation span and came out one flat wash. Stops at 25, 85
+and 125 m now crowd the first two hundred metres. The campus spans eight of
+them instead of three.
+
+**No grass.** A university is playing fields and lawn between the blocks, and
+the survey has drawn them — four parks, five pitches. Nothing rendered them.
+There is now a `grass` layer, and the woods firm up as the camera comes in
+(0.42 at island distance, 0.68 at campus distance), because a wood you are
+standing under is not a tint on a distant hillside.
+
+### The buildings
+
+OpenStreetMap has **75 buildings** on this campus and the height of **two** of
+them — one of five storeys, one of eight. It does record what every one of
+them IS: 19 university, 9 dormitory, 7 hospital, 6 roof structures, 5
+industrial, 4 apartments, 1 retail, 24 unspecified.
+
+A measured height wins where the survey has one. Otherwise the height and
+the tint come from the kind, which is a DRAWING CONVENTION and not a
+measurement — but a convention keyed to something the survey actually
+recorded, which the old one (every building at four storeys, all in the same
+beige) was not. A hall of residence is taller than a shop, everywhere.
 
 On a phone the drawn island is Samui's silhouette and nothing else, so the
 campus is its list until it has a drawing of its own. Not the island with
@@ -116,6 +180,10 @@ campus pins on it — that would put the library in the Gulf of Thailand.
 ## Still owed
 
 - The team's photographs of the five places, with permission.
-- A drawing of the campus for phones.
+- A drawing of the campus for phones. The hillside is web-only, like the
+  rest of the real map.
+- **Aerial imagery.** The ground is coloured by height and land cover, not
+  photographed. Free tiles at campus zoom, with terms that allow this, were
+  not found; every candidate wanted a key, which the map does not carry.
 - The stories (day two onwards in docs/42).
 - The venue's Wi-Fi and the registration limit for the day; the PDPA notice.

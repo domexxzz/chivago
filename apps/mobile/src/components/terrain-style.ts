@@ -239,11 +239,23 @@ const PLACE_NAME = ['case',
   ENGLISH_NAME,
 ];
 
+/**
+ * The elevation the land is coloured, shaded and lifted by.
+ *
+ * MAXZOOM 15, WHICH IS WHAT THE ARCHIVE HAS. It said 13 for a long time,
+ * and on the island - framed between zoom 9 and 15.5 - nobody could see the
+ * difference. On the CAMPUS, framed between 14 and 18.5, it was the whole
+ * problem: a zoom-13 tile stretched to zoom 18 gives one elevation sample
+ * per 250 m of ground, so a hillside with 180 m of relief in it rendered as
+ * a flat green sheet. Zoom 15 is sixteen times the samples over the same
+ * ground, and 16 is a 404 from the archive, so this is the floor of the
+ * real data rather than a number picked for looks.
+ */
 const dem = {
   type: 'raster-dem' as const,
   tiles: [TERRAIN_TILES],
   tileSize: 256,
-  maxzoom: 13,
+  maxzoom: 15,
   encoding: 'terrarium' as const,
 };
 
@@ -319,12 +331,21 @@ export function chivagoStyle(hour = 12): StyleSpecification {
       {
         id: 'relief', type: 'color-relief', source: 'relief',
         paint: {
+          // Stops crowd the first two hundred metres on purpose. Samui's
+          // coconut plain lives there, and so does ALL of the KU Sriracha
+          // campus: 10 m at the west gate to 191 m at the Sapandao ridge.
+          // With the old four stops below 160 the whole campus rendered in
+          // one flat wash, because every pixel of it fell inside a single
+          // interpolation span.
           'color-relief-color': ['interpolate', ['linear'], ['elevation'],
             -40, p.deep,
             -4, p.shallow,
             0, p.sand,
             5, p.sand,
+            25, mix(p.sand, p.lowland, 0.55),
             45, p.lowland,
+            85, mix(p.lowland, p.jungle, 0.4),
+            125, mix(p.lowland, p.jungle, 0.72),
             160, p.jungle,
             330, p.forest,
             500, p.highland,
@@ -341,7 +362,29 @@ export function chivagoStyle(hour = 12): StyleSpecification {
       {
         id: 'wood', type: 'fill', source: 'osm', 'source-layer': 'landcover',
         filter: ['==', ['get', 'class'], 'wood'],
-        paint: { 'fill-color': p.canopy, 'fill-opacity': 0.42 },
+        // Firmer as the camera comes in. On the island a wood is a tint on a
+        // hillside seen from ten kilometres; on the campus it is the tree
+        // cover you are standing under, and at 0.42 it was invisible there.
+        paint: {
+          'fill-color': p.canopy,
+          'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.42, 16, 0.68],
+        },
+      },
+      /*
+        The grass. A university campus is playing fields and lawn between the
+        blocks, and the survey has drawn them - parks, pitches, gardens. The
+        island has almost none of this, which is why it was never missed
+        until the campus was framed at street zoom and rendered as bare
+        ground between beige boxes.
+      */
+      {
+        id: 'grass', type: 'fill', source: 'osm', 'source-layer': 'landcover',
+        filter: ['in', ['get', 'class'], ['literal', ['grass', 'park']]],
+        minzoom: 12,
+        paint: {
+          'fill-color': mix(p.lowland, p.canopy, 0.35),
+          'fill-opacity': ['interpolate', ['linear'], ['zoom'], 12, 0.3, 16, 0.62],
+        },
       },
       {
         id: 'wetland', type: 'fill', source: 'osm', 'source-layer': 'landcover',
