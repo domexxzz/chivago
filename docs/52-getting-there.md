@@ -119,12 +119,43 @@ for it.
   screen: 1.5 km north-east with a walk time, eleven kilometres with the
   distance but no walk, arrival with no distance shown, and a refused
   permission that costs the distance but not the map.
+- `apps/mobile/test/home.test.ts` — the card carrying the distance, saying
+  "Here" from inside the fence, and carrying nothing at all with no
+  permission. That last one is asserted on the spoken label rather than on
+  the word "km", for the reason in the next section.
+
+## And on the cards, which is where the choice is actually made
+
+The place screen answers *how do I get to this one*. The row on Home answers
+*which one*, and that is the question somebody scrolling it is asking — so
+the distance goes there too, as a second chip.
+
+Two chips, deliberately not the same kind of thing. **Top left is the score**,
+a claim about the place. **Top right is the distance**, a fact about where
+the reader is standing. Inside the fence the chip reads "Here"; the sentence
+would wrap to three lines on a 172 px card and the row would stop being
+scannable.
+
+It sits on the photograph rather than under the name because the card's meta
+line is already a sentence with a kilometre in it — *"Beach · 2.1 km of
+sand"* — and two adjacent kilometre figures meaning different things is
+worse than no figure at all. The first version of the no-permission test
+asserted the absence of the string "km" and failed on exactly that line,
+which is a fair way to be told the layout decision was the right one.
+
+`useHere` is called **once for the whole row**, in `Places`, and the position
+passed down. A card that asked for its own would take a fix per place and
+answer the same question five times.
+
+The spoken label carries the distance and the compass point, so a screen
+reader user gets the fact the row is being scanned for rather than only the
+score.
 
 ## Still owed
 
-- **The list, not just the detail.** Distance belongs on the place cards on
-  Home too, which is where somebody chooses *which* place to go to. `useHere`
-  is a hook so that can reuse it; the plumbing is a Home-screen change.
+- **Sorting.** The row is still in the server's order. Nearest-first would be
+  a different claim — that proximity is what should decide — and it is the
+  owner's call, not a side effect of showing a number.
 - **The map's own "you are here" dot.** `TerrainMap.tsx` still never draws
   the traveller.
 - **"Safe path from here"** on the same screen switches to the Safety tab.

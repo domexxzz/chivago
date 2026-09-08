@@ -173,6 +173,11 @@ export const strings = {
       t(`About ${minutes} min on foot`, `เดินราว ${minutes} นาที`),
     /** Inside the 250 m fence. The check-in button above it will work. */
     arrived: t("You're here", 'คุณอยู่ที่นี่แล้ว'),
+    /**
+     * The same fact on a 172 px card in a scrolling row, where the sentence
+     * would wrap to three lines and the row would stop being scannable.
+     */
+    arrivedShort: t('Here', 'ที่นี่'),
     openInMaps: t('Open in Google Maps', 'เปิดใน Google Maps'),
     /**
      * Shown instead of the distance when the app has no position - permission

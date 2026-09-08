@@ -6,6 +6,7 @@ import {
   HomeScreen, islandAverage, questOrder, weakestProvenance,
 } from '../src/screens/HomeScreen.tsx';
 import { mountScreen, server, offline } from './interact.ts';
+import { control, resetControl } from './stubs/native.mjs';
 import * as fx from './fixtures.ts';
 
 /**
@@ -116,6 +117,57 @@ describe('what Home says', () => {
     const ui = await mountScreen(h(HomeScreen, props));
     assert.ok(ui.labels().includes('Chaweng Beach, no photograph yet'), 'the card announces the missing photograph');
     ui.unmount();
+  });
+
+  test('a card carries how far away the place is, not just how good it is', async () => {
+    // The row is scanned to choose WHERE to go, so the distance belongs on
+    // the card and not only on the screen you reach by tapping one.
+    const s = server(routes()); restore = s.restore;
+    try {
+      control.position = { coords: { latitude: 9.5262, longitude: 100.0518, accuracy: 12 } };
+      const ui = await mountScreen(h(HomeScreen, props));
+      assert.match(ui.text(), /1\.5 km/, 'the card shows no distance');
+      // And a screen reader gets the same fact, with the direction.
+      assert.ok(
+        ui.labels().some((l) => /Chaweng Beach.*1\.5 km north-east of you/i.test(l)),
+        'the distance is not spoken',
+      );
+      ui.unmount();
+    } finally { resetControl(); }
+  });
+
+  test('standing on the place, the card says Here rather than a distance', async () => {
+    // The default stub position IS Chaweng. "250 m" on a card for the beach
+    // you are standing on is a worse answer than the word.
+    const s = server(routes()); restore = s.restore;
+    try {
+      const ui = await mountScreen(h(HomeScreen, props));
+      const said = ui.text();
+      assert.match(said, /Here/);
+      assert.doesNotMatch(said, /\d+ m\b/, 'a distance was shown from inside the fence');
+      ui.unmount();
+    } finally { resetControl(); }
+  });
+
+  test('with no location permission the cards simply carry no distance', async () => {
+    // No dialog, no empty chip, no "unknown". The row is complete without it.
+    const s = server(routes()); restore = s.restore;
+    try {
+      control.permission = { granted: false, status: 'denied' };
+      const ui = await mountScreen(h(HomeScreen, props));
+      const said = ui.text();
+      assert.match(said, /Chaweng Beach/, 'the card is still there');
+      // Asserted on the spoken label, not on the word "km": the card's own
+      // meta line is "Beach · 2.1 km of sand", which is the collision that
+      // put the distance in a chip on the photograph rather than under the
+      // name in the first place.
+      assert.match(said, /2\.1 km of sand/, 'the meta line is the one that owns "km" here');
+      assert.ok(
+        !ui.labels().some((l) => /of you|You're here/.test(l)),
+        'a distance was spoken with no position',
+      );
+      ui.unmount();
+    } finally { resetControl(); }
   });
 
   test('the profile is one tap from the top of Home', async () => {

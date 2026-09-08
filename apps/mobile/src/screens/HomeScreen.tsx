@@ -42,11 +42,12 @@ import {
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
-  greetingFor, isHighScore, passportProgress, strings,
+  greetingFor, isHighScore, passportProgress, strings, wayThere,
   type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
+import { useHere, type Here } from '../state/here.ts';
 import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
@@ -397,6 +398,9 @@ function Places({
   places, onOpenMap, onOpenPlace,
 }: { places: Async<ScoredPlace[]>; onOpenMap: () => void; onOpenPlace: (id: string) => void }) {
   const list = places.data ?? [];
+  // ONE position for the whole row. A card that asked for its own would take
+  // a fix per place, and the row would answer the same question five times.
+  const here = useHere();
   // Warm the photographs while there is signal: the place screen at the
   // mangrove opens off the cache, not off a stalled request.
   React.useEffect(() => {
@@ -407,7 +411,7 @@ function Places({
     <View style={{ paddingTop: 22 }}>
       <SectionHead en="Measured places" th="สถานที่ที่วัดจริง" onSeeAll={onOpenMap} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: gutter, gap: 12 }}>
-        {list.map((p) => <PlaceCard key={p.id} place={p} onPress={() => onOpenPlace(p.id)} />)}
+        {list.map((p) => <PlaceCard key={p.id} place={p} here={here} onPress={() => onOpenPlace(p.id)} />)}
       </ScrollView>
     </View>
   );
@@ -420,14 +424,33 @@ function Places({
  * or no photograph: a card with a stock beach on it would be the aspirational
  * Home this file's header refuses. The chip is the map pin's number, in the
  * map pin's colours - green only past the threshold a host would recognise.
+ *
+ * Two chips, and they are deliberately not the same thing. Top left is the
+ * SCORE, which is a claim about the place. Top right is the DISTANCE, which
+ * is a fact about where the reader is standing - the question this row is
+ * really being scanned for, and the one the app could always answer and
+ * never did (docs/52).
+ *
+ * The distance goes on the photograph rather than under the name, because
+ * `meta` is already a sentence with a kilometre in it - "Beach · 2.1 km of
+ * sand" - and two adjacent kilometre figures meaning different things is
+ * worse than no figure at all.
  */
-function PlaceCard({ place, onPress }: { place: ScoredPlace; onPress: () => void }) {
+function PlaceCard({ place, here, onPress }: { place: ScoredPlace; here: Here | null; onPress: () => void }) {
   const high = isHighScore(place.healthyScore);
+  const way = here ? wayThere(here, place) : null;
+  const far = way ? (way.arrived ? t(strings.place.arrivedShort) : t(way.distance)) : null;
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${t(place.name)}, ${t(strings.place.healthyScore)} ${place.healthyScore}`}
+      accessibilityLabel={[
+        t(place.name),
+        `${t(strings.place.healthyScore)} ${place.healthyScore}`,
+        // The distance is spoken too, or a screen reader gets the one card
+        // fact a sighted reader is scanning this row for and not the other.
+        ...(way ? [way.arrived ? t(strings.place.arrived) : t(strings.place.away(t(way.distance), t(way.direction)))] : []),
+      ].join(', ')}
       style={[shadow.card, { width: 172, backgroundColor: color.surface, borderRadius: radius.md, overflow: 'hidden' }]}
     >
       <View style={{ height: 112, backgroundColor: color.neutral200 }}>
@@ -445,6 +468,16 @@ function PlaceCard({ place, onPress }: { place: ScoredPlace; onPress: () => void
         >
           <Heading size={12} colour={high ? onFill.accent : color.text}>{String(place.healthyScore)}</Heading>
         </View>
+        {far ? (
+          <View
+            style={{
+              position: 'absolute', top: 8, right: 8, paddingVertical: 3, paddingHorizontal: 8,
+              borderRadius: radius.lg, backgroundColor: color.surface,
+            }}
+          >
+            <Label size={10} tracking={0.06} colour={color.neutral800}>{far}</Label>
+          </View>
+        ) : null}
       </View>
       <View style={{ padding: 10 }}>
         <Heading size={14}>{t(place.name)}</Heading>
