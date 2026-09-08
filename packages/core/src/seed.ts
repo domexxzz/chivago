@@ -353,6 +353,10 @@ export const SEED_PLACES: Place[] = [
       th: 'อาคารพลศึกษาใกล้ประตู 1 และเป็นสถานที่จัดงาน Sriracha Hackathon 2026 หลังย้ายมาจากห้องสมุด',
     },
     tags: ['Indoor', 'Event venue', 'By Gate 1'],
+    // Explicitly null rather than absent: `Place.photo` is nullable but
+    // required, so an omitted key is a type error rather than "no photo".
+    // Saying null out loud is also the honest word for it.
+    photo: null,
     /*
       Air is the real reading from station o61, like every other campus
       place. The other three are the pilot's CONVENTION for an indoor
