@@ -30,12 +30,14 @@ import { GettingThere } from '../components/GettingThere.tsx';
 import { StoriesBlock } from '../components/Stories.tsx';
 
 export function PlaceScreen({
-  placeId, onBack, onAddToTrip, onSafePath, onToast, onPointsChanged,
+  placeId, onBack, onAddToTrip, onSafePath, onShowWay, onToast, onPointsChanged,
 }: {
   placeId: string;
   onBack: () => void;
   onAddToTrip: () => void;
   onSafePath: () => void;
+  /** Draw the way to this place on the app's own map. Absent in tests that do not need it. */
+  onShowWay?: (place: ScoredPlace) => void;
   onToast: (msg: string) => void;
   onPointsChanged: () => void;
 }) {
@@ -238,7 +240,10 @@ export function PlaceScreen({
               Directly above the check-in, because the two answer the same
               question in order: how far away am I, and can I claim this yet.
             */}
-            <GettingThere place={place.data} />
+            <GettingThere
+              place={place.data}
+              onShowWay={onShowWay ? () => onShowWay(place.data!) : undefined}
+            />
 
             <Button
               label={checkedIn ? t(strings.checkin.already) : t(strings.checkin.cta)}

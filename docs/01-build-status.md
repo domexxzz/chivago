@@ -5,8 +5,8 @@ What exists, what runs, and what is honestly not there yet.
 > **Status as of 2026-09-08, afternoon.** 141 commits since 2026-09-01;
 > `main` is clean at `d401f08`, no pull request or issue is open, and CI is
 > green on every commit since the 7th. 20 screens, 75 API routes, 32 console
-> routes, 38 tables, about 43,400 lines of source and 19,700 of tests; 1,608
-> TypeScript tests (core 374, api 787, mobile 397 + 25, tokens 25), 11 Dart,
+> routes, 38 tables, about 43,400 lines of source and 19,700 of tests; 1,629
+> TypeScript tests (core 385, api 787, mobile 407 + 25, tokens 25), 11 Dart,
 > 10 Swift.
 > The live API is up at https://chivago.fly.dev since the evening of the 7th:
 > seeded, the demo reset walked (Standing #1 of 2), the event token and the

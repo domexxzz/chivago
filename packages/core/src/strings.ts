@@ -106,6 +106,26 @@ export const strings = {
      * for a screen reader than a map with one graphic that says something.
      */
     youAreHere: t('You are here', 'คุณอยู่ตรงนี้'),
+    /** The route banner over the map, once a destination has been chosen. */
+    wayTo: (place: string) => t(`Way to ${place}`, `เส้นทางไป${place}`),
+    wayWalk: t('On foot', 'เดิน'),
+    wayRide: t('By road', 'ทางถนน'),
+    /** Road distance and time, e.g. "2.4 km · 30 min". */
+    waySummary: (distance: string, duration: string) => t(`${distance} · ${duration}`, `${distance} · ${duration}`),
+    wayLoading: t('Finding the way…', 'กำลังหาเส้นทาง…'),
+    /**
+     * The router did not answer, so the line on the map is the straight one.
+     *
+     * Said rather than hidden: a dashed line across a bay is a bearing, and
+     * a traveller who reads it as a road walks into the sea. The router is a
+     * free community server (`packages/core/src/routing.ts`); it going quiet
+     * is a normal afternoon, not an error worth a red box.
+     */
+    wayStraight: t(
+      'No road route right now — the dashed line is the direction, not a road.',
+      'ตอนนี้หาเส้นทางถนนไม่ได้ เส้นประคือทิศ ไม่ใช่ถนน',
+    ),
+    wayClear: t('Clear the route', 'ล้างเส้นทาง'),
     /** A quest's mark on the map: what it is, where, and what it pays. */
     questPin: (points: number) => t(`Quest · +${points} points`, `ภารกิจ · +${points} แต้ม`),
     /** The legend's second line: how much of the chart this traveller has lifted the mist from. */
@@ -193,6 +213,8 @@ export const strings = {
      * the same claim made silently.
      */
     nearestFirst: t('Nearest first', 'เรียงจากใกล้ที่สุด'),
+    /** Draws the route on the app's own map. The first choice, before leaving. */
+    showWay: t('Show the way on the map', 'ดูเส้นทางบนแผนที่'),
     openInMaps: t('Open in Google Maps', 'เปิดใน Google Maps'),
     /**
      * Shown instead of the distance when the app has no position - permission

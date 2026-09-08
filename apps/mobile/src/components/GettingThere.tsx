@@ -6,9 +6,14 @@
  * traveller is deciding whether to make the trip - and beside it, the one
  * button in the app that leaves the app for a map with the roads on it.
  *
- * IT DOES NOT ROUTE. Nothing here draws a line, reads a timetable or claims
- * to know about a songthaew. `packages/core/src/wayfinding.ts` says why that
- * boundary is where it is, and what is deliberately not put in the URL.
+ * TWO WAYS OUT, in order. The first draws the road route on the app's OWN
+ * map (, ) - the island the traveller has been
+ * looking at all along. The second leaves for Google, which is where
+ * turn-by-turn belongs and where this app has no business competing.
+ *
+ * Neither reads a timetable or claims to know about a songthaew: routing by
+ * road is one thing, and Smart Route's ferry and songthaew data is another
+ * that still does not exist ().
  *
  * Three states, and the middle one is the interesting one:
  *
@@ -21,15 +26,15 @@
 
 import React from 'react';
 import { Linking, View } from 'react-native';
-import { Compass, ExternalLink } from 'lucide-react-native';
+import { Compass, ExternalLink, Route } from 'lucide-react-native';
 import { mapsDirectionsUrl, strings, wayThere, type ScoredPlace } from '@chivago/core';
 import { useHere } from '../state/here.ts';
-import { color, radius, shadow } from '../theme/index.ts';
+import { color, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from './Type.tsx';
 import { Button } from './Button.tsx';
 import { t } from '../i18n/locale.ts';
 
-export function GettingThere({ place }: { place: ScoredPlace }) {
+export function GettingThere({ place, onShowWay }: { place: ScoredPlace; onShowWay?: () => void }) {
   const here = useHere();
   const way = here ? wayThere(here, place) : null;
   // Walking mode only when a walk is plausible. Opening a map in walking mode
@@ -75,13 +80,27 @@ export function GettingThere({ place }: { place: ScoredPlace }) {
         </View>
       </View>
 
+      {/*
+        The app's own map first, and leaving it second. The route is drawn on
+        the island the traveller has been looking at all along; Google is for
+        the turn-by-turn this app does not do and should not try to.
+      */}
+      {onShowWay ? (
+        <Button
+          label={t(strings.place.showWay)}
+          onPress={onShowWay}
+          icon={<Route size={16} color={onFill.brand} strokeWidth={2} />}
+          height={44}
+          style={{ marginTop: 12 }}
+        />
+      ) : null}
       <Button
         label={t(strings.place.openInMaps)}
         onPress={() => { void Linking.openURL(url); }}
         variant="secondary"
         icon={<ExternalLink size={16} color={color.brand} strokeWidth={2} />}
         height={44}
-        style={{ marginTop: 12 }}
+        style={{ marginTop: 10 }}
       />
     </View>
   );

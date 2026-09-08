@@ -217,6 +217,10 @@ const CSS_ID = 'chivago-map-marks';
 /** The accuracy halo's source and fill. Named so the effect can find them again. */
 const HERE_SOURCE = 'chivago-here';
 const HERE_LAYER = 'chivago-here-fill';
+/** The route to the chosen place: a dark casing under a bright line, as a road map draws one. */
+const WAY_SOURCE = 'chivago-way';
+const WAY_CASING = 'chivago-way-casing';
+const WAY_LINE = 'chivago-way-line';
 const MARK_CSS = `
 .cg-pin{display:flex;flex-direction:column;align-items:center;cursor:pointer;border:0;background:none;padding:0;font-family:Anuphan,system-ui,sans-serif}
 .cg-chip{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:11px;font-size:13px;font-weight:700;line-height:1;
@@ -278,7 +282,7 @@ const CAMPUS_STOREYS_M = 12;
 
 export function TerrainMap({
   places, onSelect, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area, storied,
-  here = null,
+  here = null, way = null, wayIsRoute = false,
 }: {
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;
@@ -295,6 +299,16 @@ export function TerrainMap({
   storied?: ReadonlySet<string>;
   /** Where the traveller is, if the phone has said. Null draws nothing at all. */
   here?: Here | null;
+  /**
+   * The way to the chosen place, in GeoJSON order.
+   *
+   * The road route when a router answered, and the straight line from the
+   * traveller to the place when it did not - the caller decides which, and
+   * says which in `wayIsRoute` so the map can draw a road as a road and a
+   * direction as a direction.
+   */
+  way?: [number, number][] | null;
+  wayIsRoute?: boolean;
 }) {
   const holder = React.useRef<HTMLDivElement | null>(null);
   const map = React.useRef<MapLibreMap | null>(null);
@@ -725,6 +739,70 @@ export function TerrainMap({
     }
     return () => { m.off('load', drawHalo); };
   }, [here]);
+
+  /*
+    The way to the chosen place.
+
+    Two layers, because that is how a road map draws a road and how it stays
+    readable over both the pale sand and the dark forest: a dark casing, and
+    a bright line on top of it. When the router did not answer, the SAME
+    geometry arrives as a straight line from the traveller to the place, and
+    it is drawn DASHED - a dashed line is a bearing and a solid one is a
+    road, and the difference matters on an island where the straight line
+    between two beaches crosses a hill.
+
+    Its own effect again, and its own source, so choosing a destination does
+    not disturb the pins, the mist or the traveller's dot.
+  */
+  React.useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+
+    const draw = () => {
+      if (!map.current) return;
+      const feature = {
+        type: 'Feature' as const,
+        properties: {},
+        geometry: { type: 'LineString' as const, coordinates: way ?? [] },
+      };
+      const existing = m.getSource(WAY_SOURCE) as maplibregl.GeoJSONSource | undefined;
+      if (existing) {
+        existing.setData(feature);
+        // The dash is a paint property, so it can change without the layer.
+        if (m.getLayer(WAY_LINE)) {
+          m.setPaintProperty(WAY_LINE, 'line-dasharray', wayIsRoute ? [1] : [1.4, 1.1]);
+        }
+        return;
+      }
+      if (!way || way.length < 2) return;
+      m.addSource(WAY_SOURCE, { type: 'geojson', data: feature });
+      m.addLayer({
+        id: WAY_CASING,
+        type: 'line',
+        source: WAY_SOURCE,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': color.text, 'line-width': 8, 'line-opacity': 0.55 },
+      });
+      m.addLayer({
+        id: WAY_LINE,
+        type: 'line',
+        source: WAY_SOURCE,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          // The CTA orange, which is what "start something" is in this app,
+          // and the one strong colour on the map that is not the evidence
+          // green and not a quest's gold.
+          'line-color': color.ctaDeep,
+          'line-width': 4,
+          'line-dasharray': wayIsRoute ? [1] : [1.4, 1.1],
+        },
+      });
+    };
+
+    if (m.isStyleLoaded()) draw();
+    else m.once('load', draw);
+    return () => { m.off('load', draw); };
+  }, [way, wayIsRoute]);
 
   if (failed) {
     return (

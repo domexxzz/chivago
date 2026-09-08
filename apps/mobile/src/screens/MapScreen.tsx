@@ -11,12 +11,15 @@ import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { ChevronRight, LayoutGrid, List, MessageCircle } from 'lucide-react-native';
 import {
-  greetingFor, strings, type Balances, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace,
+  greetingFor, strings,
+  type Balances, type ExploredPlace, type Quest, type QuestProgress, type RouteMode, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { areaOfProvince, inArea } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { useHere } from '../state/here.ts';
+import { useRoute } from '../state/route.ts';
+import { WayBanner } from '../components/WayBanner.tsx';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { useAsync, type LayerKey } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
@@ -35,7 +38,7 @@ const NO_EXPLORED: ExploredPlace[] = [];
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
   onAskConcierge,
-  onOpenWallet,
+  onOpenWallet, wayTo = null, onClearWay,
 }: {
   layers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
@@ -46,6 +49,12 @@ export function MapScreen({
   onAskConcierge: () => void;
   balances: Balances;
   onOpenWallet: () => void;
+  /**
+   * The place the traveller asked to be shown the way to, chosen on the
+   * place screen. Null is the ordinary map, with no route on it.
+   */
+  wayTo?: ScoredPlace | null;
+  onClearWay?: () => void;
 }) {
   const places = useAsync(() => api.places(), []);
   const quests = useAsync(() => api.quests('today'), []);
@@ -87,6 +96,25 @@ export function MapScreen({
   );
   const onSelect = React.useCallback((p: ScoredPlace) => onOpenPlace(p.id), [onOpenPlace]);
 
+  /*
+    The way there.
+
+    Walking is the default because it is the mode this product pays Trip
+    Points for; the toggle is there because most of this island is not a
+    walk. The router is a free community server and is allowed to say
+    nothing (`state/route.ts`), so `way` falls back to the straight line
+    between the two points - drawn dashed, and labelled as a bearing.
+  */
+  // Named for the way, not just 'mode': this screen already has one, and it
+  // means map-or-feed.
+  const [wayMode, setWayMode] = React.useState<RouteMode>('walk');
+  const { route, loading: routing, failed: routeFailed } = useRoute(here, wayTo, wayMode);
+  const way = React.useMemo<[number, number][] | null>(() => {
+    if (route) return route.line;
+    if (!here || !wayTo) return null;
+    return [[here.lng, here.lat], [wayTo.lng, wayTo.lat]];
+  }, [route, here, wayTo]);
+
   return (
     <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]}>
       <MapHeader
@@ -105,6 +133,18 @@ export function MapScreen({
             <AreaSwitch area={area.key} onChange={setArea} />
           </View>
           <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
+          {wayTo ? (
+            <WayBanner
+              place={wayTo}
+              route={route}
+              loading={routing}
+              failed={routeFailed}
+              haveHere={here !== null}
+              mode={wayMode}
+              onMode={setWayMode}
+              onClear={() => onClearWay?.()}
+            />
+          ) : null}
           {mode === 'map' ? (
             <SamuiMap
               /*
@@ -125,6 +165,8 @@ export function MapScreen({
               onOpenQuest={onOpenQuest}
               explored={explored.data?.places ?? NO_EXPLORED}
               here={here}
+              way={way}
+              wayIsRoute={route !== null}
             />
           ) : (
             <View>

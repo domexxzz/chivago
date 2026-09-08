@@ -402,6 +402,13 @@ export interface SamuiMapProps {
    * a metre on a diagram is not a metre.
    */
   here?: Here | null;
+  /**
+   * The way to the chosen place. Drawn by the web map only: the drawn
+   * island is a diagram, and a road route on a traced coastline would claim
+   * a precision it does not have - the same rule that keeps quests off it.
+   */
+  way?: [number, number][] | null;
+  wayIsRoute?: boolean;
 }
 
 /**

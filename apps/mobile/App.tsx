@@ -16,7 +16,7 @@ import {
 import { Anuphan_400Regular, Anuphan_600SemiBold } from '@expo-google-fonts/anuphan';
 import { IBMPlexMono_500Medium } from '@expo-google-fonts/ibm-plex-mono';
 
-import { emptyBalances, strings, type Balances, type ItineraryItem } from '@chivago/core';
+import { emptyBalances, strings, type Balances, type ItineraryItem, type ScoredPlace } from '@chivago/core';
 import { api } from './src/api/client.ts';
 import { useOutboxFlush } from './src/state/outbox-hook.ts';
 import { color } from './src/theme/index.ts';
@@ -61,6 +61,10 @@ export default function App() {
   });
 
   const nav = useNav('onboarding');
+  // Where the traveller asked to be shown the way to. Held here rather than
+  // in the Map tab because the ASK happens on the place screen, and the tab
+  // is remounted by its own key when the area changes.
+  const [wayTo, setWayTo] = React.useState<ScoredPlace | null>(null);
   // The language. Resolved once before the first screen (stored choice, else
   // the phone's), and a change re-renders from here, which reaches every
   // t() below: nothing in this tree is memoised against its parent.
@@ -246,6 +250,8 @@ export default function App() {
             onAskConcierge={() => nav.push('concierge')}
             onOpenWallet={() => nav.selectTab('wallet')}
             balances={balances}
+            wayTo={wayTo}
+            onClearWay={() => setWayTo(null)}
           />
         );
 
@@ -271,6 +277,14 @@ export default function App() {
               nav.push('trip');
             }}
             onSafePath={() => nav.selectTab('safety')}
+            /*
+              The way there, drawn on the app's own map rather than in
+              somebody else's. One map instance in this app, so the place
+              screen names a destination and hands over to the Map tab; a
+              second MapLibre context on this screen would be a second
+              basemap download to show one line.
+            */
+            onShowWay={(place) => { setWayTo(place); nav.selectTab('map'); }}
             onToast={toast.show}
             onPointsChanged={() => setWalletKey((k) => k + 1)}
           />
