@@ -31,6 +31,7 @@ import { openDb, row, transact } from './db.ts';
 import { BodyTooLarge, boundedForm, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
 import { publicConfig } from './fence.ts';
 import { boardFeed, type BoardEntry } from '@chivago/core';
+import { monstersInArea } from './monster-service.ts';
 import { reviewsInArea } from './place-review-service.ts';
 import {
   getCommunityImpact, getOffer, getPersonalImpact, getProfile,
@@ -354,6 +355,31 @@ app.get('/areas/:key/board', (c) => {
     language: r.language,
   }));
   return ok(c, { open: storiesOpen(db), entries: boardFeed([...stories, ...reviews]) });
+});
+
+/**
+ * The monsters standing in an area.
+ *
+ * Public and cross-origin like the board's feed, and read-only by design -
+ * see monster-service.ts. The air each one is judged on is the SAME reading
+ * the place cards show, taken from the places read rather than fetched
+ * again, because two different numbers for one place's air on one screen
+ * would be worse than none.
+ */
+app.get('/areas/:key/monsters', async (c) => {
+  c.header('access-control-allow-origin', '*');
+  c.header('cache-control', 'no-store');
+  const key = c.req.param('key');
+  const places = await listScoredPlaces(db, userId(c));
+  // `readings` is optional on the type; every place from this read has one,
+  // and a place that somehow does not falls back to its seeded figure marked
+  // as the estimate it is - which can never summon a monster.
+  const air = new Map(places.map((p) => [p.id, p.readings?.aqi
+    ? { aqi: p.readings.aqi.value, provenance: p.readings.aqi.provenance }
+    : { aqi: p.metrics.aqi, provenance: 'estimated' as const }]));
+  return ok(c, {
+    monsters: monstersInArea(db, key, (id) => air.get(id) ?? { aqi: 0, provenance: 'estimated' as const }),
+  });
 });
 
 app.get('/verify/:id', (c) => {

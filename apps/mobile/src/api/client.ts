@@ -16,6 +16,7 @@ import type {
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
 } from '@chivago/core';
 import type { AirHistory, BoardEntry, Explored, Fix, MedalsView, SelfVisitResult, SelfVisitSummary } from '@chivago/core';
+import type { StandingMonster } from '../components/MonsterFeed.tsx';
 
 /**
  * What POST /places/:id/checkin answers with.
@@ -391,6 +392,8 @@ export const api = {
   config: () => get<{ fenceOff: boolean; autoApprove: boolean }>('/config'),
   /** The area's board: approved stories and visible reviews, newest first. */
   board: (areaKey: string) => get<{ open: boolean; entries: BoardEntry[] }>(`/areas/${areaKey}/board`),
+  /** The problems standing in an area, derived from real readings. */
+  monsters: (areaKey: string) => get<{ monsters: StandingMonster[] }>(`/areas/${areaKey}/monsters`),
 
   // -- self-issued visits: recorded, not scored ---------------------------
   /** Stamp a place on the traveller's word. Pays nothing, unlocks nothing. */

@@ -399,3 +399,66 @@ describe('the board on Home', () => {
     assert.deepEqual(opened, ['chaweng']);
   });
 });
+
+/**
+ * The monsters on Home.
+ *
+ * The island's problems wearing a face, made of readings the app already
+ * holds. What these hold is the pair of promises the mechanic rests on: the
+ * card never hides the number that summoned it, and nothing on the screen
+ * suggests that pushing one back changed the world it came from.
+ */
+describe('what is wrong here', () => {
+  const monsterRoute = (monsters: unknown[]) => ({
+    '/areas/samui/monsters': { monsters },
+  });
+
+  const smog = {
+    kind: 'smog', key: 'smog', placeId: 'chaweng',
+    placeName: { en: 'Chaweng Beach', th: 'หาดเฉวง' },
+    because: { en: 'Air measured at 140 AQI here, over 51.', th: 'วัดอากาศได้ 140 AQI ที่นี่ สูงกว่า 51' },
+    progress: 2, needed: 5, restingUntil: null,
+  };
+
+  test('a monster shows with the number that summoned it', async () => {
+    const fake = server(routes(monsterRoute([smog])));
+    restore = fake.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+    const said = ui.text();
+    assert.match(said, /Smog/);
+    assert.match(said, /140 AQI/, 'the reason is never hidden');
+    assert.match(said, /Chaweng Beach/);
+  });
+
+  test('and the screen says plainly that pushing it back does not fix it', async () => {
+    const fake = server(routes(monsterRoute([smog])));
+    restore = fake.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+    assert.match(ui.text(), /does not change the reading/i);
+  });
+
+  test('a clean island is said as news, not as an empty list', async () => {
+    const fake = server(routes(monsterRoute([])));
+    restore = fake.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+    const said = ui.text();
+    assert.match(said, /Nothing standing here today/);
+    assert.doesNotMatch(said, /Smog/);
+  });
+
+  test('a monster opens the place, because that is where the work is', async () => {
+    const opened: string[] = [];
+    const fake = server(routes(monsterRoute([smog])));
+    restore = fake.restore;
+    const ui = await mountScreen(h(HomeScreen, { ...props, onOpenPlace: (id: string) => opened.push(id) }));
+    await ui.pressText(/140 AQI/);
+    assert.deepEqual(opened, ['chaweng']);
+  });
+
+  test('monsters that will not load do not take the rest of Home with them', async () => {
+    const fake = server(routes({ '/areas/samui/monsters': offline() }));
+    restore = fake.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+    assert.match(ui.text(), /Chaweng/, 'the places are still there');
+  });
+});

@@ -295,6 +295,36 @@ export const strings = {
    * The board on Home: where the separate accounts in a room meet.
    * See packages/core/src/board.ts for what is and is not on it.
    */
+  /**
+   * Monsters (docs/55). The island's problems wearing a face, and every word
+   * here has to keep saying that they are made of readings and not of
+   * creatures - see packages/core/src/monsters.ts.
+   */
+  monsters: {
+    title: t('What is wrong here', 'ปัญหาที่นี่'),
+    subtitle: t(
+      'Made of real readings, not invented. Real work pushes them back.',
+      'สร้างจากค่าที่วัดได้จริง ไม่ได้แต่งขึ้น และถอยได้ด้วยการทำจริง',
+    ),
+    /** The best possible outcome, and it must read as good news, not as empty. */
+    none: t(
+      'Nothing standing here today. The readings are clean and no clean-up is open.',
+      'วันนี้ไม่มีอะไรตั้งอยู่ ค่าที่วัดได้ปกติ และไม่มีงานเก็บขยะที่เปิดอยู่',
+    ),
+    loading: t('Reading the island…', 'กำลังอ่านค่าของเกาะ…'),
+    /** Progress, said as work rather than as damage. Nobody is fighting. */
+    pushedBack: (done: number, needed: number) => t(
+      `${done} of ${needed} pushed back`,
+      `ดันถอยแล้ว ${done} จาก ${needed}`,
+    ),
+    resting: t('Resting. It comes back if the reading does.', 'พักอยู่ กลับมาถ้าค่ากลับมา'),
+    /** The line that stops the game from lying about the world. */
+    doesNotFixIt: t(
+      'Pushing one back does not change the reading. The work is the point.',
+      'การดันมันถอยไม่ได้ทำให้ค่าที่วัดได้ดีขึ้น งานที่ทำต่างหากคือเรื่องจริง',
+    ),
+  },
+
   board: {
     title: t('The board', 'กระดาน'),
     subtitle: t(

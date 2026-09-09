@@ -38,6 +38,7 @@ import { setArea, useArea } from '../state/area.ts';
 import { photoUri } from '../api/photos.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { BoardFeed } from '../components/BoardFeed.tsx';
+import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import {
   ChevronRight, Compass, HeartPulse, Leaf, MessageCircle, Search, Shield, Sparkles, Trees, UserRound, Users, Utensils, Wallet,
 } from 'lucide-react-native';
@@ -167,6 +168,12 @@ export function HomeScreen({
         what you could do next. Keyed by area, because the board of a campus
         and the board of an island are two different rooms.
       */}
+      {/*
+        What is wrong here, above what other people left. A problem the
+        island can act on outranks a clip somebody filmed, and both outrank
+        the missions list because both are about THIS place today.
+      */}
+      <Monsters areaKey={area.key} onOpenPlace={onOpenPlace ?? onOpenMap} />
       <Board areaKey={area.key} onOpenPlace={onOpenPlace ?? onOpenMap} />
       <Today quests={todayHere} onOpenQuest={onOpenQuest} onOpenQuests={onOpenQuests} />
       <Carrying
@@ -742,6 +749,20 @@ function NoPhotograph({ place }: { place: ScoredPlace }) {
 }
 
 /** A section's title, and the reference's "See all" beside it when there is a place to go. */
+/** The area's monsters, fetched here so Home owns one request for them. */
+function Monsters({ areaKey, onOpenPlace }: { areaKey: string; onOpenPlace: (placeId: string) => void }) {
+  const found = useAsync(() => api.monsters(areaKey), [areaKey]);
+  return (
+    <MonsterFeed
+      monsters={found.data?.monsters ?? null}
+      loading={found.loading}
+      error={found.error}
+      onRetry={found.reload}
+      onOpenPlace={onOpenPlace}
+    />
+  );
+}
+
 /** The area's board, fetched here so Home owns one request for it. */
 function Board({ areaKey, onOpenPlace }: { areaKey: string; onOpenPlace: (placeId: string) => void }) {
   const board = useAsync(() => api.board(areaKey), [areaKey]);

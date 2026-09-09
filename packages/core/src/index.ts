@@ -23,6 +23,7 @@ export * from './visits.ts';
 export * from './mascots.ts';
 export * from './board.ts';
 export * from './crowd.ts';
+export * from './monsters.ts';
 export * from './low-carbon.ts';
 export * from './statement-export.ts';
 export * from './presence.ts';
