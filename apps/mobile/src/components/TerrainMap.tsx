@@ -256,8 +256,9 @@ const MARK_CSS = `
   near the top of the frame had its photograph sliced off by the map's own
   edge, which is exactly what happened to Building 13 the first time this
   shipped. Side by side the pin gains width instead of height, and width is
-  already handled: the declutter measures this row, and `edgeNudge` slides it
-  back inside the frame.
+  already handled: the declutter measures this row, and edgeNudge slides it
+  back inside the frame. No backticks in here - this whole block is inside a
+  template literal, and one would end the string.
 */
 .cg-top{display:flex;align-items:center;gap:5px;position:relative}
 .cg-tale{width:46px;height:46px;border-radius:50%;padding:2px;cursor:pointer;flex:none;
