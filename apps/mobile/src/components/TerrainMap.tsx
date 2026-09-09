@@ -33,7 +33,7 @@ import {
   isHighScore, islandHour, strings, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { color, onFill } from '../theme/index.ts';
-import { edgeNudge, haloMetres, metreRing, tightPins, type PinBox } from './map-geometry.ts';
+import { edgeNudge, edgeNudgeTop, haloMetres, metreRing, tightPins, type PinBox } from './map-geometry.ts';
 import { API_BASE } from '../api/client.ts';
 import type { Here } from '../state/here.ts';
 import { Label } from './Type.tsx';
@@ -944,7 +944,9 @@ export function TerrainMap({
       // frame's answer into the next.
       for (const pin of pins) {
         pin.el.classList.remove('cg-tight');
-        pin.el.querySelector<HTMLElement>('.cg-top')?.style.setProperty('left', '0px');
+        const top = pin.el.querySelector<HTMLElement>('.cg-top');
+        top?.style.setProperty('left', '0px');
+        top?.style.setProperty('top', '0px');
       }
       const named = pins.map((pin) => boxOf(pin.el));
       for (const pin of pins) pin.el.classList.add('cg-tight');
@@ -973,8 +975,11 @@ export function TerrainMap({
         const row = pin.el.querySelector<HTMLElement>('.cg-top');
         if (!row) continue;
         row.style.left = '0px';
-        const shift = edgeNudge(row.getBoundingClientRect(), frame);
-        row.style.left = `${shift}px`;
+        row.style.top = '0px';
+        const box = row.getBoundingClientRect();
+        row.style.left = `${edgeNudge(box, frame)}px`;
+        // And down, when a pin wearing a photograph has climbed off the top.
+        row.style.top = `${edgeNudgeTop(box, frame)}px`;
       }
     };
     /*

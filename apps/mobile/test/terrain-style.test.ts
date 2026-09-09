@@ -10,7 +10,7 @@ import {
 } from '../src/components/terrain-style.ts';
 import { exploredCount } from '../src/components/map-parts.tsx';
 import {
-  EDGE_NUDGE_MAX_PX, HALO_MAX_M, HALO_MIN_M, LABEL_GAP_PX, boxesOverlap, edgeNudge, haloMetres, insideSamui,
+  EDGE_NUDGE_MAX_PX, HALO_MAX_M, HALO_MIN_M, LABEL_GAP_PX, boxesOverlap, edgeNudge, edgeNudgeTop, haloMetres, insideSamui,
   metreRing, tightPins,
 } from '../src/components/map-geometry.ts';
 import { SUNRISE, SUNSET, dayArc, hourFrom, hueOf, luminance, mix } from '../src/components/island-clock.ts';
@@ -537,6 +537,24 @@ describe('pins say what they are', () => {
 
   test('a chip that already fits is left where it is', () => {
     assert.equal(edgeNudge({ left: 40, right: 130 }, { left: 0, right: 390 }), 0);
+  });
+
+  /*
+    Upright, and only at the top. A pin is anchored at its point, so the
+    bottom edge cuts the ground under a mark rather than the mark, and a
+    point off the bottom is a place behind the camera.
+  */
+  test('a pin that has climbed off the top is pushed back down', () => {
+    // Building 13, 21 px above the campus frame once its pin wore a photo.
+    assert.equal(edgeNudgeTop({ top: 183, bottom: 229 }, { top: 204 }), 21);
+  });
+
+  test('a pin already inside is left alone, and one below the top too', () => {
+    assert.equal(edgeNudgeTop({ top: 240, bottom: 286 }, { top: 204 }), 0);
+  });
+
+  test('a pin far above the frame is left off it rather than dragged down', () => {
+    assert.equal(edgeNudgeTop({ top: 20, bottom: 66 }, { top: 204 }), 0);
   });
 
   test('a chip too far out is left cut off rather than dragged in', () => {

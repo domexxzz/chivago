@@ -378,3 +378,26 @@ export function edgeNudge(
       : 0;
   return Math.abs(wanted) <= max ? Math.round(wanted) : 0;
 }
+
+/**
+ * The same slide, upright: how far DOWN to push a pin that has climbed off
+ * the top of the frame.
+ *
+ * Only the top edge. A pin is anchored at its point, which sits at the
+ * bottom of the mark, so the bottom edge cuts the ground under a pin rather
+ * than the pin itself - and a pin whose point is off the bottom is a place
+ * behind the camera, which should be off the screen.
+ *
+ * This became necessary the moment a pin could wear a photograph: a 46-pixel
+ * bubble beside a 25-pixel chip makes the whole mark twice as tall, and the
+ * first pin it happened to was at the top of the campus view, 21 pixels
+ * above the map.
+ */
+export function edgeNudgeTop(
+  box: { readonly top: number; readonly bottom: number },
+  frame: { readonly top: number },
+  max = EDGE_NUDGE_MAX_PX,
+): number {
+  const wanted = box.top < frame.top ? frame.top - box.top : 0;
+  return wanted <= max ? Math.round(wanted) : 0;
+}
