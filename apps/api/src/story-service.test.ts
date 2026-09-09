@@ -353,3 +353,38 @@ describe('the switch that takes the queue away', () => {
     await assert.rejects(() => withAuto(() => submit({ open: undefined })), StoriesClosed);
   });
 });
+
+/**
+ * A story whose bytes are gone is not a story.
+ *
+ * Rows live on the volume and, until 9 September, uploaded files did not:
+ * a deploy kept the row and threw the file away, so the board listed clips
+ * whose poster answered 404. A grey box with no explanation reads as the app
+ * being broken rather than as a file being missing.
+ *
+ * The config is fixed - CHIVAGO_UPLOADS points at the volume now - and this
+ * is the belt to those braces. It also covers a file removed by hand.
+ */
+describe('a story with no file behind it', () => {
+  test('is not listed at its place, nor in its area', async () => {
+    const s = await submit();
+    reviewStory(db, { storyId: s.id, hostId: 'h-ku', reviewer: 'Mod', decision: 'approve' });
+    assert.equal(storiesAt(db, 'ku-park', T).length, 1, 'listed while the file is there');
+
+    const paths = db.prepare('SELECT media_path, poster_path FROM stories WHERE id = ?').get(s.id) as
+      unknown as { media_path: string; poster_path: string | null };
+    rmSync(paths.poster_path ?? paths.media_path, { force: true });
+
+    assert.deepEqual(storiesAt(db, 'ku-park', T), []);
+    assert.deepEqual(storiesInArea(db, 'ku-sriracha', T), []);
+  });
+
+  test('and its bytes route still refuses, as it always did', async () => {
+    const s = await submit();
+    reviewStory(db, { storyId: s.id, hostId: 'h-ku', reviewer: 'Mod', decision: 'approve' });
+    const paths = db.prepare('SELECT media_path FROM stories WHERE id = ?').get(s.id) as
+      unknown as { media_path: string };
+    rmSync(paths.media_path, { force: true });
+    assert.equal(readStoryMedia(db, s.id, 'media', { now: T }), null);
+  });
+});

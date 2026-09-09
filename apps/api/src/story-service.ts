@@ -217,6 +217,20 @@ interface StoryRow {
 const SELECT = `SELECT id, place_id, user_id, kind, caption, media_path, media_mime, poster_path, duration_s,
   status, created_at, expires_at, reviewed_at, reviewed_by, reviewer_host FROM stories`;
 
+/**
+ * A story whose bytes are gone is not a story.
+ *
+ * Rows live on the volume and, before 9 September, files did not: a deploy
+ * kept the row and threw the file away, and the board listed clips whose
+ * poster answered 404 - a grey box with no explanation, which reads as the
+ * app being broken rather than as a file being missing. The config is fixed;
+ * this is the belt to its braces, and it also covers a file removed by hand.
+ *
+ * One `existsSync` per listed story. A place has a handful and an area has
+ * tens, so this is cheaper than the request that fetches them.
+ */
+const hasBytes = (r: StoryRow): boolean => existsSync(r.poster_path ?? r.media_path);
+
 const toStory = (r: StoryRow): Story => ({
   id: r.id,
   placeId: r.place_id,
@@ -347,7 +361,7 @@ export function storiesAt(db: DB, placeId: string, now = new Date()): Story[] {
   return rows<StoryRow>(
     db.prepare(`${SELECT} WHERE place_id = ? AND status = 'approved' AND expires_at > ? ORDER BY created_at DESC`)
       .all(placeId, now.toISOString()),
-  ).map(toStory);
+  ).filter(hasBytes).map(toStory);
 }
 
 export interface AreaStory extends Story {
@@ -364,7 +378,7 @@ export function storiesInArea(db: DB, areaKey: string, now = new Date()): AreaSt
        WHERE s.status = 'approved' AND s.expires_at > ? ORDER BY s.created_at DESC`,
     ).all(now.toISOString()),
   )
-    .filter((r) => inArea(area, r))
+    .filter((r) => inArea(area, r) && hasBytes(r))
     .map((r) => ({ ...toStory(r), placeName: { en: r.name_en, th: r.name_th } }));
 }
 

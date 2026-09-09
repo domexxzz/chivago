@@ -62,6 +62,17 @@ export function sniff(bytes: Buffer): { mime: string; ext: string } {
   return { mime: match.mime, ext: match.ext };
 }
 
+/**
+ * Where uploaded bytes live.
+ *
+ * ON A DEPLOYMENT THIS MUST POINT AT THE MOUNTED VOLUME. The default is a
+ * path relative to the working directory, which inside a container is a
+ * layer of the image: the rows survive a deploy on the volume and the FILES
+ * do not, so every clip anybody posted turns into a grey box the next time
+ * anyone ships. That happened on 9 September and cost two real uploads.
+ * `fly.toml` sets CHIVAGO_UPLOADS=/data/uploads beside the database for
+ * exactly this reason.
+ */
 export const uploadRoot = (): string =>
   resolve(process.env.CHIVAGO_UPLOADS ?? './data/uploads');
 

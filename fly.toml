@@ -20,6 +20,12 @@ primary_region = "sin"
 [env]
   PORT = "8787"
   CHIVAGO_DB = "/data/chivago.db"
+  # Uploaded clips and photographs, ON THE VOLUME beside the database.
+  #
+  # Without this they land in the image layer, so a deploy keeps the story
+  # rows and throws the files away, and the board fills with grey boxes for
+  # clips that are still listed. Cost two real uploads on 9 September.
+  CHIVAGO_UPLOADS = "/data/uploads"
   CHIVAGO_WEB_DIR = "/repo/web"
   # Locked to the app's own origin. The web build is served from here, so it
   # needs no cross-origin grant at all, and a wildcard on a deployment with a
