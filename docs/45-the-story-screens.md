@@ -34,10 +34,36 @@ for now*.
 
 ## On the map
 
-`GET /areas/:key/stories` once per area, and every pin with an approved
-story wears a gold ring - the drawn island's chip through `PinChip`, the web
-map's chip through a `cg-storied` class. Gold is the colour the app already
-uses for what is self-reported (Trip Points), which a story is.
+`GET /areas/:key/stories` once per area, and every pin with a story wears
+the newest photograph taken there - a round, gold-ringed poster hanging off
+the left of the chip. Both maps: the drawn island through `PinChip`, the web
+map through `.cg-tale` in `TerrainMap`'s marker CSS. Gold is the colour the
+app already uses for what is self-reported (Trip Points), which a story is.
+
+The ring alone was the first version, and it was a footnote about a
+photograph rather than the photograph. On a map the picture somebody took
+at that beach is most of the point.
+
+Two doors on one pin, and they are not the same door: the chip opens the
+place, the poster opens the clip. The bubble is 36 px plus its ring, so a
+pin that wears one is `TALE_W` wider than one that does not - `layoutPins`
+is told which pins those are, or de-collision would clear two chips of each
+other and then draw a picture over the neighbour it had just made room for.
+The stem stays under the chip alone: centring it under chip-plus-poster
+would slide the tip twenty pixels east of the point it marks, which on a map
+of one island is a different beach.
+
+## Posting from the map
+
+The bar at the foot of the map (`strings.place.moment`) posts without
+opening a place first, which is where the user-journey sketch starts. It
+NAMES the place it will post to, because a map shows five pins and a clip
+has to land on one of them - the nearest, and said on the face of the
+control rather than in a toast afterwards. With no fix there is no nearest,
+and it asks for location instead of guessing: a clip filed at a beach
+somebody is not standing on is a false record. The three steps and the four
+refusals live once, in `apps/mobile/src/state/tell-story.ts`, shared with
+the place screen's sheet.
 
 ## The board
 

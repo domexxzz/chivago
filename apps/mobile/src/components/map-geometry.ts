@@ -77,6 +77,16 @@ export function tilt(x: number, y: number): { x: number; y: number } {
 /** Chip footprint, used for label de-collision. */
 export const CHIP = { halfWidth: 46, height: 24, stem: 16 } as const;
 
+/**
+ * How much wider a pin gets when it wears a story's poster.
+ *
+ * The bubble hangs off the chip's LEFT, so the growth is one-sided: 38 px of
+ * photograph and ring plus the 4 px gap. De-collision reserves it on both
+ * sides anyway, because over-reserving pushes two chips a little further
+ * apart and under-reserving puts a photograph on top of a name.
+ */
+export const TALE_W = 42;
+
 export interface PlacedPin {
   place: ScoredPlace;
   left: number;
@@ -100,6 +110,11 @@ export function layoutPins(
   places: ScoredPlace[],
   width: number,
   height: number,
+  /**
+   * Which of them wear a poster, and so need a wider berth. Optional: the
+   * web map lays its own markers out and passes nothing.
+   */
+  storied: ReadonlySet<string> = new Set(),
 ): PlacedPin[] {
   const ordered = [...places].sort((a, b) => b.healthyScore - a.healthyScore);
   // `anchor` is the pin's TRUE position, kept alongside its drawn one so the
@@ -116,10 +131,12 @@ export function layoutPins(
     drawn 92 px wide, so they overlapped by a dozen pixels: fine for a pair
     of numbers, a smudge once each of them carries a word.
   */
-  const collidingWith = (left: number, top: number): (PlacedPin & { anchor: number }) | undefined =>
+  const halfOf = (id: string) => CHIP.halfWidth + (storied.has(id) ? TALE_W : 0);
+
+  const collidingWith = (id: string, left: number, top: number): (PlacedPin & { anchor: number }) | undefined =>
     placed.find(
       (other) =>
-        Math.abs(other.left - left) < CHIP.halfWidth * 2 &&
+        Math.abs(other.left - left) < halfOf(id) + halfOf(other.place.id) &&
         Math.abs(other.top - top) < CHIP.height + 6,
     );
 
@@ -130,7 +147,10 @@ export function layoutPins(
     // The same tilt the coastline is drawn through, or the pins would float
     // beside the island rather than stand on it.
     const { x, y } = tilt(flat.x, flat.y);
-    const left = Math.min(Math.max(x * width, CHIP.halfWidth), width - CHIP.halfWidth);
+    // Clamped by this pin's OWN half-width, so a poster on a pin near the
+    // left edge is nudged into the frame rather than cropped by it.
+    const half = halfOf(place.id);
+    const left = Math.min(Math.max(x * width, half), width - CHIP.halfWidth);
     const anchorTop = y * height;
     let top = anchorTop;
 
@@ -147,7 +167,7 @@ export function layoutPins(
     // compounds one displacement into the next.
     const inView = (t: number) => t >= CHIP.height && t <= height - CHIP.height;
     for (let guard = 0; guard < 24; guard += 1) {
-      const clash = collidingWith(left, top);
+      const clash = collidingWith(place.id, left, top);
       if (!clash) break;
       const pushDown = anchorTop >= clash.anchor;
       const wanted = pushDown ? clash.top + STEP : clash.top - STEP;

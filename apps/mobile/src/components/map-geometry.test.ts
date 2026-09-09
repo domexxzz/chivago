@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import { SAMUI_BBOX, SEED_PLACES, computeHealthyScore, type ScoredPlace } from '@chivago/core';
-import { CHIP, layoutPins, mistCircles, project, tilt } from './map-geometry.ts';
+import { CHIP, TALE_W, layoutPins, mistCircles, project, tilt } from './map-geometry.ts';
 
 /**
  * The island's places only. The projection is Samui's bounding box and the
@@ -111,6 +111,67 @@ describe('pin de-collision', () => {
     const pins = layoutPins(stacked, W, H);
     assert.equal(pins.length, 8);
     for (const pin of pins) assert.ok(Number.isFinite(pin.top) && pin.top >= 0);
+  });
+});
+
+/**
+ * A pin wearing a story's poster is a wider pin.
+ *
+ * The bubble hangs off the chip's left, so a layout that did not know about
+ * it would clear two chips of each other and then draw a photograph over the
+ * neighbour it had just made room for - the exact overlap the names were
+ * pulled off the map for once already.
+ */
+describe('pins that wear a poster', () => {
+  const storied = new Set(scored.map((p) => p.id));
+
+  test('every pin is still placed, and none clips off an edge', () => {
+    const pins = layoutPins(scored, W, H, storied);
+    assert.equal(pins.length, scored.length);
+    for (const pin of pins) {
+      assert.ok(pin.left >= CHIP.halfWidth + TALE_W, `${pin.place.id} clips its poster at ${pin.left}`);
+      assert.ok(pin.left <= W - CHIP.halfWidth, `${pin.place.id} clips right at ${pin.left}`);
+    }
+  });
+
+  test('two posters never sit on each other', () => {
+    const pins = layoutPins(scored, W, H, storied);
+    for (let i = 0; i < pins.length; i += 1) {
+      for (let j = i + 1; j < pins.length; j += 1) {
+        const a = pins[i]!;
+        const b = pins[j]!;
+        const overlaps = Math.abs(a.left - b.left) < (CHIP.halfWidth + TALE_W) * 2
+          && Math.abs(a.top - b.top) < CHIP.height + 6;
+        assert.ok(
+          !overlaps,
+          `${a.place.id} and ${b.place.id} overlap at (${a.left},${a.top}) / (${b.left},${b.top})`,
+        );
+      }
+    }
+  });
+
+  test('a poster claims more room than a bare chip does', () => {
+    // Two places on the same coast, close enough that the bare chips clear
+    // each other by a hair. With a photograph on each, they must be pushed
+    // further apart than they were.
+    const near: ScoredPlace[] = [
+      { ...scored[0]!, id: 'a', lat: 9.5357, lng: 100.0617, healthyScore: 90 },
+      { ...scored[0]!, id: 'b', lat: 9.5380, lng: 100.0630, healthyScore: 70 },
+    ];
+    const gap = (pins: ReturnType<typeof layoutPins>) => {
+      const a = pins.find((p) => p.place.id === 'a')!;
+      const b = pins.find((p) => p.place.id === 'b')!;
+      return Math.abs(a.top - b.top);
+    };
+    const bare = gap(layoutPins(near, W, H));
+    const wide = gap(layoutPins(near, W, H, new Set(['a', 'b'])));
+    assert.ok(wide >= bare, `posters were given less room (${wide}) than bare chips (${bare})`);
+  });
+
+  test('with no posters the layout is exactly what it always was', () => {
+    // The web map lays its own markers out and passes nothing; the argument
+    // must be inert when it is absent.
+    assert.deepEqual(layoutPins(scored, W, H, new Set()), layoutPins(scored, W, H));
   });
 });
 

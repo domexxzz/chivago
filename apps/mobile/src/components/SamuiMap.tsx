@@ -24,7 +24,7 @@ import Svg, { Circle, Defs, Ellipse, Line, Mask, Path, Polygon, RadialGradient, 
 import { isHighScore, strings, type Area, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace } from '@chivago/core';
 import { t } from '../i18n/locale.ts';
 import type { Here } from '../state/here.ts';
-import { CHIP, REVEAL_FEATHER, insideSamui, layoutPins, mistCircles, project, tilt } from './map-geometry.ts';
+import { CHIP, REVEAL_FEATHER, TALE_W, insideSamui, layoutPins, mistCircles, project, tilt } from './map-geometry.ts';
 import { cloudField } from './terrain-style.ts';
 import { useReduceMotion } from './reduce-motion.ts';
 import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
@@ -473,7 +473,8 @@ function CampusList({
 }
 
 function IslandMap({
-  places, onSelect, explored = [], height = 344, compact = false, storied, here = null,
+  places, onSelect, explored = [], height = 344, compact = false, storied, tales, onOpenStory,
+  here = null,
 }: SamuiMapProps) {
   /**
    * The map is full-bleed, so the window IS its width.
@@ -493,6 +494,12 @@ function IslandMap({
   const [measured, setMeasured] = React.useState(0);
   const width = measured > 0 ? measured : windowWidth;
   const still = useReduceMotion();
+  // Which pins are the wide ones. Only those a poster will actually be drawn
+  // on - a map with no story handler shows no bubble and needs no room.
+  const taleSet = React.useMemo(
+    () => (onOpenStory && tales ? new Set(tales.keys()) : new Set<string>()),
+    [tales, onOpenStory],
+  );
 
   return (
     <View
@@ -527,21 +534,43 @@ function IslandMap({
         ? <YouAreHere width={width} height={height} here={here} still={still} />
         : null}
 
+      {/*
+        The pins, each wearing its newest poster if it has one.
+
+        The posters are handed to `layoutPins` as well as to the chips: a pin
+        that carries a photograph is forty pixels wider than one that does
+        not, and de-collision that did not know would let a picture sit on
+        top of a neighbour's name.
+      */}
       {width > 0
-        ? layoutPins(places, width, height).map(({ place, left, top }) => (
-            <View
-              key={place.id}
-              style={{
-                position: 'absolute',
-                left,
-                top,
-                // Anchor the chip's stem tip on the point.
-                transform: [{ translateX: -CHIP.halfWidth }, { translateY: -40 }],
-              }}
-            >
-              <PinChip place={place} onPress={() => onSelect(place)} storied={storied?.has(place.id) ?? false} />
-            </View>
-          ))
+        ? layoutPins(places, width, height, taleSet).map(({ place, left, top }) => {
+            const tale = tales?.get(place.id) ?? null;
+            return (
+              <View
+                key={place.id}
+                style={{
+                  position: 'absolute',
+                  left,
+                  top,
+                  // Anchor the chip's stem tip on the point. A poster hangs
+                  // off the chip's left, so the whole pin shifts left by its
+                  // width to leave the stem exactly where it was.
+                  transform: [
+                    { translateX: -CHIP.halfWidth - (tale && onOpenStory ? TALE_W : 0) },
+                    { translateY: -40 },
+                  ],
+                }}
+              >
+                <PinChip
+                  place={place}
+                  onPress={() => onSelect(place)}
+                  storied={storied?.has(place.id) ?? false}
+                  tale={tale}
+                  onOpenStory={onOpenStory ? () => onOpenStory(place.id) : undefined}
+                />
+              </View>
+            );
+          })
         : null}
 
       {/* Legend: the island average today, and how much of it they have reached. */}

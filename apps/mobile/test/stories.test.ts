@@ -10,12 +10,15 @@ import { describe, test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 
+import { act } from 'react-test-renderer';
+
 import { mountScreen, refuses, server, settle } from './interact.ts';
 import { control, resetControl } from './stubs/native.mjs';
 import * as fx from './fixtures.ts';
 import { StoriesBlock } from '../src/components/Stories.tsx';
 import { PlaceScreen } from '../src/screens/PlaceScreen.tsx';
 import { MapScreen } from '../src/screens/MapScreen.tsx';
+import { SamuiMap } from '../src/components/SamuiMap.tsx';
 import { __setAreaForTests } from '../src/state/area.ts';
 
 const noop = () => {};
@@ -354,6 +357,95 @@ describe('adding a moment from the map', () => {
     const ui = await mountScreen(h(MapScreen, { ...mapProps, layers: off }));
     assert.doesNotMatch(ui.text(), /Add your moment/);
     assert.doesNotMatch(ui.text(), /Turn on location to post/);
+    ui.unmount();
+  });
+});
+
+/**
+ * The poster ON the drawn pin, which is the map a phone actually gets.
+ *
+ * The web map has worn its posters since the 9th; the hand-drawn island -
+ * native, and the fallback on `?map=drawn` - still showed only a gold ring,
+ * so half the audience at the pitch would see the feature and half would
+ * not. What is held here is the pin's own door: a place with a story gets a
+ * second control, and it opens the clip rather than the place.
+ *
+ * Mounted as the map alone, not through MapScreen. The drawn island renders
+ * nothing until it has a width, and node's window is 0 x 0 - so the layout
+ * event a browser would send is sent by hand.
+ */
+describe('the drawn map wears its posters too', () => {
+  const chaweng = fx.place();
+
+  /** Give the map a phone's width, the way a real layout pass would. */
+  const withWidth = async (ui: Awaited<ReturnType<typeof mountScreen>>, width = 390) => {
+    const node = ui.root.findAll((n) => typeof n.props.onLayout === 'function', { deep: true })[0];
+    assert.ok(node, 'the map has no layout to answer');
+    await act(async () => { node.props.onLayout({ nativeEvent: { layout: { width } } }); });
+  };
+
+  const mapProps = (over: Record<string, unknown> = {}) => ({
+    places: [chaweng], onSelect: noop, height: 344,
+    tales: new Map([['chaweng', '/stories/s1/poster']]),
+    onOpenStory: noop,
+    ...over,
+  });
+
+  test('a place with a story gets a poster on its pin', async () => {
+    const ui = await mountScreen(h(SamuiMap, mapProps()));
+    await withWidth(ui);
+    assert.ok(ui.find('Stories: Chaweng Beach'), 'the pin wears no poster');
+    ui.unmount();
+  });
+
+  test('a place with none gets none, rather than an empty frame', async () => {
+    const ui = await mountScreen(h(SamuiMap, mapProps({ tales: new Map() })));
+    await withWidth(ui);
+    assert.equal(ui.find('Stories: Chaweng Beach'), undefined);
+    // The pin itself is still there; it is the photograph that is absent.
+    assert.ok(ui.find(/Chaweng Beach, Healthy Score/), 'the pin went with the poster');
+    ui.unmount();
+  });
+
+  test('the poster opens the clip; the chip beside it opens the place', async () => {
+    // Two doors on one pin, and they must not be the same door: a tap on a
+    // photograph that dropped somebody on a place screen would lose the
+    // thing they tapped.
+    let openedStory: string | null = null;
+    let openedPlace: string | null = null;
+    const ui = await mountScreen(h(SamuiMap, mapProps({
+      onOpenStory: (id: string) => { openedStory = id; },
+      onSelect: (p: { id: string }) => { openedPlace = p.id; },
+    })));
+    await withWidth(ui);
+
+    await ui.press('Stories: Chaweng Beach');
+    assert.equal(openedStory, 'chaweng');
+    assert.equal(openedPlace, null, 'the poster opened the place instead of the story');
+
+    await ui.press(/Chaweng Beach, Healthy Score/);
+    assert.equal(openedPlace, 'chaweng');
+    ui.unmount();
+  });
+
+  test('the poster it wears is the one the screen handed it', async () => {
+    // The path matters: a bubble showing some other place's photograph is
+    // worse than no bubble, because it reads as a record of being here.
+    const ui = await mountScreen(h(SamuiMap, mapProps()));
+    await withWidth(ui);
+    const bubble = ui.find('Stories: Chaweng Beach')!;
+    const image = bubble.findAll((n) => typeof n.props.source?.uri === 'string', { deep: true })[0];
+    assert.ok(image, 'the bubble has no image in it');
+    assert.match(image.props.source.uri as string, /\/stories\/s1\/poster$/);
+    ui.unmount();
+  });
+
+  test('a map with no story handler draws no bubbles at all', async () => {
+    // The place screen mounts this map too, and there a poster that opened
+    // nothing would be a photograph you cannot tap.
+    const ui = await mountScreen(h(SamuiMap, mapProps({ onOpenStory: undefined })));
+    await withWidth(ui);
+    assert.equal(ui.find('Stories: Chaweng Beach'), undefined);
     ui.unmount();
   });
 });

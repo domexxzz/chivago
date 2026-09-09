@@ -8,9 +8,10 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Image, Pressable, ScrollView, View } from 'react-native';
 import { isHighScore, strings, type ExploredPlace, type ScoredPlace } from '@chivago/core';
 import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
+import { API_BASE } from '../api/client.ts';
 import { Heading, Label } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -21,9 +22,20 @@ import { t } from '../i18n/locale.ts';
  * place header can never disagree.
  */
 export function PinChip({
-  place, onPress, storied = false,
-}: { place: ScoredPlace; onPress: () => void; storied?: boolean }) {
+  place, onPress, storied = false, tale = null, onOpenStory,
+}: {
+  place: ScoredPlace;
+  onPress: () => void;
+  storied?: boolean;
+  /**
+   * The newest story's poster at this place, as a path on the API. When one
+   * is here the pin WEARS the photograph instead of only hinting at it.
+   */
+  tale?: string | null;
+  onOpenStory?: () => void;
+}) {
   const high = isHighScore(place.healthyScore);
+  const showTale = tale !== null && onOpenStory !== undefined;
   return (
     <Pressable
       onPress={onPress}
@@ -31,40 +43,95 @@ export function PinChip({
       accessibilityLabel={`${t(place.name)}, Healthy Score ${place.healthyScore}`}
       style={{ alignItems: 'center' }}
     >
-      <View
-        style={[
-          shadow.sm,
-          {
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 5,
-            paddingVertical: 3,
-            paddingHorizontal: 6,
-            borderWidth: 2,
-            borderRadius: radius.sm,
-            backgroundColor: high ? color.accent : color.bg,
-            // Gold: the ring a place wears when it has a story on it (docs/45).
-            borderColor: storied ? color.gold : high ? color.accent : color.text,
-          },
-        ]}
-      >
-        <Heading size={13} colour={high ? onFill.accent : color.text}>{place.healthyScore}</Heading>
-        {/*
-          The name rides with the score at every width.
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: TALE_GAP }}>
+        {showTale ? <TaleBubble place={place} poster={tale} onPress={onOpenStory} /> : null}
 
-          It was dropped on a phone for a fortnight because the five names
-          overlapped each other, Fisherman's covering Chaweng entirely. The
-          collision was real and the answer was wrong: a chip reading "81"
-          over a coastline says the air is good SOMEWHERE, and leaves you to
-          tap five pins to find out where. Room is what was missing, and
-          `layoutPins` has always reserved a NAMED chip's footprint -
-          CHIP.halfWidth is 46, which is score plus name, not score alone.
-          So the names go back and the de-collision does its job.
+        {/*
+          The stem belongs to the CHIP, not to chip-plus-poster.
+
+          The bubble hangs off the left in the same row, so a stem centred
+          under the whole row would sit about twenty pixels east of the point
+          it claims to mark - which on a map of one island is a different
+          beach. This column holds the chip and its stem alone; the caller
+          shifts the pin left by TALE_W to make room for the bubble.
         */}
-        <Label size={9} tracking={0.1} colour={high ? onFill.accent : color.text}>{place.short}</Label>
+        <View style={{ alignItems: 'center' }}>
+          <View
+            style={[
+              shadow.sm,
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 5,
+                paddingVertical: 3,
+                paddingHorizontal: 6,
+                borderWidth: 2,
+                borderRadius: radius.sm,
+                backgroundColor: high ? color.accent : color.bg,
+                // Gold: the ring a place wears when it has a story (docs/45).
+                borderColor: storied ? color.gold : high ? color.accent : color.text,
+              },
+            ]}
+          >
+            <Heading size={13} colour={high ? onFill.accent : color.text}>{place.healthyScore}</Heading>
+            {/*
+              The name rides with the score at every width.
+
+              It was dropped on a phone for a fortnight because the five names
+              overlapped each other, Fisherman's covering Chaweng entirely. The
+              collision was real and the answer was wrong: a chip reading "81"
+              over a coastline says the air is good SOMEWHERE, and leaves you to
+              tap five pins to find out where. Room is what was missing, and
+              `layoutPins` has always reserved a NAMED chip's footprint -
+              CHIP.halfWidth is 46, which is score plus name, not score alone.
+              So the names go back and the de-collision does its job.
+            */}
+            <Label size={9} tracking={0.1} colour={high ? onFill.accent : color.text}>{place.short}</Label>
+          </View>
+          {/* The 2x16 ink stem that pins the chip to its point. */}
+          <View style={{ width: 2, height: 16, backgroundColor: color.text }} />
+        </View>
       </View>
-      {/* The 2x16 ink stem that pins the chip to its point. */}
-      <View style={{ width: 2, height: 16, backgroundColor: color.text }} />
+    </Pressable>
+  );
+}
+
+/** The poster's diameter and the gap to the chip. Sum + ring = TALE_W. */
+const TALE_SIZE = 36;
+const TALE_GAP = 4;
+
+/**
+ * The photograph somebody took here, on the pin.
+ *
+ * A gold ring said a place HAD a story and never showed one, which on a map
+ * is most of the point. Its own press, because it opens something else: the
+ * chip goes to the place, the bubble goes to the clip.
+ */
+function TaleBubble({
+  place, poster, onPress,
+}: { place: ScoredPlace; poster: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${t(strings.place.stories)}: ${t(place.name)}`}
+      style={[
+        shadow.sm,
+        {
+          width: TALE_SIZE, height: TALE_SIZE, borderRadius: TALE_SIZE / 2,
+          borderWidth: 2, borderColor: color.gold, padding: 1.5,
+          backgroundColor: color.bg,
+        },
+      ]}
+    >
+      <Image
+        source={{ uri: `${API_BASE}${poster}` }}
+        resizeMode="cover"
+        style={{
+          width: '100%', height: '100%', borderRadius: TALE_SIZE / 2,
+          backgroundColor: color.neutral200,
+        }}
+      />
     </Pressable>
   );
 }
