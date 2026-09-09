@@ -334,6 +334,54 @@ describe('leaving something at a place', () => {
     } finally { ui.unmount(); net.restore(); }
   });
 
+  /*
+    The picture, before it is sent.
+
+    "Attached - image.jpg" is a receipt and answers the wrong question. The
+    one a person has just after pointing a phone at something is whether
+    they got the shot, and only the shot can answer it.
+  */
+  test('a photograph shows itself, from the file that was just picked', async () => {
+    const photo = { uri: 'blob:IMG_0007', name: 'IMG_0007.jpg', type: 'image/jpeg' };
+    const ui = sheetWith({ onPickMedia: async () => photo });
+    try {
+      await ui.pressText(/Add a photo or a clip/);
+      const shown = ui.root
+        .findAll((n) => typeof n.props.source?.uri === 'string', { deep: true })
+        .map((n) => n.props.source.uri as string);
+      assert.ok(shown.includes('blob:IMG_0007'), `no preview of the picked file: ${shown.join(', ')}`);
+      assert.match(ui.text(), /IMG_0007\.jpg/, 'the name is still there for when the picture is not');
+    } finally { ui.unmount(); }
+  });
+
+  test('a clip gets a tile, not a frame nothing here can decode', async () => {
+    // A black rectangle would read as a clip that failed to record.
+    const ui = sheetWith({});
+    try {
+      await ui.pressText(/Add a photo or a clip/);
+      const shown = ui.root
+        .findAll((n) => typeof n.props.source?.uri === 'string', { deep: true })
+        .map((n) => n.props.source.uri as string);
+      assert.deepEqual(shown, [], 'a video URI was handed to an image');
+      assert.match(ui.text(), /clip\.mp4/);
+    } finally { ui.unmount(); }
+  });
+
+  test('removing it takes the preview with it', async () => {
+    const photo = { uri: 'blob:IMG_0007', name: 'IMG_0007.jpg', type: 'image/jpeg' };
+    const ui = sheetWith({ onPickMedia: async () => photo });
+    try {
+      await ui.pressText(/Add a photo or a clip/);
+      await ui.press('Remove');
+      assert.equal(
+        ui.root.findAll((n) => typeof n.props.source?.uri === 'string', { deep: true }).length,
+        0,
+        'the picture outlived the file it stood for',
+      );
+      assert.match(ui.text(), /Add a photo or a clip/, 'and the camera is on offer again');
+    } finally { ui.unmount(); }
+  });
+
   test('a shut story door leaves the stars and takes the camera away', () => {
     const ui = sheetWith({ storiesOpen: false });
     try {

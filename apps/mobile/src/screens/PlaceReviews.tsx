@@ -11,8 +11,8 @@
  */
 
 import React from 'react';
-import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
-import { X } from 'lucide-react-native';
+import { Image, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Play, X } from 'lucide-react-native';
 import {
   ledgerDate,
   APPEAL_MAX_MESSAGE, isModerationReasonKey, MODERATION_REASONS,
@@ -304,6 +304,44 @@ export function ReviewRow({
  * may rate, somebody who has not and may still leave a clip, and a place
  * whose story door is shut where only the rating is on offer.
  */
+/**
+ * What was just taken, before it is sent.
+ *
+ * A line of text saying "attached · image.jpg" is a receipt, not a check.
+ * The one thing somebody wants to know at that moment is whether they got
+ * the shot - a phone camera in a hurry produces a thumb over the lens as
+ * often as a beach - and a file name cannot answer that. The picture can.
+ *
+ * A video gets a tile rather than a frame: nothing here can decode one
+ * before it is uploaded, and a black rectangle would read as a clip that
+ * failed. The tile says "a clip is attached" and means it.
+ */
+function MediaPreview({ media }: { media: PickedMedia }) {
+  const isVideo = media.type.startsWith('video/');
+  const box = {
+    width: 56, height: 56, borderRadius: radius.sm,
+    backgroundColor: color.neutral200, overflow: 'hidden' as const,
+  };
+  if (isVideo) {
+    return (
+      <View
+        accessibilityLabel={t(strings.place.mediaAttached)}
+        style={[box, { alignItems: 'center', justifyContent: 'center', backgroundColor: color.neutral800 }]}
+      >
+        <Play size={20} color={onFill.text} strokeWidth={2} />
+      </View>
+    );
+  }
+  return (
+    <Image
+      source={{ uri: media.uri }}
+      accessibilityLabel={t(strings.place.mediaAttached)}
+      resizeMode="cover"
+      style={box}
+    />
+  );
+}
+
 export function ComposeSheet({
   placeId, existing, visible, storiesOpen, canReview, busy: postingStory,
   onPickMedia, onPostStory, onClose, onSaved, onWithdrawn,
@@ -494,14 +532,16 @@ export function ComposeSheet({
                 {media ? (
                   <View
                     style={{
-                      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                      flexDirection: 'row', alignItems: 'center',
                       gap: 10, marginTop: 8, padding: 10,
                       borderWidth: 1, borderColor: color.neutral400, borderRadius: radius.sm,
                     }}
                   >
-                    <Body size={13} style={{ flex: 1 }}>
-                      {`${t(strings.place.mediaAttached)} · ${media.name}`}
-                    </Body>
+                    <MediaPreview media={media} />
+                    <View style={{ flex: 1 }}>
+                      <Body size={13}>{t(strings.place.mediaAttached)}</Body>
+                      <Label size={9} tracking={0.06} colour={color.neutral600} style={{ textTransform: 'none', marginTop: 2 }}>{media.name}</Label>
+                    </View>
                     <Pressable
                       onPress={() => setMedia(null)}
                       accessibilityRole="button"

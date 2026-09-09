@@ -26,6 +26,7 @@ export const Map = Icon;
 export const MapPinned = Icon;
 export const MessageCircle = Icon;
 export const Phone = Icon;
+export const Play = Icon;
 export const Route = Icon;
 export const Search = Icon;
 export const Send = Icon;

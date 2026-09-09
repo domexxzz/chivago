@@ -62,6 +62,15 @@ TOP edge - centred hung it eight pixels low, since the thing it is centred
 against is the chip plus its 16 px stem. Bigger is a better photograph and a
 worse map, and the photograph is one tap away at full size.
 
+## What is attached, before it is sent
+
+The one sheet shows the picture, not a file name. "Attached - image.jpg" is
+a receipt and answers the wrong question: what somebody wants to know just
+after pointing a phone at something is whether they got the shot, and only
+the shot can answer that. A video gets a tile with a play mark instead -
+nothing in the app can decode a frame before the file is uploaded, and a
+black rectangle would read as a clip that failed to record.
+
 ## Posting from the map
 
 The bar at the foot of the map (`strings.place.moment`) posts without
