@@ -34,6 +34,7 @@ import {
 } from '@chivago/core';
 import { color, onFill } from '../theme/index.ts';
 import { edgeNudge, haloMetres, metreRing, tightPins, type PinBox } from './map-geometry.ts';
+import { API_BASE } from '../api/client.ts';
 import type { Here } from '../state/here.ts';
 import { Label } from './Type.tsx';
 import { MapLegend } from './map-parts.tsx';
@@ -235,6 +236,25 @@ const MARK_CSS = `
 .cg-stem{width:2px;height:18px;background:${color.text};opacity:.9}
 .cg-foot{width:14px;height:5px;border-radius:50%;background:rgba(8,26,48,.4);margin-top:-1px}
 .cg-pin.cg-storied .cg-chip{box-shadow:0 0 0 2px ${color.bg},0 0 0 5px ${color.gold}}
+/*
+  The story bubble: the poster itself, on the pin.
+
+  A ring of gold around a score chip said a place HAD a story. It never
+  showed one, which on a map is most of the point - a photograph somebody
+  took at that beach is the thing a reader wants to look at, and a coloured
+  outline is a footnote about it. The poster sits above the chip on its own
+  ring, tappable on its own, and opens the viewer rather than the place.
+
+  Forty-two pixels: big enough to read a face in at arm's length, small
+  enough that five of them on a phone do not become the map. The image is
+  cover-cropped because a vertical clip's poster is 9:16 and a circle wants
+  the middle of it.
+*/
+.cg-tale{width:46px;height:46px;border-radius:50%;padding:2px;margin-bottom:4px;cursor:pointer;
+  background:${color.gold};box-shadow:0 3px 10px rgba(8,26,48,.4);border:0;display:block}
+.cg-tale img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;
+  background:${color.neutral200};border:2px solid ${color.bg}}
+.cg-night .cg-tale{box-shadow:0 0 0 1px rgba(255,255,255,.14),0 0 16px rgba(255,214,120,.5)}
 .cg-night .cg-chip{box-shadow:0 0 0 2px rgba(255,255,255,.08),0 0 18px rgba(255,236,190,.55)}
 .cg-quest{display:flex;flex-direction:column;align-items:center;cursor:pointer;border:0;background:none;padding:0;width:56px;font-family:Anuphan,system-ui,sans-serif}
 .cg-ring{position:absolute;top:2px;left:50%;width:34px;height:34px;margin-left:-17px;border-radius:50%;
@@ -341,6 +361,7 @@ const CAMPUS_EXAGGERATION = 1.15;
 
 export function TerrainMap({
   places, onSelect, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area, storied,
+  tales, onOpenStory,
   here = null, way = null, wayIsRoute = false,
 }: {
   places: ScoredPlace[];
@@ -356,6 +377,10 @@ export function TerrainMap({
   area?: Area;
   /** Places with an approved story on them: a gold ring on the chip (docs/45). */
   storied?: ReadonlySet<string>;
+  /** The poster to wear on each pin that has one, by place id. */
+  tales?: ReadonlyMap<string, string>;
+  /** Tapping a poster opens the story, not the place. */
+  onOpenStory?: (placeId: string) => void;
   /** Where the traveller is, if the phone has said. Null draws nothing at all. */
   here?: Here | null;
   /**
@@ -837,8 +862,20 @@ export function TerrainMap({
         what actually overlaps, and let only those pins fall back to the
         score. The fallback is this same chip wearing `cg-tight`.
       */
-      el.innerHTML = `<span class="cg-chip" style="animation-delay:${-(i * 0.7).toFixed(1)}s"><span>${place.healthyScore}</span><small>${esc(place.short)}</small></span><span class="cg-stem"></span><span class="cg-foot"></span>`;
+      const tale = tales?.get(place.id);
+      el.innerHTML = `${tale ? `<button type="button" class="cg-tale" aria-label="${esc(t(strings.place.stories))}: ${esc(t(place.name))}"><img src="${esc(API_BASE)}${esc(tale)}" alt=""></button>` : ''}<span class="cg-chip" style="animation-delay:${-(i * 0.7).toFixed(1)}s"><span>${place.healthyScore}</span><small>${esc(place.short)}</small></span><span class="cg-stem"></span><span class="cg-foot"></span>`;
       el.addEventListener('click', () => onSelect(place));
+      /*
+        The poster answers first and keeps the tap. Without stopping it here
+        the click would bubble to the pin and open the place instead, which
+        is the one thing somebody tapping a photograph is not asking for.
+      */
+      if (tale && onOpenStory) {
+        el.querySelector('.cg-tale')?.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          onOpenStory(place.id);
+        });
+      }
 
       pinEls.current.push({ id: place.id, rank: place.healthyScore, el });
       markers.current.push(
@@ -969,7 +1006,7 @@ export function TerrainMap({
       m.off('moveend', relabel);
       m.off('resize', relabel);
     };
-  }, [places, quests, progress, onSelect, onOpenQuest, compact, storied]);
+  }, [places, quests, progress, onSelect, onOpenQuest, compact, storied, tales, onOpenStory]);
 
   /*
     You are here.

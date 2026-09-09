@@ -396,6 +396,9 @@ export interface SamuiMapProps {
   area?: Area;
   /** Places with an approved story on them, drawn with a gold ring (docs/45). */
   storied?: ReadonlySet<string>;
+  /** The poster each pin wears, by place id, and what a tap on one opens. */
+  tales?: ReadonlyMap<string, string>;
+  onOpenStory?: (placeId: string) => void;
   /**
    * Where the traveller is. Both maps draw it; the terrain map draws the
    * fix's real accuracy as ground, the drawing draws a fixed halo, because

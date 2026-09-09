@@ -173,3 +173,53 @@ describe('what the phone is told when the server says no', () => {
     assert.match(toasts[0]!, /3 stories today/);
   });
 });
+
+/**
+ * The poster on the pin.
+ *
+ * A gold ring said a place HAD a story and never showed one, which on a map
+ * is most of the point: the photograph somebody took at that beach is the
+ * thing worth looking at, and an outline is a footnote about it.
+ *
+ * The map itself needs a browser and a GPU, so what is held here is the
+ * decision that feeds it - which poster each pin wears, and that a place
+ * with several wears its newest.
+ */
+describe('which poster a pin wears', () => {
+  const areaStory = (over: Record<string, unknown> = {}) => ({
+    ...story(), placeId: 'chaweng', placeName: { en: 'Chaweng Beach', th: 'หาดเฉวง' }, ...over,
+  });
+
+  /** The same reduction MapScreen does, kept honest here. */
+  const posters = (stories: { placeId: string; poster: string }[]) => {
+    const out = new Map<string, string>();
+    for (const s of stories) if (!out.has(s.placeId)) out.set(s.placeId, s.poster);
+    return out;
+  };
+
+  test('a place with no story wears none', () => {
+    assert.equal(posters([]).get('chaweng'), undefined);
+  });
+
+  test('a place with one wears it', () => {
+    const map = posters([areaStory({ poster: '/stories/s1/poster' })]);
+    assert.equal(map.get('chaweng'), '/stories/s1/poster');
+  });
+
+  test('a place with several wears its newest, because the feed is newest first', () => {
+    const map = posters([
+      areaStory({ id: 's-new', poster: '/stories/s-new/poster' }),
+      areaStory({ id: 's-old', poster: '/stories/s-old/poster' }),
+    ]);
+    assert.equal(map.get('chaweng'), '/stories/s-new/poster');
+  });
+
+  test('two places each keep their own', () => {
+    const map = posters([
+      areaStory({ poster: '/stories/a/poster' }),
+      areaStory({ placeId: 'lamai', poster: '/stories/b/poster' }),
+    ]);
+    assert.equal(map.get('chaweng'), '/stories/a/poster');
+    assert.equal(map.get('lamai'), '/stories/b/poster');
+  });
+});

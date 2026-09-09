@@ -26,6 +26,8 @@ import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/in
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button, IconButton } from '../components/Button.tsx';
 import { LayerChips, PlaceFeedRow, SamuiMap, type MapMode } from '../components/SamuiMap.tsx';
+import { StoryViewer } from '../components/Stories.tsx';
+import type { Story } from '../api/client.ts';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -73,6 +75,37 @@ export function MapScreen({
     () => new Set((areaStories.data?.stories ?? []).map((s) => s.placeId)),
     [areaStories.data],
   );
+
+  /*
+    The poster each pin wears, and the stories behind it.
+
+    A gold ring said a place HAD a story and never showed one, which on a map
+    is most of the point: the photograph somebody took at that beach is the
+    thing worth looking at, and an outline is a footnote about it. The feed
+    arrives newest first, so the first poster for a place is its latest.
+
+    Memoised together with `storied` because the web map tears down and
+    rebuilds every DOM marker whenever either changes identity.
+  */
+  const tales = React.useMemo(() => {
+    const out = new Map<string, string>();
+    for (const s of areaStories.data?.stories ?? []) if (!out.has(s.placeId)) out.set(s.placeId, s.poster);
+    return out;
+  }, [areaStories.data]);
+
+  const storiesBy = React.useMemo(() => {
+    const out = new Map<string, Story[]>();
+    for (const s of areaStories.data?.stories ?? []) {
+      const list = out.get(s.placeId);
+      if (list) list.push(s);
+      else out.set(s.placeId, [s]);
+    }
+    return out;
+  }, [areaStories.data]);
+
+  /** Which place's stories are open, and where in them. */
+  const [telling, setTelling] = React.useState<{ placeId: string; index: number } | null>(null);
+  const openStory = React.useCallback((placeId: string) => setTelling({ placeId, index: 0 }), []);
 
   // Memoised, and the handler with it: the web map rebuilds every DOM marker
   // when either changes identity, and a fresh array plus a fresh arrow on
@@ -158,6 +191,8 @@ export function MapScreen({
               key={area.key}
               area={area}
               storied={storied}
+              tales={tales}
+              onOpenStory={openStory}
               places={visible}
               onSelect={onSelect}
               quests={questsHere}
@@ -275,6 +310,20 @@ export function MapScreen({
         onOpen={onOpenQuest}
         onSeeAll={onSeeAllQuests}
       />
+
+      {/*
+        The same viewer the place screen uses, opened from a pin's poster.
+        One component for both, so a clip looks and behaves the same however
+        somebody reached it.
+      */}
+      {telling && (storiesBy.get(telling.placeId) ?? []).length > 0 ? (
+        <StoryViewer
+          stories={storiesBy.get(telling.placeId)!}
+          index={telling.index}
+          onIndex={(index) => setTelling({ placeId: telling.placeId, index })}
+          onClose={() => setTelling(null)}
+        />
+      ) : null}
     </ScrollView>
   );
 }
