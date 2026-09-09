@@ -6,7 +6,7 @@
  * the viewer on that story with its caption; a sent story is counted as
  * pending and never shown as if it were approved.
  */
-import { describe, test } from 'node:test';
+import { describe, test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 
@@ -15,6 +15,8 @@ import { control, resetControl } from './stubs/native.mjs';
 import * as fx from './fixtures.ts';
 import { StoriesBlock } from '../src/components/Stories.tsx';
 import { PlaceScreen } from '../src/screens/PlaceScreen.tsx';
+import { MapScreen } from '../src/screens/MapScreen.tsx';
+import { __setAreaForTests } from '../src/state/area.ts';
 
 const noop = () => {};
 
@@ -221,5 +223,137 @@ describe('which poster a pin wears', () => {
     ]);
     assert.equal(map.get('chaweng'), '/stories/a/poster');
     assert.equal(map.get('lamai'), '/stories/b/poster');
+  });
+});
+
+/**
+ * The bar at the foot of the map.
+ *
+ * The journey sketch has posting start on the map, not two screens in, and
+ * that raises the one question a place screen never has to answer: WHICH
+ * place is this clip for. The bar answers it on its own face, before the
+ * camera opens, by naming the nearest pin - so nobody finds out where their
+ * moment landed from a toast afterwards.
+ *
+ * With no position there is no nearest, and the bar says to turn location on
+ * rather than picking a place on somebody's behalf.
+ */
+describe('adding a moment from the map', () => {
+  const mapProps = {
+    layers: { Green: true, Wellness: true, Food: true, Safe: true, Quest: true },
+    onToggleLayer: noop, onPlanDay: noop, onOpenPlace: noop, onOpenQuest: noop,
+    onSeeAllQuests: noop, onAskConcierge: noop, onOpenWallet: noop, onToast: noop,
+    balances: { green: 120, trip: 340 },
+  };
+
+  // The camera's answer on the web: a Blob under `file`, which is how a
+  // browser hands the phone's roll to a page at the pitch.
+  const clip = {
+    canceled: false,
+    assets: [{
+      uri: 'blob:IMG_0002', type: 'image', fileName: 'IMG_0002.jpg', mimeType: 'image/jpeg',
+      file: new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])], { type: 'image/jpeg' }),
+    }],
+  };
+
+  const routes = (over: Record<string, unknown> = {}) => ({
+    'GET /places': [fx.place({ layer: 'Safe' })],
+    '/quests?filter=today': { quests: [], progress: {} },
+    '/explored': { places: [] },
+    'GET /areas/samui/stories': { stories: [] },
+    'POST /places/chaweng/stories': { id: 's9', status: 'approved' },
+    ...over,
+  });
+
+  let restore: (() => void) | null = null;
+  afterEach(() => { restore?.(); restore = null; resetControl(); __setAreaForTests('samui'); });
+
+  test('it names the place the clip will land on', async () => {
+    __setAreaForTests('samui');
+    const net = server(routes()); restore = net.restore;
+    const ui = await mountScreen(h(MapScreen, mapProps));
+    assert.match(ui.text(), /Add your moment at Chaweng Beach/);
+    ui.unmount();
+  });
+
+  test('with no position it asks for location instead of guessing a place', async () => {
+    // Guessing would be the worst outcome: a clip filed at a beach the
+    // person is not standing on is a false record, not a small mistake.
+    __setAreaForTests('samui');
+    control.permission = { granted: false, status: 'denied' };
+    const net = server(routes()); restore = net.restore;
+    const ui = await mountScreen(h(MapScreen, mapProps));
+    assert.match(ui.text(), /Turn on location to post from the map/);
+    assert.doesNotMatch(ui.text(), /Add your moment/);
+
+    // And the press does nothing, which is the guard rather than the greyed
+    // pixels: the harness calls onPress the way a race would.
+    await ui.pressText(/Turn on location/);
+    await settle();
+    assert.equal(net.calls.filter((c) => c.method === 'POST').length, 0, 'a clip was posted with no place to post it to');
+    ui.unmount();
+  });
+
+  test('a press films, posts to the nearest place, thanks them, and re-asks the board', async () => {
+    __setAreaForTests('samui');
+    control.camera = clip as typeof control.camera;
+    const toasts: string[] = [];
+    const net = server(routes()); restore = net.restore;
+    const ui = await mountScreen(h(MapScreen, { ...mapProps, onToast: (m: string) => { toasts.push(m); } }));
+
+    const before = net.calls.filter((c) => c.path === '/areas/samui/stories').length;
+    await ui.pressText(/Add your moment at Chaweng Beach/);
+    await settle();
+
+    assert.ok(
+      net.calls.some((c) => c.method === 'POST' && c.path === '/places/chaweng/stories'),
+      'the clip never went to the nearest place',
+    );
+    assert.deepEqual(toasts, ['Thank you. Your clip is up on the board.']);
+    assert.ok(
+      net.calls.filter((c) => c.path === '/areas/samui/stories').length > before,
+      'the board was not re-asked, so the new poster would not appear on the pin',
+    );
+    ui.unmount();
+  });
+
+  test('a cancelled camera posts nothing and says nothing', async () => {
+    // Somebody who changed their mind does not need telling that they did.
+    __setAreaForTests('samui');
+    const toasts: string[] = [];
+    const net = server(routes()); restore = net.restore;
+    const ui = await mountScreen(h(MapScreen, { ...mapProps, onToast: (m: string) => { toasts.push(m); } }));
+    await ui.pressText(/Add your moment/);
+    await settle();
+    assert.equal(net.calls.filter((c) => c.method === 'POST').length, 0);
+    assert.deepEqual(toasts, []);
+    ui.unmount();
+  });
+
+  test('a refusal carries the server’s own sentence, not a thank-you', async () => {
+    __setAreaForTests('samui');
+    control.camera = clip as typeof control.camera;
+    const toasts: string[] = [];
+    const net = server(routes({
+      'POST /places/chaweng/stories': refuses('STORY_QUOTA', 'That is 3 stories today already. Tomorrow is another day.'),
+    }));
+    restore = net.restore;
+    const ui = await mountScreen(h(MapScreen, { ...mapProps, onToast: (m: string) => { toasts.push(m); } }));
+    await ui.pressText(/Add your moment/);
+    await settle();
+    assert.equal(toasts.length, 1);
+    assert.match(toasts[0]!, /3 stories today/);
+    assert.doesNotMatch(toasts[0]!, /Thank you/, 'a refused clip was thanked for');
+    ui.unmount();
+  });
+
+  test('with nothing on the map there is no bar, because there is nowhere for a clip to land', async () => {
+    __setAreaForTests('samui');
+    const off = { Green: false, Wellness: false, Food: false, Safe: false, Quest: false };
+    const net = server(routes()); restore = net.restore;
+    const ui = await mountScreen(h(MapScreen, { ...mapProps, layers: off }));
+    assert.doesNotMatch(ui.text(), /Add your moment/);
+    assert.doesNotMatch(ui.text(), /Turn on location to post/);
+    ui.unmount();
   });
 });

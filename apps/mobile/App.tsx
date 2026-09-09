@@ -262,6 +262,7 @@ export default function App() {
             onOpenQuest={(id) => nav.push('quest', { questId: id })}
             onSeeAllQuests={() => nav.selectTab('quests')}
             onAskConcierge={() => nav.push('concierge')}
+            onToast={toast.show}
             onOpenWallet={() => nav.selectTab('wallet')}
             balances={balances}
             wayTo={wayTo}

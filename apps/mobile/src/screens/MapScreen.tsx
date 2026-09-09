@@ -15,7 +15,7 @@ import {
   type Balances, type ExploredPlace, type Quest, type QuestProgress, type RouteMode, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
-import { areaOfProvince, inArea } from '@chivago/core';
+import { areaOfProvince, inArea, nearestFirst } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { useHere } from '../state/here.ts';
 import { useRoute } from '../state/route.ts';
@@ -27,6 +27,7 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button, IconButton } from '../components/Button.tsx';
 import { LayerChips, PlaceFeedRow, SamuiMap, type MapMode } from '../components/SamuiMap.tsx';
 import { StoryViewer } from '../components/Stories.tsx';
+import { pickStoryMedia, postStory } from '../state/tell-story.ts';
 import type { Story } from '../api/client.ts';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
@@ -39,7 +40,7 @@ const NO_EXPLORED: ExploredPlace[] = [];
 
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
-  onAskConcierge,
+  onAskConcierge, onToast,
   onOpenWallet, wayTo = null, onClearWay,
 }: {
   layers: Record<LayerKey, boolean>;
@@ -49,6 +50,8 @@ export function MapScreen({
   onOpenQuest: (id: string) => void;
   onSeeAllQuests: () => void;
   onAskConcierge: () => void;
+  /** Said out loud when a clip is posted from the bar, or refused. */
+  onToast: (msg: string) => void;
   balances: Balances;
   onOpenWallet: () => void;
   /**
@@ -128,6 +131,33 @@ export function MapScreen({
     [quests.data, area],
   );
   const onSelect = React.useCallback((p: ScoredPlace) => onOpenPlace(p.id), [onOpenPlace]);
+
+  /*
+    Posting from the map itself, without opening a place first.
+
+    A clip has to land SOMEWHERE, and a bar that just said "add a moment"
+    would ask somebody to guess which of the five pins it went to. It posts
+    to the nearest place and says which one in the button, so the answer is
+    on the control rather than in a toast afterwards.
+
+    With no position there is no nearest, and the bar says to turn location
+    on rather than guessing a place on somebody's behalf.
+  */
+  const [posting, setPosting] = React.useState(false);
+  const momentAt = React.useMemo(
+    () => (here ? nearestFirst(visible, here)[0] ?? null : null),
+    [visible, here],
+  );
+
+  const addMoment = React.useCallback(async () => {
+    if (!momentAt || posting) return;
+    const media = await pickStoryMedia(onToast);
+    if (!media) return;
+    setPosting(true);
+    const ok = await postStory(momentAt.id, media, '', onToast);
+    setPosting(false);
+    if (ok) { onToast(t(strings.place.storyPosted)); areaStories.reload(); }
+  }, [momentAt, posting, onToast, areaStories]);
 
   /*
     The way there.
@@ -227,6 +257,30 @@ export function MapScreen({
                 ))}
             </View>
           )}
+          {/*
+            The bar at the foot of the map, from the journey sketch: post
+            without opening a place first. Only when there is somewhere for a
+            clip to land - with no pins the honest message is the empty one
+            below, not an offer to post into nothing.
+          */}
+          {visible.length > 0 ? (
+            <View style={{ paddingHorizontal: gutter, marginTop: 12 }}>
+              <Button
+                label={
+                  posting
+                    ? t(strings.place.momentSending)
+                    : momentAt
+                      ? t(strings.place.moment(t(momentAt.name)))
+                      : t(strings.place.momentNeedsFix)
+                }
+                onPress={addMoment}
+                disabled={!momentAt || posting}
+                variant={momentAt ? 'primary' : 'secondary'}
+                icon={null}
+              />
+            </View>
+          ) : null}
+
           {visible.length === 0 ? (
             <View style={{ padding: gutter }}>
               <Body colour={color.neutral700}>

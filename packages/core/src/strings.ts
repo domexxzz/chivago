@@ -192,6 +192,22 @@ export const strings = {
       two halves is wrong half the time it is read.
     */
     leaveSubmit: t('Post', 'โพสต์'),
+    /*
+      The bar at the foot of the map. It NAMES the place it will post to,
+      because a map shows five and a bar that just said "add a moment" would
+      be asking somebody to guess which one their clip lands on.
+    */
+    moment: (place: string) => t(`Add your moment at ${place}`, `เพิ่มช่วงเวลาของคุณที่${place}`),
+    momentNeedsFix: t(
+      'Turn on location to post from the map.',
+      'เปิดตำแหน่งเพื่อโพสต์จากแผนที่',
+    ),
+    /*
+      While it is going up. An upload over an island 4G connection is long
+      enough that a button which only greyed out reads as a button that did
+      nothing, and the second tap is somebody's instinct.
+    */
+    momentSending: t('Sending your moment…', 'กำลังส่งช่วงเวลาของคุณ…'),
     storyPending: t('Sent. It shows once the team has looked at it', 'ส่งแล้ว จะขึ้นเมื่อทีมตรวจแล้ว'),
     /**
      * The same moment, on a deployment where nobody looks first.

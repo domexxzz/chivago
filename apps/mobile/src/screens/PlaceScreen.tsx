@@ -20,6 +20,7 @@ import type { PickedMedia } from '../api/client.ts';
 import { photoUri } from '../api/photos.ts';
 import { useAsync } from '../state/store.tsx';
 import { useServerConfig } from '../state/server-config.ts';
+import { pickStoryMedia, postStory } from '../state/tell-story.ts';
 import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button, Tag } from '../components/Button.tsx';
@@ -176,56 +177,16 @@ export function PlaceScreen({
     whatever they typed carried along as the caption. A story used to have
     no caption at all - it gets one for free out of the merge.
   */
-  const pickStoryMedia = async (): Promise<PickedMedia | null> => {
-    let result: ImagePicker.ImagePickerResult | undefined;
-    try {
-      await ImagePicker.requestCameraPermissionsAsync().catch(() => null);
-      result = await ImagePicker.launchCameraAsync({ mediaTypes: ['videos', 'images'], videoMaxDuration: 10, quality: 0.7 });
-    } catch {
-      onToast(t(strings.place.storyPickerUnavailable));
-      return null;
-    }
-    if (!result || result.canceled || !result.assets?.[0]) return null;
-    const asset = result.assets[0];
-    return {
-      uri: asset.uri,
-      name: asset.fileName ?? (asset.type === 'video' ? 'story.mp4' : 'story.jpg'),
-      type: asset.mimeType ?? (asset.type === 'video' ? 'video/mp4' : 'image/jpeg'),
-      file: (asset as { file?: Blob }).file,
-    };
-  };
-
-  /** Post a picked clip with its caption. Returns whether it went up. */
-  const postStory = async (media: PickedMedia, caption: string): Promise<boolean> => {
+  // Both halves live in one place now, because the bar at the foot of the
+  // map needs the same three steps and the same four refusals. See
+  // src/state/tell-story.ts.
+  const pickMedia = () => pickStoryMedia(onToast);
+  const sendStory = async (media: PickedMedia, caption: string) => {
     setTelling(true);
-    let pos: Location.LocationObject;
-    try {
-      pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    } catch {
-      setTelling(false);
-      onToast(t(strings.place.storyNoFix));
-      return false;
-    }
-    const res = await api.tellStory(placeId, {
-      media,
-      caption,
-      position: {
-        lat: pos.coords.latitude, lng: pos.coords.longitude,
-        accuracyM: pos.coords.accuracy ?? null, mocked: pos.mocked ?? false,
-      },
-    });
+    const ok = await postStory(placeId, media, caption, onToast);
     setTelling(false);
-    if (res.ok) {
-      setStoriesPending((n) => n + 1);
-      stories.reload();
-      return true;
-    }
-    // The two refusals a person can act on from where they stand get the
-    // app's own words, in their language; the rest carry the server's.
-    if (res.code === 'STORY_TOO_LARGE') onToast(t(strings.place.storyTooLarge));
-    else if (res.code === 'STORY_HEIC') onToast(t(strings.place.storyHeic));
-    else onToast(res.error);
-    return false;
+    if (ok) { setStoriesPending((n) => n + 1); stories.reload(); }
+    return ok;
   };
 
   return (
@@ -311,8 +272,8 @@ export function PlaceScreen({
               // things it needs to do all three live here.
               storiesOpen={stories.data?.open ?? false}
               busy={telling}
-              onPickMedia={pickStoryMedia}
-              onPostStory={postStory}
+              onPickMedia={pickMedia}
+              onPostStory={sendStory}
               onToast={onToast}
               onPointsChanged={() => {
                 onPointsChanged();
