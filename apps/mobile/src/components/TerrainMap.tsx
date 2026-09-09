@@ -227,7 +227,6 @@ const RELABEL_MS = 200;
 const MARK_CSS = `
 .cg-pin{display:flex;flex-direction:column;align-items:center;cursor:pointer;border:0;background:none;padding:0;font-family:Anuphan,system-ui,sans-serif}
 .cg-chip{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:11px;font-size:13px;font-weight:700;line-height:1;
-  position:relative;
   border:2px solid ${color.text};background:${color.surface};color:${color.text};
   box-shadow:0 3px 10px rgba(8,26,48,.35);animation:cg-bob 3.2s ease-in-out infinite;will-change:transform}
 .cg-chip small{font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
@@ -250,7 +249,18 @@ const MARK_CSS = `
   cover-cropped because a vertical clip's poster is 9:16 and a circle wants
   the middle of it.
 */
-.cg-tale{width:46px;height:46px;border-radius:50%;padding:2px;margin-bottom:4px;cursor:pointer;
+/*
+  Bubble and chip on one ROW.
+
+  Stacked, the bubble sat above the chip and grew the pin upward - and a pin
+  near the top of the frame had its photograph sliced off by the map's own
+  edge, which is exactly what happened to Building 13 the first time this
+  shipped. Side by side the pin gains width instead of height, and width is
+  already handled: the declutter measures this row, and `edgeNudge` slides it
+  back inside the frame.
+*/
+.cg-top{display:flex;align-items:center;gap:5px;position:relative}
+.cg-tale{width:46px;height:46px;border-radius:50%;padding:2px;cursor:pointer;flex:none;
   background:${color.gold};box-shadow:0 3px 10px rgba(8,26,48,.4);border:0;display:block}
 .cg-tale img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;
   background:${color.neutral200};border:2px solid ${color.bg}}
@@ -863,7 +873,7 @@ export function TerrainMap({
         score. The fallback is this same chip wearing `cg-tight`.
       */
       const tale = tales?.get(place.id);
-      el.innerHTML = `${tale ? `<button type="button" class="cg-tale" aria-label="${esc(t(strings.place.stories))}: ${esc(t(place.name))}"><img src="${esc(API_BASE)}${esc(tale)}" alt=""></button>` : ''}<span class="cg-chip" style="animation-delay:${-(i * 0.7).toFixed(1)}s"><span>${place.healthyScore}</span><small>${esc(place.short)}</small></span><span class="cg-stem"></span><span class="cg-foot"></span>`;
+      el.innerHTML = `<span class="cg-top">${tale ? `<button type="button" class="cg-tale" aria-label="${esc(t(strings.place.stories))}: ${esc(t(place.name))}"><img src="${esc(API_BASE)}${esc(tale)}" alt=""></button>` : ''}<span class="cg-chip" style="animation-delay:${-(i * 0.7).toFixed(1)}s"><span>${place.healthyScore}</span><small>${esc(place.short)}</small></span></span><span class="cg-stem"></span><span class="cg-foot"></span>`;
       el.addEventListener('click', () => onSelect(place));
       /*
         The poster answers first and keeps the tap. Without stopping it here
@@ -922,7 +932,7 @@ export function TerrainMap({
       the map does, and the pins move under a pan anyway.
     */
     const boxOf = (el: HTMLElement): PinBox => {
-      const r = (el.querySelector('.cg-chip') ?? el).getBoundingClientRect();
+      const r = (el.querySelector('.cg-top') ?? el.querySelector('.cg-chip') ?? el).getBoundingClientRect();
       return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
     };
     const relabel = () => {
@@ -933,7 +943,7 @@ export function TerrainMap({
       // frame's answer into the next.
       for (const pin of pins) {
         pin.el.classList.remove('cg-tight');
-        pin.el.querySelector<HTMLElement>('.cg-chip')?.style.setProperty('left', '0px');
+        pin.el.querySelector<HTMLElement>('.cg-top')?.style.setProperty('left', '0px');
       }
       const named = pins.map((pin) => boxOf(pin.el));
       for (const pin of pins) pin.el.classList.add('cg-tight');
@@ -959,11 +969,11 @@ export function TerrainMap({
       */
       const frame = m.getContainer().getBoundingClientRect();
       for (const pin of pins) {
-        const chip = pin.el.querySelector<HTMLElement>('.cg-chip');
-        if (!chip) continue;
-        chip.style.left = '0px';
-        const shift = edgeNudge(chip.getBoundingClientRect(), frame);
-        chip.style.left = `${shift}px`;
+        const row = pin.el.querySelector<HTMLElement>('.cg-top');
+        if (!row) continue;
+        row.style.left = '0px';
+        const shift = edgeNudge(row.getBoundingClientRect(), frame);
+        row.style.left = `${shift}px`;
       }
     };
     /*
