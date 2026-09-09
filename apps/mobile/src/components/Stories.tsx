@@ -72,15 +72,6 @@ export function StoriesBlock({
         <>
           {/* The notice before the camera (docs/46). Going on is the consent. */}
           <Body size={13} colour={color.neutral600} style={{ marginTop: 12 }}>{t(strings.place.storyNotice)}</Body>
-          {/*
-            And, where nothing is reviewed first, what that means for the
-            person about to post. It belongs HERE rather than in a toast
-            afterwards: the room they are posting into is the one thing they
-            cannot see, and by the time a toast says it the clip is up.
-          */}
-          {autoApprove ? (
-            <Body size={13} colour={color.accent2} style={{ marginTop: 6 }}>{t(strings.place.storyUnreviewed)}</Body>
-          ) : null}
           <Button
             label={t(strings.place.tellStory)}
             thai={strings.place.tellStory.th}

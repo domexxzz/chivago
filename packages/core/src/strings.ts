@@ -167,16 +167,19 @@ export const strings = {
     storiesClosed: t('Stories open at the event, at the place.', 'สตอรี่เปิดรับที่งาน ณ สถานที่จริง'),
     tellStory: t('Tell a story here', 'เล่าสตอรี่ที่นี่'),
     storyPending: t('Sent. It shows once the team has looked at it', 'ส่งแล้ว จะขึ้นเมื่อทีมตรวจแล้ว'),
-    /** The same moment, on a deployment where nobody looks first. */
-    storyPosted: t('Posted. It is on the board now', 'โพสต์แล้ว ขึ้นกระดานเลย'),
     /**
-     * Said where somebody is about to post, when nothing is checked first.
-     * Not a warning about them - a statement about the room they are posting
-     * into, which is the thing they cannot see and would otherwise assume.
+     * The same moment, on a deployment where nobody looks first.
+     *
+     * Warm, and it still says where the clip went. A person who has just
+     * pointed a camera at something wants to know it worked and where to
+     * find it, not to be told about the moderation policy - which was the
+     * red line that used to sit above the button, and which the owner took
+     * out on 9 September. What remains before the camera is the consent
+     * notice, because that one is about somebody else.
      */
-    storyUnreviewed: t(
-      'Nobody checks these before they appear. Whatever you post is on the screen straight away.',
-      'ไม่มีใครตรวจก่อนขึ้นจอ สิ่งที่คุณโพสต์จะขึ้นทันที',
+    storyPosted: t(
+      'Thank you. Your clip is up on the board.',
+      'ขอบคุณ คลิปของคุณขึ้นกระดานแล้ว',
     ),
     /** The notice at the door (docs/46). Going on to record is the consent. */
     storyNotice: t(

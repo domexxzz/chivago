@@ -3,6 +3,8 @@ import { test, describe, beforeEach } from 'node:test';
 
 import { h, html, text } from './render.ts';
 import { server, offline } from './interact.ts';
+import { StoriesBlock } from '../src/components/Stories.tsx';
+import { strings } from '@chivago/core';
 import { api, __resetDeviceRevival } from '../src/api/client.ts';
 import { adoptKey, loadDeviceKey } from '../src/api/account.ts';
 import { UnfencedBand } from '../src/components/UnfencedBand.tsx';
@@ -183,5 +185,40 @@ describe('a phone whose key the server does not know', () => {
       await api.wallet();
       assert.equal(await loadDeviceKey(), KEY, 'a dropped connection is not a revoked key');
     } finally { fake.restore(); }
+  });
+});
+
+/**
+ * What a person is told before, and after, they post a clip.
+ *
+ * A red line above the button used to say that nobody checks these first.
+ * The owner took it out on 9 September: somebody who has just pointed a
+ * camera at something wants to know it worked and where it went, not to read
+ * a moderation policy. What stays before the camera is the CONSENT notice,
+ * because that one is not about them - it is about whoever is in frame, and
+ * it is the line PDPA and docs/46 rest on.
+ */
+describe('what the story block says', () => {
+  beforeEach(() => { __resetServerConfig(); });
+
+  const props = { open: true, stories: [], pending: 0, busy: false, onTell: () => {} };
+
+  test('the consent notice is there, on a server that reviews nothing', () => {
+    const said = text(h(StoriesBlock, props));
+    assert.match(said, /happy to be filmed/i, 'the line about other people stays');
+  });
+
+  test('and nothing tells the poster that nobody is checking', () => {
+    const said = text(h(StoriesBlock, props));
+    assert.doesNotMatch(said, /Nobody checks/i);
+    assert.doesNotMatch(said, /straight away/i);
+  });
+
+  test('the thank-you says where the clip went, warmly', () => {
+    // The words a person reads after it worked.
+    assert.match(strings.place.storyPosted.en, /Thank you/i);
+    assert.match(strings.place.storyPosted.en, /board/i);
+    assert.ok(strings.place.storyPosted.th.includes('ขอบคุณ'));
+    assert.ok(strings.place.storyPosted.th.includes('กระดาน'));
   });
 });
