@@ -148,7 +148,7 @@ describe('what the phone is told when the server says no', () => {
       await settle();
       await ui.pressText(/Add a photo or a clip/);
       await settle();
-      await ui.pressText(/^Post review$/);
+      await ui.pressText(/^Post$/);
       await settle();
       ui.unmount();
       assert.ok(net.calls.some((c) => c.method === 'POST' && c.path === '/places/chaweng/stories'), 'the story was never sent');

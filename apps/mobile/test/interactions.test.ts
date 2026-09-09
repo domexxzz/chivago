@@ -46,7 +46,7 @@ describe('writing a review', () => {
   test('you cannot post without choosing a rating', () => {
     const ui = sheet();
     try {
-      const post = ui.find(/Post review/);
+      const post = ui.find(/^Post$/);
       assert.ok(post, 'the post control should exist');
       // A review with no rating is not a review, and the server refuses it.
       assert.equal(post!.props.disabled, true);
@@ -57,7 +57,7 @@ describe('writing a review', () => {
     const ui = sheet();
     try {
       await ui.press(/4 out of 5/);
-      assert.equal(ui.find(/Post review/)!.props.disabled, false);
+      assert.equal(ui.find(/^Post$/)!.props.disabled, false);
       assert.match(ui.text(), /4 out of 5/);
     } finally { ui.unmount(); }
   });
@@ -71,7 +71,7 @@ describe('writing a review', () => {
     try {
       await ui.press(/5 out of 5/);
       await ui.type('Quiet at 7am and the water is clean, worth the early start.');
-      await ui.press(/Post review/);
+      await ui.press(/^Post$/);
 
       assert.equal(calls.length, 1);
       assert.equal(calls[0]!.method, 'POST');
@@ -90,7 +90,7 @@ describe('writing a review', () => {
     const ui = sheet({ onSaved: (m: string) => { saved = m; } });
     try {
       await ui.press(/5 out of 5/);
-      await ui.press(/Post review/);
+      await ui.press(/^Post$/);
       // Discovering it by watching a number not move is worse than being told.
       assert.match(saved, /characters or more to earn/i);
     } finally { ui.unmount(); }
@@ -297,7 +297,7 @@ describe('leaving something at a place', () => {
   test('nothing chosen is not an error, it is a button that waits', () => {
     const ui = sheetWith({});
     try {
-      assert.equal(ui.find(/Post review/)!.props.disabled, true);
+      assert.equal(ui.find(/^Post$/)!.props.disabled, true);
       assert.ok(ui.text().includes('Add a rating, a photo or a clip'), 'and it says what is missing');
     } finally { ui.unmount(); }
   });
@@ -309,8 +309,8 @@ describe('leaving something at a place', () => {
     });
     try {
       await ui.pressText(/Add a photo or a clip/);
-      assert.equal(ui.find(/Post review/)!.props.disabled, false, 'a clip is something to post');
-      await ui.pressText(/^Post review$/);
+      assert.equal(ui.find(/^Post$/)!.props.disabled, false, 'a clip is something to post');
+      await ui.pressText(/^Post$/);
       assert.deepEqual(posted, { caption: '' });
     } finally { ui.unmount(); }
   });
@@ -327,7 +327,7 @@ describe('leaving something at a place', () => {
       await ui.pressText(/Add a photo or a clip/);
       await ui.type('the lake at six, nobody about');
       await ui.pressText(/^3$/);
-      await ui.pressText(/^Post review$/);
+      await ui.pressText(/^Post$/);
       assert.equal(caption, 'the lake at six, nobody about');
       const sent = net.calls.find((c) => c.method === 'POST' && c.path === '/places/chaweng/reviews');
       assert.deepEqual(sent?.body, { rating: 3, body: 'the lake at six, nobody about' });

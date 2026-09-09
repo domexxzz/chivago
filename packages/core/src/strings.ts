@@ -186,6 +186,12 @@ export const strings = {
       'เช็กอินที่นี่เพื่อให้ดาว ส่วนรูปหรือคลิปไม่ต้องมีดาวก็ฝากได้',
     ),
     leaveNothing: t('Add a rating, a photo or a clip.', 'ใส่ดาว รูป หรือคลิป อย่างน้อยหนึ่งอย่าง'),
+    /*
+      The one sheet's one button. Not "Post review": the same press can send
+      a clip with no rating at all, and a label that names only one of the
+      two halves is wrong half the time it is read.
+    */
+    leaveSubmit: t('Post', 'โพสต์'),
     storyPending: t('Sent. It shows once the team has looked at it', 'ส่งแล้ว จะขึ้นเมื่อทีมตรวจแล้ว'),
     /**
      * The same moment, on a deployment where nobody looks first.

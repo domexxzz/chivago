@@ -533,7 +533,8 @@ export function ComposeSheet({
             ) : null}
 
             <Button
-              label={t(strings.reviews.submit)}
+              label={t(strings.place.leaveSubmit)}
+              thai={strings.place.leaveSubmit.th}
               onPress={save}
               disabled={busy || postingStory || (rating < 1 && !media)}
               height={48}
