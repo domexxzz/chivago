@@ -18,6 +18,7 @@ import { newlyEarned, strings, type MedalState, type MedalsView, type ScoredPlac
 import { api } from '../api/client.ts';
 import { photoUri } from '../api/photos.ts';
 import { useAsync } from '../state/store.tsx';
+import { useServerConfig } from '../state/server-config.ts';
 import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button, Tag } from '../components/Button.tsx';
@@ -61,6 +62,8 @@ export function PlaceScreen({
   // The medals as they stood on arrival, so a check-in can say which one it
   // finished. The server does the counting both times; the phone compares.
   const medals = useAsync(() => api.medals(), [placeId]);
+  // Whether a clip is looked at before it is public. See apps/api/src/fence.ts.
+  const { autoApprove } = useServerConfig();
 
   React.useEffect(() => {
     // Whether they already checked in today is server state, not screen
@@ -196,7 +199,13 @@ export function PlaceScreen({
       },
     });
     setTelling(false);
-    if (res.ok) { setStoriesPending((n) => n + 1); onToast(t(strings.place.storyPending)); }
+    if (res.ok) {
+      // A queue that is not there cannot be waited on: on a deployment with
+      // nothing reviewing, "it shows once the team has looked" is false the
+      // moment it is said, because the clip is already up.
+      setStoriesPending((n) => n + 1);
+      onToast(t(autoApprove ? strings.place.storyPosted : strings.place.storyPending));
+    }
     // The two refusals a person can act on from where they stand get the
     // app's own words, in their language; the rest carry the server's.
     else if (res.code === 'STORY_TOO_LARGE') onToast(t(strings.place.storyTooLarge));

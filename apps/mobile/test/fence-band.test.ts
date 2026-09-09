@@ -54,9 +54,25 @@ describe("reading the server's own description", () => {
   });
 
   test('a server that says the fence is open is believed', async () => {
-    const fake = server({ 'GET /config': { fenceOff: true } });
+    const fake = server({ 'GET /config': { fenceOff: true, autoApprove: false } });
     try {
-      assert.deepEqual(await serverConfig(), { fenceOff: true });
+      assert.deepEqual(await serverConfig(), { fenceOff: true, autoApprove: false });
+    } finally { fake.restore(); }
+  });
+
+  test('a server that reviews nothing is believed about that too', async () => {
+    const fake = server({ 'GET /config': { fenceOff: false, autoApprove: true } });
+    try {
+      assert.deepEqual(await serverConfig(), { fenceOff: false, autoApprove: true });
+    } finally { fake.restore(); }
+  });
+
+  test('a field the server does not send reads as the careful answer', async () => {
+    // An older server, or a truncated body. Neither may talk a traveller into
+    // posting on the belief that somebody will look at it first.
+    const fake = server({ 'GET /config': {} });
+    try {
+      assert.deepEqual(await serverConfig(), FENCED);
     } finally { fake.restore(); }
   });
 

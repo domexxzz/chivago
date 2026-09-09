@@ -22,6 +22,7 @@ import { color, gutter, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from './Type.tsx';
 import { Button } from './Button.tsx';
 import { t } from '../i18n/locale.ts';
+import { useServerConfig } from '../state/server-config.ts';
 
 const RING = 64;
 
@@ -36,6 +37,8 @@ export function StoriesBlock({
   onTell: () => void;
 }) {
   const [viewer, setViewer] = React.useState<number | null>(null);
+  // Whether anybody looks at a clip before it is public. See fence.ts.
+  const { autoApprove } = useServerConfig();
   return (
     <View style={{ marginTop: 24 }}>
       <Label size={10} tracking={0.14}>{t(strings.place.stories)}</Label>
@@ -69,6 +72,15 @@ export function StoriesBlock({
         <>
           {/* The notice before the camera (docs/46). Going on is the consent. */}
           <Body size={13} colour={color.neutral600} style={{ marginTop: 12 }}>{t(strings.place.storyNotice)}</Body>
+          {/*
+            And, where nothing is reviewed first, what that means for the
+            person about to post. It belongs HERE rather than in a toast
+            afterwards: the room they are posting into is the one thing they
+            cannot see, and by the time a toast says it the clip is up.
+          */}
+          {autoApprove ? (
+            <Body size={13} colour={color.accent2} style={{ marginTop: 6 }}>{t(strings.place.storyUnreviewed)}</Body>
+          ) : null}
           <Button
             label={t(strings.place.tellStory)}
             thai={strings.place.tellStory.th}
@@ -82,7 +94,8 @@ export function StoriesBlock({
       ) : (
         <Body size={13} colour={color.neutral600} style={{ marginTop: 10 }}>{t(strings.place.storiesClosed)}</Body>
       )}
-      {pending > 0 ? (
+      {/* Only a queue that exists can be waited on. */}
+      {pending > 0 && !autoApprove ? (
         <Body size={13} colour={color.brand} style={{ marginTop: 8 }}>{`${t(strings.place.storyPending)} · ${pending}`}</Body>
       ) : null}
 

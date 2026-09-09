@@ -36,12 +36,37 @@
 export const fenceOff = (): boolean => process.env.CHIVAGO_FENCE_OFF === '1';
 
 /**
+ * Clips and photographs go up the moment they are posted, with nobody
+ * looking at them first.
+ *
+ * The design was a queue: a traveller posts, a host passes it, and only then
+ * does it reach the pin, the board and the projector. That queue is why the
+ * screen in a room full of people is safe to point at. `CHIVAGO_STORIES_AUTO_APPROVE=1`
+ * takes it away, because the owner asked for posting to be immediate.
+ *
+ * What that costs, said plainly: anyone who can reach the app can put a clip
+ * on a public screen with no human between them and it. The mitigations that
+ * remain are real but they are all AFTER the fact - the console can hide any
+ * story in one click, a hide takes it off every surface at once, and every
+ * clip expires by itself in seven days.
+ *
+ * Same two rules as the fence. Off unless the environment says otherwise,
+ * and while it is on the app says so where somebody is about to post.
+ */
+export const storiesAutoApprove = (): boolean => process.env.CHIVAGO_STORIES_AUTO_APPROVE === '1';
+
+/**
  * What the app needs to know to describe itself honestly.
  * Public, because the band has to be drawn before anybody signs in.
  */
 export interface PublicConfig {
   /** Presence is not being checked. The app must say so where it counts. */
   fenceOff: boolean;
+  /** Nothing is reviewed before it is public. The app must say so before posting. */
+  autoApprove: boolean;
 }
 
-export const publicConfig = (): PublicConfig => ({ fenceOff: fenceOff() });
+export const publicConfig = (): PublicConfig => ({
+  fenceOff: fenceOff(),
+  autoApprove: storiesAutoApprove(),
+});

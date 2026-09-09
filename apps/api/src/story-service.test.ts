@@ -299,3 +299,56 @@ describe('what an iPhone sends', () => {
     assert.equal(sniffStory(big).kind, 'photo');
   });
 });
+
+/**
+ * Posting with nobody looking first.
+ *
+ * The queue is why a screen in a room full of people is safe to point at, so
+ * removing it is a deployment's decision and not a default. What these hold
+ * is that the switch does exactly one thing - the status a new story is born
+ * with - and that the row still tells the truth about what happened to it.
+ */
+describe('the switch that takes the queue away', () => {
+  const withAuto = async <T>(run: () => Promise<T>): Promise<T> => {
+    const before = process.env.CHIVAGO_STORIES_AUTO_APPROVE;
+    process.env.CHIVAGO_STORIES_AUTO_APPROVE = '1';
+    try { return await run(); } finally {
+      if (before === undefined) delete process.env.CHIVAGO_STORIES_AUTO_APPROVE;
+      else process.env.CHIVAGO_STORIES_AUTO_APPROVE = before;
+    }
+  };
+
+  test('off by default: a new story waits for a host', async () => {
+    const s = await submit();
+    assert.equal(s.status, 'pending');
+    assert.deepEqual(storiesAt(db, 'ku-park', T), [], 'and nobody sees it yet');
+  });
+
+  test('on: it is public the moment it is posted', async () => {
+    const s = await withAuto(() => submit());
+    assert.equal(s.status, 'approved');
+    assert.deepEqual(storiesAt(db, 'ku-park', T).map((x) => x.id), [s.id]);
+  });
+
+  test('on: the row says a machine passed it, never a host', async () => {
+    // A row claiming a host had looked would be a lie in the one table an
+    // audit reads, and a null reviewer_host is how a moderator tells these
+    // apart from the ones somebody really checked.
+    const s = await withAuto(() => submit());
+    const raw = db.prepare('SELECT reviewed_by, reviewer_host, reviewed_at FROM stories WHERE id = ?').get(s.id) as
+      unknown as { reviewed_by: string | null; reviewer_host: string | null; reviewed_at: string | null };
+    assert.equal(raw.reviewed_by, 'auto');
+    assert.equal(raw.reviewer_host, null, 'no host name on a story no host saw');
+    assert.ok(raw.reviewed_at, 'and it says when it went up');
+  });
+
+  test('on: nothing is left waiting in the console queue', async () => {
+    await withAuto(() => submit());
+    assert.deepEqual(pendingStories(db, T), []);
+  });
+
+  test('on: the door still shuts, because that is a different question', async () => {
+    setStoriesOpen(db, false, 'test');
+    await assert.rejects(() => withAuto(() => submit({ open: undefined })), StoriesClosed);
+  });
+});

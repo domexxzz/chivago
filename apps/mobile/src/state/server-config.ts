@@ -17,17 +17,27 @@ import { api } from '../api/client.ts';
 export interface ServerConfig {
   /** The server is not checking positions. Say so, loudly. */
   fenceOff: boolean;
+  /** Nothing is reviewed before it is public. Say so before somebody posts. */
+  autoApprove: boolean;
 }
 
-/** Fenced until told otherwise: an unreachable server must never read as open. */
-export const FENCED: ServerConfig = { fenceOff: false };
+/**
+ * The careful reading, used until the server says otherwise and whenever it
+ * cannot be reached. Both fields default to the SAFER claim: a fence that is
+ * being enforced, and a queue that somebody is watching. A failed request
+ * must never talk a traveller into posting something on the belief that it
+ * will be checked, nor raise an alarm about a server that is behaving.
+ */
+export const FENCED: ServerConfig = { fenceOff: false, autoApprove: false };
 
 let inFlight: Promise<ServerConfig> | null = null;
 
 /** The shared fetch. Failure resolves to FENCED rather than rejecting. */
 export function serverConfig(): Promise<ServerConfig> {
   inFlight ??= api.config().then(
-    (res) => (res.ok ? { fenceOff: res.data.fenceOff === true } : FENCED),
+    (res) => (res.ok
+      ? { fenceOff: res.data.fenceOff === true, autoApprove: res.data.autoApprove === true }
+      : FENCED),
     () => FENCED,
   );
   return inFlight;

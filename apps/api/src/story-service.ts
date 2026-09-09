@@ -35,7 +35,7 @@ import {
 import { row, rows, type DB } from './db.ts';
 import { OutsideGeofence } from './quest-service.ts';
 import { assertPresence, recordFix } from './presence-service.ts';
-import { fenceOff } from './fence.ts';
+import { fenceOff, storiesAutoApprove } from './fence.ts';
 import { UnsupportedUpload, sniff, uploadRoot } from './uploads.ts';
 import { ffmpegTranscoder, type Transcoder } from './transcode.ts';
 
@@ -318,13 +318,24 @@ export async function submitStory(
 
   const createdAt = now.toISOString();
   const expiresAt = new Date(now.getTime() + STORY_TTL_DAYS * 24 * 3_600_000).toISOString();
+  /*
+    Straight to approved when this deployment has turned the queue off.
+
+    The reviewer columns are filled in with what actually happened rather
+    than left null or, worse, stamped with a host's name. A row that said a
+    host had passed it would be a lie in the one table an audit would read,
+    and `reviewer_host: null` next to `status: approved` is exactly the
+    signal a moderator needs to tell these apart from the reviewed ones.
+  */
+  const auto = storiesAutoApprove();
   db.prepare(
     `INSERT INTO stories (id, place_id, user_id, kind, caption, media_path, media_mime, poster_path,
-       duration_s, status, created_at, expires_at)
-     VALUES (?,?,?,?,?,?,?,?,?,'pending',?,?)`,
+       duration_s, status, created_at, expires_at, reviewed_at, reviewed_by, reviewer_host)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
   ).run(
     id, place.id, args.userId, kind, caption, media, kind === 'video' ? 'video/mp4' : 'image/jpeg',
-    poster, durationS, createdAt, expiresAt,
+    poster, durationS, auto ? 'approved' : 'pending', createdAt, expiresAt,
+    auto ? createdAt : null, auto ? 'auto' : null, null,
   );
   recordFix(db, args.userId, args.fix, now);
 
