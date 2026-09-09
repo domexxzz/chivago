@@ -16,6 +16,7 @@ import { Image, Modal, Pressable, ScrollView, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import { newlyEarned, strings, type MedalState, type MedalsView, type ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
+import type { PickedMedia } from '../api/client.ts';
 import { photoUri } from '../api/photos.ts';
 import { useAsync } from '../state/store.tsx';
 import { useServerConfig } from '../state/server-config.ts';
@@ -165,17 +166,37 @@ export function PlaceScreen({
    * web), then a fix, then the upload. Pending until the team has looked -
    * the row does not change, the count does.
    */
-  const tellStory = async () => {
+  /*
+    Two halves of what used to be one button.
+
+    The camera and the upload were a single `tellStory` that opened the
+    picker and posted straight away with an empty caption. They are apart
+    now because a clip and a rating are left in the SAME sheet: the picker
+    runs when somebody attaches, and the upload runs when they post, with
+    whatever they typed carried along as the caption. A story used to have
+    no caption at all - it gets one for free out of the merge.
+  */
+  const pickStoryMedia = async (): Promise<PickedMedia | null> => {
     let result: ImagePicker.ImagePickerResult | undefined;
     try {
       await ImagePicker.requestCameraPermissionsAsync().catch(() => null);
       result = await ImagePicker.launchCameraAsync({ mediaTypes: ['videos', 'images'], videoMaxDuration: 10, quality: 0.7 });
     } catch {
       onToast(t(strings.place.storyPickerUnavailable));
-      return;
+      return null;
     }
-    if (!result || result.canceled || !result.assets?.[0]) return;
+    if (!result || result.canceled || !result.assets?.[0]) return null;
     const asset = result.assets[0];
+    return {
+      uri: asset.uri,
+      name: asset.fileName ?? (asset.type === 'video' ? 'story.mp4' : 'story.jpg'),
+      type: asset.mimeType ?? (asset.type === 'video' ? 'video/mp4' : 'image/jpeg'),
+      file: (asset as { file?: Blob }).file,
+    };
+  };
+
+  /** Post a picked clip with its caption. Returns whether it went up. */
+  const postStory = async (media: PickedMedia, caption: string): Promise<boolean> => {
     setTelling(true);
     let pos: Location.LocationObject;
     try {
@@ -183,16 +204,11 @@ export function PlaceScreen({
     } catch {
       setTelling(false);
       onToast(t(strings.place.storyNoFix));
-      return;
+      return false;
     }
     const res = await api.tellStory(placeId, {
-      media: {
-        uri: asset.uri,
-        name: asset.fileName ?? (asset.type === 'video' ? 'story.mp4' : 'story.jpg'),
-        type: asset.mimeType ?? (asset.type === 'video' ? 'video/mp4' : 'image/jpeg'),
-        file: (asset as { file?: Blob }).file,
-      },
-      caption: '',
+      media,
+      caption,
       position: {
         lat: pos.coords.latitude, lng: pos.coords.longitude,
         accuracyM: pos.coords.accuracy ?? null, mocked: pos.mocked ?? false,
@@ -200,17 +216,16 @@ export function PlaceScreen({
     });
     setTelling(false);
     if (res.ok) {
-      // A queue that is not there cannot be waited on: on a deployment with
-      // nothing reviewing, "it shows once the team has looked" is false the
-      // moment it is said, because the clip is already up.
       setStoriesPending((n) => n + 1);
-      onToast(t(autoApprove ? strings.place.storyPosted : strings.place.storyPending));
+      stories.reload();
+      return true;
     }
     // The two refusals a person can act on from where they stand get the
     // app's own words, in their language; the rest carry the server's.
-    else if (res.code === 'STORY_TOO_LARGE') onToast(t(strings.place.storyTooLarge));
+    if (res.code === 'STORY_TOO_LARGE') onToast(t(strings.place.storyTooLarge));
     else if (res.code === 'STORY_HEIC') onToast(t(strings.place.storyHeic));
     else onToast(res.error);
+    return false;
   };
 
   return (
@@ -235,8 +250,6 @@ export function PlaceScreen({
               open={stories.data?.open ?? false}
               stories={stories.data?.stories ?? []}
               pending={storiesPending}
-              busy={telling}
-              onTell={tellStory}
             />
 
             <Body style={{ marginTop: 16 }}>{t(place.data.blurb)}</Body>
@@ -294,6 +307,12 @@ export function PlaceScreen({
               placeId={placeId}
               summary={place.data.reviews}
               justCheckedIn={checkedIn}
+              // One sheet takes the stars, the words and the clip, so the
+              // things it needs to do all three live here.
+              storiesOpen={stories.data?.open ?? false}
+              busy={telling}
+              onPickMedia={pickStoryMedia}
+              onPostStory={postStory}
               onToast={onToast}
               onPointsChanged={() => {
                 onPointsChanged();

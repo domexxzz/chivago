@@ -66,3 +66,35 @@ your own.
 - `home.test.ts` (mobile): a clip and a review both reach the board with
   their place; an empty board says so and invents nothing; a board that will
   not load leaves the rest of Home standing; each entry opens its place.
+
+## One button, two halves
+
+For a fortnight a place had two buttons side by side: **Write a review** in
+one block and **Tell a story here** in another. That asked a traveller to
+decide which KIND of thing they were leaving before they had said anything,
+and a clip posted through the second one carried no words at all, because
+that flow had no text box.
+
+There is one button now — **Leave something here** — and one sheet behind it
+with stars, words, and an optional photo or clip.
+
+**What is stored is still apart, and should be.** A rating aggregates into a
+place's score and lasts; a clip goes on the projector and expires in seven
+days. One table for both would have to choose a single lifetime and force a
+rating onto every photograph. So the sheet posts to both halves, and the
+words go to whichever ones are there: as the review's body, and as the clip's
+caption. A story had no caption before this; it gets one out of the merge.
+
+**The three states it holds at once.** Somebody who has checked in and may
+rate. Somebody who has not, whose stars say plainly that a check-in is what
+opens them and whose clip is allowed anyway. And a place whose story door is
+shut, where the camera is simply not offered.
+
+**The clip posts first.** It is the half that can be refused for a reason a
+person can act on — too large, an iPhone HEIC — and a refusal is more useful
+before their words have vanished with a sheet that closed. A rating that then
+fails leaves the clip up, which is the right way round: the clip is the thing
+they made.
+
+The consent notice travelled with the camera into the sheet, which is the
+moment before the picker opens and where docs/46 wants it.

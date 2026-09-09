@@ -20,7 +20,7 @@ import {
   REVIEW_MAX_BODY, strings,
   type PlaceReview, type ReportReasonKey, type ReviewSummary,
 } from '@chivago/core';
-import { api, type MyReviewState } from '../api/client.ts';
+import { api, type MyReviewState, type PickedMedia } from '../api/client.ts';
 import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
@@ -28,10 +28,15 @@ import { ErrorState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
 export function ReviewsBlock({
-  placeId, summary, justCheckedIn, onToast, onPointsChanged,
+  placeId, summary, justCheckedIn, storiesOpen, busy, onPickMedia, onPostStory, onToast, onPointsChanged,
 }: {
   placeId: string;
   summary: ReviewSummary;
+  /** The story door, passed to the sheet: shut, and there is nothing to attach. */
+  storiesOpen: boolean;
+  busy: boolean;
+  onPickMedia: () => Promise<PickedMedia | null>;
+  onPostStory: (media: PickedMedia, caption: string) => Promise<boolean>;
   /**
    * True when the traveller has JUST checked in on this screen.
    *
@@ -91,9 +96,17 @@ export function ReviewsBlock({
       </Body>
 
 
-      {canReview ? (
+      {/*
+        ONE BUTTON. It opens the sheet that takes the stars, the words and
+        the clip together, so it is offered whenever EITHER half is on offer:
+        a traveller who has checked in may rate, and one who has not may
+        still leave a photograph. Only when neither is possible does the
+        block fall through to the "check in first" note below.
+      */}
+      {canReview || storiesOpen ? (
         <Button
-          label={mine ? t(strings.reviews.edit) : t(strings.reviews.write)}
+          label={mine ? t(strings.place.leaveAgain) : t(strings.place.leaveSomething)}
+          thai={mine ? strings.place.leaveAgain.th : strings.place.leaveSomething.th}
           onPress={() => setComposing(true)}
           variant="secondary"
           height={44}
@@ -165,6 +178,11 @@ export function ReviewsBlock({
         placeId={placeId}
         existing={mine?.review ?? null}
         visible={composing}
+        storiesOpen={storiesOpen}
+        canReview={canReview}
+        busy={busy}
+        onPickMedia={onPickMedia}
+        onPostStory={onPostStory}
         onClose={() => setComposing(false)}
         onSaved={(msg) => {
           setComposing(false);
@@ -266,18 +284,47 @@ export function ReviewRow({
  * plainly what earns points rather than letting the traveller discover it by
  * watching a number not move.
  */
+/**
+ * One sheet for everything somebody leaves at a place.
+ *
+ * It was the review composer. Beside it, in another block, sat a separate
+ * "Tell a story here" button, which asked a traveller to decide which KIND
+ * of thing they were leaving before they had said anything - and a clip
+ * posted through it carried no words at all, because that flow had no text
+ * box.
+ *
+ * Now: stars, words, and an optional photo or clip, together. What is
+ * STORED stays apart, and should. A rating aggregates into a place's score
+ * and lasts; a clip expires in seven days and goes on the projector. One
+ * table for both would have to choose one lifetime and force a rating onto
+ * every photograph. So this posts to both halves, and the words go to
+ * whichever ones are there: as the review body, and as the clip's caption.
+ *
+ * The three states it has to hold at once: somebody who has checked in and
+ * may rate, somebody who has not and may still leave a clip, and a place
+ * whose story door is shut where only the rating is on offer.
+ */
 export function ComposeSheet({
-  placeId, existing, visible, onClose, onSaved, onWithdrawn,
+  placeId, existing, visible, storiesOpen, canReview, busy: postingStory,
+  onPickMedia, onPostStory, onClose, onSaved, onWithdrawn,
 }: {
   placeId: string;
   existing: PlaceReview | null;
   visible: boolean;
+  /** The story door. Shut, and there is nothing to attach a clip to. */
+  storiesOpen: boolean;
+  /** A rating needs a check-in. Words and a clip do not. */
+  canReview: boolean;
+  busy: boolean;
+  onPickMedia: () => Promise<PickedMedia | null>;
+  onPostStory: (media: PickedMedia, caption: string) => Promise<boolean>;
   onClose: () => void;
   onSaved: (message: string) => void;
   onWithdrawn: () => void;
 }) {
   const [rating, setRating] = React.useState(existing?.rating ?? 0);
   const [body, setBody] = React.useState(existing?.body ?? '');
+  const [media, setMedia] = React.useState<PickedMedia | null>(null);
   const [busy, setBusy] = React.useState(false);
 
   // Re-seed when the sheet opens, or an edit would show the previous draft.
@@ -285,21 +332,47 @@ export function ComposeSheet({
     if (!visible) return;
     setRating(existing?.rating ?? 0);
     setBody(existing?.body ?? '');
+    setMedia(null);
   }, [visible, existing]);
 
+  /*
+    Post whichever halves are there.
+
+    The clip goes FIRST, because it is the half that can be refused for a
+    reason the person can act on - too large, an iPhone HEIC - and a refusal
+    is more useful before their words have been swallowed by a sheet that
+    closed. A rating that then fails leaves the clip up, which is the right
+    way round: the clip is the thing they made.
+  */
   const save = async () => {
-    if (rating < 1) return;
+    const words = body.trim();
+    if (rating < 1 && !media) return;
     setBusy(true);
-    const res = await api.writeReview(placeId, { rating, body: body.trim() || null });
-    setBusy(false);
-    if (!res.ok) { onSaved(res.error); return; }
-    onSaved(
-      res.data.pointsAwarded > 0
+    let said: string | null = null;
+
+    if (media) {
+      const up = await onPostStory(media, words);
+      if (!up) { setBusy(false); return; }
+      said = t(strings.place.storyPosted);
+    }
+
+    if (rating >= 1) {
+      const res = await api.writeReview(placeId, { rating, body: words || null });
+      if (!res.ok) { setBusy(false); onSaved(res.error); return; }
+      said = res.data.pointsAwarded > 0
         ? t(strings.reviews.posted(res.data.pointsAwarded))
         : res.data.created
           ? t(strings.reviews.tooShortForPoints(40))
-          : t(strings.reviews.updated),
-    );
+          : t(strings.reviews.updated);
+    }
+
+    setBusy(false);
+    onSaved(said ?? t(strings.place.storyPosted));
+  };
+
+  const attach = async () => {
+    const picked = await onPickMedia();
+    if (picked) setMedia(picked);
   };
 
   const withdraw = async () => {
@@ -325,7 +398,7 @@ export function ComposeSheet({
             }}
           >
             <Heading size={16}>
-              {existing ? t(strings.reviews.edit) : t(strings.reviews.write)}
+              {existing ? t(strings.place.leaveAgain) : t(strings.place.leaveSomething)}
             </Heading>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12}>
               <X size={20} color={color.text} />
@@ -333,6 +406,17 @@ export function ComposeSheet({
           </View>
 
           <ScrollView style={{ paddingHorizontal: gutter }} keyboardShouldPersistTaps="handled">
+            {!canReview ? (
+              /*
+                Said, not hidden. Somebody who cannot rate yet can still leave
+                a clip and words from this same sheet, and the sentence tells
+                them which half is missing and how to get it.
+              */
+              <Body size={13} colour={color.neutral700} style={{ marginTop: 16 }}>
+                {t(strings.place.starsNeedCheckIn)}
+              </Body>
+            ) : null}
+
             <Label size={10} tracking={0.12} style={{ marginTop: 16 }}>
               {t(strings.reviews.rating(rating || 0))}
             </Label>
@@ -340,9 +424,9 @@ export function ComposeSheet({
               {[1, 2, 3, 4, 5].map((n) => (
                 <Pressable
                   key={n}
-                  onPress={() => setRating(n)}
+                  onPress={() => { if (canReview) setRating(n); }}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: rating === n }}
+                  accessibilityState={{ selected: rating === n, disabled: !canReview }}
                   accessibilityLabel={t(strings.reviews.rating(n))}
                   style={{
                     flex: 1,
@@ -395,10 +479,63 @@ export function ComposeSheet({
               {t(strings.reviews.tooShortForPoints(40))}
             </Body>
 
+            {storiesOpen ? (
+              <>
+                {/*
+                  The camera lives here now, beside the words rather than
+                  behind its own button in another block. The consent notice
+                  comes with it: this is the moment before the camera opens,
+                  which is where docs/46 says it belongs, and going on is the
+                  consent.
+                */}
+                <Body size={13} colour={color.neutral600} style={{ marginTop: 18 }}>
+                  {t(strings.place.storyNotice)}
+                </Body>
+                {media ? (
+                  <View
+                    style={{
+                      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                      gap: 10, marginTop: 8, padding: 10,
+                      borderWidth: 1, borderColor: color.neutral400, borderRadius: radius.sm,
+                    }}
+                  >
+                    <Body size={13} style={{ flex: 1 }}>
+                      {`${t(strings.place.mediaAttached)} · ${media.name}`}
+                    </Body>
+                    <Pressable
+                      onPress={() => setMedia(null)}
+                      accessibilityRole="button"
+                      accessibilityLabel={t(strings.place.mediaRemove)}
+                      hitSlop={10}
+                    >
+                      <Body size={13} colour={color.accent2}>{t(strings.place.mediaRemove)}</Body>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Button
+                    label={t(strings.place.addMedia)}
+                    thai={strings.place.addMedia.th}
+                    onPress={attach}
+                    disabled={busy || postingStory}
+                    variant="secondary"
+                    height={44}
+                    style={{ marginTop: 8 }}
+                  />
+                )}
+              </>
+            ) : null}
+
+            {/* Nothing to post is not an error; it is a button that waits. */}
+            {rating < 1 && !media ? (
+              <Body size={13} colour={color.neutral600} style={{ marginTop: 16 }}>
+                {t(strings.place.leaveNothing)}
+              </Body>
+            ) : null}
+
             <Button
               label={t(strings.reviews.submit)}
               onPress={save}
-              disabled={busy || rating < 1}
+              disabled={busy || postingStory || (rating < 1 && !media)}
               height={48}
               style={{ marginTop: 20 }}
             />

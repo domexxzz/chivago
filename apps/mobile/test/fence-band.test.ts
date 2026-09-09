@@ -201,11 +201,13 @@ describe('a phone whose key the server does not know', () => {
 describe('what the story block says', () => {
   beforeEach(() => { __resetServerConfig(); });
 
-  const props = { open: true, stories: [], pending: 0, busy: false, onTell: () => {} };
+  const props = { open: true, stories: [], pending: 0 };
 
-  test('the consent notice is there, on a server that reviews nothing', () => {
+  test('the block shows what is here and asks for nothing', () => {
+    // The consent notice went with the camera into ComposeSheet, which is
+    // the moment before the picker opens - where docs/46 says it belongs.
     const said = text(h(StoriesBlock, props));
-    assert.match(said, /happy to be filmed/i, 'the line about other people stays');
+    assert.doesNotMatch(said, /Tell a story/i);
   });
 
   test('and nothing tells the poster that nobody is checking', () => {

@@ -6,7 +6,7 @@ import { REVIEW_TRIP_POINTS } from '@chivago/core';
 import { ComposeSheet, ReportSheet, AppealSheet, ReviewRow } from '../src/screens/PlaceReviews.tsx';
 import { OfferRow } from '../src/screens/MarketScreen.tsx';
 import { QuestRow } from '../src/screens/MissionsScreen.tsx';
-import { fakeFetch, mount, type FakeCall } from './interact.ts';
+import { fakeFetch, mount, server, type FakeCall } from './interact.ts';
 import * as fx from './fixtures.ts';
 
 /**
@@ -34,6 +34,11 @@ describe('writing a review', () => {
   const sheet = (over: Record<string, unknown> = {}) =>
     mount(h(ComposeSheet, {
       placeId: 'chaweng', existing: null, visible: true,
+      // The sheet takes the stars, the words and a clip now. These two say
+      // which halves are on offer; a test that wants the other states passes
+      // its own.
+      canReview: true, storiesOpen: false, busy: false,
+      onPickMedia: async () => null, onPostStory: async () => true,
       onClose: () => {}, onSaved: () => {}, onWithdrawn: () => {},
       ...over,
     } as never));
@@ -263,6 +268,85 @@ describe('rows that lead somewhere', () => {
     try {
       await ui.press(/Beach Cleanup/);
       assert.equal(opened, 1);
+    } finally { ui.unmount(); }
+  });
+});
+
+/**
+ * One sheet, two halves.
+ *
+ * Stars and a clip used to be two buttons in two blocks, which asked a
+ * traveller to decide what KIND of thing they were leaving before they had
+ * said anything - and a clip posted through the old button carried no words,
+ * because that flow had no text box. What is STORED is still apart, because
+ * a rating aggregates and lasts while a clip expires in seven days. What a
+ * person meets is one sheet.
+ */
+describe('leaving something at a place', () => {
+  const media = { uri: 'file:///clip.mp4', name: 'clip.mp4', type: 'video/mp4' };
+
+  const sheetWith = (over: Record<string, unknown>) =>
+    mount(h(ComposeSheet, {
+      placeId: 'chaweng', existing: null, visible: true,
+      canReview: true, storiesOpen: true, busy: false,
+      onPickMedia: async () => media, onPostStory: async () => true,
+      onClose: () => {}, onSaved: () => {}, onWithdrawn: () => {},
+      ...over,
+    } as never));
+
+  test('nothing chosen is not an error, it is a button that waits', () => {
+    const ui = sheetWith({});
+    try {
+      assert.equal(ui.find(/Post review/)!.props.disabled, true);
+      assert.ok(ui.text().includes('Add a rating, a photo or a clip'), 'and it says what is missing');
+    } finally { ui.unmount(); }
+  });
+
+  test('a clip alone is enough, with no rating at all', async () => {
+    let posted: { caption: string } | null = null;
+    const ui = sheetWith({
+      onPostStory: async (_m: unknown, caption: string) => { posted = { caption }; return true; },
+    });
+    try {
+      await ui.pressText(/Add a photo or a clip/);
+      assert.equal(ui.find(/Post review/)!.props.disabled, false, 'a clip is something to post');
+      await ui.pressText(/^Post review$/);
+      assert.deepEqual(posted, { caption: '' });
+    } finally { ui.unmount(); }
+  });
+
+  test('the words become the review body AND the clip’s caption', async () => {
+    // The clip used to carry no caption at all, because the flow that posted
+    // it had no text box. It borrows the one the review is using.
+    let caption: string | null = null;
+    const net = server({ 'POST /places/chaweng/reviews': { created: true, pointsAwarded: 5 } });
+    const ui = sheetWith({
+      onPostStory: async (_m: unknown, c: string) => { caption = c; return true; },
+    });
+    try {
+      await ui.pressText(/Add a photo or a clip/);
+      await ui.type('the lake at six, nobody about');
+      await ui.pressText(/^3$/);
+      await ui.pressText(/^Post review$/);
+      assert.equal(caption, 'the lake at six, nobody about');
+      const sent = net.calls.find((c) => c.method === 'POST' && c.path === '/places/chaweng/reviews');
+      assert.deepEqual(sent?.body, { rating: 3, body: 'the lake at six, nobody about' });
+    } finally { ui.unmount(); net.restore(); }
+  });
+
+  test('a shut story door leaves the stars and takes the camera away', () => {
+    const ui = sheetWith({ storiesOpen: false });
+    try {
+      assert.doesNotMatch(ui.text(), /Add a photo or a clip/);
+      assert.match(ui.text(), /1|2|3|4|5/, 'the rating is still on offer');
+    } finally { ui.unmount(); }
+  });
+
+  test('no check-in yet: the stars say why, and a clip is still allowed', () => {
+    const ui = sheetWith({ canReview: false });
+    try {
+      assert.match(ui.text(), /Check in here to leave a rating/);
+      assert.match(ui.text(), /Add a photo or a clip/);
     } finally { ui.unmount(); }
   });
 });

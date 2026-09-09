@@ -26,23 +26,29 @@ const story = (over: Partial<Parameters<typeof StoriesBlock>[0]['stories'][numbe
 
 describe('the door', () => {
   test('shut: says when it opens, offers no button', async () => {
-    const ui = await mountScreen(h(StoriesBlock, { open: false, stories: [], pending: 0, busy: false, onTell: noop }));
+    const ui = await mountScreen(h(StoriesBlock, { open: false, stories: [], pending: 0 }));
     assert.match(ui.text(), /Stories open at the event/);
     assert.match(ui.text(), /No stories here yet/);
     assert.doesNotMatch(ui.text(), /Tell a story/);
     ui.unmount();
   });
 
-  test('open: offers the camera, and a press asks for it', async () => {
-    let asked = 0;
-    const ui = await mountScreen(h(StoriesBlock, { open: true, stories: [], pending: 0, busy: false, onTell: () => { asked += 1; } }));
-    await ui.pressText(/Tell a story here/);
-    assert.equal(asked, 1);
+  /*
+    The camera moved. It used to be this block's own button, beside the
+    reviews block's own button, which asked somebody to decide which KIND of
+    thing they were leaving before they had said anything. Stars, words and a
+    clip are one sheet now (ComposeSheet), so an open door here means the
+    block simply stops saying the door is shut.
+  */
+  test('open: the block stops saying the door is shut, and offers no button of its own', async () => {
+    const ui = await mountScreen(h(StoriesBlock, { open: true, stories: [], pending: 0 }));
+    assert.doesNotMatch(ui.text(), /Stories open at the event/);
+    assert.doesNotMatch(ui.text(), /Tell a story/);
     ui.unmount();
   });
 
   test('a sent story is pending, counted, and not in the row', async () => {
-    const ui = await mountScreen(h(StoriesBlock, { open: true, stories: [], pending: 1, busy: false, onTell: noop }));
+    const ui = await mountScreen(h(StoriesBlock, { open: true, stories: [], pending: 1 }));
     assert.match(ui.text(), /Sent\. It shows once the team has looked at it · 1/);
     assert.match(ui.text(), /No stories here yet/);
     ui.unmount();
@@ -87,16 +93,21 @@ describe('the place screen carries the block', () => {
 });
 
 describe('the notice at the door', () => {
-  test('an open door says what happens to the clip before offering the camera', async () => {
-    const ui = await mountScreen(h(StoriesBlock, { open: true, stories: [], pending: 0, busy: false, onTell: noop }));
-    assert.match(ui.text(), /stays in the app for 7 days/);
-    assert.match(ui.text(), /happy to be filmed/);
+  /*
+    The notice travelled with the camera into ComposeSheet, which is the
+    moment before the picker opens - where docs/46 wants it, and now the
+    only place a clip can be attached from. The block itself consents to
+    nothing because it asks for nothing.
+  */
+  test('the notice is with the camera, in the sheet, not in this block', async () => {
+    const ui = await mountScreen(h(StoriesBlock, { open: true, stories: [], pending: 0 }));
+    assert.doesNotMatch(ui.text(), /happy to be filmed/);
     ui.unmount();
   });
 
-  test('a shut door has no notice, because there is nothing to consent to', async () => {
-    const ui = await mountScreen(h(StoriesBlock, { open: false, stories: [], pending: 0, busy: false, onTell: noop }));
-    assert.doesNotMatch(ui.text(), /7 days/);
+  test('a shut door still says when it opens', async () => {
+    const ui = await mountScreen(h(StoriesBlock, { open: false, stories: [], pending: 0 }));
+    assert.match(ui.text(), /Stories open at the event/);
     ui.unmount();
   });
 });
@@ -132,7 +143,12 @@ describe('what the phone is told when the server says no', () => {
       const ui = await mountScreen(h(PlaceScreen, {
         placeId: 'chaweng', onBack: noop, onAddToTrip: noop, onSafePath: noop, onToast: (m: string) => { toasts.push(m); }, onPointsChanged: noop,
       }));
-      await ui.pressText(/Tell a story here/);
+      // Through the one sheet now: open it, attach a clip, then post.
+      await ui.pressText(/Leave something here/);
+      await settle();
+      await ui.pressText(/Add a photo or a clip/);
+      await settle();
+      await ui.pressText(/^Post review$/);
       await settle();
       ui.unmount();
       assert.ok(net.calls.some((c) => c.method === 'POST' && c.path === '/places/chaweng/stories'), 'the story was never sent');

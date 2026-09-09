@@ -166,6 +166,26 @@ export const strings = {
     storiesEmpty: t('No stories here yet.', 'ยังไม่มีสตอรี่ที่นี่'),
     storiesClosed: t('Stories open at the event, at the place.', 'สตอรี่เปิดรับที่งาน ณ สถานที่จริง'),
     tellStory: t('Tell a story here', 'เล่าสตอรี่ที่นี่'),
+    /*
+      One entry for everything a person leaves at a place.
+
+      Two buttons - "Write a review" and "Tell a story here" - asked somebody
+      to decide which KIND of thing they were leaving before they had said
+      anything. One sheet takes the stars, the words and the clip together,
+      and the two halves are still stored apart because a rating aggregates
+      and lasts while a clip expires in seven days (docs/54).
+    */
+    leaveSomething: t('Leave something here', 'ฝากอะไรไว้ที่นี่'),
+    leaveAgain: t('Edit what you left', 'แก้สิ่งที่ฝากไว้'),
+    addMedia: t('Add a photo or a clip', 'เพิ่มรูปหรือคลิป'),
+    mediaAttached: t('Attached', 'แนบแล้ว'),
+    mediaRemove: t('Remove', 'เอาออก'),
+    /** The stars need a check-in; the words and the clip do not. */
+    starsNeedCheckIn: t(
+      'Check in here to leave a rating. A photo or a clip needs no rating.',
+      'เช็กอินที่นี่เพื่อให้ดาว ส่วนรูปหรือคลิปไม่ต้องมีดาวก็ฝากได้',
+    ),
+    leaveNothing: t('Add a rating, a photo or a clip.', 'ใส่ดาว รูป หรือคลิป อย่างน้อยหนึ่งอย่าง'),
     storyPending: t('Sent. It shows once the team has looked at it', 'ส่งแล้ว จะขึ้นเมื่อทีมตรวจแล้ว'),
     /**
      * The same moment, on a deployment where nobody looks first.

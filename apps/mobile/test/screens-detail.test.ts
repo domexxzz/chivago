@@ -267,7 +267,9 @@ describe('a place, and checking in to it', () => {
 describe('the reviews block, which fetches its own list', () => {
   const props = (over = {}) => ({
     placeId: 'chaweng', summary: summary({ count: 1, average: 5, distribution: [0, 0, 0, 0, 1] }),
-    justCheckedIn: false, onToast: noop, onPointsChanged: noop, ...over,
+    justCheckedIn: false, storiesOpen: false, busy: false,
+    onPickMedia: async () => null, onPostStory: async () => true,
+    onToast: noop, onPointsChanged: noop, ...over,
   });
   const body = (over = {}) => ({ reviews: [], mine: null, canReview: false, reported: [], ...over });
 

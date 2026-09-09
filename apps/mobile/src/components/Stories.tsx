@@ -26,15 +26,22 @@ import { useServerConfig } from '../state/server-config.ts';
 
 const RING = 64;
 
+/**
+ * The clips left at a place.
+ *
+ * It used to carry its own "Tell a story here" button beside the reviews
+ * block's "Write a review", which asked a traveller to decide which KIND of
+ * thing they were leaving before they had said anything. One sheet takes
+ * the stars, the words and the clip together now - see ComposeSheet - so
+ * this block shows what is here and nothing else.
+ */
 export function StoriesBlock({
-  open, stories, pending, busy, onTell,
+  open, stories, pending,
 }: {
   open: boolean;
   stories: Story[];
   /** How many this device has sent that a host has not yet looked at. */
   pending: number;
-  busy: boolean;
-  onTell: () => void;
 }) {
   const [viewer, setViewer] = React.useState<number | null>(null);
   // Whether anybody looks at a clip before it is public. See fence.ts.
@@ -68,21 +75,7 @@ export function StoriesBlock({
         </ScrollView>
       )}
 
-      {open ? (
-        <>
-          {/* The notice before the camera (docs/46). Going on is the consent. */}
-          <Body size={13} colour={color.neutral600} style={{ marginTop: 12 }}>{t(strings.place.storyNotice)}</Body>
-          <Button
-            label={t(strings.place.tellStory)}
-            thai={strings.place.tellStory.th}
-            onPress={onTell}
-            disabled={busy}
-            variant="secondary"
-            height={44}
-            style={{ marginTop: 8 }}
-          />
-        </>
-      ) : (
+      {open ? null : (
         <Body size={13} colour={color.neutral600} style={{ marginTop: 10 }}>{t(strings.place.storiesClosed)}</Body>
       )}
       {/* Only a queue that exists can be waited on. */}
