@@ -2,7 +2,9 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { h, html, text } from './render.ts';
-import { server } from './interact.ts';
+import { server, offline } from './interact.ts';
+import { api, __resetDeviceRevival } from '../src/api/client.ts';
+import { adoptKey, loadDeviceKey } from '../src/api/account.ts';
 import { UnfencedBand } from '../src/components/UnfencedBand.tsx';
 import { HereNow } from '../src/components/PlaceLive.tsx';
 import { FENCED, serverConfig, __resetServerConfig } from '../src/state/server-config.ts';
@@ -90,5 +92,80 @@ describe('hooks in the app shell', () => {
     // that only runs on some renders.
     const strays = [...after.matchAll(/\n\s+const [^\n]*\buse[A-Z]\w*\(/g)].map((m) => m[0].trim());
     assert.deepEqual(strays, [], `hooks below the early return: ${strays.join(' | ')}`);
+  });
+});
+
+/**
+ * A phone whose key the server has never heard of.
+ *
+ * There is no sign-in and no password here, so an unrecognised key is not a
+ * locked door: it is an account nobody can reach, including its owner.
+ * Holding on to it buys nothing and turns every screen into a Retry that can
+ * never succeed - which is what a demo reset did to two phones on 8
+ * September, one of them a phone with no devtools to clear storage from.
+ *
+ * The app takes a new key instead. These hold the shape of that: it happens
+ * only for an UNAUTHENTICATED answer to a request that carried a key, it
+ * happens once, and every other kind of failure leaves the key alone.
+ */
+describe('a phone whose key the server does not know', () => {
+  const KEY = 'chvg_dev_stale';
+
+  beforeEach(async () => {
+    __resetDeviceRevival();
+    await adoptKey(KEY);
+  });
+
+  test('it takes a new key and the request goes through', async () => {
+    let asked = 0;
+    const fake = server({
+      'GET /wallet': () => {
+        asked += 1;
+        return asked === 1
+          ? { __refuses: { code: 'UNAUTHENTICATED', error: 'This device is not signed in.' } }
+          : { balances: { green: 0, trip: 0 }, ledger: [] };
+      },
+      'POST /devices': { userId: 'u_new', deviceKey: 'chvg_dev_fresh' },
+    });
+    try {
+      const res = await api.wallet();
+      assert.equal(res.ok, true, 'the retry should succeed on the new key');
+      assert.equal(await loadDeviceKey(), 'chvg_dev_fresh');
+      assert.equal(asked, 2, 'asked once, refused, then asked again');
+    } finally { fake.restore(); }
+  });
+
+  test('it does not loop: one new key per launch, however many calls fail', async () => {
+    const fake = server({
+      'GET /wallet': { __refuses: { code: 'UNAUTHENTICATED', error: 'no' } },
+      'POST /devices': { userId: 'u_new', deviceKey: 'chvg_dev_fresh' },
+    });
+    try {
+      await api.wallet();
+      await api.wallet();
+      const registrations = fake.calls.filter((c) => c.path === '/devices').length;
+      assert.equal(registrations, 1, `registered ${registrations} times`);
+    } finally { fake.restore(); }
+  });
+
+  test('any other refusal leaves the key where it is', async () => {
+    const fake = server({
+      'GET /wallet': { __refuses: { code: 'NOT_FOUND', error: 'no such thing' } },
+      'POST /devices': { userId: 'u_new', deviceKey: 'chvg_dev_fresh' },
+    });
+    try {
+      const res = await api.wallet();
+      assert.equal(res.ok, false);
+      assert.equal(await loadDeviceKey(), KEY, 'a 404 must not cost a phone its account');
+      assert.equal(fake.calls.filter((c) => c.path === '/devices').length, 0);
+    } finally { fake.restore(); }
+  });
+
+  test('being offline leaves the key alone too', async () => {
+    const fake = server({ 'GET /wallet': offline() });
+    try {
+      await api.wallet();
+      assert.equal(await loadDeviceKey(), KEY, 'a dropped connection is not a revoked key');
+    } finally { fake.restore(); }
   });
 });

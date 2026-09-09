@@ -6,7 +6,7 @@
  * typed failure instead of an unhandled rejection.
  */
 
-import { loadDeviceKey } from './account.ts';
+import { adoptKey, forgetKey, loadDeviceKey } from './account.ts';
 import { getEvent } from '../state/area.ts';
 import type {
   AreaKey,
@@ -169,10 +169,58 @@ export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; code: string; error: string };
 
+/**
+ * A phone whose key the server has never heard of takes a new one.
+ *
+ * There is no sign-in here and no password, so a key the server does not
+ * recognise is not a locked door - it is an account that cannot be reached by
+ * anyone, ever, including its owner. Holding on to it buys nothing and costs
+ * everything: every request comes back 401 and the app is a dead screen with
+ * a Retry that can never succeed. That is what a demo reset did to two phones
+ * on 8 September, one of them with no devtools to clear storage from.
+ *
+ * So the key is dropped and a fresh account is registered, once per launch.
+ * The old account's points are gone, which is the honest cost - but they were
+ * gone the moment the server stopped knowing the key, and a traveller at an
+ * event cannot be asked to clear site data.
+ *
+ * Deliberately NOT a general retry: only an UNAUTHENTICATED answer to a
+ * request that actually carried a key. A timeout, a 500 or a refusal for any
+ * other reason leaves the key alone. Registering goes out on a raw fetch so
+ * it cannot re-enter this path and loop.
+ */
+let reviving: Promise<boolean> | null = null;
+
+async function reviveDevice(): Promise<boolean> {
+  reviving ??= (async () => {
+    await forgetKey();
+    try {
+      const res = await fetch(`${API_BASE}/devices`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const body = (await res.json()) as ApiResponse<{ userId: string; deviceKey: string }>;
+      if (!body.ok) return false;
+      await adoptKey(body.data.deviceKey);
+      return true;
+    } catch {
+      // Offline. The key is already forgotten, so the next launch tries again
+      // rather than going back to the dead screen.
+      return false;
+    }
+  })();
+  return reviving;
+}
+
+/** Test seam: forget that this launch has already taken a new key. */
+export const __resetDeviceRevival = (): void => { reviving = null; };
+
 async function call<T>(
   path: string,
   init: RequestInit = {},
   timeoutMs = 8000,
+  retried = false,
 ): Promise<Result<T>> {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
@@ -200,7 +248,14 @@ async function call<T>(
       },
     });
     const body = (await res.json()) as ApiResponse<T>;
-    if (!body.ok) return { ok: false, code: body.code, error: body.error };
+    if (!body.ok) {
+      // The one refusal worth answering with an action rather than a message.
+      if (body.code === 'UNAUTHENTICATED' && key && !retried && await reviveDevice()) {
+        clearTimeout(timer);
+        return call<T>(path, init, timeoutMs, true);
+      }
+      return { ok: false, code: body.code, error: body.error };
+    }
     return { ok: true, data: body.data };
   } catch (err) {
     // A dropped connection is normal on a beach or in a mangrove - the two
