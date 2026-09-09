@@ -45,13 +45,22 @@ photograph rather than the photograph. On a map the picture somebody took
 at that beach is most of the point.
 
 Two doors on one pin, and they are not the same door: the chip opens the
-place, the poster opens the clip. The bubble is 36 px plus its ring, so a
-pin that wears one is `TALE_W` wider than one that does not - `layoutPins`
-is told which pins those are, or de-collision would clear two chips of each
-other and then draw a picture over the neighbour it had just made room for.
-The stem stays under the chip alone: centring it under chip-plus-poster
-would slide the tip twenty pixels east of the point it marks, which on a map
-of one island is a different beach.
+place, the poster opens the clip. A pin that wears one is `TALE_W` wider
+than one that does not, and `layoutPins` is told which pins those are, or
+de-collision would clear two chips of each other and then draw a picture
+over the neighbour it had just made room for. The stem stays under the chip
+alone: centring it under chip-plus-poster would slide the tip twenty pixels
+east of the point it marks, which on a map of one island is a different
+beach.
+
+The drawn island's bubble is 26 px, not the web map's 46. It was sized in a
+browser rather than chosen: at 40 and at 30 its lower edge crossed into the
+top of the chip below, because Chaweng, Fisherman's Village and Lamai share
+a band on that 344 px drawing barely wider than three chips. At the chip's
+own height the rhythm survives untouched, and it is aligned to the chip's
+TOP edge - centred hung it eight pixels low, since the thing it is centred
+against is the chip plus its 16 px stem. Bigger is a better photograph and a
+worse map, and the photograph is one tap away at full size.
 
 ## Posting from the map
 

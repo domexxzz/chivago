@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import { SAMUI_BBOX, SEED_PLACES, computeHealthyScore, type ScoredPlace } from '@chivago/core';
-import { CHIP, TALE_W, layoutPins, mistCircles, project, tilt } from './map-geometry.ts';
+import { CHIP, TALE_H, TALE_W, layoutPins, mistCircles, project, tilt } from './map-geometry.ts';
 
 /**
  * The island's places only. The projection is Samui's bounding box and the
@@ -134,38 +134,34 @@ describe('pins that wear a poster', () => {
     }
   });
 
-  test('two posters never sit on each other', () => {
-    const pins = layoutPins(scored, W, H, storied);
-    for (let i = 0; i < pins.length; i += 1) {
-      for (let j = i + 1; j < pins.length; j += 1) {
-        const a = pins[i]!;
-        const b = pins[j]!;
-        const overlaps = Math.abs(a.left - b.left) < (CHIP.halfWidth + TALE_W) * 2
-          && Math.abs(a.top - b.top) < CHIP.height + 6;
-        assert.ok(
-          !overlaps,
-          `${a.place.id} and ${b.place.id} overlap at (${a.left},${a.top}) / (${b.left},${b.top})`,
-        );
-      }
-    }
+  test('no two pins land on the same spot', () => {
+    // The failure this replaced: three pins wanting more room than their
+    // stretch of coast has, the middle one bouncing between its neighbours
+    // until the guard ran out, and it coming to rest EXACTLY on one of them.
+    const tops = layoutPins(scored, W, H, storied).map((p) => `${Math.round(p.left)}:${Math.round(p.top)}`);
+    assert.equal(new Set(tops).size, tops.length, `two pins share a spot: ${tops.join(' ')}`);
   });
 
-  test('a poster claims more room than a bare chip does', () => {
-    // Two places on the same coast, close enough that the bare chips clear
-    // each other by a hair. With a photograph on each, they must be pushed
-    // further apart than they were.
-    const near: ScoredPlace[] = [
-      { ...scored[0]!, id: 'a', lat: 9.5357, lng: 100.0617, healthyScore: 90 },
-      { ...scored[0]!, id: 'b', lat: 9.5380, lng: 100.0630, healthyScore: 70 },
+  test('a crowded coast still reads north to south', () => {
+    // Chaweng sits between Fisherman's Village and Lamai in latitude, and
+    // must sit between them on the map however tight the band gets. A pin
+    // out of order is not a cosmetic flaw; it is wrong information.
+    const pins = layoutPins(scored, W, H, storied);
+    const at = (id: string) => pins.find((p) => p.place.id === id)!.top;
+    assert.ok(at('fisherman') < at('chaweng'), 'Chaweng was drawn north of Fisherman’s Village');
+    assert.ok(at('chaweng') < at('lamai'), 'Lamai was drawn north of Chaweng');
+  });
+
+  test('two pins with room between them are given the poster’s full clearance', () => {
+    // Two places far enough apart that nothing has to be squeezed: there the
+    // reservation is the real one, a bubble's height plus air.
+    const apart: ScoredPlace[] = [
+      { ...scored[0]!, id: 'a', lat: 9.5600, lng: 100.0617, healthyScore: 90 },
+      { ...scored[0]!, id: 'b', lat: 9.4400, lng: 100.0630, healthyScore: 70 },
     ];
-    const gap = (pins: ReturnType<typeof layoutPins>) => {
-      const a = pins.find((p) => p.place.id === 'a')!;
-      const b = pins.find((p) => p.place.id === 'b')!;
-      return Math.abs(a.top - b.top);
-    };
-    const bare = gap(layoutPins(near, W, H));
-    const wide = gap(layoutPins(near, W, H, new Set(['a', 'b'])));
-    assert.ok(wide >= bare, `posters were given less room (${wide}) than bare chips (${bare})`);
+    const pins = layoutPins(apart, W, H, new Set(['a', 'b']));
+    const gap = Math.abs(pins[0]!.top - pins[1]!.top);
+    assert.ok(gap >= TALE_H + 6, `two posters were left ${gap} px apart, under ${TALE_H + 6}`);
   });
 
   test('with no posters the layout is exactly what it always was', () => {

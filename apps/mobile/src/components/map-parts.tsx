@@ -12,6 +12,7 @@ import { Image, Pressable, ScrollView, View } from 'react-native';
 import { isHighScore, strings, type ExploredPlace, type ScoredPlace } from '@chivago/core';
 import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { API_BASE } from '../api/client.ts';
+import { TALE_H, TALE_W } from './map-geometry.ts';
 import { Heading, Label } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -43,7 +44,16 @@ export function PinChip({
       accessibilityLabel={`${t(place.name)}, Healthy Score ${place.healthyScore}`}
       style={{ alignItems: 'center' }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: TALE_GAP }}>
+      {/*
+        Top-aligned, not centred.
+
+        Centred looked right and was not: the row's other child is the chip
+        AND its 16 px stem, so centring hung the bubble eight pixels below
+        the chip - far enough for its lower edge to cross into the top of the
+        chip below it, measured in a browser. Aligned to the top edge it
+        matches the chip it belongs to, which is what the eye reads anyway.
+      */}
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: TALE_GAP }}>
         {showTale ? <TaleBubble place={place} poster={tale} onPress={onOpenStory} /> : null}
 
         {/*
@@ -96,9 +106,14 @@ export function PinChip({
   );
 }
 
-/** The poster's diameter and the gap to the chip. Sum + ring = TALE_W. */
-const TALE_SIZE = 36;
-const TALE_GAP = 4;
+/**
+ * The poster's diameter and the gap to the chip; together they are TALE_W,
+ * and the diameter is TALE_H. Sized in map-geometry.ts, where the reason
+ * lives: on a 344 px island with five places on one coast, a bigger bubble
+ * is a better photograph and a worse map.
+ */
+const TALE_SIZE = TALE_H;
+const TALE_GAP = TALE_W - TALE_H;
 
 /**
  * The photograph somebody took here, on the pin.

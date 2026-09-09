@@ -78,14 +78,29 @@ export function tilt(x: number, y: number): { x: number; y: number } {
 export const CHIP = { halfWidth: 46, height: 24, stem: 16 } as const;
 
 /**
- * How much wider a pin gets when it wears a story's poster.
+ * How much wider a pin gets when it wears a story's poster: the 26 px bubble
+ * plus the 4 px gap.
  *
- * The bubble hangs off the chip's LEFT, so the growth is one-sided: 38 px of
- * photograph and ring plus the 4 px gap. De-collision reserves it on both
- * sides anyway, because over-reserving pushes two chips a little further
- * apart and under-reserving puts a photograph on top of a name.
+ * The bubble hangs off the chip's LEFT, so the growth is one-sided.
+ * De-collision reserves it on both sides anyway, because over-reserving
+ * pushes two chips a little further apart and under-reserving puts a
+ * photograph on top of a name.
  */
-export const TALE_W = 42;
+export const TALE_W = 30;
+
+/**
+ * And how much TALLER, which is the number the size was CHOSEN for.
+ *
+ * The bubble is round, so it stands proud of the chip at both ends, and this
+ * map is 344 px with five real places on one coastline - Chaweng, Fisherman's
+ * and Lamai already share a band barely wider than three chips. A 40 px bubble
+ * made that band impossible and squeezed the middle pin into both its
+ * neighbours; at 36 and at 30 its lower edge still crossed into the top of the
+ * chip below, measured in a real browser. At 26 it is the height of the chip
+ * beside it and the rhythm survives untouched. Bigger is a better photograph
+ * and a worse map, and the photograph is one tap away at full size.
+ */
+export const TALE_H = 26;
 
 export interface PlacedPin {
   place: ScoredPlace;
@@ -132,15 +147,22 @@ export function layoutPins(
     of numbers, a smudge once each of them carries a word.
   */
   const halfOf = (id: string) => CHIP.halfWidth + (storied.has(id) ? TALE_W : 0);
+  const heightOf = (id: string) => (storied.has(id) ? TALE_H : CHIP.height);
+
+  /*
+    And how far apart their MIDDLES have to be: half of each, plus the same
+    6 px of air the bare chips have always had. Two bare chips work out at
+    exactly the 30 this was before, so nothing moves on a map with no
+    posters on it.
+  */
+  const gapFor = (a: string, b: string) => (heightOf(a) + heightOf(b)) / 2 + 6;
 
   const collidingWith = (id: string, left: number, top: number): (PlacedPin & { anchor: number }) | undefined =>
     placed.find(
       (other) =>
         Math.abs(other.left - left) < halfOf(id) + halfOf(other.place.id) &&
-        Math.abs(other.top - top) < CHIP.height + 6,
+        Math.abs(other.top - top) < gapFor(id, other.place.id),
     );
-
-  const STEP = CHIP.height + 6;
 
   for (const place of ordered) {
     const flat = project(place.lat, place.lng);
@@ -165,14 +187,36 @@ export function layoutPins(
     // The direction is decided against the clashing pin's TRUE position, not
     // its drawn one. Comparing against a chip that has itself been nudged
     // compounds one displacement into the next.
-    const inView = (t: number) => t >= CHIP.height && t <= height - CHIP.height;
+    const inView = (t: number) => t >= heightOf(place.id) && t <= height - CHIP.height;
+    /*
+      Every landing spot tried, so a chip with nowhere to go is spotted.
+
+      Three pins on one stretch of coast, each wanting 46 px of air, do not
+      fit in the 92 px between the outer two - so the middle one is pushed up
+      into the top neighbour, down into the bottom one, and up again until
+      the guard runs out, leaving it exactly on top of whichever it bounced
+      off last. Sitting on a neighbour is the worst of the outcomes; sitting
+      midway between them is the best available, and it keeps the north-south
+      order, because midway between two pins is where geography wanted it.
+    */
+    const tried: number[] = [];
     for (let guard = 0; guard < 24; guard += 1) {
       const clash = collidingWith(place.id, left, top);
       if (!clash) break;
       const pushDown = anchorTop >= clash.anchor;
-      const wanted = pushDown ? clash.top + STEP : clash.top - STEP;
+      // The push is exactly the clearance the pair needs, so a pin wearing a
+      // poster is moved far enough in ONE step. A fixed step shorter than the
+      // requirement lands the chip back inside the same clash.
+      const step = gapFor(place.id, clash.place.id);
+      const away = pushDown ? clash.top + step : clash.top - step;
       // Never let a chip escape the viewport; reverse if it would.
-      top = inView(wanted) ? wanted : (pushDown ? clash.top - STEP : clash.top + STEP);
+      const wanted = inView(away) ? away : (pushDown ? clash.top - step : clash.top + step);
+      if (tried.includes(wanted)) {
+        top = (Math.min(...tried) + Math.max(...tried)) / 2;
+        break;
+      }
+      tried.push(wanted);
+      top = wanted;
     }
 
     placed.push({ place, left, top, anchor: anchorTop });
