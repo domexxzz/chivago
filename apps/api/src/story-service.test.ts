@@ -344,7 +344,8 @@ describe('the switch that takes the queue away', () => {
 
   test('on: nothing is left waiting in the console queue', async () => {
     await withAuto(() => submit());
-    assert.deepEqual(pendingStories(db, T), []);
+    // The campus host, which is the one that would see a pending clip here.
+    assert.deepEqual(pendingStories(db, 'h-ku', T), []);
   });
 
   test('on: the door still shuts, because that is a different question', async () => {
