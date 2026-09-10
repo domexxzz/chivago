@@ -49,7 +49,7 @@ export function ReviewsBlock({
   justCheckedIn: boolean;
   onToast: (msg: string) => void;
   onPointsChanged: () => void;
-  onCheckIn?: () => Promise<void>;
+  onCheckIn?: () => Promise<{ ok: boolean; error?: string } | void>;
   checkInBusy?: boolean;
 }) {
   const [reviews, setReviews] = React.useState<PlaceReview[]>([]);
@@ -365,7 +365,7 @@ export function ComposeSheet({
   onClose: () => void;
   onSaved: (message: string) => void;
   onWithdrawn: () => void;
-  onCheckIn?: () => Promise<void>;
+  onCheckIn?: () => Promise<{ ok: boolean; error?: string } | void>;
   checkInBusy?: boolean;
 }) {
   const [rating, setRating] = React.useState(existing?.rating ?? 0);
@@ -373,12 +373,17 @@ export function ComposeSheet({
   const [media, setMedia] = React.useState<PickedMedia | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [checkingIn, setCheckingIn] = React.useState(false);
+  const [checkInError, setCheckInError] = React.useState<string | null>(null);
 
   const handleCheckIn = async () => {
     if (!onCheckIn) return;
     setCheckingIn(true);
+    setCheckInError(null);
     try {
-      await onCheckIn();
+      const res = await onCheckIn();
+      if (res && !res.ok && res.error) {
+        setCheckInError(res.error);
+      }
     } finally {
       setCheckingIn(false);
     }
@@ -390,6 +395,7 @@ export function ComposeSheet({
     setRating(existing?.rating ?? 0);
     setBody(existing?.body ?? '');
     setMedia(null);
+    setCheckInError(null);
   }, [visible, existing]);
 
   /*
@@ -491,6 +497,11 @@ export function ComposeSheet({
                     height={40}
                     style={{ marginTop: 10 }}
                   />
+                ) : null}
+                {checkInError ? (
+                  <Body size={12} colour={color.accent2} style={{ marginTop: 8 }}>
+                    {checkInError}
+                  </Body>
                 ) : null}
               </View>
             ) : null}

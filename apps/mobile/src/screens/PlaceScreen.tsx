@@ -87,16 +87,17 @@ export function PlaceScreen({
    * The phone never decides whether it is close enough - a client that judges
    * its own geofence is a client that can be told to lie.
    */
-  const checkIn = async () => {
+  const checkIn = async (): Promise<{ ok: boolean; error?: string }> => {
     setBusy(true);
     const perm = await Location.requestForegroundPermissionsAsync();
     if (!perm.granted) {
       setBusy(false);
-      onToast('Location permission is needed to check in here.');
+      const msg = 'Location permission is needed to check in here.';
+      onToast(msg);
       // A declined permission is the commonest way the phone cannot prove a
       // visit. The other half is offered here too.
       setOfferNote(true);
-      return;
+      return { ok: false, error: msg };
     }
     // A fix that times out or fails must release the button, not strand it.
     let pos: Location.LocationObject;
@@ -104,9 +105,10 @@ export function PlaceScreen({
       pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
     } catch {
       setBusy(false);
-      onToast(t(strings.checkin.noFix));
+      const msg = t(strings.checkin.noFix);
+      onToast(msg);
       setOfferNote(true);
-      return;
+      return { ok: false, error: msg };
     }
     // The fix's own accuracy and mock flag travel with it - the second
     // signal the server reads. See docs/30.
@@ -117,7 +119,11 @@ export function PlaceScreen({
       mocked: pos.mocked ?? false,
     });
     setBusy(false);
-    if (!res.ok) { onToast(res.error); setOfferNote(true); return; }
+    if (!res.ok) {
+      onToast(res.error);
+      setOfferNote(true);
+      return { ok: false, error: res.error };
+    }
     // Also the gate on reviewing: a check-in is what makes one writable, so
     // the review block must open in the same beat rather than on a reload.
     setCheckedIn(true);
@@ -133,6 +139,7 @@ export function PlaceScreen({
     onToast([line, ...fresh.map((m) => t(strings.medals.justEarned(t(m.name))))].join(' · '));
     if (fresh.length > 0) medals.reload();
     if (res.data.awarded) onPointsChanged();
+    return { ok: true };
   };
 
   /**
