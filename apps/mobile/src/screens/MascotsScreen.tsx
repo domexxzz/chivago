@@ -110,7 +110,7 @@ export function MascotsScreen({
             marginHorizontal: gutter,
             marginTop: 4,
             marginBottom: 12,
-            borderRadius: radius.lg,
+            borderRadius: radius.md,
             overflow: 'hidden',
             backgroundColor: color.surface,
             borderWidth: 1,
@@ -121,7 +121,7 @@ export function MascotsScreen({
         <View style={{ position: 'relative' }}>
           <Image
             source={{ uri: mascotBeachUri(now) }}
-            style={{ width: '100%', height: 165 }}
+            style={{ width: '100%', aspectRatio: 16 / 10 }}
             resizeMode="cover"
             accessibilityLabel="ChivaGo companions on Koh Samui beach"
           />

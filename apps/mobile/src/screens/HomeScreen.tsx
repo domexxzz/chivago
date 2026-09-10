@@ -617,7 +617,7 @@ function MascotHeroCard({
           shadow.card,
           {
             backgroundColor: color.surface,
-            borderRadius: radius.lg,
+            borderRadius: radius.md,
             overflow: 'hidden',
             borderWidth: 1,
             borderColor: color.neutral300,
@@ -627,7 +627,7 @@ function MascotHeroCard({
         <View style={{ position: 'relative' }}>
           <Image
             source={{ uri: mascotBeachUri(now) }}
-            style={{ width: '100%', height: 155 }}
+            style={{ width: '100%', aspectRatio: 16 / 10 }}
             resizeMode="cover"
             accessibilityLabel="ChivaGo companions on Koh Samui beach"
           />
