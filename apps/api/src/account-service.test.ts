@@ -1,4 +1,7 @@
 import { strict as assert } from 'node:assert';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { test, describe, beforeEach } from 'node:test';
 
 import { openTestDb, type DB } from './db.ts';
@@ -15,6 +18,33 @@ const later = (ms: number) => new Date(T0.getTime() + ms);
 beforeEach(() => { db = openTestDb(); });
 
 describe('a device proves who it is, rather than claiming it', () => {
+  /*
+    A replica must still be able to authenticate.
+
+    resolveDevice touches last_seen_at, and under LiteFS a replica's
+    filesystem refuses that write. Before this it threw, and the whole
+    signed-in surface answered `disk I/O error` on whichever machine was not
+    primary — two reads in six, measured on the staging app.
+  */
+  test('a read-only replica still resolves a key, it just records no timestamp', () => {
+    const { deviceKey } = registerDevice(db, { label: 'phone' });
+    const before = (db.prepare('SELECT last_seen_at FROM device_keys').get() as
+      unknown as { last_seen_at: string }).last_seen_at;
+
+    const dir = mkdtempSync(join(tmpdir(), 'litefs-'));
+    writeFileSync(join(dir, '.primary'), 'some-other-machine');
+    process.env.LITEFS_DIR = dir;
+    try {
+      assert.ok(resolveDevice(db, deviceKey), 'a replica must still let people in');
+      const after = (db.prepare('SELECT last_seen_at FROM device_keys').get() as
+        unknown as { last_seen_at: string }).last_seen_at;
+      assert.equal(after, before, 'and writes nothing while it does');
+    } finally {
+      delete process.env.LITEFS_DIR;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   test('registering issues a key that resolves back to its own user', () => {
     const { userId, deviceKey } = registerDevice(db, { now: T0 });
     assert.equal(resolveDevice(db, deviceKey, T0), userId);

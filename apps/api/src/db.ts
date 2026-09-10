@@ -12,6 +12,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { migrate } from './migrations.ts';
+import { isPrimary } from './primary.ts';
 
 export type DB = DatabaseSync;
 
@@ -238,12 +239,56 @@ export function openDb(path = process.env.CHIVAGO_DB ?? './data/chivago.db'): DB
   if (instance) return instance;
   if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
   const db = new DatabaseSync(path);
-  db.exec(SCHEMA);
-  db.exec(SCHEMA_2);
-  const applied = migrate(db);
-  if (applied.length > 0) console.log('[chivago] migrated:', applied.join(', '));
+
+  /*
+    Only the writer builds the schema.
+
+    Under LiteFS every replica's filesystem refuses writes, so a replica
+    running `db.exec(SCHEMA)` at boot fills its log with `read only replica`
+    and, worse, looks like it started cleanly. It waits for the primary's
+    tables to replicate instead.
+
+    Without LiteFS `isPrimary()` is true and this is exactly what it always
+    was - a single machine on a volume migrating itself.
+  */
+  if (isPrimary()) {
+    db.exec(SCHEMA);
+    db.exec(SCHEMA_2);
+    const applied = migrate(db);
+    if (applied.length > 0) console.log('[chivago] migrated:', applied.join(', '));
+  } else {
+    awaitSchema(db);
+  }
+
   instance = db;
   return db;
+}
+
+/**
+ * Block until the primary's tables arrive.
+ *
+ * A replica can open its database before replication has delivered anything,
+ * and an empty file answers every query with "no such table" - which reads
+ * downstream as an empty island rather than as a node that is not ready.
+ * Better to hold the boot for a few seconds than to serve nothing
+ * confidently.
+ */
+function awaitSchema(db: DB, tries = 60): void {
+  for (let i = 0; i < tries; i += 1) {
+    try {
+      db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='places'").get();
+      const ready = db.prepare(
+        "SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='places'",
+      ).get() as unknown as { n: number };
+      if (ready.n > 0) {
+        if (i > 0) console.log(`[chivago] replica: schema arrived after ${i * 250}ms`);
+        return;
+      }
+    } catch { /* not there yet */ }
+    // Synchronous on purpose: nothing may query this database until it is real.
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+  }
+  console.warn('[chivago] replica: schema never arrived; serving whatever is here');
 }
 
 /** Fresh in-memory database, for tests. Never memoised. */

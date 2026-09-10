@@ -23,6 +23,7 @@
  */
 
 import { createHash, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
+import { isPrimary } from './primary.ts';
 import { row, type DB } from './db.ts';
 
 /** Prefixed so a leaked key is greppable in a log and obvious in a paste. */
@@ -140,10 +141,28 @@ export function resolveDevice(db: DB, key: string | undefined, now = new Date())
   );
   if (!found || found.revoked_at !== null) return null;
 
-  // Last seen is best-effort telemetry for "which of my phones is this".
-  // It must never decide whether the request is allowed.
-  db.prepare('UPDATE device_keys SET last_seen_at = ? WHERE key_hash = ?')
-    .run(now.toISOString(), hashToken(key));
+  /*
+    Last seen is best-effort telemetry for "which of my phones is this", and
+    the line above has always said so — but it was not best-effort in the
+    code: the write threw and the request 500ed with it.
+
+    Under LiteFS that is not hypothetical. EVERY authenticated GET comes
+    through here, and a replica cannot write, so the whole signed-in surface
+    answered `disk I/O error` on whichever machine was not primary. Measured
+    on the staging app: two reads in six.
+
+    So it is skipped where it cannot work, and swallowed where it merely
+    fails. A missing timestamp on a device list is worth nothing next to a
+    read that works.
+  */
+  if (isPrimary()) {
+    try {
+      db.prepare('UPDATE device_keys SET last_seen_at = ? WHERE key_hash = ?')
+        .run(now.toISOString(), hashToken(key));
+    } catch (e) {
+      console.warn('[chivago] last-seen not recorded:', (e as Error).message);
+    }
+  }
   return found.user_id;
 }
 

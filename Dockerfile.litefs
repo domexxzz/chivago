@@ -57,6 +57,8 @@ COPY litefs.yml /etc/litefs.yml
 # The database now lives INSIDE the FUSE mount. /data still holds the LiteFS
 # data directory and the legacy file the import lifts across.
 ENV CHIVAGO_DB=/litefs/chivago.db
+# Tells the app to ask LiteFS whether it may write. Absent = no LiteFS.
+ENV LITEFS_DIR=/litefs
 ENV CHIVAGO_WEB_DIR=/repo/web
 ENV PORT=8787
 ENV NODE_ENV=production

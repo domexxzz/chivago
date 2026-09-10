@@ -83,6 +83,7 @@ import { sweep } from './escalation-service.ts';
 import { sweepOverdue } from './sla-service.ts';
 import { webhookTransport } from './push/webhook.ts';
 import { hostOwnsQuest, resolveSession, readCookie, SESSION_COOKIE } from './host-auth.ts';
+import { onPrimary } from './primary.ts';
 import { MAX_BYTES, MAX_PHOTOS_PER_PROOF, storePhoto, UnsupportedUpload } from './uploads.ts';
 import type { Voucher, WellnessProfile } from '@chivago/core';
 
@@ -111,7 +112,7 @@ function flushNotifications(): void {
  * long enough that a dead upstream is not hammered.
  */
 const DISPATCH_INTERVAL_MS = 60_000;
-const dispatchTimer = setInterval(flushNotifications, DISPATCH_INTERVAL_MS);
+const dispatchTimer = setInterval(onPrimary(flushNotifications), DISPATCH_INTERVAL_MS);
 
 /**
  * The overdue sweep.
@@ -126,12 +127,12 @@ const dispatchTimer = setInterval(flushNotifications, DISPATCH_INTERVAL_MS);
  */
 const SLA_INTERVAL_MS = 3_600_000;
 // Seven days on, a story and its files go. Hourly; nobody is waiting on it.
-const storyTimer = setInterval(() => {
+const storyTimer = setInterval(onPrimary(() => {
   try { expireStories(db); } catch (e) { console.error('[chivago] story expiry:', (e as Error).message); }
-}, 3_600_000);
+}), 3_600_000);
 storyTimer.unref();
 
-const slaTimer = setInterval(() => {
+const slaTimer = setInterval(onPrimary(() => {
   try {
     const summary = sweepOverdue(db);
     if (summary.proofsChased + summary.appealsChased > 0) {
@@ -144,7 +145,7 @@ const slaTimer = setInterval(() => {
     // process, and the worst case is that somebody is told late twice.
     console.error('[chivago] overdue sweep failed', err);
   }
-}, SLA_INTERVAL_MS);
+}), SLA_INTERVAL_MS);
 // Never hold the process open just to run the notification loop.
 dispatchTimer.unref?.();
 slaTimer.unref?.();
@@ -163,7 +164,7 @@ const oncall = webhookTransport();
  * call 1669" is that it arrives while it still matters.
  */
 const ESCALATION_INTERVAL_MS = 30_000;
-const escalationTimer = setInterval(() => {
+const escalationTimer = setInterval(onPrimary(() => {
   void sweep(db, oncall)
     .then((summary) => {
       if (summary.rungsFired > 0) {
@@ -178,7 +179,7 @@ const escalationTimer = setInterval(() => {
       // everybody, and breaking silence is this module's entire job.
       console.error('[chivago] escalation sweep failed', err);
     });
-}, ESCALATION_INTERVAL_MS);
+}), ESCALATION_INTERVAL_MS);
 escalationTimer.unref?.();
 
 app.use('*', logger());

@@ -53,7 +53,11 @@ lease:
   # Only machines in the primary region may hold the lease. A write that had
   # to cross an ocean to reach the primary is worse than no replica at all.
   candidate: ${FLY_REGION == PRIMARY_REGION}
-  promote: true
+  # NOT `promote: true`. With two candidates in one region that made the
+  # machine booting second seize the lease from the machine already holding
+  # it — a handoff on every single deploy, for nothing. False means take the
+  # lease when it is free, which is what failover actually needs.
+  promote: false
   advertise-url: "http://${FLY_ALLOC_ID}.vm.${FLY_APP_NAME}.internal:20202"
   consul:
     url: "${FLY_CONSUL_URL}"

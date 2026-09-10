@@ -1,0 +1,62 @@
+# chivago-ha — the LiteFS proving ground.
+#
+# A separate app on purpose. Everything here is a thing that cannot be tested
+# on Windows and barely on one machine: a FUSE mount, a Consul lease, a proxy
+# that decides what a write is, and two machines that have to agree on which
+# of them is allowed to write.
+#
+# chivago.fly.dev keeps its own fly.toml and its own volume, and nothing in
+# this file can reach it.
+#
+#   flyctl deploy -c fly.ha.toml --remote-only
+
+app = "chivago-ha"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile.litefs"
+
+[env]
+  PORT = "8787"
+  # PRIMARY_REGION is read by litefs.yml: only machines here may be promoted.
+  PRIMARY_REGION = "sin"
+  # Inside the FUSE mount, not on the volume. The volume holds LiteFS's own
+  # data directory, and the legacy file the import lifts across.
+  CHIVAGO_DB = "/litefs/chivago.db"
+  CHIVAGO_UPLOADS = "/data/uploads"
+  CHIVAGO_WEB_DIR = "/repo/web"
+  CHIVAGO_ORIGINS = "https://chivago-ha.fly.dev"
+  CHIVAGO_FENCE_OFF = "1"
+  CHIVAGO_OPENING_TRIP = "0"
+  CHIVAGO_OPENING_GREEN = "0"
+  CHIVAGO_REGISTRATIONS_PER_HOUR = "0"
+  CHIVAGO_STORIES_AUTO_APPROVE = "1"
+
+[mounts]
+  source = "chivago_ha_data"
+  destination = "/data"
+
+[http_service]
+  # 8080 is litefs's proxy, NOT the app. Pointing this at 8787 would bypass
+  # the lease and let a replica answer a write locally, which is the one
+  # thing this whole arrangement exists to prevent.
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  # Two, because one machine running LiteFS is all of the cost and none of
+  # the point.
+  min_machines_running = 2
+
+  [[http_service.checks]]
+    # Longer than the plain app's: a replica has to mount FUSE and catch up
+    # with the primary's log before it can answer honestly.
+    grace_period = "30s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "1024mb"
