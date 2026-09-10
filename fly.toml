@@ -49,6 +49,7 @@ primary_region = "sin"
   #
   # To reopen it: CHIVAGO_FENCE_OFF = "1" and redeploy. The band comes back
   # with it, and that is not negotiable.
+  CHIVAGO_FENCE_OFF = "1"
   # No opening balance in production. The pilot's 320 Trip / 1,240 Green is a
   # gift to try the app with, and a gift handed to every unauthenticated
   # registration is a voucher printer. Green in particular is the currency an

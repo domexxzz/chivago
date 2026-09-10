@@ -32,8 +32,9 @@
  */
 
 import React from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import { Animated, Easing, Image, Platform, Pressable, ScrollView, View } from 'react-native';
 import { areaOfProvince, inArea, type Area, type AreaKey } from '@chivago/core';
+import { useReduceMotion } from '../components/reduce-motion.ts';
 import { setArea, useArea } from '../state/area.ts';
 import { photoUri } from '../api/photos.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
@@ -409,6 +410,11 @@ function Doors({
   );
 }
 
+const CARD_WIDTH = 172;
+const CARD_GAP = 12;
+const ITEM_WIDTH = CARD_WIDTH + CARD_GAP;
+const MARQUEE_SPEED_PX_PER_SEC = 35;
+
 function Places({
   places, onOpenMap, onOpenPlace,
 }: { places: Async<ScoredPlace[]>; onOpenMap: () => void; onOpenPlace: (id: string) => void }) {
@@ -421,6 +427,8 @@ function Places({
   // order that changes when somebody walks two streets is a claim, and every
   // other number on this screen names itself.
   const list = React.useMemo(() => nearestFirst(served, here), [served, here]);
+  const still = useReduceMotion();
+
   // Warm the photographs while there is signal: the place screen at the
   // mangrove opens off the cache, not off a stalled request. Keyed to the
   // SERVED list, not the sorted one - the set of photographs to warm is the
@@ -429,6 +437,46 @@ function Places({
   React.useEffect(() => {
     for (const p of served) if (p.photo) void Image.prefetch(photoUri(p.photo.url)).catch(() => {});
   }, [served]);
+
+  // Ensure the base sequence has enough cards to loop smoothly without gaps across wide viewports.
+  const sequence = React.useMemo(() => {
+    if (list.length === 0) return [];
+    let s = list;
+    while (s.length < 5) {
+      s = [...s, ...list];
+    }
+    return s;
+  }, [list]);
+
+  const oneSetWidth = sequence.length * ITEM_WIDTH;
+  const loopCards = React.useMemo(() => [...sequence, ...sequence, ...sequence], [sequence]);
+
+  const anim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    if (still || list.length < 2) {
+      anim.setValue(0);
+      return undefined;
+    }
+    const duration = (oneSetWidth / MARQUEE_SPEED_PX_PER_SEC) * 1000;
+    anim.setValue(0);
+    const loop = Animated.loop(
+      Animated.timing(anim, {
+        toValue: 1,
+        duration,
+        easing: Easing.linear,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [anim, oneSetWidth, list.length, still]);
+
+  const translateX = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [gutter, gutter - oneSetWidth],
+  });
+
   if (list.length === 0) return null;
   return (
     <View style={{ paddingTop: 22 }}>
@@ -438,9 +486,36 @@ function Places({
         note={here ? t(strings.place.nearestFirst) : undefined}
         onSeeAll={onOpenMap}
       />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: gutter, gap: 12 }}>
-        {list.map((p) => <PlaceCard key={p.id} place={p} here={here} onPress={() => onOpenPlace(p.id)} />)}
-      </ScrollView>
+      {list.length < 2 || still ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: gutter, gap: CARD_GAP, paddingVertical: 6 }}
+        >
+          {list.map((p) => (
+            <PlaceCard key={p.id} place={p} here={here} onPress={() => onOpenPlace(p.id)} />
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={{ overflow: 'hidden', paddingVertical: 6 }}>
+          <Animated.View
+            style={{
+              flexDirection: 'row',
+              gap: CARD_GAP,
+              transform: [{ translateX }],
+            }}
+          >
+            {loopCards.map((p, index) => (
+              <PlaceCard
+                key={`${p.id}-${index}`}
+                place={p}
+                here={here}
+                onPress={() => onOpenPlace(p.id)}
+              />
+            ))}
+          </Animated.View>
+        </View>
+      )}
     </View>
   );
 }
