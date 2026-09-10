@@ -18,6 +18,7 @@ import {
   forecastPrice, islandDay,
   outlookAhead, planDay, progressionFor, routeBiasFor, smartRoute, summarise,
   areaByKey, inArea, isAreaKey, medalsView, type ExploredPlace,
+  SEED_QUESTS, boardFeed, monsterState, monstersAt,
 } from '@chivago/core';
 import snapshot from './fixtures.json';
 
@@ -423,6 +424,66 @@ export function installDemoServer(apiBase: string): void {
           .map((id): ExploredPlace => ({ placeId: id, firstAt: now, how: 'checkin' }));
         return answer(medalsView([...explored, ...mine], places));
       }
+      /*
+        The island's monsters, computed rather than listed.
+
+        `monstersAt` is the same function the server calls, over this demo's
+        own air readings and the real seeded quests. The fixture's AQI is 12
+        to 24, well under the 51 that summons smog, so none stands — which is
+        the correct answer and the screen has words for it. A plastic ghost
+        appears wherever a seeded clean-up does, exactly as it would live.
+
+        Air is 'estimated' because that is what it is here: a captured
+        snapshot, not a live reading. Only an observation may summon a
+        monster, so calling it anything else would be inventing one.
+      */
+      if (path.startsWith('/areas/') && path.endsWith('/monsters')) {
+        const key = path.slice('/areas/'.length, -'/monsters'.length);
+        if (!isAreaKey(key)) return answer({ monsters: [] });
+        const area = areaByKey(key);
+        const places = (state.routes['/places'] as {
+          id: string; name: { en: string; th: string }; lat: number; lng: number;
+          metrics: { aqi: number };
+        }[]).filter((p) => inArea(area, p));
+
+        const cleanups = new Set(
+          SEED_QUESTS
+            .filter((q) => q.esgPillar === 'environmental')
+            .map((q) => places.find((p) => p.lat === q.lat && p.lng === q.lng)?.id)
+            .filter((id): id is string => id !== undefined),
+        );
+
+        const monsters = places.flatMap((p) =>
+          monstersAt({
+            placeId: p.id,
+            aqi: p.metrics.aqi,
+            aqiProvenance: 'estimated',
+            hasOpenCleanup: cleanups.has(p.id),
+          }).map((m) => ({
+            key: m.key,
+            placeId: p.id,
+            placeName: p.name,
+            because: m.because,
+            // No deeds are seeded against a monster, so every bar starts at
+            // nothing. Pushing one back in the demo is then a real change.
+            ...monsterState([], new Date()),
+          })));
+        return answer({ monsters });
+      }
+
+      /*
+        The board, from what this demo actually holds.
+
+        `boardFeed` is the real one. The demo seeds no stories and no reviews,
+        so it returns an empty board — and `board.ts` is explicit that an area
+        where nobody has posted has an empty board and the screen says so in
+        words. Filling it with a placeholder would be the one thing that file
+        forbids.
+      */
+      if (path.startsWith('/areas/') && path.endsWith('/board')) {
+        return answer({ open: false, entries: boardFeed([]) });
+      }
+
       if (path === '/wellness/balance') return answer(balanceNow());
       if (path === '/companions') {
         // The real derivation over this session's own check-ins: eggs appear
