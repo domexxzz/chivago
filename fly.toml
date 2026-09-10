@@ -31,16 +31,24 @@ primary_region = "sin"
   # needs no cross-origin grant at all, and a wildcard on a deployment with a
   # host console behind it is a wildcard on the console too.
   CHIVAGO_ORIGINS = "https://chivago.fly.dev"
-  # THE GEOFENCE IS OPEN ON THIS DEPLOYMENT.
+  # THE GEOFENCE IS CLOSED. Opened 9 September for testing, shut again on the
+  # 10th, the day before the pitch.
   #
-  # Check-ins, quest arrivals and stories are accepted from anywhere by
-  # anyone, and the four presence checks (mock flag, accuracy, travel, dwell)
-  # do not run. Set here rather than as a secret so it is visible in the
-  # repository and dated in `git log`: turning this on is a decision, not a
-  # setting. The app is required to wear a red band while it is on and to
-  # stop calling its visitor counts geofenced - see docs/30 and
-  # apps/api/src/fence.ts. Delete this line and redeploy to close it.
-  CHIVAGO_FENCE_OFF = "1"
+  # Closing it is what takes the red band off the top of the app: the band is
+  # not decoration, it is the second half of the switch (apps/api/src/fence.ts
+  # rule 2). Removing the band while the fence stayed open would have left
+  # every review saying it came from somebody the app confirmed was standing
+  # there - a false statement about evidence, at a pitch whose whole claim is
+  # that its evidence is real.
+  #
+  # It works at the venue because the venue is seeded. Standing in Building 13
+  # puts three places inside the 250 m radius - the building itself, the
+  # library at 188 m and the campus park at 210 m - and the viewpoint at 293 m,
+  # the sports field at 371 m and the shops at 656 m are a short walk, which
+  # earns a measured leg and hatches an egg.
+  #
+  # To reopen it: CHIVAGO_FENCE_OFF = "1" and redeploy. The band comes back
+  # with it, and that is not negotiable.
   # No opening balance in production. The pilot's 320 Trip / 1,240 Green is a
   # gift to try the app with, and a gift handed to every unauthenticated
   # registration is a voucher printer. Green in particular is the currency an
