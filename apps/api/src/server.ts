@@ -1735,10 +1735,44 @@ if (webDir !== undefined && existsSync(join(webDir, 'index.html'))) {
   // rather than depending on how the server happened to be launched.
   const root = relative(process.cwd(), webDir).split(sep).join('/') || '.';
 
-  app.get('/', serveStatic({ path: `${root}/index.html` }));
-  app.use('/_expo/*', serveStatic({ root }));
-  app.use('/assets/*', serveStatic({ root }));
-  app.get('/favicon.ico', serveStatic({ path: `${root}/favicon.ico` }));
+  /*
+    How long a static file may be kept.
+
+    `serveStatic` sends no cache header of its own, so before this every open
+    AND every refresh re-downloaded the whole bundle - 681 KB over the wire
+    even with brotli on. Measured at 150 concurrent readers the CPU was fine;
+    it is the bundle, on venue wifi, that falls over first.
+
+    Expo stamps a content hash into bundle and font filenames, so those can be
+    kept forever: a new build is a new name, and there is nothing to
+    invalidate. The place photographs are NOT hashed (`ku-park.jpg`), so they
+    get an hour - long enough to carry a room full of people opening the app
+    at once, short enough that replacing one is not a support call.
+
+    index.html is `no-cache`, which does not mean "do not store": it means
+    revalidate every time. That is what makes a deploy visible immediately
+    while still costing one 304 rather than 1.4 KB.
+  */
+  const HASHED = /[.-][0-9a-f]{16,}\.[a-z0-9]+$/i;
+  const cacheFor = (file: string): string =>
+    (HASHED.test(file) ? 'public, max-age=31536000, immutable' : 'public, max-age=3600');
+
+  app.get('/', serveStatic({
+    path: `${root}/index.html`,
+    onFound: (_p, c) => { c.header('cache-control', 'no-cache'); },
+  }));
+  app.use('/_expo/*', serveStatic({
+    root,
+    onFound: (p, c) => { c.header('cache-control', cacheFor(p)); },
+  }));
+  app.use('/assets/*', serveStatic({
+    root,
+    onFound: (p, c) => { c.header('cache-control', cacheFor(p)); },
+  }));
+  app.get('/favicon.ico', serveStatic({
+    path: `${root}/favicon.ico`,
+    onFound: (_p, c) => { c.header('cache-control', 'public, max-age=86400'); },
+  }));
 
   console.log(`[chivago] serving the web app from ${webDir}`);
 }
