@@ -29,7 +29,7 @@
 import * as THREE from 'three';
 import type { CompanionStage } from '@chivago/core';
 import type { CreatureKey } from '../Creature.tsx';
-import { LEAF_GREEN, headRatio, type Look } from './rig.ts';
+import { LEAF_GREEN, fowlPose, headRatio, type Look } from './rig.ts';
 import { at, capsule, cone, cylinder, eyes, group, mat, shadowed, sphere, tube, type Mat, type Rig } from './primitives.ts';
 
 type Colours = Look['colours'];
@@ -309,7 +309,11 @@ function buildJunglefowl(c: Colours, w: Wear, hr: number): Rig {
     lg.push(ft);
   }
   const root = group(chest, front, ...wardrobe(w, STANDING_FIT), head, wave, other, ...wings, tail, ...lg);
-  return { root, body: chest, head, lids: f.lids, limbs: [wave, other, ...wings], tail, restY: 0 };
+  // Legs after the wings: `lg` is [leg, foot] for the left side then the
+  // right, which is what `companionIdle` steps with. Appending keeps the
+  // convention at the top of this file - limbs[0] waves, limbs[1] is the
+  // other hand - and leaves the wing indices where they were.
+  return { root, body: chest, head, lids: f.lids, limbs: [wave, other, ...wings, ...lg], tail, restY: 0 };
 }
 
 function buildOctopus(c: Colours, w: Wear, hr: number): Rig {
@@ -450,16 +454,48 @@ export function companionIdle(rig: Rig, key: CreatureKey, t: number, k: number, 
       break;
     }
     case 'red-junglefowl': {
-      const [, , wl, wr] = rig.limbs;
-      const flap = Math.sin(t * 2.2) * 0.05 * motion + Math.abs(Math.sin(k * Math.PI * 5)) * 0.9 * pulse;
-      if (wl) wl.rotation.z = -flap;
-      if (wr) wr.rotation.z = flap;
-      // The peck: down and back up on its own clock; the hop on a tap.
-      const peck = Math.max(0, Math.sin(t * 1.7)) ** 8;
-      rig.head.position.y = HEAD_Y - peck * 0.05 * motion;
-      rig.head.rotation.x += peck * 0.35 * motion;
-      rig.root.position.y = rig.restY + pulse * 0.3;
-      if (rig.tail) rig.tail.rotation.x = Math.sin(t * 0.9) * 0.08 * motion + pulse * 0.3;
+      /*
+        The one companion that has to move like the animal it is: everybody
+        watching has seen a chicken. `fowlPose` in rig.ts holds the whole
+        dance - the step, the head-hold, the burst of flight - in plain
+        numbers; this only hangs the rig on it.
+      */
+      const [, , wl, wr, legL, footL, legR, footR] = rig.limbs;
+      const pose = fowlPose(t, motion, { k, pulse });
+      // Metres, at the size this one is drawn: a hatchling's burst is a
+      // hatchling-sized burst, not an adult's with a smaller bird under it.
+      rig.root.position.y = rig.restY + pose.lift * rig.root.scale.x;
+      // The lean and the pitch go on the ROOT, not the chest. The root's
+      // origin is the ground between its feet, which is what a bird actually
+      // rocks about; leaning the chest alone would just wobble a sphere
+      // inside a bird that stayed put.
+      rig.root.rotation.z = pose.lean;
+      rig.root.rotation.x = pose.pitch;
+      // Left wing is limbs[2], built at -x, so it rises on a negative angle.
+      if (wl) wl.rotation.z = -pose.wing;
+      if (wr) wr.rotation.z = pose.wing;
+      // The head holds its place in the room while the body bobs under it,
+      // then thrusts. That is the whole reason a chicken reads as a chicken.
+      rig.head.position.y = HEAD_Y + pose.headLift;
+      rig.head.position.z = (rig.head.userData.baseZ ??= rig.head.position.z) + pose.headThrust;
+      /*
+        Beak stays level while the body tips under it - the same hold as the
+        bob, in the other axis.
+
+        SET, not `+=`. The shared look-at above eases the head toward the
+        pointer by a fraction of the gap each frame, so an offset added on
+        top of it every frame does not stay that size: it settles where the
+        easing pulls back exactly as hard, which is more than TWELVE TIMES
+        the offset. Nine degrees of body pitch came out as a bird with its
+        beak in the grass. Assigning costs the fowl the pointer's up-down
+        look, which it was not using - it does not sweep either.
+      */
+      rig.head.rotation.x = -pose.pitch * 0.6;
+      if (legL) legL.position.y = 0.13 + pose.footL;
+      if (footL) footL.position.y = 0.05 + pose.footL;
+      if (legR) legR.position.y = 0.13 + pose.footR;
+      if (footR) footR.position.y = 0.05 + pose.footR;
+      if (rig.tail) rig.tail.rotation.x = pose.tail;
       break;
     }
     case 'day-octopus': {

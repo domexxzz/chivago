@@ -305,3 +305,169 @@ export function speckles(layer: LayerKey, count = 22): { theta: number; phi: num
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Movement
+// ---------------------------------------------------------------------------
+
+/**
+ * How far a companion turns its head on its neck, in radians, either way.
+ *
+ * About 29 degrees. A neck is a joint with a limit, and any animation that
+ * forgets that stops looking like an animal at exactly the moment somebody
+ * is watching it closely.
+ */
+export const NECK_YAW = 0.5;
+
+// ---------------------------------------------------------------------------
+// The junglefowl's own movement
+// ---------------------------------------------------------------------------
+
+/**
+ * A bird has to move like a bird.
+ *
+ * Every other companion can get away with a sway and a blink. The junglefowl
+ * cannot: everyone watching has seen a chicken, so anything that is not one
+ * reads as wrong immediately - and the first version had it slowly winding
+ * its head round on its neck, which is an owl's trick and not even a real
+ * owl's.
+ *
+ * What a red junglefowl actually does, and what is below:
+ *
+ *   - It keeps its head STILL. The body bobs; the head holds its place in the
+ *     air and then snaps forward to a new one. That is why `headLift` runs
+ *     against `lift` - in the body's frame the head must move down as the
+ *     body moves up, so that in the room it does not move at all.
+ *   - It steps, one foot then the other, and sways with them.
+ *   - It flies in short explosive bursts - up to a branch, not across a
+ *     valley. Fast wings, a brief hang at the top, and down. Junglefowl roost
+ *     in trees, and this burst is how they get there.
+ *
+ * Plain numbers, in scene metres and radians, so the harness can hold the
+ * dance to its rules without a renderer: see creature-rig.test.ts.
+ */
+export interface FowlPose {
+  /** Metres the whole bird is off its resting height. Small dips are crouches. */
+  lift: number;
+  /** Radians the body leans left or right with the step. */
+  lean: number;
+  /** Radians the body pitches. Positive is beak-down. */
+  pitch: number;
+  /** Radians each wing swings up from the body. */
+  wing: number;
+  /** Metres the head thrusts forward, on top of its rest position. */
+  headThrust: number;
+  /** Metres the head sits above rest IN THE BODY'S FRAME - usually negative. */
+  headLift: number;
+  /** Radians the tail fans up. */
+  tail: number;
+  /** Metres each foot is off the ground. */
+  footL: number;
+  footR: number;
+  /** True while it is airborne under its own wings. */
+  flying: boolean;
+}
+
+/** One step of the dance, in seconds. A bird's bob is quick. */
+export const FOWL_STEP_S = 0.62;
+/** How often it takes off. Rare enough to be worth waiting for. */
+export const FOWL_FLIGHT_EVERY_S = 9;
+/** How long a burst lasts, take-off to landing. */
+export const FOWL_FLIGHT_S = 1.7;
+/** How high the burst goes, on an animal that stands about one metre. */
+export const FOWL_FLIGHT_APEX_M = 0.32;
+/** The deepest crouch or landing squash. Shallower than the legs are long. */
+export const FOWL_CROUCH_M = 0.035;
+
+const clamp01 = (n: number): number => Math.min(1, Math.max(0, n));
+
+/**
+ * Where the bird is at second `t`.
+ *
+ * `react` is the tap: `k` runs 0..1 through the reaction and `pulse` is its
+ * envelope. A tap always gets a flutter, whatever the bird was doing.
+ */
+export function fowlPose(
+  t: number, motion: number, react: { k: number; pulse: number } = { k: 0, pulse: 0 },
+): FowlPose {
+  const pose: FowlPose = {
+    lift: 0, lean: 0, pitch: 0, wing: 0.14, headThrust: 0, headLift: 0, tail: 0.06,
+    footL: 0, footR: 0, flying: false,
+  };
+  // Reduce-motion means still, and still means the resting pose - not a
+  // slower dance. Creature3D does not even start a loop in that state; this
+  // is the same answer for anything that asks anyway.
+  if (motion <= 0) return pose;
+
+  const cycle = t % FOWL_FLIGHT_EVERY_S;
+  const dancing = FOWL_FLIGHT_EVERY_S - FOWL_FLIGHT_S;
+
+  if (cycle < dancing) {
+    // --- the dance -------------------------------------------------------
+    const step = cycle / FOWL_STEP_S;
+    const b = step % 1;                       // through one step
+    const bounce = Math.sin(Math.PI * b) ** 1.7;
+    const rightFoot = Math.floor(step) % 2 === 0;
+    pose.lift = bounce * 0.05;
+    // Two steps to a full sway, so it rocks rather than twitching.
+    pose.lean = Math.sin(Math.PI * step) * 0.11;
+    pose.pitch = bounce * 0.06;
+    pose.wing = 0.14 + bounce * 0.3;
+    pose.tail = 0.06 + bounce * 0.2;
+    pose.footL = rightFoot ? 0 : bounce * 0.05;
+    pose.footR = rightFoot ? bounce * 0.05 : 0;
+    // Head-hold: down in the body's frame by most of what the body rose, so
+    // it stays put in the room. Then the thrust, early and sharp.
+    pose.headLift = -bounce * 0.042;
+    pose.headThrust = Math.max(0, Math.sin(Math.PI * b * 2)) ** 4 * 0.035;
+  } else {
+    // --- the burst -------------------------------------------------------
+    const f = (cycle - dancing) / FOWL_FLIGHT_S;
+    const CROUCH = 0.14, LAND = 0.84;
+    if (f < CROUCH) {
+      // Gather. Wings back, head low, legs folding.
+      const u = f / CROUCH;
+      pose.lift = -FOWL_CROUCH_M * u;
+      pose.wing = 0.14 - u * 0.1;
+      pose.pitch = u * 0.1;
+      pose.headLift = -0.02 * u;
+    } else if (f < LAND) {
+      const u = (f - CROUCH) / (LAND - CROUCH);
+      // Fast up, a hang at the top, down: the exponent is what makes it a
+      // burst rather than a lob.
+      pose.lift = Math.sin(u * Math.PI) ** 0.75 * FOWL_FLIGHT_APEX_M;
+      pose.flying = true;
+      // Wings beat right through it, wide and quick.
+      pose.wing = 0.35 + Math.abs(Math.sin(f * Math.PI * 13)) * 0.95;
+      pose.pitch = Math.cos(u * Math.PI) * -0.16;
+      pose.tail = 0.3;
+      // Legs tuck as it rises and reach again on the way down.
+      const tuck = pose.lift / FOWL_FLIGHT_APEX_M * 0.06;
+      pose.footL = tuck;
+      pose.footR = tuck;
+      pose.headThrust = 0.02;
+    } else {
+      // Land: a small squash, wings folding, tail flicking down.
+      const v = clamp01((f - LAND) / (1 - LAND));
+      pose.lift = -FOWL_CROUCH_M * Math.sin(v * Math.PI);
+      pose.wing = 0.14 + (1 - v) * 0.5;
+      pose.tail = 0.06 + (1 - v) * 0.3;
+      pose.pitch = (1 - v) * 0.12;
+    }
+  }
+
+  // --- the tap -----------------------------------------------------------
+  // Folded on top of whatever it was doing, because a tap that only works
+  // between dance steps reads as the animal ignoring you.
+  if (react.pulse > 0) {
+    // The jump only if there is ground to push off. Stacked on a burst it
+    // put the bird half a metre up, out of the top of its own room.
+    if (!pose.flying) pose.lift += react.pulse * 0.22;
+    pose.wing += Math.abs(Math.sin(react.k * Math.PI * 7)) * 0.9 * react.pulse;
+    pose.tail += react.pulse * 0.25;
+    pose.headThrust += react.pulse * 0.02;
+  }
+  // Never through the floor, whatever the dip and the tap add up to.
+  pose.lift = Math.max(pose.lift, -FOWL_CROUCH_M);
+  return pose;
+}

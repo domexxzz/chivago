@@ -2,8 +2,8 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  COMPANION_HOUR, EVIDENCE_GREEN, HABITATS, LEAF_GREEN, LOOKS, REACTION_MS, headRatio, lightingFor, motionScale, placements,
-  speckles, stageScale,
+  COMPANION_HOUR, EVIDENCE_GREEN, FOWL_CROUCH_M, FOWL_FLIGHT_EVERY_S, FOWL_FLIGHT_S, HABITATS, LEAF_GREEN, LOOKS,
+  NECK_YAW, REACTION_MS, fowlPose, headRatio, lightingFor, motionScale, placements, speckles, stageScale,
 } from '../src/components/creature3d/rig.ts';
 import { SPECIES } from '@chivago/core';
 
@@ -181,5 +181,111 @@ describe('reduce-motion means still', () => {
   test('the motion scale is zero, not small', () => {
     assert.equal(motionScale(true), 0);
     assert.equal(motionScale(false), 1);
+  });
+});
+
+describe('the junglefowl moves like a bird', () => {
+  /*
+    The bird was the one that gave itself away. It used to turn its head
+    slowly round on its neck while it stood there - the shared look-at ran
+    against a yaw that never stopped growing - and it pecked at nothing on a
+    clock of its own. Everybody watching has seen a chicken, so it only had
+    to be slightly wrong to be obviously wrong.
+
+    What replaced it: a step, a head that holds still while the body bobs
+    under it, and a short burst of flight. These hold that to what a bird
+    can do.
+  */
+  const dance = (from = 0, to = FOWL_FLIGHT_EVERY_S * 3, step = 1 / 120) => {
+    const out: ReturnType<typeof fowlPose>[] = [];
+    for (let t = from; t < to; t += step) out.push(fowlPose(t, 1));
+    return out;
+  };
+
+  test('it never sinks through the floor, however deep the crouch', () => {
+    for (const p of dance()) assert.ok(p.lift >= -FOWL_CROUCH_M, `lift ${p.lift}`);
+    // Not even with a tap landing on top of the deepest part of the crouch.
+    for (let t = 0; t < FOWL_FLIGHT_EVERY_S * 3; t += 1 / 120) {
+      const p = fowlPose(t, 1, { k: 0.5, pulse: 1 });
+      assert.ok(p.lift >= -FOWL_CROUCH_M, `tapped lift ${p.lift}`);
+    }
+  });
+
+  test('it takes off, and it comes back down', () => {
+    const frames = dance(0, FOWL_FLIGHT_EVERY_S);
+    const airborne = frames.filter((p) => p.flying);
+    assert.ok(airborne.length > 0, 'it never left the ground');
+    // A burst, not a hover: less time in the air than the flight window,
+    // because the crouch and the landing are part of that window too.
+    assert.ok(airborne.length / frames.length < FOWL_FLIGHT_S / FOWL_FLIGHT_EVERY_S);
+    assert.equal(fowlPose(0, 1).flying, false, 'it starts on the ground');
+    assert.equal(fowlPose(FOWL_FLIGHT_EVERY_S - 0.01, 1).flying, false, 'it ends on the ground');
+    assert.ok(Math.max(...airborne.map((p) => p.lift)) > 0.25, 'the burst barely cleared the grass');
+  });
+
+  test('the wings beat for flight and only flick for the dance', () => {
+    const flying = dance(0, FOWL_FLIGHT_EVERY_S).filter((p) => p.flying).map((p) => p.wing);
+    // The dance window only: the frames just after a landing still have the
+    // wings half open, which is what folding them looks like.
+    const walking = dance(0, FOWL_FLIGHT_EVERY_S - FOWL_FLIGHT_S).map((p) => p.wing);
+    assert.ok(Math.max(...flying) > 1.2, 'the wings never opened');
+    assert.ok(Math.max(...walking) < 0.5, 'it is flapping while standing about');
+  });
+
+  test('the head holds its place while the body bobs under it', () => {
+    // A chicken stabilises its head: the body moves, the head does not. In
+    // the room that means lift + headLift stays nearly flat while lift does
+    // not. This is the single detail that makes it read as a chicken.
+    const frames = dance(0, FOWL_FLIGHT_EVERY_S - FOWL_FLIGHT_S);
+    const spread = (ns: number[]) => Math.max(...ns) - Math.min(...ns);
+    const body = spread(frames.map((p) => p.lift));
+    const head = spread(frames.map((p) => p.lift + p.headLift));
+    assert.ok(body > 0.03, 'the body is not bobbing at all');
+    assert.ok(head < body / 4, `the head rides the body: ${head} against ${body}`);
+    // And it thrusts. A head that only holds still is a head on a stick.
+    assert.ok(Math.max(...frames.map((p) => p.headThrust)) > 0.02);
+  });
+
+  test('it steps one foot at a time, and both of them get a turn', () => {
+    const frames = dance(0, FOWL_FLIGHT_EVERY_S - FOWL_FLIGHT_S);
+    assert.ok(frames.some((p) => p.footL > 0.02), 'the left foot never moved');
+    assert.ok(frames.some((p) => p.footR > 0.02), 'the right foot never moved');
+    for (const p of frames.filter((f) => !f.flying)) {
+      assert.ok(p.footL === 0 || p.footR === 0, 'both feet left the ground while walking');
+    }
+  });
+
+  test('a tap always gets an answer, whatever it was doing', () => {
+    for (const t of [0.2, 1.7, 4.3, FOWL_FLIGHT_EVERY_S - 0.6]) {
+      const calm = fowlPose(t, 1);
+      const tapped = fowlPose(t, 1, { k: 0.5, pulse: 1 });
+      assert.ok(tapped.wing > calm.wing, `no flutter at t=${t}`);
+      // The jump needs ground to push off. Mid-burst the wings answer and
+      // the height does not, which is both what a bird can do and what keeps
+      // it inside its own room.
+      if (calm.flying) assert.equal(tapped.lift, calm.lift, `jumped in mid-air at t=${t}`);
+      else assert.ok(tapped.lift > calm.lift, `no jump at t=${t}`);
+    }
+    assert.ok(
+      [0.2, 1.7, 4.3].some((t) => !fowlPose(t, 1).flying),
+      'this test never sampled the bird on the ground',
+    );
+  });
+
+  test('reduce-motion means the resting pose, not a slower dance', () => {
+    for (const t of [0, 1.3, 5, 8.5]) {
+      const p = fowlPose(t, motionScale(true), { k: 0.5, pulse: 1 });
+      assert.equal(p.lift, 0);
+      assert.equal(p.flying, false);
+      assert.equal(p.footL, 0);
+      assert.equal(p.footR, 0);
+      assert.deepEqual(p, fowlPose(0, 0), 'it is not the same still pose at every hour');
+    }
+  });
+
+  test('a neck is a joint with a limit', () => {
+    // The bug this replaced let the head wind round the neck without end.
+    // Whatever the look-at wants, no animal here sees behind itself.
+    assert.ok(NECK_YAW > 0 && NECK_YAW < Math.PI / 2, `${NECK_YAW} is not a neck`);
   });
 });

@@ -33,7 +33,8 @@ import type { CompanionStage, LayerKey, Mascot } from '@chivago/core';
 import type { CreatureKey } from '../Creature.tsx';
 import { hourFrom } from '../island-clock.ts';
 import {
-  COMPANION_HOUR, HABITATS, LOOKS, REACTION_MS, headRatio, lightingFor, motionScale, placements, speckles, stageScale,
+  COMPANION_HOUR, HABITATS, LOOKS, NECK_YAW, REACTION_MS, headRatio, lightingFor, motionScale, placements, speckles,
+  stageScale,
 } from './rig.ts';
 
 // ---------------------------------------------------------------------------
@@ -444,10 +445,23 @@ export function Creature3D({ species, mascot, stage, height = 320, label, onTap 
         }
       }
 
-      // Look at the pointer. Head only, within what a neck allows.
-      const lookX = pointer.active ? pointer.x : Math.sin(t * 0.3) * 0.3 * motion;
+      /*
+        Look at the pointer. Head only, and only as far as a neck goes.
+
+        The counter-turn here used to be `- yaw * 0.5` against a yaw that
+        grows for as long as the screen is open, so a companion left alone
+        wound its head steadily round on its neck - a full turn every three
+        and a half minutes. No animal does that, and on the junglefowl,
+        whose crest and beak say exactly where its head is pointing, it was
+        the first thing anyone noticed. The target is bounded now, and the
+        bird opts out of the idle sweep as well: a junglefowl thrusts its
+        head, it does not swivel it. `companionIdle` gives it the bob.
+      */
+      const sweep = species === 'red-junglefowl' ? 0 : 0.3;
+      const lookX = pointer.active ? pointer.x : Math.sin(t * 0.3) * sweep * motion;
       const lookY = pointer.active ? pointer.y : 0;
-      rig.head.rotation.y += ((lookX * 0.6 - yaw * 0.5) - rig.head.rotation.y) * Math.min(1, dt * 5);
+      const neck = Math.max(-NECK_YAW, Math.min(NECK_YAW, lookX * 0.6));
+      rig.head.rotation.y += (neck - rig.head.rotation.y) * Math.min(1, dt * 5);
       rig.head.rotation.x += ((-lookY * 0.35) - rig.head.rotation.x) * Math.min(1, dt * 5);
 
       // Species idle and reaction.
