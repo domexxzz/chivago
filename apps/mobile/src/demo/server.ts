@@ -50,15 +50,22 @@ const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
  * habitats and no verified quests at all, so the collection was two eggs and
  * nothing else: five drawn animals that nobody opening the demo could see.
  *
- * Wellness is deliberately left at one day. It is the egg the presenter
- * hatches live by checking in at Lamai.
+ * Every habitat is past the egg, because the owner asked for all five
+ * ANIMALS on screen and an egg is not one. Wellness used to sit at one day
+ * so the presenter could hatch it live at Lamai; that moment is worth less
+ * than five drawn creatures a judge can see at a glance, and the live hatch
+ * still exists on the real app - check in at Building 13, walk to the
+ * viewpoint, and the egg opens on stage from real evidence.
+ *
+ * Two grown and three hatchlings, not five grown: the difference between the
+ * stages is still on screen, which is the other thing this spread is for.
  */
 const PRIOR: Record<string, { days: number; verified: number }> = {
   Safe:     { days: 3, verified: 1 },
   Quest:    { days: 1, verified: 1 },
   Food:     { days: 3, verified: 0 },
   Green:    { days: 2, verified: 0 },
-  Wellness: { days: 1, verified: 0 },
+  Wellness: { days: 2, verified: 0 },
 };
 
 const state = {
