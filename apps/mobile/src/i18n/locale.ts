@@ -113,10 +113,25 @@ async function persist(locale: Locale): Promise<void> {
   } catch { /* the choice lasts this session */ }
 }
 
-/** Resolve the language once at start-up: the stored choice, else the phone's. */
+/**
+ * Resolve the language once at start-up: the stored choice, else English.
+ *
+ * NOT the phone's language any more. The pitch and the pilot are read by
+ * judges, partners and hosts who do not all read Thai, and a screen that
+ * opens in a language somebody cannot read is a screen they close. A Thai
+ * speaker changes it in one tap on Account and the choice is remembered, so
+ * the cost falls on the person who has somewhere to go and not on the person
+ * who does not.
+ *
+ * `deviceLocale()` is deliberately still used elsewhere: `state/store.tsx`
+ * registers the device with the phone's REAL language, because that is what
+ * decides which language a notification arrives in. Forcing that to English
+ * would push English at Thai speakers on their own phones, which is a
+ * different question from what the app opens in.
+ */
 export async function loadLocale(): Promise<Locale> {
   const stored = await readStored();
-  current = stored ?? deviceLocale();
+  current = stored ?? 'en';
   listeners.forEach((l) => l());
   return current;
 }

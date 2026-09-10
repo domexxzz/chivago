@@ -42,6 +42,10 @@ describe('t() picks the language', () => {
   });
 
   test('the phone decides the default, and only Thai counts as Thai', () => {
+    // deviceLocale still tells the truth about the phone: the app's OPENING
+    // language is English regardless (see loadLocale), but the device
+    // registration uses this, and a notification must arrive in the language
+    // its reader actually speaks.
     assert.equal(deviceLocale(['th-TH']), 'th');
     assert.equal(deviceLocale(['en-GB', 'th']), 'en', 'the first language the phone lists wins');
     assert.equal(deviceLocale(['de-DE']), 'en', 'a language the app does not have reads as English');
