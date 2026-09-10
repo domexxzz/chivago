@@ -47,10 +47,12 @@ import { TripScreen, type TripState } from './src/screens/TripScreen.tsx';
 import { ConciergeScreen } from './src/screens/ConciergeScreen.tsx';
 import { CompanionHomeScreen } from './src/screens/CompanionHome.tsx';
 import type { Companion } from '@chivago/core';
+import './src/polyfills/location-emitter.ts';
 import { loadLocale, t, useLocale } from './src/i18n/locale.ts';
 import { loadArea, placeFromUrl } from './src/state/area.ts';
 import { useServerConfig } from './src/state/server-config.ts';
 import { UnfencedBand } from './src/components/UnfencedBand.tsx';
+import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
 
 export default function App() {
   // Both families are bundled locally rather than fetched at runtime: the app
@@ -435,7 +437,9 @@ export default function App() {
         {fenceOff ? <UnfencedBand /> : null}
 
         <View style={{ flex: 1 }}>
-          <ScreenTransition screenKey={nav.screen}>{renderScreen(nav.screen)}</ScreenTransition>
+          <ErrorBoundary key={nav.screen} onReset={() => nav.selectTab('home')}>
+            <ScreenTransition screenKey={nav.screen}>{renderScreen(nav.screen)}</ScreenTransition>
+          </ErrorBoundary>
         </View>
 
         {/* A live alert follows the user everywhere. Handoff open question 5,

@@ -18,6 +18,8 @@
 import React from 'react';
 import * as Location from 'expo-location';
 
+import '../polyfills/location-emitter.ts';
+
 export interface Here {
   lat: number;
   lng: number;
@@ -71,7 +73,10 @@ export function useHere({ watch = false }: { watch?: boolean } = {}): Here | nul
             { accuracy: Location.Accuracy.Balanced, distanceInterval: 5 },
             (pos) => { if (live) setHere((was) => asHere(pos) ?? was); },
           );
-          if (!live) { subscription?.remove(); subscription = null; }
+          if (!live) {
+            try { subscription?.remove(); } catch {}
+            subscription = null;
+          }
           return;
         }
         const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -86,7 +91,12 @@ export function useHere({ watch = false }: { watch?: boolean } = {}): Here | nul
 
     return () => {
       live = false;
-      subscription?.remove();
+      try {
+        subscription?.remove();
+      } catch (err) {
+        // Guard against uncaught unmount exceptions in third-party libraries
+      }
+      subscription = null;
     };
   }, [watch]);
 

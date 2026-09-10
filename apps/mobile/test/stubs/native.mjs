@@ -86,3 +86,7 @@ export const defineTask = noop;
 export const isTaskRegisteredAsync = noop;
 export const unregisterTaskAsync = noop;
 export const useFonts = noop;
+export const EventEmitter = {
+  addListener: () => ({ remove: noop }),
+  removeSubscription: noop,
+};

@@ -7,6 +7,7 @@
 // the front of the bundle, so its position here is documentation, not
 // ordering.
 import '@expo/metro-runtime';
+import './src/polyfills/location-emitter.ts';
 import { registerRootComponent } from 'expo';
 import App from './App';
 

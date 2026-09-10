@@ -738,6 +738,14 @@ function NoPhotograph({ place }: { place: ScoredPlace }) {
       accessibilityLabel={`${t(place.name)}, ${t({ en: 'no photograph yet', th: 'ยังไม่มีรูป' })}`}
       style={{ width: '100%', height: '100%', backgroundColor: habitat.tint, alignItems: 'center', justifyContent: 'center' }}
     >
+      {place.id === 'mangrove' ? (
+        <Image
+          source={{ uri: photoUri('/assets/illustrations/mangrove-habitat-v1.jpg') }}
+          accessible={false}
+          resizeMode="cover"
+          style={{ position: 'absolute', top: 0, bottom: 24, width: '100%' }}
+        />
+      ) : null}
       <View style={{ opacity: 0.45 }}>
         <habitat.Mark size={44} color={habitat.tone} strokeWidth={1.6} />
       </View>

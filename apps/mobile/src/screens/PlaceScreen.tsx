@@ -533,6 +533,14 @@ function PlaceholderHero({ place }: { place: ScoredPlace }) {
           }}
         />
       ))}
+      {place.id === 'mangrove' ? (
+        <Image
+          source={{ uri: photoUri('/assets/illustrations/mangrove-habitat-v1.jpg') }}
+          accessible={false}
+          resizeMode="cover"
+          style={{ position: 'absolute', top: 0, bottom: 32, width: '100%' }}
+        />
+      ) : null}
       <View style={{ position: 'absolute', left: gutter, bottom: 12 }}>
         <Label size={9} tracking={0.14} colour={color.neutral600}>
           {`${place.layer} · no photograph yet`}
