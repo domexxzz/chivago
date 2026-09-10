@@ -1,0 +1,78 @@
+# The same image, wrapped in LiteFS.
+#
+# Kept apart from Dockerfile on purpose. This one gives up two things the
+# plain image has — a non-root process and a direct port — and on a single
+# machine it buys nothing in return. Switching is a decision, not a default:
+# see docs/56-litefs.md.
+#
+# Everything above the runtime stage is identical, so the web build is shared.
+
+# --- build the web app ------------------------------------------------------
+FROM node:24-slim AS web
+
+RUN corepack enable
+WORKDIR /repo
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/core/package.json      packages/core/
+COPY packages/tokens/package.json    packages/tokens/
+COPY apps/api/package.json           apps/api/
+COPY apps/mobile/package.json        apps/mobile/
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+
+ENV EXPO_PUBLIC_API_URL=same-origin
+RUN cd apps/mobile \
+ && npx expo export --platform web --output-dir dist-live \
+ && node scripts/flatten-assets.mjs dist-live
+
+# --- the runtime image ------------------------------------------------------
+FROM node:24-slim AS runtime
+
+# litefs is a single static binary; take it from the published image rather
+# than curl-ing a release at build time.
+COPY --from=flyio/litefs:0.5 /usr/local/bin/litefs /usr/local/bin/litefs
+
+# ffmpeg for the story transcode; fuse3 because LiteFS is a filesystem;
+# ca-certificates because it talks to Consul over TLS.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ffmpeg fuse3 ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN corepack enable
+WORKDIR /repo
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/core/package.json   packages/core/
+COPY packages/tokens/package.json packages/tokens/
+COPY apps/api/package.json        apps/api/
+RUN pnpm install --frozen-lockfile --filter @chivago/api...
+
+COPY packages/ packages/
+COPY apps/api/ apps/api/
+COPY --from=web /repo/apps/mobile/dist-live /repo/web
+COPY litefs.yml /etc/litefs.yml
+
+# The database now lives INSIDE the FUSE mount. /data still holds the LiteFS
+# data directory and the legacy file the import lifts across.
+ENV CHIVAGO_DB=/litefs/chivago.db
+ENV CHIVAGO_WEB_DIR=/repo/web
+ENV PORT=8787
+ENV NODE_ENV=production
+
+RUN mkdir -p /data /litefs
+
+# NO `USER node` here, and that is the cost of this image: mounting a FUSE
+# filesystem needs CAP_SYS_ADMIN, and litefs mounts before it execs the app.
+# The plain Dockerfile drops to an unprivileged user; this one cannot.
+
+# 8080 is litefs's proxy. 8787 is the app, and nothing outside reaches it.
+EXPOSE 8080
+
+# Through the proxy, so a wedged replica fails its check rather than serving
+# a database it can no longer reach.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:8080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+ENTRYPOINT ["litefs", "mount"]

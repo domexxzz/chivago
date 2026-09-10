@@ -1,0 +1,69 @@
+# LiteFS: one writer, replicas that can take over.
+#
+# WHAT THIS BUYS AND WHAT IT COSTS
+#
+# Buys: the database is streamed to every other machine as it is written, so
+# losing the primary costs a lease timeout rather than the app. Today there is
+# one machine and `min_machines_running = 1`; if it dies mid-pitch there is
+# nothing behind it.
+#
+# Costs, all three of them real:
+#   1. The process runs as ROOT again. FUSE needs CAP_SYS_ADMIN and litefs
+#      mounts before it execs the app, so the `USER node` line the plain
+#      Dockerfile has cannot survive here.
+#   2. Every request now passes through litefs's proxy, which adds a hop and,
+#      more importantly, decides what is a write. Anything not GET/HEAD is
+#      forwarded to the primary.
+#   3. There is a lease. Two machines briefly disagreeing about who is primary
+#      is a failure mode that simply does not exist with one machine.
+#
+# Which is why this file is NOT wired into fly.toml. Read docs/56 before
+# switching: on a single machine LiteFS adds every one of those costs and buys
+# nothing at all.
+
+fuse:
+  # Where the app sees the database. CHIVAGO_DB points in here.
+  dir: "/litefs"
+
+data:
+  # Where LiteFS keeps the real pages and the LTX log: on the volume, so a
+  # restart does not resynchronise the whole database from scratch.
+  dir: "/data/litefs"
+
+# A replica that cannot reach Consul should keep serving reads rather than
+# fall over. It simply will not be promoted while it is out of touch.
+exit-on-error: false
+
+proxy:
+  addr: ":8080"
+  target: "localhost:8787"
+  db: "chivago.db"
+  # Requests that have nothing to do with the database skip the write
+  # forwarding and the read-your-writes wait entirely. The bundle is 681 KB
+  # and is asked for by everyone at once; making it wait on a transaction
+  # position would be the slowest possible way to serve a static file.
+  passthrough:
+    - "/_expo/*"
+    - "/assets/*"
+    - "/favicon.ico"
+    - "/health"
+
+lease:
+  type: "consul"
+  # Only machines in the primary region may hold the lease. A write that had
+  # to cross an ocean to reach the primary is worse than no replica at all.
+  candidate: ${FLY_REGION == PRIMARY_REGION}
+  promote: true
+  advertise-url: "http://${FLY_ALLOC_ID}.vm.${FLY_APP_NAME}.internal:20202"
+  consul:
+    url: "${FLY_CONSUL_URL}"
+    key: "litefs/${FLY_APP_NAME}"
+
+exec:
+  # One-time: lift the existing database off the volume and into LiteFS. Runs
+  # on the candidate only, because only the primary may write, and does
+  # nothing at all once /litefs/chivago.db exists.
+  - cmd: "node --experimental-strip-types apps/api/src/litefs-import.ts"
+    if-candidate: true
+
+  - cmd: "node --experimental-strip-types apps/api/src/server.ts"
