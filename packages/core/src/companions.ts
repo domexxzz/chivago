@@ -144,6 +144,20 @@ export interface HabitatEvidence {
   visitDays: number;
   /** Quests in this habitat a HOST approved. The Green-Point standard. */
   questsVerified: number;
+  /**
+   * Legs walked to or from a place in this habitat, as the ledger measured
+   * them: two fixes far enough apart and slow enough to have been on foot.
+   *
+   * Here because a one-day event cannot produce a second island day. Not a
+   * softer signal than a return visit - a walked leg needs two fixes and a
+   * plausible pace, where a check-in needs one - just a same-day one.
+   *
+   * OPTIONAL because not every source of evidence tracks it: the province
+   * collection counts a whole province, where "a leg walked here" has no
+   * meaning. Absent reads as none rather than forcing every caller to write
+   * a zero it does not mean.
+   */
+  walkedLegs?: number;
 }
 
 export interface Companion {
@@ -178,7 +192,11 @@ export const HATCH_AT_DAYS = 2;
  */
 export function stageFor(evidence: HabitatEvidence): CompanionStage | null {
   if (evidence.questsVerified > 0) return 'grown';
-  if (evidence.visitDays >= HATCH_AT_DAYS) return 'hatchling';
+  // Either signal hatches it: coming back on another day, or walking a leg
+  // here. The one-day event has no second day, and three of the five habitats
+  // at KU Sriracha have no quest either — without this they are dead ends
+  // wearing an instruction nobody can follow.
+  if (evidence.visitDays >= HATCH_AT_DAYS || (evidence.walkedLegs ?? 0) >= 1) return 'hatchling';
   if (evidence.visitDays >= 1) return 'egg';
   return null;
 }
@@ -195,10 +213,13 @@ function nextStepFor(
       th: `ให้ผู้จัดภารกิจยืนยันภารกิจสาย${s.layer} หนึ่งครั้ง เพื่อให้${s.name.th}โตเต็มวัย`,
     };
   }
+  // Both ways out, and the walk first: it is the one somebody standing here
+  // today can actually do. Naming only the return visit is what made this an
+  // instruction nobody at a one-day event could follow.
   const left = HATCH_AT_DAYS - evidence.visitDays;
   return {
-    en: `Check in here on ${left} more day${left === 1 ? '' : 's'} to hatch this egg`,
-    th: `เช็กอินที่นี่อีก ${left} วัน เพื่อฟักไข่ใบนี้`,
+    en: `Walk a leg from here, or check in on ${left} more day${left === 1 ? '' : 's'}, to hatch this egg`,
+    th: `เดินจากที่นี่ไปอีกที่ หรือเช็กอินอีก ${left} วัน เพื่อฟักไข่ใบนี้`,
   };
 }
 

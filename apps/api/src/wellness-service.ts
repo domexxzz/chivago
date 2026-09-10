@@ -224,14 +224,38 @@ export function habitatEvidenceFor(db: DB, userId: string): HabitatEvidence[] {
     ).all(userId),
   );
 
+  /*
+    Legs walked, counted at BOTH ends.
+
+    `walk:<from>:<to>:user:...` — walking away from a habitat is as much a
+    choice not to ride as walking into one, which is the same reading the
+    monster mechanic takes of the same rows.
+  */
+  const walks = rows<{ source_ref: string }>(
+    db.prepare("SELECT source_ref FROM ledger WHERE user_id = ? AND kind = 'walk'").all(userId),
+  );
+  const layerOfPlace = new Map(
+    rows<{ id: string; layer: string }>(db.prepare('SELECT id, layer FROM places').all())
+      .map((r) => [r.id, r.layer]),
+  );
+
   const byLayer = new Map<string, HabitatEvidence>();
   const at = (layer: string) => {
     if (!byLayer.has(layer)) {
-      byLayer.set(layer, { layer: layer as HabitatEvidence['layer'], visitDays: 0, questsVerified: 0 });
+      byLayer.set(layer, {
+        layer: layer as HabitatEvidence['layer'], visitDays: 0, questsVerified: 0, walkedLegs: 0,
+      });
     }
     return byLayer.get(layer)!;
   };
   for (const r of checkins) at(r.layer).visitDays = r.days;
   for (const r of quests) at(r.layer).questsVerified = r.verified;
+  for (const w of walks) {
+    const [, from, to] = w.source_ref.split(':');
+    for (const id of new Set([from, to])) {
+      const layer = id ? layerOfPlace.get(id) : undefined;
+      if (layer) { const e = at(layer); e.walkedLegs = (e.walkedLegs ?? 0) + 1; }
+    }
+  }
   return [...byLayer.values()];
 }

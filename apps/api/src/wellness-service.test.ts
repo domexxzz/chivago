@@ -195,6 +195,38 @@ describe('habitat evidence, counted in island days', () => {
     assert.equal(found('Safe'), undefined, 'an absent habitat is absent, not zero');
   });
 
+  /*
+    The one-day event.
+
+    The hackathon on 11 September is a single day, and at KU Sriracha only two
+    of the five habitats have a quest a host could verify — so Safe, Food and
+    Wellness could reach nothing past `egg` while telling every attendee to
+    come back tomorrow. A measured walk leg is the same-day way out.
+  */
+  test('a walked leg hatches the egg on a single day', () => {
+    place('namuang', 'Green');
+    checkin('namuang', '2026-09-11');
+    db.prepare(
+      `INSERT INTO ledger (id, user_id, label, occurred_at, host, amount, kind, currency, source_ref)
+       VALUES ('l-walk-1', 'u1', 'Walked leg', '2026-09-11T04:00:00.000Z', 'ChivaGo', 20,
+               'walk', 'trip', 'walk:namuang:chaweng:user:u1:2026-09-11')`,
+    ).run();
+
+    const companion = companionsFor(habitatEvidenceFor(db, 'u1'))
+      .find((c) => c.species.layer === 'Green');
+    assert.equal(companion?.stage, 'hatchling', 'one day plus one walked leg must hatch it');
+  });
+
+  test('a check-in alone on one day is still only an egg', () => {
+    // The walk is the second signal, not a replacement for the first: standing
+    // somewhere once still buys exactly what it always did.
+    place('namuang', 'Green');
+    checkin('namuang', '2026-09-11');
+    const companion = companionsFor(habitatEvidenceFor(db, 'u1'))
+      .find((c) => c.species.layer === 'Green');
+    assert.equal(companion?.stage, 'egg');
+  });
+
   test('two days at one place hatches the egg end to end', () => {
     // The query, the threshold and the stage rule together, on the island as
     // it is actually seeded: one place in the habitat, visited twice.
