@@ -212,10 +212,35 @@ interface StoryRow {
   media_path: string; media_mime: string; poster_path: string | null; duration_s: number | null;
   status: StoryStatus; created_at: string; expires_at: string;
   reviewed_at: string | null; reviewed_by: string | null; reviewer_host: string | null;
+  /** 1 when the bytes are in the row. Never the bytes themselves — see below. */
+  has_blob: number;
 }
 
-const SELECT = `SELECT id, place_id, user_id, kind, caption, media_path, media_mime, poster_path, duration_s,
-  status, created_at, expires_at, reviewed_at, reviewed_by, reviewer_host FROM stories`;
+/*
+  A FLAG, not the blob.
+
+  Listing an area's stories reads tens of rows, and every one of them carries
+  a photograph. Selecting the blob here would pull all of them through memory
+  to answer a question — "are the bytes there?" — that one bit answers.
+  `readStoryMedia` fetches the actual bytes, for one row, when they are asked
+  for.
+*/
+const COLUMNS = `id, place_id, user_id, kind, caption, media_path, media_mime, poster_path, duration_s,
+  status, created_at, expires_at, reviewed_at, reviewed_by, reviewer_host,
+  (media_blob IS NOT NULL) AS has_blob`;
+
+const SELECT = `SELECT ${COLUMNS} FROM stories`;
+
+/*
+  The same projection, qualified, for the two joins onto places.
+
+  Written out rather than derived from COLUMNS: a generated alias list is one
+  regex away from silently dropping a column, and this is the list that
+  decides whether a story appears on the board at all.
+*/
+const JOINED = `s.id, s.place_id, s.user_id, s.kind, s.caption, s.media_path, s.media_mime,
+  s.poster_path, s.duration_s, s.status, s.created_at, s.expires_at, s.reviewed_at,
+  s.reviewed_by, s.reviewer_host, (s.media_blob IS NOT NULL) AS has_blob`;
 
 /**
  * A story whose bytes are gone is not a story.
@@ -229,7 +254,8 @@ const SELECT = `SELECT id, place_id, user_id, kind, caption, media_path, media_m
  * One `existsSync` per listed story. A place has a handful and an area has
  * tens, so this is cheaper than the request that fetches them.
  */
-const hasBytes = (r: StoryRow): boolean => existsSync(r.poster_path ?? r.media_path);
+const hasBytes = (r: StoryRow): boolean =>
+  r.has_blob === 1 || existsSync(r.poster_path ?? r.media_path);
 
 const toStory = (r: StoryRow): Story => ({
   id: r.id,
@@ -342,15 +368,30 @@ export async function submitStory(
     signal a moderator needs to tell these apart from the reviewed ones.
   */
   const auto = storiesAutoApprove();
+  /*
+    ffmpeg needs real files, so the transcode still writes them — but they are
+    scratch from here on. The bytes go into the row and the files go away, so
+    a replica that has the row has the clip.
+
+    `media_path` is kept and still written: it is NOT NULL, it is what rows
+    from before this migration read from, and it names what the file WAS if
+    anybody ever has to go looking in a backup.
+  */
+  const mediaBytes = readFileSync(media);
+  const posterBytes = kind === 'video' ? readFileSync(poster) : mediaBytes;
+
   db.prepare(
     `INSERT INTO stories (id, place_id, user_id, kind, caption, media_path, media_mime, poster_path,
-       duration_s, status, created_at, expires_at, reviewed_at, reviewed_by, reviewer_host)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+       duration_s, status, created_at, expires_at, reviewed_at, reviewed_by, reviewer_host,
+       media_blob, poster_blob)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
   ).run(
     id, place.id, args.userId, kind, caption, media, kind === 'video' ? 'video/mp4' : 'image/jpeg',
     poster, durationS, auto ? 'approved' : 'pending', createdAt, expiresAt,
     auto ? createdAt : null, auto ? 'auto' : null, null,
+    mediaBytes, posterBytes,
   );
+  for (const f of new Set([media, poster])) rmSync(f, { force: true });
   recordFix(db, args.userId, args.fix, now);
 
   return toStory(row<StoryRow>(db.prepare(`${SELECT} WHERE id = ?`).get(id))!);
@@ -374,7 +415,7 @@ export function storiesInArea(db: DB, areaKey: string, now = new Date()): AreaSt
   const area = areaByKey(areaKey);
   return rows<StoryRow & { name_en: string; name_th: string; lat: number; lng: number }>(
     db.prepare(
-      `SELECT s.*, p.name_en, p.name_th, p.lat, p.lng FROM stories s JOIN places p ON p.id = s.place_id
+      `SELECT ${JOINED}, p.name_en, p.name_th, p.lat, p.lng FROM stories s JOIN places p ON p.id = s.place_id
        WHERE s.status = 'approved' AND s.expires_at > ? ORDER BY s.created_at DESC`,
     ).all(now.toISOString()),
   )
@@ -407,7 +448,7 @@ export interface PendingStory extends Story {
 export function pendingStories(db: DB, hostId: string, now = new Date()): PendingStory[] {
   return rows<StoryRow & { name_en: string; name_th: string }>(
     db.prepare(
-      `SELECT s.*, p.name_en, p.name_th FROM stories s JOIN places p ON p.id = s.place_id
+      `SELECT ${JOINED}, p.name_en, p.name_th FROM stories s JOIN places p ON p.id = s.place_id
        WHERE s.status = 'pending' AND s.expires_at > ? ORDER BY s.created_at ASC`,
     ).all(now.toISOString()),
   )
@@ -443,9 +484,20 @@ export function readStoryMedia(
   const live = r.status === 'approved' && r.expires_at > now.toISOString();
   const reviewing = opts.forHost !== undefined && r.status !== 'hidden' && canReviewStories(db, opts.forHost, r.place_id);
   if (!live && !reviewing) return null;
+  const mime = which === 'poster' ? 'image/jpeg' : r.media_mime;
+
+  // The bytes are fetched HERE, for one row, and only when somebody asked for
+  // them — never in a listing (see SELECT).
+  const blob = row<{ b: Uint8Array | null }>(
+    db.prepare(`SELECT ${which === 'poster' ? 'poster_blob' : 'media_blob'} AS b FROM stories WHERE id = ?`)
+      .get(storyId),
+  )?.b ?? null;
+  if (blob) return { bytes: Buffer.from(blob), mime };
+
+  // Written before the bytes moved into the row: still on this machine's disk.
   const path = which === 'poster' ? (r.poster_path ?? r.media_path) : r.media_path;
   if (!existsSync(path)) return null;
-  return { bytes: readFileSync(path), mime: which === 'poster' ? 'image/jpeg' : r.media_mime };
+  return { bytes: readFileSync(path), mime };
 }
 
 /**

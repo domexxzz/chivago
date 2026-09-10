@@ -191,10 +191,11 @@ describe('nothing lasts', () => {
     reviewStory(db, { hostId: 'h-ku', storyId: s.id, decision: 'approve', reviewer: 'Nok', now: later(1) });
     const week = new Date(T.getTime() + 7 * 24 * 3_600_000 + 1000);
     assert.deepEqual(storiesAt(db, 'ku-park', week), [], 'expired is gone from the pin before the sweep');
-    const media = (db.prepare('SELECT media_path FROM stories WHERE id = ?').get(s.id) as unknown as { media_path: string }).media_path;
-    assert.ok(existsSync(media));
+    // The bytes live in the row, so the row going is the bytes going. There
+    // is no file left to check by the time a story is live.
+    assert.ok(readStoryMedia(db, s.id, 'media', { forHost: 'h-ku', now: later(1) }), 'bytes before the sweep');
     assert.equal(expireStories(db, week), 1);
-    assert.ok(!existsSync(media));
+    assert.equal(readStoryMedia(db, s.id, 'media', { forHost: 'h-ku', now: later(1) }), null, 'bytes after');
     assert.equal(expireStories(db, week), 0);
   });
 
@@ -362,29 +363,56 @@ describe('the switch that takes the queue away', () => {
  * whose poster answered 404. A grey box with no explanation reads as the app
  * being broken rather than as a file being missing.
  *
- * The config is fixed - CHIVAGO_UPLOADS points at the volume now - and this
- * is the belt to those braces. It also covers a file removed by hand.
+ * The bytes moved INTO the row on 10 September, so that particular way of
+ * losing them is closed - but the guard still earns its place. A row can
+ * still be written with a null blob by a migration, a restore, or a hand
+ * edit, and the answer must stay the same: it is not listed, and it does not
+ * serve.
  */
-describe('a story with no file behind it', () => {
+/** Everything that could hold this story's bytes, emptied. */
+function loseTheBytes(id: string): void {
+  const paths = db.prepare('SELECT media_path, poster_path FROM stories WHERE id = ?').get(id) as
+    unknown as { media_path: string; poster_path: string | null };
+  rmSync(paths.poster_path ?? paths.media_path, { force: true });
+  rmSync(paths.media_path, { force: true });
+  db.prepare('UPDATE stories SET media_blob = NULL, poster_blob = NULL WHERE id = ?').run(id);
+}
+
+describe('a story with no bytes behind it', () => {
   test('is not listed at its place, nor in its area', async () => {
     const s = await submit();
     reviewStory(db, { storyId: s.id, hostId: 'h-ku', reviewer: 'Mod', decision: 'approve' });
     assert.equal(storiesAt(db, 'ku-park', T).length, 1, 'listed while the file is there');
 
-    const paths = db.prepare('SELECT media_path, poster_path FROM stories WHERE id = ?').get(s.id) as
-      unknown as { media_path: string; poster_path: string | null };
-    rmSync(paths.poster_path ?? paths.media_path, { force: true });
+    loseTheBytes(s.id);
 
     assert.deepEqual(storiesAt(db, 'ku-park', T), []);
     assert.deepEqual(storiesInArea(db, 'ku-sriracha', T), []);
   });
 
+  /*
+    The property the whole migration exists for.
+
+    LiteFS replicates the database file and nothing else. A replica has the
+    row and has never seen /data/uploads, so if the bytes were not in the row
+    the board on that machine would be silently emptier than the one next to
+    it. Emptying the uploads directory is exactly what a replica looks like.
+  */
+  test('bytes survive with no uploads directory at all, which is what a replica is', async () => {
+    const s = await submit({ bytes: jpeg() });
+    reviewStory(db, { storyId: s.id, hostId: 'h-ku', reviewer: 'Mod', decision: 'approve' });
+    rmSync(process.env.CHIVAGO_UPLOADS!, { recursive: true, force: true });
+
+    assert.equal(storiesAt(db, 'ku-park', T).length, 1, 'still listed at its place');
+    assert.equal(storiesInArea(db, 'ku-sriracha', T).length, 1, 'still on the board');
+    assert.equal(readStoryMedia(db, s.id, 'media', { now: T })?.bytes.toString(), 'JPG-BYTES');
+    assert.equal(readStoryMedia(db, s.id, 'poster', { now: T })?.mime, 'image/jpeg');
+  });
+
   test('and its bytes route still refuses, as it always did', async () => {
     const s = await submit();
     reviewStory(db, { storyId: s.id, hostId: 'h-ku', reviewer: 'Mod', decision: 'approve' });
-    const paths = db.prepare('SELECT media_path FROM stories WHERE id = ?').get(s.id) as
-      unknown as { media_path: string };
-    rmSync(paths.media_path, { force: true });
+    loseTheBytes(s.id);
     assert.equal(readStoryMedia(db, s.id, 'media', { now: T }), null);
   });
 });

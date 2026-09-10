@@ -869,6 +869,21 @@ export function migrate(db: DB): string[] {
     CREATE INDEX IF NOT EXISTS idx_stories_place ON stories(place_id, status, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_stories_user ON stories(user_id, created_at);
   `);
+  /*
+    Story bytes, in the row rather than beside it.
+
+    LiteFS replicates the database file and nothing else, so a clip whose
+    bytes live in /data/uploads exists only on the machine that took it. On
+    any replica `hasBytes` would find no file and drop the story from the
+    feed and the board silently — the worst kind of failure, because the
+    board would simply look emptier than it is.
+
+    Nullable, so rows written before this keep working off their files: reads
+    take the blob when there is one and fall back to the path when there is
+    not.
+  */
+  if (addColumn(db, 'stories', 'media_blob', 'BLOB')) applied.push('stories.media_blob');
+  if (addColumn(db, 'stories', 'poster_blob', 'BLOB')) applied.push('stories.poster_blob');
 
   // -- Settings: the few switches a moderator throws from the console -----
   //
