@@ -11,10 +11,11 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import { ChevronLeft } from 'lucide-react-native';
+import { Image, Pressable, ScrollView, View } from 'react-native';
+import { ChevronLeft, Sparkles } from 'lucide-react-native';
 import { BASIS_LABEL, MASCOTS, MASCOT_COUNT, REGIONS, mascotFor, provincesIn, strings, type Mascot } from '@chivago/core';
 import { api } from '../api/client.ts';
+import { mascotBeachUri } from '../api/photos.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
@@ -78,9 +79,17 @@ export function MascotGrid({ visited, onOpen }: { visited: ReadonlySet<string>; 
   );
 }
 
-export function MascotsScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (code: string) => void }) {
+export function MascotsScreen({
+  onBack, onOpen, now = new Date(),
+}: {
+  onBack: () => void;
+  onOpen: (code: string) => void;
+  now?: Date;
+}) {
   const passport = useAsync(() => api.passport(), []);
   const visited = React.useMemo(() => new Set(passport.data?.visited ?? []), [passport.data]);
+  const isSunset = now.getHours() >= 17 || now.getHours() < 6;
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: gutter, paddingTop: 16, paddingBottom: 8 }}>
@@ -92,6 +101,65 @@ export function MascotsScreen({ onBack, onOpen }: { onBack: () => void; onOpen: 
           <Label size={10} tracking={0.1} colour={color.neutral600}>{t(strings.mascots.metCount(visited.size, MASCOT_COUNT))}</Label>
         </View>
       </View>
+
+      {/* Hero Cover of the Island Companions */}
+      <View
+        style={[
+          shadow.card,
+          {
+            marginHorizontal: gutter,
+            marginTop: 4,
+            marginBottom: 12,
+            borderRadius: radius.lg,
+            overflow: 'hidden',
+            backgroundColor: color.surface,
+            borderWidth: 1,
+            borderColor: color.neutral300,
+          },
+        ]}
+      >
+        <View style={{ position: 'relative' }}>
+          <Image
+            source={{ uri: mascotBeachUri(now) }}
+            style={{ width: '100%', height: 165 }}
+            resizeMode="cover"
+            accessibilityLabel="ChivaGo companions on Koh Samui beach"
+          />
+          <View
+            style={{
+              position: 'absolute',
+              top: 10,
+              right: 10,
+              paddingVertical: 3,
+              paddingHorizontal: 8,
+              borderRadius: radius.sm,
+              backgroundColor: 'rgba(0,0,0,0.55)',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <Sparkles size={11} color="#ffe28a" />
+            <Label size={9} tracking={0.08} colour="#ffffff">
+              {isSunset
+                ? t({ en: 'Golden Hour • Samui', th: 'ช่วงพระอาทิตย์ตก • สมุย' })
+                : t({ en: 'Daylight • Samui', th: 'ช่วงกลางวัน • สมุย' })}
+            </Label>
+          </View>
+        </View>
+        <View style={{ padding: 12, backgroundColor: color.surface }}>
+          <Heading size={14} tracking={-0.2}>
+            {t({ en: 'Island Companions • Koh Samui', th: 'แก๊งเพื่อนร่วมทางเกาะสมุย' })}
+          </Heading>
+          <Body size={12} colour={color.neutral700} style={{ marginTop: 2 }}>
+            {t({
+              en: 'Explore local habitats, hatch companion eggs through verified journeys, and uncover the seventy-seven provincial mascots.',
+              th: 'ออกเดินทางสำรวจถิ่นที่อยู่ ฟักไข่เพื่อนร่วมทางจากการท่องเที่ยวจริง และค้นหามาสคอตทั้ง 77 จังหวัดทั่วไทย',
+            })}
+          </Body>
+        </View>
+      </View>
+
       <View style={{ marginHorizontal: gutter, padding: 12, borderRadius: radius.md, borderWidth: layout.ruleHair, borderColor: color.neutral300, backgroundColor: color.surface }}>
         <Body size={13} colour={color.neutral700}>{t(strings.mascots.note)}</Body>
       </View>

@@ -36,7 +36,7 @@ import { Animated, Easing, Image, Platform, Pressable, ScrollView, View } from '
 import { areaOfProvince, inArea, type Area, type AreaKey } from '@chivago/core';
 import { useReduceMotion } from '../components/reduce-motion.ts';
 import { setArea, useArea } from '../state/area.ts';
-import { photoUri } from '../api/photos.ts';
+import { mascotBeachUri, photoUri } from '../api/photos.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { BoardFeed } from '../components/BoardFeed.tsx';
 import { MonsterFeed } from '../components/MonsterFeed.tsx';
@@ -108,7 +108,7 @@ export function questOrder(
 
 export function HomeScreen({
   onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenPassport,
-  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, now = new Date(),
+  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenMascots, now = new Date(),
 }: {
   onOpenMap: () => void;
   onOpenQuests: () => void;
@@ -123,6 +123,8 @@ export function HomeScreen({
   onOpenProfile: () => void;
   /** A place card. Optional so the screen tests that predate the cards still render. */
   onOpenPlace?: (id: string) => void;
+  /** The provincial mascots & island companions guide. */
+  onOpenMascots?: () => void;
   /** Injected so the greeting is testable rather than whatever the clock says. */
   now?: Date;
 }) {
@@ -163,6 +165,7 @@ export function HomeScreen({
         onOpenParty={onOpenParty}
       />
       <Places places={here} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} />
+      <MascotHeroCard now={now} onOpen={onOpenMascots ?? onOpenPassport} />
       {/*
         The board, under the places and above today's missions: it is what
         other people did, which belongs after what is around you and before
@@ -589,6 +592,89 @@ function PlaceCard({ place, here, onPress }: { place: ScoredPlace; here: Here | 
         </Label>
       </View>
     </Pressable>
+  );
+}
+
+/**
+ * Meet your Island Companions hero card:
+ * Showcases the 5 Koh Samui companions on the beach with dynamic daylight / sunset imagery,
+ * and invites travellers into the 77-province Mascots field guide.
+ */
+function MascotHeroCard({
+  now, onOpen,
+}: {
+  now: Date;
+  onOpen: () => void;
+}) {
+  const isSunset = now.getHours() >= 17 || now.getHours() < 6;
+  return (
+    <View style={{ paddingTop: 20, paddingHorizontal: gutter }}>
+      <Pressable
+        onPress={onOpen}
+        accessibilityRole="button"
+        accessibilityLabel={`${t({ en: 'Meet your Island Companions', th: 'แก๊งเพื่อนร่วมทางเกาะสมุย' })}. ${t({ en: 'Open Field Guide', th: 'เปิดสมุดบันทึกมาสคอต' })}`}
+        style={[
+          shadow.card,
+          {
+            backgroundColor: color.surface,
+            borderRadius: radius.lg,
+            overflow: 'hidden',
+            borderWidth: 1,
+            borderColor: color.neutral300,
+          },
+        ]}
+      >
+        <View style={{ position: 'relative' }}>
+          <Image
+            source={{ uri: mascotBeachUri(now) }}
+            style={{ width: '100%', height: 155 }}
+            resizeMode="cover"
+            accessibilityLabel="ChivaGo companions on Koh Samui beach"
+          />
+          <View
+            style={{
+              position: 'absolute',
+              top: 10,
+              right: 10,
+              paddingVertical: 3,
+              paddingHorizontal: 8,
+              borderRadius: radius.sm,
+              backgroundColor: 'rgba(0,0,0,0.55)',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <Sparkles size={11} color="#ffe28a" />
+            <Label size={9} tracking={0.08} colour="#ffffff">
+              {isSunset
+                ? t({ en: 'Golden Hour • Samui', th: 'ช่วงพระอาทิตย์ตก • สมุย' })
+                : t({ en: 'Daylight • Samui', th: 'ช่วงกลางวัน • สมุย' })}
+            </Label>
+          </View>
+        </View>
+
+        <View style={{ padding: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Label size={9} tracking={0.12} colour={color.brand}>
+                {t({ en: 'ISLAND COMPANIONS', th: 'แก๊งเพื่อนร่วมทาง' })}
+              </Label>
+              <Heading size={15} tracking={-0.3} style={{ marginTop: 2 }}>
+                {t({ en: 'Meet your Island Companions', th: 'แก๊งเพื่อนร่วมทางเกาะสมุย' })}
+              </Heading>
+              <Body size={12} colour={color.neutral700} style={{ marginTop: 4 }}>
+                {t({
+                  en: 'Explore local habitats, collect provincial passport stamps, and hatch companions.',
+                  th: 'ออกสำรวจถิ่นที่อยู่ สะสมตราประทับพาสปอร์ต และฟักไข่เพื่อนร่วมทางจากการเดินทางจริง',
+                })}
+              </Body>
+            </View>
+            <ChevronRight size={18} color={color.neutral500} strokeWidth={2.2} />
+          </View>
+        </View>
+      </Pressable>
+    </View>
   );
 }
 

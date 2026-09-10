@@ -359,6 +359,7 @@ export default function App() {
             onOpenQuest={(id) => nav.push('quest', { questId: id })}
             onOpenWallet={() => nav.selectTab('wallet')}
             onOpenPassport={() => nav.push('passport')}
+            onOpenMascots={() => nav.push('mascots')}
             onOpenImpact={() => nav.push('impact')}
             onOpenConcierge={() => nav.push('concierge')}
             onOpenParty={() => nav.push('party')}

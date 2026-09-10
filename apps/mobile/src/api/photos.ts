@@ -18,3 +18,20 @@ export function photoUri(url: string, os: string = Platform.OS): string {
   if (os === 'web') return url;
   return `${API_BASE.replace(/\/$/, '')}${url}`;
 }
+
+/**
+ * The dynamic companion beach hero image (daytime vs. sunset/evening).
+ *
+ * Switches smoothly based on local time:
+ * - Daytime: 06:00 - 16:59 -> mascots-beach-day.jpg
+ * - Sunset & Evening: 17:00 - 05:59 -> mascots-beach-sunset.jpg
+ */
+export function mascotBeachUri(now: Date = new Date(), os: string = Platform.OS): string {
+  const hour = now.getHours();
+  const isSunset = hour >= 17 || hour < 6;
+  const path = isSunset
+    ? '/assets/illustrations/mascots-beach-sunset.jpg'
+    : '/assets/illustrations/mascots-beach-day.jpg';
+  return photoUri(path, os);
+}
+
