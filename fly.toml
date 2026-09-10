@@ -104,5 +104,18 @@ primary_region = "sin"
     timeout = "5s"
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "512mb"
+  # Two shared cores and a gigabyte, not one and a half.
+  #
+  # A load test on 10 September measured the 512 MB box at 719 req/s with zero
+  # failures at 50 concurrent readers, so reads were never the worry. Memory
+  # was: apps/api/src/server.ts buffers each upload whole
+  # (Buffer.from(await file.arrayBuffer())) with a 25 MB ceiling per file, and
+  # ffmpeg re-encodes every clip. Ten people posting a video at once could put
+  # 250 MB of buffers plus the transcoder on a 512 MB machine, which is the way
+  # this falls over at an event - not the request rate.
+  #
+  # node:sqlite is SYNCHRONOUS and this is one Node process, so the second core
+  # does not double throughput. It buys headroom for ffmpeg to run without
+  # stalling the event loop that is also serving everyone else.
+  size = "shared-cpu-2x"
+  memory = "1024mb"
