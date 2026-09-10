@@ -32,7 +32,10 @@
  */
 
 import React from 'react';
-import { Animated, Easing, Image, Platform, Pressable, ScrollView, View } from 'react-native';
+import {
+  Animated, Easing, Image, Platform, Pressable, ScrollView, View,
+  type NativeScrollEvent, type NativeSyntheticEvent,
+} from 'react-native';
 import { areaOfProvince, inArea, type Area, type AreaKey } from '@chivago/core';
 import { useReduceMotion } from '../components/reduce-motion.ts';
 import { setArea, useArea } from '../state/area.ts';
@@ -454,31 +457,77 @@ function Places({
   const oneSetWidth = sequence.length * ITEM_WIDTH;
   const loopCards = React.useMemo(() => [...sequence, ...sequence, ...sequence], [sequence]);
 
-  const anim = React.useRef(new Animated.Value(0)).current;
+  const scrollRef = React.useRef<ScrollView>(null);
+  const offsetRef = React.useRef(0);
+  const isInteractingRef = React.useRef(false);
+  const resumeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  React.useEffect(() => {
-    if (still || list.length < 2) {
-      anim.setValue(0);
-      return undefined;
+  // Mouse drag support for desktop web browsers
+  const isMouseDownRef = React.useRef(false);
+  const mouseStartXRef = React.useRef(0);
+  const mouseStartScrollXRef = React.useRef(0);
+  const hasDraggedRef = React.useRef(false);
+
+  const pauseInteraction = React.useCallback(() => {
+    isInteractingRef.current = true;
+    if (resumeTimeoutRef.current) {
+      clearTimeout(resumeTimeoutRef.current);
+      resumeTimeoutRef.current = null;
     }
-    const duration = (oneSetWidth / MARQUEE_SPEED_PX_PER_SEC) * 1000;
-    anim.setValue(0);
-    const loop = Animated.loop(
-      Animated.timing(anim, {
-        toValue: 1,
-        duration,
-        easing: Easing.linear,
-        useNativeDriver: Platform.OS !== 'web',
-      }),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [anim, oneSetWidth, list.length, still]);
+  }, []);
 
-  const translateX = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [gutter, gutter - oneSetWidth],
-  });
+  const scheduleResume = React.useCallback((delayMs: number = 2000) => {
+    if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+    resumeTimeoutRef.current = setTimeout(() => {
+      isInteractingRef.current = false;
+    }, delayMs);
+  }, []);
+
+  // Continuous auto-sliding animation loop (active only when user is not manually scrolling)
+  React.useEffect(() => {
+    if (still || list.length < 2) return undefined;
+    if (typeof requestAnimationFrame === 'undefined') return undefined;
+
+    let animId: number;
+    let lastTime = performance.now();
+
+    const step = (time: number) => {
+      const dt = Math.min((time - lastTime) / 1000, 0.1);
+      lastTime = time;
+
+      if (!isInteractingRef.current && scrollRef.current && oneSetWidth > 0) {
+        offsetRef.current += MARQUEE_SPEED_PX_PER_SEC * dt;
+        if (offsetRef.current >= 2 * oneSetWidth) {
+          offsetRef.current -= oneSetWidth;
+          scrollRef.current.scrollTo({ x: offsetRef.current, animated: false });
+        } else {
+          scrollRef.current.scrollTo({ x: offsetRef.current, animated: false });
+        }
+      }
+
+      animId = requestAnimationFrame(step);
+    };
+
+    animId = requestAnimationFrame(step);
+    return () => {
+      cancelAnimationFrame(animId);
+      if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+    };
+  }, [oneSetWidth, still, list.length]);
+
+  const handleScroll = React.useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const x = e.nativeEvent.contentOffset.x;
+    offsetRef.current = x;
+    if (oneSetWidth > 0) {
+      if (x >= 2 * oneSetWidth) {
+        offsetRef.current = x - oneSetWidth;
+        scrollRef.current?.scrollTo({ x: offsetRef.current, animated: false });
+      } else if (x <= 0) {
+        offsetRef.current = x + oneSetWidth;
+        scrollRef.current?.scrollTo({ x: offsetRef.current, animated: false });
+      }
+    }
+  }, [oneSetWidth]);
 
   if (list.length === 0) return null;
   return (
@@ -500,24 +549,61 @@ function Places({
           ))}
         </ScrollView>
       ) : (
-        <View style={{ overflow: 'hidden', paddingVertical: 6 }}>
-          <Animated.View
-            style={{
-              flexDirection: 'row',
-              gap: CARD_GAP,
-              transform: [{ translateX }],
-            }}
-          >
-            {loopCards.map((p, index) => (
-              <PlaceCard
-                key={`${p.id}-${index}`}
-                place={p}
-                here={here}
-                onPress={() => onOpenPlace(p.id)}
-              />
-            ))}
-          </Animated.View>
-        </View>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={handleScroll}
+          onScrollBeginDrag={pauseInteraction}
+          onScrollEndDrag={() => scheduleResume(2000)}
+          onMomentumScrollBegin={pauseInteraction}
+          onMomentumScrollEnd={() => scheduleResume(1500)}
+          onTouchStart={pauseInteraction}
+          onTouchEnd={() => scheduleResume(2000)}
+          {...(Platform.OS === 'web' ? {
+            onMouseDown: (e: any) => {
+              if (e.button !== 0 && e.nativeEvent?.button !== 0) return;
+              isMouseDownRef.current = true;
+              hasDraggedRef.current = false;
+              pauseInteraction();
+              const clientX = e.clientX ?? 0;
+              mouseStartXRef.current = clientX;
+              mouseStartScrollXRef.current = offsetRef.current;
+            },
+            onMouseMove: (e: any) => {
+              if (!isMouseDownRef.current) return;
+              const clientX = e.clientX ?? 0;
+              const dx = clientX - mouseStartXRef.current;
+              if (Math.abs(dx) > 4) hasDraggedRef.current = true;
+              offsetRef.current = mouseStartScrollXRef.current - dx;
+              scrollRef.current?.scrollTo({ x: offsetRef.current, animated: false });
+            },
+            onMouseUp: () => {
+              if (isMouseDownRef.current) {
+                isMouseDownRef.current = false;
+                scheduleResume(2000);
+              }
+            },
+            onMouseEnter: pauseInteraction,
+            onMouseLeave: () => {
+              if (isMouseDownRef.current) isMouseDownRef.current = false;
+              scheduleResume(1200);
+            },
+          } : {})}
+          contentContainerStyle={{ paddingHorizontal: gutter, gap: CARD_GAP, paddingVertical: 6 }}
+        >
+          {loopCards.map((p, index) => (
+            <PlaceCard
+              key={`${p.id}-${index}`}
+              place={p}
+              here={here}
+              onPress={() => {
+                if (!hasDraggedRef.current) onOpenPlace(p.id);
+              }}
+            />
+          ))}
+        </ScrollView>
       )}
     </View>
   );
