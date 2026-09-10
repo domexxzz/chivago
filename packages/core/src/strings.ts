@@ -694,6 +694,7 @@ export const strings = {
   // -- Check-in -----------------------------------------------------------
   checkin: {
     cta: t('Check in here', 'เช็กอินที่นี่'),
+    checkingIn: t('Checking in…', 'กำลังเช็กอิน…'),
     // The phone could not get a fix at all - tree cover, a timeout, a
     // simulator. Different from a refused permission and from being too far.
     noFix: t(

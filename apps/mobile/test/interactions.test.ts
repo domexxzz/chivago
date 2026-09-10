@@ -397,4 +397,18 @@ describe('leaving something at a place', () => {
       assert.match(ui.text(), /Add a photo or a clip/);
     } finally { ui.unmount(); }
   });
+
+  test('no check-in yet: offers in-sheet check-in when onCheckIn is provided', async () => {
+    let checked = false;
+    const ui = sheetWith({
+      canReview: false,
+      onCheckIn: async () => { checked = true; },
+    });
+    try {
+      assert.match(ui.text(), /Check in here to leave a rating/);
+      assert.match(ui.text(), /Check in here/);
+      await ui.pressText(/Check in here/);
+      assert.equal(checked, true, 'tapping the button calls onCheckIn');
+    } finally { ui.unmount(); }
+  });
 });

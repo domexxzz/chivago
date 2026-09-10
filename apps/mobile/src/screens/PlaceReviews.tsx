@@ -29,6 +29,7 @@ import { t } from '../i18n/locale.ts';
 
 export function ReviewsBlock({
   placeId, summary, justCheckedIn, storiesOpen, busy, onPickMedia, onPostStory, onToast, onPointsChanged,
+  onCheckIn, checkInBusy,
 }: {
   placeId: string;
   summary: ReviewSummary;
@@ -48,6 +49,8 @@ export function ReviewsBlock({
   justCheckedIn: boolean;
   onToast: (msg: string) => void;
   onPointsChanged: () => void;
+  onCheckIn?: () => Promise<void>;
+  checkInBusy?: boolean;
 }) {
   const [reviews, setReviews] = React.useState<PlaceReview[]>([]);
   const [mine, setMine] = React.useState<MyReviewState | null>(null);
@@ -183,6 +186,8 @@ export function ReviewsBlock({
         busy={busy}
         onPickMedia={onPickMedia}
         onPostStory={onPostStory}
+        onCheckIn={onCheckIn}
+        checkInBusy={checkInBusy}
         onClose={() => setComposing(false)}
         onSaved={(msg) => {
           setComposing(false);
@@ -345,6 +350,7 @@ function MediaPreview({ media }: { media: PickedMedia }) {
 export function ComposeSheet({
   placeId, existing, visible, storiesOpen, canReview, busy: postingStory,
   onPickMedia, onPostStory, onClose, onSaved, onWithdrawn,
+  onCheckIn, checkInBusy,
 }: {
   placeId: string;
   existing: PlaceReview | null;
@@ -359,11 +365,24 @@ export function ComposeSheet({
   onClose: () => void;
   onSaved: (message: string) => void;
   onWithdrawn: () => void;
+  onCheckIn?: () => Promise<void>;
+  checkInBusy?: boolean;
 }) {
   const [rating, setRating] = React.useState(existing?.rating ?? 0);
   const [body, setBody] = React.useState(existing?.body ?? '');
   const [media, setMedia] = React.useState<PickedMedia | null>(null);
   const [busy, setBusy] = React.useState(false);
+  const [checkingIn, setCheckingIn] = React.useState(false);
+
+  const handleCheckIn = async () => {
+    if (!onCheckIn) return;
+    setCheckingIn(true);
+    try {
+      await onCheckIn();
+    } finally {
+      setCheckingIn(false);
+    }
+  };
 
   // Re-seed when the sheet opens, or an edit would show the previous draft.
   React.useEffect(() => {
@@ -450,9 +469,30 @@ export function ComposeSheet({
                 a clip and words from this same sheet, and the sentence tells
                 them which half is missing and how to get it.
               */
-              <Body size={13} colour={color.neutral700} style={{ marginTop: 16 }}>
-                {t(strings.place.starsNeedCheckIn)}
-              </Body>
+              <View
+                style={{
+                  marginTop: 16,
+                  padding: 14,
+                  backgroundColor: color.surface,
+                  borderRadius: radius.sm,
+                  borderWidth: layout.ruleHair,
+                  borderColor: color.neutral300,
+                }}
+              >
+                <Body size={13} colour={color.neutral700}>
+                  {t(strings.place.starsNeedCheckIn)}
+                </Body>
+                {onCheckIn ? (
+                  <Button
+                    label={checkingIn || checkInBusy ? t(strings.checkin.checkingIn) : t(strings.checkin.cta)}
+                    thai={checkingIn || checkInBusy ? strings.checkin.checkingIn.th : strings.checkin.cta.th}
+                    onPress={handleCheckIn}
+                    disabled={checkingIn || checkInBusy || busy}
+                    height={40}
+                    style={{ marginTop: 10 }}
+                  />
+                ) : null}
+              </View>
             ) : null}
 
             <Label size={10} tracking={0.12} style={{ marginTop: 16 }}>

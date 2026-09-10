@@ -275,6 +275,8 @@ export function PlaceScreen({
               onPickMedia={pickMedia}
               onPostStory={sendStory}
               onToast={onToast}
+              onCheckIn={checkIn}
+              checkInBusy={busy}
               onPointsChanged={() => {
                 onPointsChanged();
                 // The average moved, so the header figure is now stale.
