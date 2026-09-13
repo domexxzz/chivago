@@ -3,7 +3,13 @@
  *
  *   node scripts/announce.mjs --th "หัวข้อ" "รายละเอียด" --en "title" "detail"
  *   node scripts/announce.mjs --from-git            # last commit, read off HEAD
+ *   node scripts/announce.mjs --file deck.pptx      # attach a file, repeatable
  *   node scripts/announce.mjs --dry-run --th ...    # print, send nothing
+ *
+ * ATTACHMENTS GO TO DISCORD ONLY. Hermes stores text; a deck belongs in the
+ * channel where somebody can open it. A file that is missing, unreadable or
+ * over the limit is reported and skipped - the message still sends, because
+ * losing the update to save the attachment is the wrong trade.
  *
  * THAI FIRST, AND BOTH EVERY TIME. The first two of these ever sent went out
  * in English only, which is the language the commit messages happen to be
@@ -36,7 +42,8 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
+import { basename } from 'node:path';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -129,7 +136,34 @@ function describe(text) {
   return `${thai}\n\n───\n\n${english}`;
 }
 
-async function toDiscord(text, ctx) {
+/**
+ * Discord's own ceiling for a webhook upload on an unboosted server.
+ *
+ * Checked here rather than discovered from a 413, so an oversize file is one
+ * clear line on the console instead of a failed post nobody reads.
+ */
+export const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
+
+/** Read the files worth attaching, and say plainly why any was left out. */
+function readAttachments(paths) {
+  const files = [];
+  const skipped = [];
+  for (const p of paths) {
+    try {
+      const size = statSync(p).size;
+      if (size > MAX_ATTACHMENT_BYTES) {
+        skipped.push(`${basename(p)} is ${(size / 1024 / 1024).toFixed(1)} MB, over Discord's 8 MB`);
+        continue;
+      }
+      files.push({ name: basename(p), bytes: readFileSync(p) });
+    } catch (err) {
+      skipped.push(`${basename(p)} could not be read (${err.code ?? err.name})`);
+    }
+  }
+  return { files, skipped };
+}
+
+async function toDiscord(text, ctx, attachPaths = []) {
   const url = process.env.CHIVAGO_DISCORD_WEBHOOK;
   if (!url) return { ok: false, why: 'CHIVAGO_DISCORD_WEBHOOK is not set' };
 
@@ -161,17 +195,41 @@ async function toDiscord(text, ctx) {
     }],
   };
 
+  const { files, skipped } = readAttachments(attachPaths);
+
+  /*
+    With no attachment this is the JSON post it always was. With one it has to
+    be multipart, and Discord wants the embed under `payload_json` with each
+    file as `files[n]` - the same body, carried differently.
+  */
+  let body;
+  let headers;
+  if (files.length === 0) {
+    body = JSON.stringify(payload);
+    headers = { 'content-type': 'application/json' };
+  } else {
+    const form = new FormData();
+    form.append('payload_json', JSON.stringify(payload));
+    files.forEach((f, i) => {
+      form.append(`files[${i}]`, new Blob([f.bytes]), f.name);
+    });
+    body = form;
+    headers = undefined;   // fetch sets the boundary itself
+  }
+
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(10_000),
+      ...(headers ? { headers } : {}),
+      body,
+      // An upload on a slow line needs longer than an embed does.
+      signal: AbortSignal.timeout(files.length > 0 ? 60_000 : 10_000),
     });
     // The URL is never included in the reason, whatever the status was.
-    return res.ok ? { ok: true } : { ok: false, why: `Discord answered ${res.status}` };
+    if (!res.ok) return { ok: false, why: `Discord answered ${res.status}`, skipped };
+    return { ok: true, sent: files.map((f) => f.name), skipped };
   } catch (err) {
-    return { ok: false, why: `Discord unreachable (${err.name})` };
+    return { ok: false, why: `Discord unreachable (${err.name})`, skipped };
   }
 }
 
@@ -213,8 +271,12 @@ async function toHermes(text, ctx) {
 function readArgs(argv) {
   const out = { th: { title: '', body: '' }, en: { title: '', body: '' } };
   let lang = null;
+  let expectFile = false;
   const words = { th: [], en: [] };
+  const files = [];
   for (const arg of argv) {
+    if (expectFile) { files.push(arg); expectFile = false; continue; }
+    if (arg === '--file') { lang = null; expectFile = true; continue; }
     if (arg === '--th' || arg === '--en') { lang = arg.slice(2); continue; }
     if (arg.startsWith('--')) { lang = null; continue; }
     if (lang) words[lang].push(arg);
@@ -222,6 +284,7 @@ function readArgs(argv) {
   for (const l of ['th', 'en']) {
     out[l] = { title: words[l][0] ?? '', body: words[l].slice(1).join('\n') };
   }
+  out.files = files;
   return out;
 }
 
@@ -233,6 +296,8 @@ async function main() {
   const useGit = argv.includes('--from-git');
 
   const ctx = context();
+  // --file works with --from-git too, so the paths are read either way.
+  const attachments = readArgs(argv).files;
   const text = useGit ? fromGit() : readArgs(argv);
 
   // Neither language given at all: fall back to the commit rather than send
@@ -247,12 +312,15 @@ async function main() {
     console.log(`  ---\n${describe(text)}\n  ---`);
     console.log(`  ${ctx.branch} · ${ctx.sha} · ${ctx.dirty} uncommitted`);
     console.log(`  discord: ${process.env.CHIVAGO_DISCORD_WEBHOOK ? 'webhook configured' : 'NOT configured'}`);
+    if (attachments.length > 0) console.log(`  files:   ${attachments.join(', ')}`);
     if (noThai) console.log('  WARNING: no Thai. The channel reads Thai — pass --th.');
     return 0;
   }
 
-  const [discord, hermes] = await Promise.all([toDiscord(text, ctx), toHermes(text, ctx)]);
-  console.log(`[announce] discord: ${discord.ok ? 'sent' : `skipped — ${discord.why}`}`);
+  const [discord, hermes] = await Promise.all([toDiscord(text, ctx, attachments), toHermes(text, ctx)]);
+  const attached = discord.sent?.length ? ` with ${discord.sent.join(', ')}` : '';
+  console.log(`[announce] discord: ${discord.ok ? `sent${attached}` : `skipped — ${discord.why}`}`);
+  for (const why of discord.skipped ?? []) console.log(`[announce] attachment skipped — ${why}`);
   console.log(`[announce] hermes:  ${hermes.ok ? 'saved' : `skipped — ${hermes.why}`}`);
   // Said after the send, not instead of it. Losing the update would be worse
   // than an English-only one; saying nothing is how it happened the first time.

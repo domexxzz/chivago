@@ -83,6 +83,7 @@ EXPO_PUBLIC_API_URL=http://192.168.1.42:8787 pnpm mobile
 
 ```bash
 node scripts/announce.mjs --th "หัวข้อ" "รายละเอียด" --en "title" "detail"
+node scripts/announce.mjs --file deck.pdf --th "..." --en "..."   # attach, repeatable
 pnpm announce          # the last commit, English only — it will warn you
 ```
 
@@ -98,6 +99,12 @@ not the one the team reads. Everything else in this product carries both —
 should not have to translate a release note to find out what changed. A
 message with no Thai still sends, so an update is never lost, and says so
 loudly in its own body and on the console.
+
+`--file` attaches a deck, a PDF, an export — anything the channel should be
+able to open without asking for a link. Attachments go to Discord only;
+Hermes stores text. A file that is missing, unreadable, or over Discord's
+8 MB webhook limit is named on the console and skipped, and **the message
+still sends** — losing the update to save the attachment is the wrong trade.
 
 The webhook is a credential — whoever holds it can post into the channel as
 this app — so it lives in `.env`, which has been ignored since the first
