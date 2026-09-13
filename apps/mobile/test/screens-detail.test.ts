@@ -1343,7 +1343,10 @@ describe('the companion collection on the wallet', () => {
     try {
       const ui = await mountScreen(h(WalletScreen, walletProps));
       const said = ui.text();
-      assert.match(said, /Check in anywhere on the island/);
+      // The wallet used to carry its own copy of this line, which said "on
+      // the island". There are two areas now and one of them is a campus in
+      // Chonburi, so the shared line does not name a geography.
+      assert.match(said, /Check in anywhere to find your first egg/);
       assert.match(said, /0\/5/);
       ui.unmount();
     } finally { net.restore(); }

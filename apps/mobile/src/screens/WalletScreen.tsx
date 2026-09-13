@@ -453,9 +453,9 @@ function Companions({
         flexDirection: 'row', justifyContent: 'space-between',
         alignItems: 'baseline', paddingHorizontal: gutter,
       }}>
-        <Label size={10} tracking={0.16}>{t({ en: 'Companions', th: 'สัตว์ประจำถิ่น' })}</Label>
+        <Label size={10} tracking={0.16}>{t(strings.profile.companions)}</Label>
         <Label size={10} tracking={0.12} colour={color.neutral600}>
-          {`${summary.found}/${summary.total} · ${summary.grown} ${t({ en: 'grown', th: 'โตเต็มวัย' })}`}
+          {`${summary.found}/${summary.total} · ${summary.grown} ${t(strings.profile.companionsGrown)}`}
         </Label>
       </View>
 
@@ -463,7 +463,7 @@ function Companions({
         // Not five locked slots. An empty collection with a lever you cannot
         // see is the shape of a slot machine.
         <View style={{ paddingHorizontal: gutter, paddingTop: 12 }}>
-          <Body size={13} colour={color.neutral700}>{t({ en: 'Check in anywhere on the island to find your first egg.', th: 'เช็กอินที่ไหนก็ได้บนเกาะ เพื่อพบไข่ใบแรก' })}</Body>
+          <Body size={13} colour={color.neutral700}>{t(strings.profile.companionsEmpty)}</Body>
         </View>
       ) : null}
 
