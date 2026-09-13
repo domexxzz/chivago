@@ -79,6 +79,24 @@ EXPO_PUBLIC_API_URL=http://192.168.1.42:8787 pnpm mobile
 
 ---
 
+## Telling the team
+
+```bash
+pnpm announce
+```
+
+Posts what the last commit changed to the team's Discord channel and saves it
+to Hermes, the memory service on the developer's own machine. Both are
+optional and neither can fail the thing it is describing: the script exits 0
+whatever happens and says which of the two landed.
+
+The webhook is a credential — whoever holds it can post into the channel as
+this app — so it lives in `.env`, which has been ignored since the first
+commit. Copy `.env.example`, fill it in, and never commit the result. Pass
+`--dry-run` to see the message without sending it.
+
+---
+
 ## Tests
 
 ```bash
