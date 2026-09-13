@@ -56,6 +56,15 @@ export function Heading({ children, style, size = 26, colour = color.text, track
 interface BodyProps {
   children: React.ReactNode;
   style?: TextStyle | TextStyle[];
+  /**
+   * Two sizes, and 13 is the floor on purpose.
+   *
+   * Thai stacks a tone mark above the consonant and a vowel below it, so a
+   * line of Thai needs more height than the same line of English to stay
+   * readable. Below 13 the marks start touching. A supporting line that
+   * wants to be smaller than the body text is a `Label`, which has its own
+   * floor at 9 because it is set in caps with tracking.
+   */
   size?: 13 | 14;
   colour?: string;
 }
