@@ -33,6 +33,7 @@ import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
+import { MascotMark } from '../components/MascotMark.tsx';
 import { t } from '../i18n/locale.ts';
 
 /** `noted` is a stamp on the traveller's word - recorded, not scored. Drawn dashed. */
@@ -103,9 +104,14 @@ export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void }
             paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.18)',
           }}
         >
-          <HeroFigure value={collection.found} label="Companions" thai="เพื่อนร่วมทาง" />
-          <HeroFigure value={collection.grown} label="Grown" thai="โตเต็มวัย" />
-          <HeroFigure value={collection.sealed} label="Sealed" thai="ยังไม่เปิด" />
+          {/*
+            Counted in the emblem's words, not the animal's. These three
+            numbers are provinces, and a province is not something that
+            hatches - see `MascotBond` in core.
+          */}
+          <HeroFigure value={collection.found} label={strings.mascots.bond.met.en} thai={strings.mascots.bond.met.th} />
+          <HeroFigure value={collection.grown} label={strings.mascots.bond.vouched.en} thai={strings.mascots.bond.vouched.th} />
+          <HeroFigure value={collection.sealed} label={strings.mascots.bond.unopened.en} thai={strings.mascots.bond.unopened.th} />
         </View>
       </View>
 
@@ -277,21 +283,39 @@ function Stamp({
       </Label>
 
       {/*
-        What is living there, and ONLY when it is actually known. A sealed
-        province says nothing about its animal, because nobody has surveyed it
-        — that silence is the honest half of a seventy-seven creature
-        collection, and filling it with a guess is the whole thing this design
-        refuses to do.
+        The province's own creature, on every card including the sealed ones.
+
+        This used to print the habitat SPECIES, which meant seventy-seven
+        cards shared five animals and two different provinces looked
+        identical. The mascot is the province's emblem, all seventy-seven
+        different, and public before anybody visits - so it can be drawn on
+        a card nobody has earned yet without claiming anything. The species
+        still exists and is still withheld until earned; it belongs to the
+        habitat, and the place it is said is the companion room.
       */}
-      {companion?.species ? (
-        <Label
-          size={9}
-          tracking={0.04}
-          colour={stamped ? color.surface : color.accent700}
-          style={{ marginTop: 4, textTransform: 'none' }}
-        >
-          {`${STAGE_MARK[companion.state] ?? ''} ${t(companion.species.name)}`}
-        </Label>
+      {companion ? (
+        <>
+          <MascotMark mascot={companion.mascot} size={28} />
+          <Label
+            size={9}
+            tracking={0.04}
+            colour={stamped ? color.surface : color.accent700}
+            style={{ marginTop: 2, textTransform: 'none' }}
+          >
+            {`${BOND_MARK[companion.bond] ?? ''} ${t(companion.mascot.name)}`}
+          </Label>
+          {/* The level, only where there is one. Zero is not a level, it is a province nobody has been to. */}
+          {companion.level > 0 ? (
+            <Label
+              size={9}
+              tracking={0.04}
+              colour={stamped ? color.accent100 : color.neutral600}
+              style={{ marginTop: 1, textTransform: 'none' }}
+            >
+              {t(strings.mascots.level(companion.level))}
+            </Label>
+          ) : null}
+        </>
       ) : null}
     </View>
   );
@@ -300,12 +324,15 @@ function Stamp({
 /**
  * The ladder, as one character each.
  *
- * A word per stage would not fit seventy-seven times and a colour alone would
+ * A word per rung would not fit seventy-seven times and a colour alone would
  * carry the whole meaning, which fails for anybody who cannot separate the
  * two greens. The mark is redundant with the colour on purpose.
+ *
+ * `unopened` and `unmet` get nothing rather than an empty circle: a mark on
+ * a province nobody can visit yet would read as progress that is available.
  */
-const STAGE_MARK: Partial<Record<ProvinceCompanion['state'], string>> = {
-  egg: '○', hatchling: '◐', grown: '●',
+const BOND_MARK: Partial<Record<ProvinceCompanion['bond'], string>> = {
+  met: '○', known: '◐', vouched: '●',
 };
 
 /** One figure on the inverted hero panel. */

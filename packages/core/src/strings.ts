@@ -155,6 +155,36 @@ export const strings = {
     tapToGreet: t('Tap to say hello', 'แตะเพื่อทักทาย'),
     drawnFrom: t('Drawn from', 'วาดจาก'),
     metCount: (n: number, total: number) => t(`${n} of ${total} met`, `พบแล้ว ${n} จาก ${total}`),
+    /**
+     * The ladder, in the emblem's own words (see `MascotBond` in core).
+     *
+     * Every line describes the TRAVELLER's record, never the creature's body.
+     * "Grown" would say a durian reached adulthood; "vouched for" says a host
+     * signed off work somebody did in Nonthaburi, which is the thing that
+     * actually happened.
+     */
+    bond: {
+      unopened: t('Not open yet', 'ยังไม่เปิด'),
+      unmet: t('Not met', 'ยังไม่ได้เจอ'),
+      met: t('Met', 'เจอแล้ว'),
+      known: t('Known', 'รู้จักแล้ว'),
+      vouched: t('Vouched for', 'มีผู้จัดรับรอง'),
+    },
+    /**
+     * The level, and the two things that made it, so the number can be read
+     * back. `เลเวล` because that is the word `wallet.level` already uses; a
+     * second Thai word for one English one is the drift docs/… keeps catching.
+     */
+    level: (n: number) => t(`Level ${n}`, `เลเวล ${n}`),
+    levelFrom: (days: number, verified: number) => t(
+      `${days} day${days === 1 ? '' : 's'} here · ${verified} verified`,
+      `มา ${days} วัน · งานที่ตรวจแล้ว ${verified}`,
+    ),
+    /** Said once, where the level is shown, so the arithmetic is never hidden. */
+    levelNote: t(
+      'A level is days you came plus three for each quest a host verified. Nothing else counts, and it never goes down.',
+      'เลเวล คือจำนวนวันที่มา บวกสามต่อหนึ่งภารกิจที่ผู้จัดตรวจแล้ว ไม่มีอย่างอื่นนับ และไม่มีวันลดลง',
+    ),
   },
 
   // -- Place --------------------------------------------------------------

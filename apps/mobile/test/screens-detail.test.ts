@@ -1577,8 +1577,15 @@ describe('the passport, which shows a country it has not finished', () => {
     } finally { net.restore(); }
   });
 
-  test('a province with evidence names the animal living there', async () => {
+  test('a province with evidence names the province’s own emblem, and its level', async () => {
     // Surat Thani, with a host-verified quest in the Safe habitat.
+    //
+    // This used to assert "Green sea turtle" - the habitat species - which
+    // meant every Safe-layer province in the country printed the same animal
+    // and two provinces looked identical. The passport now names the
+    // province's emblem, which is one of seventy-seven. The turtle is still
+    // real and still earned; it belongs to the habitat and is said in the
+    // companion room.
     const net = server({
       'GET /passport': {
         visited: ['TH-84'],
@@ -1587,8 +1594,10 @@ describe('the passport, which shows a country it has not finished', () => {
     });
     try {
       const said = (await mountScreen(h(PassportScreen, {}))).text();
-      assert.match(said, /Green sea turtle/, 'the companion for a grown province is missing');
-      assert.match(said, /Companions/);
+      assert.match(said, /Ngo/, 'Surat Thani’s emblem is missing from its card');
+      // 3 days + one verified quest, at three days each.
+      assert.match(said, /Level 6/, 'the level is missing, or is not the evidence under it');
+      assert.match(said, /Vouched for/, 'a host verified work here, and the summary should say so');
     } finally { net.restore(); }
   });
 
