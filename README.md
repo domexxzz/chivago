@@ -82,13 +82,22 @@ EXPO_PUBLIC_API_URL=http://192.168.1.42:8787 pnpm mobile
 ## Telling the team
 
 ```bash
-pnpm announce
+node scripts/announce.mjs --th "หัวข้อ" "รายละเอียด" --en "title" "detail"
+pnpm announce          # the last commit, English only — it will warn you
 ```
 
-Posts what the last commit changed to the team's Discord channel and saves it
-to Hermes, the memory service on the developer's own machine. Both are
-optional and neither can fail the thing it is describing: the script exits 0
-whatever happens and says which of the two landed.
+Posts what changed to the team's Discord channel and saves the same thing to
+Hermes, the memory service on the developer's own machine. Both are optional
+and neither can fail the thing it is describing: the script exits 0 whatever
+happens and says which of the two landed.
+
+**Thai first, and both every time.** The first announcements ever sent went
+out in English, which is the language the commit messages happen to be in and
+not the one the team reads. Everything else in this product carries both —
+`strings.ts` will not let a screen ship half-translated — and a teammate
+should not have to translate a release note to find out what changed. A
+message with no Thai still sends, so an update is never lost, and says so
+loudly in its own body and on the console.
 
 The webhook is a credential — whoever holds it can post into the channel as
 this app — so it lives in `.env`, which has been ignored since the first
