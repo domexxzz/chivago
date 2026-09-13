@@ -749,7 +749,7 @@ function MascotHeroCard({
               <Heading size={15} tracking={-0.3} style={{ marginTop: 2 }}>
                 {t({ en: 'Meet your Island Companions', th: 'แก๊งเพื่อนร่วมทางเกาะสมุย' })}
               </Heading>
-              <Body size={12} colour={color.neutral700} style={{ marginTop: 4 }}>
+              <Body size={13} colour={color.neutral700} style={{ marginTop: 4 }}>
                 {t({
                   en: 'Explore local habitats, collect provincial passport stamps, and hatch companions.',
                   th: 'ออกสำรวจถิ่นที่อยู่ สะสมตราประทับพาสปอร์ต และฟักไข่เพื่อนร่วมทางจากการเดินทางจริง',

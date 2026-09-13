@@ -499,7 +499,7 @@ export function ComposeSheet({
                   />
                 ) : null}
                 {checkInError ? (
-                  <Body size={12} colour={color.accent2} style={{ marginTop: 8 }}>
+                  <Body size={13} colour={color.accent2} style={{ marginTop: 8 }}>
                     {checkInError}
                   </Body>
                 ) : null}

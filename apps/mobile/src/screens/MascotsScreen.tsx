@@ -151,7 +151,7 @@ export function MascotsScreen({
           <Heading size={14} tracking={-0.2}>
             {t({ en: 'Island Companions • Koh Samui', th: 'แก๊งเพื่อนร่วมทางเกาะสมุย' })}
           </Heading>
-          <Body size={12} colour={color.neutral700} style={{ marginTop: 2 }}>
+          <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>
             {t({
               en: 'Explore local habitats, hatch companion eggs through verified journeys, and uncover the seventy-seven provincial mascots.',
               th: 'ออกเดินทางสำรวจถิ่นที่อยู่ ฟักไข่เพื่อนร่วมทางจากการท่องเที่ยวจริง และค้นหามาสคอตทั้ง 77 จังหวัดทั่วไทย',
