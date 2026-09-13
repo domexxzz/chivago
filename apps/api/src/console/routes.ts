@@ -27,6 +27,11 @@ import { storiesPage } from './stories.ts';
 import { pendingStories, readStoryMedia, reviewStory, setStoriesOpen, storiesOpen } from '../story-service.ts';
 import { InvalidPeriod, draftStatement, issueStatement, statementsFor } from '../statement-service.ts';
 import { activityInPeriod } from '../esg-service.ts';
+import {
+  addOrganisation, addSponsorship, basisFor, InvalidFunding, listOrganisations, organisationById,
+  removeSponsorship, sponsorshipsFor, UnknownOrganisation,
+} from '../organisation-service.ts';
+import { organisationsPage } from './organisations.ts';
 import { pendingQueue, queueStats, recentDecisions, reviewItem } from '../review-service.ts';
 import {
   DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, localeFromAcceptLanguage, type Locale,
@@ -350,16 +355,21 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
   app.get('/sponsor', (c) => {
     const session = currentSession(c)!;
 
-    const sponsor: Sponsor = {
-      id: 'samui-green',
-      name: { en: 'Samui Green Foundation', th: 'มูลนิธิสมุยสีเขียว' },
-      kind: 'ngo',
-    };
-    const sponsorships: Sponsorship[] = [
-      { sponsorId: sponsor.id, questId: 'q2', fundedTHB: 40_000, perVerifiedTHB: 400, startedAt: '2026-08-01T00:00:00.000Z' },
-      { sponsorId: sponsor.id, questId: 'q3', fundedTHB: 25_000, perVerifiedTHB: 300, startedAt: '2026-08-01T00:00:00.000Z' },
-    ];
+    /*
+      Which organisation. `?org=` names one; with none named the first is
+      shown, and with none at all the page says so rather than inventing a
+      funder. That last case is the shipped default: the table starts empty.
+    */
+    const organisations = listOrganisations(db);
+    const asked = c.req.query('org');
+    const sponsor = asked
+      ? organisationById(db, asked)
+      : organisations[0];
+    if (!sponsor) {
+      return c.html(sponsorPage(localeFor(c), session.hostName, session.reviewer, null, [], [], 'declared'));
+    }
 
+    const sponsorships = sponsorshipsFor(db, sponsor.id);
     const counts = questCountsFor(db, sponsorships.map((s) => s.questId));
     const outcome = sponsorOutcome(sponsor, sponsorships, counts);
 
@@ -375,7 +385,9 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       };
     });
 
-    return c.html(sponsorPage(localeFor(c), session.hostName, session.reviewer, outcome, rows));
+    return c.html(sponsorPage(
+      localeFor(c), session.hostName, session.reviewer, outcome, rows, organisations, basisFor(db, sponsor.id),
+    ));
   });
 
   /**
@@ -393,22 +405,27 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
   app.get('/esg', (c) => {
     const session = currentSession(c)!;
 
-    const partner: Sponsor = {
-      id: 'samui-green',
-      name: { en: 'Samui Green Foundation', th: 'มูลนิธิสมุยสีเขียว' },
-      kind: 'ngo',
-    };
-    const funded = [
-      { questId: 'q2', fundedTHB: 40_000, perVerifiedTHB: 400 },
-      { questId: 'q3', fundedTHB: 25_000, perVerifiedTHB: 300 },
-    ];
+    // Same organisations as the sponsor page, read the same way. An empty
+    // table is a page that says nothing has been funded, not a page with an
+    // invented partner on it.
+    const organisations = listOrganisations(db);
+    const asked = c.req.query('org');
+    const partner = asked ? organisationById(db, asked) : organisations[0];
+    if (!partner) {
+      return c.html(esgPage(localeFor(c), session.hostName, session.reviewer, null, [], 'declared'));
+    }
 
+    const funded = sponsorshipsFor(db, partner.id).map((s) => ({
+      questId: s.questId, fundedTHB: s.fundedTHB, perVerifiedTHB: s.perVerifiedTHB,
+    }));
     const period = readPeriod(c.req.query('from'), c.req.query('to'));
 
     const { classified, excludedUnclassified } = activityInPeriod(db, funded, period);
     const report = esgReport(partner, period, classified, excludedUnclassified);
 
-    return c.html(esgPage(localeFor(c), session.hostName, session.reviewer, report));
+    return c.html(esgPage(
+      localeFor(c), session.hostName, session.reviewer, report, organisations, basisFor(db, partner.id),
+    ));
   });
 
   /**
@@ -470,6 +487,98 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
    * shuts it when the talk ends, from the phone on the stage; a host that
    * is not a moderator does not have the handle, and is not shown it.
    */
+  /**
+   * Organisations, and what they funded. Moderator only.
+   *
+   * A host who runs one quest must not be able to set the funding their own
+   * work is measured against, so this is behind the same gate the review
+   * moderation is, and the tab is hidden rather than disabled for everybody
+   * else.
+   */
+  app.get('/organisations', (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    return c.html(organisationsPage({
+      locale: localeFor(c),
+      hostName: session.hostName,
+      reviewer: session.reviewer,
+      csrf: csrfFor(session),
+      views: listOrganisations(db).map((org) => ({
+        org,
+        sponsorships: sponsorshipsFor(db, org.id),
+        basis: basisFor(db, org.id),
+      })),
+      quests: listQuests(db).map((q) => ({ id: q.id, name: q.name.en })),
+      error: c.req.query('error') ?? null,
+      notice: c.req.query('notice') ?? null,
+    }));
+  });
+
+  app.post('/organisations', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/organisations'), 403);
+    }
+    try {
+      addOrganisation(
+        db,
+        {
+          name: String(form.name ?? ''),
+          nameTh: typeof form.nameTh === 'string' ? form.nameTh : null,
+          kind: String(form.kind ?? ''),
+        },
+        session.reviewer ?? session.hostName,
+      );
+    } catch (err) {
+      if (err instanceof InvalidFunding) return c.redirect(`/console/organisations?error=${encodeURIComponent(err.message)}`, 303);
+      throw err;
+    }
+    return c.redirect('/console/organisations', 303);
+  });
+
+  app.post('/organisations/:id/fund', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/organisations'), 403);
+    }
+    try {
+      addSponsorship(
+        db,
+        {
+          orgId: c.req.param('id'),
+          questId: String(form.questId ?? ''),
+          fundedTHB: Number(form.fundedTHB),
+          perVerifiedTHB: Number(form.perVerifiedTHB),
+          // Unticked is the default, and the default is the cautious one: a
+          // figure nobody claimed was signed is declared.
+          basis: form.basis === 'signed' ? 'signed' : 'declared',
+        },
+        session.reviewer ?? session.hostName,
+      );
+    } catch (err) {
+      if (err instanceof InvalidFunding || err instanceof UnknownOrganisation) {
+        return c.redirect(`/console/organisations?error=${encodeURIComponent(err.message)}`, 303);
+      }
+      throw err;
+    }
+    return c.redirect('/console/organisations', 303);
+  });
+
+  app.post('/organisations/:id/unfund', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/organisations'), 403);
+    }
+    removeSponsorship(db, c.req.param('id'), String(form.questId ?? ''));
+    return c.redirect('/console/organisations', 303);
+  });
+
   app.post('/stories/door', async (c) => {
     const session = currentSession(c)!;
     if (!canModerate(session)) return c.text('Not found', 404);
