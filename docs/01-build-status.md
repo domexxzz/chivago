@@ -2,11 +2,11 @@
 
 What exists, what runs, and what is honestly not there yet.
 
-> **Status as of 2026-09-13.** 176 commits since 2026-09-01; `main` is clean
-> at `51b15aa`, no pull request or issue is open. 21 screens, 80 API routes,
-> 33 console routes, 38 tables, about 47,200 lines of source and 21,600 of
-> tests; 1,780 TypeScript tests (core 414, api 818, mobile 493 + 30, tokens
-> 25), 11 Dart, 10 Swift, across 54 documents.
+> **Status as of 2026-09-13, evening.** 188 commits since 2026-09-01; `main`
+> is clean at `e57b85b`, no pull request or issue is open. 21 screens, 80 API
+> routes, 37 console routes, 40 tables, about 48,500 lines of source and
+> 22,200 of tests; 1,832 TypeScript tests (core 440, api 839, mobile 498 + 30,
+> tokens 25), 11 Dart, 10 Swift, across 55 documents.
 >
 > **CI was red for two days and is green again.** The two commits of the 11th
 > - a companions showcase on Home and the carousel under it - set `Body` at
@@ -51,6 +51,38 @@ What exists, what runs, and what is honestly not there yet.
 > https://chivago-demo-sigma.vercel.app, which README points at, was rebuilt
 > from `main` on the 13th; https://chivago-demo.vercel.app is pinned to an
 > older deployment.
+>
+> **Later the same day**, seven more pull requests. Three closed gaps the
+> owner's 13 September proposal found, written up in
+> `56-three-gaps-the-proposal-found.md`: the seventy-seven province mascots
+> became the creature you collect, with a per-traveller level, while the five
+> habitat species kept the animal facts they carry (#24); gentle steps arrived
+> behind the mood check-in under the rule that **a step pays nothing**, with a
+> test that fails if a points, streak, badge or rank field is ever added
+> (#25); and the sponsor page's hardcoded NGO became an `organisations` table
+> whose every figure is marked `declared` or `signed`, shipped empty, with
+> adding one gated to a moderator (#26). One more fixed a word: the wallet
+> said สัตว์ประจำถิ่น where the rest of the app says เพื่อนร่วมทาง, because it
+> carried an inline copy of a block the profile renders from core (#23).
+>
+> The other three built `scripts/announce.mjs`, which posts what changed to
+> the team's Discord channel and saves it to Hermes on the developer's machine
+> (#27), then learned the lesson its own first two posts taught — they went
+> out in English, which is the language the commits are in and not the one the
+> team reads, so it now sends **Thai first and both every time**, and says so
+> when the Thai is missing rather than going quietly (#28) — and finally
+> gained `--file`, so a deck reaches the channel as an attachment instead of a
+> link somebody has to be given access to (#29).
+>
+> Also produced on the 13th, outside the repository: four published reference
+> pages for the team (the whole system, the screen mockups, an ESG reporting
+> and ratings guide researched from primary sources, and a KPI dictionary that
+> explains every number twice — once plainly, once with the formula), and a
+> fifteen-slide Thai pitch deck built from them. **Two findings from that
+> research change what the team should say**: SET ESG Ratings ended after the
+> 2568 cycle and the exchange moves to FTSE Russell ESG Scores, which score
+> only public English disclosure and send no questionnaire; and the SEC's ISSB
+> roadmap slipped a year, so SET50 starts in 2570 and SET100 in 2571.
 
 > **Status as of 2026-09-08, afternoon.** 141 commits since 2026-09-01;
 > `main` is clean at `d401f08`, no pull request or issue is open, and CI is

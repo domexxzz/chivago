@@ -119,7 +119,7 @@ commit. Copy `.env.example`, fill it in, and never commit the result. Pass
 pnpm test
 ```
 
-**1,780 tests** — 414 core, 818 API, 523 mobile, 25 tokens — plus 11 in the Dart
+**1,832 tests** — 440 core, 839 API, 528 mobile, 25 tokens — plus 11 in the Dart
 SDK (`pnpm test:dart`) and 10 in the Swift one (`swift test`). `pnpm typecheck`
 covers all four packages. `.github/workflows/ci.yml` runs all of it on every
 push, on Linux and macOS, so the numbers above are checked by a machine nobody
