@@ -2,6 +2,56 @@
 
 What exists, what runs, and what is honestly not there yet.
 
+> **Status as of 2026-09-13.** 176 commits since 2026-09-01; `main` is clean
+> at `51b15aa`, no pull request or issue is open. 21 screens, 80 API routes,
+> 33 console routes, 38 tables, about 47,200 lines of source and 21,600 of
+> tests; 1,780 TypeScript tests (core 414, api 818, mobile 493 + 30, tokens
+> 25), 11 Dart, 10 Swift, across 54 documents.
+>
+> **CI was red for two days and is green again.** The two commits of the 11th
+> - a companions showcase on Home and the carousel under it - set `Body` at
+> 12, which that component's type does not allow, and both runs failed on the
+> typecheck job. Every test passed throughout, which is why nothing except
+> the job nobody read said so. Fixed on the 13th in electiction's PR #21
+> (`b4a669d`): the three lines take 13, which is the floor the design system
+> has for body text because Thai stacks a tone mark above the consonant and a
+> vowel below it, and the reason for that floor is now written beside the
+> type that enforces it. The last green commit before it was `8204f38`, on
+> the 10th.
+>
+> The live API has been up at https://chivago.fly.dev since the evening of
+> the 7th and answered on the 13th. Since the 8 September status, in the
+> three days before the pitch: the road route is drawn on the app's own map
+> rather than handed to a browser, using FOSSGIS's Valhalla because a
+> measurement showed OSRM's public server answers a walking request from the
+> car graph - about 20 km of it in 22 minutes against Valhalla's 249 - and a
+> test now holds the parsed route to a walking pace (`53-the-way-there.md`);
+> Home carries a board where the separate accounts in a room can see each
+> other, showing approved stories and visible reviews but never a check-in
+> (`54-the-board-on-home.md`); monsters stand at places, summoned only by a
+> live air reading at or over 51 AQI or an open environmental quest, never by
+> an estimate (`55-monsters.md`); the door was opened wide for the day - no
+> registration limit, no event token, and a clip is public the moment it is
+> posted with the app saying plainly that nobody has looked at it yet; the
+> campus map gained building 13, where the hackathon moved, its hillside, its
+> streets and its roofs; pins wear their photographs and a moment can be
+> posted from the map without opening a place; uploads moved onto the volume,
+> where a deploy stops eating them; the bundle is no longer re-downloaded on
+> every open; and the app opens in English whatever the phone speaks.
+>
+> **What this file cannot tell you is how the pitch went.** The last commit
+> is `6dcbeb6`, at four in the morning on the 11th, and nothing has been
+> written since. The calendar in `50-status-2026-09-08.md` runs to the 11th
+> and is now a record of a plan rather than of a day. Whatever was learned in
+> that room is still only with the people who were in it, and the list of
+> what is not real - money never moves, 75 provinces have no places, the Thai
+> has not been read by a native speaker, there is no attestation and no
+> independent signature on a statement - is unchanged because nothing since
+> has touched it. Two demo URLs are still live and no longer agree:
+> https://chivago-demo-sigma.vercel.app, which README points at, was rebuilt
+> from `main` on the 13th; https://chivago-demo.vercel.app is pinned to an
+> older deployment.
+
 > **Status as of 2026-09-08, afternoon.** 141 commits since 2026-09-01;
 > `main` is clean at `d401f08`, no pull request or issue is open, and CI is
 > green on every commit since the 7th. 20 screens, 75 API routes, 32 console
