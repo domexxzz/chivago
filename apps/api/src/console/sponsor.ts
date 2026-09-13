@@ -13,8 +13,9 @@
  * rather than in a footnote nobody scrolls to.
  */
 
-import { sponsorHeadline, type SponsorOutcome } from '@chivago/core';
+import { sponsorHeadline, type FundingBasis, type Sponsor, type SponsorOutcome } from '@chivago/core';
 import { esc, html, layout, type Raw } from './html.ts';
+import { basisNote, orgPicker } from './org-parts.ts';
 import type { Locale } from './i18n.ts';
 
 const baht = (n: number): string => `${n.toLocaleString('en-US')} THB`;
@@ -33,15 +34,46 @@ export function sponsorPage(
   locale: Locale,
   hostName: string,
   reviewer: string | null,
-  outcome: SponsorOutcome,
+  /** Null when no organisation has been added yet, which is how a deployment starts. */
+  outcome: SponsorOutcome | null,
   questRows: { questId: string; name: string; joined: number; verified: number; fundedTHB: number }[],
+  organisations: Sponsor[] = [],
+  basis: FundingBasis = 'declared',
 ): string {
   const th = locale === 'th';
+
+  /*
+    An empty table is a page that says so. The alternative - the constant this
+    page used to carry - put a funder on screen who had signed nothing, which
+    is the thing the organisations table was built to stop.
+  */
+  if (!outcome) {
+    return layout(
+      {
+        locale, hostName, reviewer, activeNav: 'sponsor', title: 'Funding', path: '/console/sponsor',
+      },
+      html`
+        <h1>Funding · การสนับสนุน</h1>
+        <p class="lede">No organisation has been added yet.
+          <span lang="th">ยังไม่มีองค์กรผู้สนับสนุนในระบบ</span></p>
+        <section class="panel">
+          <p class="note">
+            A moderator adds one from the organisations page, together with what it
+            funded. Until then there is nothing to report, and this page says that
+            rather than showing an example.
+            <span lang="th">ผู้ดูแลเพิ่มองค์กรและยอดสนับสนุนได้ที่หน้าองค์กร จนกว่าจะมี หน้านี้จะไม่มีตัวเลขให้รายงาน</span>
+          </p>
+        </section>`,
+    );
+  }
+
   const headline = sponsorHeadline(outcome);
 
   const body = html`
     <h1>${esc(outcome.sponsor.name[locale])}</h1>
     <p class="lede">${esc(th ? headline.th : headline.en)}</p>
+    ${orgPicker(organisations, outcome.sponsor.id, '/console/sponsor')}
+    ${basisNote(basis)}
 
     <!--
       Verified leads, and it is the only figure given the lead treatment. The

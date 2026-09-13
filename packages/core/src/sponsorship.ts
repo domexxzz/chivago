@@ -19,7 +19,26 @@
 
 import type { Bilingual } from './types.ts';
 
-export type SponsorKind = 'brand' | 'government' | 'ngo' | 'municipality';
+/**
+ * Who funds a quest.
+ *
+ * `university` and `company` joined the list when the organisations table did:
+ * the pilot's first two buyers are a campus and an employer, and folding
+ * either into 'brand' would have put a university's engagement report under a
+ * marketing heading.
+ */
+export type SponsorKind = 'brand' | 'government' | 'ngo' | 'municipality' | 'university' | 'company';
+
+/**
+ * Whether an agreement actually exists.
+ *
+ * The sponsor page carried its funding in a constant for months rather than a
+ * table, because a row in a database reads as a contract and there were none.
+ * The table exists now and this is what makes that safe: 'declared' is
+ * somebody's entry with nothing signed behind it, 'signed' is a real
+ * agreement, and every page that prints money prints which of the two it is.
+ */
+export type FundingBasis = 'declared' | 'signed';
 
 export interface Sponsor {
   id: string;

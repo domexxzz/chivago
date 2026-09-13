@@ -14,9 +14,11 @@
  */
 
 import {
-  ESG_PILLARS, PILLAR_LABEL, esgHeadline, type EsgReport,
+  ESG_PILLARS, PILLAR_LABEL, esgHeadline,
+  type EsgReport, type FundingBasis, type Sponsor,
 } from '@chivago/core';
 import { esc, html, layout, type Raw } from './html.ts';
+import { basisNote, orgPicker } from './org-parts.ts';
 import type { Locale } from './i18n.ts';
 
 const baht = (n: number): string => `${n.toLocaleString('en-US')} THB`;
@@ -31,13 +33,40 @@ function figure(value: string, label: string, thai: string, tone: 'lead' | 'plai
 }
 
 export function esgPage(
-  locale: Locale, hostName: string, reviewer: string | null, report: EsgReport,
+  locale: Locale, hostName: string, reviewer: string | null,
+  /** Null before any organisation exists, which is how a deployment starts. */
+  report: EsgReport | null,
+  organisations: Sponsor[] = [],
+  basis: FundingBasis = 'declared',
 ): string {
   const th = locale === 'th';
+
+  // Nothing funded is nothing to file. Said plainly, with no example partner.
+  if (!report) {
+    return layout(
+      {
+        locale, hostName, reviewer, activeNav: 'esg', title: 'ESG', path: '/console/esg',
+      },
+      html`
+        <h1>ESG</h1>
+        <p class="lede">No organisation has been added yet.
+          <span lang="th">ยังไม่มีองค์กรผู้สนับสนุนในระบบ</span></p>
+        <section class="panel">
+          <p class="note">
+            A report needs a funder and a period. Until a moderator adds one there is
+            no boundary to report inside, and this page will not draw one.
+            <span lang="th">รายงานต้องมีผู้สนับสนุนและช่วงเวลา ถ้ายังไม่มี หน้านี้จะไม่สร้างขอบเขตขึ้นมาเอง</span>
+          </p>
+        </section>`,
+    );
+  }
+
   const headline = esgHeadline(report);
 
   const body = html`
     <h1>${esc(report.partner.name[locale])}</h1>
+    ${orgPicker(organisations, report.partner.id, '/console/esg')}
+    ${basisNote(basis)}
 
     <!--
       The dates lead. Every other number on this page is meaningless without

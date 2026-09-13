@@ -994,3 +994,110 @@ describe('the door', () => {
     assert.equal(state(), '0');
   });
 });
+
+describe('the funder in a row, not in a constant', () => {
+  const MOD2_KEY = 'chv_ORGAA-ORGBB-ORGCC-ORGDD';
+  beforeEach(() => {
+    db.prepare('INSERT INTO hosts (id,name,type,role,api_key_hash,created_at) VALUES (?,?,?,?,?,?)').run(
+      'h-org-mod', 'ChivaGo', 'platform', 'moderator', hashApiKey(MOD2_KEY), new Date().toISOString());
+  });
+
+  const form = (token: string, path: string, fields: Record<string, string>) => app.request(path, {
+    method: 'POST',
+    headers: { ...withCookie(token), 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(fields),
+  });
+  const csrfOf = (token: string) => __csrfFor(resolveSession(db, token)!);
+
+  test('a deployment with no organisation shows a page that says so, not an example funder', async () => {
+    // The constant this replaced put a named foundation and 65,000 THB on
+    // screen on every deployment, including ones where nobody had funded
+    // anything. That is the failure mode being tested for.
+    const mod = await signIn(MOD2_KEY, 'Nok');
+    const sponsor = await (await app.request('/sponsor', { headers: withCookie(mod) })).text();
+    assert.match(sponsor, /No organisation has been added yet/);
+    assert.doesNotMatch(sponsor, /Samui Green Foundation/, 'an invented funder is still on the page');
+    assert.doesNotMatch(sponsor, /65,000|40,000/, 'invented money is still on the page');
+
+    const esg = await (await app.request('/esg', { headers: withCookie(mod) })).text();
+    assert.match(esg, /No organisation has been added yet/);
+    assert.doesNotMatch(esg, /Samui Green Foundation/);
+  });
+
+  test('a moderator adds one, and its money is marked declared everywhere it is shown', async () => {
+    const mod = await signIn(MOD2_KEY, 'Nok');
+    assert.equal((await form(mod, '/organisations', {
+      csrf: csrfOf(mod), name: 'Kasetsart Sriracha', nameTh: 'ม.เกษตร ศรีราชา', kind: 'university',
+    })).status, 303);
+
+    const orgId = (db.prepare('SELECT id FROM organisations').get() as unknown as { id: string }).id;
+    assert.equal((await form(mod, `/organisations/${orgId}/fund`, {
+      csrf: csrfOf(mod), questId: 'q-muni', fundedTHB: '50000', perVerifiedTHB: '500',
+    })).status, 303);
+
+    const sponsor = await (await app.request('/sponsor', { headers: withCookie(mod) })).text();
+    // The console opens in Thai, so the Thai name is the one on the page.
+    assert.match(sponsor, /ม\.เกษตร ศรีราชา/);
+    assert.match(sponsor, /50,000 THB/);
+    // The line that made the table safe to build at all.
+    assert.match(sponsor, /Declared, not signed/);
+  });
+
+  test('marking it signed changes what the page claims, and only that', async () => {
+    const mod = await signIn(MOD2_KEY, 'Nok');
+    await form(mod, '/organisations', { csrf: csrfOf(mod), name: 'Acme', kind: 'company' });
+    const orgId = (db.prepare('SELECT id FROM organisations').get() as unknown as { id: string }).id;
+    await form(mod, `/organisations/${orgId}/fund`, {
+      csrf: csrfOf(mod), questId: 'q-muni', fundedTHB: '10000', perVerifiedTHB: '100', basis: 'signed',
+    });
+    const page = await (await app.request('/sponsor', { headers: withCookie(mod) })).text();
+    assert.match(page, /come from a signed agreement/);
+    assert.doesNotMatch(page, /Declared, not signed/);
+  });
+
+  test('one declared line among signed ones makes the whole page declared', async () => {
+    // Read as the weakest link. A page calling itself signed while one figure
+    // was somebody's estimate would be worse than one that says declared.
+    const mod = await signIn(MOD2_KEY, 'Nok');
+    await form(mod, '/organisations', { csrf: csrfOf(mod), name: 'Mixed', kind: 'company' });
+    const orgId = (db.prepare('SELECT id FROM organisations').get() as unknown as { id: string }).id;
+    await form(mod, `/organisations/${orgId}/fund`, {
+      csrf: csrfOf(mod), questId: 'q-muni', fundedTHB: '10000', perVerifiedTHB: '100', basis: 'signed',
+    });
+    await form(mod, `/organisations/${orgId}/fund`, {
+      csrf: csrfOf(mod), questId: 'q-lab', fundedTHB: '5000', perVerifiedTHB: '50',
+    });
+    const page = await (await app.request('/sponsor', { headers: withCookie(mod) })).text();
+    assert.match(page, /Declared, not signed/);
+  });
+
+  test('a host who is not a moderator cannot see the page or post to it', async () => {
+    // A host who runs a quest must not set the funding their own work is
+    // measured against.
+    const host = await signIn(MUNI_KEY, 'Ann');
+    assert.equal((await app.request('/organisations', { headers: withCookie(host) })).status, 404);
+    assert.equal((await form(host, '/organisations', {
+      csrf: csrfOf(host), name: 'Self Funded', kind: 'company',
+    })).status, 404);
+    assert.equal((db.prepare('SELECT COUNT(*) AS n FROM organisations').get() as unknown as { n: number }).n, 0);
+  });
+
+  test('paying out more per approval than was ever funded is refused, not stored', async () => {
+    const mod = await signIn(MOD2_KEY, 'Nok');
+    await form(mod, '/organisations', { csrf: csrfOf(mod), name: 'Typo Co', kind: 'company' });
+    const orgId = (db.prepare('SELECT id FROM organisations').get() as unknown as { id: string }).id;
+    const res = await form(mod, `/organisations/${orgId}/fund`, {
+      csrf: csrfOf(mod), questId: 'q-muni', fundedTHB: '1000', perVerifiedTHB: '5000',
+    });
+    assert.equal(res.status, 303);
+    assert.match(res.headers.get('location') ?? '', /error=/);
+    assert.equal((db.prepare('SELECT COUNT(*) AS n FROM org_sponsorships').get() as unknown as { n: number }).n, 0);
+  });
+
+  test('a stale form is refused, like every other write in this console', async () => {
+    const mod = await signIn(MOD2_KEY, 'Nok');
+    const res = await form(mod, '/organisations', { csrf: 'not-the-token', name: 'X', kind: 'company' });
+    assert.equal(res.status, 403);
+    assert.equal((db.prepare('SELECT COUNT(*) AS n FROM organisations').get() as unknown as { n: number }).n, 0);
+  });
+});

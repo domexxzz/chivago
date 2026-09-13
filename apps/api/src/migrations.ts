@@ -898,5 +898,49 @@ export function migrate(db: DB): string[] {
     );
   `);
 
+  /*
+    Organisations that fund quests, and what they funded.
+
+    The sponsor page said, in a comment, that there was no table here "because
+    there are no contracts yet - so the funding is declared in one visible
+    constant, rather than in a database that would imply an agreement nobody
+    has signed", and that the constant would become a table when somebody
+    signed. The table arrives now, and the worry that kept it out is answered
+    by a column rather than by absence.
+
+    `basis` is the answer. 'declared' means somebody typed this into the
+    console and no contract exists; 'signed' means one does. Every page that
+    shows money prints which, so the database states the thing the comment was
+    afraid it would imply. A row is 'declared' unless a human says otherwise,
+    because that is the safer default to get wrong.
+
+    Only a moderator writes here. `created_by` keeps who, for the same reason
+    the settings table does: a figure in a report somebody will file should
+    name the person who entered it.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS organisations (
+      id          TEXT PRIMARY KEY,
+      name_en     TEXT NOT NULL,
+      name_th     TEXT NOT NULL,
+      kind        TEXT NOT NULL CHECK (kind IN ('brand','government','ngo','municipality','university','company')),
+      created_at  TEXT NOT NULL,
+      created_by  TEXT
+    );
+    CREATE TABLE IF NOT EXISTS org_sponsorships (
+      org_id            TEXT NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+      quest_id          TEXT NOT NULL REFERENCES quests(id) ON DELETE CASCADE,
+      funded_thb        INTEGER NOT NULL,
+      per_verified_thb  INTEGER NOT NULL,
+      basis             TEXT NOT NULL DEFAULT 'declared' CHECK (basis IN ('declared','signed')),
+      started_at        TEXT NOT NULL,
+      created_by        TEXT,
+      PRIMARY KEY (org_id, quest_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_org_sponsorships_org ON org_sponsorships(org_id);
+  `);
+  applied.push('organisations');
+  applied.push('org_sponsorships');
+
   return applied;
 }
