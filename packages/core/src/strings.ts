@@ -532,8 +532,17 @@ export const strings = {
     ),
     verifiedPoints: t('Green · verified', 'แต้มสีเขียว · ตรวจแล้ว'),
     missionsVerified: t('Missions verified', 'ภารกิจที่ตรวจแล้ว'),
+    /**
+     * The companions, named once for every screen that shows them.
+     *
+     * The wallet used to carry its own copy of this word and drifted to
+     * สัตว์ประจำถิ่น - "native animals", which is what they are made of but
+     * not what they are called. One key, so the app has one name for its
+     * own feature.
+     */
     companions: t('Companions', 'เพื่อนร่วมทาง'),
     companionsEmpty: t('Check in anywhere to find your first egg.', 'เช็กอินที่ไหนก็ได้ เพื่อพบไข่ใบแรก'),
+    companionsGrown: t('grown', 'โตเต็มวัย'),
     passport: t('Travel passport', 'พาสปอร์ตท่องเที่ยว'),
     provinces: t('provinces', 'จังหวัด'),
   },
