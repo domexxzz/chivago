@@ -3,7 +3,7 @@ import { test, describe } from 'node:test';
 
 import { PROVINCES } from './provinces.ts';
 import {
-  SEALED_EGG, provinceCollection, provinceCompanions, provinceNextStep,
+  SEALED_EGG, bondOf, provinceCollection, provinceCompanions, provinceLevelFor, provinceNextStep,
   type ProvinceEvidence,
 } from './province-companions.ts';
 
@@ -130,5 +130,89 @@ describe('the collection is counted against the country', () => {
     const c = provinceCollection(all);
     assert.equal(c.found + c.unclaimed + c.sealed, 77);
     assert.equal(c.grown, 1);
+  });
+});
+
+describe('the province creature is the province, not the habitat', () => {
+  // The bug this suite exists for: until 13 September 2026 the file's own
+  // header promised "going to Chonburi and going to Chiang Mai are different
+  // things to collect" and the code gave both of them the same macaque.
+  const green = (code: string) => ({ code, layer: 'Green' as const, visitDays: 1, questsVerified: 0 });
+  const at = (code: string) => provinceCompanions([green(code)]).find((c) => c.province.code === code)!;
+
+  test('two provinces earned the same way are two different creatures', () => {
+    const chonburi = at('TH-20');
+    const suratthani = at('TH-84');
+    assert.equal(chonburi.species!.key, suratthani.species!.key, 'same habitat, so the same animal lives there');
+    assert.notEqual(chonburi.mascot.key, suratthani.mascot.key, 'but the provinces must not share an emblem');
+  });
+
+  test('all seventy-seven carry an emblem, including the sealed ones', () => {
+    const all = provinceCompanions([]);
+    assert.equal(all.length, 77);
+    assert.equal(all.filter((c) => c.mascot).length, 77, 'a province with no emblem is a blank card');
+    assert.equal(new Set(all.map((c) => c.mascot.key)).size, 77, 'two provinces share an emblem');
+    // The species stays withheld. The emblem is public; what lives there is not.
+    assert.deepEqual([...new Set(all.map((c) => c.species))], [null]);
+  });
+
+  test('a sealed province shows its emblem and no progress at all', () => {
+    const sealed = provinceCompanions([]).find((c) => c.state === 'sealed')!;
+    assert.equal(sealed.bond, 'unopened');
+    assert.equal(sealed.level, 0);
+    assert.ok(sealed.mascot.name.th.length > 0);
+  });
+});
+
+describe('the bond is the same rung in the emblem’s words', () => {
+  test('every state maps to exactly one bond, and no two states share one', () => {
+    const states = ['sealed', 'unclaimed', 'egg', 'hatchling', 'grown'] as const;
+    const bonds = states.map(bondOf);
+    assert.deepEqual(bonds, ['unopened', 'unmet', 'met', 'known', 'vouched']);
+    assert.equal(new Set(bonds).size, states.length, 'a bond that covers two rungs hides one of them');
+  });
+
+  test('no rung is ever named for a body, because a durian has none', () => {
+    // 'egg', 'hatchling' and 'grown' are life-cycle words and must not reach
+    // a province card. If somebody widens MascotBond, this is what fails.
+    for (const state of ['sealed', 'unclaimed', 'egg', 'hatchling', 'grown'] as const) {
+      assert.doesNotMatch(bondOf(state), /egg|hatch|grown|adult|born/);
+    }
+  });
+
+  test('the bond always agrees with the state it came from', () => {
+    const rows = provinceCompanions([
+      { code: 'TH-20', layer: 'Green', visitDays: 2, questsVerified: 1 },
+      { code: 'TH-84', layer: 'Food', visitDays: 1, questsVerified: 0 },
+    ]);
+    for (const c of rows) assert.equal(c.bond, bondOf(c.state), `${c.province.code} drifted`);
+  });
+});
+
+describe('a province level reads back to the evidence under it', () => {
+  test('a day is a day and a verified quest is three', () => {
+    assert.equal(provinceLevelFor({ visitDays: 0, questsVerified: 0 }), 0);
+    assert.equal(provinceLevelFor({ visitDays: 4, questsVerified: 0 }), 4);
+    assert.equal(provinceLevelFor({ visitDays: 0, questsVerified: 2 }), 6);
+    assert.equal(provinceLevelFor({ visitDays: 2, questsVerified: 1 }), 5);
+  });
+
+  test('one verified quest outranks a long weekend, which is what the ladder says', () => {
+    // `strongest` sorts verified above any number of days; a level that let
+    // three days of check-ins beat an approval would contradict the row it
+    // sits on.
+    assert.ok(provinceLevelFor({ visitDays: 0, questsVerified: 1 }) >= provinceLevelFor({ visitDays: 3, questsVerified: 0 }));
+  });
+
+  test('a province nobody has been to has no level, and sealed ones never gain one', () => {
+    const all = provinceCompanions([]);
+    assert.deepEqual([...new Set(all.map((c) => c.level))], [0]);
+  });
+
+  test('the level is carried on the row, computed from that row’s own evidence', () => {
+    const c = provinceCompanions([{ code: 'TH-20', layer: 'Green', visitDays: 3, questsVerified: 1 }])
+      .find((x) => x.province.code === 'TH-20')!;
+    assert.equal(c.level, 6);
+    assert.equal(c.level, provinceLevelFor(c), 'the row and the function disagree');
   });
 });

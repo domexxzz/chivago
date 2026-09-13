@@ -26,13 +26,87 @@
  * still — and the species is whichever habitat they have the strongest
  * evidence in WITHIN that province, which makes the animal a record of what
  * they actually did rather than a prize the app handed out.
+ *
+ * WHAT THE PARAGRAPH ABOVE PROMISED AND THIS FILE DID NOT DELIVER, until
+ * 13 September 2026: "going to Chonburi and going to Chiang Mai are different
+ * things to collect". They were not. The creature came from `SPECIES[habitat]`,
+ * which holds five animals, so a Green-layer visit anywhere in the country
+ * produced the same macaque, and seventy-seven provinces shared five
+ * creatures between them.
+ *
+ * The seventy-seven distinct creatures already existed, in `mascots.ts`, with
+ * a renderer in two dimensions and another in three - they simply had no
+ * ladder. This file now carries both, because they answer different
+ * questions and neither can stand in for the other:
+ *
+ *   species  what LIVES in the habitat you earned it in. Five of them, each
+ *            with a scientific name, an IUCN category and a checkable fact.
+ *            Still null until the evidence exists, for the reason above.
+ *   mascot   what the PROVINCE is known by. Seventy-seven, all different,
+ *            public from the start because an emblem is public before
+ *            anybody visits. Never a wildlife claim - see `mascots.ts`.
+ *
+ * The rung is shared; only the wording forks, into `MascotBond` below.
  */
 
 import { SPECIES, stageFor, type CompanionStage, type Species } from './companions.ts';
+import { mascotFor, type Mascot } from './mascots.ts';
 import { PROVINCES, type Province } from './provinces.ts';
 import type { Bilingual, LayerKey } from './types.ts';
 
 export type ProvinceCompanionState = 'sealed' | 'unclaimed' | CompanionStage;
+
+/**
+ * The same rung, named for the emblem instead of the animal.
+ *
+ * The state above is life-cycle language - an egg hatches, a hatchling grows -
+ * and it belongs to the five real species, which are animals with a
+ * scientific name and an IUCN category. The province's creature is a MASCOT:
+ * Nonthaburi's durian, Chiang Mai's white elephant, Loei's ghost mask. A
+ * durian does not hatch, and a mascot that "grew to adulthood" would read as
+ * a claim about a population - the exact claim `mascots.ts` opens by
+ * refusing.
+ *
+ * So the province ladder describes THE TRAVELLER'S RECORD rather than the
+ * creature's body. You met an emblem, you came to know it, a host vouched for
+ * work you did in its province. Same evidence, same thresholds, one source of
+ * truth - only the words change, because the subject did.
+ */
+export type MascotBond = 'unopened' | 'unmet' | 'met' | 'known' | 'vouched';
+
+const BOND_OF: Record<ProvinceCompanionState, MascotBond> = {
+  sealed: 'unopened',
+  unclaimed: 'unmet',
+  egg: 'met',
+  hatchling: 'known',
+  grown: 'vouched',
+};
+
+/** The rung, in the emblem's vocabulary. Never a second threshold to drift. */
+export const bondOf = (state: ProvinceCompanionState): MascotBond => BOND_OF[state];
+
+/**
+ * What a host-verified quest is worth, in days, to a province's level.
+ *
+ * Not a free parameter. `strongest` below already sorts verified quests above
+ * any number of visit days, because that is the ladder's own order, and a
+ * level that weighted them equally would contradict the object it sits on.
+ * Three is the smallest weight that keeps one verified quest ahead of a long
+ * weekend, which is the longest run of days a traveller can reach without
+ * anybody checking their work.
+ */
+export const VERIFIED_AS_DAYS = 3;
+
+/**
+ * A province's level, for one traveller.
+ *
+ * Deliberately a sum of two things the ledger already holds, not a score: the
+ * screen prints both parts beside it, so a level can always be read back to
+ * the days and the approvals that made it. Nothing here is modelled,
+ * decayed or rounded, and it cannot go down - the two inputs only ever grow.
+ */
+export const provinceLevelFor = (evidence: { visitDays: number; questsVerified: number }): number =>
+  evidence.visitDays + evidence.questsVerified * VERIFIED_AS_DAYS;
 
 /** Evidence a traveller has in one habitat of one province. */
 export interface ProvinceEvidence {
@@ -46,6 +120,21 @@ export interface ProvinceEvidence {
 export interface ProvinceCompanion {
   province: Province;
   state: ProvinceCompanionState;
+  /**
+   * The province's emblem. Present on all seventy-seven rows, including the
+   * sealed ones, and that is not the same silence the species keeps.
+   *
+   * A sealed province withholds its SPECIES because nobody has surveyed what
+   * lives there. Its mascot is a different kind of fact: an emblem is public
+   * before anybody visits - it is on the seal, the bowls, the festival
+   * poster - so hiding it would withhold something already true rather than
+   * decline to invent something that is not.
+   */
+  mascot: Mascot;
+  /** The rung, named for the emblem. Always `bondOf(state)`. */
+  bond: MascotBond;
+  /** This traveller's level in this province. See `provinceLevelFor`. */
+  level: number;
   /**
    * `null` for every state before `egg`, and that is the honest part.
    *
@@ -97,27 +186,45 @@ export function provinceCompanions(evidence: ProvinceEvidence[]): ProvinceCompan
     const rows = byProvince.get(province.code) ?? [];
     const best = strongest(rows);
     const stage = best ? stageFor(best) : null;
+    const mascot = emblemOf(province);
+
+    const row = (
+      state: ProvinceCompanionState,
+      species: Species | null,
+      visitDays: number,
+      questsVerified: number,
+    ): ProvinceCompanion => ({
+      province,
+      state,
+      mascot,
+      bond: bondOf(state),
+      level: provinceLevelFor({ visitDays, questsVerified }),
+      species,
+      visitDays,
+      questsVerified,
+    });
 
     // Sealed beats everything, including evidence. If a province is somehow
     // carrying check-ins while still listed, the data is wrong and the app
     // should not quietly promote it — the province opens when it is opened.
-    if (province.status !== 'open') {
-      return { province, state: 'sealed', species: null, visitDays: 0, questsVerified: 0 };
-    }
-    if (best === null || stage === null) {
-      return {
-        province, state: 'unclaimed', species: null,
-        visitDays: best?.visitDays ?? 0, questsVerified: 0,
-      };
-    }
-    return {
-      province,
-      state: stage,
-      species: SPECIES[best.layer] ?? null,
-      visitDays: best.visitDays,
-      questsVerified: best.questsVerified,
-    };
+    if (province.status !== 'open') return row('sealed', null, 0, 0);
+    if (best === null || stage === null) return row('unclaimed', null, best?.visitDays ?? 0, 0);
+    return row(stage, SPECIES[best.layer] ?? null, best.visitDays, best.questsVerified);
   });
+}
+
+/**
+ * A province's emblem, or a loud failure.
+ *
+ * `MASCOTS` and `PROVINCES` are two hand-written lists that have to agree, and
+ * a missing row would otherwise show a traveller a blank card for a province
+ * that exists. A test holds all seventy-seven; this is what happens if one is
+ * ever deleted without the other.
+ */
+function emblemOf(province: Province): Mascot {
+  const mascot = mascotFor(province.code);
+  if (!mascot) throw new Error(`No mascot for province ${province.code}. MASCOTS and PROVINCES disagree.`);
+  return mascot;
 }
 
 export interface ProvinceCollection {
