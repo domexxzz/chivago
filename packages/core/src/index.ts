@@ -16,6 +16,7 @@ export * from './province-companions.ts';
 export * from './price-forecast.ts';
 export * from './smart-route.ts';
 export * from './wellness.ts';
+export * from './gentle.ts';
 export * from './seed.ts';
 export * from './strings.ts';
 export * from './wallet.ts';

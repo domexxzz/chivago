@@ -16,6 +16,7 @@ import { createElement as h } from 'react';
 
 import { mountScreen, offline, refuses, server, settle } from './interact.ts';
 import { offer, quest, wallet } from './fixtures.ts';
+import * as fx from './fixtures.ts';
 
 import { WalletScreen } from '../src/screens/WalletScreen.tsx';
 import { MissionsScreen } from '../src/screens/MissionsScreen.tsx';
@@ -400,6 +401,79 @@ describe('the map, whose two fetches fail independently', () => {
       const said = ui.text();
       assert.match(said, /The map is unavailable\./);
       assert.match(said, /Beach Cleanup/, 'one failure must not take the whole screen down');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+});
+
+describe('the gentle set, for a day somebody says is hard', () => {
+  const routes = (over: Record<string, unknown> = {}) => ({
+    'GET /impact/me': [] as unknown[],
+    'GET /impact/community': { year: 2026, metrics: [] as unknown[] },
+    'GET /balance': { total: null, note: 'Not enough of a trip yet.' },
+    'POST /wellness/mood': { mood: 'drained', at: '2026-09-13T10:00:00.000Z' },
+    ...over,
+  });
+
+  test('nothing shows until somebody presses a mood - the app never decides it for them', async () => {
+    const net = server(routes());
+    try {
+      const ui = await mountScreen(h(ImpactScreen, { onToast: noop, refreshKey: 0 }));
+      assert.doesNotMatch(ui.text(), /none of them scored/i, 'the set appeared unasked');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('saying Drained opens it, and nothing in it is worth any points', async () => {
+    const net = server(routes({ 'GET /places': [fx.place({ id: 'park', layer: 'Green', metrics: { crowdDensity: 0.2, aqi: 18, safetyIndex: 9, walkability: 8 } })] }));
+    try {
+      const ui = await mountScreen(h(ImpactScreen, { onToast: noop, refreshKey: 0 }));
+      await ui.pressText(/^Drained$/);
+      await settle();
+      const said = ui.text();
+      assert.match(said, /none of them scored/i, 'the set did not open');
+      assert.match(said, /Sit down somewhere/, 'the smallest step should be first and indoors');
+      // The rule the whole feature turns on. A points chip here would put the
+      // reward back through the side door - see gentle.ts.
+      assert.doesNotMatch(said, /\+\s?\d+\s?(G|T)\b/, 'a gentle step is showing a point value');
+      assert.doesNotMatch(said, /streak|leaderboard|rank/i, 'resting must not be a competition');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('the helpline is there for everyone who sees the set, not just a worst case', async () => {
+    const net = server(routes({ 'GET /places': [] }));
+    try {
+      const ui = await mountScreen(h(ImpactScreen, { onToast: noop, refreshKey: 0 }));
+      await ui.pressText(/^Drained$/);
+      await settle();
+      const said = ui.text();
+      assert.match(said, /1323/);
+      assert.match(said, /do not have to be in a crisis/i);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('with nothing measured nearby it names no place, rather than a guess', async () => {
+    const net = server(routes({ 'GET /places': [fx.place({ id: 'smoggy', metrics: { crowdDensity: 0.1, aqi: 140, safetyIndex: 9, walkability: 8 } })] }));
+    try {
+      const ui = await mountScreen(h(ImpactScreen, { onToast: noop, refreshKey: 0 }));
+      await ui.pressText(/^Drained$/);
+      await settle();
+      const said = ui.text();
+      assert.match(said, /none of them scored/i, 'the set should still open');
+      assert.doesNotMatch(said, /Quietest place we measured/, 'bad air must not be offered as somewhere to breathe');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('saying Steady opens nothing, because it is not the app’s place to insist', async () => {
+    const net = server(routes({ 'POST /wellness/mood': { mood: 'steady', at: '2026-09-13T10:00:00.000Z' } }));
+    try {
+      const ui = await mountScreen(h(ImpactScreen, { onToast: noop, refreshKey: 0 }));
+      await ui.pressText(/^Steady$/);
+      await settle();
+      assert.doesNotMatch(ui.text(), /none of them scored/i);
       ui.unmount();
     } finally { net.restore(); }
   });

@@ -12,8 +12,8 @@
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import {
-  MOODS, MOOD_KEYS, isHighScore, strings,
-  type ChivaBalance, type MoodKey,
+  MOODS, MOOD_KEYS, isHighScore, needsGentle, rechargeFrom, strings,
+  type ChivaBalance, type MoodKey, type RechargeCandidate, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
@@ -21,7 +21,25 @@ import { color, gutter, layout, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
+import { GentleSteps } from '../components/GentleSteps.tsx';
 import { t } from '../i18n/locale.ts';
+
+/**
+ * The places, as the recharge chooser wants them.
+ *
+ * Only what was actually measured travels across: the crowd count the place
+ * reported and its AQI. A place with no crowd row has not been counted rather
+ * than been found empty, so it goes over as zero and loses on distance, and
+ * `rechargeFrom` throws out anything whose air nobody read.
+ */
+const asCandidates = (places: ScoredPlace[]): RechargeCandidate[] => places.map((p) => ({
+  id: p.id,
+  name: p.name,
+  layer: p.layer,
+  crowd: p.crowd?.checkinsLastHour ?? 0,
+  aqi: p.metrics.aqi,
+  metresAway: null,
+}));
 
 export function ImpactScreen({
   onToast, refreshKey,
@@ -30,6 +48,19 @@ export function ImpactScreen({
   const community = useAsync(() => api.communityImpact(), [refreshKey]);
   const [moodKey, setMoodKey] = React.useState(0);
   const balance = useAsync(() => api.balance(), [refreshKey, moodKey]);
+  /*
+    What they last said, this session only. Deliberately not read back from
+    the server: the gentle set is a response to somebody telling us something
+    just now, and having it waiting on the screen days later would be the app
+    remembering a bad afternoon at them.
+  */
+  const [saidToday, setSaidToday] = React.useState<MoodKey | null>(null);
+  // Asked for only once somebody has said they are struggling, so an ordinary
+  // visit to this screen does not fetch the whole place list.
+  const places = useAsync(
+    async () => (saidToday && needsGentle(saidToday) ? api.places() : { ok: true as const, data: [] as ScoredPlace[] }),
+    [saidToday],
+  );
 
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
@@ -81,9 +112,19 @@ export function ImpactScreen({
           const res = await api.recordMood(mood);
           if (!res.ok) { onToast(res.error); return; }
           setMoodKey((n) => n + 1);
+          setSaidToday(mood);
           onToast(`${t(MOODS[mood].asks)}`);
         }}
       />
+
+      {/*
+        Only for the two moods that asked for it, and only after somebody
+        pressed one. The app never decides on its own that a person is having
+        a hard day - see `gentle.ts`.
+      */}
+      {saidToday && needsGentle(saidToday) ? (
+        <GentleSteps mood={saidToday} recharge={rechargeFrom(asCandidates(places.data ?? []))} />
+      ) : null}
 
       {/*
         A community block that simply disappears on failure reads as "Samui has
