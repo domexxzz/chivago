@@ -62,7 +62,7 @@ export function BusStrip({
       */}
       {campus !== null && campus.length === 0 ? (
         <View style={{ paddingTop: 4 }}>
-          <Body size={12} colour={color.neutral600}>{t(NO_CAMPUS_ROUTE)}</Body>
+          <Body size={13} colour={color.neutral600}>{t(NO_CAMPUS_ROUTE)}</Body>
         </View>
       ) : null}
     </View>
@@ -123,7 +123,7 @@ function RouteCard({ route, onToast }: { route: RouteWithHeadway; onToast?: (m: 
         {route.stops.map((s) => (
           <View key={s.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <MapPin size={11} color={color.neutral600} />
-            <Body size={12} colour={s.name ? color.neutral800 : color.neutral600}>
+            <Body size={13} colour={s.name ? color.neutral800 : color.neutral600}>
               {s.name ? t(s.name) : t({ en: 'Unnamed stop', th: 'ป้ายที่ยังไม่มีชื่อบนแผนที่' })}
             </Body>
           </View>
@@ -131,7 +131,7 @@ function RouteCard({ route, onToast }: { route: RouteWithHeadway; onToast?: (m: 
       </View>
 
       <View style={{ paddingTop: 12, borderTopWidth: 1, borderTopColor: color.neutral200, marginTop: 12 }}>
-        <Body size={12} colour={color.neutral800}>{t(sayHeadway(headway))}</Body>
+        <Body size={13} colour={color.neutral800}>{t(sayHeadway(headway))}</Body>
         {/*
           How many people this rests on, next to what it says. Three reports
           is not a survey, and the reader gets to weigh that for themselves

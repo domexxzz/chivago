@@ -16,6 +16,7 @@ import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 
 import { HomeScreen } from '../src/screens/HomeScreen.tsx';
+import { MapScreen } from '../src/screens/MapScreen.tsx';
 import { mountScreen, server } from './interact.ts';
 import * as fx from './fixtures.ts';
 import { __setAreaForTests } from '../src/state/area.ts';
@@ -201,6 +202,44 @@ describe('reporting one', () => {
     const ui = await mountScreen(h(HomeScreen, { ...props, onToast: (m: string) => said.push(m) }));
     await ui.press(/เห็นรถแล้ว|I saw one/);
     assert.deepEqual(said, ['Already counted just now']);
+    ui.unmount();
+  });
+});
+
+describe('the stops reach the map', () => {
+  /*
+    The Map tab asks for them ITSELF rather than being handed them by Home.
+
+    Both tabs are reachable without passing through the other, so a map whose
+    stops depended on which tab somebody opened first would lose them at
+    random - the kind of bug that cannot be reproduced on request.
+  */
+  const mapProps = {
+    layers: { Green: true, Wellness: true, Food: true, Safe: true, Quest: true },
+    onToggleLayer: noop, onPlanDay: noop, onOpenPlace: noop, onOpenQuest: noop, onSeeAllQuests: noop,
+    onAskConcierge: noop, onOpenWallet: noop,
+    balances: { green: 0, trip: 0 },
+  };
+
+  test('the Map tab requests the transit for the area it is framing', async () => {
+    __setAreaForTests('rmutt');
+    const s = server({ ...routes(), '/explored': { places: [] }, '/areas/rmutt/stories': { open: true, stories: [] } });
+    restore = s.restore;
+    const ui = await mountScreen(h(MapScreen, mapProps));
+    assert.ok(
+      s.calls.some((c) => c.method === 'GET' && c.path.startsWith('/areas/rmutt/transit')),
+      `the map never asked for the stops: ${s.calls.map((c) => c.path).join(', ')}`,
+    );
+    ui.unmount();
+  });
+
+  test('switching to the island asks for the island, not the campus', async () => {
+    __setAreaForTests('samui');
+    const s = server({ ...routes(), '/explored': { places: [] }, '/areas/samui/stories': { open: true, stories: [] } });
+    restore = s.restore;
+    const ui = await mountScreen(h(MapScreen, mapProps));
+    assert.ok(s.calls.some((c) => c.path.startsWith('/areas/samui/transit')));
+    assert.ok(!s.calls.some((c) => c.path.startsWith('/areas/rmutt/transit')));
     ui.unmount();
   });
 });

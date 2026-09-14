@@ -74,6 +74,18 @@ export function MapScreen({
   const area = useArea();
   // Which pins wear a story. One request for the whole area, public.
   const areaStories = useAsync(() => api.areaStories(area.key), [area.key]);
+  /*
+    The bus stops, for the map to stand them on.
+
+    Its own request rather than a prop from Home: the Map tab is reachable
+    without passing through Home, and a map missing its stops because of
+    which tab somebody opened first would be a bug nobody could reproduce.
+  */
+  const transit = useAsync(() => api.transit(area.key), [area.key]);
+  const busStops = React.useMemo(
+    () => (transit.data?.routes ?? []).flatMap((r) => r.stops.map((s) => ({ ...s, route: r.ref ?? t(r.name) }))),
+    [transit.data],
+  );
   const storied = React.useMemo(
     () => new Set((areaStories.data?.stories ?? []).map((s) => s.placeId)),
     [areaStories.data],
@@ -229,6 +241,7 @@ export function MapScreen({
               progress={quests.data?.progress ?? NO_PROGRESS}
               onOpenQuest={onOpenQuest}
               explored={explored.data?.places ?? NO_EXPLORED}
+              stops={busStops}
               here={here}
               way={way}
               wayIsRoute={route !== null}

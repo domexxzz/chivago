@@ -30,7 +30,8 @@ import {
 // three unstyled buttons stacked in the corner.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import {
-  isHighScore, islandHour, strings, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace,
+  isHighScore, islandHour, strings,
+  type Bilingual, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { color, onFill } from '../theme/index.ts';
 import { edgeNudge, edgeNudgeTop, haloMetres, metreRing, tightPins, type PinBox } from './map-geometry.ts';
@@ -278,6 +279,10 @@ const MARK_CSS = `
 .cg-quest.cg-active .cg-tag{background:${color.brand};color:${onFill.brand}}
 .cg-quest.cg-done .cg-tag{background:${color.accent};color:${onFill.accent}}
 .cg-night .cg-x{filter:drop-shadow(0 0 8px rgba(255,205,90,.85))}
+.cg-stop{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;
+  background:${color.ctaDeep};border:2px solid #ffffff;box-shadow:0 2px 6px rgba(8,26,48,.4)}
+.cg-stop svg{width:13px;height:13px;display:block}
+.cg-night .cg-stop{box-shadow:0 0 7px rgba(140,200,255,.55)}
 .cg-here{display:flex;align-items:center;justify-content:center;width:18px;height:18px}
 .cg-here i{display:block;width:18px;height:18px;border-radius:50%;background:${color.brand};border:3px solid #ffffff;
   box-shadow:0 2px 8px rgba(8,26,48,.45);animation:cg-here-beat 2.6s ease-in-out infinite;will-change:transform}
@@ -316,6 +321,22 @@ function ensureMarkCss(): void {
 const questGlyph = (done: boolean): string => (done
   ? `<svg class="cg-x" viewBox="0 0 38 38" aria-hidden="true"><circle cx="19" cy="19" r="14" fill="${color.accent}" stroke="#ffffff" stroke-width="3"/><path d="M11 19.5 L16.5 25 L27 13.5" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`
   : `<svg class="cg-x" viewBox="0 0 38 38" aria-hidden="true"><path d="M9 9 L29 29 M29 9 L9 29" stroke="#3b2a10" stroke-width="10" stroke-linecap="round"/><path d="M9 9 L29 29 M29 9 L9 29" stroke="#f2b531" stroke-width="5.5" stroke-linecap="round"/></svg>`);
+
+/**
+ * A bus stop: small, quiet, and deliberately not a pin.
+ *
+ * The place pins carry a score and the quest marks carry a reward - both are
+ * things to go and do. A stop is a fact about the pavement, so it is drawn
+ * smaller than either and never competes for the eye. It is also not a
+ * button: there is nothing behind it to open, and a control that does
+ * nothing when pressed is worse than a mark that never invited the press.
+ */
+const STOP_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true">
+<rect x="4.5" y="3.5" width="15" height="13" rx="2.6" fill="none" stroke="#ffffff" stroke-width="2.1"/>
+<path d="M4.5 10.2h15" stroke="#ffffff" stroke-width="2.1"/>
+<circle cx="8.6" cy="19.4" r="1.7" fill="#ffffff"/>
+<circle cx="15.4" cy="19.4" r="1.7" fill="#ffffff"/>
+</svg>`;
 
 /** The rose. The needle points true north whatever the camera does. */
 const COMPASS_SVG = `<svg viewBox="0 0 46 46" aria-hidden="true">
@@ -372,7 +393,7 @@ const CAMPUS_EXAGGERATION = 1.15;
 
 export function TerrainMap({
   places, onSelect, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area, storied,
-  tales, onOpenStory,
+  tales, onOpenStory, stops = [],
   here = null, way = null, wayIsRoute = false,
 }: {
   places: ScoredPlace[];
@@ -392,6 +413,14 @@ export function TerrainMap({
   tales?: ReadonlyMap<string, string>;
   /** Tapping a poster opens the story, not the place. */
   onOpenStory?: (placeId: string) => void;
+  /**
+   * Bus stops that serve this area, from OpenStreetMap.
+   *
+   * Empty for the island, which has none in the seed. A stop is where the
+   * pavement is, not somewhere to go, so it is drawn small and is not
+   * pressable - see STOP_SVG.
+   */
+  stops?: { id: string; name: Bilingual | null; lat: number; lng: number; route: string }[];
   /** Where the traveller is, if the phone has said. Null draws nothing at all. */
   here?: Here | null;
   /**
@@ -920,6 +949,27 @@ export function TerrainMap({
     }
 
     /*
+      The stops, under everything else.
+
+      Added after the pins and the quest marks so that where a stop and a pin
+      land on the same pavement, the pin - which is the thing worth walking
+      to - is the one on top. They are marks, not controls: `role="img"` with
+      the route in the label, because a screen reader reading "button" here
+      would promise something to press.
+    */
+    for (const stop of stops) {
+      const el = document.createElement('div');
+      el.className = 'cg-stop';
+      el.setAttribute('role', 'img');
+      const named = stop.name ? t(stop.name) : t({ en: 'Unnamed stop', th: 'ป้ายที่ยังไม่มีชื่อบนแผนที่' });
+      el.setAttribute('aria-label', `${t({ en: 'Bus stop', th: 'ป้ายรถ' })}: ${named} · ${stop.route}`);
+      el.innerHTML = STOP_SVG;
+      markers.current.push(
+        new Marker({ element: el, anchor: 'center' }).setLngLat([stop.lng, stop.lat]).addTo(m),
+      );
+    }
+
+    /*
       Every name that fits, and no name that does not.
 
       Two layout passes for the whole set rather than two per pin: measure
@@ -1022,7 +1072,7 @@ export function TerrainMap({
       m.off('moveend', relabel);
       m.off('resize', relabel);
     };
-  }, [places, quests, progress, onSelect, onOpenQuest, compact, storied, tales, onOpenStory]);
+  }, [places, quests, progress, onSelect, onOpenQuest, compact, storied, tales, onOpenStory, stops]);
 
   /*
     You are here.

@@ -21,7 +21,10 @@
 import React from 'react';
 import { Animated, Easing, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, Line, Mask, Path, Polygon, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { isHighScore, strings, type Area, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace } from '@chivago/core';
+import {
+  isHighScore, strings,
+  type Area, type Bilingual, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace,
+} from '@chivago/core';
 import { t } from '../i18n/locale.ts';
 import type { Here } from '../state/here.ts';
 import { CHIP, REVEAL_FEATHER, TALE_W, insideSamui, layoutPins, mistCircles, project, tilt } from './map-geometry.ts';
@@ -388,6 +391,12 @@ export interface SamuiMapProps {
   height?: number;
   /** Score-only pins, no zoom buttons. Decided here from the width unless a caller says. */
   compact?: boolean;
+  /**
+   * Bus stops that serve this area. Drawn by the web map only - the drawn
+   * island is a traced silhouette, and a stop on it would claim a precision
+   * the drawing does not have.
+   */
+  stops?: { id: string; name: Bilingual | null; lat: number; lng: number; route: string }[];
   /**
    * Which area is framed. The web map draws either; the drawn island is
    * Samui's silhouette and nothing else, so on a phone the campus is its
