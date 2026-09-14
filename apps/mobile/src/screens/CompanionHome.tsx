@@ -34,6 +34,8 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { CreatureScene } from '../components/CreatureScene.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { IconButton } from '../components/Button.tsx';
+import { Plate, Tray, TrayLine } from '../components/Game.tsx';
+import { gameRadius, gameShadow } from '@chivago/tokens';
 import { t } from '../i18n/locale.ts';
 
 /** The three stages, named. Exported: the wallet lists the same creatures. */
@@ -86,17 +88,29 @@ export function CompanionHomeScreen({
         the meters below are the habitat's measured condition, as before.
       */}
       <View
-        style={{
-          marginHorizontal: gutter,
-          alignItems: 'stretch',
-          overflow: 'hidden',
-          backgroundColor: grown ? color.accent100 : color.surface,
-          borderWidth: grown ? layout.ruleStrong : 1,
-          borderColor: grown ? color.accent : color.neutral300,
-          // md, not lg: lg is 999, a pill, and a pill-shaped room is a lozenge.
-          borderRadius: radius.md,
-        }}
+        style={[
+          {
+            marginHorizontal: gutter,
+            alignItems: 'stretch',
+            overflow: 'hidden',
+            backgroundColor: grown ? color.accent100 : color.surface,
+            // Rounder and deeper than an evidence card, which is the whole of
+            // what the game surface changes here.
+            borderRadius: gameRadius.panel,
+          },
+          gameShadow.deep,
+        ]}
       >
+        {/*
+          NO PAINTED SKY HERE, and that was a real mistake caught by opening the
+          screen. `CreatureScene` already renders a room: ground, trees, rocks,
+          the animal, lit by the island's clock. A gradient behind it replaced
+          something better with something flatter.
+
+          So the game surface on this screen is the CHROME — the plate, the chip,
+          the tray — and the room is left alone. `GameScene` still earns its
+          keep on screens that have no room of their own.
+        */}
         <CreatureScene
           species={species.key}
           stage={stage}
@@ -104,42 +118,37 @@ export function CompanionHomeScreen({
           label={`${stage === 'egg' ? t(species.eggName) : t(species.name)}, ${t(STAGE_LABEL[stage])}. ${t({ en: 'Tap to say hello', th: 'แตะเพื่อทักทาย' })}`}
         />
 
-        <View style={{ alignItems: 'center', paddingBottom: 26 }}>
-        <Heading
-          size={22}
-          colour={grown ? color.accent : color.text}
-          style={{ marginTop: 18 }}
-        >
-          {stage === 'egg' ? t(species.eggName) : t(species.name)}
-        </Heading>
+        {/*
+          The name sits OVER the room, the way the reference designs put it.
 
+          Below the room it is a caption on a picture; over it, it is a label on
+          a thing. Same words, and the plate is opaque because type with nothing
+          under it is unreadable against a sky that moves with the clock.
+        */}
         <View
           style={{
-            marginTop: 12, paddingVertical: 5, paddingHorizontal: 12,
-            borderWidth: 1, borderColor: grown ? color.accent : color.neutral400,
-            borderRadius: radius.sm,
+            position: 'absolute', left: 0, right: 0, bottom: 14, alignItems: 'center',
           }}
+          pointerEvents="none"
         >
-          <Label size={9} tracking={0.12} colour={grown ? color.accent : color.neutral700}>
-            {`${t(STAGE_LABEL[stage])}`}
-          </Label>
-        </View>
+          <Plate
+            title={stage === 'egg' ? t(species.eggName) : t(species.name)}
+            sub={t(STAGE_LABEL[stage])}
+          />
         </View>
       </View>
 
       {/* What would move it on. An egg that does not say this is a locked box. */}
       {nextStep ? (
-        <View
+        <Tray
           style={{
-            marginTop: 12, marginHorizontal: gutter, padding: 14,
-            borderWidth: 1, borderColor: color.neutral400, borderRadius: radius.md,
+            marginTop: 12, marginHorizontal: gutter, borderRadius: gameRadius.panel,
           }}
         >
-          <Label size={9} tracking={0.14} colour={color.neutral600}>{t({ en: 'Next', th: 'ต่อไป' })}</Label>
+          <Label size={9} tracking={0.14} colour={color.gold}>{t({ en: 'Next', th: 'ต่อไป' })}</Label>
           {/* An instruction, not a receipt: "do this next" has not happened yet. */}
-          <Body size={14} colour={color.ctaDeep} style={{ marginTop: 6 }}>{t(nextStep)}</Body>
-
-        </View>
+          <TrayLine>{t(nextStep)}</TrayLine>
+        </Tray>
       ) : null}
 
       <HabitatCondition habitat={habitat} loading={places.loading} error={places.error} onRetry={places.reload} />
