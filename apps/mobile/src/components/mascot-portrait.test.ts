@@ -67,29 +67,37 @@ describe('a portrait illustrates the record, it does not replace it', () => {
     }
   });
 
-  test('the undrawn ones still render', () => {
-    // The registry is additive on purpose. The day a mascot has no art must be
-    // an ordinary day, or art becomes a blocker and seventy-seven never ship.
-    // Counted rather than named, so this test does not need editing every
-    // time a batch lands — which is how a guard quietly stops being true.
-    const undrawn = MASCOTS.filter((m) => !hasPortrait(m.key));
-    assert.ok(undrawn.length > 0, 'this test is meaningless once all are drawn');
-    assert.equal(hasPortrait('not-a-mascot'), false);
+  test('all seventy-seven are drawn', () => {
+    // This assertion could not be written until today. It replaces the one
+    // that held the opposite — that some were undrawn — which said of itself
+    // that it would be meaningless once the set was complete. It is, so it is
+    // gone rather than loosened into something that passes either way.
+    const undrawn = MASCOTS.filter((m) => !hasPortrait(m.key)).map((m) => m.key);
+    assert.deepEqual(undrawn, [], `still drawn by the machine: ${undrawn.join(', ')}`);
+    assert.equal(PORTRAIT_COUNT(), MASCOTS.length);
   });
 
-  test('the count is the real count, so a screen cannot imply all', () => {
-    assert.equal(PORTRAIT_COUNT(), MASCOTS.filter((m) => hasPortrait(m.key)).length);
-    assert.ok(PORTRAIT_COUNT() < MASCOTS.length);
+  test('the fallback still works, and still matters', () => {
+    // Completeness today is not a reason to delete the path. A province
+    // added tomorrow, or a key renamed in `mascots.ts`, lands here — and it
+    // must render the machine's drawing rather than nothing at all.
+    assert.equal(hasPortrait('not-a-mascot'), false);
+    assert.match(SOURCE, /if \(!draw\) return <MascotMark/);
   });
 
   test('every portrait draws eyes', () => {
     // The cheapest possible check that something was actually drawn rather
     // than stubbed: a body with no face is the placeholder this replaces.
+    //
+    // Checked by INK, not by helper. Most portraits use `Eyes`, but an owl and
+    // a loris draw theirs larger and by hand, and a test that insisted on the
+    // helper would have pushed both towards a face that suited the test rather
+    // than the animal.
     const blocks = SOURCE.split(/^\s{2}'[a-z-]+':\s\(\{/gm).slice(1);
     assert.equal(blocks.length, PORTRAIT_COUNT());
     for (const [i, block] of blocks.entries()) {
       assert.ok(
-        /<Eyes|<Circle cx=\{32\} cy=\{20\}/.test(block),
+        /<Eyes|#1d2321/.test(block),
         `portrait ${i + 1} has no eyes`,
       );
     }
