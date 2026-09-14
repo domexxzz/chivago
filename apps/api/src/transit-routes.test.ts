@@ -57,6 +57,18 @@ describe('what the campus can ride', () => {
     assert.deepEqual(res.data.campus, [], 'the university has published no shuttle');
   });
 
+  test('the read answers a browser on another origin', async () => {
+    // The web app runs on 8081 and the API on 8787, so every reply it can use
+    // needs the allow-origin header. This route was first registered ABOVE
+    // `app.use('*', cors())`; Hono matches in order, the header was missing,
+    // and the request failed in the browser while every test passed.
+    const res = await app.request('/areas/rmutt/transit', { headers: { origin: 'http://localhost:8081' } });
+    assert.ok(
+      res.headers.get('access-control-allow-origin'),
+      'no allow-origin header: this route has drifted above the cors middleware',
+    );
+  });
+
   test('an area that is not an area is a 404, not an empty list', async () => {
     const res = await json(app.request('/areas/not-a-campus/transit'));
     assert.equal(res.ok, false);

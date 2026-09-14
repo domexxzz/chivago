@@ -373,21 +373,6 @@ app.get('/areas/:key/board', (c) => {
  * again, because two different numbers for one place's air on one screen
  * would be worse than none.
  */
-/**
- * What runs to this area, and what riders have said about it today.
- *
- * The routes are seed content read from OpenStreetMap; the headway is the
- * only part this server computes, and it is computed from reports rather
- * than from a timetable, because nobody publishes one. The wording that
- * keeps those apart lives in core (`sayHeadway`), not here.
- */
-app.get('/areas/:key/transit', (c) => {
-  const key = c.req.param('key');
-  if (!isAreaKey(key)) return fail(c, 'NOT_FOUND', 'No such area', 404);
-  const routes = routesForArea(db, key);
-  return ok(c, { routes, campus: routes.filter((r) => r.kind === 'campus') }, { total: routes.length });
-});
-
 app.get('/areas/:key/monsters', async (c) => {
   c.header('access-control-allow-origin', '*');
   c.header('cache-control', 'no-store');
@@ -728,6 +713,31 @@ app.post('/transit/:routeId/seen', async (c) => {
   if (result.because === 'unknown-route') return fail(c, 'NOT_FOUND', 'No such route', 404);
   if (result.because === 'unknown-stop') return fail(c, 'NOT_FOUND', 'That stop is not on this route', 404);
   return ok(c, result);
+});
+
+/**
+ * What runs to this area, and what riders have said about it today.
+ *
+ * BELOW THE CORS MIDDLEWARE, like every route a browser calls. The first
+ * version sat with the other `/areas/` routes a hundred lines up, above
+ * `app.use('*', cors())` - Hono matches in registration order, so the reply
+ * carried no allow-origin header, the web app's request failed before it
+ * arrived, and the card simply never drew. `/areas/:key/monsters` survives up
+ * there only because it sets the header by hand.
+ *
+ * It stays PUBLIC without doing anything: `/areas/` is a public prefix, so
+ * the authentication middleware waves it through.
+ *
+ * The routes are seed content read from OpenStreetMap; the headway is the
+ * only part this server computes, and it is computed from reports rather
+ * than from a timetable, because nobody publishes one. The wording that
+ * keeps those apart lives in core (`sayHeadway`), not here.
+ */
+app.get('/areas/:key/transit', (c) => {
+  const key = c.req.param('key');
+  if (!isAreaKey(key)) return fail(c, 'NOT_FOUND', 'No such area', 404);
+  const routes = routesForArea(db, key);
+  return ok(c, { routes, campus: routes.filter((r) => r.kind === 'campus') }, { total: routes.length });
 });
 
 app.get('/places', async (c) => {

@@ -16,7 +16,9 @@ import type {
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
   InviteListing, PartyInvite, RequestOutcome,
 } from '@chivago/core';
-import type { AirHistory, BoardEntry, Explored, Fix, MedalsView, SelfVisitResult, SelfVisitSummary } from '@chivago/core';
+import type {
+  AirHistory, BoardEntry, Explored, Fix, Headway, MedalsView, SelfVisitResult, SelfVisitSummary, TransitRoute,
+} from '@chivago/core';
 import type { StandingMonster } from '../components/MonsterFeed.tsx';
 
 /**
@@ -440,6 +442,23 @@ export const api = {
   board: (areaKey: string) => get<{ open: boolean; entries: BoardEntry[] }>(`/areas/${areaKey}/board`),
   /** The problems standing in an area, derived from real readings. */
   monsters: (areaKey: string) => get<{ monsters: StandingMonster[] }>(`/areas/${areaKey}/monsters`),
+
+  // -- the bus -------------------------------------------------------------
+  /**
+   * What runs to this area, with what riders have said about it today.
+   *
+   * `campus` is the university's own service and is EMPTY until a university
+   * publishes one - which is a fact the screen states, not a gap it hides.
+   */
+  transit: (areaKey: string) =>
+    get<{ routes: (TransitRoute & { headway: Headway })[]; campus: TransitRoute[] }>(`/areas/${areaKey}/transit`),
+  /**
+   * A rider saw one. Comes back with the new headway, so the strip can settle
+   * without a second request - and comes back `recorded: false` for a second
+   * press, which is not an error and must not be shown as one.
+   */
+  seenBus: (routeId: string, stopId: string) =>
+    post<{ recorded: boolean; because: string | null; headway: Headway }>(`/transit/${routeId}/seen`, { stopId }),
 
   // -- self-issued visits: recorded, not scored ---------------------------
   /** Stamp a place on the traveller's word. Pays nothing, unlocks nothing. */

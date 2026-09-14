@@ -42,6 +42,7 @@ import { setArea, useArea } from '../state/area.ts';
 import { mascotBeachUri, photoUri } from '../api/photos.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { BoardFeed } from '../components/BoardFeed.tsx';
+import { BusStrip } from '../components/BusStrip.tsx';
 import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import {
   ChevronRight, Compass, HeartPulse, Leaf, MessageCircle, Search, Shield, Sparkles, Trees, UserRound, Users, Utensils, Wallet,
@@ -111,7 +112,8 @@ export function questOrder(
 
 export function HomeScreen({
   onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenPassport,
-  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenMascots, now = new Date(),
+  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenMascots,
+  onToast, now = new Date(),
 }: {
   onOpenMap: () => void;
   onOpenQuests: () => void;
@@ -128,6 +130,8 @@ export function HomeScreen({
   onOpenPlace?: (id: string) => void;
   /** The provincial mascots & island companions guide. */
   onOpenMascots?: () => void;
+  /** A one-line acknowledgement, for actions that finish without leaving the screen. */
+  onToast?: (message: string) => void;
   /** Injected so the greeting is testable rather than whatever the clock says. */
   now?: Date;
 }) {
@@ -181,6 +185,13 @@ export function HomeScreen({
         the missions list because both are about THIS place today.
       */}
       <Monsters areaKey={area.key} onOpenPlace={onOpenPlace ?? onOpenMap} />
+      {/*
+        How to get here, above the board and below the problems. Somebody who
+        is not here yet needs it before anything about what to do once they
+        are; somebody who IS here has already scrolled past it. It draws
+        nothing at all in an area with no route, so the island is unchanged.
+      */}
+      <Bus areaKey={area.key} onToast={onToast} />
       <Board areaKey={area.key} onOpenPlace={onOpenPlace ?? onOpenMap} />
       <Today quests={todayHere} onOpenQuest={onOpenQuest} onOpenQuests={onOpenQuests} />
       <Carrying
@@ -1014,6 +1025,20 @@ function Monsters({ areaKey, onOpenPlace }: { areaKey: string; onOpenPlace: (pla
       error={found.error}
       onRetry={found.reload}
       onOpenPlace={onOpenPlace}
+    />
+  );
+}
+
+/** What runs to this area, fetched here so Home owns one request for it. */
+function Bus({ areaKey, onToast }: { areaKey: string; onToast?: (m: string) => void }) {
+  const transit = useAsync(() => api.transit(areaKey), [areaKey]);
+  return (
+    <BusStrip
+      routes={transit.data?.routes ?? null}
+      campus={transit.data?.campus ?? null}
+      loading={transit.loading}
+      error={transit.error}
+      onToast={onToast}
     />
   );
 }

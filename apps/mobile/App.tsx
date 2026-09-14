@@ -384,6 +384,7 @@ export default function App() {
             onOpenSafety={() => nav.selectTab('safety')}
             onOpenProfile={() => nav.push('profile')}
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
+            onToast={toast.show}
           />
         );
 

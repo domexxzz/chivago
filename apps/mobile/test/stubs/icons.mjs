@@ -7,6 +7,7 @@
 const Icon = () => null;
 export default Icon;
 export const ArrowRight = Icon;
+export const BusFront = Icon;
 export const Camera = Icon;
 export const Check = Icon;
 export const ChevronLeft = Icon;
@@ -23,6 +24,7 @@ export const Leaf = Icon;
 export const List = Icon;
 export const Lock = Icon;
 export const Map = Icon;
+export const MapPin = Icon;
 export const MapPinned = Icon;
 export const MessageCircle = Icon;
 export const PawPrint = Icon;
