@@ -37,6 +37,7 @@ import { BodyTooLarge, boundedForm, fail, handleError, num, ok, userId, type App
 import { publicConfig } from './fence.ts';
 import { boardFeed, type BoardEntry } from '@chivago/core';
 import { monstersInArea } from './monster-service.ts';
+import { reportSighting, routesForArea } from './transit-service.ts';
 import { reviewsInArea } from './place-review-service.ts';
 import {
   getCommunityImpact, getOffer, getPersonalImpact, getProfile,
@@ -372,6 +373,21 @@ app.get('/areas/:key/board', (c) => {
  * again, because two different numbers for one place's air on one screen
  * would be worse than none.
  */
+/**
+ * What runs to this area, and what riders have said about it today.
+ *
+ * The routes are seed content read from OpenStreetMap; the headway is the
+ * only part this server computes, and it is computed from reports rather
+ * than from a timetable, because nobody publishes one. The wording that
+ * keeps those apart lives in core (`sayHeadway`), not here.
+ */
+app.get('/areas/:key/transit', (c) => {
+  const key = c.req.param('key');
+  if (!isAreaKey(key)) return fail(c, 'NOT_FOUND', 'No such area', 404);
+  const routes = routesForArea(db, key);
+  return ok(c, { routes, campus: routes.filter((r) => r.kind === 'campus') }, { total: routes.length });
+});
+
 app.get('/areas/:key/monsters', async (c) => {
   c.header('access-control-allow-origin', '*');
   c.header('cache-control', 'no-store');
@@ -686,6 +702,33 @@ app.delete('/profile', (c) => {
 // ---------------------------------------------------------------------------
 // Places
 // ---------------------------------------------------------------------------
+
+/**
+ * A rider saw one.
+ *
+ * MUST BE DECLARED BELOW THE AUTHENTICATION MIDDLEWARE. Hono matches in
+ * registration order, so a write registered above it never passes through
+ * it: the first version of this sat beside the read route two hundred lines
+ * up, every sighting was filed under the fallback account instead of the
+ * rider who tapped, and the second rider at a stop therefore looked like the
+ * first one pressing twice. Found by tapping it twice from two devices.
+ *
+ * Refusals are not errors: an unknown route is a 404 because the client asked
+ * about something that does not exist, but a double-tap inside the
+ * same-vehicle window comes back 200 with `recorded: false`, because nothing
+ * went wrong - the app should simply show the same headway again rather than
+ * a red message for a second press.
+ */
+app.post('/transit/:routeId/seen', async (c) => {
+  const body = await c.req.json().catch(() => ({})) as { stopId?: unknown };
+  if (typeof body.stopId !== 'string') return fail(c, 'BAD_REQUEST', 'stopId is required', 400);
+  const result = reportSighting(db, {
+    userId: userId(c), routeId: c.req.param('routeId'), stopId: body.stopId,
+  });
+  if (result.because === 'unknown-route') return fail(c, 'NOT_FOUND', 'No such route', 404);
+  if (result.because === 'unknown-stop') return fail(c, 'NOT_FOUND', 'That stop is not on this route', 404);
+  return ok(c, result);
+});
 
 app.get('/places', async (c) => {
   const q = c.req.query();

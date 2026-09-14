@@ -35,3 +35,4 @@ export * from './statement.ts';
 export * from './areas.ts';
 export * from './greeting.ts';
 export * from './medals.ts';
+export * from './transit.ts';

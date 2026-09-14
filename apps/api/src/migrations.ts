@@ -996,5 +996,32 @@ export function migrate(db: DB): string[] {
   applied.push('party_invites');
   applied.push('invite_requests');
 
+  /*
+    Bus sightings.
+    --------------
+    Nobody publishes a timetable for the services that reach the campuses -
+    not the university for its own shuttle, and not the operator in any form
+    this app can fetch. So the app measures what it cannot be told: a rider
+    taps when they see one, and the screen says how long ago, and how far
+    apart today's sightings have been. See packages/core/src/transit.ts, and
+    note that the wording there never lets an observation read as a schedule.
+
+    ON DELETE CASCADE because a sighting is something a PERSON did, and
+    `DELETE /profile` is a single delete on `users` that leans entirely on
+    these keys. A table without one is a PDPA defect that looks like nothing:
+    the row simply stays behind after the account is gone.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS transit_sightings (
+      id       TEXT PRIMARY KEY,
+      user_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      route_id TEXT NOT NULL,
+      stop_id  TEXT NOT NULL,
+      at       TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_transit_route_at ON transit_sightings(route_id, at DESC);
+  `);
+  applied.push('transit_sightings');
+
   return applied;
 }

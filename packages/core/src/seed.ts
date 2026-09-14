@@ -20,6 +20,7 @@
  */
 
 import type { Offer, Place, Quest, QuestHost, AirStation } from './types.ts';
+import type { TransitRoute } from './transit.ts';
 import { metresBetween } from './presence.ts';
 
 // ---------------------------------------------------------------------------
@@ -505,6 +506,58 @@ export const SEED_PLACES: Place[] = [
     tags: ['Landmark', 'Open space', 'Meeting point'],
     photo: null,
     metrics: { aqi: 38, crowdDensity: 1.5, safetyIndex: 6.4, walkability: 7.4 },
+  },
+];
+
+/**
+ * Public transport that really serves an area.
+ *
+ * ONE ROUTE, AND THAT IS THE WHOLE LIST. Read from OpenStreetMap on
+ * 2026-09-15: relations 14144070 and 14144071 are the two directions of route
+ * 538 (1-24E), operated by smart bus, whose terminus is the Thanyaburi
+ * campus. The four stops are the mapped `highway=bus_stop` nodes at the
+ * campus edge, three of which are unnamed in OpenStreetMap and are left
+ * unnamed here.
+ *
+ * The far end of route 538 is a hospital thirty kilometres away in Bangkok.
+ * Those stops are real too and are not here: a student asking how to leave
+ * campus needs the stop at the gate, and ninety of them would bury it.
+ *
+ * NO CAMPUS SHUTTLE. The university's own service is published nowhere this
+ * app can read, so there is no `kind: 'campus'` route below and the screen
+ * says so in words. A line drawn along the roads because the roads look right
+ * would be believed, and somebody would stand at a stop that is not a stop.
+ *
+ * Nothing here carries a timetable, because nobody publishes one. See
+ * `headwayFrom` in transit.ts for what the app says instead.
+ */
+export const SEED_TRANSIT: TransitRoute[] = [
+  {
+    id: 'smartbus-538',
+    kind: 'public',
+    ref: '538 (1-24E)',
+    name: {
+      en: '538 (1-24E) RMUTT - Priest Hospital',
+      th: '538 (1-24E) ม.เทคโนโลยีราชมงคลธัญบุรี - โรงพยาบาลสงฆ์',
+    },
+    operator: 'smart bus',
+    colour: 'navy',
+    source: 'OpenStreetMap relations 14144070 and 14144071, read 2026-09-15',
+    schedule: 'unpublished',
+    stops: [
+      {
+        id: 'rmutt-gate3',
+        name: { en: 'Rajamangala Gate 3 (Soi Phon)', th: 'ราชมงคล ประตู 3 (ซอยพร)' },
+        lat: 14.0356229,
+        lng: 100.7320651,
+        osm: 'node 11265006936',
+      },
+      // Named on neither side of the road in OpenStreetMap. The position was
+      // surveyed; the name was not, so the app does not supply one.
+      { id: 'rmutt-gate3-opposite', name: null, lat: 14.035649, lng: 100.7319028, osm: 'node 11534778321' },
+      { id: 'rmutt-south-east', name: null, lat: 14.0315712, lng: 100.7321438, osm: 'node 11534778327' },
+      { id: 'rmutt-south-west', name: null, lat: 14.0315695, lng: 100.7320199, osm: 'node 11534778328' },
+    ],
   },
 ];
 

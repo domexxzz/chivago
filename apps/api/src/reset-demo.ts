@@ -106,6 +106,9 @@ const TRAVELLER_TABLES = [
   // after this list was written, and the schema guard below did its job: the
   // reset refused to run at all until they were classified.
   'device_keys', 'link_codes', 'party_members', 'parties',
+  // A sighting is the rider's, like a check-in: it is their report that
+  // they saw a bus, and a demo starts with nobody having seen one.
+  'transit_sightings',
   'users',
 ] as const;
 
