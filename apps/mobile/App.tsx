@@ -42,6 +42,7 @@ import { AccountScreen } from './src/screens/AccountScreen.tsx';
 import { ProfileScreen } from './src/screens/ProfileScreen.tsx';
 import { MedalsScreen } from './src/screens/MedalsScreen.tsx';
 import { PartyScreen } from './src/screens/PartyScreen.tsx';
+import { FindPartyScreen } from './src/screens/FindPartyScreen.tsx';
 import { SafetyScreen } from './src/screens/SafetyScreen.tsx';
 import { TripScreen, type TripState } from './src/screens/TripScreen.tsx';
 import { ConciergeScreen } from './src/screens/ConciergeScreen.tsx';
@@ -397,7 +398,9 @@ export default function App() {
         return <AccountScreen onBack={nav.pop} onToast={toast.show} />;
 
       case 'party':
-        return <PartyScreen onBack={nav.pop} onToast={toast.show} />;
+        return <PartyScreen onBack={nav.pop} onToast={toast.show} onFind={() => nav.push('findParty')} />;
+      case 'findParty':
+        return <FindPartyScreen onBack={nav.pop} onToast={toast.show} />;
 
       case 'impact':
         return <ImpactScreen onToast={toast.show} refreshKey={walletKey} />;

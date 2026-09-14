@@ -33,8 +33,8 @@ import { t } from '../i18n/locale.ts';
 const OPEN_PROVINCES = 2;
 
 export function PartyScreen({
-  onBack, onToast,
-}: { onBack: () => void; onToast: (msg: string) => void }) {
+  onBack, onToast, onFind,
+}: { onBack: () => void; onToast: (msg: string) => void; onFind: () => void }) {
   const party = useAsync(() => api.party(), []);
   const data = party.data;
 
@@ -47,11 +47,18 @@ export function PartyScreen({
 
       {data ? (
         data.party === null
-          ? <Alone onChanged={party.reload} onToast={onToast} />
+          ? (
+            <>
+              <Alone onChanged={party.reload} onToast={onToast} />
+              <FindDoor onFind={onFind} />
+            </>
+          )
           : (
             <>
               <Together name={data.party.name} summary={data.summary} />
               <Members summary={data.summary} />
+              <Requests onToast={onToast} onChanged={party.reload} />
+              <FindDoor onFind={onFind} />
               <DoesNot items={data.doesNot} />
               <Leave onChanged={party.reload} onToast={onToast} />
             </>
@@ -327,6 +334,129 @@ function Leave({
           th: 'แต้ม แสตมป์ และเพื่อนร่วมทางยังอยู่กับคุณ เป็นของคุณมาตลอด',
         })}
       </Label>
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Finding people, and answering the ones who found you
+// ---------------------------------------------------------------------------
+
+/**
+ * The door to the discovery screen.
+ *
+ * On BOTH branches, and the solo one matters more: somebody travelling alone
+ * is exactly who needs this, and before it existed the only way into a party
+ * was to already know a person who would read you a code.
+ */
+function FindDoor({ onFind }: { onFind: () => void }) {
+  return (
+    <View style={{ paddingHorizontal: gutter, paddingTop: 18 }}>
+      <Button
+        label="Find a party"
+        thai="หาปาร์ตี้"
+        variant="secondary"
+        onPress={onFind}
+        height={48}
+      />
+      <Body size={13} colour={color.neutral600} style={{ marginTop: 8 }}>
+        {t({
+          en: 'Parties post at a place, never at a person. Nobody sees where you are.',
+          th: 'ปาร์ตี้ประกาศที่สถานที่ ไม่ได้ประกาศที่ตัวคน ไม่มีใครเห็นว่าคุณอยู่ที่ไหน',
+        })}
+      </Body>
+    </View>
+  );
+}
+
+/**
+ * Who has asked to come along.
+ *
+ * Absent entirely when nobody has asked — an empty "0 requests" panel is a
+ * permanent reminder that nobody wants to travel with you, which is not a
+ * thing a screen should say to somebody on holiday.
+ *
+ * What the party is shown about an asker is a name they chose and a count a
+ * host verified. Not a balance, not a location, not a history. The party is
+ * deciding whether to spend a day with somebody, not auditing them, and the
+ * asker never agreed to be audited.
+ */
+function Requests({
+  onToast, onChanged,
+}: { onToast: (msg: string) => void; onChanged: () => void }) {
+  const waiting = useAsync(() => api.inviteRequests(), []);
+  const [busy, setBusy] = React.useState<string | null>(null);
+
+  const decide = async (inviteId: string, userId: string, accept: boolean) => {
+    if (busy !== null) return;
+    setBusy(userId);
+    const res = await api.decideRequest(inviteId, userId, accept);
+    setBusy(null);
+    if (!res.ok) { onToast(res.error); return; }
+    waiting.reload();
+    // Accepting changes the party itself, so the screen above has to re-read.
+    if (accept) onChanged();
+  };
+
+  const items = waiting.data?.waiting ?? [];
+  if (items.length === 0) return null;
+
+  return (
+    <View style={{ paddingHorizontal: gutter, paddingTop: 22 }}>
+      <Label size={10} tracking={0.14}>
+        {t({ en: 'ASKED TO COME ALONG', th: 'ขอมาร่วมทาง' })}
+      </Label>
+
+      {items.map((who) => (
+        <View
+          key={`${who.inviteId}:${who.userId}`}
+          style={{
+            marginTop: 8, padding: 12, borderRadius: radius.sm,
+            backgroundColor: color.surface,
+            borderWidth: 1, borderColor: color.neutral300,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Heading size={15} tracking={-0.1} style={{ flex: 1 }}>{who.displayName}</Heading>
+            <View
+              style={{
+                paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.sm,
+                backgroundColor: who.missionsVerified === 0 ? color.neutral200 : color.accent100,
+              }}
+            >
+              <Label
+                size={10}
+                tracking={0.06}
+                colour={who.missionsVerified === 0 ? color.neutral700 : color.accent700}
+              >
+                {who.missionsVerified === 0
+                  ? t({ en: 'NOTHING VERIFIED YET', th: 'ยังไม่มีงานที่ตรวจแล้ว' })
+                  : t({ en: `${who.missionsVerified} VERIFIED`, th: `ตรวจแล้ว ${who.missionsVerified}` })}
+              </Label>
+            </View>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+            <Button
+              label="Yes"
+              thai="รับ"
+              onPress={() => decide(who.inviteId, who.userId, true)}
+              disabled={busy !== null}
+              height={44}
+              style={{ flex: 1 }}
+            />
+            <Button
+              label="No"
+              thai="ไม่รับ"
+              variant="secondary"
+              onPress={() => decide(who.inviteId, who.userId, false)}
+              disabled={busy !== null}
+              height={44}
+              style={{ flex: 1 }}
+            />
+          </View>
+        </View>
+      ))}
     </View>
   );
 }

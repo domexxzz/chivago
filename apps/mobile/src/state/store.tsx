@@ -40,7 +40,7 @@ import { EMPTY_PROFILE } from '@chivago/core';
 export type ScreenKey =
   | 'onboarding' | 'home' | 'map' | 'place' | 'quests' | 'quest'
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
-  | 'companion' | 'passport' | 'account' | 'party'
+  | 'companion' | 'passport' | 'account' | 'party' | 'findParty'
   | 'mascots' | 'mascot' | 'profile' | 'medals';
 
 /**
@@ -83,6 +83,8 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   // and a tab tap returns there rather than stranding the reader on a screen
   // no tab owns. `impact` in particular has no tab of its own any more.
   concierge: 'home', impact: 'home', passport: 'home', party: 'home',
+  // Finding a party is a door off the party screen, which is a door off Home.
+  findParty: 'home',
   // The field guide and a mascot's room are doors off the passport.
   mascots: 'home', mascot: 'home',
   quests: 'quests', quest: 'quests',
