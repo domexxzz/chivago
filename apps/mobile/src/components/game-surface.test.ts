@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
 /**
@@ -23,7 +24,17 @@ import { join } from 'node:path';
  * toy is a claim nobody should trust.
  */
 
-const SCREENS = new URL('../screens/', import.meta.url).pathname;
+/*
+  `fileURLToPath`, not `.pathname`.
+
+  On Windows a file URL's pathname is "/C:/Users/...", with a leading slash
+  the platform does not want. `readdirSync` reads that as a rooted path on
+  the current drive and goes looking for C:\\C:\\Users\\..., which does not
+  exist - so both directory tests threw ENOENT. And because this file runs
+  first in the package's test script, the 493 screen tests after it never
+  ran at all: one path bug was hiding the whole mobile suite.
+*/
+const SCREENS = fileURLToPath(new URL('../screens/', import.meta.url));
 
 /** May wear it: collection, progression, companions, play. */
 const GAME_LAYER = [
