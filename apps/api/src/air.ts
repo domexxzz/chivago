@@ -30,7 +30,7 @@ import type { DB } from './db.ts';
 import { readFileSync } from 'node:fs';
 import { request as httpsRequest } from 'node:https';
 import { rootCertificates } from 'node:tls';
-import type { AirStation } from '@chivago/core';
+import { metresBetween, type AirStation } from '@chivago/core';
 
 export interface AirReading {
   aqi: number;
@@ -91,7 +91,11 @@ function fetchAir4Thai(timeoutMs: number): Promise<unknown> {
   });
 }
 
-/** Nearest official ground station to Koh Samui. Cross-check only. */
+/**
+ * Nearest official ground station to KOH SAMUI. Cross-check only.
+ *
+ * It speaks for Samui's region and nowhere else. See CROSS_CHECK_REACH_KM.
+ */
 export const NEAREST_GROUND_STATION = {
   id: '42t',
   name: 'Environment Agency Section 14, Surat Thani',
@@ -256,6 +260,29 @@ export async function fetchGroundCrossCheck(): Promise<number | null> {
  * presented as fact.
  */
 export const CROSS_CHECK_TOLERANCE = 40;
+
+/**
+ * How far the cross-check station's opinion carries.
+ *
+ * Found by running the third area. `NEAREST_GROUND_STATION` is Samui's, 87 km
+ * from the island, and it was being applied to EVERY place in the country: a
+ * park in Pathum Thani, 600 km away, had its reading downgraded because the
+ * air over Surat Thani that afternoon was different - and then the app said
+ * so on screen, naming a station in another region as the reason. Both halves
+ * are wrong. Air 600 km away is not evidence about this park, and a source
+ * line that names somewhere the reader has never been reads as a bug even
+ * when the number is right.
+ *
+ * A hundred and fifty kilometres is generous for "near enough to be the same
+ * weather", and well inside the distance at which the two stop being about
+ * the same air. Beyond it the model stands on its own - still labelled as the
+ * model, which is what it already says.
+ */
+export const CROSS_CHECK_REACH_KM = 150;
+
+/** Whether the cross-check station is close enough to have an opinion here. */
+export const crossCheckReaches = (lat: number, lng: number): boolean =>
+  metresBetween({ lat, lng }, NEAREST_GROUND_STATION) / 1000 <= CROSS_CHECK_REACH_KM;
 
 export function reconcile(model: AirReading, ground: number | null): AirReading {
   if (ground === null) return model;
@@ -440,7 +467,11 @@ export async function getAir(
   }
 
   // A cross-check that fails must degrade nothing: null means "no opinion".
+  // A station too far away to have one is the same case, and is the usual
+  // case now that the app is in three regions rather than one.
   let ground: number | null = null;
-  try { ground = await groundReading(db, sources); } catch { ground = null; }
+  if (crossCheckReaches(lat, lng)) {
+    try { ground = await groundReading(db, sources); } catch { ground = null; }
+  }
   return reconcile(reading, ground);
 }

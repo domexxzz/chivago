@@ -6,10 +6,10 @@ import { test, describe, beforeEach } from 'node:test';
 
 import { openTestDb, type DB } from './db.ts';
 import {
-  AIR_RESOLUTION_KM, CROSS_CHECK_TOLERANCE, STATION_MISS_TTL_MS, getAir, gridKey,
-  NEAREST_GROUND_STATION, reconcile, toInstant, type AirReading,
+  AIR_RESOLUTION_KM, CROSS_CHECK_REACH_KM, CROSS_CHECK_TOLERANCE, STATION_MISS_TTL_MS, crossCheckReaches,
+  getAir, gridKey, NEAREST_GROUND_STATION, reconcile, toInstant, type AirReading,
 } from './air.ts';
-import { SEED_PLACES } from '@chivago/core';
+import { SEED_PLACES, areaByKey } from '@chivago/core';
 
 let db: DB;
 beforeEach(() => { db = openTestDb(); });
@@ -239,5 +239,58 @@ describe('the Air4Thai chain, bundled', () => {
     assert.ok(x1, 'Node no longer ships ISRG Root X1');
     assert.ok(rootYr.checkIssued(x1!), 'the cross-signed root is not issued by the X1 Node ships');
     assert.ok(new Date(yr1.validTo) > new Date(), 'the bundled intermediate has expired');
+  });
+});
+
+
+/**
+ * How far the cross-check carries.
+ *
+ * Found by opening the third area and reading what the app said. The
+ * cross-check station is Samui's, 87 km from the island, and it was applied
+ * to every coordinate in the country: a park on the Thanyaburi campus had its
+ * reading downgraded because the air over Surat Thani - 600 km away - was
+ * different that afternoon, and the source line on screen then named that
+ * station as the reason. A reader standing in the park has never heard of it.
+ */
+describe('the cross-check station only speaks for its own region', () => {
+  const samui = areaByKey('samui').center;
+  const rmutt = areaByKey('rmutt').center;
+  const ku = areaByKey('ku-sriracha').center;
+
+  test('it reaches the island it was chosen for', () => {
+    assert.ok(crossCheckReaches(samui.lat, samui.lng));
+    assert.ok(NEAREST_GROUND_STATION.approxDistanceKm < CROSS_CHECK_REACH_KM);
+  });
+
+  test('it does not reach either campus, because neither is its region', () => {
+    assert.ok(!crossCheckReaches(rmutt.lat, rmutt.lng), 'Thanyaburi is not Surat Thani');
+    assert.ok(!crossCheckReaches(ku.lat, ku.lng), 'Si Racha is not Surat Thani');
+  });
+
+  test('a reading far from the station is never asked about, nor blamed on it', async () => {
+    let asked = 0;
+    const out = await getAir(db, rmutt.lat, rmutt.lng, 38, {
+      fetchLive: async () => reading({ aqi: 120, source: 'Open-Meteo \u00b7 Copernicus CAMS' }),
+      // Would disagree by far more than the tolerance, if it were ever asked.
+      fetchGround: async () => { asked += 1; return 20; },
+      fetchStation: async () => null,
+    });
+    assert.equal(asked, 0, 'a station 600 km away was asked for an opinion');
+    assert.equal(out.aqi, 120);
+    assert.doesNotMatch(out.source, /diverges/);
+    assert.doesNotMatch(out.source, /Surat Thani/);
+  });
+
+  test('on the island it still cross-checks, and still says when it disagrees', async () => {
+    let asked = 0;
+    const out = await getAir(db, samui.lat, samui.lng, 38, {
+      fetchLive: async () => reading({ aqi: 120, source: 'Open-Meteo \u00b7 Copernicus CAMS' }),
+      fetchGround: async () => { asked += 1; return 20; },
+      fetchStation: async () => null,
+    });
+    assert.equal(asked, 1);
+    assert.equal(out.provenance, 'estimated');
+    assert.match(out.source, /diverges/);
   });
 });
