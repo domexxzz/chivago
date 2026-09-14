@@ -239,6 +239,80 @@ export const shadow = {
 } as const;
 
 // ---------------------------------------------------------------------------
+// The game layer's surface
+// ---------------------------------------------------------------------------
+
+/*
+  Panels stay flat. That line sits fifteen lines above this one and it is still
+  true — for the EVIDENCE layer, which is what it was written about.
+
+  This file already draws the line the product rests on, in colour: green means
+  a host verified it, gold is the game layer of levels, ranks and Trip Points.
+  What it never did was carry that line into SURFACE, so a mascot's room and an
+  SOS banner were built out of the same flat rectangle. One of those should look
+  like a thing you can pick up. The other should not.
+
+  So this is a SECOND vocabulary, not a replacement. Nothing above changes, and
+  every evidence screen keeps the surface it has. The rule for reaching into
+  this block is the same rule the colours are held to:
+
+    a screen may wear the game surface only where GOLD is already allowed —
+    collection, progression, companions, medals, the passport, travelling
+    together. Anywhere a number is a claim about the world, it may not.
+
+  WHERE IT IS FORBIDDEN, and the list is the point of the whole block: the SOS
+  screen and any live alert, the ledger, proof submission and host review, the
+  impact and statement screens, account and device management, and the host
+  console. A bevelled, glossy, springy control on a screen somebody opens
+  because they are hurt is the interface telling them this is a game. It is
+  not, and `game-surface.test.ts` fails the build if one appears there.
+
+  Almost everything here is geometry and light. The two exceptions are the sky
+  and the tray, and they are SCENERY rather than semantics: a gradient nothing
+  is measured against and a warm ground for meters to sit on. No new meaning is
+  added to the five colours above, because that rule is already correct and
+  this block has no business reopening it. Controls on a game screen still take
+  their face and edge from `accent`, `gold` and the neutrals.
+*/
+
+/**
+ * The thick bottom edge that makes a control look pressable.
+ *
+ * This one value is most of the difference between the reference designs and
+ * what this app shipped. A flat capsule is a coloured rectangle; the same
+ * capsule with four opaque pixels beneath it is an object resting on a page.
+ * React Native has no `box-shadow`, so the edge is a real view behind the
+ * control — see `Chunk` in the app's components.
+ */
+export const gameEdge = { height: 4, opacity: 0.9 } as const;
+
+/** Radii for the game layer. Rounder than the evidence layer on purpose. */
+export const gameRadius = { chip: 11, control: 14, panel: 18, plate: 16 } as const;
+
+/**
+ * Depth for the game layer.
+ *
+ * `lift` is a control or card resting on the scene; `deep` is the character
+ * itself, which sits closest to the reader and casts the longest shadow.
+ */
+export const gameShadow = {
+  lift: { shadowColor: color.neutral900, shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
+  deep: { shadowColor: color.neutral900, shadowOpacity: 0.42, shadowRadius: 22, shadowOffset: { width: 0, height: 14 }, elevation: 14 },
+} as const;
+
+/**
+ * The painted scene a game screen sits on.
+ *
+ * Gradient stops only — no image files. An illustrated background is a real
+ * option later and a real cost; this gets most of the depth for none of it,
+ * and it cannot go stale the way a painted island of a place would.
+ */
+export const gameSky = ['#8FD3E8', '#B9E6F0', '#DDF2EE', '#CFE9D2', '#9BCB8C'] as const;
+
+/** The warm tray a game screen's meters sit in. Ink, not paper. */
+export const gameTray = { top: '#2E1C0E', bottom: '#20130A', text: '#F2E6D6', muted: '#D8C3A6' } as const;
+
+// ---------------------------------------------------------------------------
 // Type - IBM Plex Sans Thai (display) + Anuphan (body) + IBM Plex Mono (data)
 // ---------------------------------------------------------------------------
 
