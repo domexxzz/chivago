@@ -31,7 +31,7 @@ describe('a portrait illustrates the record, it does not replace it', () => {
   test('every drawn key is a real mascot', () => {
     // A portrait keyed to a mascot that does not exist is dead code that
     // renders for nobody, and it is how a typo survives a year.
-    assert.ok(DRAWN.length >= 10, `expected at least ten portraits, found ${DRAWN.length}`);
+    assert.ok(DRAWN.length >= 20, `expected at least twenty portraits, found ${DRAWN.length}`);
     for (const key of DRAWN) {
       assert.ok(
         MASCOTS.some((m) => m.key === key),
@@ -67,9 +67,11 @@ describe('a portrait illustrates the record, it does not replace it', () => {
     }
   });
 
-  test('the other sixty-seven still render', () => {
+  test('the undrawn ones still render', () => {
     // The registry is additive on purpose. The day a mascot has no art must be
     // an ordinary day, or art becomes a blocker and seventy-seven never ship.
+    // Counted rather than named, so this test does not need editing every
+    // time a batch lands — which is how a guard quietly stops being true.
     const undrawn = MASCOTS.filter((m) => !hasPortrait(m.key));
     assert.ok(undrawn.length > 0, 'this test is meaningless once all are drawn');
     assert.equal(hasPortrait('not-a-mascot'), false);
