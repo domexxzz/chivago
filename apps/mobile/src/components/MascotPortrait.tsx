@@ -484,4 +484,212 @@ const PORTRAITS: Record<string, (ink: Ink) => React.ReactNode> = {
       <Path d="M 18 54 q 14 5 28 0 l -2 4 q -12 4 -24 0 z" fill={feature} opacity={0.7} />
     </G>
   ),
+  /* ------------------------------------------------------------------------
+     The third ten.
+
+     The rule has not changed and does not need to: who a traveller in this
+     pilot actually meets. Prachuap and Phetchaburi are the road south, which
+     everybody on that road drives through. Rayong and Samut Prakan are the
+     coast either side of the Si Racha campus. The four in Isan and Sukhothai
+     are where domestic travel goes after the coast.
+     ---------------------------------------------------------------------- */
+
+  /** Prachuap Khiri Khan. The pineapple the province is planted with. */
+  'prachuap-pineapple': ({ id, feature, accent }) => (
+    <G>
+      {/* The crown is half the silhouette, so it is drawn at full height. */}
+      {[-2, -1, 0, 1, 2].map((i) => (
+        <Path
+          key={i}
+          d={`M 32 20 q ${i * 5} -9 ${i * 7} -14`}
+          stroke={accent} strokeWidth={3.4} fill="none" strokeLinecap="round"
+        />
+      ))}
+      <Ellipse cx={32} cy={37} rx={14} ry={17} fill={`url(#${id}-b)`} />
+      {/* The diamond lattice, which is what says pineapple at any size. */}
+      {[24, 31, 38, 45].map((y, r) => (
+        <G key={y}>
+          {[-1, 0, 1].map((c) => (
+            <Polygon
+              key={c}
+              points={`${32 + c * 8 + (r % 2) * 4 - 4},${y} ${32 + c * 8 + (r % 2) * 4},${y - 4} ${32 + c * 8 + (r % 2) * 4 + 4},${y} ${32 + c * 8 + (r % 2) * 4},${y + 4}`}
+              fill={feature} opacity={0.28}
+            />
+          ))}
+        </G>
+      ))}
+      <Eyes y={35} gap={6} />
+      <Smile y={44} w={8} />
+    </G>
+  ),
+
+  /** Phetchaburi. A bee, for the palm sugar the province is known by. */
+  'phetchaburi-bee': ({ id, feature, accent, belly }) => (
+    <G>
+      {/* Wings behind the body, translucent, so the stripes read on top. */}
+      <Ellipse cx={20} cy={24} rx={10} ry={6} fill={accent} opacity={0.55} transform="rotate(-24 20 24)" />
+      <Ellipse cx={44} cy={24} rx={10} ry={6} fill={accent} opacity={0.55} transform="rotate(24 44 24)" />
+      <Ellipse cx={32} cy={36} rx={14} ry={13} fill={`url(#${id}-b)`} />
+      {[30, 38, 45].map((y, i) => (
+        <Path key={i} d={`M ${21 + i} ${y} q 11 ${5 - i} ${22 - i * 2} 0`} stroke={feature} strokeWidth={3} fill="none" opacity={0.8} />
+      ))}
+      <Path d="M 27 18 q -3 -8 -7 -9" stroke={feature} strokeWidth={1.8} fill="none" strokeLinecap="round" />
+      <Path d="M 37 18 q 3 -8 7 -9" stroke={feature} strokeWidth={1.8} fill="none" strokeLinecap="round" />
+      <Circle cx={19} cy={9} r={2} fill={belly} />
+      <Circle cx={45} cy={9} r={2} fill={belly} />
+      <Eyes y={32} gap={6} />
+      <Smile y={40} w={7} />
+    </G>
+  ),
+
+  /** Sukhothai. A Sangkhalok celadon fish, off a kiln plate. */
+  'sukhothai-celadon': ({ id, feature, accent }) => (
+    <G>
+      <Path d="M 10 34 q 8 -13 24 -13 q 14 0 18 11 q -4 12 -18 12 q -16 0 -24 -10 z" fill={`url(#${id}-b)`} />
+      <Path d="M 52 32 q 9 -8 12 -4 q -2 11 -12 8 z" fill={feature} />
+      {/* Crackle glaze, which is the whole reason Sangkhalok is recognisable. */}
+      {[[18, 27, 12, 9], [26, 24, 8, 13], [34, 30, 14, 6], [24, 38, 10, 7]].map(([x, y, dx, dy], i) => (
+        <Path key={i} d={`M ${x} ${y} l ${dx} ${dy}`} stroke={feature} strokeWidth={0.9} opacity={0.5} />
+      ))}
+      <Path d="M 30 22 q 2 -7 7 -8 q 0 5 -2 9 z" fill={accent} opacity={0.8} />
+      <Eyes y={30} gap={0} r={2.8} />
+      <Path d="M 10 36 q 6 3 12 1" stroke="#1d2321" strokeWidth={1.8} fill="none" strokeLinecap="round" />
+    </G>
+  ),
+
+  /** Mae Hong Son. Bua tong, which turns the hills at Mae U-Kho gold. */
+  'maehongson-buatong': ({ id, feature, accent, belly }) => (
+    <G>
+      <Path d="M 32 46 q 1 8 0 14" stroke={accent} strokeWidth={3} fill="none" strokeLinecap="round" />
+      <Path d="M 32 52 q 7 -3 9 1 q -6 3 -9 0 z" fill={accent} />
+      {/* Twelve petals, radial, in the body colour with the feature at the tips. */}
+      {Array.from({ length: 12 }, (_, i) => {
+        const a = (i / 12) * Math.PI * 2;
+        return (
+          <Ellipse
+            key={i}
+            cx={32 + Math.sin(a) * 14}
+            cy={32 + Math.cos(a) * 14}
+            rx={4}
+            ry={7.5}
+            fill={i % 2 === 0 ? belly : feature}
+            opacity={i % 2 === 0 ? 0.95 : 0.75}
+            transform={`rotate(${-(a * 180) / Math.PI} ${32 + Math.sin(a) * 14} ${32 + Math.cos(a) * 14})`}
+          />
+        );
+      })}
+      <Circle cx={32} cy={32} r={11} fill={`url(#${id}-b)`} />
+      <Eyes y={30} gap={5} />
+      <Smile y={37} w={7} />
+    </G>
+  ),
+
+  /** Surin. A grey elephant in a silk blanket. */
+  'surin-elephant': ({ id, feature, accent, belly }) => (
+    <G>
+      <Ellipse cx={16} cy={33} rx={9} ry={11} fill={feature} opacity={0.7} />
+      <Ellipse cx={48} cy={33} rx={9} ry={11} fill={feature} opacity={0.7} />
+      <Circle cx={32} cy={33} r={15} fill={`url(#${id}-b)`} />
+      {/* The silk blanket, which is what separates Surin's elephant from Chiang Mai's. */}
+      <Path d="M 19 26 q 13 -6 26 0 l -2 6 q -11 -5 -22 0 z" fill={accent} />
+      <Path d="M 21 30 q 11 -4 22 0" stroke={belly} strokeWidth={1.2} fill="none" opacity={0.8} />
+      <Path
+        d="M 32 40 q 2 10 -4 13 q -7 3 -8 -4 q 1 -5 5 -4"
+        stroke={feature} strokeWidth={4.6} fill="none" strokeLinecap="round"
+      />
+      <Eyes y={33} gap={7} r={3} />
+      {[-1, 1].map((sx) => (
+        <Path key={sx} d={`M ${32 + sx * 7} 43 l ${sx * 1} 5`} stroke={belly} strokeWidth={2.6} strokeLinecap="round" />
+      ))}
+    </G>
+  ),
+
+  /** Buriram. A sandstone sprite, off the lintels at Phanom Rung. */
+  'buriram-sandstone': ({ id, feature, accent }) => (
+    <G>
+      {/* The prang silhouette behind, because the sprite is a piece of it. */}
+      <Path d="M 32 4 q 9 6 9 16 l -18 0 q 0 -10 9 -16 z" fill={accent} opacity={0.85} />
+      <Path d="M 32 20 q 12 2 12 15 q 0 15 -12 17 q -12 -2 -12 -17 q 0 -13 12 -15 z" fill={`url(#${id}-b)`} />
+      {/* Carved bands, three, weathered rather than sharp. */}
+      {[28, 36, 44].map((y, i) => (
+        <Path key={i} d={`M 21 ${y} q 11 3 22 0`} stroke={feature} strokeWidth={1.6} fill="none" opacity={0.5} />
+      ))}
+      <Eyes y={31} gap={6} r={2.8} />
+      <Path d="M 27 40 q 5 4 10 0" stroke="#1d2321" strokeWidth={1.8} fill="none" strokeLinecap="round" />
+    </G>
+  ),
+
+  /** Khon Kaen. A silkworm, for the mudmee the province weaves. */
+  'khonkaen-silkworm': ({ id, feature, accent }) => (
+    <G>
+      {/* Six segments, decreasing, which is the whole body language of a larva. */}
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <Ellipse
+          key={i}
+          cx={14 + i * 8}
+          cy={38 - Math.sin((i / 5) * Math.PI) * 6}
+          rx={7 - i * 0.5}
+          ry={6.5 - i * 0.4}
+          fill={i === 5 ? `url(#${id}-b)` : accent}
+          opacity={i === 5 ? 1 : 0.9}
+        />
+      ))}
+      <Ellipse cx={54} cy={32} rx={8} ry={7.5} fill={`url(#${id}-b)`} />
+      <Path d="M 52 24 q -2 -7 -6 -8" stroke={feature} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+      <Path d="M 57 24 q 2 -7 6 -8" stroke={feature} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+      <Eyes y={31} gap={4} r={2.2} />
+      <Path d="M 51 36 q 3 2 6 0" stroke="#1d2321" strokeWidth={1.6} fill="none" strokeLinecap="round" />
+    </G>
+  ),
+
+  /** Udon Thani. A Ban Chiang pot, painted in its own spirals. */
+  'udon-banchiang': ({ id, feature, accent }) => (
+    <G>
+      <Path d="M 32 14 q -6 0 -7 4 q -1 4 -6 8 q -6 5 -6 14 q 0 12 19 12 q 19 0 19 -12 q 0 -9 -6 -14 q -5 -4 -6 -8 q -1 -4 -7 -4 z" fill={`url(#${id}-b)`} />
+      {/* The spirals. Ban Chiang is its red-on-buff whorls and nothing else. */}
+      {[[22, 36], [42, 36], [32, 46]].map(([x, y], i) => (
+        <Path
+          key={i}
+          d={`M ${x} ${y} q 5 -1 5 4 q 0 4 -4 4 q -3 0 -3 -3 q 0 -2 2 -2`}
+          stroke={feature} strokeWidth={1.8} fill="none" strokeLinecap="round"
+        />
+      ))}
+      <Path d="M 20 22 q 12 -4 24 0" stroke={accent} strokeWidth={2} fill="none" opacity={0.7} />
+      <Eyes y={30} gap={6} r={2.6} />
+      <Smile y={38} w={7} />
+    </G>
+  ),
+
+  /** Samut Prakan. The gulls that come to Bang Pu every winter. */
+  'samutprakan-gull': ({ id, feature, accent }) => (
+    <G>
+      {/* One wing up and one down, so it reads as flying rather than standing. */}
+      <Path d="M 24 30 q -14 -10 -20 -6 q 6 10 18 11 z" fill={feature} opacity={0.45} />
+      <Path d="M 40 34 q 14 6 20 2 q -7 9 -19 6 z" fill={feature} opacity={0.35} />
+      <Ellipse cx={32} cy={34} rx={14} ry={12} fill={`url(#${id}-b)`} />
+      <Circle cx={40} cy={23} r={8} fill={`url(#${id}-b)`} />
+      <Polygon points="47,22 57,24 47,27" fill={accent} />
+      <Path d="M 22 44 q 4 8 0 12" stroke={accent} strokeWidth={2.2} fill="none" strokeLinecap="round" />
+      <Eyes y={22} gap={0} r={2.4} />
+    </G>
+  ),
+
+  /** Rayong. A squid, off the boats at Ban Phe. */
+  'rayong-squid': ({ id, feature, accent }) => (
+    <G>
+      {/* The mantle is a cone; the fins are the two triangles at its top. */}
+      <Polygon points="32,6 44,16 20,16" fill={feature} opacity={0.7} />
+      <Path d="M 32 10 q 11 2 11 16 q 0 10 -11 12 q -11 -2 -11 -12 q 0 -14 11 -16 z" fill={`url(#${id}-b)`} />
+      {/* Eight arms, splayed, which is the silhouette everybody recognises. */}
+      {[-3, -2, -1, 0, 1, 2, 3].map((i) => (
+        <Path
+          key={i}
+          d={`M ${32 + i * 3} 38 q ${i * 3} 10 ${i * 5} 18`}
+          stroke={accent} strokeWidth={2.2} fill="none" strokeLinecap="round" opacity={0.9}
+        />
+      ))}
+      <Eyes y={26} gap={7} r={3.4} />
+      <Path d="M 28 34 q 4 3 8 0" stroke="#1d2321" strokeWidth={1.8} fill="none" strokeLinecap="round" />
+    </G>
+  ),
 };
