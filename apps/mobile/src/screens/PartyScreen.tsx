@@ -23,6 +23,7 @@ import { PARTY_KIND_LABEL, nextTogether, type Bilingual, type PartySummary } fro
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
+import { gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -111,7 +112,7 @@ function Alone({
     <>
       <View
         style={{
-          margin: gutter, padding: 20, borderRadius: radius.md, backgroundColor: color.paper,
+          margin: gutter, padding: 20, borderRadius: gameRadius.panel, backgroundColor: color.paper,
         }}
       >
         <Label size={10} tracking={0.16} colour={color.brandSoft}>

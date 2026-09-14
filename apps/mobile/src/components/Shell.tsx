@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { Animated, Pressable, View } from 'react-native';
-import { ChevronLeft, House, Leaf, Map as MapIcon, Shield, Wallet } from 'lucide-react-native';
+import { ChevronLeft, House, Leaf, Map as MapIcon, PawPrint, Shield } from 'lucide-react-native';
 import { strings } from '@chivago/core';
 import { color, gutter, headerGutter, layout, motion, onFill, radius, ruleStrong, ruleStrongTop, shadow } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from './Type.tsx';
@@ -22,10 +22,10 @@ import type { TabKey } from '../state/store.tsx';
 import { t } from '../i18n/locale.ts';
 
 const TAB_ICONS = {
-  home: House, map: MapIcon, quests: Leaf, wallet: Wallet, safety: Shield,
+  home: House, map: MapIcon, quests: Leaf, game: PawPrint, safety: Shield,
 } as const;
 
-const TAB_ORDER: TabKey[] = ['home', 'map', 'quests', 'wallet', 'safety'];
+const TAB_ORDER: TabKey[] = ['home', 'map', 'quests', 'game', 'safety'];
 
 /**
  * Five tabs, 66px, 2px ink top rule.

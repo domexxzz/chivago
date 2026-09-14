@@ -43,6 +43,7 @@ import { ProfileScreen } from './src/screens/ProfileScreen.tsx';
 import { MedalsScreen } from './src/screens/MedalsScreen.tsx';
 import { PartyScreen } from './src/screens/PartyScreen.tsx';
 import { FindPartyScreen } from './src/screens/FindPartyScreen.tsx';
+import { GameScreen } from './src/screens/GameScreen.tsx';
 import { SafetyScreen } from './src/screens/SafetyScreen.tsx';
 import { TripScreen, type TripState } from './src/screens/TripScreen.tsx';
 import { ConciergeScreen } from './src/screens/ConciergeScreen.tsx';
@@ -98,7 +99,7 @@ export default function App() {
     if (link.screen === 'quest' && link.questId) {
       nav.push('quest', { questId: link.questId });
     } else if (link.screen === 'wallet') {
-      nav.selectTab('wallet');
+      nav.push('wallet');
       setWalletKey((k) => k + 1);
     } else {
       nav.selectTab('home');
@@ -250,6 +251,12 @@ export default function App() {
                 nav.push('trip');
                 return;
               }
+              // The wallet lost its tab and kept its screen, so the concierge
+              // pushes it the way every other door now does.
+              if (action === 'wallet') {
+                nav.push('wallet');
+                return;
+              }
               nav.selectTab(action);
             }}
           />
@@ -266,7 +273,7 @@ export default function App() {
             onSeeAllQuests={() => nav.selectTab('quests')}
             onAskConcierge={() => nav.push('concierge')}
             onToast={toast.show}
-            onOpenWallet={() => nav.selectTab('wallet')}
+            onOpenWallet={() => nav.push('wallet')}
             balances={balances}
             wayTo={wayTo}
             onClearWay={() => setWayTo(null)}
@@ -321,12 +328,22 @@ export default function App() {
           <QuestDetailScreen
             questId={nav.questId ?? 'q1'}
             onBack={nav.pop}
-            onOpenWallet={() => nav.selectTab('wallet')}
+            onOpenWallet={() => nav.push('wallet')}
             onToast={toast.show}
             onPointsChanged={onPointsChanged}
           />
         );
 
+      case 'game':
+        return (
+          <GameScreen
+            onOpenCompanion={(c) => { setCompanion(c); nav.push('companion'); }}
+            onOpenMascots={() => nav.push('mascots')}
+            onOpenMedals={() => nav.push('medals')}
+            onOpenPassport={() => nav.push('passport')}
+            onOpenParty={() => nav.push('party')}
+          />
+        );
       case 'wallet':
         return (
           <WalletScreen
@@ -358,7 +375,7 @@ export default function App() {
             onOpenMap={() => nav.selectTab('map')}
             onOpenQuests={() => nav.selectTab('quests')}
             onOpenQuest={(id) => nav.push('quest', { questId: id })}
-            onOpenWallet={() => nav.selectTab('wallet')}
+            onOpenWallet={() => nav.push('wallet')}
             onOpenPassport={() => nav.push('passport')}
             onOpenMascots={() => nav.push('mascots')}
             onOpenImpact={() => nav.push('impact')}
@@ -375,7 +392,7 @@ export default function App() {
           <ProfileScreen
             onBack={nav.pop}
             onOpenAccount={() => nav.push('account')}
-            onOpenWallet={() => nav.selectTab('wallet')}
+            onOpenWallet={() => nav.push('wallet')}
             onOpenPassport={() => nav.push('passport')}
             onOpenMedals={() => nav.push('medals')}
             onOpenCompanion={(c) => { setCompanion(c); nav.push('companion'); }}

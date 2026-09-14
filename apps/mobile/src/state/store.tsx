@@ -40,19 +40,27 @@ import { EMPTY_PROFILE } from '@chivago/core';
 export type ScreenKey =
   | 'onboarding' | 'home' | 'map' | 'place' | 'quests' | 'quest'
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
-  | 'companion' | 'passport' | 'account' | 'party' | 'findParty'
+  | 'companion' | 'passport' | 'account' | 'party' | 'findParty' | 'game'
   | 'mascots' | 'mascot' | 'profile' | 'medals';
 
 /**
- * Five tabs, and Impact is no longer one of them.
+ * Five tabs. Impact left the bar, and now the wallet has too.
  *
- * Home had to go somewhere, and six tabs is one more than a 375px bar can
- * carry without the labels becoming decoration. Impact is the Chiva Balance -
- * a summary somebody checks, not a place they live - so it moved to a door on
- * Home, which is where summaries belong. Nothing about the screen changed and
- * it is one line to put back.
+ * Six is one more than a 375px bar can carry without the labels becoming
+ * decoration, so every addition is a swap and has to be argued for. Impact
+ * went first: a summary somebody checks, not a place they live, so it became a
+ * door on Home.
+ *
+ * The wallet follows it for a plainer reason. It ALREADY had a door on Home,
+ * showing both balances, so its tab was a second route to a screen one tap
+ * away. The game layer had no door at all: companions, the seventy-seven,
+ * medals and the passport sat three taps down BEHIND that wallet, which is a
+ * strange place to keep the part people open the app for.
+ *
+ * So the game gets the cell and the wallet keeps its door. Nothing about
+ * either screen changed, and it is one line to swap back.
  */
-export type TabKey = 'home' | 'map' | 'quests' | 'wallet' | 'safety';
+export type TabKey = 'home' | 'map' | 'quests' | 'game' | 'safety';
 
 interface NavState {
   screen: ScreenKey;
@@ -74,7 +82,7 @@ export interface Nav extends NavState {
   activeTab: TabKey;
 }
 
-const TAB_SCREENS: TabKey[] = ['home', 'map', 'quests', 'wallet', 'safety'];
+const TAB_SCREENS: TabKey[] = ['home', 'map', 'quests', 'game', 'safety'];
 
 /** Which tab should read as active while a pushed screen is on top. */
 const OWNING_TAB: Record<ScreenKey, TabKey> = {
@@ -82,17 +90,17 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   // All three are reached from a door on Home, so Home stays lit behind them
   // and a tab tap returns there rather than stranding the reader on a screen
   // no tab owns. `impact` in particular has no tab of its own any more.
-  concierge: 'home', impact: 'home', passport: 'home', party: 'home',
-  // Finding a party is a door off the party screen, which is a door off Home.
-  findParty: 'home',
-  // The field guide and a mascot's room are doors off the passport.
-  mascots: 'home', mascot: 'home',
+  concierge: 'home', impact: 'home',
   quests: 'quests', quest: 'quests',
-  wallet: 'wallet', market: 'wallet',
-  // Both reached from the wallet, so its tab stays lit behind them.
-  companion: 'wallet', account: 'wallet',
-  // The profile is the button at the top of Home; the medals are a door off it.
-  profile: 'home', medals: 'home',
+  // The wallet kept its screen and lost its tab, so Home stays lit behind it -
+  // the same place its door is.
+  wallet: 'home', market: 'home', account: 'home',
+  // The game layer, all of it, under one cell. This is the change: every one
+  // of these used to hang off Home or the wallet, two or three taps down.
+  game: 'game', companion: 'game', mascots: 'game', mascot: 'game',
+  medals: 'game', passport: 'game', party: 'game', findParty: 'game',
+  // The profile is the button at the top of Home.
+  profile: 'home',
   safety: 'safety',
 };
 

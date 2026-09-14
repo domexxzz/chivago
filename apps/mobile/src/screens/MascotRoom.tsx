@@ -16,6 +16,7 @@ import { BASIS_LABEL, findProvince, mascotFor, strings } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync, useToast } from '../state/store.tsx';
 import { color, gutter, radius } from '../theme/index.ts';
+import { gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { IconButton } from '../components/Button.tsx';
 import { CreatureScene } from '../components/CreatureScene.tsx';
@@ -45,7 +46,20 @@ export function MascotRoomScreen({ code, onBack }: { code: string; onBack: () =>
         <Label size={10} tracking={0.14}>{t(province.name)}</Label>
       </View>
 
-      <View style={{ marginHorizontal: gutter, borderRadius: radius.md, overflow: 'hidden', backgroundColor: color.surface, borderWidth: 1, borderColor: met ? color.text : color.neutral300 }}>
+      {/*
+        Same room as a companion's, so the same surface: rounder, deeper, and
+        no rule. A hairline around a 3D room reads as a picture frame, which
+        puts the animal back inside a list item.
+      */}
+      <View
+        style={[
+          {
+            marginHorizontal: gutter, borderRadius: gameRadius.panel, overflow: 'hidden',
+            backgroundColor: color.surface,
+          },
+          gameShadow.deep,
+        ]}
+      >
         <CreatureScene
           species="mascot"
           mascot={mascot}
