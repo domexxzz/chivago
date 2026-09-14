@@ -290,4 +290,198 @@ const PORTRAITS: Record<string, (ink: Ink) => React.ReactNode> = {
       ))}
     </G>
   ),
+
+  /* ------------------------------------------------------------------------
+     The second ten.
+
+     Same rule that chose the first: who a traveller in this pilot actually
+     meets. Five are the rest of the South, because somebody on Samui moves
+     through Chumphon, Ranong, Phang Nga, Nakhon Si Thammarat and Songkhla to
+     get anywhere. Lampang's rooster is here because `mascots.ts` names it in
+     its own header as one of the five recognisable emblems, and it was the
+     only one of those five still undrawn. The last four are the provinces a
+     domestic traveller is most likely to pass through next.
+     ---------------------------------------------------------------------- */
+
+  /** Lampang. The rooster on the seal, and on every chicken bowl ever made here. */
+  'lampang-rooster': ({ id, body, feature, accent }) => (
+    <G>
+      {/* The tail is the silhouette. A rooster drawn without it is a hen. */}
+      <Path d="M 20 38 q -10 -16 -4 -26 q 2 9 8 12 q -3 -12 4 -18 q 0 11 6 15 z" fill={accent} />
+      <Path d="M 22 40 q -8 -12 -4 -21 q 3 8 8 11 z" fill={feature} opacity={0.45} />
+      <Ellipse cx={35} cy={38} rx={15} ry={14} fill={`url(#${id}-b)`} />
+      <Circle cx={38} cy={24} r={10} fill={body} />
+      {/* Comb and wattle, in the feature red the data already carries. */}
+      <Path d="M 34 15 q 2 -5 4 0 q 2 -5 4 0 q 2 -4 3 1 l -11 2 z" fill={feature} />
+      <Path d="M 42 30 q 3 4 0 6 q -3 -1 -2 -5 z" fill={feature} />
+      <Polygon points="47,24 55,26 47,29" fill={accent} />
+      <Eyes y={23} gap={0} r={2.6} />
+      {[-1, 1].map((sx) => (
+        <Path key={sx} d={`M ${35 + sx * 4} 52 l 0 5`} stroke={accent} strokeWidth={2.4} strokeLinecap="round" />
+      ))}
+    </G>
+  ),
+
+  /** Nakhon Si Thammarat. A nang talung shadow puppet, lit from behind. */
+  'nakhonsi-puppet': ({ id, feature, accent, belly }) => (
+    <G>
+      {/* The stick it is held on, first, so the puppet sits on it. */}
+      <Path d="M 32 40 l 0 18" stroke={feature} strokeWidth={2.4} strokeLinecap="round" />
+      <Path d="M 32 10 q 12 2 12 14 q 0 10 -6 14 q -6 4 -12 0 q -6 -4 -6 -14 q 0 -12 12 -14 z" fill={`url(#${id}-b)`} />
+      {/* Perforations: a shadow puppet is defined by the light coming through it. */}
+      {[0, 1, 2, 3, 4].map((i) => (
+        <Circle key={i} cx={26 + (i % 3) * 6} cy={26 + Math.floor(i / 3) * 7} r={1.5} fill={belly} opacity={0.85} />
+      ))}
+      <Path d="M 24 12 q 8 -8 16 0 q -3 -2 -8 -2 q -5 0 -8 2 z" fill={accent} />
+      <Polygon points="32,4 36,11 28,11" fill={accent} />
+      <Eyes y={22} gap={5} r={2.4} />
+      <Path d="M 32 30 q 4 3 7 1" stroke="#1d2321" strokeWidth={1.8} fill="none" strokeLinecap="round" />
+    </G>
+  ),
+
+  /** Chumphon. A robusta coffee cherry, which is what the province grows. */
+  'chumphon-coffee': ({ id, accent, feature }) => (
+    <G>
+      <Path d="M 32 12 q 4 -6 12 -6 q -2 8 -10 10 z" fill={accent} />
+      <Path d="M 36 8 q -2 4 -3 7" stroke={feature} strokeWidth={1.2} fill="none" opacity={0.6} />
+      <Circle cx={32} cy={34} r={16} fill={`url(#${id}-b)`} />
+      {/* The centre line every coffee cherry has down one side. */}
+      <Path d="M 32 19 q 5 15 0 30" stroke={feature} strokeWidth={1.8} fill="none" opacity={0.5} />
+      <Ellipse cx={25} cy={27} rx={5} ry={3.4} fill="#ffffff" opacity={0.3} />
+      <Eyes y={32} gap={6.5} />
+      <Smile y={41} w={9} />
+    </G>
+  ),
+
+  /** Phang Nga. A manta ray over the Similans. */
+  'phangnga-ray': ({ id, feature, accent }) => (
+    <G>
+      {/* One wide wing shape. A ray is a silhouette before it is anything else. */}
+      <Path d="M 32 18 q 20 2 27 14 q -11 8 -27 8 q -16 0 -27 -8 q 7 -12 27 -14 z" fill={`url(#${id}-b)`} />
+      <Path d="M 32 40 q 2 10 0 20" stroke={feature} strokeWidth={2.6} fill="none" strokeLinecap="round" />
+      {/* Cephalic fins, the two forward horns that make it a manta. */}
+      <Path d="M 25 20 q -3 -7 -6 -8 q 1 6 3 9 z" fill={feature} />
+      <Path d="M 39 20 q 3 -7 6 -8 q -1 6 -3 9 z" fill={feature} />
+      <Ellipse cx={32} cy={26} rx={9} ry={4} fill={accent} opacity={0.35} />
+      <Eyes y={26} gap={11} r={2.4} />
+      <Path d="M 27 33 q 5 3 10 0" stroke="#1d2321" strokeWidth={1.8} fill="none" strokeLinecap="round" />
+    </G>
+  ),
+
+  /** Songkhla. The mouse of Ko Nu, off the old town. */
+  'songkhla-mouse': ({ id, feature, accent }) => (
+    <G>
+      {/* The tail first, curling behind, so the body overlaps it. */}
+      <Path d="M 46 44 q 14 2 12 -10" stroke={accent} strokeWidth={2.4} fill="none" strokeLinecap="round" />
+      <Circle cx={20} cy={24} r={9} fill={accent} opacity={0.55} />
+      <Circle cx={44} cy={24} r={9} fill={accent} opacity={0.55} />
+      <Circle cx={20} cy={24} r={5} fill={feature} opacity={0.35} />
+      <Circle cx={44} cy={24} r={5} fill={feature} opacity={0.35} />
+      <Ellipse cx={32} cy={36} rx={16} ry={14} fill={`url(#${id}-b)`} />
+      <Eyes y={33} gap={6.5} r={3.2} />
+      <Circle cx={32} cy={41} r={2.4} fill={accent} />
+      {[-1, 1].map((sx) => (
+        <G key={sx}>
+          <Path d={`M ${32 + sx * 4} 42 l ${sx * 9} -2`} stroke={feature} strokeWidth={1.2} strokeLinecap="round" />
+          <Path d={`M ${32 + sx * 4} 44 l ${sx * 9} 2`} stroke={feature} strokeWidth={1.2} strokeLinecap="round" />
+        </G>
+      ))}
+    </G>
+  ),
+
+  /** Ranong. A turtle in the hot spring, with the steam the data asks for. */
+  'ranong-hotspring': ({ id, feature, accent, belly }) => (
+    <G>
+      {/* Steam above, water below, and the turtle between them. */}
+      {[0, 1, 2].map((i) => (
+        <Path
+          key={i}
+          d={`M ${22 + i * 10} 14 q 4 -5 0 -9`}
+          stroke={accent} strokeWidth={2.2} fill="none" strokeLinecap="round" opacity={0.75}
+        />
+      ))}
+      <Ellipse cx={32} cy={48} rx={24} ry={6} fill={accent} opacity={0.45} />
+      <Ellipse cx={32} cy={36} rx={17} ry={13} fill={`url(#${id}-b)`} />
+      {/* Shell plates, six, which is what reads as a shell at this size. */}
+      {[[32, 30], [24, 36], [40, 36], [28, 43], [36, 43], [32, 37]].map(([x, y], i) => (
+        <Polygon
+          key={i}
+          points={`${x! - 4},${y!} ${x!},${y! - 4} ${x! + 4},${y!} ${x!},${y! + 4}`}
+          fill={feature} opacity={0.35}
+        />
+      ))}
+      <Circle cx={32} cy={24} r={7} fill={belly} />
+      <Eyes y={23} gap={3} r={2} />
+      <Path d="M 29 27 q 3 2 6 0" stroke="#1d2321" strokeWidth={1.6} fill="none" strokeLinecap="round" />
+    </G>
+  ),
+
+  /** Chiang Rai. The Mekong giant catfish at Chiang Khong. */
+  'chiangrai-catfish': ({ id, feature, accent }) => (
+    <G>
+      <Path d="M 8 32 q 6 -12 22 -12 q 18 0 24 10 q -6 12 -24 12 q -16 0 -22 -10 z" fill={`url(#${id}-b)`} />
+      <Path d="M 54 30 q 8 -7 10 -3 q -1 10 -10 7 z" fill={feature} />
+      <Path d="M 30 20 q 1 -8 6 -10 q 1 6 0 10 z" fill={feature} />
+      {/* The barbels. A catfish is its whiskers. */}
+      <Path d="M 10 34 q -7 3 -8 9" stroke={accent} strokeWidth={2} fill="none" strokeLinecap="round" />
+      <Path d="M 10 30 q -8 -1 -9 -7" stroke={accent} strokeWidth={2} fill="none" strokeLinecap="round" />
+      <Eyes y={29} gap={0} r={2.8} />
+      <Path d="M 8 35 q 5 3 10 1" stroke="#1d2321" strokeWidth={1.8} fill="none" strokeLinecap="round" />
+    </G>
+  ),
+
+  /** Kanchanaburi. A barking deer by the Kwae. */
+  'kanchanaburi-muntjac': ({ id, feature, accent, belly }) => (
+    <G>
+      {/* Short antlers on long pedicles, which is exactly what a muntjac has. */}
+      <Path d="M 25 16 l -3 -11 l 4 2" stroke={feature} strokeWidth={2.4} fill="none" strokeLinecap="round" />
+      <Path d="M 39 16 l 3 -11 l -4 2" stroke={feature} strokeWidth={2.4} fill="none" strokeLinecap="round" />
+      <Ellipse cx={18} cy={25} rx={6} ry={8} fill={feature} opacity={0.6} />
+      <Ellipse cx={46} cy={25} rx={6} ry={8} fill={feature} opacity={0.6} />
+      <Ellipse cx={32} cy={34} rx={14} ry={16} fill={`url(#${id}-b)`} />
+      <Ellipse cx={32} cy={44} rx={7} ry={6} fill={belly} />
+      <Eyes y={31} gap={7} r={3.2} />
+      <Ellipse cx={32} cy={44} rx={2.6} ry={2} fill="#1d2321" />
+      <Path d="M 28 50 q 4 3 8 0" stroke="#1d2321" strokeWidth={1.8} fill="none" strokeLinecap="round" />
+      <Circle cx={50} cy={14} r={2.2} fill={accent} opacity={0.7} />
+    </G>
+  ),
+
+  /** Nakhon Ratchasima. The Korat cat, silver-blue with green eyes. */
+  'korat-cat': ({ id, feature, accent }) => (
+    <G>
+      <Path d="M 40 46 q 14 4 14 -8" stroke={feature} strokeWidth={3} fill="none" strokeLinecap="round" />
+      <Polygon points="18,22 16,8 28,16" fill={feature} />
+      <Polygon points="46,22 48,8 36,16" fill={feature} />
+      {/* The heart-shaped face the breed is known for: wider at the cheeks. */}
+      <Path d="M 32 18 q 16 1 16 14 q 0 16 -16 18 q -16 -2 -16 -18 q 0 -13 16 -14 z" fill={`url(#${id}-b)`} />
+      <Eyes y={31} gap={7.5} r={4} ink={accent} />
+      <Path d="M 30 39 l 2 2 l 2 -2 z" fill={feature} />
+      <Smile y={42} w={7} />
+      {[-1, 1].map((sx) => (
+        <Path key={sx} d={`M ${32 + sx * 9} 40 l ${sx * 10} ${sx * 0}`} stroke={feature} strokeWidth={1.3} strokeLinecap="round" />
+      ))}
+    </G>
+  ),
+
+  /** Ubon Ratchathani. A carved candle from the Candle Festival. */
+  'ubon-candle': ({ id, feature, accent, belly }) => (
+    <G>
+      {/* Flame first, because it is the top of the silhouette. */}
+      <Path d="M 32 4 q 6 6 5 11 q -1 5 -5 5 q -4 0 -5 -5 q -1 -5 5 -11 z" fill={accent} />
+      <Path d="M 32 10 q 2 3 2 6 q 0 2 -2 2 q -2 0 -2 -2 q 0 -3 2 -6 z" fill={belly} />
+      <Path d="M 22 22 q 10 -3 20 0 l 0 30 q -10 3 -20 0 z" fill={`url(#${id}-b)`} />
+      {/* Carving: three bands, which is what reads as carved at this size. */}
+      {[30, 38, 46].map((y, i) => (
+        <Path
+          key={i}
+          d={`M 22 ${y} q 10 4 20 0`}
+          stroke={feature} strokeWidth={1.8} fill="none" opacity={0.55}
+        />
+      ))}
+      <Eyes y={34} gap={5} r={2.6} />
+      <Smile y={41} w={7} />
+      <Path d="M 18 54 q 14 5 28 0 l -2 4 q -12 4 -24 0 z" fill={feature} opacity={0.7} />
+    </G>
+  ),
 };
