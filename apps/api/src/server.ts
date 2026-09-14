@@ -19,6 +19,11 @@ import {
   PartyRefused, activePartyFor, createParty, disbandParty, joinParty, leaveParty, membersOf,
 } from './party-service.ts';
 import {
+  InviteRefused, closeInvite, decideRequest, listingsAt, openInviteCounts,
+  openInviteFor, pendingFor, postInvite, requestJoin, requestsBy, withdrawRequest,
+} from './party-invite-service.ts';
+import { INVITE_DOES_NOT, POST_REFUSAL, REQUEST_REFUSAL, pinLine } from '@chivago/core';
+import {
   LINK_CODE_TTL_MS, LinkCodeRefused, claimLinkCode, devicesFor, issueLinkCode,
   // Aliased: `registerDevice` is already the push-token function next door,
   // and two different registrations under one name is how the wrong one gets
@@ -40,7 +45,7 @@ import {
 import { ensureWallet, getWallet, grantOpeningBalance, spendOnVoucher } from './wallet-service.ts';
 import { checkedInToday, checkIn } from './checkin-service.ts';
 import { exploredFor, recordSelfVisit, selfReportedProvincesFor, selfVisitsFor } from './visit-service.ts';
-import { airHistoryFor } from './crowd-service.ts';
+import { airHistoryFor, checkinsLastHour } from './crowd-service.ts';
 import { readStatement, statementsIncluding } from './statement-service.ts';
 import {
   STORY_FORM_MAX_BYTES, StoryTooLarge, expireStories, readStoryMedia, storiesAt, storiesInArea, storiesOpen,
@@ -1350,6 +1355,141 @@ app.post('/party/disband', (c) => {
     return fail(c, 'NOT_YOURS', 'Only whoever started this group can disband it.', 403);
   }
   return ok(c, { disbanded: true });
+});
+
+// ---------------------------------------------------------------------------
+// Party invitations
+//
+// The discovery layer, and the one rule that shapes every route below: an
+// invitation is posted at a PLACE, never at a person. No route here accepts a
+// position, returns one, or could be made to leak one — `InviteListing` has
+// nowhere to put it and this file never builds anything else.
+//
+// So there is deliberately no `GET /invites/nearby?lat=&lng=`. A client that
+// wants to know what is near it already knows where it is; it asks `/places`
+// with a bounding box, as it always has, and asks here about the places that
+// came back. The server never learns where anybody is standing.
+// ---------------------------------------------------------------------------
+
+/** How many parties are asking at each place. A count, never a name. */
+app.get('/invites/pins', (c) => {
+  const ids = (c.req.query('places') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  const counts = openInviteCounts(db, ids);
+  const crowd = checkinsLastHour(db, ids);
+  // Two kinds of fact, said separately and never added. The crowd figure is
+  // history the island produced; the invitation count is a plan somebody
+  // typed. `pinLine` keeps them apart in both languages.
+  return ok(c, {
+    pins: ids.map((id) => {
+      const invitesOpen = counts.get(id) ?? 0;
+      const checked = crowd.get(id)?.checkinsLastHour ?? 0;
+      return { placeId: id, invitesOpen, checkinsLastHour: checked, line: pinLine(invitesOpen, checked) };
+    }),
+  });
+});
+
+/** The open invitations at one place, as a stranger may see them. */
+app.get('/invites', (c) => {
+  const placeId = c.req.query('place');
+  if (!placeId) return fail(c, 'PLACE_REQUIRED', 'Ask about a place.');
+  return ok(c, {
+    invitations: listingsAt(db, placeId, userId(c)),
+    doesNot: INVITE_DOES_NOT,
+  });
+});
+
+/** What my own party currently has up, so a screen can offer to close it. */
+app.get('/invites/mine', (c) => {
+  const party = activePartyFor(db, userId(c));
+  return ok(c, {
+    invitation: party ? openInviteFor(db, party.id) : null,
+    requests: requestsBy(db, userId(c)),
+    doesNot: INVITE_DOES_NOT,
+  });
+});
+
+/** Requests my party has to answer. Name and verified count, nothing else. */
+app.get('/invites/requests', (c) => ok(c, { waiting: pendingFor(db, userId(c)) }));
+
+/**
+ * Post one.
+ *
+ * Eight refusals, eight sentences. A single "could not post" would send
+ * somebody to change the wrong field — the same reason the join route below
+ * has four.
+ */
+app.post('/invites', async (c) => {
+  type PostBody = { placeId?: string; from?: string; until?: string; spaces?: number; note?: string };
+  const body = await c.req.json<PostBody>().catch(() => ({} as PostBody));
+  if (!body.placeId || !body.from || !body.until) {
+    return fail(c, 'INVITE_INCOMPLETE', 'A place and a time are both needed.');
+  }
+  try {
+    const invitation = postInvite(db, userId(c), {
+      placeId: body.placeId,
+      from: body.from,
+      until: body.until,
+      spaces: body.spaces ?? 1,
+      note: body.note ?? null,
+    });
+    return ok(c, { invitation, doesNot: INVITE_DOES_NOT });
+  } catch (err) {
+    if (err instanceof InviteRefused) {
+      const line = POST_REFUSAL[err.reason as keyof typeof POST_REFUSAL];
+      return fail(c, `INVITE_${err.reason.toUpperCase().replaceAll('-', '_')}`,
+        line?.en ?? 'That invitation cannot be posted.', 400);
+    }
+    throw err;
+  }
+});
+
+/** Close it. Anybody in the party may, not only whoever posted it. */
+app.post('/invites/:id/close', (c) =>
+  ok(c, { closed: closeInvite(db, userId(c), c.req.param('id')) }));
+
+/** Ask to come along. Writes a request; a human in the party decides. */
+app.post('/invites/:id/request', (c) => {
+  try {
+    requestJoin(db, userId(c), c.req.param('id'));
+    return ok(c, { asked: true });
+  } catch (err) {
+    if (err instanceof InviteRefused) {
+      const line = REQUEST_REFUSAL[err.reason as keyof typeof REQUEST_REFUSAL];
+      return fail(c, `REQUEST_${err.reason.toUpperCase().replaceAll('-', '_')}`,
+        line?.en ?? 'That invitation cannot be joined.', 400);
+    }
+    throw err;
+  }
+});
+
+/** Take it back. Only ever touches the asker's own row. */
+app.post('/invites/:id/withdraw', (c) =>
+  ok(c, { withdrawn: withdrawRequest(db, userId(c), c.req.param('id')) }));
+
+/**
+ * Say yes or no.
+ *
+ * Accepting joins them through the same checks a code join runs, so a party
+ * that filled up between the ask and the answer refuses here rather than
+ * growing to nine.
+ */
+app.post('/invites/:id/decide', async (c) => {
+  type DecideBody = { userId?: string; accept?: boolean };
+  const body = await c.req.json<DecideBody>().catch(() => ({} as DecideBody));
+  if (!body.userId || typeof body.accept !== 'boolean') {
+    return fail(c, 'DECISION_INCOMPLETE', 'Say who, and yes or no.');
+  }
+  try {
+    const outcome = decideRequest(db, userId(c), c.req.param('id'), body.userId, body.accept);
+    return ok(c, { outcome });
+  } catch (err) {
+    if (err instanceof InviteRefused) {
+      const line = REQUEST_REFUSAL[err.reason as keyof typeof REQUEST_REFUSAL];
+      return fail(c, `DECIDE_${err.reason.toUpperCase().replaceAll('-', '_')}`,
+        line?.en ?? 'That request cannot be answered.', 400);
+    }
+    throw err;
+  }
 });
 
 app.get('/companions', (c) => {
