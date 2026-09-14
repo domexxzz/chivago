@@ -19,7 +19,7 @@ import { Animated, Easing, Platform, View, useWindowDimensions } from 'react-nat
 import type { CompanionStage, Mascot } from '@chivago/core';
 import { color } from '../theme/index.ts';
 import { Creature, type CreatureKey } from './Creature.tsx';
-import { MascotMark } from './MascotMark.tsx';
+import { MascotPortrait } from './MascotPortrait.tsx';
 import { useReduceMotion } from './reduce-motion.ts';
 
 const inBrowser = Platform.OS === 'web'
@@ -91,7 +91,7 @@ export function CreatureScene({
         }}
       >
         {mascot && stage !== 'egg'
-          ? <MascotMark mascot={mascot} size={168} />
+          ? <MascotPortrait mascot={mascot} size={168} />
           : <Creature species={species} stage={stage} size={168} />}
       </Animated.View>
     </View>

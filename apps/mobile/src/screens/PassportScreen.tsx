@@ -34,7 +34,7 @@ import { color, gutter, layout, radius } from '../theme/index.ts';
 import { gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
-import { MascotMark } from '../components/MascotMark.tsx';
+import { MascotPortrait } from '../components/MascotPortrait.tsx';
 import { t } from '../i18n/locale.ts';
 
 /** `noted` is a stamp on the traveller's word - recorded, not scored. Drawn dashed. */
@@ -296,7 +296,7 @@ function Stamp({
       */}
       {companion ? (
         <>
-          <MascotMark mascot={companion.mascot} size={28} />
+          <MascotPortrait mascot={companion.mascot} size={28} />
           <Label
             size={9}
             tracking={0.04}

@@ -21,7 +21,7 @@ import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
 import { gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { IconButton } from '../components/Button.tsx';
-import { MascotMark } from '../components/MascotMark.tsx';
+import { MascotPortrait } from '../components/MascotPortrait.tsx';
 import { t } from '../i18n/locale.ts';
 
 /** The region's speckle colour, for the stamps. Not the evidence green. */
@@ -40,7 +40,7 @@ export function MascotCard({ mascot, met, onOpen }: { mascot: Mascot; met: boole
         borderWidth: 1, borderColor: met ? color.text : color.neutral300, padding: 10, alignItems: 'center', gap: 4,
       }]}
     >
-      <MascotMark mascot={mascot} size={64} />
+      <MascotPortrait mascot={mascot} size={64} />
       <Heading size={13} style={{ textAlign: 'center' }}>{t(mascot.name)}</Heading>
       <Label size={9} tracking={0.08} colour={color.neutral700} style={{ textAlign: 'center', textTransform: 'none' }}>
         {t(mascot.creature)}
