@@ -29,6 +29,7 @@ import type { Bilingual, InviteListing, ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius } from '../theme/index.ts';
+import { gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -131,7 +132,7 @@ function Places({
           <View
             key={place.id}
             style={{
-              marginBottom: 10, borderRadius: radius.md, backgroundColor: color.surface,
+              marginBottom: 10, borderRadius: gameRadius.panel, backgroundColor: color.surface,
               borderWidth: 1, borderColor: open ? color.brand : color.neutral300,
               overflow: 'hidden',
             }}

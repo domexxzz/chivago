@@ -13,6 +13,7 @@ import { ledgerDate, strings, type MedalState } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { bar, color, gutter, layout, radius, shadow } from '../theme/index.ts';
+import { gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { MedalMark } from '../components/MedalMark.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -57,7 +58,7 @@ function MedalRow({ medal: m, now }: { medal: MedalState; now: Date }) {
       accessibilityLabel={`${t(m.name)}, ${m.earned ? t(strings.medals.earned) : progressLine(m)}`}
       style={[shadow.card, {
         marginHorizontal: gutter, marginTop: 12, padding: 14,
-        backgroundColor: color.surface, borderRadius: radius.md,
+        backgroundColor: color.surface, borderRadius: gameRadius.panel,
         flexDirection: 'row', alignItems: 'center', gap: 14,
         borderWidth: m.earned ? layout.ruleStrong : 0, borderColor: color.gold,
       }]}

@@ -18,6 +18,7 @@ import { api } from '../api/client.ts';
 import { mascotBeachUri } from '../api/photos.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
+import { gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { IconButton } from '../components/Button.tsx';
 import { MascotMark } from '../components/MascotMark.tsx';
@@ -35,7 +36,7 @@ export function MascotCard({ mascot, met, onOpen }: { mascot: Mascot; met: boole
       accessibilityRole="button"
       accessibilityLabel={`${t(mascot.name)}, ${t(mascot.creature)}. ${met ? t(strings.mascots.met) : t(strings.mascots.notMet)}`}
       style={[shadow.sm, {
-        width: '31%', minWidth: 104, backgroundColor: color.surface, borderRadius: radius.md,
+        width: '31%', minWidth: 104, backgroundColor: color.surface, borderRadius: gameRadius.panel,
         borderWidth: 1, borderColor: met ? color.text : color.neutral300, padding: 10, alignItems: 'center', gap: 4,
       }]}
     >

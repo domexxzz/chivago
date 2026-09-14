@@ -25,6 +25,7 @@ export const Lock = Icon;
 export const Map = Icon;
 export const MapPinned = Icon;
 export const MessageCircle = Icon;
+export const PawPrint = Icon;
 export const Phone = Icon;
 export const Play = Icon;
 export const Route = Icon;

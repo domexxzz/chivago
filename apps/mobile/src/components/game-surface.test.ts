@@ -27,6 +27,7 @@ const SCREENS = new URL('../screens/', import.meta.url).pathname;
 
 /** May wear it: collection, progression, companions, play. */
 const GAME_LAYER = [
+  'GameScreen.tsx',
   'CompanionHome.tsx',
   'MascotRoom.tsx',
   'MascotsScreen.tsx',
@@ -34,7 +35,6 @@ const GAME_LAYER = [
   'PassportScreen.tsx',
   'PartyScreen.tsx',
   'FindPartyScreen.tsx',
-  'Onboarding.tsx',
 ];
 
 /**
@@ -70,6 +70,15 @@ const EVIDENCE_LAYER: Record<string, string> = {
     later — which is a different change, made deliberately, on the card.
   */
   'HomeScreen.tsx': 'a hub that carries measured claims beside play',
+  /*
+    Onboarding started on the game list and moved here on inspection.
+
+    What is actually on it is permission choices — location, notifications —
+    and a consent control is not play. A bevelled, springy toggle is the
+    interface making a decision feel like a move in a game, on the one screen
+    where the traveller most needs to understand that it is not.
+  */
+  'Onboarding.tsx': 'permission choices are consent, not play',
 };
 
 const imports = (file: string): string => {

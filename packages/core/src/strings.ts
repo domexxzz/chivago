@@ -33,6 +33,17 @@ export const strings = {
     map: t('Map', 'แผนที่'),
     quests: t('Missions', 'ภารกิจ'),
     wallet: t('Wallet', 'กระเป๋าแต้ม'),
+    /*
+      The game tab took the wallet's place on the bar.
+
+      Six tabs is one more than a 375px bar can carry, and the wallet already
+      had a door on Home showing both balances - the same trade Impact made
+      when it moved off the bar. What had no door at all was the game layer:
+      companions, the seventy-seven, medals and the passport were three taps
+      down behind a wallet, which is a strange place to keep the part people
+      open the app for.
+    */
+    game: t('Collect', 'สะสม'),
     impact: t('Impact', 'ผลลัพธ์'),
     safety: t('Safety', 'ความปลอดภัย'),
   },

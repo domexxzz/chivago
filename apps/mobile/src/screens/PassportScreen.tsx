@@ -31,6 +31,7 @@ import {
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius } from '../theme/index.ts';
+import { gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { MascotMark } from '../components/MascotMark.tsx';
@@ -73,7 +74,7 @@ export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void }
         style={{
           margin: gutter,
           padding: 22,
-          borderRadius: radius.md,
+          borderRadius: gameRadius.panel,
           backgroundColor: color.paper,
         }}
       >
