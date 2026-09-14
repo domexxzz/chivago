@@ -19,6 +19,7 @@ import {
   outlookAhead, planDay, progressionFor, routeBiasFor, smartRoute, summarise,
   areaByKey, inArea, isAreaKey, medalsView, type ExploredPlace,
   SEED_QUESTS, boardFeed, monsterState, monstersAt,
+  INVITE_DOES_NOT, pinLine,
 } from '@chivago/core';
 import snapshot from './fixtures.json';
 
@@ -92,6 +93,55 @@ class Refused {
   constructor(readonly code: string, readonly error: string) {}
 }
 const refuse = (code: string, error: string) => new Refused(code, error);
+
+/**
+ * Two invitations, so the discovery screen has something to show.
+ *
+ * Seeded for the same reason `PRIOR` is: a demo is one sitting with one
+ * visitor, and nobody else is out there to post anything. Without these the
+ * screen would be a correct, working, entirely empty list — which teaches a
+ * judge nothing about the feature and reads as broken.
+ *
+ * They are SHAPES, not claims. No position is stored here because none is
+ * stored anywhere: `InviteListing` has nowhere to put one, and the demo
+ * cannot invent a field the type does not have.
+ */
+const DEMO_INVITES = [
+  {
+    id: 'demo-inv-1', placeId: 'mangrove',
+    partyName: 'Two slow walkers', missionsVerified: 7,
+    spacesLeft: 2, note: 'Clean up, then find breakfast', hours: [1, 4] as const,
+  },
+  {
+    id: 'demo-inv-2', placeId: 'mangrove',
+    partyName: 'Film camera club', missionsVerified: 0,
+    spacesLeft: 1, note: 'Shooting in the late light', hours: [6, 8] as const,
+  },
+  {
+    id: 'demo-inv-3', placeId: 'namuang',
+    partyName: 'Up before the heat', missionsVerified: 3,
+    spacesLeft: 3, note: null, hours: [2, 5] as const,
+  },
+];
+
+/** Which invitations this visitor has already asked to join, this sitting. */
+const asked = new Set<string>();
+
+const demoListing = (i: (typeof DEMO_INVITES)[number]) => {
+  const now = Date.now();
+  return {
+    id: i.id,
+    placeId: i.placeId,
+    from: new Date(now + i.hours[0] * 3_600_000).toISOString(),
+    until: new Date(now + i.hours[1] * 3_600_000).toISOString(),
+    spacesLeft: i.spacesLeft,
+    note: i.note,
+    state: 'open' as const,
+    partyName: i.partyName,
+    missionsVerified: i.missionsVerified,
+    yours: false,
+  };
+};
 
 /** The party screen, computed from this session rather than replayed. */
 const partyNow = () => {
@@ -183,6 +233,31 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
   // with the real code is more honest than inventing a companion.
   'POST /party/join': () => refuse('PARTY_UNKNOWN', 'No party has that code. Nothing is saved in this demo, so there is nobody else to join.'),
   'POST /party/leave': () => { state.party = null; return { left: true }; },
+
+  /*
+    Asking to come along.
+
+    The ask is recorded and the screen says so. What CANNOT happen here is an
+    answer: a party in this demo is three lines of seed data with nobody
+    behind it, and inventing an acceptance would put a stranger in the
+    visitor's group who does not exist. The real thing waits for a human,
+    and so does this.
+  */
+  'POST /invites/:id/request': (_body, m) => {
+    const id = m[1]!;
+    if (!DEMO_INVITES.some((i) => i.id === id)) {
+      return refuse('REQUEST_UNKNOWN', 'That invitation is no longer there.');
+    }
+    if (asked.has(id)) {
+      return refuse('REQUEST_ALREADY_ASKED', 'You have already asked. The party will see it.');
+    }
+    asked.add(id);
+    return { asked: true };
+  },
+  'POST /invites/:id/withdraw': (_body, m) => {
+    asked.delete(m[1]!);
+    return { withdrawn: true };
+  },
   'POST /party/disband': () => { state.party = null; return { disbanded: true }; },
 
   'POST /places/:id/checkin': (_b, m) => {
@@ -519,6 +594,32 @@ export function installDemoServer(apiBase: string): void {
       }
       if (path === '/wellness/mood') return answer(state.moods);
       if (path === '/party') return answer(partyNow());
+
+      // Invitations. The counts and the sentence come from `pinLine` in core,
+      // so the demo cannot compose a line the real server would not.
+      if (path === '/invites/pins') {
+        const ids = (new URLSearchParams(query).get('places') ?? '').split(',').filter(Boolean);
+        return answer({
+          pins: ids.map((id) => {
+            const invitesOpen = DEMO_INVITES.filter((i) => i.placeId === id).length;
+            // Nobody has checked in during a demo sitting, and zero says zero
+            // rather than becoming the word "quiet".
+            return { placeId: id, invitesOpen, checkinsLastHour: 0, line: pinLine(invitesOpen, 0) };
+          }),
+        });
+      }
+      if (path === '/invites') {
+        const placeId = new URLSearchParams(query).get('place') ?? '';
+        return answer({
+          invitations: DEMO_INVITES.filter((i) => i.placeId === placeId).map(demoListing),
+          doesNot: INVITE_DOES_NOT,
+        });
+      }
+      // Nobody else is in this sitting, so nobody can have asked to join you.
+      if (path === '/invites/requests') return answer({ waiting: [] });
+      if (path === '/invites/mine') {
+        return answer({ invitation: null, requests: [], doesNot: INVITE_DOES_NOT });
+      }
       // A filtered list is its own capture. The query used to be stripped
       // and the full list answered, so "quests near you" led with a weekend
       // quest on a Tuesday.
