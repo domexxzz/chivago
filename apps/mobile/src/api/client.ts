@@ -14,6 +14,7 @@ import type {
   ChivaBalance, Companion, MonthOutlook, MoodCheckin, MoodKey, PriceCategory, PriceForecast,
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
+  InviteListing, PartyInvite, RequestOutcome,
 } from '@chivago/core';
 import type { AirHistory, BoardEntry, Explored, Fix, MedalsView, SelfVisitResult, SelfVisitSummary } from '@chivago/core';
 import type { StandingMonster } from '../components/MonsterFeed.tsx';
@@ -341,6 +342,51 @@ export const api = {
 
   leaveParty: () => post<{ left: boolean }>('/party/leave', {}),
   disbandParty: () => post<{ disbanded: boolean }>('/party/disband', {}),
+
+  // -- invitations ---------------------------------------------------------
+  //
+  // Every call here is keyed on a PLACE. There is no method that sends a
+  // position, and there is no route to send one to — the server has none.
+  // A screen that wants what is near the traveller asks `places()` with the
+  // map it is already showing, then asks `invitePins` about those ids.
+
+  /** How many parties are asking at each place, plus the crowd line. */
+  invitePins: (placeIds: readonly string[]) =>
+    get<{
+      pins: {
+        placeId: string; invitesOpen: number; checkinsLastHour: number; line: Bilingual;
+      }[];
+    }>(`/invites/pins?places=${placeIds.map(encodeURIComponent).join(',')}`),
+
+  /** The open invitations at one place, as a stranger may see them. */
+  invitesAt: (placeId: string) =>
+    get<{ invitations: InviteListing[]; doesNot: Bilingual[] }>(
+      `/invites?place=${encodeURIComponent(placeId)}`,
+    ),
+
+  /** My party's invitation, and what became of my own requests. */
+  myInvites: () =>
+    get<{
+      invitation: PartyInvite | null;
+      requests: { inviteId: string; placeId: string; from: string; until: string; outcome: RequestOutcome; askedAt: string }[];
+      doesNot: Bilingual[];
+    }>('/invites/mine'),
+
+  /** What my party has to answer. A name and a verified count, nothing else. */
+  inviteRequests: () =>
+    get<{
+      waiting: { inviteId: string; userId: string; displayName: string; missionsVerified: number; askedAt: string }[];
+    }>('/invites/requests'),
+
+  postInvite: (body: { placeId: string; from: string; until: string; spaces: number; note?: string }) =>
+    post<{ invitation: PartyInvite; doesNot: Bilingual[] }>('/invites', body),
+
+  closeInvite: (id: string) => post<{ closed: boolean }>(`/invites/${id}/close`, {}),
+  askToJoin: (id: string) => post<{ asked: boolean }>(`/invites/${id}/request`, {}),
+  withdrawAsk: (id: string) => post<{ withdrawn: boolean }>(`/invites/${id}/withdraw`, {}),
+
+  decideRequest: (id: string, userId: string, accept: boolean) =>
+    post<{ outcome: RequestOutcome }>(`/invites/${id}/decide`, { userId, accept }),
 
   /**
    * Who is doing the work. Hosts ranked by approvals, plus the caller's own

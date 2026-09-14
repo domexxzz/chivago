@@ -16,7 +16,7 @@ import { __setLocaleForTests } from '../src/i18n/locale.ts';
  */
 
 const noop = () => {};
-const props = { onBack: noop, onToast: noop };
+const props = { onBack: noop, onToast: noop, onFind: noop };
 
 const member = (over: Record<string, unknown> = {}) => ({
   userId: 'u1', displayName: 'Ana', missionsVerified: 0, greenEarned: 0,
@@ -176,6 +176,99 @@ describe('travelling together', () => {
     restore = s.restore;
     const ui = await mountScreen(h(PartyScreen, props));
     assert.match(ui.text(), /YOU/);
+    ui.unmount();
+  });
+});
+
+describe('the door out, and the people who came through it', () => {
+  test('somebody travelling alone is offered a way to find a party', async () => {
+    // Solo is exactly who needs this. Before it existed the only way in was
+    // to already know a person who would read you a six-character code.
+    const s = server({ 'GET /party': solo }); restore = s.restore;
+    const ui = await mountScreen(h(PartyScreen, props));
+    assert.match(ui.text(), /Find a party/);
+    assert.match(ui.text(), /never at a person|Nobody sees where you are/i);
+    ui.unmount();
+  });
+
+  test('with nobody asking, no empty panel is drawn', async () => {
+    // "0 requests" sitting on the screen is a permanent note that nobody
+    // wants to travel with you, which is not a thing to tell somebody on
+    // holiday. Absent is the right state.
+    const s = server({
+      'GET /party': together([member({ you: true })]),
+      'GET /invites/requests': { waiting: [] },
+    });
+    restore = s.restore;
+    const ui = await mountScreen(h(PartyScreen, props));
+    assert.ok(!/ASKED TO COME ALONG/.test(ui.text()));
+    ui.unmount();
+  });
+
+  test('an asker is shown by chosen name and verified count, and nothing else', async () => {
+    const s = server({
+      'GET /party': together([member({ you: true })]),
+      'GET /invites/requests': {
+        waiting: [{
+          inviteId: 'inv_1', userId: 'u9', displayName: 'Koi',
+          missionsVerified: 3, askedAt: '2026-09-14T10:00:00.000Z',
+        }],
+      },
+    });
+    restore = s.restore;
+    const ui = await mountScreen(h(PartyScreen, props));
+    const said = ui.text();
+
+    assert.match(said, /ASKED TO COME ALONG/);
+    assert.match(said, /Koi/);
+    assert.match(said, /3 VERIFIED/);
+    // The party is deciding whether to spend a day with somebody, not
+    // auditing them, and the asker never agreed to be audited.
+    assert.ok(!/u9/.test(said), 'the internal id was shown');
+    // "balance" appears once on this screen and only once: in the promise
+    // that nobody's is shown. Anything else would be the leak itself.
+    assert.match(said, /does not[\s\S]*balance|balance[^.]*not shown|Show anybody your balance/i);
+    assert.equal(said.match(/balance/gi)?.length, 1, 'balance was said more than once');
+    ui.unmount();
+  });
+
+  test('yes and no are both offered, and neither is the only button', async () => {
+    const s = server({
+      'GET /party': together([member({ you: true })]),
+      'GET /invites/requests': {
+        waiting: [{
+          inviteId: 'inv_1', userId: 'u9', displayName: 'Koi',
+          missionsVerified: 0, askedAt: '2026-09-14T10:00:00.000Z',
+        }],
+      },
+      'POST /invites/inv_1/decide': { outcome: 'declined' },
+    });
+    restore = s.restore;
+    const ui = await mountScreen(h(PartyScreen, props));
+    assert.match(ui.text(), /Yes/);
+    assert.match(ui.text(), /No/);
+
+    await ui.pressText(/^No$/);
+    const decided = s.calls.find((c) => c.path.includes('/decide'));
+    assert.equal(decided?.body?.accept, false);
+    assert.equal(decided?.body?.userId, 'u9');
+    ui.unmount();
+  });
+
+  test('somebody new is named plainly, not warned about', async () => {
+    // Starting out is not a fault. The party decides, not the colour.
+    const s = server({
+      'GET /party': together([member({ you: true })]),
+      'GET /invites/requests': {
+        waiting: [{
+          inviteId: 'inv_1', userId: 'u9', displayName: 'Tum',
+          missionsVerified: 0, askedAt: '2026-09-14T10:00:00.000Z',
+        }],
+      },
+    });
+    restore = s.restore;
+    const ui = await mountScreen(h(PartyScreen, props));
+    assert.match(ui.text(), /NOTHING VERIFIED YET/);
     ui.unmount();
   });
 });
