@@ -106,7 +106,7 @@ export const PROVINCES: Province[] = [
   P('TH-73', 'Nakhon Pathom', 'นครปฐม', 'central'),
   P('TH-60', 'Nakhon Sawan', 'นครสวรรค์', 'central'),
   P('TH-12', 'Nonthaburi', 'นนทบุรี', 'central'),
-  P('TH-13', 'Pathum Thani', 'ปทุมธานี', 'central'),
+  P('TH-13', 'Pathum Thani', 'ปทุมธานี', 'central', 'open'),
   P('TH-14', 'Phra Nakhon Si Ayutthaya', 'พระนครศรีอยุธยา', 'central'),
   P('TH-66', 'Phichit', 'พิจิตร', 'central'),
   P('TH-65', 'Phitsanulok', 'พิษณุโลก', 'central'),

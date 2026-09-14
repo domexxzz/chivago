@@ -16,7 +16,10 @@
  * presence must never reach the currency an ESG auditor is asked to trust.
  */
 
-import { CHECKIN_RADIUS_M, CHECKIN_TRIP_POINTS, LOW_CARBON_TRIP_POINTS, islandDateKey, lowCarbonLeg } from '@chivago/core';
+import {
+  AREAS, CHECKIN_RADIUS_M, CHECKIN_TRIP_POINTS, LOW_CARBON_TRIP_POINTS, inArea, islandDateKey, lowCarbonLeg,
+  nearestArea,
+} from '@chivago/core';
 import type { Balances, Fix } from '@chivago/core';
 import { row, type DB } from './db.ts';
 import { distanceMetres, OutsideGeofence } from './quest-service.ts';
@@ -118,9 +121,24 @@ export function checkIn(
     const dayKey = islandDateKey(now);
     const prev = previousCheckinToday(db, args.userId, dayKey, now);
     if (prev) {
+      /*
+        The floor belongs to the area, not to the app.
+
+        Eight hundred metres tells a walk from a songthaew on Samui and is
+        longer than either campus, where it would refuse every leg anybody
+        could actually make. `Area.legMinM` carries the local figure; see
+        CAMPUS_LEG_MIN_M in core/low-carbon.ts for why the speed cap can
+        safely do more of the work at that scale.
+
+        `inArea` first because it is the true answer, `nearestArea` as the
+        fallback so a place outside every outline still gets a number rather
+        than an exception.
+      */
+      const area = AREAS.find((a) => inArea(a, place)) ?? nearestArea(place.lat, place.lng);
       const leg = lowCarbonLeg(
         { placeId: prev.placeId, lat: prev.lat, lng: prev.lng, at: prev.at },
         { placeId: place.id, lat: place.lat, lng: place.lng, at: now },
+        area.legMinM,
       );
       if (leg.qualifies) {
         const paid = awardWalk(db, {

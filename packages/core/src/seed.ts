@@ -36,6 +36,10 @@ export const SEED_HOSTS: Record<string, QuestHost> = {
   // stage when the campus is the venue. Its own record, so its statement
   // and its queue never mix with the platform's island quests.
   kuTeam: { id: 'h-ku-chivago', name: 'ChivaGo team · KU Sriracha', type: 'community' },
+  // The same again on the Thanyaburi campus. A separate record, for the same
+  // reason kuTeam is one: a host is the party vouching for the work, and two
+  // campuses are two parties even when the same people staff both.
+  rmuttTeam: { id: 'h-rmutt-chivago', name: 'ChivaGo team · RMUTT Thanyaburi', type: 'community' },
 };
 
 // ---------------------------------------------------------------------------
@@ -374,6 +378,134 @@ export const SEED_PLACES: Place[] = [
     metrics: { aqi: 22, crowdDensity: 1.6, safetyIndex: 6.4, walkability: 7.2 },
     airStation: kuStation(13.1234148, 100.9183455),
   },
+
+  /*
+    ---------------------------------------------------------------------
+    RMUTT Thanyaburi - Pathum Thani (TH-13)
+    ---------------------------------------------------------------------
+
+    The third area, and the second campus. Read from OpenStreetMap on
+    2026-09-14: the grounds are way 910034983 (amenity=university) and every
+    place below is a mapped feature inside that outline, named here by its
+    OSM way id so the claim can be checked rather than believed.
+
+    One place per layer, so every companion can hatch here too.
+
+    NO GROUND STATION, AND THAT IS THE HONEST ANSWER. The nearest Air4Thai
+    station to this campus is 20t, at Bangkok University's Rangsit campus,
+    and it is 13.1 km away - read from the feed on 2026-09-14. Si Racha's is
+    300 m, which is why its places carry theirs and say so. Thirteen
+    kilometres cannot speak for a courtyard, so these places carry none, the
+    ~11 km model is what there is, and the app labels it as the model.
+
+    Which means the `aqi` below is not a reading. It is ONE figure for all
+    five - they stand within 700 m of each other, and five different numbers
+    would be a precision nobody measured - and it is overwritten on read.
+    crowdDensity, safetyIndex and walkability are the same kind of thing:
+    the pilot's convention for a campus, set by the KIND of place rather
+    than by a survey. A test holds every one of them below the accent-pin
+    threshold, so an estimate never earns the colour that means measured.
+
+    No photographs. The rule is that every photograph carries a real credit
+    and a licence; nobody on the team has been here with a camera yet, so
+    the cards say so in words rather than borrowing somebody else's picture.
+  */
+  {
+    // OSM way 545463029, amenity=library, named วิทยบริการ.
+    id: 'rmutt-library',
+    name: { en: 'Academic resources library', th: 'วิทยบริการ' },
+    short: 'Library',
+    layer: 'Safe',
+    province: 'TH-13',
+    lat: 14.034289,
+    lng: 100.7255474,
+    meta: 'Library · Indoor · Air modelled, not measured',
+    blurb: {
+      en: 'The campus library. Indoor, quiet, and the calmest place to sit down on this map.',
+      th: 'หอสมุดของวิทยาเขต ในร่ม เงียบ และเป็นจุดนั่งพักที่สงบที่สุดบนแผนที่นี้',
+    },
+    tags: ['Library', 'Indoor', 'Quiet'],
+    photo: null,
+    metrics: { aqi: 38, crowdDensity: 1.7, safetyIndex: 6.5, walkability: 7.0 },
+  },
+  {
+    // OSM way 543836133, leisure=park, named สวนราชมงคล.
+    id: 'rmutt-park',
+    name: { en: 'Rajamangala Park', th: 'สวนราชมงคล' },
+    short: 'Park',
+    layer: 'Green',
+    province: 'TH-13',
+    lat: 14.0333879,
+    lng: 100.7251362,
+    meta: 'Park · Shade · Walking route',
+    blurb: {
+      en: 'The campus park, a hundred metres from the library door. Shade, paths, and somewhere to walk that is not a car park.',
+      th: 'สวนของวิทยาเขต ห่างจากประตูหอสมุดร้อยเมตร มีร่มเงา ทางเดิน และที่เดินเล่นที่ไม่ใช่ลานจอดรถ',
+    },
+    tags: ['Green space', 'Shade', 'Walking route'],
+    photo: null,
+    metrics: { aqi: 38, crowdDensity: 1.1, safetyIndex: 6.5, walkability: 7.6 },
+  },
+  {
+    // OSM way 547540111, amenity=food_court, named โรงอาหารกลาง.
+    id: 'rmutt-canteen',
+    name: { en: 'Central food court', th: 'โรงอาหารกลาง' },
+    short: 'Food court',
+    layer: 'Food',
+    province: 'TH-13',
+    lat: 14.0355634,
+    lng: 100.7243854,
+    meta: 'Food court · Busiest at midday',
+    blurb: {
+      en: 'The central food court. The one place on campus where everybody turns up at the same hour.',
+      th: 'โรงอาหารกลาง จุดเดียวในวิทยาเขตที่ทุกคนมาพร้อมกันในชั่วโมงเดียว',
+    },
+    tags: ['Food court', 'Student prices', 'Busy at noon'],
+    photo: null,
+    metrics: { aqi: 38, crowdDensity: 3.4, safetyIndex: 6.4, walkability: 7.2 },
+  },
+  {
+    /*
+      OSM way 545215395, leisure=stadium, and UNNAMED in OpenStreetMap.
+
+      So the name here describes what the feature is; it is not a proper name
+      claimed for it. If the campus calls it something, that name replaces
+      this one - it is not ours to invent.
+    */
+    id: 'rmutt-stadium',
+    name: { en: 'Campus stadium', th: 'สนามกีฬาในมหาวิทยาลัย' },
+    short: 'Stadium',
+    layer: 'Wellness',
+    province: 'TH-13',
+    lat: 14.0350303,
+    lng: 100.7229052,
+    meta: 'Stadium · Outdoor · West side',
+    blurb: {
+      en: 'The stadium on the west side of the campus, with the pitches around it.',
+      th: 'สนามกีฬาฝั่งตะวันตกของวิทยาเขต มีสนามซ้อมล้อมอยู่โดยรอบ',
+    },
+    tags: ['Sport', 'Outdoor', 'Open early'],
+    photo: null,
+    metrics: { aqi: 38, crowdDensity: 1.4, safetyIndex: 6.3, walkability: 6.8 },
+  },
+  {
+    // OSM way 543836130, leisure=park, named น้ำพุราชมงคล.
+    id: 'rmutt-fountain',
+    name: { en: 'Rajamangala fountain', th: 'น้ำพุราชมงคล' },
+    short: 'Fountain',
+    layer: 'Quest',
+    province: 'TH-13',
+    lat: 14.0353053,
+    lng: 100.729345,
+    meta: 'Landmark · East side · 695 m from the stadium',
+    blurb: {
+      en: 'The fountain on the east side, and the far end of the longest walk between two places on this campus.',
+      th: 'น้ำพุฝั่งตะวันออก และเป็นปลายทางของเส้นทางเดินที่ยาวที่สุดระหว่างสองจุดในวิทยาเขตนี้',
+    },
+    tags: ['Landmark', 'Open space', 'Meeting point'],
+    photo: null,
+    metrics: { aqi: 38, crowdDensity: 1.5, safetyIndex: 6.4, walkability: 7.4 },
+  },
 ];
 
 /**
@@ -394,6 +526,13 @@ export const SAFETY_PHRASES: Record<string, { en: string; th: string }> = {
   'ku-sports': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'ku-shops': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'ku-building13': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  // Thanyaburi, the same phrase for the same reason: a university's grounds
+  // have their own security, and nobody has confirmed hours or patrols.
+  'rmutt-library': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'rmutt-park': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'rmutt-canteen': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'rmutt-stadium': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'rmutt-fountain': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
 };
 
 // ---------------------------------------------------------------------------

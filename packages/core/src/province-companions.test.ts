@@ -10,6 +10,7 @@ import {
 /** Surat Thani (Samui) and Chon Buri are the only two open provinces. */
 const SAMUI = 'TH-84';
 const CHONBURI = 'TH-20';
+const PATHUM_THANI = 'TH-13';
 /** Nong Khai — listed, real, and not opened. */
 const CLOSED = 'TH-43';
 
@@ -41,14 +42,14 @@ describe('a province nobody has surveyed has no animal in it', () => {
     assert.equal(c.visitDays, 0, 'a sealed province reported progress it cannot have');
   });
 
-  test('exactly two provinces are not sealed today, and 75 are', () => {
+  test('exactly three provinces are not sealed today, and 74 are', () => {
     const all = provinceCompanions([]);
     const sealed = all.filter((c) => c.state === 'sealed');
     assert.equal(all.length, 77);
-    assert.equal(sealed.length, 75);
+    assert.equal(sealed.length, 74);
     assert.deepEqual(
       all.filter((c) => c.state !== 'sealed').map((c) => c.province.code).sort(),
-      [CHONBURI, SAMUI].sort(),
+      [CHONBURI, PATHUM_THANI, SAMUI].sort(),
     );
   });
 });
@@ -103,15 +104,15 @@ describe('the ladder is the one the rest of the app runs on', () => {
 });
 
 describe('the collection is counted against the country', () => {
-  test('the denominator is 77 and never the two we opened', () => {
-    // "1 of 2" would flatter the app and lie about the size of the thing
+  test('the denominator is 77 and never the three we opened', () => {
+    // "1 of 3" would flatter the app and lie about the size of the thing
     // being collected — the passport's decision, for the passport's reason.
     const c = provinceCollection(provinceCompanions([ev({ visitDays: 1 })]));
     assert.equal(c.total, 77);
     assert.equal(c.total, PROVINCES.length);
     assert.equal(c.found, 1);
-    assert.equal(c.unclaimed, 1);
-    assert.equal(c.sealed, 75);
+    assert.equal(c.unclaimed, 2);
+    assert.equal(c.sealed, 74);
   });
 
   test('a sealed egg is not "found"', () => {

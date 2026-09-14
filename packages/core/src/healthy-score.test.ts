@@ -18,6 +18,7 @@ import {
   BASE_WEIGHTS,
 } from './healthy-score.ts';
 import { SEED_PLACES } from './seed.ts';
+import { AREAS, inArea } from './areas.ts';
 import type { PlaceMetrics, WellnessProfile } from './types.ts';
 
 const sum = (ns: number[]): number => ns.reduce((a, b) => a + b, 0);
@@ -225,10 +226,17 @@ describe('calibration against the approved design comps', () => {
 
 describe('the campus scores stand on estimates', () => {
   test('no campus place crosses the accent threshold on an estimate', () => {
-    // Walkability and safety on the campus are the team's estimates pending
-    // a survey. An estimate that earns the accent pin is a claim nobody has
-    // measured; the campus earns that colour when its numbers are.
-    for (const p of SEED_PLACES.filter((x) => x.province === 'TH-20')) {
+    // Walkability and safety on a campus are the team's estimates pending a
+    // survey. An estimate that earns the accent pin is a claim nobody has
+    // measured; a campus earns that colour when its numbers are.
+    //
+    // Every campus, found by the map it is drawn with, rather than the one
+    // province this was written for. A second campus that quietly escaped
+    // the rule the first is held to would be the worst of both.
+    const campuses = AREAS.filter((a) => a.map === 'campus');
+    const onCampus = SEED_PLACES.filter((p) => campuses.some((a) => inArea(a, p)));
+    assert.ok(onCampus.length >= 10, 'the campus places went missing from this check');
+    for (const p of onCampus) {
       assert.ok(!isHighScore(healthyScore(p.metrics)), `${p.id} scores ${healthyScore(p.metrics)} on estimates`);
     }
   });

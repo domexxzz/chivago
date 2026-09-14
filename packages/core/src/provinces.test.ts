@@ -62,10 +62,11 @@ describe('the country, and whether we have it right', () => {
 
 describe('open means we have something true to say', () => {
   test('only the provinces with real content are open', () => {
-    // Two. Not seventy-seven with placeholder data, which is the failure this
-    // status field exists to prevent.
+    // Three. Not seventy-seven with placeholder data, which is the failure
+    // this status field exists to prevent. Pathum Thani opened on 2026-09-14
+    // with the RMUTT Thanyaburi campus.
     const open = openProvinces().map((p) => p.name.en).sort();
-    assert.deepEqual(open, ['Chon Buri', 'Surat Thani']);
+    assert.deepEqual(open, ['Chon Buri', 'Pathum Thani', 'Surat Thani']);
   });
 
   test('every province has a status, so none is silently half-built', () => {
@@ -77,12 +78,12 @@ describe('open means we have something true to say', () => {
 
 describe('the passport counts against the whole country', () => {
   test('the denominator is 77, not the number we happen to have opened', () => {
-    // "2 of 2" would flatter the app and lie about what collecting Thailand
+    // "1 of 3" would flatter the app and lie about what collecting Thailand
     // means. The traveller is told the real size of the thing.
     const p = passportProgress(['TH-84']);
     assert.equal(p.visited, 1);
     assert.equal(p.total, 77);
-    assert.equal(p.open, 2);
+    assert.equal(p.open, 3);
   });
 
   test('it breaks down by region, and the regions still add to 77', () => {

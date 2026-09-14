@@ -16,9 +16,10 @@
  */
 
 import type { Bilingual } from './types.ts';
+import { CAMPUS_LEG_MIN_M, LEG_MIN_M } from './low-carbon.ts';
 import { SAMUI_BBOX } from './seed.ts';
 
-export type AreaKey = 'samui' | 'ku-sriracha';
+export type AreaKey = 'samui' | 'ku-sriracha' | 'rmutt';
 
 export interface Bbox {
   minLat: number;
@@ -39,6 +40,15 @@ export interface Area {
    * `campus` is buildings and paths at street zoom - flat, because it is.
    */
   map: 'island' | 'campus';
+  /**
+   * How far apart two check-ins must be before the ledger calls the journey
+   * between them a walk.
+   *
+   * Here rather than as one constant because the rule is "far enough apart to
+   * have been a real journey", and a real journey on an island is not the same
+   * distance as a real journey across a campus. See `CAMPUS_LEG_MIN_M`.
+   */
+  legMinM: number;
 }
 
 /**
@@ -52,6 +62,20 @@ export const KU_SRIRACHA_BBOX: Bbox = {
   maxLng: 100.9237,
 };
 
+/**
+ * RMUTT Thanyaburi's grounds in OpenStreetMap (way 910034983, tagged
+ * `amenity=university`, read on 2026-09-14) as its bounding box.
+ *
+ * 1,087 x 1,129 m, about 1.23 km2 - three and a half times the Si Racha
+ * campus, and 1,567 m corner to corner.
+ */
+export const RMUTT_BBOX: Bbox = {
+  minLat: 14.0306756,
+  maxLat: 14.0404377,
+  minLng: 100.7211162,
+  maxLng: 100.7315743,
+};
+
 export const AREAS: Area[] = [
   {
     key: 'samui',
@@ -63,6 +87,7 @@ export const AREAS: Area[] = [
     },
     bbox: SAMUI_BBOX,
     map: 'island',
+    legMinM: LEG_MIN_M,
   },
   {
     key: 'ku-sriracha',
@@ -73,6 +98,17 @@ export const AREAS: Area[] = [
     center: { lat: 13.1205, lng: 100.9205 },
     bbox: KU_SRIRACHA_BBOX,
     map: 'campus',
+    legMinM: CAMPUS_LEG_MIN_M,
+  },
+  {
+    key: 'rmutt',
+    name: { en: 'RMUTT', th: 'มทร.ธัญบุรี' },
+    province: 'TH-13',
+    // The centre of the OpenStreetMap outline of way 910034983.
+    center: { lat: 14.03556, lng: 100.72635 },
+    bbox: RMUTT_BBOX,
+    map: 'campus',
+    legMinM: CAMPUS_LEG_MIN_M,
   },
 ];
 
