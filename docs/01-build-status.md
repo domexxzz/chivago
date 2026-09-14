@@ -2,6 +2,115 @@
 
 What exists, what runs, and what is honestly not there yet.
 
+> **Status as of 2026-09-15.** 229 commits since 2026-09-01; `main` is clean
+> at `c6049f2`, no pull request or issue is open, and CI is green. 23 screens,
+> 87 API routes, 43 tables, 56 documents, about 52,600 lines of source and
+> 23,500 of tests; 1,934 TypeScript tests (core 473, api 881, mobile 515 + 40,
+> tokens 25), 11 Dart, 10 Swift. Eleven pull requests merged over the 14th and
+> 15th, every one CI-gated and every one opened in a browser before it was
+> called done.
+>
+> **Two things were built and one was finished.**
+>
+> **Finding somebody to go with.** A party had always been joinable by a
+> six-character code, which means you could only join one if somebody already
+> knew you well enough to read it out — fine for travelling with friends and
+> no way at all to meet anyone. Four pull requests closed that: the rules and
+> tables (#32), eight HTTP routes (#33), the screens for phone and web (#34),
+> and the demo build's answer for them (#35).
+>
+> **The rule the whole feature is shaped by is that an invitation is posted at
+> a PLACE, never at a person.** The reference design the owner sent pins faces
+> at live positions, and this cannot. A check-in is consent to be COUNTED,
+> which `crowd.ts` already honours by saying how many people checked in
+> somewhere and nothing more; turning the same rows into dots a stranger can
+> walk towards is a different product with a different consent behind it. The
+> app is used outdoors, on an island, by people whose ages we have not
+> established. And `wayfinding.ts` settled the principle a fortnight ago: the
+> link it hands out carries the destination only.
+>
+> The happy accident is that this is also the only version that could be
+> trusted. A pin drawn from a self-reported fix is worth nothing — a spoofed
+> fix puts you anywhere. A count attached to a place comes from check-ins that
+> survived the four tests in `presence.ts`. So the honest design and the
+> possible design turned out to be the same design.
+>
+> `InviteListing` is the privacy surface, and its shape is the argument: no
+> position, no balance, no real name, no member list, no route. There is
+> deliberately no `GET /invites/nearby?lat=&lng=` — a client that wants what
+> is near it already knows where it is, so it asks `/places` with a bounding
+> box as it always has and asks about what came back. **The server never learns
+> where anybody is standing, so it cannot leak it, log it, or be compelled to
+> produce it.** Three structural tests hold that: one reads `pragma_table_info`
+> so nobody adds a `lat` column later, one walks every request the screen makes
+> asserting no path or body carries a coordinate, and one asserts that posting
+> an invitation with `lat`, `lng` and `accuracyM` attached keeps none of them.
+>
+> **A surface for the game layer, and a tab to reach it by.** The owner asked
+> why our screens look flatter than the references they sent, and the answer
+> was in our own token sheet: *Panels stay flat*, four shadows, all faint. The
+> screens had been built inside that system without anybody asking whether it
+> applied everywhere. It applies to half the app.
+>
+> The line already existed — `packages/tokens` has said since the palette was
+> written that green means evidence and gold is the game layer — and had never
+> been carried into SURFACE, so a mascot's room and an SOS banner were built
+> out of the same flat rectangle. #36 added a second vocabulary rather than
+> replacing the first, and `game-surface.test.ts` makes the rule a test instead
+> of a comment: **every screen must be on the game list or the evidence list,
+> and an unclassified one fails the build.** That is how the SOS screen quietly
+> grows a bevel in eighteen months. The forbidden list names a reason per
+> screen and the SOS entry is asserted separately so a refactor cannot drop it.
+>
+> Two screens moved on inspection. **Home lands on the evidence side** because
+> it carries a healthy score and a crowd figure beside the board, and a screen
+> wearing the surface whole would put a bevel under a number the island
+> produced. **Onboarding moved there too**: what is on it is permission
+> choices, and a consent control is not play.
+>
+> #37 gave the game layer a cell on the tab bar. Six tabs is one more than a
+> 375px bar can carry, so every addition is a swap: **the wallet gave up its
+> cell**, because it already had a door on Home showing both balances, while
+> companions, the seventy-seven, medals and the passport sat three taps down
+> behind it. The bar now reads Home, Map, Missions, Collect, Safety.
+>
+> **All seventy-seven mascots are now drawn.** They had been rendered by one
+> machine from eight body archetypes, which is the only reason seventy-seven
+> existed rather than nine, and the cost was that they looked like each other.
+> Four pull requests (#38, #39, #40, #41) drew them ten at a time into a
+> registry that falls through to the machine for anything undrawn, so no batch
+> was a migration and the day a mascot had no art stayed an ordinary day.
+> **Not one hex literal entered that file across all seventy-seven**: every
+> colour is `mascot.colours`, researched when the emblems were, and a test
+> refuses any literal but the ink of an eye and the white of a catchlight.
+>
+> **What opening the browser caught, twice, that the tests did not.** PR #34
+> passed all three CI jobs and merged, and the deployed web build then showed
+> `Not in the demo build: GET /invites/pins` — the static demo answers `fetch`
+> from a snapshot and had never heard of the new routes, and all 514 tests
+> missed it because they mock a different fake server (#35). Then the first
+> version of the game surface wrapped the companion's room in a painted sky,
+> when `CreatureScene` already renders a room with ground, trees, rocks and
+> light that follows the island clock — something better, replaced with
+> something flatter. Both were found by looking at the page beside the old one.
+>
+> **What is honestly not there.** The party feature is complete in code and
+> **should not be opened to the public yet**: the question of whether users
+> may be minors is unanswered, and it gates launch rather than code. Nothing
+> else on the unchanged list moved — money never moves, 75 provinces have no
+> places, the Thai has not been read by a native speaker, there is no
+> attestation and no independent signature on a statement. Accepting somebody
+> into a party is the one thing the demo will not fake, because a party there
+> is three lines of seed data with nobody behind it.
+>
+> Also produced outside the repository on the 14th: a legal brief for Thai
+> counsel on whether ESG-derived points could become a blockchain token, with
+> seven questions and the seven other areas of law this system already touches;
+> a second ESG reference covering per-disclosure metric codes, the calculation
+> chain and TGO's Thai emission factors; and a screen-design page showing the
+> game look applied to our own palette. `docs/57-the-token-question.md` (#31)
+> is the repository's record of the first.
+
 > **Status as of 2026-09-13, evening.** 188 commits since 2026-09-01; `main`
 > is clean at `e57b85b`, no pull request or issue is open. 21 screens, 80 API
 > routes, 37 console routes, 40 tables, about 48,500 lines of source and
@@ -127,8 +236,12 @@ What exists, what runs, and what is honestly not there yet.
 
 ## Screens — the ten from the handoff
 
-Seven more exist now: Home, Missions, Passport, Companion, Party, Account and
-Place reviews. See `25-remaining-screens.md` and `27-companions.md`.
+Thirteen more exist now. Seven arrived first: Home, Missions, Passport,
+Companion, Party, Account and Place reviews (`25-remaining-screens.md`,
+`27-companions.md`). Six followed: the mascot field guide and a mascot's room,
+medals, the profile, finding a party (`57-the-token-question.md` for the rule
+it obeys), and Collect, which took the wallet's cell on the tab bar and is
+where the whole game layer now lives.
 
 | Route | Screen | Status |
 | --- | --- | --- |
