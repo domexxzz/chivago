@@ -2,13 +2,36 @@
 
 What exists, what runs, and what is honestly not there yet.
 
-> **Status as of 2026-09-15.** 229 commits since 2026-09-01; `main` is clean
-> at `c6049f2`, no pull request or issue is open, and CI is green. 23 screens,
-> 87 API routes, 43 tables, 56 documents, about 52,600 lines of source and
-> 23,500 of tests; 1,934 TypeScript tests (core 473, api 881, mobile 515 + 40,
-> tokens 25), 11 Dart, 10 Swift. Eleven pull requests merged over the 14th and
+> **Status as of 2026-09-15.** 237 commits since 2026-09-01; `main` is clean
+> at `2e8ff5f`, no pull request or issue is open, and CI is green. 23 screens,
+> 87 API routes, 44 tables, 56 documents, about 53,700 lines of source and
+> 24,400 of tests; 1,967 TypeScript tests (core 495, api 881, mobile 527 + 40,
+> tokens 25), 11 Dart, 10 Swift. Twelve pull requests merged over the 14th and
 > 15th, every one CI-gated and every one opened in a browser before it was
-> called done.
+> called done, plus three commits pushed straight to `main`.
+>
+> **This block was written twice, and the second time is the interesting one.**
+> The first version recorded `main` at `c6049f2` with 229 commits, and was
+> already wrong when it merged: the owner had pushed the bus work between
+> 00:25 and 01:49 the same morning, on a branch nobody in this session was
+> watching. Nothing collided — both typechecks pass, all 1,967 tests pass, and
+> the game-surface guard still holds because `BusStrip` is a component rather
+> than a screen — but a status file that measures itself before the last push
+> is a status file that is wrong on arrival, and saying so here is cheaper
+> than being trusted wrongly.
+>
+> **The bus, and what it refuses to draw.** Three commits by the owner added
+> transit to the campus work: route 538 to RMUTT Thanyaburi, its four stops at
+> the campus edge, a strip on Home and the stops standing on the map
+> (`transit.ts`, `BusStrip.tsx`). The design decision is in the header and is
+> the same one this repository keeps making. A public service really does
+> serve the campus and is mapped, so it is here; **the university's own
+> shuttle is published nowhere**, in no feed the app can read, so
+> `campusRoutesIn` returns an empty list and the screen says so in words. A
+> route invented from the shape of the roads would be believed — somebody
+> would stand at a stop that is not a stop — and the first thing the app would
+> have taught its users is that it makes things up. Nobody publishes a
+> timetable either, and the card says that rather than estimating one.
 >
 > **Two things were built and one was finished.**
 >
