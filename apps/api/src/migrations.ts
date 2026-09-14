@@ -942,5 +942,59 @@ export function migrate(db: DB): string[] {
   applied.push('organisations');
   applied.push('org_sponsorships');
 
+  /*
+    Party invitations, and the requests to join them.
+
+    The feature is "find somebody to go with", and the whole design is in the
+    shape of the first table: an invitation is posted at a PLACE, for a WINDOW,
+    with a number of SPACES. There is no column for where anybody is, and
+    there must never be one. `party-invites.ts` in core carries the argument
+    at length; the short version is that a check-in is consent to be counted,
+    not consent to be found, and a map that resolves to a person standing
+    somewhere is a stalking tool we would have built on purpose.
+
+    `place_id` cascades from `places`, which is the right direction here: a
+    place withdrawn from the island should take its invitations with it rather
+    than leave a pin people can still ask to meet at.
+
+    NO STATE COLUMN. Whether an invitation is open, full, closed or expired is
+    derived on read from the clock, the accepted count and `closed_at` — the
+    seventh time this schema has declined to keep a second record of a fact it
+    already holds. The prize is that expiry needs no cleanup job to be true.
+
+    Requests keep their outcome rather than being deleted, so "did they ever
+    answer" survives the invitation ending, and a party cannot quietly make a
+    refusal disappear.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS party_invites (
+      id         TEXT PRIMARY KEY,
+      party_id   TEXT NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
+      place_id   TEXT NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+      from_at    TEXT NOT NULL,
+      until_at   TEXT NOT NULL,
+      spaces     INTEGER NOT NULL,
+      note       TEXT,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL,
+      closed_at  TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_party_invites_place ON party_invites(place_id, until_at);
+    CREATE INDEX IF NOT EXISTS idx_party_invites_party ON party_invites(party_id, closed_at);
+
+    CREATE TABLE IF NOT EXISTS invite_requests (
+      invite_id  TEXT NOT NULL REFERENCES party_invites(id) ON DELETE CASCADE,
+      user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      asked_at   TEXT NOT NULL,
+      outcome    TEXT NOT NULL DEFAULT 'waiting'
+                 CHECK (outcome IN ('waiting','accepted','declined','withdrawn')),
+      decided_at TEXT,
+      PRIMARY KEY (invite_id, user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_invite_requests_user ON invite_requests(user_id, outcome);
+  `);
+  applied.push('party_invites');
+  applied.push('invite_requests');
+
   return applied;
 }

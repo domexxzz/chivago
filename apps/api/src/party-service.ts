@@ -98,6 +98,37 @@ export function joinParty(
       .get(hashToken(code)),
   );
   if (!found) throw new PartyRefused('unknown');
+  return joinFound(db, userId, found, now);
+}
+
+/**
+ * Join a party we already identified, without a code.
+ *
+ * The one caller is an accepted invitation (`party-invite-service.ts`). It
+ * cannot go through `joinParty` because the code is stored hashed and cannot
+ * be recovered — which turns out to be the better design anyway: accepting
+ * somebody adds THEM, where handing back the code would let them pass it on
+ * to people the party never saw.
+ *
+ * Every other check is the same one, because it is literally the same code
+ * below.
+ */
+export function joinPartyById(
+  db: DB, userId: string, partyId: string, now = new Date(),
+): PartyRow {
+  const found = row<{ id: string; name: string; created_by: string; created_at: string; disbanded_at: string | null }>(
+    db.prepare('SELECT id, name, created_by, created_at, disbanded_at FROM parties WHERE id = ?')
+      .get(partyId),
+  );
+  if (!found) throw new PartyRefused('unknown');
+  return joinFound(db, userId, found, now);
+}
+
+type FoundParty = {
+  id: string; name: string; created_by: string; created_at: string; disbanded_at: string | null;
+};
+
+function joinFound(db: DB, userId: string, found: FoundParty, now: Date): PartyRow {
   if (found.disbanded_at !== null) throw new PartyRefused('disbanded');
 
   const already = row<{ left_at: string | null }>(
