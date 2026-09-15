@@ -160,6 +160,12 @@ user-uploaded photographs, tax on payments to hosts, whether trip planning
 needs a tourism licence, and minors. The token is not the largest exposure in
 that list. The review queue is.
 
+**Prizes joined that list on 16 September.** When the owner settled who funds
+the goods behind a drop — sponsors do, in goods, discounts and cash — it moved
+the product next to the Gambling Act, which nothing in this document touches.
+`58-the-prize-question.md` carries it, with eight more questions for the same
+engagement, and the minors question appears in both.
+
 ## What holds it
 
 Nothing in this document changed any code. `party.ts`, `standing.ts`,
