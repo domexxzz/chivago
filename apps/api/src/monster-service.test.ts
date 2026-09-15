@@ -2,8 +2,11 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { DEEDS_TO_REST } from '@chivago/core';
-import { openTestDb, type DB } from './db.ts';
-import { monstersInArea } from './monster-service.ts';
+import { readFileSync } from 'node:fs';
+import { openTestDb, rows, type DB } from './db.ts';
+import {
+  VERIFIED_QUEST_DEEDS_SQL, WALKED_LEG_DEEDS_SQL, monstersInArea,
+} from './monster-service.ts';
 
 /**
  * Monsters read off rows that already exist.
@@ -123,5 +126,52 @@ describe('what pushes one back', () => {
   test('work from last month does not count, so the island keeps having to do it', () => {
     ledger('quest_reward', 'green', 'quest:q-clean:user:ana', ago(24 * 30));
     assert.equal(standing()[0]!.progress, 0);
+  });
+});
+
+/**
+ * The index under the derivation.
+ *
+ * Deriving a monster instead of storing its HP is the right call and this is
+ * the bill for it: every map load sweeps the ledger. That is free while the
+ * sweep is an index seek and ruinous while it is a table scan, and the
+ * difference is invisible in every other test in this file — twenty seeded
+ * rows scan in microseconds, so a missing index passes everything.
+ *
+ * So the assertion is on the PLAN, not on a timing. A timing test would be
+ * flaky on a loaded CI box and would still pass on a full scan of a small
+ * table; SQLite's own planner saying `SEARCH` is the fact we actually want.
+ */
+describe('the ledger reads behind a monster do not scan the ledger', () => {
+  const plan = (sql: string): string =>
+    rows<{ detail: string }>(db.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(ago(48)))
+      .map((r) => r.detail)
+      .join(' | ');
+
+  test('verified quests are found by index, not by sweeping every row', () => {
+    const detail = plan(VERIFIED_QUEST_DEEDS_SQL);
+    assert.ok(
+      detail.includes('idx_ledger_kind_at'),
+      `expected the ledger read to use idx_ledger_kind_at, planner said: ${detail}`,
+    );
+    assert.ok(!/SCAN ledger\b/.test(detail), `the ledger is being scanned: ${detail}`);
+  });
+
+  test('legs on foot are found by index too', () => {
+    const detail = plan(WALKED_LEG_DEEDS_SQL);
+    assert.ok(
+      detail.includes('idx_ledger_kind_at'),
+      `expected the ledger read to use idx_ledger_kind_at, planner said: ${detail}`,
+    );
+    assert.ok(!/SCAN ledger\b/.test(detail), `the ledger is being scanned: ${detail}`);
+  });
+
+  test('the constants the test explains are the ones the code runs', () => {
+    // The guard on the guard. These two tests are only worth anything while
+    // `deedsByPlace` prepares these exact strings rather than a copy that has
+    // since changed, so the source is read and checked for the use.
+    const source = readFileSync(new URL('./monster-service.ts', import.meta.url), 'utf8');
+    assert.match(source, /db\.prepare\(VERIFIED_QUEST_DEEDS_SQL\)/);
+    assert.match(source, /db\.prepare\(WALKED_LEG_DEEDS_SQL\)/);
   });
 });
