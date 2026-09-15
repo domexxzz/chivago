@@ -163,6 +163,18 @@ CREATE TABLE IF NOT EXISTS ledger (
   source_ref   TEXT NOT NULL UNIQUE
 );
 CREATE INDEX IF NOT EXISTS idx_ledger_user ON ledger(user_id, occurred_at DESC);
+-- The monster map reads the ledger BY KIND, not by user.
+--
+-- monster-service.ts derives every monster from deeds instead of storing HP,
+-- which is what stops anyone finding the request that decrements it. The cost
+-- of deriving is that two queries sweep the ledger for kind = 'walk' and
+-- kind = 'quest_reward' on every map load, and the index above starts with
+-- user_id, so it could not serve either of them: SQLite answered both with
+-- SCAN ledger. Invisible at twenty rows, fatal at a million.
+--
+-- (kind, occurred_at) and not (kind, currency, occurred_at): see the comment
+-- over VERIFIED_QUEST_DEEDS_SQL for why the currency column stays out.
+CREATE INDEX IF NOT EXISTS idx_ledger_kind_at ON ledger(kind, occurred_at);
 
 CREATE TABLE IF NOT EXISTS offers (
   id             TEXT PRIMARY KEY,

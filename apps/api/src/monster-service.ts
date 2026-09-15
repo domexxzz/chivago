@@ -46,6 +46,34 @@ interface PlaceRow {
  * A check-in is deliberately absent. Standing next to a problem is not doing
  * anything about it, and letting it fill the bar would make the bar a lie.
  */
+/*
+  The two reads behind every monster on the map, as named constants.
+
+  Exported so `monster-service.test.ts` can put EXPLAIN QUERY PLAN in front of
+  the exact text that runs. A test carrying its own copy of the SQL would go on
+  passing while the query it was written to protect drifted away from it, which
+  is precisely the failure that let these two scan the whole ledger unnoticed
+  for as long as they did.
+*/
+
+/**
+ * Verified quests, by the place their quest sits at.
+ *
+ * `currency = 'green'` is not in the index and does not need to be: `kind` is
+ * already selective enough that the currency filter runs over a handful of
+ * rows. Putting it in the middle of the index would serve this query and stop
+ * serving the one below, which has no currency filter at all.
+ */
+export const VERIFIED_QUEST_DEEDS_SQL = `SELECT l.occurred_at, p.id AS place_id
+   FROM ledger l
+   JOIN quests q ON q.id = substr(l.source_ref, 7, instr(substr(l.source_ref, 7), ':user:') - 1)
+   JOIN places p ON p.lat = q.lat AND p.lng = q.lng
+  WHERE l.kind = 'quest_reward' AND l.currency = 'green' AND l.occurred_at >= ?`;
+
+/** Legs on foot. */
+export const WALKED_LEG_DEEDS_SQL =
+  "SELECT occurred_at, source_ref FROM ledger WHERE kind = 'walk' AND occurred_at >= ?";
+
 function deedsByPlace(db: DB, since: string): Map<string, Deed[]> {
   const out = new Map<string, Deed[]>();
   const add = (placeId: string, deed: Deed) => {
@@ -58,20 +86,14 @@ function deedsByPlace(db: DB, since: string): Map<string, Deed[]> {
   // the quest carries the site. Green currency only - a Trip-paying quest is
   // self-reported, and self-reported work must not push a monster back.
   for (const r of rows<{ occurred_at: string; place_id: string }>(
-    db.prepare(
-      `SELECT l.occurred_at, p.id AS place_id
-         FROM ledger l
-         JOIN quests q ON q.id = substr(l.source_ref, 7, instr(substr(l.source_ref, 7), ':user:') - 1)
-         JOIN places p ON p.lat = q.lat AND p.lng = q.lng
-        WHERE l.kind = 'quest_reward' AND l.currency = 'green' AND l.occurred_at >= ?`,
-    ).all(since),
+    db.prepare(VERIFIED_QUEST_DEEDS_SQL).all(since),
   )) {
     add(r.place_id, { kind: 'verifiedQuest', at: r.occurred_at });
   }
 
   // Legs on foot: `walk:<from>:<to>:user:...`, and both ends count.
   for (const r of rows<{ occurred_at: string; source_ref: string }>(
-    db.prepare("SELECT occurred_at, source_ref FROM ledger WHERE kind = 'walk' AND occurred_at >= ?").all(since),
+    db.prepare(WALKED_LEG_DEEDS_SQL).all(since),
   )) {
     const [, from, to] = r.source_ref.split(':');
     for (const id of [from, to]) if (id) add(id, { kind: 'walkedLeg', at: r.occurred_at });
