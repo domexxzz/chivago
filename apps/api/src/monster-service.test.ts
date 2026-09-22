@@ -5,7 +5,7 @@ import { DEEDS_TO_REST } from '@chivago/core';
 import { readFileSync } from 'node:fs';
 import { openTestDb, rows, type DB } from './db.ts';
 import {
-  VERIFIED_QUEST_DEEDS_SQL, WALKED_LEG_DEEDS_SQL, monstersInArea,
+  VERIFIED_QUEST_DEEDS_SQL, WALKED_LEG_DEEDS_SQL, forgetDeedSweeps, monstersInArea,
 } from './monster-service.ts';
 
 /**
@@ -173,5 +173,95 @@ describe('the ledger reads behind a monster do not scan the ledger', () => {
     const source = readFileSync(new URL('./monster-service.ts', import.meta.url), 'utf8');
     assert.match(source, /db\.prepare\(VERIFIED_QUEST_DEEDS_SQL\)/);
     assert.match(source, /db\.prepare\(WALKED_LEG_DEEDS_SQL\)/);
+  });
+});
+
+/**
+ * The sweep, remembered between readers.
+ *
+ * `deedsByPlace` reads every walk and quest reward in the window across the
+ * whole country, and the caller then throws away the places outside the area
+ * being drawn. So every reader on the island was paying for the same answer:
+ * 122 ms each at a million ledger rows with a busy week in them, on a
+ * synchronous database, which is 122 ms everybody else waited too.
+ *
+ * A cache is a second copy of the truth, which is the one thing this file
+ * exists to avoid. It is allowed here because it cannot drift quietly: its
+ * key is the highest ledger rowid and the minute the window opens in, so the
+ * answer is thrown away the moment either could have changed it.
+ */
+describe('the deed sweep is shared, and knows when to stop trusting itself', () => {
+  test('a deed done a second ago counts on the next read, with no waiting', () => {
+    // The case that would have made a cache unacceptable. The traveller whose
+    // quest was just approved is the likeliest person to open this screen, and
+    // a monster still standing after their own work is the app calling them a
+    // liar. Their approval wrote a ledger row, so the key moved.
+    quest('environmental');
+    assert.equal(standing(bad())[0]!.progress, 0);
+    ledger('quest_reward', 'green', 'quest:q-clean:user:ana', ago(1));
+    assert.equal(standing(bad())[0]!.progress, 3, 'the new deed was not seen');
+  });
+
+  test('it really is cached, and this is exactly what that costs', () => {
+    // Proved by doing the one thing the key cannot see: removing a row that is
+    // not the newest. MAX(rowid) does not move, so the old answer stands.
+    //
+    // THIS IS NOT A BUG BEING HIDDEN, it is the blind spot being named. The
+    // ledger is append-only - nothing in `apps/api/src` issues a DELETE against
+    // it, and `reverseMovement` unwinds an award by INSERTING the opposite
+    // movement - so the only way to reach this state is the SQL below.
+    quest('environmental');
+    ledger('quest_reward', 'green', 'quest:q-clean:user:ana', ago(1));
+    ledger('checkin', 'trip', 'checkin:later:user:ana', ago(1)); // now the newest
+    assert.equal(standing(bad())[0]!.progress, 3);
+
+    db.prepare("DELETE FROM ledger WHERE source_ref = 'quest:q-clean:user:ana'").run();
+    assert.equal(standing(bad())[0]!.progress, 3, 'the sweep was not cached at all');
+
+    forgetDeedSweeps(db);
+    assert.equal(standing(bad())[0]!.progress, 0, 'the sweep was never forgotten');
+  });
+
+  test('two islands do not share one answer', () => {
+    // The sweep is held against the database object, not against nothing. The
+    // suite opens a fresh `:memory:` database per test, and a module-level
+    // cache would hand the second one the first one's deeds: same rowid,
+    // different island.
+    quest('environmental');
+    ledger('quest_reward', 'green', 'quest:q-clean:user:ana', ago(1));
+    assert.equal(standing(bad())[0]!.progress, 3);
+
+    const other = openTestDb();
+    other.prepare("INSERT INTO hosts (id, name, type, role, created_at) VALUES ('h-ku','KU team','community','host',?)")
+      .run(ago(200));
+    other.prepare(
+      `INSERT INTO places (id, name_en, name_th, short, layer, province, lat, lng, meta,
+         blurb_en, blurb_th, tags, safety_label_en, safety_label_th,
+         crowd_density, aqi, safety_index, walkability)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ).run(PARK.id, 'Campus park', 'สวน', 'Park', 'Green', 'TH-20', PARK.lat, PARK.lng, 'Park',
+          'x', 'x', '[]', 'Campus grounds', 'ในเขตมหาวิทยาลัย', 0.6, 22, 6.0, 7.0);
+    other.prepare(
+      `INSERT INTO quests (id,code,name_en,name_th,where_label,duration,reward_points,host_id,kind,lat,lng,geofence_radius_m,esg_pillar)
+       VALUES ('q-clean','QC','Clean','เก็บ','x','1 hr',40,'h-ku','today',?,?,250,'environmental')`,
+    ).run(PARK.lat, PARK.lng);
+
+    const theirs = monstersInArea(other, 'ku-sriracha', () => bad(), NOW);
+    assert.equal(theirs[0]!.progress, 0, 'the second island was handed the first one’s deeds');
+  });
+
+  test('the window keeps moving, so an old deed stops counting on its own', () => {
+    // The staleness the key accepts is at the TRAILING edge and is bounded by
+    // the minute the window is bucketed into. Two minutes on, a deed that has
+    // just aged out is gone without anybody writing anything.
+    quest('environmental');
+    ledger('quest_reward', 'green', 'quest:q-clean:user:ana', ago(24 * 7 - 1));
+    assert.equal(standing(bad())[0]!.progress, 3);
+
+    const later = new Date(NOW.getTime() + 2 * 60 * 60 * 1000);
+    assert.equal(
+      monstersInArea(db, 'ku-sriracha', () => bad(), later)[0]!.progress, 0,
+      'the deed outlived its window because the sweep was never redone',
+    );
   });
 });

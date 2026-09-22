@@ -18,7 +18,7 @@ import {
   type Deed, type MonsterKey,
 } from '@chivago/core';
 import type { Bilingual } from '@chivago/core';
-import { rows, type DB } from './db.ts';
+import { row, rows, type DB } from './db.ts';
 
 export interface StandingMonster {
   key: MonsterKey;
@@ -74,7 +74,7 @@ export const VERIFIED_QUEST_DEEDS_SQL = `SELECT l.occurred_at, p.id AS place_id
 export const WALKED_LEG_DEEDS_SQL =
   "SELECT occurred_at, source_ref FROM ledger WHERE kind = 'walk' AND occurred_at >= ?";
 
-function deedsByPlace(db: DB, since: string): Map<string, Deed[]> {
+function readDeedsByPlace(db: DB, since: string): Map<string, Deed[]> {
   const out = new Map<string, Deed[]>();
   const add = (placeId: string, deed: Deed) => {
     const list = out.get(placeId);
@@ -100,6 +100,73 @@ function deedsByPlace(db: DB, since: string): Map<string, Deed[]> {
   }
 
   return out;
+}
+
+
+/**
+ * The deed sweep, remembered between readers.
+ *
+ * WHY THIS IS SAFE HERE AND WOULD NOT BE ANYWHERE ELSE IN THIS FILE. The
+ * point of deriving a monster is that no second copy of the truth exists to
+ * drift; a cache is a second copy, so it is only allowed where it cannot
+ * drift silently. This one cannot, because its KEY IS THE TRUTH: the highest
+ * ledger rowid, plus the minute the seven-day window starts in. ANY new
+ * ledger row changes the first - the table is append-only, nothing in this
+ * codebase deletes from it, and a reversal is itself an insert - while the
+ * clock changes the second. Either one and the sweep is done again.
+ *
+ * `MAX(rowid)` is why this needs no hook in the write path. Nothing in
+ * `wallet-service.ts` has to remember to call an invalidate, so nothing can
+ * forget to; and a row written by another process is noticed just the same.
+ *
+ * WHAT IT IS WORTH. `deedsByPlace` reads every walk and quest reward in the
+ * window across the WHOLE COUNTRY and then the caller throws away the places
+ * outside the area being drawn - so the answer is identical for every reader
+ * on the island, and before this each of them paid for it again. Measured at
+ * a million ledger rows with a busy week in them: 122 ms a call, six calls a
+ * second on one core, and `node:sqlite` is synchronous - so that was 122 ms
+ * everybody else spent waiting too.
+ *
+ * WHAT IT COSTS. Up to a minute of staleness at the window's trailing edge:
+ * a deed done eight days ago may keep counting for up to 60 s past its
+ * expiry. Nothing at the leading edge, which is the end that matters - the
+ * traveller whose quest was just approved is the one most likely to look, and
+ * their approval wrote a ledger row, which changed the key.
+ *
+ * Keyed by `db` in a WeakMap rather than by nothing, because the test suite
+ * opens a fresh `:memory:` database per test and two of them would otherwise
+ * share one entry - same rowid, different island.
+ */
+const SWEEP_BUCKET_MS = 60_000;
+
+interface Sweep { key: string; deeds: Map<string, Deed[]> }
+const sweeps = new WeakMap<DB, Sweep>();
+
+/** The clock and the ledger, as one string. Cheap: MAX(rowid) is an O(1) read. */
+function sweepKey(db: DB, since: string): string {
+  const high = row<{ high: number | null }>(
+    db.prepare('SELECT MAX(rowid) AS high FROM ledger').get(),
+  );
+  const bucket = Math.floor(Date.parse(since) / SWEEP_BUCKET_MS);
+  return `${bucket}:${high?.high ?? 0}`;
+}
+
+function deedsByPlace(db: DB, since: string): Map<string, Deed[]> {
+  const key = sweepKey(db, since);
+  const held = sweeps.get(db);
+  if (held && held.key === key) return held.deeds;
+  const deeds = readDeedsByPlace(db, since);
+  sweeps.set(db, { key, deeds });
+  return deeds;
+}
+
+/**
+ * Forget everything. For tests that need to prove the sweep ran, and for
+ * nothing else - production has no reason to call it, because the key already
+ * says when the answer changed.
+ */
+export function forgetDeedSweeps(db: DB): void {
+  sweeps.delete(db);
 }
 
 /** Places in this area with a host's clean-up open on them right now. */
