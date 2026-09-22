@@ -114,7 +114,6 @@ export function CompanionHomeScreen({
         <CreatureScene
           species={species.key}
           stage={stage}
-          grown={grown}
           label={`${stage === 'egg' ? t(species.eggName) : t(species.name)}, ${t(STAGE_LABEL[stage])}. ${t({ en: 'Tap to say hello', th: 'แตะเพื่อทักทาย' })}`}
         />
 
