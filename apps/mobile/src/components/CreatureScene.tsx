@@ -17,7 +17,6 @@
 import React from 'react';
 import { Animated, Easing, Platform, View, useWindowDimensions } from 'react-native';
 import type { CompanionStage, Mascot } from '@chivago/core';
-import { color } from '../theme/index.ts';
 import { Creature, type CreatureKey } from './Creature.tsx';
 import { MascotPortrait } from './MascotPortrait.tsx';
 import { useReduceMotion } from './reduce-motion.ts';
@@ -53,7 +52,7 @@ const KNOWN: readonly CreatureKey[] = ['coconut-macaque', 'red-junglefowl', 'day
 const isKnown = (s: string): s is CreatureKey => (KNOWN as readonly string[]).includes(s);
 
 export function CreatureScene({
-  species, mascot, stage, label, onTap, grown,
+  species, mascot, stage, label, onTap,
 }: {
   /** A species key. An unknown one falls back to the drawn egg, as `Creature` does. */
   species: string;
@@ -63,7 +62,6 @@ export function CreatureScene({
   /** Spoken name of what is on screen, e.g. "Water buffalo, grown". */
   label: string;
   onTap?: () => void;
-  grown: boolean;
 }) {
   const { width } = useWindowDimensions();
   const breath = useBreath();
@@ -72,7 +70,7 @@ export function CreatureScene({
     // Taller on a wide screen, where there is room; a phone gets a square.
     const height = Math.round(Math.min(360, Math.max(260, width * 0.62)));
     return (
-      <React.Suspense fallback={<View style={{ height, backgroundColor: grown ? color.accent100 : color.surface }} />}>
+      <React.Suspense fallback={<DrawnScene species={species} mascot={mascot} stage={stage} breath={breath} height={height} />}>
         {mascot
           ? <Creature3D mascot={mascot} stage={stage} height={height} label={label} onTap={onTap} />
           : <Creature3D species={species as CreatureKey} stage={stage} height={height} label={label} onTap={onTap} />}
@@ -80,8 +78,41 @@ export function CreatureScene({
     );
   }
 
+  return <DrawnScene species={species} mascot={mascot} stage={stage} breath={breath} />;
+}
+
+/**
+ * The drawn animal, breathing. What a phone shows, and what the web shows
+ * while three.js is still arriving.
+ *
+ * IT IS THE FALLBACK BECAUSE IT IS NOT A FALLBACK. This used to be an empty
+ * coloured box, on the grounds that the room was a second away - and on a
+ * warm cache it is. On the first open it is ~700 KB of three.js over whatever
+ * signal a beach has, and what the traveller saw for that whole time was a
+ * blank rectangle with nothing in it to say anything was coming. A spinner
+ * would have been the obvious repair and the worse one: the right thing to
+ * put in the space where the animal goes is the animal.
+ *
+ * `height` is passed on the web so the drawn mark occupies exactly the box
+ * the room will occupy. Without it the page reflows under the reader's thumb
+ * the moment the scene loads, which is its own small betrayal.
+ */
+function DrawnScene({
+  species, mascot, stage, breath, height,
+}: {
+  species: string;
+  mascot?: Mascot;
+  stage: CompanionStage;
+  breath: Animated.Value;
+  /** The room's height, when standing in for one. Omitted on a phone. */
+  height?: number;
+}) {
   return (
-    <View style={{ paddingVertical: 34, alignItems: 'center' }}>
+    <View
+      style={height === undefined
+        ? { paddingVertical: 34, alignItems: 'center' }
+        : { height, alignItems: 'center', justifyContent: 'center' }}
+    >
       <Animated.View
         style={{
           transform: [

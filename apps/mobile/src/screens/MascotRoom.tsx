@@ -64,7 +64,6 @@ export function MascotRoomScreen({ code, onBack }: { code: string; onBack: () =>
           species="mascot"
           mascot={mascot}
           stage="grown"
-          grown={met}
           label={label}
           onTap={() => toast.show(t(mascot.name))}
         />
