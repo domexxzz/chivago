@@ -25,9 +25,47 @@ const inBrowser = Platform.OS === 'web'
   && typeof document !== 'undefined'
   && typeof window !== 'undefined';
 
-const Creature3D = inBrowser
-  ? React.lazy(() => import('./creature3d/Creature3D.tsx').then((m) => ({ default: m.Creature3D })))
-  : null;
+/**
+ * The room, fetched AFTER this screen has been painted.
+ *
+ * `React.lazy` starts its import during render, which is the whole trouble:
+ * React suspends on the first commit, and the screen's first paint is queued
+ * behind a request for ~200 KB of three.js. Measured on the deployed demo,
+ * cold, that request alone took 751 ms before a byte of it was evaluated -
+ * and what a traveller looked at for that time was a screen with nothing on
+ * it, whatever the Suspense fallback happened to contain.
+ *
+ * So the import is not made during render at all. `useRoom` asks for it from
+ * an effect, behind two animation frames, which is the cheap and reliable way
+ * to say AFTER THE BROWSER HAS ACTUALLY PAINTED: the first frame fires before
+ * the paint that follows this commit, the second after it. Until the module
+ * arrives the drawn animal is on screen, and it is on screen because it was
+ * painted, not merely because it was rendered.
+ *
+ * The trade is one frame of the drawn mark on a warm cache, where the module
+ * would otherwise have resolved almost at once. That is a fair price for
+ * never showing an empty screen on the open that matters, which is the first.
+ */
+type RoomComponent = typeof import('./creature3d/Creature3D.tsx')['Creature3D'];
+
+function useRoom(wanted: boolean): RoomComponent | null {
+  const [room, setRoom] = React.useState<RoomComponent | null>(null);
+  React.useEffect(() => {
+    if (!wanted || !inBrowser) return undefined;
+    let alive = true;
+    const outer = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        import('./creature3d/Creature3D.tsx')
+          // A room that fails to arrive is not an error worth showing anybody:
+          // the drawn animal stays, which is what a phone sees anyway.
+          .then((m) => { if (alive) setRoom(() => m.Creature3D); })
+          .catch(() => {});
+      });
+    });
+    return () => { alive = false; cancelAnimationFrame(outer); };
+  }, [wanted]);
+  return room;
+}
 
 /** A slow breath for the drawn mark. Stops under reduce-motion. */
 function useBreath(): Animated.Value {
@@ -65,20 +103,29 @@ export function CreatureScene({
 }) {
   const { width } = useWindowDimensions();
   const breath = useBreath();
+  const roomSuits = inBrowser && (mascot !== undefined || isKnown(species));
+  const Room = useRoom(roomSuits);
 
-  if (Creature3D && (mascot || isKnown(species))) {
-    // Taller on a wide screen, where there is room; a phone gets a square.
-    const height = Math.round(Math.min(360, Math.max(260, width * 0.62)));
-    return (
-      <React.Suspense fallback={<DrawnScene species={species} mascot={mascot} stage={stage} breath={breath} height={height} />}>
-        {mascot
-          ? <Creature3D mascot={mascot} stage={stage} height={height} label={label} onTap={onTap} />
-          : <Creature3D species={species as CreatureKey} stage={stage} height={height} label={label} onTap={onTap} />}
-      </React.Suspense>
-    );
+  // Taller on a wide screen, where there is room; a phone gets a square.
+  const height = Math.round(Math.min(360, Math.max(260, width * 0.62)));
+
+  if (Room) {
+    return mascot
+      ? <Room mascot={mascot} stage={stage} height={height} label={label} onTap={onTap} />
+      : <Room species={species as CreatureKey} stage={stage} height={height} label={label} onTap={onTap} />;
   }
 
-  return <DrawnScene species={species} mascot={mascot} stage={stage} breath={breath} />;
+  // Standing in for the room, so it holds the room's height; or standing on
+  // its own on a phone, where it sets its own.
+  return (
+    <DrawnScene
+      species={species}
+      mascot={mascot}
+      stage={stage}
+      breath={breath}
+      height={roomSuits ? height : undefined}
+    />
+  );
 }
 
 /**
