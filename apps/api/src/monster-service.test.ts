@@ -7,6 +7,7 @@ import { openTestDb, rows, type DB } from './db.ts';
 import {
   VERIFIED_QUEST_DEEDS_SQL, WALKED_LEG_DEEDS_SQL, forgetDeedSweeps, monstersInArea,
 } from './monster-service.ts';
+import { applyMovement, reverseMovement } from './wallet-service.ts';
 
 /**
  * Monsters read off rows that already exist.
@@ -166,6 +167,17 @@ describe('the ledger reads behind a monster do not scan the ledger', () => {
     assert.ok(!/SCAN ledger\b/.test(detail), `the ledger is being scanned: ${detail}`);
   });
 
+  test('asking "was this reversed" is a seek, once per deed, never a scan', () => {
+    // The reversal check runs for every deed in the window, so a scan here
+    // would put back exactly the cost #44 and #49 took out - quietly, because
+    // the alias is `r`, which the two assertions above do not look for.
+    for (const sql of [VERIFIED_QUEST_DEEDS_SQL, WALKED_LEG_DEEDS_SQL]) {
+      const detail = plan(sql);
+      assert.match(detail, /SEARCH r USING (COVERING )?INDEX/, `the reversal lookup is not a seek: ${detail}`);
+      assert.ok(!/SCAN r\b/.test(detail), `the reversal lookup scans the ledger: ${detail}`);
+    }
+  });
+
   test('the constants the test explains are the ones the code runs', () => {
     // The guard on the guard. These two tests are only worth anything while
     // `deedsByPlace` prepares these exact strings rather than a copy that has
@@ -263,5 +275,63 @@ describe('the deed sweep is shared, and knows when to stop trusting itself', () 
       monstersInArea(db, 'ku-sriracha', () => bad(), later)[0]!.progress, 0,
       'the deed outlived its window because the sweep was never redone',
     );
+  });
+});
+
+
+/**
+ * A deed that is taken back stops counting.
+ *
+ * The file's own header promised this from the start, and the reads did not
+ * keep the promise: they counted every `quest_reward` and `walk` row in the
+ * window whether or not it had since been reversed. Nothing in the app issues
+ * a reversal yet, so no bar on anybody's screen was wrong - the first clawback
+ * would have been. These hold the promise to the code that keeps it.
+ */
+describe('a deed that is taken back stops counting', () => {
+  beforeEach(() => { quest('environmental'); });
+
+  /** Exactly the row `reverseMovement` writes: the opposite movement, keyed `reversal:` + the original. */
+  const reverse = (sourceRef: string) => ledger('adjustment', 'green', `reversal:${sourceRef}`, ago(0.5));
+
+  test('a reversed quest reward stops pushing the monster back, cached or not', () => {
+    ledger('quest_reward', 'green', 'quest:q-clean:user:ana', ago(3));
+    // Read once first, so the sweep is warm. The reversal is a NEW row, so it
+    // moves MAX(rowid) and the key with it - the cache is not the problem here,
+    // and this proves it is not.
+    assert.equal(standing()[0]!.progress, 3);
+    reverse('quest:q-clean:user:ana');
+    assert.equal(standing()[0]!.progress, 0, 'a reversed quest is still pushing the monster back');
+  });
+
+  test('a reversed leg on foot stops counting, at both of its ends', () => {
+    ledger('walk', 'trip', `walk:${PARK.id}:ku-shops:user:ana:2026-09-10`, ago(4));
+    assert.equal(standing()[0]!.progress, 1);
+    reverse(`walk:${PARK.id}:ku-shops:user:ana:2026-09-10`);
+    assert.equal(standing()[0]!.progress, 0, 'a reversed walk is still pushing the monster back');
+  });
+
+  test('taking one deed back leaves the others standing', () => {
+    // The check is per row. A reversal of one walk is not a verdict on the
+    // traveller, and it must not quietly unwind the work around it.
+    ledger('quest_reward', 'green', 'quest:q-clean:user:ana', ago(5));
+    ledger('walk', 'trip', `walk:${PARK.id}:ku-shops:user:ana:2026-09-10`, ago(4));
+    assert.equal(standing()[0]!.progress, 4);
+    reverse(`walk:${PARK.id}:ku-shops:user:ana:2026-09-10`);
+    assert.equal(standing()[0]!.progress, 3, 'reversing a walk took the quest down with it');
+  });
+
+  test('the reversal the app really writes is the one that is honoured', () => {
+    // The tests above write the reversal row by hand. This one goes through
+    // `reverseMovement` itself, so if its format ever changes - a different
+    // prefix, a different kind - this is the test that notices, rather than a
+    // bar that silently starts counting clawed-back work again.
+    applyMovement(db, {
+      userId: 'ana', label: 'Clean-up', host: 'h-ku', amount: 120, currency: 'green',
+      kind: 'quest_reward', sourceRef: 'quest:q-clean:user:ana', occurredAt: ago(2),
+    });
+    assert.equal(standing()[0]!.progress, 3);
+    reverseMovement(db, { userId: 'ana', originalSourceRef: 'quest:q-clean:user:ana', reason: 'photo was not of the site' });
+    assert.equal(standing()[0]!.progress, 0, 'reverseMovement wrote a reversal the monster read does not recognise');
   });
 });
