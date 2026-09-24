@@ -5,8 +5,16 @@
  * open clean-up, and pushed back by deeds the ledger already holds - a
  * verified quest, a measured leg on foot. There is no monster table, no
  * "attack" endpoint and no counter to keep in step with reality, because
- * every number is derived the moment it is asked for. A hidden or reversed
- * deed simply stops counting the next time anybody looks.
+ * every number is derived the moment it is asked for. A reversed deed simply
+ * stops counting the next time anybody looks - because both reads below skip
+ * any row that has a `reversal:` row of its own, and a test reverses one of
+ * each to hold them to it.
+ *
+ * That sentence used to be here WITHOUT the clause after the dash, and the
+ * reads did not do it: a quest reward or a walked leg that had been reversed
+ * went on pushing its monster back. Nothing in the app issues a reversal yet,
+ * so nobody was shown a wrong bar - but the first clawback anybody ran would
+ * have been one. A claim like this belongs next to the line that keeps it.
  *
  * That is not tidiness for its own sake. A stored HP figure would be a
  * second place where the truth lives, and the first thing anybody would do
@@ -57,6 +65,19 @@ interface PlaceRow {
 */
 
 /**
+ * A deed that has been taken back is not a deed.
+ *
+ * `reverseMovement` in wallet-service.ts never edits or deletes the row it
+ * unwinds; it inserts the opposite movement with `source_ref` set to
+ * `reversal:` + the original's. So "was this reversed" is one lookup, and it
+ * is an index seek rather than a scan because `source_ref` is UNIQUE.
+ *
+ * Both reads use it, and `l` is the ledger row being judged in each.
+ */
+const NOT_REVERSED =
+  "NOT EXISTS (SELECT 1 FROM ledger r WHERE r.source_ref = 'reversal:' || l.source_ref)";
+
+/**
  * Verified quests, by the place their quest sits at.
  *
  * `currency = 'green'` is not in the index and does not need to be: `kind` is
@@ -68,11 +89,14 @@ export const VERIFIED_QUEST_DEEDS_SQL = `SELECT l.occurred_at, p.id AS place_id
    FROM ledger l
    JOIN quests q ON q.id = substr(l.source_ref, 7, instr(substr(l.source_ref, 7), ':user:') - 1)
    JOIN places p ON p.lat = q.lat AND p.lng = q.lng
-  WHERE l.kind = 'quest_reward' AND l.currency = 'green' AND l.occurred_at >= ?`;
+  WHERE l.kind = 'quest_reward' AND l.currency = 'green' AND l.occurred_at >= ?
+    AND ${NOT_REVERSED}`;
 
 /** Legs on foot. */
-export const WALKED_LEG_DEEDS_SQL =
-  "SELECT occurred_at, source_ref FROM ledger WHERE kind = 'walk' AND occurred_at >= ?";
+export const WALKED_LEG_DEEDS_SQL = `SELECT l.occurred_at, l.source_ref
+   FROM ledger l
+  WHERE l.kind = 'walk' AND l.occurred_at >= ?
+    AND ${NOT_REVERSED}`;
 
 function readDeedsByPlace(db: DB, since: string): Map<string, Deed[]> {
   const out = new Map<string, Deed[]>();
