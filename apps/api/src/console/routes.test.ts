@@ -1100,4 +1100,43 @@ describe('the funder in a row, not in a constant', () => {
     assert.equal(res.status, 403);
     assert.equal((db.prepare('SELECT COUNT(*) AS n FROM organisations').get() as unknown as { n: number }).n, 0);
   });
+
+  test('a pledge shows as owed until somebody records the transfer', async () => {
+    // The whole point of the split, end to end on the page a partner reads.
+    const mod = await signIn(MOD2_KEY, 'Nok');
+    await form(mod, '/organisations', { csrf: csrfOf(mod), name: 'Acme', kind: 'company' });
+    const orgId = (db.prepare('SELECT id FROM organisations').get() as unknown as { id: string }).id;
+    await form(mod, `/organisations/${orgId}/fund`, {
+      csrf: csrfOf(mod), questId: 'q-muni', fundedTHB: '50000', perVerifiedTHB: '500', basis: 'signed',
+    });
+
+    const owed = await (await app.request('/sponsor', { headers: withCookie(mod) })).text();
+    assert.match(owed, /Pledged, not paid/, 'a signed pledge was not shown as unpaid');
+    assert.match(owed, /Received/);
+    // The label that used to claim delivery the system never tracked.
+    assert.doesNotMatch(owed, /Reached hosts/, 'the page still says money reached anybody');
+
+    assert.equal((await form(mod, `/organisations/${orgId}/paid`, {
+      csrf: csrfOf(mod), questId: 'q-muni', receivedTHB: '50000',
+    })).status, 303);
+
+    const paid = await (await app.request('/sponsor', { headers: withCookie(mod) })).text();
+    assert.doesNotMatch(paid, /Pledged, not paid/, 'the page still says money is owed after it arrived');
+  });
+
+  test('recording a payment needs a token, like every other write here', async () => {
+    const mod = await signIn(MOD2_KEY, 'Nok');
+    await form(mod, '/organisations', { csrf: csrfOf(mod), name: 'Acme', kind: 'company' });
+    const orgId = (db.prepare('SELECT id FROM organisations').get() as unknown as { id: string }).id;
+    await form(mod, `/organisations/${orgId}/fund`, {
+      csrf: csrfOf(mod), questId: 'q-muni', fundedTHB: '50000', perVerifiedTHB: '500',
+    });
+
+    const res = await form(mod, `/organisations/${orgId}/paid`, {
+      csrf: 'not-the-token', questId: 'q-muni', receivedTHB: '50000',
+    });
+    assert.equal(res.status, 403);
+    const held = db.prepare('SELECT received_thb AS n FROM org_sponsorships').get() as unknown as { n: number };
+    assert.equal(held.n, 0, 'money was recorded by a request with no token');
+  });
 });

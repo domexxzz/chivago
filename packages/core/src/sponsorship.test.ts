@@ -12,8 +12,17 @@ const sponsor: Sponsor = {
   kind: 'ngo',
 };
 
+/**
+ * A sponsor who has paid, unless a test says otherwise.
+ *
+ * The default is paid in full because every test written before the money
+ * split existed was reasoning about a sponsor whose cash was in hand - they
+ * simply had no way to say so. Defaulting to unpaid would have quietly
+ * rewritten what those tests assert while leaving their words unchanged.
+ */
 const funding = (over: Partial<Sponsorship> = {}): Sponsorship => ({
   sponsorId: 'sp1', questId: 'q1', fundedTHB: 10_000, perVerifiedTHB: 200,
+  receivedTHB: 10_000, receivedAt: '2026-08-02T00:00:00.000Z',
   startedAt: '2026-08-01T00:00:00.000Z', ...over,
 });
 
@@ -123,5 +132,86 @@ describe('it stays inside what the ledger knows', () => {
     for (const forbidden of ['reach', 'impressions', 'views', 'sentiment', 'estimatedValue']) {
       assert.ok(!(forbidden in o), `SponsorOutcome grew a ${forbidden} field`);
     }
+  });
+});
+
+/**
+ * Agreed, received, earned — three facts, and only one of them is cash.
+ *
+ * `unspentTHB` used to be `funded - earned` and was documented as money "still
+ * held". Nothing had ever recorded cash arriving, so a pledge nobody had
+ * honoured read on the partner page as a balance somebody was holding. It is
+ * the same defect the reversal sprint cleared out of the points economy — a
+ * figure that goes on counting something that has not happened — except that
+ * this one would have been found by an accountant.
+ */
+describe('a pledge is not a payment', () => {
+  test('nothing received means nothing unspent, however much was promised', () => {
+    const o = sponsorOutcome(sponsor, [funding({ receivedTHB: 0, receivedAt: null })], [counts()]);
+    assert.equal(o.fundedTHB, 10_000);
+    assert.equal(o.receivedTHB, 0);
+    assert.equal(o.unspentTHB, 0, 'money nobody sent was reported as held');
+    assert.equal(o.owedBySponsorTHB, 10_000);
+  });
+
+  test('what is owed is on its own line, not folded into anything', () => {
+    // A partial payment is the ordinary case - an instalment, or a transfer
+    // that has not cleared - and both halves have to be visible or the page
+    // is describing a different agreement than the one that exists.
+    const o = sponsorOutcome(sponsor, [funding({ receivedTHB: 4_000 })], [counts({ verified: 5 })]);
+    assert.equal(o.receivedTHB, 4_000);
+    assert.equal(o.owedBySponsorTHB, 6_000);
+    assert.equal(o.toCommunityTHB, 1_000);
+    assert.equal(o.unspentTHB, 3_000, 'unspent counted money that had not arrived');
+  });
+
+  test('earning more than was received is zero unspent, not a negative', () => {
+    // A real state rather than a rounding case: hosts have earned 2,000
+    // against 1,000 received. There is nothing left unspent AND the
+    // difference is not being held by anybody, which is why the console
+    // says so out loud rather than printing a minus sign.
+    const o = sponsorOutcome(sponsor, [funding({ receivedTHB: 1_000 })], [counts({ verified: 10 })]);
+    assert.equal(o.toCommunityTHB, 2_000);
+    assert.equal(o.unspentTHB, 0);
+    assert.ok(o.toCommunityTHB > o.receivedTHB, 'the shortfall is not visible from the shape');
+  });
+
+  test('overpayment is kept rather than thrown away', () => {
+    // A sponsor who sends more than agreed has sent it. Capping the received
+    // figure at the pledge would hide their money instead of the mistake.
+    const o = sponsorOutcome(sponsor, [funding({ receivedTHB: 12_000 })], [counts({ verified: 5 })]);
+    assert.equal(o.receivedTHB, 12_000);
+    assert.equal(o.owedBySponsorTHB, 0);
+    assert.equal(o.unspentTHB, 11_000);
+  });
+
+  test('several quests add up on both sides of the split', () => {
+    const o = sponsorOutcome(
+      sponsor,
+      [
+        funding({ questId: 'q1', fundedTHB: 10_000, receivedTHB: 10_000 }),
+        funding({ questId: 'q2', fundedTHB: 5_000, receivedTHB: 0, receivedAt: null }),
+      ],
+      [counts({ questId: 'q1', verified: 5 }), counts({ questId: 'q2', verified: 2 })],
+    );
+    assert.equal(o.fundedTHB, 15_000);
+    assert.equal(o.receivedTHB, 10_000);
+    assert.equal(o.owedBySponsorTHB, 5_000);
+    assert.equal(o.toCommunityTHB, 1_400);
+    assert.equal(o.unspentTHB, 8_600);
+  });
+
+  test('the headline no longer says money reached anybody', () => {
+    // Whether the earned amount was disbursed is a THIRD fact this system
+    // does not hold. The old wording - "THB to hosts" - claimed it had.
+    const o = sponsorOutcome(sponsor, [funding()], [counts({ verified: 5 })]);
+    assert.match(sponsorHeadline(o).en, /earned by hosts/);
+    assert.ok(!/to hosts/.test(sponsorHeadline(o).en), 'the headline still claims delivery');
+    assert.match(sponsorHeadline(o).th, /ผู้จัดได้รับสิทธิ์/);
+  });
+
+  test('with nothing verified, the headline names what arrived, not what was promised', () => {
+    const o = sponsorOutcome(sponsor, [funding({ receivedTHB: 0, receivedAt: null })], [counts({ joined: 40 })]);
+    assert.match(sponsorHeadline(o).en, /0 THB received and unspent/);
   });
 });

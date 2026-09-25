@@ -56,7 +56,19 @@ export interface Sponsor {
 export interface Sponsorship {
   sponsorId: string;
   questId: string;
+  /** What the agreement says. Typed in by a moderator, and not a receipt. */
   fundedTHB: number;
+  /**
+   * What actually arrived, in baht.
+   *
+   * Separate from `fundedTHB` because they are separate facts and only one of
+   * them is cash. A pledge nobody has honoured is worth reporting as a pledge;
+   * reporting it as money is how a partner page comes to show a balance
+   * nobody holds.
+   */
+  receivedTHB: number;
+  /** When the last payment landed, or null while none has. */
+  receivedAt: string | null;
   perVerifiedTHB: number;
   /** When this money started being spent. Outcomes before it are not theirs. */
   startedAt: string;
@@ -75,9 +87,32 @@ export interface QuestCounts {
 export interface SponsorOutcome {
   sponsor: Sponsor;
   fundedTHB: number;
-  /** THB that reached hosts, counted from approvals — never from budget. */
+  /** Of that, what has actually arrived. */
+  receivedTHB: number;
+  /**
+   * Pledged and not paid.
+   *
+   * On its own line rather than folded into anything, because a sponsor whose
+   * report shows work delivered against money they have not sent should see
+   * that said plainly, and so should we.
+   */
+  owedBySponsorTHB: number;
+  /**
+   * THB EARNED by hosts, counted from approvals — never from budget.
+   *
+   * Earned, not "reached". Whether it was disbursed is a third fact this
+   * system does not hold either, and the headline no longer says it did.
+   */
   toCommunityTHB: number;
-  /** Still held, because the outcomes have not happened yet. */
+  /**
+   * Money in hand that no outcome has claimed yet.
+   *
+   * Counted from what ARRIVED, not from what was pledged. It used to be
+   * `funded - earned`, which described a sum nobody had sent as one being
+   * held. Zero when the work has already earned more than the sponsor has
+   * paid — which is not a rounding case but a real state, and the console
+   * says so when it happens.
+   */
   unspentTHB: number;
   joined: number;
   arrived: number;
@@ -137,11 +172,13 @@ export function sponsorOutcome(
   const byQuest = new Map(counts.map((c) => [c.questId, c]));
 
   let fundedTHB = 0;
+  let receivedTHB = 0;
   let toCommunityTHB = 0;
   const total = { joined: 0, arrived: 0, verified: 0, rejected: 0, greenPointsIssued: 0 };
 
   for (const s of mine) {
     fundedTHB += s.fundedTHB;
+    receivedTHB += s.receivedTHB;
     const c = byQuest.get(s.questId);
     if (!c) continue;
     total.joined += c.joined;
@@ -158,8 +195,10 @@ export function sponsorOutcome(
   return {
     sponsor,
     fundedTHB,
+    receivedTHB,
+    owedBySponsorTHB: Math.max(0, fundedTHB - receivedTHB),
     toCommunityTHB,
-    unspentTHB: Math.max(0, fundedTHB - toCommunityTHB),
+    unspentTHB: Math.max(0, receivedTHB - toCommunityTHB),
     ...total,
     costPerVerifiedTHB: total.verified > 0 ? round2(toCommunityTHB / total.verified) : null,
     completionRate: total.joined > 0 ? round2(total.verified / total.joined) : null,
@@ -176,14 +215,14 @@ export function sponsorOutcome(
 export function sponsorHeadline(o: SponsorOutcome): Bilingual {
   if (o.verified === 0) {
     return {
-      en: `Nothing verified yet. ${o.joined} started; ${o.fundedTHB.toLocaleString('en-US')} THB is still unspent.`,
-      th: `ยังไม่มีภารกิจที่ผ่านการตรวจ เริ่มแล้ว ${o.joined} ครั้ง เงินที่ยังไม่ถูกใช้ ${o.fundedTHB.toLocaleString('en-US')} บาท`,
+      en: `Nothing verified yet. ${o.joined} started; ${o.receivedTHB.toLocaleString('en-US')} THB received and unspent.`,
+      th: `ยังไม่มีภารกิจที่ผ่านการตรวจ เริ่มแล้ว ${o.joined} ครั้ง เงินที่รับมาแล้วและยังไม่ถูกใช้ ${o.receivedTHB.toLocaleString('en-US')} บาท`,
     };
   }
   return {
-    en: `${o.verified} verified, ${o.toCommunityTHB.toLocaleString('en-US')} THB to hosts, `
+    en: `${o.verified} verified, ${o.toCommunityTHB.toLocaleString('en-US')} THB earned by hosts, `
       + `${o.costPerVerifiedTHB} THB each. ${o.joined} started.`,
-    th: `ผ่านการตรวจ ${o.verified} ครั้ง ถึงมือผู้จัด ${o.toCommunityTHB.toLocaleString('en-US')} บาท `
+    th: `ผ่านการตรวจ ${o.verified} ครั้ง ผู้จัดได้รับสิทธิ์ ${o.toCommunityTHB.toLocaleString('en-US')} บาท `
       + `เฉลี่ยครั้งละ ${o.costPerVerifiedTHB} บาท เริ่มแล้ว ${o.joined} ครั้ง`,
   };
 }

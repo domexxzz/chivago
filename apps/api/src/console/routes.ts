@@ -29,7 +29,7 @@ import { InvalidPeriod, draftStatement, issueStatement, statementsFor } from '..
 import { activityInPeriod } from '../esg-service.ts';
 import {
   addOrganisation, addSponsorship, basisFor, InvalidFunding, listOrganisations, organisationById,
-  removeSponsorship, sponsorshipsFor, UnknownOrganisation,
+  recordPayment, removeSponsorship, sponsorshipsFor, UnknownOrganisation,
 } from '../organisation-service.ts';
 import { organisationsPage } from './organisations.ts';
 import { pendingQueue, queueStats, recentDecisions, reviewItem } from '../review-service.ts';
@@ -559,6 +559,36 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
         },
         session.reviewer ?? session.hostName,
       );
+    } catch (err) {
+      if (err instanceof InvalidFunding || err instanceof UnknownOrganisation) {
+        return c.redirect(`/console/organisations?error=${encodeURIComponent(err.message)}`, 303);
+      }
+      throw err;
+    }
+    return c.redirect('/console/organisations', 303);
+  });
+
+  /*
+    Money that arrived, recorded separately from the money that was agreed.
+
+    A separate route and a separate form, not a fourth field on the funding
+    one. Agreeing an amount and receiving it are different acts, usually days
+    apart and often by different people, and a single form that took both
+    would invite the figure to be typed once and then read as cash.
+  */
+  app.post('/organisations/:id/paid', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/organisations'), 403);
+    }
+    try {
+      recordPayment(db, {
+        orgId: c.req.param('id'),
+        questId: String(form.questId ?? ''),
+        receivedTHB: Number(form.receivedTHB),
+      });
     } catch (err) {
       if (err instanceof InvalidFunding || err instanceof UnknownOrganisation) {
         return c.redirect(`/console/organisations?error=${encodeURIComponent(err.message)}`, 303);

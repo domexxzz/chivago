@@ -121,6 +121,7 @@ function orgSection(view: OrgView, quests: { id: string; name: string }[], csrf:
   const { org, sponsorships, basis } = view;
   const names = new Map(quests.map((q) => [q.id, q.name]));
   const total = sponsorships.reduce((sum, s) => sum + s.fundedTHB, 0);
+  const received = sponsorships.reduce((sum, s) => sum + s.receivedTHB, 0);
 
   return html`
     <section class="panel">
@@ -128,7 +129,7 @@ function orgSection(view: OrgView, quests: { id: string; name: string }[], csrf:
       <p class="note">
         ${esc(KINDS.find((k) => k.key === org.kind)?.en ?? org.kind)}
         · ${esc(basis === 'signed' ? 'signed agreement' : 'declared, not signed')}
-        · ${baht(total)} committed in total
+        · ${baht(total)} committed, ${baht(received)} received
       </p>
 
       ${sponsorships.length === 0
@@ -136,13 +137,31 @@ function orgSection(view: OrgView, quests: { id: string; name: string }[], csrf:
     : html`
       <table>
         <thead>
-          <tr><th>Quest</th><th>Funded</th><th>Per verified</th><th>Basis</th><th></th></tr>
+          <tr><th>Quest</th><th>Funded</th><th>Received</th><th>Per verified</th><th>Basis</th><th></th></tr>
         </thead>
         <tbody>
           ${sponsorships.map((s) => html`
             <tr>
               <td>${esc(names.get(s.questId) ?? s.questId)}</td>
               <td>${baht(s.fundedTHB)}</td>
+              <!--
+                Received sits beside Funded rather than replacing it, and the
+                form is inline on the row: the moderator recording a transfer
+                is looking at the agreement it belongs to, and a separate page
+                would be one more place for the two figures to drift apart.
+              -->
+              <td>
+                <form method="post" action="/console/organisations/${esc(org.id)}/paid">
+                  <input type="hidden" name="csrf" value="${esc(csrf)}">
+                  <input type="hidden" name="questId" value="${esc(s.questId)}">
+                  <input name="receivedTHB" type="number" min="0" step="1"
+                         value="${String(s.receivedTHB)}" style="width:110px">
+                  <button type="submit">Save</button>
+                </form>
+                ${s.receivedAt === null
+    ? html`<span class="muted">not received · ยังไม่ได้รับ</span>`
+    : html`<span class="muted">${esc(s.receivedAt.slice(0, 10))}</span>`}
+              </td>
               <td>${baht(s.perVerifiedTHB)}</td>
               <td>${esc(basis)}</td>
               <td>
