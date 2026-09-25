@@ -2,7 +2,9 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { openTestDb, type DB } from './db.ts';
-import { applyMovement, ensureWallet } from './wallet-service.ts';
+import {
+  applyMovement, awardQuestReward, ensureWallet, reverseMovement,
+} from './wallet-service.ts';
 import { hostStandings, travellerStandings } from './standing-service.ts';
 
 let db: DB;
@@ -156,5 +158,95 @@ describe('hosts are counted on what they approved', () => {
     // popular quest would otherwise report itself as several quests.
     approve('u1', 'q1'); approve('u2', 'q1');
     assert.equal(hostStandings(db).find((h) => h.hostId === 'busy')!.questsPosted, 2);
+  });
+});
+
+/**
+ * An award taken back is not a standing.
+ *
+ * A standing is public and ranked — `ProfileScreen` prints it beside a name —
+ * so it is the last place that should go on crediting work a host withdrew.
+ * Nothing in the app calls `reverseMovement` yet, so no table on anybody's
+ * screen has been wrong; the first clawback anybody runs would have been.
+ *
+ * Awarded and reversed through the REAL functions rather than by writing the
+ * two rows by hand. A test that hand-wrote `reversal:…` would go on passing on
+ * the day `reverseMovement` changed how it writes, which is the failure this
+ * whole sprint exists to clear up.
+ */
+describe('a reversed award leaves no standing behind', () => {
+  const award = (userId: string, questId: string) => awardQuestReward(db, {
+    userId, questId, questName: questId, host: 'Host', points: 100, currency: 'green',
+  });
+  const takeBack = (userId: string, questId: string) => reverseMovement(db, {
+    userId, originalSourceRef: `quest:${questId}:user:${userId}`, reason: 'proof was not what it claimed',
+  });
+
+  test('a host is not credited with green they had to claw back', () => {
+    addHost('h1', 'Beach team');
+    addQuest('q1', 'h1');
+    addQuest('q2', 'h1');
+    addUser('ana', 'Ana');
+    approve('ana', 'q1');
+    approve('ana', 'q2');
+    award('ana', 'q1');
+    award('ana', 'q2');
+    assert.equal(hostStandings(db)[0]!.greenIssued, 200);
+
+    takeBack('ana', 'q1');
+    assert.equal(hostStandings(db)[0]!.greenIssued, 100, 'the clawed-back award still counted');
+  });
+
+  test('a traveller loses the points and the mission, not one or the other', () => {
+    // Two numbers, two queries, and only one of them was a SUM. A fix that
+    // reached the money and not the count would leave a profile reading
+    // "2 missions, 100 green" for one mission's work.
+    addHost('h1', 'Beach team');
+    addQuest('q1', 'h1');
+    addQuest('q2', 'h1');
+    addUser('ana', 'Ana');
+    award('ana', 'q1');
+    award('ana', 'q2');
+    const before = travellerStandings(db).find((t) => t.userId === 'ana')!;
+    assert.deepEqual([before.greenVerified, before.missionsVerified], [200, 2]);
+
+    takeBack('ana', 'q1');
+    const after = travellerStandings(db).find((t) => t.userId === 'ana')!;
+    assert.deepEqual([after.greenVerified, after.missionsVerified], [100, 1]);
+  });
+
+  test('a traveller whose every award was taken back is listed at zero, not dropped', () => {
+    // The LEFT JOIN carries the reversal filter, so this is the case that
+    // proves the filter did not turn it into an inner join. Somebody who
+    // vanishes from a ranking is harder to question than somebody at zero.
+    addHost('h1', 'Beach team');
+    addQuest('q1', 'h1');
+    addUser('ana', 'Ana');
+    award('ana', 'q1');
+    takeBack('ana', 'q1');
+
+    const ana = travellerStandings(db).find((t) => t.userId === 'ana');
+    assert.ok(ana, 'the traveller disappeared from the standings');
+    assert.deepEqual([ana.greenVerified, ana.missionsVerified], [0, 0]);
+  });
+
+  test('the opening balance is not a reversal, and is still not a standing', () => {
+    // `grantOpeningBalance` writes `kind = 'adjustment'` too. A fix that had
+    // excluded every adjustment would have looked right on the two tests above
+    // and quietly changed what an opening balance means.
+    addHost('h1', 'Beach team');
+    addQuest('q1', 'h1');
+    addUser('ana', 'Ana');
+    applyMovement(db, {
+      userId: 'ana', label: 'Welcome', host: 'ChivaGo', amount: 1240, currency: 'green',
+      kind: 'adjustment', sourceRef: 'opening:green:user:ana',
+    });
+    award('ana', 'q1');
+
+    const ana = travellerStandings(db).find((t) => t.userId === 'ana')!;
+    assert.deepEqual(
+      [ana.greenVerified, ana.missionsVerified], [100, 1],
+      'a gift counted as verified work, or the award stopped counting',
+    );
   });
 });

@@ -170,11 +170,25 @@ describe('the ledger reads behind a monster do not scan the ledger', () => {
   test('asking "was this reversed" is a seek, once per deed, never a scan', () => {
     // The reversal check runs for every deed in the window, so a scan here
     // would put back exactly the cost #44 and #49 took out - quietly, because
-    // the alias is `r`, which the two assertions above do not look for.
+    // the subquery has its own alias, which the two assertions above do not
+    // look for.
+    //
+    // Matched on the COLUMN rather than on that alias. The alias was `r` when
+    // this was written and became `reversal_row` in #51, when a test found
+    // that a caller aliasing its own row `r` shadowed the subquery's and made
+    // the check pass everything. A plan test pinned to a name would have
+    // failed on the rename while the behaviour it guards was untouched, and
+    // the temptation then is to loosen it rather than read it.
     for (const sql of [VERIFIED_QUEST_DEEDS_SQL, WALKED_LEG_DEEDS_SQL]) {
       const detail = plan(sql);
-      assert.match(detail, /SEARCH r USING (COVERING )?INDEX/, `the reversal lookup is not a seek: ${detail}`);
-      assert.ok(!/SCAN r\b/.test(detail), `the reversal lookup scans the ledger: ${detail}`);
+      assert.match(
+        detail, /SEARCH \w+ USING (COVERING )?INDEX \S+ \(source_ref=\?\)/,
+        `the reversal lookup is not a seek: ${detail}`,
+      );
+      assert.ok(
+        !/SCAN \w+ USING (COVERING )?INDEX \S+ \(source_ref=\?\)/.test(detail),
+        `the reversal lookup scans the ledger: ${detail}`,
+      );
     }
   });
 
