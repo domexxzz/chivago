@@ -2,9 +2,11 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { openTestDb, type DB } from './db.ts';
-import { applyMovement, ensureWallet, getBalances, getLedger } from './wallet-service.ts';
+import {
+  applyMovement, awardQuestReward, ensureWallet, getBalances, getLedger, reverseMovement,
+} from './wallet-service.ts';
 import { inbox } from './notification-service.ts';
-import { arriveAtQuest, distanceMetres, getProgress, InvalidTransition, joinQuest, OutsideGeofence, resolveVerification, submitProof, TooSoonAfterArrival } from './quest-service.ts';
+import { arriveAtQuest, distanceMetres, getProgress, InvalidTransition, joinQuest, OutsideGeofence, questCountsFor, resolveVerification, submitProof, TooSoonAfterArrival } from './quest-service.ts';
 import { FixTooCoarse, MockedLocation } from './presence-service.ts';
 
 let db: DB;
@@ -416,5 +418,63 @@ describe('a party on one proof', () => {
     arriveAtQuest(db, USER, QUEST, SITE);
     const { partyPresent } = submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: null }, at);
     assert.deepEqual(partyPresent, []);
+  });
+});
+
+/**
+ * What a sponsor is shown their money produced.
+ *
+ * `questCountsFor` feeds the `/sponsor` page in the host console, which is the
+ * report a buyer reads. `sponsorship.ts` in core already refuses to lead with
+ * joins there, on the grounds that a join has cost the sponsor money and
+ * delivered nothing. Green that was issued and then clawed back is the same
+ * claim in a worse form: it delivered something and then stopped having.
+ *
+ * The fixture in `beforeEach` already grants an opening balance as an
+ * `adjustment`, so every test here is also standing on the guard against the
+ * over-fix — `kind <> 'adjustment'` would have changed what that gift means.
+ */
+describe('a sponsor is not billed a second time for work that was taken back', () => {
+  const award = (questId: string, points = 150) => awardQuestReward(db, {
+    userId: USER, questId, questName: 'Beach Cleanup', host: 'Samui Municipality',
+    points, currency: 'green',
+  });
+  const takeBack = (questId: string) => reverseMovement(db, {
+    userId: USER, originalSourceRef: `quest:${questId}:user:${USER}`,
+    reason: 'proof was not what it claimed',
+  });
+  const issued = (questId: string) =>
+    questCountsFor(db, [questId]).find((c) => c.questId === questId)!.greenPointsIssued;
+
+  test('green that was clawed back is not still reported as issued', () => {
+    award(QUEST);
+    assert.equal(issued(QUEST), 150);
+
+    takeBack(QUEST);
+    assert.equal(issued(QUEST), 0, 'the sponsor report still counted the withdrawn award');
+  });
+
+  test('a quest that only ever had reversals reports zero, not a negative', () => {
+    // The SUM drops the reversed row rather than adding its negative twin. If
+    // it had added it, a quest whose only award was unwound would report -150
+    // green issued, which is not a thing that can have happened.
+    award(QUEST);
+    takeBack(QUEST);
+    assert.equal(issued(QUEST), 0);
+  });
+
+  test('one reversal does not take the rest of the quest’s green with it', () => {
+    db.prepare('INSERT INTO users (id, display_name, created_at) VALUES (?,?,?)')
+      .run('bo', 'Bo', new Date().toISOString());
+    ensureWallet(db, 'bo');
+    award(QUEST);
+    awardQuestReward(db, {
+      userId: 'bo', questId: QUEST, questName: 'Beach Cleanup',
+      host: 'Samui Municipality', points: 150, currency: 'green',
+    });
+    assert.equal(issued(QUEST), 300);
+
+    takeBack(QUEST);
+    assert.equal(issued(QUEST), 150, 'one traveller’s reversal emptied the whole quest');
   });
 });

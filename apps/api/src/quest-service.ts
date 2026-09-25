@@ -17,6 +17,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { rows, transact, type DB } from './db.ts';
+import { notReversed } from './ledger-sql.ts';
 import { isRejectionReasonKey, rejectionMessage, QUEST_MIN_DWELL_MIN, type Fix, type QuestCounts, type ProofPhoto, type Balances, type Currency, type QuestProgress, type QuestStage,
   type RejectionReasonKey } from '@chivago/core';
 import { assertPresence, recordFix } from './presence-service.ts';
@@ -211,6 +212,7 @@ export function questCountsFor(db: DB, questIds: string[]): QuestCounts[] {
                 SUM(l.amount) AS total
          FROM ledger l
          WHERE l.kind = 'quest_reward' AND l.currency = 'green'
+           AND ${notReversed('l')}
          GROUP BY quest_id`,
       ).all(),
     ).map((r) => [r.quest_id, r.total]),
