@@ -27,6 +27,7 @@ import {
   type RequestOutcome,
 } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
+import { notReversed } from './ledger-sql.ts';
 import { activePartyFor, joinPartyById, membersOf } from './party-service.ts';
 
 export class InviteRefused extends Error {
@@ -282,9 +283,14 @@ export function pendingFor(db: DB, userId: string, now = new Date()): PendingReq
   return rows<{ invite_id: string; user_id: string; display_name: string; asked_at: string; missions: number }>(
     db.prepare(
       `SELECT r.invite_id, r.user_id, u.display_name, r.asked_at,
+              -- Work a host withdrew is not work. The party is about to
+              -- decide on a stranger with this number and nothing else, so it
+              -- is the last figure that should still be counting a quest the
+              -- system itself stopped believing.
               (SELECT COUNT(DISTINCT CASE WHEN l.kind = 'quest_reward' AND l.currency = 'green'
                                           THEN l.source_ref END)
-                 FROM ledger l WHERE l.user_id = r.user_id) AS missions
+                 FROM ledger l
+                WHERE l.user_id = r.user_id AND ${notReversed('l')}) AS missions
        FROM invite_requests r
        JOIN party_invites i ON i.id = r.invite_id
        JOIN users u ON u.id = r.user_id

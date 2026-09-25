@@ -3,7 +3,9 @@ import { test, describe, beforeEach } from 'node:test';
 
 import { MAX_PARTY_SIZE } from '@chivago/core';
 import { openTestDb, type DB } from './db.ts';
-import { ensureWallet, applyMovement } from './wallet-service.ts';
+import {
+  applyMovement, awardQuestReward, ensureWallet, reverseMovement,
+} from './wallet-service.ts';
 import { createParty, joinParty, membersOf } from './party-service.ts';
 import {
   InviteRefused, closeInvite, decideRequest, inviteById, listingsAt,
@@ -336,5 +338,84 @@ describe('the party figure on a listing is the one the standing uses', () => {
     assert.equal(listingsAt(db, 'mangrove', 'ana', NOW)[0]?.yours, true);
     assert.equal(listingsAt(db, 'mangrove', 'bo', NOW)[0]?.yours, false);
     assert.equal(listingsAt(db, 'mangrove', null, NOW)[0]?.yours, false);
+  });
+});
+
+/**
+ * The one number a party gets, and it has to be true.
+ *
+ * `pendingFor` deliberately hands over a single figure about a stranger —
+ * missions a host verified — and nothing else: no balance, no position, no
+ * name beyond a display name. The whole design rests on that number meaning
+ * what it says, because the party has nothing else to decide on.
+ *
+ * So a quest a host later withdrew must stop counting here before it stops
+ * counting anywhere. Awarded and unwound through the real functions, not by
+ * writing a `reversal:` row by hand: on the day `reverseMovement` changes how
+ * it writes, this fails rather than passing on a fiction.
+ */
+describe('a withdrawn quest stops counting on the request', () => {
+  const post = () => {
+    createParty(db, 'ana', 'Two slow walkers', NOW);
+    return postInvite(db, 'ana', goodInvite, NOW);
+  };
+  const award = (userId: string, questId: string) => awardQuestReward(db, {
+    userId, questId, questName: questId, host: 'Samui Municipality', points: 120, currency: 'green',
+  });
+  const takeBack = (userId: string, questId: string) => reverseMovement(db, {
+    userId, originalSourceRef: `quest:${questId}:user:${userId}`, reason: 'proof was not what it claimed',
+  });
+
+  test('the count falls when a host takes one back', () => {
+    const invite = post();
+    award('bo', 'mangrove-planting');
+    award('bo', 'beach-clean');
+    requestJoin(db, 'bo', invite.id, NOW);
+    assert.equal(pendingFor(db, 'ana', NOW)[0]?.missionsVerified, 2);
+
+    takeBack('bo', 'beach-clean');
+    assert.equal(
+      pendingFor(db, 'ana', NOW)[0]?.missionsVerified, 1,
+      'the party was told about a quest the system had already stopped believing',
+    );
+  });
+
+  test('somebody with nothing left is still shown, at zero', () => {
+    // The request must not vanish when the count reaches zero. A party that
+    // cannot see the asker cannot answer them, and an unanswered request is
+    // the failure this feature was built to stop.
+    const invite = post();
+    award('bo', 'mangrove-planting');
+    takeBack('bo', 'mangrove-planting');
+    requestJoin(db, 'bo', invite.id, NOW);
+
+    const waiting = pendingFor(db, 'ana', NOW);
+    assert.equal(waiting.length, 1, 'the request disappeared');
+    assert.equal(waiting[0]?.missionsVerified, 0);
+  });
+
+  test('one asker’s reversal does not touch another’s count', () => {
+    const invite = post();
+    award('bo', 'beach-clean');
+    award('cara', 'beach-clean');
+    requestJoin(db, 'bo', invite.id, NOW);
+    requestJoin(db, 'cara', invite.id, NOW);
+    takeBack('bo', 'beach-clean');
+
+    const waiting = pendingFor(db, 'ana', NOW);
+    assert.equal(waiting.find((w) => w.userId === 'bo')?.missionsVerified, 0);
+    assert.equal(waiting.find((w) => w.userId === 'cara')?.missionsVerified, 1);
+  });
+
+  test('an opening balance is an adjustment, and was never a mission', () => {
+    // Guards the over-fix, not the fix: passes with the change in and out.
+    const invite = post();
+    applyMovement(db, {
+      userId: 'bo', label: 'Welcome', host: 'ChivaGo', amount: 1240, currency: 'green',
+      kind: 'adjustment', sourceRef: 'opening:green:user:bo',
+    });
+    award('bo', 'beach-clean');
+    requestJoin(db, 'bo', invite.id, NOW);
+    assert.equal(pendingFor(db, 'ana', NOW)[0]?.missionsVerified, 1);
   });
 });
