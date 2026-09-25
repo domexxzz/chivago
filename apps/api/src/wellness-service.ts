@@ -222,6 +222,7 @@ export function habitatEvidenceFor(db: DB, userId: string): HabitatEvidence[] {
        JOIN quests q ON q.id = substr(l.source_ref, 7, instr(substr(l.source_ref, 7), ':') - 1)
        JOIN places p ON p.lat = q.lat AND p.lng = q.lng
        WHERE l.user_id = ? AND l.kind = 'quest_reward'
+         AND ${notReversed('l')}
        GROUP BY p.layer`,
     ).all(userId),
   );
@@ -234,7 +235,14 @@ export function habitatEvidenceFor(db: DB, userId: string): HabitatEvidence[] {
     monster mechanic takes of the same rows.
   */
   const walks = rows<{ source_ref: string }>(
-    db.prepare("SELECT source_ref FROM ledger WHERE user_id = ? AND kind = 'walk'").all(userId),
+    // Aliased `l` only so the reversal check has a row to name. A single leg
+    // hatches an egg (`walkedLegs >= 1` in core), so one withdrawn walk is the
+    // difference between a companion existing and not - which is why this is
+    // filtered in SQL rather than counted in JS and corrected afterwards.
+    db.prepare(
+      `SELECT l.source_ref FROM ledger l
+        WHERE l.user_id = ? AND l.kind = 'walk' AND ${notReversed('l')}`,
+    ).all(userId),
   );
   const layerOfPlace = new Map(
     rows<{ id: string; layer: string }>(db.prepare('SELECT id, layer FROM places').all())

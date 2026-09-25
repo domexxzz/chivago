@@ -7,7 +7,9 @@ import {
   balanceFor, habitatEvidenceFor, latestMood, moodHistory, provinceEvidenceFor,
   recordMood, UnknownMood,
 } from './wellness-service.ts';
-import { awardQuestReward, ensureWallet, reverseMovement } from './wallet-service.ts';
+import {
+  awardQuestReward, awardWalk, ensureWallet, reverseMovement,
+} from './wallet-service.ts';
 
 let db: DB;
 const NOW = new Date('2026-08-31T06:00:00.000Z');
@@ -372,5 +374,109 @@ describe('a province mascot does not grow on work that was taken back', () => {
     takeBack('q1');
     assert.equal(verifiedIn('TH-84'), 0);
     assert.equal(verifiedIn('TH-20'), 1, 'a reversal in one province emptied another');
+  });
+});
+
+/**
+ * A companion that hatched on a walk somebody took back.
+ *
+ * `habitatEvidenceFor` feeds `GET /companions`, which `HomeScreen` and
+ * `GameScreen` both open on. Two thresholds in `packages/core/src/companions.ts`
+ * sit on it and both are ONE: a single measured leg hatches an egg
+ * (`walkedLegs >= 1`), and a single verified quest grows the creature
+ * (`questsVerified > 0`).
+ *
+ * That is what makes this the sharpest of the seven. Elsewhere a reversal
+ * moves a number by one. Here it is the difference between a companion
+ * existing and not — so the walk is filtered in SQL rather than counted in JS
+ * and corrected afterwards.
+ */
+describe('a companion does not hatch or grow on work that was taken back', () => {
+  const walk = (from: string, to: string, day: string) => awardWalk(db, {
+    userId: 'u1', fromId: from, fromName: from, toId: to, toName: to,
+    points: 30, dayKey: day, occurredAt: `${day}T04:00:00.000Z`,
+  });
+  const takeBackWalk = (from: string, to: string, day: string) => reverseMovement(db, {
+    userId: 'u1', originalSourceRef: `walk:${from}:${to}:user:u1:${day}`,
+    reason: 'the trace was not a walk',
+  });
+  const legsIn = (layer: string) =>
+    habitatEvidenceFor(db, 'u1').find((h) => h.layer === layer)?.walkedLegs ?? 0;
+
+  test('a withdrawn leg un-hatches the egg it hatched', () => {
+    // The one that would have been noticed last and mattered most: a creature
+    // on the home screen with nothing behind it.
+    seedThree();
+    ensureWallet(db, 'u1');
+    walk('namuang', 'lamai', '2026-08-30');
+    assert.equal(legsIn('Green'), 1, 'the leg did not count in the first place');
+
+    takeBackWalk('namuang', 'lamai', '2026-08-30');
+    assert.equal(legsIn('Green'), 0, 'the egg stayed hatched on a walk that was taken back');
+  });
+
+  test('a leg counts at both ends, and stops counting at both', () => {
+    // `walk:<from>:<to>` is read at both habitats, so a reversal that only
+    // reached one end would leave the creature standing in the other.
+    seedThree();
+    ensureWallet(db, 'u1');
+    walk('namuang', 'lamai', '2026-08-30');
+    assert.deepEqual([legsIn('Green'), legsIn('Wellness')], [1, 1]);
+
+    takeBackWalk('namuang', 'lamai', '2026-08-30');
+    assert.deepEqual([legsIn('Green'), legsIn('Wellness')], [0, 0]);
+  });
+
+  test('one withdrawn leg does not take the others with it', () => {
+    seedThree();
+    ensureWallet(db, 'u1');
+    walk('namuang', 'lamai', '2026-08-30');
+    walk('namuang', 'chaweng', '2026-08-31');
+    assert.equal(legsIn('Green'), 2);
+
+    takeBackWalk('namuang', 'lamai', '2026-08-30');
+    assert.equal(legsIn('Green'), 1);
+    assert.equal(legsIn('Safe'), 1, 'an untouched leg was dropped');
+    assert.equal(legsIn('Wellness'), 0);
+  });
+
+  test('a withdrawn quest stops growing the creature', () => {
+    seedThree();
+    ensureWallet(db, 'u1');
+    db.prepare('INSERT OR IGNORE INTO hosts (id, name, type) VALUES (?,?,?)')
+      .run('h-samui', 'Samui team', 'community');
+    db.prepare(
+      `INSERT INTO quests (id, code, name_en, name_th, where_label, duration, reward_points,
+         host_id, kind, lat, lng, geofence_radius_m)
+       VALUES ('q1','Q1','q1','q1','Na Muang','1 hr',40,'h-samui','today',9.5,100.0,250)`,
+    ).run();
+    awardQuestReward(db, {
+      userId: 'u1', questId: 'q1', questName: 'q1', host: 'Samui team',
+      points: 40, currency: 'green',
+    });
+    const grown = () =>
+      habitatEvidenceFor(db, 'u1').find((h) => h.layer === 'Green')?.questsVerified ?? 0;
+    assert.equal(grown(), 1);
+
+    reverseMovement(db, {
+      userId: 'u1', originalSourceRef: 'quest:q1:user:u1', reason: 'proof was not what it claimed',
+    });
+    assert.equal(grown(), 0, 'the creature kept growing on a quest that was withdrawn');
+  });
+
+  test('a check-in is not a walk, and is left where it is', () => {
+    // The third read in this function counts check-ins, and it stays as it
+    // was: that is #58's question, and the passport has to answer it the same
+    // way or the two will disagree about the same person. Locked so the
+    // untouched half is a decision rather than an oversight.
+    seedThree();
+    ensureWallet(db, 'u1');
+    walk('namuang', 'lamai', '2026-08-30');
+    checkin('namuang', '2026-08-29');
+    takeBackWalk('namuang', 'lamai', '2026-08-30');
+
+    const green = habitatEvidenceFor(db, 'u1').find((h) => h.layer === 'Green')!;
+    assert.equal(green.walkedLegs, 0);
+    assert.equal(green.visitDays, 1, 'the visit went with the walk');
   });
 });
