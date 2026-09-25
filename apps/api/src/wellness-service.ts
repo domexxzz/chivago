@@ -14,6 +14,7 @@ import {
   type MoodCheckin, type MoodKey,
 } from '@chivago/core';
 import { rows, type DB } from './db.ts';
+import { notReversed } from './ledger-sql.ts';
 
 /** How far back Balance looks. A trip, not a lifetime. */
 export const BALANCE_WINDOW_DAYS = 14;
@@ -183,6 +184,7 @@ export function provinceEvidenceFor(db: DB, userId: string): ProvinceEvidence[] 
        JOIN quests q ON q.id = substr(l.source_ref, 7, instr(substr(l.source_ref, 7), ':') - 1)
        JOIN places p ON p.lat = q.lat AND p.lng = q.lng
        WHERE l.user_id = ? AND l.kind = 'quest_reward' AND p.province IS NOT NULL
+         AND ${notReversed('l')}
        GROUP BY p.province, p.layer`,
     ).all(userId),
   );
