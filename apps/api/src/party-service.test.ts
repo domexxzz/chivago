@@ -3,7 +3,9 @@ import { test, describe, beforeEach } from 'node:test';
 
 import { MAX_PARTY_SIZE, summarise } from '@chivago/core';
 import { openTestDb, type DB } from './db.ts';
-import { applyMovement, ensureWallet, getBalances } from './wallet-service.ts';
+import {
+  applyMovement, awardQuestReward, ensureWallet, getBalances, reverseMovement,
+} from './wallet-service.ts';
 import {
   PartyRefused, activePartyFor, createParty, disbandParty, generatePartyCode,
   joinParty, leaveParty, membersOf, normalisePartyCode,
@@ -236,5 +238,86 @@ describe('the code itself', () => {
     const { party } = createParty(db, 'ana', '   ', NOW);
     const stored = db.prepare('SELECT name FROM parties WHERE id = ?').get(party.id) as { name: string };
     assert.equal(stored.name, 'Our trip');
+  });
+});
+
+/**
+ * A party summary is a set of claims about the people in it.
+ *
+ * `membersOf` is read on `PartyScreen` and again on an invitation, where a
+ * party decides whether to let somebody in. A mission count that still
+ * includes work a host withdrew is the party being asked to trust a number
+ * the system already stopped believing.
+ *
+ * Awarded and unwound through the real functions: a test that hand-wrote a
+ * `reversal:` row would still pass on the day `reverseMovement` changed how
+ * it writes, which is the whole reason #51 put the question in one place.
+ */
+describe('a member is not credited with work that was taken back', () => {
+  const award = (userId: string, questId: string) => awardQuestReward(db, {
+    userId, questId, questName: questId, host: 'Host', points: 100, currency: 'green',
+  });
+  const takeBack = (userId: string, questId: string) => reverseMovement(db, {
+    userId, originalSourceRef: `quest:${questId}:user:${userId}`, reason: 'proof was not what it claimed',
+  });
+  const bo = () => {
+    const party = activePartyFor(db, 'ana')!;
+    return membersOf(db, party.id, 'ana').find((m) => m.userId === 'bo')!;
+  };
+
+  const partyOfTwo = () => {
+    const { code } = createParty(db, 'ana', 'Trip', NOW);
+    joinParty(db, 'bo', code, later(1000));
+  };
+
+  test('the points and the mission count fall together', () => {
+    // Two numbers out of one query, and only one of them is a SUM. A fix that
+    // reached the money and not the count would show a member as having done
+    // two missions for one mission's worth of green.
+    partyOfTwo();
+    award('bo', 'q1');
+    award('bo', 'q2');
+    assert.deepEqual([bo().greenEarned, bo().missionsVerified], [200, 2]);
+
+    takeBack('bo', 'q1');
+    assert.deepEqual([bo().greenEarned, bo().missionsVerified], [100, 1]);
+  });
+
+  test('a member whose every award was taken back stays in the party at zero', () => {
+    // The reversal check sits in the WHERE of the earnings query, so this is
+    // the case that proves a member does not fall out of the summary
+    // altogether when they have nothing left to their name.
+    partyOfTwo();
+    award('bo', 'q1');
+    takeBack('bo', 'q1');
+
+    const members = membersOf(db, activePartyFor(db, 'ana')!.id, 'ana');
+    assert.equal(members.length, 2, 'a member disappeared from the party');
+    assert.deepEqual([bo().greenEarned, bo().missionsVerified], [0, 0]);
+  });
+
+  test('one member’s reversal does not touch another’s', () => {
+    partyOfTwo();
+    award('ana', 'q1');
+    award('bo', 'q1');
+    takeBack('bo', 'q1');
+
+    const members = membersOf(db, activePartyFor(db, 'ana')!.id, 'ana');
+    const ana = members.find((m) => m.userId === 'ana')!;
+    assert.deepEqual([ana.greenEarned, ana.missionsVerified], [100, 1]);
+    assert.deepEqual([bo().greenEarned, bo().missionsVerified], [0, 0]);
+  });
+
+  test('an opening balance is an adjustment, and is still not a mission', () => {
+    // Guards the over-fix rather than the fix: `kind <> 'adjustment'` would
+    // have passed every test above and quietly changed what a new account's
+    // gift means. Passes with the fix in and with it out.
+    partyOfTwo();
+    applyMovement(db, {
+      userId: 'bo', label: 'Welcome', host: 'ChivaGo', amount: 1240, currency: 'green',
+      kind: 'adjustment', sourceRef: 'opening:green:user:bo',
+    });
+    award('bo', 'q1');
+    assert.deepEqual([bo().greenEarned, bo().missionsVerified], [100, 1]);
   });
 });
