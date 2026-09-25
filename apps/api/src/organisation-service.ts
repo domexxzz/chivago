@@ -55,6 +55,8 @@ interface SponsorshipRow {
   org_id: string;
   quest_id: string;
   funded_thb: number;
+  received_thb: number;
+  received_at: string | null;
   per_verified_thb: number;
   basis: string;
   started_at: string;
@@ -87,6 +89,8 @@ export function sponsorshipsFor(db: DB, orgId: string): Sponsorship[] {
     sponsorId: r.org_id,
     questId: r.quest_id,
     fundedTHB: r.funded_thb,
+    receivedTHB: r.received_thb,
+    receivedAt: r.received_at,
     perVerifiedTHB: r.per_verified_thb,
     startedAt: r.started_at,
   }));
@@ -166,6 +170,9 @@ export function addSponsorship(
   db.prepare(
     `INSERT INTO org_sponsorships (org_id, quest_id, funded_thb, per_verified_thb, basis, started_at, created_by)
      VALUES (?,?,?,?,?,?,?)
+     -- received_thb and received_at are deliberately absent from this list.
+     -- Editing the agreement must never touch what arrived: a typo corrected
+     -- in the funded figure is not a reason to forget a transfer that landed.
      ON CONFLICT(org_id, quest_id) DO UPDATE SET
        funded_thb = excluded.funded_thb,
        per_verified_thb = excluded.per_verified_thb,
@@ -174,13 +181,42 @@ export function addSponsorship(
        created_by = excluded.created_by`,
   ).run(input.orgId, input.questId, input.fundedTHB, input.perVerifiedTHB, basis, startedAt, by);
 
-  return {
-    sponsorId: input.orgId,
-    questId: input.questId,
-    fundedTHB: input.fundedTHB,
-    perVerifiedTHB: input.perVerifiedTHB,
-    startedAt,
-  };
+  // Read back rather than assembled, so the payment an edit did not touch is
+  // in the returned value instead of a zero the caller would believe.
+  return sponsorshipsFor(db, input.orgId)
+    .find((s) => s.questId === input.questId)!;
+}
+
+/**
+ * Record money that arrived.
+ *
+ * SEPARATE FROM `addSponsorship` ON PURPOSE. Agreeing an amount and receiving
+ * it are different acts, usually days apart and often by different people, and
+ * a single form that took both would invite the figure to be typed once and
+ * read as cash.
+ *
+ * Cumulative, not a running total the caller maintains: every call says what
+ * the balance IS, and `received_at` moves with it. A sponsor paying in two
+ * instalments is the ordinary case, not an edge one.
+ */
+export function recordPayment(
+  db: DB,
+  args: { orgId: string; questId: string; receivedTHB: number },
+  now = new Date(),
+): Sponsorship {
+  const held = sponsorshipsFor(db, args.orgId).find((s) => s.questId === args.questId);
+  if (!held) throw new InvalidFunding(`No funding line joins ${args.orgId} to ${args.questId}.`);
+  if (!Number.isFinite(args.receivedTHB) || args.receivedTHB < 0) {
+    throw new InvalidFunding('Money received must be a number of baht, and not a negative one.');
+  }
+  // More arriving than was agreed is not refused - sponsors overpay, and a
+  // system that threw the difference away would be hiding the sponsor's money
+  // rather than the mistake. It simply shows as nothing owed.
+  db.prepare(
+    'UPDATE org_sponsorships SET received_thb = ?, received_at = ? WHERE org_id = ? AND quest_id = ?',
+  ).run(args.receivedTHB, args.receivedTHB > 0 ? now.toISOString() : null, args.orgId, args.questId);
+
+  return sponsorshipsFor(db, args.orgId).find((s) => s.questId === args.questId)!;
 }
 
 export function removeSponsorship(db: DB, orgId: string, questId: string): boolean {

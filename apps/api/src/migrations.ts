@@ -1023,5 +1023,30 @@ export function migrate(db: DB): string[] {
   `);
   applied.push('transit_sightings');
 
+  /*
+    Money agreed and money ARRIVED are two different facts.
+
+    `funded_thb` is what the agreement says, typed in by a moderator, and
+    `basis` already separates somebody's entry from a signed contract. Neither
+    of them means PAID - and `sponsorOutcome` was reporting the unspent
+    remainder as "still held", which is a claim about cash. Nothing in this
+    system had ever recorded cash arriving, so a signed pledge nobody had
+    honoured read on the sponsor page as money in hand.
+
+    It is the same defect the reversal sprint spent six pull requests clearing
+    out of the points economy: a figure that goes on counting something that
+    has not happened. Money is the one place it would be found by an
+    accountant rather than by us.
+
+    Defaults are 0 and NULL, so every existing row reads as "agreed, nothing
+    received", which is the safe direction to be wrong in.
+  */
+  if (addColumn(db, 'org_sponsorships', 'received_thb', 'INTEGER NOT NULL DEFAULT 0')) {
+    applied.push('org_sponsorships.received_thb');
+  }
+  if (addColumn(db, 'org_sponsorships', 'received_at', 'TEXT')) {
+    applied.push('org_sponsorships.received_at');
+  }
+
   return applied;
 }

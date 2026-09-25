@@ -82,7 +82,7 @@ export function sponsorPage(
     -->
     <section class="figures">
       ${figure(String(outcome.verified), 'Verified by a host', 'ผ่านการตรวจโดยผู้จัด', 'lead')}
-      ${figure(baht(outcome.toCommunityTHB), 'Reached hosts', 'ถึงมือผู้จัด')}
+      ${figure(baht(outcome.toCommunityTHB), 'Earned by hosts', 'ผู้จัดได้รับสิทธิ์')}
       ${figure(
     outcome.costPerVerifiedTHB === null ? '—' : baht(outcome.costPerVerifiedTHB),
     'Per verified action', 'ต่อหนึ่งภารกิจที่ผ่าน',
@@ -95,14 +95,26 @@ export function sponsorPage(
       <table>
         <tbody>
           <tr><th>Committed · ที่ให้ไว้</th><td>${baht(outcome.fundedTHB)}</td></tr>
-          <tr><th>Paid out on approvals · จ่ายตามการอนุมัติ</th><td>${baht(outcome.toCommunityTHB)}</td></tr>
-          <tr><th>Not yet spent · ยังไม่ถูกใช้</th><td>${baht(outcome.unspentTHB)}</td></tr>
+          <tr><th>Received · รับมาแล้ว</th><td>${baht(outcome.receivedTHB)}</td></tr>
+          ${outcome.owedBySponsorTHB > 0
+    ? `<tr><th>Pledged, not paid · ให้ไว้แต่ยังไม่ได้รับ</th><td>${baht(outcome.owedBySponsorTHB)}</td></tr>`
+    : ''}
+          <tr><th>Earned on approvals · ผู้จัดได้รับสิทธิ์ตามการอนุมัติ</th><td>${baht(outcome.toCommunityTHB)}</td></tr>
+          <tr><th>Received and unspent · รับมาแล้วยังไม่ถูกใช้</th><td>${baht(outcome.unspentTHB)}</td></tr>
         </tbody>
       </table>
+      ${outcome.toCommunityTHB > outcome.receivedTHB
+    ? `<p class="note danger" style="padding:12px">Hosts have earned more than this partner has sent.
+         Nothing here is holding the difference.
+         <span lang="th">ผู้จัดได้รับสิทธิ์มากกว่าเงินที่พันธมิตรรายนี้โอนมาแล้ว
+         ส่วนต่างนี้ไม่มีใครถืออยู่</span></p>`
+    : ''}
       <p class="note">
-        Paid out is counted from approvals, never from the budget. A quest cannot
-        pay a host more than its sponsor committed.
-        <span lang="th">จ่ายจริงนับจากการอนุมัติ ไม่ได้นับจากงบ</span>
+        Earned is counted from approvals, never from the budget, and never from
+        what was pledged. A quest cannot earn a host more than its sponsor
+        committed, and unspent counts only money that arrived.
+        <span lang="th">สิทธิ์ที่ผู้จัดได้นับจากการอนุมัติ ไม่ได้นับจากงบหรือจากเงินที่สัญญาไว้
+        และเงินที่ยังไม่ถูกใช้นับเฉพาะเงินที่เข้ามาจริง</span>
       </p>
     </section>
 

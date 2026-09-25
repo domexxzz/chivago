@@ -4,7 +4,7 @@ import { test, describe, beforeEach } from 'node:test';
 import { openTestDb, type DB } from './db.ts';
 import {
   InvalidFunding, UnknownOrganisation, addOrganisation, addSponsorship, basisFor,
-  listOrganisations, organisationById, removeSponsorship, sponsorshipsFor,
+  listOrganisations, organisationById, recordPayment, removeSponsorship, sponsorshipsFor,
 } from './organisation-service.ts';
 
 let db: DB;
@@ -117,5 +117,123 @@ describe('what it funded, and whether anything stands behind it', () => {
     addSponsorship(db, { orgId: a.id, questId: 'q1', fundedTHB: 1_000, perVerifiedTHB: 10 }, null, T);
     assert.equal(sponsorshipsFor(db, a.id).length, 1);
     assert.deepEqual(sponsorshipsFor(db, b.id), []);
+  });
+});
+
+/**
+ * Agreed and received are two facts, and only one of them is money.
+ *
+ * `funded_thb` is a figure a moderator types; `basis` already separates
+ * somebody's entry from a signed contract. Neither means PAID — and
+ * `sponsorOutcome` was reporting the remainder as "still held", which is a
+ * claim about cash nothing in this system had ever recorded arriving.
+ *
+ * So the two live in different columns and are written by different calls, on
+ * purpose: agreeing an amount and receiving it are different acts, usually
+ * days apart and often by different people.
+ */
+describe('a pledge and a payment are written separately', () => {
+  const fundQ1 = (thb = 10_000) => {
+    const org = uni();
+    addSponsorship(db, { orgId: org.id, questId: 'q1', fundedTHB: thb, perVerifiedTHB: 200 }, 'Nok', T);
+    return org;
+  };
+  const line = (orgId: string, questId = 'q1') =>
+    sponsorshipsFor(db, orgId).find((s) => s.questId === questId)!;
+
+  test('a new line has been agreed and not paid', () => {
+    const org = fundQ1();
+    assert.equal(line(org.id).fundedTHB, 10_000);
+    assert.equal(line(org.id).receivedTHB, 0);
+    assert.equal(line(org.id).receivedAt, null);
+  });
+
+  test('a payment is recorded with the day it landed', () => {
+    const org = fundQ1();
+    const paid = new Date('2026-09-26T03:00:00.000Z');
+    recordPayment(db, { orgId: org.id, questId: 'q1', receivedTHB: 4_000 }, paid);
+    assert.equal(line(org.id).receivedTHB, 4_000);
+    assert.equal(line(org.id).receivedAt, paid.toISOString());
+  });
+
+  test('a second instalment replaces the balance rather than adding to itself', () => {
+    // Cumulative by design: every call says what the balance IS. A caller
+    // maintaining a running total is a caller who will double it one day.
+    const org = fundQ1();
+    recordPayment(db, { orgId: org.id, questId: 'q1', receivedTHB: 4_000 }, T);
+    recordPayment(db, { orgId: org.id, questId: 'q1', receivedTHB: 10_000 }, T);
+    assert.equal(line(org.id).receivedTHB, 10_000);
+  });
+
+  test('EDITING THE AGREEMENT DOES NOT FORGET THE TRANSFER', () => {
+    // The one that would have been lost quietly. `addSponsorship` upserts, and
+    // a correction to the funded figure - a typo, a renegotiation - must not
+    // take a payment that already landed with it.
+    const org = fundQ1();
+    recordPayment(db, { orgId: org.id, questId: 'q1', receivedTHB: 10_000 }, T);
+
+    addSponsorship(
+      db,
+      { orgId: org.id, questId: 'q1', fundedTHB: 12_000, perVerifiedTHB: 200, basis: 'signed' },
+      'Nok', T,
+    );
+    assert.equal(line(org.id).fundedTHB, 12_000);
+    assert.equal(line(org.id).receivedTHB, 10_000, 'the payment was wiped by an edit');
+  });
+
+  test('what addSponsorship returns carries the payment it did not touch', () => {
+    // It used to assemble its return value from its own arguments, which knew
+    // nothing about `received_thb`. A caller believing that zero would be
+    // reading a balance the database does not hold.
+    const org = fundQ1();
+    recordPayment(db, { orgId: org.id, questId: 'q1', receivedTHB: 10_000 }, T);
+    const again = addSponsorship(
+      db, { orgId: org.id, questId: 'q1', fundedTHB: 10_000, perVerifiedTHB: 200 }, 'Nok', T,
+    );
+    assert.equal(again.receivedTHB, 10_000);
+  });
+
+  test('a refund to zero clears the date with it', () => {
+    const org = fundQ1();
+    recordPayment(db, { orgId: org.id, questId: 'q1', receivedTHB: 10_000 }, T);
+    recordPayment(db, { orgId: org.id, questId: 'q1', receivedTHB: 0 }, T);
+    assert.equal(line(org.id).receivedTHB, 0);
+    assert.equal(line(org.id).receivedAt, null, 'a date stayed behind on a balance of nothing');
+  });
+
+  test('money that is not a number of baht is refused', () => {
+    const org = fundQ1();
+    for (const bad of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
+      assert.throws(
+        () => recordPayment(db, { orgId: org.id, questId: 'q1', receivedTHB: bad }, T),
+        InvalidFunding,
+      );
+    }
+  });
+
+  test('a payment against a line that does not exist is refused, not created', () => {
+    const org = uni();
+    assert.throws(
+      () => recordPayment(db, { orgId: org.id, questId: 'q1', receivedTHB: 100 }, T),
+      InvalidFunding,
+    );
+  });
+
+  test('more arriving than was agreed is kept, not capped', () => {
+    // A sponsor who sends more than agreed has sent it. Capping would hide
+    // their money rather than the mistake; the report shows nothing owed.
+    const org = fundQ1();
+    recordPayment(db, { orgId: org.id, questId: 'q1', receivedTHB: 12_000 }, T);
+    assert.equal(line(org.id).receivedTHB, 12_000);
+  });
+
+  test('a database written before the split reads as agreed, nothing received', () => {
+    // The migration's default, checked rather than assumed: every row that
+    // existed before today is a pledge whose payment nobody recorded, and
+    // that is the safe direction to be wrong in.
+    const org = fundQ1();
+    db.prepare('UPDATE org_sponsorships SET received_thb = 0, received_at = NULL').run();
+    assert.equal(line(org.id).receivedTHB, 0);
+    assert.equal(line(org.id).receivedAt, null);
   });
 });
