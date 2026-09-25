@@ -4,8 +4,10 @@ import { test, describe, beforeEach } from 'node:test';
 import { openTestDb, type DB } from './db.ts';
 import { companionsFor } from '@chivago/core';
 import {
-  balanceFor, habitatEvidenceFor, latestMood, moodHistory, recordMood, UnknownMood,
+  balanceFor, habitatEvidenceFor, latestMood, moodHistory, provinceEvidenceFor,
+  recordMood, UnknownMood,
 } from './wellness-service.ts';
+import { awardQuestReward, ensureWallet, reverseMovement } from './wallet-service.ts';
 
 let db: DB;
 const NOW = new Date('2026-08-31T06:00:00.000Z');
@@ -266,5 +268,109 @@ describe('erasure actually erases', () => {
       "SELECT COUNT(*) AS c FROM sqlite_master WHERE type='index' AND name='idx_mood_user_at'",
     ).get() as { c: number };
     assert.equal(idx.c, 1);
+  });
+});
+
+/**
+ * A province mascot grows on verified work, so withdrawn work must not grow it.
+ *
+ * `provinceEvidenceFor` feeds `GET /passport`, and `provinceLevelFor` in core
+ * turns `questsVerified` into the level of that province's animal. A level is
+ * the most visible claim in the game layer — it is printed beside the mascot
+ * on `PassportScreen` and again on the seventy-seven — and a level standing on
+ * a quest a host withdrew is the game asserting something the ledger stopped
+ * saying.
+ *
+ * Awarded and unwound through the real functions, so the day `reverseMovement`
+ * changes how it writes, this fails instead of passing on a fiction.
+ */
+describe('a province mascot does not grow on work that was taken back', () => {
+  const HOST = 'h-surat';
+  const SITE = { lat: 9.132, lng: 99.333 };
+
+  const provinceSite = (placeId: string, province: string) => {
+    db.prepare(
+      `INSERT INTO places (id, name_en, name_th, short, layer, province, lat, lng, meta,
+         blurb_en, blurb_th, safety_label_en, safety_label_th,
+         crowd_density, aqi, safety_index, walkability)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ).run(placeId, placeId, placeId, placeId, 'Green', province, SITE.lat, SITE.lng,
+      'meta', 'en', 'th', 'safe', 'ปลอดภัย', 0.5, 24, 8, 8);
+    db.prepare('INSERT OR IGNORE INTO hosts (id, name, type) VALUES (?,?,?)')
+      .run(HOST, 'Surat team', 'community');
+  };
+
+  const quest = (questId: string) =>
+    db.prepare(
+      `INSERT INTO quests (id, code, name_en, name_th, where_label, duration, reward_points,
+         host_id, kind, lat, lng, geofence_radius_m)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ).run(questId, questId.toUpperCase(), questId, questId, 'Ban Na San', '1 hr', 40,
+      HOST, 'today', SITE.lat, SITE.lng, 250);
+
+  const award = (questId: string) => awardQuestReward(db, {
+    userId: 'u1', questId, questName: questId, host: 'Surat team', points: 40, currency: 'green',
+  });
+  const takeBack = (questId: string) => reverseMovement(db, {
+    userId: 'u1', originalSourceRef: `quest:${questId}:user:u1`,
+    reason: 'proof was not what it claimed',
+  });
+  const verifiedIn = (province: string) =>
+    provinceEvidenceFor(db, 'u1').find((e) => e.code === province)?.questsVerified ?? 0;
+
+  test('a withdrawn quest stops counting towards the province', () => {
+    provinceSite('bannasan', 'TH-84');
+    quest('q1');
+    quest('q2');
+    ensureWallet(db, 'u1');
+    award('q1');
+    award('q2');
+    assert.equal(verifiedIn('TH-84'), 2);
+
+    takeBack('q1');
+    assert.equal(verifiedIn('TH-84'), 1, 'the mascot kept a level it no longer had the work for');
+  });
+
+  test('a province whose only quest was withdrawn drops to zero, not out of the list', () => {
+    // The row survives because the check-in half of this function is
+    // untouched: somebody who stood there still stood there. What goes is the
+    // claim about work, which is the only thing a level is built on.
+    provinceSite('bannasan', 'TH-84');
+    quest('q1');
+    ensureWallet(db, 'u1');
+    award('q1');
+    checkin('bannasan', '2026-08-30');
+    takeBack('q1');
+
+    const evidence = provinceEvidenceFor(db, 'u1').find((e) => e.code === 'TH-84');
+    assert.ok(evidence, 'the province vanished from the passport');
+    assert.equal(evidence.questsVerified, 0);
+    assert.equal(evidence.visitDays, 1, 'the visit was thrown away with the quest');
+  });
+
+  test('one province’s reversal leaves another province alone', () => {
+    provinceSite('bannasan', 'TH-84');
+    quest('q1');
+    ensureWallet(db, 'u1');
+    award('q1');
+
+    // A second province, at its own coordinates.
+    db.prepare(
+      `INSERT INTO places (id, name_en, name_th, short, layer, province, lat, lng, meta,
+         blurb_en, blurb_th, safety_label_en, safety_label_th,
+         crowd_density, aqi, safety_index, walkability)
+       VALUES ('sriracha','sriracha','sriracha','sriracha','Green','TH-20',13.12,100.92,
+               'meta','en','th','safe','ปลอดภัย',0.5,24,8,8)`,
+    ).run();
+    db.prepare(
+      `INSERT INTO quests (id, code, name_en, name_th, where_label, duration, reward_points,
+         host_id, kind, lat, lng, geofence_radius_m)
+       VALUES ('q9','Q9','q9','q9','Si Racha','1 hr',40,?,'today',13.12,100.92,250)`,
+    ).run(HOST);
+    award('q9');
+
+    takeBack('q1');
+    assert.equal(verifiedIn('TH-84'), 0);
+    assert.equal(verifiedIn('TH-20'), 1, 'a reversal in one province emptied another');
   });
 });
