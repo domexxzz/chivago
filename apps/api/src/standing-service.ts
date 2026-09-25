@@ -13,6 +13,7 @@
  */
 
 import { rows, type DB } from './db.ts';
+import { notReversed } from './ledger-sql.ts';
 import type { HostStanding, TravellerStanding, HostType } from '@chivago/core';
 
 /**
@@ -55,6 +56,7 @@ export function hostStandings(db: DB): HostStanding[] {
          JOIN quests q
            ON q.id = substr(l.source_ref, 7, instr(substr(l.source_ref, 7), ':') - 1)
          WHERE l.kind = 'quest_reward' AND l.currency = 'green' AND l.amount > 0
+           AND ${notReversed('l')}
          GROUP BY q.host_id`,
       ).all(),
     ).map((r) => [r.host_id, r.total]),
@@ -100,7 +102,11 @@ export function travellerStandings(db: DB): TravellerStanding[] {
               COUNT(DISTINCT CASE WHEN l.kind = 'quest_reward' AND l.currency = 'green'
                                   THEN l.source_ref END)      AS missions
        FROM users u
-       LEFT JOIN ledger l ON l.user_id = u.id
+       -- Reversed rows are dropped in the JOIN rather than inside both CASEs
+       -- above: once per row instead of twice, and the LEFT JOIN still keeps a
+       -- traveller whose every award was taken back - they appear at zero,
+       -- which is the true answer, rather than vanishing from the table.
+       LEFT JOIN ledger l ON l.user_id = u.id AND ${notReversed('l')}
        GROUP BY u.id`,
     ).all(),
   ).map((r) => ({

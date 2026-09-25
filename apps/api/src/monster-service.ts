@@ -27,6 +27,7 @@ import {
 } from '@chivago/core';
 import type { Bilingual } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
+import { notReversed } from './ledger-sql.ts';
 
 export interface StandingMonster {
   key: MonsterKey;
@@ -64,18 +65,15 @@ interface PlaceRow {
   for as long as they did.
 */
 
-/**
- * A deed that has been taken back is not a deed.
- *
- * `reverseMovement` in wallet-service.ts never edits or deletes the row it
- * unwinds; it inserts the opposite movement with `source_ref` set to
- * `reversal:` + the original's. So "was this reversed" is one lookup, and it
- * is an index seek rather than a scan because `source_ref` is UNIQUE.
- *
- * Both reads use it, and `l` is the ledger row being judged in each.
- */
-const NOT_REVERSED =
-  "NOT EXISTS (SELECT 1 FROM ledger r WHERE r.source_ref = 'reversal:' || l.source_ref)";
+/*
+  The reversal check moved to `ledger-sql.ts` in #51.
+
+  It was written here and it was right here, but six other reads needed the
+  same question and a copy in each of them is six places to miss on the day
+  `reverseMovement` changes how it writes. `l` is still the alias of the row
+  being judged in both reads below.
+*/
+const NOT_REVERSED = notReversed('l');
 
 /**
  * Verified quests, by the place their quest sits at.
