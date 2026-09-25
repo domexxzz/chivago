@@ -13,6 +13,7 @@
 
 import { randomBytes, randomInt } from 'node:crypto';
 import { row, rows, type DB } from './db.ts';
+import { notReversed } from './ledger-sql.ts';
 import { hashToken } from './account-service.ts';
 import { MAX_PARTY_SIZE, type JoinFailure, type PartyMember } from '@chivago/core';
 
@@ -197,12 +198,19 @@ export function membersOf(db: DB, partyId: string, asking: string): PartyMember[
   const earned = new Map(
     rows<{ user_id: string; green: number; missions: number }>(
       db.prepare(
-        `SELECT user_id,
-                COALESCE(SUM(CASE WHEN currency = 'green' AND amount > 0
-                                   AND kind = 'quest_reward' THEN amount ELSE 0 END), 0) AS green,
-                COUNT(DISTINCT CASE WHEN kind = 'quest_reward' AND currency = 'green'
-                                    THEN source_ref END) AS missions
-         FROM ledger WHERE user_id IN (${holes}) GROUP BY user_id`,
+        // Aliased `l` only so the reversal check has a row to name. Reversed
+        // awards are dropped in the WHERE rather than inside both CASEs:
+        // once per row instead of twice, and a member whose every award was
+        // taken back still has a row here at zero rather than falling out of
+        // the party summary.
+        `SELECT l.user_id AS user_id,
+                COALESCE(SUM(CASE WHEN l.currency = 'green' AND l.amount > 0
+                                   AND l.kind = 'quest_reward' THEN l.amount ELSE 0 END), 0) AS green,
+                COUNT(DISTINCT CASE WHEN l.kind = 'quest_reward' AND l.currency = 'green'
+                                    THEN l.source_ref END) AS missions
+         FROM ledger l
+         WHERE l.user_id IN (${holes}) AND ${notReversed('l')}
+         GROUP BY l.user_id`,
       ).all(...ids),
     ).map((r) => [r.user_id, r]),
   );
