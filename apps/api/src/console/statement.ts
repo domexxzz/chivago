@@ -13,7 +13,9 @@
  */
 
 import {
-  PILLAR_LABEL, statementHeadline, type ActivityStatement, type StatementBody,
+  CHANNEL_LABEL, COUNTERSIGNATURE_LIMIT, OPINION_LABEL, PILLAR_LABEL, STANDARD_LABEL,
+  signatureNote, signatureStanding, statementHeadline,
+  type ActivityStatement, type Countersignature, type StatementBody,
 } from '@chivago/core';
 import { esc, html, layout, type Raw } from './html.ts';
 import type { Locale } from './i18n.ts';
@@ -97,6 +99,8 @@ export function statementPage(args: {
   issued: ActivityStatement[];
   csrf: string;
   origin: string;
+  /** Conclusions recorded against any of this host's statements. */
+  signatures: Countersignature[];
   /** The id just issued, so the row is pointed at rather than hunted for. */
   justIssued: string | null;
 }): string {
@@ -187,7 +191,84 @@ export function statementPage(args: {
         Print the id and the full digest on the report. Anyone who opens the link can compare.
         <span lang="th">พิมพ์รหัสและค่า digest เต็มลงในรายงาน ใครเปิดลิงก์ก็เทียบได้</span>
       </p>`}
-    </section>`;
+    </section>
+
+    ${args.issued.length === 0 ? '' : html`
+    <section class="panel">
+      <h2>Independent conclusions · ข้อสรุปจากผู้ตรวจสอบภายนอก</h2>
+      <!--
+        Recorded FROM a signed report the firm supplied, not signed here. The
+        channel is on the public page beside every conclusion, so a reader
+        knows a ChivaGo hand typed it.
+      -->
+      <p class="note">${esc(COUNTERSIGNATURE_LIMIT.en)}
+        <span lang="th">${esc(COUNTERSIGNATURE_LIMIT.th)}</span></p>
+
+      ${args.signatures.length === 0
+    ? html`<p class="note">None recorded. <span lang="th">ยังไม่มีข้อสรุปที่บันทึกไว้</span></p>`
+    : html`
+      <table>
+        <thead><tr><th>Statement</th><th>Firm</th><th>Conclusion</th><th>Standing</th><th></th></tr></thead>
+        <tbody>
+          ${args.signatures.map((c) => html`
+            <tr>
+              <td><code>${esc(c.statementId)}</code></td>
+              <td>${esc(c.signerFirm)}<br><span class="muted">${esc(c.signerName)}</span></td>
+              <td>${esc(STANDARD_LABEL[c.standard].en)}<br>
+                  <strong>${esc(OPINION_LABEL[c.opinion].en)}</strong></td>
+              <td>${c.withdrawnAt === null
+    ? 'Stands'
+    : html`Withdrawn ${esc(c.withdrawnAt.slice(0, 10))}${c.withdrawnReason ? html`<br><span class="muted">${esc(c.withdrawnReason)}</span>` : ''}`}</td>
+              <td>${c.withdrawnAt !== null ? '' : html`
+                <form method="post" action="/console/statement/countersign/withdraw">
+                  <input type="hidden" name="csrf" value="${esc(args.csrf)}">
+                  <input type="hidden" name="id" value="${esc(c.id)}">
+                  <input name="reason" type="text" placeholder="reason · เหตุผล" style="width:150px">
+                  <button type="submit" class="danger">Withdraw</button>
+                </form>`}</td>
+            </tr>`)}
+        </tbody>
+      </table>`}
+
+      <h3>Record one · บันทึกข้อสรุป</h3>
+      <form method="post" action="/console/statement/countersign">
+        <input type="hidden" name="csrf" value="${esc(args.csrf)}">
+        <p>
+          <label>Statement · เอกสาร<br>
+            <select name="statementId">
+              ${args.issued.map((st) => html`<option value="${esc(st.id)}">${esc(st.id)}</option>`)}
+            </select></label>
+        </p>
+        <p>
+          <label>Firm · สำนักงาน<br><input name="signerFirm" type="text" required></label>
+          <label style="margin-left:12px">Signed by · ผู้ลงนาม<br>
+            <input name="signerName" type="text" required></label>
+        </p>
+        <p>
+          <label>Standard · มาตรฐาน<br>
+            <select name="standard">
+              <option value="isae3000_limited">${esc(STANDARD_LABEL.isae3000_limited.en)}</option>
+              <option value="isae3000_reasonable">${esc(STANDARD_LABEL.isae3000_reasonable.en)}</option>
+              <option value="other">${esc(STANDARD_LABEL.other.en)}</option>
+            </select></label>
+          <label style="margin-left:12px">Conclusion · ข้อสรุป<br>
+            <select name="opinion">
+              <option value="unmodified">${esc(OPINION_LABEL.unmodified.en)}</option>
+              <option value="modified">${esc(OPINION_LABEL.modified.en)}</option>
+              <option value="adverse">${esc(OPINION_LABEL.adverse.en)}</option>
+              <option value="disclaimer">${esc(OPINION_LABEL.disclaimer.en)}</option>
+            </select></label>
+        </p>
+        <p><label>Scope, in the firm's words · ขอบเขตตามถ้อยคำของสำนักงาน<br>
+          <textarea name="scopeNote" rows="2"></textarea></label></p>
+        <p class="actions"><button type="submit">Record · บันทึก</button></p>
+      </form>
+      <p class="note">
+        The digest is taken from the statement, never typed. A conclusion cannot
+        be edited afterwards; withdraw it and record another.
+        <span lang="th">ค่า digest อ่านจากเอกสารเอง ไม่ได้พิมพ์ และข้อสรุปแก้ภายหลังไม่ได้</span>
+      </p>
+    </section>`}`;
 
   return layout(
     {
@@ -205,11 +286,60 @@ export function statementPage(args: {
 }
 
 /**
+ * Conclusions an assurance provider recorded against this record.
+ *
+ * OUTSIDE THE DIGEST, AND THE PAGE SAYS SO. The digest covers the statement
+ * body and nothing else; a signature arrives afterwards and could not be
+ * inside it without changing what was signed. A reader recomputing the hash
+ * must not find this section in the way.
+ *
+ * Nothing is shown when nobody has signed, rather than an empty "not assured"
+ * panel: an absence of assurance is the normal state of almost every record
+ * here, and a panel announcing it on each one would read as a defect.
+ */
+function countersignatures(s: ActivityStatement, list: readonly Countersignature[]): Raw {
+  if (list.length === 0) return html``;
+  return html`
+    <section class="panel">
+      <h2>Independent conclusions · ข้อสรุปจากผู้ตรวจสอบภายนอก</h2>
+      <p class="note">${esc(COUNTERSIGNATURE_LIMIT.en)}
+        <span lang="th">${esc(COUNTERSIGNATURE_LIMIT.th)}</span></p>
+      ${list.map((c) => {
+    const standing = signatureStanding(c, s.digest);
+    const note = signatureNote(c, standing);
+    return html`
+      <div style="border-left:6px solid var(--color-text);padding:8px 0 8px 16px;margin:16px 0">
+        <p style="margin:0"><strong>${esc(c.signerFirm)}</strong> · ${esc(c.signerName)}</p>
+        <p style="margin:4px 0 0">
+          ${esc(STANDARD_LABEL[c.standard].en)} ·
+          <strong>${esc(OPINION_LABEL[c.opinion].en)}</strong>
+          ${standing === 'applies' ? '' : html` · <strong>${esc(
+      standing === 'withdrawn' ? 'WITHDRAWN' : 'DOES NOT APPLY TO THIS RECORD',
+    )}</strong>`}
+        </p>
+        ${c.scopeNote ? html`<p style="margin:4px 0 0">${esc(c.scopeNote)}</p>` : ''}
+        <p class="note" style="margin:6px 0 0">${esc(note.en)}
+          <span lang="th">${esc(note.th)}</span></p>
+        <p class="note" style="margin:4px 0 0">${esc(CHANNEL_LABEL[c.channel].en)}
+          <span lang="th">${esc(CHANNEL_LABEL[c.channel].th)}</span></p>
+        <p class="note" style="margin:4px 0 0">
+          Recorded ${esc(c.recordedAt.slice(0, 10))}. Not covered by the digest above.
+          <span lang="th">บันทึกเมื่อ ${esc(c.recordedAt.slice(0, 10))} ไม่อยู่ในขอบเขตของค่า digest ด้านบน</span>
+        </p>
+      </div>`;
+  })}
+    </section>`;
+}
+
+/**
  * The public page. No session, no nav: a stranger holding a hotel's report
  * and an id. Bilingual inline rather than switchable, because the language
  * cookie lives under /console and this page does not.
  */
-export function verifyPage(locale: Locale, s: ActivityStatement, origin: string): string {
+export function verifyPage(
+  locale: Locale, s: ActivityStatement, origin: string,
+  signatures: readonly Countersignature[] = [],
+): string {
   const headline = statementHeadline(s);
   const body = html`
     <p class="kicker">ChivaGo · Statement of verified activity · รายการกิจกรรมที่ตรวจผ่าน</p>
@@ -224,6 +354,7 @@ export function verifyPage(locale: Locale, s: ActivityStatement, origin: string)
     </section>
 
     ${boundary(s)}
+    ${countersignatures(s, signatures)}
     ${refusals(s)}
 
     <section class="panel">

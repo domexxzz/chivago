@@ -10,6 +10,9 @@ import {
 import { pendingBatches } from '../batch-service.ts';
 import { applyMovement, ensureWallet, getBalances } from '../wallet-service.ts';
 import { consoleRoutes, __csrfFor } from './routes.ts';
+import { verifyPage } from './statement.ts';
+import { digestOf, readStatement } from '../statement-service.ts';
+import { countersignaturesFor } from '../countersign-service.ts';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1511,5 +1514,146 @@ describe('reviewing a declared file', () => {
     const res = await app.request('/review');
     assert.equal(res.status, 303);
     assert.equal(res.headers.get('location'), '/console/login');
+  });
+});
+
+/**
+ * An assurer's conclusion, on the console and on the public page.
+ *
+ * Rung four of the ladder. The danger is not a wrong conclusion; it is a
+ * conclusion that reads as ChivaGo's own.
+ */
+describe('recording an independent conclusion', () => {
+  const MOD_KEY = 'chv_CSAAA-CSBBB-CSCCC-CSDDD';
+  const asModerator = async () => {
+    db.prepare("UPDATE hosts SET role = 'moderator', api_key_hash = ? WHERE id = 'h-lab'")
+      .run(hashApiKey(MOD_KEY));
+    return signIn(MOD_KEY, 'Nok');
+  };
+  const send = (t: string, path: string, fields: Record<string, string>) => app.request(path, {
+    method: 'POST',
+    headers: { ...withCookie(t), 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: __csrfFor(resolveSession(db, t)!), ...fields }),
+  });
+  /* The public page is on the server app, not this one, so it is rendered
+     here from the same inputs the route hands it. */
+  const publicPage = (id: string) =>
+    verifyPage('en', readStatement(db, id)!, 'https://example.test', countersignaturesFor(db, id));
+
+  const issueOne = async (t: string) => {
+    const year = new Date().getUTCFullYear();
+    db.prepare(
+      "UPDATE quest_progress SET stage = 'complete', verified_at = ? WHERE quest_id = 'q-lab'",
+    ).run(iso(2));
+    db.prepare("UPDATE proofs SET reviewed_at = ?, approved = 1, reviewed_by = 'Nok' WHERE quest_id = 'q-lab'")
+      .run(iso(2));
+    const res = await send(t, '/statement', { from: `${year}-01-01`, to: `${year}-12-31` });
+    return /issued=(CG-\d{4}-[0-9A-Z]{6})/.exec(res.headers.get('location') ?? '')?.[1] ?? '';
+  };
+
+  test('the digest is taken from the statement, not from the form', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    await send(mod, '/statement/countersign', {
+      statementId: id, signerFirm: 'Andaman Assurance', signerName: 'Somsak',
+      standard: 'isae3000_limited', opinion: 'unmodified', digest: 'whatever-i-like',
+    });
+    const stored = db.prepare('SELECT digest FROM statement_countersignatures').get() as
+      unknown as { digest: string };
+    const real = db.prepare('SELECT digest FROM statements WHERE id = ?').get(id) as
+      unknown as { digest: string };
+    assert.equal(stored.digest, real.digest);
+  });
+
+  test('IT APPEARS ON THE PUBLIC PAGE AS THE FIRM’S CLAIM, NOT OURS', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    await send(mod, '/statement/countersign', {
+      statementId: id, signerFirm: 'Andaman Assurance', signerName: 'Somsak',
+      standard: 'isae3000_limited', opinion: 'unmodified',
+    });
+
+    const page = publicPage(id);
+    assert.match(page, /Andaman Assurance/);
+    assert.match(page, /ChivaGo did not perform it/);
+    assert.match(page, /has not verified the firm/);
+    // The one sentence the page must never contain.
+    assert.doesNotMatch(page, /this statement is assured/i);
+    assert.match(page, /Not covered by the digest above/);
+  });
+
+  test('an adverse conclusion is shown as adverse, not softened', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    await send(mod, '/statement/countersign', {
+      statementId: id, signerFirm: 'Andaman Assurance', signerName: 'Somsak',
+      standard: 'isae3000_reasonable', opinion: 'adverse',
+    });
+    assert.match(publicPage(id), /Adverse/);
+  });
+
+  test('withdrawing keeps it on the page, marked', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    await send(mod, '/statement/countersign', {
+      statementId: id, signerFirm: 'Andaman Assurance', signerName: 'Somsak',
+      standard: 'other', opinion: 'unmodified',
+    });
+    const sig = db.prepare('SELECT id FROM statement_countersignatures').get() as
+      unknown as { id: string };
+    await send(mod, '/statement/countersign/withdraw', { id: sig.id, reason: 'scope changed' });
+
+    const page = publicPage(id);
+    assert.match(page, /WITHDRAWN/);
+    assert.match(page, /kept on the record because it was once given/);
+  });
+
+  test('a statement with nobody’s conclusion shows no panel at all', async () => {
+    // An absence of assurance is the normal state of almost every record
+    // here; a panel announcing it on each one would read as a defect.
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    assert.doesNotMatch(publicPage(id), /Independent conclusions/);
+  });
+
+  test('A SIGNATURE NEVER GETS INSIDE THE DIGESTED RECORD', async () => {
+    // The digest covers the statement body. A conclusion arrives afterwards
+    // and cannot be inside what was signed, so it lives on its own endpoint
+    // and never on the record.
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    await send(mod, '/statement/countersign', {
+      statementId: id, signerFirm: 'Andaman Assurance', signerName: 'Somsak',
+      standard: 'isae3000_limited', opinion: 'modified',
+    });
+    const statement = readStatement(db, id)!;
+    assert.ok(!('countersignatures' in statement), 'a signature got onto the statement object');
+
+    // Recomputed the way an outside verifier has to: the digest covers the
+    // BODY, so the id and the digest itself come off first. If a conclusion
+    // had crept into the body this would no longer match.
+    const { id: unusedId, digest: unusedDigest, ...body } = statement;
+    assert.equal(digestOf(body), statement.digest, 'the digest stopped matching its body');
+  });
+
+  test('a moderator cannot sign another host’s statement', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    // Sign in as the municipality instead, and aim at the lab's statement.
+    db.prepare("UPDATE hosts SET role = 'moderator' WHERE id = 'h-muni'").run();
+    const other = await signIn(MUNI_KEY, 'Somsak');
+    await send(other, '/statement/countersign', {
+      statementId: id, signerFirm: 'X', signerName: 'Y',
+      standard: 'other', opinion: 'unmodified',
+    });
+    const n = db.prepare('SELECT COUNT(*) AS n FROM statement_countersignatures').get() as
+      unknown as { n: number };
+    assert.equal(n.n, 0, "a conclusion was recorded on another host's statement");
+  });
+
+  test('a plain host gets a 404 on both routes', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    assert.equal((await send(lab, '/statement/countersign', { statementId: 'x' })).status, 404);
+    assert.equal((await send(lab, '/statement/countersign/withdraw', { id: 'x' })).status, 404);
   });
 });
