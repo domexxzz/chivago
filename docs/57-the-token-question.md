@@ -166,6 +166,12 @@ the product next to the Gambling Act, which nothing in this document touches.
 `58-the-prize-question.md` carries it, with eight more questions for the same
 engagement, and the minors question appears in both.
 
+**The GRI reading above outgrew this document on 26 September.** It turned out
+to be the clearest example of what the ESG business actually sells to a
+company that already files — not a report, but somebody who can tell them the
+indicator is wrong. `59-two-sides-of-the-same-evidence.md` carries that, and
+which side of the business each thing built so far belongs to.
+
 ## What holds it
 
 Nothing in this document changed any code. `party.ts`, `standing.ts`,
