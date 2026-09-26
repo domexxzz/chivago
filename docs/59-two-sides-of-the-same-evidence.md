@@ -54,6 +54,8 @@ subscription rather than an engagement.
 | KPI per quest, on a closed set of measures and with no formula box | B | #71, #72 |
 | **Reading a partner's own file without adopting it** | **A** | #73 |
 | **An assurer's conclusion, carried without being made** | **A** | #74 |
+| **Declared use: who says they put this record in a report** | **A** | #76 |
+| **The measurement plan, fixed before anybody saw a result** | **B** | #77 |
 
 The reversal sprint sits under both, because it is not a feature. It is what
 makes any figure above it worth printing.
@@ -61,6 +63,9 @@ makes any figure above it worth printing.
 The last four rows arrived on 26 September, after the rest of this document
 was written, and two of them make a section below untrue. It is rewritten
 rather than quietly corrected — see the next heading.
+
+The final two arrived on 27 September, out of the carbon-market note read
+below, and both are named in the section that follows.
 
 ## The limit on side A, and the day it lasted
 
@@ -97,7 +102,8 @@ already read.
 ## What each side still needs
 
 Three of the six items this section carried on 26 September were closed the
-same day. They are struck through rather than deleted, because a list that
+same day, and two items nobody had thought to list were added and closed on
+the 27th. They are struck through rather than deleted, because a list that
 only ever shows what is left hides how fast it moved and why.
 
 **Side A**
@@ -110,6 +116,9 @@ only ever shows what is left hides how fast it moved and why.
 - ~~Countersignature.~~ #74. Bound to the digest the statement had, appended
   rather than edited, withdrawable without being deleted, and carrying all
   four opinions including the three nobody wants.
+- ~~Somewhere to see the same record used twice.~~ #76, and **it was not on
+  this list on 26 September** — the carbon-market note had to name double
+  *use* before anybody noticed we could not see it.
 
 **Side B**
 
@@ -122,6 +131,10 @@ only ever shows what is left hides how fast it moved and why.
   the six, and **the formula is refused on purpose**: a free-text formula lets
   `attendees × 3.2 kg CO₂e` into a contract and the platform prints the
   product of a measurement and a coefficient it has never held.
+- ~~The plan fixed before the results.~~ #77, and likewise absent from this
+  list on the 26th. Two files said the KPI is settled before a quest runs and
+  nothing enforced it, which is the kind of gap a document written by the
+  people who wrote the code is worst at finding.
 - **A merchant who states a price.** Still open, and still not a code problem.
   #68 gave the market somewhere to put one and deliberately left all six
   seeded offers at `null`, because they name real businesses on Samui.
@@ -149,6 +162,103 @@ requirement. Taking money *through* the platform — routing sponsor funds to
 hosts — makes us a payment intermediary, and that is item eight on the
 lawyer's list in `57`.
 
+## The words for what we already built
+
+On 27 September the owner sent a second document — a carbon-market study note
+of some 550 lines, dated 26 September — with one instruction:
+
+> อันนี้คือหลักการเลย ลองเข้าไปอ่านดู
+
+It is the most useful thing anybody has handed this project, and not because
+it asked for anything new. **It gave standard names to distinctions the code
+had already made**, and named one the code had missed. Reading it against
+`packages/core` took an afternoon and produced two merged pull requests.
+
+The value of the vocabulary is commercial before it is intellectual. A buyer
+who already knows these words hears a platform that has been built by people
+who know them too; a buyer who does not can be told which one they are being
+shown. Until this week we had the mechanisms and were describing them in our
+own invented terms.
+
+| the standards' term | what it means | where it already lived |
+|---|---|---|
+| **MRV** — measure, report, verify | the whole chain, not a report at the end | the platform, end to end |
+| **Independent verification** (a VVB) | somebody outside the project checks the result | `countersign.ts`, #74 |
+| **Registry & transparency** | a serial anyone can look up and check | statement id + digest + `/verify/:id` |
+| **Additionality** | would it have happened without this? | refused by name in `esg.ts` |
+| **Vintage** | the period the result occurred in, not when it was checked | `occurred_at` and `verified_at`, kept apart |
+| **Validation** | was the plan sound and settled up front? | **missing until #77** |
+| **No double counting** | three failures, not one | **one of the three was missing until #76** |
+
+### Double counting is three things
+
+The note breaks it into double *issuance*, double *use* and double *claiming*.
+This matters more than it sounds, because "we prevent double counting" is a
+sentence a buyer will hear as whichever one they were worried about.
+
+- **Double issuance** cannot arise here. Nothing is issued as a tradable unit,
+  so there is no second unit to create.
+- **Double claiming**, at the funding step, has been handled since #66. A
+  quest funded by two sponsors reads as shared and never as either one's
+  alone.
+- **Double use** — the same record appearing in two organisations' reports —
+  we could not see at all. #76 makes it visible when somebody declares, and is
+  careful to claim nothing more: a registry closes this loop by *retiring* the
+  unit, which it can do because it holds the unit, and we hold a page and a
+  digest. A test asserts the word "retire" appears nowhere in the copy.
+
+### Validation is not verification
+
+The note's clearest single distinction. **Validation** checks the plan and the
+design, up front. **Verification** checks what actually happened, afterwards.
+They are different jobs, usually on different dates.
+
+Everything this platform had was verification, and verification alone is worth
+little, because whoever chose the indicator could have chosen it knowing how
+the numbers came out. The intent was written down twice — `evidence-level.ts`
+says the required rung is agreed before the project starts, and the quests
+console prints that *a quest given a target afterwards has a target chosen to
+suit the result* — and enforced nowhere.
+
+#77 enforces it, and the design decision worth repeating here is that a late
+lock is **recorded rather than refused**. Refusing would move the plan into an
+email and leave us holding nothing. So a lock carries the count of activities
+already verified when it was taken, and the page reads *"Fixed after results
+existed, 3 already verified"* rather than pretending or hiding.
+
+That count is the product. It is the difference between a plan and a
+rationalisation, stated as a number a buyer can act on.
+
+## Why we are not issuing carbon credits, in their words
+
+The note lists ten quality criteria for a credit. We cannot meet four of them
+and are not close: **additionality**, a **robust baseline**, **permanence**
+and **leakage**. Nothing about a community beach cleanup establishes what
+would have happened otherwise, or that the effect persists, or that the
+activity did not simply move rubbish elsewhere. `esg.ts` has refused
+additionality by name since it was written; the other three are refused by the
+same logic and had not been named.
+
+The note also supplies the number that settles it commercially. Thai voluntary
+credits traded over the counter in FY2569 came to roughly **1.05 million
+tCO2e for about 45.27 million baht** as of 31 August — call it 43 baht per
+tonne. Read that carefully: it is the OTC figure that note reports, on that
+date, and not a complete market size.
+
+Even taken generously it says the same thing. **The entire Thai voluntary
+carbon market is smaller than a mid-sized software business.** A platform that
+tried to become a credit issuer would be competing for a share of forty-five
+million baht against TGO-registered projects with agronomists on staff.
+
+The buyers in this document are not in that pool. A company filing a 56-1 One
+Report, or preparing for IFRS S1/S2, or answering a customer's CBAM question,
+needs evidence that survives a reviewer — and that is a different market with
+a different size, which nothing in this repository has measured either.
+
+**The honest position is the one we already hold: ChivaGo is MRV
+infrastructure, not a credit issuer.** What the note changed is that we can
+now say it in four letters that a sustainability lead already knows.
+
 ## One disagreement, unresolved
 
 The framework note says, of co-funding:
@@ -168,6 +278,18 @@ decision and it has not been made.** The code currently implements the
 stricter reading, which is the safer one to be wrong in: a disclosure can
 become a split later, and a split that turns out to be invented cannot be
 withdrawn from a filing somebody already made.
+
+The carbon-market note does not resolve this, but it adds a third option
+neither reading had considered. Where two parties could claim the same
+mitigation across a border, the standards' answer is a **Corresponding
+Adjustment**: one side subtracts it from their own account entirely. Not a
+split, and not merely a disclosure — **somebody stands down.**
+
+That is a cleaner rule than either of ours, and it is available to us now that
+#76 exists, because a declared use is exactly the place a partner could record
+that they are *not* claiming a record another partner is. Whether to offer it
+is still the owner's call; what changed is that the option can be built
+without inventing any arithmetic.
 
 ## The ladder now reaches four
 
@@ -200,6 +322,13 @@ standards require — not from a signed engagement.
 The GRI reading in `57` is a reading, done against published guidance and not
 against a ruling or an assurer's opinion.
 
+The Thai carbon market figure above — 1.05 million tCO2e for 45.27 million
+baht — is **quoted from the carbon-market note and not independently
+checked**, is an OTC figure as of 31 August 2569 rather than a market size,
+and comes from a document that says of itself that it is a study summary and
+not legal or certification advice. It is used here to settle a direction, not
+to size a market. Nobody has sized the market this platform is actually in.
+
 ## What holds it
 
 The first version of this document changed no code, and said so. What it
@@ -208,8 +337,9 @@ naming two open gaps on side A, both were closed. That is the argument for
 writing the list down rather than carrying it in somebody's head: **the gaps
 were not hard, they were unnamed.**
 
-Eleven features are now on the table above, each in a column. The next commit
-on either side should be able to point at a row and say which one it lands in.
+Thirteen features are now on the table above, each in a column. The next
+commit on either side should be able to point at a row and say which one it
+lands in.
 A feature that lands in neither is a feature nobody has found a buyer for yet,
 and saying so early is cheaper than saying it after it ships.
 
@@ -217,3 +347,9 @@ This document has now been wrong once, about the thing it was most confident
 about, and lasted less than a day before it had to be rewritten. That is the
 right failure rate for a document about a business that is still being built.
 The version that is never wrong is the one that never said anything.
+
+The second revision, on 27 September, went the other way: nothing above was
+wrong, and two things were **missing**. A gap is harder to notice than an
+error, because nothing contradicts it. It took somebody outside handing over a
+document and saying *read this* — which is the cheapest correction mechanism
+this project has, and the one it should keep asking for.
