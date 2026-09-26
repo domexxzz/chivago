@@ -13,6 +13,7 @@ import { consoleRoutes, __csrfFor } from './routes.ts';
 import { verifyPage } from './statement.ts';
 import { digestOf, readStatement } from '../statement-service.ts';
 import { countersignaturesFor } from '../countersign-service.ts';
+import { usesOf } from '../statement-use-service.ts';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -1655,5 +1656,183 @@ describe('recording an independent conclusion', () => {
     const lab = await signIn(LAB_KEY, 'Nok');
     assert.equal((await send(lab, '/statement/countersign', { statementId: 'x' })).status, 404);
     assert.equal((await send(lab, '/statement/countersign/withdraw', { id: 'x' })).status, 404);
+  });
+});
+
+/**
+ * An organisation declaring it used a statement, on the console and in public.
+ *
+ * The danger here is the opposite of the countersignature's. A conclusion can
+ * read as ChivaGo's own; a declaration can read as a GUARANTEE - that the
+ * statement is now spent, that one declaration means one use. It is neither,
+ * and these are about the page saying so.
+ */
+describe('declaring that a statement was used', () => {
+  const MOD_KEY = 'chv_USAAA-USBBB-USCCC-USDDD';
+  const asModerator = async () => {
+    db.prepare("UPDATE hosts SET role = 'moderator', api_key_hash = ? WHERE id = 'h-lab'")
+      .run(hashApiKey(MOD_KEY));
+    return signIn(MOD_KEY, 'Nok');
+  };
+  const send = (t: string, path: string, fields: Record<string, string>) => app.request(path, {
+    method: 'POST',
+    headers: { ...withCookie(t), 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: __csrfFor(resolveSession(db, t)!), ...fields }),
+  });
+  const org = (id: string, en: string, th: string) => {
+    db.prepare(
+      "INSERT INTO organisations (id, name_en, name_th, kind, created_at) VALUES (?,?,?,'company',?)",
+    ).run(id, en, th, iso(1));
+    return id;
+  };
+  /* The public page lives on the server app, so it is rendered here from the
+     same inputs the route hands it. */
+  const publicPage = (id: string) => verifyPage(
+    'en', readStatement(db, id)!, 'https://example.test',
+    countersignaturesFor(db, id), usesOf(db, id),
+  );
+
+  const issueOne = async (t: string) => {
+    const year = new Date().getUTCFullYear();
+    db.prepare(
+      "UPDATE quest_progress SET stage = 'complete', verified_at = ? WHERE quest_id = 'q-lab'",
+    ).run(iso(2));
+    db.prepare("UPDATE proofs SET reviewed_at = ?, approved = 1, reviewed_by = 'Nok' WHERE quest_id = 'q-lab'")
+      .run(iso(2));
+    const res = await send(t, '/statement', { from: `${year}-01-01`, to: `${year}-12-31` });
+    return /issued=(CG-\d{4}-[0-9A-Z]{6})/.exec(res.headers.get('location') ?? '')?.[1] ?? '';
+  };
+
+  const declare = (t: string, id: string, fields: Record<string, string> = {}) =>
+    send(t, '/statement/use', {
+      statementId: id, orgId: 'org-siam', kind: 'one_report', reportingYear: '2026', ...fields,
+    });
+
+  test('the digest is taken from the statement, not from the form', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    org('org-siam', 'Siam Retail', 'สยามรีเทล');
+    await declare(mod, id, { digest: 'whatever-i-like' });
+    const stored = db.prepare('SELECT digest FROM statement_uses').get() as
+      unknown as { digest: string };
+    const real = db.prepare('SELECT digest FROM statements WHERE id = ?').get(id) as
+      unknown as { digest: string };
+    assert.equal(stored.digest, real.digest);
+  });
+
+  test('IT APPEARS AS THE ORGANISATION’S CLAIM, NOT AS A GUARANTEE', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    org('org-siam', 'Siam Retail', 'สยามรีเทล');
+    await declare(mod, id);
+
+    const page = publicPage(id);
+    assert.match(page, /Siam Retail states it used/);
+    assert.match(page, /ChivaGo has not read that report/);
+    assert.match(page, /is not saying the use was appropriate/);
+    // The word that would borrow a registry's guarantee.
+    assert.doesNotMatch(page, /retired/i);
+  });
+
+  test('THE PANEL SHOWS ON A STATEMENT NOBODY HAS DECLARED', async () => {
+    // Unlike the conclusions panel. An empty list is the case a reader is
+    // most likely to misread, so the correction has to be on the page.
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    const page = publicPage(id);
+    assert.match(page, /Nobody has declared using this record/);
+    assert.match(page, /does not mean the statement went unused/);
+  });
+
+  test('TWO ORGANISATIONS ARE FLAGGED WITHOUT BEING ACCUSED', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    org('org-siam', 'Siam Retail', 'สยามรีเทล');
+    org('org-ptt', 'PTT Green', 'ปตท. กรีน');
+    await declare(mod, id);
+    await declare(mod, id, { orgId: 'org-ptt' });
+
+    const page = publicPage(id);
+    assert.match(page, /2 organisations have declared this same record/);
+    assert.match(page, /not by itself wrong/);
+    assert.doesNotMatch(page, /fraud/i);
+  });
+
+  test('one organisation alone is not flagged', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    org('org-siam', 'Siam Retail', 'สยามรีเทล');
+    await declare(mod, id);
+    assert.doesNotMatch(publicPage(id), /organisations have declared this same record/);
+  });
+
+  test('the three kinds of double counting are named on the page', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    const page = publicPage(id);
+    assert.match(page, /Double issuance cannot arise here/);
+    assert.match(page, /Double claiming at the funding step/);
+    assert.match(page, /only made VISIBLE/);
+  });
+
+  test('withdrawing keeps it on the page, marked', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    org('org-siam', 'Siam Retail', 'สยามรีเทล');
+    await declare(mod, id);
+    const u = db.prepare('SELECT id FROM statement_uses').get() as unknown as { id: string };
+    await send(mod, '/statement/use/withdraw', { id: u.id, reason: 'report was not filed' });
+
+    const page = publicPage(id);
+    assert.match(page, /WITHDRAWN/);
+    assert.match(page, /kept because it was once made/);
+  });
+
+  test('A DECLARATION NEVER GETS INSIDE THE DIGESTED RECORD', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    org('org-siam', 'Siam Retail', 'สยามรีเทล');
+    await declare(mod, id);
+    const statement = readStatement(db, id)!;
+    assert.ok(!('uses' in statement), 'a declaration got onto the statement object');
+    const { id: unusedId, digest: unusedDigest, ...body } = statement;
+    assert.equal(digestOf(body), statement.digest, 'the digest stopped matching its body');
+  });
+
+  test('an unknown organisation records nothing', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    await declare(mod, id, { orgId: 'org-ghost' });
+    const n = db.prepare('SELECT COUNT(*) AS n FROM statement_uses').get() as
+      unknown as { n: number };
+    assert.equal(n.n, 0);
+  });
+
+  test('a blank year is refused rather than stored as a plausible one', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    org('org-siam', 'Siam Retail', 'สยามรีเทล');
+    await declare(mod, id, { reportingYear: '' });
+    const n = db.prepare('SELECT COUNT(*) AS n FROM statement_uses').get() as
+      unknown as { n: number };
+    assert.equal(n.n, 0);
+  });
+
+  test('a moderator cannot declare against another host’s statement', async () => {
+    const mod = await asModerator();
+    const id = await issueOne(mod);
+    org('org-siam', 'Siam Retail', 'สยามรีเทล');
+    db.prepare("UPDATE hosts SET role = 'moderator' WHERE id = 'h-muni'").run();
+    const other = await signIn(MUNI_KEY, 'Somsak');
+    await declare(other, id);
+    const n = db.prepare('SELECT COUNT(*) AS n FROM statement_uses').get() as
+      unknown as { n: number };
+    assert.equal(n.n, 0, "a declaration was recorded on another host's statement");
+  });
+
+  test('a plain host gets a 404 on both routes', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    assert.equal((await send(lab, '/statement/use', { statementId: 'x' })).status, 404);
+    assert.equal((await send(lab, '/statement/use/withdraw', { id: 'x' })).status, 404);
   });
 });
