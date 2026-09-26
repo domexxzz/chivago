@@ -1836,3 +1836,115 @@ describe('declaring that a statement was used', () => {
     assert.equal((await send(lab, '/statement/use/withdraw', { id: 'x' })).status, 404);
   });
 });
+
+/**
+ * Fixing a quest's measurement plan, on the console.
+ *
+ * The page has said since it was written that an indicator is settled before
+ * the project runs. Nothing enforced it. These are about the enforcement and
+ * about the one number that makes a lock worth recording.
+ */
+describe('locking a quest’s measurement plan', () => {
+  const MOD_KEY = 'chv_PLNAA-PLNBB-PLNCC-PLNDD';
+  const asModerator = async () => {
+    db.prepare("UPDATE hosts SET role = 'moderator', api_key_hash = ? WHERE id = 'h-muni'")
+      .run(hashApiKey(MOD_KEY));
+    return signIn(MOD_KEY, 'Nok');
+  };
+  const post = (t: string, path: string, fields: Record<string, string>) => app.request(path, {
+    method: 'POST',
+    headers: { ...withCookie(t), 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: __csrfFor(resolveSession(db, t)!), ...fields }),
+  });
+  const page = async (t: string) =>
+    (await app.request('/quests', { headers: withCookie(t) })).text();
+  const withKpi = (t: string) =>
+    post(t, '/quests/kpi', { questId: 'q-muni', measure: 'verified_submissions', target: '10' });
+
+  test('a quest with no indicator has no plan to fix', async () => {
+    const mod = await asModerator();
+    await post(mod, '/quests/plan/lock', { questId: 'q-muni' });
+    const n = db.prepare('SELECT COUNT(*) AS n FROM quest_plan_locks').get() as
+      unknown as { n: number };
+    assert.equal(n.n, 0);
+  });
+
+  test('THE PAGE SAYS WHEN THE PLAN WAS FIXED AND WHAT HAD HAPPENED FIRST', async () => {
+    const mod = await asModerator();
+    await withKpi(mod);
+    await post(mod, '/quests/plan/lock', { questId: 'q-muni' });
+    // The session's locale is Thai, so the short label renders in Thai; the
+    // boundary note is printed in both languages on every page.
+    const html = await page(mod);
+    assert.match(html, /ล็อกก่อนมีผล/);
+    assert.match(html, /Validation asks whether the plan was sound/);
+    assert.match(html, /ตัวเลขทุกตัวที่แพลตฟอร์มนี้รายงานยังคงตรวจโดยผู้จัดกิจกรรมเช่นเดิม/);
+  });
+
+  test('AN AGREED INDICATOR CANNOT BE REWRITTEN BEHIND THE LOCK', async () => {
+    // Without this the lock would be a seal on a door that still opens.
+    const mod = await asModerator();
+    await withKpi(mod);
+    await post(mod, '/quests/plan/lock', { questId: 'q-muni' });
+    const res = await post(mod, '/quests/kpi', {
+      questId: 'q-muni', measure: 'distinct_participants', target: '999',
+    });
+    // Answered as a message, not a 500: refusing is what the lock is for.
+    assert.equal(res.status, 303);
+    assert.match(res.headers.get('location') ?? '', /locked%20measurement%20plan/);
+    const q = db.prepare("SELECT kpi_measure, kpi_target FROM quests WHERE id = 'q-muni'").get() as
+      unknown as { kpi_measure: string; kpi_target: number };
+    assert.equal(q.kpi_measure, 'verified_submissions');
+    assert.equal(q.kpi_target, 10);
+  });
+
+  test('superseding releases it, and both facts stay on the record', async () => {
+    const mod = await asModerator();
+    await withKpi(mod);
+    await post(mod, '/quests/plan/lock', { questId: 'q-muni' });
+    await post(mod, '/quests/plan/supersede', { questId: 'q-muni', reason: 'target renegotiated' });
+
+    assert.equal((await post(mod, '/quests/kpi', {
+      questId: 'q-muni', measure: 'verified_submissions', target: '25',
+    })).status, 303);
+    const q = db.prepare("SELECT kpi_target FROM quests WHERE id = 'q-muni'").get() as
+      unknown as { kpi_target: number };
+    assert.equal(q.kpi_target, 25);
+
+    const row_ = db.prepare('SELECT superseded_reason FROM quest_plan_locks').get() as
+      unknown as { superseded_reason: string };
+    assert.equal(row_.superseded_reason, 'target renegotiated');
+  });
+
+  test('a moderator cannot lock another host’s quest', async () => {
+    const mod = await asModerator();
+    await post(mod, '/quests/plan/lock', { questId: 'q-lab' });
+    const n = db.prepare('SELECT COUNT(*) AS n FROM quest_plan_locks').get() as
+      unknown as { n: number };
+    assert.equal(n.n, 0, "a plan was locked on another host's quest");
+  });
+
+  test('a plain host gets a 404 on both routes', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    assert.equal((await post(lab, '/quests/plan/lock', { questId: 'q-lab' })).status, 404);
+    assert.equal((await post(lab, '/quests/plan/supersede', { questId: 'q-lab' })).status, 404);
+  });
+
+  test('THE PLAN CELL STAYS IN THE PLAN COLUMN ON A QUEST WITH NO INDICATOR', async () => {
+    // The row spans the five measurement columns and keeps its own plan cell.
+    // A colspan one short silently slides the standing under "Of target".
+    const lab = await signIn(LAB_KEY, 'Nok');
+    const html = await page(lab);
+    const headers = (/<thead>[\s\S]*?<\/thead>/.exec(html)?.[0].match(/<th>/g) ?? []).length;
+    const span = Number(/colspan="(\d+)"/.exec(html)?.[1] ?? '0');
+    assert.equal(span + 2, headers, 'the no-indicator row does not fill the header row');
+  });
+
+  test('an unlocked quest reads as not fixed, which is not a fail', async () => {
+    const mod = await asModerator();
+    await withKpi(mod);
+    const html = await page(mod);
+    assert.match(html, /ยังไม่ได้ล็อก/);
+    assert.doesNotMatch(html, /ล็อกก่อนมีผล/);
+  });
+});

@@ -30,6 +30,9 @@ import {
 import {
   InvalidStatementUse, declareUse, usesOf, withdrawUse,
 } from '../statement-use-service.ts';
+import {
+  InvalidPlanLock, lockFor, lockPlan, planDigest, planOf, supersedePlan,
+} from '../plan-lock-service.ts';
 import { kpiReading } from '../kpi-service.ts';
 import { statementMissingPage, statementPage } from './statement.ts';
 import { storiesPage } from './stories.ts';
@@ -67,7 +70,7 @@ import {
   SameApprover,
 } from '../batch-service.ts';
 import {
-  BATCH_PREVIEW, isQuestMeasure, parseDeclaredCsv, reconcile, reviewDeclared,
+  BATCH_PREVIEW, isQuestMeasure, parseDeclaredCsv, planStanding, reconcile, reviewDeclared,
 } from '@chivago/core';
 import { flaggedModerators, moderatorWatch } from '../moderator-watch.ts';
 import { isModerationReasonKey } from '@chivago/core';
@@ -557,12 +560,22 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       canModerate: canModerate(session),
       csrf: csrfFor(session),
       period,
-      quests: rows_.map((q) => ({
-        questId: q.id,
-        nameEn: q.name_en,
-        nameTh: q.name_th,
-        reading: kpiReading(db, q.id, period),
-      })),
+      quests: rows_.map((q) => {
+        const lock = lockFor(db, q.id);
+        const plan = planOf(db, q.id);
+        return {
+          questId: q.id,
+          nameEn: q.name_en,
+          nameTh: q.name_th,
+          reading: kpiReading(db, q.id, period),
+          // The digest is recomputed from the quest as it stands, so a plan
+          // that somehow moved behind the lock shows as drifted rather than
+          // as sealed.
+          standing: planStanding(lock, plan === null ? null : planDigest(plan)),
+          lockedAt: lock?.lockedAt ?? null,
+          verifiedAtLock: lock?.verifiedAtLock ?? null,
+        };
+      }),
     }));
   });
 
@@ -596,8 +609,73 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       const n = Number(v);
       return typeof v === 'string' && v.trim() !== '' && Number.isFinite(n) && n >= 0 ? n : null;
     };
-    db.prepare('UPDATE quests SET kpi_measure = ?, kpi_baseline = ?, kpi_target = ? WHERE id = ?')
-      .run(measure, number(form.baseline), number(form.target), questId);
+    try {
+      db.prepare('UPDATE quests SET kpi_measure = ?, kpi_baseline = ?, kpi_target = ? WHERE id = ?')
+        .run(measure, number(form.baseline), number(form.target), questId);
+    } catch (err) {
+      // The trigger refuses a change while a plan is locked. That is the
+      // point of the lock, so it answers as a message rather than a 500.
+      if (err instanceof Error && /locked measurement plan/.test(err.message)) {
+        return c.redirect(`/console/quests?error=${encodeURIComponent(err.message)}`, 303);
+      }
+      throw err;
+    }
+    return c.redirect('/console/quests', 303);
+  });
+
+  /*
+    Fixing what a quest will be measured by, and setting a plan aside.
+
+    `validation.ts` carries the distinction this implements: validation is the
+    check on the plan, verification the check on the result, and this platform
+    had only ever done the second. Moderator only, scoped to the signed-in
+    host like every other write here.
+
+    A LATE LOCK IS ALLOWED. The service records how many activities were
+    already verified, and the page never calls a late lock an early one.
+    Refusing would move the plan into an email and leave us holding nothing.
+  */
+  app.post('/quests/plan/lock', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/quests'), 403);
+    }
+    const questId = String(form.questId ?? '');
+    const owned = db.prepare('SELECT id FROM quests WHERE id = ? AND host_id = ?')
+      .get(questId, session.hostId);
+    if (!owned) return c.redirect('/console/quests', 303);
+    try {
+      lockPlan(db, questId, session.reviewer ?? session.hostName);
+    } catch (err) {
+      if (err instanceof InvalidPlanLock) {
+        return c.redirect(`/console/quests?error=${encodeURIComponent(err.message)}`, 303);
+      }
+      throw err;
+    }
+    return c.redirect('/console/quests', 303);
+  });
+
+  app.post('/quests/plan/supersede', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/quests'), 403);
+    }
+    const questId = String(form.questId ?? '');
+    const owned = db.prepare('SELECT id FROM quests WHERE id = ? AND host_id = ?')
+      .get(questId, session.hostId);
+    if (!owned) return c.redirect('/console/quests', 303);
+    try {
+      supersedePlan(db, questId, String(form.reason ?? ''));
+    } catch (err) {
+      if (err instanceof InvalidPlanLock) {
+        return c.redirect(`/console/quests?error=${encodeURIComponent(err.message)}`, 303);
+      }
+      throw err;
+    }
     return c.redirect('/console/quests', 303);
   });
 
