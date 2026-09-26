@@ -50,58 +50,83 @@ subscription rather than an engagement.
 | ESG report, period-bounded, pillar-separated, distinct people | B | `esg.ts` |
 | Sponsorship: agreed, received, owed, earned | B | #65 |
 | **Voucher face value, and what it refuses to mean** | B | #68 |
+| Evidence level: agreed as a column, attained as a derivation | both | #70 |
+| KPI per quest, on a closed set of measures and with no formula box | B | #71, #72 |
+| **Reading a partner's own file without adopting it** | **A** | #73 |
+| **An assurer's conclusion, carried without being made** | **A** | #74 |
 
 The reversal sprint sits under both, because it is not a feature. It is what
 makes any figure above it worth printing.
 
-## The limit on side A that has to be said out loud
+The last four rows arrived on 26 September, after the rest of this document
+was written, and two of them make a section below untrue. It is rewritten
+rather than quietly corrected — see the next heading.
 
-**Side A's evidence is not in our ledger.**
+## The limit on side A, and the day it lasted
 
-Every tool built for them — the evidence pack, the exclusivity check, the
-reconciliation — reads rows this platform recorded. A company that already
-files has its numbers in a spreadsheet, an ERP, and somebody's inbox, and
-nothing here can reach them.
+This section used to say something that is no longer true, and the honest
+thing is to leave the claim visible rather than edit it away:
 
-So side A is, today, a **service** that uses our judgement, with this platform
-as a reference implementation rather than the system of record. That is a
-real business and it is not the business the platform automates. Pretending
-otherwise would put us in front of a buyer promising a check we cannot run.
+> Side A's evidence is not in our ledger. Every tool built for them reads rows
+> this platform recorded... So side A is, today, a **service** that uses our
+> judgement, with this platform as a reference implementation rather than the
+> system of record.
 
-Two things would change that, and neither is small: an import path for
-somebody else's activity data, and a way to attest to a figure whose evidence
-we never held. Both are open.
+It named two things that would change that, and said neither was small: an
+import path for somebody else's activity data, and a way to attest to a figure
+whose evidence we never held.
+
+**Both shipped the same day**, in #73 and #74. What was slow was not the
+building; it was that nobody had written down which side each thing was for,
+so nobody could see that two gaps were the whole gap.
+
+The limit as it now stands is narrower and worth stating precisely. An
+imported file is still **level 1 evidence** — somebody typed it — and the
+review it produces says so above every figure. What the platform can do is
+tell a company what is wrong on the face of their own file: dates outside the
+period they claim, identical rows, mixed units, a stated total their own rows
+do not add up to. What it cannot do, and must never appear to do, is make an
+imported figure true. `declared.ts` refuses that in its shape: a review has
+nowhere to put a digest, and a test holds it there.
+
+So side A is now a product with a service around it, rather than a service
+with a platform beside it. The judgement is still ours and still the thing
+being bought. The difference is that the judgement now arrives with the file
+already read.
 
 ## What each side still needs
+
+Three of the six items this section carried on 26 September were closed the
+same day. They are struck through rather than deleted, because a list that
+only ever shows what is left hides how fast it moved and why.
 
 **Side A**
 
 - An indicator mapping layer that **refuses** the wrong indicator, not merely
   suggests the right one. The 306-3 finding generalised: the value is in the
-  no.
-- An import path. Until there is one, every engagement starts with a
-  spreadsheet somebody emails.
-- Countersignature. The statement is immutable and digested; an accredited
-  assurer could sign against that digest, and the platform would carry real
-  ISAE 3000 assurance without ever claiming it itself.
+  no. **Still open, and now the largest single item on either side.**
+- ~~An import path.~~ #73. Reads a pasted sheet, matches columns by name in
+  Thai or English, and produces a **review, never a statement**.
+- ~~Countersignature.~~ #74. Bound to the digest the statement had, appended
+  rather than edited, withdrawable without being deleted, and carrying all
+  four opinions including the three nobody wants.
 
 **Side B**
 
-- **Evidence level as a field.** The framework note of 26 September grades
-  evidence one to four — self-reported, digital trace, partner-verified,
-  third-party checked. Everything this platform produces is level 3, and
-  `EVIDENCE_LEVEL` in `evidence.ts` now says so on the document. It is a
-  sentence, not a column: a contract that requires level 2 for one indicator
-  and level 4 for another cannot be expressed.
-- **KPI, unit, formula, baseline, target, per quest.** A quest carries an
-  `esg_pillar` and nothing else. The framework note asks for all six, agreed
-  before the project starts, and that is the right order — a KPI agreed
-  afterwards is a KPI chosen to suit the result.
-- **A merchant who states a price.** #68 gave the market somewhere to put one
-  and deliberately left all six seeded offers at `null`, because they name
-  real businesses on Samui. The S-pillar figure exists as code and has no data
-  until somebody rings the shop.
-- Consent and retention as fields rather than as behaviour.
+- ~~Evidence level as a field.~~ #70. The agreed rung is stored; the attained
+  one is derived on every read. It also turned up that a geofenced arrival
+  proves nothing while `CHIVAGO_FENCE_OFF` is set, which production has had
+  set since the pitch — so `fence_enforced` is recorded from now on and
+  unknown earns no rung.
+- ~~KPI, unit, formula, baseline, target, per quest.~~ #71 and #72. Five of
+  the six, and **the formula is refused on purpose**: a free-text formula lets
+  `attendees × 3.2 kg CO₂e` into a contract and the platform prints the
+  product of a measurement and a coefficient it has never held.
+- **A merchant who states a price.** Still open, and still not a code problem.
+  #68 gave the market somewhere to put one and deliberately left all six
+  seeded offers at `null`, because they name real businesses on Samui.
+- Consent and retention as fields rather than as behaviour. Still open, and
+  closer to PDPA than to ESG.
 
 ## What each side pays for
 
@@ -144,6 +169,23 @@ stricter reading, which is the safer one to be wrong in: a disclosure can
 become a split later, and a split that turns out to be invented cannot be
 withdrawn from a filing somebody already made.
 
+## The ladder now reaches four
+
+`evidence-level.ts` grades evidence one to four and, when it was written, said
+that four is *a third party checking that approval, which this pack supports
+and does not perform*. That sentence was accurate and slightly sad: nothing in
+the system could hold somebody else's opinion, so rung four was a label with
+no way to reach it.
+
+#74 built the way. An accredited assurer's conclusion attaches to the digest
+the statement had, and the platform carries it **without ever having made it**
+— every sentence on the page has the firm as its subject, and a test asserts
+the page never says "this statement is assured".
+
+What has not changed is who does the work. ChivaGo is still rung three and
+still says so on every document. What is new is that rung four has somewhere
+to land.
+
 ## What could not be verified
 
 The revenue figures are **modelled, not quoted**. The Fly prices behind the
@@ -160,12 +202,18 @@ against a ruling or an assurer's opinion.
 
 ## What holds it
 
-Nothing in this document changed any code. What it changes is which questions
-count as answered: the shape of the business was settled on 26 September, and
-until now the repository recorded seven features without recording who each
-one was for.
+The first version of this document changed no code, and said so. What it
+changed was which questions counted as answered — and within hours of it
+naming two open gaps on side A, both were closed. That is the argument for
+writing the list down rather than carrying it in somebody's head: **the gaps
+were not hard, they were unnamed.**
 
-The next commit on either side should be able to point at a row in the table
-above and say which column it lands in. A feature that lands in neither is a
-feature nobody has found a buyer for yet, and saying so early is cheaper than
-saying it after it ships.
+Eleven features are now on the table above, each in a column. The next commit
+on either side should be able to point at a row and say which one it lands in.
+A feature that lands in neither is a feature nobody has found a buyer for yet,
+and saying so early is cheaper than saying it after it ships.
+
+This document has now been wrong once, about the thing it was most confident
+about, and lasted less than a day before it had to be rewritten. That is the
+right failure rate for a document about a business that is still being built.
+The version that is never wrong is the one that never said anything.
