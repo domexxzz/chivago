@@ -23,6 +23,7 @@ import { listQuests } from '../repo.ts';
 import { sponsorPage } from './sponsor.ts';
 import { esgPage } from './esg.ts';
 import { questsPage } from './quests.ts';
+import { reviewDeclaredPage } from './review-declared.ts';
 import { kpiReading } from '../kpi-service.ts';
 import { statementMissingPage, statementPage } from './statement.ts';
 import { storiesPage } from './stories.ts';
@@ -59,7 +60,9 @@ import {
   approveBatch, cancelBatch, pendingBatches, previewBatch, proposeBatch,
   SameApprover,
 } from '../batch-service.ts';
-import { BATCH_PREVIEW, isQuestMeasure, reconcile } from '@chivago/core';
+import {
+  BATCH_PREVIEW, isQuestMeasure, parseDeclaredCsv, reconcile, reviewDeclared,
+} from '@chivago/core';
 import { flaggedModerators, moderatorWatch } from '../moderator-watch.ts';
 import { isModerationReasonKey } from '@chivago/core';
 
@@ -584,6 +587,57 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     db.prepare('UPDATE quests SET kpi_measure = ?, kpi_baseline = ?, kpi_target = ? WHERE id = ?')
       .run(measure, number(form.baseline), number(form.target), questId);
     return c.redirect('/console/quests', 303);
+  });
+
+  /*
+    Side A: reviewing a file a partner who already files sends in.
+
+    Moderator only. This is ChivaGo's own judgement applied to somebody
+    else's data, not a self-service check a host runs on themselves - and the
+    page it produces is a REVIEW, never a statement. See
+    `packages/core/src/declared.ts` for why that distinction is the feature.
+
+    Nothing is stored. The sheet is read, reported on, and dropped: an
+    imported file sitting in this database would be a second, unverified
+    record of somebody's activity inside a system whose whole claim is that
+    its records are verified.
+  */
+  const reviewForm = (c: Parameters<typeof localeFor>[0], session: ReturnType<typeof currentSession>,
+    period: { from: string; to: string }, pasted: string, statedTotal: string,
+    review: ReturnType<typeof reviewDeclared> | null, missing: string[]) =>
+    reviewDeclaredPage({
+      locale: localeFor(c), hostName: session!.hostName, csrf: csrfFor(session!),
+      period, pasted, statedTotal, review, missing,
+    });
+
+  app.get('/review', (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const period = readPeriod(c.req.query('from'), c.req.query('to'));
+    return c.html(reviewForm(c, session, period, '', '', null, []));
+  });
+
+  app.post('/review', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/review'), 403);
+    }
+
+    const period = readPeriod(form.from, form.to);
+    const pasted = String(form.sheet ?? '');
+    const statedTotalRaw = String(form.statedTotal ?? '');
+    const statedTotal = statedTotalRaw.trim() === '' || !Number.isFinite(Number(statedTotalRaw))
+      ? null
+      : Number(statedTotalRaw);
+
+    const sheet = parseDeclaredCsv(pasted);
+    if (sheet.missing.length > 0) {
+      return c.html(reviewForm(c, session, period, pasted, statedTotalRaw, null, sheet.missing));
+    }
+    const review = reviewDeclared(sheet.rows, period, statedTotal);
+    return c.html(reviewForm(c, session, period, pasted, statedTotalRaw, review, []));
   });
 
   app.get('/stories', (c) => {

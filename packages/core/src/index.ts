@@ -17,6 +17,7 @@ export * from './evidence.ts';
 export * from './community-value.ts';
 export * from './evidence-level.ts';
 export * from './kpi.ts';
+export * from './declared.ts';
 export * from './companions.ts';
 export * from './province-companions.ts';
 export * from './price-forecast.ts';

@@ -1403,3 +1403,113 @@ describe('quests and their agreed indicator', () => {
     assert.equal(res.headers.get('location'), '/console/login');
   });
 });
+
+/**
+ * Side A: a file a partner who already files sends in.
+ *
+ * The danger is not a wrong number. It is a right-looking one: an imported
+ * sheet rendered in the statement's clothes would be level 1 evidence dressed
+ * as level 3.
+ */
+describe('reviewing a declared file', () => {
+  const MOD_KEY = 'chv_REVAA-REVBB-REVCC-REVDD';
+  const asModerator = async () => {
+    db.prepare("UPDATE hosts SET role = 'moderator', api_key_hash = ? WHERE id = 'h-muni'")
+      .run(hashApiKey(MOD_KEY));
+    return signIn(MOD_KEY, 'Nok');
+  };
+  const send = (t: string, fields: Record<string, string>) => app.request('/review', {
+    method: 'POST',
+    headers: { ...withCookie(t), 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: __csrfFor(resolveSession(db, t)!), ...fields }),
+  });
+
+  test('THE PAGE SAYS IT IS NOT A STATEMENT, BEFORE ANY FIGURE', async () => {
+    const mod = await asModerator();
+    const page = await (await app.request('/review', { headers: withCookie(mod) })).text();
+    assert.match(page, /ไม่ใช่เอกสารรับรอง|This is not a statement/);
+    assert.match(page, /ไม่มีใครที่ ChivaGo ตรวจสอบ|Nobody at ChivaGo verified/);
+    // None of the things that make a statement page look issued.
+    assert.doesNotMatch(page, /\/verify\//, 'a review page offered a verify link');
+    assert.doesNotMatch(page, /digest/i, 'a review page showed a digest');
+  });
+
+  test('it finds a total that its own rows do not add up to', async () => {
+    const mod = await asModerator();
+    const res = await send(mod, {
+      from: '2026-01-01', to: '2026-12-31', statedTotal: '400',
+      sheet: 'activity,date,amount,unit\nCleanup,2026-06-15,185,kg\nCleanup B,2026-07-02,90,kg',
+    });
+    const page = await res.text();
+    assert.match(page, /ยอดรวมไม่ตรงกับบรรทัด|Total does not match/);
+    assert.match(page, /275/);
+  });
+
+  test('it finds rows outside the period the report claims', async () => {
+    const mod = await asModerator();
+    const page = await (await send(mod, {
+      from: '2026-01-01', to: '2026-12-31',
+      sheet: 'activity,date\nCleanup,2026-06-15\nOld one,2025-11-02',
+    })).text();
+    assert.match(page, /อยู่นอกช่วงเวลา|Outside the period/);
+  });
+
+  test('a file whose columns cannot be identified is refused, not guessed at', async () => {
+    const mod = await asModerator();
+    const page = await (await send(mod, {
+      from: '2026-01-01', to: '2026-12-31', sheet: 'amount,unit\n185,kg',
+    })).text();
+    assert.match(page, /อ่านไฟล์ไม่ได้|could not be read/);
+    assert.match(page, /activity/);
+    assert.doesNotMatch(page, /ข้อสังเกต|Findings/, 'a refused file was reviewed anyway');
+  });
+
+  test('a clean file is reported as clean and still not verified', async () => {
+    const mod = await asModerator();
+    const page = await (await send(mod, {
+      from: '2026-01-01', to: '2026-12-31',
+      sheet: 'กิจกรรม,วันที่,น้ำหนัก,หน่วย\nเก็บขยะชายหาด,15/06/2026,185,กก',
+    })).text();
+    assert.match(page, /ไม่พบข้อผิดบนหน้าไฟล์|Nothing wrong on the face/);
+    assert.match(page, /ก็ยังเป็นบรรทัดที่ไม่มีใครตรวจสอบ|still a row nobody verified/);
+  });
+
+  test('NOTHING FROM THE FILE IS STORED', async () => {
+    // An imported sheet sitting in this database would be a second,
+    // unverified record of somebody's activity inside a system whose whole
+    // claim is that its records are verified.
+    const mod = await asModerator();
+    const before = db.prepare("SELECT COUNT(*) AS n FROM quest_progress").get() as unknown as { n: number };
+    await send(mod, {
+      from: '2026-01-01', to: '2026-12-31',
+      sheet: 'activity,date,amount\nImported cleanup,2026-06-15,185',
+    });
+    const after = db.prepare("SELECT COUNT(*) AS n FROM quest_progress").get() as unknown as { n: number };
+    assert.equal(after.n, before.n, 'a declared row was written into the database');
+    const quests = db.prepare("SELECT COUNT(*) AS n FROM quests WHERE name_en LIKE '%Imported%'")
+      .get() as unknown as { n: number };
+    assert.equal(quests.n, 0, 'a declared activity became a quest');
+  });
+
+  test('a host who cannot moderate cannot reach it at all', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    assert.equal((await app.request('/review', { headers: withCookie(lab) })).status, 404);
+    assert.equal((await send(lab, { sheet: 'activity,date\nA,2026-06-15' })).status, 404);
+  });
+
+  test('a stale token reviews nothing', async () => {
+    const mod = await asModerator();
+    const res = await app.request('/review', {
+      method: 'POST',
+      headers: { ...withCookie(mod), 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ csrf: 'not-this-session', sheet: 'activity,date\nA,2026-06-15' }),
+    });
+    assert.equal(res.status, 403);
+  });
+
+  test('signed out, it is the login redirect like every other page', async () => {
+    const res = await app.request('/review');
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.get('location'), '/console/login');
+  });
+});

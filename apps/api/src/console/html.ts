@@ -80,7 +80,7 @@ interface LayoutOptions {
   /** Renders the nav only when signed in. */
   signedIn?: boolean;
   activeNav?: 'queue' | 'history' | 'moderation' | 'sponsor' | 'esg' | 'statement' | 'stories'
-    | 'organisations' | 'quests';
+    | 'organisations' | 'quests' | 'reviewDeclared';
   pendingCount?: number;
   /** Shows the Reviews tab. Moderators only - see place-review-service.ts. */
   canModerate?: boolean;
@@ -212,6 +212,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
              }</span></a>
              <a href="/console/history" class="${activeNav === 'history' ? 'on' : ''}">${tr('history')}</a>
              ${canModerate ? `<a href="/console/reviews" class="${activeNav === 'moderation' ? 'on' : ''}">${tr('moderation')}</a>` : ''}
+             ${canModerate ? `<a href="/console/review" class="${activeNav === 'reviewDeclared' ? 'on' : ''}">${tr('reviewDeclared')}</a>` : ''}
              ${canModerate ? `<a href="/console/organisations" class="${activeNav === 'organisations' ? 'on' : ''}">${tr('organisations')}</a>` : ''}
              <a href="/console/quests" class="${activeNav === 'quests' ? 'on' : ''}">${tr('quests')}</a>
              <a href="/console/sponsor" class="${activeNav === 'sponsor' ? 'on' : ''}">${tr('sponsor')}</a>
