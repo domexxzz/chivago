@@ -15,12 +15,23 @@ const partner: Sponsor = {
 
 const period: EsgPeriod = { from: '2026-01-01', to: '2026-12-31' };
 
+/**
+ * Exclusive by default, and the two follow `verified` unless a test says
+ * otherwise.
+ *
+ * Every test written before `claims.ts` existed was reasoning about a partner
+ * who was the only funder - they simply had no way to say so. Defaulting to
+ * shared would quietly rewrite what they assert while leaving their words
+ * unchanged.
+ */
 const activity = (over: Partial<EsgActivity> = {}): EsgActivity => ({
   questId: 'q1',
   name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด' },
   pillar: 'environmental',
   hostName: 'Samui Municipality',
   verified: 0,
+  exclusiveVerified: over.verified ?? 0,
+  sharedVerified: 0,
   participants: [],
   fundedTHB: 0,
   paidTHB: 0,

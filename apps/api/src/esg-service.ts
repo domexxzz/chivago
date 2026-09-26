@@ -13,6 +13,7 @@
  */
 
 import { rows, type DB } from './db.ts';
+import { claimState, type Funder } from '@chivago/core';
 import type { EsgActivity, EsgPillar, EsgPeriod } from '@chivago/core';
 
 const PILLARS = new Set<string>(['environmental', 'social', 'governance']);
@@ -33,6 +34,8 @@ export interface PeriodActivity {
  */
 export function activityInPeriod(
   db: DB,
+  /** Whose report this is. Needed to ask who ELSE was funding. */
+  sponsorId: string,
   funded: { questId: string; fundedTHB: number; perVerifiedTHB: number }[],
   period: EsgPeriod,
 ): PeriodActivity {
@@ -61,15 +64,46 @@ export function activityInPeriod(
     ).map((q) => [q.id, q]),
   );
 
-  const approvals = new Map<string, string[]>();
-  for (const r of rows<{ quest_id: string; user_id: string }>(
+  /*
+    The approval's DATE comes back now, because exclusivity is decided per
+    submission rather than per quest. A quest funded by one partner in January
+    and co-funded from March has exclusive January approvals and shared ones
+    after - and deciding it per quest would retroactively make a filed claim
+    shared because somebody else turned up afterwards.
+  */
+  interface Approval { userId: string; verifiedAt: string }
+  const approvals = new Map<string, Approval[]>();
+  for (const r of rows<{ quest_id: string; user_id: string; verified_at: string }>(
     db.prepare(
-      `SELECT quest_id, user_id FROM quest_progress
+      `SELECT quest_id, user_id, verified_at FROM quest_progress
        WHERE quest_id IN (${holes}) AND verified_at IS NOT NULL
          AND verified_at >= ? AND verified_at <= ?`,
     ).all(...ids, from, to),
   )) {
-    approvals.set(r.quest_id, [...(approvals.get(r.quest_id) ?? []), r.user_id]);
+    approvals.set(r.quest_id, [
+      ...(approvals.get(r.quest_id) ?? []),
+      { userId: r.user_id, verifiedAt: r.verified_at },
+    ]);
+  }
+
+  /*
+    EVERY funder of these quests, not only the one asking for the report.
+
+    This is the whole feature. Two companies funding the same cleanup each
+    write their report from their own records; neither is lying and neither
+    can see the other. It is findable here because both funded through one
+    ledger, and this query is the only place that looks across them.
+  */
+  const funders = new Map<string, Funder[]>();
+  for (const r of rows<{ quest_id: string; org_id: string; started_at: string }>(
+    db.prepare(
+      `SELECT quest_id, org_id, started_at FROM org_sponsorships WHERE quest_id IN (${holes})`,
+    ).all(...ids),
+  )) {
+    funders.set(r.quest_id, [
+      ...(funders.get(r.quest_id) ?? []),
+      { sponsorId: r.org_id, startedAt: r.started_at },
+    ]);
   }
 
   const classified: EsgActivity[] = [];
@@ -77,7 +111,8 @@ export function activityInPeriod(
 
   for (const f of funded) {
     const q = quests.get(f.questId);
-    const people = approvals.get(f.questId) ?? [];
+    const done = approvals.get(f.questId) ?? [];
+    const people = done.map((a) => a.userId);
     if (!q) continue;
 
     if (q.pillar === null || !PILLARS.has(q.pillar)) {
@@ -87,12 +122,30 @@ export function activityInPeriod(
       continue;
     }
 
+    /*
+      An approval nobody was funding at the time is neither exclusive nor
+      shared, and is left out of both counts rather than pushed into one. It
+      still appears in `verified`, because the work happened - what it is not
+      is a claim this partner can make, and `exclusive + shared` is therefore
+      the number the exclusivity sentence is written about.
+    */
+    const mine = funders.get(f.questId) ?? [];
+    let exclusiveVerified = 0;
+    let sharedVerified = 0;
+    for (const a of done) {
+      const state = claimState(mine, a.verifiedAt);
+      if (state === 'exclusive') exclusiveVerified += 1;
+      else if (state === 'shared') sharedVerified += 1;
+    }
+
     classified.push({
       questId: f.questId,
       name: { en: q.name_en, th: q.name_th },
       pillar: q.pillar as EsgPillar,
       hostName: q.host_name ?? 'Unnamed host',
       verified: people.length,
+      exclusiveVerified,
+      sharedVerified,
       participants: people,
       fundedTHB: f.fundedTHB,
       // Counted from approvals and capped at what was committed, exactly as

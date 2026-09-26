@@ -82,6 +82,18 @@ export function esgPage(
       <h2>What is counted · ขอบเขตของรายงาน</h2>
       <p>${esc(th ? report.boundary.th : report.boundary.en)}</p>
       <p class="note">${esc(th ? report.assurance.th : report.assurance.en)}</p>
+      <!--
+        The sentence a filer cannot get anywhere else, in the section about
+        what the report covers rather than in a footnote. When it reads as a
+        guarantee it has been earned: every approval in the period had exactly
+        one funder, checked across every partner on this platform.
+      -->
+      <p class="${report.sharedVerified > 0 ? 'note danger' : 'note'}"
+         ${report.sharedVerified > 0 ? 'style="padding:12px"' : ''}>
+        <strong>One activity, one filer ·  หนึ่งกิจกรรม หนึ่งผู้ยื่น</strong><br>
+        ${esc(th ? report.exclusivity.th : report.exclusivity.en)}
+      </p>
+      <p class="note">${esc(th ? report.exclusivityBoundary.th : report.exclusivityBoundary.en)}</p>
       ${report.excludedUnclassified > 0
     ? html`
       <p class="note">
@@ -94,6 +106,9 @@ export function esgPage(
 
     <section class="figures">
       ${figure(String(report.verified), 'Activities verified', 'กิจกรรมที่ผ่านการตรวจ', 'lead')}
+      ${figure(
+    String(report.exclusiveVerified), 'Yours alone', 'ของรายนี้รายเดียว',
+  )}
       ${figure(String(report.participants), 'People involved', 'จำนวนคน')}
       ${figure(baht(report.paidTHB), 'Reached hosts', 'ถึงมือผู้จัด')}
       ${figure(baht(report.fundedTHB), 'Committed', 'ที่ให้ไว้')}

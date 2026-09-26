@@ -1124,6 +1124,38 @@ describe('the funder in a row, not in a constant', () => {
     assert.doesNotMatch(paid, /Pledged, not paid/, 'the page still says money is owed after it arrived');
   });
 
+  test('the ESG page earns the exclusivity sentence, then loses it', async () => {
+    // The feature, end to end on the page a filer reads. Two partners fund
+    // the same quest and the guarantee has to go for BOTH of them - if it
+    // went only for whoever filed second, the platform would be helping the
+    // first one double-count against the other.
+    const mod = await signIn(MOD2_KEY, 'Nok');
+    const fund = async (name: string) => {
+      await form(mod, '/organisations', { csrf: csrfOf(mod), name, kind: 'company' });
+      const org = db.prepare('SELECT id FROM organisations WHERE name_en = ?')
+        .get(name) as unknown as { id: string };
+      await form(mod, `/organisations/${org.id}/fund`, {
+        csrf: csrfOf(mod), questId: 'q-muni', fundedTHB: '50000', perVerifiedTHB: '500',
+      });
+      return org.id;
+    };
+
+    const acme = await fund('Acme');
+    const alone = await (await app.request(`/esg?org=${acme}`, { headers: withCookie(mod) })).text();
+    assert.match(alone, /One activity, one filer/);
+    // The console opens in Thai, so the Thai sentence is the one on the page.
+    assert.match(alone, /เพียงรายเดียว|ไม่มีกิจกรรมที่ผ่านการตรวจ/);
+
+    const beta = await fund('Beta');
+    for (const org of [acme, beta]) {
+      const page = await (await app.request(`/esg?org=${org}`, { headers: withCookie(mod) })).text();
+      assert.doesNotMatch(
+        page, /เพียงรายเดียว/,
+        'a co-funded quest kept its exclusivity guarantee',
+      );
+    }
+  });
+
   test('recording a payment needs a token, like every other write here', async () => {
     const mod = await signIn(MOD2_KEY, 'Nok');
     await form(mod, '/organisations', { csrf: csrfOf(mod), name: 'Acme', kind: 'company' });

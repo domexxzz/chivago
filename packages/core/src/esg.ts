@@ -32,6 +32,7 @@
 
 import type { Bilingual } from './types.ts';
 import type { Sponsor } from './sponsorship.ts';
+import { EXCLUSIVITY_BOUNDARY, exclusivityNote } from './claims.ts';
 
 /** The three pillars, as an auditor would expect them separated. */
 export type EsgPillar = 'environmental' | 'social' | 'governance';
@@ -60,6 +61,14 @@ export interface EsgActivity {
   hostName: string;
   /** Submissions a named host approved, within the period. */
   verified: number;
+  /**
+   * Of those, the ones this partner was the ONLY funder of at the moment of
+   * approval — the number that can be filed without risk of appearing in
+   * somebody else's report from this platform.
+   */
+  exclusiveVerified: number;
+  /** The rest: co-funded when approved, and disclosed rather than divided. */
+  sharedVerified: number;
   /** Opaque participant ids. Never surfaced — only counted, distinctly. */
   participants: string[];
   fundedTHB: number;
@@ -85,6 +94,10 @@ export interface EsgReport {
   /** DISTINCT across the whole report, not the sum of the pillars. */
   participants: number;
   verified: number;
+  /** Approvals this partner alone was funding. See `claims.ts`. */
+  exclusiveVerified: number;
+  /** Approvals another partner was also funding, and may also report. */
+  sharedVerified: number;
   paidTHB: number;
   fundedTHB: number;
   /** What each figure's verification actually is, stated with the figures. */
@@ -93,6 +106,16 @@ export interface EsgReport {
   notClaimable: Bilingual[];
   /** Where the boundary is drawn. An unstated boundary is an unbounded claim. */
   boundary: Bilingual;
+  /**
+   * Whether anything here is also in another partner's report.
+   *
+   * The sentence a filer cannot get anywhere else, and the one that has to be
+   * earned: it only reads as a guarantee when every approval in the period had
+   * exactly one funder.
+   */
+  exclusivity: Bilingual;
+  /** What that guarantee does not cover. */
+  exclusivityBoundary: Bilingual;
   /**
    * Funded activity inside the period that carries no ESG classification, and
    * is therefore NOT in any figure above.
@@ -179,6 +202,11 @@ export function esgReport(
     byPillar[pillar].participants = perPillarPeople[pillar].size;
   }
 
+  // Summed rather than recomputed: the service decided exclusivity per
+  // approval, where the dates are, and this function does not second-guess it.
+  const exclusiveVerified = activities.reduce((n, a) => n + a.exclusiveVerified, 0);
+  const sharedVerified = activities.reduce((n, a) => n + a.sharedVerified, 0);
+
   return {
     partner,
     period,
@@ -188,11 +216,15 @@ export function esgReport(
     // social activity is one person who did two things.
     participants: everyone.size,
     verified: activities.reduce((n, a) => n + a.verified, 0),
+    exclusiveVerified,
+    sharedVerified,
     paidTHB: activities.reduce((n, a) => n + a.paidTHB, 0),
     fundedTHB: activities.reduce((n, a) => n + a.fundedTHB, 0),
     assurance: ASSURANCE,
     notClaimable: NOT_CLAIMABLE,
     boundary: BOUNDARY,
+    exclusivity: exclusivityNote(sharedVerified, exclusiveVerified + sharedVerified),
+    exclusivityBoundary: EXCLUSIVITY_BOUNDARY,
     excludedUnclassified,
   };
 }
