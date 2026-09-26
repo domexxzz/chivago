@@ -65,6 +65,7 @@ export const consoleStrings = {
   sponsor: c('ผู้สนับสนุน', 'Sponsor'),
   esg: c('รายงาน ESG', 'ESG'),
   statement: c('รายการกิจกรรม', 'Statement'),
+  quests: c('ภารกิจและตัวชี้วัด', 'Quests & KPI'),
   stories: c('สตอรี่', 'Stories'),
   organisations: c('องค์กร', 'Organisations'),
   periodOutOfOrder: c('วันที่เริ่มต้นอยู่หลังวันที่สิ้นสุด เลือกช่วงวันที่ใหม่', 'The start date is after the end date. Choose the period again.'),

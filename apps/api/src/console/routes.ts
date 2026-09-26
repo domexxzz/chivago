@@ -22,6 +22,8 @@ import {
 import { listQuests } from '../repo.ts';
 import { sponsorPage } from './sponsor.ts';
 import { esgPage } from './esg.ts';
+import { questsPage } from './quests.ts';
+import { kpiReading } from '../kpi-service.ts';
 import { statementMissingPage, statementPage } from './statement.ts';
 import { storiesPage } from './stories.ts';
 import { pendingStories, readStoryMedia, reviewStory, setStoriesOpen, storiesOpen } from '../story-service.ts';
@@ -57,7 +59,7 @@ import {
   approveBatch, cancelBatch, pendingBatches, previewBatch, proposeBatch,
   SameApprover,
 } from '../batch-service.ts';
-import { BATCH_PREVIEW, reconcile } from '@chivago/core';
+import { BATCH_PREVIEW, isQuestMeasure, reconcile } from '@chivago/core';
 import { flaggedModerators, moderatorWatch } from '../moderator-watch.ts';
 import { isModerationReasonKey } from '@chivago/core';
 
@@ -519,6 +521,71 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
    * a moderator anywhere. The page reloads itself, because it is open on a
    * phone on a stage.
    */
+  /*
+    The host's own quests, and what each was agreed to be measured by.
+
+    Scoped by `host_id` like every other read in this console. A moderator
+    sees the same page for the host they are signed in as, plus the form to
+    agree an indicator - setting one is an act with a partner behind it, the
+    same shape as funding.
+  */
+  app.get('/quests', (c) => {
+    const session = currentSession(c)!;
+    const period = readPeriod(c.req.query('from'), c.req.query('to'));
+    const rows_ = db.prepare(
+      'SELECT id, name_en, name_th FROM quests WHERE host_id = ? ORDER BY name_en',
+    ).all(session.hostId) as unknown as { id: string; name_en: string; name_th: string }[];
+
+    return c.html(questsPage({
+      locale: localeFor(c),
+      hostName: session.hostName,
+      canModerate: canModerate(session),
+      csrf: csrfFor(session),
+      period,
+      quests: rows_.map((q) => ({
+        questId: q.id,
+        nameEn: q.name_en,
+        nameTh: q.name_th,
+        reading: kpiReading(db, q.id, period),
+      })),
+    }));
+  });
+
+  app.post('/quests/kpi', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/quests'), 403);
+    }
+
+    const questId = String(form.questId ?? '');
+    // Scoped, like every write in this console: a moderator signed in as one
+    // host does not agree indicators on another host's quests.
+    const owned = db.prepare('SELECT id FROM quests WHERE id = ? AND host_id = ?')
+      .get(questId, session.hostId);
+    if (!owned) return c.redirect('/console/quests', 303);
+
+    const measure = String(form.measure ?? '');
+    if (measure === '') {
+      // Clearing it clears the target with it. A baseline and a target with
+      // nothing to measure them in are two numbers nobody can read.
+      db.prepare(
+        'UPDATE quests SET kpi_measure = NULL, kpi_baseline = NULL, kpi_target = NULL WHERE id = ?',
+      ).run(questId);
+      return c.redirect('/console/quests', 303);
+    }
+    if (!isQuestMeasure(measure)) return c.redirect('/console/quests', 303);
+
+    const number = (v: unknown): number | null => {
+      const n = Number(v);
+      return typeof v === 'string' && v.trim() !== '' && Number.isFinite(n) && n >= 0 ? n : null;
+    };
+    db.prepare('UPDATE quests SET kpi_measure = ?, kpi_baseline = ?, kpi_target = ? WHERE id = ?')
+      .run(measure, number(form.baseline), number(form.target), questId);
+    return c.redirect('/console/quests', 303);
+  });
+
   app.get('/stories', (c) => {
     const session = currentSession(c)!;
     return c.html(storiesPage({

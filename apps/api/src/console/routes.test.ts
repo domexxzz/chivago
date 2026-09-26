@@ -1290,3 +1290,116 @@ describe('the funder in a row, not in a constant', () => {
     assert.equal(held.n, 0, 'money was recorded by a request with no token');
   });
 });
+
+/**
+ * The quests page, where a KPI is agreed and read.
+ *
+ * Not an app screen, on purpose: a target on a traveller's phone puts the
+ * next weight a host types under pressure to reach it, which breaks the only
+ * measurement on the page. The person who needs the target is the person who
+ * enters the number.
+ */
+describe('quests and their agreed indicator', () => {
+  // A moderator on the municipality's own host row, so the scoping rule the
+  // write enforces - a moderator agrees indicators on the quests of the host
+  // they are signed in AS - has a quest to act on.
+  const MOD_KEY = 'chv_KPIAA-KPIBB-KPICC-KPIDD';
+  const asModerator = async () => {
+    db.prepare("UPDATE hosts SET role = 'moderator', api_key_hash = ? WHERE id = 'h-muni'")
+      .run(hashApiKey(MOD_KEY));
+    return signIn(MOD_KEY, 'Nok');
+  };
+  // Local copies: the ones above live inside another describe's scope.
+  const post = (token: string, path: string, fields: Record<string, string>) => app.request(path, {
+    method: 'POST',
+    headers: { ...withCookie(token), 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(fields),
+  });
+  const token = (t: string) => __csrfFor(resolveSession(db, t)!);
+  const setKpi = (t: string, body: Record<string, string>) =>
+    post(t, '/quests/kpi', { csrf: token(t), ...body });
+
+  test('a quest with no indicator is listed, not hidden', async () => {
+    // It has not failed a measurement; nobody gave it one. A page that
+    // listed only the measured ones would hide the gap on the screen that
+    // can close it.
+    const lab = await signIn(LAB_KEY, 'Nok');
+    const page = await (await app.request('/quests', { headers: withCookie(lab) })).text();
+    assert.match(page, /q-lab/);
+    assert.match(page, /ยังไม่ได้ตกลงตัวชี้วัด|No indicator agreed/);
+  });
+
+  test('another host’s quests are not on this host’s page', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    const page = await (await app.request('/quests', { headers: withCookie(lab) })).text();
+    assert.doesNotMatch(page, /q-muni/, "another host's quest was listed");
+  });
+
+  test('a moderator agrees one, and the page then reads it', async () => {
+    const mod = await asModerator();
+    assert.equal((await setKpi(mod, {
+      questId: 'q-muni', measure: 'verified_submissions', target: '10',
+    })).status, 303);
+
+    const page = await (await app.request('/quests', { headers: withCookie(mod) })).text();
+    assert.match(page, /งานที่ผู้จัดตรวจแล้ว|Submissions a host verified/);
+    // The refusal travels with the figure rather than living in a manual.
+    assert.match(page, /ไม่ใช่จำนวนคน|Not people/);
+  });
+
+  test('THE PAGE HAS NO FORMULA BOX', async () => {
+    // A free-text formula would let "attendees x 3.2 kg CO2e" into a
+    // contract, and the console would print the product of a number it
+    // measured and a coefficient it has never held.
+    const mod = await asModerator();
+    const page = await (await app.request('/quests', { headers: withCookie(mod) })).text();
+    assert.doesNotMatch(page, /name="formula"/);
+    assert.match(page, /ไม่มีช่องสูตรคำนวณโดยตั้งใจ|no formula box/);
+  });
+
+  test('a measure a quest cannot carry is refused at the door', async () => {
+    const mod = await asModerator();
+    await setKpi(mod, { questId: 'q-muni', measure: 'voucher_value_thb', target: '500' });
+    const stored = db.prepare("SELECT kpi_measure AS m FROM quests WHERE id = 'q-muni'")
+      .get() as unknown as { m: string | null };
+    assert.equal(stored.m, null, 'a voucher measure was written onto a quest');
+  });
+
+  test('clearing the indicator clears the target with it', async () => {
+    // A baseline and a target with nothing to measure them in are two
+    // numbers nobody can read.
+    const mod = await asModerator();
+    await setKpi(mod, { questId: 'q-muni', measure: 'weight_kg', baseline: '10', target: '200' });
+    await setKpi(mod, { questId: 'q-muni', measure: '' });
+    const stored = db.prepare(
+      "SELECT kpi_measure AS m, kpi_baseline AS b, kpi_target AS t FROM quests WHERE id = 'q-muni'",
+    ).get() as unknown as { m: string | null; b: number | null; t: number | null };
+    assert.deepEqual([stored.m, stored.b, stored.t], [null, null, null]);
+  });
+
+  test('a host who cannot moderate gets no form and cannot post one', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    const page = await (await app.request('/quests', { headers: withCookie(lab) })).text();
+    assert.doesNotMatch(page, /name="measure"/, 'a plain host was shown the form');
+
+    const res = await setKpi(lab, { questId: 'q-lab', measure: 'weight_kg' });
+    assert.equal(res.status, 404);
+  });
+
+  test('a stale token writes nothing', async () => {
+    const mod = await asModerator();
+    const res = await post(mod, '/quests/kpi', {
+      csrf: 'not-this-session', questId: 'q-muni', measure: 'weight_kg',
+    });
+    assert.equal(res.status, 403);
+    const stored = db.prepare("SELECT kpi_measure AS m FROM quests WHERE id = 'q-muni'")
+      .get() as unknown as { m: string | null };
+    assert.equal(stored.m, null);
+  });
+
+  test('signed out, it is the login redirect like every other page', async () => {
+    const res = await app.request('/quests');
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.get('location'), '/console/login');
+  });
+});
