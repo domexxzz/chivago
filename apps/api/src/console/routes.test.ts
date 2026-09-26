@@ -851,6 +851,83 @@ describe('the statement page', () => {
     assert.equal(res.status, 303);
     assert.equal(res.headers.get('location'), '/console/login');
   });
+
+  /**
+   * The evidence pack under an issued statement.
+   *
+   * The statement is public because it carries counts and no people. This
+   * carries a row per approval, so it is not - and the guard is the same
+   * cross-host rule the rest of this console enforces.
+   */
+  const issuedId = async (token: string) => {
+    const res = await issue(token, `${year}-01-01`, `${year}-12-31`);
+    return /issued=(CG-\d{4}-[0-9A-Z]{6})/.exec(res.headers.get('location') ?? '')?.[1] ?? '';
+  };
+
+  test('the pack lists the approvals and says the evidence still matches', async () => {
+    approve('q-lab', iso(2));
+    const lab = await signIn(LAB_KEY, 'Nok Suwannee');
+    const id = await issuedId(lab);
+
+    const page = await (await app.request(`/evidence?id=${id}`, { headers: withCookie(lab) })).text();
+    assert.match(page, new RegExp(id));
+    assert.match(page, /Nok/, 'the reviewer who approved it is not on the pack');
+    assert.match(page, /P-[0-9A-F]{8}/, 'no participant reference on the pack');
+    assert.match(page, /ยังคงอยู่|still stand/, 'the reconciliation verdict is missing');
+  });
+
+  test('WITHDRAWING AN APPROVAL AFTER FILING SHOWS UP ON THE PACK', async () => {
+    // The reason this is not a listing. The statement cannot change and still
+    // says one; the proof under it has been turned down since.
+    approve('q-lab', iso(2));
+    const lab = await signIn(LAB_KEY, 'Nok Suwannee');
+    const id = await issuedId(lab);
+
+    db.prepare("UPDATE proofs SET approved = 0 WHERE quest_id = 'q-lab'").run();
+    const page = await (await app.request(`/evidence?id=${id}`, { headers: withCookie(lab) })).text();
+    assert.match(page, /ถูกเพิกถอนภายหลัง|Withdrawn since/, 'a withdrawal after filing is invisible');
+  });
+
+  test('another host cannot open it, and is not told it exists', async () => {
+    // Same answer for "no such statement" and "not yours": telling a host
+    // which ids exist elsewhere is itself a cross-host leak.
+    approve('q-lab', iso(2));
+    const lab = await signIn(LAB_KEY, 'Nok');
+    const id = await issuedId(lab);
+
+    const muni = await signIn(MUNI_KEY, 'Somsak');
+    const res = await app.request(`/evidence?id=${id}`, { headers: withCookie(muni) });
+    assert.equal(res.status, 404);
+    const page = await res.text();
+    assert.doesNotMatch(page, /P-[0-9A-F]{8}/, 'a row leaked to another host');
+    assert.doesNotMatch(page, /Nok/, 'a reviewer name leaked to another host');
+  });
+
+  test('the CSV carries the statement, the digest and the verdict', async () => {
+    approve('q-lab', iso(2));
+    const lab = await signIn(LAB_KEY, 'Nok Suwannee');
+    const id = await issuedId(lab);
+    const digest = (db.prepare('SELECT digest FROM statements WHERE id = ?').get(id) as
+      unknown as { digest: string }).digest;
+
+    const res = await app.request(`/evidence?id=${id}&format=csv`, { headers: withCookie(lab) });
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get('content-type') ?? '', /text\/csv/);
+    assert.match(res.headers.get('content-disposition') ?? '', new RegExp(`${id}-evidence.csv`));
+    // Never cached: unlike the statement, this changes as the rows under it do.
+    assert.equal(res.headers.get('cache-control'), 'no-store');
+
+    const csv = await res.text();
+    assert.match(csv, new RegExp(digest));
+    assert.match(csv, /day,quest_id,quest,participant_ref,reviewed_by,photos,weight_kg,standing/);
+    assert.match(csv, /Level 3 of four/, 'the pack does not say which rung it is on');
+  });
+
+  test('signed out, the pack is the login redirect too', async () => {
+    const res = await app.request('/evidence?id=CG-2026-AAAAAA');
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.get('location'), '/console/login');
+  });
 });
 
 describe('the statement draft with a period that is not a date', () => {

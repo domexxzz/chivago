@@ -22,11 +22,15 @@ import {
 import { listQuests } from '../repo.ts';
 import { sponsorPage } from './sponsor.ts';
 import { esgPage } from './esg.ts';
-import { statementPage } from './statement.ts';
+import { statementMissingPage, statementPage } from './statement.ts';
 import { storiesPage } from './stories.ts';
 import { pendingStories, readStoryMedia, reviewStory, setStoriesOpen, storiesOpen } from '../story-service.ts';
-import { InvalidPeriod, draftStatement, issueStatement, statementsFor } from '../statement-service.ts';
+import {
+  InvalidPeriod, draftStatement, issueStatement, readStatement, statementsFor,
+} from '../statement-service.ts';
 import { activityInPeriod } from '../esg-service.ts';
+import { evidenceFor } from '../evidence-service.ts';
+import { evidenceCsv, evidencePage } from './evidence.ts';
 import {
   addOrganisation, addSponsorship, basisFor, InvalidFunding, listOrganisations, organisationById,
   recordPayment, removeSponsorship, sponsorshipsFor, UnknownOrganisation,
@@ -53,7 +57,7 @@ import {
   approveBatch, cancelBatch, pendingBatches, previewBatch, proposeBatch,
   SameApprover,
 } from '../batch-service.ts';
-import { BATCH_PREVIEW } from '@chivago/core';
+import { BATCH_PREVIEW, reconcile } from '@chivago/core';
 import { flaggedModerators, moderatorWatch } from '../moderator-watch.ts';
 import { isModerationReasonKey } from '@chivago/core';
 
@@ -461,6 +465,52 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       csrf: csrfFor(session),
       origin: new URL(c.req.url).origin,
       justIssued: c.req.query('issued') ?? null,
+    }));
+  });
+
+  /**
+   * The evidence pack behind one issued statement.
+   *
+   * NOT PUBLIC, unlike the statement it belongs to. `/statements/:id` is open
+   * to anyone holding the id because it carries counts and no people; this
+   * carries a row per approval, and a row per approval is a person's day even
+   * with a reference where the name would be.
+   *
+   * Scoped to the host whose statement it is. A moderator is not given a way
+   * in here either: cross-host reading is the rule this console exists to
+   * enforce, and an evidence pack is the last place to make an exception.
+   */
+  app.get('/evidence', (c) => {
+    const session = currentSession(c)!;
+    const id = c.req.query('id') ?? '';
+    const statement = readStatement(db, id);
+    // Same answer for "no such statement" and "not yours": telling a host
+    // which ids exist elsewhere is itself a cross-host leak.
+    if (!statement || statement.host.id !== session.hostId) {
+      return c.html(statementMissingPage(localeFor(c), id), 404);
+    }
+
+    const items = evidenceFor(db, statement.id, session.hostId, statement.period);
+    const reconciliation = reconcile(statement, items);
+    const origin = new URL(c.req.url).origin;
+
+    if (c.req.query('format') === 'csv') {
+      c.header('content-type', 'text/csv; charset=utf-8');
+      c.header('content-disposition', `attachment; filename="${statement.id}-evidence.csv"`);
+      // Never cached: unlike the statement, this changes as the rows under it
+      // do, and a stale copy is the one thing it exists to prevent.
+      c.header('cache-control', 'no-store');
+      return c.body(evidenceCsv(statement, items, reconciliation, origin));
+    }
+
+    c.header('cache-control', 'no-store');
+    return c.html(evidencePage({
+      locale: localeFor(c),
+      hostName: session.hostName,
+      statement,
+      items,
+      reconciliation,
+      origin,
     }));
   });
 
