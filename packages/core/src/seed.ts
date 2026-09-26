@@ -725,6 +725,17 @@ export const SEED_QUESTS: Quest[] = [
 // Marketplace
 // ---------------------------------------------------------------------------
 
+/*
+  Every one of these is unpriced, and that is a decision rather than a gap
+  waiting to be filled in.
+
+  `valueTHB` is what the MERCHANT says the offer is worth, and nobody has
+  asked these six. Six plausible figures typed in here would be fabricated
+  prices attached to named, real businesses on Samui - the same move this
+  file already refuses for a photograph with no credit and a venue with no
+  consent. `communityValue` reports them as unpriced and counts them, which
+  is the true answer until somebody rings the shop.
+*/
 export const SEED_OFFERS: Offer[] = [
   {
     id: 'o1',
@@ -733,6 +744,7 @@ export const SEED_OFFERS: Offer[] = [
     merchant: 'Sabeinglae Coffee, Bophut',
     merchantShort: 'Sabeinglae Coffee',
     costPoints: 180,
+    valueTHB: null,
     currency: 'trip',
     imageUrl: null,
     available: true,
@@ -744,6 +756,7 @@ export const SEED_OFFERS: Offer[] = [
     merchant: 'Baan Yai Kitchen, Maenam',
     merchantShort: 'Baan Yai Kitchen',
     costPoints: 350,
+    valueTHB: null,
     currency: 'trip',
     imageUrl: null,
     available: true,
@@ -760,6 +773,7 @@ export const SEED_OFFERS: Offer[] = [
     merchant: 'Baan Yoga, Lamai',
     merchantShort: 'Baan Yoga',
     costPoints: 500,
+    valueTHB: null,
     currency: 'trip',
     imageUrl: null,
     available: true,
@@ -771,6 +785,7 @@ export const SEED_OFFERS: Offer[] = [
     merchant: 'Anantara partner hotels',
     merchantShort: 'Anantara',
     costPoints: 800,
+    valueTHB: null,
     currency: 'trip',
     imageUrl: null,
     available: true,
@@ -782,6 +797,7 @@ export const SEED_OFFERS: Offer[] = [
     merchant: 'Thong Krut Boat Co-op',
     merchantShort: 'Thong Krut Boat Co-op',
     costPoints: 1200,
+    valueTHB: null,
     currency: 'green',
     imageUrl: null,
     available: true,
@@ -793,6 +809,7 @@ export const SEED_OFFERS: Offer[] = [
     merchant: 'Ocean Lab · Taling Ngam',
     merchantShort: 'Ocean Lab',
     costPoints: 600,
+    valueTHB: null,
     currency: 'green',
     imageUrl: null,
     available: true,

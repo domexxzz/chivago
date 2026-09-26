@@ -220,7 +220,8 @@ export function getQuest(db: DB, questId: string): Quest | null {
 
 interface OfferRow {
   id: string; category: string; name: string; merchant: string; merchant_short: string;
-  cost_points: number; currency: string; image_url: string | null; available: number;
+  cost_points: number; value_thb: number | null; currency: string;
+  image_url: string | null; available: number;
 }
 
 export function listOffers(db: DB): Offer[] {
@@ -234,6 +235,7 @@ export function listOffers(db: DB): Offer[] {
     merchant: r.merchant,
     merchantShort: r.merchant_short,
     costPoints: r.cost_points,
+    valueTHB: r.value_thb ?? null,
     currency: r.currency as Offer['currency'],
     imageUrl: r.image_url,
     available: r.available === 1,

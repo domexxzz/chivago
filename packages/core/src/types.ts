@@ -412,6 +412,12 @@ export interface Offer {
   /** Merchant short name, used in the redemption toast. */
   merchantShort: string;
   costPoints: number;
+  /**
+   * What the merchant says this is worth in baht, or null when nobody has
+   * said. Null and 0 are different answers: unpriced is a gap in the record,
+   * worth nothing is a claim about the offer.
+   */
+  valueTHB: number | null;
   /** Which currency this offer is priced in. */
   currency: Currency;
   imageUrl: string | null;
@@ -431,6 +437,13 @@ export interface Voucher {
   /** Opaque code encoded into the QR the merchant scans. */
   code: string;
   costPoints: number;
+  /**
+   * The offer's baht value AS IT WAS when this voucher was issued.
+   *
+   * A snapshot, not a join: a merchant repricing next year must not reprice
+   * the voucher already in somebody's phone.
+   */
+  valueTHB: number | null;
   issuedAt: string;
   expiresAt: string;
   redeemedAt: string | null;

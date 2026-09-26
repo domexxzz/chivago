@@ -1172,14 +1172,17 @@ app.post('/offers/:id/redeem', (c) => {
     });
     const code = `CG-${voucherId.slice(0, 8).toUpperCase()}`;
     db.prepare(
+      // `value_thb` is SNAPSHOT here, not joined on read: a merchant
+      // repricing next year must not reprice the voucher already in
+      // somebody's phone. Null stays null - unpriced is not zero.
       `INSERT INTO vouchers (id, offer_id, user_id, merchant, code, cost_points,
-         issued_at, expires_at, status)
-       VALUES (?,?,?,?,?,?,?,?,'active')`,
+         value_thb, issued_at, expires_at, status)
+       VALUES (?,?,?,?,?,?,?,?,?,'active')`,
     ).run(voucherId, offer.id, id, offer.merchant, code, offer.costPoints,
-          now.toISOString(), expires.toISOString());
+          offer.valueTHB, now.toISOString(), expires.toISOString());
     return {
       id: voucherId, offerId: offer.id, userId: id, merchant: offer.merchant,
-      code, costPoints: offer.costPoints, issuedAt: now.toISOString(),
+      code, costPoints: offer.costPoints, valueTHB: offer.valueTHB, issuedAt: now.toISOString(),
       expiresAt: expires.toISOString(), redeemedAt: null, status: 'active' as const,
     };
   });
@@ -1202,7 +1205,7 @@ app.get('/vouchers', (c) => {
     .prepare('SELECT * FROM vouchers WHERE user_id = ? ORDER BY issued_at DESC')
     .all(userId(c)) as unknown as {
       id: string; offer_id: string; user_id: string; merchant: string; code: string;
-      cost_points: number; issued_at: string; expires_at: string;
+      cost_points: number; value_thb: number | null; issued_at: string; expires_at: string;
       redeemed_at: string | null; status: string;
     }[];
   const vouchers: Voucher[] = rows.map((r) => ({
@@ -1212,6 +1215,7 @@ app.get('/vouchers', (c) => {
     merchant: r.merchant,
     code: r.code,
     costPoints: r.cost_points,
+    valueTHB: r.value_thb ?? null,
     issuedAt: r.issued_at,
     expiresAt: r.expires_at,
     redeemedAt: r.redeemed_at,

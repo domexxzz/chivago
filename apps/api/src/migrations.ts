@@ -20,6 +20,21 @@ function hasColumn(db: DB, table: string, column: string): boolean {
   return cols.some((c) => c.name === column);
 }
 
+/**
+ * Whether the table is there at all.
+ *
+ * Most of this file alters tables `db.ts` has created since the first commit,
+ * so the question never came up. `offers` and `vouchers` are created by SCHEMA
+ * too, but `migrate()` is also called on its own - the legacy fixture in
+ * `migrations.test.ts` builds a partial database by hand - and an ALTER
+ * against a table that is not there throws rather than being skipped.
+ */
+function hasTable(db: DB, table: string): boolean {
+  const found = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
+    .all(table) as unknown as { name: string }[];
+  return found.length > 0;
+}
+
 function addColumn(db: DB, table: string, column: string, definition: string): boolean {
   if (hasColumn(db, table, column)) return false;
   db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
@@ -1046,6 +1061,32 @@ export function migrate(db: DB): string[] {
   }
   if (addColumn(db, 'org_sponsorships', 'received_at', 'TEXT')) {
     applied.push('org_sponsorships.received_at');
+  }
+
+  /*
+    What an offer is worth, in baht.
+
+    The market has run on points alone since it was written: `cost_points` is
+    what a traveller spends, and nothing anywhere says what the coffee is
+    worth. So the one indicator a partner most wants from the S pillar -
+    money reaching local operators - could not be produced at all, and the
+    merchant side had no base to compute a commission from either.
+
+    NULLABLE, NOT ZERO, and that is the whole care in this migration. An offer
+    nobody has priced is UNKNOWN, and a zero would be summed as "worth
+    nothing" - turning a gap in the data into a claim about the world, which
+    is the failure this codebase keeps finding in its own totals.
+
+    `vouchers.value_thb` is a SNAPSHOT taken when the voucher is issued, not a
+    join back to the offer. A merchant who reprices a coffee next year must
+    not reprice every voucher already in somebody's phone, which is the same
+    lesson `org_sponsorships.received_thb` learned a week ago.
+  */
+  if (hasTable(db, 'offers') && addColumn(db, 'offers', 'value_thb', 'INTEGER')) {
+    applied.push('offers.value_thb');
+  }
+  if (hasTable(db, 'vouchers') && addColumn(db, 'vouchers', 'value_thb', 'INTEGER')) {
+    applied.push('vouchers.value_thb');
   }
 
   return applied;
