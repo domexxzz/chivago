@@ -420,7 +420,7 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     }));
     const period = readPeriod(c.req.query('from'), c.req.query('to'));
 
-    const { classified, excludedUnclassified } = activityInPeriod(db, funded, period);
+    const { classified, excludedUnclassified } = activityInPeriod(db, partner.id, funded, period);
     const report = esgReport(partner, period, classified, excludedUnclassified);
 
     return c.html(esgPage(
