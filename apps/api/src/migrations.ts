@@ -1143,5 +1143,51 @@ export function migrate(db: DB): string[] {
     if (addColumn(db, 'quests', 'kpi_target', 'REAL')) applied.push('quests.kpi_target');
   }
 
+  /*
+    An assurance provider's conclusion on a statement we issued.
+
+    Rung four of the ladder in `evidence-level.ts`, which until now could
+    never be reached because nothing here could hold somebody else's opinion.
+    `countersign.ts` in core carries the four refusals that make it safe to
+    build; the schema enforces two of them.
+
+    BOUND TO A DIGEST, not just to an id. A signature names the exact bytes it
+    was given, so it cannot quietly transfer to a different record that
+    happens to be displayed beside it.
+
+    APPEND-ONLY, EXCEPT FOR THE WITHDRAWAL. The trigger names the columns it
+    protects, which is every column except the two a withdrawal writes. An
+    assurer can take a conclusion back; nobody can edit one into a different
+    conclusion, and withdrawing is not deleting - the row stays and both facts
+    are shown.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS statement_countersignatures (
+      id               TEXT PRIMARY KEY,
+      statement_id     TEXT NOT NULL REFERENCES statements(id),
+      digest           TEXT NOT NULL,
+      signer_name      TEXT NOT NULL,
+      signer_firm      TEXT NOT NULL,
+      standard         TEXT NOT NULL
+        CHECK (standard IN ('isae3000_limited','isae3000_reasonable','other')),
+      opinion          TEXT NOT NULL
+        CHECK (opinion IN ('unmodified','modified','adverse','disclaimer')),
+      scope_note       TEXT,
+      channel          TEXT NOT NULL CHECK (channel IN ('entered_by_staff')),
+      recorded_at      TEXT NOT NULL,
+      recorded_by      TEXT,
+      withdrawn_at     TEXT,
+      withdrawn_reason TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_countersign_statement
+      ON statement_countersignatures(statement_id, recorded_at);
+    CREATE TRIGGER IF NOT EXISTS countersignatures_are_append_only
+      BEFORE UPDATE OF statement_id, digest, signer_name, signer_firm, standard,
+                       opinion, scope_note, channel, recorded_at, recorded_by
+      ON statement_countersignatures
+      BEGIN SELECT RAISE(ABORT, 'a conclusion is append-only: withdraw it and record another'); END;
+  `);
+  applied.push('statement_countersignatures');
+
   return applied;
 }

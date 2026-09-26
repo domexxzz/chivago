@@ -24,6 +24,9 @@ import { sponsorPage } from './sponsor.ts';
 import { esgPage } from './esg.ts';
 import { questsPage } from './quests.ts';
 import { reviewDeclaredPage } from './review-declared.ts';
+import {
+  InvalidCountersignature, countersignaturesFor, recordCountersignature, withdrawCountersignature,
+} from '../countersign-service.ts';
 import { kpiReading } from '../kpi-service.ts';
 import { statementMissingPage, statementPage } from './statement.ts';
 import { storiesPage } from './stories.ts';
@@ -467,6 +470,10 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       canModerate: canModerate(session),
       draft,
       issued: statementsFor(db, session.hostId),
+      // Every conclusion against any of this host's statements, so the panel
+      // below the table is the whole picture rather than one statement's.
+      signatures: statementsFor(db, session.hostId)
+        .flatMap((st) => countersignaturesFor(db, st.id)),
       csrf: csrfFor(session),
       origin: new URL(c.req.url).origin,
       justIssued: c.req.query('issued') ?? null,
@@ -638,6 +645,62 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     }
     const review = reviewDeclared(sheet.rows, period, statedTotal);
     return c.html(reviewForm(c, session, period, pasted, statedTotalRaw, review, []));
+  });
+
+  /*
+    Recording an assurance provider's conclusion, and taking it back.
+
+    Moderator only. The digest is read off the statement inside the service,
+    never accepted from this form: a digest somebody types is a digest
+    somebody could mistype into matching, which is the one way the binding
+    could be defeated.
+  */
+  app.post('/statement/countersign', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/statement'), 403);
+    }
+    // Scoped: a moderator records conclusions on the statements of the host
+    // they are signed in as, like every other write in this console.
+    const id = String(form.statementId ?? '');
+    if (!statementsFor(db, session.hostId).some((st) => st.id === id)) {
+      return c.redirect('/console/statement', 303);
+    }
+    try {
+      recordCountersignature(db, {
+        statementId: id,
+        signerName: String(form.signerName ?? ''),
+        signerFirm: String(form.signerFirm ?? ''),
+        standard: String(form.standard ?? ''),
+        opinion: String(form.opinion ?? ''),
+        scopeNote: String(form.scopeNote ?? ''),
+        recordedBy: session.reviewer ?? session.hostName,
+      });
+    } catch (err) {
+      if (err instanceof InvalidCountersignature) {
+        return c.redirect(`/console/statement?error=${encodeURIComponent(err.message)}`, 303);
+      }
+      throw err;
+    }
+    return c.redirect('/console/statement', 303);
+  });
+
+  app.post('/statement/countersign/withdraw', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/statement'), 403);
+    }
+    const id = String(form.id ?? '');
+    const mine = statementsFor(db, session.hostId)
+      .flatMap((st) => countersignaturesFor(db, st.id))
+      .some((sig) => sig.id === id);
+    if (!mine) return c.redirect('/console/statement', 303);
+    withdrawCountersignature(db, id, String(form.reason ?? ''));
+    return c.redirect('/console/statement', 303);
   });
 
   app.get('/stories', (c) => {

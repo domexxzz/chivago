@@ -48,6 +48,7 @@ import { checkedInToday, checkIn } from './checkin-service.ts';
 import { exploredFor, recordSelfVisit, selfReportedProvincesFor, selfVisitsFor } from './visit-service.ts';
 import { airHistoryFor, checkinsLastHour } from './crowd-service.ts';
 import { readStatement, statementsIncluding } from './statement-service.ts';
+import { countersignaturesFor } from './countersign-service.ts';
 import {
   STORY_FORM_MAX_BYTES, StoryTooLarge, expireStories, readStoryMedia, storiesAt, storiesInArea, storiesOpen,
   storyEtag, submitStory,
@@ -249,6 +250,32 @@ app.get('/statements/:id', (c) => {
  * cabinet; both carry the id, the digest and the verify URL, so a forwarded
  * copy still points home. Public and immutable, like the JSON.
  */
+/**
+ * Conclusions recorded against a statement.
+ *
+ * A SEPARATE ENDPOINT, NOT A FIELD ON THE RECORD. The digest covers the
+ * statement body; a signature arrives afterwards and cannot be inside what
+ * was signed. Putting it on the statement JSON would leave a reader
+ * recomputing the hash with a field to guess about, and guessing is what the
+ * digest exists to end.
+ *
+ * Public and CORS-open like the record it belongs to: a conclusion nobody can
+ * fetch is a conclusion nobody can act on.
+ */
+app.get('/statements/:id/countersignatures', (c) => {
+  const statement = readStatement(db, c.req.param('id'));
+  c.header('access-control-allow-origin', '*');
+  if (!statement) return fail(c, 'NO_STATEMENT', 'No statement has that id.', 404);
+  // Not cached like the statement is: a conclusion can be withdrawn, and the
+  // record it hangs on cannot.
+  c.header('cache-control', 'no-store');
+  return ok(c, {
+    statementId: statement.id,
+    digest: statement.digest,
+    countersignatures: countersignaturesFor(db, statement.id),
+  });
+});
+
 app.get('/statements/:id/csv', (c) => {
   const statement = readStatement(db, c.req.param('id'));
   c.header('access-control-allow-origin', '*');
@@ -394,7 +421,9 @@ app.get('/verify/:id', (c) => {
   const statement = readStatement(db, id);
   const origin = new URL(c.req.url).origin;
   return c.html(
-    statement ? verifyPage(publicLocale(c), statement, origin) : statementMissingPage(publicLocale(c), id),
+    statement
+      ? verifyPage(publicLocale(c), statement, origin, countersignaturesFor(db, statement.id))
+      : statementMissingPage(publicLocale(c), id),
     statement ? 200 : 404,
     { 'x-content-type-options': 'nosniff' },
   );
