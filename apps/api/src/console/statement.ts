@@ -161,7 +161,7 @@ export function statementPage(args: {
     : html`
       <table>
         <thead>
-          <tr><th>Id</th><th>Period</th><th>Issued</th><th>Verified</th><th>Digest</th><th>Check</th></tr>
+          <tr><th>Id</th><th>Period</th><th>Issued</th><th>Verified</th><th>Digest</th><th>Check</th><th>Evidence</th></tr>
         </thead>
         <tbody>
           ${args.issued.map((s) => html`
@@ -174,6 +174,12 @@ export function statementPage(args: {
               <td><a href="${esc(publicUrl(args.origin, s.id))}">${esc(publicUrl(args.origin, s.id))}</a>
                 · <a href="${esc(`${args.origin}/statements/${encodeURIComponent(s.id)}/csv`)}">CSV</a>
                 · <a href="${esc(`${args.origin}/statements/${encodeURIComponent(s.id)}/pdf`)}">PDF</a></td>
+              <!--
+                The pack is NOT on the public link, and that is the point: the
+                statement carries counts and no people, the pack carries a row
+                per approval. It opens from here, signed in, or not at all.
+              -->
+              <td><a href="/console/evidence?id=${esc(encodeURIComponent(s.id))}">Pack · ซองหลักฐาน</a></td>
             </tr>`)}
         </tbody>
       </table>
