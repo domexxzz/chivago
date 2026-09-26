@@ -1116,5 +1116,32 @@ export function migrate(db: DB): string[] {
     applied.push('quest_progress.fence_enforced');
   }
 
+  /*
+    The indicator a quest was agreed against, before it ran.
+
+    Section 3 of the framework note asks for six things per quest: a KPI, its
+    unit, the formula, a baseline, a target and a period. THREE COLUMNS COVER
+    FIVE OF THEM, and the sixth is refused on purpose.
+
+    No formula column. A free-text formula is an invitation to write
+    `attendees x 3.2 kg CO2e` into a contract, and this platform would then
+    print the product of a number it measured and a coefficient it has never
+    held. `kpi.ts` names a closed set of measures instead; a partner who needs
+    something outside it gets a conversation and, if the answer is good, a
+    commit that can be reviewed.
+
+    No unit column either: the unit is fixed by the measure, so storing it
+    separately would only create somewhere for the two to disagree. The period
+    belongs to the report, not to the quest.
+
+    `kpi_baseline` and `kpi_target` are REAL, because weight is not an
+    integer. Both nullable: a quest with no target has not missed one.
+  */
+  if (hasTable(db, 'quests')) {
+    if (addColumn(db, 'quests', 'kpi_measure', 'TEXT')) applied.push('quests.kpi_measure');
+    if (addColumn(db, 'quests', 'kpi_baseline', 'REAL')) applied.push('quests.kpi_baseline');
+    if (addColumn(db, 'quests', 'kpi_target', 'REAL')) applied.push('quests.kpi_target');
+  }
+
   return applied;
 }
