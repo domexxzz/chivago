@@ -1189,5 +1189,60 @@ export function migrate(db: DB): string[] {
   `);
   applied.push('statement_countersignatures');
 
+  /*
+    An organisation declaring it used one of our statements in a disclosure.
+
+    A carbon registry closes this loop by RETIRING the unit, which it can do
+    because it holds the unit. We hold a page and a digest. So this table does
+    not prevent a second use; it makes one visible when somebody declares it.
+    `statement-use.ts` in core carries that distinction and the refusals that
+    go with it, including the one nobody would supply for themselves: an empty
+    table is not evidence that a statement went unused.
+
+    BOUND TO A DIGEST, like a countersignature. A declaration names the bytes
+    it was about, so it cannot drift onto a record it was never about.
+
+    ONE STANDING DECLARATION PER ORG, PER KIND, PER YEAR - a partial unique
+    index, and the WHERE clause is the whole point. A company that files its
+    2026 One Report twice has not used the statement twice, and the second
+    attempt is the same fact arriving again. But a company that WITHDREW a
+    declaration and later genuinely files that report must be able to declare
+    again, and the withdrawn row must not swallow it. So the constraint binds
+    only the declarations that stand, and both rows survive.
+
+    APPEND-ONLY, EXCEPT FOR THE WITHDRAWAL, and the trigger names the columns
+    it protects. A declaration can be taken back - the report was never filed,
+    the section was cut - and taking it back leaves the original standing.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS statement_uses (
+      id               TEXT PRIMARY KEY,
+      statement_id     TEXT NOT NULL REFERENCES statements(id),
+      digest           TEXT NOT NULL,
+      org_id           TEXT NOT NULL REFERENCES organisations(id),
+      kind             TEXT NOT NULL
+        CHECK (kind IN ('one_report','sustainability_report','ifrs_s','internal','other')),
+      reporting_year   INTEGER NOT NULL,
+      place_note       TEXT,
+      declared_at      TEXT NOT NULL,
+      declared_by      TEXT,
+      withdrawn_at     TEXT,
+      withdrawn_reason TEXT
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_statement_uses_standing
+      ON statement_uses(statement_id, org_id, kind, reporting_year)
+      WHERE withdrawn_at IS NULL;
+    CREATE INDEX IF NOT EXISTS idx_statement_uses_statement
+      ON statement_uses(statement_id, declared_at);
+    CREATE INDEX IF NOT EXISTS idx_statement_uses_org
+      ON statement_uses(org_id, declared_at);
+    CREATE TRIGGER IF NOT EXISTS statement_uses_are_append_only
+      BEFORE UPDATE OF id, statement_id, digest, org_id, kind, reporting_year,
+                       place_note, declared_at, declared_by
+      ON statement_uses
+      BEGIN SELECT RAISE(ABORT, 'a declaration is append-only: withdraw it and declare again'); END;
+  `);
+  applied.push('statement_uses');
+
   return applied;
 }

@@ -27,6 +27,9 @@ import { reviewDeclaredPage } from './review-declared.ts';
 import {
   InvalidCountersignature, countersignaturesFor, recordCountersignature, withdrawCountersignature,
 } from '../countersign-service.ts';
+import {
+  InvalidStatementUse, declareUse, usesOf, withdrawUse,
+} from '../statement-use-service.ts';
 import { kpiReading } from '../kpi-service.ts';
 import { statementMissingPage, statementPage } from './statement.ts';
 import { storiesPage } from './stories.ts';
@@ -474,6 +477,8 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       // below the table is the whole picture rather than one statement's.
       signatures: statementsFor(db, session.hostId)
         .flatMap((st) => countersignaturesFor(db, st.id)),
+      uses: statementsFor(db, session.hostId).flatMap((st) => usesOf(db, st.id)),
+      orgs: listOrganisations(db),
       csrf: csrfFor(session),
       origin: new URL(c.req.url).origin,
       justIssued: c.req.query('issued') ?? null,
@@ -700,6 +705,65 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       .some((sig) => sig.id === id);
     if (!mine) return c.redirect('/console/statement', 303);
     withdrawCountersignature(db, id, String(form.reason ?? ''));
+    return c.redirect('/console/statement', 303);
+  });
+
+  /*
+    Recording that an organisation used a statement in a disclosure, and
+    taking it back.
+
+    Moderator only, and scoped like every other write here: a moderator
+    declares against the statements of the host they are signed in as. The
+    digest is read off the statement inside the service.
+
+    This is the visible half of double counting. It stops nobody from using a
+    statement twice - `statement-use.ts` says so on the public page - and its
+    value is that a second declarer shows up beside the first.
+  */
+  app.post('/statement/use', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/statement'), 403);
+    }
+    const id = String(form.statementId ?? '');
+    if (!statementsFor(db, session.hostId).some((st) => st.id === id)) {
+      return c.redirect('/console/statement', 303);
+    }
+    try {
+      declareUse(db, {
+        statementId: id,
+        orgId: String(form.orgId ?? ''),
+        kind: String(form.kind ?? ''),
+        // NaN rather than 0 on a blank field, so the service refuses it as a
+        // year instead of storing a plausible-looking wrong one.
+        reportingYear: Number.parseInt(String(form.reportingYear ?? ''), 10),
+        placeNote: String(form.placeNote ?? ''),
+        declaredBy: session.reviewer ?? session.hostName,
+      });
+    } catch (err) {
+      if (err instanceof InvalidStatementUse) {
+        return c.redirect(`/console/statement?error=${encodeURIComponent(err.message)}`, 303);
+      }
+      throw err;
+    }
+    return c.redirect('/console/statement', 303);
+  });
+
+  app.post('/statement/use/withdraw', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/statement'), 403);
+    }
+    const id = String(form.id ?? '');
+    const mine = statementsFor(db, session.hostId)
+      .flatMap((st) => usesOf(db, st.id))
+      .some((u) => u.id === id);
+    if (!mine) return c.redirect('/console/statement', 303);
+    withdrawUse(db, id, String(form.reason ?? ''));
     return c.redirect('/console/statement', 303);
   });
 

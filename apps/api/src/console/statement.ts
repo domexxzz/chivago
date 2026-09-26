@@ -13,9 +13,11 @@
  */
 
 import {
-  CHANNEL_LABEL, COUNTERSIGNATURE_LIMIT, OPINION_LABEL, PILLAR_LABEL, STANDARD_LABEL,
-  signatureNote, signatureStanding, statementHeadline,
-  type ActivityStatement, type Countersignature, type StatementBody,
+  CHANNEL_LABEL, COUNTERSIGNATURE_LIMIT, DISCLOSURE_LABEL, DOUBLE_COUNTING_BOUNDARY,
+  OPINION_LABEL, PILLAR_LABEL, STANDARD_LABEL, USE_LIMIT,
+  contestedNote, declaringOrgs, signatureNote, signatureStanding, statementHeadline,
+  useNote, useStanding,
+  type ActivityStatement, type Countersignature, type StatementBody, type StatementUse,
 } from '@chivago/core';
 import { esc, html, layout, type Raw } from './html.ts';
 import type { Locale } from './i18n.ts';
@@ -101,6 +103,10 @@ export function statementPage(args: {
   origin: string;
   /** Conclusions recorded against any of this host's statements. */
   signatures: Countersignature[];
+  /** Declarations against any of this host's statements. */
+  uses: StatementUse[];
+  /** Organisations a declaration can name. Empty deployments show the reason. */
+  orgs: readonly { id: string; name: { en: string; th: string } }[];
   /** The id just issued, so the row is pointed at rather than hunted for. */
   justIssued: string | null;
 }): string {
@@ -268,6 +274,83 @@ export function statementPage(args: {
         be edited afterwards; withdraw it and record another.
         <span lang="th">ค่า digest อ่านจากเอกสารเอง ไม่ได้พิมพ์ และข้อสรุปแก้ภายหลังไม่ได้</span>
       </p>
+    </section>`}
+
+    ${args.issued.length === 0 ? '' : html`
+    <section class="panel">
+      <h2>Declared use · การแจ้งนำไปใช้</h2>
+      <!--
+        A registry would retire the unit here. We cannot: we hold a page and a
+        digest, not a unit. So this records a declaration and shows a second
+        one, and says on the public page that it prevents nothing.
+      -->
+      <p class="note">${esc(USE_LIMIT.en)} <span lang="th">${esc(USE_LIMIT.th)}</span></p>
+
+      ${args.uses.length === 0
+    ? html`<p class="note">None declared. <span lang="th">ยังไม่มีการแจ้ง</span></p>`
+    : html`
+      <table>
+        <thead><tr><th>Statement</th><th>Organisation</th><th>Disclosure</th><th>Standing</th><th></th></tr></thead>
+        <tbody>
+          ${args.uses.map((u) => html`
+            <tr>
+              <td><code>${esc(u.statementId)}</code></td>
+              <td>${esc(u.orgName.en)}<br><span class="muted" lang="th">${esc(u.orgName.th)}</span></td>
+              <td>${esc(DISCLOSURE_LABEL[u.kind].en)}<br>
+                  <strong>${esc(String(u.reportingYear))}</strong></td>
+              <td>${u.withdrawnAt === null
+    ? 'Stands'
+    : html`Withdrawn ${esc(u.withdrawnAt.slice(0, 10))}${u.withdrawnReason ? html`<br><span class="muted">${esc(u.withdrawnReason)}</span>` : ''}`}</td>
+              <td>${u.withdrawnAt !== null ? '' : html`
+                <form method="post" action="/console/statement/use/withdraw">
+                  <input type="hidden" name="csrf" value="${esc(args.csrf)}">
+                  <input type="hidden" name="id" value="${esc(u.id)}">
+                  <input name="reason" type="text" placeholder="reason · เหตุผล" style="width:150px">
+                  <button type="submit" class="danger">Withdraw</button>
+                </form>`}</td>
+            </tr>`)}
+        </tbody>
+      </table>`}
+
+      ${args.orgs.length === 0
+    ? html`<p class="note">
+        No organisation is on file, so there is nobody a declaration could name. Add one on the
+        sponsors page first: a declaration by a name nobody can look up is one nobody can ask about.
+        <span lang="th">ยังไม่มีองค์กรในระบบ จึงยังไม่มีชื่อให้แจ้งได้ เพิ่มองค์กรในหน้าผู้สนับสนุนก่อน</span>
+      </p>`
+    : html`
+      <h3>Record one · บันทึกการแจ้ง</h3>
+      <form method="post" action="/console/statement/use">
+        <input type="hidden" name="csrf" value="${esc(args.csrf)}">
+        <p>
+          <label>Statement · เอกสาร<br>
+            <select name="statementId">
+              ${args.issued.map((st) => html`<option value="${esc(st.id)}">${esc(st.id)}</option>`)}
+            </select></label>
+          <label style="margin-left:12px">Organisation · องค์กร<br>
+            <select name="orgId">
+              ${args.orgs.map((o) => html`<option value="${esc(o.id)}">${esc(o.name.en)}</option>`)}
+            </select></label>
+        </p>
+        <p>
+          <label>Disclosure · การเปิดเผย<br>
+            <select name="kind">
+              <option value="one_report">${esc(DISCLOSURE_LABEL.one_report.en)}</option>
+              <option value="sustainability_report">${esc(DISCLOSURE_LABEL.sustainability_report.en)}</option>
+              <option value="ifrs_s">${esc(DISCLOSURE_LABEL.ifrs_s.en)}</option>
+              <option value="internal">${esc(DISCLOSURE_LABEL.internal.en)}</option>
+              <option value="other">${esc(DISCLOSURE_LABEL.other.en)}</option>
+            </select></label>
+          <label style="margin-left:12px">Their reporting year · ปีรายงานของเขา<br>
+            <input name="reportingYear" type="number" min="2000" max="2200" step="1"
+                   value="${esc(String(new Date(args.draft.period.to).getUTCFullYear()))}" required></label>
+        </p>
+        <p><label>Where it appears, in their words · ระบุตำแหน่งตามถ้อยคำของเขา<br>
+          <input name="placeNote" type="text" style="width:100%" placeholder="e.g. section 4.2, table 11"></label></p>
+        <p class="actions"><button type="submit">Record · บันทึก</button></p>
+      </form>`}
+      <p class="note">${esc(DOUBLE_COUNTING_BOUNDARY.en)}
+        <span lang="th">${esc(DOUBLE_COUNTING_BOUNDARY.th)}</span></p>
     </section>`}`;
 
   return layout(
@@ -332,6 +415,53 @@ function countersignatures(s: ActivityStatement, list: readonly Countersignature
 }
 
 /**
+ * Who says they used this record, and the caveat that has to travel with it.
+ *
+ * This section renders on a statement with NO declarations too, which is the
+ * whole reason it is not folded into the loop below. An empty list is the case
+ * a reader is most likely to misread - as "used once" or "not used" - and the
+ * only place the correction can live is the page.
+ */
+function declaredUses(s: ActivityStatement, list: readonly StatementUse[]): Raw {
+  const orgs = declaringOrgs(list, s.digest);
+  const contested = contestedNote(orgs.length);
+  return html`
+    <section class="panel">
+      <h2>Declared use · การแจ้งนำไปใช้</h2>
+      ${contested ? html`<p><strong>${esc(contested.en)}</strong>
+        <span lang="th">${esc(contested.th)}</span></p>` : ''}
+      ${list.length === 0
+    ? html`<p>Nobody has declared using this record.
+        <span lang="th">ยังไม่มีผู้แจ้งว่านำเอกสารฉบับนี้ไปใช้</span></p>`
+    : list.map((u) => {
+      const standing = useStanding(u, s.digest);
+      const note = useNote(u, standing);
+      return html`
+      <div style="border-left:6px solid var(--color-text);padding:8px 0 8px 16px;margin:16px 0">
+        <p style="margin:0"><strong>${esc(u.orgName.en)}</strong>
+          <span lang="th">${esc(u.orgName.th)}</span></p>
+        <p style="margin:4px 0 0">
+          ${esc(DISCLOSURE_LABEL[u.kind].en)} · <strong>${esc(String(u.reportingYear))}</strong>
+          ${standing === 'applies' ? '' : html` · <strong>${esc(
+        standing === 'withdrawn' ? 'WITHDRAWN' : 'NOT ABOUT THIS RECORD',
+      )}</strong>`}
+        </p>
+        ${u.placeNote ? html`<p style="margin:4px 0 0">${esc(u.placeNote)}</p>` : ''}
+        <p class="note" style="margin:6px 0 0">${esc(note.en)}
+          <span lang="th">${esc(note.th)}</span></p>
+        <p class="note" style="margin:4px 0 0">
+          Declared ${esc(u.declaredAt.slice(0, 10))}. Not covered by the digest above.
+          <span lang="th">แจ้งเมื่อ ${esc(u.declaredAt.slice(0, 10))} ไม่อยู่ในขอบเขตของค่า digest ด้านบน</span>
+        </p>
+      </div>`;
+    })}
+      <p class="note">${esc(USE_LIMIT.en)} <span lang="th">${esc(USE_LIMIT.th)}</span></p>
+      <p class="note">${esc(DOUBLE_COUNTING_BOUNDARY.en)}
+        <span lang="th">${esc(DOUBLE_COUNTING_BOUNDARY.th)}</span></p>
+    </section>`;
+}
+
+/**
  * The public page. No session, no nav: a stranger holding a hotel's report
  * and an id. Bilingual inline rather than switchable, because the language
  * cookie lives under /console and this page does not.
@@ -339,6 +469,7 @@ function countersignatures(s: ActivityStatement, list: readonly Countersignature
 export function verifyPage(
   locale: Locale, s: ActivityStatement, origin: string,
   signatures: readonly Countersignature[] = [],
+  uses: readonly StatementUse[] = [],
 ): string {
   const headline = statementHeadline(s);
   const body = html`
@@ -355,6 +486,7 @@ export function verifyPage(
 
     ${boundary(s)}
     ${countersignatures(s, signatures)}
+    ${declaredUses(s, uses)}
     ${refusals(s)}
 
     <section class="panel">

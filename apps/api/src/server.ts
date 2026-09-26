@@ -55,6 +55,7 @@ import {
 } from './story-service.ts';
 import { areaByKey, inArea, isAreaKey } from '@chivago/core';
 import { statementMissingPage, verifyPage } from './console/statement.ts';
+import { usesOf } from './statement-use-service.ts';
 import { boardPage } from './board.ts';
 import { DEFAULT_LOCALE, localeFromAcceptLanguage } from './console/i18n.ts';
 import { getQuietPreference, setQuietPreference } from './notification-service.ts';
@@ -422,7 +423,8 @@ app.get('/verify/:id', (c) => {
   const origin = new URL(c.req.url).origin;
   return c.html(
     statement
-      ? verifyPage(publicLocale(c), statement, origin, countersignaturesFor(db, statement.id))
+      ? verifyPage(publicLocale(c), statement, origin,
+        countersignaturesFor(db, statement.id), usesOf(db, statement.id))
       : statementMissingPage(publicLocale(c), id),
     statement ? 200 : 404,
     { 'x-content-type-options': 'nosniff' },
