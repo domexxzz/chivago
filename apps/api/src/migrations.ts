@@ -1089,5 +1089,32 @@ export function migrate(db: DB): string[] {
     applied.push('vouchers.value_thb');
   }
 
+  /*
+    The evidence level a quest AGREED to, and whether the fence was really up.
+
+    The framework note of 26 September grades evidence one to four and says
+    the rung is settled before the project starts, beside the KPI. So it is
+    stored: it is somebody's decision, made once, and there is nothing to
+    derive it from. NULL means no level was agreed, which is not the same as
+    agreeing to the lowest one - `levelVerdict` answers `unagreed` for it
+    rather than quietly passing everything.
+
+    `fence_enforced` is the awkward half. Rung two is a digital trace, and an
+    arrival inside a geofence is the best one this app has - EXCEPT that the
+    fence can be opened for a whole deployment (`CHIVAGO_FENCE_OFF`, which
+    production has set since the pitch), and nothing recorded whether it was
+    up when any given traveller arrived. An arrival is therefore not evidence
+    of being anywhere unless the row says the fence was checked.
+
+    Recorded from now on, at the moment of arrival. Rows written before today
+    are NULL - unknown - and unknown does not earn a rung.
+  */
+  if (hasTable(db, 'quests') && addColumn(db, 'quests', 'evidence_level', 'INTEGER')) {
+    applied.push('quests.evidence_level');
+  }
+  if (hasTable(db, 'quest_progress') && addColumn(db, 'quest_progress', 'fence_enforced', 'INTEGER')) {
+    applied.push('quest_progress.fence_enforced');
+  }
+
   return applied;
 }

@@ -277,10 +277,20 @@ export function arriveAtQuest(
   // The second signal, after the fence. See packages/core/src/presence.ts.
   if (!fenceOff()) assertPresence(db, { userId, fix: position, radiusM: quest.geofence_radius_m, now });
 
+  /*
+    Whether the fence was actually up, recorded with the arrival.
+
+    An arrival is the best digital trace this app has for rung two of the
+    evidence ladder - but only when the fence was checked. `CHIVAGO_FENCE_OFF`
+    opens it for a whole deployment, production has had it open since the
+    pitch, and nothing used to record which of the two happened. So an
+    arrival written while the fence was down is not evidence of being
+    anywhere, and now it says so instead of being read as though it were.
+  */
   db.prepare(
-    `UPDATE quest_progress SET stage = 'arrived', arrived_at = ?
+    `UPDATE quest_progress SET stage = 'arrived', arrived_at = ?, fence_enforced = ?
      WHERE user_id = ? AND quest_id = ?`,
-  ).run(now.toISOString(), userId, questId);
+  ).run(now.toISOString(), fenceOff() ? 0 : 1, userId, questId);
   recordFix(db, userId, position, now);
   return getProgress(db, userId, questId)!;
 }

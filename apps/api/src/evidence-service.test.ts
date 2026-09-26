@@ -182,3 +182,61 @@ describe('the gap between a statement and the rows under it', () => {
     assert.equal(r.agrees, false);
   });
 });
+
+/**
+ * The rung, derived from the rows rather than stored beside them.
+ *
+ * The agreed level is a decision and is stored. The attained one is read
+ * fresh every time, for the same reason there is no monster table: a stored
+ * copy drifts the moment a proof is withdrawn.
+ */
+describe('how high the evidence actually reaches', () => {
+  const only = () => evidenceFor(db, 'CG-2026-AAAAAA', 'h1', PERIOD)[0]!;
+
+  test('a named partner approval is rung three', () => {
+    quest('q1');
+    approved('ana', 'q1', { by: 'Nok' });
+    assert.equal(only().attainedLevel, 3);
+  });
+
+  test('an approval with no named reviewer falls back to what the trace shows', () => {
+    quest('q1');
+    approved('ana', 'q1', { photos: 2 });
+    db.prepare("UPDATE proofs SET reviewed_by = NULL WHERE id = 'pr-ana-q1'").run();
+    assert.equal(only().attainedLevel, 2, 'an anonymous approval borrowed rung three');
+  });
+
+  test('AN ARRIVAL ONLY COUNTS WHEN THE ROW SAYS THE FENCE WAS UP', () => {
+    // `CHIVAGO_FENCE_OFF` opens the geofence for a whole deployment and
+    // production has had it open since the pitch, so an arrival on its own
+    // proves nothing about where anybody was. Rows written before that was
+    // recorded are NULL, and unknown does not earn a rung.
+    quest('q1');
+    approved('ana', 'q1');
+    db.prepare("UPDATE proofs SET reviewed_by = NULL WHERE id = 'pr-ana-q1'").run();
+    assert.equal(only().attainedLevel, 1, 'an unrecorded fence was read as a digital trace');
+
+    db.prepare("UPDATE quest_progress SET fence_enforced = 0 WHERE user_id = 'ana'").run();
+    assert.equal(only().attainedLevel, 1, 'an open fence was read as a digital trace');
+
+    db.prepare("UPDATE quest_progress SET fence_enforced = 1 WHERE user_id = 'ana'").run();
+    assert.equal(only().attainedLevel, 2, 'a checked fence earned no rung');
+  });
+
+  test('the agreed level comes off the quest, and null stays null', () => {
+    quest('q1');
+    approved('ana', 'q1');
+    assert.equal(only().requiredLevel, null);
+
+    db.prepare("UPDATE quests SET evidence_level = 2 WHERE id = 'q1'").run();
+    assert.equal(only().requiredLevel, 2);
+  });
+
+  test('a level outside the ladder is refused rather than carried', () => {
+    // Nothing writes this today, and SQLite would take a 9 without a murmur.
+    quest('q1');
+    approved('ana', 'q1');
+    db.prepare("UPDATE quests SET evidence_level = 9 WHERE id = 'q1'").run();
+    assert.equal(only().requiredLevel, null, 'a rung that does not exist reached the pack');
+  });
+});

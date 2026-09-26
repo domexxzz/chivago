@@ -10,7 +10,7 @@
  */
 
 import {
-  EVIDENCE_LEVEL, EVIDENCE_PRIVACY, SAMPLING_NOTE,
+  EVIDENCE_LEVEL, EVIDENCE_PRIVACY, LEVEL_LABEL, SAMPLING_NOTE, levelSummary, levelVerdict,
   type ActivityStatement, type EvidenceItem, type Reconciliation,
 } from '@chivago/core';
 import { esc, html, layout, type Raw } from './html.ts';
@@ -35,6 +35,15 @@ export function evidencePage(args: {
 }): string {
   const { locale, hostName, statement, items, reconciliation: r, origin } = args;
   const th = locale === 'th';
+  const levels = levelSummary(
+    items.map((i) => ({ required: i.requiredLevel, attained: i.attainedLevel })),
+  );
+  const rung = (i: EvidenceItem): string => {
+    const label = th ? LEVEL_LABEL[i.attainedLevel].th : LEVEL_LABEL[i.attainedLevel].en;
+    const v = levelVerdict(i.requiredLevel, i.attainedLevel);
+    if (v === 'unagreed') return `${i.attainedLevel} · ${label}`;
+    return `${i.attainedLevel}/${i.requiredLevel} · ${label}`;
+  };
 
   return layout({
     locale,
@@ -72,7 +81,19 @@ export function evidencePage(args: {
     ? html`<tr><th>Approved after issue, not part of it · ผ่านการตรวจหลังออกเอกสาร ไม่อยู่ในเอกสารนี้</th><td>${r.appeared}</td></tr>` : ''}
         </tbody>
       </table>
+      <!--
+        Two facts, kept apart. The first line says what this PLATFORM can
+        produce at all; the summary under it says whether each submission
+        cleared the rung its own quest agreed to. A pack printing only the
+        first would let a contract requiring rung three read as satisfied by
+        a photograph.
+      -->
       <p class="note">${esc(th ? EVIDENCE_LEVEL.th : EVIDENCE_LEVEL.en)}</p>
+      <p class="${levels.short > 0 ? 'note danger' : 'note'}"
+         ${levels.short > 0 ? 'style="padding:12px"' : ''}>
+        <strong>Against the agreed level · เทียบกับระดับที่ตกลงไว้</strong><br>
+        ${esc(th ? levels.note.th : levels.note.en)}
+      </p>
       <p class="note">${esc(th ? SAMPLING_NOTE.th : SAMPLING_NOTE.en)}</p>
       <p class="note">${esc(th ? EVIDENCE_PRIVACY.th : EVIDENCE_PRIVACY.en)}</p>
     </section>
@@ -89,7 +110,7 @@ export function evidencePage(args: {
         <thead>
           <tr>
             <th>Day</th><th>Quest</th><th>Participant</th>
-            <th>Reviewed by</th><th>Photos</th><th>Weight</th><th>Standing</th>
+            <th>Reviewed by</th><th>Photos</th><th>Weight</th><th>Level</th><th>Standing</th>
           </tr>
         </thead>
         <tbody>
@@ -101,6 +122,7 @@ export function evidencePage(args: {
               <td>${esc(i.reviewedBy ?? '—')}</td>
               <td>${i.photos}</td>
               <td>${esc(kg(i.weightKg))}</td>
+              <td>${esc(rung(i))}</td>
               <td>${esc(th ? STANDING_LABEL[i.standing][1] : STANDING_LABEL[i.standing][0])}</td>
             </tr>`)}
         </tbody>
@@ -132,12 +154,13 @@ export function evidenceCsv(
     `# level,${q(EVIDENCE_LEVEL.en)}`,
     `# participants,${q(EVIDENCE_PRIVACY.en)}`,
     '',
-    'day,quest_id,quest,participant_ref,reviewed_by,photos,weight_kg,standing',
+    'day,quest_id,quest,participant_ref,reviewed_by,photos,weight_kg,level_required,level_attained,standing',
   ];
   for (const i of items) {
     lines.push([
       q(i.day), q(i.questId), q(i.questName.en), q(i.participantRef),
-      q(i.reviewedBy), q(i.photos), q(i.weightKg), q(i.standing),
+      q(i.reviewedBy), q(i.photos), q(i.weightKg),
+      q(i.requiredLevel), q(i.attainedLevel), q(i.standing),
     ].join(','));
   }
   return `${lines.join('\n')}\n`;
