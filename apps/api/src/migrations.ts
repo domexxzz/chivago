@@ -1244,5 +1244,59 @@ export function migrate(db: DB): string[] {
   `);
   applied.push('statement_uses');
 
+  /*
+    The plan a quest was fixed against, before anybody had seen a result.
+
+    The standards separate VALIDATION - was the plan sound and settled up
+    front - from VERIFICATION, which is all this platform had. `validation.ts`
+    in core carries the distinction; this table carries the one fact that
+    makes a record of it worth anything: `verified_at_lock`, how many of the
+    quest's activities had already passed when the plan was fixed. A plan
+    fixed after the numbers were in is a rationalisation, and the count is
+    what tells the two apart.
+
+    A LATE LOCK IS RECORDED, NOT REFUSED. Refusing would push the plan into an
+    email and leave us holding nothing; `planStanding` simply never calls a
+    late one early.
+
+    APPEND-ONLY, EXCEPT FOR THE SUPERSESSION. A plan is not edited. To change
+    one, supersede it - which is recorded, dated and kept - and lock another.
+
+    THE TRIGGER ON `quests` IS THE HALF THAT MATTERS. Without it the lock
+    would name a plan the host could then quietly rewrite, and the digest
+    would be a seal on a door that still opens. While a lock stands, the four
+    plan columns refuse to change.
+  */
+  if (hasTable(db, 'quests')) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS quest_plan_locks (
+        id                TEXT PRIMARY KEY,
+        quest_id          TEXT NOT NULL REFERENCES quests(id) ON DELETE CASCADE,
+        digest            TEXT NOT NULL,
+        verified_at_lock  INTEGER NOT NULL,
+        locked_at         TEXT NOT NULL,
+        locked_by         TEXT,
+        superseded_at     TEXT,
+        superseded_reason TEXT
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_plan_lock_standing
+        ON quest_plan_locks(quest_id) WHERE superseded_at IS NULL;
+      CREATE INDEX IF NOT EXISTS idx_plan_lock_quest
+        ON quest_plan_locks(quest_id, locked_at);
+      CREATE TRIGGER IF NOT EXISTS plan_locks_are_append_only
+        BEFORE UPDATE OF id, quest_id, digest, verified_at_lock, locked_at, locked_by
+        ON quest_plan_locks
+        BEGIN SELECT RAISE(ABORT, 'a plan lock is append-only: supersede it and lock another'); END;
+      CREATE TRIGGER IF NOT EXISTS locked_plans_do_not_change
+        BEFORE UPDATE OF kpi_measure, kpi_baseline, kpi_target, evidence_level ON quests
+        WHEN EXISTS (
+          SELECT 1 FROM quest_plan_locks
+           WHERE quest_id = OLD.id AND superseded_at IS NULL
+        )
+        BEGIN SELECT RAISE(ABORT, 'this quest has a locked measurement plan: supersede it first'); END;
+    `);
+    applied.push('quest_plan_locks');
+  }
+
   return applied;
 }
