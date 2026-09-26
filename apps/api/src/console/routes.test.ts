@@ -919,8 +919,49 @@ describe('the statement page', () => {
 
     const csv = await res.text();
     assert.match(csv, new RegExp(digest));
-    assert.match(csv, /day,quest_id,quest,participant_ref,reviewed_by,photos,weight_kg,standing/);
+    assert.match(
+      csv,
+      /day,quest_id,quest,participant_ref,reviewed_by,photos,weight_kg,level_required,level_attained,standing/,
+    );
     assert.match(csv, /Level 3 of four/, 'the pack does not say which rung it is on');
+  });
+
+  test('a quest with an agreed level says whether the work cleared it', async () => {
+    // The two facts kept apart: what the platform can produce at all, and
+    // whether THIS submission cleared the rung its own quest agreed to. The
+    // fixture's proof has no photographs and the fence was never recorded, so
+    // a partner approval with a named reviewer is rung 3 against a bar of 3.
+    db.prepare("UPDATE quests SET evidence_level = 3 WHERE id = 'q-lab'").run();
+    approve('q-lab', iso(2));
+    const lab = await signIn(LAB_KEY, 'Nok Suwannee');
+    const id = await issuedId(lab);
+
+    const page = await (await app.request(`/evidence?id=${id}`, { headers: withCookie(lab) })).text();
+    assert.match(page, /เทียบกับระดับที่ตกลงไว้/);
+    assert.match(page, /ทั้ง 1 รายการอยู่ในระดับ|All 1 meet the level/);
+  });
+
+  test('A SHORTFALL AGAINST THE AGREED LEVEL IS SAID OUT LOUD', async () => {
+    // Nothing in this platform can reach rung 4 - no third party can
+    // countersign - so a quest that agreed to 4 is short by construction, and
+    // the pack has to say so rather than pass it because a host approved it.
+    db.prepare("UPDATE quests SET evidence_level = 4 WHERE id = 'q-lab'").run();
+    approve('q-lab', iso(2));
+    const lab = await signIn(LAB_KEY, 'Nok Suwannee');
+    const id = await issuedId(lab);
+
+    const page = await (await app.request(`/evidence?id=${id}`, { headers: withCookie(lab) })).text();
+    assert.match(page, /ต่ำกว่าระดับที่ภารกิจตกลงไว้|fall short of the level/);
+  });
+
+  test('a quest with no agreed level is held to none, and says that too', async () => {
+    approve('q-lab', iso(2));
+    const lab = await signIn(LAB_KEY, 'Nok Suwannee');
+    const id = await issuedId(lab);
+
+    const page = await (await app.request(`/evidence?id=${id}`, { headers: withCookie(lab) })).text();
+    assert.match(page, /ไม่ได้ตกลงระดับไว้|no agreed level/);
+    assert.doesNotMatch(page, /ต่ำกว่าระดับ|fall short/, 'an unagreed quest was reported as short');
   });
 
   test('signed out, the pack is the login redirect too', async () => {

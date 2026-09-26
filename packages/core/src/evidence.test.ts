@@ -44,6 +44,11 @@ const item = (over: Partial<EvidenceItem> = {}): EvidenceItem => ({
   photos: 2,
   weightKg: null,
   standing: 'approved',
+  // A named partner approved it, which is where every item in this file sat
+  // before the ladder existed. Tests about levels live in
+  // `evidence-level.test.ts`; these are about reconciliation.
+  requiredLevel: 3,
+  attainedLevel: 3,
   ...over,
 });
 

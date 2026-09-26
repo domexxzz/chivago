@@ -30,6 +30,7 @@
 
 import type { Bilingual } from './types.ts';
 import type { StatementBody } from './statement.ts';
+import type { EvidenceLevel } from './evidence-level.ts';
 
 /**
  * Whether the approval behind a line still stands today.
@@ -52,6 +53,15 @@ export interface EvidenceItem {
   photos: number;
   weightKg: number | null;
   standing: EvidenceStanding;
+  /**
+   * The rung this quest AGREED to, or null when nobody set one.
+   *
+   * Null is its own answer: a quest with no agreed level has not passed a
+   * test, it has not been given one. See `evidence-level.ts`.
+   */
+  requiredLevel: EvidenceLevel | null;
+  /** The rung the rows actually support, derived every time. */
+  attainedLevel: EvidenceLevel;
 }
 
 export interface Reconciliation {

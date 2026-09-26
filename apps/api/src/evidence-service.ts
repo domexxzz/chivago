@@ -15,7 +15,8 @@
 
 import { createHash } from 'node:crypto';
 import { rows, type DB } from './db.ts';
-import type { EvidenceItem, EvidenceStanding } from '@chivago/core';
+import { attainedLevel, isEvidenceLevel } from '@chivago/core';
+import type { EvidenceItem, EvidenceLevel, EvidenceStanding } from '@chivago/core';
 
 /**
  * A participant reference: stable inside one statement, worthless outside it.
@@ -39,6 +40,8 @@ interface Row {
   approved: number | null;
   weight_kg: number | null;
   photos: number;
+  evidence_level: number | null;
+  fence_enforced: number | null;
 }
 
 /**
@@ -64,6 +67,7 @@ export function evidenceFor(
   return rows<Row>(
     db.prepare(
       `SELECT qp.quest_id, q.name_en, q.name_th, qp.user_id, qp.verified_at,
+              q.evidence_level AS evidence_level, qp.fence_enforced AS fence_enforced,
               p.reviewed_by AS reviewed_by, p.approved AS approved, p.weight_kg AS weight_kg,
               (SELECT COUNT(*) FROM proof_files f WHERE f.proof_id = p.id) AS photos
          FROM quest_progress qp
@@ -83,6 +87,24 @@ export function evidenceFor(
     photos: r.photos ?? 0,
     weightKg: r.weight_kg ?? null,
     standing: standingOf(r),
+    requiredLevel: r.evidence_level !== null && isEvidenceLevel(r.evidence_level)
+      ? (r.evidence_level as EvidenceLevel)
+      : null,
+    attainedLevel: attainedLevel({
+      submitted: true,
+      /*
+        ONLY when the row says the fence was checked.
+
+        `CHIVAGO_FENCE_OFF` opens the geofence for a whole deployment and
+        production has had it open since the pitch, so an arrival on its own
+        proves nothing about where anybody was. Rows written before that was
+        recorded are NULL, and unknown does not earn a rung.
+      */
+      geofencedArrival: r.fence_enforced === 1,
+      photos: r.photos ?? 0,
+      partnerApproved: r.approved === 1,
+      reviewerNamed: r.reviewed_by !== null,
+    }),
   }));
 }
 
