@@ -463,6 +463,88 @@ describe('a sponsor is not billed a second time for work that was taken back', (
     assert.equal(issued(QUEST), 0);
   });
 
+  /*
+    The half #54 left open, and the half that carries the invoice.
+
+    `sponsorOutcome` multiplies `verified` by the agreed rate per verified
+    submission, so before this the sponsor report said the green had gone down
+    and the bill had not - the two figures disagreeing on screen, with the
+    money the one that was too high.
+  */
+  const verifiedCount = (questId: string) =>
+    questCountsFor(db, [questId]).find((c) => c.questId === questId)!.verified;
+
+  const approvedBy = (userId: string, questId: string) => {
+    db.prepare('INSERT OR IGNORE INTO users (id, display_name, created_at) VALUES (?,?,?)')
+      .run(userId, userId, new Date().toISOString());
+    ensureWallet(db, userId);
+    db.prepare(
+      `INSERT OR REPLACE INTO quest_progress (user_id, quest_id, stage, joined_at,
+         arrived_at, proof_submitted_at, verified_at)
+       VALUES (?,?,'complete',?,?,?,?)`,
+    ).run(userId, questId, new Date().toISOString(), new Date().toISOString(),
+          new Date().toISOString(), new Date().toISOString());
+    awardQuestReward(db, {
+      userId, questId, questName: 'Beach Cleanup', host: 'Samui Municipality',
+      points: 150, currency: 'green',
+    });
+  };
+
+  test('A WITHDRAWN APPROVAL IS NOT STILL BILLED TO THE SPONSOR', () => {
+    approvedBy(USER, QUEST);
+    assert.equal(verifiedCount(QUEST), 1);
+
+    takeBack(QUEST);
+    assert.equal(verifiedCount(QUEST), 0, 'the sponsor was billed for work we withdrew');
+    // And the two figures on the page now agree, which was the symptom.
+    assert.equal(issued(QUEST), 0);
+  });
+
+  test('the host’s approval itself is not deleted or doubted', () => {
+    // A reversal says the award does not stand. It does not say nobody
+    // approved it, and the row that records who did stays exactly as it was.
+    approvedBy(USER, QUEST);
+    takeBack(QUEST);
+    const still = db.prepare(
+      'SELECT verified_at FROM quest_progress WHERE user_id = ? AND quest_id = ?',
+    ).get(USER, QUEST) as unknown as { verified_at: string | null };
+    assert.notEqual(still.verified_at, null, 'a reversal erased the host’s approval');
+  });
+
+  test('one withdrawal does not empty the quest’s bill', () => {
+    approvedBy(USER, QUEST);
+    approvedBy('bo2', QUEST);
+    assert.equal(verifiedCount(QUEST), 2);
+    takeBack(QUEST);
+    assert.equal(verifiedCount(QUEST), 1, 'one traveller’s reversal emptied the whole bill');
+  });
+
+  test('AN APPROVAL WITH NO AWARD IS STILL BILLED', () => {
+    // There is nothing to reverse. A host approved it and no reward was ever
+    // issued, which is a quest configuration question, not a withdrawal - and
+    // a check that dropped it would quietly stop paying hosts for real work.
+    db.prepare('INSERT OR IGNORE INTO users (id, display_name, created_at) VALUES (?,?,?)')
+      .run('noaward', 'No Award', new Date().toISOString());
+    db.prepare(
+      `INSERT OR REPLACE INTO quest_progress (user_id, quest_id, stage, joined_at,
+         arrived_at, proof_submitted_at, verified_at)
+       VALUES ('noaward',?,'complete',?,?,?,?)`,
+    ).run(QUEST, new Date().toISOString(), new Date().toISOString(),
+          new Date().toISOString(), new Date().toISOString());
+    assert.equal(verifiedCount(QUEST), 1);
+  });
+
+  test('joins, arrivals and rejections are left alone', () => {
+    // None of them is a claim the platform stops standing behind, and there
+    // is no award attached to reverse.
+    approvedBy(USER, QUEST);
+    takeBack(QUEST);
+    const c = questCountsFor(db, [QUEST]).find((x) => x.questId === QUEST)!;
+    assert.equal(c.joined, 1);
+    assert.equal(c.arrived, 1);
+    assert.equal(c.verified, 0);
+  });
+
   test('one reversal does not take the rest of the quest’s green with it', () => {
     db.prepare('INSERT INTO users (id, display_name, created_at) VALUES (?,?,?)')
       .run('bo', 'Bo', new Date().toISOString());

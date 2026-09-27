@@ -14,7 +14,7 @@
 
 import { isQuestMeasure, kpiProgress, type KpiProgress, type KpiMeasure, type QuestKpi } from '@chivago/core';
 import { row, type DB } from './db.ts';
-import { notReversed } from './ledger-sql.ts';
+import { awardStands } from './ledger-sql.ts';
 
 export interface QuestKpiReading extends KpiProgress {
   questId: string;
@@ -58,11 +58,7 @@ export function observedFor(
     all. A submission with no award row has nothing to reverse and still
     counts - the host approved it, which is what the measure is about.
   */
-  const unreversed = `NOT EXISTS (
-     SELECT 1 FROM ledger l
-      WHERE l.kind = 'quest_reward' AND l.user_id = qp.user_id
-        AND l.source_ref = 'quest:' || qp.quest_id || ':user:' || qp.user_id
-        AND NOT (${notReversed('l')}))`;
+  const unreversed = awardStands('qp');
 
   const where = `qp.quest_id = ? AND qp.verified_at IS NOT NULL
                  AND qp.verified_at >= ? AND qp.verified_at <= ? AND ${unreversed}`;

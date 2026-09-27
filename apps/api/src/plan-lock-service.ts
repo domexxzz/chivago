@@ -24,7 +24,7 @@ import {
   type EvidenceLevel, type KpiMeasure, type MeasurementPlan, type PlanLock,
 } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
-import { notReversed } from './ledger-sql.ts';
+import { awardStands } from './ledger-sql.ts';
 
 export class InvalidPlanLock extends Error {
   constructor(message: string) {
@@ -95,11 +95,7 @@ export function planOf(db: DB, questId: string): MeasurementPlan | null {
  * back is not a result somebody could have been reacting to.
  */
 export function verifiedSoFar(db: DB, questId: string): number {
-  const unreversed = `NOT EXISTS (
-     SELECT 1 FROM ledger l
-      WHERE l.kind = 'quest_reward' AND l.user_id = qp.user_id
-        AND l.source_ref = 'quest:' || qp.quest_id || ':user:' || qp.user_id
-        AND NOT (${notReversed('l')}))`;
+  const unreversed = awardStands('qp');
   return row<{ n: number }>(
     db.prepare(
       `SELECT COUNT(*) AS n FROM quest_progress qp
