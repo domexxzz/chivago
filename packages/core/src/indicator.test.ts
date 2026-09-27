@@ -1,0 +1,286 @@
+import { strict as assert } from 'node:assert';
+import { test, describe } from 'node:test';
+
+import {
+  FACT_QUESTION, GRI_306_3, INDICATOR_RULES, PLACEMENT_LIMIT, STALE_AFTER_DAYS,
+  UNEXAMINED_NOTE, VERDICT_LABEL,
+  assess, placeAgainst, unexamined,
+  type ActivityFacts, type Placement,
+} from './indicator.ts';
+
+/**
+ * The one researched rule, and the machinery it forced.
+ *
+ * The assertions that carry weight are the ones about what this declines to
+ * say: that there is no verdict meaning "correct", that an unstudied pair
+ * cannot read as approval, and that a figure never comes out in a different
+ * unit than it went in.
+ */
+
+const ASOF = new Date('2026-09-28T00:00:00.000Z');
+
+const facts = (over: Partial<ActivityFacts> = {}): ActivityFacts => ({
+  materialOrigin: 'own_operations',
+  organisationRole: 'generator',
+  insideBoundary: true,
+  measuredBy: 'host_verified',
+  ...over,
+});
+
+const place = (over: Partial<ActivityFacts> = {}): Placement =>
+  placeAgainst(GRI_306_3, facts(over), ASOF);
+
+describe('the case the whole module exists for', () => {
+  test('BEACH LITTER CANNOT GO IN 306-3, AND THE REASON IS THE DEFINITION', () => {
+    const p = place({ materialOrigin: 'third_party', organisationRole: 'manager' });
+    assert.equal(p.verdict, 'refuses');
+    assert.match(p.because.en, /GRI defines waste as what the holder discards/);
+    assert.match(p.because.en, /never this organisation’s waste/);
+    assert.match(p.because.th, /ไม่เคยเป็นขยะขององค์กรนี้/);
+  });
+
+  test('IT SAYS WHERE THE FIGURE COULD HONESTLY GO INSTEAD', () => {
+    // A refusal with nowhere to go is a dead end. `docs/57` found two homes
+    // and both travel with the refusal.
+    const p = place({ materialOrigin: 'third_party' });
+    assert.equal(p.insteadTry.length, 2);
+    assert.match(p.insteadTry[0]!.en, /3-3-e-ii/);
+    assert.match(p.insteadTry[1]!.en, /waste MANAGER/);
+  });
+
+  test('THE SAME KILOGRAMS FROM THE COMPANY’S OWN OPERATIONS ARE NOT REFUSED', () => {
+    // The point the obvious build gets backwards. Kilograms were never the
+    // problem; a table keyed on the measure would refuse this too.
+    const p = place();
+    assert.equal(p.verdict, 'conditional');
+    assert.match(p.because.en, /nothing in this reading refuses 306-3/);
+  });
+
+  test('and even then it does not say the placement is correct', () => {
+    const p = place();
+    assert.match(p.because.en, /not the same as confirming the placement is correct/);
+    assert.match(p.because.th, /ไม่เท่ากับการยืนยันว่า/);
+  });
+});
+
+describe('the unknown that names its own question', () => {
+  test('WHOSE WASTE IT WAS IS ASKED, NOT GUESSED', () => {
+    const p = place({ materialOrigin: 'unknown' });
+    assert.equal(p.verdict, 'unknown');
+    assert.equal(p.settledBy, 'materialOrigin');
+    assert.equal(p.ask?.en, FACT_QUESTION.materialOrigin.en);
+    assert.match(p.because.en, /can refuse it or permit it until that is answered/);
+  });
+
+  test('an unknown role is asked once the material is the organisation’s own', () => {
+    const p = place({ organisationRole: 'unknown' });
+    assert.equal(p.verdict, 'unknown');
+    assert.equal(p.settledBy, 'organisationRole');
+  });
+
+  test('an unknown boundary is the last thing asked', () => {
+    const p = place({ insideBoundary: 'unknown' });
+    assert.equal(p.verdict, 'unknown');
+    assert.equal(p.settledBy, 'insideBoundary');
+  });
+
+  test('THE MATERIAL QUESTION IS ASKED BEFORE THE OTHERS', () => {
+    // Order matters: asking about the boundary first would be asking a
+    // question that does not decide anything yet.
+    const p = place({ materialOrigin: 'unknown', organisationRole: 'unknown', insideBoundary: 'unknown' });
+    assert.equal(p.settledBy, 'materialOrigin');
+  });
+
+  test('every fact has a question in both languages', () => {
+    for (const [name, q] of Object.entries(FACT_QUESTION)) {
+      assert.ok(q.en.length > 0 && q.th.length > 0, `${name} is missing a language`);
+      assert.notEqual(q.en, q.th);
+    }
+  });
+});
+
+describe('the branches between the two extremes', () => {
+  test('mixed material must be separated, not reported as one figure', () => {
+    const p = place({ materialOrigin: 'mixed' });
+    assert.equal(p.verdict, 'conditional');
+    assert.match(p.conditions[0]!.en, /Separate the two/);
+    assert.match(p.because.en, /reports both as though they were the first/);
+  });
+
+  test('A MANAGER OR FUNDER OF ITS OWN MATERIAL STILL DID NOT GENERATE IT', () => {
+    for (const role of ['manager', 'funder'] as const) {
+      const p = place({ organisationRole: role });
+      assert.equal(p.verdict, 'refuses', role);
+      assert.match(p.because.en, /is not generating it/);
+    }
+  });
+
+  test('outside the reported boundary is refused even when they generated it', () => {
+    const p = place({ insideBoundary: false });
+    assert.equal(p.verdict, 'refuses');
+    assert.match(p.because.en, /outside the operational boundary/);
+  });
+
+  test('the basis of the figure becomes a condition, and names which basis', () => {
+    assert.match(place({ measuredBy: 'host_verified' }).conditions[1]!.en, /not independent assurance/);
+    assert.match(place({ measuredBy: 'declared' }).conditions[1]!.en, /Self-declared/);
+    assert.match(place({ measuredBy: 'unknown' }).conditions[1]!.en, /Nobody has said where the figure came from/);
+  });
+});
+
+describe('what this module declines to be', () => {
+  test('THERE IS NO VERDICT THAT MEANS CORRECT', () => {
+    // The design's actual principle. The nearest thing to a yes is a
+    // conditional, and it says so in words.
+    assert.deepEqual(
+      Object.keys(VERDICT_LABEL).sort(),
+      ['conditional', 'refuses', 'unexamined', 'unknown'],
+    );
+    for (const label of Object.values(VERDICT_LABEL)) {
+      assert.doesNotMatch(label.en, /^(correct|approved|valid|yes|fits)$/i);
+    }
+  });
+
+  test('NO VERDICT EVER CARRIES A CONVERTED FIGURE', () => {
+    // The moment a mapping layer can say "and therefore 2.4 tCO2e" it has
+    // become the emission-factor table `esg.ts` has refused since it was
+    // written. Nothing in Placement is a quantity except the reading's age.
+    const everyBranch: Placement[] = [
+      place(), place({ materialOrigin: 'third_party' }), place({ materialOrigin: 'mixed' }),
+      place({ materialOrigin: 'unknown' }), place({ organisationRole: 'funder' }),
+      place({ organisationRole: 'unknown' }), place({ insideBoundary: false }),
+      place({ insideBoundary: 'unknown' }), unexamined('gri', '306-3'),
+    ];
+    for (const p of everyBranch) {
+      const prose = [p.because, ...p.conditions, ...p.insteadTry]
+        .flatMap((b) => [b.en, b.th]).join(' ');
+      assert.doesNotMatch(prose, /tCO2e|CO2e|kgCO2/i, `${p.verdict} produced a carbon unit`);
+      assert.doesNotMatch(prose, /\d+(\.\d+)?\s*(kg|tonnes?|t\b)/i, `${p.verdict} produced a quantity`);
+    }
+  });
+
+  test('the limit travels with every result and says it is a reading', () => {
+    assert.match(PLACEMENT_LIMIT.en, /not a ruling and not an assurance opinion/);
+    assert.match(PLACEMENT_LIMIT.en, /nothing here converts a figure/);
+    assert.match(PLACEMENT_LIMIT.th, /ไม่ใช่คำวินิจฉัย/);
+  });
+});
+
+describe('an unstudied pair', () => {
+  test('IT IS NOT SILENCE, AND IT IS NOT APPROVAL', () => {
+    // A caller handed nothing renders nothing, and a blank space where a
+    // refusal might have been is the failure this module is about.
+    const p = assess(INDICATOR_RULES, 'weight_kg', 'ifrs_s', 'S2-29a', facts(), ASOF);
+    assert.equal(p.verdict, 'unexamined');
+    assert.match(p.because.en, /gap in what ChivaGo has studied/);
+    assert.match(p.because.en, /not a finding that the placement is sound/);
+    assert.match(p.because.th, /ไม่ใช่ข้อสรุปว่าการจัดวางนั้นถูกต้อง/);
+  });
+
+  test('a measure the rule is not about does not borrow its rule', () => {
+    // GRI 306-3 is about weight. Reaching it with a headcount would be the
+    // table-shaped mistake arriving by another door.
+    const p = assess(INDICATOR_RULES, 'distinct_participants', 'gri', '306-3', facts(), ASOF);
+    assert.equal(p.verdict, 'unexamined');
+  });
+
+  test('it carries no source, because there was no reading', () => {
+    const p = unexamined('gri', '999');
+    assert.equal(p.source, null);
+    assert.equal(p.ruleId, null);
+    assert.equal(p.readingAgeDays, null);
+    assert.equal(p.stale, false);
+    assert.equal(p.because.en, UNEXAMINED_NOTE.en);
+  });
+
+  test('the studied pair is found', () => {
+    assert.equal(assess(INDICATOR_RULES, 'weight_kg', 'gri', '306-3', facts(), ASOF).ruleId,
+      GRI_306_3.id);
+  });
+});
+
+describe('a rule that can be dated, and retired', () => {
+  test('it carries the clause, where to read it, when and by whom', () => {
+    const s = GRI_306_3.source;
+    assert.match(s.clause, /anything that the holder discards/);
+    assert.match(s.where, /GRI 306: Waste 2020/);
+    assert.match(s.readOn, /^\d{4}-\d{2}-\d{2}$/);
+    assert.ok(s.readBy.length > 0);
+  });
+
+  test('IT SAYS WHAT THE READING DID NOT COVER', () => {
+    // `docs/57` could not read the SEC's pages and wrote the gap into the
+    // document rather than letting it sit inside a conclusion.
+    assert.match(GRI_306_3.source.notChecked.en, /No ruling, no assurance provider’s opinion/);
+    assert.match(GRI_306_3.source.notChecked.en, /sector standard/);
+  });
+
+  test('a fresh reading is not stale and reports its age', () => {
+    const p = placeAgainst(GRI_306_3, facts(), new Date('2026-09-28T00:00:00.000Z'));
+    assert.equal(p.readingAgeDays, 2);
+    assert.equal(p.stale, false);
+  });
+
+  test('A STALE READING STILL ANSWERS, AND SAYS IT IS STALE', () => {
+    // An old reading of a clause that did not change is still right. It just
+    // cannot be trusted silently.
+    const p = placeAgainst(GRI_306_3, facts({ materialOrigin: 'third_party' }),
+      new Date('2027-10-01T00:00:00.000Z'));
+    assert.equal(p.verdict, 'refuses', 'a stale rule stopped answering');
+    assert.equal(p.stale, true);
+    assert.ok(p.readingAgeDays! > STALE_AFTER_DAYS);
+  });
+
+  test('the boundary day is not yet stale', () => {
+    const on = new Date(Date.parse('2026-09-26') + STALE_AFTER_DAYS * 86_400_000);
+    assert.equal(placeAgainst(GRI_306_3, facts(), on).stale, false);
+    assert.equal(
+      placeAgainst(GRI_306_3, facts(), new Date(on.getTime() + 86_400_000)).stale, true,
+    );
+  });
+
+  test('A CLOCK BEHIND THE READING DOES NOT LOOK FRESHER THAN NEW', () => {
+    const p = placeAgainst(GRI_306_3, facts(), new Date('2020-01-01T00:00:00.000Z'));
+    assert.equal(p.readingAgeDays, 0);
+    assert.equal(p.stale, false);
+  });
+});
+
+describe('the rules this build carries', () => {
+  test('one, and it is the researched one', () => {
+    assert.equal(INDICATOR_RULES.length, 1);
+    assert.equal(INDICATOR_RULES[0]!.id, GRI_306_3.id);
+  });
+
+  test('every rule can be dated and sourced', () => {
+    for (const r of INDICATOR_RULES) {
+      assert.ok(r.source.clause.length > 0, `${r.id} rests on nothing quotable`);
+      assert.ok(!Number.isNaN(Date.parse(r.source.readOn)), `${r.id} has no readable date`);
+      assert.ok(r.measures.length > 0, `${r.id} is about no measure`);
+    }
+  });
+
+  test('EVERY BRANCH OF EVERY RULE GIVES A REASON IN BOTH LANGUAGES', () => {
+    const branches: ActivityFacts[] = [
+      facts(), facts({ materialOrigin: 'third_party' }), facts({ materialOrigin: 'mixed' }),
+      facts({ materialOrigin: 'unknown' }), facts({ organisationRole: 'manager' }),
+      facts({ organisationRole: 'funder' }), facts({ organisationRole: 'unknown' }),
+      facts({ insideBoundary: false }), facts({ insideBoundary: 'unknown' }),
+      facts({ measuredBy: 'declared' }), facts({ measuredBy: 'unknown' }),
+    ];
+    for (const r of INDICATOR_RULES) {
+      for (const f of branches) {
+        const out = r.test(f);
+        assert.ok(out.because.en.length > 20, `${r.id} gave a thin English reason`);
+        assert.ok(out.because.th.length > 20, `${r.id} gave a thin Thai reason`);
+        assert.notEqual(out.because.en, out.because.th);
+        if (out.verdict === 'unknown') {
+          assert.ok(out.settledBy, `${r.id} returned unknown without naming a fact`);
+        }
+        if (out.verdict === 'conditional') {
+          assert.ok((out.conditions ?? []).length > 0, `${r.id} was conditional on nothing`);
+        }
+      }
+    }
+  });
+});
