@@ -210,6 +210,16 @@ fourth verdict above and otherwise held.
 **Second: the console column.** On the review page `#73` already has, beside
 each declared line. This is where a real file first meets the layer, and it
 will be the first honest test of whether the fact set survives contact.
+**Done in `#84`.** The fact set survived, with one correction: **one of the
+four facts is not a question.** `measuredBy` looked like a fourth thing to ask
+the customer, and on this page it cannot be — a pasted file is self-declared
+by definition, and asking would invite the answer *verified*, which
+`DECLARED_NOT_VERIFIED` at the top of that page exists to refuse. It is fixed
+rather than offered, and the declared basis still reaches the conditions when
+a placement is allowed. The second finding was smaller and sharper: the
+measure has to be read off **their** unit column, so `measureFromUnit` refuses
+to guess and the page prints which measure it concluded, because a wrong
+reading there makes every answer below it about the wrong kind of figure.
 
 **Third: the pre-flight on a fixed plan.** When `#77` locks a quest's
 measurement plan, run the layer against the indicator the partner intends. A
