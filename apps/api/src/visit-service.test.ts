@@ -3,7 +3,7 @@ import { test, describe, beforeEach } from 'node:test';
 
 import { SELF_VISITS_PER_YEAR } from '@chivago/core';
 import { openTestDb, type DB } from './db.ts';
-import { getBalances } from './wallet-service.ts';
+import { awardCheckin, ensureWallet, getBalances, reverseMovement } from './wallet-service.ts';
 import { hasVisited } from './place-review-service.ts';
 import { visitedProvincesFor } from './wellness-service.ts';
 import {
@@ -147,5 +147,65 @@ describe('where the traveller has been, for the map', () => {
        VALUES ('l-x', 'u2', 'Check-in', '2026-09-01T03:00:00.000Z', 'island', 10, 'checkin', 'trip', 0, ?)`,
     ).run(`checkin:${PLACE}:user:u2:2026-09-01`);
     assert.deepEqual(exploredFor(db, USER).places, []);
+  });
+});
+
+/**
+ * The map of places somebody has been.
+ *
+ * `exploredFor` merges two sources and lets the check-in win, because a
+ * check-in is the verified one and a self-stamp is not. A check-in the
+ * platform took back is no longer the verified one, and the merge has to say
+ * so rather than keep showing the stronger claim.
+ */
+describe('a withdrawn check-in is not a place somebody explored', () => {
+  const checkIn = (userId: string, placeId: string, day: string) =>
+    awardCheckin(db, {
+      userId, placeId, placeName: placeId, points: 10,
+      dayKey: day, occurredAt: `${day}T04:00:00.000Z`,
+    });
+  const takeBack = (userId: string, placeId: string, day: string) =>
+    reverseMovement(db, {
+      userId,
+      originalSourceRef: `checkin:${placeId}:user:${userId}:${day}`,
+      reason: 'the position did not hold up',
+    });
+
+  test('IT LEAVES THE MAP', () => {
+    addPlace('p1');
+    ensureWallet(db, 'u1');
+    checkIn('u1', 'p1', '2026-09-02');
+    assert.equal(exploredFor(db, 'u1').places.length, 1);
+
+    takeBack('u1', 'p1', '2026-09-02');
+    assert.equal(
+      exploredFor(db, 'u1').places.length, 0,
+      'a withdrawn check-in still said the traveller had been there',
+    );
+  });
+
+  test('IT DOES NOT TAKE A SELF-STAMP DOWN WITH IT', () => {
+    // The two sources are independent. Somebody who marked the place
+    // themselves still marked it, whatever happened to the check-in.
+    addPlace('p1');
+    ensureWallet(db, 'u1');
+    recordSelfVisit(db, { userId: 'u1', placeId: 'p1', now: new Date('2026-09-01T00:00:00.000Z') });
+    checkIn('u1', 'p1', '2026-09-02');
+    assert.equal(exploredFor(db, 'u1').places[0]!.how, 'checkin');
+
+    takeBack('u1', 'p1', '2026-09-02');
+    const after = exploredFor(db, 'u1').places;
+    assert.equal(after.length, 1);
+    assert.equal(after[0]!.how, 'self', 'the self-stamp went with the withdrawn check-in');
+  });
+
+  test('another place is left alone', () => {
+    addPlace('p1');
+    addPlace('p2');
+    ensureWallet(db, 'u1');
+    checkIn('u1', 'p1', '2026-09-02');
+    checkIn('u1', 'p2', '2026-09-02');
+    takeBack('u1', 'p1', '2026-09-02');
+    assert.deepEqual(exploredFor(db, 'u1').places.map((p) => p.placeId), ['p2']);
   });
 });

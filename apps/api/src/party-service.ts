@@ -215,15 +215,24 @@ export function membersOf(db: DB, partyId: string, asking: string): PartyMember[
     ).map((r) => [r.user_id, r]),
   );
 
-  // Provinces per member, through the place they checked in at — the same
-  // route the passport takes, so the two cannot drift.
+  /*
+    Provinces per member, through the place they checked in at — the same
+    route the passport takes, so the two cannot drift.
+
+    A CHECK-IN THAT WAS TAKEN BACK IS NOT A PLACE SOMEBODY HAS BEEN. Unlike
+    the rest of the reversal sprint this is not a number that reads too high:
+    it is a claim about a PERSON, shown under their name to a party deciding
+    whether to let them in, after the platform has already decided they were
+    not there.
+  */
   const provinces = new Map<string, string[]>();
   for (const r of rows<{ user_id: string; province: string }>(
     db.prepare(
       `SELECT DISTINCT l.user_id AS user_id, p.province AS province
        FROM ledger l
        JOIN places p ON p.id = substr(l.source_ref, 9, instr(substr(l.source_ref, 9), ':') - 1)
-       WHERE l.user_id IN (${holes}) AND l.kind = 'checkin' AND p.province IS NOT NULL`,
+       WHERE l.user_id IN (${holes}) AND l.kind = 'checkin' AND p.province IS NOT NULL
+         AND ${notReversed('l')}`,
     ).all(...ids),
   )) {
     provinces.set(r.user_id, [...(provinces.get(r.user_id) ?? []), r.province]);

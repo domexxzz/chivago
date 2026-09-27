@@ -4,7 +4,7 @@ import { test, describe, beforeEach } from 'node:test';
 import { MAX_PARTY_SIZE, summarise } from '@chivago/core';
 import { openTestDb, type DB } from './db.ts';
 import {
-  applyMovement, awardQuestReward, ensureWallet, getBalances, reverseMovement,
+  applyMovement, awardCheckin, awardQuestReward, ensureWallet, getBalances, reverseMovement,
 } from './wallet-service.ts';
 import {
   PartyRefused, activePartyFor, createParty, disbandParty, generatePartyCode,
@@ -319,5 +319,90 @@ describe('a member is not credited with work that was taken back', () => {
     });
     award('bo', 'q1');
     assert.deepEqual([bo().greenEarned, bo().missionsVerified], [100, 1]);
+  });
+});
+
+/**
+ * A check-in that was taken back is not a place somebody has been.
+ *
+ * The rest of the reversal sprint was about numbers that read too high. This
+ * one is different in kind: the provinces under a member's name are a CLAIM
+ * ABOUT A PERSON, shown to a party deciding whether to let them in, after the
+ * platform has already decided they were not there.
+ *
+ * The real `awardCheckin` and the real `reverseMovement` are used, so the two
+ * halves of the source_ref shape are bound together rather than assumed.
+ */
+describe('a withdrawn check-in is not a province somebody visited', () => {
+  const place = (id: string, province: string) =>
+    db.prepare(
+      `INSERT INTO places (id, name_en, name_th, short, layer, province, lat, lng, meta,
+         blurb_en, blurb_th, tags, safety_label_en, safety_label_th,
+         crowd_density, aqi, safety_index, walkability)
+       VALUES (?,?,?,?,'Green',?,9.5,100.0,'Beach','x','x','[]','Patrolled','มีสายตรวจ',2.4,42,7.2,8.1)`,
+    ).run(id, id, id, id, province);
+
+  const checkIn = (userId: string, placeId: string, day = '2026-09-02') =>
+    awardCheckin(db, {
+      userId, placeId, placeName: placeId, points: 10,
+      dayKey: day, occurredAt: `${day}T04:00:00.000Z`,
+    });
+
+  const takeBack = (userId: string, placeId: string, day = '2026-09-02') =>
+    reverseMovement(db, {
+      userId,
+      originalSourceRef: `checkin:${placeId}:user:${userId}:${day}`,
+      reason: 'the position did not hold up',
+    });
+
+  const provincesOf = (userId: string) => {
+    const { code } = createParty(db, 'ana', 'Trip', NOW);
+    if (userId !== 'ana') joinParty(db, userId, code, later(1000));
+    return membersOf(db, activePartyFor(db, 'ana')!.id, 'ana')
+      .find((m) => m.userId === userId)!.provinces;
+  };
+
+  test('IT STOPS BEING SHOWN UNDER THEIR NAME', () => {
+    place('p-krabi', 'KRABI');
+    checkIn('bo', 'p-krabi');
+    assert.deepEqual(provincesOf('bo'), ['KRABI']);
+
+    takeBack('bo', 'p-krabi');
+    assert.deepEqual(
+      provincesOf('bo'), [],
+      'a withdrawn check-in still claimed the member had been there',
+    );
+  });
+
+  test('one withdrawal does not take the rest of their travels with it', () => {
+    place('p-krabi', 'KRABI');
+    place('p-phuket', 'PHUKET');
+    checkIn('bo', 'p-krabi');
+    checkIn('bo', 'p-phuket');
+    takeBack('bo', 'p-krabi');
+    assert.deepEqual(provincesOf('bo'), ['PHUKET']);
+  });
+
+  test('one member’s withdrawal does not touch another member’s provinces', () => {
+    place('p-krabi', 'KRABI');
+    checkIn('ana', 'p-krabi');
+    checkIn('bo', 'p-krabi');
+    takeBack('bo', 'p-krabi');
+
+    const { code } = createParty(db, 'ana', 'Trip', NOW);
+    joinParty(db, 'bo', code, later(1000));
+    const members = membersOf(db, activePartyFor(db, 'ana')!.id, 'ana');
+    assert.deepEqual(members.find((m) => m.userId === 'ana')!.provinces, ['KRABI']);
+    assert.deepEqual(members.find((m) => m.userId === 'bo')!.provinces, []);
+  });
+
+  test('a second day at the same place survives one day being withdrawn', () => {
+    // The reversal names one day. The other day is a different check-in and
+    // a different claim, and it still stands.
+    place('p-krabi', 'KRABI');
+    checkIn('bo', 'p-krabi', '2026-09-02');
+    checkIn('bo', 'p-krabi', '2026-09-03');
+    takeBack('bo', 'p-krabi', '2026-09-02');
+    assert.deepEqual(provincesOf('bo'), ['KRABI']);
   });
 });

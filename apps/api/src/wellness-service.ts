@@ -145,7 +145,8 @@ export function visitedProvincesFor(db: DB, userId: string): string[] {
       `SELECT DISTINCT p.province AS province
        FROM ledger l
        JOIN places p ON p.id = substr(l.source_ref, 9, instr(substr(l.source_ref, 9), ':') - 1)
-       WHERE l.user_id = ? AND l.kind = 'checkin' AND p.province IS NOT NULL`,
+       WHERE l.user_id = ? AND l.kind = 'checkin' AND p.province IS NOT NULL
+         AND ${notReversed('l')}`,
     ).all(userId),
   );
   return found.map((r) => r.province);
@@ -173,6 +174,7 @@ export function provinceEvidenceFor(db: DB, userId: string): ProvinceEvidence[] 
        FROM ledger l
        JOIN places p ON p.id = substr(l.source_ref, 9, instr(substr(l.source_ref, 9), ':') - 1)
        WHERE l.user_id = ? AND l.kind = 'checkin' AND p.province IS NOT NULL
+         AND ${notReversed('l')}
        GROUP BY p.province, p.layer`,
     ).all(userId),
   );
@@ -210,7 +212,7 @@ export function habitatEvidenceFor(db: DB, userId: string): HabitatEvidence[] {
       `SELECT p.layer AS layer, COUNT(DISTINCT substr(l.source_ref, -10)) AS days
        FROM ledger l
        JOIN places p ON p.id = substr(l.source_ref, 9, instr(substr(l.source_ref, 9), ':') - 1)
-       WHERE l.user_id = ? AND l.kind = 'checkin'
+       WHERE l.user_id = ? AND l.kind = 'checkin' AND ${notReversed('l')}
        GROUP BY p.layer`,
     ).all(userId),
   );
