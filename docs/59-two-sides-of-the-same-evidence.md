@@ -112,7 +112,11 @@ only ever shows what is left hides how fast it moved and why.
 
 - An indicator mapping layer that **refuses** the wrong indicator, not merely
   suggests the right one. The 306-3 finding generalised: the value is in the
-  no. **Still open, and now the largest single item on either side.**
+  no. Still the largest single item on either side; **designed in `60`, not
+  yet built.** That document's finding worth carrying back here is that the
+  obvious build — a table from our measure to an indicator — gets the 306-3
+  case backwards, because kilograms were never the problem and *whose waste
+  it was* is.
 - ~~An import path.~~ #73. Reads a pasted sheet, matches columns by name in
   Thai or English, and produces a **review, never a statement**.
 - ~~Countersignature.~~ #74. Bound to the digest the statement had, appended
