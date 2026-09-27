@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { openTestDb, rows, type DB } from './db.ts';
-import { notReversed, REVERSAL_PREFIX } from './ledger-sql.ts';
+import { notReversed, REVERSAL_PREFIX, awardStands } from './ledger-sql.ts';
 import {
   applyMovement, awardQuestReward, ensureWallet, reverseMovement,
 } from './wallet-service.ts';
@@ -111,5 +111,42 @@ describe('the fragment knows what a reversal really looks like', () => {
     for (const bad of ['l; DROP TABLE ledger', "l'", 'l l', '']) {
       assert.throws(() => notReversed(bad), /not a plain SQL alias/);
     }
+  });
+});
+
+/**
+ * The second fragment, and the same fail-open hazard.
+ *
+ * `notReversed` was found to pass everything when a caller shadowed its inner
+ * alias. `awardStands` names TWO rows of its own, so it has two ways to be
+ * shadowed and both are refused here.
+ */
+describe('awardStands', () => {
+  test('it judges the progress row against the award that paid for it', () => {
+    const sql = awardStands('qp');
+    assert.match(sql, /qp\.user_id/);
+    assert.match(sql, /'quest:' \|\| qp\.quest_id \|\| ':user:' \|\| qp\.user_id/);
+    assert.match(sql, /kind = 'quest_reward'/);
+  });
+
+  test('IT REFUSES AN ALIAS THAT WOULD SHADOW EITHER ROW IT NAMES', () => {
+    // Shadowing makes the row compare to itself, nothing looks reversed, and
+    // the check fails open — billing a sponsor for work somebody took back,
+    // which is the direction nobody notices.
+    assert.throws(() => awardStands('award_row'), /collides/);
+    assert.throws(() => awardStands('reversal_row'), /collides/);
+    assert.throws(() => awardStands('AWARD_ROW'), /collides/);
+  });
+
+  test('it refuses anything that is not a plain identifier', () => {
+    for (const bad of ['qp; DROP TABLE ledger', 'qp.user', '', '1qp', 'qp-1']) {
+      assert.throws(() => awardStands(bad), /not a plain SQL alias/, bad);
+    }
+  });
+
+  test('it carries the reversal check rather than a copy of it', () => {
+    // If the two ever drift, the day `reverseMovement` changes how it writes
+    // is the day one of them silently stops working.
+    assert.ok(awardStands('qp').includes(notReversed('award_row')));
   });
 });

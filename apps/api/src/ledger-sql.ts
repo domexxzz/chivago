@@ -63,3 +63,54 @@ export function notReversed(alias: string): string {
     + ` WHERE ${INNER}.source_ref = '${REVERSAL_PREFIX}' || ${alias}.source_ref)`;
 }
 
+
+/**
+ * An approval whose reward was taken back is not work that stands.
+ *
+ * WHY THIS IS A SECOND FRAGMENT AND NOT A SECOND COPY. `notReversed` judges a
+ * LEDGER row. This judges a `quest_progress` row, which is a different table
+ * with no `source_ref` of its own - the link between the two is the shape of
+ * the reference `awardQuestReward` writes, and that shape was already spelled
+ * out by hand in `kpi-service.ts` and again in `plan-lock-service.ts`. Two
+ * copies of a join that only one function understands is how the third copy
+ * gets written slightly wrong.
+ *
+ * WHAT IT MEANS, AND WHAT IT DELIBERATELY DOES NOT.
+ *
+ *   A HOST'S APPROVAL IS NOT DELETED AND IS NOT DOUBTED. `verified_at` stays
+ *   exactly where it is. Somebody looked at the proof on that date and passed
+ *   it, and that remains true whatever happens afterwards.
+ *
+ *   A REVERSAL IS A LATER, SEPARATE FACT: the platform decided the award does
+ *   not stand. So this is not "was this really approved" - it is "is this
+ *   work the platform still counts", and those are different questions that
+ *   happen to be asked of the same row.
+ *
+ *   AN APPROVAL WITH NO AWARD ROW STILL COUNTS. There is nothing to reverse.
+ *   A host approved it and no reward was ever issued, which is a quest
+ *   configuration question and not a withdrawal.
+ *
+ * The alias is the `quest_progress` one, and it is checked the same way
+ * `notReversed` checks its own, for the same two reasons: a shadowed alias
+ * would fail open, and an alias is interpolated into SQL.
+ */
+const AWARD = 'award_row';
+
+export function awardStands(progressAlias: string): string {
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(progressAlias)) {
+    throw new Error(`awardStands: ${progressAlias} is not a plain SQL alias`);
+  }
+  if (progressAlias.toLowerCase() === AWARD || progressAlias.toLowerCase() === INNER) {
+    throw new Error(
+      `awardStands: the alias ${progressAlias} collides with a row this fragment names, `
+      + 'which would make the check pass everything',
+    );
+  }
+  const p = progressAlias;
+  return `NOT EXISTS (
+    SELECT 1 FROM ledger ${AWARD}
+     WHERE ${AWARD}.kind = 'quest_reward'
+       AND ${AWARD}.user_id = ${p}.user_id
+       AND ${AWARD}.source_ref = 'quest:' || ${p}.quest_id || ':user:' || ${p}.user_id
+       AND NOT (${notReversed(AWARD)}))`;
+}

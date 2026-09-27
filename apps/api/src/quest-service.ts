@@ -17,7 +17,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { rows, transact, type DB } from './db.ts';
-import { notReversed } from './ledger-sql.ts';
+import { awardStands, notReversed } from './ledger-sql.ts';
 import { isRejectionReasonKey, rejectionMessage, QUEST_MIN_DWELL_MIN, type Fix, type QuestCounts, type ProofPhoto, type Balances, type Currency, type QuestProgress, type QuestStage,
   type RejectionReasonKey } from '@chivago/core';
 import { assertPresence, recordFix } from './presence-service.ts';
@@ -188,6 +188,17 @@ export function getAllProgress(db: DB, userId: string): Record<string, QuestProg
 export function questCountsFor(db: DB, questIds: string[]): QuestCounts[] {
   if (questIds.length === 0) return [];
   const holes = questIds.map(() => '?').join(',');
+  /*
+    `verified` is the only one of these four that a reversal touches, and it
+    is the one that gets INVOICED: `sponsorOutcome` multiplies it by the
+    agreed rate per verified submission. Before this it counted work the
+    platform had already taken back, which billed a sponsor for a record we
+    ourselves had withdrawn.
+
+    The other three are left alone on purpose. Joining, arriving and being
+    turned down are things that happened; none of them is a claim the
+    platform later stops standing behind, and there is no award to reverse.
+  */
   const found = rows<{
     quest_id: string; joined: number; arrived: number; verified: number; rejected: number;
   }>(
@@ -195,9 +206,10 @@ export function questCountsFor(db: DB, questIds: string[]): QuestCounts[] {
       `SELECT quest_id,
               COUNT(joined_at)   AS joined,
               COUNT(arrived_at)  AS arrived,
-              COUNT(verified_at) AS verified,
+              COUNT(CASE WHEN qp.verified_at IS NOT NULL AND ${awardStands('qp')}
+                         THEN 1 END) AS verified,
               COUNT(rejected_at) AS rejected
-       FROM quest_progress
+       FROM quest_progress qp
        WHERE quest_id IN (${holes})
        GROUP BY quest_id`,
     ).all(...questIds),

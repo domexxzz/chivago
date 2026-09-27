@@ -7,6 +7,7 @@ import {
   InvalidPeriod, StatementTampered, UnknownHost, digestOf, draftStatement, issueStatement,
   readStatement, statementsFor, statementsIncluding,
 } from './statement-service.ts';
+import { awardQuestReward, ensureWallet, reverseMovement } from './wallet-service.ts';
 
 let db: DB;
 const Q3 = { from: '2026-07-01', to: '2026-09-30' };
@@ -200,5 +201,83 @@ describe('the same day, either side of the issue', () => {
     approvedOn('bo', 'q3', '2026-08-14T11:00:00.000Z');
     assert.equal(statementsIncluding(db, 'bo').length, 0, 'the statement was issued before Bo was approved');
     assert.deepEqual(statementsIncluding(db, 'ana').map((f) => f.id), [s.id]);
+  });
+});
+
+/**
+ * A withdrawn approval never reaches a statement.
+ *
+ * This is the one document in the product that cannot be corrected. It is
+ * digested, published at a public URL, and append-only by design — the page
+ * itself says a correction is a new statement with a new id. So the only
+ * moment to keep withdrawn work out of it is BEFORE it is issued, and after
+ * that the design's own answer applies rather than a new mechanism.
+ */
+describe('a statement does not count work that was taken back', () => {
+  const awardTo = (userId: string, questId: string) => {
+    ensureWallet(db, userId);
+    awardQuestReward(db, {
+      userId, questId, questName: questId, host: 'Host', points: 150, currency: 'green',
+    });
+  };
+  const takeBack = (userId: string, questId: string) => reverseMovement(db, {
+    userId, originalSourceRef: `quest:${questId}:user:${userId}`,
+    reason: 'proof was not what it claimed',
+  });
+  const PERIOD = { from: '2026-01-01', to: '2026-12-31' };
+  const AT = '2026-06-15T04:00:00.000Z';
+
+  test('A WITHDRAWN APPROVAL IS NOT DRAFTED INTO ONE', () => {
+    approvedOn('ana', 'q3', AT);
+    awardTo('ana', 'q3');
+    assert.equal(draftStatement(db, 'h-lab', PERIOD).verified, 1);
+
+    takeBack('ana', 'q3');
+    assert.equal(
+      draftStatement(db, 'h-lab', PERIOD).verified, 0,
+      'a withdrawn approval would have been published in a permanent document',
+    );
+  });
+
+  test('it is not counted as a person either', () => {
+    approvedOn('ana', 'q3', AT);
+    awardTo('ana', 'q3');
+    takeBack('ana', 'q3');
+    assert.equal(draftStatement(db, 'h-lab', PERIOD).participants, 0);
+  });
+
+  test('one withdrawal leaves the rest of the period standing', () => {
+    for (const u of ['ana', 'bo']) {
+      approvedOn(u, 'q3', AT);
+      awardTo(u, 'q3');
+    }
+    takeBack('ana', 'q3');
+    const draft = draftStatement(db, 'h-lab', PERIOD);
+    assert.equal(draft.verified, 1);
+    assert.equal(draft.lines.length, 1);
+  });
+
+  test('AN ALREADY-ISSUED STATEMENT DOES NOT CHANGE', () => {
+    // A reversal after issuance cannot reach into a digested document, and
+    // must not: the digest would stop matching and every copy already printed
+    // would become unverifiable. The design's answer is the one on the page -
+    // issue a correcting statement with a new id.
+    approvedOn('ana', 'q3', AT);
+    awardTo('ana', 'q3');
+    const issued = issueStatement(db, 'h-lab', PERIOD, 'Nok');
+    assert.equal(issued.verified, 1);
+
+    takeBack('ana', 'q3');
+    const reread = readStatement(db, issued.id)!;
+    assert.equal(reread.verified, 1, 'an issued statement was rewritten underneath its digest');
+    assert.equal(reread.digest, issued.digest);
+    // And a fresh draft now reads the corrected figure, which is what the
+    // correcting statement would be issued from.
+    assert.equal(draftStatement(db, 'h-lab', PERIOD).verified, 0);
+  });
+
+  test('an approval with no award is still in the statement', () => {
+    approvedOn('ana', 'q3', AT);
+    assert.equal(draftStatement(db, 'h-lab', PERIOD).verified, 1);
   });
 });

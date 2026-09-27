@@ -25,6 +25,7 @@ import {
   type EsgPillar, type QuestHost, type StatementActivity, type StatementBody,
 } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
+import { awardStands } from './ledger-sql.ts';
 
 export class UnknownHost extends Error {
   constructor(id: string) {
@@ -105,6 +106,7 @@ export function activityFor(
        JOIN quests q ON q.id = qp.quest_id
        WHERE q.host_id = ? AND qp.verified_at IS NOT NULL
          AND qp.verified_at >= ? AND qp.verified_at <= ?
+         AND ${awardStands('qp')}
        ORDER BY qp.verified_at`,
     ).all(hostId, from, to),
   );

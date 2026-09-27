@@ -13,6 +13,7 @@
  */
 
 import { rows, type DB } from './db.ts';
+import { awardStands } from './ledger-sql.ts';
 import { claimingFundersAt, fundersAt, type Funder } from '@chivago/core';
 import type { ClaimAdjustment, EsgActivity, EsgPillar, EsgPeriod } from '@chivago/core';
 import { adjustmentsForQuests } from './adjustment-service.ts';
@@ -74,11 +75,18 @@ export function activityInPeriod(
   */
   interface Approval { userId: string; verifiedAt: string }
   const approvals = new Map<string, Approval[]>();
+  /*
+    Work whose award was taken back is left out. This report is what a partner
+    files, so counting a withdrawn approval would put a figure the platform
+    had already disowned into somebody's disclosure - the one place it is
+    most expensive to be wrong.
+  */
   for (const r of rows<{ quest_id: string; user_id: string; verified_at: string }>(
     db.prepare(
-      `SELECT quest_id, user_id, verified_at FROM quest_progress
-       WHERE quest_id IN (${holes}) AND verified_at IS NOT NULL
-         AND verified_at >= ? AND verified_at <= ?`,
+      `SELECT qp.quest_id, qp.user_id, qp.verified_at FROM quest_progress qp
+       WHERE qp.quest_id IN (${holes}) AND qp.verified_at IS NOT NULL
+         AND qp.verified_at >= ? AND qp.verified_at <= ?
+         AND ${awardStands('qp')}`,
     ).all(...ids, from, to),
   )) {
     approvals.set(r.quest_id, [

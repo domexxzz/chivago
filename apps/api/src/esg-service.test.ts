@@ -4,6 +4,7 @@ import { test, describe, beforeEach } from 'node:test';
 import { esgReport } from '@chivago/core';
 import { openTestDb, type DB } from './db.ts';
 import { activityInPeriod } from './esg-service.ts';
+import { awardQuestReward, ensureWallet, reverseMovement } from './wallet-service.ts';
 
 let db: DB;
 const YEAR = { from: '2026-01-01', to: '2026-12-31' };
@@ -290,5 +291,62 @@ describe('an approval belongs to one filer, or says that it does not', () => {
 
     const a = activityInPeriod(db, SP, [line], YEAR).classified[0]!;
     assert.deepEqual([a.verified, a.exclusiveVerified, a.sharedVerified], [1, 0, 0]);
+  });
+});
+
+/**
+ * Work the platform took back does not reach a partner's disclosure.
+ *
+ * This report is what a company files. A withdrawn approval counted here is a
+ * figure ChivaGo had already disowned, sitting inside somebody else's
+ * published document — the most expensive place in the product to be wrong.
+ */
+describe('a withdrawn approval is not in the report', () => {
+  const awardTo = (userId: string, questId: string) => {
+    ensureWallet(db, userId);
+    awardQuestReward(db, {
+      userId, questId, questName: questId, host: 'Host', points: 150, currency: 'green',
+    });
+  };
+  const takeBack = (userId: string, questId: string) => reverseMovement(db, {
+    userId, originalSourceRef: `quest:${questId}:user:${userId}`,
+    reason: 'proof was not what it claimed',
+  });
+
+  test('IT DROPS OUT OF VERIFIED, NOT JUST OUT OF THE POINTS', () => {
+    addQuest('q1', 'environmental');
+    const line = funded('q1');
+    approvedOn('ana', 'q1', '2026-06-15T04:00:00.000Z');
+    awardTo('ana', 'q1');
+    assert.equal(activityInPeriod(db, SP, [line], YEAR).classified[0]!.verified, 1);
+
+    takeBack('ana', 'q1');
+    // The quest stays on the report - it was funded and is in scope - with
+    // nothing left to claim under it.
+    const after = activityInPeriod(db, SP, [line], YEAR).classified[0]!;
+    assert.equal(after.verified, 0, 'a withdrawn approval was still in the report a partner files');
+    assert.equal(after.exclusiveVerified, 0);
+    assert.equal(after.participants.length, 0, 'a withdrawn approval still counted as a person');
+  });
+
+  test('one withdrawal does not empty the quest', () => {
+    addQuest('q1', 'environmental');
+    const line = funded('q1');
+    for (const u of ['ana', 'bo']) {
+      approvedOn(u, 'q1', '2026-06-15T04:00:00.000Z');
+      awardTo(u, 'q1');
+    }
+    takeBack('ana', 'q1');
+    const a = activityInPeriod(db, SP, [line], YEAR).classified[0]!;
+    assert.equal(a.verified, 1);
+    assert.equal(a.exclusiveVerified, 1);
+  });
+
+  test('an approval with no award is still counted', () => {
+    // Nothing was reversed because nothing was issued.
+    addQuest('q1', 'environmental');
+    const line = funded('q1');
+    approvedOn('ana', 'q1', '2026-06-15T04:00:00.000Z');
+    assert.equal(activityInPeriod(db, SP, [line], YEAR).classified[0]!.verified, 1);
   });
 });
