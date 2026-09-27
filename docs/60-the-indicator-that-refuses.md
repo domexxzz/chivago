@@ -62,11 +62,20 @@ The layer holds **refusals**, with conditions as a second class, and returns
 |---|---|---|
 | `refuses` | a definition in the standard excludes this | do not file it there; the reason is quotable |
 | `conditional` | it can go there **if** something is stated | file it with that sentence, not without |
-| `unknown` | nobody here has examined this pair | ask a human; **this is not approval** |
+| `unknown` | a rule exists and one fact is missing | answer that fact; **this is not approval** |
+| `unexamined` | nobody here has examined this pair | ask a human; **this is not approval** |
 
 There is deliberately no `fits`. The nearest thing to a yes this layer can
 produce is a `conditional` whose conditions are all satisfied, and even that
 is phrased as *nothing here refuses it*, never as *this is correct*.
+
+**Building it added a fourth.** The table above ran two cases together, and
+writing the code separated them: `unknown` is a rule that exists and needs one
+more answer — the valuable state, because it names the question — while
+`unexamined` is nobody here having looked at the pair at all. They read alike
+to an optimist and must not: one is a question we can ask, the other is a gap
+in our coverage. Neither is approval, which was the principle and is
+unchanged.
 
 That asymmetry is the whole design. It mirrors `esg.ts`, which has always
 shipped `NOT_CLAIMABLE` beside every figure rather than a list of things the
@@ -195,7 +204,8 @@ The staging matters more than the schema.
 **First: one rule, end to end, and the machinery it forces.** The 306-3 case,
 with its clause, its facts, its read-date, and the `unknown` path that asks
 whose waste it was. One rule exercises every part of the design and is small
-enough to throw away if the shape is wrong.
+enough to throw away if the shape is wrong. **Done in `#83`** — it found the
+fourth verdict above and otherwise held.
 
 **Second: the console column.** On the review page `#73` already has, beside
 each declared line. This is where a real file first meets the layer, and it
