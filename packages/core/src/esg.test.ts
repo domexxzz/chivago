@@ -32,6 +32,10 @@ const activity = (over: Partial<EsgActivity> = {}): EsgActivity => ({
   verified: 0,
   exclusiveVerified: over.verified ?? 0,
   sharedVerified: 0,
+  // Nothing stood down unless a test says so, for the same reason: every
+  // assertion written before adjustments existed was about a partner nobody
+  // had conceded anything to.
+  byAdjustment: 0,
   participants: [],
   fundedTHB: 0,
   paidTHB: 0,

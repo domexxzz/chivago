@@ -84,11 +84,35 @@ export function alsoClaimedBy(
  * provider will read first. It is also the sentence that has to be earned: it
  * is only produced when every approval in the report had exactly one funder.
  */
-export function exclusivityNote(shared: number, total: number): Bilingual {
+export function exclusivityNote(
+  shared: number, total: number, byAdjustment = 0,
+): Bilingual {
   if (total === 0) {
     return {
       en: 'No approved activity in this period, so nothing here is claimed by anybody.',
       th: 'ไม่มีกิจกรรมที่ผ่านการตรวจในช่วงนี้ จึงไม่มีสิ่งใดถูกนับโดยผู้ใด',
+    };
+  }
+  /*
+    An approval that is this partner's alone BECAUSE A CO-FUNDER STOOD DOWN is
+    not an approval this partner funded alone, and the strong sentence would be
+    false about it. It gets its own clause naming where the exclusivity came
+    from, so a reader can go and ask for the letter.
+
+    Default zero, so every caller written before stand-downs existed keeps
+    saying exactly what it said.
+  */
+  if (byAdjustment > 0) {
+    const alone = total - shared - byAdjustment;
+    return {
+      en: `${alone} of these ${total} approvals were funded by this partner alone. `
+        + `A further ${byAdjustment} were co-funded, and the co-funding partner has stated it is `
+        + `not claiming them. ${shared === 0 ? 'None of the rest remains shared.' : `The remaining ${shared} ${shared === 1 ? 'is' : 'are'} still shared.`} `
+        + 'A stand-down is a statement by that partner, recorded here and not witnessed by ChivaGo.',
+      th: `${alone} จาก ${total} รายการที่ผ่านการตรวจนี้ พันธมิตรรายนี้สนับสนุนเพียงรายเดียว `
+        + `อีก ${byAdjustment} รายการมีผู้สนับสนุนร่วม และผู้สนับสนุนร่วมได้ระบุว่าจะไม่อ้างสิทธิ์รายการเหล่านั้น `
+        + `${shared === 0 ? 'ส่วนที่เหลือไม่มีรายการที่ยังใช้ร่วมกัน' : `ที่เหลืออีก ${shared} รายการยังใช้ร่วมกันอยู่`} `
+        + 'การสละสิทธิ์เป็นข้อความของพันธมิตรรายนั้น ซึ่งบันทึกไว้ที่นี่โดย ChivaGo ไม่ได้เป็นพยาน',
     };
   }
   if (shared === 0) {

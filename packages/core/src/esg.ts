@@ -69,6 +69,12 @@ export interface EsgActivity {
   exclusiveVerified: number;
   /** The rest: co-funded when approved, and disclosed rather than divided. */
   sharedVerified: number;
+  /**
+   * Co-funded when approved, and the co-funder has stated it is not claiming
+   * them. Counted apart from `exclusiveVerified` on purpose: this partner did
+   * not fund these alone, and the report must not say it did.
+   */
+  byAdjustment: number;
   /** Opaque participant ids. Never surfaced — only counted, distinctly. */
   participants: string[];
   fundedTHB: number;
@@ -98,6 +104,12 @@ export interface EsgReport {
   exclusiveVerified: number;
   /** Approvals another partner was also funding, and may also report. */
   sharedVerified: number;
+  /**
+   * Approvals another partner was also funding and has stated it is not
+   * claiming. Filed by this partner, but NOT funded by it alone - which is
+   * why they are not folded into `exclusiveVerified`.
+   */
+  byAdjustment: number;
   paidTHB: number;
   fundedTHB: number;
   /** What each figure's verification actually is, stated with the figures. */
@@ -206,6 +218,7 @@ export function esgReport(
   // approval, where the dates are, and this function does not second-guess it.
   const exclusiveVerified = activities.reduce((n, a) => n + a.exclusiveVerified, 0);
   const sharedVerified = activities.reduce((n, a) => n + a.sharedVerified, 0);
+  const byAdjustment = activities.reduce((n, a) => n + a.byAdjustment, 0);
 
   return {
     partner,
@@ -218,12 +231,17 @@ export function esgReport(
     verified: activities.reduce((n, a) => n + a.verified, 0),
     exclusiveVerified,
     sharedVerified,
+    byAdjustment,
     paidTHB: activities.reduce((n, a) => n + a.paidTHB, 0),
     fundedTHB: activities.reduce((n, a) => n + a.fundedTHB, 0),
     assurance: ASSURANCE,
     notClaimable: NOT_CLAIMABLE,
     boundary: BOUNDARY,
-    exclusivity: exclusivityNote(sharedVerified, exclusiveVerified + sharedVerified),
+    // The total the sentence is written about includes the stood-down ones:
+    // they are approvals this partner may file, just not ones it funded alone.
+    exclusivity: exclusivityNote(
+      sharedVerified, exclusiveVerified + sharedVerified + byAdjustment, byAdjustment,
+    ),
     exclusivityBoundary: EXCLUSIVITY_BOUNDARY,
     excludedUnclassified,
   };

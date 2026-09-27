@@ -13,8 +13,9 @@
  */
 
 import { rows, type DB } from './db.ts';
-import { claimState, type Funder } from '@chivago/core';
-import type { EsgActivity, EsgPillar, EsgPeriod } from '@chivago/core';
+import { claimingFundersAt, fundersAt, type Funder } from '@chivago/core';
+import type { ClaimAdjustment, EsgActivity, EsgPillar, EsgPeriod } from '@chivago/core';
+import { adjustmentsForQuests } from './adjustment-service.ts';
 
 const PILLARS = new Set<string>(['environmental', 'social', 'governance']);
 
@@ -106,6 +107,16 @@ export function activityInPeriod(
     ]);
   }
 
+  /*
+    Stand-downs, read alongside the funding lines and for the same reason:
+    both are facts about who may claim an approval, and both live outside the
+    ledger the approvals live in.
+  */
+  const adjustments = new Map<string, ClaimAdjustment[]>();
+  for (const a of adjustmentsForQuests(db, ids)) {
+    adjustments.set(a.questId, [...(adjustments.get(a.questId) ?? []), a]);
+  }
+
   const classified: EsgActivity[] = [];
   let excludedUnclassified = 0;
 
@@ -130,12 +141,33 @@ export function activityInPeriod(
       the number the exclusivity sentence is written about.
     */
     const mine = funders.get(f.questId) ?? [];
+    const stoodDown = adjustments.get(f.questId) ?? [];
     let exclusiveVerified = 0;
     let sharedVerified = 0;
+    let byAdjustment = 0;
     for (const a of done) {
-      const state = claimState(mine, a.verifiedAt);
-      if (state === 'exclusive') exclusiveVerified += 1;
-      else if (state === 'shared') sharedVerified += 1;
+      /*
+        THE FIRST QUESTION IS WHETHER THIS PARTNER STILL CLAIMS IT AT ALL.
+        Before stand-downs existed a funder was always a claimant, so it never
+        had to be asked. Now the partner reading this report may be the one
+        who gave the activity up - and counting it for them would turn a
+        concession into a claim, which is the exact inversion this whole
+        mechanism exists to prevent.
+
+        After that, three outcomes where there used to be two. An approval
+        that is this partner's alone BECAUSE A CO-FUNDER STOOD DOWN is counted
+        apart from one they funded alone, because the report's strong sentence
+        - "funded by this partner alone" - would be false about it.
+
+        An approval every funder gave up reaches none of the three counts, the
+        same as an unfunded one: the work happened and `verified` says so, but
+        it is not a claim anybody here can make.
+      */
+      const claiming = claimingFundersAt(mine, stoodDown, a.verifiedAt);
+      if (!claiming.includes(sponsorId)) continue;
+      if (claiming.length > 1) sharedVerified += 1;
+      else if (fundersAt(mine, a.verifiedAt).length === 1) exclusiveVerified += 1;
+      else byAdjustment += 1;
     }
 
     classified.push({
@@ -146,6 +178,7 @@ export function activityInPeriod(
       verified: people.length,
       exclusiveVerified,
       sharedVerified,
+      byAdjustment,
       participants: people,
       fundedTHB: f.fundedTHB,
       // Counted from approvals and capped at what was committed, exactly as

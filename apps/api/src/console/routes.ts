@@ -33,6 +33,9 @@ import {
 import {
   InvalidPlanLock, lockFor, lockPlan, planDigest, planOf, supersedePlan,
 } from '../plan-lock-service.ts';
+import {
+  InvalidAdjustment, adjustmentById, adjustmentsForQuests, resumeClaim, standDown, voidAdjustment,
+} from '../adjustment-service.ts';
 import { kpiReading } from '../kpi-service.ts';
 import { statementMissingPage, statementPage } from './statement.ts';
 import { storiesPage } from './stories.ts';
@@ -879,11 +882,19 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       hostName: session.hostName,
       reviewer: session.reviewer,
       csrf: csrfFor(session),
-      views: listOrganisations(db).map((org) => ({
-        org,
-        sponsorships: sponsorshipsFor(db, org.id),
-        basis: basisFor(db, org.id),
-      })),
+      views: listOrganisations(db).map((org) => {
+        const sponsorships = sponsorshipsFor(db, org.id);
+        return {
+          org,
+          sponsorships,
+          basis: basisFor(db, org.id),
+          // Only this organisation's own stand-downs. A concession another
+          // partner made is not this page's business and showing it here
+          // would invite somebody to "undo" a statement they did not make.
+          adjustments: adjustmentsForQuests(db, sponsorships.map((sp) => sp.questId))
+            .filter((a) => a.orgId === org.id),
+        };
+      }),
       quests: listQuests(db).map((q) => ({ id: q.id, name: q.name.en })),
       error: c.req.query('error') ?? null,
       notice: c.req.query('notice') ?? null,
@@ -972,6 +983,104 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       throw err;
     }
     return c.redirect('/console/organisations', 303);
+  });
+
+  /*
+    A partner standing down from a claim, and the two different ways it stops.
+
+    `adjustment.ts` carries what this is and what it is not - the mechanism is
+    borrowed from Article 6, where a government adjusts a national inventory
+    under a treaty, and none of that is happening here.
+
+    MODERATOR ONLY, and deliberately NOT scoped to the signed-in host the way
+    the quest writes are. A stand-down is a statement about an ORGANISATION's
+    reporting, recorded from a letter that organisation supplied, and the
+    quests it touches may belong to several hosts. The organisations page is
+    already moderator-only for exactly this reason.
+  */
+  app.post('/organisations/:id/stand-down', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/organisations'), 403);
+    }
+    try {
+      standDown(db, {
+        orgId: c.req.param('id'),
+        questId: String(form.questId ?? ''),
+        reason: String(form.reason ?? ''),
+        recordedBy: session.reviewer ?? session.hostName,
+      });
+    } catch (err) {
+      if (err instanceof InvalidAdjustment) {
+        return c.redirect(`/console/organisations?error=${encodeURIComponent(err.message)}`, 303);
+      }
+      throw err;
+    }
+    return c.redirect('/console/organisations', 303);
+  });
+
+  /*
+    Resuming and voiding are separate endpoints, not one endpoint with a flag.
+
+    They mean different things - a partner claiming again from now on, versus
+    a record that was wrong from the start - and only one of them is
+    retroactive. A shared endpoint would put the difference in a form field,
+    which is where it would eventually get set wrong.
+
+    Both check that the adjustment belongs to the organisation in the path, so
+    a crafted id cannot reach across to another partner's concession.
+  */
+  const endAdjustment = (
+    orgId: string, id: string, reason: string, action: 'resume' | 'void',
+  ): 'gone' | 'ok' | string => {
+    const held = adjustmentById(db, id);
+    if (held === null || held.orgId !== orgId) return 'gone';
+    try {
+      if (action === 'resume') resumeClaim(db, id, reason);
+      else voidAdjustment(db, id, reason);
+    } catch (err) {
+      if (err instanceof InvalidAdjustment) return err.message;
+      throw err;
+    }
+    return 'ok';
+  };
+
+  app.post('/organisations/:id/resume', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/organisations'), 403);
+    }
+    const out = endAdjustment(
+      c.req.param('id'), String(form.id ?? ''), String(form.reason ?? ''), 'resume',
+    );
+    return c.redirect(
+      out === 'ok' || out === 'gone'
+        ? '/console/organisations'
+        : `/console/organisations?error=${encodeURIComponent(out)}`,
+      303,
+    );
+  });
+
+  app.post('/organisations/:id/void-adjustment', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/organisations'), 403);
+    }
+    const out = endAdjustment(
+      c.req.param('id'), String(form.id ?? ''), String(form.reason ?? ''), 'void',
+    );
+    return c.redirect(
+      out === 'ok' || out === 'gone'
+        ? '/console/organisations'
+        : `/console/organisations?error=${encodeURIComponent(out)}`,
+      303,
+    );
   });
 
   app.post('/organisations/:id/unfund', async (c) => {
