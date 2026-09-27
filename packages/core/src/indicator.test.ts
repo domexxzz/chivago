@@ -4,7 +4,8 @@ import { test, describe } from 'node:test';
 import {
   FACT_QUESTION, GRI_306_3, INDICATOR_RULES, PLACEMENT_LIMIT, STALE_AFTER_DAYS,
   UNEXAMINED_NOTE, VERDICT_LABEL,
-  assess, placeAgainst, unexamined,
+  DECLARED_FACTS_NOTE, DECLARED_MEASURED_BY, UNIT_UNRECOGNISED,
+  assess, measureFromUnit, placeAgainst, unexamined,
   type ActivityFacts, type Placement,
 } from './indicator.ts';
 
@@ -282,5 +283,57 @@ describe('the rules this build carries', () => {
         }
       }
     }
+  });
+});
+
+/**
+ * Reading somebody else's sheet well enough to ask the question.
+ *
+ * The bridge from a pasted file to a rule. A guess here is not a small guess:
+ * it picks which rule runs.
+ */
+describe('which measure a declared file is talking about', () => {
+  test('the units a partner actually writes', () => {
+    for (const u of ['kg', 'KG', ' kg ', 'kilograms', 'กก', 'กก.', 'กิโลกรัม']) {
+      assert.equal(measureFromUnit(u), 'weight_kg', u);
+    }
+    for (const u of ['people', 'คน', 'participants']) {
+      assert.equal(measureFromUnit(u), 'distinct_participants', u);
+    }
+    for (const u of ['submissions', 'รายการ', 'ครั้ง']) {
+      assert.equal(measureFromUnit(u), 'verified_submissions', u);
+    }
+  });
+
+  test('IT DOES NOT GUESS, AND A NEAR MISS IS A MISS', () => {
+    // `parseDeclaredCsv` refuses to guess which COLUMN is which for the same
+    // reason. A fuzzy match here would run a rule written about a different
+    // kind of figure, and it would answer confidently.
+    for (const u of ['kgs.', 'kg/day', 'tonnes', 'ton', 'บาท', 'x', '', '  ']) {
+      assert.equal(measureFromUnit(u), null, u);
+    }
+    assert.equal(measureFromUnit(null), null);
+    assert.equal(measureFromUnit(undefined), null);
+  });
+
+  test('an unrecognised unit is said out loud, not quietly skipped', () => {
+    assert.match(UNIT_UNRECOGNISED.en, /not one this platform measures/);
+    assert.match(UNIT_UNRECOGNISED.en, /Guessing which measure was meant/);
+    assert.match(UNIT_UNRECOGNISED.th, /การเดาว่าหมายถึงตัววัดใด/);
+  });
+
+  test('A PASTED FILE IS DECLARED, AND IS NOT ASKED', () => {
+    // The first thing building the console column found. `measuredBy` looked
+    // like a fourth question and is not one: asking would invite the answer
+    // "verified", which that page exists to refuse.
+    assert.equal(DECLARED_MEASURED_BY, 'declared');
+    assert.match(DECLARED_FACTS_NOTE.en, /is not asked here and cannot be answered here/);
+    assert.match(DECLARED_FACTS_NOTE.en, /self-declared, whatever it says about itself/);
+  });
+
+  test('the declared basis reaches the conditions when a placement is allowed', () => {
+    const p = placeAgainst(GRI_306_3, facts({ measuredBy: DECLARED_MEASURED_BY }), ASOF);
+    assert.equal(p.verdict, 'conditional');
+    assert.match(p.conditions[1]!.en, /Self-declared and not verified by anybody here/);
   });
 });

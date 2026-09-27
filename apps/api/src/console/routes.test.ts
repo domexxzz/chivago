@@ -2072,3 +2072,137 @@ describe('a partner standing down from a claim', () => {
     }
   });
 });
+
+/**
+ * The indicator layer, meeting a real file.
+ *
+ * Stage two of `docs/60`. The rule was built first against facts a test
+ * supplied; this is where the facts have to come from somebody's spreadsheet
+ * and somebody's answers, and two things about the design only show up here.
+ */
+describe('where a partner wants to file their figure', () => {
+  const MOD_KEY = 'chv_PLCAA-PLCBB-PLCCC-PLCDD';
+  const asModerator = async () => {
+    db.prepare("UPDATE hosts SET role = 'moderator', api_key_hash = ? WHERE id = 'h-muni'")
+      .run(hashApiKey(MOD_KEY));
+    return signIn(MOD_KEY, 'Nok');
+  };
+  const send = (t: string, fields: Record<string, string>) => app.request('/review', {
+    method: 'POST',
+    headers: { ...withCookie(t), 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: __csrfFor(resolveSession(db, t)!), ...fields }),
+  });
+  const year = new Date().getUTCFullYear();
+  const sheet = (unit = 'kg') =>
+    `activity,date,amount,unit\nBeach clean,${year}-06-01,42,${unit}\n`;
+  const review = (t: string, over: Record<string, string> = {}) => send(t, {
+    from: `${year}-01-01`, to: `${year}-12-31`, sheet: sheet(), ...over,
+  });
+
+  test('a first paste reviews the file and answers no question nobody asked', async () => {
+    const mod = await asModerator();
+    const page = await (await review(mod)).text();
+    assert.match(page, /Where they want to file it/);
+    // The panel is offered; no verdict is rendered until it is asked for.
+    assert.doesNotMatch(page, /Cannot go here|One answer missing/);
+  });
+
+  test('THE MEASURE IS READ OFF THEIR UNIT COLUMN AND SHOWN', async () => {
+    // Shown, because if it read the wrong one the answer below is about the
+    // wrong kind of figure and a moderator has to be able to see that.
+    const mod = await asModerator();
+    const page = await (await review(mod, { carry: '1' })).text();
+    assert.match(page, /Read from their unit column as/);
+    assert.match(page, /Weight recorded on approved proofs|น้ำหนักที่บันทึก/);
+  });
+
+  test('A UNIT THIS PLATFORM DOES NOT MEASURE IS SAID, NOT GUESSED AT', async () => {
+    const mod = await asModerator();
+    const page = await (await review(mod, { sheet: sheet('tonnes'), carry: '1' })).text();
+    assert.match(page, /not one this platform measures|ไม่ใช่หน่วยที่แพลตฟอร์มนี้วัด/);
+    assert.doesNotMatch(page, /Cannot go here/, 'it assessed a figure it could not identify');
+  });
+
+  test('IT ASKS WHOSE WASTE IT WAS BEFORE IT ANSWERS', async () => {
+    const mod = await asModerator();
+    const page = await (await review(mod, { carry: '1' })).text();
+    assert.match(page, /One answer missing|ยังขาดคำตอบหนึ่งข้อ/);
+    assert.match(page, /Ask them|ถามเขาว่า/);
+    // The console opens in Thai, so the question renders in Thai.
+    assert.match(page, /วัสดุนั้นถูกทิ้งโดยการดำเนินงานของคุณเอง หรือโดยผู้อื่น/);
+  });
+
+  test('THE FINDING ARRIVES WITH THE CLAUSE IT RESTS ON', async () => {
+    // A refusal a customer cannot go and check is an opinion, and this page
+    // sells the opposite.
+    const mod = await asModerator();
+    const page = await (await review(mod, {
+      carry: '1', materialOrigin: 'third_party', organisationRole: 'manager',
+    })).text();
+    assert.match(page, /Cannot go here|ใส่ตรงนี้ไม่ได้/);
+    assert.match(page, /anything that the holder discards/);
+    assert.match(page, /GRI 306: Waste 2020/);
+    assert.match(page, /Read 2026-09-26 by/);
+    assert.match(page, /Not checked:/);
+    // A reading one day old is one day, not "1 days". This text goes in
+    // front of a customer beside a finding they are being asked to act on.
+    assert.doesNotMatch(page, /\b1 days ago\b/);
+    // And it says where the figure could honestly go instead.
+    assert.match(page, /3-3-e-ii/);
+  });
+
+  test('the same file from the company’s own operations is not refused', async () => {
+    const mod = await asModerator();
+    const page = await (await review(mod, {
+      carry: '1', materialOrigin: 'own_operations', organisationRole: 'generator',
+      insideBoundary: 'yes',
+    })).text();
+    assert.match(page, /Only if stated|ได้ ถ้าระบุเงื่อนไข/);
+    assert.doesNotMatch(page, /Cannot go here/);
+  });
+
+  test('A PASTED FILE IS NEVER ASKED HOW IT WAS MEASURED', async () => {
+    // The thing stage two found. `measuredBy` looked like a fourth question
+    // and is not one — asking would invite the answer "verified", which the
+    // banner at the top of this page exists to refuse.
+    const mod = await asModerator();
+    const page = await (await review(mod, { carry: '1' })).text();
+    assert.doesNotMatch(page, /name="measuredBy"/, 'the page offered to be told it was verified');
+    assert.match(page, /is not asked here and cannot be answered here|ที่นี่ไม่ถามว่าตัวเลขวัดมาอย่างไร/);
+  });
+
+  test('AND THE DECLARED BASIS STILL REACHES THE CONDITIONS', async () => {
+    // Not asking must not mean forgetting: a permitted placement still has
+    // to say the figure was self-declared.
+    const mod = await asModerator();
+    const page = await (await review(mod, {
+      carry: '1', materialOrigin: 'own_operations', organisationRole: 'generator',
+      insideBoundary: 'yes',
+    })).text();
+    assert.match(page, /Self-declared and not verified by anybody here|แจ้งเอง/);
+  });
+
+  test('a line nobody here has studied is not silence', async () => {
+    const mod = await asModerator();
+    const page = await (await review(mod, {
+      carry: '1', framework: 'ifrs_s', line: 'S2-29a', materialOrigin: 'third_party',
+    })).text();
+    assert.match(page, /Not examined|ยังไม่ได้ตรวจสอบคู่นี้/);
+    assert.match(page, /gap in what ChivaGo has studied|ช่องว่างของสิ่งที่ ChivaGo ศึกษา/);
+  });
+
+  test('the placement panel never turns the page into a statement', async () => {
+    const mod = await asModerator();
+    const page = await (await review(mod, {
+      carry: '1', materialOrigin: 'own_operations', organisationRole: 'generator',
+      insideBoundary: 'yes',
+    })).text();
+    assert.doesNotMatch(page, /\/verify\//, 'a review page offered a verify link');
+    assert.match(page, /not a ruling and not an assurance opinion|ไม่ใช่คำวินิจฉัย/);
+  });
+
+  test('a plain host still gets a 404', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    assert.equal((await send(lab, { carry: '1' })).status, 404);
+  });
+});

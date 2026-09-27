@@ -498,3 +498,78 @@ export const GRI_306_3: IndicatorRule = {
 
 /** Every rule this build carries. One, and it is researched. */
 export const INDICATOR_RULES: readonly IndicatorRule[] = [GRI_306_3];
+
+/* ------------------------------------------- from somebody else's sheet -- */
+
+/**
+ * Which of our measures a declared file's unit column is talking about.
+ *
+ * `declared.ts` reads a partner's sheet and hands back whatever they wrote in
+ * the unit column. To ask whether their figure belongs on a line, we first
+ * have to know what kind of figure it is - and their spreadsheet is the only
+ * thing that says.
+ *
+ * EXACT MATCHES ONLY, AFTER TRIMMING AND LOWERCASING. No fuzzy matching, no
+ * prefixes, no "starts with kg". A guess here is not a small guess: it picks
+ * which rule runs, and the wrong rule would answer confidently about a figure
+ * it was never about. `parseDeclaredCsv` already refuses to guess which
+ * COLUMN is which for the same reason, and this is the same decision one
+ * level down.
+ *
+ * `null` for anything unrecognised, which the page must say out loud rather
+ * than quietly assessing nothing.
+ */
+const UNIT_TO_MEASURE: Record<string, KpiMeasure> = {
+  kg: 'weight_kg',
+  kgs: 'weight_kg',
+  kilogram: 'weight_kg',
+  kilograms: 'weight_kg',
+  'กก': 'weight_kg',
+  'กก.': 'weight_kg',
+  'กิโล': 'weight_kg',
+  'กิโลกรัม': 'weight_kg',
+  people: 'distinct_participants',
+  person: 'distinct_participants',
+  persons: 'distinct_participants',
+  participants: 'distinct_participants',
+  'คน': 'distinct_participants',
+  submissions: 'verified_submissions',
+  submission: 'verified_submissions',
+  activities: 'verified_submissions',
+  'รายการ': 'verified_submissions',
+  'ครั้ง': 'verified_submissions',
+};
+
+export function measureFromUnit(unit: string | null | undefined): KpiMeasure | null {
+  if (unit === null || unit === undefined) return null;
+  return UNIT_TO_MEASURE[unit.trim().toLowerCase()] ?? null;
+}
+
+export const UNIT_UNRECOGNISED: Bilingual = {
+  en: 'The unit in this file is not one this platform measures, so nothing here can say '
+    + 'whether the figure belongs on that line. Guessing which measure was meant would run '
+    + 'a rule written about a different kind of figure.',
+  th: 'หน่วยในไฟล์นี้ไม่ใช่หน่วยที่แพลตฟอร์มนี้วัด จึงไม่มีสิ่งใดตรงนี้บอกได้ว่าตัวเลขควรอยู่ในรายการนั้นหรือไม่ '
+    + 'การเดาว่าหมายถึงตัววัดใดจะเป็นการเรียกใช้กฎที่เขียนไว้สำหรับตัวเลขคนละชนิด',
+};
+
+/**
+ * Why a declared file is never asked how its figure was measured.
+ *
+ * The first thing building the console column found. `measuredBy` looked like
+ * a fourth question to put to the customer, and it is not one: a file
+ * somebody pasted is `declared` by definition, and `DECLARED_NOT_VERIFIED`
+ * has said so on that page since #73. Asking would invite the answer
+ * "verified", which the page exists to refuse.
+ */
+export const DECLARED_MEASURED_BY: MeasuredBy = 'declared';
+
+export const DECLARED_FACTS_NOTE: Bilingual = {
+  en: 'How the figure was measured is not asked here and cannot be answered here: a pasted '
+    + 'file is self-declared, whatever it says about itself.',
+  th: 'ที่นี่ไม่ถามว่าตัวเลขวัดมาอย่างไร และตอบที่นี่ไม่ได้ เพราะไฟล์ที่วางเข้ามาคือข้อมูลที่แจ้งเอง '
+    + 'ไม่ว่าในไฟล์จะระบุว่าอย่างไรก็ตาม',
+};
+
+export const isFramework = (v: string): v is Framework =>
+  v === 'gri' || v === 'ifrs_s' || v === 'ghg_protocol' || v === 'sec_56_1';

@@ -73,7 +73,10 @@ import {
   SameApprover,
 } from '../batch-service.ts';
 import {
-  BATCH_PREVIEW, isQuestMeasure, parseDeclaredCsv, planStanding, reconcile, reviewDeclared,
+  BATCH_PREVIEW, DECLARED_MEASURED_BY, INDICATOR_RULES, UNKNOWN_FACTS,
+  assess, isFramework, isQuestMeasure, measureFromUnit, parseDeclaredCsv, planStanding,
+  reconcile, reviewDeclared,
+  type ActivityFacts, type KpiMeasure, type Placement,
 } from '@chivago/core';
 import { flaggedModerators, moderatorWatch } from '../moderator-watch.ts';
 import { isModerationReasonKey } from '@chivago/core';
@@ -695,12 +698,45 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     record of somebody's activity inside a system whose whole claim is that
     its records are verified.
   */
+  /*
+    The facts a moderator has answered, read off the form.
+
+    `measuredBy` is NOT among them and cannot be: a pasted file is
+    self-declared by definition, and asking would invite the answer
+    "verified" - which is exactly what `DECLARED_NOT_VERIFIED` at the top of
+    that page exists to refuse. It is fixed here rather than offered.
+  */
+  const factsFrom = (form: Record<string, unknown>): ActivityFacts => {
+    const pick = <T extends string>(v: unknown, allowed: readonly T[], fallback: T): T => {
+      const s_ = String(v ?? '');
+      return (allowed as readonly string[]).includes(s_) ? (s_ as T) : fallback;
+    };
+    const bound = String(form.insideBoundary ?? '');
+    return {
+      materialOrigin: pick(form.materialOrigin,
+        ['own_operations', 'third_party', 'mixed', 'unknown'] as const, 'unknown'),
+      organisationRole: pick(form.organisationRole,
+        ['generator', 'manager', 'funder', 'unknown'] as const, 'unknown'),
+      insideBoundary: bound === 'yes' ? true : bound === 'no' ? false : 'unknown',
+      measuredBy: DECLARED_MEASURED_BY,
+    };
+  };
+
   const reviewForm = (c: Parameters<typeof localeFor>[0], session: ReturnType<typeof currentSession>,
     period: { from: string; to: string }, pasted: string, statedTotal: string,
-    review: ReturnType<typeof reviewDeclared> | null, missing: string[]) =>
+    review: ReturnType<typeof reviewDeclared> | null, missing: string[],
+    extra: {
+      framework?: string; line?: string; facts?: ActivityFacts;
+      measure?: KpiMeasure | null; placement?: Placement | null;
+    } = {}) =>
     reviewDeclaredPage({
       locale: localeFor(c), hostName: session!.hostName, csrf: csrfFor(session!),
       period, pasted, statedTotal, review, missing,
+      framework: extra.framework ?? 'gri',
+      line: extra.line ?? '306-3',
+      facts: extra.facts ?? UNKNOWN_FACTS,
+      measure: extra.measure ?? null,
+      placement: extra.placement ?? null,
     });
 
   app.get('/review', (c) => {
@@ -730,7 +766,31 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       return c.html(reviewForm(c, session, period, pasted, statedTotalRaw, null, sheet.missing));
     }
     const review = reviewDeclared(sheet.rows, period, statedTotal);
-    return c.html(reviewForm(c, session, period, pasted, statedTotalRaw, review, []));
+
+    /*
+      The measure is read off THEIR unit column, never chosen here. A sheet in
+      a unit this platform does not measure comes back null, and the page says
+      so rather than quietly running a rule written about a different kind of
+      figure.
+
+      The placement only runs when the moderator asked for it - `carry` - so a
+      first paste reviews the file and does not answer a question nobody put.
+    */
+    const units = new Set(
+      sheet.rows.map((r) => (r.unit ?? '').trim().toLowerCase()).filter((u) => u !== ''),
+    );
+    const measure = units.size === 1 ? measureFromUnit([...units][0]!) : null;
+
+    const framework = String(form.framework ?? 'gri');
+    const line = String(form.line ?? '306-3').trim();
+    const facts = factsFrom(form as Record<string, unknown>);
+    const asked = String(form.carry ?? '') === '1';
+    const placement = asked && measure !== null && isFramework(framework) && line !== ''
+      ? assess(INDICATOR_RULES, measure, framework, line, facts)
+      : null;
+
+    return c.html(reviewForm(c, session, period, pasted, statedTotalRaw, review, [],
+      { framework, line, facts, measure, placement }));
   });
 
   /*
