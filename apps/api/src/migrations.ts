@@ -1296,6 +1296,60 @@ export function migrate(db: DB): string[] {
         BEGIN SELECT RAISE(ABORT, 'this quest has a locked measurement plan: supersede it first'); END;
     `);
     applied.push('quest_plan_locks');
+
+    /*
+      A partner standing down from a claim, so another partner can make it.
+
+      `adjustment.ts` in core carries what this is and, more importantly, what
+      it is not: the mechanism is borrowed from Article 6, where a GOVERNMENT
+      adjusts a NATIONAL inventory under a treaty, and none of that is
+      happening here. One company is telling us it will not count a cleanup.
+
+      THE ROW NAMES THE PARTNER GIVING THE CLAIM UP, never the one who gains
+      by it. That is the whole integrity of the record and it is why the
+      column is called `org_id` and not something softer.
+
+      TWO WAYS TO STOP APPLYING, AND THEY ARE NOT THE SAME.
+      `resumed_at` is a partner claiming again from a date; it is NOT
+      retroactive, because a filing was made on the window that has passed.
+      `voided_at` is the record being wrong; it IS retroactive, because one
+      mistyped organisation id must not strip a partner's claim forever. A
+      schema with only one of these would force a wrong answer to the other.
+
+      ONE STANDING ADJUSTMENT PER PARTNER, PER QUEST - a partial unique index,
+      the same shape as `statement_uses`. Resumed or voided rows are out of
+      the constraint, so a partner who resumed can stand down again later and
+      both windows stay on the record.
+
+      APPEND-ONLY EXCEPT FOR THOSE TWO ENDINGS. A stand-down is not edited.
+    */
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS claim_adjustments (
+        id              TEXT PRIMARY KEY,
+        org_id          TEXT NOT NULL REFERENCES organisations(id),
+        quest_id        TEXT NOT NULL REFERENCES quests(id) ON DELETE CASCADE,
+        effective_from  TEXT NOT NULL,
+        reason          TEXT,
+        channel         TEXT NOT NULL CHECK (channel IN ('entered_by_staff')),
+        recorded_at     TEXT NOT NULL,
+        recorded_by     TEXT,
+        resumed_at      TEXT,
+        resumed_reason  TEXT,
+        voided_at       TEXT,
+        voided_reason   TEXT
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_claim_adjust_standing
+        ON claim_adjustments(org_id, quest_id)
+        WHERE resumed_at IS NULL AND voided_at IS NULL;
+      CREATE INDEX IF NOT EXISTS idx_claim_adjust_quest
+        ON claim_adjustments(quest_id, effective_from);
+      CREATE TRIGGER IF NOT EXISTS claim_adjustments_are_append_only
+        BEFORE UPDATE OF id, org_id, quest_id, effective_from, reason, channel,
+                         recorded_at, recorded_by
+        ON claim_adjustments
+        BEGIN SELECT RAISE(ABORT, 'a stand-down is append-only: resume it or void it'); END;
+    `);
+    applied.push('claim_adjustments');
   }
 
   return applied;

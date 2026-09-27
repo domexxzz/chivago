@@ -21,6 +21,7 @@ export * from './declared.ts';
 export * from './countersign.ts';
 export * from './statement-use.ts';
 export * from './validation.ts';
+export * from './adjustment.ts';
 export * from './companions.ts';
 export * from './province-companions.ts';
 export * from './price-forecast.ts';

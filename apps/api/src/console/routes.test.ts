@@ -1948,3 +1948,127 @@ describe('locking a quest’s measurement plan', () => {
     assert.doesNotMatch(html, /ล็อกก่อนมีผล/);
   });
 });
+
+/**
+ * A partner standing down from a claim, on the console.
+ *
+ * The danger here is the opposite of every other record in this console. Most
+ * of them risk claiming too much. This one risks being USED to claim too
+ * much — by the partner who gains from it, or by an operator reaching for
+ * whichever undo is nearest.
+ */
+describe('a partner standing down from a claim', () => {
+  const MOD3_KEY = 'chv_ADJAA-ADJBB-ADJCC-ADJDD';
+  beforeEach(() => {
+    db.prepare('INSERT INTO hosts (id,name,type,role,api_key_hash,created_at) VALUES (?,?,?,?,?,?)').run(
+      'h-adj-mod', 'ChivaGo', 'platform', 'moderator', hashApiKey(MOD3_KEY), new Date().toISOString());
+  });
+
+  const form = (t: string, path: string, fields: Record<string, string>) => app.request(path, {
+    method: 'POST',
+    headers: { ...withCookie(t), 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: __csrfFor(resolveSession(db, t)!), ...fields }),
+  });
+  const page = async (t: string) =>
+    (await app.request('/organisations', { headers: withCookie(t) })).text();
+
+  /** Two organisations funding the same quest, which is the case that matters. */
+  const twoFunders = async (t: string) => {
+    const ids: string[] = [];
+    for (const [name, th] of [['Siam Retail', 'สยามรีเทล'], ['PTT Green', 'ปตท. กรีน']]) {
+      await form(t, '/organisations', { name, nameTh: th, kind: 'company' });
+    }
+    for (const r of db.prepare('SELECT id FROM organisations ORDER BY name_en').all() as
+      unknown as { id: string }[]) {
+      ids.push(r.id);
+      await form(t, `/organisations/${r.id}/fund`, {
+        questId: 'q-muni', fundedTHB: '50000', perVerifiedTHB: '500',
+      });
+    }
+    return { ptt: ids[0]!, siam: ids[1]! };
+  };
+
+  const standing = () => db.prepare(
+    'SELECT id, org_id FROM claim_adjustments WHERE resumed_at IS NULL AND voided_at IS NULL',
+  ).all() as unknown as { id: string; org_id: string }[];
+
+  test('a moderator records one and the row says who stood down', async () => {
+    const mod = await signIn(MOD3_KEY, 'Nok');
+    const { ptt } = await twoFunders(mod);
+    assert.equal((await form(mod, `/organisations/${ptt}/stand-down`, {
+      questId: 'q-muni', reason: 'reported by our parent company',
+    })).status, 303);
+
+    const html = await page(mod);
+    assert.match(html, /Stood down/);
+    assert.match(html, /reported by our parent company/);
+    assert.equal(standing().length, 1);
+  });
+
+  test('THE PAGE SAYS THIS IS NOT AN ARTICLE 6 ADJUSTMENT', async () => {
+    // The name is borrowed. A reader who knows what it means under a treaty
+    // must not take this for one.
+    const mod = await signIn(MOD3_KEY, 'Nok');
+    const { ptt } = await twoFunders(mod);
+    await form(mod, `/organisations/${ptt}/stand-down`, { questId: 'q-muni' });
+    const html = await page(mod);
+    assert.match(html, /borrowed from Article 6/);
+    assert.match(html, /Nothing of the kind happens here/);
+    assert.match(html, /removes a claim; it never creates one/);
+  });
+
+  test('AN ORGANISATION THAT DOES NOT FUND THE QUEST RECORDS NOTHING', async () => {
+    const mod = await signIn(MOD3_KEY, 'Nok');
+    await form(mod, '/organisations', { name: 'Bystander', nameTh: 'ผู้ไม่เกี่ยว', kind: 'company' });
+    const id = (db.prepare("SELECT id FROM organisations WHERE name_en = 'Bystander'").get() as
+      unknown as { id: string }).id;
+    const res = await form(mod, `/organisations/${id}/stand-down`, { questId: 'q-muni' });
+    assert.equal(res.status, 303);
+    assert.match(res.headers.get('location') ?? '', /error=/);
+    assert.equal(standing().length, 0);
+  });
+
+  test('RESUMING AND VOIDING ARE SEPARATE ENDPOINTS', async () => {
+    // They mean different things and only one is retroactive. A shared
+    // endpoint would put that difference in a form field, which is where it
+    // would eventually be set wrong.
+    const mod = await signIn(MOD3_KEY, 'Nok');
+    const { ptt } = await twoFunders(mod);
+    await form(mod, `/organisations/${ptt}/stand-down`, { questId: 'q-muni' });
+    const id = standing()[0]!.id;
+
+    await form(mod, `/organisations/${ptt}/resume`, { id, reason: 'claiming again for FY2027' });
+    const after = db.prepare('SELECT resumed_at, voided_at FROM claim_adjustments WHERE id = ?')
+      .get(id) as unknown as { resumed_at: string | null; voided_at: string | null };
+    assert.notEqual(after.resumed_at, null);
+    assert.equal(after.voided_at, null, 'resuming voided the record');
+  });
+
+  test('A CRAFTED ID CANNOT REACH ANOTHER PARTNER’S CONCESSION', async () => {
+    const mod = await signIn(MOD3_KEY, 'Nok');
+    const { ptt, siam } = await twoFunders(mod);
+    await form(mod, `/organisations/${ptt}/stand-down`, { questId: 'q-muni' });
+    const id = standing()[0]!.id;
+
+    // Aim PTT's adjustment id at Siam's path.
+    await form(mod, `/organisations/${siam}/void-adjustment`, { id, reason: 'not mine to void' });
+    const after = db.prepare('SELECT voided_at FROM claim_adjustments WHERE id = ?')
+      .get(id) as unknown as { voided_at: string | null };
+    assert.equal(after.voided_at, null, "one partner voided another partner's concession");
+  });
+
+  test('a row nobody stood down from offers only standing down', async () => {
+    const mod = await signIn(MOD3_KEY, 'Nok');
+    await twoFunders(mod);
+    const html = await page(mod);
+    assert.match(html, /Stand down/);
+    assert.doesNotMatch(html, /Claim again/);
+  });
+
+  test('a plain host gets a 404 on all three routes', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    for (const path of ['stand-down', 'resume', 'void-adjustment']) {
+      assert.equal((await form(lab, `/organisations/x/${path}`, { questId: 'q-lab' })).status, 404);
+    }
+  });
+});

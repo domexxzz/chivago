@@ -56,6 +56,7 @@ subscription rather than an engagement.
 | **An assurer's conclusion, carried without being made** | **A** | #74 |
 | **Declared use: who says they put this record in a report** | **A** | #76 |
 | **The measurement plan, fixed before anybody saw a result** | **B** | #77 |
+| **A partner standing down, so another may claim** | **A** | #79 |
 
 The reversal sprint sits under both, because it is not a feature. It is what
 makes any figure above it worth printing.
@@ -64,8 +65,9 @@ The last four rows arrived on 26 September, after the rest of this document
 was written, and two of them make a section below untrue. It is rewritten
 rather than quietly corrected — see the next heading.
 
-The final two arrived on 27 September, out of the carbon-market note read
-below, and both are named in the section that follows.
+The final three arrived on 27 September, out of the carbon-market note read
+below. Two are named in the section that follows; the third settled an
+argument this document had carried as open since it was written.
 
 ## The limit on side A, and the day it lasted
 
@@ -259,7 +261,7 @@ a different size, which nothing in this repository has measured either.
 infrastructure, not a credit issuer.** What the note changed is that we can
 now say it in four letters that a sustainability lead already knows.
 
-## One disagreement, unresolved
+## One disagreement, settled by a third document
 
 The framework note says, of co-funding:
 
@@ -285,11 +287,42 @@ mitigation across a border, the standards' answer is a **Corresponding
 Adjustment**: one side subtracts it from their own account entirely. Not a
 split, and not merely a disclosure — **somebody stands down.**
 
-That is a cleaner rule than either of ours, and it is available to us now that
-#76 exists, because a declared use is exactly the place a partner could record
-that they are *not* claiming a record another partner is. Whether to offer it
-is still the owner's call; what changed is that the option can be built
-without inventing any arithmetic.
+That is a cleaner rule than either of ours. On 27 September the owner chose
+it, and **#79 built it.**
+
+A partner records that it is not claiming a quest's verified activity from a
+stated date. The other partner may then file that work as theirs — **because
+somebody said so, not because anybody divided anything.** No arithmetic was
+invented, which is the condition `claims.ts` set and could not meet on its
+own.
+
+Four things the implementation refuses, and they are why it is safe to have at
+all:
+
+- **It is not an Article 6 Corresponding Adjustment.** That is a government
+  adjusting a national inventory under a treaty. This is one company saying it
+  will not count a beach cleanup. The mechanism is borrowed; the authority is
+  not, and the page says so in both languages.
+- **It creates nothing.** A stand-down removes a claim. Where every funder
+  stands down the work is claimed by *nobody* — a fifth state, `relinquished`,
+  which exists precisely so that outcome cannot be rounded into "exclusive for
+  whoever is left".
+- **The report does not launder it.** Work that became this partner's only
+  because a co-funder stood down is counted in `byAdjustment`, never in
+  `exclusiveVerified`, because *"funded by this partner alone"* would be false
+  about it. The report says how many, and that ChivaGo did not witness the
+  statement.
+- **The partner who stood down does not count it either.** Before stand-downs,
+  a funder was always a claimant, so nothing had to ask. It asks now.
+
+Resuming and voiding stayed separate on purpose. A partner claiming again from
+2027 has not undone 2026 — a filing was made on it — so resuming is not
+retroactive. A record entered against the wrong organisation must come out
+from the start, or one typo strips a partner's claim forever, so voiding is.
+A single "undo" would have forced a wrong answer to one of them.
+
+**The disagreement in this section is now settled**, and it was settled by a
+third document rather than by either party conceding.
 
 ## The ladder now reaches four
 
@@ -337,7 +370,7 @@ naming two open gaps on side A, both were closed. That is the argument for
 writing the list down rather than carrying it in somebody's head: **the gaps
 were not hard, they were unnamed.**
 
-Thirteen features are now on the table above, each in a column. The next
+Fourteen features are now on the table above, each in a column. The next
 commit on either side should be able to point at a row and say which one it
 lands in.
 A feature that lands in neither is a feature nobody has found a buyer for yet,
@@ -353,3 +386,11 @@ wrong, and two things were **missing**. A gap is harder to notice than an
 error, because nothing contradicts it. It took somebody outside handing over a
 document and saying *read this* — which is the cheapest correction mechanism
 this project has, and the one it should keep asking for.
+
+The same document then closed the one argument this file had been carrying
+since it was written. Neither side of that argument had been able to move,
+because both were right about what they were refusing: a split would have been
+invented, and a bare disclosure was weaker than the standard asks for. What
+broke it was a third option that neither party had, from a source that was not
+in the argument. **Some disagreements are not resolved by whoever argues
+better. They are resolved by reading more.**

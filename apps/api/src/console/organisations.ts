@@ -13,7 +13,8 @@
  * somebody typed it, or somebody signed something.
  */
 
-import type { FundingBasis, Sponsor, Sponsorship } from '@chivago/core';
+import { ADJUSTMENT_LIMIT, NOT_ARTICLE_SIX } from '@chivago/core';
+import type { ClaimAdjustment, FundingBasis, Sponsor, Sponsorship } from '@chivago/core';
 import { esc, html, layout, type Raw } from './html.ts';
 import type { Locale } from './i18n.ts';
 
@@ -32,6 +33,49 @@ export interface OrgView {
   org: Sponsor;
   sponsorships: Sponsorship[];
   basis: FundingBasis;
+  /** Stand-downs this organisation has recorded, across all of its quests. */
+  adjustments: ClaimAdjustment[];
+}
+
+/**
+ * The claim cell on one funding row.
+ *
+ * A stand-down is per (organisation, quest), which is exactly what a funding
+ * row is, so the control belongs on the row rather than on a page of its own.
+ * The moderator recording a concession is looking at the agreement it
+ * concerns.
+ *
+ * ONLY ONE ACTION IS OFFERED AT A TIME. Standing down, resuming and voiding
+ * are three different statements, and a cell that showed all three would
+ * invite the operator to pick whichever undo looked nearest - which is how a
+ * typo gets "resumed" instead of voided, leaving a claim stripped for a
+ * window that never should have existed.
+ */
+function claimCell(orgId: string, questId: string, adjustments: readonly ClaimAdjustment[], csrf: string): Raw {
+  const mine = adjustments.filter((a) => a.questId === questId);
+  const standing = mine.find((a) => a.resumedAt === null && a.voidedAt === null);
+  const form = (action: string, label: string, danger = false) => html`
+    <form method="post" action="/console/organisations/${esc(orgId)}/${esc(action)}">
+      <input type="hidden" name="csrf" value="${esc(csrf)}">
+      <input type="hidden" name="questId" value="${esc(questId)}">
+      ${standing ? html`<input type="hidden" name="id" value="${esc(standing.id)}">` : ''}
+      <input name="reason" type="text" placeholder="reason · เหตุผล" style="width:130px">
+      <button type="submit" class="${danger ? 'danger' : ''}">${esc(label)}</button>
+    </form>`;
+
+  if (standing) {
+    return html`
+      <strong>Stood down</strong> <span class="muted">from ${esc(standing.effectiveFrom.slice(0, 10))}</span>
+      ${standing.reason ? html`<br><span class="muted">${esc(standing.reason)}</span>` : ''}
+      ${form('resume', 'Claim again')}
+      ${form('void-adjustment', 'Entered in error', true)}`;
+  }
+  const past = mine.filter((a) => a.voidedAt === null);
+  return html`
+    <span class="muted">Claiming</span>
+    ${past.map((a) => html`<br><span class="muted">stood down ${esc(a.effectiveFrom.slice(0, 10))}
+      → ${esc(a.resumedAt?.slice(0, 10) ?? '')}</span>`)}
+    ${form('stand-down', 'Stand down')}`;
 }
 
 export function organisationsPage(args: {
@@ -137,7 +181,7 @@ function orgSection(view: OrgView, quests: { id: string; name: string }[], csrf:
     : html`
       <table>
         <thead>
-          <tr><th>Quest</th><th>Funded</th><th>Received</th><th>Per verified</th><th>Basis</th><th></th></tr>
+          <tr><th>Quest</th><th>Funded</th><th>Received</th><th>Per verified</th><th>Basis</th><th>Claim · การอ้างสิทธิ์</th><th></th></tr>
         </thead>
         <tbody>
           ${sponsorships.map((s) => html`
@@ -164,6 +208,7 @@ function orgSection(view: OrgView, quests: { id: string; name: string }[], csrf:
               </td>
               <td>${baht(s.perVerifiedTHB)}</td>
               <td>${esc(basis)}</td>
+              <td>${claimCell(org.id, s.questId, view.adjustments, csrf)}</td>
               <td>
                 <form method="post" action="/console/organisations/${esc(org.id)}/unfund">
                   <input type="hidden" name="csrf" value="${esc(csrf)}">
@@ -174,6 +219,10 @@ function orgSection(view: OrgView, quests: { id: string; name: string }[], csrf:
             </tr>`)}
         </tbody>
       </table>`}
+
+      ${view.adjustments.length === 0 ? '' : html`
+      <p class="note">${esc(NOT_ARTICLE_SIX.en)} <span lang="th">${esc(NOT_ARTICLE_SIX.th)}</span></p>
+      <p class="note">${esc(ADJUSTMENT_LIMIT.en)} <span lang="th">${esc(ADJUSTMENT_LIMIT.th)}</span></p>`}
 
       <h3>Fund a quest · สนับสนุนภารกิจ</h3>
       <form method="post" action="/console/organisations/${esc(org.id)}/fund">
