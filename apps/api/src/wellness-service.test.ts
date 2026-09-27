@@ -5,10 +5,10 @@ import { openTestDb, type DB } from './db.ts';
 import { companionsFor } from '@chivago/core';
 import {
   balanceFor, habitatEvidenceFor, latestMood, moodHistory, provinceEvidenceFor,
-  recordMood, UnknownMood,
+  recordMood, UnknownMood, visitedProvincesFor,
 } from './wellness-service.ts';
 import {
-  awardQuestReward, awardWalk, ensureWallet, reverseMovement,
+  awardCheckin, awardQuestReward, awardWalk, ensureWallet, reverseMovement,
 } from './wallet-service.ts';
 
 let db: DB;
@@ -478,5 +478,76 @@ describe('a companion does not hatch or grow on work that was taken back', () =>
     const green = habitatEvidenceFor(db, 'u1').find((h) => h.layer === 'Green')!;
     assert.equal(green.walkedLegs, 0);
     assert.equal(green.visitDays, 1, 'the visit went with the walk');
+  });
+});
+
+/**
+ * The passport, and the two halves of one function that disagreed.
+ *
+ * `provinceEvidenceFor` already excluded reversed QUESTS and still counted
+ * reversed CHECK-INS — so the same function answered the same question two
+ * ways depending on which half of its own result you read.
+ */
+describe('a withdrawn check-in leaves the passport', () => {
+  const placeIn = (id: string, province: string, layer = 'Green') =>
+    db.prepare(
+      `INSERT INTO places (id, name_en, name_th, short, layer, province, lat, lng, meta,
+         blurb_en, blurb_th, tags, safety_label_en, safety_label_th,
+         crowd_density, aqi, safety_index, walkability)
+       VALUES (?,?,?,?,?,?,9.5,100.0,'Beach','x','x','[]','Patrolled','มีสายตรวจ',2.4,42,7.2,8.1)`,
+    ).run(id, id, id, id, layer, province);
+
+  const checkIn = (userId: string, placeId: string, day: string) =>
+    awardCheckin(db, {
+      userId, placeId, placeName: placeId, points: 10,
+      dayKey: day, occurredAt: `${day}T04:00:00.000Z`,
+    });
+
+  const takeBack = (userId: string, placeId: string, day: string) =>
+    reverseMovement(db, {
+      userId,
+      originalSourceRef: `checkin:${placeId}:user:${userId}:${day}`,
+      reason: 'the position did not hold up',
+    });
+
+  test('IT DROPS OUT OF THE PROVINCES VISITED', () => {
+    placeIn('p-krabi', 'KRABI');
+    checkIn('u1', 'p-krabi', '2026-09-02');
+    assert.deepEqual(visitedProvincesFor(db, 'u1'), ['KRABI']);
+
+    takeBack('u1', 'p-krabi', '2026-09-02');
+    assert.deepEqual(visitedProvincesFor(db, 'u1'), []);
+  });
+
+  test('THE TWO HALVES OF provinceEvidenceFor NOW AGREE', () => {
+    // The quest half has excluded reversals since #55. The check-in half did
+    // not, so one function answered one question two ways.
+    placeIn('p-krabi', 'KRABI');
+    checkIn('u1', 'p-krabi', '2026-09-02');
+    assert.equal(provinceEvidenceFor(db, 'u1')[0]!.visitDays, 1);
+
+    takeBack('u1', 'p-krabi', '2026-09-02');
+    const after = provinceEvidenceFor(db, 'u1').find((e) => e.code === 'KRABI');
+    assert.equal(after?.visitDays ?? 0, 0, 'a withdrawn check-in was still a visit day');
+  });
+
+  test('a second day survives the first being withdrawn', () => {
+    placeIn('p-krabi', 'KRABI');
+    checkIn('u1', 'p-krabi', '2026-09-02');
+    checkIn('u1', 'p-krabi', '2026-09-03');
+    takeBack('u1', 'p-krabi', '2026-09-02');
+    assert.equal(provinceEvidenceFor(db, 'u1')[0]!.visitDays, 1);
+    assert.deepEqual(visitedProvincesFor(db, 'u1'), ['KRABI']);
+  });
+
+  test('the habitat evidence drops it too', () => {
+    placeIn('p-krabi', 'KRABI');
+    checkIn('u1', 'p-krabi', '2026-09-02');
+    assert.equal(habitatEvidenceFor(db, 'u1').find((h) => h.layer === 'Green')?.visitDays, 1);
+
+    takeBack('u1', 'p-krabi', '2026-09-02');
+    assert.equal(
+      habitatEvidenceFor(db, 'u1').find((h) => h.layer === 'Green')?.visitDays ?? 0, 0,
+    );
   });
 });

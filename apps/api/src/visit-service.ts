@@ -14,6 +14,7 @@ import {
   SELF_VISITS_PER_YEAR, selfVisitYearKey, type Explored, type SelfVisitResult, type SelfVisitSummary,
 } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
+import { notReversed } from './ledger-sql.ts';
 
 export class SelfVisitQuotaReached extends Error {
   constructor(year: string) {
@@ -80,7 +81,7 @@ export function exploredFor(db: DB, userId: string): Explored {
       `SELECT substr(l.source_ref, 9, instr(substr(l.source_ref, 9), ':') - 1) AS place_id,
               MIN(l.occurred_at) AS first_at
        FROM ledger l
-       WHERE l.user_id = ? AND l.kind = 'checkin'
+       WHERE l.user_id = ? AND l.kind = 'checkin' AND ${notReversed('l')}
        GROUP BY place_id`,
     ).all(userId),
   );
