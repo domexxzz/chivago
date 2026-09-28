@@ -1076,6 +1076,7 @@ describe('Chiva Balance and the mood check-in', () => {
 
   const routes = (b: unknown) => ({
     'GET /impact/me': stats,
+    'GET /impact/trees': { pending: 0, planted: 0, lines: [] },
     'GET /impact/community': community,
     'GET /wellness/balance': b,
   });
@@ -1152,6 +1153,7 @@ describe('Chiva Balance and the mood check-in', () => {
   test('a failed balance does not take the impact figures with it', async () => {
     const net = server({
       'GET /impact/me': stats,
+      'GET /impact/trees': { pending: 0, planted: 0, lines: [] },
       'GET /impact/community': community,
       'GET /wellness/balance': offline(),
     });

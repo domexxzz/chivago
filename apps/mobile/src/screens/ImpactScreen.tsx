@@ -10,12 +10,12 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Linking, Pressable, ScrollView, View } from 'react-native';
 import {
   MOODS, MOOD_KEYS, isHighScore, needsGentle, rechargeFrom, strings,
   type ChivaBalance, type MoodKey, type RechargeCandidate, type ScoredPlace,
 } from '@chivago/core';
-import { api } from '../api/client.ts';
+import { api, type TreeImpactView } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
@@ -45,6 +45,7 @@ export function ImpactScreen({
   onToast, refreshKey,
 }: { onToast: (msg: string) => void; refreshKey: number }) {
   const mine = useAsync(() => api.myImpact(), [refreshKey]);
+  const trees = useAsync(() => api.treeImpact(), [refreshKey]);
   const community = useAsync(() => api.communityImpact(), [refreshKey]);
   const [moodKey, setMoodKey] = React.useState(0);
   const balance = useAsync(() => api.balance(), [refreshKey, moodKey]);
@@ -102,6 +103,8 @@ export function ImpactScreen({
           ))}
         </View>
       ) : null}
+
+      <TreeImpactBlock impact={trees.data} loading={trees.loading} error={trees.error} onRetry={trees.reload} />
 
       <BalanceBlock
         balance={balance.data}
@@ -196,6 +199,79 @@ export function ImpactScreen({
         />
       </View>
     </ScrollView>
+  );
+}
+
+/** A promise is pending until a named partner's physical planting is documented. */
+function TreeImpactBlock({
+  impact, loading, error, onRetry,
+}: {
+  impact: TreeImpactView | null;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+}) {
+  return (
+    <View style={{ marginHorizontal: gutter, marginTop: 20, borderWidth: layout.ruleHair,
+      borderColor: color.neutral300, borderRadius: radius.md, padding: 16 }}>
+      <Label size={10} tracking={0.14} colour={color.accent700}>
+        {t({ en: 'Your sponsored trees', th: 'ต้นไม้จากผู้สนับสนุนของคุณ' })}
+      </Label>
+      {loading ? <LoadingState /> : null}
+      {error ? <ErrorState message={error} onRetry={onRetry} /> : null}
+      {impact && impact.lines.length === 0 ? (
+        <Body size={13} colour={color.neutral700} style={{ marginTop: 8 }}>
+          {t({
+            en: 'No signed tree promise for your verified quests yet. No planting partner has been claimed.',
+            th: 'ยังไม่มีคำมั่นปลูกต้นไม้ที่ลงนามสำหรับภารกิจที่คุณผ่านการตรวจ และยังไม่มีการอ้างชื่อผู้ปลูก',
+          })}
+        </Body>
+      ) : null}
+      {impact && impact.lines.length > 0 ? (
+        <>
+          <View style={{ flexDirection: 'row', gap: 18, marginTop: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Heading size={28}>{impact.pending.toLocaleString('en-US')}</Heading>
+              <Label size={10} tracking={0.1}>{t({ en: 'PROMISED · NOT YET PLANTED', th: 'รับปาก · ยังไม่ได้ปลูก' })}</Label>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Heading size={28}>{impact.planted.toLocaleString('en-US')}</Heading>
+              <Label size={10} tracking={0.1}>{t({ en: 'PLANTED · WITH PROOF', th: 'ปลูกแล้ว · มีหลักฐาน' })}</Label>
+            </View>
+          </View>
+          {impact.lines.map((line) => (
+            <View key={`${line.sponsorId}:${line.questId}`} style={{ borderTopWidth: 1,
+              borderTopColor: color.neutral300, marginTop: 14, paddingTop: 12 }}>
+              <Heading size={14}>{t(line.questName)}</Heading>
+              <Body size={13} colour={color.neutral700} style={{ marginTop: 3 }}>
+                {t({ en: `Sponsored by ${t(line.sponsorName)} · ${line.treesPerVerified} per verified quest`,
+                  th: `สนับสนุนโดย ${t(line.sponsorName)} · ${line.treesPerVerified} ต้นต่อภารกิจที่ผ่านการตรวจ` })}
+              </Body>
+              {line.pending > 0 ? <Body size={13} style={{ marginTop: 5 }}>
+                {t({ en: `${line.pending} still promised, not planted`, th: `ยังรับปาก ${line.pending} ต้น ยังไม่ได้ปลูก` })}
+              </Body> : null}
+              {line.evidence.map((proof) => (
+                <View key={proof.id} style={{ marginTop: 10 }}>
+                  <Body size={13}>{t({
+                    en: `${proof.trees} planted by ${proof.partner} on ${proof.plantedAt.slice(0, 10)}`,
+                    th: `${proof.partner} ปลูก ${proof.trees} ต้น เมื่อ ${proof.plantedAt.slice(0, 10)}`,
+                  })}</Body>
+                  <Body size={13} colour={color.neutral700}>
+                    {`${proof.lat}, ${proof.lng} · ${proof.photo.credit} · ${proof.photo.licence}`}
+                  </Body>
+                  <Pressable accessibilityRole="link"
+                    accessibilityLabel={t({ en: 'View planting photo', th: 'ดูภาพการปลูก' })}
+                    onPress={() => { void Linking.openURL(proof.photo.url); }}
+                    style={{ marginTop: 5 }}>
+                    <Body size={13} colour={color.accent700}>{t({ en: 'View planting photo', th: 'ดูภาพการปลูก' })}</Body>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          ))}
+        </>
+      ) : null}
+    </View>
   );
 }
 

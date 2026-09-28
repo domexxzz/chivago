@@ -10,7 +10,7 @@ import { adoptKey, forgetKey, loadDeviceKey } from './account.ts';
 import { getEvent } from '../state/area.ts';
 import type {
   AreaKey,
-  ApiResponse, Balances, Bilingual, ImpactStat, LedgerEntry, NotificationKind, Offer, Quest,
+  ApiResponse, Balances, Bilingual, ImpactStat, LedgerEntry, NotificationKind, Offer, Quest, TreeImpact,
   ChivaBalance, Companion, MonthOutlook, MoodCheckin, MoodKey, PriceCategory, PriceForecast,
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
@@ -38,6 +38,11 @@ export interface MyReviewState {
     createdAt: string;
     outcome: 'upheld' | 'declined' | null;
   } | null;
+}
+
+/** The API adds display names to the core's evidence-backed tree calculation. */
+export interface TreeImpactView extends Omit<TreeImpact, 'lines'> {
+  lines: (TreeImpact['lines'][number] & { sponsorName: Bilingual; questName: Bilingual })[];
 }
 
 export interface CheckinResult {
@@ -547,6 +552,7 @@ export const api = {
 
   // -- impact -------------------------------------------------------------
   myImpact: () => get<ImpactStat[]>('/impact/me'),
+  treeImpact: () => get<TreeImpactView>('/impact/trees'),
   communityImpact: () =>
     get<{ year: number; metrics: { key: string; label: { en: string; th: string }; actual: number; target: number; unit: string }[] }>(
       '/impact/community',
