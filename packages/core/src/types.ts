@@ -225,7 +225,17 @@ export const EMPTY_PROFILE: WellnessProfile = {
 // ---------------------------------------------------------------------------
 
 export type QuestKind = 'today' | 'weekend';
-export type HostType = 'municipality' | 'ngo' | 'hotel' | 'community' | 'platform';
+/**
+ * Who a console account belongs to.
+ *
+ * The first five host quests and vouch for the work done on them. `operator`
+ * is a business that lists stays, boats or tours and answers travellers'
+ * questions about them (docs/61, docs/62). Its console login reaches its
+ * listings and its questions and nothing else: it never verifies work, never
+ * sees an SOS and never issues a statement, and it is not ranked among the
+ * hosts who do - see `console/routes.ts` and `standing-service.ts`.
+ */
+export type HostType = 'municipality' | 'ngo' | 'hotel' | 'community' | 'platform' | 'operator';
 
 export interface QuestHost {
   id: string;

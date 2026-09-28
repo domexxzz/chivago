@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
-import { esc, html, raw, Raw } from './html.ts';
+import { esc, html, layout, raw, Raw } from './html.ts';
 
 describe('escaping', () => {
   test('escapes every dangerous character', () => {
@@ -88,5 +88,18 @@ describe('raw', () => {
   test('a Raw stringifies to its markup', () => {
     assert.equal(String(new Raw('<hr>')), '<hr>');
     assert.equal(`${new Raw('<hr>')}`, '<hr>');
+  });
+});
+
+describe('the badge script that ships inside a template string', () => {
+  test('ITS TITLE REGEX KEEPS ITS BACKSLASHES, SO A POLL NEVER DOUBLES THE COUNT', () => {
+    // Written as /^\(\d+\) / inside a template literal, the backslashes were
+    // eaten and the page shipped /^(d+) /: it matched nothing, and every poll
+    // put another "(1) " in front of the title - "(1) (1) Queue".
+    const page = layout({ title: 'Queue', locale: 'en', signedIn: true, pendingCount: 1 }, '');
+    const source = /var base = document\.title\.replace\((\/.+\/), ''\)/.exec(page)?.[1];
+    assert.equal(source, String.raw`/^\(\d+\) /`);
+    const pattern = new Function(`return ${source}`)() as RegExp;
+    assert.equal('(12) Queue · ChivaGo Host Console'.replace(pattern, ''), 'Queue · ChivaGo Host Console');
   });
 });

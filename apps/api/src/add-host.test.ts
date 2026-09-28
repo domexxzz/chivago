@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { openTestDb, type DB } from './db.ts';
-import { verifyApiKey } from './host-auth.ts';
+import { login, verifyApiKey } from './host-auth.ts';
 import { addHost } from './add-host.ts';
 
 let db: DB;
@@ -30,6 +30,17 @@ describe('adding a real host', () => {
     const host = db.prepare('SELECT name, api_key_hash FROM hosts WHERE id = ?').get('h-x') as { name: string; api_key_hash: string };
     assert.equal(host.name, 'After');
     assert.ok(verifyApiKey(first.key!, host.api_key_hash), 'the original key still works');
+  });
+
+  test('AN OPERATOR IS ADDED THE SAME WAY, AND ITS KEY OPENS A SESSION THAT KNOWS IT IS ONE', () => {
+    // The console reads `hostType` off the session to keep an operator to its
+    // listings and questions (console/routes.ts); a session that forgot the
+    // type would open the whole console to a boat co-op.
+    const r = addHost(db, { id: 'op-example-boat', name: 'Example Boat Co-op', type: 'operator' });
+    assert.ok(r.key);
+    const session = login(db, r.key!, 'Somchai');
+    assert.equal(session?.hostType, 'operator');
+    assert.equal(session?.role, 'host', 'an operator never moderates');
   });
 
   test('refuses a type the app does not know', () => {

@@ -84,6 +84,12 @@ interface LayoutOptions {
   pendingCount?: number;
   /** Shows the Reviews tab. Moderators only - see place-review-service.ts. */
   canModerate?: boolean;
+  /**
+   * An operator's console (docs/62): the nav is its questions and the way
+   * out, and the badge counts questions waiting on it rather than proofs -
+   * it has no queue, and polling one would be refused every minute.
+   */
+  marketplaceOnly?: boolean;
   /** Path to return to after switching language. */
   path?: string;
   /**
@@ -100,6 +106,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
   // them to ask why, and the answer is a permission boundary they cannot
   // cross. Better it simply is not theirs.
   const canModerate = options.canModerate ?? false;
+  const marketplaceOnly = options.marketplaceOnly ?? false;
   const tr = (key: ConsoleStringKey) => t(key, locale);
   const returnTo = options.path ?? '/console';
   return `<!doctype html>
@@ -205,7 +212,14 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
   </div>
   <div style="display:flex;align-items:center">
     ${
-      signedIn
+      signedIn && marketplaceOnly
+        ? `<nav class="nav">
+             <a href="/console/inquiries" class="${activeNav === 'inquiries' ? 'on' : ''}">${tr('inquiries')}<span id="pending-badge">${
+               pendingCount ? ` · ${pendingCount}` : ''
+             }</span></a>
+             <a href="/console/logout">${tr('signOut')}</a>
+           </nav>`
+        : signedIn
         ? `<nav class="nav">
              <a href="/console" class="${activeNav === 'queue' ? 'on' : ''}">${tr('queue')}<span id="pending-badge">${
                pendingCount ? ` · ${pendingCount}` : ''
@@ -239,7 +253,10 @@ ${reviewer ? `<p class="muted">${esc(tr('signedInAs'))} ${esc(reviewer)}</p>` : 
 ${body instanceof Raw ? body.value : esc(body)}
 ${signedIn ? `<script>
 (function(){
-  var base = document.title.replace(/^\(\d+\) /, '');
+  // Doubled backslashes: this is a template string, which would otherwise eat
+  // them and ship /^(d+) / - a regex that matches nothing, so every poll put
+  // a second "(1) " in front of the title.
+  var base = document.title.replace(/^\\(\\d+\\) /, '');
   var last = ${Number(pendingCount ?? 0)};
   var badge = document.getElementById('pending-badge');
   function show(n){
@@ -247,12 +264,12 @@ ${signedIn ? `<script>
     if (badge) badge.textContent = n ? ' · ' + n : '';
   }
   function poll(){
-    fetch('/console/pending', { credentials: 'same-origin', cache: 'no-store' })
+    fetch(${JSON.stringify(marketplaceOnly ? '/console/inquiries/waiting' : '/console/pending')}, { credentials: 'same-origin', cache: 'no-store' })
       .then(function(r){ return r.ok ? r.json() : null; })
       .then(function(j){
         if (!j) return;
         if (j.pending > last && 'Notification' in window && Notification.permission === 'granted') {
-          new Notification('ChivaGo', { body: ${JSON.stringify(tr('newProofWaiting'))}, tag: 'chivago-pending' });
+          new Notification('ChivaGo', { body: ${JSON.stringify(tr(marketplaceOnly ? 'newQuestionWaiting' : 'newProofWaiting'))}, tag: 'chivago-pending' });
         }
         last = j.pending; show(j.pending);
       }).catch(function(){});

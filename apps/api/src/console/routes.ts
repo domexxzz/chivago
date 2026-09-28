@@ -156,6 +156,9 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
   /** Whether to draw the Reviews tab at all. Hidden, not disabled. */
   const canModerate = (s: HostSession) => s.role === 'moderator';
 
+  /** An operator's login: its listings and its questions, nothing else. */
+  const marketplaceOnly = (s: HostSession) => s.hostType === 'operator';
+
   /**
    * A reporting period, from a query string or a form. Defaults to the
    * current calendar year, which is what an annual report is filed against;
@@ -268,6 +271,22 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
 
   // -- Everything below requires a session --------------------------------
 
+  /**
+   * What an operator's login may reach: its listings, its questions, and the
+   * way out (docs/62).
+   *
+   * Everything else in this console is verifying volunteer work, sponsors'
+   * money, public statements or somebody's emergency - the SOS desk shows a
+   * traveller's live position - and a business signed up to answer questions
+   * about a boat trip has no part in any of it. An ALLOWLIST, so a page added
+   * next month is closed to operators until somebody decides otherwise,
+   * rather than open until somebody notices.
+   */
+  const OPERATOR_PATHS = [
+    /^\/inquiries$/, /^\/inquiries\/waiting$/, /^\/inquiries\/[^/]+\/(answer|decline)$/,
+    /^\/listings$/, /^\/listings\/[^/]+\/active$/, /^\/logout$/,
+  ];
+
   app.use('*', async (c, next) => {
     if (
       c.req.path.endsWith('/login') ||
@@ -276,7 +295,17 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     ) {
       return next();
     }
-    if (!currentSession(c)) return c.redirect('/console/login', 303);
+    const session = currentSession(c);
+    if (!session) return c.redirect('/console/login', 303);
+    if (marketplaceOnly(session)) {
+      // Mounted under /console, the path still carries the prefix.
+      const path = c.req.path.replace(/^\/console(?=\/|$)/, '') || '/';
+      // The console opens on the review queue; an operator's opens on its questions.
+      if (path === '/') return c.redirect('/console/inquiries', 303);
+      if (!OPERATOR_PATHS.some((allowed) => allowed.test(path))) {
+        return c.html(messagePage(localeFor(c), 'operatorOnlyTitle', 'operatorOnly', '/console/inquiries'), 403);
+      }
+    }
     return next();
   });
 
@@ -973,6 +1002,7 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       hostName: session.hostName,
       reviewer: session.reviewer,
       canModerate: canModerate(session),
+      marketplaceOnly: marketplaceOnly(session),
       csrf: csrfFor(session),
       listings: listingsOf(db, session.hostId),
       inquiries: inquiriesForOperator(db, session.hostId, now),
@@ -986,6 +1016,21 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
   app.get('/inquiries', (c) => {
     const session = currentSession(c)!;
     return c.html(inquiriesView(c, session, c.req.query('error') ?? null));
+  });
+
+  /**
+   * How many questions are waiting on this account, for the page to poll -
+   * the twin of `/pending`, in the same `{ pending }` shape so one script
+   * serves both. An operator does not sit in the console all day, and a
+   * question left three days reads as expired to the traveller: the badge
+   * and the notification are how the first one gets noticed in time.
+   */
+  app.get('/inquiries/waiting', (c) => {
+    const session = currentSession(c)!;
+    c.header('cache-control', 'no-store');
+    const pending = inquiriesForOperator(db, session.hostId, new Date())
+      .filter((i) => i.now === 'sent').length;
+    return c.json({ pending });
   });
 
   const back = (c: Parameters<typeof localeFor>[0] & { redirect: (u: string, s: 303) => Response },
