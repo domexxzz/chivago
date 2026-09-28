@@ -36,6 +36,7 @@ import {
 import {
   InvalidAdjustment, adjustmentById, adjustmentsForQuests, resumeClaim, standDown, voidAdjustment,
 } from '../adjustment-service.ts';
+import { InvalidIntent, preflightFor, setIntent } from '../indicator-service.ts';
 import { kpiReading } from '../kpi-service.ts';
 import { statementMissingPage, statementPage } from './statement.ts';
 import { storiesPage } from './stories.ts';
@@ -580,6 +581,7 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
           standing: planStanding(lock, plan === null ? null : planDigest(plan)),
           lockedAt: lock?.lockedAt ?? null,
           verifiedAtLock: lock?.verifiedAtLock ?? null,
+          preflight: preflightFor(db, q.id),
         };
       }),
     }));
@@ -622,6 +624,46 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       // The trigger refuses a change while a plan is locked. That is the
       // point of the lock, so it answers as a message rather than a 500.
       if (err instanceof Error && /locked measurement plan/.test(err.message)) {
+        return c.redirect(`/console/quests?error=${encodeURIComponent(err.message)}`, 303);
+      }
+      throw err;
+    }
+    return c.redirect('/console/quests', 303);
+  });
+
+  /*
+    Where a partner intends to report a quest's figure.
+
+    Stage three of docs/60: the indicator rule, run while the plan can still
+    change. Moderator only and scoped to the signed-in host, like every other
+    quest write here.
+
+    DELIBERATELY NOT FROZEN BY A PLAN LOCK. The point of catching a wrong line
+    early is being able to act on it. If the lock froze the filing line too,
+    the pre-flight would find the mistake and leave nobody able to correct it
+    without superseding a measurement plan that was never wrong.
+  */
+  app.post('/quests/intent', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/quests'), 403);
+    }
+    const questId = String(form.questId ?? '');
+    const owned = db.prepare('SELECT id FROM quests WHERE id = ? AND host_id = ?')
+      .get(questId, session.hostId);
+    if (!owned) return c.redirect('/console/quests', 303);
+    try {
+      setIntent(db, questId, {
+        framework: String(form.framework ?? ''),
+        line: String(form.line ?? ''),
+        materialOrigin: String(form.materialOrigin ?? ''),
+        organisationRole: String(form.organisationRole ?? ''),
+        insideBoundary: String(form.insideBoundary ?? ''),
+      });
+    } catch (err) {
+      if (err instanceof InvalidIntent) {
         return c.redirect(`/console/quests?error=${encodeURIComponent(err.message)}`, 303);
       }
       throw err;

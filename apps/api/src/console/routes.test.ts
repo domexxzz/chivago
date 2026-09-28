@@ -1933,11 +1933,17 @@ describe('locking a quest’s measurement plan', () => {
   test('THE PLAN CELL STAYS IN THE PLAN COLUMN ON A QUEST WITH NO INDICATOR', async () => {
     // The row spans the five measurement columns and keeps its own plan cell.
     // A colspan one short silently slides the standing under "Of target".
+    // Counted from the row itself rather than assumed: the first version of
+    // this test did `span + 2`, and broke the day a column was added - which
+    // is the change it most needs to survive.
     const lab = await signIn(LAB_KEY, 'Nok');
     const html = await page(lab);
     const headers = (/<thead>[\s\S]*?<\/thead>/.exec(html)?.[0].match(/<th>/g) ?? []).length;
-    const span = Number(/colspan="(\d+)"/.exec(html)?.[1] ?? '0');
-    assert.equal(span + 2, headers, 'the no-indicator row does not fill the header row');
+    const row = /<tr>(?:(?!<\/tr>)[\s\S])*?colspan="\d+"[\s\S]*?<\/tr>/.exec(html)?.[0] ?? '';
+    const cells = [...row.matchAll(/<td(?:\s+colspan="(\d+)")?/g)]
+      .reduce((n, m) => n + (m[1] ? Number(m[1]) : 1), 0);
+    assert.ok(headers > 0 && cells > 0, 'the test found no table to measure');
+    assert.equal(cells, headers, 'the no-indicator row does not fill the header row');
   });
 
   test('an unlocked quest reads as not fixed, which is not a fail', async () => {
@@ -2204,5 +2210,114 @@ describe('where a partner wants to file their figure', () => {
   test('a plain host still gets a 404', async () => {
     const lab = await signIn(LAB_KEY, 'Nok');
     assert.equal((await send(lab, { carry: '1' })).status, 404);
+  });
+});
+
+/**
+ * The indicator rule, run before anything is measured.
+ *
+ * Stage three of `docs/60`. The same rule the review page runs on a pasted
+ * file; what changes is WHEN, and on this side the answer is while the plan
+ * can still change.
+ */
+describe('checking where a quest will be reported, before it runs', () => {
+  const MOD_KEY = 'chv_PFLAA-PFLBB-PFLCC-PFLDD';
+  const asModerator = async () => {
+    db.prepare("UPDATE hosts SET role = 'moderator', api_key_hash = ? WHERE id = 'h-muni'")
+      .run(hashApiKey(MOD_KEY));
+    return signIn(MOD_KEY, 'Nok');
+  };
+  const post = (t: string, path: string, fields: Record<string, string>) => app.request(path, {
+    method: 'POST',
+    headers: { ...withCookie(t), 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: __csrfFor(resolveSession(db, t)!), ...fields }),
+  });
+  const page = async (t: string) => (await app.request('/quests', { headers: withCookie(t) })).text();
+  const intend = (t: string, over: Record<string, string> = {}) => post(t, '/quests/intent', {
+    questId: 'q-muni', framework: 'gri', line: '306-3',
+    materialOrigin: 'unknown', organisationRole: 'unknown', insideBoundary: 'unknown', ...over,
+  });
+  const withWeightKpi = (t: string) =>
+    post(t, '/quests/kpi', { questId: 'q-muni', measure: 'weight_kg', target: '400' });
+
+  test('A BEACH CLEANUP AIMED AT 306-3 IS REFUSED BEFORE IT RUNS', async () => {
+    const mod = await asModerator();
+    await withWeightKpi(mod);
+    await intend(mod, { materialOrigin: 'third_party' });
+    const html = await page(mod);
+    // The console opens in Thai.
+    assert.match(html, /ใส่ตรงนี้ไม่ได้/);
+    assert.match(html, /anything that the holder discards/);
+    assert.match(html, /3-3-e-ii/);
+  });
+
+  test('told nothing, it asks whose waste it will be', async () => {
+    const mod = await asModerator();
+    await withWeightKpi(mod);
+    await intend(mod);
+    const html = await page(mod);
+    assert.match(html, /ยังขาดคำตอบหนึ่งข้อ/);
+    assert.match(html, /วัสดุนั้นถูกทิ้งโดยการดำเนินงานของคุณเอง หรือโดยผู้อื่น/);
+  });
+
+  test('A LINE WITH NO KPI BEHIND IT SAYS THE KPI IS MISSING', async () => {
+    // The more useful of the two findings: it is how a moderator learns the
+    // quest has nothing to place yet.
+    const mod = await asModerator();
+    await intend(mod, { materialOrigin: 'third_party' });
+    const html = await page(mod);
+    assert.match(html, /ยังไม่มีตัวชี้วัดให้วาง/);
+    assert.doesNotMatch(html, /ใส่ตรงนี้ไม่ได้/, 'it refused a figure nobody agreed to produce');
+  });
+
+  test('HOW THE FIGURE WAS MEASURED IS NEVER ASKED ON THIS SIDE EITHER', async () => {
+    // The mirror of stage two: here every figure is verified by the host.
+    const mod = await asModerator();
+    const html = await page(mod);
+    assert.doesNotMatch(html, /name="measuredBy"/);
+  });
+
+  test('THE LINE IS TYPED, NEVER PICKED FROM A LIST', async () => {
+    // docs/60's one "never": a dropdown of codes lets somebody pick the
+    // nearest one, which designs out the question of whether it belongs.
+    const mod = await asModerator();
+    const html = await page(mod);
+    assert.match(html, /<input name="line" type="text"/);
+    assert.doesNotMatch(html, /<select name="line"/);
+  });
+
+  test('A LOCKED PLAN DOES NOT STOP THE LINE BEING CORRECTED', async () => {
+    // The point of finding it early is acting on it.
+    const mod = await asModerator();
+    await withWeightKpi(mod);
+    await post(mod, '/quests/plan/lock', { questId: 'q-muni' });
+    await intend(mod, { materialOrigin: 'third_party' });
+    const res = await intend(mod, { line: '3-3', materialOrigin: 'third_party' });
+    assert.equal(res.status, 303);
+    assert.doesNotMatch(res.headers.get('location') ?? '', /error=/);
+    const line = (db.prepare("SELECT indicator_line FROM quests WHERE id = 'q-muni'").get() as
+      unknown as { indicator_line: string }).indicator_line;
+    assert.equal(line, '3-3');
+  });
+
+  test('a moderator cannot place another host’s quest', async () => {
+    const mod = await asModerator();
+    await post(mod, '/quests/intent', {
+      questId: 'q-lab', framework: 'gri', line: '306-3', materialOrigin: 'third_party',
+    });
+    const r = db.prepare("SELECT indicator_line FROM quests WHERE id = 'q-lab'").get() as
+      unknown as { indicator_line: string | null };
+    assert.equal(r.indicator_line, null, "another host's quest was placed");
+  });
+
+  test('a line that is not a line is refused with a message', async () => {
+    const mod = await asModerator();
+    const res = await intend(mod, { line: '' });
+    assert.match(res.headers.get('location') ?? '', /error=/);
+  });
+
+  test('a plain host gets a 404', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    assert.equal((await post(lab, '/quests/intent', { questId: 'q-lab' })).status, 404);
   });
 });

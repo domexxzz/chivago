@@ -1350,6 +1350,44 @@ export function migrate(db: DB): string[] {
         BEGIN SELECT RAISE(ABORT, 'a stand-down is append-only: resume it or void it'); END;
     `);
     applied.push('claim_adjustments');
+
+    /*
+      Where a partner intends to report a quest's figure, and the three facts
+      about the activity that decide whether it can go there.
+
+      Stage three of `docs/60`: the same rule that reviews a pasted file on
+      side A, run on side B at the moment a measurement plan is fixed - so a
+      wrong indicator is caught BEFORE anything is measured instead of at
+      filing season.
+
+      ON THE QUEST, NOT RE-ASKED. A pasted file is a one-off and its facts are
+      answered on the page each time. A quest is durable, and whose material a
+      beach cleanup collects does not change between page loads.
+
+      NOT IN THE PLAN'S DIGEST, deliberately. `planBytes` covers what will be
+      MEASURED. Where it will be REPORTED is a separate decision a partner can
+      revise without the measurement changing, and folding it into the digest
+      would make a filing decision look like a change to the evidence.
+
+      THREE FACTS, NOT FOUR. `measuredBy` is not stored because it is not a
+      fact about this quest - it is a fact about which side of the business
+      the figure came from, and on this side every figure is verified by the
+      host who ran the activity.
+
+      All nullable, all meaning "not answered". `inside_boundary` is INTEGER
+      because SQLite has no boolean, and NULL is the third value it needs.
+    */
+    if (addColumn(db, 'quests', 'indicator_framework', 'TEXT')) {
+      applied.push('quests.indicator_framework');
+    }
+    if (addColumn(db, 'quests', 'indicator_line', 'TEXT')) applied.push('quests.indicator_line');
+    if (addColumn(db, 'quests', 'material_origin', 'TEXT')) applied.push('quests.material_origin');
+    if (addColumn(db, 'quests', 'organisation_role', 'TEXT')) {
+      applied.push('quests.organisation_role');
+    }
+    if (addColumn(db, 'quests', 'inside_boundary', 'INTEGER')) {
+      applied.push('quests.inside_boundary');
+    }
   }
 
   return applied;
