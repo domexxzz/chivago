@@ -67,6 +67,7 @@ const EVIDENCE_LAYER: Record<string, string> = {
   'PlaceScreen.tsx': 'the healthy score is a measured claim',
   'MapScreen.tsx': 'crowd counts and air are measured',
   'MarketScreen.tsx': 'a voucher is money',
+  'AskScreen.tsx': 'a question to a real business, and its quote is theirs',
   'TripScreen.tsx': 'a plan with prices in it',
   'ConciergeScreen.tsx': 'answers about the real island',
   /*
