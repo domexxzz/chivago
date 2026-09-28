@@ -211,6 +211,8 @@ function TreeImpactBlock({
   error: string | null;
   onRetry: () => void;
 }) {
+  if (!loading && !error && (!impact || impact.lines.length === 0)) return null;
+
   return (
     <View style={{ marginHorizontal: gutter, marginTop: 20, borderWidth: layout.ruleHair,
       borderColor: color.neutral300, borderRadius: radius.md, padding: 16 }}>
@@ -219,14 +221,6 @@ function TreeImpactBlock({
       </Label>
       {loading ? <LoadingState /> : null}
       {error ? <ErrorState message={error} onRetry={onRetry} /> : null}
-      {impact && impact.lines.length === 0 ? (
-        <Body size={13} colour={color.neutral700} style={{ marginTop: 8 }}>
-          {t({
-            en: 'No signed tree promise for your verified quests yet. No planting partner has been claimed.',
-            th: 'ยังไม่มีคำมั่นปลูกต้นไม้ที่ลงนามสำหรับภารกิจที่คุณผ่านการตรวจ และยังไม่มีการอ้างชื่อผู้ปลูก',
-          })}
-        </Body>
-      ) : null}
       {impact && impact.lines.length > 0 ? (
         <>
           <View style={{ flexDirection: 'row', gap: 18, marginTop: 12 }}>
@@ -263,7 +257,7 @@ function TreeImpactBlock({
                     accessibilityLabel={t({ en: 'View planting photo', th: 'ดูภาพการปลูก' })}
                     onPress={() => { void Linking.openURL(proof.photo.url); }}
                     style={{ marginTop: 5 }}>
-                    <Body size={13} colour={color.accent700}>{t({ en: 'View planting photo', th: 'ดูภาพการปลูก' })}</Body>
+                    <Body size={13} colour={color.brand}>{t({ en: 'View planting photo', th: 'ดูภาพการปลูก' })}</Body>
                   </Pressable>
                 </View>
               ))}

@@ -2,6 +2,8 @@ import { strict as assert } from 'node:assert';
 import { describe, test } from 'node:test';
 import { createElement as h } from 'react';
 import { ImpactScreen } from '../src/screens/ImpactScreen.tsx';
+import { Body } from '../src/components/Type.tsx';
+import { color } from '../src/theme/index.ts';
 import { mountScreen, refuses, server } from './interact.ts';
 
 const empty = { pending: 0, planted: 0, lines: [] };
@@ -24,12 +26,12 @@ const line = {
 };
 
 describe('the traveller tree card', () => {
-  test('fetches its own impact and says plainly when no signed promise exists', async () => {
+  test('fetches its own impact and hides the tree box when there are no entries', async () => {
     const net = server({ ...base, 'GET /impact/trees': empty });
     try {
       const ui = await mountScreen(h(ImpactScreen, props));
       assert.ok(net.calls.some((c) => c.path === '/impact/trees'));
-      assert.match(ui.text(), /No signed tree promise/);
+      assert.doesNotMatch(ui.text(), /Your sponsored trees|No signed tree promise/);
       assert.doesNotMatch(ui.text(), /Sponsored by|planting photo|Test planting partner/);
       ui.unmount();
     } finally { net.restore(); }
@@ -62,7 +64,9 @@ describe('the traveller tree card', () => {
       assert.match(said, /2 PLANTED · WITH PROOF/);
       assert.match(said, /2 planted by Test planting partner on 2026-09-20/);
       assert.match(said, /9\.51, 100\.01 · Test photographer · CC BY 4\.0/);
-      assert.ok(ui.find('View planting photo'), 'the credited photo must be accessible');
+      const photo = ui.find('View planting photo');
+      assert.ok(photo, 'the credited photo must be accessible');
+      assert.equal(photo.findAllByType(Body)[0]?.props.colour, color.brand);
       ui.unmount();
     } finally { net.restore(); }
   });
