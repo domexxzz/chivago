@@ -21,6 +21,7 @@ import { mountScreen, server } from './interact.ts';
 import * as fx from './fixtures.ts';
 import { __setAreaForTests } from '../src/state/area.ts';
 import { __setLocaleForTests } from '../src/i18n/locale.ts';
+import { control, resetControl } from './stubs/native.mjs';
 
 const noop = () => {};
 const props = {
@@ -70,7 +71,7 @@ const routes = (headway = { lastSeenMinAgo: null, typicalGapMin: null, reports: 
 });
 
 let restore: (() => void) | null = null;
-afterEach(() => { restore?.(); restore = null; __setAreaForTests('samui'); __setLocaleForTests('en'); });
+afterEach(() => { restore?.(); restore = null; resetControl(); __setAreaForTests('samui'); __setLocaleForTests('en'); });
 
 describe('what runs to this campus', () => {
   test('the route, its number and who runs it', async () => {
@@ -166,6 +167,55 @@ describe('when is the next one', () => {
 });
 
 describe('reporting one', () => {
+  const acknowledged = {
+    recorded: true,
+    because: null,
+    headway: { lastSeenMinAgo: 0, typicalGapMin: null, reports: 1, vehicles: 1 },
+  };
+
+  test('a permitted location selects the nearest stop for the report', async () => {
+    __setAreaForTests('rmutt');
+    control.position = { coords: { latitude: 14.0315712, longitude: 100.7321438, accuracy: 12 } };
+    const s = server({ ...routes(), 'POST /transit/smartbus-538/seen': acknowledged });
+    restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, { ...props }));
+    assert.match(ui.text(), /Nearest stop selected/);
+    assert.equal(ui.find('Select stop: Unnamed stop')?.props.accessibilityState.selected, true);
+    await ui.press('I saw one');
+    assert.deepEqual(s.calls.find((c) => c.method === 'POST' && c.path === '/transit/smartbus-538/seen')?.body,
+      { stopId: 'rmutt-south-east' });
+    ui.unmount();
+  });
+
+  test('a rider can override the nearest stop before reporting', async () => {
+    __setAreaForTests('rmutt');
+    control.position = { coords: { latitude: 14.0315712, longitude: 100.7321438, accuracy: 12 } };
+    const s = server({ ...routes(), 'POST /transit/smartbus-538/seen': acknowledged });
+    restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, { ...props }));
+    await ui.press('Select stop: Rajamangala Gate 3 (Soi Phon)');
+    assert.equal(ui.find('Select stop: Rajamangala Gate 3 (Soi Phon)')?.props.accessibilityState.selected, true);
+    await ui.press('I saw one');
+    assert.deepEqual(s.calls.find((c) => c.method === 'POST' && c.path === '/transit/smartbus-538/seen')?.body,
+      { stopId: 'rmutt-gate3' });
+    ui.unmount();
+  });
+
+  test('without location permission the stop is still selectable', async () => {
+    __setAreaForTests('rmutt');
+    control.permission = { granted: false, status: 'denied' };
+    const s = server({ ...routes(), 'POST /transit/smartbus-538/seen': acknowledged });
+    restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, { ...props }));
+    assert.match(ui.text(), /Select the stop where you are/);
+    assert.equal(ui.labels().includes('I saw one'), false, 'reporting must wait for a chosen stop');
+    await ui.press('Select stop: Unnamed stop');
+    await ui.press('I saw one');
+    assert.deepEqual(s.calls.find((c) => c.method === 'POST' && c.path === '/transit/smartbus-538/seen')?.body,
+      { stopId: 'rmutt-south-east' });
+    ui.unmount();
+  });
+
   test('the tap posts, and the card settles on what the server sent back', async () => {
     __setAreaForTests('rmutt');
     const s = server({
