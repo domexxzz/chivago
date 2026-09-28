@@ -45,7 +45,7 @@ import { BoardFeed } from '../components/BoardFeed.tsx';
 import { BusStrip } from '../components/BusStrip.tsx';
 import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import {
-  ChevronRight, Compass, HeartPulse, Leaf, MessageCircle, Search, Shield, Sparkles, Trees, UserRound, Users, Utensils, Wallet,
+  BedDouble, ChevronRight, Compass, HeartPulse, Leaf, MessageCircle, Search, Shield, Sparkles, Trees, UserRound, Users, Utensils, Wallet,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
@@ -112,7 +112,7 @@ export function questOrder(
 
 export function HomeScreen({
   onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenPassport,
-  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenMascots,
+  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenMascots, onOpenStays,
   onToast, now = new Date(),
 }: {
   onOpenMap: () => void;
@@ -130,6 +130,12 @@ export function HomeScreen({
   onOpenPlace?: (id: string) => void;
   /** The provincial mascots & island companions guide. */
   onOpenMascots?: () => void;
+  /**
+   * Stays & tours (docs/61): asking a local operator. A door of its own on
+   * Home, because the only way in used to be the bottom of the trip planner
+   * and the owner could not find it.
+   */
+  onOpenStays?: () => void;
   /** A one-line acknowledgement, for actions that finish without leaving the screen. */
   onToast?: (message: string) => void;
   /** Injected so the greeting is testable rather than whatever the clock says. */
@@ -170,6 +176,7 @@ export function HomeScreen({
         onOpenImpact={onOpenImpact}
         onOpenSafety={onOpenSafety}
         onOpenParty={onOpenParty}
+        onOpenStays={onOpenStays}
       />
       <Places places={here} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} />
       <MascotHeroCard now={now} onOpen={onOpenMascots ?? onOpenPassport} />
@@ -382,15 +389,20 @@ function Conditions({
 
 function Doors({
   onOpenMap, onOpenQuests, onOpenWallet, onOpenConcierge, onOpenImpact, onOpenSafety, onOpenParty,
+  onOpenStays,
 }: {
   onOpenMap: () => void; onOpenQuests: () => void; onOpenWallet: () => void; onOpenConcierge: () => void;
-  onOpenImpact: () => void; onOpenSafety: () => void; onOpenParty: () => void;
+  onOpenImpact: () => void; onOpenSafety: () => void; onOpenParty: () => void; onOpenStays?: () => void;
 }) {
-  // Seven round doors in a row that scrolls, not a grid of twelve. Untyped on
+  // Round doors in a row that scrolls, not a grid of twelve. Untyped on
   // purpose: annotating the icon narrower than LucideIcon fights the
   // library's own forwardRef signature for nothing.
   const doors = [
     { Icon: Compass, name: strings.tabs.map, onPress: onOpenMap },
+    // Second, so it is on screen without scrolling the row: stays, boats
+    // and tours are what a traveller opens a travel app to find, and this
+    // screen was lost at the bottom of the trip planner.
+    ...(onOpenStays ? [{ Icon: BedDouble, name: strings.ask.context, onPress: onOpenStays }] : []),
     { Icon: Sparkles, name: strings.tabs.quests, onPress: onOpenQuests },
     { Icon: Wallet, name: strings.tabs.wallet, onPress: onOpenWallet },
     { Icon: Shield, name: strings.tabs.safety, onPress: onOpenSafety },

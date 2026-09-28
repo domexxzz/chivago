@@ -246,3 +246,15 @@ describe('the Map tab frames one area', () => {
     ui.unmount();
   });
 });
+
+describe('stays and tours from the Map tab', () => {
+  test('THE MAP TAB HAS A DOOR TO STAYS & TOURS, UNDER THE PLANNER', async () => {
+    __setAreaForTests('samui');
+    let opened = 0;
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(MapScreen, { ...mapProps, onOpenStays: () => { opened++; } }));
+    await ui.press(/^Ask a local operator\./);
+    assert.equal(opened, 1);
+    ui.unmount();
+  });
+});

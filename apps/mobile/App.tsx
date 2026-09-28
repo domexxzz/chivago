@@ -276,6 +276,7 @@ export default function App() {
             onOpenQuest={(id) => nav.push('quest', { questId: id })}
             onSeeAllQuests={() => nav.selectTab('quests')}
             onAskConcierge={() => nav.push('concierge')}
+            onOpenStays={() => nav.push('stays')}
             onToast={toast.show}
             onOpenWallet={() => nav.push('wallet')}
             balances={balances}
@@ -385,6 +386,7 @@ export default function App() {
             onOpenImpact={() => nav.push('impact')}
             onOpenConcierge={() => nav.push('concierge')}
             onOpenParty={() => nav.push('party')}
+            onOpenStays={() => nav.push('stays')}
             onOpenSafety={() => nav.selectTab('safety')}
             onOpenProfile={() => nav.push('profile')}
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
