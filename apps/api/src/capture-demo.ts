@@ -24,6 +24,7 @@
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { AREAS, SEED_PLACES, SEED_QUESTS } from '@chivago/core';
 
 const BASE = process.env.CHIVAGO_DEMO_URL ?? 'http://localhost:8787';
 const USER = process.env.CHIVAGO_DEMO_USER ?? 'demo-user';
@@ -36,46 +37,38 @@ const OUT = join(
 /**
  * Every route the static demo answers from the snapshot.
  *
- * Listed rather than discovered from the existing file, so a route the demo
- * gained since the last capture is added here deliberately - a snapshot that
- * silently keeps its old key set is exactly how it fell behind in the first
- * place.
+ * What exists - every place, quest and area - is read from the core seed, the
+ * source of truth for it. Those routes used to be listed by hand, and the list
+ * stopped at the first campus: RMUTT and KU Bangkhen went into the seed and
+ * their chips onto Home, and the public demo opened both onto an empty campus.
+ * KU Sriracha's sixth place was never in it, and its two quests were listed
+ * but would not open.
+ *
+ * The rest is listed, and nothing is discovered from the existing file - a
+ * snapshot that silently keeps its old key set is exactly how it fell behind
+ * in the first place. A route the demo gains is added here deliberately.
  */
+const SEEDED = [
+  ...SEED_PLACES.flatMap((p) => [
+    `/places/${p.id}`, `/places/${p.id}/reviews`, `/places/${p.id}/history`,
+    // Stories on every pin (docs/44): empty until the day, and honest about it.
+    `/places/${p.id}/stories`,
+  ]),
+  ...SEED_QUESTS.map((q) => `/quests/${q.id}`),
+  ...AREAS.map((a) => `/areas/${a.key}/stories`),
+];
+
 const ROUTES = [
   '/health',
   '/profile',
   '/places',
-  '/places/chaweng', '/places/chaweng/reviews', '/places/chaweng/history',
-  '/places/namuang', '/places/namuang/reviews', '/places/namuang/history',
-  '/places/fisherman', '/places/fisherman/reviews', '/places/fisherman/history',
-  '/places/lamai', '/places/lamai/reviews', '/places/lamai/history',
-  '/places/mangrove', '/places/mangrove/reviews', '/places/mangrove/history',
-  // The campus (docs/43).
-  '/places/ku-library', '/places/ku-library/reviews', '/places/ku-library/history',
-  '/places/ku-park', '/places/ku-park/reviews', '/places/ku-park/history',
-  '/places/ku-viewpoint', '/places/ku-viewpoint/reviews', '/places/ku-viewpoint/history',
-  '/places/ku-sports', '/places/ku-sports/reviews', '/places/ku-sports/history',
-  '/places/ku-shops', '/places/ku-shops/reviews', '/places/ku-shops/history',
-  // Stories on every pin (docs/44): empty until the day, and honest about it.
-  '/places/chaweng/stories',
-  '/places/namuang/stories',
-  '/places/fisherman/stories',
-  '/places/lamai/stories',
-  '/places/mangrove/stories',
-  '/places/ku-library/stories',
-  '/places/ku-park/stories',
-  '/places/ku-viewpoint/stories',
-  '/places/ku-sports/stories',
-  '/places/ku-shops/stories',
-  '/areas/ku-sriracha/stories',
+  ...SEEDED,
   '/quests',
   // The map's "quests near you" strip asks for today's only. Captured as its
   // own key because the demo server strips query strings before matching,
   // and answered the full list to a filtered request - a weekend quest led
   // the strip on a Tuesday.
   '/quests?filter=today',
-  '/quests/q1', '/quests/q2', '/quests/q3',
-  '/quests/q4', '/quests/q5', '/quests/q6',
   '/checkins/today',
   '/visits/self',
   // The map lifts its mist from these. Captured, or the demo's chart stays
@@ -156,6 +149,11 @@ const thin: string[] = [];
 if (!wallet?.balances || wallet.balances.green <= 0) thin.push('the wallet holds no Green Points');
 if (!Array.isArray(places) || places.length === 0) thin.push('there are no places');
 if (!Array.isArray(quests) || quests.length === 0) thin.push('there are no quests');
+// Every route answered is not every place shown: /places is what Home and the
+// map draw, and an area whose places are missing from it opens empty.
+const listed = new Set(Array.isArray(places) ? (places as { id: string }[]).map((p) => p.id) : []);
+const unlisted = SEED_PLACES.filter((p) => !listed.has(p.id)).map((p) => p.id);
+if (unlisted.length > 0) thin.push(`/places is missing seeded places (${unlisted.join(', ')}) - run the content seed`);
 
 if (thin.length > 0) {
   console.error(`[chivago] this snapshot is not worth shipping: ${thin.join('; ')}.`);

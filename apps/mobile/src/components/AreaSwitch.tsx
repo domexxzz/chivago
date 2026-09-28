@@ -5,10 +5,17 @@
  * should never have to find this - the QR code carries `?area=` and the
  * choice is remembered - but the chip is how a phone that opened on Samui
  * gets to a campus, and how a judge in the room flips among the areas.
+ *
+ * THE CHIPS WRAP; THEY DO NOT SCROLL. With four areas a sideways scroller
+ * cut off exactly between two chips on a phone, so RMUTT and KU Bangkhen
+ * were rendered and invisible, and nothing said the row could move. An area
+ * nobody can see is an area nobody has. Wrapping keeps every area on screen
+ * at any width, and the next campus adds to the wrap instead of to the
+ * hidden end of a row.
  */
 
-import React, { useEffect, useRef } from 'react';
-import { Pressable, ScrollView } from 'react-native';
+import React from 'react';
+import { Pressable, View } from 'react-native';
 import { AREAS, type AreaKey } from '@chivago/core';
 import { color, onFill, radius } from '../theme/index.ts';
 import { Label } from './Type.tsx';
@@ -22,21 +29,8 @@ export function AreaSwitch({
   /** `light` sits on a white ground; `inverted` sits on the brand hero. */
   tone?: 'light' | 'inverted';
 }) {
-  const scroll = useRef<ScrollView>(null);
-  const positions = useRef<Partial<Record<AreaKey, number>>>({});
-  useEffect(() => {
-    scroll.current?.scrollTo({ x: positions.current[area] ?? 0, animated: true });
-  }, [area]);
-
   return (
-    <ScrollView
-      ref={scroll}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      accessibilityRole="tablist"
-      contentContainerStyle={{ gap: 8 }}
-      onContentSizeChange={() => scroll.current?.scrollTo({ x: positions.current[area] ?? 0, animated: false })}
-    >
+    <View accessibilityRole="tablist" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
       {AREAS.map((a) => {
         const on = a.key === area;
         const fill = tone === 'inverted'
@@ -52,10 +46,6 @@ export function AreaSwitch({
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
             accessibilityLabel={t(a.name)}
-            onLayout={(event) => {
-              positions.current[a.key] = event.nativeEvent.layout.x;
-              if (on) scroll.current?.scrollTo({ x: event.nativeEvent.layout.x, animated: false });
-            }}
             style={{
               minHeight: 32, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.lg,
               backgroundColor: fill,
@@ -67,6 +57,6 @@ export function AreaSwitch({
           </Pressable>
         );
       })}
-    </ScrollView>
+    </View>
   );
 }
