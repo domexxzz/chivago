@@ -37,6 +37,11 @@ import {
   InvalidAdjustment, adjustmentById, adjustmentsForQuests, resumeClaim, standDown, voidAdjustment,
 } from '../adjustment-service.ts';
 import { InvalidIntent, preflightFor, setIntent } from '../indicator-service.ts';
+import {
+  InvalidInquiry, InvalidListing, MIN_ANSWERS_FOR_RESPONSE_TIME, addListing, answerInquiry,
+  declineInquiry, inquiriesForOperator, listingsOf, medianResponseHours, setListingActive,
+} from '../inquiry-service.ts';
+import { inquiriesPage } from './inquiries.ts';
 import { kpiReading } from '../kpi-service.ts';
 import { statementMissingPage, statementPage } from './statement.ts';
 import { storiesPage } from './stories.ts';
@@ -948,6 +953,126 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     if (!mine) return c.redirect('/console/statement', 303);
     withdrawUse(db, id, String(form.reason ?? ''));
     return c.redirect('/console/statement', 303);
+  });
+
+  /*
+    An operator's listings and the questions waiting on them. docs/61.
+
+    Every signed-in host, not moderators only: an operator is a host, and the
+    page shows them their OWN listings and the inquiries about those. Every
+    write re-checks ownership inside the service rather than trusting an id
+    from the form.
+  */
+  const inquiriesView = (
+    c: Parameters<typeof localeFor>[0], session: NonNullable<ReturnType<typeof currentSession>>,
+    error: string | null = null,
+  ) => {
+    const now = new Date();
+    return inquiriesPage({
+      locale: localeFor(c),
+      hostName: session.hostName,
+      reviewer: session.reviewer,
+      canModerate: canModerate(session),
+      csrf: csrfFor(session),
+      listings: listingsOf(db, session.hostId),
+      inquiries: inquiriesForOperator(db, session.hostId, now),
+      responseHours: medianResponseHours(db, session.hostId),
+      minAnswers: MIN_ANSWERS_FOR_RESPONSE_TIME,
+      now,
+      error,
+    });
+  };
+
+  app.get('/inquiries', (c) => {
+    const session = currentSession(c)!;
+    return c.html(inquiriesView(c, session, c.req.query('error') ?? null));
+  });
+
+  const back = (c: Parameters<typeof localeFor>[0] & { redirect: (u: string, s: 303) => Response },
+    err?: string) => c.redirect(err ? `/console/inquiries?error=${encodeURIComponent(err)}` : '/console/inquiries', 303);
+
+  const optionalWholeNumber = (v: unknown): number | null | 'bad' => {
+    const s_ = String(v ?? '').trim();
+    if (s_ === '') return null;
+    const n = Number(s_);
+    return Number.isInteger(n) && n >= 0 ? n : 'bad';
+  };
+
+  app.post('/listings', async (c) => {
+    const session = currentSession(c)!;
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/inquiries'), 403);
+    }
+    const from = optionalWholeNumber(form.fromTHB);
+    if (from === 'bad') return back(c, 'A “from” price is whole baht, or left empty.');
+    try {
+      addListing(db, {
+        operatorId: session.hostId,
+        kind: String(form.kind ?? ''),
+        titleEn: String(form.titleEn ?? ''),
+        titleTh: String(form.titleTh ?? ''),
+        whereLabel: String(form.whereLabel ?? ''),
+        fromTHB: from,
+        licenceNo: String(form.licenceNo ?? ''),
+      });
+    } catch (err) {
+      if (err instanceof InvalidListing) return back(c, err.message);
+      throw err;
+    }
+    return back(c);
+  });
+
+  app.post('/listings/:id/active', async (c) => {
+    const session = currentSession(c)!;
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/inquiries'), 403);
+    }
+    try {
+      setListingActive(db, session.hostId, c.req.param('id'), String(form.active ?? '') === '1');
+    } catch (err) {
+      if (err instanceof InvalidListing) return back(c, err.message);
+      throw err;
+    }
+    return back(c);
+  });
+
+  app.post('/inquiries/:id/answer', async (c) => {
+    const session = currentSession(c)!;
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/inquiries'), 403);
+    }
+    const quote = optionalWholeNumber(form.quoteTHB);
+    if (quote === 'bad') return back(c, 'A quote is whole baht, or left empty.');
+    try {
+      answerInquiry(db, {
+        operatorId: session.hostId, inquiryId: c.req.param('id'),
+        answer: String(form.answer ?? ''), quoteTHB: quote,
+      });
+    } catch (err) {
+      if (err instanceof InvalidInquiry) return back(c, err.message);
+      throw err;
+    }
+    return back(c);
+  });
+
+  app.post('/inquiries/:id/decline', async (c) => {
+    const session = currentSession(c)!;
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/inquiries'), 403);
+    }
+    try {
+      declineInquiry(db, {
+        operatorId: session.hostId, inquiryId: c.req.param('id'), reason: String(form.reason ?? ''),
+      });
+    } catch (err) {
+      if (err instanceof InvalidInquiry) return back(c, err.message);
+      throw err;
+    }
+    return back(c);
   });
 
   app.get('/stories', (c) => {
