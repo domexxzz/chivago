@@ -47,6 +47,9 @@ import { activityInPeriod } from '../esg-service.ts';
 import { evidenceFor } from '../evidence-service.ts';
 import { evidenceCsv, evidencePage } from './evidence.ts';
 import {
+  InvalidTreeRecord, recordTreePlanting, setTreeCommitment, treeCommitmentsFor,
+} from '../tree-impact-service.ts';
+import {
   addOrganisation, addSponsorship, basisFor, InvalidFunding, listOrganisations, organisationById,
   recordPayment, removeSponsorship, sponsorshipsFor, UnknownOrganisation,
 } from '../organisation-service.ts';
@@ -947,6 +950,7 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
         return {
           org,
           sponsorships,
+          treeCommitments: treeCommitmentsFor(db, org.id),
           basis: basisFor(db, org.id),
           // Only this organisation's own stand-downs. A concession another
           // partner made is not this page's business and showing it here
@@ -1008,6 +1012,50 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       );
     } catch (err) {
       if (err instanceof InvalidFunding || err instanceof UnknownOrganisation) {
+        return c.redirect(`/console/organisations?error=${encodeURIComponent(err.message)}`, 303);
+      }
+      throw err;
+    }
+    return c.redirect('/console/organisations', 303);
+  });
+
+  app.post('/organisations/:id/trees', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/organisations'), 403);
+    }
+    try {
+      setTreeCommitment(db, c.req.param('id'), String(form.questId ?? ''), Number(form.treesPerVerified));
+    } catch (err) {
+      if (err instanceof InvalidTreeRecord) {
+        return c.redirect(`/console/organisations?error=${encodeURIComponent(err.message)}`, 303);
+      }
+      throw err;
+    }
+    return c.redirect('/console/organisations', 303);
+  });
+
+  app.post('/organisations/:id/planting', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/organisations'), 403);
+    }
+    try {
+      recordTreePlanting(db, {
+        userId: String(form.userId ?? ''), sponsorId: c.req.param('id'), questId: String(form.questId ?? ''),
+        trees: Number(form.trees), partner: String(form.partner ?? ''), plantedAt: String(form.plantedAt ?? ''),
+        lat: Number(form.lat), lng: Number(form.lng),
+        photo: {
+          url: String(form.photoUrl ?? ''), credit: String(form.photoCredit ?? ''),
+          licence: String(form.photoLicence ?? ''),
+        },
+      }, session.reviewer ?? session.hostName);
+    } catch (err) {
+      if (err instanceof InvalidTreeRecord) {
         return c.redirect(`/console/organisations?error=${encodeURIComponent(err.message)}`, 303);
       }
       throw err;
@@ -1150,7 +1198,14 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     if (!csrfValid(session, form.csrf)) {
       return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/organisations'), 403);
     }
-    removeSponsorship(db, c.req.param('id'), String(form.questId ?? ''));
+    try {
+      removeSponsorship(db, c.req.param('id'), String(form.questId ?? ''));
+    } catch (err) {
+      if (err instanceof InvalidFunding) {
+        return c.redirect(`/console/organisations?error=${encodeURIComponent(err.message)}`, 303);
+      }
+      throw err;
+    }
     return c.redirect('/console/organisations', 303);
   });
 

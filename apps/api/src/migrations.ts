@@ -1064,6 +1064,46 @@ export function migrate(db: DB): string[] {
   }
 
   /*
+    A signed sponsor may promise a fixed number of trees per later approval.
+    NULL means no tree promise; it is never silently inferred from funding.
+    Physical plantings are separate rows with partner, date, position and a
+    credited photograph. Attribution is user-owned and cascades on erasure,
+    while the physical planting record survives without a user identifier.
+  */
+  if (addColumn(db, 'org_sponsorships', 'trees_per_verified', 'INTEGER')) {
+    applied.push('org_sponsorships.trees_per_verified');
+  }
+  if (addColumn(db, 'org_sponsorships', 'trees_started_at', 'TEXT')) {
+    applied.push('org_sponsorships.trees_started_at');
+  }
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tree_plantings (
+      id             TEXT PRIMARY KEY,
+      org_id         TEXT NOT NULL REFERENCES organisations(id),
+      quest_id       TEXT NOT NULL REFERENCES quests(id),
+      trees          INTEGER NOT NULL CHECK (trees > 0),
+      partner        TEXT NOT NULL,
+      planted_at     TEXT NOT NULL,
+      lat            REAL NOT NULL,
+      lng            REAL NOT NULL,
+      photo_url      TEXT NOT NULL,
+      photo_credit   TEXT NOT NULL,
+      photo_licence  TEXT NOT NULL,
+      created_at     TEXT NOT NULL,
+      created_by     TEXT
+    );
+    CREATE TABLE IF NOT EXISTS tree_attributions (
+      planting_id TEXT NOT NULL REFERENCES tree_plantings(id) ON DELETE CASCADE,
+      user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      trees       INTEGER NOT NULL CHECK (trees > 0),
+      PRIMARY KEY (planting_id, user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_tree_attributions_user ON tree_attributions(user_id);
+  `);
+  applied.push('tree_plantings');
+  applied.push('tree_attributions');
+
+  /*
     What an offer is worth, in baht.
 
     The market has run on points alone since it was written: `cost_points` is

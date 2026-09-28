@@ -70,6 +70,7 @@ import {
   arriveAtQuest, getAllProgress, getProgress, joinQuest, resolveVerification, submitProof,
 } from './quest-service.ts';
 import { hostStandings, travellerStandings } from './standing-service.ts';
+import { treeImpactForUser } from './tree-impact-service.ts';
 import { medalsFor } from './medal-service.ts';
 import { consoleRoutes } from './console/routes.ts';
 import {
@@ -1710,6 +1711,27 @@ app.post('/trip/plan', async (c) => {
 // ---------------------------------------------------------------------------
 
 app.get('/impact/me', (c) => ok(c, getPersonalImpact(db, userId(c))));
+
+/** A traveller's own tree promise and proof, never another person's record. */
+app.get('/impact/trees', (c) => {
+  const impact = treeImpactForUser(db, userId(c));
+  return ok(c, {
+    ...impact,
+    lines: impact.lines.map((line) => {
+      const sponsor = row<{ name_en: string; name_th: string }>(
+        db.prepare('SELECT name_en, name_th FROM organisations WHERE id = ?').get(line.sponsorId),
+      );
+      const quest = row<{ name_en: string; name_th: string }>(
+        db.prepare('SELECT name_en, name_th FROM quests WHERE id = ?').get(line.questId),
+      );
+      return {
+        ...line,
+        sponsorName: { en: sponsor?.name_en ?? line.sponsorId, th: sponsor?.name_th ?? line.sponsorId },
+        questName: { en: quest?.name_en ?? line.questId, th: quest?.name_th ?? line.questId },
+      };
+    }),
+  });
+});
 
 /**
  * Community totals AND their targets.

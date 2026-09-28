@@ -21,6 +21,7 @@ import { row, rows, type DB } from './db.ts';
 import { getAir } from './air.ts';
 import { checkinsLastHour } from './crowd-service.ts';
 import { summariesFor } from './place-review-service.ts';
+import { communityTreesPlanted } from './tree-impact-service.ts';
 
 interface PlaceRow {
   id: string; name_en: string; name_th: string; short: string; layer: string;
@@ -318,7 +319,9 @@ export function getCommunityImpact(db: DB, year: number): CommunityMetric[] {
   return rows.map((r) => ({
     key: r.key,
     label: { en: r.label_en, th: r.label_th },
-    actual: r.actual,
+    // The pilot seed's 1,000 trees was a design placeholder, not a planting
+    // record. Only partner evidence may supply this particular actual.
+    actual: r.key === 'treesPlanted' ? communityTreesPlanted(db, year) : r.actual,
     target: r.target,
     unit: r.unit,
   }));

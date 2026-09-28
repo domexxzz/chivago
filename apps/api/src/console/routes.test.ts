@@ -1223,6 +1223,40 @@ describe('the funder in a row, not in a constant', () => {
     assert.equal((db.prepare('SELECT COUNT(*) AS n FROM organisations').get() as unknown as { n: number }).n, 0);
   });
 
+  test('only a moderator can publish a signed tree ratio, and missing planting proof is refused', async () => {
+    const mod = await signIn(MOD2_KEY, 'Nok');
+    const host = await signIn(MUNI_KEY, 'Ann');
+    await form(mod, '/organisations', { csrf: csrfOf(mod), name: 'Tree sponsor', kind: 'company' });
+    const orgId = (db.prepare('SELECT id FROM organisations').get() as { id: string }).id;
+    const promisePath = `/organisations/${orgId}/trees`;
+    await form(mod, `/organisations/${orgId}/fund`, {
+      csrf: csrfOf(mod), questId: 'q-muni', fundedTHB: '1000', perVerifiedTHB: '100',
+    });
+    const pledge = { questId: 'q-muni', treesPerVerified: '3' };
+    assert.equal((await form(host, promisePath, { csrf: csrfOf(host), ...pledge })).status, 404);
+    assert.equal((await form(mod, promisePath, { csrf: 'stale', ...pledge })).status, 403);
+    assert.match((await form(mod, promisePath, { csrf: csrfOf(mod), ...pledge })).headers.get('location') ?? '', /error=/,
+      'declared funding cannot become a tree promise');
+    await form(mod, `/organisations/${orgId}/fund`, {
+      csrf: csrfOf(mod), questId: 'q-muni', fundedTHB: '1000', perVerifiedTHB: '100', basis: 'signed',
+    });
+    assert.equal((await form(mod, promisePath, { csrf: csrfOf(mod), ...pledge })).status, 303);
+    const page = await (await app.request('/organisations', { headers: withCookie(mod) })).text();
+    assert.match(page, /3 pending per later verified quest/);
+    assert.match(page, /Record physical planting/);
+    const plantingPath = `/organisations/${orgId}/planting`;
+    const missingProof = { questId: 'q-muni', userId: 'u1', trees: '2', partner: '',
+      plantedAt: new Date().toISOString(), lat: '9.51', lng: '100.01',
+      photoUrl: 'https://example.org/tree.jpg', photoCredit: 'Tester', photoLicence: 'CC BY 4.0' };
+    assert.equal((await form(host, plantingPath, { csrf: csrfOf(host), ...missingProof })).status, 404);
+    assert.equal((await form(mod, plantingPath, { csrf: 'stale', ...missingProof })).status, 403);
+    assert.match((await form(mod, plantingPath, { csrf: csrfOf(mod), ...missingProof })).headers.get('location') ?? '', /error=/);
+    assert.equal((db.prepare('SELECT COUNT(*) AS n FROM tree_plantings').get() as { n: number }).n, 0);
+    assert.match((await form(mod, `/organisations/${orgId}/unfund`, {
+      csrf: csrfOf(mod), questId: 'q-muni',
+    })).headers.get('location') ?? '', /error=/, 'published promise must not be removed');
+  });
+
   test('a pledge shows as owed until somebody records the transfer', async () => {
     // The whole point of the split, end to end on the page a partner reads.
     const mod = await signIn(MOD2_KEY, 'Nok');
