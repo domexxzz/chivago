@@ -1241,6 +1241,31 @@ export function rejectionMessage(
  * fact that decides whether to open the app.
  */
 export const NOTIFICATIONS = {
+  /**
+   * An operator answered a traveller's inquiry.
+   *
+   * The title says "answered", never "confirmed" or "booked": an inquiry
+   * reserves nothing (docs/61), and a push notification is the one place a
+   * traveller reads a single line and acts on it without opening anything.
+   */
+  inquiry_answered: {
+    title: t('{operator} answered your question', '{operator} ตอบคำถามของคุณแล้ว'),
+    // Each language names the listing in its own language: `{listing}` and
+    // `{listingTh}` are both passed, and a Thai traveller reading the English
+    // title inside a Thai notification was the first version of this.
+    body: t(
+      'About {listing}. Nothing is booked until you agree it with them directly.',
+      'เรื่อง {listingTh} ยังไม่มีการจองจนกว่าคุณจะตกลงกับผู้ประกอบการโดยตรง',
+    ),
+  },
+  /** An operator could not help. Said plainly, so nobody waits for an answer that is not coming. */
+  inquiry_declined: {
+    title: t('{operator} can’t help with this one', '{operator} ไม่สามารถรับคำขอนี้ได้'),
+    body: t(
+      'About {listing}. Nothing was reserved, so there is nothing to cancel.',
+      'เรื่อง {listingTh} ไม่มีการจองใดๆ เกิดขึ้น จึงไม่มีอะไรต้องยกเลิก',
+    ),
+  },
   quest_approved: {
     title: t('Quest verified', 'ภารกิจผ่านการตรวจสอบ'),
     body: t(
