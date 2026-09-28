@@ -258,3 +258,42 @@ describe('stays and tours from the Map tab', () => {
     ui.unmount();
   });
 });
+
+/*
+  Every area, on screen.
+
+  The chips used to live in a sideways scroller. On Home that scroller sat in
+  the title's column, 211 px on a phone, and cut off exactly between the
+  second and third chips: RMUTT and KU Bangkhen were rendered and nobody could
+  see them, and nothing said the row moved. There is no layout engine here to
+  measure a width, so this holds the part a test can see - no chip sits
+  inside anything that scrolls sideways - and the width was checked on a
+  375 px screen by hand.
+*/
+describe('every area chip can be seen', () => {
+  const noHiddenChip = (ui: { find: (l: string) => { parent: unknown; props: Record<string, unknown> } | undefined }) => {
+    for (const name of ['Koh Samui', 'KU Sriracha', 'RMUTT', 'KU Bangkhen']) {
+      const chip = ui.find(name);
+      assert.ok(chip, `${name} has no chip`);
+      for (let p = chip.parent as { parent: unknown; props: Record<string, unknown> } | null; p; p = p.parent as typeof p) {
+        assert.notEqual(p.props?.horizontal, true, `${name} sits in a sideways scroller, off screen on a phone`);
+      }
+    }
+  };
+
+  test('ON HOME, NO AREA CHIP IS HIDDEN IN A SIDEWAYS SCROLLER', async () => {
+    __setAreaForTests('samui');
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+    noHiddenChip(ui as never);
+    ui.unmount();
+  });
+
+  test('ON THE MAP TAB, NEITHER', async () => {
+    __setAreaForTests('samui');
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(MapScreen, mapProps));
+    noHiddenChip(ui as never);
+    ui.unmount();
+  });
+});

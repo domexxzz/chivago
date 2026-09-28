@@ -47,10 +47,21 @@ app prefixes the API's address itself.
 
 ```bash
 pnpm -r test && pnpm typecheck
-fly ssh console --app chivago -C "node --experimental-strip-types apps/api/src/seed-db.ts"   # อัปเดตแถวเดิม (ON CONFLICT DO UPDATE)
-fly deploy --app chivago                                                                       # export ใหม่พร้อมไฟล์รูป
+fly deploy --app chivago                                                                       # export ใหม่พร้อมไฟล์รูป และ seed ใหม่
+fly ssh console --app chivago -u node -C "node --experimental-strip-types apps/api/src/seed-area.ts --area ku-sriracha --photos"
 pnpm --filter @chivago/api demo:capture && cd apps/mobile && pnpm demo:web && pnpm demo:deploy   # เดโมสาธารณะ
 ```
+
+**deploy ก่อน แล้วค่อยรัน** สคริปต์อ่าน seed จาก image ที่รันอยู่ รันก่อน deploy ก็เห็น seed เก่า
+`--photos` ตั้งเฉพาะรูป เครดิต และสัญญาอนุญาต ให้ตรงกับ seed (รวมถึงเอารูปออก ถ้ารูปถูกถอนออกจาก seed)
+ส่วนอื่นของแถวไม่แตะ `seed-db.ts` ใช้กับฐานข้อมูลที่รันอยู่ไม่ได้แล้ว มันจะปฏิเสธ
+เพราะจะเขียนทับทุกแถวที่ seed ไว้และลบทุกอย่างที่ seed ไม่มี
+· **Deploy first, then run:** the script reads the seed of the image that is
+running, so run before the deploy and it sees the old seed. `--photos` sets the
+photograph, credit and licence to exactly what the seed says - removing one the
+seed no longer has - and touches nothing else in the row. `seed-db.ts` no longer
+runs on a live database: it refuses, because it would re-assert every seeded row
+and delete whatever the seed does not list.
 
 เทสต์ `apps/mobile/test/place-photos.test.ts` จะล้มถ้า seed ชี้ไฟล์ที่ไม่มีอยู่ในโฟลเดอร์นี้
 · The test in `apps/mobile/test/place-photos.test.ts` fails when the seed names a

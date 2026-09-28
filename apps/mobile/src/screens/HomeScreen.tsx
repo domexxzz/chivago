@@ -254,9 +254,6 @@ function Hero({
           <Heading size={26} tracking={-0.5} colour={onFill.brand} style={{ marginTop: 2 }}>
             {t(area.name)}
           </Heading>
-          <View style={{ marginTop: 10 }}>
-            <AreaSwitch area={area.key} onChange={onChangeArea} tone="inverted" />
-          </View>
         </View>
         {/* The verified purse, as a chip. Green means a host checked it - even here. */}
         <Pressable
@@ -289,6 +286,15 @@ function Hero({
         >
           <UserRound size={18} color={onFill.brand} strokeWidth={2} />
         </Pressable>
+      </View>
+
+      {/*
+        The areas get the hero's full width. Inside the title's column they
+        had only what the purse and the profile left - 211 px on a phone, room
+        for two chips - and RMUTT and KU Bangkhen sat past the edge.
+      */}
+      <View style={{ marginTop: 12 }}>
+        <AreaSwitch area={area.key} onChange={onChangeArea} tone="inverted" />
       </View>
 
       {/*

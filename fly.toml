@@ -4,10 +4,19 @@
 #   fly launch --no-deploy --copy-config --name chivago
 #   fly volumes create chivago_data --size 1 --region sin
 #   fly deploy
-#   fly ssh console -C "node --experimental-strip-types apps/api/src/seed-db.ts"
+#   fly ssh console -u node -C "node --experimental-strip-types apps/api/src/seed-db.ts"
 #
 # The seed prints each host's console key ONCE. Capture them from that output;
 # only the hash is stored and there is no way to read them back.
+#
+# seed-db runs ONCE, on the empty volume. On a database that has places it
+# refuses: re-seeding re-asserts every seeded row and deletes every place and
+# quest the seed does not list. An area opened later - a new campus - goes in
+# with the insert-only script, after the deploy that ships its seed:
+#
+#   fly ssh console -u node -C "node --experimental-strip-types apps/api/src/seed-area.ts --area <key>"
+#
+# `-u node` because the database belongs to node; the shell is root otherwise.
 
 app = "chivago"
 # Singapore: the closest region to Koh Samui, and the difference between a

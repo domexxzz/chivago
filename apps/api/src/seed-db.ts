@@ -1,15 +1,31 @@
 /**
- * Load the Koh Samui pilot content into the database. Idempotent - safe to
- * re-run after a schema change or a content edit.
+ * Load the pilot content into a database. Idempotent on a development
+ * database - safe to re-run after a schema change or a content edit.
+ *
+ * NOT FOR A LIVE DATABASE. It re-asserts every seeded row and PRUNES every
+ * place and quest the seed does not list. On production it runs once, on an
+ * empty volume; after that it refuses (see `reseedRefusal`), and an area is
+ * opened with seed-area.ts, which only inserts.
  */
 
 import { openDb, rows } from './db.ts';
 import { generateApiKey, hashApiKey } from './host-auth.ts';
+import { reseedRefusal } from './seed-area.ts';
 import {
   RANKS, SEED_HOSTS, SEED_OFFERS, SEED_PLACES, SEED_QUESTS, SAFETY_PHRASES,
 } from '@chivago/core';
 
 const db = openDb();
+
+const refusal = reseedRefusal({
+  env: process.env.NODE_ENV,
+  places: (db.prepare('SELECT COUNT(*) AS n FROM places').get() as { n: number }).n,
+  argv: process.argv,
+});
+if (refusal) {
+  console.error(`[chivago] ${refusal}`);
+  process.exit(2);
+}
 
 /**
  * Hosts, each with a console access key.

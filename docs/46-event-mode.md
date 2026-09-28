@@ -63,10 +63,13 @@ reading of exactly this - is still owed, and this notice does not replace it.
 1. `fly launch --no-deploy --copy-config --name chivago` · `fly volumes create
    chivago_data --size 1 --region sin` · `fly deploy` - the Dockerfile builds
    the web app for the same origin and installs ffmpeg.
-2. `fly ssh console -C "node --experimental-strip-types apps/api/src/seed-db.ts"`
+2. `fly ssh console -u node -C "node --experimental-strip-types apps/api/src/seed-db.ts"`
    and write down every key it prints, once: the team's, and the platform
-   host's (the moderator - the one that opens the door).
-3. `fly ssh console -C "node --experimental-strip-types apps/api/src/reset-demo.ts --walk"`
+   host's (the moderator - the one that opens the door). This is the only
+   time seed-db runs on production; on a database that has places it
+   refuses. A campus opened later goes in with `seed-area.ts --area <key>`,
+   which only inserts (see fly.toml).
+3. `fly ssh console -u node -C "node --experimental-strip-types apps/api/src/reset-demo.ts --walk"`
    - the demo traveller's five days, driven through the real services, and
    a second traveller with one approved quest, so the standing is a ranking
    and not a mirror. The walk must print PASS on every screen and
@@ -79,7 +82,7 @@ reading of exactly this - is still owed, and this notice does not replace it.
    registered - the reset empties that table, and the first phone to open
    the app closes it again - and the code lives ten minutes. On the stage
    phone: the profile button, the gear, *Already have a code?*, the code.
-   The phone now shows 610 G and 470 T (no opening gift in production, so
+   The phone now shows 610 G and 440 T (no opening gift in production, so
    the figures are the verified and the walked ones only), #1 of 2, and 5 of
    7 medals. If a phone registered first, reset again and repeat.
 5. `fly secrets set CHIVAGO_EVENT_TOKEN=<32 random characters> CHIVAGO_REGISTRATIONS_PER_HOUR=500`

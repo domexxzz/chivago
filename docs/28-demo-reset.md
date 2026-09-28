@@ -54,18 +54,26 @@ Five days, ending today. Every part of it is doing a job.
 | Wellness | 1    | **egg** |
 
 The single Wellness day is deliberate. It leaves the presenter an egg to
-hatch **live**, by checking in at Shala on stage — the one moment in the demo
+hatch **live**, by checking in at Lamai on stage — the one moment in the demo
 where the mechanic is shown working rather than described. Everything else is
 already at a stage, so all three stages are on screen together and the
 difference between them is visible rather than explained.
+
+That day is **ridden, not walked**, and has to be. Since 10 September a
+single walked leg hatches an egg (`stageFor` in core), and a history walked
+end to end had no egg left: `--walk` failed on Companions from that day until
+this was found on 29 September.
+Fisherman's Village to Lamai is ten kilometres; the two check-ins are an hour
+apart, which is a songthaew, so the leg earns nothing and hatches nothing.
 
 Four quests are carried through host verification: three green and one trip.
 Two currencies that differ by evidence is the product's central claim, and a
 demo that can only spend one of them proves half of it — the wrong half,
 since Green is the one an auditor would ask about.
 
-Earned by the seeded history: **200 Trip from check-ins, 610 Green and 120
-Trip from four host-verified quests.**
+Earned by the seeded history: **200 Trip from check-ins, 120 Trip from the
+four legs walked between them, and 610 Green and 120 Trip from four
+host-verified quests.**
 
 ### The opening balance, and why the script grants it
 
@@ -82,7 +90,7 @@ first number on stage is 640/1,850 — a check that validates a state the app
 immediately changes, which is worse than no check because it is trusted.
 This was found by starting the server and comparing, not by reading the code.
 
-Final wallet: **640 Trip · 1,850 Green · 2,490 EXP**, with three Trip offers
+Final wallet: **760 Trip · 1,850 Green · 2,610 EXP**, with three Trip offers
 and two Green offers affordable.
 
 > **A decision left open.** 1,240 of the 1,850 Green Points came from the

@@ -60,10 +60,10 @@ const dayEndsAt = (day: number): Date =>
  * and the reset refused itself. Five minutes is the least the second signal
  * (docs/30) will accept between two beaches; closer than that, say so.
  */
-const checkInAt = (day: number, n: number, i: number): Date => {
+const checkInAt = (day: number, n: number, i: number, spacing = 2 * 3_600_000): Date => {
   const end = dayEndsAt(day);
   const room = end.getTime() - islandMidnight(end) - 60_000;
-  const gap = Math.min(2 * 3_600_000, Math.floor(room / Math.max(1, n - 1)));
+  const gap = Math.min(spacing, Math.floor(room / Math.max(1, n - 1)));
   if (n > 1 && gap < 5 * 60_000) {
     throw new Error(`too close to island midnight to seed ${n} check-ins on one day - run the reset after 00:${String(5 * (n - 1) + 1).padStart(2, '0')} island time`);
   }
@@ -84,7 +84,7 @@ const checkInAt = (day: number, n: number, i: number): Date => {
  * ORDER MATTERS: deleted top to bottom, so `users` is last - everything else
  * references it, and a foreign key error is a better outcome than an orphan.
  */
-const TRAVELLER_TABLES = [
+export const TRAVELLER_TABLES = [
   // Recorded, not scored (docs/29) and the second signal (docs/30): both are
   // the traveller's, and a demo reset starts them from nothing.
   'self_visits', 'last_fix',
@@ -93,6 +93,9 @@ const TRAVELLER_TABLES = [
   'statements',
   // Stories are the traveller's too (docs/44).
   'stories',
+  // An inquiry is the traveller's question to an operator (docs/61): theirs,
+  // like a story. The listing it was about is content, and stays.
+  'inquiries',
   // The door (docs/46) is operational state, not the pilot's: a reset shuts
   // it, so a day starts with a moderator opening it on purpose.
   'settings',
@@ -105,10 +108,16 @@ const TRAVELLER_TABLES = [
   // Accounts and parties are the traveller's, not the pilot's. Both arrived
   // after this list was written, and the schema guard below did its job: the
   // reset refused to run at all until they were classified.
-  'device_keys', 'link_codes', 'party_members', 'parties',
+  'device_keys', 'link_codes',
+  // A party's invitations and the requests to join them go with the party -
+  // children first, so the foreign keys never see an orphan.
+  'invite_requests', 'party_invites', 'party_members', 'parties',
   // A sighting is the rider's, like a check-in: it is their report that
   // they saw a bus, and a demo starts with nobody having seen one.
   'transit_sightings',
+  // Trees credited to a traveller. The planting they were credited from is a
+  // partner's evidence and is kept; the credit to a person goes with them.
+  'tree_attributions',
   'users',
 ] as const;
 
@@ -117,9 +126,18 @@ const TRAVELLER_TABLES = [
  * console session, and the AQI cache - clearing that last one would force live
  * network calls in the middle of a demo.
  */
-const KEPT_TABLES = [
+export const KEPT_TABLES = [
   'places', 'quests', 'offers', 'hosts', 'host_sessions',
   'community_metrics', 'air_cache', 'air_history',
+  // An operator's listings are content, like a place (docs/61).
+  'listings',
+  // The organisations, what they fund, and what their staff recorded about
+  // it. A planting is a partner's photographed, append-only evidence, never a
+  // traveller's to lose; a quest's locked plan belongs to the quest.
+  'organisations', 'org_sponsorships', 'claim_adjustments', 'tree_plantings', 'quest_plan_locks',
+  // Kept, and a reset never reaches them: it refuses to run while either has
+  // a row. See checkNothingCited.
+  'statement_countersignatures', 'statement_uses',
 ] as const;
 
 /**
@@ -131,7 +149,7 @@ const KEPT_TABLES = [
  * to look. Neither is worth discovering on stage, and a half-finished DELETE
  * loop is worse than either, so this runs first and aborts the whole run.
  */
-function checkSchema(db: DB): void {
+export function checkSchema(db: DB): void {
   const present = new Set(
     (db.prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
@@ -177,9 +195,32 @@ function checkContent(db: DB): void {
   }
 }
 
-function reset(db: DB): void {
+/**
+ * A statement somebody outside has relied on is not demo data any more.
+ *
+ * A reset deletes every statement. An auditor's countersignature, or an
+ * organisation's declared use of one in its report, points at a statement
+ * from outside this database, and deleting it would leave a published report
+ * citing nothing. So the reset refuses, before it deletes anything. The
+ * foreign keys would refuse as well, but only once the deletes had begun.
+ */
+function checkNothingCited(db: DB): void {
+  const count = (table: string) =>
+    (db.prepare(`SELECT COUNT(*) n FROM ${table}`).get() as unknown as { n: number }).n;
+  const signed = count('statement_countersignatures');
+  const used = count('statement_uses');
+  if (signed + used > 0) {
+    throw new Error(
+      `reset-demo refused: ${signed} countersignature(s) and ${used} declared use(s) point at statements ` +
+      'this reset would delete. A demo reset is for a database nobody outside relies on yet.',
+    );
+  }
+}
+
+export function reset(db: DB): void {
   checkSchema(db);
   checkContent(db);
+  checkNothingCited(db);
   for (const table of TRAVELLER_TABLES) {
     db.prepare(`DELETE FROM ${table}`).run();
   }
@@ -220,9 +261,14 @@ const quest = (id: string) => {
  * Typed against the real mood union, so a key the app does not have fails at
  * the typecheck rather than three days before the demo.
  */
-const HISTORY: { day: number; places: string[]; mood: MoodKey | null }[] = [
+const HISTORY: { day: number; places: string[]; mood: MoodKey | null; rode?: true }[] = [
   { day: 4, places: ['chaweng', 'namuang'], mood: 'steady' },
-  { day: 3, places: ['fisherman', 'lamai'], mood: 'bright' },
+  // RODE, an hour apart: Fisherman's Village to Lamai is ten kilometres, and
+  // in an hour that is a songthaew, not a walk. So Lamai's companion is still
+  // an egg - the one the presenter hatches live (docs/28). Since a single
+  // walked leg hatches an egg (e04a5df), a history walked end to end has none,
+  // and --walk failed on it from the day that landed.
+  { day: 3, places: ['fisherman', 'lamai'], mood: 'bright', rode: true },
   { day: 2, places: ['namuang', 'mangrove'], mood: 'tense' },
   { day: 1, places: ['fisherman', 'chaweng'], mood: 'steady' },
   { day: 0, places: ['chaweng', 'fisherman'], mood: 'bright' },
@@ -284,7 +330,7 @@ function seed(db: DB): void {
       // check-in in the next two hours was "older than the last one known":
       // unjudged by the travel check and never recorded. The demo of the
       // second signal could not trip the second signal.
-      const at = checkInAt(day.day, day.places.length, i);
+      const at = checkInAt(day.day, day.places.length, i, day.rode ? 3_600_000 : undefined);
       const p = place(id);
       const result = checkIn(db, { userId: USER, placeId: id, lat: p.lat, lng: p.lng, now: at });
       if (result === null) throw new Error(`check-in at ${id} was refused outright`);
@@ -586,24 +632,28 @@ function walk(db: DB): boolean {
 
 // ---------------------------------------------------------------------------
 
-const db = openDb();
-reset(db);
-seed(db);
+// CLI entry. Guarded so a test can import the classification without
+// resetting anything.
+if (process.argv[1]?.replace(/\\/g, '/').endsWith('/reset-demo.ts')) {
+  const db = openDb();
+  reset(db);
+  seed(db);
 
-const balances = getBalances(db, USER);
-console.log(
-  `[chivago] demo reset: ${USER} · ${HISTORY.length} days · ` +
-  `${balances.trip} trip · ${balances.green} green`,
-);
+  const balances = getBalances(db, USER);
+  console.log(
+    `[chivago] demo reset: ${USER} · ${HISTORY.length} days · ` +
+    `${balances.trip} trip · ${balances.green} green`,
+  );
 
-if (WALK) {
-  console.log('');
-  console.log('[chivago] walking the demo:');
-  if (!walk(db)) {
+  if (WALK) {
     console.log('');
-    console.error('[chivago] the demo would open empty somewhere. Fix it before presenting.');
-    process.exit(1);
+    console.log('[chivago] walking the demo:');
+    if (!walk(db)) {
+      console.log('');
+      console.error('[chivago] the demo would open empty somewhere. Fix it before presenting.');
+      process.exit(1);
+    }
+    console.log('');
+    console.log('[chivago] every screen has something to show.');
   }
-  console.log('');
-  console.log('[chivago] every screen has something to show.');
 }
