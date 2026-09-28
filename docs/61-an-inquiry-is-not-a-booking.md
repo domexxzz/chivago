@@ -129,8 +129,24 @@ a trust signal once there is enough of it to be more than an anecdote.
    left — from `answerBy`, the same instant the rule enforces, so the page
    cannot promise time the server will refuse. The reply form says, where
    the operator types, that answering confirms nothing.
-3. **The traveller's side.** Listings on the place and market screens, an
-   inquiry form, and the thread.
+3. **The traveller's side.** An inquiry form, the traveller's own questions
+   with each operator's answer, and a way in. **Done in `#90`**, and not
+   where this line first put it. Listings are **not in the market**: a
+   voucher is a transaction and an inquiry is deliberately not one, so
+   sharing a screen would blur the line this document draws. And **not on
+   place pages**: a listing says where it is in the operator's own words,
+   not as a place id, so there is no honest join between the two yet. They
+   have their own screen, *Stays & tours*, reached from the trip planner —
+   where a traveller wonders about a boat or a bed. The form runs the
+   server's own `inquiryProblems`, and the server's refusal now names each
+   problem, so the two cannot disagree about what a valid question is. A
+   send that fails is said inside the sheet, under the button: verifying the
+   screen showed that a toast draws beneath the sheet, and a refusal sent
+   there looked like a button that did nothing. The "thread" is one question
+   and one answer; a follow-up is a new question. Listings sit behind a
+   device key exactly as offers do — showing them to the open web is its own
+   decision, and a test pins it. The demo shows the empty list: not even a
+   demo invents an operator.
 
 ## What could not be verified
 

@@ -45,13 +45,15 @@ const ENERGY_LABEL: Record<Energy, { en: string; th: string }> = {
 };
 
 export function TripScreen({
-  trip, onBack, onOpenPlace, onOpenQuest,
+  trip, onBack, onOpenPlace, onOpenQuest, onOpenStays,
 }: {
   /** Day number and date only; every row now comes from the server. */
   trip: TripState;
   onBack: () => void;
   onOpenPlace?: (id: string) => void;
   onOpenQuest?: (id: string) => void;
+  /** Stays, boats and tours - where a traveller asks an operator. docs/61. */
+  onOpenStays?: () => void;
 }) {
   const [energy, setEnergy] = React.useState<Energy | null>(null);
   const area = useArea();
@@ -121,6 +123,27 @@ export function TripScreen({
             <Dropped dropped={plan.data.dropped} />
             <PriceOutlook data={prices.data} />
           </>
+        ) : null}
+
+        {/*
+          Outside the plan's branch on purpose: a plan that failed to load is
+          no reason to hide the way to ask a person. The planner books
+          nothing, and this is where a traveller who wants more than a plan
+          goes - to a question, not a booking.
+        */}
+        {onOpenStays ? (
+          <Pressable
+            onPress={onOpenStays}
+            accessibilityRole="button"
+            accessibilityLabel={t(strings.ask.door)}
+            style={{
+              marginHorizontal: gutter, marginTop: 18, padding: 14, borderRadius: radius.md,
+              borderWidth: 1, borderColor: color.neutral300,
+            }}
+          >
+            <Heading size={15}>{t(strings.ask.door)}</Heading>
+            <Body size={13} colour={color.neutral700} style={{ marginTop: 4 }}>{t(strings.ask.doorSub)}</Body>
+          </Pressable>
         ) : null}
         <View style={{ height: 32 }} />
       </ScrollView>

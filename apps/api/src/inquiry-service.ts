@@ -23,11 +23,15 @@
 
 import { randomUUID } from 'node:crypto';
 import {
-  MAX_MESSAGE, inquiryProblems, inquiryState, isListingKind, listingRefusal,
-  type Inquiry, type InquiryProblem, type InquiryState, type Listing, type ListingKind,
+  MAX_MESSAGE, PROBLEM_LABEL, inquiryProblems, inquiryState, isListingKind, listingRefusal,
+  type Inquiry, type InquiryProblem, type InquiryView, type Listing, type ListingCard,
+  type ListingKind, type TravellerInquiry,
 } from '@chivago/core';
 import { row, rows, transact, type DB } from './db.ts';
 import { enqueue } from './notification-service.ts';
+
+// Re-exported so the console, which imported them from here, keeps working.
+export type { InquiryView, ListingCard, TravellerInquiry };
 
 export class InvalidInquiry extends Error {
   // Written out rather than as a parameter property: node's strip-only
@@ -167,11 +171,6 @@ const toInquiry = (r: InquiryRow): Inquiry => ({
   quoteTHB: r.quote_thb,
 });
 
-export interface InquiryView extends Inquiry {
-  /** The derived state. The only one any screen should show. */
-  now: InquiryState;
-}
-
 const withState = (i: Inquiry, now: Date): InquiryView => ({ ...i, now: inquiryState(i, now) });
 
 export function inquiryById(db: DB, id: string, now = new Date()): InquiryView | null {
@@ -208,7 +207,16 @@ export function sendInquiry(
     throw new InvalidInquiry('That listing is not taking questions.');
   }
   const problems = inquiryProblems(args, now);
-  if (problems.length > 0) throw new InvalidInquiry('The inquiry is not complete.', problems);
+  if (problems.length > 0) {
+    // The message names each problem, not just that there is one. The phone
+    // runs the same checks, so reaching this means the two disagree - most
+    // often a phone whose clock is off by a day - and "not complete" would
+    // leave the traveller nothing to fix.
+    throw new InvalidInquiry(
+      `The inquiry is not complete. ${problems.map((p) => PROBLEM_LABEL[p].en).join(' ')}`,
+      problems,
+    );
+  }
 
   const id = randomUUID();
   db.prepare(
@@ -332,4 +340,34 @@ export function medianResponseHours(db: DB, operatorId: string): number | null {
   const mid = Math.floor(gaps.length / 2);
   const median = gaps.length % 2 === 1 ? gaps[mid]! : (gaps[mid - 1]! + gaps[mid]!) / 2;
   return Math.round(median * 10) / 10;
+}
+
+/* ------------------------------------------------- the traveller's view -- */
+
+/** What the app lists: public listings, each with its operator's response time. */
+export function listingCards(db: DB): ListingCard[] {
+  const listings = publicListings(db);
+  // Once per operator, not once per listing: an operator with ten listings
+  // has one response time.
+  const hours = new Map<string, number | null>();
+  for (const l of listings) {
+    if (!hours.has(l.operatorId)) hours.set(l.operatorId, medianResponseHours(db, l.operatorId));
+  }
+  return listings.map((l) => ({ ...l, responseHours: hours.get(l.operatorId) ?? null }));
+}
+
+/**
+ * Everything one traveller has asked, with the listing each was about.
+ *
+ * The listing comes along even when it has since been paused: a traveller
+ * who asked about it last week still needs to know what they asked.
+ */
+export function travellerInquiries(db: DB, userId: string, now = new Date()): TravellerInquiry[] {
+  return inquiriesOfTraveller(db, userId, now).map((i) => {
+    const l = listingById(db, i.listingId)!;
+    return {
+      ...i,
+      listing: { title: l.title, operatorName: l.operatorName, kind: l.kind, whereLabel: l.whereLabel },
+    };
+  });
 }

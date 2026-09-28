@@ -50,6 +50,7 @@ export const strings = {
 
   common: {
     back: t('Back', 'ย้อนกลับ'),
+    close: t('Close', 'ปิด'),
     seeAll: t('See all', 'ดูทั้งหมด'),
     skip: t('Skip', 'ข้าม'),
     cancel: t('Cancel', 'ยกเลิก'),
@@ -617,6 +618,41 @@ export const strings = {
     voucherExpires: (when: string) => t(`Expires ${when}`, `หมดอายุ ${when}`),
     voucherRedeemed: t('Redeemed', 'ใช้แล้ว'),
     unavailable: t('Currently unavailable', 'ยังไม่เปิดให้แลก'),
+  },
+
+  // -- Ask an operator (docs/61) ------------------------------------------
+  //
+  // Every word here was chosen against one misreading: that an inquiry books
+  // something. "Ask", "question", "answered" - never "book", "reserve" or
+  // "confirm". The refusal itself lives in `inquiry.ts` and is shown whole.
+  ask: {
+    context: t('Stays & tours', 'ที่พักและทัวร์'),
+    door: t('Ask a local operator', 'สอบถามผู้ประกอบการท้องถิ่น'),
+    doorSub: t('Stays, boats and tours — a question, not a booking', 'ที่พัก เรือ และทัวร์ — การสอบถาม ไม่ใช่การจอง'),
+    yourQuestions: t('Your questions', 'คำถามของคุณ'),
+    operators: t('Ask an operator', 'สอบถามผู้ประกอบการ'),
+    none: t(
+      'No operator has listed here yet. When one does, you can ask them a question here.',
+      'ยังไม่มีผู้ประกอบการลงรายการไว้ เมื่อมีแล้ว คุณจะสอบถามได้ที่นี่',
+    ),
+    noPrice: t('No price stated', 'ไม่ได้ระบุราคา'),
+    fromPrice: (baht: string) => t(`From ${baht} THB, as the operator states`, `เริ่มต้น ${baht} บาท ตามที่ผู้ประกอบการระบุ`),
+    usuallyAnswers: (hours: string) => t(`Usually answers within ${hours} hours`, `ปกติตอบภายใน ${hours} ชั่วโมง`),
+    day: t('Which day', 'วันไหน'),
+    party: t('How many people', 'กี่คน'),
+    people: (n: number) => t(n === 1 ? '1 person' : `${n} people`, `${n} คน`),
+    // Heard, not read: the stepper's buttons show only − and +.
+    fewer: t('Fewer people', 'ลดจำนวนคน'),
+    more: t('More people', 'เพิ่มจำนวนคน'),
+    question: t('Your question', 'คำถามของคุณ'),
+    questionHint: t(
+      'What you want to know. Add a phone number only if you want them to call you.',
+      'สิ่งที่อยากรู้ ใส่เบอร์โทรเฉพาะเมื่ออยากให้ผู้ประกอบการโทรกลับ',
+    ),
+    send: t('Send question', 'ส่งคำถาม'),
+    sent: t('Sent — nothing is reserved', 'ส่งแล้ว — ยังไม่มีการจองใดๆ'),
+    withdraw: t('Withdraw', 'ถอนคำถาม'),
+    theirReason: t('Their reason', 'เหตุผลจากผู้ประกอบการ'),
   },
 
   // -- Impact -------------------------------------------------------------

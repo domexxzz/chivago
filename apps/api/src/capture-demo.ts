@@ -92,6 +92,10 @@ const ROUTES = [
   '/wallet',
   '/offers',
   '/vouchers',
+  // docs/61. Added in the same commit as the screen, so it is never the
+  // fifth "Not in the demo build".
+  '/listings',
+  '/inquiries',
   '/impact/me',
   '/impact/community',
   '/notifications',

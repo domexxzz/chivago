@@ -14,7 +14,7 @@ import type {
   ChivaBalance, Companion, MonthOutlook, MoodCheckin, MoodKey, PriceCategory, PriceForecast,
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
-  InviteListing, PartyInvite, RequestOutcome,
+  InviteListing, PartyInvite, RequestOutcome, ListingCard, TravellerInquiry,
 } from '@chivago/core';
 import type {
   AirHistory, BoardEntry, Explored, Fix, Headway, MedalsView, SelfVisitResult, SelfVisitSummary, TransitRoute,
@@ -544,6 +544,19 @@ export const api = {
   redeem: (offerId: string) =>
     post<{ voucher: Voucher; balances: Balances }>(`/offers/${offerId}/redeem`),
   vouchers: () => get<Voucher[]>('/vouchers'),
+
+  // -- listings and inquiries (docs/61) - a question, never a booking ------
+  listings: () => get<ListingCard[]>('/listings'),
+  /**
+   * Ask an operator. The form checks the same `inquiryProblems` the server
+   * does before calling this, so a refusal here is the network, or the server
+   * disagreeing - a phone whose clock is a day off - and never a field the
+   * traveller could have been told about while typing.
+   */
+  inquire: (listingId: string, body: { forDate: string; partySize: number; message: string }) =>
+    post<TravellerInquiry>(`/listings/${listingId}/inquiries`, body),
+  myInquiries: () => get<TravellerInquiry[]>('/inquiries'),
+  withdrawInquiry: (id: string) => post<TravellerInquiry>(`/inquiries/${id}/withdraw`),
 
   // -- impact -------------------------------------------------------------
   myImpact: () => get<ImpactStat[]>('/impact/me'),

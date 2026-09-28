@@ -44,6 +44,9 @@ import {
   getQuest, getScoredPlace, getShield, listOffers, listQuests, listScoredPlaces,
 } from './repo.ts';
 import { ensureWallet, getWallet, grantOpeningBalance, spendOnVoucher } from './wallet-service.ts';
+import {
+  InvalidInquiry, listingCards, sendInquiry, travellerInquiries, withdrawInquiry,
+} from './inquiry-service.ts';
 import { checkedInToday, checkIn } from './checkin-service.ts';
 import { exploredFor, recordSelfVisit, selfReportedProvincesFor, selfVisitsFor } from './visit-service.ts';
 import { airHistoryFor, checkinsLastHour } from './crowd-service.ts';
@@ -1253,6 +1256,66 @@ app.get('/vouchers', (c) => {
     status: r.status as Voucher['status'],
   }));
   return ok(c, vouchers, { total: vouchers.length });
+});
+
+// ---------------------------------------------------------------------------
+// Listings and inquiries — docs/61. A question, not a booking.
+// ---------------------------------------------------------------------------
+
+/**
+ * What operators offer, for anybody using the app.
+ *
+ * Behind a device key, exactly as `/offers` is - NOT on the public list. Every
+ * phone running the app has a key, so nobody using it is shut out; putting
+ * listings on PUBLIC_PATHS would be a decision to show them to the open web,
+ * and that is a separate decision from building them.
+ */
+app.get('/listings', (c) => {
+  const listings = listingCards(db);
+  return ok(c, listings, { total: listings.length });
+});
+
+/**
+ * Ask an operator a question.
+ *
+ * Every problem with the inquiry comes back at once rather than one per
+ * attempt: named in the message, which is what the phone shows, and as a list
+ * for a client that wants to place each one beside its field.
+ */
+app.post('/listings/:id/inquiries', async (c) => {
+  const body = await c.req.json().catch(() => ({})) as {
+    forDate?: unknown; partySize?: unknown; message?: unknown;
+  };
+  try {
+    const inquiry = sendInquiry(db, {
+      listingId: c.req.param('id'),
+      userId: userId(c),
+      forDate: String(body.forDate ?? ''),
+      partySize: Number(body.partySize),
+      message: String(body.message ?? ''),
+    });
+    return ok(c, inquiry);
+  } catch (err) {
+    if (err instanceof InvalidInquiry) {
+      return c.json({ ok: false, code: 'INVALID_INQUIRY', error: err.message, problems: err.problems }, 400);
+    }
+    throw err;
+  }
+});
+
+/** A traveller's own questions, newest first, each with its derived state. */
+app.get('/inquiries', (c) => {
+  const inquiries = travellerInquiries(db, userId(c));
+  return ok(c, inquiries, { total: inquiries.length });
+});
+
+app.post('/inquiries/:id/withdraw', (c) => {
+  try {
+    return ok(c, withdrawInquiry(db, userId(c), c.req.param('id')));
+  } catch (err) {
+    if (err instanceof InvalidInquiry) return fail(c, 'INVALID_INQUIRY', err.message, 400);
+    throw err;
+  }
 });
 
 /** The merchant marks a voucher used. Idempotent - scanning twice is harmless. */

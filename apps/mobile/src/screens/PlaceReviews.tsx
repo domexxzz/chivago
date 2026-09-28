@@ -463,7 +463,7 @@ export function ComposeSheet({
             <Heading size={16}>
               {existing ? t(strings.place.leaveAgain) : t(strings.place.leaveSomething)}
             </Heading>
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12}>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t(strings.common.close)} hitSlop={12}>
               <X size={20} color={color.text} />
             </Pressable>
           </View>
@@ -700,7 +700,7 @@ export function ReportSheet({
             }}
           >
             <Heading size={16}>{t(strings.reviews.reportTitle)}</Heading>
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12}>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t(strings.common.close)} hitSlop={12}>
               <X size={20} color={color.text} />
             </Pressable>
           </View>
@@ -905,7 +905,7 @@ export function AppealSheet({
             }}
           >
             <Heading size={16}>{t(strings.reviews.appealTitle)}</Heading>
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12}>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t(strings.common.close)} hitSlop={12}>
               <X size={20} color={color.text} />
             </Pressable>
           </View>
