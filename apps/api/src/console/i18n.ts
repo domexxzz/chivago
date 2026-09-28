@@ -234,6 +234,14 @@ export const consoleStrings = {
   newProofWaiting: c('มีหลักฐานใหม่รอตรวจ', 'A new proof is waiting for you'),
   notifyMe: c('แจ้งเตือนเมื่อมีหลักฐานใหม่', 'Notify me of new proofs'),
   notifyOn: c('แจ้งเตือนเปิดอยู่', 'Notifications on'),
+  // An operator's console (docs/62): its questions, and a way to hear of them.
+  newQuestionWaiting: c('มีนักท่องเที่ยวส่งคำถามใหม่มา', 'A traveller has sent you a new question'),
+  notifyMeQuestions: c('แจ้งเตือนเมื่อมีคำถามใหม่', 'Notify me of new questions'),
+  operatorOnlyTitle: c('บัญชีนี้ใช้ตอบคำถามเท่านั้น', 'This account answers questions'),
+  operatorOnly: c(
+    'บัญชีผู้ประกอบการใช้ลงรายการและตอบคำถามของนักท่องเที่ยวเท่านั้น ไม่สามารถตรวจงานอาสา ดูการแจ้งเหตุฉุกเฉิน หรือออกเอกสารรับรองได้',
+    'An operator account lists and answers travellers’ questions, and nothing else. It cannot review volunteer work, see emergency alerts or issue statements.',
+  ),
   partyPresent: c('มาด้วยกัน (อยู่ในรัศมีตอนถ่ายหลักฐาน)', 'With them (inside the fence when this was taken)'),
   partyPaysAll: c('อนุมัติครั้งเดียว จ่ายให้ทุกคนในรายชื่อนี้เท่ากัน', 'One approval pays everyone listed the same reward.'),
   none: c('ไม่มี', 'None'),

@@ -4,6 +4,11 @@
  *   pnpm --filter @chivago/api host:add -- --id h-trash-hero-samui \
  *     --name "Trash Hero Koh Samui" --type ngo
  *
+ * A business that lists stays, boats or tours takes `--type operator`. Its
+ * key signs in to a console that reaches its listings and its travellers'
+ * questions and nothing else - no review queue, no SOS desk, no statements -
+ * and it is left off the host board. docs/62 is the whole runbook.
+ *
  * The seed creates the pilot's five hosts. A real organisation joining the
  * pilot is not seed content - putting it in `SEED_HOSTS` before it has agreed
  * would be a fabricated record, and re-running the seed to add it afterwards
@@ -21,7 +26,7 @@ import { openDb, row, type DB } from './db.ts';
 import { generateApiKey, hashApiKey } from './host-auth.ts';
 
 /** Kept in step with `QuestHost['type']` by the assignment below it. */
-export const HOST_TYPES = ['municipality', 'ngo', 'hotel', 'platform', 'community'] as const;
+export const HOST_TYPES = ['municipality', 'ngo', 'hotel', 'platform', 'community', 'operator'] as const;
 // A compile-time check only: adding a type to core without adding it here fails here.
 const _everyHostType: readonly QuestHost['type'][] = HOST_TYPES;
 void _everyHostType;
@@ -68,6 +73,10 @@ if (process.argv[1]?.replace(/\\/g, '/').endsWith('/add-host.ts')) {
     console.log(`[chivago] host ${result.created ? 'created' : 'updated'}: ${values.name}`);
     console.log('[chivago] Console access key - shown ONCE, hand it over in person:');
     console.log(`          ${result.key}`);
+    if (values.type === 'operator') {
+      console.log('[chivago] An OPERATOR account: it signs in at /console and reaches its listings and');
+      console.log('          its questions only - no review queue, no SOS desk, no statements. docs/62.');
+    }
   } else {
     console.log(`[chivago] host updated: ${values.name}. It already had a key; nothing was reissued.`);
     console.log('          To rotate a lost key, clear hosts.api_key_hash for it and run this again.');

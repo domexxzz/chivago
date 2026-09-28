@@ -138,6 +138,15 @@ describe('hosts are counted on what they approved', () => {
     assert.equal(quiet.questsPosted, 1);
   });
 
+  test('AN OPERATOR IS NOT ON THE BOARD: IT ANSWERS QUESTIONS AND VERIFIES NOTHING', () => {
+    // A quiet host belongs at zero because travellers could be sent to it.
+    // An operator is a business answering questions about its listings, and
+    // listing it here would present it as a party that vouches for work.
+    addHost('op-boat', 'Thong Krut Boat Co-op', 'operator');
+    assert.equal(hostStandings(db).some((h) => h.hostId === 'op-boat'), false);
+    assert.ok(hostStandings(db).some((h) => h.hostId === 'quiet'), 'the quiet host went with it');
+  });
+
   test('an unreviewed submission is pending, not verified', () => {
     awaiting('u1', 'q9');
     const quiet = hostStandings(db).find((h) => h.hostId === 'quiet')!;

@@ -169,7 +169,7 @@ describe('cross-host isolation — the rule the console exists to enforce', () =
     // The load-bearing test. CSRF and SameSite stop a cross-SITE attack; this
     // is a legitimately signed-in reviewer reaching for work that is not theirs.
     const muni = await signIn(MUNI_KEY);
-    const session = { token: muni, hostId: 'h-muni', hostName: '', reviewer: null, role: 'host' as const, expiresAt: '' };
+    const session = { token: muni, hostId: 'h-muni', hostName: '', reviewer: null, role: 'host' as const, hostType: 'municipality', expiresAt: '' };
 
     const res = await app.request('/decide', {
       method: 'POST',
@@ -216,7 +216,7 @@ describe('decisions', () => {
     });
 
   const csrf = (token: string) =>
-    __csrfFor({ token, hostId: 'h-muni', hostName: '', reviewer: null, role: 'host' as const, expiresAt: '' });
+    __csrfFor({ token, hostId: 'h-muni', hostName: '', reviewer: null, role: 'host' as const, hostType: 'municipality', expiresAt: '' });
 
   test('approving releases points and attributes the reviewer', async () => {
     const muni = await signIn(MUNI_KEY, 'Nok Suwannee');
@@ -2568,5 +2568,101 @@ describe('an operator answering inquiries', () => {
     await post(lab, `/inquiries/${i.id}/answer`, { answer: 'Yes' });
     const html = (await page(lab)).toLowerCase();
     assert.doesNotMatch(html, /confirmed|ยืนยันแล้ว|จองแล้ว/);
+  });
+});
+
+describe('an operator account (docs/62)', () => {
+  // A business signed up to answer travellers' questions. Its login reaches
+  // its listings and its questions, and nothing that verifies work, moves
+  // sponsors' money, speaks publicly or shows somebody's emergency.
+  const OP_KEY = 'chv_OPERA-OPERB-OPERC-OPERD';
+  const addOperator = () =>
+    db.prepare('INSERT INTO hosts (id,name,type,api_key_hash,created_at) VALUES (?,?,?,?,?)').run(
+      'op-boat', 'Thong Krut Boat Co-op', 'operator', hashApiKey(OP_KEY), new Date().toISOString());
+  const post = (token: string, path: string, form: Record<string, string>) => {
+    const session = resolveSession(db, token)!;
+    return app.request(path, {
+      method: 'POST',
+      headers: { ...withCookie(token), 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ csrf: __csrfFor(session), ...form }),
+    });
+  };
+
+  test('AN OPERATOR OPENS ON ITS QUESTIONS, NOT ON A REVIEW QUEUE', async () => {
+    addOperator();
+    const op = await signIn(OP_KEY);
+    const res = await app.request('/', { headers: withCookie(op) });
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.get('location'), '/console/inquiries');
+  });
+
+  test('AN OPERATOR CANNOT OPEN THE SOS DESK, THE QUEUE, ANY ESG PAGE OR A STATEMENT', async () => {
+    addOperator();
+    const op = await signIn(OP_KEY);
+    for (const path of [
+      '/sos', '/history', '/proof/p-muni', '/pending', '/esg', '/statement', '/sponsor',
+      '/evidence', '/quests', '/stories', '/review', '/organisations', '/reviews',
+    ]) {
+      const res = await app.request(path, { headers: withCookie(op) });
+      assert.equal(res.status, 403, `${path} answered an operator`);
+      assert.match(await res.text(), /cannot review volunteer work|ไม่สามารถตรวจงานอาสา/, path);
+    }
+  });
+
+  test('NOR DECIDE ON WORK, ISSUE A STATEMENT OR ACKNOWLEDGE AN SOS, EVEN WITH A VALID TOKEN', async () => {
+    addOperator();
+    const op = await signIn(OP_KEY);
+    assert.equal((await post(op, '/decide', { proofId: 'p-muni', decision: 'approve' })).status, 403);
+    assert.equal((await post(op, '/statement', { from: '2026-01-01', to: '2026-12-31' })).status, 403);
+    assert.equal((await post(op, '/sos/any-alert/acknowledge', {})).status, 403);
+    // Refused before anything was written, not after.
+    const progress = db.prepare("SELECT verified_at FROM quest_progress WHERE quest_id = 'q-muni'").get() as
+      { verified_at: string | null };
+    assert.equal(progress.verified_at, null);
+    assert.equal((db.prepare('SELECT COUNT(*) AS n FROM statements').get() as { n: number }).n, 0);
+  });
+
+  test('its console is its questions: the nav names nothing else, and the badge counts questions', async () => {
+    addOperator();
+    const op = await signIn(OP_KEY);
+    const res = await app.request('/inquiries', { headers: withCookie(op) });
+    assert.equal(res.status, 200);
+    const page = await res.text();
+    const nav = /<nav class="nav">([\s\S]*?)<\/nav>/.exec(page)?.[1] ?? '';
+    assert.deepEqual([...nav.matchAll(/href="([^"]+)"/g)].map((m) => m[1]), ['/console/inquiries', '/console/logout']);
+    assert.match(page, /\/console\/inquiries\/waiting/);
+    assert.doesNotMatch(page, /\/console\/pending/, 'it polls a queue it cannot open');
+    assert.match(page, /id="notify-me"/);
+  });
+
+  test('an operator lists, and the count it polls is the questions waiting on it', async () => {
+    addOperator();
+    const op = await signIn(OP_KEY);
+    const listed = await post(op, '/listings', {
+      kind: 'tour', titleEn: 'Longtail to Koh Taen', titleTh: 'เรือหางยาวไปเกาะแตน',
+      whereLabel: 'Thong Krut pier', licenceNo: '31/01234', fromTHB: '',
+    });
+    assert.equal(listed.status, 303);
+    const listing = db.prepare("SELECT id FROM listings WHERE operator_id = 'op-boat'").get() as { id: string };
+    assert.ok(listing, 'the listing was not created');
+
+    const waiting = async () =>
+      (await (await app.request('/inquiries/waiting', { headers: withCookie(op) })).json()) as { pending: number };
+    assert.deepEqual(await waiting(), { pending: 0 });
+    sendInquiry(db, {
+      listingId: listing.id, userId: 'u1', partySize: 2, message: 'Two of us, Saturday?',
+      forDate: new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10),
+    });
+    assert.deepEqual(await waiting(), { pending: 1 });
+  });
+
+  test('A HOST THAT IS NOT AN OPERATOR KEEPS THE WHOLE CONSOLE', async () => {
+    const muni = await signIn(MUNI_KEY);
+    assert.equal((await app.request('/', { headers: withCookie(muni) })).status, 200);
+    assert.equal((await app.request('/sos', { headers: withCookie(muni) })).status, 200);
+    const page = await (await app.request('/inquiries', { headers: withCookie(muni) })).text();
+    assert.match(page, /\/console\/sos/);
+    assert.match(page, /\/console\/pending/);
+    assert.doesNotMatch(page, /id="notify-me"/);
   });
 });

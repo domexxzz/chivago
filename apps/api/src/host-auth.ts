@@ -140,6 +140,12 @@ export interface HostSession {
    * see migrations.ts.
    */
   role: 'host' | 'moderator';
+  /**
+   * What kind of organisation signed in. `operator` is the one that matters
+   * to the console: a business answering travellers' questions, whose login
+   * reaches its listings and nothing else.
+   */
+  hostType: string;
   expiresAt: string;
 }
 
@@ -151,18 +157,18 @@ export function login(
   now = new Date(),
 ): HostSession | null {
   const candidates = rows<{
-    id: string; name: string; role: string; api_key_hash: string | null;
+    id: string; name: string; role: string; type: string; api_key_hash: string | null;
   }>(
-    db.prepare('SELECT id, name, role, api_key_hash FROM hosts WHERE api_key_hash IS NOT NULL')
+    db.prepare('SELECT id, name, role, type, api_key_hash FROM hosts WHERE api_key_hash IS NOT NULL')
       .all(),
   );
 
   // Every candidate is checked even after a match, so response time does not
   // reveal which host a key belongs to or how far down the table it sat.
-  let matched: { id: string; name: string; role: string } | null = null;
+  let matched: { id: string; name: string; role: string; type: string } | null = null;
   for (const host of candidates) {
     if (verifyApiKey(apiKey, host.api_key_hash) && !matched) {
-      matched = { id: host.id, name: host.name, role: host.role };
+      matched = { id: host.id, name: host.name, role: host.role, type: host.type };
     }
   }
   if (!matched) return null;
@@ -176,6 +182,7 @@ export function login(
   return {
     token, hostId: matched.id, hostName: matched.name,
     role: matched.role === 'moderator' ? 'moderator' : 'host',
+    hostType: matched.type,
     reviewer, expiresAt,
   };
 }
@@ -189,11 +196,11 @@ export function resolveSession(
   if (!token) return null;
   const found = row<{
     token: string; host_id: string; expires_at: string; reviewer: string | null;
-    name: string; role: string;
+    name: string; role: string; type: string;
   }>(
     db
       .prepare(
-        `SELECT s.token, s.host_id, s.expires_at, s.reviewer, h.name, h.role
+        `SELECT s.token, s.host_id, s.expires_at, s.reviewer, h.name, h.role, h.type
          FROM host_sessions s JOIN hosts h ON h.id = s.host_id
          WHERE s.token = ?`,
       )
@@ -209,6 +216,9 @@ export function resolveSession(
     hostId: found.host_id,
     hostName: found.name,
     role: found.role === 'moderator' ? 'moderator' : 'host',
+    // Read on every request, not frozen into the session at sign-in: a host
+    // re-typed as an operator loses the rest of the console at once.
+    hostType: found.type,
     reviewer: found.reviewer,
     expiresAt: found.expires_at,
   };

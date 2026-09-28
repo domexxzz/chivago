@@ -24,7 +24,7 @@ import {
 } from '@chivago/core';
 import type { InquiryView } from '../inquiry-service.ts';
 import { esc, html, layout, type Raw } from './html.ts';
-import type { Locale } from './i18n.ts';
+import { t, type Locale } from './i18n.ts';
 
 const baht = (n: number): string => `${n.toLocaleString('en-US')} THB`;
 
@@ -93,6 +93,8 @@ export function inquiriesPage(args: {
   hostName: string;
   reviewer: string | null;
   canModerate: boolean;
+  /** An operator's account: this page is its whole console (docs/62). */
+  marketplaceOnly?: boolean;
   csrf: string;
   listings: Listing[];
   inquiries: InquiryView[];
@@ -128,6 +130,9 @@ export function inquiriesPage(args: {
 
     <section class="panel">
       <h2>${th ? 'รอคุณตอบ' : 'Waiting on you'} · ${waiting.length}</h2>
+      ${args.marketplaceOnly
+    ? html`<p><button id="notify-me" type="button" class="btn" style="min-height:44px">${t('notifyMeQuestions', locale)}</button></p>`
+    : ''}
       ${waiting.length === 0
     ? html`<p class="note">${th ? 'ไม่มีคำถามที่รอคำตอบ' : 'Nothing is waiting.'}</p>`
     : waiting.map((i) => waitingCard(i, byId.get(i.listingId), csrf, now, th))}
@@ -229,6 +234,9 @@ export function inquiriesPage(args: {
     signedIn: true,
     activeNav: 'inquiries',
     canModerate: args.canModerate,
+    marketplaceOnly: args.marketplaceOnly,
+    // The badge an operator watches: questions waiting on them, not proofs.
+    pendingCount: args.marketplaceOnly ? waiting.length : undefined,
     path: '/console/inquiries',
   }, body);
 }

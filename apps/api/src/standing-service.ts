@@ -44,6 +44,9 @@ export function hostStandings(db: DB): HostStanding[] {
        FROM hosts h
        LEFT JOIN quests q         ON q.host_id = h.id
        LEFT JOIN quest_progress p ON p.quest_id = q.id
+       -- An operator answers travellers' questions and verifies nothing, so
+       -- it has no place on a board of who verifies work (docs/62).
+       WHERE h.type <> 'operator'
        GROUP BY h.id`,
     ).all(),
   );
