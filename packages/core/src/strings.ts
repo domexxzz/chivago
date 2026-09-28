@@ -653,6 +653,8 @@ export const strings = {
     sent: t('Sent — nothing is reserved', 'ส่งแล้ว — ยังไม่มีการจองใดๆ'),
     withdraw: t('Withdraw', 'ถอนคำถาม'),
     theirReason: t('Their reason', 'เหตุผลจากผู้ประกอบการ'),
+    // Only ever on the demo build's made-up operator (ListingCard.example).
+    example: t('Example · not a real business', 'ตัวอย่าง · ไม่ใช่ธุรกิจจริง'),
   },
 
   // -- Impact -------------------------------------------------------------

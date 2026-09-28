@@ -151,11 +151,19 @@ export interface ListingCard extends Listing {
    * enough for it to be more than an anecdote.
    */
   responseHours: number | null;
+  /**
+   * Set ONLY by the demo build, on its one made-up operator, and every screen
+   * that shows such a listing says "Example · not a real business". The real
+   * API never sets it - a listing there is a claim a real business made, and
+   * none is seeded (decision 5) - and a test in `inquiry-routes.test.ts`
+   * holds it to that.
+   */
+  example?: true;
 }
 
 /** One of a traveller's own questions, with what it was about. */
 export interface TravellerInquiry extends InquiryView {
-  listing: Pick<Listing, 'title' | 'operatorName' | 'kind' | 'whereLabel'>;
+  listing: Pick<ListingCard, 'title' | 'operatorName' | 'kind' | 'whereLabel' | 'example'>;
 }
 
 /**
@@ -268,6 +276,17 @@ export const PROBLEM_LABEL: Record<InquiryProblem, Bilingual> = {
     th: `ผู้ประกอบการตอบได้เฉพาะภายใน ${MAX_DAYS_AHEAD} วันข้างหน้า`,
   },
 };
+
+/**
+ * The refusal of an incomplete inquiry, naming every problem.
+ *
+ * One sentence in one place, because two things say it: the API, and the
+ * demo build that stands in for it. A demo that refused in words the server
+ * would not use would be demonstrating a different product.
+ */
+export function incompleteInquiry(problems: readonly InquiryProblem[]): string {
+  return `The inquiry is not complete. ${problems.map((p) => PROBLEM_LABEL[p].en).join(' ')}`;
+}
 
 /* ------------------------------------------------------ what is said -- */
 

@@ -14,7 +14,7 @@ import type {
   ChivaBalance, Companion, MonthOutlook, MoodCheckin, MoodKey, PriceCategory, PriceForecast,
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
-  InviteListing, PartyInvite, RequestOutcome, ListingCard, TravellerInquiry,
+  InviteListing, PartyInvite, RequestOutcome, InquiryView, ListingCard, TravellerInquiry,
 } from '@chivago/core';
 import type {
   AirHistory, BoardEntry, Explored, Fix, Headway, MedalsView, SelfVisitResult, SelfVisitSummary, TransitRoute,
@@ -554,9 +554,9 @@ export const api = {
    * traveller could have been told about while typing.
    */
   inquire: (listingId: string, body: { forDate: string; partySize: number; message: string }) =>
-    post<TravellerInquiry>(`/listings/${listingId}/inquiries`, body),
+    post<InquiryView>(`/listings/${listingId}/inquiries`, body),
   myInquiries: () => get<TravellerInquiry[]>('/inquiries'),
-  withdrawInquiry: (id: string) => post<TravellerInquiry>(`/inquiries/${id}/withdraw`),
+  withdrawInquiry: (id: string) => post<InquiryView>(`/inquiries/${id}/withdraw`),
 
   // -- impact -------------------------------------------------------------
   myImpact: () => get<ImpactStat[]>('/impact/me'),

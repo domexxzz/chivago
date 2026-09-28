@@ -214,6 +214,27 @@ describe('your questions', () => {
   });
 });
 
+describe('the demo’s example operator', () => {
+  const EXAMPLE = /Example · not a real business/g;
+
+  test('AN EXAMPLE SAYS SO ON ITS ROW, ON A QUESTION ABOUT IT, AND IN THE FORM', async () => {
+    const s = server({
+      '/listings': [boat({ example: true })],
+      '/inquiries': [asked({ listing: { ...asked().listing, example: true } })],
+    }); restore = s.restore;
+    const ui = await mountScreen(h(AskScreen, { onBack: noop, onToast: noop }));
+    assert.equal((ui.text().match(EXAMPLE) ?? []).length, 2, 'the row and the question should each say so');
+    await ui.pressText('Longtail to Koh Taen');
+    assert.equal((ui.text().match(EXAMPLE) ?? []).length, 3, 'the form should say so too');
+  });
+
+  test('a real listing carries no such mark', async () => {
+    const s = server({ '/listings': [boat()], '/inquiries': [asked()] }); restore = s.restore;
+    const ui = await mountScreen(h(AskScreen, { onBack: noop, onToast: noop }));
+    assert.doesNotMatch(ui.text(), /not a real business/);
+  });
+});
+
 describe('an answer, arriving', () => {
   test('TAPPING "THE OPERATOR ANSWERED" OPENS THE SCREEN THE ANSWER IS ON', () => {
     // The server's notification says `inquiry` (pinned in the API's

@@ -17,6 +17,8 @@
  *   with too few answers shows no response time rather than a flattering one;
  *   and with no operators listed the screen says that, instead of padding
  *   itself with examples that would be claims made in real businesses' names.
+ *   The one exception is the demo build's made-up operator, and it says what
+ *   it is wherever its name appears (`ExampleMark`).
  *
  *   The form checks the SAME `inquiryProblems` the server runs, so every
  *   problem shows beside its field at once and the two can never disagree
@@ -137,12 +139,31 @@ export function AskScreen({
   );
 }
 
+/**
+ * "Example · not a real business".
+ *
+ * Only the demo build's made-up operator carries `example`, and wherever its
+ * name appears - the row, the form, a question about it - this sits directly
+ * under it. Coral, because the palette keeps it for the things a reader must
+ * not take at face value.
+ */
+function ExampleMark() {
+  return (
+    <Label size={10} tracking={0.12} colour={color.accent2} style={{ marginTop: 3 }}>
+      {t(strings.ask.example)}
+    </Label>
+  );
+}
+
 export function ListingRow({ listing, onAsk }: { listing: ListingCard; onAsk: () => void }) {
   return (
     <Pressable
       onPress={onAsk}
       accessibilityRole="button"
-      accessibilityLabel={`${t(strings.ask.operators)}: ${t(listing.title)}, ${listing.operatorName}`}
+      accessibilityLabel={
+        `${t(strings.ask.operators)}: ${t(listing.title)}, ${listing.operatorName}`
+        + (listing.example ? `. ${t(strings.ask.example)}` : '')
+      }
       style={{
         paddingVertical: 14,
         paddingHorizontal: gutter,
@@ -155,6 +176,7 @@ export function ListingRow({ listing, onAsk }: { listing: ListingCard; onAsk: ()
       <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 2 }}>
         {`${listing.operatorName} · ${listing.whereLabel}`}
       </Label>
+      {listing.example ? <ExampleMark /> : null}
       <Body size={13} colour={color.neutral700} style={{ marginTop: 6 }}>
         {listing.fromTHB === null
           ? t(strings.ask.noPrice)
@@ -184,6 +206,7 @@ export function QuestionRow({
       <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 2 }}>
         {`${listing.operatorName} · ${dayLabel(inquiry.forDate)} · ${t(strings.ask.people(inquiry.partySize))}`}
       </Label>
+      {listing.example ? <ExampleMark /> : null}
       <Label size={10} tracking={0.1} style={{ marginTop: 6 }}>{t(STATE_LABEL[inquiry.now])}</Label>
 
       {inquiry.now === 'answered' ? (
@@ -286,6 +309,7 @@ function AskSheet({
               <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 4 }}>
                 {`${listing.operatorName} · ${listing.whereLabel}`}
               </Label>
+              {listing.example ? <ExampleMark /> : null}
             </View>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t(strings.common.close)} hitSlop={12}>
               <X size={20} color={color.text} strokeWidth={2} />

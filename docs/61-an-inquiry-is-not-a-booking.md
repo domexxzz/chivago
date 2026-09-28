@@ -145,8 +145,18 @@ a trust signal once there is enough of it to be more than an anecdote.
    there looked like a button that did nothing. The "thread" is one question
    and one answer; a follow-up is a new question. Listings sit behind a
    device key exactly as offers do — showing them to the open web is its own
-   decision, and a test pins it. The demo shows the empty list: not even a
-   demo invents an operator.
+   decision, and a test pins it.
+
+   **The demo carries one made-up operator** — the owner's call on 28
+   September, so a judge can walk the whole flow rather than read an empty
+   list, which is the reason `DEMO_INVITES` exists too. Everywhere its name
+   appears, the screen says *Example · not a real business*; the flag behind
+   that is set only by the demo, and a test holds the real API to never
+   setting it. Nothing answers a question sent to it — there is no person to
+   answer — and the one answered question on screen is seeded history about
+   the example, so the answered state can be seen without anybody replying.
+   The real app still invents no operator, and still shows the empty list
+   until a real one lists.
 
 ## What could not be verified
 
