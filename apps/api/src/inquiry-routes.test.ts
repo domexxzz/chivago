@@ -52,6 +52,15 @@ describe('what anybody using the app can see', () => {
     assert.equal(res.data[0].licenceNo, '31/01234');
   });
 
+  test('THE REAL API NEVER MARKS A LISTING AS AN EXAMPLE', async () => {
+    // `example` belongs to the demo build's one made-up operator. A listing
+    // here is a claim a real business made; nothing may label it otherwise.
+    const res = await json(await get('/listings', bo));
+    for (const l of res.data) assert.equal('example' in l, false, JSON.stringify(l));
+    const mine = await json(await get('/inquiries', ana));
+    for (const i of mine.data) assert.equal('example' in i.listing, false);
+  });
+
   test('LISTINGS ARE BEHIND A DEVICE KEY, EXACTLY AS OFFERS ARE', async () => {
     // Not on the public list. Showing listings to the open web is its own
     // decision, and this test is here so that making it is deliberate.

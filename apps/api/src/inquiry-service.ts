@@ -23,7 +23,7 @@
 
 import { randomUUID } from 'node:crypto';
 import {
-  MAX_MESSAGE, PROBLEM_LABEL, inquiryProblems, inquiryState, isListingKind, listingRefusal,
+  MAX_MESSAGE, incompleteInquiry, inquiryProblems, inquiryState, isListingKind, listingRefusal,
   type Inquiry, type InquiryProblem, type InquiryView, type Listing, type ListingCard,
   type ListingKind, type TravellerInquiry,
 } from '@chivago/core';
@@ -212,10 +212,7 @@ export function sendInquiry(
     // runs the same checks, so reaching this means the two disagree - most
     // often a phone whose clock is off by a day - and "not complete" would
     // leave the traveller nothing to fix.
-    throw new InvalidInquiry(
-      `The inquiry is not complete. ${problems.map((p) => PROBLEM_LABEL[p].en).join(' ')}`,
-      problems,
-    );
+    throw new InvalidInquiry(incompleteInquiry(problems), problems);
   }
 
   const id = randomUUID();

@@ -22,6 +22,7 @@ import {
   INVITE_DOES_NOT, pinLine,
 } from '@chivago/core';
 import snapshot from './fixtures.json';
+import { createInquiryDesk, type DeskAnswer } from './inquiries.ts';
 
 type Json = Record<string, unknown>;
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
@@ -126,6 +127,13 @@ const DEMO_INVITES = [
 
 /** Which invitations this visitor has already asked to join, this sitting. */
 const asked = new Set<string>();
+
+/**
+ * Stays & tours: one made-up operator, labelled as one, and this sitting's
+ * questions to it. `inquiries.ts` says what it refuses and why.
+ */
+const desk = createInquiryDesk();
+const settle = <T,>(r: DeskAnswer<T>) => (r.ok ? r.value : refuse(r.code, r.error));
 
 const demoListing = (i: (typeof DEMO_INVITES)[number]) => {
   const now = Date.now();
@@ -259,6 +267,10 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     return { withdrawn: true };
   },
   'POST /party/disband': () => { state.party = null; return { disbanded: true }; },
+
+  // Asking an operator (docs/61). The server's own rules, and no answers.
+  'POST /listings/:id/inquiries': (body, m) => settle(desk.ask(m[1]!, body)),
+  'POST /inquiries/:id/withdraw': (_body, m) => settle(desk.withdraw(m[1]!)),
 
   'POST /places/:id/checkin': (_b, m) => {
     const placeId = m[1]!;
@@ -617,6 +629,10 @@ export function installDemoServer(apiBase: string): void {
       }
       // Nobody else is in this sitting, so nobody can have asked to join you.
       if (path === '/invites/requests') return answer({ waiting: [] });
+      // Before the snapshot, whose captured lists are the real API's - and
+      // the real API has no operator yet, so they are empty.
+      if (path === '/listings') return answer(desk.listings());
+      if (path === '/inquiries') return answer(desk.mine());
       if (path === '/invites/mine') {
         return answer({ invitation: null, requests: [], doesNot: INVITE_DOES_NOT });
       }
