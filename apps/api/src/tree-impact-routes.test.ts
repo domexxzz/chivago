@@ -23,6 +23,9 @@ test('tree impact over HTTP belongs to the caller and needs planting proof', asy
   assert.equal((await app.request('/impact/trees')).status, 401);
   const get = (path: string) => app.request(path, { headers: { 'x-chivago-device-key': deviceKey } });
   assert.deepEqual((await json(await get('/impact/trees'))).data, { pending: 0, planted: 0, lines: [] });
+  const emptyPersonal = (await json(await get('/impact/me'))).data;
+  assert.equal(emptyPersonal.find((m: { key: string }) => m.key === 'treesPlanted').value, 0);
+  assert.ok(!emptyPersonal.some((m: { key: string }) => m.key === 'mangrovesPlanted'));
 
   db.prepare('INSERT INTO hosts (id, name, type) VALUES (?,?,?)').run('tree-host', 'Tree host', 'ngo');
   db.prepare(
@@ -60,6 +63,9 @@ test('tree impact over HTTP belongs to the caller and needs planting proof', asy
   const planted = (await json(await get('/impact/trees'))).data;
   assert.deepEqual([planted.pending, planted.planted], [1, 2]);
   assert.equal(planted.lines[0].evidence[0].photo.credit, 'Test photographer');
+  assert.equal((await json(await get('/impact/me'))).data.find(
+    (m: { key: string }) => m.key === 'treesPlanted',
+  ).value, 2);
 
   db.prepare(
     `INSERT INTO community_metrics (key, label_en, label_th, actual, target, unit, year)
@@ -73,6 +79,9 @@ test('tree impact over HTTP belongs to the caller and needs planting proof', asy
     userId, originalSourceRef: `quest:tree-q:user:${userId}`, reason: 'test reversal',
   });
   assert.deepEqual((await json(await get('/impact/trees'))).data, { pending: 0, planted: 0, lines: [] });
+  assert.equal((await json(await get('/impact/me'))).data.find(
+    (m: { key: string }) => m.key === 'treesPlanted',
+  ).value, 0);
   const after = (await json(await get('/impact/community?year=2026'))).data;
   assert.equal(after.metrics.find((m: { key: string }) => m.key === 'treesPlanted').actual, 2);
 });
