@@ -33,6 +33,7 @@ import { MissionsScreen } from './src/screens/MissionsScreen.tsx';
 import { QuestDetailScreen } from './src/screens/QuestDetail.tsx';
 import { WalletScreen } from './src/screens/WalletScreen.tsx';
 import { MarketScreen } from './src/screens/MarketScreen.tsx';
+import { AskScreen } from './src/screens/AskScreen.tsx';
 import { ImpactScreen } from './src/screens/ImpactScreen.tsx';
 import { HomeScreen } from './src/screens/HomeScreen.tsx';
 import { PassportScreen } from './src/screens/PassportScreen.tsx';
@@ -101,6 +102,9 @@ export default function App() {
     } else if (link.screen === 'wallet') {
       nav.push('wallet');
       setWalletKey((k) => k + 1);
+    } else if (link.screen === 'stays') {
+      // An operator answered. The thread is where the answer is.
+      nav.push('stays');
     } else {
       nav.selectTab('home');
     }
@@ -441,8 +445,12 @@ export default function App() {
             onBack={nav.pop}
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
             onOpenQuest={(id) => nav.push('quest', { questId: id })}
+            onOpenStays={() => nav.push('stays')}
           />
         );
+
+      case 'stays':
+        return <AskScreen onBack={nav.pop} onToast={toast.show} />;
     }
   };
 

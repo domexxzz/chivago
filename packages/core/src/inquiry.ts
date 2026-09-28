@@ -130,6 +130,34 @@ export interface Inquiry {
   quoteTHB: number | null;
 }
 
+/* ------------------------------------------------ what crosses the wire -- */
+
+/**
+ * Shapes the API sends and the app reads, defined here so the two cannot
+ * disagree about them. They were first written in the API service, where the
+ * app could not import them - which is how a server and a client drift.
+ */
+
+/** An inquiry with the state every screen should actually show. */
+export interface InquiryView extends Inquiry {
+  /** The DERIVED state. `state` is what is stored; this is what is true now. */
+  now: InquiryState;
+}
+
+/** A listing as the app lists it. */
+export interface ListingCard extends Listing {
+  /**
+   * The operator's median hours to answer, or null until they have answered
+   * enough for it to be more than an anecdote.
+   */
+  responseHours: number | null;
+}
+
+/** One of a traveller's own questions, with what it was about. */
+export interface TravellerInquiry extends InquiryView {
+  listing: Pick<Listing, 'title' | 'operatorName' | 'kind' | 'whereLabel'>;
+}
+
 /**
  * How long an operator has to answer before the inquiry reads as expired.
  *

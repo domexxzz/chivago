@@ -188,7 +188,7 @@ function VoucherSheet({ voucher, onClose }: { voucher: Voucher | null; onClose: 
               <Heading size={22}>{t(strings.market.voucherTitle)}</Heading>
 
             </View>
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" hitSlop={12}>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t(strings.common.close)} hitSlop={12}>
               <X size={20} color={color.text} strokeWidth={2} />
             </Pressable>
           </View>

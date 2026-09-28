@@ -41,7 +41,7 @@ export type ScreenKey =
   | 'onboarding' | 'home' | 'map' | 'place' | 'quests' | 'quest'
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
   | 'companion' | 'passport' | 'account' | 'party' | 'findParty' | 'game'
-  | 'mascots' | 'mascot' | 'profile' | 'medals';
+  | 'mascots' | 'mascot' | 'profile' | 'medals' | 'stays';
 
 /**
  * Five tabs. Impact left the bar, and now the wallet has too.
@@ -87,6 +87,9 @@ const TAB_SCREENS: TabKey[] = ['home', 'map', 'quests', 'game', 'safety'];
 /** Which tab should read as active while a pushed screen is on top. */
 const OWNING_TAB: Record<ScreenKey, TabKey> = {
   onboarding: 'home', home: 'home', map: 'map', place: 'map', trip: 'map',
+  // Reached from the trip planner, so the map stays lit behind it the same
+  // way it does behind the trip.
+  stays: 'map',
   // All three are reached from a door on Home, so Home stays lit behind them
   // and a tab tap returns there rather than stranding the reader on a screen
   // no tab owns. `impact` in particular has no tab of its own any more.

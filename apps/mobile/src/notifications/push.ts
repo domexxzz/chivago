@@ -88,7 +88,13 @@ export async function unregisterPush(token: string): Promise<void> {
 }
 
 export interface DeepLink {
-  screen: 'quest' | 'wallet' | 'map';
+  /**
+   * `stays` is where an operator's answer lands. The server sends it as
+   * `inquiry`, the screen that shows the thread is `stays`; `parseDeepLink`
+   * maps one to the other so a new server word never strands a traveller.
+   * Not `ask`: Home already has a door called "Ask" that opens the concierge.
+   */
+  screen: 'quest' | 'wallet' | 'map' | 'stays';
   questId?: string;
   notificationId?: string;
 }
@@ -97,8 +103,11 @@ export interface DeepLink {
 export function parseDeepLink(data: unknown): DeepLink | null {
   if (!data || typeof data !== 'object') return null;
   const d = data as Record<string, unknown>;
-  const screen = d.screen;
-  if (screen !== 'quest' && screen !== 'wallet' && screen !== 'map') return null;
+  // An operator answered or declined an inquiry. Without this the tap fell
+  // through to Home, and a traveller told "the boat co-op answered" would
+  // land somewhere with no answer on it.
+  const screen = d.screen === 'inquiry' ? 'stays' : d.screen;
+  if (screen !== 'quest' && screen !== 'wallet' && screen !== 'map' && screen !== 'stays') return null;
   return {
     screen,
     questId: typeof d.questId === 'string' ? d.questId : undefined,
