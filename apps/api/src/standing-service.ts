@@ -2,10 +2,10 @@
  * The standing, read from what actually happened.
  *
  * Both halves come from rows a human action wrote: `quest_progress` carries
- * the timestamp of every stage transition, so `verified` here is the same
- * fact a host clicked Approve on, and the Green totals come from the ledger
- * rather than from a quest's advertised reward — a reward can be edited, a
- * ledger row cannot.
+ * the timestamp of every stage transition, and `verified` counts approvals
+ * whose awards still stand. The Green totals come from the ledger rather
+ * than from a quest's advertised reward — a reward can be edited, a ledger
+ * row cannot.
  *
  * Nothing in this file counts Trip Points. That is not an oversight and
  * `standing.ts` in core has no field for them: a table ranked on a
@@ -13,11 +13,11 @@
  */
 
 import { rows, type DB } from './db.ts';
-import { notReversed } from './ledger-sql.ts';
+import { awardStands, notReversed } from './ledger-sql.ts';
 import type { HostStanding, TravellerStanding, HostType } from '@chivago/core';
 
 /**
- * Every host with a quest, and what their reviewing actually produced.
+ * Every host with a quest, and what their reviewing still stands behind.
  *
  * LEFT JOIN, not INNER: a host who has posted a quest nobody has done yet
  * belongs in the table at zero. Dropping them would quietly make the board a
@@ -34,7 +34,10 @@ export function hostStandings(db: DB): HostStanding[] {
               h.name                      AS name,
               h.type                      AS type,
               COUNT(DISTINCT q.id)        AS quests_posted,
-              COUNT(p.verified_at)        AS verified,
+              -- Keep the approval timestamp as history, but do not rank a
+              -- withdrawn award as work the platform still stands behind.
+              COUNT(CASE WHEN p.verified_at IS NOT NULL AND ${awardStands('p')}
+                         THEN 1 END)      AS verified,
               -- Arrived or submitted, and not yet decided either way.
               SUM(CASE WHEN p.verified_at IS NULL AND p.rejected_at IS NULL
                         AND p.proof_submitted_at IS NOT NULL THEN 1 ELSE 0 END) AS pending
