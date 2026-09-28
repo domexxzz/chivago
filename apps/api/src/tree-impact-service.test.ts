@@ -121,6 +121,13 @@ describe('physical planting needs proof and a live approval', () => {
     assert.equal(kept.partner, 'Test planting partner');
   });
 
+  test('a date-only planting on the approval day is accepted, but an earlier day is not', () => {
+    assert.throws(() => recordTreePlanting(db, evidence({ plantedAt: '2026-09-10' }), 'moderator', now),
+      InvalidTreeRecord);
+    recordTreePlanting(db, evidence({ plantedAt: '2026-09-11' }), 'moderator', now);
+    assert.equal(treeImpactForUser(db, 'ana', now).planted, 2);
+  });
+
   test('missing evidence, pre-approval planting and over-attribution are refused', () => {
     assert.throws(() => recordTreePlanting(db, evidence({ partner: '' }), 'moderator', now), InvalidTreeRecord);
     assert.throws(() => recordTreePlanting(db, evidence({ photo: { url: '', credit: '', licence: '' } }), 'moderator', now), InvalidTreeRecord);
