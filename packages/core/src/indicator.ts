@@ -179,8 +179,19 @@ export interface RuleOutcome {
 export interface IndicatorRule {
   id: string;
   framework: Framework;
-  /** The line itself: '306-3'. */
+  /** The line itself: '306-3'. The canonical spelling, shown on every placement. */
   line: string;
+  /**
+   * Other spellings of the same line, listed rather than guessed.
+   *
+   * The second rule forced this. GRI has one canonical code per disclosure;
+   * the GHG Protocol does not - "Category 5", "Cat 5" and "Scope 3 Category 5"
+   * are all the same line, and a partner will type whichever they use. Each
+   * alias is matched EXACTLY after `lineKey`, never fuzzily: `measureFromUnit`
+   * refused to guess a unit for the same reason, and a guessed line would run
+   * a rule against a line it was never about.
+   */
+  aliases?: readonly string[];
   /** Which of our measures this rule is about. */
   measures: readonly KpiMeasure[];
   source: RuleSource;
@@ -278,6 +289,23 @@ export function unexamined(framework: Framework, line: string): Placement {
  * caller handed nothing tends to render nothing, and a blank space where a
  * refusal might have been is the failure this whole module is about.
  */
+/**
+ * The comparable form of a line: lowercase, letters and digits only.
+ *
+ * Deterministic and dull on purpose. "306-3", "306.3" and "306 3" are the
+ * same GRI disclosure and compare equal; "Scope 3 Category 5" and
+ * "scope3category5" compare equal. It never compares across frameworks -
+ * `assess` checks the framework first - so stripping punctuation cannot make
+ * a GRI code collide with a GHG Protocol one.
+ */
+export const lineKey = (line: string): string => line.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const ruleCovers = (r: IndicatorRule, line: string): boolean => {
+  const k = lineKey(line);
+  if (k === '') return false;
+  return lineKey(r.line) === k || (r.aliases ?? []).some((a) => lineKey(a) === k);
+};
+
 export function assess(
   rules: readonly IndicatorRule[],
   measure: KpiMeasure,
@@ -287,7 +315,7 @@ export function assess(
   asOf: Date = new Date(),
 ): Placement {
   const rule = rules.find(
-    (r) => r.framework === framework && r.line === line && r.measures.includes(measure),
+    (r) => r.framework === framework && ruleCovers(r, line) && r.measures.includes(measure),
   );
   return rule ? placeAgainst(rule, facts, asOf) : unexamined(framework, line);
 }
@@ -496,8 +524,201 @@ export const GRI_306_3: IndicatorRule = {
   },
 };
 
-/** Every rule this build carries. One, and it is researched. */
-export const INDICATOR_RULES: readonly IndicatorRule[] = [GRI_306_3];
+/**
+ * GHG Protocol Scope 3 Category 5, and the same kilograms.
+ *
+ * The second rule, and the one `esg.ts` has been refusing in prose since it
+ * was written: a weight of collected litter turned into a carbon figure and
+ * netted against a footprint. `docs/57` researched it; this rule was written
+ * from the Technical Guidance chapter itself, read directly.
+ *
+ * WHAT IT TAUGHT THE DESIGN.
+ *
+ *   THE SAME FACT DECIDES TWO STANDARDS. Category 5 is defined by waste
+ *   "generated in the reporting company's owned or controlled operations" -
+ *   which is the fact GRI 306-3 turns on, reached from a different document
+ *   written by a different body. Keying rules on facts about the activity
+ *   rather than on our measures was a bet made on one example. Two
+ *   independent standards landing on the same fact is the first evidence it
+ *   was the right bet, and it means one answer from a customer settles both.
+ *
+ *   NOT EVERY RULE NEEDS EVERY FACT. This rule never asks about the
+ *   organisation's role: its clause does not turn on it. A rule asks what its
+ *   clause needs and nothing else.
+ *
+ *   A WEIGHT CAN BE AN INPUT WITHOUT BEING THE ANSWER. For a company's own
+ *   waste, kilograms are exactly the activity data Category 5's calculation
+ *   starts from - and still not the Category 5 figure, which is in CO2e and
+ *   needs emission factors this platform does not hold. The permitted branch
+ *   says both halves.
+ *
+ *   THE PREDICTED NEW FACT ARRIVED, AND WAS NOT MADE A QUESTION. Category 5
+ *   also requires the waste to be treated by a THIRD PARTY; a company's own
+ *   facility is scope 1 and 2. That is a new fact. It is carried as a
+ *   condition on the permitted branch rather than asked, because the
+ *   activities this platform runs are never treated in a customer's own
+ *   plant, and a question every customer answers the same way is a cost with
+ *   no finding in it. The day a rule needs it to change a verdict, it becomes
+ *   a question.
+ */
+export const GHG_SCOPE3_CAT5: IndicatorRule = {
+  id: 'ghg-scope3-cat5-waste-generated',
+  framework: 'ghg_protocol',
+  line: 'Scope 3 Category 5',
+  aliases: ['Category 5', 'Cat 5', 'Scope 3 Cat 5', 'S3C5', 'S3 Category 5'],
+  measures: ['weight_kg'],
+  source: {
+    clause: 'waste generated in the reporting company’s owned or controlled operations',
+    where: 'GHG Protocol, Technical Guidance for Calculating Scope 3 Emissions — '
+      + 'Category 5: Waste Generated in Operations, pp. 72–80',
+    readOn: '2026-09-28',
+    readBy: 'ChivaGo research, read directly from the published chapter',
+    notChecked: {
+      en: 'The Category 5 chapter was read in full. The Scope 3 Standard itself — including '
+        + 'section 9.5 on avoided emissions, which that chapter points to — was not, nor any '
+        + 'revision published after this edition. No assurance provider’s opinion.',
+      th: 'อ่านบท Category 5 ครบทั้งบท แต่ยังไม่ได้อ่านตัว Scope 3 Standard เอง รวมถึงหัวข้อ 9.5 '
+        + 'เรื่องการปล่อยที่หลีกเลี่ยงได้ซึ่งบทนั้นอ้างถึง และไม่ได้ตรวจฉบับปรับปรุงที่ออกหลังฉบับนี้ '
+        + 'ไม่มีความเห็นจากผู้ให้ความเชื่อมั่น',
+    },
+  },
+  test(facts) {
+    if (facts.materialOrigin === 'unknown') {
+      return {
+        verdict: 'unknown',
+        settledBy: 'materialOrigin',
+        because: {
+          en: 'Category 5 covers waste generated in the reporting company’s own operations, so '
+            + 'whose material this was decides whether the line is available at all. It is the '
+            + 'same question that settles GRI 306-3, and one answer settles both.',
+          th: 'Category 5 ครอบคลุมขยะที่เกิดจากการดำเนินงานของบริษัทผู้รายงานเอง ดังนั้นวัสดุนี้เป็น '
+            + 'ของผู้ใดจึงเป็นตัวตัดสินว่าใช้รายการนี้ได้หรือไม่ เป็นคำถามเดียวกับที่ตัดสิน GRI 306-3 '
+            + 'และคำตอบเดียวใช้ได้กับทั้งสองรายการ',
+        },
+      };
+    }
+
+    if (facts.materialOrigin === 'third_party') {
+      return {
+        verdict: 'refuses',
+        because: {
+          en: 'Category 5 covers waste generated in the reporting company’s owned or controlled '
+            + 'operations. Material somebody else discarded was never in them. And the category is '
+            + 'reported as emissions in CO2e, which a weight is not.',
+          th: 'Category 5 ครอบคลุมขยะที่เกิดจากการดำเนินงานที่บริษัทผู้รายงานเป็นเจ้าของหรือควบคุม '
+            + 'วัสดุที่ผู้อื่นทิ้งไว้ไม่เคยอยู่ในนั้น และรายการนี้รายงานเป็นการปล่อยในหน่วย CO2e '
+            + 'ซึ่งน้ำหนักไม่ใช่',
+        },
+        insteadTry: [
+          {
+            en: 'Describe it outside the inventory, as an activity rather than as an emission.',
+            th: 'อธิบายไว้นอกบัญชีก๊าซเรือนกระจก ในฐานะกิจกรรม ไม่ใช่ในฐานะการปล่อย',
+          },
+          {
+            en: 'Any claim of avoided emissions goes separately from scope 1, 2 and 3 and is '
+              + 'never deducted from them, with its own methodology — which ChivaGo does not supply.',
+            th: 'หากจะอ้างการปล่อยที่หลีกเลี่ยงได้ ต้องรายงานแยกจาก scope 1, 2 และ 3 และห้ามนำไปหักออก '
+              + 'พร้อมระเบียบวิธีของตัวเอง ซึ่ง ChivaGo ไม่ได้จัดหาให้',
+          },
+        ],
+      };
+    }
+
+    if (facts.materialOrigin === 'mixed') {
+      return {
+        verdict: 'conditional',
+        because: {
+          en: 'Only the part generated in the company’s own operations is Category 5 activity data. '
+            + 'The rest was never in the company’s operations, and one combined weight would put it '
+            + 'there.',
+          th: 'เฉพาะส่วนที่เกิดจากการดำเนินงานของบริษัทเองเท่านั้นที่เป็นข้อมูลกิจกรรมของ Category 5 '
+            + 'ส่วนที่เหลือไม่เคยอยู่ในการดำเนินงานของบริษัท และน้ำหนักรวมตัวเดียวจะทำให้มันถูกนับรวมเข้าไป',
+        },
+        conditions: [
+          {
+            en: 'Separate the two, and use only the own-operations weight as activity data.',
+            th: 'แยกสองส่วนออกจากกัน และใช้เฉพาะน้ำหนักจากการดำเนินงานของบริษัทเองเป็นข้อมูลกิจกรรม',
+          },
+          {
+            en: 'The weight is the input to the calculation, not the category’s figure.',
+            th: 'น้ำหนักเป็นข้อมูลนำเข้าของการคำนวณ ไม่ใช่ตัวเลขของรายการนี้',
+          },
+        ],
+      };
+    }
+
+    // From here the material is the company's own. The role question 306-3
+    // asks is not asked: Category 5's clause does not turn on it.
+    if (facts.insideBoundary === false) {
+      return {
+        verdict: 'refuses',
+        because: {
+          en: 'Category 5 is about the company’s owned or controlled operations, and this activity '
+            + 'sits outside the boundary the inventory covers.',
+          th: 'Category 5 ว่าด้วยการดำเนินงานที่บริษัทเป็นเจ้าของหรือควบคุม และกิจกรรมนี้อยู่นอกขอบเขต '
+            + 'ที่บัญชีก๊าซเรือนกระจกครอบคลุม',
+        },
+      };
+    }
+
+    if (facts.insideBoundary === 'unknown') {
+      return {
+        verdict: 'unknown',
+        settledBy: 'insideBoundary',
+        because: {
+          en: 'The material is the company’s own. What is left is whether the activity sits inside '
+            + 'the operations the inventory covers.',
+          th: 'วัสดุเป็นของบริษัทเอง เหลือเพียงว่ากิจกรรมอยู่ในขอบเขตการดำเนินงานที่บัญชีครอบคลุมหรือไม่',
+        },
+      };
+    }
+
+    return {
+      verdict: 'conditional',
+      because: {
+        en: 'Nothing in this reading refuses this weight as ACTIVITY DATA for Category 5. It is not '
+          + 'the Category 5 figure: that is in CO2e, calculated from the weight with waste-type and '
+          + 'treatment-specific emission factors, which this platform does not hold and will not '
+          + 'estimate.',
+        th: 'การอ่านครั้งนี้ไม่มีข้อใดปฏิเสธการใช้น้ำหนักนี้เป็น "ข้อมูลกิจกรรม" ของ Category 5 แต่ไม่ใช่ '
+          + 'ตัวเลขของ Category 5 ตัวเลขนั้นอยู่ในหน่วย CO2e คำนวณจากน้ำหนักด้วยค่าการปล่อยตามชนิดขยะ '
+          + 'และวิธีบำบัด ซึ่งแพลตฟอร์มนี้ไม่มีและจะไม่ประมาณเอง',
+      },
+      conditions: [
+        {
+          en: 'Only if a third party treats it. Waste treated in the company’s own facilities belongs '
+            + 'in scope 1 and 2, not here.',
+          th: 'เฉพาะเมื่อผู้อื่นเป็นผู้บำบัด ขยะที่บำบัดในสถานที่ของบริษัทเองอยู่ใน scope 1 และ 2 '
+            + 'ไม่ใช่ตรงนี้',
+        },
+        {
+          en: 'State the treatment method for each waste type; the calculation needs it.',
+          th: 'ระบุวิธีบำบัดของขยะแต่ละชนิด เพราะการคำนวณต้องใช้',
+        },
+        {
+          en: 'Report the weight as activity data, never as the category’s figure.',
+          th: 'รายงานน้ำหนักในฐานะข้อมูลกิจกรรม ห้ามรายงานเป็นตัวเลขของรายการนี้',
+        },
+        ...(facts.measuredBy === 'host_verified'
+          ? [{
+            en: 'Verified by the host who ran the activity, which is not independent assurance '
+              + 'under ISAE 3000.',
+            th: 'ตรวจโดยผู้จัดกิจกรรม ซึ่งไม่ใช่การให้ความเชื่อมั่นโดยอิสระตาม ISAE 3000',
+          }]
+          : []),
+        ...(facts.measuredBy === 'declared'
+          ? [{
+            en: 'Self-declared and not verified by anybody here. Say so on the face of it.',
+            th: 'เป็นข้อมูลที่แจ้งเอง ไม่มีผู้ใดที่นี่ตรวจสอบ ให้ระบุไว้บนหน้าเอกสาร',
+          }]
+          : []),
+      ],
+    };
+  },
+};
+
+/** Every rule this build carries. Each one researched, dated and sourced. */
+export const INDICATOR_RULES: readonly IndicatorRule[] = [GRI_306_3, GHG_SCOPE3_CAT5];
 
 /* ------------------------------------------- from somebody else's sheet -- */
 
