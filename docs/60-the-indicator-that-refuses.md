@@ -294,6 +294,42 @@ weight is not. The second meant the guard silently covered less as the rules
 grew. It now walks every branch of every rule and forbids a *quantity* in a
 carbon unit, which is what it was always for.
 
+## What the third rule taught
+
+The third rule is GRI 413-1 against a count of people — the first on the
+social side, written in `#87` from GRI 413: Local Communities 2016 itself.
+
+**The first rule that asks nothing.** 413-1's figure is a *percentage of the
+organisation's operations*. No answer about the activity turns a headcount
+into that, so the rule reads no fact and refuses at once. A question whose
+answer cannot change the verdict is not asked — it would spend the customer's
+time to produce the same sentence.
+
+**The one case the obvious table gets right.** This document opened by arguing
+against a table from our measure to an indicator, because 306-3 turned on a
+fact the measure could not see. Here the clause turns on the *unit*, and the
+measure alone decides it — which is exactly what a table handles. So the
+design was never "facts instead of measures". It is **facts where the clause
+turns on the activity, and the measure where it turns on the unit.** That is a
+more exact statement of the design than the one this document started with.
+
+**People who took part are not, by that alone, local community.** GRI defines
+local communities as people living or working in areas the organisation's
+activities affect. The people on this platform are very often travellers. A
+report calling four hundred visiting volunteers "local community members
+engaged" would misstate who they were, and the redirect says so.
+
+**And building it found a defect in the first two.** Every rule's Thai is a
+long string split across source lines, and a space left at a join is right in
+English and wrong in Thai whenever the join falls mid-phrase. Twelve such
+splits had shipped in `#83` and `#86` — a possessive torn from its noun, the
+placement limit that prints on every result — and four more were written into
+this rule. No test caught them. Neither did the Thai review script, which
+never sees a concatenated literal as one string, so the one place this defect
+lives is the one place it cannot look. Reading the Thai caught them. A guard
+now fails on the shapes that shipped, across every module in the package; it
+does not replace reading.
+
 ## What holds it
 
 The thing this layer sells is a sentence a company cannot get anywhere else
