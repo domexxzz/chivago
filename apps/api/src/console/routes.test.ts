@@ -2366,3 +2366,49 @@ describe('the GHG Category 5 rule, on both sides', () => {
     assert.match(html, /never deducted from them|ห้ามนำไปหักออก/);
   });
 });
+
+/**
+ * The third rule on both sides, again with no console code.
+ *
+ * The interesting part is side A: a pasted sheet in "people" has to be read
+ * as a headcount before 413-1 can speak to it at all.
+ */
+describe('the GRI 413-1 rule, on both sides', () => {
+  const MOD_KEY = 'chv_SOCAA-SOCBB-SOCCC-SOCDD';
+  const asModerator = async () => {
+    db.prepare("UPDATE hosts SET role = 'moderator', api_key_hash = ? WHERE id = 'h-muni'")
+      .run(hashApiKey(MOD_KEY));
+    return signIn(MOD_KEY, 'Nok');
+  };
+  const post = (t: string, path: string, fields: Record<string, string>) => app.request(path, {
+    method: 'POST',
+    headers: { ...withCookie(t), 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: __csrfFor(resolveSession(db, t)!), ...fields }),
+  });
+  const year = new Date().getUTCFullYear();
+
+  test('SIDE A: A SHEET IN “PEOPLE” AIMED AT 413-1 IS REFUSED, WITH NOTHING ASKED', async () => {
+    const mod = await asModerator();
+    const html = await (await post(mod, '/review', {
+      from: `${year}-01-01`, to: `${year}-12-31`,
+      sheet: `activity,date,amount,unit\nBeach clean,${year}-06-01,412,people\n`,
+      carry: '1', framework: 'gri', line: '413-1',
+    })).text();
+    assert.match(html, /ใส่ตรงนี้ไม่ได้/);
+    assert.match(html, /Percentage of operations with implemented local community engagement/);
+    // Nothing is put to the customer, because no answer would change it.
+    assert.doesNotMatch(html, /ถามเขาว่า|Ask them/);
+  });
+
+  test('SIDE B: A QUEST COUNTED IN PEOPLE AND AIMED AT 413-1 IS REFUSED BEFORE IT RUNS', async () => {
+    const mod = await asModerator();
+    await post(mod, '/quests/kpi', { questId: 'q-muni', measure: 'distinct_participants', target: '400' });
+    await post(mod, '/quests/intent', {
+      questId: 'q-muni', framework: 'gri', line: '413-1',
+      materialOrigin: 'unknown', organisationRole: 'unknown', insideBoundary: 'unknown',
+    });
+    const html = await (await app.request('/quests', { headers: withCookie(mod) })).text();
+    assert.match(html, /ใส่ตรงนี้ไม่ได้/);
+    assert.match(html, /GRI 413-1/);
+  });
+});

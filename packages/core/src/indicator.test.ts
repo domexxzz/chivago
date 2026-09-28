@@ -2,7 +2,8 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  FACT_QUESTION, GHG_SCOPE3_CAT5, GRI_306_3, INDICATOR_RULES, PLACEMENT_LIMIT, STALE_AFTER_DAYS,
+  FACT_QUESTION, GHG_SCOPE3_CAT5, GRI_306_3, GRI_413_1, INDICATOR_RULES, PLACEMENT_LIMIT,
+  STALE_AFTER_DAYS,
   UNEXAMINED_NOTE, UNKNOWN_FACTS, VERDICT_LABEL,
   DECLARED_FACTS_NOTE, DECLARED_MEASURED_BY, UNIT_UNRECOGNISED,
   assess, lineKey, measureFromUnit, placeAgainst, unexamined,
@@ -272,8 +273,9 @@ describe('a rule that can be dated, and retired', () => {
 });
 
 describe('the rules this build carries', () => {
-  test('two, and each one was read from its source', () => {
-    assert.deepEqual(INDICATOR_RULES.map((r) => r.id), [GRI_306_3.id, GHG_SCOPE3_CAT5.id]);
+  test('three, and each one was read from its source', () => {
+    assert.deepEqual(INDICATOR_RULES.map((r) => r.id),
+      [GRI_306_3.id, GHG_SCOPE3_CAT5.id, GRI_413_1.id]);
   });
 
   test('no two rules claim the same line in the same standard', () => {
@@ -520,5 +522,156 @@ describe('spellings of the same line', () => {
     assert.equal(lineKey('Scope 3 — Category 5!'), 'scope3category5');
     assert.equal(lineKey('306-3'), '3063');
     assert.equal(lineKey('   '), '');
+  });
+});
+
+/**
+ * The third rule: the first on the social side, and the first that asks
+ * nothing.
+ *
+ * GRI 413-1, read directly from GRI 413: Local Communities 2016. Its figure is
+ * a percentage of the organisation's operations, and no fact about an activity
+ * turns a headcount into one.
+ */
+describe('GRI 413-1 and a count of people', () => {
+  const each: ActivityFacts[] = [
+    UNKNOWN_FACTS, facts(), facts({ materialOrigin: 'third_party' }),
+    facts({ organisationRole: 'funder' }), facts({ insideBoundary: false }),
+    facts({ measuredBy: 'declared' }),
+  ];
+
+  test('A HEADCOUNT IS REFUSED, BECAUSE THE FIGURE IS A SHARE OF OPERATIONS', () => {
+    const p = placeAgainst(GRI_413_1, UNKNOWN_FACTS, ASOF);
+    assert.equal(p.verdict, 'refuses');
+    assert.match(p.because.en, /percentage of the organisation’s operations/);
+    assert.match(p.because.en, /A count\s+of people is not a percentage of operations/);
+  });
+
+  test('THE FIRST RULE THAT ASKS NOTHING — NO ANSWER CHANGES IT', () => {
+    // A question whose answer cannot change the verdict would spend the
+    // customer's time to produce the same sentence. So it is never asked.
+    const verdicts = new Set(each.map((f) => placeAgainst(GRI_413_1, f, ASOF).verdict));
+    assert.deepEqual([...verdicts], ['refuses']);
+    for (const f of each) {
+      const p = placeAgainst(GRI_413_1, f, ASOF);
+      assert.equal(p.settledBy, null);
+      assert.equal(p.ask, null);
+    }
+  });
+
+  test('told nothing at all, it still answers straight away', () => {
+    // Where 306-3 and Category 5 need one answer first, this needs none.
+    const a = placeAgainst(GRI_306_3, UNKNOWN_FACTS, ASOF);
+    const b = placeAgainst(GRI_413_1, UNKNOWN_FACTS, ASOF);
+    assert.equal(a.verdict, 'unknown');
+    assert.equal(b.verdict, 'refuses');
+  });
+
+  test('IT COVERS BOTH HEADCOUNT MEASURES AND NOT THE WEIGHT', () => {
+    for (const m of ['distinct_participants', 'verified_submissions'] as const) {
+      assert.equal(assess(INDICATOR_RULES, m, 'gri', '413-1', facts(), ASOF).ruleId, GRI_413_1.id, m);
+    }
+    assert.equal(assess(INDICATOR_RULES, 'weight_kg', 'gri', '413-1', facts(), ASOF).verdict,
+      'unexamined');
+  });
+
+  test('it sends the figure where it can honestly go', () => {
+    const instead = placeAgainst(GRI_413_1, UNKNOWN_FACTS, ASOF).insteadTry.map((i) => i.en);
+    assert.match(instead[0]!, /GRI 3-3 for local\s+communities/);
+    assert.match(instead[1]!, /the unit is the operation, not the person/);
+    assert.match(instead[1]!, /the number of people is not the figure/);
+  });
+
+  test('PEOPLE WHO TRAVELLED IN ARE NOT LOCAL COMMUNITY BY THAT ALONE', () => {
+    // GRI p.4: local communities are people living or working in areas the
+    // organisation's activities affect. The people on this platform are very
+    // often travellers.
+    const third = placeAgainst(GRI_413_1, UNKNOWN_FACTS, ASOF).insteadTry[2]!;
+    assert.match(third.en, /live or work where the organisation’s\s+activities have an effect/);
+    assert.match(third.en, /travelled in to take part are not, by that alone, among them/);
+    assert.match(third.th, /ผู้ที่เดินทางมาเข้าร่วมไม่ได้เป็นชุมชนท้องถิ่น/);
+  });
+
+  test('it carries its source, read directly and dated', () => {
+    const s = GRI_413_1.source;
+    assert.match(s.clause, /^Percentage of operations with implemented local community engagement$/);
+    assert.match(s.where, /Disclosure 413-1, p\. 8/);
+    assert.match(s.where, /definition of local communities, p\. 4/);
+    assert.equal(s.readOn, '2026-09-28');
+    assert.match(s.notChecked.en, /GRI 3 Disclosure 3-3/);
+    assert.match(s.notChecked.en, /GRI 2 Disclosure 2-6/);
+  });
+
+  test('its line is found however the dash is written', () => {
+    for (const line of ['413-1', '413.1', '413 1']) {
+      assert.equal(assess(INDICATOR_RULES, 'distinct_participants', 'gri', line, facts(), ASOF).ruleId,
+        GRI_413_1.id, line);
+    }
+  });
+});
+
+/**
+ * Thai that reads as Thai.
+ *
+ * Every rule's Thai is a long string broken across source lines with `' + '`.
+ * In English a space at the join is always right, because English separates
+ * words with spaces. In Thai a space marks a PHRASE break, so a space at a join
+ * that falls mid-phrase tears the sentence. The first two rules shipped twelve
+ * of these and the third was written with four more - a possessive torn from
+ * its noun, "แคบ กว่า" split in half, the placement limit that prints on every
+ * result - and no test and no checker saw them. Reading the Thai did.
+ *
+ * Thai spaces cannot simply be forbidden; they separate clauses. What can be
+ * forbidden is a space directly after a word that BINDS to what follows it,
+ * and a space before the comparative. This catches the shapes that happened.
+ * It does not replace reading the Thai.
+ */
+describe('the Thai in every rule', () => {
+  const everyThai = (): string[] => {
+    const out = new Set<string>();
+    // The exported constants too. The first version walked only what rules
+    // return, and missed PLACEMENT_LIMIT - which prints on every placement.
+    for (const b of [PLACEMENT_LIMIT, UNEXAMINED_NOTE, DECLARED_FACTS_NOTE, UNIT_UNRECOGNISED,
+      ...Object.values(VERDICT_LABEL), ...Object.values(FACT_QUESTION)]) {
+      out.add(b.th);
+    }
+    for (const r of INDICATOR_RULES) {
+      out.add(r.source.notChecked.th);
+      for (const mo of ['own_operations', 'third_party', 'mixed', 'unknown'] as const) {
+        for (const role of ['generator', 'manager', 'funder', 'unknown'] as const) {
+          for (const ib of [true, false, 'unknown'] as const) {
+            for (const mb of ['host_verified', 'declared', 'unknown'] as const) {
+              const p = placeAgainst(r, {
+                materialOrigin: mo, organisationRole: role, insideBoundary: ib, measuredBy: mb,
+              }, ASOF);
+              for (const b of [p.because, ...p.conditions, ...p.insteadTry]) out.add(b.th);
+            }
+          }
+        }
+      }
+    }
+    return [...out];
+  };
+
+  test('NO SPACE TEARS A WORD FROM THE WORD IT BINDS TO', () => {
+    const binding = /(ของ|เป็น|ซึ่ง|เพราะ|ไม่ใช่|ว่า) (?=[\u0E00-\u0E7F])/;
+    for (const t of everyThai()) {
+      const m = binding.exec(t);
+      assert.equal(m, null, `a phrase is split after "${m?.[1]}": …${t.slice(Math.max(0, (m?.index ?? 0) - 12), (m?.index ?? 0) + 16)}…`);
+    }
+  });
+
+  test('no comparative is split from its adjective', () => {
+    for (const t of everyThai()) assert.doesNotMatch(t, / กว่า/, t);
+  });
+
+  test('the guard catches the shapes it was written for', () => {
+    // Proof it is not vacuous: the twelve that shipped, in their old form.
+    const binding = /(ของ|เป็น|ซึ่ง|เพราะ|ไม่ใช่|ว่า) (?=[\u0E00-\u0E7F])/;
+    for (const old of ['กิจกรรมของ องค์กรเอง', 'วัสดุนี้เป็น ของผู้ใด', 'GRI 3 ข้อ 3-3 ซึ่ง มาตรฐานนี้',
+      'เพียงเพราะ การเข้าร่วม', 'การจัดการวัสดุไม่ใช่ การก่อขยะ', 'การยืนยันว่า การจัดวาง']) {
+      assert.match(old, binding, old);
+    }
+    assert.match('ที่แคบ กว่านี้', / กว่า/);
   });
 });
