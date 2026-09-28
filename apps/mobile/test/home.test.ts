@@ -462,3 +462,18 @@ describe('what is wrong here', () => {
     assert.match(ui.text(), /Chaweng/, 'the places are still there');
   });
 });
+
+describe('stays and tours has a door on Home', () => {
+  test('STAYS & TOURS IS THE SECOND DOOR, ON SCREEN WITHOUT SCROLLING THE ROW', async () => {
+    // It used to be reachable only from the bottom of the trip planner, three
+    // screens deep, and the owner could not find it.
+    let opened = 0;
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, { ...props, onOpenStays: () => { opened++; } }));
+    const doors = [...new Set(ui.labels())].filter((l) => ['Map', 'Stays & tours', 'Missions'].includes(l));
+    assert.deepEqual(doors, ['Map', 'Stays & tours', 'Missions']);
+    await ui.press('Stays & tours');
+    assert.equal(opened, 1);
+    ui.unmount();
+  });
+});

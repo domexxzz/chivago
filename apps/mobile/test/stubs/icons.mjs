@@ -7,6 +7,7 @@
 const Icon = () => null;
 export default Icon;
 export const ArrowRight = Icon;
+export const BedDouble = Icon;
 export const BusFront = Icon;
 export const Camera = Icon;
 export const Check = Icon;

@@ -137,7 +137,12 @@ a trust signal once there is enough of it to be more than an anecdote.
    place pages**: a listing says where it is in the operator's own words,
    not as a place id, so there is no honest join between the two yet. They
    have their own screen, *Stays & tours*, reached from the trip planner —
-   where a traveller wonders about a boat or a bed. The form runs the
+   where a traveller wonders about a boat or a bed. **That door alone was
+   not enough:** on 29 September the owner could not find the screen, three
+   taps deep at the bottom of the planner. It now also has the second door
+   on Home, on screen without scrolling the row, and a quiet button on the
+   Map tab under the planner — a feature nobody can find is a feature
+   nobody has. The form runs the
    server's own `inquiryProblems`, and the server's refusal now names each
    problem, so the two cannot disagree about what a valid question is. A
    send that fails is said inside the sheet, under the button: verifying the

@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { ChevronRight, LayoutGrid, List, MessageCircle } from 'lucide-react-native';
+import { BedDouble, ChevronRight, LayoutGrid, List, MessageCircle } from 'lucide-react-native';
 import {
   greetingFor, strings,
   type Balances, type ExploredPlace, type Quest, type QuestProgress, type RouteMode, type ScoredPlace,
@@ -40,7 +40,7 @@ const NO_EXPLORED: ExploredPlace[] = [];
 
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
-  onAskConcierge, onToast,
+  onAskConcierge, onOpenStays, onToast,
   onOpenWallet, wayTo = null, onClearWay,
 }: {
   layers: Record<LayerKey, boolean>;
@@ -50,6 +50,8 @@ export function MapScreen({
   onOpenQuest: (id: string) => void;
   onSeeAllQuests: () => void;
   onAskConcierge: () => void;
+  /** Stays & tours: asking a local operator (docs/61). */
+  onOpenStays?: () => void;
   /** Said out loud when a clip is posted from the bar, or refused. */
   onToast: (msg: string) => void;
   balances: Balances;
@@ -369,6 +371,41 @@ export function MapScreen({
         </View>
         <ChevronRight size={18} color={color.neutral600} strokeWidth={2} />
       </Pressable>
+
+      {/*
+        Stays, boats and tours, as quiet as the concierge and for the same
+        reason: the planner is this screen's one loud door. It sits here
+        because a traveller planning a day is the one about to ask where to
+        sleep or which boat to take - and it used to be reachable only from
+        the bottom of the planner, where the owner could not find it.
+      */}
+      {onOpenStays ? (
+        <Pressable
+          onPress={onOpenStays}
+          accessibilityRole="button"
+          accessibilityLabel={`${t(strings.ask.door)}. ${t(strings.ask.doorSub)}`}
+          style={{
+            marginTop: 10,
+            marginHorizontal: gutter,
+            minHeight: 44,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            borderWidth: 1,
+            borderColor: color.neutral400,
+            borderRadius: radius.md,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
+          <BedDouble size={18} color={color.neutral700} strokeWidth={2} />
+          <View style={{ flex: 1 }}>
+            <Heading size={14}>{t(strings.ask.door)}</Heading>
+            <Body size={13} colour={color.neutral600} style={{ marginTop: 2 }}>{t(strings.ask.doorSub)}</Body>
+          </View>
+          <ChevronRight size={18} color={color.neutral600} strokeWidth={2} />
+        </Pressable>
+      ) : null}
 
       <QuestsNearYou
         quests={questsHere}
