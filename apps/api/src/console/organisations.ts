@@ -14,7 +14,7 @@
  */
 
 import { ADJUSTMENT_LIMIT, NOT_ARTICLE_SIX } from '@chivago/core';
-import type { ClaimAdjustment, FundingBasis, Sponsor, Sponsorship } from '@chivago/core';
+import type { ClaimAdjustment, FundingBasis, Sponsor, Sponsorship, TreeCommitment } from '@chivago/core';
 import { esc, html, layout, type Raw } from './html.ts';
 import type { Locale } from './i18n.ts';
 
@@ -32,6 +32,7 @@ const KINDS: { key: string; en: string; th: string }[] = [
 export interface OrgView {
   org: Sponsor;
   sponsorships: Sponsorship[];
+  treeCommitments: TreeCommitment[];
   basis: FundingBasis;
   /** Stand-downs this organisation has recorded, across all of its quests. */
   adjustments: ClaimAdjustment[];
@@ -162,8 +163,9 @@ export function organisationsPage(args: {
 }
 
 function orgSection(view: OrgView, quests: { id: string; name: string }[], csrf: string, locale: Locale): Raw {
-  const { org, sponsorships, basis } = view;
+  const { org, sponsorships, treeCommitments, basis } = view;
   const names = new Map(quests.map((q) => [q.id, q.name]));
+  const trees = new Map(treeCommitments.map((c) => [c.questId, c]));
   const total = sponsorships.reduce((sum, s) => sum + s.fundedTHB, 0);
   const received = sponsorships.reduce((sum, s) => sum + s.receivedTHB, 0);
 
@@ -181,7 +183,7 @@ function orgSection(view: OrgView, quests: { id: string; name: string }[], csrf:
     : html`
       <table>
         <thead>
-          <tr><th>Quest</th><th>Funded</th><th>Received</th><th>Per verified</th><th>Basis</th><th>Claim · การอ้างสิทธิ์</th><th></th></tr>
+          <tr><th>Quest</th><th>Funded</th><th>Received</th><th>Per verified</th><th>Trees</th><th>Basis</th><th>Claim · การอ้างสิทธิ์</th><th></th></tr>
         </thead>
         <tbody>
           ${sponsorships.map((s) => html`
@@ -207,6 +209,14 @@ function orgSection(view: OrgView, quests: { id: string; name: string }[], csrf:
     : html`<span class="muted">${esc(s.receivedAt.slice(0, 10))}</span>`}
               </td>
               <td>${baht(s.perVerifiedTHB)}</td>
+              <td>${trees.has(s.questId)
+    ? html`${trees.get(s.questId)!.treesPerVerified} pending per later verified quest`
+    : html`<form method="post" action="/console/organisations/${esc(org.id)}/trees">
+                    <input type="hidden" name="csrf" value="${esc(csrf)}">
+                    <input type="hidden" name="questId" value="${esc(s.questId)}">
+                    <input name="treesPerVerified" type="number" min="1" step="1" style="width:65px" required>
+                    <button type="submit">Promise</button>
+                  </form>`}</td>
               <td>${esc(basis)}</td>
               <td>${claimCell(org.id, s.questId, view.adjustments, csrf)}</td>
               <td>
@@ -219,6 +229,26 @@ function orgSection(view: OrgView, quests: { id: string; name: string }[], csrf:
             </tr>`)}
         </tbody>
       </table>`}
+
+      ${treeCommitments.length === 0 ? '' : html`
+        <h3>Record physical planting · บันทึกการปลูกจริง</h3>
+        <p class="note">Only use a named planting partner, a real date and coordinates, and a credited HTTPS photo. A promise alone is pending.</p>
+        <form method="post" action="/console/organisations/${esc(org.id)}/planting">
+          <input type="hidden" name="csrf" value="${esc(csrf)}">
+          <label>Quest <select name="questId">
+            ${treeCommitments.map((c) => html`<option value="${esc(c.questId)}">${esc(names.get(c.questId) ?? c.questId)}</option>`)}
+          </select></label>
+          <label>Traveller ID <input name="userId" required></label>
+          <label>Trees <input name="trees" type="number" min="1" step="1" required></label>
+          <label>Partner <input name="partner" required></label>
+          <label>Planted at (ISO date/time) <input name="plantedAt" placeholder="2026-09-28T00:00:00.000Z" required></label>
+          <label>Latitude <input name="lat" type="number" step="any" required></label>
+          <label>Longitude <input name="lng" type="number" step="any" required></label>
+          <label>HTTPS photo URL <input name="photoUrl" type="url" required></label>
+          <label>Photo credit <input name="photoCredit" required></label>
+          <label>Photo licence <input name="photoLicence" required></label>
+          <button type="submit">Record planting</button>
+        </form>`}
 
       ${view.adjustments.length === 0 ? '' : html`
       <p class="note">${esc(NOT_ARTICLE_SIX.en)} <span lang="th">${esc(NOT_ARTICLE_SIX.th)}</span></p>

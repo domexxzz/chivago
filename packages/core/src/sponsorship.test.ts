@@ -2,8 +2,8 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  UNMEASURED, sponsorHeadline, sponsorOutcome,
-  type QuestCounts, type Sponsor, type Sponsorship,
+  UNMEASURED, hasPlantingEvidence, sponsorHeadline, sponsorOutcome, treeImpactFor,
+  type QuestCounts, type Sponsor, type Sponsorship, type TreePlanting,
 } from './sponsorship.ts';
 
 const sponsor: Sponsor = {
@@ -213,5 +213,64 @@ describe('a pledge is not a payment', () => {
   test('with nothing verified, the headline names what arrived, not what was promised', () => {
     const o = sponsorOutcome(sponsor, [funding({ receivedTHB: 0, receivedAt: null })], [counts({ joined: 40 })]);
     assert.match(sponsorHeadline(o).en, /0 THB received and unspent/);
+  });
+});
+
+const treeNow = new Date('2026-09-30T00:00:00.000Z');
+const treeApproval = { userId: 'ana', questId: 'q1', verifiedAt: '2026-09-10T00:00:00.000Z' };
+const treePromise = { sponsorId: 'sp1', questId: 'q1', treesPerVerified: 3, startedAt: '2026-09-01T00:00:00.000Z' };
+const planted: TreePlanting = {
+  id: 'plant-1', userId: 'ana', sponsorId: 'sp1', questId: 'q1', trees: 2,
+  partner: 'Verified planting partner', plantedAt: '2026-09-20T00:00:00.000Z',
+  lat: 9.51, lng: 100.01,
+  photo: { url: 'https://example.org/planting.jpg', credit: 'Partner photographer', licence: 'CC BY 4.0' },
+};
+
+describe('trees promised are not trees planted', () => {
+  test('nothing is attributed without an explicit sponsor ratio', () => {
+    assert.deepEqual(treeImpactFor('ana', [treeApproval], [], [], treeNow), {
+      pending: 0, planted: 0, lines: [],
+    });
+  });
+
+  test('host-approved work after the commitment creates pending trees', () => {
+    const impact = treeImpactFor('ana', [treeApproval], [treePromise], [], treeNow);
+    assert.deepEqual([impact.pending, impact.planted], [3, 0]);
+    assert.deepEqual(impact.lines[0]?.evidence, []);
+  });
+
+  test('one credited planting can be partial, but never exceed the promise', () => {
+    const partial = treeImpactFor('ana', [treeApproval], [treePromise], [planted], treeNow);
+    assert.deepEqual([partial.pending, partial.planted], [1, 2]);
+    assert.equal(partial.lines[0]?.evidence[0]?.id, 'plant-1');
+
+    const capped = treeImpactFor('ana', [treeApproval], [treePromise], [
+      planted, { ...planted, id: 'plant-2', trees: 4 }, planted,
+    ], treeNow);
+    assert.deepEqual([capped.pending, capped.planted], [0, 3]);
+    assert.equal(capped.lines[0]?.evidence.length, 2, 'one evidence id counted twice');
+  });
+
+  test('incomplete or future evidence cannot turn pending into planted', () => {
+    const invalid = [
+      { ...planted, partner: ' ' },
+      { ...planted, plantedAt: '2026-10-01T00:00:00.000Z' },
+      { ...planted, lat: 91 },
+      { ...planted, photo: { ...planted.photo, url: 'http://example.org/photo.jpg' } },
+      { ...planted, photo: { ...planted.photo, credit: '' } },
+      { ...planted, photo: { ...planted.photo, licence: '' } },
+    ];
+    assert.ok(invalid.every((p) => !hasPlantingEvidence(p, treeNow)));
+    const impact = treeImpactFor('ana', [treeApproval], [treePromise], invalid, treeNow);
+    assert.deepEqual([impact.pending, impact.planted], [3, 0]);
+  });
+
+  test('a different traveller, a pre-commitment approval, or a withdrawn award earns nothing', () => {
+    assert.equal(treeImpactFor('bo', [treeApproval], [treePromise], [planted], treeNow).planted, 0);
+    assert.equal(treeImpactFor('ana', [{ ...treeApproval, verifiedAt: '2026-08-31T00:00:00.000Z' }],
+      [treePromise], [planted], treeNow).pending, 0);
+    assert.deepEqual(treeImpactFor('ana', [], [treePromise], [planted], treeNow), {
+      pending: 0, planted: 0, lines: [],
+    });
   });
 });

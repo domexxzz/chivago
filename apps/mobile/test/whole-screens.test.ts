@@ -274,7 +274,8 @@ describe('the marketplace, which needs two fetches to be usable', () => {
   });
 });
 
-describe('the impact screen, which fetches twice independently', () => {
+describe('the impact screen, whose personal, tree and community records load independently', () => {
+  const trees = { pending: 0, planted: 0, lines: [] };
   const mine = [
     { key: 'waste', label: { en: 'Waste collected', th: 'ขยะที่เก็บได้' }, value: 12, unit: 'kg' },
     { key: 'hours', label: { en: 'Volunteer hours', th: 'ชั่วโมงอาสา' }, value: 6, unit: 'h' },
@@ -287,7 +288,7 @@ describe('the impact screen, which fetches twice independently', () => {
   };
 
   test('both halves arrive and both are shown', async () => {
-    const net = server({ 'GET /impact/me': mine, 'GET /impact/community': community });
+    const net = server({ 'GET /impact/me': mine, 'GET /impact/trees': trees, 'GET /impact/community': community });
     try {
       const ui = await mountScreen(h(ImpactScreen, { onToast: noop, refreshKey: 0 }));
       const said = ui.text();
@@ -301,6 +302,7 @@ describe('the impact screen, which fetches twice independently', () => {
   test('when the personal half fails, the community half still shows', async () => {
     const net = server({
       'GET /impact/me': refuses('NO_DATA', 'We could not read your activity.'),
+      'GET /impact/trees': trees,
       'GET /impact/community': community,
     });
     try {
@@ -317,6 +319,7 @@ describe('the impact screen, which fetches twice independently', () => {
     // year", which is a worse lie than an error message.
     const net = server({
       'GET /impact/me': mine,
+      'GET /impact/trees': trees,
       'GET /impact/community': refuses('ESG_DOWN', 'Community totals are unavailable.'),
     });
     try {
@@ -333,7 +336,7 @@ describe('the impact screen, which fetches twice independently', () => {
   });
 
   test('offline shows the offline wording, not two different errors', async () => {
-    const net = server({ 'GET /impact/me': offline(), 'GET /impact/community': offline() });
+    const net = server({ 'GET /impact/me': offline(), 'GET /impact/trees': offline(), 'GET /impact/community': offline() });
     try {
       const ui = await mountScreen(h(ImpactScreen, { onToast: noop, refreshKey: 0 }));
       assert.match(ui.text(), /offline/i);
@@ -409,6 +412,7 @@ describe('the map, whose two fetches fail independently', () => {
 describe('the gentle set, for a day somebody says is hard', () => {
   const routes = (over: Record<string, unknown> = {}) => ({
     'GET /impact/me': [] as unknown[],
+    'GET /impact/trees': { pending: 0, planted: 0, lines: [] },
     'GET /impact/community': { year: 2026, metrics: [] as unknown[] },
     'GET /balance': { total: null, note: 'Not enough of a trip yet.' },
     'POST /wellness/mood': { mood: 'drained', at: '2026-09-13T10:00:00.000Z' },

@@ -21,6 +21,7 @@ import { row, rows, type DB } from './db.ts';
 import { getAir } from './air.ts';
 import { checkinsLastHour } from './crowd-service.ts';
 import { summariesFor } from './place-review-service.ts';
+import { communityTreesPlanted, treeImpactForUser } from './tree-impact-service.ts';
 
 interface PlaceRow {
   id: string; name_en: string; name_th: string; short: string; layer: string;
@@ -268,12 +269,12 @@ export function getPersonalImpact(db: DB, userId: string): ImpactStat[] {
       .get(userId),
   ) ?? { waste_kg: 0, quests_verified: 0 };
 
-  // Mangrove count and volunteer hours come from quest metadata rather than a
-  // separate table for the pilot; both are derived from completed quests.
-  const detail = rows<{ code: string; duration: string }>(
+  // Volunteer hours still come from quest metadata in the pilot. A planted
+  // tree cannot be inferred from a quest code; it needs partner evidence.
+  const detail = rows<{ duration: string }>(
     db
       .prepare(
-        `SELECT q.code, q.duration FROM quest_progress qp
+          `SELECT q.duration FROM quest_progress qp
          JOIN quests q ON q.id = qp.quest_id
          WHERE qp.user_id = ? AND qp.stage = 'complete'`,
       )
@@ -281,11 +282,11 @@ export function getPersonalImpact(db: DB, userId: string): ImpactStat[] {
   );
 
   const hours = detail.reduce((acc, q) => acc + parseDurationHours(q.duration), 0);
-  const mangroves = detail.filter((q) => q.code.startsWith('MG')).length * 34;
+  const treesPlanted = treeImpactForUser(db, userId).planted;
 
   return [
     { key: 'wasteCollected', label: { en: 'Waste collected', th: 'ขยะที่เก็บได้' }, value: round1(totals.waste_kg), unit: 'kg' },
-    { key: 'mangrovesPlanted', label: { en: 'Mangroves planted', th: 'ต้นโกงกางที่ปลูก' }, value: mangroves, unit: '' },
+    { key: 'treesPlanted', label: { en: 'Trees planted', th: 'ต้นไม้ที่ปลูก' }, value: treesPlanted, unit: '' },
     { key: 'volunteerTime', label: { en: 'Volunteer time', th: 'เวลาอาสาสมัคร' }, value: round1(hours), unit: 'hr' },
     { key: 'questsVerified', label: { en: 'Quests verified', th: 'ภารกิจที่ผ่านการตรวจ' }, value: totals.quests_verified, unit: '' },
   ];
@@ -318,7 +319,9 @@ export function getCommunityImpact(db: DB, year: number): CommunityMetric[] {
   return rows.map((r) => ({
     key: r.key,
     label: { en: r.label_en, th: r.label_th },
-    actual: r.actual,
+    // The pilot seed's 1,000 trees was a design placeholder, not a planting
+    // record. Only partner evidence may supply this particular actual.
+    actual: r.key === 'treesPlanted' ? communityTreesPlanted(db, year) : r.actual,
     target: r.target,
     unit: r.unit,
   }));

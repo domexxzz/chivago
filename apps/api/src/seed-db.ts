@@ -112,11 +112,14 @@ for (const o of SEED_OFFERS) {
  * PROVISIONAL. The design's bar percentages imply these targets, but handoff
  * open question 3 says the real numbers must come from the ESG owner. They live
  * in the database precisely so correcting them is an UPDATE, not a release.
+ * Trees are the exception among actuals: no partner evidence exists in the
+ * pilot seed, so the actual starts at zero and is derived on read.
  */
 const YEAR = 2026;
 const COMMUNITY: [string, string, string, number, number, string][] = [
   ['wasteCollected', 'Waste collected', 'ขยะที่เก็บได้', 2500, 3000, 'kg'],
-  ['treesPlanted', 'Trees planted', 'ต้นไม้ที่ปลูก', 1000, 1500, ''],
+  // The tree actual is read from partner evidence, never from this seed.
+  ['treesPlanted', 'Trees planted', 'ต้นไม้ที่ปลูก', 0, 1500, ''],
   ['volunteerHours', 'Volunteer hours', 'ชั่วโมงอาสาสมัคร', 1200, 1620, 'hr'],
   ['participants', 'Participants', 'ผู้เข้าร่วม', 500, 1000, ''],
   ['activities', 'Community activities', 'กิจกรรมชุมชน', 20, 50, ''],

@@ -165,6 +165,12 @@ export function addSponsorship(
   }
   const basis = input.basis ?? 'declared';
   if (!isFundingBasis(basis)) throw new InvalidFunding(`${basis} is not a funding basis.`);
+  const existingTreePromise = row<{ trees_per_verified: number }>(db.prepare(
+    'SELECT trees_per_verified FROM org_sponsorships WHERE org_id = ? AND quest_id = ?',
+  ).get(input.orgId, input.questId));
+  if (existingTreePromise?.trees_per_verified != null && basis !== 'signed') {
+    throw new InvalidFunding('A published tree promise cannot be changed to declared funding.');
+  }
 
   const startedAt = input.startedAt ?? now.toISOString();
   db.prepare(
@@ -220,6 +226,12 @@ export function recordPayment(
 }
 
 export function removeSponsorship(db: DB, orgId: string, questId: string): boolean {
+  const promise = row<{ trees_per_verified: number }>(db.prepare(
+    'SELECT trees_per_verified FROM org_sponsorships WHERE org_id = ? AND quest_id = ?',
+  ).get(orgId, questId));
+  if (promise?.trees_per_verified != null) {
+    throw new InvalidFunding('A published tree promise cannot be removed.');
+  }
   const res = db.prepare('DELETE FROM org_sponsorships WHERE org_id = ? AND quest_id = ?').run(orgId, questId);
   return Number(res.changes ?? 0) > 0;
 }
