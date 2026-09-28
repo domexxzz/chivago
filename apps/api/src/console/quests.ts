@@ -13,7 +13,8 @@
  */
 
 import {
-  MEASURE, QUEST_MEASURES, STANDING_LABEL, VALIDATION_LIMIT, VALIDATION_VS_VERIFICATION,
+  FACT_QUESTION, FRAMEWORK_LABEL, MEASURE, PLACEMENT_LIMIT, QUEST_MEASURES, STANDING_LABEL,
+  VALIDATION_LIMIT, VALIDATION_VS_VERIFICATION, VERDICT_LABEL,
   kpiHeadline, type KpiMeasure, type QuestKpiReadingView,
 } from './quest-kpi-types.ts';
 import { esc, html, layout, type Raw } from './html.ts';
@@ -33,6 +34,26 @@ const pct = (share: number | null): string =>
  * the column exists: without it "locked" would read the same whether the plan
  * preceded the results or followed them.
  */
+/**
+ * The filing cell. One word of verdict and the line it is about.
+ *
+ * A quest nobody has said where they will report is "not placed", which is a
+ * statement about the record and not a grade: most quests will never be
+ * filed anywhere, and a column that read as a failure for all of them would
+ * teach everybody to ignore it.
+ */
+function filingCell(q: QuestKpiReadingView, th: boolean): Raw {
+  const pf = q.preflight;
+  if (pf.state === 'no_intent') return html`<span class="muted">${th ? 'ยังไม่ได้ระบุ' : 'Not placed'}</span>`;
+  const where = `${FRAMEWORK_LABEL[pf.intent.framework]} ${pf.intent.line}`;
+  if (pf.state === 'no_measure') {
+    return html`${esc(where)}<br><span class="muted">${th ? 'ยังไม่มีตัวชี้วัดให้วาง' : 'No KPI to place'}</span>`;
+  }
+  const v = VERDICT_LABEL[pf.placement.verdict];
+  const label = esc(th ? v.th : v.en);
+  return html`${esc(where)}<br>${pf.placement.verdict === 'refuses' ? html`<strong>${label}</strong>` : label}`;
+}
+
 function planCell(q: QuestKpiReadingView, th: boolean): Raw {
   const label = esc(th ? STANDING_LABEL[q.standing].th : STANDING_LABEL[q.standing].en);
   if (q.standing === 'unfixed') return html`<span class="muted">${label}</span>`;
@@ -57,6 +78,8 @@ export function questsPage(args: {
   // Only a quest with an indicator has a plan to fix, and only one that is
   // not already locked can be locked. A superseded quest is lockable again.
   const lockable = withKpi.filter((q) => q.standing === 'unfixed' || q.standing === 'superseded');
+  // Every quest somebody has said where they will report, placed or not.
+  const placed = quests.filter((q) => q.preflight.state !== 'no_intent');
   const locked = quests.filter((q) => q.standing === 'fixed_before' || q.standing === 'fixed_after');
 
   return layout({
@@ -95,6 +118,7 @@ export function questsPage(args: {
             <th>Target</th>
             <th>Of target</th>
             <th>Plan · แผน</th>
+            <th>Filed under · จะยื่นที่</th>
           </tr>
         </thead>
         <tbody>
@@ -108,6 +132,7 @@ export function questsPage(args: {
               No indicator agreed · ยังไม่ได้ตกลงตัวชี้วัด
             </td>
             <td>${planCell(q, th)}</td>
+            <td>${filingCell(q, th)}</td>
           </tr>`
     : html`
           <tr>
@@ -121,6 +146,7 @@ export function questsPage(args: {
             <td>${esc(num(q.reading.target))}</td>
             <td>${esc(pct(q.reading.ofTarget))}</td>
             <td>${planCell(q, th)}</td>
+            <td>${filingCell(q, th)}</td>
           </tr>`)}
         </tbody>
       </table>
@@ -250,6 +276,109 @@ export function questsPage(args: {
 
       <p class="note">${esc(VALIDATION_LIMIT.en)}
         <span lang="th">${esc(VALIDATION_LIMIT.th)}</span></p>
+    </section>
+
+    <section class="panel">
+      <h2>Where it will be reported · จะยื่นรายงานที่ใด</h2>
+      <!--
+        Stage three of docs/60. The same rule the review page runs on a pasted
+        file, run here while the plan can still change. A wrong line found at
+        filing season arrives after the figure exists; found here it costs a
+        conversation.
+
+        Three questions, never four. How the figure was measured is not asked:
+        on this side every figure is verified by the host who ran it, and that
+        is context, not an answer anybody can give differently.
+      -->
+      <p class="note">${esc(th ? PLACEMENT_LIMIT.th : PLACEMENT_LIMIT.en)}</p>
+
+      ${placed.length === 0 ? '' : placed.map((q) => {
+    const pf = q.preflight;
+    if (pf.state !== 'placed') {
+      return pf.state === 'no_measure' ? html`
+      <div style="border-left:6px solid var(--color-text);padding:8px 0 8px 16px;margin:16px 0">
+        <p style="margin:0"><strong>${esc(th ? q.nameTh : q.nameEn)}</strong>
+          · ${esc(FRAMEWORK_LABEL[pf.intent.framework])} ${esc(pf.intent.line)}</p>
+        <p style="margin:6px 0 0">
+          A line is named but no KPI is agreed, so there is no figure to place on it yet.
+          Agree the indicator above first.
+          <span lang="th">ระบุรายการแล้วแต่ยังไม่ได้ตกลงตัวชี้วัด จึงยังไม่มีตัวเลขให้วาง ตกลงตัวชี้วัดด้านบนก่อน</span>
+        </p>
+      </div>` : '';
+    }
+    const p = pf.placement;
+    const v = VERDICT_LABEL[p.verdict];
+    return html`
+      <div style="border-left:6px solid var(--color-text);padding:8px 0 8px 16px;margin:16px 0">
+        <p style="margin:0"><strong>${esc(th ? q.nameTh : q.nameEn)}</strong>
+          · ${esc(FRAMEWORK_LABEL[p.framework])} ${esc(p.line)}
+          · <strong>${esc(th ? v.th : v.en)}</strong></p>
+        <p style="margin:6px 0 0">${esc(th ? p.because.th : p.because.en)}</p>
+        ${p.ask === null ? '' : html`
+        <p style="margin:8px 0 0"><strong>${th ? 'ถามเขาว่า' : 'Ask them'}</strong><br>
+          ${esc(th ? p.ask.th : p.ask.en)}</p>`}
+        ${p.conditions.length === 0 ? '' : html`
+        <ul>${p.conditions.map((cnd) => html`<li>${esc(th ? cnd.th : cnd.en)}</li>`)}</ul>`}
+        ${p.insteadTry.length === 0 ? '' : html`
+        <p style="margin:8px 0 2px"><strong>${th ? 'ใส่ที่ใดได้บ้าง' : 'Where it could go instead'}</strong></p>
+        <ul>${p.insteadTry.map((i) => html`<li>${esc(th ? i.th : i.en)}</li>`)}</ul>`}
+        ${p.source === null ? '' : html`
+        <p class="note" style="margin:6px 0 0">
+          “${esc(p.source.clause)}” — ${esc(p.source.where)}.
+          ${esc(p.readingAgeDays === 1 ? 'Read 1 day ago' : `Read ${p.readingAgeDays} days ago`)}${p.stale ? html` · <strong>THIS READING IS OUT OF DATE</strong>` : ''}.
+        </p>`}
+      </div>`;
+  })}
+
+      <h3>Say where it will be reported · ระบุที่จะยื่น</h3>
+      <form method="post" action="/console/quests/intent">
+        <input type="hidden" name="csrf" value="${esc(csrf)}">
+        <p>
+          <label>Quest · ภารกิจ<br>
+            <select name="questId">
+              ${quests.map((q) => html`
+                <option value="${esc(q.questId)}">${esc(th ? q.nameTh : q.nameEn)}</option>`)}
+            </select></label>
+        </p>
+        <p>
+          <label>Standard · มาตรฐาน<br>
+            <select name="framework">
+              <option value="gri">${esc(FRAMEWORK_LABEL.gri)}</option>
+              <option value="ifrs_s">${esc(FRAMEWORK_LABEL.ifrs_s)}</option>
+              <option value="ghg_protocol">${esc(FRAMEWORK_LABEL.ghg_protocol)}</option>
+              <option value="sec_56_1">${esc(FRAMEWORK_LABEL.sec_56_1)}</option>
+            </select></label>
+          <!--
+            A free-text line, not a dropdown of codes. docs/60 names the
+            dropdown as the one thing never to build: the moment a list is
+            offered, somebody picks the nearest one and the layer's whole
+            contribution - asking whether it belongs there at all - is gone.
+          -->
+          <label style="margin-left:12px">Line · รายการ<br>
+            <input name="line" type="text" placeholder="306-3" style="width:110px" required></label>
+        </p>
+        <p><label>${esc(th ? FACT_QUESTION.materialOrigin.th : FACT_QUESTION.materialOrigin.en)}<br>
+          <select name="materialOrigin">
+            <option value="unknown">${th ? 'ยังไม่ได้ตอบ' : 'Not answered yet'}</option>
+            <option value="own_operations">${th ? 'การดำเนินงานของเขาเอง' : 'Their own operations'}</option>
+            <option value="third_party">${th ? 'ผู้อื่นเป็นผู้ทิ้ง' : 'Somebody else discarded it'}</option>
+            <option value="mixed">${th ? 'ทั้งสองอย่าง' : 'Both'}</option>
+          </select></label></p>
+        <p><label>${esc(th ? FACT_QUESTION.organisationRole.th : FACT_QUESTION.organisationRole.en)}<br>
+          <select name="organisationRole">
+            <option value="unknown">${th ? 'ยังไม่ได้ตอบ' : 'Not answered yet'}</option>
+            <option value="generator">${th ? 'เป็นผู้ก่อวัสดุ' : 'Generated the material'}</option>
+            <option value="manager">${th ? 'จัดการวัสดุของผู้อื่น' : 'Managed somebody else’s'}</option>
+            <option value="funder">${th ? 'เป็นผู้ให้ทุน' : 'Funded it'}</option>
+          </select></label></p>
+        <p><label>${esc(th ? FACT_QUESTION.insideBoundary.th : FACT_QUESTION.insideBoundary.en)}<br>
+          <select name="insideBoundary">
+            <option value="unknown">${th ? 'ยังไม่ได้ตอบ' : 'Not answered yet'}</option>
+            <option value="yes">${th ? 'อยู่' : 'Yes'}</option>
+            <option value="no">${th ? 'ไม่อยู่' : 'No'}</option>
+          </select></label></p>
+        <p class="actions"><button type="submit">Check it now · ตรวจตอนนี้</button></p>
+      </form>
     </section>`}`);
 }
 

@@ -4,6 +4,7 @@
  */
 
 import type { PlanStanding } from '@chivago/core';
+import type { Preflight } from '../indicator-service.ts';
 import type { QuestKpiReading } from '../kpi-service.ts';
 
 export interface QuestKpiReadingView {
@@ -18,9 +19,12 @@ export interface QuestKpiReadingView {
   lockedAt: string | null;
   /** How many activities were already verified then. Only meaningful when locked. */
   verifiedAtLock: number | null;
+  /** Where the partner intends to report it, checked against the rule. */
+  preflight: Preflight;
 }
 
 export {
-  MEASURE, QUEST_MEASURES, STANDING_LABEL, VALIDATION_LIMIT, VALIDATION_VS_VERIFICATION,
+  FACT_QUESTION, FRAMEWORK_LABEL, MEASURE, PLACEMENT_LIMIT, QUEST_MEASURES, STANDING_LABEL,
+  VALIDATION_LIMIT, VALIDATION_VS_VERIFICATION, VERDICT_LABEL,
   kpiHeadline, type KpiMeasure,
 } from '@chivago/core';

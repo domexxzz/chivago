@@ -231,6 +231,11 @@ textarea.input { min-height: 90px; resize: vertical; }
   border-bottom: 1px solid var(--color-divider);
 }
 .table tbody tr:hover { background: color-mix(in srgb, var(--color-text) 4%, transparent); }
+/* A wide table scrolls inside its own box instead of pushing the page
+   sideways. The quests page wrapped its table in .scroll from the day it was
+   written, and nothing ever defined the class - so the wrapper did nothing
+   until the table grew an eighth column and there was something to contain. */
+.scroll { overflow-x: auto; max-width: 100%; }
 
 /* — dialog — */
 .dialog-backdrop {

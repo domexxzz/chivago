@@ -573,3 +573,32 @@ export const DECLARED_FACTS_NOTE: Bilingual = {
 
 export const isFramework = (v: string): v is Framework =>
   v === 'gri' || v === 'ifrs_s' || v === 'ghg_protocol' || v === 'sec_56_1';
+
+/* ---------------------------------------------- from a quest we ran -- */
+
+/**
+ * The mirror of `DECLARED_MEASURED_BY`, and the finding stage three forced.
+ *
+ * Stage two found that a pasted file's `measuredBy` is not a question - it is
+ * `declared` by definition. Stage three found the other half: a quest's figure
+ * is `host_verified` by definition, because on this side every approval is a
+ * named host passing a proof. So `measuredBy` is never asked of anybody, on
+ * either side. It is fixed by WHICH SIDE OF THE BUSINESS the figure came from.
+ *
+ * That turns the fact set into three questions and one piece of context,
+ * which is a more honest description of it than the four "facts" `docs/60`
+ * started with. The rule still reads all four - `measuredBy` changes what a
+ * permitted placement must say - but only three are ever put to a person.
+ */
+export const QUEST_MEASURED_BY: MeasuredBy = 'host_verified';
+
+/** The three a person is ever asked. `measuredBy` is not among them, on purpose. */
+export const ASKED_FACTS: readonly Exclude<FactName, 'measuredBy'>[] = [
+  'materialOrigin', 'organisationRole', 'insideBoundary',
+];
+
+export const isMaterialOrigin = (v: string): v is MaterialOrigin =>
+  v === 'own_operations' || v === 'third_party' || v === 'mixed' || v === 'unknown';
+
+export const isOrganisationRole = (v: string): v is OrganisationRole =>
+  v === 'generator' || v === 'manager' || v === 'funder' || v === 'unknown';

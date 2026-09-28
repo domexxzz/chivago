@@ -224,7 +224,16 @@ reading there makes every answer below it about the wrong kind of figure.
 **Third: the pre-flight on a fixed plan.** When `#77` locks a quest's
 measurement plan, run the layer against the indicator the partner intends. A
 wrong indicator caught before the activity runs is worth more than the same
-finding at filing season, and it is the same rule doing it.
+finding at filing season, and it is the same rule doing it. **Done in `#85`**,
+and it finished the finding stage two started: `measuredBy` is never a
+question on *either* side. A pasted file is declared by definition; a quest's
+figure is host-verified by definition. It is fixed by which side of the
+business the figure came from, so the fact set is really three questions and
+one piece of context. Two decisions went the other way from what the design
+implied: the intended line is **not** in the plan's digest, because where a
+figure is reported is not what was measured; and it is **not** frozen by a
+plan lock, because the point of catching a wrong line early is being able to
+correct it without superseding a measurement plan that was never wrong.
 
 **Never: a dropdown of indicators to pick from.** The moment the UI offers a
 list of GRI codes, somebody picks the nearest one and the layer's whole
