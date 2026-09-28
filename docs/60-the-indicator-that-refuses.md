@@ -240,6 +240,60 @@ list of GRI codes, somebody picks the nearest one and the layer's whole
 contribution — *asking whether it belongs there at all* — has been designed
 out of the product.
 
+## What the second rule taught
+
+The design said a second researched case would *almost certainly add a fact,
+and may show that one of these two was badly drawn.* The second rule is GHG
+Protocol Scope 3 Category 5, written in `#86` from the Technical Guidance
+chapter itself — read directly, pages 72–80, not through a summary. The
+prediction was half right, and the half it got wrong is the more useful one.
+
+**The same fact decides two standards.** Category 5 is defined by waste
+*generated in the reporting company's owned or controlled operations* —
+which is the fact GRI 306-3 turns on, reached from a different document by a
+different body. Keying rules on facts about the activity rather than on our
+measures was a bet made on one example. Two independent standards landing on
+the same fact is the first evidence it was right, and it has a direct
+commercial consequence: **a customer answers "whose waste was it?" once, and
+it settles both lines.** A test holds the two rules to the same verdict for
+every answer.
+
+**Not every rule needs every fact.** Category 5 never asks about the
+organisation's role, because its clause does not turn on it. The design
+implied a fixed questionnaire; it is actually each rule asking only what its
+clause needs.
+
+**A weight can be an input without being the answer.** For a company's own
+waste, kilograms are exactly the activity data Category 5's calculation starts
+from — and still not the Category 5 figure, which is in CO2e and needs
+emission factors this platform does not hold. That is a kind of `conditional`
+the first rule never produced, and it is the most useful sentence the second
+rule says.
+
+**The predicted new fact did arrive — and was deliberately not made a
+question.** Category 5 also requires the waste to be treated by a *third
+party*; a company's own facility is scope 1 and 2. That is a genuine new
+fact. It is carried as a condition on the permitted branch rather than asked,
+because the activities this platform runs are never treated in a customer's
+own plant, and a question every customer answers the same way is a cost with
+no finding in it. The day a rule needs it to change a verdict, it becomes a
+question.
+
+**What the design did not predict at all was line identity.** GRI has one
+canonical code per disclosure. The GHG Protocol does not — *Category 5*,
+*Cat 5* and *Scope 3 Category 5* are the same line, and a partner types
+whichever they use. So a rule now lists its aliases, matched exactly after a
+deterministic normalisation. Never fuzzily: a bare "5" or "Category 50" stays
+`unexamined`, for the same reason `measureFromUnit` refused to guess a unit.
+
+**And one of the first rule's own guards was wrong.** The test that no verdict
+carries a converted figure refused the string "CO2e" outright, and only walked
+306-3's branches. The first flaw would have stopped the second rule saying the
+one thing it most needs to say — that Category 5 is reported in CO2e, and a
+weight is not. The second meant the guard silently covered less as the rules
+grew. It now walks every branch of every rule and forbids a *quantity* in a
+carbon unit, which is what it was always for.
+
 ## What holds it
 
 The thing this layer sells is a sentence a company cannot get anywhere else

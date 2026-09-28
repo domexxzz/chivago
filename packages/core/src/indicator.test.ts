@@ -2,10 +2,10 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  FACT_QUESTION, GRI_306_3, INDICATOR_RULES, PLACEMENT_LIMIT, STALE_AFTER_DAYS,
-  UNEXAMINED_NOTE, VERDICT_LABEL,
+  FACT_QUESTION, GHG_SCOPE3_CAT5, GRI_306_3, INDICATOR_RULES, PLACEMENT_LIMIT, STALE_AFTER_DAYS,
+  UNEXAMINED_NOTE, UNKNOWN_FACTS, VERDICT_LABEL,
   DECLARED_FACTS_NOTE, DECLARED_MEASURED_BY, UNIT_UNRECOGNISED,
-  assess, measureFromUnit, placeAgainst, unexamined,
+  assess, lineKey, measureFromUnit, placeAgainst, unexamined,
   type ActivityFacts, type Placement,
 } from './indicator.ts';
 
@@ -142,22 +142,46 @@ describe('what this module declines to be', () => {
     }
   });
 
-  test('NO VERDICT EVER CARRIES A CONVERTED FIGURE', () => {
+  test('NO VERDICT EVER CARRIES A CONVERTED FIGURE, IN ANY RULE', () => {
     // The moment a mapping layer can say "and therefore 2.4 tCO2e" it has
     // become the emission-factor table `esg.ts` has refused since it was
     // written. Nothing in Placement is a quantity except the reading's age.
-    const everyBranch: Placement[] = [
-      place(), place({ materialOrigin: 'third_party' }), place({ materialOrigin: 'mixed' }),
-      place({ materialOrigin: 'unknown' }), place({ organisationRole: 'funder' }),
-      place({ organisationRole: 'unknown' }), place({ insideBoundary: false }),
-      place({ insideBoundary: 'unknown' }), unexamined('gri', '306-3'),
+    //
+    // Walked across EVERY rule, not one. The first version of this test only
+    // walked 306-3's branches, so it never saw the second rule's prose at all
+    // - a guard that silently covers less as the rules grow.
+    //
+    // And it forbids a QUANTITY in a carbon unit, not the unit's name. The
+    // first version refused the string "CO2e" outright, which would have
+    // stopped the GHG rule saying the one thing it most needs to say: that
+    // Category 5 is reported in CO2e, and a weight is not. The intent - no
+    // converted figure - is kept and made exact.
+    const branches: ActivityFacts[] = [
+      facts(), facts({ materialOrigin: 'third_party' }), facts({ materialOrigin: 'mixed' }),
+      facts({ materialOrigin: 'unknown' }), facts({ organisationRole: 'funder' }),
+      facts({ organisationRole: 'unknown' }), facts({ insideBoundary: false }),
+      facts({ insideBoundary: 'unknown' }), facts({ measuredBy: 'declared' }),
     ];
-    for (const p of everyBranch) {
+    const every: Placement[] = [
+      ...INDICATOR_RULES.flatMap((r) => branches.map((f) => placeAgainst(r, f, ASOF))),
+      unexamined('gri', '306-3'),
+    ];
+    for (const p of every) {
       const prose = [p.because, ...p.conditions, ...p.insteadTry]
         .flatMap((b) => [b.en, b.th]).join(' ');
-      assert.doesNotMatch(prose, /tCO2e|CO2e|kgCO2/i, `${p.verdict} produced a carbon unit`);
-      assert.doesNotMatch(prose, /\d+(\.\d+)?\s*(kg|tonnes?|t\b)/i, `${p.verdict} produced a quantity`);
+      assert.doesNotMatch(prose, /\d+(\.\d+)?\s*(t|kg|g)?\s*CO2e?/i,
+        `${p.ruleId} ${p.verdict} produced a carbon quantity`);
+      assert.doesNotMatch(prose, /\d+(\.\d+)?\s*(kg|tonnes?|t\b)/i,
+        `${p.ruleId} ${p.verdict} produced a quantity`);
     }
+  });
+
+  test('the carbon guard still catches the thing it exists for', () => {
+    // Proof the refined pattern is not vacuous.
+    for (const bad of ['2.4 tCO2e', '120 kgCO2', '3 t CO2e', '0.5 CO2e']) {
+      assert.match(bad, /\d+(\.\d+)?\s*(t|kg|g)?\s*CO2e?/i, bad);
+    }
+    assert.doesNotMatch('reported as emissions in CO2e', /\d+(\.\d+)?\s*(t|kg|g)?\s*CO2e?/i);
   });
 
   test('the limit travels with every result and says it is a reading', () => {
@@ -248,9 +272,23 @@ describe('a rule that can be dated, and retired', () => {
 });
 
 describe('the rules this build carries', () => {
-  test('one, and it is the researched one', () => {
-    assert.equal(INDICATOR_RULES.length, 1);
-    assert.equal(INDICATOR_RULES[0]!.id, GRI_306_3.id);
+  test('two, and each one was read from its source', () => {
+    assert.deepEqual(INDICATOR_RULES.map((r) => r.id), [GRI_306_3.id, GHG_SCOPE3_CAT5.id]);
+  });
+
+  test('no two rules claim the same line in the same standard', () => {
+    // Otherwise `assess` would answer with whichever came first and the
+    // other would be dead code nobody noticed.
+    const seen = new Set<string>();
+    for (const r of INDICATOR_RULES) {
+      for (const l of [r.line, ...(r.aliases ?? [])]) {
+        for (const m of r.measures) {
+          const k = `${r.framework}|${lineKey(l)}|${m}`;
+          assert.ok(!seen.has(k), `${r.id} and another rule both claim ${k}`);
+          seen.add(k);
+        }
+      }
+    }
   });
 
   test('every rule can be dated and sourced', () => {
@@ -335,5 +373,152 @@ describe('which measure a declared file is talking about', () => {
     const p = placeAgainst(GRI_306_3, facts({ measuredBy: DECLARED_MEASURED_BY }), ASOF);
     assert.equal(p.verdict, 'conditional');
     assert.match(p.conditions[1]!.en, /Self-declared and not verified by anybody here/);
+  });
+});
+
+/**
+ * The second rule, and what it taught the design.
+ *
+ * GHG Protocol Scope 3 Category 5, written from the Technical Guidance
+ * chapter itself. The weight of collected litter turned into carbon and
+ * netted against a footprint is the move `esg.ts` has refused in prose since
+ * it was written; this is the same refusal with a clause behind it.
+ */
+describe('GHG Protocol Scope 3 Category 5', () => {
+  const cat5 = (over: Partial<ActivityFacts> = {}) => placeAgainst(GHG_SCOPE3_CAT5, facts(over), ASOF);
+
+  test('BEACH LITTER IS REFUSED, ON THE CATEGORY’S OWN DEFINITION', () => {
+    const p = cat5({ materialOrigin: 'third_party' });
+    assert.equal(p.verdict, 'refuses');
+    assert.match(p.because.en, /owned or controlled\s+operations/);
+    assert.match(p.because.en, /Material somebody else discarded was never in them/);
+  });
+
+  test('AND IT SAYS WHY A WEIGHT CANNOT BE THE FIGURE AT ALL', () => {
+    // The category is reported in CO2e. Saying so is the refusal; printing a
+    // converted number would be the lie.
+    assert.match(cat5({ materialOrigin: 'third_party' }).because.en, /in CO2e, which a weight is not/);
+  });
+
+  test('AVOIDED EMISSIONS ARE NEVER OFFERED AS A WAY ROUND IT', () => {
+    // p.79: any claims of avoided emissions associated with recycling should
+    // not be included in, or deducted from, the scope 3 inventory.
+    const p = cat5({ materialOrigin: 'third_party' });
+    const instead = p.insteadTry.map((i) => i.en).join(' ');
+    assert.match(instead, /never deducted from them/);
+    assert.match(instead, /which ChivaGo does not supply/);
+  });
+
+  test('THE COMPANY’S OWN WASTE IS ACTIVITY DATA, AND STILL NOT THE ANSWER', () => {
+    // A weight can be the input to the calculation without being its result.
+    const p = cat5();
+    assert.equal(p.verdict, 'conditional');
+    assert.match(p.because.en, /as ACTIVITY DATA for Category 5/);
+    assert.match(p.because.en, /It is not\s+the Category 5 figure/);
+    assert.match(p.because.en, /does not hold and will not\s+estimate/);
+  });
+
+  test('the new fact the design predicted arrives as a condition', () => {
+    // Treatment by a third party is required - a company's own facility is
+    // scope 1 and 2 - and it is carried as a condition, not asked.
+    assert.match(cat5().conditions[0]!.en, /Only if a third party treats it/);
+    assert.match(cat5().conditions[0]!.en, /belongs\s+in scope 1 and 2/);
+  });
+
+  test('NOT EVERY RULE NEEDS EVERY FACT: CATEGORY 5 NEVER ASKS THE ROLE', () => {
+    // Its clause does not turn on role, so an unknown role changes nothing.
+    assert.equal(cat5({ organisationRole: 'unknown' }).verdict, 'conditional');
+    assert.equal(cat5({ organisationRole: 'unknown' }).settledBy, null);
+    for (const role of ['generator', 'manager', 'funder', 'unknown'] as const) {
+      assert.notEqual(cat5({ organisationRole: role }).settledBy, 'organisationRole');
+    }
+  });
+
+  test('told nothing, it asks the same question 306-3 asks', () => {
+    const p = cat5({ materialOrigin: 'unknown' });
+    assert.equal(p.settledBy, 'materialOrigin');
+    assert.match(p.because.en, /same question that settles GRI 306-3/);
+  });
+
+  test('mixed material must be separated first', () => {
+    const p = cat5({ materialOrigin: 'mixed' });
+    assert.equal(p.verdict, 'conditional');
+    assert.match(p.conditions[0]!.en, /Separate the two/);
+  });
+
+  test('outside the inventory boundary is refused; unknown boundary is asked', () => {
+    assert.equal(cat5({ insideBoundary: false }).verdict, 'refuses');
+    assert.equal(cat5({ insideBoundary: 'unknown' }).settledBy, 'insideBoundary');
+  });
+
+  test('it carries its source, read directly and dated', () => {
+    const s = GHG_SCOPE3_CAT5.source;
+    assert.match(s.clause, /owned or controlled operations/);
+    assert.match(s.where, /Category 5: Waste Generated in Operations, pp\. 72–80/);
+    assert.equal(s.readOn, '2026-09-28');
+    assert.match(s.notChecked.en, /section 9\.5 on avoided emissions/);
+  });
+});
+
+describe('the same fact deciding two standards', () => {
+  test('ONE ANSWER ABOUT WHOSE WASTE IT WAS SETTLES BOTH RULES THE SAME WAY', () => {
+    // Keying on facts about the activity was a bet made on one example. Two
+    // independent standards, written by different bodies, both turn on this
+    // one fact - and a customer answers it once.
+    for (const origin of ['own_operations', 'third_party', 'mixed', 'unknown'] as const) {
+      const f = facts({ materialOrigin: origin });
+      const gri = placeAgainst(GRI_306_3, f, ASOF).verdict;
+      const ghg = placeAgainst(GHG_SCOPE3_CAT5, f, ASOF).verdict;
+      assert.equal(gri, ghg, `${origin}: GRI said ${gri}, GHG said ${ghg}`);
+    }
+  });
+
+  test('told nothing, both ask exactly the same question', () => {
+    const a = placeAgainst(GRI_306_3, UNKNOWN_FACTS, ASOF);
+    const b = placeAgainst(GHG_SCOPE3_CAT5, UNKNOWN_FACTS, ASOF);
+    assert.equal(a.ask?.en, b.ask?.en);
+  });
+});
+
+describe('spellings of the same line', () => {
+  test('GRI 306-3 is found however the dash is written', () => {
+    for (const line of ['306-3', '306.3', '306 3', ' 306-3 ']) {
+      assert.equal(assess(INDICATOR_RULES, 'weight_kg', 'gri', line, facts(), ASOF).ruleId,
+        GRI_306_3.id, line);
+    }
+  });
+
+  test('THE GHG LINE HAS SEVERAL NAMES AND EACH IS LISTED, NOT GUESSED', () => {
+    for (const line of ['Scope 3 Category 5', 'Category 5', 'cat 5', 'Cat. 5', 'S3C5', 'scope 3 cat 5']) {
+      assert.equal(assess(INDICATOR_RULES, 'weight_kg', 'ghg_protocol', line, facts(), ASOF).ruleId,
+        GHG_SCOPE3_CAT5.id, line);
+    }
+  });
+
+  test('A NEAR MISS IS A MISS', () => {
+    // A bare "5" could be anything in any standard. A guessed line would run
+    // a rule against a line it was never about.
+    for (const line of ['5', 'Category 12', 'Scope 3', 'Category 50', '']) {
+      assert.equal(assess(INDICATOR_RULES, 'weight_kg', 'ghg_protocol', line, facts(), ASOF).verdict,
+        'unexamined', line);
+    }
+  });
+
+  test('a line never crosses into another standard', () => {
+    assert.equal(assess(INDICATOR_RULES, 'weight_kg', 'gri', 'Category 5', facts(), ASOF).verdict,
+      'unexamined');
+    assert.equal(assess(INDICATOR_RULES, 'weight_kg', 'ghg_protocol', '306-3', facts(), ASOF).verdict,
+      'unexamined');
+  });
+
+  test('the placement shows the canonical line, not what was typed', () => {
+    assert.equal(assess(INDICATOR_RULES, 'weight_kg', 'ghg_protocol', 'cat 5', facts(), ASOF).line,
+      'Scope 3 Category 5');
+  });
+
+  test('lineKey is deterministic and dull', () => {
+    assert.equal(lineKey('Scope 3 — Category 5!'), 'scope3category5');
+    assert.equal(lineKey('306-3'), '3063');
+    assert.equal(lineKey('   '), '');
   });
 });

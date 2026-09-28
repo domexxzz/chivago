@@ -2321,3 +2321,48 @@ describe('checking where a quest will be reported, before it runs', () => {
     assert.equal((await post(lab, '/quests/intent', { questId: 'q-lab' })).status, 404);
   });
 });
+
+/**
+ * The second rule, reaching both console pages without a line of console code.
+ *
+ * Both pages call `assess(INDICATOR_RULES, …)`. A rule is data plus one
+ * function; if adding one needed a page change, the machinery was wrong.
+ */
+describe('the GHG Category 5 rule, on both sides', () => {
+  const MOD_KEY = 'chv_GHGAA-GHGBB-GHGCC-GHGDD';
+  const asModerator = async () => {
+    db.prepare("UPDATE hosts SET role = 'moderator', api_key_hash = ? WHERE id = 'h-muni'")
+      .run(hashApiKey(MOD_KEY));
+    return signIn(MOD_KEY, 'Nok');
+  };
+  const post = (t: string, path: string, fields: Record<string, string>) => app.request(path, {
+    method: 'POST',
+    headers: { ...withCookie(t), 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: __csrfFor(resolveSession(db, t)!), ...fields }),
+  });
+  const year = new Date().getUTCFullYear();
+
+  test('SIDE A: A PASTED FILE AIMED AT “CAT 5” IS REFUSED', async () => {
+    const mod = await asModerator();
+    const html = await (await post(mod, '/review', {
+      from: `${year}-01-01`, to: `${year}-12-31`,
+      sheet: `activity,date,amount,unit\nBeach clean,${year}-06-01,42,kg\n`,
+      carry: '1', framework: 'ghg_protocol', line: 'cat 5', materialOrigin: 'third_party',
+    })).text();
+    assert.match(html, /ใส่ตรงนี้ไม่ได้/);
+    assert.match(html, /Scope 3 Category 5/, 'the canonical line was not shown');
+    assert.match(html, /owned or controlled operations/);
+  });
+
+  test('SIDE B: A QUEST AIMED AT CATEGORY 5 IS REFUSED BEFORE IT RUNS', async () => {
+    const mod = await asModerator();
+    await post(mod, '/quests/kpi', { questId: 'q-muni', measure: 'weight_kg', target: '400' });
+    await post(mod, '/quests/intent', {
+      questId: 'q-muni', framework: 'ghg_protocol', line: 'Category 5',
+      materialOrigin: 'third_party', organisationRole: 'unknown', insideBoundary: 'unknown',
+    });
+    const html = await (await app.request('/quests', { headers: withCookie(mod) })).text();
+    assert.match(html, /ใส่ตรงนี้ไม่ได้/);
+    assert.match(html, /never deducted from them|ห้ามนำไปหักออก/);
+  });
+});
