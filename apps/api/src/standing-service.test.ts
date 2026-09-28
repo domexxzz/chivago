@@ -191,10 +191,29 @@ describe('a reversed award leaves no standing behind', () => {
     approve('ana', 'q2');
     award('ana', 'q1');
     award('ana', 'q2');
-    assert.equal(hostStandings(db)[0]!.greenIssued, 200);
+    assert.deepEqual(
+      [hostStandings(db)[0]!.verified, hostStandings(db)[0]!.greenIssued],
+      [2, 200],
+    );
 
     takeBack('ana', 'q1');
-    assert.equal(hostStandings(db)[0]!.greenIssued, 100, 'the clawed-back award still counted');
+    assert.deepEqual(
+      [hostStandings(db)[0]!.verified, hostStandings(db)[0]!.greenIssued],
+      [1, 100],
+      'the withdrawn submission still raised the host ranking or Green total',
+    );
+  });
+
+  test('an approval with no award still counts because there is nothing to reverse', () => {
+    addHost('h1', 'Beach team');
+    addQuest('q1', 'h1');
+    addUser('ana', 'Ana');
+    approve('ana', 'q1');
+
+    assert.deepEqual(
+      [hostStandings(db)[0]!.verified, hostStandings(db)[0]!.greenIssued],
+      [1, 0],
+    );
   });
 
   test('a traveller loses the points and the mission, not one or the other', () => {
