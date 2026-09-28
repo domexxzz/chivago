@@ -41,6 +41,8 @@ export const SEED_HOSTS: Record<string, QuestHost> = {
   // reason kuTeam is one: a host is the party vouching for the work, and two
   // campuses are two parties even when the same people staff both.
   rmuttTeam: { id: 'h-rmutt-chivago', name: 'ChivaGo team · RMUTT Thanyaburi', type: 'community' },
+  // A separate review queue and statement for the Bangkhen campus.
+  kuBangkhen: { id: 'h-ku-bangkhen-chivago', name: 'ChivaGo Team · KU Bangkhen', type: 'community' },
 };
 
 // ---------------------------------------------------------------------------
@@ -507,6 +509,84 @@ export const SEED_PLACES: Place[] = [
     photo: null,
     metrics: { aqi: 38, crowdDensity: 1.5, safetyIndex: 6.4, walkability: 7.4 },
   },
+  /*
+    KU Bangkhen, Bangkok (TH-10). Each position is the centre of its named
+    OpenStreetMap feature, read through Overpass on 2026-09-28. The one shared
+    AQI is a seed fallback, NOT five measurements; no PCD/Air4Thai station ID
+    has been confirmed for this site, so these records carry no airStation.
+    The non-air metrics are campus-place estimates, not survey results. No
+    photographs have been licensed or supplied, so every photo is null.
+  */
+  {
+    // OSM way 589727993: อาคารช่วงเกษตรศิลปการ, the university library building.
+    id: 'ku-bk-library',
+    name: { en: 'Kasetsart University Library', th: 'สำนักหอสมุด มก. (อาคารช่วงเกษตรศิลปการ)' },
+    short: 'Library', layer: 'Safe', province: 'TH-10',
+    lat: 13.8476433, lng: 100.5718353,
+    meta: 'Library · Indoor · Air modelled, not measured',
+    blurb: {
+      en: 'The university library building, a quiet indoor stop near the centre of campus.',
+      th: 'อาคารสำนักหอสมุดกลางวิทยาเขต จุดพักในร่มสำหรับอ่านหนังสือ',
+    },
+    tags: ['Library', 'Indoor', 'Quiet'], photo: null,
+    metrics: { aqi: 38, crowdDensity: 1.7, safetyIndex: 6.5, walkability: 7.0 },
+  },
+  {
+    // OSM way 259496906: สวน 60 ปี มหาวิทยาลัยเกษตรศาสตร์.
+    id: 'ku-bk-park',
+    name: { en: 'KU 60th Anniversary Park', th: 'สวน 60 ปี มหาวิทยาลัยเกษตรศาสตร์' },
+    short: '60th Park', layer: 'Green', province: 'TH-10',
+    lat: 13.8498175, lng: 100.5661669,
+    meta: 'Campus park · Outdoor · Air modelled, not measured',
+    blurb: {
+      en: 'The mapped 60th Anniversary Park beside the sports facilities.',
+      th: 'สวน 60 ปีที่มีในแผนที่ อยู่ใกล้พื้นที่กีฬา',
+    },
+    tags: ['Green space', 'Walking route'], photo: null,
+    metrics: { aqi: 38, crowdDensity: 1.1, safetyIndex: 6.5, walkability: 7.4 },
+  },
+  {
+    // OSM way 259685345: หอประชุมใหญ่; the Three Founders monument is nearby.
+    id: 'ku-bk-auditorium',
+    name: { en: 'Kasetsart Grand Auditorium', th: 'หอประชุมใหญ่ มก.' },
+    short: 'Auditorium', layer: 'Quest', province: 'TH-10',
+    lat: 13.8413167, lng: 100.5747727,
+    meta: 'Auditorium · Campus landmark',
+    blurb: {
+      en: 'The mapped main auditorium, near the Three Founders monument.',
+      th: 'หอประชุมใหญ่ที่มีในแผนที่ อยู่ใกล้อนุสาวรีย์สามบูรพาจารย์',
+    },
+    tags: ['Landmark', 'Meeting point'], photo: null,
+    metrics: { aqi: 38, crowdDensity: 1.5, safetyIndex: 6.4, walkability: 7.2 },
+  },
+  {
+    // OSM way 1313552698: สนามกีฬาสนามอินทรีย์จันทรสถิตย์.
+    id: 'ku-bk-stadium',
+    name: { en: 'Insee Chantarasatit Stadium', th: 'สนามอินทรีจันทรสถิตย์' },
+    short: 'Stadium', layer: 'Wellness', province: 'TH-10',
+    lat: 13.8471882, lng: 100.5657358,
+    meta: 'Stadium · Outdoor · Air modelled, not measured',
+    blurb: {
+      en: 'The mapped university stadium and athletics ground.',
+      th: 'สนามกีฬาและลู่วิ่งของมหาวิทยาลัยที่มีในแผนที่',
+    },
+    tags: ['Sport', 'Outdoor'], photo: null,
+    metrics: { aqi: 38, crowdDensity: 1.4, safetyIndex: 6.3, walkability: 6.8 },
+  },
+  {
+    // OSM way 389998960: โรงอาหารกลาง 1, alt_name บาร์ใหม่.
+    id: 'ku-bk-canteen',
+    name: { en: 'Central Canteen 1 (Bar Mai)', th: 'โรงอาหารกลาง 1 (บาร์ใหม่)' },
+    short: 'Canteen', layer: 'Food', province: 'TH-10',
+    lat: 13.8488140, lng: 100.5673153,
+    meta: 'Food court · Central campus',
+    blurb: {
+      en: 'The mapped central food court, also called Bar Mai.',
+      th: 'โรงอาหารกลางที่มีในแผนที่ หรือที่เรียกว่าบาร์ใหม่',
+    },
+    tags: ['Food court', 'Campus'], photo: null,
+    metrics: { aqi: 38, crowdDensity: 3.4, safetyIndex: 6.4, walkability: 7.2 },
+  },
 ];
 
 /**
@@ -586,6 +666,11 @@ export const SAFETY_PHRASES: Record<string, { en: string; th: string }> = {
   'rmutt-canteen': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'rmutt-stadium': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'rmutt-fountain': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'ku-bk-library': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'ku-bk-park': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'ku-bk-auditorium': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'ku-bk-stadium': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'ku-bk-canteen': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
 };
 
 // ---------------------------------------------------------------------------
@@ -718,6 +803,17 @@ export const SEED_QUESTS: Quest[] = [
     lat: 13.12154,
     lng: 100.91812,
     geofenceRadiusM: 120,
+  },
+  {
+    // A campus walk, not a claim that an environmental clean-up is operating.
+    id: 'q-ku-bk-walk',
+    code: 'BK-01',
+    name: { en: 'Three Founders campus walk', th: 'เดินชมสามบูรพาจารย์' },
+    where: { en: 'Grand Auditorium, KU Bangkhen', th: 'หอประชุมใหญ่ มก. บางเขน' },
+    duration: { en: '30 min', th: '30 นาที' },
+    rewardPoints: 60, rewardCurrency: 'trip',
+    host: SEED_HOSTS.kuBangkhen!, kind: 'today',
+    lat: 13.8413167, lng: 100.5747727, geofenceRadiusM: 100,
   },
 ];
 
