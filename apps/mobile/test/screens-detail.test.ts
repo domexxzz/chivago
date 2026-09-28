@@ -1546,12 +1546,13 @@ describe('the passport, which shows a country it has not finished', () => {
   });
 
   test('it says how many provinces are actually open', async () => {
-    // Three. Saying so out loud is what stops the other 74 reading as broken.
+    // Four. Saying so out loud is what stops the other 73 reading as broken.
     const net = server({ 'GET /passport': { visited: [] } });
     try {
       const said = (await mountScreen(h(PassportScreen, {}))).text();
-      assert.match(said, /3 provinces are open/);
+      assert.match(said, /4 provinces are open/);
       assert.match(said, /not yet built/i);
+      assert.match(said, /Air and crowd figures state their source/);
     } finally { net.restore(); }
   });
 
@@ -1604,7 +1605,7 @@ describe('the passport, which shows a country it has not finished', () => {
   });
 
   test('a province nobody has surveyed names no animal at all', async () => {
-    // The heart of it. Seventy-four sealed eggs, and not one invented species
+    // The heart of it. Seventy-three sealed eggs, and not one invented species
     // among them — a collection game that would rather say "not known yet".
     const net = server({ 'GET /passport': { visited: [], evidence: [] } });
     try {
@@ -1613,7 +1614,7 @@ describe('the passport, which shows a country it has not finished', () => {
       for (const animal of ['Green sea turtle', 'Southern pig-tailed macaque', 'Water buffalo']) {
         assert.doesNotMatch(said, new RegExp(animal), `${animal} was claimed for a sealed province`);
       }
-      assert.match(said, /74/, 'the sealed count is not shown');
+      assert.match(said, /73/, 'the sealed count is not shown');
     } finally { net.restore(); }
   });
 

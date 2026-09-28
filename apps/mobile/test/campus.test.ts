@@ -1,7 +1,7 @@
 /**
  * The campus on Home.
  *
- * Two areas, one screen. The API answers with every place; Home frames the
+ * Several areas, one screen. The API answers with every place; Home frames the
  * one chosen - by the chip, or by the QR code's `?area=`. A judge at the
  * campus who sees Chaweng Beach in "Conditions" has been shown the wrong
  * island, and that is what these hold shut.
@@ -37,8 +37,16 @@ const campusPark = () => fx.place({
   lng: 100.91812,
 });
 
+const bangkhenLibrary = () => fx.place({
+  id: 'ku-bk-library',
+  name: { en: 'Kasetsart University Library', th: 'สำนักหอสมุด มก.' },
+  short: 'Library', layer: 'Safe', province: 'TH-10',
+  lat: 13.8476433, lng: 100.5718353,
+  meta: 'Library · Air modelled, not measured', photo: null,
+});
+
 const routes = () => ({
-  '/places': [fx.place({ layer: 'Safe' }), campusPark()],
+  '/places': [fx.place({ layer: 'Safe' }), campusPark(), bangkhenLibrary()],
   '/quests?filter=today': {
     quests: [
       fx.quest(),
@@ -48,6 +56,14 @@ const routes = () => ({
         where: { en: 'Sapandao viewpoint, KU Sriracha', th: 'จุดชมวิวสะพานดาว มก. ศรีราชา' },
         host: { id: 'h-ku-chivago', name: 'ChivaGo team · KU Sriracha', type: 'community' },
         lat: 13.12189, lng: 100.92055,
+      }),
+      fx.quest({
+        id: 'q-ku-bk-walk', code: 'BK-01',
+        name: { en: 'Three Founders campus walk', th: 'เดินชมสามบูรพาจารย์' },
+        where: { en: 'Grand Auditorium, KU Bangkhen', th: 'หอประชุมใหญ่ มก. บางเขน' },
+        host: { id: 'h-ku-bangkhen-chivago', name: 'ChivaGo Team · KU Bangkhen', type: 'community' },
+        duration: { en: '30 min', th: '30 นาที' }, rewardPoints: 60,
+        rewardCurrency: 'trip', lat: 13.8413167, lng: 100.5747727,
       }),
     ],
     progress: {},
@@ -82,7 +98,7 @@ describe('Home frames one area', () => {
     assert.match(said, /Campus park/);
     assert.match(said, /Campus clean-up/);
     assert.doesNotMatch(said, /Chaweng/, 'an island place on the campus screen');
-    assert.match(said, /1 measured place/, 'the average is of the campus only');
+    assert.match(said, /Average score across 1 place/, 'the average is of the campus only');
     ui.unmount();
   });
 
@@ -93,6 +109,22 @@ describe('Home frames one area', () => {
     await ui.pressText(/KU Sriracha/);
     assert.match(ui.text(), /Campus park/);
     assert.doesNotMatch(ui.text(), /Chaweng/);
+    ui.unmount();
+  });
+
+  test('Bangkhen shows only its library and local walk with honest score wording', async () => {
+    __setAreaForTests('samui');
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+    await ui.pressText(/KU Bangkhen/);
+    const said = ui.text();
+    assert.match(said, /Kasetsart University Library/);
+    assert.match(said, /Three Founders campus walk/);
+    assert.match(said, /Average score across 1 place/);
+    assert.match(said, /Healthy Score · area average/);
+    assert.match(said, /Places in this area/);
+    assert.doesNotMatch(said, /measured place|Measured places/, 'modeled campus data is not a ground measurement');
+    assert.doesNotMatch(said, /Chaweng|Campus park|Campus clean-up/);
     ui.unmount();
   });
 });
@@ -116,6 +148,17 @@ const mapProps = {
 };
 
 describe('the Map tab frames one area', () => {
+  test('Bangkhen chip frames its own map, place and quest', async () => {
+    __setAreaForTests('samui');
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(MapScreen, mapProps));
+    await ui.pressText(/KU Bangkhen/);
+    const said = ui.text();
+    assert.match(said, /Kasetsart University Library/);
+    assert.match(said, /Three Founders campus walk/);
+    assert.doesNotMatch(said, /Chaweng|Campus park|Campus clean-up/);
+    ui.unmount();
+  });
   test('on the campus it shows the campus places, and not the island’s', async () => {
     __setAreaForTests('ku-sriracha');
     const s = server(routes()); restore = s.restore;

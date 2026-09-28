@@ -259,7 +259,7 @@ export function MapScreen({
                   }}
                 >
                   <Label size={10} tracking={0.14} colour={onFill.text}>
-                    {t(strings.map.liveNear(visible.length))}
+                    {t(strings.map.placesInArea(visible.length))}
                   </Label>
                 </View>
               </View>

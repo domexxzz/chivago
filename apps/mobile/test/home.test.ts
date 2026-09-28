@@ -119,7 +119,7 @@ describe('what Home says', () => {
 
     assert.match(said, /82/, 'the island score is missing');
     assert.match(said, /Updated daily/, 'the provenance is not stated');
-    assert.match(said, /1 measured place/, 'it did not say how many places it averaged');
+    assert.match(said, /Average score across 1 place/, 'it did not say how many places it averaged');
     ui.unmount();
   });
 
@@ -437,12 +437,13 @@ describe('what is wrong here', () => {
     assert.match(ui.text(), /does not change the reading/i);
   });
 
-  test('a clean island is said as news, not as an empty list', async () => {
+  test('an empty issue list does not claim every condition was measured', async () => {
     const fake = server(routes(monsterRoute([])));
     restore = fake.restore;
     const ui = await mountScreen(h(HomeScreen, props));
     const said = ui.text();
-    assert.match(said, /Nothing standing here today/);
+    assert.match(said, /No issue is flagged here today/);
+    assert.match(said, /modelled or unavailable/);
     assert.doesNotMatch(said, /Smog/);
   });
 

@@ -2,7 +2,8 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  AREAS, DEFAULT_AREA, KU_SRIRACHA_BBOX, RMUTT_BBOX, areaByKey, areaOfProvince, inArea, isAreaKey, nearestArea,
+  AREAS, DEFAULT_AREA, KU_BANGKHEN_BBOX, KU_SRIRACHA_BBOX, RMUTT_BBOX,
+  areaByKey, areaOfProvince, inArea, isAreaKey, nearestArea,
 } from './areas.ts';
 import { CHECKIN_RADIUS_M, SEED_HOSTS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
 import { CAMPUS_LEG_MIN_M, LEG_MIN_M, lowCarbonLeg } from './low-carbon.ts';
@@ -12,11 +13,12 @@ import { openProvinces } from './provinces.ts';
 const ku = areaByKey('ku-sriracha');
 const samui = areaByKey('samui');
 const rmutt = areaByKey('rmutt');
+const bangkhen = areaByKey('ku-bangkhen');
 const rmuttPlaces = SEED_PLACES.filter((p) => p.province === 'TH-13');
 const kuPlaces = SEED_PLACES.filter((p) => p.province === 'TH-20');
 const kuQuests = SEED_QUESTS.filter((q) => inArea(ku, q));
 
-describe('three areas, derived from provinces', () => {
+describe('four areas, derived from provinces', () => {
   test('every open province has exactly one area, and every area an open province', () => {
     const open = openProvinces().map((p) => p.code).sort();
     assert.deepEqual(AREAS.map((a) => a.province).sort(), open);
@@ -25,11 +27,13 @@ describe('three areas, derived from provinces', () => {
   test('a place lands in the area of its province', () => {
     assert.equal(areaOfProvince('TH-84'), 'samui');
     assert.equal(areaOfProvince('TH-20'), 'ku-sriracha');
-    assert.equal(areaOfProvince('TH-10'), DEFAULT_AREA, 'a listed province falls back to the default');
+    assert.equal(areaOfProvince('TH-10'), 'ku-bangkhen');
+    assert.equal(areaOfProvince('TH-99'), DEFAULT_AREA, 'an unknown province falls back to the default');
   });
 
   test('the key check refuses what a URL might carry', () => {
     assert.ok(isAreaKey('ku-sriracha'));
+    assert.ok(isAreaKey('ku-bangkhen'));
     assert.ok(!isAreaKey('KU'));
     assert.ok(!isAreaKey(null));
   });
@@ -38,9 +42,19 @@ describe('three areas, derived from provinces', () => {
     assert.equal(nearestArea(13.1205, 100.9205).key, 'ku-sriracha');
     assert.equal(nearestArea(9.5357, 100.0617).key, 'samui');
     assert.equal(nearestArea(14.03556, 100.72635).key, 'rmutt');
-    // Bangkok is closer to Thanyaburi than to either of the others - it was
-    // Si Racha's until Thanyaburi opened 40 km up the road.
-    assert.equal(nearestArea(13.7563, 100.5018).key, 'rmutt');
+    assert.equal(nearestArea(13.8476, 100.5724).key, 'ku-bangkhen');
+    assert.equal(nearestArea(13.7563, 100.5018).key, 'ku-bangkhen');
+  });
+
+  test('Bangkhen has its own campus frame, not Si Racha or Thanyaburi', () => {
+    assert.deepEqual(bangkhen.bbox, KU_BANGKHEN_BBOX);
+    assert.deepEqual(KU_BANGKHEN_BBOX, {
+      minLat: 13.8400, maxLat: 13.8580, minLng: 100.5620, maxLng: 100.5820,
+    });
+    assert.deepEqual(bangkhen.center, { lat: 13.8476, lng: 100.5724 });
+    assert.equal(bangkhen.province, 'TH-10');
+    assert.equal(bangkhen.map, 'campus');
+    assert.equal(bangkhen.legMinM, CAMPUS_LEG_MIN_M);
   });
 });
 

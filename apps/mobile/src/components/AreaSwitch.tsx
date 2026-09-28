@@ -1,14 +1,14 @@
 /**
- * The area chips: the island, the campus.
+ * The area chips: the island and the surveyed campuses.
  *
- * Two capsules, the chosen one filled. A traveller standing on the campus
+ * The chosen capsule is filled. A traveller standing on a campus
  * should never have to find this - the QR code carries `?area=` and the
  * choice is remembered - but the chip is how a phone that opened on Samui
- * gets to the campus, and how a judge in the room flips between the two.
+ * gets to a campus, and how a judge in the room flips among the areas.
  */
 
-import React from 'react';
-import { Pressable, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Pressable, ScrollView } from 'react-native';
 import { AREAS, type AreaKey } from '@chivago/core';
 import { color, onFill, radius } from '../theme/index.ts';
 import { Label } from './Type.tsx';
@@ -22,8 +22,21 @@ export function AreaSwitch({
   /** `light` sits on a white ground; `inverted` sits on the brand hero. */
   tone?: 'light' | 'inverted';
 }) {
+  const scroll = useRef<ScrollView>(null);
+  const positions = useRef<Partial<Record<AreaKey, number>>>({});
+  useEffect(() => {
+    scroll.current?.scrollTo({ x: positions.current[area] ?? 0, animated: true });
+  }, [area]);
+
   return (
-    <View style={{ flexDirection: 'row', gap: 8 }} accessibilityRole="tablist">
+    <ScrollView
+      ref={scroll}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      accessibilityRole="tablist"
+      contentContainerStyle={{ gap: 8 }}
+      onContentSizeChange={() => scroll.current?.scrollTo({ x: positions.current[area] ?? 0, animated: false })}
+    >
       {AREAS.map((a) => {
         const on = a.key === area;
         const fill = tone === 'inverted'
@@ -39,6 +52,10 @@ export function AreaSwitch({
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
             accessibilityLabel={t(a.name)}
+            onLayout={(event) => {
+              positions.current[a.key] = event.nativeEvent.layout.x;
+              if (on) scroll.current?.scrollTo({ x: event.nativeEvent.layout.x, animated: false });
+            }}
             style={{
               minHeight: 32, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.lg,
               backgroundColor: fill,
@@ -50,6 +67,6 @@ export function AreaSwitch({
           </Pressable>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }

@@ -157,8 +157,8 @@ export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void }
       <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 36 }}>
         <Label size={9} tracking={0.06} colour={color.neutral600} style={{ textTransform: 'none' }}>
           {t({
-            en: 'A province opens when it has real places, measured air and crowding, a licensed photograph and a host who can verify a quest. Not before.',
-            th: 'จังหวัดจะเปิดเมื่อมีสถานที่จริง ค่าอากาศและความหนาแน่นที่วัดได้ ภาพถ่ายที่มีสิทธิ์ใช้ และผู้จัดที่ตรวจภารกิจได้ ไม่เปิดก่อนหน้านั้น',
+            en: 'An open province has mapped places and a named quest host. Air and crowd figures state their source; photos appear only when licensed.',
+            th: 'จังหวัดที่เปิดมีสถานที่บนแผนที่และระบุผู้จัดภารกิจ ข้อมูลอากาศและความหนาแน่นบอกแหล่งที่มา ภาพถ่ายจะแสดงเมื่อมีสิทธิ์ใช้เท่านั้น',
           })}
         </Label>
       </View>

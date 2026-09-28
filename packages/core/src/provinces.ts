@@ -99,7 +99,7 @@ export const PROVINCES: Province[] = [
   P('TH-37', 'Amnat Charoen', 'อำนาจเจริญ', 'northeast'),
 
   // ---- ภาคกลาง · 22 (รวมกรุงเทพมหานคร) ------------------------------------
-  P('TH-10', 'Bangkok', 'กรุงเทพมหานคร', 'central'),
+  P('TH-10', 'Bangkok', 'กรุงเทพมหานคร', 'central', 'open'),
   P('TH-62', 'Kamphaeng Phet', 'กำแพงเพชร', 'central'),
   P('TH-18', 'Chai Nat', 'ชัยนาท', 'central'),
   P('TH-26', 'Nakhon Nayok', 'นครนายก', 'central'),

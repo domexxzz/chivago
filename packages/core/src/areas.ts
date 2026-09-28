@@ -19,7 +19,7 @@ import type { Bilingual } from './types.ts';
 import { CAMPUS_LEG_MIN_M, LEG_MIN_M } from './low-carbon.ts';
 import { SAMUI_BBOX } from './seed.ts';
 
-export type AreaKey = 'samui' | 'ku-sriracha' | 'rmutt';
+export type AreaKey = 'samui' | 'ku-sriracha' | 'rmutt' | 'ku-bangkhen';
 
 export interface Bbox {
   minLat: number;
@@ -76,6 +76,14 @@ export const RMUTT_BBOX: Bbox = {
   maxLng: 100.7315743,
 };
 
+/** Bangkhen's campus frame, supplied by the onboarding brief and checked against mapped landmarks. */
+export const KU_BANGKHEN_BBOX: Bbox = {
+  minLat: 13.8400,
+  maxLat: 13.8580,
+  minLng: 100.5620,
+  maxLng: 100.5820,
+};
+
 export const AREAS: Area[] = [
   {
     key: 'samui',
@@ -107,6 +115,15 @@ export const AREAS: Area[] = [
     // The centre of the OpenStreetMap outline of way 910034983.
     center: { lat: 14.03556, lng: 100.72635 },
     bbox: RMUTT_BBOX,
+    map: 'campus',
+    legMinM: CAMPUS_LEG_MIN_M,
+  },
+  {
+    key: 'ku-bangkhen',
+    name: { en: 'KU Bangkhen', th: 'มก. บางเขน' },
+    province: 'TH-10',
+    center: { lat: 13.8476, lng: 100.5724 },
+    bbox: KU_BANGKHEN_BBOX,
     map: 'campus',
     legMinM: CAMPUS_LEG_MIN_M,
   },
