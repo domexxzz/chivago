@@ -12,9 +12,10 @@
  * dashboard that leads with joins is selling the sponsor their own optimism,
  * and it is the single easiest place in this product to lie.
  *
- * Everything here is derived from counts the ledger already holds. Nothing is
- * estimated, modelled or extrapolated, and the type has no field for reach
- * because there is no honest way to fill one.
+ * The sponsor outcome below is derived from counts the ledger already holds.
+ * Its type has no field for reach because there is no honest way to fill one.
+ * The tree calculation at the end needs a second, separate kind of evidence:
+ * a partner's record of physical planting. A pledge is never that record.
  */
 
 import type { Bilingual } from './types.ts';
@@ -224,5 +225,103 @@ export function sponsorHeadline(o: SponsorOutcome): Bilingual {
       + `${o.costPerVerifiedTHB} THB each. ${o.joined} started.`,
     th: `ผ่านการตรวจ ${o.verified} ครั้ง ผู้จัดได้รับสิทธิ์ ${o.toCommunityTHB.toLocaleString('en-US')} บาท `
       + `เฉลี่ยครั้งละ ${o.costPerVerifiedTHB} บาท เริ่มแล้ว ${o.joined} ครั้ง`,
+  };
+}
+
+/** A sponsor's explicit tree promise for host-approved work on one quest. */
+export interface TreeCommitment {
+  sponsorId: string;
+  questId: string;
+  treesPerVerified: number;
+  startedAt: string;
+}
+
+/** Only an approval whose award still stands may be passed to this calculation. */
+export interface VerifiedTreeQuest {
+  userId: string;
+  questId: string;
+  verifiedAt: string;
+}
+
+/** Physical planting evidence, not a promise or a photograph without provenance. */
+export interface TreePlanting {
+  id: string;
+  userId: string;
+  sponsorId: string;
+  questId: string;
+  trees: number;
+  partner: string;
+  plantedAt: string;
+  lat: number;
+  lng: number;
+  photo: { url: string; credit: string; licence: string };
+}
+
+export interface TreeImpactLine {
+  sponsorId: string;
+  questId: string;
+  treesPerVerified: number;
+  pending: number;
+  planted: number;
+  evidence: TreePlanting[];
+}
+
+export interface TreeImpact {
+  pending: number;
+  planted: number;
+  lines: TreeImpactLine[];
+}
+
+/** A planting claim is complete only when every fact needed to check it exists. */
+export function hasPlantingEvidence(p: TreePlanting, now = new Date()): boolean {
+  const plantedAt = Date.parse(p.plantedAt);
+  let photoUrl: URL;
+  try { photoUrl = new URL(p.photo?.url); } catch { return false; }
+  return Number.isSafeInteger(p.trees) && p.trees > 0
+    && p.partner.trim().length > 0
+    && Number.isFinite(plantedAt) && plantedAt <= now.getTime()
+    && Number.isFinite(p.lat) && p.lat >= -90 && p.lat <= 90
+    && Number.isFinite(p.lng) && p.lng >= -180 && p.lng <= 180
+    && photoUrl.protocol === 'https:'
+    && p.photo.credit.trim().length > 0 && p.photo.licence.trim().length > 0;
+}
+
+/**
+ * Calculate a traveller's tree impact without turning a pledge into a tree.
+ * The API supplies only live host approvals; this layer independently refuses
+ * incomplete planting evidence and caps attribution at the sponsor's promise.
+ */
+export function treeImpactFor(
+  userId: string,
+  verified: VerifiedTreeQuest[],
+  commitments: TreeCommitment[],
+  plantings: TreePlanting[],
+  now = new Date(),
+): TreeImpact {
+  const approvals = new Map(
+    verified.filter((v) => v.userId === userId).map((v) => [v.questId, v.verifiedAt]),
+  );
+  const lines: TreeImpactLine[] = [];
+  for (const c of commitments) {
+    const verifiedAt = approvals.get(c.questId);
+    if (!verifiedAt || verifiedAt < c.startedAt || !Number.isSafeInteger(c.treesPerVerified)
+      || c.treesPerVerified <= 0) continue;
+    const seen = new Set<string>();
+    const evidence = plantings.filter((p) => {
+      if (p.userId !== userId || p.questId !== c.questId || p.sponsorId !== c.sponsorId
+        || p.plantedAt < verifiedAt || seen.has(p.id) || !hasPlantingEvidence(p, now)) return false;
+      seen.add(p.id);
+      return true;
+    });
+    const planted = Math.min(c.treesPerVerified, evidence.reduce((n, p) => n + p.trees, 0));
+    lines.push({
+      sponsorId: c.sponsorId, questId: c.questId, treesPerVerified: c.treesPerVerified,
+      pending: c.treesPerVerified - planted, planted, evidence,
+    });
+  }
+  return {
+    pending: lines.reduce((n, line) => n + line.pending, 0),
+    planted: lines.reduce((n, line) => n + line.planted, 0),
+    lines,
   };
 }
