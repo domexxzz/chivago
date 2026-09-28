@@ -61,7 +61,7 @@ const routes = () => ({
         id: 'q-ku-bk-walk', code: 'BK-01',
         name: { en: 'Three Founders campus walk', th: 'เดินชมสามบูรพาจารย์' },
         where: { en: 'Grand Auditorium, KU Bangkhen', th: 'หอประชุมใหญ่ มก. บางเขน' },
-        host: { id: 'h-ku-bangkhen-chivago', name: 'ChivaGo Team · KU Bangkhen', type: 'community' },
+        host: { id: 'h-ku-bangkhen-chivago', name: 'ChivaGo team · KU Bangkhen', type: 'community' },
         duration: { en: '30 min', th: '30 นาที' }, rewardPoints: 60,
         rewardCurrency: 'trip', lat: 13.8413167, lng: 100.5747727,
       }),

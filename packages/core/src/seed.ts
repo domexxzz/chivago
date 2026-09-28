@@ -42,7 +42,7 @@ export const SEED_HOSTS: Record<string, QuestHost> = {
   // campuses are two parties even when the same people staff both.
   rmuttTeam: { id: 'h-rmutt-chivago', name: 'ChivaGo team · RMUTT Thanyaburi', type: 'community' },
   // A separate review queue and statement for the Bangkhen campus.
-  kuBangkhen: { id: 'h-ku-bangkhen-chivago', name: 'ChivaGo Team · KU Bangkhen', type: 'community' },
+  kuBangkhen: { id: 'h-ku-bangkhen-chivago', name: 'ChivaGo team · KU Bangkhen', type: 'community' },
 };
 
 // ---------------------------------------------------------------------------
