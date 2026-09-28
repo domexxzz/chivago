@@ -108,8 +108,8 @@ export const strings = {
   // -- Map ----------------------------------------------------------------
   map: {
     island: t('Koh Samui', 'เกาะสมุย'),
-    legend: (avg: number) => t(`Healthy Score · ${avg} avg today`, `คะแนนสุขภาวะ · เฉลี่ย ${avg} วันนี้`),
-    liveNear: (n: number) => t(`Live · ${n} places near you`, `สด · ${n} สถานที่ใกล้คุณ`),
+    legend: (avg: number) => t(`Healthy Score · ${avg} area average`, `คะแนนสุขภาวะ · เฉลี่ยพื้นที่ ${avg}`),
+    placesInArea: (n: number) => t(`${n} places in this area`, `${n} สถานที่ในพื้นที่นี้`),
     questsNearYou: t('Quests near you', 'ภารกิจใกล้คุณ'),
     /**
      * The dot. Spoken, not tappable: there is nowhere to go by tapping where
@@ -141,8 +141,8 @@ export const strings = {
     questPin: (points: number) => t(`Quest · +${points} points`, `ภารกิจ · +${points} แต้ม`),
     /** The legend's second line: how much of the chart this traveller has lifted the mist from. */
     explored: (n: number, total: number) => t(`Explored · ${n} of ${total}`, `สำรวจแล้ว · ${n} จาก ${total}`),
-    /** The compass rose. Tapping it returns the camera to the island view. */
-    compass: t('Compass. Return to the island view', 'เข็มทิศ แตะเพื่อกลับไปมุมมองทั้งเกาะ'),
+    /** The compass rose. Tapping it returns the camera to the chosen area's overview. */
+    compass: t('Compass. Return to the area overview', 'เข็มทิศ แตะเพื่อกลับไปมุมมองรวมของพื้นที่'),
     layers: {
       Green: t('Green', 'สีเขียว'),
       Wellness: t('Wellness', 'สุขภาพ'),
@@ -360,15 +360,15 @@ export const strings = {
   monsters: {
     title: t('What is wrong here', 'ปัญหาที่นี่'),
     subtitle: t(
-      'Made of real readings, not invented. Real work pushes them back.',
-      'สร้างจากค่าที่วัดได้จริง ไม่ได้แต่งขึ้น และถอยได้ด้วยการทำจริง',
+      'Based on available signals, with their sources shown. Local work can push a flagged issue back.',
+      'อิงข้อมูลที่มีและแสดงแหล่งที่มา การลงมือทำในพื้นที่ช่วยลดปัญหาที่ถูกแจ้งได้',
     ),
     /** The best possible outcome, and it must read as good news, not as empty. */
     none: t(
-      'Nothing standing here today. The readings are clean and no clean-up is open.',
-      'วันนี้ไม่มีอะไรตั้งอยู่ ค่าที่วัดได้ปกติ และไม่มีงานเก็บขยะที่เปิดอยู่',
+      'No issue is flagged here today. Some conditions may be modelled or unavailable.',
+      'วันนี้ยังไม่มีปัญหาที่ถูกแจ้ง บางข้อมูลอาจมาจากแบบจำลองหรือยังไม่มีข้อมูล',
     ),
-    loading: t('Reading the island…', 'กำลังอ่านค่าของเกาะ…'),
+    loading: t('Checking this area…', 'กำลังตรวจข้อมูลพื้นที่นี้…'),
     /** Progress, said as work rather than as damage. Nobody is fighting. */
     pushedBack: (done: number, needed: number) => t(
       `${done} of ${needed} pushed back`,

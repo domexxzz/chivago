@@ -328,7 +328,7 @@ function Conditions({
       }]}
     >
       <Label size={10} tracking={0.14} colour={color.neutral700}>
-        {`${t(strings.place.healthyScore)} · ${t({ en: 'today', th: 'วันนี้' })}`}
+        {`${t(strings.place.healthyScore)} · ${t({ en: 'area average', th: 'เฉลี่ยพื้นที่' })}`}
       </Label>
 
       {places.error ? (
@@ -340,7 +340,7 @@ function Conditions({
         </View>
       ) : avg === null ? (
         <Body size={13} colour={color.neutral700} style={{ marginTop: 10 }}>
-          {places.loading ? 'Reading the island…' : 'No measured places yet.'}
+          {places.loading ? t({ en: 'Loading places…', th: 'กำลังโหลดสถานที่…' }) : t({ en: 'No places here yet.', th: 'ยังไม่มีสถานที่ในพื้นที่นี้' })}
         </Body>
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8 }}>
@@ -348,8 +348,8 @@ function Conditions({
           <View style={{ flex: 1 }}>
             <Body size={13} colour={color.neutral800}>
               {t({
-                en: `Average across ${list.length} measured place${list.length === 1 ? '' : 's'}`,
-                th: `เฉลี่ยจาก ${list.length} สถานที่ที่วัดจริง`,
+                en: `Average score across ${list.length} place${list.length === 1 ? '' : 's'}`,
+                th: `คะแนนเฉลี่ยจาก ${list.length} สถานที่`,
               })}
             </Body>
             <Label size={9} tracking={0.1} colour={color.neutral600} style={{ marginTop: 2 }}>
@@ -544,8 +544,8 @@ function Places({
   return (
     <View style={{ paddingTop: 22 }}>
       <SectionHead
-        en="Measured places"
-        th="สถานที่ที่วัดจริง"
+        en="Places in this area"
+        th="สถานที่ในพื้นที่นี้"
         note={here ? t(strings.place.nearestFirst) : undefined}
         onSeeAll={onOpenMap}
       />
