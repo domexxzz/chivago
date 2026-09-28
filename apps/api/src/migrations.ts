@@ -1390,5 +1390,71 @@ export function migrate(db: DB): string[] {
     }
   }
 
+  /*
+    Listings, and the inquiries travellers send about them.
+
+    docs/61 is the decision: an inquiry, not a booking. Nothing here reserves
+    anything or holds a price the platform set, and two of its rules are the
+    kind only the database can hold.
+
+    A TOUR CANNOT EXIST WITHOUT A STATED LICENCE NUMBER. A CHECK, not a
+    service guard, so no path into this table - a console form, a script, a
+    migration nobody reviewed - can put an unlicensed tour in front of a
+    traveller. Shown as stated, never as verified.
+
+    AN INQUIRY ONLY MOVES OUT OF 'sent', AND ONLY ONCE. Answered, declined and
+    withdrawn are all terminal, enforced by a trigger. An operator cannot
+    rewrite an answer after the traveller has read it, and a withdrawn
+    question cannot be answered into looking like it was taken up.
+
+    `expired` IS NOT A STATE HERE. It is derived on every read from the answer
+    window and the day asked about, so there is no sweep to forget to run and
+    no second copy of the clock to drift.
+
+    `from_thb` and `quote_thb` are NULL when nobody said, never 0. Null and 0
+    are different answers, as for `valueTHB` on an offer.
+
+    Inquiries go with the traveller: ON DELETE CASCADE, because erasing an
+    account that leaves its questions to operators behind has not erased it.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS listings (
+      id           TEXT PRIMARY KEY,
+      operator_id  TEXT NOT NULL REFERENCES hosts(id),
+      kind         TEXT NOT NULL CHECK (kind IN ('stay','tour','experience','transfer')),
+      title_en     TEXT NOT NULL,
+      title_th     TEXT NOT NULL,
+      where_label  TEXT NOT NULL,
+      from_thb     INTEGER CHECK (from_thb IS NULL OR from_thb >= 0),
+      licence_no   TEXT,
+      active       INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0,1)),
+      created_at   TEXT NOT NULL,
+      CHECK (kind <> 'tour' OR (licence_no IS NOT NULL AND trim(licence_no) <> ''))
+    );
+    CREATE INDEX IF NOT EXISTS idx_listings_operator ON listings(operator_id);
+
+    CREATE TABLE IF NOT EXISTS inquiries (
+      id           TEXT PRIMARY KEY,
+      listing_id   TEXT NOT NULL REFERENCES listings(id),
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      for_date     TEXT NOT NULL,
+      party_size   INTEGER NOT NULL CHECK (party_size BETWEEN 1 AND 20),
+      message      TEXT NOT NULL,
+      state        TEXT NOT NULL DEFAULT 'sent'
+        CHECK (state IN ('sent','answered','declined','withdrawn')),
+      sent_at      TEXT NOT NULL,
+      answered_at  TEXT,
+      answer       TEXT,
+      quote_thb    INTEGER CHECK (quote_thb IS NULL OR quote_thb >= 0)
+    );
+    CREATE INDEX IF NOT EXISTS idx_inquiries_listing ON inquiries(listing_id, sent_at);
+    CREATE INDEX IF NOT EXISTS idx_inquiries_user ON inquiries(user_id, sent_at);
+    CREATE TRIGGER IF NOT EXISTS inquiries_leave_sent_once
+      BEFORE UPDATE ON inquiries
+      WHEN OLD.state <> 'sent'
+      BEGIN SELECT RAISE(ABORT, 'an inquiry that has left sent does not change again'); END;
+  `);
+  applied.push('listings', 'inquiries');
+
   return applied;
 }
