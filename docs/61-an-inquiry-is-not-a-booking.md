@@ -124,7 +124,11 @@ a trust signal once there is enough of it to be more than an anecdote.
    enforced where only the database can hold them.
 2. **The operator's side.** A console page listing the operator's own
    listings and the inquiries waiting on them, with a reply that reaches the
-   traveller through the existing outbox.
+   traveller through the existing outbox. **Done in `#89`.** Waiting
+   inquiries lead the page, soonest deadline first, each saying how long is
+   left — from `answerBy`, the same instant the rule enforces, so the page
+   cannot promise time the server will refuse. The reply form says, where
+   the operator types, that answering confirms nothing.
 3. **The traveller's side.** Listings on the place and market screens, an
    inquiry form, and the thread.
 

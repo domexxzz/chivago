@@ -156,10 +156,24 @@ export function inquiryState(
   inquiry: Pick<Inquiry, 'state' | 'sentAt' | 'forDate'>, now: Date = new Date(),
 ): InquiryState {
   if (inquiry.state !== 'sent') return inquiry.state;
-  const windowOver = now.getTime() > Date.parse(inquiry.sentAt) + ANSWER_WINDOW_DAYS * DAY_MS;
-  // The day asked about ends at the end of that day, island time (UTC+7).
-  const dayOver = now.getTime() > Date.parse(`${inquiry.forDate}T23:59:59.999+07:00`);
-  return windowOver || dayOver ? 'expired' : 'sent';
+  // One deadline, computed once, so the page that shows it and the rule that
+  // enforces it cannot drift apart. The day asked about ends at the end of
+  // that day, island time (UTC+7).
+  return now.getTime() > answerBy(inquiry).getTime() ? 'expired' : 'sent';
+}
+
+/**
+ * The moment an unanswered inquiry stops being answerable.
+ *
+ * The earlier of the two ways it expires - the window closing, or the day
+ * asked about ending on the island - as one instant, so an operator can be
+ * told how long they have. Kept beside `inquiryState` so the page can never
+ * compute a deadline that disagrees with the rule that enforces it.
+ */
+export function answerBy(inquiry: Pick<Inquiry, 'sentAt' | 'forDate'>): Date {
+  const windowEnds = Date.parse(inquiry.sentAt) + ANSWER_WINDOW_DAYS * DAY_MS;
+  const dayEnds = Date.parse(`${inquiry.forDate}T23:59:59.999+07:00`);
+  return new Date(Math.min(windowEnds, dayEnds));
 }
 
 export const STATE_LABEL: Record<InquiryState, Bilingual> = {

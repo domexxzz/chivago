@@ -68,6 +68,7 @@ export const consoleStrings = {
   quests: c('ภารกิจและตัวชี้วัด', 'Quests & KPI'),
   reviewDeclared: c('ทบทวนไฟล์', 'Review a file'),
   stories: c('สตอรี่', 'Stories'),
+  inquiries: c('คำสอบถาม', 'Inquiries'),
   organisations: c('องค์กร', 'Organisations'),
   periodOutOfOrder: c('วันที่เริ่มต้นอยู่หลังวันที่สิ้นสุด เลือกช่วงวันที่ใหม่', 'The start date is after the end date. Choose the period again.'),
   moderationTitle: c('ดูแลรีวิวจากนักเดินทาง', 'Traveller reviews'),

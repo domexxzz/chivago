@@ -4,7 +4,7 @@ import { test, describe } from 'node:test';
 import {
   ANSWER_WINDOW_DAYS, INQUIRY_IS_NOT_A_BOOKING, LICENCE_STATED, LISTING_KIND_LABEL, MAX_PARTY,
   OPERATOR_PRIVACY, PROBLEM_LABEL, STATE_LABEL,
-  answerNote, inquiryProblems, inquiryState, isListingKind, listingRefusal,
+  answerBy, answerNote, inquiryProblems, inquiryState, isListingKind, listingRefusal,
   type Inquiry,
 } from './inquiry.ts';
 
@@ -170,5 +170,25 @@ describe('an operator’s answer', () => {
 
   test('the operator is told what they are not given', () => {
     assert.match(OPERATOR_PRIVACY.en, /does not give you their\s+phone or email/);
+  });
+});
+
+describe('the deadline an operator is shown', () => {
+  test('it is the window, when the day asked about is further off', () => {
+    const by = answerBy({ sentAt: '2026-10-01T02:00:00.000Z', forDate: '2026-10-20' });
+    assert.equal(by.toISOString(), '2026-10-04T02:00:00.000Z');
+  });
+
+  test('IT IS THE END OF THE DAY ASKED ABOUT, WHEN THAT COMES FIRST', () => {
+    const by = answerBy({ sentAt: '2026-10-01T02:00:00.000Z', forDate: '2026-10-02' });
+    // 23:59:59.999 on the 2nd, island time.
+    assert.equal(by.toISOString(), '2026-10-02T16:59:59.999Z');
+  });
+
+  test('THE DEADLINE SHOWN AND THE RULE ENFORCED ARE THE SAME INSTANT', () => {
+    const i = { state: 'sent' as const, sentAt: '2026-10-01T02:00:00.000Z', forDate: '2026-10-02' };
+    const by = answerBy(i).getTime();
+    assert.equal(inquiryState(i, new Date(by)), 'sent');
+    assert.equal(inquiryState(i, new Date(by + 1)), 'expired');
   });
 });

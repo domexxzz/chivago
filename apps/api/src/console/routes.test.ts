@@ -14,6 +14,7 @@ import { verifyPage } from './statement.ts';
 import { digestOf, readStatement } from '../statement-service.ts';
 import { countersignaturesFor } from '../countersign-service.ts';
 import { usesOf } from '../statement-use-service.ts';
+import { sendInquiry } from '../inquiry-service.ts';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -2410,5 +2411,128 @@ describe('the GRI 413-1 rule, on both sides', () => {
     const html = await (await app.request('/quests', { headers: withCookie(mod) })).text();
     assert.match(html, /ใส่ตรงนี้ไม่ได้/);
     assert.match(html, /GRI 413-1/);
+  });
+});
+
+/**
+ * An operator's inquiries page. docs/61, stage two.
+ *
+ * Any signed-in host is an operator for their own listings. The danger is
+ * one operator reaching another's listing or inquiry through an id in a form,
+ * and a reply being read as a confirmation.
+ */
+describe('an operator answering inquiries', () => {
+  const post = (t: string, path: string, fields: Record<string, string>) => app.request(path, {
+    method: 'POST',
+    headers: { ...withCookie(t), 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ csrf: __csrfFor(resolveSession(db, t)!), ...fields }),
+  });
+  const page = async (t: string) => (await app.request('/inquiries', { headers: withCookie(t) })).text();
+  const addBoat = (t: string, over: Record<string, string> = {}) => post(t, '/listings', {
+    kind: 'tour', titleEn: 'Longtail to Koh Taen', titleTh: 'เรือหางยาวไปเกาะแตน',
+    whereLabel: 'Thong Krut pier', licenceNo: '31/01234', ...over,
+  });
+  const listingId = (hostId: string) =>
+    (db.prepare('SELECT id FROM listings WHERE operator_id = ?').get(hostId) as unknown as { id: string }).id;
+  const inquire = (lId: string, userId = 'u-ana') => {
+    db.prepare('INSERT OR IGNORE INTO users (id, display_name, created_at) VALUES (?,?,?)')
+      .run(userId, userId, new Date().toISOString());
+    const future = new Date(Date.now() + 5 * 86_400_000).toISOString().slice(0, 10);
+    return sendInquiry(db, { listingId: lId, userId, forDate: future, partySize: 2, message: 'Saturday?' });
+  };
+
+  test('any signed-in host reaches the page, which says an inquiry is not a booking', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    const html = await page(lab);
+    assert.match(html, /ไม่ใช่การจอง/);
+    assert.match(html, /ไม่ได้ให้เบอร์โทรหรืออีเมล/);
+  });
+
+  test('A TOUR WITHOUT A LICENCE IS REFUSED WITH A SENTENCE, NOT A CONSTRAINT ERROR', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    const res = await addBoat(lab, { licenceNo: '' });
+    assert.equal(res.status, 303);
+    assert.match(decodeURIComponent(res.headers.get('location') ?? ''), /Department of Tourism licence number/);
+    const n = db.prepare('SELECT COUNT(*) AS n FROM listings').get() as unknown as { n: number };
+    assert.equal(n.n, 0);
+  });
+
+  test('an operator adds a listing and it appears with its licence shown as stated', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    await addBoat(lab);
+    const html = await page(lab);
+    assert.match(html, /เรือหางยาวไปเกาะแตน/);
+    assert.match(html, /31\/01234/);
+    assert.match(html, /ตามที่คุณระบุ/);
+  });
+
+  test('A WAITING INQUIRY SHOWS HOW LONG IS LEFT, AND THE REPLY SAYS IT CONFIRMS NOTHING', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    await addBoat(lab);
+    inquire(listingId('h-lab'));
+    const html = await page(lab);
+    assert.match(html, /รอคุณตอบ · 1/);
+    assert.match(html, /เหลืออีก/);
+    assert.match(html, /การตอบไม่ใช่การยืนยันการจอง/);
+  });
+
+  test('answering closes it and notifies the traveller', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    await addBoat(lab);
+    const i = inquire(listingId('h-lab'));
+    const res = await post(lab, `/inquiries/${i.id}/answer`, { answer: 'Yes, 8am.', quoteTHB: '2400' });
+    assert.equal(res.status, 303);
+    assert.doesNotMatch(res.headers.get('location') ?? '', /error=/);
+    const html = await page(lab);
+    assert.match(html, /รอคุณตอบ · 0/);
+    assert.match(html, /2,400 THB/);
+    const n = db.prepare("SELECT COUNT(*) AS n FROM notifications WHERE user_id = 'u-ana'").get() as
+      unknown as { n: number };
+    assert.equal(n.n, 1);
+  });
+
+  test('A QUOTE THAT IS NOT WHOLE BAHT IS REFUSED BEFORE IT REACHES THE RECORD', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    await addBoat(lab);
+    const i = inquire(listingId('h-lab'));
+    const res = await post(lab, `/inquiries/${i.id}/answer`, { answer: 'ok', quoteTHB: '12.5' });
+    assert.match(decodeURIComponent(res.headers.get('location') ?? ''), /whole baht/);
+    const r = db.prepare('SELECT state FROM inquiries WHERE id = ?').get(i.id) as unknown as { state: string };
+    assert.equal(r.state, 'sent', 'a malformed quote still answered the inquiry');
+  });
+
+  test('ANOTHER OPERATOR CANNOT ANSWER, DECLINE OR PAUSE SOMEBODY ELSE’S', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    await addBoat(lab);
+    const lId = listingId('h-lab');
+    const i = inquire(lId);
+    const muni = await signIn(MUNI_KEY, 'Somsak');
+    await post(muni, `/inquiries/${i.id}/answer`, { answer: 'I am not them' });
+    await post(muni, `/inquiries/${i.id}/decline`, { reason: 'nope' });
+    await post(muni, `/listings/${lId}/active`, { active: '0' });
+    const r = db.prepare('SELECT state FROM inquiries WHERE id = ?').get(i.id) as unknown as { state: string };
+    assert.equal(r.state, 'sent', "another operator acted on this inquiry");
+    const l = db.prepare('SELECT active FROM listings WHERE id = ?').get(lId) as unknown as { active: number };
+    assert.equal(l.active, 1, "another operator paused this listing");
+    // And they do not see it at all.
+    assert.doesNotMatch(await page(muni), /Saturday\?/);
+  });
+
+  test('a decline closes it without an answer body being required', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    await addBoat(lab);
+    const i = inquire(listingId('h-lab'));
+    await post(lab, `/inquiries/${i.id}/decline`, {});
+    const r = db.prepare('SELECT state FROM inquiries WHERE id = ?').get(i.id) as unknown as { state: string };
+    assert.equal(r.state, 'declined');
+  });
+
+  test('THE PAGE NEVER CALLS A REPLY A CONFIRMATION OR A BOOKING', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    await addBoat(lab);
+    const i = inquire(listingId('h-lab'));
+    await post(lab, `/inquiries/${i.id}/answer`, { answer: 'Yes' });
+    const html = (await page(lab)).toLowerCase();
+    assert.doesNotMatch(html, /confirmed|ยืนยันแล้ว|จองแล้ว/);
   });
 });
