@@ -179,7 +179,6 @@ export function HomeScreen({
         onOpenStays={onOpenStays}
       />
       <Places places={here} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} />
-      <MascotHeroCard now={now} onOpen={onOpenMascots ?? onOpenPassport} />
       {/*
         The board, under the places and above today's missions: it is what
         other people did, which belongs after what is around you and before
@@ -201,6 +200,16 @@ export function HomeScreen({
       <Bus areaKey={area.key} onToast={onToast} />
       <Board areaKey={area.key} onOpenPlace={onOpenPlace ?? onOpenMap} />
       <Today quests={todayHere} onOpenQuest={onOpenQuest} onOpenQuests={onOpenQuests} />
+      {/*
+        The companion sits with the rest of the game layer now, not between the
+        places and what is happening around them. A full-width portrait at the
+        top of the feed interrupted "around you" before it had started; down
+        here it opens the keepsake band - the mascot, then Carrying's points,
+        passport and companions - the one stretch of this screen that is about
+        YOU rather than the island. The place-first order above it (problems,
+        transit, board, then today's missions) is unchanged.
+      */}
+      <MascotHeroCard now={now} onOpen={onOpenMascots ?? onOpenPassport} />
       <Carrying
         wallet={wallet}
         passport={passport}
