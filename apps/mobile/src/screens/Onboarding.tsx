@@ -11,7 +11,7 @@
 
 import React from 'react';
 import { Image, Pressable, ScrollView, View } from 'react-native';
-import { Check } from 'lucide-react-native';
+import { Check, ChevronLeft } from 'lucide-react-native';
 import { strings, type ActivityKey, type PurposeKey, type ScoredPlace, type WatchKey } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { photoUri } from '../api/photos.ts';
@@ -124,9 +124,27 @@ export function OnboardingScreen({
         ))}
       </View>
 
-      <Label size={11} tracking={0.14} colour={color.brand}>
-        {t(strings.onboarding.step(step + 1))}
-      </Label>
+      {/*
+        A step you cannot leave is a wrong answer you cannot fix. The back
+        control appears from step two on - there is nowhere to go back to from
+        the first - and returns to the previous step with its picks intact.
+      */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        {step > 0 ? (
+          <Pressable
+            onPress={() => setStep(step - 1)}
+            accessibilityRole="button"
+            accessibilityLabel={t({ en: 'Back', th: 'ย้อนกลับ' })}
+            hitSlop={10}
+            style={{ marginLeft: -4, padding: 2 }}
+          >
+            <ChevronLeft size={18} color={color.brand} strokeWidth={2.5} />
+          </Pressable>
+        ) : null}
+        <Label size={11} tracking={0.14} colour={color.brand}>
+          {t(strings.onboarding.step(step + 1))}
+        </Label>
+      </View>
       <Heading size={28} tracking={-0.6} style={{ marginTop: 6 }}>{t(current.title)}</Heading>
 
       <ScrollView style={{ flex: 1, marginTop: 14 }} showsVerticalScrollIndicator={false}>
@@ -162,6 +180,13 @@ export function OnboardingScreen({
                 <Heading size={16}>{t(copy)}</Heading>
 
               </View>
+              {/*
+                The shape says how many you may pick, before you tap one: a
+                square that checks when you choose several, a circle that fills
+                when you choose exactly one. They were both circles-with-a-tick,
+                so a multi-select read as a radio and a chooser could not tell
+                "pick any" from "pick one" until they tried.
+              */}
               <View
                 style={{
                   width: 24,
@@ -170,11 +195,15 @@ export function OnboardingScreen({
                   justifyContent: 'center',
                   borderWidth: 2,
                   borderColor: on ? color.brand : color.neutral400,
-                  backgroundColor: on ? color.brand : 'transparent',
-                  borderRadius: radius.lg,
+                  backgroundColor: on && current.multi ? color.brand : 'transparent',
+                  borderRadius: current.multi ? 6 : radius.lg,
                 }}
               >
-                {on ? <Check size={14} color={onFill.brand} strokeWidth={3} /> : null}
+                {on
+                  ? (current.multi
+                    ? <Check size={14} color={onFill.brand} strokeWidth={3} />
+                    : <View style={{ width: 12, height: 12, borderRadius: radius.lg, backgroundColor: color.brand }} />)
+                  : null}
               </View>
             </Pressable>
           );
