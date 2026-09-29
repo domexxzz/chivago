@@ -29,7 +29,7 @@ import { useArea } from '../state/area.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
-import { ErrorState, LoadingState } from '../components/States.tsx';
+import { ErrorState, SkeletonList } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
 interface Turn {
@@ -68,7 +68,7 @@ export function ConciergeScreen({
         <Heading size={24} tracking={-0.48} style={{ marginTop: 6 }}>{t({ en: 'Ask me where to go', th: 'ถามฉันว่าไปไหนดี' })}</Heading>
       </View>
 
-      {places.loading ? <LoadingState /> : null}
+      {places.loading ? <SkeletonList rows={4} /> : null}
       {places.error ? <ErrorState message={places.error} onRetry={places.reload} /> : null}
 
       <ScrollView
