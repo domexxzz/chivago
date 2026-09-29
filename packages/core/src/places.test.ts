@@ -41,6 +41,7 @@ describe('KU Bangkhen mapped places', () => {
     const quests = SEED_QUESTS.filter((q) => inArea(area, q));
     assert.equal(quests.length, 1);
     assert.equal(quests[0]!.host.id, SEED_HOSTS.kuBangkhen!.id);
+    assert.equal(quests[0]!.host.name, 'ChivaGo team · KU Bangkhen');
     assert.equal(quests[0]!.rewardCurrency, 'trip');
     assert.equal(quests[0]!.geofenceRadiusM, 100);
   });
