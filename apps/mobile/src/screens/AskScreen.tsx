@@ -377,7 +377,8 @@ function AskSheet({
             label={strings.ask.send.en}
             thai={strings.ask.send.th}
             onPress={send}
-            disabled={busy}
+            busy={busy}
+            busyLabel={t({ en: 'Sending…', th: 'กำลังส่ง…' })}
             style={{ marginTop: 16 }}
           />
           {failed ? (
