@@ -8,6 +8,7 @@
     "start": "node --experimental-strip-types src/server.ts",
     "seed": "node --experimental-strip-types src/seed-db.ts",
     "seed:area": "node --experimental-strip-types src/seed-area.ts",
+    "seed:marketplace": "node --experimental-strip-types src/seed-marketplace.ts",
     "host:add": "node --experimental-strip-types src/add-host.ts",
     "test": "node --test --experimental-strip-types \"src/*.test.ts\" \"src/console/*.test.ts\"",
     "typecheck": "tsc --noEmit",
