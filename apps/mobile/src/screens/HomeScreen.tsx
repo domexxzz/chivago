@@ -166,7 +166,7 @@ export function HomeScreen({
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <Hero now={now} wallet={wallet} area={area} onChangeArea={setArea} onOpenWallet={onOpenWallet} onOpenConcierge={onOpenConcierge} onOpenProfile={onOpenProfile} />
+      <Hero now={now} area={area} onChangeArea={setArea} onOpenConcierge={onOpenConcierge} onOpenProfile={onOpenProfile} />
       <Conditions places={here} onOpenMap={onOpenMap} />
       <Doors
         onOpenMap={onOpenMap}
@@ -220,18 +220,15 @@ type Async<T> = { data: T | null; loading: boolean; error: string | null; reload
 // ---------------------------------------------------------------------------
 
 function Hero({
-  now, wallet, area, onChangeArea, onOpenWallet, onOpenConcierge, onOpenProfile,
+  now, area, onChangeArea, onOpenConcierge, onOpenProfile,
 }: {
   now: Date;
-  wallet: Async<{ balances: { green: number; trip: number } }>;
   area: Area;
   onChangeArea: (next: AreaKey) => void;
-  onOpenWallet: () => void;
   onOpenConcierge: () => void;
   onOpenProfile: () => void;
 }) {
   const greeting = greetingFor(now);
-  const green = wallet.data?.balances.green ?? null;
   return (
     <View
       style={{
@@ -255,21 +252,14 @@ function Hero({
             {t(area.name)}
           </Heading>
         </View>
-        {/* The verified purse, as a chip. Green means a host checked it - even here. */}
-        <Pressable
-          onPress={onOpenWallet}
-          accessibilityRole="button"
-          accessibilityLabel={`Green Points, ${green === null ? 'unknown' : green.toLocaleString('en-US')} G`}
-          style={{
-            flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36,
-            paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.lg,
-            backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)',
-          }}
-        >
-          <Leaf size={14} color={color.accent300} strokeWidth={2.2} />
-          <Heading size={14} colour={onFill.brand}>{green === null ? '—' : green.toLocaleString('en-US')}</Heading>
-          <Label size={9} tracking={0.1} colour={color.brandSoft}>G</Label>
-        </Pressable>
+        {/*
+          The balance is NOT here any more. It lived as a Green chip in this
+          hero AND in full - Green, Trip, Companions, each with its provenance -
+          in Carrying below, and a glance at the top competing with the search
+          field it sits beside was the more crowded, less honest of the two. It
+          keeps the one that teaches evidence-from-self, and the map header
+          still carries a glance for the screen a traveller reads for it.
+        */}
         {/*
           The profile, top right, where every app keeps it. A drawn figure
           rather than a photograph, because the app has none to show and
