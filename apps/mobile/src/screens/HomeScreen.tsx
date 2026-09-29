@@ -45,7 +45,7 @@ import { BoardFeed } from '../components/BoardFeed.tsx';
 import { BusStrip } from '../components/BusStrip.tsx';
 import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import {
-  BedDouble, ChevronRight, Compass, HeartPulse, Leaf, MessageCircle, Search, Shield, Sparkles, Trees, UserRound, Users, Utensils, Wallet,
+  BedDouble, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MessageCircle, Search, Shield, Sparkles, Trees, UserRound, Users, Utensils, Wallet,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
@@ -377,7 +377,7 @@ function Conditions({
               onPress={onOpenMap}
               accessibilityRole="button"
               accessibilityLabel="See every place and how its score is calculated"
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, minHeight: 28 }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, minHeight: 44 }}
             >
               <Label size={10} tracking={0.1} colour={color.brand}>{t({ en: 'See every place', th: 'ดูทุกสถานที่' })}</Label>
               <ChevronRight size={14} color={color.brand} strokeWidth={2} />
@@ -404,7 +404,9 @@ function Doors({
   // purpose: annotating the icon narrower than LucideIcon fights the
   // library's own forwardRef signature for nothing.
   const doors = [
-    { Icon: Compass, name: strings.tabs.map, onPress: onOpenMap },
+    // The same glyph the tab bar uses for the map. A door and a tab that go to
+    // one place should not teach two icons for it.
+    { Icon: MapIcon, name: strings.tabs.map, onPress: onOpenMap },
     // Second, so it is on screen without scrolling the row: stays, boats
     // and tours are what a traveller opens a travel app to find, and this
     // screen was lost at the bottom of the trip planner.
@@ -1086,7 +1088,7 @@ function SectionHead({
         {note ? <Label size={9} tracking={0.08} colour={color.neutral600} style={{ marginTop: 2 }}>{note}</Label> : null}
       </View>
       {onSeeAll ? (
-        <Pressable onPress={onSeeAll} accessibilityRole="button" accessibilityLabel={`${t({ en: 'See all', th: 'ดูทั้งหมด' })}: ${t({ en, th })}`} style={{ minHeight: 28, justifyContent: 'center' }}>
+        <Pressable onPress={onSeeAll} accessibilityRole="button" accessibilityLabel={`${t({ en: 'See all', th: 'ดูทั้งหมด' })}: ${t({ en, th })}`} style={{ minHeight: 44, justifyContent: 'center' }}>
           <Label size={10} tracking={0.1} colour={color.brand}>{t({ en: 'See all', th: 'ดูทั้งหมด' })}</Label>
         </Pressable>
       ) : null}
