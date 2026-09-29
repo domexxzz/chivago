@@ -286,7 +286,7 @@ export function getPersonalImpact(db: DB, userId: string): ImpactStat[] {
 
   return [
     { key: 'wasteCollected', label: { en: 'Waste collected', th: 'ขยะที่เก็บได้' }, value: round1(totals.waste_kg), unit: 'kg' },
-    { key: 'treesPlanted', label: { en: 'Trees planted', th: 'ต้นไม้ที่ปลูก' }, value: treesPlanted, unit: '' },
+    { key: 'treesPlanted', label: { en: 'Trees planted by partners from your work', th: 'ต้นไม้ที่พาร์ทเนอร์ปลูกจากงานของคุณ' }, value: treesPlanted, unit: '' },
     { key: 'volunteerTime', label: { en: 'Volunteer time', th: 'เวลาอาสาสมัคร' }, value: round1(hours), unit: 'hr' },
     { key: 'questsVerified', label: { en: 'Quests verified', th: 'ภารกิจที่ผ่านการตรวจ' }, value: totals.quests_verified, unit: '' },
   ];

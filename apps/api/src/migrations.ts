@@ -1092,6 +1092,9 @@ export function migrate(db: DB): string[] {
       created_at     TEXT NOT NULL,
       created_by     TEXT
     );
+    CREATE TRIGGER IF NOT EXISTS tree_plantings_are_append_only
+      BEFORE UPDATE ON tree_plantings
+      BEGIN SELECT RAISE(ABORT, 'tree plantings are append-only: record another planting'); END;
     CREATE TABLE IF NOT EXISTS tree_attributions (
       planting_id TEXT NOT NULL REFERENCES tree_plantings(id) ON DELETE CASCADE,
       user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

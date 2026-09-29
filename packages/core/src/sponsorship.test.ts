@@ -251,6 +251,16 @@ describe('trees promised are not trees planted', () => {
     assert.equal(capped.lines[0]?.evidence.length, 2, 'one evidence id counted twice');
   });
 
+  test('date-only planting uses the approval day in Thailand', () => {
+    const approval = { ...treeApproval, verifiedAt: '2026-09-10T18:00:00.000Z' };
+    const sameDay = { ...planted, plantedAt: '2026-09-11' };
+    const priorDay = { ...planted, plantedAt: '2026-09-10' };
+    assert.equal(treeImpactFor('ana', [approval], [treePromise], [sameDay], treeNow).planted, 2);
+    assert.equal(treeImpactFor('ana', [approval], [treePromise], [priorDay], treeNow).planted, 0);
+    assert.equal(hasPlantingEvidence(sameDay, new Date('2026-09-10T18:00:00.000Z')), true,
+      'a date-only entry on the current Thailand day is not a future planting');
+  });
+
   test('incomplete or future evidence cannot turn pending into planted', () => {
     const invalid = [
       { ...planted, partner: ' ' },

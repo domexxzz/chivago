@@ -674,7 +674,7 @@ export const strings = {
       mangrovesPlanted: t('Mangroves planted', 'ต้นโกงกางที่ปลูก'),
       volunteerTime: t('Volunteer time', 'เวลาอาสาสมัคร'),
       questsVerified: t('Quests verified', 'ภารกิจที่ผ่านการตรวจ'),
-      treesPlanted: t('Trees planted', 'ต้นไม้ที่ปลูก'),
+      treesPlanted: t('Trees planted by partners from your work', 'ต้นไม้ที่พาร์ทเนอร์ปลูกจากงานของคุณ'),
       volunteerHours: t('Volunteer hours', 'ชั่วโมงอาสาสมัคร'),
       participants: t('Participants', 'ผู้เข้าร่วม'),
       activities: t('Community activities', 'กิจกรรมชุมชน'),

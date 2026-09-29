@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { beforeEach, describe, test } from 'node:test';
 import { openTestDb, type DB } from './db.ts';
+import { migrate } from './migrations.ts';
 import { addOrganisation, addSponsorship, InvalidFunding, removeSponsorship } from './organisation-service.ts';
 import {
   communityTreesPlanted, InvalidTreeRecord, recordTreePlanting, setTreeCommitment,
@@ -108,6 +109,23 @@ describe('physical planting needs proof and a live approval', () => {
     assert.equal(impact.lines[0]?.evidence[0]?.partner, 'Test planting partner');
     assert.equal(communityTreesPlanted(db, 2026, now), 2);
     assert.equal(communityTreesPlanted(db, 2025, now), 0);
+  });
+
+  test('a planting evidence row cannot be updated, even after migrating again', () => {
+    recordTreePlanting(db, evidence(), 'moderator', now);
+    const rewrite = () => db.prepare('UPDATE tree_plantings SET partner = ?').run('Changed partner');
+    assert.throws(rewrite, /tree plantings are append-only/);
+    migrate(db);
+    assert.throws(rewrite, /tree plantings are append-only/);
+    const kept = db.prepare('SELECT partner FROM tree_plantings').get() as { partner: string };
+    assert.equal(kept.partner, 'Test planting partner');
+  });
+
+  test('a date-only planting on the approval day is accepted, but an earlier day is not', () => {
+    assert.throws(() => recordTreePlanting(db, evidence({ plantedAt: '2026-09-10' }), 'moderator', now),
+      InvalidTreeRecord);
+    recordTreePlanting(db, evidence({ plantedAt: '2026-09-11' }), 'moderator', now);
+    assert.equal(treeImpactForUser(db, 'ana', now).planted, 2);
   });
 
   test('missing evidence, pre-approval planting and over-attribution are refused', () => {
