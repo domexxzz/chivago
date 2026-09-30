@@ -7,7 +7,7 @@
  */
 
 import { REJECTION_REASONS, REJECTION_REASON_KEYS } from '@chivago/core';
-import { esc, html, layout, type Raw } from './html.ts';
+import { esc, html, layout, raw, type Raw } from './html.ts';
 import {
   formatDateTime, formatNumber, formatWaiting, t, tf, type Locale,
 } from './i18n.ts';
@@ -80,6 +80,54 @@ function checkRow(check: ReviewCheck, locale: Locale): Raw {
       </div>
     </div>
   `;
+}
+
+/** The AI's check row and its card: what `#assist-block` holds, on the page and from the poll. */
+export function assistFragment(item: ReviewItem, locale: Locale): Raw {
+  const check = item.checks.find((c) => c.key === 'ai');
+  return html`${check ? checkRow(check, locale) : ''}${assistCard(item, locale)}`;
+}
+
+/** The AI has been asked and has not answered yet - the only state worth waiting on. */
+export const assistPending = (item: ReviewItem): boolean =>
+  item.checks.some((c) => c.key === 'ai' && c.detailKey === 'aiPending');
+
+/** Every five seconds for three minutes: past that the stale sweep has it, and a reload will. */
+const ASSIST_POLL_MS = 5_000;
+const ASSIST_POLL_MAX = 36;
+
+/**
+ * Swaps the AI block in place when the answer lands, without a reload - a
+ * reload would throw away a note the host is halfway through typing. It
+ * also moves `assistSeen`, because from then on the host has seen the
+ * answer. Polls only while the tab is in view, and stops at the first answer.
+ * The fragment is rendered and escaped on the server, like the page.
+ */
+function assistPoll(proofId: string): Raw {
+  // `<` escaped so nothing in the URL can close the script element.
+  const url = JSON.stringify(`/console/proof/${encodeURIComponent(proofId)}/assist`).replace(/</g, '\\u003c');
+  return raw(`<script>
+(function(){
+  var url = ${url};
+  var block = document.getElementById('assist-block');
+  var seen = document.querySelector('input[name="assistSeen"]');
+  var tries = 0, timer = null;
+  function stop(){ if (timer) { clearInterval(timer); timer = null; } }
+  function poll(){
+    if (document.hidden) return;
+    if (++tries > ${ASSIST_POLL_MAX}) return stop();
+    fetch(url, { credentials: 'same-origin', cache: 'no-store' })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(j){
+        if (!j || j.pending || !block) return;
+        block.innerHTML = j.html;
+        if (seen) seen.value = j.status;
+        stop();
+      }).catch(function(){});
+  }
+  timer = setInterval(poll, ${ASSIST_POLL_MS});
+})();
+</script>`);
 }
 
 /**
@@ -301,8 +349,9 @@ export function detailPage(
 
     <h4 style="margin-top:32px">${tr('automaticChecks')}</h4>
     <p class="muted" style="max-width:64ch">${tr('checksBlurb')}</p>
-    ${item.checks.map((c) => checkRow(c, locale))}
-    ${assistCard(item, locale)}
+    ${item.checks.filter((c) => c.key !== 'ai').map((c) => checkRow(c, locale))}
+    <div id="assist-block">${assistFragment(item, locale)}</div>
+    ${assistPending(item) ? assistPoll(item.proofId) : ''}
 
     <h4 style="margin-top:32px">${tr('decision')}</h4>
     <form method="post" action="/console/decide">

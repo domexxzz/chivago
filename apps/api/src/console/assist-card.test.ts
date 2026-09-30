@@ -118,6 +118,66 @@ describe('the AI card on a proof', () => {
   });
 });
 
+describe('the card arrives while the host is looking', () => {
+  const pendingRow = () =>
+    db.prepare(`INSERT INTO proof_assists (proof_id,status,created_at) VALUES ('p1','pending',?)`).run(iso(0.01));
+  const poll = async (token: string, id = 'p1', lang: 'en' | 'th' = 'en') =>
+    app.request(`/proof/${id}/assist`, { headers: { cookie: `${SESSION_COOKIE}=${token}; chivago_lang=${lang}` } });
+
+  test('while the AI is still looking, the page polls - and says so', async () => {
+    pendingRow();
+    const body = await page(await signIn(), 'en');
+    assert.match(body, /id="assist-block"/);
+    assert.match(body, /\/console\/proof\/p1\/assist/);
+    assert.match(body, /The AI is still looking/);
+  });
+
+  test('once there is an answer, or none is coming, the page does not poll at all', async () => {
+    const token = await signIn();
+    assert.doesNotMatch(await page(token, 'en'), /\/assist'|\/assist"/, 'off: nothing to wait for');
+    giveOpinion(opinion());
+    assert.doesNotMatch(await page(token, 'en'), /\/assist'|\/assist"/, 'done: nothing to wait for');
+  });
+
+  test('the poll answers pending, then the check and the card, escaped, in the host\'s language', async () => {
+    pendingRow();
+    const token = await signIn();
+    const first = await poll(token);
+    assert.equal(first.status, 200);
+    assert.equal(first.headers.get('cache-control'), 'no-store');
+    const j1 = await first.json() as { pending: boolean; status: string; html: string };
+    assert.equal(j1.pending, true);
+    assert.equal(j1.status, 'unknown');
+
+    db.prepare(`UPDATE proof_assists SET status='done', result_json=? WHERE proof_id='p1'`)
+      .run(opinion({ summary: { en: '<b>bold</b> screen', th: 'ภาพหน้าจอ <i>x</i>' } }));
+    const j2 = await (await poll(token, 'p1', 'th')).json() as { pending: boolean; status: string; html: string };
+    assert.equal(j2.pending, false);
+    assert.equal(j2.status, 'fail');
+    assert.match(j2.html, /ความเห็นจาก AI/);
+    assert.match(j2.html, /&lt;i&gt;x&lt;\/i&gt;/);
+    assert.doesNotMatch(j2.html, /<i>x<\/i>/);
+  });
+
+  test('another host\'s proof, or none at all, is not found - it does not leak that it exists', async () => {
+    const token = await signIn();
+    db.prepare('INSERT INTO hosts (id,name,type) VALUES (?,?,?)').run('h2', 'Ocean Lab', 'hotel');
+    db.prepare(
+      `INSERT INTO quests (id,code,name_en,name_th,where_label,duration,reward_points,
+         host_id,kind,lat,lng,geofence_radius_m) VALUES ('q2','CR-02','Coral','x','Taling Ngam','90 min',150,'h2','today',9.4,99.9,250)`,
+    ).run();
+    db.prepare(`INSERT INTO quest_progress (user_id,quest_id,stage) VALUES ('u1','q2','host_verification')`).run();
+    db.prepare(`INSERT INTO proofs (id,user_id,quest_id,photos,submitted_at) VALUES ('p2','u1','q2','[]',?)`).run(iso(1));
+    assert.equal((await poll(token, 'p2')).status, 404);
+    assert.equal((await poll(token, 'nope')).status, 404);
+  });
+
+  test('signed out, the poll gets the login redirect like every console page', async () => {
+    const res = await app.request('/proof/p1/assist');
+    assert.equal(res.status, 303);
+  });
+});
+
 describe('the decision remembers what the AI said', () => {
   const decide = async (token: string, decision: 'approve' | 'reject') =>
     app.request('/decide', {

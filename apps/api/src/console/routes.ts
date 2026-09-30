@@ -67,7 +67,9 @@ import {
 import { readPhotoForHost } from '../uploads.ts';
 import { questCountsFor, resolveVerification } from '../quest-service.ts';
 import { recordAssistAtDecision } from '../assist-service.ts';
-import { detailPage, historyPage, loginPage, messagePage, queuePage } from './views.ts';
+import {
+  assistFragment, assistPending, detailPage, historyPage, loginPage, messagePage, queuePage,
+} from './views.ts';
 import { sosDeskPage } from './sos-desk.ts';
 import { acknowledgeAlert, liveAlerts, recentAlerts, resolveAlert } from '../sos-service.ts';
 import { escalationsFor } from '../escalation-service.ts';
@@ -350,6 +352,24 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
         canModerate(session),
       ),
     );
+  });
+
+  /**
+   * The AI block of one proof, for the detail page to swap in when the
+   * answer lands (docs/63). Host-scoped through reviewItem like the page, so
+   * another host's proof 404s. The HTML is rendered and escaped here; the
+   * page only places it.
+   */
+  app.get('/proof/:id/assist', (c) => {
+    const session = currentSession(c)!;
+    const item = reviewItem(db, session.hostId, c.req.param('id'));
+    c.header('cache-control', 'no-store');
+    if (!item) return c.json({ error: 'not found' }, 404);
+    return c.json({
+      pending: assistPending(item),
+      status: item.checks.find((k) => k.key === 'ai')?.status ?? 'unknown',
+      html: assistFragment(item, localeFor(c)).value,
+    });
   });
 
   app.get('/proof/:id', (c) => {
