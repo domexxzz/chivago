@@ -1496,5 +1496,33 @@ export function migrate(db: DB): string[] {
   `);
   applied.push('listings', 'inquiries');
 
+  // -- A second pair of eyes: the AI's opinion on a proof (docs/56) --------
+  //
+  // One row per proof. `result_json` only ever holds what survived
+  // parseAssist; `error` is a short reason, never a header or a key. Nothing
+  // here is read by anything that awards points.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS proof_assists (
+      proof_id        TEXT PRIMARY KEY REFERENCES proofs(id) ON DELETE CASCADE,
+      status          TEXT NOT NULL CHECK (status IN ('pending','done','failed','off','limit')),
+      model_id        TEXT,
+      prompt_version  TEXT,
+      result_json     TEXT,
+      error           TEXT,
+      input_tokens    INTEGER,
+      output_tokens   INTEGER,
+      latency_ms      INTEGER,
+      -- Model calls made for this proof, retries included. The daily cap
+      -- counts these, not rows, because each one is billed.
+      attempts        INTEGER NOT NULL DEFAULT 0,
+      created_at      TEXT NOT NULL,
+      completed_at    TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_proof_assists_status ON proof_assists(status, created_at);
+  `);
+  // What the AI check said when the host decided - for measuring agreement,
+  // not for judging the host.
+  if (addColumn(db, 'proofs', 'assist_at_decision', 'TEXT')) applied.push('proofs.assist_at_decision');
+
   return applied;
 }

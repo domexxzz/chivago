@@ -79,6 +79,12 @@ export const ffmpegTranscoder: Transcoder = {
     return { durationS: input_s === null ? null : Math.min(input_s, STORY_MAX_SECONDS) };
   },
   async photo(input, outJpg) {
-    await run(['-y', '-i', input, '-vf', `scale='min(${STORY_WIDTH},iw)':-2`, '-q:v', '4', outJpg]);
+    // -map_metadata -1: say it rather than rely on a build's default. Some
+    // ffmpeg builds carry EXIF through as frame side data, and this file is
+    // what strips a position before a photo is public or sent to the AI.
+    await run([
+      '-y', '-i', input, '-map_metadata', '-1',
+      '-vf', `scale='min(${STORY_WIDTH},iw)':-2`, '-q:v', '4', outJpg,
+    ]);
   },
 };

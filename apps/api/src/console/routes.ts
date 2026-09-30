@@ -66,6 +66,7 @@ import {
 } from './i18n.ts';
 import { readPhotoForHost } from '../uploads.ts';
 import { questCountsFor, resolveVerification } from '../quest-service.ts';
+import { recordAssistAtDecision } from '../assist-service.ts';
 import { detailPage, historyPage, loginPage, messagePage, queuePage } from './views.ts';
 import { sosDeskPage } from './sos-desk.ts';
 import { acknowledgeAlert, liveAlerts, recentAlerts, resolveAlert } from '../sos-service.ts';
@@ -1810,6 +1811,17 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       reviewedBy: session.reviewer,
       reviewNote: note || null,
     });
+    // What the host SAW: the page carries the AI status it rendered, since
+    // the opinion may have landed between loading the page and deciding.
+    // Anything but a status falls back to what is stored now.
+    const seen = String(form.assistSeen ?? '');
+    recordAssistAtDecision(
+      db,
+      proofId,
+      ['pass', 'warn', 'fail', 'unknown'].includes(seen)
+        ? seen
+        : item.checks.find((c) => c.key === 'ai')?.status ?? null,
+    );
     hooks.afterDecision?.();
 
     return c.redirect('/console', 303);
