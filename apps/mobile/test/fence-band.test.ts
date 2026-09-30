@@ -58,15 +58,27 @@ describe("reading the server's own description", () => {
   test('a server that says the fence is open is believed', async () => {
     const fake = server({ 'GET /config': { fenceOff: true, autoApprove: false } });
     try {
-      assert.deepEqual(await serverConfig(), { fenceOff: true, autoApprove: false });
+      assert.deepEqual(await serverConfig(), { fenceOff: true, autoApprove: false, aiAssist: true });
     } finally { fake.restore(); }
   });
 
   test('a server that reviews nothing is believed about that too', async () => {
     const fake = server({ 'GET /config': { fenceOff: false, autoApprove: true } });
     try {
-      assert.deepEqual(await serverConfig(), { fenceOff: false, autoApprove: true });
+      assert.deepEqual(await serverConfig(), { fenceOff: false, autoApprove: true, aiAssist: true });
     } finally { fake.restore(); }
+  });
+
+  test('a server that sends no photo to an AI is believed, and only an explicit false stands the notice down', async () => {
+    const fake = server({ 'GET /config': { fenceOff: false, autoApprove: false, aiAssist: false } });
+    try {
+      assert.equal((await serverConfig()).aiAssist, false);
+    } finally { fake.restore(); }
+    __resetServerConfig();
+    const odd = server({ 'GET /config': { fenceOff: false, autoApprove: false, aiAssist: 'no' } });
+    try {
+      assert.equal((await serverConfig()).aiAssist, true, 'anything but false keeps the careful reading');
+    } finally { odd.restore(); }
   });
 
   test('a field the server does not send reads as the careful answer', async () => {

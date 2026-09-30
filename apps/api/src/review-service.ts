@@ -10,7 +10,10 @@
  * verdict: the host decides, the software only shows its work.
  */
 
-import { isRejectionReasonKey, type RejectionReasonKey } from '@chivago/core';
+import {
+  assistToCheck, isRejectionReasonKey, type Assist, type RejectionReasonKey,
+} from '@chivago/core';
+import { assistStateFor } from './assist-service.ts';
 import { distanceMetres } from './quest-service.ts';
 import { row, rows, type DB } from './db.ts';
 
@@ -68,6 +71,11 @@ export interface ReviewItem {
   arrivedAt: string | null;
   /** Party members who were in the fence when this was taken. Approving pays them too. */
   partyPresent: string[];
+  /**
+   * The AI's opinion, when it has one (docs/63). Read through this item, so
+   * it inherits the host scoping every query here has.
+   */
+  assist: Assist | null;
 }
 
 interface ProofRow {
@@ -222,9 +230,11 @@ function toReviewItem(db: DB, hostId: string, p: ProofRow, now: Date): ReviewIte
   const partyPresent = partyIds.length === 0 ? [] : rows<{ display_name: string }>(
     db.prepare(`SELECT display_name FROM users WHERE id IN (${partyIds.map(() => '?').join(',')})`).all(...partyIds),
   ).map((r) => r.display_name);
+  const assistState = assistStateFor(db, p.id) ?? { status: 'off' as const };
 
   return {
     partyPresent,
+    assist: assistState.status === 'done' ? assistState.assist : null,
     proofId: p.id,
     questId: p.quest_id,
     questCode: p.quest_code,
@@ -240,6 +250,7 @@ function toReviewItem(db: DB, hostId: string, p: ProofRow, now: Date): ReviewIte
       geotagCheck(photos, p.geofence_radius_m),
       timingCheck(photos, p.arrived_at),
       weightCheck(p.weight_kg),
+      assistToCheck(assistState),
     ],
     waitingHours,
     overdue: waitingHours > SLA_HOURS,

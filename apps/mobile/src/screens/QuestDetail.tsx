@@ -28,6 +28,7 @@ import { API_BASE, api, type FiledStatement, type Result } from '../api/client.t
 import { useAsync } from '../state/store.tsx';
 import { enqueueProof, pendingFor } from '../state/outbox.ts';
 import { deviceOutbox } from '../state/outbox-device.ts';
+import { useServerConfig } from '../state/server-config.ts';
 import { color, gutter, layout, motion, onFill, radius, shadow } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
@@ -51,6 +52,8 @@ export function QuestDetailScreen({
   const [pending, setPending] = React.useState(0);
   React.useEffect(() => { void pendingFor(deviceOutbox(), questId).then(setPending); }, [questId]);
   const [weight, setWeight] = React.useState('');
+  // Above every early return, like every hook here (fence-band.test.ts).
+  const { aiAssist } = useServerConfig();
 
   const quest = data.data?.quest ?? null;
   const progress = data.data?.progress ?? null;
@@ -238,6 +241,7 @@ export function QuestDetailScreen({
                 onAddPhoto={addPhoto}
                 onSubmit={submit}
                 busy={busy}
+                aiAssist={aiAssist}
               />
             ) : null}
             {stage === 'host_verification' ? <VerifyingPanel host={quest.host.name} /> : null}
@@ -373,10 +377,10 @@ function RejectionNotice({ reason }: { reason: Bilingual | null }) {
 }
 
 function ProofBox({
-  photos, weight, onWeight, onAddPhoto, onSubmit, busy,
+  photos, weight, onWeight, onAddPhoto, onSubmit, busy, aiAssist,
 }: {
   photos: ProofPhoto[]; weight: string; onWeight: (v: string) => void;
-  onAddPhoto: () => void; onSubmit: () => void; busy: boolean;
+  onAddPhoto: () => void; onSubmit: () => void; busy: boolean; aiAssist: boolean;
 }) {
   return (
     <View
@@ -450,6 +454,12 @@ function ProofBox({
       <Body size={13} colour={color.neutral700} style={{ marginTop: 12 }}>
         {t(strings.quest.proofHelper)}
       </Body>
+      {/* Above the send button, so it is read before the photos leave (docs/63). */}
+      {aiAssist ? (
+        <Body size={13} colour={color.neutral700} style={{ marginTop: 8 }}>
+          {t(strings.quest.aiAssistNotice)}
+        </Body>
+      ) : null}
 
       <Button
         label={t(strings.quest.ctaSend)}

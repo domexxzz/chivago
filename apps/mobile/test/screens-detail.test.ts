@@ -30,6 +30,7 @@ import { TripScreen } from '../src/screens/TripScreen.tsx';
 import { OnboardingScreen } from '../src/screens/Onboarding.tsx';
 import { ImpactScreen } from '../src/screens/ImpactScreen.tsx';
 import { WalletScreen } from '../src/screens/WalletScreen.tsx';
+import { __resetServerConfig } from '../src/state/server-config.ts';
 
 const noop = () => {};
 
@@ -414,6 +415,36 @@ describe('a quest, from joining to verification', () => {
       assert.doesNotMatch(said, /Join this quest/);
       ui.unmount();
     } finally { net.restore(); }
+  });
+
+  test('where the photos are sent, it says an AI may look - and who still decides', async () => {
+    __resetServerConfig();
+    const net = server({
+      'GET /config': { fenceOff: false, autoApprove: false, aiAssist: true },
+      'GET /quests/q1': detail(progress({ stage: 'arrived', arrivedAt: '2026-08-31T02:00:00.000Z' })),
+    });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      await settle();
+      assert.match(ui.text(), /An AI may look at your photos/);
+      assert.match(ui.text(), /the host decides/);
+      ui.unmount();
+    } finally { net.restore(); __resetServerConfig(); }
+  });
+
+  test('a server that sends nothing to an AI does not claim it might', async () => {
+    __resetServerConfig();
+    const net = server({
+      'GET /config': { fenceOff: false, autoApprove: false, aiAssist: false },
+      'GET /quests/q1': detail(progress({ stage: 'arrived', arrivedAt: '2026-08-31T02:00:00.000Z' })),
+    });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      await settle();
+      assert.doesNotMatch(ui.text(), /An AI may look/);
+      assert.match(ui.text(), /Verified by host within 24h/, 'the proof box itself is still there');
+      ui.unmount();
+    } finally { net.restore(); __resetServerConfig(); }
   });
 
   test('a rejected quest shows the reason in the reader\'s language', async () => {

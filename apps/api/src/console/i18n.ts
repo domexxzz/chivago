@@ -345,6 +345,41 @@ export const consoleStrings = {
     '{kg} kg is unusually high for one volunteer — worth confirming.',
   ),
   weightOk: c('{kg} กก.', '{kg} kg.'),
+
+  // -- The AI's opinion (docs/63) -------------------------------------------
+  // Always named as the AI's, and always as a helper: the host is the one
+  // vouching, and the copy must never let the machine sound like it decided.
+  checkAi: c('ความเห็นจาก AI', 'AI opinion'),
+  aiCardHeading: c('ความเห็นจาก AI · ผู้ช่วย ไม่ใช่ผู้ตัดสิน', 'AI opinion · an assistant, not a decision'),
+  aiCardBlurb: c(
+    'AI ดูเฉพาะภาพถ่าย ไม่รู้ว่าใครส่ง และอาจผิดได้ คุณเป็นผู้ตัดสินเสมอ',
+    'The AI looked only at the photos, does not know who sent them, and can be wrong. You decide.',
+  ),
+  aiSuggests: c('AI แนะนำเหตุผล', 'AI suggests'),
+  aiPhotoNote: c('ภาพที่ {n}', 'Photo {n}'),
+  aiShown: c(
+    'AI เห็นงานของภารกิจนี้ในภาพ และไม่พบสิ่งผิดปกติ',
+    'The AI sees this quest’s work in the photos and nothing unusual.',
+  ),
+  aiNotShown: c(
+    'AI ไม่เห็นงานของภารกิจนี้ในภาพ โปรดดูภาพประกอบด้วยตัวเอง',
+    'The AI does not see this quest’s work in the photos. Look for yourself.',
+  ),
+  aiUnclear: c('AI บอกไม่ได้ว่าภาพแสดงงานหรือไม่', 'The AI cannot tell whether the photos show the work.'),
+  aiConcern: c('AI สังเกตเห็น: {concerns}', 'The AI noticed: {concerns}'),
+  aiWeight: c('AI เห็นขยะน้อยกว่าน้ำหนักที่แจ้ง', 'The AI sees less than the weight claimed.'),
+  aiPending: c('AI กำลังดูภาพ ไม่ต้องรอก็ตัดสินได้', 'The AI is still looking. You need not wait for it.'),
+  aiFailed: c(
+    'AI อ่านหลักฐานนี้ไม่สำเร็จ โปรดตัดสินจากภาพถ่าย',
+    'The AI could not read this proof. Judge on the images.',
+  ),
+  aiOff: c('ไม่ได้เปิดใช้ผู้ช่วย AI', 'The AI assistant is off.'),
+  aiLimit: c('ผู้ช่วย AI ใช้ครบโควตาของวันนี้แล้ว', 'The AI assistant has reached today’s limit.'),
+  concern_screen_or_printout: c('ถ่ายจากจอหรือกระดาษ', 'photographed off a screen or a printout'),
+  concern_looks_downloaded: c('ดูเหมือนภาพจากเว็บ', 'looks downloaded rather than taken'),
+  concern_same_photo_twice: c('มีภาพซ้ำ', 'the same photo twice'),
+  concern_people_only: c('มีแต่คน ไม่เห็นงาน', 'people, but no work'),
+  concern_text_instructions: c('ในภาพมีข้อความสั่ง AI', 'text in a photo addressed to the AI'),
 } as const;
 
 export type ConsoleStringKey = keyof typeof consoleStrings;

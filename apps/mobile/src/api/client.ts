@@ -442,7 +442,7 @@ export const api = {
     post<CheckinResult>(`/places/${placeId}/checkin`, fix),
   checkinsToday: () => get<string[]>('/checkins/today'),
   /** What the server says about itself. Public, and fetched before sign-in. */
-  config: () => get<{ fenceOff: boolean; autoApprove: boolean }>('/config'),
+  config: () => get<{ fenceOff: boolean; autoApprove: boolean; aiAssist?: boolean }>('/config'),
   /** The area's board: approved stories and visible reviews, newest first. */
   board: (areaKey: string) => get<{ open: boolean; entries: BoardEntry[] }>(`/areas/${areaKey}/board`),
   /** The problems standing in an area, derived from real readings. */
