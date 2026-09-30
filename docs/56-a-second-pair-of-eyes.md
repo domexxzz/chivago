@@ -56,9 +56,9 @@ host ของเราคือเจ้าหน้าที่เทศบา
                               ▼  หลังตอบผู้ส่งแล้ว ไม่รอ
                      assist-service.ts
                        ├─ ffmpeg ย่อรูป + ลบ EXIF
-                       ├─ core: buildAssistRequest(quest, n รูป)
+                       ├─ core: buildAssistPrompt(quest, n รูป)
                        ├─ Amazon Bedrock · Claude (Converse + tool บังคับรูปแบบคำตอบ)
-                       ├─ core: parseAssist(raw) → Assist | null
+                       ├─ core: parseAssist(raw, สิ่งที่ส่งไป) → Assist | null
                        └─ เก็บลงตาราง proof_assists
                               │
 host เปิดคอนโซล ─▶ review-service.toReviewItem
@@ -70,7 +70,8 @@ host เปิดคอนโซล ─▶ review-service.toReviewItem
 
 ## สิ่งที่ AI ได้รับ และสิ่งที่ตอบกลับ
 
-**ได้รับ:** ชื่อและคำอธิบายภารกิจ (ไทย/อังกฤษ) · หลักฐานที่ภารกิจต้องการ · น้ำหนักที่ผู้ส่งแจ้ง
+**ได้รับ:** รหัส ชื่อ และสถานที่ของภารกิจ (ไทย/อังกฤษ — `Quest` ยังไม่มีช่องคำอธิบาย
+จึงใช้เท่าที่มี) · น้ำหนักที่ผู้ส่งแจ้ง
 · รูปไม่เกิน 4 รูป ย่อด้านยาวไม่เกิน 1,568 px เป็น JPEG ที่ไม่มี EXIF
 
 **ไม่ได้รับ:** ชื่อหรือ id ของผู้ส่ง · ประวัติ · พิกัด (ตัวตรวจ geotag ดูแลเรื่องนี้แล้ว) · ชื่อ host
@@ -85,8 +86,12 @@ interface Assist {
   weight: 'consistent' | 'higher_than_shown' | 'cannot_tell' | null;
   /** ข้อสังเกตจากชุดคำที่กำหนดไว้เท่านั้น ถ้ามีคำอื่นนอกชุดจะถูกตัดทิ้ง */
   concerns: AssistConcern[];
-  /** reason key ที่แนะนำ ต้องผ่าน isRejectionReasonKey ไม่อย่างนั้นเป็น null */
-  suggestedReason: RejectionReasonKey | null;
+  /**
+   * reason ที่แนะนำ มาจาก 4 ข้อที่ต้องดูรูป (ASSIST_REASONS) เท่านั้น
+   * not_at_site / wrong_day เป็นงานของตัวตรวจ geotag / timing และ AI ไม่เห็นพิกัดหรือเวลา
+   * ถ้าคำตอบบอกว่าเห็นงานชัดและไม่มีอะไรผิดปกติ reason จะถูกทิ้ง เพราะขัดกันเอง
+   */
+  suggestedReason: AssistReason | null;
   /** สิ่งที่เห็นในแต่ละรูป สั้นและเป็นข้อเท็จจริง */
   photos: { index: number; en: string; th: string }[];
   /** สรุปไม่เกิน 2 ประโยค */
@@ -122,9 +127,13 @@ type AssistConcern =
 
 - type `Assist`, `AssistConcern`, `ASSIST_PROMPT_VERSION`
 - `assistToolSchema` คือ JSON schema ของ tool ที่ส่งให้โมเดล
-- `buildAssistPrompt(quest)` รับข้อความภารกิจแล้วคืน system + user text ไม่มีข้อมูลผู้ส่ง
-- `parseAssist(raw: unknown): Assist | null` ตรวจเข้มงวด ตัด concern นอกชุด
-  ตรวจ reason ด้วย `isRejectionReasonKey` ตัดข้อความยาวเกิน ถ้าผิดรูปแบบคืน null
+- `buildAssistPrompt(quest, photoCount)` สร้าง prompt จาก field ที่ระบุชื่อเท่านั้น ไม่ serialize ทั้ง object
+  จึงไม่มีข้อมูลผู้ส่งหลุดเข้าไป
+- `parseAssist(raw, { photoCount, weightKg })` ตรวจเทียบกับ**สิ่งที่ส่งไปจริง** ไม่ใช่สิ่งที่ model อ้าง
+  ถ้าผู้ส่งแจ้งน้ำหนัก model ต้องตอบเรื่องน้ำหนัก ถ้าไม่ได้แจ้ง จะไม่สนใจสิ่งที่ model ตอบเรื่องน้ำหนัก
+  ตัด concern, reason และบันทึกรายรูปที่อยู่นอกชุด ตัดข้อความตาม grapheme (ไม่หั่นสระหรือวรรณยุกต์ไทยออกจากพยัญชนะ)
+  ช่อง `th` ต้องมีอักษรไทย ถ้าโครงสร้างผิดคืน null
+- `weightClaimed(kg)` ถือเป็นการแจ้งน้ำหนักเฉพาะเมื่อเป็นเลขบวกที่เป็นค่าจำกัด (finite)
 - `assistToCheck(state)` แปลงตามตารางข้างบน
 
 ### `apps/api/src/assist-service.ts`
