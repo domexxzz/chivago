@@ -87,6 +87,18 @@ figure or it is absent, exactly as `valueTHB` is null on all six seeded
 offers until a merchant says otherwise. And no operator is seeded: the named
 businesses on Samui are real, and a listing is a claim made in their name.
 
+> **Amended 1 October.** An operator that is *made up* is the other thing, and
+> the live server may carry one: `hosts.example`, set by `add-host.ts
+> --example`. Every screen that shows its listings says **Example · not a real
+> business** in both languages, its own console says so, and it is shown **no
+> response time** — a median over questions nobody really answered is a promise
+> about a business that does not exist. Two such operators had been added on 29
+> September marked only by names beginning `DEMO ·`, which is not a label, is
+> English only, and reads as part of the business's name; the listings page was
+> telling travellers one of them *usually answers within 2.5 hours*. The rule
+> above is unchanged for real businesses: still none is seeded, and the mark
+> goes on deliberately and does not come off by accident.
+
 ## The states
 
 ```

@@ -42,6 +42,25 @@ one:
   operator closes the rest of the console at once, without waiting for a new
   sign-in.
 
+## An example operator, for walking the flow
+
+Before a real business signs up, the flow can be walked with a made-up one:
+
+```bash
+fly ssh console -a chivago -u node -C "node --experimental-strip-types apps/api/src/add-host.ts \
+  --id op-demo-boat --name 'Thong Krut Boat Co-op' --type operator --example"
+```
+
+`--example` is what makes the app say *Example · not a real business* wherever
+that operator appears, and what keeps it from being shown a response time. The
+account is otherwise an ordinary operator: it signs in at `/console`, adds its
+own listings and answers its own questions, so what you walk is the real thing.
+
+**`--type operator` matters as much as the mark.** The two examples added on 29
+September were typed `community` and `hotel`, so their keys opened the whole
+console — the SOS desk included. Re-typing them closed it; see step 3 for why
+the type is what the console reads.
+
 ## The runbook
 
 Steps 1 and 2 are the owner's, and no software can do them.
