@@ -14,7 +14,7 @@
 import {
   ASSIST_MAX_PHOTOS, ASSIST_PROMPT_VERSION,
   assistToolSchema, buildAssistPrompt, parseAssist,
-  type Assist, type AssistState,
+  type Assist, type AssistQuest, type AssistState,
 } from '@chivago/core';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -326,13 +326,53 @@ async function ask(
     return finish(db, proofId, { status: 'failed', error: 'prepare_failed' }, now());
   }
 
-  const sent = { photoCount: images.length, weightKg: proof.weight_kg };
-  const { system, user } = buildAssistPrompt({
+  const c = await consult(model, {
     code: proof.code,
     name: { en: proof.name_en, th: proof.name_th },
     where: { en: proof.where_label, th: proof.where_label_th ?? proof.where_label },
     weightKg: proof.weight_kg,
-  }, sent.photoCount);
+  }, images, {
+    timeoutMs: deps.timeoutMs,
+    label: proofId,
+    // Counted before the call: a call that hangs is still a call we pay for.
+    onAttempt: () => {
+      db.prepare('UPDATE proof_assists SET attempts = attempts + 1 WHERE proof_id = ?').run(proofId);
+    },
+  });
+  return finish(db, proofId, {
+    status: c.assist ? 'done' : 'failed',
+    modelId: model.id,
+    assist: c.assist ?? undefined,
+    error: c.error ?? undefined,
+    reply: c.reply ?? undefined,
+    latencyMs: c.latencyMs,
+  }, now());
+}
+
+export interface Consultation {
+  /** What survived parseAssist; null when nothing did. */
+  assist: Assist | null;
+  error: AssistError | null;
+  /** The last reply, when there was one - its token counts are the cost. */
+  reply: AssistModelReply | null;
+  latencyMs: number;
+  attempts: number;
+}
+
+/**
+ * One consultation, with no database: prompt, retries, timeout, parsing.
+ * The console path above and the eval script (scripts/assist-eval.ts) both
+ * run exactly this, so the numbers the eval prints are the numbers a host
+ * would get.
+ */
+export async function consult(
+  model: AssistModel,
+  quest: AssistQuest,
+  images: Buffer[],
+  opts: { timeoutMs?: number; label?: string; onAttempt?: () => void } = {},
+): Promise<Consultation> {
+  const sent = { photoCount: images.length, weightKg: quest.weightKg };
+  const { system, user } = buildAssistPrompt(quest, sent.photoCount);
   const req: AssistModelRequest = {
     system, user, images, toolName: ASSIST_TOOL, toolSchema: assistToolSchema,
   };
@@ -340,26 +380,25 @@ async function ask(
   const started = Date.now();
   let lastError: AssistError = 'model_error';
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
-    // Counted before the call: a call that hangs is still a call we pay for.
-    db.prepare('UPDATE proof_assists SET attempts = attempts + 1 WHERE proof_id = ?').run(proofId);
+    opts.onAttempt?.();
     try {
-      const reply = await askOnce(model, req, deps.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-      const latencyMs = Date.now() - started;
+      const reply = await askOnce(model, req, opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
       const assist = parseAssist(reply.raw, sent);
-      if (!assist) {
-        return finish(db, proofId, { status: 'failed', modelId: model.id, error: 'bad_answer', reply, latencyMs }, now());
-      }
-      return finish(db, proofId, { status: 'done', modelId: model.id, assist, reply, latencyMs }, now());
+      return {
+        assist,
+        error: assist ? null : 'bad_answer',
+        reply,
+        latencyMs: Date.now() - started,
+        attempts: attempt,
+      };
     } catch (err) {
       // The message stays in the log, where an operator reads it; the table
       // keeps a code, because an upstream error can echo a header back.
       lastError = err instanceof Timeout ? 'timeout' : 'model_error';
-      console.error(`[chivago] assist attempt ${attempt} for ${proofId}: ${lastError}`);
+      console.error(`[chivago] assist attempt ${attempt} for ${opts.label ?? '?'}: ${lastError}`);
     }
   }
-  return finish(db, proofId, {
-    status: 'failed', modelId: model.id, error: lastError, latencyMs: Date.now() - started,
-  }, now());
+  return { assist: null, error: lastError, reply: null, latencyMs: Date.now() - started, attempts: ATTEMPTS };
 }
 
 /** What the AI check showed when the host decided (docs/56, measuring agreement). */
