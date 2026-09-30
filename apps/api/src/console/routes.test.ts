@@ -2482,6 +2482,23 @@ describe('an operator answering inquiries', () => {
     assert.match(html, /ไม่ได้ให้เบอร์โทรหรืออีเมล/);
   });
 
+  test('A REAL OPERATOR IS NOT TOLD ITS ACCOUNT IS AN EXAMPLE', async () => {
+    const lab = await signIn(LAB_KEY, 'Nok');
+    assert.doesNotMatch(await page(lab), /ไม่ใช่ธุรกิจจริง/);
+  });
+
+  test('AN EXAMPLE ACCOUNT IS TOLD SO IN ITS OWN CONSOLE, AND SHOWN NO RESPONSE TIME', async () => {
+    // Whoever is sitting in front of this console should know what they are
+    // demonstrating, and never read a median over answers nobody wrote.
+    // beforeEach builds the database again, so nothing here leaks into the
+    // next test.
+    db.prepare("UPDATE hosts SET example = 1 WHERE id = 'h-lab'").run();
+    const lab = await signIn(LAB_KEY, 'Nok');
+    const html = await page(lab);
+    assert.match(html, /ไม่ใช่ธุรกิจจริง/);
+    assert.doesNotMatch(html, /ปกติคุณตอบภายใน/);
+  });
+
   test('A TOUR WITHOUT A LICENCE IS REFUSED WITH A SENTENCE, NOT A CONSTRAINT ERROR', async () => {
     const lab = await signIn(LAB_KEY, 'Nok');
     const res = await addBoat(lab, { licenceNo: '' });

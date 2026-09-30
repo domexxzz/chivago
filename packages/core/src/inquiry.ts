@@ -152,11 +152,18 @@ export interface ListingCard extends Listing {
    */
   responseHours: number | null;
   /**
-   * Set ONLY by the demo build, on its one made-up operator, and every screen
-   * that shows such a listing says "Example · not a real business". The real
-   * API never sets it - a listing there is a claim a real business made, and
-   * none is seeded (decision 5) - and a test in `inquiry-routes.test.ts`
-   * holds it to that.
+   * A made-up operator, not a business. Every screen that shows such a
+   * listing says "Example · not a real business", in both languages.
+   *
+   * Set from one fact and never inferred: `hosts.example` on the server, put
+   * there by `add-host.ts --example`; the demo build sets it on its own
+   * made-up operator. A real operator's listing does not carry the key at
+   * all, and `inquiry-routes.test.ts` holds the server to that - the label
+   * is worth nothing if it can appear on a business by accident, and worth
+   * less if it can be missing from an example.
+   *
+   * An example is also shown no `responseHours`: a median over answers
+   * nobody wrote is a promise about a business that does not exist.
    */
   example?: true;
 }

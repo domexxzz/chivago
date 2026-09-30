@@ -4,6 +4,11 @@
  *   pnpm --filter @chivago/api host:add -- --id h-trash-hero-samui \
  *     --name "Trash Hero Koh Samui" --type ngo
  *
+ * `--example` marks it as a made-up operator rather than a business: every
+ * screen showing one of its listings says "Example · not a real business",
+ * and it is never given a response time. For walking the flow where no real
+ * operator has signed up yet. The mark can be put on but not taken off here.
+ *
  * A business that lists stays, boats or tours takes `--type operator`. Its
  * key signs in to a console that reaches its listings and its travellers'
  * questions and nothing else - no review queue, no SOS desk, no statements -
@@ -38,7 +43,7 @@ export const isHostType = (v: unknown): v is HostType =>
 
 export function addHost(
   db: DB,
-  args: { id: string; name: string; type: HostType; now?: Date },
+  args: { id: string; name: string; type: HostType; example?: boolean; now?: Date },
 ): { created: boolean; key: string | null } {
   if (!args.id.trim() || !args.name.trim()) throw new Error('a host needs an id and a name');
   if (!isHostType(args.type)) throw new Error(`type must be one of ${HOST_TYPES.join(', ')}`);
@@ -47,10 +52,19 @@ export function addHost(
     db.prepare('SELECT api_key_hash FROM hosts WHERE id = ?').get(args.id),
   );
 
+  /*
+    The example mark goes on, and never comes off by accident.
+
+    `MAX` rather than `excluded.example`: re-running this for an existing
+    example operator without the flag would otherwise quietly un-label it, and
+    the app would start presenting a made-up boat co-op as a business. Taking
+    the mark off is a deliberate UPDATE by somebody who means it.
+  */
   db.prepare(
-    `INSERT INTO hosts (id, name, type, role, created_at) VALUES (?, ?, ?, 'host', ?)
-     ON CONFLICT(id) DO UPDATE SET name = excluded.name, type = excluded.type`,
-  ).run(args.id, args.name, args.type, (args.now ?? new Date()).toISOString());
+    `INSERT INTO hosts (id, name, type, role, created_at, example) VALUES (?, ?, ?, 'host', ?, ?)
+     ON CONFLICT(id) DO UPDATE SET name = excluded.name, type = excluded.type,
+       example = MAX(hosts.example, excluded.example)`,
+  ).run(args.id, args.name, args.type, (args.now ?? new Date()).toISOString(), args.example ? 1 : 0);
 
   if (before?.api_key_hash) return { created: false, key: null };
 
@@ -62,13 +76,23 @@ export function addHost(
 // CLI entry. Guarded so the test harness can import `addHost` without running it.
 if (process.argv[1]?.replace(/\\/g, '/').endsWith('/add-host.ts')) {
   const { values } = parseArgs({
-    options: { id: { type: 'string' }, name: { type: 'string' }, type: { type: 'string' } },
+    options: {
+      id: { type: 'string' }, name: { type: 'string' }, type: { type: 'string' },
+      example: { type: 'boolean' },
+    },
   });
   if (!values.id || !values.name || !isHostType(values.type)) {
-    console.error(`usage: host:add -- --id <id> --name "<name>" --type <${HOST_TYPES.join('|')}>`);
+    console.error(`usage: host:add -- --id <id> --name "<name>" --type <${HOST_TYPES.join('|')}> [--example]`);
     process.exit(2);
   }
-  const result = addHost(openDb(), { id: values.id, name: values.name, type: values.type });
+  const result = addHost(openDb(), {
+    id: values.id, name: values.name, type: values.type, example: values.example,
+  });
+  if (values.example) {
+    console.log('[chivago] AN EXAMPLE, not a business. Every listing it makes carries');
+    console.log('          "Example · not a real business" in both languages, and it is shown');
+    console.log('          no response time - nobody real answers its questions.');
+  }
   if (result.key) {
     console.log(`[chivago] host ${result.created ? 'created' : 'updated'}: ${values.name}`);
     console.log('[chivago] Console access key - shown ONCE, hand it over in person:');

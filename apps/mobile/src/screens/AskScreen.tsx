@@ -17,8 +17,10 @@
  *   with too few answers shows no response time rather than a flattering one;
  *   and with no operators listed the screen says that, instead of padding
  *   itself with examples that would be claims made in real businesses' names.
- *   The one exception is the demo build's made-up operator, and it says what
- *   it is wherever its name appears (`ExampleMark`).
+ *   A made-up operator is the exception, and says what it is wherever its
+ *   name appears (`ExampleMark`) - the demo build's own, and any the server
+ *   marks. It is also shown no response time: a median over answers nobody
+ *   wrote is not a reply time.
  *
  *   The form checks the SAME `inquiryProblems` the server runs, so every
  *   problem shows beside its field at once and the two can never disagree
@@ -142,10 +144,11 @@ export function AskScreen({
 /**
  * "Example · not a real business".
  *
- * Only the demo build's made-up operator carries `example`, and wherever its
- * name appears - the row, the form, a question about it - this sits directly
- * under it. Coral, because the palette keeps it for the things a reader must
- * not take at face value.
+ * A made-up operator carries `example` - the demo build's own, and any the
+ * server marks (`hosts.example`, the two on the pilot). Wherever its name
+ * appears - the row, the form, a question about it - this sits directly under
+ * it. Coral, because the palette keeps it for the things a reader must not
+ * take at face value.
  */
 function ExampleMark() {
   return (

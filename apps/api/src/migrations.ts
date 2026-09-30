@@ -1524,5 +1524,24 @@ export function migrate(db: DB): string[] {
   // not for judging the host.
   if (addColumn(db, 'proofs', 'assist_at_decision', 'TEXT')) applied.push('proofs.assist_at_decision');
 
+  /*
+    An operator that is an EXAMPLE, not a business.
+
+    docs/61 decision 5 said no operator is seeded, and meant it about real
+    businesses: a listing is a claim made in somebody's name. A made-up
+    operator, labelled as made-up everywhere it appears, is the other thing -
+    the owner asked for one on 28 September so a judge could walk the flow,
+    and the demo build has carried one since.
+
+    On the live server it was carried by the operator's NAME beginning
+    "DEMO · ", which is not a label, is English only, and reads as part of the
+    business's name. Worse, the seeded questions behind it earned the listing
+    "usually answers within 2.5 hours" - a trust signal about a business that
+    does not exist, derived from answers nobody wrote.
+
+    So it is a column: set once, read on every listing, and never guessed.
+  */
+  if (addColumn(db, 'hosts', 'example', 'INTEGER NOT NULL DEFAULT 0')) applied.push('hosts.example');
+
   return applied;
 }

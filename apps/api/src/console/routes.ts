@@ -39,7 +39,7 @@ import {
 import { InvalidIntent, preflightFor, setIntent } from '../indicator-service.ts';
 import {
   InvalidInquiry, InvalidListing, MIN_ANSWERS_FOR_RESPONSE_TIME, addListing, answerInquiry,
-  declineInquiry, inquiriesForOperator, listingsOf, medianResponseHours, setListingActive,
+  declineInquiry, inquiriesForOperator, isExampleOperator, listingsOf, medianResponseHours, setListingActive,
 } from '../inquiry-service.ts';
 import { inquiriesPage } from './inquiries.ts';
 import { kpiReading } from '../kpi-service.ts';
@@ -1027,6 +1027,7 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       reviewer: session.reviewer,
       canModerate: canModerate(session),
       marketplaceOnly: marketplaceOnly(session),
+      example: isExampleOperator(db, session.hostId),
       csrf: csrfFor(session),
       listings: listingsOf(db, session.hostId),
       inquiries: inquiriesForOperator(db, session.hostId, now),
