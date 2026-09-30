@@ -83,7 +83,7 @@ function checkRow(check: ReviewCheck, locale: Locale): Raw {
 }
 
 /**
- * The AI's opinion, in full (docs/56). Its own box, apart from the checks
+ * The AI's opinion, in full (docs/63). Its own box, apart from the checks
  * that read numbers, and labelled as a helper's. The model's text is shown
  * in the host's language and escaped like everything else - it was written
  * by a machine that read a photo somebody else chose.

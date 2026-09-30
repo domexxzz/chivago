@@ -11,7 +11,7 @@ import {
 import { reviewItem } from './review-service.ts';
 
 /**
- * The AI half of docs/56. The rule every test here circles: the model's
+ * The AI half of docs/63. The rule every test here circles: the model's
  * opinion is stored beside a proof and shown to its host, and it changes
  * nothing else - no stage, no wallet, no ledger, no decision.
  */

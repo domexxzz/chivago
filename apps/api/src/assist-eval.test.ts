@@ -7,7 +7,7 @@ import {
 } from './assist-eval.ts';
 
 /**
- * The numbers docs/56 promises before the feature is used: how often the AI
+ * The numbers docs/63 promises before the feature is used: how often the AI
  * waves through a proof people would not accept (the one that decides
  * whether it ships), how often it agrees with people at all, whether it
  * catches a photo that talks to it, and what it costs.

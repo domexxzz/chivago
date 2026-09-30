@@ -1,6 +1,6 @@
 /**
  * Amazon Bedrock, through the Converse API, for the AI host assistant
- * (docs/56).
+ * (docs/63).
  *
  * Plain fetch with a Bedrock API key as a bearer token, so the API gains no
  * dependency for one POST. If the spike finds the key route unavailable in

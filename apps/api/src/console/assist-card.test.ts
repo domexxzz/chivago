@@ -7,7 +7,7 @@ import { ensureWallet } from '../wallet-service.ts';
 import { consoleRoutes, __csrfFor } from './routes.ts';
 
 /**
- * What a host sees of the AI's opinion (docs/56 rule 5): marked as the AI's,
+ * What a host sees of the AI's opinion (docs/63 rule 5): marked as the AI's,
  * escaped like anything else a machine or a person typed, and never choosing
  * the rejection reason for them.
  */
@@ -127,7 +127,7 @@ describe('the decision remembers what the AI said', () => {
         cookie: `${SESSION_COOKIE}=${token}`,
       },
       body: new URLSearchParams({
-        csrf: __csrfFor({ token, hostId: 'h1', hostName: '', reviewer: null, role: 'host', expiresAt: '' }),
+        csrf: __csrfFor({ token, hostId: 'h1', hostName: '', reviewer: null, role: 'host', hostType: 'municipality', expiresAt: '' }),
         proofId: 'p1',
         decision,
         reason: decision === 'reject' ? 'no_work_shown' : '',
@@ -153,7 +153,7 @@ describe('the decision remembers what the AI said', () => {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded', cookie: `${SESSION_COOKIE}=${token}` },
       body: new URLSearchParams({
-        csrf: __csrfFor({ token, hostId: 'h1', hostName: '', reviewer: null, role: 'host', expiresAt: '' }),
+        csrf: __csrfFor({ token, hostId: 'h1', hostName: '', reviewer: null, role: 'host', hostType: 'municipality', expiresAt: '' }),
         proofId: 'p1', decision: 'approve', assistSeen: seen!,
       }),
     });
@@ -168,7 +168,7 @@ describe('the decision remembers what the AI said', () => {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded', cookie: `${SESSION_COOKIE}=${token}` },
       body: new URLSearchParams({
-        csrf: __csrfFor({ token, hostId: 'h1', hostName: '', reviewer: null, role: 'host', expiresAt: '' }),
+        csrf: __csrfFor({ token, hostId: 'h1', hostName: '', reviewer: null, role: 'host', hostType: 'municipality', expiresAt: '' }),
         proofId: 'p1', decision: 'approve', assistSeen: '<script>',
       }),
     });

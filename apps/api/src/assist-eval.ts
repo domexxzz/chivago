@@ -1,5 +1,5 @@
 /**
- * Scoring the AI host assistant against people (docs/56, "วัดผลอย่างไร").
+ * Scoring the AI host assistant against people (docs/63, "วัดผลอย่างไร").
  *
  * Pure: a manifest in, results in, numbers and a report out. The run itself
  * - photos through ffmpeg, the model through Bedrock - is assist-eval-run.ts,
@@ -17,11 +17,11 @@ import {
   type AssistCheckStatus,
 } from '@chivago/core';
 
-/** The line docs/56 draws: above it, the feature is not used. */
+/** The line docs/63 draws: above it, the feature is not used. */
 export const FALSE_PASS_MAX = 0.05;
 export const AGREEMENT_MIN = 0.8;
 export const LATENCY_P95_MAX_MS = 15_000;
-/** docs/56 asks for 40-60 proofs; fewer is reported as too few to lean on. */
+/** docs/63 asks for 40-60 proofs; fewer is reported as too few to lean on. */
 export const EVAL_MIN_ITEMS = 40;
 
 export const EVAL_KINDS = [

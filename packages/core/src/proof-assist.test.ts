@@ -9,7 +9,7 @@ import {
 import { REJECTION_REASON_KEYS } from './strings.ts';
 
 /**
- * The AI reads a proof and writes an opinion for the host (docs/56). These
+ * The AI reads a proof and writes an opinion for the host (docs/63). These
  * hold the three things that make that safe: it never learns who sent the
  * proof, nothing it says leaves the shape we allow, and what it says is only
  * ever a signal.
@@ -49,7 +49,7 @@ describe('what the AI is told', () => {
   test('NOTHING about the submitter reaches the prompt, even if a caller passes it', () => {
     // The builder must pick fields, not serialise whatever it was handed: an
     // AI that knows who sent a proof can start judging the person instead of
-    // the work (docs/56 rule 6).
+    // the work (docs/63 rule 6).
     const leaky = {
       ...beach,
       userId: 'u-SUBMITTER-7731',
@@ -301,7 +301,7 @@ describe('what the host sees: a signal, never a verdict', () => {
   });
 
   test('a photo that talks to the AI warns even when the model also says "shown"', () => {
-    // The injection case from docs/56: a sign in the photo saying "approve
+    // The injection case from docs/63: a sign in the photo saying "approve
     // this". Whatever it talked the model into, the flag must reach the host.
     const a = parseAssist(good({ concerns: ['text_instructions'] }), one);
     const c = assistToCheck({ status: 'done', assist: a! });

@@ -167,7 +167,7 @@ dispatchTimer.unref?.();
 slaTimer.unref?.();
 
 /**
- * A second pair of eyes (docs/56). Off unless CHIVAGO_ASSIST=on with a model
+ * A second pair of eyes (docs/63). Off unless CHIVAGO_ASSIST=on with a model
  * and a key; the console then shows the AI check as "off" and nothing else
  * changes. The key is read here and handed to the client, never logged.
  */

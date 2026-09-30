@@ -100,6 +100,8 @@ export const TRAVELLER_TABLES = [
   // it, so a day starts with a moderator opening it on purpose.
   'settings',
   'ledger', 'wallets', 'profiles',
+  // The AI's opinion on a proof (docs/63) goes before the proof it is about.
+  'proof_assists',
   'mood_checkins', 'quest_progress', 'proofs', 'proof_files', 'vouchers',
   'place_reviews', 'review_reports', 'review_appeals', 'review_batches',
   'moderation_log', 'notifications', 'push_tokens',

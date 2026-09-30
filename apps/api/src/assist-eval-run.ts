@@ -3,7 +3,7 @@
  *
  * Runs the labelled proofs in eval/assist/ through the same `consult` the
  * console path uses - photos through the ffmpeg door, Claude on Bedrock -
- * and prints the report docs/56 asks for. Results and the report are kept
+ * and prints the report docs/63 asks for. Results and the report are kept
  * in eval/assist/results/ so two models can be put side by side.
  *
  *   --dry-run            check the manifest and that every photo exists; no calls

@@ -1,5 +1,5 @@
 /**
- * A second pair of eyes - the API half (docs/56).
+ * A second pair of eyes - the API half (docs/63).
  *
  * After a proof's photos are stored, the model is asked what it sees and the
  * answer is kept beside the proof for its host to read. That is all. Nothing
@@ -401,7 +401,7 @@ export async function consult(
   return { assist: null, error: lastError, reply: null, latencyMs: Date.now() - started, attempts: ATTEMPTS };
 }
 
-/** What the AI check showed when the host decided (docs/56, measuring agreement). */
+/** What the AI check showed when the host decided (docs/63, measuring agreement). */
 export function recordAssistAtDecision(db: DB, proofId: string, aiStatus: string | null): void {
   db.prepare('UPDATE proofs SET assist_at_decision = ? WHERE id = ?').run(aiStatus, proofId);
 }
