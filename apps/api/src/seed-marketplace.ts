@@ -4,12 +4,12 @@
  *
  * A DEVELOPMENT TOOL, AND ONLY THAT. The real app invents no operator - the
  * demo build carries one made-up "Example Co-op", labelled "not a real
- * business" wherever it shows (docs/61 stage after three), and a test holds
- * the real API to never marking a listing `example`. This script fills a
+ * business" wherever it shows (docs/61 stage after three). This script fills a
  * DEVELOPER'S LOCAL database so the Ask screen and the console are walkable
- * while building; it is not the demo build's operator and it must never run
- * against the pilot. The guard below refuses the production volume for exactly
- * that reason.
+ * while building. The guard below refuses the production volume unless a
+ * maintainer forces it out loud - which one did on 29 September, so the pilot
+ * carries these two; docs/61 decision 5 is amended for exactly that case, and
+ * everything written here says what it is.
  *
  * WHY THIS IS NOT IN THE CONTENT SEED. `seed-db.ts` loads the real Koh Samui
  * pilot: places that exist, quests a named host vouches for. A listing is a
@@ -22,12 +22,15 @@
  *
  * WHAT IT WRITES, SAID PLAINLY
  *
- *   Two fictional operators whose display names begin "DEMO ·", six listings
- *   they "offer", one demo traveller, and a handful of inquiries between them
- *   - some answered with a quote, one declined, two still waiting. Nothing
- *   here is a real business, a real price or a real Department of Tourism
- *   licence: the licence numbers are literally "DEMO/000n", which is what the
- *   Ask screen will show, "as stated, never verified".
+ *   Two fictional operators, MARKED as examples (`hosts.example`), six
+ *   listings they "offer", one demo traveller, and a handful of inquiries
+ *   between them - some answered with a quote, one declined, two still
+ *   waiting. Nothing here is a real business, a real price or a real
+ *   Department of Tourism licence: the licence numbers are literally
+ *   "DEMO/000n", which is what the Ask screen will show, "as stated, never
+ *   verified". Every screen showing one of these listings says "Example · not
+ *   a real business" in both languages, and no response time is derived from
+ *   the inquiries below - answers nobody wrote are not a reply time.
  *
  * IT IS SAFE TO RE-RUN. No DELETE anywhere. Operators and listings are written
  * with fixed ids and ON CONFLICT DO UPDATE, exactly as the content seed writes
@@ -82,19 +85,30 @@ const dateAhead = (days: number): string =>
 
 /**
  * A host is the party that answers the inquiries. These two are invented, and
- * their console keys let you sign in as them and reply. `type` is a real
- * `QuestHost['type']`: a boat co-op is `community`, a villa is a `hotel`.
+ * their console keys let you sign in as them and reply.
+ *
+ * `type` IS `operator`, not the co-op's or the villa's real-world shape. What
+ * a host IS decides what its key opens (docs/62): these two were written as
+ * `community` and `hotel` until 1 October, so their keys reached the whole
+ * console - the SOS desk, with a stranger's live alert on it, included.
+ *
+ * `example` is the mark that makes the app say "Example · not a real
+ * business" in both languages wherever these listings appear, and that keeps
+ * a made-up co-op from being shown a response time. It replaces the "DEMO · "
+ * the names used to carry, which the app could only render as part of the
+ * business's name, in English, to a mostly Thai audience.
  */
 const OPERATORS: { id: string; name: string; type: string }[] = [
-  { id: 'op-demo-boat', name: 'DEMO · Thong Krut Boat Co-op', type: 'community' },
-  { id: 'op-demo-villa', name: 'DEMO · Bophut Beach Villas', type: 'hotel' },
+  { id: 'op-demo-boat', name: 'Thong Krut Boat Co-op', type: 'operator' },
+  { id: 'op-demo-villa', name: 'Bophut Beach Villas', type: 'operator' },
 ];
 
 const issued: [string, string][] = [];
 for (const op of OPERATORS) {
   db.prepare(
-    `INSERT INTO hosts (id, name, type, role, created_at) VALUES (?,?,?,'host',?)
-     ON CONFLICT(id) DO UPDATE SET name = excluded.name, type = excluded.type`,
+    `INSERT INTO hosts (id, name, type, role, created_at, example) VALUES (?,?,?,'host',?,1)
+     ON CONFLICT(id) DO UPDATE SET name = excluded.name, type = excluded.type,
+       example = MAX(hosts.example, excluded.example)`,
   ).run(op.id, op.name, op.type, NOW.toISOString());
 
   // A key is shown once and only its hash is kept, exactly as the content seed

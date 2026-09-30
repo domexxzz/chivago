@@ -76,6 +76,24 @@ const LISTING_SELECT = `
   SELECT l.*, h.name AS operator_name
     FROM listings l JOIN hosts h ON h.id = l.operator_id`;
 
+/**
+ * Operators that are examples rather than businesses.
+ *
+ * `hosts.example`, set deliberately by `add-host.ts --example` and by nothing
+ * else. Read as a set because every listing on a page asks the same question
+ * about the same few operators.
+ */
+export function exampleOperators(db: DB): Set<string> {
+  return new Set(
+    rows<{ id: string }>(db.prepare('SELECT id FROM hosts WHERE example = 1').all()).map((r) => r.id),
+  );
+}
+
+/** Whether this one operator is an example. */
+export function isExampleOperator(db: DB, operatorId: string): boolean {
+  return row(db.prepare('SELECT 1 FROM hosts WHERE id = ? AND example = 1').get(operatorId)) !== undefined;
+}
+
 export function listingById(db: DB, id: string): Listing | null {
   const r = row<ListingRow>(db.prepare(`${LISTING_SELECT} WHERE l.id = ?`).get(id));
   return r ? toListing(r) : null;
@@ -326,6 +344,16 @@ export const MIN_ANSWERS_FOR_RESPONSE_TIME = 5;
  * expired do not: neither is an operator responding.
  */
 export function medianResponseHours(db: DB, operatorId: string): number | null {
+  /*
+    An example operator has none, however many answers sit behind it.
+
+    Its questions were seeded and its answers were written by whoever seeded
+    them, so a median over those is a promise about how fast a business that
+    does not exist replies to a traveller. It read "usually answers within 2.5
+    hours" on the live server for two days. Refused here rather than in the
+    view, so the operator's own console cannot show it either.
+  */
+  if (isExampleOperator(db, operatorId)) return null;
   const gaps = rows<{ sent_at: string; answered_at: string }>(
     db.prepare(
       `SELECT i.sent_at, i.answered_at FROM inquiries i JOIN listings l ON l.id = i.listing_id
@@ -344,13 +372,20 @@ export function medianResponseHours(db: DB, operatorId: string): number | null {
 /** What the app lists: public listings, each with its operator's response time. */
 export function listingCards(db: DB): ListingCard[] {
   const listings = publicListings(db);
+  const examples = exampleOperators(db);
   // Once per operator, not once per listing: an operator with ten listings
   // has one response time.
   const hours = new Map<string, number | null>();
   for (const l of listings) {
     if (!hours.has(l.operatorId)) hours.set(l.operatorId, medianResponseHours(db, l.operatorId));
   }
-  return listings.map((l) => ({ ...l, responseHours: hours.get(l.operatorId) ?? null }));
+  return listings.map((l) => ({
+    ...l,
+    responseHours: hours.get(l.operatorId) ?? null,
+    // Absent, not false, on a real operator's listing: the app tests for the
+    // key, and a `false` on every listing would be a label nobody asked for.
+    ...(examples.has(l.operatorId) ? { example: true as const } : {}),
+  }));
 }
 
 /**
@@ -360,11 +395,17 @@ export function listingCards(db: DB): ListingCard[] {
  * who asked about it last week still needs to know what they asked.
  */
 export function travellerInquiries(db: DB, userId: string, now = new Date()): TravellerInquiry[] {
+  const examples = exampleOperators(db);
   return inquiriesOfTraveller(db, userId, now).map((i) => {
     const l = listingById(db, i.listingId)!;
     return {
       ...i,
-      listing: { title: l.title, operatorName: l.operatorName, kind: l.kind, whereLabel: l.whereLabel },
+      listing: {
+        title: l.title, operatorName: l.operatorName, kind: l.kind, whereLabel: l.whereLabel,
+        // A question asked of an example is still a question asked of an
+        // example, on the traveller's own list, a week later.
+        ...(examples.has(l.operatorId) ? { example: true as const } : {}),
+      },
     };
   });
 }

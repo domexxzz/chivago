@@ -47,3 +47,43 @@ describe('adding a real host', () => {
     assert.throws(() => addHost(db, { id: 'h-y', name: 'Y', type: 'sponsor' as never }), /type must be one of/);
   });
 });
+
+/**
+ * An operator that is an example rather than a business.
+ *
+ * The mark is what makes the app say "Example · not a real business" on every
+ * screen the listing reaches, and what keeps a made-up operator from being
+ * given a response time. It is worth exactly as much as it is hard to lose.
+ */
+describe('marking an operator as an example', () => {
+  const marked = (id: string) =>
+    (db.prepare('SELECT example FROM hosts WHERE id = ?').get(id) as { example: number }).example;
+
+  test('an ordinary host is not an example', () => {
+    addHost(db, { id: 'h-real', name: 'Samui Municipality', type: 'municipality' });
+    assert.equal(marked('h-real'), 0);
+  });
+
+  test('--example marks it', () => {
+    addHost(db, { id: 'op-eg', name: 'Example Boat Co-op', type: 'operator', example: true });
+    assert.equal(marked('op-eg'), 1);
+  });
+
+  test('RE-RUNNING WITHOUT THE FLAG DOES NOT QUIETLY UN-MARK IT', () => {
+    // Renaming an example operator must not turn it into a business on every
+    // traveller's screen. Taking the mark off is a deliberate UPDATE.
+    addHost(db, { id: 'op-eg', name: 'Example Boat Co-op', type: 'operator', example: true });
+    addHost(db, { id: 'op-eg', name: 'Example Boat Co-op (renamed)', type: 'operator' });
+    assert.equal(marked('op-eg'), 1, 'the example mark came off by accident');
+    assert.equal(
+      (db.prepare("SELECT name FROM hosts WHERE id = 'op-eg'").get() as { name: string }).name,
+      'Example Boat Co-op (renamed)', 'the rename did not happen',
+    );
+  });
+
+  test('and a real host is never marked by somebody else’s run', () => {
+    addHost(db, { id: 'op-eg', name: 'Example', type: 'operator', example: true });
+    addHost(db, { id: 'h-real', name: 'Real', type: 'hotel' });
+    assert.equal(marked('h-real'), 0);
+  });
+});

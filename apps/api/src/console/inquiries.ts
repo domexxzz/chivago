@@ -95,6 +95,8 @@ export function inquiriesPage(args: {
   canModerate: boolean;
   /** An operator's account: this page is its whole console (docs/62). */
   marketplaceOnly?: boolean;
+  /** A made-up operator, for walking the flow. Said here as well as to travellers. */
+  example?: boolean;
   csrf: string;
   listings: Listing[];
   inquiries: InquiryView[];
@@ -116,9 +118,16 @@ export function inquiriesPage(args: {
     <h1>${th ? 'คำสอบถาม' : 'Inquiries'} · ${th ? 'Inquiries' : 'คำสอบถาม'}</h1>
     <p class="muted">${esc(th ? INQUIRY_IS_NOT_A_BOOKING.th : INQUIRY_IS_NOT_A_BOOKING.en)}</p>
     <p class="note">${esc(th ? OPERATOR_PRIVACY.th : OPERATOR_PRIVACY.en)}</p>
+    ${args.example
+    ? html`<p class="note danger" style="padding:12px">${esc(th
+      ? 'บัญชีนี้เป็นตัวอย่าง ไม่ใช่ธุรกิจจริง ทุกหน้าจอที่นักท่องเที่ยวเห็นรายการของบัญชีนี้ '
+        + 'จะบอกไว้ว่าเป็นตัวอย่าง และจะไม่แสดงเวลาตอบเฉลี่ย'
+      : 'This account is an EXAMPLE, not a real business. Every screen that shows its listings '
+        + 'to a traveller says so, and it is shown no response time.')}</p>`
+    : ''}
     ${args.error ? html`<p class="note danger" style="padding:12px">${esc(args.error)}</p>` : ''}
 
-    <p>
+    ${args.example ? '' : html`<p>
       ${args.responseHours === null
     ? (th
       ? `ยังแสดงเวลาตอบเฉลี่ยไม่ได้ จนกว่าจะตอบครบ ${args.minAnswers} ครั้ง`
@@ -126,7 +135,7 @@ export function inquiriesPage(args: {
     : (th
       ? `ปกติคุณตอบภายใน ${args.responseHours} ชั่วโมง (ค่ากลาง)`
       : `You usually answer within ${args.responseHours} hours (median).`)}
-    </p>
+    </p>`}
 
     <section class="panel">
       <h2>${th ? 'รอคุณตอบ' : 'Waiting on you'} · ${waiting.length}</h2>

@@ -52,9 +52,9 @@ describe('what anybody using the app can see', () => {
     assert.equal(res.data[0].licenceNo, '31/01234');
   });
 
-  test('THE REAL API NEVER MARKS A LISTING AS AN EXAMPLE', async () => {
-    // `example` belongs to the demo build's one made-up operator. A listing
-    // here is a claim a real business made; nothing may label it otherwise.
+  test('A REAL OPERATOR’S LISTING IS NEVER MARKED AS AN EXAMPLE', async () => {
+    // A listing here is a claim a real business made; nothing may label it
+    // otherwise, and the key is absent rather than false.
     const res = await json(await get('/listings', bo));
     for (const l of res.data) assert.equal('example' in l, false, JSON.stringify(l));
     const mine = await json(await get('/inquiries', ana));
@@ -151,5 +151,67 @@ describe('reading your own questions', () => {
   test('NOTHING THE TRAVELLER READS OVER THE WIRE SAYS CONFIRMED', async () => {
     const all = JSON.stringify((await json(await get('/inquiries', ana))).data).toLowerCase();
     assert.doesNotMatch(all, /confirmed/);
+  });
+});
+
+/**
+ * A made-up operator, on the real server.
+ *
+ * Two of these existed on chivago.fly.dev from 29 September, marked only by
+ * their name beginning "DEMO · " - not a label, English only, and read by
+ * the app as part of the business's name. The listings page also told
+ * travellers the boat co-op "usually answers within 2.5 hours", a median over
+ * six seeded questions that no person ever answered. Both are held here.
+ */
+describe('an example operator over the wire', () => {
+  let cat: string;
+  before(async () => {
+    cat = (await json(await post('/devices', { displayName: 'Cat', label: 'Cat' }))).data.deviceKey;
+    const { addHost } = await import('./add-host.ts');
+    addHost(db, { id: 'op-example', name: 'Example Boat Co-op', type: 'operator', example: true });
+    const example = addListing(db, {
+      operatorId: 'op-example', kind: 'experience', titleEn: 'Sunset fishing trip',
+      titleTh: 'ตกปลายามพระอาทิตย์ตก', whereLabel: 'Bang Rak', fromTHB: 1200,
+    }).id;
+    // Enough answered questions that a real operator would be shown a median.
+    for (let i = 0; i < 6; i += 1) {
+      const sent = await json(await post(`/listings/${example}/inquiries`,
+        { forDate: daysAhead(3 + i), partySize: 2, message: 'Is it free?' }, cat));
+      answerInquiry(db, { operatorId: 'op-example', inquiryId: sent.data.id, answer: 'Yes', quoteTHB: 1200 });
+    }
+  });
+
+  test('EVERY LISTING OF AN EXAMPLE OPERATOR IS MARKED AS ONE', async () => {
+    const listings = (await json(await get('/listings', cat))).data as
+      { operatorId: string; example?: true; responseHours: number | null }[];
+    const mine = listings.filter((l) => l.operatorId === 'op-example');
+    assert.ok(mine.length > 0, 'the example operator has no listings');
+    for (const l of mine) assert.equal(l.example, true, JSON.stringify(l));
+  });
+
+  test('AN EXAMPLE OPERATOR IS SHOWN NO RESPONSE TIME, HOWEVER MANY ANSWERS SIT BEHIND IT', async () => {
+    const listings = (await json(await get('/listings', cat))).data as
+      { operatorId: string; responseHours: number | null }[];
+    for (const l of listings.filter((x) => x.operatorId === 'op-example')) {
+      assert.equal(l.responseHours, null, 'a made-up operator was given a response time');
+    }
+  });
+
+  test('and the traveller’s own list of questions says so too', async () => {
+    const mine = (await json(await get('/inquiries', cat))).data as { listing: { example?: true } }[];
+    assert.ok(mine.length > 0);
+    for (const i of mine) assert.equal(i.listing.example, true, JSON.stringify(i.listing));
+  });
+
+  test('a real operator on the same server keeps its response time', async () => {
+    // The mark is per operator, not a switch that quiets the whole server.
+    const { medianResponseHours } = await import('./inquiry-service.ts');
+    assert.equal(medianResponseHours(db, 'op-example'), null);
+    for (let i = 0; i < 6; i += 1) {
+      const sent = await json(await post(`/listings/${listingId}/inquiries`,
+        { forDate: daysAhead(3 + i), partySize: 2, message: 'Room?' }, cat));
+      answerInquiry(db, { operatorId: 'op-boat', inquiryId: sent.data.id, answer: 'Yes', quoteTHB: 900 });
+    }
+    assert.notEqual(medianResponseHours(db, 'op-boat'), null, 'a real operator lost its response time');
   });
 });
