@@ -77,7 +77,11 @@ export function bedrockModel(opts: BedrockOptions): AssistModel {
       });
       // The status only. An error body can quote the request back, header
       // and all, and this message is logged.
-      if (!res.ok) throw new Error(`bedrock converse: HTTP ${res.status}`);
+      // The status rides on the error so consult() can tell a refusal that
+      // will repeat (a bad key, a bad request) from one worth retrying.
+      if (!res.ok) {
+        throw Object.assign(new Error(`bedrock converse: HTTP ${res.status}`), { status: res.status });
+      }
 
       const data = (await res.json()) as ConverseReply;
       const use = data.output?.message?.content?.find((c) => c.toolUse?.name === req.toolName)?.toolUse;

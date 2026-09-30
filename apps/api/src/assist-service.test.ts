@@ -243,6 +243,25 @@ describe('what is kept', () => {
     assert.doesNotMatch(JSON.stringify(db.prepare('SELECT * FROM proof_assists').all()), /SECRET/);
   });
 
+  test('a refusal that will refuse again (bad key, bad request) is not retried', async () => {
+    // Seen on the first real call: a 403 for the key, then the same 403 again,
+    // paid for twice against the daily cap.
+    const refused = Object.assign(new Error('bedrock converse: HTTP 403'), { status: 403 });
+    const model = fakeModel(() => refused);
+    assert.equal(await requestAssist(db, 'p1', deps(model)), 'failed');
+    assert.equal(model.calls.length, 1);
+  });
+
+  test('throttling and server errors are worth the one retry', async () => {
+    for (const status of [429, 503]) {
+      const e = Object.assign(new Error(`HTTP ${status}`), { status });
+      const model = fakeModel((_, n) => (n === 1 ? e : shown));
+      db.prepare('DELETE FROM proof_assists').run();
+      assert.equal(await requestAssist(db, 'p1', deps(model)), 'done', String(status));
+      assert.equal(model.calls.length, 2);
+    }
+  });
+
   test('one failure then an answer is "done"', async () => {
     const model = fakeModel((_, n) => (n === 1 ? new Error('blip') : shown));
     assert.equal(await requestAssist(db, 'p1', deps(model)), 'done');

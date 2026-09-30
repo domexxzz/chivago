@@ -110,9 +110,10 @@ describe('the reply', () => {
     const f = fakeFetch(403, { message: 'Bearer tok-SECRET is not authorized' });
     await assert.rejects(
       model(f).run(request, new AbortController().signal),
-      (err: Error) => {
+      (err: Error & { status?: number }) => {
         assert.match(err.message, /403/);
         assert.doesNotMatch(err.message, /SECRET/);
+        assert.equal(err.status, 403, 'the status travels with the error, so a refusal is not retried');
         return true;
       },
     );

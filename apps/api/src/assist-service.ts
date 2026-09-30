@@ -224,6 +224,12 @@ const inFlight = new Set<string>();
 
 class Timeout extends Error {}
 
+/** An HTTP refusal that asking again will not change: 4xx, except 408 and 429. */
+function refusesAgain(err: unknown): boolean {
+  const status = (err as { status?: unknown } | null)?.status;
+  return typeof status === 'number' && status >= 400 && status < 500 && status !== 408 && status !== 429;
+}
+
 async function askOnce(
   model: AssistModel,
   req: AssistModelRequest,
@@ -396,6 +402,11 @@ export async function consult(
       // keeps a code, because an upstream error can echo a header back.
       lastError = err instanceof Timeout ? 'timeout' : 'model_error';
       console.error(`[chivago] assist attempt ${attempt} for ${opts.label ?? '?'}: ${lastError}`);
+      // A 4xx other than throttling says the same thing twice: the key, the
+      // model id or the request is wrong, and a retry only spends the cap.
+      if (refusesAgain(err)) {
+        return { assist: null, error: lastError, reply: null, latencyMs: Date.now() - started, attempts: attempt };
+      }
     }
   }
   return { assist: null, error: lastError, reply: null, latencyMs: Date.now() - started, attempts: ATTEMPTS };

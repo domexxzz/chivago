@@ -161,8 +161,10 @@ async function main(): Promise<number> {
 
 // Run as a script, not when a test imports runEval.
 if (process.argv[1]?.endsWith('assist-eval-run.ts')) {
-  main().then((code) => process.exit(code), (err) => {
+  // exitCode, not exit(): on Windows exit() races the fetch socket closing and
+  // libuv aborts with 127, hiding the real answer.
+  main().then((code) => { process.exitCode = code; }, (err) => {
     console.error(`[eval] ${(err as Error).message}`);
-    process.exit(1);
+    process.exitCode = 1;
   });
 }
