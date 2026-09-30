@@ -13,6 +13,7 @@
 
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
 import {
   strings,
   type ItineraryItem, type MonthOutlook, type PlanItem, type PriceForecast, type TripPlan,
@@ -73,6 +74,33 @@ export function TripScreen({
           onChange={setEnergy}
         />
 
+        {/*
+          The way to ask a person, near the top and hard to miss. It used to sit
+          dead last - under the itinerary, the dropped list and a six-month
+          price chart - which is a strange place for the one door that reaches a
+          real operator. It stays OUTSIDE the plan's branch, so a plan that
+          failed to load still shows it: the planner books nothing, and asking a
+          person is the thing to do when the plan is not enough.
+        */}
+        {onOpenStays ? (
+          <Pressable
+            onPress={onOpenStays}
+            accessibilityRole="button"
+            accessibilityLabel={t(strings.ask.door)}
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 12,
+              marginHorizontal: gutter, marginTop: 16, padding: 14,
+              borderRadius: radius.md, backgroundColor: color.brandSoft,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Heading size={15} colour={color.brandDeep}>{t(strings.ask.door)}</Heading>
+              <Body size={13} colour={color.brand} style={{ marginTop: 4 }}>{t(strings.ask.doorSub)}</Body>
+            </View>
+            <ChevronRight size={20} color={color.brand} strokeWidth={2} />
+          </Pressable>
+        ) : null}
+
         {plan.loading ? <LoadingState /> : null}
         {plan.error ? <ErrorState message={plan.error} onRetry={plan.reload} /> : null}
 
@@ -125,26 +153,6 @@ export function TripScreen({
           </>
         ) : null}
 
-        {/*
-          Outside the plan's branch on purpose: a plan that failed to load is
-          no reason to hide the way to ask a person. The planner books
-          nothing, and this is where a traveller who wants more than a plan
-          goes - to a question, not a booking.
-        */}
-        {onOpenStays ? (
-          <Pressable
-            onPress={onOpenStays}
-            accessibilityRole="button"
-            accessibilityLabel={t(strings.ask.door)}
-            style={{
-              marginHorizontal: gutter, marginTop: 18, padding: 14, borderRadius: radius.md,
-              borderWidth: 1, borderColor: color.neutral300,
-            }}
-          >
-            <Heading size={15}>{t(strings.ask.door)}</Heading>
-            <Body size={13} colour={color.neutral700} style={{ marginTop: 4 }}>{t(strings.ask.doorSub)}</Body>
-          </Pressable>
-        ) : null}
         <View style={{ height: 32 }} />
       </ScrollView>
     </View>

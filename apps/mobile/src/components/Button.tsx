@@ -11,7 +11,7 @@
  */
 
 import React from 'react';
-import { Pressable, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, View, type ViewStyle } from 'react-native';
 import { ArrowRight } from 'lucide-react-native';
 import { color, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Thai } from './Type.tsx';
@@ -32,6 +32,16 @@ interface ButtonProps {
   variant?: Variant;
   height?: number;
   disabled?: boolean;
+  /**
+   * A press is in flight - a question sending on one bar of signal. The face
+   * shows a spinner in place of its arrow, taps are refused so nothing is sent
+   * twice, and `busyLabel` replaces the label when a verb helps ("Sending…").
+   * A disabled button that merely dims reads, on a slow pier, as a button that
+   * did nothing.
+   */
+  busy?: boolean;
+  /** The label to show while `busy`, already in the current language. */
+  busyLabel?: string;
   /** Trailing icon. Defaults to arrow-right on primary. */
   icon?: React.ReactNode | null;
   style?: ViewStyle;
@@ -43,12 +53,16 @@ interface ButtonProps {
 
 export function Button({
   label, thai, onPress, variant = 'primary', height = 48,
-  disabled = false, icon, style, inverted = false, accessibilityLabel, bilingual = false,
+  disabled = false, busy = false, busyLabel, icon, style, inverted = false,
+  accessibilityLabel, bilingual = false,
 }: ButtonProps) {
   const [pressed, setPressed] = React.useState(false);
+  // A button that is working cannot be pressed again, and cannot look pressed.
+  const locked = disabled || busy;
   // One language at a time (see i18n/locale.ts). The Thai replaces the
   // English rather than sitting beside it.
-  const text = !bilingual && thai && getLocale() === 'th' ? thai : label;
+  const base = !bilingual && thai && getLocale() === 'th' ? thai : label;
+  const text = busy && busyLabel ? busyLabel : base;
   const caption = bilingual ? thai : undefined;
 
   const palette = (() => {
@@ -74,8 +88,9 @@ export function Button({
     }
   })();
 
-  const trailing =
-    icon === null ? null : (icon ?? (variant === 'primary' ? <ArrowRight size={18} color={palette.fg} strokeWidth={2} /> : null));
+  const trailing = busy
+    ? <ActivityIndicator size="small" color={palette.fg} />
+    : icon === null ? null : (icon ?? (variant === 'primary' ? <ArrowRight size={18} color={palette.fg} strokeWidth={2} /> : null));
 
   if (variant === 'ghost') {
     // A ghost with an icon and no label is an icon button - the camera tile on
@@ -85,8 +100,9 @@ export function Button({
     return (
       <Pressable
         onPress={onPress}
-        disabled={disabled}
+        disabled={locked}
         accessibilityRole="button"
+        accessibilityState={{ disabled: locked, busy }}
         accessibilityLabel={accessibilityLabel ?? (caption ? `${label}. ${caption}` : text || undefined)}
         style={[{ paddingVertical: 4, paddingHorizontal: 4, alignSelf: 'flex-start' }, disabled && { opacity: layout.disabledOpacity }, style]}
       >
@@ -101,8 +117,9 @@ export function Button({
       onPress={onPress}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
-      disabled={disabled}
+      disabled={locked}
       accessibilityRole="button"
+      accessibilityState={{ disabled: locked, busy }}
       accessibilityLabel={accessibilityLabel ?? (caption ? `${label}. ${caption}` : text)}
       style={[
         {
@@ -118,6 +135,8 @@ export function Button({
           borderColor: palette.border,
           borderRadius: radius.lg,
         },
+        // Dim only when disabled. A busy button keeps its colour and shows a
+        // spinner, so "working" never looks the same as "off".
         disabled && { opacity: layout.disabledOpacity },
         style,
       ]}

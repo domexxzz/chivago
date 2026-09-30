@@ -1,0 +1,43 @@
+# Seed the DEMO Travel Marketplace into the PILOT database, on purpose.
+#
+# READ THIS BEFORE RUNNING IT. This writes fabricated operators and listings -
+# "DEMO · Thong Krut Boat Co-op" and the rest - into the real pilot database on
+# the `chivago` machine. The real app invents no operator (docs/61, PR #91); a
+# maintainer chose to put the sample marketplace on the live pilot anyway, so
+# this exists to do it deliberately, out loud, and reversibly. Every row it
+# writes is labelled DEMO in its name and keyed under `op-demo-*` / `demo-*`,
+# and `seed-marketplace.ts` takes no DELETE - to remove it again, delete those
+# rows over `fly ssh console`.
+#
+# HOW IT REACHES THE DATABASE. The database is a file on the machine's volume
+# (`/data/chivago.db`), so the seed runs ON the machine over `fly ssh console`,
+# the same way fly.toml documents the content seed. The script's own guard
+# refuses `/data` unless CHIVAGO_SEED_MARKETPLACE_FORCE=1, which is set here and
+# nowhere else, so nothing seeds the pilot by accident.
+#
+# workflow_dispatch ONLY, and it ships no code - it runs the seed already in
+# the deployed image. Deploy first (deploy.yml) if the image predates the seed.
+#
+# Needs the FLY_API_TOKEN secret. If `fly ssh console` is rejected for
+# permissions, the token is deploy-scoped only - create an org token
+# (`fly tokens create org`) or run the one line below from WSL instead:
+#   fly ssh console -a chivago -C "/bin/sh -lc 'cd /repo && CHIVAGO_SEED_MARKETPLACE_FORCE=1 node --experimental-strip-types apps/api/src/seed-marketplace.ts'"
+
+name: seed-marketplace
+
+on:
+  workflow_dispatch:
+
+jobs:
+  seed:
+    name: seed the pilot marketplace
+    runs-on: ubuntu-latest
+    # One seed at a time; it is idempotent, but two at once is still pointless.
+    concurrency: seed-marketplace-chivago
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: run the marketplace seed on the chivago machine
+        run: |
+          flyctl ssh console -a chivago -C "/bin/sh -lc 'cd /repo && CHIVAGO_DB=/data/chivago.db CHIVAGO_SEED_MARKETPLACE_FORCE=1 node --experimental-strip-types apps/api/src/seed-marketplace.ts'"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

@@ -45,7 +45,7 @@ import { BoardFeed } from '../components/BoardFeed.tsx';
 import { BusStrip } from '../components/BusStrip.tsx';
 import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import {
-  BedDouble, ChevronRight, Compass, HeartPulse, Leaf, MessageCircle, Search, Shield, Sparkles, Trees, UserRound, Users, Utensils, Wallet,
+  BedDouble, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MessageCircle, Search, Shield, Sparkles, Trees, UserRound, Users, Utensils, Wallet,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
@@ -166,7 +166,7 @@ export function HomeScreen({
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <Hero now={now} wallet={wallet} area={area} onChangeArea={setArea} onOpenWallet={onOpenWallet} onOpenConcierge={onOpenConcierge} onOpenProfile={onOpenProfile} />
+      <Hero now={now} area={area} onChangeArea={setArea} onOpenConcierge={onOpenConcierge} onOpenProfile={onOpenProfile} />
       <Conditions places={here} onOpenMap={onOpenMap} />
       <Doors
         onOpenMap={onOpenMap}
@@ -179,7 +179,6 @@ export function HomeScreen({
         onOpenStays={onOpenStays}
       />
       <Places places={here} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} />
-      <MascotHeroCard now={now} onOpen={onOpenMascots ?? onOpenPassport} />
       {/*
         The board, under the places and above today's missions: it is what
         other people did, which belongs after what is around you and before
@@ -201,6 +200,16 @@ export function HomeScreen({
       <Bus areaKey={area.key} onToast={onToast} />
       <Board areaKey={area.key} onOpenPlace={onOpenPlace ?? onOpenMap} />
       <Today quests={todayHere} onOpenQuest={onOpenQuest} onOpenQuests={onOpenQuests} />
+      {/*
+        The companion sits with the rest of the game layer now, not between the
+        places and what is happening around them. A full-width portrait at the
+        top of the feed interrupted "around you" before it had started; down
+        here it opens the keepsake band - the mascot, then Carrying's points,
+        passport and companions - the one stretch of this screen that is about
+        YOU rather than the island. The place-first order above it (problems,
+        transit, board, then today's missions) is unchanged.
+      */}
+      <MascotHeroCard now={now} onOpen={onOpenMascots ?? onOpenPassport} />
       <Carrying
         wallet={wallet}
         passport={passport}
@@ -220,18 +229,15 @@ type Async<T> = { data: T | null; loading: boolean; error: string | null; reload
 // ---------------------------------------------------------------------------
 
 function Hero({
-  now, wallet, area, onChangeArea, onOpenWallet, onOpenConcierge, onOpenProfile,
+  now, area, onChangeArea, onOpenConcierge, onOpenProfile,
 }: {
   now: Date;
-  wallet: Async<{ balances: { green: number; trip: number } }>;
   area: Area;
   onChangeArea: (next: AreaKey) => void;
-  onOpenWallet: () => void;
   onOpenConcierge: () => void;
   onOpenProfile: () => void;
 }) {
   const greeting = greetingFor(now);
-  const green = wallet.data?.balances.green ?? null;
   return (
     <View
       style={{
@@ -255,21 +261,14 @@ function Hero({
             {t(area.name)}
           </Heading>
         </View>
-        {/* The verified purse, as a chip. Green means a host checked it - even here. */}
-        <Pressable
-          onPress={onOpenWallet}
-          accessibilityRole="button"
-          accessibilityLabel={`Green Points, ${green === null ? 'unknown' : green.toLocaleString('en-US')} G`}
-          style={{
-            flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36,
-            paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.lg,
-            backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)',
-          }}
-        >
-          <Leaf size={14} color={color.accent300} strokeWidth={2.2} />
-          <Heading size={14} colour={onFill.brand}>{green === null ? '—' : green.toLocaleString('en-US')}</Heading>
-          <Label size={9} tracking={0.1} colour={color.brandSoft}>G</Label>
-        </Pressable>
+        {/*
+          The balance is NOT here any more. It lived as a Green chip in this
+          hero AND in full - Green, Trip, Companions, each with its provenance -
+          in Carrying below, and a glance at the top competing with the search
+          field it sits beside was the more crowded, less honest of the two. It
+          keeps the one that teaches evidence-from-self, and the map header
+          still carries a glance for the screen a traveller reads for it.
+        */}
         {/*
           The profile, top right, where every app keeps it. A drawn figure
           rather than a photograph, because the app has none to show and
@@ -377,7 +376,7 @@ function Conditions({
               onPress={onOpenMap}
               accessibilityRole="button"
               accessibilityLabel="See every place and how its score is calculated"
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, minHeight: 28 }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, minHeight: 44 }}
             >
               <Label size={10} tracking={0.1} colour={color.brand}>{t({ en: 'See every place', th: 'ดูทุกสถานที่' })}</Label>
               <ChevronRight size={14} color={color.brand} strokeWidth={2} />
@@ -404,7 +403,9 @@ function Doors({
   // purpose: annotating the icon narrower than LucideIcon fights the
   // library's own forwardRef signature for nothing.
   const doors = [
-    { Icon: Compass, name: strings.tabs.map, onPress: onOpenMap },
+    // The same glyph the tab bar uses for the map. A door and a tab that go to
+    // one place should not teach two icons for it.
+    { Icon: MapIcon, name: strings.tabs.map, onPress: onOpenMap },
     // Second, so it is on screen without scrolling the row: stays, boats
     // and tours are what a traveller opens a travel app to find, and this
     // screen was lost at the bottom of the trip planner.
@@ -445,10 +446,7 @@ function Doors({
   );
 }
 
-const CARD_WIDTH = 172;
 const CARD_GAP = 12;
-const ITEM_WIDTH = CARD_WIDTH + CARD_GAP;
-const MARQUEE_SPEED_PX_PER_SEC = 35;
 
 function Places({
   places, onOpenMap, onOpenPlace,
@@ -462,101 +460,15 @@ function Places({
   // order that changes when somebody walks two streets is a claim, and every
   // other number on this screen names itself.
   const list = React.useMemo(() => nearestFirst(served, here), [served, here]);
-  const still = useReduceMotion();
 
   // Warm the photographs while there is signal: the place screen at the
   // mangrove opens off the cache, not off a stalled request. Keyed to the
-  // SERVED list, not the sorted one - the set of photographs to warm is the
-  // same set whichever end of it is on the left, and keying it to the sorted
-  // array would fetch them all again the moment a position arrived.
+  // SERVED list, not the sorted one - the set to warm is the same set whichever
+  // end of it is on the left, and keying it to the sorted array would fetch
+  // them all again the moment a position arrived.
   React.useEffect(() => {
     for (const p of served) if (p.photo) void Image.prefetch(photoUri(p.photo.url)).catch(() => {});
   }, [served]);
-
-  // Ensure the base sequence has enough cards to loop smoothly without gaps across wide viewports.
-  const sequence = React.useMemo(() => {
-    if (list.length === 0) return [];
-    let s = list;
-    while (s.length < 5) {
-      s = [...s, ...list];
-    }
-    return s;
-  }, [list]);
-
-  const oneSetWidth = sequence.length * ITEM_WIDTH;
-  const loopCards = React.useMemo(() => [...sequence, ...sequence, ...sequence], [sequence]);
-
-  const scrollRef = React.useRef<ScrollView>(null);
-  const offsetRef = React.useRef(0);
-  const isInteractingRef = React.useRef(false);
-  const resumeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Mouse drag support for desktop web browsers
-  const isMouseDownRef = React.useRef(false);
-  const mouseStartXRef = React.useRef(0);
-  const mouseStartScrollXRef = React.useRef(0);
-  const hasDraggedRef = React.useRef(false);
-
-  const pauseInteraction = React.useCallback(() => {
-    isInteractingRef.current = true;
-    if (resumeTimeoutRef.current) {
-      clearTimeout(resumeTimeoutRef.current);
-      resumeTimeoutRef.current = null;
-    }
-  }, []);
-
-  const scheduleResume = React.useCallback((delayMs: number = 2000) => {
-    if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
-    resumeTimeoutRef.current = setTimeout(() => {
-      isInteractingRef.current = false;
-    }, delayMs);
-  }, []);
-
-  // Continuous auto-sliding animation loop (active only when user is not manually scrolling)
-  React.useEffect(() => {
-    if (still || list.length < 2) return undefined;
-    if (typeof requestAnimationFrame === 'undefined') return undefined;
-
-    let animId: number;
-    let lastTime = performance.now();
-
-    const step = (time: number) => {
-      const dt = Math.min((time - lastTime) / 1000, 0.1);
-      lastTime = time;
-
-      if (!isInteractingRef.current && scrollRef.current && oneSetWidth > 0) {
-        offsetRef.current += MARQUEE_SPEED_PX_PER_SEC * dt;
-        if (offsetRef.current >= 2 * oneSetWidth) {
-          offsetRef.current -= oneSetWidth;
-          scrollRef.current.scrollTo({ x: offsetRef.current, animated: false });
-        } else {
-          scrollRef.current.scrollTo({ x: offsetRef.current, animated: false });
-        }
-      }
-
-      animId = requestAnimationFrame(step);
-    };
-
-    animId = requestAnimationFrame(step);
-    return () => {
-      cancelAnimationFrame(animId);
-      if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
-    };
-  }, [oneSetWidth, still, list.length]);
-
-  const handleScroll = React.useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const x = e.nativeEvent.contentOffset.x;
-    offsetRef.current = x;
-    if (oneSetWidth > 0) {
-      if (x >= 2 * oneSetWidth) {
-        offsetRef.current = x - oneSetWidth;
-        scrollRef.current?.scrollTo({ x: offsetRef.current, animated: false });
-      } else if (x <= 0) {
-        offsetRef.current = x + oneSetWidth;
-        scrollRef.current?.scrollTo({ x: offsetRef.current, animated: false });
-      }
-    }
-  }, [oneSetWidth]);
 
   if (list.length === 0) return null;
   return (
@@ -567,73 +479,25 @@ function Places({
         note={here ? t(strings.place.nearestFirst) : undefined}
         onSeeAll={onOpenMap}
       />
-      {list.length < 2 || still ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: gutter, gap: CARD_GAP, paddingVertical: 6 }}
-        >
-          {list.map((p) => (
-            <PlaceCard key={p.id} place={p} here={here} onPress={() => onOpenPlace(p.id)} />
-          ))}
-        </ScrollView>
-      ) : (
-        <ScrollView
-          ref={scrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          scrollEventThrottle={16}
-          onScroll={handleScroll}
-          onScrollBeginDrag={pauseInteraction}
-          onScrollEndDrag={() => scheduleResume(2000)}
-          onMomentumScrollBegin={pauseInteraction}
-          onMomentumScrollEnd={() => scheduleResume(1500)}
-          onTouchStart={pauseInteraction}
-          onTouchEnd={() => scheduleResume(2000)}
-          {...(Platform.OS === 'web' ? {
-            onMouseDown: (e: any) => {
-              if (e.button !== 0 && e.nativeEvent?.button !== 0) return;
-              isMouseDownRef.current = true;
-              hasDraggedRef.current = false;
-              pauseInteraction();
-              const clientX = e.clientX ?? 0;
-              mouseStartXRef.current = clientX;
-              mouseStartScrollXRef.current = offsetRef.current;
-            },
-            onMouseMove: (e: any) => {
-              if (!isMouseDownRef.current) return;
-              const clientX = e.clientX ?? 0;
-              const dx = clientX - mouseStartXRef.current;
-              if (Math.abs(dx) > 4) hasDraggedRef.current = true;
-              offsetRef.current = mouseStartScrollXRef.current - dx;
-              scrollRef.current?.scrollTo({ x: offsetRef.current, animated: false });
-            },
-            onMouseUp: () => {
-              if (isMouseDownRef.current) {
-                isMouseDownRef.current = false;
-                scheduleResume(2000);
-              }
-            },
-            onMouseEnter: pauseInteraction,
-            onMouseLeave: () => {
-              if (isMouseDownRef.current) isMouseDownRef.current = false;
-              scheduleResume(1200);
-            },
-          } : {})}
-          contentContainerStyle={{ paddingHorizontal: gutter, gap: CARD_GAP, paddingVertical: 6 }}
-        >
-          {loopCards.map((p, index) => (
-            <PlaceCard
-              key={`${p.id}-${index}`}
-              place={p}
-              here={here}
-              onPress={() => {
-                if (!hasDraggedRef.current) onOpenPlace(p.id);
-              }}
-            />
-          ))}
-        </ScrollView>
-      )}
+      {/*
+        A row the reader moves, not one that moves under them.
+
+        This used to slide by itself at 35px/s, which made every card a target
+        that had moved on by the time a thumb arrived - and took a hundred lines
+        of drift, wrap and drag-versus-tap detection to guess whether a press
+        was a press. A place worth opening is worth holding still for. Nothing
+        here moves on its own, so it needs no exception for reduce-motion:
+        there is no motion to reduce.
+      */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: gutter, gap: CARD_GAP, paddingVertical: 6 }}
+      >
+        {list.map((p) => (
+          <PlaceCard key={p.id} place={p} here={here} onPress={() => onOpenPlace(p.id)} />
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -1086,7 +950,7 @@ function SectionHead({
         {note ? <Label size={9} tracking={0.08} colour={color.neutral600} style={{ marginTop: 2 }}>{note}</Label> : null}
       </View>
       {onSeeAll ? (
-        <Pressable onPress={onSeeAll} accessibilityRole="button" accessibilityLabel={`${t({ en: 'See all', th: 'ดูทั้งหมด' })}: ${t({ en, th })}`} style={{ minHeight: 28, justifyContent: 'center' }}>
+        <Pressable onPress={onSeeAll} accessibilityRole="button" accessibilityLabel={`${t({ en: 'See all', th: 'ดูทั้งหมด' })}: ${t({ en, th })}`} style={{ minHeight: 44, justifyContent: 'center' }}>
           <Label size={10} tracking={0.1} colour={color.brand}>{t({ en: 'See all', th: 'ดูทั้งหมด' })}</Label>
         </Pressable>
       ) : null}

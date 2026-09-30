@@ -1,0 +1,45 @@
+# Deploy ChivaGo to Fly.io, BY HAND, from a Linux runner.
+#
+# WHY THIS EXISTS. `fly.toml` documents the deploy as `fly deploy` from a
+# laptop. On a Windows 11 machine with Smart App Control enforced, the
+# unsigned `fly.exe` is blocked before it runs, so the deploy that is meant to
+# be one command becomes impossible locally. This runs the same command on a
+# runner where no such policy applies, and it is the only piece of deploy that
+# should ever live off a maintainer's machine.
+#
+# IT NEVER FIRES ON ITS OWN. `workflow_dispatch` only - a push to main does
+# NOT deploy. The pilot is one machine on one volume (see fly.toml: SQLite is a
+# file on one disk), and putting a deploy on every merge is exactly the
+# accident that turns a green build into a reset database. Someone chooses to
+# deploy, from the Actions tab, the same way they would choose to type the
+# command.
+#
+# WHAT IT NEEDS. One repository secret, FLY_API_TOKEN:
+#   - on a machine that can run fly:  fly tokens create deploy -a chivago
+#   - or from the Fly dashboard:      https://fly.io/dashboard → Tokens
+# Add it at Settings → Secrets and variables → Actions → New repository secret.
+#
+# WHAT IT DOES NOT DO. It ships code; it seeds nothing. The pilot's content
+# seed and the demo marketplace seed are deliberate, separate commands run over
+# `fly ssh console` when — and only when — someone means to.
+
+name: deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: deploy to fly.io
+    runs-on: ubuntu-latest
+    # Never two deploys to the one pilot machine at once.
+    concurrency: deploy-chivago
+    steps:
+      - uses: actions/checkout@v5
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      # --remote-only builds the Dockerfile on Fly's builder, so the runner
+      # needs no Docker of its own. `chivago` and the Dockerfile come from
+      # fly.toml at the repository root.
+      - run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

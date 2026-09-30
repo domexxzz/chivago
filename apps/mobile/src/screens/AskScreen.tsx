@@ -40,7 +40,7 @@ import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
-import { ErrorState, LoadingState } from '../components/States.tsx';
+import { ErrorState, SkeletonList } from '../components/States.tsx';
 import { getLocale, t } from '../i18n/locale.ts';
 
 const DAY_MS = 86_400_000;
@@ -114,7 +114,7 @@ export function AskScreen({
           <Heading size={17}>{t(strings.ask.operators)}</Heading>
         </View>
 
-        {listings.loading ? <LoadingState /> : null}
+        {listings.loading ? <SkeletonList rows={4} /> : null}
         {listings.error ? <ErrorState message={listings.error} onRetry={listings.reload} /> : null}
         {listings.data && listings.data.length === 0 ? (
           <View style={{ paddingHorizontal: gutter, paddingVertical: 12 }}>
@@ -377,7 +377,8 @@ function AskSheet({
             label={strings.ask.send.en}
             thai={strings.ask.send.th}
             onPress={send}
-            disabled={busy}
+            busy={busy}
+            busyLabel={t({ en: 'Sending…', th: 'กำลังส่ง…' })}
             style={{ marginTop: 16 }}
           />
           {failed ? (
