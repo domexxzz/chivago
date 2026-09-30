@@ -19,16 +19,20 @@ export interface ServerConfig {
   fenceOff: boolean;
   /** Nothing is reviewed before it is public. Say so before somebody posts. */
   autoApprove: boolean;
+  /** Proof photos may be shown to an AI for the host (docs/63). Say so before somebody sends them. */
+  aiAssist: boolean;
 }
 
 /**
  * The careful reading, used until the server says otherwise and whenever it
- * cannot be reached. Both fields default to the SAFER claim: a fence that is
- * being enforced, and a queue that somebody is watching. A failed request
- * must never talk a traveller into posting something on the belief that it
- * will be checked, nor raise an alarm about a server that is behaving.
+ * cannot be reached. Every field defaults to the SAFER claim: a fence that is
+ * being enforced, a queue that somebody is watching, and - the one that
+ * reads the other way - photos that an AI MAY see. A failed request must
+ * never talk a traveller into posting something on the belief that it will
+ * be checked, nor into sending a photograph on the belief that no machine
+ * will look at it. The notice says "may", so it stays true either way.
  */
-export const FENCED: ServerConfig = { fenceOff: false, autoApprove: false };
+export const FENCED: ServerConfig = { fenceOff: false, autoApprove: false, aiAssist: true };
 
 let inFlight: Promise<ServerConfig> | null = null;
 
@@ -36,7 +40,13 @@ let inFlight: Promise<ServerConfig> | null = null;
 export function serverConfig(): Promise<ServerConfig> {
   inFlight ??= api.config().then(
     (res) => (res.ok
-      ? { fenceOff: res.data.fenceOff === true, autoApprove: res.data.autoApprove === true }
+      ? {
+          fenceOff: res.data.fenceOff === true,
+          autoApprove: res.data.autoApprove === true,
+          // Only an explicit false stands the notice down; an older server
+          // that does not send the field gets the careful reading.
+          aiAssist: res.data.aiAssist !== false,
+        }
       : FENCED),
     () => FENCED,
   );

@@ -9,6 +9,7 @@ import {
   type AssistDeps, type AssistModel, type AssistModelRequest,
 } from './assist-service.ts';
 import { reviewItem } from './review-service.ts';
+import { publicConfig } from './fence.ts';
 
 /**
  * The AI half of docs/63. The rule every test here circles: the model's
@@ -130,6 +131,22 @@ describe('off unless switched on', () => {
     assert.equal(on.enabled, true);
     assert.equal(on.region, 'ap-southeast-1');
     assert.equal(on.dailyLimit, 200);
+  });
+
+  test('the app is told, through /config, exactly when photos go to the AI', () => {
+    const keys = ['CHIVAGO_ASSIST', 'CHIVAGO_ASSIST_MODEL', 'AWS_BEARER_TOKEN_BEDROCK'] as const;
+    const saved = keys.map((k) => process.env[k]);
+    try {
+      for (const k of keys) delete process.env[k];
+      assert.equal(publicConfig().aiAssist, false);
+      process.env.CHIVAGO_ASSIST = 'on';
+      assert.equal(publicConfig().aiAssist, false, 'switched on without a model is still off');
+      process.env.CHIVAGO_ASSIST_MODEL = 'm';
+      process.env.AWS_BEARER_TOKEN_BEDROCK = 't';
+      assert.equal(publicConfig().aiAssist, true);
+    } finally {
+      keys.forEach((k, i) => { if (saved[i] === undefined) delete process.env[k]; else process.env[k] = saved[i]; });
+    }
   });
 
   test('a nonsense limit or region falls back rather than breaking', () => {
