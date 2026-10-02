@@ -272,6 +272,70 @@ describe('the marketplace, which needs two fetches to be usable', () => {
       ui.unmount();
     } finally { net.restore(); }
   });
+
+  test('switching to My Vouchers fetches /vouchers lazily and shows active vouchers', async () => {
+    const net = server({
+      'GET /offers': [offer({ id: 'o1', name: 'Cold brew + banana bread' })],
+      'GET /wallet': wallet(),
+      'GET /vouchers': [voucher],
+    });
+    try {
+      const ui = await mountScreen(h(MarketScreen, {
+        onBack: noop, onToast: noop, onPointsChanged: noop, refreshKey: 0,
+      }));
+      // On initial mount: only /offers and /wallet
+      assert.deepEqual(net.calls.map((c) => c.path).sort(), ['/offers', '/wallet']);
+
+      // Switch to My Vouchers tab
+      await ui.press(/My vouchers|คูปองของฉัน/);
+      await settle();
+
+      // Now /vouchers has been asked
+      const asked = net.calls.map((c) => c.path).sort();
+      assert.deepEqual(asked, ['/offers', '/vouchers', '/wallet']);
+
+      // Voucher details are visible
+      const text = ui.text();
+      assert.match(text, /Sabeinglae Coffee/);
+      assert.match(text, /CHV-7Q2X/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('filtering by currency or affordability filters the offers shown', async () => {
+    const net = server({
+      'GET /offers': [
+        offer({ id: 'o1', name: 'Cold brew', costPoints: 180, currency: 'trip', category: 'Café' }),
+        offer({ id: 'o2', name: 'Longtail trip', costPoints: 1200, currency: 'green', category: 'Experience' }),
+      ],
+      'GET /wallet': wallet({ balances: { trip: 320, green: 100 } }),
+    });
+    try {
+      const ui = await mountScreen(h(MarketScreen, {
+        onBack: noop, onToast: noop, onPointsChanged: noop, refreshKey: 0,
+      }));
+
+      // Initially both offers are visible
+      assert.match(ui.text(), /Cold brew/);
+      assert.match(ui.text(), /Longtail trip/);
+
+      // Filter by Trip Points
+      await ui.press(/Trip Points|แต้มทริป/);
+      await settle();
+
+      assert.match(ui.text(), /Cold brew/);
+      assert.doesNotMatch(ui.text(), /Longtail trip/);
+
+      // Filter by Affordable (trip balance 320 can afford 180, but green 100 cannot afford 1200)
+      await ui.press(/Affordable|แลกได้ทันที/);
+      await settle();
+
+      assert.match(ui.text(), /Cold brew/);
+      assert.doesNotMatch(ui.text(), /Longtail trip/);
+
+      ui.unmount();
+    } finally { net.restore(); }
+  });
 });
 
 describe('the impact screen, whose personal, tree and community records load independently', () => {

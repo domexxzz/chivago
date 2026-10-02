@@ -17,6 +17,7 @@ export const ChevronLeft = Icon;
 export const ChevronRight = Icon;
 export const Coffee = Icon;
 export const Compass = Icon;
+export const Copy = Icon;
 export const Crown = Icon;
 export const ExternalLink = Icon;
 export const Footprints = Icon;
