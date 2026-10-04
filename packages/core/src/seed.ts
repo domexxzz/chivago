@@ -1015,7 +1015,7 @@ export const SEED_OFFERS: Offer[] = [
     valueTHB: null,
     category: 'Hotel',
     name: 'Sunset Beach Club Day Pass & Mocktail',
-    merchant: 'W Koh Samui Resort partner lounge',
+    merchant: 'W Koh Samui Resort lounge',
     merchantShort: 'W Koh Samui',
     costPoints: 750,
     currency: 'trip',
