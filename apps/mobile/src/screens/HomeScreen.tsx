@@ -45,7 +45,7 @@ import { BoardFeed } from '../components/BoardFeed.tsx';
 import { BusStrip } from '../components/BusStrip.tsx';
 import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import {
-  BedDouble, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MessageCircle, Search, Shield, Sparkles, Trees, UserRound, Users, Utensils, Wallet,
+  BedDouble, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MessageCircle, Search, Shield, Sparkles, Ticket, Trees, UserRound, Users, Utensils, Wallet,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
@@ -112,7 +112,7 @@ export function questOrder(
 }
 
 export function HomeScreen({
-  onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenPassport,
+  onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenMarket, onOpenPassport,
   onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenMascots, onOpenStays,
   onToast, now = new Date(),
 }: {
@@ -120,6 +120,8 @@ export function HomeScreen({
   onOpenQuests: () => void;
   onOpenQuest: (id: string) => void;
   onOpenWallet: () => void;
+  /** The travel marketplace: points for local merchants' vouchers. Falls back to the wallet. */
+  onOpenMarket?: () => void;
   onOpenPassport: () => void;
   onOpenImpact: () => void;
   onOpenConcierge: () => void;
@@ -178,8 +180,10 @@ export function HomeScreen({
         onOpenSafety={onOpenSafety}
         onOpenParty={onOpenParty}
         onOpenStays={onOpenStays}
+        onOpenMarket={onOpenMarket ?? onOpenWallet}
       />
       <Places places={here} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} />
+      <MarketPromoCard onOpenMarket={onOpenMarket ?? onOpenWallet} />
       {/*
         The board, under the places and above today's missions: it is what
         other people did, which belongs after what is around you and before
@@ -395,10 +399,11 @@ function Conditions({
 
 function Doors({
   onOpenMap, onOpenQuests, onOpenWallet, onOpenConcierge, onOpenImpact, onOpenSafety, onOpenParty,
-  onOpenStays,
+  onOpenStays, onOpenMarket,
 }: {
   onOpenMap: () => void; onOpenQuests: () => void; onOpenWallet: () => void; onOpenConcierge: () => void;
   onOpenImpact: () => void; onOpenSafety: () => void; onOpenParty: () => void; onOpenStays?: () => void;
+  onOpenMarket: () => void;
 }) {
   // Round doors in a row that scrolls, not a grid of twelve. Untyped on
   // purpose: annotating the icon narrower than LucideIcon fights the
@@ -413,6 +418,8 @@ function Doors({
     ...(onOpenStays ? [{ Icon: BedDouble, name: strings.ask.context, onPress: onOpenStays, tone: tint.peach }] : []),
     { Icon: Sparkles, name: strings.tabs.quests, onPress: onOpenQuests, tone: tint.lilac },
     { Icon: Wallet, name: strings.tabs.wallet, onPress: onOpenWallet, tone: tint.sand },
+    // Deals: straight to the marketplace, one tap from the first screen.
+    { Icon: Ticket, name: { en: 'Deals', th: 'สิทธิพิเศษ' }, onPress: onOpenMarket, tone: tint.peach },
     { Icon: Shield, name: strings.tabs.safety, onPress: onOpenSafety, tone: tint.rose },
     { Icon: MessageCircle, name: { en: 'Ask', th: 'ถาม' }, onPress: onOpenConcierge, tone: tint.teal },
     { Icon: Leaf, name: strings.tabs.impact, onPress: onOpenImpact, tone: tint.teal },
@@ -447,6 +454,61 @@ function Doors({
         </Pressable>
       ))}
     </ScrollView>
+  );
+}
+
+/**
+ * The travel marketplace, as a card under the places.
+ *
+ * Its icon is on a flat tint, not green: a deal is something to spend points
+ * on, not something a host verified.
+ */
+function MarketPromoCard({ onOpenMarket }: { onOpenMarket: () => void }) {
+  return (
+    <View style={{ paddingTop: 20, paddingHorizontal: gutter }}>
+      <Pressable
+        onPress={onOpenMarket}
+        accessibilityRole="button"
+        accessibilityLabel={t(strings.market.context)}
+        style={[
+          shadow.card,
+          {
+            backgroundColor: color.surface, borderRadius: radius.md, padding: 16,
+            borderWidth: 1, borderColor: color.neutral300,
+            flexDirection: 'row', alignItems: 'center', gap: 12,
+          },
+        ]}
+      >
+        <View
+          style={{
+            width: 48, height: 48, borderRadius: radius.md,
+            backgroundColor: tint.peach.fill, alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <Ticket size={24} color={tint.peach.ink} strokeWidth={2} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Label size={9} tracking={0.12} colour={color.brand}>
+              {t({ en: 'TRAVEL MARKETPLACE', th: 'ตลาดสิทธิพิเศษ' })}
+            </Label>
+            <View style={{ backgroundColor: color.goldSoft, paddingHorizontal: 6, paddingVertical: 1, borderRadius: radius.lg }}>
+              <Label size={9} tracking={0.04} colour={color.goldDeep}>{t({ en: 'NEW', th: 'ใหม่' })}</Label>
+            </View>
+          </View>
+          <Heading size={15} tracking={-0.3} style={{ marginTop: 2 }}>
+            {t({ en: 'Redeem local deals and perks', th: 'แลกสิทธิพิเศษร้านค้าชุมชน' })}
+          </Heading>
+          <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>
+            {t({
+              en: 'Use your Green and Trip points for café discounts, wellness and island tours.',
+              th: 'ใช้แต้มกรีนและแต้มทริป แลกรับส่วนลดคาเฟ่ ร้านอาหาร และกิจกรรมบนเกาะ',
+            })}
+          </Body>
+        </View>
+        <ChevronRight size={18} color={color.brand} strokeWidth={2.2} />
+      </Pressable>
+    </View>
   );
 }
 
