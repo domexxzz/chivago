@@ -11,6 +11,7 @@ export const BedDouble = Icon;
 export const BookOpen = Icon;
 export const BusFront = Icon;
 export const Camera = Icon;
+export const Car = Icon;
 export const Check = Icon;
 export const ChevronLeft = Icon;
 export const ChevronRight = Icon;
