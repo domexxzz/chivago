@@ -18,7 +18,8 @@ import { api } from '../api/client.ts';
 import { mascotBeachUri } from '../api/photos.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
-import { gameRadius, gameShadow } from '@chivago/tokens';
+import { gameRadius, gameRegion, gameShadow } from '@chivago/tokens';
+import { GameBar, Medal, Tray, TrayLine } from '../components/Game.tsx';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { IconButton } from '../components/Button.tsx';
 import { MascotPortrait } from '../components/MascotPortrait.tsx';
@@ -29,15 +30,24 @@ const REGION_TINT: Record<string, string> = {
   north: '#5f8f4a', northeast: '#c9a24a', central: '#3f8fbf', east: '#e8963b', west: '#a06a3c', south: '#2f7a9f',
 };
 
-export function MascotCard({ mascot, met, onOpen }: { mascot: Mascot; met: boolean; onOpen: (code: string) => void }) {
+/**
+ * One province's card, on its region's ground.
+ *
+ * Reached is stamped in gold, the game layer's colour: a check-in is a
+ * geofence the traveller walked into, not something a host vouched for, so it
+ * must not wear the verified green.
+ */
+export function MascotCard({
+  mascot, met, onOpen, ground = color.surface,
+}: { mascot: Mascot; met: boolean; onOpen: (code: string) => void; ground?: string }) {
   return (
     <Pressable
       onPress={() => onOpen(mascot.code)}
       accessibilityRole="button"
       accessibilityLabel={`${t(mascot.name)}, ${t(mascot.creature)}. ${met ? t(strings.mascots.met) : t(strings.mascots.notMet)}`}
-      style={[shadow.sm, {
-        width: '31%', minWidth: 104, backgroundColor: color.surface, borderRadius: gameRadius.panel,
-        borderWidth: 1, borderColor: met ? color.text : color.neutral300, padding: 10, alignItems: 'center', gap: 4,
+      style={[met ? gameShadow.lift : shadow.sm, {
+        width: '31%', minWidth: 104, backgroundColor: ground, borderRadius: gameRadius.panel,
+        borderWidth: met ? 2 : 0, borderColor: color.gold, padding: 10, alignItems: 'center', gap: 4,
       }]}
     >
       <MascotPortrait mascot={mascot} size={64} />
@@ -46,8 +56,13 @@ export function MascotCard({ mascot, met, onOpen }: { mascot: Mascot; met: boole
         {t(mascot.creature)}
       </Label>
       {met ? (
-        <View style={{ marginTop: 2, paddingVertical: 2, paddingHorizontal: 6, borderRadius: radius.sm, backgroundColor: color.text }}>
-          <Label size={9} tracking={0.1} colour={color.surface}>{t(strings.mascots.met)}</Label>
+        <View
+          style={{
+            marginTop: 2, paddingVertical: 2, paddingHorizontal: 6, borderRadius: radius.sm,
+            backgroundColor: color.goldSoft, borderWidth: 1, borderColor: color.gold,
+          }}
+        >
+          <Label size={9} tracking={0.1} colour={color.goldDeep}>{t(strings.mascots.met)}</Label>
         </View>
       ) : null}
     </Pressable>
@@ -71,7 +86,15 @@ export function MascotGrid({ visited, onOpen }: { visited: ReadonlySet<string>; 
               </Label>
             </View>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              {here.map((m) => <MascotCard key={m.code} mascot={m} met={visited.has(m.code)} onOpen={onOpen} />)}
+              {here.map((m) => (
+                <MascotCard
+                  key={m.code}
+                  mascot={m}
+                  met={visited.has(m.code)}
+                  onOpen={onOpen}
+                  ground={gameRegion[region.key as keyof typeof gameRegion]}
+                />
+              ))}
             </View>
           </View>
         );
@@ -99,9 +122,21 @@ export function MascotsScreen({
         </IconButton>
         <View style={{ flex: 1 }}>
           <Heading size={20} tracking={-0.3}>{t(strings.mascots.title)}</Heading>
-          <Label size={10} tracking={0.1} colour={color.neutral600}>{t(strings.mascots.metCount(visited.size, MASCOT_COUNT))}</Label>
         </View>
       </View>
+
+      {/* The count, in the tray the rest of the game layer uses. */}
+      <Tray style={{ marginHorizontal: gutter, marginTop: 4, marginBottom: 12, borderRadius: gameRadius.panel }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Medal value={visited.size} />
+          <View style={{ flex: 1, gap: 8 }}>
+            <TrayLine>{t(strings.mascots.metCount(visited.size, MASCOT_COUNT))}</TrayLine>
+            <View style={{ flexDirection: 'row' }}>
+              <GameBar pct={(visited.size / MASCOT_COUNT) * 100} height={10} />
+            </View>
+          </View>
+        </View>
+      </Tray>
 
       {/* Hero Cover of the Island Companions */}
       <View

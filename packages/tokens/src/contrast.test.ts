@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
-import { color, gameHabitat, onFill } from './index.ts';
+import { color, gameHabitat, gameRegion, onFill } from './index.ts';
 
 /**
  * The palette's contrast claims, enforced.
@@ -148,6 +148,15 @@ describe('the habitat tiles on the game screen', () => {
       color.accent500, color.accent600, color.accent700, color.accent800, color.accent900];
     for (const [key, { fill, ink }] of Object.entries(gameHabitat)) {
       assert.ok(!greens.includes(fill) && !greens.includes(ink), `${key} wears the verified green`);
+    }
+  });
+});
+
+describe('the region grounds on the seventy-seven', () => {
+  test('body text and the card title both read on every region', () => {
+    for (const [key, fill] of Object.entries(gameRegion)) {
+      assert.ok(ratio(color.text, fill) >= AA_TEXT, `${key}: ${ratio(color.text, fill).toFixed(2)}:1`);
+      assert.ok(ratio(color.neutral700, fill) >= AA_TEXT, `${key} caption: ${ratio(color.neutral700, fill).toFixed(2)}:1`);
     }
   });
 });

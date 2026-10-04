@@ -329,6 +329,22 @@ export const gameHabitat = {
   mascots: { fill: '#FBE3EC', ink: '#7A2343' },
 } as const;
 
+/**
+ * A soft ground per region of Thailand, for the seventy-seven's cards.
+ *
+ * Pale enough that the body text colour reads on every one of them, and none
+ * of them the verified green: a province you have not been to is not a
+ * failure, and one you have is stamped in gold, the game's own colour.
+ */
+export const gameRegion = {
+  north: '#E9F0DD',
+  northeast: '#F7EDD3',
+  central: '#DDEEF8',
+  east: '#FCE8D3',
+  west: '#F1E4D8',
+  south: '#D9EDF5',
+} as const;
+
 // ---------------------------------------------------------------------------
 // Type - IBM Plex Sans Thai (display) + Anuphan (body) + IBM Plex Mono (data)
 // ---------------------------------------------------------------------------
