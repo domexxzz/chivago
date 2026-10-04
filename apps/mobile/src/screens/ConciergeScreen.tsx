@@ -28,6 +28,7 @@ import { areaOfProvince } from '@chivago/core';
 import { useArea } from '../state/area.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
+import { tintFor } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { ErrorState, SkeletonList } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
@@ -110,17 +111,18 @@ function Openers({ onPick }: { onPick: (text: string) => void }) {
             onPress={() => onPick(t(o))}
             accessibilityRole="button"
             accessibilityLabel={`${t(o)}`}
+            // Each opener on its own flat tint, keyed by its English text so
+            // it keeps its colour whichever language is showing.
             style={{
               minHeight: 44,
               justifyContent: 'center',
               paddingVertical: 8,
               paddingHorizontal: 14,
-              borderWidth: 1,
-              borderColor: color.neutral400,
-              borderRadius: radius.sm,
+              borderRadius: radius.lg,
+              backgroundColor: tintFor(o.en).fill,
             }}
           >
-            <Body size={13}>{t(o)}</Body>
+            <Body size={13} colour={tintFor(o.en).ink}>{t(o)}</Body>
           </Pressable>
         ))}
       </View>

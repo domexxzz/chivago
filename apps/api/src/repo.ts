@@ -222,7 +222,7 @@ export function getQuest(db: DB, questId: string): Quest | null {
 interface OfferRow {
   id: string; category: string; name: string; merchant: string; merchant_short: string;
   cost_points: number; value_thb: number | null; currency: string;
-  image_url: string | null; available: number;
+  image_url: string | null; available: number; example?: number;
 }
 
 export function listOffers(db: DB): Offer[] {
@@ -240,6 +240,7 @@ export function listOffers(db: DB): Offer[] {
     currency: r.currency as Offer['currency'],
     imageUrl: r.image_url,
     available: r.available === 1,
+    ...(r.example === 1 ? { example: true } : {}),
   }));
 }
 
@@ -342,7 +343,7 @@ export function getShield(db: DB, userId: string): ShieldService[] {
   // only ever runs during an alert and "on" would claim otherwise.
   const contacts = (db.prepare('SELECT COUNT(*) AS n FROM emergency_contacts WHERE user_id = ?')
     .get(userId) as { n: number }).n;
-  const verifiedMerchants = db.prepare('SELECT COUNT(*) AS n FROM offers WHERE available = 1').get() as { n: number };
+  const verifiedMerchants = db.prepare('SELECT COUNT(*) AS n FROM offers WHERE available = 1 AND COALESCE(example, 0) = 0').get() as { n: number };
   return [
     {
       key: 'tracking',

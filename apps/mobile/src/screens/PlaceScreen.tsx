@@ -413,8 +413,9 @@ function BreakdownSheet({
                   <Heading size={15} colour={color.accent700}>{`${Math.round(c.subScore)} / 100`}</Heading>
                 </View>
 
-                <View style={{ height: 6, backgroundColor: color.neutral300, marginTop: 10 }}>
-                  <View style={{ width: `${c.subScore}%`, height: '100%', backgroundColor: color.text }} />
+                {/* Shape only: the colours of a measured score stay as they were. */}
+                <View style={{ height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: color.neutral300, marginTop: 10 }}>
+                  <View style={{ width: `${c.subScore}%`, height: '100%', borderRadius: 3, backgroundColor: color.text }} />
                 </View>
 
                 <View style={{ flexDirection: 'row', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>

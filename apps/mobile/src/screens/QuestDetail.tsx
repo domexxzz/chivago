@@ -30,6 +30,7 @@ import { enqueueProof, pendingFor } from '../state/outbox.ts';
 import { deviceOutbox } from '../state/outbox-device.ts';
 import { useServerConfig } from '../state/server-config.ts';
 import { color, gutter, layout, motion, onFill, radius, shadow } from '../theme/index.ts';
+import { tintFor } from '@chivago/tokens';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -206,8 +207,18 @@ export function QuestDetailScreen({
 
       {quest ? (
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
-          <View style={{ paddingHorizontal: gutter }}>
-            <Heading size={28} tracking={-0.56}>{t(quest.name)}</Heading>
+          {/* The code tile from the missions list, same tint, so the quest
+              you tapped is visibly the one you are now looking at. */}
+          <View style={{ paddingHorizontal: gutter, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+            <View
+              style={{
+                width: 48, height: 48, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center',
+                backgroundColor: tintFor(quest.code.slice(0, 2)).fill,
+              }}
+            >
+              <Heading size={12} colour={tintFor(quest.code.slice(0, 2)).ink}>{quest.code}</Heading>
+            </View>
+            <Heading size={28} tracking={-0.56} style={{ flex: 1 }}>{t(quest.name)}</Heading>
           </View>
 
           <StatBand quest={quest} />

@@ -312,6 +312,70 @@ export const gameSky = ['#8FD3E8', '#B9E6F0', '#DDF2EE', '#CFE9D2', '#9BCB8C'] a
 /** The warm tray a game screen's meters sit in. Ink, not paper. */
 export const gameTray = { top: '#2E1C0E', bottom: '#20130A', text: '#F2E6D6', muted: '#D8C3A6' } as const;
 
+/**
+ * One tile colour per habitat, for the game screen's grid.
+ *
+ * Keyed by layer so a habitat looks the same wherever it is drawn. None of
+ * them is green: green is what a host verified, and a coconut grove is a
+ * place, not a verdict. `ink` is the text on `fill` and clears AA on it.
+ * `mascots` is the seventy-seven, which is a sixth tile and not a habitat.
+ */
+export const gameHabitat = {
+  Green: { fill: '#FBEBC8', ink: '#6B4500' },
+  Wellness: { fill: '#FFE3D3', ink: '#8A3412' },
+  Food: { fill: '#D9ECFB', ink: '#0C447C' },
+  Safe: { fill: '#D7EDEF', ink: '#0A4A52' },
+  Quest: { fill: '#E7E3FB', ink: '#3C3489' },
+  mascots: { fill: '#FBE3EC', ink: '#7A2343' },
+} as const;
+
+/**
+ * Flat tints for the EVIDENCE layer: a soft ground and the ink that reads on it.
+ *
+ * These are how a door or an icon tile on a working screen gets some colour
+ * without becoming a toy. Flat only - no bevel, no lift - and none of them is
+ * the verified green, so a tile can never look like a host's verdict.
+ */
+export const tint = {
+  sky: { fill: '#DDEBFA', ink: '#0C447C' },
+  sand: { fill: '#FBEBC8', ink: '#6B4500' },
+  peach: { fill: '#FFE3D3', ink: '#8A3412' },
+  lilac: { fill: '#E7E3FB', ink: '#3C3489' },
+  teal: { fill: '#D7EDEF', ink: '#0A4A52' },
+  rose: { fill: '#FBE3EC', ink: '#7A2343' },
+} as const;
+
+export type TintKey = keyof typeof tint;
+
+const TINT_ORDER = Object.keys(tint) as TintKey[];
+
+/**
+ * A stable tint for any key: the same quest family, the same colour, every
+ * time and on every screen. A hash, not a lookup table, so a new family gets
+ * a colour on the day it is added without anybody remembering to assign one.
+ */
+export const tintFor = (key: string): (typeof tint)[TintKey] => {
+  let h = 0;
+  for (let i = 0; i < key.length; i += 1) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return tint[TINT_ORDER[h % TINT_ORDER.length]!];
+};
+
+/**
+ * A soft ground per region of Thailand, for the seventy-seven's cards.
+ *
+ * Pale enough that the body text colour reads on every one of them, and none
+ * of them the verified green: a province you have not been to is not a
+ * failure, and one you have is stamped in gold, the game's own colour.
+ */
+export const gameRegion = {
+  north: '#E9F0DD',
+  northeast: '#F7EDD3',
+  central: '#DDEEF8',
+  east: '#FCE8D3',
+  west: '#F1E4D8',
+  south: '#D9EDF5',
+} as const;
+
 // ---------------------------------------------------------------------------
 // Type - IBM Plex Sans Thai (display) + Anuphan (body) + IBM Plex Mono (data)
 // ---------------------------------------------------------------------------

@@ -18,10 +18,25 @@
 # workflow_dispatch ONLY, and it ships no code - it runs the seed already in
 # the deployed image. Deploy first (deploy.yml) if the image predates the seed.
 #
+# IT MUST NEVER LOG A CONSOLE KEY. The seed prints an operator's key the first
+# time it creates one - correct on a developer's terminal, and a credential
+# leak here, because an Actions log is kept and readable by everyone with
+# access to the repository. The first run, on 29 September, put both operator
+# keys in its log, and until 1 October those keys opened the WHOLE console:
+# the SOS desk with a traveller's live alert and positions on it. They have
+# been rotated. The run below now pipes stdout through a redaction, so a key
+# cannot reach the log however the script changes.
+#
+# TO GET A KEY, don't read it from here. Issue one where the output is your
+# own terminal and nothing records it:
+#   fly ssh console -a chivago -u node -C "node --experimental-strip-types apps/api/src/add-host.ts --id op-demo-boat --name 'Thong Krut Boat Co-op' --type operator --example"
+# (that reissues only if the host has none; to rotate, clear its api_key_hash
+# first.)
+#
 # Needs the FLY_API_TOKEN secret. If `fly ssh console` is rejected for
 # permissions, the token is deploy-scoped only - create an org token
 # (`fly tokens create org`) or run the one line below from WSL instead:
-#   fly ssh console -a chivago -C "/bin/sh -lc 'cd /repo && CHIVAGO_SEED_MARKETPLACE_FORCE=1 node --experimental-strip-types apps/api/src/seed-marketplace.ts'"
+#   fly ssh console -a chivago -u node -C "/bin/sh -lc 'cd /repo && CHIVAGO_SEED_MARKETPLACE_FORCE=1 node --experimental-strip-types apps/api/src/seed-marketplace.ts'"
 
 name: seed-marketplace
 
@@ -37,7 +52,14 @@ jobs:
     steps:
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: run the marketplace seed on the chivago machine
+        # `-u node` because the database on the volume belongs to node and a
+        # Fly shell is root. The sed is the redaction: a console key is
+        # `chv_` and then the key, and nothing else in this output looks like
+        # that. `set -o pipefail` so a failing seed still fails the job
+        # rather than being swallowed by a successful sed.
         run: |
-          flyctl ssh console -a chivago -C "/bin/sh -lc 'cd /repo && CHIVAGO_DB=/data/chivago.db CHIVAGO_SEED_MARKETPLACE_FORCE=1 node --experimental-strip-types apps/api/src/seed-marketplace.ts'"
+          set -o pipefail
+          flyctl ssh console -a chivago -u node -C "/bin/sh -lc 'cd /repo && CHIVAGO_DB=/data/chivago.db CHIVAGO_SEED_MARKETPLACE_FORCE=1 node --experimental-strip-types apps/api/src/seed-marketplace.ts'" \
+            | sed -E 's/chv_[A-Za-z0-9_-]+/chv_[REDACTED — issue a key over an interactive ssh session, see the header]/g'
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

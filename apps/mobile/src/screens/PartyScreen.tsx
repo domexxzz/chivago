@@ -19,11 +19,12 @@
 
 import React from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { ChevronRight, Users } from 'lucide-react-native';
 import { PARTY_KIND_LABEL, nextTogether, type Bilingual, type PartySummary } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
-import { gameRadius, gameShadow } from '@chivago/tokens';
+import { gameHabitat, gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -244,6 +245,9 @@ function Figure({
   );
 }
 
+/** A ground for each member's initial, in turn, from the habitat tiles. */
+const AVATAR_TONES = Object.values(gameHabitat);
+
 function Members({ summary }: { summary: PartySummary }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 8 }}>
@@ -252,12 +256,22 @@ function Members({ summary }: { summary: PartySummary }) {
       {summary.members.map((m, i) => (
         <View
           key={m.userId}
-          style={{
-            flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12,
-            borderBottomWidth: i < summary.members.length - 1 ? 1 : 0,
-            borderBottomColor: color.neutral300,
-          }}
+          style={[gameShadow.lift, {
+            flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, marginTop: 10,
+            borderRadius: gameRadius.panel, backgroundColor: color.surface,
+            borderWidth: m.you ? 2 : 0, borderColor: color.gold,
+          }]}
         >
+          <View
+            style={{
+              width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center',
+              backgroundColor: AVATAR_TONES[i % AVATAR_TONES.length]!.fill,
+            }}
+          >
+            <Heading size={17} colour={AVATAR_TONES[i % AVATAR_TONES.length]!.ink}>
+              {m.displayName.trim().slice(0, 1).toUpperCase() || '?'}
+            </Heading>
+          </View>
           <View style={{ flex: 1 }}>
             <Heading size={15}>{m.displayName}</Heading>
             <Label size={9} tracking={0.04} colour={color.neutral600} style={{ marginTop: 3, textTransform: 'none' }}>
@@ -351,15 +365,23 @@ function Leave({
  * was to already know a person who would read you a code.
  */
 function FindDoor({ onFind }: { onFind: () => void }) {
+  // A door, the way Collect's are: an icon on a tile, not a grey button.
+  const label = t({ en: 'Find a party', th: 'หาปาร์ตี้' });
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 18 }}>
-      <Button
-        label="Find a party"
-        thai="หาปาร์ตี้"
-        variant="secondary"
+      <Pressable
         onPress={onFind}
-        height={48}
-      />
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        style={[gameShadow.lift, {
+          flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14,
+          borderRadius: gameRadius.panel, backgroundColor: color.brandSoft,
+        }]}
+      >
+        <Users size={26} color={color.brandDeep} strokeWidth={2} />
+        <Heading size={16} colour={color.brandDeep} style={{ flex: 1 }}>{label}</Heading>
+        <ChevronRight size={18} color={color.brandDeep} strokeWidth={2} />
+      </Pressable>
       <Body size={13} colour={color.neutral600} style={{ marginTop: 8 }}>
         {t({
           en: 'Parties post at a place, never at a person. Nobody sees where you are.',
