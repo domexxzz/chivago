@@ -72,7 +72,7 @@ export interface ReviewItem {
   /** Party members who were in the fence when this was taken. Approving pays them too. */
   partyPresent: string[];
   /**
-   * The AI's opinion, when it has one (docs/63). Read through this item, so
+   * The AI's opinion, when it has one (docs/64). Read through this item, so
    * it inherits the host scoping every query here has.
    */
   assist: Assist | null;

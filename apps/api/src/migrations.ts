@@ -1496,7 +1496,7 @@ export function migrate(db: DB): string[] {
   `);
   applied.push('listings', 'inquiries');
 
-  // -- A second pair of eyes: the AI's opinion on a proof (docs/63) --------
+  // -- A second pair of eyes: the AI's opinion on a proof (docs/64) --------
   //
   // One row per proof. `result_json` only ever holds what survived
   // parseAssist; `error` is a short reason, never a header or a key. Nothing

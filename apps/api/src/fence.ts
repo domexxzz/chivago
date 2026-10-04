@@ -67,7 +67,7 @@ export interface PublicConfig {
   /** Nothing is reviewed before it is public. The app must say so before posting. */
   autoApprove: boolean;
   /**
-   * Proof photos are shown to an AI for the host (docs/63). The app must say
+   * Proof photos are shown to an AI for the host (docs/64). The app must say
    * so where somebody is about to send them.
    */
   aiAssist: boolean;

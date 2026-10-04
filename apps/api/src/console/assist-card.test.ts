@@ -7,7 +7,7 @@ import { ensureWallet } from '../wallet-service.ts';
 import { consoleRoutes, __csrfFor } from './routes.ts';
 
 /**
- * What a host sees of the AI's opinion (docs/63 rule 5): marked as the AI's,
+ * What a host sees of the AI's opinion (docs/64 rule 5): marked as the AI's,
  * escaped like anything else a machine or a person typed, and never choosing
  * the rejection reason for them.
  */

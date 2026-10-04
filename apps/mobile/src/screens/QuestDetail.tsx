@@ -465,7 +465,7 @@ function ProofBox({
       <Body size={13} colour={color.neutral700} style={{ marginTop: 12 }}>
         {t(strings.quest.proofHelper)}
       </Body>
-      {/* Above the send button, so it is read before the photos leave (docs/63). */}
+      {/* Above the send button, so it is read before the photos leave (docs/64). */}
       {aiAssist ? (
         <Body size={13} colour={color.neutral700} style={{ marginTop: 8 }}>
           {t(strings.quest.aiAssistNotice)}

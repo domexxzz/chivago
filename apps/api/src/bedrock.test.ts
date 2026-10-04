@@ -7,7 +7,7 @@ import { ASSIST_TOOL } from './assist-service.ts';
 /**
  * The Converse call, against a fake fetch. What is pinned here is our side
  * of the wire: the request we build and the reply we read. Whether Bedrock
- * agrees is the spike in docs/63, not something a unit test can know.
+ * agrees is the spike in docs/64, not something a unit test can know.
  */
 
 interface Seen { url: string; init: RequestInit }

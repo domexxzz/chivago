@@ -1,7 +1,7 @@
 /**
  * pnpm --filter @chivago/api assist:spike [--photo <jpeg>] [--model <id>]
  *
- * The first real Bedrock call (docs/63, "ลำดับงาน" 1-10 Oct). One photo,
+ * The first real Bedrock call (docs/64, "ลำดับงาน" 1-10 Oct). One photo,
  * one call, through the same bedrockModel and consult() the console uses,
  * and a line for each of the three things nothing but a real call can
  * settle:

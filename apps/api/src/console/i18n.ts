@@ -346,7 +346,7 @@ export const consoleStrings = {
   ),
   weightOk: c('{kg} กก.', '{kg} kg.'),
 
-  // -- The AI's opinion (docs/63) -------------------------------------------
+  // -- The AI's opinion (docs/64) -------------------------------------------
   // Always named as the AI's, and always as a helper: the host is the one
   // vouching, and the copy must never let the machine sound like it decided.
   checkAi: c('ความเห็นจาก AI', 'AI opinion'),

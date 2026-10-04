@@ -1,4 +1,4 @@
-# 63 — A second pair of eyes · ผู้ช่วยตรวจหลักฐานของ host
+# 64 — A second pair of eyes · ผู้ช่วยตรวจหลักฐานของ host
 
 สเปกของฟีเจอร์ GenAI ตัวแรกของ ChivaGo สำหรับ **AI FOR ALL Hackathon 2026**
 (CP · Arise · True · AWS) โจทย์ข้อ 6 *การสร้างชุมชนเข้มแข็งและยั่งยืน*

@@ -1,5 +1,5 @@
 /**
- * A second pair of eyes (docs/63).
+ * A second pair of eyes (docs/64).
  *
  * The console's three checks read numbers - where, when, how heavy. None of
  * them looks at what is in the photograph, and four of the six rejection

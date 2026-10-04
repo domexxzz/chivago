@@ -1,7 +1,7 @@
 /**
  * pnpm --filter @chivago/api assist:dataset <init | derive | merge | consent>
  *
- * Building the eval set for the AI host assistant (docs/63) without
+ * Building the eval set for the AI host assistant (docs/64) without
  * inventing any of it. Nothing here makes a photograph up or answers for a
  * person:
  *
@@ -56,7 +56,7 @@ const shots = (
 }));
 
 /**
- * What to shoot. Every kind docs/63 asks for; a mix of beach, mangrove and
+ * What to shoot. Every kind docs/64 asks for; a mix of beach, mangrove and
  * campus so no one place teaches the model the answer. People in a photo
  * need their agreement before it is used, and a downloaded image needs a
  * licence that allows it - the note field is where the link goes.
@@ -100,7 +100,7 @@ export function planManifest(): PlannedManifest {
 export function shotListMarkdown(): string {
   const questName = (code: string) => SEED_QUESTS.find((q) => q.code === code)?.name.th ?? code;
   const lines = [
-    '# รายการรูปสำหรับชุดประเมิน (docs/63)',
+    '# รายการรูปสำหรับชุดประเมิน (docs/64)',
     '',
     `ถ่ายทั้งหมด ${SHOTS.length} หลักฐาน ตั้งชื่อไฟล์ตามคอลัมน์ "ไฟล์" แล้ววางใน photos/`,
     'ใครอยู่ในภาพต้องยินยอมก่อน และรูปจากเว็บต้องมีสัญญาอนุญาตที่ให้ใช้ได้',

@@ -356,7 +356,7 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
 
   /**
    * The AI block of one proof, for the detail page to swap in when the
-   * answer lands (docs/63). Host-scoped through reviewItem like the page, so
+   * answer lands (docs/64). Host-scoped through reviewItem like the page, so
    * another host's proof 404s. The HTML is rendered and escaped here; the
    * page only places it.
    */

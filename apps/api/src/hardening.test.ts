@@ -108,7 +108,7 @@ describe('the machine verification path must name its host', () => {
     assert.equal(raw.status, 403);
   });
 
-  test('a machine decision records no AI status: nobody was shown one (docs/63)', async () => {
+  test('a machine decision records no AI status: nobody was shown one (docs/64)', async () => {
     // assist_at_decision is what a PAGE showed a person. This path has no
     // page, so NULL - and the agreement measure leaves it out rather than
     // counting a caller that never saw the card as agreeing with it.

@@ -441,7 +441,7 @@ export const strings = {
     ),
     /*
       Shown where the photos are about to be sent, whenever the server may
-      pass them to the AI host assistant (docs/63). "May", because the app
+      pass them to the AI host assistant (docs/64). "May", because the app
       shows it when it cannot tell - see server-config.ts. The three facts
       are the ones a traveller would want before tapping send: a machine
       looks, it is not told who they are, and a person still decides.

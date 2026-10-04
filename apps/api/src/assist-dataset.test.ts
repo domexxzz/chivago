@@ -8,7 +8,7 @@ import {
 import { EVAL_KINDS, EVAL_MIN_ITEMS, validateManifest } from './assist-eval.ts';
 
 /**
- * Building the eval set (docs/63) without inventing any of it: the plan says
+ * Building the eval set (docs/64) without inventing any of it: the plan says
  * what to shoot, people label what was shot, and only the variants whose
  * answer follows from how they were made are labelled by construction.
  */

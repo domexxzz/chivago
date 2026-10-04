@@ -19,7 +19,7 @@ export interface ServerConfig {
   fenceOff: boolean;
   /** Nothing is reviewed before it is public. Say so before somebody posts. */
   autoApprove: boolean;
-  /** Proof photos may be shown to an AI for the host (docs/63). Say so before somebody sends them. */
+  /** Proof photos may be shown to an AI for the host (docs/64). Say so before somebody sends them. */
   aiAssist: boolean;
 }
 
