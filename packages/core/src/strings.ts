@@ -605,6 +605,8 @@ export const strings = {
   // -- Marketplace --------------------------------------------------------
   market: {
     context: t('Marketplace', 'ใช้แต้ม'),
+    // Under a sample offer that names a real business which has not joined.
+    example: t('Example · not a partner yet', 'ตัวอย่าง · ร้านยังไม่ได้ร่วมโครงการ'),
     intro: t(
       'Every redemption pays a local business directly. 100% of the point value is settled to the merchant.',
       'ทุกการแลกจ่ายให้ธุรกิจท้องถิ่นโดยตรง 100% ของมูลค่าแต้มถูกโอนให้ร้านค้า',
@@ -618,6 +620,22 @@ export const strings = {
     voucherExpires: (when: string) => t(`Expires ${when}`, `หมดอายุ ${when}`),
     voucherRedeemed: t('Redeemed', 'ใช้แล้ว'),
     unavailable: t('Currently unavailable', 'ยังไม่เปิดให้แลก'),
+    tabOffers: t('Explore deals', 'สิทธิพิเศษ'),
+    tabVouchers: t('My vouchers', 'คูปองของฉัน'),
+    filterAll: t('All', 'ทั้งหมด'),
+    filterAffordable: t('Affordable', 'แลกได้ทันที'),
+    filterGreen: t('Green Points', 'แต้มกรีน'),
+    filterTrip: t('Trip Points', 'แต้มทริป'),
+    noOffersMatch: t('No offers match this filter.', 'ไม่มีสิทธิพิเศษที่ตรงกับเงื่อนไขนี้'),
+    noVouchers: t('No vouchers yet', 'ยังไม่มีคูปองที่แลกไว้'),
+    noVouchersBlurb: t('Explore partner offers and redeem with your points.', 'เลือกดูสิทธิพิเศษและใช้แต้มแลกรับสิทธิ์ได้เลย'),
+    showVoucher: t('Show voucher', 'แสดงคูปอง'),
+    activeBadge: t('Ready to use', 'พร้อมใช้'),
+    usedBadge: t('Redeemed', 'ใช้แล้ว'),
+    expiredBadge: t('Expired', 'หมดอายุ'),
+    copyCode: t('Copy code', 'คัดลอกรหัส'),
+    copied: t('Code copied to clipboard', 'คัดลอกรหัสแล้ว'),
+    codeInstructions: t('Show this code to the staff at the venue to redeem.', 'แสดงรหัสนี้ให้พนักงานหน้าร้านเพื่อรับสิทธิ์'),
   },
 
   // -- Ask an operator (docs/61) ------------------------------------------

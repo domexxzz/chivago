@@ -29,7 +29,9 @@
 
 import React from 'react';
 import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
-import { X } from 'lucide-react-native';
+import { BedDouble, Car, Compass, Sparkles, X } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
+import { tint, type TintKey } from '@chivago/tokens';
 import {
   INQUIRY_IS_NOT_A_BOOKING, LICENCE_STATED, LISTING_KIND_LABEL, MAX_MESSAGE, MAX_PARTY,
   PROBLEM_LABEL, STATE_LABEL,
@@ -158,7 +160,16 @@ function ExampleMark() {
   );
 }
 
+/** What kind of operator a listing is, said with an icon on a flat tint. */
+const KIND_LOOK: Record<ListingCard['kind'], { Icon: LucideIcon; tone: TintKey }> = {
+  stay: { Icon: BedDouble, tone: 'peach' },
+  tour: { Icon: Compass, tone: 'sky' },
+  experience: { Icon: Sparkles, tone: 'lilac' },
+  transfer: { Icon: Car, tone: 'teal' },
+};
+
 export function ListingRow({ listing, onAsk }: { listing: ListingCard; onAsk: () => void }) {
+  const look = KIND_LOOK[listing.kind] ?? KIND_LOOK.tour;
   return (
     <Pressable
       onPress={onAsk}
@@ -168,12 +179,24 @@ export function ListingRow({ listing, onAsk }: { listing: ListingCard; onAsk: ()
         + (listing.example ? `. ${t(strings.ask.example)}` : '')
       }
       style={{
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 14,
         paddingVertical: 14,
         paddingHorizontal: gutter,
         borderBottomWidth: 1,
         borderBottomColor: color.neutral300,
       }}
     >
+      <View
+        style={{
+          width: 44, height: 44, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center',
+          backgroundColor: tint[look.tone].fill,
+        }}
+      >
+        <look.Icon size={22} color={tint[look.tone].ink} strokeWidth={1.8} />
+      </View>
+      <View style={{ flex: 1 }}>
       <Label size={10} tracking={0.12}>{t(LISTING_KIND_LABEL[listing.kind])}</Label>
       <Heading size={15} style={{ marginTop: 3 }}>{t(listing.title)}</Heading>
       <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 2 }}>
@@ -195,6 +218,7 @@ export function ListingRow({ listing, onAsk }: { listing: ListingCard; onAsk: ()
           {`${listing.licenceNo} · ${t(LICENCE_STATED)}`}
         </Label>
       )}
+      </View>
     </Pressable>
   );
 }

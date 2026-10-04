@@ -381,6 +381,7 @@ export default function App() {
             onOpenQuests={() => nav.selectTab('quests')}
             onOpenQuest={(id) => nav.push('quest', { questId: id })}
             onOpenWallet={() => nav.push('wallet')}
+            onOpenMarket={() => nav.push('market')}
             onOpenPassport={() => nav.push('passport')}
             onOpenMascots={() => nav.push('mascots')}
             onOpenImpact={() => nav.push('impact')}

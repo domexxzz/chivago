@@ -1515,5 +1515,15 @@ export function migrate(db: DB): string[] {
   */
   if (addColumn(db, 'hosts', 'example', 'INTEGER NOT NULL DEFAULT 0')) applied.push('hosts.example');
 
+  // -- A sample offer is marked as one ------------------------------------
+  // `example` marks a seeded offer naming a real business that has not
+  // joined: the app labels it, and the verified-merchant count leaves it out.
+  // The offers themselves arrive by seed-db.ts or, on a live database,
+  // seed-offers.ts - never from here, because a migration runs on every
+  // database the code opens.
+  if (hasTable(db, 'offers') && addColumn(db, 'offers', 'example', 'INTEGER NOT NULL DEFAULT 0')) {
+    applied.push('offers.example');
+  }
+
   return applied;
 }

@@ -224,6 +224,19 @@ describe('what Home says', () => {
     ui.unmount();
   });
 
+  test('the deals door and marketplace card open the marketplace', async () => {
+    let marketOpened = 0;
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, { ...props, onOpenMarket: () => { marketOpened += 1; } }));
+    assert.match(ui.text(), /Deals/);
+    assert.match(ui.text(), /TRAVEL MARKETPLACE/);
+    await ui.press('Deals');
+    assert.equal(marketOpened, 1, 'the Deals door opens the marketplace');
+    await ui.press('Marketplace');
+    assert.equal(marketOpened, 2, 'the Travel Marketplace card opens the marketplace');
+    ui.unmount();
+  });
+
   test('the greeting follows island time, not the phone', async () => {
     const s = server(routes()); restore = s.restore;
     // 02:00 UTC is 09:00 on Samui: morning, on a phone that thinks it is night.

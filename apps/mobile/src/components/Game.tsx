@@ -213,6 +213,9 @@ export function TrayLine({ children }: { children: React.ReactNode }) {
  * `pct` is clamped rather than trusted: a bar wider than its track is the
  * classic way a rounding error becomes a visual bug, and there is no reading
  * of "108% of the way to level 6" that helps anybody.
+ *
+ * The fill is gold, the game layer's colour. It was green until the bar was
+ * first put on a screen, where it read as "a host verified this much".
  */
 export function GameBar({ pct, height = 14 }: { pct: number; height?: number }) {
   const safe = Math.max(0, Math.min(100, Number.isFinite(pct) ? pct : 0));
@@ -231,7 +234,7 @@ export function GameBar({ pct, height = 14 }: { pct: number; height?: number }) 
           width: `${safe}%`,
           height: '100%',
           borderRadius: height / 2,
-          backgroundColor: color.accent500,
+          backgroundColor: color.gold,
         }}
       />
     </View>

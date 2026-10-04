@@ -22,6 +22,7 @@ import { api } from '../api/client.ts';
 import { useArea } from '../state/area.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
+import { tint } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Tag } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -219,10 +220,21 @@ function PlanRow({ item, onPress }: { item: PlanItem; onPress?: () => void }) {
         opacity: transit ? 0.72 : 1,
       }}
     >
-      <View style={{ width: 48 }}>
-        <Heading size={transit ? 11 : 13} colour={transit ? color.neutral600 : color.text}>
-          {item.time}
-        </Heading>
+      {/* A stop's time on a flat tint; a leg between stops stays plain, so
+          the eye lands on the places and passes over the travel. */}
+      <View style={{ width: 52 }}>
+        {transit ? (
+          <Heading size={11} colour={color.neutral600}>{item.time}</Heading>
+        ) : (
+          <View
+            style={{
+              alignSelf: 'flex-start', paddingVertical: 3, paddingHorizontal: 7,
+              borderRadius: radius.sm, backgroundColor: tint.sky.fill,
+            }}
+          >
+            <Heading size={13} colour={tint.sky.ink}>{item.time}</Heading>
+          </View>
+        )}
       </View>
       <View style={{ flex: 1 }}>
         <Heading size={transit ? 12 : 15} colour={transit ? color.neutral600 : color.text}>

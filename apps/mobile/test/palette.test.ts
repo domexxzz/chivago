@@ -8,6 +8,7 @@ import type { ReactTestInstance } from 'react-test-renderer';
 import { color, currencyTone } from '../src/theme/index.ts';
 import { QuestRow } from '../src/screens/MissionsScreen.tsx';
 import { OfferRow } from '../src/screens/MarketScreen.tsx';
+import { GameBar } from '../src/components/Game.tsx';
 import { mount } from './interact.ts';
 import * as fx from './fixtures.ts';
 
@@ -141,5 +142,19 @@ describe('the palette rules hold across every screen', () => {
       !/color\.(accent|accent200|accent700)\b/.test(head),
       'the SOS button is wearing the verified green again',
     );
+  });
+});
+
+describe('the game layer\'s progress bar is gold, not green', () => {
+  // A bar filling toward "5 of 7 medals" or "2 of 77 provinces" counts things
+  // the traveller collected. Filled green, it read as a host's verdict.
+  test('the fill is the game gold and no shade of the verified green', async () => {
+    const m = await mount(h(GameBar, { pct: 60 }));
+    restore = m.unmount;
+    const painted = fills(m.root);
+    assert.ok(painted.includes(color.gold), 'the bar lost its gold');
+    const greens = [color.accent, color.accent100, color.accent200, color.accent300, color.accent400,
+      color.accent500, color.accent600, color.accent700, color.accent800, color.accent900];
+    assert.ok(!painted.some((c) => greens.includes(c)), `the bar wears green: ${painted.join(', ')}`);
   });
 });

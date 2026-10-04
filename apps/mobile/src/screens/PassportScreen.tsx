@@ -23,7 +23,7 @@
 
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { ChevronRight } from 'lucide-react-native';
+import { ChevronRight, Map as MapIcon } from 'lucide-react-native';
 import {
   PROVINCES, REGIONS, passportProgress, provinceCollection, provinceCompanions, provincesIn, strings,
   type Province, type ProvinceCompanion, type Region,
@@ -31,7 +31,7 @@ import {
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius } from '../theme/index.ts';
-import { gameRadius, gameShadow } from '@chivago/tokens';
+import { gameHabitat, gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { MascotPortrait } from '../components/MascotPortrait.tsx';
@@ -122,17 +122,20 @@ export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void }
           onPress={onOpenMascots}
           accessibilityRole="button"
           accessibilityLabel={t(strings.mascots.door)}
-          style={{
-            marginHorizontal: gutter, marginBottom: 4, padding: 14, borderRadius: radius.md,
-            borderWidth: layout.ruleHair, borderColor: color.neutral300, backgroundColor: color.surface,
+          // The same tile the Collect screen opens the seventy-seven from, so
+          // the door looks like the same door wherever it is.
+          style={[gameShadow.lift, {
+            marginHorizontal: gutter, marginBottom: 4, padding: 14, borderRadius: gameRadius.panel,
+            backgroundColor: gameHabitat.mascots.fill,
             flexDirection: 'row', alignItems: 'center', gap: 12,
-          }}
+          }]}
         >
+          <MapIcon size={30} color={gameHabitat.mascots.ink} strokeWidth={1.8} />
           <View style={{ flex: 1 }}>
-            <Heading size={15}>{t(strings.mascots.title)}</Heading>
-            <Body size={13} colour={color.neutral600} style={{ marginTop: 2 }}>{t(strings.mascots.door)}</Body>
+            <Heading size={15} colour={gameHabitat.mascots.ink}>{t(strings.mascots.title)}</Heading>
+            <Body size={13} colour={gameHabitat.mascots.ink} style={{ marginTop: 2 }}>{t(strings.mascots.door)}</Body>
           </View>
-          <ChevronRight size={18} color={color.text} strokeWidth={2} />
+          <ChevronRight size={18} color={gameHabitat.mascots.ink} strokeWidth={2} />
         </Pressable>
       ) : null}
 

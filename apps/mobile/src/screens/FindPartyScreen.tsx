@@ -151,14 +151,16 @@ function Places({
                   </Body>
                 </View>
                 {asking > 0 ? (
+                  // Gold, not green: this counts people asking for company, and
+                  // nobody has verified anything about them.
                   <View
                     style={{
                       minWidth: 34, paddingHorizontal: 8, paddingVertical: 4,
-                      borderRadius: radius.sm, backgroundColor: color.accent,
-                      alignItems: 'center',
+                      borderRadius: radius.sm, backgroundColor: color.goldSoft,
+                      borderWidth: 1, borderColor: color.gold, alignItems: 'center',
                     }}
                   >
-                    <Label size={11} tracking={0} colour={color.surface}>{String(asking)}</Label>
+                    <Label size={11} tracking={0} colour={color.goldDeep}>{String(asking)}</Label>
                   </View>
                 ) : null}
               </View>

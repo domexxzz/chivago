@@ -16,7 +16,7 @@ import { BASIS_LABEL, findProvince, mascotFor, strings } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync, useToast } from '../state/store.tsx';
 import { color, gutter, radius } from '../theme/index.ts';
-import { gameRadius, gameShadow } from '@chivago/tokens';
+import { gameRadius, gameRegion, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { IconButton } from '../components/Button.tsx';
 import { CreatureScene } from '../components/CreatureScene.tsx';
@@ -55,7 +55,8 @@ export function MascotRoomScreen({ code, onBack }: { code: string; onBack: () =>
         style={[
           {
             marginHorizontal: gutter, borderRadius: gameRadius.panel, overflow: 'hidden',
-            backgroundColor: color.surface,
+            // The province's region, the same ground its card has in the guide.
+            backgroundColor: gameRegion[province.region],
           },
           gameShadow.deep,
         ]}
@@ -70,8 +71,15 @@ export function MascotRoomScreen({ code, onBack }: { code: string; onBack: () =>
         <View style={{ alignItems: 'center', paddingBottom: 22, paddingHorizontal: gutter }}>
           <Heading size={24} tracking={-0.4}>{t(mascot.name)}</Heading>
           <Body size={14} colour={color.neutral700} style={{ marginTop: 4 }}>{t(mascot.creature)}</Body>
-          <View style={{ marginTop: 10, paddingVertical: 4, paddingHorizontal: 10, borderRadius: radius.sm, backgroundColor: met ? color.text : color.neutral200 }}>
-            <Label size={9} tracking={0.12} colour={met ? color.surface : color.neutral700}>
+          {/* Stamped as on the field guide's card: gold, the game's colour. */}
+          <View
+            style={{
+              marginTop: 10, paddingVertical: 4, paddingHorizontal: 10, borderRadius: radius.sm,
+              backgroundColor: met ? color.goldSoft : color.neutral200,
+              borderWidth: met ? 1 : 0, borderColor: color.gold,
+            }}
+          >
+            <Label size={9} tracking={0.12} colour={met ? color.goldDeep : color.neutral700}>
               {met ? t(strings.mascots.met) : t(strings.mascots.notMet)}
             </Label>
           </View>

@@ -111,15 +111,15 @@ for (const q of SEED_QUESTS) {
 for (const o of SEED_OFFERS) {
   db.prepare(
     `INSERT INTO offers (id, category, name, merchant, merchant_short, cost_points,
-       currency, image_url, available)
-     VALUES (?,?,?,?,?,?,?,?,?)
+       currency, image_url, available, example)
+     VALUES (?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(id) DO UPDATE SET
        category=excluded.category, name=excluded.name, merchant=excluded.merchant,
        merchant_short=excluded.merchant_short, cost_points=excluded.cost_points,
        currency=excluded.currency,
-       available=excluded.available`,
+       available=excluded.available, example=excluded.example`,
   ).run(o.id, o.category, o.name, o.merchant, o.merchantShort, o.costPoints,
-        o.currency, o.imageUrl, o.available ? 1 : 0);
+        o.currency, o.imageUrl, o.available ? 1 : 0, o.example ? 1 : 0);
 }
 
 /**
