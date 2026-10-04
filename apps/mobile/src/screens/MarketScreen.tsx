@@ -11,7 +11,9 @@
 
 import React from 'react';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
-import { X } from 'lucide-react-native';
+import { BedDouble, Coffee, Compass, HeartPulse, Salad, Ticket, Waves, X } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
+import { tintFor } from '@chivago/tokens';
 import {
   balanceOf, canAfford, emptyBalances, shortfall, strings,
   type Balances, type Offer, type Voucher,
@@ -118,6 +120,19 @@ export function MarketScreen({
   );
 }
 
+/**
+ * The icon for an offer's category. An unknown category still gets a ticket,
+ * so a new kind of merchant never shows up as an empty grey square.
+ */
+const CATEGORY_ICON: Record<string, LucideIcon> = {
+  'Café': Coffee,
+  'Healthy food': Salad,
+  'Hotel': BedDouble,
+  'Local experience': Compass,
+  'Marine': Waves,
+  'Wellness': HeartPulse,
+};
+
 export function OfferRow({
   offer, affordable, onRedeem, busy,
 }: { offer: Offer; affordable: boolean; onRedeem: () => void; busy: boolean }) {
@@ -133,7 +148,21 @@ export function OfferRow({
         borderBottomColor: color.neutral300,
       }}
     >
-      <View style={{ width: 56, height: 56, backgroundColor: color.neutral300, borderRadius: radius.sm }} />
+      {(() => {
+        // The category, on its own flat tint: the same colour for every café.
+        const tone = tintFor(offer.category);
+        const Mark = CATEGORY_ICON[offer.category] ?? Ticket;
+        return (
+          <View
+            style={{
+              width: 56, height: 56, borderRadius: radius.sm, backgroundColor: tone.fill,
+              alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <Mark size={26} color={tone.ink} strokeWidth={1.8} />
+          </View>
+        );
+      })()}
 
       <View style={{ flex: 1 }}>
         <Label size={10} tracking={0.12}>{offer.category}</Label>

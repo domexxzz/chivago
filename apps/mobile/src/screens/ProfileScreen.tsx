@@ -36,6 +36,7 @@ import {
 import { api } from '../api/client.ts';
 import { useAsync, type Async } from '../state/store.tsx';
 import { bar, color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
+import { tint } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { IconButton } from '../components/Button.tsx';
 import { Creature } from '../components/Creature.tsx';
@@ -520,8 +521,9 @@ function Figures({
       />
       <Tile
         Mark={MapPinned}
-        tone={color.brand}
-        soft={color.brandSoft}
+        // The passport's colour wherever it appears: Collect's door is lilac.
+        tone={tint.lilac.ink}
+        soft={tint.lilac.fill}
         value={stamps ? String(stamps.visited) : '—'}
         unit={stamps ? `/ ${stamps.total}` : ''}
         label={t(strings.profile.passport)}

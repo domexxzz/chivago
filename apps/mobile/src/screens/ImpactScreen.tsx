@@ -18,6 +18,7 @@ import {
 import { api, type TreeImpactView } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius } from '../theme/index.ts';
+import { tintFor } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
@@ -156,12 +157,21 @@ export function ImpactScreen({
                     {`${m.actual.toLocaleString('en-US')}${m.unit ? ` ${m.unit}` : ''}`}
                   </Heading>
                 </View>
-                <View style={{ height: 8, backgroundColor: color.neutral300, marginTop: 6 }}>
+                {/* Each metric keeps one flat tint, track and fill alike, so
+                    the bars can be told apart; none of them is green, because
+                    a target is a plan, not something a host verified. */}
+                <View
+                  style={{
+                    height: 8, borderRadius: 4, overflow: 'hidden', marginTop: 6,
+                    backgroundColor: tintFor(m.key).fill,
+                  }}
+                >
                   <View
                     style={{
                       width: `${Math.min(100, pct)}%`,
                       height: '100%',
-                      backgroundColor: color.text,
+                      borderRadius: 4,
+                      backgroundColor: tintFor(m.key).ink,
                     }}
                   />
                 </View>
