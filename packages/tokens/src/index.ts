@@ -312,6 +312,23 @@ export const gameSky = ['#8FD3E8', '#B9E6F0', '#DDF2EE', '#CFE9D2', '#9BCB8C'] a
 /** The warm tray a game screen's meters sit in. Ink, not paper. */
 export const gameTray = { top: '#2E1C0E', bottom: '#20130A', text: '#F2E6D6', muted: '#D8C3A6' } as const;
 
+/**
+ * One tile colour per habitat, for the game screen's grid.
+ *
+ * Keyed by layer so a habitat looks the same wherever it is drawn. None of
+ * them is green: green is what a host verified, and a coconut grove is a
+ * place, not a verdict. `ink` is the text on `fill` and clears AA on it.
+ * `mascots` is the seventy-seven, which is a sixth tile and not a habitat.
+ */
+export const gameHabitat = {
+  Green: { fill: '#FBEBC8', ink: '#6B4500' },
+  Wellness: { fill: '#FFE3D3', ink: '#8A3412' },
+  Food: { fill: '#D9ECFB', ink: '#0C447C' },
+  Safe: { fill: '#D7EDEF', ink: '#0A4A52' },
+  Quest: { fill: '#E7E3FB', ink: '#3C3489' },
+  mascots: { fill: '#FBE3EC', ink: '#7A2343' },
+} as const;
+
 // ---------------------------------------------------------------------------
 // Type - IBM Plex Sans Thai (display) + Anuphan (body) + IBM Plex Mono (data)
 // ---------------------------------------------------------------------------

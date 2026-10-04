@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
-import { color, onFill } from './index.ts';
+import { color, gameHabitat, onFill } from './index.ts';
 
 /**
  * The palette's contrast claims, enforced.
@@ -131,6 +131,23 @@ describe('the ramp still runs the way its names say', () => {
     ];
     for (let i = 1; i < ramp.length; i += 1) {
       assert.ok(luminance(ramp[i]!) < luminance(ramp[i - 1]!), `accent ramp breaks at ${i}`);
+    }
+  });
+});
+
+describe('the habitat tiles on the game screen', () => {
+  test('every tile name reads on its own tile', () => {
+    for (const [key, { fill, ink }] of Object.entries(gameHabitat)) {
+      assert.ok(ratio(ink, fill) >= AA_TEXT, `${key}: ${ratio(ink, fill).toFixed(2)}:1`);
+    }
+  });
+
+  test('no tile wears the verified green', () => {
+    // A habitat is a place, not a verdict; green is reserved for what a host checked.
+    const greens: string[] = [color.accent, color.accent100, color.accent200, color.accent300, color.accent400,
+      color.accent500, color.accent600, color.accent700, color.accent800, color.accent900];
+    for (const [key, { fill, ink }] of Object.entries(gameHabitat)) {
+      assert.ok(!greens.includes(fill) && !greens.includes(ink), `${key} wears the verified green`);
     }
   });
 });
