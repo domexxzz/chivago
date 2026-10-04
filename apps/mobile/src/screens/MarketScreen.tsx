@@ -13,7 +13,7 @@
 import React from 'react';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 import {
-  BedDouble, Coffee, Compass, Copy, HeartPulse, House, Salad, Sparkles, Ticket, Utensils, Waves, X,
+  BedDouble, Coffee, Compass, Copy, HeartPulse, Leaf, Salad, Ticket, Waves, X,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { tintFor } from '@chivago/tokens';
@@ -34,31 +34,6 @@ import { t } from '../i18n/locale.ts';
 const currencyName = (c: Offer['currency']): string =>
   c === 'green' ? t(strings.common.greenPoints) : t(strings.common.tripPoints);
 
-/**
- * Category-themed icon helper with currency tone.
- */
-function getCategoryIcon(category: string, currency: 'green' | 'trip') {
-  const tone = currencyTone(currency);
-  const iconColor = tone.text;
-  const size = 22;
-  const cat = category.toLowerCase();
-  if (cat.includes('café') || cat.includes('cafe') || cat.includes('food') || cat.includes('kitchen')) {
-    return <Utensils size={size} color={iconColor} strokeWidth={2} />;
-  }
-  if (cat.includes('marine') || cat.includes('snorkel') || cat.includes('sea') || cat.includes('water')) {
-    return <Waves size={size} color={iconColor} strokeWidth={2} />;
-  }
-  if (cat.includes('wellness') || cat.includes('yoga') || cat.includes('health')) {
-    return <HeartPulse size={size} color={iconColor} strokeWidth={2} />;
-  }
-  if (cat.includes('hotel') || cat.includes('stay') || cat.includes('resort')) {
-    return <House size={size} color={iconColor} strokeWidth={2} />;
-  }
-  if (cat.includes('experience') || cat.includes('trip') || cat.includes('boat') || cat.includes('tour')) {
-    return <Compass size={size} color={iconColor} strokeWidth={2} />;
-  }
-  return <Sparkles size={size} color={iconColor} strokeWidth={2} />;
-}
 
 /**
  * Both balances in the header.
@@ -295,6 +270,7 @@ const CATEGORY_ICON: Record<string, LucideIcon> = {
   'Local experience': Compass,
   'Marine': Waves,
   'Wellness': HeartPulse,
+  'Eco & Green': Leaf,
 };
 
 function FilterChip({
@@ -369,6 +345,16 @@ export function OfferRow({
         <Label size={10} tracking={0.12}>{offer.category}</Label>
         <Heading size={15} style={{ marginTop: 3 }}>{offer.name}</Heading>
         <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 2 }}>{offer.merchant}</Label>
+        {/*
+          A sample that names a real business which has not joined. Said
+          directly under the name, in the coral the palette keeps for things a
+          reader must not take at face value - the same as Ask's example mark.
+        */}
+        {offer.example ? (
+          <Label size={10} tracking={0.12} colour={color.accent2} style={{ marginTop: 3 }}>
+            {t(strings.market.example)}
+          </Label>
+        ) : null}
       </View>
 
       <Pressable

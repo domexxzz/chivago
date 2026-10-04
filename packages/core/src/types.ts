@@ -431,6 +431,12 @@ export interface Offer {
   /** Which currency this offer is priced in. */
   currency: Currency;
   imageUrl: string | null;
+  /**
+   * A sample offer naming a real business that has NOT signed up. Shown with
+   * "Example · not a partner yet" under the merchant, and left out of any
+   * count of verified merchants. Absent means false.
+   */
+  example?: boolean;
   /** False when the merchant paused redemptions or stock ran out. */
   available: boolean;
 }

@@ -605,6 +605,8 @@ export const strings = {
   // -- Marketplace --------------------------------------------------------
   market: {
     context: t('Marketplace', 'ใช้แต้ม'),
+    // Under a sample offer that names a real business which has not joined.
+    example: t('Example · not a partner yet', 'ตัวอย่าง · ร้านยังไม่ได้ร่วมโครงการ'),
     intro: t(
       'Every redemption pays a local business directly. 100% of the point value is settled to the merchant.',
       'ทุกการแลกจ่ายให้ธุรกิจท้องถิ่นโดยตรง 100% ของมูลค่าแต้มถูกโอนให้ร้านค้า',
