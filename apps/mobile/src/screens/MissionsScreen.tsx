@@ -27,6 +27,7 @@ import { isRankable, strings, type HostStanding, type Offer, type Quest, type Qu
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
+import { tintFor } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
@@ -148,18 +149,19 @@ export function QuestRow({
       }]}
     >
       {/* The quest code in a 44x44 tile. This IS the system's icon - do not
-          swap in an illustration. */}
+          swap in an illustration. Tinted by the code's family (its two
+          letters), so every beach cleanup is the same colour on every screen. */}
       <View
         style={{
           width: 44,
           height: 44,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: color.brandSoft,
+          backgroundColor: tintFor(quest.code.slice(0, 2)).fill,
           borderRadius: radius.sm,
         }}
       >
-        <Heading size={11} colour={color.brand}>{quest.code}</Heading>
+        <Heading size={11} colour={tintFor(quest.code.slice(0, 2)).ink}>{quest.code}</Heading>
       </View>
 
       <View style={{ flex: 1 }}>

@@ -17,7 +17,9 @@
 
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { ChevronRight } from 'lucide-react-native';
+import { ChevronRight, Footprints, MapPin, Scale, Sparkles, Star, Ticket } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
+import { tint, type TintKey } from '@chivago/tokens';
 import {
   ledgerDate,
   ledgerLine,
@@ -267,6 +269,22 @@ export function RankLadder({ wallet }: { wallet: Wallet }) {
     </View>
   );
 }
+/**
+ * What kind of line a ledger entry is, said with an icon on a flat tint.
+ *
+ * The icon names the KIND of entry - a quest, a check-in, a voucher - and
+ * nothing about whether it was verified: that is the amount's colour, one
+ * column over, and it stays the only place the verified green appears.
+ */
+const ENTRY_LOOK: Record<Wallet['ledger'][number]['kind'], { Icon: LucideIcon; tone: TintKey }> = {
+  quest_reward: { Icon: Sparkles, tone: 'lilac' },
+  checkin: { Icon: MapPin, tone: 'sky' },
+  walk: { Icon: Footprints, tone: 'teal' },
+  review: { Icon: Star, tone: 'peach' },
+  redemption: { Icon: Ticket, tone: 'sand' },
+  adjustment: { Icon: Scale, tone: 'rose' },
+};
+
 export function Ledger({ wallet, onOpenMarket }: { wallet: Wallet; onOpenMarket: () => void }) {
   const now = React.useMemo(() => new Date(), []);
   return (
@@ -280,7 +298,10 @@ export function Ledger({ wallet, onOpenMarket }: { wallet: Wallet; onOpenMarket:
         <EmptyState en={t(strings.wallet.emptyLedger)} th={strings.wallet.emptyLedger.th} />
       ) : null}
 
-      {wallet.ledger.map((entry) => (
+      {wallet.ledger.map((entry) => {
+        const look = ENTRY_LOOK[entry.kind] ?? ENTRY_LOOK.adjustment;
+        const tone = tint[look.tone];
+        return (
         <View
           key={entry.id}
           style={{
@@ -293,6 +314,14 @@ export function Ledger({ wallet, onOpenMarket }: { wallet: Wallet; onOpenMarket:
             borderBottomColor: color.neutral300,
           }}
         >
+          <View
+            style={{
+              width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
+              backgroundColor: tone.fill,
+            }}
+          >
+            <look.Icon size={18} color={tone.ink} strokeWidth={2} />
+          </View>
           <View style={{ flex: 1 }}>
             <Heading size={14}>{t(ledgerLine(entry))}</Heading>
             <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 2 }}>
@@ -327,7 +356,8 @@ export function Ledger({ wallet, onOpenMarket }: { wallet: Wallet; onOpenMarket:
             </Label>
           </View>
         </View>
-      ))}
+        );
+      })}
     </View>
   );
 }

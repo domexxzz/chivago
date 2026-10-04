@@ -56,6 +56,7 @@ import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { useHere, type Here } from '../state/here.ts';
 import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
+import { tint } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState } from '../components/States.tsx';
@@ -405,25 +406,28 @@ function Doors({
   const doors = [
     // The same glyph the tab bar uses for the map. A door and a tab that go to
     // one place should not teach two icons for it.
-    { Icon: MapIcon, name: strings.tabs.map, onPress: onOpenMap },
+    { Icon: MapIcon, name: strings.tabs.map, onPress: onOpenMap, tone: tint.sky },
     // Second, so it is on screen without scrolling the row: stays, boats
     // and tours are what a traveller opens a travel app to find, and this
     // screen was lost at the bottom of the trip planner.
-    ...(onOpenStays ? [{ Icon: BedDouble, name: strings.ask.context, onPress: onOpenStays }] : []),
-    { Icon: Sparkles, name: strings.tabs.quests, onPress: onOpenQuests },
-    { Icon: Wallet, name: strings.tabs.wallet, onPress: onOpenWallet },
-    { Icon: Shield, name: strings.tabs.safety, onPress: onOpenSafety },
-    { Icon: MessageCircle, name: { en: 'Ask', th: 'ถาม' }, onPress: onOpenConcierge },
-    { Icon: Leaf, name: strings.tabs.impact, onPress: onOpenImpact },
-    { Icon: Users, name: { en: 'Group', th: 'กลุ่ม' }, onPress: onOpenParty },
+    ...(onOpenStays ? [{ Icon: BedDouble, name: strings.ask.context, onPress: onOpenStays, tone: tint.peach }] : []),
+    { Icon: Sparkles, name: strings.tabs.quests, onPress: onOpenQuests, tone: tint.lilac },
+    { Icon: Wallet, name: strings.tabs.wallet, onPress: onOpenWallet, tone: tint.sand },
+    { Icon: Shield, name: strings.tabs.safety, onPress: onOpenSafety, tone: tint.rose },
+    { Icon: MessageCircle, name: { en: 'Ask', th: 'ถาม' }, onPress: onOpenConcierge, tone: tint.teal },
+    { Icon: Leaf, name: strings.tabs.impact, onPress: onOpenImpact, tone: tint.teal },
+    { Icon: Users, name: { en: 'Group', th: 'กลุ่ม' }, onPress: onOpenParty, tone: tint.sky },
   ];
+  // Each door its own flat tint, so the row can be scanned by colour as well
+  // as by icon. Flat on purpose: Home carries measured claims and does not
+  // wear the game surface (game-surface.test.ts). None of the tints is green.
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{ paddingHorizontal: gutter, paddingTop: 18, gap: 14 }}
     >
-      {doors.map(({ Icon, name, onPress }) => (
+      {doors.map(({ Icon, name, onPress, tone }) => (
         <Pressable
           key={name.en}
           onPress={onPress}
@@ -434,10 +438,10 @@ function Doors({
           <View
             style={{
               width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center',
-              backgroundColor: color.brandSoft,
+              backgroundColor: tone.fill,
             }}
           >
-            <Icon size={20} color={color.brand} strokeWidth={2} />
+            <Icon size={22} color={tone.ink} strokeWidth={2} />
           </View>
           <Label size={9} tracking={0.06} colour={color.neutral800} style={{ textTransform: 'none' }}>{t(name)}</Label>
         </Pressable>

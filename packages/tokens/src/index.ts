@@ -330,6 +330,37 @@ export const gameHabitat = {
 } as const;
 
 /**
+ * Flat tints for the EVIDENCE layer: a soft ground and the ink that reads on it.
+ *
+ * These are how a door or an icon tile on a working screen gets some colour
+ * without becoming a toy. Flat only - no bevel, no lift - and none of them is
+ * the verified green, so a tile can never look like a host's verdict.
+ */
+export const tint = {
+  sky: { fill: '#DDEBFA', ink: '#0C447C' },
+  sand: { fill: '#FBEBC8', ink: '#6B4500' },
+  peach: { fill: '#FFE3D3', ink: '#8A3412' },
+  lilac: { fill: '#E7E3FB', ink: '#3C3489' },
+  teal: { fill: '#D7EDEF', ink: '#0A4A52' },
+  rose: { fill: '#FBE3EC', ink: '#7A2343' },
+} as const;
+
+export type TintKey = keyof typeof tint;
+
+const TINT_ORDER = Object.keys(tint) as TintKey[];
+
+/**
+ * A stable tint for any key: the same quest family, the same colour, every
+ * time and on every screen. A hash, not a lookup table, so a new family gets
+ * a colour on the day it is added without anybody remembering to assign one.
+ */
+export const tintFor = (key: string): (typeof tint)[TintKey] => {
+  let h = 0;
+  for (let i = 0; i < key.length; i += 1) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return tint[TINT_ORDER[h % TINT_ORDER.length]!];
+};
+
+/**
  * A soft ground per region of Thailand, for the seventy-seven's cards.
  *
  * Pale enough that the body text colour reads on every one of them, and none

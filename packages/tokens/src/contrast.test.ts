@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
-import { color, gameHabitat, gameRegion, onFill } from './index.ts';
+import { color, gameHabitat, gameRegion, onFill, tint, tintFor } from './index.ts';
 
 /**
  * The palette's contrast claims, enforced.
@@ -158,5 +158,22 @@ describe('the region grounds on the seventy-seven', () => {
       assert.ok(ratio(color.text, fill) >= AA_TEXT, `${key}: ${ratio(color.text, fill).toFixed(2)}:1`);
       assert.ok(ratio(color.neutral700, fill) >= AA_TEXT, `${key} caption: ${ratio(color.neutral700, fill).toFixed(2)}:1`);
     }
+  });
+});
+
+describe('the flat tints of the evidence layer', () => {
+  test('each ink reads on its own ground, and none is the verified green', () => {
+    const greens: string[] = [color.accent, color.accent100, color.accent200, color.accent300, color.accent400,
+      color.accent500, color.accent600, color.accent700, color.accent800, color.accent900];
+    for (const [key, { fill, ink }] of Object.entries(tint)) {
+      assert.ok(ratio(ink, fill) >= AA_TEXT, `${key}: ${ratio(ink, fill).toFixed(2)}:1`);
+      assert.ok(!greens.includes(fill) && !greens.includes(ink), `${key} wears the verified green`);
+    }
+  });
+
+  test('tintFor is stable, and spreads keys across more than one tint', () => {
+    assert.deepEqual(tintFor('BC'), tintFor('BC'));
+    const used = new Set(['BC', 'MG', 'CR', 'WK', 'FD', 'SF', 'TR', 'CL'].map((k) => tintFor(k).fill));
+    assert.ok(used.size >= 3, `only ${used.size} tints for eight families`);
   });
 });
