@@ -116,7 +116,7 @@ function Header({ progression }: { progression: Progression | null }) {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12,
       }}
     >
-      <Heading size={26} tracking={-0.5}>{t({ en: 'Play', th: 'เกม' })}</Heading>
+      <Heading size={26} tracking={-0.5}>{t(strings.tabs.game)}</Heading>
       {progression ? (
         <View
           style={{
@@ -200,7 +200,7 @@ function NextUp({
   companion, anyFound, onOpen,
 }: { companion: Companion | null; anyFound: boolean; onOpen: (c: Companion) => void }) {
   const frame = [
-    { marginHorizontal: gutter, marginTop: 16, height: 132, borderRadius: gameRadius.panel, overflow: 'hidden' as const },
+    { marginHorizontal: gutter, marginTop: 16, minHeight: 132, borderRadius: gameRadius.panel, overflow: 'hidden' as const },
     gameShadow.lift,
   ];
 
