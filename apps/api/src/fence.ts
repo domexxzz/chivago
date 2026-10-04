@@ -32,6 +32,8 @@
  * 450 km jump between an island beach and the Si Racha campus.
  */
 
+import { assistConfig } from './assist-service.ts';
+
 /** True when the fence has been deliberately opened for this deployment. */
 export const fenceOff = (): boolean => process.env.CHIVAGO_FENCE_OFF === '1';
 
@@ -64,9 +66,15 @@ export interface PublicConfig {
   fenceOff: boolean;
   /** Nothing is reviewed before it is public. The app must say so before posting. */
   autoApprove: boolean;
+  /**
+   * Proof photos are shown to an AI for the host (docs/64). The app must say
+   * so where somebody is about to send them.
+   */
+  aiAssist: boolean;
 }
 
 export const publicConfig = (): PublicConfig => ({
   fenceOff: fenceOff(),
   autoApprove: storiesAutoApprove(),
+  aiAssist: assistConfig(process.env).enabled,
 });

@@ -15,7 +15,10 @@
     "typecheck": "tsc --noEmit",
     "contract": "node --experimental-strip-types src/capture-contract.ts",
     "demo:reset": "node --experimental-strip-types src/reset-demo.ts",
-    "demo:capture": "node --experimental-strip-types src/capture-demo.ts"
+    "demo:capture": "node --experimental-strip-types src/capture-demo.ts",
+    "assist:eval": "node --experimental-strip-types src/assist-eval-run.ts",
+    "assist:spike": "node --experimental-strip-types src/assist-spike.ts",
+    "assist:dataset": "node --experimental-strip-types src/assist-dataset.ts"
   },
   "dependencies": {
     "@chivago/core": "workspace:*",

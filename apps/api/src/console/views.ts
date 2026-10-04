@@ -7,7 +7,7 @@
  */
 
 import { REJECTION_REASONS, REJECTION_REASON_KEYS } from '@chivago/core';
-import { esc, html, layout, type Raw } from './html.ts';
+import { esc, html, layout, raw, type Raw } from './html.ts';
 import {
   formatDateTime, formatNumber, formatWaiting, t, tf, type Locale,
 } from './i18n.ts';
@@ -18,7 +18,17 @@ const CHECK_LABEL: Record<string, Parameters<typeof t>[0]> = {
   geotag: 'checkPhotoLocation',
   timing: 'checkCaptureTime',
   weight: 'checkWeight',
+  ai: 'checkAi',
 };
+
+/** Concern keys from the AI check, in words. An unknown key stays a key. */
+function concernWords(keys: string, locale: Locale): string {
+  return keys
+    .split(',')
+    .filter(Boolean)
+    .map((k) => tf(`concern_${k}`, locale))
+    .join(', ');
+}
 
 // ---------------------------------------------------------------------------
 
@@ -58,14 +68,106 @@ export function loginPage(locale: Locale, error?: boolean): string {
 
 function checkRow(check: ReviewCheck, locale: Locale): Raw {
   const label = CHECK_LABEL[check.key];
+  const params = check.key === 'ai' && typeof check.params.concerns === 'string'
+    ? { ...check.params, concerns: concernWords(check.params.concerns, locale) }
+    : check.params;
   return html`
     <div class="check">
       <span class="dot ${check.status}"></span>
       <div>
         <strong style="font-size:14px">${label ? t(label, locale) : check.key}</strong>
-        <div class="muted">${tf(check.detailKey, locale, check.params)}</div>
+        <div class="muted">${tf(check.detailKey, locale, params)}</div>
       </div>
     </div>
+  `;
+}
+
+/** The AI's check row and its card: what `#assist-block` holds, on the page and from the poll. */
+export function assistFragment(item: ReviewItem, locale: Locale): Raw {
+  const check = item.checks.find((c) => c.key === 'ai');
+  return html`${check ? checkRow(check, locale) : ''}${assistCard(item, locale)}`;
+}
+
+/** The AI has been asked and has not answered yet - the only state worth waiting on. */
+export const assistPending = (item: ReviewItem): boolean =>
+  item.checks.some((c) => c.key === 'ai' && c.detailKey === 'aiPending');
+
+/** Every five seconds for three minutes: past that the stale sweep has it, and a reload will. */
+const ASSIST_POLL_MS = 5_000;
+const ASSIST_POLL_MAX = 36;
+
+/**
+ * Swaps the AI block in place when the answer lands, without a reload - a
+ * reload would throw away a note the host is halfway through typing. It
+ * also moves `assistSeen`, because from then on the host has seen the
+ * answer. Polls only while the tab is in view, and stops at the first answer.
+ * The fragment is rendered and escaped on the server, like the page.
+ */
+function assistPoll(proofId: string): Raw {
+  // `<` escaped so nothing in the URL can close the script element.
+  const url = JSON.stringify(`/console/proof/${encodeURIComponent(proofId)}/assist`).replace(/</g, '\\u003c');
+  return raw(`<script>
+(function(){
+  var url = ${url};
+  var block = document.getElementById('assist-block');
+  var seen = document.querySelector('input[name="assistSeen"]');
+  var tries = 0, timer = null;
+  function stop(){ if (timer) { clearInterval(timer); timer = null; } }
+  function poll(){
+    if (document.hidden) return;
+    if (++tries > ${ASSIST_POLL_MAX}) return stop();
+    fetch(url, { credentials: 'same-origin', cache: 'no-store' })
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(j){
+        if (!j || j.pending || !block) return;
+        block.innerHTML = j.html;
+        if (seen) seen.value = j.status;
+        stop();
+      }).catch(function(){});
+  }
+  timer = setInterval(poll, ${ASSIST_POLL_MS});
+})();
+</script>`);
+}
+
+/**
+ * The AI's opinion, in full (docs/64). Its own box, apart from the checks
+ * that read numbers, and labelled as a helper's. The model's text is shown
+ * in the host's language and escaped like everything else - it was written
+ * by a machine that read a photo somebody else chose.
+ */
+function assistCard(item: ReviewItem, locale: Locale): Raw | '' {
+  const a = item.assist;
+  if (!a) return '';
+  const tr = (k: Parameters<typeof t>[0]) => t(k, locale);
+  return html`
+    <section style="margin-top:16px;padding:12px 16px;border:2px dashed var(--color-neutral-400)"
+      aria-label="${tr('aiCardHeading')}">
+      <div class="kicker">${tr('aiCardHeading')}</div>
+      <p style="margin:8px 0">${a.summary[locale]}</p>
+      ${
+        a.concerns.length > 0
+          ? html`<p class="muted" style="margin:0 0 8px">
+              ${tf('aiConcern', locale, { concerns: concernWords(a.concerns.join(','), locale) })}</p>`
+          : ''
+      }
+      ${
+        a.photos.length > 0
+          ? html`<ul class="muted" style="margin:0;padding-left:20px">
+              ${a.photos.map(
+                (p) => html`<li>${tf('aiPhotoNote', locale, { n: p.index + 1 })}: ${p[locale]}</li>`,
+              )}
+            </ul>`
+          : ''
+      }
+      ${
+        a.suggestedReason
+          ? html`<p style="margin:8px 0 0"><strong>${tr('aiSuggests')}:</strong>
+              ${REJECTION_REASONS[a.suggestedReason][locale]}</p>`
+          : ''
+      }
+      <p class="muted" style="margin:8px 0 0;max-width:64ch">${tr('aiCardBlurb')}</p>
+    </section>
   `;
 }
 
@@ -247,12 +349,16 @@ export function detailPage(
 
     <h4 style="margin-top:32px">${tr('automaticChecks')}</h4>
     <p class="muted" style="max-width:64ch">${tr('checksBlurb')}</p>
-    ${item.checks.map((c) => checkRow(c, locale))}
+    ${item.checks.filter((c) => c.key !== 'ai').map((c) => checkRow(c, locale))}
+    <div id="assist-block">${assistFragment(item, locale)}</div>
+    ${assistPending(item) ? assistPoll(item.proofId) : ''}
 
     <h4 style="margin-top:32px">${tr('decision')}</h4>
     <form method="post" action="/console/decide">
       <input type="hidden" name="csrf" value="${csrf}">
       <input type="hidden" name="proofId" value="${item.proofId}">
+      <input type="hidden" name="assistSeen"
+        value="${item.checks.find((c) => c.key === 'ai')?.status ?? ''}">
 
       <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
         <label for="reason" class="kicker">${tr('reasonIfRejecting')}</label>

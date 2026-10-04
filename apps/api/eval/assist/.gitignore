@@ -1,0 +1,4 @@
+# Photos of people stay off git: consent covers this eval, not a public repo.
+# Share them in the team drive; see README.md.
+photos/*
+!photos/.gitkeep

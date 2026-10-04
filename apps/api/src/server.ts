@@ -97,6 +97,10 @@ import { webhookTransport } from './push/webhook.ts';
 import { hostOwnsQuest, resolveSession, readCookie, SESSION_COOKIE } from './host-auth.ts';
 import { onPrimary } from './primary.ts';
 import { MAX_BYTES, MAX_PHOTOS_PER_PROOF, storePhoto, UnsupportedUpload } from './uploads.ts';
+import {
+  assistConfig, ffmpegPrepare, requestAssist, staleAssists, type AssistDeps,
+} from './assist-service.ts';
+import { bedrockModel } from './bedrock.ts';
 import type { Voucher, WellnessProfile } from '@chivago/core';
 
 const db = openDb();
@@ -161,6 +165,37 @@ const slaTimer = setInterval(onPrimary(() => {
 // Never hold the process open just to run the notification loop.
 dispatchTimer.unref?.();
 slaTimer.unref?.();
+
+/**
+ * A second pair of eyes (docs/64). Off unless CHIVAGO_ASSIST=on with a model
+ * and a key; the console then shows the AI check as "off" and nothing else
+ * changes. The key is read here and handed to the client, never logged.
+ */
+const assist = assistConfig(process.env);
+const assistDeps: AssistDeps = {
+  model: assist.enabled
+    ? bedrockModel({ region: assist.region, modelId: assist.modelId!, token: assist.token! })
+    : null,
+  prepare: ffmpegPrepare(),
+  dailyLimit: assist.dailyLimit,
+};
+console.log(`[chivago] AI host assistant: ${assist.enabled ? `on (${assist.modelId}, ${assist.region})` : 'off'}`);
+
+/** Never on a request path: the upload has already answered the volunteer. */
+const startAssist = (proofId: string) => {
+  void requestAssist(db, proofId, assistDeps).catch((err) => {
+    console.error('[chivago] assist failed to start:', (err as Error).message);
+  });
+};
+
+// Picks up what a restart interrupted. A minute is plenty: nobody is waiting
+// on it, and the host can decide without it.
+const assistTimer = setInterval(onPrimary(() => {
+  try { for (const id of staleAssists(db)) startAssist(id); } catch (e) {
+    console.error('[chivago] assist sweep:', (e as Error).message);
+  }
+}), 60_000);
+assistTimer.unref();
 
 const oncall = webhookTransport();
 
@@ -1098,6 +1133,7 @@ app.post('/quests/:id/proof', async (c) => {
       throw err;
     }
 
+    startAssist(result.proofId);
     return ok(c, result);
   }
 

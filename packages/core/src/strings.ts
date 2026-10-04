@@ -439,6 +439,18 @@ export const strings = {
       'Geo-tagged photos + weight of waste collected. Verified by host within 24h.',
       'ภาพถ่ายพร้อมพิกัด และน้ำหนักขยะที่เก็บได้ ตรวจสอบโดยผู้จัดภายใน 24 ชม.',
     ),
+    /*
+      Shown where the photos are about to be sent, whenever the server may
+      pass them to the AI host assistant (docs/64). "May", because the app
+      shows it when it cannot tell - see server-config.ts. The three facts
+      are the ones a traveller would want before tapping send: a machine
+      looks, it is not told who they are, and a person still decides.
+      DRAFT: to be read by the lawyer with the rest of the notice.
+    */
+    aiAssistNotice: t(
+      'An AI may look at your photos to help the host check them. It is not told who you are, and the host decides.',
+      'AI อาจช่วยดูรูปของคุณเพื่อให้ผู้จัดตรวจได้เร็วขึ้น โดย AI ไม่รู้ว่าคุณเป็นใคร และผู้ตัดสินยังเป็นผู้จัด',
+    ),
     weightLabel: t('Waste collected (kg)', 'น้ำหนักขยะที่เก็บได้ (กก.)'),
     // The Thai said only 'checking the proof' and dropped WHO is checking it.
     // A traveller waiting on a decision has one question, and it is which host.

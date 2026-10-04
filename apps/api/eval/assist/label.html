@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ติดป้ายชุดประเมิน</title>
+<style>
+  :root { --bg:#f6f7f5; --fg:#16202a; --muted:#5b6670; --line:#d5dad6; --accent:#1f7a4d; --card:#fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12171c; --fg:#e8ecef; --muted:#9aa5ae; --line:#2b333a; --accent:#5cc38f; --card:#1a2127; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.6 system-ui, "Noto Sans Thai", sans-serif; }
+  main { max-width:980px; margin:0 auto; padding:16px; }
+  h1 { font-size:20px; margin:8px 0 4px; }
+  .muted { color:var(--muted); font-size:13px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin:12px 0; }
+  .photos { display:flex; gap:12px; flex-wrap:wrap; }
+  .photos img { max-width:100%; max-height:62vh; border-radius:6px; border:1px solid var(--line); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  button, select, input { font:inherit; padding:10px 14px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--fg); }
+  button.pick { border-color:var(--accent); }
+  button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+  kbd { border:1px solid var(--line); border-radius:4px; padding:0 5px; font-size:12px; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>ติดป้ายชุดประเมินผู้ช่วยตรวจ (docs/64)</h1>
+  <p class="muted">
+    ตอบเหมือนเป็น host: <b>ok</b> อนุมัติ · <b>doubt</b> ขอดูอีกรอบ · <b>bad</b> ปฏิเสธ
+    หน้านี้ไม่แสดงคำตอบของ AI และไม่บอกว่ารูปถูกถ่ายมาเป็นประเภทไหน สองคนต้องติดป้ายแยกกัน ห้ามปรึกษากัน
+    ไฟล์ทั้งหมดอ่านในเครื่องนี้เท่านั้น ไม่มีอะไรถูกส่งออกไป
+  </p>
+
+  <section class="card" id="setup">
+    <div class="row">
+      <label>คุณคือ
+        <select id="slot"><option value="a">คนที่ 1 (a)</option><option value="b">คนที่ 2 (b)</option></select>
+      </label>
+      <input id="who" placeholder="ชื่อ (เก็บไว้ในไฟล์ป้าย)">
+    </div>
+    <p class="muted">เลือกโฟลเดอร์ <code>eval/assist</code> ที่มี <code>manifest.json</code> และ <code>photos/</code></p>
+    <input type="file" id="folder" webkitdirectory directory multiple>
+    <p id="status" class="muted"></p>
+  </section>
+
+  <section class="card hidden" id="work">
+    <div class="row" style="justify-content:space-between">
+      <strong id="where"></strong><span class="muted" id="progress"></span>
+    </div>
+    <p class="muted" id="weight"></p>
+    <div class="photos" id="photos"></div>
+    <div class="row" style="margin-top:14px">
+      <button class="pick" data-label="ok"><kbd>1</kbd> ok อนุมัติ</button>
+      <button class="pick" data-label="doubt"><kbd>2</kbd> doubt ขอดูอีกรอบ</button>
+      <button class="pick" data-label="bad"><kbd>3</kbd> bad ปฏิเสธ</button>
+      <span style="flex:1"></span>
+      <button id="prev">← ก่อนหน้า</button>
+      <button id="next">ถัดไป →</button>
+    </div>
+  </section>
+
+  <section class="card hidden" id="done">
+    <p id="summary"></p>
+    <button id="save" class="on">ดาวน์โหลด labels-<span id="slotName"></span>.json</button>
+    <p class="muted">แล้วรัน <code>pnpm --filter @chivago/api assist:dataset merge labels-a.json labels-b.json</code></p>
+  </section>
+</main>
+<script>
+(function () {
+  var QUESTS = {
+    'BC-04': 'Beach Cleanup · เก็บขยะชายหาด — Chaweng Beach',
+    'MG-11': 'Mangrove Planting · ปลูกป่าชายเลน — Thong Krut',
+    'CR-02': 'Coral Nursery Check · ตรวจแปลงปะการัง — Taling Ngam',
+    'KU-01': 'Campus clean-up · เก็บขยะรอบจุดชมวิวสะพานดาว — KU Sriracha',
+    'KU-02': 'Lake loop on foot · เดินวนรอบบึง — KU Sriracha'
+  };
+  var $ = function (id) { return document.getElementById(id); };
+  var items = [], files = {}, labels = {}, i = 0;
+  var store = function () { return 'chivago-eval-labels-' + $('slot').value; };
+
+  function save() { try { localStorage.setItem(store(), JSON.stringify(labels)); } catch (e) {} }
+  function restore() { try { labels = JSON.parse(localStorage.getItem(store()) || '{}') || {}; } catch (e) { labels = {}; } }
+
+  // Shuffled with a fixed seed per slot: the two people see different orders,
+  // and a group of the same kind in a row cannot teach either of them the answer.
+  function shuffle(list, seed) {
+    var a = list.slice(), s = seed;
+    for (var k = a.length - 1; k > 0; k--) {
+      s = (s * 9301 + 49297) % 233280;
+      var j = Math.floor((s / 233280) * (k + 1));
+      var t = a[k]; a[k] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  $('folder').addEventListener('change', function (e) {
+    files = {};
+    var manifest = null;
+    Array.prototype.forEach.call(e.target.files, function (f) {
+      var rel = (f.webkitRelativePath || f.name).replace(/\\/g, '/');
+      var at = rel.indexOf('photos/');
+      if (at >= 0) files[rel.slice(at + 7)] = f;
+      if (/(^|\/)manifest\.json$/.test(rel)) manifest = f;
+    });
+    if (!manifest) { $('status').textContent = 'ไม่พบ manifest.json ในโฟลเดอร์ที่เลือก'; return; }
+    manifest.text().then(function (txt) {
+      var m = JSON.parse(txt);
+      // Only what people must label: a derived item is labelled by construction.
+      var todo = m.items.filter(function (it) { return it.labels === null && !it.derivedFrom; });
+      var missing = [];
+      todo.forEach(function (it) { it.photos.forEach(function (p) { if (!files[p]) missing.push(p); }); });
+      items = shuffle(todo, $('slot').value === 'a' ? 17 : 71);
+      restore();
+      $('status').textContent = todo.length + ' หลักฐานรอติดป้าย' + (missing.length ? ' · ยังไม่มีรูป: ' + missing.join(', ') : '');
+      $('slot').disabled = true;
+      i = 0;
+      while (i < items.length - 1 && labels[items[i].id]) i++;
+      show();
+    });
+  });
+
+  function show() {
+    if (!items.length) return;
+    $('work').classList.remove('hidden');
+    var it = items[i];
+    $('where').textContent = QUESTS[it.quest] || it.quest;
+    $('weight').textContent = it.weightKg === null ? 'ไม่ได้แจ้งน้ำหนัก' : 'แจ้งน้ำหนัก ' + it.weightKg + ' กก.';
+    var box = $('photos');
+    box.innerHTML = '';
+    it.photos.forEach(function (p) {
+      var img = document.createElement('img');
+      if (files[p]) img.src = URL.createObjectURL(files[p]);
+      img.alt = files[p] ? 'รูปหลักฐาน' : 'ยังไม่มีไฟล์ ' + p;
+      box.appendChild(img);
+    });
+    var done = items.filter(function (x) { return labels[x.id]; }).length;
+    $('progress').textContent = (i + 1) + ' / ' + items.length + ' · ติดแล้ว ' + done;
+    document.querySelectorAll('.pick').forEach(function (b) {
+      b.classList.toggle('on', labels[it.id] === b.getAttribute('data-label'));
+    });
+    if (done === items.length) finish();
+  }
+
+  function pick(label) {
+    labels[items[i].id] = label;
+    save();
+    if (i < items.length - 1) i++;
+    show();
+  }
+
+  function finish() {
+    $('done').classList.remove('hidden');
+    $('slotName').textContent = $('slot').value;
+    $('summary').textContent = 'ติดป้ายครบ ' + items.length + ' หลักฐาน';
+  }
+
+  document.querySelectorAll('.pick').forEach(function (b) {
+    b.addEventListener('click', function () { pick(b.getAttribute('data-label')); });
+  });
+  $('prev').addEventListener('click', function () { if (i > 0) { i--; show(); } });
+  $('next').addEventListener('click', function () { if (i < items.length - 1) { i++; show(); } });
+  document.addEventListener('keydown', function (e) {
+    if (!items.length || e.target.tagName === 'INPUT') return;
+    if (e.key === '1') pick('ok');
+    if (e.key === '2') pick('doubt');
+    if (e.key === '3') pick('bad');
+    if (e.key === 'ArrowLeft') $('prev').click();
+    if (e.key === 'ArrowRight') $('next').click();
+  });
+  $('save').addEventListener('click', function () {
+    var out = { slot: $('slot').value, labeller: $('who').value || null, labelledAt: new Date().toISOString(), labels: labels };
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }));
+    a.download = 'labels-' + out.slot + '.json';
+    a.click();
+  });
+})();
+</script>
+</body>
+</html>

@@ -108,6 +108,26 @@ describe('the machine verification path must name its host', () => {
     assert.equal(raw.status, 403);
   });
 
+  test('a machine decision records no AI status: nobody was shown one (docs/64)', async () => {
+    // assist_at_decision is what a PAGE showed a person. This path has no
+    // page, so NULL - and the agreement measure leaves it out rather than
+    // counting a caller that never saw the card as agreeing with it.
+    const now = new Date().toISOString();
+    db.prepare('INSERT OR IGNORE INTO users (id,display_name,created_at) VALUES (?,?,?)').run('u-machine', 'm', now);
+    db.prepare(`INSERT INTO quest_progress (user_id,quest_id,stage) VALUES ('u-machine','q-a','host_verification')`).run();
+    db.prepare(`INSERT INTO proofs (id,user_id,quest_id,photos,submitted_at) VALUES ('p-machine','u-machine','q-a','[]',?)`).run(now);
+    db.prepare(
+      `INSERT INTO proof_assists (proof_id,status,result_json,created_at) VALUES ('p-machine','done',?,?)`,
+    ).run(JSON.stringify({ work: 'shown', weight: null, concerns: [], suggestedReason: null, photos: [], summary: { en: 'x', th: 'ก' } }), now);
+    const raw = await post('/internal/verify', {
+      userId: 'u-machine', questId: 'q-a', proofId: 'p-machine', approved: true, hostId: 'h-a',
+    }, { 'x-host-secret': 'test-host-secret' });
+    assert.equal(raw.status, 200);
+    const p = db.prepare("SELECT approved, assist_at_decision FROM proofs WHERE id='p-machine'").get() as Record<string, unknown>;
+    assert.equal(p.approved, 1);
+    assert.equal(p.assist_at_decision, null);
+  });
+
   test('an unknown rejection reason is a 400, not a stored key nobody can render', async () => {
     const raw = await post('/internal/verify', {
       userId: 'x', questId: 'q-a', proofId: 'p', approved: false, hostId: 'h-a', reason: '__proto__',
