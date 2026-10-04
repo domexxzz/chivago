@@ -218,3 +218,26 @@ describe('in Thai', () => {
     ui.unmount();
   });
 });
+
+describe('the count of people asking is not painted as verified', () => {
+  // The badge counts parties looking for company. Nobody has checked anything
+  // about them, so it must not wear the green a host's verification wears.
+  test('the badge is gold, and nothing on the list is the verified green', async () => {
+    const { color } = await import('../src/theme/index.ts');
+    const s = server({ 'GET /places': places, 'GET /invites/pins': pins }); restore = s.restore;
+    const ui = await mountScreen(h(FindPartyScreen, props));
+    const painted: string[] = [];
+    const walk = (node: { props?: { style?: unknown }; children: unknown[] }) => {
+      const flat = ([] as unknown[]).concat(node.props?.style ?? []).flat(Infinity);
+      for (const st of flat) {
+        const bg = (st as { backgroundColor?: unknown } | null)?.backgroundColor;
+        if (typeof bg === 'string') painted.push(bg);
+      }
+      node.children.forEach((c) => { if (typeof c !== 'string') walk(c as never); });
+    };
+    walk(ui.root as never);
+    assert.ok(painted.includes(color.goldSoft), 'the asking badge lost its gold');
+    assert.ok(!painted.includes(color.accent), 'something on the find list wears the verified green');
+    ui.unmount();
+  });
+});
