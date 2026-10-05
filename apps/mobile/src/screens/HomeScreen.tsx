@@ -36,7 +36,7 @@ import {
   Animated, Easing, Image, Platform, Pressable, ScrollView, View,
   type NativeScrollEvent, type NativeSyntheticEvent,
 } from 'react-native';
-import { areaOfProvince, inArea, type Area, type AreaKey } from '@chivago/core';
+import { areaOfProvince, inArea, stallSourceFor, type Area, type AreaKey } from '@chivago/core';
 import { useReduceMotion } from '../components/reduce-motion.ts';
 import { setArea, useArea } from '../state/area.ts';
 import { mascotBeachUri, photoUri } from '../api/photos.ts';
@@ -44,6 +44,7 @@ import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { BoardFeed } from '../components/BoardFeed.tsx';
 import { BusStrip } from '../components/BusStrip.tsx';
 import { MonsterFeed } from '../components/MonsterFeed.tsx';
+import { StallsCard } from '../components/Stalls.tsx';
 import {
   BedDouble, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MessageCircle, Search, Shield, Sparkles, Ticket, Trees, UserRound, Users, Utensils, Wallet,
 } from 'lucide-react-native';
@@ -164,13 +165,23 @@ export function HomeScreen({
     }),
     [quests, area],
   );
+  // Food courts here whose stalls take orders ahead (docs/65). Read from the
+  // places already fetched, so an area without one asks for nothing more.
+  const courts = React.useMemo(() => (here.data ?? []).filter((p) => stallSourceFor(p.id) !== null), [here.data]);
   const passport = useAsync(() => api.passport(), []);
   const companions = useAsync(() => api.companions(), []);
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
       <Hero now={now} area={area} onChangeArea={setArea} onOpenConcierge={onOpenConcierge} onOpenProfile={onOpenProfile} />
-      <Conditions places={here} onOpenMap={onOpenMap} />
+      {/*
+        Order ahead, first thing under the header, in an area with a food court
+        that takes orders ahead (docs/65): at noon on a campus, food is what a
+        student opened the app for. An area without one draws nothing here and
+        asks for nothing, so the island's Home is unchanged.
+      */}
+      <OrderAhead courts={courts} />
+      <Conditions places={here} onOpenMap={onOpenMap} overHero={courts.length === 0} />
       <Doors
         onOpenMap={onOpenMap}
         onOpenQuests={onOpenQuests}
@@ -328,8 +339,13 @@ function Hero({
 // ---------------------------------------------------------------------------
 
 function Conditions({
-  places, onOpenMap,
-}: { places: Async<ScoredPlace[]>; onOpenMap: () => void }) {
+  places, onOpenMap, overHero = true,
+}: {
+  places: Async<ScoredPlace[]>;
+  onOpenMap: () => void;
+  /** The first card floats over the header's curve; below the order-ahead card, this one sits in line. */
+  overHero?: boolean;
+}) {
   const list = places.data ?? [];
   const avg = islandAverage(list);
   const provenance = weakestProvenance(list);
@@ -338,7 +354,7 @@ function Conditions({
     <View
       style={[shadow.card, {
         marginHorizontal: gutter,
-        marginTop: -30,
+        marginTop: overHero ? -30 : 12,
         padding: 18,
         borderRadius: radius.md,
         backgroundColor: color.surface,
@@ -963,6 +979,21 @@ function NoPhotograph({ place }: { place: ScoredPlace }) {
 }
 
 /** A section's title, and the reference's "See all" beside it when there is a place to go. */
+/**
+ * The food courts in this area whose stalls take orders ahead, each as the
+ * place screen shows it, named. The first card on Home floats over the
+ * header's curve, the way Conditions does when this is not here: the card's
+ * own 12 above, less 42, puts its top 30 into the header.
+ */
+function OrderAhead({ courts }: { courts: ScoredPlace[] }) {
+  if (courts.length === 0) return null;
+  return (
+    <View style={{ marginTop: -42, paddingHorizontal: gutter }}>
+      {courts.map((p) => <StallsCard key={p.id} placeId={p.id} placeName={t(p.name)} />)}
+    </View>
+  );
+}
+
 /** The area's monsters, fetched here so Home owns one request for them. */
 function Monsters({ areaKey, onOpenPlace }: { areaKey: string; onOpenPlace: (placeId: string) => void }) {
   const found = useAsync(() => api.monsters(areaKey), [areaKey]);

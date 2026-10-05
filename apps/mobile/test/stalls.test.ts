@@ -14,6 +14,8 @@ import { __setLocaleForTests } from '../src/i18n/locale.ts';
 import { place } from './fixtures.ts';
 import { PlaceScreen } from '../src/screens/PlaceScreen.tsx';
 import { LIVE_FOR_MS, StallsCard } from '../src/components/Stalls.tsx';
+import { HomeScreen } from '../src/screens/HomeScreen.tsx';
+import { __setAreaForTests } from '../src/state/area.ts';
 import { demoStalls } from '../src/demo/stalls.ts';
 
 const noop = () => {};
@@ -215,6 +217,45 @@ describe('order ahead at the food court', () => {
       assert.ok(!ui.labels().includes('Order ahead'));
       assert.ok(!ui.labels().includes('See the menu'));
     } finally { done(); }
+  });
+});
+
+describe('order ahead on Home', () => {
+  const homeProps = {
+    onOpenMap: noop, onOpenQuests: noop, onOpenQuest: noop, onOpenWallet: noop,
+    onOpenPassport: noop, onOpenImpact: noop, onOpenConcierge: noop, onOpenSafety: noop,
+    onOpenParty: noop, onOpenProfile: noop, now: new Date('2026-10-06T05:00:00Z'),
+  };
+  const canteen = () => place({
+    id: 'rmutt-canteen', name: { en: 'Central food court', th: 'โรงอาหารกลาง' }, layer: 'Food',
+    province: 'TH-13', lat: 14.0355634, lng: 100.7243854,
+  });
+
+  test('at a campus with a food court that takes orders, ordering is the first thing under the header', async () => {
+    __setLocaleForTests('en');
+    __setAreaForTests('rmutt');
+    const net = server({ '/places': [canteen()], 'GET /places/rmutt-canteen/stalls': answer() });
+    try {
+      const ui = await mountScreen(h(HomeScreen, homeProps));
+      const said = ui.text();
+      assert.match(said, /Order food ahead · Central food court/, 'which food court, said on the card');
+      assert.match(said, /Ready in about 5 min/);
+      assert.ok(ui.labels().includes('Order ahead'));
+      assert.ok(said.indexOf('Order food ahead') < said.indexOf('Average score across'), 'above the area\'s conditions');
+      ui.unmount();
+    } finally { net.restore(); __setAreaForTests('samui'); }
+  });
+
+  test('on the island, with no food court that takes orders, Home is unchanged and asks for no stalls', async () => {
+    __setLocaleForTests('en');
+    __setAreaForTests('samui');
+    const net = server({ '/places': [place({ province: 'TH-84' }), canteen()] });
+    try {
+      const ui = await mountScreen(h(HomeScreen, homeProps));
+      assert.ok(!net.calls.some((c) => c.path.endsWith('/stalls')));
+      assert.doesNotMatch(ui.text(), /Order food ahead/);
+      ui.unmount();
+    } finally { net.restore(); }
   });
 });
 
