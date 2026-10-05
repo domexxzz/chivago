@@ -52,32 +52,75 @@ function stallLine(s: Stall, now: Date): string {
   }
 }
 
-/** Why there are no stalls to list: none take orders ahead, or they could not be reached. */
-const emptyLine = (data: PlaceStalls | null): string =>
-  t(data?.provenance === 'live' ? strings.place.stallsNone : strings.place.stallsDown);
+/**
+ * How long a live wait is shown as one. The screen is not refreshed behind
+ * the student's back; after this the card dates the wait and offers to look
+ * again instead.
+ */
+export const LIVE_FOR_MS = 2 * 60_000;
 
-export function StallsCard({ placeId }: { placeId: string }) {
+/**
+ * When this answer reached the phone, on the phone's own clock. The service's
+ * `observedAt` says when a wait was read; how long ago is counted from here,
+ * so a phone set a few minutes wrong still ages a wait correctly.
+ */
+function useReceivedAt(data: unknown): number {
+  const stamp = React.useRef<{ data: unknown; at: number }>({ data: undefined, at: 0 });
+  if (stamp.current.data !== data) stamp.current = { data, at: Date.now() };
+  return stamp.current.at;
+}
+
+/** Render again once at `at` (epoch ms), so what is on screen ages without a request being made. */
+function useRenderAt(at: number | null): void {
+  const [, rerender] = React.useReducer((n: number) => n + 1, 0);
+  React.useEffect(() => {
+    if (at === null) return undefined;
+    const timer = setTimeout(rerender, Math.max(0, at - Date.now()) + 50);
+    return () => clearTimeout(timer);
+  }, [at]);
+}
+
+/** The line above the stalls, and whether to offer to look again, for an answer that is not simply fresh. */
+function noteFor(data: PlaceStalls | null, failed: boolean, fresh: boolean): { note: string | null; again: boolean } {
+  if (!data) return { note: failed ? t(strings.place.stallsDown) : null, again: failed };
+  if (data.stalls.length === 0) {
+    // None take orders ahead is an answer; asking again will not add a stall.
+    return data.provenance === 'live'
+      ? { note: t(strings.place.stallsNone), again: false }
+      : { note: t(strings.place.stallsDown), again: true };
+  }
+  if (fresh) return { note: null, again: false };
+  // The static demo: named, never read, nothing to ask again.
+  if (!data.observedAt) return { note: t(strings.place.stallsNoStatus), again: false };
+  const at = clock(data.observedAt);
+  return { note: t(data.provenance === 'live' ? strings.place.stallsAsOf(at) : strings.place.stallsStale(at)), again: true };
+}
+
+export function StallsCard({ placeId, liveForMs = LIVE_FOR_MS }: { placeId: string; liveForMs?: number }) {
   const res = useAsync(() => api.stalls(placeId), [placeId]);
   const data = res.data;
+  const receivedAt = useReceivedAt(data);
   const live = data?.provenance === 'live';
-  const listed = data !== null && data.stalls.length > 0;
+  useRenderAt(live ? receivedAt + liveForMs : null);
   const now = new Date();
+  const fresh = live && now.getTime() - receivedAt < liveForMs;
+  const listed = data !== null && data.stalls.length > 0;
+  const { note, again } = noteFor(data, res.error !== null, fresh);
   return (
     <View style={[shadow.card, { marginTop: 12, padding: 14, backgroundColor: color.surface, borderRadius: radius.md }]}>
       <Label size={10} tracking={0.12}>{t(strings.place.stallsTitle)}</Label>
       <Body size={13} colour={color.neutral700} style={{ marginTop: 6 }}>{t(strings.place.stallsIntro)}</Body>
 
-      {res.loading && !data ? <Body size={13} style={{ marginTop: 10 }}>…</Body> : null}
-      {!listed && !res.loading ? (
-        <Body size={13} colour={color.neutral700} style={{ marginTop: 10 }}>{emptyLine(data)}</Body>
+      {res.loading && !data && !note ? <Body size={13} style={{ marginTop: 10 }}>…</Body> : null}
+      {note && !listed ? <Body size={13} colour={color.neutral700} style={{ marginTop: 10 }}>{note}</Body> : null}
+      {note && listed ? (
+        <Label size={10} tracking={0.04} colour={color.neutral600} style={{ marginTop: 10, textTransform: 'none' }}>{note}</Label>
       ) : null}
-      {listed && !live ? (
-        <Label size={10} tracking={0.04} colour={color.neutral600} style={{ marginTop: 10, textTransform: 'none' }}>
-          {data.observedAt ? t(strings.place.stallsStale(clock(data.observedAt))) : t(strings.place.stallsNoStatus)}
-        </Label>
+      {again ? (
+        <Button label={t(strings.place.stallsAgain)} onPress={res.reload} variant="ghost" busy={res.loading} style={{ marginTop: 4 }} />
       ) : null}
 
-      {data?.stalls.map((s) => <StallRow key={s.slug} stall={s} live={live} now={now} />)}
+      {data?.stalls.map((s) => <StallRow key={s.slug} stall={s} live={fresh} now={now} />)}
 
       <Label size={9} tracking={0.04} colour={color.neutral600} style={{ marginTop: 12, textTransform: 'none' }}>
         {t(strings.place.stallsVia)}

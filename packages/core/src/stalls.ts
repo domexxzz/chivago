@@ -110,7 +110,9 @@ const WAIT_MAX_MIN = 24 * 60;
 /** An opening more than a fortnight out is not one a student can plan around. */
 const OPENS_WITHIN_MS = 14 * 86_400_000;
 /** Control characters and the marks that reorder text: a name is shown as written, never steered. */
-const HIDDEN = /[\u0000-\u001f\u007f-\u009f‎‏‪-‮⁦-⁩]/g;
+const HIDDEN = /[\u0000-\u001f\u007f-\u009f؜‎‏‪-‮⁦-⁩]/g;
+/** Something a reader can see. Zero-width spaces stay in a name (Thai breaks words with them) but are not one. */
+const VISIBLE = /[^\s​-‍⁠﻿]/;
 
 /** What one shop-status answer said about the stalls asked for. */
 export interface ShopStatusRead {
@@ -163,10 +165,15 @@ function readStall(raw: unknown, root: string, now: number): Stall | null {
   const s = raw as Record<string, unknown>;
   if (typeof s.slug !== 'string' || !SLUG.test(s.slug)) return null;
   const name = typeof s.name === 'string' ? capText(s.name.replace(HIDDEN, '').trim(), NAME_MAX) : '';
-  if (name === '') return null;
+  if (!VISIBLE.test(name)) return null;
   if (typeof s.openNow !== 'boolean' || typeof s.accepting !== 'boolean' || typeof s.payReady !== 'boolean') return null;
-  // Out of range is unknown, never clamped: a clamped figure is an invented one.
-  const wait = typeof s.waitMin === 'number' && s.waitMin >= 0 && s.waitMin <= WAIT_MAX_MIN ? Math.round(s.waitMin) : null;
+  // A wait is minutes, or null for "no pick-up time free". Anything else - absent, text, out of range -
+  // is a row this cannot read: taken as null it would call an open stall full, and clamped it would be
+  // a figure nobody gave.
+  const w = s.waitMin;
+  if (!(w === null || (typeof w === 'number' && w >= 0 && w <= WAIT_MAX_MIN))) return null;
+  const wait = typeof w === 'number' ? Math.round(w) : null;
+  // An opening out of range is left unsaid: the stall is closed, and when it opens is not known.
   const opens = typeof s.nextOpenAt === 'number' && s.nextOpenAt >= now - 60_000 && s.nextOpenAt <= now + OPENS_WITHIN_MS
     ? new Date(s.nextOpenAt).toISOString()
     : null;

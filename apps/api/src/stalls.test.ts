@@ -186,6 +186,20 @@ describe('getStalls', () => {
     assert.equal(r.provenance, 'stale');
   });
 
+  test('an answer that stops halfway is given up on too: the timeout covers reading it', { timeout: 5000 }, async () => {
+    const stalled = ((_url: string | URL | Request, init?: RequestInit) => {
+      const body = new ReadableStream<Uint8Array>({
+        start(ctl) {
+          ctl.enqueue(new TextEncoder().encode('{"ok":true,"data":{"shops":['));
+          init?.signal?.addEventListener('abort', () => ctl.error(new Error('aborted')));
+        },
+      });
+      return Promise.resolve(new Response(body, { status: 200 }));
+    }) as typeof fetch;
+    const r = await getStalls('rmutt-canteen', { now: T0, base: BASE, fetchImpl: stalled, timeoutMs: 20 });
+    assert.equal(r.provenance, 'stale');
+  });
+
   test('a setting that is not a service to call turns the stalls off, quietly and without throwing', async () => {
     const svc = fakeService(() => answer([stall()]));
     for (const base of ['', 'sangkon.fly.dev', 'http://sangkon.fly.dev', 'https://user:pw@sangkon.fly.dev', 'javascript:alert(1)']) {

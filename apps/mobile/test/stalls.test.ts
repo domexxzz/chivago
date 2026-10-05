@@ -7,12 +7,13 @@ import { describe, mock, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { Linking } from 'react-native';
+import { act } from 'react-test-renderer';
 import { NO_STALLS, islandDateKey, isOrderLink, type PlaceStalls, type Stall } from '@chivago/core';
-import { mountScreen, offline, server } from './interact.ts';
+import { mountScreen, offline, server, settle } from './interact.ts';
 import { __setLocaleForTests } from '../src/i18n/locale.ts';
 import { place } from './fixtures.ts';
 import { PlaceScreen } from '../src/screens/PlaceScreen.tsx';
-import { StallsCard } from '../src/components/Stalls.tsx';
+import { LIVE_FOR_MS, StallsCard } from '../src/components/Stalls.tsx';
 import { demoStalls } from '../src/demo/stalls.ts';
 
 const noop = () => {};
@@ -24,9 +25,15 @@ const stall = (over: Partial<Stall> = {}): Stall => ({
   accepting: true, payReady: true, waitMin: 5, orderUrl: ORDER, ...over,
 });
 
+/** A live answer read just now, unless told otherwise. */
 const answer = (over: Partial<PlaceStalls> = {}): PlaceStalls => ({
-  provider: 'sangkon', provenance: 'live', observedAt: '2026-10-06T05:00:00.000Z',
+  provider: 'sangkon', provenance: 'live', observedAt: new Date().toISOString(),
   source: 'สั่งก่อน · sangkon.fly.dev', stalls: [stall()], ...over,
+});
+const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
+/** "12:00" on the island's clock, as the card writes it. */
+const islandClock = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', {
+  hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok',
 });
 
 /** `hh:mm` on the island, `days` from today: an opening time that reads the same whatever day the test runs. */
@@ -121,13 +128,51 @@ describe('order ahead at the food court', () => {
 
   test('figures the service did not just give are dated, and no status is claimed from them', async () => {
     __setLocaleForTests('en');
-    const { ui, done } = await card(answer({ provenance: 'stale' }));
+    const { ui, done } = await card(answer({ provenance: 'stale', observedAt: '2026-10-06T05:00:00.000Z' }));
     try {
       assert.match(ui.text(), /Could not reach the stalls just now · as of 12:00/);
       assert.match(ui.text(), /บะหมี่หน้าหอ/, 'the stall is still named and linked');
       assert.doesNotMatch(ui.text(), /Ready in about/, 'an old wait is a promise nobody made');
       assert.ok(ui.labels().includes('See the menu'));
       assert.ok(!ui.labels().includes('Order ahead'));
+      assert.ok(ui.labels().includes('Check again'));
+    } finally { done(); }
+  });
+
+  test('a live wait left on screen is dated by itself, with no request made, and can be looked at again', async () => {
+    __setLocaleForTests('en');
+    assert.equal(LIVE_FOR_MS, 120_000, 'two minutes on a phone; shortened below so the test need not wait');
+    const read = ago(30_000);
+    let calls = 0;
+    const net = server({
+      'GET /places/rmutt-canteen/stalls': () => {
+        calls += 1;
+        return calls === 1 ? answer({ observedAt: read }) : answer({ stalls: [stall({ waitMin: 4 })] });
+      },
+    });
+    const ui = await mountScreen(h(StallsCard, { placeId: 'rmutt-canteen', liveForMs: 300 }));
+    try {
+      assert.match(ui.text(), /Ready in about 5 min/, 'fresh when it arrives, though read half a minute before');
+      await act(async () => { await new Promise((r) => setTimeout(r, 700)); });
+      assert.match(ui.text(), new RegExp(`Waits as of ${islandClock(read)}`), 'dated by when the service read it');
+      assert.doesNotMatch(ui.text(), /Ready in about/);
+      assert.ok(!ui.labels().includes('Order ahead'));
+      assert.equal(calls, 1, 'the screen is never refreshed behind the student\'s back');
+      await ui.pressText('Check again');
+      await settle();
+      assert.equal(calls, 2);
+      assert.match(ui.text(), /Ready in about 4 min/);
+      assert.ok(ui.labels().includes('Order ahead'));
+    } finally { ui.unmount(); net.restore(); }
+  });
+
+  test('a phone whose clock is wrong still sees a wait that just arrived', async () => {
+    __setLocaleForTests('en');
+    // The phone thinks it is ten minutes later than the service does.
+    const { ui, done } = await card(answer({ observedAt: ago(10 * 60_000) }));
+    try {
+      assert.match(ui.text(), /Ready in about 5 min/);
+      assert.doesNotMatch(ui.text(), /Waits as of/);
     } finally { done(); }
   });
 
@@ -144,8 +189,22 @@ describe('order ahead at the food court', () => {
       try {
         assert.match(down.ui.text(), /Could not reach the stalls just now\. Try again in a minute/);
         assert.doesNotMatch(down.ui.text(), /Ready in about/);
+        assert.ok(down.ui.labels().includes('Check again'));
       } finally { down.done(); }
     }
+  });
+
+  test('a failed look can be tried again from the card', async () => {
+    __setLocaleForTests('en');
+    let calls = 0;
+    const { ui, done } = await card(() => { calls += 1; return calls === 1 ? offline() : answer(); });
+    try {
+      assert.match(ui.text(), /Could not reach the stalls just now/);
+      await ui.pressText('Check again');
+      await settle();
+      assert.match(ui.text(), /Ready in about 5 min/);
+      assert.doesNotMatch(ui.text(), /Could not reach/);
+    } finally { done(); }
   });
 
   test('a link the app would not open gets no button', async () => {

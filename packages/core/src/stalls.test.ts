@@ -82,18 +82,25 @@ test('the example label stays on the service\'s example shop whatever the answer
   assert.equal(r!.stalls[0]!.example, true);
 });
 
-test('figures out of range are unknown, never clamped, and one bad row costs only itself', () => {
+test('an opening out of range is left unsaid, and one bad row costs only itself', () => {
   const r = read(answer(
-    shop({ waitMin: 1e308, openNow: false, nextOpenAt: 1e20 }),
+    shop({ openNow: false, nextOpenAt: 1e20, waitMin: null }),
     shop({ slug: 'demo', waitMin: 6.6 }),
   ));
   assert.equal(r!.stalls.length, 2, 'a time no Date can hold does not take the other stalls with it');
-  assert.equal(r!.stalls[0]!.waitMin, null);
   assert.equal(r!.stalls[0]!.opensAt, null);
   assert.equal(r!.stalls[1]!.waitMin, 7, 'minutes, rounded');
-  assert.equal(read(answer(shop({ waitMin: -1 })))!.stalls[0]!.waitMin, null);
-  assert.equal(read(answer(shop({ openNow: false, nextOpenAt: NOW + 30 * 86_400_000 })))!.stalls[0]!.opensAt, null,
+  assert.equal(read(answer(shop({ openNow: false, waitMin: null, nextOpenAt: NOW + 30 * 86_400_000 })))!.stalls[0]!.opensAt, null,
     'a month out is not an opening a student can plan around');
+});
+
+test('a wait that is not minutes or null is not read, so an unreadable wait never calls a stall full', () => {
+  for (const waitMin of [undefined, '5', -1, 1e308, Number.NaN]) {
+    const r = read(answer(shop({ waitMin })));
+    assert.deepEqual(r!.stalls, [], String(waitMin));
+    assert.equal(r!.dropped, 1);
+  }
+  assert.equal(read(answer(shop({ waitMin: null })))!.stalls[0]!.waitMin, null, 'null is an answer: no pick-up time free');
 });
 
 test('a name is shown as written: no steering marks, no controls, trimmed, cut between whole characters', () => {
@@ -102,8 +109,11 @@ test('a name is shown as written: no steering marks, no controls, trimmed, cut b
   const long = read(answer(shop({ name: 'ก้'.repeat(60) })));
   assert.ok(long!.stalls[0]!.name.length <= 80);
   assert.ok(long!.stalls[0]!.name.endsWith('ก้…'), 'a tone mark is never cut off its consonant');
-  const blank = read(answer(shop({ name: ' ‮ ' })));
-  assert.deepEqual(blank!.stalls, [], 'a stall with no name to show is not shown');
+  for (const name of [' ‮ ', '​⁠؜', '﻿ ']) {
+    assert.deepEqual(read(answer(shop({ name })))!.stalls, [], `a stall with no name to show is not shown: ${JSON.stringify(name)}`);
+  }
+  assert.equal(read(answer(shop({ name: 'มาม่า​ป้าแดง' })))!.stalls[0]!.name, 'มาม่า​ป้าแดง',
+    'a zero-width space between Thai words is kept');
 });
 
 test('an answer that is not a list of shops is not an answer', () => {

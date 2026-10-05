@@ -361,6 +361,9 @@ export const strings = {
     stallMenu: t('See the menu', 'ดูเมนู'),
     stallExample: t('Example · not a stall in this food court', 'ตัวอย่าง · ไม่ใช่ร้านในโรงอาหารนี้'),
     stallsStale: (clock: string) => t(`Could not reach the stalls just now · as of ${clock}`, `ติดต่อร้านไม่ได้ตอนนี้ · ข้อมูลเมื่อ ${clock}`),
+    /** A live answer left on screen for a while: dated, with no wait claimed from it. */
+    stallsAsOf: (clock: string) => t(`Waits as of ${clock}`, `เวลารอเมื่อ ${clock}`),
+    stallsAgain: t('Check again', 'เช็กอีกครั้ง'),
     stallsDown: t('Could not reach the stalls just now. Try again in a minute.', 'ติดต่อร้านไม่ได้ตอนนี้ ลองใหม่อีกครั้งในอีกสักครู่'),
     stallsNone: t('No stall here is taking orders ahead right now.', 'ตอนนี้ยังไม่มีร้านที่นี่รับสั่งล่วงหน้า'),
     /** The static demo: the stalls are named, their status is not read. */
