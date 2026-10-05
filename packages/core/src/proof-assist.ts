@@ -19,6 +19,7 @@
  */
 
 import type { RejectionReasonKey } from './strings.ts';
+import { capText } from './text.ts';
 import type { Bilingual } from './types.ts';
 
 /** Bumped whenever the prompt changes, so a stored answer says what it answered. */
@@ -212,30 +213,12 @@ const isObject = (v: unknown): v is Record<string, unknown> =>
 const oneOf = <T extends string>(list: readonly T[], v: unknown): v is T =>
   typeof v === 'string' && (list as readonly string[]).includes(v);
 
-/**
- * Whole characters as a reader sees them. Cutting by UTF-16 unit would split
- * an emoji into a lone surrogate, and cutting by code point would strip a
- * Thai vowel or tone mark off the consonant it sits on. Hermes has no
- * Segmenter; code points are the fallback there.
- */
-function graphemes(s: string): string[] {
-  const Seg = (Intl as { Segmenter?: typeof Intl.Segmenter }).Segmenter;
-  if (!Seg) return Array.from(s);
-  return Array.from(new Seg(undefined, { granularity: 'grapheme' }).segment(s), (x) => x.segment);
-}
-
-/** Trimmed and capped, or null when there is nothing to read. */
+/** Trimmed and capped between whole characters, or null when there is nothing to read. */
 function text(v: unknown): string | null {
   if (typeof v !== 'string') return null;
   const s = v.trim();
   if (s === '') return null;
-  if (s.length <= ASSIST_TEXT_MAX) return s;
-  let out = '';
-  for (const ch of graphemes(s)) {
-    if (out.length + ch.length > ASSIST_TEXT_MAX - 1) break;
-    out += ch;
-  }
-  return `${out}…`;
+  return capText(s, ASSIST_TEXT_MAX);
 }
 
 /** Any character from the Thai block - English in the Thai slot has none. */

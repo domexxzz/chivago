@@ -23,6 +23,7 @@ import {
 } from '@chivago/core';
 import snapshot from './fixtures.json';
 import { createInquiryDesk, type DeskAnswer } from './inquiries.ts';
+import { demoStalls } from './stalls.ts';
 
 type Json = Record<string, unknown>;
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
@@ -504,6 +505,9 @@ export function installDemoServer(apiBase: string): void {
     );
 
     if (method === 'GET') {
+      // The stalls that take orders ahead: answered, never replayed (demo/stalls.ts).
+      const stallsAt = /^\/places\/([^/]+)\/stalls$/.exec(path);
+      if (stallsAt) return answer(demoStalls(stallsAt[1]!));
       if (path === '/checkins/today') return answer(state.checkins);
       if (path === '/medals') {
         // The same rules the server runs, over the captured check-ins plus

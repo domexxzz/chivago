@@ -341,6 +341,34 @@ export const strings = {
     airSince: (date: string) => t(`Recorded here since ${date}.`, `บันทึกที่นี่ตั้งแต่ ${date}`),
     airNoHistory: t('No readings recorded here yet. The chart fills in as the server records the air, day by day.', 'ยังไม่มีค่าที่บันทึกไว้ที่นี่ กราฟจะค่อย ๆ เติมเมื่อเซิร์ฟเวอร์บันทึกค่าอากาศไปทีละวัน'),
     airFewDays: (n: number) => t(`${n} day${n === 1 ? '' : 's'} recorded so far.`, `บันทึกแล้ว ${n} วัน`),
+    /** Stalls that take orders ahead, through สั่งก่อน (docs/65). */
+    stallsTitle: t('Order ahead', 'สั่งล่วงหน้า'),
+    stallsIntro: t(
+      'Order now, pay by PromptPay and come at the time it says. The wait is each stall\'s own, read from its kitchen queue.',
+      'สั่งตอนนี้ จ่ายพร้อมเพย์ แล้วมารับตามเวลาที่บอก เวลารอเป็นของแต่ละร้าน อ่านจากคิวในครัวของร้านเอง',
+    ),
+    stallWait: (min: number) => t(`Ready in about ${min} min`, `รอประมาณ ${min} นาที`),
+    /** When a closed stall opens: later today, tomorrow, or a day further out. */
+    stallClosedUntil: (clock: string) => t(`Closed · opens ${clock}`, `ปิดอยู่ · เปิด ${clock}`),
+    stallClosedTomorrow: (clock: string) => t(`Closed · opens tomorrow ${clock}`, `ปิดอยู่ · เปิดพรุ่งนี้ ${clock}`),
+    stallClosedOn: (day: string, clock: string) => t(`Closed · opens ${day}, ${clock}`, `ปิดอยู่ · เปิด ${day} ${clock}`),
+    stallClosed: t('Closed', 'ปิดอยู่'),
+    stallPaused: t('Not taking orders ahead right now', 'ไม่รับสั่งล่วงหน้าตอนนี้'),
+    stallUnpaid: t('Payment is not set up yet', 'ร้านยังไม่พร้อมรับชำระเงิน'),
+    /** Open and taking orders, but the kitchen is full or closes before an order could be ready. */
+    stallFull: t('No pick-up time free right now', 'ตอนนี้ไม่มีเวลารับที่ว่าง'),
+    stallOrder: t('Order ahead', 'สั่งล่วงหน้า'),
+    stallMenu: t('See the menu', 'ดูเมนู'),
+    stallExample: t('Example · not a stall in this food court', 'ตัวอย่าง · ไม่ใช่ร้านในโรงอาหารนี้'),
+    stallsStale: (clock: string) => t(`Could not reach the stalls just now · as of ${clock}`, `ติดต่อร้านไม่ได้ตอนนี้ · ข้อมูลเมื่อ ${clock}`),
+    /** A live answer left on screen for a while: dated, with no wait claimed from it. */
+    stallsAsOf: (clock: string) => t(`Waits as of ${clock}`, `เวลารอเมื่อ ${clock}`),
+    stallsAgain: t('Check again', 'เช็กอีกครั้ง'),
+    stallsDown: t('Could not reach the stalls just now. Try again in a minute.', 'ติดต่อร้านไม่ได้ตอนนี้ ลองใหม่อีกครั้งในอีกสักครู่'),
+    stallsNone: t('No stall here is taking orders ahead right now.', 'ตอนนี้ยังไม่มีร้านที่นี่รับสั่งล่วงหน้า'),
+    /** The static demo: the stalls are named, their status is not read. */
+    stallsNoStatus: t('Live status is not read here. Each stall\'s own page has it.', 'ที่นี่ไม่ได้อ่านสถานะสดของร้าน ดูได้ในหน้าของแต่ละร้าน'),
+    stallsVia: t('Orders and payment go through สั่งก่อน, straight to the stall.', 'สั่งและจ่ายผ่านสั่งก่อน เงินเข้าร้านโดยตรง'),
     provenance: {
       live: t('Live', 'ข้อมูลสด'),
       daily: t('Updated daily', 'อัปเดตรายวัน'),
