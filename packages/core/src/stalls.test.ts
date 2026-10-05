@@ -1,8 +1,9 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
+import { areaOfProvince } from './areas.ts';
 import { SEED_PLACES } from './seed.ts';
 import {
-  PLACE_STALLS, isOrderLink, stallSourceFor, stallState, stallsFromShopStatus, type Stall,
+  PLACE_STALLS, isOrderLink, stallPlacesIn, stallSourceFor, stallState, stallsFromShopStatus, type Stall,
 } from './stalls.ts';
 import { capText } from './text.ts';
 
@@ -17,14 +18,21 @@ const shop = (over: Record<string, unknown> = {}) => ({
 const answer = (...shops: unknown[]) => ({ ok: true, data: { shops, missing: [], now: NOW } });
 const read = (body: unknown, asked: readonly string[] = ASKED) => stallsFromShopStatus(body, asked, BASE, NOW);
 
-test('every place with stalls is a seeded Food place, and every stall a slug the service could have', () => {
+test('every place with stalls is a seeded Food place, named and placed as seeded, and every stall a slug the service could have', () => {
   for (const [id, src] of Object.entries(PLACE_STALLS)) {
     const place = SEED_PLACES.find((p) => p.id === id);
     assert.ok(place, `${id} is a seeded place`);
     assert.equal(place.layer, 'Food', `${id} is on the Food layer`);
+    assert.equal(src.area, areaOfProvince(place.province), `${id} is in the area its province says`);
+    assert.deepEqual(src.name, place.name, `${id} is called what the seed calls it`);
     assert.equal(new Set(src.slugs).size, src.slugs.length, `${id} lists each stall once`);
     for (const slug of src.slugs) assert.match(slug, /^[a-z0-9](?:-?[a-z0-9]){2,39}$/);
   }
+});
+
+test('an area\'s food courts with stalls are found without the places list', () => {
+  assert.deepEqual(stallPlacesIn('rmutt').map((c) => c.placeId), ['rmutt-canteen']);
+  assert.deepEqual(stallPlacesIn('samui'), []);
 });
 
 test('a place\'s stalls are its own keys, never the prototype\'s', () => {

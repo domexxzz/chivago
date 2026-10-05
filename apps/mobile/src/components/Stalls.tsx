@@ -96,7 +96,12 @@ function noteFor(data: PlaceStalls | null, failed: boolean, fresh: boolean): { n
   return { note: t(data.provenance === 'live' ? strings.place.stallsAsOf(at) : strings.place.stallsStale(at)), again: true };
 }
 
-export function StallsCard({ placeId, liveForMs = LIVE_FOR_MS }: { placeId: string; liveForMs?: number }) {
+export function StallsCard({ placeId, placeName, liveForMs = LIVE_FOR_MS }: {
+  placeId: string;
+  /** Away from the place's own screen (on Home), the card says which food court it is. */
+  placeName?: string;
+  liveForMs?: number;
+}) {
   const res = useAsync(() => api.stalls(placeId), [placeId]);
   const data = res.data;
   const receivedAt = useReceivedAt(data);
@@ -108,7 +113,9 @@ export function StallsCard({ placeId, liveForMs = LIVE_FOR_MS }: { placeId: stri
   const { note, again } = noteFor(data, res.error !== null, fresh);
   return (
     <View style={[shadow.card, { marginTop: 12, padding: 14, backgroundColor: color.surface, borderRadius: radius.md }]}>
-      <Label size={10} tracking={0.12}>{t(strings.place.stallsTitle)}</Label>
+      <Label size={10} tracking={0.12}>
+        {placeName ? t(strings.place.stallsTitleAt(placeName)) : t(strings.place.stallsTitle)}
+      </Label>
       <Body size={13} colour={color.neutral700} style={{ marginTop: 6 }}>{t(strings.place.stallsIntro)}</Body>
 
       {res.loading && !data && !note ? <Body size={13} style={{ marginTop: 10 }}>…</Body> : null}

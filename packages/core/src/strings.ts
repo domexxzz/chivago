@@ -343,6 +343,8 @@ export const strings = {
     airFewDays: (n: number) => t(`${n} day${n === 1 ? '' : 's'} recorded so far.`, `บันทึกแล้ว ${n} วัน`),
     /** Stalls that take orders ahead, through สั่งก่อน (docs/65). */
     stallsTitle: t('Order ahead', 'สั่งล่วงหน้า'),
+    /** The same card on Home, where it has to say which food court. */
+    stallsTitleAt: (place: string) => t(`Order food ahead · ${place}`, `สั่งอาหารล่วงหน้า · ${place}`),
     stallsIntro: t(
       'Order now, pay by PromptPay and come at the time it says. The wait is each stall\'s own, read from its kitchen queue.',
       'สั่งตอนนี้ จ่ายพร้อมเพย์ แล้วมารับตามเวลาที่บอก เวลารอเป็นของแต่ละร้าน อ่านจากคิวในครัวของร้านเอง',
