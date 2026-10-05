@@ -39,6 +39,7 @@ import { boardFeed, type BoardEntry } from '@chivago/core';
 import { monstersInArea } from './monster-service.ts';
 import { reportSighting, routesForArea } from './transit-service.ts';
 import { reviewsInArea } from './place-review-service.ts';
+import { getStalls } from './stalls.ts';
 import {
   getCommunityImpact, getOffer, getPersonalImpact, getProfile,
   getQuest, getScoredPlace, getShield, listOffers, listQuests, listScoredPlaces,
@@ -835,6 +836,20 @@ app.get('/places/:id/history', (c) => {
 app.get('/places/:id', async (c) => {
   const place = await getScoredPlace(db, userId(c), c.req.param('id'));
   return place ? ok(c, place) : fail(c, 'NOT_FOUND', 'No such place', 404);
+});
+
+/**
+ * The stalls at a place that take orders ahead, live from สั่งก่อน (docs/65).
+ *
+ * Its own route rather than a field on the place: the place is scored for the
+ * map, the planner and the monsters, and none of those should wait on a
+ * kitchen queue. A place without stalls answers an empty list, not a 404 -
+ * the screen only asks for places that have them, and one shape is one shape.
+ */
+app.get('/places/:id/stalls', async (c) => {
+  const id = c.req.param('id');
+  if (!row(db.prepare('SELECT 1 AS one FROM places WHERE id = ?').get(id))) return fail(c, 'NOT_FOUND', 'No such place', 404);
+  return ok(c, await getStalls(id));
 });
 
 /**

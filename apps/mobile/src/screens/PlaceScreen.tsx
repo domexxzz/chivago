@@ -14,7 +14,7 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { Image, Modal, Pressable, ScrollView, View } from 'react-native';
 import { X } from 'lucide-react-native';
-import { newlyEarned, strings, type MedalState, type MedalsView, type ScoredPlace } from '@chivago/core';
+import { newlyEarned, stallSourceFor, strings, type MedalState, type MedalsView, type ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import type { PickedMedia } from '../api/client.ts';
 import { photoUri } from '../api/photos.ts';
@@ -31,6 +31,7 @@ import { t } from '../i18n/locale.ts';
 import { AirHistoryCard, HereNow } from '../components/PlaceLive.tsx';
 import { GettingThere } from '../components/GettingThere.tsx';
 import { StoriesBlock } from '../components/Stories.tsx';
+import { StallsCard } from '../components/Stalls.tsx';
 
 export function PlaceScreen({
   placeId, onBack, onAddToTrip, onSafePath, onShowWay, onToast, onPointsChanged,
@@ -213,6 +214,8 @@ export function PlaceScreen({
             <ScoreBlock place={place.data} onExplain={() => setShowBreakdown(true)} />
             <MetricGrid place={place.data} />
             <HereNow crowd={place.data.crowd} />
+            {/* Asked for only where there are stalls: every other place makes no extra request. */}
+            {stallSourceFor(place.data.id) ? <StallsCard placeId={place.data.id} /> : null}
             <AirHistoryCard placeId={place.data.id} />
             <StoriesBlock
               open={stories.data?.open ?? false}

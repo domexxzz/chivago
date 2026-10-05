@@ -17,7 +17,7 @@ import type {
   InviteListing, PartyInvite, RequestOutcome, InquiryView, ListingCard, TravellerInquiry,
 } from '@chivago/core';
 import type {
-  AirHistory, BoardEntry, Explored, Fix, Headway, MedalsView, SelfVisitResult, SelfVisitSummary, TransitRoute,
+  AirHistory, BoardEntry, Explored, Fix, Headway, MedalsView, PlaceStalls, SelfVisitResult, SelfVisitSummary, TransitRoute,
 } from '@chivago/core';
 import type { StandingMonster } from '../components/MonsterFeed.tsx';
 
@@ -412,6 +412,8 @@ export const api = {
   place: (id: string) => get<ScoredPlace>(`/places/${id}`),
   /** The air over a place by island day, as the server recorded it. */
   placeHistory: (id: string) => get<AirHistory>(`/places/${id}/history`),
+  /** The stalls at a place that take orders ahead, live from สั่งก่อน (docs/65). */
+  stalls: (id: string) => get<PlaceStalls>(`/places/${id}/stalls`),
 
   // -- quests -------------------------------------------------------------
   quests: (filter?: 'today' | 'weekend') =>
