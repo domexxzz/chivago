@@ -459,6 +459,10 @@ export function TerrainMap({
   const focusRef = React.useRef<FairLot | null>(fairFocus);
   focusRef.current = fairFocus;
   const lotMarks = React.useRef<Marker[]>([]);
+  // Whether this map's 'load' has fired. Not `isStyleLoaded()`, which is false
+  // whenever a tile is still on its way - during the drift, most of the time -
+  // while 'load' fires once: waiting on it then would wait forever.
+  const loaded = React.useRef(false);
   const map = React.useRef<MapLibreMap | null>(null);
   const markers = React.useRef<Marker[]>([]);
   // Kept apart from `markers`, which is torn down and rebuilt whenever the
@@ -795,6 +799,7 @@ export function TerrainMap({
     };
 
     m.on('load', () => {
+      loaded.current = true;
       lift();
       clearTheAir();
       raiseBuildings();
@@ -1278,10 +1283,11 @@ export function TerrainMap({
   /*
     Fly to the lot asked for.
 
-    After the style has loaded, and instead of the intro: the load handler
+    After the map has loaded, and instead of the intro: the load handler
     stands aside when `focusRef` holds a lot (see there), so the two never
-    fight over the camera. Street zoom, a gentler pitch so the label reads,
-    and no flight at all for anyone who asked for less motion.
+    fight over the camera. A map that loaded long ago flies at once, from
+    wherever it is - mid-drift included. Street zoom, a gentler pitch so the
+    label reads, and no flight at all for anyone who asked for less motion.
   */
   React.useEffect(() => {
     const m = map.current;
@@ -1296,7 +1302,7 @@ export function TerrainMap({
         essential: true,
       });
     };
-    if (m.isStyleLoaded()) go();
+    if (loaded.current) go();
     else m.once('load', go);
     return () => { m.off('load', go); };
   }, [fairFocus]);

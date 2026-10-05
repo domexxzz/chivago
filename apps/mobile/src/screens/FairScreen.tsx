@@ -25,15 +25,25 @@ import { useArea } from '../state/area.ts';
 import { color, gutter, onFill, radius, shadow } from '../theme/index.ts';
 import { t } from '../i18n/locale.ts';
 
-export function FairScreen({ onBack, onShowOnMap }: {
+export function FairScreen({ onBack, onShowOnMap, initialQuery = '', onQueryChange }: {
   onBack: () => void;
   /** The Map tab takes it from here: it flies to the lot and marks it. */
   onShowOnMap: (fair: Fair, lot: FairLot) => void;
+  /**
+   * The search to open on. A trip to the map leaves this screen, and the
+   * search with it; the app keeps it so coming back finds the same list.
+   */
+  initialQuery?: string;
+  onQueryChange?: (query: string) => void;
 }) {
   const area = useArea();
   const fair = fairsIn(area.key)[0] ?? null;
   const lots = React.useMemo(() => (fair ? fairLots(fair) : []), [fair]);
-  const [query, setQuery] = React.useState('');
+  const [query, setQueryState] = React.useState(initialQuery);
+  const setQuery = (next: string) => {
+    setQueryState(next);
+    onQueryChange?.(next);
+  };
   const [zone, setZone] = React.useState<string | null>(null);
   const found = React.useMemo(
     () => searchFair(lots, query).filter((l) => zone === null || l.zone.code === zone),
@@ -44,7 +54,7 @@ export function FairScreen({ onBack, onShowOnMap }: {
     return (
       <View style={{ flex: 1, backgroundColor: color.bg }}>
         <PushHeader context={t(strings.fair.kicker)} onBack={onBack} />
-        <Body size={14} colour={color.neutral700} style={{ paddingHorizontal: gutter }}>{t(strings.fair.none(''))}</Body>
+        <Body size={14} colour={color.neutral700} style={{ paddingHorizontal: gutter }}>{t(strings.fair.noFair)}</Body>
       </View>
     );
   }
@@ -168,15 +178,17 @@ function LotRow({ lot, onShowOnMap }: { lot: FairLot; onShowOnMap: () => void })
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
           <Button
             label={t(strings.fair.showOnMap)}
+            accessibilityLabel={t(strings.fair.showLotOnMap(lot.code))}
             onPress={onShowOnMap}
             variant="secondary"
             height={40}
             icon={<MapPin size={16} color={color.brand} strokeWidth={2} />}
             style={{ flexGrow: 1 }}
           />
-          {order && isOrderLink(order) ? (
+          {order && isOrderLink(order) && lot.stall ? (
             <Button
               label={t(strings.place.stallOrder)}
+              accessibilityLabel={t(strings.fair.orderFrom(lot.stall.name))}
               onPress={() => { void Linking.openURL(order); }}
               height={40}
               icon={<ExternalLink size={16} color={onFill.brand} strokeWidth={2} />}

@@ -644,7 +644,6 @@ export const strings = {
     justEarned: (name: string) => t(`Medal earned: ${name}`, `ได้เหรียญ ${name}`),
   },
 
-  // -- Marketplace --------------------------------------------------------
   /** A fair's market, lot by lot (docs/66). */
   fair: {
     kicker: t('At the fair', 'ตลาดในงาน'),
@@ -661,12 +660,20 @@ export const strings = {
     lot: (code: string) => t(`Lot ${code}`, `ล็อค ${code}`),
     free: t('Free lot', 'ล็อคว่าง'),
     showOnMap: t('Show on the map', 'ดูบนแผนที่'),
+    // What a screen reader says for the two buttons on a lot's row: every row
+    // has the same two faces, so the name carries the lot.
+    showLotOnMap: (code: string) => t(`Show lot ${code} on the map`, `ดูล็อค ${code} บนแผนที่`),
+    orderFrom: (name: string) => t(`Order ahead from ${name}`, `สั่งล่วงหน้าจาก ${name}`),
     onMap: (code: string, name: string) => t(`Lot ${code} · ${name}`, `ล็อค ${code} · ${name}`),
     onMapFree: (code: string) => t(`Lot ${code} · free`, `ล็อค ${code} · ว่าง`),
     mapHint: t('Every lot of the fair is on the map; this one is marked.', 'ทุกล็อคในงานอยู่บนแผนที่ ล็อคนี้มีป้ายบอก'),
+    backToList: t('Back to the list', 'กลับไปที่รายการ'),
     close: t('Close', 'ปิด'),
     open: t('Find stalls and lots', 'ค้นหาร้านและล็อค'),
+    noFair: t('No fair is on in this area.', 'พื้นที่นี้ยังไม่มีงานแฟร์'),
   },
+
+  // -- Marketplace --------------------------------------------------------
   market: {
     context: t('Marketplace', 'ใช้แต้ม'),
     // Under a sample offer that names a real business which has not joined.

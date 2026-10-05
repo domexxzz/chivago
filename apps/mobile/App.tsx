@@ -73,8 +73,10 @@ export default function App() {
   // in the Map tab because the ASK happens on the place screen, and the tab
   // is remounted by its own key when the area changes.
   const [wayTo, setWayTo] = React.useState<ScoredPlace | null>(null);
-  // The fair lot the traveller asked to see on the map (docs/66), kept here like `wayTo`.
+  // The fair lot the traveller asked to see on the map (docs/66), kept here like `wayTo`,
+  // and the search it was found by, so the way back to the list finds the same list.
   const [fairFocus, setFairFocus] = React.useState<{ fairId: string; code: string } | null>(null);
+  const [fairQuery, setFairQuery] = React.useState('');
   // The language. Resolved once before the first screen (stored choice, else
   // the phone's), and a change re-renders from here, which reaches every
   // t() below: nothing in this tree is memoised against its parent.
@@ -466,6 +468,8 @@ export default function App() {
         return (
           <FairScreen
             onBack={nav.pop}
+            initialQuery={fairQuery}
+            onQueryChange={setFairQuery}
             // Handed to the Map tab the way "Show the way" is: one map, not a second one.
             onShowOnMap={(fair, lot) => { setFairFocus({ fairId: fair.id, code: lot.code }); nav.selectTab('map'); }}
           />

@@ -149,7 +149,12 @@ export function MapScreen({
   // The fair lot asked for, with every lot of its fair - only on the map of the fair's own area.
   const fair = fairFocus ? fairById(fairFocus.fairId) : null;
   const lots = React.useMemo(() => (fair && fair.area === area.key ? fairLots(fair) : null), [fair, area.key]);
-  const lotShown = React.useMemo(() => lots?.find((l) => l.code === fairFocus?.code) ?? null, [lots, fairFocus?.code]);
+  // A fresh object per ask, so asking for the same lot again, after panning
+  // away, flies back to it: the map follows the request, not just the code.
+  const lotShown = React.useMemo(() => {
+    const lot = lots?.find((l) => l.code === fairFocus?.code);
+    return lot ? { ...lot } : null;
+  }, [lots, fairFocus]);
   const fairHere = fairsIn(area.key)[0] ?? null;
   const questsHere = React.useMemo(
     () => (quests.data?.quests ?? NO_QUESTS).filter((q) => inArea(area, q)),
@@ -221,7 +226,7 @@ export function MapScreen({
             <AreaSwitch area={area.key} onChange={setArea} />
           </View>
           <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
-          {lotShown ? <FairBanner lot={lotShown} onClose={() => onClearFair?.()} /> : null}
+          {lotShown ? <FairBanner lot={lotShown} onClose={() => onClearFair?.()} onList={onOpenFair} /> : null}
           {!lotShown && fairHere && onOpenFair ? (
             <Pressable
               onPress={onOpenFair}

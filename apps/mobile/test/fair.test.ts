@@ -76,6 +76,32 @@ describe('the fair directory', () => {
       assert.deepEqual(opened.mock.calls.map((c) => c.arguments[0]), ['https://sangkon.fly.dev/s/demo']);
     } finally { ui.unmount(); opened.mock.restore(); }
   });
+
+  test('the search left for the map is there on the way back, and each row names its lot aloud', async () => {
+    __setLocaleForTests('en');
+    __setAreaForTests('rmutt');
+    const typed: string[] = [];
+    const ui = await mountScreen(h(FairScreen, {
+      onBack: noop, onShowOnMap: noop, initialQuery: 'มาม่า', onQueryChange: (q: string) => { typed.push(q); },
+    }));
+    assert.match(ui.text(), /Lot C09/, 'opens on the search it was given');
+    assert.doesNotMatch(ui.text(), /กล้าไม้ผล/);
+    const labels = ui.labels();
+    assert.ok(labels.includes('Show lot C09 on the map'), 'not a column of identical "Show on the map"s');
+    assert.ok(labels.includes('Order ahead from บะหมี่หน้าหอ (ร้านตัวอย่าง)'));
+    await ui.type('กาแฟ');
+    assert.deepEqual(typed, ['กาแฟ'], 'the app hears every change, to hand it back next time');
+    ui.unmount();
+  });
+
+  test('where no fair is on, the screen says so - not "nothing found" for a search nobody typed', async () => {
+    __setLocaleForTests('en');
+    __setAreaForTests('samui');
+    const ui = await mountScreen(h(FairScreen, { onBack: noop, onShowOnMap: noop }));
+    assert.match(ui.text(), /No fair is on in this area/);
+    assert.doesNotMatch(ui.text(), /Nothing for/);
+    ui.unmount();
+  });
 });
 
 describe('the fair on Home', () => {
@@ -132,6 +158,20 @@ describe('the lot on the Map tab', () => {
     assert.match(ui.text(), /Every lot of the fair is on the map/);
     await ui.press('Close');
     assert.equal(closed, 1);
+    ui.unmount();
+  });
+
+  test('from the lot, one tap goes back to the list it was found in', async () => {
+    __setLocaleForTests('en');
+    __setAreaForTests('rmutt');
+    let opened = 0;
+    const s = server({ '/places': [] });
+    restore = s.restore;
+    const ui = await mountScreen(h(MapScreen, {
+      ...mapProps, fairFocus: { fairId: 'rmutt-agri-fair', code: 'C03' }, onClearFair: noop, onOpenFair: () => { opened += 1; },
+    }));
+    await ui.pressText('Back to the list');
+    assert.equal(opened, 1);
     ui.unmount();
   });
 
