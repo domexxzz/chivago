@@ -14,10 +14,16 @@ import { zoneTone } from './fair-tones.ts';
 import { color, gutter, radius, shadow } from '../theme/index.ts';
 import { t } from '../i18n/locale.ts';
 
-export function FairBanner({ lot, onClose, onList }: {
+export function FairBanner({ lot, marked, onClose, onList }: {
   lot: FairLot;
+  /**
+   * Whether the map under the banner draws the lots. Only the web map does;
+   * the phone's campus list, the drawn island and the feed do not, and there
+   * the banner must not point at marks nobody can see.
+   */
+  marked: boolean;
   onClose: () => void;
-  /** Back to the fair's list, its search as it was left. */
+  /** Back to the fair's list, as it was left. */
   onList?: () => void;
 }) {
   const tone = zoneTone(lot.zone.code);
@@ -42,7 +48,7 @@ export function FairBanner({ lot, onClose, onList }: {
         </Heading>
         {lot.stall ? <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>{lot.stall.sells}</Body> : null}
         <Label size={9} tracking={0.04} colour={color.neutral600} style={{ marginTop: 4, textTransform: 'none' }}>
-          {`${lot.zone.icon} ${t(lot.zone.name)} · ${t(strings.fair.mapHint)}`}
+          {marked ? `${lot.zone.icon} ${t(lot.zone.name)} · ${t(strings.fair.mapHint)}` : `${lot.zone.icon} ${t(lot.zone.name)}`}
         </Label>
         {onList ? (
           <Pressable

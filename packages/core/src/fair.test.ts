@@ -71,6 +71,16 @@ test('a free lot is found by its code, never by a word it does not have', () => 
   assert.ok(codes(searchFair(lots, 'ต้นไม้')).includes('A02'));
 });
 
+test('a lot number, or the lot the way the list prints it, finds the lot; one letter is a zone', () => {
+  assert.deepEqual(codes(searchFair(lots, '5')), ['A05', 'B05', 'C05', 'D05'], 'lot 5 in every zone');
+  for (const q of ['ล็อค A05', 'ล็อค a05', 'lot A05', 'Lot a-05', 'ล็อคA05']) assert.equal(codes(searchFair(lots, q))[0], 'A05', q);
+  const a = codes(searchFair(lots, 'a'));
+  assert.equal(a.length, 10, 'zone A, its ten lots - not every stall whose zone name has an a in it');
+  assert.ok(a.every((c) => c.startsWith('A')));
+  assert.deepEqual(codes(searchFair(lots, 'lotus')), [], 'a word that starts like "lot" is still a word');
+  assert.equal(searchFair(lots, 'ล็อค').length, fair.stalls.length, 'the word for lot alone is the whole directory');
+});
+
 test('an empty search is the whole directory, and nonsense is nothing', () => {
   assert.equal(searchFair(lots, '').length, fair.stalls.length);
   assert.equal(searchFair(lots, '   ').length, fair.stalls.length);

@@ -14,7 +14,7 @@ import { mountScreen, server } from './interact.ts';
 import * as fx from './fixtures.ts';
 import { __setLocaleForTests } from '../src/i18n/locale.ts';
 import { __setAreaForTests } from '../src/state/area.ts';
-import { FairScreen } from '../src/screens/FairScreen.tsx';
+import { FairScreen, type FairView } from '../src/screens/FairScreen.tsx';
 import { HomeScreen } from '../src/screens/HomeScreen.tsx';
 import { MapScreen } from '../src/screens/MapScreen.tsx';
 
@@ -77,12 +77,12 @@ describe('the fair directory', () => {
     } finally { ui.unmount(); opened.mock.restore(); }
   });
 
-  test('the search left for the map is there on the way back, and each row names its lot aloud', async () => {
+  test('the list left for the map is there on the way back, and each row names its lot aloud', async () => {
     __setLocaleForTests('en');
     __setAreaForTests('rmutt');
-    const typed: string[] = [];
+    const views: FairView[] = [];
     const ui = await mountScreen(h(FairScreen, {
-      onBack: noop, onShowOnMap: noop, initialQuery: 'มาม่า', onQueryChange: (q: string) => { typed.push(q); },
+      onBack: noop, onShowOnMap: noop, initialView: { query: 'มาม่า', zone: null }, onViewChange: (v: FairView) => { views.push(v); },
     }));
     assert.match(ui.text(), /Lot C09/, 'opens on the search it was given');
     assert.doesNotMatch(ui.text(), /กล้าไม้ผล/);
@@ -90,7 +90,19 @@ describe('the fair directory', () => {
     assert.ok(labels.includes('Show lot C09 on the map'), 'not a column of identical "Show on the map"s');
     assert.ok(labels.includes('Order ahead from บะหมี่หน้าหอ (ร้านตัวอย่าง)'));
     await ui.type('กาแฟ');
-    assert.deepEqual(typed, ['กาแฟ'], 'the app hears every change, to hand it back next time');
+    await ui.pressText(/C · Food and drinks/);
+    assert.deepEqual(views, [{ query: 'กาแฟ', zone: null }, { query: 'กาแฟ', zone: 'C' }], 'the app hears the search and the zone, to hand both back');
+    ui.unmount();
+  });
+
+  test('a zone chip on its own is a filter: the count is what it shows, not the whole fair', async () => {
+    __setLocaleForTests('en');
+    __setAreaForTests('rmutt');
+    const ui = await mountScreen(h(FairScreen, { onBack: noop, onShowOnMap: noop, initialView: { query: '', zone: 'C' } }));
+    const said = ui.text();
+    assert.match(said, /9 found/, 'zone C: ten lots, one of them free');
+    assert.doesNotMatch(said, /35 stalls in 40 lots/);
+    assert.doesNotMatch(said, /กล้าไม้ผล/, 'opens on the zone it was given');
     ui.unmount();
   });
 
@@ -155,23 +167,37 @@ describe('the lot on the Map tab', () => {
       ...mapProps, fairFocus: { fairId: 'rmutt-agri-fair', code: 'A05' }, onClearFair: () => { closed += 1; },
     }));
     assert.match(ui.text(), /Lot A05 · ปุ๋ยและดินปลูก/);
-    assert.match(ui.text(), /Every lot of the fair is on the map/);
+    // No browser here, so no map draws the lots: the banner must not point at marks nobody can see.
+    assert.doesNotMatch(ui.text(), /Every lot of the fair is on the map/);
+    assert.match(ui.text(), /Plants and seedlings/i, 'the zone is still named');
     await ui.press('Close');
     assert.equal(closed, 1);
     ui.unmount();
   });
 
-  test('from the lot, one tap goes back to the list it was found in', async () => {
+  test('with the places down, the lot asked for is still named, above the error', async () => {
     __setLocaleForTests('en');
     __setAreaForTests('rmutt');
-    let opened = 0;
+    const s = server({ '/places': { __throws: 'NETWORK' } });
+    restore = s.restore;
+    const ui = await mountScreen(h(MapScreen, { ...mapProps, fairFocus: { fairId: 'rmutt-agri-fair', code: 'C03' }, onClearFair: noop }));
+    assert.match(ui.text(), /Lot C03 · ข้าวเหนียวมะม่วง/, 'the fair is static data: it does not wait on /places');
+    ui.unmount();
+  });
+
+  test('from the lot, one tap goes back to the list as it was left, not a fresh one', async () => {
+    __setLocaleForTests('en');
+    __setAreaForTests('rmutt');
+    let back = 0;
+    let fresh = 0;
     const s = server({ '/places': [] });
     restore = s.restore;
     const ui = await mountScreen(h(MapScreen, {
-      ...mapProps, fairFocus: { fairId: 'rmutt-agri-fair', code: 'C03' }, onClearFair: noop, onOpenFair: () => { opened += 1; },
+      ...mapProps, fairFocus: { fairId: 'rmutt-agri-fair', code: 'C03' }, onClearFair: noop,
+      onOpenFair: () => { fresh += 1; }, onBackToFair: () => { back += 1; },
     }));
     await ui.pressText('Back to the list');
-    assert.equal(opened, 1);
+    assert.deepEqual([back, fresh], [1, 0]);
     ui.unmount();
   });
 

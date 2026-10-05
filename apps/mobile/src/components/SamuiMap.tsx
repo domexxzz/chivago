@@ -371,6 +371,13 @@ const TerrainMap = inBrowser && !drawnByChoice
   ? React.lazy(() => import('./TerrainMap.tsx').then((m) => ({ default: m.TerrainMap })))
   : null;
 
+/**
+ * Whether this map draws a fair's lots (docs/66). Only the web map does - the
+ * drawn island and the campus list have nowhere true to put them - so a
+ * banner saying "this one is marked" is only true here.
+ */
+export const drawsFairLots = TerrainMap !== null;
+
 export interface SamuiMapProps {
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;

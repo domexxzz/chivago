@@ -25,26 +25,39 @@ import { useArea } from '../state/area.ts';
 import { color, gutter, onFill, radius, shadow } from '../theme/index.ts';
 import { t } from '../i18n/locale.ts';
 
-export function FairScreen({ onBack, onShowOnMap, initialQuery = '', onQueryChange }: {
+/** What the list shows: the search typed and the zone chip picked. */
+export interface FairView {
+  query: string;
+  zone: string | null;
+}
+
+export const ALL_OF_THE_FAIR: FairView = { query: '', zone: null };
+
+export function FairScreen({ onBack, onShowOnMap, initialView = ALL_OF_THE_FAIR, onViewChange }: {
   onBack: () => void;
   /** The Map tab takes it from here: it flies to the lot and marks it. */
   onShowOnMap: (fair: Fair, lot: FairLot) => void;
   /**
-   * The search to open on. A trip to the map leaves this screen, and the
-   * search with it; the app keeps it so coming back finds the same list.
+   * The list to open on. A trip to the map leaves this screen, and the
+   * search and the zone with it; the app keeps them, so the way back from a
+   * lot finds the same list. A fresh visit opens on the whole directory.
    */
-  initialQuery?: string;
-  onQueryChange?: (query: string) => void;
+  initialView?: FairView;
+  onViewChange?: (view: FairView) => void;
 }) {
   const area = useArea();
   const fair = fairsIn(area.key)[0] ?? null;
   const lots = React.useMemo(() => (fair ? fairLots(fair) : []), [fair]);
-  const [query, setQueryState] = React.useState(initialQuery);
+  const [query, setQueryState] = React.useState(initialView.query);
+  const [zone, setZoneState] = React.useState<string | null>(initialView.zone);
   const setQuery = (next: string) => {
     setQueryState(next);
-    onQueryChange?.(next);
+    onViewChange?.({ query: next, zone });
   };
-  const [zone, setZone] = React.useState<string | null>(null);
+  const setZone = (next: string | null) => {
+    setZoneState(next);
+    onViewChange?.({ query, zone: next });
+  };
   const found = React.useMemo(
     () => searchFair(lots, query).filter((l) => zone === null || l.zone.code === zone),
     [lots, query, zone],
@@ -115,7 +128,8 @@ export function FairScreen({ onBack, onShowOnMap, initialQuery = '', onQueryChan
 
         <View accessibilityLiveRegion="polite">
           <Label size={10} tracking={0.12} colour={color.neutral600}>
-            {typed ? t(strings.fair.found(found.length)) : t(strings.fair.directory(stalls, lots.length))}
+            {/* The whole directory only when nothing narrows it: a zone chip is a filter too. */}
+            {typed || zone ? t(strings.fair.found(found.length)) : t(strings.fair.directory(stalls, lots.length))}
           </Label>
         </View>
 

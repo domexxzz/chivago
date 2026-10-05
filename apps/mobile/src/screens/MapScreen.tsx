@@ -26,7 +26,7 @@ import { useAsync, type LayerKey } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button, IconButton } from '../components/Button.tsx';
-import { LayerChips, PlaceFeedRow, SamuiMap, type MapMode } from '../components/SamuiMap.tsx';
+import { LayerChips, PlaceFeedRow, SamuiMap, drawsFairLots, type MapMode } from '../components/SamuiMap.tsx';
 import { StoryViewer } from '../components/Stories.tsx';
 import { pickStoryMedia, postStory } from '../state/tell-story.ts';
 import type { Story } from '../api/client.ts';
@@ -42,7 +42,7 @@ const NO_EXPLORED: ExploredPlace[] = [];
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
   onAskConcierge, onOpenStays, onToast,
-  onOpenWallet, wayTo = null, onClearWay, fairFocus = null, onClearFair, onOpenFair,
+  onOpenWallet, wayTo = null, onClearWay, fairFocus = null, onClearFair, onOpenFair, onBackToFair,
 }: {
   layers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
@@ -68,6 +68,8 @@ export function MapScreen({
   onClearFair?: () => void;
   /** The fair's directory, offered on the map of an area that has a fair on. */
   onOpenFair?: () => void;
+  /** Back from the lot to the list it was found in, as it was left. */
+  onBackToFair?: () => void;
 }) {
   const places = useAsync(() => api.places(), []);
   const quests = useAsync(() => api.quests('today'), []);
@@ -208,6 +210,33 @@ export function MapScreen({
     return [[here.lng, here.lat], [wayTo.lng, wayTo.lat]];
   }, [route, here, wayTo]);
 
+  /*
+    The fair's lot, or the way into its directory. Static data, so it does
+    not wait on /places: with the places still loading or failed, a lot asked
+    for is still named here, above the error, rather than lost behind it.
+  */
+  const fairPanel = lotShown ? (
+    <FairBanner
+      lot={lotShown}
+      marked={mode === 'map' && drawsFairLots}
+      onClose={() => onClearFair?.()}
+      onList={onBackToFair ?? onOpenFair}
+    />
+  ) : fairHere && onOpenFair ? (
+    <Pressable
+      onPress={onOpenFair}
+      accessibilityRole="button"
+      style={{
+        marginHorizontal: gutter, marginTop: 10, minHeight: 44, paddingHorizontal: 14, borderRadius: 22,
+        flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
+        backgroundColor: color.surface, borderWidth: 1, borderColor: color.neutral300,
+      }}
+    >
+      <Text style={{ fontSize: 16 }}>🧺</Text>
+      <Body size={14} style={{ fontWeight: '700' }}>{`${t(fairHere.name)} · ${t(strings.fair.open)}`}</Body>
+    </Pressable>
+  ) : null;
+
   return (
     <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]}>
       <MapHeader
@@ -217,6 +246,7 @@ export function MapScreen({
         onToggleMode={() => setMode(mode === 'map' ? 'feed' : 'map')}
       />
 
+      {places.data ? null : fairPanel}
       {places.loading ? <LoadingState /> : null}
       {places.error ? <ErrorState message={places.error} onRetry={places.reload} /> : null}
 
@@ -226,21 +256,7 @@ export function MapScreen({
             <AreaSwitch area={area.key} onChange={setArea} />
           </View>
           <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
-          {lotShown ? <FairBanner lot={lotShown} onClose={() => onClearFair?.()} onList={onOpenFair} /> : null}
-          {!lotShown && fairHere && onOpenFair ? (
-            <Pressable
-              onPress={onOpenFair}
-              accessibilityRole="button"
-              style={{
-                marginHorizontal: gutter, marginTop: 10, minHeight: 44, paddingHorizontal: 14, borderRadius: 22,
-                flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
-                backgroundColor: color.surface, borderWidth: 1, borderColor: color.neutral300,
-              }}
-            >
-              <Text style={{ fontSize: 16 }}>🧺</Text>
-              <Body size={14} style={{ fontWeight: '700' }}>{`${t(fairHere.name)} · ${t(strings.fair.open)}`}</Body>
-            </Pressable>
-          ) : null}
+          {fairPanel}
           {wayTo ? (
             <WayBanner
               place={wayTo}

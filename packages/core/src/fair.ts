@@ -107,27 +107,38 @@ export function fairLots(fair: Fair): FairLot[] {
  * "A12" are one lot, and "ทุเรียน" with a stray space is still durian.
  */
 export const fold = (text: string): string =>
-  text.normalize('NFC').toLowerCase().replace(/[\s​-‍⁠﻿\-_.·,/]+/g, '');
+  text.normalize('NFC').toLowerCase().replace(/[\s\u200b-\u200d\u2060\ufeff\-_.\u00b7,/]+/g, '');
 
 /** A query that is a lot code, or the start of one: a letter and up to two digits. */
 const CODE_LIKE = /^[a-z]\d{0,2}$/;
+/** A lot's number on its own, "5" or "05": that number in every zone. */
+const NUMBER_ONLY = /^\d{1,2}$/;
+/** The word for a lot, which every lot code already says: "ล็อค A05", "lot a05". */
+const LOT_WORD = /^(?:lot|ล็อค|ล็อก)/;
+const LOT_ONLY = /^(?:lot|ล็อค|ล็อก)$/;
 
 /**
  * The lots that match what was typed, best first.
  *
  * Every word must match somewhere. A lot code typed whole comes first, then
- * codes that start with it, then a stall whose name starts with the word,
- * whose name has it, what it sells, and last the zone. An empty search is
- * every occupied lot in plan order - the directory, not nothing.
+ * a lot number in any zone, then codes that start with it, then a stall whose
+ * name starts with the word, whose name has it, what it sells, and last the
+ * zone. Something shaped like a code is matched as a code only: "a" is zone
+ * A, not every name with an a in it. An empty search is every occupied lot in
+ * plan order - the directory, not nothing.
  */
 export function searchFair(lots: readonly FairLot[], query: string): FairLot[] {
-  // "a 05" is one lot code typed with a space, not the words "a" and "05".
-  const whole = fold(query);
-  const words = CODE_LIKE.test(whole) ? [whole] : query.split(/\s+/).map(fold).filter(Boolean);
+  // "a 05" is one lot code typed with a space, not the words "a" and "05";
+  // "ล็อค A05", the way the list itself prints it, is that code too.
+  const whole = fold(query).replace(LOT_WORD, '');
+  const words = CODE_LIKE.test(whole) || NUMBER_ONLY.test(whole)
+    ? [whole]
+    : query.split(/\s+/).map(fold).filter((w) => w && !LOT_ONLY.test(w));
   if (!words.length) return lots.filter((l) => l.stall);
   const scored: { lot: FairLot; score: number; i: number }[] = [];
   lots.forEach((lot, i) => {
     const code = fold(lot.code);
+    const number = code.replace(/^[a-z]+/, '');
     const name = lot.stall ? fold(lot.stall.name) : '';
     const sells = lot.stall ? fold(lot.stall.sells) : '';
     const zone = fold(lot.zone.name.th) + fold(lot.zone.name.en);
@@ -137,15 +148,16 @@ export function searchFair(lots: readonly FairLot[], query: string): FairLot[] {
       // "a5" is how people say A05.
       const padded = /^[a-z]\d$/.test(w) ? `${w[0]}0${w[1]}` : null;
       if (code === w || code === padded) s = 100;
-      else if (CODE_LIKE.test(w) && code.startsWith(w)) s = 80;
+      else if (NUMBER_ONLY.test(w)) s = number === w.padStart(2, '0') ? 90 : 0;
+      else if (CODE_LIKE.test(w)) s = code.startsWith(w) ? 80 : 0;
       else if (name.startsWith(w)) s = 70;
       else if (name.includes(w)) s = 60;
       else if (sells.includes(w)) s = 50;
-      else if (zone.includes(w)) s = 30;
+      else if (w.length > 1 && zone.includes(w)) s = 30;
       if (s === 0) return;
       total += s;
     }
-    // A free lot is found by its code and nothing else: there is nobody in it to match.
+    // A free lot is found by its code or number and nothing else: there is nobody in it to match.
     if (!lot.stall && total < 80 * words.length) return;
     scored.push({ lot, score: total, i });
   });

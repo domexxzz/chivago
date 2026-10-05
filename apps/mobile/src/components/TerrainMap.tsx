@@ -303,11 +303,11 @@ const MARK_CSS = `
 .cg-lot{pointer-events:none;font-family:Anuphan,system-ui,sans-serif}
 .cg-lot i{display:block;width:12px;height:12px;border-radius:3px;background:var(--lot);border:2px solid #ffffff;box-shadow:0 1px 4px rgba(8,26,48,.45)}
 .cg-lot.cg-lot-free i{background:#ffffff;border-color:var(--lot)}
-.cg-lot.cg-lot-on i{width:20px;height:20px;border-radius:6px;box-shadow:0 0 0 3px ${color.accent},0 3px 10px rgba(8,26,48,.5)}
+.cg-lot.cg-lot-on i{width:20px;height:20px;border-radius:6px;box-shadow:0 0 0 3px ${color.brand},0 3px 10px rgba(8,26,48,.5)}
 .cg-lot-tag{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);display:flex;align-items:center;gap:6px;
-  padding:5px 9px;border-radius:10px;background:${color.text};color:#ffffff;font-size:13px;font-weight:700;white-space:nowrap;
-  box-shadow:0 3px 10px rgba(8,26,48,.4)}
-.cg-lot-tag b{padding:1px 6px;border-radius:6px;background:var(--lot)}
+  padding:5px 9px;border-radius:10px;background:${color.surface};color:${color.text};font-size:13px;font-weight:700;white-space:nowrap;
+  box-shadow:0 0 0 2px ${color.brand},0 3px 10px rgba(8,26,48,.4)}
+.cg-lot-tag b{padding:1px 6px;border-radius:6px;background:var(--lot);color:#ffffff}
 `;
 
 /**
@@ -463,6 +463,9 @@ export function TerrainMap({
   // whenever a tile is still on its way - during the drift, most of the time -
   // while 'load' fires once: waiting on it then would wait forever.
   const loaded = React.useRef(false);
+  // The area's settled bearing, which a flight to a lot turns back to: the
+  // same heading the compass and reduced motion give, not the intro's swing.
+  const settledBearing = React.useRef(0);
   const map = React.useRef<MapLibreMap | null>(null);
   const markers = React.useRef<Marker[]>([]);
   // Kept apart from `markers`, which is torn down and rebuilt whenever the
@@ -641,7 +644,9 @@ export function TerrainMap({
     const intro: Pose = campus
       ? { ...settled, zoom: settled.zoom - 0.8, pitch: 68, bearing: settled.bearing - 35 }
       : introPose(settled);
-    m.jumpTo(still ? settled : intro);
+    settledBearing.current = settled.bearing;
+    // A map opened for a fair lot has no intro to play: it starts settled and flies from there.
+    m.jumpTo(still || focusRef.current ? settled : intro);
 
     /*
       The camera: a rise and a swing into the settled pose, then a slow turn
@@ -1298,6 +1303,7 @@ export function TerrainMap({
         center: [fairFocus.lng, fairFocus.lat],
         zoom: 18,
         pitch: 50,
+        bearing: settledBearing.current,
         duration: prefersReducedMotion() ? 0 : 1600,
         essential: true,
       });
