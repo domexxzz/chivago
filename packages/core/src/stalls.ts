@@ -10,12 +10,20 @@
  * estimated on this side.
  */
 
+import type { AreaKey } from './areas.ts';
 import { capText } from './text.ts';
-import type { Provenance } from './types.ts';
+import type { Bilingual, Provenance } from './types.ts';
 
 /** Where a place's stalls take their orders, and which ones they are. */
 export interface StallSource {
   provider: 'sangkon';
+  /**
+   * The place's area and name, as seeded (a test holds them to the seed).
+   * Home shows the stalls under its header from these, before - and without -
+   * the places list arriving.
+   */
+  area: AreaKey;
+  name: Bilingual;
   /** The stalls' names (slugs) in that service, in the order to list them. */
   slugs: readonly string[];
 }
@@ -30,12 +38,21 @@ export interface StallSource {
  * they sign up.
  */
 export const PLACE_STALLS: Readonly<Record<string, StallSource>> = {
-  'rmutt-canteen': { provider: 'sangkon', slugs: ['demo'] },
+  'rmutt-canteen': {
+    provider: 'sangkon', area: 'rmutt', name: { en: 'Central food court', th: 'โรงอาหารกลาง' }, slugs: ['demo'],
+  },
 };
 
 /** A place's stalls, or null. Object.hasOwn, never a bare lookup: `constructor` is not a place. */
 export function stallSourceFor(placeId: string): StallSource | null {
   return Object.hasOwn(PLACE_STALLS, placeId) ? PLACE_STALLS[placeId]! : null;
+}
+
+/** The places in an area whose stalls take orders ahead, in the order they are listed here. */
+export function stallPlacesIn(area: AreaKey): { placeId: string; source: StallSource }[] {
+  return Object.entries(PLACE_STALLS)
+    .filter(([, source]) => source.area === area)
+    .map(([placeId, source]) => ({ placeId, source }));
 }
 
 /** สั่งก่อน's example shops. An answer can label a stall an example; it cannot take the label off one of these. */

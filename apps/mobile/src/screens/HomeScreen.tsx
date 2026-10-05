@@ -12,6 +12,8 @@
  *
  * The order is the argument, the same way it is on the sponsor page:
  *
+ *   0. Order ahead                only where a food court takes orders ahead
+ *                                 (docs/65): on a campus at noon, food first
  *   1. What is true here now      measured, and labelled with its provenance
  *   2. Where to go                a row of doors, and the measured places
  *   3. What you can do today      real quests, yours first, honest when empty
@@ -36,7 +38,7 @@ import {
   Animated, Easing, Image, Platform, Pressable, ScrollView, View,
   type NativeScrollEvent, type NativeSyntheticEvent,
 } from 'react-native';
-import { areaOfProvince, inArea, stallSourceFor, type Area, type AreaKey } from '@chivago/core';
+import { areaOfProvince, inArea, stallPlacesIn, type Area, type AreaKey } from '@chivago/core';
 import { useReduceMotion } from '../components/reduce-motion.ts';
 import { setArea, useArea } from '../state/area.ts';
 import { mascotBeachUri, photoUri } from '../api/photos.ts';
@@ -165,9 +167,10 @@ export function HomeScreen({
     }),
     [quests, area],
   );
-  // Food courts here whose stalls take orders ahead (docs/65). Read from the
-  // places already fetched, so an area without one asks for nothing more.
-  const courts = React.useMemo(() => (here.data ?? []).filter((p) => stallSourceFor(p.id) !== null), [here.data]);
+  // Food courts here whose stalls take orders ahead (docs/65). Known without
+  // the places list, so the card and the layout under it do not wait for
+  // /places, and an area without one asks for nothing more.
+  const courts = React.useMemo(() => stallPlacesIn(area.key), [area.key]);
   const passport = useAsync(() => api.passport(), []);
   const companions = useAsync(() => api.companions(), []);
 
@@ -985,11 +988,11 @@ function NoPhotograph({ place }: { place: ScoredPlace }) {
  * header's curve, the way Conditions does when this is not here: the card's
  * own 12 above, less 42, puts its top 30 into the header.
  */
-function OrderAhead({ courts }: { courts: ScoredPlace[] }) {
+function OrderAhead({ courts }: { courts: ReturnType<typeof stallPlacesIn> }) {
   if (courts.length === 0) return null;
   return (
     <View style={{ marginTop: -42, paddingHorizontal: gutter }}>
-      {courts.map((p) => <StallsCard key={p.id} placeId={p.id} placeName={t(p.name)} />)}
+      {courts.map((c) => <StallsCard key={c.placeId} placeId={c.placeId} placeName={t(c.source.name)} />)}
     </View>
   );
 }

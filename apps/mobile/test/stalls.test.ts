@@ -241,7 +241,20 @@ describe('order ahead on Home', () => {
       assert.match(said, /Order food ahead · Central food court/, 'which food court, said on the card');
       assert.match(said, /Ready in about 5 min/);
       assert.ok(ui.labels().includes('Order ahead'));
+      assert.ok(said.indexOf('Where to go today?') < said.indexOf('Order food ahead'), 'under the header');
       assert.ok(said.indexOf('Order food ahead') < said.indexOf('Average score across'), 'above the area\'s conditions');
+      ui.unmount();
+    } finally { net.restore(); __setAreaForTests('samui'); }
+  });
+
+  test('the card does not wait for the places list: it is there when /places is down', async () => {
+    __setLocaleForTests('en');
+    __setAreaForTests('rmutt');
+    const net = server({ '/places': offline(), 'GET /places/rmutt-canteen/stalls': answer() });
+    try {
+      const ui = await mountScreen(h(HomeScreen, homeProps));
+      assert.match(ui.text(), /Order food ahead · Central food court/);
+      assert.match(ui.text(), /Ready in about 5 min/);
       ui.unmount();
     } finally { net.restore(); __setAreaForTests('samui'); }
   });
