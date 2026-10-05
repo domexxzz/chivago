@@ -70,6 +70,7 @@ const EVIDENCE_LAYER: Record<string, string> = {
   'AskScreen.tsx': 'a question to a real business, and its quote is theirs',
   'TripScreen.tsx': 'a plan with prices in it',
   'ConciergeScreen.tsx': 'answers about the real island',
+  'FairScreen.tsx': 'where a stall is, on the organiser’s plan',
   /*
     Home is the hard case and it lands here on purpose.
 

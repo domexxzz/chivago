@@ -41,7 +41,7 @@ export type ScreenKey =
   | 'onboarding' | 'home' | 'map' | 'place' | 'quests' | 'quest'
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
   | 'companion' | 'passport' | 'account' | 'party' | 'findParty' | 'game'
-  | 'mascots' | 'mascot' | 'profile' | 'medals' | 'stays';
+  | 'mascots' | 'mascot' | 'profile' | 'medals' | 'stays' | 'fair';
 
 /**
  * Five tabs. Impact left the bar, and now the wallet has too.
@@ -94,6 +94,8 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   // and a tab tap returns there rather than stranding the reader on a screen
   // no tab owns. `impact` in particular has no tab of its own any more.
   concierge: 'home', impact: 'home',
+  // A fair's market (docs/66) is a card on Home, so Home stays lit behind it.
+  fair: 'home',
   quests: 'quests', quest: 'quests',
   // The wallet kept its screen and lost its tab, so Home stays lit behind it -
   // the same place its door is.

@@ -28,6 +28,7 @@ import { ScreenTransition, SosBanner, TabBar, Toast } from './src/components/She
 import { LoadingState } from './src/components/States.tsx';
 import { OnboardingScreen } from './src/screens/Onboarding.tsx';
 import { MapScreen } from './src/screens/MapScreen.tsx';
+import { FairScreen } from './src/screens/FairScreen.tsx';
 import { PlaceScreen } from './src/screens/PlaceScreen.tsx';
 import { MissionsScreen } from './src/screens/MissionsScreen.tsx';
 import { QuestDetailScreen } from './src/screens/QuestDetail.tsx';
@@ -72,6 +73,8 @@ export default function App() {
   // in the Map tab because the ASK happens on the place screen, and the tab
   // is remounted by its own key when the area changes.
   const [wayTo, setWayTo] = React.useState<ScoredPlace | null>(null);
+  // The fair lot the traveller asked to see on the map (docs/66), kept here like `wayTo`.
+  const [fairFocus, setFairFocus] = React.useState<{ fairId: string; code: string } | null>(null);
   // The language. Resolved once before the first screen (stored choice, else
   // the phone's), and a change re-renders from here, which reaches every
   // t() below: nothing in this tree is memoised against its parent.
@@ -282,6 +285,9 @@ export default function App() {
             balances={balances}
             wayTo={wayTo}
             onClearWay={() => setWayTo(null)}
+            fairFocus={fairFocus}
+            onClearFair={() => setFairFocus(null)}
+            onOpenFair={() => nav.push('fair')}
           />
         );
 
@@ -382,6 +388,7 @@ export default function App() {
             onOpenQuest={(id) => nav.push('quest', { questId: id })}
             onOpenWallet={() => nav.push('wallet')}
             onOpenMarket={() => nav.push('market')}
+            onOpenFair={() => nav.push('fair')}
             onOpenPassport={() => nav.push('passport')}
             onOpenMascots={() => nav.push('mascots')}
             onOpenImpact={() => nav.push('impact')}
@@ -454,6 +461,15 @@ export default function App() {
 
       case 'stays':
         return <AskScreen onBack={nav.pop} onToast={toast.show} />;
+
+      case 'fair':
+        return (
+          <FairScreen
+            onBack={nav.pop}
+            // Handed to the Map tab the way "Show the way" is: one map, not a second one.
+            onShowOnMap={(fair, lot) => { setFairFocus({ fairId: fair.id, code: lot.code }); nav.selectTab('map'); }}
+          />
+        );
     }
   };
 

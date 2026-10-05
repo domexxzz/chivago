@@ -645,6 +645,28 @@ export const strings = {
   },
 
   // -- Marketplace --------------------------------------------------------
+  /** A fair's market, lot by lot (docs/66). */
+  fair: {
+    kicker: t('At the fair', 'ตลาดในงาน'),
+    find: t('Find a stall by name, by what it sells, or by its lot number.', 'หาร้านจากชื่อ สินค้าที่ขาย หรือเลขล็อค'),
+    example: t('Example plan · not the organiser\'s plan yet', 'ผังตัวอย่าง · ยังไม่ใช่ผังจริงของงาน'),
+    datesTba: t('Dates to be announced', 'รอประกาศวันงาน'),
+    search: t('Search stalls and lots', 'ค้นหาร้านหรือล็อค'),
+    searchHint: t('e.g. durian, coffee, A05', 'เช่น ทุเรียน กาแฟ A05'),
+    clear: t('Clear', 'ล้าง'),
+    all: t('All', 'ทั้งหมด'),
+    directory: (stalls: number, lots: number) => t(`${stalls} stalls in ${lots} lots`, `${stalls} ร้าน ใน ${lots} ล็อค`),
+    found: (n: number) => t(`${n} found`, `เจอ ${n} ล็อค`),
+    none: (query: string) => t(`Nothing for "${query}". Try what it sells, or a lot number.`, `ไม่เจอ "${query}" ลองพิมพ์สินค้าที่ขาย หรือเลขล็อค`),
+    lot: (code: string) => t(`Lot ${code}`, `ล็อค ${code}`),
+    free: t('Free lot', 'ล็อคว่าง'),
+    showOnMap: t('Show on the map', 'ดูบนแผนที่'),
+    onMap: (code: string, name: string) => t(`Lot ${code} · ${name}`, `ล็อค ${code} · ${name}`),
+    onMapFree: (code: string) => t(`Lot ${code} · free`, `ล็อค ${code} · ว่าง`),
+    mapHint: t('Every lot of the fair is on the map; this one is marked.', 'ทุกล็อคในงานอยู่บนแผนที่ ล็อคนี้มีป้ายบอก'),
+    close: t('Close', 'ปิด'),
+    open: t('Find stalls and lots', 'ค้นหาร้านและล็อค'),
+  },
   market: {
     context: t('Marketplace', 'ใช้แต้ม'),
     // Under a sample offer that names a real business which has not joined.

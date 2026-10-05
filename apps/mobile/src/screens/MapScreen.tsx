@@ -8,18 +8,19 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { BedDouble, ChevronRight, LayoutGrid, List, MessageCircle } from 'lucide-react-native';
 import {
   greetingFor, strings,
   type Balances, type ExploredPlace, type Quest, type QuestProgress, type RouteMode, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
-import { areaOfProvince, inArea, nearestFirst } from '@chivago/core';
+import { areaOfProvince, fairById, fairLots, fairsIn, inArea, nearestFirst } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { useHere } from '../state/here.ts';
 import { useRoute } from '../state/route.ts';
 import { WayBanner } from '../components/WayBanner.tsx';
+import { FairBanner } from '../components/FairBanner.tsx';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { useAsync, type LayerKey } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
@@ -41,7 +42,7 @@ const NO_EXPLORED: ExploredPlace[] = [];
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
   onAskConcierge, onOpenStays, onToast,
-  onOpenWallet, wayTo = null, onClearWay,
+  onOpenWallet, wayTo = null, onClearWay, fairFocus = null, onClearFair, onOpenFair,
 }: {
   layers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
@@ -62,6 +63,11 @@ export function MapScreen({
    */
   wayTo?: ScoredPlace | null;
   onClearWay?: () => void;
+  /** A fair lot chosen on the fair screen (docs/66): the map flies to it and marks it among the others. */
+  fairFocus?: { fairId: string; code: string } | null;
+  onClearFair?: () => void;
+  /** The fair's directory, offered on the map of an area that has a fair on. */
+  onOpenFair?: () => void;
 }) {
   const places = useAsync(() => api.places(), []);
   const quests = useAsync(() => api.quests('today'), []);
@@ -140,6 +146,11 @@ export function MapScreen({
     [places.data, area.key],
   );
   const visible = React.useMemo(() => areaPlaces.filter((p) => layers[p.layer]), [areaPlaces, layers]);
+  // The fair lot asked for, with every lot of its fair - only on the map of the fair's own area.
+  const fair = fairFocus ? fairById(fairFocus.fairId) : null;
+  const lots = React.useMemo(() => (fair && fair.area === area.key ? fairLots(fair) : null), [fair, area.key]);
+  const lotShown = React.useMemo(() => lots?.find((l) => l.code === fairFocus?.code) ?? null, [lots, fairFocus?.code]);
+  const fairHere = fairsIn(area.key)[0] ?? null;
   const questsHere = React.useMemo(
     () => (quests.data?.quests ?? NO_QUESTS).filter((q) => inArea(area, q)),
     [quests.data, area],
@@ -210,6 +221,21 @@ export function MapScreen({
             <AreaSwitch area={area.key} onChange={setArea} />
           </View>
           <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
+          {lotShown ? <FairBanner lot={lotShown} onClose={() => onClearFair?.()} /> : null}
+          {!lotShown && fairHere && onOpenFair ? (
+            <Pressable
+              onPress={onOpenFair}
+              accessibilityRole="button"
+              style={{
+                marginHorizontal: gutter, marginTop: 10, minHeight: 44, paddingHorizontal: 14, borderRadius: 22,
+                flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
+                backgroundColor: color.surface, borderWidth: 1, borderColor: color.neutral300,
+              }}
+            >
+              <Text style={{ fontSize: 16 }}>🧺</Text>
+              <Body size={14} style={{ fontWeight: '700' }}>{`${t(fairHere.name)} · ${t(strings.fair.open)}`}</Body>
+            </Pressable>
+          ) : null}
           {wayTo ? (
             <WayBanner
               place={wayTo}
@@ -247,6 +273,8 @@ export function MapScreen({
               here={here}
               way={way}
               wayIsRoute={route !== null}
+              fairLots={lots}
+              fairFocus={lotShown}
             />
           ) : (
             <View>
