@@ -35,10 +35,10 @@
 
 import React from 'react';
 import {
-  Animated, Easing, Image, Platform, Pressable, ScrollView, View,
+  Animated, Easing, Image, Platform, Pressable, ScrollView, Text, View,
   type NativeScrollEvent, type NativeSyntheticEvent,
 } from 'react-native';
-import { areaOfProvince, inArea, stallPlacesIn, type Area, type AreaKey } from '@chivago/core';
+import { areaOfProvince, fairsIn, inArea, stallPlacesIn, type Area, type AreaKey, type Fair } from '@chivago/core';
 import { useReduceMotion } from '../components/reduce-motion.ts';
 import { setArea, useArea } from '../state/area.ts';
 import { mascotBeachUri, photoUri } from '../api/photos.ts';
@@ -115,7 +115,7 @@ export function questOrder(
 }
 
 export function HomeScreen({
-  onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenMarket, onOpenPassport,
+  onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenMarket, onOpenFair, onOpenPassport,
   onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenMascots, onOpenStays,
   onToast, now = new Date(),
 }: {
@@ -142,6 +142,8 @@ export function HomeScreen({
    * and the owner could not find it.
    */
   onOpenStays?: () => void;
+  /** A fair's market in this area, lot by lot (docs/66). Optional so the older screen tests still render. */
+  onOpenFair?: () => void;
   /** A one-line acknowledgement, for actions that finish without leaving the screen. */
   onToast?: (message: string) => void;
   /** Injected so the greeting is testable rather than whatever the clock says. */
@@ -171,6 +173,8 @@ export function HomeScreen({
   // the places list, so the card and the layout under it do not wait for
   // /places, and an area without one asks for nothing more.
   const courts = React.useMemo(() => stallPlacesIn(area.key), [area.key]);
+  // A fair on in this area (docs/66), offered at the top with the food court.
+  const fair = React.useMemo(() => (onOpenFair ? fairsIn(area.key)[0] ?? null : null), [area.key, onOpenFair]);
   const passport = useAsync(() => api.passport(), []);
   const companions = useAsync(() => api.companions(), []);
 
@@ -183,8 +187,8 @@ export function HomeScreen({
         student opened the app for. An area without one draws nothing here and
         asks for nothing, so the island's Home is unchanged.
       */}
-      <OrderAhead courts={courts} />
-      <Conditions places={here} onOpenMap={onOpenMap} overHero={courts.length === 0} />
+      <TopCards courts={courts} fair={fair} onOpenFair={onOpenFair} />
+      <Conditions places={here} onOpenMap={onOpenMap} overHero={courts.length === 0 && fair === null} />
       <Doors
         onOpenMap={onOpenMap}
         onOpenQuests={onOpenQuests}
@@ -983,17 +987,55 @@ function NoPhotograph({ place }: { place: ScoredPlace }) {
 
 /** A section's title, and the reference's "See all" beside it when there is a place to go. */
 /**
- * The food courts in this area whose stalls take orders ahead, each as the
- * place screen shows it, named. The first card on Home floats over the
- * header's curve, the way Conditions does when this is not here: the card's
- * own 12 above, less 42, puts its top 30 into the header.
+ * What this area has on at the top of Home: a fair's directory (docs/66),
+ * then the food courts whose stalls take orders ahead, each as the place
+ * screen shows it, named (docs/65). The first card floats over the header's
+ * curve, the way Conditions does when none of these is here: the card's own
+ * 12 above, less 42, puts its top 30 into the header.
  */
-function OrderAhead({ courts }: { courts: ReturnType<typeof stallPlacesIn> }) {
-  if (courts.length === 0) return null;
+function TopCards({ courts, fair, onOpenFair }: {
+  courts: ReturnType<typeof stallPlacesIn>;
+  fair: Fair | null;
+  onOpenFair?: () => void;
+}) {
+  if (courts.length === 0 && !fair) return null;
   return (
     <View style={{ marginTop: -42, paddingHorizontal: gutter }}>
+      {fair && onOpenFair ? <FairCard fair={fair} onOpen={onOpenFair} /> : null}
       {courts.map((c) => <StallsCard key={c.placeId} placeId={c.placeId} placeName={t(c.source.name)} />)}
     </View>
+  );
+}
+
+/**
+ * A fair on in this area (docs/66): its directory, one tap away - which stall
+ * is in which lot, found by name, by what it sells or by lot number. An
+ * example plan says so on the card, in the coral of everything not real yet.
+ */
+function FairCard({ fair, onOpen }: { fair: Fair; onOpen: () => void }) {
+  return (
+    <Pressable
+      onPress={onOpen}
+      accessibilityRole="button"
+      accessibilityLabel={`${t(fair.name)}. ${t(strings.fair.open)}${fair.example ? `. ${t(strings.fair.example)}` : ''}`}
+      style={[shadow.card, {
+        marginTop: 12, padding: 14, gap: 12, flexDirection: 'row', alignItems: 'center',
+        backgroundColor: color.surface, borderRadius: radius.md, borderWidth: 1, borderColor: color.neutral300,
+      }]}
+    >
+      <View style={{ width: 52, height: 52, borderRadius: radius.md, backgroundColor: color.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontSize: 26 }}>🧺</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Label size={9} tracking={0.12} colour={color.brand}>{t(strings.fair.kicker)}</Label>
+        <Heading size={16} tracking={-0.2} style={{ marginTop: 2 }}>{t(fair.name)}</Heading>
+        <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>{t(strings.fair.find)}</Body>
+        {fair.example ? (
+          <Label size={9} tracking={0.08} colour={color.accent2} style={{ marginTop: 4 }}>{t(strings.fair.example)}</Label>
+        ) : null}
+      </View>
+      <ChevronRight size={18} color={color.brand} strokeWidth={2.2} />
+    </Pressable>
   );
 }
 

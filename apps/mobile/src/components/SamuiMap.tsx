@@ -23,7 +23,7 @@ import { Animated, Easing, Platform, Pressable, ScrollView, useWindowDimensions,
 import Svg, { Circle, Defs, Ellipse, Line, Mask, Path, Polygon, RadialGradient, Rect, Stop } from 'react-native-svg';
 import {
   isHighScore, strings,
-  type Area, type Bilingual, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace,
+  type Area, type Bilingual, type ExploredPlace, type FairLot, type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { t } from '../i18n/locale.ts';
 import type { Here } from '../state/here.ts';
@@ -371,6 +371,13 @@ const TerrainMap = inBrowser && !drawnByChoice
   ? React.lazy(() => import('./TerrainMap.tsx').then((m) => ({ default: m.TerrainMap })))
   : null;
 
+/**
+ * Whether this map draws a fair's lots (docs/66). Only the web map does - the
+ * drawn island and the campus list have nowhere true to put them - so a
+ * banner saying "this one is marked" is only true here.
+ */
+export const drawsFairLots = TerrainMap !== null;
+
 export interface SamuiMapProps {
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;
@@ -421,6 +428,13 @@ export interface SamuiMapProps {
    */
   way?: [number, number][] | null;
   wayIsRoute?: boolean;
+  /**
+   * A fair's lots and the one asked for (docs/66). Drawn by the web map
+   * only, which flies to the lot; on a phone the banner above the map says
+   * where it is.
+   */
+  fairLots?: FairLot[] | null;
+  fairFocus?: FairLot | null;
 }
 
 /**

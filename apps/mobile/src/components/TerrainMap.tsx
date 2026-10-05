@@ -31,9 +31,10 @@ import {
 import 'maplibre-gl/dist/maplibre-gl.css';
 import {
   isHighScore, islandHour, strings,
-  type Bilingual, type ExploredPlace, type Quest, type QuestProgress, type ScoredPlace,
+  type Bilingual, type ExploredPlace, type FairLot, type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { color, onFill } from '../theme/index.ts';
+import { zoneTone } from './fair-tones.ts';
 import { edgeNudge, edgeNudgeTop, haloMetres, metreRing, tightPins, type PinBox } from './map-geometry.ts';
 import { API_BASE } from '../api/client.ts';
 import type { Here } from '../state/here.ts';
@@ -293,6 +294,20 @@ const MARK_CSS = `
 @keyframes cg-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 @keyframes cg-pulse{0%{transform:scale(.7);opacity:.9}100%{transform:scale(2.1);opacity:0}}
 @media (prefers-reduced-motion: reduce){.cg-chip,.cg-ring,.cg-here i{animation:none}.cg-compass svg{transition:none}}
+/*
+  A fair's lots (docs/66): a dot per lot in its zone's colour, a hollow one for
+  a free lot, and on the lot asked for, a label above. The label is a CHILD
+  placed against the mark, for the same reason as everything above: the mark
+  itself is MapLibre's to position.
+*/
+.cg-lot{pointer-events:none;font-family:Anuphan,system-ui,sans-serif}
+.cg-lot i{display:block;width:12px;height:12px;border-radius:3px;background:var(--lot);border:2px solid #ffffff;box-shadow:0 1px 4px rgba(8,26,48,.45)}
+.cg-lot.cg-lot-free i{background:#ffffff;border-color:var(--lot)}
+.cg-lot.cg-lot-on i{width:20px;height:20px;border-radius:6px;box-shadow:0 0 0 3px ${color.brand},0 3px 10px rgba(8,26,48,.5)}
+.cg-lot-tag{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);display:flex;align-items:center;gap:6px;
+  padding:5px 9px;border-radius:10px;background:${color.surface};color:${color.text};font-size:13px;font-weight:700;white-space:nowrap;
+  box-shadow:0 0 0 2px ${color.brand},0 3px 10px rgba(8,26,48,.4)}
+.cg-lot-tag b{padding:1px 6px;border-radius:6px;background:var(--lot);color:#ffffff}
 `;
 
 /**
@@ -394,7 +409,7 @@ const CAMPUS_EXAGGERATION = 1.15;
 export function TerrainMap({
   places, onSelect, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area, storied,
   tales, onOpenStory, stops = [],
-  here = null, way = null, wayIsRoute = false,
+  here = null, way = null, wayIsRoute = false, fairLots = null, fairFocus = null,
 }: {
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;
@@ -433,8 +448,24 @@ export function TerrainMap({
    */
   way?: [number, number][] | null;
   wayIsRoute?: boolean;
+  /** A fair's lots, drawn as small dots in their zone's colour (docs/66). Null draws none. */
+  fairLots?: FairLot[] | null;
+  /** The lot asked for: labelled, and the camera flies to it. */
+  fairFocus?: FairLot | null;
 }) {
   const holder = React.useRef<HTMLDivElement | null>(null);
+  // The lot to fly to, readable from the map's own load handler: when the map
+  // opens for a lot, the intro and the drift stand aside for it.
+  const focusRef = React.useRef<FairLot | null>(fairFocus);
+  focusRef.current = fairFocus;
+  const lotMarks = React.useRef<Marker[]>([]);
+  // Whether this map's 'load' has fired. Not `isStyleLoaded()`, which is false
+  // whenever a tile is still on its way - during the drift, most of the time -
+  // while 'load' fires once: waiting on it then would wait forever.
+  const loaded = React.useRef(false);
+  // The area's settled bearing, which a flight to a lot turns back to: the
+  // same heading the compass and reduced motion give, not the intro's swing.
+  const settledBearing = React.useRef(0);
   const map = React.useRef<MapLibreMap | null>(null);
   const markers = React.useRef<Marker[]>([]);
   // Kept apart from `markers`, which is torn down and rebuilt whenever the
@@ -613,7 +644,9 @@ export function TerrainMap({
     const intro: Pose = campus
       ? { ...settled, zoom: settled.zoom - 0.8, pitch: 68, bearing: settled.bearing - 35 }
       : introPose(settled);
-    m.jumpTo(still ? settled : intro);
+    settledBearing.current = settled.bearing;
+    // A map opened for a fair lot has no intro to play: it starts settled and flies from there.
+    m.jumpTo(still || focusRef.current ? settled : intro);
 
     /*
       The camera: a rise and a swing into the settled pose, then a slow turn
@@ -622,6 +655,7 @@ export function TerrainMap({
       intro too, for the reason in prefersReducedMotion.
     */
     const drift = () => {
+      if (focusRef.current) return;
       m.easeTo({
         bearing: settled.bearing + DRIFT.degrees,
         duration: DRIFT.ms,
@@ -770,11 +804,13 @@ export function TerrainMap({
     };
 
     m.on('load', () => {
+      loaded.current = true;
       lift();
       clearTheAir();
       raiseBuildings();
       layFog();
-      if (still) return;
+      // A lot to fly to takes the camera: the focus effect moves it, not the intro.
+      if (still || focusRef.current) return;
       m.once('moveend', drift);
       m.easeTo({ ...settled, duration: HERO.introMs, easing: settleEasing, essential: true });
     });
@@ -1215,6 +1251,67 @@ export function TerrainMap({
     else m.once('load', draw);
     return () => { m.off('load', draw); };
   }, [way, wayIsRoute]);
+
+  /*
+    A fair's lots (docs/66).
+
+    Their own marks and their own effect, so choosing a lot does not tear
+    down the place pins. Small and silent - a dot is not a button, the list on
+    the fair screen is where a lot is chosen - except the lot asked for, which
+    wears its code and its stall's name on a label.
+  */
+  React.useEffect(() => {
+    const m = map.current;
+    const clear = () => {
+      for (const mark of lotMarks.current) mark.remove();
+      lotMarks.current = [];
+    };
+    clear();
+    if (!m || !fairLots?.length) return clear;
+    for (const lot of fairLots) {
+      const on = fairFocus?.code === lot.code;
+      const el = document.createElement('div');
+      el.className = `cg-lot${on ? ' cg-lot-on' : ''}${lot.stall ? '' : ' cg-lot-free'}`;
+      el.style.setProperty('--lot', zoneTone(lot.zone.code));
+      el.innerHTML = on
+        ? `<span class="cg-lot-tag"><b>${esc(lot.code)}</b>${esc(lot.stall?.name ?? t(strings.fair.free))}</span><i></i>`
+        : '<i></i>';
+      el.setAttribute('role', 'img');
+      el.setAttribute('aria-label', lot.stall ? t(strings.fair.onMap(lot.code, lot.stall.name)) : t(strings.fair.onMapFree(lot.code)));
+      // The lot asked for sits over its neighbours, label and all.
+      if (on) el.style.zIndex = '4';
+      lotMarks.current.push(new Marker({ element: el, anchor: 'center' }).setLngLat([lot.lng, lot.lat]).addTo(m));
+    }
+    return clear;
+  }, [fairLots, fairFocus]);
+
+  /*
+    Fly to the lot asked for.
+
+    After the map has loaded, and instead of the intro: the load handler
+    stands aside when `focusRef` holds a lot (see there), so the two never
+    fight over the camera. A map that loaded long ago flies at once, from
+    wherever it is - mid-drift included. Street zoom, a gentler pitch so the
+    label reads, and no flight at all for anyone who asked for less motion.
+  */
+  React.useEffect(() => {
+    const m = map.current;
+    if (!m || !fairFocus) return;
+    const go = () => {
+      if (!map.current) return;
+      m.flyTo({
+        center: [fairFocus.lng, fairFocus.lat],
+        zoom: 18,
+        pitch: 50,
+        bearing: settledBearing.current,
+        duration: prefersReducedMotion() ? 0 : 1600,
+        essential: true,
+      });
+    };
+    if (loaded.current) go();
+    else m.once('load', go);
+    return () => { m.off('load', go); };
+  }, [fairFocus]);
 
   if (failed) {
     return (

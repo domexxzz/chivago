@@ -50,3 +50,4 @@ export * from './medals.ts';
 export * from './transit.ts';
 export * from './proof-assist.ts';
 export * from './stalls.ts';
+export * from './fair.ts';
