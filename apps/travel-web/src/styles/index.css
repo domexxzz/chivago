@@ -1,0 +1,29 @@
+@import "tailwindcss";
+@theme {
+  --color-brand: #064e48;
+  --color-ink: #173e39;
+  --color-muted: #526660;
+  --color-cream: #faf9f5;
+  --color-lime: #dafa9a;
+  --font-sans: "Segoe UI", Arial, sans-serif;
+}
+:root { font-family: var(--font-sans); color: var(--color-ink); background: var(--color-cream); font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input, select { font: inherit; }
+button, a, input, select { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid #a05220; outline-offset: 4px; }
+h1, h2, h3, p { margin: 0; }
+.wordmark { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-size: 27px; font-weight: 750; letter-spacing: -1.2px; }
+.brand-dot { color: #527a23; font-size: 25px; }
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 2.1px; text-transform: uppercase; }
+.muted { color: var(--color-muted); font-size: 13px; }
+.lead { max-width: 540px; font-size: 18px; line-height: 1.7; color: var(--color-muted); }
+.notice { padding: 14px 20px; border-radius: 12px; background: #eaf0e6; font-size: 14px; }
+.foundation-shell { max-width: 1000px; margin: auto; padding: 70px 24px; display: grid; gap: 30px; }
+.foundation-shell h1 { font-family: Georgia, serif; font-weight: 400; font-size: clamp(42px, 7vw, 84px); line-height: 1.07; letter-spacing: -2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
