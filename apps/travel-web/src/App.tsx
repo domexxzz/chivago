@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getListings } from "./services/listings";
 import { parseRoute } from "./utils/route";
 import type { Listing } from "./types/listing";
@@ -10,6 +10,8 @@ import {
 } from "./types/search";
 import Header from "./components/layout/Header";
 import HomePage from "./pages/HomePage";
+import ListingDetailPage from "./pages/ListingDetailPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 export default function App() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -20,6 +22,8 @@ export default function App() {
   const [search, setSearch] = useState({ ...DEFAULT_SEARCH });
   const [filters, setFilters] = useState({ ...DEFAULT_FILTERS });
   const [sort, setSort] = useState<SortOrder>("featured");
+  const homeScroll = useRef(0);
+  const pendingSection = useRef<string | null>(null);
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -39,13 +43,37 @@ export default function App() {
     };
   }, [reload]);
   useEffect(() => {
-    const update = () => setHash(window.location.hash);
+    const update = () => {
+      if (parseRoute(hash).kind === "home") homeScroll.current = window.scrollY;
+      setHash(window.location.hash);
+    };
     window.addEventListener("hashchange", update);
     return () => window.removeEventListener("hashchange", update);
-  }, []);
+  }, [hash]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      if (pendingSection.current) {
+        document
+          .getElementById(pendingSection.current)
+          ?.scrollIntoView({ behavior: "instant", block: "start" });
+        pendingSection.current = null;
+      } else {
+        window.scrollTo({
+          top: parseRoute(hash).kind === "home" ? homeScroll.current : 0,
+          behavior: "instant",
+        });
+      }
+      document.getElementById("main-content")?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [hash]);
   const route = parseRoute(hash);
   const section = (id: string) => {
-    if (route.kind !== "home") window.location.hash = "/";
+    if (route.kind !== "home") {
+      pendingSection.current = id;
+      window.location.hash = "/";
+      return;
+    }
     requestAnimationFrame(() =>
       document
         .getElementById(id)
@@ -79,14 +107,10 @@ export default function App() {
             onReset={reset}
             onRetry={() => setReload(reload + 1)}
           />
+        ) : route.kind === "listing" ? (
+          <ListingDetailPage key={route.id} id={route.id} search={search} />
         ) : (
-          <div className="container section empty-state">
-            <h1>Details are coming next.</h1>
-            <p>This fictional listing cannot be booked.</p>
-            <a className="button primary" href="#/">
-              Back to exploring
-            </a>
-          </div>
+          <NotFoundPage />
         )}
       </main>
     </>

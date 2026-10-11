@@ -13,11 +13,20 @@ export default function HeroSearch({
 }) {
   const [draft, setDraft] = useState(search);
   const [problems, setProblems] = useState<string[]>([]);
-  const submit = (event: FormEvent) => {
+  const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const errors = searchProblems(draft);
+    // Read submitted native controls, including dates entered through the browser picker.
+    const data = new FormData(event.currentTarget);
+    const submitted: SearchContext = {
+      destination: String(data.get("destination") ?? ""),
+      checkIn: String(data.get("checkIn") ?? ""),
+      checkOut: String(data.get("checkOut") ?? ""),
+      travelers: Number(data.get("travelers")),
+    };
+    const errors = searchProblems(submitted);
+    setDraft(submitted);
     setProblems(errors);
-    if (!errors.length) onSearch(draft);
+    if (!errors.length) onSearch(submitted);
   };
   return (
     <section className="hero" aria-labelledby="hero-title">
@@ -61,6 +70,7 @@ export default function HeroSearch({
             </span>
             <input
               aria-label="Destination"
+              name="destination"
               list="destinations-list"
               placeholder="Somewhere in Thailand"
               value={draft.destination}
@@ -83,6 +93,7 @@ export default function HeroSearch({
               </span>
               <input
                 aria-label="Arrival date"
+                name="checkIn"
                 type="date"
                 value={draft.checkIn}
                 onChange={(e) =>
@@ -94,6 +105,7 @@ export default function HeroSearch({
               <span>DEPARTURE</span>
               <input
                 aria-label="Departure date"
+                name="checkOut"
                 type="date"
                 value={draft.checkOut}
                 onChange={(e) =>
@@ -108,6 +120,7 @@ export default function HeroSearch({
             </span>
             <input
               aria-label="Travelers"
+              name="travelers"
               type="number"
               min="1"
               max="20"
