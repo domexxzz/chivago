@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Icon from "../Icon";
+import { watchFloatingNavigation } from "../../utils/motion";
 
 export default function Header({
   onSection,
@@ -7,6 +8,8 @@ export default function Header({
   onSection: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [floating, setFloating] = useState(false);
+  useEffect(() => watchFloatingNavigation(setFloating), []);
   const navigate = (id: string) => {
     setOpen(false);
     onSection(id);
@@ -27,7 +30,7 @@ export default function Header({
         A little room to imagine.{" "}
         <span>Demo only · fictional listings · no real bookings</span>
       </div>
-      <header className="site-header">
+      <header className={floating ? "site-header is-floating" : "site-header"}>
         <a className="wordmark" href="#/" aria-label="ChivaGo home">
           ChivaGo
           <span className="brand-dot" aria-hidden="true">

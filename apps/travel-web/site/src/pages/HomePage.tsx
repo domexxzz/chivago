@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { Listing } from "../types/listing";
 import type {
   Filters as FilterValues,
@@ -12,6 +13,7 @@ import { selectListings } from "../utils/catalogue";
 import SocialProof from "../components/home/SocialProof";
 import WhyChivaGo from "../components/home/WhyChivaGo";
 import Newsletter from "../components/home/Newsletter";
+import { enhanceHomeMotion, sectionScrollBehavior } from "../utils/motion";
 export default function HomePage({
   listings,
   loading,
@@ -38,8 +40,12 @@ export default function HomePage({
   onRetry: () => void;
 }) {
   const visible = selectListings(listings, search, filters, sort);
+  const page = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (page.current) return enhanceHomeMotion(page.current);
+  }, []);
   return (
-    <>
+    <div className="home-page" ref={page}>
       <HeroSearch
         key={JSON.stringify(search)}
         search={search}
@@ -153,10 +159,10 @@ export default function HomePage({
         onExplore={() =>
           document
             .getElementById("marketplace")
-            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+            ?.scrollIntoView({ behavior: sectionScrollBehavior(), block: "start" })
         }
       />
       <Newsletter />
-    </>
+    </div>
   );
 }

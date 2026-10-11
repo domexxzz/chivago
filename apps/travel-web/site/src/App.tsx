@@ -13,6 +13,7 @@ import HomePage from "./pages/HomePage";
 import ListingDetailPage from "./pages/ListingDetailPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import Footer from "./components/layout/Footer";
+import { sectionScrollBehavior } from "./utils/motion";
 
 export default function App() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -78,7 +79,7 @@ export default function App() {
     requestAnimationFrame(() =>
       document
         .getElementById(id)
-        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        ?.scrollIntoView({ behavior: sectionScrollBehavior(), block: "start" }),
     );
   };
   const applySearch = (value: SearchContext) => {

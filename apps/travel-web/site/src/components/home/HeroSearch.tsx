@@ -30,15 +30,17 @@ export default function HeroSearch({
   };
   return (
     <section className="hero" aria-labelledby="hero-title">
-      <img
-        className="hero-photo"
-        src={PHOTOS.coast.src}
-        alt={PHOTOS.coast.alt}
-        width="1400"
-        height="934"
-        fetchPriority="high"
-      />
-      <div className="hero-shade" />
+      <div className="hero-media">
+        <img
+          className="hero-photo"
+          src={PHOTOS.coast.src}
+          alt={PHOTOS.coast.alt}
+          width="1400"
+          height="934"
+          fetchPriority="high"
+        />
+        <div className="hero-shade" />
+      </div>
       <div className="hero-content">
         <p className="eyebrow">LESS RUSH. MORE WONDER.</p>
         <h1 id="hero-title">

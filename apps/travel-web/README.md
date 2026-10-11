@@ -66,6 +66,12 @@ Browser tests use installed Microsoft Edge, run sequentially at all three widths
 
 Use keyboard-only navigation and inspect at 375/768/1280px: main/landmark structure, visible focus, explicit labels/alt text, usable mobile menu and dates, gallery buttons, and prominent demo notices. Below-the-fold photos lazy-load; hero/detail main photos load eagerly. No web fonts, map renderer, carousel library, or icon package is required.
 
+## Motion
+
+The Fastwork-inspired motion treatment adapts interaction patterns only, not its code or assets: staggered hero entrance, once-per-mount section/card reveals, up to 18px of scroll-linked hero image drift, gentle hover effects, and sticky navigation that becomes a floating pill after 240px of scroll. Native IntersectionObserver, CSS transitions, and frame-throttled passive scroll listeners avoid an animation dependency or scroll hijacking. Navigation updates React only when crossing its threshold.
+
+OS/browser reduced-motion preferences disable entrances, reveals, hover transforms, image drift, and smooth section scrolling, including live preference changes. Keyboard focus immediately reveals a card; unavailable enhancement APIs leave content visible. Filter-created cards are discovered without changing search logic. The floating header remains usable in reduced-motion mode but changes without animated transitions.
+
 ## Image rights
 
 See [IMAGE-CREDITS.md](./IMAGE-CREDITS.md) and the footer's expandable image credits. Six Pexels photos are stored locally, licensed and credited, and explicitly illustrative; they do not depict a real listed operator. No mascot or existing mock data was copied. Hostinger served only as general layout inspiration; no template text/assets were copied.

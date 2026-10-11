@@ -1,8 +1,21 @@
 # Travel marketplace verification
 
-Verified 11 October 2026 on `yoshi/travel-marketplace`, based on main commit `8ac40b1`.
+Initial delivery verified 11 October 2026 on `yoshi/travel-marketplace`, based on main commit `8ac40b1`.
 
-## Final checks
+## Motion update — 12 October 2026
+
+Approved option B adds original coastal hero entrances, scroll reveals, hover effects, bounded hero image drift, and floating sticky navigation. No Fastwork code/assets or extra dependencies were copied.
+
+- `npm test`: 25 tests passed in eight files.
+- TypeScript, non-fixing lint (zero warnings), and production build passed.
+- Build: JavaScript 263.34 kB / 82.14 kB gzip; CSS 29.03 kB / 7.03 kB gzip.
+- `npm run test:browser`: 12 tests passed at 375, 768, and 1280px, including the original full marketplace flow and new motion checks.
+- Motion checks cover hero entrance/drift, revealed sections, navigation thresholds, heading clearance, no horizontal overflow, reduced-motion styles, live preference changes, keyboard access, observer cleanup, and filtered-in/removed cards.
+- An intentional removal of the keyboard reveal made its regression test fail; restoring it returned the suite to green. The mutation is not present in the delivery.
+- Manually checked the in-app browser at mobile/tablet/desktop widths. A resize-related floating-navigation issue was caught there and corrected using a frame-throttled passive listener that updates React only across the threshold.
+- React quality review focused on effect cleanup, passive/throttled listeners, no unnecessary dependencies, and keyboard/reduced-motion behavior. Search/data adapters, existing apps, and shared files remain unchanged.
+
+## Initial delivery checks (11 October)
 
 - `npm test`: 19 tests passed in seven files.
 - `npm run typecheck`: passed.
