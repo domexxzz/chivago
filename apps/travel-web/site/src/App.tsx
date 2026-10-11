@@ -12,6 +12,7 @@ import Header from "./components/layout/Header";
 import HomePage from "./pages/HomePage";
 import ListingDetailPage from "./pages/ListingDetailPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import Footer from "./components/layout/Footer";
 
 export default function App() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -113,6 +114,7 @@ export default function App() {
           <NotFoundPage />
         )}
       </main>
+      <Footer onSection={section} />
     </>
   );
 }

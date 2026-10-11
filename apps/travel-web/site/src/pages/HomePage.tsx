@@ -9,6 +9,9 @@ import FeaturedDestinations from "../components/home/FeaturedDestinations";
 import Filters from "../components/marketplace/Filters";
 import ListingCard from "../components/marketplace/ListingCard";
 import { selectListings } from "../utils/catalogue";
+import SocialProof from "../components/home/SocialProof";
+import WhyChivaGo from "../components/home/WhyChivaGo";
+import Newsletter from "../components/home/Newsletter";
 export default function HomePage({
   listings,
   loading,
@@ -145,6 +148,15 @@ export default function HomePage({
           )}
         </div>
       </section>
+      <SocialProof />
+      <WhyChivaGo
+        onExplore={() =>
+          document
+            .getElementById("marketplace")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
+      />
+      <Newsletter />
     </>
   );
 }

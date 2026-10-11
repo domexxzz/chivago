@@ -164,6 +164,36 @@ h1, h2, h3, p { margin: 0; }
 .booking-dialog .muted { line-height: 1.7; font-size: 12px; }
 .booking-dialog > .button { width: 100%; margin-top: 25px; }
 @media (max-width: 900px) { .detail-columns { grid-template-columns: minmax(0,1fr); gap: 30px; } .booking-panel { position: static; order: -1; } }
+.testimonials-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 22px; }
+.testimonial { margin: 0; padding: 28px; background: #f0f3ea; border: 1px solid #e4e9de; border-radius: 10px; }
+.testimonial-stars { display: flex; gap: 3px; align-items: center; color: #766022; } .testimonial-stars span { color: var(--color-muted); font-size: 9px; margin-left: 7px; }
+.testimonial blockquote { margin: 22px 0 30px; font-family: Georgia, serif; font-size: 23px; line-height: 1.45; letter-spacing: -.3px; }
+.testimonial figcaption { display: flex; align-items: center; gap: 12px; } .testimonial-avatar { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: #dfe7d3; font-size: 13px; }
+.testimonial figcaption strong { display: block; font-size: 11px; font-weight: 600; } .testimonial figcaption small { display: block; font-size: 10px; color: var(--color-muted); margin-top: 6px; }
+.trust-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 50px; margin-top: 36px; padding-top: 30px; border-top: 1px solid #e0e5da; }
+.trust-row span { display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--color-muted); }
+.why-section { background: #064e48; color: #f5f9ec; padding-block: 70px; scroll-margin-top: 24px; }
+.why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: center; }
+.why-emblem { display: inline-grid; place-items: center; width: 85px; height: 85px; border: 1px solid #b4d0a64d; border-radius: 50%; margin-bottom: 25px; color: #dafa9a; }
+.why-intro h2 { font-family: Georgia, serif; font-size: clamp(34px,4vw,50px); font-weight: 400; line-height: 1.15; letter-spacing: -1px; margin: 18px 0 24px; } .why-intro h2 em { color: #dafa9a; }
+.why-intro > p:not(.eyebrow) { font-size: 14px; line-height: 1.9; color: #e0ebdf; max-width: 420px; }
+.lime-button { background: var(--color-lime); color: #123e29; margin-top: 28px; } .lime-button:hover { background: #c9eb87; } .why-intro small { display: block; font-size: 10px; margin-top: 14px; color: #dbe8d9; }
+.why-benefits article { display: flex; align-items: start; gap: 20px; padding-block: 30px; border-bottom: 1px solid #c7ddc233; } .why-benefits article:last-child { border-bottom: 0; }
+.why-benefits article > span { font-size: 11px; padding-top: 5px; color: #dafa9a; } .why-benefits h3 { font-size: 19px; font-weight: 500; margin-bottom: 12px; } .why-benefits p { font-size: 13px; color: #e0ebdf; line-height: 1.9; }
+.newsletter { padding-block: 70px; display: grid; grid-template-columns: 1fr 1fr; gap: 65px; align-items: center; }
+.newsletter h2 { font-family: Georgia, serif; font-size: 38px; font-weight: 400; letter-spacing: -.8px; line-height: 1.2; margin: 15px 0; } .newsletter > div > p:not(.eyebrow) { color: var(--color-muted); font-size: 13px; }
+.newsletter form > label { display: block; font-size: 12px; margin-bottom: 8px; }
+.newsletter-controls { display: flex; gap: 10px; } .newsletter input { min-width: 0; flex: 1; border: 1px solid #c6d2bf; border-radius: 7px; padding: 15px; background: white; font-size: 13px; color: var(--color-ink); }
+.newsletter-form-wrap > p { font-size: 11px; color: var(--color-muted); margin-top: 14px; line-height: 1.7; }
+.newsletter-error { color: #942b16; font-size: 12px; margin-top: 12px; } .newsletter-success { font-size: 12px; line-height: 1.7; margin-top: 12px; color: var(--color-brand); background: #eaf0e6; padding: 12px; border-radius: 6px; }
+.site-footer { background: #eaf0e6; padding-block: 45px 25px; } .footer-top { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 40px; padding-bottom: 35px; }
+.footer-top p { font-size: 12px; line-height: 1.9; color: var(--color-muted); margin-top: 14px; } .footer-top nav { display: grid; justify-items: start; align-content: start; gap: 4px; }
+.footer-top nav button { border: 0; background: transparent; color: var(--color-brand); padding: 10px 0; font-size: 12px; } .footer-top nav button:hover { text-decoration: underline; }
+.footer-demo strong { font-size: 12px; } .footer-bottom { border-top: 1px solid #cbd8c3; display: flex; justify-content: space-between; gap: 15px; padding-top: 25px; font-size: 10px; color: var(--color-muted); }
+.footer-details { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; font-size: 11px; color: var(--color-muted); line-height: 1.8; }
+.footer-details summary { cursor: pointer; padding: 10px 0; color: var(--color-brand); } .footer-details ul { padding-left: 18px; } .footer-details a { text-underline-offset: 3px; } .footer-details a:hover { color: var(--color-brand); }
+@media (max-width: 900px) { .why-grid { gap: 50px; } .newsletter { gap: 35px; } .newsletter-controls { flex-direction: column; } .testimonials-grid { gap: 15px; } .testimonial { padding: 20px; } .testimonial blockquote { font-size: 21px; } }
+@media (max-width: 640px) { .testimonials-grid { grid-template-columns: 1fr; } .testimonial { padding: 25px; } .trust-row { gap: 18px; flex-direction: column; align-items: center; } .why-section { padding-block: 45px; } .why-grid { grid-template-columns: 1fr; gap: 20px; } .why-intro h2 { font-size: 39px; } .newsletter { grid-template-columns: 1fr; gap: 25px; padding-block: 45px; } .newsletter h2 { font-size: 33px; } .footer-top { grid-template-columns: 1fr; gap: 25px; } .footer-top nav { grid-template-columns: 1fr 1fr; gap: 0 20px; } .footer-bottom { flex-wrap: wrap; } .footer-details { grid-template-columns: 1fr; gap: 8px; } }
 @media (max-width: 640px) { .detail-heading h1 { font-size: 37px; } .detail-meta { gap: 12px; } .booking-dialog { padding: 28px 22px; } .confirmation-facts > div { gap: 10px; font-size: 11px; } .gallery-thumbnails button { min-height: 44px; } }
 @media (max-width: 1000px) {
   .main-nav { gap: 18px; } .header-currency { display: none; }
