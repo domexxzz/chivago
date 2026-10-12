@@ -3,10 +3,11 @@
  */
 
 import React from 'react';
-import { Animated, Pressable, View } from 'react-native';
+import { Animated, Platform, Pressable, View } from 'react-native';
+import { useReduceMotion } from './reduce-motion.ts';
 import { ChevronLeft, House, Leaf, Map as MapIcon, PawPrint, Shield } from 'lucide-react-native';
 import { strings } from '@chivago/core';
-import { color, gutter, headerGutter, layout, motion, onFill, radius, ruleStrong, ruleStrongTop, shadow } from '../theme/index.ts';
+import { color, gutter, headerGutter, layout, motion, onFill, radius, ruleStrong, shadow } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from './Type.tsx';
 import { IconButton } from './Button.tsx';
 
@@ -28,26 +29,51 @@ const TAB_ICONS = {
 const TAB_ORDER: TabKey[] = ['home', 'map', 'quests', 'game', 'safety'];
 
 /**
- * Five tabs, 66px, 2px ink top rule.
- * Active = solid ink fill with bg glyph and label. Inactive = transparent with
- * neutral-700. The fill is the whole cell, not a pill - Modernist has no radii.
+ * The existing five-tab shell. Stays & Tours opts into a bounded floating pill;
+ * other screens retain their current bar. Only the indicator's transform moves.
  */
 export function TabBar({
-  active, onChange,
-}: { active: TabKey; onChange: (tab: TabKey) => void }) {
+  active, onChange, floating = false,
+}: { active: TabKey; onChange: (tab: TabKey) => void; floating?: boolean }) {
+  const [barWidth, setBarWidth] = React.useState(0);
+  const position = React.useRef(new Animated.Value(TAB_ORDER.indexOf(active))).current;
+  const still = useReduceMotion();
+  React.useEffect(() => {
+    const animation = Animated.timing(position, {
+      toValue: TAB_ORDER.indexOf(active), duration: still ? 0 : 320,
+      useNativeDriver: Platform.OS !== 'web',
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [active, position, still]);
   return (
     <View
-      style={{
+      testID={floating ? 'stays-navigation' : undefined}
+      onLayout={(event) => setBarWidth(event.nativeEvent.layout.width)}
+      style={[{
         flexDirection: 'row', height: layout.tabBarHeight, backgroundColor: color.surface,
         borderTopWidth: layout.ruleHair, borderTopColor: color.neutral300,
-      }}
+      }, floating && {
+        width: '92%', maxWidth: 600, alignSelf: 'center', marginVertical: 12,
+        borderRadius: 32, borderWidth: 1, borderColor: color.neutral300,
+        shadowColor: color.text, shadowOpacity: 0.1, shadowRadius: 16,
+        shadowOffset: { width: 0, height: 4 }, elevation: 4,
+      }]}
     >
+      {floating && barWidth > 0 ? (
+        <Animated.View pointerEvents="none" style={{
+          position: 'absolute', left: 4, top: 4, bottom: 4,
+          width: barWidth / 5 - 8, borderRadius: 28,
+          backgroundColor: color.neutral100, borderWidth: 1, borderColor: color.brand,
+          transform: [{ translateX: Animated.multiply(position, barWidth / 5) }],
+        }} />
+      ) : null}
       {TAB_ORDER.map((key) => {
         const isActive = key === active;
         const Icon = TAB_ICONS[key];
         // The active tab is the brand speaking, on the white bar; the rest
         // are quiet. No filled block: the reference's bar is icons on white.
-        const fg = isActive ? color.brand : color.neutral600;
+        const fg = isActive ? color.brand : floating ? color.neutral700 : color.neutral600;
         return (
           <Pressable
             key={key}

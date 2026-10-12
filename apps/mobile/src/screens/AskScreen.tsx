@@ -29,7 +29,7 @@
 
 import React from 'react';
 import { Animated, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
-import { BedDouble, Car, Compass, Sparkles, X } from 'lucide-react-native';
+import { BedDouble, Car, Compass, Sparkles, WifiOff, X } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { tint, type TintKey } from '@chivago/tokens';
 import {
@@ -44,7 +44,8 @@ import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
-import { ErrorState, SkeletonList } from '../components/States.tsx';
+import { SkeletonList } from '../components/States.tsx';
+import { useTravelPresentation } from '../features/travel-marketplace/presentation.ts';
 import { getLocale, t } from '../i18n/locale.ts';
 import { TravelMarketplace } from '../features/travel-marketplace/TravelMarketplace.tsx';
 import { createTravelViewport } from '../features/travel-marketplace/viewport.ts';
@@ -95,6 +96,7 @@ export function AskScreen({
   const [asking, setAsking] = React.useState<ListingCard | null>(null);
   const travelViewport = React.useMemo(createTravelViewport, []);
   const travelScroll = React.useRef(new Animated.Value(0)).current;
+  useTravelPresentation();
   React.useEffect(() => () => travelViewport.dispose(), [travelViewport]);
 
   const withdraw = async (i: TravellerInquiry) => {
@@ -104,11 +106,14 @@ export function AskScreen({
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View testID="stays-screen" style={{ flex: 1 }}>
+      <View testID="stays-header" style={{ width: '100%', maxWidth: 1280, alignSelf: 'center' }}>
       <PushHeader context={t(strings.ask.context)} onBack={onBack} />
+      </View>
 
       <ScrollView showsVerticalScrollIndicator={false} scrollEventThrottle={16}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: travelScroll } } }], { useNativeDriver: false, listener: travelViewport.check })}>
+        <View testID="stays-container" style={{ width: '100%', maxWidth: 1280, alignSelf: 'center', paddingBottom: 24 }}>
         <View style={{ paddingHorizontal: gutter, paddingBottom: 18 }}>
           <NotABooking />
         </View>
@@ -125,7 +130,13 @@ export function AskScreen({
         </View>
 
         {listings.loading ? <SkeletonList rows={4} /> : null}
-        {listings.error ? <ErrorState message={listings.error} onRetry={listings.reload} /> : null}
+        {listings.error ? (
+          <View testID="stays-error" style={{ margin: gutter, maxWidth: 560, padding: 16, borderRadius: 20, backgroundColor: color.surface, borderWidth: 1, borderColor: color.neutral300, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <WifiOff size={22} color={color.brand} accessibilityElementsHidden />
+            <Body style={{ flex: 1, minWidth: 120 }}>{listings.error}</Body>
+            <Button label={t(strings.common.retry)} onPress={listings.reload} variant="secondary" height={44} style={{ alignSelf: 'center' }} />
+          </View>
+        ) : null}
         {listings.data && listings.data.length === 0 ? (
           <View style={{ paddingHorizontal: gutter, paddingVertical: 12 }}>
             <Body size={14} colour={color.neutral700}>{t(strings.ask.none)}</Body>
@@ -136,6 +147,7 @@ export function AskScreen({
         <TravelMarketplace viewport={travelViewport} scroll={travelScroll} />
 
         <View style={{ height: 32 }} />
+        </View>
       </ScrollView>
 
       <AskSheet

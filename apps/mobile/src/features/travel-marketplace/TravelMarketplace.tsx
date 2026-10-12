@@ -6,12 +6,13 @@ import {
   Modal,
   Pressable,
   ScrollView,
-  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
 import { Body, Heading, Label } from "../../components/Type.tsx";
 import { Button } from "../../components/Button.tsx";
+import { SkeletonList } from "../../components/States.tsx";
+import { SearchField } from "./SearchField.tsx";
 import { color, gutter, radius, onFill } from "../../theme/index.ts";
 import { t } from "../../i18n/locale.ts";
 import { travelImage } from "./images.ts";
@@ -31,7 +32,7 @@ import {
 } from "./types/search.ts";
 import type { Listing } from "./types/listing.ts";
 import { Reveal } from "./Motion.tsx";
-import type { TravelViewport } from './viewport.ts';
+import type { TravelViewport } from "./viewport.ts";
 
 const words = (en: string, th: string) => t({ en, th });
 const boundary = () =>
@@ -62,12 +63,8 @@ function Choices({
   return (
     <View style={{ marginVertical: 6 }}>
       <Label size={10}>{label}</Label>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ marginTop: 8 }}
-      >
-        <View style={{ flexDirection: "row", gap: 8 }}>
+      <View style={{ marginTop: 8 }}>
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {choices.map(([key, text]) => (
             <Pressable
               key={key}
@@ -90,7 +87,7 @@ function Choices({
             </Pressable>
           ))}
         </View>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -153,8 +150,10 @@ export function TravelMarketplace({
     else setDetail(null);
   };
   const columns = width >= 1100 ? 3 : width >= 650 ? 2 : 1;
-  const cardWidth =
-    (Math.min(width, 1160) - gutter * 2 - 16 * (columns - 1)) / columns;
+  const desktop = width >= 1024;
+  const contentWidth = Math.min(width, 1280) - (desktop ? 32 : 0) - gutter * 2;
+  const cardWidth = (contentWidth - 16 * (columns - 1)) / columns;
+  const destinationColumns = desktop ? 4 : width >= 480 ? 2 : 1;
 
   return (
     <View
@@ -168,7 +167,7 @@ export function TravelMarketplace({
     >
       <View
         style={{
-          maxWidth: 1160,
+          maxWidth: 1280,
           width: "100%",
           alignSelf: "center",
           paddingHorizontal: gutter,
@@ -185,18 +184,24 @@ export function TravelMarketplace({
         </Body>
         <Reveal viewport={viewport}>
           <View
+            testID="travel-hero"
             style={{
               marginTop: 18,
               overflow: "hidden",
-              borderRadius: radius.md,
+              borderRadius: 24,
+              minHeight: desktop ? 400 : 340,
+              justifyContent: "center",
               backgroundColor: color.brand,
             }}
           >
             <Animated.View
+              testID="travel-hero-image"
               style={{
                 position: "absolute",
+                top: 0,
+                left: 0,
+                bottom: 0,
                 width: "100%",
-                height: "100%",
                 opacity: 0.32,
                 transform: still
                   ? []
@@ -215,15 +220,21 @@ export function TravelMarketplace({
               <Image
                 source={travelImage(PHOTOS.coast)}
                 accessibilityLabel={PHOTOS.coast.alt}
-                style={{ width: "100%", height: "100%" }}
+                style={{ width: "100%", flex: 1 }}
               />
             </Animated.View>
-            <View style={{ padding: 26 }}>
+            <View
+              testID="travel-hero-copy"
+              style={{
+                padding: desktop ? 48 : 24,
+                paddingBottom: desktop ? 88 : 64,
+              }}
+            >
               <Label size={10} colour={onFill.brand}>
                 {words("LESS RUSH. MORE WONDER.", "ช้าลงอีกนิด ค้นพบอีกหน่อย")}
               </Label>
               <Heading
-                size={width < 650 ? 31 : 44}
+                size={width < 650 ? 32 : desktop ? 52 : 42}
                 colour={onFill.brand}
                 style={{ marginVertical: 18 }}
               >
@@ -247,169 +258,213 @@ export function TravelMarketplace({
             </View>
           </View>
         </Reveal>
-        <View style={{ marginTop: 18, gap: 10 }}>
-          <Label size={10}>{words("Destination", "จุดหมาย")}</Label>
-          <TextInput
-            accessibilityLabel="Demo destination"
-            placeholder={words("Destination", "จุดหมาย")}
-            value={draft.destination}
-            onChangeText={(destination) => setDraft({ ...draft, destination })}
-            style={control}
-          />
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <View style={{ flex: 1, gap: 8 }}>
-              <Label size={10}>{words("Arrival", "วันเข้า")}</Label>
-              <TextInput
+        <Reveal viewport={viewport} delay={60}>
+          <View
+            testID="travel-search"
+            style={{
+              marginTop: -40,
+              padding: desktop ? 24 : 16,
+              gap: 16,
+              borderRadius: 24,
+              backgroundColor: color.surface,
+              borderWidth: 1,
+              borderColor: color.neutral300,
+            }}
+          >
+            <View testID="travel-search-row" style={{ gap: 12 }}>
+              <SearchField
+                label={words("Destination", "จุดหมาย")}
+                accessibilityLabel="Demo destination"
+                placeholder={words("Destination", "จุดหมาย")}
+                value={draft.destination}
+                onChangeText={(destination) =>
+                  setDraft({ ...draft, destination })
+                }
+              />
+              <SearchField
+                label={words("Arrival", "วันเข้า")}
                 accessibilityLabel="Demo arrival date"
                 placeholder="YYYY-MM-DD"
                 value={draft.checkIn}
                 onChangeText={(checkIn) => setDraft({ ...draft, checkIn })}
-                style={control}
               />
-            </View>
-            <View style={{ flex: 1, gap: 8 }}>
-              <Label size={10}>{words("Departure", "วันออก")}</Label>
-              <TextInput
+              <SearchField
+                label={words("Departure", "วันออก")}
                 accessibilityLabel="Demo departure date"
                 placeholder="YYYY-MM-DD"
                 value={draft.checkOut}
                 onChangeText={(checkOut) => setDraft({ ...draft, checkOut })}
-                style={control}
+              />
+              <SearchField
+                label={words("Travelers (1–20)", "ผู้เดินทาง (1–20 คน)")}
+                accessibilityLabel="Demo travelers"
+                placeholder="Travelers (1–20)"
+                keyboardType="number-pad"
+                value={
+                  Number.isNaN(draft.travelers) ? "" : String(draft.travelers)
+                }
+                onChangeText={(value) =>
+                  setDraft({ ...draft, travelers: Number(value) })
+                }
+              />
+              <Button
+                label="Explore demo trips"
+                thai="สำรวจทริปตัวอย่าง"
+                onPress={submit}
+                height={60}
+                style={{ borderRadius: 16 }}
               />
             </View>
+            {errors.length ? (
+              <View accessibilityRole="alert">
+                {errors.map((error) => (
+                  <Body key={error} colour={color.accent2}>
+                    {error}
+                  </Body>
+                ))}
+              </View>
+            ) : null}
+            <Body size={13}>
+              {words(
+                "Dates do not establish availability. Prices are per person or per night, not trip totals.",
+                "วันที่ไม่ได้ยืนยันห้องว่างหรือที่ว่าง ราคาเป็นราคาต่อคนหรือต่อคืน ไม่ใช่ยอดรวมทริป",
+              )}
+            </Body>
           </View>
-          <Label size={10}>
-            {words("Travelers (1–20)", "ผู้เดินทาง (1–20 คน)")}
-          </Label>
-          <TextInput
-            accessibilityLabel="Demo travelers"
-            placeholder="Travelers (1–20)"
-            keyboardType="number-pad"
-            value={Number.isNaN(draft.travelers) ? "" : String(draft.travelers)}
-            onChangeText={(value) =>
-              setDraft({ ...draft, travelers: Number(value) })
-            }
-            style={control}
-          />
-          {errors.length ? (
-            <View accessibilityRole="alert">
-              {errors.map((error) => (
-                <Body key={error} colour={color.accent2}>
-                  {error}
-                </Body>
-              ))}
-            </View>
-          ) : null}
-          <Button
-            label="Explore demo trips"
-            thai="สำรวจทริปตัวอย่าง"
-            onPress={submit}
-          />
-          <Body size={13}>
-            {words(
-              "Dates do not establish availability. Prices are per person or per night, not trip totals.",
-              "วันที่ไม่ได้ยืนยันห้องว่างหรือที่ว่าง ราคาเป็นราคาต่อคนหรือต่อคืน ไม่ใช่ยอดรวมทริป",
-            )}
-          </Body>
-        </View>
-        <Heading size={22} style={{ marginTop: 26, marginBottom: 14 }}>
+        </Reveal>
+        <Heading
+          size={desktop ? 30 : 24}
+          style={{ marginTop: 40, marginBottom: 16 }}
+        >
           {words("Find your rhythm", "ค้นหาจังหวะของคุณ")}
         </Heading>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={{ flexDirection: "row", gap: 12 }}>
-            {MOCK_DESTINATIONS.map((d) => (
-              <Pressable
-                key={d.name}
-                accessibilityRole="button"
-                accessibilityLabel={`Demo destination: ${d.name}`}
-                onPress={() => {
-                  setDraft({ ...draft, destination: d.name });
-                  setSearch({ ...search, destination: d.name });
-                }}
-                style={{
-                  width: 155,
-                  borderRadius: radius.md,
-                  overflow: "hidden",
-                  backgroundColor: color.brand,
-                }}
-              >
-                <Image
-                  source={travelImage(d.image)}
-                  accessibilityLabel={d.image.alt}
-                  style={{ height: 130, width: "100%" }}
-                />
-                <Label size={11} colour={onFill.brand} style={{ padding: 12 }}>
-                  {d.name}
-                </Label>
-              </Pressable>
-            ))}
-          </View>
-        </ScrollView>
-        <Heading size={22} style={{ marginTop: 26 }}>
+        <View
+          testID="travel-destinations"
+          style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}
+        >
+          {MOCK_DESTINATIONS.map((d, index) => (
+            <View
+              key={d.name}
+              style={{
+                width:
+                  (contentWidth - 16 * (destinationColumns - 1)) /
+                  destinationColumns,
+              }}
+            >
+              <Reveal viewport={viewport} delay={index * 60}>
+                <Pressable
+                  testID="travel-destination"
+                  accessibilityRole="button"
+                  accessibilityLabel={`Demo destination: ${d.name}`}
+                  onPress={() => {
+                    setDraft({ ...draft, destination: d.name });
+                    setSearch({ ...search, destination: d.name });
+                  }}
+                  style={{
+                    borderRadius: 20,
+                    overflow: "hidden",
+                    backgroundColor: color.brand,
+                  }}
+                >
+                  <Image
+                    source={travelImage(d.image)}
+                    accessibilityLabel={d.image.alt}
+                    style={{ height: desktop ? 220 : 180, width: "100%" }}
+                  />
+                  <View testID="travel-destination-label">
+                    <Label
+                      size={11}
+                      colour={onFill.brand}
+                      style={{ padding: 12 }}
+                    >
+                      {d.name}
+                    </Label>
+                  </View>
+                </Pressable>
+              </Reveal>
+            </View>
+          ))}
+        </View>
+        <Heading
+          size={desktop ? 30 : 24}
+          style={{ marginTop: 40, marginBottom: 16 }}
+        >
           {words("Good days start here", "วันดี ๆ เริ่มที่นี่")}
         </Heading>
-        <Choices
-          label="Demo category"
-          value={filters.category}
-          choices={[
-            ["all", "All"],
-            ["tour", "Tours"],
-            ["stay", "Stays"],
-            ["experience", "Experiences"],
-          ]}
-          onChange={(category) =>
-            setFilters({
-              ...filters,
-              category: category as typeof filters.category,
-            })
-          }
-        />
-        <Choices
-          label="Maximum base price"
-          value={String(filters.maxPrice)}
-          choices={["500", "1000", "2000", "3000", "5000"].map((v) => [
-            v,
-            `${v} THB`,
-          ])}
-          onChange={(v) => setFilters({ ...filters, maxPrice: Number(v) })}
-        />
-        <Choices
-          label="Minimum demo rating"
-          value={String(filters.minRating)}
-          choices={[
-            ["0", "Any"],
-            ["4.8", "4.8+"],
-            ["4.9", "4.9+"],
-          ]}
-          onChange={(v) => setFilters({ ...filters, minRating: Number(v) })}
-        />
-        <Choices
-          label="Demo duration"
-          value={filters.duration}
-          choices={[
-            ["all", "Any"],
-            ["short", "Up to 4 hours"],
-            ["day", "4–24 hours"],
-            ["long", "Over 24 hours"],
-          ]}
-          onChange={(duration) =>
-            setFilters({
-              ...filters,
-              duration: duration as typeof filters.duration,
-            })
-          }
-        />
-        <Choices
-          label="Demo sort"
-          value={sort}
-          choices={[
-            ["featured", "Our picks"],
-            ["price-asc", "Price ↑"],
-            ["price-desc", "Price ↓"],
-            ["rating", "Rating ↓"],
-          ]}
-          onChange={(v) => setSort(v as SortOrder)}
-        />
+        <View
+          testID="travel-filters"
+          style={{
+            padding: 20,
+            borderRadius: 24,
+            backgroundColor: color.surface,
+            borderWidth: 1,
+            borderColor: color.neutral300,
+            marginBottom: 16,
+          }}
+        >
+          <Choices
+            label="Demo category"
+            value={filters.category}
+            choices={[
+              ["all", "All"],
+              ["tour", "Tours"],
+              ["stay", "Stays"],
+              ["experience", "Experiences"],
+            ]}
+            onChange={(category) =>
+              setFilters({
+                ...filters,
+                category: category as typeof filters.category,
+              })
+            }
+          />
+          <Choices
+            label="Maximum base price"
+            value={String(filters.maxPrice)}
+            choices={["500", "1000", "2000", "3000", "5000"].map((v) => [
+              v,
+              `${v} THB`,
+            ])}
+            onChange={(v) => setFilters({ ...filters, maxPrice: Number(v) })}
+          />
+          <Choices
+            label="Minimum demo rating"
+            value={String(filters.minRating)}
+            choices={[
+              ["0", "Any"],
+              ["4.8", "4.8+"],
+              ["4.9", "4.9+"],
+            ]}
+            onChange={(v) => setFilters({ ...filters, minRating: Number(v) })}
+          />
+          <Choices
+            label="Demo duration"
+            value={filters.duration}
+            choices={[
+              ["all", "Any"],
+              ["short", "Up to 4 hours"],
+              ["day", "4–24 hours"],
+              ["long", "Over 24 hours"],
+            ]}
+            onChange={(duration) =>
+              setFilters({
+                ...filters,
+                duration: duration as typeof filters.duration,
+              })
+            }
+          />
+          <Choices
+            label="Demo sort"
+            value={sort}
+            choices={[
+              ["featured", "Our picks"],
+              ["price-asc", "Price ↑"],
+              ["price-desc", "Price ↓"],
+              ["rating", "Rating ↓"],
+            ]}
+            onChange={(v) => setSort(v as SortOrder)}
+          />
+        </View>
         <Button
           label="Reset demo filters"
           thai="ล้างตัวกรองตัวอย่าง"
@@ -423,6 +478,26 @@ export function TravelMarketplace({
               ? "Demo catalogue unavailable."
               : `${visible.length} fictional possibilities · ratings are made up`}
         </Body>
+        {loading ? (
+          <View style={{ flexDirection: "row", gap: 16, marginTop: 16 }}>
+            {Array.from({ length: columns }, (_, index) => (
+              <View
+                key={index}
+                style={{
+                  width: cardWidth,
+                  borderRadius: 20,
+                  overflow: "hidden",
+                  backgroundColor: color.surface,
+                }}
+              >
+                <View
+                  style={{ height: 180, backgroundColor: color.neutral200 }}
+                />
+                <SkeletonList rows={2} />
+              </View>
+            ))}
+          </View>
+        ) : null}
         {failed ? (
           <Button label="Retry demo" onPress={() => setReload((n) => n + 1)} />
         ) : null}
@@ -447,6 +522,7 @@ export function TravelMarketplace({
               <View key={item.id} style={{ width: cardWidth }}>
                 <Reveal viewport={viewport}>
                   <Pressable
+                    testID="travel-card"
                     accessibilityRole="button"
                     accessibilityLabel={`View demo: ${item.title}`}
                     onPress={() => {
@@ -457,18 +533,23 @@ export function TravelMarketplace({
                     style={({ pressed }) => ({
                       borderWidth: 1,
                       borderColor: color.neutral300,
-                      borderRadius: radius.md,
+                      borderRadius: 20,
                       overflow: "hidden",
-                      backgroundColor: color.bg,
+                      backgroundColor: color.surface,
                       opacity: pressed ? 0.85 : 1,
                       transform: !still && pressed ? [{ translateY: -3 }] : [],
                     })}
                   >
-                    <Image
-                      source={travelImage(item.images[0]!)}
-                      accessibilityLabel={item.images[0]!.alt}
-                      style={{ width: "100%", height: 190 }}
-                    />
+                    <View
+                      testID="travel-card-image"
+                      style={{ overflow: "hidden" }}
+                    >
+                      <Image
+                        source={travelImage(item.images[0]!)}
+                        accessibilityLabel={item.images[0]!.alt}
+                        style={{ width: "100%", height: 190 }}
+                      />
+                    </View>
                     <View style={{ padding: 16, gap: 8 }}>
                       <Label
                         size={10}

@@ -55,4 +55,5 @@ export const Utensils = Icon;
 export const Video = Icon;
 export const Wallet = Icon;
 export const Waves = Icon;
+export const WifiOff = Icon;
 export const X = Icon;

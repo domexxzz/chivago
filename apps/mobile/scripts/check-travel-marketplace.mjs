@@ -12,14 +12,31 @@ const output = fileURLToPath(new URL("../dist-travel-qa/", import.meta.url));
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ channel: "msedge" });
 try {
-  for (const width of [375, 768, 1280]) {
+  for (const width of [360, 768, 1280, 1920]) {
     const context = await browser.newContext({
       viewport: { width, height: 900 },
       reducedMotion: "reduce",
     });
     const page = await context.newPage();
-    await page.route("http://localhost:8787/**", (route) => {
+    let releaseListings;
+    let firstListings = true;
+    const pendingListings = new Promise((resolve) => {
+      releaseListings = resolve;
+    });
+    await page.route("http://localhost:8787/**", async (route) => {
       const path = new URL(route.request().url()).pathname;
+      if (path === "/listings" && firstListings) {
+        firstListings = false;
+        await pendingListings;
+        return route.fulfill({
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: false,
+            error: "You appear to be offline.",
+            code: "OFFLINE",
+          }),
+        });
+      }
       return route.fulfill({
         contentType: "application/json",
         body: JSON.stringify(
@@ -36,10 +53,55 @@ try {
     await page.getByText("Stays & tours", { exact: true }).click();
     const demo = page.getByTestId("travel-marketplace-demo");
     await expect(demo).toBeVisible({ timeout: 60000 });
+    await expect(page.getByRole("progressbar").first()).toBeVisible();
+    releaseListings();
+    const offline = page.getByTestId("stays-error");
+    await expect(offline).toBeVisible();
+    const retry = offline.getByRole("button", { name: "Retry", exact: true });
+    assert.ok((await retry.boundingBox()).width < 160, "Retry stays compact");
+    await page.screenshot({ path: `${output}/offline-${width}.png` });
+    await retry.click();
+    await expect(offline).toHaveCount(0);
+    const destinationCards = demo.getByRole("button", {
+      name: /^Demo destination:/,
+    });
+    const cardBoxes = await destinationCards.evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const r = node.getBoundingClientRect();
+        return { x: r.x, y: r.y, width: r.width };
+      }),
+    );
+    assert.equal(
+      new Set(cardBoxes.map((box) => Math.round(box.y))).size,
+      width >= 1024 ? 1 : width >= 480 ? 2 : 4,
+    );
+    const row = page.getByTestId("travel-search-row");
+    const fieldBoxes = await row
+      .locator("input")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => node.getBoundingClientRect().y),
+      );
+    assert.equal(
+      new Set(fieldBoxes.map(Math.round)).size,
+      width >= 1024 ? 1 : 4,
+    );
+    const container = await page.getByTestId("stays-container").boundingBox();
+    assert.ok(
+      container.width <= 1280 && container.width >= Math.min(width, 1280) - 1,
+    );
+    const navigation = await page.getByTestId("stays-navigation").boundingBox();
+    assert.ok(navigation.width <= 601);
+    await page.getByLabel("Demo destination", { exact: true }).focus();
+    assert.equal(
+      await page
+        .getByTestId("travel-field")
+        .first()
+        .evaluate((node) => getComputedStyle(node, "::after").opacity),
+      "1",
+    );
     await page
       .getByLabel("Demo destination", { exact: true })
       .scrollIntoViewIfNeeded();
-    await page.screenshot({ path: `${output}/integrated-hero-${width}.png` });
     await expect(
       page.getByText("No operator has listed here yet.", { exact: false }),
     ).toBeVisible();
@@ -55,6 +117,11 @@ try {
           ),
       )
       .toBe(true);
+    assert.ok(
+      (await page.getByTestId("travel-hero-image").boundingBox()).height >= 300,
+      "Hero photo fills its banner",
+    );
+    await page.screenshot({ path: `${output}/integrated-hero-${width}.png` });
     const writes = [];
     page.on("request", (r) => {
       if (r.method() === "POST") writes.push(r.url());
@@ -128,6 +195,28 @@ try {
       ),
       true,
     );
+    if (width === 1920) {
+      const card = demo.getByTestId("travel-card").first();
+      await card.hover();
+      assert.equal(
+        await card.evaluate((node) => getComputedStyle(node).transform),
+        "none",
+      );
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+      await expect
+        .poll(() => card.evaluate((node) => getComputedStyle(node).transform))
+        .not.toBe("none");
+      await page
+        .getByLabel("Demo destination", { exact: true })
+        .scrollIntoViewIfNeeded();
+      await page.getByLabel("Demo destination", { exact: true }).focus();
+      await page.keyboard.press("Tab");
+      await expect(
+        page.getByLabel("Demo arrival date", { exact: true }),
+      ).toBeFocused();
+      await page.getByTestId("travel-destinations").scrollIntoViewIfNeeded();
+      await page.screenshot({ path: `${output}/destinations-${width}.png` });
+    }
     console.log(
       `PASS ${width}px: inquiry boundary, 18 listings, validation, combined filters, gallery, confirmation, Escape, no writes`,
     );

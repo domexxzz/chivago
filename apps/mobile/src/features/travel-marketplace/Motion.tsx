@@ -1,14 +1,22 @@
 import React from "react";
-import { Animated, Platform, View, useWindowDimensions } from "react-native";
+import {
+  Animated,
+  Easing,
+  Platform,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import { useReduceMotion } from "../../components/reduce-motion.ts";
 
-import type { TravelViewport } from './viewport.ts';
+import type { TravelViewport } from "./viewport.ts";
 export function Reveal({
   children,
   viewport,
+  delay = 0,
 }: {
   children: React.ReactNode;
   viewport: TravelViewport;
+  delay?: number;
 }) {
   const node = React.useRef<View>(null);
   const value = React.useRef(new Animated.Value(1)).current;
@@ -30,7 +38,9 @@ export function Reveal({
           value.setValue(0);
           Animated.timing(value, {
             toValue: 1,
-            duration: 650,
+            duration: 420,
+            delay,
+            easing: Easing.out(Easing.cubic),
             useNativeDriver: Platform.OS !== "web",
           }).start();
         }
@@ -42,7 +52,7 @@ export function Reveal({
       unsubscribe();
       value.stopAnimation();
     };
-  }, [still, height, value, viewport]);
+  }, [still, height, value, viewport, delay]);
   return (
     <Animated.View
       ref={node}

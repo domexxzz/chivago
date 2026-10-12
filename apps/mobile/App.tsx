@@ -25,6 +25,7 @@ import {
 } from './src/state/store.tsx';
 import type { DeepLink } from './src/notifications/push.ts';
 import { ScreenTransition, SosBanner, TabBar, Toast } from './src/components/Shell.tsx';
+import { useReduceMotion } from './src/components/reduce-motion.ts';
 import { LoadingState } from './src/components/States.tsx';
 import { OnboardingScreen } from './src/screens/Onboarding.tsx';
 import { MapScreen } from './src/screens/MapScreen.tsx';
@@ -59,6 +60,7 @@ import { UnfencedBand } from './src/components/UnfencedBand.tsx';
 import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
 
 export default function App() {
+  const reduceMotion = useReduceMotion();
   // Both families are bundled locally rather than fetched at runtime: the app
   // is used on a beach with one bar of signal, and a font that fails to load
   // takes the whole type system with it.
@@ -494,7 +496,7 @@ export default function App() {
 
         <View style={{ flex: 1 }}>
           <ErrorBoundary key={nav.screen} onReset={() => nav.selectTab('home')}>
-            <ScreenTransition screenKey={nav.screen}>{renderScreen(nav.screen)}</ScreenTransition>
+            <ScreenTransition screenKey={nav.screen} reduceMotion={nav.screen === 'stays' && reduceMotion}>{renderScreen(nav.screen)}</ScreenTransition>
           </ErrorBoundary>
         </View>
 
@@ -504,7 +506,7 @@ export default function App() {
           <SosBanner onPress={() => nav.selectTab('safety')} />
         ) : null}
 
-        {showTabs ? <TabBar active={nav.activeTab} onChange={nav.selectTab} /> : null}
+        {showTabs ? <TabBar active={nav.activeTab} onChange={nav.selectTab} floating={nav.screen === 'stays'} /> : null}
 
         <Toast message={toast.message} />
       </SafeAreaView>
