@@ -12,6 +12,7 @@ const STUBS = new Map([
   ['expo-task-manager', './stubs/native.mjs'],
   ['expo-device', './stubs/native.mjs'],
   ['expo-font', './stubs/native.mjs'],
+  ['./images.ts', './stubs/travel-images.mjs'],
 ]);
 
 /** Real files, not data: URLs — a data: URL cannot resolve `react`. */

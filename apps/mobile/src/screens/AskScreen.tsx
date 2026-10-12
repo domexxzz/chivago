@@ -28,7 +28,7 @@
  */
 
 import React from 'react';
-import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Animated, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { BedDouble, Car, Compass, Sparkles, X } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { tint, type TintKey } from '@chivago/tokens';
@@ -46,6 +46,8 @@ import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, SkeletonList } from '../components/States.tsx';
 import { getLocale, t } from '../i18n/locale.ts';
+import { TravelMarketplace } from '../features/travel-marketplace/TravelMarketplace.tsx';
+import { createTravelViewport } from '../features/travel-marketplace/viewport.ts';
 
 const DAY_MS = 86_400_000;
 
@@ -91,6 +93,9 @@ export function AskScreen({
   const listings = useAsync(() => api.listings(), []);
   const mine = useAsync(() => api.myInquiries(), []);
   const [asking, setAsking] = React.useState<ListingCard | null>(null);
+  const travelViewport = React.useMemo(createTravelViewport, []);
+  const travelScroll = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => () => travelViewport.dispose(), [travelViewport]);
 
   const withdraw = async (i: TravellerInquiry) => {
     const res = await api.withdrawInquiry(i.id);
@@ -102,7 +107,8 @@ export function AskScreen({
     <View style={{ flex: 1 }}>
       <PushHeader context={t(strings.ask.context)} onBack={onBack} />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: travelScroll } } }], { useNativeDriver: false, listener: travelViewport.check })}>
         <View style={{ paddingHorizontal: gutter, paddingBottom: 18 }}>
           <NotABooking />
         </View>
@@ -126,6 +132,8 @@ export function AskScreen({
           </View>
         ) : null}
         {listings.data?.map((l) => <ListingRow key={l.id} listing={l} onAsk={() => setAsking(l)} />)}
+
+        <TravelMarketplace viewport={travelViewport} scroll={travelScroll} />
 
         <View style={{ height: 32 }} />
       </ScrollView>

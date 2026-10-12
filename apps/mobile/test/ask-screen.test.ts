@@ -54,7 +54,7 @@ describe('what the screen says before anything is asked', () => {
     const s = server({ '/listings': [boat()], '/inquiries': [] }); restore = s.restore;
     const ui = await mountScreen(h(AskScreen, { onBack: noop, onToast: noop }));
     assert.match(ui.text(), /No price stated/);
-    assert.doesNotMatch(ui.text(), /0 THB|฿0/);
+    assert.doesNotMatch(ui.text(), /(?:^|\s)0 THB|฿0(?:\s|$)/);
   });
 
   test('a stated price is the operator’s, and says so', async () => {
@@ -101,7 +101,7 @@ describe('asking', () => {
     }); restore = s.restore;
     const ui = await mountScreen(h(AskScreen, { onBack: noop, onToast: (m: string) => toasts.push(m) }));
     await ui.pressText('Longtail to Koh Taen');
-    await ui.type('Two of us, morning if possible?');
+    await ui.type('Two of us, morning if possible?', 'Your question');
     await ui.pressText('Send question');
 
     const sent = s.calls.find((c) => c.method === 'POST' && c.path === '/listings/l1/inquiries');
@@ -120,7 +120,7 @@ describe('asking', () => {
     await ui.press('More people');
     await ui.press('More people');
     await ui.press('Fewer people');
-    await ui.type('Three of us?');
+    await ui.type('Three of us?', 'Your question');
     await ui.pressText('Send question');
     const sent = s.calls.find((c) => c.method === 'POST');
     assert.equal(sent!.body.partySize, 3);
@@ -137,7 +137,7 @@ describe('asking', () => {
     }); restore = s.restore;
     const ui = await mountScreen(h(AskScreen, { onBack: noop, onToast: (m: string) => toasts.push(m) }));
     await ui.pressText('Longtail to Koh Taen');
-    await ui.type('Two of us?');
+    await ui.type('Two of us?', 'Your question');
     await ui.pressText('Send question');
     assert.match(ui.text(), /That day has already passed/);
     assert.match(ui.text(), /Send question/, 'the sheet closed on a refusal');
@@ -148,7 +148,7 @@ describe('asking', () => {
     const s = server({ '/listings': [boat()], '/inquiries': [], 'POST /listings/l1/inquiries': offline() }); restore = s.restore;
     const ui = await mountScreen(h(AskScreen, { onBack: noop, onToast: noop }));
     await ui.pressText('Longtail to Koh Taen');
-    await ui.type('Is the sea calm enough tomorrow?');
+    await ui.type('Is the sea calm enough tomorrow?', 'Your question');
     await ui.pressText('Send question');
     assert.match(ui.text(), /You appear to be offline/);
     assert.match(ui.text(), /Is the sea calm enough tomorrow\?/, 'the typed question was lost');
