@@ -197,10 +197,6 @@ try {
     await page.keyboard.press("Escape");
     await expect(
       page.getByText("Try demo confirmation", { exact: true }),
-    ).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(
-      page.getByText("Close demo details", { exact: true }),
     ).toHaveCount(0);
     assert.deepEqual(
       writes,

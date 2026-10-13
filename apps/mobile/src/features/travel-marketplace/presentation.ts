@@ -4,6 +4,16 @@ import { browseStyles } from "./browseStyles.ts";
 
 /** Web-only polish, scoped to Stays & Tours; native keeps the same RN layout. */
 const styles = `
+[data-testid="travel-card"]:has([data-testid="travel-card-open"]:focus-visible) {
+  outline: 3px solid #096e79; outline-offset: 4px;
+}
+[data-testid="travel-card-open"] { cursor: pointer; }
+[data-testid="travel-card-open"]:hover { background-color: rgba(8,111,123,.035) !important; }
+[data-testid="marketplace-modal-scroll"] { overscroll-behavior: contain; }
+[data-testid="marketplace-modal-box"] [role="button"]:focus-visible {
+  outline: 3px solid #096e79; outline-offset: -3px;
+}
+[data-testid="marketplace-modal-close"]:hover { background-color: #d7e8eb !important; }
 [data-testid="stays-screen"] { background: linear-gradient(160deg, #edf5f5, #f7faf9); }
 [data-testid="stays-screen"] [role="button"],
 [data-testid="stays-screen"] [role="link"],

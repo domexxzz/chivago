@@ -3,15 +3,14 @@ import {
   Animated,
   Image,
   Linking,
-  Modal,
   Pressable,
-  ScrollView,
   View,
   useWindowDimensions,
 } from "react-native";
 import { Body, Heading, Label } from "../../components/Type.tsx";
 import { Button } from "../../components/Button.tsx";
 import { BrowseResults } from "./BrowseResults.tsx";
+import { MarketplaceModal } from "./MarketplaceModal.tsx";
 import { DestinationStrip } from "./DestinationStrip.tsx";
 import { SearchField } from "./SearchField.tsx";
 import { color, gutter, radius, onFill } from "../../theme/index.ts";
@@ -91,8 +90,8 @@ export function TravelMarketplace({
     if (!problems.length) setSearch({ ...draft });
   };
   const close = () => {
-    if (confirmed) setConfirmed(false);
-    else setDetail(null);
+    setDetail(null);
+    setConfirmed(false);
   };
   const desktop = width >= 1024;
 
@@ -385,125 +384,96 @@ export function TravelMarketplace({
           </View>
         ) : null}
       </View>
-      <Modal
-        visible={detail !== null}
-        transparent
-        animationType={still ? "none" : "slide"}
-        onRequestClose={close}
-      >
-        {detail ? (
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "rgba(0,0,0,0.45)",
-              justifyContent: "center",
-              padding: gutter,
-            }}
-          >
-            <ScrollView
-              accessibilityViewIsModal
-              style={{
-                flexGrow: 0,
-                maxHeight: "92%",
-                width: "100%",
-                maxWidth: 760,
-                alignSelf: "center",
-                backgroundColor: color.bg,
-                borderRadius: radius.md,
-              }}
-              contentContainerStyle={{ padding: 20, gap: 14 }}
-            >
-              <Button
-                label={
-                  confirmed ? "Back to demo details" : "Close demo details"
-                }
-                thai={
-                  confirmed
-                    ? "กลับไปดูรายละเอียดตัวอย่าง"
-                    : "ปิดรายละเอียดตัวอย่าง"
-                }
-                variant="ghost"
-                onPress={close}
+      {detail ? (
+        <MarketplaceModal
+          title={
+            confirmed
+              ? words(
+                  "Demo only — nothing booked",
+                  "ตัวอย่างเท่านั้น — ไม่มีการจอง",
+                )
+              : detail.title
+          }
+          view={confirmed ? "confirmation" : "details"}
+          onClose={close}
+        >
+          <Label size={10} colour={color.brand}>
+            {words("FICTIONAL DEMO", "ตัวอย่างสมมติ")}
+          </Label>
+          <Heading size={25}>
+            {confirmed
+              ? words(
+                  "Demo only — nothing booked",
+                  "ตัวอย่างเท่านั้น — ไม่มีการจอง",
+                )
+              : detail.title}
+          </Heading>
+          <Body>{boundary()}</Body>
+          {confirmed ? (
+            <View accessibilityRole="alert">
+              <Body>
+                {words(
+                  "Nothing has been reserved or charged. No inquiry was sent.",
+                  "ไม่มีการจองหรือเรียกเก็บเงิน และไม่ได้ส่งคำถามถึงผู้ประกอบการ",
+                )}
+              </Body>
+              <Body
+                style={{ marginTop: 12 }}
+              >{`${search.travelers} travelers · ${search.checkIn || "No arrival date"} → ${search.checkOut || "No departure date"}`}</Body>
+            </View>
+          ) : (
+            <>
+              <Image
+                source={travelImage(detail.images[photo]!)}
+                accessibilityLabel={detail.images[photo]!.alt}
+                style={{
+                  width: "100%",
+                  height: 240,
+                  borderRadius: radius.md,
+                }}
               />
-              <Label size={10} colour={color.brand}>
-                {words("FICTIONAL DEMO", "ตัวอย่างสมมติ")}
-              </Label>
-              <Heading size={25}>
-                {confirmed
-                  ? words(
-                      "Demo only — nothing booked",
-                      "ตัวอย่างเท่านั้น — ไม่มีการจอง",
-                    )
-                  : detail.title}
-              </Heading>
-              <Body>{boundary()}</Body>
-              {confirmed ? (
-                <View accessibilityRole="alert">
-                  <Body>
-                    {words(
-                      "Nothing has been reserved or charged. No inquiry was sent.",
-                      "ไม่มีการจองหรือเรียกเก็บเงิน และไม่ได้ส่งคำถามถึงผู้ประกอบการ",
-                    )}
-                  </Body>
-                  <Body
-                    style={{ marginTop: 12 }}
-                  >{`${search.travelers} travelers · ${search.checkIn || "No arrival date"} → ${search.checkOut || "No departure date"}`}</Body>
-                </View>
-              ) : (
-                <>
-                  <Image
-                    source={travelImage(detail.images[photo]!)}
-                    accessibilityLabel={detail.images[photo]!.alt}
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                {detail.images.map((im, index) => (
+                  <Pressable
+                    key={index}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Demo photo ${index + 1}`}
+                    accessibilityState={{ selected: photo === index }}
+                    onPress={() => setPhoto(index)}
                     style={{
-                      width: "100%",
-                      height: 240,
-                      borderRadius: radius.md,
+                      flex: 1,
+                      borderWidth: 2,
+                      borderColor:
+                        photo === index ? color.brand : color.neutral300,
                     }}
-                  />
-                  <View style={{ flexDirection: "row", gap: 10 }}>
-                    {detail.images.map((im, index) => (
-                      <Pressable
-                        key={index}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Demo photo ${index + 1}`}
-                        accessibilityState={{ selected: photo === index }}
-                        onPress={() => setPhoto(index)}
-                        style={{
-                          flex: 1,
-                          borderWidth: 2,
-                          borderColor:
-                            photo === index ? color.brand : color.neutral300,
-                        }}
-                      >
-                        <Image
-                          source={travelImage(im)}
-                          accessibilityLabel={im.alt}
-                          style={{ width: "100%", height: 60 }}
-                        />
-                      </Pressable>
-                    ))}
-                  </View>
-                  <Body>{detail.description}</Body>
-                  <Heading
-                    size={22}
-                  >{`${formatPrice(detail.price)} / ${detail.priceUnit}`}</Heading>
-                  <Label size={10}>Fictional reviews</Label>
-                  {detail.reviews.map((r) => (
-                    <Body
-                      key={r.id}
-                    >{`${r.name} · ${r.rating}/5 · ${r.text}`}</Body>
-                  ))}
-                  <Button
-                    label="Try demo confirmation"
-                    thai="ทดลองหน้าตัวอย่างยืนยัน"
-                    onPress={() => setConfirmed(true)}
-                  />
-                </>
-              )}
-            </ScrollView>
-          </View>
-        ) : null}
-      </Modal>
+                  >
+                    <Image
+                      source={travelImage(im)}
+                      accessibilityLabel={im.alt}
+                      style={{ width: "100%", height: 60 }}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+              <Body>{detail.description}</Body>
+              <Heading
+                size={22}
+              >{`${formatPrice(detail.price)} / ${detail.priceUnit}`}</Heading>
+              <Label size={10}>Fictional reviews</Label>
+              {detail.reviews.map((r) => (
+                <Body
+                  key={r.id}
+                >{`${r.name} · ${r.rating}/5 · ${r.text}`}</Body>
+              ))}
+              <Button
+                label="Try demo confirmation"
+                thai="ทดลองหน้าตัวอย่างยืนยัน"
+                onPress={() => setConfirmed(true)}
+              />
+            </>
+          )}
+        </MarketplaceModal>
+      ) : null}
     </View>
   );
 }

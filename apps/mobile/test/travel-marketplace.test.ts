@@ -91,8 +91,11 @@ test("existing operator empty state survives and demo detail actions send no req
       ui.text(),
       /Nothing has been reserved or charged. No inquiry was sent/,
     );
-    await ui.pressText("Back to demo details");
-    await ui.pressText("Close demo details");
+    await ui.press("Close");
+    assert.doesNotMatch(ui.text(), /Fictional reviews/);
+    await ui.press("Open details: An unhurried island day");
+    assert.match(ui.text(), /Fictional reviews/);
+    await ui.press("Close");
     assert.match(ui.text(), /18 demo results/);
     assert.ok(net.calls.every((call) => call.method === "GET"));
     assert.deepEqual(net.calls.map((call) => call.path).sort(), [

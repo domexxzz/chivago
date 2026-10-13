@@ -111,6 +111,12 @@ function ResultCard({
   onOpen: (item: Listing) => void;
 }) {
   const [saved, setSaved] = React.useState(false);
+  const opener = React.useRef<View>(null);
+  const open = () => {
+    // Always restore focus to the card, including when its CTA was used.
+    if (Platform.OS === "web") opener.current?.focus();
+    onOpen(item);
+  };
   return (
     <View
       testID="travel-card"
@@ -122,8 +128,14 @@ function ResultCard({
         overflow: "hidden",
       }}
     >
-      <View testID="browse-card-photo" style={{ height: 220 }}>
-        <LazyPhoto photo={item.images[0]!} viewport={viewport} />
+      <View
+        testID="browse-card-photo"
+        pointerEvents="box-none"
+        style={{ height: 220, zIndex: 2 }}
+      >
+        <View pointerEvents="none" style={{ flex: 1 }}>
+          <LazyPhoto photo={item.images[0]!} viewport={viewport} />
+        </View>
         <Pressable
           testID="browse-save"
           accessibilityRole={Platform.OS === "web" ? "button" : "togglebutton"}
@@ -133,6 +145,7 @@ function ResultCard({
           onPress={() => setSaved(!saved)}
           style={{
             position: "absolute",
+            zIndex: 3,
             right: 12,
             top: 12,
             width: 44,
@@ -155,6 +168,7 @@ function ResultCard({
           </View>
         </Pressable>
         <View
+          pointerEvents="none"
           style={{
             position: "absolute",
             bottom: 0,
@@ -233,20 +247,45 @@ function ResultCard({
       </View>
       <View
         testID="browse-card-price"
-        style={{ padding: 20, gap: 8, justifyContent: "center" }}
+        pointerEvents="box-none"
+        style={{ padding: 20, gap: 8, justifyContent: "center", zIndex: 2 }}
       >
-        <Body style={{ fontSize: 12 }}>From</Body>
-        <Heading size={26}>{`฿${item.price.toLocaleString("en-US")}`}</Heading>
-        <Body style={{ fontSize: 12 }}>{`per ${item.priceUnit}`}</Body>
-        <Button
-          label="View demo"
-          icon={null}
-          accessibilityLabel={`View demo: ${item.title}`}
-          onPress={() => onOpen(item)}
-          style={{ marginTop: 8, borderRadius: 12 }}
-        />
-        <Body style={{ fontSize: 12 }}>Nothing reservable</Body>
+        <View pointerEvents="none" style={{ gap: 8 }}>
+          <Body style={{ fontSize: 12 }}>From</Body>
+          <Heading
+            size={26}
+          >{`฿${item.price.toLocaleString("en-US")}`}</Heading>
+          <Body style={{ fontSize: 12 }}>{`per ${item.priceUnit}`}</Body>
+        </View>
+        <View style={{ zIndex: 2 }}>
+          <Button
+            label="View demo"
+            icon={null}
+            accessibilityLabel={`View demo: ${item.title}`}
+            onPress={open}
+            style={{ marginTop: 8, borderRadius: 12 }}
+          />
+        </View>
+        <View pointerEvents="none">
+          <Body style={{ fontSize: 12 }}>Nothing reservable</Body>
+        </View>
       </View>
+      {/* A sibling overlay makes the whole card actionable without nesting
+          the save and CTA buttons inside another button. */}
+      <Pressable
+        ref={opener}
+        testID="travel-card-open"
+        accessibilityRole="button"
+        accessibilityLabel={`Open details: ${item.title}`}
+        onPress={open}
+        style={({ pressed }) => ({
+          position: "absolute",
+          inset: 0,
+          zIndex: 1,
+          borderRadius: 20,
+          backgroundColor: pressed ? "rgba(8,111,123,.06)" : "transparent",
+        })}
+      />
     </View>
   );
 }
