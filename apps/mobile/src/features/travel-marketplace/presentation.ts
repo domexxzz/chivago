@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Platform } from "react-native";
+import { browseStyles } from "./browseStyles.ts";
 
 /** Web-only polish, scoped to Stays & Tours; native keeps the same RN layout. */
 const styles = `
@@ -64,10 +65,6 @@ const styles = `
 [data-testid="stays-navigation"] { box-shadow: 0 8px 28px rgba(15,48,64,.13); }
 [data-testid="stays-navigation"] [role="tab"] { border-radius: 28px; }
 [data-testid="stays-navigation"] [role="tab"]:hover { background: rgba(7,115,128,.06); }
-[data-testid="travel-filters"] { display: grid; grid-template-columns: 1fr; gap: 12px 24px; }
-@media (min-width: 768px) {
-  [data-testid="travel-filters"] { grid-template-columns: repeat(2, minmax(0,1fr)); }
-}
 @media (min-width: 1024px) {
   [data-testid="stays-header"], [data-testid="stays-container"] { padding-left: 16px; padding-right: 16px; }
   [data-testid="travel-hero-copy"] { max-width: 760px; }
@@ -89,7 +86,7 @@ export function useTravelPresentation() {
   useEffect(() => {
     if (Platform.OS !== "web" || typeof document === "undefined") return;
     const sheet = document.createElement("style");
-    sheet.textContent = styles;
+    sheet.textContent = styles + browseStyles;
     document.head.appendChild(sheet);
     return () => sheet.remove();
   }, []);

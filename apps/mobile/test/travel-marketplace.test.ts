@@ -79,12 +79,10 @@ test("existing operator empty state survives and demo detail actions send no req
   try {
     assert.match(ui.text(), /No operator has listed here yet/);
     assert.match(ui.text(), /This is a question, not a booking/);
-    assert.match(ui.text(), /18 fictional possibilities/);
+    assert.match(ui.text(), /18 demo results/);
     await ui.press("Demo category: Stays");
-    assert.match(ui.text(), /6 fictional possibilities/);
-    await ui.press("Maximum base price: 500 THB");
-    assert.match(ui.text(), /No demo matches/);
-    await ui.pressText("Reset demo filters");
+    assert.match(ui.text(), /6 demo results/);
+    await ui.press("Reset demo filters");
     await ui.press("View demo: An unhurried island day");
     assert.match(ui.text(), /Fictional reviews/);
     await ui.press("Demo photo 2");
@@ -95,7 +93,7 @@ test("existing operator empty state survives and demo detail actions send no req
     );
     await ui.pressText("Back to demo details");
     await ui.pressText("Close demo details");
-    assert.match(ui.text(), /18 fictional possibilities/);
+    assert.match(ui.text(), /18 demo results/);
     assert.ok(net.calls.every((call) => call.method === "GET"));
     assert.deepEqual(net.calls.map((call) => call.path).sort(), [
       "/inquiries",

@@ -73,7 +73,7 @@ try {
     );
     assert.equal(
       new Set(cardBoxes.map((box) => Math.round(box.y))).size,
-      width >= 1024 ? 1 : width >= 480 ? 2 : 4,
+      width >= 1024 ? 1 : width >= 768 ? 2 : 3,
     );
     const row = page.getByTestId("travel-search-row");
     const fieldBoxes = await row
@@ -87,7 +87,7 @@ try {
     );
     const container = await page.getByTestId("stays-container").boundingBox();
     assert.ok(
-      container.width <= 1280 && container.width >= Math.min(width, 1280) - 1,
+      container.width <= 1400 && container.width >= Math.min(width, 1400) - 1,
     );
     const navigation = await page.getByTestId("stays-navigation").boundingBox();
     assert.ok(navigation.width <= 601);
@@ -148,15 +148,35 @@ try {
     await expect(demo.getByRole("button", { name: /^View demo:/ })).toHaveCount(
       1,
     );
-    await page
-      .getByRole("button", { name: "Maximum base price: 500 THB", exact: true })
-      .click();
+    if (width < 1024)
+      await page
+        .getByRole("button", { name: "Open demo filters", exact: true })
+        .click();
+    const priceSlider = page.getByRole("slider", {
+      name: "Maximum base price",
+      exact: true,
+    });
+    await priceSlider.focus();
+    await page.keyboard.press("Home");
+    await expect(priceSlider).toHaveAttribute("aria-valuetext", "500 THB");
+    if (width < 1024) {
+      await page.screenshot({ path: `${output}/browse-sheet-${width}.png` });
+      await page
+        .getByRole("button", { name: "Show 0 results", exact: true })
+        .click();
+      await expect(
+        page.getByRole("button", { name: "Open demo filters", exact: true }),
+      ).toBeFocused();
+    }
     await expect(
       page.getByText("No demo matches. Try resetting the filters.", {
         exact: true,
       }),
     ).toBeVisible();
-    await page.getByText("Reset demo filters", { exact: true }).click();
+    await page
+      .getByTestId("browse-results-header")
+      .getByRole("button", { name: "Reset demo filters", exact: true })
+      .click();
     await page
       .getByRole("button", {
         name: "View demo: An unhurried island day",
@@ -187,7 +207,147 @@ try {
       [],
       "Demo actions must never send a real inquiry or payment",
     );
-    await demo.scrollIntoViewIfNeeded();
+    await page.getByTestId("browse-heading").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${output}/browse-results-${width}.png` });
+    const cards = page.getByTestId("travel-card");
+    const firstCard = cards.first();
+    const photoBox = await firstCard
+      .getByTestId("browse-card-photo")
+      .boundingBox();
+    const copyBox = await firstCard
+      .getByTestId("browse-card-copy")
+      .boundingBox();
+    if (width >= 1024) {
+      assert.ok(
+        copyBox.x > photoBox.x + photoBox.width - 2,
+        "Horizontal desktop results",
+      );
+      assert.equal(
+        await page
+          .getByTestId("browse-sidebar")
+          .evaluate((el) => getComputedStyle(el).position),
+        "sticky",
+      );
+    } else {
+      assert.ok(
+        copyBox.y >= photoBox.y + photoBox.height - 2,
+        "Stacked small-screen results",
+      );
+      assert.equal(
+        await page
+          .getByTestId("browse-mobile-toolbar")
+          .evaluate((el) => getComputedStyle(el).position),
+        "sticky",
+      );
+    }
+    await firstCard.getByRole("button", { name: /^Save demo:/ }).click();
+    await expect(
+      firstCard.getByRole("button", { name: /^Unsave demo:/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await firstCard.getByRole("button", { name: /^Unsave demo:/ }).click();
+    if (width < 1024)
+      await page
+        .getByRole("button", { name: "Open demo sort", exact: true })
+        .click();
+    await page
+      .getByRole("combobox", { name: "Sort demo results", exact: true })
+      .selectOption("price-asc");
+    if (width < 1024)
+      await page
+        .getByRole("button", { name: "Show 18 results", exact: true })
+        .click();
+    await expect(cards.first()).toContainText("฿450");
+    if (width < 1024) {
+      await page
+        .getByRole("button", { name: "Open demo filters", exact: true })
+        .click();
+      const sheet = page.getByTestId("browse-sheet-root");
+      await page
+        .getByRole("radio", { name: "Minimum demo rating: 4.8+", exact: true })
+        .check();
+      await page
+        .getByRole("radio", {
+          name: "Demo duration: Up to 4 hours",
+          exact: true,
+        })
+        .check();
+      for (let i = 0; i < 16; i++) {
+        await page.keyboard.press("Tab");
+        assert.ok(
+          await sheet.evaluate((el) => el.contains(document.activeElement)),
+          "Sheet retains keyboard focus",
+        );
+      }
+      await page.keyboard.press("Escape");
+      await expect(sheet).toHaveCount(0);
+    } else {
+      await page
+        .getByRole("radio", { name: "Minimum demo rating: 4.8+", exact: true })
+        .check();
+      await page
+        .getByRole("radio", {
+          name: "Demo duration: Up to 4 hours",
+          exact: true,
+        })
+        .check();
+    }
+    await expect(
+      page.getByRole("button", {
+        name: "Remove filter: 4.8+ rating",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Remove filter: 4.8+ rating", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", {
+        name: "Remove filter: 4.8+ rating",
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await page
+      .getByTestId("browse-results-header")
+      .getByRole("button", { name: "Reset demo filters", exact: true })
+      .click();
+    await expect(cards).toHaveCount(18);
+    await cards.nth(3).scrollIntoViewIfNeeded();
+    const sticky = page.getByTestId(
+      width >= 1024 ? "browse-sidebar" : "browse-mobile-toolbar",
+    );
+    const stickyBox = await sticky.boundingBox();
+    const headerBox = await page.getByTestId("stays-header").boundingBox();
+    assert.ok(
+      stickyBox.y >= headerBox.y + headerBox.height - 1 &&
+        stickyBox.y <= headerBox.y + headerBox.height + 20,
+      "Controls remain pinned while scrolling results",
+    );
+    if (width < 1024)
+      await page
+        .getByRole("button", { name: "Open demo filters", exact: true })
+        .click();
+    await page
+      .getByRole("button", { name: "Maximum base price", exact: true })
+      .click();
+    await expect(
+      page.getByRole("slider", { name: "Maximum base price", exact: true }),
+    ).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Maximum base price", exact: true })
+      .click();
+    await page
+      .getByRole("slider", { name: "Maximum base price", exact: true })
+      .focus();
+    await page.keyboard.press("ArrowLeft");
+    await expect(
+      page.getByRole("slider", { name: "Maximum base price", exact: true }),
+    ).toHaveAttribute("aria-valuetext", "3000 THB");
+    if (width < 1024) await page.keyboard.press("Escape");
+    await page
+      .getByTestId("browse-results-header")
+      .getByRole("button", { name: "Reset demo filters", exact: true })
+      .click();
+    await page.getByTestId("browse-heading").scrollIntoViewIfNeeded();
     await page.screenshot({ path: `${output}/stays-and-tours-${width}.png` });
     assert.equal(
       await page.evaluate(

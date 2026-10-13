@@ -107,13 +107,13 @@ export function AskScreen({
 
   return (
     <View testID="stays-screen" style={{ flex: 1 }}>
-      <View testID="stays-header" style={{ width: '100%', maxWidth: 1280, alignSelf: 'center' }}>
+      <View testID="stays-header" style={{ width: '100%', maxWidth: 1400, alignSelf: 'center' }}>
       <PushHeader context={t(strings.ask.context)} onBack={onBack} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} scrollEventThrottle={16}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: travelScroll } } }], { useNativeDriver: false, listener: travelViewport.check })}>
-        <View testID="stays-container" style={{ width: '100%', maxWidth: 1280, alignSelf: 'center', paddingBottom: 24 }}>
+        <View testID="stays-container" style={{ width: '100%', maxWidth: 1400, alignSelf: 'center', paddingBottom: 24 }}>
         <View style={{ paddingHorizontal: gutter, paddingBottom: 18 }}>
           <NotABooking />
         </View>

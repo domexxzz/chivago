@@ -11,19 +11,15 @@ import {
 } from "react-native";
 import { Body, Heading, Label } from "../../components/Type.tsx";
 import { Button } from "../../components/Button.tsx";
-import { SkeletonList } from "../../components/States.tsx";
+import { BrowseResults } from "./BrowseResults.tsx";
+import { DestinationStrip } from "./DestinationStrip.tsx";
 import { SearchField } from "./SearchField.tsx";
 import { color, gutter, radius, onFill } from "../../theme/index.ts";
 import { t } from "../../i18n/locale.ts";
 import { travelImage } from "./images.ts";
 import { useReduceMotion } from "../../components/reduce-motion.ts";
 import { getTravelListings } from "./data.ts";
-import {
-  IMAGE_CREDITS,
-  MOCK_DESTINATIONS,
-  MOCK_TESTIMONIALS,
-  PHOTOS,
-} from "./mockData.ts";
+import { IMAGE_CREDITS, MOCK_TESTIMONIALS, PHOTOS } from "./mockData.ts";
 import { selectListings, searchProblems, formatPrice } from "./catalogue.ts";
 import {
   DEFAULT_FILTERS,
@@ -40,57 +36,6 @@ const boundary = () =>
     "Fictional travel demo · not real operators or offers. Nothing is reserved or charged.",
     "ตัวอย่างท่องเที่ยวสมมติ · ไม่ใช่ผู้ประกอบการหรือข้อเสนอจริง ไม่มีการจองหรือเรียกเก็บเงิน",
   );
-const control = {
-  borderWidth: 1,
-  borderColor: color.neutral300,
-  borderRadius: radius.sm,
-  padding: 12,
-  color: color.text,
-  minHeight: 44,
-};
-
-function Choices({
-  label,
-  choices,
-  value,
-  onChange,
-}: {
-  label: string;
-  choices: readonly (readonly [string, string])[];
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <View style={{ marginVertical: 6 }}>
-      <Label size={10}>{label}</Label>
-      <View style={{ marginTop: 8 }}>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {choices.map(([key, text]) => (
-            <Pressable
-              key={key}
-              accessibilityRole="button"
-              accessibilityLabel={`${label}: ${text}`}
-              accessibilityState={{ selected: key === value }}
-              onPress={() => onChange(key)}
-              style={{
-                ...control,
-                backgroundColor: key === value ? color.brand : color.bg,
-              }}
-            >
-              <Label
-                size={11}
-                tracking={0}
-                colour={key === value ? onFill.brand : color.text}
-              >
-                {text}
-              </Label>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-    </View>
-  );
-}
 
 export function TravelMarketplace({
   viewport,
@@ -149,11 +94,7 @@ export function TravelMarketplace({
     if (confirmed) setConfirmed(false);
     else setDetail(null);
   };
-  const columns = width >= 1100 ? 3 : width >= 650 ? 2 : 1;
   const desktop = width >= 1024;
-  const contentWidth = Math.min(width, 1280) - (desktop ? 32 : 0) - gutter * 2;
-  const cardWidth = (contentWidth - 16 * (columns - 1)) / columns;
-  const destinationColumns = desktop ? 4 : width >= 480 ? 2 : 1;
 
   return (
     <View
@@ -167,7 +108,7 @@ export function TravelMarketplace({
     >
       <View
         style={{
-          maxWidth: 1280,
+          maxWidth: 1400,
           width: "100%",
           alignSelf: "center",
           paddingHorizontal: gutter,
@@ -332,245 +273,36 @@ export function TravelMarketplace({
             </Body>
           </View>
         </Reveal>
-        <Heading
-          size={desktop ? 30 : 24}
-          style={{ marginTop: 40, marginBottom: 16 }}
-        >
-          {words("Find your rhythm", "ค้นหาจังหวะของคุณ")}
-        </Heading>
-        <View
-          testID="travel-destinations"
-          style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}
-        >
-          {MOCK_DESTINATIONS.map((d, index) => (
-            <View
-              key={d.name}
-              style={{
-                width:
-                  (contentWidth - 16 * (destinationColumns - 1)) /
-                  destinationColumns,
-              }}
-            >
-              <Reveal viewport={viewport} delay={index * 60}>
-                <Pressable
-                  testID="travel-destination"
-                  accessibilityRole="button"
-                  accessibilityLabel={`Demo destination: ${d.name}`}
-                  onPress={() => {
-                    setDraft({ ...draft, destination: d.name });
-                    setSearch({ ...search, destination: d.name });
-                  }}
-                  style={{
-                    borderRadius: 20,
-                    overflow: "hidden",
-                    backgroundColor: color.brand,
-                  }}
-                >
-                  <Image
-                    source={travelImage(d.image)}
-                    accessibilityLabel={d.image.alt}
-                    style={{ height: desktop ? 220 : 180, width: "100%" }}
-                  />
-                  <View testID="travel-destination-label">
-                    <Label
-                      size={11}
-                      colour={onFill.brand}
-                      style={{ padding: 12 }}
-                    >
-                      {d.name}
-                    </Label>
-                  </View>
-                </Pressable>
-              </Reveal>
-            </View>
-          ))}
-        </View>
-        <Heading
-          size={desktop ? 30 : 24}
-          style={{ marginTop: 40, marginBottom: 16 }}
-        >
-          {words("Good days start here", "วันดี ๆ เริ่มที่นี่")}
-        </Heading>
-        <View
-          testID="travel-filters"
-          style={{
-            padding: 20,
-            borderRadius: 24,
-            backgroundColor: color.surface,
-            borderWidth: 1,
-            borderColor: color.neutral300,
-            marginBottom: 16,
+        <DestinationStrip
+          items={items}
+          viewport={viewport}
+          onSelect={(destination) => {
+            setDraft({ ...draft, destination });
+            setSearch({ ...search, destination });
           }}
-        >
-          <Choices
-            label="Demo category"
-            value={filters.category}
-            choices={[
-              ["all", "All"],
-              ["tour", "Tours"],
-              ["stay", "Stays"],
-              ["experience", "Experiences"],
-            ]}
-            onChange={(category) =>
-              setFilters({
-                ...filters,
-                category: category as typeof filters.category,
-              })
-            }
-          />
-          <Choices
-            label="Maximum base price"
-            value={String(filters.maxPrice)}
-            choices={["500", "1000", "2000", "3000", "5000"].map((v) => [
-              v,
-              `${v} THB`,
-            ])}
-            onChange={(v) => setFilters({ ...filters, maxPrice: Number(v) })}
-          />
-          <Choices
-            label="Minimum demo rating"
-            value={String(filters.minRating)}
-            choices={[
-              ["0", "Any"],
-              ["4.8", "4.8+"],
-              ["4.9", "4.9+"],
-            ]}
-            onChange={(v) => setFilters({ ...filters, minRating: Number(v) })}
-          />
-          <Choices
-            label="Demo duration"
-            value={filters.duration}
-            choices={[
-              ["all", "Any"],
-              ["short", "Up to 4 hours"],
-              ["day", "4–24 hours"],
-              ["long", "Over 24 hours"],
-            ]}
-            onChange={(duration) =>
-              setFilters({
-                ...filters,
-                duration: duration as typeof filters.duration,
-              })
-            }
-          />
-          <Choices
-            label="Demo sort"
-            value={sort}
-            choices={[
-              ["featured", "Our picks"],
-              ["price-asc", "Price ↑"],
-              ["price-desc", "Price ↓"],
-              ["rating", "Rating ↓"],
-            ]}
-            onChange={(v) => setSort(v as SortOrder)}
-          />
-        </View>
-        <Button
-          label="Reset demo filters"
-          thai="ล้างตัวกรองตัวอย่าง"
-          variant="ghost"
-          onPress={reset}
         />
-        <Body size={13}>
-          {loading
-            ? "Loading demo…"
-            : failed
-              ? "Demo catalogue unavailable."
-              : `${visible.length} fictional possibilities · ratings are made up`}
-        </Body>
-        {loading ? (
-          <View style={{ flexDirection: "row", gap: 16, marginTop: 16 }}>
-            {Array.from({ length: columns }, (_, index) => (
-              <View
-                key={index}
-                style={{
-                  width: cardWidth,
-                  borderRadius: 20,
-                  overflow: "hidden",
-                  backgroundColor: color.surface,
-                }}
-              >
-                <View
-                  style={{ height: 180, backgroundColor: color.neutral200 }}
-                />
-                <SkeletonList rows={2} />
-              </View>
-            ))}
-          </View>
-        ) : null}
-        {failed ? (
-          <Button label="Retry demo" onPress={() => setReload((n) => n + 1)} />
-        ) : null}
-        {!loading && !failed && !visible.length ? (
-          <Body style={{ marginVertical: 18 }}>
-            {words(
-              "No demo matches. Try resetting the filters.",
-              "ไม่มีตัวอย่างตรงกับตัวกรอง ลองล้างตัวกรอง",
-            )}
-          </Body>
-        ) : null}
-        {!failed && (
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 16,
-              marginTop: 14,
-            }}
-          >
-            {visible.map((item) => (
-              <View key={item.id} style={{ width: cardWidth }}>
-                <Reveal viewport={viewport}>
-                  <Pressable
-                    testID="travel-card"
-                    accessibilityRole="button"
-                    accessibilityLabel={`View demo: ${item.title}`}
-                    onPress={() => {
-                      setDetail(item);
-                      setPhoto(0);
-                      setConfirmed(false);
-                    }}
-                    style={({ pressed }) => ({
-                      borderWidth: 1,
-                      borderColor: color.neutral300,
-                      borderRadius: 20,
-                      overflow: "hidden",
-                      backgroundColor: color.surface,
-                      opacity: pressed ? 0.85 : 1,
-                      transform: !still && pressed ? [{ translateY: -3 }] : [],
-                    })}
-                  >
-                    <View
-                      testID="travel-card-image"
-                      style={{ overflow: "hidden" }}
-                    >
-                      <Image
-                        source={travelImage(item.images[0]!)}
-                        accessibilityLabel={item.images[0]!.alt}
-                        style={{ width: "100%", height: 190 }}
-                      />
-                    </View>
-                    <View style={{ padding: 16, gap: 8 }}>
-                      <Label
-                        size={10}
-                        colour={color.brand}
-                      >{`${item.category} · Fictional listing`}</Label>
-                      <Body size={13}>{item.location}</Body>
-                      <Heading size={19}>{item.title}</Heading>
-                      <Body
-                        size={13}
-                      >{`★ ${item.rating} (${item.reviewCount} demo ratings) · ${item.duration}`}</Body>
-                      <Body size={13}>{item.tags.join(" · ")}</Body>
-                      <Heading
-                        size={18}
-                      >{`${formatPrice(item.price)} / ${item.priceUnit}`}</Heading>
-                    </View>
-                  </Pressable>
-                </Reveal>
-              </View>
-            ))}
-          </View>
-        )}
+        <BrowseResults
+          items={visible}
+          filters={filters}
+          onFilters={setFilters}
+          sort={sort}
+          onSort={setSort}
+          destination={search.destination}
+          onClearDestination={() => {
+            setSearch({ ...search, destination: "" });
+            setDraft({ ...draft, destination: "" });
+          }}
+          onReset={reset}
+          loading={loading}
+          failed={failed}
+          onRetry={() => setReload((n) => n + 1)}
+          viewport={viewport}
+          onOpen={(item) => {
+            setDetail(item);
+            setPhoto(0);
+            setConfirmed(false);
+          }}
+        />
         <Heading size={22} style={{ marginTop: 26 }}>
           {words("The moments that stay", "ช่วงเวลาที่น่าจดจำ")}
         </Heading>
