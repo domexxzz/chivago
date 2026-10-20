@@ -284,6 +284,8 @@ export const strings = {
     healthyScore: t('Healthy Score', 'คะแนนสุขภาวะของพื้นที่'),
     addToRoute: t("Add to today's route", 'เพิ่มลงเส้นทาง'),
     safePath: t('Safe path from here', 'เส้นทางปลอดภัยจากที่นี่'),
+    // The place's own booking page. Chivago takes no booking and no money.
+    book: t('Book on their site', 'จองที่เว็บของสถานที่'),
     /**
      * Getting there (docs/52). The heading is a question because that is the
      * one the traveller is actually asking, and the answer under it is a

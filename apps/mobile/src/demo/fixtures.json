@@ -1945,6 +1945,123 @@
       }
     },
     {
+      "id": "sinthani-badminton",
+      "name": {
+        "en": "Badminton@Sinthani",
+        "th": "แบดมินตัน@สินธานี"
+      },
+      "short": "Badminton",
+      "layer": "Wellness",
+      "province": "TH-13",
+      "lat": 14.0134018,
+      "lng": 100.7206586,
+      "meta": "Badminton · Indoor · Book online · Air modelled, not measured",
+      "blurb": {
+        "en": "Indoor badminton courts, open daily 09:00-23:00. Book a court and pay by PromptPay on the venue's own page before you go.",
+        "th": "สนามแบดมินตันในร่ม เปิดทุกวัน 09:00-23:00 จองสนามและจ่ายผ่านพร้อมเพย์ได้ที่เว็บของสนามก่อนไป"
+      },
+      "tags": [
+        "Sport",
+        "Badminton",
+        "Indoor",
+        "Booking"
+      ],
+      "photo": null,
+      "metrics": {
+        "crowdDensity": 2,
+        "aqi": 68,
+        "safetyIndex": 6.2,
+        "walkability": 5
+      },
+      "airStation": null,
+      "bookingUrl": "https://badminton-booking-ihw1.onrender.com/",
+      "safetyLabel": {
+        "en": "Staffed venue",
+        "th": "สนามมีเจ้าหน้าที่"
+      },
+      "readings": {
+        "aqi": {
+          "value": 68,
+          "provenance": "live",
+          "observedAt": "2026-10-20T17:00:00.000Z",
+          "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+        },
+        "crowdDensity": {
+          "value": 2,
+          "provenance": "estimated",
+          "observedAt": "2026-10-20T17:27:19.079Z",
+          "source": "Seeded survey estimate - no live density feed"
+        }
+      },
+      "crowd": {
+        "checkinsLastHour": 0,
+        "windowMinutes": 60,
+        "countedAt": "2026-10-20T17:27:17.997Z"
+      },
+      "healthyScore": 67,
+      "breakdown": {
+        "total": 67,
+        "components": [
+          {
+            "key": "crowdDensity",
+            "label": {
+              "en": "Crowd level",
+              "th": "ความหนาแน่น"
+            },
+            "display": "High",
+            "subScore": 60,
+            "weight": 0.189,
+            "provenance": "estimated"
+          },
+          {
+            "key": "aqi",
+            "label": {
+              "en": "Air quality",
+              "th": "คุณภาพอากาศ"
+            },
+            "display": "68 AQI",
+            "subScore": 71,
+            "weight": 0.324,
+            "provenance": "live"
+          },
+          {
+            "key": "safetyIndex",
+            "label": {
+              "en": "Safety",
+              "th": "ความปลอดภัย"
+            },
+            "display": "Staffed venue",
+            "subScore": 72,
+            "weight": 0.27,
+            "provenance": "daily"
+          },
+          {
+            "key": "walkability",
+            "label": {
+              "en": "Walkability",
+              "th": "การเดินเท้า"
+            },
+            "display": "5.0 / 10",
+            "subScore": 60,
+            "weight": 0.216,
+            "provenance": "daily"
+          }
+        ],
+        "profileApplied": "Island baseline"
+      },
+      "reviews": {
+        "count": 0,
+        "average": null,
+        "distribution": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
       "id": "ku-bk-library",
       "name": {
         "en": "Kasetsart University Library",
@@ -4794,6 +4911,137 @@
     ]
   },
   "/places/rmutt-fountain/stories": {
+    "open": false,
+    "stories": []
+  },
+  "/places/sinthani-badminton": {
+    "id": "sinthani-badminton",
+    "name": {
+      "en": "Badminton@Sinthani",
+      "th": "แบดมินตัน@สินธานี"
+    },
+    "short": "Badminton",
+    "layer": "Wellness",
+    "province": "TH-13",
+    "lat": 14.0134018,
+    "lng": 100.7206586,
+    "meta": "Badminton · Indoor · Book online · Air modelled, not measured",
+    "blurb": {
+      "en": "Indoor badminton courts, open daily 09:00-23:00. Book a court and pay by PromptPay on the venue's own page before you go.",
+      "th": "สนามแบดมินตันในร่ม เปิดทุกวัน 09:00-23:00 จองสนามและจ่ายผ่านพร้อมเพย์ได้ที่เว็บของสนามก่อนไป"
+    },
+    "tags": [
+      "Sport",
+      "Badminton",
+      "Indoor",
+      "Booking"
+    ],
+    "photo": null,
+    "metrics": {
+      "crowdDensity": 2,
+      "aqi": 68,
+      "safetyIndex": 6.2,
+      "walkability": 5
+    },
+    "airStation": null,
+    "bookingUrl": "https://badminton-booking-ihw1.onrender.com/",
+    "safetyLabel": {
+      "en": "Staffed venue",
+      "th": "สนามมีเจ้าหน้าที่"
+    },
+    "readings": {
+      "aqi": {
+        "value": 68,
+        "provenance": "live",
+        "observedAt": "2026-10-20T17:00:00.000Z",
+        "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
+      },
+      "crowdDensity": {
+        "value": 2,
+        "provenance": "estimated",
+        "observedAt": "2026-10-20T17:27:19.079Z",
+        "source": "Seeded survey estimate - no live density feed"
+      }
+    },
+    "crowd": {
+      "checkinsLastHour": 0,
+      "windowMinutes": 60,
+      "countedAt": "2026-10-20T17:27:17.997Z"
+    },
+    "healthyScore": 67,
+    "breakdown": {
+      "total": 67,
+      "components": [
+        {
+          "key": "crowdDensity",
+          "label": {
+            "en": "Crowd level",
+            "th": "ความหนาแน่น"
+          },
+          "display": "High",
+          "subScore": 60,
+          "weight": 0.189,
+          "provenance": "estimated"
+        },
+        {
+          "key": "aqi",
+          "label": {
+            "en": "Air quality",
+            "th": "คุณภาพอากาศ"
+          },
+          "display": "68 AQI",
+          "subScore": 71,
+          "weight": 0.324,
+          "provenance": "live"
+        },
+        {
+          "key": "safetyIndex",
+          "label": {
+            "en": "Safety",
+            "th": "ความปลอดภัย"
+          },
+          "display": "Staffed venue",
+          "subScore": 72,
+          "weight": 0.27,
+          "provenance": "daily"
+        },
+        {
+          "key": "walkability",
+          "label": {
+            "en": "Walkability",
+            "th": "การเดินเท้า"
+          },
+          "display": "5.0 / 10",
+          "subScore": 60,
+          "weight": 0.216,
+          "provenance": "daily"
+        }
+      ],
+      "profileApplied": "Island baseline"
+    },
+    "reviews": {
+      "count": 0,
+      "average": null,
+      "distribution": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "/places/sinthani-badminton/reviews": {
+    "reviews": [],
+    "mine": null,
+    "canReview": false,
+    "reported": []
+  },
+  "/places/sinthani-badminton/history": {
+    "since": null,
+    "days": []
+  },
+  "/places/sinthani-badminton/stories": {
     "open": false,
     "stories": []
   },

@@ -12,16 +12,16 @@
 import React from 'react';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
-import { Image, Modal, Pressable, ScrollView, View } from 'react-native';
-import { X } from 'lucide-react-native';
-import { newlyEarned, stallSourceFor, strings, type MedalState, type MedalsView, type ScoredPlace } from '@chivago/core';
+import { Image, Linking, Modal, Pressable, ScrollView, View } from 'react-native';
+import { ExternalLink, X } from 'lucide-react-native';
+import { isBookingLink, newlyEarned, stallSourceFor, strings, type MedalState, type MedalsView, type ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import type { PickedMedia } from '../api/client.ts';
 import { photoUri } from '../api/photos.ts';
 import { useAsync } from '../state/store.tsx';
 import { useServerConfig } from '../state/server-config.ts';
 import { pickStoryMedia, postStory } from '../state/tell-story.ts';
-import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
+import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button, Tag } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -228,6 +228,17 @@ export function PlaceScreen({
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16 }}>
               {place.data.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}
             </View>
+
+            {/* The API checked this link; it is checked again here before a tap can take anyone anywhere. */}
+            {isBookingLink(place.data.bookingUrl) ? (
+              <Button
+                label={t(strings.place.book)}
+                onPress={() => { void Linking.openURL(place.data!.bookingUrl!); }}
+                icon={<ExternalLink size={16} color={onFill.brand} strokeWidth={2} />}
+                height={48}
+                style={{ marginTop: 16 }}
+              />
+            ) : null}
 
             {/*
               Directly above the check-in, because the two answer the same

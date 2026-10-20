@@ -83,8 +83,8 @@ export function seedArea(db: DB, key: AreaKey, now = new Date()): SeedAreaResult
         `INSERT INTO places (id, name_en, name_th, short, layer, province, lat, lng, meta,
            blurb_en, blurb_th, tags, photo_url, photo_credit, photo_licence, photo_source,
            safety_label_en, safety_label_th,
-           crowd_density, aqi, safety_index, walkability, air_station)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+           crowd_density, aqi, safety_index, walkability, air_station, booking_url)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
          ON CONFLICT(id) DO NOTHING`,
       ).run(
         p.id, p.name.en, p.name.th, p.short, p.layer, p.province, p.lat, p.lng, p.meta,
@@ -94,6 +94,7 @@ export function seedArea(db: DB, key: AreaKey, now = new Date()): SeedAreaResult
         safety.en, safety.th,
         p.metrics.crowdDensity, p.metrics.aqi, p.metrics.safetyIndex, p.metrics.walkability,
         p.airStation ? JSON.stringify(p.airStation) : null,
+        p.bookingUrl ?? null,
       );
       result.placesAdded += Number(added.changes ?? 0);
     }
