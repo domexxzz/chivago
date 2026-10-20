@@ -39,7 +39,7 @@ primary_region = "sin"
   # Locked to the app's own origin. The web build is served from here, so it
   # needs no cross-origin grant at all, and a wildcard on a deployment with a
   # host console behind it is a wildcard on the console too.
-  CHIVAGO_ORIGINS = "https://chivago.fly.dev"
+  CHIVAGO_ORIGINS = "https://chivargo.com,https://www.chivargo.com,https://chivago.fly.dev"
   # THE GEOFENCE IS CLOSED. Opened 9 September for testing, shut again on the
   # 10th, the day before the pitch.
   #
