@@ -14,7 +14,9 @@ const ku = areaByKey('ku-sriracha');
 const samui = areaByKey('samui');
 const rmutt = areaByKey('rmutt');
 const bangkhen = areaByKey('ku-bangkhen');
-const rmuttPlaces = SEED_PLACES.filter((p) => p.province === 'TH-13');
+// The campus's own places. The province also holds the court at Sinthani,
+// which is off campus and pinned by its own test below.
+const rmuttPlaces = SEED_PLACES.filter((p) => p.province === 'TH-13' && p.id.startsWith('rmutt-'));
 const kuPlaces = SEED_PLACES.filter((p) => p.province === 'TH-20');
 const kuQuests = SEED_QUESTS.filter((q) => inArea(ku, q));
 
@@ -218,6 +220,31 @@ describe('the Thanyaburi campus is real, and says what it does not have', () => 
     for (const p of rmuttPlaces) {
       assert.equal(p.photo, null, `${p.id} has a photograph - it now needs a credit and a licence`);
     }
+  });
+});
+
+describe('the badminton court at Sinthani lists under RMUTT without pretending to be on campus', () => {
+  const court = SEED_PLACES.find((p) => p.id === 'sinthani-badminton')!;
+
+  test('it is in the province, so the RMUTT list carries it', () => {
+    assert.equal(areaOfProvince(court.province), 'rmutt');
+  });
+
+  test('it is outside the campus outline, inside RMUTT\'s slack and nobody else\'s', () => {
+    // A couple of kilometres south on Rangsit-Nakhon Nayok Road.
+    assert.ok(court.lat < RMUTT_BBOX.minLat, 'south of the campus outline');
+    assert.ok(inArea(rmutt, court));
+    for (const area of AREAS.filter((a) => a.key !== 'rmutt')) {
+      assert.ok(!inArea(area, court), `inside ${area.key}`);
+    }
+    const km = metresBetween(court, rmutt.center) / 1000;
+    assert.ok(km > 1 && km < 5, `${km.toFixed(1)} km from campus`);
+  });
+
+  test('it carries its booking page, and claims no station or photograph', () => {
+    assert.equal(court.bookingUrl, 'https://badminton-booking-ihw1.onrender.com/');
+    assert.ok(!court.airStation);
+    assert.equal(court.photo, null);
   });
 });
 

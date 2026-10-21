@@ -799,6 +799,10 @@ export function migrate(db: DB): string[] {
   // A ground station within reach of the place, as JSON, or NULL for the
   // island (docs/43). Read by air.ts; written by the seed.
   if (addColumn(db, 'places', 'air_station', 'TEXT')) applied.push('places.air_station');
+  // The place's own booking page, or NULL for a place you just walk into.
+  // Written by the seed; read by repo.ts, which drops anything that is not a
+  // plain https link (isBookingLink) before it reaches a phone.
+  if (addColumn(db, 'places', 'booking_url', 'TEXT')) applied.push('places.booking_url');
 
   // -- Self-issued visits: recorded, not scored ----------------------------
   //

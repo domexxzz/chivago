@@ -107,6 +107,12 @@ export interface Place {
    * cross-check. The Si Racha campus has one 300 m from its centre.
    */
   airStation?: AirStation | null;
+  /**
+   * The place's own booking page, for a place you book before you go - a
+   * court, a room. Absent everywhere else. Only an https link survives
+   * `isBookingLink`, here and again on the phone before a tap opens it.
+   */
+  bookingUrl?: string | null;
   /** Per-metric provenance, so the UI can say "live" vs "computed daily". */
   readings?: Partial<Record<keyof PlaceMetrics, MetricReading>>;
 }

@@ -510,6 +510,35 @@ export const SEED_PLACES: Place[] = [
     metrics: { aqi: 38, crowdDensity: 1.5, safetyIndex: 6.4, walkability: 7.4 },
   },
   /*
+    แบดมินตัน@สินธานี - a private court off campus, in the same province, so
+    it lists under RMUTT and sits about 2.5 km south of the campus map's frame.
+
+    NOT A MAPPED FEATURE. The court is not in OpenStreetMap. The position is
+    the one home.co.th publishes for the Synthanee Grand View estate on
+    Rangsit-Nakhon Nayok Road, Khlong 5 (read 2026-10-21), which the owner
+    named as where the court is. It is the estate, not the court door: replace
+    it with a pin dropped on the building before check-in is promised there.
+    Hours and court count are the booking system's own (its config.ts).
+  */
+  {
+    id: 'sinthani-badminton',
+    name: { en: 'Badminton@Sinthani', th: 'แบดมินตัน@สินธานี' },
+    short: 'Badminton',
+    layer: 'Wellness',
+    province: 'TH-13',
+    lat: 14.0134018,
+    lng: 100.7206586,
+    meta: 'Badminton · Indoor · Book online · Air modelled, not measured',
+    blurb: {
+      en: 'Indoor badminton courts, open daily 09:00-23:00. Book a court and pay by PromptPay on the venue\'s own page before you go.',
+      th: 'สนามแบดมินตันในร่ม เปิดทุกวัน 09:00-23:00 จองสนามและจ่ายผ่านพร้อมเพย์ได้ที่เว็บของสนามก่อนไป',
+    },
+    tags: ['Sport', 'Badminton', 'Indoor', 'Booking'],
+    photo: null,
+    metrics: { aqi: 38, crowdDensity: 2.0, safetyIndex: 6.2, walkability: 5.0 },
+    bookingUrl: 'https://badminton-booking-ihw1.onrender.com/',
+  },
+  /*
     KU Bangkhen, Bangkok (TH-10). Each position is the centre of its named
     OpenStreetMap feature, read through Overpass on 2026-09-28. The one shared
     AQI is a seed fallback, NOT five measurements; no PCD/Air4Thai station ID
@@ -666,6 +695,8 @@ export const SAFETY_PHRASES: Record<string, { en: string; th: string }> = {
   'rmutt-canteen': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'rmutt-stadium': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'rmutt-fountain': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  // A private venue inside a housing estate: staffed while open, nothing more claimed.
+  'sinthani-badminton': { en: 'Staffed venue', th: 'สนามมีเจ้าหน้าที่' },
   'ku-bk-library': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'ku-bk-park': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'ku-bk-auditorium': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
