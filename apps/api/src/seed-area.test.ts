@@ -4,7 +4,7 @@ import { test, describe, beforeEach } from 'node:test';
 import { SEED_PLACES, SEED_QUESTS, areaByKey, inArea } from '@chivago/core';
 import { openTestDb, type DB } from './db.ts';
 import { verifyApiKey } from './host-auth.ts';
-import { refreshPhotos, reseedRefusal, seedArea } from './seed-area.ts';
+import { refreshPhotos, refreshStations, reseedRefusal, seedArea } from './seed-area.ts';
 
 /**
  * Adding an area to a database that is already running.
@@ -102,6 +102,56 @@ describe('what it must never do to a running database', () => {
     assert.deepEqual(r.keys, []);
     assert.equal((db.prepare("SELECT api_key_hash AS h FROM hosts WHERE id = 'h-ku-bangkhen-chivago'").get() as { h: string }).h,
       'kept');
+  });
+});
+
+describe('air stations, and only when asked', () => {
+  const rowOf = (id: string) =>
+    db.prepare('SELECT air_station, meta, aqi FROM places WHERE id = ?').get(id) as
+      { air_station: string | null; meta: string; aqi: number };
+  /** The live Bangkhen rows as they were before the campus had a station. */
+  const asLaunched = () => {
+    seedArea(db, 'ku-bangkhen');
+    db.prepare("UPDATE places SET air_station = NULL WHERE province = 'TH-10'").run();
+    db.prepare("UPDATE places SET meta = 'Library · Indoor · Air modelled, not measured' WHERE id = 'ku-bk-library'").run();
+  };
+
+  test('A STATION ADDED TO THE SEED REACHES A CAMPUS THAT IS ALREADY LIVE', () => {
+    asLaunched();
+    seedArea(db, 'ku-bangkhen');
+    assert.equal(rowOf('ku-bk-library').air_station, null, 'the insert-only run changed a live row');
+    const changed = refreshStations(db, 'ku-bangkhen');
+    assert.deepEqual(changed.sort(), ['ku-bk-auditorium', 'ku-bk-canteen', 'ku-bk-library', 'ku-bk-park', 'ku-bk-stadium']);
+    for (const id of changed) {
+      const seeded = SEED_PLACES.find((p) => p.id === id)!;
+      assert.deepEqual(JSON.parse(rowOf(id).air_station!), seeded.airStation);
+    }
+  });
+
+  test('the card stops saying "modelled" in the same run, and a second run changes nothing', () => {
+    asLaunched();
+    refreshStations(db, 'ku-bangkhen');
+    assert.equal(rowOf('ku-bk-library').meta, SEED_PLACES.find((p) => p.id === 'ku-bk-library')!.meta);
+    assert.match(rowOf('ku-bk-library').meta, /Air measured .* roadside/);
+    assert.deepEqual(refreshStations(db, 'ku-bangkhen'), []);
+  });
+
+  test('IT TOUCHES NOTHING BUT THE STATION AND THE MODELLED LINE, AND ONLY IN THE AREA ASKED FOR', () => {
+    asLaunched();
+    seedArea(db, 'rmutt');
+    db.prepare("UPDATE places SET meta = 'Corrected in production', aqi = 12 WHERE id = 'ku-bk-park'").run();
+    const rmuttBefore = rowOf('rmutt-library');
+    refreshStations(db, 'ku-bangkhen');
+    assert.equal(rowOf('ku-bk-park').meta, 'Corrected in production');
+    assert.equal(rowOf('ku-bk-park').aqi, 12);
+    assert.ok(rowOf('ku-bk-park').air_station, 'the station still arrives under a corrected card');
+    assert.deepEqual({ ...rowOf('rmutt-library') }, { ...rmuttBefore });
+  });
+
+  test('RMUTT IS ASKED AND STAYS WITHOUT ONE: ITS NEAREST STATION IS 13 KM AWAY', () => {
+    seedArea(db, 'rmutt');
+    assert.deepEqual(refreshStations(db, 'rmutt'), []);
+    assert.equal(rowOf('rmutt-library').air_station, null);
   });
 });
 
