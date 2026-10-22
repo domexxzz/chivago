@@ -53,14 +53,21 @@ const data = async (path: string) => {
 };
 
 describe('Bangkhen over the API', () => {
-  test('the campus bounding box returns five scored landmarks without a claimed ground station', async () => {
+  test('the campus bounding box returns five scored landmarks, their air measured at the roadside station', async () => {
+    // The station's last reading, already cached, so the answer does not
+    // depend on whether Air4Thai is up while the suite runs.
+    db.prepare(
+      `INSERT INTO air_cache (grid_key, aqi, pm25, fetched_at) VALUES ('station:bkp73t', 39, 20.4, ?)
+       ON CONFLICT(grid_key) DO UPDATE SET aqi = 39, pm25 = 20.4, fetched_at = excluded.fetched_at`,
+    ).run(new Date().toISOString());
     const places = await data(`/places?bbox=${bbox}`) as any[];
     assert.deepEqual(places.map((p) => p.id).sort(), campusIds);
     for (const place of places) {
       assert.equal(place.province, 'TH-10');
-      assert.equal(place.airStation, null);
+      assert.equal(place.airStation.id, 'bkp73t');
       assert.equal(place.photo, null);
-      assert.notEqual(place.readings.aqi.source, 'Air4Thai ground station');
+      assert.equal(place.readings.aqi.value, 39);
+      assert.match(place.readings.aqi.source, /^Air4Thai · .*roadside.* · [\d.]+ km · ground station/);
       assert.equal(place.readings.crowdDensity.provenance, 'estimated');
     }
   });

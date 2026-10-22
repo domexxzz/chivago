@@ -62,11 +62,32 @@ export const KU_STATION = {
   lng: 100.91855,
 } as const;
 
-/** The station, with how far it is from a place - to one decimal, as a sign would say it. */
-const kuStation = (lat: number, lng: number): AirStation => ({
-  ...KU_STATION,
-  distanceKm: Math.round(metresBetween({ lat, lng }, KU_STATION) / 100) / 10,
+/**
+ * Air4Thai station bkp73t, มหาวิทยาลัยเกษตรศาสตร์ - a Bangkok Metropolitan
+ * Administration sensor on the Phahon Yothin roadside at the Kasetsart
+ * intersection, read from the feed on 2026-10-22. 0.2 km from the
+ * auditorium and 1.5 km from the far side of the campus, the 60th Park.
+ *
+ * ROADSIDE, AND THE NAME SAYS SO. It stands at one of the busiest junctions
+ * in the north of the city, so on most days it will read worse than the air
+ * under the trees in the middle of campus. That is the direction to be wrong
+ * in for a wellness score, and the source line carries the word so nobody
+ * reads it as a courtyard measurement.
+ */
+export const KU_BANGKHEN_STATION = {
+  id: 'bkp73t',
+  name: 'Kasetsart University intersection, roadside (BMA bkp73t)',
+  lat: 13.839923,
+  lng: 100.575632,
+} as const;
+
+/** A station, with how far it is from a place - to one decimal, as a sign would say it. */
+const stationFor = (station: Omit<AirStation, 'distanceKm'>) => (lat: number, lng: number): AirStation => ({
+  ...station,
+  distanceKm: Math.round(metresBetween({ lat, lng }, station) / 100) / 10,
 });
+const kuStation = stationFor(KU_STATION);
+const bangkhenStation = stationFor(KU_BANGKHEN_STATION);
 
 export const SEED_PLACES: Place[] = [
   {
@@ -396,7 +417,8 @@ export const SEED_PLACES: Place[] = [
 
     NO GROUND STATION, AND THAT IS THE HONEST ANSWER. The nearest Air4Thai
     station to this campus is 20t, at Bangkok University's Rangsit campus,
-    and it is 13.1 km away - read from the feed on 2026-09-14. Si Racha's is
+    and it is 13.1 km away - read from the feed on 2026-09-14, and still the
+    nearest of 173 stations when it was read again on 2026-10-22. Si Racha's is
     300 m, which is why its places carry theirs and say so. Thirteen
     kilometres cannot speak for a courtyard, so these places carry none, the
     ~11 km model is what there is, and the app labels it as the model.
@@ -540,10 +562,11 @@ export const SEED_PLACES: Place[] = [
   },
   /*
     KU Bangkhen, Bangkok (TH-10). Each position is the centre of its named
-    OpenStreetMap feature, read through Overpass on 2026-09-28. The one shared
-    AQI is a seed fallback, NOT five measurements; no PCD/Air4Thai station ID
-    has been confirmed for this site, so these records carry no airStation.
-    The non-air metrics are campus-place estimates, not survey results. No
+    OpenStreetMap feature, read through Overpass on 2026-09-28. Every place
+    carries Air4Thai bkp73t (KU_BANGKHEN_STATION), 0.2 to 1.5 km away, so the
+    reading is measured and says how far away and that it is roadside. The
+    one shared AQI below is the fallback for when the feed is down, NOT five
+    measurements. The non-air metrics are campus-place estimates, not survey results. No
     photographs have been licensed or supplied, so every photo is null.
   */
   {
@@ -552,13 +575,14 @@ export const SEED_PLACES: Place[] = [
     name: { en: 'Kasetsart University Library', th: 'สำนักหอสมุด มก. (อาคารช่วงเกษตรศิลปการ)' },
     short: 'Library', layer: 'Safe', province: 'TH-10',
     lat: 13.8476433, lng: 100.5718353,
-    meta: 'Library · Indoor · Air modelled, not measured',
+    meta: 'Library · Indoor · Air measured 1 km away, roadside',
     blurb: {
       en: 'The university library building, a quiet indoor stop near the centre of campus.',
       th: 'อาคารสำนักหอสมุดกลางวิทยาเขต จุดพักในร่มสำหรับอ่านหนังสือ',
     },
     tags: ['Library', 'Indoor', 'Quiet'], photo: null,
     metrics: { aqi: 38, crowdDensity: 1.7, safetyIndex: 6.5, walkability: 7.0 },
+    airStation: bangkhenStation(13.8476433, 100.5718353),
   },
   {
     // OSM way 259496906: สวน 60 ปี มหาวิทยาลัยเกษตรศาสตร์.
@@ -566,13 +590,14 @@ export const SEED_PLACES: Place[] = [
     name: { en: 'KU 60th Anniversary Park', th: 'สวน 60 ปี มหาวิทยาลัยเกษตรศาสตร์' },
     short: '60th Park', layer: 'Green', province: 'TH-10',
     lat: 13.8498175, lng: 100.5661669,
-    meta: 'Campus park · Outdoor · Air modelled, not measured',
+    meta: 'Campus park · Outdoor · Air measured 1.5 km away, roadside',
     blurb: {
       en: 'The mapped 60th Anniversary Park beside the sports facilities.',
       th: 'สวน 60 ปีที่มีในแผนที่ อยู่ใกล้พื้นที่กีฬา',
     },
     tags: ['Green space', 'Walking route'], photo: null,
     metrics: { aqi: 38, crowdDensity: 1.1, safetyIndex: 6.5, walkability: 7.4 },
+    airStation: bangkhenStation(13.8498175, 100.5661669),
   },
   {
     // OSM way 259685345: หอประชุมใหญ่; the Three Founders monument is nearby.
@@ -587,6 +612,7 @@ export const SEED_PLACES: Place[] = [
     },
     tags: ['Landmark', 'Meeting point'], photo: null,
     metrics: { aqi: 38, crowdDensity: 1.5, safetyIndex: 6.4, walkability: 7.2 },
+    airStation: bangkhenStation(13.8413167, 100.5747727),
   },
   {
     // OSM way 1313552698: สนามกีฬาสนามอินทรีย์จันทรสถิตย์.
@@ -594,13 +620,14 @@ export const SEED_PLACES: Place[] = [
     name: { en: 'Insee Chantarasatit Stadium', th: 'สนามอินทรีจันทรสถิตย์' },
     short: 'Stadium', layer: 'Wellness', province: 'TH-10',
     lat: 13.8471882, lng: 100.5657358,
-    meta: 'Stadium · Outdoor · Air modelled, not measured',
+    meta: 'Stadium · Outdoor · Air measured 1.3 km away, roadside',
     blurb: {
       en: 'The mapped university stadium and athletics ground.',
       th: 'สนามกีฬาและลู่วิ่งของมหาวิทยาลัยที่มีในแผนที่',
     },
     tags: ['Sport', 'Outdoor'], photo: null,
     metrics: { aqi: 38, crowdDensity: 1.4, safetyIndex: 6.3, walkability: 6.8 },
+    airStation: bangkhenStation(13.8471882, 100.5657358),
   },
   {
     // OSM way 389998960: โรงอาหารกลาง 1, alt_name บาร์ใหม่.
@@ -615,6 +642,7 @@ export const SEED_PLACES: Place[] = [
     },
     tags: ['Food court', 'Campus'], photo: null,
     metrics: { aqi: 38, crowdDensity: 3.4, safetyIndex: 6.4, walkability: 7.2 },
+    airStation: bangkhenStation(13.8488140, 100.5673153),
   },
 ];
 

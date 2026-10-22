@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, test } from 'node:test';
 import { areaByKey, inArea } from './areas.ts';
+import { metresBetween } from './presence.ts';
 import { SEED_HOSTS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
 
 const area = areaByKey('ku-bangkhen');
@@ -29,11 +30,32 @@ describe('KU Bangkhen mapped places', () => {
     }
   });
 
-  test('no unmapped air station or unlicensed photograph is claimed', () => {
+  test('every place carries the Kasetsart roadside station, at the distance it states', () => {
+    // Air4Thai bkp73t, read from the feed on 2026-10-22: the nearest of 173
+    // stations to every one of the five, 181 m from the auditorium and
+    // 1,502 m from the 60th Park.
     for (const p of places) {
-      assert.equal(p.airStation, undefined, `${p.id} claims an unconfirmed PCD station`);
+      assert.ok(p.airStation, `${p.id} has no air station`);
+      assert.equal(p.airStation.id, 'bkp73t');
+      assert.match(p.airStation.name, /roadside/, 'a roadside sensor must say so wherever it is named');
+      const m = metresBetween(p, p.airStation);
+      assert.ok(m < 1600, `${p.id} is ${Math.round(m)} m from bkp73t`);
+      assert.ok(Math.abs(p.airStation.distanceKm - m / 1000) < 0.06, 'the stated distance is the real one');
+    }
+  });
+
+  test('a card that talks about air says measured, how far, and roadside', () => {
+    for (const p of places) {
+      assert.doesNotMatch(p.meta, /Air modelled/, `${p.id} still says its air is modelled`);
+      if (/Air/.test(p.meta)) {
+        assert.ok(p.meta.includes(`Air measured ${p.airStation!.distanceKm} km away, roadside`), p.meta);
+      }
+    }
+  });
+
+  test('no unlicensed photograph is claimed', () => {
+    for (const p of places) {
       assert.equal(p.photo, null, `${p.id} claims a photograph nobody supplied`);
-      assert.match(p.meta, /Air modelled|Campus landmark|Central campus/);
     }
   });
 

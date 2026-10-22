@@ -104,7 +104,8 @@ export interface Place {
    * A ground station within reach. When present the reading is measured
    * there and says so; when absent, the ~11 km model is what there is.
    * Samui has none - its nearest station is 87 km away and can only
-   * cross-check. The Si Racha campus has one 300 m from its centre.
+   * cross-check. The Si Racha campus has one 300 m from its centre; Bangkhen
+   * a roadside one 0.2-1.5 km from its places; RMUTT's nearest is 13 km.
    */
   airStation?: AirStation | null;
   /**
