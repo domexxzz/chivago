@@ -27,9 +27,10 @@ import { api } from '../api/client.ts';
 import { areaOfProvince } from '@chivago/core';
 import { useArea } from '../state/area.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
+import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { tintFor } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
+import { OceanBackdrop } from '../components/Shell.tsx';
 import { ErrorState, SkeletonList } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -64,9 +65,20 @@ export function ConciergeScreen({
 
   return (
     <View style={{ flex: 1, backgroundColor: color.bg }}>
-      <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 12 }}>
-        <Label size={10} tracking={0.16}>{t({ en: 'Concierge', th: 'ผู้ช่วยแนะนำ' })}</Label>
-        <Heading size={24} tracking={-0.48} style={{ marginTop: 6 }}>{t({ en: 'Ask me where to go', th: 'ถามฉันว่าไปไหนดี' })}</Heading>
+      <View
+        style={{
+          paddingHorizontal: gutter,
+          paddingTop: 18,
+          paddingBottom: 18,
+          backgroundColor: '#028090',
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+          overflow: 'hidden',
+        }}
+      >
+        <OceanBackdrop compact />
+        <Label size={10} tracking={0.16} colour="#D5F6FF">{t({ en: 'Concierge', th: 'ผู้ช่วยแนะนำ' })}</Label>
+        <Heading size={24} tracking={-0.48} colour="#FFFFFF" style={{ marginTop: 6 }}>{t({ en: 'Ask me where to go', th: 'ถามฉันว่าไปไหนดี' })}</Heading>
       </View>
 
       {places.loading ? <SkeletonList rows={4} /> : null}
@@ -161,7 +173,7 @@ function Answered({
   return (
     <View style={{ paddingHorizontal: gutter, marginTop: 12 }}>
       <View
-        style={{
+        style={[shadow.card, {
           maxWidth: '92%',
           paddingVertical: 12,
           paddingHorizontal: 14,
@@ -169,8 +181,8 @@ function Answered({
           borderRadius: radius.md,
           // An emergency answer does not look like a suggestion.
           borderWidth: urgent ? layout.ruleStrong : 1,
-          borderColor: urgent ? color.accent2 : color.neutral300,
-        }}
+          borderColor: urgent ? color.accent2 : '#DCEFF5',
+        }]}
       >
         <Body size={14}>{reply.text}</Body>
       </View>
@@ -209,16 +221,17 @@ function Answered({
           onPress={() => onOpenPlace(s.placeId)}
           accessibilityRole="button"
           accessibilityLabel={`${t(s.name)}. ${t(s.because)}. Healthy Score ${s.healthyScore}`}
-          style={{
+          style={[shadow.card, {
             flexDirection: 'row',
             alignItems: 'center',
             gap: 12,
             marginTop: 8,
             padding: 12,
+            backgroundColor: color.surface,
             borderWidth: 1,
-            borderColor: color.neutral400,
+            borderColor: '#DCEFF5',
             borderRadius: radius.md,
-          }}
+          }]}
         >
           <View style={{ flex: 1 }}>
             <Heading size={15}>{t(s.name)}</Heading>
@@ -285,8 +298,8 @@ function Composer({
         paddingHorizontal: gutter,
         paddingVertical: 12,
         borderTopWidth: 1,
-        borderTopColor: color.neutral300,
-        backgroundColor: color.bg,
+        borderTopColor: '#DCEFF5',
+        backgroundColor: color.surface,
       }}
     >
       <TextInput
@@ -302,8 +315,9 @@ function Composer({
           minHeight: 44,
           paddingHorizontal: 14,
           borderWidth: 1,
-          borderColor: color.neutral400,
-          borderRadius: radius.sm,
+          borderColor: '#CBE7F0',
+          borderRadius: 22,
+          backgroundColor: color.bg,
           color: color.text,
           fontSize: 14,
         }}
@@ -318,7 +332,7 @@ function Composer({
           height: 44,
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: radius.sm,
+          borderRadius: 22,
           backgroundColor: value.trim().length === 0 ? color.neutral300 : color.brand,
         }}
       >

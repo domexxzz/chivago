@@ -42,7 +42,7 @@ export function MedalsScreen({ onBack, now = new Date() }: { onBack: () => void;
       {medals.loading && !data ? <LoadingState /> : null}
       {data ? (
         <>
-          <Tray style={{ marginHorizontal: gutter, marginTop: 4, borderRadius: gameRadius.panel }}>
+          <Tray style={{ marginHorizontal: gutter, marginTop: 12, borderRadius: gameRadius.panel }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <Medal value={data.earned} />
               <View style={{ flex: 1, gap: 8 }}>
@@ -78,7 +78,7 @@ function MedalTile({ medal: m, now }: { medal: MedalState; now: Date }) {
       style={[shadow.card, {
         width: '48%', flexGrow: 1, minHeight: 176, padding: 12, gap: 6,
         backgroundColor: m.earned ? color.goldSoft : color.surface, borderRadius: gameRadius.panel,
-        borderWidth: m.earned ? layout.ruleStrong : 0, borderColor: color.gold,
+        borderWidth: m.earned ? layout.ruleStrong : 1, borderColor: m.earned ? color.gold : '#DCEFF5',
       }]}
     >
       <MedalMark mark={m.mark} earned={m.earned} size={52} />

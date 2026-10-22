@@ -78,7 +78,7 @@ export function FairScreen({ onBack, onShowOnMap, initialView = ALL_OF_THE_FAIR,
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} keyboardShouldPersistTaps="handled">
       <PushHeader context={t(strings.fair.kicker)} onBack={onBack} />
-      <View style={{ paddingHorizontal: gutter, paddingBottom: 32 }}>
+      <View style={{ paddingHorizontal: gutter, paddingTop: 16, paddingBottom: 32 }}>
         <Heading size={26} tracking={-0.4}>{t(fair.name)}</Heading>
         {fair.example ? (
           <Label size={10} tracking={0.12} colour={color.accent2} style={{ marginTop: 6 }}>{t(strings.fair.example)}</Label>
@@ -152,7 +152,7 @@ function ZoneChip({ label, on, tone, onPress }: { label: string; on: boolean; to
       accessibilityState={{ selected: on }}
       style={{
         minHeight: 40, paddingHorizontal: 14, borderRadius: 20, justifyContent: 'center',
-        borderWidth: 2, borderColor: on ? (tone ?? color.text) : color.neutral300,
+        borderWidth: 2, borderColor: on ? (tone ?? color.text) : '#CBE7F0',
         backgroundColor: on ? (tone ?? color.text) : color.surface,
       }}
     >
@@ -169,6 +169,7 @@ function LotRow({ lot, onShowOnMap }: { lot: FairLot; onShowOnMap: () => void })
       style={[shadow.card, {
         marginTop: 10, padding: 12, gap: 12, flexDirection: 'row',
         backgroundColor: color.surface, borderRadius: radius.md,
+        borderWidth: 1, borderColor: '#DCEFF5',
       }]}
     >
       {/* The lot code in its zone's colour - the same colour as its dot on the map. */}

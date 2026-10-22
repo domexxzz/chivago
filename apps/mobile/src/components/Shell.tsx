@@ -3,7 +3,8 @@
  */
 
 import React from 'react';
-import { Animated, Pressable, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
+import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { ChevronLeft, House, Leaf, Map as MapIcon, PawPrint, Shield } from 'lucide-react-native';
 import { strings } from '@chivago/core';
 import { color, gutter, headerGutter, layout, motion, onFill, radius, ruleStrong, ruleStrongTop, shadow } from '../theme/index.ts';
@@ -28,9 +29,44 @@ const TAB_ICONS = {
 const TAB_ORDER: TabKey[] = ['home', 'map', 'quests', 'game', 'safety'];
 
 /**
- * Five tabs, 66px, 2px ink top rule.
- * Active = solid ink fill with bg glyph and label. Inactive = transparent with
- * neutral-700. The fill is the whole cell, not a pill - Modernist has no radii.
+ * Shared Ocean Wave SVG backdrop used across headers, hero banners, and elevated cards.
+ */
+export function OceanBackdrop({
+  subtle = false, compact = false,
+}: { subtle?: boolean; compact?: boolean }) {
+  const gradId = subtle ? 'sand' : compact ? 'oceanCompact' : 'ocean';
+  return (
+    <View pointerEvents="none" accessible={false} style={StyleSheet.absoluteFillObject}>
+      <Svg width="100%" height="100%" viewBox="0 0 480 340" preserveAspectRatio="none">
+        <Defs>
+          <LinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="80%">
+            <Stop offset="0" stopColor={subtle ? '#FFFFFF' : '#00B4D8'} />
+            <Stop offset="1" stopColor={subtle ? '#EDF6F9' : '#004E64'} />
+          </LinearGradient>
+        </Defs>
+        <Rect width="480" height="340" fill={`url(#${gradId})`} />
+        <Path
+          d="M0 250 Q100 200 220 270 T480 240 V340 H0Z"
+          fill="#48CAE4"
+          opacity={subtle ? 0.1 : compact ? 0.22 : 0.3}
+        />
+        <Path
+          d="M0 285 Q120 225 260 290 T480 270 V340 H0Z"
+          fill={compact ? '#90E0EF' : '#FFFFFF'}
+          opacity={subtle ? 0.6 : compact ? 0.18 : 0.55}
+        />
+        <Path
+          d="M0 307 Q120 265 260 310 T480 296 V340 H0Z"
+          fill={compact ? '#CAF0F8' : '#EDF6F9'}
+          opacity={subtle ? 0.8 : compact ? 0.16 : 1}
+        />
+      </Svg>
+    </View>
+  );
+}
+
+/**
+ * Five tabs on a soft white surface. Ocean blue and a dot mark the active tab.
  */
 export function TabBar({
   active, onChange,
@@ -38,8 +74,10 @@ export function TabBar({
   return (
     <View
       style={{
-        flexDirection: 'row', height: layout.tabBarHeight, backgroundColor: color.surface,
-        borderTopWidth: layout.ruleHair, borderTopColor: color.neutral300,
+        flexDirection: 'row', height: layout.tabBarHeight + 4, backgroundColor: 'rgba(255,255,255,0.96)',
+        borderTopWidth: layout.ruleHair, borderTopColor: '#DCEFF5',
+        borderTopLeftRadius: 20, borderTopRightRadius: 20,
+        shadowColor: '#0077B6', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.06, shadowRadius: 14, elevation: 5,
       }}
     >
       {TAB_ORDER.map((key) => {
@@ -47,7 +85,7 @@ export function TabBar({
         const Icon = TAB_ICONS[key];
         // The active tab is the brand speaking, on the white bar; the rest
         // are quiet. No filled block: the reference's bar is icons on white.
-        const fg = isActive ? color.brand : color.neutral600;
+        const fg = isActive ? '#0077B6' : '#48616F';
         return (
           <Pressable
             key={key}
@@ -64,6 +102,7 @@ export function TabBar({
           >
             <Icon size={layout.tabIconSize + 2} color={fg} strokeWidth={isActive ? 2.4 : 2} />
             <Label size={9} tracking={0.1} colour={fg}>{t(strings.tabs[key])}</Label>
+            <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: isActive ? '#00B4D8' : 'transparent' }} />
           </Pressable>
         );
       })}
@@ -85,13 +124,23 @@ export function PushHeader({
         alignItems: 'center',
         gap: 12,
         paddingHorizontal: headerGutter,
-        paddingVertical: 12,
+        paddingVertical: 16,
+        backgroundColor: '#028090',
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+        overflow: 'hidden',
+        shadowColor: '#004E64',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 10,
+        elevation: 3,
       }}
     >
-      <IconButton onPress={onBack} accessibilityLabel={t(strings.common.back)}>
-        <ChevronLeft size={18} color={color.text} strokeWidth={2} />
+      <OceanBackdrop compact />
+      <IconButton inverted onPress={onBack} accessibilityLabel={t(strings.common.back)}>
+        <ChevronLeft size={18} color="#FFFFFF" strokeWidth={2} />
       </IconButton>
-      <Label size={10} tracking={0.16} style={{ flex: 1 }}>{context}</Label>
+      <Label size={10} tracking={0.16} colour="#E8FBFF" style={{ flex: 1 }}>{context}</Label>
       {right}
     </View>
   );

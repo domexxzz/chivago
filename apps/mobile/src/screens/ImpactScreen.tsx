@@ -17,10 +17,11 @@ import {
 } from '@chivago/core';
 import { api, type TreeImpactView } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, radius } from '../theme/index.ts';
+import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
 import { tintFor } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
+import { OceanBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { GentleSteps } from '../components/GentleSteps.tsx';
 import { t } from '../i18n/locale.ts';
@@ -65,10 +66,30 @@ export function ImpactScreen({
   );
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
-      <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 14 }}>
-        <Heading size={26} tracking={-0.52}>{t(strings.impact.title)}</Heading>
-
+    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
+      <View
+        style={{
+          paddingHorizontal: gutter,
+          paddingTop: 22,
+          paddingBottom: 20,
+          backgroundColor: '#028090',
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+          overflow: 'hidden',
+          shadowColor: '#004E64',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.14,
+          shadowRadius: 10,
+          elevation: 3,
+        }}
+      >
+        <OceanBackdrop compact />
+        <Label size={10} tracking={0.16} colour="#D5F6FF">
+          {t({ en: 'VERIFIED IMPACT', th: 'ผลลัพธ์ที่ตรวจสอบได้' })}
+        </Label>
+        <Heading size={26} tracking={-0.52} colour="#FFFFFF" style={{ marginTop: 4 }}>
+          {t(strings.impact.title)}
+        </Heading>
       </View>
 
       {mine.loading || community.loading ? <LoadingState /> : null}
@@ -76,24 +97,33 @@ export function ImpactScreen({
 
       {mine.data ? (
         <View
-          style={{
-            flexDirection: 'row',
-            flexWrap: 'wrap',
-            borderTopWidth: layout.ruleHair,
-            borderTopColor: color.neutral300,
-          }}
+          style={[
+            shadow.card,
+            {
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              marginHorizontal: gutter,
+              marginTop: 16,
+              backgroundColor: color.surface,
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: '#DCEFF5',
+              overflow: 'hidden',
+            },
+          ]}
         >
+          <OceanBackdrop subtle />
           {mine.data.map((stat, i) => (
             <View
               key={stat.key}
               style={{
                 width: '50%',
-                paddingVertical: 16,
+                paddingVertical: 18,
                 paddingHorizontal: gutter,
-                borderBottomWidth: 1,
-                borderBottomColor: color.neutral300,
+                borderBottomWidth: i < 2 ? 1 : 0,
+                borderBottomColor: '#E2EFF3',
                 borderRightWidth: i % 2 === 0 ? 1 : 0,
-                borderRightColor: color.neutral300,
+                borderRightColor: '#E2EFF3',
               }}
             >
               <Heading size={30} tracking={-0.6}>
@@ -141,7 +171,20 @@ export function ImpactScreen({
       ) : null}
 
       {community.data ? (
-        <View style={{ paddingHorizontal: gutter, paddingTop: 20 }}>
+        <View
+          style={[
+            shadow.card,
+            {
+              marginHorizontal: gutter,
+              marginTop: 16,
+              padding: 18,
+              backgroundColor: color.surface,
+              borderRadius: 22,
+              borderWidth: 1,
+              borderColor: '#DCEFF5',
+            },
+          ]}
+        >
           <Label size={10} tracking={0.16}>
             {t(strings.impact.community(community.data.year))}
           </Label>
@@ -185,16 +228,22 @@ export function ImpactScreen({
       ) : null}
 
       <View
-        style={{
-          margin: gutter,
-          marginTop: 24,
-          marginBottom: 32,
-          borderWidth: layout.ruleHair,
-          borderColor: color.neutral300,
-          borderRadius: radius.md,
-          padding: 16,
-        }}
+        style={[
+          shadow.card,
+          {
+            margin: gutter,
+            marginTop: 18,
+            marginBottom: 32,
+            backgroundColor: color.surface,
+            borderWidth: 1,
+            borderColor: '#DCEFF5',
+            borderRadius: 22,
+            padding: 18,
+            overflow: 'hidden',
+          },
+        ]}
       >
+        <OceanBackdrop subtle />
         <Label size={10} tracking={0.14} colour={color.accent700}>
           {t(strings.impact.verifiedData)}
         </Label>
@@ -222,8 +271,20 @@ function TreeImpactBlock({
   onRetry: () => void;
 }) {
   return (
-    <View style={{ marginHorizontal: gutter, marginTop: 20, borderWidth: layout.ruleHair,
-      borderColor: color.neutral300, borderRadius: radius.md, padding: 16 }}>
+    <View
+      style={[
+        shadow.card,
+        {
+          marginHorizontal: gutter,
+          marginTop: 16,
+          backgroundColor: color.surface,
+          borderWidth: 1,
+          borderColor: '#DCEFF5',
+          borderRadius: 22,
+          padding: 18,
+        },
+      ]}
+    >
       <Label size={10} tracking={0.14} colour={color.accent700}>
         {t({ en: 'Your sponsored trees', th: 'ต้นไม้จากผู้สนับสนุนของคุณ' })}
       </Label>
@@ -306,8 +367,21 @@ function BalanceBlock({
   onMood: (mood: MoodKey) => void;
 }) {
   return (
-    <View style={{ marginTop: 24, borderTopWidth: layout.ruleStrong, borderTopColor: color.neutral300 }}>
-      <View style={{ paddingHorizontal: gutter, paddingTop: 18 }}>
+    <View
+      style={[
+        shadow.card,
+        {
+          marginHorizontal: gutter,
+          marginTop: 16,
+          paddingVertical: 6,
+          backgroundColor: color.surface,
+          borderRadius: 22,
+          borderWidth: 1,
+          borderColor: '#DCEFF5',
+        },
+      ]}
+    >
+      <View style={{ paddingHorizontal: gutter, paddingTop: 14 }}>
         <Label size={10} tracking={0.16}>{t({ en: 'Chiva Balance', th: 'สมดุลชีวา' })}</Label>
 
         {loading ? <LoadingState /> : null}
@@ -380,8 +454,9 @@ function MoodRow({ onMood }: { onMood: (mood: MoodKey) => void }) {
             style={{
               paddingVertical: 9,
               paddingHorizontal: 14,
+              backgroundColor: '#F0F9FC',
               borderWidth: 1,
-              borderColor: color.neutral400,
+              borderColor: '#CBE7F0',
               borderRadius: radius.lg,
             }}
           >

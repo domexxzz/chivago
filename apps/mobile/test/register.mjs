@@ -70,6 +70,9 @@ const NULL_DEFAULT = 'module.exports = exports.default;';
 const NULL_DEFAULT_SAFE = 'module.exports = exports.default == null ? exports : exports.default;';
 
 const loadSync = (url, context, next) => {
+  if (url.endsWith('.png')) {
+    return { format: 'module', shortCircuit: true, source: 'export default 1;' };
+  }
   if (url.endsWith('.tsx')) {
     const path = fileURLToPath(url);
     const { code } = transform(readFileSync(path, 'utf8'), {

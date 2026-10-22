@@ -21,11 +21,11 @@ import {
 import { api } from '../api/client.ts';
 import { useArea } from '../state/area.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
+import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { tint } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Tag } from '../components/Button.tsx';
-import { PushHeader } from '../components/Shell.tsx';
+import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -108,15 +108,20 @@ export function TripScreen({
         {plan.data ? (
           <>
             <View
-              style={{
+              style={[shadow.card, {
                 flexDirection: 'row',
                 gap: 14,
-                paddingHorizontal: gutter,
-                paddingVertical: 18,
-                borderBottomWidth: 1,
-                borderBottomColor: color.neutral300,
-              }}
+                marginHorizontal: gutter,
+                marginTop: 14,
+                padding: 16,
+                backgroundColor: color.surface,
+                borderRadius: radius.md,
+                borderWidth: 1,
+                borderColor: '#DCEFF5',
+                overflow: 'hidden',
+              }]}
             >
+              <OceanBackdrop subtle />
               <Stat
                 label={t(strings.trip.walking)}
                 value={`${plan.data.walkingKm.toFixed(1)} km`}
@@ -168,8 +173,9 @@ function EnergyPicker({
     <View
       style={{
         flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderBottomColor: color.neutral300,
+        gap: 8,
+        paddingHorizontal: gutter,
+        paddingTop: 14,
       }}
     >
       {(Object.keys(ENERGY_LABEL) as Energy[]).map((key) => {
@@ -183,9 +189,12 @@ function EnergyPicker({
             accessibilityLabel={`${t(ENERGY_LABEL[key])} day`}
             style={{
               flex: 1,
-              paddingVertical: 11,
+              paddingVertical: 10,
               alignItems: 'center',
-              backgroundColor: active ? color.brand : 'transparent',
+              borderRadius: 22,
+              borderWidth: 1,
+              borderColor: active ? color.brand : '#CBE7F0',
+              backgroundColor: active ? color.brand : color.surface,
             }}
           >
             <Label size={10} tracking={0.12} colour={active ? onFill.brand : color.neutral700}>
@@ -209,16 +218,26 @@ function PlanRow({ item, onPress }: { item: PlanItem; onPress?: () => void }) {
   const transit = item.kind === 'transit';
   const body = (
     <View
-      style={{
-        flexDirection: 'row',
-        gap: 14,
-        paddingVertical: transit ? 9 : 14,
-        paddingHorizontal: gutter,
-        paddingLeft: transit ? gutter + 22 : gutter,
-        borderBottomWidth: 1,
-        borderBottomColor: color.neutral300,
-        opacity: transit ? 0.72 : 1,
-      }}
+      style={transit
+        ? {
+            flexDirection: 'row',
+            gap: 14,
+            paddingVertical: 9,
+            paddingHorizontal: gutter,
+            paddingLeft: gutter + 22,
+            opacity: 0.72,
+          }
+        : [shadow.card, {
+            flexDirection: 'row',
+            gap: 14,
+            marginHorizontal: gutter,
+            marginTop: 10,
+            padding: 14,
+            backgroundColor: color.surface,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: '#DCEFF5',
+          }]}
     >
       {/* A stop's time on a flat tint; a leg between stops stays plain, so
           the eye lands on the places and passes over the travel. */}
@@ -291,13 +310,14 @@ function Dropped({ dropped }: { dropped: TripPlan['dropped'] }) {
       {dropped.map((d) => (
         <View
           key={t(d.name)}
-          style={{
+          style={[shadow.card, {
             marginTop: 10,
-            padding: 12,
+            padding: 14,
+            backgroundColor: color.surface,
             borderWidth: 1,
-            borderColor: color.neutral400,
-            borderRadius: radius.sm,
-          }}
+            borderColor: '#DCEFF5',
+            borderRadius: radius.md,
+          }]}
         >
           <Heading size={13} colour={color.neutral700}>{t(d.name)}</Heading>
           <Body size={13} colour={color.neutral600} style={{ marginTop: 4 }}>
@@ -340,8 +360,18 @@ function PriceOutlook({
   const peak = Math.max(...outlook.map((m) => m.band.high), 1);
 
   return (
-    <View style={{ marginTop: 26, borderTopWidth: layout.ruleStrong, borderTopColor: color.neutral300 }}>
-      <View style={{ paddingHorizontal: gutter, paddingTop: 18 }}>
+    <View
+      style={[shadow.card, {
+        marginTop: 22,
+        marginHorizontal: gutter,
+        paddingBottom: 18,
+        backgroundColor: color.surface,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: '#DCEFF5',
+      }]}
+    >
+      <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
         <Label size={10} tracking={0.16}>{t({ en: 'A night on Samui', th: 'ราคาที่พักต่อคืน' })}</Label>
 
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 8 }}>

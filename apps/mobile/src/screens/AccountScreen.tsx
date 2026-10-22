@@ -21,10 +21,10 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { api } from '../api/client.ts';
 import { adoptKey } from '../api/account.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
+import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
-import { PushHeader } from '../components/Shell.tsx';
+import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { LOCALES, LOCALE_NAMES, setLocale, t, useLocale } from '../i18n/locale.ts';
 
@@ -97,11 +97,13 @@ export function AccountScreen({
 function Summary({ count }: { count: number }) {
   return (
     <View
-      style={{
+      style={[shadow.card, {
         margin: gutter, padding: 20,
         borderRadius: radius.md, backgroundColor: color.paper,
-      }}
+        overflow: 'hidden',
+      }]}
     >
+      <OceanBackdrop compact />
       <Label size={10} tracking={0.16} colour={color.brandSoft}>
         {t({ en: 'Signed in on this phone', th: 'เข้าใช้งานบนเครื่องนี้' })}
       </Label>
@@ -510,11 +512,11 @@ function HourStepper({
 function NoRecovery() {
   return (
     <View
-      style={{
-        marginHorizontal: gutter, marginTop: 26, padding: 16,
-        borderRadius: radius.md, backgroundColor: color.neutral100,
-        borderWidth: 1, borderColor: color.neutral300,
-      }}
+      style={[shadow.card, {
+        marginHorizontal: gutter, marginTop: 14, padding: 16,
+        borderRadius: radius.md, backgroundColor: color.surface,
+        borderWidth: 1, borderColor: '#DCEFF5',
+      }]}
     >
       <Label size={10} tracking={0.14} colour={color.neutral700}>{t({ en: 'WHAT WE DO NOT KEEP', th: 'สิ่งที่เราไม่เก็บ' })}</Label>
       <Body size={13} colour={color.neutral800} style={{ marginTop: 8 }}>{t({ en: 'No password, no email, no phone number. There is nothing about you here that could leak, because none of it was ever collected.', th: 'ไม่มีรหัสผ่าน ไม่มีอีเมล ไม่มีเบอร์โทร ไม่มีข้อมูลของคุณที่นี่ให้รั่วไหล เพราะเราไม่เคยเก็บมาตั้งแต่ต้น' })}</Body>
@@ -535,7 +537,13 @@ function Section({
   en, th, children,
 }: { en: string; th: string; children: React.ReactNode }) {
   return (
-    <View style={{ paddingHorizontal: gutter, paddingTop: 24 }}>
+    <View
+      style={[shadow.card, {
+        marginHorizontal: gutter, marginTop: 14, padding: 16,
+        backgroundColor: color.surface, borderRadius: radius.md,
+        borderWidth: 1, borderColor: '#DCEFF5',
+      }]}
+    >
       <Label size={10} tracking={0.14} style={{ marginBottom: 12 }}>{t({ en, th })}</Label>
       {children}
     </View>

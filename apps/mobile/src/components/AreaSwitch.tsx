@@ -34,10 +34,10 @@ export function AreaSwitch({
       {AREAS.map((a) => {
         const on = a.key === area;
         const fill = tone === 'inverted'
-          ? (on ? color.surface : 'rgba(255,255,255,0.16)')
+          ? (on ? color.surface : 'rgba(255,255,255,0.2)')
           : (on ? color.brand : color.surface);
         const ink = tone === 'inverted'
-          ? (on ? color.brand : onFill.brand)
+          ? (on ? '#0077B6' : '#FFFFFF')
           : (on ? onFill.brand : color.neutral700);
         return (
           <Pressable
@@ -47,7 +47,7 @@ export function AreaSwitch({
             accessibilityState={{ selected: on }}
             accessibilityLabel={t(a.name)}
             style={{
-              minHeight: 32, paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.lg,
+              minHeight: 36, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 24,
               backgroundColor: fill,
               borderWidth: 1,
               borderColor: tone === 'inverted' ? 'rgba(255,255,255,0.28)' : (on ? color.brand : color.neutral300),

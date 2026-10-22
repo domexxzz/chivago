@@ -29,6 +29,7 @@ import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, motion, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
+import { OceanBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 
 export function SafetyScreen({
@@ -43,16 +44,31 @@ export function SafetyScreen({
   const shield = useAsync(() => api.shield(), []);
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
       {/* The design's only inverted header - it carries the mode change. */}
-      <View style={{ backgroundColor: color.mist, paddingHorizontal: gutter, paddingVertical: 18, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 }}>
-        <Label size={10} tracking={0.16} colour={onFill.text} style={{ opacity: 0.7 }}>
+      <View
+        style={{
+          backgroundColor: color.mist,
+          paddingHorizontal: gutter,
+          paddingVertical: 22,
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+          overflow: 'hidden',
+          shadowColor: '#004E64',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.16,
+          shadowRadius: 10,
+          elevation: 3,
+        }}
+      >
+        <OceanBackdrop compact />
+        <Label size={10} tracking={0.16} colour="#D5F6FF">
           {strings.safety.kicker.en}
         </Label>
         <Heading size={26} colour={onFill.text} tracking={-0.52} style={{ marginTop: 6 }}>
           {strings.safety.title.en}
         </Heading>
-        <Thai always size={11} colour={onFill.text} style={{ opacity: 0.75, marginTop: 4 }}>
+        <Thai always size={11} colour="#E8FBFF" style={{ opacity: 0.9, marginTop: 4 }}>
           {strings.safety.subtitle.th}
         </Thai>
       </View>
@@ -104,9 +120,11 @@ function ServiceRow({ service }: { service: ShieldService }) {
         gap: 14,
         marginHorizontal: gutter,
         marginTop: 10,
-        padding: 14,
+        padding: 15,
         borderRadius: radius.md,
         backgroundColor: color.surface,
+        borderWidth: 1,
+        borderColor: '#DCEFF5',
       }]}
     >
       <View
@@ -262,7 +280,23 @@ function SosSection({
   };
 
   return (
-    <View style={{ paddingHorizontal: gutter, paddingVertical: 24 }}>
+    <View
+      style={[
+        shadow.card,
+        {
+          marginHorizontal: gutter,
+          marginTop: 16,
+          marginBottom: 20,
+          padding: 20,
+          backgroundColor: color.surface,
+          borderRadius: 24,
+          borderWidth: 1,
+          borderColor: '#DCEFF5',
+          overflow: 'hidden',
+        },
+      ]}
+    >
+      <OceanBackdrop subtle />
       <Label size={10} tracking={0.16}>
         {`${strings.safety.emergency.en} · ${strings.safety.emergency.th}`}
       </Label>
@@ -532,24 +566,37 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
         and turns the row into a puzzle on the one screen where reading speed
         is the whole point. Two by two gives each 170px and one clean line.
       */}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
         {national.map((n) => (
           <Pressable
             key={n.key}
             onPress={() => void Linking.openURL(`tel:${n.dial}`)}
             accessibilityRole="button"
             accessibilityLabel={`${n.name.en}. ${n.name.th}. ${n.printed}`}
-            style={{
-              width: '48%',
-              alignItems: 'center',
-              gap: 6,
-              paddingVertical: 14,
-              borderWidth: layout.ruleHair,
-              borderColor: color.neutral300,
-              borderRadius: radius.sm,
-            }}
+            style={[
+              shadow.card,
+              {
+                width: '48%',
+                flexGrow: 1,
+                alignItems: 'center',
+                gap: 6,
+                paddingVertical: 14,
+                backgroundColor: color.surface,
+                borderWidth: 1,
+                borderColor: '#DCEFF5',
+                borderRadius: 18,
+              },
+            ]}
           >
-            <Phone size={16} color={color.text} strokeWidth={2} />
+            <View
+              style={{
+                width: 34, height: 34, borderRadius: 17,
+                backgroundColor: color.brandSoft,
+                alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              <Phone size={16} color={color.brand} strokeWidth={2} />
+            </View>
             <Heading size={16}>{n.dial}</Heading>
             <Label size={9} tracking={0.06} style={{ textAlign: 'center' }}>
               {n.name.en}
@@ -570,17 +617,21 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
           onPress={() => void Linking.openURL(`tel:${n.dial}`)}
           accessibilityRole="button"
           accessibilityLabel={`${n.name.en}. ${n.name.th}. ${n.printed}`}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 10,
-            marginTop: 8,
-            paddingVertical: 11,
-            paddingHorizontal: 12,
-            borderWidth: 1,
-            borderColor: color.neutral400,
-            borderRadius: radius.sm,
-          }}
+          style={[
+            shadow.card,
+            {
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+              marginTop: 8,
+              paddingVertical: 13,
+              paddingHorizontal: 14,
+              backgroundColor: color.surface,
+              borderWidth: 1,
+              borderColor: '#DCEFF5',
+              borderRadius: 16,
+            },
+          ]}
         >
           <View style={{ flex: 1 }}>
             <Heading size={14}>{n.name.en}</Heading>

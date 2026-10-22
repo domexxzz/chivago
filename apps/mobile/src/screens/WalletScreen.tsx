@@ -34,6 +34,7 @@ import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { Button } from '../components/Button.tsx';
+import { OceanBackdrop } from '../components/Shell.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -56,7 +57,32 @@ export function WalletScreen({
   const companions = useAsync(() => api.companions(), [refreshKey]);
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
+      <View
+        style={{
+          paddingHorizontal: gutter,
+          paddingTop: 22,
+          paddingBottom: 20,
+          backgroundColor: '#028090',
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+          overflow: 'hidden',
+          shadowColor: '#004E64',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.14,
+          shadowRadius: 10,
+          elevation: 3,
+        }}
+      >
+        <OceanBackdrop compact />
+        <Label size={10} tracking={0.16} colour="#D5F6FF">
+          {t({ en: 'YOUR WALLET', th: 'กระเป๋าแต้มของคุณ' })}
+        </Label>
+        <Heading size={26} tracking={-0.5} colour="#FFFFFF" style={{ marginTop: 4 }}>
+          {`${t(strings.common.greenPoints)} & ${t(strings.common.tripPoints)}`}
+        </Heading>
+      </View>
+
       {wallet.loading ? <LoadingState /> : null}
       {wallet.error ? <ErrorState message={wallet.error} onRetry={wallet.reload} /> : null}
       {wallet.data ? (
@@ -93,13 +119,16 @@ function AccountRow({ onOpenAccount }: { onOpenAccount: () => void }) {
       onPress={onOpenAccount}
       accessibilityRole="button"
       accessibilityLabel="Your account. Add another phone, or see which phones are signed in."
-      style={{
-        marginHorizontal: gutter, marginTop: 18, marginBottom: 28,
-        padding: 14, minHeight: 44,
-        flexDirection: 'row', alignItems: 'center', gap: 12,
-        borderWidth: 1, borderColor: color.neutral300, borderRadius: radius.md,
-        backgroundColor: color.surface,
-      }}
+      style={[
+        shadow.card,
+        {
+          marginHorizontal: gutter, marginTop: 18, marginBottom: 28,
+          padding: 16, minHeight: 44,
+          flexDirection: 'row', alignItems: 'center', gap: 12,
+          borderWidth: 1, borderColor: '#DCEFF5', borderRadius: radius.md,
+          backgroundColor: color.surface,
+        },
+      ]}
     >
       <View style={{ flex: 1 }}>
         <Heading size={15}>{t({ en: 'Your account', th: 'บัญชีของคุณ' })}</Heading>
@@ -130,12 +159,16 @@ export function Balances({ wallet }: { wallet: Wallet }) {
         flexDirection: 'row',
         marginHorizontal: gutter,
         marginTop: 16,
-        padding: 18,
+        padding: 20,
         gap: 20,
         backgroundColor: color.surface,
-        borderRadius: radius.md,
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: '#DCEFF5',
+        overflow: 'hidden',
       }]}
     >
+      <OceanBackdrop subtle />
       <Purse
         figure={wallet.balances.green}
         label={t(strings.common.greenPoints)}
@@ -188,6 +221,8 @@ export function LevelBlock({ wallet }: { wallet: Wallet }) {
         padding: 16,
         backgroundColor: color.surface,
         borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: '#DCEFF5',
       }]}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -205,8 +240,8 @@ export function LevelBlock({ wallet }: { wallet: Wallet }) {
         like proof. The two things a judge must be able to tell apart at a
         glance are exactly these.
       */}
-      <View style={{ height: 10, backgroundColor: color.neutral300, marginTop: 10 }}>
-        <View style={{ width: `${pct}%`, height: '100%', backgroundColor: color.gold }} />
+      <View style={{ height: 10, borderRadius: 5, overflow: 'hidden', backgroundColor: color.neutral200, marginTop: 10 }}>
+        <View style={{ width: `${pct}%`, height: '100%', borderRadius: 5, backgroundColor: color.gold }} />
       </View>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
         <Label size={9} tracking={0.06} colour={color.neutral600}>
@@ -226,12 +261,18 @@ export function LevelBlock({ wallet }: { wallet: Wallet }) {
 export function RankLadder({ wallet }: { wallet: Wallet }) {
   return (
     <View
-      style={{
-        paddingHorizontal: gutter,
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: color.neutral300,
-      }}
+      style={[
+        shadow.card,
+        {
+          marginHorizontal: gutter,
+          marginTop: 12,
+          padding: 16,
+          backgroundColor: color.surface,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: '#DCEFF5',
+        },
+      ]}
     >
       <Label size={10} tracking={0.14}>{t(strings.wallet.ranks)}</Label>
       <View style={{ flexDirection: 'row', gap: 6, marginTop: 12 }}>
@@ -248,8 +289,8 @@ export function RankLadder({ wallet }: { wallet: Wallet }) {
               padding: 4,
               borderWidth: layout.ruleStrong,
               borderRadius: radius.sm,
-              borderColor: rank.earned ? color.gold : color.neutral400,
-              backgroundColor: rank.earned ? color.gold : 'transparent',
+              borderColor: rank.earned ? color.gold : color.neutral300,
+              backgroundColor: rank.earned ? color.gold : '#F7FBFD',
             }}
           >
             <Heading size={15} colour={rank.earned ? onFill.gold : color.neutral500}>
@@ -298,66 +339,71 @@ export function Ledger({ wallet, onOpenMarket }: { wallet: Wallet; onOpenMarket:
         <EmptyState en={t(strings.wallet.emptyLedger)} th={strings.wallet.emptyLedger.th} />
       ) : null}
 
-      {wallet.ledger.map((entry) => {
-        const look = ENTRY_LOOK[entry.kind] ?? ENTRY_LOOK.adjustment;
-        const tone = tint[look.tone];
-        return (
+      {wallet.ledger.length > 0 ? (
         <View
-          key={entry.id}
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 12,
-            paddingVertical: 11,
-            borderBottomWidth: 1,
-            borderBottomColor: color.neutral300,
-          }}
+          style={[
+            shadow.card,
+            {
+              marginTop: 8,
+              paddingHorizontal: 14,
+              paddingVertical: 4,
+              backgroundColor: color.surface,
+              borderRadius: radius.md,
+              borderWidth: 1,
+              borderColor: '#DCEFF5',
+            },
+          ]}
         >
-          <View
-            style={{
-              width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
-              backgroundColor: tone.fill,
-            }}
-          >
-            <look.Icon size={18} color={tone.ink} strokeWidth={2} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Heading size={14}>{t(ledgerLine(entry))}</Heading>
-            <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 2 }}>
-              {`${t(ledgerDate(entry.occurredAt, now))} · ${entry.host}`}
-            </Label>
-          </View>
-          {/*
-            Credits carry their CURRENCY's colour, debits neutral-600 with
-            U+2212, not a hyphen.
-
-            Green earns the green; Trip earns gold. The two purses are the
-            centre of the design and the header already separates them this
-            way - a ledger that painted both the same colour would undo the
-            distinction one line below the place it was made.
-
-            Trip used to be plain ink here, which was not wrong so much as
-            silent: it read as "no colour" rather than as the other currency.
-          */}
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
-            <Heading
-              size={15}
-              colour={
-                entry.amount < 0
-                  ? color.neutral600
-                  : currencyTone(entry.currency).text
-              }
-            >
-              {formatAmount(entry.amount)}
-            </Heading>
-            <Label size={10} tracking={0.1} colour={color.neutral600}>
-              {entry.currency === 'green' ? 'G' : 'T'}
-            </Label>
-          </View>
+          {wallet.ledger.map((entry, idx) => {
+            const look = ENTRY_LOOK[entry.kind] ?? ENTRY_LOOK.adjustment;
+            const tone = tint[look.tone];
+            return (
+              <View
+                key={entry.id}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 12,
+                  paddingVertical: 12,
+                  borderBottomWidth: idx < wallet.ledger.length - 1 ? 1 : 0,
+                  borderBottomColor: color.neutral200,
+                }}
+              >
+                <View
+                  style={{
+                    width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
+                    backgroundColor: tone.fill,
+                  }}
+                >
+                  <look.Icon size={18} color={tone.ink} strokeWidth={2} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Heading size={14}>{t(ledgerLine(entry))}</Heading>
+                  <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 2 }}>
+                    {`${t(ledgerDate(entry.occurredAt, now))} · ${entry.host}`}
+                  </Label>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
+                  <Heading
+                    size={15}
+                    colour={
+                      entry.amount < 0
+                        ? color.neutral600
+                        : currencyTone(entry.currency).text
+                    }
+                  >
+                    {formatAmount(entry.amount)}
+                  </Heading>
+                  <Label size={10} tracking={0.1} colour={color.neutral600}>
+                    {entry.currency === 'green' ? 'G' : 'T'}
+                  </Label>
+                </View>
+              </View>
+            );
+          })}
         </View>
-        );
-      })}
+      ) : null}
     </View>
   );
 }
@@ -503,14 +549,18 @@ function Companions({
           onPress={() => onOpenCompanion(c)}
           accessibilityRole="button"
           accessibilityLabel={`${t(c.species.name)}, ${c.stage}. Visit its home.`}
-          style={{
-            marginTop: 12,
-            marginHorizontal: gutter,
-            padding: 14,
-            borderWidth: c.stage === 'grown' ? layout.ruleStrong : 1,
-            borderColor: c.stage === 'grown' ? color.accent : color.neutral400,
-            borderRadius: radius.md,
-          }}
+          style={[
+            shadow.card,
+            {
+              marginTop: 12,
+              marginHorizontal: gutter,
+              padding: 16,
+              backgroundColor: color.surface,
+              borderWidth: c.stage === 'grown' ? layout.ruleStrong : 1,
+              borderColor: c.stage === 'grown' ? color.accent : '#DCEFF5',
+              borderRadius: radius.md,
+            },
+          ]}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             {/*

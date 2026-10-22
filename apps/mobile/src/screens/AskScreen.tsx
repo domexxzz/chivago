@@ -40,7 +40,7 @@ import {
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
+import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -73,9 +73,16 @@ const baht = (n: number): string => n.toLocaleString('en-US');
 function NotABooking() {
   return (
     <View
-      style={{
-        borderLeftWidth: 4, borderLeftColor: color.text, paddingLeft: 12, paddingVertical: 6,
-      }}
+      style={[shadow.card, {
+        marginTop: 12,
+        padding: 14,
+        backgroundColor: color.surface,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: '#DCEFF5',
+        borderLeftWidth: 4,
+        borderLeftColor: color.brand,
+      }]}
     >
       <Body size={13} colour={color.text}>{t(INQUIRY_IS_NOT_A_BOOKING)}</Body>
     </View>
@@ -178,15 +185,18 @@ export function ListingRow({ listing, onAsk }: { listing: ListingCard; onAsk: ()
         `${t(strings.ask.operators)}: ${t(listing.title)}, ${listing.operatorName}`
         + (listing.example ? `. ${t(strings.ask.example)}` : '')
       }
-      style={{
+      style={[shadow.card, {
         flexDirection: 'row',
         alignItems: 'flex-start',
         gap: 14,
-        paddingVertical: 14,
-        paddingHorizontal: gutter,
-        borderBottomWidth: 1,
-        borderBottomColor: color.neutral300,
-      }}
+        marginHorizontal: gutter,
+        marginTop: 10,
+        padding: 14,
+        backgroundColor: color.surface,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: '#DCEFF5',
+      }]}
     >
       <View
         style={{
@@ -228,7 +238,18 @@ export function QuestionRow({
 }: { inquiry: TravellerInquiry; onWithdraw: () => void }) {
   const { listing } = inquiry;
   return (
-    <View style={{ borderLeftWidth: 4, borderLeftColor: color.neutral400, paddingLeft: 12, marginTop: 14 }}>
+    <View
+      style={[shadow.card, {
+        padding: 14,
+        marginTop: 10,
+        backgroundColor: color.surface,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: '#DCEFF5',
+        borderLeftWidth: 4,
+        borderLeftColor: color.brand,
+      }]}
+    >
       <Heading size={14}>{t(listing.title)}</Heading>
       <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 2 }}>
         {`${listing.operatorName} · ${dayLabel(inquiry.forDate)} · ${t(strings.ask.people(inquiry.partySize))}`}

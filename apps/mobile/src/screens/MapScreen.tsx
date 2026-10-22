@@ -23,9 +23,10 @@ import { WayBanner } from '../components/WayBanner.tsx';
 import { FairBanner } from '../components/FairBanner.tsx';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { useAsync, type LayerKey } from '../state/store.tsx';
-import { color, currencyTone, gutter, layout, onFill, radius } from '../theme/index.ts';
+import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button, IconButton } from '../components/Button.tsx';
+import { OceanBackdrop } from '../components/Shell.tsx';
 import { LayerChips, PlaceFeedRow, SamuiMap, drawsFairLots, type MapMode } from '../components/SamuiMap.tsx';
 import { StoryViewer } from '../components/Stories.tsx';
 import { pickStoryMedia, postStory } from '../state/tell-story.ts';
@@ -367,20 +368,26 @@ export function MapScreen({
         onPress={onPlanDay}
         accessibilityRole="button"
         accessibilityLabel="Plan my day"
-        style={{
-          marginTop: 16,
-          marginHorizontal: gutter,
-          padding: 16,
-          borderWidth: layout.ruleStrong,
-          // The one control on this screen that starts something.
-          borderColor: color.ctaDeep,
-          borderRadius: radius.md,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}
+        style={[
+          shadow.card,
+          {
+            marginTop: 16,
+            marginHorizontal: gutter,
+            padding: 18,
+            backgroundColor: color.surface,
+            borderWidth: 1.5,
+            // The one control on this screen that starts something.
+            borderColor: color.ctaDeep,
+            borderRadius: 22,
+            overflow: 'hidden',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          },
+        ]}
       >
+        <OceanBackdrop subtle />
         <View style={{ flex: 1 }}>
           <Heading size={17} colour={color.ctaDeep}>{t(strings.trip.planCta)}</Heading>
           <Body size={13} colour={color.neutral600} style={{ marginTop: 6 }}>
@@ -400,25 +407,29 @@ export function MapScreen({
         onPress={onAskConcierge}
         accessibilityRole="button"
         accessibilityLabel="Ask the concierge. Ask in Thai or English."
-        style={{
-          marginTop: 10,
-          marginHorizontal: gutter,
-          minHeight: 44,
-          paddingVertical: 12,
-          paddingHorizontal: 16,
-          borderWidth: 1,
-          borderColor: color.neutral400,
-          borderRadius: radius.md,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 12,
-        }}
+        style={[
+          shadow.card,
+          {
+            marginTop: 10,
+            marginHorizontal: gutter,
+            minHeight: 48,
+            paddingVertical: 14,
+            paddingHorizontal: 16,
+            backgroundColor: color.surface,
+            borderWidth: 1,
+            borderColor: '#DCEFF5',
+            borderRadius: radius.md,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+          },
+        ]}
       >
-        <MessageCircle size={18} color={color.neutral700} strokeWidth={2} />
+        <MessageCircle size={18} color={color.brand} strokeWidth={2} />
         <View style={{ flex: 1 }}>
           <Heading size={14}>{t({ en: 'Ask where to go', th: 'ถามว่าไปไหนดี' })}</Heading>
         </View>
-        <ChevronRight size={18} color={color.neutral600} strokeWidth={2} />
+        <ChevronRight size={18} color={color.brand} strokeWidth={2} />
       </Pressable>
 
       {/*
@@ -433,26 +444,30 @@ export function MapScreen({
           onPress={onOpenStays}
           accessibilityRole="button"
           accessibilityLabel={`${t(strings.ask.door)}. ${t(strings.ask.doorSub)}`}
-          style={{
-            marginTop: 10,
-            marginHorizontal: gutter,
-            minHeight: 44,
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            borderWidth: 1,
-            borderColor: color.neutral400,
-            borderRadius: radius.md,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 12,
-          }}
+          style={[
+            shadow.card,
+            {
+              marginTop: 10,
+              marginHorizontal: gutter,
+              minHeight: 48,
+              paddingVertical: 14,
+              paddingHorizontal: 16,
+              backgroundColor: color.surface,
+              borderWidth: 1,
+              borderColor: '#DCEFF5',
+              borderRadius: radius.md,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+            },
+          ]}
         >
-          <BedDouble size={18} color={color.neutral700} strokeWidth={2} />
+          <BedDouble size={18} color={color.brand} strokeWidth={2} />
           <View style={{ flex: 1 }}>
             <Heading size={14}>{t(strings.ask.door)}</Heading>
             <Body size={13} colour={color.neutral600} style={{ marginTop: 2 }}>{t(strings.ask.doorSub)}</Body>
           </View>
-          <ChevronRight size={18} color={color.neutral600} strokeWidth={2} />
+          <ChevronRight size={18} color={color.brand} strokeWidth={2} />
         </Pressable>
       ) : null}
 
@@ -492,34 +507,44 @@ export function MapHeader({
     <View
       style={{
         flexDirection: 'row',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: gutter,
-        paddingTop: 16,
-        paddingBottom: 12,
-        backgroundColor: color.bg,
+        paddingTop: 20,
+        paddingBottom: 18,
+        backgroundColor: '#028090',
+        borderBottomLeftRadius: 26,
+        borderBottomRightRadius: 26,
+        overflow: 'hidden',
+        shadowColor: '#004E64',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.14,
+        shadowRadius: 10,
+        elevation: 3,
       }}
     >
+      <OceanBackdrop compact />
       <View style={{ flex: 1 }}>
         {/*
           Island time, like Home. This read "Good morning, John" at every hour
           of the day for an app that collects no names - a prototype string
           that outlived the prototype by fifty commits.
         */}
-        <Label size={10} tracking={0.16}>{t(greetingFor(new Date()))}</Label>
-        <Heading size={24} tracking={-0.48} style={{ marginTop: 4 }}>{t(area.name)}</Heading>
+        <Label size={10} tracking={0.16} colour="#D5F6FF">{t(greetingFor(new Date()))}</Label>
+        <Heading size={24} tracking={-0.48} colour="#FFFFFF" style={{ marginTop: 4 }}>{t(area.name)}</Heading>
       </View>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         {/* Handoff open question 1: the feed is a peer treatment, not a hidden
             debug switch, so the toggle ships. */}
         <IconButton
+          inverted
           onPress={onToggleMode}
           accessibilityLabel={mode === 'map' ? 'Switch to list view' : 'Switch to map view'}
         >
           {mode === 'map'
-            ? <List size={16} color={color.text} strokeWidth={2} />
-            : <LayoutGrid size={16} color={color.text} strokeWidth={2} />}
+            ? <List size={16} color="#FFFFFF" strokeWidth={2} />
+            : <LayoutGrid size={16} color="#FFFFFF" strokeWidth={2} />}
         </IconButton>
 
         {/*
@@ -545,11 +570,14 @@ export function MapHeader({
             + `${t(strings.common.tripPointsNote)}. Open wallet.`
           }
           style={{
-            borderLeftWidth: layout.ruleStrong,
-            borderLeftColor: color.text,
-            paddingLeft: 10,
+            backgroundColor: '#FFFFFF',
+            borderRadius: 16,
+            paddingVertical: 7,
+            paddingHorizontal: 12,
             minHeight: 44,
             justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: '#DCEFF5',
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
@@ -586,22 +614,28 @@ export function QuestsNearYou({
 }) {
   const top = quests[0];
   return (
-    <View style={{ paddingHorizontal: gutter, paddingTop: 16, paddingBottom: 24 }}>
+    <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 24 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Label size={10} tracking={0.16}>{t(strings.map.questsNearYou)}</Label>
+        <Label size={10} tracking={0.16} colour={color.brand}>{t(strings.map.questsNearYou)}</Label>
         <Button label={t(strings.common.seeAll)} onPress={onSeeAll} variant="ghost" />
       </View>
 
       {top ? (
         <View
-          style={{
-            borderWidth: layout.ruleHair,
-            borderColor: color.neutral300,
-            borderRadius: radius.md,
-            padding: 14,
-            marginTop: 10,
-          }}
+          style={[
+            shadow.card,
+            {
+              backgroundColor: color.surface,
+              borderWidth: 1,
+              borderColor: '#DCEFF5',
+              borderRadius: 22,
+              overflow: 'hidden',
+              padding: 16,
+              marginTop: 10,
+            },
+          ]}
         >
+          <OceanBackdrop subtle />
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
             <View style={{ flex: 1 }}>
               <Heading size={17}>{t(top.name)}</Heading>
@@ -623,7 +657,7 @@ export function QuestsNearYou({
             onPress={() => onOpen(top.id)}
             height={44}
             style={{ marginTop: 12 }}
-            icon={<ChevronRight size={18} color={onFill.cta} strokeWidth={2} />}
+            icon={<ChevronRight size={18} color={onFill.brand} strokeWidth={2} />}
           />
         </View>
       ) : null}

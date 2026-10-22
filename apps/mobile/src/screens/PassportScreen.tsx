@@ -30,9 +30,10 @@ import {
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, radius } from '../theme/index.ts';
+import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
 import { gameHabitat, gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
+import { OceanBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { MascotPortrait } from '../components/MascotPortrait.tsx';
 import { t } from '../i18n/locale.ts';
@@ -71,13 +72,18 @@ export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void }
         screen has a single headline number worth stopping on.
       */}
       <View
-        style={{
-          margin: gutter,
-          padding: 22,
-          borderRadius: gameRadius.panel,
-          backgroundColor: color.paper,
-        }}
+        style={[
+          shadow.card,
+          {
+            margin: gutter,
+            padding: 22,
+            borderRadius: 24,
+            backgroundColor: color.paper,
+            overflow: 'hidden',
+          },
+        ]}
       >
+        <OceanBackdrop compact />
         <Label size={10} tracking={0.16} colour={color.brandSoft}>{t({ en: 'Province passport', th: 'พาสปอร์ตจังหวัด' })}</Label>
 
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 10 }}>

@@ -23,11 +23,11 @@ import { ChevronRight, Users } from 'lucide-react-native';
 import { PARTY_KIND_LABEL, nextTogether, type Bilingual, type PartySummary } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
+import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { gameHabitat, gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
-import { PushHeader } from '../components/Shell.tsx';
+import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -112,10 +112,12 @@ function Alone({
   return (
     <>
       <View
-        style={{
+        style={[shadow.card, {
           margin: gutter, padding: 20, borderRadius: gameRadius.panel, backgroundColor: color.paper,
-        }}
+          overflow: 'hidden',
+        }]}
       >
+        <OceanBackdrop compact />
         <Label size={10} tracking={0.16} colour={color.brandSoft}>
           {t(PARTY_KIND_LABEL.solo).toUpperCase()}
         </Label>
@@ -205,8 +207,12 @@ function Together({ name, summary }: { name: string; summary: PartySummary }) {
 
   return (
     <View
-      style={{ margin: gutter, padding: 20, borderRadius: radius.md, backgroundColor: color.paper }}
+      style={[shadow.card, {
+        margin: gutter, padding: 20, borderRadius: radius.md, backgroundColor: color.paper,
+        overflow: 'hidden',
+      }]}
     >
+      <OceanBackdrop compact />
       <Label size={10} tracking={0.16} colour={color.brandSoft}>
         {`${t(PARTY_KIND_LABEL[summary.kind]).toUpperCase()} · ${summary.size}`}
       </Label>
@@ -302,11 +308,11 @@ function Members({ summary }: { summary: PartySummary }) {
 function DoesNot({ items }: { items: Bilingual[] }) {
   return (
     <View
-      style={{
+      style={[shadow.card, {
         marginHorizontal: gutter, marginTop: 24, padding: 16,
-        borderRadius: radius.md, backgroundColor: color.neutral100,
-        borderWidth: 1, borderColor: color.neutral300,
-      }}
+        borderRadius: radius.md, backgroundColor: color.surface,
+        borderWidth: 1, borderColor: '#DCEFF5',
+      }]}
     >
       <Label size={10} tracking={0.14} colour={color.neutral700}>{t({ en: 'WHAT A GROUP DOES NOT DO', th: 'สิ่งที่กลุ่มไม่ได้ทำ' })}</Label>
       {items.map((d) => (

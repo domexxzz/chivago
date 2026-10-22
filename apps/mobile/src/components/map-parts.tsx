@@ -242,12 +242,12 @@ export function LayerChips({
             // 10, not 14: at 14 the five chips came to 396px and QUEST was cut
             // off at the edge of a 390px phone, which reads as broken rather
             // than scrollable. At 10 they fit with room on a 375px one.
-            paddingHorizontal: 10,
-            borderWidth: 2,
-            borderRadius: radius.sm,
+            paddingHorizontal: 12,
+            borderWidth: 1.5,
+            borderRadius: 22,
             // A layer switch is a map control, not a measurement.
-            borderColor: on ? color.brand : color.neutral400,
-            backgroundColor: on ? color.brand : 'transparent',
+            borderColor: on ? color.brand : '#CBE7F0',
+            backgroundColor: on ? color.brand : color.surface,
           }}
         >
           <Label size={11} tracking={0.06} colour={on ? onFill.brand : color.neutral700}>{layerName(key)}</Label>
@@ -272,15 +272,22 @@ export function PlaceFeedRow({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${t(place.name)}, Healthy Score ${place.healthyScore}. ${place.meta}`}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 14,
-        paddingVertical: 13,
-        paddingHorizontal: 18,
-        borderBottomWidth: 1,
-        borderBottomColor: color.neutral300,
-      }}
+      style={[
+        shadow.card,
+        {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 14,
+          marginHorizontal: 18,
+          marginTop: 10,
+          paddingVertical: 14,
+          paddingHorizontal: 16,
+          backgroundColor: color.surface,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: '#DCEFF5',
+        },
+      ]}
     >
       <View style={{ width: 38 }}>
         <Heading size={24} colour={color.accent700}>{place.healthyScore}</Heading>
@@ -288,12 +295,13 @@ export function PlaceFeedRow({
       <View style={{ flex: 1 }}>
         <Heading size={15}>{t(place.name)}</Heading>
         <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 2 }}>{place.meta}</Label>
-        <View style={{ height: 4, backgroundColor: color.neutral300, marginTop: 8 }}>
+        <View style={{ height: 5, borderRadius: 3, backgroundColor: color.neutral200, marginTop: 8, overflow: 'hidden' }}>
           <View
             style={{
               width: `${place.healthyScore}%`,
               height: '100%',
-              backgroundColor: high ? color.accent : color.text,
+              borderRadius: 3,
+              backgroundColor: high ? color.accent : color.brand,
             }}
           />
         </View>

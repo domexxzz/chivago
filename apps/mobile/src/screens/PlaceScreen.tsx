@@ -24,7 +24,7 @@ import { pickStoryMedia, postStory } from '../state/tell-story.ts';
 import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button, Tag } from '../components/Button.tsx';
-import { PushHeader } from '../components/Shell.tsx';
+import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { ReviewsBlock } from './PlaceReviews.tsx';
 import { t } from '../i18n/locale.ts';
@@ -211,8 +211,22 @@ export function PlaceScreen({
           <View style={{ paddingHorizontal: gutter, paddingTop: 16 }}>
             <Heading size={26} tracking={-0.52}>{t(place.data.name)}</Heading>
 
-            <ScoreBlock place={place.data} onExplain={() => setShowBreakdown(true)} />
-            <MetricGrid place={place.data} />
+            <View
+              style={[shadow.card, {
+                marginTop: 14,
+                paddingHorizontal: 14,
+                paddingBottom: 6,
+                backgroundColor: color.surface,
+                borderRadius: radius.md,
+                borderWidth: 1,
+                borderColor: '#DCEFF5',
+                overflow: 'hidden',
+              }]}
+            >
+              <OceanBackdrop subtle />
+              <ScoreBlock place={place.data} onExplain={() => setShowBreakdown(true)} />
+              <MetricGrid place={place.data} />
+            </View>
             <HereNow crowd={place.data.crowd} />
             {/* Asked for only where there are stalls: every other place makes no extra request. */}
             {stallSourceFor(place.data.id) ? <StallsCard placeId={place.data.id} /> : null}
@@ -314,12 +328,9 @@ function ScoreBlock({ place, onExplain }: { place: ScoredPlace; onExplain: () =>
   return (
     <View
       style={{
-        borderTopWidth: layout.ruleHair,
-        borderTopColor: color.neutral300,
         borderBottomWidth: 1,
-        borderBottomColor: color.neutral300,
+        borderBottomColor: '#DCEFF5',
         paddingVertical: 12,
-        marginTop: 14,
         flexDirection: 'row',
         alignItems: 'flex-end',
         justifyContent: 'space-between',
@@ -346,10 +357,11 @@ function MetricGrid({ place }: { place: ScoredPlace }) {
             width: '50%',
             paddingVertical: 12,
             paddingRight: 12,
+            paddingLeft: i % 2 === 1 ? 12 : 0,
             borderRightWidth: i % 2 === 0 ? 1 : 0,
-            borderRightColor: color.neutral300,
-            borderBottomWidth: 1,
-            borderBottomColor: color.neutral300,
+            borderRightColor: '#DCEFF5',
+            borderBottomWidth: i < 2 ? 1 : 0,
+            borderBottomColor: '#DCEFF5',
           }}
         >
           <Label size={10} tracking={0.12}>{t(c.label)}</Label>
