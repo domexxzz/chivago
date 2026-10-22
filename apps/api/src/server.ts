@@ -246,6 +246,16 @@ app.route('/console', consoleRoutes(db, {
 }));
 
 /**
+ * A short link for the form a business fills in (docs/67).
+ *
+ * The page itself lives under /console because that is where its stylesheet,
+ * its locale cookie and the queue behind it already are. But the link is
+ * handed to a hotel manager or read off a flyer at a pier, and telling
+ * somebody to visit a "console" to apply is telling them it is not for them.
+ */
+app.get('/apply', (c) => c.redirect('/console/apply', 302));
+
+/**
  * The public live-location page.
  *
  * Mounted OUTSIDE the traveller middleware and outside the console's auth: the

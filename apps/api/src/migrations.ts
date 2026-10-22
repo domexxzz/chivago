@@ -1557,5 +1557,63 @@ export function migrate(db: DB): string[] {
     applied.push('offers.example');
   }
 
+  /*
+    A business asking to list (docs/67).
+
+    WHY A TABLE OF ITS OWN AND NOT A HOST ROW WITH A FLAG. A pending
+    application must be unreachable by every query in the app, and a flag on
+    `hosts` would make that a property of forty WHERE clauses. Nothing outside
+    the moderator's queue joins this table, so there is no clause to forget.
+
+    AN APPLICATION LEAVES 'pending' ONCE, enforced by a trigger, as an inquiry
+    leaves 'sent' once. A second approval of the same row would mint a second
+    console key for a business that already has one, and the applicant would
+    have no way to know which of the two is live.
+
+    A TOUR CANNOT APPLY WITHOUT A STATED LICENCE NUMBER. The same CHECK the
+    `listings` table carries, for the same reason and in the same place: no
+    path into this table - the public form, a script, a migration nobody read -
+    can queue an unlicensed tour for approval. Stated, never verified.
+
+    A REFUSAL CARRIES A REASON and an approval carries the account it created,
+    both as CHECKs. A refused row with no reason is a business nobody can be
+    told anything about; an approved row with no `host_id` is an approval that
+    did not happen.
+
+    THE KEY IS NOT HERE. Approving creates the host row and prints its key
+    once, exactly as `add-host.ts` does. Only the scrypt hash is ever stored,
+    on `hosts`, and no column here could hold the key without undoing that.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS operator_applications (
+      id             TEXT PRIMARY KEY,
+      business_name  TEXT NOT NULL,
+      kind           TEXT NOT NULL CHECK (kind IN ('stay','tour','experience','transfer')),
+      where_label    TEXT NOT NULL,
+      contact_name   TEXT NOT NULL,
+      contact_phone  TEXT NOT NULL,
+      contact_email  TEXT,
+      licence_no     TEXT,
+      note           TEXT,
+      state          TEXT NOT NULL DEFAULT 'pending'
+        CHECK (state IN ('pending','approved','rejected')),
+      submitted_at   TEXT NOT NULL,
+      decided_at     TEXT,
+      decided_by     TEXT,
+      reason         TEXT,
+      host_id        TEXT REFERENCES hosts(id),
+      CHECK (kind <> 'tour' OR (licence_no IS NOT NULL AND trim(licence_no) <> '')),
+      CHECK (state <> 'approved' OR host_id IS NOT NULL),
+      CHECK (state <> 'rejected' OR (reason IS NOT NULL AND trim(reason) <> ''))
+    );
+    CREATE INDEX IF NOT EXISTS idx_operator_applications_state
+      ON operator_applications(state, submitted_at);
+    CREATE TRIGGER IF NOT EXISTS operator_applications_leave_pending_once
+      BEFORE UPDATE ON operator_applications
+      WHEN OLD.state <> 'pending'
+      BEGIN SELECT RAISE(ABORT, 'an application that has been decided does not change again'); END;
+  `);
+  applied.push('operator_applications');
+
   return applied;
 }
