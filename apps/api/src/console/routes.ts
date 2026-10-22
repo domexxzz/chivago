@@ -16,8 +16,8 @@ import {
   SESSION_COOKIE, SESSION_TTL_MS, type HostSession,
 } from '../host-auth.ts';
 import {
-  esgReport, isRejectionReasonKey, sponsorOutcome,
-  type EsgPeriod, type Sponsor, type Sponsorship,
+  applicationProblems, esgReport, isListingKind, isRejectionReasonKey, sponsorOutcome,
+  type EsgPeriod, type ListingKind, type Sponsor, type Sponsorship,
 } from '@chivago/core';
 import { listQuests } from '../repo.ts';
 import { sponsorPage } from './sponsor.ts';
@@ -60,6 +60,11 @@ import {
   recordPayment, removeSponsorship, sponsorshipsFor, UnknownOrganisation,
 } from '../organisation-service.ts';
 import { organisationsPage } from './organisations.ts';
+import {
+  InvalidApplication, approveApplication, decidedApplications, pendingApplications,
+  rejectApplication, submitApplication,
+} from '../operator-application-service.ts';
+import { applicationsPage, applyPage, applySentPage } from './applications.ts';
 import { pendingQueue, queueStats, recentDecisions, reviewItem } from '../review-service.ts';
 import {
   DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, localeFromAcceptLanguage, type Locale,
@@ -141,6 +146,36 @@ export const clearLoginFailures = (address: string): void => { loginAttempts.del
 
 /** Test seam: forget every address. */
 export const __resetLoginAttemptsForTests = (): void => { loginAttempts.clear(); };
+
+/**
+ * The public application form's limit (docs/67).
+ *
+ * Counted per address and over an hour, not per quarter hour, because the
+ * thing being protected is different: a sign-in costs CPU, while this costs a
+ * moderator's attention. A queue with four hundred invented businesses in it
+ * is a queue the real one at the bottom never gets read out of.
+ *
+ * EVERY submission counts, not only the refused ones. A bot that fills the
+ * fields correctly is exactly the case worth slowing down.
+ */
+const APPLY_PER_HOUR = Number(process.env.CHIVAGO_APPLY_LIMIT ?? 6);
+const APPLY_WINDOW_MS = 60 * 60 * 1000;
+const applyAttempts = new Map<string, number[]>();
+
+export function applyBlocked(address: string, now = Date.now()): boolean {
+  const recent = (applyAttempts.get(address) ?? []).filter((t) => now - t < APPLY_WINDOW_MS);
+  applyAttempts.set(address, recent);
+  return recent.length >= APPLY_PER_HOUR;
+}
+
+export function noteApplyAttempt(address: string, now = Date.now()): void {
+  const recent = (applyAttempts.get(address) ?? []).filter((t) => now - t < APPLY_WINDOW_MS);
+  recent.push(now);
+  applyAttempts.set(address, recent);
+}
+
+/** Test seam: forget every address. */
+export const __resetApplyAttemptsForTests = (): void => { applyAttempts.clear(); };
 
 export interface ConsoleHooks {
   /** Runs after a proof decision commits. The server uses it to flush pushes. */
@@ -275,6 +310,55 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     return c.redirect('/console/login', 303);
   });
 
+  // -- The door for a business with no account (docs/67) ------------------
+
+  app.get('/apply', (c) => c.html(applyPage({ locale: localeFor(c) })));
+
+  app.post('/apply', async (c) => {
+    // A public form that writes rows. Nothing here needs a key, so the only
+    // thing between it and a thousand rows is this: six in an hour from one
+    // address is more than any business filling in one form needs, and a
+    // flooded queue is a queue a moderator stops reading.
+    const address = clientAddress(c);
+    if (applyBlocked(address)) {
+      return c.text(
+        'พยายามส่งหลายครั้งเกินไป ลองอีกครั้งในหนึ่งชั่วโมง · Too many submissions from this connection. Try again in an hour.',
+        429,
+      );
+    }
+    const form = await c.req.parseBody();
+    const text = (key: string): string => (typeof form[key] === 'string' ? form[key] : '');
+    const values = {
+      businessName: text('businessName'), kind: text('kind'), whereLabel: text('whereLabel'),
+      contactName: text('contactName'), contactPhone: text('contactPhone'),
+      contactEmail: text('contactEmail'), licenceNo: text('licenceNo'), note: text('note'),
+    };
+
+    // Checked here as well as in the service, because the page renders the
+    // whole list of problems and a service that only throws the first one
+    // would make a business owner submit five times to learn five things.
+    const problems = !isListingKind(values.kind)
+      ? [{ en: 'Choose what kind of business this is.', th: 'เลือกประเภทธุรกิจ' }]
+      : applicationProblems({
+        businessName: values.businessName,
+        kind: values.kind as ListingKind,
+        whereLabel: values.whereLabel,
+        contactName: values.contactName,
+        contactPhone: values.contactPhone,
+        contactEmail: values.contactEmail || null,
+        licenceNo: values.licenceNo || null,
+        note: values.note || null,
+      });
+
+    noteApplyAttempt(address);
+    if (problems.length > 0) {
+      return c.html(applyPage({ locale: localeFor(c), problems, values }), 400);
+    }
+
+    const submitted = submitApplication(db, values);
+    return c.html(applySentPage({ locale: localeFor(c), id: submitted.id }));
+  });
+
   // -- Everything below requires a session --------------------------------
 
   /**
@@ -296,6 +380,11 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
   app.use('*', async (c, next) => {
     if (
       c.req.path.endsWith('/login') ||
+      // The form a business that has no account fills in (docs/67). The only
+      // page here a stranger may reach, and it reads nothing: a submission
+      // creates a request that grants no login and appears in no screen until
+      // a moderator approves it.
+      c.req.path.endsWith('/apply') ||
       c.req.path.endsWith('/assets/modernist.css') ||
       c.req.path.includes('/lang/')
     ) {
@@ -1197,6 +1286,94 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       error: c.req.query('error') ?? null,
       notice: c.req.query('notice') ?? null,
     }));
+  });
+
+  /**
+   * Businesses asking to list (docs/67). Moderator only.
+   *
+   * Approving one creates an account that can put a claim in a business's
+   * name in front of travellers, and `docs/62` step 1 makes that a decision
+   * somebody has to have made a phone call for. Behind the same gate the
+   * funding figures are, and the tab is hidden rather than disabled for
+   * everybody else.
+   */
+  app.get('/applications', (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    return c.html(applicationsPage({
+      locale: localeFor(c),
+      hostName: session.hostName,
+      reviewer: session.reviewer,
+      csrf: csrfFor(session),
+      pending: pendingApplications(db),
+      decided: decidedApplications(db),
+      error: c.req.query('error') ?? null,
+    }));
+  });
+
+  app.post('/applications/:id/approve', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/applications'), 403);
+    }
+    let issued: { businessName: string; hostId: string; key: string };
+    try {
+      const result = approveApplication(db, {
+        id: c.req.param('id'),
+        hostId: String(form.hostId ?? ''),
+        by: session.reviewer ?? session.hostName,
+      });
+      issued = {
+        businessName: result.application.businessName,
+        hostId: result.application.hostId!,
+        key: result.key,
+      };
+    } catch (err) {
+      if (err instanceof InvalidApplication) {
+        return c.redirect(`/console/applications?error=${encodeURIComponent(err.message)}`, 303);
+      }
+      throw err;
+    }
+    /*
+      RENDERED, NOT REDIRECTED. Every other decision on this console ends in a
+      303 so a reload does not repeat it. This one cannot: the key exists only
+      in this response, and bouncing through a redirect would mean either
+      losing it or putting a live credential in a URL - where it lands in the
+      browser's history, the proxy's log and the next screenshot.
+    */
+    return c.html(applicationsPage({
+      locale: localeFor(c),
+      hostName: session.hostName,
+      reviewer: session.reviewer,
+      csrf: csrfFor(session),
+      pending: pendingApplications(db),
+      decided: decidedApplications(db),
+      issued,
+    }), 200, { 'cache-control': 'no-store' });
+  });
+
+  app.post('/applications/:id/reject', async (c) => {
+    const session = currentSession(c)!;
+    if (!canModerate(session)) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) {
+      return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain', '/console/applications'), 403);
+    }
+    try {
+      rejectApplication(db, {
+        id: c.req.param('id'),
+        reason: String(form.reason ?? ''),
+        by: session.reviewer ?? session.hostName,
+      });
+    } catch (err) {
+      if (err instanceof InvalidApplication) {
+        return c.redirect(`/console/applications?error=${encodeURIComponent(err.message)}`, 303);
+      }
+      throw err;
+    }
+    return c.redirect('/console/applications', 303);
   });
 
   app.post('/organisations', async (c) => {

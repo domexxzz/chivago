@@ -80,7 +80,7 @@ interface LayoutOptions {
   /** Renders the nav only when signed in. */
   signedIn?: boolean;
   activeNav?: 'queue' | 'history' | 'moderation' | 'sponsor' | 'esg' | 'statement' | 'stories'
-    | 'organisations' | 'quests' | 'reviewDeclared' | 'inquiries';
+    | 'organisations' | 'quests' | 'reviewDeclared' | 'inquiries' | 'applications';
   pendingCount?: number;
   /** Shows the Reviews tab. Moderators only - see place-review-service.ts. */
   canModerate?: boolean;
@@ -141,7 +141,11 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
          border-bottom:2px solid var(--color-text); padding:18px 0; margin-bottom:24px; }
   .brand { font-family:var(--font-heading); font-weight:800; font-size:20px; letter-spacing:-0.02em; }
   .kicker { font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--color-neutral-700); }
-  .nav { display:flex; gap:2px; }
+  /* Wraps at every width, not only on a phone. A moderator's nav is thirteen
+     tabs and overflowed the page sideways on a laptop long before Operators
+     was added to it; a second row of tabs is better than a horizontal
+     scrollbar on every page of the console. */
+  .nav { display:flex; gap:2px; flex-wrap:wrap; justify-content:flex-end; }
   .nav a { display:inline-block; padding:8px 14px; font-family:var(--font-heading); font-weight:800;
            font-size:12px; letter-spacing:.06em; text-transform:uppercase; text-decoration:none;
            border:2px solid var(--color-text); color:var(--color-text); }
@@ -228,6 +232,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
              ${canModerate ? `<a href="/console/reviews" class="${activeNav === 'moderation' ? 'on' : ''}">${tr('moderation')}</a>` : ''}
              ${canModerate ? `<a href="/console/review" class="${activeNav === 'reviewDeclared' ? 'on' : ''}">${tr('reviewDeclared')}</a>` : ''}
              ${canModerate ? `<a href="/console/organisations" class="${activeNav === 'organisations' ? 'on' : ''}">${tr('organisations')}</a>` : ''}
+             ${canModerate ? `<a href="/console/applications" class="${activeNav === 'applications' ? 'on' : ''}">${tr('applications')}</a>` : ''}
              <a href="/console/quests" class="${activeNav === 'quests' ? 'on' : ''}">${tr('quests')}</a>
              <a href="/console/sponsor" class="${activeNav === 'sponsor' ? 'on' : ''}">${tr('sponsor')}</a>
              <a href="/console/esg" class="${activeNav === 'esg' ? 'on' : ''}">${tr('esg')}</a>

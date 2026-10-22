@@ -63,6 +63,8 @@ function populated(): void {
     INSERT INTO tree_attributions (planting_id, user_id, trees) VALUES ('t1','u1',1);
     INSERT INTO statements (id, host_id, period_from, period_to, issued_at, body, digest)
       VALUES ('s1','${host}','${AT}','${AT}','${AT}','{}','d');
+    INSERT INTO operator_applications (id, business_name, kind, where_label, contact_name, contact_phone, submitted_at)
+      VALUES ('oa1','Boat Co-op','transfer','Bangkhen','Somchai','0812345678','${AT}');
   `);
 }
 
@@ -75,7 +77,7 @@ describe('what a reset clears and what it keeps', () => {
       assert.equal(count(t), 0, `${t} survived the reset`);
     }
     for (const t of ['listings', 'organisations', 'org_sponsorships', 'claim_adjustments', 'tree_plantings',
-      'quest_plan_locks', 'places', 'quests', 'offers', 'hosts']) {
+      'quest_plan_locks', 'places', 'quests', 'offers', 'hosts', 'operator_applications']) {
       assert.ok(count(t) > 0, `${t} was cleared`);
     }
   });
