@@ -185,9 +185,27 @@ export interface ConsoleHooks {
 export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
   const app = new Hono();
 
-  /** The Modernist stylesheet, so the console looks like the product. */
+  /**
+   * The Modernist stylesheet, so the console looks like the product.
+   *
+   * RESOLVED FROM THIS FILE, NOT FROM THE WORKING DIRECTORY. It was
+   * `join(process.cwd(), 'public', ...)`, which is only right when the server
+   * is started from `apps/api` - which is what `pnpm api` does, and is why
+   * this looked fine for months. The Dockerfile sets `WORKDIR /repo` and runs
+   * `apps/api/src/server.ts`, so on the pilot this read `/repo/public/...`,
+   * threw ENOENT, and answered 500. Every console page has been served
+   * unstyled in production since the console shipped.
+   *
+   * It is not a cosmetic failure. `html.ts` styles its inputs with
+   * `border: 2px solid var(--color-text)`; with no stylesheet the custom
+   * property is undefined, the whole shorthand is invalid, and the border
+   * computes to none - so on /console/apply the first three required fields
+   * were invisible to the business trying to fill them in.
+   */
+  const STYLESHEET = join(import.meta.dirname, '..', '..', 'public', 'modernist.css');
+
   app.get('/assets/modernist.css', (c) => {
-    const css = readFileSync(join(process.cwd(), 'public', 'modernist.css'), 'utf8');
+    const css = readFileSync(STYLESHEET, 'utf8');
     return c.body(css, 200, { 'content-type': 'text/css; charset=utf-8' });
   });
 
