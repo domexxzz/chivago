@@ -41,7 +41,7 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { IconButton } from '../components/Button.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { MedalMark } from '../components/MedalMark.tsx';
-import { PushHeader } from '../components/Shell.tsx';
+import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { STAGE_LABEL } from './CompanionHome.tsx';
 import { t } from '../i18n/locale.ts';
@@ -107,8 +107,8 @@ export function ProfileScreen({
         context={t(strings.profile.context)}
         onBack={onBack}
         right={(
-          <IconButton onPress={onOpenAccount} accessibilityLabel={t(strings.profile.account)}>
-            <Settings size={16} color={color.text} strokeWidth={2} />
+          <IconButton inverted onPress={onOpenAccount} accessibilityLabel={t(strings.profile.account)}>
+            <Settings size={16} color="#FFFFFF" strokeWidth={2} />
           </IconButton>
         )}
       />
@@ -138,6 +138,7 @@ function Card({ children }: { children: React.ReactNode }) {
       style={[shadow.card, {
         marginHorizontal: gutter, marginTop: 12, padding: 16,
         backgroundColor: color.surface, borderRadius: radius.md,
+        borderWidth: 1, borderColor: '#DCEFF5',
       }]}
     >
       {children}
@@ -152,13 +153,16 @@ function Card({ children }: { children: React.ReactNode }) {
 function Identity({ wallet, name, lead }: { wallet: Wallet; name: string | null; lead: Companion | null }) {
   const p = wallet.progression;
   return (
-    <View style={{ paddingHorizontal: gutter, paddingTop: 4 }}>
+    <View style={{ paddingHorizontal: gutter, paddingTop: 8 }}>
       {/* The band is the app speaking (brand); the card overlaps it, as the conditions card does on Home. */}
-      <View style={{ height: 64, backgroundColor: color.brand, borderRadius: radius.md }} />
+      <View style={{ height: 64, backgroundColor: '#028090', borderRadius: radius.md, overflow: 'hidden' }}>
+        <OceanBackdrop compact />
+      </View>
       <View
         style={[shadow.card, {
           marginTop: -32, marginHorizontal: 10, padding: 16,
           backgroundColor: color.surface, borderRadius: radius.md,
+          borderWidth: 1, borderColor: '#DCEFF5',
           flexDirection: 'row', alignItems: 'center', gap: 14,
         }]}
       >
@@ -545,7 +549,7 @@ function Tile({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${label}, ${value} ${unit}`.trim()}
-      style={[shadow.card, { flex: 1, minHeight: 44, padding: 14, backgroundColor: color.surface, borderRadius: radius.md }]}
+      style={[shadow.card, { flex: 1, minHeight: 44, padding: 14, backgroundColor: color.surface, borderRadius: radius.md, borderWidth: 1, borderColor: '#DCEFF5' }]}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <View style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: soft }}>

@@ -22,6 +22,7 @@ import { gameRadius, gameRegion, gameShadow } from '@chivago/tokens';
 import { GameBar, Medal, Tray, TrayLine } from '../components/Game.tsx';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { IconButton } from '../components/Button.tsx';
+import { OceanBackdrop } from '../components/Shell.tsx';
 import { MascotPortrait } from '../components/MascotPortrait.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -116,12 +117,21 @@ export function MascotsScreen({
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: gutter, paddingTop: 16, paddingBottom: 8 }}>
-        <IconButton onPress={onBack} accessibilityLabel="Back">
-          <ChevronLeft size={20} color={color.text} strokeWidth={2} />
+      <View
+        style={{
+          flexDirection: 'row', alignItems: 'center', gap: 12,
+          paddingHorizontal: gutter, paddingTop: 14, paddingBottom: 14, marginBottom: 8,
+          backgroundColor: '#028090',
+          borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+          overflow: 'hidden',
+        }}
+      >
+        <OceanBackdrop compact />
+        <IconButton inverted onPress={onBack} accessibilityLabel="Back">
+          <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2} />
         </IconButton>
         <View style={{ flex: 1 }}>
-          <Heading size={20} tracking={-0.3}>{t(strings.mascots.title)}</Heading>
+          <Heading size={20} tracking={-0.3} colour="#FFFFFF">{t(strings.mascots.title)}</Heading>
         </View>
       </View>
 
@@ -150,7 +160,7 @@ export function MascotsScreen({
             overflow: 'hidden',
             backgroundColor: color.surface,
             borderWidth: 1,
-            borderColor: color.neutral300,
+            borderColor: '#DCEFF5',
           },
         ]}
       >
@@ -196,7 +206,7 @@ export function MascotsScreen({
         </View>
       </View>
 
-      <View style={{ marginHorizontal: gutter, padding: 12, borderRadius: radius.md, borderWidth: layout.ruleHair, borderColor: color.neutral300, backgroundColor: color.surface }}>
+      <View style={[shadow.card, { marginHorizontal: gutter, padding: 14, borderRadius: radius.md, borderWidth: 1, borderColor: '#DCEFF5', backgroundColor: color.surface }]}>
         <Body size={13} colour={color.neutral700}>{t(strings.mascots.note)}</Body>
       </View>
       <MascotGrid visited={visited} onOpen={onOpen} />

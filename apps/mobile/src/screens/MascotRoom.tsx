@@ -15,10 +15,11 @@ import { ChevronLeft } from 'lucide-react-native';
 import { BASIS_LABEL, findProvince, mascotFor, strings } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync, useToast } from '../state/store.tsx';
-import { color, gutter, radius } from '../theme/index.ts';
+import { color, gutter, radius, shadow } from '../theme/index.ts';
 import { gameRadius, gameRegion, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { IconButton } from '../components/Button.tsx';
+import { OceanBackdrop } from '../components/Shell.tsx';
 import { CreatureScene } from '../components/CreatureScene.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -39,11 +40,20 @@ export function MascotRoomScreen({ code, onBack }: { code: string; onBack: () =>
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: gutter, paddingTop: 16, paddingBottom: 8 }}>
-        <IconButton onPress={onBack} accessibilityLabel="Back">
-          <ChevronLeft size={20} color={color.text} strokeWidth={2} />
+      <View
+        style={{
+          flexDirection: 'row', alignItems: 'center', gap: 12,
+          paddingHorizontal: gutter, paddingTop: 14, paddingBottom: 14, marginBottom: 12,
+          backgroundColor: '#028090',
+          borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+          overflow: 'hidden',
+        }}
+      >
+        <OceanBackdrop compact />
+        <IconButton inverted onPress={onBack} accessibilityLabel="Back">
+          <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2} />
         </IconButton>
-        <Label size={10} tracking={0.14}>{t(province.name)}</Label>
+        <Label size={10} tracking={0.14} colour="#D5F6FF">{t(province.name)}</Label>
       </View>
 
       {/*
@@ -86,7 +96,7 @@ export function MascotRoomScreen({ code, onBack }: { code: string; onBack: () =>
         </View>
       </View>
 
-      <View style={{ paddingHorizontal: gutter, paddingTop: 16, gap: 8 }}>
+      <View style={[shadow.card, { marginHorizontal: gutter, marginTop: 14, padding: 16, backgroundColor: color.surface, borderRadius: radius.md, borderWidth: 1, borderColor: '#DCEFF5', gap: 8 }]}>
         <Body size={14}>{t(mascot.why)}</Body>
         <Label size={9} tracking={0.1} colour={color.neutral600} style={{ textTransform: 'none' }}>
           {`${t(strings.mascots.drawnFrom)}: ${t(BASIS_LABEL[mascot.basis])}`}

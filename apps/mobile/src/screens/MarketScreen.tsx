@@ -23,7 +23,7 @@ import {
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, currencyTone, font, gutter, layout, onFill, radius } from '../theme/index.ts';
+import { color, currencyTone, font, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -44,7 +44,19 @@ const currencyName = (c: Offer['currency']): string =>
  */
 export function PurseChips({ balances }: { balances: Balances }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 10 }}>
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        gap: 10,
+        backgroundColor: '#FFFFFF',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#DCEFF5',
+      }}
+    >
       <Heading size={14} colour={color.accent700}>
         {`${balances.green.toLocaleString('en-US')} G`}
       </Heading>
@@ -315,15 +327,22 @@ export function OfferRow({
 
   return (
     <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 14,
-        paddingVertical: 14,
-        paddingHorizontal: gutter,
-        borderBottomWidth: 1,
-        borderBottomColor: color.neutral300,
-      }}
+      style={[
+        shadow.card,
+        {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 14,
+          marginHorizontal: gutter,
+          marginTop: 10,
+          paddingVertical: 14,
+          paddingHorizontal: 14,
+          backgroundColor: color.surface,
+          borderRadius: radius.md,
+          borderWidth: 1,
+          borderColor: '#DCEFF5',
+        },
+      ]}
     >
       {(() => {
         // The category, on its own flat tint: the same colour for every café.

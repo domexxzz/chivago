@@ -35,7 +35,7 @@
 
 export const color = {
   /** App background / screen ground - the light sky the cards sit on */
-  bg: '#eef4f5',
+  bg: '#E6F3F8',
   /** Cards and inset panels. White, so a card reads as a card without a border */
   surface: '#ffffff',
   /** Foreground: body + heading text, strong rules, active tab fill, toast */
@@ -55,9 +55,9 @@ export const color = {
    * turned Green Points blue, and the one thing the palette must never do is
    * let the verified currency stop looking verified.
    */
-  brand: '#0e7480',
-  brandDeep: '#0a4a52',
-  brandSoft: '#d7edef',
+  brand: '#0077B6',
+  brandDeep: '#004E64',
+  brandSoft: '#D9F3FA',
 
   /**
    * The call to action. One orange, used sparingly: the button that starts
@@ -208,7 +208,7 @@ export const headerGutter = 16;
  * control. A pill radius larger than half the height simply clamps, so `lg`
  * is safe on any button height.
  */
-export const radius = { sm: 10, md: 18, lg: 999 } as const;
+export const radius = { sm: 12, md: 20, lg: 999 } as const;
 
 /** SOS is a physical emergency control and was always round. */
 export const SOS_RADIUS = 9999;
@@ -218,13 +218,13 @@ export const SOS_RADIUS = 9999;
 // ---------------------------------------------------------------------------
 
 export const shadow = {
-  sm: { shadowColor: color.neutral900, shadowOpacity: 0.45, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  sm: { shadowColor: color.brandDeep, shadowOpacity: 0.14, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
   /**
    * A card lifted off the page: soft, wide, barely there. The look the app
    * moved to (docs/36) is white cards on a pale ground, and a card with no
    * edge and no shadow is a white rectangle on a white page.
    */
-  card: { shadowColor: color.neutral900, shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
+  card: { shadowColor: color.brand, shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
   md: { shadowColor: color.neutral900, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   lg: { shadowColor: color.neutral900, shadowOpacity: 0.6, shadowRadius: 40, shadowOffset: { width: 0, height: 18 }, elevation: 16 },
   /**

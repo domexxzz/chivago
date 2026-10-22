@@ -110,11 +110,13 @@ export const styles = StyleSheet.create({
   body: { ...type.body, color: color.neutral800 },
   bodySm: { ...type.bodySm, color: color.neutral800 },
 
-  /** A 2px-bordered card. The only "container" the system allows. */
+  /** Soft ocean card container. */
   boxed: {
-    borderWidth: layout.ruleStrong,
-    borderColor: color.text,
+    backgroundColor: color.surface,
+    borderWidth: 1,
+    borderColor: '#DCEFF5',
     borderRadius: radius.md,
+    ...shadow.card,
   },
 
   /** Photo placeholder, until real Koh Samui photography is licensed. */

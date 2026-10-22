@@ -29,6 +29,7 @@ import { useAsync } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { tintFor } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
+import { OceanBackdrop } from '../components/Shell.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -51,10 +52,30 @@ export function MissionsScreen({
   const visible = filter === 'all' ? all : all.filter((q) => q.kind === filter);
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
-      <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 14 }}>
-        <Heading size={26} tracking={-0.52}>{t(strings.quests.title)}</Heading>
-
+    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
+      <View
+        style={{
+          paddingHorizontal: gutter,
+          paddingTop: 22,
+          paddingBottom: 20,
+          backgroundColor: '#028090',
+          borderBottomLeftRadius: 28,
+          borderBottomRightRadius: 28,
+          overflow: 'hidden',
+          shadowColor: '#004E64',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.14,
+          shadowRadius: 10,
+          elevation: 3,
+        }}
+      >
+        <OceanBackdrop compact />
+        <Label size={10} tracking={0.16} colour="#D5F6FF">
+          {t({ en: 'ISLAND MISSIONS', th: 'ภารกิจรักษ์เกาะ' })}
+        </Label>
+        <Heading size={26} tracking={-0.52} colour="#FFFFFF" style={{ marginTop: 4 }}>
+          {t(strings.quests.title)}
+        </Heading>
       </View>
 
       <SegmentedFilter value={filter} total={all.length} onChange={setFilter} />
@@ -96,7 +117,7 @@ function SegmentedFilter({
     ['all', `${t(strings.quests.filters.all)} ${total}`],
   ];
   return (
-    <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: gutter, paddingBottom: 6 }}>
+    <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: gutter, paddingTop: 14, paddingBottom: 6 }}>
       {options.map(([key, label]) => {
         const active = key === value;
         return (
@@ -105,18 +126,21 @@ function SegmentedFilter({
             onPress={() => onChange(key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: active }}
-            style={{
-              minHeight: 36,
-              paddingVertical: 8,
-              paddingHorizontal: 16,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: radius.lg,
-              // A filter is the app sorting its own list. Brand, not evidence.
-              backgroundColor: active ? color.brand : color.surface,
-              borderWidth: 1,
-              borderColor: active ? color.brand : color.neutral300,
-            }}
+            style={[
+              shadow.card,
+              {
+                minHeight: 38,
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: radius.lg,
+                // A filter is the app sorting its own list. Brand, not evidence.
+                backgroundColor: active ? color.brand : color.surface,
+                borderWidth: 1,
+                borderColor: active ? color.brand : '#CBE7F0',
+              },
+            ]}
           >
             <Label size={11} tracking={0.06} colour={active ? onFill.brand : color.neutral700} style={{ textTransform: 'none' }}>{label}</Label>
           </Pressable>
@@ -141,11 +165,13 @@ export function QuestRow({
       style={[shadow.card, {
         flexDirection: 'row',
         gap: 14,
-        padding: 14,
+        padding: 16,
         marginHorizontal: gutter,
         marginTop: 10,
         backgroundColor: color.surface,
         borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: '#DCEFF5',
       }]}
     >
       {/* The quest code in a 44x44 tile. This IS the system's icon - do not
@@ -241,11 +267,16 @@ function Standing() {
           */}
           {data.you ? (
             <View
-              style={{
-                marginHorizontal: gutter, marginBottom: 12, padding: 14,
-                backgroundColor: color.brandSoft, borderRadius: radius.md,
-              }}
+              style={[
+                shadow.card,
+                {
+                  marginHorizontal: gutter, marginBottom: 12, padding: 16,
+                  backgroundColor: color.surface, borderRadius: radius.md,
+                  borderWidth: 1, borderColor: '#CBE7F0', overflow: 'hidden',
+                },
+              ]}
             >
+              <OceanBackdrop subtle />
               <Label size={9} tracking={0.12} colour={color.brandDeep}>{t({ en: 'YOUR RECORD', th: 'ผลงานของคุณ' })}</Label>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
                 <Heading size={26} colour={color.brandDeep}>{data.you.missionsVerified}</Heading>
@@ -277,9 +308,23 @@ function Standing() {
             </View>
           ) : null}
 
-          {data.hosts.map((host, i) => (
-            <HostRow key={host.hostId} host={host} place={i + 1} />
-          ))}
+          <View
+            style={[
+              shadow.card,
+              {
+                marginHorizontal: gutter,
+                backgroundColor: color.surface,
+                borderRadius: radius.md,
+                borderWidth: 1,
+                borderColor: '#DCEFF5',
+                overflow: 'hidden',
+              },
+            ]}
+          >
+            {data.hosts.map((host, i) => (
+              <HostRow key={host.hostId} host={host} place={i + 1} />
+            ))}
+          </View>
 
           <View style={{ paddingHorizontal: gutter, paddingTop: 12 }}>
             <Label size={9} tracking={0.04} colour={color.neutral600} style={{ textTransform: 'none' }}>
@@ -394,12 +439,15 @@ function PartnerRewards({ onOpenMarket }: { onOpenMarket: () => void }) {
                 onPress={onOpenMarket}
                 accessibilityRole="button"
                 accessibilityLabel={`${o.name}, ${o.merchant}, ${o.costPoints} ${o.currency === 'green' ? 'Green' : 'Trip'} points. ${canBuy ? 'Affordable' : 'Not enough points'}`}
-                style={{
-                  marginHorizontal: gutter, marginBottom: 8, padding: 13,
-                  backgroundColor: color.surface, borderRadius: radius.md,
-                  borderWidth: 1, borderColor: color.neutral300,
-                  flexDirection: 'row', alignItems: 'center', gap: 12,
-                }}
+                style={[
+                  shadow.card,
+                  {
+                    marginHorizontal: gutter, marginBottom: 10, padding: 14,
+                    backgroundColor: color.surface, borderRadius: radius.md,
+                    borderWidth: 1, borderColor: '#DCEFF5',
+                    flexDirection: 'row', alignItems: 'center', gap: 12,
+                  },
+                ]}
               >
                 <View style={{ flex: 1 }}>
                   <Heading size={15}>{o.name}</Heading>

@@ -44,8 +44,9 @@ import {
 import { gameHabitat, gameRadius, gameShadow } from '@chivago/tokens';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, radius } from '../theme/index.ts';
+import { color, gutter, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
+import { OceanBackdrop } from '../components/Shell.tsx';
 import { GameScene, Medal, Tray, TrayLine } from '../components/Game.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
@@ -112,16 +113,38 @@ function Header({ progression }: { progression: Progression | null }) {
   return (
     <View
       style={{
-        paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 4,
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+        paddingHorizontal: gutter,
+        paddingTop: 22,
+        paddingBottom: 20,
+        backgroundColor: '#028090',
+        borderBottomLeftRadius: 28,
+        borderBottomRightRadius: 28,
+        overflow: 'hidden',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        shadowColor: '#004E64',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.14,
+        shadowRadius: 10,
+        elevation: 3,
       }}
     >
-      <Heading size={26} tracking={-0.5}>{t(strings.tabs.game)}</Heading>
+      <OceanBackdrop compact />
+      <View style={{ flex: 1 }}>
+        <Label size={10} tracking={0.16} colour="#D5F6FF">
+          {t({ en: 'ISLAND COMPANIONS', th: 'เพื่อนร่วมทางเกาะสมุย' })}
+        </Label>
+        <Heading size={26} tracking={-0.5} colour="#FFFFFF" style={{ marginTop: 4 }}>
+          {t(strings.tabs.game)}
+        </Heading>
+      </View>
       {progression ? (
         <View
           style={{
-            paddingVertical: 5, paddingHorizontal: 12, borderRadius: radius.lg,
-            backgroundColor: color.goldSoft, borderWidth: 1, borderColor: color.gold,
+            paddingVertical: 6, paddingHorizontal: 14, borderRadius: radius.lg,
+            backgroundColor: color.goldSoft, borderWidth: 1.5, borderColor: color.gold,
           }}
         >
           <Label size={10} tracking={0.08} colour={color.goldDeep}>
@@ -370,10 +393,13 @@ function Counts({ found, grown, total }: { found: number; grown: number; total: 
 function Footnote() {
   return (
     <View
-      style={{
-        marginHorizontal: gutter, marginTop: 14, padding: 12, borderRadius: radius.md,
-        backgroundColor: color.neutral100,
-      }}
+      style={[
+        shadow.card,
+        {
+          marginHorizontal: gutter, marginTop: 14, padding: 14, borderRadius: radius.md,
+          backgroundColor: color.surface, borderWidth: 1, borderColor: '#DCEFF5',
+        },
+      ]}
     >
       <Body size={13} colour={color.neutral700}>
         {t({

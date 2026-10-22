@@ -21,7 +21,7 @@ import {
   type PlaceReview, type ReportReasonKey, type ReviewSummary,
 } from '@chivago/core';
 import { api, type MyReviewState, type PickedMedia } from '../api/client.ts';
-import { color, gutter, layout, onFill, radius } from '../theme/index.ts';
+import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState } from '../components/States.tsx';
@@ -216,11 +216,14 @@ export function ReviewRow({
   const now = React.useMemo(() => new Date(), []);
   return (
     <View
-      style={{
-        paddingVertical: 14,
-        borderBottomWidth: 1,
-        borderBottomColor: color.neutral300,
-      }}
+      style={[shadow.card, {
+        marginTop: 10,
+        padding: 14,
+        backgroundColor: color.surface,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: '#DCEFF5',
+      }]}
     >
       <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
         {/*

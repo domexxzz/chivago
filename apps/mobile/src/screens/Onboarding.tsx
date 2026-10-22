@@ -19,6 +19,7 @@ import { useAsync } from '../state/store.tsx';
 import { color, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
+import { OceanBackdrop } from '../components/Shell.tsx';
 import { t } from '../i18n/locale.ts';
 
 type StepAnswer = PurposeKey[] | ActivityKey[] | WatchKey[];
@@ -91,7 +92,8 @@ export function OnboardingScreen({
 
   return (
     <View style={{ flex: 1, backgroundColor: color.bg }}>
-      <View style={{ height: 200, backgroundColor: color.brand, borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' }}>
+      <View style={{ height: 200, backgroundColor: '#028090', borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' }}>
+        <OceanBackdrop />
         {photo?.photo ? (
           <>
             <Image source={{ uri: photoUri(photo.photo.url) }} resizeMode="cover" style={{ width: '100%', height: '100%' }}
@@ -171,7 +173,7 @@ export function OnboardingScreen({
                   borderWidth: 1,
                   // A choice is the traveller's, so it is brand - not the
                   // evidence green, which it was.
-                  borderColor: on ? color.brand : color.surface,
+                  borderColor: on ? color.brand : '#DCEFF5',
                   backgroundColor: on ? color.brandSoft : color.surface,
                 },
               ]}

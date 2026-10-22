@@ -152,9 +152,9 @@ export function Button({
 
 /** A 32x32 square icon button. Used for the push-screen back control. */
 export function IconButton({
-  children, onPress, size = 32, accessibilityLabel,
+  children, onPress, size = 36, accessibilityLabel, inverted = false,
 }: {
-  children: React.ReactNode; onPress: () => void; size?: number; accessibilityLabel: string;
+  children: React.ReactNode; onPress: () => void; size?: number; accessibilityLabel: string; inverted?: boolean;
 }) {
   const [pressed, setPressed] = React.useState(false);
   return (
@@ -174,9 +174,11 @@ export function IconButton({
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: color.divider,
-        borderRadius: radius.md,
-        backgroundColor: pressed ? color.neutral200 : 'transparent',
+        borderColor: inverted ? 'rgba(255,255,255,0.45)' : '#CBE7F0',
+        borderRadius: size / 2,
+        backgroundColor: inverted
+          ? (pressed ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.18)')
+          : (pressed ? '#E2F5FA' : color.surface),
       }}
     >
       {children}

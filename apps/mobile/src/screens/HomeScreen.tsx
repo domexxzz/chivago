@@ -34,12 +34,11 @@
  */
 
 import React from 'react';
+import Svg, { Defs, LinearGradient, Stop, Rect, Path } from 'react-native-svg';
 import {
-  Animated, Easing, Image, Platform, Pressable, ScrollView, Text, View,
-  type NativeScrollEvent, type NativeSyntheticEvent,
+  Image, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { areaOfProvince, fairsIn, inArea, stallPlacesIn, type Area, type AreaKey, type Fair } from '@chivago/core';
-import { useReduceMotion } from '../components/reduce-motion.ts';
 import { setArea, useArea } from '../state/area.ts';
 import { mascotBeachUri, photoUri } from '../api/photos.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
@@ -48,7 +47,7 @@ import { BusStrip } from '../components/BusStrip.tsx';
 import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import { StallsCard } from '../components/Stalls.tsx';
 import {
-  BedDouble, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MessageCircle, Search, Shield, Sparkles, Ticket, Trees, UserRound, Users, Utensils, Wallet,
+  Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, Search, Shield, Sparkles, Ticket, Trees, UserRound, Utensils, Wallet, Waves,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
@@ -64,6 +63,7 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import chivagoLogo from '../../assets/chivago-logo.png';
 
 const HOME_QUEST_LIMIT = 3;
 
@@ -178,9 +178,16 @@ export function HomeScreen({
   const passport = useAsync(() => api.passport(), []);
   const companions = useAsync(() => api.companions(), []);
 
+
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <Hero now={now} area={area} onChangeArea={setArea} onOpenConcierge={onOpenConcierge} onOpenProfile={onOpenProfile} />
+    <ScrollView style={{ flex: 1, backgroundColor: '#EDF6F9' }} showsVerticalScrollIndicator={false}>
+      <Hero
+        now={now}
+        area={area}
+        onChangeArea={setArea}
+        onOpenConcierge={onOpenConcierge}
+        onOpenProfile={onOpenProfile}
+      />
       {/*
         Order ahead, first thing under the header, in an area with a food court
         that takes orders ahead (docs/65): at noon on a campus, food is what a
@@ -240,7 +247,7 @@ export function HomeScreen({
         onOpenWallet={onOpenWallet}
         onOpenPassport={onOpenPassport}
       />
-      <View style={{ height: 28 }} />
+      <View style={{ height: 32 }} />
     </ScrollView>
   );
 }
@@ -251,106 +258,66 @@ type Async<T> = { data: T | null; loading: boolean; error: string | null; reload
 // 0. The header: the island's name, your points, and a place to ask
 // ---------------------------------------------------------------------------
 
-function Hero({
-  now, area, onChangeArea, onOpenConcierge, onOpenProfile,
-}: {
-  now: Date;
-  area: Area;
-  onChangeArea: (next: AreaKey) => void;
-  onOpenConcierge: () => void;
-  onOpenProfile: () => void;
-}) {
-  const greeting = greetingFor(now);
+/** Native SVG keeps the ocean gradient and waves identical on web and phones. */
+function OceanBackdrop({ subtle = false }: { subtle?: boolean }) {
   return (
-    <View
-      style={{
-        backgroundColor: color.brand,
-        paddingHorizontal: gutter,
-        paddingTop: 18,
-        // Room for the conditions card that overlaps the bottom edge.
-        paddingBottom: 46,
-        borderBottomLeftRadius: 28,
-        borderBottomRightRadius: 28,
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <View style={{ flex: 1 }}>
-          {/*
-            No name. The app collects none, and "Hi, Paul" on a screen that
-            has never asked who you are is the first lie the reference tells.
-          */}
-          <Label size={10} tracking={0.16} colour={color.brandSoft}>{t(greeting)}</Label>
-          <Heading size={26} tracking={-0.5} colour={onFill.brand} style={{ marginTop: 2 }}>
-            {t(area.name)}
-          </Heading>
-        </View>
-        {/*
-          The balance is NOT here any more. It lived as a Green chip in this
-          hero AND in full - Green, Trip, Companions, each with its provenance -
-          in Carrying below, and a glance at the top competing with the search
-          field it sits beside was the more crowded, less honest of the two. It
-          keeps the one that teaches evidence-from-self, and the map header
-          still carries a glance for the screen a traveller reads for it.
-        */}
-        {/*
-          The profile, top right, where every app keeps it. A drawn figure
-          rather than a photograph, because the app has none to show and
-          would not invent one.
-        */}
-        <Pressable
-          onPress={onOpenProfile}
-          accessibilityRole="button"
-          accessibilityLabel={t(strings.profile.context)}
-          style={{
-            width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
-            backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)',
-          }}
-        >
-          <UserRound size={18} color={onFill.brand} strokeWidth={2} />
-        </Pressable>
-      </View>
-
-      {/*
-        The areas get the hero's full width. Inside the title's column they
-        had only what the purse and the profile left - 211 px on a phone, room
-        for two chips - and RMUTT and KU Bangkhen sat past the edge.
-      */}
-      <View style={{ marginTop: 12 }}>
-        <AreaSwitch area={area.key} onChange={onChangeArea} tone="inverted" />
-      </View>
-
-      {/*
-        The search field is the concierge's door. It looks like search because
-        that is what a traveller reaches for; it asks a person-shaped thing
-        because a search over five places is not worth a field.
-      */}
-      <Pressable
-        onPress={onOpenConcierge}
-        accessibilityRole="button"
-        accessibilityLabel={t({ en: 'Ask where to go', th: 'ถามว่าไปไหนดี' })}
-        style={{
-          marginTop: 16, minHeight: 46, paddingHorizontal: 16,
-          flexDirection: 'row', alignItems: 'center', gap: 10,
-          backgroundColor: color.surface, borderRadius: radius.lg,
-        }}
-      >
-        <Search size={16} color={color.neutral600} strokeWidth={2} />
-        <Body size={14} colour={color.neutral600}>{t({ en: 'Where to go today?', th: 'วันนี้ไปไหนดี?' })}</Body>
-      </Pressable>
+    <View pointerEvents="none" accessible={false} style={StyleSheet.absoluteFillObject}>
+      <Svg width="100%" height="100%" viewBox="0 0 480 340" preserveAspectRatio="none">
+        <Defs>
+          <LinearGradient id={subtle ? 'sand' : 'ocean'} x1="0%" y1="0%" x2="100%" y2="80%">
+            <Stop offset="0" stopColor={subtle ? '#FFFFFF' : '#00B4D8'} />
+            <Stop offset="1" stopColor={subtle ? '#EDF6F9' : '#004E64'} />
+          </LinearGradient>
+        </Defs>
+        <Rect width="480" height="340" fill={`url(#${subtle ? 'sand' : 'ocean'})`} />
+        <Path d="M0 250 Q100 200 220 270 T480 240 V340 H0Z" fill="#48CAE4" opacity={subtle ? 0.1 : 0.3} />
+        <Path d="M0 285 Q120 225 260 290 T480 270 V340 H0Z" fill="#FFFFFF" opacity={subtle ? 0.6 : 0.55} />
+        <Path d="M0 307 Q120 265 260 310 T480 296 V340 H0Z" fill="#EDF6F9" opacity={subtle ? 0.8 : 1} />
+      </Svg>
     </View>
   );
 }
 
-// ---------------------------------------------------------------------------
-// 1. What is true here now
-// ---------------------------------------------------------------------------
+function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile }: {
+  now: Date; area: Area; onChangeArea: (next: AreaKey) => void;
+  onOpenConcierge: () => void; onOpenProfile: () => void;
+}) {
+  return (
+    <View style={{ backgroundColor: '#028090', paddingHorizontal: gutter, paddingTop: 24, paddingBottom: 70, overflow: 'hidden' }}>
+      <OceanBackdrop />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: '#D5F6FF', fontSize: 12, fontWeight: '500', letterSpacing: 1.8, textTransform: 'uppercase' }}>{t(greetingFor(now))}</Text>
+          <Heading size={28} colour="#FFFFFF" style={{ marginTop: 5 }}>{t(area.name)}</Heading>
+        </View>
+        <Image
+          source={chivagoLogo}
+          resizeMode="contain"
+          accessibilityLabel="ChivaGo"
+          style={{ width: 68, height: 48, marginLeft: 8, marginRight: 12 }}
+        />
+        <Pressable onPress={onOpenProfile} accessibilityRole="button" accessibilityLabel="Profile"
+          style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
+          <UserRound size={23} color="#FFFFFF" />
+        </Pressable>
+      </View>
+      <AreaSwitch area={area.key} onChange={onChangeArea} tone="inverted" />
+      <Pressable onPress={onOpenConcierge} accessibilityRole="button" accessibilityLabel={t({ en: 'Ask where to go', th: 'ถามว่าไปไหนดี' })}
+        style={{ marginTop: 20, minHeight: 56, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFFFFF', borderRadius: 28, shadowColor: '#004E64', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 }}>
+        <Search size={21} color="#78909C" />
+        <Body colour="#78909C" style={{ flex: 1 }}>{t({ en: 'Where to go today?', th: 'วันนี้ไปไหนดี?' })}</Body>
+        <ScanLine size={21} color="#0077B6" />
+        <Mic size={21} color="#0077B6" />
+      </Pressable>
+    </View>
+  );
+}
 
 function Conditions({
   places, onOpenMap, overHero = true,
 }: {
   places: Async<ScoredPlace[]>;
   onOpenMap: () => void;
-  /** The first card floats over the header's curve; below the order-ahead card, this one sits in line. */
   overHero?: boolean;
 }) {
   const list = places.data ?? [];
@@ -361,15 +328,35 @@ function Conditions({
     <View
       style={[shadow.card, {
         marginHorizontal: gutter,
-        marginTop: overHero ? -30 : 12,
-        padding: 18,
-        borderRadius: radius.md,
-        backgroundColor: color.surface,
+        marginTop: overHero ? -38 : 16,
+        padding: 20,
+        overflow: 'hidden',
+        borderRadius: 24,
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#FFFFFF',
+        shadowColor: '#0077B6',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+        elevation: 2,
       }]}
     >
-      <Label size={10} tracking={0.14} colour={color.neutral700}>
-        {`${t(strings.place.healthyScore)} · ${t({ en: 'area average', th: 'เฉลี่ยพื้นที่' })}`}
-      </Label>
+      <OceanBackdrop subtle />
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <HeartPulse size={16} color="#0077B6" strokeWidth={2} />
+          <Label size={10} tracking={0.14} colour={color.neutral700}>
+            {`${t(strings.place.healthyScore)} · ${t({ en: 'area average', th: 'เฉลี่ยพื้นที่' })}`}
+          </Label>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#E2F5FA', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 }}>
+          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#0077B6' }} />
+          <Label size={9} tracking={0.08} colour="#0077B6">
+            {t(strings.place.provenance[provenance])}
+          </Label>
+        </View>
+      </View>
 
       {places.error ? (
         // The block fails alone and says what is missing. It does not fall back
@@ -383,8 +370,11 @@ function Conditions({
           {places.loading ? t({ en: 'Loading places…', th: 'กำลังโหลดสถานที่…' }) : t({ en: 'No places here yet.', th: 'ยังไม่มีสถานที่ในพื้นที่นี้' })}
         </Body>
       ) : (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8 }}>
-          <Heading size={44} tracking={-1} colour={isHighScore(avg) ? color.accent700 : color.text}>{avg}</Heading>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 12 }}>
+          <View style={{ minWidth: 70, alignItems: 'center', gap: 4 }}>
+            <Heading size={48} tracking={-1.5} colour="#03045E">{avg}</Heading>
+            <Waves size={38} color="#48CAE4" strokeWidth={1.6} />
+          </View>
           <View style={{ flex: 1 }}>
             <Body size={13} colour={color.neutral800}>
               {t({
@@ -406,8 +396,8 @@ function Conditions({
               accessibilityLabel="See every place and how its score is calculated"
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, minHeight: 44 }}
             >
-              <Label size={10} tracking={0.1} colour={color.brand}>{t({ en: 'See every place', th: 'ดูทุกสถานที่' })}</Label>
-              <ChevronRight size={14} color={color.brand} strokeWidth={2} />
+              <Label size={10} tracking={0.1} colour="#0077B6">{t({ en: 'See every place', th: 'ดูทุกสถานที่' })}</Label>
+              <ChevronRight size={14} color="#0077B6" strokeWidth={2} />
             </Pressable>
           </View>
         </View>
@@ -428,55 +418,25 @@ function Doors({
   onOpenImpact: () => void; onOpenSafety: () => void; onOpenParty: () => void; onOpenStays?: () => void;
   onOpenMarket: () => void;
 }) {
-  // Round doors in a row that scrolls, not a grid of twelve. Untyped on
-  // purpose: annotating the icon narrower than LucideIcon fights the
-  // library's own forwardRef signature for nothing.
   const doors = [
-    // The same glyph the tab bar uses for the map. A door and a tab that go to
-    // one place should not teach two icons for it.
-    { Icon: MapIcon, name: strings.tabs.map, onPress: onOpenMap, tone: tint.sky },
-    // Second, so it is on screen without scrolling the row: stays, boats
-    // and tours are what a traveller opens a travel app to find, and this
-    // screen was lost at the bottom of the trip planner.
-    ...(onOpenStays ? [{ Icon: BedDouble, name: strings.ask.context, onPress: onOpenStays, tone: tint.peach }] : []),
-    { Icon: Sparkles, name: strings.tabs.quests, onPress: onOpenQuests, tone: tint.lilac },
-    { Icon: Wallet, name: strings.tabs.wallet, onPress: onOpenWallet, tone: tint.sand },
-    // Deals: straight to the marketplace, one tap from the first screen.
-    { Icon: Ticket, name: { en: 'Deals', th: 'สิทธิพิเศษ' }, onPress: onOpenMarket, tone: tint.peach },
-    { Icon: Shield, name: strings.tabs.safety, onPress: onOpenSafety, tone: tint.rose },
-    { Icon: MessageCircle, name: { en: 'Ask', th: 'ถาม' }, onPress: onOpenConcierge, tone: tint.teal },
-    { Icon: Leaf, name: strings.tabs.impact, onPress: onOpenImpact, tone: tint.teal },
-    { Icon: Users, name: { en: 'Group', th: 'กลุ่ม' }, onPress: onOpenParty, tone: tint.sky },
+    { Icon: MapIcon, name: strings.tabs.map, onPress: onOpenMap, fill: '#C8F0FA', ink: '#0077B6' },
+    { Icon: Umbrella, name: strings.ask.context, onPress: onOpenStays ?? onOpenConcierge, fill: '#FFE2D4', ink: '#B95429' },
+    { Icon: Sparkles, name: strings.tabs.quests, onPress: onOpenQuests, fill: '#FFD6AF', ink: '#B34C00' },
+    { Icon: Wallet, name: strings.tabs.wallet, onPress: onOpenWallet, fill: '#FFD5CF', ink: '#AE433C' },
+    { Icon: Ticket, name: { en: 'Deals', th: 'สิทธิพิเศษ' }, onPress: onOpenMarket, fill: '#FFF0AD', ink: '#916000' },
   ];
-  // Each door its own flat tint, so the row can be scanned by colour as well
-  // as by icon. Flat on purpose: Home carries measured claims and does not
-  // wear the game surface (game-surface.test.ts). None of the tints is green.
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ paddingHorizontal: gutter, paddingTop: 18, gap: 14 }}
-    >
-      {doors.map(({ Icon, name, onPress, tone }) => (
-        <Pressable
-          key={name.en}
-          onPress={onPress}
-          accessibilityRole="button"
-          accessibilityLabel={t(name)}
-          style={{ alignItems: 'center', gap: 6, width: 64 }}
-        >
-          <View
-            style={{
-              width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center',
-              backgroundColor: tone.fill,
-            }}
-          >
-            <Icon size={22} color={tone.ink} strokeWidth={2} />
+    <View style={{ flexDirection: 'row', paddingHorizontal: Math.max(8, gutter - 8), paddingTop: 22 }}>
+      {doors.map(({ Icon, name, onPress, fill, ink }) => (
+        <Pressable key={name.en} onPress={onPress} accessibilityRole="button" accessibilityLabel={t(name)}
+          style={{ flex: 1, alignItems: 'center', gap: 8, minHeight: 88 }}>
+          <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: fill, alignItems: 'center', justifyContent: 'center', borderTopWidth: 2, borderTopColor: 'rgba(255,255,255,0.8)', shadowColor: ink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 5, elevation: 2 }}>
+            <Icon size={25} color={ink} strokeWidth={1.8} />
           </View>
-          <Label size={9} tracking={0.06} colour={color.neutral800} style={{ textTransform: 'none' }}>{t(name)}</Label>
+          <Text style={{ fontSize: 12, color: '#2B2D42', textAlign: 'center' }}>{t(name)}</Text>
         </Pressable>
       ))}
-    </ScrollView>
+    </View>
   );
 }
 
@@ -561,27 +521,17 @@ function Places({
 
   if (list.length === 0) return null;
   return (
-    <View style={{ paddingTop: 22 }}>
+    <View style={{ paddingTop: 26 }}>
       <SectionHead
         en="Places in this area"
         th="สถานที่ในพื้นที่นี้"
         note={here ? t(strings.place.nearestFirst) : undefined}
         onSeeAll={onOpenMap}
       />
-      {/*
-        A row the reader moves, not one that moves under them.
-
-        This used to slide by itself at 35px/s, which made every card a target
-        that had moved on by the time a thumb arrived - and took a hundred lines
-        of drift, wrap and drag-versus-tap detection to guess whether a press
-        was a press. A place worth opening is worth holding still for. Nothing
-        here moves on its own, so it needs no exception for reduce-motion:
-        there is no motion to reduce.
-      */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: gutter, gap: CARD_GAP, paddingVertical: 6 }}
+        contentContainerStyle={{ paddingHorizontal: gutter, gap: 14, paddingVertical: 8 }}
       >
         {list.map((p) => (
           <PlaceCard key={p.id} place={p} here={here} onPress={() => onOpenPlace(p.id)} />
@@ -591,29 +541,11 @@ function Places({
   );
 }
 
-/**
- * A place, as a card with its photograph and its score.
- *
- * The photograph is the licensed one the place screen shows, credit and all,
- * or no photograph: a card with a stock beach on it would be the aspirational
- * Home this file's header refuses. The chip is the map pin's number, in the
- * map pin's colours - green only past the threshold a host would recognise.
- *
- * Two chips, and they are deliberately not the same thing. Top left is the
- * SCORE, which is a claim about the place. Top right is the DISTANCE, which
- * is a fact about where the reader is standing - the question this row is
- * really being scanned for, and the one the app could always answer and
- * never did (docs/52).
- *
- * The distance goes on the photograph rather than under the name, because
- * `meta` is already a sentence with a kilometre in it - "Beach · 2.1 km of
- * sand" - and two adjacent kilometre figures meaning different things is
- * worse than no figure at all.
- */
 function PlaceCard({ place, here, onPress }: { place: ScoredPlace; here: Here | null; onPress: () => void }) {
   const high = isHighScore(place.healthyScore);
   const way = here ? wayThere(here, place) : null;
   const far = way ? (way.arrived ? t(strings.place.arrivedShort) : t(way.distance)) : null;
+
   return (
     <Pressable
       onPress={onPress}
@@ -621,41 +553,74 @@ function PlaceCard({ place, here, onPress }: { place: ScoredPlace; here: Here | 
       accessibilityLabel={[
         t(place.name),
         `${t(strings.place.healthyScore)} ${place.healthyScore}`,
-        // The distance is spoken too, or a screen reader gets the one card
-        // fact a sighted reader is scanning this row for and not the other.
         ...(way ? [way.arrived ? t(strings.place.arrived) : t(strings.place.away(t(way.distance), t(way.direction)))] : []),
       ].join(', ')}
-      style={[shadow.card, { width: 172, backgroundColor: color.surface, borderRadius: radius.md, overflow: 'hidden' }]}
+      style={[
+        shadow.card,
+        {
+          width: 204,
+          backgroundColor: '#ffffff',
+          borderRadius: 24,
+          overflow: 'hidden',
+          borderWidth: 1,
+          borderColor: '#E2EFF3',
+          shadowColor: '#0077B6',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.10,
+          shadowRadius: 10,
+          elevation: 3,
+        },
+      ]}
     >
-      <View style={{ height: 112, backgroundColor: color.neutral200 }}>
+      <View style={{ height: 140, backgroundColor: color.neutral200, position: 'relative' }}>
         {place.photo ? (
-          <Image source={{ uri: photoUri(place.photo.url) }} resizeMode="cover" style={{ width: '100%', height: '100%' }}
-            accessibilityLabel={`${t(place.name)}, photographed by ${place.photo.credit}`} />
+          <Image
+            source={{ uri: photoUri(place.photo.url) }}
+            resizeMode="cover"
+            style={{ width: '100%', height: '100%' }}
+            accessibilityLabel={`${t(place.name)}, photographed by ${place.photo.credit}`}
+          />
         ) : (
           <NoPhotograph place={place} />
         )}
+
+        <View pointerEvents="none" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60 }}>
+          <Svg width="100%" height="100%">
+            <Defs><LinearGradient id="photoShade" x1="0%" y1="0%" x2="0%" y2="100%"><Stop offset="0" stopColor="#004E64" stopOpacity="0" /><Stop offset="1" stopColor="#004E64" stopOpacity="0.38" /></LinearGradient></Defs>
+            <Rect width="100%" height="100%" fill="url(#photoShade)" />
+          </Svg>
+        </View>
+        {/* Top left: Score chip */}
         <View
           style={{
-            position: 'absolute', top: 8, left: 8, paddingVertical: 3, paddingHorizontal: 8, borderRadius: radius.lg,
-            backgroundColor: high ? color.accent : color.surface,
+            position: 'absolute', top: 10, left: 10, paddingVertical: 4, paddingHorizontal: 10,
+            borderRadius: 16, backgroundColor: high ? '#268250' : '#0077B6',
+            flexDirection: 'row', alignItems: 'center', gap: 4,
+            shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.12, shadowRadius: 3,
           }}
         >
-          <Heading size={12} colour={high ? onFill.accent : color.text}>{String(place.healthyScore)}</Heading>
+          <Heading size={12} colour="#FFFFFF">{String(place.healthyScore)}</Heading>
         </View>
+
+        {/* Top right: Distance badge */}
         {far ? (
           <View
             style={{
-              position: 'absolute', top: 8, right: 8, paddingVertical: 3, paddingHorizontal: 8,
-              borderRadius: radius.lg, backgroundColor: color.surface,
+              position: 'absolute', top: 10, right: 10, paddingVertical: 4, paddingHorizontal: 10,
+              borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.92)',
+              shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.12, shadowRadius: 3,
             }}
           >
             <Label size={10} tracking={0.06} colour={color.neutral800}>{far}</Label>
           </View>
         ) : null}
+
+
       </View>
-      <View style={{ padding: 10 }}>
-        <Heading size={14}>{t(place.name)}</Heading>
-        <Label size={9} tracking={0.04} colour={color.neutral600} style={{ marginTop: 3, textTransform: 'none' }} >
+
+      <View style={{ padding: 12 }}>
+        <Heading size={16} colour="#03045E">{t(place.name)}</Heading>
+        <Label size={9} tracking={0.04} colour="#647F8B" style={{ marginTop: 5, textTransform: 'none' }} >
           {place.meta}
         </Label>
       </View>
@@ -771,8 +736,13 @@ function Today({
   const rest = open.length - ordered.length;
 
   return (
-    <View style={{ paddingTop: 22 }}>
-      <SectionHead en="Today" th="วันนี้" onSeeAll={onOpenQuests} />
+    <View style={{ paddingTop: 26 }}>
+      <SectionHead
+        en="Recommended"
+        th="แนะนำสำหรับคุณ"
+        note={t({ en: "Today's Eco-Adventures", th: "ภารกิจกรีนวันนี้" })}
+        onSeeAll={onOpenQuests}
+      />
 
       {quests.error ? (
         <ErrorState message={quests.error} onRetry={quests.reload} />
@@ -781,13 +751,7 @@ function Today({
           {t({ en: 'Loading today’s missions…', th: 'กำลังโหลดภารกิจวันนี้…' })}
         </Body>
       ) : ordered.length === 0 ? (
-        /*
-          Said plainly, and not padded. Two different empty states, because
-          they are two different days: having finished everything is an
-          achievement and reads as one; there being nothing to do is not the
-          traveller's doing and should not be dressed up as praise.
-        */
-        <View style={[shadow.card, { marginHorizontal: gutter, padding: 16, borderRadius: radius.md, backgroundColor: color.surface }]}>
+        <View style={[shadow.card, { marginHorizontal: gutter, padding: 18, borderRadius: 24, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(14, 165, 233, 0.16)' }]}>
           {finished > 0 ? (
             <Body size={13} colour={color.accent700}>
               {t({
@@ -812,8 +776,8 @@ function Today({
               accessibilityLabel={`See all missions, ${rest} more`}
               style={{ marginHorizontal: gutter, marginTop: 10, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
             >
-              <Label size={10} tracking={0.12} colour={color.brand}>{t({ en: `${rest} more today`, th: `อีก ${rest} ภารกิจวันนี้` })}</Label>
-              <ChevronRight size={16} color={color.brand} strokeWidth={2} />
+              <Label size={10} tracking={0.12} colour="#0284c7">{t({ en: `${rest} more today`, th: `อีก ${rest} ภารกิจวันนี้` })}</Label>
+              <ChevronRight size={16} color="#0284c7" strokeWidth={2} />
             </Pressable>
           ) : null}
         </>
@@ -835,36 +799,38 @@ function QuestCard({
       accessibilityLabel={`${t(quest.name)}. ${t(quest.where)}. ${started ? 'In progress' : 'Not started'}`}
       style={[shadow.card, {
         marginHorizontal: gutter,
-        marginTop: 10,
-        padding: 14,
-        backgroundColor: color.surface,
-        borderRadius: radius.md,
-        // A quest already under way is the app reminding you of your own
-        // commitment, so it is outlined in brand - not in green, which would
-        // say a host had already approved something nobody has done yet.
-        borderWidth: started ? layout.ruleStrong : 0,
-        borderColor: color.brand,
+        marginTop: 12,
+        padding: 16,
+        backgroundColor: '#ffffff',
+        borderRadius: 22,
+        borderWidth: started ? 2 : 1,
+        borderColor: started ? '#0284c7' : 'rgba(14, 165, 233, 0.18)',
+        shadowColor: '#0284c7',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 2,
       }]}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
         <View style={{ flex: 1 }}>
-          {started ? (
-            <Label size={9} tracking={0.14} colour={color.brand} style={{ marginBottom: 4 }}>{t({ en: 'IN PROGRESS', th: 'กำลังทำอยู่' })}</Label>
-          ) : null}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            {started ? (
+              <Label size={9} tracking={0.14} colour="#0284c7">{t({ en: 'IN PROGRESS', th: 'กำลังทำอยู่' })}</Label>
+            ) : null}
+            <View style={{ backgroundColor: 'rgba(14, 165, 233, 0.1)', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 }}>
+              <Label size={9} tracking={0.06} colour="#0284c7">{t(quest.duration)}</Label>
+            </View>
+          </View>
           <Heading size={16}>{t(quest.name)}</Heading>
-          <Body size={13} colour={color.neutral600} style={{ marginTop: 6 }}>
+          <Body size={13} colour={color.neutral600} style={{ marginTop: 4 }}>
             {`${t(quest.where)} · ${t(quest.duration)}`}
           </Body>
-          {/*
-            The host is named on the card, not only inside the quest. The
-            person who will approve this is the reason the reward means
-            anything, and an anonymous mission is just a task list.
-          */}
           <Label size={9} tracking={0.06} colour={color.neutral600} style={{ marginTop: 4, textTransform: 'none' }}>
             {t(strings.quests.by(quest.host.name))}
           </Label>
         </View>
-        <View style={{ backgroundColor: tone.fill, paddingVertical: 4, paddingHorizontal: 10, borderRadius: radius.lg }}>
+        <View style={{ backgroundColor: tone.fill, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16 }}>
           <Heading size={13} colour={tone.on}>
             {`+${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'G' : 'T'}`}
           </Heading>
@@ -931,7 +897,23 @@ function Figure({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${en}, ${value} ${unit}`}
-      style={[shadow.card, { flex: 1, minHeight: 44, padding: 14, backgroundColor: color.surface, borderRadius: radius.md }]}
+      style={[
+        shadow.card,
+        {
+          flex: 1,
+          minHeight: 48,
+          padding: 16,
+          backgroundColor: '#ffffff',
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: 'rgba(14, 165, 233, 0.16)',
+          shadowColor: '#0284c7',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 6,
+          elevation: 1,
+        },
+      ]}
     >
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4 }}>
         <Heading size={24} colour={tone}>{value}</Heading>
@@ -1085,15 +1067,14 @@ function SectionHead({
   en, th, note, onSeeAll,
 }: { en: string; th: string; note?: string; onSeeAll?: () => void }) {
   return (
-    <View style={{ paddingHorizontal: gutter, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+    <View style={{ paddingHorizontal: gutter, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
       <View>
-        <Heading size={16}>{t({ en, th })}</Heading>
-        {/* How the section is ordered, when something other than the server ordered it. */}
-        {note ? <Label size={9} tracking={0.08} colour={color.neutral600} style={{ marginTop: 2 }}>{note}</Label> : null}
+        <Heading size={20} colour="#0f2942">{t({ en, th })}</Heading>
+        {note ? <Label size={10} tracking={0.08} colour="#0284c7" style={{ marginTop: 2 }}>{note}</Label> : null}
       </View>
       {onSeeAll ? (
         <Pressable onPress={onSeeAll} accessibilityRole="button" accessibilityLabel={`${t({ en: 'See all', th: 'ดูทั้งหมด' })}: ${t({ en, th })}`} style={{ minHeight: 44, justifyContent: 'center' }}>
-          <Label size={10} tracking={0.1} colour={color.brand}>{t({ en: 'See all', th: 'ดูทั้งหมด' })}</Label>
+          <Label size={11} tracking={0.08} colour="#0284c7" style={{ fontWeight: '600' }}>{t({ en: 'See all', th: 'ดูทั้งหมด' })}</Label>
         </Pressable>
       ) : null}
     </View>

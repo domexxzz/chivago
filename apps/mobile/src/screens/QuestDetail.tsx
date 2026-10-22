@@ -33,7 +33,7 @@ import { color, gutter, layout, motion, onFill, radius, shadow } from '../theme/
 import { tintFor } from '@chivago/tokens';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
-import { PushHeader } from '../components/Shell.tsx';
+import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -209,7 +209,7 @@ export function QuestDetailScreen({
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
           {/* The code tile from the missions list, same tint, so the quest
               you tapped is visibly the one you are now looking at. */}
-          <View style={{ paddingHorizontal: gutter, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+          <View style={{ paddingHorizontal: gutter, paddingTop: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
             <View
               style={{
                 width: 48, height: 48, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center',
@@ -223,7 +223,7 @@ export function QuestDetailScreen({
 
           <StatBand quest={quest} />
 
-          <View style={{ paddingHorizontal: gutter, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: color.neutral300 }}>
+          <View style={[shadow.card, { marginHorizontal: gutter, marginTop: 12, padding: 16, borderRadius: radius.md, backgroundColor: color.surface, borderWidth: 1, borderColor: '#DCEFF5' }]}>
             <Label size={10} tracking={0.14}>{`${t(strings.quest.host)}`}</Label>
             <Heading size={15} style={{ marginTop: 4 }}>{quest.host.name}</Heading>
           </View>
@@ -281,15 +281,19 @@ function StatBand({ quest }: { quest: Quest }) {
         padding: 16,
         borderRadius: radius.md,
         backgroundColor: color.surface,
+        borderWidth: 1,
+        borderColor: '#DCEFF5',
+        overflow: 'hidden',
       }]}
     >
+      <OceanBackdrop subtle />
       <View style={{ flex: 1 }}>
         <Label size={10} tracking={0.12}>{t(strings.quest.reward)}</Label>
         <AccentNumeral size={22} style={{ marginTop: 4 }}>
           {`+${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'G' : 'T'}`}
         </AccentNumeral>
       </View>
-      <View style={{ flex: 1, borderLeftWidth: 1, borderLeftColor: color.neutral300, paddingLeft: 14 }}>
+      <View style={{ flex: 1, borderLeftWidth: 1, borderLeftColor: '#DCEFF5', paddingLeft: 14 }}>
         <Label size={10} tracking={0.12}>{t(strings.quest.duration)}</Label>
         <Heading size={22} style={{ marginTop: 4 }}>{t(quest.duration)}</Heading>
       </View>
@@ -304,7 +308,7 @@ function StatBand({ quest }: { quest: Quest }) {
 function Timeline({ stage }: { stage: QuestStage | null }) {
   const current = stage ? stageIndex(stage) : -1;
   return (
-    <View style={[shadow.card, { marginHorizontal: gutter, marginTop: 12, padding: 16, borderRadius: radius.md, backgroundColor: color.surface }]}>
+    <View style={[shadow.card, { marginHorizontal: gutter, marginTop: 12, padding: 16, borderRadius: radius.md, backgroundColor: color.surface, borderWidth: 1, borderColor: '#DCEFF5' }]}>
       <Label size={10} tracking={0.16}>{t(strings.quest.progress)}</Label>
       <View
         style={{
@@ -508,13 +512,14 @@ function VerifyingPanel({ host }: { host: string }) {
 
   return (
     <View
-      style={{
-        borderWidth: layout.ruleHair,
-        borderColor: color.neutral300,
+      style={[shadow.card, {
+        backgroundColor: color.surface,
+        borderWidth: 1,
+        borderColor: '#DCEFF5',
         borderRadius: radius.md,
         padding: 18,
         overflow: 'hidden',
-      }}
+      }]}
     >
       <Animated.View
         pointerEvents="none"
@@ -581,7 +586,7 @@ function SuccessPanel({
 function OnRecordPanel({ statement }: { statement: FiledStatement }) {
   const url = `${API_BASE}/verify/${encodeURIComponent(statement.id)}`;
   return (
-    <View style={{ marginTop: 12, padding: 16, borderWidth: 1, borderColor: color.neutral300, borderRadius: radius.md }}>
+    <View style={[shadow.card, { marginTop: 12, padding: 16, backgroundColor: color.surface, borderWidth: 1, borderColor: '#DCEFF5', borderRadius: radius.md }]}>
       <Label size={10} tracking={0.16} colour={color.neutral600}>{t(strings.quest.onRecord)}</Label>
       <Body size={13} style={{ marginTop: 6 }}>
         {t(strings.quest.onRecordDetail(

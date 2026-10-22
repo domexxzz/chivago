@@ -29,11 +29,12 @@ import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { crowdLabel, type Companion, type ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, radius } from '../theme/index.ts';
+import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { CreatureScene } from '../components/CreatureScene.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { IconButton } from '../components/Button.tsx';
+import { OceanBackdrop } from '../components/Shell.tsx';
 import { Plate, Tray, TrayLine } from '../components/Game.tsx';
 import { gameRadius, gameShadow } from '@chivago/tokens';
 import { t } from '../i18n/locale.ts';
@@ -68,13 +69,17 @@ export function CompanionHomeScreen({
       <View
         style={{
           flexDirection: 'row', alignItems: 'center', gap: 12,
-          paddingHorizontal: gutter, paddingTop: 16, paddingBottom: 8,
+          paddingHorizontal: gutter, paddingTop: 14, paddingBottom: 14, marginBottom: 12,
+          backgroundColor: '#028090',
+          borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+          overflow: 'hidden',
         }}
       >
-        <IconButton onPress={onBack} accessibilityLabel="Back to the collection">
-          <ChevronLeft size={16} color={color.text} strokeWidth={2} />
+        <OceanBackdrop compact />
+        <IconButton inverted onPress={onBack} accessibilityLabel="Back to the collection">
+          <ChevronLeft size={16} color="#FFFFFF" strokeWidth={2} />
         </IconButton>
-        <Label size={10} tracking={0.16}>{`${t(species.habitat)}`}</Label>
+        <Label size={10} tracking={0.16} colour="#D5F6FF">{`${t(species.habitat)}`}</Label>
       </View>
 
       {/*
@@ -218,7 +223,13 @@ function HabitatCondition({
   const room = Math.max(0, Math.min(1, 1 - habitat.metrics.crowdDensity / 5));
 
   return (
-    <View style={{ marginTop: 20, paddingHorizontal: gutter }}>
+    <View
+      style={[shadow.card, {
+        marginTop: 16, marginHorizontal: gutter, padding: 16,
+        backgroundColor: color.surface, borderRadius: radius.md,
+        borderWidth: 1, borderColor: '#DCEFF5',
+      }]}
+    >
       <Label size={9} tracking={0.14} colour={color.neutral600}>{t({ en: 'Its home today', th: 'ถิ่นอาศัยวันนี้' })}</Label>
 
       <Meter
@@ -293,11 +304,12 @@ function Action({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`${label}. ${thai}. ${detail}`}
-      style={{
+      style={[shadow.card, {
         flexDirection: 'row', alignItems: 'center', gap: 12,
         minHeight: 44, paddingVertical: 14, paddingHorizontal: 16,
+        backgroundColor: color.surface,
         borderWidth: layout.ruleStrong, borderColor: color.brand, borderRadius: radius.md,
-      }}
+      }]}
     >
       <View style={{ flex: 1 }}>
         <Heading size={15} colour={color.brand}>{thai ? t({ en: label, th: thai }) : label}</Heading>

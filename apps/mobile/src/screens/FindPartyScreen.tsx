@@ -28,7 +28,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import type { Bilingual, InviteListing, ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, gutter, layout, radius } from '../theme/index.ts';
+import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
 import { gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
@@ -91,7 +91,7 @@ export function FindPartyScreen({
  */
 function Preamble() {
   return (
-    <View style={{ paddingHorizontal: gutter, paddingBottom: 4 }}>
+    <View style={{ paddingHorizontal: gutter, paddingTop: 14, paddingBottom: 4 }}>
       <Body size={13} colour={color.neutral700}>
         {t({
           en: 'Invitations are posted at a place, never at a person. Nobody can see where you are, and you cannot see where anybody else is.',
@@ -131,11 +131,11 @@ function Places({
         return (
           <View
             key={place.id}
-            style={{
+            style={[shadow.card, {
               marginBottom: 10, borderRadius: gameRadius.panel, backgroundColor: color.surface,
-              borderWidth: 1, borderColor: open ? color.brand : color.neutral300,
+              borderWidth: 1, borderColor: open ? color.brand : '#DCEFF5',
               overflow: 'hidden',
-            }}
+            }]}
           >
             <Pressable
               onPress={() => onToggle(place.id)}
