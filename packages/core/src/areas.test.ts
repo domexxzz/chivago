@@ -2,8 +2,8 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  AREAS, DEFAULT_AREA, KU_BANGKHEN_BBOX, KU_SRIRACHA_BBOX, RMUTT_BBOX,
-  areaByKey, areaOfProvince, inArea, isAreaKey, nearestArea,
+  AREAS, DEFAULT_AREA, KU_BANGKHEN_BBOX, KU_SRIRACHA_BBOX, RMUTT_BBOX, SICHANG_BBOX,
+  areaByKey, areaOf, areaOfProvince, inArea, isAreaKey, nearestArea,
 } from './areas.ts';
 import { CHECKIN_RADIUS_M, SEED_HOSTS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
 import { CAMPUS_LEG_MIN_M, LEG_MIN_M, lowCarbonLeg } from './low-carbon.ts';
@@ -14,14 +14,59 @@ const ku = areaByKey('ku-sriracha');
 const samui = areaByKey('samui');
 const rmutt = areaByKey('rmutt');
 const bangkhen = areaByKey('ku-bangkhen');
+const sichang = areaByKey('sichang');
 const rmuttPlaces = SEED_PLACES.filter((p) => p.province === 'TH-13');
-const kuPlaces = SEED_PLACES.filter((p) => p.province === 'TH-20');
+/*
+  BY AREA, NOT BY PROVINCE, and that is the whole lesson of the second
+  island. This read `province === 'TH-20'` while the campus was the only
+  thing in Chon Buri; Ko Sichang is in Chon Buri too, and the day it was
+  seeded this list quietly grew five island places and then asserted they
+  were inside a university's fence, carried its air station, and wore its
+  photographer's credit. The production code had exactly the same bug in
+  exactly the same shape - see `areaOf`.
+*/
+const kuPlaces = SEED_PLACES.filter((p) => areaOf(p) === 'ku-sriracha');
+const sichangPlaces = SEED_PLACES.filter((p) => areaOf(p) === 'sichang');
 const kuQuests = SEED_QUESTS.filter((q) => inArea(ku, q));
 
 describe('four areas, derived from provinces', () => {
-  test('every open province has exactly one area, and every area an open province', () => {
-    const open = openProvinces().map((p) => p.code).sort();
-    assert.deepEqual(AREAS.map((a) => a.province).sort(), open);
+  /*
+    ONE AREA PER PROVINCE WAS A RULE UNTIL IT WAS NOT. Ko Sichang and the
+    Si Racha campus are both in Chon Buri, which is the ordinary case and
+    not an edge one: a province is an administrative unit and an area is a
+    frame on a screen, and nothing ever promised those would line up.
+
+    What still has to hold is that nowhere is stranded. Every open province
+    has at least one area to draw it, every area sits in a province that is
+    open, and two areas in one province do not overlap - because if they
+    did, `areaOf` would have to pick, and a coin toss is not a rule.
+  */
+  test('every open province has an area, and every area an open province', () => {
+    const open = new Set(openProvinces().map((p) => p.code));
+    const framed = new Set(AREAS.map((a) => a.province));
+    assert.deepEqual([...framed].sort(), [...open].sort());
+  });
+
+  test('no two areas overlap, so a coordinate is never in two frames at once', () => {
+    for (const a of AREAS) {
+      for (const b of AREAS) {
+        if (a.key === b.key) continue;
+        const apart = a.bbox.maxLng < b.bbox.minLng || b.bbox.maxLng < a.bbox.minLng
+          || a.bbox.maxLat < b.bbox.minLat || b.bbox.maxLat < a.bbox.minLat;
+        assert.ok(apart, `${a.key} and ${b.key} overlap`);
+      }
+    }
+  });
+
+  test('a place lands in the area its coordinates are in, not the first area in its province', () => {
+    // The two Chon Buri areas, which is the pair that forced `areaOf`.
+    assert.equal(areaOf({ lat: 13.15539, lng: 100.81364, province: 'TH-20' }), 'sichang');
+    assert.equal(areaOf({ lat: 13.1205, lng: 100.9205, province: 'TH-20' }), 'ku-sriracha');
+    assert.equal(areaOf({ lat: 9.5357, lng: 100.0617, province: 'TH-84' }), 'samui');
+    // Nowhere in particular still answers by province, which is what the
+    // passport has always done.
+    assert.equal(areaOf({ lat: 0, lng: 0, province: 'TH-20' }), areaOfProvince('TH-20'));
+    assert.equal(areaOf({ lat: 0, lng: 0, province: 'TH-99' }), DEFAULT_AREA);
   });
 
   test('a place lands in the area of its province', () => {
@@ -116,6 +161,77 @@ describe('the campus is real, and its seed stays inside it', () => {
 
   test('every layer has a campus place, so every companion can hatch there', () => {
     assert.deepEqual([...new Set(kuPlaces.map((p) => p.layer))].sort(), ['Food', 'Green', 'Quest', 'Safe', 'Wellness']);
+  });
+});
+
+/**
+ * Ko Sichang (docs/67): the fifth area, the second island, and the first
+ * place drawn by the island hero that is not Samui.
+ */
+describe('the second island', () => {
+  test('it is drawn as an island and framed by its own measured box', () => {
+    assert.equal(sichang.map, 'island');
+    assert.deepEqual(sichang.bbox, SICHANG_BBOX);
+    assert.ok(inArea(sichang, sichang.center));
+    assert.equal(nearestArea(sichang.center.lat, sichang.center.lng).key, 'sichang');
+  });
+
+  test('its box is the island and not the sea around it', () => {
+    // 6.36 km north to south by 2.53 km east to west, flood-filled from the
+    // terrain archive. A box much bigger than that is a box with somebody
+    // else's island in it - Ko Kham Yai is 1.5 km off the east shore.
+    const ns = (SICHANG_BBOX.maxLat - SICHANG_BBOX.minLat) * 110.574;
+    const ew = (SICHANG_BBOX.maxLng - SICHANG_BBOX.minLng) * 111.32 * Math.cos(13.15 * Math.PI / 180);
+    assert.ok(Math.abs(ns - 6.36) < 0.1, `${ns.toFixed(2)} km north to south`);
+    assert.ok(Math.abs(ew - 2.53) < 0.1, `${ew.toFixed(2)} km east to west`);
+  });
+
+  test('five places, every layer, all of them on the island', () => {
+    assert.equal(sichangPlaces.length, 5);
+    assert.deepEqual(
+      [...new Set(sichangPlaces.map((p) => p.layer))].sort(),
+      ['Food', 'Green', 'Quest', 'Safe', 'Wellness'],
+    );
+    for (const p of sichangPlaces) {
+      assert.ok(inArea(sichang, p), `${p.id} is outside the island`);
+      assert.equal(p.province, 'TH-20', `${p.id} is not in Chon Buri`);
+    }
+  });
+
+  /*
+    The island has no measured anything yet, and the data has to say so
+    rather than imply otherwise by omission. A photograph nobody has the
+    right to use, and an air station 12.4 km away across open water, are
+    both worse than an honest absence.
+  */
+  test('nothing on it claims to be measured: no photographs, no ground station', () => {
+    for (const p of sichangPlaces) {
+      assert.equal(p.photo, null, `${p.id} has a photograph nobody has licensed`);
+      assert.ok(!p.airStation, `${p.id} claims a ground station the island does not have`);
+    }
+  });
+
+  test('the two places that are not in OpenStreetMap say so where a reader can see it', () => {
+    // `sichang-marine-station` and `sichang-clean-energy` are anchored at
+    // the nearest mapped feature, not surveyed. A pin that is approximate
+    // and silent about it is the one thing worse than no pin.
+    const anchored = ['sichang-marine-station', 'sichang-clean-energy'];
+    for (const id of anchored) {
+      const p = sichangPlaces.find((x) => x.id === id);
+      assert.ok(p, `${id} is missing`);
+      assert.match(p!.meta, /unverified/i, `${id} does not admit its site is unverified`);
+    }
+    for (const p of sichangPlaces.filter((x) => !anchored.includes(x.id))) {
+      assert.doesNotMatch(p.meta, /unverified/i, `${p.id} is a mapped feature and should not hedge`);
+    }
+  });
+
+  test('a journey across it is measured at the island’s own size', () => {
+    // 400 m, not the big island's 800 and not the campus's 150 - see
+    // SMALL_ISLAND_LEG_MIN_M. The pier to the palace is 1.5 km, and that is
+    // most of the island.
+    assert.ok(sichang.legMinM < LEG_MIN_M, 'it is a smaller island than Samui');
+    assert.ok(sichang.legMinM > CAMPUS_LEG_MIN_M, 'it is bigger than a campus');
   });
 });
 

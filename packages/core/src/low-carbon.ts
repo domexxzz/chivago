@@ -46,6 +46,19 @@ export const LEG_MIN_M = 800;
  * walked.
  */
 export const CAMPUS_LEG_MIN_M = 150;
+
+/**
+ * And a small island's.
+ *
+ * Ko Sichang is 6.4 km from end to end against Samui's 25, and you cross it
+ * in a shared skylab rather than on a road trip. Eight hundred metres would
+ * call almost nothing on it a journey - the pier to the palace is 1.5 km,
+ * and that is most of the island. Four hundred is the same rule read at the
+ * island's own size: still somewhere else, still too far to be the next
+ * street, and well above the campus's hundred and fifty because here it
+ * genuinely is a different bay.
+ */
+export const SMALL_ISLAND_LEG_MIN_M = 400;
 /** Longer than this and the phone cannot say what happened in between. */
 export const LEG_MAX_MIN = 240;
 

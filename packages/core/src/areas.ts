@@ -16,10 +16,10 @@
  */
 
 import type { Bilingual } from './types.ts';
-import { CAMPUS_LEG_MIN_M, LEG_MIN_M } from './low-carbon.ts';
+import { CAMPUS_LEG_MIN_M, LEG_MIN_M, SMALL_ISLAND_LEG_MIN_M } from './low-carbon.ts';
 import { SAMUI_BBOX } from './seed.ts';
 
-export type AreaKey = 'samui' | 'ku-sriracha' | 'rmutt' | 'ku-bangkhen';
+export type AreaKey = 'samui' | 'ku-sriracha' | 'rmutt' | 'ku-bangkhen' | 'sichang';
 
 export interface Bbox {
   minLat: number;
@@ -76,6 +76,27 @@ export const RMUTT_BBOX: Bbox = {
   maxLng: 100.7315743,
 };
 
+/**
+ * Ko Sichang, measured rather than looked up.
+ *
+ * Flood-filled from a seed at 13.155 N, 100.806 E over the same terrarium
+ * tiles the hero is drawn from, at zoom 14 - 9.3 m a sample - taking every
+ * pixel above one metre. 6.36 km north to south, 2.53 km east to west, and
+ * 187.8 m at the summit, which OpenStreetMap names เขาพระจุลจอมเกล้า.
+ *
+ * It is a STEEPER island than Samui, not a flatter one: 188 m over 6.4 km
+ * is about one in thirty-four against Samui's 635 m over 25 km, one in
+ * thirty-nine. The island exaggeration is right here and the campus's would
+ * be wrong - which is the opposite of what "a small island" suggests, and
+ * the reason this box was measured instead of assumed. See docs/67.
+ */
+export const SICHANG_BBOX: Bbox = {
+  minLat: 13.1243,
+  maxLat: 13.1818,
+  minLng: 100.7975,
+  maxLng: 100.8208,
+};
+
 /** Bangkhen's campus frame, supplied by the onboarding brief and checked against mapped landmarks. */
 export const KU_BANGKHEN_BBOX: Bbox = {
   minLat: 13.8400,
@@ -119,6 +140,19 @@ export const AREAS: Area[] = [
     legMinM: CAMPUS_LEG_MIN_M,
   },
   {
+    key: 'sichang',
+    name: { en: 'Ko Sichang', th: 'เกาะสีชัง' },
+    // Chon Buri, which KU Sriracha is also in - see `areaOf` below.
+    province: 'TH-20',
+    center: {
+      lat: (SICHANG_BBOX.minLat + SICHANG_BBOX.maxLat) / 2,
+      lng: (SICHANG_BBOX.minLng + SICHANG_BBOX.maxLng) / 2,
+    },
+    bbox: SICHANG_BBOX,
+    map: 'island',
+    legMinM: SMALL_ISLAND_LEG_MIN_M,
+  },
+  {
     key: 'ku-bangkhen',
     name: { en: 'KU Bangkhen', th: 'มก. บางเขน' },
     province: 'TH-10',
@@ -144,6 +178,33 @@ export const areaByKey = (key: AreaKey): Area => AREAS.find((a) => a.key === key
  */
 export const areaOfProvince = (province: string): AreaKey =>
   AREAS.find((a) => a.province === province)?.key ?? DEFAULT_AREA;
+
+/**
+ * The area a PLACE belongs to.
+ *
+ * A province was enough while no two areas shared one, and `areaOfProvince`
+ * is still what the passport wants - that counts provinces, and a province
+ * is a province. It stopped being enough the day Ko Sichang arrived: it is
+ * in Chon Buri, and so is the Si Racha campus, and `find` returns whichever
+ * is written first in the array. Every Sichang place would have filed
+ * itself under the campus - on Home, on the map, in the concierge, in the
+ * medals, in the stories - and a university would have shown an island's
+ * beaches.
+ *
+ * So geography decides, because an area IS a geography: the frame a screen
+ * draws at once. The province stays as the fallback, which keeps every
+ * existing place answering exactly as it did before this function existed -
+ * including a place in a province with no area of its own.
+ *
+ * The boxes have to stay disjoint for this to mean anything. The two in
+ * Chon Buri are six kilometres apart (Sichang ends at 100.8208 E, the
+ * campus begins at 100.9173 E), which is wider than `MARGIN_DEG` either
+ * side, and `areas.test.ts` holds them apart.
+ */
+export const areaOf = (
+  place: { lat: number; lng: number; province?: string | null },
+): AreaKey =>
+  AREAS.find((a) => inArea(a, place))?.key ?? areaOfProvince(place.province ?? '');
 
 /** Slack around the box, so a quest whose site is the road outside still belongs. */
 const MARGIN_DEG = 0.02;

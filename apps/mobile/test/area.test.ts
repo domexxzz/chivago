@@ -8,7 +8,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { __setAreaForTests, areaFromUrl, eventFromUrl, getArea, placeFromUrl, setArea } from '../src/state/area.ts';
-import { AREAS, areaOfProvince, inArea, nearestArea } from '@chivago/core';
+import { AREAS, areaOf, inArea, nearestArea } from '@chivago/core';
 
 describe('the area from the page URL', () => {
   test('a QR code carries ?area=ku-sriracha and it is honoured', () => {
@@ -34,11 +34,21 @@ describe('changing area', () => {
 });
 
 describe('what belongs where', () => {
-  test('every place province maps to an area and every area frames its own centre', () => {
+  test('every area frames its own centre, and its centre answers to it', () => {
+    /*
+      `areaOfProvince(a.province) === a.key` used to be here, and it was a
+      true statement about the world right up until Ko Sichang joined the
+      Si Racha campus in Chon Buri. Two areas, one province, and `find`
+      returns the first: the island's own centre would have answered
+      "ku-sriracha". What is actually required is that an area contains
+      where it says it is, and that geography can tell them apart - which
+      is `areaOf`, and which `areas.test.ts` checks for the pair that
+      forced it.
+    */
     for (const a of AREAS) {
-      assert.equal(areaOfProvince(a.province), a.key);
-      assert.ok(inArea(a, a.center));
+      assert.ok(inArea(a, a.center), `${a.key} does not contain its own centre`);
       assert.equal(nearestArea(a.center.lat, a.center.lng).key, a.key);
+      assert.equal(areaOf({ ...a.center, province: a.province }), a.key);
     }
   });
 

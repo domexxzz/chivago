@@ -29,7 +29,7 @@ import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  CHECKIN_RADIUS_M, areaByKey, areaOfProvince, inArea, isAreaKey, metresBetween,
+  CHECKIN_RADIUS_M, areaByKey, areaOf, inArea, isAreaKey, metresBetween,
   type AreaKey, type Bilingual, type Fix,
 } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
@@ -284,7 +284,7 @@ const placeRef = (db: DB, id: string): PlaceRef => {
   return p;
 };
 
-const areaOfPlace = (p: PlaceRef): AreaKey => areaOfProvince(p.province ?? 'TH-84');
+const areaOfPlace = (p: PlaceRef): AreaKey => areaOf(p);
 
 /**
  * Take a story. The order is the cheapest refusal first: the door, the size,

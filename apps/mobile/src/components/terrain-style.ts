@@ -48,11 +48,26 @@ export const TERRAIN_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terr
 /** OpenStreetMap vector tiles from OpenFreeMap: no key, no registration, no request limit. */
 export const OPENFREEMAP = 'https://tiles.openfreemap.org/planet';
 
+/** Any bounding box in the shape MapLibre wants it. */
+export const boundsOf = (b: Box): [[number, number], [number, number]] =>
+  [[b.minLng, b.minLat], [b.maxLng, b.maxLat]];
+
 /** The island's bounding box in the shape MapLibre wants it. */
-export const SAMUI_BOUNDS: [[number, number], [number, number]] = [
-  [SAMUI_BBOX.minLng, SAMUI_BBOX.minLat],
-  [SAMUI_BBOX.maxLng, SAMUI_BBOX.maxLat],
-];
+export const SAMUI_BOUNDS: [[number, number], [number, number]] = boundsOf(SAMUI_BBOX);
+
+/**
+ * What any of the functions below need to know about an area: four numbers.
+ *
+ * Deliberately not `Area` from core. These take a BOX, because the hero
+ * frames a box and nothing here cares what the box is called - which is
+ * also what let the second island be drawn by the same code as the first.
+ */
+export interface Box {
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
+}
 
 // ---------------------------------------------------------------------------
 // The palette, by the hour
@@ -81,6 +96,15 @@ export interface MapPalette {
   /** What the shore's canopy and the mangrove wetland are tinted with. */
   canopy: string;
   wetland: string;
+  /**
+   * Surf. One colour does the shore and the open sea both: the line of
+   * white water breaking along every beach, and the crests of the swell
+   * out past it. They are the same water, so they are the same colour, and
+   * at six in the evening they are both gold.
+   */
+  foam: string;
+  /** The light a village shows once the sun is off it. */
+  lantern: string;
   /** Hillshade. */
   highlight: string;
   shadow: string;
@@ -98,9 +122,23 @@ export interface MapPalette {
   /** Labels. */
   ink: string;
   halo: string;
+  /**
+   * How far the lamps are up: 0 in daylight, 1 after dark, and rising
+   * through the half hour either side of it. A number rather than a colour
+   * because it drives opacity, so it is kept out of the colour blend below
+   * - see MapColours.
+   */
+  lamps: number;
 }
 
-const NOON: Omit<MapPalette, 'night' | 'illumination'> = {
+/**
+ * The colours alone. `paletteFor` blends two of these channel by channel,
+ * which only works on things that are colours; `night`, `illumination` and
+ * `lamps` are not, and are added once the mixing is done.
+ */
+type MapColours = Omit<MapPalette, 'night' | 'illumination' | 'lamps'>;
+
+const NOON: MapColours = {
   deep: '#0d5a8a',
   shallow: '#5ecfd6',
   sand: '#f0e2b6',
@@ -112,6 +150,8 @@ const NOON: Omit<MapPalette, 'night' | 'illumination'> = {
   sea: '#0f6f9f',
   canopy: '#4f8a34',
   wetland: '#6f9a66',
+  foam: '#ffffff',
+  lantern: '#ffc166',
   highlight: '#fff3cc',
   shadow: '#2f2b62',
   sky: '#5aaaef',
@@ -132,7 +172,7 @@ const NOON: Omit<MapPalette, 'night' | 'illumination'> = {
  * the first pass was subtle enough that half past five looked like one
  * o'clock, and a golden hour nobody can see is a palette nobody needed.
  */
-const GOLDEN: Partial<Omit<MapPalette, 'night' | 'illumination'>> = {
+const GOLDEN: Partial<MapColours> = {
   sand: '#f5c47e',
   lowland: '#bfae52',
   jungle: '#8a8a3c',
@@ -142,6 +182,8 @@ const GOLDEN: Partial<Omit<MapPalette, 'night' | 'illumination'>> = {
   sea: '#3e6a86',
   deep: '#2c4c6e',
   shallow: '#8fb8b8',
+  foam: '#ffdfae',
+  lantern: '#ffb347',
   highlight: '#ffb44a',
   shadow: '#4a2260',
   sky: '#f0a060',
@@ -158,7 +200,7 @@ const GOLDEN: Partial<Omit<MapPalette, 'night' | 'illumination'>> = {
  * The greens go to olive-slate, the sea to ink, the sky to the deep blue a
  * beach actually has at nine in the evening, and the labels invert.
  */
-const NIGHT: Omit<MapPalette, 'night' | 'illumination'> = {
+const NIGHT: MapColours = {
   deep: '#08203a',
   shallow: '#1d5a72',
   sand: '#7a766b',
@@ -170,6 +212,10 @@ const NIGHT: Omit<MapPalette, 'night' | 'illumination'> = {
   sea: '#0b2b4c',
   canopy: '#2c4025',
   wetland: '#3f4a34',
+  // Moonlight on water is blue-white, not white; and a lamp seen across
+  // dark water is the warmest thing on the island.
+  foam: '#bcd2f2',
+  lantern: '#ffb55a',
   highlight: '#9fb0d6',
   shadow: '#070b1c',
   sky: '#0f1a38',
@@ -196,7 +242,7 @@ function illuminationFor(hour: number): number {
 export function paletteFor(hour: number): MapPalette {
   const { day, arc, golden } = dayArc(hour);
   const illumination = illuminationFor(hour);
-  if (!day) return { ...NIGHT, night: true, illumination };
+  if (!day) return { ...NIGHT, night: true, illumination, lamps: 1 };
   const out = { ...NOON } as Record<string, string>;
   // The warmth comes in faster than the arc goes down: by the time the sun
   // is a third of the way to the horizon the light is already gold.
@@ -210,7 +256,26 @@ export function paletteFor(hour: number): MapPalette {
   for (const key of Object.keys(out)) {
     out[key] = mix(out[key]!, NIGHT[key as keyof typeof NIGHT], dusk * 0.7);
   }
-  return { ...(out as unknown as Omit<MapPalette, 'night' | 'illumination'>), night: false, illumination };
+  /*
+    The lamps come on with the dusk and not at the stroke of six.
+
+    `dusk` is already the measure of how far into the blue hour this is -
+    zero through the middle of the day, one at the horizon - so the village
+    lights rise on exactly the curve the land is going dark on, and for the
+    half hour either side of sunset the island has both the last of the sun
+    on the hills and the first of the lamps in the bays.
+  */
+  return { ...(out as unknown as MapColours), night: false, illumination, lamps: dusk };
+}
+
+/**
+ * A palette colour with an alpha on it, for the ramps that have to let
+ * what is under them show through. MapLibre takes CSS colours, so this is
+ * just the hex read back out as three bytes.
+ */
+export function rgba(hex: string, alpha: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
 }
 
 /** The land colours in a palette - the ones a test holds apart from the evidence green. */
@@ -230,6 +295,18 @@ export const landColours = (p: MapPalette): string[] => [
  * the style fails validation, the layer is dropped, and the hero renders
  * with no names at all.
  */
+/**
+ * Everywhere that shows a light after dark.
+ *
+ * Wider than the places that get a NAME on the map, and deliberately so.
+ * A label has to earn its space and most of these would lose that
+ * argument; a light costs four pixels and what it buys is the shape of the
+ * inhabited coast. Nathon, Chaweng, Lamai and Bo Phut make the ring, and
+ * the hamlets fill in the dark between them.
+ */
+const LIT_PLACES = ['in', ['get', 'class'],
+  ['literal', ['city', 'town', 'village', 'hamlet', 'suburb']]];
+
 const ENGLISH_NAME = ['to-string', ['coalesce', ['get', 'name:en'], ['get', 'name:latin'], ['get', 'name']]];
 
 /** That name without its "Baan"/"Ban" - village - prefix. */
@@ -338,9 +415,26 @@ export function chivagoStyle(hour = 12): StyleSpecification {
           // one flat wash, because every pixel of it fell inside a single
           // interpolation span.
           'color-relief-color': ['interpolate', ['linear'], ['elevation'],
-            -40, p.deep,
-            -4, p.shallow,
-            0, p.sand,
+            /*
+              THE SEA IS EXACTLY ZERO, and this ramp used to say it was
+              sand. Decoding the archive's tiles over the Gulf gives 39,600
+              samples at 0.0 m and 360 below it, none deeper than −5.8:
+              there is no bathymetry out here at all, and the "reef flat"
+              these first stops were written for does not exist in the
+              data. What did exist was `0, p.sand` under a sea fill that is
+              only four-fifths opaque, which painted the entire Gulf of
+              Thailand one part in five of beach - which is most of why the
+              water read pale and warm instead of deep.
+
+              So zero is deep water now, and the shore's turquoise is hung
+              a metre or two ABOVE it, where the land actually starts. The
+              sea fill is drawn over this, so what shows through along
+              every beach is a fringe of shallows.
+            */
+            -60, p.deep,
+            -1, p.deep,
+            0.4, mix(p.deep, p.shallow, 0.45),
+            2.5, p.shallow,
             5, p.sand,
             25, mix(p.sand, p.lowland, 0.55),
             45, p.lowland,
@@ -414,7 +508,13 @@ export function chivagoStyle(hour = 12): StyleSpecification {
           'hillshade-illumination-anchor': 'map',
           'hillshade-shadow-color': p.shadow,
           'hillshade-highlight-color': p.highlight,
-          'hillshade-exaggeration': p.night ? 0.55 : 0.7,
+          /*
+            Firmer than it was (0.55 / 0.7). The camera sits at 72 degrees
+            now and a tilted hillside flattens as the view lies down, so
+            the ridge that read at 60 was a soft green swell at 72. This
+            is the shading doing the work the angle stopped doing.
+          */
+          'hillshade-exaggeration': p.night ? 0.7 : 0.86,
         },
       },
       {
@@ -424,6 +524,57 @@ export function chivagoStyle(hour = 12): StyleSpecification {
         // painted by TerrainMap from `swell()` below; the colour stands in
         // for the frame before the first pattern lands.
         paint: { 'fill-color': p.sea, 'fill-pattern': 'sea-swell', 'fill-opacity': 0.8 },
+      },
+      /*
+        THE WATER'S EDGE, which is where an island stops looking like a
+        shape on a background and starts looking like land in the sea.
+
+        DRAWN FROM THE ELEVATION, NOT FROM THE COASTLINE, and the reason is
+        worth writing down because the obvious way is wrong. A line layer
+        pointed at the `water` polygons draws their outline, which on the
+        face of it is exactly the coast - every bay, every headland, for
+        free. What it also draws is the TILE EDGE. OpenMapTiles clips the
+        ocean to each tile, so the polygon's boundary is the coastline plus
+        a square around every tile it crosses, and the first run of this
+        put bright straight surf lines across ten kilometres of open water.
+
+        The elevation model has no tiles to seam. It is a continuous
+        surface, it knows where sea level is, and a band of colour hung
+        across the few metres either side of zero IS the shoreline - every
+        bay, every headland, and the reservoir above Na Muang too.
+
+        It gives the right shape for the right reason, as well: the band is
+        drawn in METRES OF HEIGHT, so its width on the ground is set by the
+        slope. Where Chaweng shelves away flat it is a broad white reach of
+        broken water; where the rocks go down steeply at Lamai it narrows
+        to a line. Nobody had to say that - it falls out of the ground.
+
+        ENTIRELY ABOVE SEA LEVEL, and that is not a compromise. The
+        archive's tiles read exactly 0.0 m over the whole Gulf - there is
+        no depth data here to hang an offshore band on, and anything with
+        any alpha at zero paints every pixel of open water. So the band
+        starts a metre up and dies out by twenty-five: the break, the wet
+        sand behind it, and nothing at all by the time the coconut plain
+        begins. The sea fill is only four-fifths opaque, so where the
+        drawn coastline and the elevation's disagree - which they do by a
+        pixel or two, one being a survey and the other a 76-metre grid -
+        the white water carries on over the water, which is where white
+        water is anyway.
+      */
+      {
+        id: 'surf', type: 'color-relief', source: 'relief',
+        paint: {
+          'color-relief-opacity': p.night ? 0.5 : 0.95,
+          'color-relief-color': ['interpolate', ['linear'], ['elevation'],
+            -60, rgba(p.foam, 0),
+            0, rgba(p.foam, 0),
+            1, rgba(p.foam, 0.55),
+            3, rgba(p.foam, 0.22),
+            8, rgba(p.foam, 0.06),
+            18, rgba(p.foam, 0),
+            900, rgba(p.foam, 0),
+          ],
+        },
       },
       // The streams that come off the mountain - Na Muang is a waterfall.
       {
@@ -527,10 +678,58 @@ export function chivagoStyle(hour = 12): StyleSpecification {
         id: 'buildings', type: 'fill-extrusion', source: 'osm', 'source-layer': 'building',
         minzoom: 12.5,
         paint: {
-          'fill-extrusion-color': p.building,
+          /*
+            And after dark they are lit from inside. Zoom into Chaweng at
+            nine in the evening and the walls should not be the grey they
+            are at noon with less light on them - a town at night is warmer
+            than a town at midday, because at midday the light is the sun's
+            and at night it is somebody's.
+          */
+          'fill-extrusion-color': p.night ? mix(p.building, p.lantern, 0.38) : p.building,
           'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 5],
           'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
           'fill-extrusion-opacity': 0.9,
+        },
+      },
+      /*
+        THE ISLAND LIGHTS UP.
+
+        A soft warm circle on every named village, lit by `lamps` - nothing
+        at noon, full after dark, and rising through the half hour either
+        side of sunset so the lamps come on while the last of the sun is
+        still on the ridge. Two of them: a wide glow for the haze a town
+        throws into the air above it, and a small bright core for the town
+        itself.
+
+        It is the one thing on this map that is drawn from nothing but a
+        point and a time of day, and it is the whole reason the island is
+        worth looking at at nine in the evening. Before it, night was a
+        correct dark-green diagram of somewhere nobody lived; Chaweng,
+        Lamai, Bo Phut and Nathon coming up along the coast say that it is
+        an island with people on it.
+
+        Circles rather than symbols because a circle can be BLURRED, and a
+        light at a distance is nothing but blur. They ride the terrain with
+        everything else, so a lamp in a valley sits in its valley.
+      */
+      {
+        id: 'lantern-haze', type: 'circle', source: 'osm', 'source-layer': 'place',
+        filter: LIT_PLACES,
+        paint: {
+          'circle-color': p.lantern,
+          'circle-opacity': 0.4 * p.lamps,
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 10, 12, 26, 15, 64],
+          'circle-blur': 1,
+        },
+      },
+      {
+        id: 'lanterns', type: 'circle', source: 'osm', 'source-layer': 'place',
+        filter: LIT_PLACES,
+        paint: {
+          'circle-color': p.lantern,
+          'circle-opacity': 0.95 * p.lamps,
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 9, 2.6, 12, 5, 15, 11],
+          'circle-blur': 0.5,
         },
       },
       /*
@@ -585,23 +784,50 @@ export function chivagoStyle(hour = 12): StyleSpecification {
  * Every number here was chosen by looking, then written down. The frame is
  * fitted to the island's bounding box with the camera flat, which is the one
  * thing that scales honestly with the width of the screen; then the camera
- * is lifted to MapLibre's steepest pitch, zoomed in a little over half a
- * level - a tilted view needs more zoom to fill the same frame - and its
- * centre moved a fiftieth of a degree south, so the near shore sits low in
- * the frame and Pha-ngan keeps the top.
+ * is lifted past MapLibre's default ceiling, zoomed a level above the flat
+ * fit - a tilted view needs more zoom to fill the same frame - and its
+ * centre moved a fortieth of a degree north, which brings the camera in
+ * over the south coast and drops the island into the lower two thirds.
+ *
+ * RETUNED FOR A PHONE. The first set of numbers was read on a desktop hero
+ * 560 px tall; on a 375 x 344 card they put Samui in the top half as a green
+ * smudge with half the frame empty sea below it, and the tilt was something
+ * you had to be told about. The three that moved are below.
  */
 export const HERO = {
   /**
    * Steeper than MapLibre's default ceiling of 60, which the map is told to
-   * allow (see MAX_PITCH). At sixty the horizon sits just above the frame
-   * and the hero is a tilted map; at sixty-six the sky comes in over Ko
-   * Pha-ngan and it is a view from somewhere; at sixty-nine, with the centre
-   * a little further south, the sky is a band and not a line.
+   * allow (see MAX_PITCH).
+   *
+   * WHERE THE HORIZON SITS IS A MATTER OF PITCH ALONE - MapLibre's field of
+   * view is vertical and fixed, so the sky does not come back by zooming
+   * out. Half of it is 18.4 degrees, so the top edge of the frame looks
+   * (pitch - 90 + 18.4) above the horizontal: at 69 that is 2.6 degrees
+   * BELOW it and there is no sky in the frame at any zoom, which is what
+   * made the hero read as an angled photograph rather than a view. At 72 a
+   * band of sky sits over Ko Pha-ngan and the island reads as standing in
+   * front of something. Past 75 the far tiles smear (see MAX_PITCH).
    */
-  pitch: 69,
+  pitch: 72,
   bearing: -18,
-  zoomAboveFlat: 0.55,
-  latBelowMiddle: 0.035,
+  /**
+   * A level above the flat fit. At the old 0.55 the island was 45% of the
+   * width of a phone; at 1.08 it crosses the frame, the named beaches are
+   * legible, and the relief on Khao Pom has enough pixels to be a hillside.
+   */
+  zoomAboveFlat: 1.08,
+  /**
+   * NORTH of the middle, not south, and as a FRACTION OF THE BOX'S HEIGHT.
+   * At this pitch the camera stands well south of the point it looks at,
+   * so moving that point north walks the camera in toward the south coast
+   * and the island falls down the frame into the near two thirds instead
+   * of hanging in the top half.
+   *
+   * 0.11 is the 0.025 degrees this was read at on Samui, whose box is
+   * 0.23 degrees tall, written as what it actually was - a ninth of the
+   * island. See `heroPose`.
+   */
+  latAboveMiddle: 0.11,
   fitPadding: { top: 60, bottom: 8, left: 16, right: 16 },
   /**
    * The one animated moment: the approach by sea. Long enough that the
@@ -643,15 +869,25 @@ export interface Pose {
   center: [number, number];
 }
 
-/** Where the camera settles, given the zoom that fits the island flat. */
-export function heroPose(flatZoom: number): Pose {
+/**
+ * Where the camera settles, given the zoom that fits the island flat and
+ * the box it is framing.
+ *
+ * THE NUDGE NORTH IS A FRACTION OF THE BOX, not a fixed number of degrees.
+ * It used to be 0.025 degrees flat, which on Samui's 0.23-degree box is
+ * about a ninth of the island - the right amount, and the amount it was
+ * read at. On Ko Sichang's 0.0575-degree box the same 0.025 is nearly half
+ * the island, which would have walked the camera clean past the north
+ * coast. One number stays true at both sizes; a degree does not.
+ */
+export function heroPose(flatZoom: number, box: Box = SAMUI_BBOX): Pose {
   return {
     zoom: flatZoom + HERO.zoomAboveFlat,
     pitch: HERO.pitch,
     bearing: HERO.bearing,
     center: [
-      (SAMUI_BBOX.minLng + SAMUI_BBOX.maxLng) / 2,
-      (SAMUI_BBOX.minLat + SAMUI_BBOX.maxLat) / 2 - HERO.latBelowMiddle,
+      (box.minLng + box.maxLng) / 2,
+      (box.minLat + box.maxLat) / 2 + (box.maxLat - box.minLat) * HERO.latAboveMiddle,
     ],
   };
 }
@@ -662,12 +898,28 @@ export function heroPose(flatZoom: number): Pose {
  * over the bow - rather than a zoom. The centre is still inside the box the
  * map is locked to.
  */
-export function introPose(settled: Pose): Pose {
+export function introPose(settled: Pose, box: Box = SAMUI_BBOX): Pose {
+  /*
+    OUT TO SEA BY A FRACTION OF THE ISLAND, not by a fixed tenth of a
+    degree. The old numbers - 0.03 east, 0.09 south - were read against
+    Samui, where they are about an eighth of the box across and two fifths
+    of it down: far enough to be an approach, near enough to still be
+    looking at the place. On Ko Sichang's box the same 0.09 is a mile and a
+    half of open water PAST the island, outside the frame the camera is
+    locked to, so the intro started nowhere and the settle was clamped back
+    - which on the first run left the camera stuck at the intro, pointed at
+    empty sea.
+  */
+  const w = box.maxLng - box.minLng;
+  const h = box.maxLat - box.minLat;
   return {
     zoom: settled.zoom - 1.1,
-    pitch: 72,
+    // Three degrees lower over the water than the settled pose, so the
+    // settle is still a lift as well as an approach. It was two above a
+    // 69-degree hero; the hero moved, so this did.
+    pitch: 75,
     bearing: settled.bearing - 35,
-    center: [settled.center[0] + 0.03, settled.center[1] - 0.09],
+    center: [settled.center[0] + w * 0.15, settled.center[1] - h * 0.39],
   };
 }
 
@@ -708,8 +960,26 @@ export const QUEST_MARK_OFFSET: [number, number] = [18, 10];
 /** Marks this close together, in metres, are one spot and are fanned out. */
 export const QUEST_CROWD_M = 600;
 
-/** How far apart, in CSS pixels, marks at one spot are fanned. */
-export const QUEST_FAN_PX = 62;
+/**
+ * How far apart, in CSS pixels, marks at one spot are fanned sideways.
+ *
+ * THE MARK IS NOT THE WIDE PART, and this number spent a long time being
+ * chosen as though it were. 38 pixels of X is what a sideways fan has to
+ * clear, and 62 cleared it; what it never cleared is the tag hung under the
+ * X - `WK-01 · +60` is eighty pixels of it - so three quests at Chaweng
+ * were three tidy X's over one illegible smear of codes. Fanning wide
+ * enough to clear a TAG would want ninety-odd, and three of those is 180 px
+ * of a 375 px card starting from a point already on the east coast.
+ *
+ * It cannot be fixed here at all, which is the real lesson: this fan is
+ * computed from GROUND distance, and what overlaps is SCREEN rectangles.
+ * Two quests 500 m apart are a pile at one bearing and nowhere near each
+ * other at the next, and no constant in this file knows which. So the fan
+ * is now only a first spread - narrow, enough to tell three marks apart -
+ * and the real crowding is settled against real rectangles by
+ * `spreadTheMarks` in TerrainMap.tsx, where the boxes can be measured.
+ */
+export const QUEST_FAN_PX = 40;
 
 /**
  * Screen offsets for every quest, so that three quests at Chaweng beach are
@@ -827,26 +1097,42 @@ import { REVEAL_M } from './map-geometry.ts';
 export const FOG_PX = 1024;
 
 /**
- * The mist's footprint: the island's box, padded so the haze runs to the edge
- * of the frame at the hero pose rather than stopping in a straight line
- * across the sea.
+ * The mist's footprint: the island's box, padded so the haze runs to the
+ * edge of the frame at the hero pose rather than stopping in a straight
+ * line across the sea.
+ *
+ * A MULTIPLE OF THE BOX, not a constant. 0.6 degrees was right for Samui
+ * and only for Samui: it is about three times that island's own width, and
+ * around Ko Sichang's 0.023-degree box the same 0.6 would be fifty times
+ * the island - a thousand-pixel canvas spending nine hundred of them on
+ * open sea, and the one square it has to draw well reduced to a smudge in
+ * the middle. 2.6 is that same reach written as what it was.
  */
-export const FOG_PAD_DEG = 0.6;
+export const FOG_PAD_BOXES = 2.6;
 
-export const FOG_BOUNDS = {
-  minLng: SAMUI_BBOX.minLng - FOG_PAD_DEG,
-  maxLng: SAMUI_BBOX.maxLng + FOG_PAD_DEG,
-  minLat: SAMUI_BBOX.minLat - FOG_PAD_DEG,
-  maxLat: SAMUI_BBOX.maxLat + FOG_PAD_DEG,
-} as const;
+export function fogBounds(box: Box = SAMUI_BBOX) {
+  const pad = Math.max(box.maxLng - box.minLng, box.maxLat - box.minLat) * FOG_PAD_BOXES;
+  return {
+    minLng: box.minLng - pad,
+    maxLng: box.maxLng + pad,
+    minLat: box.minLat - pad,
+    maxLat: box.maxLat + pad,
+  };
+}
+
+export const FOG_BOUNDS = fogBounds(SAMUI_BBOX);
+
+export type Corners = [[number, number], [number, number], [number, number], [number, number]];
 
 /** The four corners MapLibre wants for a canvas source: NW, NE, SE, SW. */
-export const FOG_CORNERS: [[number, number], [number, number], [number, number], [number, number]] = [
-  [FOG_BOUNDS.minLng, FOG_BOUNDS.maxLat],
-  [FOG_BOUNDS.maxLng, FOG_BOUNDS.maxLat],
-  [FOG_BOUNDS.maxLng, FOG_BOUNDS.minLat],
-  [FOG_BOUNDS.minLng, FOG_BOUNDS.minLat],
+export const cornersOf = (b: ReturnType<typeof fogBounds>): Corners => [
+  [b.minLng, b.maxLat],
+  [b.maxLng, b.maxLat],
+  [b.maxLng, b.minLat],
+  [b.minLng, b.minLat],
 ];
+
+export const FOG_CORNERS: Corners = cornersOf(FOG_BOUNDS);
 
 export interface Reveal { x: number; y: number; r: number }
 
@@ -855,10 +1141,14 @@ export interface Reveal { x: number; y: number; r: number }
  * pixels. The radius is in pixels too, from metres, so a circle is the same
  * size on the ground whatever the canvas resolution.
  */
-export function reveals(explored: readonly { lat: number; lng: number }[], size = FOG_PX): Reveal[] {
-  const lngSpan = FOG_BOUNDS.maxLng - FOG_BOUNDS.minLng;
-  const latSpan = FOG_BOUNDS.maxLat - FOG_BOUNDS.minLat;
-  const midLat = (FOG_BOUNDS.minLat + FOG_BOUNDS.maxLat) / 2;
+export function reveals(
+  explored: readonly { lat: number; lng: number }[],
+  size = FOG_PX,
+  bounds = FOG_BOUNDS,
+): Reveal[] {
+  const lngSpan = bounds.maxLng - bounds.minLng;
+  const latSpan = bounds.maxLat - bounds.minLat;
+  const midLat = (bounds.minLat + bounds.maxLat) / 2;
   const metresPerLat = 111_320;
   const pxPerMetreY = size / (latSpan * metresPerLat);
   const pxPerMetreX = size / (lngSpan * metresPerLat * Math.cos((midLat * Math.PI) / 180));
@@ -866,8 +1156,8 @@ export function reveals(explored: readonly { lat: number; lng: number }[], size 
   // of the two scales keeps it one.
   const r = REVEAL_M * ((pxPerMetreX + pxPerMetreY) / 2);
   return explored.map((p) => ({
-    x: ((p.lng - FOG_BOUNDS.minLng) / lngSpan) * size,
-    y: ((FOG_BOUNDS.maxLat - p.lat) / latSpan) * size,
+    x: ((p.lng - bounds.minLng) / lngSpan) * size,
+    y: ((bounds.maxLat - p.lat) / latSpan) * size,
     r,
   }));
 }

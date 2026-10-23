@@ -13,8 +13,8 @@ import { rows, type DB } from './db.ts';
 import { exploredFor } from './visit-service.ts';
 
 export function medalsFor(db: DB, userId: string): MedalsView {
-  const places = rows<{ id: string; province: string }>(
-    db.prepare('SELECT id, province FROM places').all(),
+  const places = rows<{ id: string; province: string; lat: number; lng: number }>(
+    db.prepare('SELECT id, province, lat, lng FROM places').all(),
   );
   return medalsView(exploredFor(db, userId).places, places);
 }

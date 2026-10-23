@@ -24,7 +24,7 @@ import { Send, Phone } from 'lucide-react-native';
 import { OPENERS, answer, isHighScore, type Reply } from '@chivago/core';
 import type { ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
-import { areaOfProvince } from '@chivago/core';
+import { areaOf } from '@chivago/core';
 import { useArea } from '../state/area.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
@@ -56,7 +56,7 @@ export function ConciergeScreen({
     const question = text.trim();
     if (question.length === 0) return;
     // The concierge speaks about the area on screen, not about a beach 400 km from the campus.
-    const ctx = { places: (places.data ?? []).filter((p) => areaOfProvince(p.province) === area.key) as ScoredPlace[], quests: [] };
+    const ctx = { places: (places.data ?? []).filter((p) => areaOf(p) === area.key) as ScoredPlace[], quests: [] };
     setTurns((prev) => [...prev, { asked: question, reply: answer(question, ctx) }]);
     setDraft('');
     // A reply that lands below the fold reads as no reply at all.

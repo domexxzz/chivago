@@ -37,6 +37,84 @@ const layer = (id: string, from = style) => {
 /** A day's worth of hours: dawn, morning, noon, afternoon, dusk, night. */
 const HOURS = [0, 3, 6.25, 8, 12, 15, 17.5, 18.4, 19, 21, 23.9];
 
+describe('the water line, and the lamps along it', () => {
+  /** The stops of a `color-relief` ramp, as [elevation, colour] pairs. */
+  const ramp = (id: string, from = style): [number, string][] => {
+    const expr = (layer(id, from).paint as Record<string, unknown>)['color-relief-color'] as unknown[];
+    assert.equal(expr[0], 'interpolate', `'${id}' should be an interpolated ramp`);
+    const out: [number, string][] = [];
+    for (let i = 3; i < expr.length; i += 2) out.push([expr[i] as number, expr[i + 1] as string]);
+    return out;
+  };
+  const alphaOf = (colour: string): number => {
+    const m = /^rgba\(.*,\s*([0-9.]+)\s*\)$/.exec(colour);
+    assert.ok(m, `'${colour}' should carry an alpha`);
+    return Number(m[1]);
+  };
+
+  /*
+    THE ONE THAT COST AN AFTERNOON. Decoding the archive's terrarium tiles
+    over the Gulf gives 39,600 samples at exactly 0.0 m and 360 below it,
+    none deeper than −5.8: there is no bathymetry here. So any stop at or
+    below zero with any alpha on it does not paint a shore, it paints the
+    whole sea - which is precisely what the first version did, in red,
+    across the entire frame.
+  */
+  test('the surf is drawn above the water line, because the sea reads as exactly zero', () => {
+    for (const hour of HOURS) {
+      for (const [elevation, colour] of ramp('surf', chivagoStyle(hour))) {
+        if (elevation > 0) continue;
+        assert.equal(alphaOf(colour), 0, `at ${hour}h the surf is opaque at ${elevation} m, which is open water`);
+      }
+    }
+  });
+
+  test('and it dies out before the coconut plain, rather than bleaching the island', () => {
+    const stops = ramp('surf');
+    const lit = stops.filter(([, colour]) => alphaOf(colour) > 0);
+    assert.ok(lit.length > 0, 'there should be some white water');
+    const highest = Math.max(...lit.map(([elevation]) => elevation));
+    // The plain runs to about forty metres; the relief ramp's own stops say so.
+    assert.ok(highest < 40, `the surf reaches ${highest} m, which is inland`);
+  });
+
+  test('the sea is deep water under the fill, not beach', () => {
+    for (const hour of HOURS) {
+      const p = paletteFor(hour);
+      const atSeaLevel = ramp('relief', chivagoStyle(hour)).find(([elevation]) => elevation <= 0);
+      assert.ok(atSeaLevel, 'the relief ramp should reach sea level');
+      assert.equal(atSeaLevel![1], p.deep, `at ${hour}h the open sea is painted ${atSeaLevel![1]}`);
+    }
+  });
+
+  test('the lamps are out at noon, up after dark, and come on through the dusk', () => {
+    assert.equal(paletteFor(12).lamps, 0, 'nobody has a light on at midday');
+    assert.equal(paletteFor(22).lamps, 1, 'and everybody does at ten in the evening');
+    assert.ok(paletteFor(SUNSET - 0.2).lamps > 0, 'they are coming on before the sun is down');
+    assert.ok(paletteFor(SUNSET - 0.2).lamps < 1, 'but they are not all on yet');
+  });
+
+  test('every lantern layer is dark at noon and lit at night, and wears the warm colour', () => {
+    for (const id of ['lantern-haze', 'lanterns']) {
+      const noon = (layer(id, chivagoStyle(12)).paint as Record<string, number>)['circle-opacity'];
+      const night = (layer(id, chivagoStyle(22)).paint as Record<string, number>)['circle-opacity'];
+      assert.equal(noon, 0, `'${id}' is lit at midday`);
+      assert.ok(night > 0.2, `'${id}' is barely visible at night`);
+      const colour = (layer(id, chivagoStyle(22)).paint as Record<string, string>)['circle-color'];
+      assert.equal(colour, paletteFor(22).lantern, `'${id}' is not wearing the lamp colour`);
+    }
+  });
+
+  test('the crests out at sea are the same water as the surf on the beach', () => {
+    for (const hour of HOURS) {
+      const p = paletteFor(hour);
+      assert.ok(/^#[0-9a-f]{6}$/.test(p.foam), `at ${hour}h the foam is not a colour`);
+      // Brighter than the sea it breaks on, at every hour, or it is not foam.
+      assert.ok(luminance(p.foam) > luminance(p.sea), `at ${hour}h the foam is darker than the sea`);
+    }
+  });
+});
+
 describe('green is for verified evidence, and nothing on the map wears it', () => {
   test('no layer uses any green from the accent ramp, at any hour', () => {
     // `accent2` is the red. Everything else called accent is the green a host
@@ -210,6 +288,14 @@ describe('what a quest\'s mark says', () => {
     assert.deepEqual(xs, [QUEST_MARK_OFFSET[0] - QUEST_FAN_PX, QUEST_MARK_OFFSET[0], QUEST_MARK_OFFSET[0] + QUEST_FAN_PX]);
     for (const id of ['a', 'b', 'c']) assert.equal(fan.get(id)![1], QUEST_MARK_OFFSET[1], 'fanned sideways, not down');
     assert.ok(QUEST_FAN_PX >= 40, 'a mark is 38 px wide; the fan must clear it');
+    /*
+      And no wider than it needs to be. The fan clears the MARK; it cannot
+      clear the tag hung under it without throwing a crowd at Chaweng off
+      the side of a phone, and it is not asked to - this is a first spread
+      from ground distance, and `spreadTheMarks` settles what is left
+      against the rectangles themselves. See QUEST_FAN_PX.
+    */
+    assert.ok(QUEST_FAN_PX <= 48, 'a first spread, not an attempt to clear the tag');
   });
 
   test('the golden hour is visible: half past five is warmer than one o\'clock, by a margin', () => {

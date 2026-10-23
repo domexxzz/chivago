@@ -13,7 +13,7 @@ import type { ExploredPlace } from './visits.ts';
  * every place a rule names is a place that exists.
  */
 
-const places = SEED_PLACES.map((p) => ({ id: p.id, province: p.province }));
+const places = SEED_PLACES.map((p) => ({ id: p.id, province: p.province, lat: p.lat, lng: p.lng }));
 const samuiIds = SEED_PLACES.filter((p) => p.province === 'TH-84').map((p) => p.id);
 const campusIds = SEED_PLACES.filter((p) => p.province === 'TH-20').map((p) => p.id);
 

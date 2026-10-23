@@ -587,6 +587,133 @@ export const SEED_PLACES: Place[] = [
     tags: ['Food court', 'Campus'], photo: null,
     metrics: { aqi: 38, crowdDensity: 3.4, safetyIndex: 6.4, walkability: 7.2 },
   },
+
+  /*
+    KO SICHANG (docs/67). The fifth area, and the second ISLAND - the first
+    time the terrain hero draws somewhere that is not Samui.
+
+    WHERE THESE COORDINATES COME FROM, because two kinds are mixed below and
+    the difference matters. Three are features in OpenFreeMap's own planet
+    tiles, read on 2026-10-23 and quoted as the tiles give them. Two are
+    ANCHORS: the site is real and the organisation is real, and neither is
+    in OpenStreetMap at all - nominatim returns nothing for either - so the
+    pin stands at the nearest mapped thing and says so in its own `meta`.
+    Nothing here is a coordinate guessed from a name, which is the rule the
+    campus set (docs/43) and the reason its hackathon venue has a paragraph.
+
+    Every metric is an estimate. Nobody has surveyed this island for the
+    app: there is no ground station within reach - the campus's o61 is
+    12.4 km away across open water, further off than the air model's own
+    ~11 km cell - no partner counting crowds, and no photograph anybody has
+    the right to use. They are held under the accent threshold by
+    `healthy-score.test.ts`, which is what stops an estimate wearing the
+    colour that means measured.
+  */
+  {
+    // OSM `poi`/aquarium "Sichang Marine Animal Banks", 13.15539 / 100.81364.
+    id: 'sichang-crab-bank',
+    name: {
+      en: 'Sichang Crab Bank Learning Centre',
+      th: 'ศูนย์การเรียนรู้ธนาคารปูม้า เกาะสีชัง',
+    },
+    short: 'Crab Bank', layer: 'Quest', province: 'TH-20',
+    lat: 13.15539, lng: 100.81364,
+    meta: 'Marine conservation · Community-run · Release days',
+    blurb: {
+      en: 'Fishermen land egg-bearing crabs here instead of selling them. The eggs are hatched on site and the young go back to the sea, which keeps both the stock and the catch. Visitors can follow the whole chain and join a release.',
+      th: 'ชาวประมงนำแม่ปูม้าที่มีไข่นอกกระดองมาส่งที่นี่แทนการขาย ไข่ถูกเพาะฟักในพื้นที่ แล้วปล่อยลูกปูคืนสู่ทะเล ทั้งระบบนิเวศและรายได้ของชุมชนจึงอยู่ได้ ผู้มาเยือนเดินดูได้ทุกขั้นตอน และร่วมปล่อยลูกปูได้',
+    },
+    tags: ['Marine conservation', 'Community', 'Volunteer'], photo: null,
+    metrics: { aqi: 26, crowdDensity: 1.2, safetyIndex: 6.6, walkability: 6.4 },
+  },
+  {
+    /*
+      ANCHORED, not surveyed. The station is Chulalongkorn's, it is on this
+      island, and it is in neither the vector tiles nor nominatim - so the
+      pin stands at the marine animal bank it works with, and the `meta`
+      says the site is unverified. A ground check owes it a coordinate of
+      its own; until then it is honest about being approximate rather than
+      precise about being wrong.
+    */
+    id: 'sichang-marine-station',
+    name: {
+      en: 'CU Marine Science Research Station',
+      th: 'สถานีวิจัยวิทยาศาสตร์ทางทะเลและศูนย์ฝึกนิสิต เกาะสีชัง จุฬาฯ',
+    },
+    short: 'Marine Station', layer: 'Safe', province: 'TH-20',
+    lat: 13.15539, lng: 100.81364,
+    meta: 'Research station · SDG 14 · Site unverified',
+    blurb: {
+      en: 'Chulalongkorn University’s marine science station and student training centre: marine biodiversity, coastal ecosystems, and a coral restoration programme that raises tissue here before it is planted back on the reef.',
+      th: 'สถานีวิจัยวิทยาศาสตร์ทางทะเลและศูนย์ฝึกนิสิตของจุฬาลงกรณ์มหาวิทยาลัย ศึกษาความหลากหลายทางชีวภาพทางทะเลและระบบนิเวศชายฝั่ง และมีโครงการฟื้นฟูแนวปะการัง โดยเพาะเลี้ยงเนื้อเยื่อปะการังก่อนนำไปปลูกคืนใต้ทะเล',
+    },
+    tags: ['Research', 'SDG 14', 'Coral'], photo: null,
+    metrics: { aqi: 26, crowdDensity: 1.0, safetyIndex: 6.8, walkability: 6.4 },
+  },
+  {
+    /*
+      ANCHORED, like the station above. The island's clean-energy work is a
+      PROGRAMME, not a building - electric skylabs, separated waste, a
+      community learning point - and a programme has no coordinate. The pin
+      stands at the one piece of it the survey records: the skylab rank by
+      the pier, OSM `poi`/taxi "Motor Rickshaws", 13.16130 / 100.81037.
+      That is also where a visitor actually meets it, which is the next
+      best thing to being where it is.
+    */
+    id: 'sichang-clean-energy',
+    name: {
+      en: 'Clean energy island · the skylab rank',
+      th: 'เกาะพลังงานสะอาด · ท่ารถสกายแล็บ',
+    },
+    short: 'Skylab rank', layer: 'Wellness', province: 'TH-20',
+    lat: 13.16130, lng: 100.81037,
+    meta: 'EV transport · Waste separation · Site unverified',
+    blurb: {
+      en: 'The island is a pilot for getting off fuel: electric skylabs in place of two-stroke engines, organic and plastic waste separated in the community, and a learning point for both. Everyone arrives at this rank, so it is where the programme is easiest to see.',
+      th: 'เกาะสีชังเป็นพื้นที่ต้นแบบด้านการลดการใช้เชื้อเพลิง ทั้งรถสกายแล็บไฟฟ้าแทนเครื่องยนต์สองจังหวะ การแยกขยะอินทรีย์และพลาสติกในชุมชน และจุดเรียนรู้ของทั้งสองเรื่อง ทุกคนมาถึงที่ท่ารถนี้ จึงเป็นจุดที่เห็นโครงการได้ง่ายที่สุด',
+    },
+    tags: ['Low carbon', 'EV', 'Waste'], photo: null,
+    metrics: { aqi: 28, crowdDensity: 2.4, safetyIndex: 6.4, walkability: 6.8 },
+  },
+  {
+    // OSM `poi`/park "Phra Chudadhuj Palace", 13.14908 / 100.81759.
+    id: 'sichang-palace',
+    name: { en: 'Phra Chudadhuj Palace', th: 'พระจุฑาธุชราชฐาน' },
+    short: 'Palace', layer: 'Green', province: 'TH-20',
+    lat: 13.14908, lng: 100.81759,
+    meta: 'Green heritage · Old trees · Local guides',
+    blurb: {
+      en: 'Rama V’s island palace grounds, kept as much for the trees as for the buildings: an arborist looks after the old ones, and the place is run without clearing what was already growing there. The guiding is local.',
+      th: 'เขตพระราชฐานบนเกาะในรัชกาลที่ 5 ซึ่งดูแลต้นไม้เก่าแก่ไม่น้อยไปกว่าตัวอาคาร มีรุกขกรดูแลไม้ใหญ่ และบริหารพื้นที่โดยไม่รื้อสภาพเดิม ไกด์เป็นคนในพื้นที่',
+    },
+    tags: ['Heritage', 'Green space', 'Shade'], photo: null,
+    metrics: { aqi: 24, crowdDensity: 1.6, safetyIndex: 6.8, walkability: 7.0 },
+  },
+  {
+    /*
+      NOT one of the four the brief named. It is here because an area with
+      no Food place is an area where one companion cannot hatch, which is
+      the rule the campus was built to (docs/43) - and because the pier
+      front is where everybody on this island eats anyway.
+
+      The pin is the PIER - OSM `poi`/ferry_terminal "Ko Sichang Tha Lang
+      Pier", 13.16186 / 100.81078 - and not one of the seven restaurants
+      around it. Naming a single business would be an endorsement the app
+      has not earned and cannot keep current; the row is the place, the way
+      the campus's "shop row by building 25" is.
+    */
+    id: 'sichang-pier-front',
+    name: { en: 'Tha Lang pier front', th: 'หน้าท่าล่าง' },
+    short: 'Pier front', layer: 'Food', province: 'TH-20',
+    lat: 13.16186, lng: 100.81078,
+    meta: 'Seafood row · By the pier · A minute from the boat',
+    blurb: {
+      en: 'The row of kitchens along the front at Tha Lang, a minute from where the boat ties up. Seafood landed on the island, and the first and last thing most visitors eat here.',
+      th: 'แถวร้านอาหารริมหน้าท่าล่าง ห่างจากจุดที่เรือเทียบท่าเพียงนาทีเดียว อาหารทะเลขึ้นที่เกาะ และเป็นมื้อแรกกับมื้อสุดท้ายของผู้มาเยือนส่วนใหญ่',
+    },
+    tags: ['Seafood', 'Pier', 'Local'], photo: null,
+    metrics: { aqi: 28, crowdDensity: 3.0, safetyIndex: 6.4, walkability: 7.0 },
+  },
 ];
 
 /**
@@ -651,6 +778,19 @@ export const SAFETY_PHRASES: Record<string, { en: string; th: string }> = {
   fisherman: { en: 'Verified zone', th: 'เขตตรวจสอบแล้ว' },
   lamai: { en: 'Verified zone', th: 'เขตตรวจสอบแล้ว' },
   mangrove: { en: 'Guide required', th: 'ต้องมีไกด์' },
+  /*
+    Ko Sichang. "Island municipality" and nothing more: it is a small
+    municipality with its own district office, water police and clinic,
+    which is a fact about how the place is administered rather than a claim
+    about patrols, lighting or hours that nobody has checked. The same
+    restraint the campus phrases were written with - see below - and for
+    the same reason, because this phrase sits under a score.
+  */
+  'sichang-crab-bank': { en: 'Island municipality', th: 'ในเขตเทศบาลเกาะ' },
+  'sichang-marine-station': { en: 'Island municipality', th: 'ในเขตเทศบาลเกาะ' },
+  'sichang-clean-energy': { en: 'Island municipality', th: 'ในเขตเทศบาลเกาะ' },
+  'sichang-palace': { en: 'Island municipality', th: 'ในเขตเทศบาลเกาะ' },
+  'sichang-pier-front': { en: 'Island municipality', th: 'ในเขตเทศบาลเกาะ' },
   // The campus: a university's grounds, with its own security. Not a claim
   // of hours or patrols nobody has confirmed.
   'ku-library': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },

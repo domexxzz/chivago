@@ -461,24 +461,47 @@ export function SamuiMap(props: SamuiMapProps) {
       </React.Suspense>
     );
   }
-  if (props.area && props.area.map !== 'island') {
-    return <CampusList places={props.places} onSelect={props.onSelect} height={height} />;
+  /*
+    ON A PHONE, ONLY SAMUI IS DRAWN.
+
+    `IslandMap` below draws `ISLAND` - a decagon traced from Koh Samui's
+    coastline - and hangs the pins on it through a projection fitted to
+    the same shape. It is a drawing of one island, not of islands.
+
+    The test used to be `map !== 'island'`, which was the same question
+    while Samui was the only island there was. Ko Sichang is the second,
+    and the old test would have sent it here: Phra Chudadhuj Palace drawn
+    on Samui's west coast, forty-five pixels from Thong Krut, 400 km from
+    where it is. That is the campus's error exactly - "it would put the
+    library in the Gulf of Thailand" (docs/43) - so it gets the campus's
+    answer. A list of real places beats a picture of the wrong one.
+
+    When Sichang has a silhouette of its own, this becomes a lookup from
+    the area key to a drawing, and the question goes back to being about
+    the map rather than about the island.
+  */
+  if (props.area && props.area.key !== 'samui') {
+    return <PlaceList places={props.places} onSelect={props.onSelect} height={height} />;
   }
   return <IslandMap {...props} height={height} compact={compact} />;
 }
 
 /**
- * The campus on a phone, until it has a drawing: the places, as rows, under
- * a line that says why. Not the island silhouette with campus pins on it -
- * that would put the library in the Gulf of Thailand.
+ * Anywhere that has no drawing of its own, on a phone: the places, as rows,
+ * under a line that says why. Not Samui's silhouette with somebody else's
+ * pins on it - that would put the library in the Gulf of Thailand, and the
+ * palace on Samui's west coast.
+ *
+ * It was the campus's, and its wording said so until Ko Sichang arrived
+ * and it had to serve an island too.
  */
-function CampusList({
+function PlaceList({
   places, onSelect, height,
 }: { places: ScoredPlace[]; onSelect: (place: ScoredPlace) => void; height: number }) {
   return (
     <View style={{ minHeight: Math.min(height, 200), backgroundColor: color.neutral200, paddingHorizontal: 18, paddingVertical: 14 }}>
       <Label size={10} tracking={0.12} colour={color.neutral700}>
-        {t({ en: 'The campus map is on the web for now. Every place is listed here.', th: 'แผนที่แคมปัสมีบนเว็บก่อน ทุกสถานที่อยู่ในรายการนี้' })}
+        {t({ en: 'The drawn map is on the web for now. Every place is listed here.', th: 'แผนที่วาดมีบนเว็บก่อน ทุกสถานที่อยู่ในรายการนี้' })}
       </Label>
       {places.map((p) => (
         <Pressable
