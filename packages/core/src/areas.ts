@@ -19,7 +19,7 @@ import type { Bilingual } from './types.ts';
 import { CAMPUS_LEG_MIN_M, LEG_MIN_M } from './low-carbon.ts';
 import { SAMUI_BBOX } from './seed.ts';
 
-export type AreaKey = 'samui' | 'ku-sriracha' | 'rmutt' | 'ku-bangkhen';
+export type AreaKey = 'samui' | 'ku-sriracha' | 'rmutt' | 'ku-bangkhen' | 'koh-sichang';
 
 export interface Bbox {
   minLat: number;
@@ -84,6 +84,23 @@ export const KU_BANGKHEN_BBOX: Bbox = {
   maxLng: 100.5820,
 };
 
+/**
+ * Koh Sichang's main island, from its outermost mapped capes and piers in
+ * OpenStreetMap (relation 13094563 and the features on it, read on
+ * 2026-10-23): Laem Ngu and Tha Yai Thim to the south, Laem Sichang to the
+ * north, Laem Khao Khat to the west, the Ko Kham Yai pier to the east.
+ *
+ * About 6 x 2.8 km. Twelve kilometres of sea west of the Si Racha campus,
+ * in the same province - which is why a place's area is read from where it
+ * stands, not only from its province (`areaOfPlace`).
+ */
+export const KOH_SICHANG_BBOX: Bbox = {
+  minLat: 13.1250,
+  maxLat: 13.1800,
+  minLng: 100.7970,
+  maxLng: 100.8230,
+};
+
 export const AREAS: Area[] = [
   {
     key: 'samui',
@@ -127,6 +144,21 @@ export const AREAS: Area[] = [
     map: 'campus',
     legMinM: CAMPUS_LEG_MIN_M,
   },
+  {
+    // After KU Sriracha: a Chon Buri place on neither frame stays with the
+    // campus, as it did before the island opened.
+    key: 'koh-sichang',
+    name: { en: 'Koh Sichang', th: 'เกาะสีชัง' },
+    province: 'TH-20',
+    // The town node in OpenStreetMap (node 487180518), by Tha Lang pier.
+    center: { lat: 13.1599, lng: 100.8096 },
+    bbox: KOH_SICHANG_BBOX,
+    // Streets and paths, not the terrain hero: the island silhouette in this
+    // app is Samui's, and would put the pier somewhere in the Gulf.
+    map: 'campus',
+    // A walking island: the pier to the palace is 1.6 km, to Tham Phang 1.8 km.
+    legMinM: CAMPUS_LEG_MIN_M,
+  },
 ];
 
 export const DEFAULT_AREA: AreaKey = 'samui';
@@ -144,6 +176,16 @@ export const areaByKey = (key: AreaKey): Area => AREAS.find((a) => a.key === key
  */
 export const areaOfProvince = (province: string): AreaKey =>
   AREAS.find((a) => a.province === province)?.key ?? DEFAULT_AREA;
+
+/**
+ * The area a place belongs to. A province with one area is `areaOfProvince`;
+ * Chon Buri has two, so the place goes to the one whose frame it stands in,
+ * and a place on neither frame stays with the province's first area.
+ */
+export const areaOfPlace = (p: { province?: string | null; lat: number; lng: number }): AreaKey => {
+  const ofProvince = AREAS.filter((a) => a.province === p.province);
+  return (ofProvince.find((a) => inArea(a, p)) ?? ofProvince[0])?.key ?? DEFAULT_AREA;
+};
 
 /** Slack around the box, so a quest whose site is the road outside still belongs. */
 const MARGIN_DEG = 0.02;

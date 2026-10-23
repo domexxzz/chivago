@@ -43,6 +43,10 @@ export const SEED_HOSTS: Record<string, QuestHost> = {
   rmuttTeam: { id: 'h-rmutt-chivago', name: 'ChivaGo team · RMUTT Thanyaburi', type: 'community' },
   // A separate review queue and statement for the Bangkhen campus.
   kuBangkhen: { id: 'h-ku-bangkhen-chivago', name: 'ChivaGo Team · KU Bangkhen', type: 'community' },
+  // The team on Koh Sichang, for the field trial. Not the municipality: the
+  // municipality has not agreed to vouch for anything yet, and a host is the
+  // party vouching for the work.
+  sichangTeam: { id: 'h-sichang-chivago', name: 'ChivaGo team · Koh Sichang', type: 'community' },
 };
 
 // ---------------------------------------------------------------------------
@@ -644,6 +648,86 @@ export const SEED_PLACES: Place[] = [
     metrics: { aqi: 38, crowdDensity: 3.4, safetyIndex: 6.4, walkability: 7.2 },
     airStation: bangkhenStation(13.8488140, 100.5673153),
   },
+  /*
+    Koh Sichang, Chon Buri (TH-20). Each position is the centre of its named
+    OpenStreetMap feature, read through Overpass on 2026-10-23. The nearest
+    Air4Thai station is at Laem Chabang, twelve kilometres across the water,
+    so no place claims it: the air is modelled, and says so. The non-air
+    metrics are the team's estimates before any survey. No photographs have
+    been supplied, and no business is named: the food place is the shop row
+    by the pier, not one shop that never agreed to be on a map.
+  */
+  {
+    // OSM way 40354093: ท่าเรือเกาะสีชัง (ท่าล่าง), where the Si Racha ferry lands.
+    id: 'sc-pier',
+    name: { en: 'Tha Lang pier', th: 'ท่าเรือเกาะสีชัง (ท่าล่าง)' },
+    short: 'Pier', layer: 'Quest', province: 'TH-20',
+    lat: 13.161443, lng: 100.810441,
+    meta: 'Ferry pier · Outdoor · Air modelled',
+    blurb: {
+      en: 'Where the ferry from Si Racha lands, and where nearly every day trip starts and ends.',
+      th: 'ท่าเรือที่เรือจากศรีราชาเทียบ จุดเริ่มและจุดจบของการเที่ยวแบบเช้าไปเย็นกลับเกือบทุกทริป',
+    },
+    tags: ['Pier', 'Ferry'], photo: null,
+    metrics: { aqi: 40, crowdDensity: 4.0, safetyIndex: 6.0, walkability: 6.0 },
+  },
+  {
+    // OSM way 412192327: Ko Sichang Hospital.
+    id: 'sc-hospital',
+    name: { en: 'Ko Sichang Hospital', th: 'โรงพยาบาลเกาะสีชัง' },
+    short: 'Hospital', layer: 'Safe', province: 'TH-20',
+    lat: 13.163311, lng: 100.807704,
+    meta: 'Hospital · Air modelled',
+    blurb: {
+      en: 'The island\'s hospital, a short walk up from the pier.',
+      th: 'โรงพยาบาลประจำเกาะ เดินจากท่าเรือไม่ไกล',
+    },
+    tags: ['Hospital', 'Help'], photo: null,
+    metrics: { aqi: 40, crowdDensity: 1.5, safetyIndex: 6.5, walkability: 6.0 },
+  },
+  {
+    // OSM way 242270752: หาดถ้ำพัง, the island's swimming beach.
+    id: 'sc-thamphang',
+    name: { en: 'Tham Phang Beach', th: 'หาดถ้ำพัง' },
+    short: 'Tham Phang', layer: 'Green', province: 'TH-20',
+    lat: 13.1454, lng: 100.806835,
+    meta: 'Beach · Outdoor · Air modelled',
+    blurb: {
+      en: 'The beach on the west coast, and the one the island\'s litter reaches first.',
+      th: 'หาดฝั่งตะวันตกของเกาะ และเป็นที่ที่ขยะไปถึงก่อน',
+    },
+    tags: ['Beach', 'Swimming'], photo: null,
+    metrics: { aqi: 40, crowdDensity: 2.5, safetyIndex: 5.8, walkability: 5.0 },
+  },
+  {
+    // OSM way 40443539: พระจุฑาธุชราชฐาน, the summer palace of King Rama V.
+    id: 'sc-palace',
+    name: { en: 'Phra Chudadhuj Palace', th: 'พระจุฑาธุชราชฐาน' },
+    short: 'Palace', layer: 'Wellness', province: 'TH-20',
+    lat: 13.14909, lng: 100.818436,
+    meta: 'Palace grounds · Outdoor · Air modelled',
+    blurb: {
+      en: 'The summer palace built under King Rama V, its gardens and mansions by the sea.',
+      th: 'พระราชวังฤดูร้อนที่สร้างในสมัยรัชกาลที่ 5 มีสวนและพระตำหนักริมทะเล',
+    },
+    tags: ['History', 'Garden', 'Walking'], photo: null,
+    metrics: { aqi: 40, crowdDensity: 3.0, safetyIndex: 6.5, walkability: 7.0 },
+  },
+  {
+    // OSM way 412192126 and the restaurants mapped round it: the shop row
+    // between the pier and the town, by its position, not by a shop's name.
+    id: 'sc-shops',
+    name: { en: 'Shop row by Tha Lang pier', th: 'ย่านร้านค้าหน้าท่าล่าง' },
+    short: 'Shop row', layer: 'Food', province: 'TH-20',
+    lat: 13.160059, lng: 100.809817,
+    meta: 'Shops and food · Air modelled',
+    blurb: {
+      en: 'The shops and eating places on the road up from the pier.',
+      th: 'ร้านค้าและร้านอาหารริมถนนขึ้นจากท่าเรือ',
+    },
+    tags: ['Food', 'Shops'], photo: null,
+    metrics: { aqi: 40, crowdDensity: 3.5, safetyIndex: 6.0, walkability: 6.5 },
+  },
 ];
 
 /**
@@ -730,6 +814,11 @@ export const SAFETY_PHRASES: Record<string, { en: string; th: string }> = {
   'ku-bk-auditorium': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'ku-bk-stadium': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'ku-bk-canteen': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'sc-pier': { en: 'Busy at ferry times', th: 'คนพลุกพล่านช่วงเรือเข้าออก' },
+  'sc-hospital': { en: 'Staffed hospital', th: 'โรงพยาบาลมีเจ้าหน้าที่' },
+  'sc-thamphang': { en: 'No lifeguard claimed', th: 'ไม่ได้ยืนยันว่ามีไลฟ์การ์ด' },
+  'sc-palace': { en: 'Staffed grounds', th: 'มีเจ้าหน้าที่ดูแล' },
+  'sc-shops': { en: 'Town street', th: 'ถนนในตัวเมือง' },
 };
 
 // ---------------------------------------------------------------------------
@@ -873,6 +962,36 @@ export const SEED_QUESTS: Quest[] = [
     rewardPoints: 60, rewardCurrency: 'trip',
     host: SEED_HOSTS.kuBangkhen!, kind: 'today',
     lat: 13.8413167, lng: 100.5747727, geofenceRadiusM: 100,
+  },
+  /*
+    Koh Sichang's two waste quests, for the field trial of the Spark Hack
+    proposal (docs/68). SAMPLES, and named so: the team hosts and verifies
+    them itself, because no shop or the municipality has agreed to yet. The
+    Data Pack says the island's bottleneck is waste reaching the incinerator
+    unsorted, so the first asks a day-tripper to bring theirs sorted to the
+    pier before the boat home.
+  */
+  {
+    id: 'q-sc-dropoff',
+    esgPillar: 'environmental',
+    code: 'SC-01',
+    name: { en: 'Bring your waste back sorted (sample)', th: 'นำขยะที่แยกแล้วมาส่งที่ท่าเรือ (ตัวอย่าง)' },
+    where: { en: 'Tha Lang pier, Koh Sichang', th: 'ท่าเรือท่าล่าง เกาะสีชัง' },
+    duration: { en: '15 min', th: '15 นาที' },
+    rewardPoints: 60, rewardCurrency: 'green',
+    host: SEED_HOSTS.sichangTeam!, kind: 'today',
+    lat: 13.161443, lng: 100.810441, geofenceRadiusM: 120,
+  },
+  {
+    id: 'q-sc-beach',
+    esgPillar: 'environmental',
+    code: 'SC-02',
+    name: { en: 'Tham Phang beach clean-up (sample)', th: 'เก็บขยะหาดถ้ำพัง (ตัวอย่าง)' },
+    where: { en: 'Tham Phang Beach, Koh Sichang', th: 'หาดถ้ำพัง เกาะสีชัง' },
+    duration: { en: '45 min', th: '45 นาที' },
+    rewardPoints: 120, rewardCurrency: 'green',
+    host: SEED_HOSTS.sichangTeam!, kind: 'today',
+    lat: 13.1454, lng: 100.806835, geofenceRadiusM: 120,
   },
 ];
 

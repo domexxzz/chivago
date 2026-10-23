@@ -3,7 +3,7 @@ import { test, describe } from 'node:test';
 
 import {
   AREAS, DEFAULT_AREA, KU_BANGKHEN_BBOX, KU_SRIRACHA_BBOX, RMUTT_BBOX,
-  areaByKey, areaOfProvince, inArea, isAreaKey, nearestArea,
+  areaByKey, areaOfPlace, areaOfProvince, inArea, isAreaKey, nearestArea,
 } from './areas.ts';
 import { CHECKIN_RADIUS_M, SEED_HOSTS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
 import { CAMPUS_LEG_MIN_M, LEG_MIN_M, lowCarbonLeg } from './low-carbon.ts';
@@ -17,13 +17,13 @@ const bangkhen = areaByKey('ku-bangkhen');
 // The campus's own places. The province also holds the court at Sinthani,
 // which is off campus and pinned by its own test below.
 const rmuttPlaces = SEED_PLACES.filter((p) => p.province === 'TH-13' && p.id.startsWith('rmutt-'));
-const kuPlaces = SEED_PLACES.filter((p) => p.province === 'TH-20');
+const kuPlaces = SEED_PLACES.filter((p) => areaOfPlace(p) === 'ku-sriracha');
 const kuQuests = SEED_QUESTS.filter((q) => inArea(ku, q));
 
-describe('four areas, derived from provinces', () => {
-  test('every open province has exactly one area, and every area an open province', () => {
+describe('five areas, derived from provinces', () => {
+  test('every open province has an area, and every area an open province', () => {
     const open = openProvinces().map((p) => p.code).sort();
-    assert.deepEqual(AREAS.map((a) => a.province).sort(), open);
+    assert.deepEqual([...new Set(AREAS.map((a) => a.province))].sort(), open);
   });
 
   test('a place lands in the area of its province', () => {
@@ -31,6 +31,15 @@ describe('four areas, derived from provinces', () => {
     assert.equal(areaOfProvince('TH-20'), 'ku-sriracha');
     assert.equal(areaOfProvince('TH-10'), 'ku-bangkhen');
     assert.equal(areaOfProvince('TH-99'), DEFAULT_AREA, 'an unknown province falls back to the default');
+  });
+
+  test('a province with two areas sends a place to the one it stands in', () => {
+    // Chon Buri holds the Si Racha campus and Koh Sichang.
+    assert.equal(areaOfPlace({ province: 'TH-20', lat: 13.1205, lng: 100.9205 }), 'ku-sriracha');
+    assert.equal(areaOfPlace({ province: 'TH-20', lat: 13.1614, lng: 100.8104 }), 'koh-sichang');
+    // Off both frames, it stays with the province's first area, as before.
+    assert.equal(areaOfPlace({ province: 'TH-20', lat: 13.3, lng: 101.0 }), 'ku-sriracha');
+    assert.equal(areaOfPlace({ province: 'TH-99', lat: 13.1614, lng: 100.8104 }), DEFAULT_AREA);
   });
 
   test('the key check refuses what a URL might carry', () => {
