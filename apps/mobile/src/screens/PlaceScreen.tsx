@@ -12,9 +12,12 @@
 import React from 'react';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
-import { Image, Linking, Modal, Pressable, ScrollView, View } from 'react-native';
-import { ExternalLink, X } from 'lucide-react-native';
-import { isBookingLink, newlyEarned, stallSourceFor, strings, type MedalState, type MedalsView, type ScoredPlace } from '@chivago/core';
+import { Image, Linking, Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { ExternalLink, MapPin, X } from 'lucide-react-native';
+import {
+  areaByKey, areaOfPlace, findProvince, isBookingLink, newlyEarned, stallSourceFor, strings,
+  type MedalState, type MedalsView, type ScoredPlace,
+} from '@chivago/core';
 import { api } from '../api/client.ts';
 import type { PickedMedia } from '../api/client.ts';
 import { photoUri } from '../api/photos.ts';
@@ -33,6 +36,38 @@ import { GettingThere } from '../components/GettingThere.tsx';
 import { StoriesBlock } from '../components/Stories.tsx';
 import { StallsCard } from '../components/Stalls.tsx';
 
+/*
+  WHERE THE SECOND COLUMN STARTS, and why it is this number.
+
+  768 is the usual tablet line and it is too early here: the right-hand rail
+  has to hold a 2x2 metric grid and a full-width button without either
+  wrapping, which needs about 320, and the left column stops being able to
+  carry a 16:9 hero below about 560. 940 is the first width where both are
+  comfortable, so a tablet in portrait keeps the phone's single column and
+  only a real window gets two.
+*/
+const WIDE_AT = 940;
+/** The reading measure. Past this the columns stop growing and centre. */
+const WIDE_MAX = 1180;
+const WIDE_GUTTER = 24;
+const WIDE_HERO_H = 330;
+const WIDE_RAIL_MIN = 320;
+const WIDE_RAIL_MAX = 420;
+
+/**
+ * "KOH SICHANG, CHON BURI" - the line above the name.
+ *
+ * Both halves are already on the place: its area is read from where it
+ * stands (`areaOfPlace`) and its province from the code every place carries
+ * for the passport. Nothing here is new data, and a place in a province
+ * with no name in the list simply shows its area.
+ */
+function whereLine(place: ScoredPlace): string {
+  const area = t(areaByKey(areaOfPlace(place)).name);
+  const province = findProvince(place.province);
+  return province ? `${area}, ${t(province.name)}` : area;
+}
+
 export function PlaceScreen({
   placeId, onBack, onAddToTrip, onSafePath, onShowWay, onToast, onPointsChanged,
 }: {
@@ -46,6 +81,15 @@ export function PlaceScreen({
   onPointsChanged: () => void;
 }) {
   const place = useAsync(() => api.place(placeId), [placeId]);
+  /*
+    The window, not the platform. `Platform.OS === 'web'` would be the wrong
+    question twice over: a phone browser is web and gets one column, and a
+    tablet app is native and may be wide enough for two. This also re-renders
+    when somebody drags the window across the line, which a one-time read of
+    `Dimensions.get` would not.
+  */
+  const { width } = useWindowDimensions();
+  const wide = width >= WIDE_AT;
   const [showBreakdown, setShowBreakdown] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [checkedIn, setCheckedIn] = React.useState(false);
@@ -197,6 +241,145 @@ export function PlaceScreen({
     return ok;
   };
 
+  /*
+    ONE SET OF BLOCKS, TWO ARRANGEMENTS.
+
+    Every child below is built once and then placed - the phone stacks them
+    in the order it always did, and a wide window puts the same elements in
+    two columns. Nothing is rendered twice and nothing is conditional on
+    width except WHERE it sits, which is the only way a layout change can be
+    promised not to change what the screen says.
+  */
+  const titleBlock = place.data ? (
+    <>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <MapPin size={13} color={color.accent700} strokeWidth={2.2} />
+        <Label size={10} tracking={0.14} colour={color.accent700}>{whereLine(place.data)}</Label>
+      </View>
+      <Heading size={wide ? 38 : 26} tracking={-0.52} style={{ marginTop: 4 }}>
+        {t(place.data.name)}
+      </Heading>
+    </>
+  ) : null;
+
+  const scoreCard = place.data ? (
+    <View
+      style={[shadow.card, {
+        marginTop: 14,
+        paddingHorizontal: 14,
+        paddingBottom: 6,
+        backgroundColor: color.surface,
+        borderRadius: radius.md,
+        borderWidth: 1,
+        borderColor: '#DCEFF5',
+        overflow: 'hidden',
+      }]}
+    >
+      <OceanBackdrop subtle />
+      <ScoreBlock place={place.data} onExplain={() => setShowBreakdown(true)} />
+      <MetricGrid place={place.data} />
+    </View>
+  ) : null;
+
+  const aboutBlock = place.data ? (
+    <>
+      <Body style={{ marginTop: 16 }}>{t(place.data.blurb)}</Body>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16 }}>
+        {place.data.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}
+      </View>
+    </>
+  ) : null;
+
+  const actionsBlock = place.data ? (
+    <>
+      {/* The API checked this link; it is checked again here before a tap can take anyone anywhere. */}
+      {isBookingLink(place.data.bookingUrl) ? (
+        <Button
+          label={t(strings.place.book)}
+          onPress={() => { void Linking.openURL(place.data!.bookingUrl!); }}
+          icon={<ExternalLink size={16} color={onFill.brand} strokeWidth={2} />}
+          height={48}
+          style={{ marginTop: 16 }}
+        />
+      ) : null}
+
+      {/*
+        Directly above the check-in, because the two answer the same
+        question in order: how far away am I, and can I claim this yet.
+      */}
+      <GettingThere
+        place={place.data}
+        onShowWay={onShowWay ? () => onShowWay(place.data!) : undefined}
+      />
+
+      <Button
+        label={checkedIn ? t(strings.checkin.already) : t(strings.checkin.cta)}
+        thai={checkedIn ? undefined : strings.checkin.cta.th}
+        onPress={checkIn}
+        disabled={busy || checkedIn}
+        height={48}
+        style={{ marginTop: 24 }}
+      />
+      {offerNote && !checkedIn ? (
+        <Button
+          label={noted
+            ? t(strings.checkin.notedAlready)
+            : notesLeft === 0 ? t(strings.checkin.quotaGone) : t(strings.checkin.noteOffer)}
+          onPress={noteVisit}
+          disabled={busy || noted || notesLeft === 0}
+          variant="secondary"
+          height={44}
+          style={{ marginTop: 10 }}
+        />
+      ) : null}
+      <Button
+        label={t(strings.place.addToRoute)}
+        thai={strings.place.addToRoute.th}
+        onPress={onAddToTrip}
+        variant="secondary"
+        height={44}
+        style={{ marginTop: 10 }}
+      />
+      <Button
+        label={t(strings.place.safePath)}
+        onPress={onSafePath}
+        variant="secondary"
+        height={44}
+        style={{ marginTop: 10 }}
+      />
+    </>
+  ) : null;
+
+  const reviews = place.data ? (
+    <ReviewsBlock
+      placeId={placeId}
+      summary={place.data.reviews}
+      justCheckedIn={checkedIn}
+      // One sheet takes the stars, the words and the clip, so the
+      // things it needs to do all three live here.
+      storiesOpen={stories.data?.open ?? false}
+      busy={telling}
+      onPickMedia={pickMedia}
+      onPostStory={sendStory}
+      onToast={onToast}
+      onCheckIn={checkIn}
+      checkInBusy={busy}
+      onPointsChanged={() => {
+        onPointsChanged();
+        // The average moved, so the header figure is now stale.
+        place.reload();
+      }}
+    />
+  ) : null;
+
+  const storiesBlock = (
+    <StoriesBlock
+      open={stories.data?.open ?? false}
+      stories={stories.data?.stories ?? []}
+      pending={storiesPending}
+    />
+  );
+
   return (
     <View style={{ flex: 1 }}>
       <PushHeader context={t(strings.place.context)} onBack={onBack} />
@@ -204,121 +387,69 @@ export function PlaceScreen({
       {place.loading ? <LoadingState /> : null}
       {place.error ? <ErrorState message={place.error} onRetry={place.reload} /> : null}
 
-      {place.data ? (
+      {place.data && wide ? (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {/*
+            The desktop reading order, which is not the phone's.
+
+            On a phone every block is equally far down one column, so the
+            order IS the hierarchy. A wide window has two, and the question
+            becomes which column the eye owns. The left is the place - what
+            it looks like, what its air has done, what people said. The right
+            is the panel of figures and the things you can do about them,
+            kept together so the score and the check-in under it are read as
+            one thought rather than found at two scroll positions.
+          */}
+          <View
+            style={{
+              width: '100%',
+              maxWidth: WIDE_MAX,
+              alignSelf: 'center',
+              paddingHorizontal: WIDE_GUTTER,
+              paddingTop: 18,
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              gap: WIDE_GUTTER,
+            }}
+          >
+            {/* minWidth 0 so a long name wraps instead of pushing the rail off. */}
+            <View style={{ flex: 1.9, minWidth: 0 }}>
+              {titleBlock}
+              <Hero place={place.data} inset={0} height={WIDE_HERO_H} />
+              <AirHistoryCard placeId={place.data.id} />
+              {/* Asked for only where there are stalls: every other place makes no extra request. */}
+              {stallSourceFor(place.data.id) ? <StallsCard placeId={place.data.id} /> : null}
+              {aboutBlock}
+              {storiesBlock}
+              {reviews}
+              <View style={{ height: 40 }} />
+            </View>
+
+            <View style={{ flex: 1, minWidth: WIDE_RAIL_MIN, maxWidth: WIDE_RAIL_MAX }}>
+              {scoreCard}
+              <HereNow crowd={place.data.crowd} />
+              {actionsBlock}
+              <View style={{ height: 40 }} />
+            </View>
+          </View>
+        </ScrollView>
+      ) : null}
+
+      {place.data && !wide ? (
         <ScrollView showsVerticalScrollIndicator={false}>
           <Hero place={place.data} />
 
           <View style={{ paddingHorizontal: gutter, paddingTop: 16 }}>
-            <Heading size={26} tracking={-0.52}>{t(place.data.name)}</Heading>
-
-            <View
-              style={[shadow.card, {
-                marginTop: 14,
-                paddingHorizontal: 14,
-                paddingBottom: 6,
-                backgroundColor: color.surface,
-                borderRadius: radius.md,
-                borderWidth: 1,
-                borderColor: '#DCEFF5',
-                overflow: 'hidden',
-              }]}
-            >
-              <OceanBackdrop subtle />
-              <ScoreBlock place={place.data} onExplain={() => setShowBreakdown(true)} />
-              <MetricGrid place={place.data} />
-            </View>
+            {titleBlock}
+            {scoreCard}
             <HereNow crowd={place.data.crowd} />
             {/* Asked for only where there are stalls: every other place makes no extra request. */}
             {stallSourceFor(place.data.id) ? <StallsCard placeId={place.data.id} /> : null}
             <AirHistoryCard placeId={place.data.id} />
-            <StoriesBlock
-              open={stories.data?.open ?? false}
-              stories={stories.data?.stories ?? []}
-              pending={storiesPending}
-            />
-
-            <Body style={{ marginTop: 16 }}>{t(place.data.blurb)}</Body>
-
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16 }}>
-              {place.data.tags.map((tag) => <Tag key={tag}>{tag}</Tag>)}
-            </View>
-
-            {/* The API checked this link; it is checked again here before a tap can take anyone anywhere. */}
-            {isBookingLink(place.data.bookingUrl) ? (
-              <Button
-                label={t(strings.place.book)}
-                onPress={() => { void Linking.openURL(place.data!.bookingUrl!); }}
-                icon={<ExternalLink size={16} color={onFill.brand} strokeWidth={2} />}
-                height={48}
-                style={{ marginTop: 16 }}
-              />
-            ) : null}
-
-            {/*
-              Directly above the check-in, because the two answer the same
-              question in order: how far away am I, and can I claim this yet.
-            */}
-            <GettingThere
-              place={place.data}
-              onShowWay={onShowWay ? () => onShowWay(place.data!) : undefined}
-            />
-
-            <Button
-              label={checkedIn ? t(strings.checkin.already) : t(strings.checkin.cta)}
-              thai={checkedIn ? undefined : strings.checkin.cta.th}
-              onPress={checkIn}
-              disabled={busy || checkedIn}
-              height={48}
-              style={{ marginTop: 24 }}
-            />
-            {offerNote && !checkedIn ? (
-              <Button
-                label={noted
-                  ? t(strings.checkin.notedAlready)
-                  : notesLeft === 0 ? t(strings.checkin.quotaGone) : t(strings.checkin.noteOffer)}
-                onPress={noteVisit}
-                disabled={busy || noted || notesLeft === 0}
-                variant="secondary"
-                height={44}
-                style={{ marginTop: 10 }}
-              />
-            ) : null}
-            <Button
-              label={t(strings.place.addToRoute)}
-              thai={strings.place.addToRoute.th}
-              onPress={onAddToTrip}
-              variant="secondary"
-              height={44}
-              style={{ marginTop: 10 }}
-            />
-            <Button
-              label={t(strings.place.safePath)}
-              onPress={onSafePath}
-              variant="secondary"
-              height={44}
-              style={{ marginTop: 10 }}
-            />
-
-            <ReviewsBlock
-              placeId={placeId}
-              summary={place.data.reviews}
-              justCheckedIn={checkedIn}
-              // One sheet takes the stars, the words and the clip, so the
-              // things it needs to do all three live here.
-              storiesOpen={stories.data?.open ?? false}
-              busy={telling}
-              onPickMedia={pickMedia}
-              onPostStory={sendStory}
-              onToast={onToast}
-              onCheckIn={checkIn}
-              checkInBusy={busy}
-              onPointsChanged={() => {
-                onPointsChanged();
-                // The average moved, so the header figure is now stale.
-                place.reload();
-              }}
-            />
-
+            {storiesBlock}
+            {aboutBlock}
+            {actionsBlock}
+            {reviews}
             <View style={{ height: 32 }} />
           </View>
         </ScrollView>
@@ -497,12 +628,23 @@ function BreakdownSheet({
  * Photography renders through grayscale(1) contrast(1.08) per the design, and
  * imagery is NEVER tinted.
  */
-export function Hero({ place }: { place: ScoredPlace }) {
+export function Hero({
+  place, inset = gutter, height = 190,
+}: {
+  place: ScoredPlace;
+  /**
+   * Side margin. The phone bleeds the hero to the screen's gutter; a wide
+   * column already has its own padding and passes 0, so the picture fills
+   * the column rather than sitting inside a second margin.
+   */
+  inset?: number;
+  height?: number;
+}) {
   return (
     <View
       style={[shadow.card, {
-        height: 190,
-        marginHorizontal: gutter,
+        height,
+        marginHorizontal: inset,
         marginTop: 6,
         borderRadius: radius.md,
         overflow: 'hidden',
