@@ -84,6 +84,42 @@ async function signIn(key: string, reviewer = 'Nok'): Promise<string> {
 
 const withCookie = (token: string) => ({ cookie: `${SESSION_COOKIE}=${token}` });
 
+describe('the stylesheet every console page links', () => {
+  test('IT IS SERVED WHATEVER THE WORKING DIRECTORY IS — the pilot runs from /repo', async () => {
+    /*
+      The regression this exists for. The route read
+      `join(process.cwd(), 'public', ...)`, which is right only when the
+      server was started from `apps/api` - what `pnpm api` does, and what
+      every test run does, which is why it went unnoticed. The Dockerfile sets
+      WORKDIR /repo, so on the pilot this threw ENOENT and answered 500, and
+      the whole console had been unstyled in production since it shipped.
+
+      So the cwd is moved somewhere that looks nothing like `apps/api` before
+      the request. On the previous code this fails; passing from the repo root
+      would not have proved anything.
+    */
+    const cwd = process.cwd();
+    try {
+      process.chdir(tmpdir());
+      const res = await app.request('/assets/modernist.css');
+      assert.equal(res.status, 200);
+      assert.match(res.headers.get('content-type') ?? '', /text\/css/);
+      // The token whose absence collapsed `border: 2px solid var(--color-text)`
+      // to none, and took the required fields on /console/apply with it.
+      assert.match(await res.text(), /--color-text/);
+    } finally {
+      process.chdir(cwd);
+    }
+  });
+
+  test('it is served to a stranger, like the form that links it', async () => {
+    // Signed out. A business reading /console/apply has no session, and a
+    // stylesheet behind the login gate would leave that page bare.
+    const res = await app.request('/assets/modernist.css');
+    assert.equal(res.status, 200);
+  });
+});
+
 describe('authentication gate', () => {
   test('every page redirects to login when signed out', async () => {
     for (const path of ['/', '/history', '/proof/p-muni']) {

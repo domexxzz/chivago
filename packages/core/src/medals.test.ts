@@ -2,6 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import { MEDALS, MEDALS_BASIS, medalSummary, medalsFor, newlyEarned } from './medals.ts';
+import { areaOfPlace } from './areas.ts';
 import { SEED_PLACES } from './seed.ts';
 import type { ExploredPlace } from './visits.ts';
 
@@ -15,7 +16,7 @@ import type { ExploredPlace } from './visits.ts';
 
 const places = SEED_PLACES.map((p) => ({ id: p.id, province: p.province, lat: p.lat, lng: p.lng }));
 const samuiIds = SEED_PLACES.filter((p) => p.province === 'TH-84').map((p) => p.id);
-const campusIds = SEED_PLACES.filter((p) => p.province === 'TH-20').map((p) => p.id);
+const campusIds = SEED_PLACES.filter((p) => areaOfPlace(p) === 'ku-sriracha').map((p) => p.id);
 
 const visit = (placeId: string, day: number, how: ExploredPlace['how'] = 'checkin'): ExploredPlace => ({
   placeId, firstAt: `2026-09-0${day}T09:00:00.000Z`, how,

@@ -8,7 +8,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { __setAreaForTests, areaFromUrl, eventFromUrl, getArea, placeFromUrl, setArea } from '../src/state/area.ts';
-import { AREAS, areaOf, inArea, nearestArea } from '@chivago/core';
+import { AREAS, areaOfPlace, inArea, nearestArea } from '@chivago/core';
 
 describe('the area from the page URL', () => {
   test('a QR code carries ?area=ku-sriracha and it is honoured', () => {
@@ -42,13 +42,14 @@ describe('what belongs where', () => {
       returns the first: the island's own centre would have answered
       "ku-sriracha". What is actually required is that an area contains
       where it says it is, and that geography can tell them apart - which
-      is `areaOf`, and which `areas.test.ts` checks for the pair that
+      is `areaOfPlace`, and which `areas.test.ts` checks for the pair that
       forced it.
     */
     for (const a of AREAS) {
-      assert.ok(inArea(a, a.center), `${a.key} does not contain its own centre`);
+      assert.equal(areaOfPlace({ province: a.province, ...a.center }), a.key);
+      assert.ok(inArea(a, a.center));
       assert.equal(nearestArea(a.center.lat, a.center.lng).key, a.key);
-      assert.equal(areaOf({ ...a.center, province: a.province }), a.key);
+      assert.equal(areaOfPlace({ ...a.center, province: a.province }), a.key);
     }
   });
 

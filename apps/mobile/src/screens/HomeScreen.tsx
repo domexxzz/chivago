@@ -38,7 +38,7 @@ import Svg, { Defs, LinearGradient, Stop, Rect, Path } from 'react-native-svg';
 import {
   Image, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
-import { areaOf, fairsIn, inArea, stallPlacesIn, type Area, type AreaKey, type Fair } from '@chivago/core';
+import { areaOfPlace, fairsIn, inArea, stallPlacesIn, type Area, type AreaKey, type Fair } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { mascotBeachUri, photoUri } from '../api/photos.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
@@ -159,7 +159,7 @@ export function HomeScreen({
   */
   const area = useArea();
   const here = React.useMemo(
-    () => ({ ...places, data: places.data ? places.data.filter((p) => areaOf(p) === area.key) : places.data }),
+    () => ({ ...places, data: places.data ? places.data.filter((p) => areaOfPlace(p) === area.key) : places.data }),
     [places, area.key],
   );
   const todayHere = React.useMemo(

@@ -15,7 +15,7 @@ import {
   type Balances, type ExploredPlace, type Quest, type QuestProgress, type RouteMode, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
-import { areaOf, fairById, fairLots, fairsIn, inArea, nearestFirst } from '@chivago/core';
+import { areaOfPlace, fairById, fairLots, fairsIn, inArea, nearestFirst } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { useHere } from '../state/here.ts';
 import { useRoute } from '../state/route.ts';
@@ -145,7 +145,7 @@ export function MapScreen({
   // own position on this screen, a list of places called "here" is two
   // different heres one line apart.
   const areaPlaces = React.useMemo(
-    () => (places.data ?? []).filter((p) => areaOf(p) === area.key),
+    () => (places.data ?? []).filter((p) => areaOfPlace(p) === area.key),
     [places.data, area.key],
   );
   const visible = React.useMemo(() => areaPlaces.filter((p) => layers[p.layer]), [areaPlaces, layers]);

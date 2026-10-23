@@ -10,6 +10,7 @@
 import { describe, mock, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
+import { Linking } from 'react-native';
 
 import { act } from 'react-test-renderer';
 import { motion } from '@chivago/tokens';
@@ -95,6 +96,31 @@ describe('a place, and checking in to it', () => {
       assert.match(said, /Check in here/, 'a place not yet visited today offers the check-in');
       ui.unmount();
     } finally { net.restore(); }
+  });
+
+  test('a place with a booking page offers it, and the button opens that page', async () => {
+    __setLocaleForTests('en');
+    const booking = 'https://badminton-booking-ihw1.onrender.com/';
+    const opened = mock.method(Linking, 'openURL', async () => true);
+    const net = server({ 'GET /places/chaweng': place({ bookingUrl: booking }), 'GET /checkins/today': [] });
+    try {
+      const ui = await mountScreen(h(PlaceScreen, props()));
+      await ui.pressText('Book on their site');
+      assert.deepEqual(opened.mock.calls.map((c) => c.arguments[0]), [booking]);
+      ui.unmount();
+    } finally { net.restore(); opened.mock.restore(); }
+  });
+
+  test('no booking page, or one that is not plain https, and there is no button', async () => {
+    __setLocaleForTests('en');
+    for (const bookingUrl of [null, 'http://badminton-booking-ihw1.onrender.com/', 'javascript:alert(1)']) {
+      const net = server({ 'GET /places/chaweng': place({ bookingUrl }), 'GET /checkins/today': [] });
+      try {
+        const ui = await mountScreen(h(PlaceScreen, props()));
+        assert.doesNotMatch(ui.text(), /Book on their site/, String(bookingUrl));
+        ui.unmount();
+      } finally { net.restore(); }
+    }
   });
 
   test('a place already checked in today says so instead of offering again', async () => {

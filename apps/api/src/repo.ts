@@ -15,7 +15,7 @@ import type {
   ShieldService,
   WellnessProfile,
 } from '@chivago/core';
-import { computeHealthyScore, EMPTY_PROFILE } from '@chivago/core';
+import { computeHealthyScore, EMPTY_PROFILE, isBookingLink } from '@chivago/core';
 import type { AirStation } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
 import { getAir } from './air.ts';
@@ -32,6 +32,7 @@ interface PlaceRow {
   safety_label_en: string; safety_label_th: string;
   crowd_density: number; aqi: number; safety_index: number; walkability: number;
   air_station: string | null;
+  booking_url: string | null;
 }
 
 const toPlace = (r: PlaceRow): Place & { safetyLabel: { en: string; th: string } } => ({
@@ -64,6 +65,8 @@ const toPlace = (r: PlaceRow): Place & { safetyLabel: { en: string; th: string }
     walkability: r.walkability,
   },
   airStation: r.air_station ? (JSON.parse(r.air_station) as AirStation) : null,
+  // A row edited by hand must not hand a phone a link it should not open.
+  bookingUrl: isBookingLink(r.booking_url) ? r.booking_url : null,
   safetyLabel: { en: r.safety_label_en, th: r.safety_label_th },
 });
 

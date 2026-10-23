@@ -29,7 +29,7 @@ import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  CHECKIN_RADIUS_M, areaByKey, areaOf, inArea, isAreaKey, metresBetween,
+  CHECKIN_RADIUS_M, areaByKey, areaOfPlace, inArea, isAreaKey, metresBetween,
   type AreaKey, type Bilingual, type Fix,
 } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
@@ -284,7 +284,7 @@ const placeRef = (db: DB, id: string): PlaceRef => {
   return p;
 };
 
-const areaOfPlace = (p: PlaceRef): AreaKey => areaOf(p);
+const areaOf = (p: PlaceRef): AreaKey => areaOfPlace({ ...p, province: p.province ?? 'TH-84' });
 
 /**
  * Take a story. The order is the cheapest refusal first: the door, the size,
@@ -439,7 +439,7 @@ export function canReviewStories(db: DB, hostId: string, placeId: string): boole
   if (host.role === 'moderator') return true;
   const place = row<PlaceRef>(db.prepare('SELECT id, lat, lng, province, name_en, name_th FROM places WHERE id = ?').get(placeId));
   if (!place) return false;
-  const area = areaByKey(areaOfPlace(place));
+  const area = areaByKey(areaOf(place));
   const quests = rows<{ lat: number; lng: number }>(db.prepare('SELECT lat, lng FROM quests WHERE host_id = ?').all(hostId));
   return quests.some((q) => inArea(area, q));
 }

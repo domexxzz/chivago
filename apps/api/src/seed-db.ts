@@ -65,8 +65,8 @@ for (const p of SEED_PLACES) {
     `INSERT INTO places (id, name_en, name_th, short, layer, province, lat, lng, meta,
        blurb_en, blurb_th, tags, photo_url, photo_credit, photo_licence, photo_source,
        safety_label_en, safety_label_th,
-       crowd_density, aqi, safety_index, walkability, air_station)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+       crowd_density, aqi, safety_index, walkability, air_station, booking_url)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(id) DO UPDATE SET
        name_en=excluded.name_en, name_th=excluded.name_th, short=excluded.short,
        layer=excluded.layer, province=excluded.province, lat=excluded.lat, lng=excluded.lng, meta=excluded.meta,
@@ -76,7 +76,7 @@ for (const p of SEED_PLACES) {
        safety_label_en=excluded.safety_label_en, safety_label_th=excluded.safety_label_th,
        crowd_density=excluded.crowd_density, aqi=excluded.aqi,
        safety_index=excluded.safety_index, walkability=excluded.walkability,
-       air_station=excluded.air_station`,
+       air_station=excluded.air_station, booking_url=excluded.booking_url`,
   ).run(
     p.id, p.name.en, p.name.th, p.short, p.layer, p.province, p.lat, p.lng, p.meta,
     p.blurb.en, p.blurb.th, JSON.stringify(p.tags),
@@ -85,6 +85,7 @@ for (const p of SEED_PLACES) {
     safety.en, safety.th,
     p.metrics.crowdDensity, p.metrics.aqi, p.metrics.safetyIndex, p.metrics.walkability,
     p.airStation ? JSON.stringify(p.airStation) : null,
+    p.bookingUrl ?? null,
   );
 }
 

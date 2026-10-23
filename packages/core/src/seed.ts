@@ -43,6 +43,10 @@ export const SEED_HOSTS: Record<string, QuestHost> = {
   rmuttTeam: { id: 'h-rmutt-chivago', name: 'ChivaGo team · RMUTT Thanyaburi', type: 'community' },
   // A separate review queue and statement for the Bangkhen campus.
   kuBangkhen: { id: 'h-ku-bangkhen-chivago', name: 'ChivaGo Team · KU Bangkhen', type: 'community' },
+  // The team on Koh Sichang, for the field trial. Not the municipality: the
+  // municipality has not agreed to vouch for anything yet, and a host is the
+  // party vouching for the work.
+  sichangTeam: { id: 'h-sichang-chivago', name: 'ChivaGo team · Koh Sichang', type: 'community' },
 };
 
 // ---------------------------------------------------------------------------
@@ -62,11 +66,32 @@ export const KU_STATION = {
   lng: 100.91855,
 } as const;
 
-/** The station, with how far it is from a place - to one decimal, as a sign would say it. */
-const kuStation = (lat: number, lng: number): AirStation => ({
-  ...KU_STATION,
-  distanceKm: Math.round(metresBetween({ lat, lng }, KU_STATION) / 100) / 10,
+/**
+ * Air4Thai station bkp73t, มหาวิทยาลัยเกษตรศาสตร์ - a Bangkok Metropolitan
+ * Administration sensor on the Phahon Yothin roadside at the Kasetsart
+ * intersection, read from the feed on 2026-10-22. 0.2 km from the
+ * auditorium and 1.5 km from the far side of the campus, the 60th Park.
+ *
+ * ROADSIDE, AND THE NAME SAYS SO. It stands at one of the busiest junctions
+ * in the north of the city, so on most days it will read worse than the air
+ * under the trees in the middle of campus. That is the direction to be wrong
+ * in for a wellness score, and the source line carries the word so nobody
+ * reads it as a courtyard measurement.
+ */
+export const KU_BANGKHEN_STATION = {
+  id: 'bkp73t',
+  name: 'Kasetsart University intersection, roadside (BMA bkp73t)',
+  lat: 13.839923,
+  lng: 100.575632,
+} as const;
+
+/** A station, with how far it is from a place - to one decimal, as a sign would say it. */
+const stationFor = (station: Omit<AirStation, 'distanceKm'>) => (lat: number, lng: number): AirStation => ({
+  ...station,
+  distanceKm: Math.round(metresBetween({ lat, lng }, station) / 100) / 10,
 });
+const kuStation = stationFor(KU_STATION);
+const bangkhenStation = stationFor(KU_BANGKHEN_STATION);
 
 export const SEED_PLACES: Place[] = [
   {
@@ -396,7 +421,8 @@ export const SEED_PLACES: Place[] = [
 
     NO GROUND STATION, AND THAT IS THE HONEST ANSWER. The nearest Air4Thai
     station to this campus is 20t, at Bangkok University's Rangsit campus,
-    and it is 13.1 km away - read from the feed on 2026-09-14. Si Racha's is
+    and it is 13.1 km away - read from the feed on 2026-09-14, and still the
+    nearest of 173 stations when it was read again on 2026-10-22. Si Racha's is
     300 m, which is why its places carry theirs and say so. Thirteen
     kilometres cannot speak for a courtyard, so these places carry none, the
     ~11 km model is what there is, and the app labels it as the model.
@@ -510,11 +536,41 @@ export const SEED_PLACES: Place[] = [
     metrics: { aqi: 38, crowdDensity: 1.5, safetyIndex: 6.4, walkability: 7.4 },
   },
   /*
+    แบดมินตัน@สินธานี - a private court off campus, in the same province, so
+    it lists under RMUTT and sits about 2.5 km south of the campus map's frame.
+
+    NOT A MAPPED FEATURE. The court is not in OpenStreetMap. The position is
+    the one home.co.th publishes for the Synthanee Grand View estate on
+    Rangsit-Nakhon Nayok Road, Khlong 5 (read 2026-10-21), which the owner
+    named as where the court is. It is the estate, not the court door: replace
+    it with a pin dropped on the building before check-in is promised there.
+    Hours and court count are the booking system's own (its config.ts).
+  */
+  {
+    id: 'sinthani-badminton',
+    name: { en: 'Badminton@Sinthani', th: 'แบดมินตัน@สินธานี' },
+    short: 'Badminton',
+    layer: 'Wellness',
+    province: 'TH-13',
+    lat: 14.0134018,
+    lng: 100.7206586,
+    meta: 'Badminton · Indoor · Book online · Air modelled, not measured',
+    blurb: {
+      en: 'Indoor badminton courts, open daily 09:00-23:00. Book a court and pay by PromptPay on the venue\'s own page before you go.',
+      th: 'สนามแบดมินตันในร่ม เปิดทุกวัน 09:00-23:00 จองสนามและจ่ายผ่านพร้อมเพย์ได้ที่เว็บของสนามก่อนไป',
+    },
+    tags: ['Sport', 'Badminton', 'Indoor', 'Booking'],
+    photo: null,
+    metrics: { aqi: 38, crowdDensity: 2.0, safetyIndex: 6.2, walkability: 5.0 },
+    bookingUrl: 'https://badminton-booking-ihw1.onrender.com/',
+  },
+  /*
     KU Bangkhen, Bangkok (TH-10). Each position is the centre of its named
-    OpenStreetMap feature, read through Overpass on 2026-09-28. The one shared
-    AQI is a seed fallback, NOT five measurements; no PCD/Air4Thai station ID
-    has been confirmed for this site, so these records carry no airStation.
-    The non-air metrics are campus-place estimates, not survey results. No
+    OpenStreetMap feature, read through Overpass on 2026-09-28. Every place
+    carries Air4Thai bkp73t (KU_BANGKHEN_STATION), 0.2 to 1.5 km away, so the
+    reading is measured and says how far away and that it is roadside. The
+    one shared AQI below is the fallback for when the feed is down, NOT five
+    measurements. The non-air metrics are campus-place estimates, not survey results. No
     photographs have been licensed or supplied, so every photo is null.
   */
   {
@@ -523,13 +579,14 @@ export const SEED_PLACES: Place[] = [
     name: { en: 'Kasetsart University Library', th: 'สำนักหอสมุด มก. (อาคารช่วงเกษตรศิลปการ)' },
     short: 'Library', layer: 'Safe', province: 'TH-10',
     lat: 13.8476433, lng: 100.5718353,
-    meta: 'Library · Indoor · Air modelled, not measured',
+    meta: 'Library · Indoor · Air measured 1 km away, roadside',
     blurb: {
       en: 'The university library building, a quiet indoor stop near the centre of campus.',
       th: 'อาคารสำนักหอสมุดกลางวิทยาเขต จุดพักในร่มสำหรับอ่านหนังสือ',
     },
     tags: ['Library', 'Indoor', 'Quiet'], photo: null,
     metrics: { aqi: 38, crowdDensity: 1.7, safetyIndex: 6.5, walkability: 7.0 },
+    airStation: bangkhenStation(13.8476433, 100.5718353),
   },
   {
     // OSM way 259496906: สวน 60 ปี มหาวิทยาลัยเกษตรศาสตร์.
@@ -537,13 +594,14 @@ export const SEED_PLACES: Place[] = [
     name: { en: 'KU 60th Anniversary Park', th: 'สวน 60 ปี มหาวิทยาลัยเกษตรศาสตร์' },
     short: '60th Park', layer: 'Green', province: 'TH-10',
     lat: 13.8498175, lng: 100.5661669,
-    meta: 'Campus park · Outdoor · Air modelled, not measured',
+    meta: 'Campus park · Outdoor · Air measured 1.5 km away, roadside',
     blurb: {
       en: 'The mapped 60th Anniversary Park beside the sports facilities.',
       th: 'สวน 60 ปีที่มีในแผนที่ อยู่ใกล้พื้นที่กีฬา',
     },
     tags: ['Green space', 'Walking route'], photo: null,
     metrics: { aqi: 38, crowdDensity: 1.1, safetyIndex: 6.5, walkability: 7.4 },
+    airStation: bangkhenStation(13.8498175, 100.5661669),
   },
   {
     // OSM way 259685345: หอประชุมใหญ่; the Three Founders monument is nearby.
@@ -558,6 +616,7 @@ export const SEED_PLACES: Place[] = [
     },
     tags: ['Landmark', 'Meeting point'], photo: null,
     metrics: { aqi: 38, crowdDensity: 1.5, safetyIndex: 6.4, walkability: 7.2 },
+    airStation: bangkhenStation(13.8413167, 100.5747727),
   },
   {
     // OSM way 1313552698: สนามกีฬาสนามอินทรีย์จันทรสถิตย์.
@@ -565,13 +624,14 @@ export const SEED_PLACES: Place[] = [
     name: { en: 'Insee Chantarasatit Stadium', th: 'สนามอินทรีจันทรสถิตย์' },
     short: 'Stadium', layer: 'Wellness', province: 'TH-10',
     lat: 13.8471882, lng: 100.5657358,
-    meta: 'Stadium · Outdoor · Air modelled, not measured',
+    meta: 'Stadium · Outdoor · Air measured 1.3 km away, roadside',
     blurb: {
       en: 'The mapped university stadium and athletics ground.',
       th: 'สนามกีฬาและลู่วิ่งของมหาวิทยาลัยที่มีในแผนที่',
     },
     tags: ['Sport', 'Outdoor'], photo: null,
     metrics: { aqi: 38, crowdDensity: 1.4, safetyIndex: 6.3, walkability: 6.8 },
+    airStation: bangkhenStation(13.8471882, 100.5657358),
   },
   {
     // OSM way 389998960: โรงอาหารกลาง 1, alt_name บาร์ใหม่.
@@ -586,133 +646,87 @@ export const SEED_PLACES: Place[] = [
     },
     tags: ['Food court', 'Campus'], photo: null,
     metrics: { aqi: 38, crowdDensity: 3.4, safetyIndex: 6.4, walkability: 7.2 },
+    airStation: bangkhenStation(13.8488140, 100.5673153),
   },
-
   /*
-    KO SICHANG (docs/67). The fifth area, and the second ISLAND - the first
-    time the terrain hero draws somewhere that is not Samui.
-
-    WHERE THESE COORDINATES COME FROM, because two kinds are mixed below and
-    the difference matters. Three are features in OpenFreeMap's own planet
-    tiles, read on 2026-10-23 and quoted as the tiles give them. Two are
-    ANCHORS: the site is real and the organisation is real, and neither is
-    in OpenStreetMap at all - nominatim returns nothing for either - so the
-    pin stands at the nearest mapped thing and says so in its own `meta`.
-    Nothing here is a coordinate guessed from a name, which is the rule the
-    campus set (docs/43) and the reason its hackathon venue has a paragraph.
-
-    Every metric is an estimate. Nobody has surveyed this island for the
-    app: there is no ground station within reach - the campus's o61 is
-    12.4 km away across open water, further off than the air model's own
-    ~11 km cell - no partner counting crowds, and no photograph anybody has
-    the right to use. They are held under the accent threshold by
-    `healthy-score.test.ts`, which is what stops an estimate wearing the
-    colour that means measured.
+    Koh Sichang, Chon Buri (TH-20). Each position is the centre of its named
+    OpenStreetMap feature, read through Overpass on 2026-10-23. The nearest
+    Air4Thai station is at Laem Chabang, twelve kilometres across the water,
+    so no place claims it: the air is modelled, and says so. The non-air
+    metrics are the team's estimates before any survey. No photographs have
+    been supplied, and no business is named: the food place is the shop row
+    by the pier, not one shop that never agreed to be on a map.
   */
   {
-    // OSM `poi`/aquarium "Sichang Marine Animal Banks", 13.15539 / 100.81364.
-    id: 'sichang-crab-bank',
-    name: {
-      en: 'Sichang Crab Bank Learning Centre',
-      th: 'ศูนย์การเรียนรู้ธนาคารปูม้า เกาะสีชัง',
-    },
-    short: 'Crab Bank', layer: 'Quest', province: 'TH-20',
-    lat: 13.15539, lng: 100.81364,
-    meta: 'Marine conservation · Community-run · Release days',
+    // OSM way 40354093: ท่าเรือเกาะสีชัง (ท่าล่าง), where the Si Racha ferry lands.
+    id: 'sc-pier',
+    name: { en: 'Tha Lang pier', th: 'ท่าเรือเกาะสีชัง (ท่าล่าง)' },
+    short: 'Pier', layer: 'Quest', province: 'TH-20',
+    lat: 13.161443, lng: 100.810441,
+    meta: 'Ferry pier · Outdoor · Air modelled',
     blurb: {
-      en: 'Fishermen land egg-bearing crabs here instead of selling them. The eggs are hatched on site and the young go back to the sea, which keeps both the stock and the catch. Visitors can follow the whole chain and join a release.',
-      th: 'ชาวประมงนำแม่ปูม้าที่มีไข่นอกกระดองมาส่งที่นี่แทนการขาย ไข่ถูกเพาะฟักในพื้นที่ แล้วปล่อยลูกปูคืนสู่ทะเล ทั้งระบบนิเวศและรายได้ของชุมชนจึงอยู่ได้ ผู้มาเยือนเดินดูได้ทุกขั้นตอน และร่วมปล่อยลูกปูได้',
+      en: 'Where the ferry from Si Racha lands, and where nearly every day trip starts and ends.',
+      th: 'ท่าเรือที่เรือจากศรีราชาเทียบ จุดเริ่มและจุดจบของการเที่ยวแบบเช้าไปเย็นกลับเกือบทุกทริป',
     },
-    tags: ['Marine conservation', 'Community', 'Volunteer'], photo: null,
-    metrics: { aqi: 26, crowdDensity: 1.2, safetyIndex: 6.6, walkability: 6.4 },
+    tags: ['Pier', 'Ferry'], photo: null,
+    metrics: { aqi: 40, crowdDensity: 4.0, safetyIndex: 6.0, walkability: 6.0 },
   },
   {
-    /*
-      ANCHORED, not surveyed. The station is Chulalongkorn's, it is on this
-      island, and it is in neither the vector tiles nor nominatim - so the
-      pin stands at the marine animal bank it works with, and the `meta`
-      says the site is unverified. A ground check owes it a coordinate of
-      its own; until then it is honest about being approximate rather than
-      precise about being wrong.
-    */
-    id: 'sichang-marine-station',
-    name: {
-      en: 'CU Marine Science Research Station',
-      th: 'สถานีวิจัยวิทยาศาสตร์ทางทะเลและศูนย์ฝึกนิสิต เกาะสีชัง จุฬาฯ',
-    },
-    short: 'Marine Station', layer: 'Safe', province: 'TH-20',
-    lat: 13.15539, lng: 100.81364,
-    meta: 'Research station · SDG 14 · Site unverified',
+    // OSM way 412192327: Ko Sichang Hospital.
+    id: 'sc-hospital',
+    name: { en: 'Ko Sichang Hospital', th: 'โรงพยาบาลเกาะสีชัง' },
+    short: 'Hospital', layer: 'Safe', province: 'TH-20',
+    lat: 13.163311, lng: 100.807704,
+    meta: 'Hospital · Air modelled',
     blurb: {
-      en: 'Chulalongkorn University’s marine science station and student training centre: marine biodiversity, coastal ecosystems, and a coral restoration programme that raises tissue here before it is planted back on the reef.',
-      th: 'สถานีวิจัยวิทยาศาสตร์ทางทะเลและศูนย์ฝึกนิสิตของจุฬาลงกรณ์มหาวิทยาลัย ศึกษาความหลากหลายทางชีวภาพทางทะเลและระบบนิเวศชายฝั่ง และมีโครงการฟื้นฟูแนวปะการัง โดยเพาะเลี้ยงเนื้อเยื่อปะการังก่อนนำไปปลูกคืนใต้ทะเล',
+      en: 'The island\'s hospital, a short walk up from the pier.',
+      th: 'โรงพยาบาลประจำเกาะ เดินจากท่าเรือไม่ไกล',
     },
-    tags: ['Research', 'SDG 14', 'Coral'], photo: null,
-    metrics: { aqi: 26, crowdDensity: 1.0, safetyIndex: 6.8, walkability: 6.4 },
+    tags: ['Hospital', 'Help'], photo: null,
+    metrics: { aqi: 40, crowdDensity: 1.5, safetyIndex: 6.5, walkability: 6.0 },
   },
   {
-    /*
-      ANCHORED, like the station above. The island's clean-energy work is a
-      PROGRAMME, not a building - electric skylabs, separated waste, a
-      community learning point - and a programme has no coordinate. The pin
-      stands at the one piece of it the survey records: the skylab rank by
-      the pier, OSM `poi`/taxi "Motor Rickshaws", 13.16130 / 100.81037.
-      That is also where a visitor actually meets it, which is the next
-      best thing to being where it is.
-    */
-    id: 'sichang-clean-energy',
-    name: {
-      en: 'Clean energy island · the skylab rank',
-      th: 'เกาะพลังงานสะอาด · ท่ารถสกายแล็บ',
-    },
-    short: 'Skylab rank', layer: 'Wellness', province: 'TH-20',
-    lat: 13.16130, lng: 100.81037,
-    meta: 'EV transport · Waste separation · Site unverified',
+    // OSM way 242270752: หาดถ้ำพัง, the island's swimming beach.
+    id: 'sc-thamphang',
+    name: { en: 'Tham Phang Beach', th: 'หาดถ้ำพัง' },
+    short: 'Tham Phang', layer: 'Green', province: 'TH-20',
+    lat: 13.1454, lng: 100.806835,
+    meta: 'Beach · Outdoor · Air modelled',
     blurb: {
-      en: 'The island is a pilot for getting off fuel: electric skylabs in place of two-stroke engines, organic and plastic waste separated in the community, and a learning point for both. Everyone arrives at this rank, so it is where the programme is easiest to see.',
-      th: 'เกาะสีชังเป็นพื้นที่ต้นแบบด้านการลดการใช้เชื้อเพลิง ทั้งรถสกายแล็บไฟฟ้าแทนเครื่องยนต์สองจังหวะ การแยกขยะอินทรีย์และพลาสติกในชุมชน และจุดเรียนรู้ของทั้งสองเรื่อง ทุกคนมาถึงที่ท่ารถนี้ จึงเป็นจุดที่เห็นโครงการได้ง่ายที่สุด',
+      en: 'The beach on the west coast, and the one the island\'s litter reaches first.',
+      th: 'หาดฝั่งตะวันตกของเกาะ และเป็นที่ที่ขยะไปถึงก่อน',
     },
-    tags: ['Low carbon', 'EV', 'Waste'], photo: null,
-    metrics: { aqi: 28, crowdDensity: 2.4, safetyIndex: 6.4, walkability: 6.8 },
+    tags: ['Beach', 'Swimming'], photo: null,
+    metrics: { aqi: 40, crowdDensity: 2.5, safetyIndex: 5.8, walkability: 5.0 },
   },
   {
-    // OSM `poi`/park "Phra Chudadhuj Palace", 13.14908 / 100.81759.
-    id: 'sichang-palace',
+    // OSM way 40443539: พระจุฑาธุชราชฐาน, the summer palace of King Rama V.
+    id: 'sc-palace',
     name: { en: 'Phra Chudadhuj Palace', th: 'พระจุฑาธุชราชฐาน' },
-    short: 'Palace', layer: 'Green', province: 'TH-20',
-    lat: 13.14908, lng: 100.81759,
-    meta: 'Green heritage · Old trees · Local guides',
+    short: 'Palace', layer: 'Wellness', province: 'TH-20',
+    lat: 13.14909, lng: 100.818436,
+    meta: 'Palace grounds · Outdoor · Air modelled',
     blurb: {
-      en: 'Rama V’s island palace grounds, kept as much for the trees as for the buildings: an arborist looks after the old ones, and the place is run without clearing what was already growing there. The guiding is local.',
-      th: 'เขตพระราชฐานบนเกาะในรัชกาลที่ 5 ซึ่งดูแลต้นไม้เก่าแก่ไม่น้อยไปกว่าตัวอาคาร มีรุกขกรดูแลไม้ใหญ่ และบริหารพื้นที่โดยไม่รื้อสภาพเดิม ไกด์เป็นคนในพื้นที่',
+      en: 'The summer palace built under King Rama V, its gardens and mansions by the sea.',
+      th: 'พระราชวังฤดูร้อนที่สร้างในสมัยรัชกาลที่ 5 มีสวนและพระตำหนักริมทะเล',
     },
-    tags: ['Heritage', 'Green space', 'Shade'], photo: null,
-    metrics: { aqi: 24, crowdDensity: 1.6, safetyIndex: 6.8, walkability: 7.0 },
+    tags: ['History', 'Garden', 'Walking'], photo: null,
+    metrics: { aqi: 40, crowdDensity: 3.0, safetyIndex: 6.5, walkability: 7.0 },
   },
   {
-    /*
-      NOT one of the four the brief named. It is here because an area with
-      no Food place is an area where one companion cannot hatch, which is
-      the rule the campus was built to (docs/43) - and because the pier
-      front is where everybody on this island eats anyway.
-
-      The pin is the PIER - OSM `poi`/ferry_terminal "Ko Sichang Tha Lang
-      Pier", 13.16186 / 100.81078 - and not one of the seven restaurants
-      around it. Naming a single business would be an endorsement the app
-      has not earned and cannot keep current; the row is the place, the way
-      the campus's "shop row by building 25" is.
-    */
-    id: 'sichang-pier-front',
-    name: { en: 'Tha Lang pier front', th: 'หน้าท่าล่าง' },
-    short: 'Pier front', layer: 'Food', province: 'TH-20',
-    lat: 13.16186, lng: 100.81078,
-    meta: 'Seafood row · By the pier · A minute from the boat',
+    // OSM way 412192126 and the restaurants mapped round it: the shop row
+    // between the pier and the town, by its position, not by a shop's name.
+    id: 'sc-shops',
+    name: { en: 'Shop row by Tha Lang pier', th: 'ย่านร้านค้าหน้าท่าล่าง' },
+    short: 'Shop row', layer: 'Food', province: 'TH-20',
+    lat: 13.160059, lng: 100.809817,
+    meta: 'Shops and food · Air modelled',
     blurb: {
-      en: 'The row of kitchens along the front at Tha Lang, a minute from where the boat ties up. Seafood landed on the island, and the first and last thing most visitors eat here.',
-      th: 'แถวร้านอาหารริมหน้าท่าล่าง ห่างจากจุดที่เรือเทียบท่าเพียงนาทีเดียว อาหารทะเลขึ้นที่เกาะ และเป็นมื้อแรกกับมื้อสุดท้ายของผู้มาเยือนส่วนใหญ่',
+      en: 'The shops and eating places on the road up from the pier.',
+      th: 'ร้านค้าและร้านอาหารริมถนนขึ้นจากท่าเรือ',
     },
-    tags: ['Seafood', 'Pier', 'Local'], photo: null,
-    metrics: { aqi: 28, crowdDensity: 3.0, safetyIndex: 6.4, walkability: 7.0 },
+    tags: ['Food', 'Shops'], photo: null,
+    metrics: { aqi: 40, crowdDensity: 3.5, safetyIndex: 6.0, walkability: 6.5 },
   },
 ];
 
@@ -786,11 +800,6 @@ export const SAFETY_PHRASES: Record<string, { en: string; th: string }> = {
     restraint the campus phrases were written with - see below - and for
     the same reason, because this phrase sits under a score.
   */
-  'sichang-crab-bank': { en: 'Island municipality', th: 'ในเขตเทศบาลเกาะ' },
-  'sichang-marine-station': { en: 'Island municipality', th: 'ในเขตเทศบาลเกาะ' },
-  'sichang-clean-energy': { en: 'Island municipality', th: 'ในเขตเทศบาลเกาะ' },
-  'sichang-palace': { en: 'Island municipality', th: 'ในเขตเทศบาลเกาะ' },
-  'sichang-pier-front': { en: 'Island municipality', th: 'ในเขตเทศบาลเกาะ' },
   // The campus: a university's grounds, with its own security. Not a claim
   // of hours or patrols nobody has confirmed.
   'ku-library': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
@@ -806,11 +815,18 @@ export const SAFETY_PHRASES: Record<string, { en: string; th: string }> = {
   'rmutt-canteen': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'rmutt-stadium': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'rmutt-fountain': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  // A private venue inside a housing estate: staffed while open, nothing more claimed.
+  'sinthani-badminton': { en: 'Staffed venue', th: 'สนามมีเจ้าหน้าที่' },
   'ku-bk-library': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'ku-bk-park': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'ku-bk-auditorium': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'ku-bk-stadium': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
   'ku-bk-canteen': { en: 'Campus grounds', th: 'ในเขตมหาวิทยาลัย' },
+  'sc-pier': { en: 'Busy at ferry times', th: 'คนพลุกพล่านช่วงเรือเข้าออก' },
+  'sc-hospital': { en: 'Staffed hospital', th: 'โรงพยาบาลมีเจ้าหน้าที่' },
+  'sc-thamphang': { en: 'No lifeguard claimed', th: 'ไม่ได้ยืนยันว่ามีไลฟ์การ์ด' },
+  'sc-palace': { en: 'Staffed grounds', th: 'มีเจ้าหน้าที่ดูแล' },
+  'sc-shops': { en: 'Town street', th: 'ถนนในตัวเมือง' },
 };
 
 // ---------------------------------------------------------------------------
@@ -954,6 +970,36 @@ export const SEED_QUESTS: Quest[] = [
     rewardPoints: 60, rewardCurrency: 'trip',
     host: SEED_HOSTS.kuBangkhen!, kind: 'today',
     lat: 13.8413167, lng: 100.5747727, geofenceRadiusM: 100,
+  },
+  /*
+    Koh Sichang's two waste quests, for the field trial of the Spark Hack
+    proposal (docs/68). SAMPLES, and named so: the team hosts and verifies
+    them itself, because no shop or the municipality has agreed to yet. The
+    Data Pack says the island's bottleneck is waste reaching the incinerator
+    unsorted, so the first asks a day-tripper to bring theirs sorted to the
+    pier before the boat home.
+  */
+  {
+    id: 'q-sc-dropoff',
+    esgPillar: 'environmental',
+    code: 'SC-01',
+    name: { en: 'Bring your waste back sorted (sample)', th: 'นำขยะที่แยกแล้วมาส่งที่ท่าเรือ (ตัวอย่าง)' },
+    where: { en: 'Tha Lang pier, Koh Sichang', th: 'ท่าเรือท่าล่าง เกาะสีชัง' },
+    duration: { en: '15 min', th: '15 นาที' },
+    rewardPoints: 60, rewardCurrency: 'green',
+    host: SEED_HOSTS.sichangTeam!, kind: 'today',
+    lat: 13.161443, lng: 100.810441, geofenceRadiusM: 120,
+  },
+  {
+    id: 'q-sc-beach',
+    esgPillar: 'environmental',
+    code: 'SC-02',
+    name: { en: 'Tham Phang beach clean-up (sample)', th: 'เก็บขยะหาดถ้ำพัง (ตัวอย่าง)' },
+    where: { en: 'Tham Phang Beach, Koh Sichang', th: 'หาดถ้ำพัง เกาะสีชัง' },
+    duration: { en: '45 min', th: '45 นาที' },
+    rewardPoints: 120, rewardCurrency: 'green',
+    host: SEED_HOSTS.sichangTeam!, kind: 'today',
+    lat: 13.1454, lng: 100.806835, geofenceRadiusM: 120,
   },
 ];
 

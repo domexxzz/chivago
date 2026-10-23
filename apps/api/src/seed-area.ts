@@ -20,7 +20,8 @@
  *   ... seed-area.ts --area ku-sriracha --photos
  *
  * also brings the area's place photographs in line with the seed, and nothing
- * else: see `refreshPhotos`. On Fly, run it as the database's owner, AFTER the
+ * else: see `refreshPhotos`. `--stations` does the same for which Air4Thai
+ * station speaks for each place: see `refreshStations`. On Fly, run it as the database's owner, AFTER the
  * deploy that ships the seed - it reads the seed of the image that is running:
  *
  *   fly ssh console -a chivago -u node -C "node --experimental-strip-types apps/api/src/seed-area.ts --area rmutt"
@@ -83,8 +84,8 @@ export function seedArea(db: DB, key: AreaKey, now = new Date()): SeedAreaResult
         `INSERT INTO places (id, name_en, name_th, short, layer, province, lat, lng, meta,
            blurb_en, blurb_th, tags, photo_url, photo_credit, photo_licence, photo_source,
            safety_label_en, safety_label_th,
-           crowd_density, aqi, safety_index, walkability, air_station)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+           crowd_density, aqi, safety_index, walkability, air_station, booking_url)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
          ON CONFLICT(id) DO NOTHING`,
       ).run(
         p.id, p.name.en, p.name.th, p.short, p.layer, p.province, p.lat, p.lng, p.meta,
@@ -94,6 +95,7 @@ export function seedArea(db: DB, key: AreaKey, now = new Date()): SeedAreaResult
         safety.en, safety.th,
         p.metrics.crowdDensity, p.metrics.aqi, p.metrics.safetyIndex, p.metrics.walkability,
         p.airStation ? JSON.stringify(p.airStation) : null,
+        p.bookingUrl ?? null,
       );
       result.placesAdded += Number(added.changes ?? 0);
     }
@@ -151,6 +153,40 @@ export function refreshPhotos(db: DB, key: AreaKey): string[] {
 }
 
 /**
+ * Bring an area's air stations in line with the seed (`--stations`).
+ *
+ * Which Air4Thai station speaks for a place is read off the national feed
+ * and written in the seed, like a photograph's credit, so for `air_station`
+ * the seed is the source of truth. Bangkhen went live with no station and
+ * was given one afterwards; the insert-only run cannot carry that across.
+ *
+ * The card's own words about air move with it, and only those words: a
+ * meta line that still ends "Air modelled, not measured" is replaced by the
+ * seed's line once the place carries a station. A meta line somebody edited
+ * in production does not end that way and is left alone.
+ *
+ * Returns the ids of the places whose station changed.
+ */
+export function refreshStations(db: DB, key: AreaKey): string[] {
+  if (!isAreaKey(key)) throw new Error(`area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
+  const area = areaByKey(key);
+  return transact(db, () => {
+    const changed: string[] = [];
+    for (const p of SEED_PLACES.filter((x) => x.province === area.province)) {
+      const station = p.airStation ? JSON.stringify(p.airStation) : null;
+      const set = db.prepare('UPDATE places SET air_station = ? WHERE id = ? AND air_station IS NOT ?')
+        .run(station, p.id, station);
+      if (Number(set.changes ?? 0) > 0) changed.push(p.id);
+      if (station) {
+        db.prepare("UPDATE places SET meta = ? WHERE id = ? AND meta LIKE '%Air modelled, not measured'")
+          .run(p.meta, p.id);
+      }
+    }
+    return changed;
+  });
+}
+
+/**
  * Why seed-db.ts must not run here, or null when it may.
  *
  * It may on an empty database - the first-run step in fly.toml and docs/46 -
@@ -169,9 +205,9 @@ export function reseedRefusal(args: {
 
 // CLI entry. Guarded so the test harness can import `seedArea` without running it.
 if (process.argv[1]?.replace(/\\/g, '/').endsWith('/seed-area.ts')) {
-  const { values } = parseArgs({ options: { area: { type: 'string' }, photos: { type: 'boolean' } } });
+  const { values } = parseArgs({ options: { area: { type: 'string' }, photos: { type: 'boolean' }, stations: { type: 'boolean' } } });
   if (!isAreaKey(values.area)) {
-    console.error(`usage: seed-area.ts --area <${AREAS.map((a) => a.key).join('|')}> [--photos]`);
+    console.error(`usage: seed-area.ts --area <${AREAS.map((a) => a.key).join('|')}> [--photos] [--stations]`);
     process.exit(2);
   }
   const db = openDb();
@@ -182,8 +218,11 @@ if (process.argv[1]?.replace(/\\/g, '/').endsWith('/seed-area.ts')) {
     + `hosts created ${r.hostsCreated.length ? r.hostsCreated.join(', ') : 'none'}.`,
   );
   const photos = values.photos ? refreshPhotos(db, values.area) : [];
-  console.log(photos.length
-    ? `[chivago] photographs brought in line with the seed: ${photos.join(', ')}. Nothing else that existed was changed.`
+  const stations = values.stations ? refreshStations(db, values.area) : [];
+  if (photos.length) console.log(`[chivago] photographs brought in line with the seed: ${photos.join(', ')}.`);
+  if (stations.length) console.log(`[chivago] air stations brought in line with the seed: ${stations.join(', ')}.`);
+  console.log(photos.length || stations.length
+    ? '[chivago] Nothing else that existed was changed.'
     : '[chivago] Nothing that existed was changed.');
   for (const [name, key] of r.keys) {
     console.log(`[chivago] Console access key for ${name} - shown ONCE, hand it over in person:`);

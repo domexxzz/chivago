@@ -39,7 +39,7 @@ primary_region = "sin"
   # Locked to the app's own origin. The web build is served from here, so it
   # needs no cross-origin grant at all, and a wildcard on a deployment with a
   # host console behind it is a wildcard on the console too.
-  CHIVAGO_ORIGINS = "https://chivago.fly.dev"
+  CHIVAGO_ORIGINS = "https://chivargo.com,https://www.chivargo.com,https://chivago.fly.dev"
   # THE GEOFENCE IS CLOSED. Opened 9 September for testing, shut again on the
   # 10th, the day before the pitch.
   #
@@ -58,7 +58,11 @@ primary_region = "sin"
   #
   # To reopen it: CHIVAGO_FENCE_OFF = "1" and redeploy. The band comes back
   # with it, and that is not negotiable.
-  CHIVAGO_FENCE_OFF = "1"
+  #
+  # It WAS reopened, by accident: the line rode in on 11 September inside a
+  # commit about animating cards (9834451), under this paragraph saying the
+  # opposite, and production ran with the fence open until 22 October.
+  # Shut again then. A switch this important belongs in a commit of its own.
   # No opening balance in production. The pilot's 320 Trip / 1,240 Green is a
   # gift to try the app with, and a gift handed to every unauthenticated
   # registration is a voucher printer. Green in particular is the currency an

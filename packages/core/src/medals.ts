@@ -14,7 +14,7 @@
  * it. Nothing here is invented.
  */
 
-import { areaOf, type AreaKey } from './areas.ts';
+import { areaOfPlace, type AreaKey } from './areas.ts';
 import type { Bilingual } from './types.ts';
 import type { ExploredPlace } from './visits.ts';
 
@@ -121,8 +121,9 @@ export interface MedalPlace {
   id: string;
   province: string;
   /**
-   * Where it is, because the area is decided by geography now and not by
-   * the province alone - two areas share Chon Buri. See `areaOf`.
+   * Where it is. The province alone stopped being enough when Koh Sichang
+   * opened in Chon Buri beside the Si Racha campus, so an area is decided by
+   * the frame a place stands in - see `areaOfPlace`.
    */
   lat: number;
   lng: number;
@@ -179,11 +180,11 @@ function resolve(
     case 'places':
       return ofPlaces(rule.placeIds, at);
     case 'area':
-      return ofPlaces([...known.values()].filter((p) => areaOf(p) === rule.area).map((p) => p.id), at);
+      return ofPlaces([...known.values()].filter((p) => areaOfPlace(p) === rule.area).map((p) => p.id), at);
     case 'areas': {
       const firstIn = new Map<AreaKey, string>();
       for (const v of visits) {
-        const area = areaOf(known.get(v.placeId)!);
+        const area = areaOfPlace(known.get(v.placeId)!);
         if (!firstIn.has(area)) firstIn.set(area, v.firstAt);
       }
       const dates = [...firstIn.values()].sort();

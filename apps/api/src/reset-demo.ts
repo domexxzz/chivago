@@ -146,6 +146,15 @@ export const KEPT_TABLES = [
   // a row. See checkNothingCited.
   'statement_countersignatures', 'statement_uses',
   /*
+    Businesses that asked to list (docs/67). Not a traveller's doing, and an
+    approved one is the only record of WHY a kept `hosts` row exists -
+    clearing it would leave an operator account with no provenance, which is
+    the opposite of what this product is for. A refusal is the record of a
+    decision somebody made about a real business, and is kept for the same
+    reason the audit log is.
+  */
+  'operator_applications',
+  /*
     The summoning's commit-reveal (docs/68).
 
     An epoch is a PUBLISHED promise - its commitment hash is out in the world
