@@ -1,15 +1,22 @@
 # Place photographs · รูปสถานที่
 
 รูปที่ทีมถ่ายเองของสถานที่ในแอป วางไฟล์ไว้ในโฟลเดอร์นี้ Expo คัดลอกทั้งโฟลเดอร์
-`public/` เข้า export ทุกครั้ง ไฟล์จึงไปอยู่ที่ `/assets/places/` ของเว็บ (ทั้งเดโม
-สาธารณะบน Vercel และเซิร์ฟเวอร์จริงบน Fly ซึ่งเสิร์ฟ `/assets/*` จาก export เดียวกัน)
-ตรวจแล้ว 8 ก.ย.: ไฟล์ทดสอบในโฟลเดอร์นี้โผล่ที่ `dist-demo/assets/places/` หลัง `demo:web`
+`public/` เข้า export ทุกครั้ง ไฟล์จึงไปอยู่ที่ `/media/places/` ของเว็บ (ทั้งเดโม
+สาธารณะบน Vercel และเซิร์ฟเวอร์จริงบน Fly ซึ่งเสิร์ฟ `/media/*` จาก export เดียวกัน)
 
 Photographs the team took of the app's places. Drop the files here; Expo copies
 the whole `public/` folder into every web export, so they land at
-`/assets/places/` — on the public demo on Vercel and on the live server on Fly,
-which serves `/assets/*` from the same export. Checked on 8 September: a test
-file placed here appeared under `dist-demo/assets/places/` after `demo:web`.
+`/media/places/` — on the public demo on Vercel and on the live server on Fly,
+which serves `/media/*` from the same export.
+
+> **`/media/`, never `/assets/`.** This folder was `public/assets/places/` until
+> 23 October. `/assets/` is Metro's own URL namespace: in an export these are
+> real files and win, so production looked fine, while `expo start --web`
+> answered every photograph 404 from the bundler registry and never fell
+> through to `public/`. Months of development with no place photographs and
+> nothing saying why. A path under `/assets/` is a test failure now
+> (`place-photos.test.ts`), and a live database's old rows are rewritten on
+> boot by `migrations.ts`.
 
 ## กติกา · The rules
 
@@ -31,10 +38,10 @@ file placed here appeared under `dist-demo/assets/places/` after `demo:web`.
 
 ```ts
 photo: {
-  url: '/assets/places/ku-library.jpg',
+  url: '/media/places/ku-library.jpg',
   credit: 'ChivaGo team · KU Sriracha',
   licence: 'Team photograph · used with permission',
-  sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places',
+  sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
 },
 ```
 

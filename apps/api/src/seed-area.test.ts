@@ -177,7 +177,7 @@ describe('photographs, and only when asked', () => {
   test('A PHOTOGRAPH TAKEN OUT OF THE SEED COMES OFF THE LIVE PLACE', () => {
     seedArea(db, 'rmutt');
     assert.equal(seeded('rmutt-library').photo_url, null, 'this test needs a seeded place with no photograph');
-    db.prepare("UPDATE places SET photo_url = '/assets/places/withdrawn.jpg', photo_credit = 'x' WHERE id = 'rmutt-library'").run();
+    db.prepare("UPDATE places SET photo_url = '/media/places/withdrawn.jpg', photo_credit = 'x' WHERE id = 'rmutt-library'").run();
     assert.deepEqual(refreshPhotos(db, 'rmutt'), ['rmutt-library']);
     assert.deepEqual(photoOf('rmutt-library'), seeded('rmutt-library'));
   });
@@ -187,11 +187,11 @@ describe('photographs, and only when asked', () => {
     seedArea(db, 'rmutt');
     clear('ku-library');
     db.prepare("UPDATE places SET name_en = 'Corrected in production', aqi = 12 WHERE id = 'ku-library'").run();
-    db.prepare("UPDATE places SET photo_url = '/assets/places/withdrawn.jpg' WHERE id = 'rmutt-library'").run();
+    db.prepare("UPDATE places SET photo_url = '/media/places/withdrawn.jpg' WHERE id = 'rmutt-library'").run();
     refreshPhotos(db, 'ku-sriracha');
     const row = db.prepare("SELECT name_en, aqi FROM places WHERE id = 'ku-library'").get() as { name_en: string; aqi: number };
     assert.deepEqual({ ...row }, { name_en: 'Corrected in production', aqi: 12 });
-    assert.equal((photoOf('rmutt-library') as { photo_url: unknown }).photo_url, '/assets/places/withdrawn.jpg');
+    assert.equal((photoOf('rmutt-library') as { photo_url: unknown }).photo_url, '/media/places/withdrawn.jpg');
   });
 
   test('run again, it changes nothing and reports nothing', () => {

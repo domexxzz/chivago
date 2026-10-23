@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
-import { areaOfProvince } from './areas.ts';
+import { areaOfPlace } from './areas.ts';
 import { SEED_PLACES } from './seed.ts';
 import {
   PLACE_STALLS, isOrderLink, stallPlacesIn, stallSourceFor, stallState, stallsFromShopStatus, type Stall,
@@ -23,7 +23,7 @@ test('every place with stalls is a seeded Food place, named and placed as seeded
     const place = SEED_PLACES.find((p) => p.id === id);
     assert.ok(place, `${id} is a seeded place`);
     assert.equal(place.layer, 'Food', `${id} is on the Food layer`);
-    assert.equal(src.area, areaOfProvince(place.province), `${id} is in the area its province says`);
+    assert.equal(src.area, areaOfPlace(place), `${id} is in the area its coordinates say`);
     assert.deepEqual(src.name, place.name, `${id} is called what the seed calls it`);
     assert.equal(new Set(src.slugs).size, src.slugs.length, `${id} lists each stall once`);
     for (const slug of src.slugs) assert.match(slug, /^[a-z0-9](?:-?[a-z0-9]){2,39}$/);

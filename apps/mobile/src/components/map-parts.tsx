@@ -165,6 +165,14 @@ export function MapLegend({ places, explored = [] }: { places: ScoredPlace[]; ex
   const reached = exploredCount(places, explored);
   return (
     <View
+      /*
+        Named for the terrain map's declutter, which treats this panel as
+        ground already taken and steps its quest marks around it rather than
+        behind it - see `spreadTheMarks`. The class names react-native-web
+        generates are hashes, so `nativeID` - which reaches the DOM as a
+        plain `id` - is the one thing here a selector can hold on to.
+      */
+      nativeID="cg-legend"
       style={{
         position: 'absolute',
         // Bottom-RIGHT: the island's southern tip and the Thong Krut pin both

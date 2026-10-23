@@ -37,7 +37,7 @@ import { OutsideGeofence } from './quest-service.ts';
 import { assertPresence, recordFix } from './presence-service.ts';
 import { fenceOff, storiesAutoApprove } from './fence.ts';
 import { UnsupportedUpload, sniff, uploadRoot } from './uploads.ts';
-import { ffmpegTranscoder, type Transcoder } from './transcode.ts';
+import { ffmpegTranscoder, TranscoderUnavailable, type Transcoder } from './transcode.ts';
 
 export const STORY_MAX_BYTES = 25 * 1024 * 1024;
 /**
@@ -343,6 +343,10 @@ export async function submitStory(
     else await transcoder.photo(input, media);
   } catch (e) {
     for (const f of [input, media, poster]) rmSync(f, { force: true });
+    // The encoder is not there at all. That is ours, not theirs, and saying
+    // "that file could not be used" would send a room full of people off to
+    // re-shoot perfectly good clips while the actual fault went unreported.
+    if (e instanceof TranscoderUnavailable) throw e;
     // An iPhone photograph on a server whose ffmpeg predates HEIF is the one
     // refusal a person can do something about from where they stand.
     if (ext === 'heic') {

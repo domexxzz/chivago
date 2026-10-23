@@ -15,6 +15,7 @@ import type {
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
   InviteListing, PartyInvite, RequestOutcome, InquiryView, ListingCard, TravellerInquiry,
+  MascotForm, Spirit, SpiritCourt, SpiritRarity,
 } from '@chivago/core';
 import type {
   AirHistory, BoardEntry, Explored, Fix, Headway, MedalsView, PlaceStalls, SelfVisitResult, SelfVisitSummary, TransitRoute,
@@ -55,6 +56,69 @@ export interface CheckinResult {
   balances: Balances;
   exp: number;
   distanceM: number;
+}
+
+/**
+ * The summoning's state, as the server says it.
+ *
+ * Every field the screen prints about odds comes from here. `rules` is the
+ * published table; nothing that decides an outcome is outside it.
+ */
+export interface SummonState {
+  charms: { verifiedQuests: number; checkinDays: number; earned: number; spent: number; available: number };
+  dust: number;
+  pity: { sinceMythic: number; sinceRare: number };
+  collected: number;
+  total: number;
+  byRarity: Record<SpiritRarity, { held: number; total: number }>;
+  epoch: { id: string; commitment: string; openedAt: string; closedAt: string | null; seed: string | null };
+  rules: {
+    rates: Record<SpiritRarity, number>;
+    weights: Record<SpiritRarity, number>;
+    weightTotal: number;
+    pity: { mythic: number; rare: number };
+    dustFromDuplicate: Record<SpiritRarity, number>;
+    dustToForge: Record<SpiritRarity, number>;
+    charmsFrom: { verifiedQuest: number; checkinDay: number };
+    notice: Bilingual;
+  };
+}
+
+/** One card in the field guide. Named and drawn only once it has been met. */
+export interface SpiritCard {
+  key: string;
+  court: SpiritCourt;
+  rarity: SpiritRarity;
+  held: number;
+  name?: Bilingual;
+  creature?: Bilingual;
+  lore?: Bilingual;
+  form?: MascotForm;
+}
+
+export interface SummonResult {
+  id: string;
+  spirit: Spirit;
+  rarity: SpiritRarity;
+  byPity: 'mythic' | 'rare' | null;
+  duplicate: boolean;
+  dustGained: number;
+  dust: number;
+  charms: SummonState['charms'];
+  pity: SummonState['pity'];
+  receipt: { epochId: string; commitment: string; nonce: number; roll: number; pick: number };
+}
+
+export interface SummonReceipt {
+  id: string;
+  at: string;
+  source: 'summon' | 'forge';
+  spiritKey: string;
+  rarity: SpiritRarity;
+  byPity: 'mythic' | 'rare' | null;
+  duplicate: boolean;
+  dust: number;
+  receipt: { epochId: string; nonce: number | null; roll: number | null; pick: number | null };
 }
 
 export interface EmergencyContact {
@@ -607,6 +671,30 @@ export const api = {
       summary: { found: number; total: number; grown: number };
       speciesAsOf: string;
     }>('/companions'),
+
+  // -- the summoning (docs/68) --------------------------------------------
+  /**
+   * Charms on hand, the collection counts, the live epoch's commitment and
+   * the whole published table.
+   *
+   * The rates come from the SERVER with the state rather than from the
+   * client's copy of core: a screen that printed rates the server had moved
+   * on from would be printing a false statement about a roll, which is the
+   * one thing this mechanic cannot do.
+   */
+  summon: () => get<SummonState>('/summon'),
+
+  /** Every spirit; the unmet ones silhouetted, with a rarity and a court only. */
+  spirits: () => get<{ spirits: SpiritCard[] }>('/summon/collection'),
+
+  /** Spend one earned charm. */
+  pull: () => post<SummonResult>('/summon', {}),
+
+  /** Choose one outright for stardust - the door with no luck in it. */
+  forge: (spirit: string) => post<SummonResult>('/summon/forge', { spirit }),
+
+  /** The traveller's own receipts. */
+  summonHistory: () => get<{ summons: SummonReceipt[] }>('/summon/history'),
 
   // -- price forecast -----------------------------------------------------
   /**

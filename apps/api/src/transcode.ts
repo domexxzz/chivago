@@ -12,9 +12,27 @@
  * The binary is `ffmpeg` on the PATH, or `CHIVAGO_FFMPEG`. The Dockerfile
  * installs it; a machine without it fails the upload out loud rather than
  * storing a file nobody can play.
+ *
+ * "Out loud" means out loud ABOUT THE RIGHT THING. A machine with no ffmpeg
+ * used to answer every upload with "that file could not be used as a story",
+ * which is a 400 and a lie: the file was fine, the server was not. On the
+ * day that reads as every traveller in the room having a broken phone, and
+ * the one person who could fix it is told nothing. `TranscoderUnavailable`
+ * separates the two - see `handleError` in http.ts, which answers it 503.
  */
 
 import { spawn } from 'node:child_process';
+
+/**
+ * ffmpeg could not be run at all - not installed, not executable, not on the
+ * PATH. A server fault, never the uploader's.
+ */
+export class TranscoderUnavailable extends Error {
+  constructor(cause: string) {
+    super(`The story encoder is not available on this server (${cause}).`);
+    this.name = 'TranscoderUnavailable';
+  }
+}
 
 export const STORY_MAX_SECONDS = 10;
 export const STORY_WIDTH = 720;
@@ -43,7 +61,13 @@ function run(args: string[]): Promise<string> {
       reject(new Error(`ffmpeg: timed out after ${ENCODE_TIMEOUT_MS / 1000} s`));
     }, ENCODE_TIMEOUT_MS);
     child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString('utf8'); });
-    child.on('error', (err) => { clearTimeout(timer); reject(err); });
+    // `error` here is the SPAWN failing, not the encode: ENOENT when the
+    // binary is missing, EACCES when it is not executable. Neither says
+    // anything about the file that was handed in.
+    child.on('error', (err) => {
+      clearTimeout(timer);
+      reject(new TranscoderUnavailable(`${FFMPEG}: ${(err as NodeJS.ErrnoException).code ?? err.message}`));
+    });
     child.on('close', (code) => {
       clearTimeout(timer);
       if (code === 0) resolve(stderr);
@@ -57,6 +81,23 @@ function durationFrom(stderr: string): number | null {
   const m = /Duration: (\d+):(\d+):(\d+(?:\.\d+)?)/.exec(stderr);
   if (!m) return null;
   return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+}
+
+/**
+ * Is the binary there at all?
+ *
+ * Asked once at boot, so the operator learns on the empty console rather
+ * than from the first traveller who cannot post. It runs `-version`, which
+ * touches no file and exits immediately; a non-zero exit still counts as
+ * present, because a build that answers at all can be asked to encode.
+ */
+export function transcoderAvailable(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const child = spawn(FFMPEG, ['-version'], { stdio: 'ignore' });
+    const timer = setTimeout(() => { child.kill('SIGKILL'); resolve(false); }, 5_000);
+    child.on('error', () => { clearTimeout(timer); resolve(false); });
+    child.on('close', () => { clearTimeout(timer); resolve(true); });
+  });
 }
 
 export const ffmpegTranscoder: Transcoder = {

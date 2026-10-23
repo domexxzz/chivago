@@ -37,15 +37,17 @@ import { color, onFill } from '../theme/index.ts';
 import { zoneTone } from './fair-tones.ts';
 import { edgeNudge, edgeNudgeTop, haloMetres, metreRing, tightPins, type PinBox } from './map-geometry.ts';
 import { API_BASE } from '../api/client.ts';
+import { SAMUI_BBOX as SAMUI_FRAME } from '@chivago/core';
 import type { Here } from '../state/here.ts';
 import { Label } from './Type.tsx';
 import { MapLegend } from './map-parts.tsx';
 import { t } from '../i18n/locale.ts';
 import { hourFrom, mix } from './island-clock.ts';
 import {
-  CLOUD_PX, DRIFT, FOG_CORNERS, FOG_PX, HERO, MAX_PITCH, QUEST_MARK_OFFSET, REVEAL_FEATHER, ROUTE_PHASES,
-  SAMUI_BOUNDS, SWELL_FPS, SWELL_PX, campusZoom, chivagoStyle, cloudField, crest, crowdOffsets, heroPose, introPose, paletteFor,
-  questMark, questOffsets, revealedPoints, reveals, routeDash, settleEasing, swell, type MapPalette, type Pose,
+  CLOUD_PX, DRIFT, FOG_PX, HERO, MAX_PITCH, QUEST_MARK_OFFSET, REVEAL_FEATHER, ROUTE_PHASES,
+  TIDE_FPS, boundsOf, campusZoom, chivagoStyle, cloudField, cornersOf, crowdOffsets, islandExaggeration,
+  fogBounds, heroPose, introPose, paletteFor,
+  questMark, questOffsets, revealedPoints, reveals, rgba, routeDash, settleEasing, surfBreath, type MapPalette, type Pose,
 } from './terrain-style.ts';
 
 /** Paint the cloud shadows for a moment: soft dark ellipses on a clear canvas. */
@@ -80,38 +82,6 @@ function paintClouds(canvas: HTMLCanvasElement, palette: MapPalette, t: number):
   }
 }
 
-/** A hex colour as three bytes. */
-const rgb = (hex: string): [number, number, number] => {
-  const n = parseInt(hex.slice(1), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-};
-
-/**
- * Paint one frame of the sea into a pattern tile: the sea colour, a little
- * deeper in the troughs, with the crests of the swell drawn over it - white
- * by day, the moon's glitter by night.
- */
-function paintSwell(out: Uint8ClampedArray, palette: MapPalette, t: number): void {
-  const sea = rgb(palette.sea);
-  const deep = rgb(palette.deep);
-  const crestColour = rgb(palette.night ? '#c9d7f2' : mix(palette.sea, '#ffffff', 0.6));
-  const crestMax = palette.night ? 0.7 : 0.55;
-  let i = 0;
-  for (let y = 0; y < SWELL_PX; y += 1) {
-    for (let x = 0; x < SWELL_PX; x += 1) {
-      const h = swell(x, y, t);
-      const trough = (1 - h) * 0.2;
-      const c = crest(h) * crestMax;
-      for (let ch = 0; ch < 3; ch += 1) {
-        const base = sea[ch]! * (1 - trough) + deep[ch]! * trough;
-        out[i + ch] = base * (1 - c) + crestColour[ch]! * c;
-      }
-      out[i + 3] = 255;
-      i += 4;
-    }
-  }
-}
-
 /** A tiny deterministic generator, so the mist has the same texture every visit. */
 function rng(seed: number): () => number {
   let s = seed >>> 0 || 1;
@@ -127,7 +97,12 @@ function rng(seed: number): () => number {
  * Paint the mist: a parchment haze with a little texture in it, cleared in
  * a soft circle around every place this traveller has reached.
  */
-function paintFog(canvas: HTMLCanvasElement, palette: MapPalette, points: { lat: number; lng: number }[]): void {
+function paintFog(
+  canvas: HTMLCanvasElement,
+  palette: MapPalette,
+  points: { lat: number; lng: number }[],
+  bounds: ReturnType<typeof fogBounds>,
+): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   const size = canvas.width;
@@ -150,7 +125,7 @@ function paintFog(canvas: HTMLCanvasElement, palette: MapPalette, points: { lat:
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
   ctx.globalCompositeOperation = 'destination-out';
-  for (const c of reveals(points, size)) {
+  for (const c of reveals(points, size, bounds)) {
     const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r);
     g.addColorStop(0, 'rgba(0,0,0,1)');
     g.addColorStop(REVEAL_FEATHER, 'rgba(0,0,0,1)');
@@ -175,6 +150,55 @@ function prefersReducedMotion(): boolean {
 
 /** The island hour the map is lit for: the URL's, or the clock's. */
 const hourNow = (): number => hourFrom(window.location.search) ?? islandHour(new Date());
+
+/**
+ * How many motes hang in the air in front of the island.
+ *
+ * Fourteen. Six is a smudge on the screen and thirty is a snowstorm; at
+ * fourteen, spread over a frame this size, you notice the air without ever
+ * being asked to look at it.
+ */
+const MOTES = 14;
+
+/**
+ * Dress the air: the vignette and the motes, for an hour.
+ *
+ * Both colours come from the palette rather than being fixed, because the
+ * whole trick depends on the frame being darkened toward the colour the
+ * sky already is - a cool vignette on a golden-hour map reads as a dirty
+ * lens, and a warm one at midnight reads as a fire somewhere off screen.
+ *
+ * The motes are rebuilt rather than restyled, since their count and their
+ * clocks change with the light: nothing at midday, a little white dust
+ * through the afternoon, and after dark the gold.
+ */
+function dressTheAir(el: HTMLElement | null, p: MapPalette, still: boolean): void {
+  if (!el) return;
+  // Darkest toward near-black, but near-black OF THE HOUR'S OWN HAZE.
+  el.style.setProperty('--cg-vignette', rgba(mix(p.fog, '#000710', 0.78), p.night ? 0.74 : 0.34));
+  const lit = Math.max(p.lamps, p.night ? 1 : 0);
+  el.style.setProperty('--cg-mote', lit > 0.05 ? p.lantern : p.foam);
+  el.style.setProperty('--cg-mote-peak', `${0.22 + lit * 0.62}`);
+  el.replaceChildren();
+  // Nothing drifting for anyone who asked for less motion: a mote that
+  // does not move is not dust in the air, it is a speck on the glass.
+  if (still) return;
+  const next = rng(2719);
+  for (let i = 0; i < MOTES; i += 1) {
+    const mote = document.createElement('i');
+    mote.className = 'cg-mote';
+    const size = 1.6 + next() * 2.4;
+    mote.style.width = `${size}px`;
+    mote.style.height = `${size}px`;
+    mote.style.left = `${4 + next() * 92}%`;
+    // The lower two thirds, which is where the island is and where the air
+    // in front of it would be.
+    mote.style.top = `${30 + next() * 62}%`;
+    mote.style.animationDuration = `${9 + next() * 13}s`;
+    mote.style.animationDelay = `${-next() * 20}s`;
+    el.appendChild(mote);
+  }
+}
 
 /**
  * Fold the attribution to its (i).
@@ -279,6 +303,7 @@ const MARK_CSS = `
   background:#3b2a10;color:#ffe9b3;box-shadow:0 2px 6px rgba(8,26,48,.35)}
 .cg-quest.cg-active .cg-tag{background:${color.brand};color:${onFill.brand}}
 .cg-quest.cg-done .cg-tag{background:${color.accent};color:${onFill.accent}}
+.cg-quest.cg-untagged .cg-tag{display:none}
 .cg-night .cg-x{filter:drop-shadow(0 0 8px rgba(255,205,90,.85))}
 .cg-stop{display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;
   background:${color.ctaDeep};border:2px solid #ffffff;box-shadow:0 2px 6px rgba(8,26,48,.4)}
@@ -293,7 +318,39 @@ const MARK_CSS = `
 .cg-compass svg{width:100%;height:100%;transition:transform .2s ease-out}
 @keyframes cg-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 @keyframes cg-pulse{0%{transform:scale(.7);opacity:.9}100%{transform:scale(2.1);opacity:0}}
-@media (prefers-reduced-motion: reduce){.cg-chip,.cg-ring,.cg-here i{animation:none}.cg-compass svg{transition:none}}
+@media (prefers-reduced-motion: reduce){.cg-chip,.cg-ring,.cg-here i,.cg-mote{animation:none}.cg-compass svg{transition:none}}
+/*
+  THE AIR IN FRONT OF THE ISLAND.
+
+  Everything above this point is the map. These last two are the
+  photograph of it, and they are in CSS rather than in the style because
+  neither of them is a thing on the ground: they sit between the camera
+  and the island, where a lens and an atmosphere sit.
+
+  The grade is a vignette and a wash of the hour's own sky colour, darkest
+  in the corners and clear through the middle third where the island is.
+  It costs one composited layer and it is most of the difference between a
+  map in a box and a view out of one. Both colours are handed in by the
+  clock, because a noon vignette on a night map reads as a smudge.
+
+  The motes are the dust and the insects in the few metres of air nearest
+  the camera, lit by whatever the hour has: white in daylight, gold once
+  the lamps are up. They do NOT move with the map, and that is the point -
+  they are in front of it, not on it, and holding still while the island
+  turns behind them is exactly what gives the frame its depth. Three
+  sizes, drifting up and across on their own slow clocks.
+*/
+.cg-grade{position:absolute;inset:0;pointer-events:none;z-index:1;overflow:hidden;
+  background:radial-gradient(118% 76% at 50% 44%,transparent 36%,var(--cg-vignette) 100%)}
+.cg-mote{position:absolute;border-radius:50%;background:var(--cg-mote);opacity:0;
+  box-shadow:0 0 6px 1px var(--cg-mote);animation-name:cg-drift;animation-timing-function:linear;
+  animation-iteration-count:infinite;will-change:transform,opacity}
+@keyframes cg-drift{
+  0%{transform:translate3d(0,0,0) scale(.7);opacity:0}
+  12%{opacity:var(--cg-mote-peak)}
+  50%{transform:translate3d(18px,-34px,0) scale(1)}
+  88%{opacity:var(--cg-mote-peak)}
+  100%{transform:translate3d(-10px,-72px,0) scale(.7);opacity:0}}
 /*
   A fair's lots (docs/66): a dot per lot in its zone's colour, a hollow one for
   a free lot, and on the lot asked for, a label above. The label is a CHILD
@@ -363,21 +420,26 @@ const COMPASS_SVG = `<svg viewBox="0 0 46 46" aria-hidden="true">
 </svg>`;
 
 /**
- * How tall to draw a campus building OpenStreetMap has no height for.
+ * The fallback height for a building the tiles give no height for.
  *
- * The survey knows 75 buildings here and the HEIGHT of two of them - one of
- * five storeys and one of eight. It does know what each building IS, for
- * every one of them, so the drawing reads the kind rather than painting all
- * seventy-five at one height, which is what it did.
+ * THE KIND-BASED CONVENTION THIS REPLACES NEVER RAN. The code here used to
+ * size and tint each block by `['get', 'class']` - university, dormitory,
+ * hospital, retail - on the strength of a count in docs/43 that says the
+ * survey records what every building IS.
  *
- * This is a DRAWING CONVENTION, not a measurement, and the legend says so.
- * The difference from the old convention is that this one is keyed to
- * something the survey actually recorded: a hall of residence is taller
- * than a shop, everywhere, and OSM knows which is which.
+ * The survey may well. The TILES do not. OpenFreeMap's `building`
+ * source-layer carries four fields and the TileJSON lists them:
+ * `render_height`, `render_min_height`, `colour`, `hide_3d`. There is no
+ * `class` on a building, so every one of those `match` expressions fell
+ * through to its default, for every building, on every campus, since the
+ * day it was written. Decoding the z14 tiles on 2026-10-23 confirmed it.
+ *
+ * What the tiles DO give is a height for every single building - 21 on the
+ * Si Racha campus, from 4 m to 55 m - which is better than the convention
+ * was reaching for. So the convention is gone and the height is read. This
+ * constant survives only for a tile from somewhere the field is missing.
  */
-const CAMPUS_STOREY_M = 3.4;
-/** What the survey gives no kind for either. The old convention, kept. */
-const CAMPUS_DEFAULT_M = CAMPUS_STOREY_M * 3.5;
+const CAMPUS_DEFAULT_M = 11.9;
 
 /**
  * The roof, as a band at the top of the wall.
@@ -388,10 +450,10 @@ const CAMPUS_DEFAULT_M = CAMPUS_STOREY_M * 3.5;
  * a roof colour. Under a metre, because what this is drawing is the edge of
  * a roof seen from a kilometre away and not a storey.
  *
- * OpenStreetMap records NOTHING about these roofs - no shape, no material,
- * no colour, on any of the 75. So the colour is a convention, like the
- * heights, and is one colour for all of them rather than a per-building
- * invention dressed up as a survey.
+ * The tiles record NOTHING about these roofs - no shape, no material, no
+ * colour, on any building anywhere in them. So the colour is a convention
+ * and is one colour for all of them, rather than a per-building invention
+ * dressed up as a survey.
  */
 const CAMPUS_ROOF_M = 1.3;
 
@@ -405,6 +467,12 @@ const CAMPUS_ROOF_M = 1.3;
  * was hiding.
  */
 const CAMPUS_EXAGGERATION = 1.15;
+
+/**
+ * The sources that carry the ground. A failure in one of these costs the
+ * map its hills, not its existence - see the `error` handler.
+ */
+const DEM_SOURCES = ['terrain', 'relief', 'deep'];
 
 export function TerrainMap({
   places, onSelect, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area, storied,
@@ -474,6 +542,19 @@ export function TerrainMap({
   // The place pins, kept in build order so the name declutter can measure
   // them without hunting through the map's DOM for a class.
   const pinEls = React.useRef<{ id: string; rank: number; el: HTMLElement }[]>([]);
+  /**
+   * The quest marks, for a declutter of their own.
+   *
+   * Separate from `pinEls` because the two are crowded differently. A pin
+   * can drop its NAME and still be a pin, and `tightPins` decides which
+   * ones do. A quest's tag is its code and what it pays, which is the whole
+   * of what the mark says, so a crowded one loses the tag whole rather
+   * than wearing a shortened one. What it pays is kept here beside the
+   * element because that is the order the tags are given out in.
+   */
+  const questEls = React.useRef<{ el: HTMLElement; pays: number }[]>([]);
+  /** The pane of air in front of the island: the vignette, and the motes in it. */
+  const grade = React.useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = React.useState(false);
   // What the mist is painted from, readable from inside the map's own
   // handlers without re-running the mount effect.
@@ -501,10 +582,26 @@ export function TerrainMap({
       180 m over a kilometre and a half is already steep without help.
     */
     const campus = area?.map === 'campus';
-    const box: [[number, number], [number, number]] = area && campus
-      ? [[area.bbox.minLng - 0.002, area.bbox.minLat - 0.002], [area.bbox.maxLng + 0.002, area.bbox.maxLat + 0.002]]
-      : SAMUI_BOUNDS;
-    const slack = campus ? 0.01 : 0.14;
+    /*
+      THE AREA'S OWN BOX, whichever map draws it.
+
+      This used to read "the campus box, or else Samui's", which was true
+      while Samui was the only island. Ko Sichang is the second, and the
+      line that made the hero portable was this one: the frame is the box
+      the AREA carries, and the only thing the map still decides is how
+      much room to leave around it. A campus gets two hundred metres,
+      because its fence is its edge; an island gets a slack proportional to
+      its own size, so a stray scroll off Sichang lands in the same amount
+      of sea that one off Samui does.
+    */
+    const frame = area?.bbox ?? SAMUI_FRAME;
+    const pad = campus ? 0.002 : 0;
+    const box: [[number, number], [number, number]] = boundsOf({
+      minLng: frame.minLng - pad, minLat: frame.minLat - pad,
+      maxLng: frame.maxLng + pad, maxLat: frame.maxLat + pad,
+    });
+    const span = Math.max(frame.maxLng - frame.minLng, frame.maxLat - frame.minLat);
+    const slack = campus ? 0.01 : span * 0.6;
     const m = new MapLibreMap({
       container: holder.current,
       style: chivagoStyle(hour),
@@ -528,57 +625,70 @@ export function TerrainMap({
       attributionControl: false,
     });
     holder.current.classList.toggle('cg-night', paletteFor(hour).night);
+    dressTheAir(grade.current, paletteFor(hour), still);
 
     /*
-      The sea. A pattern tile the size of a stamp, repainted a dozen times a
-      second and pushed into the style's image atlas; the `sea` fill wears
-      it. MapLibre asks for it the first time it draws the layer, which is
-      before `load`, so the answer is given in that event rather than after.
-      Still, for anyone who asked for less motion: one frame, and no loop.
-    */
-    const swellA = new Uint8ClampedArray(SWELL_PX * SWELL_PX * 4);
-    const swellB = new Uint8ClampedArray(SWELL_PX * SWELL_PX * 4);
-    let flip = false;
-    const swellFrame = (t: number) => {
-      const data = flip ? swellA : swellB;
-      flip = !flip;
-      paintSwell(data, paletteFor(hour), t);
-      return { width: SWELL_PX, height: SWELL_PX, data };
-    };
-    const born = performance.now();
-    m.on('styleimagemissing', (e: { id: string }) => {
-      if (e.id !== 'sea-swell' || m.hasImage('sea-swell')) return;
-      m.addImage('sea-swell', swellFrame(0));
-    });
-    /*
-      The weather. Cloud shadows on a small canvas draped over the island,
-      repainted with the tide below; and the ferry routes' dots walking
-      toward the island, five dash arrays cycled. Both ride the same clock.
+      The weather and the tide.
+
+      There used to be a fourth thing on this clock: a 256-pixel sea
+      pattern repainted twelve times a second. It is gone, and `TIDE_FPS`
+      explains why. What is left runs at three ticks a second instead of
+      twelve, and none of it writes a texture.
     */
     const cloudCanvas = document.createElement('canvas');
     cloudCanvas.width = CLOUD_PX;
     cloudCanvas.height = CLOUD_PX;
+    const born = performance.now();
     let routePhase = 0;
     let tick = 0;
     const tide = (still || campus) ? 0 : window.setInterval(() => {
-      if (document.hidden || !m.hasImage('sea-swell')) return;
+      if (document.hidden) return;
       const t = (performance.now() - born) / 1000;
-      m.updateImage('sea-swell', swellFrame(t));
+      const palette = paletteFor(hour);
       tick += 1;
-      if (tick % 2 === 0) {
-        routePhase = (routePhase + 1) % ROUTE_PHASES;
-        if (m.getLayer('ferry')) m.setPaintProperty('ferry', 'line-dasharray', routeDash(routePhase));
+
+      /*
+        The surf breathes. This is the sea's motion now: a band of white
+        water on the shore that rises and falls, rather than a repeating
+        tile of crests out in open water. It is one paint property, and it
+        is in the one place a still photograph of a coast always looks
+        wrong.
+      */
+      if (m.getLayer('surf')) {
+        m.setPaintProperty('surf', 'color-relief-opacity', (palette.night ? 0.5 : 0.95) * surfBreath(t));
       }
-      if (tick % 3 === 0) {
+      // The ferry dots walk toward the island.
+      routePhase = (routePhase + 1) % ROUTE_PHASES;
+      if (m.getLayer('ferry')) m.setPaintProperty('ferry', 'line-dasharray', routeDash(routePhase));
+
+      /*
+        The lamps breathe.
+
+        Twelve kilometres of warm air stand between the camera and Chaweng,
+        and air that warm does not hold a light still - it is the same
+        shimmer that makes a planet twinkle and a runway wobble. A slow
+        eighth either side of full, on a period long enough that nobody
+        catches it cycling, and the island stops being a photograph of
+        lights and starts being lights.
+
+        Two notes, one period apart, so the haze and the core do not swell
+        together like a single dimmer being turned.
+      */
+      if (tick % 2 === 0 && palette.lamps > 0.01 && m.getLayer('lanterns')) {
+        const breath = (phase: number) => 0.88 + 0.12 * Math.sin(t * 0.55 + phase);
+        m.setPaintProperty('lanterns', 'circle-opacity', 0.95 * palette.lamps * breath(0));
+        m.setPaintProperty('lantern-haze', 'circle-opacity', 0.4 * palette.lamps * breath(1.9));
+      }
+      if (tick % 2 === 0) {
         const clouds = m.getSource('uncharted-weather') as { play?: () => void; pause?: () => void } | undefined;
         if (clouds) {
-          paintClouds(cloudCanvas, paletteFor(hour), t);
+          paintClouds(cloudCanvas, palette, t);
           clouds.play?.();
           m.once('render', () => clouds.pause?.());
         }
       }
       m.triggerRepaint();
-    }, 1000 / SWELL_FPS);
+    }, 1000 / TIDE_FPS);
 
     /*
       The mist. A canvas the size of the island's box and then some, painted
@@ -586,13 +696,21 @@ export function TerrainMap({
       the places reached change, the light changes, or the style is swapped
       under it - each of which is rare, so the source is simply replaced.
     */
+    /*
+      The mist and the weather are draped over the AREA's box, padded by a
+      multiple of itself - see `fogBounds`. On Samui that is the same
+      footprint it always had; on an island a tenth the size it is a tenth
+      the footprint, instead of a canvas mostly spent on the Gulf.
+    */
+    const haze = fogBounds(frame);
+    const corners = cornersOf(haze);
     const fogCanvas = document.createElement('canvas');
     fogCanvas.width = FOG_PX;
     fogCanvas.height = FOG_PX;
     const layFog = () => {
       if (campus || !m.isStyleLoaded()) return;
       const palette = paletteFor(hour);
-      paintFog(fogCanvas, palette, revealed.current);
+      paintFog(fogCanvas, palette, revealed.current, haze);
       for (const id of ['uncharted', 'uncharted-weather']) {
         if (m.getLayer(id)) m.removeLayer(id);
         if (m.getSource(id)) m.removeSource(id);
@@ -600,16 +718,50 @@ export function TerrainMap({
       // The weather goes under the roads and the names; the mist over
       // everything but the names.
       paintClouds(cloudCanvas, palette, (performance.now() - born) / 1000);
-      m.addSource('uncharted-weather', { type: 'canvas', canvas: cloudCanvas, coordinates: FOG_CORNERS, animate: false });
+      m.addSource('uncharted-weather', { type: 'canvas', canvas: cloudCanvas, coordinates: corners, animate: false });
       m.addLayer({
         id: 'uncharted-weather', type: 'raster', source: 'uncharted-weather',
         paint: { 'raster-opacity': palette.night ? 0.22 : 0.5, 'raster-fade-duration': 0 },
       }, 'streams');
-      m.addSource('uncharted', { type: 'canvas', canvas: fogCanvas, coordinates: FOG_CORNERS, animate: false });
+      m.addSource('uncharted', { type: 'canvas', canvas: fogCanvas, coordinates: corners, animate: false });
+      /*
+        THINNER THAN IT WAS - 0.44 by day, 0.55 at night - and the reason
+        is what a new traveller sees.
+
+        Nobody starts with anything explored, so the first thing anybody
+        ever sees of this island is ALL of it under parchment. Half an
+        opaque sheet of it turned a golden hour into milk: the sea went
+        grey, the hills went flat, and the one frame that has to make
+        somebody want to go there looked like a photocopy of a map.
+
+        It is still the fog of war and it still says the same thing - what
+        clears it is standing somewhere, and nothing else. It just says it
+        at the strength of a haze rather than a lid. The reveal circles cut
+        to nothing, so the difference between walked and unwalked ground
+        reads as clearly as it ever did; there is simply an island visible
+        underneath the part you have not walked yet.
+      */
       m.addLayer({
         id: 'uncharted', type: 'raster', source: 'uncharted',
-        paint: { 'raster-opacity': palette.night ? 0.55 : 0.44, 'raster-fade-duration': 0 },
+        paint: { 'raster-opacity': palette.night ? 0.36 : 0.24, 'raster-fade-duration': 0 },
       }, 'place-labels');
+      /*
+        And the lamps come back up THROUGH the mist, which is the one thing
+        on this map allowed to ignore it.
+
+        The mist is the fog of war: it is about where this traveller has
+        been. A village light is about where there is a village, which is
+        true whether or not anybody has walked there - and half an opaque
+        parchment over the top turned the lit coast at nine in the evening
+        back into the dark green diagram it had just stopped being.
+
+        Read it the way a window across a valley reads: the mist is between
+        you and the island, and a light carries through mist. That is also
+        why the lights are the invitation and the mist is the record.
+      */
+      for (const id of ['lantern-haze', 'lanterns']) {
+        if (m.getLayer(id)) m.moveLayer(id, 'place-labels');
+      }
     };
     fog.current = layFog;
 
@@ -640,10 +792,10 @@ export function TerrainMap({
       // south-west, which is the side the campus climbs from. The zoom is
       // taken from the frame's width, not fixed: see campusZoom.
       ? { zoom: campusZoom(holder.current?.clientWidth ?? 0), pitch: 60, bearing: -24, center: [area.center.lng, area.center.lat] }
-      : heroPose(m.getZoom());
+      : heroPose(m.getZoom(), frame);
     const intro: Pose = campus
       ? { ...settled, zoom: settled.zoom - 0.8, pitch: 68, bearing: settled.bearing - 35 }
-      : introPose(settled);
+      : introPose(settled, frame);
     settledBearing.current = settled.bearing;
     // A map opened for a fair lot has no intro to play: it starts settled and flies from there.
     m.jumpTo(still || focusRef.current ? settled : intro);
@@ -680,20 +832,11 @@ export function TerrainMap({
     const raiseBuildings = () => {
       if (!campus || m.getLayer('campus-buildings')) return;
       const night = paletteFor(hour).night;
-      const S = CAMPUS_STOREY_M;
-      // Written out rather than built in a loop, because MapLibre's
-      // expression types are tuples and a loop produces an array.
-      const byKind: maplibregl.ExpressionSpecification = ['match', ['get', 'class'],
-        // A roofed structure with no walls - a car park deck, a sala.
-        'roof', S,
-        'retail', S * 1.5,
-        'industrial', S * 2,
-        'university', S * 4,
-        'hospital', S * 4,
-        'dormitory', S * 6,
-        'apartments', S * 6,
-        CAMPUS_DEFAULT_M,
-      ];
+      // The surveyed height, every time the tiles have one - which here is
+      // every time. See CAMPUS_DEFAULT_M for what used to be in this slot
+      // and why it never did anything.
+      const tall: maplibregl.ExpressionSpecification =
+        ['coalesce', ['get', 'render_height'], CAMPUS_DEFAULT_M];
       /*
         The shadow first, under everything: the footprint again, dark and
         soft, pushed a few pixels away from the light. A block with nothing
@@ -723,20 +866,13 @@ export function TerrainMap({
             block is the identical beige reads as a model, and the survey
             does distinguish a teaching block from a hall from a shop.
           */
-          'fill-extrusion-color': night ? '#2c3e46' : ['match', ['get', 'class'],
-            'dormitory', '#efe7d6',
-            'apartments', '#efe7d6',
-            'hospital', '#f6f2e8',
-            'retail', '#f0e6d2',
-            'roof', '#e2dac9',
-            'industrial', '#e8e0d0',
-            '#f2ece0',
-          ],
+          'fill-extrusion-color': night ? '#2c3e46'
+            : ['coalesce', ['get', 'colour'], '#f2ece0'],
           // The WALLS stop a roof's thickness short of the top, and the
           // roof layer below picks up exactly where they stop. Adjacent
           // rather than overlapping, so the two never fight for the same
           // pixels in that band.
-          'fill-extrusion-height': ['max', 0, ['-', ['coalesce', ['get', 'render_height'], byKind], CAMPUS_ROOF_M]],
+          'fill-extrusion-height': ['max', 0, ['-', tall, CAMPUS_ROOF_M]],
           'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
           'fill-extrusion-opacity': 0.97,
           'fill-extrusion-vertical-gradient': true,
@@ -758,8 +894,8 @@ export function TerrainMap({
           // came out a slab; the roof has to be LIGHTER than the eye expects
           // or it swallows the whole building at this pitch.
           'fill-extrusion-color': night ? '#1d2b33' : '#b8b2a6',
-          'fill-extrusion-height': ['coalesce', ['get', 'render_height'], byKind],
-          'fill-extrusion-base': ['max', 0, ['-', ['coalesce', ['get', 'render_height'], byKind], CAMPUS_ROOF_M]],
+          'fill-extrusion-height': tall,
+          'fill-extrusion-base': ['max', 0, ['-', tall, CAMPUS_ROOF_M]],
           'fill-extrusion-opacity': 0.97,
         },
       }, m.getLayer('place-labels') ? 'place-labels' : undefined);
@@ -772,7 +908,7 @@ export function TerrainMap({
     */
     const lift = () => m.setTerrain({
       source: 'terrain',
-      exaggeration: campus ? CAMPUS_EXAGGERATION : HERO.exaggeration,
+      exaggeration: campus ? CAMPUS_EXAGGERATION : islandExaggeration(frame),
     });
 
     /*
@@ -814,7 +950,27 @@ export function TerrainMap({
       m.once('moveend', drift);
       m.easeTo({ ...settled, duration: HERO.introMs, easing: settleEasing, essential: true });
     });
-    m.once('idle', () => foldAttribution(m));
+    /*
+      ONCE WAS NOT ENOUGH. MapLibre opens the panel the first time the
+      credits actually arrive, which is a source-data event after the first
+      idle, so a single fold on idle folded an empty panel and the real one
+      opened behind it - two lines of licence text across the south coast
+      with the legend underneath, which is what the hero shipped with.
+
+      So: fold whenever the map comes to rest or the hour turns the style
+      over, and stop for good the moment somebody opens the credits
+      themselves. `isTrusted` is the whole difference between their tap and
+      the synthetic click `foldAttribution` makes, and folding the licence
+      shut while it is being read is its own small rudeness.
+    */
+    let creditsAreTheirs = false;
+    m.getContainer().addEventListener('click', (e) => {
+      if (!e.isTrusted) return;
+      if ((e.target as HTMLElement | null)?.closest('.maplibregl-ctrl-attrib')) creditsAreTheirs = true;
+    });
+    const fold = () => { if (!creditsAreTheirs) foldAttribution(m); };
+    m.on('idle', fold);
+    m.on('styledata', fold);
 
     /*
       The light moves. Every few minutes the hour is read again and, if it has
@@ -827,11 +983,11 @@ export function TerrainMap({
       hour = now;
       m.setStyle(chivagoStyle(hour), { diff: true });
       holder.current?.classList.toggle('cg-night', paletteFor(hour).night);
+      dressTheAir(grade.current, paletteFor(hour), still);
       m.once('style.load', () => {
         lift();
         clearTheAir();
         raiseBuildings();
-        if (m.hasImage('sea-swell')) m.updateImage('sea-swell', swellFrame((performance.now() - born) / 1000));
         layFog();
       });
     }, 5 * 60_000);
@@ -860,9 +1016,60 @@ export function TerrainMap({
       if (map.current) { map.current.remove(); map.current = null; }
     };
 
+    /*
+      THE GROUND CAN FAIL WITHOUT TAKING THE MAP WITH IT.
+
+      This used to blank the whole map on any error whose message mentioned
+      a source, a style or a layer - which includes every way the elevation
+      archive can let us down. A slow afternoon at `elevation-tiles-prod`
+      and a traveller got the fallback list instead of Koh Samui, because
+      the HILLS could not be drawn.
+
+      That is the wrong trade. The elevation is what makes the island look
+      like an island; the OpenFreeMap vector tiles are what make it a MAP.
+      Lose the first and you have a flat map, which is most of a map. Lose
+      the second and there is nothing to show.
+
+      So a failure in the DEM sources drops the terrain and the three
+      layers that read it, keeps everything else, and says so once in the
+      console. Only the vector source still blanks the screen.
+    */
+    /*
+      ONE MISSING TILE IS NOT A MISSING ARCHIVE.
+
+      The first version of this dropped the terrain on any error from a DEM
+      source, and a single 404 at the edge of coverage - which the archive
+      serves routinely - flattened the island for the rest of the session.
+      That is the same mistake the handler below this one already records
+      for the map as a whole, made one level down.
+
+      So the ground goes only when the archive is really gone: eight tile
+      errors, which no edge of coverage produces and no healthy session
+      reaches.
+    */
+    const DEM_ERRORS_BEFORE_FLAT = 8;
+    let demErrors = 0;
+    let groundGone = false;
+    const dropTheGround = () => {
+      demErrors += 1;
+      if (demErrors < DEM_ERRORS_BEFORE_FLAT) return;
+      if (groundGone || !map.current) return;
+      groundGone = true;
+      console.warn(`[chivago] elevation unavailable after ${demErrors} tile errors - the map is flat for this session`);
+      try {
+        m.setTerrain(null);
+        for (const id of ['relief', 'hillshade', 'surf', 'sea-depth']) {
+          if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', 'none');
+        }
+      } catch { /* the map is going away anyway */ }
+    };
+
     m.on('error', (e) => {
       const message = (e as { error?: Error }).error?.message ?? String(e);
+      const source = (e as { sourceId?: string }).sourceId;
       console.error('[chivago] map:', message);
+      if (source && DEM_SOURCES.includes(source)) { dropTheGround(); return; }
+      if (/elevation-tiles-prod|terrarium/i.test(message)) { dropTheGround(); return; }
       if (/source|style|layer/i.test(message)) { setFailed(true); bail(); }
     });
 
@@ -870,6 +1077,8 @@ export function TerrainMap({
     // pinch and drag already do everything they do. Read once, at mount: a
     // phone does not become a desktop by rotating.
     if (!compact) m.addControl(new NavigationControl({ visualizePitch: true }), 'top-right');
+    // `compact` asks for the little (i); keeping it folded takes more than
+    // asking - see the `fold` handlers above.
     m.addControl(new AttributionControl({ compact: true }), 'bottom-left');
 
     /*
@@ -878,6 +1087,16 @@ export function TerrainMap({
       flies the camera back to the island view. The one control that is
       drawn, not borrowed, because the borrowed one is a grey arrow.
     */
+    /*
+      One rose, however many times this effect has run.
+
+      The compass is appended to the holder, which is React's div and
+      outlives the map. `bail` removes the MAP but has no idea the compass
+      is there, so a mount that bailed and remounted - a DEM error, a
+      StrictMode double-invoke - left the old needle behind and hung a
+      second one beside it.
+    */
+    holder.current.querySelector('.cg-compass')?.remove();
     const compass = document.createElement('button');
     compass.type = 'button';
     compass.className = 'cg-compass';
@@ -900,8 +1119,22 @@ export function TerrainMap({
     // mount and a fresh map, not a map of the island asked to show the campus.
   }, []);
 
-  // The mist follows the places reached.
-  React.useEffect(() => { fog.current?.(); }, [explored, places]);
+  /*
+    The mist follows the places REACHED, and nothing else.
+
+    It used to follow `[explored, places]`, which sounds like the same
+    thing and is not. `places` changes identity whenever the layer chips
+    are touched - that is what the chips do - and every one of those taps
+    re-laid the mist: a million-pixel canvas repainted, two sources torn
+    down and rebuilt, two layers added and moved. A visible hitch for a
+    filter that cannot change where anybody has been.
+
+    What the mist is actually drawn from is the list of revealed points,
+    so that is what this watches. A layer toggle leaves it alone; walking
+    somewhere new does not.
+  */
+  const revealKey = revealed.current.map((p) => `${p.lat},${p.lng}`).sort().join('|');
+  React.useEffect(() => { fog.current?.(); }, [revealKey]);
 
   /*
     Marks are plain DOM, positioned by MapLibre.
@@ -968,6 +1201,7 @@ export function TerrainMap({
       the only one of the three that has earned the colour.
     */
     const fan = questOffsets(quests);
+    questEls.current = [];
     for (const quest of quests) {
       const mark = questMark(progress[quest.id]);
       const el = document.createElement('button');
@@ -977,6 +1211,7 @@ export function TerrainMap({
       el.innerHTML = `<span class="cg-ring"></span>${questGlyph(mark === 'done')}<span class="cg-tag">${esc(quest.code)} · +${quest.rewardPoints}</span>`;
       if (onOpenQuest) el.addEventListener('click', () => onOpenQuest(quest.id));
 
+      questEls.current.push({ el, pays: quest.rewardPoints });
       markers.current.push(
         new Marker({ element: el, anchor: 'top', offset: fan.get(quest.id) ?? QUEST_MARK_OFFSET })
           .setLngLat([quest.lng, quest.lat])
@@ -1022,9 +1257,109 @@ export function TerrainMap({
       const r = (el.querySelector('.cg-top') ?? el.querySelector('.cg-chip') ?? el).getBoundingClientRect();
       return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
     };
+    /*
+      How far a quest's tag may slide to stay on the map.
+
+      Chaweng is on the east coast, so the marks there hang their
+      `TP-03 · +80` over the right-hand edge and the map's overflow eats
+      the number. The tag slides back; the X does not, so the mark still
+      stands on the true spot.
+
+      A longer slide than a pin's chip is allowed, whose 28 px ceiling is
+      there because a NAME that has walked far from its stem starts reading
+      as the name of its neighbour. These are not names. A tag is sixty
+      pixels of code and a number and the X it belongs to is three pixels
+      above it; it can go to the edge and still only be read as the tag of
+      the mark over it.
+
+      It is applied in `thinTheTags`, with a transform rather than `left`:
+      the tag is a flex child centred under the mark, and `left` on it does
+      nothing without a `position`, which would take it out of that
+      centring. Nothing animates the tag's transform - the bob is on
+      `.cg-chip`, the pulse on `.cg-ring` - so unlike the chips this one is
+      safe to move this way.
+    */
+    const TAG_SLIDE_PX = 44;
+
+    /*
+      And the marks themselves, out of each other's way.
+
+      `questOffsets` fans a crowd apart by GROUND distance, which is all it
+      can know and not enough: three quests within six hundred metres land
+      on screen wherever the camera happens to put them, so a fan that
+      separates them at one bearing has them back on top of each other at
+      the next. The fan clears the X; what it cannot clear is the tag hung
+      under it, which is twice as wide again, so "on top of each other"
+      means one X lying across the code of the mark above.
+
+      MOVING THE MARK IS NOT THE ANSWER, and it took three tries to stop
+      trying. A pin that slides to the edge still has its stem, so it keeps
+      pointing at its own spot and the slide can be seen for what it is; a
+      quest mark is an X with no stem, and an X moved a hundred pixels to
+      clear a crowd is not a decluttered mark, it is a mark on the wrong
+      beach. Pushed down it went behind the legend; pushed up it went into
+      the pins; given the pins and the legend both to avoid it flew to the
+      top of the frame and claimed a quest at Chaweng was out at sea.
+
+      So nothing moves. Every X stays exactly where the fan put it, over
+      its own ground, and what gives way is the TAG - the same bargain the
+      pins strike in `tightPins`, where a name that will not fit is a name
+      that is not drawn. Taken in order of what the quest pays, so when the
+      east coast can only show one code it is the one worth most; and a
+      mark that loses its tag is still an X you can tap, which is how you
+      find out what it is.
+    */
+    const thinTheTags = (frame: DOMRect, chips: PinBox[]) => {
+      const marks = questEls.current;
+      if (marks.length === 0) return;
+      for (const { el } of marks) el.classList.remove('cg-untagged');
+      /*
+        The ground already taken: the legend, and the pins - which have had
+        their own pass by now and are settled. A place is why anybody is
+        looking at this map and a quest is something to do when they get
+        there, so where the two want the same hundred pixels, the quest is
+        the one that gives.
+      */
+      const legend = m.getContainer().parentElement?.querySelector('#cg-legend')?.getBoundingClientRect();
+      const taken: { left: number; right: number; top: number; bottom: number }[] = [...chips];
+      if (legend) {
+        taken.push({ left: legend.left, right: legend.right, top: legend.top, bottom: legend.bottom });
+      }
+      const clear = (b: { left: number; right: number; top: number; bottom: number }) =>
+        b.left >= frame.left && b.right <= frame.right
+        && !taken.some((p) => b.right > p.left && b.left < p.right && b.bottom > p.top && b.top < p.bottom);
+      /*
+        TEXT BLOCKS TEXT; the X's do not come into it. They are 38 px of
+        drawn glyph fanned 40 apart, so a pair of them touching corners
+        still reads as two marks - and counting them as taken ground was
+        enough, on the first run of this, to hide every tag on the island.
+        What cannot be read through is another label.
+      */
+      for (const { el } of [...marks].sort((a, b) => b.pays - a.pays)) {
+        const tag = el.querySelector<HTMLElement>('.cg-tag');
+        if (!tag) continue;
+        /*
+          Measured with the edge slide already applied, because a tag that
+          only overruns the frame is not crowded, it is near the side, and
+          there is somewhere to put it. Deciding before the slide would
+          drop tags that had room all along.
+        */
+        tag.style.transform = '';
+        const slide = edgeNudge(tag.getBoundingClientRect(), frame, TAG_SLIDE_PX);
+        tag.style.transform = slide ? `translateX(${slide}px)` : '';
+        const t = tag.getBoundingClientRect();
+        const box = { left: t.left, right: t.right, top: t.top, bottom: t.bottom };
+        const keep = clear(box);
+        el.classList.toggle('cg-untagged', !keep);
+        if (keep) taken.push(box);
+      }
+    };
     const relabel = () => {
       const pins = pinEls.current;
-      if (pins.length === 0) return;
+      if (pins.length === 0) {
+        thinTheTags(m.getContainer().getBoundingClientRect(), []);
+        return;
+      }
       // Back to the unedited state first: names on, no edge slide. Deciding
       // from boxes that carry the LAST pass's nudges would compound one
       // frame's answer into the next.
@@ -1067,6 +1402,9 @@ export function TerrainMap({
         // And down, when a pin wearing a photograph has climbed off the top.
         row.style.top = `${edgeNudgeTop(box, frame)}px`;
       }
+      // The pins are settled now - names decided, edges cleared - so the
+      // quest marks can be told where they ended up and step around them.
+      thinTheTags(frame, pins.map((pin) => boxOf(pin.el)));
     };
     /*
       And it has to keep up with a camera that does not stop.
@@ -1334,6 +1672,12 @@ export function TerrainMap({
         ref={holder}
         style={{ position: 'absolute', inset: 0 }}
       />
+      {/*
+        Outside the map's rectangle, over the top of it: see the note on
+        `.cg-grade`. A sibling rather than a child because everything
+        inside that div belongs to MapLibre.
+      */}
+      <div ref={grade} className="cg-grade" />
       <MapLegend places={places} explored={explored} />
     </View>
   );

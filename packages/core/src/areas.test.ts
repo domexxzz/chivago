@@ -21,6 +21,24 @@ const kuPlaces = SEED_PLACES.filter((p) => areaOfPlace(p) === 'ku-sriracha');
 const kuQuests = SEED_QUESTS.filter((q) => inArea(ku, q));
 
 describe('five areas, derived from provinces', () => {
+  test('no two areas overlap, so a coordinate is never in two frames at once', () => {
+    /*
+      `areaOfPlace` picks the first frame a place stands in. If two frames
+      ever met, that pick would be the order of the array rather than a
+      rule - and a university would show an island's beaches, which is
+      exactly what the second island in Chon Buri nearly caused. Held for
+      EVERY pair, not just the pair that happened to be the problem.
+    */
+    for (const a of AREAS) {
+      for (const b of AREAS) {
+        if (a.key === b.key) continue;
+        const apart = a.bbox.maxLng < b.bbox.minLng || b.bbox.maxLng < a.bbox.minLng
+          || a.bbox.maxLat < b.bbox.minLat || b.bbox.maxLat < a.bbox.minLat;
+        assert.ok(apart, `${a.key} and ${b.key} overlap`);
+      }
+    }
+  });
+
   test('every open province has an area, and every area an open province', () => {
     const open = openProvinces().map((p) => p.code).sort();
     assert.deepEqual([...new Set(AREAS.map((a) => a.province))].sort(), open);
@@ -119,7 +137,10 @@ describe('the campus is real, and its seed stays inside it', () => {
     */
     for (const p of kuPlaces) {
       assert.ok(p.photo, `${p.id} has no photograph`);
-      assert.match(p.photo.url, /^\/assets\/places\/[a-z0-9-]+\.jpg$/, `${p.id}: a campus photo must ship with the app`);
+      // `/media/`, not `/assets/`: the latter is Metro's own URL namespace
+      // and shadows `public/` on the dev server, which made every one of
+      // these a 404 under `expo start --web`.
+      assert.match(p.photo.url, /^\/media\/places\/[a-z0-9-]+\.jpg$/, `${p.id}: a campus photo must ship with the app`);
       assert.match(p.photo.credit, /ChivaGo team/, `${p.id}: not the team's photograph`);
       assert.ok(p.photo.licence && p.photo.sourceUrl, `${p.id}: no licence or source`);
     }

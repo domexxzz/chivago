@@ -34,11 +34,22 @@ describe('changing area', () => {
 });
 
 describe('what belongs where', () => {
-  test('every place province maps to an area and every area frames its own centre', () => {
+  test('every area frames its own centre, and its centre answers to it', () => {
+    /*
+      `areaOfProvince(a.province) === a.key` used to be here, and it was a
+      true statement about the world right up until Ko Sichang joined the
+      Si Racha campus in Chon Buri. Two areas, one province, and `find`
+      returns the first: the island's own centre would have answered
+      "ku-sriracha". What is actually required is that an area contains
+      where it says it is, and that geography can tell them apart - which
+      is `areaOfPlace`, and which `areas.test.ts` checks for the pair that
+      forced it.
+    */
     for (const a of AREAS) {
       assert.equal(areaOfPlace({ province: a.province, ...a.center }), a.key);
       assert.ok(inArea(a, a.center));
       assert.equal(nearestArea(a.center.lat, a.center.lng).key, a.key);
+      assert.equal(areaOfPlace({ ...a.center, province: a.province }), a.key);
     }
   });
 

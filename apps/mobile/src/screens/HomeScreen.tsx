@@ -930,7 +930,7 @@ function Figure({
  * Not a grey box, and not somebody else's photograph either: the five campus
  * places had nothing under a licence anywhere in the open sources (Commons,
  * Wikipedia, Openverse, checked on 8 September), so until the team's own
- * photographs land in `public/assets/places/` the card wears its habitat -
+ * photographs land in `public/media/places/` the card wears its habitat -
  * the layer's tint and mark - and says so to a screen reader. A picture of
  * a different building would have been the one lie on the screen.
  */
@@ -951,7 +951,7 @@ function NoPhotograph({ place }: { place: ScoredPlace }) {
     >
       {place.id === 'mangrove' ? (
         <Image
-          source={{ uri: photoUri('/assets/illustrations/mangrove-habitat-v1.jpg') }}
+          source={{ uri: photoUri('/media/illustrations/mangrove-habitat-v1.jpg') }}
           accessible={false}
           resizeMode="cover"
           style={{ position: 'absolute', top: 0, bottom: 24, width: '100%' }}

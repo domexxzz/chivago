@@ -35,7 +35,7 @@
 
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { BookOpen, Map as MapIcon, Medal as MedalIcon, Users } from 'lucide-react-native';
+import { BookOpen, Map as MapIcon, Medal as MedalIcon, Sparkles, Users } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
   collectionSummary, SPECIES, strings,
@@ -69,10 +69,11 @@ export function nextUp(companions: Companion[]): Companion | null {
 }
 
 export function GameScreen({
-  onOpenCompanion, onOpenMascots, onOpenMedals, onOpenPassport, onOpenParty,
+  onOpenCompanion, onOpenMascots, onOpenSummon, onOpenMedals, onOpenPassport, onOpenParty,
 }: {
   onOpenCompanion: (companion: Companion) => void;
   onOpenMascots: () => void;
+  onOpenSummon: () => void;
   onOpenMedals: () => void;
   onOpenPassport: () => void;
   onOpenParty: () => void;
@@ -97,7 +98,12 @@ export function GameScreen({
       {data ? (
         <>
           <NextUp companion={nextUp(companions)} anyFound={companions.length > 0} onOpen={onOpenCompanion} />
-          <Grid companions={companions} onOpen={onOpenCompanion} onOpenMascots={onOpenMascots} />
+          <Grid
+            companions={companions}
+            onOpen={onOpenCompanion}
+            onOpenMascots={onOpenMascots}
+            onOpenSummon={onOpenSummon}
+          />
           {summary ? <Counts found={summary.found} grown={summary.grown} total={summary.total} /> : null}
           <Footnote />
         </>
@@ -283,8 +289,13 @@ function NextUp({
  * secret, and a grid that named every species would give all five away.
  */
 function Grid({
-  companions, onOpen, onOpenMascots,
-}: { companions: Companion[]; onOpen: (c: Companion) => void; onOpenMascots: () => void }) {
+  companions, onOpen, onOpenMascots, onOpenSummon,
+}: {
+  companions: Companion[];
+  onOpen: (c: Companion) => void;
+  onOpenMascots: () => void;
+  onOpenSummon: () => void;
+}) {
   const byLayer = new Map(companions.map((c) => [c.species.layer, c]));
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 18, gap: 10 }}>
@@ -309,6 +320,29 @@ function Grid({
           />
           <View style={{ position: 'absolute', right: 10, bottom: 10 }}>
             <MapIcon size={34} color={gameHabitat.mascots.ink} strokeWidth={1.8} />
+          </View>
+        </Pressable>
+        {/*
+          The summoning (docs/68), next to the two collections it is not.
+
+          The companions are real animals on an evidence ladder and the
+          seventy-seven are province emblems; the spirits are invented and
+          the tile says so in its own subtitle, because a traveller meeting
+          all three in one grid has to be able to tell them apart.
+        */}
+        <Pressable
+          onPress={onOpenSummon}
+          accessibilityRole="button"
+          accessibilityLabel={t({ en: 'The Summoning: invented spirits, from charms you earned', th: 'การอัญเชิญ: ภูตที่แต่งขึ้น แลกด้วยเครื่องรางที่สะสมเอง' })}
+          style={[tileFrame('#1f2a5c'), gameShadow.lift]}
+        >
+          <TileText
+            title={t({ en: 'The Summoning', th: 'การอัญเชิญ' })}
+            sub={t({ en: 'Invented spirits', th: 'ภูตที่แต่งขึ้น' })}
+            ink="#FFFFFF"
+          />
+          <View style={{ position: 'absolute', right: 10, bottom: 10 }}>
+            <Sparkles size={34} color="#FFFFFF" strokeWidth={1.8} />
           </View>
         </Pressable>
       </View>

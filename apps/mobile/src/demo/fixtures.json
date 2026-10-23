@@ -640,10 +640,10 @@
         "Quiet"
       ],
       "photo": {
-        "url": "/assets/places/ku-library.jpg",
+        "url": "/media/places/ku-library.jpg",
         "credit": "ChivaGo team · KU Sriracha",
         "licence": "Team photograph",
-        "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places"
+        "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places"
       },
       "metrics": {
         "crowdDensity": 1.8,
@@ -767,10 +767,10 @@
         "Lake"
       ],
       "photo": {
-        "url": "/assets/places/ku-park.jpg",
+        "url": "/media/places/ku-park.jpg",
         "credit": "ChivaGo team · KU Sriracha",
         "licence": "Team photograph",
-        "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places"
+        "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places"
       },
       "metrics": {
         "crowdDensity": 0.6,
@@ -894,10 +894,10 @@
         "Green space"
       ],
       "photo": {
-        "url": "/assets/places/ku-viewpoint.jpg",
+        "url": "/media/places/ku-viewpoint.jpg",
         "credit": "ChivaGo team · KU Sriracha",
         "licence": "Team photograph",
-        "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places"
+        "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places"
       },
       "metrics": {
         "crowdDensity": 0.4,
@@ -1021,10 +1021,10 @@
         "Pool"
       ],
       "photo": {
-        "url": "/assets/places/ku-sports.jpg",
+        "url": "/media/places/ku-sports.jpg",
         "credit": "ChivaGo team · KU Sriracha",
         "licence": "Team photograph",
-        "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places"
+        "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places"
       },
       "metrics": {
         "crowdDensity": 1.4,
@@ -1148,10 +1148,10 @@
         "Meeting point"
       ],
       "photo": {
-        "url": "/assets/places/ku-shops.jpg",
+        "url": "/media/places/ku-shops.jpg",
         "credit": "ChivaGo team · KU Sriracha",
         "licence": "Team photograph",
-        "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places"
+        "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places"
       },
       "metrics": {
         "crowdDensity": 2.6,
@@ -1275,10 +1275,10 @@
         "By Gate 1"
       ],
       "photo": {
-        "url": "/assets/places/ku-building13.jpg",
+        "url": "/media/places/ku-building13.jpg",
         "credit": "ChivaGo team · KU Sriracha",
         "licence": "Team photograph",
-        "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places"
+        "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places"
       },
       "metrics": {
         "crowdDensity": 1.6,
@@ -4065,10 +4065,10 @@
       "Quiet"
     ],
     "photo": {
-      "url": "/assets/places/ku-library.jpg",
+      "url": "/media/places/ku-library.jpg",
       "credit": "ChivaGo team · KU Sriracha",
       "licence": "Team photograph",
-      "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places"
+      "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places"
     },
     "metrics": {
       "crowdDensity": 1.8,
@@ -4228,10 +4228,10 @@
       "Lake"
     ],
     "photo": {
-      "url": "/assets/places/ku-park.jpg",
+      "url": "/media/places/ku-park.jpg",
       "credit": "ChivaGo team · KU Sriracha",
       "licence": "Team photograph",
-      "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places"
+      "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places"
     },
     "metrics": {
       "crowdDensity": 0.6,
@@ -4391,10 +4391,10 @@
       "Green space"
     ],
     "photo": {
-      "url": "/assets/places/ku-viewpoint.jpg",
+      "url": "/media/places/ku-viewpoint.jpg",
       "credit": "ChivaGo team · KU Sriracha",
       "licence": "Team photograph",
-      "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places"
+      "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places"
     },
     "metrics": {
       "crowdDensity": 0.4,
@@ -4554,10 +4554,10 @@
       "Pool"
     ],
     "photo": {
-      "url": "/assets/places/ku-sports.jpg",
+      "url": "/media/places/ku-sports.jpg",
       "credit": "ChivaGo team · KU Sriracha",
       "licence": "Team photograph",
-      "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places"
+      "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places"
     },
     "metrics": {
       "crowdDensity": 1.4,
@@ -4717,10 +4717,10 @@
       "Meeting point"
     ],
     "photo": {
-      "url": "/assets/places/ku-shops.jpg",
+      "url": "/media/places/ku-shops.jpg",
       "credit": "ChivaGo team · KU Sriracha",
       "licence": "Team photograph",
-      "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places"
+      "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places"
     },
     "metrics": {
       "crowdDensity": 2.6,
@@ -4880,10 +4880,10 @@
       "By Gate 1"
     ],
     "photo": {
-      "url": "/assets/places/ku-building13.jpg",
+      "url": "/media/places/ku-building13.jpg",
       "credit": "ChivaGo team · KU Sriracha",
       "licence": "Team photograph",
-      "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places"
+      "sourceUrl": "https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places"
     },
     "metrics": {
       "crowdDensity": 1.6,

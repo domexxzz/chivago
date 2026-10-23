@@ -233,9 +233,15 @@ describe('the campus scores stand on estimates', () => {
     // Every campus, found by the map it is drawn with, rather than the one
     // province this was written for. A second campus that quietly escaped
     // the rule the first is held to would be the worst of both.
-    const campuses = AREAS.filter((a) => a.map === 'campus');
-    const onCampus = SEED_PLACES.filter((p) => campuses.some((a) => inArea(a, p)));
-    assert.ok(onCampus.length >= 10, 'the campus places went missing from this check');
+    // EVERYWHERE THAT IS NOT SAMUI, now. This said `map === 'campus'`,
+    // which was the same set while every area but the island was one -
+    // and Ko Sichang arrived as an island whose numbers are estimates
+    // too, and walked straight past a rule written for its shape rather
+    // than for its evidence. Samui's five are the design comps and have
+    // their own test above.
+    const unsurveyed = AREAS.filter((a) => a.key !== 'samui');
+    const onCampus = SEED_PLACES.filter((p) => unsurveyed.some((a) => inArea(a, p)));
+    assert.ok(onCampus.length >= 15, 'the estimated places went missing from this check');
     for (const p of onCampus) {
       assert.ok(!isHighScore(healthyScore(p.metrics)), `${p.id} scores ${healthyScore(p.metrics)} on estimates`);
     }

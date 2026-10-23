@@ -124,7 +124,7 @@ export function seedArea(db: DB, key: AreaKey, now = new Date()): SeedAreaResult
  * Bring an area's place photographs in line with the seed: the one thing this
  * script changes on a row that exists, and only when asked (`--photos`).
  *
- * A photograph is a file in this repository (apps/mobile/public/assets/places)
+ * A photograph is a file in this repository (apps/mobile/public/media/places)
  * with its credit and licence written beside it in the seed, so for these four
  * columns the seed IS the source of truth, as it is not for a place's scores
  * or a host's name. They are set to exactly what the seed says, null included:

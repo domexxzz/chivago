@@ -46,6 +46,15 @@ const GAME_LAYER = [
   'PassportScreen.tsx',
   'PartyScreen.tsx',
   'FindPartyScreen.tsx',
+  /*
+    The summoning (docs/68) is squarely the game layer, and it has to be,
+    because the one thing it must never look like is evidence. Nothing on it
+    is a measured claim: the creatures are invented and say so, the charm
+    came from the ledger but is not a balance, and no number on the screen
+    goes into anybody's report. A flat, evidence-looking summon screen would
+    be the interface quietly suggesting otherwise.
+  */
+  'SummonScreen.tsx',
 ];
 
 /**

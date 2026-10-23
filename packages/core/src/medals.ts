@@ -120,6 +120,11 @@ export const MEDALS_BASIS: Bilingual = {
 export interface MedalPlace {
   id: string;
   province: string;
+  /**
+   * Where it is. The province alone stopped being enough when Koh Sichang
+   * opened in Chon Buri beside the Si Racha campus, so an area is decided by
+   * the frame a place stands in - see `areaOfPlace`.
+   */
   lat: number;
   lng: number;
 }

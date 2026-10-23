@@ -11,6 +11,8 @@ import {
   StoriesClosed, StoryNotFound, StoryQuotaReached, StoryTooLarge, UnknownPlace, UnsupportedStory,
   WrongEventToken,
 } from './story-service.ts';
+import { TranscoderUnavailable } from './transcode.ts';
+import { AlreadyHave, NoCharms, NotEnoughDust, UnknownSpirit } from './summon-service.ts';
 import type { ApiFailure, ApiSuccess } from '@chivago/core';
 import { InsufficientPoints } from './wallet-service.ts';
 import { InvalidTransition, OutsideGeofence } from './quest-service.ts';
@@ -116,6 +118,28 @@ export function handleError(c: Context, err: unknown) {
   // `code` names the one case the app has its own words for: an iPhone's
   // HEIC photograph on a server whose ffmpeg cannot read HEIF.
   if (err instanceof UnsupportedStory) return fail(c, err.code, err.message, 400);
+  /*
+    503, not 400. The upload was fine and the file was fine; this machine has
+    no ffmpeg. A 4xx here tells the traveller to fix something they cannot
+    see, and tells the operator nothing - which on an event day is the whole
+    room concluding the app is broken while the one fixable fault is silent.
+  */
+  if (err instanceof TranscoderUnavailable) {
+    console.error('[chivago] story transcoder unavailable:', err.message);
+    return fail(
+      c,
+      'STORY_TRANSCODER_DOWN',
+      'Stories cannot be processed on this server right now. Nothing is wrong with your clip - try again shortly.',
+      503,
+    );
+  }
+  // The summoning (docs/68). None of these is a payment failure, because
+  // nothing here is bought: a charm is earned and stardust comes from
+  // duplicates. 409, not 402.
+  if (err instanceof NoCharms) return fail(c, 'NO_CHARMS', err.message, 409);
+  if (err instanceof NotEnoughDust) return fail(c, 'NOT_ENOUGH_DUST', err.message, 409);
+  if (err instanceof AlreadyHave) return fail(c, 'ALREADY_HAVE', err.message, 409);
+  if (err instanceof UnknownSpirit) return fail(c, 'NOT_FOUND', err.message, 404);
   if (err instanceof BodyTooLarge) return fail(c, 'BODY_TOO_LARGE', err.message, 413);
   if (err instanceof UnknownPlace) return fail(c, 'NOT_FOUND', err.message, 404);
   if (err instanceof StoryNotFound) return fail(c, 'NOT_FOUND', err.message, 404);
