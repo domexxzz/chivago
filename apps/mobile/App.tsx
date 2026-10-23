@@ -69,6 +69,34 @@ export default function App() {
   });
 
   const nav = useNav('onboarding');
+
+  /*
+    THESE TWO ARE MEMOISED AND THE OTHERS ARE NOT, FOR A REASON.
+
+    The web map rebuilds every DOM marker - pin, quest mark, bus stop,
+    with their `innerHTML`, their listeners and their poster images -
+    whenever `onSelect` or `onOpenQuest` changes identity, because both sit
+    in that effect's dependency array. Written inline, they are new
+    functions on every render of this component: every toast, every SOS
+    poll, every notification tick tore down the whole map's furniture and
+    built it again.
+
+    MapScreen already memoises the arrays it passes (see the note there);
+    this is the other half of the same fix. `nav.push` is a stable
+    `useCallback`, so these are stable for the life of the screen.
+
+    The identical arrows further down are left alone deliberately: no other
+    screen rebuilds anything expensive when a handler's identity changes,
+    and a memo that buys nothing is a line that has to be read anyway.
+  */
+  const openPlaceOnMap = React.useCallback(
+    (id: string) => nav.push('place', { placeId: id }),
+    [nav.push],
+  );
+  const openQuestOnMap = React.useCallback(
+    (id: string) => nav.push('quest', { questId: id }),
+    [nav.push],
+  );
   // Where the traveller asked to be shown the way to. Held here rather than
   // in the Map tab because the ASK happens on the place screen, and the tab
   // is remounted by its own key when the area changes.
@@ -279,8 +307,8 @@ export default function App() {
             layers={layers}
             onToggleLayer={toggle}
             onPlanDay={() => nav.push('trip')}
-            onOpenPlace={(id) => nav.push('place', { placeId: id })}
-            onOpenQuest={(id) => nav.push('quest', { questId: id })}
+            onOpenPlace={openPlaceOnMap}
+            onOpenQuest={openQuestOnMap}
             onSeeAllQuests={() => nav.selectTab('quests')}
             onAskConcierge={() => nav.push('concierge')}
             onOpenStays={() => nav.push('stays')}

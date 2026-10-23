@@ -3,10 +3,10 @@ import { test, describe } from 'node:test';
 
 import {
   CROWD_M, DRIFT, FOG_BOUNDS, FOG_CORNERS, HERO, PIN_NUDGE_PX, QUEST_FAN_PX, QUEST_MARK_OFFSET, REVEAL_M,
-  MAX_PITCH, ROUTE_DASH, ROUTE_PHASES, SAMUI_BOUNDS, SWELLS, SWELL_FPS, SWELL_PX, WIND, chivagoStyle, cloudField,
+  MAX_PITCH, ROUTE_DASH, ROUTE_PHASES, SAMUI_BOUNDS, SURF_BREATH, TIDE_FPS, WIND, chivagoStyle, cloudField,
   CAMPUS_FRAME_PX, CAMPUS_FRAME_ZOOM, CAMPUS_ZOOM_RANGE, campusZoom,
-  crest, crowdOffsets, heroPose, introPose, landColours, paletteFor, questMark, questOffsets, revealedPoints, reveals,
-  routeDash, settleEasing, swell,
+  crowdOffsets, heroPose, introPose, islandExaggeration, landColours, paletteFor, questMark, questOffsets, revealedPoints, reveals,
+  routeDash, settleEasing, surfBreath,
 } from '../src/components/terrain-style.ts';
 import { exploredCount } from '../src/components/map-parts.tsx';
 import {
@@ -235,6 +235,17 @@ describe('the land is coloured by its real height', () => {
 
   test('the mountain is exaggerated, and it says by how much', () => {
     assert.ok(HERO.exaggeration >= 1 && HERO.exaggeration <= 2.5, 'a hill, not an alp');
+    /*
+      And the lift follows the island's size, because how far the camera
+      stands off is set by how big the island is. At a flat 2.0 - the
+      number Samui was read at - Ko Sichang's real west-coast cliffs came
+      up as walls across the frame.
+    */
+    assert.equal(islandExaggeration(SAMUI_BBOX), HERO.exaggeration, 'Samui is where the number was read');
+    const sichang = { minLat: 13.1243, maxLat: 13.1818, minLng: 100.7975, maxLng: 100.8208 };
+    const small = islandExaggeration(sichang);
+    assert.ok(small < HERO.exaggeration, 'a small island needs less help');
+    assert.ok(small >= 1.3, 'but it is still an island seen from the sea');
   });
 
   test('buildings stand up only when the camera is close enough for a house to be a house', () => {
@@ -690,42 +701,58 @@ describe('uncharted: the mist lifts only where they have been', () => {
   });
 });
 
-describe('the sea moves', () => {
-  test('the sea wears the swell pattern', () => {
-    const sea = layer('sea') as { paint: Record<string, unknown> };
-    assert.equal(sea.paint['fill-pattern'], 'sea-swell');
-  });
-
-  test('the pattern tiles: the left edge meets the right and the top meets the bottom', () => {
-    for (const t of [0, 1.3, 7.7]) {
-      for (let i = 0; i < SWELL_PX; i += 37) {
-        assert.ok(Math.abs(swell(0, i, t) - swell(SWELL_PX, i, t)) < 1e-9, `x seam at y=${i}`);
-        assert.ok(Math.abs(swell(i, 0, t) - swell(i, SWELL_PX, t)) < 1e-9, `y seam at x=${i}`);
-      }
+describe('the sea', () => {
+  /*
+    THE PATTERN IS GONE AND MUST STAY GONE. A `fill-pattern` repeats every
+    N screen pixels, so anything drawn into it is drawn again every N
+    pixels - which is what turned three sine waves into a readable grid of
+    dots across the water. No wave is worth a seam at a fixed pitch.
+  */
+  test('the sea wears no repeating pattern', () => {
+    for (const hour of HOURS) {
+      const sea = layer('sea', chivagoStyle(hour)) as { paint: Record<string, unknown> };
+      assert.equal(sea.paint['fill-pattern'], undefined, `at ${hour}h the sea is tiled again`);
     }
   });
 
-  test('the water is between the trough and the crest, and it moves', () => {
-    let changed = false;
-    for (let x = 0; x < SWELL_PX; x += 13) {
-      for (let y = 0; y < SWELL_PX; y += 17) {
-        const a = swell(x, y, 0);
-        assert.ok(a >= 0 && a <= 1);
-        if (Math.abs(a - swell(x, y, 2)) > 0.05) changed = true;
-      }
-    }
-    assert.ok(changed, 'two seconds later the sea is somewhere else');
-    assert.equal(crest(0.5), 0, 'no foam in a trough');
-    assert.equal(crest(1), 1, 'full foam on the top of a crest');
-    assert.ok(crest(0.9) > 0 && crest(0.9) < 1);
+  test('the depth is read from a source cut where the archive still has depth', () => {
+    const style = chivagoStyle();
+    const deep = (style.sources as Record<string, { maxzoom?: number; tiles?: string[] }>).deep;
+    assert.ok(deep, 'there is no sea-floor source');
+    // Measured off Samui: depth survives to z10 and is flat zero by z12.
+    assert.equal(deep.maxzoom, 10, 'past zoom ten the archive returns a sea of zeroes');
+    // The same tiles as the land reads, so no new source and no new licence.
+    const relief = (style.sources as Record<string, { tiles?: string[] }>).relief;
+    assert.deepEqual(deep.tiles, relief!.tiles);
   });
 
-  test('it is water, not a phone-warmer', () => {
-    assert.ok(SWELL_FPS >= 8 && SWELL_FPS <= 15);
-    assert.ok(SWELL_PX <= 256, 'a stamp, repainted; not a poster');
-    const total = SWELLS.reduce((a, s) => a + s.weight, 0);
-    assert.ok(Math.abs(total - 1) < 1e-9, 'the weights sum to one so the height stays in range');
-    for (const s of SWELLS) assert.ok(Number.isInteger(s.cx) && Number.isInteger(s.cy), 'integer cycles, or it does not tile');
+  test('the depth layer colours water and never touches land', () => {
+    const expr = (layer('sea-depth').paint as Record<string, unknown>)['color-relief-color'] as unknown[];
+    const alphaOf = (c: string) => Number(/^rgba\(.*,\s*([0-9.]+)\s*\)$/.exec(c)![1]);
+    for (let i = 3; i < expr.length; i += 2) {
+      const elevation = expr[i] as number;
+      const alpha = alphaOf(expr[i + 1] as string);
+      if (elevation >= 0) assert.equal(alpha, 0, `opaque at ${elevation} m, which is land`);
+      else assert.ok(alpha > 0, `invisible at ${elevation} m, which is water`);
+    }
+  });
+
+  test('the surf breathes, between a floor and full, and never stops', () => {
+    assert.ok(SURF_BREATH.low > 0.5 && SURF_BREATH.low < SURF_BREATH.high);
+    assert.equal(SURF_BREATH.high, 1);
+    let min = 2;
+    let max = -1;
+    for (let t = 0; t < 400; t += 0.37) {
+      const v = surfBreath(t);
+      assert.ok(v >= SURF_BREATH.low - 1e-9 && v <= SURF_BREATH.high + 1e-9, `${v} at t=${t}`);
+      min = Math.min(min, v);
+      max = Math.max(max, v);
+    }
+    assert.ok(max - min > 0.1, 'it has to actually move');
+  });
+
+  test('the tide is slow enough to be cheap and quick enough to read', () => {
+    assert.ok(TIDE_FPS >= 2 && TIDE_FPS <= 6, 'three a second, not twelve');
   });
 });
 

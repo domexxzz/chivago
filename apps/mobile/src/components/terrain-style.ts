@@ -238,8 +238,26 @@ function illuminationFor(hour: number): number {
   return 90 + ((h - 6) / 12.5) * 180;
 }
 
+/**
+ * The last palette, by hour.
+ *
+ * `paletteFor` blends two dozen colours channel by channel, each through a
+ * `mix` that parses two hex strings and formats a third - about forty-four
+ * string allocations a call. The tide used to call it several times a
+ * second with the SAME hour, because the hour only moves when the clock
+ * does. One slot is enough: the map asks for one hour at a time.
+ */
+let lastPalette: { hour: number; palette: MapPalette } | null = null;
+
 /** The palette for an hour of the island's day, 0–24 (wrapping). */
 export function paletteFor(hour: number): MapPalette {
+  if (lastPalette && lastPalette.hour === hour) return lastPalette.palette;
+  const palette = computePalette(hour);
+  lastPalette = { hour, palette };
+  return palette;
+}
+
+function computePalette(hour: number): MapPalette {
   const { day, arc, golden } = dayArc(hour);
   const illumination = illuminationFor(hour);
   if (!day) return { ...NIGHT, night: true, illumination, lamps: 1 };
@@ -319,22 +337,76 @@ const PLACE_NAME = ['case',
 /**
  * The elevation the land is coloured, shaded and lifted by.
  *
- * MAXZOOM 15, WHICH IS WHAT THE ARCHIVE HAS. It said 13 for a long time,
- * and on the island - framed between zoom 9 and 15.5 - nobody could see the
- * difference. On the CAMPUS, framed between 14 and 18.5, it was the whole
- * problem: a zoom-13 tile stretched to zoom 18 gives one elevation sample
- * per 250 m of ground, so a hillside with 180 m of relief in it rendered as
- * a flat green sheet. Zoom 15 is sixteen times the samples over the same
- * ground, and 16 is a 404 from the archive, so this is the floor of the
- * real data rather than a number picked for looks.
+ * This number has been 13, then 15, and is 13 again. The history is worth
+ * keeping because both moves were made for good reasons and the second
+ * one was wrong.
+ *
+ * It was raised to 15 because the campus, framed between zoom 14 and 18.5,
+ * rendered as a flat green sheet: a zoom-13 tile stretched that far gives
+ * a smooth ramp where there is a 180 m hillside. The extra zooms did look
+ * better. What nobody checked was whether they were real - and the
+ * measurement below says they are not, and that they bring corruption with
+ * them.
  */
 const dem = {
   type: 'raster-dem' as const,
   tiles: [TERRAIN_TILES],
   tileSize: 256,
-  maxzoom: 15,
+  /*
+    THIRTEEN, BECAUSE FOURTEEN AND FIFTEEN ARE CORRUPT.
+
+    This said 15, on the reasoning that more zoom is more samples. It is
+    not: the archive's source for Thailand is SRTM at one arc-second,
+    about 30 m on the ground, and zoom 13 already carries 18.8 m a sample
+    at this latitude. Everything above 13 is interpolation of data that
+    was never that fine - and in these tiles, interpolation that has gone
+    wrong. Decoding the same ground at each zoom on 2026-10-23:
+
+                   z13        z14          z15
+      Koh Samui    -14 m      -18,109 m    -22,699 m
+      Ko Sichang   -14 m      -2,021 m     -3,485 m
+      highest      unchanged  unchanged    unchanged
+
+    About one texel in two thousand above zoom 13 is a value like minus
+    eighteen kilometres. At `exaggeration: 2` the terrain mesh renders
+    each of them as a needle driven through the island, which is what put
+    the shards through the ridge on Ko Sichang the first time the hero
+    settled there. The tops are fine - the maximum is the same at every
+    zoom - so this is bad NODATA handling in the upsample, not a different
+    survey.
+
+    Thirteen is the deepest zoom that is clean in both places, and it
+    costs no real detail, because there was never any real detail above
+    it to lose.
+  */
+  maxzoom: 13,
   encoding: 'terrarium' as const,
 };
+
+/**
+ * THE SAME ARCHIVE, READ WHERE IT STILL KNOWS HOW DEEP THE SEA IS.
+ *
+ * The tiles above carry real bathymetry, and for a long time this style
+ * said they did not - because at the zooms the hero uses, they do not.
+ * Decoding the same tiles down the zoom ladder off Samui's east coast:
+ *
+ *   z8   92.7% of pixels below sea level, to -136 m
+ *   z9   89.8%, to -77 m
+ *   z10  70.7%, to -136 m
+ *   z11  1%, to -25 m
+ *   z12  0%. Flat zero, everywhere, for ever.
+ *
+ * The depth is cut above zoom 10. `dem` asks for zoom 15 because the LAND
+ * needs it, and gets a sea of zeroes with it; this source asks for ten and
+ * gets the sea floor, stretched. Stretching is the right trade here and
+ * only here: a hillside overzoomed is a smooth ramp where there should be
+ * a ridge, but the floor of the Gulf IS smooth, and what it is used for is
+ * the colour of water rather than the shape of ground.
+ *
+ * Same URL, same archive, same licence, same attribution. Nothing new is
+ * fetched that was not already being fetched at these zooms.
+ */
+const seaDem = { ...dem, maxzoom: 10 };
 
 /**
  * The style, written here rather than pulled from a hosted one.
@@ -367,6 +439,9 @@ export function chivagoStyle(hour = 12): StyleSpecification {
           + '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap</a>',
       },
       relief: dem,
+      // The sea floor. See `seaDem`: the same tiles, stopped at the zoom
+      // where they still carry depth.
+      deep: seaDem,
     },
     /*
       The sky and the fog. At this pitch the far edge of the frame is Ko
@@ -517,13 +592,57 @@ export function chivagoStyle(hour = 12): StyleSpecification {
           'hillshade-exaggeration': p.night ? 0.7 : 0.86,
         },
       },
+      /*
+        THE SEA. Flat colour, and that is the fix rather than the
+        compromise.
+
+        It used to wear `fill-pattern: 'sea-swell'` - a 256-pixel canvas of
+        three crossing sine waves, repainted twelve times a second. A
+        fill-pattern REPEATS IN SCREEN PIXELS, so whatever was drawn in
+        those 256 pixels was laid out across the water every 256 pixels,
+        and the crests came out as a readable grid of dots: the "game
+        texture" look, from a tile that was only ever meant to suggest
+        water. No amount of retuning the waves fixes a seam that is in the
+        mechanism.
+
+        What the sea gets instead is REAL DEPTH (the `sea-depth` layer
+        below) and motion where water actually moves - the shoreline, the
+        ferry dots, the cloud shadows. See `surf`.
+      */
       {
         id: 'sea', type: 'fill', source: 'osm', 'source-layer': 'water',
-        // Not quite opaque: the reef flat in the relief shows through as
-        // shallows along the beaches. The pattern is the moving water,
-        // painted by TerrainMap from `swell()` below; the colour stands in
-        // for the frame before the first pattern lands.
-        paint: { 'fill-color': p.sea, 'fill-pattern': 'sea-swell', 'fill-opacity': 0.8 },
+        // Not quite opaque: the relief under it carries the deep-water
+        // colour, so the two read as one body rather than a lid on a map.
+        paint: { 'fill-color': p.sea, 'fill-opacity': 0.8 },
+      },
+      /*
+        How deep it is, from the archive that knows - see `seaDem`.
+
+        Over the sea fill rather than under it, because under four fifths
+        of an opaque blue a depth gradient is a rumour. Transparent at and
+        above the waterline, so it never touches the land; the shelf close
+        in reads pale and the channel out past it reads dark, which is what
+        makes an island look like it is standing in water rather than lying
+        on top of it.
+
+        IT IS DEPTH, NOT A REEF. The archive gives metres below the
+        surface and nothing else - no substrate, no coral, no survey of
+        what is down there - and this layer claims exactly that much.
+      */
+      {
+        id: 'sea-depth', type: 'color-relief', source: 'deep',
+        paint: {
+          'color-relief-opacity': p.night ? 0.55 : 0.8,
+          'color-relief-color': ['interpolate', ['linear'], ['elevation'],
+            -400, rgba(mix(p.deep, '#000a16', 0.45), 0.85),
+            -120, rgba(p.deep, 0.7),
+            -45, rgba(mix(p.deep, p.shallow, 0.4), 0.5),
+            -15, rgba(p.shallow, 0.3),
+            -3, rgba(p.shallow, 0.12),
+            0, rgba(p.shallow, 0),
+            900, rgba(p.shallow, 0),
+          ],
+        },
       },
       /*
         THE WATER'S EDGE, which is where an island stops looking like a
@@ -673,22 +792,57 @@ export function chivagoStyle(hour = 12): StyleSpecification {
         to be a house. At the hero zoom Chaweng is a texture; two pinches in
         it is a town, and the town has walls the sun lights from the same
         side as the mountain.
+
+        WHAT THE SURVEY ACTUALLY GIVES, which is less than the old code
+        assumed and more than it used. The `building` source-layer in
+        OpenFreeMap's planet tiles carries exactly four fields, and the
+        TileJSON says so: `render_height`, `render_min_height`, `colour`,
+        `hide_3d`. There is no `class`, no `levels`, no `kind`. Counted off
+        the z14 tiles on 2026-10-23:
+
+          Koh Samui, the whole island   75 buildings, every one with a height (4-22 m)
+          KU Sriracha                   21, every one with a height (4-55 m)
+          Ko Sichang                     7
+
+        Seventy-five is the whole island. Buildings are a thing you find by
+        zooming in here, not a skyline - which is why this layer starts at
+        the zoom the DATA starts at and not before.
+
+        `minzoom: 13` because that is the building layer's own minzoom; it
+        used to say 12.5, which asked for half a zoom level of tiles that
+        contain no buildings at all.
       */
       {
         id: 'buildings', type: 'fill-extrusion', source: 'osm', 'source-layer': 'building',
-        minzoom: 12.5,
+        minzoom: 13,
+        /*
+          `hide_3d` is the survey's own instruction not to extrude this
+          one - it is set on building PARTS, which would otherwise stand up
+          inside the building they belong to and z-fight with it. One
+          feature on Samui carries it, and it was being drawn twice.
+        */
+        filter: ['!=', ['get', 'hide_3d'], true],
         paint: {
           /*
+            The surveyed colour where there is one, and the palette's where
+            there is not. Exactly one building on Samui carries `colour`,
+            so this is not a feature so much as a refusal to overwrite the
+            one fact somebody took the trouble to record.
+
             And after dark they are lit from inside. Zoom into Chaweng at
             nine in the evening and the walls should not be the grey they
             are at noon with less light on them - a town at night is warmer
             than a town at midday, because at midday the light is the sun's
             and at night it is somebody's.
           */
-          'fill-extrusion-color': p.night ? mix(p.building, p.lantern, 0.38) : p.building,
+          'fill-extrusion-color': ['coalesce', ['get', 'colour'],
+            p.night ? mix(p.building, p.lantern, 0.38) : p.building],
+          // Always present in these tiles; the coalesce is belt and braces
+          // for a tile from somewhere the field is missing.
           'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 5],
           'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
           'fill-extrusion-opacity': 0.9,
+          'fill-extrusion-vertical-gradient': true,
         },
       },
       /*
@@ -843,6 +997,30 @@ export const HERO = {
    */
   exaggeration: 2.0,
 } as const;
+
+/**
+ * How hard to lift an island, for an island of a given size.
+ *
+ * HOW FAR AWAY THE CAMERA STANDS IS SET BY HOW BIG THE ISLAND IS, because
+ * the hero frames the whole of it. Samui is 25 km across and the camera
+ * sits twelve kilometres off; doubling Khao Pom's 635 m there reads as a
+ * mountain you could walk up. Ko Sichang is 6.4 km across and the camera
+ * sits two kilometres off, and at the same doubling its west-coast cliffs
+ * - which are real, and are what Khao Khat is named for - come up as
+ * walls across the frame. Measured off the mesh at exaggeration 2: 215 m
+ * falling to 36 m across two screen pixels.
+ *
+ * So the lift is tied to the span rather than fixed. Big island, far
+ * camera, more help; small island, near camera, less. The floor is a
+ * little above the campus's 1.15, because an island is still a thing you
+ * look at from the sea and a campus is a thing you stand on.
+ */
+export const islandExaggeration = (box: Box): number => {
+  const widthKm = (box.maxLng - box.minLng) * 111.32 * Math.cos(((box.minLat + box.maxLat) / 2) * Math.PI / 180);
+  const heightKm = (box.maxLat - box.minLat) * 110.574;
+  const spanKm = Math.max(widthKm, heightKm);
+  return Math.min(2, Math.max(1.3, 1.05 + spanKm * 0.038));
+};
 
 /**
  * After the intro, the camera keeps turning - slowly, for a while, and only
@@ -1181,54 +1359,52 @@ export function revealedPoints(
 }
 
 // ---------------------------------------------------------------------------
-// The swell
+// The tide
 // ---------------------------------------------------------------------------
 
+/*
+  WHERE THE SEA USED TO MOVE, AND WHY IT MOVES SOMEWHERE ELSE NOW.
+
+  This section held a swell: three crossing sine waves painted into a
+  256-pixel canvas, pushed into the style's image atlas twelve times a
+  second, and worn by the `sea` fill as a `fill-pattern`.
+
+  The waves were fine. The MECHANISM could not be: a fill-pattern repeats
+  every N screen pixels, so a crest drawn at x=40 was drawn again at 296,
+  552, 808, and the sea came out as a grid of dots that read as a video
+  game rather than as water. There is no tuning of a wave that fixes a
+  seam at a fixed pixel pitch.
+
+  It also cost more than it looked. 65,536 pixels, three `Math.sin` each,
+  twelve times a second: about 2.4 million sines and 3 MB of texture
+  upload per second, with a full-scene `triggerRepaint` behind each one,
+  which re-evaluated three DEM-reading layers and the terrain mesh.
+
+  So the water is still and the MOTION MOVED TO WHERE WATER ACTUALLY
+  MOVES: the line of surf on the shore breathes (TIDE_FPS below drives
+  `surf`'s opacity), the ferry dots walk their routes, and the cloud
+  shadows cross the island. Nothing repeats, and the whole thing costs one
+  paint property a few times a second.
+*/
+
+/** How often the tide ticks: the surf's breath, the ferry dots, the clouds. */
+export const TIDE_FPS = 3;
+
 /**
- * The sea moves. The `sea` fill is painted with a pattern the map redraws a
- * dozen times a second: the sea colour with the crests of three crossing
- * swells drifting over it, and by moonlight the glitter path a low moon
- * leaves on water.
+ * The surf's breath, as a multiplier on the shoreline band's opacity.
  *
- * It is a pattern, so it must tile. Every wave number here is an integer
- * count of cycles across the pattern's width, which is what makes the left
- * edge meet the right without a seam.
+ * A real shore does not pulse evenly, so this is two sines a third of a
+ * turn out of step - the long set and the shorter chop on top of it -
+ * which gives a rise and fall that never quite repeats on the eye.
  */
+export const SURF_BREATH = { low: 0.82, high: 1.0 } as const;
 
-/** The pattern's side, in pixels. */
-export const SWELL_PX = 256;
-
-/** Redraws per second. Enough for water; not enough to warm a phone. */
-export const SWELL_FPS = 12;
-
-/** Three swells: cycles across the pattern, direction, speed, weight. */
-export const SWELLS: { cx: number; cy: number; speed: number; weight: number }[] = [
-  // Finer than it first was: three cycles across the tile drew crests the
-  // size of clouds, and the sea read as snow. Eleven draws water.
-  { cx: 11, cy: 6, speed: 0.9, weight: 0.5 },
-  { cx: -7, cy: 13, speed: 0.6, weight: 0.3 },
-  { cx: 19, cy: -4, speed: 1.4, weight: 0.2 },
-];
-
-/**
- * The height of the water at a pattern pixel, 0–1, at a time in seconds.
- * Periodic in x and y with period SWELL_PX, by construction.
- */
-export function swell(x: number, y: number, t: number): number {
-  const k = (2 * Math.PI) / SWELL_PX;
-  let h = 0;
-  for (const s of SWELLS) h += s.weight * Math.sin(k * (s.cx * x + s.cy * y) + s.speed * t);
-  // Weights sum to 1, so h is in [-1, 1].
-  return (h + 1) / 2;
-}
-
-/**
- * How much crest shows at a height: nothing below the shoulder, then a
- * quick rise to full - a crest is a line, not a gradient.
- */
-export function crest(h: number, shoulder = 0.84): number {
-  if (h <= shoulder) return 0;
-  return Math.min(1, (h - shoulder) / (1 - shoulder));
+export function surfBreath(t: number): number {
+  const a = Math.sin(t * 0.45);
+  const b = Math.sin(t * 0.73 + 2.1);
+  // Two unit sines averaged, mapped onto the band.
+  const k = (a * 0.65 + b * 0.35 + 1) / 2;
+  return SURF_BREATH.low + (SURF_BREATH.high - SURF_BREATH.low) * k;
 }
 
 // ---------------------------------------------------------------------------
