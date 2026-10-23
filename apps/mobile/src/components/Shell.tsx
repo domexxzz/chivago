@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { Animated, Pressable, StyleSheet, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { ChevronLeft, House, Leaf, Map as MapIcon, PawPrint, Shield } from 'lucide-react-native';
 import { strings } from '@chivago/core';
@@ -67,13 +67,31 @@ export function OceanBackdrop({
 
 /**
  * Five tabs on a soft white surface. Ocean blue and a dot mark the active tab.
+ *
+ * TWO SHAPES, ONE BAR. On a phone it is the full-width bar wedged against the
+ * bottom edge, which is where a thumb is. A wide window has no thumb and no
+ * bottom edge worth filling - a bar stretched across 1900 px puts five icons
+ * in a corner of an empty white stripe - so past `WIDE_TABS_AT` the same five
+ * become a centred pill floating clear of the content. Same tabs, same order,
+ * same behaviour: only the container moves.
  */
+export const WIDE_TABS_AT = 940;
+
 export function TabBar({
   active, onChange,
 }: { active: TabKey; onChange: (tab: TabKey) => void }) {
+  const { width } = useWindowDimensions();
+  const floating = width >= WIDE_TABS_AT;
   return (
     <View
-      style={{
+      style={floating ? {
+        flexDirection: 'row', height: layout.tabBarHeight + 4,
+        backgroundColor: 'rgba(255,255,255,0.97)',
+        alignSelf: 'center', width: 520, maxWidth: '92%',
+        marginBottom: 18, borderRadius: 26,
+        borderWidth: layout.ruleHair, borderColor: '#DCEFF5',
+        shadowColor: '#0077B6', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 20, elevation: 8,
+      } : {
         flexDirection: 'row', height: layout.tabBarHeight + 4, backgroundColor: 'rgba(255,255,255,0.96)',
         borderTopWidth: layout.ruleHair, borderTopColor: '#DCEFF5',
         borderTopLeftRadius: 20, borderTopRightRadius: 20,
