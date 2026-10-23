@@ -668,7 +668,13 @@ export const SEED_PLACES: Place[] = [
       en: 'Where the ferry from Si Racha lands, and where nearly every day trip starts and ends.',
       th: 'ท่าเรือที่เรือจากศรีราชาเทียบ จุดเริ่มและจุดจบของการเที่ยวแบบเช้าไปเย็นกลับเกือบทุกทริป',
     },
-    tags: ['Pier', 'Ferry'], photo: null,
+    tags: ['Pier', 'Ferry'],
+    photo: {
+      url: '/media/places/sc-pier.jpg',
+      credit: 'ChivaGo team · Koh Sichang',
+      licence: 'Team photograph · used with permission',
+      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
+    },
     metrics: { aqi: 40, crowdDensity: 4.0, safetyIndex: 6.0, walkability: 6.0 },
   },
   {
@@ -682,7 +688,13 @@ export const SEED_PLACES: Place[] = [
       en: 'The island\'s hospital, a short walk up from the pier.',
       th: 'โรงพยาบาลประจำเกาะ เดินจากท่าเรือไม่ไกล',
     },
-    tags: ['Hospital', 'Help'], photo: null,
+    tags: ['Hospital', 'Help'],
+    photo: {
+      url: '/media/places/sc-hospital.jpg',
+      credit: 'ChivaGo team · Koh Sichang',
+      licence: 'Team photograph · used with permission',
+      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
+    },
     metrics: { aqi: 40, crowdDensity: 1.5, safetyIndex: 6.5, walkability: 6.0 },
   },
   {
@@ -696,7 +708,13 @@ export const SEED_PLACES: Place[] = [
       en: 'The beach on the west coast, and the one the island\'s litter reaches first.',
       th: 'หาดฝั่งตะวันตกของเกาะ และเป็นที่ที่ขยะไปถึงก่อน',
     },
-    tags: ['Beach', 'Swimming'], photo: null,
+    tags: ['Beach', 'Swimming'],
+    photo: {
+      url: '/media/places/sc-thamphang.jpg',
+      credit: 'ChivaGo team · Koh Sichang',
+      licence: 'Team photograph · used with permission',
+      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
+    },
     metrics: { aqi: 40, crowdDensity: 2.5, safetyIndex: 5.8, walkability: 5.0 },
   },
   {
@@ -710,7 +728,13 @@ export const SEED_PLACES: Place[] = [
       en: 'The summer palace built under King Rama V, its gardens and mansions by the sea.',
       th: 'พระราชวังฤดูร้อนที่สร้างในสมัยรัชกาลที่ 5 มีสวนและพระตำหนักริมทะเล',
     },
-    tags: ['History', 'Garden', 'Walking'], photo: null,
+    tags: ['History', 'Garden', 'Walking'],
+    photo: {
+      url: '/media/places/sc-palace.jpg',
+      credit: 'ChivaGo team · Koh Sichang',
+      licence: 'Team photograph · used with permission',
+      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
+    },
     metrics: { aqi: 40, crowdDensity: 3.0, safetyIndex: 6.5, walkability: 7.0 },
   },
   {
@@ -725,7 +749,13 @@ export const SEED_PLACES: Place[] = [
       en: 'The shops and eating places on the road up from the pier.',
       th: 'ร้านค้าและร้านอาหารริมถนนขึ้นจากท่าเรือ',
     },
-    tags: ['Food', 'Shops'], photo: null,
+    tags: ['Food', 'Shops'],
+    photo: {
+      url: '/media/places/sc-shops.jpg',
+      credit: 'ChivaGo team · Koh Sichang',
+      licence: 'Team photograph · used with permission',
+      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
+    },
     metrics: { aqi: 40, crowdDensity: 3.5, safetyIndex: 6.0, walkability: 6.5 },
   },
 ];
