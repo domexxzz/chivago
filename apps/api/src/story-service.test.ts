@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach, afterEach } from 'node:test';
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -12,7 +12,7 @@ import {
   UnsupportedStory, WrongEventToken, canReviewStories, eventTokenRequired, expireStories, pendingStories,
   readStoryMedia, reviewStory, setStoriesOpen, sniffStory, storiesAt, storiesInArea, storiesOpen, submitStory,
 } from './story-service.ts';
-import type { Transcoder } from './transcode.ts';
+import { TranscoderUnavailable, type Transcoder } from './transcode.ts';
 
 let db: DB;
 let dir: string;
@@ -36,6 +36,11 @@ const fake: Transcoder = {
 const broken: Transcoder = {
   async video() { throw new Error('moov atom not found'); },
   async photo() { throw new Error('not an image'); },
+};
+/** No ffmpeg on the machine at all - what `spawn` reports as ENOENT. */
+const absent: Transcoder = {
+  async video() { throw new TranscoderUnavailable('ffmpeg: ENOENT'); },
+  async photo() { throw new TranscoderUnavailable('ffmpeg: ENOENT'); },
 };
 
 const park = { lat: 13.12154, lng: 100.91812 };
@@ -288,6 +293,42 @@ describe('what an iPhone sends', () => {
     await assert.rejects(submit({ transcoder: broken }), (e: unknown) => {
       assert.ok(e instanceof UnsupportedStory);
       assert.equal(e.code, 'UNSUPPORTED_STORY');
+      return true;
+    });
+  });
+
+  /*
+    A server with no ffmpeg used to answer every upload "that file could not
+    be used as a story" - a 400, and a false one: the file was fine. Found
+    by walking the real HTTP surface on a machine without the binary, where
+    a perfectly good JPEG came back as the traveller's fault. On the day
+    that is a room full of people re-shooting clips while the one fixable
+    fault goes unsaid, so the two must not share an error.
+  */
+  test('a missing encoder is the SERVER\'s fault, not the file\'s', async () => {
+    await assert.rejects(submit({ bytes: jpeg(), transcoder: absent }), (e: unknown) => {
+      assert.ok(e instanceof TranscoderUnavailable, `got ${(e as Error).name}`);
+      assert.ok(!(e instanceof UnsupportedStory), 'must not be reported as a bad file');
+      return true;
+    });
+    // And the same for a clip, which takes the other branch of the encode.
+    await assert.rejects(submit({ transcoder: absent }), TranscoderUnavailable);
+  });
+
+  test('a missing encoder leaves no row and no scratch file behind', async () => {
+    await assert.rejects(submit({ transcoder: absent }), TranscoderUnavailable);
+    const left = (db.prepare('SELECT COUNT(*) AS n FROM stories').get() as unknown as { n: number }).n;
+    assert.equal(left, 0, 'no half-made story');
+    assert.deepEqual(readdirSync(join(dir, 'stories')), [], 'no input file left in the stories directory');
+  });
+
+  test('an iPhone HEIC on a server with NO encoder is not blamed on the camera setting', async () => {
+    // The HEIC branch is the one refusal a person can act on from where they
+    // stand - which makes it exactly the wrong thing to say when the encoder
+    // is missing and changing the camera setting would not help at all.
+    await assert.rejects(submit({ bytes: heic(), transcoder: absent }), (e: unknown) => {
+      assert.ok(e instanceof TranscoderUnavailable);
+      assert.doesNotMatch((e as Error).message, /Most Compatible/);
       return true;
     });
   });

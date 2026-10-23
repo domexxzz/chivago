@@ -117,6 +117,11 @@ export const TRAVELLER_TABLES = [
   // A sighting is the rider's, like a check-in: it is their report that
   // they saw a bus, and a demo starts with nobody having seen one.
   'transit_sightings',
+  // Summoned spirits are the traveller's collection (docs/68), and the
+  // charms behind them are derived from a ledger this reset clears - so
+  // leaving the rolls would hand the next demo a collection with no
+  // earnings behind it. The epochs are NOT here: see KEPT_TABLES.
+  'summons',
   // Trees credited to a traveller. The planting they were credited from is a
   // partner's evidence and is kept; the credit to a person goes with them.
   'tree_attributions',
@@ -140,6 +145,17 @@ export const KEPT_TABLES = [
   // Kept, and a reset never reaches them: it refuses to run while either has
   // a row. See checkNothingCited.
   'statement_countersignatures', 'statement_uses',
+  /*
+    The summoning's commit-reveal (docs/68).
+
+    An epoch is a PUBLISHED promise - its commitment hash is out in the world
+    the moment it opens, and a revealed seed proves what every past roll had
+    to be. Deleting that on a demo morning would quietly destroy the only
+    evidence that the rolls were not chosen after the fact, which is the one
+    claim this mechanic makes. The rolls themselves go with the traveller;
+    the promise about them stays.
+  */
+  'summon_epochs',
 ] as const;
 
 /**

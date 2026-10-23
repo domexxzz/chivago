@@ -168,3 +168,77 @@ describe('safety of re-running', () => {
     assert.equal(left.n, 0, 'wallet cascaded with the user');
   });
 });
+
+/*
+  The photographs moved off Metro's URL namespace, and a running pilot is
+  holding the old path.
+
+  `/assets/` is Metro's own prefix, so under `expo start --web` every place
+  photograph answered 404 while production - where they are real files in an
+  export - looked fine. Moving the directory fixes the repository; these rows
+  were written by an earlier seed and have to be brought along, or the pilot
+  keeps pointing at a directory that no longer exists.
+*/
+describe('the place photographs follow the directory', () => {
+  const place = (id: string, url: string | null, source: string | null) => {
+    db.prepare(
+      `INSERT INTO places (id, name_en, name_th, short, layer, lat, lng, meta, blurb_en, blurb_th,
+         tags, photo_url, safety_label_en, safety_label_th, crowd_density, aqi, safety_index, walkability)
+       VALUES (?,?,?,?,'Green',1,1,'','','','[]',?,'x','x',1,20,6,7)`,
+    ).run(id, id, id, id, url);
+    if (source !== null) {
+      // photo_source arrives with the migration that adds the column, so it
+      // is set after the first pass rather than in the INSERT above.
+      migrate(db);
+      db.prepare('UPDATE places SET photo_source = ? WHERE id = ?').run(source, id);
+    }
+  };
+
+  const photoOf = (id: string) =>
+    db.prepare('SELECT photo_url, photo_source FROM places WHERE id = ?')
+      .get(id) as unknown as { photo_url: string | null; photo_source: string | null };
+
+  test('a seeded photograph and its source link both move to /media', () => {
+    place('ku-library', '/assets/places/ku-library.jpg',
+      'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places');
+    migrate(db);
+    assert.equal(photoOf('ku-library').photo_url, '/media/places/ku-library.jpg');
+    assert.equal(
+      photoOf('ku-library').photo_source,
+      'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
+      'the licence trail still has to lead somewhere',
+    );
+  });
+
+  test('an illustration moves too', () => {
+    place('mangrove', '/assets/illustrations/mangrove-habitat-v1.jpg', null);
+    migrate(db);
+    assert.equal(photoOf('mangrove').photo_url, '/media/illustrations/mangrove-habitat-v1.jpg');
+  });
+
+  /*
+    The narrow part. A licensed photograph from somewhere else keeps its own
+    absolute URL, and a path this repository does not own is not ours to
+    rewrite - a blanket replace of "/assets/" would have broken both.
+  */
+  test('a photograph that is not ours is left exactly as it was', () => {
+    place('licensed', 'https://images.example.com/assets/places/beach.jpg', null);
+    place('elsewhere', '/assets/fonts/Anuphan_600SemiBold.ttf', null);
+    migrate(db);
+    assert.equal(photoOf('licensed').photo_url, 'https://images.example.com/assets/places/beach.jpg');
+    assert.equal(photoOf('elsewhere').photo_url, '/assets/fonts/Anuphan_600SemiBold.ttf');
+  });
+
+  test('a place with no photograph is not given one', () => {
+    place('nophoto', null, null);
+    migrate(db);
+    assert.equal(photoOf('nophoto').photo_url, null);
+  });
+
+  test('running it twice does not double-prefix', () => {
+    place('ku-park', '/assets/places/ku-park.jpg', null);
+    migrate(db);
+    migrate(db);
+    assert.equal(photoOf('ku-park').photo_url, '/media/places/ku-park.jpg');
+  });
+});

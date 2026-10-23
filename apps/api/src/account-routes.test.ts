@@ -254,7 +254,11 @@ describe('what stays public once a real account exists', () => {
     // - which is not a 401. The point is that authentication is not what
     // stands between a browser and a font.
     for (const path of ['/', '/index.html', '/favicon.ico', '/metadata.json',
-      '/_expo/static/js/web/index-abc.js', '/assets/fonts/Anuphan_600SemiBold.ttf']) {
+      '/_expo/static/js/web/index-abc.js', '/assets/fonts/Anuphan_600SemiBold.ttf',
+      // The repository's own photographs, which moved off `/assets/` when it
+      // turned out Metro's dev server shadows that prefix. A place photo
+      // behind a 401 is the same outage as a font behind one.
+      '/media/places/ku-library.jpg']) {
       const res = await app.request(path);
       assert.notEqual(res.status, 401, `${path} was refused for want of a key`);
     }

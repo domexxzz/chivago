@@ -1553,5 +1553,95 @@ export function migrate(db: DB): string[] {
     applied.push('offers.example');
   }
 
+  /*
+    -- The photographs moved off Metro's URL namespace --------------------
+
+    `/assets/` is Metro's own prefix. In an export the repository's
+    photographs are real files there and win, so this looked fine in
+    production - but `expo start --web` answers `/assets/*` from the bundler
+    registry and never falls through to `public/`, so every place photograph
+    and every illustration was a 404 for the whole of development. The files
+    now live at `apps/mobile/public/media/` and the seed says `/media/...`.
+
+    A LIVE DATABASE ALREADY HOLDS THE OLD URL. `places.photo_url` and
+    `places.photo_source` were written by a previous seed, and `seed-area.ts
+    --photos` is the only thing that would otherwise correct them - which is
+    a command somebody has to remember to run, on the morning, per area. So
+    the rewrite happens here, on boot, where it cannot be forgotten.
+
+    Prefix-anchored and narrow on purpose: only the two directories this
+    repository owns. A licensed photograph with an absolute URL of its own
+    is not touched, and neither is anything under any other `/assets/` path.
+  */
+  if (hasTable(db, 'places')) {
+    const moved = db.prepare(
+      `UPDATE places
+          SET photo_url = '/media/' || substr(photo_url, length('/assets/') + 1)
+        WHERE photo_url LIKE '/assets/places/%' OR photo_url LIKE '/assets/illustrations/%'`,
+    ).run();
+    // The credit's "where this came from" link names the directory too, and a
+    // source link that 404s on GitHub is a licence trail that does not lead
+    // anywhere.
+    const sourced = db.prepare(
+      `UPDATE places
+          SET photo_source = replace(photo_source, 'public/assets/', 'public/media/')
+        WHERE photo_source LIKE '%public/assets/%'`,
+    ).run();
+    const n = Number(moved.changes ?? 0) + Number(sourced.changes ?? 0);
+    if (n > 0) applied.push(`places photographs → /media (${n} rows)`);
+  }
+
+  /*
+    -- The Summoning (docs/68) -------------------------------------------
+
+    Two tables and nothing else. There is no charm balance here and no dust
+    balance here, for the same reason `monster-service.ts` keeps no HP: a
+    stored counter is a second place the truth lives, and the first thing
+    anybody does on a demo day is find the request that increments it.
+    Charms are derived from the ledger, dust is the SUM of a column on the
+    rows below, and a collection is the DISTINCT spirits in them.
+
+    `summon_epochs` is the commit-reveal. A seed is generated, its hash is
+    published, and every roll in that epoch is an HMAC of it - so the server
+    cannot pick an outcome after seeing who asked, and anybody holding a
+    receipt can recompute the whole epoch once the seed is revealed. The
+    seed column is NULL until then, on purpose: a revealed seed cannot
+    un-reveal, and an epoch with its seed out is closed to new summons.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS summon_epochs (
+      id          TEXT PRIMARY KEY,
+      commitment  TEXT NOT NULL,
+      seed        TEXT,
+      opened_at   TEXT NOT NULL,
+      closed_at   TEXT
+    );
+    CREATE TABLE IF NOT EXISTS summons (
+      id          TEXT PRIMARY KEY,
+      user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      epoch_id    TEXT NOT NULL REFERENCES summon_epochs(id),
+      -- 'summon' spent a charm and rolled; 'forge' spent dust and chose.
+      source      TEXT NOT NULL CHECK (source IN ('summon','forge')),
+      -- This user's nth roll in this epoch, from 1. NULL on a forge, which
+      -- rolls nothing. The UNIQUE below is what makes a double-tap cost one
+      -- charm rather than two.
+      nonce       INTEGER,
+      roll        INTEGER,
+      pick        INTEGER,
+      spirit_key  TEXT NOT NULL,
+      rarity      TEXT NOT NULL CHECK (rarity IN ('common','uncommon','rare','mythic')),
+      by_pity     TEXT CHECK (by_pity IN ('mythic','rare')),
+      -- 1 when this spirit was already in the collection.
+      duplicate   INTEGER NOT NULL DEFAULT 0,
+      -- Signed: dust gained from a duplicate, or spent on a forge.
+      dust        INTEGER NOT NULL DEFAULT 0,
+      created_at  TEXT NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_summons_nonce ON summons(user_id, epoch_id, nonce)
+      WHERE nonce IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_summons_user ON summons(user_id, created_at);
+  `);
+  applied.push('summon_epochs', 'summons');
+
   return applied;
 }

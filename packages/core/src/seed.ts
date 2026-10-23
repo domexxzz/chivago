@@ -231,10 +231,10 @@ export const SEED_PLACES: Place[] = [
     },
     tags: ['Library', 'Indoor', 'Quiet'],
     photo: {
-      url: '/assets/places/ku-library.jpg',
+      url: '/media/places/ku-library.jpg',
       credit: "ChivaGo team · KU Sriracha",
       licence: "Team photograph",
-      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places',
+      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
     metrics: { aqi: 22, crowdDensity: 1.8, safetyIndex: 6.6, walkability: 7.4 },
     airStation: kuStation(13.12197, 100.91925),
@@ -254,10 +254,10 @@ export const SEED_PLACES: Place[] = [
     },
     tags: ['Green space', 'Walking route', 'Lake'],
     photo: {
-      url: '/assets/places/ku-park.jpg',
+      url: '/media/places/ku-park.jpg',
       credit: "ChivaGo team · KU Sriracha",
       licence: "Team photograph",
-      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places',
+      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
     metrics: { aqi: 22, crowdDensity: 0.6, safetyIndex: 6.0, walkability: 7.0 },
     airStation: kuStation(13.12154, 100.91812),
@@ -277,10 +277,10 @@ export const SEED_PLACES: Place[] = [
     },
     tags: ['Viewpoint', 'Quest here', 'Green space'],
     photo: {
-      url: '/assets/places/ku-viewpoint.jpg',
+      url: '/media/places/ku-viewpoint.jpg',
       credit: "ChivaGo team · KU Sriracha",
       licence: "Team photograph",
-      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places',
+      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
     metrics: { aqi: 22, crowdDensity: 0.4, safetyIndex: 6.0, walkability: 6.8 },
     airStation: kuStation(13.12189, 100.92055),
@@ -300,10 +300,10 @@ export const SEED_PLACES: Place[] = [
     },
     tags: ['Exercise', 'Pitch', 'Pool'],
     photo: {
-      url: '/assets/places/ku-sports.jpg',
+      url: '/media/places/ku-sports.jpg',
       credit: "ChivaGo team · KU Sriracha",
       licence: "Team photograph",
-      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places',
+      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
     metrics: { aqi: 22, crowdDensity: 1.4, safetyIndex: 6.2, walkability: 7.0 },
     airStation: kuStation(13.12009, 100.91802),
@@ -323,10 +323,10 @@ export const SEED_PLACES: Place[] = [
     },
     tags: ['Café', 'Convenience', 'Meeting point'],
     photo: {
-      url: '/assets/places/ku-shops.jpg',
+      url: '/media/places/ku-shops.jpg',
       credit: "ChivaGo team · KU Sriracha",
       licence: "Team photograph",
-      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places',
+      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
     metrics: { aqi: 22, crowdDensity: 2.6, safetyIndex: 6.6, walkability: 7.6 },
     airStation: kuStation(13.1180, 100.92075),
@@ -365,10 +365,10 @@ export const SEED_PLACES: Place[] = [
       face is legible, so the README's rule about faces holds.
     */
     photo: {
-      url: '/assets/places/ku-building13.jpg',
+      url: '/media/places/ku-building13.jpg',
       credit: 'ChivaGo team · KU Sriracha',
       licence: 'Team photograph',
-      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/assets/places',
+      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
     /*
       Air is the real reading from station o61, like every other campus

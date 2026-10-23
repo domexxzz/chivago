@@ -40,6 +40,7 @@ import { HomeScreen } from './src/screens/HomeScreen.tsx';
 import { PassportScreen } from './src/screens/PassportScreen.tsx';
 import { MascotsScreen } from './src/screens/MascotsScreen.tsx';
 import { MascotRoomScreen } from './src/screens/MascotRoom.tsx';
+import { SummonScreen } from './src/screens/SummonScreen.tsx';
 import { AccountScreen } from './src/screens/AccountScreen.tsx';
 import { ProfileScreen } from './src/screens/ProfileScreen.tsx';
 import { MedalsScreen } from './src/screens/MedalsScreen.tsx';
@@ -383,6 +384,7 @@ export default function App() {
           <GameScreen
             onOpenCompanion={(c) => { setCompanion(c); nav.push('companion'); }}
             onOpenMascots={() => nav.push('mascots')}
+            onOpenSummon={() => nav.push('summon')}
             onOpenMedals={() => nav.push('medals')}
             onOpenPassport={() => nav.push('passport')}
             onOpenParty={() => nav.push('party')}
@@ -458,6 +460,9 @@ export default function App() {
 
       case 'mascot':
         return <MascotRoomScreen code={nav.code ?? 'TH-84'} onBack={nav.pop} />;
+
+      case 'summon':
+        return <SummonScreen onBack={nav.pop} />;
 
       case 'account':
         return <AccountScreen onBack={nav.pop} onToast={toast.show} />;

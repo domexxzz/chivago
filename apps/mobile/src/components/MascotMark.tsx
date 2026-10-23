@@ -1,5 +1,5 @@
 /**
- * A mascot, drawn. The mark a phone shows and the catalogue lists.
+ * A creature, drawn. The mark a phone shows and the catalogue lists.
  *
  * Eight silhouettes - one per body - in the mascot's own colours, with what
  * it wears on its head and the one prop it carries, as glyphs. Not the
@@ -12,7 +12,7 @@
 
 import React from 'react';
 import Svg, { Circle, Ellipse, G, Line, Path, Polygon, Rect } from 'react-native-svg';
-import type { Mascot, MascotCrest, MascotProp } from '@chivago/core';
+import type { MascotCrest, MascotForm, MascotProp } from '@chivago/core';
 
 const BOX = 64;
 
@@ -80,7 +80,14 @@ function Prop({ kind, accent, feature }: { kind: MascotProp | null; accent: stri
 }
 
 /** The body silhouette, in body/belly, with the face. */
-function Body({ m, ink }: { m: Mascot; ink: string }) {
+/*
+  `key` is optional and the ape body is the only thing that reads it: the
+  slow loris is drawn with bigger eyes than the macaque, which is a fact
+  about one province's emblem rather than about the archetype. A spirit
+  passes no key and gets the default, which is correct - there is no loris
+  among them.
+*/
+function Body({ m, ink }: { m: MascotForm & { key?: string }; ink: string }) {
   const { body, belly, feature, accent } = m.colours;
   switch (m.archetype) {
     case 'bird': return (
@@ -162,7 +169,7 @@ function Body({ m, ink }: { m: Mascot; ink: string }) {
         <Ellipse cx={32} cy={26} rx={8} ry={6} fill={belly} />
         {[-1, 1].map((s) => <Circle key={s} cx={32 + s * 11} cy={22} r={4} fill={body} />)}
         {[-1, 1].map((s) => <Rect key={s} x={32 + s * 16 - 3} y={36} width={6} height={16} rx={3} fill={body} transform={`rotate(${s * -15} ${32 + s * 16} 44)`} />)}
-        <Eyes cx={32} cy={21} r={m.key.includes('loris') ? 3.4 : 2.4} gap={4.5} ink={ink} />
+        <Eyes cx={32} cy={21} r={m.key?.includes('loris') ? 3.4 : 2.4} gap={4.5} ink={ink} />
         <Crest kind={m.crest} x={32} y={11} accent={accent} feature={feature} />
       </G>
     );
@@ -179,7 +186,16 @@ function Body({ m, ink }: { m: Mascot; ink: string }) {
   }
 }
 
-export function MascotMark({ mascot, size = 56 }: { mascot: Mascot; size?: number }) {
+/*
+  `MascotForm`, not `Mascot`.
+
+  The summoned spirits (docs/68) are built from the same eight bodies and the
+  same short list of parts, deliberately, so there is one renderer rather than
+  two that drift. What they are NOT is mascots: a mascot names a province and
+  says where its emblem came from, and a spirit is invented and says so. The
+  parameter is the parts, which is all this file ever read.
+*/
+export function MascotMark({ mascot, size = 56 }: { mascot: MascotForm & { key?: string }; size?: number }) {
   const ink = '#2c2622';
   return (
     <Svg width={size} height={size} viewBox={`0 0 ${BOX} ${BOX}`} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">

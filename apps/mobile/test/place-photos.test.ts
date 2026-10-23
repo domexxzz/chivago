@@ -12,7 +12,7 @@ import { mascotBeachUri, photoUri } from '../src/api/photos.ts';
  *
  * Two promises: a photograph in the seed is a file that exists (a path that
  * 404s is a grey box with a credit under it), and a phone can reach it. The
- * licence itself is a human's promise - see public/assets/places/README.md.
+ * licence itself is a human's promise - see public/media/places/README.md.
  */
 
 const PUBLIC = join(import.meta.dirname, '..', 'public');
@@ -25,9 +25,31 @@ describe('a photograph the seed names is a file that ships', () => {
     }
   });
 
-  test('companion beach illustrations exist under public/assets/illustrations/', () => {
-    assert.ok(existsSync(join(PUBLIC, 'assets/illustrations/mascots-beach-day.jpg')), 'mascots-beach-day.jpg missing');
-    assert.ok(existsSync(join(PUBLIC, 'assets/illustrations/mascots-beach-sunset.jpg')), 'mascots-beach-sunset.jpg missing');
+  test('companion beach illustrations exist under public/media/illustrations/', () => {
+    assert.ok(existsSync(join(PUBLIC, 'media/illustrations/mascots-beach-day.jpg')), 'mascots-beach-day.jpg missing');
+    assert.ok(existsSync(join(PUBLIC, 'media/illustrations/mascots-beach-sunset.jpg')), 'mascots-beach-sunset.jpg missing');
+  });
+
+  /*
+    THE REGRESSION THIS DIRECTORY MOVED TO FIX.
+
+    `/assets/` is Metro's own URL namespace. In an export these are real
+    files there and win, so a path under it looked correct in production
+    while `expo start --web` answered every one of them 404 - the whole of
+    development with no place photographs, and nothing saying why. Putting
+    one back is a one-line change in the seed, so it is a test.
+  */
+  test('no photograph hides under Metro\'s /assets/ prefix', () => {
+    for (const p of SEED_PLACES) {
+      if (!p.photo || !p.photo.url.startsWith('/')) continue;
+      assert.ok(
+        !p.photo.url.startsWith('/assets/'),
+        `${p.id}: ${p.photo.url} is under Metro's namespace and will 404 in dev - use /media/`,
+      );
+    }
+    for (const at of [new Date('2026-10-23T04:00:00Z'), new Date('2026-10-23T14:00:00Z')]) {
+      assert.ok(!mascotBeachUri(at, 'web').startsWith('/assets/'), 'the beach hero is back under /assets/');
+    }
   });
 
   test('every photo carries its credit and licence', () => {
@@ -47,9 +69,9 @@ describe('where the phone fetches a photograph from', () => {
   });
 
   test('an own-origin path stays a path in a browser, and is given the API\'s origin on a phone', () => {
-    assert.equal(photoUri('/assets/places/ku-library.jpg', 'web'), '/assets/places/ku-library.jpg');
-    assert.equal(photoUri('/assets/places/ku-library.jpg', 'ios'), `${API_BASE.replace(/\/$/, '')}/assets/places/ku-library.jpg`);
-    assert.equal(photoUri('/assets/places/ku-library.jpg', 'android'), `${API_BASE.replace(/\/$/, '')}/assets/places/ku-library.jpg`);
+    assert.equal(photoUri('/media/places/ku-library.jpg', 'web'), '/media/places/ku-library.jpg');
+    assert.equal(photoUri('/media/places/ku-library.jpg', 'ios'), `${API_BASE.replace(/\/$/, '')}/media/places/ku-library.jpg`);
+    assert.equal(photoUri('/media/places/ku-library.jpg', 'android'), `${API_BASE.replace(/\/$/, '')}/media/places/ku-library.jpg`);
   });
 
   test('mascotBeachUri switches dynamically between daytime and sunset/evening', () => {

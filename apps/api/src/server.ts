@@ -98,6 +98,10 @@ import { webhookTransport } from './push/webhook.ts';
 import { hostOwnsQuest, resolveSession, readCookie, SESSION_COOKIE } from './host-auth.ts';
 import { onPrimary } from './primary.ts';
 import { MAX_BYTES, MAX_PHOTOS_PER_PROOF, storePhoto, UnsupportedUpload } from './uploads.ts';
+import { FFMPEG, transcoderAvailable } from './transcode.ts';
+import {
+  collectionFor, forge, historyFor, summon, summonState, verifySummon,
+} from './summon-service.ts';
 import {
   assistConfig, ffmpegPrepare, requestAssist, staleAssists, type AssistDeps,
 } from './assist-service.ts';
@@ -513,7 +517,12 @@ function openIdentityAllowed(): boolean {
  */
 const PUBLIC_PREFIXES = [
   '/console', '/sos/live/', '/verify/', '/statements/', '/stories/', '/areas/', '/board/',
-  '/_expo/', '/assets/',
+  // `/assets/` is Metro's bundle output - the fonts and the JavaScript.
+  // `/media/` is the repository's own photographs and illustrations, which
+  // moved off `/assets/` because Metro's dev server shadows that prefix and
+  // answered every one of them 404. Both must stay unauthenticated: a font
+  // or a place photograph behind a 401 is the whole app sitting on LOADING.
+  '/_expo/', '/assets/', '/media/',
 ];
 const PUBLIC_PATHS = new Set(['/', '/index.html', '/favicon.ico', '/metadata.json', '/health', '/config']);
 const isPublicPath = (path: string): boolean =>
@@ -1702,6 +1711,49 @@ app.get('/companions', (c) => {
 });
 
 // ---------------------------------------------------------------------------
+// The Summoning (docs/68)
+//
+// A charm, earned, becomes a spirit - and nothing else. No route below
+// touches `wallets`, writes to `ledger`, issues a voucher or grants EXP, and
+// none of them takes a payment of any kind. That is not an omission; it is
+// the line that keeps this a collection rather than a draw (docs/58).
+// ---------------------------------------------------------------------------
+
+/** The state, the collection counts, the live epoch's commitment and the published table. */
+app.get('/summon', (c) => ok(c, summonState(db, userId(c))));
+
+/** Every spirit; the unmet ones as a silhouette with a rarity and a court. */
+app.get('/summon/collection', (c) => ok(c, { spirits: collectionFor(db, userId(c)) }));
+
+/** The traveller's own receipts, newest first. */
+app.get('/summon/history', (c) => ok(c, { summons: historyFor(db, userId(c), num(c.req.query('limit'), 50)) }));
+
+/**
+ * Recheck one roll against the published seed.
+ *
+ * Public, deliberately, and by summon id alone: the point of a receipt is
+ * that somebody who does not have an account can be handed one and check it.
+ * It reveals a spirit key and two integers, which is what the receipt says
+ * anyway, and no traveller's name.
+ */
+app.get('/summon/verify/:id', (c) => ok(c, verifySummon(db, c.req.param('id'))));
+
+/** Spend one charm. */
+app.post('/summon', (c) => ok(c, summon(db, userId(c))));
+
+/**
+ * Choose one outright, for stardust. The door with no luck in it - see
+ * `forge` in summon-service.ts for why it has to exist.
+ */
+app.post('/summon/forge', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as { spirit?: string };
+  if (typeof body.spirit !== 'string' || body.spirit === '') {
+    return fail(c, 'BAD_REQUEST', 'Name the spirit to forge.');
+  }
+  return ok(c, forge(db, userId(c), body.spirit));
+});
+
+// ---------------------------------------------------------------------------
 // Price Forecast
 // ---------------------------------------------------------------------------
 
@@ -2134,6 +2186,13 @@ if (webDir !== undefined && existsSync(join(webDir, 'index.html'))) {
     root,
     onFound: (p, c) => { c.header('cache-control', cacheFor(p)); },
   }));
+  // The repository's own photographs, copied into the export from
+  // `apps/mobile/public/media`. Unhashed names, so `cacheFor` gives them the
+  // hour rather than forever - replacing one must not be a support call.
+  app.use('/media/*', serveStatic({
+    root,
+    onFound: (p, c) => { c.header('cache-control', cacheFor(p)); },
+  }));
   app.get('/favicon.ico', serveStatic({
     path: `${root}/favicon.ico`,
     onFound: (_p, c) => { c.header('cache-control', 'public, max-age=86400'); },
@@ -2149,6 +2208,22 @@ if (isEntryPoint) {
   const port = Number(process.env.PORT ?? 8787);
   serve({ fetch: app.fetch, port }, (info) => {
     console.log(`[chivago] API listening on http://localhost:${info.port}`);
+  });
+  /*
+    Say at the door whether stories can be processed at all.
+
+    Not a gate - the server is useful without ffmpeg, and everything except
+    stories works - but a machine that has lost the binary should announce it
+    on an empty console, not through the first person in the room who tries
+    to post. Deliberately after `serve`, so a slow probe never delays the
+    port opening.
+  */
+  void transcoderAvailable().then((ok_) => {
+    if (ok_) return;
+    console.error(
+      `[chivago] WARNING: ffmpeg ('${FFMPEG}') was not found. Stories cannot be posted on this machine;`
+      + ' every upload will answer STORY_TRANSCODER_DOWN (503). Install ffmpeg, or set CHIVAGO_FFMPEG.',
+    );
   });
 }
 
