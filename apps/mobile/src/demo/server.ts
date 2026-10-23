@@ -513,7 +513,7 @@ export function installDemoServer(apiBase: string): void {
         // The same rules the server runs, over the captured check-ins plus
         // this session's own - so a check-in in the demo earns what it
         // would earn for real, and nothing else.
-        const places = state.routes['/places'] as { id: string; province: string }[];
+        const places = state.routes['/places'] as { id: string; province: string; lat: number; lng: number }[];
         const explored = (state.routes['/explored'] as { places: ExploredPlace[] }).places;
         const seen = new Set(explored.map((e) => e.placeId));
         const now = new Date().toISOString();

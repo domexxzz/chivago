@@ -8,7 +8,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { __setAreaForTests, areaFromUrl, eventFromUrl, getArea, placeFromUrl, setArea } from '../src/state/area.ts';
-import { AREAS, areaOfProvince, inArea, nearestArea } from '@chivago/core';
+import { AREAS, areaOfPlace, inArea, nearestArea } from '@chivago/core';
 
 describe('the area from the page URL', () => {
   test('a QR code carries ?area=ku-sriracha and it is honoured', () => {
@@ -36,7 +36,7 @@ describe('changing area', () => {
 describe('what belongs where', () => {
   test('every place province maps to an area and every area frames its own centre', () => {
     for (const a of AREAS) {
-      assert.equal(areaOfProvince(a.province), a.key);
+      assert.equal(areaOfPlace({ province: a.province, ...a.center }), a.key);
       assert.ok(inArea(a, a.center));
       assert.equal(nearestArea(a.center.lat, a.center.lng).key, a.key);
     }

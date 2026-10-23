@@ -14,7 +14,7 @@
  * it. Nothing here is invented.
  */
 
-import { areaOfProvince, type AreaKey } from './areas.ts';
+import { areaOfPlace, type AreaKey } from './areas.ts';
 import type { Bilingual } from './types.ts';
 import type { ExploredPlace } from './visits.ts';
 
@@ -120,6 +120,8 @@ export const MEDALS_BASIS: Bilingual = {
 export interface MedalPlace {
   id: string;
   province: string;
+  lat: number;
+  lng: number;
 }
 
 interface Outcome {
@@ -173,11 +175,11 @@ function resolve(
     case 'places':
       return ofPlaces(rule.placeIds, at);
     case 'area':
-      return ofPlaces([...known.values()].filter((p) => areaOfProvince(p.province) === rule.area).map((p) => p.id), at);
+      return ofPlaces([...known.values()].filter((p) => areaOfPlace(p) === rule.area).map((p) => p.id), at);
     case 'areas': {
       const firstIn = new Map<AreaKey, string>();
       for (const v of visits) {
-        const area = areaOfProvince(known.get(v.placeId)!.province);
+        const area = areaOfPlace(known.get(v.placeId)!);
         if (!firstIn.has(area)) firstIn.set(area, v.firstAt);
       }
       const dates = [...firstIn.values()].sort();
