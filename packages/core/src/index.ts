@@ -35,6 +35,7 @@ export * from './strings.ts';
 export * from './wallet.ts';
 export * from './visits.ts';
 export * from './mascots.ts';
+export * from './costumes.ts';
 export * from './board.ts';
 export * from './crowd.ts';
 export * from './monsters.ts';
