@@ -744,10 +744,26 @@ app.post('/auth/login', async (c) => {
 });
 
 /** Who this device is signed in as, and which phones share the account. */
-app.get('/account', (c) => ok(c, {
-  userId: userId(c),
-  devices: devicesFor(db, userId(c), c.req.header('x-chivago-device-key')),
-}));
+app.get('/account', (c) => {
+  const uid = userId(c);
+  const userAccount = db.prepare('SELECT account_type, business_name, full_name, email, phone FROM user_accounts WHERE id = ?').get(uid) as {
+    account_type: string;
+    business_name: string | null;
+    full_name: string;
+    email: string;
+    phone: string;
+  } | undefined;
+
+  return ok(c, {
+    userId: uid,
+    accountType: (userAccount?.account_type ?? 'traveller') as 'traveller' | 'operator',
+    businessName: userAccount?.business_name ?? null,
+    fullName: userAccount?.full_name ?? null,
+    email: userAccount?.email ?? null,
+    phone: userAccount?.phone ?? null,
+    devices: devicesFor(db, uid, c.req.header('x-chivago-device-key')),
+  });
+});
 
 /**
  * A code to put this account on another phone.

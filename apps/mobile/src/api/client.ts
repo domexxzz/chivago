@@ -417,7 +417,15 @@ export const api = {
     }>('/auth/login', body),
 
   account: () =>
-    get<{ userId: string; devices: { label: string | null; createdAt: string; lastSeenAt: string | null; current: boolean }[] }>(
+    get<{
+      userId: string;
+      accountType: 'traveller' | 'operator';
+      businessName: string | null;
+      fullName: string | null;
+      email: string | null;
+      phone: string | null;
+      devices: { label: string | null; createdAt: string; lastSeenAt: string | null; current: boolean }[];
+    }>(
       '/account',
     ),
 

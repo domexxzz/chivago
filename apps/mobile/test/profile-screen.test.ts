@@ -172,3 +172,63 @@ describe('what follows you everywhere', () => {
     ui.unmount();
   });
 });
+
+describe('distinction between operator and traveller roles', () => {
+  test('renders business operator profile with business name and partner badges', async () => {
+    const s = server(routes({
+      '/account': {
+        userId: 'u_op_123',
+        accountType: 'operator',
+        businessName: 'สีชัง ซันเซ็ท วิลล่า',
+        fullName: 'สมคิด เจ้าของร้าน',
+        email: 'somkid@resort.com',
+        phone: '0829998877',
+        devices: [],
+      },
+      '/standing': standing({
+        you: { userId: 'u_op_123', displayName: 'สมคิด เจ้าของร้าน', greenVerified: 200, missionsVerified: 1 },
+      }),
+    }));
+    restore = s.restore;
+
+    const ui = await mountScreen(h(ProfileScreen, props));
+    const text = ui.text();
+
+    assert.match(text, /ผู้ประกอบการ \/ ร้านค้า/);
+    assert.match(text, /สีชัง ซันเซ็ท วิลล่า/);
+    assert.match(text, /Chivargo Business Partner/);
+    assert.match(text, /ข้อมูลสถานประกอบการ/);
+    assert.match(text, /ลงทะเบียนแล้ว/);
+    assert.match(text, /0829998877/);
+    assert.match(text, /somkid@resort.com/);
+    ui.unmount();
+  });
+
+  test('renders normal traveller profile with traveller badges and eco-tourism notice', async () => {
+    const s = server(routes({
+      '/account': {
+        userId: 'u_traveller_1',
+        accountType: 'traveller',
+        businessName: null,
+        fullName: 'สมชาย รักเที่ยว',
+        email: 'somchai@travel.com',
+        phone: '0812345678',
+        devices: [],
+      },
+      '/standing': standing({
+        you: { userId: 'u_traveller_1', displayName: 'สมชาย รักเที่ยว', greenVerified: 50, missionsVerified: 0 },
+      }),
+    }));
+    restore = s.restore;
+
+    const ui = await mountScreen(h(ProfileScreen, props));
+    const text = ui.text();
+
+    assert.match(text, /นักท่องเที่ยว/);
+    assert.match(text, /สมชาย รักเที่ยว/);
+    assert.match(text, /ประเภทผู้ใช้งาน/);
+    assert.match(text, /ผู้มาเยือน/);
+    assert.match(text, /0812345678/);
+    ui.unmount();
+  });
+});

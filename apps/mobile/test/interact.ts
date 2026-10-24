@@ -249,7 +249,19 @@ export function server(routes: Record<string, Reply>): {
     geofence. A test that cares passes its own `/config` and wins, because
     the caller's routes are spread last.
   */
-  const answered: Record<string, Reply> = { 'GET /config': { fenceOff: false }, ...routes };
+  const answered: Record<string, Reply> = {
+    '/config': { fenceOff: false },
+    '/account': {
+      userId: 'test-user',
+      accountType: 'traveller',
+      businessName: null,
+      fullName: 'Ana',
+      email: 'ana@example.com',
+      phone: '0812345678',
+      devices: [{ label: 'This phone', createdAt: '2026-09-01T00:00:00Z', lastSeenAt: '2026-09-01T00:00:00Z', current: true }],
+    },
+    ...routes,
+  };
 
   globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : String(input);

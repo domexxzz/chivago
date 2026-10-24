@@ -226,24 +226,55 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
   // -- accounts and parties: the four screens that were "Not in the demo
   // build" since they arrived, because nobody re-captured after adding them.
   'POST /devices': () => ({ userId: 'demo-user', deviceKey: 'chvg_dev_demo-build-only' }),
-  'POST /auth/register': (body) => ({
-    userId: 'demo-user',
-    deviceKey: 'chvg_dev_demo-build-only',
-    name: String(body.fullName ?? 'Demo Traveller'),
-    email: String(body.email ?? 'demo@example.com'),
-    phone: String(body.phone ?? '0812345678'),
-    accountType: (body.accountType === 'operator' ? 'operator' : 'traveller') as 'traveller' | 'operator',
-    businessName: body.accountType === 'operator' ? String(body.businessName ?? 'สถานประกอบการเดโม') : null,
-  }),
+  'POST /auth/register': (body) => {
+    const accType = (body.accountType === 'operator' ? 'operator' : 'traveller') as 'traveller' | 'operator';
+    const bizName = body.accountType === 'operator' ? String(body.businessName ?? 'สถานประกอบการเดโม') : null;
+    const name = String(body.fullName ?? 'Demo Traveller');
+    const email = String(body.email ?? 'demo@example.com');
+    const phone = String(body.phone ?? '0812345678');
+
+    state.routes['/account'] = {
+      userId: 'demo-user',
+      accountType: accType,
+      businessName: bizName,
+      fullName: name,
+      email,
+      phone,
+      devices: [{ label: 'This device', createdAt: now(), lastSeenAt: now(), current: true }],
+    };
+
+    return {
+      userId: 'demo-user',
+      deviceKey: 'chvg_dev_demo-build-only',
+      name,
+      email,
+      phone,
+      accountType: accType,
+      businessName: bizName,
+    };
+  },
   'POST /auth/login': (body) => {
     const id = String(body.identifier ?? '').trim();
     if (!id || !body.password) return refuse('INVALID_CREDENTIALS', 'อีเมล เบอร์โทรศัพท์ หรือรหัสผ่านไม่ถูกต้อง');
+    const email = id.includes('@') ? id : 'demo@example.com';
+    const phone = id.includes('@') ? '0812345678' : id;
+
+    state.routes['/account'] = {
+      userId: 'demo-user',
+      accountType: 'traveller',
+      businessName: null,
+      fullName: 'Demo Traveller',
+      email,
+      phone,
+      devices: [{ label: 'This device', createdAt: now(), lastSeenAt: now(), current: true }],
+    };
+
     return {
       userId: 'demo-user',
       deviceKey: 'chvg_dev_demo-build-only',
       name: 'Demo Traveller',
-      email: id.includes('@') ? id : 'demo@example.com',
-      phone: id.includes('@') ? '0812345678' : id,
+      email,
+      phone,
       accountType: 'traveller' as const,
       businessName: null,
     };
