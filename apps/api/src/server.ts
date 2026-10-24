@@ -682,12 +682,16 @@ app.post('/auth/register', async (c) => {
     email?: string;
     phone?: string;
     password?: string;
+    accountType?: 'traveller' | 'operator';
+    businessName?: string;
     locale?: 'th' | 'en';
   }>().catch(() => ({} as {
     fullName?: string;
     email?: string;
     phone?: string;
     password?: string;
+    accountType?: 'traveller' | 'operator';
+    businessName?: string;
     locale?: 'th' | 'en';
   }));
 
@@ -697,6 +701,8 @@ app.post('/auth/register', async (c) => {
       email: body.email ?? '',
       phone: body.phone ?? '',
       password: body.password ?? '',
+      accountType: body.accountType,
+      businessName: body.businessName,
       locale: body.locale === 'th' ? 'th' : 'en',
     });
     return ok(c, result);

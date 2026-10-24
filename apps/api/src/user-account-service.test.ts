@@ -50,6 +50,35 @@ describe('user account authentication service', () => {
     const wallet = db.prepare('SELECT user_id, trip_points FROM wallets WHERE user_id = ?').get(res.userId) as { user_id: string; trip_points: number };
     assert.ok(wallet);
     assert.equal(wallet.user_id, res.userId);
+    assert.equal(res.accountType, 'traveller');
+    assert.equal(res.businessName, null);
+  });
+
+  it('registers a business operator with accountType and businessName', () => {
+    const res = registerUser(db, {
+      fullName: 'สมคิด เจ้าของรีสอร์ท',
+      email: 'somkid@resort.com',
+      phone: '082-999-8877',
+      password: 'operatorPassword123',
+      accountType: 'operator',
+      businessName: 'สีชัง ซันเซ็ท วิลล่า',
+    });
+
+    assert.equal(res.accountType, 'operator');
+    assert.equal(res.businessName, 'สีชัง ซันเซ็ท วิลล่า');
+
+    // Verify row in database
+    const row = db.prepare('SELECT account_type, business_name FROM user_accounts WHERE id = ?').get(res.userId) as { account_type: string; business_name: string };
+    assert.equal(row.account_type, 'operator');
+    assert.equal(row.business_name, 'สีชัง ซันเซ็ท วิลล่า');
+
+    // Verify login returns operator data
+    const login = loginUser(db, {
+      identifier: 'somkid@resort.com',
+      password: 'operatorPassword123',
+    });
+    assert.equal(login.accountType, 'operator');
+    assert.equal(login.businessName, 'สีชัง ซันเซ็ท วิลล่า');
   });
 
   it('refuses registration when email or phone is already taken', () => {

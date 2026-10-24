@@ -46,6 +46,8 @@ CREATE TABLE IF NOT EXISTS user_accounts (
   email         TEXT UNIQUE,
   phone         TEXT UNIQUE,
   password_hash TEXT NOT NULL,
+  account_type  TEXT NOT NULL DEFAULT 'traveller',
+  business_name TEXT,
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL
 );

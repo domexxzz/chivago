@@ -61,11 +61,15 @@ export function verifyPassword(password: string, stored: string | null): boolean
   return timingSafeEqual(actual, expected);
 }
 
+export type AccountType = 'traveller' | 'operator';
+
 export interface RegisterUserParams {
   fullName: string;
   email: string;
   phone: string;
   password: string;
+  accountType?: AccountType;
+  businessName?: string;
   locale?: 'th' | 'en';
 }
 
@@ -75,6 +79,8 @@ export interface AuthSuccessResult {
   name: string;
   email: string;
   phone: string;
+  accountType: AccountType;
+  businessName: string | null;
 }
 
 /**
@@ -88,6 +94,10 @@ export function registerUser(
   const cleanName = params.fullName ? params.fullName.trim() : '';
   const cleanEmail = params.email ? params.email.trim().toLowerCase() : '';
   const cleanPhone = params.phone ? params.phone.trim().replace(/[-\s]/g, '') : '';
+  const accountType: AccountType = params.accountType === 'operator' ? 'operator' : 'traveller';
+  const cleanBusiness = accountType === 'operator'
+    ? (params.businessName?.trim() || cleanName)
+    : null;
 
   if (!cleanName) {
     throw new UserAuthError('NAME_REQUIRED', 'กรุณากรอกชื่อ-นามสกุล', 400);
@@ -129,12 +139,13 @@ export function registerUser(
   ).run(userId, cleanName, locale, timestamp);
 
   db.prepare(
-    'INSERT INTO user_accounts (id, email, phone, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
-  ).run(userId, cleanEmail, cleanPhone, pwdHash, timestamp, timestamp);
+    `INSERT INTO user_accounts (id, email, phone, password_hash, account_type, business_name, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(userId, cleanEmail, cleanPhone, pwdHash, accountType, cleanBusiness, timestamp, timestamp);
 
   db.prepare(
     'INSERT INTO device_keys (key_hash, user_id, label, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?)',
-  ).run(hashToken(deviceKey), userId, 'Mobile Device', timestamp, timestamp);
+  ).run(hashToken(deviceKey), userId, accountType === 'operator' ? 'Operator Console Device' : 'Mobile Device', timestamp, timestamp);
 
   ensureWallet(db, userId);
   grantOpeningBalance(db, userId);
@@ -145,6 +156,8 @@ export function registerUser(
     name: cleanName,
     email: cleanEmail,
     phone: cleanPhone,
+    accountType,
+    businessName: cleanBusiness,
   };
 }
 
@@ -168,12 +181,28 @@ export function loginUser(
   }
 
   const isEmail = cleanId.includes('@');
-  let userRow: { id: string; display_name: string; password_hash: string; email: string; phone: string } | undefined;
+  let userRow: {
+    id: string;
+    display_name: string;
+    password_hash: string;
+    email: string;
+    phone: string;
+    account_type: AccountType;
+    business_name: string | null;
+  } | undefined;
 
   if (isEmail) {
-    userRow = row<{ id: string; display_name: string; password_hash: string; email: string; phone: string }>(
+    userRow = row<{
+      id: string;
+      display_name: string;
+      password_hash: string;
+      email: string;
+      phone: string;
+      account_type: AccountType;
+      business_name: string | null;
+    }>(
       db.prepare(`
-        SELECT u.id, u.display_name, a.password_hash, a.email, a.phone
+        SELECT u.id, u.display_name, a.password_hash, a.email, a.phone, a.account_type, a.business_name
         FROM user_accounts a
         JOIN users u ON u.id = a.id
         WHERE lower(a.email) = ?
@@ -181,9 +210,17 @@ export function loginUser(
     );
   } else {
     const cleanPhone = cleanId.replace(/[-\s]/g, '');
-    userRow = row<{ id: string; display_name: string; password_hash: string; email: string; phone: string }>(
+    userRow = row<{
+      id: string;
+      display_name: string;
+      password_hash: string;
+      email: string;
+      phone: string;
+      account_type: AccountType;
+      business_name: string | null;
+    }>(
       db.prepare(`
-        SELECT u.id, u.display_name, a.password_hash, a.email, a.phone
+        SELECT u.id, u.display_name, a.password_hash, a.email, a.phone, a.account_type, a.business_name
         FROM user_accounts a
         JOIN users u ON u.id = a.id
         WHERE a.phone = ? OR lower(a.email) = ?
@@ -213,5 +250,7 @@ export function loginUser(
     name: userRow.display_name,
     email: userRow.email,
     phone: userRow.phone,
+    accountType: userRow.account_type ?? 'traveller',
+    businessName: userRow.business_name ?? null,
   };
 }

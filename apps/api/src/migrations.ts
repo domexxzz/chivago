@@ -1712,12 +1712,20 @@ export function migrate(db: DB): string[] {
       email         TEXT UNIQUE,
       phone         TEXT UNIQUE,
       password_hash TEXT NOT NULL,
+      account_type  TEXT NOT NULL DEFAULT 'traveller',
+      business_name TEXT,
       created_at    TEXT NOT NULL,
       updated_at    TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_user_accounts_email ON user_accounts(email);
     CREATE INDEX IF NOT EXISTS idx_user_accounts_phone ON user_accounts(phone);
   `);
+  if (addColumn(db, 'user_accounts', 'account_type', "TEXT NOT NULL DEFAULT 'traveller'")) {
+    applied.push('user_accounts.account_type');
+  }
+  if (addColumn(db, 'user_accounts', 'business_name', 'TEXT')) {
+    applied.push('user_accounts.business_name');
+  }
   applied.push('user_accounts');
 
   return applied;

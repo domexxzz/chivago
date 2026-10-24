@@ -232,6 +232,8 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     name: String(body.fullName ?? 'Demo Traveller'),
     email: String(body.email ?? 'demo@example.com'),
     phone: String(body.phone ?? '0812345678'),
+    accountType: (body.accountType === 'operator' ? 'operator' : 'traveller') as 'traveller' | 'operator',
+    businessName: body.accountType === 'operator' ? String(body.businessName ?? 'สถานประกอบการเดโม') : null,
   }),
   'POST /auth/login': (body) => {
     const id = String(body.identifier ?? '').trim();
@@ -242,6 +244,8 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
       name: 'Demo Traveller',
       email: id.includes('@') ? id : 'demo@example.com',
       phone: id.includes('@') ? '0812345678' : id,
+      accountType: 'traveller' as const,
+      businessName: null,
     };
   },
   'POST /account/link-code': () => ({ code: 'DEMO' + String(++state.seq).padStart(4, '0'), expiresInMs: 600_000 }),

@@ -31,6 +31,8 @@ describe('User Authentication Routes (Real Database)', () => {
     assert.equal(regJson.data.name, 'ณภัทร สมบูรณ์');
     assert.equal(regJson.data.email, 'naphat@example.com');
     assert.equal(regJson.data.phone, '0823334444');
+    assert.equal(regJson.data.accountType, 'traveller');
+    assert.equal(regJson.data.businessName, null);
 
     // Access an authenticated endpoint with the issued deviceKey
     const walletRes = await app.request('/wallet', {
@@ -39,6 +41,33 @@ describe('User Authentication Routes (Real Database)', () => {
     const walletJson = await json(walletRes);
     assert.equal(walletRes.status, 200);
     assert.equal(walletJson.ok, true);
+  });
+
+  it('registers an operator via POST /auth/register with businessName', async () => {
+    const regRes = await post('/auth/register', {
+      fullName: 'วิชัย เจ้าของเรือ',
+      email: 'wichai@boattour.com',
+      phone: '0831112233',
+      password: 'password123',
+      accountType: 'operator',
+      businessName: 'สีชัง โบ๊ท ทัวร์',
+    });
+    const regJson = await json(regRes);
+
+    assert.equal(regRes.status, 200);
+    assert.equal(regJson.ok, true);
+    assert.equal(regJson.data.accountType, 'operator');
+    assert.equal(regJson.data.businessName, 'สีชัง โบ๊ท ทัวร์');
+
+    // Login checks
+    const loginRes = await post('/auth/login', {
+      identifier: 'wichai@boattour.com',
+      password: 'password123',
+    });
+    const loginJson = await json(loginRes);
+    assert.equal(loginJson.ok, true);
+    assert.equal(loginJson.data.accountType, 'operator');
+    assert.equal(loginJson.data.businessName, 'สีชัง โบ๊ท ทัวร์');
   });
 
   it('refuses duplicate registration with clear error', async () => {

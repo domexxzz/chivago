@@ -39,6 +39,7 @@ import {
   ArrowRight,
   Check,
   ChevronLeft,
+  Compass,
   Eye,
   EyeOff,
   FileText,
@@ -46,6 +47,7 @@ import {
   Mail,
   Shield,
   Smartphone,
+  Store,
   UserRound,
   X,
 } from 'lucide-react-native';
@@ -110,6 +112,10 @@ export function RegisterScreen({
   onLogin,
   onBack,
 }: RegisterScreenProps) {
+  // Role / Account Type (นักท่องเที่ยว หรือ ผู้ประกอบการ)
+  const [accountType, setAccountType] = React.useState<'traveller' | 'operator'>('traveller');
+  const [businessName, setBusinessName] = React.useState('');
+
   // Form fields
   const [fullName, setFullName] = React.useState('');
   const [email, setEmail] = React.useState('');
@@ -136,6 +142,18 @@ export function RegisterScreen({
   const [oauthProvider, setOauthProvider] = React.useState<'Google' | 'LINE'>('Google');
 
   const validate = (): boolean => {
+    if (accountType === 'operator') {
+      const trimmedBusiness = businessName.trim();
+      if (!trimmedBusiness) {
+        setErrorMessage('กรุณากรอกชื่อธุรกิจหรือสถานประกอบการ');
+        return false;
+      }
+      if (trimmedBusiness.length < 2) {
+        setErrorMessage('ชื่อธุรกิจหรือสถานประกอบการต้องมีความยาวอย่างน้อย 2 ตัวอักษร');
+        return false;
+      }
+    }
+
     const trimmedName = fullName.trim();
     if (!trimmedName) {
       setErrorMessage('กรุณากรอกชื่อ-นามสกุล');
@@ -207,6 +225,8 @@ export function RegisterScreen({
         email: email.trim(),
         phone: phone.trim(),
         password,
+        accountType,
+        businessName: accountType === 'operator' ? businessName.trim() : undefined,
       });
 
       if (!regRes.ok) {
@@ -304,6 +324,106 @@ export function RegisterScreen({
               <View style={styles.errorNotice} accessibilityLiveRegion="polite">
                 <AlertCircle size={16} color="#DC2626" strokeWidth={2.2} />
                 <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+            ) : null}
+
+            {/* Account Type Selector (นักท่องเที่ยว vs ผู้ประกอบการ) */}
+            <View style={styles.roleSelectorContainer}>
+              <Text style={styles.roleSectionLabel}>ลงทะเบียนในฐานะ</Text>
+              <View style={styles.roleTabs}>
+                <Pressable
+                  onPress={() => {
+                    setAccountType('traveller');
+                    if (errorMessage) setErrorMessage(null);
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: accountType === 'traveller' }}
+                  accessibilityLabel="นักท่องเที่ยว คนเข้ามาเที่ยว"
+                  style={[
+                    styles.roleTab,
+                    accountType === 'traveller' && styles.roleTabActive,
+                  ]}
+                >
+                  <Compass
+                    size={18}
+                    color={accountType === 'traveller' ? '#009DB7' : '#66869D'}
+                    strokeWidth={accountType === 'traveller' ? 2.4 : 2}
+                  />
+                  <Text
+                    style={[
+                      styles.roleTabText,
+                      accountType === 'traveller' && styles.roleTabTextActive,
+                    ]}
+                  >
+                    นักท่องเที่ยว
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => {
+                    setAccountType('operator');
+                    if (errorMessage) setErrorMessage(null);
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: accountType === 'operator' }}
+                  accessibilityLabel="ผู้ประกอบการ ร้านค้า ที่พัก ทัวร์"
+                  style={[
+                    styles.roleTab,
+                    accountType === 'operator' && styles.roleTabActive,
+                  ]}
+                >
+                  <Store
+                    size={18}
+                    color={accountType === 'operator' ? '#009DB7' : '#66869D'}
+                    strokeWidth={accountType === 'operator' ? 2.4 : 2}
+                  />
+                  <Text
+                    style={[
+                      styles.roleTabText,
+                      accountType === 'operator' && styles.roleTabTextActive,
+                    ]}
+                  >
+                    ผู้ประกอบการ
+                  </Text>
+                </Pressable>
+              </View>
+              <Text style={styles.roleHintText}>
+                {accountType === 'traveller'
+                  ? 'สัมผัสการเดินทาง กิจกรรมชุมชน บันทึกการเดินทาง และรับคะแนนสุขภาพ'
+                  : 'สำหรับเจ้าของที่พัก ร้านอาหาร รถเช่า เรือนำเที่ยว หรือบริการบนเกาะ'}
+              </Text>
+            </View>
+
+            {/* Field ผู้ประกอบการ: ชื่อธุรกิจ / สถานประกอบการ (แสดงเฉพาะเมื่อเลือกผู้ประกอบการ) */}
+            {accountType === 'operator' ? (
+              <View
+                style={[
+                  styles.fieldContainer,
+                  { marginBottom: 12 },
+                  focusedField === 'businessName' && styles.fieldContainerFocused,
+                ]}
+              >
+                <View style={styles.leadingIconSlot}>
+                  <Store size={20} color="#009DB7" strokeWidth={2} />
+                </View>
+                <View style={styles.inputStack}>
+                  <Text style={styles.fieldLabel}>ชื่อธุรกิจ / สถานประกอบการ</Text>
+                  <TextInput
+                    style={styles.textInput}
+                    placeholder="เช่น บ้านสวนสีชัง, สีชัง สปีดโบ๊ท ทัวร์"
+                    placeholderTextColor="#8AA3B5"
+                    autoCapitalize="words"
+                    autoCorrect={false}
+                    value={businessName}
+                    onChangeText={(text) => {
+                      setBusinessName(text);
+                      if (errorMessage) setErrorMessage(null);
+                    }}
+                    onFocus={() => setFocusedField('businessName')}
+                    onBlur={() => setFocusedField(null)}
+                    accessibilityLabel="ชื่อธุรกิจหรือสถานประกอบการ"
+                  />
+                </View>
               </View>
             ) : null}
 
@@ -877,6 +997,61 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: '#B91C1C',
     flex: 1,
+  },
+  roleSelectorContainer: {
+    marginBottom: 16,
+  },
+  roleSectionLabel: {
+    fontFamily: font.thai,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#183B56',
+    marginBottom: 8,
+    letterSpacing: 0.2,
+  },
+  roleTabs: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  roleTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    backgroundColor: '#F0F8FD',
+    borderWidth: 1.5,
+    borderColor: '#D8EDF7',
+  },
+  roleTabActive: {
+    backgroundColor: '#E0F5F9',
+    borderColor: '#009DB7',
+    shadowColor: '#009DB7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  roleTabText: {
+    fontFamily: font.thai,
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#66869D',
+  },
+  roleTabTextActive: {
+    color: '#006A83',
+    fontWeight: '700',
+  },
+  roleHintText: {
+    fontFamily: font.thai,
+    fontSize: 11.5,
+    color: '#66869D',
+    marginTop: 6,
+    lineHeight: 16,
+    paddingHorizontal: 2,
   },
   fieldContainer: {
     flexDirection: 'row',

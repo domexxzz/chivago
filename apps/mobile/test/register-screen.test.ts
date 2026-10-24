@@ -14,6 +14,9 @@ describe('Chivargo RegisterScreen', () => {
     assert.match(text, /GO FURTHER TOGETHER/);
     assert.match(text, /สมัครสมาชิก/);
     assert.match(text, /เริ่มต้นการเดินทางไปด้วยกันกับ Chivargo/);
+    assert.match(text, /ลงทะเบียนในฐานะ/);
+    assert.match(text, /นักท่องเที่ยว/);
+    assert.match(text, /ผู้ประกอบการ/);
     assert.match(text, /ชื่อ-นามสกุล/);
     assert.match(text, /อีเมล/);
     assert.match(text, /เบอร์โทรศัพท์/);
@@ -89,6 +92,79 @@ describe('Chivargo RegisterScreen', () => {
     assert.match(ui.text(), /กรุณายอมรับข้อตกลงการให้บริการและนโยบายความเป็นส่วนตัว/);
 
     ui.unmount();
+  });
+
+  it('validates business name when operator role is selected', async () => {
+    const ui = await mountScreen(h(RegisterScreen, {}));
+
+    // Switch to operator
+    await ui.press(/ผู้ประกอบการ/);
+    assert.match(ui.text(), /ชื่อธุรกิจ \/ สถานประกอบการ/);
+
+    // Try submitting empty as operator -> requires business name
+    await ui.press(/สมัครสมาชิก/);
+    assert.match(ui.text(), /กรุณากรอกชื่อธุรกิจหรือสถานประกอบการ/);
+
+    // Type short business name
+    await ui.type('A', /ชื่อธุรกิจหรือสถานประกอบการ/);
+    await ui.press(/สมัครสมาชิก/);
+    assert.match(ui.text(), /ชื่อธุรกิจหรือสถานประกอบการต้องมีความยาวอย่างน้อย 2 ตัวอักษร/);
+
+    ui.unmount();
+  });
+
+  it('submits valid operator registration with businessName', async () => {
+    let capturedBody: any = null;
+    const s = server({
+      'POST /auth/register': (body) => {
+        capturedBody = body;
+        return {
+          userId: 'u_operator_1',
+          deviceKey: 'test_operator_dev_key',
+          name: 'สมคิด เจ้าของรีสอร์ท',
+          email: 'somkid@resort.com',
+          phone: '0829998877',
+          accountType: 'operator',
+          businessName: 'สีชัง ซันเซ็ท วิลล่า',
+        };
+      },
+      'PUT /profile': {
+        purposes: [],
+        activity: null,
+        watch: [],
+        completedAt: null,
+      },
+    });
+
+    try {
+      let registered = false;
+      const ui = await mountScreen(
+        h(RegisterScreen, {
+          onRegisterSuccess: () => {
+            registered = true;
+          },
+        }),
+      );
+
+      // Select operator role
+      await ui.press(/ผู้ประกอบการ/);
+      await ui.type('สีชัง ซันเซ็ท วิลล่า', /ชื่อธุรกิจหรือสถานประกอบการ/);
+      await ui.type('สมคิด เจ้าของรีสอร์ท', /ชื่อ-นามสกุล/);
+      await ui.type('somkid@resort.com', /อีเมล/);
+      await ui.type('0829998877', /เบอร์โทรศัพท์/);
+      await ui.type('securePass123', /รหัสผ่าน/);
+      await ui.type('securePass123', /ยืนยันรหัสผ่าน/);
+      await ui.press(/ฉันยอมรับ/);
+      await ui.press(/สมัครสมาชิก/);
+      await settle();
+
+      assert.equal(registered, true);
+      assert.equal(capturedBody?.accountType, 'operator');
+      assert.equal(capturedBody?.businessName, 'สีชัง ซันเซ็ท วิลล่า');
+      ui.unmount();
+    } finally {
+      s.restore();
+    }
   });
 
   it('opens Terms of Service modal and Privacy Policy modal', async () => {

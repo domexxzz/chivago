@@ -60,6 +60,7 @@ export const Smartphone = Icon;
 export const Sparkles = Icon;
 export const Sprout = Icon;
 export const Star = Icon;
+export const Store = Icon;
 export const Thermometer = Icon;
 export const Ticket = Icon;
 export const TreePalm = Icon;
