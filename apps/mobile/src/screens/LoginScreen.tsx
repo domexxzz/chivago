@@ -28,6 +28,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import {
@@ -101,6 +102,11 @@ export function LoginScreen({
   onRegister,
   onBack,
 }: LoginScreenProps) {
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 380;
+  const isSmallMobile = width < 360;
+  const isWide = width >= 768;
+
   const [identifier, setIdentifier] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [rememberMe, setRememberMe] = React.useState(true);
@@ -204,9 +210,15 @@ export function LoginScreen({
         keyboardShouldPersistTaps="handled"
       >
         {/* Top Header Background with Waves */}
-        <View style={styles.topSection}>
+        <View style={[styles.topSection, isWide && styles.topSectionWide]}>
           {/* Wave Linear Gradient Header Backdrop */}
-          <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
+          <Svg
+            style={StyleSheet.absoluteFill}
+            width="100%"
+            height="100%"
+            viewBox="0 0 1000 330"
+            preserveAspectRatio="none"
+          >
             <Defs>
               <LinearGradient id="loginBgGrad" x1="0" y1="0" x2="0" y2="1">
                 <Stop offset="0%" stopColor="#0094BD" />
@@ -237,7 +249,11 @@ export function LoginScreen({
           <View style={styles.brandingContainer}>
             <Image
               source={chivagoColorLogo}
-              style={styles.logoImage}
+              style={[
+                styles.logoImage,
+                isSmallMobile && styles.logoImageSmall,
+                isWide && styles.logoImageWide,
+              ]}
               resizeMode="contain"
               accessibilityLabel="ChivaGo"
             />
@@ -246,14 +262,42 @@ export function LoginScreen({
 
           {/* Heading & Subtitle */}
           <View style={styles.headingContainer}>
-            <Text style={styles.welcomeHeading}>Welcome Back</Text>
-            <Text style={styles.welcomeSubtitle}>เข้าสู่ระบบเพื่อไปยัง Chivargo</Text>
+            <Text
+              style={[
+                styles.welcomeHeading,
+                isSmallMobile && styles.welcomeHeadingSmall,
+                isWide && styles.welcomeHeadingWide,
+              ]}
+            >
+              Welcome Back
+            </Text>
+            <Text
+              style={[
+                styles.welcomeSubtitle,
+                isSmallMobile && styles.welcomeSubtitleSmall,
+                isWide && styles.welcomeSubtitleWide,
+              ]}
+            >
+              เข้าสู่ระบบเพื่อไปยัง Chivargo
+            </Text>
           </View>
         </View>
 
         {/* Center Login Form Card */}
-        <View style={styles.cardWrapper}>
-          <View style={styles.card}>
+        <View
+          style={[
+            styles.cardWrapper,
+            isSmallMobile && styles.cardWrapperSmall,
+            isWide && styles.cardWrapperWide,
+          ]}
+        >
+          <View
+            style={[
+              styles.card,
+              isSmallMobile && styles.cardSmall,
+              isWide && styles.cardWide,
+            ]}
+          >
             {/* Error Message Notice */}
             {errorMessage ? (
               <View style={styles.errorNotice} accessibilityLiveRegion="polite">
@@ -266,12 +310,13 @@ export function LoginScreen({
             <View
               style={[
                 styles.inputPill,
+                isSmallMobile && styles.inputPillSmall,
                 focusedField === 'identifier' && styles.inputPillFocused,
               ]}
             >
               <UserRound size={19} color="#718292" strokeWidth={2} />
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
                 placeholder="อีเมลหรือเบอร์โทรศัพท์"
                 placeholderTextColor="#8E9CA8"
                 keyboardType="email-address"
@@ -293,12 +338,13 @@ export function LoginScreen({
               style={[
                 styles.inputPill,
                 { marginTop: 14 },
+                isSmallMobile && styles.inputPillSmall,
                 focusedField === 'password' && styles.inputPillFocused,
               ]}
             >
               <Lock size={19} color="#718292" strokeWidth={2} />
               <TextInput
-                style={styles.textInput}
+                style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
                 placeholder="รหัสผ่าน"
                 placeholderTextColor="#8E9CA8"
                 secureTextEntry={!showPassword}
@@ -343,7 +389,9 @@ export function LoginScreen({
                 >
                   {rememberMe ? <Check size={11} color="#FFFFFF" strokeWidth={3} /> : null}
                 </View>
-                <Text style={styles.rememberMeText}>จดจำฉันไว้</Text>
+                <Text style={[styles.rememberMeText, isSmallMobile && { fontSize: 12 }]}>
+                  จดจำฉันไว้
+                </Text>
               </Pressable>
 
               <Pressable
@@ -351,7 +399,9 @@ export function LoginScreen({
                 accessibilityRole="button"
                 accessibilityLabel="ลืมรหัสผ่าน?"
               >
-                <Text style={styles.forgotPasswordLink}>ลืมรหัสผ่าน?</Text>
+                <Text style={[styles.forgotPasswordLink, isSmallMobile && { fontSize: 12 }]}>
+                  ลืมรหัสผ่าน?
+                </Text>
               </Pressable>
             </View>
 
@@ -363,6 +413,7 @@ export function LoginScreen({
               accessibilityLabel="เข้าสู่ระบบ"
               style={({ pressed }) => [
                 styles.primaryLoginButton,
+                isSmallMobile && styles.primaryLoginButtonSmall,
                 pressed && styles.primaryLoginButtonPressed,
                 loading && styles.primaryLoginButtonDisabled,
               ]}
@@ -394,6 +445,7 @@ export function LoginScreen({
               accessibilityLabel="เข้าสู่ระบบด้วย Google"
               style={({ pressed }) => [
                 styles.oauthButton,
+                isSmallMobile && styles.oauthButtonSmall,
                 pressed && styles.oauthButtonPressed,
               ]}
             >
@@ -409,6 +461,7 @@ export function LoginScreen({
               style={({ pressed }) => [
                 styles.oauthButton,
                 { marginTop: 12 },
+                isSmallMobile && styles.oauthButtonSmall,
                 pressed && styles.oauthButtonPressed,
               ]}
             >
@@ -434,7 +487,11 @@ export function LoginScreen({
         <View style={styles.footerIllustrationWrapper} pointerEvents="none">
           <Image
             source={loginFooterWaves}
-            style={styles.footerIllustration}
+            style={[
+              styles.footerIllustration,
+              isSmallMobile && styles.footerIllustrationSmall,
+              isWide && styles.footerIllustrationWide,
+            ]}
             resizeMode="cover"
             accessibilityLabel="ChivaGo scenic landscape decoration"
           />
@@ -825,5 +882,71 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
+  },
+  // Responsive screen variants
+  topSectionWide: {
+    paddingTop: 42,
+    paddingBottom: 36,
+  },
+  logoImageSmall: {
+    width: 115,
+    height: 76,
+  },
+  logoImageWide: {
+    width: 155,
+    height: 102,
+  },
+  welcomeHeadingSmall: {
+    fontSize: 24,
+  },
+  welcomeHeadingWide: {
+    fontSize: 34,
+  },
+  welcomeSubtitleSmall: {
+    fontSize: 12.5,
+  },
+  welcomeSubtitleWide: {
+    fontSize: 15,
+  },
+  cardWrapperSmall: {
+    paddingHorizontal: 12,
+  },
+  cardWrapperWide: {
+    maxWidth: 460,
+    paddingHorizontal: 24,
+  },
+  cardSmall: {
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    borderRadius: 22,
+  },
+  cardWide: {
+    paddingHorizontal: 28,
+    paddingVertical: 28,
+    borderRadius: 28,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 6,
+  },
+  inputPillSmall: {
+    height: 48,
+    paddingHorizontal: 13,
+  },
+  textInputSmall: {
+    fontSize: 13,
+  },
+  primaryLoginButtonSmall: {
+    height: 46,
+  },
+  oauthButtonSmall: {
+    height: 44,
+  },
+  footerIllustrationSmall: {
+    height: 95,
+  },
+  footerIllustrationWide: {
+    height: 145,
+    maxWidth: 1600,
   },
 });

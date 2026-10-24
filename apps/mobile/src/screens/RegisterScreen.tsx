@@ -32,6 +32,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import {
@@ -112,6 +113,11 @@ export function RegisterScreen({
   onLogin,
   onBack,
 }: RegisterScreenProps) {
+  const { width } = useWindowDimensions();
+  const isNarrow = width < 380;
+  const isSmallMobile = width < 360;
+  const isWide = width >= 768;
+
   // Role / Account Type (นักท่องเที่ยว หรือ ผู้ประกอบการ)
   const [accountType, setAccountType] = React.useState<'traveller' | 'operator'>('traveller');
   const [businessName, setBusinessName] = React.useState('');
@@ -264,9 +270,15 @@ export function RegisterScreen({
         keyboardShouldPersistTaps="handled"
       >
         {/* Top Header Section with Waves */}
-        <View style={styles.topSection}>
+        <View style={[styles.topSection, isWide && styles.topSectionWide]}>
           {/* Wave Linear Gradient Header Backdrop */}
-          <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
+          <Svg
+            style={StyleSheet.absoluteFill}
+            width="100%"
+            height="100%"
+            viewBox="0 0 1000 320"
+            preserveAspectRatio="none"
+          >
             <Defs>
               <LinearGradient id="regBgGrad" x1="0" y1="0" x2="0" y2="1">
                 <Stop offset="0%" stopColor="#0094BD" />
@@ -302,7 +314,11 @@ export function RegisterScreen({
           <View style={styles.brandingContainer}>
             <Image
               source={chivagoColorLogo}
-              style={styles.logoImage}
+              style={[
+                styles.logoImage,
+                isSmallMobile && styles.logoImageSmall,
+                isWide && styles.logoImageWide,
+              ]}
               resizeMode="contain"
               accessibilityLabel="Chivargo"
             />
@@ -311,14 +327,42 @@ export function RegisterScreen({
 
           {/* Heading & Subtitle */}
           <View style={styles.headingContainer}>
-            <Text style={styles.headingTitle}>สมัครสมาชิก</Text>
-            <Text style={styles.headingSubtitle}>เริ่มต้นการเดินทางไปด้วยกันกับ Chivargo</Text>
+            <Text
+              style={[
+                styles.headingTitle,
+                isSmallMobile && styles.headingTitleSmall,
+                isWide && styles.headingTitleWide,
+              ]}
+            >
+              สมัครสมาชิก
+            </Text>
+            <Text
+              style={[
+                styles.headingSubtitle,
+                isSmallMobile && styles.headingSubtitleSmall,
+                isWide && styles.headingSubtitleWide,
+              ]}
+            >
+              เริ่มต้นการเดินทางไปด้วยกันกับ Chivargo
+            </Text>
           </View>
         </View>
 
         {/* Center Registration Card */}
-        <View style={styles.cardWrapper}>
-          <View style={styles.card}>
+        <View
+          style={[
+            styles.cardWrapper,
+            isSmallMobile && styles.cardWrapperSmall,
+            isWide && styles.cardWrapperWide,
+          ]}
+        >
+          <View
+            style={[
+              styles.card,
+              isSmallMobile && styles.cardSmall,
+              isWide && styles.cardWide,
+            ]}
+          >
             {/* Error Message Notice */}
             {errorMessage ? (
               <View style={styles.errorNotice} accessibilityLiveRegion="polite">
@@ -341,17 +385,19 @@ export function RegisterScreen({
                   accessibilityLabel="นักท่องเที่ยว คนเข้ามาเที่ยว"
                   style={[
                     styles.roleTab,
+                    isSmallMobile && styles.roleTabSmall,
                     accountType === 'traveller' && styles.roleTabActive,
                   ]}
                 >
                   <Compass
-                    size={18}
+                    size={isSmallMobile ? 16 : 18}
                     color={accountType === 'traveller' ? '#009DB7' : '#66869D'}
                     strokeWidth={accountType === 'traveller' ? 2.4 : 2}
                   />
                   <Text
                     style={[
                       styles.roleTabText,
+                      isSmallMobile && styles.roleTabTextSmall,
                       accountType === 'traveller' && styles.roleTabTextActive,
                     ]}
                   >
@@ -369,17 +415,19 @@ export function RegisterScreen({
                   accessibilityLabel="ผู้ประกอบการ ร้านค้า ที่พัก ทัวร์"
                   style={[
                     styles.roleTab,
+                    isSmallMobile && styles.roleTabSmall,
                     accountType === 'operator' && styles.roleTabActive,
                   ]}
                 >
                   <Store
-                    size={18}
+                    size={isSmallMobile ? 16 : 18}
                     color={accountType === 'operator' ? '#009DB7' : '#66869D'}
                     strokeWidth={accountType === 'operator' ? 2.4 : 2}
                   />
                   <Text
                     style={[
                       styles.roleTabText,
+                      isSmallMobile && styles.roleTabTextSmall,
                       accountType === 'operator' && styles.roleTabTextActive,
                     ]}
                   >
@@ -399,6 +447,8 @@ export function RegisterScreen({
               <View
                 style={[
                   styles.fieldContainer,
+                  isSmallMobile && styles.fieldContainerSmall,
+                  isWide && styles.fieldContainerWide,
                   { marginBottom: 12 },
                   focusedField === 'businessName' && styles.fieldContainerFocused,
                 ]}
@@ -407,9 +457,11 @@ export function RegisterScreen({
                   <Store size={20} color="#009DB7" strokeWidth={2} />
                 </View>
                 <View style={styles.inputStack}>
-                  <Text style={styles.fieldLabel}>ชื่อธุรกิจ / สถานประกอบการ</Text>
+                  <Text style={[styles.fieldLabel, isSmallMobile && styles.fieldLabelSmall]}>
+                    ชื่อธุรกิจ / สถานประกอบการ
+                  </Text>
                   <TextInput
-                    style={styles.textInput}
+                    style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
                     placeholder="เช่น บ้านสวนสีชัง, สีชัง สปีดโบ๊ท ทัวร์"
                     placeholderTextColor="#8AA3B5"
                     autoCapitalize="words"
@@ -431,6 +483,8 @@ export function RegisterScreen({
             <View
               style={[
                 styles.fieldContainer,
+                isSmallMobile && styles.fieldContainerSmall,
+                isWide && styles.fieldContainerWide,
                 focusedField === 'fullName' && styles.fieldContainerFocused,
               ]}
             >
@@ -438,9 +492,11 @@ export function RegisterScreen({
                 <UserRound size={20} color="#009DB7" strokeWidth={2} />
               </View>
               <View style={styles.inputStack}>
-                <Text style={styles.fieldLabel}>ชื่อ-นามสกุล</Text>
+                <Text style={[styles.fieldLabel, isSmallMobile && styles.fieldLabelSmall]}>
+                  ชื่อ-นามสกุล
+                </Text>
                 <TextInput
-                  style={styles.textInput}
+                  style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
                   placeholder="กรอกชื่อ-นามสกุลของคุณ"
                   placeholderTextColor="#8AA3B5"
                   autoCapitalize="words"
@@ -461,6 +517,8 @@ export function RegisterScreen({
             <View
               style={[
                 styles.fieldContainer,
+                isSmallMobile && styles.fieldContainerSmall,
+                isWide && styles.fieldContainerWide,
                 { marginTop: 12 },
                 focusedField === 'email' && styles.fieldContainerFocused,
               ]}
@@ -469,9 +527,11 @@ export function RegisterScreen({
                 <Mail size={20} color="#009DB7" strokeWidth={2} />
               </View>
               <View style={styles.inputStack}>
-                <Text style={styles.fieldLabel}>อีเมล</Text>
+                <Text style={[styles.fieldLabel, isSmallMobile && styles.fieldLabelSmall]}>
+                  อีเมล
+                </Text>
                 <TextInput
-                  style={styles.textInput}
+                  style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
                   placeholder="กรอกอีเมลของคุณ"
                   placeholderTextColor="#8AA3B5"
                   keyboardType="email-address"
@@ -493,6 +553,8 @@ export function RegisterScreen({
             <View
               style={[
                 styles.fieldContainer,
+                isSmallMobile && styles.fieldContainerSmall,
+                isWide && styles.fieldContainerWide,
                 { marginTop: 12 },
                 focusedField === 'phone' && styles.fieldContainerFocused,
               ]}
@@ -501,9 +563,11 @@ export function RegisterScreen({
                 <Smartphone size={20} color="#009DB7" strokeWidth={2} />
               </View>
               <View style={styles.inputStack}>
-                <Text style={styles.fieldLabel}>เบอร์โทรศัพท์</Text>
+                <Text style={[styles.fieldLabel, isSmallMobile && styles.fieldLabelSmall]}>
+                  เบอร์โทรศัพท์
+                </Text>
                 <TextInput
-                  style={styles.textInput}
+                  style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
                   placeholder="กรอกเบอร์โทรศัพท์ของคุณ"
                   placeholderTextColor="#8AA3B5"
                   keyboardType="phone-pad"
@@ -525,6 +589,8 @@ export function RegisterScreen({
             <View
               style={[
                 styles.fieldContainer,
+                isSmallMobile && styles.fieldContainerSmall,
+                isWide && styles.fieldContainerWide,
                 { marginTop: 12 },
                 focusedField === 'password' && styles.fieldContainerFocused,
               ]}
@@ -533,9 +599,11 @@ export function RegisterScreen({
                 <Lock size={20} color="#009DB7" strokeWidth={2} />
               </View>
               <View style={styles.inputStack}>
-                <Text style={styles.fieldLabel}>รหัสผ่าน</Text>
+                <Text style={[styles.fieldLabel, isSmallMobile && styles.fieldLabelSmall]}>
+                  รหัสผ่าน
+                </Text>
                 <TextInput
-                  style={styles.textInput}
+                  style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
                   placeholder="อย่างน้อย 8 ตัวอักษร"
                   placeholderTextColor="#8AA3B5"
                   secureTextEntry={!showPassword}
@@ -569,6 +637,8 @@ export function RegisterScreen({
             <View
               style={[
                 styles.fieldContainer,
+                isSmallMobile && styles.fieldContainerSmall,
+                isWide && styles.fieldContainerWide,
                 { marginTop: 12 },
                 focusedField === 'confirmPassword' && styles.fieldContainerFocused,
               ]}
@@ -577,9 +647,11 @@ export function RegisterScreen({
                 <Lock size={20} color="#009DB7" strokeWidth={2} />
               </View>
               <View style={styles.inputStack}>
-                <Text style={styles.fieldLabel}>ยืนยันรหัสผ่าน</Text>
+                <Text style={[styles.fieldLabel, isSmallMobile && styles.fieldLabelSmall]}>
+                  ยืนยันรหัสผ่าน
+                </Text>
                 <TextInput
-                  style={styles.textInput}
+                  style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
                   placeholder="กรอกยืนยันรหัสผ่านอีกครั้ง"
                   placeholderTextColor="#8AA3B5"
                   secureTextEntry={!showConfirmPassword}
@@ -692,7 +764,12 @@ export function RegisterScreen({
             </View>
 
             {/* Social Registration Buttons */}
-            <View style={styles.socialButtonsContainer}>
+            <View
+              style={[
+                styles.socialButtonsContainer,
+                isNarrow && { flexDirection: 'column' },
+              ]}
+            >
               <Pressable
                 onPress={() => {
                   setOauthProvider('Google');
@@ -702,11 +779,15 @@ export function RegisterScreen({
                 accessibilityLabel="สมัครด้วย Google"
                 style={({ pressed }) => [
                   styles.socialButton,
+                  isNarrow && { minWidth: '100%' },
+                  isSmallMobile && styles.socialButtonSmall,
                   pressed && styles.socialButtonPressed,
                 ]}
               >
                 <GoogleIcon size={19} />
-                <Text style={styles.socialButtonText}>สมัครด้วย Google</Text>
+                <Text style={[styles.socialButtonText, isSmallMobile && { fontSize: 12 }]}>
+                  สมัครด้วย Google
+                </Text>
               </Pressable>
 
               <Pressable
@@ -718,11 +799,15 @@ export function RegisterScreen({
                 accessibilityLabel="สมัครด้วย LINE"
                 style={({ pressed }) => [
                   styles.socialButton,
+                  isNarrow && { minWidth: '100%' },
+                  isSmallMobile && styles.socialButtonSmall,
                   pressed && styles.socialButtonPressed,
                 ]}
               >
                 <LineIcon size={20} />
-                <Text style={styles.socialButtonText}>สมัครด้วย LINE</Text>
+                <Text style={[styles.socialButtonText, isSmallMobile && { fontSize: 12 }]}>
+                  สมัครด้วย LINE
+                </Text>
               </Pressable>
             </View>
 
@@ -742,10 +827,22 @@ export function RegisterScreen({
         </View>
 
         {/* Decorative Wave Footer with Silhouettes */}
-        <View style={styles.footerSection} pointerEvents="none" aria-hidden={true}>
+        <View
+          style={[
+            styles.footerSection,
+            isSmallMobile && styles.footerSectionSmall,
+            isWide && styles.footerSectionWide,
+          ]}
+          pointerEvents="none"
+          aria-hidden={true}
+        >
           <Image
             source={loginFooterWaves}
-            style={styles.footerWaveImage}
+            style={[
+              styles.footerWaveImage,
+              isSmallMobile && styles.footerWaveImageSmall,
+              isWide && styles.footerWaveImageWide,
+            ]}
             resizeMode="cover"
           />
         </View>
@@ -1295,5 +1392,88 @@ const styles = StyleSheet.create({
     fontFamily: font.heading,
     fontSize: 14,
     color: '#FFFFFF',
+  },
+  // Responsive screen variants
+  topSectionWide: {
+    paddingTop: 44,
+    paddingBottom: 40,
+  },
+  logoImageSmall: {
+    width: 118,
+    height: 60,
+  },
+  logoImageWide: {
+    width: 165,
+    height: 84,
+  },
+  headingTitleSmall: {
+    fontSize: 23,
+  },
+  headingTitleWide: {
+    fontSize: 34,
+  },
+  headingSubtitleSmall: {
+    fontSize: 12,
+  },
+  headingSubtitleWide: {
+    fontSize: 15,
+  },
+  cardWrapperSmall: {
+    paddingHorizontal: 12,
+  },
+  cardWrapperWide: {
+    paddingHorizontal: 24,
+  },
+  cardSmall: {
+    paddingHorizontal: 15,
+    paddingVertical: 18,
+    borderRadius: 22,
+  },
+  cardWide: {
+    maxWidth: 520,
+    paddingHorizontal: 28,
+    paddingVertical: 28,
+    borderRadius: 28,
+  },
+  roleTabSmall: {
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    gap: 5,
+  },
+  roleTabTextSmall: {
+    fontSize: 12,
+  },
+  fieldContainerSmall: {
+    height: 60,
+    paddingHorizontal: 11,
+    borderRadius: 16,
+  },
+  fieldContainerWide: {
+    height: 70,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+  },
+  fieldLabelSmall: {
+    fontSize: 10.5,
+  },
+  textInputSmall: {
+    fontSize: 13,
+  },
+  socialButtonSmall: {
+    height: 44,
+  },
+  footerSectionSmall: {
+    height: 110,
+  },
+  footerSectionWide: {
+    height: 170,
+    maxWidth: 1600,
+    alignSelf: 'center',
+  },
+  footerWaveImageSmall: {
+    height: 110,
+  },
+  footerWaveImageWide: {
+    height: 170,
   },
 });
