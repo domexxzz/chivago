@@ -167,6 +167,35 @@ describe('what Home says', () => {
     } finally { resetControl(); }
   });
 
+  test('a pinned place leads the row, and the head stops claiming nearest-first', async () => {
+    // Sinthani is pinned (featured.ts) and served LAST, from farther away
+    // than the other two, so passing means the pin ran - not the sort.
+    const near = fx.place();
+    const far = fx.place({ id: 'namuang', name: { en: 'Na Muang Waterfall', th: 'น้ำตกหน้าเมือง' }, lat: 9.4682, lng: 99.9856 });
+    const pinned = fx.place({
+      id: 'sinthani-badminton', name: { en: 'Badminton@Sinthani', th: 'แบดมินตัน@สินธานี' },
+      lat: 9.4000, lng: 99.9000,
+    });
+    const s = server(routes({ '/places': [near, far, pinned] })); restore = s.restore;
+    try {
+      control.position = { coords: { latitude: 9.5262, longitude: 100.0518, accuracy: 12 } };
+      const ui = await mountScreen(h(HomeScreen, props));
+      const cards = cardLabels(ui);
+      assert.match(cards[0] ?? '', /Sinthani/, 'the pinned place is not first');
+      // The others keep the distance order behind it, which is what lets the
+      // head still say "then nearest" truthfully.
+      assert.match(cards[1] ?? '', /Chaweng Beach/, 'the nearer of the rest is not second');
+      assert.match(cards[2] ?? '', /Na Muang/, 'the farther of the rest is not third');
+      const said = ui.text();
+      assert.match(said, /Featured first, then nearest/, 'the head does not say the row is pinned');
+      assert.doesNotMatch(said, /^Nearest first$/m, 'the head still claims a plain nearest-first order');
+      // And the card itself says why it is at the front, rather than leaving
+      // a reader to read the position as "nearest" or "best".
+      assert.match(said, /Featured/);
+      ui.unmount();
+    } finally { resetControl(); }
+  });
+
   test('with no position the server order stands, and nothing claims otherwise', async () => {
     const far = fx.place({ id: 'namuang', name: { en: 'Na Muang Waterfall', th: 'น้ำตกหน้าเมือง' }, lat: 9.4682, lng: 99.9856 });
     const near = fx.place();

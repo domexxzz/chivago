@@ -1982,7 +1982,14 @@
         "Indoor",
         "Booking"
       ],
-      "photo": null,
+      "photo": {
+        "url": "https://badminton-booking-ihw1.onrender.com/brand/sinthani-logo.png",
+        "credit": "แบดมินตัน@สินธานี",
+        "licence": "Used with permission",
+        "sourceUrl": "https://badminton-booking-ihw1.onrender.com/",
+        "kind": "logo",
+        "backdrop": "#2C492A"
+      },
       "metrics": {
         "crowdDensity": 2,
         "aqi": 210,
@@ -5725,7 +5732,14 @@
       "Indoor",
       "Booking"
     ],
-    "photo": null,
+    "photo": {
+      "url": "https://badminton-booking-ihw1.onrender.com/brand/sinthani-logo.png",
+      "credit": "แบดมินตัน@สินธานี",
+      "licence": "Used with permission",
+      "sourceUrl": "https://badminton-booking-ihw1.onrender.com/",
+      "kind": "logo",
+      "backdrop": "#2C492A"
+    },
     "metrics": {
       "crowdDensity": 2,
       "aqi": 210,

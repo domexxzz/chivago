@@ -134,6 +134,24 @@ export interface PlacePhoto {
   licence: string;
   /** Where it came from, so the terms can be checked without asking us. */
   sourceUrl: string | null;
+  /**
+   * What the image IS. A photograph by default; 'logo' for a venue's own mark.
+   *
+   * The difference is not cosmetic. A logo was not photographed, so crediting
+   * it "photographed by" is a false statement about a real business, and it is
+   * drawn to its own edges, so cropping it to fill a 16:9 frame cuts the name
+   * off the thing whose name it is. The screen reads this and does neither.
+   */
+  kind?: 'photo' | 'logo';
+  /**
+   * For a logo only: its own field colour, as `#rrggbb`.
+   *
+   * A logo fitted whole into a wider frame leaves bars down each side. Filled
+   * with the colour the logo itself sits on, the frame reads as the venue's
+   * own panel; left on the default grey it reads as a picture that failed to
+   * load. Sampled from the image, not guessed.
+   */
+  backdrop?: string;
 }
 
 /**

@@ -85,6 +85,8 @@ export const strings = {
 
     /** Said before a photographer's name in the alt text of every place photograph. */
     photographedBy: t('photographed by', 'ถ่ายภาพโดย'),
+    /** A venue's own mark, not a photograph of the place - said as what it is. */
+    logoOf: t('logo of', 'โลโก้ของ'),
 
     /** The beach illustration on Home and the collection. One alt text, two sites. */
     companionsAlt: t(
@@ -346,6 +348,14 @@ export const strings = {
      * the same claim made silently.
      */
     nearestFirst: t('Nearest first', 'เรียงจากใกล้ที่สุด'),
+    /**
+     * A pinned place sits ahead of the order, so the header stops claiming the
+     * row is simply nearest-first and says what it actually is (featured.ts).
+     */
+    featuredThenNearest: t('Featured first, then nearest', 'แนะนำก่อน จากนั้นเรียงจากใกล้ที่สุด'),
+    featuredFirstOnly: t('Featured first', 'แนะนำก่อน'),
+    /** On the pinned card itself, so a reader knows why it is at the front. */
+    featuredBadge: t('Featured', 'แนะนำ'),
     /** Draws the route on the app's own map. The first choice, before leaving. */
     showWay: t('Show the way on the map', 'ดูเส้นทางบนแผนที่'),
     openInMaps: t('Open in Google Maps', 'เปิดใน Google Maps'),

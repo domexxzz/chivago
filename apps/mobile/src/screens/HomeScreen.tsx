@@ -38,9 +38,9 @@ import Svg, { Defs, LinearGradient, Stop, Rect, Path } from 'react-native-svg';
 import {
   Image, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
-import { areaOfPlace, fairsIn, inArea, stallPlacesIn, type Area, type AreaKey, type Fair } from '@chivago/core';
+import { areaOfPlace, fairsIn, featuredFirst, hasFeatured, inArea, isFeatured, stallPlacesIn, type Area, type AreaKey, type Fair } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
-import { mascotBeachUri, photoUri } from '../api/photos.ts';
+import { creditWord, fitsWhole, mascotBeachUri, photoBackdrop, photoUri } from '../api/photos.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { BoardFeed } from '../components/BoardFeed.tsx';
 import { BusStrip } from '../components/BusStrip.tsx';
@@ -500,6 +500,20 @@ function MarketPromoCard({ onOpenMarket }: { onOpenMarket: () => void }) {
 
 const CARD_GAP = 12;
 
+/**
+ * What the row is actually ordered by, said plainly.
+ *
+ * A pinned place sits ahead of the distance order (featured.ts), so once one
+ * is in the row the head must stop claiming the row is simply nearest-first.
+ * Without a position there is no distance order to name at all, so only the
+ * pin is worth saying; with neither, the head says nothing rather than
+ * naming an order it cannot vouch for.
+ */
+function noteForOrder(pinned: boolean, located: boolean): string | undefined {
+  if (pinned) return t(located ? strings.place.featuredThenNearest : strings.place.featuredFirstOnly);
+  return located ? t(strings.place.nearestFirst) : undefined;
+}
+
 function Places({
   places, onOpenMap, onOpenPlace,
 }: { places: Async<ScoredPlace[]>; onOpenMap: () => void; onOpenPlace: (id: string) => void }) {
@@ -511,7 +525,11 @@ function Places({
   // then. The head says which of the two you are looking at, because an
   // order that changes when somebody walks two streets is a claim, and every
   // other number on this screen names itself.
-  const list = React.useMemo(() => nearestFirst(served, here), [served, here]);
+  // Nearest first, then the pinned place lifted to the front of that order
+  // (featured.ts). The head below stops saying "nearest first" when one is
+  // pinned, because by then it would not be true.
+  const list = React.useMemo(() => featuredFirst(nearestFirst(served, here)), [served, here]);
+  const pinned = React.useMemo(() => hasFeatured(list), [list]);
 
   // Warm the photographs while there is signal: the place screen at the
   // mangrove opens off the cache, not off a stalled request. Keyed to the
@@ -528,7 +546,7 @@ function Places({
       <SectionHead
         en="Places in this area"
         th="สถานที่ในพื้นที่นี้"
-        note={here ? t(strings.place.nearestFirst) : undefined}
+        note={noteForOrder(pinned, here !== null)}
         onSeeAll={onOpenMap}
       />
       <ScrollView
@@ -575,13 +593,18 @@ function PlaceCard({ place, here, onPress }: { place: ScoredPlace; here: Here | 
         },
       ]}
     >
-      <View style={{ height: 140, backgroundColor: color.neutral200, position: 'relative' }}>
+      {/* A fitted logo sits on its own field colour, so the frame is the venue's panel, not a failed load. */}
+      <View style={{ height: 140, backgroundColor: photoBackdrop(place.photo), position: 'relative' }}>
         {place.photo ? (
           <Image
             source={{ uri: photoUri(place.photo.url) }}
-            resizeMode="cover"
+            /*
+              A logo is drawn to its own edges: cropped to fill, the venue's
+              name comes off its own mark. Fitted whole instead.
+            */
+            resizeMode={fitsWhole(place.photo) ? 'contain' : 'cover'}
             style={{ width: '100%', height: '100%' }}
-            accessibilityLabel={`${t(place.name)}, ${t(strings.common.photographedBy)} ${place.photo.credit}`}
+            accessibilityLabel={`${t(place.name)}, ${t(creditWord(place.photo))} ${place.photo.credit}`}
           />
         ) : (
           <NoPhotograph place={place} />
@@ -618,7 +641,23 @@ function PlaceCard({ place, here, onPress }: { place: ScoredPlace; here: Here | 
           </View>
         ) : null}
 
-
+        {/*
+          Bottom left: why this card is at the front. The row is otherwise
+          ordered by distance, so a place placed ahead of it says so on its
+          own face rather than leaving a reader to assume it is the nearest
+          or the best (featured.ts).
+        */}
+        {isFeatured(place.id) ? (
+          <View
+            style={{
+              position: 'absolute', bottom: 10, left: 10, paddingVertical: 4, paddingHorizontal: 10,
+              borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.92)',
+              shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.12, shadowRadius: 3,
+            }}
+          >
+            <Label size={10} tracking={0.06} colour={color.neutral800}>{t(strings.place.featuredBadge)}</Label>
+          </View>
+        ) : null}
       </View>
 
       <View style={{ padding: 12 }}>
