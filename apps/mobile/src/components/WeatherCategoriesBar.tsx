@@ -2,21 +2,23 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Anchor, Cloud, CloudRain, Thermometer, Waves } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
+import type { Bilingual } from '@chivago/core';
+import { t } from '../i18n/locale.ts';
 
 export type WeatherCategoryKey = 'waves' | 'temp' | 'weather' | 'rain' | 'port';
 
 export interface WeatherCategoryItem {
   key: WeatherCategoryKey;
-  label: string;
+  label: Bilingual;
   icon: LucideIcon;
 }
 
 export const WEATHER_CATEGORIES: WeatherCategoryItem[] = [
-  { key: 'waves', label: 'คลื่นลม', icon: Waves },
-  { key: 'temp', label: 'อุณหภูมิ', icon: Thermometer },
-  { key: 'weather', label: 'อากาศ', icon: Cloud },
-  { key: 'rain', label: 'ปริมาณฝน', icon: CloudRain },
-  { key: 'port', label: 'การท่าเรือ', icon: Anchor },
+  { key: 'waves', label: { en: 'Waves', th: 'คลื่นลม' }, icon: Waves },
+  { key: 'temp', label: { en: 'Temp', th: 'อุณหภูมิ' }, icon: Thermometer },
+  { key: 'weather', label: { en: 'Weather', th: 'อากาศ' }, icon: Cloud },
+  { key: 'rain', label: { en: 'Rain', th: 'ปริมาณฝน' }, icon: CloudRain },
+  { key: 'port', label: { en: 'Port', th: 'การท่าเรือ' }, icon: Anchor },
 ];
 
 export function WeatherCategoriesBar({
@@ -37,7 +39,7 @@ export function WeatherCategoriesBar({
             onPress={() => onSelect?.(item.key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: isSelected }}
-            accessibilityLabel={item.label}
+            accessibilityLabel={t(item.label)}
             style={[
               styles.tabItem,
               isSelected ? styles.tabItemSelected : styles.tabItemUnselected,
@@ -55,7 +57,7 @@ export function WeatherCategoriesBar({
               ]}
               numberOfLines={1}
             >
-              {item.label}
+              {t(item.label)}
             </Text>
           </Pressable>
         );

@@ -15,12 +15,13 @@
  */
 
 import React from 'react';
-import { Animated, Linking, Pressable, ScrollView, View } from 'react-native';
+import { Animated, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
-import { Phone } from 'lucide-react-native';
+import { Phone, UserRound } from 'lucide-react-native';
+import chivagoLogo from '../../assets/chivago-logo.png';
 import {
-  EMERGENCY_AS_OF, emergencyNear, strings, type ShieldService,
+  EMERGENCY_AS_OF, emergencyNear, greetingFor, strings, type ShieldService,
 } from '@chivago/core';
 import type { SosAlertRecord } from '../api/client.ts';
 import { SOS_RADIUS } from '@chivago/tokens';
@@ -37,44 +38,80 @@ import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
 export function SafetyScreen({
-  alert, onFire, onCancel, onShare, firing,
+  alert, onFire, onCancel, onShare, firing, onOpenProfile,
 }: {
   alert: SosAlertRecord | null;
   onFire: (pos?: { lat: number; lng: number }) => void;
   onCancel: () => void;
   onShare: () => void;
   firing: boolean;
+  onOpenProfile?: () => void;
 }) {
   const shield = useAsync(() => api.shield(), []);
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      {/* The design's only inverted header - it carries the mode change. */}
       <View
         style={{
-          backgroundColor: color.mist,
+          backgroundColor: '#097097',
           paddingHorizontal: gutter,
-          paddingVertical: 22,
+          paddingTop: 20,
+          paddingBottom: 20,
           borderBottomLeftRadius: 28,
           borderBottomRightRadius: 28,
           overflow: 'hidden',
-          shadowColor: '#004E64',
+          shadowColor: '#00263E',
           shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.16,
+          shadowOpacity: 0.14,
           shadowRadius: 10,
           elevation: 3,
         }}
       >
         <OceanBackdrop compact />
-        <Label size={10} tracking={0.16} colour="#D5F6FF">
-          {strings.safety.kicker.en}
-        </Label>
-        <Heading size={26} colour={onFill.text} tracking={-0.52} style={{ marginTop: 6 }}>
-          {strings.safety.title.en}
-        </Heading>
-        <Thai always size={11} colour="#E8FBFF" style={{ opacity: 0.9, marginTop: 4 }}>
-          {strings.safety.subtitle.th}
-        </Thai>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#D5F6FF', fontSize: 12, fontWeight: '500', letterSpacing: 1.8, textTransform: 'uppercase' }}>
+              {t(greetingFor(new Date()))}
+            </Text>
+            <Heading size={28} colour="#FFFFFF" style={{ marginTop: 4, fontWeight: '800' }}>
+              {t(strings.tabs.safety)}
+            </Heading>
+            <View style={{ marginTop: 4 }}>
+              <Label size={11} tracking={0.12} colour="#E2F6FC">
+                {`${t(strings.safety.kicker)} · ${t(strings.safety.title)}`}
+              </Label>
+              <Text style={{ color: '#E8FBFF', fontSize: 11, opacity: 0.9, marginTop: 2 }}>
+                {t(strings.safety.subtitle)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Image
+              source={chivagoLogo}
+              resizeMode="contain"
+              accessibilityLabel="ChivaGo"
+              style={{ width: 68, height: 48 }}
+            />
+            <Pressable
+              onPress={onOpenProfile}
+              accessibilityRole="button"
+              accessibilityLabel={t({ en: 'Profile', th: 'โปรไฟล์' })}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.5)',
+                backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <UserRound size={22} color="#FFFFFF" strokeWidth={2} />
+            </Pressable>
+          </View>
+        </View>
       </View>
 
       {shield.loading ? <LoadingState /> : null}

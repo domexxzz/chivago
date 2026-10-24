@@ -315,6 +315,7 @@ export default function App() {
             onOpenStays={() => nav.push('stays')}
             onToast={toast.show}
             onOpenWallet={() => nav.push('wallet')}
+            onOpenProfile={() => nav.push('account')}
             balances={balances}
             wayTo={wayTo}
             onClearWay={() => setWayTo(null)}
@@ -365,6 +366,7 @@ export default function App() {
           <MissionsScreen
             onOpen={(id) => nav.push('quest', { questId: id })}
             onOpenMarket={() => nav.push('market')}
+            onOpenProfile={() => nav.push('account')}
           />
         );
 
@@ -388,6 +390,7 @@ export default function App() {
             onOpenMedals={() => nav.push('medals')}
             onOpenPassport={() => nav.push('passport')}
             onOpenParty={() => nav.push('party')}
+            onOpenProfile={() => nav.push('account')}
           />
         );
       case 'wallet':
@@ -483,6 +486,7 @@ export default function App() {
             onCancel={sos.cancel}
             onShare={sos.shareLink}
             firing={sos.firing}
+            onOpenProfile={() => nav.push('account')}
           />
         );
 

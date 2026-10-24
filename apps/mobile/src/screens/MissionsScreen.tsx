@@ -21,9 +21,10 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import { ChevronRight } from 'lucide-react-native';
-import { isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
+import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { ChevronRight, UserRound } from 'lucide-react-native';
+import chivagoLogo from '../../assets/chivago-logo.png';
+import { greetingFor, isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
@@ -36,8 +37,8 @@ import { t } from '../i18n/locale.ts';
 type Filter = 'today' | 'weekend' | 'all';
 
 export function MissionsScreen({
-  onOpen, onOpenMarket,
-}: { onOpen: (id: string) => void; onOpenMarket: () => void }) {
+  onOpen, onOpenMarket, onOpenProfile,
+}: { onOpen: (id: string) => void; onOpenMarket: () => void; onOpenProfile?: () => void }) {
   const [filter, setFilter] = React.useState<Filter>('today');
 
   // Fetch ALL quests once and filter locally. Two reasons:
@@ -56,13 +57,13 @@ export function MissionsScreen({
       <View
         style={{
           paddingHorizontal: gutter,
-          paddingTop: 22,
+          paddingTop: 20,
           paddingBottom: 20,
-          backgroundColor: '#028090',
+          backgroundColor: '#097097',
           borderBottomLeftRadius: 28,
           borderBottomRightRadius: 28,
           overflow: 'hidden',
-          shadowColor: '#004E64',
+          shadowColor: '#00263E',
           shadowOffset: { width: 0, height: 4 },
           shadowOpacity: 0.14,
           shadowRadius: 10,
@@ -70,12 +71,44 @@ export function MissionsScreen({
         }}
       >
         <OceanBackdrop compact />
-        <Label size={10} tracking={0.16} colour="#D5F6FF">
-          {t({ en: 'ISLAND MISSIONS', th: 'ภารกิจรักษ์เกาะ' })}
-        </Label>
-        <Heading size={26} tracking={-0.52} colour="#FFFFFF" style={{ marginTop: 4 }}>
-          {t(strings.quests.title)}
-        </Heading>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#D5F6FF', fontSize: 12, fontWeight: '500', letterSpacing: 1.8, textTransform: 'uppercase' }}>
+              {t(greetingFor(new Date()))}
+            </Text>
+            <Heading size={28} colour="#FFFFFF" style={{ marginTop: 4, fontWeight: '800' }}>
+              {t(strings.tabs.quests)}
+            </Heading>
+            <Label size={11} tracking={0.12} colour="#E2F6FC" style={{ marginTop: 4 }}>
+              {`${t({ en: 'ISLAND MISSIONS', th: 'ภารกิจรักษ์เกาะ' })} · ${t(strings.quests.title)}`}
+            </Label>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <Image
+              source={chivagoLogo}
+              resizeMode="contain"
+              accessibilityLabel="ChivaGo"
+              style={{ width: 68, height: 48 }}
+            />
+            <Pressable
+              onPress={onOpenProfile}
+              accessibilityRole="button"
+              accessibilityLabel={t({ en: 'Profile', th: 'โปรไฟล์' })}
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.5)',
+                backgroundColor: 'rgba(255, 255, 255, 0.18)',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <UserRound size={22} color="#FFFFFF" strokeWidth={2} />
+            </Pressable>
+          </View>
+        </View>
       </View>
 
       <SegmentedFilter value={filter} total={all.length} onChange={setFilter} />
