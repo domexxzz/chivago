@@ -1705,5 +1705,20 @@ export function migrate(db: DB): string[] {
   `);
   applied.push('summon_epochs', 'summons');
 
+  // Real database accounts for user registration and authentication
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_accounts (
+      id            TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      email         TEXT UNIQUE,
+      phone         TEXT UNIQUE,
+      password_hash TEXT NOT NULL,
+      created_at    TEXT NOT NULL,
+      updated_at    TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_accounts_email ON user_accounts(email);
+    CREATE INDEX IF NOT EXISTS idx_user_accounts_phone ON user_accounts(phone);
+  `);
+  applied.push('user_accounts');
+
   return applied;
 }

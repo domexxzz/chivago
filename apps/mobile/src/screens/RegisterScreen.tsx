@@ -53,7 +53,7 @@ import {
 import chivagoColorLogo from '../../assets/chivago-color-logo.png';
 import loginFooterWaves from '../../assets/login-footer-waves.png';
 import { api } from '../api/client.ts';
-import { ensureAccount } from '../api/account.ts';
+import { adoptKey, ensureAccount } from '../api/account.ts';
 import { setLoggedIn } from '../state/auth.ts';
 import { CONSENT_VERSION } from '../state/store.tsx';
 import { color, font, radius, shadow } from '../theme/index.ts';
@@ -202,14 +202,20 @@ export function RegisterScreen({
     setErrorMessage(null);
 
     try {
-      const trimmedName = fullName.trim();
-      // Register new device account
-      const acc = await ensureAccount(api, { label: trimmedName });
-      if (!acc.key) {
-        setErrorMessage('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง');
+      const regRes = await api.registerAccount({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        password,
+      });
+
+      if (!regRes.ok) {
+        setErrorMessage(regRes.error || 'การลงทะเบียนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
         setLoading(false);
         return;
       }
+
+      await adoptKey(regRes.data.deviceKey);
 
       // Record PDPA consent version
       try {

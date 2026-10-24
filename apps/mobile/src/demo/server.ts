@@ -226,6 +226,24 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
   // -- accounts and parties: the four screens that were "Not in the demo
   // build" since they arrived, because nobody re-captured after adding them.
   'POST /devices': () => ({ userId: 'demo-user', deviceKey: 'chvg_dev_demo-build-only' }),
+  'POST /auth/register': (body) => ({
+    userId: 'demo-user',
+    deviceKey: 'chvg_dev_demo-build-only',
+    name: String(body.fullName ?? 'Demo Traveller'),
+    email: String(body.email ?? 'demo@example.com'),
+    phone: String(body.phone ?? '0812345678'),
+  }),
+  'POST /auth/login': (body) => {
+    const id = String(body.identifier ?? '').trim();
+    if (!id || !body.password) return refuse('INVALID_CREDENTIALS', 'อีเมล เบอร์โทรศัพท์ หรือรหัสผ่านไม่ถูกต้อง');
+    return {
+      userId: 'demo-user',
+      deviceKey: 'chvg_dev_demo-build-only',
+      name: 'Demo Traveller',
+      email: id.includes('@') ? id : 'demo@example.com',
+      phone: id.includes('@') ? '0812345678' : id,
+    };
+  },
   'POST /account/link-code': () => ({ code: 'DEMO' + String(++state.seq).padStart(4, '0'), expiresInMs: 600_000 }),
   // There is one visitor and one phone, so there is nothing to claim from.
   'POST /account/claim': () => refuse('LINK_UNKNOWN', 'That code is not one this demo issued. Nothing is saved here, so there is no second phone to link.'),

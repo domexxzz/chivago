@@ -40,6 +40,16 @@ CREATE TABLE IF NOT EXISTS users (
   created_at    TEXT NOT NULL
 );
 
+-- Real database user credentials for login and registration
+CREATE TABLE IF NOT EXISTS user_accounts (
+  id            TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  email         TEXT UNIQUE,
+  phone         TEXT UNIQUE,
+  password_hash TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL
+);
+
 -- The wellness profile from onboarding. Weights the Healthy Score.
 CREATE TABLE IF NOT EXISTS profiles (
   user_id       TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

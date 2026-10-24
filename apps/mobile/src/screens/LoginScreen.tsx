@@ -174,18 +174,19 @@ export function LoginScreen({
         }
       }
 
-      // Ensure account device is authenticated
-      const acc = await ensureAccount(api, { label: trimmedId });
-      if (!acc.key) {
-        setErrorMessage('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง');
+      // Real database user login with email/phone and password
+      const loginRes = await api.loginAccount({ identifier: trimmedId, password });
+      if (loginRes.ok) {
+        await adoptKey(loginRes.data.deviceKey);
+        await setLoggedIn(true);
+        setLoading(false);
+        onLoginSuccess?.();
+        return;
+      } else {
+        setErrorMessage(loginRes.error || 'เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง');
         setLoading(false);
         return;
       }
-
-      // Authentication succeeded
-      await setLoggedIn(true);
-      setLoading(false);
-      onLoginSuccess?.();
     } catch {
       setErrorMessage('เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง');
       setLoading(false);

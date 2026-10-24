@@ -384,6 +384,14 @@ export const api = {
   register: (body: { label?: string; locale?: string }) =>
     post<{ userId: string; deviceKey: string }>('/devices', body),
 
+  /** Real database user registration. */
+  registerAccount: (body: { fullName: string; email: string; phone: string; password: string; locale?: string }) =>
+    post<{ userId: string; deviceKey: string; name: string; email: string; phone: string }>('/auth/register', body),
+
+  /** Real database user login with email/phone and password. */
+  loginAccount: (body: { identifier: string; password: string; label?: string }) =>
+    post<{ userId: string; deviceKey: string; name: string; email: string; phone: string }>('/auth/login', body),
+
   account: () =>
     get<{ userId: string; devices: { label: string | null; createdAt: string; lastSeenAt: string | null; current: boolean }[] }>(
       '/account',

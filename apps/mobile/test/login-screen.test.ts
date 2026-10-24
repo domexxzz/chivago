@@ -103,7 +103,13 @@ describe('Chivargo LoginScreen', () => {
     assert.equal(await hasLoggedIn(), false);
 
     const s = server({
-      'POST /devices': { userId: 'u_test', deviceKey: 'test_dev_key_123' },
+      'POST /auth/login': {
+        userId: 'u_test',
+        deviceKey: 'test_dev_key_123',
+        name: 'Test User',
+        email: 'test@example.com',
+        phone: '0812345678',
+      },
     });
     try {
       let success = false;
@@ -122,6 +128,38 @@ describe('Chivargo LoginScreen', () => {
 
       assert.equal(success, true);
       assert.equal(await hasLoggedIn(), true);
+      ui.unmount();
+    } finally {
+      s.restore();
+    }
+  });
+
+  it('displays server error message when login fails', async () => {
+    const s = server({
+      'POST /auth/login': {
+        __refuses: {
+          code: 'INVALID_CREDENTIALS',
+          error: 'อีเมล เบอร์โทรศัพท์ หรือรหัสผ่านไม่ถูกต้อง',
+        },
+      },
+    });
+    try {
+      let success = false;
+      const ui = await mountScreen(
+        h(LoginScreen, {
+          onLoginSuccess: () => {
+            success = true;
+          },
+        }),
+      );
+
+      await ui.type('0812345678', /อีเมลหรือเบอร์โทรศัพท์/);
+      await ui.type('wrongpassword', /รหัสผ่าน/);
+      await ui.press(/เข้าสู่ระบบ/);
+      await settle();
+
+      assert.equal(success, false);
+      assert.match(ui.text(), /อีเมล เบอร์โทรศัพท์ หรือรหัสผ่านไม่ถูกต้อง/);
       ui.unmount();
     } finally {
       s.restore();

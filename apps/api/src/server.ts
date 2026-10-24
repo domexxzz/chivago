@@ -30,6 +30,7 @@ import {
   // called at three in the morning.
   registerDevice as registerAccountDevice, resolveDevice, revokeDevice,
 } from './account-service.ts';
+import { loginUser, registerUser, UserAuthError } from './user-account-service.ts';
 import { logger } from 'hono/logger';
 
 import { openDb, row, transact } from './db.ts';
@@ -550,10 +551,15 @@ app.use('*', async (c, next) => {
     }
     c.set('userId', resolved);
   } else if (!c.req.path.startsWith('/devices') && !c.req.path.startsWith('/account/claim')
+             && !c.req.path.startsWith('/auth/')
              && !openIdentityAllowed()) {
     // Registering and claiming are how a device GETS a key, so they cannot
     // require one. Everything else must now prove who it is.
     return fail(c, 'UNAUTHENTICATED', 'Sign in on this device to continue.', 401);
+  }
+
+  if (c.req.path.startsWith('/auth/')) {
+    return next();
   }
 
   const id = userId(c);
@@ -661,6 +667,74 @@ app.post('/devices', async (c) => {
 
   // The key is returned HERE and never again. Only its hash is stored.
   return ok(c, created);
+});
+
+/**
+ * Real database user registration.
+ */
+app.post('/auth/register', async (c) => {
+  if (!allowRegistration(clientAddress(c))) {
+    return fail(c, 'TOO_MANY_REGISTRATIONS', 'Too many registration attempts. Please try again later.', 429);
+  }
+
+  const body = await c.req.json<{
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    password?: string;
+    locale?: 'th' | 'en';
+  }>().catch(() => ({} as {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    password?: string;
+    locale?: 'th' | 'en';
+  }));
+
+  try {
+    const result = registerUser(db, {
+      fullName: body.fullName ?? '',
+      email: body.email ?? '',
+      phone: body.phone ?? '',
+      password: body.password ?? '',
+      locale: body.locale === 'th' ? 'th' : 'en',
+    });
+    return ok(c, result);
+  } catch (err) {
+    if (err instanceof UserAuthError) {
+      return fail(c, err.code, err.message, err.status);
+    }
+    throw err;
+  }
+});
+
+/**
+ * Real database user login with email/phone and password.
+ */
+app.post('/auth/login', async (c) => {
+  const body = await c.req.json<{
+    identifier?: string;
+    password?: string;
+    label?: string;
+  }>().catch(() => ({} as {
+    identifier?: string;
+    password?: string;
+    label?: string;
+  }));
+
+  try {
+    const result = loginUser(db, {
+      identifier: body.identifier ?? '',
+      password: body.password ?? '',
+      label: body.label?.trim() || undefined,
+    });
+    return ok(c, result);
+  } catch (err) {
+    if (err instanceof UserAuthError) {
+      return fail(c, err.code, err.message, err.status);
+    }
+    throw err;
+  }
 });
 
 /** Who this device is signed in as, and which phones share the account. */

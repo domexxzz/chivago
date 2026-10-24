@@ -144,7 +144,13 @@ describe('Chivargo RegisterScreen', () => {
     assert.equal(await hasLoggedIn(), false);
 
     const s = server({
-      'POST /devices': { userId: 'u_new_reg', deviceKey: 'test_reg_dev_key' },
+      'POST /auth/register': {
+        userId: 'u_new_reg',
+        deviceKey: 'test_reg_dev_key',
+        name: 'สมศรี รักดี',
+        email: 'somsri@example.com',
+        phone: '0899998888',
+      },
       'PUT /profile': {
         purposes: [],
         activity: null,
@@ -174,6 +180,43 @@ describe('Chivargo RegisterScreen', () => {
 
       assert.equal(registered, true);
       assert.equal(await hasLoggedIn(), true);
+      ui.unmount();
+    } finally {
+      s.restore();
+    }
+  });
+
+  it('displays server error message when registration fails', async () => {
+    const s = server({
+      'POST /auth/register': {
+        __refuses: {
+          code: 'EMAIL_EXISTS',
+          error: 'อีเมลนี้ถูกใช้งานแล้วในระบบ',
+        },
+      },
+    });
+
+    try {
+      let registered = false;
+      const ui = await mountScreen(
+        h(RegisterScreen, {
+          onRegisterSuccess: () => {
+            registered = true;
+          },
+        }),
+      );
+
+      await ui.type('สมศรี รักดี', /ชื่อ-นามสกุล/);
+      await ui.type('somsri@example.com', /อีเมล/);
+      await ui.type('0899998888', /เบอร์โทรศัพท์/);
+      await ui.type('securePass123', /รหัสผ่าน/);
+      await ui.type('securePass123', /ยืนยันรหัสผ่าน/);
+      await ui.press(/ฉันยอมรับ/);
+      await ui.press(/สมัครสมาชิก/);
+      await settle();
+
+      assert.equal(registered, false);
+      assert.match(ui.text(), /อีเมลนี้ถูกใช้งานแล้วในระบบ/);
       ui.unmount();
     } finally {
       s.restore();

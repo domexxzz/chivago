@@ -110,7 +110,7 @@ export const TRAVELLER_TABLES = [
   // Accounts and parties are the traveller's, not the pilot's. Both arrived
   // after this list was written, and the schema guard below did its job: the
   // reset refused to run at all until they were classified.
-  'device_keys', 'link_codes',
+  'user_accounts', 'device_keys', 'link_codes',
   // A party's invitations and the requests to join them go with the party -
   // children first, so the foreign keys never see an orphan.
   'invite_requests', 'party_invites', 'party_members', 'parties',
