@@ -232,36 +232,66 @@ describe('distinction between operator and traveller roles', () => {
     ui.unmount();
   });
 
-  test('toggles between traveller and operator view tabs on profile screen', async () => {
-    const s = server(routes({
+  test('strictly isolates operator dashboard from traveller profile without role toggles', async () => {
+    // 1. Operator Account
+    const opServer = server(routes({
       '/account': {
-        userId: 'u_traveller_1',
-        accountType: 'traveller',
-        businessName: null,
-        fullName: 'สมชาย รักเที่ยว',
-        email: 'somchai@travel.com',
+        userId: 'u_op_strict',
+        accountType: 'operator',
+        businessName: 'สมุย มารีน่า & รีสอร์ท',
+        fullName: 'คุณสมเกียรติ',
+        email: 'somkiat@resort.com',
         phone: '0812345678',
         devices: [],
       },
     }));
-    restore = s.restore;
+    restore = opServer.restore;
 
-    const ui = await mountScreen(h(ProfileScreen, props));
-    // Initial traveller view
-    assert.match(ui.text(), /นักท่องเที่ยว/);
-    assert.match(ui.text(), /EXP/);
+    const opUI = await mountScreen(h(ProfileScreen, props));
+    const opText = opUI.text();
 
-    // Switch to operator view
-    await ui.press(/แดชบอร์ดผู้ประกอบการ/);
-    assert.match(ui.text(), /ผู้ประกอบการ \/ ร้านค้า/);
-    assert.match(ui.text(), /เครื่องมือสำหรับผู้ประกอบการ/);
-    assert.match(ui.text(), /Host Verification/);
+    // Contains operator elements
+    assert.match(opText, /Operator Dashboard|แดชบอร์ดผู้ประกอบการ/);
+    assert.match(opText, /ผู้ประกอบการ \/ ร้านค้า/);
+    assert.match(opText, /สมุย มารีน่า & รีสอร์ท/);
+    assert.match(opText, /เครื่องมือสำหรับผู้ประกอบการ/);
+    assert.match(opText, /Host Verification/);
+    assert.match(opText, /ภารกิจที่รับรองแล้ว/);
 
-    // Switch back to traveller view
-    await ui.press(/โปรไฟล์นักท่องเที่ยว/);
-    assert.match(ui.text(), /นักท่องเที่ยว/);
+    // Does NOT contain traveller game collection elements
+    assert.doesNotMatch(opText, /first egg/);
+    opUI.unmount();
+    opServer.restore();
 
-    ui.unmount();
+    // 2. Traveller Account
+    const travServer = server(routes({
+      '/account': {
+        userId: 'u_trav_strict',
+        accountType: 'traveller',
+        businessName: null,
+        fullName: 'มาลี รักการเดินทาง',
+        email: 'malee@travel.com',
+        phone: '0899998888',
+        devices: [],
+      },
+      '/standing': standing({
+        you: { userId: 'u_trav_strict', displayName: 'มาลี รักการเดินทาง', greenVerified: 50, missionsVerified: 0 },
+      }),
+    }));
+    restore = travServer.restore;
+
+    const travUI = await mountScreen(h(ProfileScreen, props));
+    const travText = travUI.text();
+
+    // Contains traveller elements
+    assert.match(travText, /นักท่องเที่ยว/);
+    assert.match(travText, /มาลี รักการเดินทาง/);
+    assert.match(travText, /EXP/);
+
+    // Does NOT contain operator tools
+    assert.doesNotMatch(travText, /แดชบอร์ดผู้ประกอบการ/);
+    assert.doesNotMatch(travText, /เครื่องมือสำหรับผู้ประกอบการ/);
+    travUI.unmount();
   });
 });
 

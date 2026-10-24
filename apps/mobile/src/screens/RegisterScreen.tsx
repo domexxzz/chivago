@@ -384,6 +384,39 @@ export function RegisterScreen({
 
             {/* Account Type Selector (นักท่องเที่ยว vs ผู้ประกอบการ) */}
             <View style={styles.roleSelectorContainer}>
+              <View
+                style={{
+                  marginBottom: 10,
+                  padding: 10,
+                  borderRadius: 12,
+                  backgroundColor: '#FFFBEB',
+                  borderWidth: 1,
+                  borderColor: '#FDE68A',
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: font.heading,
+                    fontSize: 11.5,
+                    color: '#B45309',
+                    fontWeight: '700',
+                    marginBottom: 2,
+                  }}
+                >
+                  ⚠️ เลือกประเภทบัญชี (เลือกได้อย่างใดอย่างหนึ่ง)
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: font.thai,
+                    fontSize: 11,
+                    color: '#92400E',
+                    lineHeight: 16,
+                  }}
+                >
+                  บัญชีนักท่องเที่ยวและผู้ประกอบการมีฟังก์ชันและหน้าตาการใช้งานแยกจากกันอย่างสิ้นเชิง และไม่สามารถสลับเปลี่ยนประเภทได้ในภายหลัง
+                </Text>
+              </View>
+
               <Text style={styles.roleSectionLabel}>ลงทะเบียนในฐานะ</Text>
               <View style={styles.roleTabs}>
                 <Pressable

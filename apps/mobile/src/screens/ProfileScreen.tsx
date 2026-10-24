@@ -109,20 +109,17 @@ export function ProfileScreen({
   const email = account.data?.email ?? null;
   const phone = account.data?.phone ?? null;
 
-  // View state: initialized to user's real accountType, but allows toggling between roles
-  const [selectedRoleView, setSelectedRoleView] = React.useState<'traveller' | 'operator'>('traveller');
-  React.useEffect(() => {
-    if (account.data?.accountType) {
-      setSelectedRoleView(account.data.accountType);
-    }
-  }, [account.data?.accountType]);
-
-  const isOperator = selectedRoleView === 'operator';
+  // Role is strictly fixed to the account registration — one or the other.
+  const isOperator = accountType === 'operator';
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
       <PushHeader
-        context={t(strings.profile.context)}
+        context={
+          isOperator
+            ? t({ en: 'Operator Dashboard', th: 'แดชบอร์ดผู้ประกอบการ' })
+            : t(strings.profile.context)
+        }
         onBack={onBack}
         right={(
           <IconButton inverted onPress={onOpenAccount} accessibilityLabel={t(strings.profile.account)}>
@@ -130,90 +127,6 @@ export function ProfileScreen({
           </IconButton>
         )}
       />
-
-      {/* Role View Switcher Banner */}
-      <View style={{ paddingHorizontal: gutter, paddingTop: 10, paddingBottom: 6 }}>
-        <View
-          style={{
-            flexDirection: 'row',
-            backgroundColor: '#E0F0F7',
-            borderRadius: 16,
-            padding: 3,
-            borderWidth: 1,
-            borderColor: '#C7E4F2',
-          }}
-        >
-          <Pressable
-            onPress={() => setSelectedRoleView('traveller')}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: !isOperator }}
-            accessibilityLabel="โปรไฟล์นักท่องเที่ยว"
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              paddingVertical: 9,
-              borderRadius: 13,
-              backgroundColor: !isOperator ? '#FFFFFF' : 'transparent',
-              shadowColor: !isOperator ? '#009DB7' : 'transparent',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.12,
-              shadowRadius: 3,
-              elevation: !isOperator ? 2 : 0,
-            }}
-          >
-            <Compass
-              size={15}
-              color={!isOperator ? '#009DB7' : '#66869D'}
-              strokeWidth={!isOperator ? 2.4 : 2}
-            />
-            <Label
-              size={11}
-              tracking={0.06}
-              colour={!isOperator ? '#006A83' : '#66869D'}
-            >
-              นักท่องเที่ยว
-            </Label>
-          </Pressable>
-
-          <Pressable
-            onPress={() => setSelectedRoleView('operator')}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: isOperator }}
-            accessibilityLabel="แดชบอร์ดผู้ประกอบการ"
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              paddingVertical: 9,
-              borderRadius: 13,
-              backgroundColor: isOperator ? '#FFFFFF' : 'transparent',
-              shadowColor: isOperator ? '#009DB7' : 'transparent',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.12,
-              shadowRadius: 3,
-              elevation: isOperator ? 2 : 0,
-            }}
-          >
-            <Store
-              size={15}
-              color={isOperator ? '#009DB7' : '#66869D'}
-              strokeWidth={isOperator ? 2.4 : 2}
-            />
-            <Label
-              size={11}
-              tracking={0.06}
-              colour={isOperator ? '#006A83' : '#66869D'}
-            >
-              ผู้ประกอบการ / ร้านค้า
-            </Label>
-          </Pressable>
-        </View>
-      </View>
 
       {wallet.error ? <ErrorState message={wallet.error} onRetry={wallet.reload} /> : null}
       {wallet.loading && !wallet.data ? <LoadingState /> : null}
@@ -223,11 +136,11 @@ export function ProfileScreen({
             wallet={wallet.data}
             name={name}
             lead={lead}
-            accountType={selectedRoleView}
+            accountType={accountType}
             businessName={businessName}
           />
           <RoleStatusCard
-            accountType={selectedRoleView}
+            accountType={accountType}
             businessName={businessName}
             name={name}
             email={email}
