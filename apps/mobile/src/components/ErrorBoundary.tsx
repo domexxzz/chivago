@@ -10,7 +10,9 @@
 
 import React from 'react';
 import { View } from 'react-native';
+import { strings } from '@chivago/core';
 import { color, gutter, radius } from '../theme/index.ts';
+import { t } from '../i18n/locale.ts';
 import { Body, Heading } from './Type.tsx';
 import { Button } from './Button.tsx';
 
@@ -70,17 +72,17 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             }}
           >
             <Heading size={18} colour={color.brand}>
-              Something went wrong
+              {t(strings.common.crashTitle)}
             </Heading>
             <Body
               size={13}
               colour={color.neutral600}
               style={{ marginTop: 8, textAlign: 'center', lineHeight: 18 }}
             >
-              The screen ran into a problem, but your progress is safe.
+              {t(strings.common.crashBody)}
             </Body>
             <Button
-              label="Reload screen"
+              label={t(strings.common.crashRetry)}
               onPress={this.reset}
               variant="primary"
               height={44}

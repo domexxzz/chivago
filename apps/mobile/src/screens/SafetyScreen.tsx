@@ -31,6 +31,10 @@ import { Body, Heading, Label, Thai } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
+// This screen prints both languages wherever a responder may read the screen,
+// so it reaches for `.en`/`.th` directly. `t` is here for the few strings that
+// are the TRAVELLER's alone - the spoken labels and the footnotes.
+import { t } from '../i18n/locale.ts';
 
 export function SafetyScreen({
   alert, onFire, onCancel, onShare, firing,
@@ -327,10 +331,10 @@ function SosSection({
           accessibilityRole="button"
           accessibilityLabel={
             armed
-              ? `${strings.safety.sosArmed.en}. ${strings.safety.dispatchDetail.en}`
+              ? `${t(strings.safety.sosArmed)}. ${t(strings.safety.dispatchDetail)}`
               : countdown !== null
-                ? `SOS. ${strings.safety.sosSending(countdown).en}. ${strings.safety.sosStop.en} to take it back`
-                : `SOS. ${strings.safety.sosIdle.en}, 1.2 seconds`
+                ? `SOS. ${t(strings.safety.sosSending(countdown))}. ${t(strings.safety.sosStop)} ${t({ en: 'to take it back', th: 'เพื่อยกเลิก' })}`
+                : `SOS. ${t(strings.safety.sosIdle)}, ${t({ en: '1.2 seconds', th: '1.2 วินาที' })}`
           }
           style={{
             width: 150,
@@ -642,7 +646,7 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
             <Heading size={13} colour={color.brand}>{n.printed}</Heading>
             {n.km !== null ? (
               <Label size={9} tracking={0.06} colour={color.neutral600}>
-                {`${n.km} km away`}
+                {t({ en: `${n.km} km away`, th: `ห่าง ${n.km} กม.` })}
               </Label>
             ) : null}
           </View>
@@ -664,7 +668,10 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
         colour={color.neutral600}
         style={{ marginTop: 12, textTransform: 'none' }}
       >
-        {`Official numbers, checked ${EMERGENCY_AS_OF}.`}
+        {t({
+          en: `Official numbers, checked ${EMERGENCY_AS_OF}.`,
+          th: `หมายเลขทางการ ตรวจสอบเมื่อ ${EMERGENCY_AS_OF}`,
+        })}
       </Label>
     </View>
   );

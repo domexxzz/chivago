@@ -367,7 +367,7 @@ export function MapScreen({
       <Pressable
         onPress={onPlanDay}
         accessibilityRole="button"
-        accessibilityLabel="Plan my day"
+        accessibilityLabel={t(strings.trip.planCta)}
         style={[
           shadow.card,
           {
@@ -406,7 +406,10 @@ export function MapScreen({
       <Pressable
         onPress={onAskConcierge}
         accessibilityRole="button"
-        accessibilityLabel="Ask the concierge. Ask in Thai or English."
+        accessibilityLabel={t({
+          en: 'Ask the concierge. Ask in Thai or English.',
+          th: 'ถามผู้ช่วยนำเที่ยว ถามเป็นไทยหรืออังกฤษก็ได้',
+        })}
         style={[
           shadow.card,
           {
@@ -540,7 +543,9 @@ export function MapHeader({
         <IconButton
           inverted
           onPress={onToggleMode}
-          accessibilityLabel={mode === 'map' ? 'Switch to list view' : 'Switch to map view'}
+          accessibilityLabel={mode === 'map'
+            ? t({ en: 'Switch to list view', th: 'สลับไปมุมมองรายการ' })
+            : t({ en: 'Switch to map view', th: 'สลับไปมุมมองแผนที่' })}
         >
           {mode === 'map'
             ? <List size={16} color="#FFFFFF" strokeWidth={2} />
@@ -567,7 +572,7 @@ export function MapHeader({
             `${balances.green.toLocaleString('en-US')} ${t(strings.common.greenPoints)}, `
             + `${t(strings.common.greenPointsNote)}. `
             + `${balances.trip.toLocaleString('en-US')} ${t(strings.common.tripPoints)}, `
-            + `${t(strings.common.tripPointsNote)}. Open wallet.`
+            + `${t(strings.common.tripPointsNote)}. ${t({ en: 'Open wallet.', th: 'เปิดกระเป๋าแต้ม' })}`
           }
           style={{
             backgroundColor: '#FFFFFF',

@@ -342,7 +342,10 @@ function HostRow({ host, place }: { host: HostStanding; place: number }) {
   const idle = host.verified === 0;
   return (
     <View
-      accessibilityLabel={`${place}. ${host.name}. ${host.verified} verified, ${host.questsPosted} posted`}
+      accessibilityLabel={t({
+        en: `${place}. ${host.name}. ${host.verified} verified, ${host.questsPosted} posted`,
+        th: `${place} ${host.name} ตรวจแล้ว ${host.verified} โพสต์ ${host.questsPosted}`,
+      })}
       style={{
         flexDirection: 'row', alignItems: 'center', gap: 12,
         paddingHorizontal: gutter, paddingVertical: 12,
@@ -438,7 +441,12 @@ function PartnerRewards({ onOpenMarket }: { onOpenMarket: () => void }) {
                 key={o.id}
                 onPress={onOpenMarket}
                 accessibilityRole="button"
-                accessibilityLabel={`${o.name}, ${o.merchant}, ${o.costPoints} ${o.currency === 'green' ? 'Green' : 'Trip'} points. ${canBuy ? 'Affordable' : 'Not enough points'}`}
+                accessibilityLabel={t({
+                  en: `${o.name}, ${o.merchant}, ${o.costPoints} ${o.currency === 'green' ? 'Green' : 'Trip'} points.`
+                    + ` ${canBuy ? 'Affordable' : 'Not enough points'}`,
+                  th: `${o.name} ${o.merchant} ${o.costPoints} ${t(o.currency === 'green' ? strings.common.greenPoints : strings.common.tripPoints)}`
+                    + ` ${canBuy ? 'แต้มเพียงพอ' : 'แต้มไม่พอ'}`,
+                })}
                 style={[
                   shadow.card,
                   {
@@ -476,14 +484,17 @@ function PartnerRewards({ onOpenMarket }: { onOpenMarket: () => void }) {
           <Pressable
             onPress={onOpenMarket}
             accessibilityRole="button"
-            accessibilityLabel={`See all ${list.length} partner rewards`}
+            accessibilityLabel={t({
+              en: `See all ${list.length} partner rewards`,
+              th: `ดูของรางวัลจากพาร์ทเนอร์ทั้งหมด ${list.length} รายการ`,
+            })}
             style={{
               marginHorizontal: gutter, minHeight: 44,
               flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
             }}
           >
             <Label size={10} tracking={0.12} colour={color.brand}>
-              {`ALL ${list.length} REWARDS · ดูทั้งหมด`}
+              {t({ en: `ALL ${list.length} REWARDS`, th: `สิทธิพิเศษทั้งหมด ${list.length} รายการ` })}
             </Label>
             <ChevronRight size={16} color={color.brand} strokeWidth={2} />
           </Pressable>

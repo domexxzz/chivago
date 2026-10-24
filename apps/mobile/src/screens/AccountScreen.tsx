@@ -191,7 +191,7 @@ function ShowCode({ onToast }: { onToast: (msg: string) => void }) {
               {groupCode(code)}
             </Heading>
             <Label size={10} tracking={0.12} colour={color.neutral600} style={{ marginTop: 8 }}>
-              {`EXPIRES IN ${countdown(left)}`}
+              {`${t({ en: 'EXPIRES IN', th: 'หมดอายุใน' })} ${countdown(left)}`}
             </Label>
           </View>
 
@@ -240,7 +240,7 @@ function EnterCode({
     // the screen would refetch as the phone's old account and look unchanged.
     await adoptKey(res.data.deviceKey);
     setValue('');
-    onToast('This phone is now on that account.');
+    onToast(t({ en: 'This phone is now on that account.', th: 'เครื่องนี้เข้าร่วมบัญชีนั้นแล้ว' }));
     onLinked();
   };
 
@@ -259,9 +259,12 @@ function EnterCode({
           maxLength={12}
           placeholder="RHW6 FXT7"
           placeholderTextColor={color.neutral500}
-          accessibilityLabel="Code from your other phone"
+          accessibilityLabel={t({ en: 'Code from your other phone', th: 'รหัสจากเครื่องอีกเครื่องของคุณ' })}
           style={{
-            flex: 1, minHeight: 48, paddingHorizontal: 14,
+            // minWidth 0 lets the field yield width to a longer button label
+            // (Thai's "เข้าร่วม" against English's "Join"); without it flex:1
+            // holds its content width and the button overflows the row.
+            flex: 1, minWidth: 0, minHeight: 48, paddingHorizontal: 14,
             borderWidth: 1, borderColor: color.neutral400, borderRadius: radius.sm,
             color: color.text, fontSize: 18, letterSpacing: 2,
           }}
@@ -270,9 +273,10 @@ function EnterCode({
           onPress={join}
           disabled={busy || value.trim().length === 0}
           accessibilityRole="button"
-          accessibilityLabel="Join that account"
+          accessibilityLabel={t({ en: 'Join that account', th: 'เข้าร่วมบัญชีนั้น' })}
           style={{
-            minWidth: 76, minHeight: 48, alignItems: 'center', justifyContent: 'center',
+            minWidth: 76, minHeight: 48, flexShrink: 0, paddingHorizontal: 12,
+            alignItems: 'center', justifyContent: 'center',
             borderRadius: radius.sm,
             backgroundColor: value.trim().length === 0 ? color.neutral300 : color.cta,
           }}
@@ -281,7 +285,7 @@ function EnterCode({
             size={14}
             colour={value.trim().length === 0 ? color.neutral600 : onFill.cta}
           >
-            {busy ? '…' : 'Join'}
+            {busy ? '…' : t({ en: 'Join', th: 'เข้าร่วม' })}
           </Heading>
         </Pressable>
       </View>
@@ -296,6 +300,9 @@ function EnterCode({
 interface Device {
   label: string | null; createdAt: string; lastSeenAt: string | null; current: boolean;
 }
+
+/** A phone's name mid-sentence. Unnamed phones are "this phone", in either language. */
+const phoneName = (d: Device): string => d.label ?? t({ en: 'this phone', th: 'เครื่องนี้' });
 
 function Phones({
   devices, onRevoked, onToast,
@@ -313,13 +320,13 @@ function Phones({
           }}
         >
           <View style={{ flex: 1 }}>
-            <Heading size={15}>{d.label ?? 'Unnamed phone'}</Heading>
+            <Heading size={15}>{d.label ?? t({ en: 'Unnamed phone', th: 'เครื่องที่ไม่มีชื่อ' })}</Heading>
             <Label size={9} tracking={0.06} colour={color.neutral600} style={{ marginTop: 3, textTransform: 'none' }}>
               {d.current
-                ? 'This phone'
+                ? t({ en: 'This phone', th: 'เครื่องนี้' })
                 : d.lastSeenAt
-                  ? `Last used ${d.lastSeenAt.slice(0, 10)}`
-                  : `Added ${d.createdAt.slice(0, 10)}`}
+                  ? `${t({ en: 'Last used', th: 'ใช้ครั้งล่าสุด' })} ${d.lastSeenAt.slice(0, 10)}`
+                  : `${t({ en: 'Added', th: 'เพิ่มเมื่อ' })} ${d.createdAt.slice(0, 10)}`}
             </Label>
           </View>
 
@@ -335,11 +342,14 @@ function Phones({
             <Pressable
               onPress={async () => {
                 const res = await api.revokeDevice(d.label ?? '');
-                onToast(res.ok ? 'That phone was removed.' : res.error);
+                onToast(res.ok ? t({ en: 'That phone was removed.', th: 'นำเครื่องนั้นออกแล้ว' }) : res.error);
                 if (res.ok) onRevoked();
               }}
               accessibilityRole="button"
-              accessibilityLabel={`Remove ${d.label ?? 'this phone'} from the account`}
+              accessibilityLabel={t({
+                en: `Remove ${phoneName(d)} from the account`,
+                th: `นำ ${phoneName(d)} ออกจากบัญชี`,
+              })}
               style={{
                 minHeight: 44, paddingHorizontal: 12, justifyContent: 'center',
                 borderWidth: 1, borderColor: color.accent2, borderRadius: radius.sm,
@@ -449,7 +459,9 @@ function QuietHours({ onToast }: { onToast: (msg: string) => void }) {
             onPress={() => void save({ enabled: !enabled })}
             accessibilityRole="switch"
             accessibilityState={{ checked: enabled }}
-            accessibilityLabel={enabled ? 'Quiet hours on. Turn off' : 'Quiet hours off. Turn on'}
+            accessibilityLabel={enabled
+              ? t({ en: 'Quiet hours on. Turn off', th: 'ช่วงเวลาเงียบเปิดอยู่ แตะเพื่อปิด' })
+              : t({ en: 'Quiet hours off. Turn on', th: 'ช่วงเวลาเงียบปิดอยู่ แตะเพื่อเปิด' })}
             style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44 }}
           >
             <View style={{ flex: 1, paddingRight: 12 }}>

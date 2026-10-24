@@ -296,7 +296,7 @@ function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile }: {
           accessibilityLabel="ChivaGo"
           style={{ width: 68, height: 48, marginLeft: 8, marginRight: 12 }}
         />
-        <Pressable onPress={onOpenProfile} accessibilityRole="button" accessibilityLabel="Profile"
+        <Pressable onPress={onOpenProfile} accessibilityRole="button" accessibilityLabel={t({ en: 'Profile', th: 'โปรไฟล์' })}
           style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
           <UserRound size={23} color="#FFFFFF" />
         </Pressable>
@@ -393,7 +393,10 @@ function Conditions({
             <Pressable
               onPress={onOpenMap}
               accessibilityRole="button"
-              accessibilityLabel="See every place and how its score is calculated"
+              accessibilityLabel={t({
+                en: 'See every place and how its score is calculated',
+                th: 'ดูทุกสถานที่และวิธีคำนวณคะแนน',
+              })}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, minHeight: 44 }}
             >
               <Label size={10} tracking={0.1} colour="#0077B6">{t({ en: 'See every place', th: 'ดูทุกสถานที่' })}</Label>
@@ -578,7 +581,7 @@ function PlaceCard({ place, here, onPress }: { place: ScoredPlace; here: Here | 
             source={{ uri: photoUri(place.photo.url) }}
             resizeMode="cover"
             style={{ width: '100%', height: '100%' }}
-            accessibilityLabel={`${t(place.name)}, photographed by ${place.photo.credit}`}
+            accessibilityLabel={`${t(place.name)}, ${t(strings.common.photographedBy)} ${place.photo.credit}`}
           />
         ) : (
           <NoPhotograph place={place} />
@@ -662,7 +665,7 @@ function MascotHeroCard({
             source={{ uri: mascotBeachUri(now) }}
             style={{ width: '100%', aspectRatio: 16 / 10 }}
             resizeMode="cover"
-            accessibilityLabel="ChivaGo companions on Koh Samui beach"
+            accessibilityLabel={t(strings.common.companionsAlt)}
           />
           <View
             style={{
@@ -773,7 +776,7 @@ function Today({
             <Pressable
               onPress={onOpenQuests}
               accessibilityRole="button"
-              accessibilityLabel={`See all missions, ${rest} more`}
+              accessibilityLabel={t({ en: `See all missions, ${rest} more`, th: `ดูภารกิจทั้งหมด อีก ${rest} รายการ` })}
               style={{ marginHorizontal: gutter, marginTop: 10, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
             >
               <Label size={10} tracking={0.12} colour="#0284c7">{t({ en: `${rest} more today`, th: `อีก ${rest} ภารกิจวันนี้` })}</Label>
@@ -879,7 +882,10 @@ function Carrying({
 
       {wallet.error || passport.error || companions.error ? (
         <Label size={9} tracking={0.04} colour={color.neutral600} style={{ paddingHorizontal: gutter, marginTop: 8, textTransform: 'none' }}>
-          Some figures could not be loaded and are shown as —, not as zero.
+          {t({
+            en: 'Some figures could not be loaded and are shown as —, not as zero.',
+            th: 'ตัวเลขบางส่วนโหลดไม่สำเร็จ จึงแสดงเป็น — ไม่ใช่ศูนย์',
+          })}
         </Label>
       ) : null}
     </View>
@@ -946,7 +952,7 @@ function NoPhotograph({ place }: { place: ScoredPlace }) {
   const habitat = HABITAT[place.layer] ?? HABITAT.Safe!;
   return (
     <View
-      accessibilityLabel={`${t(place.name)}, ${t({ en: 'no photograph yet', th: 'ยังไม่มีรูป' })}`}
+      accessibilityLabel={`${t(place.name)}, ${t(strings.place.noPhotoYet)}`}
       style={{ width: '100%', height: '100%', backgroundColor: habitat.tint, alignItems: 'center', justifyContent: 'center' }}
     >
       {place.id === 'mangrove' ? (

@@ -127,7 +127,7 @@ export function MascotsScreen({
         }}
       >
         <OceanBackdrop compact />
-        <IconButton inverted onPress={onBack} accessibilityLabel="Back">
+        <IconButton inverted onPress={onBack} accessibilityLabel={t(strings.common.back)}>
           <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2} />
         </IconButton>
         <View style={{ flex: 1 }}>
@@ -169,7 +169,7 @@ export function MascotsScreen({
             source={{ uri: mascotBeachUri(now) }}
             style={{ width: '100%', aspectRatio: 16 / 10 }}
             resizeMode="cover"
-            accessibilityLabel="ChivaGo companions on Koh Samui beach"
+            accessibilityLabel={t(strings.common.companionsAlt)}
           />
           <View
             style={{

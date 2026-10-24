@@ -27,6 +27,7 @@ import * as TaskManager from 'expo-task-manager';
 import * as SecureStore from 'expo-secure-store';
 import { API_BASE } from '../api/client.ts';
 import { loadDeviceKey } from '../api/account.ts';
+import { t } from '../i18n/locale.ts';
 
 export const SOS_LOCATION_TASK = 'chivago-sos-location';
 
@@ -256,8 +257,14 @@ export async function startBackgroundTracking(userId: string): Promise<Backgroun
       foregroundService: {
         // Required on Android, and correct regardless: the user should be able
         // to see that tracking is on, and stop it.
-        notificationTitle: 'ChivaGo SOS active',
-        notificationBody: 'Sharing your location until the alert ends',
+        // Read in the traveller's language at the moment SOS starts: this is
+        // the notification THEY use to see tracking is on and stop it. The
+        // responder-facing surfaces (the banner, the Safety screen) keep both.
+        notificationTitle: t({ en: 'ChivaGo SOS active', th: 'ChivaGo SOS ทำงานอยู่' }),
+        notificationBody: t({
+          en: 'Sharing your location until the alert ends',
+          th: 'กำลังแชร์ตำแหน่งของคุณจนกว่าการแจ้งเตือนจะสิ้นสุด',
+        }),
         notificationColor: '#ec3013',
       },
     });
