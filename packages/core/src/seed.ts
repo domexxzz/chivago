@@ -560,7 +560,21 @@ export const SEED_PLACES: Place[] = [
       th: 'สนามแบดมินตันในร่ม เปิดทุกวัน 09:00-23:00 จองสนามและจ่ายผ่านพร้อมเพย์ได้ที่เว็บของสนามก่อนไป',
     },
     tags: ['Sport', 'Badminton', 'Indoor', 'Booking'],
-    photo: null,
+    // The venue's own logo, served from the venue's own booking site. NOT a
+    // photograph of the courts - none has been licensed, and the coordinates
+    // are still the housing estate rather than the door. It is marked
+    // `kind: 'logo'` so the screen credits it as a logo and fits it whole
+    // instead of cropping the venue's name off its own mark.
+    photo: {
+      url: 'https://badminton-booking-ihw1.onrender.com/brand/sinthani-logo.png',
+      credit: 'แบดมินตัน@สินธานี',
+      licence: 'Used with permission',
+      sourceUrl: 'https://badminton-booking-ihw1.onrender.com/',
+      kind: 'logo',
+      // Sampled from the logo's own corners (#2c492a top, #31512c bottom), so
+      // the frame around it is the green it already sits on.
+      backdrop: '#2C492A',
+    },
     metrics: { aqi: 38, crowdDensity: 2.0, safetyIndex: 6.2, walkability: 5.0 },
     bookingUrl: 'https://badminton-booking-ihw1.onrender.com/',
   },

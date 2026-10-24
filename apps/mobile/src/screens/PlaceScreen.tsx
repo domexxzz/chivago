@@ -20,7 +20,7 @@ import {
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import type { PickedMedia } from '../api/client.ts';
-import { photoUri } from '../api/photos.ts';
+import { creditWord, fitsWhole, photoBackdrop, photoUri } from '../api/photos.ts';
 import { useAsync } from '../state/store.tsx';
 import { useServerConfig } from '../state/server-config.ts';
 import { pickStoryMedia, postStory } from '../state/tell-story.ts';
@@ -663,15 +663,20 @@ export function Hero({
         marginTop: 6,
         borderRadius: radius.md,
         overflow: 'hidden',
-        backgroundColor: color.surface,
+        // A fitted logo sits on its own field colour; everything else keeps the surface.
+        backgroundColor: place.photo?.kind === 'logo' ? photoBackdrop(place.photo) : color.surface,
       }]}
     >
       {place.photo ? (
         <>
           <Image
             source={{ uri: photoUri(place.photo.url) }}
-            accessibilityLabel={`${t(place.name)}, ${t(strings.common.photographedBy)} ${place.photo.credit}`}
-            resizeMode="cover"
+            accessibilityLabel={`${t(place.name)}, ${t(creditWord(place.photo))} ${place.photo.credit}`}
+            /*
+              A logo is drawn to its own edges: cropped to fill this 16:9
+              frame, the venue's name comes off its own mark. Fitted whole.
+            */
+            resizeMode={fitsWhole(place.photo) ? 'contain' : 'cover'}
             style={{ width: '100%', height: '100%' }}
           />
           {/*

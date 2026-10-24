@@ -46,6 +46,19 @@ describe('the public demo has what the seed has', () => {
     for (const q of SEED_QUESTS) assert.ok(`/quests/${q.id}` in snapshot, `/quests/${q.id} is not in the demo snapshot`);
   });
 
+  test('every place shows the demo the same picture the seed gives it', () => {
+    // A photograph added to the seed and not captured leaves the demo showing
+    // the placeholder, which reads as "nobody has licensed one" when somebody
+    // has. The URL is the whole claim, so the URL is what is compared.
+    const rows = new Map(places.map((p) => [p.id, p as { id: string; photo?: { url: string } | null }]));
+    for (const p of SEED_PLACES) {
+      const row = rows.get(p.id);
+      assert.ok(row, `${p.id} is not in the demo at all`);
+      assert.equal(row.photo?.url ?? null, p.photo?.url ?? null,
+        `${p.id}: the demo's picture is not the seed's - capture the demo again`);
+    }
+  });
+
   test('every venue with live court counts is in the demo, and the demo invents none', () => {
     for (const [placeId, src] of Object.entries(PLACE_COURTS)) {
       assert.ok(places.some((p) => p.id === placeId),

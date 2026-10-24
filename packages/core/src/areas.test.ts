@@ -271,10 +271,22 @@ describe('the badminton court at Sinthani lists under RMUTT without pretending t
     assert.ok(km > 1 && km < 5, `${km.toFixed(1)} km from campus`);
   });
 
-  test('it carries its booking page, and claims no station or photograph', () => {
+  test('it carries its booking page, and claims no station', () => {
     assert.equal(court.bookingUrl, 'https://badminton-booking-ihw1.onrender.com/');
     assert.ok(!court.airStation);
-    assert.equal(court.photo, null);
+  });
+
+  test('its picture is the venue\'s own logo, said to be a logo - not a photograph of the courts', () => {
+    // It used to claim no picture at all. It now carries the venue's mark,
+    // which is not the same as having photographed the place: `kind` is what
+    // keeps the screen from crediting a logo "photographed by" and from
+    // cropping the venue's name off it.
+    assert.ok(court.photo, 'the venue\'s logo is there');
+    assert.equal(court.photo.kind, 'logo', 'and is labelled a logo, never passed off as a photograph');
+    assert.ok(court.photo.url.startsWith('https://'), 'served over https');
+    assert.ok(court.photo.credit.length > 0, 'the rights holder is named');
+    assert.ok(court.photo.licence.length > 0, 'on stated terms');
+    assert.equal(court.photo.sourceUrl, 'https://badminton-booking-ihw1.onrender.com/');
   });
 });
 
