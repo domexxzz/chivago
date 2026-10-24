@@ -23,9 +23,9 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Modal, Pressable, ScrollView, View } from 'react-native';
 import {
-  Compass, Crown, Footprints, Leaf, MapPinned, Settings, Sprout, TreePalm, UserRound,
+  Building2, CheckCircle2, Compass, Crown, Footprints, Leaf, LogOut, Mail, MapPinned, MessageCircle, Phone, Settings, ShieldCheck, Sprout, Star, Store, Ticket, TreePalm, UserRound, Users,
 } from 'lucide-react-native';
 // On its own line: the test stub generator reads the braces above for names.
 import type { LucideIcon } from 'lucide-react-native';
@@ -84,7 +84,7 @@ const companionName = (c: Companion): string =>
   c.stage === 'egg' ? t(c.species.eggName) : t(c.species.name);
 
 export function ProfileScreen({
-  onBack, onOpenAccount, onOpenWallet, onOpenPassport, onOpenMedals, onOpenCompanion,
+  onBack, onOpenAccount, onOpenWallet, onOpenPassport, onOpenMedals, onOpenCompanion, onLogout, accountTypeOverride,
 }: {
   onBack: () => void;
   onOpenAccount: () => void;
@@ -92,19 +92,35 @@ export function ProfileScreen({
   onOpenPassport: () => void;
   onOpenMedals: () => void;
   onOpenCompanion: (c: Companion) => void;
+  onLogout?: () => void;
+  accountTypeOverride?: 'traveller' | 'operator';
 }) {
+  const [logoutModalVisible, setLogoutModalVisible] = React.useState(false);
   const wallet = useAsync(() => api.wallet(), []);
   const standing = useAsync(() => api.standing(), []);
   const passport = useAsync(() => api.passport(), []);
   const companions = useAsync(() => api.companions(), []);
   const medals = useAsync(() => api.medals(), []);
+  const account = useAsync(() => api.account(), []);
+
   const lead = companions.data ? leadCompanion(companions.data.companions) : null;
-  const name = standing.data?.you?.displayName ?? null;
+  const name = standing.data?.you?.displayName ?? account.data?.fullName ?? null;
+  const accountType = account.data?.accountType ?? accountTypeOverride ?? 'traveller';
+  const businessName = account.data?.businessName ?? null;
+  const email = account.data?.email ?? null;
+  const phone = account.data?.phone ?? null;
+
+  // Role is strictly fixed to the account registration — one or the other.
+  const isOperator = accountType === 'operator';
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
       <PushHeader
-        context={t(strings.profile.context)}
+        context={
+          isOperator
+            ? t({ en: 'Operator Dashboard', th: 'แดชบอร์ดผู้ประกอบการ' })
+            : t(strings.profile.context)
+        }
         onBack={onBack}
         right={(
           <IconButton inverted onPress={onOpenAccount} accessibilityLabel={t(strings.profile.account)}>
@@ -117,17 +133,196 @@ export function ProfileScreen({
       {wallet.loading && !wallet.data ? <LoadingState /> : null}
       {wallet.data ? (
         <>
-          <Identity wallet={wallet.data} name={name} lead={lead} />
-          <Experience wallet={wallet.data} />
-          <RankPath wallet={wallet.data} />
+          <Identity
+            wallet={wallet.data}
+            name={name}
+            lead={lead}
+            accountType={accountType}
+            businessName={businessName}
+          />
+          <RoleStatusCard
+            accountType={accountType}
+            businessName={businessName}
+            name={name}
+            email={email}
+            phone={phone}
+          />
+
+          {isOperator ? (
+            <>
+              {/* Operator KPIs and Management Tools */}
+              <OperatorMetricFigures />
+              <OperatorTools onOpenAccount={onOpenAccount} />
+            </>
+          ) : (
+            <>
+              <Experience wallet={wallet.data} />
+              <RankPath wallet={wallet.data} />
+            </>
+          )}
         </>
       ) : null}
 
-      <StandingBlock standing={standing} />
-      <MedalsBlock medals={medals} onSeeAll={onOpenMedals} />
-      <CompanionsBlock companions={companions} onOpenCompanion={onOpenCompanion} onSeeAll={onOpenWallet} />
+      {!isOperator ? (
+        <>
+          <StandingBlock standing={standing} />
+          <MedalsBlock medals={medals} onSeeAll={onOpenMedals} />
+          <CompanionsBlock companions={companions} onOpenCompanion={onOpenCompanion} onSeeAll={onOpenWallet} />
+        </>
+      ) : null}
+
       <Figures wallet={wallet} passport={passport} onOpenWallet={onOpenWallet} onOpenPassport={onOpenPassport} />
-      <View style={{ height: 28 }} />
+
+      {onLogout ? (
+        <View style={{ marginHorizontal: gutter, marginTop: 20 }}>
+          <Pressable
+            onPress={() => setLogoutModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t({ en: 'Log out', th: 'ออกจากระบบ' })}
+            style={({ pressed }) => [
+              shadow.card,
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                paddingVertical: 14,
+                paddingHorizontal: 20,
+                backgroundColor: '#FFFFFF',
+                borderWidth: 1,
+                borderColor: '#FED7D7',
+                borderRadius: radius.md,
+              },
+              pressed && { backgroundColor: '#FFF5F5', transform: [{ scale: 0.99 }] },
+            ]}
+          >
+            <View
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                backgroundColor: '#FEE2E2',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <LogOut size={15} color="#DC2626" strokeWidth={2.2} />
+            </View>
+            <Label size={11} tracking={0.08} colour="#DC2626">
+              {t({ en: 'Log Out', th: 'ออกจากระบบ' })}
+            </Label>
+          </Pressable>
+        </View>
+      ) : null}
+
+      <View style={{ height: 32 }} />
+
+      <Modal
+        visible={logoutModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLogoutModalVisible(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(2, 43, 66, 0.6)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <View
+            style={[
+              shadow.card,
+              {
+                width: '100%',
+                maxWidth: 360,
+                backgroundColor: '#FFFFFF',
+                borderRadius: 24,
+                padding: 24,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: '#E2E8F0',
+              },
+            ]}
+          >
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: '#FEE2E2',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <LogOut size={26} color="#DC2626" strokeWidth={2.2} />
+            </View>
+
+            <Heading size={18} colour={color.neutral900} style={{ textAlign: 'center', marginBottom: 8 }}>
+              {t({ en: 'Log Out', th: 'ยืนยันการออกจากระบบ' })}
+            </Heading>
+
+            <Body size={13} colour={color.neutral600} style={{ textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
+              {t({
+                en: 'Are you sure you want to log out of your Chivargo account on this device?',
+                th: 'คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบบัญชี Chivargo บนอุปกรณ์นี้?',
+              })}
+            </Body>
+
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <Pressable
+                onPress={() => setLogoutModalVisible(false)}
+                accessibilityRole="button"
+                accessibilityLabel={t({ en: 'Cancel', th: 'ยกเลิก' })}
+                style={({ pressed }) => [
+                  {
+                    flex: 1,
+                    height: 44,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 12,
+                    backgroundColor: '#F1F5F9',
+                    borderWidth: 1,
+                    borderColor: '#E2E8F0',
+                  },
+                  pressed && { backgroundColor: '#E2E8F0' },
+                ]}
+              >
+                <Label size={11} tracking={0.06} colour={color.neutral700}>
+                  {t({ en: 'Cancel', th: 'ยกเลิก' })}
+                </Label>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  setLogoutModalVisible(false);
+                  onLogout?.();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={t({ en: 'Confirm Log Out', th: 'ยืนยันออกจากระบบ' })}
+                style={({ pressed }) => [
+                  {
+                    flex: 1,
+                    height: 44,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 12,
+                    backgroundColor: '#DC2626',
+                  },
+                  pressed && { backgroundColor: '#B91C1C' },
+                ]}
+              >
+                <Label size={11} tracking={0.06} colour="#FFFFFF">
+                  {t({ en: 'Log Out', th: 'ออกจากระบบ' })}
+                </Label>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -150,26 +345,76 @@ function Card({ children }: { children: React.ReactNode }) {
 // Who: the name, the picture, the rank and the level
 // ---------------------------------------------------------------------------
 
-function Identity({ wallet, name, lead }: { wallet: Wallet; name: string | null; lead: Companion | null }) {
+function Identity({
+  wallet, name, lead, accountType, businessName,
+}: {
+  wallet: Wallet;
+  name: string | null;
+  lead: Companion | null;
+  accountType?: 'traveller' | 'operator';
+  businessName?: string | null;
+}) {
   const p = wallet.progression;
+  const isOperator = accountType === 'operator';
+
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 8 }}>
       {/* The band is the app speaking (brand); the card overlaps it, as the conditions card does on Home. */}
-      <View style={{ height: 64, backgroundColor: '#028090', borderRadius: radius.md, overflow: 'hidden' }}>
+      <View style={{ height: 64, backgroundColor: isOperator ? '#016592' : '#028090', borderRadius: radius.md, overflow: 'hidden' }}>
         <OceanBackdrop compact />
       </View>
       <View
         style={[shadow.card, {
           marginTop: -32, marginHorizontal: 10, padding: 16,
           backgroundColor: color.surface, borderRadius: radius.md,
-          borderWidth: 1, borderColor: '#DCEFF5',
+          borderWidth: 1.5, borderColor: isOperator ? '#009DB7' : '#DCEFF5',
           flexDirection: 'row', alignItems: 'center', gap: 14,
         }]}
       >
-        <Avatar lead={lead} />
+        <Avatar lead={lead} isOperator={isOperator} />
         <View style={{ flex: 1 }}>
-          <Heading size={20} tracking={-0.3}>{name ?? t(strings.profile.traveller)}</Heading>
-          <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>{t(p.rank.label)}</Body>
+          {/* Distinct Role Badge */}
+          <View
+            style={{
+              alignSelf: 'flex-start',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 5,
+              paddingVertical: 3,
+              paddingHorizontal: 8,
+              borderRadius: radius.sm,
+              backgroundColor: isOperator ? '#E0F5F9' : '#F0F9FD',
+              borderWidth: 1,
+              borderColor: isOperator ? '#009DB7' : '#BEE3F8',
+              marginBottom: 5,
+            }}
+          >
+            {isOperator ? (
+              <Store size={12} color="#006A83" strokeWidth={2.4} />
+            ) : (
+              <Compass size={12} color="#028090" strokeWidth={2.4} />
+            )}
+            <Label size={10} tracking={0.08} colour={isOperator ? '#006A83' : '#028090'}>
+              {isOperator
+                ? 'ผู้ประกอบการ / ร้านค้า (Partner Host)'
+                : 'นักท่องเที่ยว (Traveller)'}
+            </Label>
+          </View>
+
+          {isOperator && businessName ? (
+            <>
+              <Heading size={18} tracking={-0.3}>{businessName}</Heading>
+              <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>
+                {`เจ้าของ / Host: ${name ?? 'ผู้ประกอบการ'}`}
+              </Body>
+            </>
+          ) : (
+            <>
+              <Heading size={20} tracking={-0.3}>{name ?? t(strings.profile.traveller)}</Heading>
+              <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>{t(p.rank.label)}</Body>
+            </>
+          )}
+
           {/* Gold: the level is the game layer, earned by activity, never a host's word. */}
           <View
             style={{
@@ -187,21 +432,319 @@ function Identity({ wallet, name, lead }: { wallet: Wallet; name: string | null;
   );
 }
 
-function Avatar({ lead }: { lead: Companion | null }) {
-  const said = lead ? `${companionName(lead)}, ${t(STAGE_LABEL[lead.stage])}` : t(strings.profile.traveller);
+function RoleStatusCard({
+  accountType, businessName, name, email, phone,
+}: {
+  accountType: 'traveller' | 'operator';
+  businessName: string | null;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+}) {
+  const isOperator = accountType === 'operator';
+
+  return (
+    <Card>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{
+            width: 34, height: 34, borderRadius: 17,
+            backgroundColor: isOperator ? '#E0F5F9' : '#F0F9FD',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            {isOperator ? (
+              <Store size={18} color="#006A83" strokeWidth={2.2} />
+            ) : (
+              <Compass size={18} color="#009DB7" strokeWidth={2.2} />
+            )}
+          </View>
+          <View>
+            <Label size={10} tracking={0.12} colour={isOperator ? '#006A83' : '#009DB7'}>
+              {isOperator ? 'ข้อมูลสถานประกอบการ (Business Profile)' : 'ประเภทผู้ใช้งาน (User Profile)'}
+            </Label>
+            <Heading size={16} tracking={-0.2}>
+              {isOperator ? 'Chivargo Business Partner · ผู้ประกอบการ' : 'Chivargo Traveller · นักท่องเที่ยว'}
+            </Heading>
+          </View>
+        </View>
+
+        <View style={{
+          flexDirection: 'row', alignItems: 'center', gap: 4,
+          paddingVertical: 3, paddingHorizontal: 8,
+          borderRadius: radius.sm,
+          backgroundColor: isOperator ? '#ECFDF5' : '#F0F9FD',
+          borderWidth: 1,
+          borderColor: isOperator ? '#A7F3D0' : '#BAE6FD',
+        }}>
+          {isOperator ? (
+            <ShieldCheck size={12} color="#059669" strokeWidth={2.4} />
+          ) : (
+            <CheckCircle2 size={12} color="#0284C7" strokeWidth={2.4} />
+          )}
+          <Label size={9} tracking={0.06} colour={isOperator ? '#047857' : '#0369A1'}>
+            {isOperator ? 'ลงทะเบียนแล้ว' : 'ผู้มาเยือน'}
+          </Label>
+        </View>
+      </View>
+
+      <View style={{
+        marginTop: 12, padding: 12, borderRadius: radius.sm,
+        backgroundColor: '#F8FCFD', borderWidth: 1, borderColor: '#DCEFF5', gap: 7,
+      }}>
+        {isOperator && businessName ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Building2 size={15} color="#009DB7" strokeWidth={2} />
+            <Body size={13} colour={color.neutral800} style={{ fontWeight: '600' }}>
+              ชื่อธุรกิจ: {businessName}
+            </Body>
+          </View>
+        ) : null}
+        {name ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <UserRound size={15} color="#66869D" strokeWidth={2} />
+            <Body size={13} colour={color.neutral700}>
+              {isOperator ? `ผู้รับผิดชอบ: ${name}` : `ชื่อ-นามสกุล: ${name}`}
+            </Body>
+          </View>
+        ) : null}
+        {phone ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Phone size={15} color="#66869D" strokeWidth={2} />
+            <Body size={13} colour={color.neutral700}>เบอร์โทรศัพท์: {phone}</Body>
+          </View>
+        ) : null}
+        {email ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Mail size={15} color="#66869D" strokeWidth={2} />
+            <Body size={13} colour={color.neutral700}>อีเมล: {email}</Body>
+          </View>
+        ) : null}
+      </View>
+
+      <View style={{
+        marginTop: 10, paddingVertical: 8, paddingHorizontal: 10,
+        borderRadius: radius.sm,
+        backgroundColor: isOperator ? '#F0F9FD' : '#F0FDF4',
+      }}>
+        <Body size={13} colour={isOperator ? '#02637A' : '#15803D'} style={{ lineHeight: 18 }}>
+          {isOperator
+            ? t({
+                en: 'Your business is linked to Chivargo community network. Ready to accept quests, check-ins, and sustainable visitor rewards.',
+                th: 'สถานประกอบการของท่านเชื่อมต่อกับระบบเครือข่าย Chivargo พร้อมรับการเช็กอิน ตรวจสอบภารกิจ และมอบสิทธิประโยชน์ร่วมกับชุมชนเกาะสีชัง',
+              })
+            : t({
+                en: 'Participate in island wellness activities, care for the environment, and unlock community rewards across Koh Sichang.',
+                th: 'ร่วมเดินทางอย่างรับผิดชอบ สัมผัสวิถีชีวิตเกาะสีชัง สะสมคะแนนสุขภาพ และรับสิทธิประโยชน์จากร้านค้าชุมชน',
+              })}
+        </Body>
+      </View>
+    </Card>
+  );
+}
+
+function OperatorMetricFigures() {
+  return (
+    <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: gutter, marginTop: 14 }}>
+      <View
+        style={[
+          shadow.card,
+          {
+            flex: 1,
+            padding: 14,
+            backgroundColor: color.surface,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: '#DCEFF5',
+          },
+        ]}
+      >
+        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#E0F5F9', alignItems: 'center', justifyContent: 'center' }}>
+          <ShieldCheck size={16} color="#009DB7" strokeWidth={2.2} />
+        </View>
+        <Heading size={22} colour="#006A83" style={{ marginTop: 8 }}>
+          24
+        </Heading>
+        <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
+          ภารกิจที่รับรองแล้ว
+        </Label>
+      </View>
+
+      <View
+        style={[
+          shadow.card,
+          {
+            flex: 1,
+            padding: 14,
+            backgroundColor: color.surface,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: '#DCEFF5',
+          },
+        ]}
+      >
+        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#FEF3C7', alignItems: 'center', justifyContent: 'center' }}>
+          <Users size={16} color="#D97706" strokeWidth={2.2} />
+        </View>
+        <Heading size={22} colour="#B45309" style={{ marginTop: 8 }}>
+          186
+        </Heading>
+        <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
+          นักท่องเที่ยวเช็คอิน
+        </Label>
+      </View>
+
+      <View
+        style={[
+          shadow.card,
+          {
+            flex: 1,
+            padding: 14,
+            backgroundColor: color.surface,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: '#DCEFF5',
+          },
+        ]}
+      >
+        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#ECFDF5', alignItems: 'center', justifyContent: 'center' }}>
+          <Star size={16} color="#059669" strokeWidth={2.2} />
+        </View>
+        <Heading size={22} colour="#047857" style={{ marginTop: 8 }}>
+          4.9
+        </Heading>
+        <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
+          คะแนนพาร์ทเนอร์
+        </Label>
+      </View>
+    </View>
+  );
+}
+
+function OperatorTools({ onOpenAccount }: { onOpenAccount: () => void }) {
+  return (
+    <Card>
+      <Label size={10} tracking={0.12} colour="#009DB7" style={{ marginBottom: 12 }}>
+        เครื่องมือสำหรับผู้ประกอบการ (HOST MANAGEMENT)
+      </Label>
+
+      <View style={{ gap: 10 }}>
+        <Pressable
+          onPress={onOpenAccount}
+          accessibilityRole="button"
+          accessibilityLabel="รับรองภารกิจนักท่องเที่ยว"
+          style={({ pressed }) => [
+            {
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              padding: 12,
+              borderRadius: radius.sm,
+              backgroundColor: pressed ? '#EEF2F6' : '#F8FAFC',
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
+            },
+          ]}
+        >
+          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#E0F5F9', alignItems: 'center', justifyContent: 'center' }}>
+            <ShieldCheck size={18} color="#009DB7" strokeWidth={2.2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Heading size={14} colour="#183B56">
+              รับรองภารกิจนักท่องเที่ยว (Host Verification)
+            </Heading>
+            <Body size={13} colour="#66869D">
+              ตรวจรูปภาพและปล่อยคะแนนกรีนพอยท์ให้กับผู้มาทำกิจกรรม
+            </Body>
+          </View>
+        </Pressable>
+
+        <Pressable
+          onPress={onOpenAccount}
+          accessibilityRole="button"
+          accessibilityLabel="คำถามจากนักท่องเที่ยว"
+          style={({ pressed }) => [
+            {
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              padding: 12,
+              borderRadius: radius.sm,
+              backgroundColor: pressed ? '#EEF2F6' : '#F8FAFC',
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
+            },
+          ]}
+        >
+          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEF3C7', alignItems: 'center', justifyContent: 'center' }}>
+            <MessageCircle size={18} color="#D97706" strokeWidth={2.2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Heading size={14} colour="#183B56">
+              คำถามและข้อความจากนักท่องเที่ยว (Inquiries)
+            </Heading>
+            <Body size={13} colour="#66869D">
+              ตอบกลับข้อความสอบถามเกี่ยวกับที่พัก อาหาร หรือบริการ
+            </Body>
+          </View>
+        </Pressable>
+
+        <Pressable
+          onPress={onOpenAccount}
+          accessibilityRole="button"
+          accessibilityLabel="จัดการข้อเสนอและคูปอง"
+          style={({ pressed }) => [
+            {
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              padding: 12,
+              borderRadius: radius.sm,
+              backgroundColor: pressed ? '#EEF2F6' : '#F8FAFC',
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
+            },
+          ]}
+        >
+          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#ECFDF5', alignItems: 'center', justifyContent: 'center' }}>
+            <Ticket size={18} color="#059669" strokeWidth={2.2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Heading size={14} colour="#183B56">
+              จัดการข้อเสนอและคูปองส่วนลด (Manage Offers)
+            </Heading>
+            <Body size={13} colour="#66869D">
+              ตั้งค่าคูปองและโปรโมชั่นเพื่อดึงดูดนักท่องเที่ยวบนเกาะ
+            </Body>
+          </View>
+        </Pressable>
+      </View>
+    </Card>
+  );
+}
+
+function Avatar({ lead, isOperator }: { lead: Companion | null; isOperator?: boolean }) {
+  const said = lead
+    ? `${companionName(lead)}, ${t(STAGE_LABEL[lead.stage])}`
+    : isOperator
+      ? 'ผู้ประกอบการ'
+      : t(strings.profile.traveller);
   return (
     <View
       accessibilityLabel={said}
       style={[shadow.card, {
         width: 72, height: 72, borderRadius: 36,
-        backgroundColor: lead?.stage === 'grown' ? color.accent100 : color.neutral100,
+        backgroundColor: lead?.stage === 'grown' ? color.accent100 : isOperator ? '#E0F5F9' : color.neutral100,
         borderWidth: 3, borderColor: color.surface,
         alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }]}
     >
-      {lead
-        ? <Creature species={lead.species.key} stage={lead.stage} size={56} />
-        : <UserRound size={30} color={color.neutral600} strokeWidth={1.8} />}
+      {lead ? (
+        <Creature species={lead.species.key} stage={lead.stage} size={56} />
+      ) : isOperator ? (
+        <Store size={30} color="#009DB7" strokeWidth={2} />
+      ) : (
+        <UserRound size={30} color={color.neutral600} strokeWidth={1.8} />
+      )}
     </View>
   );
 }

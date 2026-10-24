@@ -245,6 +245,65 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
   // -- accounts and parties: the four screens that were "Not in the demo
   // build" since they arrived, because nobody re-captured after adding them.
   'POST /devices': () => ({ userId: 'demo-user', deviceKey: 'chvg_dev_demo-build-only' }),
+  'POST /auth/register': (body) => {
+    const accType = (body.accountType === 'operator' ? 'operator' : 'traveller') as 'traveller' | 'operator';
+    const bizName = body.accountType === 'operator' ? String(body.businessName ?? 'สถานประกอบการเดโม') : null;
+    const name = String(body.fullName ?? 'Demo Traveller');
+    const email = String(body.email ?? 'demo@example.com');
+    const phone = String(body.phone ?? '0812345678');
+
+    state.routes['/account'] = {
+      userId: 'demo-user',
+      accountType: accType,
+      businessName: bizName,
+      fullName: name,
+      email,
+      phone,
+      devices: [{ label: 'This device', createdAt: now(), lastSeenAt: now(), current: true }],
+    };
+
+    return {
+      userId: 'demo-user',
+      deviceKey: 'chvg_dev_demo-build-only',
+      name,
+      email,
+      phone,
+      accountType: accType,
+      businessName: bizName,
+    };
+  },
+  'POST /auth/login': (body) => {
+    const id = String(body.identifier ?? '').trim();
+    if (!id || !body.password) return refuse('INVALID_CREDENTIALS', 'อีเมล เบอร์โทรศัพท์ หรือรหัสผ่านไม่ถูกต้อง');
+    const email = id.includes('@') ? id : 'demo@example.com';
+    const phone = id.includes('@') ? '0812345678' : id;
+
+    const prior = state.routes['/account'] as { accountType?: 'traveller' | 'operator'; businessName?: string | null; fullName?: string } | undefined;
+    const isExplicitOperator = body.accountType === 'operator' || (!body.accountType && prior?.accountType === 'operator');
+    const accType: 'traveller' | 'operator' = isExplicitOperator ? 'operator' : 'traveller';
+    const bizName = accType === 'operator' ? (prior?.businessName ?? 'เกาะสมุย อีโค่ รีสอร์ท & คาเฟ่') : null;
+    const name = prior?.fullName ?? (accType === 'operator' ? 'คุณสมเกียรติ ยั่งยืน (เจ้าของร้าน)' : 'Demo Traveller');
+
+    state.routes['/account'] = {
+      userId: 'demo-user',
+      accountType: accType,
+      businessName: bizName,
+      fullName: name,
+      email,
+      phone,
+      devices: [{ label: 'This device', createdAt: now(), lastSeenAt: now(), current: true }],
+    };
+
+    return {
+      userId: 'demo-user',
+      deviceKey: 'chvg_dev_demo-build-only',
+      name,
+      email,
+      phone,
+      accountType: accType,
+      businessName: bizName,
+    };
+  },
   'POST /account/link-code': () => ({ code: 'DEMO' + String(++state.seq).padStart(4, '0'), expiresInMs: 600_000 }),
   // There is one visitor and one phone, so there is nothing to claim from.
   'POST /account/claim': () => refuse('LINK_UNKNOWN', 'That code is not one this demo issued. Nothing is saved here, so there is no second phone to link.'),

@@ -172,3 +172,162 @@ describe('what follows you everywhere', () => {
     ui.unmount();
   });
 });
+
+describe('distinction between operator and traveller roles', () => {
+  test('renders business operator profile with business name and partner badges', async () => {
+    const s = server(routes({
+      '/account': {
+        userId: 'u_op_123',
+        accountType: 'operator',
+        businessName: 'สีชัง ซันเซ็ท วิลล่า',
+        fullName: 'สมคิด เจ้าของร้าน',
+        email: 'somkid@resort.com',
+        phone: '0829998877',
+        devices: [],
+      },
+      '/standing': standing({
+        you: { userId: 'u_op_123', displayName: 'สมคิด เจ้าของร้าน', greenVerified: 200, missionsVerified: 1 },
+      }),
+    }));
+    restore = s.restore;
+
+    const ui = await mountScreen(h(ProfileScreen, props));
+    const text = ui.text();
+
+    assert.match(text, /ผู้ประกอบการ \/ ร้านค้า/);
+    assert.match(text, /สีชัง ซันเซ็ท วิลล่า/);
+    assert.match(text, /Chivargo Business Partner/);
+    assert.match(text, /ข้อมูลสถานประกอบการ/);
+    assert.match(text, /ลงทะเบียนแล้ว/);
+    assert.match(text, /0829998877/);
+    assert.match(text, /somkid@resort.com/);
+    ui.unmount();
+  });
+
+  test('renders normal traveller profile with traveller badges and eco-tourism notice', async () => {
+    const s = server(routes({
+      '/account': {
+        userId: 'u_traveller_1',
+        accountType: 'traveller',
+        businessName: null,
+        fullName: 'สมชาย รักเที่ยว',
+        email: 'somchai@travel.com',
+        phone: '0812345678',
+        devices: [],
+      },
+      '/standing': standing({
+        you: { userId: 'u_traveller_1', displayName: 'สมชาย รักเที่ยว', greenVerified: 50, missionsVerified: 0 },
+      }),
+    }));
+    restore = s.restore;
+
+    const ui = await mountScreen(h(ProfileScreen, props));
+    const text = ui.text();
+
+    assert.match(text, /นักท่องเที่ยว/);
+    assert.match(text, /สมชาย รักเที่ยว/);
+    assert.match(text, /ประเภทผู้ใช้งาน/);
+    assert.match(text, /ผู้มาเยือน/);
+    assert.match(text, /0812345678/);
+    ui.unmount();
+  });
+
+  test('strictly isolates operator dashboard from traveller profile without role toggles', async () => {
+    // 1. Operator Account
+    const opServer = server(routes({
+      '/account': {
+        userId: 'u_op_strict',
+        accountType: 'operator',
+        businessName: 'สมุย มารีน่า & รีสอร์ท',
+        fullName: 'คุณสมเกียรติ',
+        email: 'somkiat@resort.com',
+        phone: '0812345678',
+        devices: [],
+      },
+    }));
+    restore = opServer.restore;
+
+    const opUI = await mountScreen(h(ProfileScreen, props));
+    const opText = opUI.text();
+
+    // Contains operator elements
+    assert.match(opText, /Operator Dashboard|แดชบอร์ดผู้ประกอบการ/);
+    assert.match(opText, /ผู้ประกอบการ \/ ร้านค้า/);
+    assert.match(opText, /สมุย มารีน่า & รีสอร์ท/);
+    assert.match(opText, /เครื่องมือสำหรับผู้ประกอบการ/);
+    assert.match(opText, /Host Verification/);
+    assert.match(opText, /ภารกิจที่รับรองแล้ว/);
+
+    // Does NOT contain traveller game collection elements
+    assert.doesNotMatch(opText, /first egg/);
+    opUI.unmount();
+    opServer.restore();
+
+    // 2. Traveller Account
+    const travServer = server(routes({
+      '/account': {
+        userId: 'u_trav_strict',
+        accountType: 'traveller',
+        businessName: null,
+        fullName: 'มาลี รักการเดินทาง',
+        email: 'malee@travel.com',
+        phone: '0899998888',
+        devices: [],
+      },
+      '/standing': standing({
+        you: { userId: 'u_trav_strict', displayName: 'มาลี รักการเดินทาง', greenVerified: 50, missionsVerified: 0 },
+      }),
+    }));
+    restore = travServer.restore;
+
+    const travUI = await mountScreen(h(ProfileScreen, props));
+    const travText = travUI.text();
+
+    // Contains traveller elements
+    assert.match(travText, /นักท่องเที่ยว/);
+    assert.match(travText, /มาลี รักการเดินทาง/);
+    assert.match(travText, /EXP/);
+
+    // Does NOT contain operator tools
+    assert.doesNotMatch(travText, /แดชบอร์ดผู้ประกอบการ/);
+    assert.doesNotMatch(travText, /เครื่องมือสำหรับผู้ประกอบการ/);
+    travUI.unmount();
+  });
+});
+
+describe('logout functionality and confirmation popup', () => {
+  test('tapping logout button opens confirmation modal, cancelling closes it, confirming calls onLogout', async () => {
+    let loggedOut = false;
+    const s = server(routes());
+    restore = s.restore;
+
+    const ui = await mountScreen(h(ProfileScreen, {
+      ...props,
+      onLogout: () => { loggedOut = true; },
+    }));
+
+    // Initially modal is not visible (text does not contain confirmation question)
+    assert.doesNotMatch(ui.text(), /Are you sure you want to log out|คุณแน่ใจหรือไม่/);
+
+    // Tap the logout button in profile
+    await ui.press(/log out|ออกจากระบบ/i);
+
+    // Modal is now open
+    assert.match(ui.text(), /Log Out|ยืนยันการออกจากระบบ/);
+    assert.match(ui.text(), /Are you sure you want to log out|คุณแน่ใจหรือไม่/);
+    assert.equal(loggedOut, false);
+
+    // Tap cancel
+    await ui.press(/cancel|ยกเลิก/i);
+    assert.doesNotMatch(ui.text(), /Are you sure you want to log out|คุณแน่ใจหรือไม่/);
+    assert.equal(loggedOut, false);
+
+    // Open modal again and confirm logout
+    await ui.press(/log out|ออกจากระบบ/i);
+    assert.match(ui.text(), /Log Out|ยืนยันการออกจากระบบ/);
+    await ui.press(/confirm log out|ยืนยันออกจากระบบ/i);
+
+    assert.equal(loggedOut, true);
+    ui.unmount();
+  });
+});

@@ -38,7 +38,7 @@ import { EMPTY_PROFILE } from '@chivago/core';
 // ---------------------------------------------------------------------------
 
 export type ScreenKey =
-  | 'onboarding' | 'home' | 'map' | 'place' | 'quests' | 'quest'
+  | 'login' | 'register' | 'onboarding' | 'home' | 'map' | 'place' | 'quests' | 'quest'
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
   | 'companion' | 'passport' | 'account' | 'party' | 'findParty' | 'game'
   | 'mascots' | 'mascot' | 'profile' | 'medals' | 'stays' | 'fair'
@@ -71,15 +71,18 @@ interface NavState {
   questId: string | null;
   /** A province code, for the mascot's room. */
   code: string | null;
+  accountType?: 'traveller' | 'operator';
 }
 
 export interface Nav extends NavState {
   /** Push onto the stack. Used by place / quest / market / trip. */
-  push: (screen: ScreenKey, params?: { placeId?: string; questId?: string; code?: string }) => void;
+  push: (screen: ScreenKey, params?: { placeId?: string; questId?: string; code?: string; accountType?: 'traveller' | 'operator' }) => void;
   /** Pop back. Falls back to the map if the stack is empty. */
   pop: () => void;
   /** A tab tap RESETS the stack, per the handoff. */
   selectTab: (tab: TabKey) => void;
+  /** Reset stack and switch directly to a screen. */
+  reset: (screen: ScreenKey) => void;
   activeTab: TabKey;
 }
 
@@ -87,6 +90,8 @@ const TAB_SCREENS: TabKey[] = ['home', 'map', 'quests', 'game', 'safety'];
 
 /** Which tab should read as active while a pushed screen is on top. */
 const OWNING_TAB: Record<ScreenKey, TabKey> = {
+  login: 'home',
+  register: 'home',
   onboarding: 'home', home: 'home', map: 'map', place: 'map', trip: 'map',
   // Reached from the trip planner, so the map stays lit behind it the same
   // way it does behind the trip.
@@ -116,13 +121,14 @@ export function useNav(initial: ScreenKey = 'onboarding'): Nav {
   });
 
   const push = React.useCallback(
-    (screen: ScreenKey, params?: { placeId?: string; questId?: string; code?: string }) => {
+    (screen: ScreenKey, params?: { placeId?: string; questId?: string; code?: string; accountType?: 'traveller' | 'operator' }) => {
       setState((s) => ({
         screen,
         stack: [...s.stack, s.screen],
         placeId: params?.placeId ?? s.placeId,
         questId: params?.questId ?? s.questId,
         code: params?.code ?? s.code,
+        accountType: params?.accountType ?? s.accountType,
       }));
     },
     [],
@@ -140,11 +146,16 @@ export function useNav(initial: ScreenKey = 'onboarding'): Nav {
     setState((s) => ({ ...s, screen: tab, stack: [] }));
   }, []);
 
+  const reset = React.useCallback((screen: ScreenKey) => {
+    setState({ screen, stack: [], placeId: null, questId: null, code: null });
+  }, []);
+
   return {
     ...state,
     push,
     pop,
     selectTab,
+    reset,
     activeTab: OWNING_TAB[state.screen] ?? 'map',
   };
 }

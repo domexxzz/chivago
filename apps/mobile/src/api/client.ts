@@ -389,8 +389,53 @@ export const api = {
   register: (body: { label?: string; locale?: string }) =>
     post<{ userId: string; deviceKey: string }>('/devices', body),
 
+  /** Real database user registration. */
+  registerAccount: (body: {
+    fullName: string;
+    email: string;
+    phone: string;
+    password: string;
+    accountType?: 'traveller' | 'operator';
+    businessName?: string;
+    locale?: string;
+  }) =>
+    post<{
+      userId: string;
+      deviceKey: string;
+      name: string;
+      email: string;
+      phone: string;
+      accountType: 'traveller' | 'operator';
+      businessName: string | null;
+    }>('/auth/register', body),
+
+  /** Real database user login with email/phone and password. */
+  loginAccount: (body: {
+    identifier: string;
+    password: string;
+    label?: string;
+    accountType?: 'traveller' | 'operator';
+  }) =>
+    post<{
+      userId: string;
+      deviceKey: string;
+      name: string;
+      email: string;
+      phone: string;
+      accountType: 'traveller' | 'operator';
+      businessName: string | null;
+    }>('/auth/login', body),
+
   account: () =>
-    get<{ userId: string; devices: { label: string | null; createdAt: string; lastSeenAt: string | null; current: boolean }[] }>(
+    get<{
+      userId: string;
+      accountType: 'traveller' | 'operator';
+      businessName: string | null;
+      fullName: string | null;
+      email: string | null;
+      phone: string | null;
+      devices: { label: string | null; createdAt: string; lastSeenAt: string | null; current: boolean }[];
+    }>(
       '/account',
     ),
 
