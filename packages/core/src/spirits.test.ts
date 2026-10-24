@@ -3,7 +3,8 @@ import { test, describe } from 'node:test';
 
 import {
   COURT_LABEL, DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, RARE_PITY, RARITIES, RARITY_LABEL,
-  RARITY_PERCENT, RARITY_WEIGHT, SPIRITS, SPIRIT_COUNT, WEIGHT_TOTAL, advancePity, drawSpirit,
+  RARITY_EFFECTIVE_PERCENT, RARITY_EFFECTIVE_WEIGHT, RARITY_PERCENT, RARITY_WEIGHT, SPIRITS,
+  SPIRIT_COUNT, WEIGHT_TOTAL, advancePity, drawSpirit, effectiveWeights,
   rarityFromRoll, spiritFor, spiritSignature, spiritsOfRarity, type PityState, type SpiritRarity,
 } from './spirits.ts';
 import { MASCOTS } from './mascots.ts';
@@ -118,6 +119,97 @@ describe('the published table', () => {
     assert.equal(rarityFromRoll(9_699), 'rare');
     assert.equal(rarityFromRoll(9_700), 'mythic');
     assert.equal(rarityFromRoll(9_999), 'mythic');
+  });
+
+  /*
+    The reason this block exists at all: the roll band was published as "the
+    rates" for a while, and it is not what anybody experiences. These tests
+    are the ones that have to be deleted to put a false number back on the
+    screen.
+  */
+  test('the effective table is a table: integers, in ten-thousandths, summing to the total', () => {
+    const sum = RARITIES.reduce((n, r) => n + RARITY_EFFECTIVE_WEIGHT[r], 0);
+    assert.equal(sum, WEIGHT_TOTAL, 'the effective shares do not add up to the whole');
+    for (const r of RARITIES) {
+      assert.ok(Number.isInteger(RARITY_EFFECTIVE_WEIGHT[r]), `${r} is not an integer share`);
+      assert.equal(RARITY_EFFECTIVE_PERCENT[r], RARITY_EFFECTIVE_WEIGHT[r] / 100);
+    }
+  });
+
+  test('the floors lift the top of the table, and the published numbers say so', () => {
+    // Every one of these would have been a lie on the old screen.
+    assert.ok(
+      RARITY_EFFECTIVE_WEIGHT.mythic > RARITY_WEIGHT.mythic,
+      'a floor that guarantees a mythic cannot leave the mythic rate where the roll band put it',
+    );
+    assert.ok(RARITY_EFFECTIVE_WEIGHT.rare > RARITY_WEIGHT.rare);
+    assert.ok(RARITY_EFFECTIVE_WEIGHT.common < RARITY_WEIGHT.common);
+    assert.ok(RARITY_EFFECTIVE_WEIGHT.uncommon < RARITY_WEIGHT.uncommon);
+  });
+
+  test('the effective table is what the draw actually does, not a second opinion about it', () => {
+    /*
+      The table is arrived at by walking a mythic cycle on paper. This walks
+      it with `drawSpirit` itself instead, half a million summons of it, so
+      the two derivations have to agree or one of them is wrong.
+
+      Seeded xorshift rather than `Math.random`: a test that can fail on a
+      Tuesday teaches people to re-run tests instead of reading them. Same
+      sequence every time, on every machine.
+    */
+    const DRAWS = 500_000;
+    let bits = 0x5eed1e55;
+    const nextRoll = (): number => {
+      bits ^= bits << 13; bits >>>= 0;
+      bits ^= bits >>> 17;
+      bits ^= bits << 5; bits >>>= 0;
+      return bits % WEIGHT_TOTAL;
+    };
+
+    const seen: Record<SpiritRarity, number> = { common: 0, uncommon: 0, rare: 0, mythic: 0 };
+    let pity: PityState = { sinceMythic: 0, sinceRare: 0 };
+    for (let i = 0; i < DRAWS; i += 1) {
+      const draw = drawSpirit(nextRoll(), 0, pity);
+      seen[draw.rarity] += 1;
+      pity = advancePity(pity, draw.rarity);
+    }
+    for (const r of RARITIES) {
+      const walked = (seen[r] / DRAWS) * 100;
+      assert.ok(
+        Math.abs(walked - RARITY_EFFECTIVE_PERCENT[r]) < 0.5,
+        `${r}: the published effective rate is ${RARITY_EFFECTIVE_PERCENT[r]}%, the draw gives ${walked.toFixed(2)}%`,
+      );
+      // And the roll band is NOT what comes out, which is the whole point.
+      if (r === 'mythic' || r === 'rare') {
+        assert.ok(
+          walked - RARITY_PERCENT[r] > 1,
+          `${r}: the draw matches the roll band, so the floors are not doing what the table says`,
+        );
+      }
+    }
+  });
+
+  test('exactly one mythic comes out of every cycle, which is what makes the arithmetic sound', () => {
+    // `effectiveWeights` divides one cycle's yield by one cycle's length. If
+    // a cycle could end without a mythic, or with two, that division is
+    // meaningless - so this is the invariant underneath the whole table.
+    let pity: PityState = { sinceMythic: 0, sinceRare: 0 };
+    for (let cycle = 0; cycle < 200; cycle += 1) {
+      let length = 0;
+      let mythics = 0;
+      do {
+        const draw = drawSpirit((cycle * 977 + length * 31) % WEIGHT_TOTAL, 0, pity);
+        if (draw.rarity === 'mythic') mythics += 1;
+        pity = advancePity(pity, draw.rarity);
+        length += 1;
+        assert.ok(length <= MYTHIC_PITY, 'a cycle ran past the mythic floor');
+      } while (mythics === 0);
+      assert.equal(mythics, 1, 'a cycle ended with something other than exactly one mythic');
+    }
+  });
+
+  test('the table is computed from the weights, not typed in beside them', () => {
+    assert.deepEqual(effectiveWeights(), RARITY_EFFECTIVE_WEIGHT);
   });
 
   test('dust is worth more for a rarer duplicate, and forging costs more than one duplicate returns', () => {

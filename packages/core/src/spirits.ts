@@ -278,7 +278,13 @@ export const RARITY_WEIGHT: Record<SpiritRarity, number> = {
 
 export const WEIGHT_TOTAL = 10_000;
 
-/** The same table as a percentage, for the screen. Exact, because the weights are integers. */
+/**
+ * The roll band as a percentage. Exact, because the weights are integers.
+ *
+ * This is what ONE ROLL does, before either floor is applied. It is not the
+ * rate a player meets over a collection - that is `RARITY_EFFECTIVE_PERCENT`
+ * below, and it is the one the screen leads with.
+ */
 export const RARITY_PERCENT: Record<SpiritRarity, number> = {
   common: RARITY_WEIGHT.common / 100,
   uncommon: RARITY_WEIGHT.uncommon / 100,
@@ -295,6 +301,144 @@ export const RARITY_PERCENT: Record<SpiritRarity, number> = {
  */
 export const MYTHIC_PITY = 30;
 export const RARE_PITY = 10;
+
+// ---------------------------------------------------------------------------
+// What that table actually comes to
+// ---------------------------------------------------------------------------
+
+/*
+  `RARITY_WEIGHT` is what ONE ROLL does. It is not what a collection ends up
+  made of, and for a while this file published it as though it were.
+
+  The floors are not a rounding error. A rare is forced on every tenth summon
+  without one and a mythic on every thirtieth, and both fire often enough to
+  move the table a long way: a player told "mythic 3%" meets one at about
+  5%. Every bit of that gap is in the player's favour, which is exactly why
+  it went unnoticed - but a rate printed above a button is a promise about
+  what will happen, and 3% was not what happens.
+
+  So both numbers are published now. The EFFECTIVE table is the headline,
+  because it is the sentence a player reads as a promise. The roll band stays
+  beside it, because it is the number a roll is actually compared against and
+  a stranger recomputing a receipt needs it to follow the arithmetic.
+
+  Computed, never typed in: change a weight or a floor and this follows on
+  its own. Exact, in whole-number arithmetic from end to end, so it reads the
+  same on every machine - the same promise `RARITY_WEIGHT` makes, and the one
+  docs/68 rests on.
+*/
+
+interface Ratio { n: bigint; d: bigint }
+
+const gcd = (a: bigint, b: bigint): bigint => (b === 0n ? a : gcd(b, a % b));
+const ratio = (n: bigint, d: bigint): Ratio => {
+  const g = gcd(n < 0n ? -n : n, d) || 1n;
+  return { n: n / g, d: d / g };
+};
+const plus = (a: Ratio, b: Ratio): Ratio => ratio(a.n * b.d + b.n * a.d, a.d * b.d);
+const times = (a: Ratio, b: Ratio): Ratio => ratio(a.n * b.n, a.d * b.d);
+const NONE: Ratio = { n: 0n, d: 1n };
+
+/**
+ * The share of all draws each rarity really takes, in ten-thousandths.
+ *
+ * Worked out over one MYTHIC CYCLE - the run of summons from just after one
+ * mythic to the next - because a cycle always ends (the floor at
+ * `MYTHIC_PITY` guarantees it) and so the whole thing is a forward walk of
+ * at most thirty steps rather than a stationary distribution anybody has to
+ * take on trust.
+ *
+ * `alive[r]` is the chance the run has got this far without a mythic, with
+ * `r` summons since the last rare. Each step spreads that chance over what
+ * the summon can yield and carries the survivors forward. The long-run rate
+ * is then simply what one cycle yields over how long one cycle lasts.
+ *
+ * Two things a test holds, both of which would catch an error here: exactly
+ * one mythic is produced per cycle, and the four shares sum to
+ * `WEIGHT_TOTAL`.
+ */
+export function effectiveWeights(): Record<SpiritRarity, number> {
+  const share = (r: SpiritRarity): Ratio => ratio(BigInt(RARITY_WEIGHT[r]), BigInt(WEIGHT_TOTAL));
+  const pMythic = share('mythic');
+  const pRare = share('rare');
+  // The two that reset neither counter, and so are the only way to run a
+  // floor down.
+  const pPlain = plus(share('common'), share('uncommon'));
+
+  let alive: readonly Ratio[] = Array.from({ length: RARE_PITY }, (_, r) => (r === 0 ? { n: 1n, d: 1n } : NONE));
+  let yielded: Record<SpiritRarity, Ratio> = { common: NONE, uncommon: NONE, rare: NONE, mythic: NONE };
+  let lasted: Ratio = NONE;
+
+  for (let since = 0; since < MYTHIC_PITY; since++) {
+    const next: Ratio[] = Array.from({ length: RARE_PITY }, () => NONE);
+    for (let r = 0; r < RARE_PITY; r++) {
+      const here = alive[r]!;
+      if (here.n === 0n) continue;
+      lasted = plus(lasted, here);
+
+      if (since + 1 >= MYTHIC_PITY) {
+        // The mythic floor. The cycle ends here and carries nothing forward.
+        yielded = { ...yielded, mythic: plus(yielded.mythic, here) };
+      } else if (r + 1 >= RARE_PITY) {
+        // The rare floor: rare OR BETTER, so a rolled mythic still ends the
+        // cycle and everything else is lifted to rare.
+        const toRare = times(here, plus(pRare, pPlain));
+        yielded = {
+          ...yielded,
+          mythic: plus(yielded.mythic, times(here, pMythic)),
+          rare: plus(yielded.rare, toRare),
+        };
+        next[0] = plus(next[0]!, toRare);
+      } else {
+        yielded = {
+          common: plus(yielded.common, times(here, share('common'))),
+          uncommon: plus(yielded.uncommon, times(here, share('uncommon'))),
+          rare: plus(yielded.rare, times(here, pRare)),
+          mythic: plus(yielded.mythic, times(here, pMythic)),
+        };
+        next[0] = plus(next[0]!, times(here, pRare));
+        next[r + 1] = plus(next[r + 1]!, times(here, pPlain));
+      }
+    }
+    alive = next;
+  }
+
+  /*
+    Into ten-thousandths. Largest remainder rather than plain rounding,
+    because four numbers that each round on their own are four numbers that
+    no longer sum to the total - and a published table that does not add up
+    is the thing this whole file is trying not to be.
+  */
+  const parts = RARITIES.map((rarity) => {
+    const q = times(times(yielded[rarity], { n: BigInt(WEIGHT_TOTAL), d: 1n }), { n: lasted.d, d: lasted.n });
+    return { rarity, whole: q.n / q.d, remainder: q.n % q.d, over: q.d };
+  });
+  const short = BigInt(WEIGHT_TOTAL) - parts.reduce((t, part) => t + part.whole, 0n);
+  const byRemainder = [...parts].sort((a, b) => {
+    const left = a.remainder * b.over;
+    const right = b.remainder * a.over;
+    return left === right ? 0 : left > right ? -1 : 1;
+  });
+  const bumped = new Set(byRemainder.slice(0, Number(short)).map((part) => part.rarity));
+
+  return Object.fromEntries(
+    parts.map((part) => [part.rarity, Number(part.whole + (bumped.has(part.rarity) ? 1n : 0n))]),
+  ) as Record<SpiritRarity, number>;
+}
+
+/**
+ * The rates as a player meets them, floors and all. Ten-thousandths, summing
+ * to `WEIGHT_TOTAL`, like the roll band above.
+ */
+export const RARITY_EFFECTIVE_WEIGHT: Record<SpiritRarity, number> = effectiveWeights();
+
+/** The same, as the percentage printed on the screen. */
+export const RARITY_EFFECTIVE_PERCENT: Record<SpiritRarity, number> = {
+  common: RARITY_EFFECTIVE_WEIGHT.common / 100,
+  uncommon: RARITY_EFFECTIVE_WEIGHT.uncommon / 100,
+  rare: RARITY_EFFECTIVE_WEIGHT.rare / 100,
+  mythic: RARITY_EFFECTIVE_WEIGHT.mythic / 100,
+};
 
 /** What a duplicate becomes, by the rarity of the duplicate. */
 export const DUST_FROM_DUPLICATE: Record<SpiritRarity, number> = {

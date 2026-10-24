@@ -118,12 +118,18 @@ function Unmet({ tint }: { tint: string }) {
   );
 }
 
-/** The whole published table, printed. */
-function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
+/**
+ * The whole published table, printed.
+ *
+ * Exported for the same reason `SpiritCardView` is: what this panel says is
+ * the product's promise about a draw, and a test holds it to the numbers the
+ * server handed it rather than to a screenshot somebody took once.
+ */
+export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
   return (
     <Tray style={{ marginHorizontal: gutter, marginTop: 10, borderRadius: gameRadius.panel }}>
       <View style={{ gap: 10 }}>
-        <TrayLine>Published odds</TrayLine>
+        <TrayLine>Published odds — floors included</TrayLine>
         {RARITIES.map((r) => (
           <View key={r} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ width: 86 }}><RarityPill rarity={r} /></View>
@@ -141,6 +147,18 @@ function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
         <Body size={13} style={{ color: gameTray.muted }}>
           {`Guaranteed: a rare within ${rules.pity.rare} summons, a mythic within ${rules.pity.mythic}. `
             + 'There is no other weighting — these numbers are the whole of it.'}
+        </Body>
+        {/*
+          THE TABLE ABOVE IS THE TABLE A PLAYER MEETS, floors and all. This
+          line is the other half of the arithmetic, and it is here rather
+          than hidden because the screen used to print the roll band under
+          the word "odds" — which reads as a promise of 3% mythic against
+          about 5% in play. Both numbers, or the published one is not the
+          published one (docs/68).
+        */}
+        <Body size={13} style={{ color: gameTray.muted }}>
+          {`One roll on its own: ${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.rollBand[r]}%`).join(', ')}. `
+            + 'The floors lift the rest, and the table above is what the two come to together.'}
         </Body>
         <Body size={13} style={{ color: gameTray.muted }}>
           {`A duplicate becomes stardust (${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.dustFromDuplicate[r]}`).join(', ')}), `
@@ -251,10 +269,16 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
         <Label size={9} tracking={0.1} colour={color.neutral600}>
           {`Seed commitment ${s.epoch.commitment.slice(0, 16)}… published ${new Date(s.epoch.openedAt).toLocaleDateString()}`}
         </Label>
+        {/*
+          "Within N hours", not "when this round closes". The old wording was
+          true of the code and useless to a reader, and for a while it was not
+          even true of the running server: nothing closed a round, so the seed
+          was never published and no receipt could be checked (docs/68).
+        */}
         <Body size={13} style={{ color: color.neutral600, paddingTop: 4 }}>
-          Every roll is computed from a seed whose fingerprint was published before any of them
-          were made. When this round closes the seed is published too, and any summon can be
-          recomputed from its receipt.
+          {'Every roll is computed from a seed whose fingerprint was published before any of them '
+            + `were made. This round closes within ${s.rules.epochHours} hours; the seed is published then, `
+            + 'and anybody — not only you — can recompute any summon from its receipt.'}
         </Body>
       </View>
 
