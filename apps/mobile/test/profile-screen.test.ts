@@ -232,3 +232,40 @@ describe('distinction between operator and traveller roles', () => {
     ui.unmount();
   });
 });
+
+describe('logout functionality and confirmation popup', () => {
+  test('tapping logout button opens confirmation modal, cancelling closes it, confirming calls onLogout', async () => {
+    let loggedOut = false;
+    const s = server(routes());
+    restore = s.restore;
+
+    const ui = await mountScreen(h(ProfileScreen, {
+      ...props,
+      onLogout: () => { loggedOut = true; },
+    }));
+
+    // Initially modal is not visible (text does not contain confirmation question)
+    assert.doesNotMatch(ui.text(), /Are you sure you want to log out|คุณแน่ใจหรือไม่/);
+
+    // Tap the logout button in profile
+    await ui.press(/log out|ออกจากระบบ/i);
+
+    // Modal is now open
+    assert.match(ui.text(), /Log Out|ยืนยันการออกจากระบบ/);
+    assert.match(ui.text(), /Are you sure you want to log out|คุณแน่ใจหรือไม่/);
+    assert.equal(loggedOut, false);
+
+    // Tap cancel
+    await ui.press(/cancel|ยกเลิก/i);
+    assert.doesNotMatch(ui.text(), /Are you sure you want to log out|คุณแน่ใจหรือไม่/);
+    assert.equal(loggedOut, false);
+
+    // Open modal again and confirm logout
+    await ui.press(/log out|ออกจากระบบ/i);
+    assert.match(ui.text(), /Log Out|ยืนยันการออกจากระบบ/);
+    await ui.press(/confirm log out|ยืนยันออกจากระบบ/i);
+
+    assert.equal(loggedOut, true);
+    ui.unmount();
+  });
+});

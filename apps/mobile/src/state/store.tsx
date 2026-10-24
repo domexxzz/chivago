@@ -80,6 +80,8 @@ export interface Nav extends NavState {
   pop: () => void;
   /** A tab tap RESETS the stack, per the handoff. */
   selectTab: (tab: TabKey) => void;
+  /** Reset stack and switch directly to a screen. */
+  reset: (screen: ScreenKey) => void;
   activeTab: TabKey;
 }
 
@@ -142,11 +144,16 @@ export function useNav(initial: ScreenKey = 'onboarding'): Nav {
     setState((s) => ({ ...s, screen: tab, stack: [] }));
   }, []);
 
+  const reset = React.useCallback((screen: ScreenKey) => {
+    setState({ screen, stack: [], placeId: null, questId: null, code: null });
+  }, []);
+
   return {
     ...state,
     push,
     pop,
     selectTab,
+    reset,
     activeTab: OWNING_TAB[state.screen] ?? 'map',
   };
 }

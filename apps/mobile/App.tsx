@@ -57,7 +57,7 @@ import type { Companion } from '@chivago/core';
 import './src/polyfills/location-emitter.ts';
 import { loadLocale, t, useLocale } from './src/i18n/locale.ts';
 import { loadArea, placeFromUrl } from './src/state/area.ts';
-import { hasLoggedIn, setLoggedIn } from './src/state/auth.ts';
+import { clearLoggedIn, hasLoggedIn, setLoggedIn } from './src/state/auth.ts';
 import { useServerConfig } from './src/state/server-config.ts';
 import { UnfencedBand } from './src/components/UnfencedBand.tsx';
 import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
@@ -457,6 +457,12 @@ export default function App() {
             onOpenPassport={() => nav.push('passport')}
             onOpenMedals={() => nav.push('medals')}
             onOpenCompanion={(c) => { setCompanion(c); nav.push('companion'); }}
+            onLogout={async () => {
+              await clearLoggedIn();
+              setLoggedInState(false);
+              nav.reset('login');
+              toast.show(t({ en: 'Logged out successfully', th: 'ออกจากระบบเรียบร้อยแล้ว' }));
+            }}
           />
         );
 
@@ -568,7 +574,7 @@ export default function App() {
     }
   };
 
-  const showTabs = nav.screen !== 'onboarding' && nav.screen !== 'login';
+  const showTabs = nav.screen !== 'onboarding' && nav.screen !== 'login' && nav.screen !== 'register';
 
   return (
     <SafeAreaProvider>

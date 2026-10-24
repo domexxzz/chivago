@@ -23,9 +23,9 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Modal, Pressable, ScrollView, View } from 'react-native';
 import {
-  Building2, CheckCircle2, Compass, Crown, Footprints, Leaf, Mail, MapPinned, Phone, Settings, ShieldCheck, Sprout, Store, TreePalm, UserRound,
+  Building2, CheckCircle2, Compass, Crown, Footprints, Leaf, LogOut, Mail, MapPinned, Phone, Settings, ShieldCheck, Sprout, Store, TreePalm, UserRound,
 } from 'lucide-react-native';
 // On its own line: the test stub generator reads the braces above for names.
 import type { LucideIcon } from 'lucide-react-native';
@@ -84,7 +84,7 @@ const companionName = (c: Companion): string =>
   c.stage === 'egg' ? t(c.species.eggName) : t(c.species.name);
 
 export function ProfileScreen({
-  onBack, onOpenAccount, onOpenWallet, onOpenPassport, onOpenMedals, onOpenCompanion,
+  onBack, onOpenAccount, onOpenWallet, onOpenPassport, onOpenMedals, onOpenCompanion, onLogout,
 }: {
   onBack: () => void;
   onOpenAccount: () => void;
@@ -92,7 +92,9 @@ export function ProfileScreen({
   onOpenPassport: () => void;
   onOpenMedals: () => void;
   onOpenCompanion: (c: Companion) => void;
+  onLogout?: () => void;
 }) {
+  const [logoutModalVisible, setLogoutModalVisible] = React.useState(false);
   const wallet = useAsync(() => api.wallet(), []);
   const standing = useAsync(() => api.standing(), []);
   const passport = useAsync(() => api.passport(), []);
@@ -146,7 +148,157 @@ export function ProfileScreen({
       <MedalsBlock medals={medals} onSeeAll={onOpenMedals} />
       <CompanionsBlock companions={companions} onOpenCompanion={onOpenCompanion} onSeeAll={onOpenWallet} />
       <Figures wallet={wallet} passport={passport} onOpenWallet={onOpenWallet} onOpenPassport={onOpenPassport} />
-      <View style={{ height: 28 }} />
+
+      {onLogout ? (
+        <View style={{ marginHorizontal: gutter, marginTop: 20 }}>
+          <Pressable
+            onPress={() => setLogoutModalVisible(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t({ en: 'Log out', th: 'ออกจากระบบ' })}
+            style={({ pressed }) => [
+              shadow.card,
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                paddingVertical: 14,
+                paddingHorizontal: 20,
+                backgroundColor: '#FFFFFF',
+                borderWidth: 1,
+                borderColor: '#FED7D7',
+                borderRadius: radius.md,
+              },
+              pressed && { backgroundColor: '#FFF5F5', transform: [{ scale: 0.99 }] },
+            ]}
+          >
+            <View
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                backgroundColor: '#FEE2E2',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <LogOut size={15} color="#DC2626" strokeWidth={2.2} />
+            </View>
+            <Label size={11} tracking={0.08} colour="#DC2626">
+              {t({ en: 'Log Out', th: 'ออกจากระบบ' })}
+            </Label>
+          </Pressable>
+        </View>
+      ) : null}
+
+      <View style={{ height: 32 }} />
+
+      <Modal
+        visible={logoutModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLogoutModalVisible(false)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(2, 43, 66, 0.6)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <View
+            style={[
+              shadow.card,
+              {
+                width: '100%',
+                maxWidth: 360,
+                backgroundColor: '#FFFFFF',
+                borderRadius: 24,
+                padding: 24,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: '#E2E8F0',
+              },
+            ]}
+          >
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: '#FEE2E2',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <LogOut size={26} color="#DC2626" strokeWidth={2.2} />
+            </View>
+
+            <Heading size={18} colour={color.neutral900} style={{ textAlign: 'center', marginBottom: 8 }}>
+              {t({ en: 'Log Out', th: 'ยืนยันการออกจากระบบ' })}
+            </Heading>
+
+            <Body size={13} colour={color.neutral600} style={{ textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
+              {t({
+                en: 'Are you sure you want to log out of your Chivargo account on this device?',
+                th: 'คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบบัญชี Chivargo บนอุปกรณ์นี้?',
+              })}
+            </Body>
+
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <Pressable
+                onPress={() => setLogoutModalVisible(false)}
+                accessibilityRole="button"
+                accessibilityLabel={t({ en: 'Cancel', th: 'ยกเลิก' })}
+                style={({ pressed }) => [
+                  {
+                    flex: 1,
+                    height: 44,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 12,
+                    backgroundColor: '#F1F5F9',
+                    borderWidth: 1,
+                    borderColor: '#E2E8F0',
+                  },
+                  pressed && { backgroundColor: '#E2E8F0' },
+                ]}
+              >
+                <Label size={11} tracking={0.06} colour={color.neutral700}>
+                  {t({ en: 'Cancel', th: 'ยกเลิก' })}
+                </Label>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  setLogoutModalVisible(false);
+                  onLogout?.();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={t({ en: 'Confirm Log Out', th: 'ยืนยันออกจากระบบ' })}
+                style={({ pressed }) => [
+                  {
+                    flex: 1,
+                    height: 44,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 12,
+                    backgroundColor: '#DC2626',
+                  },
+                  pressed && { backgroundColor: '#B91C1C' },
+                ]}
+              >
+                <Label size={11} tracking={0.06} colour="#FFFFFF">
+                  {t({ en: 'Log Out', th: 'ออกจากระบบ' })}
+                </Label>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }

@@ -40,6 +40,7 @@ export const Leaf = Icon;
 export const List = Icon;
 export const LocateFixed = Icon;
 export const Lock = Icon;
+export const LogOut = Icon;
 export const Mail = Icon;
 export const Map = Icon;
 export const MapPin = Icon;
