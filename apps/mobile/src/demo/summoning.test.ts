@@ -3,7 +3,8 @@ import { createHash, createHmac } from 'node:crypto';
 import { test, describe } from 'node:test';
 
 import {
-  DUST_FROM_DUPLICATE, MYTHIC_PITY, RARE_PITY, RARITIES, RARITY_PERCENT, RARITY_WEIGHT, SPIRITS,
+  DUST_FROM_DUPLICATE, MYTHIC_PITY, RARE_PITY, RARITIES, RARITY_EFFECTIVE_PERCENT,
+  RARITY_PERCENT, RARITY_WEIGHT, SPIRITS,
   WEIGHT_TOTAL, advancePity, drawSpirit,
 } from '@chivago/core';
 
@@ -110,7 +111,19 @@ describe('the demo summoning answers the screen', () => {
   test('the odds it prints are CORE\'S, not a copy of them', async () => {
     const s = await createSummoning(ledgerOf(CAPTURED)).state();
 
-    assert.deepEqual(s.rules.rates, RARITY_PERCENT);
+    /*
+      `rates` is the EFFECTIVE table - the one with the floors in it, which is
+      what the server serves and what the panel prints under "odds". This
+      asserted `RARITY_PERCENT` when it was written, and that passed until
+      #134 landed in the same window and moved what the field means. Holding
+      both names now, so the demo cannot drift back to printing a rate no
+      player meets.
+    */
+    assert.deepEqual(s.rules.rates, RARITY_EFFECTIVE_PERCENT);
+    assert.deepEqual(s.rules.rollBand, RARITY_PERCENT);
+    assert.notDeepEqual(s.rules.rates, s.rules.rollBand, 'the demo is printing the pre-floor band as its odds');
+    assert.ok(s.rules.rates.mythic > s.rules.rollBand.mythic);
+    assert.ok(s.rules.epochHours > 0, 'the screen prints this in the sentence about the seed');
     assert.deepEqual(s.rules.weights, RARITY_WEIGHT);
     assert.equal(s.rules.weightTotal, WEIGHT_TOTAL);
     assert.deepEqual(s.rules.pity, { mythic: MYTHIC_PITY, rare: RARE_PITY });
