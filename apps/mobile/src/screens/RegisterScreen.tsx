@@ -103,7 +103,7 @@ function LineIcon({ size = 22 }: { size?: number }) {
 }
 
 export interface RegisterScreenProps {
-  onRegisterSuccess?: () => void;
+  onRegisterSuccess?: (accountType?: 'traveller' | 'operator') => void;
   onLogin?: (accountType?: 'traveller' | 'operator') => void;
   onBack?: () => void;
   initialAccountType?: 'traveller' | 'operator';
@@ -263,7 +263,7 @@ export function RegisterScreen({
 
       await setLoggedIn(true);
       setLoading(false);
-      onRegisterSuccess?.();
+      onRegisterSuccess?.(regRes.data.accountType);
     } catch {
       setErrorMessage('การลงทะเบียนไม่สำเร็จ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง');
       setLoading(false);

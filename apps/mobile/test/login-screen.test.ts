@@ -196,35 +196,16 @@ describe('Chivargo LoginScreen', () => {
     }
   });
 
-  it('switches between traveller and operator roles on login screen', async () => {
-    let chosenRegisterRole: string | undefined;
+  it('does not ask for an account role on login', async () => {
     const ui = await mountScreen(
       h(LoginScreen, {
-        onRegister: (role) => {
-          chosenRegisterRole = role;
-        },
+        onRegister: () => {},
       }),
     );
 
-    // Initial state: traveller role selected
-    assert.match(ui.text(), /เข้าสู่ระบบนักท่องเที่ยว/);
-    assert.match(ui.text(), /สำหรับนักท่องเที่ยว/);
-
-    // Click register in traveller mode
-    await ui.press(/สมัครสมาชิกนักท่องเที่ยว/);
-    assert.equal(chosenRegisterRole, 'traveller');
-
-    // Switch to operator role
-    await ui.press(/ผู้ประกอบการ/);
-
-    // Operator state active
-    assert.match(ui.text(), /เข้าสู่ระบบผู้ประกอบการ/);
-    assert.match(ui.text(), /สำหรับผู้ประกอบการ/);
-    assert.match(ui.text(), /พอร์ทัลร้านค้าและผู้ประกอบการ/);
-
-    // Click register in operator mode
-    await ui.press(/สมัครสมาชิกร้านค้า/);
-    assert.equal(chosenRegisterRole, 'operator');
+    assert.doesNotMatch(ui.text(), /เข้าสู่ระบบในฐานะ|นักท่องเที่ยว|ผู้ประกอบการ/);
+    assert.match(ui.text(), /เข้าสู่ระบบเพื่อไปยัง Chivargo/);
+    await ui.press(/สมัครสมาชิก/);
 
     ui.unmount();
   });

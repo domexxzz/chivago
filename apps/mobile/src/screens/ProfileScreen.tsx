@@ -84,7 +84,7 @@ const companionName = (c: Companion): string =>
   c.stage === 'egg' ? t(c.species.eggName) : t(c.species.name);
 
 export function ProfileScreen({
-  onBack, onOpenAccount, onOpenWallet, onOpenPassport, onOpenMedals, onOpenCompanion, onLogout,
+  onBack, onOpenAccount, onOpenWallet, onOpenPassport, onOpenMedals, onOpenCompanion, onLogout, accountTypeOverride,
 }: {
   onBack: () => void;
   onOpenAccount: () => void;
@@ -93,6 +93,7 @@ export function ProfileScreen({
   onOpenMedals: () => void;
   onOpenCompanion: (c: Companion) => void;
   onLogout?: () => void;
+  accountTypeOverride?: 'traveller' | 'operator';
 }) {
   const [logoutModalVisible, setLogoutModalVisible] = React.useState(false);
   const wallet = useAsync(() => api.wallet(), []);
@@ -104,7 +105,7 @@ export function ProfileScreen({
 
   const lead = companions.data ? leadCompanion(companions.data.companions) : null;
   const name = standing.data?.you?.displayName ?? account.data?.fullName ?? null;
-  const accountType = account.data?.accountType ?? 'traveller';
+  const accountType = account.data?.accountType ?? accountTypeOverride ?? 'traveller';
   const businessName = account.data?.businessName ?? null;
   const email = account.data?.email ?? null;
   const phone = account.data?.phone ?? null;

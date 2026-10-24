@@ -76,6 +76,7 @@ export default function App() {
 
   const [authReady, setAuthReady] = React.useState(false);
   const [loggedIn, setLoggedInState] = React.useState(false);
+  const [signedInAccountType, setSignedInAccountType] = React.useState<'traveller' | 'operator' | undefined>();
   React.useEffect(() => {
     void hasLoggedIn().then((val) => {
       setLoggedInState(val);
@@ -451,6 +452,7 @@ export default function App() {
       case 'profile':
         return (
           <ProfileScreen
+            accountTypeOverride={signedInAccountType}
             onBack={nav.pop}
             onOpenAccount={() => nav.push('account')}
             onOpenWallet={() => nav.push('wallet')}
@@ -459,6 +461,7 @@ export default function App() {
             onOpenCompanion={(c) => { setCompanion(c); nav.push('companion'); }}
             onLogout={async () => {
               await clearLoggedIn();
+              setSignedInAccountType(undefined);
               setLoggedInState(false);
               nav.reset('login');
               toast.show(t({ en: 'Logged out successfully', th: 'ออกจากระบบเรียบร้อยแล้ว' }));
@@ -493,14 +496,14 @@ export default function App() {
       case 'login':
         return (
           <LoginScreen
-            initialAccountType={nav.accountType ?? 'traveller'}
-            onLoginSuccess={async () => {
+            onLoginSuccess={async (accountType) => {
               await setLoggedIn(true);
               setLoggedInState(true);
+              setSignedInAccountType(accountType);
               toast.show(t({ en: 'Signed in successfully', th: 'เข้าสู่ระบบสำเร็จ' }));
               nav.selectTab('home');
             }}
-            onRegister={(accType) => nav.push('register', { accountType: accType })}
+            onRegister={() => nav.push('register')}
             onBack={nav.stack.length > 0 ? nav.pop : undefined}
           />
         );
@@ -509,20 +512,21 @@ export default function App() {
         return (
           <RegisterScreen
             initialAccountType={nav.accountType ?? 'traveller'}
-            onRegisterSuccess={async () => {
+            onRegisterSuccess={async (accountType) => {
               await setLoggedIn(true);
               setLoggedInState(true);
+              setSignedInAccountType(accountType);
               toast.show(t({
                 en: 'Registration successful! Welcome to Chivargo',
                 th: 'สมัครสมาชิกสำเร็จ! ยินดีต้อนรับสู่ Chivargo',
               }));
               nav.push('onboarding');
             }}
-            onLogin={(accType) => {
+            onLogin={() => {
               if (nav.stack[nav.stack.length - 1] === 'login') {
                 nav.pop();
               } else {
-                nav.push('login', { accountType: accType });
+                nav.push('login');
               }
             }}
             onBack={nav.pop}
