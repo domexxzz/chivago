@@ -138,7 +138,20 @@ export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
   return (
     <Tray style={{ marginHorizontal: gutter, marginTop: 10, borderRadius: gameRadius.panel }}>
       <View style={{ gap: 10 }}>
-        <TrayLine>{t({ en: 'Published odds', th: 'อัตราที่ประกาศไว้' })}</TrayLine>
+        {/*
+          "Floors included" is not decoration on this heading.
+
+          The table under it prints the EFFECTIVE rate - the one a player
+          actually meets once the pity floors are counted - not the per-roll
+          band. The two differ (mythic reads 5.01%, the roll band 0.31%), so a
+          heading that says only "Published odds" leaves the reader to assume
+          the smaller number and the screen quietly overstates nothing while
+          explaining nothing. The clause was lost in translation once already;
+          summon.test.ts asserts it so it cannot be lost again.
+        */}
+        <TrayLine>
+          {t({ en: 'Published odds — floors included', th: 'อัตราที่ประกาศไว้ — รวมเพดานรับประกันแล้ว' })}
+        </TrayLine>
         {RARITIES.map((r) => (
           <View key={r} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ width: 86 }}><RarityPill rarity={r} /></View>
