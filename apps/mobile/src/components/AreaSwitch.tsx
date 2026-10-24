@@ -16,6 +16,7 @@
 
 import React from 'react';
 import { Pressable, View } from 'react-native';
+import { MapPin } from 'lucide-react-native';
 import { AREAS, type AreaKey } from '@chivago/core';
 import { color, onFill, radius } from '../theme/index.ts';
 import { Label } from './Type.tsx';
@@ -30,15 +31,15 @@ export function AreaSwitch({
   tone?: 'light' | 'inverted';
 }) {
   return (
-    <View accessibilityRole="tablist" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+    <View
+      accessibilityRole="tablist"
+      style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 2, paddingVertical: 4 }}
+    >
       {AREAS.map((a) => {
         const on = a.key === area;
-        const fill = tone === 'inverted'
-          ? (on ? color.surface : 'rgba(255,255,255,0.2)')
-          : (on ? color.brand : color.surface);
-        const ink = tone === 'inverted'
-          ? (on ? '#0077B6' : '#FFFFFF')
-          : (on ? onFill.brand : color.neutral700);
+        const fill = on ? '#0061A8' : '#FFFFFF';
+        const ink = on ? '#FFFFFF' : '#52749D';
+        const border = on ? '#0061A8' : '#BED4EB';
         return (
           <Pressable
             key={a.key}
@@ -47,13 +48,27 @@ export function AreaSwitch({
             accessibilityState={{ selected: on }}
             accessibilityLabel={t(a.name)}
             style={{
-              minHeight: 36, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 24,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 5,
+              minHeight: 38,
+              paddingVertical: 7,
+              paddingHorizontal: 16,
+              borderRadius: 100,
               backgroundColor: fill,
-              borderWidth: 1,
-              borderColor: tone === 'inverted' ? 'rgba(255,255,255,0.28)' : (on ? color.brand : color.neutral300),
+              borderWidth: 1.5,
+              borderColor: border,
+              shadowColor: '#0061A8',
+              shadowOffset: { width: 0, height: on ? 2 : 1 },
+              shadowOpacity: on ? 0.16 : 0.04,
+              shadowRadius: 4,
+              elevation: on ? 2 : 1,
             }}
           >
-            <Label size={11} tracking={0.08} colour={ink}>{t(a.name)}</Label>
+            {on ? <MapPin size={14} color="#FFFFFF" strokeWidth={2.4} /> : null}
+            <Label size={11} tracking={0.04} colour={ink} style={{ fontWeight: on ? '700' : '500' }}>
+              {t(a.name)}
+            </Label>
           </Pressable>
         );
       })}
