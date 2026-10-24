@@ -239,7 +239,11 @@ export function MapScreen({
   ) : null;
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      stickyHeaderIndices={[0]}
+      contentContainerStyle={{ backgroundColor: '#EEF7F8', paddingBottom: 24 }}
+    >
       <MapHeader
         balances={balances}
         onOpenWallet={onOpenWallet}
@@ -253,10 +257,28 @@ export function MapScreen({
 
       {places.data ? (
         <>
-          <View style={{ paddingHorizontal: gutter, paddingTop: 10 }}>
+          <View
+            style={{
+              marginHorizontal: gutter,
+              marginTop: 12,
+              marginBottom: 8,
+              padding: 8,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: '#DCECEF',
+              shadowColor: '#174B57',
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              elevation: 1,
+            }}
+          >
             <AreaSwitch area={area.key} onChange={setArea} />
           </View>
-          <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
+          <View style={{ paddingBottom: 8 }}>
+            <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
+          </View>
           {fairPanel}
           {wayTo ? (
             <WayBanner
@@ -420,8 +442,8 @@ export function MapScreen({
             paddingHorizontal: 16,
             backgroundColor: color.surface,
             borderWidth: 1,
-            borderColor: '#DCEFF5',
-            borderRadius: radius.md,
+            borderColor: '#D7E9EC',
+            borderRadius: 18,
             flexDirection: 'row',
             alignItems: 'center',
             gap: 12,
@@ -457,8 +479,8 @@ export function MapScreen({
               paddingHorizontal: 16,
               backgroundColor: color.surface,
               borderWidth: 1,
-              borderColor: '#DCEFF5',
-              borderRadius: radius.md,
+              borderColor: '#D7E9EC',
+              borderRadius: 18,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 12,
@@ -513,13 +535,13 @@ export function MapHeader({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: gutter,
-        paddingTop: 20,
-        paddingBottom: 18,
-        backgroundColor: '#028090',
-        borderBottomLeftRadius: 26,
-        borderBottomRightRadius: 26,
+        paddingTop: 18,
+        paddingBottom: 20,
+        backgroundColor: '#079DB4',
+        borderBottomLeftRadius: 28,
+        borderBottomRightRadius: 28,
         overflow: 'hidden',
-        shadowColor: '#004E64',
+        shadowColor: '#075766',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.14,
         shadowRadius: 10,
@@ -576,13 +598,18 @@ export function MapHeader({
           }
           style={{
             backgroundColor: '#FFFFFF',
-            borderRadius: 16,
-            paddingVertical: 7,
-            paddingHorizontal: 12,
-            minHeight: 44,
+            borderRadius: 18,
+            paddingVertical: 8,
+            paddingHorizontal: 13,
+            minHeight: 48,
             justifyContent: 'center',
             borderWidth: 1,
-            borderColor: '#DCEFF5',
+            borderColor: '#D8F0F3',
+            shadowColor: '#063F4B',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.08,
+            shadowRadius: 5,
+            elevation: 2,
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
