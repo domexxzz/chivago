@@ -42,6 +42,7 @@ import { MascotsScreen } from './src/screens/MascotsScreen.tsx';
 import { MascotRoomScreen } from './src/screens/MascotRoom.tsx';
 import { SummonScreen } from './src/screens/SummonScreen.tsx';
 import { AccountScreen } from './src/screens/AccountScreen.tsx';
+import { LoginScreen } from './src/screens/LoginScreen.tsx';
 import { ProfileScreen } from './src/screens/ProfileScreen.tsx';
 import { MedalsScreen } from './src/screens/MedalsScreen.tsx';
 import { PartyScreen } from './src/screens/PartyScreen.tsx';
@@ -468,7 +469,25 @@ export default function App() {
         return <SummonScreen onBack={nav.pop} />;
 
       case 'account':
-        return <AccountScreen onBack={nav.pop} onToast={toast.show} />;
+        return (
+          <AccountScreen
+            onBack={nav.pop}
+            onToast={toast.show}
+            onOpenLogin={() => nav.push('login')}
+          />
+        );
+
+      case 'login':
+        return (
+          <LoginScreen
+            onLoginSuccess={() => {
+              toast.show(t({ en: 'Signed in successfully', th: 'เข้าสู่ระบบสำเร็จ' }));
+              nav.selectTab('home');
+            }}
+            onRegister={() => nav.push('onboarding')}
+            onBack={nav.pop}
+          />
+        );
 
       case 'party':
         return <PartyScreen onBack={nav.pop} onToast={toast.show} onFind={() => nav.push('findParty')} />;
@@ -517,7 +536,7 @@ export default function App() {
     }
   };
 
-  const showTabs = nav.screen !== 'onboarding';
+  const showTabs = nav.screen !== 'onboarding' && nav.screen !== 'login';
 
   return (
     <SafeAreaProvider>

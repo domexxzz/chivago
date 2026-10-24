@@ -6,6 +6,7 @@
  */
 const Icon = () => null;
 export default Icon;
+export const AlertCircle = Icon;
 export const Anchor = Icon;
 export const ArrowRight = Icon;
 export const BedDouble = Icon;
@@ -24,6 +25,8 @@ export const Copy = Icon;
 export const Crosshair = Icon;
 export const Crown = Icon;
 export const ExternalLink = Icon;
+export const Eye = Icon;
+export const EyeOff = Icon;
 export const Footprints = Icon;
 export const GraduationCap = Icon;
 export const HeartPulse = Icon;

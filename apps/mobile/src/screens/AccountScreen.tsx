@@ -39,8 +39,8 @@ export function countdown(msLeft: number): string {
 }
 
 export function AccountScreen({
-  onBack, onToast,
-}: { onBack: () => void; onToast: (msg: string) => void }) {
+  onBack, onToast, onOpenLogin,
+}: { onBack: () => void; onToast: (msg: string) => void; onOpenLogin?: () => void }) {
   const account = useAsync(() => api.account(), []);
   const [refresh, setRefresh] = React.useState(0);
   const reload = () => { account.reload(); setRefresh((n) => n + 1); };
@@ -75,6 +75,22 @@ export function AccountScreen({
       {account.data ? (
         <>
           <Summary count={account.data.devices.length} />
+          {onOpenLogin ? (
+            <Section en="Sign in" th="เข้าสู่ระบบ">
+              <Body size={13} colour={color.neutral700} style={{ marginBottom: 12 }}>
+                {t({
+                  en: 'Sign in with your email, phone, or Chivargo account.',
+                  th: 'เข้าสู่ระบบด้วยอีเมล เบอร์โทรศัพท์ หรือบัญชี Chivargo ของคุณ',
+                })}
+              </Body>
+              <Button
+                label={t({ en: 'Sign in to Chivargo', th: 'เข้าสู่ระบบ Chivargo' })}
+                onPress={onOpenLogin}
+                variant="secondary"
+                height={44}
+              />
+            </Section>
+          ) : null}
           <ShowCode onToast={onToast} />
           <EnterCode onLinked={reload} onToast={onToast} />
           <Phones
