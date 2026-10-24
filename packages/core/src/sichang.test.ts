@@ -6,14 +6,21 @@ import { SAFETY_PHRASES, SEED_HOSTS, SEED_PLACES, SEED_QUESTS } from './seed.ts'
 const area = areaByKey('koh-sichang');
 const places = SEED_PLACES.filter((p) => areaOfPlace(p) === 'koh-sichang');
 
-/** Centres and IDs checked against named OSM features on 2026-10-23. */
+/** Centres and IDs checked against OSM features through Overpass. */
 const mapped = [
   ['sc-pier', 'Quest', 13.161443, 100.810441, 'way 40354093'],
   ['sc-hospital', 'Safe', 13.163311, 100.807704, 'way 412192327'],
   ['sc-thamphang', 'Green', 13.1454, 100.806835, 'way 242270752'],
   ['sc-palace', 'Wellness', 13.14909, 100.818436, 'way 40443539'],
   ['sc-shops', 'Food', 13.160059, 100.809817, 'way 412192126'],
+  // The one unnamed feature on the list: `building=yes, tourism=aquarium`,
+  // read on 2026-10-24. The signboard 33 m away names it ชลทัศนสถาน, which
+  // is where the place's own name comes from - see SEED_PLACES.
+  ['sc-marinestation', 'Green', 13.1521963, 100.8147057, 'way 412143703'],
 ] as const;
+
+/** Every layer the island map can filter by. */
+const LAYERS = ['Food', 'Green', 'Quest', 'Safe', 'Wellness'];
 
 describe('Koh Sichang', () => {
   test('is its own area in Chon Buri, clear of the Si Racha campus', () => {
@@ -24,8 +31,9 @@ describe('Koh Sichang', () => {
     assert.ok(KOH_SICHANG_BBOX.maxLng + 0.04 < KU_SRIRACHA_BBOX.minLng);
   });
 
-  test('five real features cover the five map layers, inside the island frame', () => {
-    assert.equal(places.length, 5);
+  test('every place is a real mapped feature, and the five map layers are covered', () => {
+    assert.equal(places.length, mapped.length);
+    assert.deepEqual([...new Set(mapped.map(([, layer]) => layer))].sort(), LAYERS);
     for (const [id, layer, lat, lng, osm] of mapped) {
       const p = places.find((candidate) => candidate.id === id);
       assert.ok(p, `${osm} has no place`);

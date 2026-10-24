@@ -39,6 +39,7 @@ import { boardFeed, type BoardEntry } from '@chivago/core';
 import { monstersInArea } from './monster-service.ts';
 import { reportSighting, routesForArea } from './transit-service.ts';
 import { reviewsInArea } from './place-review-service.ts';
+import { getCourts } from './courts.ts';
 import { getStalls } from './stalls.ts';
 import {
   getCommunityImpact, getOffer, getPersonalImpact, getProfile,
@@ -907,6 +908,22 @@ app.get('/places/:id/stalls', async (c) => {
   const id = c.req.param('id');
   if (!row(db.prepare('SELECT 1 AS one FROM places WHERE id = ?').get(id))) return fail(c, 'NOT_FOUND', 'No such place', 404);
   return ok(c, await getStalls(id));
+});
+
+/**
+ * How many courts are free at a place you book before you go, live from the
+ * venue's own booking system (courts.ts).
+ *
+ * Its own route, for the same reason the stalls have one: the place is scored
+ * for the map, the planner and the monsters, and none of those should wait on
+ * someone else's booking system. A place without courts answers a null count,
+ * not a 404 - the screen only asks for places that have them, and one shape is
+ * one shape.
+ */
+app.get('/places/:id/courts', async (c) => {
+  const id = c.req.param('id');
+  if (!row(db.prepare('SELECT 1 AS one FROM places WHERE id = ?').get(id))) return fail(c, 'NOT_FOUND', 'No such place', 404);
+  return ok(c, await getCourts(id));
 });
 
 /**

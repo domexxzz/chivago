@@ -3,7 +3,8 @@ import { test, describe } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { AREAS, SEED_PLACES, SEED_QUESTS, inArea } from '@chivago/core';
+import { AREAS, PLACE_COURTS, SEED_PLACES, SEED_QUESTS, inArea } from '@chivago/core';
+import { demoCourts } from '../src/demo/courts.ts';
 
 /**
  * The public demo replays a snapshot (src/demo/fixtures.json), and a snapshot
@@ -43,5 +44,20 @@ describe('the public demo has what the seed has', () => {
 
   test('every seeded quest opens', () => {
     for (const q of SEED_QUESTS) assert.ok(`/quests/${q.id}` in snapshot, `/quests/${q.id} is not in the demo snapshot`);
+  });
+
+  test('every venue with live court counts is in the demo, and the demo invents none', () => {
+    for (const [placeId, src] of Object.entries(PLACE_COURTS)) {
+      assert.ok(places.some((p) => p.id === placeId),
+        `${placeId} reports court counts but is not in the demo - capture the demo again`);
+      // The demo answers this route rather than replaying it, so it is not in
+      // the snapshot. What it answers must name the venue and claim no figure:
+      // a captured "2 courts free" would be shown as if it were now.
+      const demo = demoCourts(placeId);
+      assert.equal(demo.provider, src.provider, placeId);
+      assert.equal(demo.provenance, 'stale', `${placeId}: the demo never calls a count live`);
+      assert.equal(demo.observedAt, null, `${placeId}: the demo never dates a count it did not read`);
+      assert.equal(demo.count, null, `${placeId}: the demo must show no count, not a nought`);
+    }
   });
 });

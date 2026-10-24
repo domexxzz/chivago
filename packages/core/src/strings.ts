@@ -406,6 +406,42 @@ export const strings = {
     /** The static demo: the stalls are named, their status is not read. */
     stallsNoStatus: t('Live status is not read here. Each stall\'s own page has it.', 'ที่นี่ไม่ได้อ่านสถานะสดของร้าน ดูได้ในหน้าของแต่ละร้าน'),
     stallsVia: t('Orders and payment go through สั่งก่อน, straight to the stall.', 'สั่งและจ่ายผ่านสั่งก่อน เงินเข้าร้านโดยตรง'),
+    /** Courts free now at a place you book before you go (courts.ts). */
+    courtsTitle: t('Courts right now', 'สนามตอนนี้'),
+    courtsFree: (free: number, total: number) => t(
+      `${free} of ${total} court${total === 1 ? '' : 's'} free`,
+      `ว่าง ${free} จาก ${total} สนาม`,
+    ),
+    courtsFull: (total: number) => t(
+      `All ${total} court${total === 1 ? '' : 's'} are taken right now`,
+      `ตอนนี้ไม่ว่าง ทั้ง ${total} สนาม`,
+    ),
+    /** Shut: the count says nothing about playing now, so the hours are what matters. */
+    courtsClosed: t('Closed right now', 'ปิดอยู่ตอนนี้'),
+    courtsClosedUntil: (clock: string) => t(`Closed · opens ${clock}`, `ปิดอยู่ · เปิด ${clock}`),
+    courtsClosedTomorrow: (clock: string) => t(`Closed · opens tomorrow ${clock}`, `ปิดอยู่ · เปิดพรุ่งนี้ ${clock}`),
+    courtsClosedOn: (day: string, clock: string) => t(`Closed · opens ${day}, ${clock}`, `ปิดอยู่ · เปิด ${day} ${clock}`),
+    /** When the count was read, said whenever it is not simply fresh. */
+    courtsAsOf: (clock: string) => t(`Counted at ${clock}`, `นับเมื่อ ${clock}`),
+    courtsStale: (clock: string) => t(
+      `Could not reach the booking system just now · counted at ${clock}`,
+      `ติดต่อระบบจองไม่ได้ตอนนี้ · นับเมื่อ ${clock}`,
+    ),
+    courtsAgain: t('Check again', 'เช็กอีกครั้ง'),
+    /** Nothing known: said plainly, never as nought courts free. */
+    courtsDown: t(
+      'Could not reach the booking system just now, so how many courts are free is not known. The venue\'s own page has it.',
+      'ติดต่อระบบจองไม่ได้ตอนนี้ จึงยังไม่รู้ว่าว่างกี่สนาม ดูได้ในหน้าจองของสนามเอง',
+    ),
+    /** The static demo: the venue is named, the count is not read. */
+    courtsNoStatus: t(
+      'How many courts are free is not read here. The venue\'s own booking page has it.',
+      'ที่นี่ไม่ได้อ่านจำนวนสนามว่าง ดูได้ในหน้าจองของสนามเอง',
+    ),
+    courtsVia: t(
+      'Counted by the venue\'s own booking system. Booking and payment happen there, not in ChivaGo.',
+      'นับโดยระบบจองของสนามเอง การจองและชำระเงินเกิดขึ้นที่นั่น ไม่ใช่ใน ChivaGo',
+    ),
     provenance: {
       live: t('Live', 'ข้อมูลสด'),
       daily: t('Updated daily', 'อัปเดตรายวัน'),

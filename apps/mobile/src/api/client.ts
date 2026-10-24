@@ -20,7 +20,7 @@ import type {
   MascotForm, Spirit, SpiritCourt, SpiritRarity,
 } from '@chivago/core';
 import type {
-  AirHistory, BoardEntry, Explored, Fix, Headway, MedalsView, PlaceStalls, SelfVisitResult, SelfVisitSummary, TransitRoute,
+  AirHistory, BoardEntry, Explored, Fix, Headway, MedalsView, PlaceCourts, PlaceStalls, SelfVisitResult, SelfVisitSummary, TransitRoute,
 } from '@chivago/core';
 import type { StandingMonster } from '../components/MonsterFeed.tsx';
 
@@ -486,6 +486,8 @@ export const api = {
   placeHistory: (id: string) => get<AirHistory>(`/places/${id}/history`),
   /** The stalls at a place that take orders ahead, live from สั่งก่อน (docs/65). */
   stalls: (id: string) => get<PlaceStalls>(`/places/${id}/stalls`),
+  /** How many courts are free at a place you book before you go, live from its booking system. */
+  courts: (id: string) => get<PlaceCourts>(`/places/${id}/courts`),
 
   // -- quests -------------------------------------------------------------
   quests: (filter?: 'today' | 'weekend') =>
