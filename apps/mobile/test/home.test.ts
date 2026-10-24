@@ -167,6 +167,34 @@ describe('what Home says', () => {
     } finally { resetControl(); }
   });
 
+  test('the sea and sky are the feed\'s own figures, and inland has no waves tab', async () => {
+    const sky = {
+      provenance: 'live', observedAt: '2026-10-24T15:45:00.000Z', source: 'Open-Meteo · forecast and marine',
+      waveHeightM: 0.1, wavePeriodS: 2.35, tempC: 24.4, rainMm: 0, windKn: 3, weatherCode: 3,
+    };
+    const s = server(routes({ '/areas/samui/weather': sky })); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+    const said = ui.text();
+    // The figure on screen is the one the service gave - 0.1 m, not the 1.2-2.0 m
+    // that used to be written into the old marine card.
+    assert.match(said, /Waves 0\.1 m/, 'the wave height is not the feed\'s');
+    assert.match(said, /3 kn/, 'the wind is missing');
+    assert.doesNotMatch(said, /1\.2 - 2\.0/, 'the invented figures are back');
+    // Every tab offered, because a coastal reading can fill them all.
+    for (const tab of ['Waves', 'Temp', 'Weather', 'Rain']) assert.match(said, new RegExp(tab));
+    assert.doesNotMatch(said, /Port/, 'a port tab with no feed behind it');
+    ui.unmount();
+  });
+
+  test('when the forecast cannot be reached it says so, and claims no calm sea', async () => {
+    const s = server(routes()); restore = s.restore; // no weather route: the request fails
+    const ui = await mountScreen(h(HomeScreen, props));
+    const said = ui.text();
+    assert.doesNotMatch(said, /Waves 0(\.0)? m/, 'a nought wave reads as a flat calm');
+    assert.match(said, /Could not reach the forecast/);
+    ui.unmount();
+  });
+
   test('a pinned place leads the row, and the head stops claiming nearest-first', async () => {
     // Sinthani is pinned (featured.ts) and served LAST, from farther away
     // than the other two, so passing means the pin ran - not the sort.

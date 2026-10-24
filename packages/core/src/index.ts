@@ -54,6 +54,7 @@ export * from './proof-assist.ts';
 export * from './stalls.ts';
 export * from './courts.ts';
 export * from './featured.ts';
+export * from './weather.ts';
 export * from './booking.ts';
 export * from './fair.ts';
 export * from './operator-application.ts';

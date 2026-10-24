@@ -19,7 +19,7 @@ import {
   outlookAhead, planDay, progressionFor, routeBiasFor, smartRoute, summarise,
   areaByKey, inArea, isAreaKey, islandDateKey, medalsView, type ExploredPlace,
   SEED_QUESTS, boardFeed, monsterState, monstersAt,
-  INVITE_DOES_NOT, pinLine,
+  INVITE_DOES_NOT, pinLine, NO_WEATHER,
 } from '@chivago/core';
 import snapshot from './fixtures.json';
 import { createInquiryDesk, type DeskAnswer } from './inquiries.ts';
@@ -543,6 +543,12 @@ export function installDemoServer(apiBase: string): void {
       // The courts free at a venue: answered, never replayed (demo/courts.ts).
       const courtsAt = /^\/places\/([^/]+)\/courts$/.exec(path);
       if (courtsAt) return answer(demoCourts(courtsAt[1]!));
+      /*
+        The sea and sky: answered with NOTHING read. A captured wave height
+        replayed in a static build is exactly the failure the live card
+        replaced - a figure from another day shown as if it were now.
+      */
+      if (/^\/areas\/[^/]+\/weather$/.test(path)) return answer({ ...NO_WEATHER, source: 'Demo build · the sky is not read here' });
       if (path === '/checkins/today') return answer(state.checkins);
       if (path === '/medals') {
         // The same rules the server runs, over the captured check-ins plus

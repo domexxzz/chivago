@@ -46,6 +46,7 @@ import { BoardFeed } from '../components/BoardFeed.tsx';
 import { BusStrip } from '../components/BusStrip.tsx';
 import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import { StallsCard } from '../components/Stalls.tsx';
+import { SeaAndSkyCard } from '../components/SeaAndSky.tsx';
 import {
   Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, Search, Shield, Sparkles, Ticket, Trees, UserRound, Utensils, Wallet, Waves,
 } from 'lucide-react-native';
@@ -207,6 +208,15 @@ export function HomeScreen({
         onOpenStays={onOpenStays}
         onOpenMarket={onOpenMarket ?? onOpenWallet}
       />
+      {/*
+        What it is like outside, above where to go: the sea and the sky decide
+        whether any of the places below are worth the trip. Read per area, and
+        it draws nothing where the feed has nothing - inland there is no wave
+        tab at all (components/SeaAndSky.tsx).
+      */}
+      <View style={{ paddingHorizontal: gutter }}>
+        <SeaAndSkyCard area={area.key} />
+      </View>
       <Places places={here} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} />
       <MarketPromoCard onOpenMarket={onOpenMarket ?? onOpenWallet} />
       {/*

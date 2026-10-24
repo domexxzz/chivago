@@ -41,6 +41,7 @@ import { reportSighting, routesForArea } from './transit-service.ts';
 import { reviewsInArea } from './place-review-service.ts';
 import { getCourts } from './courts.ts';
 import { getStalls } from './stalls.ts';
+import { getWeather } from './weather.ts';
 import {
   getCommunityImpact, getOffer, getPersonalImpact, getProfile,
   getQuest, getScoredPlace, getShield, listOffers, listQuests, listScoredPlaces,
@@ -428,6 +429,21 @@ app.get('/board/:area', (c) => {
 });
 
 /** The board's feed: every approved story in an area. Public, for the screen in the room. */
+/**
+ * The sea and the sky above an area, live from Open-Meteo (weather.ts).
+ *
+ * Its own route rather than a field on the area: the area is read by the map,
+ * Home and the planner, and none of those should wait on a forecast. An area
+ * with no sea answers a null wave, not a 404 - inland is an answer, and one
+ * shape is one shape.
+ */
+app.get('/areas/:key/weather', async (c) => {
+  const key = c.req.param('key');
+  if (!isAreaKey(key)) return fail(c, 'NOT_FOUND', 'No such area', 404);
+  c.header('cache-control', 'no-store');
+  return ok(c, await getWeather(key));
+});
+
 app.get('/areas/:key/stories', (c) => {
   c.header('access-control-allow-origin', '*');
   c.header('cache-control', 'no-store');

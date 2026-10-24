@@ -448,6 +448,34 @@ export const strings = {
       'How many courts are free is not read here. The venue\'s own booking page has it.',
       'ที่นี่ไม่ได้อ่านจำนวนสนามว่าง ดูได้ในหน้าจองของสนามเอง',
     ),
+    /** The sea and sky above an area, live from Open-Meteo (weather.ts). */
+    weatherTitle: t('Sea and sky', 'ทะเลและท้องฟ้า'),
+    weatherWaves: t('Waves', 'คลื่นลม'),
+    weatherTemp: t('Temp', 'อุณหภูมิ'),
+    weatherWeather: t('Weather', 'อากาศ'),
+    weatherRain: t('Rain', 'ปริมาณฝน'),
+    weatherWaveHeight: (m: string) => t(`Waves ${m} m`, `คลื่นสูง ${m} ม.`),
+    weatherWavePeriod: (s: string) => t(`every ${s} s`, `ทุก ${s} วิ`),
+    weatherWind: (kn: string) => t(`Wind ${kn} kn`, `ลม ${kn} นอต`),
+    weatherTempNow: (c: string) => t(`${c}°C`, `${c}°C`),
+    weatherRainNow: (mm: string) => t(`${mm} mm`, `${mm} มม.`),
+    weatherNoRain: t('No rain right now', 'ตอนนี้ไม่มีฝน'),
+    /** Read at a moment, said whenever it is not simply fresh. */
+    weatherAsOf: (clock: string) => t(`Read at ${clock}`, `อ่านเมื่อ ${clock}`),
+    weatherStale: (clock: string) => t(
+      `Could not reach the forecast just now · read at ${clock}`,
+      `ติดต่อพยากรณ์ไม่ได้ตอนนี้ · ข้อมูลเมื่อ ${clock}`,
+    ),
+    weatherAgain: t('Check again', 'เช็กอีกครั้ง'),
+    weatherDown: t(
+      'Could not reach the forecast just now, so the sea and sky are not known.',
+      'ติดต่อพยากรณ์ไม่ได้ตอนนี้ จึงยังไม่รู้สภาพทะเลและท้องฟ้า',
+    ),
+    weatherNoStatus: t(
+      'The sea and sky are not read here.',
+      'ที่นี่ไม่ได้อ่านสภาพทะเลและท้องฟ้า',
+    ),
+    weatherVia: t('Read from Open-Meteo. Not a forecast for navigation.', 'อ่านจาก Open-Meteo ไม่ใช่พยากรณ์สำหรับการเดินเรือ'),
     courtsVia: t(
       'Counted by the venue\'s own booking system. Booking and payment happen there, not in ChivaGo.',
       'นับโดยระบบจองของสนามเอง การจองและชำระเงินเกิดขึ้นที่นั่น ไม่ใช่ใน ChivaGo',

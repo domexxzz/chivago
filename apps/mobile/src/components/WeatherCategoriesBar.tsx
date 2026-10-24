@@ -1,49 +1,102 @@
+/**
+ * The sea-and-sky tabs, and the reading behind whichever is chosen.
+ *
+ * WHAT THIS USED TO BE. A bar of five tabs - waves, temp, weather, rain,
+ * port - wired to nothing, in a file nothing imported, beside a card whose
+ * wave height and wind speed were written into the JSX. On the day they were
+ * replaced the real reading was 0.1 m and 3 knots against the card's
+ * "1.2 - 2.0 m, 10-20 kts". Now every figure here comes off Open-Meteo
+ * through the API, carries the moment it was read, and is absent when it was
+ * not read.
+ *
+ * There is no port tab: the app has no ferry or harbour feed, and a tab that
+ * cannot answer looks like a service that is broken.
+ *
+ * Only tabs the reading can fill are offered, so inland - where there is no
+ * sea - the waves tab is not there at all rather than there and empty.
+ */
+
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Anchor, Cloud, CloudRain, Thermometer, Waves } from 'lucide-react-native';
+import { Cloud, CloudRain, Thermometer, Waves } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import type { Bilingual } from '@chivago/core';
+import {
+  categoriesFor, strings, weatherDescription,
+  type AreaWeather, type Bilingual, type WeatherCategoryKey,
+} from '@chivago/core';
 import { t } from '../i18n/locale.ts';
 
-export type WeatherCategoryKey = 'waves' | 'temp' | 'weather' | 'rain' | 'port';
+const ICONS: Record<WeatherCategoryKey, LucideIcon> = {
+  waves: Waves, temp: Thermometer, weather: Cloud, rain: CloudRain,
+};
 
-export interface WeatherCategoryItem {
-  key: WeatherCategoryKey;
-  label: Bilingual;
-  icon: LucideIcon;
+const LABELS: Record<WeatherCategoryKey, Bilingual> = {
+  waves: strings.place.weatherWaves,
+  temp: strings.place.weatherTemp,
+  weather: strings.place.weatherWeather,
+  rain: strings.place.weatherRain,
+};
+
+/** One decimal for a wave, none for a wind: the feed's own precision, not more. */
+const one = (n: number) => n.toFixed(1);
+const whole = (n: number) => Math.round(n).toString();
+
+/**
+ * What the chosen category says, from the reading alone.
+ *
+ * Returns null when the reading cannot fill it - the caller then shows
+ * nothing rather than a nought. Nothing here is computed from anything else:
+ * a wave is the wave the service gave.
+ */
+export function categoryLine(w: AreaWeather, key: WeatherCategoryKey): string | null {
+  switch (key) {
+    case 'waves': {
+      if (w.waveHeightM === null) return null;
+      const height = t(strings.place.weatherWaveHeight(one(w.waveHeightM)));
+      const period = w.wavePeriodS === null ? '' : ` · ${t(strings.place.weatherWavePeriod(one(w.wavePeriodS)))}`;
+      const wind = w.windKn === null ? '' : ` · ${t(strings.place.weatherWind(whole(w.windKn)))}`;
+      return `${height}${period}${wind}`;
+    }
+    case 'temp':
+      return w.tempC === null ? null : t(strings.place.weatherTempNow(one(w.tempC)));
+    case 'weather': {
+      const d = weatherDescription(w.weatherCode);
+      return d === null ? null : t(d);
+    }
+    case 'rain':
+      if (w.rainMm === null) return null;
+      return w.rainMm === 0 ? t(strings.place.weatherNoRain) : t(strings.place.weatherRainNow(one(w.rainMm)));
+  }
 }
 
-export const WEATHER_CATEGORIES: WeatherCategoryItem[] = [
-  { key: 'waves', label: { en: 'Waves', th: 'คลื่นลม' }, icon: Waves },
-  { key: 'temp', label: { en: 'Temp', th: 'อุณหภูมิ' }, icon: Thermometer },
-  { key: 'weather', label: { en: 'Weather', th: 'อากาศ' }, icon: Cloud },
-  { key: 'rain', label: { en: 'Rain', th: 'ปริมาณฝน' }, icon: CloudRain },
-  { key: 'port', label: { en: 'Port', th: 'การท่าเรือ' }, icon: Anchor },
-];
-
 export function WeatherCategoriesBar({
-  selected = 'waves',
+  weather,
+  selected,
   onSelect,
 }: {
-  selected?: WeatherCategoryKey;
+  weather: AreaWeather;
+  selected: WeatherCategoryKey;
   onSelect?: (key: WeatherCategoryKey) => void;
 }) {
+  // Only what this reading can actually answer.
+  const offered = categoriesFor(weather);
+  if (offered.length === 0) return null;
   return (
     <View style={styles.container} accessibilityRole="tablist">
-      {WEATHER_CATEGORIES.map((item) => {
-        const isSelected = item.key === selected;
-        const IconComponent = item.icon;
+      {offered.map((key) => {
+        const isSelected = key === selected;
+        const IconComponent = ICONS[key];
+        const line = categoryLine(weather, key);
         return (
           <Pressable
-            key={item.key}
-            onPress={() => onSelect?.(item.key)}
+            key={key}
+            onPress={() => onSelect?.(key)}
             accessibilityRole="tab"
             accessibilityState={{ selected: isSelected }}
-            accessibilityLabel={t(item.label)}
-            style={[
-              styles.tabItem,
-              isSelected ? styles.tabItemSelected : styles.tabItemUnselected,
-            ]}
+            // The figure is spoken with the name, so a screen reader does not
+            // have to select a tab to learn what it holds.
+            accessibilityLabel={line ? `${t(LABELS[key])}, ${line}` : t(LABELS[key])}
+            style={[styles.tabItem, isSelected ? styles.tabItemSelected : styles.tabItemUnselected]}
           >
             <IconComponent
               size={20}
@@ -51,13 +104,10 @@ export function WeatherCategoriesBar({
               strokeWidth={isSelected ? 2.4 : 2}
             />
             <Text
-              style={[
-                styles.tabLabel,
-                isSelected ? styles.tabLabelSelected : styles.tabLabelUnselected,
-              ]}
+              style={[styles.tabLabel, isSelected ? styles.tabLabelSelected : styles.tabLabelUnselected]}
               numberOfLines={1}
             >
-              {t(item.label)}
+              {t(LABELS[key])}
             </Text>
           </Pressable>
         );
@@ -70,7 +120,6 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     gap: 8,
-    paddingHorizontal: 16,
     marginVertical: 10,
   },
   tabItem: {
