@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Anchor, Cloud, CloudRain, Thermometer, Waves, type LucideIcon } from 'lucide-react-native';
+import { Anchor, Cloud, CloudRain, Thermometer, Waves } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 
 export type WeatherCategoryKey = 'waves' | 'temp' | 'weather' | 'rain' | 'port';
 

@@ -29,8 +29,6 @@ import { Button, IconButton } from '../components/Button.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { LayerChips, PlaceFeedRow, SamuiMap, drawsFairLots, type MapMode } from '../components/SamuiMap.tsx';
 import { DepartmentSeal, WaveSymbolBadge } from '../components/MarineEmblem.tsx';
-import { MarineSatelliteMapCard } from '../components/MarineSatelliteMap.tsx';
-import { WeatherCategoriesBar, type WeatherCategoryKey } from '../components/WeatherCategoriesBar.tsx';
 import { StoryViewer } from '../components/Stories.tsx';
 import { pickStoryMedia, postStory } from '../state/tell-story.ts';
 import type { Story } from '../api/client.ts';
@@ -81,7 +79,6 @@ export function MapScreen({
   // everywhere, which is the truthful default, so it is not surfaced.
   const explored = useAsync(() => api.explored(), []);
   const [mode, setMode] = React.useState<MapMode>('map');
-  const [weatherCategory, setWeatherCategory] = React.useState<WeatherCategoryKey>('waves');
   // WATCHED, unlike every other screen's one-shot: this is the one place
   // that draws the traveller, and a dot that does not move while somebody
   // walks is worse than no dot, because a dot is read as current.
@@ -281,24 +278,7 @@ export function MapScreen({
             <AreaSwitch area={area.key} onChange={setArea} />
           </View>
 
-          <WeatherCategoriesBar
-            selected={weatherCategory}
-            onSelect={setWeatherCategory}
-          />
-
-          {mode === 'map' && area.key === 'samui' ? (
-            <View style={{ marginHorizontal: gutter, marginBottom: 12 }}>
-              <MarineSatelliteMapCard
-                onOpenQuest={onOpenQuest}
-                onSelectStation={(stationName) => {
-                  const found = visible.find((p) => p.name.en.toLowerCase().includes(stationName.toLowerCase()) || p.name.th.includes(stationName));
-                  if (found) onOpenPlace(found.id);
-                }}
-              />
-            </View>
-          ) : null}
-
-          <View style={{ paddingBottom: 8 }}>
+          <View style={{ paddingTop: 4, paddingBottom: 8 }}>
             <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
           </View>
           {fairPanel}
