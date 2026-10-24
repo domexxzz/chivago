@@ -17,13 +17,14 @@ import {
   SPECIES_AS_OF, cheapestMonth, chivaBalance, collectionSummary, companionsFor,
   forecastPrice, islandDay,
   outlookAhead, planDay, progressionFor, routeBiasFor, smartRoute, summarise,
-  areaByKey, inArea, isAreaKey, medalsView, type ExploredPlace,
+  areaByKey, inArea, isAreaKey, islandDateKey, medalsView, type ExploredPlace,
   SEED_QUESTS, boardFeed, monsterState, monstersAt,
   INVITE_DOES_NOT, pinLine,
 } from '@chivago/core';
 import snapshot from './fixtures.json';
 import { createInquiryDesk, type DeskAnswer } from './inquiries.ts';
 import { demoStalls } from './stalls.ts';
+import { createSummoning } from './summoning.ts';
 
 type Json = Record<string, unknown>;
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
@@ -200,6 +201,13 @@ const wallet = () => state.routes['/wallet'] as {
   ledger: Json[];
 };
 
+/**
+ * The summoning, which counts its own charms off the wallet above rather than
+ * being handed a number. `summoning.ts` says what it answers and what it
+ * refuses to claim.
+ */
+const summoning = createSummoning(() => wallet().ledger);
+
 /** Move points and EXP the way the real ledger does: append, never overwrite. */
 function credit(
   amount: number,
@@ -209,13 +217,23 @@ function credit(
   kind: string,
   /** What the row is about, so the app can phrase it in the reader's language. */
   subject: string | null = null,
+  /**
+   * The server's own ref, where its SHAPE is read by something downstream.
+   *
+   * A check-in's ref ends in the island day, and `charmsFrom` counts charms by
+   * reading that tail off exactly these rows - so a check-in made in the demo
+   * has to carry the day or it earns nothing, and the summoning would show the
+   * visitor a charm count that their own check-in could not move. Everything
+   * nobody reads keeps `demo:<n>`.
+   */
+  sourceRef: string | null = null,
 ) {
   const w = wallet();
   w.balances[currency] += amount;
   w.ledger.unshift({
     id: id('l'), label, subject, occurredAt: now(), host,
     amount, currency, exp: Math.max(0, amount), kind,
-    sourceRef: `demo:${state.seq}`,
+    sourceRef: sourceRef ?? `demo:${state.seq}`,
   });
   const exp = w.ledger.reduce((n, r) => n + (r.exp as number), 0);
   w.progression = progressionFor(exp);
@@ -280,7 +298,11 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     const already = state.checkins.includes(placeId);
     if (!already) {
       state.checkins.push(placeId);
-      credit(20, 'trip', `Checked in · ${place?.short ?? placeId}`, 'ChivaGo', 'checkin', String(place?.short ?? placeId));
+      credit(
+        20, 'trip', `Checked in · ${place?.short ?? placeId}`, 'ChivaGo', 'checkin',
+        String(place?.short ?? placeId),
+        `checkin:${placeId}:user:demo-user:${islandDateKey(new Date())}`,
+      );
       // A check-in is what makes a review writable — the same gate as the API.
       const key = `/places/${placeId}/reviews`;
       const r = state.routes[key] as Json;
@@ -454,6 +476,15 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
   'POST /notifications/:id/read': () => ({ read: true }),
   'POST /notifications/read-all': () => ({ read: true }),
   'POST /notifications/device': () => ({ registered: true }),
+
+  /*
+    One summon. Async, which is why the dispatcher below awaits every handler:
+    the roll is an HMAC and WebCrypto only hands those back as a promise.
+
+    There is no `POST /summon/forge` here. Nothing on the screen offers one
+    yet, and a route nobody calls is a route nobody notices has gone wrong.
+  */
+  'POST /summon': async () => settle(await summoning.pull()),
   'PUT /notifications/quiet': (body) => {
     state.routes['/notifications/quiet'] = body;
     return body;
@@ -582,6 +613,20 @@ export function installDemoServer(apiBase: string): void {
         return answer({ open: false, entries: boardFeed([]) });
       }
 
+      /*
+        The summoning. Computed, not replayed - and it could not be replayed:
+        a captured `/summon` would carry somebody else's commitment, somebody
+        else's collection and a charm count that nothing the visitor did could
+        move. `summoning.ts` runs core's own draw over a seed this sitting
+        committed to.
+      */
+      if (path === '/summon') return answer(await summoning.state());
+      if (path === '/summon/collection') return answer({ spirits: summoning.collection() });
+      if (path === '/summon/history') {
+        const limit = Number(new URLSearchParams(query).get('limit') ?? 50);
+        return answer({ summons: summoning.history(Number.isFinite(limit) ? limit : 50) });
+      }
+
       if (path === '/wellness/balance') return answer(balanceNow());
       if (path === '/companions') {
         // The real derivation over this session's own check-ins: eggs appear
@@ -651,7 +696,9 @@ export function installDemoServer(apiBase: string): void {
       if (p.method !== method) continue;
       const m = path.match(p.re);
       if (m) {
-        const result = writes[p.key]!(body, m);
+        // Awaited because one handler is async (the summoning's HMAC); the
+        // rest return a plain value and awaiting one costs a microtask.
+        const result = await writes[p.key]!(body, m);
         if (result instanceof Refused) {
           return new Response(
             JSON.stringify({ ok: false, code: result.code, error: result.error }),
