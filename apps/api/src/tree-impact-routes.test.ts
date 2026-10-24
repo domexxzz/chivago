@@ -25,6 +25,8 @@ test('tree impact over HTTP belongs to the caller and needs planting proof', asy
   assert.deepEqual((await json(await get('/impact/trees'))).data, { pending: 0, planted: 0, lines: [] });
   const emptyPersonal = (await json(await get('/impact/me'))).data;
   assert.equal(emptyPersonal.find((m: { key: string }) => m.key === 'treesPlanted').value, 0);
+  assert.deepEqual(emptyPersonal.find((m: { key: string }) => m.key === 'treesPlanted').label,
+    { en: 'Trees planted by partners from your work', th: 'ต้นไม้ที่พาร์ทเนอร์ปลูกจากงานของคุณ' });
   assert.ok(!emptyPersonal.some((m: { key: string }) => m.key === 'mangrovesPlanted'));
 
   db.prepare('INSERT INTO hosts (id, name, type) VALUES (?,?,?)').run('tree-host', 'Tree host', 'ngo');

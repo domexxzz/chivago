@@ -19,6 +19,7 @@
  */
 
 import type { Bilingual } from './types.ts';
+import { islandDateKey } from './wallet.ts';
 
 /**
  * Who funds a quest.
@@ -272,6 +273,15 @@ export interface TreeImpact {
   lines: TreeImpactLine[];
 }
 
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** A date-only planting is a Thailand calendar day, not midnight UTC. */
+export function plantingFollowsApproval(plantedAt: string, verifiedAt: string): boolean {
+  if (!DATE_ONLY.test(plantedAt)) return plantedAt >= verifiedAt;
+  const approval = Date.parse(verifiedAt);
+  return Number.isFinite(approval) && plantedAt >= islandDateKey(new Date(approval));
+}
+
 /** A planting claim is complete only when every fact needed to check it exists. */
 export function hasPlantingEvidence(p: TreePlanting, now = new Date()): boolean {
   const plantedAt = Date.parse(p.plantedAt);
@@ -279,7 +289,8 @@ export function hasPlantingEvidence(p: TreePlanting, now = new Date()): boolean 
   try { photoUrl = new URL(p.photo?.url); } catch { return false; }
   return Number.isSafeInteger(p.trees) && p.trees > 0
     && p.partner.trim().length > 0
-    && Number.isFinite(plantedAt) && plantedAt <= now.getTime()
+    && Number.isFinite(plantedAt)
+    && (DATE_ONLY.test(p.plantedAt) ? p.plantedAt <= islandDateKey(now) : plantedAt <= now.getTime())
     && Number.isFinite(p.lat) && p.lat >= -90 && p.lat <= 90
     && Number.isFinite(p.lng) && p.lng >= -180 && p.lng <= 180
     && photoUrl.protocol === 'https:'
@@ -309,7 +320,8 @@ export function treeImpactFor(
     const seen = new Set<string>();
     const evidence = plantings.filter((p) => {
       if (p.userId !== userId || p.questId !== c.questId || p.sponsorId !== c.sponsorId
-        || p.plantedAt < verifiedAt || seen.has(p.id) || !hasPlantingEvidence(p, now)) return false;
+        || !plantingFollowsApproval(p.plantedAt, verifiedAt)
+        || seen.has(p.id) || !hasPlantingEvidence(p, now)) return false;
       seen.add(p.id);
       return true;
     });

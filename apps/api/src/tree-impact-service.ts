@@ -5,7 +5,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import {
-  hasPlantingEvidence, treeImpactFor,
+  hasPlantingEvidence, plantingFollowsApproval, treeImpactFor,
   type TreeCommitment, type TreeImpact, type TreePlanting, type VerifiedTreeQuest,
 } from '@chivago/core';
 import { row, rows, transact, type DB } from './db.ts';
@@ -128,7 +128,7 @@ export function recordTreePlanting(
        WHERE qp.user_id = ? AND qp.quest_id = ? AND qp.verified_at IS NOT NULL
          AND ${awardStands('qp')}`,
     ).get(input.userId, input.questId));
-    if (!liveApproval || proof.plantedAt < liveApproval.verified_at) {
+    if (!liveApproval || !plantingFollowsApproval(proof.plantedAt, liveApproval.verified_at)) {
       throw new InvalidTreeRecord('Planting cannot be attributed before a live host approval.');
     }
     const line = treeImpactForUser(db, input.userId, now).lines.find(
