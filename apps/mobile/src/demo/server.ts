@@ -259,11 +259,17 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     const email = id.includes('@') ? id : 'demo@example.com';
     const phone = id.includes('@') ? '0812345678' : id;
 
+    const prior = state.routes['/account'] as { accountType?: 'traveller' | 'operator'; businessName?: string | null; fullName?: string } | undefined;
+    const isExplicitOperator = body.accountType === 'operator' || (!body.accountType && prior?.accountType === 'operator');
+    const accType: 'traveller' | 'operator' = isExplicitOperator ? 'operator' : 'traveller';
+    const bizName = accType === 'operator' ? (prior?.businessName ?? 'เกาะสมุย อีโค่ รีสอร์ท & คาเฟ่') : null;
+    const name = prior?.fullName ?? (accType === 'operator' ? 'คุณสมเกียรติ ยั่งยืน (เจ้าของร้าน)' : 'Demo Traveller');
+
     state.routes['/account'] = {
       userId: 'demo-user',
-      accountType: 'traveller',
-      businessName: null,
-      fullName: 'Demo Traveller',
+      accountType: accType,
+      businessName: bizName,
+      fullName: name,
       email,
       phone,
       devices: [{ label: 'This device', createdAt: now(), lastSeenAt: now(), current: true }],
@@ -272,11 +278,11 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     return {
       userId: 'demo-user',
       deviceKey: 'chvg_dev_demo-build-only',
-      name: 'Demo Traveller',
+      name,
       email,
       phone,
-      accountType: 'traveller' as const,
-      businessName: null,
+      accountType: accType,
+      businessName: bizName,
     };
   },
   'POST /account/link-code': () => ({ code: 'DEMO' + String(++state.seq).padStart(4, '0'), expiresInMs: 600_000 }),

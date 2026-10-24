@@ -722,10 +722,12 @@ app.post('/auth/login', async (c) => {
     identifier?: string;
     password?: string;
     label?: string;
+    accountType?: 'traveller' | 'operator';
   }>().catch(() => ({} as {
     identifier?: string;
     password?: string;
     label?: string;
+    accountType?: 'traveller' | 'operator';
   }));
 
   try {
@@ -733,6 +735,7 @@ app.post('/auth/login', async (c) => {
       identifier: body.identifier ?? '',
       password: body.password ?? '',
       label: body.label?.trim() || undefined,
+      accountType: body.accountType,
     });
     return ok(c, result);
   } catch (err) {

@@ -165,6 +165,7 @@ export interface LoginUserParams {
   identifier: string;
   password: string;
   label?: string;
+  accountType?: AccountType;
 }
 
 /**
@@ -235,6 +236,16 @@ export function loginUser(
   const valid = verifyPassword(params.password, userRow.password_hash);
   if (!valid) {
     throw new UserAuthError('INVALID_CREDENTIALS', 'อีเมล เบอร์โทรศัพท์ หรือรหัสผ่านไม่ถูกต้อง', 401);
+  }
+
+  if (params.accountType && userRow.account_type && userRow.account_type !== params.accountType) {
+    throw new UserAuthError(
+      'ACCOUNT_TYPE_MISMATCH',
+      params.accountType === 'operator'
+        ? 'บัญชีนี้เป็นบัญชีนักท่องเที่ยว กรุณาเลือกเข้าสู่ระบบในฐานะนักท่องเที่ยว'
+        : 'บัญชีนี้เป็นบัญชีผู้ประกอบการ กรุณาเลือกเข้าสู่ระบบในฐานะผู้ประกอบการ',
+      400,
+    );
   }
 
   const deviceKey = generateDeviceKey();

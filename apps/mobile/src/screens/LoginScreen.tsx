@@ -36,9 +36,11 @@ import {
   ArrowRight,
   Check,
   ChevronLeft,
+  Compass,
   Eye,
   EyeOff,
   Lock,
+  Store,
   UserRound,
   X,
 } from 'lucide-react-native';
@@ -93,19 +95,31 @@ function LineIcon({ size = 22 }: { size?: number }) {
 
 export interface LoginScreenProps {
   onLoginSuccess?: () => void;
-  onRegister?: () => void;
+  onRegister?: (accountType?: 'traveller' | 'operator') => void;
   onBack?: () => void;
+  initialAccountType?: 'traveller' | 'operator';
 }
 
 export function LoginScreen({
   onLoginSuccess,
   onRegister,
   onBack,
+  initialAccountType = 'traveller',
 }: LoginScreenProps) {
   const { width } = useWindowDimensions();
   const isNarrow = width < 380;
   const isSmallMobile = width < 360;
   const isWide = width >= 768;
+
+  const [accountType, setAccountType] = React.useState<'traveller' | 'operator'>(
+    initialAccountType,
+  );
+
+  React.useEffect(() => {
+    if (initialAccountType) {
+      setAccountType(initialAccountType);
+    }
+  }, [initialAccountType]);
 
   const [identifier, setIdentifier] = React.useState('');
   const [password, setPassword] = React.useState('');
@@ -180,8 +194,12 @@ export function LoginScreen({
         }
       }
 
-      // Real database user login with email/phone and password
-      const loginRes = await api.loginAccount({ identifier: trimmedId, password });
+      // Real database user login with email/phone, password and accountType
+      const loginRes = await api.loginAccount({
+        identifier: trimmedId,
+        password,
+        accountType,
+      });
       if (loginRes.ok) {
         await adoptKey(loginRes.data.deviceKey);
         await setLoggedIn(true);
@@ -278,7 +296,9 @@ export function LoginScreen({
                 isWide && styles.welcomeSubtitleWide,
               ]}
             >
-              เข้าสู่ระบบเพื่อไปยัง Chivargo
+              {accountType === 'operator'
+                ? 'พอร์ทัลร้านค้าและผู้ประกอบการ Chivargo'
+                : 'เข้าสู่ระบบเพื่อไปยัง Chivargo ท่องเที่ยวและสะสมแต้ม'}
             </Text>
           </View>
         </View>
@@ -306,6 +326,77 @@ export function LoginScreen({
               </View>
             ) : null}
 
+            {/* Account Type Selector (นักท่องเที่ยว vs ผู้ประกอบการ) */}
+            <View style={styles.roleSelectorContainer}>
+              <Text style={styles.roleSectionLabel}>เข้าสู่ระบบในฐานะ</Text>
+              <View style={styles.roleTabs}>
+                <Pressable
+                  onPress={() => {
+                    setAccountType('traveller');
+                    if (errorMessage) setErrorMessage(null);
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: accountType === 'traveller' }}
+                  accessibilityLabel="นักท่องเที่ยว ผู้มาเยือน"
+                  style={[
+                    styles.roleTab,
+                    isSmallMobile && styles.roleTabSmall,
+                    accountType === 'traveller' && styles.roleTabActive,
+                  ]}
+                >
+                  <Compass
+                    size={isSmallMobile ? 16 : 18}
+                    color={accountType === 'traveller' ? '#009DB7' : '#66869D'}
+                    strokeWidth={accountType === 'traveller' ? 2.4 : 2}
+                  />
+                  <Text
+                    style={[
+                      styles.roleTabText,
+                      isSmallMobile && styles.roleTabTextSmall,
+                      accountType === 'traveller' && styles.roleTabTextActive,
+                    ]}
+                  >
+                    นักท่องเที่ยว
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => {
+                    setAccountType('operator');
+                    if (errorMessage) setErrorMessage(null);
+                  }}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: accountType === 'operator' }}
+                  accessibilityLabel="ผู้ประกอบการ ร้านค้า ที่พัก"
+                  style={[
+                    styles.roleTab,
+                    isSmallMobile && styles.roleTabSmall,
+                    accountType === 'operator' && styles.roleTabActive,
+                  ]}
+                >
+                  <Store
+                    size={isSmallMobile ? 16 : 18}
+                    color={accountType === 'operator' ? '#009DB7' : '#66869D'}
+                    strokeWidth={accountType === 'operator' ? 2.4 : 2}
+                  />
+                  <Text
+                    style={[
+                      styles.roleTabText,
+                      isSmallMobile && styles.roleTabTextSmall,
+                      accountType === 'operator' && styles.roleTabTextActive,
+                    ]}
+                  >
+                    ผู้ประกอบการ
+                  </Text>
+                </Pressable>
+              </View>
+              <Text style={styles.roleHintText}>
+                {accountType === 'traveller'
+                  ? '🌿 สำหรับนักท่องเที่ยว: ท่องเที่ยวเชิงนิเวศ สะสมแต้ม สัตว์เลี้ยง Companion'
+                  : '🏪 สำหรับผู้ประกอบการ/ร้านค้า: จัดการธุรกิจ รับรองภารกิจ Quest และข้อเสนอ'}
+              </Text>
+            </View>
+
             {/* Email or Phone Input */}
             <View
               style={[
@@ -314,10 +405,18 @@ export function LoginScreen({
                 focusedField === 'identifier' && styles.inputPillFocused,
               ]}
             >
-              <UserRound size={19} color="#718292" strokeWidth={2} />
+              {accountType === 'operator' ? (
+                <Store size={19} color="#009DB7" strokeWidth={2} />
+              ) : (
+                <UserRound size={19} color="#718292" strokeWidth={2} />
+              )}
               <TextInput
                 style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
-                placeholder="อีเมลหรือเบอร์โทรศัพท์"
+                placeholder={
+                  accountType === 'operator'
+                    ? 'อีเมลธุรกิจหรือเบอร์โทรศัพท์ร้านค้า'
+                    : 'อีเมลหรือเบอร์โทรศัพท์'
+                }
                 placeholderTextColor="#8E9CA8"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -329,7 +428,11 @@ export function LoginScreen({
                 }}
                 onFocus={() => setFocusedField('identifier')}
                 onBlur={() => setFocusedField(null)}
-                accessibilityLabel="อีเมลหรือเบอร์โทรศัพท์"
+                accessibilityLabel={
+                  accountType === 'operator'
+                    ? 'อีเมลธุรกิจหรือเบอร์โทรศัพท์ร้านค้า'
+                    : 'อีเมลหรือเบอร์โทรศัพท์'
+                }
               />
             </View>
 
@@ -410,7 +513,11 @@ export function LoginScreen({
               onPress={handleLogin}
               disabled={loading}
               accessibilityRole="button"
-              accessibilityLabel="เข้าสู่ระบบ"
+              accessibilityLabel={
+                accountType === 'operator'
+                  ? 'เข้าสู่ระบบผู้ประกอบการ'
+                  : 'เข้าสู่ระบบนักท่องเที่ยว'
+              }
               style={({ pressed }) => [
                 styles.primaryLoginButton,
                 isSmallMobile && styles.primaryLoginButtonSmall,
@@ -425,7 +532,11 @@ export function LoginScreen({
                 </View>
               ) : (
                 <View style={styles.buttonInner}>
-                  <Text style={styles.primaryLoginButtonText}>เข้าสู่ระบบ</Text>
+                  <Text style={styles.primaryLoginButtonText}>
+                    {accountType === 'operator'
+                      ? 'เข้าสู่ระบบผู้ประกอบการ'
+                      : 'เข้าสู่ระบบนักท่องเที่ยว'}
+                  </Text>
                   <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.4} />
                 </View>
               )}
@@ -474,11 +585,19 @@ export function LoginScreen({
           <View style={styles.registerRow}>
             <Text style={styles.registerPrompt}>ยังไม่มีบัญชี? </Text>
             <Pressable
-              onPress={onRegister}
+              onPress={() => onRegister?.(accountType)}
               accessibilityRole="button"
-              accessibilityLabel="สมัครสมาชิก"
+              accessibilityLabel={
+                accountType === 'operator'
+                  ? 'สมัครสมาชิกร้านค้า/ผู้ประกอบการ'
+                  : 'สมัครสมาชิกนักท่องเที่ยว'
+              }
             >
-              <Text style={styles.registerLink}>สมัครสมาชิก</Text>
+              <Text style={styles.registerLink}>
+                {accountType === 'operator'
+                  ? 'สมัครสมาชิกร้านค้า/ผู้ประกอบการ'
+                  : 'สมัครสมาชิกนักท่องเที่ยว'}
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -767,6 +886,66 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  roleSelectorContainer: {
+    marginBottom: 16,
+  },
+  roleSectionLabel: {
+    fontSize: 12,
+    color: '#183B56',
+    marginBottom: 8,
+    fontWeight: '700',
+  },
+  roleTabs: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  roleTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+    backgroundColor: '#F0F8FD',
+    borderWidth: 1.5,
+    borderColor: '#D8EDF7',
+  },
+  roleTabSmall: {
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 13,
+    gap: 5,
+  },
+  roleTabActive: {
+    backgroundColor: '#E0F5F9',
+    borderColor: '#009DB7',
+    shadowColor: '#009DB7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  roleTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#66869D',
+  },
+  roleTabTextSmall: {
+    fontSize: 11.5,
+  },
+  roleTabTextActive: {
+    color: '#006A83',
+    fontWeight: '700',
+  },
+  roleHintText: {
+    fontSize: 11.5,
+    color: '#66869D',
+    marginTop: 6,
+    lineHeight: 16,
+    paddingHorizontal: 2,
   },
   dividerRow: {
     flexDirection: 'row',

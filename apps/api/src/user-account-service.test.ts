@@ -183,5 +183,20 @@ describe('user account authentication service', () => {
         return true;
       },
     );
+
+    // Role mismatch check: traveller logging in with operator role selection
+    assert.throws(
+      () =>
+        loginUser(db, {
+          identifier: 'prasert@example.com',
+          password: 'correctPassword',
+          accountType: 'operator',
+        }),
+      (err: UserAuthError) => {
+        assert.equal(err.code, 'ACCOUNT_TYPE_MISMATCH');
+        assert.equal(err.status, 400);
+        return true;
+      },
+    );
   });
 });

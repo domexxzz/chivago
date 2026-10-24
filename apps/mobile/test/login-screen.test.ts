@@ -195,4 +195,37 @@ describe('Chivargo LoginScreen', () => {
       s.restore();
     }
   });
+
+  it('switches between traveller and operator roles on login screen', async () => {
+    let chosenRegisterRole: string | undefined;
+    const ui = await mountScreen(
+      h(LoginScreen, {
+        onRegister: (role) => {
+          chosenRegisterRole = role;
+        },
+      }),
+    );
+
+    // Initial state: traveller role selected
+    assert.match(ui.text(), /เข้าสู่ระบบนักท่องเที่ยว/);
+    assert.match(ui.text(), /สำหรับนักท่องเที่ยว/);
+
+    // Click register in traveller mode
+    await ui.press(/สมัครสมาชิกนักท่องเที่ยว/);
+    assert.equal(chosenRegisterRole, 'traveller');
+
+    // Switch to operator role
+    await ui.press(/ผู้ประกอบการ/);
+
+    // Operator state active
+    assert.match(ui.text(), /เข้าสู่ระบบผู้ประกอบการ/);
+    assert.match(ui.text(), /สำหรับผู้ประกอบการ/);
+    assert.match(ui.text(), /พอร์ทัลร้านค้าและผู้ประกอบการ/);
+
+    // Click register in operator mode
+    await ui.press(/สมัครสมาชิกร้านค้า/);
+    assert.equal(chosenRegisterRole, 'operator');
+
+    ui.unmount();
+  });
 });

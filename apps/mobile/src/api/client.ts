@@ -405,7 +405,12 @@ export const api = {
     }>('/auth/register', body),
 
   /** Real database user login with email/phone and password. */
-  loginAccount: (body: { identifier: string; password: string; label?: string }) =>
+  loginAccount: (body: {
+    identifier: string;
+    password: string;
+    label?: string;
+    accountType?: 'traveller' | 'operator';
+  }) =>
     post<{
       userId: string;
       deviceKey: string;

@@ -199,18 +199,22 @@ describe('Chivargo RegisterScreen', () => {
     ui.unmount();
   });
 
-  it('calls onLogin when login link is pressed', async () => {
-    let loginTriggered = false;
+  it('calls onLogin when login link is pressed with corresponding role', async () => {
+    let loginRole: string | undefined;
     const ui = await mountScreen(
       h(RegisterScreen, {
-        onLogin: () => {
-          loginTriggered = true;
+        onLogin: (role) => {
+          loginRole = role;
         },
       }),
     );
 
     await ui.press(/เข้าสู่ระบบ/);
-    assert.equal(loginTriggered, true);
+    assert.equal(loginRole, 'traveller');
+
+    await ui.press(/ผู้ประกอบการ/);
+    await ui.press(/เข้าสู่ระบบผู้ประกอบการ/);
+    assert.equal(loginRole, 'operator');
 
     ui.unmount();
   });

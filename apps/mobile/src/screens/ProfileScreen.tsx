@@ -25,7 +25,7 @@
 import React from 'react';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
 import {
-  Building2, CheckCircle2, Compass, Crown, Footprints, Leaf, LogOut, Mail, MapPinned, Phone, Settings, ShieldCheck, Sprout, Store, TreePalm, UserRound,
+  Building2, CheckCircle2, Compass, Crown, Footprints, Leaf, LogOut, Mail, MapPinned, MessageCircle, Phone, Settings, ShieldCheck, Sprout, Star, Store, Ticket, TreePalm, UserRound, Users,
 } from 'lucide-react-native';
 // On its own line: the test stub generator reads the braces above for names.
 import type { LucideIcon } from 'lucide-react-native';
@@ -109,6 +109,16 @@ export function ProfileScreen({
   const email = account.data?.email ?? null;
   const phone = account.data?.phone ?? null;
 
+  // View state: initialized to user's real accountType, but allows toggling between roles
+  const [selectedRoleView, setSelectedRoleView] = React.useState<'traveller' | 'operator'>('traveller');
+  React.useEffect(() => {
+    if (account.data?.accountType) {
+      setSelectedRoleView(account.data.accountType);
+    }
+  }, [account.data?.accountType]);
+
+  const isOperator = selectedRoleView === 'operator';
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
       <PushHeader
@@ -121,6 +131,90 @@ export function ProfileScreen({
         )}
       />
 
+      {/* Role View Switcher Banner */}
+      <View style={{ paddingHorizontal: gutter, paddingTop: 10, paddingBottom: 6 }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            backgroundColor: '#E0F0F7',
+            borderRadius: 16,
+            padding: 3,
+            borderWidth: 1,
+            borderColor: '#C7E4F2',
+          }}
+        >
+          <Pressable
+            onPress={() => setSelectedRoleView('traveller')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: !isOperator }}
+            accessibilityLabel="โปรไฟล์นักท่องเที่ยว"
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              paddingVertical: 9,
+              borderRadius: 13,
+              backgroundColor: !isOperator ? '#FFFFFF' : 'transparent',
+              shadowColor: !isOperator ? '#009DB7' : 'transparent',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.12,
+              shadowRadius: 3,
+              elevation: !isOperator ? 2 : 0,
+            }}
+          >
+            <Compass
+              size={15}
+              color={!isOperator ? '#009DB7' : '#66869D'}
+              strokeWidth={!isOperator ? 2.4 : 2}
+            />
+            <Label
+              size={11}
+              tracking={0.06}
+              colour={!isOperator ? '#006A83' : '#66869D'}
+            >
+              นักท่องเที่ยว
+            </Label>
+          </Pressable>
+
+          <Pressable
+            onPress={() => setSelectedRoleView('operator')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isOperator }}
+            accessibilityLabel="แดชบอร์ดผู้ประกอบการ"
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              paddingVertical: 9,
+              borderRadius: 13,
+              backgroundColor: isOperator ? '#FFFFFF' : 'transparent',
+              shadowColor: isOperator ? '#009DB7' : 'transparent',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.12,
+              shadowRadius: 3,
+              elevation: isOperator ? 2 : 0,
+            }}
+          >
+            <Store
+              size={15}
+              color={isOperator ? '#009DB7' : '#66869D'}
+              strokeWidth={isOperator ? 2.4 : 2}
+            />
+            <Label
+              size={11}
+              tracking={0.06}
+              colour={isOperator ? '#006A83' : '#66869D'}
+            >
+              ผู้ประกอบการ / ร้านค้า
+            </Label>
+          </Pressable>
+        </View>
+      </View>
+
       {wallet.error ? <ErrorState message={wallet.error} onRetry={wallet.reload} /> : null}
       {wallet.loading && !wallet.data ? <LoadingState /> : null}
       {wallet.data ? (
@@ -129,24 +223,40 @@ export function ProfileScreen({
             wallet={wallet.data}
             name={name}
             lead={lead}
-            accountType={accountType}
+            accountType={selectedRoleView}
             businessName={businessName}
           />
           <RoleStatusCard
-            accountType={accountType}
+            accountType={selectedRoleView}
             businessName={businessName}
             name={name}
             email={email}
             phone={phone}
           />
-          <Experience wallet={wallet.data} />
-          <RankPath wallet={wallet.data} />
+
+          {isOperator ? (
+            <>
+              {/* Operator KPIs and Management Tools */}
+              <OperatorMetricFigures />
+              <OperatorTools onOpenAccount={onOpenAccount} />
+            </>
+          ) : (
+            <>
+              <Experience wallet={wallet.data} />
+              <RankPath wallet={wallet.data} />
+            </>
+          )}
         </>
       ) : null}
 
-      <StandingBlock standing={standing} />
-      <MedalsBlock medals={medals} onSeeAll={onOpenMedals} />
-      <CompanionsBlock companions={companions} onOpenCompanion={onOpenCompanion} onSeeAll={onOpenWallet} />
+      {!isOperator ? (
+        <>
+          <StandingBlock standing={standing} />
+          <MedalsBlock medals={medals} onSeeAll={onOpenMedals} />
+          <CompanionsBlock companions={companions} onOpenCompanion={onOpenCompanion} onSeeAll={onOpenWallet} />
+        </>
+      ) : null}
+
       <Figures wallet={wallet} passport={passport} onOpenWallet={onOpenWallet} onOpenPassport={onOpenPassport} />
 
       {onLogout ? (
@@ -513,6 +623,186 @@ function RoleStatusCard({
                 th: 'ร่วมเดินทางอย่างรับผิดชอบ สัมผัสวิถีชีวิตเกาะสีชัง สะสมคะแนนสุขภาพ และรับสิทธิประโยชน์จากร้านค้าชุมชน',
               })}
         </Body>
+      </View>
+    </Card>
+  );
+}
+
+function OperatorMetricFigures() {
+  return (
+    <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: gutter, marginTop: 14 }}>
+      <View
+        style={[
+          shadow.card,
+          {
+            flex: 1,
+            padding: 14,
+            backgroundColor: color.surface,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: '#DCEFF5',
+          },
+        ]}
+      >
+        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#E0F5F9', alignItems: 'center', justifyContent: 'center' }}>
+          <ShieldCheck size={16} color="#009DB7" strokeWidth={2.2} />
+        </View>
+        <Heading size={22} colour="#006A83" style={{ marginTop: 8 }}>
+          24
+        </Heading>
+        <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
+          ภารกิจที่รับรองแล้ว
+        </Label>
+      </View>
+
+      <View
+        style={[
+          shadow.card,
+          {
+            flex: 1,
+            padding: 14,
+            backgroundColor: color.surface,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: '#DCEFF5',
+          },
+        ]}
+      >
+        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#FEF3C7', alignItems: 'center', justifyContent: 'center' }}>
+          <Users size={16} color="#D97706" strokeWidth={2.2} />
+        </View>
+        <Heading size={22} colour="#B45309" style={{ marginTop: 8 }}>
+          186
+        </Heading>
+        <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
+          นักท่องเที่ยวเช็คอิน
+        </Label>
+      </View>
+
+      <View
+        style={[
+          shadow.card,
+          {
+            flex: 1,
+            padding: 14,
+            backgroundColor: color.surface,
+            borderRadius: radius.md,
+            borderWidth: 1,
+            borderColor: '#DCEFF5',
+          },
+        ]}
+      >
+        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#ECFDF5', alignItems: 'center', justifyContent: 'center' }}>
+          <Star size={16} color="#059669" strokeWidth={2.2} />
+        </View>
+        <Heading size={22} colour="#047857" style={{ marginTop: 8 }}>
+          4.9
+        </Heading>
+        <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
+          คะแนนพาร์ทเนอร์
+        </Label>
+      </View>
+    </View>
+  );
+}
+
+function OperatorTools({ onOpenAccount }: { onOpenAccount: () => void }) {
+  return (
+    <Card>
+      <Label size={10} tracking={0.12} colour="#009DB7" style={{ marginBottom: 12 }}>
+        เครื่องมือสำหรับผู้ประกอบการ (HOST MANAGEMENT)
+      </Label>
+
+      <View style={{ gap: 10 }}>
+        <Pressable
+          onPress={onOpenAccount}
+          accessibilityRole="button"
+          accessibilityLabel="รับรองภารกิจนักท่องเที่ยว"
+          style={({ pressed }) => [
+            {
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              padding: 12,
+              borderRadius: radius.sm,
+              backgroundColor: pressed ? '#EEF2F6' : '#F8FAFC',
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
+            },
+          ]}
+        >
+          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#E0F5F9', alignItems: 'center', justifyContent: 'center' }}>
+            <ShieldCheck size={18} color="#009DB7" strokeWidth={2.2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Heading size={14} colour="#183B56">
+              รับรองภารกิจนักท่องเที่ยว (Host Verification)
+            </Heading>
+            <Body size={13} colour="#66869D">
+              ตรวจรูปภาพและปล่อยคะแนนกรีนพอยท์ให้กับผู้มาทำกิจกรรม
+            </Body>
+          </View>
+        </Pressable>
+
+        <Pressable
+          onPress={onOpenAccount}
+          accessibilityRole="button"
+          accessibilityLabel="คำถามจากนักท่องเที่ยว"
+          style={({ pressed }) => [
+            {
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              padding: 12,
+              borderRadius: radius.sm,
+              backgroundColor: pressed ? '#EEF2F6' : '#F8FAFC',
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
+            },
+          ]}
+        >
+          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEF3C7', alignItems: 'center', justifyContent: 'center' }}>
+            <MessageCircle size={18} color="#D97706" strokeWidth={2.2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Heading size={14} colour="#183B56">
+              คำถามและข้อความจากนักท่องเที่ยว (Inquiries)
+            </Heading>
+            <Body size={13} colour="#66869D">
+              ตอบกลับข้อความสอบถามเกี่ยวกับที่พัก อาหาร หรือบริการ
+            </Body>
+          </View>
+        </Pressable>
+
+        <Pressable
+          onPress={onOpenAccount}
+          accessibilityRole="button"
+          accessibilityLabel="จัดการข้อเสนอและคูปอง"
+          style={({ pressed }) => [
+            {
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              padding: 12,
+              borderRadius: radius.sm,
+              backgroundColor: pressed ? '#EEF2F6' : '#F8FAFC',
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
+            },
+          ]}
+        >
+          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#ECFDF5', alignItems: 'center', justifyContent: 'center' }}>
+            <Ticket size={18} color="#059669" strokeWidth={2.2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Heading size={14} colour="#183B56">
+              จัดการข้อเสนอและคูปองส่วนลด (Manage Offers)
+            </Heading>
+            <Body size={13} colour="#66869D">
+              ตั้งค่าคูปองและโปรโมชั่นเพื่อดึงดูดนักท่องเที่ยวบนเกาะ
+            </Body>
+          </View>
+        </Pressable>
       </View>
     </Card>
   );

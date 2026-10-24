@@ -104,14 +104,16 @@ function LineIcon({ size = 22 }: { size?: number }) {
 
 export interface RegisterScreenProps {
   onRegisterSuccess?: () => void;
-  onLogin?: () => void;
+  onLogin?: (accountType?: 'traveller' | 'operator') => void;
   onBack?: () => void;
+  initialAccountType?: 'traveller' | 'operator';
 }
 
 export function RegisterScreen({
   onRegisterSuccess,
   onLogin,
   onBack,
+  initialAccountType = 'traveller',
 }: RegisterScreenProps) {
   const { width } = useWindowDimensions();
   const isNarrow = width < 380;
@@ -119,7 +121,16 @@ export function RegisterScreen({
   const isWide = width >= 768;
 
   // Role / Account Type (นักท่องเที่ยว หรือ ผู้ประกอบการ)
-  const [accountType, setAccountType] = React.useState<'traveller' | 'operator'>('traveller');
+  const [accountType, setAccountType] = React.useState<'traveller' | 'operator'>(
+    initialAccountType,
+  );
+
+  React.useEffect(() => {
+    if (initialAccountType) {
+      setAccountType(initialAccountType);
+    }
+  }, [initialAccountType]);
+
   const [businessName, setBusinessName] = React.useState('');
 
   // Form fields
@@ -749,7 +760,11 @@ export function RegisterScreen({
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <>
-                    <Text style={styles.registerButtonText}>สมัครสมาชิก</Text>
+                    <Text style={styles.registerButtonText}>
+                      {accountType === 'operator'
+                        ? 'สมัครสมาชิกผู้ประกอบการ'
+                        : 'สมัครสมาชิกนักท่องเที่ยว'}
+                    </Text>
                     <ArrowRight size={19} color="#FFFFFF" strokeWidth={2.4} />
                   </>
                 )}
@@ -815,12 +830,20 @@ export function RegisterScreen({
             <View style={styles.loginRow}>
               <Text style={styles.loginNoticeText}>มีบัญชีอยู่แล้ว? </Text>
               <Pressable
-                onPress={onLogin}
+                onPress={() => onLogin?.(accountType)}
                 accessibilityRole="link"
-                accessibilityLabel="เข้าสู่ระบบ"
+                accessibilityLabel={
+                  accountType === 'operator'
+                    ? 'เข้าสู่ระบบผู้ประกอบการ'
+                    : 'เข้าสู่ระบบนักท่องเที่ยว'
+                }
                 hitSlop={10}
               >
-                <Text style={styles.loginLinkText}>เข้าสู่ระบบ</Text>
+                <Text style={styles.loginLinkText}>
+                  {accountType === 'operator'
+                    ? 'เข้าสู่ระบบผู้ประกอบการ'
+                    : 'เข้าสู่ระบบนักท่องเที่ยว'}
+                </Text>
               </Pressable>
             </View>
           </View>

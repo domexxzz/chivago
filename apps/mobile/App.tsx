@@ -493,13 +493,14 @@ export default function App() {
       case 'login':
         return (
           <LoginScreen
+            initialAccountType={nav.accountType ?? 'traveller'}
             onLoginSuccess={async () => {
               await setLoggedIn(true);
               setLoggedInState(true);
               toast.show(t({ en: 'Signed in successfully', th: 'เข้าสู่ระบบสำเร็จ' }));
               nav.selectTab('home');
             }}
-            onRegister={() => nav.push('register')}
+            onRegister={(accType) => nav.push('register', { accountType: accType })}
             onBack={nav.stack.length > 0 ? nav.pop : undefined}
           />
         );
@@ -507,6 +508,7 @@ export default function App() {
       case 'register':
         return (
           <RegisterScreen
+            initialAccountType={nav.accountType ?? 'traveller'}
             onRegisterSuccess={async () => {
               await setLoggedIn(true);
               setLoggedInState(true);
@@ -516,11 +518,11 @@ export default function App() {
               }));
               nav.push('onboarding');
             }}
-            onLogin={() => {
+            onLogin={(accType) => {
               if (nav.stack[nav.stack.length - 1] === 'login') {
                 nav.pop();
               } else {
-                nav.push('login');
+                nav.push('login', { accountType: accType });
               }
             }}
             onBack={nav.pop}

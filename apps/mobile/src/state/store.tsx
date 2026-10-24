@@ -71,11 +71,12 @@ interface NavState {
   questId: string | null;
   /** A province code, for the mascot's room. */
   code: string | null;
+  accountType?: 'traveller' | 'operator';
 }
 
 export interface Nav extends NavState {
   /** Push onto the stack. Used by place / quest / market / trip. */
-  push: (screen: ScreenKey, params?: { placeId?: string; questId?: string; code?: string }) => void;
+  push: (screen: ScreenKey, params?: { placeId?: string; questId?: string; code?: string; accountType?: 'traveller' | 'operator' }) => void;
   /** Pop back. Falls back to the map if the stack is empty. */
   pop: () => void;
   /** A tab tap RESETS the stack, per the handoff. */
@@ -120,13 +121,14 @@ export function useNav(initial: ScreenKey = 'onboarding'): Nav {
   });
 
   const push = React.useCallback(
-    (screen: ScreenKey, params?: { placeId?: string; questId?: string; code?: string }) => {
+    (screen: ScreenKey, params?: { placeId?: string; questId?: string; code?: string; accountType?: 'traveller' | 'operator' }) => {
       setState((s) => ({
         screen,
         stack: [...s.stack, s.screen],
         placeId: params?.placeId ?? s.placeId,
         questId: params?.questId ?? s.questId,
         code: params?.code ?? s.code,
+        accountType: params?.accountType ?? s.accountType,
       }));
     },
     [],

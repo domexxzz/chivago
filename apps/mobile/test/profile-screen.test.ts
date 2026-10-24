@@ -231,6 +231,38 @@ describe('distinction between operator and traveller roles', () => {
     assert.match(text, /0812345678/);
     ui.unmount();
   });
+
+  test('toggles between traveller and operator view tabs on profile screen', async () => {
+    const s = server(routes({
+      '/account': {
+        userId: 'u_traveller_1',
+        accountType: 'traveller',
+        businessName: null,
+        fullName: 'สมชาย รักเที่ยว',
+        email: 'somchai@travel.com',
+        phone: '0812345678',
+        devices: [],
+      },
+    }));
+    restore = s.restore;
+
+    const ui = await mountScreen(h(ProfileScreen, props));
+    // Initial traveller view
+    assert.match(ui.text(), /นักท่องเที่ยว/);
+    assert.match(ui.text(), /EXP/);
+
+    // Switch to operator view
+    await ui.press(/แดชบอร์ดผู้ประกอบการ/);
+    assert.match(ui.text(), /ผู้ประกอบการ \/ ร้านค้า/);
+    assert.match(ui.text(), /เครื่องมือสำหรับผู้ประกอบการ/);
+    assert.match(ui.text(), /Host Verification/);
+
+    // Switch back to traveller view
+    await ui.press(/โปรไฟล์นักท่องเที่ยว/);
+    assert.match(ui.text(), /นักท่องเที่ยว/);
+
+    ui.unmount();
+  });
 });
 
 describe('logout functionality and confirmation popup', () => {
