@@ -22,9 +22,10 @@
 
 import React from 'react';
 import { Pressable, View } from 'react-native';
+import * as Location from 'expo-location';
 import { BusFront, Check, MapPin } from 'lucide-react-native';
 import {
-  NO_CAMPUS_ROUTE, nearestFirst, sayHeadway, type Headway, type TransitRoute,
+  NO_CAMPUS_ROUTE, metresBetween, nearestFirst, sayHeadway, type Headway, type TransitRoute,
 } from '@chivago/core';
 import { color, gutter, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from './Type.tsx';
@@ -33,6 +34,8 @@ import { api } from '../api/client.ts';
 import { useHere, type Here } from '../state/here.ts';
 
 type RouteWithHeadway = TransitRoute & { headway: Headway };
+
+const BUS_REPORT_MAX_DISTANCE_M = 500;
 
 export function BusStrip({
   routes, campus, loading, error, onToast,
@@ -71,8 +74,8 @@ export function BusStrip({
 }
 
 function RouteCards({ routes, onToast }: { routes: RouteWithHeadway[]; onToast?: (m: string) => void }) {
-  // One optional fix for the whole strip, only when an area has routes.
-  const here = useHere();
+  // Keep the selected stop current while the rider moves through the campus.
+  const here = useHere({ watch: true });
   return routes.map((route) => <RouteCard key={route.id} route={route} here={here} onToast={onToast} />);
 }
 
@@ -84,14 +87,35 @@ function RouteCard({ route, here, onToast }: {
   const [headway, setHeadway] = React.useState<Headway>(route.headway);
   const [sending, setSending] = React.useState(false);
   const [chosenStopId, setChosenStopId] = React.useState<string | null>(null);
-  // A deliberate choice wins over GPS, including when the fix arrives later.
-  // Without a fix, require a choice rather than silently crediting stop one.
+  const nearest = here ? nearestFirst(route.stops, here)[0] : undefined;
+  const nearbyStop = nearest && here && metresBetween(here, nearest) <= BUS_REPORT_MAX_DISTANCE_M
+    ? nearest : undefined;
+  // A deliberate choice wins over GPS, but it does not bypass the distance check.
   const stop = route.stops.find((s) => s.id === chosenStopId)
-    ?? (here ? nearestFirst(route.stops, here)[0] : undefined);
+    ?? nearbyStop;
+  const nearStop = !!(stop && here && metresBetween(here, stop) <= BUS_REPORT_MAX_DISTANCE_M);
 
   const report = async () => {
-    if (!stop || sending) return;
+    if (!stop || !nearStop || sending) return;
     setSending(true);
+    let nearNow = false;
+    try {
+      const permission = await Location.getForegroundPermissionsAsync();
+      if (permission?.granted) {
+        const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const current = { lat: position.coords.latitude, lng: position.coords.longitude };
+        nearNow = Number.isFinite(current.lat) && Number.isFinite(current.lng)
+          && metresBetween(current, stop) <= BUS_REPORT_MAX_DISTANCE_M;
+      }
+    } catch {
+      // An unavailable fix cannot verify that the rider is at this stop.
+    }
+    if (!nearNow) {
+      setSending(false);
+      onToast?.(t({ en: 'Confirm your location within 500 m of this stop to report a bus.',
+        th: 'ต้องยืนยันว่าอยู่ห่างจากป้ายนี้ไม่เกิน 500 ม. จึงจะแจ้งรถได้' }));
+      return;
+    }
     const res = await api.seenBus(route.id, stop.id);
     setSending(false);
     if (!res.ok) { onToast?.(res.error); return; }
@@ -135,8 +159,10 @@ function RouteCard({ route, here, onToast }: {
       <View style={{ paddingTop: 10, gap: 4 }}>
         <Body size={13} colour={color.neutral600}>
           {t({
-            en: here ? 'Nearest stop selected. Tap another if needed.' : 'Select the stop where you are.',
-            th: here ? 'เลือกป้ายที่ใกล้ที่สุดแล้ว แตะเปลี่ยนได้' : 'เลือกป้ายที่คุณยืนอยู่',
+            en: nearbyStop ? 'Nearest stop selected. Tap another if needed.'
+              : 'Select a stop. Reporting requires your location within 500 m.',
+            th: nearbyStop ? 'เลือกป้ายที่ใกล้ที่สุดแล้ว แตะเปลี่ยนได้'
+              : 'เลือกป้ายได้ แต่ต้องอยู่ห่างไม่เกิน 500 ม. จึงจะแจ้งรถได้',
           })}
         </Body>
         {route.stops.map((s) => (
@@ -148,7 +174,7 @@ function RouteCard({ route, here, onToast }: {
               en: `Select stop: ${s.name?.en ?? 'Unnamed stop'}`,
               th: `เลือกป้าย: ${s.name?.th ?? 'ป้ายที่ยังไม่มีชื่อบนแผนที่'}`,
             })}
-            accessibilityState={{ selected: stop?.id === s.id }}
+            accessibilityState={{ checked: stop?.id === s.id }}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36 }}
           >
             <MapPin size={11} color={color.neutral600} />
@@ -177,7 +203,7 @@ function RouteCard({ route, here, onToast }: {
         ) : null}
       </View>
 
-      {stop ? (
+      {nearStop ? (
         <Pressable
           onPress={report}
           disabled={sending}

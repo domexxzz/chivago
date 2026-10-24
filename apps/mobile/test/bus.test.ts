@@ -180,7 +180,7 @@ describe('reporting one', () => {
     restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, { ...props }));
     assert.match(ui.text(), /Nearest stop selected/);
-    assert.equal(ui.find('Select stop: Unnamed stop')?.props.accessibilityState.selected, true);
+    assert.equal(ui.find('Select stop: Unnamed stop')?.props.accessibilityState.checked, true);
     await ui.press('I saw one');
     assert.deepEqual(s.calls.find((c) => c.method === 'POST' && c.path === '/transit/smartbus-538/seen')?.body,
       { stopId: 'rmutt-south-east' });
@@ -194,30 +194,61 @@ describe('reporting one', () => {
     restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, { ...props }));
     await ui.press('Select stop: Rajamangala Gate 3 (Soi Phon)');
-    assert.equal(ui.find('Select stop: Rajamangala Gate 3 (Soi Phon)')?.props.accessibilityState.selected, true);
+    assert.equal(ui.find('Select stop: Rajamangala Gate 3 (Soi Phon)')?.props.accessibilityState.checked, true);
     await ui.press('I saw one');
     assert.deepEqual(s.calls.find((c) => c.method === 'POST' && c.path === '/transit/smartbus-538/seen')?.body,
       { stopId: 'rmutt-gate3' });
     ui.unmount();
   });
 
-  test('without location permission the stop is still selectable', async () => {
+  test('without location permission a chosen stop cannot be reported', async () => {
     __setAreaForTests('rmutt');
     control.permission = { granted: false, status: 'denied' };
     const s = server({ ...routes(), 'POST /transit/smartbus-538/seen': acknowledged });
     restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, { ...props }));
-    assert.match(ui.text(), /Select the stop where you are/);
+    assert.match(ui.text(), /Reporting requires your location within 500 m/);
     assert.equal(ui.labels().includes('I saw one'), false, 'reporting must wait for a chosen stop');
     await ui.press('Select stop: Unnamed stop');
+    assert.equal(ui.find('Select stop: Unnamed stop')?.props.accessibilityState.checked, true);
+    assert.equal(ui.labels().includes('I saw one'), false);
+    assert.equal(s.calls.some((c) => c.method === 'POST' && c.path === '/transit/smartbus-538/seen'), false);
+    ui.unmount();
+  });
+
+  test('a far-away fix neither auto-selects nor permits a manually chosen report', async () => {
+    __setAreaForTests('rmutt');
+    control.position = { coords: { latitude: 14.2, longitude: 100.7321438, accuracy: 12 } };
+    const s = server({ ...routes(), 'POST /transit/smartbus-538/seen': acknowledged });
+    restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, { ...props }));
+    assert.doesNotMatch(ui.text(), /Nearest stop selected/);
+    assert.equal(ui.find('Select stop: Unnamed stop')?.props.accessibilityState.checked, false);
+    await ui.press('Select stop: Unnamed stop');
+    assert.equal(ui.find('Select stop: Unnamed stop')?.props.accessibilityState.checked, true);
+    assert.equal(ui.labels().includes('I saw one'), false);
+    assert.equal(s.calls.some((c) => c.method === 'POST' && c.path === '/transit/smartbus-538/seen'), false);
+    ui.unmount();
+  });
+
+  test('a fresh far-away fix blocks a report after a near stop was selected', async () => {
+    __setAreaForTests('rmutt');
+    control.position = { coords: { latitude: 14.0315712, longitude: 100.7321438, accuracy: 12 } };
+    const s = server({ ...routes(), 'POST /transit/smartbus-538/seen': acknowledged });
+    restore = s.restore;
+    const said: string[] = [];
+    const ui = await mountScreen(h(HomeScreen, { ...props, onToast: (m: string) => said.push(m) }));
+    assert.equal(ui.labels().includes('I saw one'), true);
+    control.position = { coords: { latitude: 14.2, longitude: 100.7321438, accuracy: 12 } };
     await ui.press('I saw one');
-    assert.deepEqual(s.calls.find((c) => c.method === 'POST' && c.path === '/transit/smartbus-538/seen')?.body,
-      { stopId: 'rmutt-south-east' });
+    assert.equal(s.calls.some((c) => c.method === 'POST' && c.path === '/transit/smartbus-538/seen'), false);
+    assert.match(said[0] ?? '', /within 500 m/);
     ui.unmount();
   });
 
   test('the tap posts, and the card settles on what the server sent back', async () => {
     __setAreaForTests('rmutt');
+    control.position = { coords: { latitude: 14.0315712, longitude: 100.7321438, accuracy: 12 } };
     const s = server({
       ...routes(),
       'POST /transit/smartbus-538/seen': {
@@ -239,6 +270,7 @@ describe('reporting one', () => {
     // `recorded: false` is the server saying "already counted". Painting that
     // red would teach a rider that pressing twice breaks something.
     __setAreaForTests('rmutt');
+    control.position = { coords: { latitude: 14.0315712, longitude: 100.7321438, accuracy: 12 } };
     const s = server({
       ...routes(),
       'POST /transit/smartbus-538/seen': {
