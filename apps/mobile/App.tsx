@@ -56,6 +56,7 @@ import type { Companion } from '@chivago/core';
 import './src/polyfills/location-emitter.ts';
 import { loadLocale, t, useLocale } from './src/i18n/locale.ts';
 import { loadArea, placeFromUrl } from './src/state/area.ts';
+import { hasLoggedIn, setLoggedIn } from './src/state/auth.ts';
 import { useServerConfig } from './src/state/server-config.ts';
 import { UnfencedBand } from './src/components/UnfencedBand.tsx';
 import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
@@ -70,7 +71,16 @@ export default function App() {
     IBMPlexMono_500Medium,
   });
 
-  const nav = useNav('onboarding');
+  const nav = useNav('login');
+
+  const [authReady, setAuthReady] = React.useState(false);
+  const [loggedIn, setLoggedInState] = React.useState(false);
+  React.useEffect(() => {
+    void hasLoggedIn().then((val) => {
+      setLoggedInState(val);
+      setAuthReady(true);
+    });
+  }, []);
 
   /*
     THESE TWO ARE MEMOISED AND THE OTHERS ARE NOT, FOR A REASON.
@@ -204,27 +214,21 @@ export default function App() {
   }, []);
 
   /**
-   * Skip onboarding for somebody who has already done it.
-   *
-   * `useNav('onboarding')` hard-coded the first screen and nothing ever asked
-   * whether the traveller had already answered. Their profile was saved
-   * correctly on the server and then ignored, so every single launch put them
-   * back through the three-step questionnaire — and silently overwrote last
-   * time's answers with whatever they picked to get past it.
+   * If the traveller has previously logged in, bypass the login screen and jump to Home.
    */
   const onboarded = profile.completedAt !== null;
   const jumpedIn = React.useRef(false);
   React.useEffect(() => {
-    if (!profileLoaded || jumpedIn.current) return;
+    if (!profileLoaded || !authReady || jumpedIn.current) return;
     jumpedIn.current = true;
-    if (onboarded) {
+    if (loggedIn) {
       nav.selectTab('home');
       // A QR code at a pin carries `?place=`; land on it, over Home, once the
       // app has jumped in - a push before this point was wiped by the jump.
       const place = placeFromUrl();
       if (place) nav.push('place', { placeId: place });
     }
-  }, [profileLoaded, onboarded, nav]);
+  }, [profileLoaded, authReady, loggedIn, nav]);
 
   /*
     ABOVE THE EARLY RETURN, and it has to stay there.
@@ -238,9 +242,9 @@ export default function App() {
   */
   const { fenceOff } = useServerConfig();
 
-  // Wait for the profile as well as the fonts. Rendering onboarding first and
+  // Wait for the profile as well as the fonts and auth state. Rendering login first and
   // snapping to the map a moment later is worse than a beat of loading.
-  if (!fontsReady || !account.ready || !profileLoaded || !localeReady) {
+  if (!fontsReady || !account.ready || !profileLoaded || !localeReady || !authReady) {
     return (
       <SafeAreaProvider>
         <View style={{ flex: 1, backgroundColor: color.bg, justifyContent: 'center' }}>
@@ -257,6 +261,8 @@ export default function App() {
           <OnboardingScreen
             onFinish={async (answers) => {
               await save(answers);
+              await setLoggedIn(true);
+              setLoggedInState(true);
               // Ask for push AFTER onboarding, never before. The OS only lets
               // you ask once, and asking before the user knows what the app
               // does is how you get a permanent no. By here they have just told
@@ -480,12 +486,14 @@ export default function App() {
       case 'login':
         return (
           <LoginScreen
-            onLoginSuccess={() => {
+            onLoginSuccess={async () => {
+              await setLoggedIn(true);
+              setLoggedInState(true);
               toast.show(t({ en: 'Signed in successfully', th: 'เข้าสู่ระบบสำเร็จ' }));
               nav.selectTab('home');
             }}
             onRegister={() => nav.push('onboarding')}
-            onBack={nav.pop}
+            onBack={nav.stack.length > 0 ? nav.pop : undefined}
           />
         );
 

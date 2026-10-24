@@ -46,6 +46,7 @@ import chivagoColorLogo from '../../assets/chivago-color-logo.png';
 import loginFooterWaves from '../../assets/login-footer-waves.png';
 import { api } from '../api/client.ts';
 import { adoptKey, ensureAccount } from '../api/account.ts';
+import { setLoggedIn } from '../state/auth.ts';
 import { color, font, radius, shadow } from '../theme/index.ts';
 import { t } from '../i18n/locale.ts';
 
@@ -162,6 +163,7 @@ export function LoginScreen({
         const claimRes = await api.claimLink(cleanCode, 'Mobile Device');
         if (claimRes.ok) {
           await adoptKey(claimRes.data.deviceKey);
+          await setLoggedIn(true);
           setLoading(false);
           onLoginSuccess?.();
           return;
@@ -181,6 +183,7 @@ export function LoginScreen({
       }
 
       // Authentication succeeded
+      await setLoggedIn(true);
       setLoading(false);
       onLoginSuccess?.();
     } catch {

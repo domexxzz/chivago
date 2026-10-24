@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import { createElement as h } from 'react';
 
 import { LoginScreen } from '../src/screens/LoginScreen.tsx';
+import { clearLoggedIn, hasLoggedIn } from '../src/state/auth.ts';
 import { mountScreen, server, settle } from './interact.ts';
 
 describe('Chivargo LoginScreen', () => {
@@ -97,7 +98,10 @@ describe('Chivargo LoginScreen', () => {
     ui.unmount();
   });
 
-  it('calls onLoginSuccess on valid submission', async () => {
+  it('calls onLoginSuccess on valid submission and marks logged in', async () => {
+    await clearLoggedIn();
+    assert.equal(await hasLoggedIn(), false);
+
     const s = server({
       'POST /devices': { userId: 'u_test', deviceKey: 'test_dev_key_123' },
     });
@@ -117,6 +121,7 @@ describe('Chivargo LoginScreen', () => {
       await settle();
 
       assert.equal(success, true);
+      assert.equal(await hasLoggedIn(), true);
       ui.unmount();
     } finally {
       s.restore();
@@ -124,6 +129,9 @@ describe('Chivargo LoginScreen', () => {
   });
 
   it('supports logging in via 8-character device link code', async () => {
+    await clearLoggedIn();
+    assert.equal(await hasLoggedIn(), false);
+
     const s = server({
       'POST /account/claim': { userId: 'u_linked', deviceKey: 'test_linked_key' },
     });
@@ -143,6 +151,7 @@ describe('Chivargo LoginScreen', () => {
       await settle();
 
       assert.equal(success, true);
+      assert.equal(await hasLoggedIn(), true);
       ui.unmount();
     } finally {
       s.restore();
