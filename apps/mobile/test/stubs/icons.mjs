@@ -9,7 +9,6 @@ export default Icon;
 export const Anchor = Icon;
 export const ArrowRight = Icon;
 export const BedDouble = Icon;
-export const Bell = Icon;
 export const BookOpen = Icon;
 export const BusFront = Icon;
 export const Camera = Icon;

@@ -8,8 +8,9 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { BedDouble, Bell, ChevronRight, LayoutGrid, List, MapPin, MessageCircle, UserRound } from 'lucide-react-native';
+import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { BedDouble, ChevronRight, LayoutGrid, List, MessageCircle, UserRound } from 'lucide-react-native';
+import chivagoLogo from '../../assets/chivago-logo.png';
 import {
   greetingFor, strings,
   type Balances, type ExploredPlace, type Quest, type QuestProgress, type RouteMode, type ScoredPlace,
@@ -28,7 +29,7 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button, IconButton } from '../components/Button.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { LayerChips, PlaceFeedRow, SamuiMap, drawsFairLots, type MapMode } from '../components/SamuiMap.tsx';
-import { DepartmentSeal, WaveSymbolBadge } from '../components/MarineEmblem.tsx';
+import { WaveSymbolBadge } from '../components/MarineEmblem.tsx';
 import { StoryViewer } from '../components/Stories.tsx';
 import { pickStoryMedia, postStory } from '../state/tell-story.ts';
 import type { Story } from '../api/client.ts';
@@ -44,7 +45,7 @@ const NO_EXPLORED: ExploredPlace[] = [];
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
   onAskConcierge, onOpenStays, onToast,
-  onOpenWallet, wayTo = null, onClearWay, fairFocus = null, onClearFair, onOpenFair, onBackToFair,
+  onOpenWallet, onOpenProfile, wayTo = null, onClearWay, fairFocus = null, onClearFair, onOpenFair, onBackToFair,
 }: {
   layers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
@@ -59,6 +60,7 @@ export function MapScreen({
   onToast: (msg: string) => void;
   balances: Balances;
   onOpenWallet: () => void;
+  onOpenProfile?: () => void;
   /**
    * The place the traveller asked to be shown the way to, chosen on the
    * place screen. Null is the ordinary map, with no route on it.
@@ -248,6 +250,7 @@ export function MapScreen({
       <MapHeader
         balances={balances}
         onOpenWallet={onOpenWallet}
+        onOpenProfile={onOpenProfile}
         mode={mode}
         onToggleMode={() => setMode(mode === 'map' ? 'feed' : 'map')}
       />
@@ -524,10 +527,11 @@ export function MapScreen({
 }
 
 export function MapHeader({
-  balances, mode, onToggleMode, onOpenWallet,
+  balances, mode, onToggleMode, onOpenWallet, onOpenProfile,
 }: {
   balances: Balances; mode: MapMode;
   onToggleMode: () => void; onOpenWallet: () => void;
+  onOpenProfile?: () => void;
 }) {
   const area = useArea();
   return (
@@ -537,8 +541,8 @@ export function MapHeader({
         borderBottomLeftRadius: 32,
         borderBottomRightRadius: 32,
         paddingHorizontal: gutter,
-        paddingTop: 16,
-        paddingBottom: 18,
+        paddingTop: 20,
+        paddingBottom: 20,
         shadowColor: '#00263E',
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.18,
@@ -549,53 +553,41 @@ export function MapHeader({
     >
       <OceanBackdrop compact />
 
-      {/* Row 1: Marine Meteorological Emblem + Controls */}
+      {/* Row 1: Greeting & Area Name on Left, ChivaGo Logo + Profile on Right (matching Home screen) */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <DepartmentSeal size={36} />
-          <View>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.2 }}>
-              ศูนย์ข้อมูลอุตุนิยมทางทะเล
-            </Text>
-            <Text style={{ fontSize: 11, fontWeight: '500', color: '#D4EEF8' }}>
-              กรมอุตุนิยมวิทยา
-            </Text>
-          </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: '#D5F6FF', fontSize: 12, fontWeight: '500', letterSpacing: 1.8, textTransform: 'uppercase' }}>
+            {t(greetingFor(new Date()))}
+          </Text>
+          <Heading size={28} colour="#FFFFFF" style={{ marginTop: 4, fontWeight: '800' }}>
+            {t(area.name)}
+          </Heading>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="การแจ้งเตือน"
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              backgroundColor: 'rgba(255, 255, 255, 0.16)',
-              borderWidth: 1,
-              borderColor: 'rgba(255, 255, 255, 0.3)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Bell size={17} color="#FFFFFF" strokeWidth={2} />
-          </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Image
+            source={chivagoLogo}
+            resizeMode="contain"
+            accessibilityLabel="ChivaGo"
+            style={{ width: 68, height: 48 }}
+          />
 
           <Pressable
+            onPress={onOpenProfile}
             accessibilityRole="button"
-            accessibilityLabel="โปรไฟล์"
+            accessibilityLabel={t({ en: 'Profile', th: 'โปรไฟล์' })}
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              backgroundColor: 'rgba(255, 255, 255, 0.16)',
+              width: 44,
+              height: 44,
+              borderRadius: 22,
               borderWidth: 1,
-              borderColor: 'rgba(255, 255, 255, 0.3)',
+              borderColor: 'rgba(255, 255, 255, 0.5)',
+              backgroundColor: 'rgba(255, 255, 255, 0.18)',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <UserRound size={17} color="#FFFFFF" strokeWidth={2} />
+            <UserRound size={22} color="#FFFFFF" strokeWidth={2} />
           </Pressable>
 
           <IconButton
@@ -612,19 +604,7 @@ export function MapHeader({
         </View>
       </View>
 
-      {/* Row 2: Greeting & Location */}
-      <View style={{ marginTop: 14 }}>
-        <Label size={11} tracking={0.16} colour="#D5F6FF">{t(greetingFor(new Date()))}</Label>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 1 }}>
-          <Heading size={26} tracking={-0.48} colour="#FFFFFF" style={{ fontWeight: '800' }}>{t(area.name)}</Heading>
-          <MapPin size={22} color="#FFFFFF" strokeWidth={2.4} />
-        </View>
-        <Text style={{ fontSize: 12, fontWeight: '500', color: '#D4EEF8', marginTop: 2 }}>
-          {area.key === 'samui' ? 'อ.เกาะสมุย  จ.สุราษฎร์ธานี' : t(area.name)}
-        </Text>
-      </View>
-
-      {/* Row 3: Floating Card "คลื่นลมวันนี้" */}
+      {/* Row 2: Floating Card "คลื่นลมวันนี้" */}
       <Pressable
         onPress={onOpenWallet}
         accessibilityRole="button"
@@ -635,7 +615,7 @@ export function MapHeader({
           + `${t(strings.common.tripPointsNote)}. ${t({ en: 'Open wallet.', th: 'เปิดกระเป๋าแต้ม' })}`
         }
         style={{
-          marginTop: 14,
+          marginTop: 16,
           backgroundColor: '#FFFFFF',
           borderRadius: 20,
           paddingVertical: 10,

@@ -315,6 +315,7 @@ export default function App() {
             onOpenStays={() => nav.push('stays')}
             onToast={toast.show}
             onOpenWallet={() => nav.push('wallet')}
+            onOpenProfile={() => nav.push('account')}
             balances={balances}
             wayTo={wayTo}
             onClearWay={() => setWayTo(null)}
