@@ -649,13 +649,18 @@ export const SEED_PLACES: Place[] = [
     airStation: bangkhenStation(13.8488140, 100.5673153),
   },
   /*
-    Koh Sichang, Chon Buri (TH-20). Each position is the centre of its named
-    OpenStreetMap feature, read through Overpass on 2026-10-23. The nearest
-    Air4Thai station is at Laem Chabang, twelve kilometres across the water,
-    so no place claims it: the air is modelled, and says so. The non-air
-    metrics are the team's estimates before any survey. No photographs have
-    been supplied, and no business is named: the food place is the shop row
-    by the pier, not one shop that never agreed to be on a map.
+    Koh Sichang, Chon Buri (TH-20). Each position is the centre of its
+    OpenStreetMap feature, read through Overpass. The nearest Air4Thai
+    station is at Laem Chabang, twelve kilometres across the water, so no
+    place claims it: the air is modelled, and says so. The non-air metrics
+    are the team's estimates before any survey, and no business is named:
+    the food place is the shop row by the pier, not one shop that never
+    agreed to be on a map.
+
+    Five of the six features are named in OSM and wear the team's own
+    photographs. The sixth, the museum, is mapped `tourism=aquarium` with no
+    name at all and wears a Creative Commons photograph of its signboard;
+    its entry below says how it was identified.
   */
   {
     // OSM way 40354093: ท่าเรือเกาะสีชัง (ท่าล่าง), where the Si Racha ferry lands.
@@ -736,6 +741,48 @@ export const SEED_PLACES: Place[] = [
       sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
     metrics: { aqi: 40, crowdDensity: 3.0, safetyIndex: 6.5, walkability: 7.0 },
+  },
+  {
+    /*
+      The building OpenStreetMap maps as an aquarium, named at last.
+
+      This place was carried as "Chulalongkorn marine station", put here from
+      local knowledge, with a blurb that admitted nobody had confirmed it at
+      the door. A photograph settled it: the Commons file
+      `Sea Research Center - panoramio.jpg`, geotagged 33 m from this point,
+      shows the signboard - ชลทัศนสถาน - and Chulalongkorn's own site lists
+      Cholatassathan as its museum of the sea and the nature of the Sichang
+      islands. A marine museum is also why OSM tagged the building an
+      aquarium. The uploader's file name is the one thing here that is wrong,
+      and trusting it instead of the sign would have put a research station's
+      name on a museum.
+
+      The id keeps its old spelling on purpose: check-ins in the ledger point
+      at it, and renaming a place must not cost somebody their visit.
+
+      The door is still unvisited, and the blurb still says so.
+    */
+    id: 'sc-marinestation',
+    name: { en: 'Cholatassathan Museum', th: 'พิพิธภัณฑ์ชลทัศนสถาน' },
+    short: 'Cholatassathan', layer: 'Green', province: 'TH-20',
+    lat: 13.1521963, lng: 100.8147057,
+    meta: 'Museum · Sea and island nature · Air modelled',
+    blurb: {
+      en: 'Chulalongkorn\'s museum of the sea and the nature of the Sichang islands. Identified from a photograph of the signboard taken 33 m from this point; nobody has confirmed it at the door yet.',
+      th: 'พิพิธภัณฑ์ของจุฬาฯ ว่าด้วยท้องทะเลและธรรมชาติของหมู่เกาะสีชัง ระบุชื่อจากรูปป้ายที่ถ่ายห่างจากจุดนี้ 33 เมตร ยังไม่มีใครไปยืนยันที่หน้าอาคาร',
+    },
+    tags: ['Museum', 'Sea life', 'Learning'],
+    photo: {
+      // Served from our own origin like every other island photograph: the
+      // copy is the 1280px rendering of the Commons original, and CC BY-SA
+      // allows the redistribution as long as the credit travels with it,
+      // which it does - the place screen prints it under the picture.
+      url: '/media/places/sc-marinestation.jpg',
+      credit: 'ekeidar (Panoramio)',
+      licence: 'CC BY-SA 3.0',
+      sourceUrl: 'https://commons.wikimedia.org/wiki/File:Sea_Research_Center_-_panoramio.jpg',
+    },
+    metrics: { aqi: 40, crowdDensity: 1.5, safetyIndex: 6.5, walkability: 6.0 },
   },
   {
     // OSM way 412192126 and the restaurants mapped round it: the shop row
@@ -857,6 +904,7 @@ export const SAFETY_PHRASES: Record<string, { en: string; th: string }> = {
   'sc-thamphang': { en: 'No lifeguard claimed', th: 'ไม่ได้ยืนยันว่ามีไลฟ์การ์ด' },
   'sc-palace': { en: 'Staffed grounds', th: 'มีเจ้าหน้าที่ดูแล' },
   'sc-shops': { en: 'Town street', th: 'ถนนในตัวเมือง' },
+  'sc-marinestation': { en: 'Access not confirmed', th: 'ยังไม่ยืนยันว่าเข้าได้' },
 };
 
 // ---------------------------------------------------------------------------
