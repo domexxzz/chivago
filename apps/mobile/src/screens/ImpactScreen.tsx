@@ -424,7 +424,9 @@ function BalanceBlock({
                     <Body size={13} colour={color.neutral600}>{c.display}</Body>
                     {/* The provenance, always shown. */}
                     <Label size={9} tracking={0.1} colour={color.neutral500}>
-                      {c.source === 'measured' ? 'MEASURED' : 'YOU TOLD US'}
+                      {c.source === 'measured'
+                        ? t({ en: 'MEASURED', th: 'วัดจริง' })
+                        : t({ en: 'YOU TOLD US', th: 'คุณแจ้งเอง' })}
                     </Label>
                   </View>
                 </View>
@@ -450,7 +452,10 @@ function MoodRow({ onMood }: { onMood: (mood: MoodKey) => void }) {
             key={key}
             onPress={() => onMood(key)}
             accessibilityRole="button"
-            accessibilityLabel={`I feel ${t(MOODS[key].label)}`}
+            accessibilityLabel={t({
+              en: `I feel ${t(MOODS[key].label)}`,
+              th: `ฉันรู้สึก${t(MOODS[key].label)}`,
+            })}
             style={{
               paddingVertical: 9,
               paddingHorizontal: 14,

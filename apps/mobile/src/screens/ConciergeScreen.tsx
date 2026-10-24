@@ -21,7 +21,7 @@
 import React from 'react';
 import { Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Send, Phone } from 'lucide-react-native';
-import { OPENERS, answer, isHighScore, type Reply } from '@chivago/core';
+import { OPENERS, answer, isHighScore, strings, type Bilingual, type Reply } from '@chivago/core';
 import type { ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { areaOfPlace } from '@chivago/core';
@@ -220,7 +220,7 @@ function Answered({
           key={s.placeId}
           onPress={() => onOpenPlace(s.placeId)}
           accessibilityRole="button"
-          accessibilityLabel={`${t(s.name)}. ${t(s.because)}. Healthy Score ${s.healthyScore}`}
+          accessibilityLabel={`${t(s.name)}. ${t(s.because)}. ${t(strings.place.healthyScore)} ${s.healthyScore}`}
           style={[shadow.card, {
             flexDirection: 'row',
             alignItems: 'center',
@@ -259,7 +259,7 @@ function Answered({
         <Pressable
           onPress={() => onAction(reply.action!)}
           accessibilityRole="button"
-          accessibilityLabel={ACTION_LABEL[reply.action]}
+          accessibilityLabel={t(ACTION_LABEL[reply.action])}
           style={{
             alignSelf: 'flex-start',
             minHeight: 44,
@@ -271,19 +271,19 @@ function Answered({
             borderRadius: radius.sm,
           }}
         >
-          <Heading size={14} colour={color.ctaDeep}>{ACTION_LABEL[reply.action]}</Heading>
+          <Heading size={14} colour={color.ctaDeep}>{t(ACTION_LABEL[reply.action])}</Heading>
         </Pressable>
       ) : null}
     </View>
   );
 }
 
-const ACTION_LABEL: Record<NonNullable<Reply['action']>, string> = {
-  plan: 'Plan my day',
-  route: 'Open the router',
-  price: 'See the price band',
-  wallet: 'Open my wallet',
-  safety: 'Open Safety',
+const ACTION_LABEL: Record<NonNullable<Reply['action']>, Bilingual> = {
+  plan: strings.trip.planCta,
+  route: { en: 'Open the router', th: 'เปิดตัวจัดเส้นทาง' },
+  price: { en: 'See the price band', th: 'ดูช่วงราคา' },
+  wallet: { en: 'Open my wallet', th: 'เปิดกระเป๋าแต้ม' },
+  safety: { en: 'Open Safety', th: 'เปิดความปลอดภัย' },
 };
 
 function Composer({
@@ -309,7 +309,7 @@ function Composer({
         returnKeyType="send"
         placeholder={t({ en: 'Ask in Thai or English…', th: 'ถามเป็นไทยหรืออังกฤษก็ได้…' })}
         placeholderTextColor={color.neutral500}
-        accessibilityLabel="Ask the concierge"
+        accessibilityLabel={t({ en: 'Ask the concierge', th: 'ถามผู้ช่วยนำเที่ยว' })}
         style={{
           flex: 1,
           minHeight: 44,
@@ -326,7 +326,7 @@ function Composer({
         onPress={onSend}
         disabled={value.trim().length === 0}
         accessibilityRole="button"
-        accessibilityLabel="Send"
+        accessibilityLabel={t({ en: 'Send', th: 'ส่ง' })}
         style={{
           width: 44,
           height: 44,

@@ -372,7 +372,7 @@ function FoundTile({ companion, onOpen }: { companion: Companion; onOpen: (c: Co
     <Pressable
       onPress={() => onOpen(companion)}
       accessibilityRole="button"
-      accessibilityLabel={`${name}, ${stage}. ${t({ en: 'Visit its home.', th: 'ไปที่บ้านของมัน' })}`}
+      accessibilityLabel={`${name}, ${stage}. ${t(strings.place.visitItsHome)}`}
       style={[tileFrame(tone.fill), gameShadow.lift]}
     >
       <TileText title={name} sub={stage} ink={tone.ink} />

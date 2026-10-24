@@ -50,7 +50,7 @@ export function MascotRoomScreen({ code, onBack }: { code: string; onBack: () =>
         }}
       >
         <OceanBackdrop compact />
-        <IconButton inverted onPress={onBack} accessibilityLabel="Back">
+        <IconButton inverted onPress={onBack} accessibilityLabel={t(strings.common.back)}>
           <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2} />
         </IconButton>
         <Label size={10} tracking={0.14} colour="#D5F6FF">{t(province.name)}</Label>

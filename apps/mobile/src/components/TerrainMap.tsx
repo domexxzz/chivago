@@ -1655,7 +1655,10 @@ export function TerrainMap({
     return (
       <View style={{ height, backgroundColor: color.bg, justifyContent: 'center', paddingHorizontal: 18 }}>
         <Label size={10} tracking={0.12} colour={color.neutral700}>
-          The terrain map could not load. The list below has the same places.
+          {t({
+            en: 'The terrain map could not load. The list below has the same places.',
+            th: 'โหลดแผนที่ภูมิประเทศไม่สำเร็จ รายการด้านล่างมีสถานที่เดียวกัน',
+          })}
         </Label>
       </View>
     );

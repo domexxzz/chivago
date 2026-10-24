@@ -269,9 +269,14 @@ function PlanRow({ item, onPress }: { item: PlanItem; onPress?: () => void }) {
         {transit ? (
           <Body size={13} colour={color.neutral600} style={{ marginTop: 2 }}>
             {[
-              `${item.minutes - (item.waitMinutes ?? 0)} min moving`,
-              (item.waitMinutes ?? 0) > 0 ? `${item.waitMinutes} min wait` : null,
-              (item.fareTHB ?? 0) > 0 ? `฿${item.fareTHB}` : 'free',
+              t({
+                en: `${item.minutes - (item.waitMinutes ?? 0)} min moving`,
+                th: `เดินทาง ${item.minutes - (item.waitMinutes ?? 0)} นาที`,
+              }),
+              (item.waitMinutes ?? 0) > 0
+                ? t({ en: `${item.waitMinutes} min wait`, th: `รอ ${item.waitMinutes} นาที` })
+                : null,
+              (item.fareTHB ?? 0) > 0 ? `฿${item.fareTHB}` : t({ en: 'free', th: 'ฟรี' }),
             ].filter(Boolean).join(' · ')}
           </Body>
         ) : null}

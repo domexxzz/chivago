@@ -41,7 +41,7 @@ export function PinChip({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${t(place.name)}, Healthy Score ${place.healthyScore}`}
+      accessibilityLabel={`${t(place.name)}, ${t(strings.place.healthyScore)} ${place.healthyScore}`}
       style={{ alignItems: 'center' }}
     >
       {/*
@@ -279,7 +279,7 @@ export function PlaceFeedRow({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={`${t(place.name)}, Healthy Score ${place.healthyScore}. ${place.meta}`}
+      accessibilityLabel={`${t(place.name)}, ${t(strings.place.healthyScore)} ${place.healthyScore}. ${place.meta}`}
       style={[
         shadow.card,
         {

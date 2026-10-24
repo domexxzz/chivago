@@ -6,7 +6,9 @@
  * typed failure instead of an unhandled rejection.
  */
 
+import { strings } from '@chivago/core';
 import { adoptKey, forgetKey, loadDeviceKey } from './account.ts';
+import { t } from '../i18n/locale.ts';
 import { getEvent } from '../state/area.ts';
 import type {
   AreaKey,
@@ -342,7 +344,8 @@ async function call<T>(
     return {
       ok: false,
       code: offline ? 'TIMEOUT' : 'NETWORK',
-      error: offline ? 'The network is slow right now.' : 'You appear to be offline.',
+      // The CODE above is what callers switch on; only the sentence is translated.
+      error: t(offline ? strings.common.networkSlow : strings.common.networkOffline),
     };
   } finally {
     clearTimeout(timer);

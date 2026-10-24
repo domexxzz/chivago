@@ -76,7 +76,7 @@ export function CompanionHomeScreen({
         }}
       >
         <OceanBackdrop compact />
-        <IconButton inverted onPress={onBack} accessibilityLabel="Back to the collection">
+        <IconButton inverted onPress={onBack} accessibilityLabel={t({ en: 'Back to the collection', th: 'กลับไปที่คอลเลกชัน' })}>
           <ChevronLeft size={16} color="#FFFFFF" strokeWidth={2} />
         </IconButton>
         <Label size={10} tracking={0.16} colour="#D5F6FF">{`${t(species.habitat)}`}</Label>
@@ -177,7 +177,10 @@ export function CompanionHomeScreen({
           <Action
             label="Go there"
             thai={`ไปที่ ${habitat.name.th}`}
-            detail={`${t(habitat.name)} · ${evidence.visitDays} ${evidence.visitDays === 1 ? 'day' : 'days'} so far`}
+            detail={t({
+              en: `${t(habitat.name)} · ${evidence.visitDays} ${evidence.visitDays === 1 ? 'day' : 'days'} so far`,
+              th: `${t(habitat.name)} · ${evidence.visitDays} วันแล้ว`,
+            })}
             onPress={() => onOpenPlace(habitat.id)}
           />
         ) : null}
@@ -186,8 +189,14 @@ export function CompanionHomeScreen({
           thai="หาภารกิจในพื้นที่นี้"
           detail={
             grown
-              ? 'Already grown — a verified quest still adds Green Points'
-              : 'A host-verified quest is the only thing that grows a companion'
+              ? t({
+                en: 'Already grown — a verified quest still adds Green Points',
+                th: 'โตเต็มวัยแล้ว — ภารกิจที่ผ่านการตรวจยังได้แต้มสีเขียวเพิ่ม',
+              })
+              : t({
+                en: 'A host-verified quest is the only thing that grows a companion',
+                th: 'มีเพียงภารกิจที่ผู้จัดตรวจแล้วเท่านั้นที่ทำให้เพื่อนร่วมทางโตขึ้น',
+              })
           }
           onPress={onFindQuest}
         />

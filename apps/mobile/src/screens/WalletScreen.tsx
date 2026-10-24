@@ -118,7 +118,10 @@ function AccountRow({ onOpenAccount }: { onOpenAccount: () => void }) {
     <Pressable
       onPress={onOpenAccount}
       accessibilityRole="button"
-      accessibilityLabel="Your account. Add another phone, or see which phones are signed in."
+      accessibilityLabel={t({
+        en: 'Your account. Add another phone, or see which phones are signed in.',
+        th: 'บัญชีของคุณ เพิ่มเครื่องอื่น หรือดูว่าเครื่องใดลงชื่อเข้าใช้อยู่',
+      })}
       style={[
         shadow.card,
         {
@@ -548,7 +551,7 @@ function Companions({
           key={c.species.key}
           onPress={() => onOpenCompanion(c)}
           accessibilityRole="button"
-          accessibilityLabel={`${t(c.species.name)}, ${c.stage}. Visit its home.`}
+          accessibilityLabel={`${t(c.species.name)}, ${t(STAGE_LABEL[c.stage])}. ${t(strings.place.visitItsHome)}`}
           style={[
             shadow.card,
             {

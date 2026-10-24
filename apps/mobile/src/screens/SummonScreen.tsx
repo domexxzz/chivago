@@ -25,7 +25,7 @@ import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { ChevronLeft, Sparkles } from 'lucide-react-native';
 import {
-  COURT_LABEL, RARITIES, RARITY_LABEL, type SpiritRarity,
+  COURT_LABEL, RARITIES, RARITY_LABEL, strings, type SpiritRarity,
 } from '@chivago/core';
 import { api, type SpiritCard, type SummonResult, type SummonState } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
@@ -37,7 +37,11 @@ import { Button, IconButton } from '../components/Button.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { MascotMark } from '../components/MascotMark.tsx';
-import { t } from '../i18n/locale.ts';
+import { getLocale, t } from '../i18n/locale.ts';
+
+/** The day a round opened, in the reader's own calendar conventions. */
+const openedOn = (iso: string): string =>
+  new Date(iso).toLocaleDateString(getLocale() === 'th' ? 'th-TH' : 'en-GB');
 
 /**
  * A rarity's colour.
@@ -82,7 +86,12 @@ export function SpiritCardView({ card, onOpen }: { card: SpiritCard; onOpen?: (k
     <Pressable
       onPress={met && onOpen ? () => onOpen(card.key) : undefined}
       accessibilityRole={met && onOpen ? 'button' : undefined}
-      accessibilityLabel={met ? `${t(card.name!)}, ${t(card.creature!)}` : `Not yet met. ${t(RARITY_LABEL[card.rarity])}, ${t(COURT_LABEL[card.court])} court.`}
+      accessibilityLabel={met
+        ? `${t(card.name!)}, ${t(card.creature!)}`
+        : t({
+          en: `Not yet met. ${t(RARITY_LABEL[card.rarity])}, ${t(COURT_LABEL[card.court])} court.`,
+          th: `ยังไม่ได้พบ ${t(RARITY_LABEL[card.rarity])} สำนัก${t(COURT_LABEL[card.court])}`,
+        })}
       style={[met ? gameShadow.lift : shadow.sm, {
         width: '31%', minWidth: 104, backgroundColor: color.surface, borderRadius: gameRadius.panel,
         borderWidth: met ? 2 : 1, borderColor: met ? RARITY_TINT[card.rarity] : color.neutral300,
@@ -129,7 +138,7 @@ export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
   return (
     <Tray style={{ marginHorizontal: gutter, marginTop: 10, borderRadius: gameRadius.panel }}>
       <View style={{ gap: 10 }}>
-        <TrayLine>Published odds — floors included</TrayLine>
+        <TrayLine>{t({ en: 'Published odds', th: 'อัตราที่ประกาศไว้' })}</TrayLine>
         {RARITIES.map((r) => (
           <View key={r} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ width: 86 }}><RarityPill rarity={r} /></View>
@@ -145,8 +154,12 @@ export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
           </View>
         ))}
         <Body size={13} style={{ color: gameTray.muted }}>
-          {`Guaranteed: a rare within ${rules.pity.rare} summons, a mythic within ${rules.pity.mythic}. `
-            + 'There is no other weighting — these numbers are the whole of it.'}
+          {t({
+            en: `Guaranteed: a rare within ${rules.pity.rare} summons, a mythic within ${rules.pity.mythic}. `
+              + 'There is no other weighting — these numbers are the whole of it.',
+            th: `รับประกัน: ได้ระดับหายากภายใน ${rules.pity.rare} ครั้ง และระดับเทพภายใน ${rules.pity.mythic} ครั้ง `
+              + 'ไม่มีการถ่วงน้ำหนักอื่นใด ตัวเลขเหล่านี้คือทั้งหมด',
+          })}
         </Body>
         {/*
           THE TABLE ABOVE IS THE TABLE A PLAYER MEETS, floors and all. This
@@ -161,9 +174,14 @@ export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
             + 'The floors lift the rest, and the table above is what the two come to together.'}
         </Body>
         <Body size={13} style={{ color: gameTray.muted }}>
-          {`A duplicate becomes stardust (${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.dustFromDuplicate[r]}`).join(', ')}), `
-            + `and stardust buys any spirit outright (${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.dustToForge[r]}`).join(', ')}) — `
-            + 'so nothing in the collection is behind luck alone.'}
+          {t({
+            en: `A duplicate becomes stardust (${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.dustFromDuplicate[r]}`).join(', ')}), `
+              + `and stardust buys any spirit outright (${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.dustToForge[r]}`).join(', ')}) — `
+              + 'so nothing in the collection is behind luck alone.',
+            th: `ตัวซ้ำจะกลายเป็นผงดาว (${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.dustFromDuplicate[r]}`).join(', ')}) `
+              + `และผงดาวใช้แลกภูตตัวใดก็ได้โดยตรง (${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.dustToForge[r]}`).join(', ')}) — `
+              + 'จึงไม่มีอะไรในคอลเลกชันที่ขึ้นกับโชคเพียงอย่างเดียว',
+          })}
         </Body>
       </View>
     </Tray>
@@ -188,7 +206,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
     guide.reload();
   }, [state, guide]);
 
-  if (state.loading && !state.data) return <LoadingState label="The summoning" />;
+  if (state.loading && !state.data) return <LoadingState label={t({ en: 'The summoning', th: 'การอัญเชิญ' })} />;
   if (state.error && !state.data) return <ErrorState message={state.error} onRetry={state.reload} />;
   const s = state.data!;
 
@@ -203,11 +221,11 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
         }}
       >
         <OceanBackdrop compact />
-        <IconButton inverted onPress={onBack} accessibilityLabel="Back">
+        <IconButton inverted onPress={onBack} accessibilityLabel={t(strings.common.back)}>
           <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2} />
         </IconButton>
         <View style={{ flex: 1 }}>
-          <Heading size={20} tracking={-0.3} colour="#FFFFFF">The Summoning</Heading>
+          <Heading size={20} tracking={-0.3} colour="#FFFFFF">{t({ en: 'The Summoning', th: 'การอัญเชิญ' })}</Heading>
         </View>
       </View>
 
@@ -217,15 +235,19 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Heading size={30} colour={color.gold}>{s.charms.available}</Heading>
             <View style={{ flex: 1 }}>
-              <TrayLine>{s.charms.available === 1 ? 'charm' : 'charms'}</TrayLine>
+              <TrayLine>{t({ en: s.charms.available === 1 ? 'charm' : 'charms', th: 'เครื่องราง' })}</TrayLine>
               <Label size={10} tracking={0.06} colour={gameTray.muted}>
-                {`${s.charms.verifiedQuests} verified quest${s.charms.verifiedQuests === 1 ? '' : 's'}`
-                  + ` · ${s.charms.checkinDays} day${s.charms.checkinDays === 1 ? '' : 's'} with a check-in`}
+                {t({
+                  en: `${s.charms.verifiedQuests} verified quest${s.charms.verifiedQuests === 1 ? '' : 's'}`
+                    + ` · ${s.charms.checkinDays} day${s.charms.checkinDays === 1 ? '' : 's'} with a check-in`,
+                  th: `ภารกิจที่ผ่านการตรวจ ${s.charms.verifiedQuests} รายการ`
+                    + ` · เช็กอิน ${s.charms.checkinDays} วัน`,
+                })}
               </Label>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Heading size={18} colour={gameTray.text}>{s.dust}</Heading>
-              <Label size={9} tracking={0.1} colour={gameTray.muted}>stardust</Label>
+              <Label size={9} tracking={0.1} colour={gameTray.muted}>{t({ en: 'stardust', th: 'ผงดาว' })}</Label>
             </View>
           </View>
           <Body size={13} style={{ color: gameTray.text }}>{t(s.rules.notice)}</Body>
@@ -251,13 +273,17 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
       {/* How far each floor is. Printed because it is published. */}
       <Tray style={{ marginHorizontal: gutter, marginTop: 12, borderRadius: gameRadius.panel }}>
         <View style={{ gap: 8 }}>
-          <TrayLine>{`Collected ${s.collected} of ${s.total}`}</TrayLine>
+          <TrayLine>{t({ en: `Collected ${s.collected} of ${s.total}`, th: `สะสมแล้ว ${s.collected} จาก ${s.total}` })}</TrayLine>
           <View style={{ flexDirection: 'row' }}>
             <GameBar pct={(s.collected / s.total) * 100} height={10} />
           </View>
           <Label size={10} tracking={0.06} colour={gameTray.muted}>
-            {`A rare is guaranteed in ${Math.max(0, s.rules.pity.rare - s.pity.sinceRare)}`
-              + ` · a mythic in ${Math.max(0, s.rules.pity.mythic - s.pity.sinceMythic)}`}
+            {t({
+              en: `A rare is guaranteed in ${Math.max(0, s.rules.pity.rare - s.pity.sinceRare)}`
+                + ` · a mythic in ${Math.max(0, s.rules.pity.mythic - s.pity.sinceMythic)}`,
+              th: `รับประกันระดับหายากในอีก ${Math.max(0, s.rules.pity.rare - s.pity.sinceRare)} ครั้ง`
+                + ` · ระดับเทพในอีก ${Math.max(0, s.rules.pity.mythic - s.pity.sinceMythic)} ครั้ง`,
+            })}
           </Label>
         </View>
       </Tray>
@@ -267,7 +293,10 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
       {/* The commitment, in full. It is the whole claim this screen makes. */}
       <View style={{ paddingHorizontal: gutter, paddingTop: 12 }}>
         <Label size={9} tracking={0.1} colour={color.neutral600}>
-          {`Seed commitment ${s.epoch.commitment.slice(0, 16)}… published ${new Date(s.epoch.openedAt).toLocaleDateString()}`}
+          {t({
+            en: `Seed commitment ${s.epoch.commitment.slice(0, 16)}… published ${openedOn(s.epoch.openedAt)}`,
+            th: `ลายนิ้วมือเมล็ดสุ่ม ${s.epoch.commitment.slice(0, 16)}… ประกาศเมื่อ ${openedOn(s.epoch.openedAt)}`,
+          })}
         </Label>
         {/*
           "Within N hours", not "when this round closes". The old wording was
@@ -276,14 +305,18 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
           was never published and no receipt could be checked (docs/68).
         */}
         <Body size={13} style={{ color: color.neutral600, paddingTop: 4 }}>
-          {'Every roll is computed from a seed whose fingerprint was published before any of them '
-            + `were made. This round closes within ${s.rules.epochHours} hours; the seed is published then, `
-            + 'and anybody — not only you — can recompute any summon from its receipt.'}
+          {t({
+            en: 'Every roll is computed from a seed whose fingerprint was published before any of them '
+              + 'were made. When this round closes the seed is published too, and any summon can be '
+              + 'recomputed from its receipt.',
+            th: 'ทุกการสุ่มคำนวณจากเมล็ดสุ่มที่ประกาศลายนิ้วมือไว้ก่อนการสุ่มทั้งหมด '
+              + 'เมื่อรอบนี้ปิด เมล็ดสุ่มจะถูกประกาศด้วย และทุกการอัญเชิญสามารถคำนวณซ้ำได้จากใบรับ',
+          })}
         </Body>
       </View>
 
       <View style={{ paddingHorizontal: gutter, paddingTop: 20, paddingBottom: 8 }}>
-        <Heading size={16}>The guide</Heading>
+        <Heading size={16}>{t({ en: 'The guide', th: 'สมุดภูต' })}</Heading>
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: gutter, paddingBottom: 32 }}>
         {(guide.data?.spirits ?? []).map((card) => <SpiritCardView key={card.key} card={card} />)}
@@ -314,12 +347,17 @@ function Outcome({ result }: { result: SummonResult }) {
         <Body size={13} style={{ color: color.neutral800 }}>{t(result.spirit.lore)}</Body>
         {result.byPity ? (
           <Label size={9} tracking={0.1} colour={color.neutral600}>
-            {result.byPity === 'mythic' ? 'The mythic floor' : 'The rare floor'}
+            {result.byPity === 'mythic'
+              ? t({ en: 'The mythic floor', th: 'เพดานรับประกันระดับเทพ' })
+              : t({ en: 'The rare floor', th: 'เพดานรับประกันระดับหายาก' })}
           </Label>
         ) : null}
         {result.duplicate ? (
           <Label size={10} tracking={0.06} colour={color.neutral700} style={{ textTransform: 'none' }}>
-            {`Already yours — it became ${result.dustGained} stardust.`}
+            {t({
+              en: `Already yours — it became ${result.dustGained} stardust.`,
+              th: `คุณมีอยู่แล้ว — แปลงเป็นผงดาว ${result.dustGained} หน่วย`,
+            })}
           </Label>
         ) : null}
       </View>
