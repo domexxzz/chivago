@@ -23,6 +23,7 @@ import {
 } from '@chivago/core';
 import snapshot from './fixtures.json';
 import { createInquiryDesk, type DeskAnswer } from './inquiries.ts';
+import { demoCourts } from './courts.ts';
 import { demoStalls } from './stalls.ts';
 import { createSummoning } from './summoning.ts';
 
@@ -539,6 +540,9 @@ export function installDemoServer(apiBase: string): void {
       // The stalls that take orders ahead: answered, never replayed (demo/stalls.ts).
       const stallsAt = /^\/places\/([^/]+)\/stalls$/.exec(path);
       if (stallsAt) return answer(demoStalls(stallsAt[1]!));
+      // The courts free at a venue: answered, never replayed (demo/courts.ts).
+      const courtsAt = /^\/places\/([^/]+)\/courts$/.exec(path);
+      if (courtsAt) return answer(demoCourts(courtsAt[1]!));
       if (path === '/checkins/today') return answer(state.checkins);
       if (path === '/medals') {
         // The same rules the server runs, over the captured check-ins plus

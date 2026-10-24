@@ -15,7 +15,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image, Linking, Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { ExternalLink, MapPin, X } from 'lucide-react-native';
 import {
-  areaByKey, areaOfPlace, findProvince, isBookingLink, newlyEarned, stallSourceFor, strings,
+  areaByKey, areaOfPlace, courtSourceFor, findProvince, isBookingLink, newlyEarned, stallSourceFor, strings,
   type MedalState, type MedalsView, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
@@ -35,6 +35,7 @@ import { AirHistoryCard, HereNow } from '../components/PlaceLive.tsx';
 import { GettingThere } from '../components/GettingThere.tsx';
 import { StoriesBlock } from '../components/Stories.tsx';
 import { StallsCard } from '../components/Stalls.tsx';
+import { CourtsCard } from '../components/Courts.tsx';
 
 /*
   WHERE THE SECOND COLUMN STARTS, and why it is this number.
@@ -295,6 +296,14 @@ export function PlaceScreen({
 
   const actionsBlock = place.data ? (
     <>
+      {/*
+        How many courts are free, directly above the way to book one: the two
+        answer the same question in order - is it worth going, and how do I
+        reserve. Asked for only where a place has a court service, so every
+        other place screen makes no extra request.
+      */}
+      {courtSourceFor(place.data.id) ? <CourtsCard placeId={place.data.id} /> : null}
+
       {/* The API checked this link; it is checked again here before a tap can take anyone anywhere. */}
       {isBookingLink(place.data.bookingUrl) ? (
         <Button
