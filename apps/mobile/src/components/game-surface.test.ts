@@ -102,6 +102,7 @@ const EVIDENCE_LAYER: Record<string, string> = {
   */
   'Onboarding.tsx': 'permission choices are consent, not play',
   'LoginScreen.tsx': 'authentication and credentials are not play',
+  'RegisterScreen.tsx': 'registration and consent are not play',
 };
 
 const imports = (file: string): string => {
