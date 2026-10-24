@@ -50,7 +50,8 @@
  */
 
 import {
-  DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, RARE_PITY, RARITIES, RARITY_PERCENT,
+  DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, RARE_PITY, RARITIES,
+  RARITY_EFFECTIVE_PERCENT, RARITY_EFFECTIVE_WEIGHT, RARITY_PERCENT,
   RARITY_WEIGHT, SPIRITS, WEIGHT_TOTAL, advancePity, drawSpirit,
   type PityState, type SpiritRarity,
 } from '@chivago/core';
@@ -74,7 +75,7 @@ const USER = 'demo-user';
 export type SummonAnswer<T> = { ok: true; value: T } | { ok: false; code: string; error: string };
 
 /**
- * The two numbers and the one sentence in the published table that do NOT
+ * The three numbers and the one sentence in the published table that do NOT
  * live in core.
  *
  * `publishedRules()` in apps/api/src/summon-service.ts is where they belong -
@@ -87,15 +88,37 @@ export type SummonAnswer<T> = { ok: true; value: T } | { ok: false; code: string
  */
 const CHARM_PER_VERIFIED_QUEST = 1;
 const CHARM_PER_CHECKIN_DAY = 1;
+/* `EPOCH_HOURS`, repeated for the same reason: the rotation that publishes a
+   seed runs against the database, so the constant lives with it. The demo
+   never rotates - a reload is a new seed - but the screen prints this number
+   in the sentence about when the seed comes out, and an undefined there is a
+   blank at the pitch. */
+const EPOCH_HOURS = 24;
 
 const PUBLISHED_RULES = {
-  rates: RARITY_PERCENT,
+  /*
+    THE EFFECTIVE TABLE, floors included - what `publishedRules()` serves as
+    `rates`, and what the panel prints under the word "odds".
+
+    This said `RARITY_PERCENT` when it was written, which was the roll band
+    and was right for about an hour: the server changed in the same window
+    (#134) and this file is the demo's copy of a table whose own docstring
+    says the server is right when the two disagree. Neither pull request
+    could see the clash - they touched no file in common, and each was green
+    on its own - so the demo would have printed "Mythic 3%" to a judge while
+    the live app printed 5.01%.
+  */
+  rates: RARITY_EFFECTIVE_PERCENT,
+  effectiveWeights: RARITY_EFFECTIVE_WEIGHT,
+  /* The roll band, under its own name, same as the server. */
+  rollBand: RARITY_PERCENT,
   weights: RARITY_WEIGHT,
   weightTotal: WEIGHT_TOTAL,
   pity: { mythic: MYTHIC_PITY, rare: RARE_PITY },
   dustFromDuplicate: DUST_FROM_DUPLICATE,
   dustToForge: DUST_TO_FORGE,
   charmsFrom: { verifiedQuest: CHARM_PER_VERIFIED_QUEST, checkinDay: CHARM_PER_CHECKIN_DAY },
+  epochHours: EPOCH_HOURS,
   notice: {
     en: 'A summon costs a charm you earned, never money. It yields a spirit and nothing else - no points, no vouchers, no prizes.',
     th: 'การอัญเชิญใช้เครื่องรางที่คุณสะสมเอง ไม่ใช่เงิน และได้เป็นภูตเท่านั้น ไม่มีแต้ม ไม่มีคูปอง ไม่มีของรางวัล',
