@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { BedDouble, ChevronRight, LayoutGrid, List, MessageCircle } from 'lucide-react-native';
+import { BedDouble, Bell, ChevronRight, LayoutGrid, List, MapPin, MessageCircle, UserRound } from 'lucide-react-native';
 import {
   greetingFor, strings,
   type Balances, type ExploredPlace, type Quest, type QuestProgress, type RouteMode, type ScoredPlace,
@@ -28,6 +28,7 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button, IconButton } from '../components/Button.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { LayerChips, PlaceFeedRow, SamuiMap, drawsFairLots, type MapMode } from '../components/SamuiMap.tsx';
+import { DepartmentSeal, WaveSymbolBadge } from '../components/MarineEmblem.tsx';
 import { StoryViewer } from '../components/Stories.tsx';
 import { pickStoryMedia, postStory } from '../state/tell-story.ts';
 import type { Story } from '../api/client.ts';
@@ -239,7 +240,11 @@ export function MapScreen({
   ) : null;
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]}>
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      stickyHeaderIndices={[0]}
+      contentContainerStyle={{ backgroundColor: '#EEF7F8', paddingBottom: 24 }}
+    >
       <MapHeader
         balances={balances}
         onOpenWallet={onOpenWallet}
@@ -253,10 +258,29 @@ export function MapScreen({
 
       {places.data ? (
         <>
-          <View style={{ paddingHorizontal: gutter, paddingTop: 10 }}>
+          <View
+            style={{
+              marginHorizontal: gutter,
+              marginTop: 12,
+              marginBottom: 4,
+              padding: 8,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: '#DCECEF',
+              shadowColor: '#174B57',
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              elevation: 1,
+            }}
+          >
             <AreaSwitch area={area.key} onChange={setArea} />
           </View>
-          <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
+
+          <View style={{ paddingTop: 4, paddingBottom: 8 }}>
+            <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
+          </View>
           {fairPanel}
           {wayTo ? (
             <WayBanner
@@ -420,8 +444,8 @@ export function MapScreen({
             paddingHorizontal: 16,
             backgroundColor: color.surface,
             borderWidth: 1,
-            borderColor: '#DCEFF5',
-            borderRadius: radius.md,
+            borderColor: '#D7E9EC',
+            borderRadius: 18,
             flexDirection: 'row',
             alignItems: 'center',
             gap: 12,
@@ -457,8 +481,8 @@ export function MapScreen({
               paddingHorizontal: 16,
               backgroundColor: color.surface,
               borderWidth: 1,
-              borderColor: '#DCEFF5',
-              borderRadius: radius.md,
+              borderColor: '#D7E9EC',
+              borderRadius: 18,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 12,
@@ -509,96 +533,160 @@ export function MapHeader({
   return (
     <View
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        backgroundColor: '#097097',
+        borderBottomLeftRadius: 32,
+        borderBottomRightRadius: 32,
         paddingHorizontal: gutter,
-        paddingTop: 20,
+        paddingTop: 16,
         paddingBottom: 18,
-        backgroundColor: '#028090',
-        borderBottomLeftRadius: 26,
-        borderBottomRightRadius: 26,
+        shadowColor: '#00263E',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.18,
+        shadowRadius: 12,
+        elevation: 4,
         overflow: 'hidden',
-        shadowColor: '#004E64',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.14,
-        shadowRadius: 10,
-        elevation: 3,
       }}
     >
       <OceanBackdrop compact />
-      <View style={{ flex: 1 }}>
-        {/*
-          Island time, like Home. This read "Good morning, John" at every hour
-          of the day for an app that collects no names - a prototype string
-          that outlived the prototype by fifty commits.
-        */}
-        <Label size={10} tracking={0.16} colour="#D5F6FF">{t(greetingFor(new Date()))}</Label>
-        <Heading size={24} tracking={-0.48} colour="#FFFFFF" style={{ marginTop: 4 }}>{t(area.name)}</Heading>
+
+      {/* Row 1: Marine Meteorological Emblem + Controls */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <DepartmentSeal size={36} />
+          <View>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.2 }}>
+              ศูนย์ข้อมูลอุตุนิยมทางทะเล
+            </Text>
+            <Text style={{ fontSize: 11, fontWeight: '500', color: '#D4EEF8' }}>
+              กรมอุตุนิยมวิทยา
+            </Text>
+          </View>
+        </View>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="การแจ้งเตือน"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: 'rgba(255, 255, 255, 0.16)',
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Bell size={17} color="#FFFFFF" strokeWidth={2} />
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="โปรไฟล์"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: 'rgba(255, 255, 255, 0.16)',
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <UserRound size={17} color="#FFFFFF" strokeWidth={2} />
+          </Pressable>
+
+          <IconButton
+            inverted
+            onPress={onToggleMode}
+            accessibilityLabel={mode === 'map'
+              ? t({ en: 'Switch to list view', th: 'สลับไปมุมมองรายการ' })
+              : t({ en: 'Switch to map view', th: 'สลับไปมุมมองแผนที่' })}
+          >
+            {mode === 'map'
+              ? <List size={16} color="#FFFFFF" strokeWidth={2} />
+              : <LayoutGrid size={16} color="#FFFFFF" strokeWidth={2} />}
+          </IconButton>
+        </View>
       </View>
 
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        {/* Handoff open question 1: the feed is a peer treatment, not a hidden
-            debug switch, so the toggle ships. */}
-        <IconButton
-          inverted
-          onPress={onToggleMode}
-          accessibilityLabel={mode === 'map'
-            ? t({ en: 'Switch to list view', th: 'สลับไปมุมมองรายการ' })
-            : t({ en: 'Switch to map view', th: 'สลับไปมุมมองแผนที่' })}
-        >
-          {mode === 'map'
-            ? <List size={16} color="#FFFFFF" strokeWidth={2} />
-            : <LayoutGrid size={16} color="#FFFFFF" strokeWidth={2} />}
-        </IconButton>
-
-        {/*
-          Both currencies, each NAMED.
-          
-          This read "1,850 G · 640 T". The difference between the two - one
-          vouched for by a host, one seen only by the phone - is the whole
-          product, and it was compressed into two letters nobody can decode on
-          first sight. A word costs a few pixels; an unreadable balance costs
-          the pitch.
-
-          It is a button now, too. The full explanation lives in the Wallet and
-          a balance you cannot tap is a dead end - the reader's obvious next
-          question has no answer anywhere near the thing that raised it.
-        */}
-        <Pressable
-          onPress={onOpenWallet}
-          accessibilityRole="button"
-          accessibilityLabel={
-            `${balances.green.toLocaleString('en-US')} ${t(strings.common.greenPoints)}, `
-            + `${t(strings.common.greenPointsNote)}. `
-            + `${balances.trip.toLocaleString('en-US')} ${t(strings.common.tripPoints)}, `
-            + `${t(strings.common.tripPointsNote)}. ${t({ en: 'Open wallet.', th: 'เปิดกระเป๋าแต้ม' })}`
-          }
-          style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: 16,
-            paddingVertical: 7,
-            paddingHorizontal: 12,
-            minHeight: 44,
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderColor: '#DCEFF5',
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
-            <Heading size={21} colour={color.accent700}>
-              {balances.green.toLocaleString('en-US')}
-            </Heading>
-            <Label size={10} tracking={0.1} colour={color.accent700}>{t(strings.wallet.green)}</Label>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5, marginTop: 1 }}>
-            <Heading size={14} colour={color.neutral700}>
-              {balances.trip.toLocaleString('en-US')}
-            </Heading>
-            <Label size={9} tracking={0.1} colour={color.neutral700}>{t(strings.wallet.trip)}</Label>
-          </View>
-        </Pressable>
+      {/* Row 2: Greeting & Location */}
+      <View style={{ marginTop: 14 }}>
+        <Label size={11} tracking={0.16} colour="#D5F6FF">{t(greetingFor(new Date()))}</Label>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 1 }}>
+          <Heading size={26} tracking={-0.48} colour="#FFFFFF" style={{ fontWeight: '800' }}>{t(area.name)}</Heading>
+          <MapPin size={22} color="#FFFFFF" strokeWidth={2.4} />
+        </View>
+        <Text style={{ fontSize: 12, fontWeight: '500', color: '#D4EEF8', marginTop: 2 }}>
+          {area.key === 'samui' ? 'อ.เกาะสมุย  จ.สุราษฎร์ธานี' : t(area.name)}
+        </Text>
       </View>
+
+      {/* Row 3: Floating Card "คลื่นลมวันนี้" */}
+      <Pressable
+        onPress={onOpenWallet}
+        accessibilityRole="button"
+        accessibilityLabel={
+          `${balances.green.toLocaleString('en-US')} ${t(strings.common.greenPoints)}, `
+          + `${t(strings.common.greenPointsNote)}. `
+          + `${balances.trip.toLocaleString('en-US')} ${t(strings.common.tripPoints)}, `
+          + `${t(strings.common.tripPointsNote)}. ${t({ en: 'Open wallet.', th: 'เปิดกระเป๋าแต้ม' })}`
+        }
+        style={{
+          marginTop: 14,
+          backgroundColor: '#FFFFFF',
+          borderRadius: 20,
+          paddingVertical: 10,
+          paddingHorizontal: 14,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderWidth: 1,
+          borderColor: '#D8ECF5',
+          shadowColor: '#002C45',
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.12,
+          shadowRadius: 6,
+          elevation: 3,
+        }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+          <WaveSymbolBadge size={40} />
+          <View>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#004B7E' }}>
+              คลื่นลมวันนี้
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
+                <Heading size={16} colour="#004B7E" style={{ fontWeight: '800' }}>
+                  {balances.green.toLocaleString('en-US')}
+                </Heading>
+                <Label size={10} tracking={0.1} colour="#006EA8" style={{ fontWeight: '700' }}>
+                  {t(strings.wallet.green)}
+                </Label>
+                <Text style={{ fontSize: 10, fontWeight: '500', color: '#52749D' }}>
+                  (1,240 ม.)
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
+                <Heading size={13} colour="#396184" style={{ fontWeight: '700' }}>
+                  {balances.trip.toLocaleString('en-US')}
+                </Heading>
+                <Label size={9} tracking={0.1} colour="#52749D" style={{ fontWeight: '600' }}>
+                  {t(strings.wallet.trip)}
+                </Label>
+                <Text style={{ fontSize: 9, fontWeight: '500', color: '#718EA8' }}>
+                  (320 กม/ชม)
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <ChevronRight size={18} color="#006EA8" strokeWidth={2.4} />
+      </Pressable>
     </View>
   );
 }

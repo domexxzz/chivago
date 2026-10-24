@@ -85,25 +85,23 @@ export function TabBar({
   return (
     <View
       style={floating ? {
-        flexDirection: 'row', height: layout.tabBarHeight + 4,
-        backgroundColor: 'rgba(255,255,255,0.97)',
-        alignSelf: 'center', width: 520, maxWidth: '92%',
-        marginBottom: 18, borderRadius: 26,
-        borderWidth: layout.ruleHair, borderColor: '#DCEFF5',
-        shadowColor: '#0077B6', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 20, elevation: 8,
+        flexDirection: 'row', height: layout.tabBarHeight + 6,
+        backgroundColor: '#FFFFFF',
+        alignSelf: 'center', width: 540, maxWidth: '94%',
+        marginBottom: 18, borderRadius: 28,
+        borderWidth: layout.ruleHair, borderColor: '#D4E0EC',
+        shadowColor: '#005BBB', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 8,
       } : {
-        flexDirection: 'row', height: layout.tabBarHeight + 4, backgroundColor: 'rgba(255,255,255,0.96)',
-        borderTopWidth: layout.ruleHair, borderTopColor: '#DCEFF5',
-        borderTopLeftRadius: 20, borderTopRightRadius: 20,
-        shadowColor: '#0077B6', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.06, shadowRadius: 14, elevation: 5,
+        flexDirection: 'row', height: layout.tabBarHeight + 8, backgroundColor: '#FFFFFF',
+        borderTopWidth: layout.ruleHair, borderTopColor: '#D4E0EC',
+        borderTopLeftRadius: 27, borderTopRightRadius: 27,
+        shadowColor: '#005BBB', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 6,
       }}
     >
       {TAB_ORDER.map((key) => {
         const isActive = key === active;
         const Icon = TAB_ICONS[key];
-        // The active tab is the brand speaking, on the white bar; the rest
-        // are quiet. No filled block: the reference's bar is icons on white.
-        const fg = isActive ? '#0077B6' : '#48616F';
+        const fg = isActive ? '#005BBB' : '#52749D';
         return (
           <Pressable
             key={key}
@@ -115,12 +113,15 @@ export function TabBar({
               flex: 1,
               alignItems: 'center',
               justifyContent: 'center',
-              gap: layout.tabLabelGap,
+              paddingTop: 6,
+              gap: 3,
             }}
           >
-            <Icon size={layout.tabIconSize + 2} color={fg} strokeWidth={isActive ? 2.4 : 2} />
-            <Label size={9} tracking={0.1} colour={fg}>{t(strings.tabs[key])}</Label>
-            <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: isActive ? '#00B4D8' : 'transparent' }} />
+            <Icon size={layout.tabIconSize + 2} color={fg} strokeWidth={isActive ? 2.3 : 1.9} />
+            <Label size={10} tracking={0.06} colour={fg} style={{ fontWeight: isActive ? '700' : '500' }}>
+              {t(strings.tabs[key])}
+            </Label>
+            <View style={{ width: 32, height: 3.5, borderRadius: 2, backgroundColor: isActive ? '#005EB9' : 'transparent', marginTop: 2 }} />
           </Pressable>
         );
       })}
