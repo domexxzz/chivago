@@ -1,10 +1,14 @@
 import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
-import { RARITIES, SPIRITS, type SpiritRarity } from '@chivago/core';
+import {
+  DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, RARE_PITY, RARITIES,
+  RARITY_EFFECTIVE_PERCENT, RARITY_EFFECTIVE_WEIGHT, RARITY_PERCENT, RARITY_WEIGHT,
+  SPIRITS, WEIGHT_TOTAL, type SpiritRarity,
+} from '@chivago/core';
 import { MascotMark } from '../src/components/MascotMark.tsx';
-import { SpiritCardView } from '../src/screens/SummonScreen.tsx';
-import type { SpiritCard } from '../src/api/client.ts';
+import { RulesPanel, SpiritCardView } from '../src/screens/SummonScreen.tsx';
+import type { SpiritCard, SummonState } from '../src/api/client.ts';
 import { h, html, labels } from './render.ts';
 
 /**
@@ -71,5 +75,61 @@ describe('a card says nothing before it has been met', () => {
       assert.doesNotThrow(() => html(h(SpiritCardView, { card: met(one.key) })), `${rarity} threw`);
       assert.doesNotThrow(() => html(h(SpiritCardView, { card: card({ rarity, held: 0 }) })), `unmet ${rarity} threw`);
     }
+  });
+});
+
+describe('the odds the screen prints are the odds a player meets', () => {
+  /*
+    The panel used to print the ROLL BAND under the word "odds" - 3% mythic,
+    against about 5% once the floors are counted (docs/68). The server now
+    sends both, `rates` being the one a player meets, and this holds the
+    screen to printing that one.
+
+    Rendered, not inspected: the number has to reach the text a thumb is
+    held over, and a test that read `rules.rates` straight back would have
+    passed on the old screen too.
+  */
+  const rules = (): SummonState['rules'] => ({
+    rates: RARITY_EFFECTIVE_PERCENT,
+    effectiveWeights: RARITY_EFFECTIVE_WEIGHT,
+    rollBand: RARITY_PERCENT,
+    weights: RARITY_WEIGHT,
+    weightTotal: WEIGHT_TOTAL,
+    pity: { mythic: MYTHIC_PITY, rare: RARE_PITY },
+    dustFromDuplicate: DUST_FROM_DUPLICATE,
+    dustToForge: DUST_TO_FORGE,
+    charmsFrom: { verifiedQuest: 1, checkinDay: 1 },
+    epochHours: 24,
+    notice: { en: 'x', th: 'x' },
+  });
+
+  test('every rarity shows its effective rate, floors included', () => {
+    const out = html(h(RulesPanel, { rules: rules() }));
+    for (const r of RARITIES) {
+      assert.ok(
+        out.includes(`${RARITY_EFFECTIVE_PERCENT[r]}%`),
+        `${r}: the panel does not print its effective rate (${RARITY_EFFECTIVE_PERCENT[r]}%)`,
+      );
+    }
+    assert.ok(out.includes('5.01%'), 'the mythic rate on screen is not the one a player meets');
+    assert.ok(/floors included/i.test(out), 'the heading does not say the floors are in the table');
+  });
+
+  test('the roll band is printed too, and labelled as one roll', () => {
+    const out = html(h(RulesPanel, { rules: rules() }));
+    assert.ok(/One roll on its own/i.test(out), 'the roll band is not named on the screen');
+    for (const r of RARITIES) {
+      assert.ok(out.includes(`${RARITY_PERCENT[r]}%`), `${r}: the roll band is missing from the panel`);
+    }
+  });
+
+  test('a mythic reads higher than its roll band, which is the whole correction', () => {
+    const out = html(h(RulesPanel, { rules: rules() }));
+    const shown = out.match(/(\d+(?:\.\d+)?)%/g) ?? [];
+    assert.ok(shown.includes('5.01%') && shown.includes('3%'), `both mythic numbers should be on screen: ${shown.join(' ')}`);
+    assert.ok(
+      RARITY_EFFECTIVE_PERCENT.mythic > RARITY_PERCENT.mythic,
+      'if these are ever equal the floors stopped working, not the screen',
+    );
   });
 });

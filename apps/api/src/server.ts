@@ -100,7 +100,7 @@ import { onPrimary } from './primary.ts';
 import { MAX_BYTES, MAX_PHOTOS_PER_PROOF, storePhoto, UnsupportedUpload } from './uploads.ts';
 import { FFMPEG, transcoderAvailable } from './transcode.ts';
 import {
-  collectionFor, forge, historyFor, summon, summonState, verifySummon,
+  collectionFor, forge, historyFor, rotateEpochs, summon, summonState, verifySummon,
 } from './summon-service.ts';
 import {
   assistConfig, ffmpegPrepare, requestAssist, staleAssists, type AssistDeps,
@@ -152,6 +152,33 @@ const storyTimer = setInterval(onPrimary(() => {
   try { expireStories(db); } catch (e) { console.error('[chivago] story expiry:', (e as Error).message); }
 }), 3_600_000);
 storyTimer.unref();
+
+/*
+  The summoning's seed reveal (docs/68).
+
+  An epoch's commitment is published the second it opens, and the SEED - the
+  thing that makes every roll under it recomputable by a stranger - is only
+  handed out once the epoch closes. Nothing closed one. `closeEpoch` was
+  written, tested and never called by the running product, so every receipt
+  answered "this epoch is still open" forever and the one promise the mechanic
+  is built on could not be kept.
+
+  Hourly, on the primary, and logged: a reveal is a thing we want to be able
+  to point at afterwards. `summon` rotates too, so a server restarted every
+  hour still reveals.
+*/
+const epochTimer = setInterval(onPrimary(() => {
+  try {
+    for (const closed of rotateEpochs(db)) {
+      console.log(`[chivago] summon epoch ${closed.id} closed; its seed is now published`);
+    }
+  } catch (err) {
+    // Swallowed like the other sweeps. A throw here must not take the
+    // process down, and the next tick tries again an hour later.
+    console.error('[chivago] epoch rotation failed', (err as Error).message);
+  }
+}), 3_600_000);
+epochTimer.unref();
 
 const slaTimer = setInterval(onPrimary(() => {
   try {
@@ -527,6 +554,17 @@ function openIdentityAllowed(): boolean {
  */
 const PUBLIC_PREFIXES = [
   '/console', '/sos/live/', '/verify/', '/statements/', '/stories/', '/areas/', '/board/',
+  /*
+    A summon receipt is checkable BY A STRANGER or it is not checkable at all
+    (docs/68). The route said "public, deliberately" in a comment above it and
+    was not in this list, so `/verify/` matched and `/summon/verify/` did not:
+    the moment one device registered, anybody holding a receipt got a 401 and
+    the promise was only true on an empty database.
+
+    It reads one summon row and recomputes an HMAC from a seed that is already
+    published. There is nothing here a traveller account is needed for.
+  */
+  '/summon/verify/',
   // `/assets/` is Metro's bundle output - the fonts and the JavaScript.
   // `/media/` is the repository's own photographs and illustrations, which
   // moved off `/assets/` because Metro's dev server shadows that prefix and

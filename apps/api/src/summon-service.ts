@@ -31,7 +31,8 @@
 
 import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import {
-  DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, RARE_PITY, RARITIES, RARITY_PERCENT,
+  DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, RARE_PITY, RARITIES,
+  RARITY_EFFECTIVE_PERCENT, RARITY_EFFECTIVE_WEIGHT, RARITY_PERCENT,
   RARITY_WEIGHT, SPIRITS, WEIGHT_TOTAL, advancePity, drawSpirit, islandDateKey, spiritFor,
   type PityState, type Spirit, type SpiritRarity,
 } from '@chivago/core';
@@ -130,6 +131,47 @@ export function closeEpoch(db: DB, epochId: string, now = new Date()): Epoch | n
   db.prepare('UPDATE summon_epochs SET closed_at = ? WHERE id = ? AND closed_at IS NULL').run(now.toISOString(), epochId);
   const r = row<EpochRow>(db.prepare('SELECT id, commitment, seed, opened_at, closed_at FROM summon_epochs WHERE id = ?').get(epochId));
   return r ? toEpoch(r) : null;
+}
+
+/**
+ * How long an epoch stays open before its seed is published.
+ *
+ * Twenty-four hours is a compromise between two things that pull apart. An
+ * epoch that never closes is a commitment nobody can ever check, which is
+ * what this mechanic had until now - `closeEpoch` existed and nothing in the
+ * running product called it, so `GET /summon/verify/:id` answered "still
+ * open" forever and the promise in docs/68 was unkeepable. An epoch that
+ * closes every hour publishes a seed while somebody is mid-session, and a
+ * player who reads it can compute their next nine outcomes and wait for the
+ * good one.
+ *
+ * A day means yesterday's rolls are all checkable, today's are all committed,
+ * and nobody has to be told to trust us about either.
+ */
+export const EPOCH_HOURS = 24;
+
+/**
+ * Close any epoch that has outlived the window, which is what publishes its
+ * seed. The next summon opens a fresh one by itself.
+ *
+ * Called from the hourly tick on the primary, and again at the top of
+ * `summon` - belt and braces on purpose. The tick alone would leave a server
+ * that was restarted every hour never rotating; the summon alone would leave
+ * a quiet week's rolls uncheckable until somebody happened to pull again.
+ *
+ * Returns the epochs it closed, so the caller can say so in a log.
+ */
+export function rotateEpochs(db: DB, now = new Date()): Epoch[] {
+  const cutoff = new Date(now.getTime() - EPOCH_HOURS * 3_600_000).toISOString();
+  const stale = rows<EpochRow>(
+    db.prepare(
+      'SELECT id, commitment, seed, opened_at, closed_at FROM summon_epochs WHERE closed_at IS NULL AND opened_at <= ?',
+    ).all(cutoff),
+  );
+  return stale.flatMap((e) => {
+    const closed = closeEpoch(db, e.id, now);
+    return closed ? [closed] : [];
+  });
 }
 
 /**
@@ -305,6 +347,10 @@ export function summon(db: DB, userId: string, now = new Date()): SummonResult {
     const charms = charmsFor(db, userId);
     if (charms.available < 1) throw new NoCharms(charms.earned, charms.spent);
 
+    // Inside the transaction, before the epoch is read: a rotation that
+    // happened half a statement later would hand this summon a seed that is
+    // already published, which is the one thing the commitment forbids.
+    rotateEpochs(db, now);
     const epoch = currentEpoch(db, now);
     const nonce = (row<{ n: number }>(
       db.prepare("SELECT COALESCE(MAX(nonce), 0) AS n FROM summons WHERE user_id = ? AND epoch_id = ? AND source = 'summon'")
@@ -398,10 +444,26 @@ export function forge(db: DB, userId: string, spiritKey: string, now = new Date(
  * outcome is absent from it.
  */
 export const publishedRules = () => ({
-  rates: RARITY_PERCENT,
+  /*
+    THE RATES A PLAYER MEETS, floors included. `rates` is the field the app
+    prints under the word "rate", so it has to be the number that actually
+    happens - it used to be the roll band, which reads as a promise of 3%
+    mythic against about 5% in play (docs/68).
+  */
+  rates: RARITY_EFFECTIVE_PERCENT,
+  effectiveWeights: RARITY_EFFECTIVE_WEIGHT,
+  /*
+    The roll band, kept and named for what it is: what one roll is compared
+    against before a floor can lift it. A stranger recomputing a receipt
+    needs this one, not the table above.
+  */
+  rollBand: RARITY_PERCENT,
   weights: RARITY_WEIGHT,
   weightTotal: WEIGHT_TOTAL,
   pity: { mythic: MYTHIC_PITY, rare: RARE_PITY },
+  /* When the seed behind today's rolls is published, so the wait is a number
+     rather than "sometime". */
+  epochHours: EPOCH_HOURS,
   dustFromDuplicate: DUST_FROM_DUPLICATE,
   dustToForge: DUST_TO_FORGE,
   charmsFrom: { verifiedQuest: CHARM_PER_VERIFIED_QUEST, checkinDay: CHARM_PER_CHECKIN_DAY },
