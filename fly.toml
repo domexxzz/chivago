@@ -40,8 +40,16 @@ primary_region = "sin"
   # needs no cross-origin grant at all, and a wildcard on a deployment with a
   # host console behind it is a wildcard on the console too.
   CHIVAGO_ORIGINS = "https://chivargo.com,https://www.chivargo.com,https://chivago.fly.dev"
-  # THE GEOFENCE IS CLOSED. Opened 9 September for testing, shut again on the
-  # 10th, the day before the pitch.
+  # THE GEOFENCE IS OPEN. Opened 24 October at the owner's request, so a
+  # check-in can be made from anywhere. Previously: opened 9 September for
+  # testing, shut on the 10th, the day before the pitch.
+  #
+  # WHAT THIS COSTS, said plainly. Presence is no longer checked at all -
+  # distance, accuracy, mock-location and implied-travel checks all stop. A
+  # check-in, a quest arrival and a story can be recorded by anybody from
+  # anywhere, so no row created while this is on is evidence that a person
+  # was ever at the place. Green Points earned under it rest on the host who
+  # passed the proof and on nothing else.
   #
   # Closing it is what takes the red band off the top of the app: the band is
   # not decoration, it is the second half of the switch (apps/api/src/fence.ts
@@ -62,7 +70,9 @@ primary_region = "sin"
   # It WAS reopened, by accident: the line rode in on 11 September inside a
   # commit about animating cards (9834451), under this paragraph saying the
   # opposite, and production ran with the fence open until 22 October.
-  # Shut again then. A switch this important belongs in a commit of its own.
+  # Shut again then. A switch this important belongs in a commit of its own,
+  # which is what this one is: nothing else rides with it.
+  CHIVAGO_FENCE_OFF = "1"
   # No opening balance in production. The pilot's 320 Trip / 1,240 Green is a
   # gift to try the app with, and a gift handed to every unauthenticated
   # registration is a voucher printer. Green in particular is the currency an
