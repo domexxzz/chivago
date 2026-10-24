@@ -3,11 +3,14 @@ import { test, describe, beforeEach } from 'node:test';
 
 import { openTestDb, type DB } from './db.ts';
 import {
-  AlreadyHave, NoCharms, NotEnoughDust, UnknownSpirit, charmsFor, closeEpoch, collectionFor,
-  commitmentOf, currentEpoch, dustFor, forge, heldBy, historyFor, pityFor, publicEpoch,
-  publishedRules, rollFor, summon, summonState, verifySummon,
+  AlreadyHave, EPOCH_HOURS, NoCharms, NotEnoughDust, UnknownSpirit, charmsFor, closeEpoch,
+  collectionFor, commitmentOf, currentEpoch, dustFor, forge, heldBy, historyFor, pityFor,
+  publicEpoch, publishedRules, rollFor, rotateEpochs, summon, summonState, verifySummon,
 } from './summon-service.ts';
-import { DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, SPIRITS, spiritFor } from '@chivago/core';
+import {
+  DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, RARITIES, RARITY_EFFECTIVE_PERCENT,
+  RARITY_PERCENT, SPIRITS, spiritFor,
+} from '@chivago/core';
 
 let db: DB;
 const T = new Date('2026-10-23T03:00:00.000Z');
@@ -149,6 +152,32 @@ describe('a summon yields a spirit and NOTHING else', () => {
     assert.match(notice.en, /no points, no vouchers, no prizes/i);
     assert.match(notice.th, /[฀-๿]/);
   });
+
+  /*
+    `rates` is the field the app prints under the word "odds". It used to be
+    the roll band, which is not what a player meets: the floors lift rare and
+    mythic a long way above it. This test is the one that has to be deleted to
+    put the old number back on the screen.
+  */
+  test('the rates served are the ones a player meets, not the roll band', () => {
+    const rules = publishedRules();
+    assert.deepEqual(rules.rates, RARITY_EFFECTIVE_PERCENT);
+    assert.notDeepEqual(rules.rates, RARITY_PERCENT, 'the published rate is the pre-floor band again');
+    assert.ok(rules.rates.mythic > RARITY_PERCENT.mythic);
+    assert.ok(rules.rates.rare > RARITY_PERCENT.rare);
+  });
+
+  test('the roll band is still published, because a verifier needs it', () => {
+    const rules = publishedRules();
+    assert.deepEqual(rules.rollBand, RARITY_PERCENT);
+    assert.equal(RARITIES.reduce((n, r) => n + rules.rollBand[r], 0), 100);
+    assert.equal(RARITIES.reduce((n, r) => n + rules.effectiveWeights[r], 0), rules.weightTotal);
+  });
+
+  test('the rules say when the seed behind them is published', () => {
+    assert.equal(publishedRules().epochHours, EPOCH_HOURS);
+    assert.ok(EPOCH_HOURS > 0, 'an epoch that never closes is a commitment nobody can check');
+  });
 });
 
 describe('the commit-reveal', () => {
@@ -167,6 +196,68 @@ describe('the commit-reveal', () => {
     const second = currentEpoch(db, later(3));
     assert.notEqual(second.id, first.id);
     assert.notEqual(second.commitment, first.commitment);
+  });
+
+  /*
+    The rotation. `closeEpoch` existed and was tested from the beginning, and
+    NOTHING IN THE RUNNING PRODUCT CALLED IT - so no seed was ever published,
+    `verifySummon` answered "still open" forever, and the commit-reveal was a
+    promise the server could not keep. These tests are about the calling, not
+    the closing.
+  */
+  const hours = (n: number) => new Date(T.getTime() + n * 3_600_000);
+
+  test('an epoch younger than the window is left alone', () => {
+    const live = currentEpoch(db, T);
+    assert.deepEqual(rotateEpochs(db, hours(EPOCH_HOURS - 1)), [], 'a live epoch was closed early');
+    assert.equal(publicEpoch(currentEpoch(db, hours(EPOCH_HOURS - 1))).seed, null);
+    assert.equal(currentEpoch(db, hours(EPOCH_HOURS - 1)).id, live.id);
+  });
+
+  test('once the window is up the epoch closes and its seed is published', () => {
+    const live = currentEpoch(db, T);
+    const closed = rotateEpochs(db, hours(EPOCH_HOURS));
+    assert.equal(closed.length, 1);
+    assert.equal(closed[0]!.id, live.id);
+    assert.equal(publicEpoch(closed[0]!).seed, live.seed, 'the seed is still withheld after closing');
+    assert.equal(commitmentOf(closed[0]!.seed!), live.commitment, 'the published seed is not the one committed to');
+  });
+
+  test('rotating is idempotent, and the next summon opens a fresh epoch', () => {
+    const first = currentEpoch(db, T);
+    rotateEpochs(db, hours(EPOCH_HOURS));
+    assert.deepEqual(rotateEpochs(db, hours(EPOCH_HOURS + 1)), [], 'a closed epoch was closed twice');
+    const second = currentEpoch(db, hours(EPOCH_HOURS + 1));
+    assert.notEqual(second.id, first.id);
+    assert.notEqual(second.commitment, first.commitment);
+    assert.equal(second.closedAt, null);
+  });
+
+  test('a summon rotates before it reads the epoch, so no roll uses a published seed', () => {
+    giveCharms('ana', 2);
+    const first = summon(db, 'ana', T);
+    // A day later: the epoch the first summon used is now past the window.
+    const second = summon(db, 'ana', hours(EPOCH_HOURS + 1));
+    assert.notEqual(second.receipt.epochId, first.receipt.epochId, 'the second roll reused a stale epoch');
+
+    const stale = verifySummon(db, first.id);
+    assert.ok(stale.checkable, 'the first summon is still unverifiable after its epoch aged out');
+    assert.ok(stale.matches, stale.detail);
+
+    const fresh = verifySummon(db, second.id);
+    assert.equal(fresh.checkable, false, "the live epoch's seed is out while rolls are still being made");
+  });
+
+  test('a day of rolls all become checkable together, by anybody holding a receipt', () => {
+    giveCharms('ana', 3);
+    const made = [summon(db, 'ana', T), summon(db, 'ana', hours(1)), summon(db, 'ana', hours(2))];
+    for (const s of made) assert.equal(verifySummon(db, s.id).checkable, false);
+    rotateEpochs(db, hours(EPOCH_HOURS));
+    for (const s of made) {
+      const v = verifySummon(db, s.id);
+      assert.ok(v.checkable, `${s.id} is not checkable once the seed is out`);
+      assert.ok(v.matches, v.detail);
+    }
   });
 
   test('a roll is a pure function of the seed, the traveller and the nonce', () => {

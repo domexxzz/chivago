@@ -496,3 +496,41 @@ describe('Hide is immediate on the board', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 });
+
+describe('a summon receipt is checkable by a stranger', () => {
+  /*
+    The commit-reveal's whole point is that somebody who does not trust us,
+    and has no account here, can recompute a roll from a receipt (docs/68).
+    The route was commented "Public, deliberately" and was not in
+    `PUBLIC_PREFIXES` - `/verify/` was there and `/summon/verify/` was not -
+    so from the first registered device onwards a stranger got a 401 and the
+    promise held only on an empty database. A device key exists by now in
+    this file, which is exactly the condition that used to break it.
+  */
+  test('the verify route answers with no key at all', async () => {
+    const res = await app.request('/summon/verify/not-a-real-summon');
+    assert.equal(res.status, 200, 'a stranger holding a receipt is being asked to sign in');
+    const body = await json(res);
+    assert.equal(body.ok, true);
+    assert.equal(body.data.found, false);
+    assert.equal(body.data.checkable, false);
+  });
+
+  test('opening it did not open the rest of the summoning', async () => {
+    // Only the receipt check is public. The state, the collection, the
+    // history and the two writes are a traveller's own.
+    for (const path of ['/summon', '/summon/collection', '/summon/history']) {
+      assert.equal((await app.request(path)).status, 401, `${path} stopped needing a key`);
+    }
+    assert.equal((await app.request('/summon', { method: 'POST' })).status, 401);
+  });
+
+  test('the published rates it serves are the ones with the floors in them', async () => {
+    const body = await json(await app.request('/summon', { headers: auth() }));
+    assert.equal(body.ok, true);
+    const { rates, rollBand } = body.data.rules;
+    assert.ok(rates.mythic > rollBand.mythic, 'the screen is being served the pre-floor band as "rates" again');
+    assert.ok(rates.rare > rollBand.rare);
+    assert.equal(rollBand.mythic, 3, 'the roll band itself moved, which is a different change');
+  });
+});

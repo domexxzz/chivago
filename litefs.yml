@@ -42,9 +42,21 @@ proxy:
   # forwarding and the read-your-writes wait entirely. The bundle is 681 KB
   # and is asked for by everyone at once; making it wait on a transaction
   # position would be the slowest possible way to serve a static file.
+  #
+  # BOTH `/assets/*` AND `/media/*`, and neither is the other's leftover.
+  # `/assets/*` is Metro's own URL namespace - the bundle's chunks and the
+  # five fonts - and `/media/*` is everything in the app's `public/` folder,
+  # which since 23 October is where the place photographs live. They are 80 to
+  # 400 KB each and are now the heaviest static payload the app serves, and
+  # they matched no rule here at all for six weeks: every photograph waited on
+  # a transaction position it had nothing to do with. `PUBLIC_PREFIXES` in
+  # apps/api/src/server.ts lists both for the same reason, and the README in
+  # apps/mobile/public/media/places says why the photographs moved. Tidying
+  # either one away would quietly put the other back behind the proxy.
   passthrough:
     - "/_expo/*"
     - "/assets/*"
+    - "/media/*"
     - "/favicon.ico"
     - "/health"
 
