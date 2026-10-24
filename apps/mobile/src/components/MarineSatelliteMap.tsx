@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ChevronRight, Crosshair, Layers, LocateFixed, Waves } from 'lucide-react-native';
 import { color, radius, shadow } from '../theme/index.ts';
+import { t } from '../i18n/locale.ts';
 import marineSatelliteMap from '../../assets/marine-satellite-map.jpg';
 
 interface StationProps {
@@ -211,7 +212,7 @@ export function MarineSatelliteMapCard({
           textShadowRadius: 3,
         }}
       >
-        เกาะพะงัน
+        {t({ en: 'Koh Phangan', th: 'เกาะพะงัน' })}
       </Text>
 
       <Text
@@ -228,7 +229,7 @@ export function MarineSatelliteMapCard({
           textShadowRadius: 4,
         }}
       >
-        เกาะสมุย
+        {t({ en: 'Koh Samui', th: 'เกาะสมุย' })}
       </Text>
 
       <View style={{ position: 'absolute', bottom: '26%', left: '14%', flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -243,7 +244,7 @@ export function MarineSatelliteMapCard({
             textShadowRadius: 3,
           }}
         >
-          เกาะแตน
+          {t({ en: 'Koh Tan', th: 'เกาะแตน' })}
         </Text>
       </View>
 
@@ -310,7 +311,7 @@ export function MarineSatelliteMapCard({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
             <Waves size={16} color="#0077B6" strokeWidth={2.4} />
             <Text style={{ color: '#102E48', fontSize: 13, fontWeight: '700', letterSpacing: -0.2 }}>
-              ทะเลสมุยตอนบน - เฉลี่ยพื้นที่ 81
+              {t({ en: 'Upper Samui Sea · Avg Zone 81', th: 'ทะเลสมุยตอนบน - เฉลี่ยพื้นที่ 81' })}
             </Text>
           </View>
           <ChevronRight size={16} color="#102E48" strokeWidth={2.2} />
@@ -319,7 +320,7 @@ export function MarineSatelliteMapCard({
         <View style={{ height: 1, backgroundColor: '#A9C7D8', marginVertical: 6, opacity: 0.7 }} />
 
         <Text style={{ color: '#52749D', fontSize: 12, fontWeight: '500', paddingLeft: 24 }}>
-          คลื่นสูง 1.2 - 2.0 ม.  |  ลม 10-20 นอต
+          {t({ en: 'Waves 1.2 - 2.0 m  |  Wind 10-20 kts', th: 'คลื่นสูง 1.2 - 2.0 ม.  |  ลม 10-20 นอต' })}
         </Text>
       </View>
     </View>

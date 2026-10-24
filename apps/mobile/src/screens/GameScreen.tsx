@@ -34,11 +34,12 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import { BookOpen, Map as MapIcon, Medal as MedalIcon, Sparkles, Users } from 'lucide-react-native';
+import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { BookOpen, Map as MapIcon, Medal as MedalIcon, Sparkles, UserRound, Users } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
+import chivagoLogo from '../../assets/chivago-logo.png';
 import {
-  collectionSummary, SPECIES, strings,
+  collectionSummary, greetingFor, SPECIES, strings,
   type Companion, type LayerKey, type Progression, type Species,
 } from '@chivago/core';
 import { gameHabitat, gameRadius, gameShadow } from '@chivago/tokens';
@@ -69,7 +70,7 @@ export function nextUp(companions: Companion[]): Companion | null {
 }
 
 export function GameScreen({
-  onOpenCompanion, onOpenMascots, onOpenSummon, onOpenMedals, onOpenPassport, onOpenParty,
+  onOpenCompanion, onOpenMascots, onOpenSummon, onOpenMedals, onOpenPassport, onOpenParty, onOpenProfile,
 }: {
   onOpenCompanion: (companion: Companion) => void;
   onOpenMascots: () => void;
@@ -77,6 +78,7 @@ export function GameScreen({
   onOpenMedals: () => void;
   onOpenPassport: () => void;
   onOpenParty: () => void;
+  onOpenProfile?: () => void;
 }) {
   const held = useAsync(() => api.companions(), []);
   // Only the progression is read from the wallet. Its balances are the ledger
@@ -89,7 +91,7 @@ export function GameScreen({
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <Header progression={wallet.data?.progression ?? null} />
+      <Header progression={wallet.data?.progression ?? null} onOpenProfile={onOpenProfile} />
       <Doors onOpenMedals={onOpenMedals} onOpenPassport={onOpenPassport} onOpenParty={onOpenParty} />
 
       {held.error ? <ErrorState message={held.error} onRetry={held.reload} /> : null}
@@ -115,22 +117,18 @@ export function GameScreen({
 }
 
 /** The screen's name and the level, which is the game layer's own number. */
-function Header({ progression }: { progression: Progression | null }) {
+function Header({ progression, onOpenProfile }: { progression: Progression | null; onOpenProfile?: () => void }) {
   return (
     <View
       style={{
         paddingHorizontal: gutter,
-        paddingTop: 22,
+        paddingTop: 20,
         paddingBottom: 20,
-        backgroundColor: '#028090',
+        backgroundColor: '#097097',
         borderBottomLeftRadius: 28,
         borderBottomRightRadius: 28,
         overflow: 'hidden',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 12,
-        shadowColor: '#004E64',
+        shadowColor: '#00263E',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.14,
         shadowRadius: 10,
@@ -138,26 +136,59 @@ function Header({ progression }: { progression: Progression | null }) {
       }}
     >
       <OceanBackdrop compact />
-      <View style={{ flex: 1 }}>
-        <Label size={10} tracking={0.16} colour="#D5F6FF">
-          {t({ en: 'ISLAND COMPANIONS', th: 'เพื่อนร่วมทางเกาะสมุย' })}
-        </Label>
-        <Heading size={26} tracking={-0.5} colour="#FFFFFF" style={{ marginTop: 4 }}>
-          {t(strings.tabs.game)}
-        </Heading>
-      </View>
-      {progression ? (
-        <View
-          style={{
-            paddingVertical: 6, paddingHorizontal: 14, borderRadius: radius.lg,
-            backgroundColor: color.goldSoft, borderWidth: 1.5, borderColor: color.gold,
-          }}
-        >
-          <Label size={10} tracking={0.08} colour={color.goldDeep}>
-            {t(strings.profile.levelChip(progression.level, progression.exp))}
-          </Label>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: '#D5F6FF', fontSize: 12, fontWeight: '500', letterSpacing: 1.8, textTransform: 'uppercase' }}>
+            {t(greetingFor(new Date()))}
+          </Text>
+          <Heading size={28} colour="#FFFFFF" style={{ marginTop: 4, fontWeight: '800' }}>
+            {t(strings.tabs.game)}
+          </Heading>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+            <Label size={11} tracking={0.12} colour="#E2F6FC">
+              {t({ en: 'ISLAND COMPANIONS', th: 'เพื่อนร่วมทาง' })}
+            </Label>
+            {progression ? (
+              <View
+                style={{
+                  paddingVertical: 3, paddingHorizontal: 10, borderRadius: radius.lg,
+                  backgroundColor: color.goldSoft, borderWidth: 1, borderColor: color.gold,
+                }}
+              >
+                <Label size={9} tracking={0.08} colour={color.goldDeep}>
+                  {t(strings.profile.levelChip(progression.level, progression.exp))}
+                </Label>
+              </View>
+            ) : null}
+          </View>
         </View>
-      ) : null}
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          <Image
+            source={chivagoLogo}
+            resizeMode="contain"
+            accessibilityLabel="ChivaGo"
+            style={{ width: 68, height: 48 }}
+          />
+          <Pressable
+            onPress={onOpenProfile}
+            accessibilityRole="button"
+            accessibilityLabel={t({ en: 'Profile', th: 'โปรไฟล์' })}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.5)',
+              backgroundColor: 'rgba(255, 255, 255, 0.18)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <UserRound size={22} color="#FFFFFF" strokeWidth={2} />
+          </Pressable>
+        </View>
+      </View>
     </View>
   );
 }
