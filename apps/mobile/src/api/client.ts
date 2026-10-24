@@ -20,7 +20,7 @@ import type {
   MascotForm, Spirit, SpiritCourt, SpiritRarity,
 } from '@chivago/core';
 import type {
-  AirHistory, BoardEntry, Explored, Fix, Headway, MedalsView, PlaceCourts, PlaceStalls, SelfVisitResult, SelfVisitSummary, TransitRoute,
+  AirHistory, AreaWeather, BoardEntry, Explored, Fix, Headway, MedalsView, PlaceCourts, PlaceStalls, SelfVisitResult, SelfVisitSummary, TransitRoute,
 } from '@chivago/core';
 import type { StandingMonster } from '../components/MonsterFeed.tsx';
 
@@ -488,6 +488,8 @@ export const api = {
   stalls: (id: string) => get<PlaceStalls>(`/places/${id}/stalls`),
   /** How many courts are free at a place you book before you go, live from its booking system. */
   courts: (id: string) => get<PlaceCourts>(`/places/${id}/courts`),
+  /** The sea and sky above an area, live from Open-Meteo. */
+  weather: (area: string) => get<AreaWeather>(`/areas/${area}/weather`),
 
   // -- quests -------------------------------------------------------------
   quests: (filter?: 'today' | 'weekend') =>
