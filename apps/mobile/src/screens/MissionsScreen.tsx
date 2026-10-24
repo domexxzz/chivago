@@ -26,7 +26,6 @@ import { ChevronRight, UserRound } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import { greetingFor, isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
 import { api } from '../api/client.ts';
-import { useArea } from '../state/area.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { tintFor } from '@chivago/tokens';
@@ -41,7 +40,6 @@ export function MissionsScreen({
   onOpen, onOpenMarket, onOpenProfile,
 }: { onOpen: (id: string) => void; onOpenMarket: () => void; onOpenProfile?: () => void }) {
   const [filter, setFilter] = React.useState<Filter>('today');
-  const area = useArea();
 
   // Fetch ALL quests once and filter locally. Two reasons:
   //  - the "All 24" segment must show the TOTAL, not the current filter's
@@ -79,7 +77,7 @@ export function MissionsScreen({
               {t(greetingFor(new Date()))}
             </Text>
             <Heading size={28} colour="#FFFFFF" style={{ marginTop: 4, fontWeight: '800' }}>
-              {t(area.name)}
+              {t(strings.tabs.quests)}
             </Heading>
             <Label size={11} tracking={0.12} colour="#E2F6FC" style={{ marginTop: 4 }}>
               {`${t({ en: 'ISLAND MISSIONS', th: 'ภารกิจรักษ์เกาะ' })} · ${t(strings.quests.title)}`}

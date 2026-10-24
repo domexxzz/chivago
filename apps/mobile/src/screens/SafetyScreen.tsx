@@ -26,7 +26,6 @@ import {
 import type { SosAlertRecord } from '../api/client.ts';
 import { SOS_RADIUS } from '@chivago/tokens';
 import { api } from '../api/client.ts';
-import { useArea } from '../state/area.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, motion, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
@@ -49,7 +48,6 @@ export function SafetyScreen({
   onOpenProfile?: () => void;
 }) {
   const shield = useAsync(() => api.shield(), []);
-  const area = useArea();
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
@@ -76,7 +74,7 @@ export function SafetyScreen({
               {t(greetingFor(new Date()))}
             </Text>
             <Heading size={28} colour="#FFFFFF" style={{ marginTop: 4, fontWeight: '800' }}>
-              {t(area.name)}
+              {t(strings.tabs.safety)}
             </Heading>
             <View style={{ marginTop: 4 }}>
               <Label size={11} tracking={0.12} colour="#E2F6FC">

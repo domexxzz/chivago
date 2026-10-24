@@ -44,7 +44,6 @@ import {
 } from '@chivago/core';
 import { gameHabitat, gameRadius, gameShadow } from '@chivago/tokens';
 import { api } from '../api/client.ts';
-import { useArea } from '../state/area.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
@@ -119,7 +118,6 @@ export function GameScreen({
 
 /** The screen's name and the level, which is the game layer's own number. */
 function Header({ progression, onOpenProfile }: { progression: Progression | null; onOpenProfile?: () => void }) {
-  const area = useArea();
   return (
     <View
       style={{
@@ -144,11 +142,11 @@ function Header({ progression, onOpenProfile }: { progression: Progression | nul
             {t(greetingFor(new Date()))}
           </Text>
           <Heading size={28} colour="#FFFFFF" style={{ marginTop: 4, fontWeight: '800' }}>
-            {t(area.name)}
+            {t(strings.tabs.game)}
           </Heading>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
             <Label size={11} tracking={0.12} colour="#E2F6FC">
-              {`${t({ en: 'ISLAND COMPANIONS', th: 'เพื่อนร่วมทาง' })} · ${t(strings.tabs.game)}`}
+              {t({ en: 'ISLAND COMPANIONS', th: 'เพื่อนร่วมทาง' })}
             </Label>
             {progression ? (
               <View
