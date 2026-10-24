@@ -97,7 +97,7 @@ export function OnboardingScreen({
         {photo?.photo ? (
           <>
             <Image source={{ uri: photoUri(photo.photo.url) }} resizeMode="cover" style={{ width: '100%', height: '100%' }}
-              accessibilityLabel={`${t(photo.name)}, photographed by ${photo.photo.credit}`} />
+              accessibilityLabel={`${t(photo.name)}, ${t(strings.common.photographedBy)} ${photo.photo.credit}`} />
             <View style={{ position: 'absolute', bottom: 0, right: 0, backgroundColor: 'rgba(255,255,255,0.85)', paddingVertical: 3, paddingHorizontal: 8, borderTopLeftRadius: radius.sm }}>
               <Label size={9} tracking={0.06} colour={color.neutral700} style={{ textTransform: 'none' }}>{`${photo.photo.credit} · ${photo.photo.licence}`}</Label>
             </View>

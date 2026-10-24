@@ -86,7 +86,10 @@ export function QuestDetailScreen({
     const perm = await Location.requestForegroundPermissionsAsync();
     if (!perm.granted) {
       setBusy(false);
-      onToast('Location permission is needed to check in at the site.');
+      onToast(t({
+        en: 'Location permission is needed to check in at the site.',
+        th: 'ต้องอนุญาตให้เข้าถึงตำแหน่งเพื่อเช็กอินที่จุดนั้น',
+      }));
       return;
     }
     // A fix can time out or fail under tree cover. Without the catch that

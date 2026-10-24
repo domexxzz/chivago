@@ -105,7 +105,10 @@ function Alone({
     // passing its own words through is more use than "could not join".
     if (!res.ok) { onToast(res.error); return; }
     setCode('');
-    onToast(`You are travelling with ${res.data.party.name}.`);
+    onToast(t({
+      en: `You are travelling with ${res.data.party.name}.`,
+      th: `คุณเดินทางร่วมกับ ${res.data.party.name} แล้ว`,
+    }));
     onChanged();
   };
 
@@ -170,9 +173,12 @@ function Alone({
             maxLength={8}
             placeholder="K7M2QP"
             placeholderTextColor={color.neutral500}
-            accessibilityLabel="Group code"
+            accessibilityLabel={t({ en: 'Group code', th: 'รหัสกลุ่ม' })}
             style={{
-              flex: 1, minHeight: 48, paddingHorizontal: 14,
+              // minWidth 0 lets the field yield width to a longer button label
+              // (Thai's "เข้าร่วม" against English's "Join"); without it flex:1
+              // holds its content width and the button overflows the row.
+              flex: 1, minWidth: 0, minHeight: 48, paddingHorizontal: 14,
               borderWidth: 1, borderColor: color.neutral400, borderRadius: radius.sm,
               color: color.text, fontSize: 18, letterSpacing: 3,
             }}
@@ -181,9 +187,10 @@ function Alone({
             onPress={join}
             disabled={busy || code.trim().length === 0}
             accessibilityRole="button"
-            accessibilityLabel="Join that group"
+            accessibilityLabel={t({ en: 'Join that group', th: 'เข้าร่วมกลุ่มนั้น' })}
             style={{
-              minWidth: 76, minHeight: 48, alignItems: 'center', justifyContent: 'center',
+              minWidth: 76, minHeight: 48, flexShrink: 0, paddingHorizontal: 12,
+              alignItems: 'center', justifyContent: 'center',
               borderRadius: radius.sm,
               backgroundColor: code.trim().length === 0 ? color.neutral300 : color.cta,
             }}
@@ -340,7 +347,9 @@ function Leave({
           setBusy(true);
           const res = await api.leaveParty();
           setBusy(false);
-          onToast(res.ok ? 'You are travelling on your own again.' : res.error);
+          onToast(res.ok
+            ? t({ en: 'You are travelling on your own again.', th: 'คุณกลับมาเดินทางคนเดียวแล้ว' })
+            : res.error);
           if (res.ok) onChanged();
         }}
       />

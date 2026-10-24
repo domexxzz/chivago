@@ -137,7 +137,10 @@ export function PlaceScreen({
     const perm = await Location.requestForegroundPermissionsAsync();
     if (!perm.granted) {
       setBusy(false);
-      const msg = 'Location permission is needed to check in here.';
+      const msg = t({
+        en: 'Location permission is needed to check in here.',
+        th: 'ต้องอนุญาตให้เข้าถึงตำแหน่งเพื่อเช็กอินที่นี่',
+      });
       onToast(msg);
       // A declined permission is the commonest way the phone cannot prove a
       // visit. The other half is offered here too.
@@ -553,7 +556,10 @@ function BreakdownSheet({
 
           <ScrollView contentContainerStyle={{ padding: gutter }}>
             <Body size={13} colour={color.neutral700}>
-              {`The Healthy Score is a weighted composite of four signals. Weighting is set by your wellness profile — ${breakdown.profileApplied}.`}
+              {t({
+                en: `The Healthy Score is a weighted composite of four signals. Weighting is set by your wellness profile — ${breakdown.profileApplied}.`,
+                th: `คะแนนสุขภาวะคำนวณจากสัญญาณสี่อย่างแบบถ่วงน้ำหนัก น้ำหนักกำหนดจากโปรไฟล์สุขภาวะของคุณ — ${breakdown.profileApplied}`,
+              })}
             </Body>
 
             {breakdown.components.map((c) => (
@@ -598,7 +604,7 @@ function BreakdownSheet({
                 {t({ en: 'Where the air reading comes from', th: 'ค่าอากาศนี้มาจากไหน' })}
               </Label>
               <Body size={13} style={{ marginTop: 8 }}>
-                {air?.source ?? 'Seeded baseline'}
+                {air?.source ?? t({ en: 'Seeded baseline', th: 'ค่าพื้นฐานตั้งต้น' })}
               </Body>
               {/* Said plainly, because the alternative is implying a precision
                   the data does not have. Thailand has no air monitoring station
@@ -655,7 +661,7 @@ export function Hero({
         <>
           <Image
             source={{ uri: photoUri(place.photo.url) }}
-            accessibilityLabel={`${t(place.name)}, photographed by ${place.photo.credit}`}
+            accessibilityLabel={`${t(place.name)}, ${t(strings.common.photographedBy)} ${place.photo.credit}`}
             resizeMode="cover"
             style={{ width: '100%', height: '100%' }}
           />
@@ -721,7 +727,7 @@ function PlaceholderHero({ place }: { place: ScoredPlace }) {
       ) : null}
       <View style={{ position: 'absolute', left: gutter, bottom: 12 }}>
         <Label size={9} tracking={0.14} colour={color.neutral600}>
-          {`${place.layer} · no photograph yet`}
+          {`${place.layer} · ${t(strings.place.noPhotoYet)}`}
         </Label>
       </View>
     </View>

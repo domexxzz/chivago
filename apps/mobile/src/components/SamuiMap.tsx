@@ -642,7 +642,10 @@ function ShapeNote() {
   return (
     <View style={{ position: 'absolute', left: 12, bottom: 12, maxWidth: 168 }}>
       <Label size={9} tracking={0.04} colour={color.neutral600} style={{ textTransform: 'none' }}>
-        Stylised coastline. Pin positions are real coordinates.
+        {t({
+          en: 'Stylised coastline. Pin positions are real coordinates.',
+          th: 'เส้นชายฝั่งเป็นภาพประกอบ ตำแหน่งหมุดเป็นพิกัดจริง',
+        })}
       </Label>
     </View>
   );

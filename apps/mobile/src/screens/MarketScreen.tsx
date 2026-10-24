@@ -380,7 +380,10 @@ export function OfferRow({
         onPress={onRedeem}
         disabled={busy || !offer.available}
         accessibilityRole="button"
-        accessibilityLabel={`Redeem ${offer.name} for ${offer.costPoints} ${currencyName(offer.currency)}`}
+        accessibilityLabel={t({
+          en: `Redeem ${offer.name} for ${offer.costPoints} ${currencyName(offer.currency)}`,
+          th: `แลก ${offer.name} ด้วย ${offer.costPoints} ${currencyName(offer.currency)}`,
+        })}
         accessibilityState={{ disabled: !offer.available }}
         style={{
           paddingVertical: 8,
@@ -501,7 +504,10 @@ function VoucherCard({
     <Pressable
       onPress={onSelect}
       accessibilityRole="button"
-      accessibilityLabel={`Voucher for ${voucher.merchant}, code ${voucher.code}`}
+      accessibilityLabel={t({
+        en: `Voucher for ${voucher.merchant}, code ${voucher.code}`,
+        th: `บัตรแลกของ ${voucher.merchant} รหัส ${voucher.code}`,
+      })}
       style={{
         backgroundColor: color.surface,
         borderRadius: radius.md,
@@ -661,7 +667,7 @@ function VoucherSheet({
             <Pressable
               onPress={copyCode}
               accessibilityRole="button"
-              accessibilityLabel="Copy code"
+              accessibilityLabel={t({ en: 'Copy code', th: 'คัดลอกรหัส' })}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -685,7 +691,10 @@ function VoucherSheet({
           </Body>
 
           <Body size={13} colour={color.neutral700} style={{ marginTop: 8, textAlign: 'center' }}>
-            {`${voucher.costPoints.toLocaleString('en-US')} points settled to the merchant.`}
+            {t({
+              en: `${voucher.costPoints.toLocaleString('en-US')} points settled to the merchant.`,
+              th: `โอน ${voucher.costPoints.toLocaleString('en-US')} แต้มให้ร้านแล้ว`,
+            })}
           </Body>
         </View>
       </View>

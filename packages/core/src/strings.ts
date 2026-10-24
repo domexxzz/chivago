@@ -64,6 +64,33 @@ export const strings = {
     // interchangeable, and the difference is the entire point.
     greenPointsNote: t('Verified by a host', 'ผ่านการตรวจจากผู้จัดภารกิจ'),
     tripPointsNote: t('Earned as you explore', 'ได้จากการออกไปเที่ยว'),
+
+    /*
+      The two network refusals, and the crash screen.
+
+      These live here rather than inline because they are the only copy in the
+      app that can appear on ANY screen, and a traveller who meets them has
+      already lost the thread once: meeting them in a language they do not
+      read loses it twice. The error CODE each one carries is untouched -
+      `TIMEOUT` and `NETWORK` are what the callers switch on.
+    */
+    networkSlow: t('The network is slow right now.', 'เครือข่ายช้าอยู่ในขณะนี้'),
+    networkOffline: t('You appear to be offline.', 'ดูเหมือนคุณออฟไลน์อยู่'),
+    crashTitle: t('Something went wrong', 'เกิดข้อผิดพลาด'),
+    crashBody: t(
+      'The screen ran into a problem, but your progress is safe.',
+      'หน้านี้มีปัญหา แต่ความคืบหน้าของคุณยังอยู่ครบ',
+    ),
+    crashRetry: t('Reload screen', 'โหลดหน้านี้ใหม่'),
+
+    /** Said before a photographer's name in the alt text of every place photograph. */
+    photographedBy: t('photographed by', 'ถ่ายภาพโดย'),
+
+    /** The beach illustration on Home and the collection. One alt text, two sites. */
+    companionsAlt: t(
+      'ChivaGo companions on Koh Samui beach',
+      'เพื่อนร่วมทาง ChivaGo บนชายหาดเกาะสมุย',
+    ),
   },
 
   // -- Onboarding ---------------------------------------------------------
@@ -282,6 +309,12 @@ export const strings = {
     storyPrev: t('Previous story', 'สตอรี่ก่อนหน้า'),
     storyNext: t('Next story', 'สตอรี่ถัดไป'),
     healthyScore: t('Healthy Score', 'คะแนนสุขภาวะของพื้นที่'),
+    // Said where a place has no picture: the tinted habitat panel on Home and
+    // the hero on the place screen. One pair, because the two sites had
+    // drifted apart - 'ยังไม่มีรูป' against 'ยังไม่มีภาพถ่าย'.
+    noPhotoYet: t('no photograph yet', 'ยังไม่มีรูป'),
+    /** Spoken at the end of a companion tile, on the game screen and in the wallet. */
+    visitItsHome: t('Visit its home.', 'ไปที่บ้านของมัน'),
     addToRoute: t("Add to today's route", 'เพิ่มลงเส้นทาง'),
     safePath: t('Safe path from here', 'เส้นทางปลอดภัยจากที่นี่'),
     // The place's own booking page. Chivago takes no booking and no money.
