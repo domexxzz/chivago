@@ -636,7 +636,7 @@ export function MapHeader({
           <WaveSymbolBadge size={40} />
           <View>
             <Text style={{ fontSize: 13, fontWeight: '700', color: '#004B7E' }}>
-              คลื่นลมวันนี้
+              {t({ en: "Today's Waves & Wind", th: 'คลื่นลมวันนี้' })}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 }}>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
@@ -647,7 +647,7 @@ export function MapHeader({
                   {t(strings.wallet.green)}
                 </Label>
                 <Text style={{ fontSize: 10, fontWeight: '500', color: '#52749D' }}>
-                  (1,240 ม.)
+                  {t({ en: '(1,240 m)', th: '(1,240 ม.)' })}
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
@@ -658,7 +658,7 @@ export function MapHeader({
                   {t(strings.wallet.trip)}
                 </Label>
                 <Text style={{ fontSize: 9, fontWeight: '500', color: '#718EA8' }}>
-                  (320 กม/ชม)
+                  {t({ en: '(320 km/h)', th: '(320 กม/ชม)' })}
                 </Text>
               </View>
             </View>

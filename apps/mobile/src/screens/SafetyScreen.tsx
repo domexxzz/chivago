@@ -78,11 +78,11 @@ export function SafetyScreen({
             </Heading>
             <View style={{ marginTop: 4 }}>
               <Label size={11} tracking={0.12} colour="#E2F6FC">
-                {`${strings.safety.kicker.en} · ${strings.safety.title.en}`}
+                {`${t(strings.safety.kicker)} · ${t(strings.safety.title)}`}
               </Label>
-              <Thai always size={11} colour="#E8FBFF" style={{ opacity: 0.9, marginTop: 2 }}>
-                {strings.safety.subtitle.th}
-              </Thai>
+              <Text style={{ color: '#E8FBFF', fontSize: 11, opacity: 0.9, marginTop: 2 }}>
+                {t(strings.safety.subtitle)}
+              </Text>
             </View>
           </View>
 
