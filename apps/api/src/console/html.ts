@@ -79,7 +79,7 @@ interface LayoutOptions {
   reviewer?: string | null;
   /** Renders the nav only when signed in. */
   signedIn?: boolean;
-  activeNav?: 'queue' | 'history' | 'moderation' | 'sponsor' | 'esg' | 'statement' | 'stories'
+  activeNav?: 'queue' | 'history' | 'moderation' | 'guides' | 'sponsor' | 'esg' | 'statement' | 'stories'
     | 'organisations' | 'quests' | 'reviewDeclared' | 'inquiries' | 'applications';
   pendingCount?: number;
   /** Shows the Reviews tab. Moderators only - see place-review-service.ts. */
@@ -230,6 +230,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
              }</span></a>
              <a href="/console/history" class="${activeNav === 'history' ? 'on' : ''}">${tr('history')}</a>
              ${canModerate ? `<a href="/console/reviews" class="${activeNav === 'moderation' ? 'on' : ''}">${tr('moderation')}</a>` : ''}
+             ${canModerate ? `<a href="/console/guides" class="${activeNav === 'guides' ? 'on' : ''}">${locale === 'en' ? 'Guide approvals' : 'อนุมัติไกด์'}</a>` : ''}
              ${canModerate ? `<a href="/console/review" class="${activeNav === 'reviewDeclared' ? 'on' : ''}">${tr('reviewDeclared')}</a>` : ''}
              ${canModerate ? `<a href="/console/organisations" class="${activeNav === 'organisations' ? 'on' : ''}">${tr('organisations')}</a>` : ''}
              ${canModerate ? `<a href="/console/applications" class="${activeNav === 'applications' ? 'on' : ''}">${tr('applications')}</a>` : ''}

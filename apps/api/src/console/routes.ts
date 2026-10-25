@@ -1779,7 +1779,8 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
         <button name="decision" value="hide">ซ่อนรีวิว</button>
         <button name="decision" value="dismiss">ยกเลิกรายงาน</button>
       </form></article>`).join('');
-    return c.html(`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>รายงานรีวิวร้านค้า</title><link rel="stylesheet" href="/console/assets/modernist.css"></head><body style="padding:24px;max-width:900px;margin:auto;background:#edf6f9"><a href="/console/reviews">← รีวิวสถานที่</a><h1>รายงานรีวิวร้านค้า</h1>${entries || '<p>ไม่มีรายงานค้างตรวจ</p>'}</body></html>`);
+    const en = localeFor(c) === 'en';
+    return c.html(`<!doctype html><html lang="${en ? 'en' : 'th'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${en ? 'Shop review reports' : 'รายงานรีวิวร้านค้า'}</title><link rel="stylesheet" href="/console/assets/modernist.css"></head><body style="padding:24px;max-width:900px;margin:auto;background:#edf6f9"><a href="/console/reviews">← ${en ? 'Place reviews' : 'รีวิวสถานที่'}</a> · <a href="/console/guides">${en ? 'Guide approvals' : 'อนุมัติไกด์'}</a><h1>${en ? 'Shop review reports' : 'รายงานรีวิวร้านค้า'}</h1>${entries || `<p>${en ? 'No reports waiting for review.' : 'ไม่มีรายงานค้างตรวจ'}</p>`}</body></html>`);
   });
   app.post('/shop-reviews/:id/decide', async (c) => {
     const session = requireModerator(c);
@@ -1793,6 +1794,52 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     db.prepare('UPDATE local_shop_review_reports SET status=?,decided_at=?,decided_by=? WHERE id=?').run(decision === 'hide' ? 'resolved' : 'dismissed', new Date().toISOString(), session.reviewer ?? session.hostName, c.req.param('id'));
     if (decision === 'hide') db.prepare('UPDATE local_shop_reviews SET hidden_at=? WHERE id=?').run(new Date().toISOString(), report.review_id);
     return c.redirect('/console/shop-reviews', 303);
+  });
+
+  // Guide profiles and license documents are moderator-only until approved.
+  app.get('/guides', (c) => {
+    const session = requireModerator(c);
+    if (!session) return c.html(messagePage(localeFor(c), 'moderatorsOnly', 'moderatorsOnlyBlurb'), 403);
+    const en = localeFor(c) === 'en';
+    const escape = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
+    const guides = db.prepare(`SELECT s.id,s.name,s.area_key,s.description,s.guide_languages,s.guide_skills,s.guide_tour_styles,s.guide_line_id,s.created_at,d.id AS document_id,p.id AS profile_photo_id
+      FROM local_shops s LEFT JOIN local_guide_documents d ON d.shop_id=s.id LEFT JOIN local_guide_profile_photos p ON p.shop_id=s.id
+      WHERE s.service_type='guide' AND s.guide_status='pending' ORDER BY s.created_at ASC LIMIT 100`).all() as unknown as {
+      id: string; name: string; area_key: string; description: string; guide_languages: string; guide_skills: string; guide_tour_styles: string; guide_line_id: string; created_at: string; document_id: string | null; profile_photo_id: string | null;
+    }[];
+    const entries = guides.map((g) => { let skills: string[] = []; try { const parsed: unknown = JSON.parse(g.guide_skills); if (Array.isArray(parsed)) skills = parsed.filter((v): v is string => typeof v === 'string'); } catch { /* older profiles have no skills */ }
+      return `<article style="background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #123b6418">
+      <h2 style="margin:0 0 8px">${escape(g.name)}</h2><p><strong>${en ? 'Area' : 'พื้นที่'}:</strong> ${escape(g.area_key)} · <strong>${en ? 'Languages' : 'ภาษา'}:</strong> ${escape(g.guide_languages)}</p>
+      ${g.profile_photo_id ? `<img src="/shops/guide-photos/${encodeURIComponent(g.profile_photo_id)}" alt="${en ? 'Guide profile photo' : 'รูปโปรไฟล์ไกด์'}" style="width:96px;height:96px;border-radius:50%;object-fit:cover">` : ''}
+      <p><strong>${en ? 'Skills' : 'ความสามารถ'}:</strong> ${skills.length ? `<ul>${skills.map((skill) => `<li>${escape(skill)}</li>`).join('')}</ul>` : '—'}</p><p><strong>${en ? 'Tour styles' : 'สไตล์ทัวร์'}:</strong> ${escape(g.guide_tour_styles)}</p><p><strong>LINE ID:</strong> ${escape(g.guide_line_id || '—')}</p><p>${escape(g.description)}</p>
+      ${g.document_id ? `<p><a href="/console/guides/${encodeURIComponent(g.id)}/license" target="_blank" rel="noopener">${en ? 'View private license image' : 'ดูภาพใบอนุญาต (ข้อมูลส่วนตัว)'}</a></p>` : `<p style="color:#b91c1c">${en ? 'License image has not been uploaded; approval is unavailable.' : 'ยังไม่มีภาพใบอนุญาต จึงยังอนุมัติไม่ได้'}</p>`}
+      <form method="post" action="/console/guides/${encodeURIComponent(g.id)}/decide"><input type="hidden" name="csrf" value="${escape(csrfFor(session))}">
+      <button name="decision" value="approve" ${g.document_id ? '' : 'disabled'}>${en ? 'Approve and publish profile' : 'อนุมัติและเผยแพร่โปรไฟล์'}</button>
+      <button name="decision" value="reject">${en ? 'Reject · request changes' : 'ปฏิเสธ · ให้แก้ไขข้อมูล'}</button></form>
+      <small>${en ? 'Submitted' : 'ส่งเมื่อ'}: ${escape(g.created_at)}</small></article>`;
+    }).join('');
+    return c.html(`<!doctype html><html lang="${en ? 'en' : 'th'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${en ? 'Guide approvals' : 'ตรวจสอบโปรไฟล์ไกด์'}</title><link rel="stylesheet" href="/console/assets/modernist.css"></head><body style="padding:24px;max-width:900px;margin:auto;background:#edf6f9"><nav><a href="/console/shop-reviews">← ${en ? 'Shop review reports' : 'รายงานรีวิวร้านค้า'}</a></nav><h1>${en ? 'Guide profiles awaiting approval' : 'โปรไฟล์ไกด์ที่รอตรวจสอบ'}</h1><p>${en ? 'Only approved profiles are visible in the app and on the map. License images are private and accessible to moderators only.' : 'เฉพาะโปรไฟล์ที่อนุมัติแล้วจะแสดงในแอปและแผนที่ ภาพใบอนุญาตเป็นข้อมูลส่วนตัวและผู้ดูแลเท่านั้นที่เปิดดูได้'}</p>${entries || `<p>${en ? 'No guide profiles are waiting for review.' : 'ไม่มีโปรไฟล์ไกด์ที่รอตรวจสอบ'}</p>`}</body></html>`);
+  });
+  app.get('/guides/:id/license', (c) => {
+    if (!requireModerator(c)) return c.html(messagePage(localeFor(c), 'moderatorsOnly', 'moderatorsOnlyBlurb'), 403);
+    const doc = db.prepare(`SELECT d.mime_type,d.bytes FROM local_guide_documents d JOIN local_shops s ON s.id=d.shop_id
+      WHERE d.shop_id=? AND s.service_type='guide'`).get(c.req.param('id')) as { mime_type: string; bytes: Uint8Array } | undefined;
+    if (!doc) return c.text('Not found', 404);
+    c.header('content-type', doc.mime_type); c.header('cache-control', 'private, no-store'); c.header('x-content-type-options', 'nosniff');
+    return c.body(Buffer.from(doc.bytes));
+  });
+  app.post('/guides/:id/decide', async (c) => {
+    const session = requireModerator(c);
+    if (!session) return c.html(messagePage(localeFor(c), 'moderatorsOnly', 'moderatorsOnlyBlurb'), 403);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain'), 403);
+    const decision = String(form.decision);
+    if (decision !== 'approve' && decision !== 'reject') return c.text('Invalid decision', 400);
+    const guide = db.prepare("SELECT id FROM local_shops WHERE id=? AND service_type='guide' AND guide_status='pending'").get(c.req.param('id')) as { id: string } | undefined;
+    if (!guide) return c.text('Guide profile not found', 404);
+    if (decision === 'approve' && !db.prepare('SELECT 1 FROM local_guide_documents WHERE shop_id=?').get(guide.id)) return c.text('License image required', 400);
+    db.prepare('UPDATE local_shops SET guide_status=?,guide_reviewed_at=?,guide_reviewed_by=?,updated_at=? WHERE id=?').run(decision === 'approve' ? 'approved' : 'rejected', new Date().toISOString(), session.reviewer ?? session.hostName, new Date().toISOString(), guide.id);
+    return c.redirect('/console/guides', 303);
   });
 
   app.get('/reviews', (c) => {

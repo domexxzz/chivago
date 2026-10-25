@@ -48,7 +48,7 @@ const mapShopCategory = (category: string) => {
   const values: Record<string, { en: string; th: string }> = {
     'ที่พัก': { en: 'Accommodation', th: 'ที่พัก' }, 'ร้านอาหาร': { en: 'Restaurant', th: 'ร้านอาหาร' },
     'ร้านขายของ': { en: 'Souvenirs & shopping', th: 'ของฝาก/ช้อปปิ้ง' }, 'เช่ารถ': { en: 'Car rental', th: 'เช่ารถ' },
-    'เสริมสวย': { en: 'Beauty', th: 'เสริมสวย' }, 'ตัดผม': { en: 'Haircut', th: 'ตัดผม' }, 'อื่นๆ': { en: 'Other', th: 'อื่นๆ' },
+    'เสริมสวย': { en: 'Beauty', th: 'เสริมสวย' }, 'ตัดผม': { en: 'Haircut', th: 'ตัดผม' }, 'ไกด์นำเที่ยว': { en: 'Tour guide', th: 'ไกด์นำเที่ยว' }, 'อื่นๆ': { en: 'Other', th: 'อื่นๆ' },
   };
   return t(values[category] ?? { en: category, th: category });
 };

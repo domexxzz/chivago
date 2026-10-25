@@ -1198,6 +1198,7 @@ export function TerrainMap({
     });
 
     for (const shop of shops) {
+      if (shop.lat === null || shop.lng === null) continue;
       const el = document.createElement('button');
       el.type = 'button';
       el.setAttribute('aria-label', `ร้าน ${shop.name}`);

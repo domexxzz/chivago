@@ -120,16 +120,17 @@ describe('what a screen prints', () => {
   });
 });
 
-describe('what stays bilingual, on purpose', () => {
-  test('the SOS banner keeps both languages whatever the app is set to', () => {
-    // A Thai responder reading an English tourist's phone is exactly the
-    // moment the second language was for.
-    for (const locale of ['en', 'th'] as const) {
-      __setLocaleForTests(locale);
-      const out = text(h(SosBanner, { onPress: () => {} }));
-      assert.match(out, /SOS|Live|active/i, `the English line, in ${locale}`);
-      assert.match(out, THAI, `the Thai line, in ${locale}`);
-    }
+describe('language exceptions', () => {
+  test('the SOS banner follows the selected app language', () => {
+    __setLocaleForTests('en');
+    const english = text(h(SosBanner, { onPress: () => {} }));
+    assert.match(english, /SOS|Live|active/i);
+    assert.doesNotMatch(english, THAI);
+
+    __setLocaleForTests('th');
+    const thai = text(h(SosBanner, { onPress: () => {} }));
+    assert.match(thai, THAI);
+    assert.doesNotMatch(thai, /your location is being shared/i);
   });
 
   test('a bilingual button keeps its caption', () => {

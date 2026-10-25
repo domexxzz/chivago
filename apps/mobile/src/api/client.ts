@@ -251,6 +251,28 @@ export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; code: string; error: string };
 
+/** Server error codes are stable; render known shop errors in the language the app currently uses. */
+const translatedApiError = (code: string, fallback: string): string => {
+  const messages: Record<string, Bilingual> = {
+    OPERATOR_REQUIRED: { en: 'Only business operator accounts can manage services.', th: 'เฉพาะบัญชีผู้ประกอบการเท่านั้นที่จัดการบริการได้' },
+    FORBIDDEN: { en: 'You can only manage your own service.', th: 'จัดการได้เฉพาะบริการของตนเอง' },
+    NOT_FOUND: { en: 'This service was not found.', th: 'ไม่พบบริการนี้' },
+    INVALID_SHOP: { en: 'Enter a name and service type.', th: 'กรอกชื่อและประเภทบริการ' },
+    INVALID_CATEGORY: { en: 'Choose a valid service type.', th: 'เลือกประเภทบริการจากรายการที่กำหนด' },
+    INVALID_GUIDE_PROFILE: { en: 'Choose at least one language you can speak.', th: 'กรุณาเลือกภาษาที่สื่อสารได้' },
+    INVALID_ADDRESS: { en: 'Enter the business address.', th: 'กรุณากรอกที่อยู่ร้านค้า' },
+    INVALID_PHONE: { en: 'Enter a valid phone number.', th: 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง' },
+    INVALID_EMAIL: { en: 'Enter a valid email address.', th: 'รูปแบบอีเมลไม่ถูกต้อง' },
+    INVALID_LOCATION: { en: 'The coordinates must be inside the selected area.', th: 'พิกัดต้องอยู่ในพื้นที่ที่เลือก' },
+    INVALID_GUIDE_HOURS: { en: 'Guide profiles do not use business opening hours.', th: 'โปรไฟล์ไกด์ไม่ใช้เวลาเปิด–ปิดร้าน' },
+    INVALID_HOURS: { en: 'Opening hours must use HH:MM-HH:MM.', th: 'เวลาเปิดปิดต้องเป็น HH:MM-HH:MM' },
+    GUIDE_PROFILE_REQUIRED: { en: 'Profile photos are available for guides only.', th: 'รูปโปรไฟล์ใช้ได้กับไกด์เท่านั้น' },
+    PHOTO_REQUIRED: { en: 'Choose a profile photo first.', th: 'เลือกรูปโปรไฟล์ก่อน' },
+    INVALID_PHOTO: { en: 'Use a JPG, PNG, or WebP image no larger than 5 MB.', th: 'ใช้ไฟล์ JPG, PNG หรือ WebP ไม่เกิน 5MB' },
+  };
+  return messages[code] ? t(messages[code]) : fallback;
+};
+
 /**
  * A phone whose key the server has never heard of takes a new one.
  *
@@ -336,7 +358,7 @@ async function call<T>(
         clearTimeout(timer);
         return call<T>(path, init, timeoutMs, true);
       }
-      return { ok: false, code: body.code, error: body.error };
+      return { ok: false, code: body.code, error: translatedApiError(body.code, body.error) };
     }
     return { ok: true, data: body.data };
   } catch (err) {
@@ -388,6 +410,19 @@ export const api = {
     else form.append('photo', { uri, name: 'shop-photo.jpg', type: mimeType } as any);
     return upload<{ id: string; url: string }>(`/shops/${encodeURIComponent(id)}/images?kind=${kind}`, form);
   },
+  uploadGuideDocument: async (id: string, uri: string, mimeType = 'image/jpeg') => {
+    const form = new FormData();
+    if (Platform.OS === 'web') form.append('photo', await fetch(uri).then((r) => r.blob()), 'guide-license.jpg');
+    else form.append('photo', { uri, name: 'guide-license.jpg', type: mimeType } as any);
+    return upload<{ uploaded: boolean; reviewStatus: 'pending' }>(`/shops/${encodeURIComponent(id)}/guide-document`, form);
+  },
+  uploadGuidePhoto: async (id: string, uri: string, mimeType = 'image/jpeg') => {
+    const form = new FormData();
+    if (Platform.OS === 'web') form.append('photo', await fetch(uri).then((r) => r.blob()), 'guide-photo.jpg');
+    else form.append('photo', { uri, name: 'guide-photo.jpg', type: mimeType } as any);
+    return upload<{ id: string; url: string }>(`/shops/${encodeURIComponent(id)}/guide-photo`, form);
+  },
+  deleteGuidePhoto: (id: string) => del<{ deleted: boolean }>(`/shops/${encodeURIComponent(id)}/guide-photo`),
 
   // -- profile ------------------------------------------------------------
   getProfile: () => get<WellnessProfile>('/profile'),

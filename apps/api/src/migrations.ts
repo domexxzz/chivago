@@ -1789,6 +1789,86 @@ export function migrate(db: DB): string[] {
   if (addColumn(db, 'local_shop_reviews', 'hidden_at', 'TEXT')) applied.push('local_shop_reviews.hidden_at');
   if (addColumn(db, 'local_shop_review_reports', 'decided_at', 'TEXT')) applied.push('local_shop_review_reports.decided_at');
   if (addColumn(db, 'local_shop_review_reports', 'decided_by', 'TEXT')) applied.push('local_shop_review_reports.decided_by');
+  if (addColumn(db, 'local_shops', 'service_type', "TEXT NOT NULL DEFAULT 'business'")) applied.push('local_shops.service_type');
+  if (addColumn(db, 'local_shops', 'guide_languages', "TEXT NOT NULL DEFAULT ''")) applied.push('local_shops.guide_languages');
+  if (addColumn(db, 'local_shops', 'guide_skills', "TEXT NOT NULL DEFAULT '[]'")) applied.push('local_shops.guide_skills');
+  if (addColumn(db, 'local_shops', 'guide_tour_styles', "TEXT NOT NULL DEFAULT '[]'")) applied.push('local_shops.guide_tour_styles');
+  if (addColumn(db, 'local_shops', 'guide_line_id', "TEXT NOT NULL DEFAULT ''")) applied.push('local_shops.guide_line_id');
+  if (addColumn(db, 'local_shops', 'guide_meeting_point', "TEXT NOT NULL DEFAULT ''")) applied.push('local_shops.guide_meeting_point');
+  if (addColumn(db, 'local_shops', 'guide_status', "TEXT NOT NULL DEFAULT 'not_required'")) applied.push('local_shops.guide_status');
+  if (addColumn(db, 'local_shops', 'guide_reviewed_at', 'TEXT')) applied.push('local_shops.guide_reviewed_at');
+  if (addColumn(db, 'local_shops', 'guide_reviewed_by', 'TEXT')) applied.push('local_shops.guide_reviewed_by');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS local_guide_documents (
+      id TEXT PRIMARY KEY,
+      shop_id TEXT NOT NULL UNIQUE REFERENCES local_shops(id) ON DELETE CASCADE,
+      mime_type TEXT NOT NULL CHECK(mime_type IN ('image/jpeg','image/png','image/webp')),
+      bytes BLOB NOT NULL,
+      uploaded_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS local_guide_profile_photos (
+      id TEXT PRIMARY KEY,
+      shop_id TEXT NOT NULL UNIQUE REFERENCES local_shops(id) ON DELETE CASCADE,
+      mime_type TEXT NOT NULL CHECK(mime_type IN ('image/jpeg','image/png','image/webp')),
+      bytes BLOB NOT NULL,
+      uploaded_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_local_shops_guides ON local_shops(service_type, guide_status, active, area_key);
+  `);
+  const shopCoordinateColumns = db
+    .prepare("SELECT name, \"notnull\" AS nn FROM pragma_table_info('local_shops')")
+    .all() as unknown as { name: string; nn: number }[];
+  if (shopCoordinateColumns.some((c) => ((c.name === 'lat' || c.name === 'lng') && c.nn === 1) || c.name === 'guide_license_number')) {
+    // Guides are area-based profiles. They do not have a fixed point, and
+    // giving them a fabricated pin would imply a meeting location they did
+    // not provide. Rebuild this table to make coordinates genuinely nullable;
+    // its reviews, images and private license documents keep their FKs by name.
+    db.exec('PRAGMA foreign_keys = OFF');
+    db.exec(`
+      BEGIN;
+      CREATE TABLE local_shops_rebuilt (
+        id TEXT PRIMARY KEY,
+        owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        area_key TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        address TEXT NOT NULL DEFAULT '',
+        lat REAL CHECK(lat IS NULL OR lat BETWEEN -90 AND 90),
+        lng REAL CHECK(lng IS NULL OR lng BETWEEN -180 AND 180),
+        phone TEXT NOT NULL DEFAULT '',
+        email TEXT NOT NULL DEFAULT '',
+        opening_hours TEXT NOT NULL DEFAULT '',
+        amenities TEXT NOT NULL DEFAULT '',
+        active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)),
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        service_type TEXT NOT NULL DEFAULT 'business',
+        guide_languages TEXT NOT NULL DEFAULT '',
+        guide_skills TEXT NOT NULL DEFAULT '[]',
+        guide_tour_styles TEXT NOT NULL DEFAULT '[]',
+        guide_line_id TEXT NOT NULL DEFAULT '',
+        guide_meeting_point TEXT NOT NULL DEFAULT '',
+        guide_status TEXT NOT NULL DEFAULT 'not_required',
+        guide_reviewed_at TEXT,
+        guide_reviewed_by TEXT
+      );
+      INSERT INTO local_shops_rebuilt
+        (id,owner_id,name,category,area_key,description,address,lat,lng,phone,email,opening_hours,amenities,active,created_at,updated_at,service_type,guide_languages,guide_skills,guide_tour_styles,guide_line_id,guide_meeting_point,guide_status,guide_reviewed_at,guide_reviewed_by)
+      SELECT id,owner_id,name,category,area_key,description,address,lat,lng,phone,email,opening_hours,amenities,active,created_at,updated_at,service_type,guide_languages,guide_skills,guide_tour_styles,guide_line_id,guide_meeting_point,guide_status,guide_reviewed_at,guide_reviewed_by
+      FROM local_shops;
+      DROP TABLE local_shops;
+      ALTER TABLE local_shops_rebuilt RENAME TO local_shops;
+      CREATE INDEX idx_local_shops_area ON local_shops(area_key, active, category);
+      CREATE INDEX idx_local_shops_owner ON local_shops(owner_id);
+      CREATE INDEX idx_local_shops_guides ON local_shops(service_type, guide_status, active, area_key);
+      COMMIT;
+    `);
+    db.exec('PRAGMA foreign_keys = ON');
+    applied.push('local_shops.lat/lng nullable');
+  }
+  applied.push('local_guide_documents');
+  applied.push('local_guide_profile_photos');
   applied.push('local_shops');
   applied.push('user_accounts');
 
