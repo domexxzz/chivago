@@ -13,8 +13,19 @@
 import * as SecureStore from 'expo-secure-store';
 
 const LOGIN_SLOT = 'chivago.isLoggedIn';
+/**
+ * Guest mode: a visitor who chose to look around without an account.
+ *
+ * Its own slot rather than a third value in the login slot, so a phone that
+ * was signed in before guest mode existed reads exactly as it did. The device
+ * key in `api/account.ts` is registered either way, so the public screens
+ * work for a guest; what guest mode changes is only which screens the app
+ * offers and that it does not start at the login wall again.
+ */
+export const GUEST_SLOT = 'chivago.isGuest';
 
 let cachedLoggedIn: boolean | null = null;
+let cachedGuest: boolean | null = null;
 
 export interface AuthStore {
   get(): Promise<boolean>;
@@ -38,25 +49,26 @@ export function pickAuthStore(
   secure: SecureLike,
   secureAvailable: boolean,
   web: WebLike | undefined,
+  slot: string = LOGIN_SLOT,
 ): AuthStore {
   if (secureAvailable) {
     return {
-      get: async () => (await secure.getItemAsync(LOGIN_SLOT)) === 'true',
+      get: async () => (await secure.getItemAsync(slot)) === 'true',
       set: async (val) => {
-        if (val) await secure.setItemAsync(LOGIN_SLOT, 'true');
-        else await secure.deleteItemAsync?.(LOGIN_SLOT);
+        if (val) await secure.setItemAsync(slot, 'true');
+        else await secure.deleteItemAsync?.(slot);
       },
-      clear: async () => { await secure.deleteItemAsync?.(LOGIN_SLOT); },
+      clear: async () => { await secure.deleteItemAsync?.(slot); },
     };
   }
   if (web) {
     return {
-      get: async () => web.getItem(LOGIN_SLOT) === 'true',
+      get: async () => web.getItem(slot) === 'true',
       set: async (val) => {
-        if (val) web.setItem(LOGIN_SLOT, 'true');
-        else web.removeItem(LOGIN_SLOT);
+        if (val) web.setItem(slot, 'true');
+        else web.removeItem(slot);
       },
-      clear: async () => { web.removeItem(LOGIN_SLOT); },
+      clear: async () => { web.removeItem(slot); },
     };
   }
   return {
@@ -67,22 +79,34 @@ export function pickAuthStore(
 }
 
 let store: AuthStore | null = null;
+let guestStore: AuthStore | null = null;
 
-async function currentStore(): Promise<AuthStore> {
-  if (store) return store;
-  let available = false;
+async function secureAvailable(): Promise<boolean> {
   try {
     const probe = (SecureStore as { isAvailableAsync?: () => Promise<boolean> }).isAvailableAsync;
-    available = typeof probe === 'function' ? await probe() : false;
+    return typeof probe === 'function' ? await probe() : false;
   } catch {
-    available = false;
+    return false;
   }
-  store = pickAuthStore(
+}
+
+async function storeFor(slot: string): Promise<AuthStore> {
+  return pickAuthStore(
     SecureStore as unknown as SecureLike,
-    available,
+    await secureAvailable(),
     typeof localStorage !== 'undefined' ? localStorage : undefined,
+    slot,
   );
+}
+
+async function currentStore(): Promise<AuthStore> {
+  if (!store) store = await storeFor(LOGIN_SLOT);
   return store;
+}
+
+async function currentGuestStore(): Promise<AuthStore> {
+  if (!guestStore) guestStore = await storeFor(GUEST_SLOT);
+  return guestStore;
 }
 
 export async function hasLoggedIn(): Promise<boolean> {
@@ -102,6 +126,36 @@ export async function setLoggedIn(val: boolean): Promise<void> {
   } catch {
     // Non-fatal if storage fails
   }
+  // A member is not a guest: signing in or registering ends guest mode.
+  if (val) await clearGuest();
+}
+
+export async function isGuest(): Promise<boolean> {
+  if (cachedGuest !== null) return cachedGuest;
+  try {
+    cachedGuest = await (await currentGuestStore()).get();
+  } catch {
+    cachedGuest = false;
+  }
+  return cachedGuest;
+}
+
+export async function setGuest(val: boolean): Promise<void> {
+  cachedGuest = val;
+  try {
+    await (await currentGuestStore()).set(val);
+  } catch {
+    // Non-fatal: guest mode just lasts this session.
+  }
+}
+
+export async function clearGuest(): Promise<void> {
+  cachedGuest = false;
+  try {
+    await (await currentGuestStore()).clear();
+  } catch {
+    // Non-fatal
+  }
 }
 
 export async function clearLoggedIn(): Promise<void> {
@@ -119,4 +173,10 @@ export const __setCachedLoggedInForTests = (val: boolean | null): void => {
 };
 export const __setAuthStoreForTests = (next: AuthStore | null): void => {
   store = next;
+};
+export const __setCachedGuestForTests = (val: boolean | null): void => {
+  cachedGuest = val;
+};
+export const __setGuestStoreForTests = (next: AuthStore | null): void => {
+  guestStore = next;
 };
