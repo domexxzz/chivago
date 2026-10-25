@@ -121,8 +121,8 @@ test('nothing read claims nothing at all', () => {
   }
 });
 
-test('a weather code is described in both languages, and an unknown one says nothing', () => {
-  assert.deepEqual(weatherDescription(0), { en: 'Clear', th: 'ท้องฟ้าแจ่มใส' });
+test('a weather code is described in every language, and an unknown one says nothing', () => {
+  assert.deepEqual(weatherDescription(0), { en: 'Clear', th: 'ท้องฟ้าแจ่มใส', zh: '晴' });
   assert.equal(weatherDescription(3)?.en, 'Overcast');
   assert.equal(weatherDescription(61)?.en, 'Rain');
   assert.equal(weatherDescription(95)?.en, 'Thunderstorm');

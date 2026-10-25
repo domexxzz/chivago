@@ -81,18 +81,18 @@ export const BASELINE = {
  * follow the weather and the northern-hemisphere holidays together.
  */
 export const SEASON_BY_MONTH: Record<number, { key: string; label: Bilingual; effect: number }> = {
-  1: { key: 'peak', label: { en: 'Peak season', th: 'ฤดูท่องเที่ยวสูงสุด' }, effect: 1.55 },
-  2: { key: 'high', label: { en: 'High season', th: 'ฤดูท่องเที่ยว' }, effect: 1.35 },
-  3: { key: 'high', label: { en: 'High season', th: 'ฤดูท่องเที่ยว' }, effect: 1.3 },
-  4: { key: 'shoulder', label: { en: 'Shoulder season', th: 'ช่วงคาบเกี่ยว' }, effect: 1.15 },
-  5: { key: 'low', label: { en: 'Low season', th: 'นอกฤดู' }, effect: 0.9 },
-  6: { key: 'low', label: { en: 'Low season', th: 'นอกฤดู' }, effect: 0.9 },
-  7: { key: 'high', label: { en: 'European summer', th: 'ช่วงปิดเทอมยุโรป' }, effect: 1.3 },
-  8: { key: 'high', label: { en: 'European summer', th: 'ช่วงปิดเทอมยุโรป' }, effect: 1.3 },
-  9: { key: 'low', label: { en: 'Low season', th: 'นอกฤดู' }, effect: 0.85 },
-  10: { key: 'low', label: { en: 'Monsoon approaching', th: 'ใกล้ฤดูฝน' }, effect: 0.8 },
-  11: { key: 'low', label: { en: 'Wettest month', th: 'เดือนฝนชุกที่สุด' }, effect: 0.75 },
-  12: { key: 'peak', label: { en: 'Peak season', th: 'ฤดูท่องเที่ยวสูงสุด' }, effect: 1.5 },
+  1: { key: 'peak', label: { en: 'Peak season', th: 'ฤดูท่องเที่ยวสูงสุด', zh: '旺季高峰' }, effect: 1.55 },
+  2: { key: 'high', label: { en: 'High season', th: 'ฤดูท่องเที่ยว', zh: '旺季' }, effect: 1.35 },
+  3: { key: 'high', label: { en: 'High season', th: 'ฤดูท่องเที่ยว', zh: '旺季' }, effect: 1.3 },
+  4: { key: 'shoulder', label: { en: 'Shoulder season', th: 'ช่วงคาบเกี่ยว', zh: '平季' }, effect: 1.15 },
+  5: { key: 'low', label: { en: 'Low season', th: 'นอกฤดู', zh: '淡季' }, effect: 0.9 },
+  6: { key: 'low', label: { en: 'Low season', th: 'นอกฤดู', zh: '淡季' }, effect: 0.9 },
+  7: { key: 'high', label: { en: 'European summer', th: 'ช่วงปิดเทอมยุโรป', zh: '欧洲暑期' }, effect: 1.3 },
+  8: { key: 'high', label: { en: 'European summer', th: 'ช่วงปิดเทอมยุโรป', zh: '欧洲暑期' }, effect: 1.3 },
+  9: { key: 'low', label: { en: 'Low season', th: 'นอกฤดู', zh: '淡季' }, effect: 0.85 },
+  10: { key: 'low', label: { en: 'Monsoon approaching', th: 'ใกล้ฤดูฝน', zh: '雨季将至' }, effect: 0.8 },
+  11: { key: 'low', label: { en: 'Wettest month', th: 'เดือนฝนชุกที่สุด', zh: '雨量最多的月份' }, effect: 0.75 },
+  12: { key: 'peak', label: { en: 'Peak season', th: 'ฤดูท่องเที่ยวสูงสุด', zh: '旺季高峰' }, effect: 1.5 },
 };
 
 /**
@@ -102,10 +102,10 @@ export const SEASON_BY_MONTH: Record<number, { key: string; label: Bilingual; ef
  * Recurring every year, which is why no year is stored.
  */
 export const FESTIVALS: { from: string; to: string; label: Bilingual; effect: number }[] = [
-  { from: '12-28', to: '01-03', label: { en: 'New Year', th: 'ปีใหม่' }, effect: 1.7 },
-  { from: '04-11', to: '04-17', label: { en: 'Songkran', th: 'สงกรานต์' }, effect: 1.45 },
-  { from: '02-08', to: '02-14', label: { en: 'Chinese New Year', th: 'ตรุษจีน' }, effect: 1.3 },
-  { from: '11-14', to: '11-16', label: { en: 'Loy Krathong', th: 'ลอยกระทง' }, effect: 1.2 },
+  { from: '12-28', to: '01-03', label: { en: 'New Year', th: 'ปีใหม่', zh: '元旦跨年' }, effect: 1.7 },
+  { from: '04-11', to: '04-17', label: { en: 'Songkran', th: 'สงกรานต์', zh: '宋干节' }, effect: 1.45 },
+  { from: '02-08', to: '02-14', label: { en: 'Chinese New Year', th: 'ตรุษจีน', zh: '春节' }, effect: 1.3 },
+  { from: '11-14', to: '11-16', label: { en: 'Loy Krathong', th: 'ลอยกระทง', zh: '水灯节' }, effect: 1.2 },
 ];
 
 /** Weekends cost more everywhere, and Samui is no exception. */
@@ -171,7 +171,7 @@ export function forecastPrice(
   // Day of week in island time, not the caller's.
   const weekday = new Date(`${date}T12:00:00+07:00`).getUTCDay();
   if (weekday === 5 || weekday === 6) {
-    drivers.push({ label: { en: 'Weekend', th: 'สุดสัปดาห์' }, effect: WEEKEND_EFFECT });
+    drivers.push({ label: { en: 'Weekend', th: 'สุดสัปดาห์', zh: '周末' }, effect: WEEKEND_EFFECT });
   }
 
   // A scooter is hired from a shop that does not care what week it is.
@@ -200,6 +200,7 @@ export function forecastPrice(
     caveat: {
       en: `A range, not a quote. Modelled from season and typical rates as of ${BASELINE.asOf}; no partner inventory yet.`,
       th: `เป็นช่วงราคา ไม่ใช่ราคาจอง คำนวณจากฤดูกาลและค่าเฉลี่ย ณ ${BASELINE.asOf} ยังไม่ได้เชื่อมราคาจริงจากพาร์ตเนอร์`,
+      zh: `这是价格区间，不是报价。根据季节和截至 ${BASELINE.asOf} 的常见价格建模得出；尚未接入合作伙伴的实际库存。`,
     },
   };
 }

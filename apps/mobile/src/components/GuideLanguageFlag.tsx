@@ -3,21 +3,22 @@ import Svg, { Circle, Path, Polygon, Rect } from 'react-native-svg';
 import { t } from '../i18n/locale.ts';
 
 const languageNames = {
-  'ไทย': { en: 'Thai', th: 'ไทย' }, Thai: { en: 'Thai', th: 'ไทย' },
-  English: { en: 'English', th: 'อังกฤษ' }, 'อังกฤษ': { en: 'English', th: 'อังกฤษ' },
-  '中文': { en: 'Chinese', th: 'จีน' }, Chinese: { en: 'Chinese', th: 'จีน' }, 'จีน': { en: 'Chinese', th: 'จีน' },
-  '日本語': { en: 'Japanese', th: 'ญี่ปุ่น' }, Japanese: { en: 'Japanese', th: 'ญี่ปุ่น' },
-  '한국어': { en: 'Korean', th: 'เกาหลี' }, Korean: { en: 'Korean', th: 'เกาหลี' },
-  Français: { en: 'French', th: 'ฝรั่งเศส' }, French: { en: 'French', th: 'ฝรั่งเศส' },
-  Deutsch: { en: 'German', th: 'เยอรมัน' }, German: { en: 'German', th: 'เยอรมัน' },
-  Español: { en: 'Spanish', th: 'สเปน' }, Spanish: { en: 'Spanish', th: 'สเปน' },
-  'Русский': { en: 'Russian', th: 'รัสเซีย' }, Russian: { en: 'Russian', th: 'รัสเซีย' },
-  'العربية': { en: 'Arabic', th: 'อาหรับ' }, Arabic: { en: 'Arabic', th: 'อาหรับ' },
+  'ไทย': { en: 'Thai', th: 'ไทย', zh: '泰语' }, Thai: { en: 'Thai', th: 'ไทย', zh: '泰语' },
+  English: { en: 'English', th: 'อังกฤษ', zh: '英语' }, 'อังกฤษ': { en: 'English', th: 'อังกฤษ', zh: '英语' },
+  '中文': { en: 'Chinese', th: 'จีน', zh: '中文' }, Chinese: { en: 'Chinese', th: 'จีน', zh: '中文' }, 'จีน': { en: 'Chinese', th: 'จีน', zh: '中文' },
+  '日本語': { en: 'Japanese', th: 'ญี่ปุ่น', zh: '日语' }, Japanese: { en: 'Japanese', th: 'ญี่ปุ่น', zh: '日语' },
+  '한국어': { en: 'Korean', th: 'เกาหลี', zh: '韩语' }, Korean: { en: 'Korean', th: 'เกาหลี', zh: '韩语' },
+  Français: { en: 'French', th: 'ฝรั่งเศส', zh: '法语' }, French: { en: 'French', th: 'ฝรั่งเศส', zh: '法语' },
+  Deutsch: { en: 'German', th: 'เยอรมัน', zh: '德语' }, German: { en: 'German', th: 'เยอรมัน', zh: '德语' },
+  Español: { en: 'Spanish', th: 'สเปน', zh: '西班牙语' }, Spanish: { en: 'Spanish', th: 'สเปน', zh: '西班牙语' },
+  'Русский': { en: 'Russian', th: 'รัสเซีย', zh: '俄语' }, Russian: { en: 'Russian', th: 'รัสเซีย', zh: '俄语' },
+  'العربية': { en: 'Arabic', th: 'อาหรับ', zh: '阿拉伯语' }, Arabic: { en: 'Arabic', th: 'อาหรับ', zh: '阿拉伯语' },
 } as const;
 
 /** Localized presentation only; the stored language value remains unchanged. */
 export const guideLanguageLabel = (language: string): string =>
-  t((languageNames as Record<string, { en: string; th: string }>)[language] ?? { en: language, th: language });
+  t((languageNames as Record<string, { en: string; th: string; zh?: string }>)[language]
+    ?? { en: language, th: language, zh: language });
 
 const languageCode = (language: string) => ({
   'ไทย': 'th', Thai: 'th',

@@ -102,7 +102,7 @@ export function AskScreen({
   const [asking, setAsking] = React.useState<ListingCard | null>(null);
 
   const withdraw = async (i: TravellerInquiry) => {
-    if (requireAccount({ en: 'Please sign in or create an account to manage your inquiries.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อจัดการคำถามของคุณ' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to manage your inquiries.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อจัดการคำถามของคุณ', zh: '请登录或注册账号，以管理你的咨询。' })) return;
     const res = await api.withdrawInquiry(i.id);
     if (res.ok) mine.reload();
     else onToast(res.error);
@@ -333,7 +333,7 @@ function AskSheet({
     ) : null;
 
   const send = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to contact this operator.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อติดต่อผู้ประกอบการ' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to contact this operator.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อติดต่อผู้ประกอบการ', zh: '请登录或注册账号，以联系这家商家。' })) return;
     setTried(true);
     if (problems.length > 0) return;
     setBusy(true);
@@ -429,9 +429,10 @@ function AskSheet({
           <Button
             label={strings.ask.send.en}
             thai={strings.ask.send.th}
+            chinese={strings.ask.send.zh}
             onPress={send}
             busy={busy}
-            busyLabel={t({ en: 'Sending…', th: 'กำลังส่ง…' })}
+            busyLabel={t({ en: 'Sending…', th: 'กำลังส่ง…', zh: '正在发送…' })}
             style={{ marginTop: 16 }}
           />
           {failed ? (

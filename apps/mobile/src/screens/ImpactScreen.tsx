@@ -85,7 +85,7 @@ export function ImpactScreen({
       >
         <OceanBackdrop compact />
         <Label size={10} tracking={0.16} colour="#D5F6FF">
-          {t({ en: 'VERIFIED IMPACT', th: 'ผลลัพธ์ที่ตรวจสอบได้' })}
+          {t({ en: 'VERIFIED IMPACT', th: 'ผลลัพธ์ที่ตรวจสอบได้', zh: '已验证的影响' })}
         </Label>
         <Heading size={26} tracking={-0.52} colour="#FFFFFF" style={{ marginTop: 4 }}>
           {t(strings.impact.title)}
@@ -286,7 +286,7 @@ function TreeImpactBlock({
       ]}
     >
       <Label size={10} tracking={0.14} colour={color.accent700}>
-        {t({ en: 'Your sponsored trees', th: 'ต้นไม้จากผู้สนับสนุนของคุณ' })}
+        {t({ en: 'Your sponsored trees', th: 'ต้นไม้จากผู้สนับสนุนของคุณ', zh: '你的赞助树木' })}
       </Label>
       {loading ? <LoadingState /> : null}
       {error ? <ErrorState message={error} onRetry={onRetry} /> : null}
@@ -295,6 +295,7 @@ function TreeImpactBlock({
           {t({
             en: 'No signed tree promise for your verified quests yet. No planting partner has been claimed.',
             th: 'ยังไม่มีคำมั่นปลูกต้นไม้ที่ลงนามสำหรับภารกิจที่คุณผ่านการตรวจ และยังไม่มีการอ้างชื่อผู้ปลูก',
+            zh: '你已验证的任务还没有签署的植树承诺，也还没有认领任何种植方。',
           })}
         </Body>
       ) : null}
@@ -303,11 +304,11 @@ function TreeImpactBlock({
           <View style={{ flexDirection: 'row', gap: 18, marginTop: 12 }}>
             <View style={{ flex: 1 }}>
               <Heading size={28}>{impact.pending.toLocaleString('en-US')}</Heading>
-              <Label size={10} tracking={0.1}>{t({ en: 'PROMISED · NOT YET PLANTED', th: 'รับปาก · ยังไม่ได้ปลูก' })}</Label>
+              <Label size={10} tracking={0.1}>{t({ en: 'PROMISED · NOT YET PLANTED', th: 'รับปาก · ยังไม่ได้ปลูก', zh: '已承诺 · 尚未种植' })}</Label>
             </View>
             <View style={{ flex: 1 }}>
               <Heading size={28}>{impact.planted.toLocaleString('en-US')}</Heading>
-              <Label size={10} tracking={0.1}>{t({ en: 'PLANTED · WITH PROOF', th: 'ปลูกแล้ว · มีหลักฐาน' })}</Label>
+              <Label size={10} tracking={0.1}>{t({ en: 'PLANTED · WITH PROOF', th: 'ปลูกแล้ว · มีหลักฐาน', zh: '已种植 · 有凭证' })}</Label>
             </View>
           </View>
           {impact.lines.map((line) => (
@@ -316,25 +317,28 @@ function TreeImpactBlock({
               <Heading size={14}>{t(line.questName)}</Heading>
               <Body size={13} colour={color.neutral700} style={{ marginTop: 3 }}>
                 {t({ en: `Sponsored by ${t(line.sponsorName)} · ${line.treesPerVerified} per verified quest`,
-                  th: `สนับสนุนโดย ${t(line.sponsorName)} · ${line.treesPerVerified} ต้นต่อภารกิจที่ผ่านการตรวจ` })}
+                  th: `สนับสนุนโดย ${t(line.sponsorName)} · ${line.treesPerVerified} ต้นต่อภารกิจที่ผ่านการตรวจ`,
+                  zh: `由 ${t(line.sponsorName)} 赞助 · 每个已验证的任务 ${line.treesPerVerified} 棵` })}
               </Body>
               {line.pending > 0 ? <Body size={13} style={{ marginTop: 5 }}>
-                {t({ en: `${line.pending} still promised, not planted`, th: `ยังรับปาก ${line.pending} ต้น ยังไม่ได้ปลูก` })}
+                {t({ en: `${line.pending} still promised, not planted`, th: `ยังรับปาก ${line.pending} ต้น ยังไม่ได้ปลูก`,
+                  zh: `仍有 ${line.pending} 棵已承诺，尚未种植` })}
               </Body> : null}
               {line.evidence.map((proof) => (
                 <View key={proof.id} style={{ marginTop: 10 }}>
                   <Body size={13}>{t({
                     en: `${proof.trees} planted by ${proof.partner} on ${proof.plantedAt.slice(0, 10)}`,
                     th: `${proof.partner} ปลูก ${proof.trees} ต้น เมื่อ ${proof.plantedAt.slice(0, 10)}`,
+                    zh: `${proof.partner} 于 ${proof.plantedAt.slice(0, 10)} 种下 ${proof.trees} 棵`,
                   })}</Body>
                   <Body size={13} colour={color.neutral700}>
                     {`${proof.lat}, ${proof.lng} · ${proof.photo.credit} · ${proof.photo.licence}`}
                   </Body>
                   <Pressable accessibilityRole="link"
-                    accessibilityLabel={t({ en: 'View planting photo', th: 'ดูภาพการปลูก' })}
+                    accessibilityLabel={t({ en: 'View planting photo', th: 'ดูภาพการปลูก', zh: '查看种植照片' })}
                     onPress={() => { void Linking.openURL(proof.photo.url); }}
                     style={{ marginTop: 5 }}>
-                    <Body size={13} colour={color.accent700}>{t({ en: 'View planting photo', th: 'ดูภาพการปลูก' })}</Body>
+                    <Body size={13} colour={color.accent700}>{t({ en: 'View planting photo', th: 'ดูภาพการปลูก', zh: '查看种植照片' })}</Body>
                   </Pressable>
                 </View>
               ))}
@@ -382,7 +386,7 @@ function BalanceBlock({
       ]}
     >
       <View style={{ paddingHorizontal: gutter, paddingTop: 14 }}>
-        <Label size={10} tracking={0.16}>{t({ en: 'Chiva Balance', th: 'สมดุลชีวา' })}</Label>
+        <Label size={10} tracking={0.16}>{t({ en: 'Chiva Balance', th: 'สมดุลชีวา', zh: 'Chiva 平衡' })}</Label>
 
         {loading ? <LoadingState /> : null}
         {error ? <ErrorState message={error} onRetry={onRetry} /> : null}
@@ -425,8 +429,8 @@ function BalanceBlock({
                     {/* The provenance, always shown. */}
                     <Label size={9} tracking={0.1} colour={color.neutral500}>
                       {c.source === 'measured'
-                        ? t({ en: 'MEASURED', th: 'วัดจริง' })
-                        : t({ en: 'YOU TOLD US', th: 'คุณแจ้งเอง' })}
+                        ? t({ en: 'MEASURED', th: 'วัดจริง', zh: '实测' })
+                        : t({ en: 'YOU TOLD US', th: 'คุณแจ้งเอง', zh: '你自述' })}
                     </Label>
                   </View>
                 </View>
@@ -445,7 +449,7 @@ function BalanceBlock({
 function MoodRow({ onMood }: { onMood: (mood: MoodKey) => void }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 8 }}>
-      <Label size={10} tracking={0.14} colour={color.neutral600}>{t({ en: 'How are you today?', th: 'วันนี้เป็นอย่างไรบ้าง' })}</Label>
+      <Label size={10} tracking={0.14} colour={color.neutral600}>{t({ en: 'How are you today?', th: 'วันนี้เป็นอย่างไรบ้าง', zh: '今天感觉怎么样？' })}</Label>
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
         {MOOD_KEYS.map((key) => (
           <Pressable
@@ -455,6 +459,7 @@ function MoodRow({ onMood }: { onMood: (mood: MoodKey) => void }) {
             accessibilityLabel={t({
               en: `I feel ${t(MOODS[key].label)}`,
               th: `ฉันรู้สึก${t(MOODS[key].label)}`,
+              zh: `我感到${t(MOODS[key].label)}`,
             })}
             style={{
               paddingVertical: 9,
@@ -470,7 +475,7 @@ function MoodRow({ onMood }: { onMood: (mood: MoodKey) => void }) {
           </Pressable>
         ))}
       </View>
-      <Body size={13} colour={color.neutral600} style={{ marginTop: 10 }}>{t({ en: 'This shapes the day we plan for you. It is not health advice.', th: 'ใช้ปรับแผนเที่ยวให้เหมาะกับคุณ ไม่ใช่คำแนะนำทางการแพทย์' })}</Body>
+      <Body size={13} colour={color.neutral600} style={{ marginTop: 10 }}>{t({ en: 'This shapes the day we plan for you. It is not health advice.', th: 'ใช้ปรับแผนเที่ยวให้เหมาะกับคุณ ไม่ใช่คำแนะนำทางการแพทย์', zh: '这会影响我们为你规划的行程，不是健康建议。' })}</Body>
     </View>
   );
 }

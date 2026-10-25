@@ -356,7 +356,7 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     // whole list of problems and a service that only throws the first one
     // would make a business owner submit five times to learn five things.
     const problems = !isListingKind(values.kind)
-      ? [{ en: 'Choose what kind of business this is.', th: 'เลือกประเภทธุรกิจ' }]
+      ? [{ en: 'Choose what kind of business this is.', th: 'เลือกประเภทธุรกิจ', zh: '请选择这是哪一类商家。' }]
       : applicationProblems({
         businessName: values.businessName,
         kind: values.kind as ListingKind,

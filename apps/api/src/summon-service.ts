@@ -475,6 +475,7 @@ export const publishedRules = () => ({
   notice: {
     en: 'A summon costs a charm you earned, never money. It yields a spirit and nothing else - no points, no vouchers, no prizes.',
     th: 'การอัญเชิญใช้เครื่องรางที่คุณสะสมเอง ไม่ใช่เงิน และได้เป็นภูตเท่านั้น ไม่มีแต้ม ไม่มีคูปอง ไม่มีของรางวัล',
+    zh: '召唤消耗的是你自己赢得的护符，绝不需要花钱。它只会带来一只精灵，别无其他——没有积分，没有代金券，没有奖品。',
   },
 });
 

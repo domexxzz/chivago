@@ -106,6 +106,7 @@ export function reconcile(statement: StatementBody, items: readonly EvidenceItem
       ? {
         en: `All ${statement.verified} approvals in this statement still stand, unchanged since it was issued.`,
         th: `ทั้ง ${statement.verified} รายการในเอกสารนี้ยังคงอยู่ ไม่มีการเปลี่ยนแปลงตั้งแต่วันที่ออก`,
+        zh: `本报表中的 ${statement.verified} 项审批全部仍然有效，自出具之日起未有变动。`,
       }
       : {
         en: `This statement was issued with ${statement.verified} approvals. `
@@ -115,6 +116,10 @@ export function reconcile(statement: StatementBody, items: readonly EvidenceItem
         th: `เอกสารนี้ออกโดยนับ ${statement.verified} รายการ ปัจจุบันยังคงอยู่ ${standing} รายการ `
           + `ถูกเพิกถอนไปแล้ว ${withdrawn} รายการ ไม่พบบันทึกอีก ${gone} รายการ `
           + `และมีอีก ${appeared} รายการที่ผ่านการตรวจหลังวันที่ออก ซึ่งไม่ได้อยู่ในเอกสารนี้`,
+        zh: `本报表出具时载有 ${statement.verified} 项审批。`
+          + `其中 ${standing} 项仍然有效，${withdrawn} 项此后已被撤回，`
+          + `${gone} 项已无记录；另有 ${appeared} 项是在出具之后才获批准，`
+          + '不属于本报表的内容。',
       },
   };
 }
@@ -131,6 +136,8 @@ export const SAMPLING_NOTE: Bilingual = {
     + 'host reviewer who approved it, and nobody here has audited that reviewer.',
   th: 'ชุดหลักฐานนี้ใช้สำหรับการสุ่มตรวจ เป็นหลักฐาน ไม่ใช่ความเห็น ทุกบรรทัดระบุชื่อผู้ตรวจของผู้จัด '
     + 'และไม่มีผู้ใดในที่นี้ได้ตรวจสอบผู้ตรวจรายนั้น',
+  zh: '本证据包支持抽样核查。它是证据，不是意见：每一行都写明批准它的主办方审核员，'
+    + '而此处没有任何人审计过该审核员。',
 };
 
 /**
@@ -150,6 +157,8 @@ export const EVIDENCE_LEVEL: Bilingual = {
     + 'checking that approval, which this pack supports and does not perform.',
   th: 'ระดับ 3 จาก 4 ผู้จัดกิจกรรมที่ระบุชื่อได้เป็นผู้ตรวจและอนุมัติ ส่วนระดับ 4 คือบุคคลที่สามเข้ามาตรวจการอนุมัตินั้น '
     + 'ซึ่งชุดหลักฐานนี้รองรับให้ทำได้ แต่ไม่ได้ทำแทน',
+  zh: '四级中的第 3 级：由开展该活动的合作方批准。第 4 级是由第三方核查该批准，'
+    + '本证据包为此提供支持，但并不代为执行。',
 };
 
 export const EVIDENCE_PRIVACY: Bilingual = {
@@ -157,4 +166,6 @@ export const EVIDENCE_PRIVACY: Bilingual = {
     + 'outside it. It cannot be resolved to a person, and cannot be matched against another statement.',
   th: 'ผู้เข้าร่วมแสดงเป็นรหัสอ้างอิงที่คงที่ภายในเอกสารนี้ และไม่มีความหมายนอกเอกสาร '
     + 'ไม่สามารถย้อนกลับไปหาตัวบุคคล และไม่สามารถจับคู่กับเอกสารฉบับอื่นได้',
+  zh: '参与者以一个引用标识呈现，该标识在本报表内部稳定，在报表之外没有任何意义。'
+    + '它无法还原为某个人，也无法与另一份报表相互比对。',
 };

@@ -54,7 +54,7 @@ export interface EmergencyNumber {
 export const SAMUI_EMERGENCY: EmergencyNumber[] = [
   {
     key: 'ems',
-    name: { en: 'Medical emergency', th: 'สายด่วนศูนย์แพทย์ฉุกเฉิน' },
+    name: { en: 'Medical emergency', th: 'สายด่วนศูนย์แพทย์ฉุกเฉิน', zh: '医疗急救' },
     dial: '1669',
     printed: '1669',
     scope: 'national',
@@ -63,7 +63,7 @@ export const SAMUI_EMERGENCY: EmergencyNumber[] = [
   },
   {
     key: 'police',
-    name: { en: 'Police', th: 'สายด่วนแจ้งเหตุด่วนเหตุร้าย' },
+    name: { en: 'Police', th: 'สายด่วนแจ้งเหตุด่วนเหตุร้าย', zh: '警察' },
     dial: '191',
     printed: '191',
     scope: 'national',
@@ -72,7 +72,7 @@ export const SAMUI_EMERGENCY: EmergencyNumber[] = [
   },
   {
     key: 'fire',
-    name: { en: 'Fire and disaster', th: 'สายด่วนแจ้งเหตุเพลิงไหม้/สาธารณภัย' },
+    name: { en: 'Fire and disaster', th: 'สายด่วนแจ้งเหตุเพลิงไหม้/สาธารณภัย', zh: '火灾与灾害' },
     dial: '199',
     printed: '199',
     scope: 'national',
@@ -83,7 +83,7 @@ export const SAMUI_EMERGENCY: EmergencyNumber[] = [
     // NOT from the municipality page, which prints 1699 under this label and
     // is wrong. Sourced from the Tourist Police Bureau's own channel.
     key: 'tourist-police',
-    name: { en: 'Tourist Police', th: 'สายด่วนตำรวจท่องเที่ยว' },
+    name: { en: 'Tourist Police', th: 'สายด่วนตำรวจท่องเที่ยว', zh: '旅游警察' },
     dial: '1155',
     printed: '1155',
     scope: 'national',
@@ -92,7 +92,7 @@ export const SAMUI_EMERGENCY: EmergencyNumber[] = [
   },
   {
     key: 'samui-hospital',
-    name: { en: 'Koh Samui Hospital', th: 'โรงพยาบาลเกาะสมุย' },
+    name: { en: 'Koh Samui Hospital', th: 'โรงพยาบาลเกาะสมุย', zh: '苏梅岛医院' },
     dial: '077913200',
     printed: '0-7791-3200',
     scope: 'island',
@@ -101,7 +101,7 @@ export const SAMUI_EMERGENCY: EmergencyNumber[] = [
   },
   {
     key: 'samui-police-station',
-    name: { en: 'Koh Samui Police Station', th: 'สถานีตำรวจภูธรเกาะสมุย' },
+    name: { en: 'Koh Samui Police Station', th: 'สถานีตำรวจภูธรเกาะสมุย', zh: '苏梅岛警察局' },
     dial: '077420506',
     printed: '0-7742-0506',
     scope: 'island',
@@ -110,7 +110,7 @@ export const SAMUI_EMERGENCY: EmergencyNumber[] = [
   },
   {
     key: 'bophut-police-station',
-    name: { en: 'Bophut Police Station', th: 'สถานีตำรวจบ่อผุด' },
+    name: { en: 'Bophut Police Station', th: 'สถานีตำรวจบ่อผุด', zh: '波普警察局' },
     dial: '077414567',
     printed: '0-7741-4567',
     scope: 'island',

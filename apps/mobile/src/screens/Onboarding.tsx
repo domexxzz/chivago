@@ -105,7 +105,7 @@ export function OnboardingScreen({
         ) : null}
         <View style={{ position: 'absolute', left: 26, bottom: 18 }}>
           <Heading size={30} tracking={-0.6} colour={onFill.brand}>ChivaGo</Heading>
-          <Label size={10} tracking={0.14} colour={color.brandSoft}>{t({ en: 'Koh Samui', th: 'เกาะสมุย' })}</Label>
+          <Label size={10} tracking={0.14} colour={color.brandSoft}>{t({ en: 'Koh Samui', th: 'เกาะสมุย', zh: '苏梅岛' })}</Label>
         </View>
       </View>
 
@@ -136,7 +136,7 @@ export function OnboardingScreen({
           <Pressable
             onPress={() => setStep(step - 1)}
             accessibilityRole="button"
-            accessibilityLabel={t({ en: 'Back', th: 'ย้อนกลับ' })}
+            accessibilityLabel={t({ en: 'Back', th: 'ย้อนกลับ', zh: '返回' })}
             hitSlop={10}
             style={{ marginLeft: -4, padding: 2 }}
           >

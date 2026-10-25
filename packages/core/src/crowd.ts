@@ -17,11 +17,13 @@ export function crowdLine(crowd: LiveCrowd): Bilingual {
     return {
       en: 'No ChivaGo traveller has checked in here in the last hour.',
       th: 'ยังไม่มีนักเดินทาง ChivaGo เช็กอินที่นี่ในชั่วโมงที่ผ่านมา',
+      zh: '过去一小时内没有 ChivaGo 旅行者在这里签到。',
     };
   }
   return {
     en: `${n} ChivaGo traveller${n === 1 ? '' : 's'} checked in here in the last hour.`,
     th: `นักเดินทาง ChivaGo เช็กอินที่นี่ ${n} คนในชั่วโมงที่ผ่านมา`,
+    zh: `过去一小时内有 ${n} 位 ChivaGo 旅行者在这里签到。`,
   };
 }
 
@@ -29,6 +31,7 @@ export function crowdLine(crowd: LiveCrowd): Bilingual {
 export const CROWD_SOURCE: Bilingual = {
   en: 'Counted from geofenced check-ins, not estimated.',
   th: 'นับจากการเช็กอินในรัศมีจริง ไม่ใช่ประมาณการ',
+  zh: '依据地理围栏内的签到统计，不是估算。',
 };
 
 /**
@@ -42,6 +45,7 @@ export const CROWD_SOURCE: Bilingual = {
 export const CROWD_SOURCE_UNFENCED: Bilingual = {
   en: 'Counted from check-ins. This server is NOT checking where anyone is.',
   th: 'นับจากการเช็กอิน แต่เซิร์ฟเวอร์นี้ไม่ได้ตรวจว่าใครอยู่ที่ไหน',
+  zh: '依据签到统计。本服务器不会核查任何人身在何处。',
 };
 
 /** Which of the two to print, given how the server is configured. */

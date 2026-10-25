@@ -265,10 +265,10 @@ export function describeProfile(profile: WellnessProfile | null): string {
 // ---------------------------------------------------------------------------
 
 const LABELS: Record<keyof PlaceMetrics, Bilingual> = {
-  crowdDensity: { en: 'Crowd level', th: 'ความหนาแน่น' },
-  aqi: { en: 'Air quality', th: 'คุณภาพอากาศ' },
-  safetyIndex: { en: 'Safety', th: 'ความปลอดภัย' },
-  walkability: { en: 'Walkability', th: 'การเดินเท้า' },
+  crowdDensity: { en: 'Crowd level', th: 'ความหนาแน่น', zh: '拥挤程度' },
+  aqi: { en: 'Air quality', th: 'คุณภาพอากาศ', zh: '空气质量' },
+  safetyIndex: { en: 'Safety', th: 'ความปลอดภัย', zh: '安全' },
+  walkability: { en: 'Walkability', th: 'การเดินเท้า', zh: '步行友好度' },
 };
 
 /**
@@ -277,10 +277,10 @@ const LABELS: Record<keyof PlaceMetrics, Bilingual> = {
  * CROWD_CURVE knees so the label and the sub-score never disagree.
  */
 export function crowdLabel(density: number): Bilingual {
-  if (density < 0.6) return { en: 'Low', th: 'น้อย' };
-  if (density < 2.0) return { en: 'Medium', th: 'ปานกลาง' };
-  if (density < 4.0) return { en: 'High', th: 'มาก' };
-  return { en: 'Very high', th: 'มากที่สุด' };
+  if (density < 0.6) return { en: 'Low', th: 'น้อย', zh: '低' };
+  if (density < 2.0) return { en: 'Medium', th: 'ปานกลาง', zh: '中等' };
+  if (density < 4.0) return { en: 'High', th: 'มาก', zh: '高' };
+  return { en: 'Very high', th: 'มากที่สุด', zh: '很高' };
 }
 
 const formatDisplay = (

@@ -46,10 +46,10 @@ export const isListingKind = (v: string): v is ListingKind =>
   (LISTING_KINDS as readonly string[]).includes(v);
 
 export const LISTING_KIND_LABEL: Record<ListingKind, Bilingual> = {
-  stay: { en: 'Stay', th: 'ที่พัก' },
-  tour: { en: 'Tour', th: 'ทัวร์' },
-  experience: { en: 'Experience', th: 'กิจกรรม' },
-  transfer: { en: 'Transfer', th: 'การเดินทาง' },
+  stay: { en: 'Stay', th: 'ที่พัก', zh: '住宿' },
+  tour: { en: 'Tour', th: 'ทัวร์', zh: '旅游团' },
+  experience: { en: 'Experience', th: 'กิจกรรม', zh: '体验活动' },
+  transfer: { en: 'Transfer', th: 'การเดินทาง', zh: '接送' },
 };
 
 export interface Listing {
@@ -89,6 +89,7 @@ export function listingRefusal(listing: Pick<Listing, 'kind' | 'licenceNo'>): Bi
     return {
       en: 'A tour is not listed until its operator states a Department of Tourism licence number.',
       th: 'ทัวร์จะไม่ถูกแสดงจนกว่าผู้ประกอบการจะระบุเลขใบอนุญาตประกอบธุรกิจนำเที่ยว',
+      zh: '在经营者提供旅游局执照编号之前，旅游团不会被列出。',
     };
   }
   return null;
@@ -98,6 +99,7 @@ export function listingRefusal(listing: Pick<Listing, 'kind' | 'licenceNo'>): Bi
 export const LICENCE_STATED: Bilingual = {
   en: 'Licence number as stated by the operator. ChivaGo has not verified it.',
   th: 'เลขใบอนุญาตตามที่ผู้ประกอบการระบุ ChivaGo ยังไม่ได้ตรวจสอบ',
+  zh: '执照编号由经营者自行提供，ChivaGo 未对其进行验证。',
 };
 
 /* ------------------------------------------------------------ inquiries -- */
@@ -220,11 +222,11 @@ export function answerBy(inquiry: Pick<Inquiry, 'sentAt' | 'forDate'>): Date {
 }
 
 export const STATE_LABEL: Record<InquiryState, Bilingual> = {
-  sent: { en: 'Sent — nothing is reserved', th: 'ส่งแล้ว — ยังไม่มีการจองใดๆ' },
-  answered: { en: 'Answered', th: 'ตอบแล้ว' },
-  declined: { en: 'Declined by the operator', th: 'ผู้ประกอบการปฏิเสธ' },
-  withdrawn: { en: 'Withdrawn', th: 'ถอนคำถามแล้ว' },
-  expired: { en: 'No answer in time', th: 'ไม่ได้รับคำตอบทันเวลา' },
+  sent: { en: 'Sent — nothing is reserved', th: 'ส่งแล้ว — ยังไม่มีการจองใดๆ', zh: '已发送 — 尚未预订任何内容' },
+  answered: { en: 'Answered', th: 'ตอบแล้ว', zh: '已回复' },
+  declined: { en: 'Declined by the operator', th: 'ผู้ประกอบการปฏิเสธ', zh: '经营者已婉拒' },
+  withdrawn: { en: 'Withdrawn', th: 'ถอนคำถามแล้ว', zh: '已撤回' },
+  expired: { en: 'No answer in time', th: 'ไม่ได้รับคำตอบทันเวลา', zh: '未在期限内收到回复' },
 };
 
 /* -------------------------------------------------------------- limits -- */
@@ -271,16 +273,19 @@ export const PROBLEM_LABEL: Record<InquiryProblem, Bilingual> = {
   party_size: {
     en: `Say how many people, from 1 to ${MAX_PARTY}. A bigger group is a phone call.`,
     th: `ระบุจำนวนคน ตั้งแต่ 1 ถึง ${MAX_PARTY} คน หากมากกว่านั้นควรโทรคุยโดยตรง`,
+    zh: `请说明人数，1 至 ${MAX_PARTY} 人。人数更多时请直接致电。`,
   },
   message: {
     en: `Write a question for the operator, up to ${MAX_MESSAGE} characters.`,
     th: `เขียนคำถามถึงผู้ประกอบการ ไม่เกิน ${MAX_MESSAGE} ตัวอักษร`,
+    zh: `写下要问经营者的问题，不超过 ${MAX_MESSAGE} 个字符。`,
   },
-  date_format: { en: 'Choose the day you are asking about.', th: 'เลือกวันที่ต้องการสอบถาม' },
-  date_past: { en: 'That day has already passed.', th: 'วันนั้นผ่านไปแล้ว' },
+  date_format: { en: 'Choose the day you are asking about.', th: 'เลือกวันที่ต้องการสอบถาม', zh: '请选择你要咨询的日期。' },
+  date_past: { en: 'That day has already passed.', th: 'วันนั้นผ่านไปแล้ว', zh: '那一天已经过去了。' },
   date_far: {
     en: `Operators can only answer for the next ${MAX_DAYS_AHEAD} days.`,
     th: `ผู้ประกอบการตอบได้เฉพาะภายใน ${MAX_DAYS_AHEAD} วันข้างหน้า`,
+    zh: `经营者只能回复未来 ${MAX_DAYS_AHEAD} 天以内的咨询。`,
   },
 };
 
@@ -306,6 +311,8 @@ export const INQUIRY_IS_NOT_A_BOOKING: Bilingual = {
     + 'ChivaGo. The operator will answer here, and anything you agree is between you and them.',
   th: 'นี่คือการสอบถาม ไม่ใช่การจอง ยังไม่มีการจองใดๆ และไม่มีเงินผ่าน ChivaGo '
     + 'ผู้ประกอบการจะตอบกลับที่นี่ และสิ่งที่ตกลงกันเป็นเรื่องระหว่างคุณกับผู้ประกอบการ',
+  zh: '这是一次咨询，不是预订。没有任何预留，也没有款项经过 ChivaGo。'
+    + '经营者会在这里回复，你们达成的任何约定都是你与对方之间的事。',
 };
 
 /**
@@ -326,6 +333,11 @@ export function answerNote(operatorName: string, quoteTHB: number | null): Bilin
         + 'และ ChivaGo ไม่ได้รับชำระเงินในส่วนนี้'
       : `${operatorName} ตอบกลับแล้ว และเสนอราคา ${baht} บาท ยังไม่มีการจองจนกว่าคุณจะตกลงกับ`
         + 'ผู้ประกอบการโดยตรง และ ChivaGo ไม่ได้รับชำระเงินในส่วนนี้',
+    zh: quoteTHB === null
+      ? `${operatorName} 已回复。在你与对方直接约定之前都不算预订，`
+        + 'ChivaGo 也不会为此收取任何款项。'
+      : `${operatorName} 已回复，报价 ${baht} 泰铢。在你与对方直接约定之前都不算预订，`
+        + 'ChivaGo 也不会为此收取任何款项。',
   };
 }
 
@@ -341,4 +353,6 @@ export const OPERATOR_PRIVACY: Bilingual = {
     + 'phone or email; if they want you to have one, it is in their message.',
   th: 'คุณเห็นคำถาม วันที่ และจำนวนคนของนักท่องเที่ยว ChivaGo ไม่ได้ให้เบอร์โทรหรืออีเมลของเขา '
     + 'หากเขาต้องการให้คุณติดต่อ เขาจะระบุไว้ในข้อความเอง',
+  zh: '你能看到旅行者的问题、日期和人数。ChivaGo 不会把他们的电话或电子邮件给你；'
+    + '如果他们希望你知道，会写在自己的留言里。',
 };

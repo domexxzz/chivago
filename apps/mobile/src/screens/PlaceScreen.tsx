@@ -136,7 +136,7 @@ export function PlaceScreen({
    * its own geofence is a client that can be told to lie.
    */
   const checkIn = async (): Promise<{ ok: boolean; error?: string }> => {
-    if (requireAccount({ en: 'Please sign in or create an account to check in and collect points.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเช็กอินและรับคะแนน' })) return { ok: false };
+    if (requireAccount({ en: 'Please sign in or create an account to check in and collect points.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเช็กอินและรับคะแนน', zh: '请登录或注册账号，以签到并获得积分。' })) return { ok: false };
     setBusy(true);
     const perm = await Location.requestForegroundPermissionsAsync();
     if (!perm.granted) {
@@ -144,6 +144,7 @@ export function PlaceScreen({
       const msg = t({
         en: 'Location permission is needed to check in here.',
         th: 'ต้องอนุญาตให้เข้าถึงตำแหน่งเพื่อเช็กอินที่นี่',
+        zh: '需要位置权限才能在这里签到。',
       });
       onToast(msg);
       // A declined permission is the commonest way the phone cannot prove a
@@ -210,7 +211,7 @@ export function PlaceScreen({
    * packages/core/src/visits.ts. The button says what it does not pay.
    */
   const noteVisit = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to record this visit.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อบันทึกการมาเยือน' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to record this visit.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อบันทึกการมาเยือน', zh: '请登录或注册账号，以记录这次到访。' })) return;
     setBusy(true);
     const res = await api.recordVisit(placeId);
     setBusy(false);
@@ -242,7 +243,7 @@ export function PlaceScreen({
   // src/state/tell-story.ts.
   const pickMedia = () => pickStoryMedia(onToast);
   const sendStory = async (media: PickedMedia, caption: string) => {
-    if (requireAccount({ en: 'Please sign in or create an account to post a story.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อโพสต์เรื่องราว' })) return false;
+    if (requireAccount({ en: 'Please sign in or create an account to post a story.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อโพสต์เรื่องราว', zh: '请登录或注册账号，以发布故事。' })) return false;
     setTelling(true);
     const ok = await postStory(placeId, media, caption, onToast);
     setTelling(false);
@@ -332,6 +333,7 @@ export function PlaceScreen({
       <Button
         label={checkedIn ? t(strings.checkin.already) : t(strings.checkin.cta)}
         thai={checkedIn ? undefined : strings.checkin.cta.th}
+        chinese={checkedIn ? undefined : strings.checkin.cta.zh}
         onPress={checkIn}
         disabled={busy || checkedIn}
         height={48}
@@ -352,6 +354,7 @@ export function PlaceScreen({
       <Button
         label={t(strings.place.addToRoute)}
         thai={strings.place.addToRoute.th}
+        chinese={strings.place.addToRoute.zh}
         onPress={onAddToTrip}
         variant="secondary"
         height={44}
@@ -573,6 +576,7 @@ function BreakdownSheet({
               {t({
                 en: `The Healthy Score is a weighted composite of four signals. Weighting is set by your wellness profile — ${breakdown.profileApplied}.`,
                 th: `คะแนนสุขภาวะคำนวณจากสัญญาณสี่อย่างแบบถ่วงน้ำหนัก น้ำหนักกำหนดจากโปรไฟล์สุขภาวะของคุณ — ${breakdown.profileApplied}`,
+                zh: `健康评分由四项信号加权合成，权重由你的健康偏好设定 — ${breakdown.profileApplied}。`,
               })}
             </Body>
 
@@ -615,10 +619,10 @@ function BreakdownSheet({
               }}
             >
               <Label size={10} tracking={0.14} colour={color.accent700}>
-                {t({ en: 'Where the air reading comes from', th: 'ค่าอากาศนี้มาจากไหน' })}
+                {t({ en: 'Where the air reading comes from', th: 'ค่าอากาศนี้มาจากไหน', zh: '空气数据从何而来' })}
               </Label>
               <Body size={13} style={{ marginTop: 8 }}>
-                {air?.source ?? t({ en: 'Seeded baseline', th: 'ค่าพื้นฐานตั้งต้น' })}
+                {air?.source ?? t({ en: 'Seeded baseline', th: 'ค่าพื้นฐานตั้งต้น', zh: '预置基准值' })}
               </Body>
               {/* Said plainly, because the alternative is implying a precision
                   the data does not have. Thailand has no air monitoring station
@@ -627,6 +631,7 @@ function BreakdownSheet({
                 {t({
                   en: 'Air is modelled for an ~11 km area, not this exact spot. Thailand has no monitoring station on Koh Samui — the nearest is about 87 km away on the mainland — so island-wide readings are the honest resolution today.',
                   th: 'ค่าอากาศเป็นแบบจำลองครอบคลุมพื้นที่ราว 11 กม. ไม่ใช่จุดนี้จุดเดียว เกาะสมุยไม่มีสถานีตรวจวัดอากาศ สถานีที่ใกล้ที่สุดอยู่ห่างราว 87 กม. บนฝั่ง ค่าระดับเกาะจึงเป็นความละเอียดที่ตรงไปตรงมาที่สุดในวันนี้',
+                  zh: '空气数据按约 11 km 的范围建模，并非这一个具体位置。苏梅岛上没有监测站，最近的一座在约 87 km 外的陆地上，因此岛屿尺度的读数是今天能给出的最诚实的精度。',
                 })}
               </Body>
             </View>

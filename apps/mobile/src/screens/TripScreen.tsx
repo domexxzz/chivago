@@ -40,10 +40,10 @@ export interface TripState {
 
 type Energy = 'gentle' | 'moderate' | 'full';
 
-const ENERGY_LABEL: Record<Energy, { en: string; th: string }> = {
-  gentle: { en: 'Gentle', th: 'เบา' },
-  moderate: { en: 'Moderate', th: 'ปานกลาง' },
-  full: { en: 'Full day', th: 'เต็มวัน' },
+const ENERGY_LABEL: Record<Energy, { en: string; th: string; zh?: string }> = {
+  gentle: { en: 'Gentle', th: 'เบา', zh: '轻松' },
+  moderate: { en: 'Moderate', th: 'ปานกลาง', zh: '适中' },
+  full: { en: 'Full day', th: 'เต็มวัน', zh: '整天' },
 };
 
 export function TripScreen({
@@ -131,7 +131,7 @@ export function TripScreen({
                 value={`+${plan.data.pointsAvailable}`}
                 accent
               />
-              <Stat label={t({ en: 'Fares', th: 'ค่าเดินทาง' })} value={`฿${plan.data.fareTHB}`} />
+              <Stat label={t({ en: 'Fares', th: 'ค่าเดินทาง', zh: '车资' })} value={`฿${plan.data.fareTHB}`} />
             </View>
 
             {/* The inputs, before the output: what this day was planned from. */}
@@ -272,11 +272,12 @@ function PlanRow({ item, onPress }: { item: PlanItem; onPress?: () => void }) {
               t({
                 en: `${item.minutes - (item.waitMinutes ?? 0)} min moving`,
                 th: `เดินทาง ${item.minutes - (item.waitMinutes ?? 0)} นาที`,
+                zh: `行程 ${item.minutes - (item.waitMinutes ?? 0)} 分钟`,
               }),
               (item.waitMinutes ?? 0) > 0
-                ? t({ en: `${item.waitMinutes} min wait`, th: `รอ ${item.waitMinutes} นาที` })
+                ? t({ en: `${item.waitMinutes} min wait`, th: `รอ ${item.waitMinutes} นาที`, zh: `等候 ${item.waitMinutes} 分钟` })
                 : null,
-              (item.fareTHB ?? 0) > 0 ? `฿${item.fareTHB}` : t({ en: 'free', th: 'ฟรี' }),
+              (item.fareTHB ?? 0) > 0 ? `฿${item.fareTHB}` : t({ en: 'free', th: 'ฟรี', zh: '免费' }),
             ].filter(Boolean).join(' · ')}
           </Body>
         ) : null}
@@ -310,7 +311,7 @@ function Dropped({ dropped }: { dropped: TripPlan['dropped'] }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 20 }}>
       <Label size={10} tracking={0.14} colour={color.neutral600}>
-        {t({ en: 'Left out of today', th: 'ไม่ได้อยู่ในแผนวันนี้' })}
+        {t({ en: 'Left out of today', th: 'ไม่ได้อยู่ในแผนวันนี้', zh: '未排进今天' })}
       </Label>
       {dropped.map((d) => (
         <View
@@ -377,7 +378,7 @@ function PriceOutlook({
       }]}
     >
       <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-        <Label size={10} tracking={0.16}>{t({ en: 'A night on Samui', th: 'ราคาที่พักต่อคืน' })}</Label>
+        <Label size={10} tracking={0.16}>{t({ en: 'A night on Samui', th: 'ราคาที่พักต่อคืน', zh: '苏梅岛一晚住宿' })}</Label>
 
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 8 }}>
           {/*

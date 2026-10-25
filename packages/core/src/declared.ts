@@ -76,6 +76,9 @@ export const DECLARED_NOT_VERIFIED: Bilingual = {
   th: 'ทุกบรรทัดในที่นี้เป็นข้อมูลที่องค์กรผู้ส่งไฟล์แจ้งมาเอง ไม่มีใครที่ ChivaGo ตรวจสอบ '
     + 'และการทบทวนนี้ไม่ได้ทำให้ข้อมูลเป็นจริง ถือเป็นหลักฐานระดับ 1 คือผู้แจ้งรายงานเอง '
     + 'สิ่งที่อยู่ด้านล่างคือสิ่งที่ผิดบนหน้าไฟล์',
+  zh: '此处每一行都由提交文件的机构自行申报。ChivaGo 没有任何人核实过，'
+    + '本次检查也不会使其成为事实。它属于第 1 级证据，即自行申报。'
+    + '以下列出的，只是文件表面上就能看出的问题。',
 };
 
 const two = (n: number): string => n.toLocaleString('en-US', { maximumFractionDigits: 2 });
@@ -106,6 +109,7 @@ export function reviewDeclared(
     flag('no_activity', noActivity, {
       en: `${noActivity.length} row(s) name no activity. A figure with nothing attached to it cannot be checked by anybody.`,
       th: `${noActivity.length} บรรทัดไม่ได้ระบุกิจกรรม ตัวเลขที่ไม่มีกิจกรรมกำกับ ไม่มีใครตรวจได้`,
+      zh: `有 ${noActivity.length} 行未写明活动。没有活动与之对应的数字，任何人都无法核对。`,
     });
   }
 
@@ -114,6 +118,7 @@ export function reviewDeclared(
     flag('no_date', noDate, {
       en: `${noDate.length} row(s) carry no readable date, so they are in no period — including this one.`,
       th: `${noDate.length} บรรทัดไม่มีวันที่ที่อ่านได้ จึงไม่อยู่ในช่วงเวลาใดเลย รวมถึงช่วงนี้`,
+      zh: `有 ${noDate.length} 行没有可读的日期，因此不属于任何期间，也包括本期间。`,
     });
   }
 
@@ -126,6 +131,8 @@ export function reviewDeclared(
         + 'A lifetime-to-date figure inside a fiscal-year report is the quiet kind of wrong that survives review.',
       th: `${outside.length} บรรทัดอยู่นอกช่วง ${period.from} ถึง ${period.to} `
         + 'ตัวเลขสะสมทั้งหมดที่ใส่ในรายงานปีบัญชี คือความผิดเงียบ ๆ ที่รอดการตรวจไปได้',
+      zh: `有 ${outside.length} 行落在 ${period.from} — ${period.to} 之外。`
+        + '把累计至今的数字放进财年报告里，是那种悄无声息、能一路通过审阅的错误。',
     });
   }
 
@@ -134,6 +141,7 @@ export function reviewDeclared(
     flag('future_date', future, {
       en: `${future.length} row(s) are dated after today.`,
       th: `${future.length} บรรทัดลงวันที่หลังวันนี้`,
+      zh: `有 ${future.length} 行的日期晚于今天。`,
     });
   }
 
@@ -153,6 +161,8 @@ export function reviewDeclared(
           + 'nobody distinguished, or a paste that happened twice — the file cannot say which.',
         th: 'กิจกรรม วันที่ และตัวเลขซ้ำกันมากกว่าหนึ่งบรรทัด อาจเป็นการทำซ้ำจริงที่ไม่ได้แยกไว้ '
           + 'หรือการวางข้อมูลซ้ำ ไฟล์บอกไม่ได้ว่าอันไหน',
+        zh: '有不止一行的活动、日期和数字完全相同。可能是真实发生了两次而没有区分，'
+          + '也可能是粘贴了两遍——文件本身说不清是哪一种。',
       });
     }
   }
@@ -162,6 +172,7 @@ export function reviewDeclared(
     flag('unit_mismatch', rows.filter((r) => r.unit !== null).map((r) => r.line), {
       en: `More than one unit in the same column: ${[...units].join(', ')}. A total across them is not a number.`,
       th: `มีหน่วยมากกว่าหนึ่งแบบในคอลัมน์เดียวกัน คือ ${[...units].join(', ')} ผลรวมข้ามหน่วยไม่ใช่ตัวเลข`,
+      zh: `同一列中出现了不止一种单位：${[...units].join(', ')}。跨单位的合计不是一个数字。`,
     });
   }
 
@@ -171,6 +182,7 @@ export function reviewDeclared(
       flag('total_mismatch', [], {
         en: `The report states ${two(statedTotal)} and its own rows add up to ${two(summed)}.`,
         th: `รายงานระบุ ${two(statedTotal)} แต่บรรทัดของรายงานเองรวมได้ ${two(summed)}`,
+        zh: `报表声明为 ${two(statedTotal)}，而其自身各行相加为 ${two(summed)}。`,
       });
     }
   }

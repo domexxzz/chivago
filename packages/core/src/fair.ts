@@ -195,16 +195,16 @@ const rowStart = (k: number) => stepFrom(stepFrom(FIELD, 0, (1.5 - k) * ROW_GAP_
 
 const RMUTT_AGRI_FAIR: Fair = {
   id: 'rmutt-agri-fair',
-  name: { en: 'RMUTT agricultural fair', th: 'งานเกษตรแฟร์ มทร.ธัญบุรี' },
+  name: { en: 'RMUTT agricultural fair', th: 'งานเกษตรแฟร์ มทร.ธัญบุรี', zh: 'RMUTT 农业博览会' },
   area: 'rmutt',
-  venue: { en: 'South sports field', th: 'สนามกีฬาฝั่งใต้' },
+  venue: { en: 'South sports field', th: 'สนามกีฬาฝั่งใต้', zh: '南侧运动场' },
   dates: null,
   example: true,
   zones: [
-    { code: 'A', name: { en: 'Plants and seedlings', th: 'ต้นไม้และกล้าไม้' }, icon: '🌱' },
-    { code: 'B', name: { en: 'Farm produce', th: 'ผลผลิตการเกษตร' }, icon: '🥭' },
-    { code: 'C', name: { en: 'Food and drinks', th: 'อาหารและเครื่องดื่ม' }, icon: '🍢' },
-    { code: 'D', name: { en: 'Crafts and farm goods', th: 'ของแปรรูปและงานฝีมือ' }, icon: '🧺' },
+    { code: 'A', name: { en: 'Plants and seedlings', th: 'ต้นไม้และกล้าไม้', zh: '花木与种苗' }, icon: '🌱' },
+    { code: 'B', name: { en: 'Farm produce', th: 'ผลผลิตการเกษตร', zh: '农产品' }, icon: '🥭' },
+    { code: 'C', name: { en: 'Food and drinks', th: 'อาหารและเครื่องดื่ม', zh: '美食与饮品' }, icon: '🍢' },
+    { code: 'D', name: { en: 'Crafts and farm goods', th: 'ของแปรรูปและงานฝีมือ', zh: '手工艺与农产加工品' }, icon: '🧺' },
   ],
   rows: ['A', 'B', 'C', 'D'].map((zone, k) => ({ zone, start: rowStart(k), bearingDeg: EAST, count: 10, spacingM: LOT_M })),
   stalls: [

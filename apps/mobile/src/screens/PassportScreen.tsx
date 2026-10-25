@@ -84,7 +84,7 @@ export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void }
         ]}
       >
         <OceanBackdrop compact />
-        <Label size={10} tracking={0.16} colour={color.brandSoft}>{t({ en: 'Province passport', th: 'พาสปอร์ตจังหวัด' })}</Label>
+        <Label size={10} tracking={0.16} colour={color.brandSoft}>{t({ en: 'Province passport', th: 'พาสปอร์ตจังหวัด', zh: '府级护照' })}</Label>
 
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 10 }}>
           <Heading size={44} colour={color.surface} tracking={-1}>
@@ -97,6 +97,7 @@ export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void }
           {t({
             en: `${progress.open} provinces are open today. The rest of Thailand is listed and not yet built.`,
             th: `เปิดแล้ว ${progress.open} จังหวัดในวันนี้ จังหวัดที่เหลือทั่วไทยมีอยู่ในรายการแต่ยังไม่เปิด`,
+            zh: `今天已开放 ${progress.open} 个府。泰国其余各府已列出，尚未上线。`,
           })}
         </Body>
 
@@ -116,9 +117,9 @@ export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void }
             numbers are provinces, and a province is not something that
             hatches - see `MascotBond` in core.
           */}
-          <HeroFigure value={collection.found} label={strings.mascots.bond.met.en} thai={strings.mascots.bond.met.th} />
-          <HeroFigure value={collection.grown} label={strings.mascots.bond.vouched.en} thai={strings.mascots.bond.vouched.th} />
-          <HeroFigure value={collection.sealed} label={strings.mascots.bond.unopened.en} thai={strings.mascots.bond.unopened.th} />
+          <HeroFigure value={collection.found} label={strings.mascots.bond.met.en} thai={strings.mascots.bond.met.th} chinese={strings.mascots.bond.met.zh} />
+          <HeroFigure value={collection.grown} label={strings.mascots.bond.vouched.en} thai={strings.mascots.bond.vouched.th} chinese={strings.mascots.bond.vouched.zh} />
+          <HeroFigure value={collection.sealed} label={strings.mascots.bond.unopened.en} thai={strings.mascots.bond.unopened.th} chinese={strings.mascots.bond.unopened.zh} />
         </View>
       </View>
 
@@ -168,6 +169,7 @@ export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void }
           {t({
             en: 'An open province has mapped places and a named quest host. Air and crowd figures state their source; photos appear only when licensed.',
             th: 'จังหวัดที่เปิดมีสถานที่บนแผนที่และระบุผู้จัดภารกิจ ข้อมูลอากาศและความหนาแน่นบอกแหล่งที่มา ภาพถ่ายจะแสดงเมื่อมีสิทธิ์ใช้เท่านั้น',
+            zh: '已开放的府有标注在地图上的地点和具名的任务主办方。空气与人流数据均注明来源；照片只在获得授权时显示。',
           })}
         </Label>
       </View>
@@ -346,12 +348,12 @@ const BOND_MARK: Partial<Record<ProvinceCompanion['bond'], string>> = {
 };
 
 /** One figure on the inverted hero panel. */
-function HeroFigure({ value, label, thai }: { value: number; label: string; thai: string }) {
+function HeroFigure({ value, label, thai, chinese }: { value: number; label: string; thai: string; chinese?: string }) {
   return (
     <View>
       <Heading size={22} colour={color.surface}>{value}</Heading>
       <Label size={9} tracking={0.08} colour={color.brandSoft} style={{ marginTop: 2 }}>
-        {thai ? t({ en: label, th: thai }) : label}
+        {thai ? t({ en: label, th: thai, zh: chinese }) : label}
       </Label>
     </View>
   );

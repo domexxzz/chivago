@@ -59,7 +59,7 @@ export function FindPartyScreen({
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <PushHeader context={t({ en: 'Find a party', th: 'หาปาร์ตี้' })} onBack={onBack} />
+      <PushHeader context={t({ en: 'Find a party', th: 'หาปาร์ตี้', zh: '寻找队伍' })} onBack={onBack} />
 
       {board.error ? <ErrorState message={board.error} onRetry={board.reload} /> : null}
       {board.loading && !data ? <LoadingState /> : null}
@@ -97,6 +97,7 @@ function Preamble() {
         {t({
           en: 'Invitations are posted at a place, never at a person. Nobody can see where you are, and you cannot see where anybody else is.',
           th: 'ประกาศผูกกับสถานที่ ไม่ได้ผูกกับตัวคน ไม่มีใครเห็นว่าคุณอยู่ที่ไหน และคุณก็ไม่เห็นว่าใครอยู่ที่ไหน',
+          zh: '邀请发布在地点上，而不是发布在某个人身上。没有人能看到你在哪里，你也看不到任何人在哪里。',
         })}
       </Body>
     </View>
@@ -196,6 +197,7 @@ function AtPlace({
           {t({
             en: 'No party is asking here yet.',
             th: 'ยังไม่มีปาร์ตี้ประกาศหาคนที่นี่',
+            zh: '这里还没有队伍在找人。',
           })}
         </Body>
       ) : (
@@ -222,7 +224,7 @@ function Invitation({
   const [asked, setAsked] = React.useState(false);
 
   const ask = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to ask to join a party.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อขอเข้าร่วมปาร์ตี้' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to ask to join a party.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อขอเข้าร่วมปาร์ตี้', zh: '请登录或注册账号，以申请加入队伍。' })) return;
     if (busy) return;
     setBusy(true);
     const res = await api.askToJoin(invite.id);
@@ -232,7 +234,7 @@ function Invitation({
     // "leave your current party first" send a traveller to different places.
     if (!res.ok) { onToast(res.error); return; }
     setAsked(true);
-    onToast(t({ en: 'Asked. The party will see it.', th: 'ส่งคำขอแล้ว ปาร์ตี้จะเห็น' }));
+    onToast(t({ en: 'Asked. The party will see it.', th: 'ส่งคำขอแล้ว ปาร์ตี้จะเห็น', zh: '已提出申请，队伍会看到。' }));
     onChanged();
   };
 
@@ -252,6 +254,7 @@ function Invitation({
         {t({
           en: `${clockWindow(invite)} · ${invite.spacesLeft} ${invite.spacesLeft === 1 ? 'space' : 'spaces'} left`,
           th: `${clockWindow(invite)} · ว่างอีก ${invite.spacesLeft} ที่`,
+          zh: `${clockWindow(invite)} · 还剩 ${invite.spacesLeft} 个名额`,
         })}
       </Body>
 
@@ -261,12 +264,13 @@ function Invitation({
 
       {invite.yours ? (
         <Label size={10} tracking={0.12} colour={color.neutral600} style={{ marginTop: 8 }}>
-          {t({ en: 'YOUR PARTY', th: 'ปาร์ตี้ของคุณ' })}
+          {t({ en: 'YOUR PARTY', th: 'ปาร์ตี้ของคุณ', zh: '你的队伍' })}
         </Label>
       ) : (
         <Button
           label={asked ? 'Asked' : busy ? 'Asking…' : 'Ask to come along'}
           thai={asked ? 'ส่งคำขอแล้ว' : 'ขอไปด้วย'}
+          chinese={asked ? '已申请' : '申请同行'}
           onPress={ask}
           disabled={busy || asked}
           height={44}
@@ -297,8 +301,8 @@ function Verified({ count }: { count: number }) {
     >
       <Label size={10} tracking={0.06} colour={none ? color.neutral700 : color.accent700}>
         {none
-          ? t({ en: 'NOTHING VERIFIED YET', th: 'ยังไม่มีงานที่ตรวจแล้ว' })
-          : t({ en: `${count} VERIFIED`, th: `ตรวจแล้ว ${count}` })}
+          ? t({ en: 'NOTHING VERIFIED YET', th: 'ยังไม่มีงานที่ตรวจแล้ว', zh: '尚无已验证的工作' })
+          : t({ en: `${count} VERIFIED`, th: `ตรวจแล้ว ${count}`, zh: `已验证 ${count}` })}
       </Label>
     </View>
   );
@@ -314,7 +318,7 @@ function DoesNot({ items }: { items: Bilingual[] }) {
       }}
     >
       <Label size={9} tracking={0.16} colour={color.neutral600}>
-        {t({ en: 'WHAT THIS DOES NOT DO', th: 'สิ่งที่ระบบนี้ไม่ทำ' })}
+        {t({ en: 'WHAT THIS DOES NOT DO', th: 'สิ่งที่ระบบนี้ไม่ทำ', zh: '这个功能不会做什么' })}
       </Label>
       {items.map((line) => (
         <Body key={line.en} size={13} colour={color.neutral700} style={{ marginTop: 4 }}>

@@ -29,20 +29,20 @@ export type MoodKey = 'drained' | 'tense' | 'steady' | 'bright';
 
 export const MOODS: Record<MoodKey, { label: Bilingual; asks: Bilingual }> = {
   drained: {
-    label: { en: 'Drained', th: 'หมดแรง' },
-    asks: { en: 'A short, quiet day', th: 'วันสั้นๆ เงียบๆ' },
+    label: { en: 'Drained', th: 'หมดแรง', zh: '疲惫' },
+    asks: { en: 'A short, quiet day', th: 'วันสั้นๆ เงียบๆ', zh: '短一点、安静一点的一天' },
   },
   tense: {
-    label: { en: 'Tense', th: 'เครียด' },
-    asks: { en: 'Green space, away from crowds', th: 'พื้นที่สีเขียว เลี่ยงที่คนเยอะ' },
+    label: { en: 'Tense', th: 'เครียด', zh: '紧绷' },
+    asks: { en: 'Green space, away from crowds', th: 'พื้นที่สีเขียว เลี่ยงที่คนเยอะ', zh: '绿地，避开人多的地方' },
   },
   steady: {
-    label: { en: 'Steady', th: 'ปกติดี' },
-    asks: { en: 'The day you planned', th: 'ตามแผนที่วางไว้' },
+    label: { en: 'Steady', th: 'ปกติดี', zh: '平稳' },
+    asks: { en: 'The day you planned', th: 'ตามแผนที่วางไว้', zh: '按原计划的一天' },
   },
   bright: {
-    label: { en: 'Bright', th: 'สดชื่น' },
-    asks: { en: 'Room for more', th: 'ไหวมากกว่านี้' },
+    label: { en: 'Bright', th: 'สดชื่น', zh: '轻快' },
+    asks: { en: 'Room for more', th: 'ไหวมากกว่านี้', zh: '还能多安排一些' },
   },
 };
 
@@ -141,6 +141,7 @@ export function chivaBalance(input: BalanceInput): ChivaBalance {
       note: {
         en: `Not enough of the trip yet — ${visits.length} of ${MIN_VISITS_FOR_BALANCE} places visited`,
         th: `ข้อมูลยังไม่พอ — ไปมาแล้ว ${visits.length} จาก ${MIN_VISITS_FOR_BALANCE} แห่ง`,
+        zh: `行程数据还不够 — 已到访 ${visits.length} 处，共需 ${MIN_VISITS_FOR_BALANCE} 处`,
       },
     };
   }
@@ -158,7 +159,7 @@ export function chivaBalance(input: BalanceInput): ChivaBalance {
   const components: BalanceComponent[] = [
     {
       key: 'rest',
-      label: { en: 'How you have felt', th: 'ความรู้สึกของคุณ' },
+      label: { en: 'How you have felt', th: 'ความรู้สึกของคุณ', zh: '你的感受' },
       display: recent.length === 0
         ? 'No check-ins yet'
         : `${recent.length} check-in${recent.length === 1 ? '' : 's'}`,
@@ -168,7 +169,7 @@ export function chivaBalance(input: BalanceInput): ChivaBalance {
     },
     {
       key: 'movement',
-      label: { en: 'Movement', th: 'การเคลื่อนไหว' },
+      label: { en: 'Movement', th: 'การเคลื่อนไหว', zh: '活动量' },
       display: `${kmPerDay.toFixed(1)} km a day`,
       subScore: movementSubScore(kmPerDay),
       weight: 0.2,
@@ -176,7 +177,7 @@ export function chivaBalance(input: BalanceInput): ChivaBalance {
     },
     {
       key: 'nature',
-      label: { en: 'Time in green space', th: 'เวลาในพื้นที่สีเขียว' },
+      label: { en: 'Time in green space', th: 'เวลาในพื้นที่สีเขียว', zh: '在绿地中的时间' },
       display: `${Math.round(natureShare * 100)}% of your stops`,
       subScore: Math.round(clamp(natureShare * 180, 0, 100)),
       weight: 0.2,
@@ -184,7 +185,7 @@ export function chivaBalance(input: BalanceInput): ChivaBalance {
     },
     {
       key: 'air',
-      label: { en: 'Air you have breathed', th: 'อากาศที่คุณหายใจ' },
+      label: { en: 'Air you have breathed', th: 'อากาศที่คุณหายใจ', zh: '你呼吸的空气' },
       display: `${Math.round(meanAqi)} AQI average`,
       subScore: Math.round(clamp(100 - (meanAqi - 20) * 1.1, 0, 100)),
       weight: 0.15,
@@ -192,7 +193,7 @@ export function chivaBalance(input: BalanceInput): ChivaBalance {
     },
     {
       key: 'quiet',
-      label: { en: 'Quiet', th: 'ความสงบ' },
+      label: { en: 'Quiet', th: 'ความสงบ', zh: '安静程度' },
       display: `${meanCrowd.toFixed(1)} people / 100 m²`,
       subScore: Math.round(clamp(100 - (meanCrowd - 0.5) * 28, 0, 100)),
       weight: 0.15,

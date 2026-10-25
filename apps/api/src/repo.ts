@@ -289,10 +289,10 @@ export function getPersonalImpact(db: DB, userId: string): ImpactStat[] {
   const treesPlanted = treeImpactForUser(db, userId).planted;
 
   return [
-    { key: 'wasteCollected', label: { en: 'Waste collected', th: 'ขยะที่เก็บได้' }, value: round1(totals.waste_kg), unit: 'kg' },
-    { key: 'treesPlanted', label: { en: 'Trees planted', th: 'ต้นไม้ที่ปลูก' }, value: treesPlanted, unit: '' },
-    { key: 'volunteerTime', label: { en: 'Volunteer time', th: 'เวลาอาสาสมัคร' }, value: round1(hours), unit: 'hr' },
-    { key: 'questsVerified', label: { en: 'Quests verified', th: 'ภารกิจที่ผ่านการตรวจ' }, value: totals.quests_verified, unit: '' },
+    { key: 'wasteCollected', label: { en: 'Waste collected', th: 'ขยะที่เก็บได้', zh: '收集的垃圾' }, value: round1(totals.waste_kg), unit: 'kg' },
+    { key: 'treesPlanted', label: { en: 'Trees planted', th: 'ต้นไม้ที่ปลูก', zh: '种下的树' }, value: treesPlanted, unit: '' },
+    { key: 'volunteerTime', label: { en: 'Volunteer time', th: 'เวลาอาสาสมัคร', zh: '志愿服务时长' }, value: round1(hours), unit: 'hr' },
+    { key: 'questsVerified', label: { en: 'Quests verified', th: 'ภารกิจที่ผ่านการตรวจ', zh: '已核实的任务' }, value: totals.quests_verified, unit: '' },
   ];
 }
 
@@ -350,17 +350,17 @@ export function getShield(db: DB, userId: string): ShieldService[] {
   return [
     {
       key: 'tracking',
-      label: { en: 'Live Tracking', th: 'ติดตามตำแหน่งสด' },
+      label: { en: 'Live Tracking', th: 'ติดตามตำแหน่งสด', zh: '实时位置追踪' },
       note: contacts > 0
-        ? { en: `Shared with ${contacts} ${contacts === 1 ? 'contact' : 'contacts'} during an SOS`, th: `แชร์กับผู้ติดต่อ ${contacts} คนเมื่อกด SOS` }
-        : { en: 'Add an emergency contact to share your position', th: 'เพิ่มผู้ติดต่อฉุกเฉินเพื่อแชร์ตำแหน่ง' },
+        ? { en: `Shared with ${contacts} ${contacts === 1 ? 'contact' : 'contacts'} during an SOS`, th: `แชร์กับผู้ติดต่อ ${contacts} คนเมื่อกด SOS`, zh: `触发 SOS 时与 ${contacts} 位联系人共享` }
+        : { en: 'Add an emergency contact to share your position', th: 'เพิ่มผู้ติดต่อฉุกเฉินเพื่อแชร์ตำแหน่ง', zh: '添加紧急联系人以共享你的位置' },
       state: contacts > 0 ? 'ready' : 'off',
     },
-    { key: 'safePath', label: { en: 'Safe Path', th: 'เส้นทางปลอดภัย' }, note: { en: 'Night routing avoids 3 unlit stretches', th: 'เส้นทางกลางคืนเลี่ยงช่วงไม่มีไฟ 3 จุด' }, state: 'on' },
-    { key: 'antiScam', label: { en: 'Anti-Scam', th: 'ป้องกันการหลอกลวง' }, note: { en: `${verifiedMerchants.n} QR merchants verified this trip`, th: `ตรวจสอบร้านค้า QR แล้ว ${verifiedMerchants.n} ร้านในทริปนี้` }, state: 'on' },
+    { key: 'safePath', label: { en: 'Safe Path', th: 'เส้นทางปลอดภัย', zh: '安全路线' }, note: { en: 'Night routing avoids 3 unlit stretches', th: 'เส้นทางกลางคืนเลี่ยงช่วงไม่มีไฟ 3 จุด', zh: '夜间路线会避开 3 段无照明路段' }, state: 'on' },
+    { key: 'antiScam', label: { en: 'Anti-Scam', th: 'ป้องกันการหลอกลวง', zh: '防诈骗' }, note: { en: `${verifiedMerchants.n} QR merchants verified this trip`, th: `ตรวจสอบร้านค้า QR แล้ว ${verifiedMerchants.n} ร้านในทริปนี้`, zh: `本次行程已验证 ${verifiedMerchants.n} 家 QR 商家` }, state: 'on' },
     // No invented distance. The hospital is named; how far it is depends on
     // where the traveller is, which this read model does not know.
-    { key: 'emergency', label: { en: 'Emergency Assistance', th: 'ความช่วยเหลือฉุกเฉิน' }, note: { en: '1669 · Bangkok Hospital Samui', th: '1669 · โรงพยาบาลกรุงเทพสมุย' }, state: 'ready' },
-    { key: 'language', label: { en: 'Language Help', th: 'ช่วยเหลือด้านภาษา' }, note: { en: 'Thai↔English interpreter on call', th: 'ล่ามไทย-อังกฤษพร้อมให้บริการ' }, state: 'ready' },
+    { key: 'emergency', label: { en: 'Emergency Assistance', th: 'ความช่วยเหลือฉุกเฉิน', zh: '紧急援助' }, note: { en: '1669 · Bangkok Hospital Samui', th: '1669 · โรงพยาบาลกรุงเทพสมุย', zh: '1669 · 苏梅岛曼谷医院' }, state: 'ready' },
+    { key: 'language', label: { en: 'Language Help', th: 'ช่วยเหลือด้านภาษา', zh: '语言帮助' }, note: { en: 'Thai↔English interpreter on call', th: 'ล่ามไทย-อังกฤษพร้อมให้บริการ', zh: '泰语↔英语口译随时待命' }, state: 'ready' },
   ];
 }

@@ -50,10 +50,10 @@ export const dayPart = (at: Date): DayPart => {
  * than saying "Good night", which in English reads as a goodbye.
  */
 const GREETINGS: Record<DayPart, Bilingual> = {
-  morning: { en: 'Good morning', th: 'สวัสดีตอนเช้า' },
-  afternoon: { en: 'Good afternoon', th: 'สวัสดีตอนบ่าย' },
-  evening: { en: 'Good evening', th: 'สวัสดีตอนเย็น' },
-  night: { en: 'Good evening', th: 'สวัสดีตอนค่ำ' }, // thai: intentional - see above
+  morning: { en: 'Good morning', th: 'สวัสดีตอนเช้า', zh: '早上好' },
+  afternoon: { en: 'Good afternoon', th: 'สวัสดีตอนบ่าย', zh: '下午好' },
+  evening: { en: 'Good evening', th: 'สวัสดีตอนเย็น', zh: '傍晚好' },
+  night: { en: 'Good evening', th: 'สวัสดีตอนค่ำ', zh: '晚上好' }, // thai: intentional - see above
 };
 
 export const greetingFor = (at: Date): Bilingual => GREETINGS[dayPart(at)];

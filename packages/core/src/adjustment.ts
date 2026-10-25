@@ -57,6 +57,8 @@ export const ADJUSTMENT_CHANNEL_LABEL: Record<AdjustmentChannel, Bilingual> = {
       + 'That partner did not enter it here, and ChivaGo did not witness it.',
     th: 'บันทึกโดยทีมงาน ChivaGo จากหนังสือที่พันธมิตรผู้สละสิทธิ์ส่งมา '
       + 'พันธมิตรรายนั้นไม่ได้เป็นผู้กรอกในระบบนี้ และ ChivaGo ไม่ได้เป็นพยาน',
+    zh: '由 ChivaGo 工作人员根据放弃主张的合作方提供的书面声明录入。'
+      + '该合作方并未在本系统中录入，ChivaGo 也未亲眼见证。',
   },
 };
 
@@ -149,11 +151,11 @@ export function adjustedClaimState(
 }
 
 export const CLAIM_STATE_LABEL: Record<AdjustedClaimState, Bilingual> = {
-  exclusive: { en: 'Sole funder', th: 'ผู้สนับสนุนรายเดียว' },
-  exclusive_by_adjustment: { en: 'Sole claimant, by a partner standing down', th: 'ผู้อ้างสิทธิ์รายเดียว โดยมีพันธมิตรสละสิทธิ์' },
-  shared: { en: 'Co-funded', th: 'ร่วมสนับสนุน' },
-  relinquished: { en: 'Claimed by nobody', th: 'ไม่มีผู้อ้างสิทธิ์' },
-  unfunded: { en: 'Unfunded', th: 'ไม่มีผู้สนับสนุน' },
+  exclusive: { en: 'Sole funder', th: 'ผู้สนับสนุนรายเดียว', zh: '唯一出资方' },
+  exclusive_by_adjustment: { en: 'Sole claimant, by a partner standing down', th: 'ผู้อ้างสิทธิ์รายเดียว โดยมีพันธมิตรสละสิทธิ์', zh: '唯一主张方，因有合作方放弃主张' },
+  shared: { en: 'Co-funded', th: 'ร่วมสนับสนุน', zh: '共同出资' },
+  relinquished: { en: 'Claimed by nobody', th: 'ไม่มีผู้อ้างสิทธิ์', zh: '无人主张' },
+  unfunded: { en: 'Unfunded', th: 'ไม่มีผู้สนับสนุน', zh: '无出资方' },
 };
 
 /**
@@ -168,11 +170,13 @@ export function adjustmentNote(adj: ClaimAdjustment, partnerName: Bilingual): Bi
         + 'It is kept visible because it was once entered.',
       th: 'บันทึกนี้ถูกเพิกถอนเพราะลงผิด และไม่เคยมีผลกับรายการใด '
         + 'ยังคงแสดงไว้เพราะเคยมีการบันทึกจริง',
+      zh: '此记录因录入有误已被撤回，从未对任何审批生效。'
+        + '保留显示是因为它确曾被录入过。',
     };
   }
   const until = adj.resumedAt === null
-    ? { en: 'onwards', th: 'เป็นต้นไป' }
-    : { en: `until ${adj.resumedAt.slice(0, 10)}`, th: `ถึง ${adj.resumedAt.slice(0, 10)}` };
+    ? { en: 'onwards', th: 'เป็นต้นไป', zh: '起' }
+    : { en: `until ${adj.resumedAt.slice(0, 10)}`, th: `ถึง ${adj.resumedAt.slice(0, 10)}`, zh: `起至 ${adj.resumedAt.slice(0, 10)}` };
   return {
     en: `${partnerName.en} states it is not claiming this quest's verified activity from `
       + `${from} ${until.en}. ChivaGo records that statement; it did not witness it, and it `
@@ -180,6 +184,9 @@ export function adjustmentNote(adj: ClaimAdjustment, partnerName: Bilingual): Bi
     th: `${partnerName.th} ระบุว่าจะไม่อ้างสิทธิ์กิจกรรมที่ผ่านการตรวจของภารกิจนี้ ตั้งแต่ `
       + `${from} ${until.th} ChivaGo เป็นผู้บันทึกข้อความนั้น ไม่ได้เป็นพยาน `
       + 'และไม่ได้สอบถามพันธมิตรรายอื่นว่าเห็นด้วยหรือไม่',
+    zh: `${partnerName.zh ?? partnerName.en} 声明，自 `
+      + `${from} ${until.zh}，不主张本任务经核实的活动。ChivaGo 只是记录该声明，并未亲眼见证，`
+      + '也未询问其他合作方是否同意。',
   };
 }
 
@@ -198,6 +205,9 @@ export const NOT_ARTICLE_SIX: Bilingual = {
   th: 'กลไกนี้ยืมแนวคิดมาจาก Article 6 ซึ่งเป็นการที่รัฐบาลปรับบัญชีก๊าซเรือนกระจกของประเทศตนตามสนธิสัญญา '
     + 'ที่นี่ไม่มีสิ่งนั้นเกิดขึ้น นี่คือการที่องค์กรหนึ่งระบุว่าจะไม่นับกิจกรรมหนึ่งในรายงานของตน '
     + 'และถูกบันทึกไว้เพื่อให้อีกองค์กรหนึ่งระบุได้ว่ากิจกรรมนั้นไม่ได้อยู่ในรายงานของผู้อื่นด้วย',
+  zh: '该机制的名称借自 Article 6，即一国政府依据条约调整本国温室气体清单。'
+    + '这里并不存在那样的事。这里只是一家机构声明不会在自身报告中计入某项活动，'
+    + '并将该声明记录下来，以便另一家机构可以说明该活动没有同时出现在他人的报告中。',
 };
 
 /** Shipped with every adjustment, including the ones that look tidy. */
@@ -208,4 +218,7 @@ export const ADJUSTMENT_LIMIT: Bilingual = {
   th: 'การสละสิทธิ์เป็นการถอนการอ้างสิทธิ์ ไม่ใช่การสร้างขึ้นใหม่ ไม่ได้โยกย้ายเงิน '
     + 'ไม่ได้เปลี่ยนว่าใครเป็นผู้สนับสนุน และไม่ได้ทำให้กิจกรรมที่สละไปตกเป็นของผู้ใด '
     + 'เว้นแต่มีพันธมิตรอีกรายเดียวที่สนับสนุนอยู่',
+  zh: '放弃主张只会撤销一项主张，绝不会产生新的主张。它不转移资金，'
+    + '不改变谁出了资，也不会使该合作方放弃的活动归属于其他任何人，'
+    + '除非当时恰好只有另一家合作方在出资。',
 };

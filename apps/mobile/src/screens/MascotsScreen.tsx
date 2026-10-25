@@ -188,19 +188,20 @@ export function MascotsScreen({
             <Sparkles size={11} color="#ffe28a" />
             <Label size={9} tracking={0.08} colour="#ffffff">
               {isSunset
-                ? t({ en: 'Golden Hour • Samui', th: 'ช่วงพระอาทิตย์ตก • สมุย' })
-                : t({ en: 'Daylight • Samui', th: 'ช่วงกลางวัน • สมุย' })}
+                ? t({ en: 'Golden Hour • Samui', th: 'ช่วงพระอาทิตย์ตก • สมุย', zh: '黄金时刻 • 苏梅岛' })
+                : t({ en: 'Daylight • Samui', th: 'ช่วงกลางวัน • สมุย', zh: '白昼 • 苏梅岛' })}
             </Label>
           </View>
         </View>
         <View style={{ padding: 12, backgroundColor: color.surface }}>
           <Heading size={14} tracking={-0.2}>
-            {t({ en: 'Island Companions • Koh Samui', th: 'แก๊งเพื่อนร่วมทางเกาะสมุย' })}
+            {t({ en: 'Island Companions • Koh Samui', th: 'แก๊งเพื่อนร่วมทางเกาะสมุย', zh: '岛屿伙伴 • 苏梅岛' })}
           </Heading>
           <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>
             {t({
               en: 'Explore local habitats, hatch companion eggs through verified journeys, and uncover the seventy-seven provincial mascots.',
               th: 'ออกเดินทางสำรวจถิ่นที่อยู่ ฟักไข่เพื่อนร่วมทางจากการท่องเที่ยวจริง และค้นหามาสคอตทั้ง 77 จังหวัดทั่วไทย',
+              zh: '探索本地栖息地，用已验证的真实行程孵化伙伴蛋，并集齐七十七府的吉祥物。',
             })}
           </Body>
         </View>

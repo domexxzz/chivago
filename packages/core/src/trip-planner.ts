@@ -264,12 +264,12 @@ export function planDay(req: PlanRequest): TripPlan {
       dropped.push({
         name: place.name,
         reason: unbreathable
-          ? { en: `Air is ${place.metrics.aqi} AQI — unhealthy at any hour, so it is not in the plan`, th: `อากาศ ${place.metrics.aqi} AQI ไม่ดีต่อสุขภาพทุกช่วงเวลา จึงไม่จัดลงแผน` }
+          ? { en: `Air is ${place.metrics.aqi} AQI — unhealthy at any hour, so it is not in the plan`, th: `อากาศ ${place.metrics.aqi} AQI ไม่ดีต่อสุขภาพทุกช่วงเวลา จึงไม่จัดลงแผน`, zh: `空气为 ${place.metrics.aqi} AQI——任何时段都不利健康，因此没有排进行程` }
           : badAir
-          ? { en: `Air was ${place.metrics.aqi} AQI at midday — moved out of the plan`, th: `อากาศ ${place.metrics.aqi} AQI ช่วงกลางวัน จึงไม่จัดลงแผน` }
+          ? { en: `Air was ${place.metrics.aqi} AQI at midday — moved out of the plan`, th: `อากาศ ${place.metrics.aqi} AQI ช่วงกลางวัน จึงไม่จัดลงแผน`, zh: `正午空气为 ${place.metrics.aqi} AQI——已移出行程` }
           : liveBusy
-          ? { en: `${seen} travellers checked in here in the last hour — kept out of the middle of the day`, th: `มีนักเดินทางเช็กอินที่นี่ ${seen} คนในชั่วโมงที่ผ่านมา จึงไม่จัดไว้กลางวัน` }
-          : { en: 'Busiest hours — kept out of the middle of the day', th: 'ช่วงคนเยอะที่สุด จึงไม่จัดไว้กลางวัน' },
+          ? { en: `${seen} travellers checked in here in the last hour — kept out of the middle of the day`, th: `มีนักเดินทางเช็กอินที่นี่ ${seen} คนในชั่วโมงที่ผ่านมา จึงไม่จัดไว้กลางวัน`, zh: `过去一小时内有 ${seen} 位旅行者在这里签到——因此没有安排在中午时段` }
+          : { en: 'Busiest hours — kept out of the middle of the day', th: 'ช่วงคนเยอะที่สุด จึงไม่จัดไว้กลางวัน', zh: '最拥挤的时段——因此没有安排在中午时段' },
       });
       used.add(place.id);
       continue;
@@ -280,7 +280,7 @@ export function planDay(req: PlanRequest): TripPlan {
       // Built by the router, so a leg inside a plan is the same object a
       // looked-up route would return: same pace, same fare, same wait.
       const leg = makeLeg(
-        { id: 'from', name: { en: 'Previous stop', th: 'จุดก่อนหน้า' }, ...at },
+        { id: 'from', name: { en: 'Previous stop', th: 'จุดก่อนหน้า', zh: '上一站' }, ...at },
         { id: place.id, name: place.name, lat: place.lat, lng: place.lng },
         next.mode,
       );
@@ -346,6 +346,7 @@ export function planDay(req: PlanRequest): TripPlan {
         why: {
           en: `${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'Green' : 'Trip'} Points, and you are already here`,
           th: `ได้ ${quest.rewardPoints} แต้ม${quest.rewardCurrency === 'green' ? 'กรีน' : 'ทริป'} และคุณอยู่ตรงนี้อยู่แล้ว`,
+          zh: `${quest.rewardPoints} 分${quest.rewardCurrency === 'green' ? '绿色' : '行程'}积分，而且你已经在这里了`,
         },
       });
       minutes += parseDuration(quest.duration.en);
@@ -376,12 +377,14 @@ function reasonFor(place: ScoredPlace, matchesPurpose: boolean, km: number): Bil
     return {
       en: `Matches what you came for, and scores ${place.healthyScore} today`,
       th: `ตรงกับสิ่งที่คุณตั้งใจมา และวันนี้ได้ ${place.healthyScore} คะแนน`,
+      zh: `符合你此行的目的，今天健康评分为 ${place.healthyScore}`,
     };
   }
   if (km > 0 && km < 2) {
     return {
       en: `${km.toFixed(1)} km from your last stop, scoring ${place.healthyScore}`,
       th: `ห่างจากจุดก่อนหน้า ${km.toFixed(1)} กม. คะแนน ${place.healthyScore}`,
+      zh: `距离上一站 ${km.toFixed(1)} 公里，评分 ${place.healthyScore}`,
     };
   }
   return {
@@ -389,6 +392,7 @@ function reasonFor(place: ScoredPlace, matchesPurpose: boolean, km: number): Bil
     // The meta is the part that says WHY the score is what it is. Dropping it
     // left the Thai reader a bare number and the English reader a reason.
     th: `วันนี้ได้ ${place.healthyScore} คะแนน — ${place.meta}`,
+    zh: `今天评分 ${place.healthyScore} — ${place.meta}`,
   };
 }
 
@@ -401,11 +405,15 @@ function basisFor(args: {
   const counted = args.places.filter((p) => p.crowd).length;
   const watching = [args.watchesAir ? 'air' : null, args.watchesCrowd ? 'crowds' : null].filter(Boolean) as string[];
   const watchingTh = [args.watchesAir ? 'อากาศ' : null, args.watchesCrowd ? 'ความแออัด' : null].filter(Boolean) as string[];
+  const watchingZh = [args.watchesAir ? '空气' : null, args.watchesCrowd ? '人流' : null].filter(Boolean) as string[];
   const energyTh = { gentle: 'เบา ๆ', moderate: 'ปานกลาง', full: 'เต็มวัน' }[args.energy];
+  const energyZh = { gentle: '轻松', moderate: '适中', full: '整天' }[args.energy];
   return {
     en: `A ${args.energy} day from ${args.places.length} measured place${args.places.length === 1 ? '' : 's'} (${live} with live air, ${counted} with an hourly head count)`
       + `${watching.length ? `, watching ${watching.join(' and ')}` : ''}, with ${args.quests.length} quest${args.quests.length === 1 ? '' : 's'} open.`,
     th: `วัน${energyTh} จาก ${args.places.length} สถานที่ที่วัดจริง (อากาศสด ${live} แห่ง นับคนรายชั่วโมง ${counted} แห่ง)`
       + `${watchingTh.length ? ` ระวังเรื่อง${watchingTh.join('และ')}` : ''} มีภารกิจเปิด ${args.quests.length} รายการ`,
+    zh: `一个${energyZh}的日程，取自 ${args.places.length} 个实测地点（其中 ${live} 个有实时空气数据，${counted} 个有每小时人数统计）`
+      + `${watchingZh.length ? `，关注${watchingZh.join('和')}` : ''}，有 ${args.quests.length} 个任务开放中。`,
   };
 }

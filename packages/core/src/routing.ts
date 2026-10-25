@@ -167,14 +167,14 @@ export function parseRoute(body: unknown, mode: RouteMode): Route | null {
  * something, so it is kept.
  */
 export function formatDuration(seconds: number): Bilingual {
-  if (!Number.isFinite(seconds) || seconds < 0) return { en: '', th: '' };
+  if (!Number.isFinite(seconds) || seconds < 0) return { en: '', th: '', zh: '' };
   const raw = seconds / 60;
   const mins = raw < 15 ? Math.max(1, Math.round(raw)) : Math.round(raw / 5) * 5;
-  if (mins < 60) return { en: `${mins} min`, th: `${mins} นาที` };
+  if (mins < 60) return { en: `${mins} min`, th: `${mins} นาที`, zh: `${mins} 分钟` };
   const h = Math.floor(mins / 60);
   const m = mins % 60;
-  if (m === 0) return { en: `${h} h`, th: `${h} ชม.` };
-  return { en: `${h} h ${m} min`, th: `${h} ชม. ${m} นาที` };
+  if (m === 0) return { en: `${h} h`, th: `${h} ชม.`, zh: `${h} 小时` };
+  return { en: `${h} h ${m} min`, th: `${h} ชม. ${m} นาที`, zh: `${h} 小时 ${m} 分钟` };
 }
 
 /**

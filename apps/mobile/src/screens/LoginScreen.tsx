@@ -126,7 +126,7 @@ export function LoginScreen({
   const validate = (): boolean => {
     const trimmedId = identifier.trim();
     if (!trimmedId) {
-      setErrorMessage(t({ en: 'Enter your email or phone number.', th: 'กรุณากรอกอีเมลหรือเบอร์โทรศัพท์' }));
+      setErrorMessage(t({ en: 'Enter your email or phone number.', th: 'กรุณากรอกอีเมลหรือเบอร์โทรศัพท์', zh: '请输入您的邮箱或手机号。' }));
       return false;
     }
 
@@ -140,17 +140,17 @@ export function LoginScreen({
     const isLinkCode = linkCodeRegex.test(trimmedId);
 
     if (!isEmail && !isPhone && !isLinkCode) {
-      setErrorMessage(t({ en: 'Enter a valid email or phone number.', th: 'รูปแบบอีเมลหรือเบอร์โทรศัพท์ไม่ถูกต้อง' }));
+      setErrorMessage(t({ en: 'Enter a valid email or phone number.', th: 'รูปแบบอีเมลหรือเบอร์โทรศัพท์ไม่ถูกต้อง', zh: '邮箱或手机号格式不正确。' }));
       return false;
     }
 
     if (!password) {
-      setErrorMessage(t({ en: 'Enter your password.', th: 'กรุณากรอกรหัสผ่าน' }));
+      setErrorMessage(t({ en: 'Enter your password.', th: 'กรุณากรอกรหัสผ่าน', zh: '请输入您的密码。' }));
       return false;
     }
 
     if (password.length < 6) {
-      setErrorMessage(t({ en: 'Password must be at least 6 characters.', th: 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร' }));
+      setErrorMessage(t({ en: 'Password must be at least 6 characters.', th: 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร', zh: '密码至少需要 6 个字符。' }));
       return false;
     }
 
@@ -178,7 +178,7 @@ export function LoginScreen({
           onLoginSuccess?.();
           return;
         } else {
-          setErrorMessage(claimRes.error || t({ en: 'The link code is invalid or expired.', th: 'รหัสเชื่อมต่อไม่ถูกต้องหรือหมดอายุ' }));
+          setErrorMessage(claimRes.error || t({ en: 'The link code is invalid or expired.', th: 'รหัสเชื่อมต่อไม่ถูกต้องหรือหมดอายุ', zh: '连接代码无效或已过期。' }));
           setLoading(false);
           return;
         }
@@ -196,12 +196,12 @@ export function LoginScreen({
         onLoginSuccess?.(loginRes.data.accountType);
         return;
       } else {
-        setErrorMessage(loginRes.error || t({ en: 'Sign in failed. Check your details and try again.', th: 'เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง' }));
+        setErrorMessage(loginRes.error || t({ en: 'Sign in failed. Check your details and try again.', th: 'เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง', zh: '登录失败。请检查您的信息后重试。' }));
         setLoading(false);
         return;
       }
     } catch {
-      setErrorMessage(t({ en: 'Sign in failed. Check your details and try again.', th: 'เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง' }));
+      setErrorMessage(t({ en: 'Sign in failed. Check your details and try again.', th: 'เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง', zh: '登录失败。请检查您的信息后重试。' }));
       setLoading(false);
     }
   };
@@ -245,7 +245,7 @@ export function LoginScreen({
             <Pressable
               onPress={onBack}
               accessibilityRole="button"
-              accessibilityLabel={t({ en: 'Back', th: 'ย้อนกลับ' })}
+              accessibilityLabel={t({ en: 'Back', th: 'ย้อนกลับ', zh: '返回' })}
               style={styles.backButton}
             >
               <ChevronLeft size={24} color="#FFFFFF" strokeWidth={2.4} />
@@ -264,7 +264,7 @@ export function LoginScreen({
               resizeMode="contain"
               accessibilityLabel="ChivaGo"
             />
-            <Text style={styles.taglineText}>{t({ en: 'GO FURTHER TOGETHER', th: 'เดินทางไปด้วยกันให้ไกลกว่าเดิม' })}</Text>
+            <Text style={styles.taglineText}>{t({ en: 'GO FURTHER TOGETHER', th: 'เดินทางไปด้วยกันให้ไกลกว่าเดิม', zh: '同行致远' })}</Text>
           </View>
 
           {/* Heading & Subtitle */}
@@ -276,7 +276,7 @@ export function LoginScreen({
                 isWide && styles.welcomeHeadingWide,
               ]}
             >
-              {t({ en: 'Welcome Back', th: 'ยินดีต้อนรับกลับ' })}
+              {t({ en: 'Welcome Back', th: 'ยินดีต้อนรับกลับ', zh: '欢迎回来' })}
             </Text>
             <Text
               style={[
@@ -285,7 +285,7 @@ export function LoginScreen({
                 isWide && styles.welcomeSubtitleWide,
               ]}
             >
-              {t({ en: 'Sign in to continue to Chivargo', th: 'เข้าสู่ระบบเพื่อไปยัง Chivargo' })}
+              {t({ en: 'Sign in to continue to Chivargo', th: 'เข้าสู่ระบบเพื่อไปยัง Chivargo', zh: '登录以继续使用 ChivaGo' })}
             </Text>
           </View>
         </View>
@@ -324,7 +324,7 @@ export function LoginScreen({
               <UserRound size={19} color="#718292" strokeWidth={2} />
               <TextInput
                 style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
-                placeholder={t({ en: 'Email or phone number', th: 'อีเมลหรือเบอร์โทรศัพท์' })}
+                placeholder={t({ en: 'Email or phone number', th: 'อีเมลหรือเบอร์โทรศัพท์', zh: '邮箱或手机号' })}
                 placeholderTextColor="#8E9CA8"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -336,7 +336,7 @@ export function LoginScreen({
                 }}
                 onFocus={() => setFocusedField('identifier')}
                 onBlur={() => setFocusedField(null)}
-                accessibilityLabel={t({ en: 'Email or phone number', th: 'อีเมลหรือเบอร์โทรศัพท์' })}
+                accessibilityLabel={t({ en: 'Email or phone number', th: 'อีเมลหรือเบอร์โทรศัพท์', zh: '邮箱或手机号' })}
               />
             </View>
 
@@ -352,7 +352,7 @@ export function LoginScreen({
               <Lock size={19} color="#718292" strokeWidth={2} />
               <TextInput
                 style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
-                placeholder={t({ en: 'Password', th: 'รหัสผ่าน' })}
+                placeholder={t({ en: 'Password', th: 'รหัสผ่าน', zh: '密码' })}
                 placeholderTextColor="#8E9CA8"
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
@@ -363,12 +363,12 @@ export function LoginScreen({
                 }}
                 onFocus={() => setFocusedField('password')}
                 onBlur={() => setFocusedField(null)}
-                accessibilityLabel={t({ en: 'Password', th: 'รหัสผ่าน' })}
+                accessibilityLabel={t({ en: 'Password', th: 'รหัสผ่าน', zh: '密码' })}
               />
               <Pressable
                 onPress={() => setShowPassword((prev) => !prev)}
                 accessibilityRole="button"
-                accessibilityLabel={showPassword ? t({ en: 'Hide password', th: 'ซ่อนรหัสผ่าน' }) : t({ en: 'Show password', th: 'แสดงรหัสผ่าน' })}
+                accessibilityLabel={showPassword ? t({ en: 'Hide password', th: 'ซ่อนรหัสผ่าน', zh: '隐藏密码' }) : t({ en: 'Show password', th: 'แสดงรหัสผ่าน', zh: '显示密码' })}
                 style={styles.eyeButton}
               >
                 {showPassword ? (
@@ -386,7 +386,7 @@ export function LoginScreen({
                 style={styles.rememberMeContainer}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: rememberMe }}
-                accessibilityLabel={t({ en: 'Remember me', th: 'จดจำฉันไว้' })}
+                accessibilityLabel={t({ en: 'Remember me', th: 'จดจำฉันไว้', zh: '记住我' })}
               >
                 <View
                   style={[
@@ -397,17 +397,17 @@ export function LoginScreen({
                   {rememberMe ? <Check size={11} color="#FFFFFF" strokeWidth={3} /> : null}
                 </View>
                 <Text style={[styles.rememberMeText, isSmallMobile && { fontSize: 12 }]}>
-                  {t({ en: 'Remember me', th: 'จดจำฉันไว้' })}
+                  {t({ en: 'Remember me', th: 'จดจำฉันไว้', zh: '记住我' })}
                 </Text>
               </Pressable>
 
               <Pressable
                 onPress={() => setRecoveryModalVisible(true)}
                 accessibilityRole="button"
-                accessibilityLabel={t({ en: 'Forgot password?', th: 'ลืมรหัสผ่าน?' })}
+                accessibilityLabel={t({ en: 'Forgot password?', th: 'ลืมรหัสผ่าน?', zh: '忘记密码？' })}
               >
                 <Text style={[styles.forgotPasswordLink, isSmallMobile && { fontSize: 12 }]}>
-                  {t({ en: 'Forgot password?', th: 'ลืมรหัสผ่าน?' })}
+                  {t({ en: 'Forgot password?', th: 'ลืมรหัสผ่าน?', zh: '忘记密码？' })}
                 </Text>
               </Pressable>
             </View>
@@ -417,7 +417,7 @@ export function LoginScreen({
               onPress={handleLogin}
               disabled={loading}
               accessibilityRole="button"
-              accessibilityLabel={t({ en: 'Sign in', th: 'เข้าสู่ระบบ' })}
+              accessibilityLabel={t({ en: 'Sign in', th: 'เข้าสู่ระบบ', zh: '登录' })}
               style={({ pressed }) => [
                 styles.primaryLoginButton,
                 isSmallMobile && styles.primaryLoginButtonSmall,
@@ -428,12 +428,12 @@ export function LoginScreen({
               {loading ? (
                 <View style={styles.buttonInner}>
                   <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text style={styles.primaryLoginButtonText}>{t({ en: 'Signing in…', th: 'กำลังเข้าสู่ระบบ...' })}</Text>
+                  <Text style={styles.primaryLoginButtonText}>{t({ en: 'Signing in…', th: 'กำลังเข้าสู่ระบบ...', zh: '正在登录…' })}</Text>
                 </View>
               ) : (
                 <View style={styles.buttonInner}>
                   <Text style={styles.primaryLoginButtonText}>
-                    {t({ en: 'Sign in', th: 'เข้าสู่ระบบ' })}
+                    {t({ en: 'Sign in', th: 'เข้าสู่ระบบ', zh: '登录' })}
                   </Text>
                   <ArrowRight size={18} color="#FFFFFF" strokeWidth={2.4} />
                 </View>
@@ -443,7 +443,7 @@ export function LoginScreen({
             {/* Divider "หรือ" */}
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t({ en: 'or', th: 'หรือ' })}</Text>
+              <Text style={styles.dividerText}>{t({ en: 'or', th: 'หรือ', zh: '或' })}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -451,7 +451,7 @@ export function LoginScreen({
             <Pressable
               onPress={() => setOauthNoticeProvider('Google')}
               accessibilityRole="button"
-              accessibilityLabel={t({ en: 'Sign in with Google', th: 'เข้าสู่ระบบด้วย Google' })}
+              accessibilityLabel={t({ en: 'Sign in with Google', th: 'เข้าสู่ระบบด้วย Google', zh: '使用 Google 登录' })}
               style={({ pressed }) => [
                 styles.oauthButton,
                 isSmallMobile && styles.oauthButtonSmall,
@@ -459,14 +459,14 @@ export function LoginScreen({
               ]}
             >
               <GoogleIcon size={19} />
-              <Text style={styles.oauthButtonText}>{t({ en: 'Sign in with Google', th: 'เข้าสู่ระบบด้วย Google' })}</Text>
+              <Text style={styles.oauthButtonText}>{t({ en: 'Sign in with Google', th: 'เข้าสู่ระบบด้วย Google', zh: '使用 Google 登录' })}</Text>
             </Pressable>
 
             {/* Alternative Authentication: LINE */}
             <Pressable
               onPress={() => setOauthNoticeProvider('LINE')}
               accessibilityRole="button"
-              accessibilityLabel={t({ en: 'Sign in with LINE', th: 'เข้าสู่ระบบด้วย LINE' })}
+              accessibilityLabel={t({ en: 'Sign in with LINE', th: 'เข้าสู่ระบบด้วย LINE', zh: '使用 LINE 登录' })}
               style={({ pressed }) => [
                 styles.oauthButton,
                 { marginTop: 12 },
@@ -475,19 +475,19 @@ export function LoginScreen({
               ]}
             >
               <LineIcon size={21} />
-              <Text style={styles.oauthButtonText}>{t({ en: 'Sign in with LINE', th: 'เข้าสู่ระบบด้วย LINE' })}</Text>
+              <Text style={styles.oauthButtonText}>{t({ en: 'Sign in with LINE', th: 'เข้าสู่ระบบด้วย LINE', zh: '使用 LINE 登录' })}</Text>
             </Pressable>
           </View>
 
           {/* Registration Link Footer */}
           <View style={styles.registerRow}>
-            <Text style={styles.registerPrompt}>{t({ en: 'New to Chivargo? ', th: 'ยังไม่มีบัญชี? ' })}</Text>
+            <Text style={styles.registerPrompt}>{t({ en: 'New to Chivargo? ', th: 'ยังไม่มีบัญชี? ', zh: '还没有 ChivaGo 账户？' })}</Text>
             <Pressable
               onPress={() => onRegister?.()}
               accessibilityRole="button"
-              accessibilityLabel={t({ en: 'Create an account', th: 'สมัครสมาชิก' })}
+              accessibilityLabel={t({ en: 'Create an account', th: 'สมัครสมาชิก', zh: '创建账户' })}
             >
-              <Text style={styles.registerLink}>{t({ en: 'Create an account', th: 'สมัครสมาชิก' })}</Text>
+              <Text style={styles.registerLink}>{t({ en: 'Create an account', th: 'สมัครสมาชิก', zh: '创建账户' })}</Text>
             </Pressable>
           </View>
 
@@ -496,15 +496,15 @@ export function LoginScreen({
             <Pressable
               onPress={onGuest}
               accessibilityRole="button"
-              accessibilityLabel={t({ en: 'Browse as a guest', th: 'เข้าชมแบบผู้เยี่ยมชม' })}
+              accessibilityLabel={t({ en: 'Browse as a guest', th: 'เข้าชมแบบผู้เยี่ยมชม', zh: '以访客身份浏览' })}
               style={({ pressed }) => [styles.guestButton, pressed && { opacity: 0.6 }]}
             >
               <View style={styles.guestIconWrap}>
                 <Compass size={20} color="#0077B6" strokeWidth={2.2} />
               </View>
               <View style={styles.guestTextWrap}>
-                <Text style={styles.guestButtonText}>{t({ en: 'Continue as a guest', th: 'เข้าชมแบบผู้เยี่ยมชม' })}</Text>
-                <Text style={styles.guestButtonHint}>{t({ en: 'Explore before creating an account', th: 'ลองสำรวจแอปก่อนสมัครสมาชิก' })}</Text>
+                <Text style={styles.guestButtonText}>{t({ en: 'Continue as a guest', th: 'เข้าชมแบบผู้เยี่ยมชม', zh: '以访客身份继续' })}</Text>
+                <Text style={styles.guestButtonHint}>{t({ en: 'Explore before creating an account', th: 'ลองสำรวจแอปก่อนสมัครสมาชิก', zh: '先体验，再创建账户' })}</Text>
               </View>
               <ArrowRight size={18} color="#0077B6" strokeWidth={2.2} />
             </Pressable>
@@ -536,25 +536,25 @@ export function LoginScreen({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t({ en: 'Account recovery', th: 'การกู้คืนบัญชี' })}</Text>
+              <Text style={styles.modalTitle}>{t({ en: 'Account recovery', th: 'การกู้คืนบัญชี', zh: '账户找回' })}</Text>
               <Pressable
                 onPress={() => setRecoveryModalVisible(false)}
                 accessibilityRole="button"
-                accessibilityLabel={t({ en: 'Close', th: 'ปิด' })}
+                accessibilityLabel={t({ en: 'Close', th: 'ปิด', zh: '关闭' })}
               >
                 <X size={20} color="#64748B" />
               </Pressable>
             </View>
             <Text style={styles.modalBody}>
-              {t({ en: 'ChivaGo uses a secure device key to protect your personal information, so you do not need to remember a password.', th: 'ChivaGo ใช้กุญแจอุปกรณ์ที่ปลอดภัยเพื่อปกป้องข้อมูลส่วนบุคคล โดยไม่ต้องจดจำรหัสผ่าน' })}
+              {t({ en: 'ChivaGo uses a secure device key to protect your personal information, so you do not need to remember a password.', th: 'ChivaGo ใช้กุญแจอุปกรณ์ที่ปลอดภัยเพื่อปกป้องข้อมูลส่วนบุคคล โดยไม่ต้องจดจำรหัสผ่าน', zh: 'ChivaGo 使用安全的设备密钥保护您的个人信息，因此您无需记住任何密码。' })}
               {'\n\n'}
-              {t({ en: 'To recover or move your account to this phone, use the 8-digit link code from your other phone. Enter it in the email or phone field to continue.', th: 'หากต้องการกู้คืนหรือย้ายบัญชีมายังเครื่องนี้ ให้ใช้รหัสเชื่อมต่อ 8 หลักจากเครื่องเดิม แล้วกรอกในช่องอีเมลหรือเบอร์โทรศัพท์เพื่อเข้าสู่ระบบ' })}
+              {t({ en: 'To recover or move your account to this phone, use the 8-digit link code from your other phone. Enter it in the email or phone field to continue.', th: 'หากต้องการกู้คืนหรือย้ายบัญชีมายังเครื่องนี้ ให้ใช้รหัสเชื่อมต่อ 8 หลักจากเครื่องเดิม แล้วกรอกในช่องอีเมลหรือเบอร์โทรศัพท์เพื่อเข้าสู่ระบบ', zh: '若要找回账户或将账户迁移到这部手机，请使用另一部手机上的 8 位连接代码，在邮箱或手机号栏中输入即可继续。' })}
             </Text>
             <Pressable
               onPress={() => setRecoveryModalVisible(false)}
               style={styles.modalButton}
             >
-              <Text style={styles.modalButtonText}>{t({ en: 'Got it', th: 'เข้าใจแล้ว' })}</Text>
+              <Text style={styles.modalButtonText}>{t({ en: 'Got it', th: 'เข้าใจแล้ว', zh: '知道了' })}</Text>
             </Pressable>
           </View>
         </View>
@@ -570,25 +570,25 @@ export function LoginScreen({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t({ en: `Sign in with ${oauthNoticeProvider}`, th: `เข้าสู่ระบบด้วย ${oauthNoticeProvider}` })}</Text>
+              <Text style={styles.modalTitle}>{t({ en: `Sign in with ${oauthNoticeProvider}`, th: `เข้าสู่ระบบด้วย ${oauthNoticeProvider}`, zh: `使用 ${oauthNoticeProvider} 登录` })}</Text>
               <Pressable
                 onPress={() => setOauthNoticeProvider(null)}
                 accessibilityRole="button"
-                accessibilityLabel={t({ en: 'Close', th: 'ปิด' })}
+                accessibilityLabel={t({ en: 'Close', th: 'ปิด', zh: '关闭' })}
               >
                 <X size={20} color="#64748B" />
               </Pressable>
             </View>
             <Text style={styles.modalBody}>
-              {t({ en: `Account sign-in with ${oauthNoticeProvider} is being prepared for a future update.`, th: `ระบบเชื่อมต่อบัญชีอัตโนมัติผ่าน ${oauthNoticeProvider} กำลังเตรียมพร้อมสำหรับการอัปเดตเวอร์ชันถัดไป` })}
+              {t({ en: `Account sign-in with ${oauthNoticeProvider} is being prepared for a future update.`, th: `ระบบเชื่อมต่อบัญชีอัตโนมัติผ่าน ${oauthNoticeProvider} กำลังเตรียมพร้อมสำหรับการอัปเดตเวอร์ชันถัดไป`, zh: `使用 ${oauthNoticeProvider} 账户登录的功能正在为后续版本准备中。` })}
               {'\n\n'}
-              {t({ en: 'For now, sign in with your email, phone number, or 8-digit device link code.', th: 'ในระหว่างนี้ สามารถเข้าสู่ระบบด้วยอีเมล เบอร์โทรศัพท์ หรือรหัสเชื่อมต่ออุปกรณ์ 8 หลักได้' })}
+              {t({ en: 'For now, sign in with your email, phone number, or 8-digit device link code.', th: 'ในระหว่างนี้ สามารถเข้าสู่ระบบด้วยอีเมล เบอร์โทรศัพท์ หรือรหัสเชื่อมต่ออุปกรณ์ 8 หลักได้', zh: '目前请使用您的邮箱、手机号或 8 位设备连接代码登录。' })}
             </Text>
             <Pressable
               onPress={() => setOauthNoticeProvider(null)}
               style={styles.modalButton}
             >
-              <Text style={styles.modalButtonText}>{t({ en: 'OK', th: 'ตกลง' })}</Text>
+              <Text style={styles.modalButtonText}>{t({ en: 'OK', th: 'ตกลง', zh: '确定' })}</Text>
             </Pressable>
           </View>
         </View>

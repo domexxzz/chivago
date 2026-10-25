@@ -14,7 +14,7 @@ export function ProfileButton({ onPress }: { onPress?: () => void }) {
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={t({ en: 'Profile', th: 'โปรไฟล์' })}
+      accessibilityLabel={t({ en: 'Profile', th: 'โปรไฟล์', zh: '个人资料' })}
       style={{
         width: 44, height: 44, borderRadius: 22,
         borderWidth: 1, borderColor: 'rgba(255,255,255,0.7)',

@@ -70,14 +70,14 @@ function islandDayNumber(d: Date): number {
  */
 export function ledgerDate(iso: string, now: Date): Bilingual {
   const days = islandDayNumber(now) - islandDayNumber(new Date(iso));
-  if (days <= 0) return { en: 'Today', th: 'วันนี้' };
-  if (days === 1) return { en: 'Yesterday', th: 'เมื่อวาน' };
+  if (days <= 0) return { en: 'Today', th: 'วันนี้', zh: '今天' };
+  if (days === 1) return { en: 'Yesterday', th: 'เมื่อวาน', zh: '昨天' };
   const on = (locale: string) => new Intl.DateTimeFormat(locale, {
     timeZone: ISLAND_TZ,
     day: 'numeric',
     month: 'short',
   }).format(new Date(iso));
-  return { en: on('en-GB'), th: on('th-TH') };
+  return { en: on('en-GB'), th: on('th-TH'), zh: on('zh-CN') };
 }
 
 /** The English label alone. Kept for callers that compose an English sentence. */
@@ -181,15 +181,15 @@ export function ledgerLine(
   entry: Pick<LedgerEntry, 'kind' | 'label'> & { subject?: string | null },
 ): Bilingual {
   const subject = entry.subject?.trim();
-  if (!subject) return { en: entry.label, th: entry.label };
+  if (!subject) return { en: entry.label, th: entry.label, zh: entry.label };
   switch (entry.kind) {
     // The quest's own name IS the sentence. Nothing to phrase around it.
-    case 'quest_reward': return { en: subject, th: subject };
-    case 'checkin': return { en: `Checked in · ${subject}`, th: `เช็กอินที่ ${subject}` };
+    case 'quest_reward': return { en: subject, th: subject, zh: subject };
+    case 'checkin': return { en: `Checked in · ${subject}`, th: `เช็กอินที่ ${subject}`, zh: `已签到 · ${subject}` };
     // A leg on foot between two check-ins: "Chaweng → Lamai".
-    case 'walk': return { en: `Walked · ${subject}`, th: `เดินมา ${subject}` };
-    case 'review': return { en: `Review · ${subject}`, th: `รีวิว ${subject}` };
-    case 'redemption': return { en: `${subject} redeemed`, th: `แลก ${subject}` };
-    default: return { en: entry.label, th: entry.label };
+    case 'walk': return { en: `Walked · ${subject}`, th: `เดินมา ${subject}`, zh: `步行 · ${subject}` };
+    case 'review': return { en: `Review · ${subject}`, th: `รีวิว ${subject}`, zh: `评价 · ${subject}` };
+    case 'redemption': return { en: `${subject} redeemed`, th: `แลก ${subject}`, zh: `已兑换 ${subject}` };
+    default: return { en: entry.label, th: entry.label, zh: entry.label };
   }
 }

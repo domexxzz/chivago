@@ -383,6 +383,7 @@ export function OfferRow({
         accessibilityLabel={t({
           en: `Redeem ${offer.name} for ${offer.costPoints} ${currencyName(offer.currency)}`,
           th: `แลก ${offer.name} ด้วย ${offer.costPoints} ${currencyName(offer.currency)}`,
+          zh: `用 ${offer.costPoints} ${currencyName(offer.currency)} 兑换 ${offer.name}`,
         })}
         accessibilityState={{ disabled: !offer.available }}
         style={{
@@ -474,7 +475,7 @@ function MyVouchersTab({
         {pastVouchers.length > 0 ? (
           <View>
             <Label size={11} tracking={0.14} colour={color.neutral600} style={{ marginBottom: 12 }}>
-              {`${t({ en: 'HISTORY', th: 'ประวัติการใช้สิทธิ์' })} · ${pastVouchers.length}`}
+              {`${t({ en: 'HISTORY', th: 'ประวัติการใช้สิทธิ์', zh: '兑换记录' })} · ${pastVouchers.length}`}
             </Label>
             {pastVouchers.map((v) => (
               <VoucherCard key={v.id} voucher={v} onSelect={() => onSelectVoucher(v)} isPast />
@@ -507,6 +508,7 @@ function VoucherCard({
       accessibilityLabel={t({
         en: `Voucher for ${voucher.merchant}, code ${voucher.code}`,
         th: `บัตรแลกของ ${voucher.merchant} รหัส ${voucher.code}`,
+        zh: `${voucher.merchant} 的兑换券，兑换码 ${voucher.code}`,
       })}
       style={{
         backgroundColor: color.surface,
@@ -667,7 +669,7 @@ function VoucherSheet({
             <Pressable
               onPress={copyCode}
               accessibilityRole="button"
-              accessibilityLabel={t({ en: 'Copy code', th: 'คัดลอกรหัส' })}
+              accessibilityLabel={t({ en: 'Copy code', th: 'คัดลอกรหัส', zh: '复制兑换码' })}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -694,6 +696,7 @@ function VoucherSheet({
             {t({
               en: `${voucher.costPoints.toLocaleString('en-US')} points settled to the merchant.`,
               th: `โอน ${voucher.costPoints.toLocaleString('en-US')} แต้มให้ร้านแล้ว`,
+              zh: `已向商家结算 ${voucher.costPoints.toLocaleString('en-US')} 积分。`,
             })}
           </Body>
         </View>

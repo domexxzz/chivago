@@ -35,11 +35,11 @@ export type EvidenceLevel = 0 | 1 | 2 | 3 | 4;
 export const EVIDENCE_LEVELS: readonly EvidenceLevel[] = [1, 2, 3, 4];
 
 export const LEVEL_LABEL: Record<EvidenceLevel, Bilingual> = {
-  0: { en: 'Nothing submitted', th: 'ยังไม่มีการส่งหลักฐาน' },
-  1: { en: 'Self-reported', th: 'ผู้ใช้รายงานเอง' },
-  2: { en: 'Digital trace', th: 'มีหลักฐานดิจิทัล' },
-  3: { en: 'Partner verified', th: 'พาร์ตเนอร์ยืนยัน' },
-  4: { en: 'Third party checked', th: 'บุคคลที่สามตรวจ' },
+  0: { en: 'Nothing submitted', th: 'ยังไม่มีการส่งหลักฐาน', zh: '未提交任何证据' },
+  1: { en: 'Self-reported', th: 'ผู้ใช้รายงานเอง', zh: '本人自行报告' },
+  2: { en: 'Digital trace', th: 'มีหลักฐานดิจิทัล', zh: '有数字痕迹' },
+  3: { en: 'Partner verified', th: 'พาร์ตเนอร์ยืนยัน', zh: '合作方已验证' },
+  4: { en: 'Third party checked', th: 'บุคคลที่สามตรวจ', zh: '第三方已核查' },
 };
 
 /** What the rows actually hold about one submission. */
@@ -120,23 +120,27 @@ export function levelSummary(
 function noteFor(meets: number, short: number, unagreed: number): Bilingual {
   const total = meets + short + unagreed;
   if (total === 0) {
-    return { en: 'Nothing to hold to a level.', th: 'ยังไม่มีรายการให้เทียบระดับ' };
+    return { en: 'Nothing to hold to a level.', th: 'ยังไม่มีรายการให้เทียบระดับ', zh: '没有可对照等级的记录。' };
   }
   const parts: string[] = [];
   const partsTh: string[] = [];
+  const partsZh: string[] = [];
   if (short > 0) {
     parts.push(`${short} of ${total} fall short of the level their quest agreed`);
     partsTh.push(`${short} จาก ${total} รายการต่ำกว่าระดับที่ภารกิจตกลงไว้`);
+    partsZh.push(`${total} 项中有 ${short} 项未达到其任务约定的等级。`);
   }
   if (unagreed > 0) {
     parts.push(`${unagreed} belong to a quest with no agreed level, and are held to none`);
     partsTh.push(`${unagreed} รายการอยู่ในภารกิจที่ไม่ได้ตกลงระดับไว้ จึงไม่ถูกเทียบกับระดับใด`);
+    partsZh.push(`${unagreed} 项属于未约定等级的任务，因此不对照任何等级。`);
   }
   if (parts.length === 0) {
     return {
       en: `All ${total} meet the level their quest agreed.`,
       th: `ทั้ง ${total} รายการอยู่ในระดับที่ภารกิจตกลงไว้`,
+      zh: `全部 ${total} 项均达到其任务约定的等级。`,
     };
   }
-  return { en: `${parts.join('. ')}.`, th: `${partsTh.join(' ')}` };
+  return { en: `${parts.join('. ')}.`, th: `${partsTh.join(' ')}`, zh: `${partsZh.join('')}` };
 }

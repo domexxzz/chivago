@@ -74,19 +74,23 @@ export const FACT_QUESTION: Record<FactName, Bilingual> = {
   materialOrigin: {
     en: 'Was the material discarded by your own operations, or by somebody else?',
     th: 'วัสดุนั้นถูกทิ้งโดยการดำเนินงานของคุณเอง หรือโดยผู้อื่น',
+    zh: '这些物料是你自己的运营丢弃的，还是他人丢弃的？',
   },
   organisationRole: {
     en: 'In this activity, were you the generator of the material, the manager of '
       + 'somebody else’s, or the funder?',
     th: 'ในกิจกรรมนี้ คุณเป็นผู้ก่อวัสดุนั้น ผู้จัดการวัสดุของผู้อื่น หรือผู้ให้ทุน',
+    zh: '在这项活动中，你是该物料的产生方、他人物料的管理方，还是出资方？',
   },
   insideBoundary: {
     en: 'Does this activity sit inside the operational boundary you report on?',
     th: 'กิจกรรมนี้อยู่ในขอบเขตการดำเนินงานที่คุณรายงานหรือไม่',
+    zh: '该活动是否位于你所报告的运营边界之内？',
   },
   measuredBy: {
     en: 'Was the figure verified by the host who ran the activity, or declared by you?',
     th: 'ตัวเลขนี้ผู้จัดกิจกรรมเป็นผู้ตรวจ หรือคุณเป็นผู้แจ้งเอง',
+    zh: '这个数字是由举办该活动的主办方验证的，还是由你自行申报的？',
   },
 };
 
@@ -114,10 +118,10 @@ export const UNKNOWN_FACTS: ActivityFacts = {
 export type Verdict = 'refuses' | 'conditional' | 'unknown' | 'unexamined';
 
 export const VERDICT_LABEL: Record<Verdict, Bilingual> = {
-  refuses: { en: 'Cannot go here', th: 'ใส่ตรงนี้ไม่ได้' },
-  conditional: { en: 'Only if stated', th: 'ได้ ถ้าระบุเงื่อนไข' },
-  unknown: { en: 'One answer missing', th: 'ยังขาดคำตอบหนึ่งข้อ' },
-  unexamined: { en: 'Not examined', th: 'ยังไม่ได้ตรวจสอบคู่นี้' },
+  refuses: { en: 'Cannot go here', th: 'ใส่ตรงนี้ไม่ได้', zh: '不能放在这里' },
+  conditional: { en: 'Only if stated', th: 'ได้ ถ้าระบุเงื่อนไข', zh: '可以，但须注明条件' },
+  unknown: { en: 'One answer missing', th: 'ยังขาดคำตอบหนึ่งข้อ', zh: '尚缺一个答案' },
+  unexamined: { en: 'Not examined', th: 'ยังไม่ได้ตรวจสอบคู่นี้', zh: '未经审查' },
 };
 
 /**
@@ -131,6 +135,8 @@ export const UNEXAMINED_NOTE: Bilingual = {
     + 'ChivaGo has studied, not a finding that the placement is sound.',
   th: 'ยังไม่มีผู้ใดที่นี่ตรวจสอบตัวเลขนี้เทียบกับรายการนี้ นี่คือช่องว่างของสิ่งที่ ChivaGo ศึกษาไว้ '
     + 'ไม่ใช่ข้อสรุปว่าการจัดวางนั้นถูกต้อง',
+  zh: '此处尚无人将这个数字对照该项审查过。这是 ChivaGo 已研究内容中的一处空白，'
+    + '而不是认定该归类成立的结论。',
 };
 
 /** Shipped with every result, including the ones that look like permission. */
@@ -140,6 +146,8 @@ export const PLACEMENT_LIMIT: Bilingual = {
     + 'figure into another unit.',
   th: 'นี่คือการอ่านมาตรฐานที่เผยแพร่แล้วตามความเห็นของ ChivaGo ไม่ใช่คำวินิจฉัย'
     + 'และไม่ใช่ความเห็นให้ความเชื่อมั่น ไม่มีสิ่งใดตรงนี้เป็นการยื่นรายงาน และไม่มีการแปลงตัวเลขเป็นหน่วยอื่น',
+  zh: '这是 ChivaGo 对一份已公开标准的解读，不是裁定，也不是鉴证意见。此处不会提交'
+    + '任何报告，也不会把任何数字换算成其他单位。',
 };
 
 /* ----------------------------------------------------------------- rules -- */
@@ -349,6 +357,8 @@ export const GRI_306_3: IndicatorRule = {
         + 'GRI sector standard was checked for a narrower reading.',
       th: 'อ่านจากแนวปฏิบัติที่เผยแพร่เท่านั้น ไม่มีคำวินิจฉัย ไม่มีความเห็นจากผู้ให้ความเชื่อมั่น '
         + 'และยังไม่ได้ตรวจมาตรฐานรายสาขาของ GRI ว่ามีการตีความที่แคบกว่านี้หรือไม่',
+      zh: '仅依据已公开的指引。没有裁定，没有鉴证机构的意见，也未查阅 GRI 行业标准'
+        + '是否存在更狭义的解读。',
     },
   },
   test(facts) {
@@ -362,6 +372,8 @@ export const GRI_306_3: IndicatorRule = {
             + 'permit it until that is answered.',
           th: 'GRI นิยามขยะว่าคือสิ่งที่ผู้ถือครองทิ้ง ดังนั้นวัสดุนี้เป็นของผู้ใดจึงเป็นตัวตัดสิน'
             + 'ว่าใช้ 306-3 ได้หรือไม่ ตราบที่ยังไม่มีคำตอบ ที่นี่ปฏิเสธไม่ได้และอนุญาตไม่ได้',
+          zh: 'GRI 将废弃物定义为持有者所丢弃之物，因此这些物料原属于谁，决定了 306-3 '
+            + '是否适用。在这一点得到回答之前，此处既不能否定它，也不能准许它。',
         },
       };
     }
@@ -377,18 +389,24 @@ export const GRI_306_3: IndicatorRule = {
           th: 'GRI นิยามขยะว่าคือสิ่งที่ผู้ถือครองทิ้ง และ 306-3 ครอบคลุมขยะที่เกิดจากกิจกรรม'
             + 'ขององค์กรเอง วัสดุที่ผู้อื่นทิ้งไว้ไม่เคยเป็นขยะขององค์กรนี้ 306-3 จึงรองรับไม่ได้ '
             + 'ไม่ว่าจะชั่งน้ำหนักมาอย่างระมัดระวังเพียงใด',
+          zh: 'GRI 将废弃物定义为持有者所丢弃之物，而 306-3 涵盖的是组织自身活动中产生'
+            + '的废弃物。他人丢弃的物料从来就不是本组织的废弃物，因此无论称重时多么'
+            + '仔细，306-3 都无法容纳它。',
         },
         insteadTry: [
           {
             en: 'GRI 3-3-e-ii, as a supplementary indicator describing action taken on a '
               + 'material topic.',
             th: 'GRI 3-3-e-ii ในฐานะตัวชี้วัดเสริมที่อธิบายการดำเนินการต่อประเด็นสำคัญ',
+            zh: 'GRI 3-3-e-ii，作为描述针对实质性议题所采取行动的补充指标。',
           },
           {
             en: 'GRI 306 in the role of a waste MANAGER, said explicitly and kept separate '
               + 'from the organisation’s own operational waste.',
             th: 'GRI 306 ในบทบาท "ผู้จัดการขยะ" โดยระบุให้ชัด และแยกจากขยะจากการดำเนินงาน'
               + 'ขององค์กรเอง',
+            zh: '以“废弃物管理者”的身份使用 GRI 306，明确说明这一点，并与组织自身运营'
+              + '产生的废弃物分开列示。',
           },
         ],
       };
@@ -404,15 +422,19 @@ export const GRI_306_3: IndicatorRule = {
           th: 'เฉพาะส่วนที่การดำเนินงานขององค์กรเองเป็นผู้ทิ้งเท่านั้นที่เป็นขยะตามนิยามของ GRI '
             + 'ส่วนที่เหลือเป็นของผู้อื่น การรายงานเป็นตัวเลขรวมตัวเดียวเท่ากับรายงานทั้งสองส่วน '
             + 'ราวกับเป็นส่วนแรกทั้งหมด',
+          zh: '只有由组织自身运营丢弃的那一部分，才是 GRI 定义下的废弃物。其余部分属于'
+            + '他人，而一个合并后的数字会把两者都当作前者来报告。',
         },
         conditions: [
           {
             en: 'Separate the two, and put only the own-operations weight in 306-3.',
             th: 'แยกสองส่วนออกจากกัน และใส่เฉพาะน้ำหนักจากการดำเนินงานขององค์กรเองใน 306-3',
+            zh: '将两部分分开，只把自身运营产生的重量计入 306-3。',
           },
           {
             en: 'Say where the rest went, so the total can still be reconciled.',
             th: 'ระบุว่าส่วนที่เหลือไปอยู่ที่ใด เพื่อให้ยอดรวมยังกระทบยอดได้',
+            zh: '说明其余部分的去向，使总量仍然能够核对。',
           },
         ],
       };
@@ -429,6 +451,8 @@ export const GRI_306_3: IndicatorRule = {
             + 'than the manager or the funder of somebody else’s handling of it.',
           th: '306-3 คือขยะที่องค์กร "ก่อขึ้น" วัสดุจากการดำเนินงานขององค์กรเองยังต้องอาศัย'
             + 'ว่าองค์กรเป็นผู้ก่อ ไม่ใช่ผู้จัดการหรือผู้ให้ทุนแก่การจัดการของผู้อื่น',
+          zh: '306-3 指的是组织“产生”的废弃物。即便物料来自组织自身的运营，仍需确认'
+            + '组织是产生方，而不是他人处置行为的管理方或出资方。',
         },
       };
     }
@@ -442,11 +466,14 @@ export const GRI_306_3: IndicatorRule = {
             + 'count somebody else’s waste as the organisation’s own.',
           th: '306-3 รายงานขยะที่องค์กรเป็นผู้ก่อ การจัดการหรือการให้ทุนแก่การจัดการวัสดุ'
             + 'ไม่ใช่การก่อขยะ การรายงานไว้ตรงนี้เท่ากับนับขยะของผู้อื่นเป็นขยะขององค์กรเอง',
+          zh: '306-3 报告的是组织自身产生的废弃物。管理或出资处置物料并不等于产生'
+            + '废弃物，在此处报告等于把他人的废弃物算作组织自己的。',
         },
         insteadTry: [
           {
             en: 'GRI 306 in the role of a waste manager, said explicitly.',
             th: 'GRI 306 ในบทบาทผู้จัดการขยะ โดยระบุให้ชัด',
+            zh: '以废弃物管理者的身份使用 GRI 306，并明确说明这一点。',
           },
         ],
       };
@@ -461,11 +488,14 @@ export const GRI_306_3: IndicatorRule = {
             + 'that boundary.',
           th: 'องค์กรเป็นผู้ก่อวัสดุนี้ แต่กิจกรรมอยู่นอกขอบเขตการดำเนินงานที่รายงานครอบคลุม '
             + '306-3 อธิบายสิ่งที่เกิดขึ้นภายในขอบเขตนั้น',
+          zh: '该物料由组织产生，但这项活动位于报告所涵盖的运营边界之外。306-3 描述'
+            + '的是该边界之内发生的事情。',
         },
         insteadTry: [
           {
             en: 'State it outside the inventory, with the boundary difference named.',
             th: 'ระบุไว้นอกบัญชี พร้อมระบุความต่างของขอบเขตให้ชัด',
+            zh: '在清单之外加以说明，并指明边界上的差异。',
           },
         ],
       };
@@ -480,6 +510,8 @@ export const GRI_306_3: IndicatorRule = {
             + 'whether the activity is inside the boundary the report covers.',
           th: 'วัสดุเป็นขององค์กรเองและองค์กรเป็นผู้ก่อ เหลือเพียงว่ากิจกรรมอยู่ใน'
             + 'ขอบเขตที่รายงานครอบคลุมหรือไม่',
+          zh: '物料属于组织自身，且由组织产生。余下的问题只是该活动是否位于报告所'
+            + '涵盖的边界之内。',
         },
       };
     }
@@ -493,23 +525,28 @@ export const GRI_306_3: IndicatorRule = {
         th: 'เป็นการดำเนินงานขององค์กรเอง องค์กรเป็นผู้ก่อ และอยู่ในขอบเขตที่รายงาน '
           + 'การอ่านครั้งนี้ไม่มีข้อใดปฏิเสธการใช้ 306-3 กับตัวเลขนี้ ซึ่งไม่เท่ากับการยืนยัน'
           + 'ว่าการจัดวางนั้นถูกต้อง',
+        zh: '属自身运营、由组织产生、且在所报告的边界之内：本次解读中没有任何内容'
+          + '否定把这个数字放入 306-3。这并不等同于确认该归类是正确的。',
       },
       conditions: [
         {
           en: 'Say how the weight was arrived at, beside the figure.',
           th: 'ระบุวิธีที่ได้มาซึ่งน้ำหนักไว้ข้างตัวเลข',
+          zh: '在数字旁说明该重量是如何得出的。',
         },
         ...(facts.measuredBy === 'host_verified'
           ? [{
             en: 'Verified by the host who ran the activity, which is not independent '
               + 'assurance under ISAE 3000.',
             th: 'ตรวจโดยผู้จัดกิจกรรม ซึ่งไม่ใช่การให้ความเชื่อมั่นโดยอิสระตาม ISAE 3000',
+            zh: '由举办该活动的主办方验证，这并不是 ISAE 3000 下的独立鉴证。',
           }]
           : []),
         ...(facts.measuredBy === 'declared'
           ? [{
             en: 'Self-declared and not verified by anybody here. Say so on the face of it.',
             th: 'เป็นข้อมูลที่แจ้งเอง ไม่มีผู้ใดที่นี่ตรวจสอบ ให้ระบุไว้บนหน้าเอกสาร',
+            zh: '属自行申报，此处无人核查。请在文件表面注明这一点。',
           }]
           : []),
         ...(facts.measuredBy === 'unknown'
@@ -517,6 +554,7 @@ export const GRI_306_3: IndicatorRule = {
             en: 'Nobody has said where the figure came from, and a 306-3 line is expected '
               + 'to carry its basis.',
             th: 'ยังไม่มีผู้ใดระบุที่มาของตัวเลข ทั้งที่รายการ 306-3 ควรระบุฐานที่มาไว้ด้วย',
+            zh: '尚无人说明这个数字的来源，而 306-3 这一项应当附带其依据。',
           }]
           : []),
       ],
@@ -580,6 +618,8 @@ export const GHG_SCOPE3_CAT5: IndicatorRule = {
       th: 'อ่านบท Category 5 ครบทั้งบท แต่ยังไม่ได้อ่านตัว Scope 3 Standard เอง รวมถึงหัวข้อ 9.5 '
         + 'เรื่องการปล่อยที่หลีกเลี่ยงได้ซึ่งบทนั้นอ้างถึง และไม่ได้ตรวจฉบับปรับปรุงที่ออกหลังฉบับนี้ '
         + 'ไม่มีความเห็นจากผู้ให้ความเชื่อมั่น',
+      zh: 'Category 5 一章已通读。Scope 3 Standard 本身尚未阅读，包括该章所指向的'
+        + '第 9.5 节“避免的排放”；本版之后发布的任何修订也未阅读。没有鉴证机构的意见。',
     },
   },
   test(facts) {
@@ -594,6 +634,9 @@ export const GHG_SCOPE3_CAT5: IndicatorRule = {
           th: 'Category 5 ครอบคลุมขยะที่เกิดจากการดำเนินงานของบริษัทผู้รายงานเอง ดังนั้นวัสดุนี้'
             + 'เป็นของผู้ใดจึงเป็นตัวตัดสินว่าใช้รายการนี้ได้หรือไม่ เป็นคำถามเดียวกับที่ตัดสิน GRI 306-3 '
             + 'และคำตอบเดียวใช้ได้กับทั้งสองรายการ',
+          zh: 'Category 5 涵盖的是报告公司自身运营中产生的废弃物，因此这些物料原属于'
+            + '谁，决定了该项是否适用。这与决定 GRI 306-3 的是同一个问题，一个答案'
+            + '可同时解决两者。',
         },
       };
     }
@@ -608,17 +651,22 @@ export const GHG_SCOPE3_CAT5: IndicatorRule = {
           th: 'Category 5 ครอบคลุมขยะที่เกิดจากการดำเนินงานที่บริษัทผู้รายงานเป็นเจ้าของหรือควบคุม '
             + 'วัสดุที่ผู้อื่นทิ้งไว้ไม่เคยอยู่ในนั้น และรายการนี้รายงานเป็นการปล่อยในหน่วย CO2e '
             + 'ซึ่งน้ำหนักไม่ใช่',
+          zh: 'Category 5 涵盖的是报告公司拥有或控制的运营中产生的废弃物。他人丢弃的'
+            + '物料从未处于其中。而且该类别以 CO2e 计的排放量报告，重量并不是排放量。',
         },
         insteadTry: [
           {
             en: 'Describe it outside the inventory, as an activity rather than as an emission.',
             th: 'อธิบายไว้นอกบัญชีก๊าซเรือนกระจก ในฐานะกิจกรรม ไม่ใช่ในฐานะการปล่อย',
+            zh: '在清单之外加以描述，作为一项活动，而不是作为一项排放。',
           },
           {
             en: 'Any claim of avoided emissions goes separately from scope 1, 2 and 3 and is '
               + 'never deducted from them, with its own methodology — which ChivaGo does not supply.',
             th: 'หากจะอ้างการปล่อยที่หลีกเลี่ยงได้ ต้องรายงานแยกจาก scope 1, 2 และ 3 และห้ามนำไปหักออก '
               + 'พร้อมระเบียบวิธีของตัวเอง ซึ่ง ChivaGo ไม่ได้จัดหาให้',
+            zh: '任何关于避免排放的主张都须与 scope 1、2、3 分开报告，且绝不可从中'
+              + '扣减，并须附有自己的方法学 —— 而 ChivaGo 并不提供这套方法学。',
           },
         ],
       };
@@ -633,15 +681,19 @@ export const GHG_SCOPE3_CAT5: IndicatorRule = {
             + 'there.',
           th: 'เฉพาะส่วนที่เกิดจากการดำเนินงานของบริษัทเองเท่านั้นที่เป็นข้อมูลกิจกรรมของ Category 5 '
             + 'ส่วนที่เหลือไม่เคยอยู่ในการดำเนินงานของบริษัท และน้ำหนักรวมตัวเดียวจะทำให้มันถูกนับรวมเข้าไป',
+          zh: '只有在公司自身运营中产生的那一部分，才是 Category 5 的活动数据。其余'
+            + '部分从未处于公司的运营之中，而一个合并后的重量会把它算进去。',
         },
         conditions: [
           {
             en: 'Separate the two, and use only the own-operations weight as activity data.',
             th: 'แยกสองส่วนออกจากกัน และใช้เฉพาะน้ำหนักจากการดำเนินงานของบริษัทเองเป็นข้อมูลกิจกรรม',
+            zh: '将两部分分开，只将公司自身运营产生的重量用作活动数据。',
           },
           {
             en: 'The weight is the input to the calculation, not the category’s figure.',
             th: 'น้ำหนักเป็นข้อมูลนำเข้าของการคำนวณ ไม่ใช่ตัวเลขของรายการนี้',
+            zh: '重量是计算的输入数据，不是该类别的数字。',
           },
         ],
       };
@@ -657,6 +709,8 @@ export const GHG_SCOPE3_CAT5: IndicatorRule = {
             + 'sits outside the boundary the inventory covers.',
           th: 'Category 5 ว่าด้วยการดำเนินงานที่บริษัทเป็นเจ้าของหรือควบคุม และกิจกรรมนี้อยู่นอก'
             + 'ขอบเขตที่บัญชีก๊าซเรือนกระจกครอบคลุม',
+          zh: 'Category 5 针对的是公司拥有或控制的运营，而这项活动位于温室气体清单'
+            + '所涵盖的边界之外。',
         },
       };
     }
@@ -669,6 +723,7 @@ export const GHG_SCOPE3_CAT5: IndicatorRule = {
           en: 'The material is the company’s own. What is left is whether the activity sits inside '
             + 'the operations the inventory covers.',
           th: 'วัสดุเป็นของบริษัทเอง เหลือเพียงว่ากิจกรรมอยู่ในขอบเขตการดำเนินงานที่บัญชีครอบคลุมหรือไม่',
+          zh: '物料属于公司自身。余下的问题只是该活动是否处于清单所涵盖的运营之内。',
         },
       };
     }
@@ -683,6 +738,9 @@ export const GHG_SCOPE3_CAT5: IndicatorRule = {
         th: 'การอ่านครั้งนี้ไม่มีข้อใดปฏิเสธการใช้น้ำหนักนี้เป็น "ข้อมูลกิจกรรม" ของ Category 5 แต่'
           + 'ไม่ใช่ตัวเลขของ Category 5 ตัวเลขนั้นอยู่ในหน่วย CO2e คำนวณจากน้ำหนักด้วยค่าการปล่อย'
           + 'ตามชนิดขยะและวิธีบำบัด ซึ่งแพลตฟอร์มนี้ไม่มีและจะไม่ประมาณเอง',
+        zh: '本次解读中没有任何内容否定把这个重量用作 Category 5 的“活动数据”。但它'
+          + '不是 Category 5 的数字：那个数字以 CO2e 计，由重量结合废弃物种类与处理'
+          + '方式对应的排放因子算出，而本平台既不持有这些因子，也不会自行估算。',
       },
       conditions: [
         {
@@ -690,26 +748,32 @@ export const GHG_SCOPE3_CAT5: IndicatorRule = {
             + 'in scope 1 and 2, not here.',
           th: 'เฉพาะเมื่อผู้อื่นเป็นผู้บำบัด ขยะที่บำบัดในสถานที่ของบริษัทเองอยู่ใน scope 1 และ 2 '
             + 'ไม่ใช่ตรงนี้',
+          zh: '仅限由第三方进行处理的情形。在公司自有设施内处理的废弃物属于 scope 1 '
+            + '和 2，不属于此处。',
         },
         {
           en: 'State the treatment method for each waste type; the calculation needs it.',
           th: 'ระบุวิธีบำบัดของขยะแต่ละชนิด เพราะการคำนวณต้องใช้',
+          zh: '说明每一类废弃物的处理方式；计算需要用到它。',
         },
         {
           en: 'Report the weight as activity data, never as the category’s figure.',
           th: 'รายงานน้ำหนักในฐานะข้อมูลกิจกรรม ห้ามรายงานเป็นตัวเลขของรายการนี้',
+          zh: '将重量作为活动数据报告，切勿作为该类别的数字报告。',
         },
         ...(facts.measuredBy === 'host_verified'
           ? [{
             en: 'Verified by the host who ran the activity, which is not independent assurance '
               + 'under ISAE 3000.',
             th: 'ตรวจโดยผู้จัดกิจกรรม ซึ่งไม่ใช่การให้ความเชื่อมั่นโดยอิสระตาม ISAE 3000',
+            zh: '由举办该活动的主办方验证，这并不是 ISAE 3000 下的独立鉴证。',
           }]
           : []),
         ...(facts.measuredBy === 'declared'
           ? [{
             en: 'Self-declared and not verified by anybody here. Say so on the face of it.',
             th: 'เป็นข้อมูลที่แจ้งเอง ไม่มีผู้ใดที่นี่ตรวจสอบ ให้ระบุไว้บนหน้าเอกสาร',
+            zh: '属自行申报，此处无人核查。请在文件表面注明这一点。',
           }]
           : []),
       ],
@@ -768,6 +832,9 @@ export const GRI_413_1: IndicatorRule = {
         + 'ซึ่งมาตรฐานนี้กำหนดให้ใช้รายงานแนวทางการจัดการ และยังไม่ได้อ่าน GRI 2 ข้อ 2-6 ที่ 413-1 '
         + 'แนะนำให้ใช้นับจำนวนการดำเนินงาน ยังไม่ได้ตรวจมาตรฐานรายสาขาของ GRI ว่ามีการตีความ'
         + 'ที่แคบกว่านี้หรือไม่ ไม่มีความเห็นจากผู้ให้ความเชื่อมั่น',
+      zh: '已直接阅读披露项 413-1 及当地社区的定义。本标准将管理方针指向的 GRI 3 '
+        + '披露项 3-3 尚未阅读；413-1 建议用于统计运营点数量的 GRI 2 披露项 2-6 '
+        + '也未阅读。未查阅 GRI 行业标准是否存在更狭义的解读。没有鉴证机构的意见。',
     },
   },
   // Takes no facts on purpose. See "the first rule that asks nothing" above.
@@ -782,6 +849,9 @@ export const GRI_413_1: IndicatorRule = {
         th: 'GRI 413-1 รายงานร้อยละของการดำเนินงานขององค์กรที่มีการมีส่วนร่วมกับชุมชนท้องถิ่น '
           + 'การประเมินผลกระทบ หรือโครงการพัฒนาที่ดำเนินการแล้ว จำนวนคนไม่ใช่ร้อยละของการดำเนินงาน '
           + 'และไม่มีคำตอบใดเกี่ยวกับกิจกรรมที่จะเปลี่ยนสิ่งหนึ่งให้เป็นอีกสิ่งหนึ่งได้',
+        zh: 'GRI 413-1 报告的是组织运营点中已实施当地社区参与、影响评估或发展项目的'
+          + '百分比。人数不是运营点的百分比，而且没有任何关于该活动的答案能把前者'
+          + '变成后者。',
       },
       insteadTry: [
         {
@@ -789,6 +859,8 @@ export const GRI_413_1: IndicatorRule = {
             + 'communities, which is where GRI 413 sends the management approach.',
           th: 'อธิบายโครงการและจำนวนผู้เข้าร่วมภายใต้ GRI 3-3 สำหรับประเด็นชุมชนท้องถิ่น '
             + 'ซึ่งเป็นที่ที่ GRI 413 กำหนดให้รายงานแนวทางการจัดการ',
+          zh: '在当地社区议题的 GRI 3-3 下描述该项目及参与人数，GRI 413 正是把管理'
+            + '方针指向那里。',
         },
         {
           en: 'For 413-1 itself the unit is the operation, not the person: an operation with an '
@@ -797,6 +869,9 @@ export const GRI_413_1: IndicatorRule = {
           th: 'สำหรับ 413-1 เอง หน่วยคือการดำเนินงาน ไม่ใช่คน การดำเนินงานที่มีโครงการดำเนินการแล้ว '
             + 'นับหนึ่งครั้ง กิจกรรมที่ผ่านการตรวจเป็นส่วนหนึ่งของหลักฐานว่ามีโครงการอยู่'
             + 'ที่การดำเนินงานนั้นได้ แต่จำนวนคนไม่ใช่ตัวเลขของรายการนี้',
+          zh: '就 413-1 本身而言，单位是运营点而不是人：一个已实施项目的运营点计为'
+            + '一次。一项已验证的活动可以成为证明某运营点存在该项目的证据之一；'
+            + '人数不是这一项的数字。',
         },
         {
           en: 'Only call them local community if they live or work where the organisation’s '
@@ -805,6 +880,9 @@ export const GRI_413_1: IndicatorRule = {
           th: 'เรียกว่าชุมชนท้องถิ่นได้เฉพาะเมื่อเขาอาศัยหรือทำงานในพื้นที่ที่กิจกรรมขององค์กรมีผลกระทบ '
             + 'GRI นิยามชุมชนท้องถิ่นไว้เช่นนั้น และผู้ที่เดินทางมาเข้าร่วมไม่ได้เป็นชุมชนท้องถิ่น'
             + 'เพียงเพราะการเข้าร่วม',
+          zh: '只有当他们居住或工作在组织活动产生影响的地区时，才可称之为当地社区。'
+            + 'GRI 正是这样定义当地社区的，而专程前来参加的人并不因参加本身就属于'
+            + '其中。',
         },
       ],
     };
@@ -866,6 +944,8 @@ export const UNIT_UNRECOGNISED: Bilingual = {
     + 'a rule written about a different kind of figure.',
   th: 'หน่วยในไฟล์นี้ไม่ใช่หน่วยที่แพลตฟอร์มนี้วัด จึงไม่มีสิ่งใดตรงนี้บอกได้ว่าตัวเลขควรอยู่ในรายการนั้นหรือไม่ '
     + 'การเดาว่าหมายถึงตัววัดใดจะเป็นการเรียกใช้กฎที่เขียนไว้สำหรับตัวเลขคนละชนิด',
+  zh: '本文件中的单位不是本平台所衡量的单位，因此此处无法判断这个数字是否属于那一项。'
+    + '猜测它指的是哪一种计量，会让一条为另一类数字而写的规则被运行。',
 };
 
 /**
@@ -884,6 +964,8 @@ export const DECLARED_FACTS_NOTE: Bilingual = {
     + 'file is self-declared, whatever it says about itself.',
   th: 'ที่นี่ไม่ถามว่าตัวเลขวัดมาอย่างไร และตอบที่นี่ไม่ได้ เพราะไฟล์ที่วางเข้ามาคือข้อมูลที่แจ้งเอง '
     + 'ไม่ว่าในไฟล์จะระบุว่าอย่างไรก็ตาม',
+  zh: '此处不询问这个数字是如何测得的，在此也无法回答：粘贴进来的文件就是自行申报的，'
+    + '无论文件本身怎么说。',
 };
 
 export const isFramework = (v: string): v is Framework =>

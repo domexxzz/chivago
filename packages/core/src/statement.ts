@@ -99,6 +99,7 @@ export const STATEMENT_ID_PATTERN = /^CG-\d{4}-[0-9A-HJKMNP-TV-Z]{6}$/;
 export const STATEMENT_BOUNDARY: Bilingual = {
   en: 'Activity on this host’s own quests, approved by this host between the dates shown. Work verified by other hosts is excluded, and so is anything a traveller recorded without a host.',
   th: 'เฉพาะกิจกรรมในภารกิจของผู้จัดรายนี้ ที่ผู้จัดรายนี้ตรวจผ่านภายในช่วงวันที่ระบุ งานที่ผู้จัดรายอื่นตรวจ และสิ่งที่นักเดินทางบันทึกเองโดยไม่มีผู้จัด ไม่ถูกนับ',
+  zh: '仅限本主办方自有任务中的活动，且由本主办方在所示日期之间批准。由其他主办方核实的工作不计入，旅行者在没有主办方的情况下自行记录的内容也不计入。',
 };
 
 /**
@@ -108,6 +109,7 @@ export const STATEMENT_BOUNDARY: Bilingual = {
 export const HOTEL_CARBON_NOT_CLAIMABLE: Bilingual = {
   en: 'A property carbon figure. This statement measures no building and does not replace HCMI, CHSB or CF-Hotels. Attach it to such a report as activity evidence; it changes no number in them.',
   th: 'ตัวเลขคาร์บอนของอาคาร รายการนี้ไม่ได้วัดอาคารใด และไม่แทนที่ HCMI, CHSB หรือ CF-Hotels ใช้แนบกับรายงานเหล่านั้นเป็นหลักฐานกิจกรรมได้ แต่ไม่เปลี่ยนตัวเลขใดในนั้น',
+  zh: '物业碳排放数字。本报表不测量任何建筑，也不替代 HCMI、CHSB 或 CF-Hotels。可作为活动证据附在此类报告之后；它不会改变其中的任何数字。',
 };
 
 export const STATEMENT_NOT_CLAIMABLE: Bilingual[] = [
@@ -116,6 +118,7 @@ export const STATEMENT_NOT_CLAIMABLE: Bilingual[] = [
   {
     en: 'Additionality. Nothing here establishes what would have happened without this host, or without this platform.',
     th: 'ส่วนเพิ่มที่แท้จริง รายการนี้ไม่ได้พิสูจน์ว่าถ้าไม่มีผู้จัดรายนี้ หรือไม่มีแพลตฟอร์มนี้ จะเกิดอะไรขึ้นหรือไม่',
+    zh: '额外性。此处没有任何内容能确定，若没有这家主办方、或没有这个平台，事情会如何发生。',
   },
   HOTEL_CARBON_NOT_CLAIMABLE,
 ];
@@ -198,6 +201,7 @@ export function statementHeadline(s: StatementBody): Bilingual {
     return {
       en: `${s.host.name} verified no activity between ${s.period.from} and ${s.period.to}.`,
       th: `${s.host.name} ไม่มีกิจกรรมที่ตรวจผ่านระหว่าง ${s.period.from} ถึง ${s.period.to}`,
+      zh: `${s.host.name} 在 ${s.period.from} 至 ${s.period.to} 之间没有核实任何活动。`,
     };
   }
   const acts = s.verified;
@@ -205,5 +209,6 @@ export function statementHeadline(s: StatementBody): Bilingual {
   return {
     en: `${acts} ${acts === 1 ? 'activity' : 'activities'} verified by ${s.host.name}, involving ${people} ${people === 1 ? 'person' : 'people'}, between ${s.period.from} and ${s.period.to}.`,
     th: `${s.host.name} ตรวจผ่านกิจกรรม ${acts} ครั้ง มีผู้ร่วม ${people} คน ระหว่าง ${s.period.from} ถึง ${s.period.to}`,
+    zh: `${s.host.name} 在 ${s.period.from} 至 ${s.period.to} 之间核实了 ${acts} 项活动，参与者 ${people} 人。`,
   };
 }

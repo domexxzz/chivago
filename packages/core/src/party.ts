@@ -42,9 +42,9 @@ export const partyKind = (members: number): PartyKind =>
   (members <= 1 ? 'solo' : members === 2 ? 'duo' : 'party');
 
 export const PARTY_KIND_LABEL: Record<PartyKind, Bilingual> = {
-  solo: { en: 'On your own', th: 'เที่ยวคนเดียว' },
-  duo: { en: 'The two of you', th: 'ไปกันสองคน' },
-  party: { en: 'Travelling together', th: 'ไปกันเป็นกลุ่ม' },
+  solo: { en: 'On your own', th: 'เที่ยวคนเดียว', zh: '独自出行' },
+  duo: { en: 'The two of you', th: 'ไปกันสองคน', zh: '你们两个人' },
+  party: { en: 'Travelling together', th: 'ไปกันเป็นกลุ่ม', zh: '结伴同行' },
 };
 
 /**
@@ -97,14 +97,17 @@ export const PARTY_DOES_NOT: Bilingual[] = [
   {
     en: 'Share points. Everyone earns their own from work a host verified for them.',
     th: 'ไม่แชร์แต้ม ทุกคนได้แต้มจากงานที่ผู้จัดตรวจให้ตัวเอง',
+    zh: '共享积分。每个人的积分都来自主办方为其本人验证过的工作。',
   },
   {
     en: 'Show anybody your balance, or what you have spent.',
     th: 'ไม่แสดงยอดคงเหลือหรือประวัติการใช้แต้มให้ใครเห็น',
+    zh: '向任何人显示你的余额，或你花掉了多少。',
   },
   {
     en: 'Move your companions or stamps to anyone else.',
     th: 'ไม่ย้ายเพื่อนร่วมทางหรือแสตมป์ไปให้คนอื่น',
+    zh: '把你的伙伴或印章转给别人。',
   },
 ];
 
@@ -137,18 +140,22 @@ export const JOIN_REFUSAL: Record<JoinFailure, Bilingual> = {
   unknown: {
     en: 'No party is using that code. Check the characters and try again.',
     th: 'ไม่มีกลุ่มที่ใช้รหัสนี้ ลองตรวจตัวอักษรอีกครั้ง',
+    zh: '没有队伍在使用这个代码。请检查一下字符再试一次。',
   },
   full: {
     en: `That party is full — ${MAX_PARTY_SIZE} people is the most it can hold.`,
     th: `กลุ่มนี้เต็มแล้ว รับได้มากสุด ${MAX_PARTY_SIZE} คน`,
+    zh: `那支队伍已经满了——最多只能容纳 ${MAX_PARTY_SIZE} 人。`,
   },
   'already-in': {
     en: 'You are already in this party.',
     th: 'คุณอยู่ในกลุ่มนี้อยู่แล้ว',
+    zh: '你已经在这支队伍里了。',
   },
   disbanded: {
     en: 'That party has been disbanded.',
     th: 'กลุ่มนี้ถูกยุบไปแล้ว',
+    zh: '那支队伍已经解散了。',
   },
 };
 
@@ -167,5 +174,6 @@ export function nextTogether(
   return {
     en: `${left} open province${left === 1 ? '' : 's'} nobody in this group has reached yet`,
     th: `ยังเหลืออีก ${left} จังหวัดที่เปิดแล้ว และยังไม่มีใครในกลุ่มไปถึง`,
+    zh: `还有 ${left} 个已开放的府，这支队伍里还没有人到过`,
   };
 }

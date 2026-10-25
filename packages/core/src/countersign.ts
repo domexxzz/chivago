@@ -51,22 +51,25 @@ export const STANDARD_LABEL: Record<AssuranceStandard, Bilingual> = {
   isae3000_limited: {
     en: 'ISAE 3000 · limited assurance',
     th: 'ISAE 3000 · ความเชื่อมั่นอย่างจำกัด',
+    zh: 'ISAE 3000 · 有限保证',
   },
   isae3000_reasonable: {
     en: 'ISAE 3000 · reasonable assurance',
     th: 'ISAE 3000 · ความเชื่อมั่นอย่างสมเหตุสมผล',
+    zh: 'ISAE 3000 · 合理保证',
   },
   other: {
     en: 'Another engagement, stated by the signer',
     th: 'งานตรวจสอบรูปแบบอื่น ตามที่ผู้ลงนามระบุ',
+    zh: '其他类型的业务，由签署方自行说明',
   },
 };
 
 export const OPINION_LABEL: Record<AssuranceOpinion, Bilingual> = {
-  unmodified: { en: 'Unmodified', th: 'ไม่มีเงื่อนไข' },
-  modified: { en: 'Modified', th: 'มีเงื่อนไข' },
-  adverse: { en: 'Adverse', th: 'ไม่ถูกต้อง' },
-  disclaimer: { en: 'Disclaimer of conclusion', th: 'ไม่แสดงข้อสรุป' },
+  unmodified: { en: 'Unmodified', th: 'ไม่มีเงื่อนไข', zh: '无保留结论' },
+  modified: { en: 'Modified', th: 'มีเงื่อนไข', zh: '保留结论' },
+  adverse: { en: 'Adverse', th: 'ไม่ถูกต้อง', zh: '否定结论' },
+  disclaimer: { en: 'Disclaimer of conclusion', th: 'ไม่แสดงข้อสรุป', zh: '无法提出结论' },
 };
 
 /** How the signature reached us. There is only one route today, and it is named. */
@@ -78,6 +81,8 @@ export const CHANNEL_LABEL: Record<SignatureChannel, Bilingual> = {
       + 'The signer did not enter it here.',
     th: 'บันทึกโดยทีมงาน ChivaGo จากรายงานที่ลงนามแล้วซึ่งสำนักงานส่งมา '
       + 'ผู้ลงนามไม่ได้เป็นผู้กรอกในระบบนี้',
+    zh: '由 ChivaGo 工作人员根据该事务所提供的已签署报告录入。'
+      + '签署方并未在本系统中录入。',
   },
 };
 
@@ -125,12 +130,14 @@ export function signatureNote(sig: Countersignature, standing: SignatureStanding
     return {
       en: `${firm} signed a different version of this record, so their conclusion does not apply here.`,
       th: `${firm} ลงนามกับเอกสารฉบับอื่น ข้อสรุปของสำนักงานจึงไม่ครอบคลุมเอกสารฉบับนี้`,
+      zh: `${firm} 签署的是本记录的另一个版本，因此其结论在此并不适用。`,
     };
   }
   if (standing === 'withdrawn') {
     return {
       en: `${firm} has withdrawn this conclusion. It is kept on the record because it was once given.`,
       th: `${firm} ได้ถอนข้อสรุปนี้แล้ว บันทึกยังคงอยู่เพราะเคยมีการให้ข้อสรุปไว้จริง`,
+      zh: `${firm} 已撤回此项结论。它仍留在记录中，因为它曾经确实被出具过。`,
     };
   }
   return {
@@ -140,6 +147,9 @@ export function signatureNote(sig: Countersignature, standing: SignatureStanding
     th: `${firm} ระบุว่าได้ปฏิบัติงาน ${STANDARD_LABEL[sig.standard].th} กับเอกสารฉบับนี้ `
       + `และให้ข้อสรุป${OPINION_LABEL[sig.opinion].th} ChivaGo ไม่ได้เป็นผู้ปฏิบัติงาน `
       + 'และไม่ได้ตรวจสอบการขึ้นทะเบียนของสำนักงาน',
+    zh: `${firm} 声称其对本记录执行了${STANDARD_LABEL[sig.standard].zh}，`
+      + `并得出${OPINION_LABEL[sig.opinion].zh}。ChivaGo 不是执行方，`
+      + '也未核实该事务所的资质登记。',
   };
 }
 
@@ -154,6 +164,8 @@ export const COUNTERSIGNATURE_LIMIT: Bilingual = {
     + 'or change any figure in the statement. The statement says exactly what it said before.',
   th: 'ChivaGo เป็นผู้บันทึกข้อสรุปนี้ ไม่ได้เป็นผู้ให้ข้อสรุป ไม่ได้ตรวจสอบการขึ้นทะเบียนของสำนักงาน '
     + 'และไม่ได้เปลี่ยนตัวเลขใดในเอกสาร เอกสารยังคงระบุสิ่งเดิมทุกประการ',
+  zh: 'ChivaGo 只是记录此项结论；它既不出具该结论，也不核实该事务所的资质登记，'
+    + '更不会改动报表中的任何数字。报表所述的内容与此前完全一致。',
 };
 
 export const isAssuranceStandard = (v: string): v is AssuranceStandard =>

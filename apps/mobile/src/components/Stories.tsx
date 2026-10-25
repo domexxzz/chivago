@@ -68,7 +68,7 @@ export function StoriesBlock({
                 />
               </View>
               <Label size={9} colour={color.neutral600} style={{ marginTop: 4 }}>
-                {s.kind === 'video' ? `${Math.max(1, Math.round(s.durationS ?? 0))} s` : t({ en: 'photo', th: 'รูป' })}
+                {s.kind === 'video' ? `${Math.max(1, Math.round(s.durationS ?? 0))} s` : t({ en: 'photo', th: 'รูป', zh: '照片' })}
               </Label>
             </Pressable>
           ))}
@@ -155,7 +155,7 @@ export function StoryViewer({
         <Pressable
           onPress={onClose}
           accessibilityRole="button"
-          accessibilityLabel={t({ en: 'Close', th: 'ปิด' })}
+          accessibilityLabel={t({ en: 'Close', th: 'ปิด', zh: '关闭' })}
           style={{ position: 'absolute', top: 24, right: 10, padding: 10, borderRadius: radius.lg }}
         >
           <X size={22} color="#ffffff" strokeWidth={2.2} />

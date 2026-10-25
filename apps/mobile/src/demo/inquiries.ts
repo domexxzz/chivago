@@ -45,7 +45,7 @@ export const DEMO_LISTINGS: readonly ListingCard[] = [
     ...OPERATOR,
     id: 'demo-listing-boat',
     kind: 'tour',
-    title: { en: 'Longtail boat to Koh Taen', th: 'เรือหางยาวไปเกาะแตน' },
+    title: { en: 'Longtail boat to Koh Taen', th: 'เรือหางยาวไปเกาะแตน', zh: '长尾船前往坦岛' },
     whereLabel: 'Thong Krut pier',
     // No price stated, so the screen shows its refusal to invent one.
     fromTHB: null,
@@ -60,7 +60,7 @@ export const DEMO_LISTINGS: readonly ListingCard[] = [
     ...OPERATOR,
     id: 'demo-listing-room',
     kind: 'stay',
-    title: { en: 'Garden room near Lamai', th: 'ห้องพักติดสวน ใกล้หาดละไม' },
+    title: { en: 'Garden room near Lamai', th: 'ห้องพักติดสวน ใกล้หาดละไม', zh: '拉迈海滩附近的花园客房' },
     whereLabel: 'Lamai',
     // And a stated one, so both honest readings of a price are on screen.
     fromTHB: 1200,

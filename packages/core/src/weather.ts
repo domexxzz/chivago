@@ -170,14 +170,14 @@ export function weatherFromOpenMeteo(
  */
 export function weatherDescription(code: number | null): Bilingual | null {
   if (code === null || !Number.isInteger(code) || code < 0 || code > WMO_MAX) return null;
-  if (code === 0) return { en: 'Clear', th: 'ท้องฟ้าแจ่มใส' };
-  if (code <= 2) return { en: 'Partly cloudy', th: 'มีเมฆบางส่วน' };
-  if (code === 3) return { en: 'Overcast', th: 'เมฆมาก' };
-  if (code <= 48) return { en: 'Fog', th: 'หมอก' };
-  if (code <= 57) return { en: 'Drizzle', th: 'ฝนปรอย' };
-  if (code <= 67) return { en: 'Rain', th: 'ฝนตก' };
-  if (code <= 77) return { en: 'Snow', th: 'หิมะ' };
-  if (code <= 82) return { en: 'Rain showers', th: 'ฝนตกเป็นช่วง' };
-  if (code <= 86) return { en: 'Snow showers', th: 'หิมะตกเป็นช่วง' };
-  return { en: 'Thunderstorm', th: 'พายุฝนฟ้าคะนอง' };
+  if (code === 0) return { en: 'Clear', th: 'ท้องฟ้าแจ่มใส', zh: '晴' };
+  if (code <= 2) return { en: 'Partly cloudy', th: 'มีเมฆบางส่วน', zh: '多云间晴' };
+  if (code === 3) return { en: 'Overcast', th: 'เมฆมาก', zh: '阴' };
+  if (code <= 48) return { en: 'Fog', th: 'หมอก', zh: '雾' };
+  if (code <= 57) return { en: 'Drizzle', th: 'ฝนปรอย', zh: '毛毛雨' };
+  if (code <= 67) return { en: 'Rain', th: 'ฝนตก', zh: '雨' };
+  if (code <= 77) return { en: 'Snow', th: 'หิมะ', zh: '雪' };
+  if (code <= 82) return { en: 'Rain showers', th: 'ฝนตกเป็นช่วง', zh: '阵雨' };
+  if (code <= 86) return { en: 'Snow showers', th: 'หิมะตกเป็นช่วง', zh: '阵雪' };
+  return { en: 'Thunderstorm', th: 'พายุฝนฟ้าคะนอง', zh: '雷阵雨' };
 }

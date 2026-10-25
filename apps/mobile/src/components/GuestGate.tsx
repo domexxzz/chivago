@@ -29,16 +29,16 @@ export function GuestBand({ onSignIn }: { onSignIn: () => void }) {
       }}
     >
       <Label size={10} tracking={0.06} colour="#24547A" style={{ textTransform: 'none' }}>
-        {t({ en: 'Browsing as a guest', th: 'กำลังเข้าชมแบบผู้เยี่ยมชม' })}
+        {t({ en: 'Browsing as a guest', th: 'กำลังเข้าชมแบบผู้เยี่ยมชม', zh: '以访客身份浏览' })}
       </Label>
       <Pressable
         onPress={onSignIn}
         accessibilityRole="button"
-        accessibilityLabel={t({ en: 'Sign in', th: 'เข้าสู่ระบบ' })}
+        accessibilityLabel={t({ en: 'Sign in', th: 'เข้าสู่ระบบ', zh: '登录' })}
         hitSlop={8}
       >
         <Label size={10} tracking={0.06} colour="#0072C6" style={{ textTransform: 'none', fontWeight: '700' }}>
-          {t({ en: 'Sign in', th: 'เข้าสู่ระบบ' })}
+          {t({ en: 'Sign in', th: 'เข้าสู่ระบบ', zh: '登录' })}
         </Label>
       </Pressable>
     </View>
@@ -59,18 +59,19 @@ export function GuestGate({
         <UserRound size={30} color="#0072C6" strokeWidth={2} />
       </View>
       <Heading size={22} style={{ textAlign: 'center' }}>
-        {t({ en: 'Sign in to see this', th: 'เข้าสู่ระบบเพื่อดูหน้านี้' })}
+        {t({ en: 'Sign in to see this', th: 'เข้าสู่ระบบเพื่อดูหน้านี้', zh: '登录后才能查看此页' })}
       </Heading>
       <Body style={{ textAlign: 'center' }}>
         {t({
           en: 'You are browsing as a guest. Your profile, wallet and points need an account so they stay yours.',
           th: 'คุณกำลังเข้าชมแบบผู้เยี่ยมชม โปรไฟล์ กระเป๋าเงิน และแต้มสะสมต้องมีบัญชีเพื่อเก็บไว้เป็นของคุณ',
+          zh: '你正在以访客身份浏览。个人资料、钱包和积分需要账号，才能一直属于你。',
         })}
       </Body>
-      <Button label="Sign in" thai="เข้าสู่ระบบ" onPress={onSignIn} />
-      <Button label="Create an account" thai="สมัครสมาชิก" variant="secondary" onPress={onRegister} />
+      <Button label="Sign in" thai="เข้าสู่ระบบ" chinese="登录" onPress={onSignIn} />
+      <Button label="Create an account" thai="สมัครสมาชิก" chinese="注册账号" variant="secondary" onPress={onRegister} />
       {onBack ? (
-        <Button label="Keep browsing" thai="เข้าชมต่อ" variant="ghost" onPress={onBack} style={{ alignSelf: 'center' }} />
+        <Button label="Keep browsing" thai="เข้าชมต่อ" chinese="继续浏览" variant="ghost" onPress={onBack} style={{ alignSelf: 'center' }} />
       ) : null}
     </View>
   );

@@ -118,6 +118,8 @@ export function planNote(lock: PlanLock | null, standing: PlanStanding): Bilingu
         + 'indicator and the required evidence were chosen before the results were known.',
       th: 'ภารกิจนี้ไม่ได้ล็อกแผนการวัดไว้ จึงไม่มีสิ่งใดแสดงว่าตัวชี้วัดและระดับหลักฐานที่ต้องการ '
         + 'ถูกเลือกไว้ก่อนที่จะทราบผลหรือไม่',
+      zh: '本任务没有锁定测量方案，因此这里没有任何内容能说明，指标和所需证据'
+        + '是否在结果揭晓之前就已选定。',
     };
   }
   const at = (lock?.lockedAt ?? '').slice(0, 10);
@@ -127,6 +129,8 @@ export function planNote(lock: PlanLock | null, standing: PlanStanding): Bilingu
         + 'covering nothing until somebody has explained the difference.',
       th: `แผนที่ล็อกไว้เมื่อ ${at} ไม่ตรงกับแผนที่ภารกิจนี้ใช้อยู่ `
         + 'ให้ถือว่าการล็อกไม่ครอบคลุมสิ่งใดจนกว่าจะมีผู้อธิบายความต่าง',
+      zh: `于 ${at} 锁定的方案，已不是本任务当前采用的方案。在有人解释清楚两者的差异之前，`
+        + '请视此次锁定为未覆盖任何内容。',
     };
   }
   if (standing === 'superseded') {
@@ -135,6 +139,8 @@ export function planNote(lock: PlanLock | null, standing: PlanStanding): Bilingu
         + 'measured. The record of it is kept because it once applied.',
       th: `แผนที่ล็อกไว้เมื่อ ${at} ถูกแทนที่แล้ว จึงไม่ได้อธิบายวิธีวัดของภารกิจนี้อีกต่อไป `
         + 'บันทึกยังคงอยู่เพราะเคยมีผลใช้จริง',
+      zh: `于 ${at} 锁定的方案已被取代，因此不再描述本任务的测量方式。`
+        + '记录仍予保留，因为它确曾生效过。',
     };
   }
   if (standing === 'fixed_after') {
@@ -144,6 +150,8 @@ export function planNote(lock: PlanLock | null, standing: PlanStanding): Bilingu
         + 'had already been verified. It is a plan, but it was not chosen before the results existed.',
       th: `แผนการวัดถูกล็อกเมื่อ ${at} ซึ่งเป็นเวลาที่มีกิจกรรมผ่านการตรวจแล้ว ${n} รายการ `
         + 'ถือเป็นแผนก็จริง แต่ไม่ได้ถูกเลือกก่อนที่ผลจะเกิดขึ้น',
+      zh: `测量方案于 ${at} 锁定，当时已有 ${n} 项活动通过核实。`
+        + '它确实是一份方案，但并不是在结果出现之前选定的。',
     };
   }
   return {
@@ -151,16 +159,18 @@ export function planNote(lock: PlanLock | null, standing: PlanStanding): Bilingu
       + 'verified. That says when the indicator was chosen, not that it is the right one.',
     th: `แผนการวัดถูกล็อกเมื่อ ${at} ก่อนที่จะมีกิจกรรมใดของภารกิจนี้ผ่านการตรวจ `
       + 'ข้อความนี้บอกเพียงว่าตัวชี้วัดถูกเลือกเมื่อใด ไม่ได้บอกว่าเป็นตัวชี้วัดที่ถูกต้อง',
+    zh: `测量方案于 ${at} 锁定，当时本任务还没有任何活动通过核实。`
+      + '这只说明指标是何时选定的，并不说明它是否选对了。',
   };
 }
 
 /** Short enough for a table cell, and still not overstating. */
 export const STANDING_LABEL: Record<PlanStanding, Bilingual> = {
-  fixed_before: { en: 'Fixed before results', th: 'ล็อกก่อนมีผล' },
-  fixed_after: { en: 'Fixed after results existed', th: 'ล็อกหลังมีผลแล้ว' },
-  superseded: { en: 'Superseded', th: 'ถูกแทนที่' },
-  unfixed: { en: 'Not fixed', th: 'ยังไม่ได้ล็อก' },
-  drifted: { en: 'Does not match the quest', th: 'ไม่ตรงกับภารกิจ' },
+  fixed_before: { en: 'Fixed before results', th: 'ล็อกก่อนมีผล', zh: '结果之前锁定' },
+  fixed_after: { en: 'Fixed after results existed', th: 'ล็อกหลังมีผลแล้ว', zh: '已有结果后才锁定' },
+  superseded: { en: 'Superseded', th: 'ถูกแทนที่', zh: '已被取代' },
+  unfixed: { en: 'Not fixed', th: 'ยังไม่ได้ล็อก', zh: '尚未锁定' },
+  drifted: { en: 'Does not match the quest', th: 'ไม่ตรงกับภารกิจ', zh: '与任务不一致' },
 };
 
 /**
@@ -176,6 +186,10 @@ export const VALIDATION_VS_VERIFICATION: Bilingual = {
   th: 'เป็นการตรวจสองแบบที่ต่างกัน การตรวจสอบความใช้ได้ (Validation) ถามว่าแผนสมเหตุสมผลและตกลงไว้ล่วงหน้าหรือไม่ '
     + 'ส่วนการทวนสอบ (Verification) ถามว่าสิ่งที่อ้างเกิดขึ้นจริงหรือไม่ การล็อกตรงนี้คือแบบแรกและเป็นแบบแรกเท่านั้น '
     + 'คือกำหนดว่าจะวัดอะไรและตัดสินใจเมื่อใด ตัวเลขทุกตัวที่แพลตฟอร์มนี้รายงานยังคงตรวจโดยผู้จัดกิจกรรมเช่นเดิม',
+  zh: '这是两种不同的检查。确认（Validation）问的是方案是否合理、是否事先定好；'
+    + '核实（Verification）问的是所声称的事情是否真的发生过。这里的锁定属于前一种，'
+    + '并且只属于前一种：它固定了将要测量什么，以及这是何时决定的。'
+    + '本平台报告的每一个数字，仍由开展该活动的主办方负责核实。',
 };
 
 /** Shipped with every lock, including the early ones, and especially those. */
@@ -184,4 +198,6 @@ export const VALIDATION_LIMIT: Bilingual = {
     + 'that the target is demanding, or that anybody outside ChivaGo agreed to either.',
   th: 'การล็อกเป็นการบันทึกว่าแผนถูกกำหนดเมื่อใด ไม่ได้ระบุว่าตัวชี้วัดเหมาะกับกิจกรรม '
     + 'ว่าเป้าหมายท้าทายเพียงพอ หรือว่ามีใครนอก ChivaGo เห็นชอบกับสิ่งใดในนั้น',
+  zh: '锁定只记录方案是何时固定下来的。它并不表示该指标适合这项活动、'
+    + '目标足够有挑战性，也不表示 ChivaGo 之外有任何人认可其中任何一项。',
 };

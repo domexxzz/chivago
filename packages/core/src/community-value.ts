@@ -75,10 +75,15 @@ const boundaryFor = (unpriced: number): Bilingual => {
     + 'not the merchant’s revenue, and not evidence that the purchase would not have happened anyway.';
   const th = 'มูลค่าหน้าคูปองที่ร้านค้าสแกนรับแล้ว ไม่ใช่ยอดที่นักเดินทางจ่ายจริง '
     + 'ไม่ใช่รายได้ของร้าน และไม่ได้พิสูจน์ว่าการซื้อนั้นจะไม่เกิดขึ้นอยู่แล้ว';
-  if (unpriced === 0) return { en, th };
+  // 也不能证明, not 并非证据: the English denies that the figure proves the
+  // counterfactual, rather than denying it is evidence of anything at all.
+  const zh = '商家已扫描核销的代金券面值。不是旅行者实际支付的金额，不是商家的收入，'
+    + '也不能证明这笔消费本来不会发生。';
+  if (unpriced === 0) return { en, th, zh };
   return {
     en: `${en} ${unpriced} redemption${unpriced === 1 ? '' : 's'} had no price on the offer `
       + 'and are in none of these figures.',
     th: `${th} มีอีก ${unpriced} รายการที่ข้อเสนอไม่ได้ระบุราคาไว้ จึงไม่ถูกนับในตัวเลขใดเลย`,
+    zh: `${zh} 另有 ${unpriced} 笔核销的优惠未标明价格，未计入以上任何数字。`,
   };
 };

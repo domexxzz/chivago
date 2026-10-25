@@ -54,14 +54,14 @@ export const WALK_SUGGEST_MAX_M = 3_000;
 export type CompassPoint = 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW';
 
 const COMPASS: Record<CompassPoint, Bilingual> = {
-  N: { en: 'north', th: 'เหนือ' },
-  NE: { en: 'north-east', th: 'ตะวันออกเฉียงเหนือ' },
-  E: { en: 'east', th: 'ตะวันออก' },
-  SE: { en: 'south-east', th: 'ตะวันออกเฉียงใต้' },
-  S: { en: 'south', th: 'ใต้' },
-  SW: { en: 'south-west', th: 'ตะวันตกเฉียงใต้' },
-  W: { en: 'west', th: 'ตะวันตก' },
-  NW: { en: 'north-west', th: 'ตะวันตกเฉียงเหนือ' },
+  N: { en: 'north', th: 'เหนือ', zh: '北' },
+  NE: { en: 'north-east', th: 'ตะวันออกเฉียงเหนือ', zh: '东北' },
+  E: { en: 'east', th: 'ตะวันออก', zh: '东' },
+  SE: { en: 'south-east', th: 'ตะวันออกเฉียงใต้', zh: '东南' },
+  S: { en: 'south', th: 'ใต้', zh: '南' },
+  SW: { en: 'south-west', th: 'ตะวันตกเฉียงใต้', zh: '西南' },
+  W: { en: 'west', th: 'ตะวันตก', zh: '西' },
+  NW: { en: 'north-west', th: 'ตะวันตกเฉียงเหนือ', zh: '西北' },
 };
 
 const POINTS: CompassPoint[] = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
@@ -103,14 +103,14 @@ export const compassName = (point: CompassPoint): Bilingual => COMPASS[point];
  * of a kilometre under ten, whole kilometres after that.
  */
 export function formatDistance(metres: number): Bilingual {
-  if (!Number.isFinite(metres) || metres < 0) return { en: '', th: '' };
+  if (!Number.isFinite(metres) || metres < 0) return { en: '', th: '', zh: '' };
   if (metres < 1_000) {
     const m = Math.max(10, Math.round(metres / 10) * 10);
-    return { en: `${m} m`, th: `${m} ม.` };
+    return { en: `${m} m`, th: `${m} ม.`, zh: `${m} 米` };
   }
   const km = metres / 1_000;
   const shown = km < 10 ? (Math.round(km * 10) / 10).toFixed(1) : String(Math.round(km));
-  return { en: `${shown} km`, th: `${shown} กม.` };
+  return { en: `${shown} km`, th: `${shown} กม.`, zh: `${shown} 公里` };
 }
 
 /** Minutes on foot at `WALK_KM_H`, rounded to the nearest five past ten. */

@@ -32,7 +32,7 @@
  * produce stay bounded by the data underneath.
  */
 
-import type { Bilingual, LayerKey, Quest, ScoredPlace } from './types.ts';
+import type { Bilingual, LayerKey, Localised, Quest, ScoredPlace } from './types.ts';
 import { type Lang, localise } from './localise.ts';
 import { crowdLabel } from './healthy-score.ts';
 import { SAMUI_EMERGENCY } from './emergency.ts';
@@ -61,7 +61,7 @@ export function detectLang(text: string): Lang {
   return 'en';
 }
 
-const say = (en: string, th: string): Bilingual => ({ en, th });
+const say = (en: string, th: string, zh?: string): Localised => ({ en, th, zh });
 
 // ---------------------------------------------------------------------------
 // Intent
@@ -382,10 +382,10 @@ export function answer(input: string, ctx: Context): Reply {
     const top = ranked.slice(0, 3);
     const lead = top[0]!;
     const head = filters.quiet
-      ? say('Quietest right now', 'เงียบที่สุดตอนนี้')
+      ? say('Quietest right now', 'เงียบที่สุดตอนนี้', '目前最安静')
       : filters.cleanAir
-        ? say('Cleanest air right now', 'อากาศดีที่สุดตอนนี้')
-        : say('Best scoring right now', 'คะแนนดีที่สุดตอนนี้');
+        ? say('Cleanest air right now', 'อากาศดีที่สุดตอนนี้', '目前空气最好')
+        : say('Best scoring right now', 'คะแนนดีที่สุดตอนนี้', '目前评分最高');
 
     return {
       ...base,
@@ -420,10 +420,10 @@ export function answer(input: string, ctx: Context): Reply {
  * usually guess something it cannot do.
  */
 export const OPENERS: Bilingual[] = [
-  say('Somewhere quiet', 'ที่เงียบ ๆ'),
-  say('Where has the cleanest air?', 'ที่ไหนอากาศดีที่สุด'),
-  say('I want a beach', 'อยากไปทะเล'),
-  say('Somewhere to eat', 'หาร้านอาหาร'),
-  say('Plan my day', 'จัดแผนวันนี้ให้หน่อย'),
-  say('What are Green Points?', 'แต้มสีเขียวคืออะไร'),
+  say('Somewhere quiet', 'ที่เงียบ ๆ', '找个安静的地方'),
+  say('Where has the cleanest air?', 'ที่ไหนอากาศดีที่สุด', '哪里空气最好？'),
+  say('I want a beach', 'อยากไปทะเล', '我想去海滩'),
+  say('Somewhere to eat', 'หาร้านอาหาร', '找地方吃饭'),
+  say('Plan my day', 'จัดแผนวันนี้ให้หน่อย', '帮我安排今天'),
+  say('What are Green Points?', 'แต้มสีเขียวคืออะไร', '什么是绿色积分？'),
 ];

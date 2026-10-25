@@ -81,7 +81,7 @@ export function MissionsScreen({
               {t(strings.tabs.quests)}
             </Heading>
             <Label size={11} tracking={0.12} colour="#E2F6FC" style={{ marginTop: 4 }}>
-              {`${t({ en: 'ISLAND MISSIONS', th: 'ภารกิจรักษ์เกาะ' })} · ${t(strings.quests.title)}`}
+              {`${t({ en: 'ISLAND MISSIONS', th: 'ภารกิจรักษ์เกาะ', zh: '岛屿任务' })} · ${t(strings.quests.title)}`}
             </Label>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -236,10 +236,10 @@ export function QuestRow({
           {/* Progress is surfaced on the row so a half-finished quest is not
               lost behind a tap. The design has no such affordance. */}
           {progress && progress.stage !== 'complete' ? (
-            <Label size={10} tracking={0.1} colour={color.accent700}>{`· ${t({ en: 'In progress', th: 'กำลังทำอยู่' })}`}</Label>
+            <Label size={10} tracking={0.1} colour={color.accent700}>{`· ${t({ en: 'In progress', th: 'กำลังทำอยู่', zh: '进行中' })}`}</Label>
           ) : null}
           {progress?.stage === 'complete' ? (
-            <Label size={10} tracking={0.1} colour={color.accent700}>{`· ${t({ en: 'Done', th: 'เสร็จแล้ว' })}`}</Label>
+            <Label size={10} tracking={0.1} colour={color.accent700}>{`· ${t({ en: 'Done', th: 'เสร็จแล้ว', zh: '已完成' })}`}</Label>
           ) : null}
         </View>
       </View>
@@ -266,7 +266,7 @@ function Standing() {
   return (
     <View style={{ paddingTop: 8 }}>
       <View style={{ paddingHorizontal: gutter, paddingBottom: 10 }}>
-        <Label size={10} tracking={0.14}>{t({ en: 'Who is doing the work', th: 'ใครลงแรงบ้าง' })}</Label>
+        <Label size={10} tracking={0.14}>{t({ en: 'Who is doing the work', th: 'ใครลงแรงบ้าง', zh: '谁在出力' })}</Label>
 
       </View>
 
@@ -295,13 +295,14 @@ function Standing() {
               ]}
             >
               <OceanBackdrop subtle />
-              <Label size={9} tracking={0.12} colour={color.brandDeep}>{t({ en: 'YOUR RECORD', th: 'ผลงานของคุณ' })}</Label>
+              <Label size={9} tracking={0.12} colour={color.brandDeep}>{t({ en: 'YOUR RECORD', th: 'ผลงานของคุณ', zh: '你的记录' })}</Label>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
                 <Heading size={26} colour={color.brandDeep}>{data.you.missionsVerified}</Heading>
                 <Body size={13} colour={color.brandDeep}>
                   {t({
                     en: `mission${data.you.missionsVerified === 1 ? '' : 's'} verified · ${data.you.greenVerified.toLocaleString('en-US')} G earned`,
                     th: `ครั้งที่ผ่านการตรวจ · ได้ ${data.you.greenVerified.toLocaleString('en-US')} แต้มเขียว`,
+                    zh: `个任务已验证 · 获得 ${data.you.greenVerified.toLocaleString('en-US')} 绿色积分`,
                   })}
                 </Body>
               </View>
@@ -321,6 +322,7 @@ function Standing() {
                     ? 'One traveller has verified points so far, so there is no traveller ranking yet. The hosts below are real.'
                     : 'Nobody has verified points yet, so there is no traveller ranking. The hosts below are real.',
                   th: 'ยังจัดอันดับนักเดินทางไม่ได้ เพราะยังมีคนน้อยเกินไป ผู้จัดภารกิจด้านล่างเป็นของจริง',
+                  zh: '目前还无法给旅行者排名，人数太少。下面列出的主办方是真实的。',
                 })}
               </Body>
             </View>
@@ -363,6 +365,7 @@ function HostRow({ host, place }: { host: HostStanding; place: number }) {
       accessibilityLabel={t({
         en: `${place}. ${host.name}. ${host.verified} verified, ${host.questsPosted} posted`,
         th: `${place} ${host.name} ตรวจแล้ว ${host.verified} โพสต์ ${host.questsPosted}`,
+        zh: `第 ${place} 名。${host.name}。已验证 ${host.verified}，发布 ${host.questsPosted}`,
       })}
       style={{
         flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -387,10 +390,12 @@ function HostRow({ host, place }: { host: HostStanding; place: number }) {
             ? t({
               en: `${host.questsPosted} posted · waiting for a first submission`,
               th: `ตั้งไว้ ${host.questsPosted} ภารกิจ · ยังไม่มีใครส่งหลักฐาน`,
+              zh: `发布 ${host.questsPosted} 个任务 · 还在等第一份提交`,
             })
             : t({
               en: `${host.questsPosted} posted · ${host.pending} awaiting review`,
               th: `ตั้งไว้ ${host.questsPosted} ภารกิจ · รอตรวจ ${host.pending}`,
+              zh: `发布 ${host.questsPosted} 个任务 · ${host.pending} 个待审核`,
             })}
         </Label>
       </View>
@@ -437,7 +442,7 @@ function PartnerRewards({ onOpenMarket }: { onOpenMarket: () => void }) {
   return (
     <View style={{ paddingTop: 24 }}>
       <View style={{ paddingHorizontal: gutter, paddingBottom: 10 }}>
-        <Label size={10} tracking={0.14}>{t({ en: 'What the points buy', th: 'แลกอะไรได้บ้าง' })}</Label>
+        <Label size={10} tracking={0.14}>{t({ en: 'What the points buy', th: 'แลกอะไรได้บ้าง', zh: '积分能换什么' })}</Label>
 
       </View>
 
@@ -447,7 +452,7 @@ function PartnerRewards({ onOpenMarket }: { onOpenMarket: () => void }) {
         <Body size={13} colour={color.neutral600} style={{ paddingHorizontal: gutter }}>{t(strings.common.loading)}</Body>
       ) : shown.length === 0 ? (
         <Body size={13} colour={color.neutral700} style={{ paddingHorizontal: gutter }}>
-          {t({ en: 'No partner rewards are available right now.', th: 'ตอนนี้ยังไม่มีสิทธิพิเศษจากพาร์ตเนอร์' })}
+          {t({ en: 'No partner rewards are available right now.', th: 'ตอนนี้ยังไม่มีสิทธิพิเศษจากพาร์ตเนอร์', zh: '目前没有可兑换的合作伙伴奖励。' })}
         </Body>
       ) : (
         <>
@@ -464,6 +469,8 @@ function PartnerRewards({ onOpenMarket }: { onOpenMarket: () => void }) {
                     + ` ${canBuy ? 'Affordable' : 'Not enough points'}`,
                   th: `${o.name} ${o.merchant} ${o.costPoints} ${t(o.currency === 'green' ? strings.common.greenPoints : strings.common.tripPoints)}`
                     + ` ${canBuy ? 'แต้มเพียงพอ' : 'แต้มไม่พอ'}`,
+                  zh: `${o.name} ${o.merchant} ${o.costPoints} ${t(o.currency === 'green' ? strings.common.greenPoints : strings.common.tripPoints)}`
+                    + ` ${canBuy ? '积分足够' : '积分不足'}`,
                 })}
                 style={[
                   shadow.card,
@@ -505,6 +512,7 @@ function PartnerRewards({ onOpenMarket }: { onOpenMarket: () => void }) {
             accessibilityLabel={t({
               en: `See all ${list.length} partner rewards`,
               th: `ดูของรางวัลจากพาร์ทเนอร์ทั้งหมด ${list.length} รายการ`,
+              zh: `查看全部 ${list.length} 项合作伙伴奖励`,
             })}
             style={{
               marginHorizontal: gutter, minHeight: 44,
@@ -512,7 +520,7 @@ function PartnerRewards({ onOpenMarket }: { onOpenMarket: () => void }) {
             }}
           >
             <Label size={10} tracking={0.12} colour={color.brand}>
-              {t({ en: `ALL ${list.length} REWARDS`, th: `สิทธิพิเศษทั้งหมด ${list.length} รายการ` })}
+              {t({ en: `ALL ${list.length} REWARDS`, th: `สิทธิพิเศษทั้งหมด ${list.length} รายการ`, zh: `全部 ${list.length} 项奖励` })}
             </Label>
             <ChevronRight size={16} color={color.brand} strokeWidth={2} />
           </Pressable>

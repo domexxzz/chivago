@@ -26,7 +26,7 @@
  * phone, and a test can hold that no two are the same creature.
  */
 
-import type { Bilingual, LayerKey } from './types.ts';
+import type { Bilingual, LayerKey, Localised } from './types.ts';
 
 export type MascotArchetype = 'bird' | 'beast' | 'sea' | 'naga' | 'bug' | 'sprite' | 'ape' | 'shell';
 
@@ -65,7 +65,7 @@ export interface Mascot {
   shape: MascotShape;
 }
 
-const B = (en: string, th: string): Bilingual => ({ en, th });
+const B = (en: string, th: string, zh?: string): Localised => ({ en, th, zh });
 
 type Row = [
   code: string, key: string, name: [string, string], creature: [string, string], why: [string, string],
@@ -181,13 +181,13 @@ export const mascotByKey = (key: string): Mascot | null => BY_KEY.get(key) ?? nu
 
 /** What a `basis` says on the card. */
 export const BASIS_LABEL: Record<MascotBasis, Bilingual> = {
-  seal: B('From the provincial seal', 'จากตราประจำจังหวัด'),
-  wildlife: B('An animal the province is known for', 'สัตว์ที่จังหวัดขึ้นชื่อ'),
-  produce: B('Something the province grows or makes', 'ของดีของจังหวัด'),
-  craft: B('A craft of the province', 'งานหัตถกรรมของจังหวัด'),
-  festival: B('A festival of the province', 'ประเพณีของจังหวัด'),
-  landmark: B('A place in the province', 'สถานที่ในจังหวัด'),
-  legend: B('A legend, or the name itself', 'ตำนาน หรือชื่อจังหวัดเอง'),
+  seal: B('From the provincial seal', 'จากตราประจำจังหวัด', '取自府徽'),
+  wildlife: B('An animal the province is known for', 'สัตว์ที่จังหวัดขึ้นชื่อ', '该府著名的动物'),
+  produce: B('Something the province grows or makes', 'ของดีของจังหวัด', '该府出产的特产'),
+  craft: B('A craft of the province', 'งานหัตถกรรมของจังหวัด', '该府的手工艺'),
+  festival: B('A festival of the province', 'ประเพณีของจังหวัด', '该府的节庆'),
+  landmark: B('A place in the province', 'สถานที่ในจังหวัด', '该府的地标'),
+  legend: B('A legend, or the name itself', 'ตำนาน หรือชื่อจังหวัดเอง', '传说，或府名本身'),
 };
 
 /**

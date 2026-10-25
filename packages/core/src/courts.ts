@@ -36,7 +36,7 @@ export const PLACE_COURTS: Readonly<Record<string, CourtSource>> = {
   'sinthani-badminton': {
     provider: 'badminton-booking',
     area: 'rmutt',
-    name: { en: 'Badminton@Sinthani', th: 'แบดมินตัน@สินธานี' },
+    name: { en: 'Badminton@Sinthani', th: 'แบดมินตัน@สินธานี', zh: '羽毛球@信他尼' },
   },
 };
 

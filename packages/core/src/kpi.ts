@@ -77,51 +77,59 @@ export interface MeasureSpec {
 
 export const MEASURE: Record<KpiMeasure, MeasureSpec> = {
   verified_submissions: {
-    unit: { en: 'submissions', th: 'รายการ' },
-    label: { en: 'Submissions a host verified', th: 'งานที่ผู้จัดตรวจแล้ว' },
+    unit: { en: 'submissions', th: 'รายการ', zh: '件' },
+    label: { en: 'Submissions a host verified', th: 'งานที่ผู้จัดตรวจแล้ว', zh: '主办方已验证的提交' },
     source: {
       en: 'Counted from approvals dated inside the period.',
       th: 'นับจากการอนุมัติที่ลงวันที่อยู่ในช่วงเวลาที่กำหนด',
+      zh: '按日期落在该期间内的批准记录计数。',
     },
     notThis: {
       en: 'Not people: somebody who did three is three submissions and one person.',
       th: 'ไม่ใช่จำนวนคน คนที่ทำสามครั้งคือสามรายการและหนึ่งคน',
+      zh: '不是人数：做了三次的人是三件提交、一个人。',
     },
   },
   distinct_participants: {
-    unit: { en: 'people', th: 'คน' },
-    label: { en: 'People who took part', th: 'จำนวนคนที่เข้าร่วม' },
+    unit: { en: 'people', th: 'คน', zh: '人' },
+    label: { en: 'People who took part', th: 'จำนวนคนที่เข้าร่วม', zh: '参与的人数' },
     source: {
       en: 'Counted once each across every activity in the period.',
       th: 'นับคนละหนึ่งครั้งตลอดทุกกิจกรรมในช่วงเวลา',
+      zh: '在该期间的所有活动中，每人只计一次。',
     },
     notThis: {
       en: 'Not reach, and not attendance at anything nobody verified.',
       th: 'ไม่ใช่การเข้าถึง และไม่นับการเข้าร่วมที่ไม่มีใครตรวจ',
+      zh: '不是触达人数，也不计入无人验证的参与。',
     },
   },
   weight_kg: {
-    unit: { en: 'kg', th: 'กก' },
-    label: { en: 'Weight recorded on approved proofs', th: 'น้ำหนักที่บันทึกบนหลักฐานที่ผ่าน' },
+    unit: { en: 'kg', th: 'กก', zh: '公斤' },
+    label: { en: 'Weight recorded on approved proofs', th: 'น้ำหนักที่บันทึกบนหลักฐานที่ผ่าน', zh: '已批准的证据上记录的重量' },
     source: {
       en: 'Summed from the weight a host entered when approving a proof.',
       th: 'รวมจากน้ำหนักที่ผู้จัดกรอกตอนอนุมัติหลักฐาน',
+      zh: '由主办方批准证据时填写的重量汇总而成。',
     },
     notThis: {
       en: 'Not a carbon figure. Converting kg to tCO2e needs a factor this platform does not hold.',
       th: 'ไม่ใช่ตัวเลขคาร์บอน การแปลงกิโลกรัมเป็น tCO2e ต้องใช้ค่าสัมประสิทธิ์ที่แพลตฟอร์มนี้ไม่มี',
+      zh: '不是碳排放数字。把 kg 换算为 tCO2e 需要本平台没有的排放因子。',
     },
   },
   voucher_value_thb: {
-    unit: { en: 'THB', th: 'บาท' },
-    label: { en: 'Face value of vouchers a merchant scanned', th: 'มูลค่าหน้าคูปองที่ร้านค้ารับแล้ว' },
+    unit: { en: 'THB', th: 'บาท', zh: '泰铢' },
+    label: { en: 'Face value of vouchers a merchant scanned', th: 'มูลค่าหน้าคูปองที่ร้านค้ารับแล้ว', zh: '商家已扫描的代金券面值' },
     source: {
       en: 'Summed from vouchers redeemed in the period, where the offer carried a price.',
       th: 'รวมจากคูปองที่ถูกใช้ในช่วงเวลา เฉพาะข้อเสนอที่ระบุราคาไว้',
+      zh: '由该期间内核销的代金券汇总而成，仅限标有价格的优惠。',
     },
     notThis: {
       en: 'Not what the traveller spent, and not the merchant’s revenue.',
       th: 'ไม่ใช่ยอดที่นักเดินทางจ่ายจริง และไม่ใช่รายได้ของร้าน',
+      zh: '不是旅行者的实际支出，也不是商家的收入。',
     },
   },
 };
@@ -164,6 +172,8 @@ export function kpiProgress(kpi: QuestKpi, observed: number): KpiProgress {
         + 'what would have happened without this quest.',
       th: 'การเปลี่ยนแปลงจากค่าเริ่มต้นไม่ใช่การระบุสาเหตุ '
         + 'ไม่มีสิ่งใดในที่นี้พิสูจน์ว่าถ้าไม่มีภารกิจนี้จะเกิดอะไรขึ้น',
+      zh: '相对基线的变化并不等于归因。这里的任何内容都无法确立'
+        + '若没有这项任务会发生什么。',
     });
   }
 

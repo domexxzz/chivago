@@ -203,22 +203,26 @@ export function sayHeadway(h: Headway): Bilingual {
     return {
       en: 'Nobody has reported one today. Tap when you see one.',
       th: 'วันนี้ยังไม่มีใครแจ้งว่าเห็นรถ เห็นเมื่อไหร่กดแจ้งได้เลย',
+      zh: '今天还没有人报告看到车。看到时点一下即可上报。',
     };
   }
   const ago = h.lastSeenMinAgo ?? 0;
   const seen = {
     en: ago === 0 ? 'A rider reported one just now' : `A rider reported one ${ago} min ago`,
     th: ago === 0 ? 'มีคนแจ้งว่าเพิ่งเห็นรถเมื่อกี้' : `มีคนแจ้งว่าเห็นรถเมื่อ ${ago} นาทีที่แล้ว`,
+    zh: ago === 0 ? '有乘客刚刚报告看到一班车' : `有乘客在 ${ago} 分钟前报告看到一班车`,
   };
   if (h.typicalGapMin === null) {
     return {
       en: `${seen.en}. Too few reports to say how often it runs.`,
       th: `${seen.th} · ยังแจ้งกันน้อยเกินกว่าจะบอกได้ว่ามาถี่แค่ไหน`,
+      zh: `${seen.zh}。上报次数太少，无法说明发车有多频繁。`,
     };
   }
   return {
     en: `${seen.en}. Reports today came about every ${h.typicalGapMin} min - that is what riders saw, not a timetable.`,
     th: `${seen.th} · วันนี้คนแจ้งห่างกันราว ${h.typicalGapMin} นาที เป็นสิ่งที่คนเห็น ไม่ใช่ตารางเดินรถ`,
+    zh: `${seen.zh}。今天的上报间隔约为 ${h.typicalGapMin} 分钟——这是乘客看到的情况，不是时刻表。`,
   };
 }
 
@@ -226,4 +230,5 @@ export function sayHeadway(h: Headway): Bilingual {
 export const NO_CAMPUS_ROUTE: Bilingual = {
   en: 'The university has not published a shuttle route yet, so there is none to show.',
   th: 'มหาวิทยาลัยยังไม่ได้เผยแพร่เส้นทางรถภายใน จึงยังไม่มีเส้นทางให้แสดง',
+  zh: '校方尚未公布校内班车路线，因此暂无路线可显示。',
 };
