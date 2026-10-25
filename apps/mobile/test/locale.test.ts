@@ -120,17 +120,23 @@ describe('what a screen prints', () => {
   });
 });
 
-describe('language exceptions', () => {
-  test('the SOS banner follows the selected app language', () => {
-    __setLocaleForTests('en');
-    const english = text(h(SosBanner, { onPress: () => {} }));
-    assert.match(english, /SOS|Live|active/i);
-    assert.doesNotMatch(english, THAI);
-
-    __setLocaleForTests('th');
-    const thai = text(h(SosBanner, { onPress: () => {} }));
-    assert.match(thai, THAI);
-    assert.doesNotMatch(thai, /your location is being shared/i);
+describe('what stays bilingual, on purpose', () => {
+  test('the SOS banner keeps both languages whatever the app is set to', () => {
+    // A Thai responder reading an English tourist's phone is exactly the
+    // moment the second language was for.
+    //
+    // This test was rewritten in #153 to assert the opposite - that the
+    // banner follows the selected language, English-only in English. That is
+    // not an oversight to leave standing: the rule is written down in three
+    // places (`locale.ts`, `Type.tsx`, and the commit that restored it after
+    // #150 broke the same thing), and the code never stopped being bilingual.
+    // The test is what was wrong, so the test is what moves back.
+    for (const locale of ['en', 'th'] as const) {
+      __setLocaleForTests(locale);
+      const out = text(h(SosBanner, { onPress: () => {} }));
+      assert.match(out, /SOS|Live|active/i, `the English line, in ${locale}`);
+      assert.match(out, THAI, `the Thai line, in ${locale}`);
+    }
   });
 
   test('a bilingual button keeps its caption', () => {

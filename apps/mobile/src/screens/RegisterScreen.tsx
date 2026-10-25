@@ -247,7 +247,10 @@ export function RegisterScreen({
       });
 
       if (!regRes.ok) {
-        setErrorMessage(t({ en: 'Registration failed. Please try again.', th: 'การลงทะเบียนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', zh: '注册失败。请重试。' }));
+        // The server's own words first, the generic line only as a fallback -
+        // the same order LoginScreen uses. "This email is already in use" is
+        // the difference between fixing the form and retrying it unchanged.
+        setErrorMessage(regRes.error || t({ en: 'Registration failed. Please try again.', th: 'การลงทะเบียนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', zh: '注册失败。请重试。' }));
         setLoading(false);
         return;
       }
