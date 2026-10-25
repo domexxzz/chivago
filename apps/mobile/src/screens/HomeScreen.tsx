@@ -40,7 +40,7 @@ import {
 } from 'react-native';
 import { areaOfPlace, fairsIn, featuredFirst, hasFeatured, inArea, isFeatured, stallPlacesIn, type Area, type AreaKey, type Fair } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
-import { mascotBeachUri, photoUri } from '../api/photos.ts';
+import { creditWord, fitsWhole, mascotBeachUri, photoBackdrop, photoUri } from '../api/photos.ts';
 import { SHOP_CATEGORIES, shopImageUri, type Shop } from '../api/shops.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { BoardFeed } from '../components/BoardFeed.tsx';
@@ -211,6 +211,15 @@ export function HomeScreen({
         onOpenStays={onOpenStays}
         onOpenMarket={onOpenMarket ?? onOpenWallet}
       />
+      {/*
+        What it is like outside, above where to go: the sea and the sky decide
+        whether any of the places below are worth the trip. Read per area, and
+        it draws nothing where the feed has nothing - inland there is no wave
+        tab at all (components/SeaAndSky.tsx).
+      */}
+      <View style={{ paddingHorizontal: gutter }}>
+        <SeaAndSkyCard area={area.key} />
+      </View>
       <Places places={here} shops={shops} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} onOpenShop={onOpenShop ?? onOpenMap} />
       <MarketPromoCard onOpenMarket={onOpenMarket ?? onOpenWallet} />
       {/*

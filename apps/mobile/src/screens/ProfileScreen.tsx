@@ -528,16 +528,16 @@ function RoleStatusCard({
             </Body>
           </View>
         ) : null}
-        {isOperator && phone ? (
+        {phone ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Phone size={15} color="#66869D" strokeWidth={2} />
-            <Body size={13} colour={color.neutral700}>เบอร์โทรศัพท์ร้านค้า: {phone}</Body>
+            <Body size={13} colour={color.neutral700}>{isOperator ? `เบอร์โทรศัพท์ร้านค้า: ${phone}` : `เบอร์โทรศัพท์: ${phone}`}</Body>
           </View>
         ) : null}
-        {isOperator && email ? (
+        {email ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Mail size={15} color="#66869D" strokeWidth={2} />
-            <Body size={13} colour={color.neutral700}>อีเมลร้านค้า: {email}</Body>
+            <Body size={13} colour={color.neutral700}>{isOperator ? `อีเมลร้านค้า: ${email}` : `อีเมล: ${email}`}</Body>
           </View>
         ) : null}
       </View>
