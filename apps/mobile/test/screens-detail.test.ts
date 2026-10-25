@@ -650,6 +650,39 @@ describe('the safety shield', () => {
     } finally { net.restore(); }
   });
 
+  test('a live alert keeps its Thai whatever language the app is set to', async () => {
+    /*
+     * The responder's language, not the traveller's. A Thai medic handed an
+     * English or Chinese tourist's phone reads the dispatch state, the
+     * emergency service names and the two SOS buttons off this screen, so
+     * every one of those lines carries Thai regardless of the app language.
+     *
+     * The rule is written in `i18n/locale.ts`. It has now been stripped twice
+     * - #150 removed `always` from all ten lines here and `bilingual` from
+     * both buttons on a consistency argument, and the fix after it restored
+     * only the banner in `Shell.tsx`. This test is here so the third time
+     * fails in CI instead of on an island.
+     */
+    const net = server({ 'GET /shield': shield() });
+    try {
+      for (const locale of ['en', 'th', 'zh'] as const) {
+        __setLocaleForTests(locale);
+        const ui = await mountScreen(h(SafetyScreen, props({ alert })));
+        const said = ui.text();
+        // Named lines, not "is there any Thai on screen": the two bilingual
+        // buttons alone would satisfy that, and did - the first version of
+        // this test passed with `always` stripped from all ten lines.
+        assert.match(said, /ส่งรถพยาบาลไม่ได้/, `"we cannot send an ambulance", in ${locale}`);
+        assert.match(said, /ยังไม่มีเจ้าหน้าที่รับเรื่อง/, `"nobody has picked this up", in ${locale}`);
+        assert.match(said, /Bophut, 400 m/, `the location, in ${locale}`);
+        ui.unmount();
+      }
+    } finally {
+      __setLocaleForTests('en');
+      net.restore();
+    }
+  });
+
   test('the shield list failing does not take the SOS control with it', async () => {
     // The one screen where a failed fetch must never remove a control: the
     // service list is informational, firing an SOS is not.

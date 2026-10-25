@@ -8,10 +8,21 @@
  * language, chosen from the phone's locale and changeable on the Account
  * screen, and every string that has both is read through `t()`.
  *
- * Screens use one language at a time, including the Safety screen. The one
- * exception is the SOS banner: while an alert is live it stays in both
- * languages, because a Thai responder may be reading an English tourist's
- * phone. It opts in with `<Thai always>`.
+ * The exception is written down, not implied: anything an emergency responder
+ * might read off a traveller's phone stays in both languages regardless -
+ * the SOS banner, the Safety screen, the emergency numbers. A Thai medic
+ * reading an English tourist's screen is exactly the moment the caption was
+ * for. Those sites opt in with `<Thai always>` and `<Button bilingual>`.
+ *
+ * That paragraph is the original, restored twice now. #150 replaced it with
+ * "one language at a time, including safety and emergency UI" and stripped
+ * `always` from all ten Safety-screen lines and `bilingual` from both SOS
+ * buttons - a consistency argument applied to the one screen where mixing
+ * languages is the point. The fix after it restored only the banner and
+ * narrowed this paragraph to match, which left the rest of the screen single
+ * -language and this rule describing a scope it no longer had. If the scope
+ * is to shrink again, shrink it on purpose and say why here, because the
+ * next person to tidy the captions will read this and stop.
  *
  * `t()` is a plain function, not a hook, because it is called from hundreds of
  * sites including helpers that are not components. A change of language
