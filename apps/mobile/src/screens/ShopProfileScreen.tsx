@@ -5,13 +5,14 @@ import { ArrowLeft, Camera, MapPin, Navigation, Star, Store } from 'lucide-react
 import { api } from '../api/client.ts';
 import { shopImageUri, shopOpenNow, type ShopReview } from '../api/shops.ts';
 import { useAsync } from '../state/store.tsx';
+import { Button as ChivaButton } from '../components/Button.tsx';
 
 const blue = '#0077B6';
 const card = { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, marginBottom: 14 } as const;
 const field = { borderWidth: 1, borderColor: '#CDE3EA', backgroundColor: '#F5FAFC', borderRadius: 12, padding: 11, color: '#123B64', fontSize: 15 } as const;
 const button = { backgroundColor: blue, paddingHorizontal: 16, paddingVertical: 11, borderRadius: 16, alignItems: 'center' as const };
 
-export function ShopProfileScreen({ shopId, onBack, onEdit }: { shopId: string; onBack: () => void; onEdit: () => void }) {
+export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onEdit }: { shopId: string; guest?: boolean; onSignIn?: () => void; onBack: () => void; onEdit: () => void }) {
   const shop = useAsync(() => api.shop(shopId), [shopId]);
   const own = useAsync(() => api.myShopReview(shopId), [shopId]);
   const [reviews, setReviews] = React.useState<ShopReview[]>([]);
@@ -95,7 +96,12 @@ export function ShopProfileScreen({ shopId, onBack, onEdit }: { shopId: string; 
       {shop.data.images.length > 0 ? <ScrollView horizontal style={{ marginBottom: 14 }} contentContainerStyle={{ gap: 8 }}>
         {shop.data.images.map((img) => <Image key={img.id} source={{ uri: shopImageUri(img.url) }} style={{ width: Math.min(width * 0.55, 220), height: 145, borderRadius: 14 }} />)}
       </ScrollView> : null}
-      {!shop.data.owner ? <View style={card}>
+      {guest && !shop.data.owner ? <View style={[card, { backgroundColor: '#F1FAFD', borderWidth: 1, borderColor: '#CDEAF2' }]}>
+        <Text style={{ fontWeight: '700', color: '#123B64', fontSize: 17 }}>เข้าสู่ระบบเพื่อเขียนรีวิวร้านนี้</Text>
+        <Text style={{ color: '#52748A', marginTop: 6 }}>สมัครสมาชิกหรือเข้าสู่ระบบเพื่อรีวิวและรายงานเนื้อหาที่ไม่เหมาะสม</Text>
+        <ChivaButton label="Sign in to review" thai="เข้าสู่ระบบเพื่อเขียนรีวิว" onPress={() => onSignIn?.()} style={{ marginTop: 12 }} />
+      </View> : null}
+      {!guest && !shop.data.owner ? <View style={card}>
         <Text style={{ fontWeight: '700', color: '#123B64', fontSize: 17 }}>{mine ? 'แก้ไขรีวิวของคุณ' : 'เขียนรีวิว'}</Text>
         <View style={{ flexDirection: 'row', marginVertical: 10 }}>{[1, 2, 3, 4, 5].map((n) => <Pressable key={n} onPress={() => setRating(n)} accessibilityLabel={`${n} ดาว`} style={{ paddingRight: 8 }}><Star size={30} color="#F59E0B" fill={n <= rating ? '#F59E0B' : 'transparent'} /></Pressable>)}</View>
         <TextInput multiline value={body} onChangeText={setBody} placeholder="เล่าประสบการณ์ที่ร้านนี้" style={[field, { minHeight: 85, textAlignVertical: 'top' }]} />
@@ -115,7 +121,7 @@ export function ShopProfileScreen({ shopId, onBack, onEdit }: { shopId: string; 
           {r.photoUrl ? <Image source={{ uri: shopImageUri(r.photoUrl) }} style={{ width: 150, height: 120, borderRadius: 12, marginTop: 8 }} /> : null}
           {r.ownerReply ? <Text style={{ backgroundColor: '#EAF7FB', padding: 10, borderRadius: 10, marginTop: 8 }}>ร้านค้าตอบ: {r.ownerReply}</Text> : null}
           {shop.data?.owner ? <View style={{ marginTop: 8 }}><TextInput value={reply[r.id] ?? ''} onChangeText={(v) => setReply((prev) => ({ ...prev, [r.id]: v }))} placeholder="ตอบกลับรีวิว" style={field} /><Pressable disabled={busy || !reply[r.id]?.trim()} onPress={() => void act(() => api.replyShopReview(shopId, r.id, reply[r.id]!))} style={{ padding: 8 }}><Text style={{ color: blue }}>ส่งคำตอบ</Text></Pressable></View> : null}
-          {!r.mine ? reporting === r.id ? <View style={{ marginTop: 10 }}><TextInput value={reportReason} onChangeText={setReportReason} placeholder="ระบุเหตุผลที่รายงาน" style={field} /><View style={{ flexDirection: 'row', gap: 16, paddingTop: 8 }}><Pressable disabled={busy || reportReason.trim().length < 3} onPress={() => { void act(() => api.reportShopReview(shopId, r.id, reportReason)); setReporting(null); setReportReason(''); }}><Text style={{ color: blue }}>ส่งรายงาน</Text></Pressable><Pressable onPress={() => setReporting(null)}><Text>ยกเลิก</Text></Pressable></View></View> : <Pressable disabled={busy} onPress={() => setReporting(r.id)} style={{ paddingTop: 10 }}><Text style={{ color: '#64748B', fontSize: 12 }}>รายงานรีวิวไม่เหมาะสม</Text></Pressable> : null}
+          {!guest && !r.mine ? reporting === r.id ? <View style={{ marginTop: 10 }}><TextInput value={reportReason} onChangeText={setReportReason} placeholder="ระบุเหตุผลที่รายงาน" style={field} /><View style={{ flexDirection: 'row', gap: 16, paddingTop: 8 }}><Pressable disabled={busy || reportReason.trim().length < 3} onPress={() => { void act(() => api.reportShopReview(shopId, r.id, reportReason)); setReporting(null); setReportReason(''); }}><Text style={{ color: blue }}>ส่งรายงาน</Text></Pressable><Pressable onPress={() => setReporting(null)}><Text>ยกเลิก</Text></Pressable></View></View> : <Pressable disabled={busy} onPress={() => setReporting(r.id)} style={{ paddingTop: 10 }}><Text style={{ color: '#64748B', fontSize: 12 }}>รายงานรีวิวไม่เหมาะสม</Text></Pressable> : null}
         </View>)}
         {cursor ? <Pressable disabled={loadingReviews} onPress={() => void loadReviews(cursor)} style={{ padding: 10 }}><Text style={{ color: blue, textAlign: 'center' }}>โหลดรีวิวเพิ่มเติม</Text></Pressable> : null}
       </View>
