@@ -21,6 +21,7 @@
 
 import React from 'react';
 import { View } from 'react-native';
+import type { Shop } from '../api/shops.ts';
 import type { Area } from '@chivago/core';
 import type maplibregl from 'maplibre-gl';
 import {
@@ -475,12 +476,14 @@ const CAMPUS_EXAGGERATION = 1.15;
 const DEM_SOURCES = ['terrain', 'relief', 'deep'];
 
 export function TerrainMap({
-  places, onSelect, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area, storied,
+  places, onSelect, shops = [], onSelectShop, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area, storied,
   tales, onOpenStory, stops = [],
   here = null, way = null, wayIsRoute = false, fairLots = null, fairFocus = null,
 }: {
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;
+  shops?: Shop[];
+  onSelectShop?: (shop: Shop) => void;
   quests?: Quest[];
   progress?: Record<string, QuestProgress>;
   onOpenQuest?: (id: string) => void;
@@ -1194,6 +1197,16 @@ export function TerrainMap({
       );
     });
 
+    for (const shop of shops) {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.setAttribute('aria-label', `ร้าน ${shop.name}`);
+      el.style.cssText = 'border:2px solid white;border-radius:20px;background:#F77F00;color:white;min-width:38px;height:38px;cursor:pointer;box-shadow:0 3px 9px #123b6477;font-size:19px';
+      el.textContent = '🏪';
+      el.addEventListener('click', () => onSelectShop?.(shop));
+      markers.current.push(new Marker({ element: el, anchor: 'bottom' }).setLngLat([shop.lng, shop.lat]).addTo(m));
+    }
+
     /*
       X marks the spot. Every quest on today's list stands on the map where
       the work is, with what it pays; the ring pulses gold until you join it,
@@ -1446,7 +1459,7 @@ export function TerrainMap({
       m.off('moveend', relabel);
       m.off('resize', relabel);
     };
-  }, [places, quests, progress, onSelect, onOpenQuest, compact, storied, tales, onOpenStory, stops]);
+  }, [places, shops, quests, progress, onSelect, onSelectShop, onOpenQuest, compact, storied, tales, onOpenStory, stops]);
 
   /*
     You are here.

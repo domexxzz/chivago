@@ -224,8 +224,8 @@ export function loginUser(
         SELECT u.id, u.display_name, a.password_hash, a.email, a.phone, a.account_type, a.business_name
         FROM user_accounts a
         JOIN users u ON u.id = a.id
-        WHERE a.phone = ? OR lower(a.email) = ?
-      `).get(cleanPhone, cleanId.toLowerCase()),
+      WHERE a.phone = ? OR lower(a.email) = ? OR lower(substr(a.email, 1, instr(a.email, '@') - 1)) = ?
+      `).get(cleanPhone, cleanId.toLowerCase(), cleanId.toLowerCase()),
     );
   }
 

@@ -45,6 +45,9 @@ import { AccountScreen } from './src/screens/AccountScreen.tsx';
 import { LoginScreen } from './src/screens/LoginScreen.tsx';
 import { RegisterScreen } from './src/screens/RegisterScreen.tsx';
 import { ProfileScreen } from './src/screens/ProfileScreen.tsx';
+import { EditProfileScreen } from './src/screens/EditProfileScreen.tsx';
+import { ShopProfileScreen } from './src/screens/ShopProfileScreen.tsx';
+import { ShopManageScreen } from './src/screens/ShopManageScreen.tsx';
 import { MedalsScreen } from './src/screens/MedalsScreen.tsx';
 import { PartyScreen } from './src/screens/PartyScreen.tsx';
 import { FindPartyScreen } from './src/screens/FindPartyScreen.tsx';
@@ -77,6 +80,7 @@ export default function App() {
   const [authReady, setAuthReady] = React.useState(false);
   const [loggedIn, setLoggedInState] = React.useState(false);
   const [signedInAccountType, setSignedInAccountType] = React.useState<'traveller' | 'operator' | undefined>();
+  const [profileRefreshKey, setProfileRefreshKey] = React.useState(0);
   React.useEffect(() => {
     void hasLoggedIn().then((val) => {
       setLoggedInState(val);
@@ -318,6 +322,7 @@ export default function App() {
             onToggleLayer={toggle}
             onPlanDay={() => nav.push('trip')}
             onOpenPlace={openPlaceOnMap}
+            onOpenShop={(id) => nav.push('shop', { shopId: id })}
             onOpenQuest={openQuestOnMap}
             onSeeAllQuests={() => nav.selectTab('quests')}
             onAskConcierge={() => nav.push('concierge')}
@@ -445,6 +450,7 @@ export default function App() {
             onOpenSafety={() => nav.selectTab('safety')}
             onOpenProfile={() => nav.push('profile')}
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
+            onOpenShop={(id) => nav.push('shop', { shopId: id })}
             onToast={toast.show}
           />
         );
@@ -452,6 +458,9 @@ export default function App() {
       case 'profile':
         return (
           <ProfileScreen
+            refreshKey={profileRefreshKey}
+            onOpenEditProfile={() => nav.push('editProfile')}
+            onOpenShops={() => nav.push('shopManage')}
             accountTypeOverride={signedInAccountType}
             onBack={nav.pop}
             onOpenAccount={() => nav.push('account')}
@@ -468,6 +477,15 @@ export default function App() {
             }}
           />
         );
+
+      case 'editProfile':
+        return <EditProfileScreen onBack={nav.pop} onSaved={() => { setProfileRefreshKey((k) => k + 1); nav.pop(); }} />;
+
+      case 'shop':
+        return <ShopProfileScreen shopId={nav.shopId ?? ''} onBack={nav.pop} onEdit={() => nav.push('shopManage', { shopId: nav.shopId ?? undefined })} />;
+
+      case 'shopManage':
+        return <ShopManageScreen initialShopId={nav.shopId} onBack={nav.pop} onOpenShop={(id) => nav.push('shop', { shopId: id })} />;
 
       case 'medals':
         return <MedalsScreen onBack={nav.pop} />;

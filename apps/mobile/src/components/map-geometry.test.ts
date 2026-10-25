@@ -1,8 +1,8 @@
 import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
-import { SAMUI_BBOX, SEED_PLACES, computeHealthyScore, type ScoredPlace } from '@chivago/core';
-import { CHIP, TALE_H, TALE_W, layoutPins, mistCircles, project, tilt } from './map-geometry.ts';
+import { KOH_SICHANG_BBOX, SAMUI_BBOX, SEED_PLACES, computeHealthyScore, type ScoredPlace } from '@chivago/core';
+import { CHIP, TALE_H, TALE_W, layoutPins, mistCircles, project, projectArea, tilt } from './map-geometry.ts';
 
 /**
  * The island's places only. The projection is Samui's bounding box and the
@@ -23,6 +23,12 @@ const scored: ScoredPlace[] = ISLAND_PLACES.map((p) => {
 });
 
 describe('projection', () => {
+  test('a Sichang shop pin stays inside its own area and preserves north/east ordering', () => {
+    const northWest = projectArea(KOH_SICHANG_BBOX.maxLat, KOH_SICHANG_BBOX.minLng, KOH_SICHANG_BBOX, W, H);
+    const southEast = projectArea(KOH_SICHANG_BBOX.minLat, KOH_SICHANG_BBOX.maxLng, KOH_SICHANG_BBOX, W, H);
+    assert.deepEqual(northWest, { left: 18, top: 20 });
+    assert.deepEqual(southEast, { left: W - 18, top: H - 28 });
+  });
   test('the island centre lands near the middle of the viewport', () => {
     const centreLat = (SAMUI_BBOX.minLat + SAMUI_BBOX.maxLat) / 2;
     const centreLng = (SAMUI_BBOX.minLng + SAMUI_BBOX.maxLng) / 2;

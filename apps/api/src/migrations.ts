@@ -1726,6 +1726,70 @@ export function migrate(db: DB): string[] {
   if (addColumn(db, 'user_accounts', 'business_name', 'TEXT')) {
     applied.push('user_accounts.business_name');
   }
+  if (addColumn(db, 'profiles', 'bio', 'TEXT')) applied.push('profiles.bio');
+  if (addColumn(db, 'profiles', 'profile_photo_url', 'TEXT')) applied.push('profiles.profile_photo_url');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS local_shops (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL,
+      area_key TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      address TEXT NOT NULL DEFAULT '',
+      lat REAL NOT NULL CHECK(lat BETWEEN -90 AND 90),
+      lng REAL NOT NULL CHECK(lng BETWEEN -180 AND 180),
+      phone TEXT NOT NULL DEFAULT '',
+      email TEXT NOT NULL DEFAULT '',
+      opening_hours TEXT NOT NULL DEFAULT '',
+      amenities TEXT NOT NULL DEFAULT '',
+      active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)),
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_local_shops_area ON local_shops(area_key, active, category);
+    CREATE INDEX IF NOT EXISTS idx_local_shops_owner ON local_shops(owner_id);
+    CREATE TABLE IF NOT EXISTS local_shop_reviews (
+      id TEXT PRIMARY KEY,
+      shop_id TEXT NOT NULL REFERENCES local_shops(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
+      body TEXT NOT NULL DEFAULT '',
+      owner_reply TEXT,
+      replied_at TEXT,
+      hidden_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(shop_id, user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_local_shop_reviews_page ON local_shop_reviews(shop_id, created_at DESC, id DESC);
+    CREATE TABLE IF NOT EXISTS local_shop_media (
+      id TEXT PRIMARY KEY,
+      shop_id TEXT NOT NULL REFERENCES local_shops(id) ON DELETE CASCADE,
+      review_id TEXT REFERENCES local_shop_reviews(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL CHECK(kind IN ('cover','interior','review')),
+      mime_type TEXT NOT NULL,
+      bytes BLOB NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_local_shop_media_shop ON local_shop_media(shop_id, kind, created_at);
+    CREATE TABLE IF NOT EXISTS local_shop_review_reports (
+      id TEXT PRIMARY KEY,
+      review_id TEXT NOT NULL REFERENCES local_shop_reviews(id) ON DELETE CASCADE,
+      reporter_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      reason TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','resolved','dismissed')),
+      created_at TEXT NOT NULL,
+      decided_at TEXT,
+      decided_by TEXT,
+      UNIQUE(review_id, reporter_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_local_shop_reports_status ON local_shop_review_reports(status, created_at);
+  `);
+  if (addColumn(db, 'local_shop_reviews', 'hidden_at', 'TEXT')) applied.push('local_shop_reviews.hidden_at');
+  if (addColumn(db, 'local_shop_review_reports', 'decided_at', 'TEXT')) applied.push('local_shop_review_reports.decided_at');
+  if (addColumn(db, 'local_shop_review_reports', 'decided_by', 'TEXT')) applied.push('local_shop_review_reports.decided_by');
+  applied.push('local_shops');
   applied.push('user_accounts');
 
   return applied;

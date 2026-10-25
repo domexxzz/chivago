@@ -7,6 +7,8 @@
  */
 
 import { strings } from '@chivago/core';
+import { Platform } from 'react-native';
+import type { Shop, ShopDetail, ShopInput, ShopReview } from './shops.ts';
 import { adoptKey, forgetKey, loadDeviceKey } from './account.ts';
 import { t } from '../i18n/locale.ts';
 import { getEvent } from '../state/area.ts';
@@ -364,6 +366,29 @@ const upload = <T>(path: string, form: FormData) => call<T>(path, { method: 'POS
 export const api = {
   health: () => get<{ status: string }>('/health'),
 
+  shops: (q: { area?: string; category?: string; search?: string; minRating?: number; openNow?: boolean; owner?: 'me' } = {}) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(q)) if (value !== undefined && value !== '' && value !== false) params.set(key, String(value === true ? 1 : value));
+    return get<Shop[]>(`/shops${params.size ? `?${params}` : ''}`);
+  },
+  shop: (id: string) => get<ShopDetail>(`/shops/${encodeURIComponent(id)}`),
+  createShop: (body: ShopInput) => post<ShopDetail>('/shops', body),
+  updateShop: (id: string, body: ShopInput) => put<ShopDetail>(`/shops/${encodeURIComponent(id)}`, body),
+  deleteShop: (id: string) => del<{ deleted: boolean }>(`/shops/${encodeURIComponent(id)}`),
+  deleteShopImage: (id: string, imageId: string) => del<{ deleted: boolean }>(`/shops/${encodeURIComponent(id)}/images/${encodeURIComponent(imageId)}`),
+  shopReviews: (id: string, cursor?: string) => get<{ reviews: ShopReview[]; nextCursor: string | null }>(`/shops/${encodeURIComponent(id)}/reviews${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`),
+  myShopReview: (id: string) => get<{ review: ShopReview | null }>(`/shops/${encodeURIComponent(id)}/reviews/mine`),
+  saveShopReview: (id: string, rating: number, body: string) => put<{ id: string }>(`/shops/${encodeURIComponent(id)}/reviews/mine`, { rating, body }),
+  deleteShopReview: (id: string) => del<{ deleted: boolean }>(`/shops/${encodeURIComponent(id)}/reviews/mine`),
+  replyShopReview: (id: string, reviewId: string, reply: string) => put<{ replied: boolean }>(`/shops/${encodeURIComponent(id)}/reviews/${encodeURIComponent(reviewId)}/reply`, { reply }),
+  reportShopReview: (id: string, reviewId: string, reason: string) => post<{ reported: boolean }>(`/shops/${encodeURIComponent(id)}/reviews/${encodeURIComponent(reviewId)}/reports`, { reason }),
+  uploadShopImage: async (id: string, kind: 'cover' | 'interior' | 'review', uri: string, mimeType = 'image/jpeg') => {
+    const form = new FormData();
+    if (Platform.OS === 'web') form.append('photo', await fetch(uri).then((r) => r.blob()), 'shop-photo.jpg');
+    else form.append('photo', { uri, name: 'shop-photo.jpg', type: mimeType } as any);
+    return upload<{ id: string; url: string }>(`/shops/${encodeURIComponent(id)}/images?kind=${kind}`, form);
+  },
+
   // -- profile ------------------------------------------------------------
   getProfile: () => get<WellnessProfile>('/profile'),
   saveProfile: (p: Partial<WellnessProfile> & { consentVersion: string }) =>
@@ -434,10 +459,31 @@ export const api = {
       fullName: string | null;
       email: string | null;
       phone: string | null;
+      username: string;
+      bio: string | null;
+      profilePhotoUrl: string | null;
       devices: { label: string | null; createdAt: string; lastSeenAt: string | null; current: boolean }[];
     }>(
       '/account',
     ),
+
+  updateAccountProfile: (body: { fullName: string; businessName?: string; email: string; phone: string; bio?: string; profilePhotoUrl?: string | null }) =>
+    put<{
+      userId: string; accountType: 'traveller' | 'operator'; businessName: string | null;
+      fullName: string; email: string; phone: string;
+      bio: string | null; profilePhotoUrl: string | null;
+    }>('/account/profile', body),
+
+  uploadProfilePhoto: async (uri: string, mimeType = 'image/jpeg') => {
+    const form = new FormData();
+    if (Platform.OS === 'web') {
+      const blob = await fetch(uri).then((response) => response.blob());
+      form.append('photo', blob, 'profile-photo.jpg');
+    } else {
+      form.append('photo', { uri, name: 'profile-photo.jpg', type: mimeType } as any);
+    }
+    return upload<{ profilePhotoUrl: string }>('/account/profile/photo', form);
+  },
 
   /** A code to read aloud to another phone. Ten minutes, single use. */
   linkCode: () => post<{ code: string; expiresInMs: number }>('/account/link-code', {}),

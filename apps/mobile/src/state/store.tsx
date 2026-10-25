@@ -42,7 +42,7 @@ export type ScreenKey =
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
   | 'companion' | 'passport' | 'account' | 'party' | 'findParty' | 'game'
   | 'mascots' | 'mascot' | 'profile' | 'medals' | 'stays' | 'fair'
-  | 'summon';
+  | 'summon' | 'editProfile' | 'shop' | 'shopManage';
 
 /**
  * Five tabs. Impact left the bar, and now the wallet has too.
@@ -71,12 +71,13 @@ interface NavState {
   questId: string | null;
   /** A province code, for the mascot's room. */
   code: string | null;
+  shopId: string | null;
   accountType?: 'traveller' | 'operator';
 }
 
 export interface Nav extends NavState {
   /** Push onto the stack. Used by place / quest / market / trip. */
-  push: (screen: ScreenKey, params?: { placeId?: string; questId?: string; code?: string; accountType?: 'traveller' | 'operator' }) => void;
+  push: (screen: ScreenKey, params?: { placeId?: string; questId?: string; shopId?: string; code?: string; accountType?: 'traveller' | 'operator' }) => void;
   /** Pop back. Falls back to the map if the stack is empty. */
   pop: () => void;
   /** A tab tap RESETS the stack, per the handoff. */
@@ -112,21 +113,23 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   medals: 'game', passport: 'game', party: 'game', findParty: 'game',
   // The profile is the button at the top of Home.
   profile: 'home',
+  editProfile: 'home', shopManage: 'home', shop: 'map',
   safety: 'safety',
 };
 
 export function useNav(initial: ScreenKey = 'onboarding'): Nav {
   const [state, setState] = React.useState<NavState>({
-    screen: initial, stack: [], placeId: null, questId: null, code: null,
+    screen: initial, stack: [], placeId: null, questId: null, shopId: null, code: null,
   });
 
   const push = React.useCallback(
-    (screen: ScreenKey, params?: { placeId?: string; questId?: string; code?: string; accountType?: 'traveller' | 'operator' }) => {
+    (screen: ScreenKey, params?: { placeId?: string; questId?: string; shopId?: string; code?: string; accountType?: 'traveller' | 'operator' }) => {
       setState((s) => ({
         screen,
         stack: [...s.stack, s.screen],
         placeId: params?.placeId ?? s.placeId,
         questId: params?.questId ?? s.questId,
+        shopId: params?.shopId ?? (screen === 'shopManage' ? null : s.shopId),
         code: params?.code ?? s.code,
         accountType: params?.accountType ?? s.accountType,
       }));
@@ -147,7 +150,7 @@ export function useNav(initial: ScreenKey = 'onboarding'): Nav {
   }, []);
 
   const reset = React.useCallback((screen: ScreenKey) => {
-    setState({ screen, stack: [], placeId: null, questId: null, code: null });
+    setState({ screen, stack: [], placeId: null, questId: null, shopId: null, code: null });
   }, []);
 
   return {
