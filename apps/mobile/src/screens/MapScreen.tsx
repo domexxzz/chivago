@@ -36,6 +36,7 @@ import { pickStoryMedia, postStory } from '../state/tell-story.ts';
 import type { Story } from '../api/client.ts';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { useRequireAccount } from '../components/GuestActionGate.tsx';
 
 // Stable empties, so the map's marker effect is not re-run by a fresh `[]`
 // on every render while the quests are still loading.
@@ -78,6 +79,7 @@ export function MapScreen({
   onBackToFair?: () => void;
 }) {
   const places = useAsync(() => api.places(), []);
+  const requireAccount = useRequireAccount();
   const quests = useAsync(() => api.quests('today'), []);
   // Where they have been. A failure here is a map with its mist down
   // everywhere, which is the truthful default, so it is not surfaced.
@@ -209,6 +211,7 @@ export function MapScreen({
   );
 
   const addMoment = React.useCallback(async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to post a story.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อโพสต์เรื่องราว' })) return;
     if (!momentAt || posting) return;
     const media = await pickStoryMedia(onToast);
     if (!media) return;
@@ -216,7 +219,7 @@ export function MapScreen({
     const ok = await postStory(momentAt.id, media, '', onToast);
     setPosting(false);
     if (ok) { onToast(t(strings.place.storyPosted)); areaStories.reload(); }
-  }, [momentAt, posting, onToast, areaStories]);
+  }, [momentAt, posting, onToast, areaStories, requireAccount]);
 
   /*
     The way there.

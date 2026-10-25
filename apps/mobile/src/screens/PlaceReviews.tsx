@@ -26,6 +26,7 @@ import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { useRequireAccount } from '../components/GuestActionGate.tsx';
 
 export function ReviewsBlock({
   placeId, summary, justCheckedIn, storiesOpen, busy, onPickMedia, onPostStory, onToast, onPointsChanged,
@@ -52,6 +53,7 @@ export function ReviewsBlock({
   onCheckIn?: () => Promise<{ ok: boolean; error?: string } | void>;
   checkInBusy?: boolean;
 }) {
+  const requireAccount = useRequireAccount();
   const [reviews, setReviews] = React.useState<PlaceReview[]>([]);
   const [mine, setMine] = React.useState<MyReviewState | null>(null);
   const [appealing, setAppealing] = React.useState(false);
@@ -110,7 +112,10 @@ export function ReviewsBlock({
         <Button
           label={mine ? t(strings.place.leaveAgain) : t(strings.place.leaveSomething)}
           thai={mine ? strings.place.leaveAgain.th : strings.place.leaveSomething.th}
-          onPress={() => setComposing(true)}
+          onPress={() => {
+            if (requireAccount({ en: 'Please sign in or create an account to write a review or post a story.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเขียนรีวิวหรือโพสต์เรื่องราว' })) return;
+            setComposing(true);
+          }}
           variant="secondary"
           height={44}
           style={{ marginTop: 14 }}
@@ -371,6 +376,7 @@ export function ComposeSheet({
   onCheckIn?: () => Promise<{ ok: boolean; error?: string } | void>;
   checkInBusy?: boolean;
 }) {
+  const requireAccount = useRequireAccount();
   const [rating, setRating] = React.useState(existing?.rating ?? 0);
   const [body, setBody] = React.useState(existing?.body ?? '');
   const [media, setMedia] = React.useState<PickedMedia | null>(null);
@@ -379,6 +385,7 @@ export function ComposeSheet({
   const [checkInError, setCheckInError] = React.useState<string | null>(null);
 
   const handleCheckIn = async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to check in here.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเช็กอินที่นี่' })) return;
     if (!onCheckIn) return;
     setCheckingIn(true);
     setCheckInError(null);
@@ -411,6 +418,7 @@ export function ComposeSheet({
     way round: the clip is the thing they made.
   */
   const save = async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to write a review or post a story.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเขียนรีวิวหรือโพสต์เรื่องราว' })) return;
     const words = body.trim();
     if (rating < 1 && !media) return;
     setBusy(true);
@@ -442,6 +450,7 @@ export function ComposeSheet({
   };
 
   const withdraw = async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to remove your review.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อลบรีวิว' })) return;
     setBusy(true);
     await api.withdrawReview(placeId);
     setBusy(false);
@@ -667,6 +676,7 @@ export function ReportSheet({
   onClose: () => void;
   onSent: (message: string) => void;
 }) {
+  const requireAccount = useRequireAccount();
   const [reason, setReason] = React.useState<ReportReasonKey | null>(null);
   const [note, setNote] = React.useState('');
   const [busy, setBusy] = React.useState(false);
@@ -680,6 +690,7 @@ export function ReportSheet({
   if (!review) return null;
 
   const send = async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to report a review.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อรายงานรีวิว' })) return;
     if (!reason) return;
     setBusy(true);
     const res = await api.reportReview(review.id, { reason, note: note.trim() || null });
@@ -879,6 +890,7 @@ export function AppealSheet({
   onClose: () => void;
   onSent: (message: string) => void;
 }) {
+  const requireAccount = useRequireAccount();
   const [message, setMessage] = React.useState('');
   const [busy, setBusy] = React.useState(false);
 
@@ -886,6 +898,7 @@ export function AppealSheet({
   if (!state) return null;
 
   const send = async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to appeal a review decision.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่ออุทธรณ์ผลรีวิว' })) return;
     setBusy(true);
     const res = await api.appealReview(state.review.id, message.trim());
     setBusy(false);

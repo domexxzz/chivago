@@ -35,6 +35,7 @@ import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { useRequireAccount } from '../components/GuestActionGate.tsx';
 
 type Pin = {
   placeId: string; invitesOpen: number; checkinsLastHour: number; line: Bilingual;
@@ -216,10 +217,12 @@ function AtPlace({
 function Invitation({
   invite, onToast, onChanged,
 }: { invite: InviteListing; onToast: (msg: string) => void; onChanged: () => void }) {
+  const requireAccount = useRequireAccount();
   const [busy, setBusy] = React.useState(false);
   const [asked, setAsked] = React.useState(false);
 
   const ask = async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to ask to join a party.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อขอเข้าร่วมปาร์ตี้' })) return;
     if (busy) return;
     setBusy(true);
     const res = await api.askToJoin(invite.id);

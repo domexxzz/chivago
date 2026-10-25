@@ -30,6 +30,7 @@ import { Button } from '../components/Button.tsx';
 import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { useRequireAccount } from '../components/GuestActionGate.tsx';
 
 /** Provinces open today. Two, and the passport says so on its own screen. */
 const OPEN_PROVINCES = 2;
@@ -79,11 +80,13 @@ export function PartyScreen({
 function Alone({
   onChanged, onToast,
 }: { onChanged: () => void; onToast: (msg: string) => void }) {
+  const requireAccount = useRequireAccount();
   const [code, setCode] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [made, setMade] = React.useState<string | null>(null);
 
   const start = async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to create a party.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อสร้างปาร์ตี้' })) return;
     if (busy) return;
     setBusy(true);
     const res = await api.createParty('Our trip');
@@ -97,6 +100,7 @@ function Alone({
   };
 
   const join = async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to join a party.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเข้าร่วมปาร์ตี้' })) return;
     if (busy || code.trim().length === 0) return;
     setBusy(true);
     const res = await api.joinParty(code.trim());
@@ -334,6 +338,7 @@ function DoesNot({ items }: { items: Bilingual[] }) {
 function Leave({
   onChanged, onToast,
 }: { onChanged: () => void; onToast: (msg: string) => void }) {
+  const requireAccount = useRequireAccount();
   const [busy, setBusy] = React.useState(false);
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 24 }}>
@@ -343,6 +348,7 @@ function Leave({
         variant="secondary"
         height={48}
         onPress={async () => {
+          if (requireAccount({ en: 'Please sign in or create an account to manage your party.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อจัดการปาร์ตี้' })) return;
           if (busy) return;
           setBusy(true);
           const res = await api.leaveParty();
@@ -422,10 +428,12 @@ function FindDoor({ onFind }: { onFind: () => void }) {
 function Requests({
   onToast, onChanged,
 }: { onToast: (msg: string) => void; onChanged: () => void }) {
+  const requireAccount = useRequireAccount();
   const waiting = useAsync(() => api.inviteRequests(), []);
   const [busy, setBusy] = React.useState<string | null>(null);
 
   const decide = async (inviteId: string, userId: string, accept: boolean) => {
+    if (requireAccount({ en: 'Please sign in or create an account to manage party requests.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อจัดการคำขอเข้าปาร์ตี้' })) return;
     if (busy !== null) return;
     setBusy(userId);
     const res = await api.decideRequest(inviteId, userId, accept);

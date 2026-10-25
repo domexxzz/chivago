@@ -31,6 +31,7 @@ import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { ReviewsBlock } from './PlaceReviews.tsx';
 import { t } from '../i18n/locale.ts';
+import { useRequireAccount } from '../components/GuestActionGate.tsx';
 import { AirHistoryCard, HereNow } from '../components/PlaceLive.tsx';
 import { GettingThere } from '../components/GettingThere.tsx';
 import { StoriesBlock } from '../components/Stories.tsx';
@@ -112,6 +113,7 @@ export function PlaceScreen({
   const medals = useAsync(() => api.medals(), [placeId]);
   // Whether a clip is looked at before it is public. See apps/api/src/fence.ts.
   const { autoApprove } = useServerConfig();
+  const requireAccount = useRequireAccount();
 
   React.useEffect(() => {
     // Whether they already checked in today is server state, not screen
@@ -134,6 +136,7 @@ export function PlaceScreen({
    * its own geofence is a client that can be told to lie.
    */
   const checkIn = async (): Promise<{ ok: boolean; error?: string }> => {
+    if (requireAccount({ en: 'Please sign in or create an account to check in and collect points.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเช็กอินและรับคะแนน' })) return { ok: false };
     setBusy(true);
     const perm = await Location.requestForegroundPermissionsAsync();
     if (!perm.granted) {
@@ -207,6 +210,7 @@ export function PlaceScreen({
    * packages/core/src/visits.ts. The button says what it does not pay.
    */
   const noteVisit = async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to record this visit.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อบันทึกการมาเยือน' })) return;
     setBusy(true);
     const res = await api.recordVisit(placeId);
     setBusy(false);
@@ -238,6 +242,7 @@ export function PlaceScreen({
   // src/state/tell-story.ts.
   const pickMedia = () => pickStoryMedia(onToast);
   const sendStory = async (media: PickedMedia, caption: string) => {
+    if (requireAccount({ en: 'Please sign in or create an account to post a story.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อโพสต์เรื่องราว' })) return false;
     setTelling(true);
     const ok = await postStory(placeId, media, caption, onToast);
     setTelling(false);

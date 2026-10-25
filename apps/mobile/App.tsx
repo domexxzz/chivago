@@ -62,6 +62,7 @@ import { loadLocale, t, useLocale } from './src/i18n/locale.ts';
 import { loadArea, placeFromUrl } from './src/state/area.ts';
 import { clearLoggedIn, hasLoggedIn, isGuest, setGuest, setLoggedIn } from './src/state/auth.ts';
 import { GuestBand, GuestGate } from './src/components/GuestGate.tsx';
+import { GuestActionProvider } from './src/components/GuestActionGate.tsx';
 import { useServerConfig } from './src/state/server-config.ts';
 import { UnfencedBand } from './src/components/UnfencedBand.tsx';
 import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
@@ -503,7 +504,7 @@ export default function App() {
         return <EditProfileScreen onBack={nav.pop} onSaved={() => { setProfileRefreshKey((k) => k + 1); nav.pop(); }} />;
 
       case 'shop':
-        return <ShopProfileScreen shopId={nav.shopId ?? ''} onBack={nav.pop} onEdit={() => nav.push('shopManage', { shopId: nav.shopId ?? undefined })} />;
+        return <ShopProfileScreen shopId={nav.shopId ?? ''} guest={guest} onSignIn={() => nav.push('login')} onBack={nav.pop} onEdit={() => nav.push('shopManage', { shopId: nav.shopId ?? undefined })} />;
 
       case 'shopManage':
         return <ShopManageScreen initialShopId={nav.shopId} onBack={nav.pop} onOpenShop={(id) => nav.push('shop', { shopId: id })} />;
@@ -631,6 +632,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
+      <GuestActionProvider guest={guest} onSignIn={() => nav.push('login')} onRegister={() => nav.push('register')}>
       <SafeAreaView style={{ flex: 1, backgroundColor: color.bg }} edges={['top', 'bottom']}>
         <StatusBar style="dark" />
 
@@ -656,6 +658,7 @@ export default function App() {
 
         <Toast message={toast.message} />
       </SafeAreaView>
+      </GuestActionProvider>
     </SafeAreaProvider>
   );
 }

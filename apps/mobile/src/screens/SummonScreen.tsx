@@ -38,6 +38,7 @@ import { ErrorState, LoadingState } from '../components/States.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { MascotMark } from '../components/MascotMark.tsx';
 import { getLocale, t } from '../i18n/locale.ts';
+import { useRequireAccount } from '../components/GuestActionGate.tsx';
 
 /** The day a round opened, in the reader's own calendar conventions. */
 const openedOn = (iso: string): string =>
@@ -202,6 +203,7 @@ export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
 }
 
 export function SummonScreen({ onBack }: { onBack: () => void }) {
+  const requireAccount = useRequireAccount();
   const state = useAsync(() => api.summon(), []);
   const guide = useAsync(() => api.spirits(), []);
   const [pulling, setPulling] = React.useState(false);
@@ -209,6 +211,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
   const [toast, setToast] = React.useState<string | null>(null);
 
   const pull = React.useCallback(async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to collect a spirit.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อรับมาสคอต' })) return;
     setPulling(true);
     setToast(null);
     const res = await api.pull();
@@ -217,7 +220,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
     setLast(res.data);
     state.reload();
     guide.reload();
-  }, [state, guide]);
+  }, [state, guide, requireAccount]);
 
   if (state.loading && !state.data) return <LoadingState label={t({ en: 'The summoning', th: 'การอัญเชิญ' })} />;
   if (state.error && !state.data) return <ErrorState message={state.error} onRetry={state.reload} />;
