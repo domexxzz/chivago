@@ -41,6 +41,7 @@ import {
 import { areaOfPlace, fairsIn, inArea, stallPlacesIn, type Area, type AreaKey, type Fair } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { mascotBeachUri, photoUri } from '../api/photos.ts';
+import { SHOP_CATEGORIES, shopImageUri, type Shop } from '../api/shops.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { BoardFeed } from '../components/BoardFeed.tsx';
 import { BusStrip } from '../components/BusStrip.tsx';
@@ -116,7 +117,7 @@ export function questOrder(
 
 export function HomeScreen({
   onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenMarket, onOpenFair, onOpenPassport,
-  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenMascots, onOpenStays,
+  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenShop, onOpenMascots, onOpenStays,
   onToast, now = new Date(),
 }: {
   onOpenMap: () => void;
@@ -134,6 +135,7 @@ export function HomeScreen({
   onOpenProfile: () => void;
   /** A place card. Optional so the screen tests that predate the cards still render. */
   onOpenPlace?: (id: string) => void;
+  onOpenShop?: (id: string) => void;
   /** The provincial mascots & island companions guide. */
   onOpenMascots?: () => void;
   /**
@@ -158,6 +160,7 @@ export function HomeScreen({
     chose - or the QR code did (docs/43).
   */
   const area = useArea();
+  const shops = useAsync(() => api.shops({ area: area.key }), [area.key]);
   const here = React.useMemo(
     () => ({ ...places, data: places.data ? places.data.filter((p) => areaOfPlace(p) === area.key) : places.data }),
     [places, area.key],
@@ -207,7 +210,7 @@ export function HomeScreen({
         onOpenStays={onOpenStays}
         onOpenMarket={onOpenMarket ?? onOpenWallet}
       />
-      <Places places={here} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} />
+      <Places places={here} shops={shops} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} onOpenShop={onOpenShop ?? onOpenMap} />
       <MarketPromoCard onOpenMarket={onOpenMarket ?? onOpenWallet} />
       {/*
         The board, under the places and above today's missions: it is what
@@ -501,9 +504,11 @@ function MarketPromoCard({ onOpenMarket }: { onOpenMarket: () => void }) {
 const CARD_GAP = 12;
 
 function Places({
-  places, onOpenMap, onOpenPlace,
-}: { places: Async<ScoredPlace[]>; onOpenMap: () => void; onOpenPlace: (id: string) => void }) {
+  places, shops, onOpenMap, onOpenPlace, onOpenShop,
+}: { places: Async<ScoredPlace[]>; shops: Async<Shop[]>; onOpenMap: () => void; onOpenPlace: (id: string) => void; onOpenShop: (id: string) => void }) {
   const served = places.data ?? [];
+  const [kind, setKind] = React.useState<'all' | 'places' | 'shops'>('all');
+  const [shopCategory, setShopCategory] = React.useState<string>('');
   // ONE position for the whole row. A card that asked for its own would take
   // a fix per place, and the row would answer the same question five times.
   const here = useHere();
@@ -522,7 +527,10 @@ function Places({
     for (const p of served) if (p.photo) void Image.prefetch(photoUri(p.photo.url)).catch(() => {});
   }, [served]);
 
-  if (list.length === 0) return null;
+  const shownPlaces = kind === 'shops' ? [] : list;
+  const shownShops = kind === 'places' ? [] : (shops.data ?? []).filter((shop) => !shopCategory || shop.category === shopCategory);
+  const loading = (kind !== 'shops' && places.loading) || (kind !== 'places' && shops.loading);
+  if (list.length === 0 && (shops.data?.length ?? 0) === 0 && !loading && !places.error && !shops.error) return null;
   return (
     <View style={{ paddingTop: 26 }}>
       <SectionHead
@@ -531,16 +539,41 @@ function Places({
         note={here ? t(strings.place.nearestFirst) : undefined}
         onSeeAll={onOpenMap}
       />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: gutter, gap: 8, paddingBottom: 4 }}>
+        {([['all', 'ทั้งหมด'], ['places', 'สถานที่'], ['shops', 'ร้านค้า']] as const).map(([value, label]) => <Pressable key={value} onPress={() => setKind(value)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: kind === value ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: kind === value ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{label}</Text></Pressable>)}
+      </ScrollView>
+      {kind === 'shops' ? <View style={{ paddingTop: 10 }}>
+        <Label size={11} colour="#123B64" style={{ paddingHorizontal: gutter, paddingBottom: 6 }}>ประเภทร้าน</Label>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: gutter, gap: 8 }}>
+          <Pressable onPress={() => setShopCategory('')} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: !shopCategory ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: !shopCategory ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>ทั้งหมด</Text></Pressable>
+          {SHOP_CATEGORIES.map((category) => <Pressable key={category} onPress={() => setShopCategory(category)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: shopCategory === category ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: shopCategory === category ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{category}</Text></Pressable>)}
+        </ScrollView>
+      </View> : null}
+      {places.error && kind !== 'shops' ? <Pressable onPress={places.reload} style={{ paddingHorizontal: gutter, paddingTop: 8 }}><Body size={13} colour="#B91C1C">{places.error} · ลองใหม่</Body></Pressable> : null}
+      {shops.error && kind !== 'places' ? <Pressable onPress={shops.reload} style={{ paddingHorizontal: gutter, paddingTop: 8 }}><Body size={13} colour="#B91C1C">{shops.error} · ลองใหม่</Body></Pressable> : null}
+      {loading ? <Body size={13} style={{ paddingHorizontal: gutter, paddingTop: 8 }}>กำลังโหลดข้อมูลในพื้นที่...</Body> : null}
+      {shownPlaces.length || shownShops.length ? (
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: gutter, gap: 14, paddingVertical: 8 }}
       >
-        {list.map((p) => (
+        {shownPlaces.map((p) => (
           <PlaceCard key={p.id} place={p} here={here} onPress={() => onOpenPlace(p.id)} />
         ))}
+        {shownShops.map((shop) => <ShopCard key={shop.id} shop={shop} onPress={() => onOpenShop(shop.id)} />)}
       </ScrollView>
+      ) : !loading ? <Body style={{ marginHorizontal: gutter, marginTop: 8 }} colour={color.neutral700}>{kind === 'shops' ? (shopCategory ? `ยังไม่มีร้านประเภท${shopCategory}ในพื้นที่นี้` : 'ยังไม่มีร้านค้าในพื้นที่นี้') : kind === 'places' ? 'ยังไม่มีสถานที่ในพื้นที่นี้' : 'ยังไม่มีสถานที่หรือร้านค้าในพื้นที่นี้'}</Body> : null}
     </View>
+  );
+}
+
+function ShopCard({ shop, onPress }: { shop: Shop; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityLabel={`ร้านค้า ${shop.name}`} style={[shadow.card, { width: 204, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden' }]}>
+      {shop.coverUrl ? <Image source={{ uri: shopImageUri(shop.coverUrl) }} style={{ width: '100%', height: 125 }} /> : <View style={{ height: 125, backgroundColor: '#DFF3F8', alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 36 }}>🏪</Text></View>}
+      <View style={{ padding: 10 }}><Label size={10} colour="#0077B6">ร้านค้า · {shop.category}</Label><Heading size={15}>{shop.name}</Heading><Body size={13} colour="#64748B">{shop.rating === null ? 'ยังไม่มีรีวิว' : `★ ${shop.rating} (${shop.reviewCount})`}</Body></View>
+    </Pressable>
   );
 }
 

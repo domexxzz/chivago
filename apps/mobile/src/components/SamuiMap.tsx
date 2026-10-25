@@ -26,8 +26,9 @@ import {
   type Area, type Bilingual, type ExploredPlace, type FairLot, type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { t } from '../i18n/locale.ts';
+import type { Shop } from '../api/shops.ts';
 import type { Here } from '../state/here.ts';
-import { CHIP, REVEAL_FEATHER, TALE_W, insideSamui, layoutPins, mistCircles, project, tilt } from './map-geometry.ts';
+import { CHIP, REVEAL_FEATHER, TALE_W, insideSamui, layoutPins, mistCircles, project, projectArea, tilt } from './map-geometry.ts';
 import { cloudField } from './terrain-style.ts';
 import { useReduceMotion } from './reduce-motion.ts';
 import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
@@ -381,6 +382,8 @@ export const drawsFairLots = TerrainMap !== null;
 export interface SamuiMapProps {
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;
+  shops?: Shop[];
+  onSelectShop?: (shop: Shop) => void;
   /**
    * Today's quests, marked where the work is. Drawn by the web map only:
    * the native island is a diagram with real points on it, and a quest's X
@@ -471,19 +474,38 @@ export function SamuiMap(props: SamuiMapProps) {
     The test used to be `map !== 'island'`, which was the same question
     while Samui was the only island there was. Ko Sichang is the second,
     and the old test would have sent it here: Phra Chudadhuj Palace drawn
-    on Samui's west coast, forty-five pixels from Thong Krut, 400 km from
-    where it is. That is the campus's error exactly - "it would put the
-    library in the Gulf of Thailand" (docs/43) - so it gets the campus's
-    answer. A list of real places beats a picture of the wrong one.
+    on Samui's west coast. Other areas now use a coordinate grid in the
+    same SVG engine, with points projected inside their own bounding boxes.
 
     When Sichang has a silhouette of its own, this becomes a lookup from
     the area key to a drawing, and the question goes back to being about
     the map rather than about the island.
   */
   if (props.area && props.area.key !== 'samui') {
-    return <PlaceList places={props.places} onSelect={props.onSelect} height={height} />;
+    return <AreaPointMap {...props} area={props.area} height={height} />;
   }
   return <IslandMap {...props} height={height} compact={compact} />;
+}
+
+/** Native's existing SVG engine: a coordinate grid, never another island's coastline. */
+function AreaPointMap({ area, places, shops = [], onSelect, onSelectShop, height }: SamuiMapProps & { area: Area; height: number }) {
+  const { width: windowWidth } = useWindowDimensions();
+  const [measured, setMeasured] = React.useState(0);
+  const width = measured || windowWidth;
+  const mapHeight = Math.max(260, height);
+  const point = (lat: number, lng: number) => projectArea(lat, lng, area.bbox, width, mapHeight);
+  return <View onLayout={(e) => setMeasured(e.nativeEvent.layout.width)} style={{ backgroundColor: '#DCEFF5' }}>
+    <View style={{ height: mapHeight, backgroundColor: '#D3EFF4', overflow: 'hidden' }}>
+      <Svg width={width} height={mapHeight} style={{ position: 'absolute' }}>
+        {[0.2, 0.4, 0.6, 0.8].map((v) => <React.Fragment key={v}><Line x1={v * width} y1={0} x2={v * width} y2={mapHeight} stroke="#A4D5DF" strokeWidth={1} /><Line x1={0} y1={v * mapHeight} x2={width} y2={v * mapHeight} stroke="#A4D5DF" strokeWidth={1} /></React.Fragment>)}
+        <Rect x={14} y={15} width={width - 28} height={mapHeight - 36} rx={16} stroke="#5BAABE" strokeWidth={1.5} fill="transparent" />
+      </Svg>
+      <View style={{ position: 'absolute', top: 8, left: 12, backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }}><Label size={10} colour="#0077B6">{t(area.name)} · แผนผังพิกัด</Label></View>
+      {places.map((place) => { const pos = point(place.lat, place.lng); return <Pressable key={place.id} onPress={() => onSelect(place)} accessibilityLabel={t(place.name)} style={{ position: 'absolute', left: pos.left - 16, top: pos.top - 20, backgroundColor: '#0077B6', borderWidth: 2, borderColor: '#fff', borderRadius: 16, paddingHorizontal: 5, paddingVertical: 4 }}><Label size={10} colour="#fff">{place.healthyScore}</Label></Pressable>; })}
+      {shops.map((shop) => { const pos = point(shop.lat, shop.lng); return <Pressable key={`shop-${shop.id}`} onPress={() => onSelectShop?.(shop)} accessibilityLabel={`ร้าน ${shop.name}`} style={{ position: 'absolute', left: pos.left - 17, top: pos.top - 21, backgroundColor: '#F77F00', borderWidth: 2, borderColor: '#fff', borderRadius: 18, paddingHorizontal: 7, paddingVertical: 4 }}><Label size={10} colour="#fff">🏪</Label></Pressable>; })}
+    </View>
+    <PlaceList places={places} shops={shops} onSelect={onSelect} onSelectShop={onSelectShop} height={100} />
+  </View>;
 }
 
 /**
@@ -496,12 +518,12 @@ export function SamuiMap(props: SamuiMapProps) {
  * and it had to serve an island too.
  */
 function PlaceList({
-  places, onSelect, height,
-}: { places: ScoredPlace[]; onSelect: (place: ScoredPlace) => void; height: number }) {
+  places, onSelect, shops, onSelectShop, height,
+}: { places: ScoredPlace[]; onSelect: (place: ScoredPlace) => void; shops: Shop[]; onSelectShop?: (shop: Shop) => void; height: number }) {
   return (
     <View style={{ minHeight: Math.min(height, 200), backgroundColor: color.neutral200, paddingHorizontal: 18, paddingVertical: 14 }}>
       <Label size={10} tracking={0.12} colour={color.neutral700}>
-        {t({ en: 'The drawn map is on the web for now. Every place is listed here.', th: 'แผนที่วาดมีบนเว็บก่อน ทุกสถานที่อยู่ในรายการนี้' })}
+        {t({ en: 'Places and shops in this area', th: 'สถานที่และร้านค้าในพื้นที่นี้' })}
       </Label>
       {places.map((p) => (
         <Pressable
@@ -514,12 +536,13 @@ function PlaceList({
           <Label size={11} colour={isHighScore(p.healthyScore) ? color.accent700 : color.neutral700}>{String(p.healthyScore)}</Label>
         </Pressable>
       ))}
+      {shops.map((shop) => <Pressable key={shop.id} onPress={() => onSelectShop?.(shop)} style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: color.neutral300 }}><Heading size={15}>🏪 {shop.name}</Heading><Label size={11} colour={color.neutral700}>{shop.category} · {shop.rating === null ? 'ยังไม่มีรีวิว' : `★ ${shop.rating}`}</Label></Pressable>)}
     </View>
   );
 }
 
 function IslandMap({
-  places, onSelect, explored = [], height = 344, compact = false, storied, tales, onOpenStory,
+  places, onSelect, shops = [], onSelectShop, explored = [], height = 344, compact = false, storied, tales, onOpenStory,
   here = null,
 }: SamuiMapProps) {
   /**
@@ -618,6 +641,15 @@ function IslandMap({
             );
           })
         : null}
+
+      {width > 0 ? shops.map((shop) => {
+        const point = project(shop.lat, shop.lng);
+        const location = tilt(point.x, point.y);
+        return <Pressable key={`shop-${shop.id}`} onPress={() => onSelectShop?.(shop)} accessibilityLabel={`ร้าน ${shop.name}`}
+          style={{ position: 'absolute', left: location.x * width - 22, top: location.y * height - 44, backgroundColor: '#F77F00', borderRadius: 22, padding: 8, borderWidth: 2, borderColor: '#fff' }}>
+          <Label size={11} colour="#fff">🏪</Label>
+        </Pressable>;
+      }) : null}
 
       {/* Legend: the island average today, and how much of it they have reached. */}
       <MapLegend places={places} explored={explored} />

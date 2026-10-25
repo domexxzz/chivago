@@ -1761,6 +1761,40 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     return session.role === 'moderator' ? session : null;
   };
 
+  // Reports on locally owned shops share the existing moderator session.
+  app.get('/shop-reviews', (c) => {
+    const session = requireModerator(c);
+    if (!session) return c.html(messagePage(localeFor(c), 'moderatorsOnly', 'moderatorsOnlyBlurb'), 403);
+    const escape = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
+    const reports = db.prepare(`SELECT p.id,p.reason,p.created_at,r.body,r.rating,r.id AS review_id,s.name AS shop_name
+      FROM local_shop_review_reports p JOIN local_shop_reviews r ON r.id=p.review_id
+      JOIN local_shops s ON s.id=r.shop_id WHERE p.status='pending' ORDER BY p.created_at DESC LIMIT 100`).all() as unknown as {
+      id: string; reason: string; created_at: string; body: string; rating: number; review_id: string; shop_name: string;
+    }[];
+    const entries = reports.map((r) => `<article style="background:white;border-radius:16px;padding:16px;margin:12px 0">
+      <strong>${escape(r.shop_name)} · ${r.rating} ดาว</strong><p>${escape(r.body)}</p>
+      <p>รายงาน: ${escape(r.reason)} · ${escape(r.created_at)}</p>
+      <form method="post" action="/console/shop-reviews/${encodeURIComponent(r.id)}/decide">
+        <input type="hidden" name="csrf" value="${escape(csrfFor(session))}">
+        <button name="decision" value="hide">ซ่อนรีวิว</button>
+        <button name="decision" value="dismiss">ยกเลิกรายงาน</button>
+      </form></article>`).join('');
+    return c.html(`<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>รายงานรีวิวร้านค้า</title><link rel="stylesheet" href="/console/assets/modernist.css"></head><body style="padding:24px;max-width:900px;margin:auto;background:#edf6f9"><a href="/console/reviews">← รีวิวสถานที่</a><h1>รายงานรีวิวร้านค้า</h1>${entries || '<p>ไม่มีรายงานค้างตรวจ</p>'}</body></html>`);
+  });
+  app.post('/shop-reviews/:id/decide', async (c) => {
+    const session = requireModerator(c);
+    if (!session) return c.html(messagePage(localeFor(c), 'moderatorsOnly', 'moderatorsOnlyBlurb'), 403);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) return c.html(messagePage(localeFor(c), 'sessionExpired', 'signInAgain'), 403);
+    const decision = String(form.decision);
+    if (decision !== 'hide' && decision !== 'dismiss') return c.text('Invalid decision', 400);
+    const report = db.prepare('SELECT review_id FROM local_shop_review_reports WHERE id=? AND status=?').get(c.req.param('id'), 'pending') as { review_id: string } | undefined;
+    if (!report) return c.text('Report not found', 404);
+    db.prepare('UPDATE local_shop_review_reports SET status=?,decided_at=?,decided_by=? WHERE id=?').run(decision === 'hide' ? 'resolved' : 'dismissed', new Date().toISOString(), session.reviewer ?? session.hostName, c.req.param('id'));
+    if (decision === 'hide') db.prepare('UPDATE local_shop_reviews SET hidden_at=? WHERE id=?').run(new Date().toISOString(), report.review_id);
+    return c.redirect('/console/shop-reviews', 303);
+  });
+
   app.get('/reviews', (c) => {
     const session = requireModerator(c);
     if (!session) {

@@ -62,7 +62,9 @@ CREATE TABLE IF NOT EXISTS profiles (
   -- PDPA: consent is specific, logged and timestamped. Storing the notice
   -- version means we can prove WHAT the user agreed to, not just that they did.
   consent_version TEXT,
-  consented_at  TEXT
+  consented_at  TEXT,
+  bio           TEXT,
+  profile_photo_url TEXT
 );
 
 CREATE TABLE IF NOT EXISTS places (

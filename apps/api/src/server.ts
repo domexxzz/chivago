@@ -31,6 +31,10 @@ import {
   registerDevice as registerAccountDevice, resolveDevice, revokeDevice,
 } from './account-service.ts';
 import { loginUser, registerUser, UserAuthError } from './user-account-service.ts';
+import {
+  ShopError, deleteReview as deleteShopReview, deleteShop, getShop, listReviews as listShopReviews,
+  listShops, ownReview, ownedShop, replyReview, reportShopReview, saveReview as saveShopReview, saveShop,
+} from './local-business-service.ts';
 import { logger } from 'hono/logger';
 
 import { openDb, row, transact } from './db.ts';
@@ -533,7 +537,7 @@ const PUBLIC_PREFIXES = [
   // moved off `/assets/` because Metro's dev server shadows that prefix and
   // answered every one of them 404. Both must stay unauthenticated: a font
   // or a place photograph behind a 401 is the whole app sitting on LOADING.
-  '/_expo/', '/assets/', '/media/',
+  '/_expo/', '/assets/', '/media/', '/shops/media/',
 ];
 const PUBLIC_PATHS = new Set(['/', '/index.html', '/favicon.ico', '/metadata.json', '/health', '/config']);
 const isPublicPath = (path: string): boolean =>
@@ -570,7 +574,7 @@ app.use('*', async (c, next) => {
   await next();
 });
 
-app.onError((err, c) => handleError(c, err));
+app.onError((err, c) => err instanceof ShopError ? fail(c, err.code, err.message, err.status) : handleError(c, err));
 
 app.get('/health', (c) => ok(c, { status: 'up', time: new Date().toISOString() }));
 
@@ -749,12 +753,23 @@ app.post('/auth/login', async (c) => {
 /** Who this device is signed in as, and which phones share the account. */
 app.get('/account', (c) => {
   const uid = userId(c);
-  const userAccount = db.prepare('SELECT account_type, business_name, full_name, email, phone FROM user_accounts WHERE id = ?').get(uid) as {
+  const userAccount = db.prepare(`
+    SELECT a.account_type, a.business_name, u.display_name AS full_name, a.email, a.phone,
+      p.bio, p.profile_photo_url,
+      lower(substr(a.email, 1, instr(a.email, '@') - 1)) AS username
+    FROM user_accounts a
+    JOIN users u ON u.id = a.id
+    LEFT JOIN profiles p ON p.user_id = a.id
+    WHERE a.id = ?
+  `).get(uid) as {
     account_type: string;
     business_name: string | null;
     full_name: string;
     email: string;
     phone: string;
+    username: string;
+    bio: string | null;
+    profile_photo_url: string | null;
   } | undefined;
 
   return ok(c, {
@@ -764,8 +779,133 @@ app.get('/account', (c) => {
     fullName: userAccount?.full_name ?? null,
     email: userAccount?.email ?? null,
     phone: userAccount?.phone ?? null,
+    username: userAccount?.username ?? '',
+    bio: userAccount?.bio ?? null,
+    profilePhotoUrl: userAccount?.profile_photo_url ?? null,
     devices: devicesFor(db, uid, c.req.header('x-chivago-device-key')),
   });
+});
+
+app.post('/account/profile/photo', async (c) => {
+  const contentType = c.req.header('content-type') ?? '';
+  if (!contentType.includes('multipart/form-data')) return fail(c, 'MULTIPART_REQUIRED', 'Send the profile photo as multipart/form-data.', 400);
+  const form = await boundedForm(c, 6 * 1024 * 1024);
+  const file = form.get('photo');
+  if (!(file instanceof File)) return fail(c, 'FILE_REQUIRED', 'เลือกรูปโปรไฟล์ก่อน', 400);
+  if (!file.type.startsWith('image/')) return fail(c, 'INVALID_FILE', 'ไฟล์โปรไฟล์ต้องเป็นรูปภาพ', 415);
+  const bytes = Buffer.from(await file.arrayBuffer());
+  if (bytes.length > 5 * 1024 * 1024) return fail(c, 'FILE_TOO_LARGE', 'รูปโปรไฟล์ต้องมีขนาดไม่เกิน 5MB', 413);
+  const photo = `data:${file.type};base64,${bytes.toString('base64')}`;
+  const uid = userId(c);
+  db.prepare('INSERT INTO profiles (user_id, profile_photo_url) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET profile_photo_url = excluded.profile_photo_url').run(uid, photo);
+  return ok(c, { profilePhotoUrl: photo });
+});
+
+app.put('/account/profile', async (c) => {
+  const uid = userId(c);
+  const body: { fullName?: string; businessName?: string; email?: string; phone?: string; bio?: string; profilePhotoUrl?: string | null } = await c.req.json<{ fullName?: string; businessName?: string; email?: string; phone?: string; bio?: string; profilePhotoUrl?: string | null }>().catch(() => ({} as { fullName?: string; businessName?: string; email?: string; phone?: string; bio?: string; profilePhotoUrl?: string | null }));
+  const fullName = String(body.fullName ?? '').trim();
+  const email = String(body.email ?? '').trim().toLowerCase();
+  const phone = String(body.phone ?? '').trim().replace(/[-\s]/g, '');
+  if (fullName.length < 2) return fail(c, 'NAME_INVALID', 'กรุณากรอกชื่อ-นามสกุล', 400);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail(c, 'EMAIL_INVALID', 'รูปแบบอีเมลไม่ถูกต้อง', 400);
+  if (!/^\+?[0-9]{8,15}$/.test(phone)) return fail(c, 'PHONE_INVALID', 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง', 400);
+  const duplicate = db.prepare('SELECT id FROM user_accounts WHERE (lower(email) = ? OR phone = ?) AND id <> ?').get(email, phone, uid) as { id: string } | undefined;
+  if (duplicate) return fail(c, 'CONTACT_EXISTS', 'อีเมลหรือเบอร์โทรนี้ถูกใช้งานแล้ว', 409);
+  db.prepare('UPDATE users SET display_name = ? WHERE id = ?').run(fullName, uid);
+  const businessName = String(body.businessName ?? '').trim();
+  db.prepare('UPDATE user_accounts SET business_name = CASE WHEN account_type = \'operator\' AND ? <> \'\' THEN ? ELSE business_name END WHERE id = ?').run(businessName, businessName, uid);
+  db.prepare('UPDATE user_accounts SET email = ?, phone = ?, updated_at = ? WHERE id = ?').run(email, phone, new Date().toISOString(), uid);
+  db.prepare('INSERT INTO profiles (user_id, bio, profile_photo_url) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET bio = excluded.bio, profile_photo_url = COALESCE(excluded.profile_photo_url, profiles.profile_photo_url)').run(uid, body.bio?.trim() ?? null, body.profilePhotoUrl ?? null);
+  const row = db.prepare('SELECT account_type, business_name FROM user_accounts WHERE id = ?').get(uid) as { account_type: string; business_name: string | null };
+  const profile = db.prepare('SELECT bio, profile_photo_url FROM profiles WHERE user_id = ?').get(uid) as { bio: string | null; profile_photo_url: string | null } | undefined;
+  return ok(c, { userId: uid, accountType: row.account_type as 'traveller' | 'operator', businessName: row.business_name, fullName, email, phone, username: email.split('@')[0], bio: profile?.bio ?? null, profilePhotoUrl: profile?.profile_photo_url ?? null });
+});
+
+// A shop is owned by the signed-in operator account. The client never supplies owner_id.
+app.get('/shops', (c) => {
+  const q = c.req.query();
+  if (q.area && !isAreaKey(q.area)) return fail(c, 'INVALID_AREA', 'ไม่พบพื้นที่นี้', 400);
+  const minRating = q.minRating ? Number(q.minRating) : 0;
+  if (!Number.isFinite(minRating) || minRating < 0 || minRating > 5) return fail(c, 'INVALID_RATING', 'คะแนนขั้นต่ำต้องเป็น 0–5', 400);
+  const data = listShops(db, q, userId(c));
+  return ok(c, data, { total: data.length });
+});
+app.get('/shops/media/:id', (c) => {
+  const media = row<{ mime_type: string; bytes: Uint8Array; review_id: string | null }>(db.prepare(`SELECT m.mime_type,m.bytes,m.review_id FROM local_shop_media m
+    LEFT JOIN local_shop_reviews r ON r.id=m.review_id WHERE m.id=? AND (m.review_id IS NULL OR r.hidden_at IS NULL)`).get(c.req.param('id')));
+  if (!media) return fail(c, 'NOT_FOUND', 'ไม่พบรูปภาพ', 404);
+  c.header('content-type', media.mime_type);
+  c.header('cache-control', media.review_id ? 'no-store' : 'public, max-age=3600');
+  c.header('x-content-type-options', 'nosniff');
+  return c.body(Buffer.from(media.bytes));
+});
+app.get('/shops/:id', (c) => {
+  const shop = getShop(db, c.req.param('id'), userId(c));
+  return shop ? ok(c, shop) : fail(c, 'NOT_FOUND', 'ไม่พบร้านค้า', 404);
+});
+app.post('/shops', async (c) => ok(c, saveShop(db, userId(c), await c.req.json<Record<string, unknown>>().catch(() => ({})))));
+app.put('/shops/:id', async (c) => ok(c, saveShop(db, userId(c), await c.req.json<Record<string, unknown>>().catch(() => ({})), c.req.param('id'))));
+app.delete('/shops/:id', (c) => { deleteShop(db, userId(c), c.req.param('id')); return ok(c, { deleted: true }); });
+app.post('/shops/:id/images', async (c) => {
+  const shopId = c.req.param('id');
+  const kind = c.req.query('kind');
+  const reviewId = kind === 'review'
+    ? row<{ id: string }>(db.prepare('SELECT id FROM local_shop_reviews WHERE shop_id=? AND user_id=?').get(shopId, userId(c)))?.id
+    : null;
+  if (kind === 'review' && !reviewId) return fail(c, 'REVIEW_REQUIRED', 'เขียนรีวิวก่อนเพิ่มรูป', 403);
+  if (kind !== 'review') {
+    ownedShop(db, userId(c), shopId);
+    if (kind !== 'cover' && kind !== 'interior') return fail(c, 'INVALID_KIND', 'ชนิดรูปภาพไม่ถูกต้อง', 400);
+  }
+  if (!(c.req.header('content-type') ?? '').includes('multipart/form-data')) return fail(c, 'MULTIPART_REQUIRED', 'ส่งรูปภาพแบบ multipart', 400);
+  const form = await boundedForm(c, 5 * 1024 * 1024 + 64 * 1024);
+  const file = form.get('photo');
+  if (!(file instanceof File)) return fail(c, 'PHOTO_REQUIRED', 'เลือกรูปภาพก่อน', 400);
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const mime = bytes.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff])) ? 'image/jpeg'
+    : bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) ? 'image/png'
+      : bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP' ? 'image/webp' : null;
+  if (!mime || bytes.length > 5 * 1024 * 1024) return fail(c, 'INVALID_PHOTO', 'ใช้ไฟล์ JPG, PNG หรือ WebP ไม่เกิน 5MB', 415);
+  if (kind === 'interior') {
+    const count = row<{ count: number }>(db.prepare("SELECT COUNT(*) AS count FROM local_shop_media WHERE shop_id=? AND kind='interior'").get(shopId))?.count ?? 0;
+    if (count >= 12) return fail(c, 'PHOTO_LIMIT', 'รูปภายในร้านได้สูงสุด 12 รูป', 400);
+  }
+  const id = randomUUID();
+  transact(db, () => {
+    if (kind === 'cover' || kind === 'review') db.prepare('DELETE FROM local_shop_media WHERE shop_id=? AND kind=? AND review_id IS ?').run(shopId, kind, reviewId ?? null);
+    db.prepare('INSERT INTO local_shop_media(id,shop_id,review_id,kind,mime_type,bytes,created_at) VALUES(?,?,?,?,?,?,?)')
+      .run(id, shopId, reviewId ?? null, kind ?? '', mime, bytes, new Date().toISOString());
+  });
+  return ok(c, { id, url: `/shops/media/${id}` });
+});
+app.delete('/shops/:id/images/:imageId', (c) => {
+  const shopId = c.req.param('id');
+  const media = row<{ review_id: string | null }>(db.prepare('SELECT review_id FROM local_shop_media WHERE id=? AND shop_id=?').get(c.req.param('imageId'), shopId));
+  if (!media) return fail(c, 'NOT_FOUND', 'ไม่พบรูปภาพ', 404);
+  if (media.review_id) {
+    if (!row(db.prepare('SELECT 1 FROM local_shop_reviews WHERE id=? AND user_id=?').get(media.review_id, userId(c))))
+      return fail(c, 'FORBIDDEN', 'ลบได้เฉพาะรูปรีวิวของตนเอง', 403);
+  } else ownedShop(db, userId(c), shopId);
+  db.prepare('DELETE FROM local_shop_media WHERE id=?').run(c.req.param('imageId'));
+  return ok(c, { deleted: true });
+});
+app.get('/shops/:id/reviews', (c) => ok(c, listShopReviews(db, c.req.param('id'), c.req.query('cursor'), userId(c))));
+app.get('/shops/:id/reviews/mine', (c) => ok(c, { review: ownReview(db, c.req.param('id'), userId(c)) }));
+app.put('/shops/:id/reviews/mine', async (c) => {
+  const body = await c.req.json<{ rating?: unknown; body?: unknown }>().catch(() => ({} as { rating?: unknown; body?: unknown }));
+  return ok(c, { id: saveShopReview(db, userId(c), c.req.param('id'), body.rating, body.body) });
+});
+app.delete('/shops/:id/reviews/mine', (c) => ok(c, { deleted: deleteShopReview(db, userId(c), c.req.param('id')) }));
+app.put('/shops/:id/reviews/:reviewId/reply', async (c) => {
+  const body = await c.req.json<{ reply?: unknown }>().catch(() => ({} as { reply?: unknown }));
+  replyReview(db, userId(c), c.req.param('id'), c.req.param('reviewId'), body.reply);
+  return ok(c, { replied: true });
+});
+app.post('/shops/:id/reviews/:reviewId/reports', async (c) => {
+  const body = await c.req.json<{ reason?: unknown }>().catch(() => ({} as { reason?: unknown }));
+  reportShopReview(db, userId(c), c.req.param('id'), c.req.param('reviewId'), body.reason);
+  return ok(c, { reported: true });
 });
 
 /**

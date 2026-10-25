@@ -8,14 +8,15 @@
  */
 
 import React from 'react';
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
-import { BedDouble, ChevronRight, LayoutGrid, List, MessageCircle, UserRound } from 'lucide-react-native';
+import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { BedDouble, ChevronRight, LayoutGrid, List, MessageCircle, Store, UserRound } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import {
   greetingFor, strings,
   type Balances, type ExploredPlace, type Quest, type QuestProgress, type RouteMode, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
+import { SHOP_CATEGORIES, shopImageUri, shopOpenNow, type Shop } from '../api/shops.ts';
 import { areaOfPlace, fairById, fairLots, fairsIn, inArea, nearestFirst } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { useHere } from '../state/here.ts';
@@ -44,13 +45,14 @@ const NO_EXPLORED: ExploredPlace[] = [];
 
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
-  onAskConcierge, onOpenStays, onToast,
+  onAskConcierge, onOpenStays, onOpenShop, onToast,
   onOpenWallet, onOpenProfile, wayTo = null, onClearWay, fairFocus = null, onClearFair, onOpenFair, onBackToFair,
 }: {
   layers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
   onPlanDay: () => void;
   onOpenPlace: (id: string) => void;
+  onOpenShop?: (id: string) => void;
   onOpenQuest: (id: string) => void;
   onSeeAllQuests: () => void;
   onAskConcierge: () => void;
@@ -86,6 +88,27 @@ export function MapScreen({
   // walks is worse than no dot, because a dot is read as current.
   const here = useHere({ watch: true });
   const area = useArea();
+  const shops = useAsync(() => api.shops({ area: area.key }), [area.key]);
+  const reloadShops = React.useRef(shops.reload);
+  reloadShops.current = shops.reload;
+  React.useEffect(() => {
+    const timer = setInterval(() => reloadShops.current(), 60_000);
+    return () => clearInterval(timer);
+  }, [area.key]);
+  const [selectedShop, setSelectedShop] = React.useState<Shop | null>(null);
+  React.useEffect(() => {
+    if (shops.data) setSelectedShop((current) => current ? shops.data!.find((s) => s.id === current.id) ?? null : null);
+  }, [shops.data]);
+  const [shopSearch, setShopSearch] = React.useState('');
+  const [shopCategory, setShopCategory] = React.useState('');
+  const [shopMinRating, setShopMinRating] = React.useState(0);
+  const [shopsOpenOnly, setShopsOpenOnly] = React.useState(false);
+  const visibleShops = React.useMemo(() => (shops.data ?? []).filter((s) =>
+    (!shopCategory || s.category === shopCategory) && (!shopSearch || `${s.name} ${s.category}`.toLowerCase().includes(shopSearch.toLowerCase()))
+    && (s.rating ?? 0) >= shopMinRating && (!shopsOpenOnly || shopOpenNow(s.openingHours))),
+  [shops.data, shopCategory, shopSearch, shopMinRating, shopsOpenOnly]);
+  const shopCategories = React.useMemo(() => SHOP_CATEGORIES.filter((category) => (shops.data ?? []).some((shop) => shop.category === category)), [shops.data]);
+  React.useEffect(() => { setSelectedShop(null); setShopCategory(''); setShopSearch(''); setShopMinRating(0); setShopsOpenOnly(false); }, [area.key]);
   // Which pins wear a story. One request for the whole area, public.
   const areaStories = useAsync(() => api.areaStories(area.key), [area.key]);
   /*
@@ -255,11 +278,11 @@ export function MapScreen({
         onToggleMode={() => setMode(mode === 'map' ? 'feed' : 'map')}
       />
 
-      {places.data ? null : fairPanel}
+      {places.data || shops.data ? null : fairPanel}
       {places.loading ? <LoadingState /> : null}
       {places.error ? <ErrorState message={places.error} onRetry={places.reload} /> : null}
 
-      {places.data ? (
+      {places.data || shops.data ? (
         <>
           <View
             style={{
@@ -283,6 +306,16 @@ export function MapScreen({
 
           <View style={{ paddingTop: 4, paddingBottom: 8 }}>
             <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
+          </View>
+          <View style={{ marginHorizontal: gutter, marginBottom: 10, backgroundColor: '#fff', borderRadius: 18, padding: 10 }}>
+            <TextInput value={shopSearch} onChangeText={setShopSearch} placeholder="ค้นหาร้านค้าหรือประเภท" style={{ borderWidth: 1, borderColor: '#DCECEF', borderRadius: 12, padding: 9, color: '#123B64' }} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingTop: 8 }}>
+              {['', ...shopCategories].map((category) => <Pressable key={category || 'all'} onPress={() => setShopCategory(category)} style={{ borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: shopCategory === category ? '#0077B6' : '#EAF7FB' }}><Text style={{ color: shopCategory === category ? '#fff' : '#123B64', fontSize: 12 }}>{category || 'ร้านค้าทั้งหมด'}</Text></Pressable>)}
+              <Pressable onPress={() => setShopMinRating(shopMinRating ? 0 : 4)} style={{ padding: 6, backgroundColor: shopMinRating ? '#0077B6' : '#EAF7FB', borderRadius: 14 }}><Text style={{ color: shopMinRating ? '#fff' : '#123B64', fontSize: 12 }}>★ 4+</Text></Pressable>
+              <Pressable onPress={() => setShopsOpenOnly(!shopsOpenOnly)} style={{ padding: 6, backgroundColor: shopsOpenOnly ? '#0077B6' : '#EAF7FB', borderRadius: 14 }}><Text style={{ color: shopsOpenOnly ? '#fff' : '#123B64', fontSize: 12 }}>เปิดอยู่</Text></Pressable>
+            </ScrollView>
+            {shops.loading && !shops.data ? <Body size={13}>กำลังโหลดร้านค้า...</Body> : null}
+            {shops.error ? <Pressable onPress={shops.reload}><Body size={13} colour="#B91C1C">{shops.error} · ลองใหม่</Body></Pressable> : null}
           </View>
           {fairPanel}
           {wayTo ? (
@@ -313,6 +346,8 @@ export function MapScreen({
               tales={tales}
               onOpenStory={openStory}
               places={visible}
+              shops={visibleShops}
+              onSelectShop={setSelectedShop}
               onSelect={onSelect}
               quests={questsHere}
               progress={quests.data?.progress ?? NO_PROGRESS}
@@ -347,8 +382,14 @@ export function MapScreen({
                 .map((p) => (
                   <PlaceFeedRow key={p.id} place={p} onPress={() => onOpenPlace(p.id)} />
                 ))}
+              {visibleShops.map((shop) => <Pressable key={`shop-${shop.id}`} onPress={() => setSelectedShop(shop)} style={{ marginHorizontal: gutter, marginBottom: 8, borderRadius: 14, backgroundColor: '#fff', padding: 12, flexDirection: 'row', gap: 10, alignItems: 'center' }}><Store color="#F77F00" /><View><Heading size={15}>{shop.name}</Heading><Body size={13}>{shop.category} · {shop.rating === null ? 'ยังไม่มีรีวิว' : `★ ${shop.rating}`}</Body></View></Pressable>)}
             </View>
           )}
+          {selectedShop ? <View style={{ marginHorizontal: gutter, marginTop: 10, backgroundColor: '#fff', borderRadius: 18, padding: 12, flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+            {selectedShop.coverUrl ? <Image source={{ uri: shopImageUri(selectedShop.coverUrl) }} style={{ width: 68, height: 68, borderRadius: 12 }} /> : <Store color="#F77F00" size={36} />}
+            <View style={{ flex: 1 }}><Heading size={16}>{selectedShop.name}</Heading><Body size={13}>{selectedShop.category} · {selectedShop.rating === null ? 'ยังไม่มีรีวิว' : `★ ${selectedShop.rating} (${selectedShop.reviewCount})`}</Body><Pressable onPress={() => onOpenShop?.(selectedShop.id)}><Body size={13} colour="#0077B6">ดูรายละเอียดร้าน →</Body></Pressable></View>
+            <Pressable onPress={() => setSelectedShop(null)} accessibilityLabel="ปิดข้อมูลร้าน"><Text>✕</Text></Pressable>
+          </View> : null}
           {/*
             The bar at the foot of the map, from the journey sketch: post
             without opening a place first. Only when there is somewhere for a
@@ -373,7 +414,7 @@ export function MapScreen({
             </View>
           ) : null}
 
-          {visible.length === 0 ? (
+          {visible.length === 0 && visibleShops.length === 0 ? (
             <View style={{ padding: gutter }}>
               <Body colour={color.neutral700}>
                 {areaPlaces.length === 0

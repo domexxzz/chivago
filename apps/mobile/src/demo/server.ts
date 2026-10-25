@@ -285,6 +285,15 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
       businessName: bizName,
     };
   },
+  'PUT /account/profile': (body) => {
+    const prior = (state.routes['/account'] as Json | undefined) ?? {
+      userId: 'demo-user', accountType: 'traveller', businessName: null,
+      fullName: 'Demo Traveller', username: 'demo', email: 'demo@example.com', phone: '0812345678', devices: [],
+    };
+    const next = { ...prior, fullName: String(body.fullName ?? prior.fullName), email: String(body.email ?? prior.email), phone: String(body.phone ?? prior.phone) };
+    state.routes['/account'] = next;
+    return next;
+  },
   'POST /account/link-code': () => ({ code: 'DEMO' + String(++state.seq).padStart(4, '0'), expiresInMs: 600_000 }),
   // There is one visitor and one phone, so there is nothing to claim from.
   'POST /account/claim': () => refuse('LINK_UNKNOWN', 'That code is not one this demo issued. Nothing is saved here, so there is no second phone to link.'),
@@ -669,6 +678,10 @@ export function installDemoServer(apiBase: string): void {
       }
       if (path === '/wellness/mood') return answer(state.moods);
       if (path === '/party') return answer(partyNow());
+      if (path === '/account' && !(path in state.routes)) return answer({
+        userId: 'demo-user', accountType: 'traveller', businessName: null,
+        fullName: 'Demo Traveller', username: 'demo', email: 'demo@example.com', phone: '0812345678', devices: [],
+      });
 
       // Invitations. The counts and the sentence come from `pinLine` in core,
       // so the demo cannot compose a line the real server would not.

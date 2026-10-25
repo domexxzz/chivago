@@ -60,6 +60,7 @@ export function moderationPage(
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px">
         <h3>${tr('moderationTitle')}</h3>
         <span>
+          <a href="/console/shop-reviews">${locale === 'th' ? 'รายงานรีวิวร้านค้า' : 'Shop review reports'}</a> ·
           ${awaitingApproval > 0
             ? html`<a href="/console/reviews/batches"
                    style="color:var(--color-accent-700);font-weight:600">

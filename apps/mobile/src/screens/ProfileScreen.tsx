@@ -23,9 +23,9 @@
  */
 
 import React from 'react';
-import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import {
-  Building2, CheckCircle2, Compass, Crown, Footprints, Leaf, LogOut, Mail, MapPinned, MessageCircle, Phone, Settings, ShieldCheck, Sprout, Star, Store, Ticket, TreePalm, UserRound, Users,
+  Building2, CheckCircle2, ChevronLeft, Compass, Crown, Footprints, Leaf, LogOut, Mail, MapPinned, MessageCircle, Phone, Settings, ShieldCheck, Sprout, Star, Store, Ticket, TreePalm, UserRound, Users,
 } from 'lucide-react-native';
 // On its own line: the test stub generator reads the braces above for names.
 import type { LucideIcon } from 'lucide-react-native';
@@ -41,7 +41,7 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { IconButton } from '../components/Button.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { MedalMark } from '../components/MedalMark.tsx';
-import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
+import { OceanBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { STAGE_LABEL } from './CompanionHome.tsx';
 import { t } from '../i18n/locale.ts';
@@ -84,24 +84,28 @@ const companionName = (c: Companion): string =>
   c.stage === 'egg' ? t(c.species.eggName) : t(c.species.name);
 
 export function ProfileScreen({
-  onBack, onOpenAccount, onOpenWallet, onOpenPassport, onOpenMedals, onOpenCompanion, onLogout, accountTypeOverride,
+  onBack, onOpenAccount, onOpenEditProfile, onOpenShops, onOpenWallet, onOpenPassport, onOpenMedals, onOpenCompanion, onLogout, accountTypeOverride, refreshKey = 0,
 }: {
   onBack: () => void;
   onOpenAccount: () => void;
+  onOpenEditProfile?: () => void;
+  onOpenShops?: () => void;
   onOpenWallet: () => void;
   onOpenPassport: () => void;
   onOpenMedals: () => void;
   onOpenCompanion: (c: Companion) => void;
   onLogout?: () => void;
   accountTypeOverride?: 'traveller' | 'operator';
+  refreshKey?: number;
 }) {
+  const { width } = useWindowDimensions();
   const [logoutModalVisible, setLogoutModalVisible] = React.useState(false);
   const wallet = useAsync(() => api.wallet(), []);
   const standing = useAsync(() => api.standing(), []);
   const passport = useAsync(() => api.passport(), []);
   const companions = useAsync(() => api.companions(), []);
   const medals = useAsync(() => api.medals(), []);
-  const account = useAsync(() => api.account(), []);
+  const account = useAsync(() => api.account(), [refreshKey]);
 
   const lead = companions.data ? leadCompanion(companions.data.companions) : null;
   const name = standing.data?.you?.displayName ?? account.data?.fullName ?? null;
@@ -109,50 +113,34 @@ export function ProfileScreen({
   const businessName = account.data?.businessName ?? null;
   const email = account.data?.email ?? null;
   const phone = account.data?.phone ?? null;
+  const bio = account.data?.bio ?? null;
+  const profilePhotoUrl = account.data?.profilePhotoUrl ?? null;
 
   // Role is strictly fixed to the account registration — one or the other.
   const isOperator = accountType === 'operator';
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <PushHeader
-        context={
-          isOperator
-            ? t({ en: 'Operator Dashboard', th: 'แดชบอร์ดผู้ประกอบการ' })
-            : t(strings.profile.context)
-        }
-        onBack={onBack}
-        right={(
-          <IconButton inverted onPress={onOpenAccount} accessibilityLabel={t(strings.profile.account)}>
-            <Settings size={16} color="#FFFFFF" strokeWidth={2} />
-          </IconButton>
-        )}
-      />
+      <ProfileHero width={width} onBack={onBack} onOpenAccount={onOpenAccount} onOpenEditProfile={onOpenEditProfile} name={name} businessName={businessName} lead={lead} wallet={wallet.data} isOperator={isOperator} profilePhotoUrl={profilePhotoUrl} />
 
       {wallet.error ? <ErrorState message={wallet.error} onRetry={wallet.reload} /> : null}
       {wallet.loading && !wallet.data ? <LoadingState /> : null}
       {wallet.data ? (
         <>
-          <Identity
-            wallet={wallet.data}
-            name={name}
-            lead={lead}
-            accountType={accountType}
-            businessName={businessName}
-          />
           <RoleStatusCard
             accountType={accountType}
             businessName={businessName}
             name={name}
             email={email}
             phone={phone}
+            bio={bio}
           />
 
           {isOperator ? (
             <>
               {/* Operator KPIs and Management Tools */}
               <OperatorMetricFigures />
-              <OperatorTools onOpenAccount={onOpenAccount} />
+              <OperatorTools onOpenAccount={onOpenAccount} onOpenShops={onOpenShops} />
             </>
           ) : (
             <>
@@ -171,7 +159,7 @@ export function ProfileScreen({
         </>
       ) : null}
 
-      <Figures wallet={wallet} passport={passport} onOpenWallet={onOpenWallet} onOpenPassport={onOpenPassport} />
+      {!isOperator ? <Figures wallet={wallet} passport={passport} onOpenWallet={onOpenWallet} onOpenPassport={onOpenPassport} /> : null}
 
       {onLogout ? (
         <View style={{ marginHorizontal: gutter, marginTop: 20 }}>
@@ -432,14 +420,47 @@ function Identity({
   );
 }
 
+function ProfileHero({ width, onBack, onOpenAccount, onOpenEditProfile, name, businessName, lead, wallet, isOperator, profilePhotoUrl }: {
+  width: number; onBack: () => void; onOpenAccount: () => void; onOpenEditProfile?: () => void; name: string | null; businessName: string | null;
+  lead: Companion | null; wallet: Wallet | null; isOperator: boolean; profilePhotoUrl: string | null;
+}) {
+  const p = wallet?.progression;
+  return (
+    <View style={{ height: width >= 768 ? 320 : 330, backgroundColor: '#079bd0', overflow: 'hidden', zIndex: 2 }}>
+      <OceanBackdrop compact />
+      <View style={{ position: 'absolute', top: 12, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <IconButton inverted onPress={onBack} accessibilityLabel="ย้อนกลับ"><ChevronLeft size={18} color="#FFFFFF" /></IconButton>
+        <Label size={11} colour="#FFFFFF" style={{ fontSize: 16, letterSpacing: 0 }}>โปรไฟล์</Label>
+        <IconButton inverted onPress={onOpenAccount} accessibilityLabel="Account and devices"><Settings size={18} color="#FFFFFF" /></IconButton>
+      </View>
+      <View style={{ position: 'absolute', top: width >= 768 ? 64 : 72, left: 0, right: 0, alignItems: 'center' }}>
+        <View style={{ width: 84, height: 84, borderRadius: 42, padding: 4, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#22D3EE' }}>
+          <Avatar lead={lead} isOperator={isOperator} profilePhotoUrl={profilePhotoUrl} />
+        </View>
+        <Heading size={22} colour="#FFFFFF" style={{ marginTop: 4 }}>{isOperator ? (businessName ?? 'Business Partner') : (name ?? 'Traveller')}</Heading>
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 5 }}>
+          <View style={{ backgroundColor: isOperator ? '#F59E0B' : 'rgba(255,255,255,0.2)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 }}><Label size={11} colour="#FFFFFF">{isOperator ? '♛ PARTNER' : '🏅 NEWCOMER'}</Label></View>
+          <View style={{ backgroundColor: 'rgba(249,115,22,0.75)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 }}><Label size={11} colour="#FFFFFF">⚡ LEVEL {p?.level ?? 1}</Label></View>
+        </View>
+        <Body size={13} colour="#E0F2FE" style={{ marginTop: 5, fontSize: 12 }}>Level {p?.level ?? 1} · {(p?.exp ?? 0).toLocaleString('en-US')} EXP</Body>
+        {isOperator ? <Body size={13} colour="#FFFFFF" style={{ marginTop: 3, fontSize: 11, opacity: 0.85 }}>Operator Dashboard · แดชบอร์ดผู้ประกอบการ</Body> : null}
+        <Pressable onPress={onOpenEditProfile} accessibilityRole="button" accessibilityLabel="แก้ไขโปรไฟล์" style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#123B64', borderWidth: 2, borderColor: '#E6C76A', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 7 }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '700' }}>✎ แก้ไขโปรไฟล์ / EDIT PROFILE</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function RoleStatusCard({
-  accountType, businessName, name, email, phone,
+  accountType, businessName, name, email, phone, bio,
 }: {
   accountType: 'traveller' | 'operator';
   businessName: string | null;
   name: string | null;
   email: string | null;
   phone: string | null;
+  bio?: string | null;
 }) {
   const isOperator = accountType === 'operator';
 
@@ -460,7 +481,7 @@ function RoleStatusCard({
           </View>
           <View>
             <Label size={10} tracking={0.12} colour={isOperator ? '#006A83' : '#009DB7'}>
-              {isOperator ? 'ข้อมูลสถานประกอบการ (Business Profile)' : 'ประเภทผู้ใช้งาน (User Profile)'}
+              {isOperator ? 'ผู้ประกอบการ / ร้านค้า · ข้อมูลสถานประกอบการ (Business Profile)' : 'ประเภทผู้ใช้งาน (User Profile)'}
             </Label>
             <Heading size={16} tracking={-0.2}>
               {isOperator ? 'Chivargo Business Partner · ผู้ประกอบการ' : 'Chivargo Traveller · นักท่องเที่ยว'}
@@ -503,20 +524,20 @@ function RoleStatusCard({
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <UserRound size={15} color="#66869D" strokeWidth={2} />
             <Body size={13} colour={color.neutral700}>
-              {isOperator ? `ผู้รับผิดชอบ: ${name}` : `ชื่อ-นามสกุล: ${name}`}
+              {isOperator ? `ผู้รับผิดชอบ: ${name}` : `ชื่อ: ${name}`}
             </Body>
           </View>
         ) : null}
-        {phone ? (
+        {isOperator && phone ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Phone size={15} color="#66869D" strokeWidth={2} />
-            <Body size={13} colour={color.neutral700}>เบอร์โทรศัพท์: {phone}</Body>
+            <Body size={13} colour={color.neutral700}>เบอร์โทรศัพท์ร้านค้า: {phone}</Body>
           </View>
         ) : null}
-        {email ? (
+        {isOperator && email ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Mail size={15} color="#66869D" strokeWidth={2} />
-            <Body size={13} colour={color.neutral700}>อีเมล: {email}</Body>
+            <Body size={13} colour={color.neutral700}>อีเมลร้านค้า: {email}</Body>
           </View>
         ) : null}
       </View>
@@ -527,7 +548,7 @@ function RoleStatusCard({
         backgroundColor: isOperator ? '#F0F9FD' : '#F0FDF4',
       }}>
         <Body size={13} colour={isOperator ? '#02637A' : '#15803D'} style={{ lineHeight: 18 }}>
-          {isOperator
+          {bio ? bio : isOperator
             ? t({
                 en: 'Your business is linked to Chivargo community network. Ready to accept quests, check-ins, and sustainable visitor rewards.',
                 th: 'สถานประกอบการของท่านเชื่อมต่อกับระบบเครือข่าย Chivargo พร้อมรับการเช็กอิน ตรวจสอบภารกิจ และมอบสิทธิประโยชน์ร่วมกับชุมชนเกาะสีชัง',
@@ -562,7 +583,7 @@ function OperatorMetricFigures() {
           <ShieldCheck size={16} color="#009DB7" strokeWidth={2.2} />
         </View>
         <Heading size={22} colour="#006A83" style={{ marginTop: 8 }}>
-          24
+          0
         </Heading>
         <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
           ภารกิจที่รับรองแล้ว
@@ -586,7 +607,7 @@ function OperatorMetricFigures() {
           <Users size={16} color="#D97706" strokeWidth={2.2} />
         </View>
         <Heading size={22} colour="#B45309" style={{ marginTop: 8 }}>
-          186
+          0
         </Heading>
         <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
           นักท่องเที่ยวเช็คอิน
@@ -610,7 +631,7 @@ function OperatorMetricFigures() {
           <Star size={16} color="#059669" strokeWidth={2.2} />
         </View>
         <Heading size={22} colour="#047857" style={{ marginTop: 8 }}>
-          4.9
+          0
         </Heading>
         <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
           คะแนนพาร์ทเนอร์
@@ -620,7 +641,7 @@ function OperatorMetricFigures() {
   );
 }
 
-function OperatorTools({ onOpenAccount }: { onOpenAccount: () => void }) {
+function OperatorTools({ onOpenAccount, onOpenShops }: { onOpenAccount: () => void; onOpenShops?: () => void }) {
   return (
     <Card>
       <Label size={10} tracking={0.12} colour="#009DB7" style={{ marginBottom: 12 }}>
@@ -628,6 +649,10 @@ function OperatorTools({ onOpenAccount }: { onOpenAccount: () => void }) {
       </Label>
 
       <View style={{ gap: 10 }}>
+        <Pressable onPress={onOpenShops} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.sm, backgroundColor: '#E8F7FA', borderWidth: 1, borderColor: '#9ADCE9' }}>
+          <Store size={24} color="#0077B6" />
+          <View style={{ flex: 1 }}><Heading size={15} colour="#123B64">จัดการร้านค้าของฉัน</Heading><Body size={13} colour="#52748A">เพิ่มร้านในพื้นที่ แก้ไขรูปและข้อมูล ตอบรีวิว</Body></View>
+        </Pressable>
         <Pressable
           onPress={onOpenAccount}
           accessibilityRole="button"
@@ -722,7 +747,7 @@ function OperatorTools({ onOpenAccount }: { onOpenAccount: () => void }) {
   );
 }
 
-function Avatar({ lead, isOperator }: { lead: Companion | null; isOperator?: boolean }) {
+function Avatar({ lead, isOperator, profilePhotoUrl }: { lead: Companion | null; isOperator?: boolean; profilePhotoUrl?: string | null }) {
   const said = lead
     ? `${companionName(lead)}, ${t(STAGE_LABEL[lead.stage])}`
     : isOperator
@@ -738,7 +763,7 @@ function Avatar({ lead, isOperator }: { lead: Companion | null; isOperator?: boo
         alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }]}
     >
-      {lead ? (
+      {profilePhotoUrl ? <Image source={{ uri: profilePhotoUrl }} style={{ width: '100%', height: '100%' }} /> : lead ? (
         <Creature species={lead.species.key} stage={lead.stage} size={56} />
       ) : isOperator ? (
         <Store size={30} color="#009DB7" strokeWidth={2} />

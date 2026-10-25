@@ -7,7 +7,15 @@
  * screen-space label collision is a problem every map has.
  */
 
-import { SAMUI_BBOX, type ScoredPlace } from '@chivago/core';
+import { SAMUI_BBOX, type Bbox, type ScoredPlace } from '@chivago/core';
+
+/** Coordinates for a native area grid; the border is inset so pins remain tappable. */
+export function projectArea(lat: number, lng: number, bbox: Bbox, width: number, height: number) {
+  return {
+    left: 18 + ((lng - bbox.minLng) / (bbox.maxLng - bbox.minLng)) * (width - 36),
+    top: 20 + (1 - (lat - bbox.minLat) / (bbox.maxLat - bbox.minLat)) * (height - 48),
+  };
+}
 
 /**
  * How far a visit clears the mist, in metres: the beach, and a walk either
