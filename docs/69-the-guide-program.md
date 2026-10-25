@@ -13,14 +13,17 @@ first pitch made in conversation was not, and two parts of it were wrong.
 ## What changed from the first pitch
 
 - **"0% commission for six months, then 10%"** assumed ChivaGo takes a cut of
-  the guide's price. It does not and cannot: `docs/61` built inquiry, not
-  booking, so **no traveller's money passes through the platform**, and there
-  is nothing to take a commission from. The honest models are the two
+  the guide's price. Today it cannot: `docs/61` built inquiry, not booking, so
+  **no traveller's money passes through the platform**, and there is nothing to
+  take a commission from. What phases 1 and 2 offer instead are the two models
   `docs/61` already names — a fee per answered inquiry, or a listing
-  subscription, settled with the guide directly.
+  subscription, settled with the guide directly. The 10% survives as a **phase
+  4 item**, because once bookings exist a commission becomes possible, and the
+  researched rates make "half the market" a claim we can actually stand behind.
 - **"Next-day payout, a deposit against no-shows"** both need the platform to
   hold money. That is booking, which `docs/61` deferred for reasons that still
-  stand. These move to the last phase, behind the lawyer.
+  stand. Both are **phase 4 items**, behind the lawyer, and neither is
+  mentioned to a guide before then.
 - **"A guide is an operator who also verifies"** contradicts `docs/62`, where
   an operator verifies nothing and is kept off the host board on purpose. A
   guide who verifies is a new kind of host, and that is a decision, made in
@@ -143,7 +146,7 @@ missing. That is the exact shape the *seen by ChivaGo* mark needs in phase 2.
 |---|---|---|
 | **Free listing for founding guides** — the first 20, for six months | phase 1 | nothing to build; billing does not exist yet (`docs/62`) |
 | **A founding guide mark that stays**, after the free period ends | phase 2 | a flag on the host, shown on the listing. Worth something only while there are few of them, so the twenty is a cap, not a target |
-| **Then a flat fee, never a cut** — a monthly subscription, unless phase 0 says otherwise | phase 2 | `docs/61`'s two models; settled off-platform. The per-inquiry variant is now the weaker one: see the breakeven above |
+| **Then a flat fee, not a cut** — a monthly subscription, unless phase 0 says otherwise | phase 2 | `docs/61`'s two models; settled off-platform. The per-inquiry variant is now the weaker one: see the breakeven above. Stays available after phase 4, as the alternative to the commission below |
 | **Paid at the trip by the traveller**, by PromptPay or cash, with nobody to wait for | phase 1 | no money through ChivaGo (`docs/61`) |
 | **Not exclusive** — keep every other channel | phase 1 | nothing to build; written into the founding terms |
 | **A visible response time**, the trust signal that matters to a traveller | phase 1 | exists, after five answers (`docs/62`) |
@@ -155,7 +158,9 @@ missing. That is the exact shape the *seen by ChivaGo* mark needs in phase 2.
 | **Cancelled for the sea, said so with the reading** | phase 2 | the sea-and-sky service (`#143`) |
 | **Hotel concierges point guests at guides in the system** | phase 2 | hotels are already hosts; an introduction, not a referral fee |
 | **Paid to verify** — a sponsor's per-verified rate for green activity the guide leads | phase 3 | `org_sponsorships.per_verified_thb` exists; the guide-as-verifier type does not |
-| **Deposits, in-app payment, fast payout** | phase 4, not scheduled | booking, and every legal question that comes with it |
+| **A 10% commission instead of a flat fee**, for guides who would rather pay per booking | phase 4 | booking. Roughly half the researched market rate, and the research is what makes that claim sayable |
+| **Payout the next working day** by PromptPay, or 3–7 days on a card | phase 4 | booking, plus a payment rail and a float |
+| **A deposit the guide keeps on a no-show** | phase 4 | booking, plus a refund policy and consumer-protection advice |
 
 **What we do not offer, and say so:** ownership of the traveller's contact
 details. `docs/61` decision 4 keeps the conversation in the app, and a
@@ -258,9 +263,22 @@ reviews open, tied to a verified activity.
 
 ### Phase 4 — Booking and payment (not scheduled)
 
-Deposits, in-app payment and payouts. Not started until every phase-4 item in
-the legal list below has an answer. An answered inquiry is where a booking
-would begin, so nothing built in phases 1–3 has to be undone (`docs/61`).
+Three things, all of which need ChivaGo to hold or route a traveller's money:
+
+- **In-app payment, and a payout the next working day** by PromptPay, or 3–7
+  days by card. Airbnb Experiences pays hosts about 24 hours after the
+  experience, so this is the bar, not a differentiator.
+- **A deposit the guide keeps when a traveller does not turn up.** The pain
+  this answers is real and nothing in phases 1–3 touches it.
+- **A 10% commission, offered beside the flat fee rather than replacing it.**
+  Against the researched 15–30%, half the market rate is the strongest number
+  in this document — and a guide selling cheap trips may still prefer the
+  subscription, which the breakeven above says is the better deal for them. Let
+  the guide choose, and make the arithmetic visible when they do.
+
+Not started until every phase-4 item in the legal list below has an answer. An
+answered inquiry is where a booking would begin, so nothing built in phases
+1–3 has to be undone (`docs/61`).
 
 ## How we will know it is working
 
@@ -356,13 +374,15 @@ legal conclusion rests on news articles until question 1 is answered properly.
 The three extra languages named above are a guess about Samui's market and
 nothing more.
 
-**Three offers stay out, and this is the record of why.** They are the ones
-the first pitch made in conversation and they keep coming back, so: a
-percentage commission has nothing to take a percentage of; a next-day payout
-and a no-show deposit both require holding the traveller's money, which is
-booking. All three are phase 4 or nothing, and re-adding any of them to the
-offer means first answering legal questions 8 to 10. What replaces them is in
-the offer table: a flat fee, and the traveller paying the guide at the trip.
+**Three offers are phase 4, and nothing before it.** The 10% commission, the
+next-day payout and the no-show deposit are in the offer table as planned
+items, on the owner's decision of 25 October. Each needs the platform to hold
+or route a traveller's money, so each needs booking, and booking needs legal
+questions 8 to 10 answered first. Two rules follow and are not negotiable
+inside this document: **no guide is told about any of the three before they
+exist**, and the founding terms a guide signs in phase 1 describe the flat fee
+only. A planned item is a direction, not a promise, and a guide who joined on
+a promise we had not cleared would be the one harmed.
 
 ## Sources for the figures
 
