@@ -85,6 +85,8 @@ export const strings = {
 
     /** Said before a photographer's name in the alt text of every place photograph. */
     photographedBy: t('photographed by', 'ถ่ายภาพโดย'),
+    /** A venue's own mark, not a photograph of the place - said as what it is. */
+    logoOf: t('logo of', 'โลโก้ของ'),
 
     /** The beach illustration on Home and the collection. One alt text, two sites. */
     companionsAlt: t(
@@ -346,6 +348,14 @@ export const strings = {
      * the same claim made silently.
      */
     nearestFirst: t('Nearest first', 'เรียงจากใกล้ที่สุด'),
+    /**
+     * A pinned place sits ahead of the order, so the header stops claiming the
+     * row is simply nearest-first and says what it actually is (featured.ts).
+     */
+    featuredThenNearest: t('Featured first, then nearest', 'แนะนำก่อน จากนั้นเรียงจากใกล้ที่สุด'),
+    featuredFirstOnly: t('Featured first', 'แนะนำก่อน'),
+    /** On the pinned card itself, so a reader knows why it is at the front. */
+    featuredBadge: t('Featured', 'แนะนำ'),
     /** Draws the route on the app's own map. The first choice, before leaving. */
     showWay: t('Show the way on the map', 'ดูเส้นทางบนแผนที่'),
     openInMaps: t('Open in Google Maps', 'เปิดใน Google Maps'),
@@ -406,6 +416,70 @@ export const strings = {
     /** The static demo: the stalls are named, their status is not read. */
     stallsNoStatus: t('Live status is not read here. Each stall\'s own page has it.', 'ที่นี่ไม่ได้อ่านสถานะสดของร้าน ดูได้ในหน้าของแต่ละร้าน'),
     stallsVia: t('Orders and payment go through สั่งก่อน, straight to the stall.', 'สั่งและจ่ายผ่านสั่งก่อน เงินเข้าร้านโดยตรง'),
+    /** Courts free now at a place you book before you go (courts.ts). */
+    courtsTitle: t('Courts right now', 'สนามตอนนี้'),
+    courtsFree: (free: number, total: number) => t(
+      `${free} of ${total} court${total === 1 ? '' : 's'} free`,
+      `ว่าง ${free} จาก ${total} สนาม`,
+    ),
+    courtsFull: (total: number) => t(
+      `All ${total} court${total === 1 ? '' : 's'} are taken right now`,
+      `ตอนนี้ไม่ว่าง ทั้ง ${total} สนาม`,
+    ),
+    /** Shut: the count says nothing about playing now, so the hours are what matters. */
+    courtsClosed: t('Closed right now', 'ปิดอยู่ตอนนี้'),
+    courtsClosedUntil: (clock: string) => t(`Closed · opens ${clock}`, `ปิดอยู่ · เปิด ${clock}`),
+    courtsClosedTomorrow: (clock: string) => t(`Closed · opens tomorrow ${clock}`, `ปิดอยู่ · เปิดพรุ่งนี้ ${clock}`),
+    courtsClosedOn: (day: string, clock: string) => t(`Closed · opens ${day}, ${clock}`, `ปิดอยู่ · เปิด ${day} ${clock}`),
+    /** When the count was read, said whenever it is not simply fresh. */
+    courtsAsOf: (clock: string) => t(`Counted at ${clock}`, `นับเมื่อ ${clock}`),
+    courtsStale: (clock: string) => t(
+      `Could not reach the booking system just now · counted at ${clock}`,
+      `ติดต่อระบบจองไม่ได้ตอนนี้ · นับเมื่อ ${clock}`,
+    ),
+    courtsAgain: t('Check again', 'เช็กอีกครั้ง'),
+    /** Nothing known: said plainly, never as nought courts free. */
+    courtsDown: t(
+      'Could not reach the booking system just now, so how many courts are free is not known. The venue\'s own page has it.',
+      'ติดต่อระบบจองไม่ได้ตอนนี้ จึงยังไม่รู้ว่าว่างกี่สนาม ดูได้ในหน้าจองของสนามเอง',
+    ),
+    /** The static demo: the venue is named, the count is not read. */
+    courtsNoStatus: t(
+      'How many courts are free is not read here. The venue\'s own booking page has it.',
+      'ที่นี่ไม่ได้อ่านจำนวนสนามว่าง ดูได้ในหน้าจองของสนามเอง',
+    ),
+    /** The sea and sky above an area, live from Open-Meteo (weather.ts). */
+    weatherTitle: t('Sea and sky', 'ทะเลและท้องฟ้า'),
+    weatherWaves: t('Waves', 'คลื่นลม'),
+    weatherTemp: t('Temp', 'อุณหภูมิ'),
+    weatherWeather: t('Weather', 'อากาศ'),
+    weatherRain: t('Rain', 'ปริมาณฝน'),
+    weatherWaveHeight: (m: string) => t(`Waves ${m} m`, `คลื่นสูง ${m} ม.`),
+    weatherWavePeriod: (s: string) => t(`every ${s} s`, `ทุก ${s} วิ`),
+    weatherWind: (kn: string) => t(`Wind ${kn} kn`, `ลม ${kn} นอต`),
+    weatherTempNow: (c: string) => t(`${c}°C`, `${c}°C`),
+    weatherRainNow: (mm: string) => t(`${mm} mm`, `${mm} มม.`),
+    weatherNoRain: t('No rain right now', 'ตอนนี้ไม่มีฝน'),
+    /** Read at a moment, said whenever it is not simply fresh. */
+    weatherAsOf: (clock: string) => t(`Read at ${clock}`, `อ่านเมื่อ ${clock}`),
+    weatherStale: (clock: string) => t(
+      `Could not reach the forecast just now · read at ${clock}`,
+      `ติดต่อพยากรณ์ไม่ได้ตอนนี้ · ข้อมูลเมื่อ ${clock}`,
+    ),
+    weatherAgain: t('Check again', 'เช็กอีกครั้ง'),
+    weatherDown: t(
+      'Could not reach the forecast just now, so the sea and sky are not known.',
+      'ติดต่อพยากรณ์ไม่ได้ตอนนี้ จึงยังไม่รู้สภาพทะเลและท้องฟ้า',
+    ),
+    weatherNoStatus: t(
+      'The sea and sky are not read here.',
+      'ที่นี่ไม่ได้อ่านสภาพทะเลและท้องฟ้า',
+    ),
+    weatherVia: t('Read from Open-Meteo. Not a forecast for navigation.', 'อ่านจาก Open-Meteo ไม่ใช่พยากรณ์สำหรับการเดินเรือ'),
+    courtsVia: t(
+      'Counted by the venue\'s own booking system. Booking and payment happen there, not in ChivaGo.',
+      'นับโดยระบบจองของสนามเอง การจองและชำระเงินเกิดขึ้นที่นั่น ไม่ใช่ใน ChivaGo',
+    ),
     provenance: {
       live: t('Live', 'ข้อมูลสด'),
       daily: t('Updated daily', 'อัปเดตรายวัน'),

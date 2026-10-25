@@ -64,6 +64,26 @@ roll ever made under it can be recomputed by anybody — `GET
 tool. This is the promise `statement.ts` already makes about a digest, in the
 same shape.
 
+An epoch closes **`EPOCH_HOURS` after it opened — a day** — which is what
+publishes the seed. Yesterday's rolls are all checkable, today's are all
+committed, and nobody has to be told to trust us about either. The rotation
+runs on the hourly tick on the primary and again at the top of `summon`, so
+neither a server restarted every hour nor a quiet week leaves a roll
+permanently uncheckable.
+
+> **What this said before it was true.** The paragraph above was written
+> against `closeEpoch`, which existed, was tested, and *was called by nothing
+> in the running product*. No epoch ever closed, so no seed was ever
+> published, so `GET /summon/verify/:id` answered *"This epoch is still open"*
+> for every receipt ever issued — forever. The route also said "Public,
+> deliberately" in a comment and was not in `PUBLIC_PREFIXES`: `/verify/` was
+> listed and `/summon/verify/` was not, so from the first registered device
+> onwards a stranger holding a receipt got a 401. Both halves of "anybody can
+> check this" were therefore false in production while the tests that covered
+> `closeEpoch` passed. What holds it now is the calling, not the closing:
+> `rotateEpochs` and its tests, and a 401 boundary test in
+> `hardening.test.ts` that fails if the prefix is removed again.
+
 **Nothing is behind luck alone.** A duplicate becomes stardust, and stardust
 buys any spirit outright at a published price. It is slow and it is certain.
 A collection with a certain path to every item is not a chase, and the door
@@ -73,20 +93,46 @@ walk to it".
 ## What is published, and where
 
 Everything that decides an outcome, served by `GET /summon` in the `rules`
-block and printed on the screen above the button:
+block and printed on the screen above the button. **Two tables, because there
+are two numbers and only one of them is a promise:**
 
-| | |
-| --- | --- |
-| Common | 60% |
-| Uncommon | 27% |
-| Rare | 10% |
-| Mythic | 3% |
+| | one roll (`rollBand`) | what you meet (`rates`) |
+| --- | --- | --- |
+| Common | 60% | 56.26% |
+| Uncommon | 27% | 25.32% |
+| Rare | 10% | **13.41%** |
+| Mythic | 3% | **5.01%** |
 
 A rare is guaranteed within 10 summons and a mythic within 30. There is no
 soft pity, no streak detection and no hidden weighting — the weights are
 integers in ten-thousandths so the table is exact on every machine, and a
 test holds that they sum to the total and that the band boundaries are where
 the table says.
+
+The right-hand column is the one printed under the word "odds", and it is
+there because **the left-hand column was, and it is not what happens.** The
+floors are not a rounding error: they lift mythic by two thirds of itself and
+rare by a third. A player told "Mythic 3%" meets one at about 5%. Every bit
+of the gap is in their favour, which is exactly why it sat unnoticed through
+a review — but a rate printed above a button is a promise about what will
+happen, and 3% was not what happens.
+
+`RARITY_EFFECTIVE_WEIGHT` is **computed, never typed in**: change a weight or
+a floor and it follows. It is worked out over one *mythic cycle* — the run of
+summons from just after one mythic to the next — because the floor at
+`MYTHIC_PITY` guarantees a cycle ends, which turns the whole question into a
+forward walk of at most thirty steps instead of a stationary distribution
+anybody has to take on trust. The arithmetic is whole-number from end to end
+(`BigInt` ratios, largest-remainder into ten-thousandths), so it reads the
+same on every machine and still sums to exactly `WEIGHT_TOTAL` — the same
+promise the roll band makes. Two invariants a test holds would catch an error
+in it: exactly one mythic per cycle, and the four shares summing to the
+total. A third walks half a million summons through `drawSpirit` itself and
+checks the published table against what actually comes out.
+
+The roll band stays published, named for what it is, because it is the number
+a roll is compared against and a stranger recomputing a receipt needs it to
+follow the arithmetic.
 
 The app reads those numbers **from the server**, never from its own copy of
 `spirits.ts`: a phone a version behind would otherwise print last month's
@@ -143,10 +189,16 @@ confident.
 
 ## What holds it
 
-- `packages/core/src/spirits.test.ts` — 19 tests: the roster, the exact rate
-  table, both floors, and the rule that a spirit is not a mascot.
-- `apps/api/src/summon-service.test.ts` — 27 tests: charms off the ledger,
-  the commit-reveal, an edited row failing its recheck, and the three
-  assertions that a summon yields nothing of value.
+- `packages/core/src/spirits.test.ts` — 24 tests: the roster, both rate
+  tables, the effective one cross-checked against half a million draws of
+  `drawSpirit`, one-mythic-per-cycle, both floors, and the rule that a spirit
+  is not a mascot.
+- `apps/api/src/summon-service.test.ts` — 35 tests: charms off the ledger,
+  the commit-reveal, the rotation that publishes a seed, an edited row
+  failing its recheck, that `rates` is the effective table and not the roll
+  band, and the three assertions that a summon yields nothing of value.
+- `apps/api/src/hardening.test.ts` — 3 tests over HTTP: a stranger with no
+  key reaching `/summon/verify/:id`, the rest of the summoning still
+  answering 401, and the served `rates` sitting above the roll band.
 - `apps/mobile/test/summon.test.ts` — 5 tests: all twenty-four draw, and an
   unmet card gives nothing away.

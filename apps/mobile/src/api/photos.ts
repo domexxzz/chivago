@@ -22,6 +22,8 @@
  */
 
 import { Platform } from 'react-native';
+import { strings, type Bilingual, type PlacePhoto } from '@chivago/core';
+import { color } from '../theme/index.ts';
 import { API_BASE } from './client.ts';
 
 export function photoUri(url: string, os: string = Platform.OS): string {
@@ -29,6 +31,28 @@ export function photoUri(url: string, os: string = Platform.OS): string {
   if (os === 'web') return url;
   return `${API_BASE.replace(/\/$/, '')}${url}`;
 }
+
+/**
+ * How to introduce the credit beside an image: "photographed by" for a
+ * photograph, "logo of" for a venue's own mark.
+ *
+ * A logo was not photographed, and saying it was is a false statement about
+ * a real business printed on its own image. One word, read off the picture
+ * itself rather than remembered by each screen that shows one.
+ */
+export const creditWord = (photo: Pick<PlacePhoto, 'kind'>): Bilingual =>
+  (photo.kind === 'logo' ? strings.common.logoOf : strings.common.photographedBy);
+
+/** Whether an image is fitted whole rather than cropped to fill. Logos are. */
+export const fitsWhole = (photo: Pick<PlacePhoto, 'kind'> | null | undefined): boolean => photo?.kind === 'logo';
+
+/**
+ * What to put behind an image. A fitted logo gets its own field colour so the
+ * bars beside it are part of the mark; everything else keeps the neutral
+ * placeholder the frame has always had.
+ */
+export const photoBackdrop = (photo: PlacePhoto | null | undefined): string =>
+  (fitsWhole(photo) && photo?.backdrop ? photo.backdrop : color.neutral200);
 
 /**
  * The dynamic companion beach hero image (daytime vs. sunset/evening).

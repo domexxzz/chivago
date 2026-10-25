@@ -15,12 +15,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image, Linking, Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { ExternalLink, MapPin, X } from 'lucide-react-native';
 import {
-  areaByKey, areaOfPlace, findProvince, isBookingLink, newlyEarned, stallSourceFor, strings,
+  areaByKey, areaOfPlace, courtSourceFor, findProvince, isBookingLink, newlyEarned, stallSourceFor, strings,
   type MedalState, type MedalsView, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import type { PickedMedia } from '../api/client.ts';
-import { photoUri } from '../api/photos.ts';
+import { creditWord, fitsWhole, photoBackdrop, photoUri } from '../api/photos.ts';
 import { useAsync } from '../state/store.tsx';
 import { useServerConfig } from '../state/server-config.ts';
 import { pickStoryMedia, postStory } from '../state/tell-story.ts';
@@ -35,6 +35,7 @@ import { AirHistoryCard, HereNow } from '../components/PlaceLive.tsx';
 import { GettingThere } from '../components/GettingThere.tsx';
 import { StoriesBlock } from '../components/Stories.tsx';
 import { StallsCard } from '../components/Stalls.tsx';
+import { CourtsCard } from '../components/Courts.tsx';
 
 /*
   WHERE THE SECOND COLUMN STARTS, and why it is this number.
@@ -295,6 +296,14 @@ export function PlaceScreen({
 
   const actionsBlock = place.data ? (
     <>
+      {/*
+        How many courts are free, directly above the way to book one: the two
+        answer the same question in order - is it worth going, and how do I
+        reserve. Asked for only where a place has a court service, so every
+        other place screen makes no extra request.
+      */}
+      {courtSourceFor(place.data.id) ? <CourtsCard placeId={place.data.id} /> : null}
+
       {/* The API checked this link; it is checked again here before a tap can take anyone anywhere. */}
       {isBookingLink(place.data.bookingUrl) ? (
         <Button
@@ -654,15 +663,20 @@ export function Hero({
         marginTop: 6,
         borderRadius: radius.md,
         overflow: 'hidden',
-        backgroundColor: color.surface,
+        // A fitted logo sits on its own field colour; everything else keeps the surface.
+        backgroundColor: place.photo?.kind === 'logo' ? photoBackdrop(place.photo) : color.surface,
       }]}
     >
       {place.photo ? (
         <>
           <Image
             source={{ uri: photoUri(place.photo.url) }}
-            accessibilityLabel={`${t(place.name)}, ${t(strings.common.photographedBy)} ${place.photo.credit}`}
-            resizeMode="cover"
+            accessibilityLabel={`${t(place.name)}, ${t(creditWord(place.photo))} ${place.photo.credit}`}
+            /*
+              A logo is drawn to its own edges: cropped to fill this 16:9
+              frame, the venue's name comes off its own mark. Fitted whole.
+            */
+            resizeMode={fitsWhole(place.photo) ? 'contain' : 'cover'}
             style={{ width: '100%', height: '100%' }}
           />
           {/*

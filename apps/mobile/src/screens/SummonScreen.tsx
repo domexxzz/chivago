@@ -127,12 +127,31 @@ function Unmet({ tint }: { tint: string }) {
   );
 }
 
-/** The whole published table, printed. */
-function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
+/**
+ * The whole published table, printed.
+ *
+ * Exported for the same reason `SpiritCardView` is: what this panel says is
+ * the product's promise about a draw, and a test holds it to the numbers the
+ * server handed it rather than to a screenshot somebody took once.
+ */
+export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
   return (
     <Tray style={{ marginHorizontal: gutter, marginTop: 10, borderRadius: gameRadius.panel }}>
       <View style={{ gap: 10 }}>
-        <TrayLine>{t({ en: 'Published odds', th: 'อัตราที่ประกาศไว้' })}</TrayLine>
+        {/*
+          "Floors included" is not decoration on this heading.
+
+          The table under it prints the EFFECTIVE rate - the one a player
+          actually meets once the pity floors are counted - not the per-roll
+          band. The two differ (mythic reads 5.01%, the roll band 0.31%), so a
+          heading that says only "Published odds" leaves the reader to assume
+          the smaller number and the screen quietly overstates nothing while
+          explaining nothing. The clause was lost in translation once already;
+          summon.test.ts asserts it so it cannot be lost again.
+        */}
+        <TrayLine>
+          {t({ en: 'Published odds — floors included', th: 'อัตราที่ประกาศไว้ — รวมเพดานรับประกันแล้ว' })}
+        </TrayLine>
         {RARITIES.map((r) => (
           <View key={r} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <View style={{ width: 86 }}><RarityPill rarity={r} /></View>
@@ -154,6 +173,18 @@ function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
             th: `รับประกัน: ได้ระดับหายากภายใน ${rules.pity.rare} ครั้ง และระดับเทพภายใน ${rules.pity.mythic} ครั้ง `
               + 'ไม่มีการถ่วงน้ำหนักอื่นใด ตัวเลขเหล่านี้คือทั้งหมด',
           })}
+        </Body>
+        {/*
+          THE TABLE ABOVE IS THE TABLE A PLAYER MEETS, floors and all. This
+          line is the other half of the arithmetic, and it is here rather
+          than hidden because the screen used to print the roll band under
+          the word "odds" — which reads as a promise of 3% mythic against
+          about 5% in play. Both numbers, or the published one is not the
+          published one (docs/68).
+        */}
+        <Body size={13} style={{ color: gameTray.muted }}>
+          {`One roll on its own: ${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.rollBand[r]}%`).join(', ')}. `
+            + 'The floors lift the rest, and the table above is what the two come to together.'}
         </Body>
         <Body size={13} style={{ color: gameTray.muted }}>
           {t({
@@ -280,6 +311,12 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
             th: `ลายนิ้วมือเมล็ดสุ่ม ${s.epoch.commitment.slice(0, 16)}… ประกาศเมื่อ ${openedOn(s.epoch.openedAt)}`,
           })}
         </Label>
+        {/*
+          "Within N hours", not "when this round closes". The old wording was
+          true of the code and useless to a reader, and for a while it was not
+          even true of the running server: nothing closed a round, so the seed
+          was never published and no receipt could be checked (docs/68).
+        */}
         <Body size={13} style={{ color: color.neutral600, paddingTop: 4 }}>
           {t({
             en: 'Every roll is computed from a seed whose fingerprint was published before any of them '
