@@ -466,12 +466,13 @@ function RoleStatusCard({
 
   return (
     <Card>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+      <View>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
           <View style={{
             width: 34, height: 34, borderRadius: 17,
             backgroundColor: isOperator ? '#E0F5F9' : '#F0F9FD',
             alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
           }}>
             {isOperator ? (
               <Store size={18} color="#006A83" strokeWidth={2.2} />
@@ -479,11 +480,11 @@ function RoleStatusCard({
               <Compass size={18} color="#009DB7" strokeWidth={2.2} />
             )}
           </View>
-          <View>
-            <Label size={10} tracking={0.12} colour={isOperator ? '#006A83' : '#009DB7'}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Label size={9} tracking={0.06} colour={isOperator ? '#006A83' : '#009DB7'} style={{ flexShrink: 1 }}>
               {isOperator ? 'ผู้ประกอบการ / ร้านค้า · ข้อมูลสถานประกอบการ (Business Profile)' : 'ประเภทผู้ใช้งาน (User Profile)'}
             </Label>
-            <Heading size={16} tracking={-0.2}>
+            <Heading size={15} tracking={-0.2} style={{ flexShrink: 1, marginTop: 2 }}>
               {isOperator ? 'Chivargo Business Partner · ผู้ประกอบการ' : 'Chivargo Traveller · นักท่องเที่ยว'}
             </Heading>
           </View>
@@ -491,6 +492,7 @@ function RoleStatusCard({
 
         <View style={{
           flexDirection: 'row', alignItems: 'center', gap: 4,
+          alignSelf: 'flex-start', marginTop: 7, marginLeft: 42,
           paddingVertical: 3, paddingHorizontal: 8,
           borderRadius: radius.sm,
           backgroundColor: isOperator ? '#ECFDF5' : '#F0F9FD',
@@ -513,31 +515,31 @@ function RoleStatusCard({
         backgroundColor: '#F8FCFD', borderWidth: 1, borderColor: '#DCEFF5', gap: 7,
       }}>
         {isOperator && businessName ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
             <Building2 size={15} color="#009DB7" strokeWidth={2} />
-            <Body size={13} colour={color.neutral800} style={{ fontWeight: '600' }}>
+            <Body size={13} colour={color.neutral800} style={{ flex: 1, fontWeight: '600' }}>
               ชื่อธุรกิจ: {businessName}
             </Body>
           </View>
         ) : null}
         {name ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
             <UserRound size={15} color="#66869D" strokeWidth={2} />
-            <Body size={13} colour={color.neutral700}>
+            <Body size={13} colour={color.neutral700} style={{ flex: 1 }}>
               {isOperator ? `ผู้รับผิดชอบ: ${name}` : `ชื่อ: ${name}`}
             </Body>
           </View>
         ) : null}
         {phone ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
             <Phone size={15} color="#66869D" strokeWidth={2} />
-            <Body size={13} colour={color.neutral700}>{isOperator ? `เบอร์โทรศัพท์ร้านค้า: ${phone}` : `เบอร์โทรศัพท์: ${phone}`}</Body>
+            <Body size={13} colour={color.neutral700} style={{ flex: 1 }}>{isOperator ? `เบอร์โทรศัพท์ร้านค้า: ${phone}` : `เบอร์โทรศัพท์: ${phone}`}</Body>
           </View>
         ) : null}
         {email ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
             <Mail size={15} color="#66869D" strokeWidth={2} />
-            <Body size={13} colour={color.neutral700}>{isOperator ? `อีเมลร้านค้า: ${email}` : `อีเมล: ${email}`}</Body>
+            <Body size={13} colour={color.neutral700} style={{ flex: 1 }}>{isOperator ? `อีเมลร้านค้า: ${email}` : `อีเมล: ${email}`}</Body>
           </View>
         ) : null}
       </View>

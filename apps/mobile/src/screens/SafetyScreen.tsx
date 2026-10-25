@@ -18,7 +18,7 @@ import React from 'react';
 import { Animated, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
-import { Phone, UserRound } from 'lucide-react-native';
+import { Phone } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import {
   EMERGENCY_AS_OF, emergencyNear, greetingFor, strings, type ShieldService,
@@ -36,6 +36,7 @@ import { ErrorState, LoadingState } from '../components/States.tsx';
 // so it reaches for `.en`/`.th` directly. `t` is here for the few strings that
 // are the TRAVELLER's alone - the spoken labels and the footnotes.
 import { t } from '../i18n/locale.ts';
+import { ProfileButton } from '../components/ProfileButton.tsx';
 
 export function SafetyScreen({
   alert, onFire, onCancel, onShare, firing, onOpenProfile,
@@ -93,23 +94,7 @@ export function SafetyScreen({
               accessibilityLabel="ChivaGo"
               style={{ width: 68, height: 48 }}
             />
-            <Pressable
-              onPress={onOpenProfile}
-              accessibilityRole="button"
-              accessibilityLabel={t({ en: 'Profile', th: 'โปรไฟล์' })}
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
-                borderWidth: 1,
-                borderColor: 'rgba(255, 255, 255, 0.5)',
-                backgroundColor: 'rgba(255, 255, 255, 0.18)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <UserRound size={22} color="#FFFFFF" strokeWidth={2} />
-            </Pressable>
+            <ProfileButton onPress={onOpenProfile} />
           </View>
         </View>
       </View>
