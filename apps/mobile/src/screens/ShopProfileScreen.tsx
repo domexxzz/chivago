@@ -1,12 +1,13 @@
 import React from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowLeft, Camera, MapPin, Navigation, Star, Store } from 'lucide-react-native';
+import { ArrowLeft, Camera, MapPin, Navigation, Star, Store, UserRound } from 'lucide-react-native';
 import { api } from '../api/client.ts';
 import { shopImageUri, shopOpenNow, type ShopReview } from '../api/shops.ts';
 import { useAsync } from '../state/store.tsx';
 import { Button as ChivaButton } from '../components/Button.tsx';
 import { t, getLocale } from '../i18n/locale.ts';
+import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
 
 const shopCategoryText = (category: string) => {
   const values: Record<string, { en: string; th: string }> = {
@@ -38,6 +39,7 @@ export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onE
   const [busy, setBusy] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
   const { width } = useWindowDimensions();
+  const canManage = !guest && shop.data?.owner === true;
   const loadReviews = React.useCallback(async (next?: string) => {
     setLoadingReviews(true); setReviewsError(null);
     const result = await api.shopReviews(shopId, next);
@@ -88,24 +90,35 @@ export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onE
       <View style={card}>
         {shop.data.coverUrl ? <Image source={{ uri: shopImageUri(shop.data.coverUrl) }} style={{ height: 210, borderRadius: 16, marginBottom: 12 }} resizeMode="cover" />
           : <View style={{ height: 150, backgroundColor: '#DDF4FA', borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}><Store size={54} color={blue} /></View>}
+        {shop.data.serviceType === 'guide' ? <View style={{ width: 104, height: 104, borderRadius: 52, backgroundColor: '#E9F6FA', borderWidth: 3, borderColor: '#48CAE4', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: -52, marginLeft: 16 }}>
+          {shop.data.guideProfilePhotoUrl ? <Image source={{ uri: shopImageUri(shop.data.guideProfilePhotoUrl) }} style={{ width: 98, height: 98, borderRadius: 49 }} /> : <UserRound size={48} color={blue} />}
+        </View> : null}
         <Text style={{ color: '#123B64', fontWeight: '800', fontSize: 24, marginTop: 10 }}>{shop.data.name}</Text>
         <Text style={{ color: '#52748A', marginTop: 2 }}>{shopCategoryText(shop.data.category)} · {shop.data.areaKey}</Text>
         {shop.data.serviceType === 'guide' && shop.data.guideStatus === 'approved' ? <Text style={{ alignSelf: 'flex-start', marginTop: 8, color: '#047857', backgroundColor: '#ECFDF5', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 5, fontWeight: '700' }}>✓ {t({ en: 'Verified Guide', th: 'ไกด์ผ่านการตรวจสอบ' })}</Text> : null}
         <Text style={{ color: '#D97706', fontWeight: '700', marginTop: 8 }}>★ {shop.data.rating === null ? t({ en: 'Not rated yet', th: 'ยังไม่มีคะแนน' }) : shop.data.rating.toFixed(1)} · {shop.data.reviewCount} {t({ en: 'reviews', th: 'รีวิว' })}</Text>
-        {shop.data.owner ? <Pressable onPress={onEdit} style={[button, { marginTop: 12 }]}><Text style={{ color: '#fff' }}>{t({ en: 'Edit business', th: 'แก้ไขร้านค้า' })}</Text></Pressable> : null}
+        {canManage ? <Pressable onPress={() => { if (canManage) onEdit(); }} style={[button, { marginTop: 12 }]}><Text style={{ color: '#fff' }}>{t(shop.data.serviceType === 'guide' ? { en: 'Edit guide profile', th: 'แก้ไขโปรไฟล์ไกด์' } : { en: 'Edit business', th: 'แก้ไขร้านค้า' })}</Text></Pressable> : null}
       </View>
       <View style={card}>
         <Text style={{ color: '#123B64', fontWeight: '700', fontSize: 16 }}>{t(shop.data.serviceType === 'guide' ? { en: 'Guide details', th: 'ข้อมูลไกด์' } : { en: 'Business details', th: 'ข้อมูลร้านค้า' })}</Text>
         <Text style={{ marginTop: 10, color: '#344F61' }}>{shop.data.description || t({ en: 'No description yet.', th: 'ยังไม่มีคำอธิบาย' })}</Text>
         {shop.data.serviceType === 'guide' ? <>
-          <Text style={{ marginTop: 10 }}>🗣️ {t({ en: 'Languages', th: 'ภาษาที่สื่อสารได้' })}: {shop.data.guideLanguages.join(', ') || t({ en: 'Not specified', th: 'ไม่ได้ระบุ' })}</Text>
+          <View style={{ marginTop: 10 }}>
+            <Text style={{ color: '#123B64', fontWeight: '700' }}>🗣️ {t({ en: 'Languages', th: 'ภาษาที่สื่อสารได้' })}</Text>
+            {shop.data.guideLanguages.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 7 }}>
+              {shop.data.guideLanguages.map((language) => <View key={language} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#EDF8FB', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 5, borderWidth: 1, borderColor: '#CDEAF0' }}>
+                <GuideLanguageFlag language={language} size={20} /><Text style={{ color: '#17506D', fontSize: 12, fontWeight: '700' }}>{guideLanguageLabel(language)}</Text>
+              </View>)}
+            </View> : <Text style={{ marginTop: 5, color: '#667D8C' }}>{t({ en: 'Not specified', th: 'ไม่ได้ระบุ' })}</Text>}
+          </View>
+          {shop.data.guideTourStyles.length ? <Text style={{ marginTop: 8, color: '#344F61' }}>{t({ en: 'Tour style', th: 'สไตล์การนำเที่ยว' })}: {shop.data.guideTourStyles.map((style) => t({ en: ({ 'ทัวร์ธรรมชาติ': 'Nature', 'ดำน้ำ': 'Snorkelling', 'เดินป่า': 'Hiking', 'วัฒนธรรม/วัด': 'Culture & temples', 'อาหารท้องถิ่น': 'Local food', 'เที่ยวเกาะ': 'Island hopping' } as Record<string, string>)[style] ?? style, th: style })).join(', ')}</Text> : null}
           {shop.data.guideSkills.length ? <View style={{ marginTop: 8 }}><Text style={{ color: '#123B64', fontWeight: '700' }}>{t({ en: 'Skills', th: 'ความสามารถ' })}</Text>{shop.data.guideSkills.map((skill, index) => <Text key={`${skill}-${index}`} style={{ marginTop: 3, color: '#344F61' }}>• {skill}</Text>)}</View> : null}
-          <Text style={{ marginTop: 8 }}>📍 {t({ en: 'Main meeting point', th: 'จุดนัดพบหลัก' })}: {shop.data.guideMeetingPoint || t({ en: 'Not provided', th: 'ยังไม่มีข้อมูล' })}</Text>
         </> : <>
           <Text style={{ marginTop: 10 }}>📍 {shop.data.address || t({ en: 'Address not provided', th: 'ยังไม่มีที่อยู่' })}{shop.data.lat !== null && shop.data.lng !== null ? ` (${shop.data.lat.toFixed(5)}, ${shop.data.lng.toFixed(5)})` : ''}</Text>
           <Text style={{ marginTop: 8 }}>🕒 {shop.data.openingHours || t({ en: 'Hours not provided', th: 'ยังไม่ระบุเวลา' })} · {shopOpenNow(shop.data.openingHours) ? t({ en: 'Open now', th: 'เปิดอยู่' }) : t({ en: 'Closed / unknown', th: 'ปิดอยู่/ไม่ระบุ' })}</Text>
         </>}
         {shop.data.phone ? <Text style={{ marginTop: 8 }}>{t({ en: 'Phone', th: 'โทร' })}: {shop.data.phone}</Text> : null}
+        {shop.data.serviceType === 'guide' && shop.data.guideLineId ? <Text style={{ marginTop: 8 }}>LINE ID: {shop.data.guideLineId}</Text> : null}
         {shop.data.email ? <Text style={{ marginTop: 8 }}>{t({ en: 'Email', th: 'อีเมล' })}: {shop.data.email}</Text> : null}
         {shop.data.serviceType !== 'guide' && shop.data.amenities.length ? <Text style={{ marginTop: 8 }}>{t({ en: 'Amenities', th: 'สิ่งอำนวยความสะดวก' })}: {shop.data.amenities.join(', ')}</Text> : null}
         {shop.data.lat !== null && shop.data.lng !== null ? <Pressable onPress={() => void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${shop.data!.lat},${shop.data!.lng}`)} style={[button, { marginTop: 14, flexDirection: 'row', justifyContent: 'center', gap: 6 }]}><Navigation size={16} color="#fff" /><Text style={{ color: '#fff' }}>{t({ en: 'Get directions', th: 'นำทาง' })}</Text></Pressable> : null}
@@ -113,7 +126,7 @@ export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onE
       {shop.data.images.length > 0 ? <ScrollView horizontal style={{ marginBottom: 14 }} contentContainerStyle={{ gap: 8 }}>
         {shop.data.images.map((img) => <Image key={img.id} source={{ uri: shopImageUri(img.url) }} style={{ width: Math.min(width * 0.55, 220), height: 145, borderRadius: 14 }} />)}
       </ScrollView> : null}
-      {guest && !shop.data.owner ? <View style={[card, { backgroundColor: '#F1FAFD', borderWidth: 1, borderColor: '#CDEAF2' }]}>
+      {guest ? <View style={[card, { backgroundColor: '#F1FAFD', borderWidth: 1, borderColor: '#CDEAF2' }]}>
         <Text style={{ fontWeight: '700', color: '#123B64', fontSize: 17 }}>{t({ en: 'Sign in to review this business', th: 'เข้าสู่ระบบเพื่อเขียนรีวิวร้านนี้' })}</Text>
         <Text style={{ color: '#52748A', marginTop: 6 }}>{t({ en: 'Create an account or sign in to review and report inappropriate content.', th: 'สมัครสมาชิกหรือเข้าสู่ระบบเพื่อรีวิวและรายงานเนื้อหาที่ไม่เหมาะสม' })}</Text>
         <ChivaButton label="Sign in to review" thai="เข้าสู่ระบบเพื่อเขียนรีวิว" onPress={() => onSignIn?.()} style={{ marginTop: 12 }} />
@@ -137,7 +150,7 @@ export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onE
           <Text style={{ marginTop: 7, color: '#334155' }}>{r.body}</Text>
           {r.photoUrl ? <Image source={{ uri: shopImageUri(r.photoUrl) }} style={{ width: 150, height: 120, borderRadius: 12, marginTop: 8 }} /> : null}
           {r.ownerReply ? <Text style={{ backgroundColor: '#EAF7FB', padding: 10, borderRadius: 10, marginTop: 8 }}>{t({ en: 'Business replied', th: 'ร้านค้าตอบ' })}: {r.ownerReply}</Text> : null}
-          {shop.data?.owner ? <View style={{ marginTop: 8 }}><TextInput value={reply[r.id] ?? ''} onChangeText={(v) => setReply((prev) => ({ ...prev, [r.id]: v }))} placeholder={t({ en: 'Reply to review', th: 'ตอบกลับรีวิว' })} style={field} /><Pressable disabled={busy || !reply[r.id]?.trim()} onPress={() => void act(() => api.replyShopReview(shopId, r.id, reply[r.id]!))} style={{ padding: 8 }}><Text style={{ color: blue }}>{t({ en: 'Send reply', th: 'ส่งคำตอบ' })}</Text></Pressable></View> : null}
+          {canManage ? <View style={{ marginTop: 8 }}><TextInput value={reply[r.id] ?? ''} onChangeText={(v) => setReply((prev) => ({ ...prev, [r.id]: v }))} placeholder={t({ en: 'Reply to review', th: 'ตอบกลับรีวิว' })} style={field} /><Pressable disabled={busy || !reply[r.id]?.trim()} onPress={() => { if (canManage) void act(() => api.replyShopReview(shopId, r.id, reply[r.id]!)); }} style={{ padding: 8 }}><Text style={{ color: blue }}>{t({ en: 'Send reply', th: 'ส่งคำตอบ' })}</Text></Pressable></View> : null}
           {!guest && !r.mine ? reporting === r.id ? <View style={{ marginTop: 10 }}><TextInput value={reportReason} onChangeText={setReportReason} placeholder={t({ en: 'Reason for report', th: 'ระบุเหตุผลที่รายงาน' })} style={field} /><View style={{ flexDirection: 'row', gap: 16, paddingTop: 8 }}><Pressable disabled={busy || reportReason.trim().length < 3} onPress={() => { void act(() => api.reportShopReview(shopId, r.id, reportReason)); setReporting(null); setReportReason(''); }}><Text style={{ color: blue }}>{t({ en: 'Submit report', th: 'ส่งรายงาน' })}</Text></Pressable><Pressable onPress={() => setReporting(null)}><Text>{t({ en: 'Cancel', th: 'ยกเลิก' })}</Text></Pressable></View></View> : <Pressable disabled={busy} onPress={() => setReporting(r.id)} style={{ paddingTop: 10 }}><Text style={{ color: '#64748B', fontSize: 12 }}>{t({ en: 'Report inappropriate review', th: 'รายงานรีวิวไม่เหมาะสม' })}</Text></Pressable> : null}
         </View>)}
         {cursor ? <Pressable disabled={loadingReviews} onPress={() => void loadReviews(cursor)} style={{ padding: 10 }}><Text style={{ color: blue, textAlign: 'center' }}>{t({ en: 'Load more reviews', th: 'โหลดรีวิวเพิ่มเติม' })}</Text></Pressable> : null}

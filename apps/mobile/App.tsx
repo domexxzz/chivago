@@ -507,7 +507,7 @@ export default function App() {
         return <EditProfileScreen onBack={nav.pop} onSaved={() => { setProfileRefreshKey((k) => k + 1); nav.pop(); }} />;
 
       case 'shop':
-        return <ShopProfileScreen shopId={nav.shopId ?? ''} guest={guest} onSignIn={() => nav.push('login')} onBack={nav.pop} onEdit={() => nav.push('shopManage', { shopId: nav.shopId ?? undefined })} />;
+        return <ShopProfileScreen shopId={nav.shopId ?? ''} guest={guest || !loggedIn} onSignIn={() => nav.push('login')} onBack={nav.pop} onEdit={() => { if (loggedIn && !guest) nav.push('shopManage', { shopId: nav.shopId ?? undefined }); }} />;
 
       case 'shopManage':
         return <ShopManageScreen initialShopId={nav.shopId} onBack={nav.pop} onOpenShop={(id) => nav.push('shop', { shopId: id })} />;
@@ -631,7 +631,7 @@ export default function App() {
     }
   };
 
-  const showTabs = nav.screen !== 'onboarding' && nav.screen !== 'login' && nav.screen !== 'register';
+  const showTabs = nav.screen !== 'onboarding' && nav.screen !== 'login' && nav.screen !== 'register' && nav.screen !== 'shopManage';
 
   return (
     <SafeAreaProvider>

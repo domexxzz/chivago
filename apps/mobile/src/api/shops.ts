@@ -8,8 +8,8 @@ export interface Shop {
   description: string; address: string; lat: number | null; lng: number | null;
   phone: string; email: string; openingHours: string; amenities: string[];
   active: boolean; rating: number | null; reviewCount: number;
-  coverUrl: string | null; owner: boolean; createdAt: string; updatedAt: string;
-  serviceType: 'business' | 'guide'; guideLanguages: string[]; guideSkills: string[]; guideMeetingPoint: string;
+  coverUrl: string | null; guideProfilePhotoUrl: string | null; owner: boolean; createdAt: string; updatedAt: string;
+  serviceType: 'business' | 'guide'; guideLanguages: string[]; guideSkills: string[]; guideTourStyles: string[]; guideLineId: string;
   guideStatus: 'not_required' | 'pending' | 'approved' | 'rejected'; hasGuideDocument: boolean;
 }
 export interface ShopDetail extends Shop { images: { id: string; kind: string; url: string }[] }
@@ -17,7 +17,7 @@ export interface ShopReview {
   id: string; rating: number; body: string; author: string; mine: boolean;
   ownerReply: string | null; createdAt: string; updatedAt: string; photoUrl: string | null;
 }
-export type ShopInput = Pick<Shop, 'name' | 'category' | 'areaKey' | 'description' | 'address' | 'lat' | 'lng' | 'phone' | 'email' | 'openingHours' | 'amenities' | 'active' | 'serviceType' | 'guideLanguages' | 'guideSkills' | 'guideMeetingPoint'>;
+export type ShopInput = Pick<Shop, 'name' | 'category' | 'areaKey' | 'description' | 'address' | 'lat' | 'lng' | 'phone' | 'email' | 'openingHours' | 'amenities' | 'active' | 'serviceType' | 'guideLanguages' | 'guideSkills' | 'guideTourStyles' | 'guideLineId'>;
 
 /** User uploads live on the API origin, including when Expo serves the web bundle. */
 export const shopImageUri = (path: string) => path.startsWith('/') ? `${API_BASE.replace(/\/$/, '')}${path}` : path;

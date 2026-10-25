@@ -1792,12 +1792,21 @@ export function migrate(db: DB): string[] {
   if (addColumn(db, 'local_shops', 'service_type', "TEXT NOT NULL DEFAULT 'business'")) applied.push('local_shops.service_type');
   if (addColumn(db, 'local_shops', 'guide_languages', "TEXT NOT NULL DEFAULT ''")) applied.push('local_shops.guide_languages');
   if (addColumn(db, 'local_shops', 'guide_skills', "TEXT NOT NULL DEFAULT '[]'")) applied.push('local_shops.guide_skills');
+  if (addColumn(db, 'local_shops', 'guide_tour_styles', "TEXT NOT NULL DEFAULT '[]'")) applied.push('local_shops.guide_tour_styles');
+  if (addColumn(db, 'local_shops', 'guide_line_id', "TEXT NOT NULL DEFAULT ''")) applied.push('local_shops.guide_line_id');
   if (addColumn(db, 'local_shops', 'guide_meeting_point', "TEXT NOT NULL DEFAULT ''")) applied.push('local_shops.guide_meeting_point');
   if (addColumn(db, 'local_shops', 'guide_status', "TEXT NOT NULL DEFAULT 'not_required'")) applied.push('local_shops.guide_status');
   if (addColumn(db, 'local_shops', 'guide_reviewed_at', 'TEXT')) applied.push('local_shops.guide_reviewed_at');
   if (addColumn(db, 'local_shops', 'guide_reviewed_by', 'TEXT')) applied.push('local_shops.guide_reviewed_by');
   db.exec(`
     CREATE TABLE IF NOT EXISTS local_guide_documents (
+      id TEXT PRIMARY KEY,
+      shop_id TEXT NOT NULL UNIQUE REFERENCES local_shops(id) ON DELETE CASCADE,
+      mime_type TEXT NOT NULL CHECK(mime_type IN ('image/jpeg','image/png','image/webp')),
+      bytes BLOB NOT NULL,
+      uploaded_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS local_guide_profile_photos (
       id TEXT PRIMARY KEY,
       shop_id TEXT NOT NULL UNIQUE REFERENCES local_shops(id) ON DELETE CASCADE,
       mime_type TEXT NOT NULL CHECK(mime_type IN ('image/jpeg','image/png','image/webp')),
@@ -1837,14 +1846,16 @@ export function migrate(db: DB): string[] {
         service_type TEXT NOT NULL DEFAULT 'business',
         guide_languages TEXT NOT NULL DEFAULT '',
         guide_skills TEXT NOT NULL DEFAULT '[]',
+        guide_tour_styles TEXT NOT NULL DEFAULT '[]',
+        guide_line_id TEXT NOT NULL DEFAULT '',
         guide_meeting_point TEXT NOT NULL DEFAULT '',
         guide_status TEXT NOT NULL DEFAULT 'not_required',
         guide_reviewed_at TEXT,
         guide_reviewed_by TEXT
       );
       INSERT INTO local_shops_rebuilt
-        (id,owner_id,name,category,area_key,description,address,lat,lng,phone,email,opening_hours,amenities,active,created_at,updated_at,service_type,guide_languages,guide_skills,guide_meeting_point,guide_status,guide_reviewed_at,guide_reviewed_by)
-      SELECT id,owner_id,name,category,area_key,description,address,lat,lng,phone,email,opening_hours,amenities,active,created_at,updated_at,service_type,guide_languages,guide_skills,guide_meeting_point,guide_status,guide_reviewed_at,guide_reviewed_by
+        (id,owner_id,name,category,area_key,description,address,lat,lng,phone,email,opening_hours,amenities,active,created_at,updated_at,service_type,guide_languages,guide_skills,guide_tour_styles,guide_line_id,guide_meeting_point,guide_status,guide_reviewed_at,guide_reviewed_by)
+      SELECT id,owner_id,name,category,area_key,description,address,lat,lng,phone,email,opening_hours,amenities,active,created_at,updated_at,service_type,guide_languages,guide_skills,guide_tour_styles,guide_line_id,guide_meeting_point,guide_status,guide_reviewed_at,guide_reviewed_by
       FROM local_shops;
       DROP TABLE local_shops;
       ALTER TABLE local_shops_rebuilt RENAME TO local_shops;
@@ -1857,6 +1868,7 @@ export function migrate(db: DB): string[] {
     applied.push('local_shops.lat/lng nullable');
   }
   applied.push('local_guide_documents');
+  applied.push('local_guide_profile_photos');
   applied.push('local_shops');
   applied.push('user_accounts');
 

@@ -36,9 +36,9 @@
 import React from 'react';
 import Svg, { Defs, LinearGradient, Stop, Rect, Path } from 'react-native-svg';
 import {
-  Image, Pressable, ScrollView, StyleSheet, Text, View,
+  Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
 } from 'react-native';
-import { areaOfPlace, fairsIn, featuredFirst, hasFeatured, inArea, isFeatured, stallPlacesIn, type Area, type AreaKey, type Fair } from '@chivago/core';
+import { AREAS, areaOfPlace, fairsIn, featuredFirst, hasFeatured, inArea, isFeatured, stallPlacesIn, type Area, type AreaKey, type Fair } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { creditWord, fitsWhole, mascotBeachUri, photoBackdrop, photoUri } from '../api/photos.ts';
 import { SHOP_CATEGORIES, shopImageUri, type Shop } from '../api/shops.ts';
@@ -48,8 +48,9 @@ import { BusStrip } from '../components/BusStrip.tsx';
 import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import { StallsCard } from '../components/Stalls.tsx';
 import { SeaAndSkyCard } from '../components/SeaAndSky.tsx';
+import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
 import {
-  Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, Search, Shield, Sparkles, Ticket, Trees, Utensils, Wallet, Waves,
+  Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MapPin, UserRound, Search, Shield, Sparkles, Ticket, Trees, Utensils, Wallet, Waves,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
@@ -609,12 +610,37 @@ function shopCategoryLabel(category: string): string {
 }
 
 function ShopCard({ shop, onPress }: { shop: Shop; onPress: () => void }) {
+  if (shop.serviceType === 'guide') return <GuideCard shop={shop} onPress={onPress} />;
   return (
     <Pressable onPress={onPress} accessibilityLabel={`${t({ en: 'Service', th: 'บริการ' })} ${shop.name}`} style={[shadow.card, { width: 204, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden' }]}>
       {shop.coverUrl ? <Image source={{ uri: shopImageUri(shop.coverUrl) }} style={{ width: '100%', height: 125 }} /> : <View style={{ height: 125, backgroundColor: '#DFF3F8', alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 36 }}>🏪</Text></View>}
       <View style={{ padding: 10 }}><Label size={10} colour="#0077B6">{shopCategoryLabel(shop.category)}</Label><Heading size={15}>{shop.name}</Heading><Body size={13} colour="#64748B">{shop.rating === null ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว' }) : `★ ${shop.rating} (${shop.reviewCount})`}</Body></View>
     </Pressable>
   );
+}
+
+function GuideCard({ shop, onPress }: { shop: Shop; onPress: () => void }) {
+  const { width } = useWindowDimensions();
+  const cardWidth = Math.min(390, Math.max(260, width - gutter * 2));
+  const photo = shop.guideProfilePhotoUrl || shop.coverUrl;
+  const area = AREAS.find((item) => item.key === shop.areaKey);
+  const tourNames: Record<string, string> = { 'ทัวร์ธรรมชาติ': 'Nature', 'ดำน้ำ': 'Snorkelling', 'เดินป่า': 'Hiking', 'วัฒนธรรม/วัด': 'Culture & temples', 'อาหารท้องถิ่น': 'Local food', 'เที่ยวเกาะ': 'Island hopping' };
+  const expertise = [...new Set([...(shop.guideSkills ?? []), ...(shop.guideTourStyles ?? []).map((value) => t({ en: tourNames[value] ?? value, th: value }))])];
+  return <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${t({ en: 'View guide profile', th: 'ดูโปรไฟล์ไกด์' })} ${shop.name}`} style={[shadow.card, { width: cardWidth, borderRadius: 20, overflow: 'hidden', backgroundColor: '#fff', flexDirection: 'row', minHeight: 224 }]}>
+    <View style={{ width: '43%', backgroundColor: '#DFF3F8', minHeight: 224 }}>
+      {photo ? <Image source={{ uri: shopImageUri(photo) }} resizeMode="cover" style={{ position: 'absolute', width: '100%', height: '100%' }} /> : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><UserRound size={52} color="#4195AB" /></View>}
+      {shop.guideStatus === 'approved' ? <View style={{ margin: 8, paddingHorizontal: 7, paddingVertical: 4, borderRadius: 12, backgroundColor: '#148764', alignSelf: 'flex-start' }}><Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>✓ {t({ en: 'Verified', th: 'ตรวจสอบแล้ว' })}</Text></View> : null}
+    </View>
+    <View style={{ flex: 1, padding: 12, gap: 7 }}>
+      <Text style={{ color: '#0077B6', fontSize: 11 }}>{t({ en: 'Tour guide', th: 'ไกด์นำเที่ยว' })}</Text>
+      <Text numberOfLines={2} style={{ color: '#123B64', fontWeight: '800', fontSize: 17 }}>{shop.name}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><MapPin size={12} color="#64748B" /><Text numberOfLines={2} style={{ flex: 1, color: '#64748B', fontSize: 11 }}>{area ? t(area.name) : shop.areaKey}</Text></View>
+      <Text style={{ color: shop.rating === null ? '#64748B' : '#94620C', fontSize: 11 }}>{shop.rating === null ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว' }) : `★ ${shop.rating.toFixed(1)} (${shop.reviewCount})`}</Text>
+      {shop.guideLanguages.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>{shop.guideLanguages.slice(0, 3).map((name) => <View key={name} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 9, paddingHorizontal: 6, paddingVertical: 3, backgroundColor: '#EAF7FB' }}><GuideLanguageFlag language={name} size={17} /><Text style={{ color: '#123B64', fontSize: 10 }}>{guideLanguageLabel(name)}</Text></View>)}{shop.guideLanguages.length > 3 ? <Text style={{ color: '#64748B', fontSize: 10 }}>+{shop.guideLanguages.length - 3}</Text> : null}</View> : null}
+      {expertise.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>{expertise.slice(0, 2).map((value) => <View key={value} style={{ maxWidth: '100%', borderRadius: 9, paddingHorizontal: 6, paddingVertical: 3, backgroundColor: '#EFF8F4' }}><Text numberOfLines={1} style={{ color: '#276759', fontSize: 10 }}>{value}</Text></View>)}</View> : null}
+      <View style={{ marginTop: 'auto', alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', borderRadius: 15, backgroundColor: '#0077B6', paddingHorizontal: 10, paddingVertical: 6 }}><Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>{t({ en: 'View profile', th: 'ดูโปรไฟล์' })}</Text><ChevronRight size={13} color="#fff" /></View>
+    </View>
+  </Pressable>;
 }
 
 function PlaceCard({ place, here, onPress }: { place: ScoredPlace; here: Here | null; onPress: () => void }) {
