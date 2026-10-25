@@ -10,11 +10,11 @@ export class ShopError extends Error {
 
 type ShopRow = {
   id: string; owner_id: string; name: string; category: string; area_key: string;
-  description: string; address: string; lat: number; lng: number; phone: string;
+  description: string; address: string; lat: number | null; lng: number | null; phone: string;
   email: string; opening_hours: string; amenities: string; active: number;
   created_at: string; updated_at: string; rating: number | null; review_count: number;
   cover_id: string | null;
-  service_type: string; guide_languages: string; guide_license_number: string; guide_meeting_point: string; guide_status: string;
+  service_type: string; guide_languages: string; guide_skills: string; guide_meeting_point: string; guide_status: string;
   guide_document_id?: string | null;
 };
 export type ShopInput = Record<string, unknown>;
@@ -46,9 +46,9 @@ function shopFrom(r: ShopRow, viewer?: string) {
     owner: viewer === r.owner_id, createdAt: r.created_at, updatedAt: r.updated_at,
     serviceType: r.service_type === 'guide' ? 'guide' : 'business',
     guideLanguages: r.guide_languages.split(',').map((v) => v.trim()).filter(Boolean),
+    guideSkills: (() => { try { const v: unknown = JSON.parse(r.guide_skills); return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []; } catch { return []; } })(),
     guideMeetingPoint: r.guide_meeting_point,
     guideStatus: r.guide_status,
-    guideLicenseNumber: viewer === r.owner_id ? r.guide_license_number : null,
     hasGuideDocument: viewer === r.owner_id && !!r.guide_document_id,
   };
 }
@@ -122,30 +122,30 @@ export function saveShop(db: DB, uid: string, input: ShopInput, id?: string) {
   const phone = text(input.phone, 30);
   const email = text(input.email, 120);
   const guideLanguages = Array.isArray(input.guideLanguages) ? input.guideLanguages.map((v) => text(v, 30)).filter(Boolean).slice(0, 12).join(',') : '';
-  const guideLicenseNumber = text(input.guideLicenseNumber, 100);
   const guideMeetingPoint = text(input.guideMeetingPoint, 250);
   const area = input.areaKey;
-  const lat = Number(input.lat);
-  const lng = Number(input.lng);
+  const lat = serviceType === 'guide' ? null : Number(input.lat);
+  const lng = serviceType === 'guide' ? null : Number(input.lng);
   if (name.length < 2 || !category) throw new ShopError('INVALID_SHOP', 'กรอกชื่อและประเภทร้านค้า');
   if ((serviceType === 'guide') !== (category === 'ไกด์นำเที่ยว')) throw new ShopError('INVALID_CATEGORY', 'ประเภทโปรไฟล์ไม่ตรงกับประเภทบริการ');
   if (!SHOP_CATEGORIES.includes(category as typeof SHOP_CATEGORIES[number]))
     throw new ShopError('INVALID_CATEGORY', 'เลือกประเภทร้านจากรายการที่กำหนด');
   if (serviceType === 'guide') {
-    if (!guideLanguages || !guideLicenseNumber || guideMeetingPoint.length < 3) throw new ShopError('INVALID_GUIDE_PROFILE', 'กรอกภาษา เลขใบอนุญาต และจุดนัดพบหลักให้ครบ');
+    if (!guideLanguages || guideMeetingPoint.length < 3) throw new ShopError('INVALID_GUIDE_PROFILE', 'กรอกภาษาและจุดนัดพบหลักให้ครบ');
   } else if (address.length < 3) throw new ShopError('INVALID_ADDRESS', 'กรุณากรอกที่อยู่ร้านค้า');
   if (phone && !/^\+?[0-9\s-]{8,20}$/.test(phone)) throw new ShopError('INVALID_PHONE', 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง');
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ShopError('INVALID_EMAIL', 'รูปแบบอีเมลไม่ถูกต้อง');
-  if (!isAreaKey(area) || !validShopPoint(area, lat, lng)) throw new ShopError('INVALID_LOCATION', 'พิกัดต้องอยู่ในพื้นที่ที่เลือก');
+  if (!isAreaKey(area) || (serviceType !== 'guide' && !validShopPoint(area, lat!, lng!))) throw new ShopError('INVALID_LOCATION', 'พิกัดต้องอยู่ในพื้นที่ที่เลือก');
   const hours = text(input.openingHours, 11);
   if (serviceType === 'guide' && hours) throw new ShopError('INVALID_GUIDE_HOURS', 'โปรไฟล์ไกด์ไม่ใช้เวลาเปิด–ปิดร้าน');
   if (hours && !/^(?:[01]\d|2[0-3]):[0-5]\d-(?:[01]\d|2[0-3]):[0-5]\d$/.test(hours)) throw new ShopError('INVALID_HOURS', 'เวลาเปิดปิดต้องเป็น HH:MM-HH:MM');
   const amenities = Array.isArray(input.amenities) ? input.amenities.map((v) => text(v, 40)).filter(Boolean).slice(0, 12).join(',') : '';
+  const guideSkills = Array.isArray(input.guideSkills) ? JSON.stringify([...new Set(input.guideSkills.map((v) => text(v, 80)).filter(Boolean))].slice(0, 20)) : '[]';
   const now = new Date().toISOString();
   const key = id ?? randomUUID();
-  const previous = id ? row<{ service_type: string; guide_languages: string; guide_license_number: string; guide_meeting_point: string; guide_status: string; guide_reviewed_at: string | null; guide_reviewed_by: string | null; name: string; description: string; area_key: string; lat: number; lng: number; phone: string; email: string }>(db.prepare('SELECT service_type,guide_languages,guide_license_number,guide_meeting_point,guide_status,guide_reviewed_at,guide_reviewed_by,name,description,area_key,lat,lng,phone,email FROM local_shops WHERE id=?').get(id)) : null;
+  const previous = id ? row<{ service_type: string; guide_languages: string; guide_skills: string; guide_meeting_point: string; guide_status: string; guide_reviewed_at: string | null; guide_reviewed_by: string | null; name: string; description: string; area_key: string; lat: number | null; lng: number | null; phone: string; email: string }>(db.prepare('SELECT service_type,guide_languages,guide_skills,guide_meeting_point,guide_status,guide_reviewed_at,guide_reviewed_by,name,description,area_key,lat,lng,phone,email FROM local_shops WHERE id=?').get(id)) : null;
   const guideChanged = serviceType === 'guide' && previous?.service_type === 'guide'
-    && (previous.guide_languages !== guideLanguages || previous.guide_license_number !== guideLicenseNumber || previous.guide_meeting_point !== guideMeetingPoint
+    && (previous.guide_languages !== guideLanguages || previous.guide_skills !== guideSkills || previous.guide_meeting_point !== guideMeetingPoint
       || previous.name !== name || previous.description !== text(input.description, 2000) || previous.area_key !== area
       || previous.lat !== lat || previous.lng !== lng || previous.phone !== phone || previous.email !== email);
   const guideStatus = serviceType !== 'guide' ? 'not_required'
@@ -153,9 +153,9 @@ export function saveShop(db: DB, uid: string, input: ShopInput, id?: string) {
   const reviewedAt = guideStatus === 'pending' || guideStatus === 'not_required' ? null : previous?.guide_reviewed_at ?? null;
   const reviewedBy = guideStatus === 'pending' || guideStatus === 'not_required' ? null : previous?.guide_reviewed_by ?? null;
   const values = [name, category, area, text(input.description, 2000), serviceType === 'guide' ? guideMeetingPoint : address, lat, lng,
-    phone, email, serviceType === 'guide' ? '' : hours, amenities, input.active === false ? 0 : 1, serviceType, guideLanguages, guideLicenseNumber, guideMeetingPoint, guideStatus, reviewedAt, reviewedBy, now];
-  if (id) db.prepare(`UPDATE local_shops SET name=?,category=?,area_key=?,description=?,address=?,lat=?,lng=?,phone=?,email=?,opening_hours=?,amenities=?,active=?,service_type=?,guide_languages=?,guide_license_number=?,guide_meeting_point=?,guide_status=?,guide_reviewed_at=?,guide_reviewed_by=?,updated_at=? WHERE id=?`).run(...values, id);
-  else db.prepare(`INSERT INTO local_shops(id,owner_id,name,category,area_key,description,address,lat,lng,phone,email,opening_hours,amenities,active,service_type,guide_languages,guide_license_number,guide_meeting_point,guide_status,guide_reviewed_at,guide_reviewed_by,updated_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(key, uid, ...values, now);
+    phone, email, serviceType === 'guide' ? '' : hours, amenities, input.active === false ? 0 : 1, serviceType, guideLanguages, guideSkills, guideMeetingPoint, guideStatus, reviewedAt, reviewedBy, now];
+  if (id) db.prepare(`UPDATE local_shops SET name=?,category=?,area_key=?,description=?,address=?,lat=?,lng=?,phone=?,email=?,opening_hours=?,amenities=?,active=?,service_type=?,guide_languages=?,guide_skills=?,guide_meeting_point=?,guide_status=?,guide_reviewed_at=?,guide_reviewed_by=?,updated_at=? WHERE id=?`).run(...values, id);
+  else db.prepare(`INSERT INTO local_shops(id,owner_id,name,category,area_key,description,address,lat,lng,phone,email,opening_hours,amenities,active,service_type,guide_languages,guide_skills,guide_meeting_point,guide_status,guide_reviewed_at,guide_reviewed_by,updated_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(key, uid, ...values, now);
   if (id && serviceType !== 'guide' && previous?.service_type === 'guide') db.prepare('DELETE FROM local_guide_documents WHERE shop_id=?').run(id);
   return getShop(db, key, uid)!;
 }

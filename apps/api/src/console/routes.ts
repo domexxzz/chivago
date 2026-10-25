@@ -1802,19 +1802,21 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     if (!session) return c.html(messagePage(localeFor(c), 'moderatorsOnly', 'moderatorsOnlyBlurb'), 403);
     const en = localeFor(c) === 'en';
     const escape = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]!);
-    const guides = db.prepare(`SELECT s.id,s.name,s.area_key,s.description,s.guide_languages,s.guide_license_number,s.guide_meeting_point,s.created_at,d.id AS document_id
+    const guides = db.prepare(`SELECT s.id,s.name,s.area_key,s.description,s.guide_languages,s.guide_skills,s.guide_meeting_point,s.created_at,d.id AS document_id
       FROM local_shops s LEFT JOIN local_guide_documents d ON d.shop_id=s.id
       WHERE s.service_type='guide' AND s.guide_status='pending' ORDER BY s.created_at ASC LIMIT 100`).all() as unknown as {
-      id: string; name: string; area_key: string; description: string; guide_languages: string; guide_license_number: string; guide_meeting_point: string; created_at: string; document_id: string | null;
+      id: string; name: string; area_key: string; description: string; guide_languages: string; guide_skills: string; guide_meeting_point: string; created_at: string; document_id: string | null;
     }[];
-    const entries = guides.map((g) => `<article style="background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #123b6418">
-      <h2 style="margin:0 0 8px">${escape(g.name)}</h2><p><strong>${en ? 'Area' : 'พื้นที่'}:</strong> ${escape(g.area_key)} · <strong>${en ? 'Languages' : 'ภาษา'}:</strong> ${escape(g.guide_languages)} · <strong>${en ? 'License number' : 'เลขใบอนุญาต'}:</strong> ${escape(g.guide_license_number)}</p>
-      <p><strong>${en ? 'Meeting point' : 'จุดนัดพบ'}:</strong> ${escape(g.guide_meeting_point)}</p><p>${escape(g.description)}</p>
+    const entries = guides.map((g) => { let skills: string[] = []; try { const parsed: unknown = JSON.parse(g.guide_skills); if (Array.isArray(parsed)) skills = parsed.filter((v): v is string => typeof v === 'string'); } catch { /* older profiles have no skills */ }
+      return `<article style="background:white;border-radius:16px;padding:18px;margin:14px 0;box-shadow:0 2px 12px #123b6418">
+      <h2 style="margin:0 0 8px">${escape(g.name)}</h2><p><strong>${en ? 'Area' : 'พื้นที่'}:</strong> ${escape(g.area_key)} · <strong>${en ? 'Languages' : 'ภาษา'}:</strong> ${escape(g.guide_languages)}</p>
+      <p><strong>${en ? 'Skills' : 'ความสามารถ'}:</strong> ${skills.length ? `<ul>${skills.map((skill) => `<li>${escape(skill)}</li>`).join('')}</ul>` : '—'}</p><p><strong>${en ? 'Meeting point' : 'จุดนัดพบ'}:</strong> ${escape(g.guide_meeting_point)}</p><p>${escape(g.description)}</p>
       ${g.document_id ? `<p><a href="/console/guides/${encodeURIComponent(g.id)}/license" target="_blank" rel="noopener">${en ? 'View private license image' : 'ดูภาพใบอนุญาต (ข้อมูลส่วนตัว)'}</a></p>` : `<p style="color:#b91c1c">${en ? 'License image has not been uploaded; approval is unavailable.' : 'ยังไม่มีภาพใบอนุญาต จึงยังอนุมัติไม่ได้'}</p>`}
       <form method="post" action="/console/guides/${encodeURIComponent(g.id)}/decide"><input type="hidden" name="csrf" value="${escape(csrfFor(session))}">
       <button name="decision" value="approve" ${g.document_id ? '' : 'disabled'}>${en ? 'Approve and publish profile' : 'อนุมัติและเผยแพร่โปรไฟล์'}</button>
       <button name="decision" value="reject">${en ? 'Reject · request changes' : 'ปฏิเสธ · ให้แก้ไขข้อมูล'}</button></form>
-      <small>${en ? 'Submitted' : 'ส่งเมื่อ'}: ${escape(g.created_at)}</small></article>`).join('');
+      <small>${en ? 'Submitted' : 'ส่งเมื่อ'}: ${escape(g.created_at)}</small></article>`;
+    }).join('');
     return c.html(`<!doctype html><html lang="${en ? 'en' : 'th'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${en ? 'Guide approvals' : 'ตรวจสอบโปรไฟล์ไกด์'}</title><link rel="stylesheet" href="/console/assets/modernist.css"></head><body style="padding:24px;max-width:900px;margin:auto;background:#edf6f9"><nav><a href="/console/shop-reviews">← ${en ? 'Shop review reports' : 'รายงานรีวิวร้านค้า'}</a></nav><h1>${en ? 'Guide profiles awaiting approval' : 'โปรไฟล์ไกด์ที่รอตรวจสอบ'}</h1><p>${en ? 'Only approved profiles are visible in the app and on the map. License images are private and accessible to moderators only.' : 'เฉพาะโปรไฟล์ที่อนุมัติแล้วจะแสดงในแอปและแผนที่ ภาพใบอนุญาตเป็นข้อมูลส่วนตัวและผู้ดูแลเท่านั้นที่เปิดดูได้'}</p>${entries || `<p>${en ? 'No guide profiles are waiting for review.' : 'ไม่มีโปรไฟล์ไกด์ที่รอตรวจสอบ'}</p>`}</body></html>`);
   });
   app.get('/guides/:id/license', (c) => {

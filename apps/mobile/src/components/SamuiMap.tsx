@@ -39,6 +39,8 @@ import { LayerChips, MapLegend, PinChip, PlaceFeedRow, type MapMode } from './ma
 // surface from one module, whichever implementation the platform resolves.
 export { LayerChips, PinChip, PlaceFeedRow, type MapMode };
 
+const hasMapPoint = (shop: Shop): shop is Shop & { lat: number; lng: number } => shop.lat !== null && shop.lng !== null;
+
 /**
  * The island silhouette, traced from the approved comp.
  * Kept in 0-100 plan space; the tilt turns it into the drawn ground plane.
@@ -502,7 +504,7 @@ function AreaPointMap({ area, places, shops = [], onSelect, onSelectShop, height
       </Svg>
       <View style={{ position: 'absolute', top: 8, left: 12, backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }}><Label size={10} colour="#0077B6">{t(area.name)} · แผนผังพิกัด</Label></View>
       {places.map((place) => { const pos = point(place.lat, place.lng); return <Pressable key={place.id} onPress={() => onSelect(place)} accessibilityLabel={t(place.name)} style={{ position: 'absolute', left: pos.left - 16, top: pos.top - 20, backgroundColor: '#0077B6', borderWidth: 2, borderColor: '#fff', borderRadius: 16, paddingHorizontal: 5, paddingVertical: 4 }}><Label size={10} colour="#fff">{place.healthyScore}</Label></Pressable>; })}
-      {shops.map((shop) => { const pos = point(shop.lat, shop.lng); return <Pressable key={`shop-${shop.id}`} onPress={() => onSelectShop?.(shop)} accessibilityLabel={`ร้าน ${shop.name}`} style={{ position: 'absolute', left: pos.left - 17, top: pos.top - 21, backgroundColor: '#F77F00', borderWidth: 2, borderColor: '#fff', borderRadius: 18, paddingHorizontal: 7, paddingVertical: 4 }}><Label size={10} colour="#fff">🏪</Label></Pressable>; })}
+      {shops.filter(hasMapPoint).map((shop) => { const pos = point(shop.lat, shop.lng); return <Pressable key={`shop-${shop.id}`} onPress={() => onSelectShop?.(shop)} accessibilityLabel={`ร้าน ${shop.name}`} style={{ position: 'absolute', left: pos.left - 17, top: pos.top - 21, backgroundColor: '#F77F00', borderWidth: 2, borderColor: '#fff', borderRadius: 18, paddingHorizontal: 7, paddingVertical: 4 }}><Label size={10} colour="#fff">🏪</Label></Pressable>; })}
     </View>
     <PlaceList places={places} shops={shops} onSelect={onSelect} onSelectShop={onSelectShop} height={100} />
   </View>;
@@ -642,7 +644,7 @@ function IslandMap({
           })
         : null}
 
-      {width > 0 ? shops.map((shop) => {
+      {width > 0 ? shops.filter(hasMapPoint).map((shop) => {
         const point = project(shop.lat, shop.lng);
         const location = tilt(point.x, point.y);
         return <Pressable key={`shop-${shop.id}`} onPress={() => onSelectShop?.(shop)} accessibilityLabel={`ร้าน ${shop.name}`}

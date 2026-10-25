@@ -99,16 +99,16 @@ export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onE
         <Text style={{ marginTop: 10, color: '#344F61' }}>{shop.data.description || t({ en: 'No description yet.', th: 'ยังไม่มีคำอธิบาย' })}</Text>
         {shop.data.serviceType === 'guide' ? <>
           <Text style={{ marginTop: 10 }}>🗣️ {t({ en: 'Languages', th: 'ภาษาที่สื่อสารได้' })}: {shop.data.guideLanguages.join(', ') || t({ en: 'Not specified', th: 'ไม่ได้ระบุ' })}</Text>
+          {shop.data.guideSkills.length ? <View style={{ marginTop: 8 }}><Text style={{ color: '#123B64', fontWeight: '700' }}>{t({ en: 'Skills', th: 'ความสามารถ' })}</Text>{shop.data.guideSkills.map((skill, index) => <Text key={`${skill}-${index}`} style={{ marginTop: 3, color: '#344F61' }}>• {skill}</Text>)}</View> : null}
           <Text style={{ marginTop: 8 }}>📍 {t({ en: 'Main meeting point', th: 'จุดนัดพบหลัก' })}: {shop.data.guideMeetingPoint || t({ en: 'Not provided', th: 'ยังไม่มีข้อมูล' })}</Text>
-          {shop.data.owner && shop.data.guideLicenseNumber ? <Text style={{ marginTop: 8 }}>🎫 {t({ en: 'Guide license', th: 'ใบอนุญาตมัคคุเทศก์' })}: {shop.data.guideLicenseNumber}</Text> : null}
         </> : <>
-          <Text style={{ marginTop: 10 }}>📍 {shop.data.address || t({ en: 'Address not provided', th: 'ยังไม่มีที่อยู่' })} ({shop.data.lat.toFixed(5)}, {shop.data.lng.toFixed(5)})</Text>
+          <Text style={{ marginTop: 10 }}>📍 {shop.data.address || t({ en: 'Address not provided', th: 'ยังไม่มีที่อยู่' })}{shop.data.lat !== null && shop.data.lng !== null ? ` (${shop.data.lat.toFixed(5)}, ${shop.data.lng.toFixed(5)})` : ''}</Text>
           <Text style={{ marginTop: 8 }}>🕒 {shop.data.openingHours || t({ en: 'Hours not provided', th: 'ยังไม่ระบุเวลา' })} · {shopOpenNow(shop.data.openingHours) ? t({ en: 'Open now', th: 'เปิดอยู่' }) : t({ en: 'Closed / unknown', th: 'ปิดอยู่/ไม่ระบุ' })}</Text>
         </>}
         {shop.data.phone ? <Text style={{ marginTop: 8 }}>{t({ en: 'Phone', th: 'โทร' })}: {shop.data.phone}</Text> : null}
         {shop.data.email ? <Text style={{ marginTop: 8 }}>{t({ en: 'Email', th: 'อีเมล' })}: {shop.data.email}</Text> : null}
         {shop.data.serviceType !== 'guide' && shop.data.amenities.length ? <Text style={{ marginTop: 8 }}>{t({ en: 'Amenities', th: 'สิ่งอำนวยความสะดวก' })}: {shop.data.amenities.join(', ')}</Text> : null}
-        <Pressable onPress={() => void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${shop.data!.lat},${shop.data!.lng}`)} style={[button, { marginTop: 14, flexDirection: 'row', justifyContent: 'center', gap: 6 }]}><Navigation size={16} color="#fff" /><Text style={{ color: '#fff' }}>{t({ en: 'Get directions', th: 'นำทาง' })}</Text></Pressable>
+        {shop.data.lat !== null && shop.data.lng !== null ? <Pressable onPress={() => void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${shop.data!.lat},${shop.data!.lng}`)} style={[button, { marginTop: 14, flexDirection: 'row', justifyContent: 'center', gap: 6 }]}><Navigation size={16} color="#fff" /><Text style={{ color: '#fff' }}>{t({ en: 'Get directions', th: 'นำทาง' })}</Text></Pressable> : null}
       </View>
       {shop.data.images.length > 0 ? <ScrollView horizontal style={{ marginBottom: 14 }} contentContainerStyle={{ gap: 8 }}>
         {shop.data.images.map((img) => <Image key={img.id} source={{ uri: shopImageUri(img.url) }} style={{ width: Math.min(width * 0.55, 220), height: 145, borderRadius: 14 }} />)}

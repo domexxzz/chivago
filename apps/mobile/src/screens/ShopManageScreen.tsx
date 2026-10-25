@@ -12,7 +12,7 @@ import { t } from '../i18n/locale.ts';
 const blue = '#0077B6';
 type ShopManageForm = ShopInput & Pick<Shop, 'guideStatus' | 'hasGuideDocument'>;
 const blank = (areaKey: AreaKey = 'samui'): ShopManageForm => ({ name: '', category: '', areaKey, description: '', address: '', lat: Number.NaN,
-  lng: Number.NaN, phone: '', email: '', openingHours: '', amenities: [], active: true, serviceType: 'business', guideLanguages: [], guideMeetingPoint: '', guideLicenseNumber: '', guideStatus: 'not_required', hasGuideDocument: false });
+  lng: Number.NaN, phone: '', email: '', openingHours: '', amenities: [], active: true, serviceType: 'business', guideLanguages: [], guideSkills: [], guideMeetingPoint: '', guideStatus: 'not_required', hasGuideDocument: false });
 const inputStyle = { borderWidth: 1, borderColor: '#CDE3EA', borderRadius: 12, backgroundColor: '#F7FBFC', padding: 11, fontSize: 15, color: '#123B64' } as const;
 const button = { backgroundColor: blue, borderRadius: 16, paddingVertical: 13, alignItems: 'center' as const, marginTop: 12 };
 
@@ -24,6 +24,7 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
   const [lng, setLng] = React.useState('');
   const [amenities, setAmenities] = React.useState('');
   const [guideLanguages, setGuideLanguages] = React.useState('');
+  const [skillDraft, setSkillDraft] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   React.useEffect(() => setConfirmDelete(false), [editing]);
@@ -33,7 +34,7 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
   React.useEffect(() => {
     if (!editing || editing === 'new') return;
     const shop = mine.data?.find((s) => s.id === editing);
-    if (shop) { setForm(shop); setLat(String(shop.lat)); setLng(String(shop.lng)); setAmenities(shop.amenities.join(', ')); setGuideLanguages(shop.guideLanguages.join(', ')); }
+    if (shop) { setForm(shop); setLat(shop.lat === null ? '' : String(shop.lat)); setLng(shop.lng === null ? '' : String(shop.lng)); setAmenities(shop.amenities.join(', ')); setGuideLanguages(shop.guideLanguages.join(', ')); }
   }, [editing, mine.data]);
   const reloadImages = React.useCallback(async (id: string) => {
     const result = await api.shop(id);
@@ -41,12 +42,14 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
   }, []);
   React.useEffect(() => { if (editing && editing !== 'new') void reloadImages(editing); else setImages([]); }, [editing, reloadImages]);
   const update = (key: keyof ShopManageForm, value: unknown) => setForm((prev) => ({ ...prev, [key]: value }));
-  const openNew = () => { const next = blank(); setForm(next); setLat(''); setLng(''); setAmenities(''); setGuideLanguages(''); setMessage(null); setConfirmDelete(false); setEditing('new'); };
+  const openNew = () => { const next = blank(); setForm(next); setLat(''); setLng(''); setAmenities(''); setGuideLanguages(''); setSkillDraft(''); setMessage(null); setConfirmDelete(false); setEditing('new'); };
   const save = async () => {
     setBusy(true); setMessage(null);
     const data = { ...form, serviceType: form.category === 'ไกด์นำเที่ยว' ? 'guide' as const : 'business' as const,
       guideLanguages: guideLanguages.split(',').map((v) => v.trim()).filter(Boolean),
-      lat: lat.trim() ? Number(lat) : Number.NaN, lng: lng.trim() ? Number(lng) : Number.NaN, amenities: amenities.split(',').map((v) => v.trim()).filter(Boolean) };
+      lat: form.category === 'ไกด์นำเที่ยว' ? null : lat.trim() ? Number(lat) : Number.NaN,
+      lng: form.category === 'ไกด์นำเที่ยว' ? null : lng.trim() ? Number(lng) : Number.NaN,
+      amenities: amenities.split(',').map((v) => v.trim()).filter(Boolean) };
     const result = editing === 'new' ? await api.createShop(data) : await api.updateShop(editing!, data);
     setBusy(false);
     if (!result.ok) { setMessage(result.error); return; }
@@ -101,6 +104,11 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
     else setMessage(result.error);
   };
   const selectArea = (areaKey: AreaKey) => { update('areaKey', areaKey); setLat(''); setLng(''); };
+  const addGuideSkill = () => {
+    const value = skillDraft.trim();
+    if (!value || form.guideSkills.some((skill) => skill.toLocaleLowerCase() === value.toLocaleLowerCase())) return;
+    update('guideSkills', [...form.guideSkills, value]); setSkillDraft('');
+  };
   const field = (label: string, key: keyof ShopInput, placeholder = '', multiline = false) => <View style={{ marginBottom: 12 }}><Text style={{ color: '#123B64', fontWeight: '700', marginBottom: 6 }}>{label}</Text><TextInput value={String(form[key] ?? '')} onChangeText={(v) => update(key, v)} placeholder={placeholder} multiline={multiline} style={[inputStyle, multiline && { minHeight: 85, textAlignVertical: 'top' }]} /></View>;
 
   return <ScrollView style={{ flex: 1, backgroundColor: '#EAF7FB' }} contentContainerStyle={{ paddingBottom: 80 }}>
@@ -127,16 +135,16 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
         {form.category === 'ไกด์นำเที่ยว' ? <>
           {field(t({ en: 'Guide profile / experience', th: 'ประวัติและประสบการณ์ไกด์' }), 'description', t({ en: 'Describe your guiding experience and areas of expertise', th: 'เล่าประสบการณ์และความเชี่ยวชาญในการนำเที่ยว' }), true)}
           <View style={{ marginBottom: 12 }}><Text style={{ color: '#123B64', fontWeight: '700', marginBottom: 6 }}>{t({ en: 'Languages', th: 'ภาษาที่สื่อสารได้' })}</Text><TextInput value={guideLanguages} onChangeText={setGuideLanguages} placeholder={t({ en: 'e.g. Thai, English', th: 'เช่น ไทย, อังกฤษ' })} style={inputStyle} /></View>
-          {field(t({ en: 'Guide license number', th: 'เลขใบอนุญาตมัคคุเทศก์' }), 'guideLicenseNumber', t({ en: 'Enter the license number', th: 'กรอกเลขที่ใบอนุญาต' }))}
+          <View style={{ marginBottom: 12 }}><Text style={{ color: '#123B64', fontWeight: '700', marginBottom: 6 }}>{t({ en: 'Guide skills', th: 'ความสามารถของไกด์' })}</Text><View style={{ flexDirection: 'row', gap: 8 }}><TextInput value={skillDraft} onChangeText={setSkillDraft} onSubmitEditing={addGuideSkill} returnKeyType="done" placeholder={t({ en: 'Add one skill at a time', th: 'กรอกความสามารถทีละข้อ' })} style={[inputStyle, { flex: 1 }]} /><Pressable onPress={addGuideSkill} style={{ backgroundColor: blue, borderRadius: 12, paddingHorizontal: 16, justifyContent: 'center' }}><Text style={{ color: '#fff', fontWeight: '700' }}>{t({ en: 'Add', th: 'เพิ่ม' })}</Text></Pressable></View><View style={{ gap: 6, marginTop: 8 }}>{form.guideSkills.map((skill, index) => <View key={`${skill}-${index}`} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F0F9FD', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}><Text style={{ color: '#123B64', flex: 1 }}>• {skill}</Text><Pressable onPress={() => update('guideSkills', form.guideSkills.filter((_, i) => i !== index))} accessibilityLabel={t({ en: `Remove ${skill}`, th: `ลบ${skill}` })}><Text style={{ color: '#B91C1C', fontSize: 18 }}>×</Text></Pressable></View>)}</View></View>
           {field(t({ en: 'Main meeting point', th: 'จุดนัดพบหลัก' }), 'guideMeetingPoint', t({ en: 'Name or address of the meeting point', th: 'ชื่อสถานที่หรือที่อยู่จุดนัดพบ' }))}
           <View style={{ backgroundColor: '#F0F9FD', borderRadius: 12, padding: 12, marginBottom: 12 }}><Text style={{ color: '#123B64', fontWeight: '700' }}>{t({ en: 'Verification', th: 'การตรวจสอบ' })}: {t(form.guideStatus === 'approved' ? { en: 'Approved · Verified Guide', th: 'อนุมัติแล้ว · Verified Guide' } : form.guideStatus === 'rejected' ? { en: 'Changes required', th: 'ต้องแก้ไขข้อมูลก่อนส่งตรวจใหม่' } : { en: 'Pending admin approval', th: 'รอแอดมินตรวจสอบ' })}</Text><Text style={{ color: '#52748A', marginTop: 4 }}>{t({ en: 'Your license image is private and only moderators can view it. The profile appears publicly after approval.', th: 'ภาพใบอนุญาตเป็นข้อมูลส่วนตัว ผู้ดูแลเท่านั้นที่ดูได้ และโปรไฟล์จะแสดงหลังได้รับอนุมัติ' })}</Text>{editing !== 'new' ? <Pressable onPress={() => void uploadGuideLicense()} disabled={busy} style={[button, { marginTop: 8 }]}><Text style={{ color: '#fff', fontWeight: '700' }}>{t(form.hasGuideDocument ? { en: 'Replace license image', th: 'เปลี่ยนภาพใบอนุญาต' } : { en: 'Upload license image', th: 'อัปโหลดภาพใบอนุญาต' })}</Text></Pressable> : <Text style={{ color: '#64748B', marginTop: 7 }}>{t({ en: 'Save this profile first to upload the license image.', th: 'บันทึกโปรไฟล์ก่อนจึงจะอัปโหลดภาพใบอนุญาตได้' })}</Text>}</View>
         </> : <>
           {field(t({ en: 'Business details', th: 'รายละเอียดร้าน' }), 'description', t({ en: 'Describe products and services', th: 'อธิบายสินค้าและบริการ' }), true)}
           {field(t({ en: 'Address', th: 'ที่อยู่' }), 'address', t({ en: 'Street, subdistrict, district', th: 'บ้านเลขที่ ถนน ตำบล' }))}
         </>}
-        <Text style={{ color: '#123B64', fontWeight: '700', marginBottom: 6 }}>{t({ en: form.category === 'ไกด์นำเที่ยว' ? 'Meeting point coordinates' : 'Business coordinates', th: form.category === 'ไกด์นำเที่ยว' ? 'พิกัดจุดนัดพบ' : 'พิกัดร้านค้า' })}</Text>
+        {form.category !== 'ไกด์นำเที่ยว' ? <><Text style={{ color: '#123B64', fontWeight: '700', marginBottom: 6 }}>{t({ en: 'Business coordinates', th: 'พิกัดร้านค้า' })}</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}><TextInput value={lat} onChangeText={setLat} keyboardType="decimal-pad" placeholder="Latitude" style={[inputStyle, { flex: 1 }]} /><TextInput value={lng} onChangeText={setLng} keyboardType="decimal-pad" placeholder="Longitude" style={[inputStyle, { flex: 1 }]} /></View>
-        <Pressable onPress={() => { if (here) { setLat(String(here.lat)); setLng(String(here.lng)); } else setMessage(t({ en: 'Could not get the device location.', th: 'ยังไม่ได้รับตำแหน่งจากอุปกรณ์' })); }} style={{ flexDirection: 'row', gap: 5, paddingVertical: 12 }}><MapPin size={16} color={blue} /><Text style={{ color: blue }}>{t({ en: 'Use current location', th: 'ใช้ตำแหน่งปัจจุบัน' })}</Text></Pressable>
+        <Pressable onPress={() => { if (here) { setLat(String(here.lat)); setLng(String(here.lng)); } else setMessage(t({ en: 'Could not get the device location.', th: 'ยังไม่ได้รับตำแหน่งจากอุปกรณ์' })); }} style={{ flexDirection: 'row', gap: 5, paddingVertical: 12 }}><MapPin size={16} color={blue} /><Text style={{ color: blue }}>{t({ en: 'Use current location', th: 'ใช้ตำแหน่งปัจจุบัน' })}</Text></Pressable></> : null}
         {field(t({ en: 'Contact phone', th: 'เบอร์ติดต่อ' }), 'phone')}{field(t({ en: 'Email', th: 'อีเมล' }), 'email')}{form.category !== 'ไกด์นำเที่ยว' ? field(t({ en: 'Opening hours', th: 'เวลาเปิด–ปิด' }), 'openingHours', '09:00-18:00') : null}
         {form.category !== 'ไกด์นำเที่ยว' ? <><Text style={{ color: '#123B64', fontWeight: '700', marginBottom: 6 }}>{t({ en: 'Amenities (comma-separated)', th: 'สิ่งอำนวยความสะดวก (คั่นด้วยจุลภาค)' })}</Text><TextInput value={amenities} onChangeText={setAmenities} style={inputStyle} placeholder="Wi-Fi" /></> : null}
         <Pressable onPress={() => update('active', !form.active)} style={{ paddingVertical: 14 }}><Text style={{ color: blue }}>{form.active ? t({ en: '☑ Show profile publicly', th: '☑ แสดงโปรไฟล์' }) : t({ en: '□ Hide profile', th: '□ ซ่อนโปรไฟล์' })}</Text></Pressable>
