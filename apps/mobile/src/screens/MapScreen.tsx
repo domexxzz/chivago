@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { BedDouble, ChevronRight, LayoutGrid, List, MessageCircle, Store, UserRound } from 'lucide-react-native';
+import { BedDouble, ChevronRight, LayoutGrid, List, MessageCircle, Store } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import {
   greetingFor, strings,
@@ -37,6 +37,7 @@ import type { Story } from '../api/client.ts';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
+import { ProfileButton } from '../components/ProfileButton.tsx';
 
 // Stable empties, so the map's marker effect is not re-run by a fresh `[]`
 // on every render while the quests are still loading.
@@ -616,23 +617,7 @@ export function MapHeader({
             style={{ width: 68, height: 48 }}
           />
 
-          <Pressable
-            onPress={onOpenProfile}
-            accessibilityRole="button"
-            accessibilityLabel={t({ en: 'Profile', th: 'โปรไฟล์' })}
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              borderWidth: 1,
-              borderColor: 'rgba(255, 255, 255, 0.5)',
-              backgroundColor: 'rgba(255, 255, 255, 0.18)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <UserRound size={22} color="#FFFFFF" strokeWidth={2} />
-          </Pressable>
+          <ProfileButton onPress={onOpenProfile} />
 
           <IconButton
             inverted

@@ -36,6 +36,7 @@ import {
   ArrowRight,
   Check,
   ChevronLeft,
+  Compass,
   Eye,
   EyeOff,
   Lock,
@@ -498,8 +499,14 @@ export function LoginScreen({
               accessibilityLabel="เข้าชมแบบผู้เยี่ยมชม"
               style={({ pressed }) => [styles.guestButton, pressed && { opacity: 0.6 }]}
             >
-              <Text style={styles.guestButtonText}>เข้าชมแบบผู้เยี่ยมชม</Text>
-              <ArrowRight size={15} color="#475569" strokeWidth={2.2} />
+              <View style={styles.guestIconWrap}>
+                <Compass size={20} color="#0077B6" strokeWidth={2.2} />
+              </View>
+              <View style={styles.guestTextWrap}>
+                <Text style={styles.guestButtonText}>เข้าชมแบบผู้เยี่ยมชม</Text>
+                <Text style={styles.guestButtonHint}>ลองสำรวจแอปก่อนสมัครสมาชิก</Text>
+              </View>
+              <ArrowRight size={18} color="#0077B6" strokeWidth={2.2} />
             </Pressable>
           ) : null}
         </View>
@@ -849,18 +856,37 @@ const styles = StyleSheet.create({
   },
   guestButton: {
     flexDirection: 'row',
-    alignSelf: 'center',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 10,
-    paddingVertical: 8,
+    gap: 12,
+    marginTop: 16,
+    minHeight: 68,
+    paddingVertical: 10,
     paddingHorizontal: 14,
+    backgroundColor: '#F0FAFD',
+    borderWidth: 1.5,
+    borderColor: '#81D4E5',
+    borderRadius: 18,
   },
   guestButtonText: {
-    color: '#475569',
-    fontSize: 13.5,
-    fontWeight: '600',
-    textDecorationLine: 'underline',
+    color: '#075985',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  guestTextWrap: {
+    flex: 1,
+    gap: 3,
+  },
+  guestButtonHint: {
+    color: '#52748A',
+    fontSize: 11.5,
+  },
+  guestIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#D9F3FA',
   },
   footerIllustrationWrapper: {
     width: '100%',

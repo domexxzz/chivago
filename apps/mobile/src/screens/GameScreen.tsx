@@ -35,7 +35,7 @@
 
 import React from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
-import { BookOpen, Map as MapIcon, Medal as MedalIcon, Sparkles, UserRound, Users } from 'lucide-react-native';
+import { BookOpen, Map as MapIcon, Medal as MedalIcon, Sparkles, Users } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import {
@@ -53,6 +53,7 @@ import { Creature } from '../components/Creature.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { STAGE_LABEL } from './CompanionHome.tsx';
 import { t } from '../i18n/locale.ts';
+import { ProfileButton } from '../components/ProfileButton.tsx';
 
 /** The habitats in the order the grid draws them. */
 const HABITATS = Object.keys(SPECIES) as LayerKey[];
@@ -170,23 +171,7 @@ function Header({ progression, onOpenProfile }: { progression: Progression | nul
             accessibilityLabel="ChivaGo"
             style={{ width: 68, height: 48 }}
           />
-          <Pressable
-            onPress={onOpenProfile}
-            accessibilityRole="button"
-            accessibilityLabel={t({ en: 'Profile', th: 'โปรไฟล์' })}
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 22,
-              borderWidth: 1,
-              borderColor: 'rgba(255, 255, 255, 0.5)',
-              backgroundColor: 'rgba(255, 255, 255, 0.18)',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <UserRound size={22} color="#FFFFFF" strokeWidth={2} />
-          </Pressable>
+          <ProfileButton onPress={onOpenProfile} />
         </View>
       </View>
     </View>

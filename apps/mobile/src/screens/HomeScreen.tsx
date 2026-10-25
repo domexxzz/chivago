@@ -49,7 +49,7 @@ import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import { StallsCard } from '../components/Stalls.tsx';
 import { SeaAndSkyCard } from '../components/SeaAndSky.tsx';
 import {
-  Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, Search, Shield, Sparkles, Ticket, Trees, UserRound, Utensils, Wallet, Waves,
+  Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, Search, Shield, Sparkles, Ticket, Trees, Utensils, Wallet, Waves,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
@@ -66,6 +66,7 @@ import { Button } from '../components/Button.tsx';
 import { ErrorState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 import chivagoLogo from '../../assets/chivago-logo.png';
+import { ProfileButton } from '../components/ProfileButton.tsx';
 
 const HOME_QUEST_LIMIT = 3;
 
@@ -309,10 +310,7 @@ function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile }: {
           accessibilityLabel="ChivaGo"
           style={{ width: 68, height: 48, marginLeft: 8, marginRight: 12 }}
         />
-        <Pressable onPress={onOpenProfile} accessibilityRole="button" accessibilityLabel={t({ en: 'Profile', th: 'โปรไฟล์' })}
-          style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' }}>
-          <UserRound size={23} color="#FFFFFF" />
-        </Pressable>
+        <ProfileButton onPress={onOpenProfile} />
       </View>
       <AreaSwitch area={area.key} onChange={onChangeArea} tone="inverted" />
       <Pressable onPress={onOpenConcierge} accessibilityRole="button" accessibilityLabel={t({ en: 'Ask where to go', th: 'ถามว่าไปไหนดี' })}
@@ -568,13 +566,13 @@ function Places({
         onSeeAll={onOpenMap}
       />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: gutter, gap: 8, paddingBottom: 4 }}>
-        {([['all', 'ทั้งหมด'], ['places', 'สถานที่'], ['shops', 'ร้านค้า']] as const).map(([value, label]) => <Pressable key={value} onPress={() => setKind(value)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: kind === value ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: kind === value ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{label}</Text></Pressable>)}
+        {([['all', 'ทั้งหมด'], ['places', 'สถานที่'], ['shops', 'สถานบริการ']] as const).map(([value, label]) => <Pressable key={value} onPress={() => setKind(value)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: kind === value ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: kind === value ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{label}</Text></Pressable>)}
       </ScrollView>
       {kind === 'shops' ? <View style={{ paddingTop: 10 }}>
-        <Label size={11} colour="#123B64" style={{ paddingHorizontal: gutter, paddingBottom: 6 }}>ประเภทร้าน</Label>
+        <Label size={11} colour="#123B64" style={{ paddingHorizontal: gutter, paddingBottom: 6 }}>ประเภทบริการ</Label>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: gutter, gap: 8 }}>
           <Pressable onPress={() => setShopCategory('')} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: !shopCategory ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: !shopCategory ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>ทั้งหมด</Text></Pressable>
-          {SHOP_CATEGORIES.map((category) => <Pressable key={category} onPress={() => setShopCategory(category)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: shopCategory === category ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: shopCategory === category ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{category}</Text></Pressable>)}
+          {SHOP_CATEGORIES.map((category) => <Pressable key={category} onPress={() => setShopCategory(category)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: shopCategory === category ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: shopCategory === category ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{shopCategoryLabel(category)}</Text></Pressable>)}
         </ScrollView>
       </View> : null}
       {places.error && kind !== 'shops' ? <Pressable onPress={places.reload} style={{ paddingHorizontal: gutter, paddingTop: 8 }}><Body size={13} colour="#B91C1C">{places.error} · ลองใหม่</Body></Pressable> : null}
@@ -591,16 +589,20 @@ function Places({
         ))}
         {shownShops.map((shop) => <ShopCard key={shop.id} shop={shop} onPress={() => onOpenShop(shop.id)} />)}
       </ScrollView>
-      ) : !loading ? <Body style={{ marginHorizontal: gutter, marginTop: 8 }} colour={color.neutral700}>{kind === 'shops' ? (shopCategory ? `ยังไม่มีร้านประเภท${shopCategory}ในพื้นที่นี้` : 'ยังไม่มีร้านค้าในพื้นที่นี้') : kind === 'places' ? 'ยังไม่มีสถานที่ในพื้นที่นี้' : 'ยังไม่มีสถานที่หรือร้านค้าในพื้นที่นี้'}</Body> : null}
+      ) : !loading ? <Body style={{ marginHorizontal: gutter, marginTop: 8 }} colour={color.neutral700}>{kind === 'shops' ? (shopCategory ? `ยังไม่มีบริการประเภท${shopCategoryLabel(shopCategory)}ในพื้นที่นี้` : 'ยังไม่มีบริการหรือร้านค้าในพื้นที่นี้') : kind === 'places' ? 'ยังไม่มีสถานที่ในพื้นที่นี้' : 'ยังไม่มีสถานที่หรือบริการในพื้นที่นี้'}</Body> : null}
     </View>
   );
+}
+
+function shopCategoryLabel(category: string): string {
+  return category === 'ร้านขายของ' ? 'ของฝาก/ช้อปปิ้ง' : category;
 }
 
 function ShopCard({ shop, onPress }: { shop: Shop; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} accessibilityLabel={`ร้านค้า ${shop.name}`} style={[shadow.card, { width: 204, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden' }]}>
       {shop.coverUrl ? <Image source={{ uri: shopImageUri(shop.coverUrl) }} style={{ width: '100%', height: 125 }} /> : <View style={{ height: 125, backgroundColor: '#DFF3F8', alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 36 }}>🏪</Text></View>}
-      <View style={{ padding: 10 }}><Label size={10} colour="#0077B6">ร้านค้า · {shop.category}</Label><Heading size={15}>{shop.name}</Heading><Body size={13} colour="#64748B">{shop.rating === null ? 'ยังไม่มีรีวิว' : `★ ${shop.rating} (${shop.reviewCount})`}</Body></View>
+      <View style={{ padding: 10 }}><Label size={10} colour="#0077B6">{shopCategoryLabel(shop.category)}</Label><Heading size={15}>{shop.name}</Heading><Body size={13} colour="#64748B">{shop.rating === null ? 'ยังไม่มีรีวิว' : `★ ${shop.rating} (${shop.reviewCount})`}</Body></View>
     </Pressable>
   );
 }
