@@ -129,7 +129,7 @@ export function SafetyScreen({
         }}
       >
         <Body size={13} colour={color.neutral700}>{strings.safety.antiScamFooter.en}</Body>
-        <Thai always size={11} style={{ marginTop: 6 }}>{strings.safety.antiScamFooter.th}</Thai>
+        <Thai size={11} style={{ marginTop: 6 }}>{strings.safety.antiScamFooter.th}</Thai>
       </View>
       <View style={{ height: 24 }} />
     </ScrollView>
@@ -163,15 +163,15 @@ function ServiceRow({ service }: { service: ShieldService }) {
       />
       <View style={{ flex: 1 }}>
         <Heading size={15}>{service.label.en}</Heading>
-        <Thai always size={10} style={{ marginTop: 1 }}>{service.label.th}</Thai>
+        <Thai size={10} style={{ marginTop: 1 }}>{service.label.th}</Thai>
         <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 3 }}>
           {service.note.en}
         </Label>
-        <Thai always size={10} style={{ marginTop: 1 }}>{service.note.th}</Thai>
+        <Thai size={10} style={{ marginTop: 1 }}>{service.note.th}</Thai>
       </View>
       <View style={{ alignItems: 'center', paddingVertical: 4, paddingHorizontal: 10, borderRadius: radius.lg, backgroundColor: on ? color.brandSoft : color.neutral200 }}>
         <Label size={10} tracking={0.12} colour={on ? color.brand : color.neutral700}>{strings.safety.states[service.state].en}</Label>
-        <Thai always size={9} colour={on ? color.brand : color.neutral700}>{strings.safety.states[service.state].th}</Thai>
+        <Thai size={9} colour={on ? color.brand : color.neutral700}>{strings.safety.states[service.state].th}</Thai>
       </View>
     </View>
   );
@@ -428,7 +428,7 @@ function SosSection({
         <View style={{ marginTop: 16 }}>
           <Button
             label={strings.safety.sosStop.en}
-            bilingual thai={strings.safety.sosStop.th}
+            thai={strings.safety.sosStop.th}
             variant="secondary"
             height={56}
             onPress={stopCountdown}
@@ -440,7 +440,7 @@ function SosSection({
               backgroundColor: color.surface,
             }}
           />
-          <Thai always size={10} colour={color.neutral600} style={{ marginTop: 8, textAlign: 'center' }}>
+          <Thai size={10} colour={color.neutral600} style={{ marginTop: 8, textAlign: 'center' }}>
             {strings.safety.sosSending(countdown).th}
           </Thai>
         </View>
@@ -482,7 +482,7 @@ function DispatchPanel({
       <Heading size={15} colour={color.coralDeep}>
         {strings.safety.dispatching(alert.locationLabel).en}
       </Heading>
-      <Thai always size={11} style={{ marginTop: 2 }}>
+      <Thai size={11} style={{ marginTop: 2 }}>
         {strings.safety.dispatching(alert.locationLabel).th}
       </Thai>
 
@@ -493,7 +493,7 @@ function DispatchPanel({
             ? strings.safety.acknowledgedBy(alert.acknowledgedBy!).en
             : strings.safety.notAcknowledged.en}
         </Label>
-        <Thai always size={11} style={{ marginTop: 2 }}>
+        <Thai size={11} style={{ marginTop: 2 }}>
           {acknowledged
             ? strings.safety.acknowledgedBy(alert.acknowledgedBy!).th
             : strings.safety.notAcknowledged.th}
@@ -542,7 +542,7 @@ function DispatchPanel({
       {/* The channel that always works: their own messenger. */}
       <Button
         label={strings.safety.shareLink.en}
-        bilingual thai={strings.safety.shareLink.th}
+        thai={strings.safety.shareLink.th}
         onPress={onShare}
         height={48}
         style={{ marginTop: 16 }}
@@ -560,7 +560,7 @@ function DispatchPanel({
       <Body size={13} colour={color.accent700} style={{ marginTop: 14 }}>
         {strings.safety.cannotDispatch.en}
       </Body>
-      <Thai always size={11} style={{ marginTop: 4 }}>{strings.safety.cannotDispatch.th}</Thai>
+      <Thai size={11} style={{ marginTop: 4 }}>{strings.safety.cannotDispatch.th}</Thai>
     </View>
   );
 }
@@ -627,7 +627,7 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
             <Label size={9} tracking={0.06} style={{ textAlign: 'center' }}>
               {n.name.en}
             </Label>
-            <Thai always size={9} style={{ textAlign: 'center' }}>{n.name.th}</Thai>
+            <Thai size={9} style={{ textAlign: 'center' }}>{n.name.th}</Thai>
           </Pressable>
         ))}
       </View>
@@ -661,7 +661,7 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
         >
           <View style={{ flex: 1 }}>
             <Heading size={14}>{n.name.en}</Heading>
-            <Thai always size={10} style={{ marginTop: 2 }}>{n.name.th}</Thai>
+            <Thai size={10} style={{ marginTop: 2 }}>{n.name.th}</Thai>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             {/* A phone number is a thing to tap, not a thing a host verified. */}

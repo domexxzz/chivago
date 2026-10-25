@@ -38,13 +38,13 @@ import { useAsync, type Async } from '../state/store.tsx';
 import { bar, color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { tint } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
-import { IconButton } from '../components/Button.tsx';
+import { Button, IconButton } from '../components/Button.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { MedalMark } from '../components/MedalMark.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { STAGE_LABEL } from './CompanionHome.tsx';
-import { t } from '../i18n/locale.ts';
+import { LOCALES, LOCALE_NAMES, setLocale, t, useLocale } from '../i18n/locale.ts';
 
 type Icon = LucideIcon;
 
@@ -82,6 +82,60 @@ export function leadCompanion(list: Companion[]): Companion | null {
 
 const companionName = (c: Companion): string =>
   c.stage === 'egg' ? t(c.species.eggName) : t(c.species.name);
+
+/** Guest profile: language is a local preference; personal records and tools need an account. */
+export function GuestProfileScreen({
+  onBack, onSignIn, onRegister,
+}: { onBack: () => void; onSignIn: () => void; onRegister: () => void }) {
+  const locale = useLocale();
+
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} contentContainerStyle={{ flexGrow: 1 }}>
+      <View style={{ minHeight: 230, padding: 18, paddingTop: 14, backgroundColor: '#028090', borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' }}>
+        <OceanBackdrop compact />
+        <IconButton inverted onPress={onBack} accessibilityLabel={t(strings.common.back)}>
+          <ChevronLeft size={18} color="#FFFFFF" />
+        </IconButton>
+        <View style={{ alignItems: 'center', paddingTop: 18 }}>
+          <View style={{ width: 66, height: 66, borderRadius: 33, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 2, borderColor: '#BCEEF7', alignItems: 'center', justifyContent: 'center' }}>
+            <UserRound size={32} color="#FFFFFF" />
+          </View>
+          <Heading size={22} colour="#FFFFFF" style={{ marginTop: 8 }}>{t({ en: 'Profile', th: 'โปรไฟล์' })}</Heading>
+          <Label size={10} colour="#E0F7FA" style={{ marginTop: 4 }}>{t({ en: 'Browsing as a guest', th: 'เข้าชมแบบผู้เยี่ยมชม' })}</Label>
+        </View>
+      </View>
+
+      <View style={{ margin: gutter, marginTop: -20, padding: 18, gap: 14, backgroundColor: color.surface, borderRadius: radius.md, borderWidth: 1, borderColor: '#DCEFF5', ...shadow.card }}>
+        <View>
+          <Heading size={17}>{t({ en: 'Language', th: 'ภาษา' })}</Heading>
+          <Body size={13} colour={color.neutral600} style={{ marginTop: 4 }}>{t({ en: 'Choose the language used throughout the app.', th: 'เลือกภาษาที่ใช้แสดงในแอป' })}</Body>
+        </View>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          {LOCALES.map((option) => {
+            const selected = option === locale;
+            return (
+              <Pressable
+                key={option}
+                onPress={() => setLocale(option)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                accessibilityLabel={LOCALE_NAMES[option]}
+                style={{ flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: radius.sm, borderWidth: 2, borderColor: selected ? color.brand : color.neutral300, backgroundColor: selected ? color.brand : color.surface }}
+              >
+                <Heading size={15} colour={selected ? onFill.brand : color.text}>{LOCALE_NAMES[option]}</Heading>
+              </Pressable>
+            );
+          })}
+        </View>
+        <View style={{ padding: 12, borderRadius: radius.sm, backgroundColor: '#F0F9FD' }}>
+          <Body size={13} colour={color.neutral700}>{t({ en: 'Sign in or create an account to view your profile details and use account actions.', th: 'เข้าสู่ระบบหรือสมัครสมาชิกเพื่อดูข้อมูลโปรไฟล์และใช้งานต่างๆ ในบัญชี' })}</Body>
+        </View>
+        <Button label="Sign in" thai="เข้าสู่ระบบ" onPress={onSignIn} />
+        <Button label="Create an account" thai="สมัครสมาชิก" variant="secondary" onPress={onRegister} />
+      </View>
+    </ScrollView>
+  );
+}
 
 export function ProfileScreen({
   onBack, onOpenAccount, onOpenEditProfile, onOpenShops, onOpenWallet, onOpenPassport, onOpenMedals, onOpenCompanion, onLogout, accountTypeOverride, refreshKey = 0,
@@ -384,8 +438,8 @@ function Identity({
             )}
             <Label size={10} tracking={0.08} colour={isOperator ? '#006A83' : '#028090'}>
               {isOperator
-                ? 'ผู้ประกอบการ / ร้านค้า (Partner Host)'
-                : 'นักท่องเที่ยว (Traveller)'}
+                ? t({ en: 'Business operator · Partner host', th: 'ผู้ประกอบการ / ร้านค้า' })
+                : t({ en: 'Traveller', th: 'นักท่องเที่ยว' })}
             </Label>
           </View>
 
@@ -393,7 +447,7 @@ function Identity({
             <>
               <Heading size={18} tracking={-0.3}>{businessName}</Heading>
               <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>
-                {`เจ้าของ / Host: ${name ?? 'ผู้ประกอบการ'}`}
+                {t({ en: `Owner · Host: ${name ?? 'Business operator'}`, th: `เจ้าของ / ผู้ดูแล: ${name ?? 'ผู้ประกอบการ'}` })}
               </Body>
             </>
           ) : (
@@ -429,23 +483,23 @@ function ProfileHero({ width, onBack, onOpenAccount, onOpenEditProfile, name, bu
     <View style={{ height: width >= 768 ? 320 : 330, backgroundColor: '#079bd0', overflow: 'hidden', zIndex: 2 }}>
       <OceanBackdrop compact />
       <View style={{ position: 'absolute', top: 12, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <IconButton inverted onPress={onBack} accessibilityLabel="ย้อนกลับ"><ChevronLeft size={18} color="#FFFFFF" /></IconButton>
-        <Label size={11} colour="#FFFFFF" style={{ fontSize: 16, letterSpacing: 0 }}>โปรไฟล์</Label>
+        <IconButton inverted onPress={onBack} accessibilityLabel={t({ en: 'Back', th: 'ย้อนกลับ' })}><ChevronLeft size={18} color="#FFFFFF" /></IconButton>
+        <Label size={11} colour="#FFFFFF" style={{ fontSize: 16, letterSpacing: 0 }}>{t({ en: 'Profile', th: 'โปรไฟล์' })}</Label>
         <IconButton inverted onPress={onOpenAccount} accessibilityLabel="Account and devices"><Settings size={18} color="#FFFFFF" /></IconButton>
       </View>
       <View style={{ position: 'absolute', top: width >= 768 ? 64 : 72, left: 0, right: 0, alignItems: 'center' }}>
         <View style={{ width: 84, height: 84, borderRadius: 42, padding: 4, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#22D3EE' }}>
           <Avatar lead={lead} isOperator={isOperator} profilePhotoUrl={profilePhotoUrl} />
         </View>
-        <Heading size={22} colour="#FFFFFF" style={{ marginTop: 4 }}>{isOperator ? (businessName ?? 'Business Partner') : (name ?? 'Traveller')}</Heading>
+        <Heading size={22} colour="#FFFFFF" style={{ marginTop: 4 }}>{isOperator ? (businessName ?? t({ en: 'Business Partner', th: 'ผู้ประกอบการ' })) : (name ?? t({ en: 'Traveller', th: 'นักท่องเที่ยว' }))}</Heading>
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 5 }}>
-          <View style={{ backgroundColor: isOperator ? '#F59E0B' : 'rgba(255,255,255,0.2)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 }}><Label size={11} colour="#FFFFFF">{isOperator ? '♛ PARTNER' : '🏅 NEWCOMER'}</Label></View>
-          <View style={{ backgroundColor: 'rgba(249,115,22,0.75)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 }}><Label size={11} colour="#FFFFFF">⚡ LEVEL {p?.level ?? 1}</Label></View>
+          <View style={{ backgroundColor: isOperator ? '#F59E0B' : 'rgba(255,255,255,0.2)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 }}><Label size={11} colour="#FFFFFF">{isOperator ? t({ en: '♛ PARTNER', th: '♛ พาร์ทเนอร์' }) : t({ en: '🏅 NEWCOMER', th: '🏅 ผู้มาใหม่' })}</Label></View>
+          <View style={{ backgroundColor: 'rgba(249,115,22,0.75)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 }}><Label size={11} colour="#FFFFFF">⚡ {t({ en: 'LEVEL', th: 'เลเวล' })} {p?.level ?? 1}</Label></View>
         </View>
         <Body size={13} colour="#E0F2FE" style={{ marginTop: 5, fontSize: 12 }}>Level {p?.level ?? 1} · {(p?.exp ?? 0).toLocaleString('en-US')} EXP</Body>
-        {isOperator ? <Body size={13} colour="#FFFFFF" style={{ marginTop: 3, fontSize: 11, opacity: 0.85 }}>Operator Dashboard · แดชบอร์ดผู้ประกอบการ</Body> : null}
-        <Pressable onPress={onOpenEditProfile} accessibilityRole="button" accessibilityLabel="แก้ไขโปรไฟล์" style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#123B64', borderWidth: 2, borderColor: '#E6C76A', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 7 }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '700' }}>✎ แก้ไขโปรไฟล์ / EDIT PROFILE</Text>
+        {isOperator ? <Body size={13} colour="#FFFFFF" style={{ marginTop: 3, fontSize: 11, opacity: 0.85 }}>{t({ en: 'Business dashboard', th: 'แดชบอร์ดผู้ประกอบการ' })}</Body> : null}
+        <Pressable onPress={onOpenEditProfile} accessibilityRole="button" accessibilityLabel={t({ en: 'Edit profile', th: 'แก้ไขโปรไฟล์' })} style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#123B64', borderWidth: 2, borderColor: '#E6C76A', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 7 }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '700' }}>✎ {t({ en: 'Edit profile', th: 'แก้ไขโปรไฟล์' })}</Text>
         </Pressable>
       </View>
     </View>
@@ -482,10 +536,10 @@ function RoleStatusCard({
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Label size={9} tracking={0.06} colour={isOperator ? '#006A83' : '#009DB7'} style={{ flexShrink: 1 }}>
-              {isOperator ? 'ผู้ประกอบการ / ร้านค้า · ข้อมูลสถานประกอบการ (Business Profile)' : 'ประเภทผู้ใช้งาน (User Profile)'}
+              {isOperator ? t({ en: 'Business profile', th: 'ผู้ประกอบการ / ข้อมูลสถานประกอบการ' }) : t({ en: 'Traveller profile', th: 'ประเภทผู้ใช้งาน' })}
             </Label>
             <Heading size={15} tracking={-0.2} style={{ flexShrink: 1, marginTop: 2 }}>
-              {isOperator ? 'Chivargo Business Partner · ผู้ประกอบการ' : 'Chivargo Traveller · นักท่องเที่ยว'}
+              {isOperator ? t({ en: 'Chivargo Business Partner', th: 'Chivargo Business Partner · ผู้ประกอบการ' }) : t({ en: 'Chivargo Traveller', th: 'Chivargo Traveller · นักท่องเที่ยว' })}
             </Heading>
           </View>
         </View>
@@ -505,7 +559,7 @@ function RoleStatusCard({
             <CheckCircle2 size={12} color="#0284C7" strokeWidth={2.4} />
           )}
           <Label size={9} tracking={0.06} colour={isOperator ? '#047857' : '#0369A1'}>
-            {isOperator ? 'ลงทะเบียนแล้ว' : 'ผู้มาเยือน'}
+            {isOperator ? t({ en: 'Registered', th: 'ลงทะเบียนแล้ว' }) : t({ en: 'Traveller', th: 'นักท่องเที่ยว' })}
           </Label>
         </View>
       </View>
@@ -518,7 +572,7 @@ function RoleStatusCard({
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
             <Building2 size={15} color="#009DB7" strokeWidth={2} />
             <Body size={13} colour={color.neutral800} style={{ flex: 1, fontWeight: '600' }}>
-              ชื่อธุรกิจ: {businessName}
+              {t({ en: `Business name: ${businessName}`, th: `ชื่อธุรกิจ: ${businessName}` })}
             </Body>
           </View>
         ) : null}
@@ -526,20 +580,20 @@ function RoleStatusCard({
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
             <UserRound size={15} color="#66869D" strokeWidth={2} />
             <Body size={13} colour={color.neutral700} style={{ flex: 1 }}>
-              {isOperator ? `ผู้รับผิดชอบ: ${name}` : `ชื่อ: ${name}`}
+              {isOperator ? t({ en: `Contact person: ${name}`, th: `ผู้รับผิดชอบ: ${name}` }) : t({ en: `Name: ${name}`, th: `ชื่อ: ${name}` })}
             </Body>
           </View>
         ) : null}
         {phone ? (
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
             <Phone size={15} color="#66869D" strokeWidth={2} />
-            <Body size={13} colour={color.neutral700} style={{ flex: 1 }}>{isOperator ? `เบอร์โทรศัพท์ร้านค้า: ${phone}` : `เบอร์โทรศัพท์: ${phone}`}</Body>
+            <Body size={13} colour={color.neutral700} style={{ flex: 1 }}>{isOperator ? t({ en: `Business phone: ${phone}`, th: `เบอร์โทรศัพท์ร้านค้า: ${phone}` }) : t({ en: `Phone: ${phone}`, th: `เบอร์โทรศัพท์: ${phone}` })}</Body>
           </View>
         ) : null}
         {email ? (
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
             <Mail size={15} color="#66869D" strokeWidth={2} />
-            <Body size={13} colour={color.neutral700} style={{ flex: 1 }}>{isOperator ? `อีเมลร้านค้า: ${email}` : `อีเมล: ${email}`}</Body>
+            <Body size={13} colour={color.neutral700} style={{ flex: 1 }}>{isOperator ? t({ en: `Business email: ${email}`, th: `อีเมลร้านค้า: ${email}` }) : t({ en: `Email: ${email}`, th: `อีเมล: ${email}` })}</Body>
           </View>
         ) : null}
       </View>
@@ -588,7 +642,7 @@ function OperatorMetricFigures() {
           0
         </Heading>
         <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
-          ภารกิจที่รับรองแล้ว
+          {t({ en: 'Verified quests', th: 'ภารกิจที่รับรองแล้ว' })}
         </Label>
       </View>
 
@@ -612,7 +666,7 @@ function OperatorMetricFigures() {
           0
         </Heading>
         <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
-          นักท่องเที่ยวเช็คอิน
+          {t({ en: 'Traveller check-ins', th: 'นักท่องเที่ยวเช็คอิน' })}
         </Label>
       </View>
 
@@ -636,7 +690,7 @@ function OperatorMetricFigures() {
           0
         </Heading>
         <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
-          คะแนนพาร์ทเนอร์
+          {t({ en: 'Partner rating', th: 'คะแนนพาร์ทเนอร์' })}
         </Label>
       </View>
     </View>
@@ -647,18 +701,18 @@ function OperatorTools({ onOpenAccount, onOpenShops }: { onOpenAccount: () => vo
   return (
     <Card>
       <Label size={10} tracking={0.12} colour="#009DB7" style={{ marginBottom: 12 }}>
-        เครื่องมือสำหรับผู้ประกอบการ (HOST MANAGEMENT)
+        {t({ en: 'Business tools', th: 'เครื่องมือสำหรับผู้ประกอบการ' })}
       </Label>
 
       <View style={{ gap: 10 }}>
         <Pressable onPress={onOpenShops} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.sm, backgroundColor: '#E8F7FA', borderWidth: 1, borderColor: '#9ADCE9' }}>
           <Store size={24} color="#0077B6" />
-          <View style={{ flex: 1 }}><Heading size={15} colour="#123B64">จัดการร้านค้าของฉัน</Heading><Body size={13} colour="#52748A">เพิ่มร้านในพื้นที่ แก้ไขรูปและข้อมูล ตอบรีวิว</Body></View>
+          <View style={{ flex: 1 }}><Heading size={15} colour="#123B64">{t({ en: 'Manage my businesses', th: 'จัดการร้านค้าของฉัน' })}</Heading><Body size={13} colour="#52748A">{t({ en: 'Add a business, update its details, and reply to reviews.', th: 'เพิ่มร้านในพื้นที่ แก้ไขรูปและข้อมูล ตอบรีวิว' })}</Body></View>
         </Pressable>
         <Pressable
           onPress={onOpenAccount}
           accessibilityRole="button"
-          accessibilityLabel="รับรองภารกิจนักท่องเที่ยว"
+          accessibilityLabel={t({ en: 'Verify traveller quests', th: 'รับรองภารกิจนักท่องเที่ยว' })}
           style={({ pressed }) => [
             {
               flexDirection: 'row',
@@ -677,10 +731,10 @@ function OperatorTools({ onOpenAccount, onOpenShops }: { onOpenAccount: () => vo
           </View>
           <View style={{ flex: 1 }}>
             <Heading size={14} colour="#183B56">
-              รับรองภารกิจนักท่องเที่ยว (Host Verification)
+              {t({ en: 'Verify traveller quests', th: 'รับรองภารกิจนักท่องเที่ยว' })}
             </Heading>
             <Body size={13} colour="#66869D">
-              ตรวจรูปภาพและปล่อยคะแนนกรีนพอยท์ให้กับผู้มาทำกิจกรรม
+              {t({ en: 'Review photos and award Green points for completed activities.', th: 'ตรวจรูปภาพและปล่อยคะแนนกรีนพอยท์ให้กับผู้มาทำกิจกรรม' })}
             </Body>
           </View>
         </Pressable>
@@ -688,7 +742,7 @@ function OperatorTools({ onOpenAccount, onOpenShops }: { onOpenAccount: () => vo
         <Pressable
           onPress={onOpenAccount}
           accessibilityRole="button"
-          accessibilityLabel="คำถามจากนักท่องเที่ยว"
+          accessibilityLabel={t({ en: 'Traveller inquiries', th: 'คำถามจากนักท่องเที่ยว' })}
           style={({ pressed }) => [
             {
               flexDirection: 'row',
@@ -707,10 +761,10 @@ function OperatorTools({ onOpenAccount, onOpenShops }: { onOpenAccount: () => vo
           </View>
           <View style={{ flex: 1 }}>
             <Heading size={14} colour="#183B56">
-              คำถามและข้อความจากนักท่องเที่ยว (Inquiries)
+              {t({ en: 'Traveller inquiries', th: 'คำถามและข้อความจากนักท่องเที่ยว' })}
             </Heading>
             <Body size={13} colour="#66869D">
-              ตอบกลับข้อความสอบถามเกี่ยวกับที่พัก อาหาร หรือบริการ
+              {t({ en: 'Reply to questions about accommodation, food, or services.', th: 'ตอบกลับข้อความสอบถามเกี่ยวกับที่พัก อาหาร หรือบริการ' })}
             </Body>
           </View>
         </Pressable>
@@ -718,7 +772,7 @@ function OperatorTools({ onOpenAccount, onOpenShops }: { onOpenAccount: () => vo
         <Pressable
           onPress={onOpenAccount}
           accessibilityRole="button"
-          accessibilityLabel="จัดการข้อเสนอและคูปอง"
+          accessibilityLabel={t({ en: 'Manage offers and coupons', th: 'จัดการข้อเสนอและคูปอง' })}
           style={({ pressed }) => [
             {
               flexDirection: 'row',
@@ -737,10 +791,10 @@ function OperatorTools({ onOpenAccount, onOpenShops }: { onOpenAccount: () => vo
           </View>
           <View style={{ flex: 1 }}>
             <Heading size={14} colour="#183B56">
-              จัดการข้อเสนอและคูปองส่วนลด (Manage Offers)
+              {t({ en: 'Manage offers and coupons', th: 'จัดการข้อเสนอและคูปองส่วนลด' })}
             </Heading>
             <Body size={13} colour="#66869D">
-              ตั้งค่าคูปองและโปรโมชั่นเพื่อดึงดูดนักท่องเที่ยวบนเกาะ
+              {t({ en: 'Create coupons and promotions for visitors to the island.', th: 'ตั้งค่าคูปองและโปรโมชั่นเพื่อดึงดูดนักท่องเที่ยวบนเกาะ' })}
             </Body>
           </View>
         </Pressable>

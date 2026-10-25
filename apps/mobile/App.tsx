@@ -44,7 +44,7 @@ import { SummonScreen } from './src/screens/SummonScreen.tsx';
 import { AccountScreen } from './src/screens/AccountScreen.tsx';
 import { LoginScreen } from './src/screens/LoginScreen.tsx';
 import { RegisterScreen } from './src/screens/RegisterScreen.tsx';
-import { ProfileScreen } from './src/screens/ProfileScreen.tsx';
+import { GuestProfileScreen, ProfileScreen } from './src/screens/ProfileScreen.tsx';
 import { EditProfileScreen } from './src/screens/EditProfileScreen.tsx';
 import { ShopProfileScreen } from './src/screens/ShopProfileScreen.tsx';
 import { ShopManageScreen } from './src/screens/ShopManageScreen.tsx';
@@ -73,7 +73,7 @@ import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
  * would be a lie, and spending or editing needs an account to land on.
  */
 const GUEST_GATED: ReadonlySet<ScreenKey> = new Set<ScreenKey>([
-  'profile', 'editProfile', 'wallet', 'market', 'account', 'shopManage',
+  'editProfile', 'wallet', 'market', 'account', 'shopManage',
 ]);
 
 export default function App() {
@@ -478,6 +478,9 @@ export default function App() {
         );
 
       case 'profile':
+        if (guest) {
+          return <GuestProfileScreen onBack={nav.pop} onSignIn={() => nav.push('login')} onRegister={() => nav.push('register')} />;
+        }
         return (
           <ProfileScreen
             refreshKey={profileRefreshKey}
