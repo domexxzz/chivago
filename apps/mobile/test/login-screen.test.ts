@@ -26,6 +26,19 @@ describe('Chivargo LoginScreen', () => {
     ui.unmount();
   });
 
+  it('offers guest mode only when the app wires it, and calls it on press', async () => {
+    const without = await mountScreen(h(LoginScreen, {}));
+    assert.doesNotMatch(without.text(), /เข้าชมแบบผู้เยี่ยมชม/);
+    without.unmount();
+
+    let guests = 0;
+    const ui = await mountScreen(h(LoginScreen, { onGuest: () => { guests += 1; } }));
+    assert.match(ui.text(), /เข้าชมแบบผู้เยี่ยมชม/);
+    await ui.press(/เข้าชมแบบผู้เยี่ยมชม/);
+    assert.equal(guests, 1);
+    ui.unmount();
+  });
+
   it('validates empty inputs and displays Thai error messages', async () => {
     const ui = await mountScreen(h(LoginScreen, {}));
 

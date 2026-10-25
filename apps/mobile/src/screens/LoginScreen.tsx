@@ -95,12 +95,15 @@ export interface LoginScreenProps {
   onLoginSuccess?: (accountType?: 'traveller' | 'operator') => void;
   onRegister?: () => void;
   onBack?: () => void;
+  /** Look around without an account. The link is hidden when absent. */
+  onGuest?: () => void;
 }
 
 export function LoginScreen({
   onLoginSuccess,
   onRegister,
   onBack,
+  onGuest,
 }: LoginScreenProps) {
   const { width } = useWindowDimensions();
   const isNarrow = width < 380;
@@ -486,6 +489,19 @@ export function LoginScreen({
               <Text style={styles.registerLink}>สมัครสมาชิก</Text>
             </Pressable>
           </View>
+
+          {/* Guest mode: look around without an account */}
+          {onGuest ? (
+            <Pressable
+              onPress={onGuest}
+              accessibilityRole="button"
+              accessibilityLabel="เข้าชมแบบผู้เยี่ยมชม"
+              style={({ pressed }) => [styles.guestButton, pressed && { opacity: 0.6 }]}
+            >
+              <Text style={styles.guestButtonText}>เข้าชมแบบผู้เยี่ยมชม</Text>
+              <ArrowRight size={15} color="#475569" strokeWidth={2.2} />
+            </Pressable>
+          ) : null}
         </View>
 
         {/* Scenic Landscape Waves Footer Illustration */}
@@ -830,6 +846,21 @@ const styles = StyleSheet.create({
     color: '#0072C6',
     fontSize: 13.5,
     fontWeight: '700',
+  },
+  guestButton: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  guestButtonText: {
+    color: '#475569',
+    fontSize: 13.5,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
   footerIllustrationWrapper: {
     width: '100%',

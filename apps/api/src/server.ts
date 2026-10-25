@@ -858,6 +858,8 @@ app.post('/account/profile/photo', async (c) => {
 
 app.put('/account/profile', async (c) => {
   const uid = userId(c);
+  const account = db.prepare('SELECT account_type, business_name FROM user_accounts WHERE id = ?').get(uid) as { account_type: string; business_name: string | null } | undefined;
+  if (!account) return fail(c, 'LOGIN_REQUIRED', 'เข้าสู่ระบบก่อนแก้ไขข้อมูล', 401);
   const body: { fullName?: string; businessName?: string; email?: string; phone?: string; bio?: string; profilePhotoUrl?: string | null } = await c.req.json<{ fullName?: string; businessName?: string; email?: string; phone?: string; bio?: string; profilePhotoUrl?: string | null }>().catch(() => ({} as { fullName?: string; businessName?: string; email?: string; phone?: string; bio?: string; profilePhotoUrl?: string | null }));
   const fullName = String(body.fullName ?? '').trim();
   const email = String(body.email ?? '').trim().toLowerCase();
@@ -872,9 +874,9 @@ app.put('/account/profile', async (c) => {
   db.prepare('UPDATE user_accounts SET business_name = CASE WHEN account_type = \'operator\' AND ? <> \'\' THEN ? ELSE business_name END WHERE id = ?').run(businessName, businessName, uid);
   db.prepare('UPDATE user_accounts SET email = ?, phone = ?, updated_at = ? WHERE id = ?').run(email, phone, new Date().toISOString(), uid);
   db.prepare('INSERT INTO profiles (user_id, bio, profile_photo_url) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET bio = excluded.bio, profile_photo_url = COALESCE(excluded.profile_photo_url, profiles.profile_photo_url)').run(uid, body.bio?.trim() ?? null, body.profilePhotoUrl ?? null);
-  const row = db.prepare('SELECT account_type, business_name FROM user_accounts WHERE id = ?').get(uid) as { account_type: string; business_name: string | null };
+  const refreshed = db.prepare('SELECT account_type, business_name FROM user_accounts WHERE id = ?').get(uid) as { account_type: string; business_name: string | null };
   const profile = db.prepare('SELECT bio, profile_photo_url FROM profiles WHERE user_id = ?').get(uid) as { bio: string | null; profile_photo_url: string | null } | undefined;
-  return ok(c, { userId: uid, accountType: row.account_type as 'traveller' | 'operator', businessName: row.business_name, fullName, email, phone, username: email.split('@')[0], bio: profile?.bio ?? null, profilePhotoUrl: profile?.profile_photo_url ?? null });
+  return ok(c, { userId: uid, accountType: refreshed.account_type as 'traveller' | 'operator', businessName: refreshed.business_name, fullName, email, phone, username: email.split('@')[0], bio: profile?.bio ?? null, profilePhotoUrl: profile?.profile_photo_url ?? null });
 });
 
 // A shop is owned by the signed-in operator account. The client never supplies owner_id.

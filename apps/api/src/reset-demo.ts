@@ -125,6 +125,9 @@ export const TRAVELLER_TABLES = [
   // Trees credited to a traveller. The planting they were credited from is a
   // partner's evidence and is kept; the credit to a person goes with them.
   'tree_attributions',
+  // Local business profiles, reviews, photos and reports (PR #146). Children
+  // go first so the foreign keys never see an orphan, and shops before users.
+  'local_shop_media', 'local_shop_review_reports', 'local_shop_reviews', 'local_shops',
   'users',
 ] as const;
 
