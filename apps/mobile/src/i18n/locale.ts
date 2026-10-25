@@ -8,9 +8,10 @@
  * language, chosen from the phone's locale and changeable on the Account
  * screen, and every string that has both is read through `t()`.
  *
- * Screens use one language at a time, including safety and emergency UI.
- * The selected language is used consistently so the interface does not mix
- * Thai and English labels or duplicate captions.
+ * Screens use one language at a time, including the Safety screen. The one
+ * exception is the SOS banner: while an alert is live it stays in both
+ * languages, because a Thai responder may be reading an English tourist's
+ * phone. It opts in with `<Thai always>`.
  *
  * `t()` is a plain function, not a hook, because it is called from hundreds of
  * sites including helpers that are not components. A change of language

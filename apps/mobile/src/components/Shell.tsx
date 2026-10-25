@@ -232,7 +232,7 @@ export function SosBanner({ onPress }: { onPress: () => void }) {
     <Pressable
       onPress={onPress}
       accessibilityRole="alert"
-      accessibilityLabel={t(strings.safety.activeBanner)}
+      accessibilityLabel={`${strings.safety.activeBanner.en}. ${strings.safety.activeBanner.th}`}
       /*
        * Coral, and this was the palette's worst bug. The banner reads "SOS
        * active - your location is being shared" and it was painted in the
@@ -243,8 +243,11 @@ export function SosBanner({ onPress }: { onPress: () => void }) {
       style={{ backgroundColor: color.accent2, paddingVertical: 10, paddingHorizontal: gutter }}
     >
       <Animated.View style={{ opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 0.72] }) }}>
-        <Heading size={13} colour={onFill.accent2}>{t(strings.safety.activeBanner)}</Heading>
-
+        {/* Both languages, always: a responder may be reading this phone. */}
+        <Heading size={13} colour={onFill.accent2}>{strings.safety.activeBanner.en}</Heading>
+        <Thai always size={11} colour={onFill.accent2} style={{ opacity: 0.9, marginTop: 2 }}>
+          {strings.safety.activeBanner.th}
+        </Thai>
       </Animated.View>
     </Pressable>
   );
