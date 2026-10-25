@@ -104,7 +104,7 @@ export const KOH_SICHANG_BBOX: Bbox = {
 export const AREAS: Area[] = [
   {
     key: 'samui',
-    name: { en: 'Koh Samui', th: 'เกาะสมุย' },
+    name: { en: 'Koh Samui', th: 'เกาะสมุย', zh: '苏梅岛' },
     province: 'TH-84',
     center: {
       lat: (SAMUI_BBOX.minLat + SAMUI_BBOX.maxLat) / 2,
@@ -116,7 +116,7 @@ export const AREAS: Area[] = [
   },
   {
     key: 'ku-sriracha',
-    name: { en: 'KU Sriracha', th: 'มก. ศรีราชา' },
+    name: { en: 'KU Sriracha', th: 'มก. ศรีราชา', zh: 'KU 是拉差校区' },
     province: 'TH-20',
     // The centre of the outline, which is also where the campus's own
     // OpenStreetMap node sits.
@@ -127,7 +127,7 @@ export const AREAS: Area[] = [
   },
   {
     key: 'rmutt',
-    name: { en: 'RMUTT', th: 'มทร.ธัญบุรี' },
+    name: { en: 'RMUTT', th: 'มทร.ธัญบุรี', zh: 'RMUTT 校区' },
     province: 'TH-13',
     // The centre of the OpenStreetMap outline of way 910034983.
     center: { lat: 14.03556, lng: 100.72635 },
@@ -137,7 +137,7 @@ export const AREAS: Area[] = [
   },
   {
     key: 'ku-bangkhen',
-    name: { en: 'KU Bangkhen', th: 'มก. บางเขน' },
+    name: { en: 'KU Bangkhen', th: 'มก. บางเขน', zh: 'KU 邦肯校区' },
     province: 'TH-10',
     center: { lat: 13.8476, lng: 100.5724 },
     bbox: KU_BANGKHEN_BBOX,
@@ -148,7 +148,7 @@ export const AREAS: Area[] = [
     // After KU Sriracha: a Chon Buri place on neither frame stays with the
     // campus, as it did before the island opened.
     key: 'koh-sichang',
-    name: { en: 'Koh Sichang', th: 'เกาะสีชัง' },
+    name: { en: 'Koh Sichang', th: 'เกาะสีชัง', zh: '锡昌岛' },
     province: 'TH-20',
     // The town node in OpenStreetMap (node 487180518), by Tha Lang pier.
     center: { lat: 13.1599, lng: 100.8096 },

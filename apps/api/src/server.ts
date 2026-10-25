@@ -65,6 +65,7 @@ import {
   storyEtag, submitStory,
 } from './story-service.ts';
 import { areaByKey, inArea, isAreaKey } from '@chivago/core';
+import { isLang } from '@chivago/core';
 import { statementMissingPage, verifyPage } from './console/statement.ts';
 import { usesOf } from './statement-use-service.ts';
 import { boardPage } from './board.ts';
@@ -719,7 +720,7 @@ app.post('/devices', async (c) => {
   const created = registerAccountDevice(db, {
     displayName: body.displayName?.trim() || undefined,
     label: body.label?.trim() || undefined,
-    locale: body.locale === 'th' ? 'th' : 'en',
+    locale: isLang(body.locale) ? body.locale : 'en',
   });
   ensureWallet(db, created.userId);
   grantOpeningBalance(db, created.userId);
@@ -762,7 +763,7 @@ app.post('/auth/register', async (c) => {
       password: body.password ?? '',
       accountType: body.accountType,
       businessName: body.businessName,
-      locale: body.locale === 'th' ? 'th' : 'en',
+      locale: isLang(body.locale) ? body.locale : 'en',
     });
     return ok(c, result);
   } catch (err) {
@@ -2315,7 +2316,7 @@ app.post('/notifications/device', async (c) => {
     registerDevice(db, {
       userId: userId(c),
       token: String(body.token ?? ''),
-      locale: body.locale === 'th' ? 'th' : 'en',
+      locale: isLang(body.locale) ? body.locale : 'en',
       platform: body.platform ?? null,
     });
   } catch (err) {

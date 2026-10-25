@@ -47,7 +47,7 @@ export function AccountScreen({
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <PushHeader context={t({ en: 'Your account', th: 'บัญชีของคุณ' })} onBack={onBack} />
+      <PushHeader context={t({ en: 'Your account', th: 'บัญชีของคุณ', zh: '您的账户' })} onBack={onBack} />
 
       {account.error ? <ErrorState message={account.error} onRetry={account.reload} /> : null}
       {account.loading && !account.data ? <LoadingState /> : null}
@@ -76,15 +76,16 @@ export function AccountScreen({
         <>
           <Summary count={account.data.devices.length} />
           {onOpenLogin ? (
-            <Section en="Sign in" th="เข้าสู่ระบบ">
+            <Section en="Sign in" th="เข้าสู่ระบบ" zh="登录">
               <Body size={13} colour={color.neutral700} style={{ marginBottom: 12 }}>
                 {t({
                   en: 'Sign in with your email, phone, or Chivargo account.',
                   th: 'เข้าสู่ระบบด้วยอีเมล เบอร์โทรศัพท์ หรือบัญชี Chivargo ของคุณ',
+                  zh: '使用您的邮箱、手机号或 ChivaGo 账户登录。',
                 })}
               </Body>
               <Button
-                label={t({ en: 'Sign in to Chivargo', th: 'เข้าสู่ระบบ Chivargo' })}
+                label={t({ en: 'Sign in to Chivargo', th: 'เข้าสู่ระบบ Chivargo', zh: '登录 ChivaGo' })}
                 onPress={onOpenLogin}
                 variant="secondary"
                 height={44}
@@ -121,12 +122,12 @@ function Summary({ count }: { count: number }) {
     >
       <OceanBackdrop compact />
       <Label size={10} tracking={0.16} colour={color.brandSoft}>
-        {t({ en: 'Signed in on this phone', th: 'เข้าใช้งานบนเครื่องนี้' })}
+        {t({ en: 'Signed in on this phone', th: 'เข้าใช้งานบนเครื่องนี้', zh: '已在本机登录' })}
       </Label>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 10 }}>
         <Heading size={34} colour={color.surface} tracking={-0.8}>{count}</Heading>
         <Body size={14} colour={color.brandSoft}>
-          {t({ en: count === 1 ? 'phone on this account' : 'phones on this account', th: 'เครื่องที่ใช้บัญชีนี้' })}
+          {t({ en: count === 1 ? 'phone on this account' : 'phones on this account', th: 'เครื่องที่ใช้บัญชีนี้', zh: '部手机使用此账户' })}
         </Body>
       </View>
     </View>
@@ -176,10 +177,10 @@ function ShowCode({ onToast }: { onToast: (msg: string) => void }) {
   };
 
   return (
-    <Section en="Add another phone" th="เพิ่มเครื่องที่สอง">
+    <Section en="Add another phone" th="เพิ่มเครื่องที่สอง" zh="添加另一部手机">
       {code === null ? (
         <>
-          <Body size={13} colour={color.neutral700}>{t({ en: 'Your points, passport and companions move with you. The other phone keeps its own key — nothing is copied across.', th: 'แต้ม พาสปอร์ต และเพื่อนร่วมทางจะย้ายตามไปด้วย เครื่องอีกเครื่องจะมีกุญแจของตัวเอง ไม่มีการคัดลอกข้อมูลข้ามเครื่อง' })}</Body>
+          <Body size={13} colour={color.neutral700}>{t({ en: 'Your points, passport and companions move with you. The other phone keeps its own key — nothing is copied across.', th: 'แต้ม พาสปอร์ต และเพื่อนร่วมทางจะย้ายตามไปด้วย เครื่องอีกเครื่องจะมีกุญแจของตัวเอง ไม่มีการคัดลอกข้อมูลข้ามเครื่อง', zh: '您的积分、护照和伙伴都会一同转移。另一部手机会保有自己的密钥 — 不会把任何内容复制过去。' })}</Body>
           <Button
             label={busy ? 'Asking…' : 'Show a code'}
             thai="ขอรหัส"
@@ -207,11 +208,11 @@ function ShowCode({ onToast }: { onToast: (msg: string) => void }) {
               {groupCode(code)}
             </Heading>
             <Label size={10} tracking={0.12} colour={color.neutral600} style={{ marginTop: 8 }}>
-              {`${t({ en: 'EXPIRES IN', th: 'หมดอายุใน' })} ${countdown(left)}`}
+              {`${t({ en: 'EXPIRES IN', th: 'หมดอายุใน', zh: '有效期剩余' })} ${countdown(left)}`}
             </Label>
           </View>
 
-          <Body size={13} colour={color.neutral700} style={{ marginTop: 12 }}>{t({ en: 'Type this on the other phone. It works once, and only for ten minutes.', th: 'พิมพ์รหัสนี้ในเครื่องอีกเครื่อง ใช้ได้ครั้งเดียว ภายในสิบนาที' })}</Body>
+          <Body size={13} colour={color.neutral700} style={{ marginTop: 12 }}>{t({ en: 'Type this on the other phone. It works once, and only for ten minutes.', th: 'พิมพ์รหัสนี้ในเครื่องอีกเครื่อง ใช้ได้ครั้งเดียว ภายในสิบนาที', zh: '在另一部手机上输入此代码。只能使用一次，且仅在十分钟内有效。' })}</Body>
           <Button
             label="Show a different code"
             thai="ขอรหัสใหม่"
@@ -256,13 +257,13 @@ function EnterCode({
     // the screen would refetch as the phone's old account and look unchanged.
     await adoptKey(res.data.deviceKey);
     setValue('');
-    onToast(t({ en: 'This phone is now on that account.', th: 'เครื่องนี้เข้าร่วมบัญชีนั้นแล้ว' }));
+    onToast(t({ en: 'This phone is now on that account.', th: 'เครื่องนี้เข้าร่วมบัญชีนั้นแล้ว', zh: '这部手机已加入该账户。' }));
     onLinked();
   };
 
   return (
-    <Section en="Already have a code?" th="มีรหัสอยู่แล้ว?">
-      <Body size={13} colour={color.neutral700}>{t({ en: 'Enter the code from your other phone. This phone will join that account and leave whatever it had behind.', th: 'เครื่องนี้จะย้ายไปบัญชีนั้น และทิ้งข้อมูลเดิมของเครื่องนี้ไว้' })}</Body>
+    <Section en="Already have a code?" th="มีรหัสอยู่แล้ว?" zh="已经有代码了？">
+      <Body size={13} colour={color.neutral700}>{t({ en: 'Enter the code from your other phone. This phone will join that account and leave whatever it had behind.', th: 'เครื่องนี้จะย้ายไปบัญชีนั้น และทิ้งข้อมูลเดิมของเครื่องนี้ไว้', zh: '输入另一部手机上的代码。这部手机将加入那个账户，并放弃它原有的数据。' })}</Body>
 
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
         <TextInput
@@ -275,7 +276,7 @@ function EnterCode({
           maxLength={12}
           placeholder="RHW6 FXT7"
           placeholderTextColor={color.neutral500}
-          accessibilityLabel={t({ en: 'Code from your other phone', th: 'รหัสจากเครื่องอีกเครื่องของคุณ' })}
+          accessibilityLabel={t({ en: 'Code from your other phone', th: 'รหัสจากเครื่องอีกเครื่องของคุณ', zh: '来自另一部手机的代码' })}
           style={{
             // minWidth 0 lets the field yield width to a longer button label
             // (Thai's "เข้าร่วม" against English's "Join"); without it flex:1
@@ -289,7 +290,7 @@ function EnterCode({
           onPress={join}
           disabled={busy || value.trim().length === 0}
           accessibilityRole="button"
-          accessibilityLabel={t({ en: 'Join that account', th: 'เข้าร่วมบัญชีนั้น' })}
+          accessibilityLabel={t({ en: 'Join that account', th: 'เข้าร่วมบัญชีนั้น', zh: '加入该账户' })}
           style={{
             minWidth: 76, minHeight: 48, flexShrink: 0, paddingHorizontal: 12,
             alignItems: 'center', justifyContent: 'center',
@@ -301,7 +302,7 @@ function EnterCode({
             size={14}
             colour={value.trim().length === 0 ? color.neutral600 : onFill.cta}
           >
-            {busy ? '…' : t({ en: 'Join', th: 'เข้าร่วม' })}
+            {busy ? '…' : t({ en: 'Join', th: 'เข้าร่วม', zh: '加入' })}
           </Heading>
         </Pressable>
       </View>
@@ -318,13 +319,13 @@ interface Device {
 }
 
 /** A phone's name mid-sentence. Unnamed phones are "this phone", in either language. */
-const phoneName = (d: Device): string => d.label ?? t({ en: 'this phone', th: 'เครื่องนี้' });
+const phoneName = (d: Device): string => d.label ?? t({ en: 'this phone', th: 'เครื่องนี้', zh: '这部手机' });
 
 function Phones({
   devices, onRevoked, onToast,
 }: { devices: Device[]; onRevoked: () => void; onToast: (msg: string) => void }) {
   return (
-    <Section en="Phones on this account" th="เครื่องที่ใช้บัญชีนี้">
+    <Section en="Phones on this account" th="เครื่องที่ใช้บัญชีนี้" zh="使用此账户的手机">
       {devices.map((d, i) => (
         <View
           key={`${d.label ?? 'unnamed'}-${i}`}
@@ -336,13 +337,13 @@ function Phones({
           }}
         >
           <View style={{ flex: 1 }}>
-            <Heading size={15}>{d.label ?? t({ en: 'Unnamed phone', th: 'เครื่องที่ไม่มีชื่อ' })}</Heading>
+            <Heading size={15}>{d.label ?? t({ en: 'Unnamed phone', th: 'เครื่องที่ไม่มีชื่อ', zh: '未命名的手机' })}</Heading>
             <Label size={9} tracking={0.06} colour={color.neutral600} style={{ marginTop: 3, textTransform: 'none' }}>
               {d.current
-                ? t({ en: 'This phone', th: 'เครื่องนี้' })
+                ? t({ en: 'This phone', th: 'เครื่องนี้', zh: '这部手机' })
                 : d.lastSeenAt
-                  ? `${t({ en: 'Last used', th: 'ใช้ครั้งล่าสุด' })} ${d.lastSeenAt.slice(0, 10)}`
-                  : `${t({ en: 'Added', th: 'เพิ่มเมื่อ' })} ${d.createdAt.slice(0, 10)}`}
+                  ? `${t({ en: 'Last used', th: 'ใช้ครั้งล่าสุด', zh: '最近使用' })} ${d.lastSeenAt.slice(0, 10)}`
+                  : `${t({ en: 'Added', th: 'เพิ่มเมื่อ', zh: '添加于' })} ${d.createdAt.slice(0, 10)}`}
             </Label>
           </View>
 
@@ -353,25 +354,26 @@ function Phones({
             not one to offer next to a list of other people's phones.
           */}
           {d.current ? (
-            <Label size={9} tracking={0.1} colour={color.brand}>{t({ en: 'In use', th: 'ใช้อยู่' })}</Label>
+            <Label size={9} tracking={0.1} colour={color.brand}>{t({ en: 'In use', th: 'ใช้อยู่', zh: '使用中' })}</Label>
           ) : (
             <Pressable
               onPress={async () => {
                 const res = await api.revokeDevice(d.label ?? '');
-                onToast(res.ok ? t({ en: 'That phone was removed.', th: 'นำเครื่องนั้นออกแล้ว' }) : res.error);
+                onToast(res.ok ? t({ en: 'That phone was removed.', th: 'นำเครื่องนั้นออกแล้ว', zh: '已移除那部手机。' }) : res.error);
                 if (res.ok) onRevoked();
               }}
               accessibilityRole="button"
               accessibilityLabel={t({
                 en: `Remove ${phoneName(d)} from the account`,
                 th: `นำ ${phoneName(d)} ออกจากบัญชี`,
+                zh: `将 ${phoneName(d)} 从账户中移除`,
               })}
               style={{
                 minHeight: 44, paddingHorizontal: 12, justifyContent: 'center',
                 borderWidth: 1, borderColor: color.accent2, borderRadius: radius.sm,
               }}
             >
-              <Label size={10} tracking={0.08} colour={color.accent2}>{t({ en: 'Remove', th: 'นำออก' })}</Label>
+              <Label size={10} tracking={0.08} colour={color.accent2}>{t({ en: 'Remove', th: 'นำออก', zh: '移除' })}</Label>
             </Pressable>
           )}
         </View>
@@ -391,7 +393,7 @@ function Phones({
 function Language() {
   const locale = useLocale();
   return (
-    <Section en="Language" th="ภาษา">
+    <Section en="Language" th="ภาษา" zh="语言">
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {LOCALES.map((l) => {
           const on = l === locale;
@@ -462,7 +464,7 @@ function QuietHours({ onToast }: { onToast: (msg: string) => void }) {
   };
 
   return (
-    <Section en="QUIET HOURS" th="ช่วงเวลาเงียบ">
+    <Section en="QUIET HOURS" th="ช่วงเวลาเงียบ" zh="免打扰时段">
       {pref.error ? <ErrorState message={pref.error} onRetry={pref.reload} /> : null}
       {pref.data ? (
         <View
@@ -476,8 +478,8 @@ function QuietHours({ onToast }: { onToast: (msg: string) => void }) {
             accessibilityRole="switch"
             accessibilityState={{ checked: enabled }}
             accessibilityLabel={enabled
-              ? t({ en: 'Quiet hours on. Turn off', th: 'ช่วงเวลาเงียบเปิดอยู่ แตะเพื่อปิด' })
-              : t({ en: 'Quiet hours off. Turn on', th: 'ช่วงเวลาเงียบปิดอยู่ แตะเพื่อเปิด' })}
+              ? t({ en: 'Quiet hours on. Turn off', th: 'ช่วงเวลาเงียบเปิดอยู่ แตะเพื่อปิด', zh: '免打扰时段已开启。点按关闭' })
+              : t({ en: 'Quiet hours off. Turn on', th: 'ช่วงเวลาเงียบปิดอยู่ แตะเพื่อเปิด', zh: '免打扰时段已关闭。点按开启' })}
             style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44 }}
           >
             <View style={{ flex: 1, paddingRight: 12 }}>
@@ -485,6 +487,7 @@ function QuietHours({ onToast }: { onToast: (msg: string) => void }) {
                 {t({
                   en: enabled ? `Held ${hh(from)} – ${hh(until)}` : 'Off — notify me any time',
                   th: enabled ? `พักการแจ้งเตือน ${hh(from)} – ${hh(until)} เวลาเกาะ` : 'ปิด แจ้งเตือนได้ทุกเวลา',
+                  zh: enabled ? `${hh(from)} – ${hh(until)} 期间暂缓通知` : '已关闭 — 随时通知我',
                 })}
               </Heading>
             </View>
@@ -501,12 +504,12 @@ function QuietHours({ onToast }: { onToast: (msg: string) => void }) {
 
           {enabled ? (
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 14 }}>
-              <HourStepper label={t({ en: 'From', th: 'ตั้งแต่' })} value={from} onStep={(d) => step('from', d)} name="start" />
-              <HourStepper label={t({ en: 'Until', th: 'จนถึง' })} value={until} onStep={(d) => step('until', d)} name="end" />
+              <HourStepper label={t({ en: 'From', th: 'ตั้งแต่', zh: '从' })} value={from} onStep={(d) => step('from', d)} name="start" />
+              <HourStepper label={t({ en: 'Until', th: 'จนถึง', zh: '至' })} value={until} onStep={(d) => step('until', d)} name="end" />
             </View>
           ) : null}
 
-          <Body size={13} colour={color.neutral700} style={{ marginTop: 14 }}>{t({ en: 'Island time. An SOS from a contact always comes through — nobody can mute an emergency, including you.', th: 'เวลาเกาะ · SOS จากผู้ติดต่อจะแจ้งเสมอ ไม่มีใครปิดเสียงเหตุฉุกเฉินได้' })}</Body>
+          <Body size={13} colour={color.neutral700} style={{ marginTop: 14 }}>{t({ en: 'Island time. An SOS from a contact always comes through — nobody can mute an emergency, including you.', th: 'เวลาเกาะ · SOS จากผู้ติดต่อจะแจ้งเสมอ ไม่มีใครปิดเสียงเหตุฉุกเฉินได้', zh: '按海岛时间计算。联系人发出的 SOS 始终会送达 — 没有人能把紧急求助静音，包括您自己。' })}</Body>
         </View>
       ) : null}
     </Section>
@@ -546,8 +549,8 @@ function NoRecovery() {
         borderWidth: 1, borderColor: '#DCEFF5',
       }]}
     >
-      <Label size={10} tracking={0.14} colour={color.neutral700}>{t({ en: 'WHAT WE DO NOT KEEP', th: 'สิ่งที่เราไม่เก็บ' })}</Label>
-      <Body size={13} colour={color.neutral800} style={{ marginTop: 8 }}>{t({ en: 'No password, no email, no phone number. There is nothing about you here that could leak, because none of it was ever collected.', th: 'ไม่มีรหัสผ่าน ไม่มีอีเมล ไม่มีเบอร์โทร ไม่มีข้อมูลของคุณที่นี่ให้รั่วไหล เพราะเราไม่เคยเก็บมาตั้งแต่ต้น' })}</Body>
+      <Label size={10} tracking={0.14} colour={color.neutral700}>{t({ en: 'WHAT WE DO NOT KEEP', th: 'สิ่งที่เราไม่เก็บ', zh: '我们不会保存的信息' })}</Label>
+      <Body size={13} colour={color.neutral800} style={{ marginTop: 8 }}>{t({ en: 'No password, no email, no phone number. There is nothing about you here that could leak, because none of it was ever collected.', th: 'ไม่มีรหัสผ่าน ไม่มีอีเมล ไม่มีเบอร์โทร ไม่มีข้อมูลของคุณที่นี่ให้รั่วไหล เพราะเราไม่เคยเก็บมาตั้งแต่ต้น', zh: '没有密码，没有邮箱，没有手机号。这里没有任何关于您的信息会泄露，因为我们从未收集过。' })}</Body>
 
       {/*
         The consequence, said plainly and on the same card as the benefit. A
@@ -556,14 +559,14 @@ function NoRecovery() {
         owed the sentence — beside the button that prevents it, not in a help
         page they reach afterwards.
       */}
-      <Body size={13} colour={color.coralDeep} style={{ marginTop: 12 }}>{t({ en: 'The trade: if this is your only phone and you lose it, the account goes with it. Add a second phone before that matters.', th: 'ข้อแลกเปลี่ยน: ถ้ามีเครื่องเดียวแล้วหาย บัญชีจะหายไปด้วย เพิ่มเครื่องที่สองไว้ก่อนจะถึงตอนนั้น' })}</Body>
+      <Body size={13} colour={color.coralDeep} style={{ marginTop: 12 }}>{t({ en: 'The trade: if this is your only phone and you lose it, the account goes with it. Add a second phone before that matters.', th: 'ข้อแลกเปลี่ยน: ถ้ามีเครื่องเดียวแล้วหาย บัญชีจะหายไปด้วย เพิ่มเครื่องที่สองไว้ก่อนจะถึงตอนนั้น', zh: '代价是：如果这是您唯一的手机而它丢失了，账户也会随之消失。请在那之前添加第二部手机。' })}</Body>
     </View>
   );
 }
 
 function Section({
-  en, th, children,
-}: { en: string; th: string; children: React.ReactNode }) {
+  en, th, zh, children,
+}: { en: string; th: string; zh?: string; children: React.ReactNode }) {
   return (
     <View
       style={[shadow.card, {
@@ -572,7 +575,7 @@ function Section({
         borderWidth: 1, borderColor: '#DCEFF5',
       }]}
     >
-      <Label size={10} tracking={0.14} style={{ marginBottom: 12 }}>{t({ en, th })}</Label>
+      <Label size={10} tracking={0.14} style={{ marginBottom: 12 }}>{t({ en, th, zh })}</Label>
       {children}
     </View>
   );

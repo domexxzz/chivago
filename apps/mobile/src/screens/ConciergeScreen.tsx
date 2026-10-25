@@ -77,8 +77,8 @@ export function ConciergeScreen({
         }}
       >
         <OceanBackdrop compact />
-        <Label size={10} tracking={0.16} colour="#D5F6FF">{t({ en: 'Concierge', th: 'ผู้ช่วยแนะนำ' })}</Label>
-        <Heading size={24} tracking={-0.48} colour="#FFFFFF" style={{ marginTop: 6 }}>{t({ en: 'Ask me where to go', th: 'ถามฉันว่าไปไหนดี' })}</Heading>
+        <Label size={10} tracking={0.16} colour="#D5F6FF">{t({ en: 'Concierge', th: 'ผู้ช่วยแนะนำ', zh: '礼宾助手' })}</Label>
+        <Heading size={24} tracking={-0.48} colour="#FFFFFF" style={{ marginTop: 6 }}>{t({ en: 'Ask me where to go', th: 'ถามฉันว่าไปไหนดี', zh: '问我去哪儿好' })}</Heading>
       </View>
 
       {places.loading ? <SkeletonList rows={4} /> : null}
@@ -115,7 +115,7 @@ export function ConciergeScreen({
 function Openers({ onPick }: { onPick: (text: string) => void }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 6 }}>
-      <Label size={9} tracking={0.14} colour={color.neutral600}>{t({ en: 'Try asking', th: 'ลองถามว่า' })}</Label>
+      <Label size={9} tracking={0.14} colour={color.neutral600}>{t({ en: 'Try asking', th: 'ลองถามว่า', zh: '试着问问' })}</Label>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
         {OPENERS.map((o) => (
           <Pressable
@@ -280,10 +280,10 @@ function Answered({
 
 const ACTION_LABEL: Record<NonNullable<Reply['action']>, Bilingual> = {
   plan: strings.trip.planCta,
-  route: { en: 'Open the router', th: 'เปิดตัวจัดเส้นทาง' },
-  price: { en: 'See the price band', th: 'ดูช่วงราคา' },
-  wallet: { en: 'Open my wallet', th: 'เปิดกระเป๋าแต้ม' },
-  safety: { en: 'Open Safety', th: 'เปิดความปลอดภัย' },
+  route: { en: 'Open the router', th: 'เปิดตัวจัดเส้นทาง', zh: '打开路线规划' },
+  price: { en: 'See the price band', th: 'ดูช่วงราคา', zh: '查看价格区间' },
+  wallet: { en: 'Open my wallet', th: 'เปิดกระเป๋าแต้ม', zh: '打开我的钱包' },
+  safety: { en: 'Open Safety', th: 'เปิดความปลอดภัย', zh: '打开安全页' },
 };
 
 function Composer({
@@ -307,9 +307,9 @@ function Composer({
         onChangeText={onChange}
         onSubmitEditing={onSend}
         returnKeyType="send"
-        placeholder={t({ en: 'Ask in Thai or English…', th: 'ถามเป็นไทยหรืออังกฤษก็ได้…' })}
+        placeholder={t({ en: 'Ask in Thai or English…', th: 'ถามเป็นไทยหรืออังกฤษก็ได้…', zh: '用泰文或英文提问…' })}
         placeholderTextColor={color.neutral500}
-        accessibilityLabel={t({ en: 'Ask the concierge', th: 'ถามผู้ช่วยนำเที่ยว' })}
+        accessibilityLabel={t({ en: 'Ask the concierge', th: 'ถามผู้ช่วยนำเที่ยว', zh: '向礼宾助手提问' })}
         style={{
           flex: 1,
           minHeight: 44,
@@ -326,7 +326,7 @@ function Composer({
         onPress={onSend}
         disabled={value.trim().length === 0}
         accessibilityRole="button"
-        accessibilityLabel={t({ en: 'Send', th: 'ส่ง' })}
+        accessibilityLabel={t({ en: 'Send', th: 'ส่ง', zh: '发送' })}
         style={{
           width: 44,
           height: 44,

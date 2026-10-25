@@ -73,6 +73,7 @@ export const isRankable = (participants: number): boolean =>
 export const RANKED_BY: Bilingual = {
   en: 'Ranked by verified approvals only. Self-reported points are not counted.',
   th: 'จัดอันดับจากงานที่ตรวจแล้วเท่านั้น แต้มที่บันทึกเองไม่ถูกนับ',
+  zh: '仅按已核实的审批数排名。自行申报的积分不计入。',
 };
 
 /**

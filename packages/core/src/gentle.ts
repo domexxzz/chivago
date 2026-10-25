@@ -75,40 +75,44 @@ const STEPS: Record<MoodKey, GentleStep[]> = {
   drained: [
     {
       key: 'sit',
-      title: { en: 'Sit down somewhere', th: 'หาที่นั่งลง' },
+      title: { en: 'Sit down somewhere', th: 'หาที่นั่งลง', zh: '找个地方坐下' },
       detail: {
         en: 'Anywhere out of the sun. Nothing else has to happen for the next few minutes.',
         th: 'ที่ไหนก็ได้ที่พ้นแดด อีกไม่กี่นาทีข้างหน้าไม่ต้องมีอะไรเกิดขึ้น',
+        zh: '哪里都行，只要晒不到太阳。接下来几分钟什么都不用做。',
       },
       minutes: 5,
       outside: false,
     },
     {
       key: 'water',
-      title: { en: 'Drink some water', th: 'ดื่มน้ำ' },
+      title: { en: 'Drink some water', th: 'ดื่มน้ำ', zh: '喝点水' },
       detail: {
         en: 'Heat and a long day do most of what people blame on themselves.',
         th: 'อากาศร้อนกับวันที่ยาว ทำให้เหนื่อยได้มากกว่าที่หลายคนคิด',
+        zh: '人们怪到自己头上的那份疲惫，多半是天热和一整天奔波造成的。',
       },
       minutes: 2,
       outside: false,
     },
     {
       key: 'one-good-thing',
-      title: { en: 'Write one good thing', th: 'เขียนเรื่องดีหนึ่งอย่าง' },
+      title: { en: 'Write one good thing', th: 'เขียนเรื่องดีหนึ่งอย่าง', zh: '写下一件好事' },
       detail: {
         en: 'One line about today. It does not have to be a big one, and nobody sees it.',
         th: 'หนึ่งบรรทัดเกี่ยวกับวันนี้ ไม่ต้องเป็นเรื่องใหญ่ และไม่มีใครเห็น',
+        zh: '关于今天的一句话。不必是什么大事，也没有人会看到。',
       },
       minutes: 3,
       outside: false,
     },
     {
       key: 'short-walk',
-      title: { en: 'Walk to the end of the road', th: 'เดินไปสุดถนน' },
+      title: { en: 'Walk to the end of the road', th: 'เดินไปสุดถนน', zh: '走到路的尽头' },
       detail: {
         en: 'There and back. Not for the steps, and it does not count towards anything.',
         th: 'ไปแล้วกลับ ไม่ใช่เพื่อนับก้าว และไม่ถูกนับรวมกับอะไรทั้งนั้น',
+        zh: '走过去再走回来。不是为了步数，也不计入任何东西。',
       },
       minutes: 10,
       outside: true,
@@ -117,40 +121,44 @@ const STEPS: Record<MoodKey, GentleStep[]> = {
   tense: [
     {
       key: 'breathe',
-      title: { en: 'Breathe out slowly, six times', th: 'หายใจออกช้าๆ หกครั้ง' },
+      title: { en: 'Breathe out slowly, six times', th: 'หายใจออกช้าๆ หกครั้ง', zh: '慢慢呼气，六次' },
       detail: {
         en: 'Longer out than in. That is the whole instruction.',
         th: 'ให้หายใจออกยาวกว่าหายใจเข้า เท่านี้ทั้งหมด',
+        zh: '呼气比吸气长。就这么多。',
       },
       minutes: 2,
       outside: false,
     },
     {
       key: 'put-it-down',
-      title: { en: 'Put the phone down', th: 'วางโทรศัพท์' },
+      title: { en: 'Put the phone down', th: 'วางโทรศัพท์', zh: '放下手机' },
       detail: {
         en: 'Face down, out of reach, for as long as you can stand. This app included.',
         th: 'คว่ำหน้าจอ วางให้พ้นมือ นานเท่าที่ไหว รวมถึงแอปนี้ด้วย',
+        zh: '屏幕朝下，放到够不着的地方，能放多久放多久。这个应用也一样。',
       },
       minutes: 15,
       outside: false,
     },
     {
       key: 'listen',
-      title: { en: 'Listen to what is around you', th: 'ฟังเสียงรอบตัว' },
+      title: { en: 'Listen to what is around you', th: 'ฟังเสียงรอบตัว', zh: '听听周围的声音' },
       detail: {
         en: 'Name three sounds without doing anything about them.',
         th: 'บอกชื่อเสียงที่ได้ยินสามอย่าง โดยไม่ต้องทำอะไรกับมัน',
+        zh: '说出三种听到的声音，不用去管它们。',
       },
       minutes: 5,
       outside: false,
     },
     {
       key: 'green-space',
-      title: { en: 'Go where it is quieter', th: 'ไปที่ที่เงียบกว่านี้' },
+      title: { en: 'Go where it is quieter', th: 'ไปที่ที่เงียบกว่านี้', zh: '去更安静的地方' },
       detail: {
         en: 'Somewhere with trees and fewer people. The app can name the nearest one it has actually measured.',
         th: 'ที่ที่มีต้นไม้และคนน้อยกว่า แอปบอกที่ใกล้ที่สุดที่วัดค่าจริงไว้ได้',
+        zh: '有树、人更少的地方。应用可以说出离你最近、且确实测量过的一处。',
       },
       minutes: 20,
       outside: true,
@@ -183,10 +191,12 @@ export const SUPPORT_LINE = {
   name: {
     en: 'Department of Mental Health helpline',
     th: 'สายด่วนสุขภาพจิต กรมสุขภาพจิต',
+    zh: '心理健康厅心理健康热线',
   },
   note: {
     en: 'Free, any hour. You do not have to be in a crisis to call it.',
     th: 'โทรฟรี ตลอด 24 ชั่วโมง ไม่ต้องรอให้เรื่องหนักถึงโทรได้',
+    zh: '免费，全天任何时间。不必等到危急时刻才打。',
   },
   /** Where the number came from, and when it was last read. Same discipline as emergency.ts. */
   source: 'https://dmh.go.th',

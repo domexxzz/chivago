@@ -81,26 +81,30 @@ export interface MonsterSpecies {
 export const MONSTERS: Record<MonsterKey, MonsterSpecies> = {
   smog: {
     key: 'smog',
-    name: { en: 'Smog', th: 'หมอกควัน' },
+    name: { en: 'Smog', th: 'หมอกควัน', zh: '烟霾' },
     what: {
       en: 'The air reading here today, not an animal.',
       th: 'ค่าอากาศที่วัดได้ที่นี่วันนี้ ไม่ใช่สัตว์',
+      zh: '是这里今天的空气读数，不是动物。',
     },
     cleansedBy: {
       en: 'Walk instead of riding, and finish a green quest here.',
       th: 'เดินแทนการใช้รถ และทำภารกิจสีเขียวที่นี่ให้จบ',
+      zh: '用走路代替坐车，并在这里完成一个绿色任务。',
     },
   },
   plastic: {
     key: 'plastic',
-    name: { en: 'Plastic bag ghost', th: 'ผีถุงพลาสติก' },
+    name: { en: 'Plastic bag ghost', th: 'ผีถุงพลาสติก', zh: '塑料袋幽灵' },
     what: {
       en: 'A clean-up a host has opened here.',
       th: 'งานเก็บขยะที่เจ้าภาพเปิดไว้ที่นี่',
+      zh: '是主办方在这里开起的一场清理活动。',
     },
     cleansedBy: {
       en: 'Collect what is here, and let the host check it.',
       th: 'เก็บของที่นี่ แล้วให้เจ้าภาพตรวจ',
+      zh: '把这里的东西捡起来，再让主办方检查。',
     },
   },
 };
@@ -135,6 +139,7 @@ export function monstersAt(signals: PlaceSignals): {
       because: {
         en: `Air measured at ${signals.aqi} AQI here, over ${SMOG_AQI}.`,
         th: `วัดอากาศได้ ${signals.aqi} AQI ที่นี่ สูงกว่า ${SMOG_AQI}`,
+        zh: `这里测得空气 ${signals.aqi} AQI，高于 ${SMOG_AQI}。`,
       },
     });
   }
@@ -145,6 +150,7 @@ export function monstersAt(signals: PlaceSignals): {
       because: {
         en: 'A host has an open clean-up here.',
         th: 'เจ้าภาพเปิดงานเก็บขยะไว้ที่นี่',
+        zh: '有主办方在这里开了一场清理活动。',
       },
     });
   }

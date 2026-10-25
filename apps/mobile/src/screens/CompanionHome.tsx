@@ -40,10 +40,10 @@ import { gameRadius, gameShadow } from '@chivago/tokens';
 import { t } from '../i18n/locale.ts';
 
 /** The three stages, named. Exported: the wallet lists the same creatures. */
-export const STAGE_LABEL: Record<Companion['stage'], { en: string; th: string }> = {
-  egg: { en: 'Egg', th: 'ไข่' },
-  hatchling: { en: 'Hatchling', th: 'ลูกอ่อน' },
-  grown: { en: 'Grown', th: 'โตเต็มวัย' },
+export const STAGE_LABEL: Record<Companion['stage'], { en: string; th: string; zh?: string }> = {
+  egg: { en: 'Egg', th: 'ไข่', zh: '蛋' },
+  hatchling: { en: 'Hatchling', th: 'ลูกอ่อน', zh: '幼崽' },
+  grown: { en: 'Grown', th: 'โตเต็มวัย', zh: '成年' },
 };
 
 export function CompanionHomeScreen({
@@ -76,7 +76,7 @@ export function CompanionHomeScreen({
         }}
       >
         <OceanBackdrop compact />
-        <IconButton inverted onPress={onBack} accessibilityLabel={t({ en: 'Back to the collection', th: 'กลับไปที่คอลเลกชัน' })}>
+        <IconButton inverted onPress={onBack} accessibilityLabel={t({ en: 'Back to the collection', th: 'กลับไปที่คอลเลกชัน', zh: '返回收藏' })}>
           <ChevronLeft size={16} color="#FFFFFF" strokeWidth={2} />
         </IconButton>
         <Label size={10} tracking={0.16} colour="#D5F6FF">{`${t(species.habitat)}`}</Label>
@@ -119,7 +119,7 @@ export function CompanionHomeScreen({
         <CreatureScene
           species={species.key}
           stage={stage}
-          label={`${stage === 'egg' ? t(species.eggName) : t(species.name)}, ${t(STAGE_LABEL[stage])}. ${t({ en: 'Tap to say hello', th: 'แตะเพื่อทักทาย' })}`}
+          label={`${stage === 'egg' ? t(species.eggName) : t(species.name)}, ${t(STAGE_LABEL[stage])}. ${t({ en: 'Tap to say hello', th: 'แตะเพื่อทักทาย', zh: '轻点打招呼' })}`}
         />
 
         {/*
@@ -149,7 +149,7 @@ export function CompanionHomeScreen({
             marginTop: 12, marginHorizontal: gutter, borderRadius: gameRadius.panel,
           }}
         >
-          <Label size={9} tracking={0.14} colour={color.gold}>{t({ en: 'Next', th: 'ต่อไป' })}</Label>
+          <Label size={9} tracking={0.14} colour={color.gold}>{t({ en: 'Next', th: 'ต่อไป', zh: '接下来' })}</Label>
           {/* An instruction, not a receipt: "do this next" has not happened yet. */}
           <TrayLine>{t(nextStep)}</TrayLine>
         </Tray>
@@ -177,9 +177,11 @@ export function CompanionHomeScreen({
           <Action
             label="Go there"
             thai={`ไปที่ ${habitat.name.th}`}
+            chinese={`前往 ${habitat.name.zh ?? habitat.name.en}`}
             detail={t({
               en: `${t(habitat.name)} · ${evidence.visitDays} ${evidence.visitDays === 1 ? 'day' : 'days'} so far`,
               th: `${t(habitat.name)} · ${evidence.visitDays} วันแล้ว`,
+              zh: `${t(habitat.name)} · 已去过 ${evidence.visitDays} 天`,
             })}
             onPress={() => onOpenPlace(habitat.id)}
           />
@@ -187,15 +189,18 @@ export function CompanionHomeScreen({
         <Action
           label="Find a quest here"
           thai="หาภารกิจในพื้นที่นี้"
+          chinese="在这里找任务"
           detail={
             grown
               ? t({
                 en: 'Already grown — a verified quest still adds Green Points',
                 th: 'โตเต็มวัยแล้ว — ภารกิจที่ผ่านการตรวจยังได้แต้มสีเขียวเพิ่ม',
+                zh: '已经长大了 — 已验证的任务仍会增加绿色积分',
               })
               : t({
                 en: 'A host-verified quest is the only thing that grows a companion',
                 th: 'มีเพียงภารกิจที่ผู้จัดตรวจแล้วเท่านั้นที่ทำให้เพื่อนร่วมทางโตขึ้น',
+                zh: '只有经主办方验证的任务才能让伙伴成长',
               })
           }
           onPress={onFindQuest}
@@ -239,17 +244,19 @@ function HabitatCondition({
         borderWidth: 1, borderColor: '#DCEFF5',
       }]}
     >
-      <Label size={9} tracking={0.14} colour={color.neutral600}>{t({ en: 'Its home today', th: 'ถิ่นอาศัยวันนี้' })}</Label>
+      <Label size={9} tracking={0.14} colour={color.neutral600}>{t({ en: 'Its home today', th: 'ถิ่นอาศัยวันนี้', zh: '它今天的家园' })}</Label>
 
       <Meter
         label="Air"
         thai="อากาศ"
+        chinese="空气"
         value={air}
         reading={`${habitat.metrics.aqi} AQI`}
       />
       <Meter
         label="Room to move"
         thai="ความพลุกพล่าน"
+        chinese="活动空间"
         value={room}
         reading={`${t(crowd)} · ${habitat.metrics.crowdDensity.toFixed(1)} per 100 m²`}
       />
@@ -268,12 +275,12 @@ function HabitatCondition({
 }
 
 function Meter({
-  label, thai, value, reading,
-}: { label: string; thai: string; value: number; reading: string }) {
+  label, thai, chinese, value, reading,
+}: { label: string; thai: string; chinese?: string; value: number; reading: string }) {
   return (
     <View style={{ marginTop: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
-        <Heading size={13}>{thai ? t({ en: label, th: thai }) : label}</Heading>
+        <Heading size={13}>{thai ? t({ en: label, th: thai, zh: chinese }) : label}</Heading>
         <Label
           size={9}
           tracking={0.04}
@@ -306,8 +313,8 @@ function Meter({
 }
 
 function Action({
-  label, thai, detail, onPress,
-}: { label: string; thai: string; detail: string; onPress: () => void }) {
+  label, thai, chinese, detail, onPress,
+}: { label: string; thai: string; chinese?: string; detail: string; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
@@ -321,7 +328,7 @@ function Action({
       }]}
     >
       <View style={{ flex: 1 }}>
-        <Heading size={15} colour={color.brand}>{thai ? t({ en: label, th: thai }) : label}</Heading>
+        <Heading size={15} colour={color.brand}>{thai ? t({ en: label, th: thai, zh: chinese }) : label}</Heading>
         <Label
           size={9}
           tracking={0.04}

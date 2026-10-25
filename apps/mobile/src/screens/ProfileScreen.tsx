@@ -100,15 +100,15 @@ export function GuestProfileScreen({
           <View style={{ width: 66, height: 66, borderRadius: 33, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 2, borderColor: '#BCEEF7', alignItems: 'center', justifyContent: 'center' }}>
             <UserRound size={32} color="#FFFFFF" />
           </View>
-          <Heading size={22} colour="#FFFFFF" style={{ marginTop: 8 }}>{t({ en: 'Profile', th: 'โปรไฟล์' })}</Heading>
-          <Label size={10} colour="#E0F7FA" style={{ marginTop: 4 }}>{t({ en: 'Browsing as a guest', th: 'เข้าชมแบบผู้เยี่ยมชม' })}</Label>
+          <Heading size={22} colour="#FFFFFF" style={{ marginTop: 8 }}>{t({ en: 'Profile', th: 'โปรไฟล์', zh: '个人资料' })}</Heading>
+          <Label size={10} colour="#E0F7FA" style={{ marginTop: 4 }}>{t({ en: 'Browsing as a guest', th: 'เข้าชมแบบผู้เยี่ยมชม', zh: '以访客身份浏览' })}</Label>
         </View>
       </View>
 
       <View style={{ margin: gutter, marginTop: -20, padding: 18, gap: 14, backgroundColor: color.surface, borderRadius: radius.md, borderWidth: 1, borderColor: '#DCEFF5', ...shadow.card }}>
         <View>
-          <Heading size={17}>{t({ en: 'Language', th: 'ภาษา' })}</Heading>
-          <Body size={13} colour={color.neutral600} style={{ marginTop: 4 }}>{t({ en: 'Choose the language used throughout the app.', th: 'เลือกภาษาที่ใช้แสดงในแอป' })}</Body>
+          <Heading size={17}>{t({ en: 'Language', th: 'ภาษา', zh: '语言' })}</Heading>
+          <Body size={13} colour={color.neutral600} style={{ marginTop: 4 }}>{t({ en: 'Choose the language used throughout the app.', th: 'เลือกภาษาที่ใช้แสดงในแอป', zh: '选择整个应用使用的语言。' })}</Body>
         </View>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           {LOCALES.map((option) => {
@@ -128,7 +128,7 @@ export function GuestProfileScreen({
           })}
         </View>
         <View style={{ padding: 12, borderRadius: radius.sm, backgroundColor: '#F0F9FD' }}>
-          <Body size={13} colour={color.neutral700}>{t({ en: 'Sign in or create an account to view your profile details and use account actions.', th: 'เข้าสู่ระบบหรือสมัครสมาชิกเพื่อดูข้อมูลโปรไฟล์และใช้งานต่างๆ ในบัญชี' })}</Body>
+          <Body size={13} colour={color.neutral700}>{t({ en: 'Sign in or create an account to view your profile details and use account actions.', th: 'เข้าสู่ระบบหรือสมัครสมาชิกเพื่อดูข้อมูลโปรไฟล์และใช้งานต่างๆ ในบัญชี', zh: '登录或注册账号，即可查看你的资料详情并使用账号功能。' })}</Body>
         </View>
         <Button label="Sign in" thai="เข้าสู่ระบบ" onPress={onSignIn} />
         <Button label="Create an account" thai="สมัครสมาชิก" variant="secondary" onPress={onRegister} />
@@ -220,7 +220,7 @@ export function ProfileScreen({
           <Pressable
             onPress={() => setLogoutModalVisible(true)}
             accessibilityRole="button"
-            accessibilityLabel={t({ en: 'Log out', th: 'ออกจากระบบ' })}
+            accessibilityLabel={t({ en: 'Log out', th: 'ออกจากระบบ', zh: '退出登录' })}
             style={({ pressed }) => [
               shadow.card,
               {
@@ -251,7 +251,7 @@ export function ProfileScreen({
               <LogOut size={15} color="#DC2626" strokeWidth={2.2} />
             </View>
             <Label size={11} tracking={0.08} colour="#DC2626">
-              {t({ en: 'Log Out', th: 'ออกจากระบบ' })}
+              {t({ en: 'Log Out', th: 'ออกจากระบบ', zh: '退出登录' })}
             </Label>
           </Pressable>
         </View>
@@ -304,13 +304,14 @@ export function ProfileScreen({
             </View>
 
             <Heading size={18} colour={color.neutral900} style={{ textAlign: 'center', marginBottom: 8 }}>
-              {t({ en: 'Log Out', th: 'ยืนยันการออกจากระบบ' })}
+              {t({ en: 'Log Out', th: 'ยืนยันการออกจากระบบ', zh: '退出登录' })}
             </Heading>
 
             <Body size={13} colour={color.neutral600} style={{ textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
               {t({
                 en: 'Are you sure you want to log out of your Chivargo account on this device?',
                 th: 'คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบบัญชี Chivargo บนอุปกรณ์นี้?',
+                zh: '确定要在这台设备上退出你的 ChivaGo 账号吗？',
               })}
             </Body>
 
@@ -318,7 +319,7 @@ export function ProfileScreen({
               <Pressable
                 onPress={() => setLogoutModalVisible(false)}
                 accessibilityRole="button"
-                accessibilityLabel={t({ en: 'Cancel', th: 'ยกเลิก' })}
+                accessibilityLabel={t({ en: 'Cancel', th: 'ยกเลิก', zh: '取消' })}
                 style={({ pressed }) => [
                   {
                     flex: 1,
@@ -334,7 +335,7 @@ export function ProfileScreen({
                 ]}
               >
                 <Label size={11} tracking={0.06} colour={color.neutral700}>
-                  {t({ en: 'Cancel', th: 'ยกเลิก' })}
+                  {t({ en: 'Cancel', th: 'ยกเลิก', zh: '取消' })}
                 </Label>
               </Pressable>
 
@@ -344,7 +345,7 @@ export function ProfileScreen({
                   onLogout?.();
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={t({ en: 'Confirm Log Out', th: 'ยืนยันออกจากระบบ' })}
+                accessibilityLabel={t({ en: 'Confirm Log Out', th: 'ยืนยันออกจากระบบ', zh: '确认退出登录' })}
                 style={({ pressed }) => [
                   {
                     flex: 1,
@@ -358,7 +359,7 @@ export function ProfileScreen({
                 ]}
               >
                 <Label size={11} tracking={0.06} colour="#FFFFFF">
-                  {t({ en: 'Log Out', th: 'ออกจากระบบ' })}
+                  {t({ en: 'Log Out', th: 'ออกจากระบบ', zh: '退出登录' })}
                 </Label>
               </Pressable>
             </View>
@@ -438,8 +439,8 @@ function Identity({
             )}
             <Label size={10} tracking={0.08} colour={isOperator ? '#006A83' : '#028090'}>
               {isOperator
-                ? t({ en: 'Business operator · Partner host', th: 'ผู้ประกอบการ / ร้านค้า' })
-                : t({ en: 'Traveller', th: 'นักท่องเที่ยว' })}
+                ? t({ en: 'Business operator · Partner host', th: 'ผู้ประกอบการ / ร้านค้า', zh: '商家 · 合作主办方' })
+                : t({ en: 'Traveller', th: 'นักท่องเที่ยว', zh: '旅行者' })}
             </Label>
           </View>
 
@@ -447,7 +448,7 @@ function Identity({
             <>
               <Heading size={18} tracking={-0.3}>{businessName}</Heading>
               <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>
-                {t({ en: `Owner · Host: ${name ?? 'Business operator'}`, th: `เจ้าของ / ผู้ดูแล: ${name ?? 'ผู้ประกอบการ'}` })}
+                {t({ en: `Owner · Host: ${name ?? 'Business operator'}`, th: `เจ้าของ / ผู้ดูแล: ${name ?? 'ผู้ประกอบการ'}`, zh: `业主 · 主办方：${name ?? 'Business operator'}` })}
               </Body>
             </>
           ) : (
@@ -483,23 +484,23 @@ function ProfileHero({ width, onBack, onOpenAccount, onOpenEditProfile, name, bu
     <View style={{ height: width >= 768 ? 320 : 330, backgroundColor: '#079bd0', overflow: 'hidden', zIndex: 2 }}>
       <OceanBackdrop compact />
       <View style={{ position: 'absolute', top: 12, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <IconButton inverted onPress={onBack} accessibilityLabel={t({ en: 'Back', th: 'ย้อนกลับ' })}><ChevronLeft size={18} color="#FFFFFF" /></IconButton>
-        <Label size={11} colour="#FFFFFF" style={{ fontSize: 16, letterSpacing: 0 }}>{t({ en: 'Profile', th: 'โปรไฟล์' })}</Label>
+        <IconButton inverted onPress={onBack} accessibilityLabel={t({ en: 'Back', th: 'ย้อนกลับ', zh: '返回' })}><ChevronLeft size={18} color="#FFFFFF" /></IconButton>
+        <Label size={11} colour="#FFFFFF" style={{ fontSize: 16, letterSpacing: 0 }}>{t({ en: 'Profile', th: 'โปรไฟล์', zh: '个人资料' })}</Label>
         <IconButton inverted onPress={onOpenAccount} accessibilityLabel="Account and devices"><Settings size={18} color="#FFFFFF" /></IconButton>
       </View>
       <View style={{ position: 'absolute', top: width >= 768 ? 64 : 72, left: 0, right: 0, alignItems: 'center' }}>
         <View style={{ width: 84, height: 84, borderRadius: 42, padding: 4, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#22D3EE' }}>
           <Avatar lead={lead} isOperator={isOperator} profilePhotoUrl={profilePhotoUrl} />
         </View>
-        <Heading size={22} colour="#FFFFFF" style={{ marginTop: 4 }}>{isOperator ? (businessName ?? t({ en: 'Business Partner', th: 'ผู้ประกอบการ' })) : (name ?? t({ en: 'Traveller', th: 'นักท่องเที่ยว' }))}</Heading>
+        <Heading size={22} colour="#FFFFFF" style={{ marginTop: 4 }}>{isOperator ? (businessName ?? t({ en: 'Business Partner', th: 'ผู้ประกอบการ', zh: '商家合作伙伴' })) : (name ?? t({ en: 'Traveller', th: 'นักท่องเที่ยว', zh: '旅行者' }))}</Heading>
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 5 }}>
-          <View style={{ backgroundColor: isOperator ? '#F59E0B' : 'rgba(255,255,255,0.2)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 }}><Label size={11} colour="#FFFFFF">{isOperator ? t({ en: '♛ PARTNER', th: '♛ พาร์ทเนอร์' }) : t({ en: '🏅 NEWCOMER', th: '🏅 ผู้มาใหม่' })}</Label></View>
-          <View style={{ backgroundColor: 'rgba(249,115,22,0.75)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 }}><Label size={11} colour="#FFFFFF">⚡ {t({ en: 'LEVEL', th: 'เลเวล' })} {p?.level ?? 1}</Label></View>
+          <View style={{ backgroundColor: isOperator ? '#F59E0B' : 'rgba(255,255,255,0.2)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 }}><Label size={11} colour="#FFFFFF">{isOperator ? t({ en: '♛ PARTNER', th: '♛ พาร์ทเนอร์', zh: '♛ 合作伙伴' }) : t({ en: '🏅 NEWCOMER', th: '🏅 ผู้มาใหม่', zh: '🏅 新人' })}</Label></View>
+          <View style={{ backgroundColor: 'rgba(249,115,22,0.75)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 }}><Label size={11} colour="#FFFFFF">⚡ {t({ en: 'LEVEL', th: 'เลเวล', zh: '等级' })} {p?.level ?? 1}</Label></View>
         </View>
         <Body size={13} colour="#E0F2FE" style={{ marginTop: 5, fontSize: 12 }}>Level {p?.level ?? 1} · {(p?.exp ?? 0).toLocaleString('en-US')} EXP</Body>
-        {isOperator ? <Body size={13} colour="#FFFFFF" style={{ marginTop: 3, fontSize: 11, opacity: 0.85 }}>{t({ en: 'Business dashboard', th: 'แดชบอร์ดผู้ประกอบการ' })}</Body> : null}
-        <Pressable onPress={onOpenEditProfile} accessibilityRole="button" accessibilityLabel={t({ en: 'Edit profile', th: 'แก้ไขโปรไฟล์' })} style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#123B64', borderWidth: 2, borderColor: '#E6C76A', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 7 }}>
-          <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '700' }}>✎ {t({ en: 'Edit profile', th: 'แก้ไขโปรไฟล์' })}</Text>
+        {isOperator ? <Body size={13} colour="#FFFFFF" style={{ marginTop: 3, fontSize: 11, opacity: 0.85 }}>{t({ en: 'Business dashboard', th: 'แดชบอร์ดผู้ประกอบการ', zh: '商家后台' })}</Body> : null}
+        <Pressable onPress={onOpenEditProfile} accessibilityRole="button" accessibilityLabel={t({ en: 'Edit profile', th: 'แก้ไขโปรไฟล์', zh: '编辑资料' })} style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#123B64', borderWidth: 2, borderColor: '#E6C76A', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 7 }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '700' }}>✎ {t({ en: 'Edit profile', th: 'แก้ไขโปรไฟล์', zh: '编辑资料' })}</Text>
         </Pressable>
       </View>
     </View>
@@ -536,10 +537,10 @@ function RoleStatusCard({
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Label size={9} tracking={0.06} colour={isOperator ? '#006A83' : '#009DB7'} style={{ flexShrink: 1 }}>
-              {isOperator ? t({ en: 'Business profile', th: 'ผู้ประกอบการ / ข้อมูลสถานประกอบการ' }) : t({ en: 'Traveller profile', th: 'ประเภทผู้ใช้งาน' })}
+              {isOperator ? t({ en: 'Business profile', th: 'ผู้ประกอบการ / ข้อมูลสถานประกอบการ', zh: '商家资料' }) : t({ en: 'Traveller profile', th: 'ประเภทผู้ใช้งาน', zh: '旅行者资料' })}
             </Label>
             <Heading size={15} tracking={-0.2} style={{ flexShrink: 1, marginTop: 2 }}>
-              {isOperator ? t({ en: 'Chivargo Business Partner', th: 'Chivargo Business Partner · ผู้ประกอบการ' }) : t({ en: 'Chivargo Traveller', th: 'Chivargo Traveller · นักท่องเที่ยว' })}
+              {isOperator ? t({ en: 'Chivargo Business Partner', th: 'Chivargo Business Partner · ผู้ประกอบการ', zh: 'ChivaGo 商家合作伙伴' }) : t({ en: 'Chivargo Traveller', th: 'Chivargo Traveller · นักท่องเที่ยว', zh: 'ChivaGo 旅行者' })}
             </Heading>
           </View>
         </View>
@@ -559,7 +560,7 @@ function RoleStatusCard({
             <CheckCircle2 size={12} color="#0284C7" strokeWidth={2.4} />
           )}
           <Label size={9} tracking={0.06} colour={isOperator ? '#047857' : '#0369A1'}>
-            {isOperator ? t({ en: 'Registered', th: 'ลงทะเบียนแล้ว' }) : t({ en: 'Traveller', th: 'นักท่องเที่ยว' })}
+            {isOperator ? t({ en: 'Registered', th: 'ลงทะเบียนแล้ว', zh: '已注册' }) : t({ en: 'Traveller', th: 'นักท่องเที่ยว', zh: '旅行者' })}
           </Label>
         </View>
       </View>
@@ -572,7 +573,7 @@ function RoleStatusCard({
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
             <Building2 size={15} color="#009DB7" strokeWidth={2} />
             <Body size={13} colour={color.neutral800} style={{ flex: 1, fontWeight: '600' }}>
-              {t({ en: `Business name: ${businessName}`, th: `ชื่อธุรกิจ: ${businessName}` })}
+              {t({ en: `Business name: ${businessName}`, th: `ชื่อธุรกิจ: ${businessName}`, zh: `商家名称：${businessName}` })}
             </Body>
           </View>
         ) : null}
@@ -580,20 +581,20 @@ function RoleStatusCard({
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
             <UserRound size={15} color="#66869D" strokeWidth={2} />
             <Body size={13} colour={color.neutral700} style={{ flex: 1 }}>
-              {isOperator ? t({ en: `Contact person: ${name}`, th: `ผู้รับผิดชอบ: ${name}` }) : t({ en: `Name: ${name}`, th: `ชื่อ: ${name}` })}
+              {isOperator ? t({ en: `Contact person: ${name}`, th: `ผู้รับผิดชอบ: ${name}`, zh: `联系人：${name}` }) : t({ en: `Name: ${name}`, th: `ชื่อ: ${name}`, zh: `姓名：${name}` })}
             </Body>
           </View>
         ) : null}
         {phone ? (
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
             <Phone size={15} color="#66869D" strokeWidth={2} />
-            <Body size={13} colour={color.neutral700} style={{ flex: 1 }}>{isOperator ? t({ en: `Business phone: ${phone}`, th: `เบอร์โทรศัพท์ร้านค้า: ${phone}` }) : t({ en: `Phone: ${phone}`, th: `เบอร์โทรศัพท์: ${phone}` })}</Body>
+            <Body size={13} colour={color.neutral700} style={{ flex: 1 }}>{isOperator ? t({ en: `Business phone: ${phone}`, th: `เบอร์โทรศัพท์ร้านค้า: ${phone}`, zh: `商家电话：${phone}` }) : t({ en: `Phone: ${phone}`, th: `เบอร์โทรศัพท์: ${phone}`, zh: `电话：${phone}` })}</Body>
           </View>
         ) : null}
         {email ? (
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
             <Mail size={15} color="#66869D" strokeWidth={2} />
-            <Body size={13} colour={color.neutral700} style={{ flex: 1 }}>{isOperator ? t({ en: `Business email: ${email}`, th: `อีเมลร้านค้า: ${email}` }) : t({ en: `Email: ${email}`, th: `อีเมล: ${email}` })}</Body>
+            <Body size={13} colour={color.neutral700} style={{ flex: 1 }}>{isOperator ? t({ en: `Business email: ${email}`, th: `อีเมลร้านค้า: ${email}`, zh: `商家邮箱：${email}` }) : t({ en: `Email: ${email}`, th: `อีเมล: ${email}`, zh: `邮箱：${email}` })}</Body>
           </View>
         ) : null}
       </View>
@@ -608,10 +609,12 @@ function RoleStatusCard({
             ? t({
                 en: 'Your business is linked to Chivargo community network. Ready to accept quests, check-ins, and sustainable visitor rewards.',
                 th: 'สถานประกอบการของท่านเชื่อมต่อกับระบบเครือข่าย Chivargo พร้อมรับการเช็กอิน ตรวจสอบภารกิจ และมอบสิทธิประโยชน์ร่วมกับชุมชนเกาะสีชัง',
+                zh: '你的店铺已接入 ChivaGo 社区网络，可以承接任务、接受签到，并发放可持续旅行的奖励。',
               })
             : t({
                 en: 'Participate in island wellness activities, care for the environment, and unlock community rewards across Koh Sichang.',
                 th: 'ร่วมเดินทางอย่างรับผิดชอบ สัมผัสวิถีชีวิตเกาะสีชัง สะสมคะแนนสุขภาพ และรับสิทธิประโยชน์จากร้านค้าชุมชน',
+                zh: '参加岛上的康养活动，爱护环境，在锡昌岛各处解锁社区奖励。',
               })}
         </Body>
       </View>
@@ -642,7 +645,7 @@ function OperatorMetricFigures() {
           0
         </Heading>
         <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
-          {t({ en: 'Verified quests', th: 'ภารกิจที่รับรองแล้ว' })}
+          {t({ en: 'Verified quests', th: 'ภารกิจที่รับรองแล้ว', zh: '已验证的任务' })}
         </Label>
       </View>
 
@@ -666,7 +669,7 @@ function OperatorMetricFigures() {
           0
         </Heading>
         <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
-          {t({ en: 'Traveller check-ins', th: 'นักท่องเที่ยวเช็คอิน' })}
+          {t({ en: 'Traveller check-ins', th: 'นักท่องเที่ยวเช็คอิน', zh: '旅行者签到' })}
         </Label>
       </View>
 
@@ -690,7 +693,7 @@ function OperatorMetricFigures() {
           0
         </Heading>
         <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
-          {t({ en: 'Partner rating', th: 'คะแนนพาร์ทเนอร์' })}
+          {t({ en: 'Partner rating', th: 'คะแนนพาร์ทเนอร์', zh: '合作伙伴评分' })}
         </Label>
       </View>
     </View>
@@ -701,18 +704,18 @@ function OperatorTools({ onOpenAccount, onOpenShops }: { onOpenAccount: () => vo
   return (
     <Card>
       <Label size={10} tracking={0.12} colour="#009DB7" style={{ marginBottom: 12 }}>
-        {t({ en: 'Business tools', th: 'เครื่องมือสำหรับผู้ประกอบการ' })}
+        {t({ en: 'Business tools', th: 'เครื่องมือสำหรับผู้ประกอบการ', zh: '商家工具' })}
       </Label>
 
       <View style={{ gap: 10 }}>
         <Pressable onPress={onOpenShops} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.sm, backgroundColor: '#E8F7FA', borderWidth: 1, borderColor: '#9ADCE9' }}>
           <Store size={24} color="#0077B6" />
-          <View style={{ flex: 1 }}><Heading size={15} colour="#123B64">{t({ en: 'Manage my businesses', th: 'จัดการร้านค้าของฉัน' })}</Heading><Body size={13} colour="#52748A">{t({ en: 'Add a business, update its details, and reply to reviews.', th: 'เพิ่มร้านในพื้นที่ แก้ไขรูปและข้อมูล ตอบรีวิว' })}</Body></View>
+          <View style={{ flex: 1 }}><Heading size={15} colour="#123B64">{t({ en: 'Manage my businesses', th: 'จัดการร้านค้าของฉัน', zh: '管理我的店铺' })}</Heading><Body size={13} colour="#52748A">{t({ en: 'Add a business, update its details, and reply to reviews.', th: 'เพิ่มร้านในพื้นที่ แก้ไขรูปและข้อมูล ตอบรีวิว', zh: '添加店铺、更新资料、回复评价。' })}</Body></View>
         </Pressable>
         <Pressable
           onPress={onOpenAccount}
           accessibilityRole="button"
-          accessibilityLabel={t({ en: 'Verify traveller quests', th: 'รับรองภารกิจนักท่องเที่ยว' })}
+          accessibilityLabel={t({ en: 'Verify traveller quests', th: 'รับรองภารกิจนักท่องเที่ยว', zh: '验证旅行者的任务' })}
           style={({ pressed }) => [
             {
               flexDirection: 'row',
@@ -731,10 +734,10 @@ function OperatorTools({ onOpenAccount, onOpenShops }: { onOpenAccount: () => vo
           </View>
           <View style={{ flex: 1 }}>
             <Heading size={14} colour="#183B56">
-              {t({ en: 'Verify traveller quests', th: 'รับรองภารกิจนักท่องเที่ยว' })}
+              {t({ en: 'Verify traveller quests', th: 'รับรองภารกิจนักท่องเที่ยว', zh: '验证旅行者的任务' })}
             </Heading>
             <Body size={13} colour="#66869D">
-              {t({ en: 'Review photos and award Green points for completed activities.', th: 'ตรวจรูปภาพและปล่อยคะแนนกรีนพอยท์ให้กับผู้มาทำกิจกรรม' })}
+              {t({ en: 'Review photos and award Green points for completed activities.', th: 'ตรวจรูปภาพและปล่อยคะแนนกรีนพอยท์ให้กับผู้มาทำกิจกรรม', zh: '审核照片，为已完成的活动发放绿色积分。' })}
             </Body>
           </View>
         </Pressable>
@@ -742,7 +745,7 @@ function OperatorTools({ onOpenAccount, onOpenShops }: { onOpenAccount: () => vo
         <Pressable
           onPress={onOpenAccount}
           accessibilityRole="button"
-          accessibilityLabel={t({ en: 'Traveller inquiries', th: 'คำถามจากนักท่องเที่ยว' })}
+          accessibilityLabel={t({ en: 'Traveller inquiries', th: 'คำถามจากนักท่องเที่ยว', zh: '旅行者的咨询' })}
           style={({ pressed }) => [
             {
               flexDirection: 'row',
@@ -761,10 +764,10 @@ function OperatorTools({ onOpenAccount, onOpenShops }: { onOpenAccount: () => vo
           </View>
           <View style={{ flex: 1 }}>
             <Heading size={14} colour="#183B56">
-              {t({ en: 'Traveller inquiries', th: 'คำถามและข้อความจากนักท่องเที่ยว' })}
+              {t({ en: 'Traveller inquiries', th: 'คำถามและข้อความจากนักท่องเที่ยว', zh: '旅行者的咨询' })}
             </Heading>
             <Body size={13} colour="#66869D">
-              {t({ en: 'Reply to questions about accommodation, food, or services.', th: 'ตอบกลับข้อความสอบถามเกี่ยวกับที่พัก อาหาร หรือบริการ' })}
+              {t({ en: 'Reply to questions about accommodation, food, or services.', th: 'ตอบกลับข้อความสอบถามเกี่ยวกับที่พัก อาหาร หรือบริการ', zh: '回复关于住宿、餐饮或服务的提问。' })}
             </Body>
           </View>
         </Pressable>
@@ -772,7 +775,7 @@ function OperatorTools({ onOpenAccount, onOpenShops }: { onOpenAccount: () => vo
         <Pressable
           onPress={onOpenAccount}
           accessibilityRole="button"
-          accessibilityLabel={t({ en: 'Manage offers and coupons', th: 'จัดการข้อเสนอและคูปอง' })}
+          accessibilityLabel={t({ en: 'Manage offers and coupons', th: 'จัดการข้อเสนอและคูปอง', zh: '管理优惠和优惠券' })}
           style={({ pressed }) => [
             {
               flexDirection: 'row',
@@ -791,10 +794,10 @@ function OperatorTools({ onOpenAccount, onOpenShops }: { onOpenAccount: () => vo
           </View>
           <View style={{ flex: 1 }}>
             <Heading size={14} colour="#183B56">
-              {t({ en: 'Manage offers and coupons', th: 'จัดการข้อเสนอและคูปองส่วนลด' })}
+              {t({ en: 'Manage offers and coupons', th: 'จัดการข้อเสนอและคูปองส่วนลด', zh: '管理优惠和优惠券' })}
             </Heading>
             <Body size={13} colour="#66869D">
-              {t({ en: 'Create coupons and promotions for visitors to the island.', th: 'ตั้งค่าคูปองและโปรโมชั่นเพื่อดึงดูดนักท่องเที่ยวบนเกาะ' })}
+              {t({ en: 'Create coupons and promotions for visitors to the island.', th: 'ตั้งค่าคูปองและโปรโมชั่นเพื่อดึงดูดนักท่องเที่ยวบนเกาะ', zh: '为上岛的旅行者创建优惠券和促销活动。' })}
             </Body>
           </View>
         </Pressable>

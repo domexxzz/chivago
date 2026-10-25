@@ -525,7 +525,7 @@ function PlaceList({
   return (
     <View style={{ minHeight: Math.min(height, 200), backgroundColor: color.neutral200, paddingHorizontal: 18, paddingVertical: 14 }}>
       <Label size={10} tracking={0.12} colour={color.neutral700}>
-        {t({ en: 'Places and shops in this area', th: 'สถานที่และร้านค้าในพื้นที่นี้' })}
+        {t({ en: 'Places and shops in this area', th: 'สถานที่และร้านค้าในพื้นที่นี้', zh: '该区域的地点和商家' })}
       </Label>
       {places.map((p) => (
         <Pressable
@@ -679,6 +679,7 @@ function ShapeNote() {
         {t({
           en: 'Stylised coastline. Pin positions are real coordinates.',
           th: 'เส้นชายฝั่งเป็นภาพประกอบ ตำแหน่งหมุดเป็นพิกัดจริง',
+          zh: '海岸线为示意图形，图钉位置为真实坐标。',
         })}
       </Label>
     </View>

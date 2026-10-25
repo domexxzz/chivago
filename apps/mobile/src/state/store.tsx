@@ -26,7 +26,7 @@ import { deviceUserId, setDeviceUser } from '../api/client.ts';
 import { deviceLocale } from '../i18n/locale.ts';
 import { motion } from '../theme/index.ts';
 import { t } from '../i18n/locale.ts';
-import type { WellnessProfile } from '@chivago/core';
+import type { Lang, WellnessProfile } from '@chivago/core';
 import { strings } from '@chivago/core';
 import { Share } from 'react-native';
 import * as Location from 'expo-location';
@@ -514,7 +514,7 @@ export function useNotifications(onOpen: (link: DeepLink) => void, enabled = tru
    * what the app does, is how you get a permanent no - and the OS only lets you
    * ask once.
    */
-  const enablePush = React.useCallback(async (locale: 'th' | 'en') => {
+  const enablePush = React.useCallback(async (locale: Lang) => {
     const result = await registerForPush(locale);
     setPushGranted(result.granted);
     tokenRef.current = result.token;

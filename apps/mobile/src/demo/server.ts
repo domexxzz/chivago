@@ -491,7 +491,7 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     const at = (id: unknown) => places.find((p) => p.id === id);
     const from = at((body as { from?: string }).from);
     const to = at((body as { to?: string }).to);
-    if (!from || !to) return { options: [], caveat: { en: 'Unknown place', th: 'ไม่รู้จักสถานที่' } };
+    if (!from || !to) return { options: [], caveat: { en: 'Unknown place', th: 'ไม่รู้จักสถานที่', zh: '未知地点' } };
     const way = (p: typeof from) => ({ id: p.id, name: p.name, lat: p.lat, lng: p.lng });
     return smartRoute(way(from) as never, way(to) as never, places.map(way) as never);
   },

@@ -40,9 +40,9 @@ export type EsgPillar = 'environmental' | 'social' | 'governance';
 export const ESG_PILLARS: EsgPillar[] = ['environmental', 'social', 'governance'];
 
 export const PILLAR_LABEL: Record<EsgPillar, Bilingual> = {
-  environmental: { en: 'Environmental', th: 'สิ่งแวดล้อม' },
-  social: { en: 'Social', th: 'สังคม' },
-  governance: { en: 'Governance', th: 'ธรรมาภิบาล' },
+  environmental: { en: 'Environmental', th: 'สิ่งแวดล้อม', zh: '环境' },
+  social: { en: 'Social', th: 'สังคม', zh: '社会' },
+  governance: { en: 'Governance', th: 'ธรรมาภิบาล', zh: '治理' },
 };
 
 /**
@@ -143,11 +143,13 @@ export interface EsgReport {
 export const ASSURANCE: Bilingual = {
   en: 'Every figure counts a submission approved by the named host who ran the activity, on a dated ledger entry that cannot be edited.',
   th: 'ทุกตัวเลขนับจากงานที่ผู้จัดกิจกรรมซึ่งระบุชื่อได้เป็นผู้ตรวจ และบันทึกไว้พร้อมวันที่ในระบบที่แก้ไขย้อนหลังไม่ได้',
+  zh: '每一个数字所计的，都是由具名主办方（即活动的实际组织者）核准的一次提交，并记录在一条不可修改的、带有日期的账目上。',
 };
 
 export const BOUNDARY: Bilingual = {
   en: 'Activity funded by this partner and verified between the dates shown. Work outside the period, or funded by others, is excluded.',
   th: 'เฉพาะกิจกรรมที่พันธมิตรรายนี้สนับสนุนและผ่านการตรวจภายในช่วงวันที่ระบุ กิจกรรมนอกช่วงเวลาหรือที่ผู้อื่นสนับสนุนไม่ถูกนับ',
+  zh: '仅限由本合作方出资、并在所示日期之间通过验证的活动。期间之外的、或由他人出资的工作均不计入。',
 };
 
 /**
@@ -161,14 +163,17 @@ export const NOT_CLAIMABLE: Bilingual[] = [
   {
     en: 'Carbon. Converting verified activity into tCO2e needs an emission factor this platform does not hold, and will not estimate.',
     th: 'คาร์บอน การแปลงกิจกรรมที่ตรวจแล้วเป็น tCO2e ต้องใช้ค่าสัมประสิทธิ์ที่แพลตฟอร์มนี้ไม่มี และจะไม่ประมาณเอาเอง',
+    zh: '碳。把已验证的活动换算成 tCO2e 需要一个本平台并不掌握的排放因子，本平台也不会自行估算。',
   },
   {
     en: 'Independent assurance. Verification is by the host who ran the activity, not by an accredited assurance provider under ISAE 3000.',
     th: 'การรับรองโดยผู้ตรวจสอบอิสระ การตรวจที่นี่ทำโดยผู้จัดกิจกรรม ไม่ใช่ผู้ให้บริการรับรองที่ได้รับการรับรองตาม ISAE 3000',
+    zh: '独立鉴证。这里的验证由组织该活动的主办方完成，而不是由依据 ISAE 3000 获得认可的鉴证机构完成。',
   },
   {
     en: 'Additionality. Nothing here establishes what would have happened without this funding.',
     th: 'ส่วนเพิ่มที่แท้จริง รายงานนี้ไม่ได้พิสูจน์ว่าถ้าไม่มีการสนับสนุนนี้ จะเกิดอะไรขึ้นหรือไม่',
+    zh: '额外性。这里没有任何内容能确立：若没有这笔出资，本来会发生什么。',
   },
 ];
 
@@ -260,6 +265,7 @@ export function esgHeadline(report: EsgReport): Bilingual {
     return {
       en: 'No activity has been verified in this period.',
       th: 'ยังไม่มีกิจกรรมที่ผ่านการตรวจในช่วงเวลานี้',
+      zh: '本期间内没有任何活动通过验证。',
     };
   }
   const people = report.participants;
@@ -267,5 +273,6 @@ export function esgHeadline(report: EsgReport): Bilingual {
   return {
     en: `${acts} ${acts === 1 ? 'activity' : 'activities'} verified by named hosts, involving ${people} ${people === 1 ? 'person' : 'people'}, with ${report.paidTHB.toLocaleString('en-US')} THB reaching community hosts.`,
     th: `กิจกรรมที่ผ่านการตรวจโดยผู้จัดที่ระบุชื่อได้ ${acts} รายการ มีผู้เข้าร่วม ${people} คน และมีเงิน ${report.paidTHB.toLocaleString('en-US')} บาทถึงมือผู้จัดในชุมชน`,
+    zh: `${acts} 项活动经具名主办方验证通过，共 ${people} 人参与，有 ${report.paidTHB.toLocaleString('en-US')} THB 到达社区主办方手中。`,
   };
 }

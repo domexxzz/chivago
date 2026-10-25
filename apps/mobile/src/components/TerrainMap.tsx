@@ -1246,8 +1246,8 @@ export function TerrainMap({
       const el = document.createElement('div');
       el.className = 'cg-stop';
       el.setAttribute('role', 'img');
-      const named = stop.name ? t(stop.name) : t({ en: 'Unnamed stop', th: 'ป้ายที่ยังไม่มีชื่อบนแผนที่' });
-      el.setAttribute('aria-label', `${t({ en: 'Bus stop', th: 'ป้ายรถ' })}: ${named} · ${stop.route}`);
+      const named = stop.name ? t(stop.name) : t({ en: 'Unnamed stop', th: 'ป้ายที่ยังไม่มีชื่อบนแผนที่', zh: '未命名站点' });
+      el.setAttribute('aria-label', `${t({ en: 'Bus stop', th: 'ป้ายรถ', zh: '公交站' })}: ${named} · ${stop.route}`);
       el.innerHTML = STOP_SVG;
       markers.current.push(
         new Marker({ element: el, anchor: 'center' }).setLngLat([stop.lng, stop.lat]).addTo(m),
@@ -1672,6 +1672,7 @@ export function TerrainMap({
           {t({
             en: 'The terrain map could not load. The list below has the same places.',
             th: 'โหลดแผนที่ภูมิประเทศไม่สำเร็จ รายการด้านล่างมีสถานที่เดียวกัน',
+            zh: '地形图加载失败。下方列表中是同样的地点。',
           })}
         </Label>
       </View>

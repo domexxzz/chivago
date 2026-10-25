@@ -44,10 +44,10 @@ export function GentleSteps({
       }}
     >
       <Label size={10} tracking={0.14} colour={color.neutral600}>
-        {t({ en: 'No rush', th: 'ไม่ต้องรีบ' })}
+        {t({ en: 'No rush', th: 'ไม่ต้องรีบ', zh: '不用急' })}
       </Label>
       <Heading size={15} style={{ marginTop: 4 }}>
-        {t({ en: 'Small things, none of them scored', th: 'เรื่องเล็กๆ ที่ไม่ถูกให้คะแนน' })}
+        {t({ en: 'Small things, none of them scored', th: 'เรื่องเล็กๆ ที่ไม่ถูกให้คะแนน', zh: '一些小事，都不计分' })}
       </Heading>
 
       {steps.map((step) => (
@@ -55,7 +55,7 @@ export function GentleSteps({
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8 }}>
             <Heading size={14} style={{ flex: 1 }}>{t(step.title)}</Heading>
             <Label size={9} tracking={0.06} colour={color.neutral600} style={{ textTransform: 'none' }}>
-              {t({ en: `${step.minutes} min`, th: `${step.minutes} นาที` })}
+              {t({ en: `${step.minutes} min`, th: `${step.minutes} นาที`, zh: `${step.minutes} 分钟` })}
             </Label>
           </View>
           <Body size={13} colour={color.neutral700} style={{ marginTop: 3 }}>{t(step.detail)}</Body>
@@ -71,20 +71,21 @@ export function GentleSteps({
         <Pressable
           onPress={() => onOpenPlace?.(recharge.id)}
           accessibilityRole="button"
-          accessibilityLabel={`${t({ en: 'Somewhere quiet', th: 'ที่เงียบๆ' })}: ${t(recharge.name)}`}
+          accessibilityLabel={`${t({ en: 'Somewhere quiet', th: 'ที่เงียบๆ', zh: '安静的地方' })}: ${t(recharge.name)}`}
           style={{
             marginTop: 16, paddingTop: 14,
             borderTopWidth: layout.ruleHair, borderTopColor: color.neutral300,
           }}
         >
           <Label size={9} tracking={0.12} colour={color.brand}>
-            {t({ en: 'Quietest place we measured', th: 'ที่ที่เงียบที่สุดเท่าที่วัดไว้' })}
+            {t({ en: 'Quietest place we measured', th: 'ที่ที่เงียบที่สุดเท่าที่วัดไว้', zh: '我们测量过最安静的地方' })}
           </Label>
           <Heading size={14} style={{ marginTop: 3 }}>{t(recharge.name)}</Heading>
           <Body size={13} colour={color.neutral600} style={{ marginTop: 2 }}>
             {t({
               en: `${recharge.crowd} people seen in the last hour${recharge.aqi === null ? '' : ` · air ${recharge.aqi}`}`,
               th: `เห็นคน ${recharge.crowd} คนในชั่วโมงที่ผ่านมา${recharge.aqi === null ? '' : ` · อากาศ ${recharge.aqi}`}`,
+              zh: `过去一小时内看到 ${recharge.crowd} 人${recharge.aqi === null ? '' : ` · 空气 ${recharge.aqi}`}`,
             })}
           </Body>
         </Pressable>

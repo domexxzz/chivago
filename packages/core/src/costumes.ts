@@ -151,60 +151,66 @@ export const ROLLS_PER_VERIFIED_QUEST = 1;
 const ROLLED: readonly Costume[] = [
   {
     key: 'refill-flask',
-    name: { en: 'Refill flask', th: 'ขวดเติมน้ำ' },
+    name: { en: 'Refill flask', th: 'ขวดเติมน้ำ', zh: '续水瓶' },
     why: {
       en: 'Decoration, drawn from the bottle the island waste quests ask you to bring.',
       th: 'ของตกแต่ง มาจากขวดที่ Quest ขยะบนเกาะขอให้พกมาเติมน้ำ',
+      zh: '装饰，取自岛上垃圾任务请你随身带来的那只水瓶。',
     },
     source: 'roll',
     wears: { prop: 'pot' },
   },
   {
     key: 'sorting-basket',
-    name: { en: 'Sorting basket', th: 'ตะกร้าคัดแยก' },
+    name: { en: 'Sorting basket', th: 'ตะกร้าคัดแยก', zh: '分类筐' },
     why: {
       en: 'Decoration, drawn from the baskets a sorting point uses to separate waste.',
       th: 'ของตกแต่ง มาจากตะกร้าที่จุดคัดแยกใช้แยกขยะ',
+      zh: '装饰，取自分类点用来分开垃圾的那些筐。',
     },
     source: 'roll',
     wears: { prop: 'basket' },
   },
   {
     key: 'sun-umbrella',
-    name: { en: 'Sun umbrella', th: 'ร่มกันแดด' },
+    name: { en: 'Sun umbrella', th: 'ร่มกันแดด', zh: '遮阳伞' },
     why: {
       en: 'Decoration. A sun umbrella, for an island walked in the middle of the day.',
       th: 'ของตกแต่ง ร่มกันแดด สำหรับเกาะที่ต้องเดินกลางวัน',
+      zh: '装饰。一把遮阳伞，给正午时分走在岛上的人。',
     },
     source: 'roll',
     wears: { prop: 'umbrella', accent: '#f2c24e' },
   },
   {
     key: 'deck-scarf',
-    name: { en: 'Deck scarf', th: 'ผ้าพันคอกันลม' },
+    name: { en: 'Deck scarf', th: 'ผ้าพันคอกันลม', zh: '甲板围巾' },
     why: {
       en: 'Decoration. A scarf against the wind on the open deck of the ferry.',
       th: 'ของตกแต่ง ผ้าพันคอกันลมบนดาดฟ้าเรือ',
+      zh: '装饰。一条围巾，挡住渡轮露天甲板上的风。',
     },
     source: 'roll',
     wears: { prop: 'scarf' },
   },
   {
     key: 'field-notebook',
-    name: { en: 'Field notebook', th: 'สมุดจด' },
+    name: { en: 'Field notebook', th: 'สมุดจด', zh: '野外笔记本' },
     why: {
       en: 'Decoration. A notebook, for writing down what you were told rather than guessing.',
       th: 'ของตกแต่ง สมุดจด สำหรับจดสิ่งที่ได้ฟังมา ไม่ใช่เดา',
+      zh: '装饰。一本笔记本，把听来的话记下来，而不是靠猜。',
     },
     source: 'roll',
     wears: { prop: 'book' },
   },
   {
     key: 'tide-crest',
-    name: { en: 'Tide crest', th: 'ยอดคลื่น' },
+    name: { en: 'Tide crest', th: 'ยอดคลื่น', zh: '潮线冠饰' },
     why: {
       en: 'Decoration. A crest shaped like the tide line, in no particular bay.',
       th: 'ของตกแต่ง ยอดทรงแนวคลื่น ไม่ได้อ้างอิงอ่าวใดอ่าวหนึ่ง',
+      zh: '装饰。形如潮线的冠饰，不指任何一处海湾。',
     },
     source: 'roll',
     wears: { crest: 'fin', accent: '#7fa3c4' },
@@ -223,10 +229,11 @@ const ROLLED: readonly Costume[] = [
 const PLACE_GRANTED: readonly PlaceCostume[] = [
   {
     key: 'palace-crown',
-    name: { en: 'Palace crest', th: 'ยอดวัง' },
+    name: { en: 'Palace crest', th: 'ยอดวัง', zh: '王宫冠饰' },
     why: {
       en: 'Decoration, granted at Phra Chudadhuj Palace, the royal residence on the island.',
       th: 'ของตกแต่ง ได้จากพระจุฑาธุชราชฐาน พระราชฐานบนเกาะ',
+      zh: '装饰，在朱他突王宫获得，那是岛上的王室行宫。',
     },
     source: 'place',
     placeId: 'sc-palace',
@@ -234,10 +241,11 @@ const PLACE_GRANTED: readonly PlaceCostume[] = [
   },
   {
     key: 'thamphang-flower',
-    name: { en: 'Beach flower', th: 'ดอกไม้ชายหาด' },
+    name: { en: 'Beach flower', th: 'ดอกไม้ชายหาด', zh: '海滩花' },
     why: {
       en: 'Decoration, granted at Tham Phang Beach - the beach the island litter reaches first.',
       th: 'ของตกแต่ง ได้จากหาดถ้ำพัง หาดที่ขยะไปถึงก่อน',
+      zh: '装饰，在探蓬海滩获得——岛上的垃圾最先漂到的那片海滩。',
     },
     source: 'place',
     placeId: 'sc-thamphang',
@@ -245,10 +253,11 @@ const PLACE_GRANTED: readonly PlaceCostume[] = [
   },
   {
     key: 'pier-boat',
-    name: { en: 'Ferry boat', th: 'เรือข้ามฟาก' },
+    name: { en: 'Ferry boat', th: 'เรือข้ามฟาก', zh: '渡船' },
     why: {
       en: 'Decoration, granted at Tha Lang pier, where the ferry from Si Racha lands.',
       th: 'ของตกแต่ง ได้จากท่าเรือท่าล่าง ที่เรือจากศรีราชาเทียบ',
+      zh: '装饰，在塔朗码头获得，从是拉差来的渡轮在此靠岸。',
     },
     source: 'place',
     placeId: 'sc-pier',
@@ -256,10 +265,11 @@ const PLACE_GRANTED: readonly PlaceCostume[] = [
   },
   {
     key: 'shoprow-lantern',
-    name: { en: 'Shop row lantern', th: 'โคมหน้าร้าน' },
+    name: { en: 'Shop row lantern', th: 'โคมหน้าร้าน', zh: '店铺街灯笼' },
     why: {
       en: 'Decoration, granted on the shop row by the pier. Names no shop.',
       th: 'ของตกแต่ง ได้จากย่านร้านค้าหน้าท่าล่าง ไม่ได้ระบุชื่อร้านใด',
+      zh: '装饰，在码头旁的店铺街获得。不指名任何一家店。',
     },
     source: 'place',
     placeId: 'sc-shops',
@@ -477,6 +487,7 @@ export function nextCostumeStep(input: CostumeInput): Bilingual | null {
     return {
       en: `Have a host verify one more quest to earn costume ${rolls + 1} of ${ROLL_POOL.length}`,
       th: `ให้ผู้จัดภารกิจยืนยันภารกิจอีกหนึ่งครั้ง เพื่อได้คอสตูมชิ้นที่ ${rolls + 1} จาก ${ROLL_POOL.length}`,
+      zh: `请主办方再验证一次任务，即可获得第 ${rolls + 1} 件服饰，共 ${ROLL_POOL.length} 件`,
     };
   }
 
@@ -487,6 +498,7 @@ export function nextCostumeStep(input: CostumeInput): Bilingual | null {
   return {
     en: `Have a host verify work at one more named place to earn its costume`,
     th: `ให้ผู้จัดภารกิจยืนยันงานที่สถานที่ที่ระบุอีกหนึ่งแห่ง เพื่อได้คอสตูมของที่นั่น`,
+    zh: `请主办方再在一处指定地点验证你做的事，即可获得那里的服饰`,
   };
 }
 

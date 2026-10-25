@@ -112,8 +112,9 @@ export function ReviewsBlock({
         <Button
           label={mine ? t(strings.place.leaveAgain) : t(strings.place.leaveSomething)}
           thai={mine ? strings.place.leaveAgain.th : strings.place.leaveSomething.th}
+          chinese={mine ? strings.place.leaveAgain.zh : strings.place.leaveSomething.zh}
           onPress={() => {
-            if (requireAccount({ en: 'Please sign in or create an account to write a review or post a story.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเขียนรีวิวหรือโพสต์เรื่องราว' })) return;
+            if (requireAccount({ en: 'Please sign in or create an account to write a review or post a story.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเขียนรีวิวหรือโพสต์เรื่องราว', zh: '请登录或注册账号，以撰写评价或发布故事。' })) return;
             setComposing(true);
           }}
           variant="secondary"
@@ -385,7 +386,7 @@ export function ComposeSheet({
   const [checkInError, setCheckInError] = React.useState<string | null>(null);
 
   const handleCheckIn = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to check in here.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเช็กอินที่นี่' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to check in here.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเช็กอินที่นี่', zh: '请登录或注册账号，以在这里签到。' })) return;
     if (!onCheckIn) return;
     setCheckingIn(true);
     setCheckInError(null);
@@ -418,7 +419,7 @@ export function ComposeSheet({
     way round: the clip is the thing they made.
   */
   const save = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to write a review or post a story.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเขียนรีวิวหรือโพสต์เรื่องราว' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to write a review or post a story.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเขียนรีวิวหรือโพสต์เรื่องราว', zh: '请登录或注册账号，以撰写评价或发布故事。' })) return;
     const words = body.trim();
     if (rating < 1 && !media) return;
     setBusy(true);
@@ -450,7 +451,7 @@ export function ComposeSheet({
   };
 
   const withdraw = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to remove your review.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อลบรีวิว' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to remove your review.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อลบรีวิว', zh: '请登录或注册账号，以删除你的评价。' })) return;
     setBusy(true);
     await api.withdrawReview(placeId);
     setBusy(false);
@@ -504,6 +505,7 @@ export function ComposeSheet({
                   <Button
                     label={checkingIn || checkInBusy ? t(strings.checkin.checkingIn) : t(strings.checkin.cta)}
                     thai={checkingIn || checkInBusy ? strings.checkin.checkingIn.th : strings.checkin.cta.th}
+                    chinese={checkingIn || checkInBusy ? strings.checkin.checkingIn.zh : strings.checkin.cta.zh}
                     onPress={handleCheckIn}
                     disabled={checkingIn || checkInBusy || busy}
                     height={40}
@@ -618,6 +620,7 @@ export function ComposeSheet({
                   <Button
                     label={t(strings.place.addMedia)}
                     thai={strings.place.addMedia.th}
+                    chinese={strings.place.addMedia.zh}
                     onPress={attach}
                     disabled={busy || postingStory}
                     variant="secondary"
@@ -638,6 +641,7 @@ export function ComposeSheet({
             <Button
               label={t(strings.place.leaveSubmit)}
               thai={strings.place.leaveSubmit.th}
+              chinese={strings.place.leaveSubmit.zh}
               onPress={save}
               disabled={busy || postingStory || (rating < 1 && !media)}
               height={48}
@@ -690,7 +694,7 @@ export function ReportSheet({
   if (!review) return null;
 
   const send = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to report a review.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อรายงานรีวิว' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to report a review.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อรายงานรีวิว', zh: '请登录或注册账号，以举报评价。' })) return;
     if (!reason) return;
     setBusy(true);
     const res = await api.reportReview(review.id, { reason, note: note.trim() || null });
@@ -898,7 +902,7 @@ export function AppealSheet({
   if (!state) return null;
 
   const send = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to appeal a review decision.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่ออุทธรณ์ผลรีวิว' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to appeal a review decision.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่ออุทธรณ์ผลรีวิว', zh: '请登录或注册账号，以对评价处理结果提出申诉。' })) return;
     setBusy(true);
     const res = await api.appealReview(state.review.id, message.trim());
     setBusy(false);

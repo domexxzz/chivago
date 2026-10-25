@@ -145,14 +145,17 @@ export const UNMEASURED: Bilingual[] = [
   {
     en: 'Reach and impressions. Nobody is tracked, so there is no number to give.',
     th: 'การเข้าถึงและการมองเห็น ไม่มีการติดตามผู้ใช้ จึงไม่มีตัวเลขให้',
+    zh: '触达与曝光量。平台不追踪任何用户，因此没有数字可提供。',
   },
   {
     en: 'Sales attributed to this quest. A voucher redeemed is counted; a purchase made afterwards is not.',
     th: 'ยอดขายที่เกิดจากภารกิจนี้ นับเฉพาะคูปองที่ถูกใช้ ไม่นับการซื้อที่เกิดขึ้นหลังจากนั้น',
+    zh: '归因于本任务的销售额。已核销的优惠券会计入；之后发生的购买不计入。',
   },
   {
     en: 'Brand sentiment. Not measured, and not inferable from any of the above.',
     th: 'ความรู้สึกต่อแบรนด์ ไม่ได้วัด และอนุมานจากตัวเลขข้างต้นไม่ได้',
+    zh: '品牌好感度。未作测量，也无法从上述任何数字推断。',
   },
 ];
 
@@ -218,6 +221,7 @@ export function sponsorHeadline(o: SponsorOutcome): Bilingual {
     return {
       en: `Nothing verified yet. ${o.joined} started; ${o.receivedTHB.toLocaleString('en-US')} THB received and unspent.`,
       th: `ยังไม่มีภารกิจที่ผ่านการตรวจ เริ่มแล้ว ${o.joined} ครั้ง เงินที่รับมาแล้วและยังไม่ถูกใช้ ${o.receivedTHB.toLocaleString('en-US')} บาท`,
+      zh: `尚无经核实的任务。已开始 ${o.joined} 次；已收到且尚未支出 ${o.receivedTHB.toLocaleString('en-US')} THB。`,
     };
   }
   return {
@@ -225,6 +229,8 @@ export function sponsorHeadline(o: SponsorOutcome): Bilingual {
       + `${o.costPerVerifiedTHB} THB each. ${o.joined} started.`,
     th: `ผ่านการตรวจ ${o.verified} ครั้ง ผู้จัดได้รับสิทธิ์ ${o.toCommunityTHB.toLocaleString('en-US')} บาท `
       + `เฉลี่ยครั้งละ ${o.costPerVerifiedTHB} บาท เริ่มแล้ว ${o.joined} ครั้ง`,
+    zh: `已核实 ${o.verified} 次，主办方获得 ${o.toCommunityTHB.toLocaleString('en-US')} THB，`
+      + `平均每次 ${o.costPerVerifiedTHB} THB。已开始 ${o.joined} 次。`,
   };
 }
 

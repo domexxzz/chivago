@@ -70,65 +70,70 @@ export const SPECIES: Record<LayerKey, Species> = {
   Green: {
     key: 'coconut-macaque',
     layer: 'Green',
-    name: { en: 'Southern pig-tailed macaque', th: 'ลิงกัง' },
+    name: { en: 'Southern pig-tailed macaque', th: 'ลิงกัง', zh: '南豚尾猴' },
     scientific: 'Macaca nemestrina',
-    eggName: { en: 'Grove egg', th: 'ไข่จากสวนมะพร้าว' },
-    habitat: { en: 'Coconut groves and the inland forest behind them', th: 'สวนมะพร้าวและป่าในด้านหลัง' },
+    eggName: { en: 'Grove egg', th: 'ไข่จากสวนมะพร้าว', zh: '椰林之卵' },
+    habitat: { en: 'Coconut groves and the inland forest behind them', th: 'สวนมะพร้าวและป่าในด้านหลัง', zh: '椰林以及其后的内陆森林' },
     fact: {
       en: 'On Samui, trained macaques have picked the coconuts from the tall palms for generations.',
       th: 'บนเกาะสมุย ลิงกังที่ฝึกแล้วเก็บมะพร้าวจากต้นสูงให้คนมาหลายชั่วอายุคน',
+      zh: '在苏梅岛，受过训练的豚尾猴已经为人们从高大的椰树上摘椰子好几代了。',
     },
     status: 'VU',
   },
   Wellness: {
     key: 'red-junglefowl',
     layer: 'Wellness',
-    name: { en: 'Red junglefowl', th: 'ไก่ป่า' },
+    name: { en: 'Red junglefowl', th: 'ไก่ป่า', zh: '红原鸡' },
     scientific: 'Gallus gallus',
-    eggName: { en: 'Hill forest egg', th: 'ไข่จากป่าเนิน' },
-    habitat: { en: 'Hill forest edges above the south coast', th: 'ชายป่าบนเนินเหนือชายฝั่งใต้' },
+    eggName: { en: 'Hill forest egg', th: 'ไข่จากป่าเนิน', zh: '山林之卵' },
+    habitat: { en: 'Hill forest edges above the south coast', th: 'ชายป่าบนเนินเหนือชายฝั่งใต้', zh: '南岸之上的山林边缘' },
     fact: {
       en: 'The wild ancestor of every chicken on earth; the cock crows from the forest edge at first light.',
       th: 'บรรพบุรุษป่าของไก่บ้านทุกตัวบนโลก ตัวผู้ขันจากชายป่าตอนฟ้าสาง',
+      zh: '世上所有家鸡的野生祖先；天刚亮时，公鸡便在林缘啼鸣。',
     },
     status: 'LC',
   },
   Food: {
     key: 'day-octopus',
     layer: 'Food',
-    name: { en: 'Day octopus', th: 'หมึกสาย' },
+    name: { en: 'Day octopus', th: 'หมึกสาย', zh: '日行章鱼' },
     scientific: 'Octopus cyanea',
-    eggName: { en: 'Reef egg', th: 'ไข่จากแนวปะการัง' },
-    habitat: { en: 'Reefs and rock off the fishing villages', th: 'แนวปะการังและโขดหินนอกหมู่บ้านประมง' },
+    eggName: { en: 'Reef egg', th: 'ไข่จากแนวปะการัง', zh: '珊瑚礁之卵' },
+    habitat: { en: 'Reefs and rock off the fishing villages', th: 'แนวปะการังและโขดหินนอกหมู่บ้านประมง', zh: '渔村外海的珊瑚礁与礁石' },
     fact: {
       en: 'Changes the colour and texture of its skin in under a second, and lives about a year.',
       th: 'เปลี่ยนสีและผิวหนังได้ในเวลาไม่ถึงวินาที และมีอายุราวหนึ่งปี',
+      zh: '不到一秒就能改变皮肤的颜色和质感，寿命约一年。',
     },
     status: 'LC',
   },
   Safe: {
     key: 'green-turtle',
     layer: 'Safe',
-    name: { en: 'Green sea turtle', th: 'เต่าตนุ' },
+    name: { en: 'Green sea turtle', th: 'เต่าตนุ', zh: '绿海龟' },
     scientific: 'Chelonia mydas',
-    eggName: { en: 'Beach egg', th: 'ไข่จากหาดทราย' },
-    habitat: { en: 'Sand beaches and the seagrass off them', th: 'หาดทรายและแหล่งหญ้าทะเลนอกชายฝั่ง' },
+    eggName: { en: 'Beach egg', th: 'ไข่จากหาดทราย', zh: '沙滩之卵' },
+    habitat: { en: 'Sand beaches and the seagrass off them', th: 'หาดทรายและแหล่งหญ้าทะเลนอกชายฝั่ง', zh: '沙滩以及近岸的海草床' },
     fact: {
       en: 'Returns to the beach it hatched on to nest, decades later.',
       th: 'กลับมาวางไข่ที่หาดเดิมที่ตัวเองฟักออกมา หลังผ่านไปหลายสิบปี',
+      zh: '几十年后，依然回到自己孵化的那片沙滩产卵。',
     },
     status: 'EN',
   },
   Quest: {
     key: 'water-buffalo',
     layer: 'Quest',
-    name: { en: 'Water buffalo', th: 'ควาย' },
+    name: { en: 'Water buffalo', th: 'ควาย', zh: '水牛' },
     scientific: 'Bubalus bubalis',
-    eggName: { en: 'Field egg', th: 'ไข่จากทุ่ง' },
-    habitat: { en: 'The wet fields and the village arenas', th: 'ทุ่งนาน้ำขังและสังเวียนประจำหมู่บ้าน' },
+    eggName: { en: 'Field egg', th: 'ไข่จากทุ่ง', zh: '田野之卵' },
+    habitat: { en: 'The wet fields and the village arenas', th: 'ทุ่งนาน้ำขังและสังเวียนประจำหมู่บ้าน', zh: '水田与村里的斗牛场' },
     fact: {
       en: 'Raised on the island for the village fights, where a bout ends when one of the two turns and walks away.',
       th: 'เลี้ยงบนเกาะไว้ชนในสังเวียนหมู่บ้าน การชนจบลงเมื่อตัวหนึ่งหันหลังเดินออกไป',
+      zh: '岛上养来参加村里的斗牛，一场比斗在两头之中有一头转身走开时结束。',
     },
     // The domestic buffalo is not assessed; its wild ancestor, Bubalus arnee, is EN.
     status: 'NE',
@@ -211,6 +216,7 @@ function nextStepFor(
     return {
       en: `Have a host verify one ${s.layer} quest to raise your ${s.name.en}`,
       th: `ให้ผู้จัดภารกิจยืนยันภารกิจสาย${s.layer} หนึ่งครั้ง เพื่อให้${s.name.th}โตเต็มวัย`,
+      zh: `请主办方验证一次${s.layer}任务，让你的${s.name.zh}长大成年`,
     };
   }
   // Both ways out, and the walk first: it is the one somebody standing here
@@ -220,6 +226,7 @@ function nextStepFor(
   return {
     en: `Walk a leg from here, or check in on ${left} more day${left === 1 ? '' : 's'}, to hatch this egg`,
     th: `เดินจากที่นี่ไปอีกที่ หรือเช็กอินอีก ${left} วัน เพื่อฟักไข่ใบนี้`,
+    zh: `从这里走上一段路，或再签到 ${left} 天，就能孵化这枚蛋`,
   };
 }
 

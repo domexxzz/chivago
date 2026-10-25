@@ -37,12 +37,12 @@ import { Button, IconButton } from '../components/Button.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { MascotMark } from '../components/MascotMark.tsx';
-import { getLocale, t } from '../i18n/locale.ts';
+import { localeTag, t } from '../i18n/locale.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 
 /** The day a round opened, in the reader's own calendar conventions. */
 const openedOn = (iso: string): string =>
-  new Date(iso).toLocaleDateString(getLocale() === 'th' ? 'th-TH' : 'en-GB');
+  new Date(iso).toLocaleDateString(localeTag());
 
 /**
  * A rarity's colour.
@@ -92,6 +92,7 @@ export function SpiritCardView({ card, onOpen }: { card: SpiritCard; onOpen?: (k
         : t({
           en: `Not yet met. ${t(RARITY_LABEL[card.rarity])}, ${t(COURT_LABEL[card.court])} court.`,
           th: `ยังไม่ได้พบ ${t(RARITY_LABEL[card.rarity])} สำนัก${t(COURT_LABEL[card.court])}`,
+          zh: `尚未遇见。${t(RARITY_LABEL[card.rarity])}，${t(COURT_LABEL[card.court])}宗。`,
         })}
       style={[met ? gameShadow.lift : shadow.sm, {
         width: '31%', minWidth: 104, backgroundColor: color.surface, borderRadius: gameRadius.panel,
@@ -151,7 +152,7 @@ export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
           summon.test.ts asserts it so it cannot be lost again.
         */}
         <TrayLine>
-          {t({ en: 'Published odds — floors included', th: 'อัตราที่ประกาศไว้ — รวมเพดานรับประกันแล้ว' })}
+          {t({ en: 'Published odds — floors included', th: 'อัตราที่ประกาศไว้ — รวมเพดานรับประกันแล้ว', zh: '公布的概率 — 已计入保底' })}
         </TrayLine>
         {RARITIES.map((r) => (
           <View key={r} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -173,6 +174,8 @@ export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
               + 'There is no other weighting — these numbers are the whole of it.',
             th: `รับประกัน: ได้ระดับหายากภายใน ${rules.pity.rare} ครั้ง และระดับเทพภายใน ${rules.pity.mythic} ครั้ง `
               + 'ไม่มีการถ่วงน้ำหนักอื่นใด ตัวเลขเหล่านี้คือทั้งหมด',
+            zh: `保底：${rules.pity.rare} 次召唤内必出稀有，${rules.pity.mythic} 次内必出传说。`
+              + '没有其他权重 — 这些数字就是全部。',
           })}
         </Body>
         {/*
@@ -195,6 +198,9 @@ export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
             th: `ตัวซ้ำจะกลายเป็นผงดาว (${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.dustFromDuplicate[r]}`).join(', ')}) `
               + `และผงดาวใช้แลกภูตตัวใดก็ได้โดยตรง (${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.dustToForge[r]}`).join(', ')}) — `
               + 'จึงไม่มีอะไรในคอลเลกชันที่ขึ้นกับโชคเพียงอย่างเดียว',
+            zh: `重复的精灵会化为星尘（${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.dustFromDuplicate[r]}`).join(', ')}），`
+              + `星尘可以直接兑换任意精灵（${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.dustToForge[r]}`).join(', ')}） — `
+              + '所以收藏里没有任何一样东西只靠运气。',
           })}
         </Body>
       </View>
@@ -211,7 +217,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
   const [toast, setToast] = React.useState<string | null>(null);
 
   const pull = React.useCallback(async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to collect a spirit.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อรับมาสคอต' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to collect a spirit.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อรับมาสคอต', zh: '请先登录或注册账号，才能收集精灵。' })) return;
     setPulling(true);
     setToast(null);
     const res = await api.pull();
@@ -222,7 +228,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
     guide.reload();
   }, [state, guide, requireAccount]);
 
-  if (state.loading && !state.data) return <LoadingState label={t({ en: 'The summoning', th: 'การอัญเชิญ' })} />;
+  if (state.loading && !state.data) return <LoadingState label={t({ en: 'The summoning', th: 'การอัญเชิญ', zh: '召唤' })} />;
   if (state.error && !state.data) return <ErrorState message={state.error} onRetry={state.reload} />;
   const s = state.data!;
 
@@ -241,7 +247,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
           <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2} />
         </IconButton>
         <View style={{ flex: 1 }}>
-          <Heading size={20} tracking={-0.3} colour="#FFFFFF">{t({ en: 'The Summoning', th: 'การอัญเชิญ' })}</Heading>
+          <Heading size={20} tracking={-0.3} colour="#FFFFFF">{t({ en: 'The Summoning', th: 'การอัญเชิญ', zh: '召唤' })}</Heading>
         </View>
       </View>
 
@@ -258,12 +264,14 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
                     + ` · ${s.charms.checkinDays} day${s.charms.checkinDays === 1 ? '' : 's'} with a check-in`,
                   th: `ภารกิจที่ผ่านการตรวจ ${s.charms.verifiedQuests} รายการ`
                     + ` · เช็กอิน ${s.charms.checkinDays} วัน`,
+                  zh: `已验证的任务 ${s.charms.verifiedQuests} 个`
+                    + ` · 签到 ${s.charms.checkinDays} 天`,
                 })}
               </Label>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Heading size={18} colour={gameTray.text}>{s.dust}</Heading>
-              <Label size={9} tracking={0.1} colour={gameTray.muted}>{t({ en: 'stardust', th: 'ผงดาว' })}</Label>
+              <Label size={9} tracking={0.1} colour={gameTray.muted}>{t({ en: 'stardust', th: 'ผงดาว', zh: '星尘' })}</Label>
             </View>
           </View>
           <Body size={13} style={{ color: gameTray.text }}>{t(s.rules.notice)}</Body>
@@ -274,6 +282,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
         <Button
           label={s.charms.available > 0 ? 'Summon a spirit' : 'No charms yet'}
           thai={s.charms.available > 0 ? 'อัญเชิญภูต' : 'ยังไม่มีเครื่องราง'}
+          chinese={s.charms.available > 0 ? '召唤一只精灵' : '还没有护符'}
           onPress={() => { void pull(); }}
           disabled={s.charms.available < 1}
           busy={pulling}
@@ -289,7 +298,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
       {/* How far each floor is. Printed because it is published. */}
       <Tray style={{ marginHorizontal: gutter, marginTop: 12, borderRadius: gameRadius.panel }}>
         <View style={{ gap: 8 }}>
-          <TrayLine>{t({ en: `Collected ${s.collected} of ${s.total}`, th: `สะสมแล้ว ${s.collected} จาก ${s.total}` })}</TrayLine>
+          <TrayLine>{t({ en: `Collected ${s.collected} of ${s.total}`, th: `สะสมแล้ว ${s.collected} จาก ${s.total}`, zh: `已收集 ${s.collected} / ${s.total}` })}</TrayLine>
           <View style={{ flexDirection: 'row' }}>
             <GameBar pct={(s.collected / s.total) * 100} height={10} />
           </View>
@@ -299,6 +308,8 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
                 + ` · a mythic in ${Math.max(0, s.rules.pity.mythic - s.pity.sinceMythic)}`,
               th: `รับประกันระดับหายากในอีก ${Math.max(0, s.rules.pity.rare - s.pity.sinceRare)} ครั้ง`
                 + ` · ระดับเทพในอีก ${Math.max(0, s.rules.pity.mythic - s.pity.sinceMythic)} ครั้ง`,
+              zh: `再 ${Math.max(0, s.rules.pity.rare - s.pity.sinceRare)} 次必出稀有`
+                + ` · 再 ${Math.max(0, s.rules.pity.mythic - s.pity.sinceMythic)} 次必出传说`,
             })}
           </Label>
         </View>
@@ -312,6 +323,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
           {t({
             en: `Seed commitment ${s.epoch.commitment.slice(0, 16)}… published ${openedOn(s.epoch.openedAt)}`,
             th: `ลายนิ้วมือเมล็ดสุ่ม ${s.epoch.commitment.slice(0, 16)}… ประกาศเมื่อ ${openedOn(s.epoch.openedAt)}`,
+            zh: `随机种子指纹 ${s.epoch.commitment.slice(0, 16)}… 于 ${openedOn(s.epoch.openedAt)} 公布`,
           })}
         </Label>
         {/*
@@ -327,12 +339,14 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
               + 'recomputed from its receipt.',
             th: 'ทุกการสุ่มคำนวณจากเมล็ดสุ่มที่ประกาศลายนิ้วมือไว้ก่อนการสุ่มทั้งหมด '
               + 'เมื่อรอบนี้ปิด เมล็ดสุ่มจะถูกประกาศด้วย และทุกการอัญเชิญสามารถคำนวณซ้ำได้จากใบรับ',
+            zh: '每一次抽取都由一枚随机种子算出，而这枚种子的指纹在所有抽取之前就已公布。'
+              + '本轮结束时种子本身也会公布，届时任何一次召唤都可以凭回执重新算出。',
           })}
         </Body>
       </View>
 
       <View style={{ paddingHorizontal: gutter, paddingTop: 20, paddingBottom: 8 }}>
-        <Heading size={16}>{t({ en: 'The guide', th: 'สมุดภูต' })}</Heading>
+        <Heading size={16}>{t({ en: 'The guide', th: 'สมุดภูต', zh: '图鉴' })}</Heading>
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: gutter, paddingBottom: 32 }}>
         {(guide.data?.spirits ?? []).map((card) => <SpiritCardView key={card.key} card={card} />)}
@@ -364,8 +378,8 @@ function Outcome({ result }: { result: SummonResult }) {
         {result.byPity ? (
           <Label size={9} tracking={0.1} colour={color.neutral600}>
             {result.byPity === 'mythic'
-              ? t({ en: 'The mythic floor', th: 'เพดานรับประกันระดับเทพ' })
-              : t({ en: 'The rare floor', th: 'เพดานรับประกันระดับหายาก' })}
+              ? t({ en: 'The mythic floor', th: 'เพดานรับประกันระดับเทพ', zh: '传说保底' })
+              : t({ en: 'The rare floor', th: 'เพดานรับประกันระดับหายาก', zh: '稀有保底' })}
           </Label>
         ) : null}
         {result.duplicate ? (
@@ -373,6 +387,7 @@ function Outcome({ result }: { result: SummonResult }) {
             {t({
               en: `Already yours — it became ${result.dustGained} stardust.`,
               th: `คุณมีอยู่แล้ว — แปลงเป็นผงดาว ${result.dustGained} หน่วย`,
+              zh: `你已经有了 — 它化为 ${result.dustGained} 点星尘。`,
             })}
           </Label>
         ) : null}

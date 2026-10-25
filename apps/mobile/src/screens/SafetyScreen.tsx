@@ -355,8 +355,8 @@ function SosSection({
             armed
               ? `${t(strings.safety.sosArmed)}. ${t(strings.safety.dispatchDetail)}`
               : countdown !== null
-                ? `SOS. ${t(strings.safety.sosSending(countdown))}. ${t(strings.safety.sosStop)} ${t({ en: 'to take it back', th: 'เพื่อยกเลิก' })}`
-                : `SOS. ${t(strings.safety.sosIdle)}, ${t({ en: '1.2 seconds', th: '1.2 วินาที' })}`
+                ? `SOS. ${t(strings.safety.sosSending(countdown))}. ${t(strings.safety.sosStop)} ${t({ en: 'to take it back', th: 'เพื่อยกเลิก', zh: '以取消发送' })}`
+                : `SOS. ${t(strings.safety.sosIdle)}, ${t({ en: '1.2 seconds', th: '1.2 วินาที', zh: '1.2 秒' })}`
           }
           style={{
             width: 150,
@@ -429,6 +429,7 @@ function SosSection({
           <Button
             label={strings.safety.sosStop.en}
             thai={strings.safety.sosStop.th}
+            chinese={strings.safety.sosStop.zh}
             variant="secondary"
             height={56}
             onPress={stopCountdown}
@@ -543,6 +544,7 @@ function DispatchPanel({
       <Button
         label={strings.safety.shareLink.en}
         thai={strings.safety.shareLink.th}
+        chinese={strings.safety.shareLink.zh}
         onPress={onShare}
         height={48}
         style={{ marginTop: 16 }}
@@ -668,7 +670,7 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
             <Heading size={13} colour={color.brand}>{n.printed}</Heading>
             {n.km !== null ? (
               <Label size={9} tracking={0.06} colour={color.neutral600}>
-                {t({ en: `${n.km} km away`, th: `ห่าง ${n.km} กม.` })}
+                {t({ en: `${n.km} km away`, th: `ห่าง ${n.km} กม.`, zh: `相距 ${n.km} km` })}
               </Label>
             ) : null}
           </View>
@@ -693,6 +695,7 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
         {t({
           en: `Official numbers, checked ${EMERGENCY_AS_OF}.`,
           th: `หมายเลขทางการ ตรวจสอบเมื่อ ${EMERGENCY_AS_OF}`,
+          zh: `官方号码，核对于 ${EMERGENCY_AS_OF}。`,
         })}
       </Label>
     </View>

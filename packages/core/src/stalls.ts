@@ -39,7 +39,7 @@ export interface StallSource {
  */
 export const PLACE_STALLS: Readonly<Record<string, StallSource>> = {
   'rmutt-canteen': {
-    provider: 'sangkon', area: 'rmutt', name: { en: 'Central food court', th: 'โรงอาหารกลาง' }, slugs: ['demo'],
+    provider: 'sangkon', area: 'rmutt', name: { en: 'Central food court', th: 'โรงอาหารกลาง', zh: '中央食堂' }, slugs: ['demo'],
   },
 };
 

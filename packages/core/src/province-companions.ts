@@ -50,6 +50,7 @@
  */
 
 import { SPECIES, stageFor, type CompanionStage, type Species } from './companions.ts';
+import { localise } from './localise.ts';
 import { mascotFor, type Mascot } from './mascots.ts';
 import { PROVINCES, type Province } from './provinces.ts';
 import type { Bilingual, LayerKey } from './types.ts';
@@ -263,6 +264,7 @@ export function provinceCollection(companions: ProvinceCompanion[]): ProvinceCol
 export const SEALED_EGG: Bilingual = {
   en: 'This province has not been surveyed, so which animal is inside is not known yet.',
   th: 'จังหวัดนี้ยังไม่ได้สำรวจ จึงยังไม่รู้ว่าข้างในเป็นสัตว์อะไร',
+  zh: '这个府尚未勘察，因此还不知道里面是哪种动物。',
 };
 
 /** The one thing to do next, or null when the companion is fully grown. */
@@ -274,6 +276,7 @@ export function provinceNextStep(c: ProvinceCompanion): Bilingual | null {
       return {
         en: `Check in anywhere in ${c.province.name.en} to start this egg`,
         th: `เช็กอินที่ไหนก็ได้ใน${c.province.name.th} เพื่อเริ่มไข่ใบนี้`,
+        zh: `在${localise(c.province.name, 'zh')}的任何地方签到，即可开启这颗蛋`,
       };
     case 'grown':
       return null;
@@ -281,11 +284,13 @@ export function provinceNextStep(c: ProvinceCompanion): Bilingual | null {
       return {
         en: `Have a host verify one quest in ${c.province.name.en}`,
         th: `ให้ผู้จัดภารกิจยืนยันภารกิจใน${c.province.name.th} หนึ่งครั้ง`,
+        zh: `请主办方在${localise(c.province.name, 'zh')}核实一项任务`,
       };
     default:
       return {
         en: `Check in again in ${c.province.name.en} on another day`,
         th: `เช็กอินใน${c.province.name.th}อีกครั้งในวันอื่น`,
+        zh: `换一天再次在${localise(c.province.name, 'zh')}签到`,
       };
   }
 }

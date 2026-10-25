@@ -14,6 +14,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import type { Lang } from '@chivago/core';
 import { api } from '../api/client.ts';
 
 /**
@@ -44,7 +45,7 @@ export interface PushRegistration {
  * Never throws. Push is an enhancement; the app works without it, and a
  * volunteer on a borrowed phone that cannot register must not see a crash.
  */
-export async function registerForPush(locale: 'th' | 'en'): Promise<PushRegistration> {
+export async function registerForPush(locale: Lang): Promise<PushRegistration> {
   try {
     // A simulator cannot receive a push, and asking there produces a confusing
     // prompt during development.

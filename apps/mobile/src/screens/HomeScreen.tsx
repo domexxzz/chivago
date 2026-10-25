@@ -314,10 +314,10 @@ function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile }: {
         <ProfileButton onPress={onOpenProfile} />
       </View>
       <AreaSwitch area={area.key} onChange={onChangeArea} tone="inverted" />
-      <Pressable onPress={onOpenConcierge} accessibilityRole="button" accessibilityLabel={t({ en: 'Ask where to go', th: 'ถามว่าไปไหนดี' })}
+      <Pressable onPress={onOpenConcierge} accessibilityRole="button" accessibilityLabel={t({ en: 'Ask where to go', th: 'ถามว่าไปไหนดี', zh: '问问去哪儿好' })}
         style={{ marginTop: 20, minHeight: 56, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFFFFF', borderRadius: 28, shadowColor: '#004E64', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 }}>
         <Search size={21} color="#78909C" />
-        <Body colour="#78909C" style={{ flex: 1 }}>{t({ en: 'Where to go today?', th: 'วันนี้ไปไหนดี?' })}</Body>
+        <Body colour="#78909C" style={{ flex: 1 }}>{t({ en: 'Where to go today?', th: 'วันนี้ไปไหนดี?', zh: '今天去哪儿好？' })}</Body>
         <ScanLine size={21} color="#0077B6" />
         <Mic size={21} color="#0077B6" />
       </Pressable>
@@ -359,7 +359,7 @@ function Conditions({
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <HeartPulse size={16} color="#0077B6" strokeWidth={2} />
           <Label size={10} tracking={0.14} colour={color.neutral700}>
-            {`${t(strings.place.healthyScore)} · ${t({ en: 'area average', th: 'เฉลี่ยพื้นที่' })}`}
+            {`${t(strings.place.healthyScore)} · ${t({ en: 'area average', th: 'เฉลี่ยพื้นที่', zh: '区域平均' })}`}
           </Label>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#E2F5FA', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 }}>
@@ -374,12 +374,12 @@ function Conditions({
         // The block fails alone and says what is missing. It does not fall back
         // to a plausible number, which is the failure this whole app is about.
         <View style={{ marginTop: 10 }}>
-          <Body size={13} colour={color.neutral800}>{t({ en: 'Conditions are unavailable right now.', th: 'ยังดึงข้อมูลสภาพพื้นที่ไม่ได้' })}</Body>
+          <Body size={13} colour={color.neutral800}>{t({ en: 'Conditions are unavailable right now.', th: 'ยังดึงข้อมูลสภาพพื้นที่ไม่ได้', zh: '暂时无法获取这里的状况。' })}</Body>
           <Button label={t(strings.common.retry)} onPress={places.reload} variant="secondary" height={40} style={{ marginTop: 10 }} />
         </View>
       ) : avg === null ? (
         <Body size={13} colour={color.neutral700} style={{ marginTop: 10 }}>
-          {places.loading ? t({ en: 'Loading places…', th: 'กำลังโหลดสถานที่…' }) : t({ en: 'No places here yet.', th: 'ยังไม่มีสถานที่ในพื้นที่นี้' })}
+          {places.loading ? t({ en: 'Loading places…', th: 'กำลังโหลดสถานที่…', zh: '正在加载地点…' }) : t({ en: 'No places here yet.', th: 'ยังไม่มีสถานที่ในพื้นที่นี้', zh: '这里还没有地点。' })}
         </Body>
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 12 }}>
@@ -392,6 +392,7 @@ function Conditions({
               {t({
                 en: `Average score across ${list.length} place${list.length === 1 ? '' : 's'}`,
                 th: `คะแนนเฉลี่ยจาก ${list.length} สถานที่`,
+                zh: `${list.length} 个地点的平均评分`,
               })}
             </Body>
             <Label size={9} tracking={0.1} colour={color.neutral600} style={{ marginTop: 2 }}>
@@ -408,10 +409,11 @@ function Conditions({
               accessibilityLabel={t({
                 en: 'See every place and how its score is calculated',
                 th: 'ดูทุกสถานที่และวิธีคำนวณคะแนน',
+                zh: '查看每个地点及其评分的计算方式',
               })}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6, minHeight: 44 }}
             >
-              <Label size={10} tracking={0.1} colour="#0077B6">{t({ en: 'See every place', th: 'ดูทุกสถานที่' })}</Label>
+              <Label size={10} tracking={0.1} colour="#0077B6">{t({ en: 'See every place', th: 'ดูทุกสถานที่', zh: '查看全部地点' })}</Label>
               <ChevronRight size={14} color="#0077B6" strokeWidth={2} />
             </Pressable>
           </View>
@@ -438,7 +440,7 @@ function Doors({
     { Icon: Umbrella, name: strings.ask.context, onPress: onOpenStays ?? onOpenConcierge, fill: '#FFE2D4', ink: '#B95429' },
     { Icon: Sparkles, name: strings.tabs.quests, onPress: onOpenQuests, fill: '#FFD6AF', ink: '#B34C00' },
     { Icon: Wallet, name: strings.tabs.wallet, onPress: onOpenWallet, fill: '#FFD5CF', ink: '#AE433C' },
-    { Icon: Ticket, name: { en: 'Deals', th: 'สิทธิพิเศษ' }, onPress: onOpenMarket, fill: '#FFF0AD', ink: '#916000' },
+    { Icon: Ticket, name: { en: 'Deals', th: 'สิทธิพิเศษ', zh: '优惠' }, onPress: onOpenMarket, fill: '#FFF0AD', ink: '#916000' },
   ];
   return (
     <View style={{ flexDirection: 'row', paddingHorizontal: Math.max(8, gutter - 8), paddingTop: 22 }}>
@@ -488,19 +490,20 @@ function MarketPromoCard({ onOpenMarket }: { onOpenMarket: () => void }) {
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Label size={9} tracking={0.12} colour={color.brand}>
-              {t({ en: 'TRAVEL MARKETPLACE', th: 'ตลาดสิทธิพิเศษ' })}
+              {t({ en: 'TRAVEL MARKETPLACE', th: 'ตลาดสิทธิพิเศษ', zh: '旅行优惠市集' })}
             </Label>
             <View style={{ backgroundColor: color.goldSoft, paddingHorizontal: 6, paddingVertical: 1, borderRadius: radius.lg }}>
-              <Label size={9} tracking={0.04} colour={color.goldDeep}>{t({ en: 'NEW', th: 'ใหม่' })}</Label>
+              <Label size={9} tracking={0.04} colour={color.goldDeep}>{t({ en: 'NEW', th: 'ใหม่', zh: '新' })}</Label>
             </View>
           </View>
           <Heading size={15} tracking={-0.3} style={{ marginTop: 2 }}>
-            {t({ en: 'Redeem local deals and perks', th: 'แลกสิทธิพิเศษร้านค้าชุมชน' })}
+            {t({ en: 'Redeem local deals and perks', th: 'แลกสิทธิพิเศษร้านค้าชุมชน', zh: '兑换本地商家的优惠' })}
           </Heading>
           <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>
             {t({
               en: 'Use your Green and Trip points for café discounts, wellness and island tours.',
               th: 'ใช้แต้มกรีนและแต้มทริป แลกรับส่วนลดคาเฟ่ ร้านอาหาร และกิจกรรมบนเกาะ',
+              zh: '用你的绿色积分和旅行积分，兑换咖啡馆折扣、康养和岛上行程。',
             })}
           </Body>
         </View>
@@ -563,22 +566,23 @@ function Places({
       <SectionHead
         en="Places in this area"
         th="สถานที่ในพื้นที่นี้"
+        zh="这一带的地点"
         note={noteForOrder(pinned, here !== null)}
         onSeeAll={onOpenMap}
       />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: gutter, gap: 8, paddingBottom: 4 }}>
-        {([['all', { en: 'All', th: 'ทั้งหมด' }], ['places', { en: 'Places', th: 'สถานที่' }], ['shops', { en: 'Services', th: 'สถานบริการ' }]] as const).map(([value, label]) => <Pressable key={value} onPress={() => setKind(value)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: kind === value ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: kind === value ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{t(label)}</Text></Pressable>)}
+        {([['all', { en: 'All', th: 'ทั้งหมด', zh: '全部' }], ['places', { en: 'Places', th: 'สถานที่', zh: '地点' }], ['shops', { en: 'Services', th: 'สถานบริการ', zh: '服务' }]] as const).map(([value, label]) => <Pressable key={value} onPress={() => setKind(value)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: kind === value ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: kind === value ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{t(label)}</Text></Pressable>)}
       </ScrollView>
       {kind === 'shops' ? <View style={{ paddingTop: 10 }}>
-        <Label size={11} colour="#123B64" style={{ paddingHorizontal: gutter, paddingBottom: 6 }}>{t({ en: 'Service category', th: 'ประเภทบริการ' })}</Label>
+        <Label size={11} colour="#123B64" style={{ paddingHorizontal: gutter, paddingBottom: 6 }}>{t({ en: 'Service category', th: 'ประเภทบริการ', zh: '服务类别' })}</Label>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: gutter, gap: 8 }}>
-          <Pressable onPress={() => setShopCategory('')} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: !shopCategory ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: !shopCategory ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{t({ en: 'All', th: 'ทั้งหมด' })}</Text></Pressable>
+          <Pressable onPress={() => setShopCategory('')} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: !shopCategory ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: !shopCategory ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{t({ en: 'All', th: 'ทั้งหมด', zh: '全部' })}</Text></Pressable>
           {SHOP_CATEGORIES.map((category) => <Pressable key={category} onPress={() => setShopCategory(category)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: shopCategory === category ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: shopCategory === category ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{shopCategoryLabel(category)}</Text></Pressable>)}
         </ScrollView>
       </View> : null}
-      {places.error && kind !== 'shops' ? <Pressable onPress={places.reload} style={{ paddingHorizontal: gutter, paddingTop: 8 }}><Body size={13} colour="#B91C1C">{t({ en: 'Could not load places. Try again.', th: 'โหลดสถานที่ไม่สำเร็จ · ลองใหม่' })}</Body></Pressable> : null}
-      {shops.error && kind !== 'places' ? <Pressable onPress={shops.reload} style={{ paddingHorizontal: gutter, paddingTop: 8 }}><Body size={13} colour="#B91C1C">{t({ en: 'Could not load services. Try again.', th: 'โหลดบริการไม่สำเร็จ · ลองใหม่' })}</Body></Pressable> : null}
-      {loading ? <Body size={13} style={{ paddingHorizontal: gutter, paddingTop: 8 }}>{t({ en: 'Loading this area…', th: 'กำลังโหลดข้อมูลในพื้นที่...' })}</Body> : null}
+      {places.error && kind !== 'shops' ? <Pressable onPress={places.reload} style={{ paddingHorizontal: gutter, paddingTop: 8 }}><Body size={13} colour="#B91C1C">{t({ en: 'Could not load places. Try again.', th: 'โหลดสถานที่ไม่สำเร็จ · ลองใหม่', zh: '地点加载失败 · 请重试' })}</Body></Pressable> : null}
+      {shops.error && kind !== 'places' ? <Pressable onPress={shops.reload} style={{ paddingHorizontal: gutter, paddingTop: 8 }}><Body size={13} colour="#B91C1C">{t({ en: 'Could not load services. Try again.', th: 'โหลดบริการไม่สำเร็จ · ลองใหม่', zh: '服务加载失败 · 请重试' })}</Body></Pressable> : null}
+      {loading ? <Body size={13} style={{ paddingHorizontal: gutter, paddingTop: 8 }}>{t({ en: 'Loading this area…', th: 'กำลังโหลดข้อมูลในพื้นที่...', zh: '正在加载这一带的信息…' })}</Body> : null}
       {shownPlaces.length || shownShops.length ? (
       <ScrollView
         horizontal
@@ -590,21 +594,21 @@ function Places({
         ))}
         {shownShops.map((shop) => <ShopCard key={shop.id} shop={shop} onPress={() => onOpenShop(shop.id)} />)}
       </ScrollView>
-      ) : !loading ? <Body style={{ marginHorizontal: gutter, marginTop: 8 }} colour={color.neutral700}>{kind === 'shops' ? (shopCategory ? t({ en: `No ${shopCategoryLabel(shopCategory)} services in this area yet.`, th: `ยังไม่มีบริการประเภท${shopCategoryLabel(shopCategory)}ในพื้นที่นี้` }) : t({ en: 'No services in this area yet.', th: 'ยังไม่มีสถานบริการในพื้นที่นี้' })) : kind === 'places' ? t({ en: 'No places in this area yet.', th: 'ยังไม่มีสถานที่ในพื้นที่นี้' }) : t({ en: 'No places or services in this area yet.', th: 'ยังไม่มีสถานที่หรือบริการในพื้นที่นี้' })}</Body> : null}
+      ) : !loading ? <Body style={{ marginHorizontal: gutter, marginTop: 8 }} colour={color.neutral700}>{kind === 'shops' ? (shopCategory ? t({ en: `No ${shopCategoryLabel(shopCategory)} services in this area yet.`, th: `ยังไม่มีบริการประเภท${shopCategoryLabel(shopCategory)}ในพื้นที่นี้`, zh: `这一带还没有${shopCategoryLabel(shopCategory)}服务。` }) : t({ en: 'No services in this area yet.', th: 'ยังไม่มีสถานบริการในพื้นที่นี้', zh: '这一带还没有服务。' })) : kind === 'places' ? t({ en: 'No places in this area yet.', th: 'ยังไม่มีสถานที่ในพื้นที่นี้', zh: '这一带还没有地点。' }) : t({ en: 'No places or services in this area yet.', th: 'ยังไม่มีสถานที่หรือบริการในพื้นที่นี้', zh: '这一带还没有地点或服务。' })}</Body> : null}
     </View>
   );
 }
 
 function shopCategoryLabel(category: string): string {
-  const labels: Record<string, { en: string; th: string }> = {
-    'ที่พัก': { en: 'Accommodation', th: 'ที่พัก' },
-    'ร้านอาหาร': { en: 'Restaurants', th: 'ร้านอาหาร' },
-    'ร้านขายของ': { en: 'Souvenirs & shopping', th: 'ของฝาก/ช้อปปิ้ง' },
-    'เช่ารถ': { en: 'Car rental', th: 'เช่ารถ' },
-    'เสริมสวย': { en: 'Beauty', th: 'เสริมสวย' },
-    'ตัดผม': { en: 'Haircuts', th: 'ตัดผม' },
-    'ไกด์นำเที่ยว': { en: 'Tour guide', th: 'ไกด์นำเที่ยว' },
-    'อื่นๆ': { en: 'Other', th: 'อื่นๆ' },
+  const labels: Record<string, { en: string; th: string; zh?: string }> = {
+    'ที่พัก': { en: 'Accommodation', th: 'ที่พัก', zh: '住宿' },
+    'ร้านอาหาร': { en: 'Restaurants', th: 'ร้านอาหาร', zh: '餐厅' },
+    'ร้านขายของ': { en: 'Souvenirs & shopping', th: 'ของฝาก/ช้อปปิ้ง', zh: '纪念品与购物' },
+    'เช่ารถ': { en: 'Car rental', th: 'เช่ารถ', zh: '租车' },
+    'เสริมสวย': { en: 'Beauty', th: 'เสริมสวย', zh: '美容' },
+    'ตัดผม': { en: 'Haircuts', th: 'ตัดผม', zh: '理发' },
+    'ไกด์นำเที่ยว': { en: 'Tour guide', th: 'ไกด์นำเที่ยว', zh: '导游' },
+    'อื่นๆ': { en: 'Other', th: 'อื่นๆ', zh: '其他' },
   };
   return t(labels[category] ?? { en: category, th: category });
 }
@@ -612,9 +616,9 @@ function shopCategoryLabel(category: string): string {
 function ShopCard({ shop, onPress }: { shop: Shop; onPress: () => void }) {
   if (shop.serviceType === 'guide') return <GuideCard shop={shop} onPress={onPress} />;
   return (
-    <Pressable onPress={onPress} accessibilityLabel={`${t({ en: 'Service', th: 'บริการ' })} ${shop.name}`} style={[shadow.card, { width: 204, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden' }]}>
+    <Pressable onPress={onPress} accessibilityLabel={`${t({ en: 'Service', th: 'บริการ', zh: '服务' })} ${shop.name}`} style={[shadow.card, { width: 204, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden' }]}>
       {shop.coverUrl ? <Image source={{ uri: shopImageUri(shop.coverUrl) }} style={{ width: '100%', height: 125 }} /> : <View style={{ height: 125, backgroundColor: '#DFF3F8', alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 36 }}>🏪</Text></View>}
-      <View style={{ padding: 10 }}><Label size={10} colour="#0077B6">{shopCategoryLabel(shop.category)}</Label><Heading size={15}>{shop.name}</Heading><Body size={13} colour="#64748B">{shop.rating === null ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว' }) : `★ ${shop.rating} (${shop.reviewCount})`}</Body></View>
+      <View style={{ padding: 10 }}><Label size={10} colour="#0077B6">{shopCategoryLabel(shop.category)}</Label><Heading size={15}>{shop.name}</Heading><Body size={13} colour="#64748B">{shop.rating === null ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว', zh: '还没有评价' }) : `★ ${shop.rating} (${shop.reviewCount})`}</Body></View>
     </Pressable>
   );
 }
@@ -626,19 +630,19 @@ function GuideCard({ shop, onPress }: { shop: Shop; onPress: () => void }) {
   const area = AREAS.find((item) => item.key === shop.areaKey);
   const tourNames: Record<string, string> = { 'ทัวร์ธรรมชาติ': 'Nature', 'ดำน้ำ': 'Snorkelling', 'เดินป่า': 'Hiking', 'วัฒนธรรม/วัด': 'Culture & temples', 'อาหารท้องถิ่น': 'Local food', 'เที่ยวเกาะ': 'Island hopping' };
   const expertise = [...new Set([...(shop.guideSkills ?? []), ...(shop.guideTourStyles ?? []).map((value) => t({ en: tourNames[value] ?? value, th: value }))])];
-  return <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${t({ en: 'View guide profile', th: 'ดูโปรไฟล์ไกด์' })} ${shop.name}`} style={[shadow.card, { width: cardWidth, borderRadius: 20, overflow: 'hidden', backgroundColor: '#fff', flexDirection: 'row', minHeight: 224 }]}>
+  return <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${t({ en: 'View guide profile', th: 'ดูโปรไฟล์ไกด์', zh: '查看导游资料' })} ${shop.name}`} style={[shadow.card, { width: cardWidth, borderRadius: 20, overflow: 'hidden', backgroundColor: '#fff', flexDirection: 'row', minHeight: 224 }]}>
     <View style={{ width: '43%', backgroundColor: '#DFF3F8', minHeight: 224 }}>
       {photo ? <Image source={{ uri: shopImageUri(photo) }} resizeMode="cover" style={{ position: 'absolute', width: '100%', height: '100%' }} /> : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><UserRound size={52} color="#4195AB" /></View>}
-      {shop.guideStatus === 'approved' ? <View style={{ margin: 8, paddingHorizontal: 7, paddingVertical: 4, borderRadius: 12, backgroundColor: '#148764', alignSelf: 'flex-start' }}><Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>✓ {t({ en: 'Verified', th: 'ตรวจสอบแล้ว' })}</Text></View> : null}
+      {shop.guideStatus === 'approved' ? <View style={{ margin: 8, paddingHorizontal: 7, paddingVertical: 4, borderRadius: 12, backgroundColor: '#148764', alignSelf: 'flex-start' }}><Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>✓ {t({ en: 'Verified', th: 'ตรวจสอบแล้ว', zh: '已验证' })}</Text></View> : null}
     </View>
     <View style={{ flex: 1, padding: 12, gap: 7 }}>
-      <Text style={{ color: '#0077B6', fontSize: 11 }}>{t({ en: 'Tour guide', th: 'ไกด์นำเที่ยว' })}</Text>
+      <Text style={{ color: '#0077B6', fontSize: 11 }}>{t({ en: 'Tour guide', th: 'ไกด์นำเที่ยว', zh: '导游' })}</Text>
       <Text numberOfLines={2} style={{ color: '#123B64', fontWeight: '800', fontSize: 17 }}>{shop.name}</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><MapPin size={12} color="#64748B" /><Text numberOfLines={2} style={{ flex: 1, color: '#64748B', fontSize: 11 }}>{area ? t(area.name) : shop.areaKey}</Text></View>
-      <Text style={{ color: shop.rating === null ? '#64748B' : '#94620C', fontSize: 11 }}>{shop.rating === null ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว' }) : `★ ${shop.rating.toFixed(1)} (${shop.reviewCount})`}</Text>
+      <Text style={{ color: shop.rating === null ? '#64748B' : '#94620C', fontSize: 11 }}>{shop.rating === null ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว', zh: '还没有评价' }) : `★ ${shop.rating.toFixed(1)} (${shop.reviewCount})`}</Text>
       {shop.guideLanguages.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>{shop.guideLanguages.slice(0, 3).map((name) => <View key={name} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 9, paddingHorizontal: 6, paddingVertical: 3, backgroundColor: '#EAF7FB' }}><GuideLanguageFlag language={name} size={17} /><Text style={{ color: '#123B64', fontSize: 10 }}>{guideLanguageLabel(name)}</Text></View>)}{shop.guideLanguages.length > 3 ? <Text style={{ color: '#64748B', fontSize: 10 }}>+{shop.guideLanguages.length - 3}</Text> : null}</View> : null}
       {expertise.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>{expertise.slice(0, 2).map((value) => <View key={value} style={{ maxWidth: '100%', borderRadius: 9, paddingHorizontal: 6, paddingVertical: 3, backgroundColor: '#EFF8F4' }}><Text numberOfLines={1} style={{ color: '#276759', fontSize: 10 }}>{value}</Text></View>)}</View> : null}
-      <View style={{ marginTop: 'auto', alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', borderRadius: 15, backgroundColor: '#0077B6', paddingHorizontal: 10, paddingVertical: 6 }}><Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>{t({ en: 'View profile', th: 'ดูโปรไฟล์' })}</Text><ChevronRight size={13} color="#fff" /></View>
+      <View style={{ marginTop: 'auto', alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', borderRadius: 15, backgroundColor: '#0077B6', paddingHorizontal: 10, paddingVertical: 6 }}><Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>{t({ en: 'View profile', th: 'ดูโปรไฟล์', zh: '查看资料' })}</Text><ChevronRight size={13} color="#fff" /></View>
     </View>
   </Pressable>;
 }
@@ -768,7 +772,7 @@ function MascotHeroCard({
       <Pressable
         onPress={onOpen}
         accessibilityRole="button"
-        accessibilityLabel={`${t({ en: 'Meet your Island Companions', th: 'แก๊งเพื่อนร่วมทางเกาะสมุย' })}. ${t({ en: 'Open Field Guide', th: 'เปิดสมุดบันทึกมาสคอต' })}`}
+        accessibilityLabel={`${t({ en: 'Meet your Island Companions', th: 'แก๊งเพื่อนร่วมทางเกาะสมุย', zh: '认识你的岛屿伙伴' })}. ${t({ en: 'Open Field Guide', th: 'เปิดสมุดบันทึกมาสคอต', zh: '打开伙伴图鉴' })}`}
         style={[
           shadow.card,
           {
@@ -804,8 +808,8 @@ function MascotHeroCard({
             <Sparkles size={11} color="#ffe28a" />
             <Label size={9} tracking={0.08} colour="#ffffff">
               {isSunset
-                ? t({ en: 'Golden Hour • Samui', th: 'ช่วงพระอาทิตย์ตก • สมุย' })
-                : t({ en: 'Daylight • Samui', th: 'ช่วงกลางวัน • สมุย' })}
+                ? t({ en: 'Golden Hour • Samui', th: 'ช่วงพระอาทิตย์ตก • สมุย', zh: '黄金时刻 • 苏梅岛' })
+                : t({ en: 'Daylight • Samui', th: 'ช่วงกลางวัน • สมุย', zh: '白天 • 苏梅岛' })}
             </Label>
           </View>
         </View>
@@ -814,15 +818,16 @@ function MascotHeroCard({
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View style={{ flex: 1, paddingRight: 8 }}>
               <Label size={9} tracking={0.12} colour={color.brand}>
-                {t({ en: 'ISLAND COMPANIONS', th: 'แก๊งเพื่อนร่วมทาง' })}
+                {t({ en: 'ISLAND COMPANIONS', th: 'แก๊งเพื่อนร่วมทาง', zh: '岛屿伙伴' })}
               </Label>
               <Heading size={15} tracking={-0.3} style={{ marginTop: 2 }}>
-                {t({ en: 'Meet your Island Companions', th: 'แก๊งเพื่อนร่วมทางเกาะสมุย' })}
+                {t({ en: 'Meet your Island Companions', th: 'แก๊งเพื่อนร่วมทางเกาะสมุย', zh: '认识你的岛屿伙伴' })}
               </Heading>
               <Body size={13} colour={color.neutral700} style={{ marginTop: 4 }}>
                 {t({
                   en: 'Explore local habitats, collect provincial passport stamps, and hatch companions.',
                   th: 'ออกสำรวจถิ่นที่อยู่ สะสมตราประทับพาสปอร์ต และฟักไข่เพื่อนร่วมทางจากการเดินทางจริง',
+                  zh: '探索本地的栖息地，收集各府的护照印章，孵出属于你的伙伴。',
                 })}
               </Body>
             </View>
@@ -863,7 +868,8 @@ function Today({
       <SectionHead
         en="Recommended"
         th="แนะนำสำหรับคุณ"
-        note={t({ en: "Today's Eco-Adventures", th: "ภารกิจกรีนวันนี้" })}
+        zh="为你推荐"
+        note={t({ en: "Today's Eco-Adventures", th: "ภารกิจกรีนวันนี้", zh: "今日绿色任务" })}
         onSeeAll={onOpenQuests}
       />
 
@@ -871,7 +877,7 @@ function Today({
         <ErrorState message={quests.error} onRetry={quests.reload} />
       ) : quests.loading ? (
         <Body size={13} colour={color.neutral600} style={{ paddingHorizontal: gutter }}>
-          {t({ en: 'Loading today’s missions…', th: 'กำลังโหลดภารกิจวันนี้…' })}
+          {t({ en: 'Loading today’s missions…', th: 'กำลังโหลดภารกิจวันนี้…', zh: '正在加载今天的任务…' })}
         </Body>
       ) : ordered.length === 0 ? (
         <View style={[shadow.card, { marginHorizontal: gutter, padding: 18, borderRadius: 24, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(14, 165, 233, 0.16)' }]}>
@@ -880,10 +886,11 @@ function Today({
               {t({
                 en: `All ${finished} of today’s missions are done. Nothing left to verify until tomorrow.`,
                 th: `ทำภารกิจวันนี้ครบทั้ง ${finished} รายการแล้ว ไม่มีอะไรรอตรวจจนถึงพรุ่งนี้`,
+                zh: `今天的 ${finished} 个任务都完成了，明天之前没有要验证的了。`,
               })}
             </Body>
           ) : (
-            <Body size={13} colour={color.neutral700}>{t({ en: 'No missions running today. The map still works, and the weekend list usually has something.', th: 'วันนี้ยังไม่มีภารกิจ แผนที่ยังใช้ได้ และรายการสุดสัปดาห์มักมีให้ทำ' })}</Body>
+            <Body size={13} colour={color.neutral700}>{t({ en: 'No missions running today. The map still works, and the weekend list usually has something.', th: 'วันนี้ยังไม่มีภารกิจ แผนที่ยังใช้ได้ และรายการสุดสัปดาห์มักมีให้ทำ', zh: '今天没有进行中的任务。地图照常可用，周末的任务列表通常也有可做的。' })}</Body>
           )}
           <Button label="See all missions" thai="ดูภารกิจทั้งหมด" onPress={onOpenQuests} variant="secondary" height={44} style={{ marginTop: 12 }} />
         </View>
@@ -896,10 +903,10 @@ function Today({
             <Pressable
               onPress={onOpenQuests}
               accessibilityRole="button"
-              accessibilityLabel={t({ en: `See all missions, ${rest} more`, th: `ดูภารกิจทั้งหมด อีก ${rest} รายการ` })}
+              accessibilityLabel={t({ en: `See all missions, ${rest} more`, th: `ดูภารกิจทั้งหมด อีก ${rest} รายการ`, zh: `查看全部任务，还有 ${rest} 个` })}
               style={{ marginHorizontal: gutter, marginTop: 10, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
             >
-              <Label size={10} tracking={0.12} colour="#0284c7">{t({ en: `${rest} more today`, th: `อีก ${rest} ภารกิจวันนี้` })}</Label>
+              <Label size={10} tracking={0.12} colour="#0284c7">{t({ en: `${rest} more today`, th: `อีก ${rest} ภารกิจวันนี้`, zh: `今天还有 ${rest} 个` })}</Label>
               <ChevronRight size={16} color="#0284c7" strokeWidth={2} />
             </Pressable>
           ) : null}
@@ -939,7 +946,7 @@ function QuestCard({
         <View style={{ flex: 1 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
             {started ? (
-              <Label size={9} tracking={0.14} colour="#0284c7">{t({ en: 'IN PROGRESS', th: 'กำลังทำอยู่' })}</Label>
+              <Label size={9} tracking={0.14} colour="#0284c7">{t({ en: 'IN PROGRESS', th: 'กำลังทำอยู่', zh: '进行中' })}</Label>
             ) : null}
             <View style={{ backgroundColor: 'rgba(14, 165, 233, 0.1)', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 }}>
               <Label size={9} tracking={0.06} colour="#0284c7">{t(quest.duration)}</Label>
@@ -983,7 +990,7 @@ function Carrying({
 
   return (
     <View style={{ paddingTop: 22 }}>
-      <SectionHead en="What you’re carrying" th="สิ่งที่คุณสะสมไว้" />
+      <SectionHead en="What you’re carrying" th="สิ่งที่คุณสะสมไว้" zh="你随身带着的" />
 
       <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: gutter }}>
         {/*
@@ -991,13 +998,13 @@ function Carrying({
           screen where somebody first learns there are two of them. Green is
           host-verified, gold is self-verified, and the labels say which.
         */}
-        <Figure value={green === null ? '—' : green.toLocaleString('en-US')} unit="G" en="Green · verified" th="ตรวจแล้ว" tone={color.accent700} onPress={onOpenWallet} />
-        <Figure value={trip === null ? '—' : trip.toLocaleString('en-US')} unit="T" en="Trip · self" th="บันทึกเอง" tone={color.goldDeep} onPress={onOpenWallet} />
+        <Figure value={green === null ? '—' : green.toLocaleString('en-US')} unit="G" en="Green · verified" th="ตรวจแล้ว" zh="绿色 · 已验证" tone={color.accent700} onPress={onOpenWallet} />
+        <Figure value={trip === null ? '—' : trip.toLocaleString('en-US')} unit="T" en="Trip · self" th="บันทึกเอง" zh="旅行 · 自行记录" tone={color.goldDeep} onPress={onOpenWallet} />
       </View>
 
       <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: gutter, marginTop: 10 }}>
-        <Figure value={stamps === null ? '—' : String(stamps.visited)} unit={stamps === null ? '' : `/ ${stamps.total}`} en="Provinces" th="จังหวัด" tone={color.brand} onPress={onOpenPassport} />
-        <Figure value={found === null ? '—' : String(found.found)} unit={found === null ? '' : `/ ${found.total}`} en="Companions" th="เพื่อนร่วมทาง" tone={color.brand} onPress={onOpenWallet} />
+        <Figure value={stamps === null ? '—' : String(stamps.visited)} unit={stamps === null ? '' : `/ ${stamps.total}`} en="Provinces" th="จังหวัด" zh="府" tone={color.brand} onPress={onOpenPassport} />
+        <Figure value={found === null ? '—' : String(found.found)} unit={found === null ? '' : `/ ${found.total}`} en="Companions" th="เพื่อนร่วมทาง" zh="伙伴" tone={color.brand} onPress={onOpenWallet} />
       </View>
 
       {wallet.error || passport.error || companions.error ? (
@@ -1005,6 +1012,7 @@ function Carrying({
           {t({
             en: 'Some figures could not be loaded and are shown as —, not as zero.',
             th: 'ตัวเลขบางส่วนโหลดไม่สำเร็จ จึงแสดงเป็น — ไม่ใช่ศูนย์',
+            zh: '部分数字没有加载成功，所以显示为 —，而不是零。',
           })}
         </Label>
       ) : null}
@@ -1014,9 +1022,9 @@ function Carrying({
 
 /** One figure in a tappable card. `—` when unknown, which is not the same as 0. */
 function Figure({
-  value, unit, en, th, tone, onPress,
+  value, unit, en, th, zh, tone, onPress,
 }: {
-  value: string; unit: string; en: string; th: string; tone: string; onPress: () => void;
+  value: string; unit: string; en: string; th: string; zh?: string; tone: string; onPress: () => void;
 }) {
   return (
     <Pressable
@@ -1045,7 +1053,7 @@ function Figure({
         <Heading size={24} colour={tone}>{value}</Heading>
         {unit ? <Label size={10} tracking={0.08} colour={color.neutral600}>{unit}</Label> : null}
       </View>
-      <Label size={9} tracking={0.08} colour={color.neutral700} style={{ marginTop: 4 }}>{t({ en, th })}</Label>
+      <Label size={9} tracking={0.08} colour={color.neutral700} style={{ marginTop: 4 }}>{t({ en, th, zh })}</Label>
     </Pressable>
   );
 }
@@ -1190,17 +1198,17 @@ function Board({ areaKey, onOpenPlace }: { areaKey: string; onOpenPlace: (placeI
 }
 
 function SectionHead({
-  en, th, note, onSeeAll,
-}: { en: string; th: string; note?: string; onSeeAll?: () => void }) {
+  en, th, zh, note, onSeeAll,
+}: { en: string; th: string; zh?: string; note?: string; onSeeAll?: () => void }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
       <View>
-        <Heading size={20} colour="#0f2942">{t({ en, th })}</Heading>
+        <Heading size={20} colour="#0f2942">{t({ en, th, zh })}</Heading>
         {note ? <Label size={10} tracking={0.08} colour="#0284c7" style={{ marginTop: 2 }}>{note}</Label> : null}
       </View>
       {onSeeAll ? (
-        <Pressable onPress={onSeeAll} accessibilityRole="button" accessibilityLabel={`${t({ en: 'See all', th: 'ดูทั้งหมด' })}: ${t({ en, th })}`} style={{ minHeight: 44, justifyContent: 'center' }}>
-          <Label size={11} tracking={0.08} colour="#0284c7" style={{ fontWeight: '600' }}>{t({ en: 'See all', th: 'ดูทั้งหมด' })}</Label>
+        <Pressable onPress={onSeeAll} accessibilityRole="button" accessibilityLabel={`${t({ en: 'See all', th: 'ดูทั้งหมด', zh: '查看全部' })}: ${t({ en, th, zh })}`} style={{ minHeight: 44, justifyContent: 'center' }}>
+          <Label size={11} tracking={0.08} colour="#0284c7" style={{ fontWeight: '600' }}>{t({ en: 'See all', th: 'ดูทั้งหมด', zh: '查看全部' })}</Label>
         </Pressable>
       ) : null}
     </View>

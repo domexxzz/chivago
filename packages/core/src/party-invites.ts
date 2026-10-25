@@ -81,10 +81,10 @@ export const REQUEST_STALE_HOURS = INVITE_MAX_HOURS;
 export type InviteState = 'open' | 'full' | 'closed' | 'expired';
 
 export const INVITE_STATE_LABEL: Record<InviteState, Bilingual> = {
-  open: { en: 'Looking for people', th: 'กำลังหาคนไปด้วย' },
-  full: { en: 'No spaces left', th: 'เต็มแล้ว' },
-  closed: { en: 'Closed by the party', th: 'ปาร์ตี้ปิดรับแล้ว' },
-  expired: { en: 'The time has passed', th: 'เลยเวลาไปแล้ว' },
+  open: { en: 'Looking for people', th: 'กำลังหาคนไปด้วย', zh: '正在找同行的人' },
+  full: { en: 'No spaces left', th: 'เต็มแล้ว', zh: '名额已满' },
+  closed: { en: 'Closed by the party', th: 'ปาร์ตี้ปิดรับแล้ว', zh: '队伍已关闭招募' },
+  expired: { en: 'The time has passed', th: 'เลยเวลาไปแล้ว', zh: '时间已过' },
 };
 
 /** An invitation as the party that posted it holds it. */
@@ -173,14 +173,17 @@ export const INVITE_DOES_NOT: Bilingual[] = [
   {
     en: 'Show anybody where you are. Invitations are posted at a place, never at a person.',
     th: 'ไม่บอกใครว่าคุณอยู่ที่ไหน ประกาศผูกกับสถานที่ ไม่ได้ผูกกับตัวคน',
+    zh: '不会告诉任何人你在哪里。邀约发布在地点上，绝不发布在人身上。',
   },
   {
     en: 'Show your balance, your real name, or anywhere you have been.',
     th: 'ไม่แสดงยอดแต้ม ชื่อจริง หรือที่ที่คุณเคยไป',
+    zh: '不会显示你的积分余额、真实姓名，或你去过的任何地方。',
   },
   {
     en: 'Share points. Joining a party has never done that and still does not.',
     th: 'ไม่แชร์แต้ม การเข้าปาร์ตี้ไม่เคยทำแบบนั้น และตอนนี้ก็ยังไม่ทำ',
+    zh: '不会共享积分。加入队伍从来不会共享积分，现在也一样。',
   },
 ];
 
@@ -193,34 +196,42 @@ export const POST_REFUSAL: Record<PostFailure, Bilingual> = {
   'no-party': {
     en: 'Start or join a party first — an invitation comes from a group, even a group of one.',
     th: 'สร้างหรือเข้าปาร์ตี้ก่อน ประกาศมาจากกลุ่ม แม้จะเป็นกลุ่มคนเดียวก็ตาม',
+    zh: '先创建或加入一支队伍——邀约来自一个群体，哪怕这个群体只有一个人。',
   },
   'not-yours': {
     en: 'Only somebody in the party can post for it.',
     th: 'เฉพาะคนในปาร์ตี้เท่านั้นที่ประกาศแทนได้',
+    zh: '只有队伍里的人才能代表它发布。',
   },
   'party-full': {
     en: `This party is already ${MAX_PARTY_SIZE} people, so there is no space to offer.`,
     th: `ปาร์ตี้นี้ครบ ${MAX_PARTY_SIZE} คนแล้ว จึงไม่มีที่ว่างให้ประกาศ`,
+    zh: `这支队伍已经有 ${MAX_PARTY_SIZE} 人，没有名额可以提供了。`,
   },
   'already-posted': {
     en: 'This party already has an invitation up. Close that one first.',
     th: 'ปาร์ตี้นี้มีประกาศค้างอยู่แล้ว ปิดอันเดิมก่อน',
+    zh: '这支队伍已经有一条邀约在发布中。请先关闭那一条。',
   },
   'window-too-short': {
     en: `Give it at least ${INVITE_MIN_MINUTES} minutes — anything shorter expires while people are reading it.`,
     th: `ตั้งเวลาอย่างน้อย ${INVITE_MIN_MINUTES} นาที สั้นกว่านั้นจะหมดอายุตั้งแต่คนยังอ่านไม่จบ`,
+    zh: `至少给它 ${INVITE_MIN_MINUTES} 分钟——再短的话，别人还没读完就过期了。`,
   },
   'window-too-long': {
     en: `${INVITE_MAX_HOURS} hours is the longest an invitation can stay up.`,
     th: `ประกาศอยู่ได้นานที่สุด ${INVITE_MAX_HOURS} ชั่วโมง`,
+    zh: `一条邀约最长能挂 ${INVITE_MAX_HOURS} 小时。`,
   },
   'window-past': {
     en: 'That time has already passed.',
     th: 'เวลานั้นผ่านไปแล้ว',
+    zh: '那个时间已经过去了。',
   },
   spaces: {
     en: `Offer between 1 and ${INVITE_MAX_SPACES} spaces.`,
     th: `เปิดรับได้ตั้งแต่ 1 ถึง ${INVITE_MAX_SPACES} คน`,
+    zh: `开放的名额请设在 1 到 ${INVITE_MAX_SPACES} 之间。`,
   },
 };
 
@@ -233,30 +244,37 @@ export const REQUEST_REFUSAL: Record<RequestFailure, Bilingual> = {
   unknown: {
     en: 'That invitation is no longer there.',
     th: 'ประกาศนี้ไม่อยู่แล้ว',
+    zh: '这条邀约已经不在了。',
   },
   closed: {
     en: 'The party closed this invitation.',
     th: 'ปาร์ตี้ปิดรับประกาศนี้แล้ว',
+    zh: '队伍关闭了这条邀约。',
   },
   expired: {
     en: 'The time on this invitation has passed.',
     th: 'เลยเวลาของประกาศนี้แล้ว',
+    zh: '这条邀约的时间已经过了。',
   },
   full: {
     en: 'Somebody took the last space.',
     th: 'มีคนรับที่สุดท้ายไปแล้ว',
+    zh: '最后一个名额已经被人占了。',
   },
   'own-party': {
     en: 'This is your own party.',
     th: 'นี่คือปาร์ตี้ของคุณเอง',
+    zh: '这是你自己的队伍。',
   },
   'already-asked': {
     en: 'You have already asked. The party will see it.',
     th: 'คุณขอไปแล้ว ปาร์ตี้จะเห็นคำขอ',
+    zh: '你已经申请过了，队伍会看到。',
   },
   'in-a-party': {
     en: 'Leave your current party first.',
     th: 'ออกจากปาร์ตี้ปัจจุบันก่อน',
+    zh: '请先离开你现在的队伍。',
   },
 };
 
@@ -270,10 +288,10 @@ export const REQUEST_REFUSAL: Record<RequestFailure, Bilingual> = {
 export type RequestOutcome = 'waiting' | 'accepted' | 'declined' | 'withdrawn';
 
 export const REQUEST_OUTCOME_LABEL: Record<RequestOutcome, Bilingual> = {
-  waiting: { en: 'Waiting for the party', th: 'รอปาร์ตี้ตอบ' },
-  accepted: { en: 'They said yes', th: 'ปาร์ตี้รับแล้ว' },
-  declined: { en: 'They said no', th: 'ปาร์ตี้ไม่รับ' },
-  withdrawn: { en: 'You took this back', th: 'คุณถอนคำขอแล้ว' },
+  waiting: { en: 'Waiting for the party', th: 'รอปาร์ตี้ตอบ', zh: '等待队伍回应' },
+  accepted: { en: 'They said yes', th: 'ปาร์ตี้รับแล้ว', zh: '对方同意了' },
+  declined: { en: 'They said no', th: 'ปาร์ตี้ไม่รับ', zh: '对方拒绝了' },
+  withdrawn: { en: 'You took this back', th: 'คุณถอนคำขอแล้ว', zh: '你已撤回' },
 };
 
 /**
@@ -355,22 +373,26 @@ export function pinLine(invitesOpen: number, checkinsLastHour: number): Bilingua
     parts.push({
       en: `${checkinsLastHour} checked in in the last hour`,
       th: `เช็กอินในชั่วโมงที่ผ่านมา ${checkinsLastHour} คน`,
+      zh: `过去一小时有 ${checkinsLastHour} 人签到`,
     });
   }
   if (invitesOpen > 0) {
     parts.push({
       en: `${invitesOpen} ${invitesOpen === 1 ? 'party is' : 'parties are'} looking for people`,
       th: `มี ${invitesOpen} ปาร์ตี้กำลังหาคน`,
+      zh: `有 ${invitesOpen} 支队伍正在找人`,
     });
   }
   if (parts.length === 0) {
     return {
       en: 'Nobody has checked in here in the last hour, and no party is asking.',
       th: 'ยังไม่มีใครเช็กอินที่นี่ในชั่วโมงที่ผ่านมา และยังไม่มีปาร์ตี้ประกาศหาคน',
+      zh: '过去一小时没有人在这里签到，也没有队伍在找人。',
     };
   }
   return {
     en: parts.map((p) => p.en).join(' · '),
     th: parts.map((p) => p.th).join(' · '),
+    zh: parts.map((p) => p.zh).join(' · '),
   };
 }

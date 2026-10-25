@@ -47,50 +47,50 @@ export interface Medal {
 export const MEDALS: readonly Medal[] = [
   {
     key: 'first-steps',
-    name: { en: 'First steps', th: 'ก้าวแรก' },
-    how: { en: 'Check in at any one place.', th: 'เช็กอินที่ไหนก็ได้ 1 แห่ง' },
+    name: { en: 'First steps', th: 'ก้าวแรก', zh: '第一步' },
+    how: { en: 'Check in at any one place.', th: 'เช็กอินที่ไหนก็ได้ 1 แห่ง', zh: '在任意一个地点签到。' },
     mark: 'footprints',
     rule: { kind: 'count', places: 1 },
   },
   {
     key: 'explorer',
-    name: { en: 'Explorer', th: 'นักสำรวจ' },
-    how: { en: 'Check in at three different places.', th: 'เช็กอิน 3 แห่งที่ต่างกัน' },
+    name: { en: 'Explorer', th: 'นักสำรวจ', zh: '探索者' },
+    how: { en: 'Check in at three different places.', th: 'เช็กอิน 3 แห่งที่ต่างกัน', zh: '在三个不同的地点签到。' },
     mark: 'compass',
     rule: { kind: 'count', places: 3 },
   },
   {
     key: 'samui-coast',
-    name: { en: 'Samui coast', th: 'ชายฝั่งสมุย' },
-    how: { en: 'Chaweng Beach, Lamai Beach and Fisherman’s Village.', th: 'หาดเฉวง หาดละไม และหมู่บ้านชาวประมง' },
+    name: { en: 'Samui coast', th: 'ชายฝั่งสมุย', zh: '苏梅海岸' },
+    how: { en: 'Chaweng Beach, Lamai Beach and Fisherman’s Village.', th: 'หาดเฉวง หาดละไม และหมู่บ้านชาวประมง', zh: '查汶海滩、拉迈海滩和渔人村。' },
     mark: 'waves',
     rule: { kind: 'places', placeIds: ['chaweng', 'lamai', 'fisherman'] },
   },
   {
     key: 'forest-and-water',
-    name: { en: 'Forest and water', th: 'ป่าและสายน้ำ' },
-    how: { en: 'Na Muang Waterfall and Thong Krut Mangrove.', th: 'น้ำตกหน้าเมืองและป่าชายเลนท้องกรูด' },
+    name: { en: 'Forest and water', th: 'ป่าและสายน้ำ', zh: '森林与流水' },
+    how: { en: 'Na Muang Waterfall and Thong Krut Mangrove.', th: 'น้ำตกหน้าเมืองและป่าชายเลนท้องกรูด', zh: '那蒙瀑布和通卡鲁红树林。' },
     mark: 'trees',
     rule: { kind: 'places', placeIds: ['namuang', 'mangrove'] },
   },
   {
     key: 'all-of-samui',
-    name: { en: 'All of Samui', th: 'ทั่วเกาะ' },
-    how: { en: 'Every place on Koh Samui.', th: 'ทุกสถานที่บนเกาะสมุย' },
+    name: { en: 'All of Samui', th: 'ทั่วเกาะ', zh: '走遍苏梅岛' },
+    how: { en: 'Every place on Koh Samui.', th: 'ทุกสถานที่บนเกาะสมุย', zh: '苏梅岛上的每一个地点。' },
     mark: 'palm',
     rule: { kind: 'area', area: 'samui' },
   },
   {
     key: 'all-of-campus',
-    name: { en: 'All of the campus', th: 'ทั่วแคมปัส' },
-    how: { en: 'Every place at KU Sriracha.', th: 'ทุกสถานที่ใน มก. ศรีราชา' },
+    name: { en: 'All of the campus', th: 'ทั่วแคมปัส', zh: '走遍校园' },
+    how: { en: 'Every place at KU Sriracha.', th: 'ทุกสถานที่ใน มก. ศรีราชา', zh: 'KU 是拉差校区的每一个地点。' },
     mark: 'campus',
     rule: { kind: 'area', area: 'ku-sriracha' },
   },
   {
     key: 'hopper',
-    name: { en: 'Hopper', th: 'ข้ามพื้นที่' },
-    how: { en: 'Check in on the island and at the campus.', th: 'เช็กอินทั้งบนเกาะและที่แคมปัส' },
+    name: { en: 'Hopper', th: 'ข้ามพื้นที่', zh: '跨区行者' },
+    how: { en: 'Check in on the island and at the campus.', th: 'เช็กอินทั้งบนเกาะและที่แคมปัส', zh: '在岛上和校园各签到一次。' },
     mark: 'route',
     rule: { kind: 'areas', count: 2 },
   },
@@ -114,6 +114,7 @@ export interface MedalState {
 export const MEDALS_BASIS: Bilingual = {
   en: 'Earned by checking in inside a place’s 250 m fence. Self-issued stamps do not count.',
   th: 'ได้จากการเช็กอินในรั้ว 250 ม. ของสถานที่ แสตมป์ที่บันทึกเองไม่นับ',
+  zh: '在地点 250 米围栏范围内签到即可获得。自行记录的印章不计。',
 };
 
 /** As much of a place as a rule needs: which one, and where. */

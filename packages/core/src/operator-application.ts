@@ -38,9 +38,9 @@ import type { Bilingual } from './types.ts';
 export type ApplicationState = 'pending' | 'approved' | 'rejected';
 
 export const APPLICATION_STATE_LABEL: Record<ApplicationState, Bilingual> = {
-  pending: { en: 'Waiting', th: 'รอพิจารณา' },
-  approved: { en: 'Approved', th: 'อนุมัติแล้ว' },
-  rejected: { en: 'Not taken up', th: 'ไม่รับ' },
+  pending: { en: 'Waiting', th: 'รอพิจารณา', zh: '等待中' },
+  approved: { en: 'Approved', th: 'อนุมัติแล้ว', zh: '已通过' },
+  rejected: { en: 'Not taken up', th: 'ไม่รับ', zh: '未予受理' },
 };
 
 /** What the applicant typed. Every field of it. */
@@ -115,22 +115,23 @@ export function applicationProblems(input: OperatorApplicationInput): Bilingual[
   const problems: Bilingual[] = [];
 
   if (blank(input.businessName)) {
-    problems.push({ en: 'The business needs a name.', th: 'ต้องระบุชื่อธุรกิจ' });
+    problems.push({ en: 'The business needs a name.', th: 'ต้องระบุชื่อธุรกิจ', zh: '商家需要填写名称。' });
   }
   if (blank(input.whereLabel)) {
-    problems.push({ en: 'Say where you operate.', th: 'ต้องระบุว่าให้บริการที่ไหน' });
+    problems.push({ en: 'Say where you operate.', th: 'ต้องระบุว่าให้บริการที่ไหน', zh: '请说明你在哪里经营。' });
   }
   if (blank(input.contactName)) {
-    problems.push({ en: 'Give a name we can ask for.', th: 'ต้องระบุชื่อผู้ติดต่อ' });
+    problems.push({ en: 'Give a name we can ask for.', th: 'ต้องระบุชื่อผู้ติดต่อ', zh: '请留一个我们可以找的人的姓名。' });
   }
   if (digitCount(input.contactPhone ?? '') < 9) {
     problems.push({
       en: 'Give a phone number we can call.',
       th: 'ต้องระบุเบอร์โทรที่ติดต่อได้',
+      zh: '请留一个我们可以拨打的电话号码。',
     });
   }
   if (!blank(input.contactEmail) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.contactEmail!.trim())) {
-    problems.push({ en: 'That email address is not readable.', th: 'อีเมลไม่ถูกต้อง' });
+    problems.push({ en: 'That email address is not readable.', th: 'อีเมลไม่ถูกต้อง', zh: '这个邮箱地址无法识别。' });
   }
 
   // The same sentence a listing is refused with, from the same function: a
@@ -145,6 +146,7 @@ export function applicationProblems(input: OperatorApplicationInput): Bilingual[
       problems.push({
         en: `Keep ${field} to ${limit} characters or fewer.`,
         th: `ช่องนี้ยาวเกิน ${limit} ตัวอักษร`,
+        zh: `${field} 请控制在 ${limit} 个字符以内。`,
       });
     }
   }
@@ -162,4 +164,5 @@ export function applicationProblems(input: OperatorApplicationInput): Bilingual[
 export const APPLICATION_NOT_A_YES: Bilingual = {
   en: 'Sending this does not create an account. Somebody will call you, and for a tour will ask to see the licence, before anything of yours appears in the app.',
   th: 'การส่งแบบฟอร์มนี้ยังไม่ได้เปิดบัญชี จะมีคนโทรติดต่อคุณ และถ้าเป็นทัวร์จะขอดูใบอนุญาตก่อน จึงจะมีข้อมูลของคุณขึ้นในแอป',
+  zh: '提交这份表单并不会开通账户。会有人打电话给你，如果是旅游业务还会要求查看许可证，然后你的内容才会出现在应用里。',
 };

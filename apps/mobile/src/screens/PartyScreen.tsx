@@ -43,7 +43,7 @@ export function PartyScreen({
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <PushHeader context={t({ en: 'Travelling with', th: 'ไปกับใคร' })} onBack={onBack} />
+      <PushHeader context={t({ en: 'Travelling with', th: 'ไปกับใคร', zh: '与谁同行' })} onBack={onBack} />
 
       {party.error ? <ErrorState message={party.error} onRetry={party.reload} /> : null}
       {party.loading && !data ? <LoadingState /> : null}
@@ -86,7 +86,7 @@ function Alone({
   const [made, setMade] = React.useState<string | null>(null);
 
   const start = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to create a party.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อสร้างปาร์ตี้' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to create a party.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อสร้างปาร์ตี้', zh: '请先登录或注册账号，再创建队伍。' })) return;
     if (busy) return;
     setBusy(true);
     const res = await api.createParty('Our trip');
@@ -100,7 +100,7 @@ function Alone({
   };
 
   const join = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to join a party.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเข้าร่วมปาร์ตี้' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to join a party.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเข้าร่วมปาร์ตี้', zh: '请先登录或注册账号，再加入队伍。' })) return;
     if (busy || code.trim().length === 0) return;
     setBusy(true);
     const res = await api.joinParty(code.trim());
@@ -112,6 +112,7 @@ function Alone({
     onToast(t({
       en: `You are travelling with ${res.data.party.name}.`,
       th: `คุณเดินทางร่วมกับ ${res.data.party.name} แล้ว`,
+      zh: `你正在与 ${res.data.party.name} 同行。`,
     }));
     onChanged();
   };
@@ -129,12 +130,12 @@ function Alone({
           {t(PARTY_KIND_LABEL.solo).toUpperCase()}
         </Label>
         <Heading size={26} colour={color.surface} tracking={-0.5} style={{ marginTop: 8 }}>
-          {t({ en: 'You are travelling on your own', th: 'คุณเดินทางคนเดียว · เชิญเพื่อนมาร่วมทางได้' })}
+          {t({ en: 'You are travelling on your own', th: 'คุณเดินทางคนเดียว · เชิญเพื่อนมาร่วมทางได้', zh: '你正在独自旅行' })}
         </Heading>
       </View>
 
       <View style={{ paddingHorizontal: gutter }}>
-        <Body size={13} colour={color.neutral700}>{t({ en: 'A group does not share points — everyone keeps their own. What it adds is the count of provinces you have reached between you.', th: 'กลุ่มไม่แชร์แต้ม แต่ละคนได้ของตัวเอง สิ่งที่เพิ่มคือจำนวนจังหวัดที่ไปถึงรวมกัน' })}</Body>
+        <Body size={13} colour={color.neutral700}>{t({ en: 'A group does not share points — everyone keeps their own. What it adds is the count of provinces you have reached between you.', th: 'กลุ่มไม่แชร์แต้ม แต่ละคนได้ของตัวเอง สิ่งที่เพิ่มคือจำนวนจังหวัดที่ไปถึงรวมกัน', zh: '队伍不共享积分，每个人的积分都是自己的。队伍带来的，是你们一起走到过的府数。' })}</Body>
 
         {made === null ? (
           <Button
@@ -154,7 +155,7 @@ function Alone({
             }}
           >
             <Label size={10} tracking={0.12} colour={color.neutral600}>
-              {t({ en: 'Share this code', th: 'ให้เพื่อนกรอกรหัสนี้' })}
+              {t({ en: 'Share this code', th: 'ให้เพื่อนกรอกรหัสนี้', zh: '把这个代码分享给朋友' })}
             </Label>
             <Heading size={32} colour={color.brandDeep} tracking={5} style={{ marginTop: 6 }}>
               {made}
@@ -164,7 +165,7 @@ function Alone({
       </View>
 
       <View style={{ paddingHorizontal: gutter, paddingTop: 26 }}>
-        <Label size={10} tracking={0.14}>{t({ en: 'Have a code?', th: 'มีรหัสอยู่แล้ว?' })}</Label>
+        <Label size={10} tracking={0.14}>{t({ en: 'Have a code?', th: 'มีรหัสอยู่แล้ว?', zh: '已经有代码了？' })}</Label>
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TextInput
@@ -177,7 +178,7 @@ function Alone({
             maxLength={8}
             placeholder="K7M2QP"
             placeholderTextColor={color.neutral500}
-            accessibilityLabel={t({ en: 'Group code', th: 'รหัสกลุ่ม' })}
+            accessibilityLabel={t({ en: 'Group code', th: 'รหัสกลุ่ม', zh: '队伍代码' })}
             style={{
               // minWidth 0 lets the field yield width to a longer button label
               // (Thai's "เข้าร่วม" against English's "Join"); without it flex:1
@@ -191,7 +192,7 @@ function Alone({
             onPress={join}
             disabled={busy || code.trim().length === 0}
             accessibilityRole="button"
-            accessibilityLabel={t({ en: 'Join that group', th: 'เข้าร่วมกลุ่มนั้น' })}
+            accessibilityLabel={t({ en: 'Join that group', th: 'เข้าร่วมกลุ่มนั้น', zh: '加入该队伍' })}
             style={{
               minWidth: 76, minHeight: 48, flexShrink: 0, paddingHorizontal: 12,
               alignItems: 'center', justifyContent: 'center',
@@ -200,7 +201,7 @@ function Alone({
             }}
           >
             <Heading size={14} colour={code.trim().length === 0 ? color.neutral600 : onFill.cta}>
-              {t({ en: 'Join', th: 'เข้าร่วม' })}
+              {t({ en: 'Join', th: 'เข้าร่วม', zh: '加入' })}
             </Heading>
           </Pressable>
         </View>
@@ -238,8 +239,8 @@ function Together({ name, summary }: { name: string; summary: PartySummary }) {
         the group has a shared pot, which is the one thing it does not have.
       */}
       <View style={{ flexDirection: 'row', gap: 22, marginTop: 18 }}>
-        <Figure value={summary.provincesTogether} en="Provinces between you" th="จังหวัดรวมกัน" lead />
-        <Figure value={summary.missionsVerified} en="Missions verified" th="ภารกิจที่ผ่านการตรวจ" />
+        <Figure value={summary.provincesTogether} en="Provinces between you" th="จังหวัดรวมกัน" zh="你们共同走过的府" lead />
+        <Figure value={summary.missionsVerified} en="Missions verified" th="ภารกิจที่ผ่านการตรวจ" zh="已验证的任务" />
       </View>
 
       {next ? (
@@ -252,12 +253,12 @@ function Together({ name, summary }: { name: string; summary: PartySummary }) {
 }
 
 function Figure({
-  value, en, th, lead = false,
-}: { value: number; en: string; th: string; lead?: boolean }) {
+  value, en, th, zh, lead = false,
+}: { value: number; en: string; th: string; zh?: string; lead?: boolean }) {
   return (
     <View>
       <Heading size={lead ? 40 : 26} colour={color.surface} tracking={-0.8}>{value}</Heading>
-      <Label size={9} tracking={0.08} colour={color.brandSoft} style={{ marginTop: 2 }}>{t({ en, th })}</Label>
+      <Label size={9} tracking={0.08} colour={color.brandSoft} style={{ marginTop: 2 }}>{t({ en, th, zh })}</Label>
     </View>
   );
 }
@@ -268,7 +269,7 @@ const AVATAR_TONES = Object.values(gameHabitat);
 function Members({ summary }: { summary: PartySummary }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 8 }}>
-      <Label size={10} tracking={0.14}>{t({ en: 'Who is here', th: 'ใครอยู่ในกลุ่ม' })}</Label>
+      <Label size={10} tracking={0.14}>{t({ en: 'Who is here', th: 'ใครอยู่ในกลุ่ม', zh: '谁在队伍里' })}</Label>
 
       {summary.members.map((m, i) => (
         <View
@@ -296,7 +297,7 @@ function Members({ summary }: { summary: PartySummary }) {
             </Label>
           </View>
 
-          {m.you ? <Label size={9} tracking={0.1} colour={color.brand}>{t({ en: 'You', th: 'คุณ' })}</Label> : null}
+          {m.you ? <Label size={9} tracking={0.1} colour={color.brand}>{t({ en: 'You', th: 'คุณ', zh: '你' })}</Label> : null}
 
           {/*
             What they EARNED, never what they hold. Earned is an achievement and
@@ -308,7 +309,7 @@ function Members({ summary }: { summary: PartySummary }) {
             <Heading size={15} colour={m.greenEarned > 0 ? color.accent700 : color.neutral500}>
               {m.missionsVerified}
             </Heading>
-            <Label size={9} tracking={0.06} colour={color.neutral600}>{t({ en: 'Verified', th: 'ยืนยันแล้ว' })}</Label>
+            <Label size={9} tracking={0.06} colour={color.neutral600}>{t({ en: 'Verified', th: 'ยืนยันแล้ว', zh: '已验证' })}</Label>
           </View>
         </View>
       ))}
@@ -325,7 +326,7 @@ function DoesNot({ items }: { items: Bilingual[] }) {
         borderWidth: 1, borderColor: '#DCEFF5',
       }]}
     >
-      <Label size={10} tracking={0.14} colour={color.neutral700}>{t({ en: 'WHAT A GROUP DOES NOT DO', th: 'สิ่งที่กลุ่มไม่ได้ทำ' })}</Label>
+      <Label size={10} tracking={0.14} colour={color.neutral700}>{t({ en: 'WHAT A GROUP DOES NOT DO', th: 'สิ่งที่กลุ่มไม่ได้ทำ', zh: '队伍不会做的事' })}</Label>
       {items.map((d) => (
         <View key={t(d)} style={{ marginTop: 10 }}>
           <Body size={13} colour={color.neutral800}>{t(d)}</Body>
@@ -348,13 +349,13 @@ function Leave({
         variant="secondary"
         height={48}
         onPress={async () => {
-          if (requireAccount({ en: 'Please sign in or create an account to manage your party.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อจัดการปาร์ตี้' })) return;
+          if (requireAccount({ en: 'Please sign in or create an account to manage your party.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อจัดการปาร์ตี้', zh: '请先登录或注册账号，再管理你的队伍。' })) return;
           if (busy) return;
           setBusy(true);
           const res = await api.leaveParty();
           setBusy(false);
           onToast(res.ok
-            ? t({ en: 'You are travelling on your own again.', th: 'คุณกลับมาเดินทางคนเดียวแล้ว' })
+            ? t({ en: 'You are travelling on your own again.', th: 'คุณกลับมาเดินทางคนเดียวแล้ว', zh: '你又开始独自旅行了。' })
             : res.error);
           if (res.ok) onChanged();
         }}
@@ -368,6 +369,7 @@ function Leave({
         {t({
           en: 'Your points, stamps and companions stay with you. They always were yours.',
           th: 'แต้ม แสตมป์ และเพื่อนร่วมทางยังอยู่กับคุณ เป็นของคุณมาตลอด',
+          zh: '你的积分、护照印章和伙伴都还在你这里，它们一直都是你的。',
         })}
       </Label>
     </View>
@@ -387,7 +389,7 @@ function Leave({
  */
 function FindDoor({ onFind }: { onFind: () => void }) {
   // A door, the way Collect's are: an icon on a tile, not a grey button.
-  const label = t({ en: 'Find a party', th: 'หาปาร์ตี้' });
+  const label = t({ en: 'Find a party', th: 'หาปาร์ตี้', zh: '寻找队伍' });
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 18 }}>
       <Pressable
@@ -407,6 +409,7 @@ function FindDoor({ onFind }: { onFind: () => void }) {
         {t({
           en: 'Parties post at a place, never at a person. Nobody sees where you are.',
           th: 'ปาร์ตี้ประกาศที่สถานที่ ไม่ได้ประกาศที่ตัวคน ไม่มีใครเห็นว่าคุณอยู่ที่ไหน',
+          zh: '队伍发布在地点上，不会发布在某个人身上。没有人会看到你在哪里。',
         })}
       </Body>
     </View>
@@ -433,7 +436,7 @@ function Requests({
   const [busy, setBusy] = React.useState<string | null>(null);
 
   const decide = async (inviteId: string, userId: string, accept: boolean) => {
-    if (requireAccount({ en: 'Please sign in or create an account to manage party requests.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อจัดการคำขอเข้าปาร์ตี้' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to manage party requests.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อจัดการคำขอเข้าปาร์ตี้', zh: '请先登录或注册账号，再处理入队申请。' })) return;
     if (busy !== null) return;
     setBusy(userId);
     const res = await api.decideRequest(inviteId, userId, accept);
@@ -450,7 +453,7 @@ function Requests({
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 22 }}>
       <Label size={10} tracking={0.14}>
-        {t({ en: 'ASKED TO COME ALONG', th: 'ขอมาร่วมทาง' })}
+        {t({ en: 'ASKED TO COME ALONG', th: 'ขอมาร่วมทาง', zh: '申请同行' })}
       </Label>
 
       {items.map((who) => (
@@ -476,8 +479,8 @@ function Requests({
                 colour={who.missionsVerified === 0 ? color.neutral700 : color.accent700}
               >
                 {who.missionsVerified === 0
-                  ? t({ en: 'NOTHING VERIFIED YET', th: 'ยังไม่มีงานที่ตรวจแล้ว' })
-                  : t({ en: `${who.missionsVerified} VERIFIED`, th: `ตรวจแล้ว ${who.missionsVerified}` })}
+                  ? t({ en: 'NOTHING VERIFIED YET', th: 'ยังไม่มีงานที่ตรวจแล้ว', zh: '尚无已验证记录' })
+                  : t({ en: `${who.missionsVerified} VERIFIED`, th: `ตรวจแล้ว ${who.missionsVerified}`, zh: `已验证 ${who.missionsVerified}` })}
               </Label>
             </View>
           </View>

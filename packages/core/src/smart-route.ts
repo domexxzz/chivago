@@ -112,10 +112,10 @@ export const PACE: Record<TransitMode, { minPerKm: number; wait: number }> = {
 };
 
 export const MODE_NAME: Record<TransitMode, Bilingual> = {
-  walk: { en: 'Walk', th: 'เดิน' },
-  songthaew: { en: 'Songthaew', th: 'สองแถว' },
-  moto: { en: 'Motorbike taxi', th: 'วินมอเตอร์ไซค์' },
-  boat: { en: 'Longtail boat', th: 'เรือหางยาว' },
+  walk: { en: 'Walk', th: 'เดิน', zh: '步行' },
+  songthaew: { en: 'Songthaew', th: 'สองแถว', zh: '双条车' },
+  moto: { en: 'Motorbike taxi', th: 'วินมอเตอร์ไซค์', zh: '摩托车出租' },
+  boat: { en: 'Longtail boat', th: 'เรือหางยาว', zh: '长尾船' },
 };
 
 /** Anything under this is walked, whatever else is on offer. */
@@ -139,22 +139,25 @@ const round = (n: number, dp = 1) => Math.round(n * 10 ** dp) / 10 ** dp;
 function reasonForLeg(mode: TransitMode, km: number): Bilingual {
   switch (mode) {
     case 'walk':
-      return { en: `${km} km on foot`, th: `เดิน ${km} กม.` };
+      return { en: `${km} km on foot`, th: `เดิน ${km} กม.`, zh: `步行 ${km} km` };
     case 'moto':
       return {
         en: `${km} km — fastest, one passenger, no luggage`,
         th: `${km} กม. เร็วที่สุด นั่งได้คนเดียว ไม่มีที่เก็บสัมภาระ`,
+        zh: `${km} km — 最快，只能载一人，不能带行李`,
       };
     case 'songthaew':
       return {
         en: `${km} km on the ring road — cheapest, stops on request`,
         th: `${km} กม. ทางถนนรอบเกาะ ถูกที่สุด จอดตามจุด`,
+        zh: `${km} km 走环岛公路 — 最便宜，随叫随停`,
       };
     case 'boat':
     default:
       return {
         en: `${km} km by sea — the only way across`,
         th: `${km} กม. ทางทะเล ทางเดียวที่ข้ามได้`,
+        zh: `${km} km 走海路 — 唯一能过去的方式`,
       };
   }
 }
@@ -245,8 +248,8 @@ export function smartRoute(
   const option = (key: 'fastest' | 'cheapest', legs: RouteLeg[]): RouteOption => ({
     key,
     label: key === 'fastest'
-      ? { en: 'Fastest', th: 'เร็วที่สุด' }
-      : { en: 'Cheapest', th: 'ถูกที่สุด' },
+      ? { en: 'Fastest', th: 'เร็วที่สุด', zh: '最快' }
+      : { en: 'Cheapest', th: 'ถูกที่สุด', zh: '最便宜' },
     legs,
     ...totalOf(legs),
   });
@@ -271,10 +274,12 @@ export function smartRoute(
       ? {
         en: 'No route: that crossing needs a pier and none was found',
         th: 'ไม่มีเส้นทาง การข้ามนี้ต้องผ่านท่าเรือ แต่ไม่พบท่าเรือ',
+        zh: '没有路线：这段跨越需要码头，但未找到码头',
       }
       : {
         en: `Estimated from distance and typical fares as of ${FARES.asOf}. Not live pricing, and no traffic.`,
         th: `ประมาณจากระยะทางและค่าโดยสารทั่วไป ณ ${FARES.asOf} ไม่ใช่ราคาจริงตามเวลา และไม่รวมสภาพจราจร`,
+        zh: `根据距离和截至 ${FARES.asOf} 的常见票价估算。不是实时价格，也未计入路况。`,
       },
   };
 }

@@ -20,13 +20,13 @@ import type { Locale } from './i18n.ts';
 
 const baht = (n: number): string => `${n.toLocaleString('en-US')} THB`;
 
-const KINDS: { key: string; en: string; th: string }[] = [
-  { key: 'university', en: 'University', th: 'มหาวิทยาลัย' },
-  { key: 'company', en: 'Company', th: 'บริษัท' },
-  { key: 'brand', en: 'Brand', th: 'แบรนด์' },
-  { key: 'ngo', en: 'NGO', th: 'องค์กรไม่แสวงกำไร' },
-  { key: 'government', en: 'Government', th: 'หน่วยงานรัฐ' },
-  { key: 'municipality', en: 'Municipality', th: 'เทศบาล' },
+const KINDS: { key: string; en: string; th: string; zh: string }[] = [
+  { key: 'university', en: 'University', th: 'มหาวิทยาลัย', zh: '大学' },
+  { key: 'company', en: 'Company', th: 'บริษัท', zh: '公司' },
+  { key: 'brand', en: 'Brand', th: 'แบรนด์', zh: '品牌' },
+  { key: 'ngo', en: 'NGO', th: 'องค์กรไม่แสวงกำไร', zh: '非政府组织' },
+  { key: 'government', en: 'Government', th: 'หน่วยงานรัฐ', zh: '政府部门' },
+  { key: 'municipality', en: 'Municipality', th: 'เทศบาล', zh: '市政当局' },
 ];
 
 export interface OrgView {

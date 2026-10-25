@@ -15,7 +15,7 @@ import { ActivityIndicator, Pressable, View, type ViewStyle } from 'react-native
 import { ArrowRight } from 'lucide-react-native';
 import { color, layout, onFill, radius } from '../theme/index.ts';
 import { Body, Heading, Thai } from './Type.tsx';
-import { getLocale } from '../i18n/locale.ts';
+import { t } from '../i18n/locale.ts';
 
 type Variant = 'primary' | 'secondary' | 'ghost';
 
@@ -23,6 +23,15 @@ interface ButtonProps {
   label: string;
   /** The Thai for `label`. Shown INSTEAD of it when the app is in Thai. */
   thai?: string;
+  /**
+   * The Chinese for `label`. Shown INSTEAD of it when the app is in Chinese.
+   *
+   * Named for the language like `thai` is, rather than the button taking a
+   * `Localised`, because that is the smaller change at several hundred call
+   * sites. A button given no `chinese` shows the English, which is the same
+   * fallback every other string in the app gets.
+   */
+  chinese?: string;
   /**
    * Keep both languages on the face of the button. Only for what an emergency
    * responder might read off a traveller's phone.
@@ -52,17 +61,23 @@ interface ButtonProps {
 }
 
 export function Button({
-  label, thai, onPress, variant = 'primary', height = 48,
+  label, thai, chinese, onPress, variant = 'primary', height = 48,
   disabled = false, busy = false, busyLabel, icon, style, inverted = false,
   accessibilityLabel, bilingual = false,
 }: ButtonProps) {
   const [pressed, setPressed] = React.useState(false);
   // A button that is working cannot be pressed again, and cannot look pressed.
   const locked = disabled || busy;
-  // One language at a time (see i18n/locale.ts). The Thai replaces the
-  // English rather than sitting beside it.
-  const base = !bilingual && thai && getLocale() === 'th' ? thai : label;
+  // One language at a time (see i18n/locale.ts). The translation replaces the
+  // English rather than sitting beside it. Routed through `t()` so a button
+  // falls back exactly the way every other string does - the hand-rolled
+  // version here checked for Thai only, and so showed English to a Chinese
+  // reader on every button that had been given a Chinese label.
+  const base = bilingual ? label : t({ en: label, th: thai ?? '', zh: chinese });
   const text = busy && busyLabel ? busyLabel : base;
+  // The bilingual face stays English-over-Thai whatever the app language: it
+  // exists so a Thai emergency responder can read a traveller's screen, and
+  // the responder's language does not change when the traveller's does.
   const caption = bilingual ? thai : undefined;
 
   const palette = (() => {

@@ -29,10 +29,42 @@ export const SOURCE_ROOTS = ['packages/core/src', 'apps/mobile/src', 'apps/api/s
  * has no word for.
  */
 const Q = String.raw`(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"|\`((?:[^\`\\]|\\.)*)\`)`;
+// Each `Q` spends three capture groups, so the Chinese - third in both shapes
+// and optional in both - starts at group 7.
 const PATTERNS = () => [
-  new RegExp(String.raw`\bt\(\s*${Q}\s*,\s*${Q}\s*[,)]`, 'g'),
-  new RegExp(String.raw`\ben:\s*${Q}\s*,\s*th:\s*${Q}`, 'g'),
+  new RegExp(String.raw`\bt\(\s*${Q}\s*,\s*${Q}\s*(?:,\s*${Q}\s*)?[,)]`, 'g'),
+  new RegExp(String.raw`\ben:\s*${Q}\s*,\s*th:\s*${Q}(?:\s*,\s*zh:\s*${Q})?`, 'g'),
 ];
+/**
+ * A value written as several literals joined with `+`, captured whole.
+ *
+ * `indicator.ts` writes most of its long reasoning as `en: '…' + '…'` so the
+ * lines stay readable, and the two-literal patterns above match none of it:
+ * the checker saw 19 pairs in a file with 52, and reported full coverage
+ * while two thirds of the file had no Chinese at all. Ninety-three strings
+ * across eighteen files were hidden this way.
+ *
+ * One capture group, holding the whole expression; `joined()` turns it into
+ * the string a reader actually sees.
+ */
+const LIT = String.raw`(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|\`(?:[^\`\\]|\\.)*\`)`;
+// Zero-or-more joins, not one-or-more: the shapes mix. A pair can have a
+// concatenated English against a single-literal Thai, and a pattern that
+// demanded a join on BOTH sides missed six strings in indicator.ts alone.
+// The pass that uses this skips anything with no join anywhere, which the
+// literal patterns above have already collected.
+const CONCAT = String.raw`(${LIT}(?:\s*\+\s*${LIT})*)`;
+
+/** How many literals an expression is built from. More than one means a join. */
+const litCount = (expr) => (expr == null ? 0 : (expr.match(new RegExp(LIT, 'g')) ?? []).length);
+
+/** The literals of a `'a' + 'b'` expression, concatenated as the reader sees them. */
+const joined = (expr) => {
+  if (expr == null) return null;
+  const parts = expr.match(new RegExp(LIT, 'g')) ?? [];
+  return parts.map((p) => p.slice(1, -1)).join('');
+};
+
 const pick = (m, i) => m[i] ?? m[i + 1] ?? m[i + 2] ?? null;
 /** Which quote the Thai literal used, so a correction can be written back in kind. */
 const quoteOf = (m, i) => (m[i] !== undefined ? "'" : m[i + 1] !== undefined ? '"' : '`');
@@ -72,11 +104,47 @@ export function collectPairs(root, roots = SOURCE_ROOTS) {
           line,
           en,
           th,
+          zh: pick(m, 7),
           thQuote: quoteOf(m, 4),
           context: (lines[line - 2] ?? '').trim().slice(0, 90),
           // `// thai: intentional` on the line says a second rendering of the
           // same English is a decision, not a drift - "Good evening" is one
           // English phrase for two Thai parts of the day, on purpose.
+          intentional: /\/\/\s*thai:\s*intentional/.test(lines[line - 1] ?? ''),
+        });
+      }
+    }
+
+    // Second pass: the same two shapes, but with values written as several
+    // literals joined with `+`. These are collected for COVERAGE only and
+    // marked `concat`, because the review page's apply step rewrites a single
+    // literal in place and cannot put a correction back into a join. Counting
+    // them is still worth it: ninety-three strings were invisible here, and a
+    // checker that reports full coverage over two thirds of a file is worse
+    // than one that reports nothing.
+    for (const shape of [
+      new RegExp(String.raw`\bt\(\s*${CONCAT}\s*,\s*${CONCAT}\s*(?:,\s*${CONCAT}\s*)?[,)]`, 'g'),
+      new RegExp(String.raw`\ben:\s*${CONCAT}\s*,\s*th:\s*${CONCAT}(?:\s*,\s*zh:\s*${CONCAT})?`, 'g'),
+    ]) {
+      let m;
+      while ((m = shape.exec(source)) !== null) {
+        // A pair with no join anywhere is a plain pair, already collected
+        // above with a quote style the apply step can write back to.
+        if (litCount(m[1]) < 2 && litCount(m[2]) < 2 && litCount(m[3]) < 2) continue;
+        const en = joined(m[1]);
+        const th = joined(m[2]);
+        if (en === null || th === null) continue;
+        const line = source.slice(0, m.index).split('\n').length;
+        pairs.push({
+          id: `${relative(root, file).split('\\').join('/')}:${line}:${pairs.length}`,
+          file: relative(root, file).split('\\').join('/'),
+          line,
+          en,
+          th,
+          zh: joined(m[3] ?? null),
+          thQuote: "'",
+          concat: true,
+          context: (lines[line - 2] ?? '').trim().slice(0, 90),
           intentional: /\/\/\s*thai:\s*intentional/.test(lines[line - 1] ?? ''),
         });
       }
@@ -109,16 +177,53 @@ export const slots = (s) => (s.match(/\$\{[^}]+\}/g) ?? [])
 // their initials - ESG, ISAE 3000, HCMI, CHSB, CF-Hotels - are not English
 // left in; translating them would make the report harder to check, not
 // easier.
-const ALLOWED_LATIN = /^(SOS|QR|AQI|EXP|ChivaGo|PDPA|LINE|WhatsApp|SMS|GPS|IUCN|LC|NT|VU|EN|CR|NE|km|kg|hr|Wi-Fi|Green|Trip|Points?|Level|Rank|Chiva|Balance|Safe|Food|Wellness|Quest|Koh|Samui|Chaweng|Lamai|Bophut|Nathon|ESG|ISAE|HCMI|CHSB|CF-Hotels|THB|PM2\.5|GHG|CO2|NGO)$/i;
+// `m`, `mm`, `°C` and the rest of the bare units are here for the Chinese
+// check: a string whose only Latin is a unit symbol is not an untranslated
+// string, and without them the checker pushes a translator into writing
+// 度 where °C was right.
+const ALLOWED_LATIN = /^(SOS|QR|AQI|EXP|ChivaGo|PDPA|LINE|WhatsApp|SMS|GPS|IUCN|LC|NT|VU|EN|CR|NE|km|kg|hr|m|mm|cm|°C|°F|km\/h|min|sec|Wi-Fi|Green|Trip|Points?|Level|Rank|Chiva|Balance|Safe|Food|Wellness|Quest|Koh|Samui|Chaweng|Lamai|Bophut|Nathon|ESG|ISAE|HCMI|CHSB|CF-Hotels|THB|PM2\.5|GHG|CO2|NGO)$/i;
 
-export const KINDS = ['not-thai', 'untranslated', 'lost-value', 'inconsistent', 'english-left-in', 'suspiciously-short'];
+export const HAN = /[一-鿿]/;
+
+export const KINDS = ['not-thai', 'no-chinese', 'not-chinese', 'untranslated', 'lost-value', 'inconsistent', 'english-left-in', 'suspiciously-short'];
 
 export function analyse(pairs) {
   const findings = [];
   const add = (pair, kind, detail) => findings.push({ id: pair.id, file: pair.file, line: pair.line, en: pair.en, th: pair.th, kind, detail });
 
   for (const pair of pairs) {
-    const { en, th } = pair;
+    const { en, th, zh } = pair;
+
+    // Chinese is optional in the type so that adding it did not break 1,786
+    // call sites at once (see packages/core/src/types.ts). This is the line
+    // that stops "optional" turning into "never written": a pair with no
+    // Chinese is counted here, every run, until somebody writes it.
+    // `== null` on purpose: the collector reports an absent Chinese as null,
+    // while a pair built by hand in a test simply omits the key.
+    if (zh == null) {
+      add(pair, 'no-chinese', 'No Chinese on this pair.');
+    } else if (!HAN.test(zh)) {
+      const bare = zh.replace(/\$\{[^}]+\}/g, '').trim();
+      // Digits, codes and templates that carry their Chinese in the values
+      // are not missing a translation, the same exemption the Thai gets -
+      // and nor are the units and brands in ALLOWED_LATIN. The first version
+      // of this check omitted that second exemption, and three translators
+      // independently rewrote correct copy to get past it: `${c}°C` became
+      // `${c} 度`, `kg` became 公斤, `EXP` became 经验值. A checker that edits
+      // the product to satisfy itself is worse than no checker.
+      //
+      // Unlike the Thai check there is no "same as the English" exemption:
+      // English prose copied into the Chinese slot is the exact failure this
+      // looks for, and a genuine shared code is covered by the two above.
+      // A BCP 47 tag is configuration, not copy: `zh: 'zh-CN'` in a table of
+      // Intl tags is correct and must stay Latin.
+      const isTag = /^[a-z]{2}(-[A-Za-z0-9]{2,8})*$/.test(bare);
+      const latinOnly = bare.split(/[\s/·—–-]+/).filter(Boolean);
+      if (!isTag && !/^[\d\s.,:/%+\-·—°]*$/.test(bare)
+        && !(latinOnly.length > 0 && latinOnly.every((w) => ALLOWED_LATIN.test(w) || /^[\d.,:%°]+$/.test(w)))) {
+        add(pair, 'not-chinese', 'The Chinese side contains no Han script at all.');
+      }
+    }
 
     if (!THAI.test(th)) {
       // A string of digits or a code is the same in both languages. That is

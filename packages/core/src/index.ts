@@ -1,6 +1,7 @@
 /** Public surface of @chivago/core - shared by the API and the mobile app. */
 
 export * from './types.ts';
+export * from './localise.ts';
 export * from './healthy-score.ts';
 export * from './progression.ts';
 export * from './trip-planner.ts';

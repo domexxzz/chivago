@@ -17,10 +17,10 @@ import { useAsync } from '../state/store.tsx';
 import { color, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from './Type.tsx';
 import { Button } from './Button.tsx';
-import { getLocale, t } from '../i18n/locale.ts';
+import { localeTag, t } from '../i18n/locale.ts';
 
 const DAY_MS = 86_400_000;
-const lang = (): string => (getLocale() === 'th' ? 'th-TH' : 'en-GB');
+const lang = localeTag;
 
 /** "18:30" on the island's clock, whatever the phone's own is set to. */
 function clock(iso: string): string {

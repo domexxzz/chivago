@@ -27,6 +27,7 @@ export function GuestActionProvider({
     setReason(message ?? {
       en: 'Please sign in or create an account to join quests or create a party.',
       th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเข้าร่วมเควสต์/สร้างปาร์ตี้',
+      zh: '请登录或注册账号，才能参加任务或创建队伍。',
     });
     return true;
   }, [guest]);
@@ -43,10 +44,10 @@ export function GuestActionProvider({
             <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: '#E5F5FA', alignItems: 'center', justifyContent: 'center', alignSelf: 'center' }}>
               <LockKeyhole size={25} color="#0077B6" />
             </View>
-            <Heading size={19} style={{ textAlign: 'center' }}>{t({ en: 'Account required', th: 'ต้องเข้าสู่ระบบก่อน' })}</Heading>
+            <Heading size={19} style={{ textAlign: 'center' }}>{t({ en: 'Account required', th: 'ต้องเข้าสู่ระบบก่อน', zh: '需要账号' })}</Heading>
             <Body style={{ textAlign: 'center' }}>{reason ? t(reason) : ''}</Body>
-            <Button label="Sign in" thai="เข้าสู่ระบบ" onPress={() => { setReason(null); onSignIn(); }} />
-            <Button label="Create an account" thai="สมัครสมาชิก" variant="secondary" onPress={() => { setReason(null); onRegister(); }} />
+            <Button label="Sign in" thai="เข้าสู่ระบบ" chinese="登录" onPress={() => { setReason(null); onSignIn(); }} />
+            <Button label="Create an account" thai="สมัครสมาชิก" chinese="注册账号" variant="secondary" onPress={() => { setReason(null); onRegister(); }} />
           </View>
         </View>
       </Modal>

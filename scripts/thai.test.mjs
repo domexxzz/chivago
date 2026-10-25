@@ -20,16 +20,18 @@ function fixtureRoot() {
   const root = mkdtempSync(join(tmpdir(), 'chivago-thai-'));
   mkdirSync(join(root, 'src'), { recursive: true });
   writeFileSync(join(root, 'src', 'strings.ts'), [
-    "const t = (en: string, th: string) => ({ en, th });",
+    "const t = (en: string, th: string, zh?: string) => ({ en, th, zh });",
     "export const s = {",
-    "  fine: t('Check in here', 'เช็กอินที่นี่'),",
-    "  layer: t(`Scores ${n} today`, `วันนี้ได้ ${n} คะแนน`),",
-    "  dropped: t(`You need ${m} more points`, 'คุณต้องการแต้มเพิ่ม'),",
-    "  latin: t('Open the map', 'เปิด map'),",
-    "  code: { en: 'Code: ${s.layer}', th: 'รหัส: ${s.layer}' },",
-    "  a: t('Weekend', 'สุดสัปดาห์'),",
-    "  b: t('Weekend', 'วันหยุด'),",
-    "  digits: t('1669', '1669'),",
+    "  fine: t('Check in here', 'เช็กอินที่นี่', '在此签到'),",
+    "  layer: t(`Scores ${n} today`, `วันนี้ได้ ${n} คะแนน`, `今天获得 ${n} 分`),",
+    "  dropped: t(`You need ${m} more points`, 'คุณต้องการแต้มเพิ่ม', `还需要 ${m} 分`),",
+    "  latin: t('Open the map', 'เปิด map', '打开地图'),",
+    "  code: { en: 'Code: ${s.layer}', th: 'รหัส: ${s.layer}', zh: '代码: ${s.layer}' },",
+    "  a: t('Weekend', 'สุดสัปดาห์', '周末'),",
+    "  b: t('Weekend', 'วันหยุด', '假日'),",
+    "  digits: t('1669', '1669', '1669'),",
+    "  noChinese: t('Call for help', 'โทรขอความช่วยเหลือ'),",
+    "  latinChinese: t('Harbour', 'ท่าเรือ', 'Harbour'),",
     "};",
   ].join('\n'));
   return root;
@@ -42,9 +44,21 @@ describe('collecting and checking', () => {
   const kinds = (en) => findings.filter((f) => f.en === en).map((f) => f.kind);
 
   test('every pair is found, in source order, with its line', () => {
-    assert.equal(pairs.length, 8);
+    assert.equal(pairs.length, 10);
     assert.equal(pairs[0].en, 'Check in here');
     assert.equal(pairs[0].line, 3);
+  });
+
+  test('a pair with no Chinese is counted, so "optional" cannot become "never"', () => {
+    assert.deepEqual(kinds('Call for help'), ['no-chinese']);
+  });
+
+  test('Chinese that is really Latin is flagged, the way the Thai check does it', () => {
+    assert.deepEqual(kinds('Harbour'), ['not-chinese']);
+  });
+
+  test('a code that is the same in every language is not a missing translation', () => {
+    assert.deepEqual(kinds('1669'), []);
   });
 
   test('a dropped interpolation is the unambiguous error', () => {
@@ -109,7 +123,7 @@ describe('writing corrections back', () => {
     assert.equal(applied.length, 1);
     assert.equal(refused.length, 0);
     const after = readFileSync(join(root, 'src', 'strings.ts'), 'utf8').split('\n')[5];
-    assert.equal(after, "  latin: t('Open the map', 'เปิดแผนที่'),");
+    assert.equal(after, "  latin: t('Open the map', 'เปิดแผนที่', '打开地图'),");
   });
 
   test('a correction whose original has moved is refused, and nothing is written', () => {
@@ -138,7 +152,7 @@ describe('writing corrections back', () => {
     ]);
     assert.equal(applied.length, 1);
     const after = readFileSync(join(root, 'src', 'strings.ts'), 'utf8').split('\n')[2];
-    assert.equal(after, "  fine: t('Check in here', 'เช็กอิน \\'ที่นี่\\''),");
+    assert.equal(after, "  fine: t('Check in here', 'เช็กอิน \\'ที่นี่\\'', '在此签到'),");
   });
 
   test('a template literal is edited in a template literal', () => {
@@ -148,6 +162,6 @@ describe('writing corrections back', () => {
     ]);
     assert.equal(applied.length, 1);
     const after = readFileSync(join(root, 'src', 'strings.ts'), 'utf8').split('\n')[3];
-    assert.equal(after, '  layer: t(`Scores ${n} today`, `วันนี้ได้ ${n} แต้ม`),');
+    assert.equal(after, '  layer: t(`Scores ${n} today`, `วันนี้ได้ ${n} แต้ม`, `今天获得 ${n} 分`),');
   });
 });

@@ -38,11 +38,11 @@ export const expAtLevel = (level: number): number =>
  * changes rarely enough to feel earned.
  */
 export const RANKS = [
-  { index: 1, key: 'newcomer', label: { en: 'Newcomer', th: 'ผู้มาใหม่' }, fromLevel: 1 },
-  { index: 2, key: 'wanderer', label: { en: 'Wanderer', th: 'นักเดินทาง' }, fromLevel: 5 },
-  { index: 3, key: 'islandExplorer', label: { en: 'Island Explorer', th: 'นักสำรวจเกาะ' }, fromLevel: 10 },
-  { index: 4, key: 'samuiInsider', label: { en: 'Samui Insider', th: 'คนในสมุย' }, fromLevel: 20 },
-  { index: 5, key: 'chivaLegend', label: { en: 'Chiva Legend', th: 'ตำนานชีวา' }, fromLevel: 35 },
+  { index: 1, key: 'newcomer', label: { en: 'Newcomer', th: 'ผู้มาใหม่', zh: '新来者' }, fromLevel: 1 },
+  { index: 2, key: 'wanderer', label: { en: 'Wanderer', th: 'นักเดินทาง', zh: '漫游者' }, fromLevel: 5 },
+  { index: 3, key: 'islandExplorer', label: { en: 'Island Explorer', th: 'นักสำรวจเกาะ', zh: '岛屿探索者' }, fromLevel: 10 },
+  { index: 4, key: 'samuiInsider', label: { en: 'Samui Insider', th: 'คนในสมุย', zh: '苏梅岛通' }, fromLevel: 20 },
+  { index: 5, key: 'chivaLegend', label: { en: 'Chiva Legend', th: 'ตำนานชีวา', zh: 'Chiva 传奇' }, fromLevel: 35 },
 ] as const;
 
 export type Rank = (typeof RANKS)[number];

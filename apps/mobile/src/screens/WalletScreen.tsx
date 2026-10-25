@@ -76,7 +76,7 @@ export function WalletScreen({
       >
         <OceanBackdrop compact />
         <Label size={10} tracking={0.16} colour="#D5F6FF">
-          {t({ en: 'YOUR WALLET', th: 'กระเป๋าแต้มของคุณ' })}
+          {t({ en: 'YOUR WALLET', th: 'กระเป๋าแต้มของคุณ', zh: '你的钱包' })}
         </Label>
         <Heading size={26} tracking={-0.5} colour="#FFFFFF" style={{ marginTop: 4 }}>
           {`${t(strings.common.greenPoints)} & ${t(strings.common.tripPoints)}`}
@@ -121,6 +121,7 @@ function AccountRow({ onOpenAccount }: { onOpenAccount: () => void }) {
       accessibilityLabel={t({
         en: 'Your account. Add another phone, or see which phones are signed in.',
         th: 'บัญชีของคุณ เพิ่มเครื่องอื่น หรือดูว่าเครื่องใดลงชื่อเข้าใช้อยู่',
+        zh: '你的账号。添加另一部手机，或查看哪些手机已登录。',
       })}
       style={[
         shadow.card,
@@ -134,11 +135,12 @@ function AccountRow({ onOpenAccount }: { onOpenAccount: () => void }) {
       ]}
     >
       <View style={{ flex: 1 }}>
-        <Heading size={15}>{t({ en: 'Your account', th: 'บัญชีของคุณ' })}</Heading>
+        <Heading size={15}>{t({ en: 'Your account', th: 'บัญชีของคุณ', zh: '你的账号' })}</Heading>
         <Label size={9} tracking={0.04} colour={color.neutral600} style={{ marginTop: 5, textTransform: 'none' }}>
           {t({
             en: 'Add another phone so none of this depends on keeping this one.',
             th: 'เพิ่มอีกเครื่อง เพื่อไม่ให้ทุกอย่างขึ้นกับเครื่องนี้เครื่องเดียว',
+            zh: '再添加一部手机，这样这一切就不必只靠这一部。',
           })}
         </Label>
       </View>
@@ -613,6 +615,7 @@ function Companions({
           {t({
             en: `Species and conservation status recorded ${data.speciesAsOf}.`,
             th: `ข้อมูลชนิดพันธุ์และสถานะการอนุรักษ์ บันทึกเมื่อ ${data.speciesAsOf}`,
+            zh: `物种与保护状况记录于 ${data.speciesAsOf}。`,
           })}
         </Label>
       </View>

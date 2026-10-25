@@ -147,7 +147,7 @@ function Header({ progression, onOpenProfile }: { progression: Progression | nul
           </Heading>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
             <Label size={11} tracking={0.12} colour="#E2F6FC">
-              {t({ en: 'ISLAND COMPANIONS', th: 'เพื่อนร่วมทาง' })}
+              {t({ en: 'ISLAND COMPANIONS', th: 'เพื่อนร่วมทาง', zh: '岛屿伙伴' })}
             </Label>
             {progression ? (
               <View
@@ -186,21 +186,21 @@ function Doors({
     <View style={{ flexDirection: 'row', paddingHorizontal: gutter, paddingTop: 12, gap: 8 }}>
       <Door
         Icon={MedalIcon}
-        label={t({ en: 'Medals', th: 'เหรียญตรา' })}
+        label={t({ en: 'Medals', th: 'เหรียญตรา', zh: '奖章' })}
         fill={color.goldSoft}
         ink={color.goldDeep}
         onPress={onOpenMedals}
       />
       <Door
         Icon={BookOpen}
-        label={t({ en: 'Passport', th: 'พาสปอร์ต' })}
+        label={t({ en: 'Passport', th: 'พาสปอร์ต', zh: '护照' })}
         fill={gameHabitat.Quest.fill}
         ink={gameHabitat.Quest.ink}
         onPress={onOpenPassport}
       />
       <Door
         Icon={Users}
-        label={t({ en: 'Travelling with', th: 'ไปกับใคร' })}
+        label={t({ en: 'Travelling with', th: 'ไปกับใคร', zh: '同行的人' })}
         fill={color.brandSoft}
         ink={color.brandDeep}
         onPress={onOpenParty}
@@ -252,10 +252,11 @@ function NextUp({
   if (!companion) {
     // Nobody found yet, or every one grown: a sentence, never a blank panel.
     const said = anyFound
-      ? { en: 'Every companion you have found is grown.', th: 'เพื่อนร่วมทางที่คุณพบโตเต็มวัยครบทุกตัวแล้ว' }
+      ? { en: 'Every companion you have found is grown.', th: 'เพื่อนร่วมทางที่คุณพบโตเต็มวัยครบทุกตัวแล้ว', zh: '你找到的伙伴都已长大。' }
       : {
         en: 'Nothing here yet. A companion arrives on your second day in a habitat.',
         th: 'ยังไม่มีอะไรที่นี่ เพื่อนร่วมทางจะมาถึงในวันที่สองที่คุณอยู่ในถิ่นนั้น',
+        zh: '这里还空着。在一处栖息地待到第二天，就会有伙伴出现。',
       };
     return (
       <View style={frame}>
@@ -273,7 +274,7 @@ function NextUp({
     <Pressable
       onPress={() => onOpen(companion)}
       accessibilityRole="button"
-      accessibilityLabel={`${t({ en: 'Next up', th: 'ก้าวต่อไป' })}: ${name}. ${t(companion.nextStep!)}`}
+      accessibilityLabel={`${t({ en: 'Next up', th: 'ก้าวต่อไป', zh: '下一步' })}: ${name}. ${t(companion.nextStep!)}`}
       style={frame}
     >
       <GameScene>
@@ -285,7 +286,7 @@ function NextUp({
                 borderRadius: gameRadius.chip, paddingHorizontal: 8, paddingVertical: 2,
               }}
             >
-              <Label size={9} tracking={0.1} colour={color.surface}>{t({ en: 'NEXT UP', th: 'ก้าวต่อไป' })}</Label>
+              <Label size={9} tracking={0.1} colour={color.surface}>{t({ en: 'NEXT UP', th: 'ก้าวต่อไป', zh: '下一步' })}</Label>
             </View>
             <Heading size={19} tracking={-0.2}>{name}</Heading>
             <Body size={13} colour={color.neutral800}>{t(companion.nextStep!)}</Body>
@@ -315,7 +316,7 @@ function Grid({
   const byLayer = new Map(companions.map((c) => [c.species.layer, c]));
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 18, gap: 10 }}>
-      <Label size={10} tracking={0.14}>{t({ en: 'HABITATS', th: 'ถิ่นที่อยู่' })}</Label>
+      <Label size={10} tracking={0.14}>{t({ en: 'HABITATS', th: 'ถิ่นที่อยู่', zh: '栖息地' })}</Label>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
         {HABITATS.map((layer) => {
           const found = byLayer.get(layer);
@@ -326,12 +327,12 @@ function Grid({
         <Pressable
           onPress={onOpenMascots}
           accessibilityRole="button"
-          accessibilityLabel={t({ en: 'The seventy-seven province emblems', th: 'มาสคอตครบ 77 จังหวัด' })}
+          accessibilityLabel={t({ en: 'The seventy-seven province emblems', th: 'มาสคอตครบ 77 จังหวัด', zh: '七十七府吉祥物' })}
           style={[tileFrame(gameHabitat.mascots.fill), gameShadow.lift]}
         >
           <TileText
-            title={t({ en: 'The 77', th: 'ครบ 77 จังหวัด' })}
-            sub={t({ en: 'Province emblems', th: 'มาสคอตประจำจังหวัด' })}
+            title={t({ en: 'The 77', th: 'ครบ 77 จังหวัด', zh: '七十七府' })}
+            sub={t({ en: 'Province emblems', th: 'มาสคอตประจำจังหวัด', zh: '各府吉祥物' })}
             ink={gameHabitat.mascots.ink}
           />
           <View style={{ position: 'absolute', right: 10, bottom: 10 }}>
@@ -349,12 +350,12 @@ function Grid({
         <Pressable
           onPress={onOpenSummon}
           accessibilityRole="button"
-          accessibilityLabel={t({ en: 'The Summoning: invented spirits, from charms you earned', th: 'การอัญเชิญ: ภูตที่แต่งขึ้น แลกด้วยเครื่องรางที่สะสมเอง' })}
+          accessibilityLabel={t({ en: 'The Summoning: invented spirits, from charms you earned', th: 'การอัญเชิญ: ภูตที่แต่งขึ้น แลกด้วยเครื่องรางที่สะสมเอง', zh: '召唤：虚构的精灵，用你赚得的护符换取' })}
           style={[tileFrame('#1f2a5c'), gameShadow.lift]}
         >
           <TileText
-            title={t({ en: 'The Summoning', th: 'การอัญเชิญ' })}
-            sub={t({ en: 'Invented spirits', th: 'ภูตที่แต่งขึ้น' })}
+            title={t({ en: 'The Summoning', th: 'การอัญเชิญ', zh: '召唤' })}
+            sub={t({ en: 'Invented spirits', th: 'ภูตที่แต่งขึ้น', zh: '虚构的精灵' })}
             ink="#FFFFFF"
           />
           <View style={{ position: 'absolute', right: 10, bottom: 10 }}>
@@ -404,10 +405,10 @@ function UnfoundTile({ species }: { species: Species }) {
   const egg = t(species.eggName);
   return (
     <View
-      accessibilityLabel={`${egg}, ${t({ en: 'not found yet', th: 'ยังไม่พบ' })}. ${t(species.habitat)}`}
+      accessibilityLabel={`${egg}, ${t({ en: 'not found yet', th: 'ยังไม่พบ', zh: '尚未发现' })}. ${t(species.habitat)}`}
       style={tileFrame(tone.fill)}
     >
-      <TileText title={egg} sub={t({ en: 'Not found yet', th: 'ยังไม่พบ' })} ink={tone.ink} />
+      <TileText title={egg} sub={t({ en: 'Not found yet', th: 'ยังไม่พบ', zh: '尚未发现' })} ink={tone.ink} />
       <View style={{ position: 'absolute', right: -6, bottom: -6, opacity: 0.55 }}>
         <Creature species={species.key} stage="egg" size={72} />
       </View>
@@ -432,6 +433,7 @@ function Counts({ found, grown, total }: { found: number; grown: number; total: 
             {t({
               en: `${found} of ${total} habitats, ${grown} grown by a verified quest`,
               th: `${found} จาก ${total} ถิ่น · โตแล้ว ${grown} ตัวจากภารกิจที่ผู้จัดตรวจ`,
+              zh: `${total} 处栖息地中已发现 ${found} 处 · 其中 ${grown} 只因已验证的任务而长大`,
             })}
           </TrayLine>
         </View>
@@ -455,6 +457,7 @@ function Footnote() {
         {t({
           en: 'Nothing on this screen is a claim about the world. What a host verified is said as itself, on the pages that carry it.',
           th: 'ไม่มีอะไรในหน้านี้ที่เป็นการอ้างเรื่องจริงในโลก สิ่งที่ผู้จัดตรวจแล้วจะบอกตรง ๆ ในหน้าที่มันอยู่',
+          zh: '本页上的任何内容都不是对现实世界的主张。主办方验证过的事，会在承载它的页面上如实说明。',
         })}
       </Body>
     </View>

@@ -2,9 +2,10 @@
  * Text primitives.
  *
  * The app speaks one language at a time (see `i18n/locale.ts`): every string
- * that has both goes through `t()`. In Thai these primitives add the Thai
- * LEADING - tone marks stack above the x-height and clip at Latin line-height
- * - and nothing else. They do NOT switch typeface: the heading face in
+ * that has both goes through `t()`. In Thai and Chinese these primitives add
+ * that script's LEADING - Thai tone marks clip at Latin line-height, and Han
+ * glyphs fill the em box so consecutive lines touch - and nothing else. They
+ * do NOT switch typeface: the heading face in
  * `packages/tokens` is IBM Plex Sans Thai 700, which carries both scripts.
  * The first version of this file swapped every Heading and Label to the body
  * face on the belief that "Archivo carries no Thai glyphs", which had been
@@ -20,14 +21,26 @@ import React from 'react';
 import { Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import type { Bilingual } from '@chivago/core';
 import { color, font, label as labelStyle, thaiText, type } from '../theme/index.ts';
-import { getLocale, t } from '../i18n/locale.ts';
+import { getLocale, t, type Locale } from '../i18n/locale.ts';
 
-/** Thai line-height. Tone marks stack above the x-height and clip at Latin leading. */
-const THAI_LEADING = 1.45;
+/**
+ * Line-height per script, as a multiple of the font size.
+ *
+ * Thai: tone marks stack above the x-height and clip at Latin leading.
+ *
+ * Chinese: Han glyphs fill the full em box, top to bottom, where Latin
+ * lowercase leaves daylight above and below. At Latin leading, consecutive
+ * lines of Hanzi touch. 1.5 is the floor most CJK type guidance gives for
+ * body text, and it is a little looser than the Thai because the Thai is
+ * buying room for one mark while this is buying room for the whole line.
+ */
+const SCRIPT_LEADING: Partial<Record<Locale, number>> = { th: 1.45, zh: 1.5 };
 
-/** In Thai, the Thai leading; otherwise nothing to add. The face stays. */
-const thaiFace = (size: number): TextStyle | null =>
-  getLocale() === 'th' ? { lineHeight: Math.round(size * THAI_LEADING) } : null;
+/** The script's leading, where it needs one; otherwise nothing to add. The face stays. */
+const scriptLeading = (size: number): TextStyle | null => {
+  const factor = SCRIPT_LEADING[getLocale()];
+  return factor ? { lineHeight: Math.round(size * factor) } : null;
+};
 
 interface HeadingProps {
   children: React.ReactNode;
@@ -43,7 +56,7 @@ export function Heading({ children, style, size = 26, colour = color.text, track
     <Text
       style={[
         { fontFamily: font.heading, fontSize: size, color: colour, lineHeight: Math.round(size * 1.12) },
-        thaiFace(size),
+        scriptLeading(size),
         tracking !== undefined && { letterSpacing: tracking },
         style,
       ]}
@@ -98,7 +111,7 @@ export function Label({
   children: React.ReactNode; size?: 9 | 10 | 11; tracking?: number;
   colour?: string; style?: TextStyle;
 }) {
-  return <Text style={[labelStyle(size, tracking, colour), thaiFace(size), style]}>{children}</Text>;
+  return <Text style={[labelStyle(size, tracking, colour), scriptLeading(size), style]}>{children}</Text>;
 }
 
 /**

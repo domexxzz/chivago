@@ -60,22 +60,27 @@ export const DISCLOSURE_LABEL: Record<DisclosureKind, Bilingual> = {
   one_report: {
     en: '56-1 One Report filed with the SEC',
     th: 'แบบ 56-1 One Report ที่ยื่นต่อ ก.ล.ต.',
+    zh: '向 SEC 提交的 56-1 One Report',
   },
   sustainability_report: {
     en: 'A sustainability report published by the organisation',
     th: 'รายงานความยั่งยืนที่องค์กรเผยแพร่เอง',
+    zh: '该机构自行发布的可持续发展报告',
   },
   ifrs_s: {
     en: 'An IFRS S1 / S2 sustainability disclosure',
     th: 'การเปิดเผยข้อมูลความยั่งยืนตาม IFRS S1 / S2',
+    zh: '依据 IFRS S1 / S2 作出的可持续发展信息披露',
   },
   internal: {
     en: 'An internal report, not published',
     th: 'รายงานภายใน ไม่ได้เผยแพร่',
+    zh: '内部报告，未对外发布',
   },
   other: {
     en: 'Something else, described by the declarer',
     th: 'กรณีอื่น ตามที่ผู้แจ้งระบุ',
+    zh: '其他情形，由申报方自行说明',
   },
 };
 
@@ -92,22 +97,27 @@ export const DISCLOSURE_PHRASE: Record<DisclosureKind, Bilingual> = {
   one_report: {
     en: 'the 56-1 One Report it filed with the SEC',
     th: 'แบบ 56-1 One Report ที่ยื่นต่อ ก.ล.ต.',
+    zh: '其向 SEC 提交的 56-1 One Report',
   },
   sustainability_report: {
     en: 'a sustainability report it published',
     th: 'รายงานความยั่งยืนที่เผยแพร่เอง',
+    zh: '其自行发布的一份可持续发展报告',
   },
   ifrs_s: {
     en: 'an IFRS S1 / S2 sustainability disclosure',
     th: 'การเปิดเผยข้อมูลความยั่งยืนตาม IFRS S1 / S2',
+    zh: '一项依据 IFRS S1 / S2 作出的可持续发展信息披露',
   },
   internal: {
     en: 'an internal report it did not publish',
     th: 'รายงานภายในที่ไม่ได้เผยแพร่',
+    zh: '其未对外发布的一份内部报告',
   },
   other: {
     en: 'something else it described',
     th: 'กรณีอื่นตามที่ระบุไว้',
+    zh: '其自行说明的其他情形',
   },
 };
 
@@ -182,12 +192,14 @@ export function useNote(use: StatementUse, standing: UseStanding): Bilingual {
     return {
       en: `${org} declared a different version of this record, so their declaration is not about this page.`,
       th: `${orgTh} แจ้งใช้เอกสารฉบับอื่น การแจ้งนี้จึงไม่เกี่ยวกับหน้านี้`,
+      zh: `${org} 申报使用的是本记录的另一个版本，因此其申报与本页无关。`,
     };
   }
   if (standing === 'withdrawn') {
     return {
       en: `${org} has withdrawn this declaration. It is kept because it was once made.`,
       th: `${orgTh} ได้ถอนการแจ้งนี้แล้ว บันทึกยังคงอยู่เพราะเคยมีการแจ้งไว้จริง`,
+      zh: `${org} 已撤回此项申报。该记录仍予保留，因为它曾经确实被作出过。`,
     };
   }
   return {
@@ -195,6 +207,8 @@ export function useNote(use: StatementUse, standing: UseStanding): Bilingual {
       + `for ${use.reportingYear}. ChivaGo has not read that report and is not saying the use was appropriate.`,
     th: `${orgTh} ระบุว่าได้นำเอกสารฉบับนี้ไปใช้ใน${DISCLOSURE_PHRASE[use.kind].th} `
       + `ของปี ${use.reportingYear} ChivaGo ไม่ได้อ่านรายงานนั้น และไม่ได้ระบุว่าการนำไปใช้นั้นเหมาะสม`,
+    zh: `${org} 声称其在${DISCLOSURE_PHRASE[use.kind].zh}中使用了本记录，`
+      + `报告年度为 ${use.reportingYear}。ChivaGo 未阅读该报告，也未表示此项使用是否恰当。`,
   };
 }
 
@@ -216,6 +230,9 @@ export function contestedNote(orgCount: number): Bilingual | null {
     th: `มี ${orgCount} องค์กรแจ้งใช้เอกสารฉบับเดียวกันนี้ ซึ่งไม่ได้ผิดในตัวเอง `
       + 'ผู้ร่วมสนับสนุนและผู้จัดกิจกรรมอาจมีเหตุให้กล่าวถึงกิจกรรมเดียวกันได้ '
       + 'แต่รายงานแต่ละฉบับควรระบุว่ากำลังกล่าวถึงสัดส่วนเท่าใด และแพลตฟอร์มนี้บอกไม่ได้ว่าเขาระบุไว้หรือไม่',
+    zh: `已有 ${orgCount} 家机构申报使用了同一条记录。这本身并不等于有错——`
+      + '共同出资方与主办方都可能有理由描述同一项活动——但每份报告都应说明自己描述的是其中多大的份额，'
+      + '而本平台无法告诉您它们是否作了说明。',
   };
 }
 
@@ -230,6 +247,8 @@ export const USE_LIMIT: Bilingual = {
     + 'no declaration on this page does not mean the statement went unused - it means nobody told us.',
   th: 'การแจ้งใช้เป็นบันทึกที่ผู้แจ้งเลือกแจ้งเอง ไม่ได้ล็อกเอกสารฉบับนี้ '
     + 'และการที่หน้านี้ไม่มีการแจ้ง ไม่ได้หมายความว่าเอกสารไม่ถูกนำไปใช้ เพียงแต่ไม่มีใครแจ้งเรามา',
+  zh: '申报是申报方自行选择作出的记录。它不会锁定本报表；'
+    + '本页上没有任何申报，并不意味着该报表未被使用——只意味着没有人告知过我们。',
 };
 
 /**
@@ -249,6 +268,10 @@ export const DOUBLE_COUNTING_BOUNDARY: Bilingual = {
     + 'การอ้างสิทธิซ้ำในขั้นการให้ทุนถูกจัดการที่จุดที่บันทึกการให้ทุน ภารกิจที่มีสองผู้สนับสนุนจะแสดงว่าร่วมกัน '
     + 'ไม่ใช่ของฝ่ายใดฝ่ายเดียว ส่วนการนำไปใช้ซ้ำ คือเอกสารฉบับเดียวปรากฏในรายงานของสององค์กร '
     + 'หน้านี้ทำได้เพียงทำให้ "เห็น" ผ่านการแจ้งใช้ และเห็นได้เฉพาะเมื่อมีผู้แจ้งเท่านั้น',
+  zh: '重复签发在这里不可能发生：本平台不签发任何可交易的单位，因此没有第二个单位可以被创建。'
+    + '出资环节的重复声明在记录出资的地方处理——由两家赞助方出资的任务读作共享，绝不读作其中任何一方独有。'
+    + '至于重复使用，也就是同一条记录出现在两家机构的报告中，本页只能通过申报让它"可见"，'
+    + '而且只有在有人作出申报时才可见。',
 };
 
 export const isDisclosureKind = (v: string): v is DisclosureKind =>

@@ -31,7 +31,7 @@ export function MascotRoomScreen({ code, onBack }: { code: string; onBack: () =>
   if (!mascot || !province) {
     return (
       <View style={{ flex: 1, backgroundColor: color.bg, padding: gutter }}>
-        <Body>{t({ en: 'No such province.', th: 'ไม่มีจังหวัดนี้' })}</Body>
+        <Body>{t({ en: 'No such province.', th: 'ไม่มีจังหวัดนี้', zh: '没有这个府。' })}</Body>
       </View>
     );
   }

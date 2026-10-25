@@ -51,7 +51,7 @@ export function BusStrip({
     <View style={{ paddingHorizontal: gutter, paddingBottom: 16 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 10 }}>
         <BusFront size={16} color={color.brand} />
-        <Heading size={16}>{t({ en: 'Getting here', th: 'มายังไง' })}</Heading>
+        <Heading size={16}>{t({ en: 'Getting here', th: 'มายังไง', zh: '怎么到这里' })}</Heading>
       </View>
 
       <RouteCards routes={routes} onToast={onToast} />
@@ -100,8 +100,8 @@ function RouteCard({ route, here, onToast }: {
     // "already counted" is the truth and reads as the app keeping up, where a
     // red error for pressing twice reads as the app being broken.
     onToast?.(res.data.recorded
-      ? t({ en: 'Thanks - counted', th: 'ขอบคุณ นับแล้ว' })
-      : t({ en: 'Already counted just now', th: 'เพิ่งนับไปเมื่อกี้แล้ว' }));
+      ? t({ en: 'Thanks - counted', th: 'ขอบคุณ นับแล้ว', zh: '谢谢，已记录' })
+      : t({ en: 'Already counted just now', th: 'เพิ่งนับไปเมื่อกี้แล้ว', zh: '刚刚已经记录过了' }));
   };
 
   return (
@@ -137,6 +137,7 @@ function RouteCard({ route, here, onToast }: {
           {t({
             en: here ? 'Nearest stop selected. Tap another if needed.' : 'Select the stop where you are.',
             th: here ? 'เลือกป้ายที่ใกล้ที่สุดแล้ว แตะเปลี่ยนได้' : 'เลือกป้ายที่คุณยืนอยู่',
+            zh: here ? '已选择最近的站点。需要时可点选其他站点。' : '请选择你所在的站点。',
           })}
         </Body>
         {route.stops.map((s) => (
@@ -147,13 +148,14 @@ function RouteCard({ route, here, onToast }: {
             accessibilityLabel={t({
               en: `Select stop: ${s.name?.en ?? 'Unnamed stop'}`,
               th: `เลือกป้าย: ${s.name?.th ?? 'ป้ายที่ยังไม่มีชื่อบนแผนที่'}`,
+              zh: `选择站点：${s.name?.zh ?? s.name?.en ?? '未命名站点'}`,
             })}
             accessibilityState={{ selected: stop?.id === s.id }}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36 }}
           >
             <MapPin size={11} color={color.neutral600} />
             <Body size={13} colour={stop?.id === s.id ? color.brand : s.name ? color.neutral800 : color.neutral600}>
-              {s.name ? t(s.name) : t({ en: 'Unnamed stop', th: 'ป้ายที่ยังไม่มีชื่อบนแผนที่' })}
+              {s.name ? t(s.name) : t({ en: 'Unnamed stop', th: 'ป้ายที่ยังไม่มีชื่อบนแผนที่', zh: '未命名站点' })}
             </Body>
             {stop?.id === s.id ? <Check size={14} color={color.brand} /> : null}
           </Pressable>
@@ -172,6 +174,7 @@ function RouteCard({ route, here, onToast }: {
             {t({
               en: `${headway.reports} report${headway.reports === 1 ? '' : 's'} today, ${headway.vehicles} vehicle${headway.vehicles === 1 ? '' : 's'}`,
               th: `วันนี้มีคนแจ้ง ${headway.reports} ครั้ง เห็นรถ ${headway.vehicles} คัน`,
+              zh: `今天有 ${headway.reports} 次上报，看到 ${headway.vehicles} 辆车`,
             })}
           </Label>
         ) : null}
@@ -182,7 +185,7 @@ function RouteCard({ route, here, onToast }: {
           onPress={report}
           disabled={sending}
           accessibilityRole="button"
-          accessibilityLabel={t({ en: 'I saw one', th: 'เห็นรถแล้ว' })}
+          accessibilityLabel={t({ en: 'I saw one', th: 'เห็นรถแล้ว', zh: '我看到车了' })}
           style={{
             marginTop: 12, minHeight: 40, borderRadius: radius.sm, backgroundColor: color.brand,
             alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6,
@@ -191,7 +194,7 @@ function RouteCard({ route, here, onToast }: {
         >
           <Check size={14} color={onFill.brand} />
           <Label size={11} tracking={0.06} colour={onFill.brand}>
-            {t({ en: 'I saw one', th: 'เห็นรถแล้ว' })}
+            {t({ en: 'I saw one', th: 'เห็นรถแล้ว', zh: '我看到车了' })}
           </Label>
         </Pressable>
       ) : null}

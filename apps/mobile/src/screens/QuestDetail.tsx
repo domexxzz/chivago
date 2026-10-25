@@ -75,7 +75,7 @@ export function QuestDetailScreen({
   const onRecord = filed.data?.statements.find((s) => s.quests.some((q) => q.id === questId)) ?? null;
 
   const join = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to join this quest.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเข้าร่วมเควสต์' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to join this quest.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเข้าร่วมเควสต์', zh: '请登录或注册账号，以加入这个任务。' })) return;
     setBusy(true);
     const res = await api.joinQuest(questId);
     setBusy(false);
@@ -85,7 +85,7 @@ export function QuestDetailScreen({
 
   /** Real GPS, checked server-side against the quest geofence. */
   const arrive = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to check in to this quest.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเช็กอินเควสต์' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to check in to this quest.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเช็กอินเควสต์', zh: '请登录或注册账号，以为这个任务签到。' })) return;
     setBusy(true);
     const perm = await Location.requestForegroundPermissionsAsync();
     if (!perm.granted) {
@@ -93,6 +93,7 @@ export function QuestDetailScreen({
       onToast(t({
         en: 'Location permission is needed to check in at the site.',
         th: 'ต้องอนุญาตให้เข้าถึงตำแหน่งเพื่อเช็กอินที่จุดนั้น',
+        zh: '需要位置权限才能在该地点签到。',
       }));
       return;
     }
@@ -149,7 +150,7 @@ export function QuestDetailScreen({
   };
 
   const submit = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to submit quest work.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อส่งผลงานเควสต์' })) return;
+    if (requireAccount({ en: 'Please sign in or create an account to submit quest work.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อส่งผลงานเควสต์', zh: '请登录或注册账号，以提交任务成果。' })) return;
     setBusy(true);
     // A second position, taken now. Arrival proved they got here; this
     // proves they were still here when the work was done. See docs/30.

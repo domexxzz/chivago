@@ -32,7 +32,8 @@
  * produce stay bounded by the data underneath.
  */
 
-import type { Bilingual, LayerKey, Quest, ScoredPlace } from './types.ts';
+import type { Bilingual, LayerKey, Localised, Quest, ScoredPlace } from './types.ts';
+import { type Lang, localise } from './localise.ts';
 import { crowdLabel } from './healthy-score.ts';
 import { SAMUI_EMERGENCY } from './emergency.ts';
 
@@ -40,21 +41,27 @@ import { SAMUI_EMERGENCY } from './emergency.ts';
 // Language
 // ---------------------------------------------------------------------------
 
-export type Lang = 'th' | 'en';
-
 /**
- * Thai script means Thai. Anything else means English.
+ * Thai script means Thai, Han script means Chinese, anything else English.
  *
  * Detected from the script rather than a setting, because somebody typing Thai
  * into an English UI has told you which language they want more clearly than
  * any preference screen ever did. Mixed input follows the Thai, since a Thai
  * speaker borrowing an English place name is far commoner than the reverse.
+ *
+ * Thai is tested before Han because a Thai sentence quoting a Chinese place
+ * name is the likelier mix on this island; a Chinese sentence rarely carries
+ * Thai script at all. The range is CJK Unified Ideographs, which is enough to
+ * recognise a question - it is not a script identifier, and it does not try to
+ * tell Simplified from Traditional.
  */
 export function detectLang(text: string): Lang {
-  return /[฀-๿]/.test(text) ? 'th' : 'en';
+  if (/[฀-๿]/.test(text)) return 'th';
+  if (/[一-鿿]/.test(text)) return 'zh';
+  return 'en';
 }
 
-const say = (en: string, th: string): Bilingual => ({ en, th });
+const say = (en: string, th: string, zh?: string): Localised => ({ en, th, zh });
 
 // ---------------------------------------------------------------------------
 // Intent
@@ -220,7 +227,7 @@ export interface Reply {
   action: 'plan' | 'route' | 'price' | 'wallet' | 'safety' | null;
 }
 
-const pick = (b: Bilingual, lang: Lang): string => (lang === 'th' ? b.th : b.en);
+const pick = localise;
 
 /**
  * Why this place, in measurements.
@@ -375,10 +382,10 @@ export function answer(input: string, ctx: Context): Reply {
     const top = ranked.slice(0, 3);
     const lead = top[0]!;
     const head = filters.quiet
-      ? say('Quietest right now', 'เงียบที่สุดตอนนี้')
+      ? say('Quietest right now', 'เงียบที่สุดตอนนี้', '目前最安静')
       : filters.cleanAir
-        ? say('Cleanest air right now', 'อากาศดีที่สุดตอนนี้')
-        : say('Best scoring right now', 'คะแนนดีที่สุดตอนนี้');
+        ? say('Cleanest air right now', 'อากาศดีที่สุดตอนนี้', '目前空气最好')
+        : say('Best scoring right now', 'คะแนนดีที่สุดตอนนี้', '目前评分最高');
 
     return {
       ...base,
@@ -413,10 +420,10 @@ export function answer(input: string, ctx: Context): Reply {
  * usually guess something it cannot do.
  */
 export const OPENERS: Bilingual[] = [
-  say('Somewhere quiet', 'ที่เงียบ ๆ'),
-  say('Where has the cleanest air?', 'ที่ไหนอากาศดีที่สุด'),
-  say('I want a beach', 'อยากไปทะเล'),
-  say('Somewhere to eat', 'หาร้านอาหาร'),
-  say('Plan my day', 'จัดแผนวันนี้ให้หน่อย'),
-  say('What are Green Points?', 'แต้มสีเขียวคืออะไร'),
+  say('Somewhere quiet', 'ที่เงียบ ๆ', '找个安静的地方'),
+  say('Where has the cleanest air?', 'ที่ไหนอากาศดีที่สุด', '哪里空气最好？'),
+  say('I want a beach', 'อยากไปทะเล', '我想去海滩'),
+  say('Somewhere to eat', 'หาร้านอาหาร', '找地方吃饭'),
+  say('Plan my day', 'จัดแผนวันนี้ให้หน่อย', '帮我安排今天'),
+  say('What are Green Points?', 'แต้มสีเขียวคืออะไร', '什么是绿色积分？'),
 ];
