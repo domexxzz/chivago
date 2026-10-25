@@ -61,6 +61,37 @@ The pitch has to answer these, in the guide's own terms, or it is not a pitch:
 5. **A boat trip cancelled for the sea** counts against the guide as if it
    were their fault.
 
+## What only this product can offer
+
+The four items above that are about *trust* rather than money are the ones a
+competitor cannot copy by lowering a rate, because each rests on something
+this repository already built for another reason.
+
+**The evidence layer is a second income.** The chain already exists end to
+end: a named host approves a geotagged submission, that issues Green Points,
+those are what a hotel attaches to the report it already files, and
+`org_sponsorships` carries `per_verified_thb` beside `funded_thb` so a sponsor
+pays per verified activity. A guide leading a beach clean-up or a reef trip is
+the named host standing right there. No tour marketplace has a party on the
+ground whose verification a hotel's filing can rest on, so none of them can
+pay a guide for it. This is phase 3, and the two conditions it has to clear
+first are below.
+
+**Reviews that cannot be faked**, because they hang off the same ledger: a
+review is accepted only where something verified the trip happened. The
+machinery to extend is the local business reviews and map discovery already
+shipped (`a174d59`), not a new system.
+
+**A cancellation the sea can vouch for.** The sea-and-sky service (`#143`)
+reads conditions from a service rather than the JSX, so a trip called off for
+the swell can be shown with the reading that justified it. On every other
+platform that cancellation is just a number against the guide.
+
+**A guide's page is visible without an account.** Guest mode (`#147`) lets a
+traveller browse before signing up, so a guide's listing is reachable by
+someone who has not committed to anything yet. That is reach a guide can
+measure, and it costs us nothing because it is already live.
+
 ## What the platforms actually charge
 
 Read on 25 October, to replace the "commonly cited" figure the first draft of
@@ -111,11 +142,13 @@ missing. That is the exact shape the *seen by ChivaGo* mark needs in phase 2.
 | what we offer | available | what it rests on |
 |---|---|---|
 | **Free listing for founding guides** — the first 20, for six months | phase 1 | nothing to build; billing does not exist yet (`docs/62`) |
+| **A founding guide mark that stays**, after the free period ends | phase 2 | a flag on the host, shown on the listing. Worth something only while there are few of them, so the twenty is a cap, not a target |
 | **Then a flat fee, never a cut** — a monthly subscription, unless phase 0 says otherwise | phase 2 | `docs/61`'s two models; settled off-platform. The per-inquiry variant is now the weaker one: see the breakeven above |
 | **Paid at the trip by the traveller**, by PromptPay or cash, with nobody to wait for | phase 1 | no money through ChivaGo (`docs/61`) |
 | **Not exclusive** — keep every other channel | phase 1 | nothing to build; written into the founding terms |
 | **A visible response time**, the trust signal that matters to a traveller | phase 1 | exists, after five answers (`docs/62`) |
 | **Both audiences on one listing** — Thai and English throughout | phase 1 | listings are already TH/EN |
+| **Found by travellers without an account** | phase 1 | guest mode (`#147`) is live |
 | **Seen by ChivaGo** — a mark that the owner has seen the licence in person | phase 2 | new; distinct from *stated* and never shown as a government check |
 | **Notified anywhere**, not only with the console open | phase 2 | LINE or email; `docs/62` lists it as missing |
 | **A traveller can ask the same guide again** from their history | phase 2 | the inquiry already names the operator |
@@ -153,7 +186,9 @@ prices for the same trip by nationality is not something ChivaGo will display.
 
 **Languages.** The listing needs a *languages spoken* field, which does not
 exist yet, and the traveller's browse needs to filter on it. On Samui, English
-alone will not do.
+alone will not do: Russian, Chinese and German are the next three worth
+guessing at, and phase 0 should ask the guides which languages they are
+actually asked for rather than trusting that guess.
 
 ## Phases
 
@@ -179,7 +214,11 @@ this document is rewritten before phase 1.
 - Twenty guides through `/apply`, each approved by the owner after a
   conversation and a look at the licence card — the `docs/62` runbook,
   unchanged.
-- Each lists at least one tour, licence number and card type stated.
+- Each lists at least one tour, licence number and card type stated. **Sit
+  with them and fill the first listing in**, rather than sending a link and
+  hoping: twenty is few enough to do by hand, the first listing is where a
+  guide decides whether this is worth their evening, and what they struggle to
+  type is what the form has wrong.
 - Inquiry only. The guide answers in the console; the traveller reads it in
   the inbox.
 - Founding terms in writing, in Thai: free for six months, not exclusive,
@@ -314,6 +353,16 @@ advisory blog, not a contract, and the platforms negotiate per operator, so a
 guide's own statement in phase 0 outranks all of it. TakeMeTour's rate is not
 published anywhere we found. Klook's payout terms were not found. The Thai
 legal conclusion rests on news articles until question 1 is answered properly.
+The three extra languages named above are a guess about Samui's market and
+nothing more.
+
+**Three offers stay out, and this is the record of why.** They are the ones
+the first pitch made in conversation and they keep coming back, so: a
+percentage commission has nothing to take a percentage of; a next-day payout
+and a no-show deposit both require holding the traveller's money, which is
+booking. All three are phase 4 or nothing, and re-adding any of them to the
+offer means first answering legal questions 8 to 10. What replaces them is in
+the offer table: a flat fee, and the traveller paying the guide at the trip.
 
 ## Sources for the figures
 
