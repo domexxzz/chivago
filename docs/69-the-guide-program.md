@@ -155,6 +155,7 @@ missing. That is the exact shape the *seen by ChivaGo* mark needs in phase 2.
 | **Seen by ChivaGo** — a mark that the owner has seen the licence in person | phase 2 | new; distinct from *stated* and never shown as a government check |
 | **Notified anywhere**, not only with the console open | phase 2 | LINE or email; `docs/62` lists it as missing |
 | **A traveller can ask the same guide again** from their history | phase 2 | the inquiry already names the operator |
+| **The guide sees their own history with a traveller** — this person asked twice before, and what about | phase 2 | the guide's own inquiries, grouped by traveller. **Not contact details**: `docs/61` decision 4 stands, and a phone number reaches a guide only if the traveller types it. A guide reaching a past customer does it by answering in the app, not by holding a list |
 | **Cancelled for the sea, said so with the reading** | phase 2 | the sea-and-sky service (`#143`) |
 | **Hotel concierges point guests at guides in the system** | phase 2 | hotels are already hosts; an introduction, not a referral fee |
 | **Paid to verify** — a sponsor's per-verified rate for green activity the guide leads | phase 3 | `org_sponsorships.per_verified_thb` exists; the guide-as-verifier type does not |
@@ -188,6 +189,9 @@ the licence, and no stars.
 **One price for everyone.** A listing states one "from" price, if it states
 one at all. Different packaging for different audiences is fine; different
 prices for the same trip by nationality is not something ChivaGo will display.
+Dual pricing is common enough in Thai tourism to be a live argument, and it
+reliably becomes a public one — which is reason enough on a platform whose
+whole claim is that its numbers can be checked.
 
 **Languages.** The listing needs a *languages spoken* field, which does not
 exist yet, and the traveller's browse needs to filter on it. On Samui, English
@@ -325,7 +329,12 @@ questions, not conclusions. They go to the lawyer alongside the lists in
    name that company, and the application form has to ask for it.
 3. **Does listing guides and passing inquiries make ChivaGo a tour
    business?** `docs/61` asked this for operators; a platform that lists
-   individual guides is the sharper case.
+   individual guides is the sharper case. The burden differs sharply between
+   selling a tour ourselves and being a marketplace where the traveller deals
+   with the guide — which is why `docs/61` chose the second. **Ask the
+   Department of Tourism as well as a lawyer:** the department registers both
+   guides and tour businesses, so it can say which side of that line a
+   listing-and-inquiry platform falls on, and the answer is free.
 
 **Before phase 2**
 
