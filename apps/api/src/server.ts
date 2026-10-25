@@ -904,6 +904,28 @@ app.get('/shops/:id', (c) => {
 app.post('/shops', async (c) => ok(c, saveShop(db, userId(c), await c.req.json<Record<string, unknown>>().catch(() => ({})))));
 app.put('/shops/:id', async (c) => ok(c, saveShop(db, userId(c), await c.req.json<Record<string, unknown>>().catch(() => ({})), c.req.param('id'))));
 app.delete('/shops/:id', (c) => { deleteShop(db, userId(c), c.req.param('id')); return ok(c, { deleted: true }); });
+app.post('/shops/:id/guide-document', async (c) => {
+  const shopId = c.req.param('id');
+  ownedShop(db, userId(c), shopId);
+  const shop = row<{ service_type: string }>(db.prepare('SELECT service_type FROM local_shops WHERE id=?').get(shopId));
+  if (shop?.service_type !== 'guide') return fail(c, 'GUIDE_PROFILE_REQUIRED', 'เอกสารนี้ใช้ได้กับโปรไฟล์ไกด์เท่านั้น', 400);
+  if (!(c.req.header('content-type') ?? '').includes('multipart/form-data')) return fail(c, 'MULTIPART_REQUIRED', 'ส่งเอกสารแบบ multipart', 400);
+  const form = await boundedForm(c, 5 * 1024 * 1024 + 64 * 1024);
+  const file = form.get('photo');
+  if (!(file instanceof File)) return fail(c, 'DOCUMENT_REQUIRED', 'กรุณาเลือกภาพใบอนุญาตมัคคุเทศก์', 400);
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const mime = bytes.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff])) ? 'image/jpeg'
+    : bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) ? 'image/png'
+      : bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP' ? 'image/webp' : null;
+  if (!mime || bytes.length > 5 * 1024 * 1024) return fail(c, 'INVALID_DOCUMENT', 'ใช้ไฟล์ JPG, PNG หรือ WebP ไม่เกิน 5MB', 415);
+  const id = randomUUID();
+  transact(db, () => {
+    db.prepare('INSERT INTO local_guide_documents(id,shop_id,mime_type,bytes,uploaded_at) VALUES(?,?,?,?,?) ON CONFLICT(shop_id) DO UPDATE SET id=excluded.id,mime_type=excluded.mime_type,bytes=excluded.bytes,uploaded_at=excluded.uploaded_at')
+      .run(id, shopId, mime, bytes, new Date().toISOString());
+    db.prepare("UPDATE local_shops SET guide_status='pending',guide_reviewed_at=NULL,guide_reviewed_by=NULL,updated_at=? WHERE id=?").run(new Date().toISOString(), shopId);
+  });
+  return ok(c, { uploaded: true, reviewStatus: 'pending' });
+});
 app.post('/shops/:id/images', async (c) => {
   const shopId = c.req.param('id');
   const kind = c.req.query('kind');

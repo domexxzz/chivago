@@ -14,14 +14,17 @@ type ShopRow = {
   email: string; opening_hours: string; amenities: string; active: number;
   created_at: string; updated_at: string; rating: number | null; review_count: number;
   cover_id: string | null;
+  service_type: string; guide_languages: string; guide_license_number: string; guide_meeting_point: string; guide_status: string;
+  guide_document_id?: string | null;
 };
 export type ShopInput = Record<string, unknown>;
-export const SHOP_CATEGORIES = ['ที่พัก', 'ร้านอาหาร', 'ร้านขายของ', 'เช่ารถ', 'เสริมสวย', 'ตัดผม', 'อื่นๆ'] as const;
+export const SHOP_CATEGORIES = ['ที่พัก', 'ร้านอาหาร', 'ร้านขายของ', 'เช่ารถ', 'เสริมสวย', 'ตัดผม', 'ไกด์นำเที่ยว', 'อื่นๆ'] as const;
 
 const SELECT = `SELECT s.*,
   (SELECT ROUND(AVG(r.rating), 1) FROM local_shop_reviews r WHERE r.shop_id = s.id AND r.hidden_at IS NULL) AS rating,
   (SELECT COUNT(*) FROM local_shop_reviews r WHERE r.shop_id = s.id AND r.hidden_at IS NULL) AS review_count,
-  (SELECT m.id FROM local_shop_media m WHERE m.shop_id = s.id AND m.kind = 'cover' ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS cover_id
+  (SELECT m.id FROM local_shop_media m WHERE m.shop_id = s.id AND m.kind = 'cover' ORDER BY m.created_at DESC, m.id DESC LIMIT 1) AS cover_id,
+  (SELECT d.id FROM local_guide_documents d WHERE d.shop_id = s.id) AS guide_document_id
   FROM local_shops s`;
 
 const text = (v: unknown, max: number) => typeof v === 'string' ? v.trim().slice(0, max) : '';
@@ -41,6 +44,12 @@ function shopFrom(r: ShopRow, viewer?: string) {
     active: !!r.active, rating: r.rating, reviewCount: r.review_count,
     coverUrl: r.cover_id ? `/shops/media/${r.cover_id}` : null,
     owner: viewer === r.owner_id, createdAt: r.created_at, updatedAt: r.updated_at,
+    serviceType: r.service_type === 'guide' ? 'guide' : 'business',
+    guideLanguages: r.guide_languages.split(',').map((v) => v.trim()).filter(Boolean),
+    guideMeetingPoint: r.guide_meeting_point,
+    guideStatus: r.guide_status,
+    guideLicenseNumber: viewer === r.owner_id ? r.guide_license_number : null,
+    hasGuideDocument: viewer === r.owner_id && !!r.guide_document_id,
   };
 }
 
@@ -62,7 +71,7 @@ export function listShops(db: DB, q: Record<string, string | undefined>, viewer?
   const category = text(q.category, 60).toLowerCase();
   const search = text(q.search, 80).toLowerCase();
   const minRating = q.minRating ? Number(q.minRating) : 0;
-  const sql = `${SELECT} WHERE ${owner ? 's.owner_id = ?' : 's.active = 1'}
+  const sql = `${SELECT} WHERE ${owner ? 's.owner_id = ?' : "s.active = 1 AND (s.service_type <> 'guide' OR s.guide_status = 'approved')"}
     ${q.area ? 'AND s.area_key = ?' : ''}
     ${category ? 'AND lower(s.category) = ?' : ''}
     ${search ? 'AND (lower(s.name) LIKE ? OR lower(s.category) LIKE ?)' : ''}
@@ -73,7 +82,8 @@ export function listShops(db: DB, q: Record<string, string | undefined>, viewer?
       WHEN 'เช่ารถ' THEN 4
       WHEN 'เสริมสวย' THEN 5
       WHEN 'ตัดผม' THEN 6
-      WHEN 'อื่นๆ' THEN 7
+      WHEN 'ไกด์นำเที่ยว' THEN 7
+      WHEN 'อื่นๆ' THEN 8
       ELSE 99 END,
       s.updated_at DESC, s.id DESC`;
   const args: (string | number)[] = [];
@@ -97,7 +107,7 @@ export function isOpenNow(hours: string, now = new Date()) {
 
 export function getShop(db: DB, id: string, viewer?: string) {
   const r = row<ShopRow>(db.prepare(`${SELECT} WHERE s.id = ?`).get(id));
-  if (!r || (!r.active && r.owner_id !== viewer)) return null;
+  if (!r || ((!r.active || (r.service_type === 'guide' && r.guide_status !== 'approved')) && r.owner_id !== viewer)) return null;
   const images = rows<{ id: string; kind: string }>(db.prepare("SELECT id, kind FROM local_shop_media WHERE shop_id = ? AND kind <> 'review' ORDER BY created_at DESC").all(id));
   return { ...shopFrom(r, viewer), images: images.map((m) => ({ id: m.id, kind: m.kind, url: `/shops/media/${m.id}` })) };
 }
@@ -107,28 +117,46 @@ export function saveShop(db: DB, uid: string, input: ShopInput, id?: string) {
   if (id) ownedShop(db, uid, id);
   const name = text(input.name, 100);
   const category = text(input.category, 60);
+  const serviceType = input.serviceType === 'guide' ? 'guide' : 'business';
   const address = text(input.address, 250);
   const phone = text(input.phone, 30);
   const email = text(input.email, 120);
+  const guideLanguages = Array.isArray(input.guideLanguages) ? input.guideLanguages.map((v) => text(v, 30)).filter(Boolean).slice(0, 12).join(',') : '';
+  const guideLicenseNumber = text(input.guideLicenseNumber, 100);
+  const guideMeetingPoint = text(input.guideMeetingPoint, 250);
   const area = input.areaKey;
   const lat = Number(input.lat);
   const lng = Number(input.lng);
   if (name.length < 2 || !category) throw new ShopError('INVALID_SHOP', 'กรอกชื่อและประเภทร้านค้า');
+  if ((serviceType === 'guide') !== (category === 'ไกด์นำเที่ยว')) throw new ShopError('INVALID_CATEGORY', 'ประเภทโปรไฟล์ไม่ตรงกับประเภทบริการ');
   if (!SHOP_CATEGORIES.includes(category as typeof SHOP_CATEGORIES[number]))
     throw new ShopError('INVALID_CATEGORY', 'เลือกประเภทร้านจากรายการที่กำหนด');
-  if (address.length < 3) throw new ShopError('INVALID_ADDRESS', 'กรุณากรอกที่อยู่ร้านค้า');
+  if (serviceType === 'guide') {
+    if (!guideLanguages || !guideLicenseNumber || guideMeetingPoint.length < 3) throw new ShopError('INVALID_GUIDE_PROFILE', 'กรอกภาษา เลขใบอนุญาต และจุดนัดพบหลักให้ครบ');
+  } else if (address.length < 3) throw new ShopError('INVALID_ADDRESS', 'กรุณากรอกที่อยู่ร้านค้า');
   if (phone && !/^\+?[0-9\s-]{8,20}$/.test(phone)) throw new ShopError('INVALID_PHONE', 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง');
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new ShopError('INVALID_EMAIL', 'รูปแบบอีเมลไม่ถูกต้อง');
   if (!isAreaKey(area) || !validShopPoint(area, lat, lng)) throw new ShopError('INVALID_LOCATION', 'พิกัดต้องอยู่ในพื้นที่ที่เลือก');
   const hours = text(input.openingHours, 11);
+  if (serviceType === 'guide' && hours) throw new ShopError('INVALID_GUIDE_HOURS', 'โปรไฟล์ไกด์ไม่ใช้เวลาเปิด–ปิดร้าน');
   if (hours && !/^(?:[01]\d|2[0-3]):[0-5]\d-(?:[01]\d|2[0-3]):[0-5]\d$/.test(hours)) throw new ShopError('INVALID_HOURS', 'เวลาเปิดปิดต้องเป็น HH:MM-HH:MM');
   const amenities = Array.isArray(input.amenities) ? input.amenities.map((v) => text(v, 40)).filter(Boolean).slice(0, 12).join(',') : '';
   const now = new Date().toISOString();
   const key = id ?? randomUUID();
-  const values = [name, category, area, text(input.description, 2000), address, lat, lng,
-    phone, email, hours, amenities, input.active === false ? 0 : 1, now];
-  if (id) db.prepare(`UPDATE local_shops SET name=?,category=?,area_key=?,description=?,address=?,lat=?,lng=?,phone=?,email=?,opening_hours=?,amenities=?,active=?,updated_at=? WHERE id=?`).run(...values, id);
-  else db.prepare(`INSERT INTO local_shops(id,owner_id,name,category,area_key,description,address,lat,lng,phone,email,opening_hours,amenities,active,updated_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(key, uid, ...values, now);
+  const previous = id ? row<{ service_type: string; guide_languages: string; guide_license_number: string; guide_meeting_point: string; guide_status: string; guide_reviewed_at: string | null; guide_reviewed_by: string | null; name: string; description: string; area_key: string; lat: number; lng: number; phone: string; email: string }>(db.prepare('SELECT service_type,guide_languages,guide_license_number,guide_meeting_point,guide_status,guide_reviewed_at,guide_reviewed_by,name,description,area_key,lat,lng,phone,email FROM local_shops WHERE id=?').get(id)) : null;
+  const guideChanged = serviceType === 'guide' && previous?.service_type === 'guide'
+    && (previous.guide_languages !== guideLanguages || previous.guide_license_number !== guideLicenseNumber || previous.guide_meeting_point !== guideMeetingPoint
+      || previous.name !== name || previous.description !== text(input.description, 2000) || previous.area_key !== area
+      || previous.lat !== lat || previous.lng !== lng || previous.phone !== phone || previous.email !== email);
+  const guideStatus = serviceType !== 'guide' ? 'not_required'
+    : previous?.service_type === 'guide' ? (guideChanged ? 'pending' : previous.guide_status) : 'pending';
+  const reviewedAt = guideStatus === 'pending' || guideStatus === 'not_required' ? null : previous?.guide_reviewed_at ?? null;
+  const reviewedBy = guideStatus === 'pending' || guideStatus === 'not_required' ? null : previous?.guide_reviewed_by ?? null;
+  const values = [name, category, area, text(input.description, 2000), serviceType === 'guide' ? guideMeetingPoint : address, lat, lng,
+    phone, email, serviceType === 'guide' ? '' : hours, amenities, input.active === false ? 0 : 1, serviceType, guideLanguages, guideLicenseNumber, guideMeetingPoint, guideStatus, reviewedAt, reviewedBy, now];
+  if (id) db.prepare(`UPDATE local_shops SET name=?,category=?,area_key=?,description=?,address=?,lat=?,lng=?,phone=?,email=?,opening_hours=?,amenities=?,active=?,service_type=?,guide_languages=?,guide_license_number=?,guide_meeting_point=?,guide_status=?,guide_reviewed_at=?,guide_reviewed_by=?,updated_at=? WHERE id=?`).run(...values, id);
+  else db.prepare(`INSERT INTO local_shops(id,owner_id,name,category,area_key,description,address,lat,lng,phone,email,opening_hours,amenities,active,service_type,guide_languages,guide_license_number,guide_meeting_point,guide_status,guide_reviewed_at,guide_reviewed_by,updated_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(key, uid, ...values, now);
+  if (id && serviceType !== 'guide' && previous?.service_type === 'guide') db.prepare('DELETE FROM local_guide_documents WHERE shop_id=?').run(id);
   return getShop(db, key, uid)!;
 }
 
@@ -167,8 +195,8 @@ export function ownReview(db: DB, shopId: string, uid: string) {
 
 export function saveReview(db: DB, uid: string, shopId: string, rating: unknown, body: unknown) {
   if (!row(db.prepare('SELECT 1 FROM user_accounts WHERE id=?').get(uid))) throw new ShopError('LOGIN_REQUIRED', 'เข้าสู่ระบบก่อนเขียนรีวิว', 401);
-  const shop = row<{ owner_id: string; active: number }>(db.prepare('SELECT owner_id,active FROM local_shops WHERE id=?').get(shopId));
-  if (!shop || !shop.active) throw new ShopError('NOT_FOUND', 'ไม่พบร้านค้า', 404);
+  const shop = row<{ owner_id: string; active: number; service_type: string; guide_status: string }>(db.prepare('SELECT owner_id,active,service_type,guide_status FROM local_shops WHERE id=?').get(shopId));
+  if (!shop || !shop.active || (shop.service_type === 'guide' && shop.guide_status !== 'approved')) throw new ShopError('NOT_FOUND', 'ไม่พบร้านค้า', 404);
   if (shop.owner_id === uid) throw new ShopError('OWN_SHOP', 'เจ้าของร้านรีวิวร้านตัวเองไม่ได้', 403);
   if (!Number.isInteger(rating) || Number(rating) < 1 || Number(rating) > 5) throw new ShopError('INVALID_RATING', 'ให้คะแนน 1–5 ดาว');
   if (typeof body !== 'string' || body.trim().length > 2000) throw new ShopError('INVALID_REVIEW', 'ความคิดเห็นต้องเป็นข้อความไม่เกิน 2000 ตัวอักษร');

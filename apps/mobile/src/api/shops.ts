@@ -1,6 +1,6 @@
 import { API_BASE } from './client.ts';
 
-export const SHOP_CATEGORIES = ['ที่พัก', 'ร้านอาหาร', 'ร้านขายของ', 'เช่ารถ', 'เสริมสวย', 'ตัดผม', 'อื่นๆ'] as const;
+export const SHOP_CATEGORIES = ['ที่พัก', 'ร้านอาหาร', 'ร้านขายของ', 'เช่ารถ', 'เสริมสวย', 'ตัดผม', 'ไกด์นำเที่ยว', 'อื่นๆ'] as const;
 export type ShopCategory = typeof SHOP_CATEGORIES[number];
 
 export interface Shop {
@@ -9,13 +9,15 @@ export interface Shop {
   phone: string; email: string; openingHours: string; amenities: string[];
   active: boolean; rating: number | null; reviewCount: number;
   coverUrl: string | null; owner: boolean; createdAt: string; updatedAt: string;
+  serviceType: 'business' | 'guide'; guideLanguages: string[]; guideMeetingPoint: string;
+  guideStatus: 'not_required' | 'pending' | 'approved' | 'rejected'; guideLicenseNumber: string | null; hasGuideDocument: boolean;
 }
 export interface ShopDetail extends Shop { images: { id: string; kind: string; url: string }[] }
 export interface ShopReview {
   id: string; rating: number; body: string; author: string; mine: boolean;
   ownerReply: string | null; createdAt: string; updatedAt: string; photoUrl: string | null;
 }
-export type ShopInput = Pick<Shop, 'name' | 'category' | 'areaKey' | 'description' | 'address' | 'lat' | 'lng' | 'phone' | 'email' | 'openingHours' | 'amenities' | 'active'>;
+export type ShopInput = Pick<Shop, 'name' | 'category' | 'areaKey' | 'description' | 'address' | 'lat' | 'lng' | 'phone' | 'email' | 'openingHours' | 'amenities' | 'active' | 'serviceType' | 'guideLanguages' | 'guideMeetingPoint' | 'guideLicenseNumber'>;
 
 /** User uploads live on the API origin, including when Expo serves the web bundle. */
 export const shopImageUri = (path: string) => path.startsWith('/') ? `${API_BASE.replace(/\/$/, '')}${path}` : path;

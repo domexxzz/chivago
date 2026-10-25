@@ -388,6 +388,12 @@ export const api = {
     else form.append('photo', { uri, name: 'shop-photo.jpg', type: mimeType } as any);
     return upload<{ id: string; url: string }>(`/shops/${encodeURIComponent(id)}/images?kind=${kind}`, form);
   },
+  uploadGuideDocument: async (id: string, uri: string, mimeType = 'image/jpeg') => {
+    const form = new FormData();
+    if (Platform.OS === 'web') form.append('photo', await fetch(uri).then((r) => r.blob()), 'guide-license.jpg');
+    else form.append('photo', { uri, name: 'guide-license.jpg', type: mimeType } as any);
+    return upload<{ uploaded: boolean; reviewStatus: 'pending' }>(`/shops/${encodeURIComponent(id)}/guide-document`, form);
+  },
 
   // -- profile ------------------------------------------------------------
   getProfile: () => get<WellnessProfile>('/profile'),

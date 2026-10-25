@@ -1789,6 +1789,24 @@ export function migrate(db: DB): string[] {
   if (addColumn(db, 'local_shop_reviews', 'hidden_at', 'TEXT')) applied.push('local_shop_reviews.hidden_at');
   if (addColumn(db, 'local_shop_review_reports', 'decided_at', 'TEXT')) applied.push('local_shop_review_reports.decided_at');
   if (addColumn(db, 'local_shop_review_reports', 'decided_by', 'TEXT')) applied.push('local_shop_review_reports.decided_by');
+  if (addColumn(db, 'local_shops', 'service_type', "TEXT NOT NULL DEFAULT 'business'")) applied.push('local_shops.service_type');
+  if (addColumn(db, 'local_shops', 'guide_languages', "TEXT NOT NULL DEFAULT ''")) applied.push('local_shops.guide_languages');
+  if (addColumn(db, 'local_shops', 'guide_license_number', "TEXT NOT NULL DEFAULT ''")) applied.push('local_shops.guide_license_number');
+  if (addColumn(db, 'local_shops', 'guide_meeting_point', "TEXT NOT NULL DEFAULT ''")) applied.push('local_shops.guide_meeting_point');
+  if (addColumn(db, 'local_shops', 'guide_status', "TEXT NOT NULL DEFAULT 'not_required'")) applied.push('local_shops.guide_status');
+  if (addColumn(db, 'local_shops', 'guide_reviewed_at', 'TEXT')) applied.push('local_shops.guide_reviewed_at');
+  if (addColumn(db, 'local_shops', 'guide_reviewed_by', 'TEXT')) applied.push('local_shops.guide_reviewed_by');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS local_guide_documents (
+      id TEXT PRIMARY KEY,
+      shop_id TEXT NOT NULL UNIQUE REFERENCES local_shops(id) ON DELETE CASCADE,
+      mime_type TEXT NOT NULL CHECK(mime_type IN ('image/jpeg','image/png','image/webp')),
+      bytes BLOB NOT NULL,
+      uploaded_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_local_shops_guides ON local_shops(service_type, guide_status, active, area_key);
+  `);
+  applied.push('local_guide_documents');
   applied.push('local_shops');
   applied.push('user_accounts');
 

@@ -602,6 +602,7 @@ function shopCategoryLabel(category: string): string {
     'เช่ารถ': { en: 'Car rental', th: 'เช่ารถ' },
     'เสริมสวย': { en: 'Beauty', th: 'เสริมสวย' },
     'ตัดผม': { en: 'Haircuts', th: 'ตัดผม' },
+    'ไกด์นำเที่ยว': { en: 'Tour guide', th: 'ไกด์นำเที่ยว' },
     'อื่นๆ': { en: 'Other', th: 'อื่นๆ' },
   };
   return t(labels[category] ?? { en: category, th: category });
