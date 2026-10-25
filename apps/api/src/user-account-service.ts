@@ -10,6 +10,7 @@
  */
 
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { isLang } from '@chivago/core';
 import { row, type DB } from './db.ts';
 import { generateDeviceKey, hashToken } from './account-service.ts';
 import { ensureWallet, grantOpeningBalance } from './wallet-service.ts';
@@ -132,7 +133,7 @@ export function registerUser(
   const deviceKey = generateDeviceKey();
   const timestamp = now.toISOString();
   const pwdHash = hashPassword(params.password);
-  const locale = params.locale === 'th' ? 'th' : 'en';
+  const locale = isLang(params.locale) ? params.locale : 'en';
 
   db.prepare(
     'INSERT INTO users (id, display_name, locale, created_at) VALUES (?, ?, ?, ?)',

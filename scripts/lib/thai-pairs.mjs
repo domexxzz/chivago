@@ -29,9 +29,11 @@ export const SOURCE_ROOTS = ['packages/core/src', 'apps/mobile/src', 'apps/api/s
  * has no word for.
  */
 const Q = String.raw`(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"|\`((?:[^\`\\]|\\.)*)\`)`;
+// Each `Q` spends three capture groups, so the Chinese - third in both shapes
+// and optional in both - starts at group 7.
 const PATTERNS = () => [
-  new RegExp(String.raw`\bt\(\s*${Q}\s*,\s*${Q}\s*[,)]`, 'g'),
-  new RegExp(String.raw`\ben:\s*${Q}\s*,\s*th:\s*${Q}`, 'g'),
+  new RegExp(String.raw`\bt\(\s*${Q}\s*,\s*${Q}\s*(?:,\s*${Q}\s*)?[,)]`, 'g'),
+  new RegExp(String.raw`\ben:\s*${Q}\s*,\s*th:\s*${Q}(?:\s*,\s*zh:\s*${Q})?`, 'g'),
 ];
 const pick = (m, i) => m[i] ?? m[i + 1] ?? m[i + 2] ?? null;
 /** Which quote the Thai literal used, so a correction can be written back in kind. */
@@ -72,6 +74,7 @@ export function collectPairs(root, roots = SOURCE_ROOTS) {
           line,
           en,
           th,
+          zh: pick(m, 7),
           thQuote: quoteOf(m, 4),
           context: (lines[line - 2] ?? '').trim().slice(0, 90),
           // `// thai: intentional` on the line says a second rendering of the
@@ -111,14 +114,36 @@ export const slots = (s) => (s.match(/\$\{[^}]+\}/g) ?? [])
 // easier.
 const ALLOWED_LATIN = /^(SOS|QR|AQI|EXP|ChivaGo|PDPA|LINE|WhatsApp|SMS|GPS|IUCN|LC|NT|VU|EN|CR|NE|km|kg|hr|Wi-Fi|Green|Trip|Points?|Level|Rank|Chiva|Balance|Safe|Food|Wellness|Quest|Koh|Samui|Chaweng|Lamai|Bophut|Nathon|ESG|ISAE|HCMI|CHSB|CF-Hotels|THB|PM2\.5|GHG|CO2|NGO)$/i;
 
-export const KINDS = ['not-thai', 'untranslated', 'lost-value', 'inconsistent', 'english-left-in', 'suspiciously-short'];
+export const HAN = /[一-鿿]/;
+
+export const KINDS = ['not-thai', 'no-chinese', 'not-chinese', 'untranslated', 'lost-value', 'inconsistent', 'english-left-in', 'suspiciously-short'];
 
 export function analyse(pairs) {
   const findings = [];
   const add = (pair, kind, detail) => findings.push({ id: pair.id, file: pair.file, line: pair.line, en: pair.en, th: pair.th, kind, detail });
 
   for (const pair of pairs) {
-    const { en, th } = pair;
+    const { en, th, zh } = pair;
+
+    // Chinese is optional in the type so that adding it did not break 1,786
+    // call sites at once (see packages/core/src/types.ts). This is the line
+    // that stops "optional" turning into "never written": a pair with no
+    // Chinese is counted here, every run, until somebody writes it.
+    // `== null` on purpose: the collector reports an absent Chinese as null,
+    // while a pair built by hand in a test simply omits the key.
+    if (zh == null) {
+      add(pair, 'no-chinese', 'No Chinese on this pair.');
+    } else if (!HAN.test(zh)) {
+      const bare = zh.replace(/\$\{[^}]+\}/g, '').trim();
+      // Digits, codes and templates that carry their Chinese in the values
+      // are not missing a translation, the same exemption the Thai gets.
+      // Unlike the Thai check there is no "same as the English" exemption:
+      // Chinese copied from the English is the exact failure this looks for,
+      // and a code that is genuinely identical is already covered above.
+      if (!/^[\d\s.,:/%+\-·—]*$/.test(bare)) {
+        add(pair, 'not-chinese', 'The Chinese side contains no Han script at all.');
+      }
+    }
 
     if (!THAI.test(th)) {
       // A string of digits or a code is the same in both languages. That is

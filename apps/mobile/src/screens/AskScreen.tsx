@@ -45,7 +45,7 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, SkeletonList } from '../components/States.tsx';
-import { getLocale, t } from '../i18n/locale.ts';
+import { localeTag, t } from '../i18n/locale.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 
 const DAY_MS = 86_400_000;
@@ -62,7 +62,7 @@ export function dayChoices(now: Date = new Date(), count = 14): string[] {
  */
 function dayLabel(key: string, spelt = false): string {
   const d = new Date(`${key}T12:00:00+07:00`);
-  return d.toLocaleDateString(getLocale() === 'th' ? 'th-TH' : 'en-GB', {
+  return d.toLocaleDateString(localeTag(), {
     weekday: spelt ? 'long' : 'short', day: 'numeric', month: spelt ? 'long' : 'short',
     timeZone: 'Asia/Bangkok',
   });

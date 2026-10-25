@@ -22,12 +22,28 @@ import React from 'react';
 import * as SecureStore from 'expo-secure-store';
 import type { Bilingual } from '@chivago/core';
 
-export type Locale = 'en' | 'th';
+export type Locale = 'en' | 'th' | 'zh';
 
-export const LOCALES: readonly Locale[] = ['en', 'th'] as const;
+export const LOCALES: readonly Locale[] = ['en', 'th', 'zh'] as const;
 
-/** The language's own name for itself. Never translated: "ไทย" is how a Thai speaker finds Thai. */
-export const LOCALE_NAMES: Record<Locale, string> = { en: 'English', th: 'ไทย' };
+/**
+ * The language's own name for itself. Never translated: "ไทย" is how a Thai
+ * speaker finds Thai, and "中文" is how a Chinese speaker finds Chinese. A
+ * switcher that lists "Thai" and "Chinese" in English is useful to everyone
+ * except the two people it is for.
+ */
+export const LOCALE_NAMES: Record<Locale, string> = { en: 'English', th: 'ไทย', zh: '中文' };
+
+/**
+ * BCP 47 tags for `Intl`. Used by every date, time and number on a screen.
+ *
+ * `zh-CN` rather than bare `zh`: the product ships Simplified, and bare `zh`
+ * leaves the calendar and numbering to whatever the platform guesses.
+ */
+export const LOCALE_TAGS: Record<Locale, string> = { en: 'en-GB', th: 'th-TH', zh: 'zh-CN' };
+
+/** The tag for the language on screen now. The one call site for `Intl` anywhere in the app. */
+export const localeTag = (): string => LOCALE_TAGS[current];
 
 const SLOT = 'chivago.locale';
 
@@ -51,10 +67,29 @@ export function subscribe(listener: () => void): () => void {
  */
 export function t(value: Bilingual | null | undefined): string {
   if (!value) return '';
-  return current === 'th' ? (value.th || value.en) : (value.en || value.th);
+  for (const key of FALLBACK[current]) {
+    const s = value[key];
+    if (s) return s;
+  }
+  return '';
 }
 
-export const isLocale = (v: unknown): v is Locale => v === 'en' || v === 'th';
+/**
+ * What to show when the chosen language has nothing.
+ *
+ * English sits second in both other chains because it is the one language the
+ * team writing this can all read, so an untranslated string reaching a user is
+ * also legible to whoever has to fix it. Thai and Chinese never fall back to
+ * each other before trying English: showing Thai to a Chinese reader helps
+ * nobody and hides the gap.
+ */
+const FALLBACK: Record<Locale, readonly (keyof Bilingual)[]> = {
+  en: ['en', 'th', 'zh'],
+  th: ['th', 'en', 'zh'],
+  zh: ['zh', 'en', 'th'],
+};
+
+export const isLocale = (v: unknown): v is Locale => v === 'en' || v === 'th' || v === 'zh';
 
 /**
  * What the phone speaks, reduced to the two languages the app has.
@@ -62,6 +97,12 @@ export const isLocale = (v: unknown): v is Locale => v === 'en' || v === 'th';
  * Reads `Intl` rather than a native module because it is the one answer
  * available on every platform this runs on - Hermes ships it - and because a
  * traveller who set their phone to Thai has already told us what they want.
+ *
+ * Every `zh-*` tag resolves to the one Chinese the product has, which is
+ * Simplified. A phone set to `zh-TW` or `zh-HK` therefore gets Simplified
+ * rather than English: a Traditional reader can follow Simplified far more
+ * easily than a language they may not read at all. If Traditional is ever
+ * written, this is the line that has to split.
  */
 export function deviceLocale(
   tags: readonly string[] = [
@@ -71,8 +112,10 @@ export function deviceLocale(
   ],
 ): Locale {
   for (const tag of tags) {
-    if (typeof tag === 'string' && /^th(-|$)/i.test(tag)) return 'th';
-    if (typeof tag === 'string' && /^en(-|$)/i.test(tag)) return 'en';
+    if (typeof tag !== 'string') continue;
+    if (/^th(-|$)/i.test(tag)) return 'th';
+    if (/^zh(-|$)/i.test(tag)) return 'zh';
+    if (/^en(-|$)/i.test(tag)) return 'en';
   }
   return 'en';
 }

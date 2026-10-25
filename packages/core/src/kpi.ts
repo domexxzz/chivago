@@ -24,6 +24,7 @@
  */
 
 import type { Bilingual } from './types.ts';
+import { type Lang, localise } from './localise.ts';
 
 /**
  * What this platform can measure, and nothing else.
@@ -186,16 +187,16 @@ export function kpiProgress(kpi: QuestKpi, observed: number): KpiProgress {
  * Leads with what was measured, because that is the only part nobody has to
  * take on trust.
  */
-export function kpiHeadline(p: KpiProgress, locale: 'en' | 'th'): string {
-  const unit = p.unit[locale];
+export function kpiHeadline(p: KpiProgress, locale: Lang): string {
+  const unit = localise(p.unit, locale);
   const n = p.observed.toLocaleString('en-US');
   if (p.target === null) {
-    return locale === 'th'
-      ? `วัดได้ ${n} ${unit} ไม่ได้ตั้งเป้าหมายไว้`
-      : `${n} ${unit} measured. No target was set.`;
+    if (locale === 'th') return `วัดได้ ${n} ${unit} ไม่ได้ตั้งเป้าหมายไว้`;
+    if (locale === 'zh') return `实测 ${n} ${unit}，未设定目标。`;
+    return `${n} ${unit} measured. No target was set.`;
   }
   const t = p.target.toLocaleString('en-US');
-  return locale === 'th'
-    ? `วัดได้ ${n} ${unit} จากเป้าหมาย ${t}`
-    : `${n} ${unit} measured, against a target of ${t}.`;
+  if (locale === 'th') return `วัดได้ ${n} ${unit} จากเป้าหมาย ${t}`;
+  if (locale === 'zh') return `实测 ${n} ${unit}，目标 ${t}。`;
+  return `${n} ${unit} measured, against a target of ${t}.`;
 }

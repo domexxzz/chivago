@@ -19,7 +19,7 @@
 import { randomUUID } from 'node:crypto';
 import {
   inQuietHours, isUrgentKind,
-  isNotificationKind, renderNotification,
+  isNotificationKind, renderNotification, isLang, localise,
   type Bilingual, type NotificationKind,
 } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
@@ -110,7 +110,7 @@ export function registerDevice(
 ): void {
   if (!isExpoPushToken(args.token)) throw new InvalidPushToken(args.token);
   const now = (args.now ?? new Date()).toISOString();
-  const locale = args.locale === 'th' ? 'th' : 'en';
+  const locale = isLang(args.locale) ? args.locale : 'en';
 
   db.prepare(
     `INSERT INTO push_tokens (token, user_id, locale, platform, created_at, last_seen_at)
@@ -255,7 +255,7 @@ export async function dispatch(
     const rendered = renderNotification(n.kind, params);
 
     for (const device of devices) {
-      const locale = device.locale === 'th' ? 'th' : 'en';
+      const locale = isLang(device.locale) ? device.locale : 'en';
       messages.push({
         to: device.token,
         title: pick(rendered.title, locale),
@@ -318,7 +318,7 @@ export async function dispatch(
   return summary;
 }
 
-const pick = (b: Bilingual, locale: 'th' | 'en'): string => (locale === 'th' ? b.th : b.en);
+const pick = localise;
 
 const markSent = (db: DB, id: string, now: Date): void => {
   db.prepare('UPDATE notifications SET sent_at = ?, last_error = NULL WHERE id = ?')

@@ -1,19 +1,22 @@
 /**
  * Console localisation.
  *
- * WHY THE CONSOLE PICKS ONE LANGUAGE AND THE APP SHOWS BOTH
+ * WHY BOTH THE CONSOLE AND THE APP PICK ONE LANGUAGE
  *
- * The mobile app renders English and Thai together, because its audience is
- * split roughly half international, half domestic and a traveller should never
- * have to choose.
- *
- * The console is different. Its users are a known set of staff at municipal
- * offices, NGOs and hotel partners, working through a queue. Doubling every
- * label in a dense review table would halve the scanning speed of the people
- * doing the actual work. So the console has a switcher and shows ONE language.
+ * The app used to print English and Thai together on every screen. At phone
+ * width that doubled the length of everything, so it now speaks one language
+ * chosen on the Account screen (see apps/mobile/src/i18n/locale.ts). The
+ * console has worked that way from the start, for a related reason: its users
+ * are a known set of staff at municipal offices, NGOs and hotel partners
+ * working through a queue, and doubling every label in a dense review table
+ * would halve their scanning speed.
  *
  * Default is Thai: three of the four pilot hosts are Thai organisations, and
  * serving them is the point of the tool.
+ *
+ * Chinese is here because the app serves Chinese-reading travellers, and a
+ * reviewer reading their submissions should be able to work in the language
+ * the submission was written in.
  *
  * WHERE THE THAI COPY LIVES
  * Console chrome is here. Anything a VOLUNTEER reads - notably the rejection
@@ -24,23 +27,56 @@
  * speaker. Two files to review: this one and packages/core/src/strings.ts.
  */
 
-export type Locale = 'th' | 'en';
+import type { Localised } from '@chivago/core';
 
-export const LOCALES: Locale[] = ['th', 'en'];
+export type Locale = 'th' | 'en' | 'zh';
+
+export const LOCALES: Locale[] = ['th', 'en', 'zh'];
 export const DEFAULT_LOCALE: Locale = 'th';
 export const LOCALE_COOKIE = 'chivago_lang';
 
-export const isLocale = (v: unknown): v is Locale => v === 'th' || v === 'en';
+export const isLocale = (v: unknown): v is Locale => v === 'th' || v === 'en' || v === 'zh';
 
 /** Native names, so the switcher reads correctly whichever side you are on. */
-export const LOCALE_NAMES: Record<Locale, string> = { th: 'ไทย', en: 'English' };
+export const LOCALE_NAMES: Record<Locale, string> = { th: 'ไทย', en: 'English', zh: '中文' };
 
 interface Copy {
   th: string;
   en: string;
+  /** Simplified Chinese. Optional for the same reason as on `Localised`: see packages/core/src/types.ts. */
+  zh?: string;
 }
 
-const c = (th: string, en: string): Copy => ({ th, en });
+/**
+ * Thai first in the argument list because Thai is the console's default, and
+ * the default is the one a writer should have to think about hardest.
+ */
+const c = (th: string, en: string, zh?: string): Copy => ({ th, en, zh });
+
+/** The order to try when the chosen language has nothing. Mirrors the app's `t()`. */
+const FALLBACK: Record<Locale, readonly (keyof Copy)[]> = {
+  th: ['th', 'en', 'zh'],
+  en: ['en', 'th', 'zh'],
+  zh: ['zh', 'en', 'th'],
+};
+
+/**
+ * One string in the reviewer's language, or the best thing available.
+ *
+ * Exported because console pages render plenty of copy that does NOT live in
+ * `consoleStrings` - an organisation's own name, a rejection reason from
+ * packages/core - and those used to be written `value[locale]`. That reads
+ * fine with two required languages and returns `undefined` the moment one of
+ * them is optional, which is how a page ends up printing "undefined" to a
+ * municipal officer. Index through here instead.
+ */
+export const loc = (entry: Localised | Copy, locale: Locale): string => {
+  for (const key of FALLBACK[locale]) {
+    const s = (entry as Copy)[key];
+    if (s) return s;
+  }
+  return '';
+};
 
 export const consoleStrings = {
   brand: c('ChivaGo · ระบบตรวจสำหรับผู้จัดภารกิจ', 'ChivaGo · Host Console'),
@@ -386,7 +422,7 @@ export const consoleStrings = {
 export type ConsoleStringKey = keyof typeof consoleStrings;
 
 /** Translate one console string. */
-export const t = (key: ConsoleStringKey, locale: Locale): string => consoleStrings[key][locale];
+export const t = (key: ConsoleStringKey, locale: Locale): string => loc(consoleStrings[key], locale);
 
 /**
  * Translate a templated string, substituting {placeholders}.
@@ -402,7 +438,7 @@ export function tf(
 ): string {
   const entry = (consoleStrings as Record<string, Copy | undefined>)[key];
   if (!entry) return key;
-  return entry[locale].replace(/\{(\w+)\}/g, (whole, name: string) =>
+  return loc(entry, locale).replace(/\{(\w+)\}/g, (whole, name: string) =>
     Object.hasOwn(params, name) ? String(params[name]) : whole,
   );
 }
@@ -425,6 +461,7 @@ export function tf(
 const DATE_LOCALE: Record<Locale, string> = {
   th: 'th-TH-u-ca-gregory',
   en: 'en-GB',
+  zh: 'zh-CN',
 };
 
 export const formatDateTime = (iso: string, locale: Locale): string =>
@@ -445,16 +482,20 @@ export const formatNumber = (n: number, locale: Locale): string =>
  * either broken Thai or an if-ladder per language.
  */
 export function formatWaiting(hours: number, locale: Locale): string {
-  const rtf = new Intl.RelativeTimeFormat(locale === 'th' ? 'th-TH' : 'en-GB', {
-    numeric: 'auto',
-  });
+  const rtf = new Intl.RelativeTimeFormat(DATE_LOCALE[locale], { numeric: 'auto' });
   if (hours < 1) return rtf.format(-Math.max(1, Math.round(hours * 60)), 'minute');
   if (hours < 48) return rtf.format(-Math.floor(hours), 'hour');
   return rtf.format(-Math.floor(hours / 24), 'day');
 }
 
-/** The HTML `lang` attribute, so screen readers use the right voice. */
-export const htmlLang = (locale: Locale): string => (locale === 'th' ? 'th' : 'en');
+/**
+ * The HTML `lang` attribute, so screen readers use the right voice.
+ *
+ * `zh-Hans` rather than `zh`: a screen reader handed bare `zh` has to guess
+ * the script, and the guess is wrong often enough to matter.
+ */
+export const htmlLang = (locale: Locale): string =>
+  locale === 'th' ? 'th' : locale === 'zh' ? 'zh-Hans' : 'en';
 
 /**
  * Pick a locale from an Accept-Language header.
@@ -477,7 +518,8 @@ export function localeFromAcceptLanguage(header: string | undefined): Locale | n
         .map((p) => /^\s*q=([\d.]+)\s*$/.exec(p))
         .find(Boolean);
       return {
-        // "th-TH" -> "th". Region is irrelevant: we serve one Thai and one English.
+        // "th-TH" -> "th". Region is dropped: we serve one Thai, one English
+        // and one Chinese, so every zh-* variant lands on Simplified.
         base: (tag ?? '').trim().toLowerCase().split('-')[0] ?? '',
         q: q ? Number(q[1]) : 1,
       };

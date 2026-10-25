@@ -20,9 +20,9 @@ import { color, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from './Type.tsx';
 import { Button } from './Button.tsx';
 import { WeatherCategoriesBar, categoryLine } from './WeatherCategoriesBar.tsx';
-import { getLocale, t } from '../i18n/locale.ts';
+import { localeTag, t } from '../i18n/locale.ts';
 
-const lang = (): string => (getLocale() === 'th' ? 'th-TH' : 'en-GB');
+const lang = localeTag;
 
 /** "22:45" on the island's clock, whatever the phone's own is set to. */
 function clock(iso: string): string {

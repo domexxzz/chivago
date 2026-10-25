@@ -22,9 +22,10 @@
  * speaker. See docs/04-open-questions.md.
  */
 
-import type { Bilingual } from './types.ts';
+import type { Bilingual, Localised } from './types.ts';
+import { type Lang, localise } from './localise.ts';
 
-const t = (en: string, th: string): Bilingual => ({ en, th });
+const t = (en: string, th: string, zh?: string): Localised => ({ en, th, zh });
 
 export const strings = {
   // -- App shell ----------------------------------------------------------
@@ -1717,9 +1718,9 @@ export function renderNotification(
    * The keys are snake_case identifiers nobody types as a place name, so the
    * risk of translating a value that was meant literally is not real.
    */
-  const resolve = (value: string | number, lang: keyof Bilingual): string => {
-    if (isModerationReasonKey(value)) return MODERATION_REASONS[value][lang];
-    if (isReportOutcome(value)) return REPORT_OUTCOMES[value][lang];
+  const resolve = (value: string | number, lang: Lang): string => {
+    if (isModerationReasonKey(value)) return localise(MODERATION_REASONS[value], lang);
+    if (isReportOutcome(value)) return localise(REPORT_OUTCOMES[value], lang);
     return String(value);
   };
 

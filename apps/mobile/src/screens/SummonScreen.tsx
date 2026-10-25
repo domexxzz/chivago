@@ -37,12 +37,12 @@ import { Button, IconButton } from '../components/Button.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { MascotMark } from '../components/MascotMark.tsx';
-import { getLocale, t } from '../i18n/locale.ts';
+import { localeTag, t } from '../i18n/locale.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 
 /** The day a round opened, in the reader's own calendar conventions. */
 const openedOn = (iso: string): string =>
-  new Date(iso).toLocaleDateString(getLocale() === 'th' ? 'th-TH' : 'en-GB');
+  new Date(iso).toLocaleDateString(localeTag());
 
 /**
  * A rarity's colour.

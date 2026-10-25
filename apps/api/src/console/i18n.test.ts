@@ -242,10 +242,13 @@ describe('check explanations are localised, not formatted in the service', () =>
     'weightNone', 'weightInvalid', 'weightHigh', 'weightOk',
   ] as const;
 
-  test('every check explanation exists in both languages', () => {
+  // Reads the field directly rather than through `t()`, which would fall back
+  // to English and report a language as present when nobody has written it.
+  test('every check explanation exists in every language', () => {
     for (const key of CHECK_KEYS) {
       for (const locale of LOCALES) {
-        assert.ok(consoleStrings[key][locale].length > 0, `${key}.${locale}`);
+        const written = consoleStrings[key][locale];
+        assert.ok(written && written.length > 0, `${key}.${locale} is not written`);
       }
     }
   });

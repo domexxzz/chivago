@@ -2,18 +2,45 @@
  * Domain types shared by the API and the mobile app.
  *
  * Derived from handoff section 6 ("Backend surface implied by the design").
- * Every user-facing string is bilingual: English primary, Thai secondary.
+ * Every user-facing string carries its translations: English primary, Thai,
+ * and Chinese.
  */
 
 // Type-only, and therefore erased at runtime: progression.ts imports Bilingual
 // back from here. A value import would be a cycle; this is not.
 import type { Progression } from './progression.ts';
 
-/** A bilingual string. English primary, Thai secondary caption. */
-export interface Bilingual {
+/**
+ * A string in every language the product speaks.
+ *
+ * WHY `zh` IS OPTIONAL AND THE OTHER TWO ARE NOT
+ *
+ * English and Thai were written together from the first commit, so a pair
+ * missing one of them is a mistake worth a type error. Chinese arrived with
+ * 1,786 pairs already in the tree. Making it required would have turned every
+ * one of those into a compile error on the same afternoon, which forces the
+ * translation to be done in one unreviewable sweep - exactly how the Thai got
+ * into its current state.
+ *
+ * Optional means a screen with no Chinese yet falls back to English (see the
+ * app's `t()`), which is wrong in a way a reader can act on. The checker in
+ * scripts/lib/thai-pairs.mjs counts what is still missing, so "optional" does
+ * not quietly become "never written".
+ */
+export interface Localised {
   en: string;
   th: string;
+  /** Simplified Chinese (zh-Hans). Absent until translated; `t()` falls back. */
+  zh?: string;
 }
+
+/**
+ * The old name, from when there were two languages.
+ *
+ * Kept as an alias rather than renamed at 1,000-odd call sites, because that
+ * diff would bury the change that matters. New code should say `Localised`.
+ */
+export type Bilingual = Localised;
 
 export type LayerKey = 'Green' | 'Wellness' | 'Food' | 'Safe' | 'Quest';
 export const LAYER_KEYS: readonly LayerKey[] = ['Green', 'Wellness', 'Food', 'Safe', 'Quest'] as const;

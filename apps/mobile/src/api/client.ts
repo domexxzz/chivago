@@ -7,6 +7,7 @@
  */
 
 import { strings } from '@chivago/core';
+import type { Lang } from '@chivago/core';
 import { Platform } from 'react-native';
 import type { Shop, ShopDetail, ShopInput, ShopReview } from './shops.ts';
 import { adoptKey, forgetKey, loadDeviceKey } from './account.ts';
@@ -776,7 +777,7 @@ export const api = {
     ),
 
   // -- notifications ------------------------------------------------------
-  registerDevice: (body: { token: string; locale: 'th' | 'en'; platform: string }) =>
+  registerDevice: (body: { token: string; locale: Lang; platform: string }) =>
     post<{ registered: boolean }>('/notifications/device', body),
   unregisterDevice: (token: string) =>
     call<{ disabled: boolean }>('/notifications/device', {
