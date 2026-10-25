@@ -247,7 +247,9 @@ export function RegisterScreen({
       });
 
       if (!regRes.ok) {
-        setErrorMessage(t({ en: 'Registration failed. Please try again.', th: 'การลงทะเบียนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' }));
+        // The server says why - an email already taken, say. Keep its words;
+        // the generic line is only for a refusal that carries none.
+        setErrorMessage(regRes.error || t({ en: 'Registration failed. Please try again.', th: 'การลงทะเบียนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' }));
         setLoading(false);
         return;
       }

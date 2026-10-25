@@ -1,9 +1,10 @@
 import { strict as assert } from 'node:assert';
-import { test, describe, afterEach } from 'node:test';
+import { test, describe, afterEach, beforeEach } from 'node:test';
 import { createElement as h } from 'react';
 
 import { ProfileScreen, leadCompanion } from '../src/screens/ProfileScreen.tsx';
 import { mountScreen, server } from './interact.ts';
+import { __setLocaleForTests } from '../src/i18n/locale.ts';
 import { RANKED_BY, companionsFor, collectionSummary, progressionFor, type Companion } from '@chivago/core';
 
 /**
@@ -174,6 +175,10 @@ describe('what follows you everywhere', () => {
 });
 
 describe('distinction between operator and traveller roles', () => {
+  // The role copy asserted here is the Thai copy; the screen follows the app language.
+  beforeEach(() => { __setLocaleForTests('th'); });
+  afterEach(() => { __setLocaleForTests('en'); });
+
   test('renders business operator profile with business name and partner badges', async () => {
     const s = server(routes({
       '/account': {
@@ -194,7 +199,7 @@ describe('distinction between operator and traveller roles', () => {
     const ui = await mountScreen(h(ProfileScreen, props));
     const text = ui.text();
 
-    assert.match(text, /ผู้ประกอบการ \/ ร้านค้า/);
+    assert.match(text, /ผู้ประกอบการ \/ ข้อมูลสถานประกอบการ/);
     assert.match(text, /สีชัง ซันเซ็ท วิลล่า/);
     assert.match(text, /Chivargo Business Partner/);
     assert.match(text, /ข้อมูลสถานประกอบการ/);
@@ -227,7 +232,7 @@ describe('distinction between operator and traveller roles', () => {
     assert.match(text, /นักท่องเที่ยว/);
     assert.match(text, /สมชาย รักเที่ยว/);
     assert.match(text, /ประเภทผู้ใช้งาน/);
-    assert.match(text, /ผู้มาเยือน/);
+    assert.match(text, /Chivargo Traveller · นักท่องเที่ยว/);
     assert.match(text, /0812345678/);
     ui.unmount();
   });
@@ -252,10 +257,10 @@ describe('distinction between operator and traveller roles', () => {
 
     // Contains operator elements
     assert.match(opText, /Operator Dashboard|แดชบอร์ดผู้ประกอบการ/);
-    assert.match(opText, /ผู้ประกอบการ \/ ร้านค้า/);
+    assert.match(opText, /ผู้ประกอบการ \/ ข้อมูลสถานประกอบการ/);
     assert.match(opText, /สมุย มารีน่า & รีสอร์ท/);
     assert.match(opText, /เครื่องมือสำหรับผู้ประกอบการ/);
-    assert.match(opText, /Host Verification/);
+    assert.match(opText, /รับรองภารกิจนักท่องเที่ยว/);
     assert.match(opText, /ภารกิจที่รับรองแล้ว/);
 
     // Does NOT contain traveller game collection elements

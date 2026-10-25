@@ -1,18 +1,23 @@
 import { strict as assert } from 'node:assert';
-import { describe, it } from 'node:test';
+import { afterEach, beforeEach, describe, it } from 'node:test';
 import { createElement as h } from 'react';
 
 import { LoginScreen } from '../src/screens/LoginScreen.tsx';
 import { clearLoggedIn, hasLoggedIn } from '../src/state/auth.ts';
 import { mountScreen, server, settle } from './interact.ts';
+import { __setLocaleForTests } from '../src/i18n/locale.ts';
+
+// These screens follow the app language; the assertions below are the Thai copy.
+beforeEach(() => { __setLocaleForTests('th'); });
+afterEach(() => { __setLocaleForTests('en'); });
 
 describe('Chivargo LoginScreen', () => {
   it('renders branding, headings, inputs, and OAuth buttons', async () => {
     const ui = await mountScreen(h(LoginScreen, {}));
     const text = ui.text();
 
-    assert.match(text, /GO FURTHER TOGETHER/);
-    assert.match(text, /Welcome Back/);
+    assert.match(text, /เดินทางไปด้วยกันให้ไกลกว่าเดิม/);
+    assert.match(text, /ยินดีต้อนรับกลับ/);
     assert.match(text, /เข้าสู่ระบบเพื่อไปยัง Chivargo/);
     assert.match(text, /จดจำฉันไว้/);
     assert.match(text, /ลืมรหัสผ่าน\?/);
@@ -70,7 +75,7 @@ describe('Chivargo LoginScreen', () => {
     await ui.press(/ลืมรหัสผ่าน\?/);
     const text = ui.text();
     assert.match(text, /การกู้คืนบัญชี/);
-    assert.match(text, /Device Key/);
+    assert.match(text, /กุญแจอุปกรณ์/);
     assert.match(text, /รหัสเชื่อมต่อ 8 หลัก/);
 
     // Dismiss modal
@@ -84,7 +89,7 @@ describe('Chivargo LoginScreen', () => {
     // Press Google button
     await ui.press(/เข้าสู่ระบบด้วย Google/);
     assert.match(ui.text(), /เข้าสู่ระบบด้วย Google/);
-    assert.match(ui.text(), /กำลังอยู่ในช่วงเตรียมความพร้อมสำหรับการอัปเดตเวอร์ชันถัดไป/);
+    assert.match(ui.text(), /กำลังเตรียมพร้อมสำหรับการอัปเดตเวอร์ชันถัดไป/);
     await ui.pressText(/ตกลง/);
 
     // Press LINE button
