@@ -46,6 +46,7 @@ import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, SkeletonList } from '../components/States.tsx';
 import { getLocale, t } from '../i18n/locale.ts';
+import { useRequireAccount } from '../components/GuestActionGate.tsx';
 
 const DAY_MS = 86_400_000;
 
@@ -95,11 +96,13 @@ export function AskScreen({
   onBack: () => void;
   onToast: (msg: string) => void;
 }) {
+  const requireAccount = useRequireAccount();
   const listings = useAsync(() => api.listings(), []);
   const mine = useAsync(() => api.myInquiries(), []);
   const [asking, setAsking] = React.useState<ListingCard | null>(null);
 
   const withdraw = async (i: TravellerInquiry) => {
+    if (requireAccount({ en: 'Please sign in or create an account to manage your inquiries.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อจัดการคำถามของคุณ' })) return;
     const res = await api.withdrawInquiry(i.id);
     if (res.ok) mine.reload();
     else onToast(res.error);
@@ -302,6 +305,7 @@ function AskSheet({
   onClose: () => void;
   onSent: () => void;
 }) {
+  const requireAccount = useRequireAccount();
   const days = React.useMemo(() => dayChoices(), [listing?.id]);
   const [forDate, setForDate] = React.useState<string>(days[1] ?? days[0]!);
   const [partySize, setPartySize] = React.useState(2);
@@ -329,6 +333,7 @@ function AskSheet({
     ) : null;
 
   const send = async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to contact this operator.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อติดต่อผู้ประกอบการ' })) return;
     setTried(true);
     if (problems.length > 0) return;
     setBusy(true);

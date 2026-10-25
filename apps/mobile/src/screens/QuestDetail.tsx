@@ -36,6 +36,7 @@ import { Button } from '../components/Button.tsx';
 import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { useRequireAccount } from '../components/GuestActionGate.tsx';
 
 export function QuestDetailScreen({
   questId, onBack, onOpenWallet, onToast, onPointsChanged,
@@ -55,6 +56,7 @@ export function QuestDetailScreen({
   const [weight, setWeight] = React.useState('');
   // Above every early return, like every hook here (fence-band.test.ts).
   const { aiAssist } = useServerConfig();
+  const requireAccount = useRequireAccount();
 
   const quest = data.data?.quest ?? null;
   const progress = data.data?.progress ?? null;
@@ -73,6 +75,7 @@ export function QuestDetailScreen({
   const onRecord = filed.data?.statements.find((s) => s.quests.some((q) => q.id === questId)) ?? null;
 
   const join = async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to join this quest.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเข้าร่วมเควสต์' })) return;
     setBusy(true);
     const res = await api.joinQuest(questId);
     setBusy(false);
@@ -82,6 +85,7 @@ export function QuestDetailScreen({
 
   /** Real GPS, checked server-side against the quest geofence. */
   const arrive = async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to check in to this quest.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเช็กอินเควสต์' })) return;
     setBusy(true);
     const perm = await Location.requestForegroundPermissionsAsync();
     if (!perm.granted) {
@@ -145,6 +149,7 @@ export function QuestDetailScreen({
   };
 
   const submit = async () => {
+    if (requireAccount({ en: 'Please sign in or create an account to submit quest work.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อส่งผลงานเควสต์' })) return;
     setBusy(true);
     // A second position, taken now. Arrival proved they got here; this
     // proves they were still here when the work was done. See docs/30.

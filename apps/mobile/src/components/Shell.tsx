@@ -248,7 +248,6 @@ export function SosBanner({ onPress }: { onPress: () => void }) {
         <Thai always size={11} colour={onFill.accent2} style={{ opacity: 0.9, marginTop: 2 }}>
           {strings.safety.activeBanner.th}
         </Thai>
-
       </Animated.View>
     </Pressable>
   );

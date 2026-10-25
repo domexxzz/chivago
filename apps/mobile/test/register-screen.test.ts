@@ -1,17 +1,22 @@
 import { strict as assert } from 'node:assert';
-import { describe, it } from 'node:test';
+import { afterEach, beforeEach, describe, it } from 'node:test';
 import { createElement as h } from 'react';
 
 import { RegisterScreen } from '../src/screens/RegisterScreen.tsx';
 import { clearLoggedIn, hasLoggedIn } from '../src/state/auth.ts';
 import { mountScreen, server, settle } from './interact.ts';
+import { __setLocaleForTests } from '../src/i18n/locale.ts';
+
+// These screens follow the app language; the assertions below are the Thai copy.
+beforeEach(() => { __setLocaleForTests('th'); });
+afterEach(() => { __setLocaleForTests('en'); });
 
 describe('Chivargo RegisterScreen', () => {
   it('renders branding, headings, 5 form fields, and action buttons', async () => {
     const ui = await mountScreen(h(RegisterScreen, {}));
     const text = ui.text();
 
-    assert.match(text, /GO FURTHER TOGETHER/);
+    assert.match(text, /เดินทางไปด้วยกันให้ไกลกว่าเดิม/);
     assert.match(text, /สมัครสมาชิก/);
     assert.match(text, /เริ่มต้นการเดินทางไปด้วยกันกับ Chivargo/);
     assert.match(text, /ลงทะเบียนในฐานะ/);

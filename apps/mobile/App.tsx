@@ -44,7 +44,7 @@ import { SummonScreen } from './src/screens/SummonScreen.tsx';
 import { AccountScreen } from './src/screens/AccountScreen.tsx';
 import { LoginScreen } from './src/screens/LoginScreen.tsx';
 import { RegisterScreen } from './src/screens/RegisterScreen.tsx';
-import { ProfileScreen } from './src/screens/ProfileScreen.tsx';
+import { GuestProfileScreen, ProfileScreen } from './src/screens/ProfileScreen.tsx';
 import { EditProfileScreen } from './src/screens/EditProfileScreen.tsx';
 import { ShopProfileScreen } from './src/screens/ShopProfileScreen.tsx';
 import { ShopManageScreen } from './src/screens/ShopManageScreen.tsx';
@@ -62,6 +62,7 @@ import { loadLocale, t, useLocale } from './src/i18n/locale.ts';
 import { loadArea, placeFromUrl } from './src/state/area.ts';
 import { clearLoggedIn, hasLoggedIn, isGuest, setGuest, setLoggedIn } from './src/state/auth.ts';
 import { GuestBand, GuestGate } from './src/components/GuestGate.tsx';
+import { GuestActionProvider } from './src/components/GuestActionGate.tsx';
 import { useServerConfig } from './src/state/server-config.ts';
 import { UnfencedBand } from './src/components/UnfencedBand.tsx';
 import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
@@ -72,7 +73,7 @@ import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
  * would be a lie, and spending or editing needs an account to land on.
  */
 const GUEST_GATED: ReadonlySet<ScreenKey> = new Set<ScreenKey>([
-  'profile', 'editProfile', 'wallet', 'market', 'account', 'shopManage',
+  'editProfile', 'wallet', 'market', 'account', 'shopManage',
 ]);
 
 export default function App() {
@@ -350,7 +351,7 @@ export default function App() {
             onOpenStays={() => nav.push('stays')}
             onToast={toast.show}
             onOpenWallet={() => nav.push('wallet')}
-            onOpenProfile={() => nav.push('account')}
+            onOpenProfile={() => nav.push('profile')}
             balances={balances}
             wayTo={wayTo}
             onClearWay={() => setWayTo(null)}
@@ -401,7 +402,7 @@ export default function App() {
           <MissionsScreen
             onOpen={(id) => nav.push('quest', { questId: id })}
             onOpenMarket={() => nav.push('market')}
-            onOpenProfile={() => nav.push('account')}
+            onOpenProfile={() => nav.push('profile')}
           />
         );
 
@@ -425,7 +426,7 @@ export default function App() {
             onOpenMedals={() => nav.push('medals')}
             onOpenPassport={() => nav.push('passport')}
             onOpenParty={() => nav.push('party')}
-            onOpenProfile={() => nav.push('account')}
+            onOpenProfile={() => nav.push('profile')}
           />
         );
       case 'wallet':
@@ -477,6 +478,9 @@ export default function App() {
         );
 
       case 'profile':
+        if (guest) {
+          return <GuestProfileScreen onBack={nav.pop} onSignIn={() => nav.push('login')} onRegister={() => nav.push('register')} />;
+        }
         return (
           <ProfileScreen
             refreshKey={profileRefreshKey}
@@ -503,7 +507,7 @@ export default function App() {
         return <EditProfileScreen onBack={nav.pop} onSaved={() => { setProfileRefreshKey((k) => k + 1); nav.pop(); }} />;
 
       case 'shop':
-        return <ShopProfileScreen shopId={nav.shopId ?? ''} onBack={nav.pop} onEdit={() => nav.push('shopManage', { shopId: nav.shopId ?? undefined })} />;
+        return <ShopProfileScreen shopId={nav.shopId ?? ''} guest={guest} onSignIn={() => nav.push('login')} onBack={nav.pop} onEdit={() => nav.push('shopManage', { shopId: nav.shopId ?? undefined })} />;
 
       case 'shopManage':
         return <ShopManageScreen initialShopId={nav.shopId} onBack={nav.pop} onOpenShop={(id) => nav.push('shop', { shopId: id })} />;
@@ -596,7 +600,7 @@ export default function App() {
             onCancel={sos.cancel}
             onShare={sos.shareLink}
             firing={sos.firing}
-            onOpenProfile={() => nav.push('account')}
+            onOpenProfile={() => nav.push('profile')}
           />
         );
 
@@ -631,6 +635,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
+      <GuestActionProvider guest={guest} onSignIn={() => nav.push('login')} onRegister={() => nav.push('register')}>
       <SafeAreaView style={{ flex: 1, backgroundColor: color.bg }} edges={['top', 'bottom']}>
         <StatusBar style="dark" />
 
@@ -656,6 +661,7 @@ export default function App() {
 
         <Toast message={toast.message} />
       </SafeAreaView>
+      </GuestActionProvider>
     </SafeAreaProvider>
   );
 }

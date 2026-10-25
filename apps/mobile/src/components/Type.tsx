@@ -81,8 +81,8 @@ export function Body({ children, style, size = 14, colour = color.neutral800 }: 
  * The Thai caption line.
  *
  * Shown when the app is in Thai, or `always`. `always` is for what an
- * emergency responder might read off a traveller's phone - the SOS banner,
- * the Safety screen - where the second language is the point, not padding.
+ * emergency responder might read off a traveller's phone - the SOS banner -
+ * where the second language is the point, not padding.
  */
 export function Thai({
   children, size = 11, colour = color.neutral700, style, always = false,
