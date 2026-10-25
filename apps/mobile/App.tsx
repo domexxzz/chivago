@@ -60,10 +60,20 @@ import type { Companion } from '@chivago/core';
 import './src/polyfills/location-emitter.ts';
 import { loadLocale, t, useLocale } from './src/i18n/locale.ts';
 import { loadArea, placeFromUrl } from './src/state/area.ts';
-import { clearLoggedIn, hasLoggedIn, setLoggedIn } from './src/state/auth.ts';
+import { clearLoggedIn, hasLoggedIn, isGuest, setGuest, setLoggedIn } from './src/state/auth.ts';
+import { GuestBand, GuestGate } from './src/components/GuestGate.tsx';
 import { useServerConfig } from './src/state/server-config.ts';
 import { UnfencedBand } from './src/components/UnfencedBand.tsx';
 import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
+
+/**
+ * Screens that are about one person. A guest (see `state/auth.ts`) is shown
+ * `GuestGate` in their place: an anonymous empty wallet presented as theirs
+ * would be a lie, and spending or editing needs an account to land on.
+ */
+const GUEST_GATED: ReadonlySet<ScreenKey> = new Set<ScreenKey>([
+  'profile', 'editProfile', 'wallet', 'market', 'account', 'shopManage',
+]);
 
 export default function App() {
   // Both families are bundled locally rather than fetched at runtime: the app
@@ -79,11 +89,13 @@ export default function App() {
 
   const [authReady, setAuthReady] = React.useState(false);
   const [loggedIn, setLoggedInState] = React.useState(false);
+  const [guest, setGuestState] = React.useState(false);
   const [signedInAccountType, setSignedInAccountType] = React.useState<'traveller' | 'operator' | undefined>();
   const [profileRefreshKey, setProfileRefreshKey] = React.useState(0);
   React.useEffect(() => {
-    void hasLoggedIn().then((val) => {
-      setLoggedInState(val);
+    void Promise.all([hasLoggedIn(), isGuest()]).then(([member, visitor]) => {
+      setLoggedInState(member);
+      setGuestState(!member && visitor);
       setAuthReady(true);
     });
   }, []);
@@ -227,14 +239,14 @@ export default function App() {
   React.useEffect(() => {
     if (!profileLoaded || !authReady || jumpedIn.current) return;
     jumpedIn.current = true;
-    if (loggedIn) {
+    if (loggedIn || guest) {
       nav.selectTab('home');
       // A QR code at a pin carries `?place=`; land on it, over Home, once the
       // app has jumped in - a push before this point was wiped by the jump.
       const place = placeFromUrl();
       if (place) nav.push('place', { placeId: place });
     }
-  }, [profileLoaded, authReady, loggedIn, nav]);
+  }, [profileLoaded, authReady, loggedIn, guest, nav]);
 
   /*
     ABOVE THE EARLY RETURN, and it has to stay there.
@@ -261,6 +273,15 @@ export default function App() {
   }
 
   const renderScreen = (screen: ScreenKey) => {
+    if (guest && GUEST_GATED.has(screen)) {
+      return (
+        <GuestGate
+          onSignIn={() => nav.push('login')}
+          onRegister={() => nav.push('register')}
+          onBack={nav.stack.length > 0 ? nav.pop : undefined}
+        />
+      );
+    }
     switch (screen) {
       case 'onboarding':
         return (
@@ -517,11 +538,18 @@ export default function App() {
             onLoginSuccess={async (accountType) => {
               await setLoggedIn(true);
               setLoggedInState(true);
+              setGuestState(false);
               setSignedInAccountType(accountType);
               toast.show(t({ en: 'Signed in successfully', th: 'เข้าสู่ระบบสำเร็จ' }));
               nav.selectTab('home');
             }}
             onRegister={() => nav.push('register')}
+            onGuest={loggedIn || guest ? undefined : async () => {
+              await setGuest(true);
+              setGuestState(true);
+              toast.show(t({ en: 'Browsing as a guest', th: 'เข้าชมแบบผู้เยี่ยมชม' }));
+              nav.selectTab('home');
+            }}
             onBack={nav.stack.length > 0 ? nav.pop : undefined}
           />
         );
@@ -533,6 +561,7 @@ export default function App() {
             onRegisterSuccess={async (accountType) => {
               await setLoggedIn(true);
               setLoggedInState(true);
+              setGuestState(false);
               setSignedInAccountType(accountType);
               toast.show(t({
                 en: 'Registration successful! Welcome to Chivargo',
@@ -609,6 +638,7 @@ export default function App() {
             checking where anybody is. See apps/api/src/fence.ts: the switch
             is allowed to exist only because the app is required to say so. */}
         {fenceOff ? <UnfencedBand /> : null}
+        {guest && showTabs ? <GuestBand onSignIn={() => nav.push('login')} /> : null}
 
         <View style={{ flex: 1 }}>
           <ErrorBoundary key={nav.screen} onReset={() => nav.selectTab('home')}>
