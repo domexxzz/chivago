@@ -127,6 +127,13 @@ export const TRAVELLER_TABLES = [
   'tree_attributions',
   // Local business profiles, reviews, photos and reports (PR #146). Children
   // go first so the foreign keys never see an orphan, and shops before users.
+  //
+  // A guide's licence document and profile photo (PR #153) hang off the same
+  // `local_shops` row and go with it. The licence image especially: it is a
+  // person's identity document, uploaded for one pilot, and leaving it in the
+  // database through a demo reset would keep a scan of somebody's card for a
+  // shop that no longer exists.
+  'local_guide_documents', 'local_guide_profile_photos',
   'local_shop_media', 'local_shop_review_reports', 'local_shop_reviews', 'local_shops',
   'users',
 ] as const;
