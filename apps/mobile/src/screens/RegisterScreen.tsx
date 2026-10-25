@@ -162,67 +162,67 @@ export function RegisterScreen({
     if (accountType === 'operator') {
       const trimmedBusiness = businessName.trim();
       if (!trimmedBusiness) {
-        setErrorMessage('กรุณากรอกชื่อธุรกิจหรือสถานประกอบการ');
+        setErrorMessage(t({ en: 'Enter your business name.', th: 'กรุณากรอกชื่อธุรกิจหรือสถานประกอบการ' }));
         return false;
       }
       if (trimmedBusiness.length < 2) {
-        setErrorMessage('ชื่อธุรกิจหรือสถานประกอบการต้องมีความยาวอย่างน้อย 2 ตัวอักษร');
+        setErrorMessage(t({ en: 'Business name must be at least 2 characters.', th: 'ชื่อธุรกิจหรือสถานประกอบการต้องมีความยาวอย่างน้อย 2 ตัวอักษร' }));
         return false;
       }
     }
 
     const trimmedName = fullName.trim();
     if (!trimmedName) {
-      setErrorMessage('กรุณากรอกชื่อ-นามสกุล');
+      setErrorMessage(t({ en: 'Enter your full name.', th: 'กรุณากรอกชื่อ-นามสกุล' }));
       return false;
     }
     if (trimmedName.length < 2) {
-      setErrorMessage('ชื่อ-นามสกุลต้องมีความยาวอย่างน้อย 2 ตัวอักษร');
+      setErrorMessage(t({ en: 'Name must be at least 2 characters.', th: 'ชื่อ-นามสกุลต้องมีความยาวอย่างน้อย 2 ตัวอักษร' }));
       return false;
     }
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      setErrorMessage('กรุณากรอกอีเมล');
+      setErrorMessage(t({ en: 'Enter your email address.', th: 'กรุณากรอกอีเมล' }));
       return false;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
-      setErrorMessage('รูปแบบอีเมลไม่ถูกต้อง');
+      setErrorMessage(t({ en: 'Enter a valid email address.', th: 'รูปแบบอีเมลไม่ถูกต้อง' }));
       return false;
     }
 
     const trimmedPhone = phone.trim().replace(/[-\s]/g, '');
     if (!trimmedPhone) {
-      setErrorMessage('กรุณากรอกเบอร์โทรศัพท์');
+      setErrorMessage(t({ en: 'Enter your phone number.', th: 'กรุณากรอกเบอร์โทรศัพท์' }));
       return false;
     }
     const phoneRegex = /^(\+?[0-9]{8,15})$/;
     if (!phoneRegex.test(trimmedPhone)) {
-      setErrorMessage('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง');
+      setErrorMessage(t({ en: 'Enter a valid phone number.', th: 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง' }));
       return false;
     }
 
     if (!password) {
-      setErrorMessage('กรุณากรอกรหัสผ่าน');
+      setErrorMessage(t({ en: 'Enter a password.', th: 'กรุณากรอกรหัสผ่าน' }));
       return false;
     }
     if (password.length < 8) {
-      setErrorMessage('รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร');
+      setErrorMessage(t({ en: 'Password must be at least 8 characters.', th: 'รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร' }));
       return false;
     }
 
     if (!confirmPassword) {
-      setErrorMessage('กรุณากรอกยืนยันรหัสผ่าน');
+      setErrorMessage(t({ en: 'Confirm your password.', th: 'กรุณากรอกยืนยันรหัสผ่าน' }));
       return false;
     }
     if (password !== confirmPassword) {
-      setErrorMessage('รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน');
+      setErrorMessage(t({ en: 'Passwords do not match.', th: 'รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน' }));
       return false;
     }
 
     if (!consentAgreed) {
-      setErrorMessage('กรุณายอมรับข้อตกลงการให้บริการและนโยบายความเป็นส่วนตัว');
+      setErrorMessage(t({ en: 'Accept the Terms of Service and Privacy Policy to continue.', th: 'กรุณายอมรับข้อตกลงการให้บริการและนโยบายความเป็นส่วนตัว' }));
       return false;
     }
 
@@ -247,7 +247,7 @@ export function RegisterScreen({
       });
 
       if (!regRes.ok) {
-        setErrorMessage(regRes.error || 'การลงทะเบียนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+        setErrorMessage(t({ en: 'Registration failed. Please try again.', th: 'การลงทะเบียนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' }));
         setLoading(false);
         return;
       }
@@ -265,7 +265,7 @@ export function RegisterScreen({
       setLoading(false);
       onRegisterSuccess?.(regRes.data.accountType);
     } catch {
-      setErrorMessage('การลงทะเบียนไม่สำเร็จ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง');
+      setErrorMessage(t({ en: 'Registration failed. Check your details and try again.', th: 'การลงทะเบียนไม่สำเร็จ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง' }));
       setLoading(false);
     }
   };
@@ -310,11 +310,11 @@ export function RegisterScreen({
               <Pressable
                 onPress={onBack}
                 accessibilityRole="button"
-                accessibilityLabel="กลับไปยังหน้าก่อนหน้า"
+                accessibilityLabel={t({ en: 'Go back', th: 'กลับไปยังหน้าก่อนหน้า' })}
                 style={styles.backButton}
               >
                 <ChevronLeft size={22} color="#FFFFFF" strokeWidth={2.5} />
-                <Text style={styles.backButtonText}>กลับ</Text>
+                <Text style={styles.backButtonText}>{t({ en: 'Back', th: 'กลับ' })}</Text>
               </Pressable>
             ) : (
               <View style={{ width: 60 }} />
@@ -333,7 +333,7 @@ export function RegisterScreen({
               resizeMode="contain"
               accessibilityLabel="Chivargo"
             />
-            <Text style={styles.taglineText}>GO FURTHER TOGETHER</Text>
+            <Text style={styles.taglineText}>{t({ en: 'GO FURTHER TOGETHER', th: 'เดินทางไปด้วยกันให้ไกลกว่าเดิม' })}</Text>
           </View>
 
           {/* Heading & Subtitle */}
@@ -345,7 +345,7 @@ export function RegisterScreen({
                 isWide && styles.headingTitleWide,
               ]}
             >
-              สมัครสมาชิก
+              {t({ en: 'Create an account', th: 'สมัครสมาชิก' })}
             </Text>
             <Text
               style={[
@@ -354,7 +354,7 @@ export function RegisterScreen({
                 isWide && styles.headingSubtitleWide,
               ]}
             >
-              เริ่มต้นการเดินทางไปด้วยกันกับ Chivargo
+              {t({ en: 'Start your journey with Chivargo', th: 'เริ่มต้นการเดินทางไปด้วยกันกับ Chivargo' })}
             </Text>
           </View>
         </View>
@@ -403,7 +403,7 @@ export function RegisterScreen({
                     marginBottom: 2,
                   }}
                 >
-                  ⚠️ เลือกประเภทบัญชี (เลือกได้อย่างใดอย่างหนึ่ง)
+                  {t({ en: '⚠️ Choose one account type', th: '⚠️ เลือกประเภทบัญชี (เลือกได้อย่างใดอย่างหนึ่ง)' })}
                 </Text>
                 <Text
                   style={{
@@ -413,11 +413,11 @@ export function RegisterScreen({
                     lineHeight: 16,
                   }}
                 >
-                  บัญชีนักท่องเที่ยวและผู้ประกอบการมีฟังก์ชันและหน้าตาการใช้งานแยกจากกันอย่างสิ้นเชิง และไม่สามารถสลับเปลี่ยนประเภทได้ในภายหลัง
+                  {t({ en: 'Traveller and business accounts have different features and cannot be switched later.', th: 'บัญชีนักท่องเที่ยวและผู้ประกอบการมีฟังก์ชันและหน้าตาการใช้งานแยกจากกันอย่างสิ้นเชิง และไม่สามารถสลับเปลี่ยนประเภทได้ในภายหลัง' })}
                 </Text>
               </View>
 
-              <Text style={styles.roleSectionLabel}>ลงทะเบียนในฐานะ</Text>
+              <Text style={styles.roleSectionLabel}>{t({ en: 'Register as', th: 'ลงทะเบียนในฐานะ' })}</Text>
               <View style={styles.roleTabs}>
                 <Pressable
                   onPress={() => {
@@ -426,7 +426,7 @@ export function RegisterScreen({
                   }}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: accountType === 'traveller' }}
-                  accessibilityLabel="นักท่องเที่ยว คนเข้ามาเที่ยว"
+                  accessibilityLabel={t({ en: 'Traveller', th: 'นักท่องเที่ยว คนเข้ามาเที่ยว' })}
                   style={[
                     styles.roleTab,
                     isSmallMobile && styles.roleTabSmall,
@@ -445,7 +445,7 @@ export function RegisterScreen({
                       accountType === 'traveller' && styles.roleTabTextActive,
                     ]}
                   >
-                    นักท่องเที่ยว
+                    {t({ en: 'Traveller', th: 'นักท่องเที่ยว' })}
                   </Text>
                 </Pressable>
 
@@ -456,7 +456,7 @@ export function RegisterScreen({
                   }}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: accountType === 'operator' }}
-                  accessibilityLabel="ผู้ประกอบการ ร้านค้า ที่พัก ทัวร์"
+                  accessibilityLabel={t({ en: 'Business operator', th: 'ผู้ประกอบการ ร้านค้า ที่พัก ทัวร์' })}
                   style={[
                     styles.roleTab,
                     isSmallMobile && styles.roleTabSmall,
@@ -475,14 +475,14 @@ export function RegisterScreen({
                       accountType === 'operator' && styles.roleTabTextActive,
                     ]}
                   >
-                    ผู้ประกอบการ
+                    {t({ en: 'Business operator', th: 'ผู้ประกอบการ' })}
                   </Text>
                 </Pressable>
               </View>
               <Text style={styles.roleHintText}>
                 {accountType === 'traveller'
-                  ? 'สัมผัสการเดินทาง กิจกรรมชุมชน บันทึกการเดินทาง และรับคะแนนสุขภาพ'
-                  : 'สำหรับเจ้าของที่พัก ร้านอาหาร รถเช่า เรือนำเที่ยว หรือบริการบนเกาะ'}
+                  ? t({ en: 'Explore, join community activities, track your trips, and earn wellness points.', th: 'สัมผัสการเดินทาง กิจกรรมชุมชน บันทึกการเดินทาง และรับคะแนนสุขภาพ' })
+                  : t({ en: 'For accommodation, restaurants, car rental, tours, and other island services.', th: 'สำหรับเจ้าของที่พัก ร้านอาหาร รถเช่า เรือนำเที่ยว หรือบริการบนเกาะ' })}
               </Text>
             </View>
 
@@ -502,11 +502,11 @@ export function RegisterScreen({
                 </View>
                 <View style={styles.inputStack}>
                   <Text style={[styles.fieldLabel, isSmallMobile && styles.fieldLabelSmall]}>
-                    ชื่อธุรกิจ / สถานประกอบการ
+                    {t({ en: 'Business name', th: 'ชื่อธุรกิจ / สถานประกอบการ' })}
                   </Text>
                   <TextInput
                     style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
-                    placeholder="เช่น บ้านสวนสีชัง, สีชัง สปีดโบ๊ท ทัวร์"
+                    placeholder={t({ en: 'e.g. Baan Suan Sichang, Sichang Speedboat Tours', th: 'เช่น บ้านสวนสีชัง, สีชัง สปีดโบ๊ท ทัวร์' })}
                     placeholderTextColor="#8AA3B5"
                     autoCapitalize="words"
                     autoCorrect={false}
@@ -517,7 +517,7 @@ export function RegisterScreen({
                     }}
                     onFocus={() => setFocusedField('businessName')}
                     onBlur={() => setFocusedField(null)}
-                    accessibilityLabel="ชื่อธุรกิจหรือสถานประกอบการ"
+                    accessibilityLabel={t({ en: 'Business name', th: 'ชื่อธุรกิจหรือสถานประกอบการ' })}
                   />
                 </View>
               </View>
@@ -537,11 +537,11 @@ export function RegisterScreen({
               </View>
               <View style={styles.inputStack}>
                 <Text style={[styles.fieldLabel, isSmallMobile && styles.fieldLabelSmall]}>
-                  ชื่อ-นามสกุล
+                  {t({ en: 'Full name', th: 'ชื่อ-นามสกุล' })}
                 </Text>
                 <TextInput
                   style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
-                  placeholder="กรอกชื่อ-นามสกุลของคุณ"
+                  placeholder={t({ en: 'Enter your full name', th: 'กรอกชื่อ-นามสกุลของคุณ' })}
                   placeholderTextColor="#8AA3B5"
                   autoCapitalize="words"
                   autoCorrect={false}
@@ -552,7 +552,7 @@ export function RegisterScreen({
                   }}
                   onFocus={() => setFocusedField('fullName')}
                   onBlur={() => setFocusedField(null)}
-                  accessibilityLabel="ชื่อ-นามสกุล"
+                  accessibilityLabel={t({ en: 'Full name', th: 'ชื่อ-นามสกุล' })}
                 />
               </View>
             </View>
@@ -572,11 +572,11 @@ export function RegisterScreen({
               </View>
               <View style={styles.inputStack}>
                 <Text style={[styles.fieldLabel, isSmallMobile && styles.fieldLabelSmall]}>
-                  อีเมล
+                  {t({ en: 'Email', th: 'อีเมล' })}
                 </Text>
                 <TextInput
                   style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
-                  placeholder="กรอกอีเมลของคุณ"
+                  placeholder={t({ en: 'Enter your email address', th: 'กรอกอีเมลของคุณ' })}
                   placeholderTextColor="#8AA3B5"
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -588,7 +588,7 @@ export function RegisterScreen({
                   }}
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
-                  accessibilityLabel="อีเมล"
+                  accessibilityLabel={t({ en: 'Email', th: 'อีเมล' })}
                 />
               </View>
             </View>
@@ -608,11 +608,11 @@ export function RegisterScreen({
               </View>
               <View style={styles.inputStack}>
                 <Text style={[styles.fieldLabel, isSmallMobile && styles.fieldLabelSmall]}>
-                  เบอร์โทรศัพท์
+                  {t({ en: 'Phone number', th: 'เบอร์โทรศัพท์' })}
                 </Text>
                 <TextInput
                   style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
-                  placeholder="กรอกเบอร์โทรศัพท์ของคุณ"
+                  placeholder={t({ en: 'Enter your phone number', th: 'กรอกเบอร์โทรศัพท์ของคุณ' })}
                   placeholderTextColor="#8AA3B5"
                   keyboardType="phone-pad"
                   autoCapitalize="none"
@@ -624,7 +624,7 @@ export function RegisterScreen({
                   }}
                   onFocus={() => setFocusedField('phone')}
                   onBlur={() => setFocusedField(null)}
-                  accessibilityLabel="เบอร์โทรศัพท์"
+                  accessibilityLabel={t({ en: 'Phone number', th: 'เบอร์โทรศัพท์' })}
                 />
               </View>
             </View>
@@ -644,11 +644,11 @@ export function RegisterScreen({
               </View>
               <View style={styles.inputStack}>
                 <Text style={[styles.fieldLabel, isSmallMobile && styles.fieldLabelSmall]}>
-                  รหัสผ่าน
+                  {t({ en: 'Password', th: 'รหัสผ่าน' })}
                 </Text>
                 <TextInput
                   style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
-                  placeholder="อย่างน้อย 8 ตัวอักษร"
+                  placeholder={t({ en: 'At least 8 characters', th: 'อย่างน้อย 8 ตัวอักษร' })}
                   placeholderTextColor="#8AA3B5"
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
@@ -660,13 +660,13 @@ export function RegisterScreen({
                   }}
                   onFocus={() => setFocusedField('password')}
                   onBlur={() => setFocusedField(null)}
-                  accessibilityLabel="รหัสผ่าน"
+                  accessibilityLabel={t({ en: 'Password', th: 'รหัสผ่าน' })}
                 />
               </View>
               <Pressable
                 onPress={() => setShowPassword((prev) => !prev)}
                 accessibilityRole="button"
-                accessibilityLabel={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                accessibilityLabel={showPassword ? t({ en: 'Hide password', th: 'ซ่อนรหัสผ่าน' }) : t({ en: 'Show password', th: 'แสดงรหัสผ่าน' })}
                 style={styles.eyeButton}
               >
                 {showPassword ? (
@@ -692,11 +692,11 @@ export function RegisterScreen({
               </View>
               <View style={styles.inputStack}>
                 <Text style={[styles.fieldLabel, isSmallMobile && styles.fieldLabelSmall]}>
-                  ยืนยันรหัสผ่าน
+                  {t({ en: 'Confirm password', th: 'ยืนยันรหัสผ่าน' })}
                 </Text>
                 <TextInput
                   style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
-                  placeholder="กรอกยืนยันรหัสผ่านอีกครั้ง"
+                  placeholder={t({ en: 'Enter your password again', th: 'กรอกยืนยันรหัสผ่านอีกครั้ง' })}
                   placeholderTextColor="#8AA3B5"
                   secureTextEntry={!showConfirmPassword}
                   autoCapitalize="none"
@@ -708,13 +708,13 @@ export function RegisterScreen({
                   }}
                   onFocus={() => setFocusedField('confirmPassword')}
                   onBlur={() => setFocusedField(null)}
-                  accessibilityLabel="ยืนยันรหัสผ่าน"
+                  accessibilityLabel={t({ en: 'Confirm password', th: 'ยืนยันรหัสผ่าน' })}
                 />
               </View>
               <Pressable
                 onPress={() => setShowConfirmPassword((prev) => !prev)}
                 accessibilityRole="button"
-                accessibilityLabel={showConfirmPassword ? 'ซ่อนยืนยันรหัสผ่าน' : 'แสดงยืนยันรหัสผ่าน'}
+                accessibilityLabel={showConfirmPassword ? t({ en: 'Hide confirm password', th: 'ซ่อนยืนยันรหัสผ่าน' }) : t({ en: 'Show confirm password', th: 'แสดงยืนยันรหัสผ่าน' })}
                 style={styles.eyeButton}
               >
                 {showConfirmPassword ? (
@@ -734,7 +734,7 @@ export function RegisterScreen({
                 }}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: consentAgreed }}
-                accessibilityLabel="ฉันยอมรับ ข้อตกลงการให้บริการ และ นโยบายความเป็นส่วนตัว"
+                accessibilityLabel={t({ en: 'I accept the Terms of Service and Privacy Policy', th: 'ฉันยอมรับ ข้อตกลงการให้บริการ และ นโยบายความเป็นส่วนตัว' })}
                 style={styles.checkboxTouch}
               >
                 <View
@@ -747,21 +747,21 @@ export function RegisterScreen({
                 </View>
               </Pressable>
               <Text style={styles.consentText}>
-                ฉันยอมรับ{' '}
+                {t({ en: 'I accept the ', th: 'ฉันยอมรับ ' })}
                 <Text
                   style={styles.consentLink}
                   onPress={() => setTermsModalOpen(true)}
                   accessibilityRole="link"
                 >
-                  ข้อตกลงการให้บริการ
+                  {t({ en: 'Terms of Service', th: 'ข้อตกลงการให้บริการ' })}
                 </Text>
-                {' และ '}
+                {t({ en: ' and ', th: ' และ ' })}
                 <Text
                   style={styles.consentLink}
                   onPress={() => setPrivacyModalOpen(true)}
                   accessibilityRole="link"
                 >
-                  นโยบายความเป็นส่วนตัว
+                  {t({ en: 'Privacy Policy', th: 'นโยบายความเป็นส่วนตัว' })}
                 </Text>
               </Text>
             </View>
@@ -771,7 +771,7 @@ export function RegisterScreen({
               onPress={handleRegister}
               disabled={loading}
               accessibilityRole="button"
-              accessibilityLabel="สมัครสมาชิก"
+              accessibilityLabel={t({ en: 'Create account', th: 'สมัครสมาชิก' })}
               style={({ pressed }) => [
                 styles.registerButton,
                 pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
@@ -795,8 +795,8 @@ export function RegisterScreen({
                   <>
                     <Text style={styles.registerButtonText}>
                       {accountType === 'operator'
-                        ? 'สมัครสมาชิกผู้ประกอบการ'
-                        : 'สมัครสมาชิกนักท่องเที่ยว'}
+                        ? t({ en: 'Register as a business', th: 'สมัครสมาชิกผู้ประกอบการ' })
+                        : t({ en: 'Register as a traveller', th: 'สมัครสมาชิกนักท่องเที่ยว' })}
                     </Text>
                     <ArrowRight size={19} color="#FFFFFF" strokeWidth={2.4} />
                   </>
@@ -807,7 +807,7 @@ export function RegisterScreen({
             {/* Divider */}
             <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>หรือสมัครด้วย</Text>
+              <Text style={styles.dividerText}>{t({ en: 'or sign up with', th: 'หรือสมัครด้วย' })}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -824,7 +824,7 @@ export function RegisterScreen({
                   setOauthModalOpen(true);
                 }}
                 accessibilityRole="button"
-                accessibilityLabel="สมัครด้วย Google"
+                accessibilityLabel={t({ en: 'Sign up with Google', th: 'สมัครด้วย Google' })}
                 style={({ pressed }) => [
                   styles.socialButton,
                   isNarrow && { minWidth: '100%' },
@@ -834,7 +834,7 @@ export function RegisterScreen({
               >
                 <GoogleIcon size={19} />
                 <Text style={[styles.socialButtonText, isSmallMobile && { fontSize: 12 }]}>
-                  สมัครด้วย Google
+                  {t({ en: 'Sign up with Google', th: 'สมัครด้วย Google' })}
                 </Text>
               </Pressable>
 
@@ -844,7 +844,7 @@ export function RegisterScreen({
                   setOauthModalOpen(true);
                 }}
                 accessibilityRole="button"
-                accessibilityLabel="สมัครด้วย LINE"
+                accessibilityLabel={t({ en: 'Sign up with LINE', th: 'สมัครด้วย LINE' })}
                 style={({ pressed }) => [
                   styles.socialButton,
                   isNarrow && { minWidth: '100%' },
@@ -854,28 +854,28 @@ export function RegisterScreen({
               >
                 <LineIcon size={20} />
                 <Text style={[styles.socialButtonText, isSmallMobile && { fontSize: 12 }]}>
-                  สมัครด้วย LINE
+                  {t({ en: 'Sign up with LINE', th: 'สมัครด้วย LINE' })}
                 </Text>
               </Pressable>
             </View>
 
             {/* Login Navigation Link */}
             <View style={styles.loginRow}>
-              <Text style={styles.loginNoticeText}>มีบัญชีอยู่แล้ว? </Text>
+              <Text style={styles.loginNoticeText}>{t({ en: 'Already have an account? ', th: 'มีบัญชีอยู่แล้ว? ' })}</Text>
               <Pressable
                 onPress={() => onLogin?.(accountType)}
                 accessibilityRole="link"
                 accessibilityLabel={
                   accountType === 'operator'
-                    ? 'เข้าสู่ระบบผู้ประกอบการ'
-                    : 'เข้าสู่ระบบนักท่องเที่ยว'
+                    ? t({ en: 'Sign in as a business', th: 'เข้าสู่ระบบผู้ประกอบการ' })
+                    : t({ en: 'Sign in as a traveller', th: 'เข้าสู่ระบบนักท่องเที่ยว' })
                 }
                 hitSlop={10}
               >
                 <Text style={styles.loginLinkText}>
                   {accountType === 'operator'
-                    ? 'เข้าสู่ระบบผู้ประกอบการ'
-                    : 'เข้าสู่ระบบนักท่องเที่ยว'}
+                    ? t({ en: 'Sign in as a business', th: 'เข้าสู่ระบบผู้ประกอบการ' })
+                    : t({ en: 'Sign in as a traveller', th: 'เข้าสู่ระบบนักท่องเที่ยว' })}
                 </Text>
               </Pressable>
             </View>
@@ -916,12 +916,12 @@ export function RegisterScreen({
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <FileText size={22} color="#009DB7" strokeWidth={2.2} />
-                <Text style={styles.modalTitle}>ข้อตกลงการให้บริการ</Text>
+                <Text style={styles.modalTitle}>{t({ en: 'Terms of Service', th: 'ข้อตกลงการให้บริการ' })}</Text>
               </View>
               <Pressable
                 onPress={() => setTermsModalOpen(false)}
                 accessibilityRole="button"
-                accessibilityLabel="ปิด"
+                accessibilityLabel={t({ en: 'Close', th: 'ปิด' })}
                 style={styles.closeModalButton}
               >
                 <X size={20} color="#66869D" />
@@ -930,15 +930,15 @@ export function RegisterScreen({
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator>
               <Text style={styles.modalParagraph}>
-                ยินดีต้อนรับสู่ <Text style={{ fontFamily: font.heading, color: '#009DB7' }}>Chivargo</Text> แพลตฟอร์มการเดินทางและกิจกรรมเพื่อการดูแลสุขภาวะและชุมชน
+                {t({ en: 'Welcome to ', th: 'ยินดีต้อนรับสู่ ' })}<Text style={{ fontFamily: font.heading, color: '#009DB7' }}>Chivargo</Text>{t({ en: ', a travel and activities platform supporting wellness and local communities.', th: ' แพลตฟอร์มการเดินทางและกิจกรรมเพื่อการดูแลสุขภาวะและชุมชน' })}
               </Text>
-              <Text style={styles.modalSubheading}>1. การใช้งานบัญชีและระบบนำทาง</Text>
+              <Text style={styles.modalSubheading}>{t({ en: '1. Accounts and navigation', th: '1. การใช้งานบัญชีและระบบนำทาง' })}</Text>
               <Text style={styles.modalParagraph}>
-                ผู้ใช้บริการตกลงให้ข้อมูลที่ถูกต้องในการลงทะเบียน และรักษาข้อมูลประจำเครื่องอย่างปลอดภัย การเข้าร่วมกิจกรรมภารกิจ (Quests) จะต้องปฏิบัติตามกฎความปลอดภัยและการมีส่วนร่วมอย่างสร้างสรรค์
+                {t({ en: 'You agree to provide accurate registration details and keep your device credentials secure. Participation in quests must follow safety rules and support constructive community engagement.', th: 'ผู้ใช้บริการตกลงให้ข้อมูลที่ถูกต้องในการลงทะเบียน และรักษาข้อมูลประจำเครื่องอย่างปลอดภัย การเข้าร่วมกิจกรรมภารกิจ (Quests) จะต้องปฏิบัติตามกฎความปลอดภัยและการมีส่วนร่วมอย่างสร้างสรรค์' })}
               </Text>
-              <Text style={styles.modalSubheading}>2. คะแนนสุขภาพและความปลอดภัย</Text>
+              <Text style={styles.modalSubheading}>{t({ en: '2. Wellness scores and safety', th: '2. คะแนนสุขภาพและความปลอดภัย' })}</Text>
               <Text style={styles.modalParagraph}>
-                คะแนน Healthy Score และดัชนีอากาศ/สิ่งแวดล้อมประมวลผลจากข้อมูลการตรวจวัดจริงเพื่อสนับสนุนการตัดสินใจในการเดินทาง ผู้ใช้งานควรประเมินสภาพร่างกายและปฏิบัติตามคำเตือนด้านความปลอดภัยเสมอ
+                {t({ en: 'Healthy Scores and air or environmental indicators are based on measured data to support travel decisions. Always assess your own condition and follow safety advisories.', th: 'คะแนน Healthy Score และดัชนีอากาศ/สิ่งแวดล้อมประมวลผลจากข้อมูลการตรวจวัดจริงเพื่อสนับสนุนการตัดสินใจในการเดินทาง ผู้ใช้งานควรประเมินสภาพร่างกายและปฏิบัติตามคำเตือนด้านความปลอดภัยเสมอ' })}
               </Text>
             </ScrollView>
 
@@ -946,7 +946,7 @@ export function RegisterScreen({
               onPress={() => setTermsModalOpen(false)}
               style={styles.modalPrimaryButton}
             >
-              <Text style={styles.modalPrimaryButtonText}>เข้าใจและยอมรับ</Text>
+              <Text style={styles.modalPrimaryButtonText}>{t({ en: 'I understand and agree', th: 'เข้าใจและยอมรับ' })}</Text>
             </Pressable>
           </View>
         </View>
@@ -964,12 +964,12 @@ export function RegisterScreen({
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Shield size={22} color="#009DB7" strokeWidth={2.2} />
-                <Text style={styles.modalTitle}>นโยบายความเป็นส่วนตัว</Text>
+                <Text style={styles.modalTitle}>{t({ en: 'Privacy Policy', th: 'นโยบายความเป็นส่วนตัว' })}</Text>
               </View>
               <Pressable
                 onPress={() => setPrivacyModalOpen(false)}
                 accessibilityRole="button"
-                accessibilityLabel="ปิด"
+                accessibilityLabel={t({ en: 'Close', th: 'ปิด' })}
                 style={styles.closeModalButton}
               >
                 <X size={20} color="#66869D" />
@@ -978,15 +978,15 @@ export function RegisterScreen({
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator>
               <Text style={styles.modalParagraph}>
-                Chivargo ให้ความสำคัญสูงสุดกับความเป็นส่วนตัวตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA)
+                {t({ en: 'Chivargo values your privacy and handles personal data in accordance with applicable data protection law (PDPA).', th: 'Chivargo ให้ความสำคัญสูงสุดกับความเป็นส่วนตัวตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA)' })}
               </Text>
-              <Text style={styles.modalSubheading}>การจัดเก็บและรักษาความปลอดภัย (SecureStore)</Text>
+              <Text style={styles.modalSubheading}>{t({ en: 'Storage and security (SecureStore)', th: 'การจัดเก็บและรักษาความปลอดภัย (SecureStore)' })}</Text>
               <Text style={styles.modalParagraph}>
-                ข้อมูลประจำตัวและกุญแจอุปกรณ์ (Device Key) ถูกจัดเก็บอย่างปลอดภัยในฮาร์ดแวร์ Keychain/Keystore ของอุปกรณ์ ไม่มีการจัดเก็บรหัสผ่านในลักษณะข้อความธรรมดา (Plaintext)
+                {t({ en: 'Credentials and device keys are stored securely in the device Keychain/Keystore. Passwords are not stored as plain text.', th: 'ข้อมูลประจำตัวและกุญแจอุปกรณ์ (Device Key) ถูกจัดเก็บอย่างปลอดภัยในฮาร์ดแวร์ Keychain/Keystore ของอุปกรณ์ ไม่มีการจัดเก็บรหัสผ่านในลักษณะข้อความธรรมดา (Plaintext)' })}
               </Text>
-              <Text style={styles.modalSubheading}>การใช้ตำแหน่งและสิทธิของเจ้าของข้อมูล</Text>
+              <Text style={styles.modalSubheading}>{t({ en: 'Location use and your data rights', th: 'การใช้ตำแหน่งและสิทธิของเจ้าของข้อมูล' })}</Text>
               <Text style={styles.modalParagraph}>
-                ข้อมูลพิกัดถูกใช้เพื่อระบุตำแหน่งภารกิจและคะแนนสุขภาวะรอบตัวท่านเท่านั้น ท่านมีสิทธิในการเข้าถึง แก้ไข หรือขอลบข้อมูลบัญชีของตนเองได้ตลอดเวลาตามสิทธิ PDPA
+                {t({ en: 'Location data helps show nearby quests and wellness scores. You can request access, correction, or deletion of your account data under your PDPA rights.', th: 'ข้อมูลพิกัดถูกใช้เพื่อระบุตำแหน่งภารกิจและคะแนนสุขภาวะรอบตัวท่านเท่านั้น ท่านมีสิทธิในการเข้าถึง แก้ไข หรือขอลบข้อมูลบัญชีของตนเองได้ตลอดเวลาตามสิทธิ PDPA' })}
               </Text>
             </ScrollView>
 
@@ -994,7 +994,7 @@ export function RegisterScreen({
               onPress={() => setPrivacyModalOpen(false)}
               style={styles.modalPrimaryButton}
             >
-              <Text style={styles.modalPrimaryButtonText}>รับทราบ</Text>
+              <Text style={styles.modalPrimaryButtonText}>{t({ en: 'Got it', th: 'รับทราบ' })}</Text>
             </Pressable>
           </View>
         </View>
@@ -1012,12 +1012,12 @@ export function RegisterScreen({
             <View style={styles.modalHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 {oauthProvider === 'Google' ? <GoogleIcon size={22} /> : <LineIcon size={24} />}
-                <Text style={styles.modalTitle}>สมัครด้วย {oauthProvider}</Text>
+                <Text style={styles.modalTitle}>{t({ en: `Sign up with ${oauthProvider}`, th: `สมัครด้วย ${oauthProvider}` })}</Text>
               </View>
               <Pressable
                 onPress={() => setOauthModalOpen(false)}
                 accessibilityRole="button"
-                accessibilityLabel="ปิด"
+                accessibilityLabel={t({ en: 'Close', th: 'ปิด' })}
                 style={styles.closeModalButton}
               >
                 <X size={20} color="#66869D" />
@@ -1025,17 +1025,17 @@ export function RegisterScreen({
             </View>
 
             <Text style={styles.modalParagraph}>
-              ระบบเชื่อมต่อการสมัครสมาชิกผ่านบัญชี <Text style={{ fontFamily: font.heading, color: '#183B56' }}>{oauthProvider}</Text> กำลังอยู่ในช่วงเตรียมความพร้อมสำหรับการอัปเดตเวอร์ชันถัดไป
+              {t({ en: 'Sign-up using ', th: 'ระบบเชื่อมต่อการสมัครสมาชิกผ่านบัญชี ' })}<Text style={{ fontFamily: font.heading, color: '#183B56' }}>{oauthProvider}</Text>{t({ en: ' is being prepared for a future update.', th: ' กำลังอยู่ในช่วงเตรียมความพร้อมสำหรับการอัปเดตเวอร์ชันถัดไป' })}
             </Text>
             <Text style={[styles.modalParagraph, { marginTop: 8 }]}>
-              ท่านสามารถสมัครสมาชิกได้อย่างปลอดภัยโดยใช้แบบฟอร์มลงทะเบียนด้านบนได้ทันที
+              {t({ en: 'You can register securely using the form above.', th: 'ท่านสามารถสมัครสมาชิกได้อย่างปลอดภัยโดยใช้แบบฟอร์มลงทะเบียนด้านบนได้ทันที' })}
             </Text>
 
             <Pressable
               onPress={() => setOauthModalOpen(false)}
               style={styles.modalPrimaryButton}
             >
-              <Text style={styles.modalPrimaryButtonText}>ตกลง</Text>
+              <Text style={styles.modalPrimaryButtonText}>{t({ en: 'OK', th: 'ตกลง' })}</Text>
             </Pressable>
           </View>
         </View>

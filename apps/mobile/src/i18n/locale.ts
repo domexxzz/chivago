@@ -8,11 +8,9 @@
  * language, chosen from the phone's locale and changeable on the Account
  * screen, and every string that has both is read through `t()`.
  *
- * The exception is written down, not implied: anything an emergency responder
- * might read off a traveller's phone stays in both languages regardless -
- * the SOS banner, the Safety screen, the emergency numbers. A Thai medic
- * reading an English tourist's screen is exactly the moment the caption was
- * for. Those sites opt in with `<Thai always>` and `<Button bilingual>`.
+ * Screens use one language at a time, including safety and emergency UI.
+ * The selected language is used consistently so the interface does not mix
+ * Thai and English labels or duplicate captions.
  *
  * `t()` is a plain function, not a hook, because it is called from hundreds of
  * sites including helpers that are not components. A change of language

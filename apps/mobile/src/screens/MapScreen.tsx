@@ -44,6 +44,14 @@ import { ProfileButton } from '../components/ProfileButton.tsx';
 const NO_QUESTS: Quest[] = [];
 const NO_PROGRESS: Record<string, QuestProgress> = {};
 const NO_EXPLORED: ExploredPlace[] = [];
+const mapShopCategory = (category: string) => {
+  const values: Record<string, { en: string; th: string }> = {
+    'ที่พัก': { en: 'Accommodation', th: 'ที่พัก' }, 'ร้านอาหาร': { en: 'Restaurant', th: 'ร้านอาหาร' },
+    'ร้านขายของ': { en: 'Souvenirs & shopping', th: 'ของฝาก/ช้อปปิ้ง' }, 'เช่ารถ': { en: 'Car rental', th: 'เช่ารถ' },
+    'เสริมสวย': { en: 'Beauty', th: 'เสริมสวย' }, 'ตัดผม': { en: 'Haircut', th: 'ตัดผม' }, 'อื่นๆ': { en: 'Other', th: 'อื่นๆ' },
+  };
+  return t(values[category] ?? { en: category, th: category });
+};
 
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
@@ -312,14 +320,14 @@ export function MapScreen({
             <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
           </View>
           <View style={{ marginHorizontal: gutter, marginBottom: 10, backgroundColor: '#fff', borderRadius: 18, padding: 10 }}>
-            <TextInput value={shopSearch} onChangeText={setShopSearch} placeholder="ค้นหาร้านค้าหรือประเภท" style={{ borderWidth: 1, borderColor: '#DCECEF', borderRadius: 12, padding: 9, color: '#123B64' }} />
+            <TextInput value={shopSearch} onChangeText={setShopSearch} placeholder={t({ en: 'Search businesses or categories', th: 'ค้นหาร้านค้าหรือประเภท' })} style={{ borderWidth: 1, borderColor: '#DCECEF', borderRadius: 12, padding: 9, color: '#123B64' }} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingTop: 8 }}>
-              {['', ...shopCategories].map((category) => <Pressable key={category || 'all'} onPress={() => setShopCategory(category)} style={{ borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: shopCategory === category ? '#0077B6' : '#EAF7FB' }}><Text style={{ color: shopCategory === category ? '#fff' : '#123B64', fontSize: 12 }}>{category || 'ร้านค้าทั้งหมด'}</Text></Pressable>)}
+              {['', ...shopCategories].map((category) => <Pressable key={category || 'all'} onPress={() => setShopCategory(category)} style={{ borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: shopCategory === category ? '#0077B6' : '#EAF7FB' }}><Text style={{ color: shopCategory === category ? '#fff' : '#123B64', fontSize: 12 }}>{category ? mapShopCategory(category) : t({ en: 'All businesses', th: 'ร้านค้าทั้งหมด' })}</Text></Pressable>)}
               <Pressable onPress={() => setShopMinRating(shopMinRating ? 0 : 4)} style={{ padding: 6, backgroundColor: shopMinRating ? '#0077B6' : '#EAF7FB', borderRadius: 14 }}><Text style={{ color: shopMinRating ? '#fff' : '#123B64', fontSize: 12 }}>★ 4+</Text></Pressable>
-              <Pressable onPress={() => setShopsOpenOnly(!shopsOpenOnly)} style={{ padding: 6, backgroundColor: shopsOpenOnly ? '#0077B6' : '#EAF7FB', borderRadius: 14 }}><Text style={{ color: shopsOpenOnly ? '#fff' : '#123B64', fontSize: 12 }}>เปิดอยู่</Text></Pressable>
+              <Pressable onPress={() => setShopsOpenOnly(!shopsOpenOnly)} style={{ padding: 6, backgroundColor: shopsOpenOnly ? '#0077B6' : '#EAF7FB', borderRadius: 14 }}><Text style={{ color: shopsOpenOnly ? '#fff' : '#123B64', fontSize: 12 }}>{t({ en: 'Open now', th: 'เปิดอยู่' })}</Text></Pressable>
             </ScrollView>
-            {shops.loading && !shops.data ? <Body size={13}>กำลังโหลดร้านค้า...</Body> : null}
-            {shops.error ? <Pressable onPress={shops.reload}><Body size={13} colour="#B91C1C">{shops.error} · ลองใหม่</Body></Pressable> : null}
+            {shops.loading && !shops.data ? <Body size={13}>{t({ en: 'Loading businesses…', th: 'กำลังโหลดร้านค้า...' })}</Body> : null}
+            {shops.error ? <Pressable onPress={shops.reload}><Body size={13} colour="#B91C1C">{t({ en: 'Could not load businesses. Try again.', th: 'โหลดร้านค้าไม่สำเร็จ · ลองใหม่' })}</Body></Pressable> : null}
           </View>
           {fairPanel}
           {wayTo ? (
@@ -386,13 +394,13 @@ export function MapScreen({
                 .map((p) => (
                   <PlaceFeedRow key={p.id} place={p} onPress={() => onOpenPlace(p.id)} />
                 ))}
-              {visibleShops.map((shop) => <Pressable key={`shop-${shop.id}`} onPress={() => setSelectedShop(shop)} style={{ marginHorizontal: gutter, marginBottom: 8, borderRadius: 14, backgroundColor: '#fff', padding: 12, flexDirection: 'row', gap: 10, alignItems: 'center' }}><Store color="#F77F00" /><View><Heading size={15}>{shop.name}</Heading><Body size={13}>{shop.category} · {shop.rating === null ? 'ยังไม่มีรีวิว' : `★ ${shop.rating}`}</Body></View></Pressable>)}
+              {visibleShops.map((shop) => <Pressable key={`shop-${shop.id}`} onPress={() => setSelectedShop(shop)} style={{ marginHorizontal: gutter, marginBottom: 8, borderRadius: 14, backgroundColor: '#fff', padding: 12, flexDirection: 'row', gap: 10, alignItems: 'center' }}><Store color="#F77F00" /><View><Heading size={15}>{shop.name}</Heading><Body size={13}>{mapShopCategory(shop.category)} · {shop.rating === null ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว' }) : `★ ${shop.rating}`}</Body></View></Pressable>)}
             </View>
           )}
           {selectedShop ? <View style={{ marginHorizontal: gutter, marginTop: 10, backgroundColor: '#fff', borderRadius: 18, padding: 12, flexDirection: 'row', gap: 12, alignItems: 'center' }}>
             {selectedShop.coverUrl ? <Image source={{ uri: shopImageUri(selectedShop.coverUrl) }} style={{ width: 68, height: 68, borderRadius: 12 }} /> : <Store color="#F77F00" size={36} />}
-            <View style={{ flex: 1 }}><Heading size={16}>{selectedShop.name}</Heading><Body size={13}>{selectedShop.category} · {selectedShop.rating === null ? 'ยังไม่มีรีวิว' : `★ ${selectedShop.rating} (${selectedShop.reviewCount})`}</Body><Pressable onPress={() => onOpenShop?.(selectedShop.id)}><Body size={13} colour="#0077B6">ดูรายละเอียดร้าน →</Body></Pressable></View>
-            <Pressable onPress={() => setSelectedShop(null)} accessibilityLabel="ปิดข้อมูลร้าน"><Text>✕</Text></Pressable>
+            <View style={{ flex: 1 }}><Heading size={16}>{selectedShop.name}</Heading><Body size={13}>{mapShopCategory(selectedShop.category)} · {selectedShop.rating === null ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว' }) : `★ ${selectedShop.rating} (${selectedShop.reviewCount})`}</Body><Pressable onPress={() => onOpenShop?.(selectedShop.id)}><Body size={13} colour="#0077B6">{t({ en: 'View business details →', th: 'ดูรายละเอียดร้าน →' })}</Body></Pressable></View>
+            <Pressable onPress={() => setSelectedShop(null)} accessibilityLabel={t({ en: 'Close business details', th: 'ปิดข้อมูลร้าน' })}><Text>✕</Text></Pressable>
           </View> : null}
           {/*
             The bar at the foot of the map, from the journey sketch: post
