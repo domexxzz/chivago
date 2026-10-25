@@ -899,8 +899,33 @@ app.get('/shops/media/:id', (c) => {
   return c.body(Buffer.from(media.bytes));
 });
 app.get('/shops/guide-photos/:id', (c) => {
-  const photo = row<{ mime_type: string; bytes: Uint8Array }>(db.prepare('SELECT mime_type,bytes FROM local_guide_profile_photos WHERE id=?').get(c.req.param('id')));
+  /*
+   * A face, so it follows the profile: served only while the guide is
+   * approved and active, or to the operator who uploaded it.
+   *
+   * This endpoint had no check of any kind. The photo id is in the shop
+   * payload, so hiding the profile without hiding the picture would have
+   * left the picture reachable to anyone who had read the list once - and a
+   * rejected applicant's face would have stayed up indefinitely.
+   */
+  const photo = row<{ mime_type: string; bytes: Uint8Array; owner_id: string; active: number; guide_status: string }>(
+    db.prepare(`SELECT p.mime_type, p.bytes, s.owner_id, s.active, s.guide_status
+      FROM local_guide_profile_photos p JOIN local_shops s ON s.id = p.shop_id WHERE p.id = ?`).get(c.req.param('id')),
+  );
   if (!photo) return fail(c, 'NOT_FOUND', 'ไม่พบรูปโปรไฟล์', 404);
+  /*
+   * The key is resolved here rather than read from the context, because this
+   * is a public path: the auth middleware returns early on those, so it never
+   * sets `userId`, and `userId(c)` would fall back to 'demo-user' and match
+   * nobody. An owner looking at their own pending profile would have been
+   * refused their own photograph.
+   */
+  const key = c.req.header('x-chivago-device-key');
+  const viewer = key === undefined ? null : resolveDevice(db, key);
+  // 404, not 403: whether a pending applicant exists is not public either.
+  if ((!photo.active || photo.guide_status !== 'approved') && photo.owner_id !== viewer) {
+    return fail(c, 'NOT_FOUND', 'ไม่พบรูปโปรไฟล์', 404);
+  }
   c.header('content-type', photo.mime_type);
   c.header('cache-control', 'no-store');
   c.header('x-content-type-options', 'nosniff');
