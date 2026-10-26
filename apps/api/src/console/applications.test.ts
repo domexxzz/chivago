@@ -275,3 +275,53 @@ describe('operators asking to list', () => {
     assert.match(page, /ติดต่อเจ้าของไม่ได้/);
   });
 });
+
+/**
+ * The guide queue says what it does, and not what it used to do.
+ *
+ * `148457f` made a guide profile public on its owner's `active` flag alone,
+ * deliberately. This page kept promising "Only approved profiles are visible
+ * in the app and on the map" for an hour and a half after that stopped being
+ * true, which is the worst kind of stale copy: a moderator would reject a
+ * profile, believe they had taken it off the map, and be wrong.
+ */
+describe('the guide review queue describes itself honestly', () => {
+  const MOD_KEY = 'chv_GUIAA-GUIBB-GUICC-GUIDD';
+
+  const guidePage = async (reviewer = 'Nok') => {
+    db.prepare("UPDATE hosts SET role = 'moderator', api_key_hash = ? WHERE id = 'h-muni'")
+      .run(hashApiKey(MOD_KEY));
+    const token = await signIn(MOD_KEY, reviewer);
+    return (await app.request('/guides', { headers: withCookie(token) })).text();
+  };
+
+  test('it does not claim that approval controls visibility', async () => {
+    const page = await guidePage();
+    assert.doesNotMatch(
+      page,
+      /Only approved profiles are visible|เฉพาะโปรไฟล์ที่อนุมัติแล้วจะแสดง/,
+      'the promise that outlived the behaviour is back',
+    );
+  });
+
+  test('it says plainly that approving and rejecting change nothing a traveller sees', async () => {
+    const page = await guidePage();
+    // Either language: this console renders Thai unless asked for English.
+    assert.match(page, /Approval does NOT control visibility|การอนุมัติ .ไม่ได้. ควบคุมการแสดงผล/);
+    assert.match(page, /deactivate it|ปิดสถานะ active/i,
+      'a moderator needs to be told what DOES take a profile down');
+  });
+
+  test('the half of the old promise that still holds is still stated', async () => {
+    // The licence image really is moderator-only, and dropping that sentence
+    // while correcting the other one would lose a true thing.
+    const page = await guidePage();
+    assert.match(page, /License images are private|ภาพใบอนุญาตเป็นข้อมูลส่วนตัว/);
+  });
+
+  test('an empty queue does not read as "everyone has been checked"', async () => {
+    const page = await guidePage();
+    assert.match(page, /No guide profiles are waiting for review|ไม่มีโปรไฟล์ไกด์ที่รอตรวจสอบ/);
+    assert.match(page, /does not mean every guide has been checked|ไม่ได้หมายความว่าไกด์ทุกคนถูกตรวจแล้ว/);
+  });
+});

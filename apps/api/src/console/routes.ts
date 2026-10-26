@@ -1797,6 +1797,31 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
   });
 
   // Guide profiles and license documents are moderator-only until approved.
+  /*
+   * The guide review queue, which no longer gates anything.
+   *
+   * `148457f` made publication follow the owner's `active` flag alone, on
+   * purpose: a guide is public the moment they activate the profile. This
+   * page used to promise the opposite — "Only approved profiles are visible
+   * in the app and on the map" — and that sentence outlived the behaviour it
+   * described. A moderator reading it would reject a profile, believe they
+   * had taken it off the map, and be wrong.
+   *
+   * So the page now says what is true, and says it first. Three things about
+   * this queue are worth knowing before anyone decides its future:
+   *
+   *  - `decide` writes `guide_status` and never touches `active`, so approve
+   *    and reject are both records of a decision and nothing more.
+   *  - The only routes that set `pending` are the licence-document and
+   *    profile-photo uploads, and `148457f` removed every screen that calls
+   *    them. Nothing a guide does in the app can reach this list.
+   *  - The licence image itself is still moderator-only, which is the one
+   *    half of the old promise that held.
+   *
+   * Whether the queue should be removed, or re-wired to `active` so a
+   * rejection actually takes a profile down, is a product decision. Until it
+   * is made, the page does not pretend to be what it was.
+   */
   app.get('/guides', (c) => {
     const session = requireModerator(c);
     if (!session) return c.html(messagePage(localeFor(c), 'moderatorsOnly', 'moderatorsOnlyBlurb'), 403);
@@ -1818,7 +1843,7 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
       <button name="decision" value="reject">${en ? 'Reject · request changes' : 'ปฏิเสธ · ให้แก้ไขข้อมูล'}</button></form>
       <small>${en ? 'Submitted' : 'ส่งเมื่อ'}: ${escape(g.created_at)}</small></article>`;
     }).join('');
-    return c.html(`<!doctype html><html lang="${en ? 'en' : 'th'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${en ? 'Guide approvals' : 'ตรวจสอบโปรไฟล์ไกด์'}</title><link rel="stylesheet" href="/console/assets/modernist.css"></head><body style="padding:24px;max-width:900px;margin:auto;background:#edf6f9"><nav><a href="/console/shop-reviews">← ${en ? 'Shop review reports' : 'รายงานรีวิวร้านค้า'}</a></nav><h1>${en ? 'Guide profiles awaiting approval' : 'โปรไฟล์ไกด์ที่รอตรวจสอบ'}</h1><p>${en ? 'Only approved profiles are visible in the app and on the map. License images are private and accessible to moderators only.' : 'เฉพาะโปรไฟล์ที่อนุมัติแล้วจะแสดงในแอปและแผนที่ ภาพใบอนุญาตเป็นข้อมูลส่วนตัวและผู้ดูแลเท่านั้นที่เปิดดูได้'}</p>${entries || `<p>${en ? 'No guide profiles are waiting for review.' : 'ไม่มีโปรไฟล์ไกด์ที่รอตรวจสอบ'}</p>`}</body></html>`);
+    return c.html(`<!doctype html><html lang="${en ? 'en' : 'th'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${en ? 'Guide approvals' : 'ตรวจสอบโปรไฟล์ไกด์'}</title><link rel="stylesheet" href="/console/assets/modernist.css"></head><body style="padding:24px;max-width:900px;margin:auto;background:#edf6f9"><nav><a href="/console/shop-reviews">← ${en ? 'Shop review reports' : 'รายงานรีวิวร้านค้า'}</a></nav><h1>${en ? 'Guide profiles awaiting approval' : 'โปรไฟล์ไกด์ที่รอตรวจสอบ'}</h1><p>${en ? 'Approval does NOT control visibility. A guide profile is public as soon as its owner marks it active, whether it was approved, rejected, or never reviewed — approving or rejecting here records your decision and changes nothing a traveller sees. To take a profile down, deactivate it. License images are private and accessible to moderators only.' : 'การอนุมัติ “ไม่ได้” ควบคุมการแสดงผล โปรไฟล์ไกด์จะเป็นสาธารณะทันทีที่เจ้าของตั้งเป็น active ไม่ว่าจะอนุมัติ ปฏิเสธ หรือยังไม่เคยตรวจ — การกดอนุมัติหรือปฏิเสธที่นี่เป็นการบันทึกการตัดสินใจของคุณ และไม่เปลี่ยนสิ่งที่นักท่องเที่ยวเห็น หากต้องการเอาโปรไฟล์ลง ให้ปิดสถานะ active ภาพใบอนุญาตเป็นข้อมูลส่วนตัวและผู้ดูแลเท่านั้นที่เปิดดูได้'}</p>${entries || `<p>${en ? 'No guide profiles are waiting for review. Expect this list to stay empty: nothing in the app can add to it any more, because the licence and profile-photo upload screens were removed. An empty list does not mean every guide has been checked.' : 'ไม่มีโปรไฟล์ไกด์ที่รอตรวจสอบ และรายการนี้มีแนวโน้มจะว่างตลอด เพราะไม่มีส่วนใดในแอปที่เพิ่มเข้ามาได้อีก หน้าจออัปโหลดใบอนุญาตและรูปโปรไฟล์ถูกถอดออกไปแล้ว รายการว่างไม่ได้หมายความว่าไกด์ทุกคนถูกตรวจแล้ว'}</p>`}</body></html>`);
   });
   app.get('/guides/:id/license', (c) => {
     if (!requireModerator(c)) return c.html(messagePage(localeFor(c), 'moderatorsOnly', 'moderatorsOnlyBlurb'), 403);
