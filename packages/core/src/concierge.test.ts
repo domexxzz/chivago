@@ -48,9 +48,10 @@ describe('it answers in the language it was asked in', () => {
   });
 });
 
-describe('an emergency outranks everything, in both languages', () => {
+describe('an emergency outranks everything, in all three languages', () => {
   test('a lone cry for help gets 1669, not a beach', () => {
-    for (const cry of ['help', 'Help!', 'ช่วยด้วย', 'ช่วย']) {
+    // 救命！carries the fullwidth exclamation mark a Chinese keyboard makes.
+    for (const cry of ['help', 'Help!', 'ช่วยด้วย', 'ช่วย', '救命', '救命！', '救我', '帮帮我']) {
       const r = answer(cry, ctx());
       assert.equal(r.intent, 'emergency', `"${cry}" was not treated as an emergency`);
       assert.match(r.text, /1669/);
@@ -60,9 +61,32 @@ describe('an emergency outranks everything, in both languages', () => {
 
   test('the words that mean trouble are caught in both languages', () => {
     for (const q of ['there has been an accident', 'someone is drowning',
-      'เกิดอุบัติเหตุ', 'มีคนจมน้ำ', 'ต้องไปโรงพยาบาล']) {
+      'เกิดอุบัติเหตุ', 'มีคนจมน้ำ', 'ต้องไปโรงพยาบาล',
+      /*
+       * Chinese was detected as a language and answered in Chinese long
+       * before any of these could match, so every one of them classified as
+       * `unknown` and returned no 1669 at all.
+       */
+      '发生了事故', '有人溺水了', '我需要救护车', '我被偷了', '我受伤了，要去医院']) {
       assert.equal(answer(q, ctx()).intent, 'emergency', `"${q}" missed`);
     }
+  });
+
+  test('a Chinese emergency hands over the same dialable numbers', () => {
+    const r = answer('我需要救护车', ctx());
+    assert.equal(r.intent, 'emergency');
+    assert.match(r.text, /1669/);
+    assert.ok(r.dial.map((d) => d.dial).includes('1669'), 'no ambulance number to press');
+    assert.equal(r.action, 'safety');
+    assert.equal(r.suggestions.length, 0, 'an emergency must not return sightseeing');
+  });
+
+  test('a Chinese sentence that is merely asking for help is not an emergency', () => {
+    // The same restraint the English list earns: 帮 on its own is "help" in
+    // the everyday sense, and firing 1669 on it would teach people to ignore
+    // the time it matters. Only the compounds in CRY_FOR_HELP are a shout.
+    const r = answer('帮我找个吃饭的地方', ctx());
+    assert.notEqual(r.intent, 'emergency');
   });
 
   test('it hands over dialable numbers, not just a sentence', () => {

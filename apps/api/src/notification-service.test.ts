@@ -578,3 +578,60 @@ describe('quiet hours are per person', () => {
     assert.equal(transport.sent.length, 1, 'only u1');
   });
 });
+
+describe('a device registered in Chinese is pushed Chinese', () => {
+  /*
+   * `renderNotification` returned `{en, th}` while all sixteen templates
+   * already carried Chinese and this service already stored and honoured
+   * `locale: 'zh'`. `pick` is `localise`, so it fell through to English and a
+   * Chinese device was pushed English - `sos_contact_escalated` included,
+   * which is the line that says ChivaGo cannot send help and to call 1669.
+   */
+  const HAN = /[一-鿿]/;
+
+  test('an ordinary notification arrives in Chinese, not English', async () => {
+    registerDevice(db, { userId: 'u1', token: TOKEN, locale: 'zh' });
+    assert.equal(devicesFor(db, 'u1')[0]!.locale, 'zh', 'zh must survive registration');
+    queueOne();
+    const transport = okTransport();
+    await dispatch(db, transport, DAY);
+    const sent = transport.sent[0]!;
+    assert.match(sent.title, HAN, `title was not Chinese: ${sent.title}`);
+    assert.match(sent.body, HAN, `body was not Chinese: ${sent.body}`);
+  });
+
+  test('the one that says ChivaGo cannot send help arrives in Chinese, 1669 intact', async () => {
+    /*
+     * `sos_still_unacknowledged` is the notification that matters most here:
+     * its title IS "Please call 1669" and its body says ChivaGo cannot send
+     * help. In Chinese that was being pushed in English.
+     *
+     * The number is asserted separately from the Chinese, because a
+     * translation that reads beautifully and drops the digits would be worse
+     * than no translation at all.
+     */
+    registerDevice(db, { userId: 'u1', token: TOKEN, locale: 'zh' });
+    queueOne({ kind: 'sos_still_unacknowledged', params: { minutes: 12 }, dedupeKey: 'still:1' });
+    const transport = okTransport();
+    await dispatch(db, transport, DAY);
+    const sent = transport.sent[0]!;
+    assert.match(sent.title, HAN, `title was not Chinese: ${sent.title}`);
+    assert.match(sent.body, HAN, `body was not Chinese: ${sent.body}`);
+    assert.match(`${sent.title} ${sent.body}`, /1669/, 'the number must survive translation');
+    assert.match(sent.body, /12/, 'the minutes must interpolate in Chinese too');
+  });
+
+  test('the other two languages are unchanged', async () => {
+    for (const [user, token, locale, expect] of [
+      ['u1', TOKEN, 'en', /[A-Za-z]/],
+      ['u2', TOKEN2, 'th', /[฀-๿]/],
+    ] as const) {
+      registerDevice(db, { userId: user, token, locale });
+      queueOne({ userId: user, dedupeKey: `plain:${locale}` });
+      const transport = okTransport();
+      await dispatch(db, transport, DAY);
+      const mine = transport.sent.find((m) => m.to === token)!;
+      assert.match(mine.title, expect, `${locale} title changed: ${mine.title}`);
+    }
+  });
+});
