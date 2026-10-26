@@ -50,7 +50,7 @@ import { StallsCard } from '../components/Stalls.tsx';
 import { SeaAndSkyCard } from '../components/SeaAndSky.tsx';
 import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
 import {
-  Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MapPin, UserRound, Search, Shield, Sparkles, Ticket, Trees, Utensils, Wallet, Waves,
+  BedDouble, ShoppingBag, Car, Scissors, Dumbbell, Grid2X2, Star, ArrowRight, Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MapPin, UserRound, Search, Shield, Sparkles, Ticket, Trees, Utensils, Wallet, Waves,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
@@ -532,6 +532,10 @@ function noteForOrder(pinned: boolean, located: boolean): string | undefined {
 function Places({
   places, shops, onOpenMap, onOpenPlace, onOpenShop,
 }: { places: Async<ScoredPlace[]>; shops: Async<Shop[]>; onOpenMap: () => void; onOpenPlace: (id: string) => void; onOpenShop: (id: string) => void }) {
+  const [gridWidth, setGridWidth] = React.useState(0);
+  const columns = gridWidth >= 1200 ? 5 : gridWidth >= 960 ? 4 : gridWidth >= 700 ? 3 : gridWidth >= 380 ? 2 : 1;
+  const cardWidth = gridWidth > 0 ? (gridWidth - 16 * (columns - 1)) / columns : 280;
+  const categories = [...new Set([...SHOP_CATEGORIES, 'กีฬาและนันทนาการ', ...(shops.data ?? []).map(shop => shop.category)])];
   const served = places.data ?? [];
   const [kind, setKind] = React.useState<'all' | 'places' | 'shops'>('all');
   const [shopCategory, setShopCategory] = React.useState<string>('');
@@ -560,7 +564,6 @@ function Places({
   const shownPlaces = kind === 'shops' ? [] : list;
   const shownShops = kind === 'places' ? [] : (shops.data ?? []).filter((shop) => !shopCategory || shop.category === shopCategory);
   const loading = (kind !== 'shops' && places.loading) || (kind !== 'places' && shops.loading);
-  if (list.length === 0 && (shops.data?.length ?? 0) === 0 && !loading && !places.error && !shops.error) return null;
   return (
     <View style={{ paddingTop: 26 }}>
       <SectionHead
@@ -571,30 +574,28 @@ function Places({
         onSeeAll={onOpenMap}
       />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: gutter, gap: 8, paddingBottom: 4 }}>
-        {([['all', { en: 'All', th: 'ทั้งหมด', zh: '全部' }], ['places', { en: 'Places', th: 'สถานที่', zh: '地点' }], ['shops', { en: 'Services', th: 'สถานบริการ', zh: '服务' }]] as const).map(([value, label]) => <Pressable key={value} onPress={() => setKind(value)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: kind === value ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: kind === value ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{t(label)}</Text></Pressable>)}
+        {([['all', { en: 'All', th: 'ทั้งหมด', zh: '全部' }], ['places', { en: 'Places', th: 'สถานที่', zh: '地点' }], ['shops', { en: 'Services', th: 'สถานบริการ', zh: '服务' }]] as const).map(([value, label]) => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: kind === value }} onPress={() => setKind(value)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: kind === value ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: kind === value ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{t(label)}</Text></Pressable>)}
       </ScrollView>
       {kind === 'shops' ? <View style={{ paddingTop: 10 }}>
         <Label size={11} colour="#123B64" style={{ paddingHorizontal: gutter, paddingBottom: 6 }}>{t({ en: 'Service category', th: 'ประเภทบริการ', zh: '服务类别' })}</Label>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: gutter, gap: 8 }}>
-          <Pressable onPress={() => setShopCategory('')} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: !shopCategory ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: !shopCategory ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{t({ en: 'All', th: 'ทั้งหมด', zh: '全部' })}</Text></Pressable>
-          {SHOP_CATEGORIES.map((category) => <Pressable key={category} onPress={() => setShopCategory(category)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: shopCategory === category ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: shopCategory === category ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{shopCategoryLabel(category)}</Text></Pressable>)}
+          <Pressable accessibilityRole="button" accessibilityState={{ selected: !shopCategory }} onPress={() => setShopCategory('')} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: !shopCategory ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: !shopCategory ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{t({ en: 'All', th: 'ทั้งหมด', zh: '全部' })}</Text></Pressable>
+          {categories.map((category) => <Pressable key={category} accessibilityRole="button" accessibilityState={{ selected: shopCategory === category }} onPress={() => setShopCategory(category)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: shopCategory === category ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: shopCategory === category ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{shopCategoryLabel(category)}</Text></Pressable>)}
         </ScrollView>
       </View> : null}
       {places.error && kind !== 'shops' ? <Pressable onPress={places.reload} style={{ paddingHorizontal: gutter, paddingTop: 8 }}><Body size={13} colour="#B91C1C">{t({ en: 'Could not load places. Try again.', th: 'โหลดสถานที่ไม่สำเร็จ · ลองใหม่', zh: '地点加载失败 · 请重试' })}</Body></Pressable> : null}
       {shops.error && kind !== 'places' ? <Pressable onPress={shops.reload} style={{ paddingHorizontal: gutter, paddingTop: 8 }}><Body size={13} colour="#B91C1C">{t({ en: 'Could not load services. Try again.', th: 'โหลดบริการไม่สำเร็จ · ลองใหม่', zh: '服务加载失败 · 请重试' })}</Body></Pressable> : null}
       {loading ? <Body size={13} style={{ paddingHorizontal: gutter, paddingTop: 8 }}>{t({ en: 'Loading this area…', th: 'กำลังโหลดข้อมูลในพื้นที่...', zh: '正在加载这一带的信息…' })}</Body> : null}
+      <View onLayout={event => setGridWidth(event.nativeEvent.layout.width)} style={{ marginHorizontal: gutter }}>
       {shownPlaces.length || shownShops.length ? (
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: gutter, gap: 14, paddingVertical: 8 }}
-      >
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingVertical: 16, alignItems: 'stretch' }}>
         {shownPlaces.map((p) => (
-          <PlaceCard key={p.id} place={p} here={here} onPress={() => onOpenPlace(p.id)} />
+          <PlaceCard key={p.id} width={cardWidth} place={p} here={here} onPress={() => onOpenPlace(p.id)} />
         ))}
-        {shownShops.map((shop) => <ShopCard key={shop.id} shop={shop} onPress={() => onOpenShop(shop.id)} />)}
-      </ScrollView>
-      ) : !loading ? <Body style={{ marginHorizontal: gutter, marginTop: 8 }} colour={color.neutral700}>{kind === 'shops' ? (shopCategory ? t({ en: `No ${shopCategoryLabel(shopCategory)} services in this area yet.`, th: `ยังไม่มีบริการประเภท${shopCategoryLabel(shopCategory)}ในพื้นที่นี้`, zh: `这一带还没有${shopCategoryLabel(shopCategory)}服务。` }) : t({ en: 'No services in this area yet.', th: 'ยังไม่มีสถานบริการในพื้นที่นี้', zh: '这一带还没有服务。' })) : kind === 'places' ? t({ en: 'No places in this area yet.', th: 'ยังไม่มีสถานที่ในพื้นที่นี้', zh: '这一带还没有地点。' }) : t({ en: 'No places or services in this area yet.', th: 'ยังไม่มีสถานที่หรือบริการในพื้นที่นี้', zh: '这一带还没有地点或服务。' })}</Body> : null}
+        {shownShops.map((shop) => <ShopCard key={shop.id} width={cardWidth} shop={shop} onPress={() => onOpenShop(shop.id)} />)}
+      </View>
+      ) : !loading && !places.error && !shops.error ? <Body style={{ padding: 24, marginTop: 16, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#DCECF3', textAlign: 'center' }} colour={color.neutral700}>{kind === 'shops' ? (shopCategory ? t({ en: `No ${shopCategoryLabel(shopCategory)} services in this area yet.`, th: `ยังไม่มีบริการประเภท${shopCategoryLabel(shopCategory)}ในพื้นที่นี้`, zh: `这一带还没有${shopCategoryLabel(shopCategory)}服务。` }) : t({ en: 'No services in this area yet.', th: 'ยังไม่มีสถานบริการในพื้นที่นี้', zh: '这一带还没有服务。' })) : kind === 'places' ? t({ en: 'No places in this area yet.', th: 'ยังไม่มีสถานที่ในพื้นที่นี้', zh: '这一带还没有地点。' }) : t({ en: 'No places or services in this area yet.', th: 'ยังไม่มีสถานที่หรือบริการในพื้นที่นี้', zh: '这一带还没有地点或服务。' })}</Body> : null}
+      </View>
     </View>
   );
 }
@@ -608,46 +609,57 @@ function shopCategoryLabel(category: string): string {
     'เสริมสวย': { en: 'Beauty', th: 'เสริมสวย', zh: '美容' },
     'ตัดผม': { en: 'Haircuts', th: 'ตัดผม', zh: '理发' },
     'ไกด์นำเที่ยว': { en: 'Tour guide', th: 'ไกด์นำเที่ยว', zh: '导游' },
+    'กีฬาและนันทนาการ': { en: 'Sports & recreation', th: 'กีฬาและนันทนาการ', zh: '运动与休闲' },
     'อื่นๆ': { en: 'Other', th: 'อื่นๆ', zh: '其他' },
   };
   return t(labels[category] ?? { en: category, th: category });
 }
 
-function ShopCard({ shop, onPress }: { shop: Shop; onPress: () => void }) {
-  if (shop.serviceType === 'guide') return <GuideCard shop={shop} onPress={onPress} />;
-  return (
-    <Pressable onPress={onPress} accessibilityLabel={`${t({ en: 'Service', th: 'บริการ', zh: '服务' })} ${shop.name}`} style={[shadow.card, { width: 204, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden' }]}>
-      {shop.coverUrl ? <Image source={{ uri: shopImageUri(shop.coverUrl) }} style={{ width: '100%', height: 125 }} /> : <View style={{ height: 125, backgroundColor: '#DFF3F8', alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 36 }}>🏪</Text></View>}
-      <View style={{ padding: 10 }}><Label size={10} colour="#0077B6">{shopCategoryLabel(shop.category)}</Label><Heading size={15}>{shop.name}</Heading><Body size={13} colour="#64748B">{shop.rating === null ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว', zh: '还没有评价' }) : `★ ${shop.rating} (${shop.reviewCount})`}</Body></View>
-    </Pressable>
-  );
-}
+const serviceAppearance: Record<string, { icon: LucideIcon; accent: string; pale: string }> = {
+  'ที่พัก': { icon: BedDouble, accent: '#0077B6', pale: '#E5F4FF' },
+  'ร้านอาหาร': { icon: Utensils, accent: '#C65B16', pale: '#FFF0E5' },
+  'ร้านขายของ': { icon: ShoppingBag, accent: '#7953B9', pale: '#F1EBFF' },
+  'เช่ารถ': { icon: Car, accent: '#00848F', pale: '#E1F6F5' },
+  'เสริมสวย': { icon: Sparkles, accent: '#BE4B78', pale: '#FDECF3' },
+  'ตัดผม': { icon: Scissors, accent: '#2776B5', pale: '#E8F3FC' },
+  'ไกด์นำเที่ยว': { icon: UserRound, accent: '#16806D', pale: '#E5F5EF' },
+  'กีฬาและนันทนาการ': { icon: Dumbbell, accent: '#24834F', pale: '#E7F5EC' },
+};
 
-function GuideCard({ shop, onPress }: { shop: Shop; onPress: () => void }) {
-  const { width } = useWindowDimensions();
-  const cardWidth = Math.min(390, Math.max(260, width - gutter * 2));
-  const photo = shop.guideProfilePhotoUrl || shop.coverUrl;
-  const area = AREAS.find((item) => item.key === shop.areaKey);
-  const tourNames: Record<string, string> = { 'ทัวร์ธรรมชาติ': 'Nature', 'ดำน้ำ': 'Snorkelling', 'เดินป่า': 'Hiking', 'วัฒนธรรม/วัด': 'Culture & temples', 'อาหารท้องถิ่น': 'Local food', 'เที่ยวเกาะ': 'Island hopping' };
-  const expertise = [...new Set([...(shop.guideSkills ?? []), ...(shop.guideTourStyles ?? []).map((value) => t({ en: tourNames[value] ?? value, th: value }))])];
-  return <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${t({ en: 'View guide profile', th: 'ดูโปรไฟล์ไกด์', zh: '查看导游资料' })} ${shop.name}`} style={[shadow.card, { width: cardWidth, borderRadius: 20, overflow: 'hidden', backgroundColor: '#fff', flexDirection: 'row', minHeight: 224 }]}>
-    <View style={{ width: '43%', backgroundColor: '#DFF3F8', minHeight: 224 }}>
-      {photo ? <Image source={{ uri: shopImageUri(photo) }} resizeMode="cover" style={{ position: 'absolute', width: '100%', height: '100%' }} /> : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><UserRound size={52} color="#4195AB" /></View>}
-      {shop.guideStatus === 'approved' ? <View style={{ margin: 8, paddingHorizontal: 7, paddingVertical: 4, borderRadius: 12, backgroundColor: '#148764', alignSelf: 'flex-start' }}><Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>✓ {t({ en: 'Verified', th: 'ตรวจสอบแล้ว', zh: '已验证' })}</Text></View> : null}
+function ShopCard({ shop, onPress, width }: { shop: Shop; onPress: () => void; width: number }) {
+  const [failedPhoto, setFailedPhoto] = React.useState<string | null>(null);
+  const [focused, setFocused] = React.useState(false);
+  const [hovered, setHovered] = React.useState(false);
+  const guide = shop.serviceType === 'guide';
+  const category = guide ? 'ไกด์นำเที่ยว' : shop.category;
+  const { icon: Icon, accent, pale } = serviceAppearance[category] ?? { icon: Grid2X2, accent: '#6261AF', pale: '#EFEEFF' };
+  const photo = guide ? shop.guideProfilePhotoUrl || shop.coverUrl : shop.coverUrl;
+  const rated = shop.rating !== null && shop.reviewCount > 0;
+  return <Pressable onPress={onPress} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onHoverIn={() => setHovered(true)} onHoverOut={() => setHovered(false)}
+    accessibilityRole="button" accessibilityLabel={`${shopCategoryLabel(category)}: ${shop.name}`}
+    style={({ pressed }) => [shadow.card, { width, minWidth: 0, borderRadius: 22, backgroundColor: '#fff', overflow: 'hidden', borderWidth: 2, borderColor: focused ? '#0077B6' : hovered ? '#9AD6EA' : '#E0EEF5', opacity: pressed ? 0.8 : 1, transform: [{ translateY: hovered ? -2 : 0 }] }]}>
+    <View style={{ aspectRatio: 1.55, backgroundColor: pale, alignItems: 'center', justifyContent: 'center' }}>
+      {photo && failedPhoto !== photo ? <Image source={{ uri: shopImageUri(photo) }} resizeMode="cover" onError={() => setFailedPhoto(photo)} style={{ width: '100%', height: '100%' }} /> : <Icon size={48} color={accent} strokeWidth={1.3} />}
     </View>
-    <View style={{ flex: 1, padding: 12, gap: 7 }}>
-      <Text style={{ color: '#0077B6', fontSize: 11 }}>{t({ en: 'Tour guide', th: 'ไกด์นำเที่ยว', zh: '导游' })}</Text>
-      <Text numberOfLines={2} style={{ color: '#123B64', fontWeight: '800', fontSize: 17 }}>{shop.name}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><MapPin size={12} color="#64748B" /><Text numberOfLines={2} style={{ flex: 1, color: '#64748B', fontSize: 11 }}>{area ? t(area.name) : shop.areaKey}</Text></View>
-      <Text style={{ color: shop.rating === null ? '#64748B' : '#94620C', fontSize: 11 }}>{shop.rating === null ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว', zh: '还没有评价' }) : `★ ${shop.rating.toFixed(1)} (${shop.reviewCount})`}</Text>
-      {shop.guideLanguages.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>{shop.guideLanguages.slice(0, 3).map((name) => <View key={name} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 9, paddingHorizontal: 6, paddingVertical: 3, backgroundColor: '#EAF7FB' }}><GuideLanguageFlag language={name} size={17} /><Text style={{ color: '#123B64', fontSize: 10 }}>{guideLanguageLabel(name)}</Text></View>)}{shop.guideLanguages.length > 3 ? <Text style={{ color: '#64748B', fontSize: 10 }}>+{shop.guideLanguages.length - 3}</Text> : null}</View> : null}
-      {expertise.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>{expertise.slice(0, 2).map((value) => <View key={value} style={{ maxWidth: '100%', borderRadius: 9, paddingHorizontal: 6, paddingVertical: 3, backgroundColor: '#EFF8F4' }}><Text numberOfLines={1} style={{ color: '#276759', fontSize: 10 }}>{value}</Text></View>)}</View> : null}
-      <View style={{ marginTop: 'auto', alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', borderRadius: 15, backgroundColor: '#0077B6', paddingHorizontal: 10, paddingVertical: 6 }}><Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>{t({ en: 'View profile', th: 'ดูโปรไฟล์', zh: '查看资料' })}</Text><ChevronRight size={13} color="#fff" /></View>
+    <View style={{ paddingHorizontal: 16, paddingBottom: 16, flex: 1 }}>
+      <View style={{ width: 52, height: 52, borderRadius: 26, borderWidth: 5, borderColor: '#fff', backgroundColor: accent, alignItems: 'center', justifyContent: 'center', marginTop: -26, marginBottom: 10 }}><Icon size={23} color="#fff" /></View>
+      <Text style={{ color: accent, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', fontWeight: '700', marginBottom: 6 }}>{shopCategoryLabel(category)}</Text>
+      <Text numberOfLines={2} style={{ fontSize: 17, lineHeight: 24, fontWeight: '700', color: '#102F55', minHeight: 48 }}>{shop.name}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginVertical: 8 }}>
+        <Star size={14} color={rated ? '#B67918' : '#8298A8'} />
+        <Text style={{ fontSize: 12, color: '#60778C', flexShrink: 1 }}>{rated ? `${shop.rating!.toFixed(1)} (${shop.reviewCount})` : t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว', zh: '还没有评价' })}</Text>
+      </View>
+      {shop.description ? <Text numberOfLines={2} style={{ color: '#60778C', fontSize: 13, lineHeight: 20, marginBottom: 12 }}>{shop.description}</Text> : null}
+      {guide && shop.guideLanguages.length > 0 ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>{shop.guideLanguages.slice(0, 3).map(language => <View key={language} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, padding: 5, borderRadius: 8, backgroundColor: pale }}><GuideLanguageFlag language={language} size={17} /><Text style={{ fontSize: 11, color: '#123B64' }}>{guideLanguageLabel(language)}</Text></View>)}</View> : null}
+      <View style={{ marginTop: 'auto', paddingTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+        <Text style={{ color: accent, fontSize: 13, flexShrink: 1, fontWeight: '600' }}>{t({ en: 'View details', th: 'ดูรายละเอียด', zh: '查看详情' })}</Text>
+        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: pale, alignItems: 'center', justifyContent: 'center' }}><ArrowRight size={17} color={accent} /></View>
+      </View>
     </View>
   </Pressable>;
 }
 
-function PlaceCard({ place, here, onPress }: { place: ScoredPlace; here: Here | null; onPress: () => void }) {
+function PlaceCard({ place, here, onPress, width = 204 }: { place: ScoredPlace; here: Here | null; onPress: () => void; width?: number }) {
   const high = isHighScore(place.healthyScore);
   const way = here ? wayThere(here, place) : null;
   const far = way ? (way.arrived ? t(strings.place.arrivedShort) : t(way.distance)) : null;
@@ -664,7 +676,7 @@ function PlaceCard({ place, here, onPress }: { place: ScoredPlace; here: Here | 
       style={[
         shadow.card,
         {
-          width: 204,
+          width,
           backgroundColor: '#ffffff',
           borderRadius: 24,
           overflow: 'hidden',
