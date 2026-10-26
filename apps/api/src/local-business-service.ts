@@ -74,7 +74,22 @@ export function listShops(db: DB, q: Record<string, string | undefined>, viewer?
   const category = text(q.category, 60).toLowerCase();
   const search = text(q.search, 80).toLowerCase();
   const minRating = q.minRating ? Number(q.minRating) : 0;
-    const sql = `${SELECT} WHERE ${owner ? 's.owner_id = ?' : 's.active = 1'}
+  /*
+   * A guide nobody has approved is not public.
+   *
+   * The moderator page says "Only approved profiles are visible in the app
+   * and on the map", and until this line it was not true: the list filtered
+   * on `active` alone, so a `pending` or `rejected` guide was served to
+   * anyone - name, area, languages, LINE ID and profile photo - and the app
+   * withheld only the "Verified" badge. A person whose licence nobody has
+   * looked at was being presented as a tour guide with a way to contact them.
+   *
+   * Only guides are gated: a business has no approval step and `guide_status`
+   * is 'not_required' for them. The owner's own branch above is untouched,
+   * so an operator still sees their profile while it waits.
+   */
+  const publicRows = `s.active = 1 AND (s.service_type <> 'guide' OR s.guide_status = 'approved')`;
+  const sql = `${SELECT} WHERE ${owner ? 's.owner_id = ?' : publicRows}
     ${q.area ? 'AND s.area_key = ?' : ''}
     ${category ? 'AND lower(s.category) = ?' : ''}
     ${search ? 'AND (lower(s.name) LIKE ? OR lower(s.category) LIKE ?)' : ''}
@@ -110,7 +125,13 @@ export function isOpenNow(hours: string, now = new Date()) {
 
 export function getShop(db: DB, id: string, viewer?: string) {
   const r = row<ShopRow>(db.prepare(`${SELECT} WHERE s.id = ?`).get(id));
-  if (!r || ((!r.active) && r.owner_id !== viewer)) return null;
+  if (!r) return null;
+  // Hidden from everyone but its owner: inactive, or a guide nobody has
+  // approved. Same rule as the list, because a direct link is the obvious way
+  // around a filtered list. Moderators read these through the console's own
+  // query, which is deliberately not this one.
+  const hidden = !r.active || (r.service_type === 'guide' && r.guide_status !== 'approved');
+  if (hidden && r.owner_id !== viewer) return null;
   const images = rows<{ id: string; kind: string }>(db.prepare("SELECT id, kind FROM local_shop_media WHERE shop_id = ? AND kind <> 'review' ORDER BY created_at DESC").all(id));
   return { ...shopFrom(r, viewer), images: images.map((m) => ({ id: m.id, kind: m.kind, url: `/shops/media/${m.id}` })) };
 }
