@@ -8,8 +8,8 @@
  */
 
 import React from 'react';
-import { Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { BedDouble, ChevronRight, LayoutGrid, List, MessageCircle, Store } from 'lucide-react-native';
+import { Image, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ArrowLeft, BedDouble, ChevronRight, Expand, Layers3, LayoutGrid, List, Map as MapIcon, MessageCircle, Store } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import {
   greetingFor, strings,
@@ -94,6 +94,11 @@ export function MapScreen({
   // everywhere, which is the truthful default, so it is not surfaced.
   const explored = useAsync(() => api.explored(), []);
   const [mode, setMode] = React.useState<MapMode>('map');
+  const [expandedMap, setExpandedMap] = React.useState(false);
+  const [expandedLayers, setExpandedLayers] = React.useState(false);
+  const fullMapHorizontal = React.useRef<ScrollView>(null);
+  const fullMapVertical = React.useRef<ScrollView>(null);
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   // WATCHED, unlike every other screen's one-shot: this is the one place
   // that draws the traveller, and a dot that does not move while somebody
   // walks is worse than no dot, because a dot is read as current.
@@ -120,6 +125,7 @@ export function MapScreen({
   [shops.data, shopCategory, shopSearch, shopMinRating, shopsOpenOnly]);
   const shopCategories = React.useMemo(() => SHOP_CATEGORIES.filter((category) => (shops.data ?? []).some((shop) => shop.category === category)), [shops.data]);
   React.useEffect(() => { setSelectedShop(null); setShopCategory(''); setShopSearch(''); setShopMinRating(0); setShopsOpenOnly(false); }, [area.key]);
+  React.useEffect(() => { setExpandedMap(false); setExpandedLayers(false); }, [area.key, mode]);
   // Which pins wear a story. One request for the whole area, public.
   const areaStories = useAsync(() => api.areaStories(area.key), [area.key]);
   /*
@@ -249,6 +255,33 @@ export function MapScreen({
     return [[here.lng, here.lat], [wayTo.lng, wayTo.lat]];
   }, [route, here, wayTo]);
 
+  const expandedMapContent = (height: number) => <SamuiMap
+    key={`${area.key}-expanded-${height}`}
+    area={area}
+    storied={storied}
+    tales={tales}
+    onOpenStory={(placeId) => { setExpandedMap(false); openStory(placeId); }}
+    places={visible}
+    shops={visibleShops}
+    onSelectShop={(shop) => { setExpandedMap(false); setSelectedShop(shop); }}
+    onSelect={(place) => { setExpandedMap(false); onSelect(place); }}
+    quests={questsHere}
+    progress={quests.data?.progress ?? NO_PROGRESS}
+    onOpenQuest={(id) => { setExpandedMap(false); onOpenQuest(id); }}
+    explored={explored.data?.places ?? NO_EXPLORED}
+    stops={busStops}
+    here={here}
+    way={way}
+    wayIsRoute={route !== null}
+    fairLots={lots}
+    fairFocus={lotShown}
+    interactive
+    fullScreenControls
+    height={height}
+    compact={false}
+  />;
+  const fullMapControlTop = Platform.OS === 'web' ? 14 : 52;
+
   /*
     The fair's lot, or the way into its directory. Static data, so it does
     not wait on /places: with the places still loading or failed, a lot asked
@@ -343,6 +376,7 @@ export function MapScreen({
             />
           ) : null}
           {mode === 'map' ? (
+            <View style={{ position: 'relative', marginHorizontal: gutter, overflow: 'hidden', borderRadius: 18 }}>
             <SamuiMap
               /*
                 A different area is a different map. The web map builds its
@@ -371,7 +405,15 @@ export function MapScreen({
               wayIsRoute={route !== null}
               fairLots={lots}
               fairFocus={lotShown}
+              interactive={false}
             />
+            <Pressable
+              onPress={() => setExpandedMap(true)}
+              accessibilityRole="button"
+              accessibilityLabel={t({ en: 'Expand map', th: 'ขยายแผนที่', zh: '展开地图' })}
+              style={{ position: 'absolute', top: 12, right: 12, width: 42, height: 42, borderRadius: 14, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#D1E8EE', elevation: 4, shadowColor: '#123B64', shadowOpacity: 0.16, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}
+            ><Expand size={20} color="#0077B6" /></Pressable>
+            </View>
           ) : (
             <View>
               <View style={{ paddingHorizontal: gutter, paddingVertical: 10 }}>
@@ -576,6 +618,47 @@ export function MapScreen({
           onClose={() => setTelling(null)}
         />
       ) : null}
+      <Modal visible={expandedMap} animationType="fade" presentationStyle="overFullScreen" statusBarTranslucent onRequestClose={() => setExpandedMap(false)}>
+      <View style={{ flex: 1, backgroundColor: '#EAF7FB' }}>
+        {Platform.OS === 'web'
+          ? <View style={{ height: windowHeight, width: windowWidth, backgroundColor: '#EAF7FB' }}>{expandedMapContent(windowHeight)}</View>
+          : <ScrollView ref={fullMapHorizontal} horizontal showsHorizontalScrollIndicator={false} contentOffset={{ x: windowWidth / 2, y: 0 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+              <ScrollView ref={fullMapVertical} nestedScrollEnabled showsVerticalScrollIndicator={false} contentOffset={{ x: 0, y: windowHeight / 2 }}>
+                <View style={{ width: windowWidth * 2, height: windowHeight * 2, backgroundColor: '#EAF7FB' }}>{expandedMapContent(windowHeight * 2)}</View>
+              </ScrollView>
+            </ScrollView>}
+        <Pressable
+          onPress={() => setExpandedMap(false)}
+          accessibilityRole="button"
+          accessibilityLabel={t({ en: 'Back to map', th: 'กลับไปหน้าแผนที่', zh: '返回地图' })}
+          style={{ position: 'absolute', top: fullMapControlTop, left: 14, width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2EEF4', elevation: 5, shadowColor: '#123B64', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }}
+        ><ArrowLeft size={26} color="#0077B6" strokeWidth={2.8} /></Pressable>
+        {expandedLayers ? <View style={{ position: 'absolute', left: 82, bottom: Platform.OS === 'web' ? 100 : 118, width: Math.min(330, Math.max(200, windowWidth - 100)), backgroundColor: '#FFFFFF', borderRadius: 18, overflow: 'hidden', elevation: 8, shadowColor: '#123B64', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }}>
+          <LayerChips layers={layers} onToggle={(key) => onToggleLayer(key as LayerKey)} />
+        </View> : null}
+        <View style={{ position: 'absolute', left: 16, bottom: Platform.OS === 'web' ? 24 : 42, gap: 12 }}>
+          <Pressable
+            onPress={() => setExpandedLayers((open) => !open)}
+            accessibilityRole="button"
+            accessibilityLabel={t({ en: 'Map layers', th: 'ชั้นข้อมูลแผนที่', zh: '地图图层' })}
+            style={{ width: 58, height: 58, borderRadius: 29, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2EEF4', elevation: 5, shadowColor: '#123B64', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }}
+          ><Layers3 size={25} color="#12283D" strokeWidth={2.5} /></Pressable>
+          <Pressable
+            onPress={() => {
+              setExpandedLayers(false);
+              if (Platform.OS === 'web') window.dispatchEvent(new Event('chivago-map-reset'));
+              else {
+                fullMapHorizontal.current?.scrollTo({ x: windowWidth / 2, animated: true });
+                fullMapVertical.current?.scrollTo({ y: windowHeight / 2, animated: true });
+              }
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={t({ en: 'Reset map view', th: 'จัดมุมมองแผนที่ใหม่', zh: '重置地图视图' })}
+            style={{ width: 58, height: 58, borderRadius: 29, backgroundColor: 'rgba(7, 36, 61, 0.78)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }}
+          ><MapIcon size={26} color="#FFFFFF" strokeWidth={2.2} /></Pressable>
+        </View>
+      </View>
+      </Modal>
     </ScrollView>
   );
 }

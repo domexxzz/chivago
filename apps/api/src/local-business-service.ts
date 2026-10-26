@@ -74,21 +74,9 @@ export function listShops(db: DB, q: Record<string, string | undefined>, viewer?
   const category = text(q.category, 60).toLowerCase();
   const search = text(q.search, 80).toLowerCase();
   const minRating = q.minRating ? Number(q.minRating) : 0;
-  /*
-   * A guide nobody has approved is not public.
-   *
-   * The moderator page says "Only approved profiles are visible in the app
-   * and on the map", and until this line it was not true: the list filtered
-   * on `active` alone, so a `pending` or `rejected` guide was served to
-   * anyone - name, area, languages, LINE ID and profile photo - and the app
-   * withheld only the "Verified" badge. A person whose licence nobody has
-   * looked at was being presented as a tour guide with a way to contact them.
-   *
-   * Only guides are gated: a business has no approval step and `guide_status`
-   * is 'not_required' for them. The owner's own branch above is untouched,
-   * so an operator still sees their profile while it waits.
-   */
-  const publicRows = `s.active = 1 AND (s.service_type <> 'guide' OR s.guide_status = 'approved')`;
+  // Guide profiles are public immediately. Admin verification is a future
+  // workflow; requiring it here kept newly created guides off Home and Map.
+  const publicRows = `s.active = 1`;
   const sql = `${SELECT} WHERE ${owner ? 's.owner_id = ?' : publicRows}
     ${q.area ? 'AND s.area_key = ?' : ''}
     ${category ? 'AND lower(s.category) = ?' : ''}
@@ -126,11 +114,8 @@ export function isOpenNow(hours: string, now = new Date()) {
 export function getShop(db: DB, id: string, viewer?: string) {
   const r = row<ShopRow>(db.prepare(`${SELECT} WHERE s.id = ?`).get(id));
   if (!r) return null;
-  // Hidden from everyone but its owner: inactive, or a guide nobody has
-  // approved. Same rule as the list, because a direct link is the obvious way
-  // around a filtered list. Moderators read these through the console's own
-  // query, which is deliberately not this one.
-  const hidden = !r.active || (r.service_type === 'guide' && r.guide_status !== 'approved');
+  // Inactive profiles stay private; guides are public without admin review.
+  const hidden = !r.active;
   if (hidden && r.owner_id !== viewer) return null;
   const images = rows<{ id: string; kind: string }>(db.prepare("SELECT id, kind FROM local_shop_media WHERE shop_id = ? AND kind <> 'review' ORDER BY created_at DESC").all(id));
   return { ...shopFrom(r, viewer), images: images.map((m) => ({ id: m.id, kind: m.kind, url: `/shops/media/${m.id}` })) };
@@ -168,20 +153,17 @@ export function saveShop(db: DB, uid: string, input: ShopInput, id?: string) {
   const guideLineId = serviceType === 'guide' ? text(input.guideLineId, 50) : '';
   const now = new Date().toISOString();
   const key = id ?? randomUUID();
-  const previous = id ? row<{ service_type: string; guide_languages: string; guide_skills: string; guide_tour_styles: string; guide_line_id: string; guide_status: string; guide_reviewed_at: string | null; guide_reviewed_by: string | null; name: string; description: string; area_key: string; lat: number | null; lng: number | null; phone: string; email: string }>(db.prepare('SELECT service_type,guide_languages,guide_skills,guide_tour_styles,guide_line_id,guide_status,guide_reviewed_at,guide_reviewed_by,name,description,area_key,lat,lng,phone,email FROM local_shops WHERE id=?').get(id)) : null;
-  const guideChanged = serviceType === 'guide' && previous?.service_type === 'guide'
-    && (previous.guide_languages !== guideLanguages || previous.guide_skills !== guideSkills || previous.guide_tour_styles !== guideTourStyles || previous.guide_line_id !== guideLineId
-      || previous.name !== name || previous.description !== text(input.description, 2000) || previous.area_key !== area
-      || previous.lat !== lat || previous.lng !== lng || previous.phone !== phone || previous.email !== email);
-  const guideStatus = serviceType !== 'guide' ? 'not_required'
-    : previous?.service_type === 'guide' ? (guideChanged ? 'pending' : previous.guide_status) : 'pending';
-  const reviewedAt = guideStatus === 'pending' || guideStatus === 'not_required' ? null : previous?.guide_reviewed_at ?? null;
-  const reviewedBy = guideStatus === 'pending' || guideStatus === 'not_required' ? null : previous?.guide_reviewed_by ?? null;
+  const previousServiceType = id
+    ? row<{ service_type: string }>(db.prepare('SELECT service_type FROM local_shops WHERE id=?').get(id))?.service_type
+    : undefined;
+  const guideStatus = 'not_required';
+  const reviewedAt = null;
+  const reviewedBy = null;
   const values = [name, category, area, text(input.description, 2000), serviceType === 'guide' ? '' : address, lat, lng,
     phone, email, serviceType === 'guide' ? '' : hours, amenities, input.active === false ? 0 : 1, serviceType, guideLanguages, guideSkills, guideTourStyles, guideLineId, '', guideStatus, reviewedAt, reviewedBy, now];
   if (id) db.prepare(`UPDATE local_shops SET name=?,category=?,area_key=?,description=?,address=?,lat=?,lng=?,phone=?,email=?,opening_hours=?,amenities=?,active=?,service_type=?,guide_languages=?,guide_skills=?,guide_tour_styles=?,guide_line_id=?,guide_meeting_point=?,guide_status=?,guide_reviewed_at=?,guide_reviewed_by=?,updated_at=? WHERE id=?`).run(...values, id);
   else db.prepare(`INSERT INTO local_shops(id,owner_id,name,category,area_key,description,address,lat,lng,phone,email,opening_hours,amenities,active,service_type,guide_languages,guide_skills,guide_tour_styles,guide_line_id,guide_meeting_point,guide_status,guide_reviewed_at,guide_reviewed_by,updated_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(key, uid, ...values, now);
-  if (id && serviceType !== 'guide' && previous?.service_type === 'guide') {
+  if (id && serviceType !== 'guide' && previousServiceType === 'guide') {
     db.prepare('DELETE FROM local_guide_documents WHERE shop_id=?').run(id);
     db.prepare('DELETE FROM local_guide_profile_photos WHERE shop_id=?').run(id);
   }
@@ -223,8 +205,8 @@ export function ownReview(db: DB, shopId: string, uid: string) {
 
 export function saveReview(db: DB, uid: string, shopId: string, rating: unknown, body: unknown) {
   if (!row(db.prepare('SELECT 1 FROM user_accounts WHERE id=?').get(uid))) throw new ShopError('LOGIN_REQUIRED', 'เข้าสู่ระบบก่อนเขียนรีวิว', 401);
-  const shop = row<{ owner_id: string; active: number; service_type: string; guide_status: string }>(db.prepare('SELECT owner_id,active,service_type,guide_status FROM local_shops WHERE id=?').get(shopId));
-  if (!shop || !shop.active || (shop.service_type === 'guide' && shop.guide_status !== 'approved')) throw new ShopError('NOT_FOUND', 'ไม่พบร้านค้า', 404);
+  const shop = row<{ owner_id: string; active: number }>(db.prepare('SELECT owner_id,active FROM local_shops WHERE id=?').get(shopId));
+  if (!shop || !shop.active) throw new ShopError('NOT_FOUND', 'ไม่พบร้านค้า', 404);
   if (shop.owner_id === uid) throw new ShopError('OWN_SHOP', 'เจ้าของร้านรีวิวร้านตัวเองไม่ได้', 403);
   if (!Number.isInteger(rating) || Number(rating) < 1 || Number(rating) > 5) throw new ShopError('INVALID_RATING', 'ให้คะแนน 1–5 ดาว');
   if (typeof body !== 'string' || body.trim().length > 2000) throw new ShopError('INVALID_REVIEW', 'ความคิดเห็นต้องเป็นข้อความไม่เกิน 2000 ตัวอักษร');

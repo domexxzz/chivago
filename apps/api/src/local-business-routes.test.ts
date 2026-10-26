@@ -92,18 +92,11 @@ test('shop ownership, area map feed, review summary, reporting, and deletion', a
   assert.equal(afterDelete.data.length, 0);
 });
 
-test('A GUIDE NOBODY HAS APPROVED IS NOT PUBLIC - NOT IN THE LIST, NOT BY ID, NOT THEIR FACE', async () => {
+test('active guides are public without approval; hidden profiles and photos remain owner-only', async () => {
   /*
-   * The moderator page promises "Only approved profiles are visible in the
-   * app and on the map". It was not true: the list filtered on `active`
-   * alone, `GET /shops/:id` matched it, and `GET /shops/guide-photos/:id`
-   * had no check of any kind. A person whose licence nobody had looked at
-   * was served to anyone with their name, area, languages, LINE ID and
-   * photograph, and the app withheld only the "Verified" badge.
-   *
-   * Three doors, so all three are tested. A filtered list with a readable
-   * direct link is not a gate, and neither is a hidden profile whose
-   * picture is still fetchable by the id the list handed out earlier.
+   * Publication now follows the owner's active flag, independently of the
+   * future approval workflow. Check the list, direct profile and photo so
+   * hiding a profile also closes access through previously shared URLs.
    */
   const guide = await register('811', 'operator');
   const traveller = await register('812', 'traveller');
@@ -116,7 +109,7 @@ test('A GUIDE NOBODY HAS APPROVED IS NOT PUBLIC - NOT IN THE LIST, NOT BY ID, NO
   const created = await parse(await request('/shops', 'POST', guide, profile));
   assert.equal(created.ok, true, JSON.stringify(created));
   const id: string = created.data.id;
-  assert.equal(created.data.guideStatus, 'pending', 'a new guide starts pending');
+  assert.equal(created.data.guideStatus, 'not_required', 'approval is not required to publish');
 
   // A photo, so there is a face to try to fetch.
   const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, ...new Array(64).fill(0)]);
@@ -133,33 +126,34 @@ test('A GUIDE NOBODY HAS APPROVED IS NOT PUBLIC - NOT IN THE LIST, NOT BY ID, NO
     assert.equal((await request(photoUrl, 'GET', who)).status, 404, 'not their face');
   };
 
-  await hidden(traveller);
-  /*
-   * Signed out, the photo is the whole exposure and the worst of it. The list
-   * and the profile need a device key (401 without one), but this endpoint
-   * has none: an approved guide's face is deliberately public, so before the
-   * check went in, a pending applicant's or a rejected one's was too - no
-   * account needed, just the id, which the shop payload hands out.
-   */
-  assert.equal((await request(photoUrl, 'GET', {})).status, 404, 'no account, no face');
+  const publicList = await parse(await request('/shops?area=samui', 'GET', traveller));
+  assert.equal(publicList.data.filter((s: any) => s.id === id).length, 1);
+  assert.equal((await request(`/shops/${id}`, 'GET', traveller)).status, 200);
+  assert.equal((await request(photoUrl, 'GET', {})).status, 200, 'active guide photos are public');
 
-  // The owner still sees their own while it waits, or they could not finish it.
+  const forbidden = await request(`/shops/${id}`, 'PUT', traveller, { ...profile, active: false });
+  assert.equal(forbidden.status, 403, 'another user cannot hide this profile');
+  const hide = await parse(await request(`/shops/${id}`, 'PUT', guide, { ...profile, active: false }));
+  assert.equal(hide.ok, true, JSON.stringify(hide));
+  await hidden(traveller);
+  assert.equal((await request(photoUrl, 'GET', {})).status, 404, 'hidden photos are not public');
+
+  // The owner can still edit their hidden profile and see their photo.
   const own = await parse(await request(`/shops/${id}`, 'GET', guide));
   assert.equal(own.data.id, id);
-  assert.equal(own.data.guideStatus, 'pending');
+  assert.equal(own.data.guideStatus, 'not_required');
   assert.equal((await request(photoUrl, 'GET', guide)).status, 200, 'the owner can see the photo they uploaded');
 
-  // Approved is the only state that opens the three doors.
-  db.prepare("UPDATE local_shops SET guide_status='approved' WHERE id=?").run(id);
+  const publish = await parse(await request(`/shops/${id}`, 'PUT', guide, profile));
+  assert.equal(publish.ok, true, JSON.stringify(publish));
   const list = await parse(await request('/shops?area=samui', 'GET', traveller));
-  assert.equal(list.data.filter((s: any) => s.id === id).length, 1, 'approved, so listed');
+  assert.equal(list.data.filter((s: any) => s.id === id).length, 1, 'active again, so listed');
   assert.equal((await request(`/shops/${id}`, 'GET', traveller)).status, 200);
-  assert.equal((await request(photoUrl, 'GET', {})).status, 200, 'an approved guide has a public face');
+  assert.equal((await request(photoUrl, 'GET', {})).status, 200, 'an active guide has a public face');
 
-  // Rejected closes them again - a decision against somebody is not a licence
-  // to keep showing them.
-  db.prepare("UPDATE local_shops SET guide_status='rejected' WHERE id=?").run(id);
-  await hidden(traveller);
+  // Older pending records follow the same publication rule.
+  db.prepare("UPDATE local_shops SET guide_status='pending' WHERE id=?").run(id);
+  assert.equal((await request(`/shops/${id}`, 'GET', traveller)).status, 200);
 
   // A business is not gated: it has no approval step, and `not_required` must
   // not read as "unapproved".

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { AREAS, type AreaKey } from '@chivago/core';
 import { ArrowLeft, Camera, ChevronDown, MapPin, Plus, Store, UserRound } from 'lucide-react-native';
@@ -11,11 +11,12 @@ import { useAsync } from '../state/store.tsx';
 import { useHere } from '../state/here.ts';
 import { t } from '../i18n/locale.ts';
 import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
+import { SamuiMap } from '../components/SamuiMap.tsx';
 
 const blue = '#0077B6';
-type ShopManageForm = ShopInput & Pick<Shop, 'guideStatus' | 'hasGuideDocument' | 'guideProfilePhotoUrl'>;
+type ShopManageForm = ShopInput & Pick<Shop, 'guideStatus' | 'guideProfilePhotoUrl'>;
 const blank = (areaKey: AreaKey = 'samui'): ShopManageForm => ({ name: '', category: '', areaKey, description: '', address: '', lat: Number.NaN,
-  lng: Number.NaN, phone: '', email: '', openingHours: '', amenities: [], active: true, serviceType: 'business', guideLanguages: [], guideSkills: [], guideTourStyles: [], guideLineId: '', guideStatus: 'not_required', hasGuideDocument: false, guideProfilePhotoUrl: null });
+  lng: Number.NaN, phone: '', email: '', openingHours: '', amenities: [], active: true, serviceType: 'business', guideLanguages: [], guideSkills: [], guideTourStyles: [], guideLineId: '', guideStatus: 'not_required', guideProfilePhotoUrl: null });
 const inputStyle = { borderWidth: 1, borderColor: '#CDE3EA', borderRadius: 12, backgroundColor: '#F7FBFC', padding: 11, fontSize: 15, color: '#123B64' } as const;
 const button = { backgroundColor: blue, borderRadius: 16, paddingVertical: 13, alignItems: 'center' as const, marginTop: 12 };
 
@@ -44,6 +45,9 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
   const [form, setForm] = React.useState<ShopManageForm>(blank());
   const [lat, setLat] = React.useState('');
   const [lng, setLng] = React.useState('');
+  const [pickingCoordinates, setPickingCoordinates] = React.useState(false);
+  const [pickedCoordinates, setPickedCoordinates] = React.useState<{ lat: number; lng: number } | null>(null);
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [amenities, setAmenities] = React.useState('');
   const [languageQuery, setLanguageQuery] = React.useState('');
   const [openDropdown, setOpenDropdown] = React.useState<'category' | 'area' | 'language' | null>(null);
@@ -64,7 +68,6 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
    * upload rather than as a gate. See api/authed-image.ts.
    */
   const savedGuidePhoto = useAuthedImage(form.guideProfilePhotoUrl);
-  const [pendingGuideDocument, setPendingGuideDocument] = React.useState<ImagePicker.ImagePickerAsset | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   React.useEffect(() => setConfirmDelete(false), [editing]);
@@ -83,6 +86,7 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
   const done = (text: string) => setMessage({ text, ok: true });
   const [images, setImages] = React.useState<{ id: string; kind: string; url: string }[]>([]);
   const here = useHere();
+  const pickerArea = AREAS.find((area) => area.key === form.areaKey)!;
   React.useEffect(() => {
     if (!editing || editing === 'new') return;
     const shop = mine.data?.find((s) => s.id === editing);
@@ -94,7 +98,7 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
   }, []);
   React.useEffect(() => { if (editing && editing !== 'new') void reloadImages(editing); else setImages([]); }, [editing, reloadImages]);
   const update = (key: keyof ShopManageForm, value: unknown) => setForm((prev) => ({ ...prev, [key]: value }));
-  const openNew = () => { const next = blank(); setForm(next); setLat(''); setLng(''); setAmenities(''); setLanguageQuery(''); setOpenDropdown(null); setSkillDraft(''); setPendingGuidePhoto(null); setPendingGuideDocument(null); setMessage(null); setConfirmDelete(false); setEditing('new'); };
+  const openNew = () => { const next = blank(); setForm(next); setLat(''); setLng(''); setAmenities(''); setLanguageQuery(''); setOpenDropdown(null); setSkillDraft(''); setPendingGuidePhoto(null); setMessage(null); setConfirmDelete(false); setEditing('new'); };
   const save = async () => {
     setBusy(true); setMessage(null);
     const data = { ...form, serviceType: form.category === 'ไกด์นำเที่ยว' ? 'guide' as const : 'business' as const,
@@ -103,7 +107,6 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
       amenities: amenities.split(',').map((v) => v.trim()).filter(Boolean) };
     const result = editing === 'new' ? await api.createShop(data) : await api.updateShop(editing!, data);
     if (!result.ok) { setBusy(false); fail(result.error); return; }
-    const submittingDocument = !!pendingGuideDocument || result.data.hasGuideDocument;
     const uploadErrors: string[] = [];
     if (result.data.serviceType === 'guide' && pendingGuidePhoto) {
       try {
@@ -112,15 +115,8 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
         else uploadErrors.push(photo.error);
       } catch { uploadErrors.push(t({ en: 'Profile photo upload failed', th: 'อัปโหลดรูปโปรไฟล์ไม่สำเร็จ', zh: '头像上传失败' })); }
     }
-    if (result.data.serviceType === 'guide' && pendingGuideDocument) {
-      try {
-        const document = await api.uploadGuideDocument(result.data.id, pendingGuideDocument.uri, pendingGuideDocument.mimeType ?? 'image/jpeg');
-        if (document.ok) setPendingGuideDocument(null);
-        else uploadErrors.push(document.error);
-      } catch { uploadErrors.push(t({ en: 'Verification document upload failed', th: 'อัปโหลดเอกสารยืนยันไม่สำเร็จ', zh: '验证文件上传失败' })); }
-    }
     mine.reload(); setEditing(result.data.id); (uploadErrors.length ? fail : done)(uploadErrors.length ? t({ en: 'Profile saved, but some images did not upload: ', th: 'บันทึกโปรไฟล์แล้ว แต่บางรูปอัปโหลดไม่สำเร็จ: ', zh: '资料已保存，但部分图片未能上传：' }) + uploadErrors.join(', ') : t(result.data.serviceType === 'guide'
-      ? submittingDocument ? { en: 'Guide profile submitted for review.', th: 'ส่งโปรไฟล์ไกด์ให้ตรวจสอบแล้ว', zh: '导游资料已提交审核。' } : { en: 'Guide profile saved. Add a verification document to submit for review.', th: 'บันทึกโปรไฟล์ไกด์แล้ว เพิ่มเอกสารยืนยันเพื่อส่งตรวจ', zh: '导游资料已保存。请上传验证文件以提交审核。' }
+      ? { en: 'Guide profile saved and is now public.', th: 'บันทึกโปรไฟล์ไกด์และแสดงบนหน้าแรกแล้ว', zh: '导游资料已保存并公开显示。' }
       : { en: 'Business saved.', th: 'บันทึกร้านค้าแล้ว', zh: '商家资料已保存。' }));
     void reloadImages(result.data.id);
     setBusy(false);
@@ -138,12 +134,6 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
       if (result.ok) { mine.reload(); void reloadImages(editing); }
     } catch { fail(t({ en: 'Photo upload failed.', th: 'อัปโหลดรูปไม่สำเร็จ', zh: '照片上传失败。' })); }
     setBusy(false);
-  };
-  const uploadGuideLicense = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) { fail(t({ en: 'Allow photo library access to choose the license image.', th: 'กรุณาอนุญาตเข้าถึงรูปภาพเพื่อเลือกภาพใบอนุญาต', zh: '请允许访问相册以选择执照图片。' })); return; }
-    const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.85 });
-    if (!picked.canceled && picked.assets[0]) setPendingGuideDocument(picked.assets[0]);
   };
   const uploadGuidePhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -190,6 +180,17 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
   const toggleGuideLanguage = (language: string) => update('guideLanguages', form.guideLanguages.includes(language)
     ? form.guideLanguages.filter((item) => item !== language)
     : [...form.guideLanguages, language]);
+  const openCoordinatePicker = () => {
+    const current = lat.trim() && lng.trim() ? { lat: Number(lat), lng: Number(lng) } : null;
+    setPickedCoordinates(current && Number.isFinite(current.lat) && Number.isFinite(current.lng) ? current : null);
+    setPickingCoordinates(true);
+  };
+  const acceptPickedCoordinates = () => {
+    if (!pickedCoordinates) return;
+    setLat(pickedCoordinates.lat.toFixed(6));
+    setLng(pickedCoordinates.lng.toFixed(6));
+    setPickingCoordinates(false);
+  };
   const visibleLanguages = GUIDE_LANGUAGE_OPTIONS.filter((language) => {
     const query = languageQuery.trim().toLocaleLowerCase();
     return !query || `${language.name} ${language.search}`.toLocaleLowerCase().includes(query);
@@ -209,7 +210,7 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
         {!mine.loading && mine.data?.length === 0 ? <Text style={{ color: '#64748B' }}>{t({ en: 'You have no services yet. Add your first one.', th: 'ยังไม่มีร้านค้าหรือโปรไฟล์ไกด์ เพิ่มรายการแรกของคุณได้เลย', zh: '您还没有任何服务，先添加第一个吧。' })}</Text> : null}
         {mine.data?.map((shop) => <View key={shop.id} style={{ backgroundColor: '#fff', borderRadius: 18, padding: 14, marginBottom: 12, flexDirection: 'row', gap: 12 }}>
           {shop.serviceType === 'guide' && shop.guideProfilePhotoUrl ? <Image source={{ uri: shopImageUri(shop.guideProfilePhotoUrl) }} style={{ width: 70, height: 70, borderRadius: 35 }} /> : shop.coverUrl ? <Image source={{ uri: shopImageUri(shop.coverUrl) }} style={{ width: 70, height: 70, borderRadius: 12 }} /> : <Store size={45} color={blue} />}
-          <View style={{ flex: 1 }}><Text style={{ color: '#123B64', fontWeight: '700', fontSize: 16 }}>{shop.name}</Text><Text style={{ color: '#64748B' }}>{t({ en: shop.category === 'ไกด์นำเที่ยว' ? 'Tour guide' : shop.category, th: shop.category, zh: shop.category === 'ไกด์นำเที่ยว' ? '导游' : shop.category })} · {t(AREAS.find((a) => a.key === shop.areaKey)?.name ?? { en: shop.areaKey, th: shop.areaKey, zh: shop.areaKey })} · {shop.serviceType === 'guide' ? t(shop.guideStatus === 'approved' ? { en: 'Verified guide', th: 'ไกด์ผ่านการตรวจสอบ', zh: '已验证导游' } : shop.guideStatus === 'rejected' ? { en: 'Changes required', th: 'ต้องแก้ไขข้อมูล', zh: '需要修改' } : shop.hasGuideDocument ? { en: 'Pending review', th: 'รอการตรวจสอบ', zh: '审核中' } : { en: 'Document needed', th: 'รอส่งเอกสาร', zh: '待提交文件' }) : t(shop.active ? { en: 'Visible on map', th: 'แสดงบนแผนที่', zh: '在地图上显示' } : { en: 'Hidden', th: 'ซ่อนอยู่', zh: '已隐藏' })}</Text><View style={{ flexDirection: 'row', gap: 16, marginTop: 8 }}><Pressable onPress={() => { setPendingGuidePhoto(null); setPendingGuideDocument(null); setEditing(shop.id); }}><Text style={{ color: blue }}>{t({ en: 'Edit', th: 'แก้ไข', zh: '编辑' })}</Text></Pressable>{shop.serviceType !== 'guide' || shop.guideStatus === 'approved' ? <Pressable onPress={() => onOpenShop(shop.id)}><Text style={{ color: blue }}>{t({ en: 'View profile', th: 'ดูโปรไฟล์', zh: '查看资料' })}</Text></Pressable> : null}</View></View>
+          <View style={{ flex: 1 }}><Text style={{ color: '#123B64', fontWeight: '700', fontSize: 16 }}>{shop.name}</Text><Text style={{ color: '#64748B' }}>{t({ en: shop.category === 'ไกด์นำเที่ยว' ? 'Tour guide' : shop.category, th: shop.category, zh: shop.category === 'ไกด์นำเที่ยว' ? '导游' : shop.category })} · {t(AREAS.find((a) => a.key === shop.areaKey)?.name ?? { en: shop.areaKey, th: shop.areaKey, zh: shop.areaKey })} · {t(shop.active ? { en: 'Public profile', th: 'แสดงโปรไฟล์', zh: '公开资料' } : { en: 'Hidden', th: 'ซ่อนโปรไฟล์', zh: '已隐藏' })}</Text><View style={{ flexDirection: 'row', gap: 16, marginTop: 8 }}><Pressable onPress={() => { setPendingGuidePhoto(null); setEditing(shop.id); }}><Text style={{ color: blue }}>{t({ en: 'Edit', th: 'แก้ไข', zh: '编辑' })}</Text></Pressable><Pressable onPress={() => onOpenShop(shop.id)}><Text style={{ color: blue }}>{t({ en: 'View profile', th: 'ดูโปรไฟล์', zh: '查看资料' })}</Text></Pressable></View></View>
         </View>)}
       </> : editing !== 'new' && !mine.data?.some((shop) => shop.id === editing) ? <View style={{ backgroundColor: '#fff', borderRadius: 18, padding: 18 }}><Text style={{ color: '#123B64' }}>{mine.loading ? 'กำลังโหลดร้านค้า...' : mine.error ?? 'ไม่พบร้านค้านี้ในบัญชีของคุณ'}</Text><Pressable onPress={mine.reload} style={{ paddingTop: 10 }}><Text style={{ color: blue }}>ลองใหม่</Text></Pressable></View> : <View style={{ backgroundColor: '#fff', borderRadius: 20, padding: 16 }}>
         <Text style={{ fontSize: 20, fontWeight: '800', color: '#123B64', marginBottom: 16 }}>{editing === 'new' ? t({ en: 'Add a service profile', th: 'เพิ่มโปรไฟล์บริการ', zh: '添加服务资料' }) : t({ en: 'Edit service profile', th: 'แก้ไขโปรไฟล์บริการ', zh: '编辑服务资料' })}</Text>
@@ -235,19 +236,45 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
         </>}
         {form.category !== 'ไกด์นำเที่ยว' ? <><Text style={{ color: '#123B64', fontWeight: '700', marginBottom: 6 }}>{t({ en: 'Business coordinates', th: 'พิกัดร้านค้า', zh: '店铺坐标' })}</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}><TextInput value={lat} onChangeText={setLat} keyboardType="decimal-pad" placeholder="Latitude" style={[inputStyle, { flex: 1 }]} /><TextInput value={lng} onChangeText={setLng} keyboardType="decimal-pad" placeholder="Longitude" style={[inputStyle, { flex: 1 }]} /></View>
-        <Pressable onPress={() => { if (here) { setLat(String(here.lat)); setLng(String(here.lng)); } else fail(t({ en: 'Could not get the device location.', th: 'ยังไม่ได้รับตำแหน่งจากอุปกรณ์', zh: '无法获取设备位置。' })); }} style={{ flexDirection: 'row', gap: 5, paddingVertical: 12 }}><MapPin size={16} color={blue} /><Text style={{ color: blue }}>{t({ en: 'Use current location', th: 'ใช้ตำแหน่งปัจจุบัน', zh: '使用当前位置' })}</Text></Pressable></> : null}
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+          <Pressable onPress={openCoordinatePicker} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: '#E4F4F8' }}><MapPin size={16} color={blue} /><Text style={{ color: blue, fontWeight: '700' }}>{t({ en: 'Choose on map', th: 'เลือกจากแผนที่', zh: '在地图上选择' })}</Text></Pressable>
+          <Pressable onPress={() => { if (here) { setLat(String(here.lat)); setLng(String(here.lng)); } else fail(t({ en: 'Could not get the device location.', th: 'ยังไม่ได้รับตำแหน่งจากอุปกรณ์', zh: '无法获取设备位置。' })); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 10 }}><MapPin size={16} color={blue} /><Text style={{ color: blue }}>{t({ en: 'Use current location', th: 'ใช้ตำแหน่งปัจจุบัน', zh: '使用当前位置' })}</Text></Pressable>
+        </View></> : null}
         {form.category === 'ไกด์นำเที่ยว' ? sectionTitle('Contact information', 'ช่องทางติดต่อ', '联系方式') : null}
         {field(t({ en: 'Contact phone', th: 'เบอร์ติดต่อ', zh: '联系电话' }), 'phone')}
         {form.category === 'ไกด์นำเที่ยว' ? field('LINE ID', 'guideLineId', t({ en: 'Your LINE ID', th: 'LINE ID สำหรับติดต่อ', zh: '您的 LINE ID' })) : null}
         {field(t({ en: 'Email', th: 'อีเมล', zh: '邮箱' }), 'email')}{form.category !== 'ไกด์นำเที่ยว' ? field(t({ en: 'Opening hours', th: 'เวลาเปิด–ปิด', zh: '营业时间' }), 'openingHours', '09:00-18:00') : null}
-        {form.category === 'ไกด์นำเที่ยว' ? <>{sectionTitle('Verification', 'การยืนยันตัวตน', '身份验证')}<View style={{ backgroundColor: '#F0F9FD', borderRadius: 12, padding: 12, marginBottom: 12 }}><Text style={{ color: '#123B64', fontWeight: '700' }}>{t(form.guideStatus === 'approved' && !pendingGuideDocument && !pendingGuidePhoto ? { en: 'Verified guide', th: 'ยืนยันแล้ว', zh: '已验证导游' } : form.guideStatus === 'rejected' ? { en: 'Changes required', th: 'ต้องแก้ไขข้อมูล', zh: '需要修改' } : pendingGuideDocument || form.hasGuideDocument ? { en: 'Pending review', th: 'รอการตรวจสอบ', zh: '审核中' } : { en: 'Document needed', th: 'รอส่งเอกสาร', zh: '待提交文件' })}</Text><Text style={{ color: '#52748A', marginTop: 4 }}>{t({ en: 'Your guide card photo is private and visible only to moderators.', th: 'ภาพบัตรมัคคุเทศก์เป็นข้อมูลส่วนตัว เฉพาะผู้ดูแลเท่านั้นที่เห็น', zh: '您的导游证照片为私密信息，仅审核员可见。' })}</Text><Pressable onPress={() => void uploadGuideLicense()} disabled={busy} style={[button, { marginTop: 8 }]}><Text style={{ color: '#fff', fontWeight: '700' }}>{t(form.hasGuideDocument || pendingGuideDocument ? { en: 'Replace guide card photo', th: 'เปลี่ยนภาพบัตรมัคคุเทศก์', zh: '更换导游证照片' } : { en: 'Choose guide card photo', th: 'เลือกภาพบัตรมัคคุเทศก์', zh: '选择导游证照片' })}</Text></Pressable>{pendingGuideDocument ? <View style={{ marginTop: 10, alignItems: 'center' }}><Image source={{ uri: pendingGuideDocument.uri }} style={{ width: 160, height: 100, borderRadius: 10 }} resizeMode="contain" /><Text style={{ color: '#047857', marginTop: 4 }}>{t({ en: 'Selected; uploads when you save', th: 'เลือกรูปแล้ว จะอัปโหลดเมื่อบันทึก', zh: '已选择，保存时上传' })}</Text><Pressable onPress={() => setPendingGuideDocument(null)} style={{ padding: 8 }}><Text style={{ color: '#B91C1C' }}>{t({ en: 'Remove selection', th: 'ยกเลิกรูปที่เลือก', zh: '取消所选' })}</Text></Pressable></View> : form.hasGuideDocument ? <Text style={{ color: '#047857', marginTop: 8 }}>{t({ en: 'Guide card photo on file', th: 'มีภาพบัตรมัคคุเทศก์แล้ว', zh: '已有导游证照片' })}</Text> : null}</View></> : null}
         {form.category !== 'ไกด์นำเที่ยว' ? <><Text style={{ color: '#123B64', fontWeight: '700', marginBottom: 6 }}>{t({ en: 'Amenities (comma-separated)', th: 'สิ่งอำนวยความสะดวก (คั่นด้วยจุลภาค)', zh: '设施（用逗号分隔）' })}</Text><TextInput value={amenities} onChangeText={setAmenities} style={inputStyle} placeholder="Wi-Fi" /></> : null}
         <Pressable onPress={() => update('active', !form.active)} style={{ paddingVertical: 14 }}><Text style={{ color: blue }}>{form.active ? t({ en: '☑ Show profile publicly', th: '☑ แสดงโปรไฟล์', zh: '☑ 公开显示资料' }) : t({ en: '□ Hide profile', th: '□ ซ่อนโปรไฟล์', zh: '□ 隐藏资料' })}</Text></Pressable>
         {editing !== 'new' ? <><View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}><Pressable onPress={() => void uploadPhoto('cover')} disabled={busy} style={{ flex: 1, padding: 12, backgroundColor: '#E9F6FA', borderRadius: 12, alignItems: 'center' }}><Camera size={18} color={blue} /><Text style={{ color: blue }}>{t({ en: 'Cover photo', th: 'รูปหน้าปก', zh: '封面照片' })}</Text></Pressable><Pressable onPress={() => void uploadPhoto('interior')} disabled={busy} style={{ flex: 1, padding: 12, backgroundColor: '#E9F6FA', borderRadius: 12, alignItems: 'center' }}><Camera size={18} color={blue} /><Text style={{ color: blue }}>{t({ en: form.category === 'ไกด์นำเที่ยว' ? 'More photos' : 'Interior photo', th: form.category === 'ไกด์นำเที่ยว' ? 'รูปเพิ่มเติม' : 'รูปภายใน', zh: form.category === 'ไกด์นำเที่ยว' ? '更多照片' : '店内照片' })}</Text></Pressable></View><ScrollView horizontal contentContainerStyle={{ gap: 8, marginTop: 10 }}>{images.map((img) => <View key={img.id}><Image source={{ uri: shopImageUri(img.url) }} style={{ width: 110, height: 88, borderRadius: 10 }} /><Pressable onPress={() => void removeImage(img.id)}><Text style={{ color: '#B91C1C', textAlign: 'center' }}>{t({ en: 'Remove', th: 'ลบ', zh: '删除' })} {img.kind === 'cover' ? t({ en: 'cover', th: 'หน้าปก', zh: '封面' }) : t({ en: 'photo', th: 'รูป', zh: '照片' })}</Text></Pressable></View>)}</ScrollView><Pressable onPress={() => void remove()} disabled={busy} style={{ padding: 14 }}><Text style={{ color: '#B91C1C', textAlign: 'center' }}>{confirmDelete ? t({ en: 'Confirm deleting this profile and all reviews', th: 'ยืนยันลบร้านค้าและรีวิวทั้งหมด', zh: '确认删除此资料及全部评价' }) : t({ en: 'Delete this profile', th: 'ลบโปรไฟล์นี้', zh: '删除此资料' })}</Text></Pressable></> : null}
         {message ? <Text style={{ color: message.ok ? '#15803D' : '#B91C1C', marginTop: 8 }}>{message.text}</Text> : null}
       </View>}
     </View>
-  </ScrollView>{editing ? <View style={{ backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#D7EAF0', paddingHorizontal: 16, paddingBottom: 12, paddingTop: 2 }}><Pressable onPress={() => void save()} disabled={busy} style={[button, { maxWidth: 720, width: '100%', alignSelf: 'center', opacity: busy ? 0.6 : 1 }]}><Text style={{ color: '#fff', fontWeight: '700' }}>{busy ? t({ en: 'Saving…', th: 'กำลังบันทึก...', zh: '保存中…' }) : t(form.category === 'ไกด์นำเที่ยว' && (pendingGuideDocument || form.hasGuideDocument) ? { en: 'Submit guide profile for review', th: 'ส่งโปรไฟล์ไกด์ให้ตรวจสอบ', zh: '提交导游资料审核' } : { en: 'Save profile', th: 'บันทึกข้อมูลโปรไฟล์', zh: '保存资料' })}</Text></Pressable></View> : null}
+  </ScrollView>{editing ? <View style={{ backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#D7EAF0', paddingHorizontal: 16, paddingBottom: 12, paddingTop: 2 }}><Pressable onPress={() => void save()} disabled={busy} style={[button, { maxWidth: 720, width: '100%', alignSelf: 'center', opacity: busy ? 0.6 : 1 }]}><Text style={{ color: '#fff', fontWeight: '700' }}>{busy ? t({ en: 'Saving…', th: 'กำลังบันทึก...', zh: '保存中…' }) : t({ en: 'Save profile', th: 'บันทึกข้อมูลโปรไฟล์', zh: '保存资料' })}</Text></Pressable></View> : null}
+  <Modal visible={pickingCoordinates} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setPickingCoordinates(false)}>
+    <View style={{ flex: 1, backgroundColor: '#EAF7FB' }}>
+      <SamuiMap
+        area={pickerArea}
+        places={[]}
+        shops={[]}
+        onSelect={() => {}}
+        height={windowHeight}
+        compact={false}
+        interactive
+        fullScreenControls
+        onPickCoordinate={setPickedCoordinates}
+        selectedCoordinate={pickedCoordinates}
+      />
+      <View style={{ position: 'absolute', top: Platform.OS === 'web' ? 14 : 52, left: 14, right: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <Pressable onPress={() => setPickingCoordinates(false)} accessibilityRole="button" accessibilityLabel={t({ en: 'Back', th: 'กลับ', zh: '返回' })} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 5 }}><ArrowLeft size={23} color={blue} /></Pressable>
+        <Text style={{ flex: 1, color: '#123B64', fontWeight: '800', fontSize: 16, backgroundColor: 'rgba(255,255,255,0.94)', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 18 }}>{t({ en: 'Tap the map to choose a location', th: 'แตะแผนที่เพื่อเลือกตำแหน่งร้าน', zh: '点击地图选择店铺位置' })}</Text>
+      </View>
+      <View style={{ position: 'absolute', left: 14, right: 14, bottom: 14, backgroundColor: '#fff', borderRadius: 20, padding: 16, elevation: 8, shadowColor: '#123B64', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }}>
+        <Text style={{ color: '#123B64', fontWeight: '700' }}>{pickedCoordinates ? `${pickedCoordinates.lat.toFixed(6)}, ${pickedCoordinates.lng.toFixed(6)}` : t({ en: 'No location selected', th: 'ยังไม่ได้เลือกตำแหน่ง', zh: '尚未选择位置' })}</Text>
+        <Pressable onPress={acceptPickedCoordinates} disabled={!pickedCoordinates} style={{ backgroundColor: pickedCoordinates ? blue : '#9CBAC7', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 12 }}><Text style={{ color: '#fff', fontWeight: '800' }}>{t({ en: 'Use this location', th: 'ใช้ตำแหน่งนี้', zh: '使用此位置' })}</Text></Pressable>
+      </View>
+    </View>
+  </Modal>
   {cropping ? (
     <PhotoCropper
       uri={cropping.uri}

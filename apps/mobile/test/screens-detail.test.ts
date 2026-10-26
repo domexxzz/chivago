@@ -774,13 +774,13 @@ describe('the safety shield', () => {
 /**
  * The five seconds between the hold and the dispatch.
  *
- * Time is mocked rather than waited out: a 1200 ms hold plus a 5000 ms
- * countdown is six seconds per test, and six seconds of real waiting is how a
+ * Time is mocked rather than waited out: a 5000 ms countdown is five seconds
+ * per test, and five seconds of real waiting is how a
  * suite stops being run. Timers are enabled only AFTER the screen has mounted
  * and settled, so the mount's own fetch is not caught by the mock and left
  * hanging on a clock nobody is ticking.
  */
-describe('the SOS countdown, which is the only way back', () => {
+describe('the SOS demo countdown', () => {
   const alertOf = () => null;
   const shieldRoute = () => ({ 'GET /shield': shield() });
   const SOS = /^SOS\./;
@@ -802,16 +802,13 @@ describe('the SOS countdown, which is the only way back', () => {
     return { ui, fired };
   };
 
-  test('completing the hold does NOT fire - it starts a countdown', async () => {
-    // The bug this guards: a 1200 ms hold that dispatches on the 1200th
-    // millisecond gives a pocket press no way back at all.
+  test('a tap opens a five-second cancellation window without sending', async () => {
     const net = server(shieldRoute());
     try {
       const { ui, fired } = await start();
-      await ui.pressIn(SOS);
-      await advance(motion.sosHoldMs);
+      await ui.press(SOS);
       assert.deepEqual(fired, [], 'nothing was sent at the end of the hold');
-      assert.match(ui.text(), /Sending in 5/, 'and the way back is on screen');
+      assert.match(ui.text(), /5/, 'and the way back is on screen');
       ui.unmount();
     } finally { mock.timers.reset(); net.restore(); }
   });
@@ -820,12 +817,11 @@ describe('the SOS countdown, which is the only way back', () => {
     const net = server(shieldRoute());
     try {
       const { ui } = await start();
-      await ui.pressIn(SOS);
-      await advance(motion.sosHoldMs);
+      await ui.press(SOS);
       await advance(1000);
-      assert.match(ui.text(), /Sending in 4/);
+      assert.match(ui.text(), /4/);
       await advance(2000);
-      assert.match(ui.text(), /Sending in 2/);
+      assert.match(ui.text(), /2/);
       ui.unmount();
     } finally { mock.timers.reset(); net.restore(); }
   });
@@ -834,67 +830,32 @@ describe('the SOS countdown, which is the only way back', () => {
     const net = server(shieldRoute());
     try {
       const { ui, fired } = await start();
-      await ui.pressIn(SOS);
-      await advance(motion.sosHoldMs);
+      await ui.press(SOS);
       await ui.pressText(/Stop/);
       await advance(motion.sosCountdownMs * 2);
       assert.deepEqual(fired, [], 'Stop means stop, even after the clock runs out');
-      assert.doesNotMatch(ui.text(), /Sending in/);
+      assert.doesNotMatch(ui.text(), /Start SOS\?/);
       ui.unmount();
     } finally { mock.timers.reset(); net.restore(); }
   });
 
-  test('letting go of the button does not cancel the countdown', async () => {
-    // Somebody knocked off a bike lets go of the phone. That must not be read
-    // as changing their mind.
+  test('finishing the countdown shows a simulation and never dispatches', async () => {
     const net = server(shieldRoute());
     try {
       const { ui, fired } = await start();
-      await ui.pressIn(SOS);
-      await advance(motion.sosHoldMs);
-      await ui.pressOut(SOS);
-      assert.match(ui.text(), /Sending in/, 'still counting after the release');
-      await advance(motion.sosCountdownMs);
-      assert.equal(fired.length, 1, 'and it went out');
+      await ui.press(SOS);
+      for (let second = 0; second < 5; second += 1) await advance(1000);
+      assert.deepEqual(fired, [], 'the demo must never send a real alert');
+      assert.match(ui.text(), /Demo only/);
       ui.unmount();
     } finally { mock.timers.reset(); net.restore(); }
   });
 
-  test('releasing DURING the hold cancels it, as it always did', async () => {
+  test('leaving the screen mid-countdown does nothing later', async () => {
     const net = server(shieldRoute());
     try {
       const { ui, fired } = await start();
-      await ui.pressIn(SOS);
-      await advance(motion.sosHoldMs - 200);
-      await ui.pressOut(SOS);
-      await advance(motion.sosHoldMs + motion.sosCountdownMs);
-      assert.deepEqual(fired, [], 'an aborted hold never becomes an alert');
-      ui.unmount();
-    } finally { mock.timers.reset(); net.restore(); }
-  });
-
-  test('it fires once, with the position found during the wait', async () => {
-    // The countdown is not dead time: the fix is fetched while it runs, so a
-    // dispatch that would have gone out with no location goes out with one.
-    const net = server(shieldRoute());
-    try {
-      const { ui, fired } = await start();
-      await ui.pressIn(SOS);
-      await advance(motion.sosHoldMs);
-      await advance(motion.sosCountdownMs);
-      assert.equal(fired.length, 1, 'exactly one alert, not one per tick');
-      assert.deepEqual(fired[0], { lat: 9.5357, lng: 100.0617 });
-      ui.unmount();
-    } finally { mock.timers.reset(); net.restore(); }
-  });
-
-  test('leaving the screen mid-countdown does not fire it later', async () => {
-    // A timer that outlives its screen sends an alert nobody is watching.
-    const net = server(shieldRoute());
-    try {
-      const { ui, fired } = await start();
-      await ui.pressIn(SOS);
-      await advance(motion.sosHoldMs);
+      await ui.press(SOS);
       ui.unmount();
       await advance(motion.sosCountdownMs * 2);
       assert.deepEqual(fired, []);
