@@ -254,7 +254,7 @@ function SosSection({
           accessibilityLabel={
             armed
               ? `${t(strings.safety.sosArmed)}. ${t(strings.safety.dispatchDetail)}`
-              : t({ en: 'Open SOS confirmation', th: 'เปิดหน้าต่างยืนยัน SOS', zh: '打开 SOS 确认' })
+              : `SOS. ${t({ en: 'Open confirmation', th: 'เปิดหน้าต่างยืนยัน', zh: '打开确认窗口' })}`
           }
           style={{
             width: 150,
