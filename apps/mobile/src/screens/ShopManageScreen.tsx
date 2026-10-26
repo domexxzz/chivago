@@ -5,6 +5,8 @@ import { AREAS, type AreaKey } from '@chivago/core';
 import { ArrowLeft, Camera, ChevronDown, MapPin, Plus, Store, UserRound } from 'lucide-react-native';
 import { api } from '../api/client.ts';
 import { SHOP_CATEGORIES, shopImageUri, type Shop, type ShopInput } from '../api/shops.ts';
+import { useAuthedImage } from '../api/authed-image.ts';
+import { PhotoCropper, needsCropper } from '../components/PhotoCropper.tsx';
 import { useAsync } from '../state/store.tsx';
 import { useHere } from '../state/here.ts';
 import { t } from '../i18n/locale.ts';
@@ -47,6 +49,21 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
   const [openDropdown, setOpenDropdown] = React.useState<'category' | 'area' | 'language' | null>(null);
   const [skillDraft, setSkillDraft] = React.useState('');
   const [pendingGuidePhoto, setPendingGuidePhoto] = React.useState<ImagePicker.ImagePickerAsset | null>(null);
+  /**
+   * The picked photo while it is being framed, on the platform that has no
+   * cropper of its own. Null everywhere else: a phone has already cropped by
+   * the time the picker returns.
+   */
+  const [cropping, setCropping] = React.useState<ImagePicker.ImagePickerAsset | null>(null);
+  /**
+   * The saved photograph, fetched with the device key.
+   *
+   * A guide waiting for approval is not public, and `<Image>` cannot send the
+   * header that proves this is their own profile - so the plain URL came back
+   * 404 and the avatar rendered as an empty circle, which reads as a failed
+   * upload rather than as a gate. See api/authed-image.ts.
+   */
+  const savedGuidePhoto = useAuthedImage(form.guideProfilePhotoUrl);
   const [pendingGuideDocument, setPendingGuideDocument] = React.useState<ImagePicker.ImagePickerAsset | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState(false);
@@ -131,8 +148,13 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
   const uploadGuidePhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) { fail(t({ en: 'Allow photo library access to choose a profile photo.', th: 'กรุณาอนุญาตเข้าถึงรูปภาพเพื่อเลือกรูปโปรไฟล์', zh: '请允许访问相册以选择头像。' })); return; }
+    // `allowsEditing` opens the platform's own square cropper on a phone and
+    // is ignored on the web, which is why the web hands the picked file to
+    // `PhotoCropper` instead of straight to the form.
     const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.8 });
-    if (!picked.canceled && picked.assets[0]) setPendingGuidePhoto(picked.assets[0]);
+    if (picked.canceled || !picked.assets[0]) return;
+    if (needsCropper) setCropping(picked.assets[0]);
+    else setPendingGuidePhoto(picked.assets[0]);
   };
   const removeGuidePhoto = async () => {
     if (!editing || editing === 'new') return;
@@ -194,7 +216,7 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
         {form.category === 'ไกด์นำเที่ยว' ? sectionTitle('Basic information', 'ข้อมูลพื้นฐาน', '基本信息') : null}
         {dropdownHeader(t({ en: 'Service type', th: 'ประเภทบริการ', zh: '服务类型' }), form.category ? categoryLabel(form.category) : t({ en: 'Select service type', th: 'เลือกประเภทบริการ', zh: '选择服务类型' }), 'category')}
         {openDropdown === 'category' ? <View style={{ backgroundColor: '#F0F9FD', borderRadius: 12, marginBottom: 12, overflow: 'hidden' }}>{SHOP_CATEGORIES.map((category) => <Pressable key={category} onPress={() => { setForm((prev) => ({ ...prev, category, serviceType: category === 'ไกด์นำเที่ยว' ? 'guide' : 'business' })); setOpenDropdown(null); }} accessibilityRole="button" style={{ paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#D7EAF0' }}><Text style={{ color: form.category === category ? blue : '#123B64', fontWeight: form.category === category ? '700' : '400' }}>{categoryLabel(category)}{form.category === category ? ' ✓' : ''}</Text></Pressable>)}</View> : null}
-        {form.category === 'ไกด์นำเที่ยว' ? <View style={{ alignItems: 'center', marginVertical: 12 }}><Pressable onPress={() => void uploadGuidePhoto()} disabled={busy} accessibilityRole="button" accessibilityLabel={t({ en: 'Choose guide profile photo', th: 'เลือกรูปโปรไฟล์ไกด์', zh: '选择导游头像' })} style={{ width: 108, height: 108 }}><View style={{ width: 104, height: 104, borderRadius: 52, backgroundColor: '#E9F6FA', borderWidth: 3, borderColor: '#48CAE4', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>{pendingGuidePhoto ? <Image source={{ uri: pendingGuidePhoto.uri }} style={{ width: 98, height: 98, borderRadius: 49 }} /> : form.guideProfilePhotoUrl ? <Image source={{ uri: shopImageUri(form.guideProfilePhotoUrl) }} style={{ width: 98, height: 98, borderRadius: 49 }} /> : <UserRound size={48} color={blue} />}</View><View style={{ position: 'absolute', right: 0, bottom: 0, width: 32, height: 32, borderRadius: 16, backgroundColor: blue, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' }}><Camera size={16} color="#fff" /></View></Pressable><Text style={{ color: blue, marginTop: 7 }}>{t({ en: 'Tap to choose a profile photo', th: 'แตะเพื่อเลือกรูปโปรไฟล์', zh: '点击选择头像' })}</Text>{pendingGuidePhoto ? <Pressable onPress={() => setPendingGuidePhoto(null)} style={{ padding: 6 }}><Text style={{ color: '#B91C1C' }}>{t({ en: 'Remove selected photo', th: 'ยกเลิกรูปที่เลือก', zh: '取消所选照片' })}</Text></Pressable> : form.guideProfilePhotoUrl && editing !== 'new' ? <Pressable onPress={() => void removeGuidePhoto()} disabled={busy} style={{ padding: 6 }}><Text style={{ color: '#B91C1C' }}>{t({ en: 'Remove profile photo', th: 'ลบรูปโปรไฟล์', zh: '删除头像' })}</Text></Pressable> : null}</View> : null}
+        {form.category === 'ไกด์นำเที่ยว' ? <View style={{ alignItems: 'center', marginVertical: 12 }}><Pressable onPress={() => void uploadGuidePhoto()} disabled={busy} accessibilityRole="button" accessibilityLabel={t({ en: 'Choose guide profile photo', th: 'เลือกรูปโปรไฟล์ไกด์', zh: '选择导游头像' })} style={{ width: 108, height: 108 }}><View style={{ width: 104, height: 104, borderRadius: 52, backgroundColor: '#E9F6FA', borderWidth: 3, borderColor: '#48CAE4', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>{pendingGuidePhoto ? <Image source={{ uri: pendingGuidePhoto.uri }} style={{ width: 98, height: 98, borderRadius: 49 }} /> : savedGuidePhoto ? <Image source={savedGuidePhoto} style={{ width: 98, height: 98, borderRadius: 49 }} /> : <UserRound size={48} color={blue} />}</View><View style={{ position: 'absolute', right: 0, bottom: 0, width: 32, height: 32, borderRadius: 16, backgroundColor: blue, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff' }}><Camera size={16} color="#fff" /></View></Pressable><Text style={{ color: blue, marginTop: 7 }}>{t({ en: 'Tap to choose a profile photo', th: 'แตะเพื่อเลือกรูปโปรไฟล์', zh: '点击选择头像' })}</Text>{pendingGuidePhoto ? <Pressable onPress={() => setPendingGuidePhoto(null)} style={{ padding: 6 }}><Text style={{ color: '#B91C1C' }}>{t({ en: 'Remove selected photo', th: 'ยกเลิกรูปที่เลือก', zh: '取消所选照片' })}</Text></Pressable> : form.guideProfilePhotoUrl && editing !== 'new' ? <Pressable onPress={() => void removeGuidePhoto()} disabled={busy} style={{ padding: 6 }}><Text style={{ color: '#B91C1C' }}>{t({ en: 'Remove profile photo', th: 'ลบรูปโปรไฟล์', zh: '删除头像' })}</Text></Pressable> : null}</View> : null}
         {field(form.category === 'ไกด์นำเที่ยว' ? t({ en: 'Guide name', th: 'ชื่อไกด์', zh: '导游姓名' }) : t({ en: 'Business name', th: 'ชื่อร้าน', zh: '商家名称' }), 'name', form.category === 'ไกด์นำเที่ยว' ? t({ en: 'e.g. Guide Somchai or Uncle Ood Tours', th: 'เช่น ไกด์สมชาย หรือ น้าอู๊ด พาทัวร์', zh: '例如：颂猜导游 或 乌德大叔带团游' }) : t({ en: 'Enter a business name', th: 'กรอกชื่อร้าน', zh: '请输入商家名称' }))}
         {dropdownHeader(t({ en: 'Service area', th: 'พื้นที่ให้บริการ', zh: '服务区域' }), t(AREAS.find((area) => area.key === form.areaKey)?.name ?? { en: 'Select area', th: 'เลือกพื้นที่', zh: '选择区域' }), 'area')}
         {openDropdown === 'area' ? <View style={{ backgroundColor: '#F0F9FD', borderRadius: 12, marginBottom: 12, overflow: 'hidden' }}>{AREAS.map((area) => <Pressable key={area.key} onPress={() => { selectArea(area.key); setOpenDropdown(null); }} accessibilityRole="button" style={{ paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#D7EAF0' }}><Text style={{ color: form.areaKey === area.key ? blue : '#123B64', fontWeight: form.areaKey === area.key ? '700' : '400' }}>{t(area.name)}{form.areaKey === area.key ? ' ✓' : ''}</Text></Pressable>)}</View> : null}
@@ -225,5 +247,18 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
         {message ? <Text style={{ color: message.ok ? '#15803D' : '#B91C1C', marginTop: 8 }}>{message.text}</Text> : null}
       </View>}
     </View>
-  </ScrollView>{editing ? <View style={{ backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#D7EAF0', paddingHorizontal: 16, paddingBottom: 12, paddingTop: 2 }}><Pressable onPress={() => void save()} disabled={busy} style={[button, { maxWidth: 720, width: '100%', alignSelf: 'center', opacity: busy ? 0.6 : 1 }]}><Text style={{ color: '#fff', fontWeight: '700' }}>{busy ? t({ en: 'Saving…', th: 'กำลังบันทึก...', zh: '保存中…' }) : t(form.category === 'ไกด์นำเที่ยว' && (pendingGuideDocument || form.hasGuideDocument) ? { en: 'Submit guide profile for review', th: 'ส่งโปรไฟล์ไกด์ให้ตรวจสอบ', zh: '提交导游资料审核' } : { en: 'Save profile', th: 'บันทึกข้อมูลโปรไฟล์', zh: '保存资料' })}</Text></Pressable></View> : null}</>;
+  </ScrollView>{editing ? <View style={{ backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#D7EAF0', paddingHorizontal: 16, paddingBottom: 12, paddingTop: 2 }}><Pressable onPress={() => void save()} disabled={busy} style={[button, { maxWidth: 720, width: '100%', alignSelf: 'center', opacity: busy ? 0.6 : 1 }]}><Text style={{ color: '#fff', fontWeight: '700' }}>{busy ? t({ en: 'Saving…', th: 'กำลังบันทึก...', zh: '保存中…' }) : t(form.category === 'ไกด์นำเที่ยว' && (pendingGuideDocument || form.hasGuideDocument) ? { en: 'Submit guide profile for review', th: 'ส่งโปรไฟล์ไกด์ให้ตรวจสอบ', zh: '提交导游资料审核' } : { en: 'Save profile', th: 'บันทึกข้อมูลโปรไฟล์', zh: '保存资料' })}</Text></Pressable></View> : null}
+  {cropping ? (
+    <PhotoCropper
+      uri={cropping.uri}
+      onCancel={() => setCropping(null)}
+      onDone={(croppedUri) => {
+        // The cropper hands back an object URL. The upload path already
+        // turns a web URI into a blob, so it needs nothing else - and the
+        // result is a square, which is what the avatar was always drawn as.
+        setPendingGuidePhoto({ ...cropping, uri: croppedUri, mimeType: 'image/jpeg' });
+        setCropping(null);
+      }}
+    />
+  ) : null}</>;
 }
