@@ -1,23 +1,7 @@
-/**
- * Security Shield / SOS.
- *
- * FOUR THINGS THE DESIGN ASKS FOR AND THE PROTOTYPE DOES NOT HAVE:
- *  1. A visible ring-fill during the 1200 ms hold. Without it the user has no
- *     idea whether the press registered, which in an emergency is the whole
- *     interaction.
- *  2. Haptics - a tick at 600 ms, a heavy impact on fire.
- *  3. Persistence. A fired alert lives on the server, so it survives
- *     navigation, backgrounding and a reinstall. The prototype clears it on
- *     navigate, which would silently drop a real emergency.
- *  4. The official Thai emergency numbers, shown alongside. ChivaGo dispatch
- *     runs WITH 1669 / 1155, never instead of them. A tourist safety product
- *     that hides the national ambulance number is doing harm.
- */
+/** Safety services and a local-only SOS confirmation demo. */
 
 import React from 'react';
-import { Animated, Image, Linking, Pressable, ScrollView, Text, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
-import * as Location from 'expo-location';
+import { Animated, Image, Linking, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Phone } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import {
@@ -39,7 +23,7 @@ import { t } from '../i18n/locale.ts';
 import { ProfileButton } from '../components/ProfileButton.tsx';
 
 export function SafetyScreen({
-  alert, onFire, onCancel, onShare, firing, onOpenProfile,
+  alert, onCancel, onShare, onOpenProfile,
 }: {
   alert: SosAlertRecord | null;
   onFire: (pos?: { lat: number; lng: number }) => void;
@@ -105,10 +89,8 @@ export function SafetyScreen({
 
       <SosSection
         alert={alert}
-        onFire={onFire}
         onCancel={onCancel}
         onShare={onShare}
-        firing={firing}
       />
       {/*
         Once an alert is live we know where the caller is, so the island
@@ -177,132 +159,51 @@ function ServiceRow({ service }: { service: ShieldService }) {
   );
 }
 
-/**
- * The SOS control.
- *
- * Press and hold for 1200 ms. Release early cancels. The circle is the ONE
- * permitted radius exception in the whole system, because it must read as a
- * physical emergency control rather than a UI element.
- */
+/** SOS confirmation demo: a tap opens a five-second cancel window. */
 function SosSection({
-  alert, onFire, onCancel, onShare, firing,
+  alert, onCancel, onShare,
 }: {
   alert: SosAlertRecord | null;
-  onFire: (pos?: { lat: number; lng: number }) => void;
   onCancel: () => void;
   onShare: () => void;
-  firing: boolean;
 }) {
   const armed = alert !== null;
-  const hold = React.useRef(new Animated.Value(0)).current;
   const pulse = React.useRef(new Animated.Value(0)).current;
-  const holdTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const tickTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  /**
-   * Seconds left before the alert goes out, or null when nothing is counting.
-   *
-   * The hold proves intent. It does not prove the intent was right: a pocket
-   * press and a real emergency clear 1200 ms identically. This is the window
-   * to take it back, and it is the only thing standing between a false alarm
-   * and a dispatch nobody asked for.
-   */
   const [countdown, setCountdown] = React.useState<number | null>(null);
-  const countdownTimer = React.useRef<ReturnType<typeof setInterval> | null>(null);
-  /** The fix fetched during the countdown, so the wait buys something. */
-  const fix = React.useRef<{ lat: number; lng: number } | null>(null);
+  const [demoTriggered, setDemoTriggered] = React.useState(false);
+  const dialogVisible = countdown !== null || demoTriggered;
 
-  const clearTimers = React.useCallback(() => {
-    if (holdTimer.current) clearTimeout(holdTimer.current);
-    if (tickTimer.current) clearTimeout(tickTimer.current);
-    holdTimer.current = null;
-    tickTimer.current = null;
-  }, []);
+  React.useEffect(() => {
+    if (countdown === null) return;
+    const timer = setTimeout(() => {
+      setCountdown((seconds) => {
+        if (seconds === null) return null;
+        if (seconds <= 1) {
+          setDemoTriggered(true);
+          return null;
+        }
+        return seconds - 1;
+      });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
-  const stopCountdown = React.useCallback(() => {
-    if (countdownTimer.current) clearInterval(countdownTimer.current);
-    countdownTimer.current = null;
-    fix.current = null;
-    setCountdown(null);
-  }, []);
-
-  // A timer that outlives its screen would fire an alert nobody is looking at.
-  React.useEffect(() => () => { clearTimers(); stopCountdown(); }, [clearTimers, stopCountdown]);
-
-  // The expanding ring while an alert is live.
+  // The expanding ring is only for an SOS alert that already exists on the server.
   React.useEffect(() => {
     if (!armed) { pulse.setValue(0); return; }
-    const loop = Animated.loop(
-      Animated.timing(pulse, { toValue: 1, duration: motion.sosPulseMs, useNativeDriver: true }),
-    );
+    const loop = Animated.loop(Animated.timing(pulse, { toValue: 1, duration: motion.sosPulseMs, useNativeDriver: true }));
     loop.start();
     return () => loop.stop();
   }, [armed, pulse]);
 
-  /**
-   * Ask for a position while the countdown runs.
-   *
-   * Best-effort on purpose. An emergency must fire whether or not the fix
-   * arrives - the server falls back to the last known area - so nothing here
-   * is allowed to block or throw into the countdown.
-   */
-  const locate = async () => {
-    try {
-      const perm = await Location.getForegroundPermissionsAsync();
-      if (!perm.granted) return;
-      const pos = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-      fix.current = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-    } catch {
-      // No fix. Fire without one rather than wait for one.
-    }
+  const startDemo = () => {
+    if (armed) return;
+    setDemoTriggered(false);
+    setCountdown(5);
   };
-
-  const beginCountdown = () => {
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    void locate();
-    const seconds = Math.round(motion.sosCountdownMs / 1000);
-    setCountdown(seconds);
-    let left = seconds;
-    countdownTimer.current = setInterval(() => {
-      left -= 1;
-      if (left > 0) {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        setCountdown(left);
-        return;
-      }
-      // Read the fix before clearing, then fire with whatever we managed to get.
-      const at = fix.current ?? undefined;
-      stopCountdown();
-      onFire(at);
-    }, 1000);
-  };
-
-  const startHold = () => {
-    if (armed || firing || countdown !== null) return;
-    Animated.timing(hold, {
-      toValue: 1,
-      duration: motion.sosHoldMs,
-      useNativeDriver: false,
-    }).start();
-
-    // A tick partway through, so the user feels the hold registering.
-    tickTimer.current = setTimeout(() => {
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }, motion.sosTickMs);
-
-    holdTimer.current = setTimeout(beginCountdown, motion.sosHoldMs);
-  };
-
-  const endHold = () => {
-    // Lifting a finger cancels the HOLD, never the countdown. Once the
-    // countdown has started the alert is committed: somebody knocked over, or
-    // dropping the phone, must not silently lose the help they just asked for.
-    // It stops at the Stop control, deliberately, or it does not stop.
-    if (countdown !== null) return;
-    clearTimers();
-    Animated.timing(hold, { toValue: 0, duration: 160, useNativeDriver: false }).start();
+  const cancelDemo = () => {
+    setCountdown(null);
+    setDemoTriggered(false);
   };
 
   return (
@@ -347,16 +248,13 @@ function SosSection({
         ) : null}
 
         <Pressable
-          onPressIn={startHold}
-          onPressOut={endHold}
-          disabled={armed || firing || countdown !== null}
+          onPress={startDemo}
+          disabled={armed}
           accessibilityRole="button"
           accessibilityLabel={
             armed
               ? `${t(strings.safety.sosArmed)}. ${t(strings.safety.dispatchDetail)}`
-              : countdown !== null
-                ? `SOS. ${t(strings.safety.sosSending(countdown))}. ${t(strings.safety.sosStop)} ${t({ en: 'to take it back', th: 'เพื่อยกเลิก', zh: '以取消发送' })}`
-                : `SOS. ${t(strings.safety.sosIdle)}, ${t({ en: '1.2 seconds', th: '1.2 วินาที', zh: '1.2 秒' })}`
+              : t({ en: 'Open SOS confirmation', th: 'เปิดหน้าต่างยืนยัน SOS', zh: '打开 SOS 确认' })
           }
           style={{
             width: 150,
@@ -380,79 +278,35 @@ function SosSection({
             overflow: 'hidden',
           }}
         >
-          {/* The progress fill the prototype has no equivalent of. */}
-          {!armed ? (
-            <Animated.View
-              pointerEvents="none"
-              style={{
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: countdown !== null ? color.accent2 : color.coralSoft,
-                height: hold.interpolate({ inputRange: [0, 1], outputRange: [0, 150] }),
-              }}
-            />
-          ) : null}
-          {/*
-            While counting, the number IS the control's face. "SOS" is what you
-            press; the seconds are what is happening, and nothing else in the
-            circle should compete with them.
-          */}
-          <Heading
-            size={countdown !== null ? 52 : 34}
-            colour={countdown !== null ? onFill.accent2 : armed ? onFill.accent2 : color.coralDeep}
-            tracking={countdown !== null ? -1 : 0.68}
-          >
-            {countdown !== null ? String(countdown) : 'SOS'}
-          </Heading>
+          <Heading size={34} colour={armed ? onFill.accent2 : color.coralDeep} tracking={0.68}>SOS</Heading>
           <Label
             size={10}
             tracking={0.14}
-            colour={countdown !== null || armed ? onFill.accent2 : color.coralDeep}
+            colour={armed ? onFill.accent2 : color.coralDeep}
             style={{ marginTop: 4 }}
           >
-            {countdown !== null
-              ? strings.safety.sosSending(countdown).en
-              : armed ? strings.safety.sosArmed.en : strings.safety.sosIdle.en}
+            {armed ? strings.safety.sosArmed.en : t({ en: 'Tap to start', th: 'แตะเพื่อเริ่ม', zh: '点击开始' })}
           </Label>
         </Pressable>
       </View>
 
-      {/*
-        The way out. Full width and directly under the thumb, because a person
-        who has just realised their pocket called an ambulance has about four
-        seconds and no patience for a small target.
-      */}
-      {countdown !== null ? (
-        <View style={{ marginTop: 16 }}>
-          <Button
-            label={strings.safety.sosStop.en}
-            // Bilingual, so the face is English over Thai whatever the app is
-            // set to. `chinese` stays wired for the day Button can carry a
-            // third line; today `bilingual` ignores it, and a responder's
-            // Thai is worth more here than a Chinese traveller's own language.
-            bilingual
-            thai={strings.safety.sosStop.th}
-            chinese={strings.safety.sosStop.zh}
-            variant="secondary"
-            height={56}
-            onPress={stopCountdown}
-            // Carries the countdown ring's coral, so the eye that is already
-            // on the circle finds this without reading anything.
-            style={{
-              borderWidth: layout.ruleStrong,
-              borderColor: color.accent2,
-              backgroundColor: color.surface,
-            }}
-          />
-          <Thai always size={10} colour={color.neutral600} style={{ marginTop: 8, textAlign: 'center' }}>
-            {strings.safety.sosSending(countdown).th}
-          </Thai>
-        </View>
-      ) : null}
-
       {alert ? <DispatchPanel alert={alert} onCancel={onCancel} onShare={onShare} /> : null}
+
+      <Modal visible={dialogVisible} transparent animationType="fade" onRequestClose={cancelDemo}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(3, 24, 44, 0.58)', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <View style={{ width: '100%', maxWidth: 360, borderRadius: 24, padding: 24, backgroundColor: '#fff', alignItems: 'center', borderWidth: 2, borderColor: color.accent2 }}>
+            <Heading size={22} colour={color.coralDeep}>{demoTriggered ? t({ en: 'SOS activated', th: 'เปิดสัญญาณ SOS แล้ว', zh: 'SOS 已启动' }) : t({ en: 'Start SOS?', th: 'เริ่ม SOS หรือไม่?', zh: '启动 SOS？' })}</Heading>
+            {demoTriggered ? <>
+              <Body size={14} colour={color.neutral700} style={{ textAlign: 'center', marginTop: 12 }}>{t({ en: 'Demo only. No real SOS or emergency notification was sent.', th: 'โหมดทดลอง ไม่มีการส่ง SOS จริงหรือแจ้งหน่วยฉุกเฉิน', zh: '仅为演示，未发送真实 SOS 或紧急通知。' })}</Body>
+              <Button label={t({ en: 'Close', th: 'ปิด', zh: '关闭' })} onPress={cancelDemo} height={48} style={{ alignSelf: 'stretch', marginTop: 18 }} />
+            </> : <>
+              <Text style={{ fontSize: 64, lineHeight: 78, fontWeight: '800', color: color.coralDeep, marginTop: 10 }}>{countdown}</Text>
+              <Body size={14} colour={color.neutral700} style={{ textAlign: 'center', marginTop: 2 }}>{t({ en: 'SOS starts when the countdown ends.', th: 'ระบบจะแสดง SOS เมื่อหมดเวลา', zh: '倒计时结束后将启动 SOS。' })}</Body>
+              <Button label={strings.safety.sosStop.en} bilingual thai={strings.safety.sosStop.th} onPress={cancelDemo} variant="secondary" height={52} style={{ alignSelf: 'stretch', marginTop: 18, borderWidth: layout.ruleStrong, borderColor: color.accent2 }} />
+            </>}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
