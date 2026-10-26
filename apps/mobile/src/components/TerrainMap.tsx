@@ -317,6 +317,12 @@ const MARK_CSS = `
 .cg-compass{position:absolute;top:10px;left:10px;width:46px;height:46px;border-radius:50%;padding:0;cursor:pointer;
   border:2px solid ${color.text};background:rgba(255,250,236,.94);box-shadow:0 2px 8px rgba(8,26,48,.3);z-index:2}
 .cg-compass svg{width:100%;height:100%;transition:transform .2s ease-out}
+.maplibregl-map.cg-fullscreen .maplibregl-ctrl-top-right{top:8px;right:8px}
+.maplibregl-map.cg-fullscreen .maplibregl-ctrl-group{overflow:hidden;border-radius:30px;background:#fff;box-shadow:0 3px 14px rgba(4,30,55,.24)}
+.maplibregl-map.cg-fullscreen .maplibregl-ctrl-group button{width:58px;height:58px}
+.maplibregl-map.cg-fullscreen .maplibregl-ctrl-bottom-left{left:auto;right:10px}
+.maplibregl-map.cg-fullscreen .cg-compass{top:202px;left:auto;right:10px;width:58px;height:58px;border:0;background:#fff;box-shadow:0 3px 14px rgba(4,30,55,.24)}
+.maplibregl-map.cg-fullscreen .cg-compass svg{width:26px;height:26px}
 @keyframes cg-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 @keyframes cg-pulse{0%{transform:scale(.7);opacity:.9}100%{transform:scale(2.1);opacity:0}}
 @media (prefers-reduced-motion: reduce){.cg-chip,.cg-ring,.cg-here i,.cg-mote{animation:none}.cg-compass svg{transition:none}}
@@ -411,13 +417,16 @@ const STOP_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true">
 <circle cx="15.4" cy="19.4" r="1.7" fill="#ffffff"/>
 </svg>`;
 
-/** The rose. The needle points true north whatever the camera does. */
+/** The existing compass rose for the ordinary map view. */
 const COMPASS_SVG = `<svg viewBox="0 0 46 46" aria-hidden="true">
 <circle cx="23" cy="23" r="17" fill="none" stroke="${color.neutral400}" stroke-width="1"/>
 <path d="M23 5 L27.5 23 L23 20 L18.5 23 Z" fill="${color.ctaDeep}"/>
 <path d="M23 41 L27.5 23 L23 26 L18.5 23 Z" fill="${color.neutral500}"/>
 <path d="M5 23 L23 18.5 L20 23 L23 27.5 Z M41 23 L23 18.5 L26 23 L23 27.5 Z" fill="${color.neutral400}"/>
 <text x="23" y="12.5" text-anchor="middle" font-family="Anuphan,system-ui,sans-serif" font-size="7" font-weight="700" fill="${color.text}">N</text>
+</svg>`;
+const LOCATE_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true">
+<path d="M21 3 14.5 21l-3.2-7.3L4 10.5 21 3Z" fill="none" stroke="${color.brand}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
 /**
@@ -477,7 +486,8 @@ const DEM_SOURCES = ['terrain', 'relief', 'deep'];
 
 export function TerrainMap({
   places, onSelect, shops = [], onSelectShop, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area, storied,
-  tales, onOpenStory, stops = [],
+  tales, onOpenStory, stops = [], interactive = true, fullScreenControls = false,
+  onPickCoordinate, selectedCoordinate = null,
   here = null, way = null, wayIsRoute = false, fairLots = null, fairFocus = null,
 }: {
   places: ScoredPlace[];
@@ -491,6 +501,12 @@ export function TerrainMap({
   height?: number;
   /** Phone-width: score-only pins, no zoom buttons. Decided by `SamuiMap`. */
   compact?: boolean;
+  /** Disable map gestures and camera motion in the overview image. */
+  interactive?: boolean;
+  /** Apply the larger map controls only while the map is expanded. */
+  fullScreenControls?: boolean;
+  onPickCoordinate?: (point: { lat: number; lng: number }) => void;
+  selectedCoordinate?: { lat: number; lng: number } | null;
   /** The island unless told otherwise. A campus is flat, framed at street zoom, and grows buildings. */
   area?: Area;
   /** Places with an approved story on them: a gold ring on the chip (docs/45). */
@@ -538,6 +554,11 @@ export function TerrainMap({
   // same heading the compass and reduced motion give, not the intro's swing.
   const settledBearing = React.useRef(0);
   const map = React.useRef<MapLibreMap | null>(null);
+  const hereRef = React.useRef(here);
+  hereRef.current = here;
+  const pickCoordinateRef = React.useRef(onPickCoordinate);
+  pickCoordinateRef.current = onPickCoordinate;
+  const pickerMarker = React.useRef<Marker | null>(null);
   const markers = React.useRef<Marker[]>([]);
   // Kept apart from `markers`, which is torn down and rebuilt whenever the
   // places change. The traveller is not a place and must not be swept up.
@@ -569,7 +590,7 @@ export function TerrainMap({
     if (!holder.current || map.current) return;
     ensureMarkCss();
 
-    const still = prefersReducedMotion();
+    const still = prefersReducedMotion() || !interactive;
     let hour = hourNow();
     /*
       The campus (docs/43). Its box from the OpenStreetMap outline, a little
@@ -624,9 +645,30 @@ export function TerrainMap({
       minZoom: campus ? 14 : 9,
       maxZoom: campus ? 18.5 : 15.5,
       maxPitch: MAX_PITCH,
+      interactive,
+      dragRotate: interactive,
+      touchZoomRotate: interactive,
+      touchPitch: interactive,
       // Added by hand below, so it can be folded.
       attributionControl: false,
     });
+    const movePickerMarker = (point: { lat: number; lng: number }) => {
+      if (!pickerMarker.current) {
+        const pin = document.createElement('div');
+        pin.setAttribute('aria-hidden', 'true');
+        Object.assign(pin.style, { width: '22px', height: '22px', borderRadius: '50%', background: '#0077B6', border: '4px solid #fff', boxShadow: '0 2px 10px rgba(0,0,0,.35)' });
+        pickerMarker.current = new Marker({ element: pin, anchor: 'center' }).addTo(m);
+      }
+      pickerMarker.current.setLngLat([point.lng, point.lat]);
+    };
+    m.on('click', (event) => {
+      const target = event.originalEvent.target;
+      if (target instanceof Element && target.closest('.maplibregl-ctrl, .maplibregl-marker, .maplibregl-popup')) return;
+      const point = { lat: event.lngLat.lat, lng: event.lngLat.lng };
+      pickCoordinateRef.current?.(point);
+      if (pickCoordinateRef.current) movePickerMarker(point);
+    });
+    if (onPickCoordinate && selectedCoordinate) movePickerMarker(selectedCoordinate);
     holder.current.classList.toggle('cg-night', paletteFor(hour).night);
     dressTheAir(grade.current, paletteFor(hour), still);
 
@@ -1011,11 +1053,16 @@ export function TerrainMap({
     // map used to keep its GL context alive behind the fallback text until
     // the screen unmounted - a context the phone counts against a small
     // budget, held for a map nobody could see.
+    const resetMapView = () => m.easeTo({ ...settled, duration: 650, essential: true });
+    window.addEventListener('chivago-map-reset', resetMapView);
     const bail = () => {
       window.clearInterval(relight);
       window.clearInterval(tide);
       watcher?.disconnect();
+      window.removeEventListener('chivago-map-reset', resetMapView);
       fog.current = null;
+      pickerMarker.current?.remove();
+      pickerMarker.current = null;
       if (map.current) { map.current.remove(); map.current = null; }
     };
 
@@ -1079,7 +1126,7 @@ export function TerrainMap({
     // Zoom buttons are for a mouse. On a phone they sat over Pha-ngan, and
     // pinch and drag already do everything they do. Read once, at mount: a
     // phone does not become a desktop by rotating.
-    if (!compact) m.addControl(new NavigationControl({ visualizePitch: true }), 'top-right');
+    if (!compact && interactive) m.addControl(new NavigationControl({ visualizePitch: true }), 'top-right');
     // `compact` asks for the little (i); keeping it folded takes more than
     // asking - see the `fold` handlers above.
     m.addControl(new AttributionControl({ compact: true }), 'bottom-left');
@@ -1103,14 +1150,19 @@ export function TerrainMap({
     const compass = document.createElement('button');
     compass.type = 'button';
     compass.className = 'cg-compass';
-    compass.setAttribute('aria-label', t(strings.map.compass));
-    compass.innerHTML = COMPASS_SVG;
+    compass.setAttribute('aria-label', fullScreenControls
+      ? t({ en: 'Center on my location', th: 'กลับไปตำแหน่งของฉัน', zh: '定位到我的位置' })
+      : t(strings.map.compass));
+    compass.innerHTML = fullScreenControls ? LOCATE_SVG : COMPASS_SVG;
     const needle = compass.firstElementChild as SVGElement;
     const turn = () => { needle.style.transform = `rotate(${-m.getBearing()}deg)`; };
-    m.on('rotate', turn);
-    turn();
-    compass.addEventListener('click', () => {
-      m.easeTo({ ...settled, duration: still ? 0 : 900, easing: settleEasing, essential: true });
+    if (!fullScreenControls) { m.on('rotate', turn); turn(); }
+    if (interactive) compass.addEventListener('click', () => {
+      if (fullScreenControls && hereRef.current) {
+        m.easeTo({ center: [hereRef.current.lng, hereRef.current.lat], zoom: Math.max(m.getZoom(), 14), duration: 650, essential: true });
+      } else {
+        m.easeTo({ ...settled, duration: still ? 0 : 900, easing: settleEasing, essential: true });
+      }
     });
     holder.current.appendChild(compass);
 
@@ -1648,7 +1700,7 @@ export function TerrainMap({
   */
   React.useEffect(() => {
     const m = map.current;
-    if (!m || !fairFocus) return;
+    if (!m || !fairFocus || !interactive) return;
     const go = () => {
       if (!map.current) return;
       m.flyTo({
@@ -1663,7 +1715,7 @@ export function TerrainMap({
     if (loaded.current) go();
     else m.once('load', go);
     return () => { m.off('load', go); };
-  }, [fairFocus]);
+  }, [fairFocus, interactive]);
 
   if (failed) {
     return (
@@ -1688,6 +1740,7 @@ export function TerrainMap({
       */}
       <div
         ref={holder}
+        className={fullScreenControls ? 'cg-fullscreen' : undefined}
         style={{ position: 'absolute', inset: 0 }}
       />
       {/*

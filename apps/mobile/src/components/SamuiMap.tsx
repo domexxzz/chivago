@@ -403,6 +403,13 @@ export interface SamuiMapProps {
   height?: number;
   /** Score-only pins, no zoom buttons. Decided here from the width unless a caller says. */
   compact?: boolean;
+  /** Disable movement in the overview image; full screen enables map gestures. */
+  interactive?: boolean;
+  /** Use the larger control placement while this map fills the screen. */
+  fullScreenControls?: boolean;
+  /** Map picker callback and its current pin. */
+  onPickCoordinate?: (point: { lat: number; lng: number }) => void;
+  selectedCoordinate?: { lat: number; lng: number } | null;
   /**
    * Bus stops that serve this area. Drawn by the web map only - the drawn
    * island is a traced silhouette, and a stop on it would claim a precision
@@ -490,7 +497,7 @@ export function SamuiMap(props: SamuiMapProps) {
 }
 
 /** Native's existing SVG engine: a coordinate grid, never another island's coastline. */
-function AreaPointMap({ area, places, shops = [], onSelect, onSelectShop, height }: SamuiMapProps & { area: Area; height: number }) {
+function AreaPointMap({ area, places, shops = [], onSelect, onSelectShop, onPickCoordinate, selectedCoordinate, height }: SamuiMapProps & { area: Area; height: number }) {
   const { width: windowWidth } = useWindowDimensions();
   const [measured, setMeasured] = React.useState(0);
   const width = measured || windowWidth;
@@ -502,11 +509,25 @@ function AreaPointMap({ area, places, shops = [], onSelect, onSelectShop, height
         {[0.2, 0.4, 0.6, 0.8].map((v) => <React.Fragment key={v}><Line x1={v * width} y1={0} x2={v * width} y2={mapHeight} stroke="#A4D5DF" strokeWidth={1} /><Line x1={0} y1={v * mapHeight} x2={width} y2={v * mapHeight} stroke="#A4D5DF" strokeWidth={1} /></React.Fragment>)}
         <Rect x={14} y={15} width={width - 28} height={mapHeight - 36} rx={16} stroke="#5BAABE" strokeWidth={1.5} fill="transparent" />
       </Svg>
+      {onPickCoordinate ? <Pressable
+        onPress={(event) => {
+          const { minLat, maxLat, minLng, maxLng } = area.bbox;
+          const x = Math.max(18, Math.min(width - 18, event.nativeEvent.locationX));
+          const y = Math.max(20, Math.min(mapHeight - 28, event.nativeEvent.locationY));
+          onPickCoordinate({
+            lng: minLng + ((x - 18) / (width - 36)) * (maxLng - minLng),
+            lat: maxLat - ((y - 20) / (mapHeight - 48)) * (maxLat - minLat),
+          });
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={t({ en: 'Choose this map location', th: 'เลือกตำแหน่งนี้บนแผนที่', zh: '选择此地图位置' })}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      /> : null}
+      {selectedCoordinate && onPickCoordinate ? (() => { const pos = point(selectedCoordinate.lat, selectedCoordinate.lng); return <View pointerEvents="none" style={{ position: 'absolute', left: pos.left - 10, top: pos.top - 10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#0077B6', borderWidth: 4, borderColor: '#fff', elevation: 5 }} />; })() : null}
       <View style={{ position: 'absolute', top: 8, left: 12, backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }}><Label size={10} colour="#0077B6">{t(area.name)} · แผนผังพิกัด</Label></View>
       {places.map((place) => { const pos = point(place.lat, place.lng); return <Pressable key={place.id} onPress={() => onSelect(place)} accessibilityLabel={t(place.name)} style={{ position: 'absolute', left: pos.left - 16, top: pos.top - 20, backgroundColor: '#0077B6', borderWidth: 2, borderColor: '#fff', borderRadius: 16, paddingHorizontal: 5, paddingVertical: 4 }}><Label size={10} colour="#fff">{place.healthyScore}</Label></Pressable>; })}
-      {shops.filter(hasMapPoint).map((shop) => { const pos = point(shop.lat, shop.lng); return <Pressable key={`shop-${shop.id}`} onPress={() => onSelectShop?.(shop)} accessibilityLabel={`ร้าน ${shop.name}`} style={{ position: 'absolute', left: pos.left - 17, top: pos.top - 21, backgroundColor: '#F77F00', borderWidth: 2, borderColor: '#fff', borderRadius: 18, paddingHorizontal: 7, paddingVertical: 4 }}><Label size={10} colour="#fff">🏪</Label></Pressable>; })}
     </View>
-    <PlaceList places={places} shops={shops} onSelect={onSelect} onSelectShop={onSelectShop} height={100} />
+    {!onPickCoordinate ? <PlaceList places={places} shops={shops} onSelect={onSelect} onSelectShop={onSelectShop} height={100} /> : null}
   </View>;
 }
 
@@ -545,7 +566,7 @@ function PlaceList({
 
 function IslandMap({
   places, onSelect, shops = [], onSelectShop, explored = [], height = 344, compact = false, storied, tales, onOpenStory,
-  here = null,
+  here = null, area, onPickCoordinate, selectedCoordinate,
 }: SamuiMapProps) {
   /**
    * The map is full-bleed, so the window IS its width.
@@ -592,6 +613,30 @@ function IslandMap({
       {width > 0 ? <IslandShape width={width} height={height} /> : null}
       {width > 0 ? <DrawnClouds width={width} height={height} still={still} /> : null}
       {width > 0 ? <DrawnMist width={width} height={height} explored={explored} places={places} /> : null}
+      {width > 0 && onPickCoordinate && area ? <Pressable
+        onPress={(event) => {
+          const { minLat, maxLat, minLng, maxLng } = area.bbox;
+          const screenX = event.nativeEvent.locationX / width;
+          const screenY = event.nativeEvent.locationY / height;
+          const groundY = Math.max(0, Math.min(1, (screenY - 0.03) / 0.88));
+          const spread = 1 - 0.16 * (1 - groundY);
+          const groundX = Math.max(0, Math.min(1, 0.5 + (screenX - 0.5) / spread));
+          const x = Math.max(0, Math.min(1, (groundX - 0.16) / 0.68));
+          const y = Math.max(0, Math.min(1, (groundY - 0.14) / 0.72));
+          onPickCoordinate({
+            lng: minLng + x * (maxLng - minLng),
+            lat: maxLat - y * (maxLat - minLat),
+          });
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={t({ en: 'Choose this map location', th: 'เลือกตำแหน่งนี้บนแผนที่', zh: '选择此地图位置' })}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      /> : null}
+      {width > 0 && onPickCoordinate && selectedCoordinate ? (() => {
+        const pos = project(selectedCoordinate.lat, selectedCoordinate.lng);
+        const ground = tilt(pos.x, pos.y);
+        return <View pointerEvents="none" style={{ position: 'absolute', left: ground.x * width - 10, top: ground.y * height - 10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#0077B6', borderWidth: 4, borderColor: '#fff', elevation: 5 }} />;
+      })() : null}
       {/*
         You are here, on the drawing.
 
@@ -654,8 +699,8 @@ function IslandMap({
       }) : null}
 
       {/* Legend: the island average today, and how much of it they have reached. */}
-      <MapLegend places={places} explored={explored} />
-      <ShapeNote />
+      {!onPickCoordinate ? <MapLegend places={places} explored={explored} /> : null}
+      {!onPickCoordinate ? <ShapeNote /> : null}
     </View>
   );
 }

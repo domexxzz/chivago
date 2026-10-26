@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Image, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { AREAS, type AreaKey } from '@chivago/core';
 import { ArrowLeft, Camera, ChevronDown, MapPin, Plus, Store, UserRound } from 'lucide-react-native';
@@ -11,6 +11,7 @@ import { useAsync } from '../state/store.tsx';
 import { useHere } from '../state/here.ts';
 import { t } from '../i18n/locale.ts';
 import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
+import { SamuiMap } from '../components/SamuiMap.tsx';
 
 const blue = '#0077B6';
 type ShopManageForm = ShopInput & Pick<Shop, 'guideStatus' | 'guideProfilePhotoUrl'>;
@@ -44,6 +45,9 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
   const [form, setForm] = React.useState<ShopManageForm>(blank());
   const [lat, setLat] = React.useState('');
   const [lng, setLng] = React.useState('');
+  const [pickingCoordinates, setPickingCoordinates] = React.useState(false);
+  const [pickedCoordinates, setPickedCoordinates] = React.useState<{ lat: number; lng: number } | null>(null);
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [amenities, setAmenities] = React.useState('');
   const [languageQuery, setLanguageQuery] = React.useState('');
   const [openDropdown, setOpenDropdown] = React.useState<'category' | 'area' | 'language' | null>(null);
@@ -82,6 +86,7 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
   const done = (text: string) => setMessage({ text, ok: true });
   const [images, setImages] = React.useState<{ id: string; kind: string; url: string }[]>([]);
   const here = useHere();
+  const pickerArea = AREAS.find((area) => area.key === form.areaKey)!;
   React.useEffect(() => {
     if (!editing || editing === 'new') return;
     const shop = mine.data?.find((s) => s.id === editing);
@@ -175,6 +180,17 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
   const toggleGuideLanguage = (language: string) => update('guideLanguages', form.guideLanguages.includes(language)
     ? form.guideLanguages.filter((item) => item !== language)
     : [...form.guideLanguages, language]);
+  const openCoordinatePicker = () => {
+    const current = lat.trim() && lng.trim() ? { lat: Number(lat), lng: Number(lng) } : null;
+    setPickedCoordinates(current && Number.isFinite(current.lat) && Number.isFinite(current.lng) ? current : null);
+    setPickingCoordinates(true);
+  };
+  const acceptPickedCoordinates = () => {
+    if (!pickedCoordinates) return;
+    setLat(pickedCoordinates.lat.toFixed(6));
+    setLng(pickedCoordinates.lng.toFixed(6));
+    setPickingCoordinates(false);
+  };
   const visibleLanguages = GUIDE_LANGUAGE_OPTIONS.filter((language) => {
     const query = languageQuery.trim().toLocaleLowerCase();
     return !query || `${language.name} ${language.search}`.toLocaleLowerCase().includes(query);
@@ -220,7 +236,10 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
         </>}
         {form.category !== 'ไกด์นำเที่ยว' ? <><Text style={{ color: '#123B64', fontWeight: '700', marginBottom: 6 }}>{t({ en: 'Business coordinates', th: 'พิกัดร้านค้า', zh: '店铺坐标' })}</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}><TextInput value={lat} onChangeText={setLat} keyboardType="decimal-pad" placeholder="Latitude" style={[inputStyle, { flex: 1 }]} /><TextInput value={lng} onChangeText={setLng} keyboardType="decimal-pad" placeholder="Longitude" style={[inputStyle, { flex: 1 }]} /></View>
-        <Pressable onPress={() => { if (here) { setLat(String(here.lat)); setLng(String(here.lng)); } else fail(t({ en: 'Could not get the device location.', th: 'ยังไม่ได้รับตำแหน่งจากอุปกรณ์', zh: '无法获取设备位置。' })); }} style={{ flexDirection: 'row', gap: 5, paddingVertical: 12 }}><MapPin size={16} color={blue} /><Text style={{ color: blue }}>{t({ en: 'Use current location', th: 'ใช้ตำแหน่งปัจจุบัน', zh: '使用当前位置' })}</Text></Pressable></> : null}
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+          <Pressable onPress={openCoordinatePicker} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: '#E4F4F8' }}><MapPin size={16} color={blue} /><Text style={{ color: blue, fontWeight: '700' }}>{t({ en: 'Choose on map', th: 'เลือกจากแผนที่', zh: '在地图上选择' })}</Text></Pressable>
+          <Pressable onPress={() => { if (here) { setLat(String(here.lat)); setLng(String(here.lng)); } else fail(t({ en: 'Could not get the device location.', th: 'ยังไม่ได้รับตำแหน่งจากอุปกรณ์', zh: '无法获取设备位置。' })); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, paddingVertical: 10 }}><MapPin size={16} color={blue} /><Text style={{ color: blue }}>{t({ en: 'Use current location', th: 'ใช้ตำแหน่งปัจจุบัน', zh: '使用当前位置' })}</Text></Pressable>
+        </View></> : null}
         {form.category === 'ไกด์นำเที่ยว' ? sectionTitle('Contact information', 'ช่องทางติดต่อ', '联系方式') : null}
         {field(t({ en: 'Contact phone', th: 'เบอร์ติดต่อ', zh: '联系电话' }), 'phone')}
         {form.category === 'ไกด์นำเที่ยว' ? field('LINE ID', 'guideLineId', t({ en: 'Your LINE ID', th: 'LINE ID สำหรับติดต่อ', zh: '您的 LINE ID' })) : null}
@@ -232,6 +251,30 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
       </View>}
     </View>
   </ScrollView>{editing ? <View style={{ backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#D7EAF0', paddingHorizontal: 16, paddingBottom: 12, paddingTop: 2 }}><Pressable onPress={() => void save()} disabled={busy} style={[button, { maxWidth: 720, width: '100%', alignSelf: 'center', opacity: busy ? 0.6 : 1 }]}><Text style={{ color: '#fff', fontWeight: '700' }}>{busy ? t({ en: 'Saving…', th: 'กำลังบันทึก...', zh: '保存中…' }) : t({ en: 'Save profile', th: 'บันทึกข้อมูลโปรไฟล์', zh: '保存资料' })}</Text></Pressable></View> : null}
+  <Modal visible={pickingCoordinates} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setPickingCoordinates(false)}>
+    <View style={{ flex: 1, backgroundColor: '#EAF7FB' }}>
+      <SamuiMap
+        area={pickerArea}
+        places={[]}
+        shops={[]}
+        onSelect={() => {}}
+        height={windowHeight}
+        compact={false}
+        interactive
+        fullScreenControls
+        onPickCoordinate={setPickedCoordinates}
+        selectedCoordinate={pickedCoordinates}
+      />
+      <View style={{ position: 'absolute', top: Platform.OS === 'web' ? 14 : 52, left: 14, right: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <Pressable onPress={() => setPickingCoordinates(false)} accessibilityRole="button" accessibilityLabel={t({ en: 'Back', th: 'กลับ', zh: '返回' })} style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 5 }}><ArrowLeft size={23} color={blue} /></Pressable>
+        <Text style={{ flex: 1, color: '#123B64', fontWeight: '800', fontSize: 16, backgroundColor: 'rgba(255,255,255,0.94)', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 18 }}>{t({ en: 'Tap the map to choose a location', th: 'แตะแผนที่เพื่อเลือกตำแหน่งร้าน', zh: '点击地图选择店铺位置' })}</Text>
+      </View>
+      <View style={{ position: 'absolute', left: 14, right: 14, bottom: 14, backgroundColor: '#fff', borderRadius: 20, padding: 16, elevation: 8, shadowColor: '#123B64', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }}>
+        <Text style={{ color: '#123B64', fontWeight: '700' }}>{pickedCoordinates ? `${pickedCoordinates.lat.toFixed(6)}, ${pickedCoordinates.lng.toFixed(6)}` : t({ en: 'No location selected', th: 'ยังไม่ได้เลือกตำแหน่ง', zh: '尚未选择位置' })}</Text>
+        <Pressable onPress={acceptPickedCoordinates} disabled={!pickedCoordinates} style={{ backgroundColor: pickedCoordinates ? blue : '#9CBAC7', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 12 }}><Text style={{ color: '#fff', fontWeight: '800' }}>{t({ en: 'Use this location', th: 'ใช้ตำแหน่งนี้', zh: '使用此位置' })}</Text></Pressable>
+      </View>
+    </View>
+  </Modal>
   {cropping ? (
     <PhotoCropper
       uri={cropping.uri}
