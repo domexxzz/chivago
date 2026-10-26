@@ -1828,8 +1828,24 @@ export function renderNotification(
     s.replace(/\{(\w+)\}/g, (whole, name: string) =>
       Object.hasOwn(params, name) ? resolve(params[name]!, lang) : whole,
     );
+  /*
+   * Every language the product speaks, not two of them.
+   *
+   * This returned `{en, th}` while all sixteen templates already carried
+   * Chinese and `notification-service.ts` already stored and honoured
+   * `locale: 'zh'`. The service's `pick` then fell back to English, so a
+   * device registered in Chinese was pushed English - including
+   * `sos_contact_escalated`, the line that says ChivaGo cannot send help and
+   * to call 1669. A notification is the one place somebody reads a single
+   * line and acts on it without opening anything.
+   *
+   * Read through `localise` rather than `.zh` directly: the field is optional
+   * on `Localised`, and its fallback chain is the right answer for a template
+   * that has not been translated yet.
+   */
+  const line = (value: Localised, lang: Lang): string => fill(localise(value, lang), lang);
   return {
-    title: { en: fill(template.title.en, 'en'), th: fill(template.title.th, 'th') },
-    body: { en: fill(template.body.en, 'en'), th: fill(template.body.th, 'th') },
+    title: { en: line(template.title, 'en'), th: line(template.title, 'th'), zh: line(template.title, 'zh') },
+    body: { en: line(template.body, 'en'), th: line(template.body, 'th'), zh: line(template.body, 'zh') },
   };
 }

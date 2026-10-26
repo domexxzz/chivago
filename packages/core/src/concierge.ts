@@ -119,9 +119,31 @@ const EMERGENCY_WORDS = [
   'drowning', 'injured', 'bleeding', 'stolen', 'robbed',
   'ฉุกเฉิน', 'รถพยาบาล', 'อุบัติเหตุ', 'โรงพยาบาล', 'ตำรวจ',
   'จมน้ำ', 'บาดเจ็บ', 'เลือด', 'ขโมย', 'ช่วยด้วย',
+  /*
+   * Chinese, which this list did not have at all.
+   *
+   * `detect` has returned 'zh' since the third language landed, the replies
+   * below carry Chinese, and the suggestion chips in `OPENERS` are written in
+   * Chinese - but nothing Chinese could ever MATCH. So 救命 classified as
+   * `unknown`, which means no 1669, no Tourist Police, and no `action:
+   * 'safety'`. The language was added at the way out and not at the way in.
+   *
+   * These match as substrings, like the Thai above, because `has` only uses a
+   * word boundary for terms containing Latin letters and Chinese is written
+   * without spaces. Compounds rather than single characters where a single
+   * one would be too eager: 被偷 and 小偷 instead of a bare 偷, which also
+   * sits inside 偷懒.
+   */
+  '救命', '紧急', '救护车', '事故', '医院', '警察',
+  '溺水', '受伤', '流血', '出血', '被偷', '小偷', '抢劫',
 ];
 
-const CRY_FOR_HELP = /^\s*(help|ช่วย|ช่วยด้วย)\s*!*\s*$/i;
+/*
+ * A bare shout, in any of the three. `[!！]` takes the fullwidth exclamation
+ * mark too, because a Chinese keyboard produces that one and 救命！would
+ * otherwise have missed by a single character.
+ */
+const CRY_FOR_HELP = /^\s*(help|ช่วยด้วย|ช่วย|救命|救我|帮帮我|帮我)\s*[!！]*\s*$/i;
 
 /**
  * Does the sentence contain any of these words?
