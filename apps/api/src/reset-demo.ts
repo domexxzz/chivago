@@ -110,7 +110,10 @@ export const TRAVELLER_TABLES = [
   // Accounts and parties are the traveller's, not the pilot's. Both arrived
   // after this list was written, and the schema guard below did its job: the
   // reset refused to run at all until they were classified.
-  'user_accounts', 'device_keys', 'link_codes',
+  // A LINE sign-in is a fourth way into a traveller's account, alongside the
+  // three above, so it is cleared with them: a reset that left the binding
+  // behind would sign the next person in as a traveller who no longer exists.
+  'user_accounts', 'device_keys', 'link_codes', 'line_identities',
   // A party's invitations and the requests to join them go with the party -
   // children first, so the foreign keys never see an orphan.
   'invite_requests', 'party_invites', 'party_members', 'parties',

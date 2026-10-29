@@ -1872,5 +1872,30 @@ export function migrate(db: DB): string[] {
   applied.push('local_shops');
   applied.push('user_accounts');
 
+  /*
+    Signing in with LINE (line-auth.ts).
+
+    A fourth credential pointing at the SAME `users.id` as a device key, an
+    email and a link code, so a traveller who signs in with LINE on a new
+    phone finds the points they already earned.
+
+    One row per LINE account, and the row holds nothing but the opaque `sub`.
+    No display name, no picture, no email - this server collects the least it
+    can, and a login is no reason to start collecting more.
+
+    `sub` is the primary key, so one LINE account cannot quietly end up on two
+    travellers. The reverse is allowed: a traveller may have a device key, an
+    email AND a LINE account, which is the whole point.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS line_identities (
+      line_sub   TEXT PRIMARY KEY,
+      user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_line_identities_user ON line_identities(user_id);
+  `);
+  applied.push('line_identities');
+
   return applied;
 }

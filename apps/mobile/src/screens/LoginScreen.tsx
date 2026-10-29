@@ -44,6 +44,7 @@ import {
   X,
 } from 'lucide-react-native';
 
+import { finishLineSignIn, lineSignInAvailable, startLineSignIn } from '../api/line-signin.ts';
 import chivagoColorLogo from '../../assets/chivago-color-logo.png';
 import loginFooterWaves from '../../assets/login-footer-waves.png';
 import { api } from '../api/client.ts';
@@ -122,6 +123,33 @@ export function LoginScreen({
   // Dialog states for informational notices
   const [recoveryModalVisible, setRecoveryModalVisible] = React.useState(false);
   const [oauthNoticeProvider, setOauthNoticeProvider] = React.useState<'Google' | 'LINE' | null>(null);
+
+  /*
+    Coming back from LINE. The callback left a single-use link code in the URL
+    fragment; this claims it, stores the device key and lets the screen move
+    on. A clash is the one case that cannot be resolved here: two travellers
+    both have a history, and merging wallets is not something a login screen
+    may decide, so it says so and leaves both accounts alone.
+  */
+  React.useEffect(() => {
+    let live = true;
+    void finishLineSignIn().then((r) => {
+      if (!live || r.kind === 'none') return;
+      if (r.kind === 'signed-in') { onLoginSuccess?.('traveller'); return; }
+      setErrorMessage(t(
+        r.kind === 'clash'
+          ? {
+            en: 'That LINE account already belongs to another ChivaGo account, and this phone has points of its own. Signing in would have to merge them, which is not possible yet — so nothing was changed.',
+            th: 'บัญชี LINE นี้ผูกกับบัญชี ChivaGo อื่นอยู่แล้ว และเครื่องนี้ก็มีแต้มของตัวเอง การเข้าสู่ระบบจะต้องรวมสองบัญชี ซึ่งยังทำไม่ได้ — จึงยังไม่มีอะไรเปลี่ยน',
+            zh: '该 LINE 账户已绑定另一个 ChivaGo 账户，而本机也有自己的积分。登录需要合并两个账户，目前尚不支持，因此未做任何更改。',
+          }
+          : r.kind === 'cancelled'
+            ? { en: 'LINE sign-in was cancelled.', th: 'ยกเลิกการเข้าสู่ระบบด้วย LINE แล้ว', zh: '已取消 LINE 登录。' }
+            : { en: 'LINE sign-in did not finish. Please try again.', th: 'เข้าสู่ระบบด้วย LINE ไม่สำเร็จ กรุณาลองใหม่', zh: 'LINE 登录未完成，请重试。' },
+      ));
+    });
+    return () => { live = false; };
+  }, []);
 
   const validate = (): boolean => {
     const trimmedId = identifier.trim();
@@ -464,7 +492,12 @@ export function LoginScreen({
 
             {/* Alternative Authentication: LINE */}
             <Pressable
-              onPress={() => setOauthNoticeProvider('LINE')}
+              onPress={() => {
+                // On the web build this is a real sign-in; on native the
+                // redirect flow is not wired, so the notice still stands.
+                if (lineSignInAvailable()) startLineSignIn();
+                else setOauthNoticeProvider('LINE');
+              }}
               accessibilityRole="button"
               accessibilityLabel={t({ en: 'Sign in with LINE', th: 'เข้าสู่ระบบด้วย LINE', zh: '使用 LINE 登录' })}
               style={({ pressed }) => [
