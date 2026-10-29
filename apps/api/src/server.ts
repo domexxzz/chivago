@@ -32,6 +32,11 @@ import {
 } from './account-service.ts';
 import { loginUser, registerUser, UserAuthError } from './user-account-service.ts';
 import {
+  LINE_OAUTH_COOKIE, OAUTH_TTL_MS, authorizeUrl, lineConfig, lineSubFor, packRound, sameToken,
+  startRound, unpackRound,
+} from './line-auth.ts';
+import { resolveLineSignIn } from './line-identity.ts';
+import {
   ShopError, deleteReview as deleteShopReview, deleteShop, getShop, listReviews as listShopReviews,
   listShops, ownReview, ownedShop, replyReview, reportShopReview, saveReview as saveShopReview, saveShop,
 } from './local-business-service.ts';
@@ -732,6 +737,77 @@ app.post('/devices', async (c) => {
 /**
  * Real database user registration.
  */
+/*
+  Signing in with LINE (line-auth.ts, line-identity.ts).
+
+  Two routes and no new secret-passing scheme. `/auth/line` sends the browser
+  to LINE with a state and a nonce in a short-lived cookie; the callback checks
+  both, asks LINE to verify its own id_token, and then hands the browser an
+  ORDINARY LINK CODE in the URL fragment. The page claims it through
+  `/account/claim`, which is how every other second device already gets a key.
+
+  A fragment, not a query string: fragments are never sent to a server, so the
+  code stays out of access logs and `Referer` headers.
+
+  With no channel configured both routes answer 404, exactly as if LINE login
+  had not been built.
+*/
+app.get('/auth/line', (c) => {
+  const cfg = lineConfig();
+  if (!cfg) return fail(c, 'NOT_FOUND', 'LINE sign-in is not set up on this server', 404);
+  // Only ever back to this app. An open redirect on a login route hands a
+  // phisher a link that starts on the real domain.
+  const raw = c.req.query('next') ?? '/';
+  const next = raw.startsWith('/') && !raw.startsWith('//') ? raw : '/';
+  const round = startRound(next);
+  c.header('set-cookie', [
+    `${LINE_OAUTH_COOKIE}=${encodeURIComponent(packRound(round))}`,
+    'Path=/auth/line', 'HttpOnly', 'SameSite=Lax', 'Secure',
+    `Max-Age=${Math.floor(OAUTH_TTL_MS / 1000)}`,
+  ].join('; '));
+  c.header('cache-control', 'no-store');
+  return c.redirect(authorizeUrl(cfg, round), 302);
+});
+
+app.get('/auth/line/callback', async (c) => {
+  const cfg = lineConfig();
+  if (!cfg) return fail(c, 'NOT_FOUND', 'LINE sign-in is not set up on this server', 404);
+
+  const round = unpackRound(
+    (() => {
+      const v = readCookie(c.req.header('cookie'), LINE_OAUTH_COOKIE);
+      try { return v === undefined ? undefined : decodeURIComponent(v); } catch { return undefined; }
+    })(),
+  );
+  // The cookie is spent whatever happens next, so a failed round cannot be replayed.
+  c.header('set-cookie', `${LINE_OAUTH_COOKIE}=; Path=/auth/line; HttpOnly; SameSite=Lax; Secure; Max-Age=0`);
+  c.header('cache-control', 'no-store');
+
+  const back = (reason: string) => c.redirect(`${round?.next ?? '/'}#line=${reason}`, 302);
+
+  // LINE says no when the traveller cancels. That is not an error to shout about.
+  if (c.req.query('error')) return back('cancelled');
+  const code = c.req.query('code');
+  const state = c.req.query('state');
+  if (!round || !code || !state || !sameToken(state, round.state)) return back('expired');
+
+  let sub: string | null = null;
+  try {
+    sub = await lineSubFor(cfg, code, round);
+  } catch (e) {
+    console.warn(`[line] ${e instanceof Error ? e.message : String(e)}`);
+    return back('failed');
+  }
+  if (!sub) return back('failed');
+
+  const deviceUserId = resolveDevice(db, c.req.header('x-chivago-device-key'));
+  const seen = resolveLineSignIn(db, sub, deviceUserId, () => registerAccountDevice(db).userId);
+  if (seen.outcome === 'clash' || !seen.userId) return back('clash');
+
+  // The same single-use, ten-minute code the second-phone flow already uses.
+  return back(`ok.${issueLinkCode(db, seen.userId)}.${seen.outcome}`);
+});
+
 app.post('/auth/register', async (c) => {
   if (!allowRegistration(clientAddress(c))) {
     return fail(c, 'TOO_MANY_REGISTRATIONS', 'Too many registration attempts. Please try again later.', 429);
