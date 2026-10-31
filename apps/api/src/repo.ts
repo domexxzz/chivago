@@ -10,6 +10,7 @@ import type {
   ImpactStat,
   Offer,
   Place,
+  PlacePhoto,
   Quest,
   ScoredPlace,
   ShieldService,
@@ -29,11 +30,43 @@ interface PlaceRow {
   province: string | null;
   tags: string; photo_url: string | null;
   photo_credit: string | null; photo_licence: string | null; photo_source: string | null;
+  photo_kind: string | null; photo_backdrop: string | null;
   safety_label_en: string; safety_label_th: string;
   crowd_density: number; aqi: number; safety_index: number; walkability: number;
   air_station: string | null;
   booking_url: string | null;
 }
+
+/*
+  What the two newest photograph columns are allowed to say (#169).
+
+  Every other column in this row was written by the seed. These two can also
+  have been typed by hand - the project edits place rows on production with
+  SQL, and the whole point of the columns is that somebody can mark a picture
+  as a logo without a deploy. So they are checked here, at the boundary,
+  rather than trusted because they came from our own database.
+
+  An unreadable value is DROPPED, never passed on and never guessed at. The
+  screen's defaults are the safe ones: no `kind` means it is treated as a
+  photograph, and no `backdrop` means the frame stays the neutral grey. A
+  wrong `kind` would credit a business's logo to a photographer who does not
+  exist; a wrong `backdrop` would paint the frame whatever the string
+  happened to be.
+*/
+const PHOTO_KINDS = ['photo', 'logo'] as const;
+const photoKind = (value: string | null): PlacePhoto['kind'] =>
+  ((PHOTO_KINDS as readonly string[]).includes(value ?? '') ? value as PlacePhoto['kind'] : undefined);
+
+/*
+  Six digits, because that is what the type says the seed writes (`#rrggbb`)
+  and what every value in it is. Three-digit hex is valid CSS and is still
+  refused: accepting a shorthand nobody writes would widen what this column
+  may contain for no reader that needs it, and the cost of refusing is the
+  neutral grey rather than a wrong colour.
+*/
+const HEX6 = /^#[0-9a-fA-F]{6}$/;
+const photoBackdrop = (value: string | null): string | undefined =>
+  (value !== null && HEX6.test(value) ? value : undefined);
 
 const toPlace = (r: PlaceRow): Place & { safetyLabel: { en: string; th: string } } => ({
   id: r.id,
@@ -56,6 +89,8 @@ const toPlace = (r: PlaceRow): Place & { safetyLabel: { en: string; th: string }
       credit: r.photo_credit,
       licence: r.photo_licence ?? 'Unknown',
       sourceUrl: r.photo_source,
+      kind: photoKind(r.photo_kind),
+      backdrop: photoBackdrop(r.photo_backdrop),
     }
     : null,
   metrics: {

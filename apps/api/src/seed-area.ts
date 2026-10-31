@@ -83,15 +83,17 @@ export function seedArea(db: DB, key: AreaKey, now = new Date()): SeedAreaResult
       const added = db.prepare(
         `INSERT INTO places (id, name_en, name_th, short, layer, province, lat, lng, meta,
            blurb_en, blurb_th, tags, photo_url, photo_credit, photo_licence, photo_source,
+           photo_kind, photo_backdrop,
            safety_label_en, safety_label_th,
            crowd_density, aqi, safety_index, walkability, air_station, booking_url)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
          ON CONFLICT(id) DO NOTHING`,
       ).run(
         p.id, p.name.en, p.name.th, p.short, p.layer, p.province, p.lat, p.lng, p.meta,
         p.blurb.en, p.blurb.th, JSON.stringify(p.tags),
         p.photo?.url ?? null, p.photo?.credit ?? null,
         p.photo?.licence ?? null, p.photo?.sourceUrl ?? null,
+        p.photo?.kind ?? null, p.photo?.backdrop ?? null,
         safety.en, safety.th,
         p.metrics.crowdDensity, p.metrics.aqi, p.metrics.safetyIndex, p.metrics.walkability,
         p.airStation ? JSON.stringify(p.airStation) : null,
@@ -139,12 +141,27 @@ export function refreshPhotos(db: DB, key: AreaKey): string[] {
   return transact(db, () => {
     const changed: string[] = [];
     for (const p of SEED_PLACES.filter((x) => x.province === area.province)) {
-      const photo = [p.photo?.url ?? null, p.photo?.credit ?? null, p.photo?.licence ?? null, p.photo?.sourceUrl ?? null];
+      /*
+        Six fields, not four (#169). `kind` and `backdrop` say whether the
+        picture is a photograph or the venue's own logo, and what colour the
+        frame around a logo should be - facts the seed has carried since
+        Badminton@Sinthani was added and the database had nowhere to put.
+
+        They travel with the url for the same reason the credit does: a
+        picture and what may be said about it are one record, and bringing
+        half of it in line is how a logo ends up credited to a photographer.
+      */
+      const photo = [
+        p.photo?.url ?? null, p.photo?.credit ?? null, p.photo?.licence ?? null, p.photo?.sourceUrl ?? null,
+        p.photo?.kind ?? null, p.photo?.backdrop ?? null,
+      ];
       // `IS` compares null to null as equal, so a row already in line is not
       // written and not reported.
       const set = db.prepare(
-        `UPDATE places SET photo_url = ?, photo_credit = ?, photo_licence = ?, photo_source = ?
-         WHERE id = ? AND NOT (photo_url IS ? AND photo_credit IS ? AND photo_licence IS ? AND photo_source IS ?)`,
+        `UPDATE places SET photo_url = ?, photo_credit = ?, photo_licence = ?, photo_source = ?,
+                           photo_kind = ?, photo_backdrop = ?
+         WHERE id = ? AND NOT (photo_url IS ? AND photo_credit IS ? AND photo_licence IS ? AND photo_source IS ?
+                               AND photo_kind IS ? AND photo_backdrop IS ?)`,
       ).run(...photo, p.id, ...photo);
       if (Number(set.changes ?? 0) > 0) changed.push(p.id);
     }
