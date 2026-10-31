@@ -1897,5 +1897,33 @@ export function migrate(db: DB): string[] {
   `);
   applied.push('line_identities');
 
+  /*
+    -- What a place's picture IS (#169) ----------------------------------
+
+    `places` carried four photograph columns - url, credit, licence, source -
+    and the app had grown two more facts about a picture that none of them
+    could hold: whether it is a photograph or a venue's own LOGO, and, for a
+    logo, the colour its own field is.
+
+    Neither is cosmetic. `creditWord()` reads `kind` to decide between
+    "photographed by" and "logo of", and crediting a logo to a photographer
+    is a false statement about a real business. `fitsWhole()` reads it to fit
+    a logo inside the frame instead of cropping it to fill one, which on
+    Badminton@Sinthani's mark cuts the venue's name off its own logo. Both
+    live in `apps/mobile/src/api/photos.ts`.
+
+    The seed has carried both since the venue was added; the DATABASE had
+    nowhere to put them, so `repo.ts` could not send them and every logo came
+    out of the API dressed as a photograph.
+
+    Columns only. The values travel the way every other place photograph does
+    - `seed-area.ts --area <key> --photos` - and writing a second UPDATE here
+    would be a second source of truth for the same four-and-now-six fields.
+  */
+  if (hasTable(db, 'places')) {
+    if (addColumn(db, 'places', 'photo_kind', 'TEXT')) applied.push('places.photo_kind');
+    if (addColumn(db, 'places', 'photo_backdrop', 'TEXT')) applied.push('places.photo_backdrop');
+  }
+
   return applied;
 }
