@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { Image, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
-import { ArrowLeft, BedDouble, ChevronRight, Expand, Layers3, LayoutGrid, List, Map as MapIcon, MessageCircle, Store } from 'lucide-react-native';
+import { ArrowLeft, BedDouble, ChevronRight, Expand, Layers3, LayoutGrid, List, Map as MapIcon, MessageCircle, Minus, Plus, Satellite, Store } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import {
   greetingFor, strings,
@@ -20,6 +20,7 @@ import { SHOP_CATEGORIES, shopImageUri, shopOpenNow, type Shop } from '../api/sh
 import { areaOfPlace, fairById, fairLots, fairsIn, inArea, nearestFirst } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { useHere } from '../state/here.ts';
+import { useOnline } from '../state/online.ts';
 import { useRoute } from '../state/route.ts';
 import { WayBanner } from '../components/WayBanner.tsx';
 import { FairBanner } from '../components/FairBanner.tsx';
@@ -30,6 +31,8 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button, IconButton } from '../components/Button.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { LayerChips, PlaceFeedRow, SamuiMap, drawsFairLots, type MapMode } from '../components/SamuiMap.tsx';
+import { NearYou } from '../components/map-parts.tsx';
+import type { MapHandle } from '../components/WebTerrainMap.tsx';
 import { WaveSymbolBadge } from '../components/MarineEmblem.tsx';
 import { StoryViewer } from '../components/Stories.tsx';
 import { pickStoryMedia, postStory } from '../state/tell-story.ts';
@@ -38,6 +41,8 @@ import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 import { ProfileButton } from '../components/ProfileButton.tsx';
+import { cachedPlaces, cachedShops, clearPublicCache, deleteAreaCache, inspectAreaCache, placesWithFallback, shopsWithFallback, storageInfo } from '../offline/public-cache.ts';
+import { clearCachedImages } from '../offline/image-cache.ts';
 
 // Stable empties, so the map's marker effect is not re-run by a fresh `[]`
 // on every render while the quests are still loading.
@@ -87,7 +92,51 @@ export function MapScreen({
   /** Back from the lot to the list it was found in, as it was left. */
   onBackToFair?: () => void;
 }) {
-  const places = useAsync(() => api.places(), []);
+  const area = useArea();
+  const [offlineStamp, setOfflineStamp] = React.useState<string | null>(null);
+  const [shopOfflineStamp, setShopOfflineStamp] = React.useState<string | null>(null);
+  /*
+    Two reasons to draw the island instead of the terrain, and they catch
+    different failures.
+
+    `offlineStamp` means the places request fell back to a snapshot - the API
+    is unreachable. It cannot catch being offline with NOTHING cached (no
+    snapshot, so no stamp, so MapLibre mounts and fails on every tile), nor
+    signal lost after the map is already up (places are fetched once per
+    area, so nothing re-runs). `useOnline` is an event and catches both.
+
+    It can only force the drawn map, never keep the terrain one: see
+    `state/online.ts` on why `navigator.onLine` is trusted in one direction.
+  */
+  const online = useOnline();
+  /*
+    OFFLINE NO LONGER MEANS "DRAW THE ISLAND INSTEAD".
+
+    `offlineMap` was invented when the phone had no real map and the browser
+    had no cached tiles, so losing the network meant falling back to the SVG
+    decagon - a shape with no roads, no scale and no north, which is the
+    least useful thing to hand somebody who cannot see where they are.
+
+    Both halves of that have changed. The phone runs MapLibre in a WebView
+    with its own tile cache, and the browser keeps its tiles in the HTTP
+    cache it already had. So offline is now when the real map is worth MORE,
+    not less, and neither platform is pushed off it. Each falls back on its
+    own terms if the map genuinely cannot start: the WebView to the drawing,
+    the browser to the message it has always shown.
+
+    The flag is kept, because it is still what the BANNER reads to say the
+    data came from a snapshot. It no longer decides which map is drawn.
+  */
+  const offlineMap = offlineStamp !== null || !online;
+  const [cachePanel, setCachePanel] = React.useState(false);
+  const [cacheRevision, setCacheRevision] = React.useState(0);
+  const [confirmClear, setConfirmClear] = React.useState(false);
+  const [storageSummary, setStorageSummary] = React.useState<Awaited<ReturnType<typeof storageInfo>> | null>(null);
+  const places = useAsync(() => placesWithFallback(area.key, async () => {
+    const result = await api.places();
+    setOfflineStamp(result.ok ? null : (await cachedPlaces(area.key))?.downloadedAt ?? null);
+    return result;
+  }), [area.key]);
   const requireAccount = useRequireAccount();
   const quests = useAsync(() => api.quests('today'), []);
   // Where they have been. A failure here is a map with its mist down
@@ -95,18 +144,70 @@ export function MapScreen({
   const explored = useAsync(() => api.explored(), []);
   const [mode, setMode] = React.useState<MapMode>('map');
   const [expandedMap, setExpandedMap] = React.useState(false);
+  /*
+    The expanded map's zoom, driven from the screen rather than from inside
+    the map.
+
+    On a phone the expanded map is drawn at twice the screen and panned
+    inside two scroll views, so a control living in the map's own document
+    parks itself at a corner of a canvas nobody can see. These buttons are
+    pinned to the SCREEN, beside the ones that were already pinned there -
+    back, layers, recentre - and reach the map through this handle.
+
+    Null on the web and on the drawn island: neither answers to it, and the
+    buttons are not offered where they would do nothing.
+  */
+  const expandedZoom = React.useRef<MapHandle>(null);
+  /*
+    Whether the expanded map is showing satellite.
+
+    Held here only to colour the button. The DOCUMENT owns the truth - this
+    asks it to flip and follows along - and the expanded map is a separate
+    WebView from the one on the page below (different `key`), so it always
+    opens on the basemap and this starts false to match.
+  */
+  const [expandedSat, setExpandedSat] = React.useState(false);
+  React.useEffect(() => { if (!expandedMap) setExpandedSat(false); }, [expandedMap]);
   const [expandedLayers, setExpandedLayers] = React.useState(false);
-  const fullMapHorizontal = React.useRef<ScrollView>(null);
-  const fullMapVertical = React.useRef<ScrollView>(null);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   // WATCHED, unlike every other screen's one-shot: this is the one place
   // that draws the traveller, and a dot that does not move while somebody
   // walks is worse than no dot, because a dot is read as current.
   const here = useHere({ watch: true });
-  const area = useArea();
-  const shops = useAsync(() => api.shops({ area: area.key }), [area.key]);
+  const shops = useAsync(() => shopsWithFallback(area.key, async () => {
+    const result = await api.shops({ area: area.key });
+    setShopOfflineStamp(result.ok ? null : (await cachedShops(area.key))?.downloadedAt ?? null);
+    return result;
+  }), [area.key]);
   const reloadShops = React.useRef(shops.reload);
   reloadShops.current = shops.reload;
+  const reloadPlaces = React.useRef(places.reload);
+  reloadPlaces.current = places.reload;
+
+  /*
+    Coming back online does not undo itself.
+
+    `offlineStamp` is set by a fetch that fell back to cache and is cleared
+    only by a fetch that succeeds - and places are fetched once per area. So
+    signal restored left the screen exactly as the outage had left it: the
+    drawn 2D map, the "using cached data" banner, and the shops error, all
+    sitting over a working connection until somebody thought to change area
+    and come back. Reconnecting asks for the two lists again, which is what
+    clears all three.
+
+    The ref is `false` on mount, so arriving online fetches once, not twice.
+    `reload` is a fresh arrow every render (see `useAsync`), hence the refs -
+    the same reason `reloadShops` above already exists.
+  */
+  const wasOffline = React.useRef(false);
+  React.useEffect(() => {
+    if (!online) { wasOffline.current = true; return; }
+    if (!wasOffline.current) return;
+    wasOffline.current = false;
+    reloadPlaces.current();
+    reloadShops.current();
+  }, [online]);
+
   React.useEffect(() => {
     const timer = setInterval(() => reloadShops.current(), 60_000);
     return () => clearInterval(timer);
@@ -121,8 +222,8 @@ export function MapScreen({
   const [shopsOpenOnly, setShopsOpenOnly] = React.useState(false);
   const visibleShops = React.useMemo(() => (shops.data ?? []).filter((s) =>
     (!shopCategory || s.category === shopCategory) && (!shopSearch || `${s.name} ${s.category}`.toLowerCase().includes(shopSearch.toLowerCase()))
-    && (s.rating ?? 0) >= shopMinRating && (!shopsOpenOnly || shopOpenNow(s.openingHours))),
-  [shops.data, shopCategory, shopSearch, shopMinRating, shopsOpenOnly]);
+    && (s.rating ?? 0) >= shopMinRating && (!shopsOpenOnly || (!shopOfflineStamp && shopOpenNow(s.openingHours)))),
+  [shops.data, shopCategory, shopSearch, shopMinRating, shopsOpenOnly, shopOfflineStamp]);
   const shopCategories = React.useMemo(() => SHOP_CATEGORIES.filter((category) => (shops.data ?? []).some((shop) => shop.category === category)), [shops.data]);
   React.useEffect(() => { setSelectedShop(null); setShopCategory(''); setShopSearch(''); setShopMinRating(0); setShopsOpenOnly(false); }, [area.key]);
   React.useEffect(() => { setExpandedMap(false); setExpandedLayers(false); }, [area.key, mode]);
@@ -191,7 +292,10 @@ export function MapScreen({
     () => (places.data ?? []).filter((p) => areaOfPlace(p) === area.key),
     [places.data, area.key],
   );
-  const visible = React.useMemo(() => areaPlaces.filter((p) => layers[p.layer]), [areaPlaces, layers]);
+  const visible = React.useMemo(() => areaPlaces.filter((p) => layers[p.layer] && (!shopSearch || `${JSON.stringify(p.name)} ${JSON.stringify(p.blurb)} ${p.layer}`.toLocaleLowerCase().includes(shopSearch.trim().toLocaleLowerCase()))), [areaPlaces, layers, shopSearch]);
+  const [cacheInfo, setCacheInfo] = React.useState<Awaited<ReturnType<typeof inspectAreaCache>> | null>(null);
+  React.useEffect(() => { void inspectAreaCache(area.key).then(setCacheInfo).catch(() => setCacheInfo(null)); }, [area.key, cacheRevision, offlineStamp, shopOfflineStamp, cachePanel]);
+  React.useEffect(() => { if (cachePanel) void storageInfo().then(setStorageSummary).catch(() => setStorageSummary(null)); }, [cachePanel, cacheRevision]);
   // The fair lot asked for, with every lot of its fair - only on the map of the fair's own area.
   const fair = fairFocus ? fairById(fairFocus.fairId) : null;
   const lots = React.useMemo(() => (fair && fair.area === area.key ? fairLots(fair) : null), [fair, area.key]);
@@ -257,7 +361,9 @@ export function MapScreen({
 
   const expandedMapContent = (height: number) => <SamuiMap
     key={`${area.key}-expanded-${height}`}
-    area={area}
+    mapRef={expandedZoom}
+    inlineSatellite={false}
+        area={area}
     storied={storied}
     tales={tales}
     onOpenStory={(placeId) => { setExpandedMap(false); openStory(placeId); }}
@@ -324,6 +430,22 @@ export function MapScreen({
       />
 
       {places.data || shops.data ? null : fairPanel}
+      {(offlineStamp || shopOfflineStamp || !online) ? <View style={{ marginHorizontal: gutter, marginTop: 8, padding: 10, borderRadius: 12, backgroundColor: '#FFF3D6' }}>
+        <Pressable onPress={() => setCachePanel(!cachePanel)} accessibilityRole="button" accessibilityLabel={t({ en: 'Offline data settings', th: 'จัดการข้อมูลออฟไลน์', zh: '离线数据设置' })}>
+          <Text style={{ color: '#123B64', fontWeight: '700' }}>{offlineStamp || shopOfflineStamp ? t({ en: 'Using cached data · information may have changed', th: 'กำลังใช้ข้อมูลที่บันทึกไว้ · ข้อมูลอาจเปลี่ยนแล้ว', zh: '正在使用缓存数据 · 信息可能已变化' }) : t({ en: 'No network · showing what was already loaded', th: 'ไม่มีสัญญาณ · แสดงข้อมูลที่โหลดไว้แล้ว', zh: '无网络 · 显示已加载的数据' })}  ▾</Text>
+          {offlineMap ? <Text style={{ color: '#684B12', fontSize: 12, marginTop: 3 }}>{t({ en: 'Map from saved tiles · only areas you have opened', th: 'แผนที่จากข้อมูลที่บันทึกไว้ · เฉพาะบริเวณที่เคยเปิด', zh: '地图来自已保存的瓦片 · 仅限你打开过的区域' })}</Text> : null}
+        </Pressable>
+        {offlineStamp || shopOfflineStamp ? <Text style={{ color: '#684B12', fontSize: 12, marginTop: 3 }}>{t({ en: 'Last successful update: ', th: 'อัปเดตสำเร็จล่าสุด: ', zh: '上次成功更新：' })}{new Date(offlineStamp ?? shopOfflineStamp!).toLocaleString()} · {Math.max(0, Math.floor((Date.now() - Date.parse(offlineStamp ?? shopOfflineStamp!)) / 3600_000))} {t({ en: 'hours old', th: 'ชั่วโมงที่ผ่านมา', zh: '小时前' })}</Text> : null}
+        {cachePanel ? <View style={{ marginTop: 8, gap: 5 }}>
+          {storageSummary ? <Text style={{ color: '#435E70', fontSize: 12 }}>{t({ en: 'Saved data', th: 'ข้อมูลที่บันทึก', zh: '已保存数据' })}: {storageSummary.records.length} · {storageSummary.areas.length} {t({ en: 'areas', th: 'พื้นที่', zh: '区域' })} · {(storageSummary.totalBytes / 1024).toFixed(1)} KB</Text> : null}
+          {(['places', 'shops'] as const).map((kind) => <Text key={kind} style={{ color: '#435E70', fontSize: 12 }}>{kind === 'places' ? t({ en: 'Places', th: 'สถานที่', zh: '地点' }) : t({ en: 'Services', th: 'สถานบริการ', zh: '服务' })}: {cacheInfo?.[kind] ? `${cacheInfo[kind].data.length} · ${t({ en: 'saved', th: 'บันทึก', zh: '保存' })} ${new Date(cacheInfo[kind].downloadedAt).toLocaleString()} · ${t({ en: 'expires', th: 'หมดอายุ', zh: '过期' })} ${new Date(cacheInfo[kind].expiresAt).toLocaleDateString()}` : t({ en: 'No saved data', th: 'ไม่มีข้อมูลที่บันทึก', zh: '无缓存数据' })}</Text>)}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 5 }}>
+            <Pressable onPress={() => { places.reload(); shops.reload(); }} accessibilityRole="button"><Text style={{ color: '#0077B6' }}>{t({ en: 'Refresh area', th: 'อัปเดตพื้นที่นี้', zh: '刷新区域' })}</Text></Pressable>
+            <Pressable onPress={() => { void deleteAreaCache(area.key).then(() => setCacheRevision((v) => v + 1)).catch(() => onToast(t({ en: 'Could not delete saved data', th: 'ลบข้อมูลที่บันทึกไม่สำเร็จ', zh: '无法删除缓存数据' }))); }} accessibilityRole="button"><Text style={{ color: '#B91C1C' }}>{t({ en: 'Delete area cache', th: 'ลบแคชพื้นที่นี้', zh: '删除区域缓存' })}</Text></Pressable>
+            <Pressable onPress={() => { if (!confirmClear) { setConfirmClear(true); return; } void Promise.all([clearPublicCache(), clearCachedImages()]).then(() => { setConfirmClear(false); setCacheRevision((v) => v + 1); }).catch(() => onToast(t({ en: 'Could not delete saved data', th: 'ลบข้อมูลที่บันทึกไม่สำเร็จ', zh: '无法删除缓存数据' }))); }} accessibilityRole="button"><Text style={{ color: '#B91C1C' }}>{confirmClear ? t({ en: 'Confirm delete all', th: 'ยืนยันลบทั้งหมด', zh: '确认全部删除' }) : t({ en: 'Delete all saved data', th: 'ลบข้อมูลทั้งหมด', zh: '删除全部缓存' })}</Text></Pressable>
+          </View>
+        </View> : null}
+      </View> : null}
       {places.loading ? <LoadingState /> : null}
       {places.error ? <ErrorState message={places.error} onRetry={places.reload} /> : null}
 
@@ -353,14 +475,31 @@ export function MapScreen({
             <LayerChips layers={layers} onToggle={(k) => onToggleLayer(k as LayerKey)} />
           </View>
           <View style={{ marginHorizontal: gutter, marginBottom: 10, backgroundColor: '#fff', borderRadius: 18, padding: 10 }}>
-            <TextInput value={shopSearch} onChangeText={setShopSearch} placeholder={t({ en: 'Search businesses or categories', th: 'ค้นหาร้านค้าหรือประเภท', zh: '搜索商家或类别' })} style={{ borderWidth: 1, borderColor: '#DCECEF', borderRadius: 12, padding: 9, color: '#123B64' }} />
+            <TextInput value={shopSearch} onChangeText={setShopSearch} placeholder={t({ en: 'Search places, services or categories', th: 'ค้นหาสถานที่ บริการ หรือประเภท', zh: '搜索地点、服务或类别' })} style={{ borderWidth: 1, borderColor: '#DCECEF', borderRadius: 12, padding: 9, color: '#123B64' }} />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingTop: 8 }}>
               {['', ...shopCategories].map((category) => <Pressable key={category || 'all'} onPress={() => setShopCategory(category)} style={{ borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: shopCategory === category ? '#0077B6' : '#EAF7FB' }}><Text style={{ color: shopCategory === category ? '#fff' : '#123B64', fontSize: 12 }}>{category ? mapShopCategory(category) : t({ en: 'All businesses', th: 'ร้านค้าทั้งหมด', zh: '全部商家' })}</Text></Pressable>)}
               <Pressable onPress={() => setShopMinRating(shopMinRating ? 0 : 4)} style={{ padding: 6, backgroundColor: shopMinRating ? '#0077B6' : '#EAF7FB', borderRadius: 14 }}><Text style={{ color: shopMinRating ? '#fff' : '#123B64', fontSize: 12 }}>★ 4+</Text></Pressable>
               <Pressable onPress={() => setShopsOpenOnly(!shopsOpenOnly)} style={{ padding: 6, backgroundColor: shopsOpenOnly ? '#0077B6' : '#EAF7FB', borderRadius: 14 }}><Text style={{ color: shopsOpenOnly ? '#fff' : '#123B64', fontSize: 12 }}>{t({ en: 'Open now', th: 'เปิดอยู่', zh: '正在营业' })}</Text></Pressable>
             </ScrollView>
             {shops.loading && !shops.data ? <Body size={13}>{t({ en: 'Loading businesses…', th: 'กำลังโหลดร้านค้า...', zh: '正在加载商家…' })}</Body> : null}
-            {shops.error ? <Pressable onPress={shops.reload}><Body size={13} colour="#B91C1C">{t({ en: 'Could not load businesses. Try again.', th: 'โหลดร้านค้าไม่สำเร็จ · ลองใหม่', zh: '商家加载失败 · 请重试' })}</Body></Pressable> : null}
+            {/*
+              Offline, "Try again" is a button that cannot work.
+
+              The shop list is only cached for an area somebody has opened
+              WITH a connection, so arriving at a new area offline leaves the
+              fallback with no snapshot to return. The screen then said
+              "Could not load businesses. Try again." in red, under a banner
+              already explaining that the rest of the page came from cache -
+              one failure described two ways, and the only offered action was
+              a retry guaranteed to fail. Offline it now says what is
+              actually true and what would fix it, and stays a flat note
+              rather than an error: nothing is broken, the area was simply
+              never saved.
+            */}
+            {shops.error ? (!online
+              ? <Body size={13} colour="#684B12">{t({ en: 'No saved businesses for this area. Open it once with a connection to keep them offline.', th: 'ยังไม่ได้บันทึกร้านค้าของพื้นที่นี้ เปิดพื้นที่นี้ตอนมีสัญญาณหนึ่งครั้งเพื่อเก็บไว้ใช้ออฟไลน์', zh: '尚未保存此区域的商家。请在有网络时打开一次以离线保存。' })}</Body>
+              : <Pressable onPress={shops.reload}><Body size={13} colour="#B91C1C">{t({ en: 'Could not load businesses. Try again.', th: 'โหลดร้านค้าไม่สำเร็จ · ลองใหม่', zh: '商家加载失败 · 请重试' })}</Body></Pressable>
+            ) : null}
           </View>
           {fairPanel}
           {wayTo ? (
@@ -376,6 +515,7 @@ export function MapScreen({
             />
           ) : null}
           {mode === 'map' ? (
+            <>
             <View style={{ position: 'relative', marginHorizontal: gutter, overflow: 'hidden', borderRadius: 18 }}>
             <SamuiMap
               /*
@@ -386,8 +526,16 @@ export function MapScreen({
                 the pins around inside a frame locked to the wrong place -
                 which is what "KU Sriracha" over a map of Samui was.
               */
+              /*
+                Keyed by AREA alone. It used to carry `offlineMap` as well,
+                from when going offline swapped one map for another and the
+                remount was the swap. Both are the same map now, so that
+                part only threw MapLibre away and rebuilt it - losing the
+                pan and zoom somebody was in the middle of - every time the
+                signal flickered.
+              */
               key={area.key}
-              area={area}
+                            area={area}
               storied={storied}
               tales={tales}
               onOpenStory={openStory}
@@ -414,6 +562,15 @@ export function MapScreen({
               style={{ position: 'absolute', top: 12, right: 12, width: 42, height: 42, borderRadius: 14, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#D1E8EE', elevation: 4, shadowColor: '#123B64', shadowOpacity: 0.16, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}
             ><Expand size={20} color="#0077B6" /></Pressable>
             </View>
+            {/*
+              Under the map, not inside it: the drawn island has no roads and
+              no scale, so the one thing it cannot say is which way to walk.
+              The feed mode below already lists places, so this rides with the
+              MAP, where somebody is looking at a shape and asking where they
+              are.
+            */}
+            <NearYou places={visible} here={here} onSelect={(place) => onOpenPlace(place.id)} />
+            </>
           ) : (
             <View>
               <View style={{ paddingHorizontal: gutter, paddingVertical: 10 }}>
@@ -620,13 +777,24 @@ export function MapScreen({
       ) : null}
       <Modal visible={expandedMap} animationType="fade" presentationStyle="overFullScreen" statusBarTranslucent onRequestClose={() => setExpandedMap(false)}>
       <View style={{ flex: 1, backgroundColor: '#EAF7FB' }}>
-        {Platform.OS === 'web'
-          ? <View style={{ height: windowHeight, width: windowWidth, backgroundColor: '#EAF7FB' }}>{expandedMapContent(windowHeight)}</View>
-          : <ScrollView ref={fullMapHorizontal} horizontal showsHorizontalScrollIndicator={false} contentOffset={{ x: windowWidth / 2, y: 0 }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-              <ScrollView ref={fullMapVertical} nestedScrollEnabled showsVerticalScrollIndicator={false} contentOffset={{ x: 0, y: windowHeight / 2 }}>
-                <View style={{ width: windowWidth * 2, height: windowHeight * 2, backgroundColor: '#EAF7FB' }}>{expandedMapContent(windowHeight * 2)}</View>
-              </ScrollView>
-            </ScrollView>}
+        {/*
+          THE MAP FILLS THE SCREEN AND MOVES ITSELF.
+
+          This was two nested scroll views holding a canvas twice the size of
+          the screen, and the map was dragged around inside them like a
+          photograph. That was the right shape when the expanded map WAS a
+          picture - the drawn SVG island, which has nothing to pan to beyond
+          its own edges. It is the wrong shape for a real map: the pan hit a
+          wall at the edge of that doubled canvas, a pinch did nothing
+          because the scroll views ate the second finger, and the zoom was
+          whatever the thing had been built at.
+
+          Drawn at the screen's own size, every gesture reaches MapLibre:
+          drag goes anywhere, pinch zooms, double-tap zooms in, and the
+          recentre button flies back to the island instead of scrolling a
+          frame back to the middle.
+        */}
+        <View style={{ height: windowHeight, width: windowWidth, backgroundColor: '#EAF7FB' }}>{expandedMapContent(windowHeight)}</View>
         <Pressable
           onPress={() => setExpandedMap(false)}
           accessibilityRole="button"
@@ -636,6 +804,34 @@ export function MapScreen({
         {expandedLayers ? <View style={{ position: 'absolute', left: 82, bottom: Platform.OS === 'web' ? 100 : 118, width: Math.min(330, Math.max(200, windowWidth - 100)), backgroundColor: '#FFFFFF', borderRadius: 18, overflow: 'hidden', elevation: 8, shadowColor: '#123B64', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } }}>
           <LayerChips layers={layers} onToggle={(key) => onToggleLayer(key as LayerKey)} />
         </View> : null}
+        {/*
+          Zoom, on the opposite edge from the layers so a thumb reaching for
+          one cannot catch the other. Native only: the browser's map carries
+          MapLibre's own controls and would end up with two sets.
+        */}
+        {Platform.OS !== 'web' ? (
+          <View style={{ position: 'absolute', right: 16, bottom: 42, gap: 12 }}>
+            <Pressable
+              onPress={() => expandedZoom.current?.zoomIn()}
+              accessibilityRole="button"
+              accessibilityLabel={t({ en: 'Zoom in', th: 'ขยายแผนที่', zh: '放大' })}
+              style={{ width: 58, height: 58, borderRadius: 29, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2EEF4', elevation: 5, shadowColor: '#123B64', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }}
+            ><Plus size={26} color="#12283D" strokeWidth={2.8} /></Pressable>
+            <Pressable
+              onPress={() => expandedZoom.current?.zoomOut()}
+              accessibilityRole="button"
+              accessibilityLabel={t({ en: 'Zoom out', th: 'ย่อแผนที่', zh: '缩小' })}
+              style={{ width: 58, height: 58, borderRadius: 29, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2EEF4', elevation: 5, shadowColor: '#123B64', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }}
+            ><Minus size={26} color="#12283D" strokeWidth={2.8} /></Pressable>
+            <Pressable
+              onPress={() => { expandedZoom.current?.toggleSatellite(); setExpandedSat((on) => !on); }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: expandedSat }}
+              accessibilityLabel={t({ en: 'Satellite imagery', th: 'ภาพถ่ายดาวเทียม', zh: '卫星影像' })}
+              style={{ width: 58, height: 58, borderRadius: 29, backgroundColor: expandedSat ? '#0077B6' : '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: expandedSat ? '#0077B6' : '#E2EEF4', elevation: 5, shadowColor: '#123B64', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }}
+            ><Satellite size={25} color={expandedSat ? '#FFFFFF' : '#12283D'} strokeWidth={2.5} /></Pressable>
+          </View>
+        ) : null}
         <View style={{ position: 'absolute', left: 16, bottom: Platform.OS === 'web' ? 24 : 42, gap: 12 }}>
           <Pressable
             onPress={() => setExpandedLayers((open) => !open)}
@@ -647,10 +843,9 @@ export function MapScreen({
             onPress={() => {
               setExpandedLayers(false);
               if (Platform.OS === 'web') window.dispatchEvent(new Event('chivago-map-reset'));
-              else {
-                fullMapHorizontal.current?.scrollTo({ x: windowWidth / 2, animated: true });
-                fullMapVertical.current?.scrollTo({ y: windowHeight / 2, animated: true });
-              }
+              // Frames the whole area again. There is no scroll frame to put
+              // back any more - the map itself is what moved.
+              else expandedZoom.current?.recentre();
             }}
             accessibilityRole="button"
             accessibilityLabel={t({ en: 'Reset map view', th: 'จัดมุมมองแผนที่ใหม่', zh: '重置地图视图' })}

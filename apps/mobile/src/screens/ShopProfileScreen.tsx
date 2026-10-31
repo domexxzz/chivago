@@ -5,6 +5,8 @@ import { ArrowLeft, Camera, MapPin, Navigation, Star, Store, UserRound } from 'l
 import { api } from '../api/client.ts';
 import { shopImageUri, shopOpenNow, type ShopReview } from '../api/shops.ts';
 import { useAsync } from '../state/store.tsx';
+import { cachedShop, shopWithFallback } from '../offline/public-cache.ts';
+import { cachedImageUri } from '../offline/image-cache.ts';
 import { Button as ChivaButton } from '../components/Button.tsx';
 import { t, getLocale } from '../i18n/locale.ts';
 import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
@@ -23,8 +25,34 @@ const card = { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, margin
 const field = { borderWidth: 1, borderColor: '#CDE3EA', backgroundColor: '#F5FAFC', borderRadius: 12, padding: 11, color: '#123B64', fontSize: 15 } as const;
 const button = { backgroundColor: blue, paddingHorizontal: 16, paddingVertical: 11, borderRadius: 16, alignItems: 'center' as const };
 
+function ShopPhoto({ url, height }: { url: string | null; height: number }) {
+  const [failed, setFailed] = React.useState(false);
+  const [source, setSource] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    setFailed(false);
+    if (!url) { setSource(null); return; }
+    let mounted = true;
+    const remote = shopImageUri(url);
+    setSource(remote);
+    void cachedImageUri(remote).then((local) => {
+      if (mounted) { setSource(local); if (local !== remote) setFailed(false); }
+      else if (local.startsWith('blob:')) URL.revokeObjectURL(local);
+    });
+    return () => { mounted = false; };
+  }, [url]);
+  React.useEffect(() => () => { if (source?.startsWith('blob:')) URL.revokeObjectURL(source); }, [source]);
+  return url && !failed
+    ? <Image source={{ uri: source ?? shopImageUri(url) }} onError={() => setFailed(true)} style={{ height, borderRadius: 16, marginBottom: 12 }} resizeMode="cover" />
+    : <View style={{ height, backgroundColor: '#DDF4FA', borderRadius: 16, marginBottom: 12, alignItems: 'center', justifyContent: 'center' }}><Store size={54} color={blue} /></View>;
+}
+
 export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onEdit }: { shopId: string; guest?: boolean; onSignIn?: () => void; onBack: () => void; onEdit: () => void }) {
-  const shop = useAsync(() => api.shop(shopId), [shopId]);
+  const [offlineStamp, setOfflineStamp] = React.useState<string | null>(null);
+  const shop = useAsync(() => shopWithFallback(shopId, async () => {
+    const result = await api.shop(shopId);
+    setOfflineStamp(result.ok ? null : (await cachedShop(shopId))?.downloadedAt ?? null);
+    return result;
+  }), [shopId]);
   const own = useAsync(() => api.myShopReview(shopId), [shopId]);
   const [reviews, setReviews] = React.useState<ShopReview[]>([]);
   const [cursor, setCursor] = React.useState<string | null>(null);
@@ -84,12 +112,12 @@ export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onE
       <Pressable onPress={onBack} accessibilityLabel={t({ en: 'Back', th: 'กลับ', zh: '返回' })}><ArrowLeft color="#fff" /></Pressable>
       <Text style={{ color: '#fff', fontWeight: '700', fontSize: 19 }}>{t(shop.data?.serviceType === 'guide' ? { en: 'Guide profile', th: 'โปรไฟล์ไกด์', zh: '导游资料' } : { en: 'Business profile', th: 'โปรไฟล์ร้านค้า', zh: '店铺资料' })}</Text>
     </View>
+    {offlineStamp ? <Text style={{ padding: 12, backgroundColor: '#FFF3D6', color: '#684B12' }}>{t({ en: 'Offline snapshot · ratings and hours may have changed. Last updated: ', th: 'ข้อมูลออฟไลน์ · คะแนนและเวลาเปิดร้านอาจเปลี่ยนแล้ว อัปเดตล่าสุด: ', zh: '离线资料 · 评分和营业时间可能已变化。上次更新：' })}{new Date(offlineStamp).toLocaleString()}</Text> : null}
     {shop.loading && !shop.data ? <ActivityIndicator style={{ margin: 32 }} color={blue} /> : null}
     {shop.error && !shop.data ? <View style={card}><Text>{t({ en: 'Could not load this business.', th: 'โหลดข้อมูลร้านค้าไม่สำเร็จ', zh: '无法加载该店铺信息。' })}</Text><Pressable onPress={shop.reload}><Text style={{ color: blue }}>{t({ en: 'Try again', th: 'ลองใหม่', zh: '重试' })}</Text></Pressable></View> : null}
     {shop.data ? <View style={{ width: '100%', maxWidth: 760, alignSelf: 'center', padding: 16 }}>
       <View style={card}>
-        {shop.data.coverUrl ? <Image source={{ uri: shopImageUri(shop.data.coverUrl) }} style={{ height: 210, borderRadius: 16, marginBottom: 12 }} resizeMode="cover" />
-          : <View style={{ height: 150, backgroundColor: '#DDF4FA', borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}><Store size={54} color={blue} /></View>}
+        <ShopPhoto url={shop.data.coverUrl} height={210} />
         {shop.data.serviceType === 'guide' ? <View style={{ width: 104, height: 104, borderRadius: 52, backgroundColor: '#E9F6FA', borderWidth: 3, borderColor: '#48CAE4', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: -52, marginLeft: 16 }}>
           {shop.data.guideProfilePhotoUrl ? <Image source={{ uri: shopImageUri(shop.data.guideProfilePhotoUrl) }} style={{ width: 98, height: 98, borderRadius: 49 }} /> : <UserRound size={48} color={blue} />}
         </View> : null}
@@ -115,7 +143,7 @@ export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onE
           {shop.data.guideSkills.length ? <View style={{ marginTop: 8 }}><Text style={{ color: '#123B64', fontWeight: '700' }}>{t({ en: 'Skills', th: 'ความสามารถ', zh: '技能' })}</Text>{shop.data.guideSkills.map((skill, index) => <Text key={`${skill}-${index}`} style={{ marginTop: 3, color: '#344F61' }}>• {skill}</Text>)}</View> : null}
         </> : <>
           <Text style={{ marginTop: 10 }}>📍 {shop.data.address || t({ en: 'Address not provided', th: 'ยังไม่มีที่อยู่', zh: '未填写地址' })}{shop.data.lat !== null && shop.data.lng !== null ? ` (${shop.data.lat.toFixed(5)}, ${shop.data.lng.toFixed(5)})` : ''}</Text>
-          <Text style={{ marginTop: 8 }}>🕒 {shop.data.openingHours || t({ en: 'Hours not provided', th: 'ยังไม่ระบุเวลา', zh: '未填写营业时间' })} · {shopOpenNow(shop.data.openingHours) ? t({ en: 'Open now', th: 'เปิดอยู่', zh: '营业中' }) : t({ en: 'Closed / unknown', th: 'ปิดอยู่/ไม่ระบุ', zh: '已打烊/不确定' })}</Text>
+          <Text style={{ marginTop: 8 }}>🕒 {shop.data.openingHours || t({ en: 'Hours not provided', th: 'ยังไม่ระบุเวลา', zh: '未填写营业时间' })} · {offlineStamp ? t({ en: 'Current status unavailable offline', th: 'ตรวจสอบสถานะปัจจุบันไม่ได้ขณะออฟไลน์', zh: '离线时无法确认当前状态' }) : shopOpenNow(shop.data.openingHours) ? t({ en: 'Open now', th: 'เปิดอยู่', zh: '营业中' }) : t({ en: 'Closed / unknown', th: 'ปิดอยู่/ไม่ระบุ', zh: '已打烊/不确定' })}</Text>
         </>}
         {shop.data.phone ? <Text style={{ marginTop: 8 }}>{t({ en: 'Phone', th: 'โทร', zh: '电话' })}: {shop.data.phone}</Text> : null}
         {shop.data.serviceType === 'guide' && shop.data.guideLineId ? <Text style={{ marginTop: 8 }}>LINE ID: {shop.data.guideLineId}</Text> : null}

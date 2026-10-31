@@ -12,7 +12,7 @@
 import React from 'react';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
-import { Image, Linking, Modal, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Image, Linking, Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { ExternalLink, MapPin, X } from 'lucide-react-native';
 import {
   areaByKey, areaOfPlace, courtSourceFor, findProvince, isBookingLink, newlyEarned, stallSourceFor, strings,
@@ -22,6 +22,8 @@ import { api } from '../api/client.ts';
 import type { PickedMedia } from '../api/client.ts';
 import { creditWord, fitsWhole, photoBackdrop, photoUri } from '../api/photos.ts';
 import { useAsync } from '../state/store.tsx';
+import { cachedPlace, placeWithFallback } from '../offline/public-cache.ts';
+import { cachedImageUri } from '../offline/image-cache.ts';
 import { useServerConfig } from '../state/server-config.ts';
 import { pickStoryMedia, postStory } from '../state/tell-story.ts';
 import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
@@ -82,7 +84,12 @@ export function PlaceScreen({
   onToast: (msg: string) => void;
   onPointsChanged: () => void;
 }) {
-  const place = useAsync(() => api.place(placeId), [placeId]);
+  const [offlineStamp, setOfflineStamp] = React.useState<string | null>(null);
+  const place = useAsync(() => placeWithFallback(placeId, async () => {
+    const result = await api.place(placeId);
+    setOfflineStamp(result.ok ? null : (await cachedPlace(placeId))?.downloadedAt ?? null);
+    return result;
+  }), [placeId]);
   /*
     The window, not the platform. `Platform.OS === 'web'` would be the wrong
     question twice over: a phone browser is web and gets one column, and a
@@ -403,6 +410,7 @@ export function PlaceScreen({
   return (
     <View style={{ flex: 1 }}>
       <PushHeader context={t(strings.place.context)} onBack={onBack} />
+      {offlineStamp ? <Text style={{ padding: 10, backgroundColor: '#FFF3D6', color: '#684B12' }}>{t({ en: 'Offline snapshot · scores and conditions may have changed. Last updated: ', th: 'ข้อมูลออฟไลน์ · คะแนนและสภาพพื้นที่อาจเปลี่ยนแล้ว อัปเดตล่าสุด: ', zh: '离线资料 · 评分及环境可能已变化。上次更新：' })}{new Date(offlineStamp).toLocaleString()}</Text> : null}
 
       {place.loading ? <LoadingState /> : null}
       {place.error ? <ErrorState message={place.error} onRetry={place.reload} /> : null}
@@ -436,9 +444,9 @@ export function PlaceScreen({
             <View style={{ flex: 1.9, minWidth: 0 }}>
               {titleBlock}
               <Hero place={place.data} inset={0} height={WIDE_HERO_H} />
-              <AirHistoryCard placeId={place.data.id} />
+              {!offlineStamp ? <AirHistoryCard placeId={place.data.id} /> : null}
               {/* Asked for only where there are stalls: every other place makes no extra request. */}
-              {stallSourceFor(place.data.id) ? <StallsCard placeId={place.data.id} /> : null}
+              {!offlineStamp && stallSourceFor(place.data.id) ? <StallsCard placeId={place.data.id} /> : null}
               {aboutBlock}
               {storiesBlock}
               {reviews}
@@ -447,7 +455,7 @@ export function PlaceScreen({
 
             <View style={{ flex: 1, minWidth: WIDE_RAIL_MIN, maxWidth: WIDE_RAIL_MAX }}>
               {scoreCard}
-              <HereNow crowd={place.data.crowd} />
+              {!offlineStamp ? <HereNow crowd={place.data.crowd} /> : null}
               {actionsBlock}
               <View style={{ height: 40 }} />
             </View>
@@ -462,10 +470,10 @@ export function PlaceScreen({
           <View style={{ paddingHorizontal: gutter, paddingTop: 16 }}>
             {titleBlock}
             {scoreCard}
-            <HereNow crowd={place.data.crowd} />
+            {!offlineStamp ? <HereNow crowd={place.data.crowd} /> : null}
             {/* Asked for only where there are stalls: every other place makes no extra request. */}
-            {stallSourceFor(place.data.id) ? <StallsCard placeId={place.data.id} /> : null}
-            <AirHistoryCard placeId={place.data.id} />
+            {!offlineStamp && stallSourceFor(place.data.id) ? <StallsCard placeId={place.data.id} /> : null}
+            {!offlineStamp ? <AirHistoryCard placeId={place.data.id} /> : null}
             {storiesBlock}
             {aboutBlock}
             {actionsBlock}
@@ -665,6 +673,21 @@ export function Hero({
   inset?: number;
   height?: number;
 }) {
+  const remote = place.photo ? photoUri(place.photo.url) : null;
+  const [source, setSource] = React.useState<string | null>(remote);
+  const [failed, setFailed] = React.useState(false);
+  React.useEffect(() => {
+    setSource(remote);
+    setFailed(false);
+    if (!remote) return;
+    let mounted = true;
+    void cachedImageUri(remote).then((local) => {
+      if (mounted) { setSource(local); if (local !== remote) setFailed(false); }
+      else if (local.startsWith('blob:')) URL.revokeObjectURL(local);
+    });
+    return () => { mounted = false; };
+  }, [remote]);
+  React.useEffect(() => () => { if (source?.startsWith('blob:')) URL.revokeObjectURL(source); }, [source]);
   return (
     <View
       style={[shadow.card, {
@@ -677,10 +700,11 @@ export function Hero({
         backgroundColor: place.photo?.kind === 'logo' ? photoBackdrop(place.photo) : color.surface,
       }]}
     >
-      {place.photo ? (
+      {place.photo && !failed ? (
         <>
           <Image
-            source={{ uri: photoUri(place.photo.url) }}
+            source={{ uri: source ?? remote! }}
+            onError={() => setFailed(true)}
             accessibilityLabel={`${t(place.name)}, ${t(creditWord(place.photo))} ${place.photo.credit}`}
             /*
               A logo is drawn to its own edges: cropped to fill this 16:9
