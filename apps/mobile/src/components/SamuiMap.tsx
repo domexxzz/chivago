@@ -26,6 +26,7 @@ import {
   type Area, type Bilingual, type ExploredPlace, type FairLot, type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { t } from '../i18n/locale.ts';
+import { WebTerrainMap, type MapHandle } from './WebTerrainMap.tsx';
 import type { Shop } from '../api/shops.ts';
 import type { Here } from '../state/here.ts';
 import { CHIP, REVEAL_FEATHER, TALE_W, insideSamui, layoutPins, mistCircles, project, projectArea, tilt } from './map-geometry.ts';
@@ -382,6 +383,18 @@ const TerrainMap = inBrowser && !drawnByChoice
 export const drawsFairLots = TerrainMap !== null;
 
 export interface SamuiMapProps {
+  /** Render the existing SVG map when the API is unavailable and places come from cache. */
+  force2D?: boolean;
+  /**
+   * Reaches the phone's map so a screen can zoom it from outside.
+   *
+   * Only the WebView map answers to this. The drawn island has no zoom to
+   * drive, and the browser's map carries MapLibre's own controls, so a
+   * screen that holds this ref must still cope with it never being filled.
+   */
+  mapRef?: React.Ref<MapHandle>;
+  /** False where the screen draws its own satellite button over the map. */
+  inlineSatellite?: boolean;
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;
   shops?: Shop[];
@@ -464,7 +477,52 @@ export function SamuiMap(props: SamuiMapProps) {
   const { width } = useWindowDimensions();
   const compact = props.compact ?? width < COMPACT_BELOW;
   const height = props.height ?? heroHeight(width);
-  if (TerrainMap) {
+
+  /*
+    ON A PHONE, THE SAME MAP AS THE BROWSER.
+
+    `WebTerrainMap` runs MapLibre GL JS inside a WebView - the binding Expo
+    Go ships - with `chivagoStyle()` handed to it, so the island wears the
+    same fourteen layers either side. Until this existed a phone got the SVG
+    decagon below, which has no roads, no scale and no north.
+
+    It falls back to that drawing rather than to a blank rectangle. MapLibre
+    is fetched from a CDN, so a cold install with no signal has nothing to
+    fetch it from, and the drawing needs nothing.
+
+    `force2D` IS NOT CONSULTED HERE, and that is the point of this change.
+    It was invented to mean "the API is unreachable, so draw the island" -
+    the best answer available while the phone had no real map at all. Now
+    that it has one with its own tile cache, being offline is exactly when
+    the real map is worth MORE, not less: the roads a lost traveller needs
+    do not stop existing because the network did. On the web `force2D`
+    keeps its old meaning, because the browser map still has no cache of
+    its own.
+  */
+  const [webMapFailed, setWebMapFailed] = React.useState(false);
+  const onFallback = React.useCallback(() => setWebMapFailed(true), []);
+  // A new area is a new document; a map that failed on one should be tried
+  // again on the next rather than being written off for the session.
+  const areaKey = props.area?.key;
+  React.useEffect(() => { setWebMapFailed(false); }, [areaKey]);
+
+  if (!inBrowser && !webMapFailed && props.area) {
+    return (
+      <WebTerrainMap
+        area={props.area}
+        places={props.places}
+        onSelect={props.onSelect}
+        here={props.here ?? null}
+        height={height}
+        explored={props.explored}
+        handleRef={props.mapRef}
+        inlineSatellite={props.inlineSatellite}
+        onFallback={onFallback}
+      />
+    );
+  }
+
+  if (TerrainMap && !props.force2D) {
     return (
       <React.Suspense
         fallback={<View style={{ height, backgroundColor: color.brandSoft }} />}

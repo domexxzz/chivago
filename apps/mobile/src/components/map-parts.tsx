@@ -9,11 +9,11 @@
 
 import React from 'react';
 import { Image, Pressable, ScrollView, View } from 'react-native';
-import { isHighScore, strings, type ExploredPlace, type ScoredPlace } from '@chivago/core';
-import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
+import { isHighScore, nearestFirst, strings, wayThere, type ExploredPlace, type ScoredPlace } from '@chivago/core';
+import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { API_BASE } from '../api/client.ts';
 import { TALE_H, TALE_W } from './map-geometry.ts';
-import { Heading, Label } from './Type.tsx';
+import { Body, Heading, Label } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
 
 /**
@@ -315,5 +315,101 @@ export function PlaceFeedRow({
         </View>
       </View>
     </Pressable>
+  );
+}
+
+/**
+ * Which way, and how far — the question the drawn map cannot answer.
+ *
+ * WHAT WAS WRONG. On a phone the map is a traced outline with a score on
+ * each pin, and on Samui nothing under it at all. The biggest number on the
+ * screen, the one the eye lands on first, is the Healthy Score: a judgement
+ * about a place's air and quiet, and the one fact a traveller who does not
+ * know where they are has no use for. Somebody lost read "81" and learned
+ * nothing about getting anywhere. The island shape is traced coastline with
+ * no roads, no scale and no north, so it could not help them either.
+ *
+ * The app already knew all of this. `wayThere` returns the distance, the
+ * compass point and the walk in minutes, and `nearestFirst` orders by it -
+ * both pure, both in core, both already translated. They were only ever
+ * read on the PLACE screen, which is one tap PAST the screen where somebody
+ * is asking "where am I and what is near me".
+ *
+ * NEAREST FIRST, because that is the order the question is asked in. The
+ * score stays on the right, quieter: it is still why this app exists, and
+ * it is no longer the only thing a map can tell you.
+ *
+ * NO PERMISSION DIALOG. With no position this says what is missing and
+ * stops. `state/here.ts` is explicit that a check-in is what asks for
+ * location, because an app that raises the dialog for a convenience teaches
+ * people to tap Deny by reflex and then loses the request that mattered.
+ */
+export function NearYou({
+  places, here, onSelect, limit = 4,
+}: {
+  places: ScoredPlace[];
+  here: { lat: number; lng: number } | null;
+  onSelect: (place: ScoredPlace) => void;
+  /** Four fills a thumb's reach without turning the map into a list. */
+  limit?: number;
+}) {
+  if (places.length === 0) return null;
+  const near = nearestFirst(places, here).slice(0, limit);
+  return (
+    <View style={{ paddingHorizontal: gutter, paddingTop: 14 }}>
+      <Label size={10} tracking={0.14} colour={color.brand}>
+        {here
+          ? t({ en: 'Nearest to you', th: 'ใกล้คุณที่สุด', zh: '离你最近' })
+          : t({ en: 'Places in this area', th: 'สถานที่ในพื้นที่นี้', zh: '该区域的地点' })}
+      </Label>
+
+      {/* Said once, above the rows, rather than as a blank beside each one. */}
+      {here ? null : (
+        <Body size={13} colour={color.neutral700} style={{ marginTop: 4 }}>
+          {t(strings.place.distanceUnknown)}
+        </Body>
+      )}
+
+      {near.map((place) => {
+        const way = here ? wayThere(here, place) : null;
+        /*
+          The walk is quoted only when walking is a real choice - the same
+          rule `GettingThere` follows, and for the same reason: "about 105
+          min on foot" beside eight kilometres is not information anybody
+          can act on, on this island in this heat.
+        */
+        const line = way
+          ? way.arrived
+            ? t(strings.place.arrived)
+            : `${t(strings.place.away(t(way.distance), t(way.direction)))}`
+              + (way.walkable ? ` · ${t(strings.place.onFoot(way.minutesOnFoot))}` : '')
+          : null;
+        return (
+          <Pressable
+            key={place.id}
+            onPress={() => onSelect(place)}
+            accessibilityRole="button"
+            accessibilityLabel={line ? `${t(place.name)}. ${line}` : t(place.name)}
+            style={{
+              flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 44,
+              paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: color.neutral300,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Heading size={15}>{t(place.name)}</Heading>
+              {line ? <Body size={13} colour={color.neutral700}>{line}</Body> : null}
+            </View>
+            <Label
+              size={11}
+              tracking={0}
+              colour={isHighScore(place.healthyScore) ? color.accent700 : color.neutral600}
+              style={{ textTransform: 'none' }}
+            >
+              {String(place.healthyScore)}
+            </Label>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
