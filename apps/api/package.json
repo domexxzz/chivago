@@ -24,6 +24,7 @@
   "dependencies": {
     "@chivago/core": "workspace:*",
     "@hono/node-server": "^1.14.0",
+    "@noble/hashes": "2.4.0",
     "hono": "^4.7.0"
   },
   "devDependencies": {

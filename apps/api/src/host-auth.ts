@@ -10,25 +10,9 @@
  * it breaks the trust model the whole points economy rests on.
  */
 
-import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { rows, row, type DB } from './db.ts';
-
-const KEY_LEN = 32;
-const SALT_LEN = 16;
-
-/**
- * scrypt parameters, pinned.
- *
- * These are node's own defaults for N/r/p, written down rather than inherited,
- * plus an explicit `maxmem`. The default ceiling is 32 MB and N=16384,r=8
- * wants about 16 MB of it - enough headroom on an idle machine and not enough
- * on a busy one. Under four concurrent test suites this threw
- * "Deriving bits failed", and the same thing would happen to a host signing in
- * to a loaded server.
- *
- * Raising the ceiling does not raise the work: the cost is set by N and r.
- */
-const SCRYPT = { N: 16_384, r: 8, p: 1, maxmem: 128 * 1024 * 1024 } as const;
+import { constantTimeEqual, deriveKey, hashSecret, parseHash } from './scrypt.ts';
 
 /**
  * The check could not be performed - as distinct from the key being wrong.
@@ -48,27 +32,13 @@ export class KeyCheckUnavailable extends Error {
  * Hash an API key for storage.
  * Format: `scrypt$<salt-hex>$<hash-hex>`, so the parameters travel with the
  * value and a future re-tuning does not invalidate existing rows.
+ *
+ * The parameters, the derivation and the strict hex decode moved to
+ * `scrypt.ts`, which computes the same digest without `node:crypto`. Existing
+ * `api_key_hash` rows keep verifying.
  */
 export function hashApiKey(key: string): string {
-  const salt = randomBytes(SALT_LEN);
-  const hash = scryptSync(key, salt, KEY_LEN, SCRYPT);
-  return `scrypt$${salt.toString('hex')}$${hash.toString('hex')}`;
-}
-
-/**
- * Strict hex decode.
- *
- * `Buffer.from(s, 'hex')` silently DROPS invalid characters and truncates at
- * the first bad pair, so "zz" decodes to a zero-length buffer rather than
- * failing. That is how a corrupt stored hash turned into an authentication
- * bypass below - this refuses anything that is not exactly the expected number
- * of valid hex digits.
- */
-function decodeHex(value: string, expectedBytes: number): Buffer | null {
-  if (value.length !== expectedBytes * 2) return null;
-  if (!/^[0-9a-f]+$/i.test(value)) return null;
-  const buf = Buffer.from(value, 'hex');
-  return buf.length === expectedBytes ? buf : null;
+  return hashSecret(key);
 }
 
 /**
@@ -84,24 +54,21 @@ function decodeHex(value: string, expectedBytes: number): Buffer | null {
  * comparison happens.
  */
 export function verifyApiKey(key: string, stored: string | null): boolean {
-  if (!stored) return false;
-  const parts = stored.split('$');
-  if (parts.length !== 3 || parts[0] !== 'scrypt') return false;
+  // `parseHash` length-checks both halves with a STRICT hex decode before any
+  // comparison happens, which is what pins the lengths referred to above.
+  const parsed = parseHash(stored);
+  if (!parsed) return false;
 
-  const salt = decodeHex(parts[1]!, SALT_LEN);
-  const expected = decodeHex(parts[2]!, KEY_LEN);
-  if (!salt || !expected) return false;
-
-  let actual: Buffer;
+  let actual: Uint8Array;
   try {
-    actual = scryptSync(key, salt, KEY_LEN, SCRYPT);
+    actual = deriveKey(key, parsed.salt);
   } catch (err) {
     // NOT a wrong key. Deriving the hash failed - out of memory, a bad
     // parameter - and reporting that as "wrong key" is a lie that costs
     // somebody a key rotation.
     throw new KeyCheckUnavailable(err);
   }
-  return timingSafeEqual(actual, expected);
+  return constantTimeEqual(actual, parsed.expected);
 }
 
 /**
