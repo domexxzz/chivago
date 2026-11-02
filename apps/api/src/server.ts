@@ -66,7 +66,7 @@ import { airHistoryFor, checkinsLastHour } from './crowd-service.ts';
 import { readStatement, statementsIncluding } from './statement-service.ts';
 import { countersignaturesFor } from './countersign-service.ts';
 import {
-  STORY_FORM_MAX_BYTES, StoryTooLarge, expireStories, readStoryMedia, storiesAt, storiesInArea, storiesOpen,
+  STORY_FORM_MAX_BYTES, StoryTooLarge, readStoryMedia, storiesAt, storiesInArea, storiesOpen,
   storyEtag, submitStory,
 } from './story-service.ts';
 import { areaByKey, inArea, isAreaKey } from '@chivago/core';
@@ -105,18 +105,17 @@ import {
 } from './sos-service.ts';
 import { recordPositions, type PositionFix, type PositionSource } from './position-service.ts';
 import { sosLivePage } from './console/sos-live.ts';
-import { sweep } from './escalation-service.ts';
-import { sweepOverdue } from './sla-service.ts';
 import { webhookTransport } from './push/webhook.ts';
 import { hostOwnsQuest, resolveSession, readCookie, SESSION_COOKIE } from './host-auth.ts';
 import { onPrimary } from './primary.ts';
+import { buildSweeps, startSweepTimers } from './sweeps.ts';
 import { MAX_BYTES, MAX_PHOTOS_PER_PROOF, storePhoto, UnsupportedUpload } from './uploads.ts';
 import { FFMPEG, transcoderAvailable } from './transcode.ts';
 import {
-  collectionFor, forge, historyFor, rotateEpochs, summon, summonState, verifySummon,
+  collectionFor, forge, historyFor, summon, summonState, verifySummon,
 } from './summon-service.ts';
 import {
-  assistConfig, ffmpegPrepare, requestAssist, staleAssists, type AssistDeps,
+  assistConfig, ffmpegPrepare, requestAssist, type AssistDeps,
 } from './assist-service.ts';
 import { bedrockModel } from './bedrock.ts';
 import type { Voucher, WellnessProfile } from '@chivago/core';
@@ -141,75 +140,6 @@ function flushNotifications(): void {
   });
 }
 
-/**
- * The retry tick. One minute is short enough that a blip clears quickly and
- * long enough that a dead upstream is not hammered.
- */
-const DISPATCH_INTERVAL_MS = 60_000;
-const dispatchTimer = setInterval(onPrimary(flushNotifications), DISPATCH_INTERVAL_MS);
-
-/**
- * The overdue sweep.
- *
- * Hourly, deliberately slow. It is chasing promises measured in DAYS - a
- * proof unreviewed for 24 hours, an appeal unread for 48 - and running it any
- * faster would burn queries to discover the same nothing.
- *
- * Never flushes. Being told your appeal is still waiting is not urgent enough
- * to jump the dispatch queue, and quiet hours should hold it like anything
- * else.
- */
-const SLA_INTERVAL_MS = 3_600_000;
-// Seven days on, a story and its files go. Hourly; nobody is waiting on it.
-const storyTimer = setInterval(onPrimary(() => {
-  try { expireStories(db); } catch (e) { console.error('[chivago] story expiry:', (e as Error).message); }
-}), 3_600_000);
-storyTimer.unref();
-
-/*
-  The summoning's seed reveal (docs/68).
-
-  An epoch's commitment is published the second it opens, and the SEED - the
-  thing that makes every roll under it recomputable by a stranger - is only
-  handed out once the epoch closes. Nothing closed one. `closeEpoch` was
-  written, tested and never called by the running product, so every receipt
-  answered "this epoch is still open" forever and the one promise the mechanic
-  is built on could not be kept.
-
-  Hourly, on the primary, and logged: a reveal is a thing we want to be able
-  to point at afterwards. `summon` rotates too, so a server restarted every
-  hour still reveals.
-*/
-const epochTimer = setInterval(onPrimary(() => {
-  try {
-    for (const closed of rotateEpochs(db)) {
-      console.log(`[chivago] summon epoch ${closed.id} closed; its seed is now published`);
-    }
-  } catch (err) {
-    // Swallowed like the other sweeps. A throw here must not take the
-    // process down, and the next tick tries again an hour later.
-    console.error('[chivago] epoch rotation failed', (err as Error).message);
-  }
-}), 3_600_000);
-epochTimer.unref();
-
-const slaTimer = setInterval(onPrimary(() => {
-  try {
-    const summary = sweepOverdue(db);
-    if (summary.proofsChased + summary.appealsChased > 0) {
-      console.warn(
-        `[chivago] overdue: ${summary.proofsChased} proofs, ${summary.appealsChased} appeals`,
-      );
-    }
-  } catch (err) {
-    // Swallowed like the escalation sweep: a throw here must not stop the
-    // process, and the worst case is that somebody is told late twice.
-    console.error('[chivago] overdue sweep failed', err);
-  }
-}), SLA_INTERVAL_MS);
-// Never hold the process open just to run the notification loop.
-dispatchTimer.unref?.();
-slaTimer.unref?.();
 
 /**
  * A second pair of eyes (docs/64). Off unless CHIVAGO_ASSIST=on with a model
@@ -233,46 +163,18 @@ const startAssist = (proofId: string) => {
   });
 };
 
-// Picks up what a restart interrupted. A minute is plenty: nobody is waiting
-// on it, and the host can decide without it.
-const assistTimer = setInterval(onPrimary(() => {
-  try { for (const id of staleAssists(db)) startAssist(id); } catch (e) {
-    console.error('[chivago] assist sweep:', (e as Error).message);
-  }
-}), 60_000);
-assistTimer.unref();
 
 const oncall = webhookTransport();
 
-/**
- * The escalation sweep.
- *
- * Every 30 seconds, faster than the notification retry, because the first rung
- * fires at two minutes and a sweep that ran on the same minute-long clock could
- * turn that into three.
- *
- * A fired rung flushes notifications immediately rather than waiting for the
- * next dispatch tick - the whole value of telling someone "nobody has answered,
- * call 1669" is that it arrives while it still matters.
- */
-const ESCALATION_INTERVAL_MS = 30_000;
-const escalationTimer = setInterval(onPrimary(() => {
-  void sweep(db, oncall)
-    .then((summary) => {
-      if (summary.rungsFired > 0) {
-        for (const o of summary.outcomes) {
-          console.warn(`[chivago] SOS escalated ${o.alertId} · ${o.rung} · ${o.detail}`);
-        }
-        flushNotifications();
-      }
-    })
-    .catch((err) => {
-      // Swallowed deliberately. A sweep that throws stops escalating for
-      // everybody, and breaking silence is this module's entire job.
-      console.error('[chivago] escalation sweep failed', err);
-    });
-}), ESCALATION_INTERVAL_MS);
-escalationTimer.unref?.();
+/*
+  The jobs that run because time passed, not because somebody asked.
+
+  They used to be six `setInterval` calls here. They live in `sweeps.ts` now,
+  with their intervals and their reasons, because a Durable Object has no
+  process to hold a timer and schedules the same work with an alarm instead.
+  The schedule did not change; see the header there.
+*/
+const sweeps = buildSweeps({ db, oncall, flushNotifications, startAssist });
 
 app.use('*', logger());
 
@@ -2683,6 +2585,14 @@ const isEntryPoint = process.argv[1] !== undefined
   && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isEntryPoint) {
+  /*
+    Only a real process starts timers, and only the writer runs the work:
+    `onPrimary` is what keeps a LiteFS replica from sweeping a database it
+    cannot write to. This used to happen at module scope, which meant merely
+    IMPORTING this file started six timers.
+  */
+  startSweepTimers(sweeps.map((s) => ({ ...s, run: onPrimary(() => void s.run()) })));
+
   const port = Number(process.env.PORT ?? 8787);
   serve({ fetch: app.fetch, port }, (info) => {
     console.log(`[chivago] API listening on http://localhost:${info.port}`);

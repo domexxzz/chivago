@@ -21,8 +21,11 @@
  *
  *   NOBODY IS NAMED, AND NOTHING LASTS. No display name exists to show.
  *   The media is re-encoded, which strips the phone's EXIF, position
- *   included. Every story expires seven days after it was made and the
- *   file goes with the row.
+ *   included - see `-map_metadata -1` in transcode.ts, on BOTH the photo and
+ *   the video path. It was on the photo path only until 2 November, so clips
+ *   posted before then were published carrying the recording location; this
+ *   sentence described an intention rather than the code. Every story expires
+ *   seven days after it was made and the file goes with the row.
  */
 
 import { randomUUID, timingSafeEqual } from 'node:crypto';
@@ -37,7 +40,7 @@ import { OutsideGeofence } from './quest-service.ts';
 import { assertPresence, recordFix } from './presence-service.ts';
 import { fenceOff, storiesAutoApprove } from './fence.ts';
 import { UnsupportedUpload, sniff, uploadRoot } from './uploads.ts';
-import { ffmpegTranscoder, TranscoderUnavailable, type Transcoder } from './transcode.ts';
+import { TranscoderUnavailable, transcoderFromEnv, type Encoded, type Transcoder } from './transcode.ts';
 
 export const STORY_MAX_BYTES = 25 * 1024 * 1024;
 /**
@@ -330,19 +333,22 @@ export async function submitStory(
   if (today >= STORIES_PER_DAY) throw new StoryQuotaReached();
 
   const id = randomUUID();
-  const dir = storiesDir();
-  const input = join(dir, `${id}.in.${ext}`);
-  const media = join(dir, kind === 'video' ? `${id}.mp4` : `${id}.jpg`);
-  const poster = kind === 'video' ? join(dir, `${id}.poster.jpg`) : media;
-  writeFileSync(input, args.bytes);
 
-  const transcoder = args.transcoder ?? ffmpegTranscoder;
-  let durationS: number | null = null;
+  /*
+    The transcoder takes bytes and gives bytes back. It used to take
+    filenames, and this function wrote three of them into the uploads
+    directory and deleted them again - scratch, because the bytes have lived
+    in the ROW since the blob columns landed. Whoever encodes now owns its own
+    scratch space, which is the only shape that also works when the encoder is
+    a container on the other end of an HTTP call.
+  */
+  const transcoder = args.transcoder ?? transcoderFromEnv();
+  let encoded: Encoded;
   try {
-    if (kind === 'video') durationS = (await transcoder.video(input, media, poster)).durationS;
-    else await transcoder.photo(input, media);
+    encoded = kind === 'video'
+      ? await transcoder.video(args.bytes, ext)
+      : await transcoder.photo(args.bytes, ext);
   } catch (e) {
-    for (const f of [input, media, poster]) rmSync(f, { force: true });
     // The encoder is not there at all. That is ours, not theirs, and saying
     // "that file could not be used" would send a room full of people off to
     // re-shoot perfectly good clips while the actual fault went unreported.
@@ -356,8 +362,6 @@ export async function submitStory(
       );
     }
     throw new UnsupportedStory(`it could not be read (${(e as Error).message})`);
-  } finally {
-    rmSync(input, { force: true });
   }
 
   const createdAt = now.toISOString();
@@ -373,16 +377,19 @@ export async function submitStory(
   */
   const auto = storiesAutoApprove();
   /*
-    ffmpeg needs real files, so the transcode still writes them — but they are
-    scratch from here on. The bytes go into the row and the files go away, so
-    a replica that has the row has the clip.
+    The bytes go into the row, so a replica that has the row has the clip.
 
-    `media_path` is kept and still written: it is NOT NULL, it is what rows
-    from before this migration read from, and it names what the file WAS if
-    anybody ever has to go looking in a backup.
+    `media_path` is NOT NULL and still written, but it no longer names a file
+    that ever existed: nothing is written to the uploads directory now. It is
+    kept because rows from before the blob columns READ from it, and because
+    it records what the file WOULD have been called if anybody goes looking in
+    an old backup. A story written today is served from `media_blob`.
   */
-  const mediaBytes = readFileSync(media);
-  const posterBytes = kind === 'video' ? readFileSync(poster) : mediaBytes;
+  const mediaBytes = encoded.media;
+  const posterBytes = encoded.poster;
+  const durationS = encoded.durationS;
+  const media = join(storiesDir(), `${id}.${kind === 'video' ? 'mp4' : 'jpg'}`);
+  const poster = kind === 'video' ? join(storiesDir(), `${id}.poster.jpg`) : media;
 
   db.prepare(
     `INSERT INTO stories (id, place_id, user_id, kind, caption, media_path, media_mime, poster_path,
@@ -395,7 +402,6 @@ export async function submitStory(
     auto ? createdAt : null, auto ? 'auto' : null, null,
     mediaBytes, posterBytes,
   );
-  for (const f of new Set([media, poster])) rmSync(f, { force: true });
   recordFix(db, args.userId, args.fix, now);
 
   return toStory(row<StoryRow>(db.prepare(`${SELECT} WHERE id = ?`).get(id))!);
