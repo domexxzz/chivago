@@ -1620,7 +1620,7 @@ app.post('/quests/:id/proof', async (c) => {
 
     try {
       for (const [i, file] of files.entries()) {
-        storePhoto(db, {
+        await storePhoto(db, {
           proofId: result.proofId,
           bytes: Buffer.from(await file.arrayBuffer()),
           lat: meta[i]?.lat ?? null,
