@@ -1,9 +1,17 @@
 # ChivaGo's encoder, on its own.
 #
-# WHY THERE IS A SECOND IMAGE AT ALL. Cloudflare Workers cannot spawn a
-# process, and ffmpeg is a native binary. Everything else the API does moves to
-# Workers; this does not, so it goes in a container and the Worker calls it.
-# One binary is the whole reason this file exists.
+# WHY THERE IS A SECOND IMAGE AT ALL. Some things need Node, and Workers is not
+# Node. Two of them, so far:
+#
+#   1. ffmpeg, a native binary. Workers cannot spawn a process.
+#   2. Air4Thai's feed, whose server omits its own intermediate certificates.
+#      node:https can be handed the chain; workerd's fetch cannot - measured as
+#      "TLS peer's certificate is not trusted". That request is the air
+#      CROSS-CHECK, the thing that stops a modelled number being published as a
+#      measured one, so losing it is not cosmetic.
+#
+# Everything else the API does moves to Workers. This image is specific
+# capabilities Workers lacks, not an architecture that wanted two services.
 #
 # It is NOT the main image with a different command. The main image carries the
 # exported web app and the whole API; this needs ffmpeg, Node, and two source
@@ -21,9 +29,10 @@
 
 FROM node:24-slim AS runtime
 
-# The reason for the container. Every clip is re-encoded to H.264 so an
+# The first reason for the container. Every clip is re-encoded to H.264 so an
 # iPhone's HEVC plays on an Android in the same room, and the re-encode is
 # also what strips the phone's EXIF and position before anything is public.
+# The second reason needs no package: see /air4thai in transcode-service.ts.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg \
  && rm -rf /var/lib/apt/lists/*
