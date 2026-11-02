@@ -127,12 +127,32 @@ primary_region = "sin"
   internal_port = 8787
   force_https = true
 
-  # ONE machine, and never zero. SQLite is a file on one disk: a second machine
-  # would be a second database, diverging from the first, and neither would be
-  # wrong in a way anyone could detect from the outside.
-  auto_stop_machines = false
+  # ONE machine. SQLite is a file on one disk: a second machine would be a
+  # second database, diverging from the first, and neither would be wrong in a
+  # way anyone could detect from the outside.
+  #
+  # It may now SLEEP, which that rule does not forbid: a stopped machine is
+  # still one machine and one database. Until this change `min_machines_running
+  # = 1` with `auto_stop_machines = false` kept a shared-cpu-2x with 1GB awake
+  # in Singapore around the clock whether or not anybody visited, and that is
+  # what the September and October invoices were - $17.89 for a part-month and
+  # $34.46 for a full one, on a pilot with no real users yet.
+  #
+  # `auto_start_machines` wakes it on the next request, so the first visitor
+  # after an idle spell waits a second or two. That is the trade, and it is the
+  # wrong trade on a demo day: set `min_machines_running = 1` again for the
+  # morning if somebody is going to present this, rather than finding out live.
+  #
+  # The one-database rule still holds, with one thing to know. Autostart starts
+  # the machine that EXISTS; it does not create one. So this is safe while the
+  # app has exactly one machine provisioned, and `fly status -a chivago` is how
+  # to confirm that - not an assumption worth carrying.
+  #
+  # `stop` rather than `suspend`: suspend resumes faster but does not apply to
+  # a machine with a volume attached, and this one mounts `chivago_data`.
+  auto_stop_machines = "stop"
   auto_start_machines = true
-  min_machines_running = 1
+  min_machines_running = 0
 
   [[http_service.checks]]
     grace_period = "20s"
