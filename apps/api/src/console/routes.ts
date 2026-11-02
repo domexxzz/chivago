@@ -6,11 +6,10 @@
  */
 
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { Hono } from 'hono';
 
 import type { DB } from '../db.ts';
+import { MODERNIST_CSS } from './stylesheet.ts';
 import {
   login, logout, pruneSessions, readCookie, resolveSession,
   SESSION_COOKIE, SESSION_TTL_MS, type HostSession,
@@ -203,33 +202,28 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
    * were invisible to the business trying to fill them in.
    */
   /*
-    Resolved and read ON REQUEST, not at import.
+    Served from the bundle, not from disk.
 
-    `import.meta.dirname` is undefined on Cloudflare Workers, so computing this
-    at module scope threw `join(undefined, ...)` the moment the routes were
-    built - which took the whole Worker down at startup, before any route
-    answered, including /health. Lazily, the failure is confined to this one
-    file.
+    It was a `readFileSync` of `public/modernist.css`, which is fine on one
+    machine and impossible on Cloudflare Workers - there is no disk, and the
+    route answered 503 there. That is not cosmetic, for the reason above: with
+    no stylesheet the custom property is undefined, the border shorthand is
+    invalid, and the first three required fields on /console/apply are
+    invisible to the business filling them in.
 
-    STILL OUTSTANDING FOR THE WORKERS DEPLOYMENT: there is no filesystem
-    there, so this answers 503 and the console is unstyled - which is not
-    cosmetic, for the reason above: the required fields on /console/apply lose
-    their borders and become invisible. Before the console is used on Workers
-    this stylesheet has to come from Workers Assets instead.
+    `stylesheet.ts` is generated from the .css file by
+    `scripts/build-console-css.mjs`, so the CSS is still CSS to edit, and
+    `stylesheet.test.ts` fails the build if the two drift. In the bundle it is
+    always there - no deploy step to forget, which a stylesheet the console
+    cannot do without should not depend on.
   */
-  let stylesheet: string | null = null;
-  app.get('/assets/modernist.css', (c) => {
-    if (stylesheet === null) {
-      if (import.meta.dirname === undefined) {
-        return c.text('The console stylesheet is not available on this runtime.', 503);
-      }
-      stylesheet = readFileSync(
-        join(import.meta.dirname, '..', '..', 'public', 'modernist.css'),
-        'utf8',
-      );
-    }
-    return c.body(stylesheet, 200, { 'content-type': 'text/css; charset=utf-8' });
-  });
+  app.get('/assets/modernist.css', (c) =>
+    c.body(MODERNIST_CSS, 200, {
+      'content-type': 'text/css; charset=utf-8',
+      // Hashless name, so it must revalidate: a console whose stylesheet is a
+      // year stale is the invisible-borders bug again, arriving by cache.
+      'cache-control': 'no-cache',
+    }));
 
   const currentSession = (c: { req: { header: (n: string) => string | undefined } }) =>
     resolveSession(db, readCookie(c.req.header('cookie'), SESSION_COOKIE));
