@@ -117,42 +117,90 @@ SELECT COUNT(*) FROM stories WHERE media_blob IS NULL;
 
 ## Step 3 — the database into a Durable Object
 
-**This is the step with no tool.** A Durable Object's SQLite is not a file you
-can upload: there is no `wrangler do import`, and the storage is reachable only
-from inside the object. D1 has `wrangler d1 execute --file`; Durable Objects do
-not, and this product uses a Durable Object on purpose, because its "one
-machine, one database" rule is exactly what a single DO gives and what D1's
-async API would have cost 536 call sites.
+**This step had no tool. It has one now.** A Durable Object's SQLite is still
+not a file you can upload - there is no `wrangler do import`, D1's
+`--file` does not apply, and the storage is reachable only from inside the
+object - so the rows are replayed THROUGH the object. What changed is that the
+replaying is written, tested and not improvised at two in the morning:
 
-So the rows have to be *replayed through the object*. The shape that works:
+- `apps/api/src/export-for-import.ts` reads the snapshot and writes batches.
+- `POST /admin/import` applies one batch, and is off unless armed.
+- `apps/api/src/import-service.ts` is the half that validates and inserts, and
+  it is tested under BOTH drivers - including through the Durable Object
+  adapter, which is where it will run.
 
-1. Dump the snapshot as SQL, data only — the schema is built by the object's
-   own constructor from `db.ts`, so importing a schema would fight it:
+### 3a. Make the batches (**owner**, on the snapshot)
 
-   ```bash
-   sqlite3 snapshot.db .dump > dump.sql
-   grep -c '^INSERT INTO' dump.sql
-   ```
+```bash
+pnpm --filter @chivago/api export:import -- --db ./snapshot.db --out ./batches
+```
 
-2. Add a one-time import route to the Worker, behind the console's existing
-   host authentication **and an environment flag that is unset afterwards**. It
-   should accept batches of statements, run each batch inside one
-   `transactionSync`, and refuse to run at all if `users` is not empty — the
-   same guard `seed-db.ts` already has, for the same reason: a second import
-   on a live database is the accident that cannot be undone.
-3. Push the batches in order. Foreign keys are **on** in DO SQLite (measured,
-   PR #175), and `ON DELETE CASCADE` fires, so parents must go before children:
-   `users` before `user_accounts`, `profiles`, `wallets`, `ledger`; `hosts` and
-   `places` before `quests`; `quests` before `quest_progress` and `proofs`.
-   `sqlite3 .dump` emits tables in creation order, which is *usually* that
-   order but is not guaranteed — if a batch fails on a foreign key, that is
-   why, and the fix is to reorder rather than to turn the constraint off.
-4. Delete the route. Not disable — delete, in a commit of its own.
+It prints a line per table and writes `manifest.json` with the row counts -
+**keep that file**, it is what Step 5 checks against. Files are numbered in the
+order they must be sent, because tables come out parents-first, derived from
+the snapshot's own foreign keys (63 tables, 74 keys between them). Foreign keys
+are enforced in Durable Object SQLite, so a child sent before its parent is
+simply refused.
 
-**Unverified, and the riskiest part of this whole plan.** Check the current
-per-object SQLite size limit in Cloudflare's documentation against
-`ls -l snapshot.db` before starting; if the database is anywhere near it, this
-approach needs rethinking and not retrying.
+Empty tables get no file. On a pilot most of the schema is empty, and the run
+lists which ones it skipped so that is visible rather than assumed.
+
+`--chunk` sets rows per batch (500 by default). The number that matters is
+bytes, and `stories` carries media blobs while `wallets` carries tens of bytes
+a row, so lower it if a request is too big.
+
+### 3b. Arm the importer
+
+```bash
+wrangler secret put CHIVAGO_IMPORT_TOKEN      # something long and random
+```
+
+**Without that secret the route answers 404, not 403** - an unarmed deployment
+does not admit the door is there. That is also what makes closing it afterwards
+something somebody will actually do: unset the secret, no deploy needed.
+
+### 3c. Send them, in order
+
+```bash
+for f in batches/[0-9]*.json; do
+  curl -fsS -X POST "https://<worker>/admin/import"     -H "x-import-token: $CHIVAGO_IMPORT_TOKEN"     -H "content-type: application/json"     --data-binary "@$f" || { echo "FAILED on $f"; break; }
+done
+```
+
+`-fsS` and the `break` are deliberate: stop at the first failure rather than
+pressing on and leaving a database that is partly one thing and partly another.
+Each batch is one transaction, so a failed batch inserted nothing and can be
+retried once the cause is fixed.
+
+**An interrupted import can be continued.** The first batch records a row in
+`import_runs`, and the guard asks "did this import begin on an empty database"
+rather than "is the database empty now" - which it is not, after batch one.
+(That distinction is the bug this step had when it was first written: the
+`users` batch succeeded and the `wallets` batch was refused with a 409.)
+
+### 3d. Close it, and shut the door
+
+```bash
+curl -fsS -X POST "https://<worker>/admin/import/finish"   -H "x-import-token: $CHIVAGO_IMPORT_TOKEN"
+wrangler secret delete CHIVAGO_IMPORT_TOKEN
+```
+
+Finishing is explicit, by you, once Step 5's counts match - it is not inferred,
+because an import that stopped halfway must stay open so the rest can be sent.
+Once it is closed and the database has users in it, a further import is refused
+exactly as it would be against the live pilot.
+
+Deleting the secret is what removes the route.
+
+### What a batch can and cannot do
+
+Worth knowing before pointing this at anything real: a batch names a table and
+carries VALUES, never SQL. Table and column names are checked against the live
+schema before they reach a statement and every value is bound, so a batch
+cannot create, alter or drop anything, and cannot reach a table that does not
+exist. `sqlite3 .dump` and replaying statements would have been easier to write
+and would have put arbitrary DDL on a wire into a live database behind one
+secret.
 
 ## Step 4 — the deploy
 

@@ -38,6 +38,10 @@ import {
 import { logger } from 'hono/logger';
 
 import { row, transact, type DB } from './db.ts';
+import {
+  beginImportRun, finishImportRun, importBatch, mayImport, type ImportBatch,
+} from './import-service.ts';
+import { constantTimeEqual } from './scrypt.ts';
 import { BodyTooLarge, boundedForm, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
 import { publicConfig } from './fence.ts';
 import { boardFeed, type BoardEntry } from '@chivago/core';
@@ -251,6 +255,86 @@ app.get('/sos/live/:token', (c) => {
 */
 const publicLocale = (c: { req: { header: (n: string) => string | undefined } }) =>
   localeFromAcceptLanguage(c.req.header('accept-language')) ?? DEFAULT_LOCALE;
+
+/**
+ * Replay a database into this one. OFF unless armed.
+ *
+ * WHY A ROUTE AT ALL. A Durable Object's SQLite is not a file anyone can
+ * upload - there is no `wrangler do import` and the storage is reachable only
+ * from inside the object - so the only way to move the pilot's database onto
+ * Workers is to send the rows through it. See
+ * `docs/71-moving-the-data-to-cloudflare.md`, which calls this the hardest
+ * step; `apps/api/src/export-for-import.ts` produces what this consumes.
+ *
+ * FOUR LOCKS, because this writes to a live database:
+ *
+ *  1. WITHOUT `CHIVAGO_IMPORT_TOKEN` THE ROUTE DOES NOT EXIST. It answers 404,
+ *     not 403 - an unarmed deployment should not even admit the door is there.
+ *     That is also what makes "delete it after the migration" a one-line
+ *     change somebody can actually be relied on to make: unset the secret.
+ *  2. The token, compared in constant time.
+ *  3. The database must be EMPTY. An import onto a database with people in it
+ *     is the accident that cannot be undone, so `users` having any row at all
+ *     refuses the whole request.
+ *  4. The batch carries values, never SQL. Table and column names are checked
+ *     against the live schema before they reach a statement and every value is
+ *     bound - see `import-service.ts`.
+ *
+ * Registered HERE, before the device-authentication middleware, because it
+ * authenticates itself and there is no traveller to be.
+ */
+app.post('/admin/import/finish', async (c) => {
+  const token = process.env.CHIVAGO_IMPORT_TOKEN ?? '';
+  if (token === '') return c.notFound();
+  const utf8 = new TextEncoder();
+  if (!constantTimeEqual(utf8.encode(c.req.header('x-import-token') ?? ''), utf8.encode(token))) {
+    return fail(c, 'FORBIDDEN', 'That token is not the one this deployment was armed with.', 403);
+  }
+  /*
+    Said at the end, by the operator, when the counts match - not inferred.
+    Until it is said the run stays open, which is what lets an interrupted
+    import be continued instead of being refused by the rows it already wrote.
+  */
+  const closed = finishImportRun(db, 'closed over /admin/import/finish');
+  return ok(c, { closed });
+});
+
+app.post('/admin/import', async (c) => {
+  const token = process.env.CHIVAGO_IMPORT_TOKEN ?? '';
+  if (token === '') return c.notFound();
+
+  const offered = c.req.header('x-import-token') ?? '';
+  const utf8 = new TextEncoder();
+  if (!constantTimeEqual(utf8.encode(offered), utf8.encode(token))) {
+    return fail(c, 'FORBIDDEN', 'That token is not the one this deployment was armed with.', 403);
+  }
+
+  const may = mayImport(db);
+  if (!may.allowed) return fail(c, 'DATABASE_NOT_EMPTY', may.reason!, 409);
+
+  let batch: ImportBatch;
+  try {
+    batch = (await c.req.json()) as ImportBatch;
+  } catch {
+    return fail(c, 'BAD_BATCH', 'The body is not JSON.', 400);
+  }
+  if (typeof batch?.table !== 'string' || !Array.isArray(batch.columns) || !Array.isArray(batch.values)) {
+    return fail(c, 'BAD_BATCH', 'A batch needs a table, columns and values.', 400);
+  }
+
+  try {
+    // Recorded BEFORE the first rows land, so an import interrupted halfway
+    // can be continued rather than refused by its own handiwork.
+    const run = beginImportRun(db);
+    const inserted = importBatch(db, batch);
+    console.log(`[chivago] imported ${inserted} row(s) into ${batch.table} (${run})`);
+    return ok(c, { table: batch.table, inserted, run });
+  } catch (err) {
+    // The service's messages name the table, the column or the constraint, and
+    // whoever is running a migration at two in the morning needs to read them.
+    return fail(c, 'IMPORT_FAILED', (err as Error).message, 400);
+  }
+});
 
 app.get('/statements/:id', (c) => {
   const statement = readStatement(db, c.req.param('id'));

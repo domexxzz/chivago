@@ -168,6 +168,21 @@ export const KEPT_TABLES = [
   */
   'operator_applications',
   /*
+    Where this database's contents came from.
+
+    An import run is not a traveller's doing and not a partner's record - it is
+    the provenance of the DATABASE, written once when a snapshot was replayed
+    into it (see `import-service.ts`). A demo reset clears what a traveller
+    did; erasing the row that says the data was imported, and when, would
+    leave the pilot unable to answer where its own contents came from. That is
+    the opposite of what this product asks of everything else.
+
+    It also matters mechanically: clearing it would reopen the import guard on
+    a database full of seeded content, which is precisely the state an import
+    must refuse.
+  */
+  'import_runs',
+  /*
     The summoning's commit-reveal (docs/68).
 
     An epoch is a PUBLISHED promise - its commitment hash is out in the world

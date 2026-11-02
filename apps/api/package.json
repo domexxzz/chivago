@@ -10,6 +10,7 @@
     "seed:area": "node --experimental-strip-types src/seed-area.ts",
     "seed:marketplace": "node --experimental-strip-types src/seed-marketplace.ts",
     "seed:offers": "node --experimental-strip-types src/seed-offers.ts",
+    "export:import": "node --experimental-strip-types src/export-for-import.ts",
     "host:add": "node --experimental-strip-types src/add-host-cli.ts",
     "transcode": "node --experimental-strip-types src/transcode-service.ts",
     "test": "node --test --experimental-strip-types \"src/*.test.ts\" \"src/console/*.test.ts\"",
