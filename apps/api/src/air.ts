@@ -63,15 +63,39 @@ const AIR4THAI = 'https://air4thai.pcd.go.th/services/getNewAQI_JSON.php';
  * Air4Thai renews under a different intermediate this breaks again, out
  * loud - the warning below names the directory.
  */
-const AIR4THAI_CHAIN = ['lets-encrypt-yr1.pem', 'isrg-root-yr-by-x1.pem']
-  .map((file) => readFileSync(new URL(`../certs/${file}`, import.meta.url), 'utf8'));
+const AIR4THAI_CHAIN_FILES = ['lets-encrypt-yr1.pem', 'isrg-root-yr-by-x1.pem'];
+
+/*
+  Read on FIRST USE, not at import.
+
+  It used to be a module-scope `readFileSync`, which made merely importing this
+  file touch the disk - and on Cloudflare Workers that is fatal at startup, not
+  at call time: `new URL('../certs/...', import.meta.url)` throws
+  "Invalid URL string" there, and it took the whole Worker down before a single
+  route answered. Reading lazily means the cross-check below fails where it is
+  used, with a message about itself, instead of taking everything else with it.
+
+  NOTE FOR THE PORT: this request cannot work on Workers at all. It needs
+  `node:https` and `node:tls` to supply the intermediates Air4Thai's server
+  omits, and Workers' `fetch` offers no way to hand over a chain. The
+  Open-Meteo feed above is plain `fetch` and is unaffected, so air readings
+  still work there - it is the Samui cross-check that would be absent, which
+  is exactly the gap the comment above says was worth closing. That is a
+  decision to take deliberately, not to discover.
+*/
+let air4thaiChain: string[] | null = null;
+const air4thaiCa = (): string[] => {
+  air4thaiChain ??= AIR4THAI_CHAIN_FILES
+    .map((file) => readFileSync(new URL(`../certs/${file}`, import.meta.url), 'utf8'));
+  return air4thaiChain;
+};
 
 /** The whole-country feed, over a request that carries the chain above. */
 function fetchAir4Thai(timeoutMs: number): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const req = httpsRequest(
       AIR4THAI,
-      { ca: [...rootCertificates, ...AIR4THAI_CHAIN], timeout: timeoutMs },
+      { ca: [...rootCertificates, ...air4thaiCa()], timeout: timeoutMs },
       (res) => {
         if (res.statusCode !== 200) {
           res.resume();

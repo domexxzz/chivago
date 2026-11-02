@@ -15,7 +15,7 @@ import { communityValue } from '@chivago/core';
 delete process.env.CHIVAGO_OPEN_IDENTITY;
 process.env.CHIVAGO_DB = ':memory:';
 
-const { app, db } = await import('./server.ts');
+const { app, db } = await import('./server-node.ts');
 
 type Body = { ok: boolean; data?: any; code?: string };
 const json = async (res: Response) => (await res.json()) as Body;

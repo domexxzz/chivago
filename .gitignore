@@ -60,3 +60,8 @@ thai-review.html
 # Local scripts and wrong lockfile
 package-lock.json
 run.bat
+
+# wrangler's local state: a workerd scratch directory, written by
+# `wrangler dev`. It holds a local Durable Object database and an R2 stub,
+# which are this machine's and nobody else's.
+.wrangler/

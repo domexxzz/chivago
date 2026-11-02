@@ -5,7 +5,7 @@ import { KU_BANGKHEN_BBOX, SAFETY_PHRASES, SEED_HOSTS, SEED_PLACES, SEED_QUESTS 
 // Route-level coverage uses its own process and never opens the pilot DB.
 delete process.env.CHIVAGO_OPEN_IDENTITY;
 process.env.CHIVAGO_DB = ':memory:';
-const { app, db } = await import('./server.ts');
+const { app, db } = await import('./server-node.ts');
 
 const campus = SEED_PLACES.filter((p) => p.province === 'TH-10');
 const campusIds = [

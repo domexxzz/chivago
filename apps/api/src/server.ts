@@ -8,11 +8,6 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { serve } from '@hono/node-server';
-import { serveStatic } from '@hono/node-server/serve-static';
-import { existsSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import {
@@ -42,7 +37,7 @@ import {
 } from './local-business-service.ts';
 import { logger } from 'hono/logger';
 
-import { openDb, row, transact } from './db.ts';
+import { row, transact, type DB } from './db.ts';
 import { BodyTooLarge, boundedForm, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
 import { publicConfig } from './fence.ts';
 import { boardFeed, type BoardEntry } from '@chivago/core';
@@ -108,7 +103,7 @@ import { sosLivePage } from './console/sos-live.ts';
 import { webhookTransport } from './push/webhook.ts';
 import { hostOwnsQuest, resolveSession, readCookie, SESSION_COOKIE } from './host-auth.ts';
 import { onPrimary } from './primary.ts';
-import { buildSweeps, startSweepTimers } from './sweeps.ts';
+import { buildSweeps, startSweepTimers, type Sweep } from './sweeps.ts';
 import { MAX_BYTES, MAX_PHOTOS_PER_PROOF, storePhoto, UnsupportedUpload } from './uploads.ts';
 import { FFMPEG, transcoderAvailable } from './transcode.ts';
 import {
@@ -120,7 +115,36 @@ import {
 import { bedrockModel } from './bedrock.ts';
 import type { Voucher, WellnessProfile } from '@chivago/core';
 
-const db = openDb();
+/**
+ * The database these routes read, and the sweeps that run against it.
+ *
+ * `let`, not `const`, and NOT opened here. A Node process opens a file; a
+ * Durable Object is handed storage it already has, and cannot open anything at
+ * import time. So whichever entry point is running calls `useDatabase` before
+ * it serves a single request.
+ *
+ * The 134 route handlers below close over this BINDING rather than capturing a
+ * value, which is what makes a late assignment work at all. `openDb` used to
+ * be called here, which meant importing this file touched the disk - and on
+ * Workers there is no disk to touch.
+ */
+let db: DB = undefined as unknown as DB;
+let sweeps: Sweep[] = [];
+
+export function useDatabase(handle: DB): void {
+  db = handle;
+  /*
+    Rebuilt here rather than at module scope. `buildSweeps` DESTRUCTURES the
+    handle, so a list built before the database existed would hold `undefined`
+    for ever - unlike the route closures above, which read the binding each
+    time they run.
+  */
+  sweeps = buildSweeps({ db, oncall, flushNotifications, startAssist });
+}
+
+/** The jobs an alarm or a timer should run. Empty until `useDatabase`. */
+export const scheduledSweeps = (): Sweep[] => sweeps;
+
 const app = new Hono<AppEnv>();
 
 const push = expoTransport();
@@ -174,7 +198,7 @@ const oncall = webhookTransport();
   process to hold a timer and schedules the same work with an alarm instead.
   The schedule did not change; see the header there.
 */
-const sweeps = buildSweeps({ db, oncall, flushNotifications, startAssist });
+
 
 app.use('*', logger());
 
@@ -2509,110 +2533,5 @@ function nearestArea(lat: number, lng: number): string {
  * on a real port and hope nothing else held it. The contract capture needs
  * exactly that in-process access, and so would any future route test.
  */
-/**
- * Serve the built web app from the API itself, when there is one to serve.
- *
- * ONE ORIGIN, and that is the whole point. A tunnel gives out a fresh random
- * hostname every run, so a web build with the API baked into it would have to
- * be rebuilt and redeployed before every demo - and would be wrong the moment
- * the tunnel reconnected. Served from here, the app talks to the origin it was
- * loaded from: no rebuild, no CORS, no stale hostname, one link to hand over.
- *
- * Mounted LAST so it can never shadow an API route, and only when the
- * directory actually exists - `pnpm --filter @chivago/api start` on a dev
- * machine with no web build should still be an API, not a 500.
- *
- * Set CHIVAGO_WEB_DIR to point at the export. Nothing is served without it.
- */
-const webDir = process.env.CHIVAGO_WEB_DIR;
-
-if (webDir !== undefined && existsSync(join(webDir, 'index.html'))) {
-  // `serveStatic` resolves `root` against the process cwd, which is not where
-  // this file lives and not where the build lands. Relative-ise it once here
-  // rather than depending on how the server happened to be launched.
-  const root = relative(process.cwd(), webDir).split(sep).join('/') || '.';
-
-  /*
-    How long a static file may be kept.
-
-    `serveStatic` sends no cache header of its own, so before this every open
-    AND every refresh re-downloaded the whole bundle - 681 KB over the wire
-    even with brotli on. Measured at 150 concurrent readers the CPU was fine;
-    it is the bundle, on venue wifi, that falls over first.
-
-    Expo stamps a content hash into bundle and font filenames, so those can be
-    kept forever: a new build is a new name, and there is nothing to
-    invalidate. The place photographs are NOT hashed (`ku-park.jpg`), so they
-    get an hour - long enough to carry a room full of people opening the app
-    at once, short enough that replacing one is not a support call.
-
-    index.html is `no-cache`, which does not mean "do not store": it means
-    revalidate every time. That is what makes a deploy visible immediately
-    while still costing one 304 rather than 1.4 KB.
-  */
-  const HASHED = /[.-][0-9a-f]{16,}\.[a-z0-9]+$/i;
-  const cacheFor = (file: string): string =>
-    (HASHED.test(file) ? 'public, max-age=31536000, immutable' : 'public, max-age=3600');
-
-  app.get('/', serveStatic({
-    path: `${root}/index.html`,
-    onFound: (_p, c) => { c.header('cache-control', 'no-cache'); },
-  }));
-  app.use('/_expo/*', serveStatic({
-    root,
-    onFound: (p, c) => { c.header('cache-control', cacheFor(p)); },
-  }));
-  app.use('/assets/*', serveStatic({
-    root,
-    onFound: (p, c) => { c.header('cache-control', cacheFor(p)); },
-  }));
-  // The repository's own photographs, copied into the export from
-  // `apps/mobile/public/media`. Unhashed names, so `cacheFor` gives them the
-  // hour rather than forever - replacing one must not be a support call.
-  app.use('/media/*', serveStatic({
-    root,
-    onFound: (p, c) => { c.header('cache-control', cacheFor(p)); },
-  }));
-  app.get('/favicon.ico', serveStatic({
-    path: `${root}/favicon.ico`,
-    onFound: (_p, c) => { c.header('cache-control', 'public, max-age=86400'); },
-  }));
-
-  console.log(`[chivago] serving the web app from ${webDir}`);
-}
-
-const isEntryPoint = process.argv[1] !== undefined
-  && import.meta.url === pathToFileURL(process.argv[1]).href;
-
-if (isEntryPoint) {
-  /*
-    Only a real process starts timers, and only the writer runs the work:
-    `onPrimary` is what keeps a LiteFS replica from sweeping a database it
-    cannot write to. This used to happen at module scope, which meant merely
-    IMPORTING this file started six timers.
-  */
-  startSweepTimers(sweeps.map((s) => ({ ...s, run: onPrimary(() => void s.run()) })));
-
-  const port = Number(process.env.PORT ?? 8787);
-  serve({ fetch: app.fetch, port }, (info) => {
-    console.log(`[chivago] API listening on http://localhost:${info.port}`);
-  });
-  /*
-    Say at the door whether stories can be processed at all.
-
-    Not a gate - the server is useful without ffmpeg, and everything except
-    stories works - but a machine that has lost the binary should announce it
-    on an empty console, not through the first person in the room who tries
-    to post. Deliberately after `serve`, so a slow probe never delays the
-    port opening.
-  */
-  void transcoderAvailable().then((ok_) => {
-    if (ok_) return;
-    console.error(
-      `[chivago] WARNING: ffmpeg ('${FFMPEG}') was not found. Stories cannot be posted on this machine;`
-      + ' every upload will answer STORY_TRANSCODER_DOWN (503). Install ffmpeg, or set CHIVAGO_FFMPEG.',
-    );
-  });
-}
 
 export { app, db };

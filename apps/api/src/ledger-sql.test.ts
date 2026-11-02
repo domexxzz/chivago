@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
-import { openTestDb, rows, type DB } from './db.ts';
+import { openTestDb, rows, type DB } from './db-node.ts';
 import { notReversed, REVERSAL_PREFIX, awardStands } from './ledger-sql.ts';
 import {
   applyMovement, awardQuestReward, ensureWallet, reverseMovement,

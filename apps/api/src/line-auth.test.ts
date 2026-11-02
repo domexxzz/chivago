@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { beforeEach, describe, test } from 'node:test';
-import { openDb } from './db.ts';
+import { openDb } from './db-node.ts';
 import { registerDevice } from './account-service.ts';
 import {
   authorizeUrl, lineConfig, lineSubFor, packRound, sameToken, startRound, unpackRound,

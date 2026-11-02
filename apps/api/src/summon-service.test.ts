@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import {
   AlreadyHave, EPOCH_HOURS, NoCharms, NotEnoughDust, UnknownSpirit, charmsFor, closeEpoch,
   collectionFor, commitmentOf, currentEpoch, dustFor, forge, heldBy, historyFor, pityFor,

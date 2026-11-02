@@ -13,7 +13,7 @@ import { test, describe, before } from 'node:test';
 delete process.env.CHIVAGO_OPEN_IDENTITY;
 process.env.CHIVAGO_DB = ':memory:';
 
-const { app, db } = await import('./server.ts');
+const { app, db } = await import('./server-node.ts');
 const { addListing, answerInquiry } = await import('./inquiry-service.ts');
 
 type Body = { ok: boolean; data?: any; code?: string; error?: string; problems?: string[]; meta?: any };

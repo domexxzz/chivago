@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { MAX_BYTES, readPhotoForHost, sniff, storePhoto, UnsupportedUpload, uploadRoot } from './uploads.ts';
 
 let db: DB;

@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import {
   WATCH_ABSOLUTE, WATCH_MIN_BASELINE_DAYS, WATCH_OVERTURN_MIN, WATCH_SPIKE_FLOOR,
 } from '@chivago/core';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { flaggedModerators, moderatorWatch } from './moderator-watch.ts';
 
 let db: DB;

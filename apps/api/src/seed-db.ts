@@ -8,7 +8,7 @@
  * opened with seed-area.ts, which only inserts.
  */
 
-import { openDb, rows } from './db.ts';
+import { openDb, rows } from './db-node.ts';
 import { generateApiKey, hashApiKey } from './host-auth.ts';
 import { reseedRefusal } from './seed-area.ts';
 import {

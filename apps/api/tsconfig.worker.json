@@ -1,0 +1,18 @@
+{
+  // The Worker entry is typechecked SEPARATELY, because its globals are not
+  // Node's. `@cloudflare/workers-types` and `@types/node` both declare
+  // `fetch`, `Request` and friends with different shapes, so one project
+  // containing both produces conflicts that mean nothing. The main tsconfig
+  // excludes `src/worker.ts`; this one is only that file and what it pulls in.
+  //
+  //   pnpm --filter @chivago/api typecheck:worker
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["@cloudflare/workers-types", "node"],
+    "noEmit": true
+  },
+  "include": ["src/worker.ts"],
+  // The base config excludes this very file; clear that, or there is nothing
+  // left to check and tsc reports "no inputs were found".
+  "exclude": []
+}

@@ -9,19 +9,19 @@ import { test, describe, before, after } from 'node:test';
  * working the moment there is an account to protect, and that it stops working
  * through the real middleware rather than in a unit test's imagination.
  *
- * The app is imported, not spawned — `server.ts` only listens when it is the
+ * The app is imported, not spawned — `server-node.ts` only listens when it is the
  * entry point, so `app.request()` drives the same middleware chain a phone hits.
  */
 
 // The pilot escape hatch must be OFF here, or the auto-close cannot be observed.
 delete process.env.CHIVAGO_OPEN_IDENTITY;
-// Its OWN database, set before server.ts is imported and opens one. Registering
+// Its OWN database, set before server-node.ts is imported and opens one. Registering
 // a device closes the header path for whatever database it happens to be in,
 // so running this against the working copy would silently break the demo
 // capture scripts for anybody who ran the tests afterwards.
 process.env.CHIVAGO_DB = ':memory:';
 
-const { app, db } = await import('./server.ts');
+const { app, db } = await import('./server-node.ts');
 
 const json = async (res: Response) => (await res.json()) as { ok: boolean; data?: any; code?: string; error?: string };
 

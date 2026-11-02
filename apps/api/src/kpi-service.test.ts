@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { kpiFor, kpiReading, observedFor } from './kpi-service.ts';
 import { awardQuestReward, ensureWallet, reverseMovement } from './wallet-service.ts';
 

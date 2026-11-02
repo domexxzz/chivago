@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { SELF_VISITS_PER_YEAR } from '@chivago/core';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { awardCheckin, ensureWallet, getBalances, reverseMovement } from './wallet-service.ts';
 import { hasVisited } from './place-review-service.ts';
 import { visitedProvincesFor } from './wellness-service.ts';
