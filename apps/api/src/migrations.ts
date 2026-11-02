@@ -1947,10 +1947,15 @@ export function migrate(db: DB): string[] {
   if (!hasTable(db, 'import_runs')) {
     db.exec(`
       CREATE TABLE import_runs (
-        id          TEXT PRIMARY KEY,
-        started_at  TEXT NOT NULL,
-        finished_at TEXT,
-        note        TEXT
+        id            TEXT PRIMARY KEY,
+        started_at    TEXT NOT NULL,
+        finished_at   TEXT,
+        -- When a batch last landed, and how many have. An import that was
+        -- abandoned halfway must not leave the door open for ever, so the
+        -- guard refuses a run that has gone quiet; see importBlockers.
+        last_batch_at TEXT,
+        batches       INTEGER NOT NULL DEFAULT 0,
+        note          TEXT
       );
     `);
     applied.push('import_runs');

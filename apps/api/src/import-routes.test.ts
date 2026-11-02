@@ -20,7 +20,9 @@ const { app, db } = await import('./server-node.ts');
 const { exportTable, tablesInDependencyOrder } = await import('./import-service.ts');
 const { openTestDb } = await import('./db-node.ts');
 
-const TOKEN = 'import-token-for-the-test';
+// At least 32 characters, because the route refuses a shorter one: there is
+// no throttle here, so the secret's length is the only thing in the way.
+const TOKEN = 'import-token-for-the-test-which-is-long-enough';
 const AT = '2026-11-02T00:00:00Z';
 
 const arm = () => { process.env.CHIVAGO_IMPORT_TOKEN = TOKEN; };
@@ -87,6 +89,19 @@ describe('armed, but the caller has to prove it', () => {
   });
 });
 
+describe('a token too short to be a secret is refused outright', () => {
+  test('under 32 characters, the route will not import at all', async () => {
+    // There is no rate limit on this route, so a guessable token is the whole
+    // of the security. Refusing at use rather than at arm time, because
+    // `wrangler secret put` is where it is set and nothing here sees that.
+    process.env.CHIVAGO_IMPORT_TOKEN = 'short';
+    const res = await post(aUser, 'short');
+    assert.equal(res.status, 500);
+    assert.equal((await res.json() as { code: string }).code, 'WEAK_IMPORT_TOKEN');
+    arm();
+  });
+});
+
 describe('a batch has to make sense', () => {
   before(arm);
 
@@ -145,11 +160,21 @@ describe('a real import, and then the door closes behind it', () => {
     }
 
     assert.equal(sent, 3, 'one user, one wallet, one host');
-    const n = (t: string) =>
-      (db.prepare(`SELECT COUNT(*) AS n FROM "${t}"`).get() as unknown as { n: number }).n;
-    assert.equal(n('users'), 1);
-    assert.equal(n('wallets'), 1);
-    assert.equal(n('hosts'), 1);
+
+    /*
+      Identity, not a count. An earlier test in this file posted while the
+      route was unarmed, which now FALLS THROUGH to the ordinary pipeline -
+      and on an empty `device_keys` that pipeline provisions an anonymous
+      account. So this database legitimately holds a provisioned user as well
+      as the imported one, which is exactly the situation the guard was
+      changed to tolerate: a stray request at cutover must not refuse the
+      import.
+    */
+    const has = (sql: string, ...args: unknown[]) =>
+      (db.prepare(sql).get(...(args as never[])) as unknown as { n: number }).n;
+    assert.equal(has('SELECT COUNT(*) AS n FROM users WHERE id = ?', 'u1'), 1, 'the imported user');
+    assert.equal(has('SELECT COUNT(*) AS n FROM wallets WHERE user_id = ?', 'u1'), 1);
+    assert.equal(has('SELECT COUNT(*) AS n FROM hosts WHERE id = ?', 'h1'), 1);
   });
 
   test('more batches are still accepted while the run is open', async () => {

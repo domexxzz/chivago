@@ -70,10 +70,27 @@ describe('the order tables go in', () => {
   let db: DB;
   beforeEach(() => { db = openTestDb(); });
 
-  test('every table is included, exactly once', () => {
+  test('every table is included exactly once, except the ones an import may not write', () => {
     const order = tablesInDependencyOrder(db);
-    assert.deepEqual([...order].sort(), [...tablesInDatabase(db)].sort());
-    assert.equal(new Set(order).size, order.length);
+    assert.equal(new Set(order).size, order.length, 'no duplicates');
+    // `import_runs` is the guard's own bookkeeping: a batch that could write
+    // it could forge an open run, so it is neither exported nor importable.
+    assert.ok(!order.includes('import_runs'));
+    assert.deepEqual(
+      [...order].sort(),
+      tablesInDatabase(db).filter((t) => t !== 'import_runs').sort(),
+    );
+  });
+
+  test('and a batch naming it is refused by name, not by "no such table"', () => {
+    assert.throws(
+      () => importBatch(db, {
+        table: 'import_runs',
+        columns: ['id', 'started_at'],
+        values: [['forged', '2026-11-02T00:00:00Z']],
+      }),
+      /not a table an import may write/,
+    );
   });
 
   test('a parent always comes before its child', () => {
@@ -235,7 +252,7 @@ describe('the guards', () => {
       */
       assert.throws(
         () => importBatch(openTestDb(), { table: nasty, columns: ['id'], values: [['x']] }),
-        /Unsafe table name|No such table/,
+        /Unsafe table name|No such table|not a table an import may write/,
       );
     });
   }

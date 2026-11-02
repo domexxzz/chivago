@@ -45,6 +45,20 @@ export type ImportValue = string | number | boolean | null | { $b64: string };
 /** A table name or column name this code is willing to put in a statement. */
 const SAFE_IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
+/**
+ * Tables a batch may NEVER name, however real they are.
+ *
+ * `import_runs` is the guard's own bookkeeping. A batch that could write it
+ * could forge an open run - and a snapshot taken from a database that was
+ * itself mid-import would carry one across and prop the door open on the far
+ * side without anybody doing anything wrong.
+ *
+ * `_cf_` is Cloudflare's: a Durable Object keeps its own tables in the same
+ * database, and they are nobody's business here.
+ */
+const NEVER_IMPORTED = (table: string): boolean =>
+  table === 'import_runs' || table.startsWith('_cf_') || table.startsWith('sqlite_');
+
 /** Every real table in the database, as it is right now. */
 export function tablesInDatabase(db: DB): string[] {
   return rows<{ name: string }>(
@@ -91,7 +105,13 @@ function parentsOf(db: DB, table: string): string[] {
  * fail partway and leave somebody guessing.
  */
 export function tablesInDependencyOrder(db: DB): string[] {
-  const all = tablesInDatabase(db);
+  /*
+    Tables an import may never write are left out here rather than filtered by
+    every caller. The exporter would otherwise produce a batch for
+    `import_runs` that the importer is obliged to refuse - a file whose only
+    purpose is to fail halfway through a migration at two in the morning.
+  */
+  const all = tablesInDatabase(db).filter((t) => !NEVER_IMPORTED(t));
   const parents = new Map(all.map((t) => [t, parentsOf(db, t).filter((p) => all.includes(p))]));
 
   const ordered: string[] = [];
@@ -137,7 +157,15 @@ const encodeValue = (v: unknown): ImportValue => {
 
 /** A cell, on its way in. */
 const decodeValue = (v: ImportValue): unknown => {
-  if (v !== null && typeof v === 'object' && '$b64' in v) return base64ToBytes(v.$b64);
+  if (v !== null && typeof v === 'object' && '$b64' in v) {
+    /*
+      `atob` stringifies whatever it is given, so `{"$b64": null}` decodes to
+      three bytes of rubbish and `{"$b64": 123}` to two - a silently corrupted
+      BLOB rather than an error. Checked, not trusted.
+    */
+    if (typeof v.$b64 !== 'string') throw new Error('A $b64 value must be a string');
+    return base64ToBytes(v.$b64);
+  }
   if (typeof v === 'boolean') return v ? 1 : 0;
   return v;
 };
@@ -175,8 +203,15 @@ export function exportTable(
   const quoted = columns.map((c) => `"${c}"`).join(', ');
   const limit = opts.limit ?? -1;
   const offset = opts.offset ?? 0;
+  /*
+    ORDER BY rowid, because the chunks are read with LIMIT/OFFSET and an
+    unordered SELECT is only stable by accident. The snapshot is read-only, so
+    in practice it did not move - but "in practice" is not a property, and a
+    chunk boundary that skipped or repeated a row would be invisible until the
+    counts were compared at the very end.
+  */
   const found = rows<Record<string, unknown>>(
-    db.prepare(`SELECT ${quoted} FROM "${table}" LIMIT ? OFFSET ?`).all(limit, offset),
+    db.prepare(`SELECT ${quoted} FROM "${table}" ORDER BY rowid LIMIT ? OFFSET ?`).all(limit, offset),
   );
   return {
     table,
@@ -196,45 +231,178 @@ export function isEmptyDatabase(db: DB): boolean {
 }
 
 /** The import that is under way, if one is. */
-export function openImportRun(db: DB): { id: string; started_at: string } | undefined {
-  return row<{ id: string; started_at: string }>(
+export interface ImportRun {
+  id: string;
+  started_at: string;
+  last_batch_at: string | null;
+  batches: number;
+}
+
+export function openImportRun(db: DB): ImportRun | undefined {
+  return row<ImportRun>(
     db
-      .prepare('SELECT id, started_at FROM import_runs WHERE finished_at IS NULL ORDER BY started_at LIMIT 1')
+      .prepare(
+        `SELECT id, started_at, last_batch_at, batches FROM import_runs
+          WHERE finished_at IS NULL ORDER BY started_at LIMIT 1`,
+      )
       .get(),
   );
 }
 
+/** Has an import ever been completed here? */
+export const anyFinishedRun = (db: DB): boolean =>
+  (row<{ n: number }>(
+    db.prepare('SELECT COUNT(*) AS n FROM import_runs WHERE finished_at IS NOT NULL').get(),
+  )?.n ?? 0) > 0;
+
 /**
- * May a batch be applied?
+ * How long an open run may go quiet before it stops counting.
  *
- * NOT simply "is the database empty", and the difference is the whole reason
- * `import_runs` exists. An import is many requests - 63 tables, chunked - so
- * emptiness is true before the first batch and false before the second. Asking
- * it directly made a multi-batch import impossible, which is how this was
- * found: the `users` batch succeeded and the `wallets` batch got a 409.
- *
- * So the question is "did this import begin on an empty database", answered
- * once and then remembered. A live database refuses the FIRST batch and there
- * is never a run to continue.
+ * An abandoned run used to hold the door open for ever: while one existed, any
+ * holder of the token could insert into ANY table at any time - `device_keys`,
+ * `host_sessions`, `user_accounts` among them, which is account takeover with
+ * extra steps. A real import sends its batches minutes apart, so six hours is
+ * generous for the operation and short for an attacker who has to wait.
  */
-export function mayImport(db: DB): { allowed: boolean; reason?: string } {
-  if (openImportRun(db)) return { allowed: true };
-  if (!isEmptyDatabase(db)) {
-    return {
-      allowed: false,
-      reason: 'This database already has users in it and no import is in progress. '
-        + 'An import must only ever begin on an empty database.',
-    };
+export const RUN_GOES_STALE_AFTER_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * Tables whose contents only REAL USE creates.
+ *
+ * The point of the guard is to refuse a LIVE database, and "does `users` have
+ * a row" turned out to be the wrong question - see `importBlockers`. These are
+ * the tables that cannot fill up by accident: a ledger entry, a registered
+ * account, a submitted proof, a posted story, an issued voucher, a fired SOS,
+ * a written review. Any one of them means somebody was really using this.
+ */
+const SUBSTANTIVE_TABLES: ReadonlyArray<readonly [table: string, where: string]> = [
+  /*
+    The ledger, EXCEPT the opening balance.
+
+    `grantOpeningBalance` writes `source_ref = 'opening:<currency>:<user>'`
+    for an account the moment it is provisioned, so on a deployment that still
+    hands out a pilot balance a single anonymous request creates ledger rows -
+    and counting those as "in use" refused the import for the same reason
+    counting `users` did. It was caught by this project's own route tests. A
+    real point movement has any other source_ref.
+  */
+  ['ledger', "WHERE source_ref NOT LIKE 'opening:%'"],
+  // The rest cannot be created without somebody doing something deliberate.
+  ['user_accounts', ''],
+  ['proofs', ''],
+  ['stories', ''],
+  ['vouchers', ''],
+  ['sos_alerts', ''],
+  ['place_reviews', ''],
+];
+
+/**
+ * Why this database may not be imported into. Empty means it may.
+ *
+ * THREE THINGS WENT WRONG with the first version of this guard, and all three
+ * are why it now reads the way it does rather than asking one question.
+ *
+ * 1. It asked "is the database empty", which is true before the first batch
+ *    and false before the second - so a 63-table import died on batch two
+ *    with a 409. Hence the run record: the question is asked once, at the
+ *    beginning, and then remembered.
+ *
+ * 2. "Empty" meant `users` having no rows, and a Worker that is already
+ *    serving traffic provisions a user from the first anonymous request it
+ *    sees (`server.ts`, the open-identity path). At a cutover that is not a
+ *    hypothetical: ONE stray request before the first batch refused the whole
+ *    import. It was reproduced end-to-end before being fixed - a `GET /places`
+ *    in a test provisioned an account and the next batch got a 409. So the
+ *    question is about SUBSTANTIVE data - a ledger row, a registered account,
+ *    a proof, a story - which an anonymous request cannot create.
+ *
+ * 3. A FINISHED run was never consulted, so a database that had been imported
+ *    and then had its users erased (`DELETE /profile` on the last account, or
+ *    `reset-demo`) was open to a second import. A finished run now refuses
+ *    permanently: this database has been set up, and setting it up again is
+ *    not a thing to do by accident.
+ */
+export function importBlockers(db: DB, now = new Date()): string[] {
+  const blockers: string[] = [];
+
+  if (anyFinishedRun(db)) {
+    blockers.push(
+      'An import has already been completed here. This database has been set up; '
+      + 'importing into it again is not something to do by accident.',
+    );
+    // Nothing below matters if this is true, and saying both would muddle it.
+    return blockers;
   }
-  return { allowed: true };
+
+  const open = openImportRun(db);
+  if (open) {
+    const since = open.last_batch_at ?? open.started_at;
+    const quietFor = now.getTime() - new Date(since).getTime();
+    if (quietFor > RUN_GOES_STALE_AFTER_MS) {
+      blockers.push(
+        `The import that began at ${open.started_at} has been quiet for `
+        + `${Math.round(quietFor / 3_600_000)} hours. Close it with /admin/import/finish `
+        + 'and begin again deliberately, rather than leaving the door open.',
+      );
+    }
+    // An open, live run is the ordinary case: continue it.
+    return blockers;
+  }
+
+  for (const [table, where] of SUBSTANTIVE_TABLES) {
+    // The table names are this file's own constants, never a caller's.
+    const n = row<{ n: number }>(
+      db.prepare(`SELECT COUNT(*) AS n FROM "${table}" ${where}`).get(),
+    )?.n ?? 0;
+    if (n > 0) {
+      blockers.push(
+        `This database is in use: ${table} has ${n} row(s) that only real use creates. `
+        + 'An import must only ever begin on a database nobody has used yet.',
+      );
+    }
+  }
+  return blockers;
 }
 
-/** Record that an import has begun, if it has not already. Returns its id. */
-export function beginImportRun(db: DB, now = new Date()): string {
+/**
+ * Accounts that exist only because somebody opened the app.
+ *
+ * Reported rather than deleted. On the open-identity path an anonymous request
+ * mints a `users` row and a zeroed wallet, and at a cutover a handful of those
+ * can appear before the import starts. They do not block it any more, but the
+ * operator should know they are there - deleting somebody's row is not a thing
+ * this code should decide by itself.
+ */
+export function provisionedUserCount(db: DB): number {
+  return row<{ n: number }>(
+    db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM users u
+          WHERE NOT EXISTS (SELECT 1 FROM user_accounts a WHERE a.id = u.id)
+            AND NOT EXISTS (SELECT 1 FROM ledger l WHERE l.user_id = u.id)`,
+      )
+      .get(),
+  )?.n ?? 0;
+}
+
+/**
+ * Record that an import has begun, or that a batch has landed on one.
+ *
+ * Called AFTER a batch succeeds, not before. The first version called it
+ * first, so a token-bearing request naming a table that does not exist left an
+ * open run behind on an untouched database - a door propped open by a typo.
+ */
+export function recordBatch(db: DB, now = new Date()): string {
   const open = openImportRun(db);
-  if (open) return open.id;
+  if (open) {
+    db.prepare('UPDATE import_runs SET last_batch_at = ?, batches = batches + 1 WHERE id = ?')
+      .run(now.toISOString(), open.id);
+    return open.id;
+  }
   const id = `imp_${now.toISOString()}`;
-  db.prepare('INSERT INTO import_runs (id, started_at) VALUES (?,?)').run(id, now.toISOString());
+  db.prepare(
+    'INSERT INTO import_runs (id, started_at, last_batch_at, batches) VALUES (?,?,?,1)',
+  ).run(id, now.toISOString(), now.toISOString());
   return id;
 }
 
@@ -267,6 +435,9 @@ export function finishImportRun(db: DB, note: string | null = null, now = new Da
 export function importBatch(db: DB, batch: ImportBatch): number {
   if (!SAFE_IDENTIFIER.test(batch.table)) {
     throw new Error(`Unsafe table name: ${JSON.stringify(batch.table)}`);
+  }
+  if (NEVER_IMPORTED(batch.table)) {
+    throw new Error(`${batch.table} is not a table an import may write`);
   }
   if (!tablesInDatabase(db).includes(batch.table)) {
     throw new Error(`No such table: ${batch.table}`);
