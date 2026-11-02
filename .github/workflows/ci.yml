@@ -33,6 +33,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
+      # The same API suite again, through the Durable Object adapter
+      # (apps/api/src/do-storage.ts) instead of node:sqlite directly. It is
+      # the only thing that keeps the adapter honest: the stand-in refuses
+      # exactly the SQL Cloudflare's runtime refuses, so a statement that
+      # would fail on Workers fails here instead of after a deploy.
+      - run: pnpm --filter @chivago/api test:durable
       - run: pnpm test:scripts
       # The Thai copy audit is advisory until a native speaker has been through
       # it, so it reports and does not fail the build. It is here so the count

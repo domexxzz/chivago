@@ -9,15 +9,12 @@
  * - Device key issuance and wallet provisioning upon successful registration and login
  */
 
-import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { isLang } from '@chivago/core';
 import { row, type DB } from './db.ts';
 import { generateDeviceKey, hashToken } from './account-service.ts';
 import { ensureWallet, grantOpeningBalance } from './wallet-service.ts';
-
-const KEY_LEN = 32;
-const SALT_LEN = 16;
-const SCRYPT = { N: 16_384, r: 8, p: 1, maxmem: 128 * 1024 * 1024 } as const;
+import { constantTimeEqual, deriveKey, hashSecret, parseHash } from './scrypt.ts';
 
 export class UserAuthError extends Error {
   readonly code: string;
@@ -34,32 +31,33 @@ export class UserAuthError extends Error {
 /**
  * Hash a password using scrypt.
  * Format: `scrypt$<salt-hex>$<hash-hex>`
+ *
+ * The parameters and the derivation moved to `scrypt.ts`, which computes the
+ * same digest without `node:crypto` so that this runs on Workers too. Existing
+ * hashes keep verifying - the algorithm did not change, only the code that
+ * runs it.
  */
 export function hashPassword(password: string): string {
-  const salt = randomBytes(SALT_LEN);
-  const hash = scryptSync(password, salt, KEY_LEN, SCRYPT);
-  return `scrypt$${salt.toString('hex')}$${hash.toString('hex')}`;
+  return hashSecret(password);
 }
 
 /**
  * Verify a password against the stored scrypt hash in constant time.
+ *
+ * Returns false rather than throwing on a malformed stored value: a corrupt
+ * row must fail closed, not crash the login route for everyone.
  */
 export function verifyPassword(password: string, stored: string | null): boolean {
-  if (!stored) return false;
-  const parts = stored.split('$');
-  if (parts.length !== 3 || parts[0] !== 'scrypt') return false;
+  const parsed = parseHash(stored);
+  if (!parsed) return false;
 
-  const salt = Buffer.from(parts[1]!, 'hex');
-  const expected = Buffer.from(parts[2]!, 'hex');
-  if (salt.length !== SALT_LEN || expected.length !== KEY_LEN) return false;
-
-  let actual: Buffer;
+  let actual: Uint8Array;
   try {
-    actual = scryptSync(password, salt, KEY_LEN, SCRYPT);
+    actual = deriveKey(password, parsed.salt);
   } catch {
     return false;
   }
-  return timingSafeEqual(actual, expected);
+  return constantTimeEqual(actual, parsed.expected);
 }
 
 export type AccountType = 'traveller' | 'operator';
