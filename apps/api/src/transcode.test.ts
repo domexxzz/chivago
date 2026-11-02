@@ -25,7 +25,9 @@ import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { FFMPEG, ffmpegTranscoder, transcoderAvailable } from './transcode.ts';
+import { writeFileSync as writeOut } from 'node:fs';
+
+import { FFMPEG, ffmpegTranscoder, transcoderAvailable, type Encoded } from './transcode.ts';
 
 /** A coordinate off Koh Samui, recognisable in any output that leaks it. */
 const LAT_LNG = '+09.5357+100.0617/';
@@ -68,6 +70,21 @@ async function clipWithPosition(path: string): Promise<void> {
   ]);
 }
 
+/**
+ * Run the real transcoder over a file's bytes and put the results back on
+ * disk, because ffprobe reads files and the transcoder no longer writes any.
+ */
+async function encodeFile(src: string, kind: 'video' | 'photo', outBase: string): Promise<Encoded> {
+  const bytes = new Uint8Array(readFileSync(src));
+  const ext = src.endsWith('.jpg') ? 'jpg' : 'mp4';
+  const encoded = kind === 'video'
+    ? await ffmpegTranscoder.video(bytes, ext)
+    : await ffmpegTranscoder.photo(bytes, ext);
+  writeOut(`${outBase}.media`, encoded.media);
+  writeOut(`${outBase}.poster`, encoded.poster);
+  return encoded;
+}
+
 /** Every metadata tag ffprobe can see, format-level and stream-level. */
 async function tagsOf(path: string): Promise<string> {
   const fmt = await run(ffprobe(), [
@@ -96,9 +113,9 @@ describe('a published clip does not carry the phone of origin', () => {
     const poster = join(dir, 'out.jpg');
     await clipWithPosition(src);
 
-    await ffmpegTranscoder.video(src, out, poster);
+    await encodeFile(src, 'video', join(dir, 'enc1'));
 
-    const tags = await tagsOf(out);
+    const tags = await tagsOf(join(dir, 'enc1.media'));
     assert.doesNotMatch(tags, /100\.0617/, 'the coordinate survived into the published clip');
     assert.doesNotMatch(tags, /09\.5357/, 'the latitude survived into the published clip');
     assert.doesNotMatch(tags, /ISO6709/i, "the phone's location field survived");
@@ -119,10 +136,9 @@ describe('a published clip does not carry the phone of origin', () => {
       bytes of an unfixed encode and absent from a fixed one.
     */
     const src = join(dir, 'raw-in.mp4');
-    const out = join(dir, 'raw-out.mp4');
     await clipWithPosition(src);
-    await ffmpegTranscoder.video(src, out, join(dir, 'raw-out.jpg'));
-    const bytes = readFileSync(out).toString('latin1');
+    const encoded = await encodeFile(src, 'video', join(dir, 'enc2'));
+    const bytes = Buffer.from(encoded.media).toString('latin1');
     assert.ok(!bytes.includes('loci'), 'a 3GPP location box survived into the published clip');
     assert.ok(!bytes.includes('private holiday'), 'a free-text title survived into the bytes');
   });
@@ -130,18 +146,17 @@ describe('a published clip does not carry the phone of origin', () => {
   test('the poster frame is clean too', async (t) => {
     if (!haveFfmpeg) return t.skip('ffmpeg is not on this machine');
     const src = join(dir, 'p-in.mp4');
-    const poster = join(dir, 'p-out.jpg');
     await clipWithPosition(src);
-    await ffmpegTranscoder.video(src, join(dir, 'p-out.mp4'), poster);
-    assert.doesNotMatch(await tagsOf(poster), /100\.0617/);
+    await encodeFile(src, 'video', join(dir, 'enc3'));
+    assert.doesNotMatch(await tagsOf(join(dir, 'enc3.poster')), /100\.0617/);
   });
 
   test('and the clip still plays - stripping metadata did not break the encode', async (t) => {
     if (!haveFfmpeg) return t.skip('ffmpeg is not on this machine');
     const src = join(dir, 'ok-in.mp4');
-    const out = join(dir, 'ok-out.mp4');
     await clipWithPosition(src);
-    const encoded = await ffmpegTranscoder.video(src, out, join(dir, 'ok-out.jpg'));
+    const encoded = await encodeFile(src, 'video', join(dir, 'enc4'));
+    const out = join(dir, 'enc4.media');
 
     // A real H.264 stream of the expected width, and a duration ffmpeg read.
     const probe = await run(ffprobe(), [
@@ -160,12 +175,11 @@ describe('a published photograph does not carry its EXIF', () => {
     // This path already had `-map_metadata -1`; the test is here so the two
     // paths are held to one standard rather than one of them being trusted.
     const src = join(dir, 'photo-in.jpg');
-    const out = join(dir, 'photo-out.jpg');
     await run(FFMPEG, [
       '-y', '-f', 'lavfi', '-i', 'color=c=sandybrown:size=64x64:duration=1',
       '-frames:v', '1', '-metadata', `location=${LAT_LNG}`, src,
     ]);
-    await ffmpegTranscoder.photo(src, out);
-    assert.doesNotMatch(await tagsOf(out), /100\.0617/);
+    await encodeFile(src, 'photo', join(dir, 'enc5'));
+    assert.doesNotMatch(await tagsOf(join(dir, 'enc5.media')), /100\.0617/);
   });
 });

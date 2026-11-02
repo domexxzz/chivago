@@ -18,9 +18,9 @@ import {
 } from '@chivago/core';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { extname, join } from 'node:path';
 import { row, rows, type DB } from './db.ts';
-import { ffmpegTranscoder, type Transcoder } from './transcode.ts';
+import { transcoderFromEnv, type Transcoder } from './transcode.ts';
 
 export type AssistStatus = 'pending' | 'done' | 'failed' | 'off' | 'limit';
 
@@ -110,16 +110,18 @@ export function assistConfig(env: Record<string, string | undefined>): AssistCon
  * through - 720 wide, a fresh JPEG, EXIF and its position gone - into a
  * scratch directory that is removed whatever happens.
  */
-export function ffmpegPrepare(transcoder: Transcoder = ffmpegTranscoder) {
+export function ffmpegPrepare(transcoder: Transcoder = transcoderFromEnv()) {
   return async (storagePath: string): Promise<Buffer> => {
-    const dir = await mkdtemp(join(tmpdir(), 'chivago-assist-'));
-    try {
-      const out = join(dir, 'photo.jpg');
-      await transcoder.photo(storagePath, out);
-      return await readFile(out);
-    } finally {
-      await rm(dir, { recursive: true, force: true });
-    }
+    /*
+      No scratch directory here any more: the transcoder owns its own, because
+      it is the only thing that knows whether it needs one. This still takes a
+      PATH, which is what the proof row holds; moving it to bytes belongs with
+      the change that puts proof photographs behind the blob store.
+    */
+    const bytes = await readFile(storagePath);
+    const ext = extname(storagePath).replace(/^\./, '') || 'jpg';
+    const { media } = await transcoder.photo(bytes, ext);
+    return Buffer.from(media);
   };
 }
 

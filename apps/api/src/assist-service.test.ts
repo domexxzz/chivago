@@ -1,7 +1,9 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { ASSIST_PROMPT_VERSION } from '@chivago/core';
 import { openTestDb, type DB } from './db.ts';
 import {
@@ -184,29 +186,52 @@ describe('what the model is sent', () => {
 });
 
 describe('the photo door', () => {
-  test('re-encodes into a scratch file, returns its bytes, and leaves nothing behind', async () => {
-    let scratch = '';
-    const prepare = ffmpegPrepare({
-      video: async () => ({ durationS: null }),
-      photo: async (input, out) => {
-        scratch = out;
-        assert.equal(input, '/uploads/f1.jpg');
-        writeFileSync(out, 'clean-jpeg');
-      },
-    });
-    assert.equal(String(await prepare('/uploads/f1.jpg')), 'clean-jpeg');
-    assert.ok(scratch);
-    assert.equal(existsSync(scratch), false);
+  const noVideo = async () => ({ media: new Uint8Array(), poster: new Uint8Array(), durationS: null });
+
+  test('reads the file it was given, hands over its bytes, returns what came back', async () => {
+    /*
+      There is no scratch file to assert on any more. The transcoder owns its
+      own temporary space - the only shape that also works when the encoder is
+      a container reached over HTTP - so what this door is responsible for is
+      reading the right file, handing over its bytes, and giving back what came
+      out.
+    */
+    const dir = mkdtempSync(join(tmpdir(), 'chivago-assist-test-'));
+    const photo = join(dir, 'f1.jpg');
+    writeFileSync(photo, 'ORIGINAL-WITH-EXIF');
+    try {
+      let seenExt = '';
+      let seenBytes: Uint8Array | null = null;
+      const prepare = ffmpegPrepare({
+        video: noVideo,
+        photo: async (bytes, ext) => {
+          seenExt = ext;
+          seenBytes = bytes;
+          const media = new TextEncoder().encode('clean-jpeg');
+          return { media, poster: media, durationS: null };
+        },
+      });
+      assert.equal(String(await prepare(photo)), 'clean-jpeg');
+      assert.equal(Buffer.from(seenBytes!).toString(), 'ORIGINAL-WITH-EXIF', 'the file was read');
+      assert.equal(seenExt, 'jpg', 'the extension travels, so ffmpeg can probe the format');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
-  test('a failed encode still cleans up, and the failure reaches requestAssist', async () => {
-    let scratch = '';
-    const prepare = ffmpegPrepare({
-      video: async () => ({ durationS: null }),
-      photo: async (_input, out) => { scratch = out; throw new Error('ffmpeg exited 1'); },
-    });
-    await assert.rejects(prepare('/uploads/f1.jpg'));
-    assert.equal(existsSync(scratch), false);
+  test('a failed encode reaches requestAssist rather than being swallowed', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'chivago-assist-test-'));
+    const photo = join(dir, 'f1.jpg');
+    writeFileSync(photo, 'x');
+    try {
+      const prepare = ffmpegPrepare({
+        video: noVideo,
+        photo: async () => { throw new Error('ffmpeg exited 1'); },
+      });
+      await assert.rejects(prepare(photo));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
