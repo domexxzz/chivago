@@ -12,6 +12,7 @@
     "seed:offers": "node --experimental-strip-types src/seed-offers.ts",
     "host:add": "node --experimental-strip-types src/add-host.ts",
     "test": "node --test --experimental-strip-types \"src/*.test.ts\" \"src/console/*.test.ts\"",
+    "test:durable": "node --env-file=durable-driver.env --test --experimental-strip-types \"src/*.test.ts\" \"src/console/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "contract": "node --experimental-strip-types src/capture-contract.ts",
     "demo:reset": "node --experimental-strip-types src/reset-demo.ts",

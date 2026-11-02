@@ -13,8 +13,26 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { migrate } from './migrations.ts';
 import { isPrimary } from './primary.ts';
+import {
+  durableStorageFor,
+  openDurableDb,
+  registerDurable,
+  type DurableStorage,
+  type SyncDatabase,
+} from './do-storage.ts';
+import { standInStorage } from './do-storage-stand-in.ts';
 
-export type DB = DatabaseSync;
+/**
+ * The database, as the codebase uses it: `prepare`, `exec`, `close`, and on a
+ * statement `get`/`run`/`all`. Counted across `apps/api/src`, that is the
+ * WHOLE surface - nothing calls anything else.
+ *
+ * It was `DatabaseSync` and is now the structural type `DatabaseSync` already
+ * satisfies, so every existing call site and signature is unchanged while a
+ * second driver (Durable Object storage, see `do-storage.ts`) can also be a
+ * `DB`.
+ */
+export type DB = SyncDatabase;
 
 /**
  * Schema.
@@ -317,12 +335,55 @@ function awaitSchema(db: DB, tries = 60): void {
   console.warn('[chivago] replica: schema never arrived; serving whatever is here');
 }
 
-/** Fresh in-memory database, for tests. Never memoised. */
+/**
+ * Fresh in-memory database, for tests. Never memoised.
+ *
+ * With `CHIVAGO_DB_DRIVER=durable` the same schema and the same migrations are
+ * built through the Durable Object adapter instead, over the node:sqlite
+ * stand-in. That is what lets the entire existing suite run against the
+ * adapter without a Cloudflare account: `pnpm test:durable`.
+ */
 export function openTestDb(): DB {
-  const db = new DatabaseSync(':memory:');
+  const sqlite = new DatabaseSync(':memory:');
+  const db = process.env.CHIVAGO_DB_DRIVER === 'durable' ? viaDurableAdapter(sqlite) : sqlite;
   db.exec(SCHEMA);
   db.exec(SCHEMA_2);
   migrate(db);
+  return db;
+}
+
+/**
+ * Wrap a node:sqlite handle in the Durable Object adapter, for tests.
+ *
+ * This file is the Node driver - it already imports `node:sqlite`, `node:fs`
+ * and the LiteFS check, none of which exist on Workers. The Worker entry point
+ * will import `openDurableDatabase` from a module split out of here; it will
+ * not reach this function or the stand-in.
+ */
+function viaDurableAdapter(sqlite: DatabaseSync): DB {
+  return openDurableDatabase(standInStorage(sqlite), { migrate: false });
+}
+
+/**
+ * Open the API's database on Durable Object storage, building the schema and
+ * running the migrations exactly as the single-machine deployment does.
+ *
+ * A Durable Object calls this once from its constructor, inside
+ * `blockConcurrencyWhile`, so no request is served against a half-built
+ * schema. `migrate: false` leaves that to the caller.
+ */
+export function openDurableDatabase(
+  storage: DurableStorage,
+  opts: { migrate?: boolean } = {},
+): DB {
+  const db = openDurableDb(storage);
+  registerDurable(db, storage);
+  if (opts.migrate !== false) {
+    db.exec(SCHEMA);
+    db.exec(SCHEMA_2);
+    const applied = migrate(db);
+    if (applied.length > 0) console.log('[chivago] migrated:', applied.join(', '));
+  }
   return db;
 }
 
@@ -351,6 +412,16 @@ const depth = new WeakMap<DB, number>();
  * compose - which is exactly what happened the first time this ran.
  */
 export function transact<T>(db: DB, fn: () => T): T {
+  /*
+    Durable Object storage refuses BEGIN and SAVEPOINT as SQL and offers
+    `transactionSync()` instead - which, measured against workerd, NESTS, and
+    on an inner throw caught by the outer transaction discards only the inner
+    work. That is the same guarantee the savepoints below give, so re-entrancy
+    needs no special handling: hand the nesting to the runtime that owns it.
+  */
+  const storage = durableStorageFor(db);
+  if (storage) return storage.transactionSync(fn);
+
   const level = depth.get(db) ?? 0;
   const nested = level > 0;
   const savepoint = `sp_${level}`;
