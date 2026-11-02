@@ -501,12 +501,12 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
   });
 
   /** Photo bytes. Authorisation is enforced in the SQL, not here. */
-  app.get('/photo/:id', (c) => {
+  app.get('/photo/:id', async (c) => {
     const session = currentSession(c)!;
-    const blob = readPhotoForHost(db, session.hostId, c.req.param('id'));
+    const blob = await readPhotoForHost(db, session.hostId, c.req.param('id'));
     if (!blob) return c.text('Not found', 404);
-    // Hono wants a plain Uint8Array; a Node Buffer's backing store is
-    // typed loosely enough that TypeScript rejects it.
+    // Hono wants a plain Uint8Array over a plain ArrayBuffer; the bytes may
+    // arrive over a buffer type TypeScript treats more loosely, so re-wrap.
     return c.body(new Uint8Array(blob.bytes), 200, {
       'content-type': blob.mime,
       // Photos of volunteers are personal data. Never let a shared proxy hold
