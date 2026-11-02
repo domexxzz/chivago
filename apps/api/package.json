@@ -13,6 +13,7 @@
     "host:add": "node --experimental-strip-types src/add-host-cli.ts",
     "transcode": "node --experimental-strip-types src/transcode-service.ts",
     "test": "node --test --experimental-strip-types \"src/*.test.ts\" \"src/console/*.test.ts\"",
+    "test:alarm": "node ../../scripts/alarm-integration.mjs",
     "test:durable": "node --env-file=durable-driver.env --test --experimental-strip-types \"src/*.test.ts\" \"src/console/*.test.ts\"",
     "console:css": "node ../../scripts/build-console-css.mjs",
     "typecheck": "tsc --noEmit",

@@ -39,6 +39,11 @@ jobs:
       # exactly the SQL Cloudflare's runtime refuses, so a statement that
       # would fail on Workers fails here instead of after a deploy.
       - run: pnpm --filter @chivago/api test:durable
+      # A real alarm, in a real Durable Object, in real workerd. Its own step
+      # because it starts `wrangler dev` and takes half a minute - and it is
+      # worth that: an alarm books the next alarm, and if that ever stops, all
+      # scheduled work on the object stops silently, SOS escalation included.
+      - run: pnpm --filter @chivago/api test:alarm
       # The console stylesheet is generated from public/modernist.css into a
       # module the bundle carries. A stale module means the console serves
       # last week's styles, which for this stylesheet can mean invisible form
