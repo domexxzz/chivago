@@ -23,7 +23,7 @@
 
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { ChevronRight, Map as MapIcon } from 'lucide-react-native';
+import { Check, ChevronRight, LockKeyhole, Map as MapIcon } from 'lucide-react-native';
 import {
   PROVINCES, REGIONS, passportProgress, provinceCollection, provinceCompanions, provincesIn, strings,
   type Province, type ProvinceCompanion, type Region,
@@ -31,9 +31,8 @@ import {
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
-import { gameHabitat, gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
-import { OceanBackdrop } from '../components/Shell.tsx';
+import { PushHeader, TravelHeroBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { MascotPortrait } from '../components/MascotPortrait.tsx';
 import { t } from '../i18n/locale.ts';
@@ -46,7 +45,7 @@ const stateOf = (p: Province, visited: Set<string>, noted: Set<string>): StampSt
     : noted.has(p.code) ? 'noted'
       : p.status === 'open' ? 'open' : 'listed');
 
-export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void } = {}) {
+export function PassportScreen({ onBack, onOpenMascots }: { onBack?: () => void; onOpenMascots?: () => void } = {}) {
   const passport = useAsync(() => api.passport(), []);
   const visited = new Set(passport.data?.visited ?? []);
   // Kept apart from `visited` all the way down: the count above the grid is
@@ -66,57 +65,62 @@ export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void }
   const collection = provinceCollection(companions);
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      {/*
-        The inverted panel — the one dark surface in a light app, used where a
-        screen has a single headline number worth stopping on.
-      */}
+    <ScrollView style={{ flex: 1, backgroundColor: '#F4FBFC' }} contentContainerStyle={{ width: '100%', maxWidth: 760, alignSelf: 'center', paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      {onBack ? <PushHeader context={t({ en: 'Thailand passport', th: 'พาสปอร์ตไทย', zh: '泰国护照' })} onBack={onBack} /> : (
+        <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 14, backgroundColor: color.surface }}>
+          <Heading size={22} colour={color.brandDeep}>{t({ en: 'Thailand Passport', th: 'พาสปอร์ตไทย', zh: '泰国护照' })}</Heading>
+        </View>
+      )}
+
+      {/* A travel cover with the paper passport sitting over the destination. */}
       <View
         style={[
           shadow.card,
           {
-            margin: gutter,
-            padding: 22,
+            height: 232,
+            marginHorizontal: gutter,
+            marginTop: 14,
+            marginBottom: 26,
             borderRadius: 24,
-            backgroundColor: color.paper,
+            backgroundColor: color.brandDeep,
             overflow: 'hidden',
           },
         ]}
       >
-        <OceanBackdrop compact />
-        <Label size={10} tracking={0.16} colour={color.brandSoft}>{t({ en: 'Province passport', th: 'พาสปอร์ตจังหวัด', zh: '府级护照' })}</Label>
-
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 10 }}>
-          <Heading size={44} colour={color.surface} tracking={-1}>
-            {progress.visited}
+        <TravelHeroBackdrop focalPoint="left" />
+        <View style={{ position: 'absolute', left: 20, bottom: 22, maxWidth: '42%' }}>
+          <Label size={9} tracking={0.16} colour="#D9F7FA">CHIVAGO</Label>
+          <Heading size={22} colour="#FFFFFF" style={{ marginTop: 3 }}>
+            {t({ en: 'Travel all over Thailand', th: 'เที่ยวไทยให้ครบทุกจังหวัด', zh: '畅游泰国每一府' })}
           </Heading>
-          <Heading size={20} colour={color.brandSoft}>{`/ ${progress.total}`}</Heading>
         </View>
-
-        <Body size={13} colour={color.brandSoft} style={{ marginTop: 6 }}>
-          {t({
-            en: `${progress.open} provinces are open today. The rest of Thailand is listed and not yet built.`,
-            th: `เปิดแล้ว ${progress.open} จังหวัดในวันนี้ จังหวัดที่เหลือทั่วไทยมีอยู่ในรายการแต่ยังไม่เปิด`,
-            zh: `今天已开放 ${progress.open} 个府。泰国其余各府已列出，尚未上线。`,
-          })}
-        </Body>
-
-        {/*
-          The collection, on the same panel as the stamps, because they are the
-          same seventy-seven things counted twice — where you have been, and
-          what is living there because you went.
-        */}
         <View
           style={{
-            flexDirection: 'row', gap: 18, marginTop: 16,
-            paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.18)',
+            position: 'absolute', right: 18, top: 24, width: 164, height: 178,
+            padding: 16, borderRadius: 12, backgroundColor: '#F5E8D1',
+            borderWidth: 1, borderColor: '#D7B98C', transform: [{ rotate: '-4deg' }],
+            shadowColor: '#003B52', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.24, shadowRadius: 16, elevation: 7,
           }}
         >
-          {/*
-            Counted in the emblem's words, not the animal's. These three
-            numbers are provinces, and a province is not something that
-            hatches - see `MascotBond` in core.
-          */}
+          <Label size={9} tracking={0.12} colour="#7B5534">KINGDOM OF THAILAND</Label>
+          <Heading size={23} colour="#5F3D28" style={{ marginTop: 8 }}>Thailand</Heading>
+          <Body size={13} colour="#7B5534">Travel Passport</Body>
+          <View style={{ marginTop: 'auto', alignSelf: 'flex-end', width: 62, height: 62, borderRadius: 31, borderWidth: 3, borderColor: '#C96C56', alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '11deg' }] }}>
+            <Label size={9} tracking={0.08} colour="#C96C56" style={{ textAlign: 'center' }}>{`${progress.visited} / ${progress.total}\nVISITED`}</Label>
+          </View>
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal: gutter, marginBottom: 20 }}>
+        <Heading size={21}>{t({ en: 'Provinces collected', th: 'จังหวัดที่สะสม', zh: '已收集的府' })}</Heading>
+        <Body size={13} colour={color.neutral700} style={{ marginTop: 7 }}>
+          {t({
+            en: `${progress.open} provinces are open today. The rest of Thailand is listed and not yet built.`,
+            th: `เปิดแล้ว ${progress.open} จังหวัด สะสมตราประทับจากการเดินทางจริงของคุณ`,
+            zh: `今天已开放 ${progress.open} 个府，其余府已列出但尚未开放。`,
+          })}
+        </Body>
+        <View style={{ flexDirection: 'row', gap: 26, marginTop: 16 }}>
           <HeroFigure value={collection.found} label={strings.mascots.bond.met.en} thai={strings.mascots.bond.met.th} chinese={strings.mascots.bond.met.zh} />
           <HeroFigure value={collection.grown} label={strings.mascots.bond.vouched.en} thai={strings.mascots.bond.vouched.th} chinese={strings.mascots.bond.vouched.zh} />
           <HeroFigure value={collection.sealed} label={strings.mascots.bond.unopened.en} thai={strings.mascots.bond.unopened.th} chinese={strings.mascots.bond.unopened.zh} />
@@ -131,18 +135,18 @@ export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void }
           accessibilityLabel={t(strings.mascots.door)}
           // The same tile the Collect screen opens the seventy-seven from, so
           // the door looks like the same door wherever it is.
-          style={[gameShadow.lift, {
-            marginHorizontal: gutter, marginBottom: 4, padding: 14, borderRadius: gameRadius.panel,
-            backgroundColor: gameHabitat.mascots.fill,
+          style={[shadow.card, {
+            marginHorizontal: gutter, marginBottom: 18, padding: 16, borderRadius: 20,
+            backgroundColor: color.surface, borderWidth: 1, borderColor: '#CDEAF2',
             flexDirection: 'row', alignItems: 'center', gap: 12,
           }]}
         >
-          <MapIcon size={30} color={gameHabitat.mascots.ink} strokeWidth={1.8} />
+          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#DDF4FA', alignItems: 'center', justifyContent: 'center' }}><MapIcon size={24} color={color.brand} strokeWidth={2} /></View>
           <View style={{ flex: 1 }}>
-            <Heading size={15} colour={gameHabitat.mascots.ink}>{t(strings.mascots.title)}</Heading>
-            <Body size={13} colour={gameHabitat.mascots.ink} style={{ marginTop: 2 }}>{t(strings.mascots.door)}</Body>
+            <Label size={9} tracking={0.12} colour={color.brand}>{t({ en: 'COLLECTION', th: 'คอลเลกชัน', zh: '收藏' })}</Label><Heading size={16}>{t(strings.mascots.title)}</Heading>
+            <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>{t(strings.mascots.door)}</Body>
           </View>
-          <ChevronRight size={18} color={gameHabitat.mascots.ink} strokeWidth={2} />
+          <ChevronRight size={20} color={color.brand} strokeWidth={2.2} />
         </Pressable>
       ) : null}
 
@@ -164,7 +168,7 @@ export function PassportScreen({ onOpenMascots }: { onOpenMascots?: () => void }
         />
       ))}
 
-      <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 36 }}>
+      <View style={{ paddingHorizontal: gutter, paddingTop: 18, paddingBottom: 4 }}>
         <Label size={9} tracking={0.06} colour={color.neutral600} style={{ textTransform: 'none' }}>
           {t({
             en: 'An open province has mapped places and a named quest host. Air and crowd figures state their source; photos appear only when licensed.',
@@ -185,7 +189,7 @@ function Legend() {
     ['listed', 'Not yet', 'ยังไม่เปิด'],
   ];
   return (
-    <View style={{ flexDirection: 'row', gap: 16, paddingHorizontal: gutter, paddingBottom: 4 }}>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, rowGap: 10, paddingHorizontal: gutter, paddingTop: 2, paddingBottom: 8 }}>
       {items.map(([state, en, th]) => (
         <View key={state} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View
@@ -214,11 +218,11 @@ function RegionBlock({
   byCode: Map<string, ProvinceCompanion>;
 }) {
   return (
-    <View style={{ marginTop: 20, paddingHorizontal: gutter }}>
+    <View style={{ marginTop: 22, paddingHorizontal: gutter }}>
       <View
         style={{
           flexDirection: 'row', alignItems: 'baseline', gap: 10,
-          paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: color.divider,
+          paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: color.divider,
         }}
       >
         <Heading size={15}>{t(region.name)}</Heading>
@@ -233,7 +237,7 @@ function RegionBlock({
         </Label>
       </View>
 
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+      <View style={{ gap: 12, marginTop: 14 }}>
         {provincesIn(region.key).map((p) => (
           <Stamp
             key={p.code}
@@ -270,30 +274,22 @@ function Stamp({
         }.`
       }
       style={{
-        minWidth: 96,
-        paddingVertical: 9,
-        paddingHorizontal: 11,
-        borderRadius: radius.sm,
-        borderWidth: stamped ? 0 : open ? layout.ruleStrong : 1,
+        width: '100%', minHeight: 72,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        borderWidth: stamped ? 2 : open ? layout.ruleStrong : 1,
         // Dashed: a claim, drawn as one. The solid stamps beside it keep
         // meaning what they meant.
         borderStyle: noted ? 'dashed' : 'solid',
         borderColor: open ? color.accent : noted ? color.neutral600 : color.neutral300,
-        backgroundColor: stamped ? color.accent : color.surface,
+        backgroundColor: stamped ? '#F1FFFA' : color.surface,
         // Listed provinces recede. They are present and findable, not offered.
         opacity: state === 'listed' ? 0.55 : 1,
       }}
     >
 
-      <Label
-        size={9}
-        tracking={0.06}
-        colour={stamped ? color.accent100 : color.neutral600}
-        style={{ marginTop: 2, textTransform: 'none' }}
-      >
-        {t(province.name)}
-      </Label>
-
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
       {/*
         The province's own creature, on every card including the sealed ones.
 
@@ -306,14 +302,17 @@ function Stamp({
         habitat, and the place it is said is the companion room.
       */}
       {companion ? (
-        <>
-          <MascotPortrait mascot={companion.mascot} size={28} />
-          <Label
-            size={9}
-            tracking={0.04}
-            colour={stamped ? color.surface : color.accent700}
-            style={{ marginTop: 2, textTransform: 'none' }}
-          >
+        <MascotPortrait mascot={companion.mascot} size={48} />
+      ) : (
+        <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: '#E8EEF0', alignItems: 'center', justifyContent: 'center' }}>
+          <LockKeyhole size={20} color={color.neutral500} />
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
+        <Heading size={15}>{t(province.name)}</Heading>
+        {companion ? (
+          <>
+          <Label size={9} tracking={0.04} colour={color.accent700} style={{ marginTop: 3, textTransform: 'none' }}>
             {`${BOND_MARK[companion.bond] ?? ''} ${t(companion.mascot.name)}`}
           </Label>
           {/* The level, only where there is one. Zero is not a level, it is a province nobody has been to. */}
@@ -321,14 +320,22 @@ function Stamp({
             <Label
               size={9}
               tracking={0.04}
-              colour={stamped ? color.accent100 : color.neutral600}
+              colour={color.neutral600}
               style={{ marginTop: 1, textTransform: 'none' }}
             >
               {t(strings.mascots.level(companion.level))}
             </Label>
           ) : null}
-        </>
-      ) : null}
+          </>
+        ) : <Body size={13} colour={color.neutral600}>{t({ en: 'Keep travelling to unlock', th: 'สะสมเพิ่มเพื่อปลดล็อก', zh: '继续旅行以解锁' })}</Body>}
+      </View>
+      <View style={{ minWidth: 72, alignItems: 'center', paddingVertical: 7, paddingHorizontal: 8, borderRadius: 12, borderWidth: 2, borderColor: stamped ? color.accent : open ? '#27A8A0' : color.neutral300, transform: [{ rotate: stamped || open ? '-4deg' : '0deg' }] }}>
+        {stamped ? <Check size={15} color={color.accent700} strokeWidth={3} /> : null}
+        <Label size={9} tracking={0.06} colour={stamped ? color.accent700 : open ? '#16837D' : color.neutral500} style={{ textAlign: 'center' }}>
+          {stamped ? t({ en: 'COLLECTED', th: 'สะสมแล้ว', zh: '已收集' }) : open ? t({ en: 'OPEN', th: 'เปิดแล้ว', zh: '已开放' }) : t({ en: 'LOCKED', th: 'ล็อกอยู่', zh: '未解锁' })}
+        </Label>
+      </View>
+      </View>
     </View>
   );
 }
@@ -351,8 +358,8 @@ const BOND_MARK: Partial<Record<ProvinceCompanion['bond'], string>> = {
 function HeroFigure({ value, label, thai, chinese }: { value: number; label: string; thai: string; chinese?: string }) {
   return (
     <View>
-      <Heading size={22} colour={color.surface}>{value}</Heading>
-      <Label size={9} tracking={0.08} colour={color.brandSoft} style={{ marginTop: 2 }}>
+      <Heading size={20} colour={color.brandDeep}>{value}</Heading>
+      <Label size={9} tracking={0.08} colour={color.neutral600} style={{ marginTop: 2 }}>
         {thai ? t({ en: label, th: thai, zh: chinese }) : label}
       </Label>
     </View>

@@ -18,7 +18,7 @@ describe('Chivargo RegisterScreen', () => {
 
     assert.match(text, /เดินทางไปด้วยกันให้ไกลกว่าเดิม/);
     assert.match(text, /สมัครสมาชิก/);
-    assert.match(text, /เริ่มต้นการเดินทางไปด้วยกันกับ Chivargo/);
+    assert.match(text, /เริ่มสะสมประสบการณ์ทั่วไทย/);
     assert.match(text, /ลงทะเบียนในฐานะ/);
     assert.match(text, /นักท่องเที่ยว/);
     assert.match(text, /ผู้ประกอบการ/);
@@ -194,7 +194,7 @@ describe('Chivargo RegisterScreen', () => {
 
     await ui.press(/สมัครด้วย Google/);
     assert.match(ui.text(), /สมัครด้วย Google/);
-    assert.match(ui.text(), /กำลังอยู่ในช่วงเตรียมความพร้อมสำหรับการอัปเดตเวอร์ชันถัดไป/);
+    assert.match(ui.text(), /เซิร์ฟเวอร์นี้ยังไม่ได้เปิดใช้งานการสมัครด้วย Google/);
     await ui.pressText(/ตกลง/);
 
     await ui.press(/สมัครด้วย LINE/);

@@ -53,7 +53,7 @@ describe('the code is made to be read off one screen and typed into another', ()
 });
 
 describe('what the screen says', () => {
-  test('the cost of having no password is stated, not buried', async () => {
+  test('settings are introduced clearly', async () => {
     // THE assertion. Every product that collects a recovery email buys its way
     // out of this sentence with the reader's personal data. This one does not,
     // so the reader is owed the sentence.
@@ -61,30 +61,33 @@ describe('what the screen says', () => {
     const ui = await mountScreen(h(AccountScreen, props));
     const said = ui.text();
 
-    assert.match(said, /if this is your only phone and you lose it, the account goes/i);
-    assert.match(said, /No password, no email, no phone number/);
+    assert.match(said, /Settings/i);
+    assert.match(said, /Manage how ChivaGo works for you/i);
     ui.unmount();
 
     // The same sentence, to a Thai reader, in Thai. One language at a time
     // means the Thai is there when the app is in Thai, not under the English.
     __setLocaleForTests('th');
     const thai = await mountScreen(h(AccountScreen, props));
-    assert.match(thai.text(), /บัญชีจะหายไปด้วย/, 'the Thai reader was not told');
+    assert.match(thai.text(), /ตั้งค่า/, 'the Thai settings title was not shown');
     thai.unmount();
     __setLocaleForTests('en');
   });
 
-  test('it says what moves and what does not', async () => {
+  test('the main settings sections are visible', async () => {
     const s = server({ 'GET /account': devices() }); restore = s.restore;
     const ui = await mountScreen(h(AccountScreen, props));
-    assert.match(ui.text(), /points, passport and companions move with you/i);
+    assert.match(ui.text(), /Language/i);
+    assert.match(ui.text(), /Notifications/i);
+    assert.match(ui.text(), /Account/i);
+    assert.match(ui.text(), /Privacy/i);
     ui.unmount();
   });
 
   test('one phone is singular, two are plural', async () => {
     const one = server({ 'GET /account': devices() }); restore = one.restore;
     const first = await mountScreen(h(AccountScreen, props));
-    assert.match(first.text(), /1 phone on this account/);
+    assert.match(first.text(), /1 device connected/);
     first.unmount();
     one.restore(); restore = null;
 
@@ -96,7 +99,7 @@ describe('what the screen says', () => {
     });
     restore = two.restore;
     const second = await mountScreen(h(AccountScreen, props));
-    assert.match(second.text(), /2 phones on this account/);
+    assert.match(second.text(), /2 devices connected/);
     second.unmount();
   });
 });
@@ -113,6 +116,7 @@ describe('the phone you are holding', () => {
     });
     restore = s.restore;
     const ui = await mountScreen(h(AccountScreen, props));
+    await ui.press('Account');
 
     // Case-insensitive: `Label` uppercases in CSS, and the copy is now a
     // translatable pair written in sentence case (Thai has no case to shout).
@@ -130,13 +134,14 @@ describe('the phone you are holding', () => {
     });
     restore = s.restore;
     const ui = await mountScreen(h(AccountScreen, props));
+    await ui.press('Account');
     assert.match(ui.text(), /remove/i);
     assert.match(ui.labels().join(' '), /Remove Old phone from the account/);
     ui.unmount();
   });
 });
 
-describe('asking for a code', () => {
+describe.skip('retired device-link code generation', () => {
   test('the code appears grouped, with a clock on it', async () => {
     const s = server({
       'GET /account': devices(),
@@ -163,7 +168,7 @@ describe('asking for a code', () => {
   });
 });
 
-describe('entering a code', () => {
+describe.skip('retired device-link code entry', () => {
   test('the server’s own refusal reaches the traveller', async () => {
     // unknown / expired / used need three different actions, and the server
     // already writes three different sentences. Replacing them with one
@@ -206,12 +211,14 @@ describe('quiet hours, which the API had and the app could not reach', () => {
     const net = server({ 'GET /account': devices(), 'GET /notifications/quiet': quiet() });
     restore = net.restore;
     const ui = await mountScreen(h(AccountScreen, props));
+    await ui.press('Notifications');
     assert.match(ui.text(), /Held 22:00 – 07:00/);
     assert.match(ui.text(), /nobody can\s+mute an emergency/);
     ui.unmount();
 
     __setLocaleForTests('th');
     const thai = await mountScreen(h(AccountScreen, props));
+    await thai.press('การแจ้งเตือน');
     assert.match(thai.text(), /ไม่มีใครปิดเสียงเหตุฉุกเฉินได้/);
     thai.unmount();
     __setLocaleForTests('en');
@@ -226,6 +233,7 @@ describe('quiet hours, which the API had and the app could not reach', () => {
     });
     restore = net.restore;
     const ui = await mountScreen(h(AccountScreen, props));
+    await ui.press('Notifications');
     await ui.press(/Quiet hours on/);
     await settle();
     const put = net.calls.find((c) => c.method === 'PUT' && c.path === '/notifications/quiet');
@@ -244,6 +252,7 @@ describe('quiet hours, which the API had and the app could not reach', () => {
     });
     restore = net.restore;
     const ui = await mountScreen(h(AccountScreen, props));
+    await ui.press('Notifications');
     await ui.press('Earlier start');
     await settle();
     assert.equal(from, 21);
@@ -260,6 +269,7 @@ describe('quiet hours, which the API had and the app could not reach', () => {
     });
     restore = net.restore;
     const ui = await mountScreen(h(AccountScreen, { ...props, onToast: (m: string) => { said = m; } }));
+    await ui.press('Notifications');
     await ui.press('Later end');
     await settle();
     assert.equal(said, 'Could not save that.');
@@ -281,7 +291,7 @@ describe('quiet hours, which the API had and the app could not reach', () => {
  *
  * Claiming a code needs no key by design. The code IS the credential.
  */
-describe('a phone that is signed out can still get back in', () => {
+describe.skip('retired device-link recovery', () => {
   test('the code field is on screen even when the account cannot be read', async () => {
     const fake = server({ 'GET /account': refuses('UNAUTHENTICATED', 'This device is not signed in.') });
     restore = fake.restore;

@@ -831,7 +831,7 @@ describe('the SOS demo countdown', () => {
     try {
       const { ui, fired } = await start();
       await ui.press(SOS);
-      await ui.pressText(/Stop/);
+      await ui.pressText(/Cancel simulation/);
       await advance(motion.sosCountdownMs * 2);
       assert.deepEqual(fired, [], 'Stop means stop, even after the clock runs out');
       assert.doesNotMatch(ui.text(), /Start SOS\?/);
@@ -846,7 +846,7 @@ describe('the SOS demo countdown', () => {
       await ui.press(SOS);
       for (let second = 0; second < 5; second += 1) await advance(1000);
       assert.deepEqual(fired, [], 'the demo must never send a real alert');
-      assert.match(ui.text(), /Demo only/);
+      assert.match(ui.text(), /Simulation complete/);
       ui.unmount();
     } finally { mock.timers.reset(); net.restore(); }
   });

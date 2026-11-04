@@ -36,6 +36,8 @@ import { MapLegend } from './map-parts.tsx';
 import { chivagoStyle } from './terrain-style.ts';
 import { color } from '../theme/index.ts';
 import { t } from '../i18n/locale.ts';
+import type { Shop } from '../api/shops.ts';
+import { shopMarkerSvg, shopMarkerVisual } from './shop-map-marker.tsx';
 
 /**
  * Where the page thinks it lives.
@@ -79,6 +81,8 @@ export interface WebTerrainMapProps {
   area: Area;
   places: ScoredPlace[];
   onSelect: (place: ScoredPlace) => void;
+  shops?: Shop[];
+  onSelectShop?: (shop: Shop) => void;
   here: { lat: number; lng: number } | null;
   height: number;
   /** Island hour, so the phone wears the same palette as the browser. */
@@ -111,10 +115,11 @@ export interface WebTerrainMapProps {
  * to serve, and no second place for the style to drift out of sync.
  */
 function page(style: unknown, pins: { id: string; lat: number; lng: number; label: string; high: boolean }[],
+  shopPins: { id: string; lat: number; lng: number; name: string; category: string; colour: string; svg: string }[],
   centre: [number, number], here: { lat: number; lng: number } | null,
   box: { minLat: number; maxLat: number; minLng: number; maxLng: number },
   inlineSatellite: boolean): string {
-  const data = JSON.stringify({ style, pins, centre, here, box, inlineSatellite }).replace(/</g, '\\u003c');
+  const data = JSON.stringify({ style, pins, shopPins, centre, here, box, inlineSatellite }).replace(/</g, '\\u003c');
   return `<!doctype html>
 <html><head>
 <meta charset="utf-8">
@@ -126,6 +131,13 @@ function page(style: unknown, pins: { id: string; lat: number; lng: number; labe
        background:#0077B6;color:#fff;font:700 11px/1 system-ui,sans-serif;white-space:nowrap;
        box-shadow:0 2px 6px rgba(0,0,0,.3)}
   .pin.high{background:#1B7F5A}
+  .shop-pin{position:relative;display:flex;align-items:center;justify-content:center;width:42px;height:48px;
+    padding:0;border:0;background:transparent;color:#fff;filter:drop-shadow(0 4px 5px rgba(8,26,48,.42))}
+  .shop-pin-core{position:absolute;top:0;z-index:1;display:flex;align-items:center;justify-content:center;width:38px;height:38px;
+    border:3px solid #fff;border-radius:50%;background:var(--marker-colour)}
+  .shop-pin-core svg{width:19px;height:19px}
+  .shop-pin-tail{position:absolute;top:31px;width:13px;height:13px;transform:rotate(45deg);background:var(--marker-colour);
+    border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;border-radius:2px}
   .me{width:16px;height:16px;border-radius:8px;background:#0077B6;border:3px solid #fff;
       box-shadow:0 0 0 6px rgba(0,119,182,.25)}
   /* Bigger than MapLibre's default: these are pressed with a thumb, not a mouse. */
@@ -311,6 +323,15 @@ function start(){
       el.addEventListener('click',function(){ post({type:'select',id:p.id}); });
       new maplibregl.Marker({element:el}).setLngLat([p.lng,p.lat]).addTo(map);
     });
+    D.shopPins.forEach(function(p){
+      var el=document.createElement('button');
+      el.type='button'; el.className='shop-pin';
+      el.setAttribute('aria-label',p.category+': '+p.name);
+      el.style.setProperty('--marker-colour',p.colour);
+      el.innerHTML='<span class="shop-pin-tail"></span><span class="shop-pin-core">'+p.svg+'</span>';
+      el.addEventListener('click',function(){ post({type:'selectShop',id:p.id}); });
+      new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([p.lng,p.lat]).addTo(map);
+    });
     if(D.here){
       var me=document.createElement('div'); me.className='me';
       new maplibregl.Marker({element:me}).setLngLat([D.here.lng,D.here.lat]).addTo(map);
@@ -335,7 +356,7 @@ document.head.appendChild(s);
  * which is why that drawing is kept rather than deleted.
  */
 export function WebTerrainMap({
-  area, places, onSelect, here, height, hour = 12, explored = [], inlineSatellite = true, handleRef, onFallback,
+  area, places, onSelect, shops = [], onSelectShop, here, height, hour = 12, explored = [], inlineSatellite = true, handleRef, onFallback,
 }: WebTerrainMapProps & { onFallback?: () => void }) {
   const web = React.useRef<WebView>(null);
   // `true;` on the end: injectJavaScript warns about a non-boolean result.
@@ -349,6 +370,7 @@ export function WebTerrainMap({
     recentre: () => { web.current?.injectJavaScript('window.__home&&window.__home();true;'); },
   }), [zoom]);
   const byId = React.useMemo(() => new Map(places.map((p) => [p.id, p])), [places]);
+  const shopsById = React.useMemo(() => new Map(shops.map((shop) => [shop.id, shop])), [shops]);
 
   const html = React.useMemo(() => {
     const centre: [number, number] = here
@@ -361,6 +383,14 @@ export function WebTerrainMap({
         label: `${p.healthyScore} ${t(p.name)}`,
         high: isHighScore(p.healthyScore),
       })),
+      shops.flatMap((shop) => {
+        if (shop.lat === null || shop.lng === null) return [];
+        const visual = shopMarkerVisual(shop.category);
+        return [{
+          id: shop.id, lat: shop.lat, lng: shop.lng, name: shop.name, category: shop.category,
+          colour: visual.colour, svg: shopMarkerSvg(shop.category),
+        }];
+      }),
       centre,
       here,
       area.bbox,
@@ -370,7 +400,7 @@ export function WebTerrainMap({
     // for every fix would tear the map down mid-pan. The dot is placed from
     // the position the map STARTED with, and the map is not rebuilt for it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [area.key, places, hour]);
+  }, [area.key, places, shops, hour]);
 
   const onMessage = React.useCallback((event: WebViewMessageEvent) => {
     let message: { type?: string; id?: string; error?: string };
@@ -378,11 +408,14 @@ export function WebTerrainMap({
     if (message.type === 'select' && message.id) {
       const place = byId.get(message.id);
       if (place) onSelect(place);
+    } else if (message.type === 'selectShop' && message.id) {
+      const shop = shopsById.get(message.id);
+      if (shop) onSelectShop?.(shop);
     } else if (message.type === 'error') {
       // One honest exit: the drawing below still carries the pins.
       onFallback?.();
     }
-  }, [byId, onSelect, onFallback]);
+  }, [byId, shopsById, onSelect, onSelectShop, onFallback]);
 
   return (
     <View style={{ height, backgroundColor: color.brandSoft }}>

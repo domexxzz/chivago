@@ -34,7 +34,7 @@ import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { Button } from '../components/Button.tsx';
-import { OceanBackdrop } from '../components/Shell.tsx';
+import { OceanBackdrop, TravelHeroBackdrop } from '../components/Shell.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -74,7 +74,7 @@ export function WalletScreen({
           elevation: 3,
         }}
       >
-        <OceanBackdrop compact />
+        <TravelHeroBackdrop compact focalPoint="right" />
         <Label size={10} tracking={0.16} colour="#D5F6FF">
           {t({ en: 'YOUR WALLET', th: 'กระเป๋าแต้มของคุณ', zh: '你的钱包' })}
         </Label>

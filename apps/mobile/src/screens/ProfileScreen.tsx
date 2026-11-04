@@ -25,7 +25,7 @@
 import React from 'react';
 import { Image, Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import {
-  Building2, CheckCircle2, ChevronLeft, Compass, Crown, Footprints, Leaf, LogOut, Mail, MapPinned, MessageCircle, Phone, Settings, ShieldCheck, Sprout, Star, Store, Ticket, TreePalm, UserRound, Users,
+  Building2, CheckCircle2, ChevronLeft, ChevronRight, Compass, Crown, Footprints, Leaf, LogOut, Mail, MapPinned, Phone, Settings, ShieldCheck, Sprout, Store, TreePalm, UserRound,
 } from 'lucide-react-native';
 // On its own line: the test stub generator reads the braces above for names.
 import type { LucideIcon } from 'lucide-react-native';
@@ -41,7 +41,7 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button, IconButton } from '../components/Button.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { MedalMark } from '../components/MedalMark.tsx';
-import { OceanBackdrop } from '../components/Shell.tsx';
+import { TravelHeroBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { STAGE_LABEL } from './CompanionHome.tsx';
 import { LOCALES, LOCALE_NAMES, setLocale, t, useLocale } from '../i18n/locale.ts';
@@ -92,7 +92,7 @@ export function GuestProfileScreen({
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} contentContainerStyle={{ flexGrow: 1 }}>
       <View style={{ minHeight: 230, padding: 18, paddingTop: 14, backgroundColor: '#028090', borderBottomLeftRadius: 28, borderBottomRightRadius: 28, overflow: 'hidden' }}>
-        <OceanBackdrop compact />
+        <TravelHeroBackdrop compact focalPoint="right" />
         <IconButton inverted onPress={onBack} accessibilityLabel={t(strings.common.back)}>
           <ChevronLeft size={18} color="#FFFFFF" />
         </IconButton>
@@ -191,13 +191,16 @@ export function ProfileScreen({
           />
 
           {isOperator ? (
-            <>
-              {/* Operator KPIs and Management Tools */}
-              <OperatorMetricFigures />
-              <OperatorTools onOpenAccount={onOpenAccount} onOpenShops={onOpenShops} />
-            </>
+            <OperatorTools onOpenAccount={onOpenAccount} onOpenEditProfile={onOpenEditProfile} onOpenShops={onOpenShops} />
           ) : (
             <>
+              <TravellerTools
+                onOpenEditProfile={onOpenEditProfile}
+                onOpenPassport={onOpenPassport}
+                onOpenWallet={onOpenWallet}
+                onOpenMedals={onOpenMedals}
+                onOpenAccount={onOpenAccount}
+              />
               <Experience wallet={wallet.data} />
               <RankPath wallet={wallet.data} />
             </>
@@ -404,7 +407,7 @@ function Identity({
     <View style={{ paddingHorizontal: gutter, paddingTop: 8 }}>
       {/* The band is the app speaking (brand); the card overlaps it, as the conditions card does on Home. */}
       <View style={{ height: 64, backgroundColor: isOperator ? '#016592' : '#028090', borderRadius: radius.md, overflow: 'hidden' }}>
-        <OceanBackdrop compact />
+        <TravelHeroBackdrop compact focalPoint="right" />
       </View>
       <View
         style={[shadow.card, {
@@ -481,25 +484,33 @@ function ProfileHero({ width, onBack, onOpenAccount, onOpenEditProfile, name, bu
 }) {
   const p = wallet?.progression;
   return (
-    <View style={{ height: width >= 768 ? 320 : 330, backgroundColor: '#079bd0', overflow: 'hidden', zIndex: 2 }}>
-      <OceanBackdrop compact />
+    <View style={{ height: width >= 768 ? 304 : 316, marginHorizontal: width >= 768 ? gutter : 0, marginTop: width >= 768 ? gutter : 0, borderRadius: width >= 768 ? 28 : 0, backgroundColor: '#079bd0', overflow: 'hidden', zIndex: 2 }}>
+      <TravelHeroBackdrop compact focalPoint="right" />
       <View style={{ position: 'absolute', top: 12, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <IconButton inverted onPress={onBack} accessibilityLabel={t({ en: 'Back', th: 'ย้อนกลับ', zh: '返回' })}><ChevronLeft size={18} color="#FFFFFF" /></IconButton>
         <Label size={11} colour="#FFFFFF" style={{ fontSize: 16, letterSpacing: 0 }}>{t({ en: 'Profile', th: 'โปรไฟล์', zh: '个人资料' })}</Label>
         <IconButton inverted onPress={onOpenAccount} accessibilityLabel="Account and devices"><Settings size={18} color="#FFFFFF" /></IconButton>
       </View>
-      <View style={{ position: 'absolute', top: width >= 768 ? 64 : 72, left: 0, right: 0, alignItems: 'center' }}>
+      <View style={{ position: 'absolute', top: width >= 768 ? 62 : 66, left: 24, right: 24, alignItems: 'center' }}>
         <View style={{ width: 84, height: 84, borderRadius: 42, padding: 4, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#22D3EE' }}>
           <Avatar lead={lead} isOperator={isOperator} profilePhotoUrl={profilePhotoUrl} />
         </View>
-        <Heading size={22} colour="#FFFFFF" style={{ marginTop: 4 }}>{isOperator ? (businessName ?? t({ en: 'Business Partner', th: 'ผู้ประกอบการ', zh: '商家合作伙伴' })) : (name ?? t({ en: 'Traveller', th: 'นักท่องเที่ยว', zh: '旅行者' }))}</Heading>
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 5 }}>
-          <View style={{ backgroundColor: isOperator ? '#F59E0B' : 'rgba(255,255,255,0.2)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 }}><Label size={11} colour="#FFFFFF">{isOperator ? t({ en: '♛ PARTNER', th: '♛ พาร์ทเนอร์', zh: '♛ 合作伙伴' }) : t({ en: '🏅 NEWCOMER', th: '🏅 ผู้มาใหม่', zh: '🏅 新人' })}</Label></View>
-          <View style={{ backgroundColor: 'rgba(249,115,22,0.75)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 }}><Label size={11} colour="#FFFFFF">⚡ {t({ en: 'LEVEL', th: 'เลเวล', zh: '等级' })} {p?.level ?? 1}</Label></View>
-        </View>
-        <Body size={13} colour="#E0F2FE" style={{ marginTop: 5, fontSize: 12 }}>Level {p?.level ?? 1} · {(p?.exp ?? 0).toLocaleString('en-US')} EXP</Body>
-        {isOperator ? <Body size={13} colour="#FFFFFF" style={{ marginTop: 3, fontSize: 11, opacity: 0.85 }}>{t({ en: 'Business dashboard', th: 'แดชบอร์ดผู้ประกอบการ', zh: '商家后台' })}</Body> : null}
-        <Pressable onPress={onOpenEditProfile} accessibilityRole="button" accessibilityLabel={t({ en: 'Edit profile', th: 'แก้ไขโปรไฟล์', zh: '编辑资料' })} style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#123B64', borderWidth: 2, borderColor: '#E6C76A', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 7 }}>
+        <Heading size={22} colour="#FFFFFF" style={{ marginTop: 8, textAlign: 'center' }}>{isOperator ? (businessName ?? name ?? t({ en: 'Business operator', th: 'ผู้ประกอบการ', zh: '商家' })) : (name ?? t({ en: 'Traveller', th: 'นักท่องเที่ยว', zh: '旅行者' }))}</Heading>
+        {!isOperator && p ? (
+          <>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 5 }}>
+              <View style={{ backgroundColor: isOperator ? '#F59E0B' : 'rgba(255,255,255,0.2)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 }}>
+                <Label size={11} colour="#FFFFFF">{isOperator ? t({ en: '♛ PARTNER', th: '♛ พาร์ทเนอร์', zh: '♛ 合作伙伴' }) : t(p.rank.label)}</Label>
+              </View>
+              <View style={{ backgroundColor: 'rgba(249,115,22,0.75)', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 4 }}>
+                <Label size={11} colour="#FFFFFF">⚡ {t({ en: 'LEVEL', th: 'เลเวล', zh: '等级' })} {p.level}</Label>
+              </View>
+            </View>
+            <Body size={13} colour="#E0F2FE" style={{ marginTop: 5, fontSize: 12 }}>{t({ en: `Level ${p.level}`, th: `เลเวล ${p.level}`, zh: `等级 ${p.level}` })} · {p.exp.toLocaleString('en-US')} EXP</Body>
+          </>
+        ) : null}
+        {isOperator ? <View style={{ marginTop: 8, paddingVertical: 4, paddingHorizontal: 12, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)' }}><Label size={10} tracking={0.1} colour="#FFFFFF">{t({ en: 'BUSINESS OPERATOR', th: 'บัญชีผู้ประกอบการ', zh: '商家账号' })}</Label></View> : null}
+        <Pressable onPress={onOpenEditProfile} accessibilityRole="button" accessibilityLabel={t({ en: 'Edit profile', th: 'แก้ไขโปรไฟล์', zh: '编辑资料' })} style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: '#123B64', borderWidth: 1.5, borderColor: '#E6C76A', borderRadius: 18, paddingHorizontal: 18, paddingVertical: 8 }}>
           <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '700' }}>✎ {t({ en: 'Edit profile', th: 'แก้ไขโปรไฟล์', zh: '编辑资料' })}</Text>
         </Pressable>
       </View>
@@ -537,10 +548,10 @@ function RoleStatusCard({
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Label size={9} tracking={0.06} colour={isOperator ? '#006A83' : '#009DB7'} style={{ flexShrink: 1 }}>
-              {isOperator ? t({ en: 'Business profile', th: 'ผู้ประกอบการ / ข้อมูลสถานประกอบการ', zh: '商家资料' }) : t({ en: 'Traveller profile', th: 'ประเภทผู้ใช้งาน', zh: '旅行者资料' })}
+              {isOperator ? t({ en: 'Business profile', th: 'โปรไฟล์ผู้ประกอบการ', zh: '商家资料' }) : t({ en: 'Traveller profile', th: 'โปรไฟล์นักท่องเที่ยว', zh: '旅行者资料' })}
             </Label>
             <Heading size={15} tracking={-0.2} style={{ flexShrink: 1, marginTop: 2 }}>
-              {isOperator ? t({ en: 'Chivargo Business Partner', th: 'Chivargo Business Partner · ผู้ประกอบการ', zh: 'ChivaGo 商家合作伙伴' }) : t({ en: 'Chivargo Traveller', th: 'Chivargo Traveller · นักท่องเที่ยว', zh: 'ChivaGo 旅行者' })}
+              {isOperator ? (businessName ?? t({ en: 'Business operator', th: 'ผู้ประกอบการ', zh: '商家' })) : (name ?? t({ en: 'Traveller', th: 'นักท่องเที่ยว', zh: '旅行者' }))}
             </Heading>
           </View>
         </View>
@@ -599,208 +610,70 @@ function RoleStatusCard({
         ) : null}
       </View>
 
-      <View style={{
-        marginTop: 10, paddingVertical: 8, paddingHorizontal: 10,
-        borderRadius: radius.sm,
-        backgroundColor: isOperator ? '#F0F9FD' : '#F0FDF4',
-      }}>
-        <Body size={13} colour={isOperator ? '#02637A' : '#15803D'} style={{ lineHeight: 18 }}>
-          {bio ? bio : isOperator
-            ? t({
-                en: 'Your business is linked to Chivargo community network. Ready to accept quests, check-ins, and sustainable visitor rewards.',
-                th: 'สถานประกอบการของท่านเชื่อมต่อกับระบบเครือข่าย Chivargo พร้อมรับการเช็กอิน ตรวจสอบภารกิจ และมอบสิทธิประโยชน์ร่วมกับชุมชนเกาะสีชัง',
-                zh: '你的店铺已接入 ChivaGo 社区网络，可以承接任务、接受签到，并发放可持续旅行的奖励。',
-              })
-            : t({
-                en: 'Participate in island wellness activities, care for the environment, and unlock community rewards across Koh Sichang.',
-                th: 'ร่วมเดินทางอย่างรับผิดชอบ สัมผัสวิถีชีวิตเกาะสีชัง สะสมคะแนนสุขภาพ และรับสิทธิประโยชน์จากร้านค้าชุมชน',
-                zh: '参加岛上的康养活动，爱护环境，在锡昌岛各处解锁社区奖励。',
-              })}
-        </Body>
+      {bio ? (
+        <View style={{ marginTop: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius.sm, backgroundColor: '#F0F9FD' }}>
+          <Body size={13} colour="#02637A" style={{ lineHeight: 19 }}>{bio}</Body>
+        </View>
+      ) : null}
+    </Card>
+  );
+}
+
+function ProfileAction({ Mark, title, note, onPress, tone = '#0077B6', soft = '#E8F7FA' }: {
+  Mark: Icon; title: string; note?: string; onPress?: () => void; tone?: string; soft?: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      style={({ pressed }) => ({
+        minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: 12,
+        paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14,
+        backgroundColor: pressed ? '#F1F7F9' : '#FFFFFF',
+        borderWidth: 1, borderColor: '#DCE8ED', opacity: onPress ? 1 : 0.55,
+      })}
+    >
+      <View style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: soft }}>
+        <Mark size={19} color={tone} strokeWidth={2.1} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Heading size={14}>{title}</Heading>
+        {note ? <Body size={13} colour={color.neutral600} style={{ marginTop: 2 }}>{note}</Body> : null}
+      </View>
+      <ChevronRight size={18} color={color.neutral500} />
+    </Pressable>
+  );
+}
+
+function TravellerTools({ onOpenEditProfile, onOpenPassport, onOpenWallet, onOpenMedals, onOpenAccount }: {
+  onOpenEditProfile?: () => void; onOpenPassport: () => void; onOpenWallet: () => void; onOpenMedals: () => void; onOpenAccount: () => void;
+}) {
+  return (
+    <Card>
+      <Label size={10} tracking={0.12} colour={color.brand} style={{ marginBottom: 12 }}>{t({ en: 'My profile', th: 'เมนูของฉัน', zh: '我的资料' })}</Label>
+      <View style={{ gap: 9 }}>
+        <ProfileAction Mark={UserRound} title={t({ en: 'Edit personal details', th: 'แก้ไขข้อมูลส่วนตัว', zh: '编辑个人资料' })} onPress={onOpenEditProfile} />
+        <ProfileAction Mark={MapPinned} title={t({ en: 'Travel passport', th: 'พาสปอร์ตการเดินทาง', zh: '旅行护照' })} onPress={onOpenPassport} />
+        <ProfileAction Mark={Leaf} title={t({ en: 'Points and wallet', th: 'คะแนนและกระเป๋าของฉัน', zh: '积分与钱包' })} onPress={onOpenWallet} />
+        <ProfileAction Mark={Crown} title={t({ en: 'My medals', th: 'เหรียญของฉัน', zh: '我的奖章' })} onPress={onOpenMedals} />
+        <ProfileAction Mark={Settings} title={t({ en: 'Account and devices', th: 'บัญชีและอุปกรณ์', zh: '账号与设备' })} onPress={onOpenAccount} />
       </View>
     </Card>
   );
 }
 
-function OperatorMetricFigures() {
-  return (
-    <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: gutter, marginTop: 14 }}>
-      <View
-        style={[
-          shadow.card,
-          {
-            flex: 1,
-            padding: 14,
-            backgroundColor: color.surface,
-            borderRadius: radius.md,
-            borderWidth: 1,
-            borderColor: '#DCEFF5',
-          },
-        ]}
-      >
-        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#E0F5F9', alignItems: 'center', justifyContent: 'center' }}>
-          <ShieldCheck size={16} color="#009DB7" strokeWidth={2.2} />
-        </View>
-        <Heading size={22} colour="#006A83" style={{ marginTop: 8 }}>
-          0
-        </Heading>
-        <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
-          {t({ en: 'Verified quests', th: 'ภารกิจที่รับรองแล้ว', zh: '已验证的任务' })}
-        </Label>
-      </View>
-
-      <View
-        style={[
-          shadow.card,
-          {
-            flex: 1,
-            padding: 14,
-            backgroundColor: color.surface,
-            borderRadius: radius.md,
-            borderWidth: 1,
-            borderColor: '#DCEFF5',
-          },
-        ]}
-      >
-        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#FEF3C7', alignItems: 'center', justifyContent: 'center' }}>
-          <Users size={16} color="#D97706" strokeWidth={2.2} />
-        </View>
-        <Heading size={22} colour="#B45309" style={{ marginTop: 8 }}>
-          0
-        </Heading>
-        <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
-          {t({ en: 'Traveller check-ins', th: 'นักท่องเที่ยวเช็คอิน', zh: '旅行者签到' })}
-        </Label>
-      </View>
-
-      <View
-        style={[
-          shadow.card,
-          {
-            flex: 1,
-            padding: 14,
-            backgroundColor: color.surface,
-            borderRadius: radius.md,
-            borderWidth: 1,
-            borderColor: '#DCEFF5',
-          },
-        ]}
-      >
-        <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#ECFDF5', alignItems: 'center', justifyContent: 'center' }}>
-          <Star size={16} color="#059669" strokeWidth={2.2} />
-        </View>
-        <Heading size={22} colour="#047857" style={{ marginTop: 8 }}>
-          0
-        </Heading>
-        <Label size={10} tracking={0.06} colour="#66869D" style={{ marginTop: 2 }}>
-          {t({ en: 'Partner rating', th: 'คะแนนพาร์ทเนอร์', zh: '合作伙伴评分' })}
-        </Label>
-      </View>
-    </View>
-  );
-}
-
-function OperatorTools({ onOpenAccount, onOpenShops }: { onOpenAccount: () => void; onOpenShops?: () => void }) {
+function OperatorTools({ onOpenAccount, onOpenEditProfile, onOpenShops }: { onOpenAccount: () => void; onOpenEditProfile?: () => void; onOpenShops?: () => void }) {
   return (
     <Card>
       <Label size={10} tracking={0.12} colour="#009DB7" style={{ marginBottom: 12 }}>
         {t({ en: 'Business tools', th: 'เครื่องมือสำหรับผู้ประกอบการ', zh: '商家工具' })}
       </Label>
-
-      <View style={{ gap: 10 }}>
-        <Pressable onPress={onOpenShops} accessibilityRole="button" style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.sm, backgroundColor: '#E8F7FA', borderWidth: 1, borderColor: '#9ADCE9' }}>
-          <Store size={24} color="#0077B6" />
-          <View style={{ flex: 1 }}><Heading size={15} colour="#123B64">{t({ en: 'Manage my businesses', th: 'จัดการร้านค้าของฉัน', zh: '管理我的店铺' })}</Heading><Body size={13} colour="#52748A">{t({ en: 'Add a business, update its details, and reply to reviews.', th: 'เพิ่มร้านในพื้นที่ แก้ไขรูปและข้อมูล ตอบรีวิว', zh: '添加店铺、更新资料、回复评价。' })}</Body></View>
-        </Pressable>
-        <Pressable
-          onPress={onOpenAccount}
-          accessibilityRole="button"
-          accessibilityLabel={t({ en: 'Verify traveller quests', th: 'รับรองภารกิจนักท่องเที่ยว', zh: '验证旅行者的任务' })}
-          style={({ pressed }) => [
-            {
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 12,
-              padding: 12,
-              borderRadius: radius.sm,
-              backgroundColor: pressed ? '#EEF2F6' : '#F8FAFC',
-              borderWidth: 1,
-              borderColor: '#E2E8F0',
-            },
-          ]}
-        >
-          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#E0F5F9', alignItems: 'center', justifyContent: 'center' }}>
-            <ShieldCheck size={18} color="#009DB7" strokeWidth={2.2} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Heading size={14} colour="#183B56">
-              {t({ en: 'Verify traveller quests', th: 'รับรองภารกิจนักท่องเที่ยว', zh: '验证旅行者的任务' })}
-            </Heading>
-            <Body size={13} colour="#66869D">
-              {t({ en: 'Review photos and award Green points for completed activities.', th: 'ตรวจรูปภาพและปล่อยคะแนนกรีนพอยท์ให้กับผู้มาทำกิจกรรม', zh: '审核照片，为已完成的活动发放绿色积分。' })}
-            </Body>
-          </View>
-        </Pressable>
-
-        <Pressable
-          onPress={onOpenAccount}
-          accessibilityRole="button"
-          accessibilityLabel={t({ en: 'Traveller inquiries', th: 'คำถามจากนักท่องเที่ยว', zh: '旅行者的咨询' })}
-          style={({ pressed }) => [
-            {
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 12,
-              padding: 12,
-              borderRadius: radius.sm,
-              backgroundColor: pressed ? '#EEF2F6' : '#F8FAFC',
-              borderWidth: 1,
-              borderColor: '#E2E8F0',
-            },
-          ]}
-        >
-          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#FEF3C7', alignItems: 'center', justifyContent: 'center' }}>
-            <MessageCircle size={18} color="#D97706" strokeWidth={2.2} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Heading size={14} colour="#183B56">
-              {t({ en: 'Traveller inquiries', th: 'คำถามและข้อความจากนักท่องเที่ยว', zh: '旅行者的咨询' })}
-            </Heading>
-            <Body size={13} colour="#66869D">
-              {t({ en: 'Reply to questions about accommodation, food, or services.', th: 'ตอบกลับข้อความสอบถามเกี่ยวกับที่พัก อาหาร หรือบริการ', zh: '回复关于住宿、餐饮或服务的提问。' })}
-            </Body>
-          </View>
-        </Pressable>
-
-        <Pressable
-          onPress={onOpenAccount}
-          accessibilityRole="button"
-          accessibilityLabel={t({ en: 'Manage offers and coupons', th: 'จัดการข้อเสนอและคูปอง', zh: '管理优惠和优惠券' })}
-          style={({ pressed }) => [
-            {
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 12,
-              padding: 12,
-              borderRadius: radius.sm,
-              backgroundColor: pressed ? '#EEF2F6' : '#F8FAFC',
-              borderWidth: 1,
-              borderColor: '#E2E8F0',
-            },
-          ]}
-        >
-          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#ECFDF5', alignItems: 'center', justifyContent: 'center' }}>
-            <Ticket size={18} color="#059669" strokeWidth={2.2} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Heading size={14} colour="#183B56">
-              {t({ en: 'Manage offers and coupons', th: 'จัดการข้อเสนอและคูปองส่วนลด', zh: '管理优惠和优惠券' })}
-            </Heading>
-            <Body size={13} colour="#66869D">
-              {t({ en: 'Create coupons and promotions for visitors to the island.', th: 'ตั้งค่าคูปองและโปรโมชั่นเพื่อดึงดูดนักท่องเที่ยวบนเกาะ', zh: '为上岛的旅行者创建优惠券和促销活动。' })}
-            </Body>
-          </View>
-        </Pressable>
+      <View style={{ gap: 9 }}>
+        <ProfileAction Mark={Store} title={t({ en: 'Manage my businesses', th: 'จัดการร้านค้าของฉัน', zh: '管理我的店铺' })} note={t({ en: 'Business details, photos, services, and reviews', th: 'ข้อมูลร้าน รูปภาพ บริการ และรีวิว', zh: '店铺资料、照片、服务和评价' })} onPress={onOpenShops} />
+        <ProfileAction Mark={UserRound} title={t({ en: 'Edit operator details', th: 'แก้ไขข้อมูลผู้ประกอบการ', zh: '编辑商家资料' })} onPress={onOpenEditProfile} tone="#7C3AED" soft="#F3E8FF" />
+        <ProfileAction Mark={Settings} title={t({ en: 'Account and devices', th: 'บัญชีและอุปกรณ์', zh: '账号与设备' })} onPress={onOpenAccount} tone="#475569" soft="#F1F5F9" />
       </View>
     </Card>
   );
