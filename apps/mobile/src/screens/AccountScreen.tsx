@@ -75,7 +75,7 @@ export function AccountScreen({
         <>
           <View style={{ paddingHorizontal: gutter, paddingTop: 22, paddingBottom: 6 }}>
             <Heading size={22}>{t({ en: 'Settings', th: 'ตั้งค่า', zh: '设置' })}</Heading>
-            <Body size={13} colour={color.neutral600} style={{ marginTop: 5 }}>{t({ en: 'Manage how ChivaGo works for you.', th: 'จัดการภาษา การแจ้งเตือน บัญชี และข้อมูลของคุณ', zh: '管理语言、通知、账户和您的数据。' })}</Body>
+            <Body size={13} colour={color.neutral600} style={{ marginTop: 5 }}>{t({ en: 'Manage how ChivarGo works for you.', th: 'จัดการภาษา การแจ้งเตือน บัญชี และข้อมูลของคุณ', zh: '管理语言、通知、账户和您的数据。' })}</Body>
           </View>
           <SettingsMenu
             open={openSetting}
@@ -88,8 +88,8 @@ export function AccountScreen({
             <>
               {onOpenLogin ? (
                 <Section en="Sign in" th="เข้าสู่ระบบ" zh="登录">
-                  <Body size={13} colour={color.neutral700} style={{ marginBottom: 12 }}>{t({ en: 'Sign in with your email, phone, or Chivargo account.', th: 'เข้าสู่ระบบด้วยอีเมล เบอร์โทรศัพท์ หรือบัญชี Chivargo ของคุณ', zh: '使用您的邮箱、手机号或 ChivaGo 账户登录。' })}</Body>
-                  <Button label={t({ en: 'Sign in to Chivargo', th: 'เข้าสู่ระบบ Chivargo', zh: '登录 ChivaGo' })} onPress={onOpenLogin} variant="secondary" height={44} />
+                  <Body size={13} colour={color.neutral700} style={{ marginBottom: 12 }}>{t({ en: 'Sign in with your email, phone, or ChivarGo account.', th: 'เข้าสู่ระบบด้วยอีเมล เบอร์โทรศัพท์ หรือบัญชี ChivarGo ของคุณ', zh: '使用您的邮箱、手机号或 ChivarGo 账户登录。' })}</Body>
+                  <Button label={t({ en: 'Sign in to ChivarGo', th: 'เข้าสู่ระบบ ChivarGo', zh: '登录 ChivarGo' })} onPress={onOpenLogin} variant="secondary" height={44} />
                 </Section>
               ) : null}
               <Phones devices={account.data.devices} onRevoked={reload} onToast={onToast} key={refresh} />
@@ -165,7 +165,7 @@ function SettingsHero({ count }: { count: number }) {
     >
       <TravelHeroBackdrop compact focalPoint="right" />
       <Label size={10} tracking={0.16} colour={color.brandSoft}>
-        {t({ en: 'ChivaGo settings', th: 'การตั้งค่า ChivaGo', zh: 'ChivaGo 设置' })}
+        {t({ en: 'ChivarGo settings', th: 'การตั้งค่า ChivarGo', zh: 'ChivarGo 设置' })}
       </Label>
       <Heading size={26} colour={color.surface} tracking={-0.4} style={{ marginTop: 10 }}>{t({ en: 'Make the app work your way', th: 'ปรับแอปให้เหมาะกับคุณ', zh: '按照您的方式使用应用' })}</Heading>
       <Body size={13} colour={color.brandSoft} style={{ marginTop: 7 }}>{t({ en: 'Language, notifications and account access in one place.', th: 'จัดการภาษา การแจ้งเตือน และการเข้าสู่ระบบได้ในที่เดียว', zh: '在一个地方管理语言、通知和账户访问。' })}</Body>
@@ -256,6 +256,7 @@ function ShowCode({ onToast }: { onToast: (msg: string) => void }) {
           <Button
             label="Show a different code"
             thai="ขอรหัสใหม่"
+            chinese="显示其他代码"
             variant="secondary"
             height={44}
             onPress={ask}

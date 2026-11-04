@@ -25,6 +25,7 @@ import { OceanBackdrop, TravelHeroBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { GentleSteps } from '../components/GentleSteps.tsx';
 import { t } from '../i18n/locale.ts';
+import { formatInteger } from '../i18n/format.ts';
 
 /**
  * The places, as the recharge chooser wants them.
@@ -127,7 +128,7 @@ export function ImpactScreen({
               }}
             >
               <Heading size={30} tracking={-0.6}>
-                {`${stat.value.toLocaleString('en-US')}${stat.unit ? ` ${stat.unit}` : ''}`}
+                {`${formatInteger(stat.value)}${stat.unit ? ` ${stat.unit}` : ''}`}
               </Heading>
               <Label size={10} tracking={0.12} style={{ marginTop: 6 }}>{t(stat.label)}</Label>
             </View>
@@ -197,7 +198,7 @@ export function ImpactScreen({
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <Body size={13}>{t(m.label)}</Body>
                   <Heading size={13}>
-                    {`${m.actual.toLocaleString('en-US')}${m.unit ? ` ${m.unit}` : ''}`}
+                    {`${formatInteger(m.actual)}${m.unit ? ` ${m.unit}` : ''}`}
                   </Heading>
                 </View>
                 {/* Each metric keeps one flat tint, track and fill alike, so
@@ -303,11 +304,11 @@ function TreeImpactBlock({
         <>
           <View style={{ flexDirection: 'row', gap: 18, marginTop: 12 }}>
             <View style={{ flex: 1 }}>
-              <Heading size={28}>{impact.pending.toLocaleString('en-US')}</Heading>
+              <Heading size={28}>{formatInteger(impact.pending)}</Heading>
               <Label size={10} tracking={0.1}>{t({ en: 'PROMISED · NOT YET PLANTED', th: 'รับปาก · ยังไม่ได้ปลูก', zh: '已承诺 · 尚未种植' })}</Label>
             </View>
             <View style={{ flex: 1 }}>
-              <Heading size={28}>{impact.planted.toLocaleString('en-US')}</Heading>
+              <Heading size={28}>{formatInteger(impact.planted)}</Heading>
               <Label size={10} tracking={0.1}>{t({ en: 'PLANTED · WITH PROOF', th: 'ปลูกแล้ว · มีหลักฐาน', zh: '已种植 · 有凭证' })}</Label>
             </View>
           </View>

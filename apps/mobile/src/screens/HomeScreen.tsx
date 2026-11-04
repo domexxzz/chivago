@@ -66,6 +66,7 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { formatInteger } from '../i18n/format.ts';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import { ProfileButton } from '../components/ProfileButton.tsx';
 import { TravelHeroBackdrop } from '../components/Shell.tsx';
@@ -317,7 +318,7 @@ function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile }: {
         <Image
           source={chivagoLogo}
           resizeMode="contain"
-          accessibilityLabel="ChivaGo"
+          accessibilityLabel="ChivarGo"
           style={{ width: 68, height: 48, marginLeft: 8, marginRight: 12 }}
         />
         <ProfileButton onPress={onOpenProfile} />
@@ -629,7 +630,7 @@ function shopCategoryLabel(category: string): string {
     'กีฬาและนันทนาการ': { en: 'Sports & recreation', th: 'กีฬาและนันทนาการ', zh: '运动与休闲' },
     'อื่นๆ': { en: 'Other', th: 'อื่นๆ', zh: '其他' },
   };
-  return t(labels[category] ?? { en: category, th: category });
+  return t(labels[category] ?? { en: category, th: category, zh: category });
 }
 
 const serviceAppearance: Record<string, { icon: LucideIcon; accent: string; pale: string }> = {
@@ -921,7 +922,7 @@ function Today({
           ) : (
             <Body size={13} colour={color.neutral700}>{t({ en: 'No missions running today. The map still works, and the weekend list usually has something.', th: 'วันนี้ยังไม่มีภารกิจ แผนที่ยังใช้ได้ และรายการสุดสัปดาห์มักมีให้ทำ', zh: '今天没有进行中的任务。地图照常可用，周末的任务列表通常也有可做的。' })}</Body>
           )}
-          <Button label="See all missions" thai="ดูภารกิจทั้งหมด" onPress={onOpenQuests} variant="secondary" height={44} style={{ marginTop: 12 }} />
+          <Button label="See all missions" thai="ดูภารกิจทั้งหมด" chinese="查看全部任务" onPress={onOpenQuests} variant="secondary" height={44} style={{ marginTop: 12 }} />
         </View>
       ) : (
         <>
@@ -1027,8 +1028,8 @@ function Carrying({
           screen where somebody first learns there are two of them. Green is
           host-verified, gold is self-verified, and the labels say which.
         */}
-        <Figure value={green === null ? '—' : green.toLocaleString('en-US')} unit="G" en="Green · verified" th="ตรวจแล้ว" zh="绿色 · 已验证" tone={color.accent700} onPress={onOpenWallet} />
-        <Figure value={trip === null ? '—' : trip.toLocaleString('en-US')} unit="T" en="Trip · self" th="บันทึกเอง" zh="旅行 · 自行记录" tone={color.goldDeep} onPress={onOpenWallet} />
+        <Figure value={green === null ? '—' : formatInteger(green)} unit="G" en="Green · verified" th="ตรวจแล้ว" zh="绿色 · 已验证" tone={color.accent700} onPress={onOpenWallet} />
+        <Figure value={trip === null ? '—' : formatInteger(trip)} unit="T" en="Trip · self" th="บันทึกเอง" zh="旅行 · 自行记录" tone={color.goldDeep} onPress={onOpenWallet} />
       </View>
 
       <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: gutter, marginTop: 10 }}>

@@ -12,7 +12,7 @@ const period = { from: '2026-07-01', to: '2026-09-30' };
 
 const approval = (over: Partial<StatementActivity> = {}): StatementActivity => ({
   questId: 'q3',
-  name: { en: 'Coral Nursery Check', th: 'ตรวจแปลงปะการัง' },
+  name: { en: 'Coral Nursery Check', th: 'ตรวจแปลงปะการัง', zh: '珊瑚育苗区检查' },
   pillar: 'environmental',
   day: '2026-08-14',
   participants: ['ana'],

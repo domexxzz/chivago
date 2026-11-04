@@ -73,7 +73,7 @@ describe('the fragment knows what a reversal really looks like', () => {
     // every test above and would quietly stop counting the gift handed to a
     // new account, which is an adjustment too.
     applyMovement(db, {
-      userId: 'ana', label: 'Welcome', host: 'ChivaGo', amount: 1240, currency: 'green',
+      userId: 'ana', label: 'Welcome', host: 'ChivarGo', amount: 1240, currency: 'green',
       kind: 'adjustment', sourceRef: 'opening:green:user:ana',
     });
     assert.deepEqual(surviving(), ['opening:green:user:ana']);

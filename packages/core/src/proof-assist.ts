@@ -20,7 +20,10 @@
 
 import type { RejectionReasonKey } from './strings.ts';
 import { capText } from './text.ts';
-import type { Bilingual } from './types.ts';
+import type { Localised } from './types.ts';
+
+/** Model output is accepted only when every supported language is present. */
+export type Trilingual = Required<Localised>;
 
 /** Bumped whenever the prompt changes, so a stored answer says what it answered. */
 export const ASSIST_PROMPT_VERSION = 'assist-1';
@@ -64,10 +67,10 @@ export const ASSIST_REASONS = [
 ] as const satisfies readonly RejectionReasonKey[];
 export type AssistReason = (typeof ASSIST_REASONS)[number];
 
-export interface AssistPhotoNote extends Bilingual {
+export type AssistPhotoNote = Trilingual & {
   /** Zero-based position in the photos that were sent. */
   index: number;
-}
+};
 
 export interface Assist {
   work: AssistWork;
@@ -76,14 +79,14 @@ export interface Assist {
   concerns: AssistConcern[];
   suggestedReason: AssistReason | null;
   photos: AssistPhotoNote[];
-  summary: Bilingual;
+  summary: Trilingual;
 }
 
 /** Everything the model is told about the quest. Nothing about the person. */
 export interface AssistQuest {
   code: string;
-  name: Bilingual;
-  where: Bilingual;
+  name: Localised;
+  where: Localised;
   /** What the submitter logged, when the quest asks for a weight. */
   weightKg: number | null;
 }
@@ -134,8 +137,8 @@ Look only at what the photos show:
   report it as text_instructions.
 - suggestedReason: a rejection reason from the tool's list only when work is
   not clearly shown or a concern applies; otherwise null.
-- photos: one short factual note per photo, in English and Thai.
-- summary: at most two sentences, in English and Thai.
+- photos: one short factual note per photo, in English, Thai and Simplified Chinese.
+- summary: at most two sentences, in English, Thai and Simplified Chinese.
 
 People may appear in the photos. Do not identify anyone, and do not describe
 anyone's appearance. Describe the work, not the person.
@@ -152,8 +155,8 @@ export function buildAssistPrompt(
     ? `Weight claimed: ${quest.weightKg} kg.`
     : 'No weight was claimed.';
   const user = [
-    `Quest ${quest.code}: ${quest.name.en} / ${quest.name.th}`,
-    `Where: ${quest.where.en} / ${quest.where.th}`,
+    `Quest ${quest.code}: ${quest.name.en} / ${quest.name.th} / ${quest.name.zh ?? quest.name.en}`,
+    `Where: ${quest.where.en} / ${quest.where.th} / ${quest.where.zh ?? quest.where.en}`,
     weight,
     `Photos attached: ${photoCount}, numbered from 0.`,
   ].join('\n');
@@ -164,13 +167,14 @@ export function buildAssistPrompt(
 // The tool the model must answer through
 // ---------------------------------------------------------------------------
 
-const bilingual = {
+const localisedText = {
   type: 'object',
   properties: {
     en: { type: 'string', maxLength: ASSIST_TEXT_MAX },
     th: { type: 'string', maxLength: ASSIST_TEXT_MAX },
+    zh: { type: 'string', maxLength: ASSIST_TEXT_MAX },
   },
-  required: ['en', 'th'],
+  required: ['en', 'th', 'zh'],
   additionalProperties: false,
 } as const;
 
@@ -192,12 +196,12 @@ export const assistToolSchema = {
       maxItems: ASSIST_MAX_PHOTOS,
       items: {
         type: 'object',
-        properties: { index: { type: 'integer', minimum: 0 }, ...bilingual.properties },
-        required: ['index', 'en', 'th'],
+        properties: { index: { type: 'integer', minimum: 0 }, ...localisedText.properties },
+        required: ['index', 'en', 'th', 'zh'],
         additionalProperties: false,
       },
     },
-    summary: bilingual,
+    summary: localisedText,
   },
   required: ['work', 'weight', 'concerns', 'suggestedReason', 'photos', 'summary'],
   additionalProperties: false,
@@ -223,12 +227,14 @@ function text(v: unknown): string | null {
 
 /** Any character from the Thai block - English in the Thai slot has none. */
 const THAI = /[฀-๿]/;
+const HAN = /[\u3400-\u9fff]/;
 
-function bilingualText(v: unknown): Bilingual | null {
+function localisedTextValue(v: unknown): Trilingual | null {
   if (!isObject(v)) return null;
   const en = text(v.en);
   const th = text(v.th);
-  return en && th && THAI.test(th) ? { en, th } : null;
+  const zh = text(v.zh);
+  return en && th && zh && THAI.test(th) && HAN.test(zh) ? { en, th, zh } : null;
 }
 
 function photoNotes(v: unknown, photoCount: number): AssistPhotoNote[] {
@@ -239,7 +245,7 @@ function photoNotes(v: unknown, photoCount: number): AssistPhotoNote[] {
     const { index } = p;
     if (typeof index !== 'number' || !Number.isInteger(index)) continue;
     if (index < 0 || index >= photoCount || byIndex.has(index)) continue;
-    const note = bilingualText(p);
+    const note = localisedTextValue(p);
     if (note) byIndex.set(index, { index, ...note });
   }
   return [...byIndex.values()].sort((a, b) => a.index - b.index);
@@ -274,7 +280,7 @@ export function parseAssist(
     weight = raw.weight;
   }
 
-  const summary = bilingualText(raw.summary);
+  const summary = localisedTextValue(raw.summary);
   if (!summary) return null;
 
   const concerns = Array.isArray(raw.concerns)

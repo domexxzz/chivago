@@ -75,7 +75,7 @@ beforeEach(() => {
   const led = (id: string, label: string, host: string, amount: number, kind: string, ref: string) =>
     db.prepare('INSERT INTO ledger VALUES (?,?,?,?,?,?,?,?)')
       .run(id, 'u1', label, '2026-08-01T00:00:00Z', host, amount, kind, ref);
-  led('l1', 'Opening', 'ChivaGo', 1240, 'adjustment', 'opening:u1');
+  led('l1', 'Opening', 'ChivarGo', 1240, 'adjustment', 'opening:u1');
   led('l2', 'Beach Cleanup', 'Samui Municipality', 150, 'quest_reward', 'quest:q1:user:u1');
   led('l3', 'Mangrove Planting', 'Samui Green Foundation', 400, 'quest_reward', 'quest:q2:user:u1');
   led('l4', 'Cold brew redeemed', 'Sabeinglae Coffee', -180, 'redemption', 'voucher:v1');
@@ -181,8 +181,8 @@ describe('removing prototype-only account scores', () => {
         (id,user_id,label,subject,occurred_at,host,amount,currency,exp,kind,source_ref)
        VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
     );
-    insert.run('mock-trip', 'u1', 'Pilot opening balance', null, '2026-08-02T00:00:00Z', 'ChivaGo · pilot seed', 320, 'trip', 320, 'adjustment', 'opening:trip:u1');
-    insert.run('mock-green', 'u1', 'Pilot opening balance', null, '2026-08-02T00:00:00Z', 'ChivaGo · pilot seed', 1240, 'green', 1240, 'adjustment', 'opening:green:u1');
+    insert.run('mock-trip', 'u1', 'Pilot opening balance', null, '2026-08-02T00:00:00Z', 'ChivarGo · pilot seed', 320, 'trip', 320, 'adjustment', 'opening:trip:u1');
+    insert.run('mock-green', 'u1', 'Pilot opening balance', null, '2026-08-02T00:00:00Z', 'ChivarGo · pilot seed', 1240, 'green', 1240, 'adjustment', 'opening:green:u1');
 
     const applied = migrate(db);
     assert.deepEqual(wallet(), before);

@@ -8,14 +8,14 @@ describe('the live crowd, in words', () => {
 
   test('zero says zero, not "quiet"', () => {
     const line = crowdLine(at(0));
-    assert.match(line.en, /No ChivaGo traveller/);
+    assert.match(line.en, /No ChivarGo traveller/);
     assert.doesNotMatch(line.en, /quiet|empty/i);
     assert.match(line.th, /ยังไม่มี/);
   });
 
   test('one and many inflect in English and carry the number in Thai', () => {
-    assert.equal(crowdLine(at(1)).en, '1 ChivaGo traveller checked in here in the last hour.');
-    assert.match(crowdLine(at(4)).en, /^4 ChivaGo travellers/);
+    assert.equal(crowdLine(at(1)).en, '1 ChivarGo traveller checked in here in the last hour.');
+    assert.match(crowdLine(at(4)).en, /^4 ChivarGo travellers/);
     assert.match(crowdLine(at(4)).th, /4 คน/);
   });
 

@@ -118,7 +118,7 @@ describe('what a lock declines to claim', () => {
   test('the limit names all three things a lock is not', () => {
     assert.match(VALIDATION_LIMIT.en, /does not say the indicator suits the activity/);
     assert.match(VALIDATION_LIMIT.en, /that the target is demanding/);
-    assert.match(VALIDATION_LIMIT.en, /anybody outside ChivaGo agreed/);
+    assert.match(VALIDATION_LIMIT.en, /anybody outside ChivarGo agreed/);
   });
 
   test('NOTHING HERE PROMOTES A HOST’S VERIFICATION INTO AN INDEPENDENT ONE', () => {

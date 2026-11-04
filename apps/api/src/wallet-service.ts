@@ -286,7 +286,7 @@ export function awardCheckin(
     subject: args.placeName,
     // Named honestly. A self-verified row must not carry a municipality's name
     // in the column the whole ledger uses to mean "who vouched for this".
-    host: 'ChivaGo · self check-in',
+    host: 'ChivarGo · self check-in',
     amount: args.points,
     currency: 'trip',
     kind: 'checkin',
@@ -311,7 +311,7 @@ export function awardWalk(
     userId: args.userId,
     label: `Walked · ${args.fromName} → ${args.toName}`,
     subject: `${args.fromName} → ${args.toName}`,
-    host: 'ChivaGo · measured leg on foot',
+    host: 'ChivarGo · measured leg on foot',
     amount: args.points,
     currency: 'trip',
     kind: 'walk',
@@ -408,7 +408,7 @@ export function grantOpeningBalance(db: DB, userId: string): void {
     applyMovement(db, {
       userId,
       label: 'Pilot opening balance',
-      host: 'ChivaGo · pilot seed',
+      host: 'ChivarGo · pilot seed',
       amount,
       currency,
       kind: 'adjustment',

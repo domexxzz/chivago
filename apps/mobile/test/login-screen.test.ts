@@ -11,7 +11,20 @@ import { __setLocaleForTests } from '../src/i18n/locale.ts';
 beforeEach(() => { __setLocaleForTests('th'); });
 afterEach(() => { __setLocaleForTests('en'); });
 
-describe('Chivargo LoginScreen', () => {
+describe('ChivarGo LoginScreen', () => {
+  it('renders the complete Chinese authentication path', async () => {
+    __setLocaleForTests('zh');
+    const ui = await mountScreen(h(LoginScreen, {}));
+    const out = ui.text();
+    assert.match(out, /欢迎回来/);
+    assert.match(out, /登录以继续旅程/);
+    assert.match(out, /使用 Google 登录/);
+    assert.match(out, /使用 LINE 登录/);
+    assert.match(out, /创建账户/);
+    assert.doesNotMatch(out, /ยินดีต้อนรับกลับ/);
+    ui.unmount();
+  });
+
   it('renders branding, headings, inputs, and OAuth buttons', async () => {
     const ui = await mountScreen(h(LoginScreen, {}));
     const text = ui.text();
@@ -75,7 +88,7 @@ describe('Chivargo LoginScreen', () => {
     const text = ui.text();
     assert.match(text, /การกู้คืนบัญชี/);
     assert.match(text, /ยังไม่มีระบบรีเซ็ตรหัสผ่านอัตโนมัติ/);
-    assert.match(text, /กรุณาติดต่อทีม ChivaGo/);
+    assert.match(text, /กรุณาติดต่อทีม ChivarGo/);
 
     // Dismiss modal
     await ui.pressText(/เข้าใจแล้ว/);

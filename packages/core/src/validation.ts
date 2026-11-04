@@ -195,9 +195,9 @@ export const VALIDATION_VS_VERIFICATION: Bilingual = {
 /** Shipped with every lock, including the early ones, and especially those. */
 export const VALIDATION_LIMIT: Bilingual = {
   en: 'A lock records when a plan was fixed. It does not say the indicator suits the activity, '
-    + 'that the target is demanding, or that anybody outside ChivaGo agreed to either.',
+    + 'that the target is demanding, or that anybody outside ChivarGo agreed to either.',
   th: 'การล็อกเป็นการบันทึกว่าแผนถูกกำหนดเมื่อใด ไม่ได้ระบุว่าตัวชี้วัดเหมาะกับกิจกรรม '
-    + 'ว่าเป้าหมายท้าทายเพียงพอ หรือว่ามีใครนอก ChivaGo เห็นชอบกับสิ่งใดในนั้น',
+    + 'ว่าเป้าหมายท้าทายเพียงพอ หรือว่ามีใครนอก ChivarGo เห็นชอบกับสิ่งใดในนั้น',
   zh: '锁定只记录方案是何时固定下来的。它并不表示该指标适合这项活动、'
-    + '目标足够有挑战性，也不表示 ChivaGo 之外有任何人认可其中任何一项。',
+    + '目标足够有挑战性，也不表示 ChivarGo 之外有任何人认可其中任何一项。',
 };

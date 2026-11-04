@@ -3,7 +3,7 @@
  *
  * READ THIS BEFORE CHANGING ANYTHING HERE.
  *
- * ChivaGo is not an emergency service and cannot send an ambulance. Thailand's
+ * ChivarGo is not an emergency service and cannot send an ambulance. Thailand's
  * emergency medical service is 1669; the tourist police line is 1155. Nothing
  * in this file replaces either, and the app must never let itself become the
  * reason somebody did not call one.
@@ -56,7 +56,7 @@ export interface EmergencyContact {
   name: string;
   phone: string | null;
   relationship: string | null;
-  /** Set when the contact is also a ChivaGo user and can be pushed. */
+  /** Set when the contact is also a ChivarGo user and can be pushed. */
   linkedUserId: string | null;
 }
 
@@ -350,7 +350,7 @@ export function fireAlert(db: DB, input: FireInput): SosAlertRecord {
           target: contact.id,
           targetLabel: contact.name,
           status: 'sent',
-          detail: 'Push queued to their ChivaGo app.',
+          detail: 'Push queued to their ChivarGo app.',
           attemptedAt: now,
         });
         continue;
@@ -378,7 +378,7 @@ export function fireAlert(db: DB, input: FireInput): SosAlertRecord {
     logDispatch(db, id, {
       channel: 'operator',
       target: 'duty-desk',
-      targetLabel: 'ChivaGo duty desk',
+      targetLabel: 'ChivarGo duty desk',
       status: 'sent',
       detail: 'Visible in the operator console. Not yet acknowledged.',
       attemptedAt: now,
@@ -414,7 +414,7 @@ export function pushableContacts(db: DB, userId: string): EmergencyContact[] {
 export const displayNameOf = (db: DB, userId: string): string =>
   row<{ display_name: string }>(
     db.prepare('SELECT display_name FROM users WHERE id = ?').get(userId),
-  )?.display_name ?? 'A ChivaGo traveller';
+  )?.display_name ?? 'A ChivarGo traveller';
 
 // ---------------------------------------------------------------------------
 // Live position, acknowledgement, resolution

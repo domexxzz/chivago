@@ -22,7 +22,7 @@
  * LONGER TERM
  * The honest answer for a wellness product making air claims is ground truth on
  * the island. Two or three low-cost PM2.5 sensors (Chaweng, Lamai, Na Muang)
- * would cost less than a month of ad spend and would let ChivaGo publish real
+ * would cost less than a month of ad spend and would let ChivarGo publish real
  * readings. Flagged in docs/04-open-questions.md.
  */
 

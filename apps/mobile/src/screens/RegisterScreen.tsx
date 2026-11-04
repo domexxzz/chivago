@@ -1,10 +1,10 @@
 /**
- * Chivargo Registration Screen
+ * ChivarGo Registration Screen
  *
- * Designed to reproduce the visual identity of the Chivargo mobile design reference:
+ * Designed to reproduce the visual identity of the ChivarGo mobile design reference:
  * - Brand palette: Deep teal (#006A83), Primary teal (#009DB7), Cyan accent (#26B6D8), Action blue (#168BE0)
- * - Header with back button, official Chivargo logo, tagline "GO FURTHER TOGETHER",
- *   heading "สมัครสมาชิก", and subtitle "เริ่มต้นการเดินทางไปด้วยกันกับ Chivargo"
+ * - Header with back button, official ChivarGo logo, tagline "GO FURTHER TOGETHER",
+ *   heading "สมัครสมาชิก", and subtitle "เริ่มต้นการเดินทางไปด้วยกันกับ ChivarGo"
  * - Five input fields with two-line layout:
  *     1. ชื่อ-นามสกุล (Full Name)
  *     2. อีเมล (Email)
@@ -16,7 +16,7 @@
  * - Social registration with official Google and LINE branding
  * - Navigation link "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ"
  * - Responsive layout supporting viewports from 320px to desktop width
- * - Decorative landscape wave footer matching Chivargo visual identity
+ * - Decorative landscape wave footer matching ChivarGo visual identity
  */
 
 import React from 'react';
@@ -348,7 +348,7 @@ export function RegisterScreen({
                 isWide && styles.logoImageWide,
               ]}
               resizeMode="contain"
-              accessibilityLabel="Chivargo"
+              accessibilityLabel="ChivarGo"
             />
             <Text style={styles.taglineText}>{t({ en: 'GO FURTHER TOGETHER', th: 'เดินทางไปด้วยกันให้ไกลกว่าเดิม', zh: '同行致远' })}</Text>
           </View>
@@ -379,14 +379,14 @@ export function RegisterScreen({
             </Svg> : null}
             <View style={styles.cardHeadingContainer}>
               <Text style={[styles.cardHeadingTitle, isSmallMobile && styles.headingTitleSmall]}>
-                {t({ en: 'Create a Chivago account', th: 'สร้างบัญชี Chivago', zh: '创建 Chivago 账户' })}
+                {t({ en: 'Create a ChivarGo account', th: 'สร้างบัญชี ChivarGo', zh: '创建 ChivarGo 账户' })}
               </Text>
               <Text style={[styles.cardHeadingSubtitle, isSmallMobile && styles.headingSubtitleSmall]}>
                 {t({ en: 'Start collecting experiences across Thailand', th: 'เริ่มสะสมประสบการณ์ทั่วไทย', zh: '开始收集泰国各地的体验' })}
               </Text>
               <View style={styles.travelStamp} pointerEvents="none">
                 <Compass size={24} color="#397A8D" strokeWidth={1.8} />
-                <Text style={styles.travelStampText}>THAILAND{`\n`}TRAVEL</Text>
+                <Text style={styles.travelStampText}>{t({ en: 'THAILAND\nTRAVEL', th: 'เที่ยว\nไทย', zh: '泰国\n旅行' })}</Text>
               </View>
               <View style={styles.coralSpark} pointerEvents="none"><View style={styles.coralRayTall} /><View style={styles.coralRayShort} /><View style={styles.coralDot} /></View>
               <View style={styles.stepPill}><Text style={styles.stepPillText}>{`${completedFields} / ${requiredFields}`}</Text></View>
@@ -949,7 +949,7 @@ export function RegisterScreen({
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator>
               <Text style={styles.modalParagraph}>
-                {t({ en: 'Welcome to ', th: 'ยินดีต้อนรับสู่ ', zh: '欢迎使用 ' })}<Text style={{ fontFamily: font.heading, color: '#009DB7' }}>Chivargo</Text>{t({ en: ', a travel and activities platform supporting wellness and local communities.', th: ' แพลตฟอร์มการเดินทางและกิจกรรมเพื่อการดูแลสุขภาวะและชุมชน', zh: '，这是一个支持健康生活与本地社区的旅行与活动平台。' })}
+                {t({ en: 'Welcome to ', th: 'ยินดีต้อนรับสู่ ', zh: '欢迎使用 ' })}<Text style={{ fontFamily: font.heading, color: '#009DB7' }}>ChivarGo</Text>{t({ en: ', a travel and activities platform supporting wellness and local communities.', th: ' แพลตฟอร์มการเดินทางและกิจกรรมเพื่อการดูแลสุขภาวะและชุมชน', zh: '，这是一个支持健康生活与本地社区的旅行与活动平台。' })}
               </Text>
               <Text style={styles.modalSubheading}>{t({ en: '1. Accounts and navigation', th: '1. การใช้งานบัญชีและระบบนำทาง', zh: '1. 账户与导航' })}</Text>
               <Text style={styles.modalParagraph}>
@@ -997,7 +997,7 @@ export function RegisterScreen({
 
             <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator>
               <Text style={styles.modalParagraph}>
-                {t({ en: 'Chivargo values your privacy and handles personal data in accordance with applicable data protection law (PDPA).', th: 'Chivargo ให้ความสำคัญสูงสุดกับความเป็นส่วนตัวตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA)', zh: 'ChivaGo 重视您的隐私，并依照适用的个人资料保护法（PDPA）处理个人数据。' })}
+                {t({ en: 'ChivarGo values your privacy and handles personal data in accordance with applicable data protection law (PDPA).', th: 'ChivarGo ให้ความสำคัญสูงสุดกับความเป็นส่วนตัวตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA)', zh: 'ChivarGo 重视您的隐私，并依照适用的个人资料保护法（PDPA）处理个人数据。' })}
               </Text>
               <Text style={styles.modalSubheading}>{t({ en: 'Storage and security (SecureStore)', th: 'การจัดเก็บและรักษาความปลอดภัย (SecureStore)', zh: '存储与安全（SecureStore）' })}</Text>
               <Text style={styles.modalParagraph}>

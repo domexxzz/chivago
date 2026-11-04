@@ -320,7 +320,7 @@ describe('the party figure on a listing is the one the standing uses', () => {
     const { party, code } = createParty(db, 'ana', 'Two slow walkers', NOW);
     joinParty(db, 'bo', code, NOW);
     applyMovement(db, {
-      userId: 'ana', label: 'Pilot opening balance', host: 'ChivaGo', amount: 1240,
+      userId: 'ana', label: 'Pilot opening balance', host: 'ChivarGo', amount: 1240,
       currency: 'green', kind: 'adjustment', sourceRef: `opening:green:ana`,
     });
     verifiedQuest('ana', 'mangrove-planting');
@@ -411,7 +411,7 @@ describe('a withdrawn quest stops counting on the request', () => {
     // Guards the over-fix, not the fix: passes with the change in and out.
     const invite = post();
     applyMovement(db, {
-      userId: 'bo', label: 'Welcome', host: 'ChivaGo', amount: 1240, currency: 'green',
+      userId: 'bo', label: 'Welcome', host: 'ChivarGo', amount: 1240, currency: 'green',
       kind: 'adjustment', sourceRef: 'opening:green:user:bo',
     });
     award('bo', 'beach-clean');

@@ -74,7 +74,8 @@ describe('the traveller tree card', () => {
     });
     try {
       const ui = await mountScreen(h(ImpactScreen, props));
-      assert.match(ui.text(), /Tree impact is unavailable/);
+      assert.match(ui.text(), /Something went wrong\. Please try again\./);
+      assert.doesNotMatch(ui.text(), /Tree impact is unavailable/, 'the raw server message reached the screen');
       assert.match(ui.text(), /12 kg/);
       assert.doesNotMatch(ui.text(), /No signed tree promise/, 'an error is not an empty result');
       ui.unmount();

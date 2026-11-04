@@ -7,7 +7,7 @@
  *
  * WHAT IS NOT BORROWED IS THE ENGINE. In those games the meters fall because
  * time passed, and you refill them by tapping. Nothing outside the app is
- * being described. Put that here and it would be the first thing in ChivaGo
+ * being described. Put that here and it would be the first thing in ChivarGo
  * whose numbers are not derived from something that actually happened - on the
  * screen most likely to be shown to someone, which is exactly where the rule
  * matters most.
@@ -267,8 +267,11 @@ function HabitatCondition({
         colour={color.neutral600}
         style={{ marginTop: 10, textTransform: 'none' }}
       >
-        Measured at {t(habitat.name)}, not simulated. These move whether or not
-        you open the app.
+        {t({
+          en: `Measured at ${t(habitat.name)}, not simulated. These values change whether or not you open the app.`,
+          th: `วัดจากข้อมูลที่ ${t(habitat.name)} ไม่ใช่การจำลอง ค่านี้เปลี่ยนแปลงไม่ว่าคุณจะเปิดแอปหรือไม่`,
+          zh: `数据实测于${t(habitat.name)}，并非模拟。无论你是否打开应用，这些数值都会变化。`,
+        })}
       </Label>
     </View>
   );

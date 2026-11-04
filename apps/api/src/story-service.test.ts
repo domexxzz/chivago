@@ -57,9 +57,9 @@ beforeEach(() => {
   process.env.CHIVAGO_UPLOADS = dir;
   const at = T.toISOString();
   for (const u of ['ana', 'bo']) db.prepare('INSERT INTO users (id, display_name, created_at) VALUES (?,?,?)').run(u, u, at);
-  db.prepare("INSERT INTO hosts (id, name, type, role) VALUES ('h-ku', 'ChivaGo team · KU Sriracha', 'community', 'host')").run();
+  db.prepare("INSERT INTO hosts (id, name, type, role) VALUES ('h-ku', 'ChivarGo team · KU Sriracha', 'community', 'host')").run();
   db.prepare("INSERT INTO hosts (id, name, type, role) VALUES ('h-lab', 'Ocean Lab', 'hotel', 'host')").run();
-  db.prepare("INSERT INTO hosts (id, name, type, role) VALUES ('h-mod', 'ChivaGo', 'platform', 'moderator')").run();
+  db.prepare("INSERT INTO hosts (id, name, type, role) VALUES ('h-mod', 'ChivarGo', 'platform', 'moderator')").run();
   const place = (id: string, name: string, province: string, lat: number, lng: number) => db.prepare(
     `INSERT INTO places (id, name_en, name_th, short, layer, province, lat, lng, meta, blurb_en, blurb_th, tags,
        safety_label_en, safety_label_th, crowd_density, aqi, safety_index, walkability)

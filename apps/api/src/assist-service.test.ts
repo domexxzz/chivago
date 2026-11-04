@@ -26,8 +26,8 @@ const shown = {
   weight: 'consistent',
   concerns: [],
   suggestedReason: null,
-  photos: [{ index: 0, en: 'Three bags on the sand', th: 'ถุงขยะ 3 ใบบนหาด' }],
-  summary: { en: 'Three bags of litter on a beach.', th: 'เห็นถุงขยะ 3 ใบบนหาด' },
+  photos: [{ index: 0, en: 'Three bags on the sand', th: 'ถุงขยะ 3 ใบบนหาด', zh: '沙滩上有三袋垃圾' }],
+  summary: { en: 'Three bags of litter on a beach.', th: 'เห็นถุงขยะ 3 ใบบนหาด', zh: '海滩上有三袋垃圾。' },
 };
 
 /** A model that answers from a script and remembers what it was asked. */

@@ -178,7 +178,7 @@ export function migrate(db: DB): string[] {
       -- shown to the user so THEY can call, which needs no provider at all.
       phone         TEXT,
       relationship  TEXT,
-      -- When the contact is also a ChivaGo user, they can be pushed directly.
+      -- When the contact is also a ChivarGo user, they can be pushed directly.
       -- For a domestic traveller this is the fastest channel we have.
       linked_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
       created_at    TEXT NOT NULL

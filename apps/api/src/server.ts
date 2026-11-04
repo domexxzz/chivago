@@ -1,5 +1,5 @@
 /**
- * ChivaGo API.
+ * ChivarGo API.
  *
  * Implements the backend surface the design implies (handoff section 6), with
  * the two rules the prototype could not enforce:

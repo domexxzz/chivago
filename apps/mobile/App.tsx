@@ -1,5 +1,5 @@
 /**
- * ChivaGo - Smart Wellness & Sustainable Tourism.
+ * ChivarGo - Smart Wellness & Sustainable Tourism.
  * Pilot: Koh Samui, Thailand.
  *
  * Composition root: fonts, navigation, the global SOS banner, the toast.
@@ -59,6 +59,7 @@ import { CompanionHomeScreen } from './src/screens/CompanionHome.tsx';
 import type { Companion } from '@chivago/core';
 import './src/polyfills/location-emitter.ts';
 import { loadLocale, t, useLocale } from './src/i18n/locale.ts';
+import { formatDate } from './src/i18n/format.ts';
 import { loadArea, placeFromUrl } from './src/state/area.ts';
 import { clearLoggedIn, hasLoggedIn, isGuest, setGuest, setLoggedIn } from './src/state/auth.ts';
 import { GuestBand, GuestGate } from './src/components/GuestGate.tsx';
@@ -220,7 +221,7 @@ export default function App() {
 
   const [trip, setTrip] = React.useState<TripState>({
     dayNumber: 2,
-    dateLabel: new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
+    dateLabel: formatDate(new Date(), { weekday: 'short', day: 'numeric', month: 'short' }),
     walkingKm: 0,
     pointsToday: 0,
     airLabel: '—',
@@ -377,7 +378,7 @@ export default function App() {
                 {
                   id: `place-${nav.placeId}-${trip.items.length}`,
                   time: '16:00',
-                  name: { en: 'Saved place', th: 'สถานที่ที่บันทึก' },
+                  name: { en: 'Saved place', th: 'สถานที่ที่บันทึก', zh: '已保存的地点' },
                   tag: 'Saved',
                   isPointsRelated: false,
                   placeId: nav.placeId,
@@ -503,7 +504,7 @@ export default function App() {
               setSignedInAccountType(undefined);
               setLoggedInState(false);
               nav.reset('login');
-              toast.show(t({ en: 'Logged out successfully', th: 'ออกจากระบบเรียบร้อยแล้ว' }));
+              toast.show(t({ en: 'Logged out successfully', th: 'ออกจากระบบเรียบร้อยแล้ว', zh: '已成功退出登录' }));
             }}
           />
         );
@@ -549,14 +550,14 @@ export default function App() {
               setLoggedInState(true);
               setGuestState(false);
               setSignedInAccountType(accountType);
-              toast.show(t({ en: 'Signed in successfully', th: 'เข้าสู่ระบบสำเร็จ' }));
+              toast.show(t({ en: 'Signed in successfully', th: 'เข้าสู่ระบบสำเร็จ', zh: '登录成功' }));
               if (!nav.returnAfterAuth()) nav.selectTab('home');
             }}
             onRegister={() => nav.push('register')}
             onGuest={loggedIn || guest ? undefined : async () => {
               await setGuest(true);
               setGuestState(true);
-              toast.show(t({ en: 'Browsing as a guest', th: 'เข้าชมแบบผู้เยี่ยมชม' }));
+              toast.show(t({ en: 'Browsing as a guest', th: 'เข้าชมแบบผู้เยี่ยมชม', zh: '正在以访客身份浏览' }));
               nav.selectTab('home');
             }}
             onBack={nav.stack.length > 0 ? nav.pop : undefined}
@@ -573,8 +574,9 @@ export default function App() {
               setGuestState(false);
               setSignedInAccountType(accountType);
               toast.show(t({
-                en: 'Registration successful! Welcome to Chivargo',
-                th: 'สมัครสมาชิกสำเร็จ! ยินดีต้อนรับสู่ Chivargo',
+                en: 'Registration successful! Welcome to ChivarGo',
+                th: 'สมัครสมาชิกสำเร็จ! ยินดีต้อนรับสู่ ChivarGo',
+                zh: '注册成功！欢迎使用 ChivarGo',
               }));
               if (!nav.returnAfterAuth()) nav.push('onboarding');
             }}

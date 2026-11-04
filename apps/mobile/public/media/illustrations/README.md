@@ -36,7 +36,7 @@ Deliver a single finished image.
 
 ## Backup point 1
 
-`E:/D-drive-rescue/Chivago-backups/backup-1-20260910/`
+`E:/D-drive-rescue/ChivarGo-backups/backup-1-20260910/`
 
 Contains a pre-edit workspace copy and a verified Git bundle. To undo this image
 refresh, restore the two screen files from `workspace/apps/mobile/src/screens/`
