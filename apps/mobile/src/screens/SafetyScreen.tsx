@@ -67,7 +67,7 @@ export function SafetyScreen({
             <Image
               source={chivagoLogo}
               resizeMode="contain"
-              accessibilityLabel="ChivaGo"
+              accessibilityLabel="ChivarGo"
               style={{ width: 68, height: 48 }}
             />
             <ProfileButton onPress={onOpenProfile} />

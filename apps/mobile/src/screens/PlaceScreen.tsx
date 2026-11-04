@@ -34,6 +34,7 @@ import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { ReviewsBlock } from './PlaceReviews.tsx';
 import { t } from '../i18n/locale.ts';
+import { formatDateTime } from '../i18n/format.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 import { AirHistoryCard, HereNow } from '../components/PlaceLive.tsx';
 import { GettingThere } from '../components/GettingThere.tsx';
@@ -414,7 +415,7 @@ export function PlaceScreen({
   return (
     <View style={{ flex: 1, backgroundColor: color.bg }}>
       {wide ? <PushHeader context={t(strings.place.context)} onBack={onBack} /> : null}
-      {offlineStamp ? <Text style={{ padding: 10, backgroundColor: '#FFF3D6', color: '#684B12' }}>{t({ en: 'Offline snapshot · scores and conditions may have changed. Last updated: ', th: 'ข้อมูลออฟไลน์ · คะแนนและสภาพพื้นที่อาจเปลี่ยนแล้ว อัปเดตล่าสุด: ', zh: '离线资料 · 评分及环境可能已变化。上次更新：' })}{new Date(offlineStamp).toLocaleString()}</Text> : null}
+      {offlineStamp ? <Text style={{ padding: 10, backgroundColor: '#FFF3D6', color: '#684B12' }}>{t({ en: 'Offline snapshot · scores and conditions may have changed. Last updated: ', th: 'ข้อมูลออฟไลน์ · คะแนนและสภาพพื้นที่อาจเปลี่ยนแล้ว อัปเดตล่าสุด: ', zh: '离线资料 · 评分及环境可能已变化。上次更新：' })}{formatDateTime(offlineStamp)}</Text> : null}
 
       {place.loading ? <LoadingState /> : null}
       {place.error ? <ErrorState message={place.error} onRetry={place.reload} /> : null}

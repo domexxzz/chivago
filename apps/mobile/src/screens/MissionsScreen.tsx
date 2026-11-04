@@ -33,6 +33,7 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { OceanBackdrop, TravelHeroBackdrop } from '../components/Shell.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { formatInteger } from '../i18n/format.ts';
 import { ProfileButton } from '../components/ProfileButton.tsx';
 import { questArtworkSource } from '../components/QuestArtwork.tsx';
 
@@ -89,7 +90,7 @@ export function MissionsScreen({
             <Image
               source={chivagoLogo}
               resizeMode="contain"
-              accessibilityLabel="ChivaGo"
+              accessibilityLabel="ChivarGo"
               style={{ width: 68, height: 48 }}
             />
             <ProfileButton onPress={onOpenProfile} />
@@ -280,9 +281,9 @@ function Standing() {
                 <Heading size={26} colour={color.brandDeep}>{data.you.missionsVerified}</Heading>
                 <Body size={13} colour={color.brandDeep}>
                   {t({
-                    en: `mission${data.you.missionsVerified === 1 ? '' : 's'} verified · ${data.you.greenVerified.toLocaleString('en-US')} G earned`,
-                    th: `ครั้งที่ผ่านการตรวจ · ได้ ${data.you.greenVerified.toLocaleString('en-US')} แต้มเขียว`,
-                    zh: `个任务已验证 · 获得 ${data.you.greenVerified.toLocaleString('en-US')} 绿色积分`,
+                    en: `mission${data.you.missionsVerified === 1 ? '' : 's'} verified · ${formatInteger(data.you.greenVerified)} G earned`,
+                    th: `ครั้งที่ผ่านการตรวจ · ได้ ${formatInteger(data.you.greenVerified)} แต้มเขียว`,
+                    zh: `个任务已验证 · 获得 ${formatInteger(data.you.greenVerified)} 绿色积分`,
                   })}
                 </Body>
               </View>
@@ -385,7 +386,7 @@ function HostRow({ host, place }: { host: HostStanding; place: number }) {
         <Label size={9} tracking={0.08} colour={color.neutral600}>{t(strings.quest.verified)}</Label>
         {host.greenIssued > 0 ? (
           <Label size={9} tracking={0.06} colour={color.accent700} style={{ marginTop: 2 }}>
-            {`${host.greenIssued.toLocaleString('en-US')} G`}
+            {`${formatInteger(host.greenIssued)} G`}
           </Label>
         ) : null}
       </View>
@@ -470,7 +471,7 @@ function PartnerRewards({ onOpenMarket }: { onOpenMarket: () => void }) {
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Heading size={14} colour={canBuy ? tone.text : color.neutral500}>
-                    {`${o.costPoints.toLocaleString('en-US')} ${o.currency === 'green' ? 'G' : 'T'}`}
+                    {`${formatInteger(o.costPoints)} ${o.currency === 'green' ? 'G' : 'T'}`}
                   </Heading>
                   {/*
                     The gap, not a lock icon. "480 more" is a number somebody
@@ -478,7 +479,7 @@ function PartnerRewards({ onOpenMarket }: { onOpenMarket: () => void }) {
                   */}
                   {balances != null && !canBuy ? (
                     <Label size={9} tracking={0.06} colour={color.neutral600} style={{ marginTop: 2, textTransform: 'none' }}>
-                      {`${(o.costPoints - balances[o.currency]).toLocaleString('en-US')} more`}
+                      {t({ en: `${formatInteger(o.costPoints - balances[o.currency])} more`, th: `ขาดอีก ${formatInteger(o.costPoints - balances[o.currency])}`, zh: `还差 ${formatInteger(o.costPoints - balances[o.currency])}` })}
                     </Label>
                   ) : null}
                 </View>

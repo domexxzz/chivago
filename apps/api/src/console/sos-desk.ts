@@ -237,13 +237,13 @@ export function sosDeskPage(
     <div class="card" style="margin-top:24px">
       <div class="kicker" style="color:var(--color-accent-700)">What this desk is, and is not</div>
       <p style="margin-top:8px">
-        ChivaGo <strong>cannot dispatch emergency services</strong>. Acknowledging an alert
+        ChivarGo <strong>cannot dispatch emergency services</strong>. Acknowledging an alert
         tells the traveller a named person has seen it and has their live location —
         nothing more. If anyone is hurt, call <strong>1669</strong> (medical) or
         <strong>1155</strong> (tourist police) yourself.
       </p>
       <p class="muted">
-        ChivaGo ไม่สามารถส่งหน่วยฉุกเฉินได้ การรับเรื่องเป็นการแจ้งนักท่องเที่ยวว่ามีคนเห็นและ
+        ChivarGo ไม่สามารถส่งหน่วยฉุกเฉินได้ การรับเรื่องเป็นการแจ้งนักท่องเที่ยวว่ามีคนเห็นและ
         ทราบตำแหน่งแล้วเท่านั้น หากมีผู้บาดเจ็บ กรุณาโทร 1669 หรือ 1155 ด้วยตนเอง
       </p>
     </div>

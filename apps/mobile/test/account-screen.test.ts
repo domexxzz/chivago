@@ -62,7 +62,7 @@ describe('what the screen says', () => {
     const said = ui.text();
 
     assert.match(said, /Settings/i);
-    assert.match(said, /Manage how ChivaGo works for you/i);
+    assert.match(said, /Manage how ChivarGo works for you/i);
     ui.unmount();
 
     // The same sentence, to a Thai reader, in Thai. One language at a time
@@ -272,7 +272,8 @@ describe('quiet hours, which the API had and the app could not reach', () => {
     await ui.press('Notifications');
     await ui.press('Later end');
     await settle();
-    assert.equal(said, 'Could not save that.');
+    assert.equal(said, 'The service had a problem. Please try again.');
+    assert.notEqual(said, 'Could not save that.', 'the raw server message reached the toast');
     assert.match(ui.text(), /Held 22:00 – 07:00/);
     ui.unmount();
   });

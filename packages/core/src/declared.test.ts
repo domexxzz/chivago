@@ -9,7 +9,7 @@ import {
  * A review, never a statement.
  *
  * The danger this module was written against is not a wrong number. It is a
- * right-looking one: an imported spreadsheet rendered like a ChivaGo
+ * right-looking one: an imported spreadsheet rendered like a ChivarGo
  * statement would be level 1 evidence wearing level 3's clothes.
  */
 
@@ -30,9 +30,9 @@ describe('what an imported file is', () => {
   test('every review leads with the fact that nobody verified any of it', () => {
     const r = reviewDeclared([row()], YEAR, null, TODAY);
     assert.equal(r.standing, DECLARED_NOT_VERIFIED);
-    assert.match(r.standing.en, /Nobody at ChivaGo verified any of it/);
+    assert.match(r.standing.en, /Nobody at ChivarGo verified any of it/);
     assert.match(r.standing.en, /level 1 evidence/);
-    assert.match(r.standing.th, /ไม่มีใครที่ ChivaGo ตรวจสอบ/);
+    assert.match(r.standing.th, /ไม่มีใครที่ ChivarGo ตรวจสอบ/);
   });
 
   test('a clean file is clean, and is still not verified', () => {

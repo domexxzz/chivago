@@ -260,7 +260,7 @@ export async function startBackgroundTracking(userId: string): Promise<Backgroun
         // Read in the traveller's language at the moment SOS starts: this is
         // the notification THEY use to see tracking is on and stop it. The
         // responder-facing surfaces (the banner, the Safety screen) keep both.
-        notificationTitle: t({ en: 'ChivaGo SOS active', th: 'ChivaGo SOS ทำงานอยู่', zh: 'ChivaGo SOS 进行中' }),
+        notificationTitle: t({ en: 'ChivarGo SOS active', th: 'ChivarGo SOS ทำงานอยู่', zh: 'ChivarGo SOS 进行中' }),
         notificationBody: t({
           en: 'Sharing your location until the alert ends',
           th: 'กำลังแชร์ตำแหน่งของคุณจนกว่าการแจ้งเตือนจะสิ้นสุด',

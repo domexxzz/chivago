@@ -1,10 +1,10 @@
 /**
- * Chivargo Login Page - Production-Ready Implementation
+ * ChivarGo Login Page - Production-Ready Implementation
  *
- * Implements the Chivargo branded authentication interface based on the
+ * Implements the ChivarGo branded authentication interface based on the
  * design specification:
  * - Upper teal-to-deep-blue ocean gradient background
- * - Centered ChivaGo colorful brand logo & "GO FURTHER TOGETHER" tagline
+ * - Centered ChivarGo colorful brand logo & "GO FURTHER TOGETHER" tagline
  * - Welcome Back header & Thai subtitle
  * - Clean white card with rounded pill input fields (User & Lock icons)
  * - Password visibility toggle (Eye / EyeOff)
@@ -142,9 +142,9 @@ export function LoginScreen({
       setErrorMessage(t(
         r.kind === 'clash'
           ? {
-            en: 'That LINE account already belongs to another ChivaGo account, and this phone has points of its own. Signing in would have to merge them, which is not possible yet — so nothing was changed.',
-            th: 'บัญชี LINE นี้ผูกกับบัญชี ChivaGo อื่นอยู่แล้ว และเครื่องนี้ก็มีแต้มของตัวเอง การเข้าสู่ระบบจะต้องรวมสองบัญชี ซึ่งยังทำไม่ได้ — จึงยังไม่มีอะไรเปลี่ยน',
-            zh: '该 LINE 账户已绑定另一个 ChivaGo 账户，而本机也有自己的积分。登录需要合并两个账户，目前尚不支持，因此未做任何更改。',
+            en: 'That LINE account already belongs to another ChivarGo account, and this phone has points of its own. Signing in would have to merge them, which is not possible yet — so nothing was changed.',
+            th: 'บัญชี LINE นี้ผูกกับบัญชี ChivarGo อื่นอยู่แล้ว และเครื่องนี้ก็มีแต้มของตัวเอง การเข้าสู่ระบบจะต้องรวมสองบัญชี ซึ่งยังทำไม่ได้ — จึงยังไม่มีอะไรเปลี่ยน',
+            zh: '该 LINE 账户已绑定另一个 ChivarGo 账户，而本机也有自己的积分。登录需要合并两个账户，目前尚不支持，因此未做任何更改。',
           }
           : r.kind === 'cancelled'
             ? { en: 'LINE sign-in was cancelled.', th: 'ยกเลิกการเข้าสู่ระบบด้วย LINE แล้ว', zh: '已取消 LINE 登录。' }
@@ -245,7 +245,7 @@ export function LoginScreen({
                 isWide && styles.logoImageWide,
               ]}
               resizeMode="contain"
-              accessibilityLabel="ChivaGo"
+              accessibilityLabel="ChivarGo"
             />
             <Text style={styles.taglineText}>{t({ en: 'GO FURTHER TOGETHER', th: 'เดินทางไปด้วยกันให้ไกลกว่าเดิม', zh: '同行致远' })}</Text>
           </View>
@@ -283,7 +283,7 @@ export function LoginScreen({
               </Text>
               <View style={styles.travelStamp} pointerEvents="none">
                 <Compass size={24} color="#397A8D" strokeWidth={1.8} />
-                <Text style={styles.travelStampText}>THAILAND{`\n`}TRAVEL</Text>
+                <Text style={styles.travelStampText}>{t({ en: 'THAILAND\nTRAVEL', th: 'เที่ยว\nไทย', zh: '泰国\n旅行' })}</Text>
               </View>
               <View style={styles.coralSpark} pointerEvents="none"><View style={styles.coralRayTall} /><View style={styles.coralRayShort} /><View style={styles.coralDot} /></View>
             </View>
@@ -447,7 +447,7 @@ export function LoginScreen({
 
           {/* Registration Link Footer */}
           <View style={styles.registerRow}>
-            <Text style={styles.registerPrompt}>{t({ en: 'New to Chivargo? ', th: 'ยังไม่มีบัญชี? ', zh: '还没有 ChivaGo 账户？' })}</Text>
+            <Text style={styles.registerPrompt}>{t({ en: 'New to ChivarGo? ', th: 'ยังไม่มีบัญชี? ', zh: '还没有 ChivarGo 账户？' })}</Text>
             <Pressable
               onPress={() => onRegister?.()}
               accessibilityRole="button"
@@ -494,7 +494,7 @@ export function LoginScreen({
               isWide && styles.footerIllustrationWide,
             ]}
             resizeMode="contain"
-            accessibilityLabel="ChivaGo scenic landscape decoration"
+            accessible={false}
           />
         </View>
       </ScrollView>
@@ -519,7 +519,7 @@ export function LoginScreen({
               </Pressable>
             </View>
             <Text style={styles.modalBody}>
-              {t({ en: 'Enter your username, email or phone number to identify your account. Automatic password reset is not available yet, so contact the ChivaGo team for account verification. Never share your password with anyone.', th: 'แจ้งชื่อผู้ใช้ อีเมล หรือเบอร์โทรศัพท์ที่ใช้กับบัญชี ขณะนี้ยังไม่มีระบบรีเซ็ตรหัสผ่านอัตโนมัติ กรุณาติดต่อทีม ChivaGo เพื่อตรวจสอบบัญชี และอย่าส่งรหัสผ่านให้ผู้อื่น', zh: '请提供账户使用的用户名、邮箱或手机号。目前尚不支持自动重置密码，请联系 ChivaGo 团队核实账户。请勿向任何人透露密码。' })}
+              {t({ en: 'Enter your username, email or phone number to identify your account. Automatic password reset is not available yet, so contact the ChivarGo team for account verification. Never share your password with anyone.', th: 'แจ้งชื่อผู้ใช้ อีเมล หรือเบอร์โทรศัพท์ที่ใช้กับบัญชี ขณะนี้ยังไม่มีระบบรีเซ็ตรหัสผ่านอัตโนมัติ กรุณาติดต่อทีม ChivarGo เพื่อตรวจสอบบัญชี และอย่าส่งรหัสผ่านให้ผู้อื่น', zh: '请提供账户使用的用户名、邮箱或手机号。目前尚不支持自动重置密码，请联系 ChivarGo 团队核实账户。请勿向任何人透露密码。' })}
             </Text>
             <Pressable
               onPress={() => setRecoveryModalVisible(false)}

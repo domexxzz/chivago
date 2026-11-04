@@ -20,7 +20,8 @@ test('report failure retains reason and form; success confirms receipt', async (
     await ui.pressText('Report inappropriate review');
     await ui.type('Spam report', /Reason for report/);
     await ui.pressText('Submit report');
-    assert.match(ui.text(), /Please retry/);
+    assert.match(ui.text(), /Something went wrong\. Please try again\./);
+    assert.doesNotMatch(ui.text(), /Please retry(?! again)/, 'the raw server message reached the form');
     assert.ok(ui.root.findAll((n) => n.props.value === 'Spam report').length);
     accepted = true;
     await ui.pressText('Submit report');
@@ -101,7 +102,8 @@ test('place review failure keeps the composer open and preserves text', async ()
     await ui.type('Keep these words');
     await ui.press(/^Post$/);
     assert.equal(closed, 0);
-    assert.match(ui.text(), /Please retry/);
+    assert.match(ui.text(), /Something went wrong\. Please try again\./);
+    assert.doesNotMatch(ui.text(), /Please retry(?! again)/, 'the raw server message reached the form');
     assert.ok(ui.root.findAll((n) => n.props.value === 'Keep these words').length);
   } finally { ui.unmount(); net.restore(); }
 });

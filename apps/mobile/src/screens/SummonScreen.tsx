@@ -37,12 +37,13 @@ import { Button, IconButton } from '../components/Button.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { MascotMark } from '../components/MascotMark.tsx';
-import { localeTag, t } from '../i18n/locale.ts';
+import { t } from '../i18n/locale.ts';
+import { formatDate } from '../i18n/format.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 
 /** The day a round opened, in the reader's own calendar conventions. */
 const openedOn = (iso: string): string =>
-  new Date(iso).toLocaleDateString(localeTag());
+  formatDate(iso);
 
 /**
  * A rarity's colour.
@@ -257,7 +258,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             <Heading size={30} colour={color.gold}>{s.charms.available}</Heading>
             <View style={{ flex: 1 }}>
-              <TrayLine>{t({ en: s.charms.available === 1 ? 'charm' : 'charms', th: 'เครื่องราง' })}</TrayLine>
+              <TrayLine>{t({ en: s.charms.available === 1 ? 'charm' : 'charms', th: 'เครื่องราง', zh: '护符' })}</TrayLine>
               <Label size={10} tracking={0.06} colour={gameTray.muted}>
                 {t({
                   en: `${s.charms.verifiedQuests} verified quest${s.charms.verifiedQuests === 1 ? '' : 's'}`

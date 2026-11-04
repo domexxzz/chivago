@@ -11,13 +11,13 @@ import { BOARD_MAX, boardCounts, boardFeed, type BoardEntry } from './board.ts';
  */
 const story = (id: string, at: string): BoardEntry => ({
   kind: 'story', id, at, placeId: 'ku-viewpoint',
-  placeName: { en: 'Sapandao viewpoint', th: 'จุดชมวิวสะพานดาว' },
+  placeName: { en: 'Sapandao viewpoint', th: 'จุดชมวิวสะพานดาว', zh: '星桥观景点' },
   media: 'video', caption: 'the lake at six', mediaUrl: `/m/${id}`, posterUrl: `/p/${id}`,
 });
 
 const review = (id: string, at: string, rating = 5): BoardEntry => ({
   kind: 'review', id, at, placeId: 'ku-shops',
-  placeName: { en: 'Shop row by building 25', th: 'ร้านค้าข้างอาคาร 25' },
+  placeName: { en: 'Shop row by building 25', th: 'ร้านค้าข้างอาคาร 25', zh: '25 号楼旁商店街' },
   rating, body: 'good coffee', authorName: 'Ana', language: 'en',
 });
 

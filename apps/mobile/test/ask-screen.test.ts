@@ -67,7 +67,7 @@ describe('what the screen says before anything is asked', () => {
     const s = server({ '/listings': [boat()], '/inquiries': [] }); restore = s.restore;
     const ui = await mountScreen(h(AskScreen, { onBack: noop, onToast: noop }));
     assert.match(ui.text(), /31\/01234/);
-    assert.match(ui.text(), /ChivaGo has not verified it/);
+    assert.match(ui.text(), /ChivarGo has not verified it/);
   });
 
   test('NO RESPONSE TIME UNTIL THERE IS ENOUGH TO SAY ONE', async () => {
@@ -126,7 +126,7 @@ describe('asking', () => {
     assert.equal(sent!.body.partySize, 3);
   });
 
-  test('A SEND THE SERVER REFUSES SAYS WHY INSIDE THE SHEET, NOT IN A TOAST BEHIND IT', async () => {
+  test('A SEND THE SERVER REFUSES SAFELY INSIDE THE SHEET, NOT IN A TOAST BEHIND IT', async () => {
     // The toast draws beneath the sheet's Modal: a refusal sent there was a
     // button that did nothing. A phone whose clock is a day off is the case
     // that reaches here, since the form runs the server's own checks.
@@ -139,7 +139,8 @@ describe('asking', () => {
     await ui.pressText('Longtail to Koh Taen');
     await ui.type('Two of us?');
     await ui.pressText('Send question');
-    assert.match(ui.text(), /That day has already passed/);
+    assert.match(ui.text(), /Check your enquiry and try again\./);
+    assert.doesNotMatch(ui.text(), /That day has already passed/, 'the raw server message reached the sheet');
     assert.match(ui.text(), /Send question/, 'the sheet closed on a refusal');
     assert.deepEqual(toasts, []);
   });

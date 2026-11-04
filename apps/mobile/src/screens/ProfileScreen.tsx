@@ -45,6 +45,7 @@ import { TravelHeroBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { STAGE_LABEL } from './CompanionHome.tsx';
 import { LOCALES, LOCALE_NAMES, setLocale, t, useLocale } from '../i18n/locale.ts';
+import { formatInteger } from '../i18n/format.ts';
 
 type Icon = LucideIcon;
 
@@ -130,8 +131,8 @@ export function GuestProfileScreen({
         <View style={{ padding: 12, borderRadius: radius.sm, backgroundColor: '#F0F9FD' }}>
           <Body size={13} colour={color.neutral700}>{t({ en: 'Sign in or create an account to view your profile details and use account actions.', th: 'เข้าสู่ระบบหรือสมัครสมาชิกเพื่อดูข้อมูลโปรไฟล์และใช้งานต่างๆ ในบัญชี', zh: '登录或注册账号，即可查看你的资料详情并使用账号功能。' })}</Body>
         </View>
-        <Button label="Sign in" thai="เข้าสู่ระบบ" onPress={onSignIn} />
-        <Button label="Create an account" thai="สมัครสมาชิก" variant="secondary" onPress={onRegister} />
+        <Button label="Sign in" thai="เข้าสู่ระบบ" chinese="登录" onPress={onSignIn} />
+        <Button label="Create an account" thai="สมัครสมาชิก" chinese="创建账户" variant="secondary" onPress={onRegister} />
       </View>
     </ScrollView>
   );
@@ -312,9 +313,9 @@ export function ProfileScreen({
 
             <Body size={13} colour={color.neutral600} style={{ textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
               {t({
-                en: 'Are you sure you want to log out of your Chivargo account on this device?',
-                th: 'คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบบัญชี Chivargo บนอุปกรณ์นี้?',
-                zh: '确定要在这台设备上退出你的 ChivaGo 账号吗？',
+                en: 'Are you sure you want to log out of your ChivarGo account on this device?',
+                th: 'คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบบัญชี ChivarGo บนอุปกรณ์นี้?',
+                zh: '确定要在这台设备上退出你的 ChivarGo 账号吗？',
               })}
             </Body>
 
@@ -489,7 +490,7 @@ function ProfileHero({ width, onBack, onOpenAccount, onOpenEditProfile, name, bu
       <View style={{ position: 'absolute', top: 12, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <IconButton inverted onPress={onBack} accessibilityLabel={t({ en: 'Back', th: 'ย้อนกลับ', zh: '返回' })}><ChevronLeft size={18} color="#FFFFFF" /></IconButton>
         <Label size={11} colour="#FFFFFF" style={{ fontSize: 16, letterSpacing: 0 }}>{t({ en: 'Profile', th: 'โปรไฟล์', zh: '个人资料' })}</Label>
-        <IconButton inverted onPress={onOpenAccount} accessibilityLabel="Account and devices"><Settings size={18} color="#FFFFFF" /></IconButton>
+        <IconButton inverted onPress={onOpenAccount} accessibilityLabel={t({ en: 'Account and devices', th: 'บัญชีและอุปกรณ์', zh: '账户与设备' })}><Settings size={18} color="#FFFFFF" /></IconButton>
       </View>
       <View style={{ position: 'absolute', top: width >= 768 ? 62 : 66, left: 24, right: 24, alignItems: 'center' }}>
         <View style={{ width: 84, height: 84, borderRadius: 42, padding: 4, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#22D3EE' }}>
@@ -506,7 +507,7 @@ function ProfileHero({ width, onBack, onOpenAccount, onOpenEditProfile, name, bu
                 <Label size={11} colour="#FFFFFF">⚡ {t({ en: 'LEVEL', th: 'เลเวล', zh: '等级' })} {p.level}</Label>
               </View>
             </View>
-            <Body size={13} colour="#E0F2FE" style={{ marginTop: 5, fontSize: 12 }}>{t({ en: `Level ${p.level}`, th: `เลเวล ${p.level}`, zh: `等级 ${p.level}` })} · {p.exp.toLocaleString('en-US')} EXP</Body>
+            <Body size={13} colour="#E0F2FE" style={{ marginTop: 5, fontSize: 12 }}>{t({ en: `Level ${formatInteger(p.level)}`, th: `เลเวล ${formatInteger(p.level)}`, zh: `等级 ${formatInteger(p.level)}` })} · {formatInteger(p.exp)} EXP</Body>
           </>
         ) : null}
         {isOperator ? <View style={{ marginTop: 8, paddingVertical: 4, paddingHorizontal: 12, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)' }}><Label size={10} tracking={0.1} colour="#FFFFFF">{t({ en: 'BUSINESS OPERATOR', th: 'บัญชีผู้ประกอบการ', zh: '商家账号' })}</Label></View> : null}
@@ -719,7 +720,7 @@ function Experience({ wallet }: { wallet: Wallet }) {
     <Card>
       <Label size={10} tracking={0.14}>{t(strings.profile.experience)}</Label>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 6 }}>
-        <Heading size={34} tracking={-0.7}>{p.exp.toLocaleString('en-US')}</Heading>
+        <Heading size={34} tracking={-0.7}>{formatInteger(p.exp)}</Heading>
         <Label size={11} tracking={0.1} colour={color.goldDeep}>EXP</Label>
         <View style={{ flex: 1 }} />
         <Label size={11} tracking={0} colour={color.goldDeep} style={{ textTransform: 'none' }}>{`${pct}%`}</Label>
@@ -824,7 +825,7 @@ function StandingBody({ data }: { data: StandingView }) {
         </Body>
       )}
       <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
-        <Stat value={(you?.greenVerified ?? 0).toLocaleString('en-US')} unit="G" label={t(strings.profile.verifiedPoints)} tone={color.accent700} />
+        <Stat value={formatInteger(you?.greenVerified ?? 0)} unit="G" label={t(strings.profile.verifiedPoints)} tone={color.accent700} />
         <Stat value={String(you?.missionsVerified ?? 0)} unit="" label={t(strings.profile.missionsVerified)} tone={color.text} />
       </View>
       {/* The basis, on the screen rather than assumed - the reading this ranking most needs to prevent is "points". */}
@@ -1017,7 +1018,7 @@ function Figures({
         Mark={Leaf}
         tone={color.accent700}
         soft={color.accent100}
-        value={green === null ? '—' : green.toLocaleString('en-US')}
+        value={green === null ? '—' : formatInteger(green)}
         unit="G"
         label={t(strings.common.greenPoints)}
         note={t(strings.common.greenPointsNote)}

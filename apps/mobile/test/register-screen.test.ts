@@ -11,7 +11,21 @@ import { __setLocaleForTests } from '../src/i18n/locale.ts';
 beforeEach(() => { __setLocaleForTests('th'); });
 afterEach(() => { __setLocaleForTests('en'); });
 
-describe('Chivargo RegisterScreen', () => {
+describe('ChivarGo RegisterScreen', () => {
+  it('renders Chinese role selection and registration actions', async () => {
+    __setLocaleForTests('zh');
+    const ui = await mountScreen(h(RegisterScreen, {}));
+    const out = ui.text();
+    assert.match(out, /创建 ChivarGo 账户/);
+    assert.match(out, /注册身份/);
+    assert.match(out, /旅行者/);
+    assert.match(out, /商家/);
+    assert.match(out, /使用 Google 注册/);
+    assert.match(out, /使用 LINE 注册/);
+    assert.doesNotMatch(out, /ลงทะเบียนในฐานะ/);
+    ui.unmount();
+  });
+
   it('renders branding, headings, 5 form fields, and action buttons', async () => {
     const ui = await mountScreen(h(RegisterScreen, {}));
     const text = ui.text();

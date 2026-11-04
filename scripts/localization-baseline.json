@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "legacyLimits": {
+    "packages/core/src/mascots.ts|legacy-array-missing-zh": 231
+  },
+  "interpolationReview": [
+    "packages/core/src/adjustment.ts|interpolation-mismatch|zh drops partnerName.LANG.",
+    "packages/core/src/community-value.ts|interpolation-mismatch|th drops en.",
+    "packages/core/src/community-value.ts|interpolation-mismatch|zh drops en.",
+    "packages/core/src/operator-application.ts|interpolation-mismatch|th drops field.",
+    "packages/core/src/province-companions.ts|interpolation-mismatch|zh drops c.province.name.LANG.",
+    "packages/core/src/province-companions.ts|interpolation-mismatch|zh drops c.province.name.LANG.",
+    "packages/core/src/province-companions.ts|interpolation-mismatch|zh drops c.province.name.LANG.",
+    "packages/core/src/statement-use.ts|interpolation-mismatch|th drops org.",
+    "packages/core/src/statement-use.ts|interpolation-mismatch|th drops org.",
+    "packages/core/src/statement-use.ts|interpolation-mismatch|th drops org.",
+    "packages/core/src/strings.ts|interpolation-mismatch|zh drops preset.LANG.",
+    "packages/core/src/trip-planner.ts|interpolation-mismatch|th drops args.energy.",
+    "packages/core/src/trip-planner.ts|interpolation-mismatch|zh drops args.energy."
+  ],
+  "literalReview": [
+    {
+      "fingerprint": "apps/mobile/src/components/Shell.tsx|literal-jsx-text|Bare text inside <Heading>; review whether it should be localised.",
+      "reason": "Product brand names are intentionally not translated."
+    },
+    {
+      "fingerprint": "apps/mobile/src/components/Shell.tsx|literal-jsx-text|Bare text inside <Label>; review whether it should be localised.",
+      "reason": "Product brand names are intentionally not translated."
+    },
+    {
+      "fingerprint": "apps/mobile/src/screens/AccountScreen.tsx|literal-user-prop|placeholder is a literal; review whether it should be localised.",
+      "reason": "Example device-transfer code; it is data, not language."
+    },
+    {
+      "fingerprint": "apps/mobile/src/screens/MapScreen.tsx|literal-jsx-text|Bare text inside <Text>; review whether it should be localised.",
+      "reason": "KB is a fixed digital storage unit."
+    },
+    {
+      "fingerprint": "apps/mobile/src/screens/Onboarding.tsx|literal-jsx-text|Bare text inside <Heading>; review whether it should be localised.",
+      "reason": "Product brand names are intentionally not translated."
+    },
+    {
+      "fingerprint": "apps/mobile/src/screens/PartyScreen.tsx|literal-user-prop|placeholder is a literal; review whether it should be localised.",
+      "reason": "Example group code; it is data, not language."
+    },
+    {
+      "fingerprint": "apps/mobile/src/screens/PassportScreen.tsx|literal-jsx-text|Bare text inside <Label>; review whether it should be localised.",
+      "reason": "Product brand names are intentionally not translated."
+    },
+    {
+      "fingerprint": "apps/mobile/src/screens/ProfileScreen.tsx|literal-jsx-text|Bare text inside <Body>; review whether it should be localised.",
+      "reason": "EXP is the product's locale-independent point unit."
+    },
+    {
+      "fingerprint": "apps/mobile/src/screens/ProfileScreen.tsx|literal-jsx-text|Bare text inside <Label>; review whether it should be localised.",
+      "reason": "EXP is the product's locale-independent point unit."
+    },
+    {
+      "fingerprint": "apps/mobile/src/screens/QuestDetail.tsx|literal-user-prop|label is a literal; review whether it should be localised.",
+      "reason": "The icon-only button has an empty visual label and a translated accessibility label."
+    },
+    {
+      "fingerprint": "apps/mobile/src/screens/QuestDetail.tsx|literal-user-prop|placeholder is a literal; review whether it should be localised.",
+      "reason": "0.0 is a locale-independent numeric input example."
+    },
+    {
+      "fingerprint": "apps/mobile/src/screens/RegisterScreen.tsx|literal-jsx-text|Bare text inside <Text>; review whether it should be localised.",
+      "reason": "Product brand names are intentionally not translated."
+    },
+    {
+      "fingerprint": "apps/mobile/src/screens/ShopManageScreen.tsx|literal-user-prop|placeholder is a literal; review whether it should be localised.",
+      "reason": "LINE ID, opening-time and Wi-Fi examples are identifiers or standard data formats."
+    },
+    {
+      "fingerprint": "apps/mobile/src/screens/ShopProfileScreen.tsx|literal-jsx-text|Bare text inside <Text>; review whether it should be localised.",
+      "reason": "LINE ID is the external service's fixed identifier."
+    }
+  ]
+}

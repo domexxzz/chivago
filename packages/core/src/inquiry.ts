@@ -97,9 +97,9 @@ export function listingRefusal(listing: Pick<Listing, 'kind' | 'licenceNo'>): Bi
 
 /** Said beside every licence number, because nobody here checked it. */
 export const LICENCE_STATED: Bilingual = {
-  en: 'Licence number as stated by the operator. ChivaGo has not verified it.',
-  th: 'เลขใบอนุญาตตามที่ผู้ประกอบการระบุ ChivaGo ยังไม่ได้ตรวจสอบ',
-  zh: '执照编号由经营者自行提供，ChivaGo 未对其进行验证。',
+  en: 'Licence number as stated by the operator. ChivarGo has not verified it.',
+  th: 'เลขใบอนุญาตตามที่ผู้ประกอบการระบุ ChivarGo ยังไม่ได้ตรวจสอบ',
+  zh: '执照编号由经营者自行提供，ChivarGo 未对其进行验证。',
 };
 
 /* ------------------------------------------------------------ inquiries -- */
@@ -308,10 +308,10 @@ export function incompleteInquiry(problems: readonly InquiryProblem[]): string {
  */
 export const INQUIRY_IS_NOT_A_BOOKING: Bilingual = {
   en: 'This is a question, not a booking. Nothing is reserved and no money moves through '
-    + 'ChivaGo. The operator will answer here, and anything you agree is between you and them.',
-  th: 'นี่คือการสอบถาม ไม่ใช่การจอง ยังไม่มีการจองใดๆ และไม่มีเงินผ่าน ChivaGo '
+    + 'ChivarGo. The operator will answer here, and anything you agree is between you and them.',
+  th: 'นี่คือการสอบถาม ไม่ใช่การจอง ยังไม่มีการจองใดๆ และไม่มีเงินผ่าน ChivarGo '
     + 'ผู้ประกอบการจะตอบกลับที่นี่ และสิ่งที่ตกลงกันเป็นเรื่องระหว่างคุณกับผู้ประกอบการ',
-  zh: '这是一次咨询，不是预订。没有任何预留，也没有款项经过 ChivaGo。'
+  zh: '这是一次咨询，不是预订。没有任何预留，也没有款项经过 ChivarGo。'
     + '经营者会在这里回复，你们达成的任何约定都是你与对方之间的事。',
 };
 
@@ -325,19 +325,19 @@ export function answerNote(operatorName: string, quoteTHB: number | null): Bilin
   return {
     en: quoteTHB === null
       ? `${operatorName} answered. Nothing is booked until you agree it with them directly, `
-        + 'and ChivaGo takes no payment for it.'
+        + 'and ChivarGo takes no payment for it.'
       : `${operatorName} answered and quotes ${baht} THB. Nothing is booked until you agree it `
-        + 'with them directly, and ChivaGo takes no payment for it.',
+        + 'with them directly, and ChivarGo takes no payment for it.',
     th: quoteTHB === null
       ? `${operatorName} ตอบกลับแล้ว ยังไม่มีการจองจนกว่าคุณจะตกลงกับผู้ประกอบการโดยตรง `
-        + 'และ ChivaGo ไม่ได้รับชำระเงินในส่วนนี้'
+        + 'และ ChivarGo ไม่ได้รับชำระเงินในส่วนนี้'
       : `${operatorName} ตอบกลับแล้ว และเสนอราคา ${baht} บาท ยังไม่มีการจองจนกว่าคุณจะตกลงกับ`
-        + 'ผู้ประกอบการโดยตรง และ ChivaGo ไม่ได้รับชำระเงินในส่วนนี้',
+        + 'ผู้ประกอบการโดยตรง และ ChivarGo ไม่ได้รับชำระเงินในส่วนนี้',
     zh: quoteTHB === null
       ? `${operatorName} 已回复。在你与对方直接约定之前都不算预订，`
-        + 'ChivaGo 也不会为此收取任何款项。'
+        + 'ChivarGo 也不会为此收取任何款项。'
       : `${operatorName} 已回复，报价 ${baht} 泰铢。在你与对方直接约定之前都不算预订，`
-        + 'ChivaGo 也不会为此收取任何款项。',
+        + 'ChivarGo 也不会为此收取任何款项。',
   };
 }
 
@@ -349,10 +349,10 @@ export function answerNote(operatorName: string, quoteTHB: number | null): Bilin
  * made by them.
  */
 export const OPERATOR_PRIVACY: Bilingual = {
-  en: 'You see the traveller’s question, date and party size. ChivaGo does not give you their '
+  en: 'You see the traveller’s question, date and party size. ChivarGo does not give you their '
     + 'phone or email; if they want you to have one, it is in their message.',
-  th: 'คุณเห็นคำถาม วันที่ และจำนวนคนของนักท่องเที่ยว ChivaGo ไม่ได้ให้เบอร์โทรหรืออีเมลของเขา '
+  th: 'คุณเห็นคำถาม วันที่ และจำนวนคนของนักท่องเที่ยว ChivarGo ไม่ได้ให้เบอร์โทรหรืออีเมลของเขา '
     + 'หากเขาต้องการให้คุณติดต่อ เขาจะระบุไว้ในข้อความเอง',
-  zh: '你能看到旅行者的问题、日期和人数。ChivaGo 不会把他们的电话或电子邮件给你；'
+  zh: '你能看到旅行者的问题、日期和人数。ChivarGo 不会把他们的电话或电子邮件给你；'
     + '如果他们希望你知道，会写在自己的留言里。',
 };

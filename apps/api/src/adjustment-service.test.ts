@@ -264,7 +264,7 @@ describe('what reaches the report', () => {
     assert.equal(r.sharedVerified, 0);
     assert.doesNotMatch(r.exclusivity.en, /Every one of these/);
     assert.match(r.exclusivity.en, /A further 2 were co-funded/);
-    assert.match(r.exclusivity.en, /not witnessed by ChivaGo/);
+    assert.match(r.exclusivity.en, /not witnessed by ChivarGo/);
   });
 
   test('BOTH PARTNERS STANDING DOWN LEAVES THE WORK IN NOBODY’S COLUMN', () => {

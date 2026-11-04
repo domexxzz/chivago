@@ -2,7 +2,7 @@
   "name": "chivago",
   "version": "0.1.0",
   "private": true,
-  "description": "ChivaGo — Smart Wellness & Sustainable Tourism. Pilot: Koh Samui, Thailand.",
+  "description": "ChivarGo — Smart Wellness & Sustainable Tourism. Pilot: Koh Samui, Thailand.",
   "scripts": {
     "api": "pnpm --filter @chivago/api dev",
     "mobile": "pnpm --filter @chivago/mobile start",
@@ -12,6 +12,8 @@
     "test:dart": "cd packages/sdk-dart && dart test",
     "contract": "pnpm --filter @chivago/api contract",
     "test:scripts": "node --test scripts/*.test.mjs",
+    "localization:check": "node scripts/localization-audit.mjs --check",
+    "localization:report": "node scripts/localization-audit.mjs --json",
     "thai:review": "node scripts/thai-review.mjs --html thai-review.html",
     "thai:apply": "node scripts/thai-apply.mjs",
     "announce": "node scripts/announce.mjs --from-git"
@@ -19,5 +21,8 @@
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=22.15"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   }
 }

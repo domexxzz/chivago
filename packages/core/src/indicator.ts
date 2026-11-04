@@ -132,21 +132,21 @@ export const VERDICT_LABEL: Record<Verdict, Bilingual> = {
  */
 export const UNEXAMINED_NOTE: Bilingual = {
   en: 'Nobody here has examined this figure against this line. That is a gap in what '
-    + 'ChivaGo has studied, not a finding that the placement is sound.',
-  th: 'ยังไม่มีผู้ใดที่นี่ตรวจสอบตัวเลขนี้เทียบกับรายการนี้ นี่คือช่องว่างของสิ่งที่ ChivaGo ศึกษาไว้ '
+    + 'ChivarGo has studied, not a finding that the placement is sound.',
+  th: 'ยังไม่มีผู้ใดที่นี่ตรวจสอบตัวเลขนี้เทียบกับรายการนี้ นี่คือช่องว่างของสิ่งที่ ChivarGo ศึกษาไว้ '
     + 'ไม่ใช่ข้อสรุปว่าการจัดวางนั้นถูกต้อง',
-  zh: '此处尚无人将这个数字对照该项审查过。这是 ChivaGo 已研究内容中的一处空白，'
+  zh: '此处尚无人将这个数字对照该项审查过。这是 ChivarGo 已研究内容中的一处空白，'
     + '而不是认定该归类成立的结论。',
 };
 
 /** Shipped with every result, including the ones that look like permission. */
 export const PLACEMENT_LIMIT: Bilingual = {
-  en: 'This is ChivaGo’s reading of a published standard, not a ruling and not an '
+  en: 'This is ChivarGo’s reading of a published standard, not a ruling and not an '
     + 'assurance opinion. Nothing here files anything, and nothing here converts a '
     + 'figure into another unit.',
-  th: 'นี่คือการอ่านมาตรฐานที่เผยแพร่แล้วตามความเห็นของ ChivaGo ไม่ใช่คำวินิจฉัย'
+  th: 'นี่คือการอ่านมาตรฐานที่เผยแพร่แล้วตามความเห็นของ ChivarGo ไม่ใช่คำวินิจฉัย'
     + 'และไม่ใช่ความเห็นให้ความเชื่อมั่น ไม่มีสิ่งใดตรงนี้เป็นการยื่นรายงาน และไม่มีการแปลงตัวเลขเป็นหน่วยอื่น',
-  zh: '这是 ChivaGo 对一份已公开标准的解读，不是裁定，也不是鉴证意见。此处不会提交'
+  zh: '这是 ChivarGo 对一份已公开标准的解读，不是裁定，也不是鉴证意见。此处不会提交'
     + '任何报告，也不会把任何数字换算成其他单位。',
 };
 
@@ -351,7 +351,7 @@ export const GRI_306_3: IndicatorRule = {
       + 'or is required to discard',
     where: 'GRI 306: Waste 2020 — definitions, read with 306-3 Waste generated',
     readOn: '2026-09-26',
-    readBy: 'ChivaGo research, docs/57',
+    readBy: 'ChivarGo research, docs/57',
     notChecked: {
       en: 'Published guidance only. No ruling, no assurance provider’s opinion, and no '
         + 'GRI sector standard was checked for a narrower reading.',
@@ -610,7 +610,7 @@ export const GHG_SCOPE3_CAT5: IndicatorRule = {
     where: 'GHG Protocol, Technical Guidance for Calculating Scope 3 Emissions — '
       + 'Category 5: Waste Generated in Operations, pp. 72–80',
     readOn: '2026-09-28',
-    readBy: 'ChivaGo research, read directly from the published chapter',
+    readBy: 'ChivarGo research, read directly from the published chapter',
     notChecked: {
       en: 'The Category 5 chapter was read in full. The Scope 3 Standard itself — including '
         + 'section 9.5 on avoided emissions, which that chapter points to — was not, nor any '
@@ -662,11 +662,11 @@ export const GHG_SCOPE3_CAT5: IndicatorRule = {
           },
           {
             en: 'Any claim of avoided emissions goes separately from scope 1, 2 and 3 and is '
-              + 'never deducted from them, with its own methodology — which ChivaGo does not supply.',
+              + 'never deducted from them, with its own methodology — which ChivarGo does not supply.',
             th: 'หากจะอ้างการปล่อยที่หลีกเลี่ยงได้ ต้องรายงานแยกจาก scope 1, 2 และ 3 และห้ามนำไปหักออก '
-              + 'พร้อมระเบียบวิธีของตัวเอง ซึ่ง ChivaGo ไม่ได้จัดหาให้',
+              + 'พร้อมระเบียบวิธีของตัวเอง ซึ่ง ChivarGo ไม่ได้จัดหาให้',
             zh: '任何关于避免排放的主张都须与 scope 1、2、3 分开报告，且绝不可从中'
-              + '扣减，并须附有自己的方法学 —— 而 ChivaGo 并不提供这套方法学。',
+              + '扣减，并须附有自己的方法学 —— 而 ChivarGo 并不提供这套方法学。',
           },
         ],
       };
@@ -822,7 +822,7 @@ export const GRI_413_1: IndicatorRule = {
     where: 'GRI 413: Local Communities 2016 — Disclosure 413-1, p. 8; '
       + 'definition of local communities, p. 4',
     readOn: '2026-09-28',
-    readBy: 'ChivaGo research, read directly from the published standard',
+    readBy: 'ChivarGo research, read directly from the published standard',
     notChecked: {
       en: 'Disclosure 413-1 and the definition of local communities were read directly. '
         + 'GRI 3 Disclosure 3-3, where this standard sends the management approach, was not; '

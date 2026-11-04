@@ -28,6 +28,7 @@ import { Tag } from '../components/Button.tsx';
 import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { formatInteger } from '../i18n/format.ts';
 
 export interface TripState {
   dayNumber: number;
@@ -389,7 +390,7 @@ function PriceOutlook({
             because the traveller books on it.
           */}
           <Heading size={30} colour={color.text}>
-            {`฿${today.band.low.toLocaleString()}–${today.band.high.toLocaleString()}`}
+            {`฿${formatInteger(today.band.low)}–${formatInteger(today.band.high)}`}
           </Heading>
           <Label size={9} tracking={0.12} colour={color.neutral600} style={{ marginBottom: 8 }}>
             {today.confidence.toUpperCase()}
@@ -428,7 +429,7 @@ function PriceOutlook({
                   {`${m.month}  ${t(m.label)}${m.hasFestival ? ' · festival' : ''}`}
                 </Body>
                 <Body size={13} colour={best ? color.brand : color.neutral600}>
-                  {`฿${m.band.typical.toLocaleString()}`}
+                  {`฿${formatInteger(m.band.typical)}`}
                 </Body>
               </View>
               <View style={{ height: 4, backgroundColor: color.neutral300, marginTop: 4 }}>

@@ -151,7 +151,7 @@ function Header({ progression, onOpenProfile }: { progression: Progression | nul
           </Heading>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Image source={chivagoLogo} resizeMode="contain" accessibilityLabel="ChivaGo" style={{ width: 62, height: 44 }} />
+          <Image source={chivagoLogo} resizeMode="contain" accessibilityLabel="ChivarGo" style={{ width: 62, height: 44 }} />
           <ProfileButton onPress={onOpenProfile} />
         </View>
       </View>

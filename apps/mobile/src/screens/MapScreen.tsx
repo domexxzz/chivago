@@ -40,6 +40,7 @@ import { pickStoryMedia, postStory } from '../state/tell-story.ts';
 import type { Story } from '../api/client.ts';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { formatDate, formatDateTime, formatInteger } from '../i18n/format.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 import { ProfileButton } from '../components/ProfileButton.tsx';
 import { cachedPlaces, cachedShops, clearPublicCache, deleteAreaCache, inspectAreaCache, placesWithFallback, shopsWithFallback, storageInfo } from '../offline/public-cache.ts';
@@ -56,7 +57,7 @@ const mapShopCategory = (category: string) => {
     'ร้านขายของ': { en: 'Souvenirs & shopping', th: 'ของฝาก/ช้อปปิ้ง', zh: '纪念品与购物' }, 'เช่ารถ': { en: 'Car rental', th: 'เช่ารถ', zh: '租车' },
     'เสริมสวย': { en: 'Beauty', th: 'เสริมสวย', zh: '美容' }, 'ตัดผม': { en: 'Haircut', th: 'ตัดผม', zh: '理发' }, 'ไกด์นำเที่ยว': { en: 'Tour guide', th: 'ไกด์นำเที่ยว', zh: '导游' }, 'อื่นๆ': { en: 'Other', th: 'อื่นๆ', zh: '其他' },
   };
-  return t(values[category] ?? { en: category, th: category });
+  return t(values[category] ?? { en: category, th: category, zh: category });
 };
 
 export function MapScreen({
@@ -447,10 +448,10 @@ export function MapScreen({
           <Text style={{ color: '#123B64', fontWeight: '700' }}>{offlineStamp || shopOfflineStamp ? t({ en: 'Using cached data · information may have changed', th: 'กำลังใช้ข้อมูลที่บันทึกไว้ · ข้อมูลอาจเปลี่ยนแล้ว', zh: '正在使用缓存数据 · 信息可能已变化' }) : t({ en: 'No network · showing what was already loaded', th: 'ไม่มีสัญญาณ · แสดงข้อมูลที่โหลดไว้แล้ว', zh: '无网络 · 显示已加载的数据' })}  ▾</Text>
           {offlineMap ? <Text style={{ color: '#684B12', fontSize: 12, marginTop: 3 }}>{t({ en: 'Map from saved tiles · only areas you have opened', th: 'แผนที่จากข้อมูลที่บันทึกไว้ · เฉพาะบริเวณที่เคยเปิด', zh: '地图来自已保存的瓦片 · 仅限你打开过的区域' })}</Text> : null}
         </Pressable>
-        {offlineStamp || shopOfflineStamp ? <Text style={{ color: '#684B12', fontSize: 12, marginTop: 3 }}>{t({ en: 'Last successful update: ', th: 'อัปเดตสำเร็จล่าสุด: ', zh: '上次成功更新：' })}{new Date(offlineStamp ?? shopOfflineStamp!).toLocaleString()} · {Math.max(0, Math.floor((Date.now() - Date.parse(offlineStamp ?? shopOfflineStamp!)) / 3600_000))} {t({ en: 'hours old', th: 'ชั่วโมงที่ผ่านมา', zh: '小时前' })}</Text> : null}
+        {offlineStamp || shopOfflineStamp ? <Text style={{ color: '#684B12', fontSize: 12, marginTop: 3 }}>{t({ en: 'Last successful update: ', th: 'อัปเดตสำเร็จล่าสุด: ', zh: '上次成功更新：' })}{formatDateTime(offlineStamp ?? shopOfflineStamp!)} · {formatInteger(Math.max(0, Math.floor((Date.now() - Date.parse(offlineStamp ?? shopOfflineStamp!)) / 3600_000)))} {t({ en: 'hours old', th: 'ชั่วโมงที่ผ่านมา', zh: '小时前' })}</Text> : null}
         {cachePanel ? <View style={{ marginTop: 8, gap: 5 }}>
           {storageSummary ? <Text style={{ color: '#435E70', fontSize: 12 }}>{t({ en: 'Saved data', th: 'ข้อมูลที่บันทึก', zh: '已保存数据' })}: {storageSummary.records.length} · {storageSummary.areas.length} {t({ en: 'areas', th: 'พื้นที่', zh: '区域' })} · {(storageSummary.totalBytes / 1024).toFixed(1)} KB</Text> : null}
-          {(['places', 'shops'] as const).map((kind) => <Text key={kind} style={{ color: '#435E70', fontSize: 12 }}>{kind === 'places' ? t({ en: 'Places', th: 'สถานที่', zh: '地点' }) : t({ en: 'Services', th: 'สถานบริการ', zh: '服务' })}: {cacheInfo?.[kind] ? `${cacheInfo[kind].data.length} · ${t({ en: 'saved', th: 'บันทึก', zh: '保存' })} ${new Date(cacheInfo[kind].downloadedAt).toLocaleString()} · ${t({ en: 'expires', th: 'หมดอายุ', zh: '过期' })} ${new Date(cacheInfo[kind].expiresAt).toLocaleDateString()}` : t({ en: 'No saved data', th: 'ไม่มีข้อมูลที่บันทึก', zh: '无缓存数据' })}</Text>)}
+          {(['places', 'shops'] as const).map((kind) => <Text key={kind} style={{ color: '#435E70', fontSize: 12 }}>{kind === 'places' ? t({ en: 'Places', th: 'สถานที่', zh: '地点' }) : t({ en: 'Services', th: 'สถานบริการ', zh: '服务' })}: {cacheInfo?.[kind] ? `${formatInteger(cacheInfo[kind].data.length)} · ${t({ en: 'saved', th: 'บันทึก', zh: '保存' })} ${formatDateTime(cacheInfo[kind].downloadedAt)} · ${t({ en: 'expires', th: 'หมดอายุ', zh: '过期' })} ${formatDate(cacheInfo[kind].expiresAt)}` : t({ en: 'No saved data', th: 'ไม่มีข้อมูลที่บันทึก', zh: '无缓存数据' })}</Text>)}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 5 }}>
             <Pressable onPress={() => { places.reload(); shops.reload(); }} accessibilityRole="button"><Text style={{ color: '#0077B6' }}>{t({ en: 'Refresh area', th: 'อัปเดตพื้นที่นี้', zh: '刷新区域' })}</Text></Pressable>
             <Pressable onPress={() => { void deleteAreaCache(area.key).then(() => setCacheRevision((v) => v + 1)).catch(() => onToast(t({ en: 'Could not delete saved data', th: 'ลบข้อมูลที่บันทึกไม่สำเร็จ', zh: '无法删除缓存数据' }))); }} accessibilityRole="button"><Text style={{ color: '#B91C1C' }}>{t({ en: 'Delete area cache', th: 'ลบแคชพื้นที่นี้', zh: '删除区域缓存' })}</Text></Pressable>
@@ -970,7 +971,7 @@ export function MapHeader({
     >
       <TravelHeroBackdrop compact focalPoint="right" />
 
-      {/* Row 1: Greeting & Area Name on Left, ChivaGo Logo + Profile on Right (matching Home screen) */}
+      {/* Row 1: Greeting & Area Name on Left, ChivarGo Logo + Profile on Right (matching Home screen) */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: '#D5F6FF', fontSize: 12, fontWeight: '500', letterSpacing: 1.8, textTransform: 'uppercase' }}>
@@ -985,7 +986,7 @@ export function MapHeader({
           <Image
             source={chivagoLogo}
             resizeMode="contain"
-            accessibilityLabel="ChivaGo"
+            accessibilityLabel="ChivarGo"
             style={{ width: 68, height: 48 }}
           />
 
@@ -1010,9 +1011,9 @@ export function MapHeader({
         onPress={onOpenWallet}
         accessibilityRole="button"
         accessibilityLabel={
-          `${balances.green.toLocaleString('en-US')} ${t(strings.common.greenPoints)}, `
+          `${formatInteger(balances.green)} ${t(strings.common.greenPoints)}, `
           + `${t(strings.common.greenPointsNote)}. `
-          + `${balances.trip.toLocaleString('en-US')} ${t(strings.common.tripPoints)}, `
+          + `${formatInteger(balances.trip)} ${t(strings.common.tripPoints)}, `
           + `${t(strings.common.tripPointsNote)}. ${t({ en: 'Open wallet.', th: 'เปิดกระเป๋าแต้ม', zh: '打开钱包。' })}`
         }
         style={{
@@ -1042,7 +1043,7 @@ export function MapHeader({
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 }}>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
                 <Heading size={16} colour="#004B7E" style={{ fontWeight: '800' }}>
-                  {balances.green.toLocaleString('en-US')}
+                  {formatInteger(balances.green)}
                 </Heading>
                 <Label size={10} tracking={0.1} colour="#006EA8" style={{ fontWeight: '700' }}>
                   {t(strings.wallet.green)}
@@ -1053,7 +1054,7 @@ export function MapHeader({
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
                 <Heading size={13} colour="#396184" style={{ fontWeight: '700' }}>
-                  {balances.trip.toLocaleString('en-US')}
+                  {formatInteger(balances.trip)}
                 </Heading>
                 <Label size={9} tracking={0.1} colour="#52749D" style={{ fontWeight: '600' }}>
                   {t(strings.wallet.trip)}

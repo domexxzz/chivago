@@ -346,6 +346,7 @@ function Leave({
       <Button
         label="Leave this group"
         thai="ออกจากกลุ่ม"
+        chinese="退出此小组"
         variant="secondary"
         height={48}
         onPress={async () => {
@@ -489,6 +490,7 @@ function Requests({
             <Button
               label="Yes"
               thai="รับ"
+              chinese="接受"
               onPress={() => decide(who.inviteId, who.userId, true)}
               disabled={busy !== null}
               height={44}
@@ -497,6 +499,7 @@ function Requests({
             <Button
               label="No"
               thai="ไม่รับ"
+              chinese="拒绝"
               variant="secondary"
               onPress={() => decide(who.inviteId, who.userId, false)}
               disabled={busy !== null}

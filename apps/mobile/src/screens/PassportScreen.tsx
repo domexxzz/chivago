@@ -89,7 +89,7 @@ export function PassportScreen({ onBack, onOpenMascots }: { onBack?: () => void;
       >
         <TravelHeroBackdrop focalPoint="left" />
         <View style={{ position: 'absolute', left: 20, bottom: 22, maxWidth: '42%' }}>
-          <Label size={9} tracking={0.16} colour="#D9F7FA">CHIVAGO</Label>
+          <Label size={9} tracking={0.16} colour="#D9F7FA">ChivarGo</Label>
           <Heading size={22} colour="#FFFFFF" style={{ marginTop: 3 }}>
             {t({ en: 'Travel all over Thailand', th: 'เที่ยวไทยให้ครบทุกจังหวัด', zh: '畅游泰国每一府' })}
           </Heading>
@@ -102,11 +102,11 @@ export function PassportScreen({ onBack, onOpenMascots }: { onBack?: () => void;
             shadowColor: '#003B52', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.24, shadowRadius: 16, elevation: 7,
           }}
         >
-          <Label size={9} tracking={0.12} colour="#7B5534">KINGDOM OF THAILAND</Label>
-          <Heading size={23} colour="#5F3D28" style={{ marginTop: 8 }}>Thailand</Heading>
-          <Body size={13} colour="#7B5534">Travel Passport</Body>
+          <Label size={9} tracking={0.12} colour="#7B5534">{t({ en: 'KINGDOM OF THAILAND', th: 'ราชอาณาจักรไทย', zh: '泰王国' })}</Label>
+          <Heading size={23} colour="#5F3D28" style={{ marginTop: 8 }}>{t({ en: 'Thailand', th: 'ประเทศไทย', zh: '泰国' })}</Heading>
+          <Body size={13} colour="#7B5534">{t({ en: 'Travel Passport', th: 'พาสปอร์ตท่องเที่ยว', zh: '旅行护照' })}</Body>
           <View style={{ marginTop: 'auto', alignSelf: 'flex-end', width: 62, height: 62, borderRadius: 31, borderWidth: 3, borderColor: '#C96C56', alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '11deg' }] }}>
-            <Label size={9} tracking={0.08} colour="#C96C56" style={{ textAlign: 'center' }}>{`${progress.visited} / ${progress.total}\nVISITED`}</Label>
+            <Label size={9} tracking={0.08} colour="#C96C56" style={{ textAlign: 'center' }}>{`${progress.visited} / ${progress.total}\n${t({ en: 'VISITED', th: 'ไปแล้ว', zh: '已到访' })}`}</Label>
           </View>
         </View>
       </View>
@@ -182,15 +182,15 @@ export function PassportScreen({ onBack, onOpenMascots }: { onBack?: () => void;
 }
 
 function Legend() {
-  const items: [StampState, string, string][] = [
-    ['stamped', 'Been', 'ไปมาแล้ว'],
-    ['noted', 'Self-reported', 'บันทึกเอง'],
-    ['open', 'Open', 'เปิดแล้ว'],
-    ['listed', 'Not yet', 'ยังไม่เปิด'],
+  const items: [StampState, string, string, string][] = [
+    ['stamped', 'Been', 'ไปมาแล้ว', '去过'],
+    ['noted', 'Self-reported', 'บันทึกเอง', '自行记录'],
+    ['open', 'Open', 'เปิดแล้ว', '已开放'],
+    ['listed', 'Not yet', 'ยังไม่เปิด', '尚未开放'],
   ];
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, rowGap: 10, paddingHorizontal: gutter, paddingTop: 2, paddingBottom: 8 }}>
-      {items.map(([state, en, th]) => (
+      {items.map(([state, en, th, zh]) => (
         <View key={state} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <View
             style={{
@@ -201,7 +201,7 @@ function Legend() {
               backgroundColor: state === 'stamped' ? color.accent : 'transparent',
             }}
           />
-          <Label size={9} tracking={0.06} colour={color.neutral700}>{t({ en, th })}</Label>
+          <Label size={9} tracking={0.06} colour={color.neutral700}>{t({ en, th, zh })}</Label>
         </View>
       ))}
     </View>

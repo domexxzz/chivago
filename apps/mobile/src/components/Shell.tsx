@@ -197,8 +197,8 @@ export function NavigationRail({
       }}
     >
       <View style={{ paddingHorizontal: expanded ? 10 : 0, paddingBottom: 22, alignItems: expanded ? 'flex-start' : 'center' }}>
-        <Heading size={expanded ? 20 : 14} colour={color.brandDeep}>ChivaGo</Heading>
-        {expanded ? <Label size={9} tracking={0.14} colour={color.neutral600} style={{ marginTop: 3 }}>EXPLORE TOGETHER</Label> : null}
+        <Heading size={expanded ? 20 : 14} colour={color.brandDeep}>ChivarGo</Heading>
+        {expanded ? <Label size={9} tracking={0.14} colour={color.neutral600} style={{ marginTop: 3 }}>{t({ en: 'EXPLORE TOGETHER', th: 'ออกเดินทางไปด้วยกัน', zh: '一起探索' })}</Label> : null}
       </View>
       <View style={{ gap: 8 }}>
         {TAB_ORDER.map((key) => {
@@ -230,7 +230,7 @@ export function NavigationRail({
       </View>
       {expanded ? (
         <View style={{ marginTop: 'auto', padding: 12, borderRadius: 16, backgroundColor: color.brandSoft }}>
-          <Label size={9} tracking={0.1} colour={color.brand}>CHIVAGO</Label>
+          <Label size={9} tracking={0.1} colour={color.brand}>ChivarGo</Label>
           <Body size={13} colour={color.neutral700} style={{ marginTop: 4 }}>
             {t({ en: 'Explore local. Travel safely.', th: 'เที่ยวท้องถิ่น เดินทางปลอดภัย', zh: '探索本地，安心旅行。' })}
           </Body>

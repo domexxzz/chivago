@@ -8,8 +8,8 @@
  * indefinitely, and the system kept waiting.
  *
  * The instinct is to escalate INWARDS - find another operator, page harder, try
- * more of our own channels. That is the wrong instinct. ChivaGo cannot send
- * help, so an escalation ladder that only searches inside ChivaGo is a ladder
+ * more of our own channels. That is the wrong instinct. ChivarGo cannot send
+ * help, so an escalation ladder that only searches inside ChivarGo is a ladder
  * that leads nowhere.
  *
  * The most valuable thing this system can do when its own channel has
@@ -173,7 +173,7 @@ export async function fireRung(
     outcome.oncallPaged = await oncall.page({
       text:
         `SOS unacknowledged for ${minutes} min — ${alert.locationLabel}. ` +
-        `Nobody has picked it up on the ChivaGo desk.`,
+        `Nobody has picked it up on the ChivarGo desk.`,
       alertId: alert.id,
       locationLabel: alert.locationLabel,
       lat: alert.lat,
