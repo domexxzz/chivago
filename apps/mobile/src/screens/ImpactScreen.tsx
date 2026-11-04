@@ -21,7 +21,7 @@ import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
 import { tintFor } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
-import { OceanBackdrop } from '../components/Shell.tsx';
+import { OceanBackdrop, TravelHeroBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { GentleSteps } from '../components/GentleSteps.tsx';
 import { t } from '../i18n/locale.ts';
@@ -83,7 +83,7 @@ export function ImpactScreen({
           elevation: 3,
         }}
       >
-        <OceanBackdrop compact />
+        <TravelHeroBackdrop compact focalPoint="right" />
         <Label size={10} tracking={0.16} colour="#D5F6FF">
           {t({ en: 'VERIFIED IMPACT', th: 'ผลลัพธ์ที่ตรวจสอบได้', zh: '已验证的影响' })}
         </Label>

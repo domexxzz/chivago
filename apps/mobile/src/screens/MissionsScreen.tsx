@@ -22,7 +22,7 @@
 
 import React from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
-import { ChevronRight } from 'lucide-react-native';
+import { ChevronRight, Clock, MapPin } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import { greetingFor, isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
 import { api } from '../api/client.ts';
@@ -30,10 +30,11 @@ import { useAsync } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { tintFor } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
-import { OceanBackdrop } from '../components/Shell.tsx';
+import { OceanBackdrop, TravelHeroBackdrop } from '../components/Shell.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 import { ProfileButton } from '../components/ProfileButton.tsx';
+import { questArtworkSource } from '../components/QuestArtwork.tsx';
 
 type Filter = 'today' | 'weekend' | 'all';
 
@@ -71,7 +72,7 @@ export function MissionsScreen({
           elevation: 3,
         }}
       >
-        <OceanBackdrop compact />
+        <TravelHeroBackdrop compact focalPoint="right" />
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flex: 1 }}>
             <Text style={{ color: '#D5F6FF', fontSize: 12, fontWeight: '500', letterSpacing: 1.8, textTransform: 'uppercase' }}>
@@ -135,7 +136,7 @@ function SegmentedFilter({
     ['all', `${t(strings.quests.filters.all)} ${total}`],
   ];
   return (
-    <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: gutter, paddingTop: 14, paddingBottom: 6 }}>
+    <View style={{ width: '92%', maxWidth: 760, alignSelf: 'center', flexDirection: 'row', gap: 8, paddingTop: 14, paddingBottom: 6 }}>
       {options.map(([key, label]) => {
         const active = key === value;
         return (
@@ -180,66 +181,45 @@ export function QuestRow({
         + `${quest.rewardCurrency === 'green' ? 'Green' : 'Trip'} Points, `
         + `at ${t(quest.where)}, by ${quest.host.name}`
       }
-      style={[shadow.card, {
-        flexDirection: 'row',
-        gap: 14,
-        padding: 16,
-        marginHorizontal: gutter,
-        marginTop: 10,
+      style={({ pressed }) => [shadow.card, {
+        width: '92%',
+        maxWidth: 760,
+        alignSelf: 'center',
+        marginTop: 12,
         backgroundColor: color.surface,
-        borderRadius: radius.md,
+        borderRadius: 22,
         borderWidth: 1,
         borderColor: '#DCEFF5',
+        overflow: 'hidden',
+        opacity: pressed ? 0.88 : 1,
       }]}
     >
-      {/* The quest code in a 44x44 tile. This IS the system's icon - do not
-          swap in an illustration. Tinted by the code's family (its two
-          letters), so every beach cleanup is the same colour on every screen. */}
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: tintFor(quest.code.slice(0, 2)).fill,
-          borderRadius: radius.sm,
-        }}
-      >
-        <Heading size={11} colour={tintFor(quest.code.slice(0, 2)).ink}>{quest.code}</Heading>
+      <View style={{ height: 150, position: 'relative', backgroundColor: color.brandSoft }}>
+        <Image source={questArtworkSource(quest)} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
+        <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,38,60,0.16)' }} />
+        <View style={{ position: 'absolute', top: 12, left: 12, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.94)' }}>
+          <Label size={9} tracking={0.1} colour={tintFor(quest.code.slice(0, 2)).ink}>{quest.code}</Label>
+        </View>
+        <View style={{ position: 'absolute', top: 12, right: 12, backgroundColor: currencyTone(quest.rewardCurrency).fill, paddingVertical: 6, paddingHorizontal: 11, borderRadius: 999 }}>
+          <Heading size={13} colour={currencyTone(quest.rewardCurrency).on}>{`+${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'G' : 'T'}`}</Heading>
+        </View>
       </View>
-
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+      <View style={{ padding: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <Heading size={16}>{t(quest.name)}</Heading>
-
+            <Heading size={18} colour={color.text}>{t(quest.name)}</Heading>
+            <Label size={9} tracking={0.08} colour={color.neutral600} style={{ marginTop: 5 }}>{t(strings.quests.by(quest.host.name))}</Label>
           </View>
-          {/*
-            Coloured by CURRENCY, not by "this is a reward". A Trip Point
-            reward in the verified green told the traveller a host had checked
-            something before they had even left the list screen.
-          */}
-          <View style={{ backgroundColor: currencyTone(quest.rewardCurrency).fill, paddingVertical: 3, paddingHorizontal: 9, borderRadius: radius.lg }}>
-            <Heading size={13} colour={currencyTone(quest.rewardCurrency).on}>
-              {`+${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'G' : 'T'}`}
-            </Heading>
-          </View>
+          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: color.brandSoft, alignItems: 'center', justifyContent: 'center' }}><ChevronRight size={18} color={color.brand} /></View>
         </View>
-
-        <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-          <Label size={11} tracking={0} style={{ textTransform: 'none' }}>{t(quest.where)}</Label>
-          <Label size={11} tracking={0} style={{ textTransform: 'none' }}>{t(quest.duration)}</Label>
-        </View>
-
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
-          <Label size={10} tracking={0.1}>{t(strings.quests.by(quest.host.name))}</Label>
-          {/* Progress is surfaced on the row so a half-finished quest is not
-              lost behind a tap. The design has no such affordance. */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginTop: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><MapPin size={15} color={color.brand} /><Body size={13} colour={color.neutral700}>{t(quest.where)}</Body></View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><Clock size={15} color={color.brand} /><Body size={13} colour={color.neutral700}>{t(quest.duration)}</Body></View>
           {progress && progress.stage !== 'complete' ? (
-            <Label size={10} tracking={0.1} colour={color.accent700}>{`· ${t({ en: 'In progress', th: 'กำลังทำอยู่', zh: '进行中' })}`}</Label>
+            <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: color.brandSoft }}><Label size={9} tracking={0.08} colour={color.brand}>{t({ en: 'IN PROGRESS', th: 'กำลังทำอยู่', zh: '进行中' })}</Label></View>
           ) : null}
           {progress?.stage === 'complete' ? (
-            <Label size={10} tracking={0.1} colour={color.accent700}>{`· ${t({ en: 'Done', th: 'เสร็จแล้ว', zh: '已完成' })}`}</Label>
+            <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: color.accent100 }}><Label size={9} tracking={0.08} colour={color.accent700}>{t({ en: 'DONE', th: 'เสร็จแล้ว', zh: '已完成' })}</Label></View>
           ) : null}
         </View>
       </View>

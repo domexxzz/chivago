@@ -68,6 +68,7 @@ import { ErrorState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import { ProfileButton } from '../components/ProfileButton.tsx';
+import { TravelHeroBackdrop } from '../components/Shell.tsx';
 
 const HOME_QUEST_LIMIT = 3;
 
@@ -154,6 +155,8 @@ export function HomeScreen({
   /** Injected so the greeting is testable rather than whatever the clock says. */
   now?: Date;
 }) {
+  const { width: viewportWidth } = useWindowDimensions();
+  const dashboard = viewportWidth >= 980;
   const places = useAsync(() => api.places(), []);
   const quests = useAsync(() => api.quests('today'), []);
   const wallet = useAsync(() => api.wallet(), []);
@@ -201,26 +204,26 @@ export function HomeScreen({
         asks for nothing, so the island's Home is unchanged.
       */}
       <TopCards courts={courts} fair={fair} onOpenFair={onOpenFair} />
-      <Conditions places={here} onOpenMap={onOpenMap} overHero={courts.length === 0 && fair === null} />
-      <Doors
-        onOpenMap={onOpenMap}
-        onOpenQuests={onOpenQuests}
-        onOpenWallet={onOpenWallet}
-        onOpenConcierge={onOpenConcierge}
-        onOpenImpact={onOpenImpact}
-        onOpenSafety={onOpenSafety}
-        onOpenParty={onOpenParty}
-        onOpenStays={onOpenStays}
-        onOpenMarket={onOpenMarket ?? onOpenWallet}
-      />
-      {/*
-        What it is like outside, above where to go: the sea and the sky decide
-        whether any of the places below are worth the trip. Read per area, and
-        it draws nothing where the feed has nothing - inland there is no wave
-        tab at all (components/SeaAndSky.tsx).
-      */}
-      <View style={{ paddingHorizontal: gutter }}>
-        <SeaAndSkyCard area={area.key} />
+      <View style={dashboard ? { flexDirection: 'row', alignItems: 'flex-start', gap: 18, paddingHorizontal: gutter, marginTop: -42 } : undefined}>
+        <View style={dashboard ? { flex: 0.9, minWidth: 0 } : undefined}>
+          <Conditions places={here} onOpenMap={onOpenMap} overHero={!dashboard && courts.length === 0 && fair === null} />
+        </View>
+        <View style={dashboard ? { flex: 1.1, minWidth: 0, paddingTop: 38 } : undefined}>
+          <Doors
+            onOpenMap={onOpenMap}
+            onOpenQuests={onOpenQuests}
+            onOpenWallet={onOpenWallet}
+            onOpenConcierge={onOpenConcierge}
+            onOpenImpact={onOpenImpact}
+            onOpenSafety={onOpenSafety}
+            onOpenParty={onOpenParty}
+            onOpenStays={onOpenStays}
+            onOpenMarket={onOpenMarket ?? onOpenWallet}
+          />
+          <View style={{ paddingHorizontal: gutter }}>
+            <SeaAndSkyCard area={area.key} />
+          </View>
+        </View>
       </View>
       <Places places={here} shops={shops} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} onOpenShop={onOpenShop ?? onOpenMap} />
       <MarketPromoCard onOpenMarket={onOpenMarket ?? onOpenWallet} />
@@ -244,7 +247,10 @@ export function HomeScreen({
       */}
       <Bus areaKey={area.key} onToast={onToast} />
       <Board areaKey={area.key} onOpenPlace={onOpenPlace ?? onOpenMap} />
-      <Today quests={todayHere} onOpenQuest={onOpenQuest} onOpenQuests={onOpenQuests} />
+      <View style={dashboard ? { flexDirection: 'row', alignItems: 'flex-start', gap: 6 } : undefined}>
+        <View style={dashboard ? { flex: 1, minWidth: 0 } : undefined}>
+          <Today quests={todayHere} onOpenQuest={onOpenQuest} onOpenQuests={onOpenQuests} />
+        </View>
       {/*
         The companion sits with the rest of the game layer now, not between the
         places and what is happening around them. A full-width portrait at the
@@ -254,14 +260,17 @@ export function HomeScreen({
         YOU rather than the island. The place-first order above it (problems,
         transit, board, then today's missions) is unchanged.
       */}
-      <MascotHeroCard now={now} onOpen={onOpenMascots ?? onOpenPassport} />
-      <Carrying
-        wallet={wallet}
-        passport={passport}
-        companions={companions}
-        onOpenWallet={onOpenWallet}
-        onOpenPassport={onOpenPassport}
-      />
+        <View style={dashboard ? { flex: 1, minWidth: 0 } : undefined}>
+          <MascotHeroCard now={now} onOpen={onOpenMascots ?? onOpenPassport} />
+          <Carrying
+            wallet={wallet}
+            passport={passport}
+            companions={companions}
+            onOpenWallet={onOpenWallet}
+            onOpenPassport={onOpenPassport}
+          />
+        </View>
+      </View>
       <View style={{ height: 32 }} />
     </ScrollView>
   );
@@ -298,8 +307,8 @@ function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile }: {
   onOpenConcierge: () => void; onOpenProfile: () => void;
 }) {
   return (
-    <View style={{ backgroundColor: '#028090', paddingHorizontal: gutter, paddingTop: 24, paddingBottom: 70, overflow: 'hidden' }}>
-      <OceanBackdrop />
+    <View style={{ backgroundColor: '#028090', minHeight: 330, paddingHorizontal: gutter, paddingTop: 26, paddingBottom: 82, overflow: 'hidden' }}>
+      <TravelHeroBackdrop focalPoint="right" />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: '#D5F6FF', fontSize: 12, fontWeight: '500', letterSpacing: 1.8, textTransform: 'uppercase' }}>{t(greetingFor(now))}</Text>
@@ -314,8 +323,16 @@ function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile }: {
         <ProfileButton onPress={onOpenProfile} />
       </View>
       <AreaSwitch area={area.key} onChange={onChangeArea} tone="inverted" />
+      <View style={{ marginTop: 18, maxWidth: 720 }}>
+        <Heading size={34} tracking={-0.7} colour="#FFFFFF" style={{ maxWidth: 560 }}>
+          {t({ en: 'Discover. Travel. Remember.', th: 'ค้นหา เดินทาง และจดจำ', zh: '探索、旅行、铭记。' })}
+        </Heading>
+        <Body size={13} colour="#E8FBFF" style={{ marginTop: 6, maxWidth: 520 }}>
+          {t({ en: 'Island stories, local people and safer journeys — all in one place.', th: 'เรื่องราวของเกาะ ผู้คนท้องถิ่น และการเดินทางที่ปลอดภัยในที่เดียว', zh: '岛屿故事、当地人与安心旅程，尽在一处。' })}
+        </Body>
+      </View>
       <Pressable onPress={onOpenConcierge} accessibilityRole="button" accessibilityLabel={t({ en: 'Ask where to go', th: 'ถามว่าไปไหนดี', zh: '问问去哪儿好' })}
-        style={{ marginTop: 20, minHeight: 56, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFFFFF', borderRadius: 28, shadowColor: '#004E64', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 }}>
+        style={{ marginTop: 20, minHeight: 58, maxWidth: 720, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 29, shadowColor: '#003B52', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.22, shadowRadius: 20, elevation: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.72)' }}>
         <Search size={21} color="#78909C" />
         <Body colour="#78909C" style={{ flex: 1 }}>{t({ en: 'Where to go today?', th: 'วันนี้ไปไหนดี?', zh: '今天去哪儿好？' })}</Body>
         <ScanLine size={21} color="#0077B6" />

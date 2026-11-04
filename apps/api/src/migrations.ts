@@ -1925,5 +1925,42 @@ export function migrate(db: DB): string[] {
     if (addColumn(db, 'places', 'photo_backdrop', 'TEXT')) applied.push('places.photo_backdrop');
   }
 
+  // -- Remove prototype-only account scores --------------------------------
+  // This runs after the historical wallet migration above, when all three
+  // wallet columns exist. Match only the exact source-ref shape emitted by
+  // grantOpeningBalance; older unrelated adjustments that merely contain the
+  // word "opening" are not touched.
+  if (hasTable(db, 'ledger') && hasTable(db, 'wallets')
+      && hasColumn(db, 'wallets', 'trip_points') && hasColumn(db, 'wallets', 'exp')) {
+    const legacyOpening = db.prepare(
+      "SELECT COUNT(*) AS count FROM ledger WHERE source_ref LIKE 'opening:green:%' OR source_ref LIKE 'opening:trip:%'",
+    ).get() as unknown as { count: number };
+    if (legacyOpening.count > 0) {
+      db.exec(`
+        UPDATE wallets
+        SET trip_points = MAX(0, trip_points - COALESCE((
+              SELECT SUM(amount) FROM ledger
+              WHERE ledger.user_id = wallets.user_id
+                AND ledger.currency = 'trip'
+                AND ledger.source_ref LIKE 'opening:trip:%'
+            ), 0)),
+            green_points = MAX(0, green_points - COALESCE((
+              SELECT SUM(amount) FROM ledger
+              WHERE ledger.user_id = wallets.user_id
+                AND ledger.currency = 'green'
+                AND ledger.source_ref LIKE 'opening:green:%'
+            ), 0)),
+            exp = MAX(0, exp - COALESCE((
+              SELECT SUM(exp) FROM ledger
+              WHERE ledger.user_id = wallets.user_id
+                AND (ledger.source_ref LIKE 'opening:green:%' OR ledger.source_ref LIKE 'opening:trip:%')
+            ), 0));
+        DELETE FROM ledger
+        WHERE source_ref LIKE 'opening:green:%' OR source_ref LIKE 'opening:trip:%';
+      `);
+      applied.push('remove prototype opening balances');
+    }
+  }
+
   return applied;
 }

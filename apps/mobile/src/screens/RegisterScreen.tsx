@@ -54,8 +54,10 @@ import {
 } from 'lucide-react-native';
 
 import chivagoColorLogo from '../../assets/chivago-color-logo.png';
-import loginFooterWaves from '../../assets/login-footer-waves.png';
+import authTropicalFooter from '../../assets/auth-tropical-footer-v1.png';
+import authIslandHero from '../../assets/auth-island-hero.png';
 import { api } from '../api/client.ts';
+import { finishLineSignIn, lineSignInAvailable, startLineSignIn } from '../api/line-signin.ts';
 import { adoptKey, ensureAccount } from '../api/account.ts';
 import { setLoggedIn } from '../state/auth.ts';
 import { CONSENT_VERSION } from '../state/store.tsx';
@@ -115,10 +117,13 @@ export function RegisterScreen({
   onBack,
   initialAccountType = 'traveller',
 }: RegisterScreenProps) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const isNarrow = width < 380;
   const isSmallMobile = width < 360;
-  const isWide = width >= 768;
+  const isShort = height < 700;
+  const isLandscape = width > height && height < 600;
+  const isWide = width >= 768 && !isLandscape;
+  const isDesktop = width >= 1024;
 
   // Role / Account Type (นักท่องเที่ยว หรือ ผู้ประกอบการ)
   const [accountType, setAccountType] = React.useState<'traveller' | 'operator'>(
@@ -157,6 +162,31 @@ export function RegisterScreen({
   const [privacyModalOpen, setPrivacyModalOpen] = React.useState(false);
   const [oauthModalOpen, setOauthModalOpen] = React.useState(false);
   const [oauthProvider, setOauthProvider] = React.useState<'Google' | 'LINE'>('Google');
+
+  const completionValues = [
+    ...(accountType === 'operator' ? [businessName.trim()] : []),
+    fullName.trim(), email.trim(), phone.trim(), password, confirmPassword,
+    consentAgreed ? 'accepted' : '',
+  ];
+  const completedFields = completionValues.filter(Boolean).length;
+  const requiredFields = completionValues.length;
+  const completionPercent = Math.round((completedFields / requiredFields) * 100);
+
+  React.useEffect(() => {
+    let live = true;
+    void finishLineSignIn().then(async (result) => {
+      if (!live || result.kind === 'none') return;
+      if (result.kind === 'signed-in') {
+        await setLoggedIn(true);
+        onRegisterSuccess?.('traveller');
+        return;
+      }
+      setErrorMessage(t(result.kind === 'cancelled'
+        ? { en: 'LINE registration was cancelled.', th: 'ยกเลิกการสมัครด้วย LINE แล้ว', zh: '已取消使用 LINE 注册。' }
+        : { en: 'LINE registration could not be completed.', th: 'สมัครสมาชิกด้วย LINE ไม่สำเร็จ กรุณาลองใหม่', zh: '无法完成 LINE 注册。' }));
+    });
+    return () => { live = false; };
+  }, [onRegisterSuccess]);
 
   const validate = (): boolean => {
     if (accountType === 'operator') {
@@ -230,8 +260,10 @@ export function RegisterScreen({
     return true;
   };
 
+  const registerLock = React.useRef(false);
   const handleRegister = async () => {
-    if (!validate() || loading) return;
+    if (registerLock.current || !validate() || loading) return;
+    registerLock.current = true;
 
     setLoading(true);
     setErrorMessage(null);
@@ -270,7 +302,7 @@ export function RegisterScreen({
     } catch {
       setErrorMessage(t({ en: 'Registration failed. Check your details and try again.', th: 'การลงทะเบียนไม่สำเร็จ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง', zh: '注册失败。请检查您的信息后重试。' }));
       setLoading(false);
-    }
+    } finally { registerLock.current = false; }
   };
 
   return (
@@ -279,33 +311,14 @@ export function RegisterScreen({
       style={styles.root}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Top Header Section with Waves */}
-        <View style={[styles.topSection, isWide && styles.topSectionWide]}>
-          {/* Wave Linear Gradient Header Backdrop */}
-          <Svg
-            style={StyleSheet.absoluteFill}
-            width="100%"
-            height="100%"
-            viewBox="0 0 1000 320"
-            preserveAspectRatio="none"
-          >
-            <Defs>
-              <LinearGradient id="regBgGrad" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0%" stopColor="#0094BD" />
-                <Stop offset="45%" stopColor="#016592" />
-                <Stop offset="82%" stopColor="#024B73" />
-                <Stop offset="100%" stopColor="#023E62" />
-              </LinearGradient>
-            </Defs>
-            <Path
-              d="M0 0 H1000 V270 C750 310 500 260 250 295 C120 315 40 305 0 285 Z"
-              fill="url(#regBgGrad)"
-            />
-          </Svg>
+        {/* Photo hero shared by authentication screens. */}
+        <View style={[styles.topSection, isShort && styles.topSectionShort, isLandscape && styles.topSectionLandscape, isWide && styles.topSectionWide, isDesktop && styles.topSectionDesktop]}>
+          <Image source={authIslandHero} resizeMode="cover" style={styles.heroImage} />
+          <View style={styles.heroShade} />
 
           {/* Top Bar with Back Button */}
           <View style={styles.topBar}>
@@ -331,6 +344,7 @@ export function RegisterScreen({
               style={[
                 styles.logoImage,
                 isSmallMobile && styles.logoImageSmall,
+                isShort && styles.logoImageShort,
                 isWide && styles.logoImageWide,
               ]}
               resizeMode="contain"
@@ -339,27 +353,6 @@ export function RegisterScreen({
             <Text style={styles.taglineText}>{t({ en: 'GO FURTHER TOGETHER', th: 'เดินทางไปด้วยกันให้ไกลกว่าเดิม', zh: '同行致远' })}</Text>
           </View>
 
-          {/* Heading & Subtitle */}
-          <View style={styles.headingContainer}>
-            <Text
-              style={[
-                styles.headingTitle,
-                isSmallMobile && styles.headingTitleSmall,
-                isWide && styles.headingTitleWide,
-              ]}
-            >
-              {t({ en: 'Create an account', th: 'สมัครสมาชิก', zh: '创建账户' })}
-            </Text>
-            <Text
-              style={[
-                styles.headingSubtitle,
-                isSmallMobile && styles.headingSubtitleSmall,
-                isWide && styles.headingSubtitleWide,
-              ]}
-            >
-              {t({ en: 'Start your journey with Chivargo', th: 'เริ่มต้นการเดินทางไปด้วยกันกับ Chivargo', zh: '与 ChivaGo 一起开启旅程' })}
-            </Text>
-          </View>
         </View>
 
         {/* Center Registration Card */}
@@ -367,16 +360,38 @@ export function RegisterScreen({
           style={[
             styles.cardWrapper,
             isSmallMobile && styles.cardWrapperSmall,
+            isLandscape && styles.cardWrapperLandscape,
             isWide && styles.cardWrapperWide,
+            isDesktop && styles.cardWrapperDesktop,
           ]}
         >
           <View
             style={[
               styles.card,
               isSmallMobile && styles.cardSmall,
+              isShort && styles.cardShort,
               isWide && styles.cardWide,
+              isDesktop && styles.cardDesktop,
             ]}
           >
+            {!isDesktop ? <Svg style={styles.organicCurve} width="100%" height="64" viewBox="0 0 400 64" preserveAspectRatio="none" pointerEvents="none">
+              <Path d="M0 43 C72 67 252 5 400 17 L400 64 L0 64 Z" fill="#FFFFFF" />
+            </Svg> : null}
+            <View style={styles.cardHeadingContainer}>
+              <Text style={[styles.cardHeadingTitle, isSmallMobile && styles.headingTitleSmall]}>
+                {t({ en: 'Create a Chivago account', th: 'สร้างบัญชี Chivago', zh: '创建 Chivago 账户' })}
+              </Text>
+              <Text style={[styles.cardHeadingSubtitle, isSmallMobile && styles.headingSubtitleSmall]}>
+                {t({ en: 'Start collecting experiences across Thailand', th: 'เริ่มสะสมประสบการณ์ทั่วไทย', zh: '开始收集泰国各地的体验' })}
+              </Text>
+              <View style={styles.travelStamp} pointerEvents="none">
+                <Compass size={24} color="#397A8D" strokeWidth={1.8} />
+                <Text style={styles.travelStampText}>THAILAND{`\n`}TRAVEL</Text>
+              </View>
+              <View style={styles.coralSpark} pointerEvents="none"><View style={styles.coralRayTall} /><View style={styles.coralRayShort} /><View style={styles.coralDot} /></View>
+              <View style={styles.stepPill}><Text style={styles.stepPillText}>{`${completedFields} / ${requiredFields}`}</Text></View>
+              <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${completionPercent}%` }]} /></View>
+            </View>
             {/* Error Message Notice */}
             {errorMessage ? (
               <View style={styles.errorNotice} accessibilityLiveRegion="polite">
@@ -392,27 +407,27 @@ export function RegisterScreen({
                   marginBottom: 10,
                   padding: 10,
                   borderRadius: 12,
-                  backgroundColor: '#FFFBEB',
+                  backgroundColor: '#ECFAFA',
                   borderWidth: 1,
-                  borderColor: '#FDE68A',
+                  borderColor: '#BCE7E5',
                 }}
               >
                 <Text
                   style={{
                     fontFamily: font.heading,
                     fontSize: 11.5,
-                    color: '#B45309',
+                    color: '#087F7C',
                     fontWeight: '700',
                     marginBottom: 2,
                   }}
                 >
-                  {t({ en: '⚠️ Choose one account type', th: '⚠️ เลือกประเภทบัญชี (เลือกได้อย่างใดอย่างหนึ่ง)', zh: '⚠️ 请选择一种账户类型' })}
+                  {t({ en: 'Choose your account type', th: 'เลือกประเภทบัญชีของคุณ', zh: '选择您的账户类型' })}
                 </Text>
                 <Text
                   style={{
                     fontFamily: font.thai,
                     fontSize: 11,
-                    color: '#92400E',
+                    color: '#426B72',
                     lineHeight: 16,
                   }}
                 >
@@ -843,8 +858,8 @@ export function RegisterScreen({
 
               <Pressable
                 onPress={() => {
-                  setOauthProvider('LINE');
-                  setOauthModalOpen(true);
+                  if (accountType === 'traveller' && lineSignInAvailable()) startLineSignIn();
+                  else { setOauthProvider('LINE'); setOauthModalOpen(true); }
                 }}
                 accessibilityRole="button"
                 accessibilityLabel={t({ en: 'Sign up with LINE', th: 'สมัครด้วย LINE', zh: '使用 LINE 注册' })}
@@ -891,18 +906,19 @@ export function RegisterScreen({
             styles.footerSection,
             isSmallMobile && styles.footerSectionSmall,
             isWide && styles.footerSectionWide,
+            isDesktop && styles.desktopDecorationHidden,
           ]}
           pointerEvents="none"
           aria-hidden={true}
         >
           <Image
-            source={loginFooterWaves}
+            source={authTropicalFooter}
             style={[
               styles.footerWaveImage,
               isSmallMobile && styles.footerWaveImageSmall,
               isWide && styles.footerWaveImageWide,
             ]}
-            resizeMode="cover"
+            resizeMode="contain"
           />
         </View>
       </ScrollView>
@@ -1028,7 +1044,11 @@ export function RegisterScreen({
             </View>
 
             <Text style={styles.modalParagraph}>
-              {t({ en: 'Sign-up using ', th: 'ระบบเชื่อมต่อการสมัครสมาชิกผ่านบัญชี ', zh: '通过 ' })}<Text style={{ fontFamily: font.heading, color: '#183B56' }}>{oauthProvider}</Text>{t({ en: ' is being prepared for a future update.', th: ' กำลังอยู่ในช่วงเตรียมความพร้อมสำหรับการอัปเดตเวอร์ชันถัดไป', zh: ' 注册的功能正在为后续版本准备中。' })}
+              {oauthProvider === 'Google'
+                ? t({ en: 'Google registration is not enabled on this server.', th: 'เซิร์ฟเวอร์นี้ยังไม่ได้เปิดใช้งานการสมัครด้วย Google', zh: '此服务器尚未启用 Google 注册。' })
+                : accountType === 'operator'
+                  ? t({ en: 'LINE registration currently creates traveller accounts only. Use the form above to create a business account.', th: 'การสมัครด้วย LINE รองรับบัญชีนักท่องเที่ยวเท่านั้น กรุณาใช้แบบฟอร์มด้านบนเพื่อสร้างบัญชีผู้ประกอบการ', zh: 'LINE 注册目前仅支持旅行者账户。请使用上方表单创建商家账户。' })
+                  : t({ en: 'LINE registration is available on the web version when LINE OAuth is configured on the server.', th: 'การสมัครด้วย LINE ใช้งานได้บนเว็บเมื่อเซิร์ฟเวอร์ตั้งค่า LINE OAuth แล้ว', zh: '服务器配置 LINE OAuth 后，可在网页版使用 LINE 注册。' })}
             </Text>
             <Text style={[styles.modalParagraph, { marginTop: 8 }]}>
               {t({ en: 'You can register securely using the form above.', th: 'ท่านสามารถสมัครสมาชิกได้อย่างปลอดภัยโดยใช้แบบฟอร์มลงทะเบียนด้านบนได้ทันที', zh: '您可以使用上方的表单安全地完成注册。' })}
@@ -1056,17 +1076,33 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: 24,
   },
+  scrollContentDesktop: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    minHeight: '100%',
+    backgroundColor: '#F3F9FC',
+  },
   topSection: {
     position: 'relative',
-    paddingTop: Platform.OS === 'ios' ? 52 : 36,
-    paddingBottom: 32,
+    paddingTop: Platform.OS === 'ios' ? 34 : 22,
+    paddingBottom: 28,
+    minHeight: 242,
     alignItems: 'center',
     overflow: 'hidden',
+  },
+  heroShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(1, 49, 72, 0.42)',
+  },
+  heroImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
   topBar: {
     width: '100%',
     paddingHorizontal: 20,
-    marginBottom: 8,
+    marginBottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
@@ -1087,11 +1123,11 @@ const styles = StyleSheet.create({
   },
   brandingContainer: {
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 10,
   },
   logoImage: {
-    width: 140,
-    height: 72,
+    width: 122,
+    height: 64,
   },
   taglineText: {
     fontFamily: font.mono,
@@ -1103,7 +1139,7 @@ const styles = StyleSheet.create({
   },
   headingContainer: {
     alignItems: 'center',
-    marginTop: 14,
+    marginTop: 8,
     paddingHorizontal: 24,
   },
   headingTitle: {
@@ -1121,8 +1157,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   cardWrapper: {
-    paddingHorizontal: 16,
-    marginTop: -8,
+    paddingHorizontal: 0,
+    marginTop: 0,
     alignItems: 'center',
     zIndex: 10,
   },
@@ -1130,11 +1166,108 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 480,
     backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    paddingHorizontal: 20,
-    paddingTop: 22,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    paddingHorizontal: 30,
+    paddingTop: 28,
     paddingBottom: 24,
     ...shadow.card,
+  },
+  organicCurve: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: -62,
+  },
+  cardHeadingContainer: {
+    marginBottom: 18,
+    alignItems: 'flex-start',
+    position: 'relative',
+    paddingRight: 90,
+  },
+  cardHeadingTitle: {
+    fontFamily: font.heading,
+    fontSize: 28,
+    lineHeight: 36,
+    color: '#123B64',
+    letterSpacing: -0.45,
+  },
+  cardHeadingSubtitle: {
+    fontFamily: font.thai,
+    fontSize: 14.5,
+    color: '#446476',
+    marginTop: 2,
+  },
+  travelStamp: {
+    position: 'absolute',
+    right: -4,
+    top: -16,
+    width: 76,
+    height: 76,
+    borderWidth: 2,
+    borderColor: '#70AEBB',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ rotate: '8deg' }],
+    backgroundColor: '#F8FFFF',
+  },
+  travelStampText: {
+    fontFamily: font.mono,
+    color: '#397A8D',
+    fontSize: 8,
+    lineHeight: 9,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  coralSpark: {
+    position: 'absolute',
+    right: 72,
+    top: -2,
+    width: 30,
+    height: 30,
+  },
+  coralRayTall: {
+    position: 'absolute', width: 4, height: 14, borderRadius: 2,
+    backgroundColor: '#FF7866', transform: [{ rotate: '-24deg' }], left: 12, top: 0,
+  },
+  coralRayShort: {
+    position: 'absolute', width: 4, height: 10, borderRadius: 2,
+    backgroundColor: '#FF7866', transform: [{ rotate: '44deg' }], left: 23, top: 8,
+  },
+  coralDot: {
+    position: 'absolute', width: 5, height: 5, borderRadius: 3,
+    backgroundColor: '#FF9A78', left: 3, top: 14,
+  },
+  stepPill: {
+    alignSelf: 'center',
+    marginTop: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: '#E4F6F5',
+  },
+  stepPillText: {
+    fontFamily: font.heading,
+    color: '#123B64',
+    fontSize: 13,
+  },
+  progressTrack: {
+    width: '100%',
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#D8EEEF',
+    marginTop: 12,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    width: '50%',
+    height: '100%',
+    borderRadius: 4,
+    backgroundColor: '#21ADA7',
   },
   errorNotice: {
     flexDirection: 'row',
@@ -1175,17 +1308,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 10,
-    borderRadius: 16,
-    backgroundColor: '#F0F8FD',
+    borderRadius: 20,
+    backgroundColor: '#F5FBFC',
     borderWidth: 1.5,
     borderColor: '#D8EDF7',
   },
   roleTabActive: {
-    backgroundColor: '#E0F5F9',
-    borderColor: '#009DB7',
-    shadowColor: '#009DB7',
+    backgroundColor: '#E5F8F6',
+    borderColor: '#079B98',
+    shadowColor: '#079B98',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 4,
@@ -1213,10 +1346,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: 68,
-    backgroundColor: '#F0F8FD',
+    backgroundColor: '#F5FBFC',
     borderWidth: 1,
     borderColor: '#D8EDF7',
-    borderRadius: 20,
+    borderRadius: 22,
     paddingHorizontal: 15,
   },
   fieldContainerFocused: {
@@ -1382,7 +1515,7 @@ const styles = StyleSheet.create({
   },
   footerSection: {
     width: '100%',
-    height: 140,
+    height: 180,
     marginTop: 12,
     overflow: 'hidden',
     alignItems: 'center',
@@ -1390,7 +1523,7 @@ const styles = StyleSheet.create({
   },
   footerWaveImage: {
     width: '100%',
-    height: 140,
+    height: 180,
   },
   modalBackdrop: {
     flex: 1,
@@ -1456,6 +1589,23 @@ const styles = StyleSheet.create({
   topSectionWide: {
     paddingTop: 44,
     paddingBottom: 40,
+    minHeight: 285,
+  },
+  topSectionDesktop: {
+    width: '44%',
+    minHeight: 980,
+    paddingTop: 64,
+    justifyContent: 'flex-start',
+  },
+  topSectionShort: {
+    minHeight: 210,
+    paddingTop: 18,
+    paddingBottom: 22,
+  },
+  topSectionLandscape: {
+    minHeight: 178,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   logoImageSmall: {
     width: 118,
@@ -1464,6 +1614,10 @@ const styles = StyleSheet.create({
   logoImageWide: {
     width: 165,
     height: 84,
+  },
+  logoImageShort: {
+    width: 106,
+    height: 56,
   },
   headingTitleSmall: {
     fontSize: 23,
@@ -1478,21 +1632,53 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   cardWrapperSmall: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 0,
   },
   cardWrapperWide: {
     paddingHorizontal: 24,
   },
+  cardWrapperDesktop: {
+    width: '56%',
+    maxWidth: 9999,
+    paddingHorizontal: 52,
+    paddingVertical: 44,
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+  },
+  cardWrapperLandscape: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+    paddingHorizontal: 20,
+  },
   cardSmall: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 24,
     paddingVertical: 18,
-    borderRadius: 22,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   cardWide: {
     maxWidth: 520,
     paddingHorizontal: 28,
     paddingVertical: 28,
     borderRadius: 28,
+  },
+  cardDesktop: {
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
+    borderRadius: 30,
+    paddingHorizontal: 40,
+    paddingVertical: 34,
+  },
+  desktopDecorationHidden: {
+    display: 'none',
+  },
+  cardShort: {
+    paddingTop: 22,
+    paddingBottom: 18,
   },
   roleTabSmall: {
     paddingVertical: 10,

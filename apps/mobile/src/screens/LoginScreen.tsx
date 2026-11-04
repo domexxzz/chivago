@@ -30,23 +30,24 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import {
   AlertCircle,
   ArrowRight,
-  Check,
   ChevronLeft,
   Compass,
   Eye,
   EyeOff,
   Lock,
-  UserRound,
+  Leaf,
+  Mail,
   X,
 } from 'lucide-react-native';
 
 import { finishLineSignIn, lineSignInAvailable, startLineSignIn } from '../api/line-signin.ts';
 import chivagoColorLogo from '../../assets/chivago-color-logo.png';
-import loginFooterWaves from '../../assets/login-footer-waves.png';
+import authTropicalFooter from '../../assets/auth-tropical-footer-v1.png';
+import authIslandHero from '../../assets/auth-island-hero.png';
 import { api } from '../api/client.ts';
 import { adoptKey, ensureAccount } from '../api/account.ts';
 import { setLoggedIn } from '../state/auth.ts';
@@ -107,14 +108,16 @@ export function LoginScreen({
   onBack,
   onGuest,
 }: LoginScreenProps) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const isNarrow = width < 380;
   const isSmallMobile = width < 360;
-  const isWide = width >= 768;
+  const isShort = height < 700;
+  const isLandscape = width > height && height < 600;
+  const isWide = width >= 768 && !isLandscape;
+  const isDesktop = width >= 1024;
 
   const [identifier, setIdentifier] = React.useState('');
   const [password, setPassword] = React.useState('');
-  const [rememberMe, setRememberMe] = React.useState(true);
   const [showPassword, setShowPassword] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
@@ -154,21 +157,7 @@ export function LoginScreen({
   const validate = (): boolean => {
     const trimmedId = identifier.trim();
     if (!trimmedId) {
-      setErrorMessage(t({ en: 'Enter your email or phone number.', th: 'กรุณากรอกอีเมลหรือเบอร์โทรศัพท์', zh: '请输入您的邮箱或手机号。' }));
-      return false;
-    }
-
-    // Phone / Email / 8-char link code format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phoneRegex = /^(\+?66|0)[0-9]{8,9}$/;
-    const linkCodeRegex = /^[A-Z0-9]{4}\s?[A-Z0-9]{4}$/i;
-
-    const isEmail = emailRegex.test(trimmedId);
-    const isPhone = phoneRegex.test(trimmedId.replace(/[-\s]/g, ''));
-    const isLinkCode = linkCodeRegex.test(trimmedId);
-
-    if (!isEmail && !isPhone && !isLinkCode) {
-      setErrorMessage(t({ en: 'Enter a valid email or phone number.', th: 'รูปแบบอีเมลหรือเบอร์โทรศัพท์ไม่ถูกต้อง', zh: '邮箱或手机号格式不正确。' }));
+      setErrorMessage(t({ en: 'Enter your username, email or phone number.', th: 'กรุณากรอกชื่อผู้ใช้ อีเมล หรือเบอร์โทรศัพท์', zh: '请输入用户名、邮箱或手机号。' }));
       return false;
     }
 
@@ -186,32 +175,16 @@ export function LoginScreen({
     return true;
   };
 
+  const loginLock = React.useRef(false);
   const handleLogin = async () => {
-    if (!validate() || loading) return;
+    if (loginLock.current || !validate() || loading) return;
+    loginLock.current = true;
 
     setLoading(true);
     setErrorMessage(null);
 
     try {
       const trimmedId = identifier.trim();
-      const cleanCode = trimmedId.replace(/\s+/g, '').toUpperCase();
-
-      // If user entered an 8-character device link code, claim the link
-      if (/^[A-Z0-9]{8}$/.test(cleanCode)) {
-        const claimRes = await api.claimLink(cleanCode, 'Mobile Device');
-        if (claimRes.ok) {
-          await adoptKey(claimRes.data.deviceKey);
-          await setLoggedIn(true);
-          setLoading(false);
-          onLoginSuccess?.();
-          return;
-        } else {
-          setErrorMessage(claimRes.error || t({ en: 'The link code is invalid or expired.', th: 'รหัสเชื่อมต่อไม่ถูกต้องหรือหมดอายุ', zh: '连接代码无效或已过期。' }));
-          setLoading(false);
-          return;
-        }
-      }
-
       // The server identifies the account role from the credentials.
       const loginRes = await api.loginAccount({
         identifier: trimmedId,
@@ -231,7 +204,7 @@ export function LoginScreen({
     } catch {
       setErrorMessage(t({ en: 'Sign in failed. Check your details and try again.', th: 'เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบข้อมูลและลองใหม่อีกครั้ง', zh: '登录失败。请检查您的信息后重试。' }));
       setLoading(false);
-    }
+    } finally { loginLock.current = false; }
   };
 
   return (
@@ -240,33 +213,14 @@ export function LoginScreen({
       style={styles.root}
     >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, isDesktop && styles.scrollContentDesktop]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Top Header Background with Waves */}
-        <View style={[styles.topSection, isWide && styles.topSectionWide]}>
-          {/* Wave Linear Gradient Header Backdrop */}
-          <Svg
-            style={StyleSheet.absoluteFill}
-            width="100%"
-            height="100%"
-            viewBox="0 0 1000 330"
-            preserveAspectRatio="none"
-          >
-            <Defs>
-              <LinearGradient id="loginBgGrad" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0%" stopColor="#0094BD" />
-                <Stop offset="45%" stopColor="#016592" />
-                <Stop offset="82%" stopColor="#024B73" />
-                <Stop offset="100%" stopColor="#023E62" />
-              </LinearGradient>
-            </Defs>
-            <Path
-              d="M0 0 H1000 V290 C750 320 500 270 250 310 C120 330 40 315 0 300 Z"
-              fill="url(#loginBgGrad)"
-            />
-          </Svg>
+        {/* Photo hero shared by authentication screens. */}
+        <View style={[styles.topSection, isShort && styles.topSectionShort, isLandscape && styles.topSectionLandscape, isWide && styles.topSectionWide, isDesktop && styles.topSectionDesktop]}>
+          <Image source={authIslandHero} resizeMode="cover" style={styles.heroImage} />
+          <View style={styles.heroShade} />
 
           {/* Optional Back Button */}
           {onBack ? (
@@ -287,6 +241,7 @@ export function LoginScreen({
               style={[
                 styles.logoImage,
                 isSmallMobile && styles.logoImageSmall,
+                isShort && styles.logoImageShort,
                 isWide && styles.logoImageWide,
               ]}
               resizeMode="contain"
@@ -295,27 +250,6 @@ export function LoginScreen({
             <Text style={styles.taglineText}>{t({ en: 'GO FURTHER TOGETHER', th: 'เดินทางไปด้วยกันให้ไกลกว่าเดิม', zh: '同行致远' })}</Text>
           </View>
 
-          {/* Heading & Subtitle */}
-          <View style={styles.headingContainer}>
-            <Text
-              style={[
-                styles.welcomeHeading,
-                isSmallMobile && styles.welcomeHeadingSmall,
-                isWide && styles.welcomeHeadingWide,
-              ]}
-            >
-              {t({ en: 'Welcome Back', th: 'ยินดีต้อนรับกลับ', zh: '欢迎回来' })}
-            </Text>
-            <Text
-              style={[
-                styles.welcomeSubtitle,
-                isSmallMobile && styles.welcomeSubtitleSmall,
-                isWide && styles.welcomeSubtitleWide,
-              ]}
-            >
-              {t({ en: 'Sign in to continue to Chivargo', th: 'เข้าสู่ระบบเพื่อไปยัง Chivargo', zh: '登录以继续使用 ChivaGo' })}
-            </Text>
-          </View>
         </View>
 
         {/* Center Login Form Card */}
@@ -323,16 +257,36 @@ export function LoginScreen({
           style={[
             styles.cardWrapper,
             isSmallMobile && styles.cardWrapperSmall,
+            isLandscape && styles.cardWrapperLandscape,
             isWide && styles.cardWrapperWide,
+            isDesktop && styles.cardWrapperDesktop,
           ]}
         >
           <View
             style={[
               styles.card,
               isSmallMobile && styles.cardSmall,
+              isShort && styles.cardShort,
               isWide && styles.cardWide,
+              isDesktop && styles.cardDesktop,
             ]}
           >
+            {!isDesktop ? <Svg style={styles.organicCurve} width="100%" height="64" viewBox="0 0 400 64" preserveAspectRatio="none" pointerEvents="none">
+              <Path d="M0 43 C72 67 252 5 400 17 L400 64 L0 64 Z" fill="#FFFFFF" />
+            </Svg> : null}
+            <View style={styles.cardHeadingContainer}>
+              <Text style={[styles.cardWelcomeHeading, isSmallMobile && styles.welcomeHeadingSmall]}>
+                {t({ en: 'Welcome back', th: 'ยินดีต้อนรับกลับ', zh: '欢迎回来' })}
+              </Text>
+              <Text style={[styles.cardWelcomeSubtitle, isSmallMobile && styles.welcomeSubtitleSmall]}>
+                {t({ en: 'Sign in to continue your journey', th: 'เข้าสู่ระบบเพื่อเดินทางต่อ', zh: '登录以继续旅程' })}
+              </Text>
+              <View style={styles.travelStamp} pointerEvents="none">
+                <Compass size={24} color="#397A8D" strokeWidth={1.8} />
+                <Text style={styles.travelStampText}>THAILAND{`\n`}TRAVEL</Text>
+              </View>
+              <View style={styles.coralSpark} pointerEvents="none"><View style={styles.coralRayTall} /><View style={styles.coralRayShort} /><View style={styles.coralDot} /></View>
+            </View>
             {/* Error Message Notice */}
             {errorMessage ? (
               <View style={styles.errorNotice} accessibilityLiveRegion="polite">
@@ -349,12 +303,12 @@ export function LoginScreen({
                 focusedField === 'identifier' && styles.inputPillFocused,
               ]}
             >
-              <UserRound size={19} color="#718292" strokeWidth={2} />
+              <Mail size={19} color="#31536A" strokeWidth={2} />
               <TextInput
                 style={[styles.textInput, isSmallMobile && styles.textInputSmall]}
                 placeholder={t({ en: 'Email or phone number', th: 'อีเมลหรือเบอร์โทรศัพท์', zh: '邮箱或手机号' })}
                 placeholderTextColor="#8E9CA8"
-                keyboardType="email-address"
+                keyboardType="default"
                 autoCapitalize="none"
                 autoCorrect={false}
                 value={identifier}
@@ -407,28 +361,7 @@ export function LoginScreen({
               </Pressable>
             </View>
 
-            {/* Remember Me & Forgot Password Row */}
-            <View style={styles.actionRow}>
-              <Pressable
-                onPress={() => setRememberMe((prev) => !prev)}
-                style={styles.rememberMeContainer}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: rememberMe }}
-                accessibilityLabel={t({ en: 'Remember me', th: 'จดจำฉันไว้', zh: '记住我' })}
-              >
-                <View
-                  style={[
-                    styles.checkboxCircle,
-                    rememberMe && styles.checkboxCircleChecked,
-                  ]}
-                >
-                  {rememberMe ? <Check size={11} color="#FFFFFF" strokeWidth={3} /> : null}
-                </View>
-                <Text style={[styles.rememberMeText, isSmallMobile && { fontSize: 12 }]}>
-                  {t({ en: 'Remember me', th: 'จดจำฉันไว้', zh: '记住我' })}
-                </Text>
-              </Pressable>
-
+            <View style={[styles.actionRow, { justifyContent: 'flex-end' }]}>
               <Pressable
                 onPress={() => setRecoveryModalVisible(true)}
                 accessibilityRole="button"
@@ -544,16 +477,23 @@ export function LoginScreen({
           ) : null}
         </View>
 
+        <View style={[styles.responsibleBadge, isDesktop && styles.desktopDecorationHidden]} pointerEvents="none">
+          <Leaf size={21} color="#4F9A48" fill="#77B85D" strokeWidth={1.8} />
+          <Text style={styles.responsibleBadgeText}>{t({ en: 'Travel Thailand responsibly', th: 'เที่ยวไทยอย่างรับผิดชอบ', zh: '负责任地畅游泰国' })}</Text>
+          <View style={styles.badgeCoralSpark}><View style={styles.coralRayTall} /><View style={styles.coralRayShort} /></View>
+        </View>
+
         {/* Scenic Landscape Waves Footer Illustration */}
-        <View style={styles.footerIllustrationWrapper} pointerEvents="none">
+        <View style={[styles.footerIllustrationWrapper, isDesktop && styles.desktopDecorationHidden]} pointerEvents="none">
           <Image
-            source={loginFooterWaves}
+            source={authTropicalFooter}
             style={[
               styles.footerIllustration,
               isSmallMobile && styles.footerIllustrationSmall,
+              isShort && styles.footerIllustrationShort,
               isWide && styles.footerIllustrationWide,
             ]}
-            resizeMode="cover"
+            resizeMode="contain"
             accessibilityLabel="ChivaGo scenic landscape decoration"
           />
         </View>
@@ -579,9 +519,7 @@ export function LoginScreen({
               </Pressable>
             </View>
             <Text style={styles.modalBody}>
-              {t({ en: 'ChivaGo uses a secure device key to protect your personal information, so you do not need to remember a password.', th: 'ChivaGo ใช้กุญแจอุปกรณ์ที่ปลอดภัยเพื่อปกป้องข้อมูลส่วนบุคคล โดยไม่ต้องจดจำรหัสผ่าน', zh: 'ChivaGo 使用安全的设备密钥保护您的个人信息，因此您无需记住任何密码。' })}
-              {'\n\n'}
-              {t({ en: 'To recover or move your account to this phone, use the 8-digit link code from your other phone. Enter it in the email or phone field to continue.', th: 'หากต้องการกู้คืนหรือย้ายบัญชีมายังเครื่องนี้ ให้ใช้รหัสเชื่อมต่อ 8 หลักจากเครื่องเดิม แล้วกรอกในช่องอีเมลหรือเบอร์โทรศัพท์เพื่อเข้าสู่ระบบ', zh: '若要找回账户或将账户迁移到这部手机，请使用另一部手机上的 8 位连接代码，在邮箱或手机号栏中输入即可继续。' })}
+              {t({ en: 'Enter your username, email or phone number to identify your account. Automatic password reset is not available yet, so contact the ChivaGo team for account verification. Never share your password with anyone.', th: 'แจ้งชื่อผู้ใช้ อีเมล หรือเบอร์โทรศัพท์ที่ใช้กับบัญชี ขณะนี้ยังไม่มีระบบรีเซ็ตรหัสผ่านอัตโนมัติ กรุณาติดต่อทีม ChivaGo เพื่อตรวจสอบบัญชี และอย่าส่งรหัสผ่านให้ผู้อื่น', zh: '请提供账户使用的用户名、邮箱或手机号。目前尚不支持自动重置密码，请联系 ChivaGo 团队核实账户。请勿向任何人透露密码。' })}
             </Text>
             <Pressable
               onPress={() => setRecoveryModalVisible(false)}
@@ -613,9 +551,11 @@ export function LoginScreen({
               </Pressable>
             </View>
             <Text style={styles.modalBody}>
-              {t({ en: `Account sign-in with ${oauthNoticeProvider} is being prepared for a future update.`, th: `ระบบเชื่อมต่อบัญชีอัตโนมัติผ่าน ${oauthNoticeProvider} กำลังเตรียมพร้อมสำหรับการอัปเดตเวอร์ชันถัดไป`, zh: `使用 ${oauthNoticeProvider} 账户登录的功能正在为后续版本准备中。` })}
+              {oauthNoticeProvider === 'Google'
+                ? t({ en: 'Google sign-in is not enabled on this server.', th: 'เซิร์ฟเวอร์นี้ยังไม่ได้เปิดใช้งานการเข้าสู่ระบบด้วย Google', zh: '此服务器尚未启用 Google 登录。' })
+                : t({ en: 'LINE sign-in is available on the web version when LINE OAuth is configured on the server.', th: 'การเข้าสู่ระบบด้วย LINE ใช้งานได้บนเว็บเมื่อเซิร์ฟเวอร์ตั้งค่า LINE OAuth แล้ว', zh: '服务器配置 LINE OAuth 后，可在网页版使用 LINE 登录。' })}
               {'\n\n'}
-              {t({ en: 'For now, sign in with your email, phone number, or 8-digit device link code.', th: 'ในระหว่างนี้ สามารถเข้าสู่ระบบด้วยอีเมล เบอร์โทรศัพท์ หรือรหัสเชื่อมต่ออุปกรณ์ 8 หลักได้', zh: '目前请使用您的邮箱、手机号或 8 位设备连接代码登录。' })}
+              {t({ en: 'Sign in with your username, email or phone number and password.', th: 'เข้าสู่ระบบด้วยชื่อผู้ใช้ อีเมล หรือเบอร์โทรศัพท์และรหัสผ่าน', zh: '请使用用户名、邮箱或手机号和密码登录。' })}
             </Text>
             <Pressable
               onPress={() => setOauthNoticeProvider(null)}
@@ -639,12 +579,28 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'space-between',
   },
+  scrollContentDesktop: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    minHeight: '100%',
+    backgroundColor: '#F3F9FC',
+  },
   topSection: {
-    paddingTop: Platform.OS === 'ios' ? 44 : 28,
+    paddingTop: Platform.OS === 'ios' ? 34 : 22,
     paddingBottom: 28,
+    minHeight: 242,
     alignItems: 'center',
     position: 'relative',
     overflow: 'hidden',
+  },
+  heroShade: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(1, 49, 72, 0.42)',
+  },
+  heroImage: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
   backButton: {
     position: 'absolute',
@@ -660,11 +616,11 @@ const styles = StyleSheet.create({
   },
   brandingContainer: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 20,
   },
   logoImage: {
-    width: 135,
-    height: 90,
+    width: 122,
+    height: 72,
   },
   taglineText: {
     color: '#FFFFFF',
@@ -677,7 +633,7 @@ const styles = StyleSheet.create({
   },
   headingContainer: {
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 24,
   },
   welcomeHeading: {
     fontSize: 30,
@@ -695,21 +651,134 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 428,
     alignSelf: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 0,
+    marginTop: 0,
     zIndex: 5,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    paddingHorizontal: 22,
-    paddingVertical: 24,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    paddingHorizontal: 30,
+    paddingTop: 28,
+    paddingBottom: 18,
     borderWidth: 1,
-    borderColor: '#E7F2F8',
+    borderColor: 'rgba(210,235,242,0.9)',
     shadowColor: '#002C48',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.06,
     shadowRadius: 16,
     elevation: 4,
+  },
+  organicCurve: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: -62,
+  },
+  cardHeadingContainer: {
+    marginBottom: 20,
+    alignItems: 'flex-start',
+    position: 'relative',
+    paddingRight: 92,
+  },
+  cardWelcomeHeading: {
+    fontSize: 30,
+    lineHeight: 38,
+    fontWeight: '800',
+    color: '#123B64',
+    letterSpacing: -0.5,
+  },
+  cardWelcomeSubtitle: {
+    fontSize: 15,
+    color: '#446476',
+    marginTop: 2,
+  },
+  travelStamp: {
+    position: 'absolute',
+    right: -4,
+    top: -16,
+    width: 76,
+    height: 76,
+    borderWidth: 2,
+    borderColor: '#70AEBB',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ rotate: '8deg' }],
+    backgroundColor: '#F8FFFF',
+  },
+  travelStampText: {
+    color: '#397A8D',
+    fontSize: 8,
+    lineHeight: 9,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  coralSpark: {
+    position: 'absolute',
+    right: 72,
+    top: -2,
+    width: 30,
+    height: 30,
+  },
+  coralRayTall: {
+    position: 'absolute',
+    width: 4,
+    height: 14,
+    borderRadius: 2,
+    backgroundColor: '#FF7866',
+    transform: [{ rotate: '-24deg' }],
+    left: 12,
+    top: 0,
+  },
+  coralRayShort: {
+    position: 'absolute',
+    width: 4,
+    height: 10,
+    borderRadius: 2,
+    backgroundColor: '#FF7866',
+    transform: [{ rotate: '44deg' }],
+    left: 23,
+    top: 8,
+  },
+  coralDot: {
+    position: 'absolute',
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: '#FF9A78',
+    left: 3,
+    top: 14,
+  },
+  responsibleBadge: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 20,
+    marginBottom: -24,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#FFF1BD',
+    transform: [{ rotate: '-1deg' }],
+    zIndex: 2,
+  },
+  responsibleBadgeText: {
+    color: '#123B64',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  badgeCoralSpark: {
+    position: 'absolute',
+    right: -22,
+    top: -9,
+    width: 32,
+    height: 30,
   },
   errorNotice: {
     flexDirection: 'row',
@@ -734,9 +803,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 52,
     borderRadius: 26,
-    backgroundColor: '#F1F6F9',
+    backgroundColor: '#F5FBFC',
     borderWidth: 1,
-    borderColor: '#E2ECF2',
+    borderColor: '#D5E9EE',
     paddingHorizontal: 16,
   },
   inputPillFocused: {
@@ -799,10 +868,10 @@ const styles = StyleSheet.create({
     marginTop: 20,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#0075D3',
+    backgroundColor: '#079B98',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0062C4',
+    shadowColor: '#079B98',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.28,
     shadowRadius: 8,
@@ -847,7 +916,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#DAE7F0',
+    borderColor: '#D5E9EE',
     backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
@@ -881,7 +950,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   registerLink: {
-    color: '#0072C6',
+    color: '#078F8C',
     fontSize: 13.5,
     fontWeight: '700',
   },
@@ -921,12 +990,12 @@ const styles = StyleSheet.create({
   },
   footerIllustrationWrapper: {
     width: '100%',
-    marginTop: 12,
+    marginTop: 2,
     alignItems: 'center',
   },
   footerIllustration: {
     width: '100%',
-    height: 110,
+    height: 118,
   },
   modalOverlay: {
     flex: 1,
@@ -962,12 +1031,14 @@ const styles = StyleSheet.create({
     fontSize: 13.5,
     lineHeight: 20,
     color: '#475569',
-    marginBottom: 20,
+    marginTop: 8,
+    marginBottom: 18,
+    textAlign: 'center',
   },
   modalButton: {
     backgroundColor: '#0075D3',
-    borderRadius: 18,
-    height: 42,
+    borderRadius: 15,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -980,6 +1051,23 @@ const styles = StyleSheet.create({
   topSectionWide: {
     paddingTop: 42,
     paddingBottom: 36,
+    minHeight: 285,
+  },
+  topSectionDesktop: {
+    width: '45%',
+    minHeight: 760,
+    paddingTop: 64,
+    justifyContent: 'flex-start',
+  },
+  topSectionShort: {
+    minHeight: 210,
+    paddingTop: 18,
+    paddingBottom: 22,
+  },
+  topSectionLandscape: {
+    minHeight: 178,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   logoImageSmall: {
     width: 115,
@@ -988,6 +1076,10 @@ const styles = StyleSheet.create({
   logoImageWide: {
     width: 155,
     height: 102,
+  },
+  logoImageShort: {
+    width: 106,
+    height: 62,
   },
   welcomeHeadingSmall: {
     fontSize: 24,
@@ -1002,16 +1094,31 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   cardWrapperSmall: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 0,
   },
   cardWrapperWide: {
     maxWidth: 460,
     paddingHorizontal: 24,
   },
+  cardWrapperDesktop: {
+    width: '55%',
+    maxWidth: 9999,
+    paddingHorizontal: 56,
+    paddingVertical: 48,
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+  },
+  cardWrapperLandscape: {
+    maxWidth: 540,
+    paddingHorizontal: 20,
+  },
   cardSmall: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
     paddingVertical: 18,
-    borderRadius: 22,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   cardWide: {
     paddingHorizontal: 28,
@@ -1021,6 +1128,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 20,
     elevation: 6,
+  },
+  cardDesktop: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+    borderRadius: 30,
+    paddingHorizontal: 38,
+    paddingVertical: 34,
+  },
+  desktopDecorationHidden: {
+    display: 'none',
+  },
+  cardShort: {
+    paddingTop: 22,
+    paddingBottom: 16,
   },
   inputPillSmall: {
     height: 48,
@@ -1036,10 +1158,13 @@ const styles = StyleSheet.create({
     height: 44,
   },
   footerIllustrationSmall: {
-    height: 95,
+    height: 104,
+  },
+  footerIllustrationShort: {
+    height: 92,
   },
   footerIllustrationWide: {
-    height: 145,
+    height: 210,
     maxWidth: 1600,
   },
 });

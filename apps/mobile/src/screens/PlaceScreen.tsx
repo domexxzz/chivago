@@ -1,3 +1,4 @@
+import { useDetailScroll, type DetailScrollState } from '../state/detail-scroll.ts';
 /**
  * Place detail - score breakdown first, opinion second.
  *
@@ -13,7 +14,7 @@ import React from 'react';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { Image, Linking, Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
-import { ExternalLink, MapPin, X } from 'lucide-react-native';
+import { ArrowLeft, Cloud, ExternalLink, Heart, MapPin, ShieldCheck, Sun, Trees, Waves, X } from 'lucide-react-native';
 import {
   areaByKey, areaOfPlace, courtSourceFor, findProvince, isBookingLink, newlyEarned, stallSourceFor, strings,
   type MedalState, type MedalsView, type ScoredPlace,
@@ -73,8 +74,9 @@ function whereLine(place: ScoredPlace): string {
 }
 
 export function PlaceScreen({
-  placeId, onBack, onAddToTrip, onSafePath, onShowWay, onToast, onPointsChanged,
+  placeId, onBack, onAddToTrip, onSafePath, onShowWay, onToast, onPointsChanged, scrollState,
 }: {
+  scrollState?: DetailScrollState;
   placeId: string;
   onBack: () => void;
   onAddToTrip: () => void;
@@ -90,6 +92,7 @@ export function PlaceScreen({
     setOfflineStamp(result.ok ? null : (await cachedPlace(placeId))?.downloadedAt ?? null);
     return result;
   }), [placeId]);
+  const scroll = useDetailScroll(scrollState, place.data !== null);
   /*
     The window, not the platform. `Platform.OS === 'web'` would be the wrong
     question twice over: a phone browser is web and gets one column, and a
@@ -100,6 +103,7 @@ export function PlaceScreen({
   const { width } = useWindowDimensions();
   const wide = width >= WIDE_AT;
   const [showBreakdown, setShowBreakdown] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [checkedIn, setCheckedIn] = React.useState(false);
   // The other half. Offered only once a check-in has actually failed, so
@@ -408,15 +412,15 @@ export function PlaceScreen({
   );
 
   return (
-    <View style={{ flex: 1 }}>
-      <PushHeader context={t(strings.place.context)} onBack={onBack} />
+    <View style={{ flex: 1, backgroundColor: color.bg }}>
+      {wide ? <PushHeader context={t(strings.place.context)} onBack={onBack} /> : null}
       {offlineStamp ? <Text style={{ padding: 10, backgroundColor: '#FFF3D6', color: '#684B12' }}>{t({ en: 'Offline snapshot · scores and conditions may have changed. Last updated: ', th: 'ข้อมูลออฟไลน์ · คะแนนและสภาพพื้นที่อาจเปลี่ยนแล้ว อัปเดตล่าสุด: ', zh: '离线资料 · 评分及环境可能已变化。上次更新：' })}{new Date(offlineStamp).toLocaleString()}</Text> : null}
 
       {place.loading ? <LoadingState /> : null}
       {place.error ? <ErrorState message={place.error} onRetry={place.reload} /> : null}
 
       {place.data && wide ? (
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView {...scroll} showsVerticalScrollIndicator={false}>
           {/*
             The desktop reading order, which is not the phone's.
 
@@ -464,21 +468,47 @@ export function PlaceScreen({
       ) : null}
 
       {place.data && !wide ? (
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <Hero place={place.data} />
+        <ScrollView {...scroll} showsVerticalScrollIndicator={false}>
+          <View style={{ position: 'relative' }}>
+            <Hero place={place.data} inset={0} height={300} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t({ en: 'Back', th: 'ย้อนกลับ', zh: '返回' })}
+              onPress={onBack}
+              style={({ pressed }) => ({
+                position: 'absolute',
+                top: 18,
+                left: 16,
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'rgba(255,255,255,0.94)',
+                opacity: pressed ? 0.75 : 1,
+                ...shadow.sm,
+              })}
+            >
+              <ArrowLeft size={23} color={color.brandDeep} strokeWidth={2.4} />
+            </Pressable>
+          </View>
 
-          <View style={{ paddingHorizontal: gutter, paddingTop: 16 }}>
-            {titleBlock}
-            {scoreCard}
+          <MobilePlaceOverview
+            place={place.data}
+            saved={saved}
+            onToggleSaved={() => setSaved((value) => !value)}
+            onExplain={() => setShowBreakdown(true)}
+          />
+
+          <View style={{ paddingHorizontal: gutter, paddingTop: 12 }}>
             {!offlineStamp ? <HereNow crowd={place.data.crowd} /> : null}
             {/* Asked for only where there are stalls: every other place makes no extra request. */}
             {!offlineStamp && stallSourceFor(place.data.id) ? <StallsCard placeId={place.data.id} /> : null}
             {!offlineStamp ? <AirHistoryCard placeId={place.data.id} /> : null}
             {storiesBlock}
-            {aboutBlock}
             {actionsBlock}
             {reviews}
-            <View style={{ height: 32 }} />
+            <View style={{ height: 112 }} />
           </View>
         </ScrollView>
       ) : null}
@@ -538,6 +568,92 @@ function MetricGrid({ place }: { place: ScoredPlace }) {
           <Heading size={17} style={{ marginTop: 4 }}>{c.display}</Heading>
         </View>
       ))}
+    </View>
+  );
+}
+
+function conditionIcon(key: string, colour: string) {
+  const lower = key.toLowerCase();
+  if (lower.includes('air')) return <Cloud size={18} color={colour} strokeWidth={2.2} />;
+  if (lower.includes('safe')) return <ShieldCheck size={18} color={colour} strokeWidth={2.2} />;
+  if (lower.includes('water')) return <Waves size={18} color={colour} strokeWidth={2.2} />;
+  return <Trees size={18} color={colour} strokeWidth={2.2} />;
+}
+
+function MobilePlaceOverview({
+  place,
+  saved,
+  onToggleSaved,
+  onExplain,
+}: {
+  place: ScoredPlace;
+  saved: boolean;
+  onToggleSaved: () => void;
+  onExplain: () => void;
+}) {
+  const conditions = place.breakdown.components.slice(0, 3);
+  const tags = place.tags.slice(0, 3);
+  return (
+    <View
+      style={[shadow.card, {
+        marginTop: 0,
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 20,
+        backgroundColor: color.surface,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        borderBottomLeftRadius: 22,
+        borderBottomRightRadius: 22,
+        borderWidth: 1,
+        borderColor: '#DCEFF5',
+      }]}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Heading size={26} tracking={-0.45}>{t(place.name)}</Heading>
+          <Body size={14} colour={color.neutral700} style={{ marginTop: 3 }}>{whereLine(place)}</Body>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={saved ? t({ en: 'Remove saved place', th: 'นำออกจากสถานที่บันทึก', zh: '取消收藏地点' }) : t({ en: 'Save this place', th: 'บันทึกสถานที่นี้', zh: '收藏此地点' })}
+          onPress={onToggleSaved}
+          style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: saved ? '#FFF0F0' : '#F7FBFC', opacity: pressed ? 0.72 : 1 })}
+        >
+          <Heart size={27} color="#F05D63" fill={saved ? '#F05D63' : 'transparent'} strokeWidth={2.2} />
+        </Pressable>
+      </View>
+
+      <Body size={14} colour={color.neutral700} style={{ marginTop: 12, lineHeight: 22 }}>{t(place.blurb)}</Body>
+
+      <View style={{ marginTop: 16, padding: 12, borderRadius: 18, backgroundColor: '#F5FBFC' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+          <Heading size={17} style={{ flex: 1 }}>{t({ en: 'Health snapshot', th: 'สภาพพื้นที่สำหรับนักท่องเที่ยว', zh: '区域健康概况' })}</Heading>
+          <Pressable onPress={onExplain} accessibilityRole="button" accessibilityLabel={t(strings.place.howCalculated)} style={{ flexDirection: 'row', alignItems: 'baseline', gap: 5 }}>
+            <AccentNumeral size={22}>{place.healthyScore}</AccentNumeral>
+            <Label size={9} tracking={0.1} colour={color.accent700}>{t({ en: 'score', th: 'คะแนน', zh: '评分' })}</Label>
+          </Pressable>
+        </View>
+        <View style={{ gap: 7 }}>
+          {conditions.map((component) => (
+            <View key={component.key} style={{ minHeight: 46, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, backgroundColor: '#E8F7F2', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' }}>{conditionIcon(component.key, color.accent700)}</View>
+              <Body size={14} colour={color.neutral700} style={{ flex: 1, minWidth: 0 }}>{t(component.label)}</Body>
+              <Heading size={14} colour={color.accent700} style={{ maxWidth: '42%', textAlign: 'right' }}>{component.display}</Heading>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {tags.length ? <>
+        <Heading size={18} style={{ marginTop: 18 }}>{t({ en: 'General conditions', th: 'สภาพทั่วไป', zh: '一般情况' })}</Heading>
+        <View style={{ flexDirection: 'row', alignItems: 'stretch', gap: 8, marginTop: 10 }}>
+          {tags.map((tag, index) => {
+            const Icon = index === 0 ? Sun : index === 1 ? Waves : Trees;
+            return <View key={tag} style={{ flex: 1, minWidth: 0, minHeight: 82, borderRadius: 16, backgroundColor: index === 1 ? '#DFF7F7' : '#F5F8F7', alignItems: 'center', justifyContent: 'center', padding: 8, gap: 7 }}><Icon size={25} color={index === 1 ? color.brand : color.accent700} /><Body size={13} colour={color.text} style={{ textAlign: 'center' }}>{tag}</Body></View>;
+          })}
+        </View>
+      </> : null}
     </View>
   );
 }

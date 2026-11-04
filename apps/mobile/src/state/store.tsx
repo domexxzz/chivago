@@ -76,6 +76,7 @@ interface NavState {
 }
 
 export interface Nav extends NavState {
+  returnAfterAuth: () => boolean;
   /** Push onto the stack. Used by place / quest / market / trip. */
   push: (screen: ScreenKey, params?: { placeId?: string; questId?: string; shopId?: string; code?: string; accountType?: 'traveller' | 'operator' }) => void;
   /** Pop back. Falls back to the map if the stack is empty. */
@@ -159,6 +160,12 @@ export function useNav(initial: ScreenKey = 'onboarding'): Nav {
     pop,
     selectTab,
     reset,
+    returnAfterAuth: () => {
+      const index = state.stack.findLastIndex((screen) => !['login', 'register', 'onboarding'].includes(screen));
+      if (index < 0) return false;
+      setState((s) => ({ ...s, screen: state.stack[index]!, stack: state.stack.slice(0, index) }));
+      return true;
+    },
     activeTab: OWNING_TAB[state.screen] ?? 'map',
   };
 }

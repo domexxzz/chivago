@@ -928,8 +928,9 @@ app.post('/account/profile/photo', async (c) => {
   const bytes = Buffer.from(await file.arrayBuffer());
   if (bytes.length > 5 * 1024 * 1024) return fail(c, 'FILE_TOO_LARGE', 'รูปโปรไฟล์ต้องมีขนาดไม่เกิน 5MB', 413);
   const photo = `data:${file.type};base64,${bytes.toString('base64')}`;
-  const uid = userId(c);
-  db.prepare('INSERT INTO profiles (user_id, profile_photo_url) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET profile_photo_url = excluded.profile_photo_url').run(uid, photo);
+  // This endpoint prepares the image but deliberately does not update the
+  // profile. The edit screen submits this value with the rest of the form so
+  // leaving without saving really discards every change, including the photo.
   return ok(c, { profilePhotoUrl: photo });
 });
 

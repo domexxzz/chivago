@@ -169,6 +169,30 @@ describe('safety of re-running', () => {
   });
 });
 
+describe('removing prototype-only account scores', () => {
+  test('removes only the exact generated opening grants and restores the wallet totals', () => {
+    migrate(db);
+    const before = wallet();
+    db.prepare(
+      'UPDATE wallets SET trip_points = trip_points + 320, green_points = green_points + 1240, exp = exp + 1560 WHERE user_id = ?',
+    ).run('u1');
+    const insert = db.prepare(
+      `INSERT INTO ledger
+        (id,user_id,label,subject,occurred_at,host,amount,currency,exp,kind,source_ref)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+    );
+    insert.run('mock-trip', 'u1', 'Pilot opening balance', null, '2026-08-02T00:00:00Z', 'ChivaGo · pilot seed', 320, 'trip', 320, 'adjustment', 'opening:trip:u1');
+    insert.run('mock-green', 'u1', 'Pilot opening balance', null, '2026-08-02T00:00:00Z', 'ChivaGo · pilot seed', 1240, 'green', 1240, 'adjustment', 'opening:green:u1');
+
+    const applied = migrate(db);
+    assert.deepEqual(wallet(), before);
+    assert.ok(applied.includes('remove prototype opening balances'));
+    const remaining = db.prepare("SELECT source_ref FROM ledger WHERE source_ref LIKE 'opening:%' ORDER BY source_ref")
+      .all() as unknown as { source_ref: string }[];
+    assert.deepEqual(remaining.map((r) => r.source_ref), ['opening:u1']);
+  });
+});
+
 /*
   The photographs moved off Metro's URL namespace, and a running pilot is
   holding the old path.
