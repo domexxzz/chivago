@@ -598,7 +598,10 @@ const PUBLIC_PREFIXES = [
   // moved off `/assets/` because Metro's dev server shadows that prefix and
   // answered every one of them 404. Both must stay unauthenticated: a font
   // or a place photograph behind a 401 is the whole app sitting on LOADING.
-  '/_expo/', '/assets/', '/media/', '/shops/media/', '/shops/guide-photos/',
+  // `/icons/` is the tab and home-screen icon set plus the web manifest, for
+  // the same reason `/favicon.ico` is in PUBLIC_PATHS below: a browser asks
+  // for these before anyone has signed in, and 401 there is a blank tab.
+  '/_expo/', '/assets/', '/media/', '/icons/', '/shops/media/', '/shops/guide-photos/',
 ];
 const PUBLIC_PATHS = new Set(['/', '/index.html', '/favicon.ico', '/metadata.json', '/health', '/config']);
 const isPublicPath = (path: string): boolean =>
@@ -2671,6 +2674,14 @@ if (webDir !== undefined && existsSync(join(webDir, 'index.html'))) {
   app.use('/media/*', serveStatic({
     root,
     onFound: (p, c) => { c.header('cache-control', cacheFor(p)); },
+  }));
+  // The tab/home-screen icons and the web manifest, copied into the export
+  // from `apps/mobile/public/icons`. A day, like the favicon: a browser that
+  // has one does not re-ask, and replacing a logo should reach people the
+  // same day rather than whenever their cache happens to turn over.
+  app.use('/icons/*', serveStatic({
+    root,
+    onFound: (_p, c) => { c.header('cache-control', 'public, max-age=86400'); },
   }));
   app.get('/favicon.ico', serveStatic({
     path: `${root}/favicon.ico`,
