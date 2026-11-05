@@ -603,7 +603,7 @@ const PUBLIC_PREFIXES = [
   // for these before anyone has signed in, and 401 there is a blank tab.
   '/_expo/', '/assets/', '/media/', '/icons/', '/shops/media/', '/shops/guide-photos/',
 ];
-const PUBLIC_PATHS = new Set(['/', '/index.html', '/favicon.ico', '/metadata.json', '/health', '/config']);
+const PUBLIC_PATHS = new Set(['/', '/index.html', '/favicon.ico', '/robots.txt', '/metadata.json', '/health', '/config']);
 const isPublicPath = (path: string): boolean =>
   PUBLIC_PATHS.has(path) || PUBLIC_PREFIXES.some((p) => path.startsWith(p));
 
@@ -2686,6 +2686,20 @@ if (webDir !== undefined && existsSync(join(webDir, 'index.html'))) {
   app.get('/favicon.ico', serveStatic({
     path: `${root}/favicon.ico`,
     onFound: (_p, c) => { c.header('cache-control', 'public, max-age=86400'); },
+  }));
+  /*
+    The crawling rules. Served out of the export like the favicon rather
+    than written into this file, because they are content somebody edits
+    and not behaviour. Without this route /robots.txt fell through to the
+    traveller middleware and answered 401, which a crawler is entitled to
+    read as "this site is private".
+
+    An hour of cache, not the favicon's day: tightening a rule should
+    reach a crawler the same afternoon.
+  */
+  app.get('/robots.txt', serveStatic({
+    path: `${root}/robots.txt`,
+    onFound: (_p, c) => { c.header('cache-control', 'public, max-age=3600'); },
   }));
 
   console.log(`[chivago] serving the web app from ${webDir}`);
