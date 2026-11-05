@@ -6,7 +6,7 @@ This glossary is the product-language source of truth for UI copy. Brand names s
 
 | Product concept | English (`en-GB`) | Thai (`th-TH`) | Simplified Chinese (`zh-CN`) | Usage note |
 |---|---|---|---|---|
-| Product name | ChivarGo | ChivarGo | ChivarGo | Never translate or use ChivaGo/Chivago/Chivargo. |
+| Product name | ChivarGo | ChivarGo | ChivarGo | Never translate or use ChivarGo/Chivago/Chivargo. |
 | Traveller | Traveller | นักท่องเที่ยว | 旅行者 | Account role. |
 | Business operator | Business operator | ผู้ประกอบการ | 商家 | Account role; do not shorten to “business” in labels. |
 | Collect | Collect | สะสม | 收集 | Navigation action. |

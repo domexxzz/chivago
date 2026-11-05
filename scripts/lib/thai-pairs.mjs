@@ -181,7 +181,7 @@ export const slots = (s) => (s.match(/\$\{[^}]+\}/g) ?? [])
 // check: a string whose only Latin is a unit symbol is not an untranslated
 // string, and without them the checker pushes a translator into writing
 // 度 where °C was right.
-const ALLOWED_LATIN = /^(SOS|QR|AQI|EXP|ChivaGo|PDPA|LINE|WhatsApp|SMS|GPS|IUCN|LC|NT|VU|EN|CR|NE|km|kg|hr|m|mm|cm|°C|°F|km\/h|min|sec|Wi-Fi|Green|Trip|Points?|Level|Rank|Chiva|Balance|Safe|Food|Wellness|Quest|Koh|Samui|Chaweng|Lamai|Bophut|Nathon|ESG|ISAE|HCMI|CHSB|CF-Hotels|THB|PM2\.5|GHG|CO2|NGO)$/i;
+const ALLOWED_LATIN = /^(SOS|QR|AQI|EXP|ChivarGo|PDPA|LINE|WhatsApp|SMS|GPS|IUCN|LC|NT|VU|EN|CR|NE|km|kg|hr|m|mm|cm|°C|°F|km\/h|min|sec|Wi-Fi|Green|Trip|Points?|Level|Rank|Chiva|Balance|Safe|Food|Wellness|Quest|Koh|Samui|Chaweng|Lamai|Bophut|Nathon|ESG|ISAE|HCMI|CHSB|CF-Hotels|THB|PM2\.5|GHG|CO2|NGO)$/i;
 
 export const HAN = /[一-鿿]/;
 

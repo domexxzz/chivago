@@ -5,7 +5,7 @@ recorded. Neither is a new claim: each is an old record, read a second way.
 
 ## Who is there now
 
-`GET /places` carries `crowd` on every place: how many distinct ChivaGo
+`GET /places` carries `crowd` on every place: how many distinct ChivarGo
 travellers have a geofenced check-in there in the last hour, counted from
 the ledger — the same rows the wallet paid. Zero is zero and is shown; an
 unvisited beach is not a "quiet" one, it is one nobody counted at. The

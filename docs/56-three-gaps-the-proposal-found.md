@@ -1,6 +1,6 @@
 # 56 — Three gaps the proposal found
 
-On 13 September the owner wrote out what ChivaGo is for, in two long
+On 13 September the owner wrote out what ChivarGo is for, in two long
 documents: five pillars, the buyers for each, and a roadmap. Read against
 the repository, most of it already existed and three things did not. This
 is what was built, and — more usefully — the decision each one forced.

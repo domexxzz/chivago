@@ -135,7 +135,7 @@ function otherTunnelRunning() {
 // ---------------------------------------------------------------------------
 
 rule();
-console.log('ChivaGo · demo day');
+console.log('ChivarGo · demo day');
 rule();
 
 step(1, 'Seeding the pilot content');

@@ -48,7 +48,7 @@ promotion at **3%**. The payer withholds and files **ภ.ง.ด.3** by the 7th 
 the following month. The classification decides the rate, which means the
 classification is not a labelling exercise.
 
-## Where ChivaGo stands today, which is better than expected
+## Where ChivarGo stands today, which is better than expected
 
 There is **no randomness anywhere in the reward path**. `Math.random` appears
 nowhere in `packages/core` or `apps/api`. The only randomness in either is

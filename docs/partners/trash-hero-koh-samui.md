@@ -24,7 +24,7 @@ that has not said yes would be a fabricated record.
 
 เรียน ทีม Trash Hero Koh Samui
 
-ผม/ดิฉันชื่อ ______ ทำแอปชื่อ ChivaGo สำหรับนักท่องเที่ยวบนเกาะสมุย
+ผม/ดิฉันชื่อ ______ ทำแอปชื่อ ChivarGo สำหรับนักท่องเที่ยวบนเกาะสมุย
 แอปนี้ให้แต้มกับการกระทำที่**มีคนตรวจแล้วจริง** ไม่ใช่การเช็คอินเฉย ๆ
 กิจกรรมเก็บขยะทุกวันอาทิตย์ของ Trash Hero คือสิ่งที่เราอยากให้เป็นภารกิจแรกของแอป
 
@@ -54,7 +54,7 @@ ______ · โทร ______ · LINE ______
 
 Dear Trash Hero Koh Samui team,
 
-My name is ______. I am building ChivaGo, an app for travellers on Koh Samui
+My name is ______. I am building ChivarGo, an app for travellers on Koh Samui
 that pays points only for actions **somebody actually verified** — not for
 checking in. Your Sunday cleanup is the activity we most want as the app's
 first quest.
