@@ -169,27 +169,132 @@ describe('safety of re-running', () => {
   });
 });
 
-describe('removing prototype-only account scores', () => {
-  test('removes only the exact generated opening grants and restores the wallet totals', () => {
+describe('taking back prototype-only account scores', () => {
+  /** Every ledger row for a user, as the wallet would have to be read against. */
+  const ledgerSum = (userId: string, currency: 'trip' | 'green') =>
+    (db.prepare(
+      'SELECT COALESCE(SUM(amount),0) AS n FROM ledger WHERE user_id = ? AND currency = ?',
+    ).get(userId, currency) as unknown as { n: number }).n;
+  const expSum = (userId: string) =>
+    (db.prepare('SELECT COALESCE(SUM(exp),0) AS n FROM ledger WHERE user_id = ?')
+      .get(userId) as unknown as { n: number }).n;
+  const refs = (like: string) =>
+    (db.prepare('SELECT source_ref FROM ledger WHERE source_ref LIKE ? ORDER BY source_ref')
+      .all(like) as unknown as { source_ref: string }[]).map((r) => r.source_ref);
+
+  /** An opening grant exactly as an older build wrote it. */
+  const writeGrant = (
+    id: string, userId: string, amount: number, currency: 'trip' | 'green', ref: string,
+  ) => db.prepare(
+    `INSERT INTO ledger (id,user_id,label,subject,occurred_at,host,amount,currency,exp,kind,source_ref)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+  ).run(id, userId, 'Pilot opening balance', null, '2026-08-02T00:00:00Z',
+    'ChivarGo · pilot seed', amount, currency, amount, 'adjustment', ref);
+
+  test('an untouched grant comes back off in full, and the grant row stays', () => {
     migrate(db);
     const before = wallet();
     db.prepare(
       'UPDATE wallets SET trip_points = trip_points + 320, green_points = green_points + 1240, exp = exp + 1560 WHERE user_id = ?',
     ).run('u1');
-    const insert = db.prepare(
-      `INSERT INTO ledger
-        (id,user_id,label,subject,occurred_at,host,amount,currency,exp,kind,source_ref)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
-    );
-    insert.run('mock-trip', 'u1', 'Pilot opening balance', null, '2026-08-02T00:00:00Z', 'ChivarGo · pilot seed', 320, 'trip', 320, 'adjustment', 'opening:trip:u1');
-    insert.run('mock-green', 'u1', 'Pilot opening balance', null, '2026-08-02T00:00:00Z', 'ChivarGo · pilot seed', 1240, 'green', 1240, 'adjustment', 'opening:green:u1');
+    writeGrant('mock-trip', 'u1', 320, 'trip', 'opening:trip:u1');
+    writeGrant('mock-green', 'u1', 1240, 'green', 'opening:green:u1');
 
     const applied = migrate(db);
-    assert.deepEqual(wallet(), before);
-    assert.ok(applied.includes('remove prototype opening balances'));
-    const remaining = db.prepare("SELECT source_ref FROM ledger WHERE source_ref LIKE 'opening:%' ORDER BY source_ref")
-      .all() as unknown as { source_ref: string }[];
-    assert.deepEqual(remaining.map((r) => r.source_ref), ['opening:u1']);
+
+    assert.deepEqual(wallet(), before, 'the wallet is back where it was before the grant');
+    assert.ok(applied.includes('reverse prototype opening balances'));
+    // Append-only: the grant happened, so its row survives and the take-back
+    // is a row of its own.
+    assert.deepEqual(refs('opening:%'), ['opening:green:u1', 'opening:trip:u1', 'opening:u1']);
+    assert.deepEqual(refs('reversal:%'),
+      ['reversal:opening:green:u1', 'reversal:opening:trip:u1']);
+  });
+
+  test('an unrelated adjustment that merely says "opening" is left alone', () => {
+    // THE OVER-MATCH THIS GUARDS. `opening:u1` is the fixture's own earned
+    // row; a LIKE 'opening:%' would have reversed 1,240 points somebody has.
+    migrate(db);
+    migrate(db);
+    assert.deepEqual(refs('reversal:%'), [], 'nothing was reversed');
+  });
+
+  test('a grant that was partly spent leaves the wallet still explained by its ledger', () => {
+    /*
+      THE CASE THE FIRST VERSION GOT WRONG. Ana was given 1,240 Green by an
+      older build and spent 1,200 of it on a voucher, so she holds 40. The
+      full grant cannot come back off 40 points, and the voucher cannot be
+      un-issued. What must not happen is the wallet and the ledger parting
+      company: before this fix she ended on a wallet of 0 against a ledger
+      summing to -1,200.
+    */
+    migrate(db);
+    db.prepare("INSERT INTO users VALUES ('ana','Ana','en','2026-08-01T00:00:00Z')").run();
+    db.prepare('INSERT INTO wallets (user_id, trip_points, green_points, exp) VALUES (?,0,?,?)')
+      .run('ana', 40, 1240);
+    writeGrant('ana-grant', 'ana', 1240, 'green', 'opening:green:ana');
+    db.prepare(
+      `INSERT INTO ledger (id,user_id,label,subject,occurred_at,host,amount,currency,exp,kind,source_ref)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+    ).run('ana-spend', 'ana', 'Voucher', null, '2026-08-03T00:00:00Z', 'A merchant',
+      -1200, 'green', 0, 'adjustment', 'voucher:v1:user:ana');
+    assert.equal(ledgerSum('ana', 'green'), 40, 'the fixture starts consistent');
+
+    migrate(db);
+
+    const after = db.prepare('SELECT trip_points, green_points, exp FROM wallets WHERE user_id = ?')
+      .get('ana') as unknown as WalletRow;
+    assert.equal(after.green_points, ledgerSum('ana', 'green'),
+      'the wallet no longer equals what its own ledger explains');
+    assert.equal(after.exp, expSum('ana'), 'lifetime EXP is no longer reconstructible');
+    // Only the 40 still held came back, and the voucher is still paid for.
+    assert.equal(after.green_points, 0);
+    assert.deepEqual(refs('reversal:%'), ['reversal:opening:green:ana']);
+    const undo = db.prepare("SELECT amount, exp FROM ledger WHERE source_ref = 'reversal:opening:green:ana'")
+      .get() as unknown as { amount: number; exp: number };
+    assert.equal(undo.amount, -40, 'took back only what was left');
+    assert.equal(undo.exp, -1240, 'the unearned EXP came back in full');
+  });
+
+  test('migrating twice does not take the same points twice', () => {
+    migrate(db);
+    db.prepare(
+      'UPDATE wallets SET green_points = green_points + 1240, exp = exp + 1240 WHERE user_id = ?',
+    ).run('u1');
+    writeGrant('mock-green', 'u1', 1240, 'green', 'opening:green:u1');
+
+    migrate(db);
+    const once = wallet();
+    const applied = migrate(db);
+
+    assert.deepEqual(wallet(), once, 'the second pass moved the balance again');
+    assert.ok(!applied.includes('reverse prototype opening balances'),
+      'a second pass reported work it did not do');
+    assert.equal(refs('reversal:%').length, 1);
+  });
+
+  test('a deployment that asked for a showcase balance keeps it', () => {
+    // The env var is how an operator says "I want these points here". Zeroing
+    // their demo at the next restart, with no error, is not an upgrade.
+    const was = process.env.CHIVAGO_OPENING_GREEN;
+    process.env.CHIVAGO_OPENING_GREEN = '1240';
+    try {
+      migrate(db);
+      db.prepare(
+        'UPDATE wallets SET green_points = green_points + 1240, exp = exp + 1240 WHERE user_id = ?',
+      ).run('u1');
+      writeGrant('mock-green', 'u1', 1240, 'green', 'opening:green:u1');
+      const before = wallet();
+
+      const applied = migrate(db);
+
+      assert.deepEqual(wallet(), before, 'a configured showcase grant was reversed anyway');
+      assert.deepEqual(refs('reversal:%'), []);
+      assert.ok(!applied.includes('reverse prototype opening balances'));
+    } finally {
+      if (was === undefined) delete process.env.CHIVAGO_OPENING_GREEN;
+      else process.env.CHIVAGO_OPENING_GREEN = was;
+    }
   });
 });
 
