@@ -42,7 +42,8 @@ working tree สะอาด
 | artifact [`ChivaGo Business Model`](https://claude.ai/artifact/9rhyPcmGuA8pgvZgyUXSCj) | **เอกสารแม่ฝั่งธุรกิจ** — BMC 11 ช่อง + roadmap 5 ระยะ ถ้าขัดกับอย่างอื่น ยึดอันนี้ |
 | `docs/70-infrastructure-and-bmc-th.md` | Infrastructure (นับจากโค้ด) + ส่วนธุรกิจที่ปรับให้ตรง artifact |
 | `docs/71-disaster-recovery-th.md` | ผลซ้อมกู้คืนจริง 6 พ.ย. + ขั้นตอนที่รันได้ |
-| `docs/72-judge-qa-th.md` | คำตอบสามคำถามกรรมการ + ผลตรวจ quest flow + เช็กลิสต์เช้าวันแข่ง |
+| `docs/72-judge-qa-th.md` | คำตอบสามคำถามกรรมการ + ผลตรวจ quest flow |
+| `docs/73-checklist-th.md` | **เช็กลิสต์ก่อนแข่ง** — งานค้าง · เช้าวันที่ 21 · ตัวเลขที่พูดได้ · สิ่งที่ห้ามพูดผิด |
 
 ---
 
