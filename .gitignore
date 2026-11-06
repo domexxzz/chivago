@@ -60,3 +60,12 @@ thai-review.html
 # Local scripts and wrong lockfile
 package-lock.json
 run.bat
+
+# Deck exports and image-generation scratch, all at the repo root. These come
+# out of the Canva decks and get remade whenever a slide changes, so they are
+# output, not source. Deck artwork the docs actually reference is committed
+# under docs/assets/ instead.
+/outputs/
+/slide-*.png
+/ChivarGo-*.png
+/*.pptx
