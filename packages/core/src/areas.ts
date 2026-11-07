@@ -161,7 +161,22 @@ export const AREAS: Area[] = [
   },
 ];
 
-export const DEFAULT_AREA: AreaKey = 'samui';
+/**
+ * Where somebody lands who has not chosen, and the fallback when a place
+ * cannot be placed in any area.
+ *
+ * Koh Sichang, because that is the pilot: the area the quests, the hosts and
+ * the pitch are about. It was Samui until 7 November 2026, which meant the
+ * app opened on the wrong island for anyone arriving without a stored choice
+ * or an `?area=` in the URL - including a projector at a pitch about Sichang.
+ *
+ * This is the default and not an override: a stored choice and `?area=` both
+ * still win (`loadArea` in apps/mobile/src/state/area.ts), so a browser that
+ * has already been switched to Samui stays on Samui. To be certain of the
+ * area on a machine that has been used before, open `?area=koh-sichang`,
+ * which sets it and persists it.
+ */
+export const DEFAULT_AREA: AreaKey = 'koh-sichang';
 
 export const isAreaKey = (v: unknown): v is AreaKey =>
   typeof v === 'string' && AREAS.some((a) => a.key === v);

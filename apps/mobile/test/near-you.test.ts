@@ -7,7 +7,7 @@
  * the answer to theirs: which way, how far, and can I walk it.
  */
 
-import { describe, test, afterEach } from 'node:test';
+import { describe, test, afterEach, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 
@@ -35,6 +35,11 @@ const routes = () => ({
 });
 
 let restore = noop;
+// Before as well as after: the afterEach put the area back for the NEXT test,
+// which left the first test in the file running on DEFAULT_AREA. That was
+// Samui, so it happened to match these fixtures, until the default moved to
+// Koh Sichang and the first test started failing on its own.
+beforeEach(() => { __setAreaForTests('samui'); });
 afterEach(() => { restore(); restore = noop; resetControl(); __setAreaForTests('samui'); });
 
 describe('the map tells a lost traveller which way to walk', () => {

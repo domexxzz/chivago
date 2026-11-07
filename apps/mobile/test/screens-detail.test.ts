@@ -7,15 +7,17 @@
  * the Expo stub now carries a `control` a test can steer.
  */
 
-import { describe, mock, test } from 'node:test';
+import { beforeEach, describe, mock, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 import { Linking } from 'react-native';
 
 import { act } from 'react-test-renderer';
 import { motion } from '@chivago/tokens';
+import { DEFAULT_AREA } from '@chivago/core';
 import { mountScreen, offline, refuses, server, settle } from './interact.ts';
 import { __setLocaleForTests } from '../src/i18n/locale.ts';
+import { __setAreaForTests } from '../src/state/area.ts';
 import { control, resetControl } from './stubs/native.mjs';
 import { place, progress, quest, review, shield, summary, wallet } from './fixtures.ts';
 
@@ -965,8 +967,10 @@ describe('the trip day, planned by the server', () => {
       await settle();
 
       assert.equal(plans().length, 2, 'changing the energy must replan');
-      // The area rides along: a day is planned in one area (docs/43).
-      assert.deepEqual(plans()[1]!.body, { energy: 'gentle', area: 'samui' });
+      // The area rides along: a day is planned in one area (docs/43). Which
+      // area is not what this test is about, so it reads the default rather
+      // than naming one - it broke when the default moved to Koh Sichang.
+      assert.deepEqual(plans()[1]!.body, { energy: 'gentle', area: DEFAULT_AREA });
       ui.unmount();
     } finally { net.restore(); }
   });
@@ -1430,6 +1434,11 @@ describe('the companion collection on the wallet', () => {
 });
 
 describe('the concierge screen, which answers without a server', () => {
+  // The concierge suggests places in the CURRENT area, and the fixture is on
+  // Samui, so the area is said out loud here rather than inherited from
+  // DEFAULT_AREA - which is Koh Sichang, where this place is not.
+  beforeEach(() => { __setAreaForTests('samui'); });
+
   const props = (over = {}) => ({ onOpenPlace: noop, onAction: noop, ...over });
 
   test('it opens with questions, not an empty box', async () => {
