@@ -1122,6 +1122,42 @@ export const SEED_QUESTS: Quest[] = [
     host: SEED_HOSTS.sichangTeam!, kind: 'today',
     lat: 13.1454, lng: 100.806835, geofenceRadiusM: 120,
   },
+  {
+    /*
+      The third sample, added 7 November 2026.
+
+      The stretch between the pier and the shop row is the first thing every
+      day-tripper walks and the first thing they photograph, which is the
+      deck's whole argument in one place: the good things are still there,
+      with litter in front of them. It is public road, so this needs nobody's
+      permission - not the municipality's and not a shop's - which is why it
+      can be a sample the team hosts without implying anybody has signed up.
+
+      90 Green for thirty minutes, read off the two quests above rather than
+      off the price of anything: carrying your own sorted waste to the pier is
+      fifteen minutes for 60, the beach is forty-five for 120, and picking a
+      roadside is nearer the beach in effort than the drop-off. Thirty minutes
+      at the beach's rate is 80; 90 rounds it to the work, and the island's
+      three quests then come to 270 Green in total.
+    */
+    id: 'q-sc-litter',
+    esgPillar: 'environmental',
+    code: 'SC-03',
+    name: {
+      en: 'Clear the walk from the pier to the shops (sample)',
+      th: 'เก็บขยะริมทางจากท่าเรือถึงย่านร้านค้า (ตัวอย่าง)',
+      zh: '清理码头到商铺街的步道（示例）',
+    },
+    where: {
+      en: 'Shop row by Tha Lang pier, Koh Sichang',
+      th: 'ย่านร้านค้าหน้าท่าล่าง เกาะสีชัง',
+      zh: '塔朗码头旁的商铺街，锡昌岛',
+    },
+    duration: { en: '30 min', th: '30 นาที', zh: '30 分钟' },
+    rewardPoints: 90, rewardCurrency: 'green',
+    host: SEED_HOSTS.sichangTeam!, kind: 'today',
+    lat: 13.160059, lng: 100.809817, geofenceRadiusM: 120,
+  },
 ];
 
 // ---------------------------------------------------------------------------

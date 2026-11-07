@@ -89,13 +89,25 @@ describe('Koh Sichang', () => {
 
   test('the sample waste quests are the team\'s, environmental, and say they are samples', () => {
     const quests = SEED_QUESTS.filter((q) => inArea(area, q));
-    assert.deepEqual(quests.map((q) => q.id).sort(), ['q-sc-beach', 'q-sc-dropoff']);
+    assert.deepEqual(quests.map((q) => q.id).sort(), ['q-sc-beach', 'q-sc-dropoff', 'q-sc-litter']);
     for (const q of quests) {
       assert.equal(q.host.id, SEED_HOSTS.sichangTeam!.id, 'the municipality has not agreed to host');
       assert.equal(q.esgPillar, 'environmental');
       assert.equal(q.rewardCurrency, 'green');
       assert.match(q.name.th, /ตัวอย่าง/);
       assert.match(q.name.en, /sample/i);
+      assert.ok(
+        SEED_PLACES.some((p) => p.id.startsWith('sc-') && Math.hypot(p.lat - q.lat, p.lng - q.lng) < 0.003),
+        `${q.id} is not at any mapped place on the island`,
+      );
     }
+  });
+
+  test('the island\'s quests come to the total the demo is seeded against', () => {
+    // Read off the work: 15 min for 60, 45 for 120, 30 for 90. Pinned because
+    // the demo's Marketplace walk depends on the total, and a quiet edit to a
+    // reward would move it without anything else noticing.
+    const quests = SEED_QUESTS.filter((q) => inArea(area, q));
+    assert.equal(quests.reduce((sum, q) => sum + q.rewardPoints, 0), 270);
   });
 });

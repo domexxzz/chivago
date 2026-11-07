@@ -396,10 +396,11 @@ const PLANS: Record<string, Plan> = {
       { day: 1, places: ['sc-shops', 'sc-hospital'], mood: 'steady' },
       { day: 0, places: ['sc-hospital', 'sc-shops'], mood: 'bright' },
     ],
-    // Both of the island's quests. They are the team's own sample quests and
-    // say so in their names; the demo shows the mechanic, not a claim that
-    // somebody on the island ran them.
-    verifiedQuests: ['q-sc-dropoff', 'q-sc-beach'],
+    // All three of the island's quests. They are the team's own sample quests
+    // and say so in their names; the demo shows the mechanic, not a claim that
+    // somebody on the island ran them. 60 + 120 + 90 = 270 Green, which is
+    // what the Marketplace check spends.
+    verifiedQuests: ['q-sc-dropoff', 'q-sc-beach', 'q-sc-litter'],
     secondQuest: 'q-sc-beach',
     statementQuest: 'q-sc-dropoff',
     secondDays: [
