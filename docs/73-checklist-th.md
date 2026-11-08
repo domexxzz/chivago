@@ -29,13 +29,18 @@ artifact [`ChivaGo Business Model`](https://claude.ai/artifact/9rhyPcmGuA8pgvZgy
 - [ ] ส่งคำถามทนาย 8 ข้อตาม `docs/57`
 - [ ] ทดสอบบนมือถือจริงในพื้นที่
 - [ ] ~~ทำเวอร์ชันสีชังของ `demo:reset`~~ **ทำแล้ว 7 พ.ย.** (`--area koh-sichang`)
-- [ ] **ตัดสินใจเรื่องของรางวัลบนเกาะสีชัง** — เพิ่ม quest SC-03 แล้ว แต้มรวมเป็น **270 Green**
-      ซึ่งพอซื้อของถูกสุดฝั่ง Green ได้ **แต่ของชิ้นนั้นเป็นร้านที่เกาะสมุย**
-      Marketplace ยังไม่มีของสีชังเลยสักชิ้น มีสามทางเลือกอยู่ท้าย `docs/72`
-      **อย่าแต่งร้านขึ้นมาเอง และอย่าเอาของสะสม/ตราพาสปอร์ตมาขายด้วยแต้ม**
-      (สไลด์หน้า 10 เขียนว่าของสะสม "ซื้อไม่ได้")
-- [ ] **seed quest SC-03 เข้า production** — deploy ไม่ได้พามันไปเอง
-      `fly ssh console -a chivago -u node -C "node --experimental-strip-types apps/api/src/seed-area.ts --area koh-sichang"`
+- [ ] **ไปถาม "มาลีบาติก เกาะสีชัง" จริง ๆ** — ของรางวัลชิ้นแรกของเกาะอยู่ในแอปแล้ว
+      (ผ้าบาติกลายชมทะเล 200 Green) แต่ยังติดป้าย **"ร้านยังไม่ได้ร่วมโครงการ"**
+      เพราะยังไม่มีใครไปคุย สามคำถามที่ต้องถาม:
+      **1)** ยอมให้ลูกค้าแลกด้วยแต้มไหม **2)** ของชิ้นนั้นคืออะไรแน่ **3)** คิดราคาเท่าไร
+      ได้คำตอบแล้วแก้ `o-sc-1` ใน `packages/core/src/seed.ts`: ใส่ `valueTHB` และถอด `example`
+      **อย่าเดาราคาแทนเขา** และอย่าถอดป้ายก่อนได้คำตอบ
+- [ ] **seed quest SC-03 และของรางวัลเข้า production** — deploy ไม่ได้พามันไปเอง
+      ```
+      fly ssh console -a chivago -u node -C "node --experimental-strip-types apps/api/src/seed-area.ts --area koh-sichang"
+      fly ssh console -a chivago -u node -C "node --experimental-strip-types apps/api/src/seed-offers.ts"
+      ```
+      ทั้งสองคำสั่งเพิ่มของใหม่อย่างเดียว ไม่แตะของเดิม (ยืนยันจากข้อความที่มันพิมพ์ออกมา)
 
 ---
 

@@ -3,7 +3,7 @@ import { test, describe } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { AREAS, PLACE_COURTS, SEED_PLACES, SEED_QUESTS, inArea } from '@chivago/core';
+import { AREAS, PLACE_COURTS, SEED_OFFERS, SEED_PLACES, SEED_QUESTS, inArea } from '@chivago/core';
 import { demoCourts } from '../src/demo/courts.ts';
 
 /**
@@ -44,6 +44,19 @@ describe('the public demo has what the seed has', () => {
 
   test('every seeded quest opens', () => {
     for (const q of SEED_QUESTS) assert.ok(`/quests/${q.id}` in snapshot, `/quests/${q.id} is not in the demo snapshot`);
+  });
+
+  test('every seeded reward is on the demo\'s shelf', () => {
+    // The first Koh Sichang reward went into the seed and the demo kept
+    // showing the sixteen Samui ones, so the deployed link had a marketplace
+    // where Green earned on the island could not buy anything on it. Places
+    // and quests were already guarded here; rewards were not.
+    const shown = (snapshot['/offers'] as { id: string }[] | undefined) ?? [];
+    assert.deepEqual(
+      shown.map((o) => o.id).sort(),
+      SEED_OFFERS.map((o) => o.id).sort(),
+      'the demo shelf and the seed disagree - capture the demo again',
+    );
   });
 
   test('every place shows the demo the same picture the seed gives it', () => {

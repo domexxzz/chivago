@@ -1393,6 +1393,46 @@ export const SEED_OFFERS: Offer[] = [
     imageUrl: null,
     available: true,
   },
+  {
+    /*
+      The first reward on Koh Sichang, and the only one not from Samui.
+
+      Until this, every offer in the marketplace was a Samui merchant, so a
+      traveller standing on Sichang with Green Points earned on Sichang could
+      only spend them on an island four hundred kilometres away. That is not
+      a bug in the code; it is the marketplace having been built for one
+      island. The Offer type has no area, so this one shows up everywhere -
+      the same way the Samui offers already show up here.
+
+      The producer is real and comes from the municipality's OTOP register,
+      which is where the pitch deck's page of island goods comes from too.
+      It is named in Thai because that is how the register names it, and a
+      romanisation invented here would be this file naming a real business
+      something it does not call itself.
+
+      `example: true` for the same reason the Samui ones carry it: NOBODY HAS
+      ASKED THEM. The app says so under the merchant - "ตัวอย่าง · ร้านยัง
+      ไม่ได้ร่วมโครงการ" - and this stays an example until somebody walks
+      into the shop and comes back with a yes. `valueTHB` stays null on the
+      same rule as the rest: what it is worth is the merchant's to say.
+
+      200 Green because the island's three sample quests come to 270, so one
+      round of the work reaches it, and because Samui's nearest comparable
+      good - the upcycled tote - is 250. Not read back from any price.
+    */
+    id: 'o-sc-1',
+    example: true,
+    // Unpriced until the merchant says what it is worth.
+    valueTHB: null,
+    category: 'Local experience',
+    name: 'Sea-pattern batik cloth',
+    merchant: 'มาลีบาติก เกาะสีชัง',
+    merchantShort: 'มาลีบาติก',
+    costPoints: 200,
+    currency: 'green',
+    imageUrl: null,
+    available: true,
+  },
 ];
 
 // ---------------------------------------------------------------------------

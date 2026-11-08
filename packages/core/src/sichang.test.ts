@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, test } from 'node:test';
 import { KOH_SICHANG_BBOX, KU_SRIRACHA_BBOX, areaByKey, areaOfPlace, inArea } from './areas.ts';
-import { SAFETY_PHRASES, SEED_HOSTS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
+import { SAFETY_PHRASES, SEED_HOSTS, SEED_OFFERS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
 
 const area = areaByKey('koh-sichang');
 const places = SEED_PLACES.filter((p) => areaOfPlace(p) === 'koh-sichang');
@@ -100,6 +100,24 @@ describe('Koh Sichang', () => {
         SEED_PLACES.some((p) => p.id.startsWith('sc-') && Math.hypot(p.lat - q.lat, p.lng - q.lng) < 0.003),
         `${q.id} is not at any mapped place on the island`,
       );
+    }
+  });
+
+  test('the island has a reward its own verified work can reach, and it is not claimed as a partner', () => {
+    const total = SEED_QUESTS.filter((q) => inArea(area, q))
+      .reduce((sum, q) => sum + q.rewardPoints, 0);
+    const island = SEED_OFFERS.filter((o) => /เกาะสีชัง|Koh Sichang/.test(o.merchant));
+    assert.ok(island.length > 0, 'every reward is somebody else\'s island');
+    const green = island.filter((o) => o.currency === 'green' && o.available);
+    assert.ok(
+      green.some((o) => o.costPoints <= total),
+      `nothing on the island costs ${total} Green or less, so the Green half of the redeem flow cannot be shown here`,
+    );
+    for (const o of island) {
+      // Nobody has walked in and asked yet. Until they have, the app has to
+      // keep saying so, and the price stays the merchant's to name.
+      assert.equal(o.example, true, `${o.id} claims a partner nobody has signed`);
+      assert.equal(o.valueTHB, null, `${o.id} puts a price in the merchant's mouth`);
     }
   });
 

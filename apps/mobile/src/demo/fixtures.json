@@ -1,7 +1,7 @@
 {
   "/health": {
     "status": "up",
-    "time": "2026-11-07T06:13:33.301Z"
+    "time": "2026-11-08T05:29:37.875Z"
   },
   "/profile": {
     "purposes": [
@@ -12,7 +12,7 @@
     "watch": [
       "air"
     ],
-    "completedAt": "2026-11-02T06:13:19.352Z"
+    "completedAt": "2026-11-03T05:29:27.379Z"
   },
   "/places": [
     {
@@ -45,7 +45,7 @@
       },
       "metrics": {
         "crowdDensity": 3,
-        "aqi": 38,
+        "aqi": 39,
         "safetyIndex": 6.77,
         "walkability": 8.1
       },
@@ -57,22 +57,22 @@
       },
       "readings": {
         "aqi": {
-          "value": 38,
+          "value": 39,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 3,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.611Z",
+          "observedAt": "2026-11-08T05:29:39.069Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
       "healthyScore": 78,
       "breakdown": {
@@ -97,8 +97,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "38 AQI",
-            "subScore": 85.8,
+            "display": "39 AQI",
+            "subScore": 85.3,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -171,7 +171,7 @@
       },
       "metrics": {
         "crowdDensity": 0.4,
-        "aqi": 38,
+        "aqi": 39,
         "safetyIndex": 8.85,
         "walkability": 6.9
       },
@@ -183,26 +183,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 38,
+          "value": 39,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 0.4,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.582Z",
+          "observedAt": "2026-11-08T05:29:39.061Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 88,
+      "healthyScore": 87,
       "breakdown": {
-        "total": 88,
+        "total": 87,
         "components": [
           {
             "key": "crowdDensity",
@@ -223,8 +223,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "38 AQI",
-            "subScore": 85.8,
+            "display": "39 AQI",
+            "subScore": 85.3,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -297,7 +297,7 @@
       },
       "metrics": {
         "crowdDensity": 1.4,
-        "aqi": 38,
+        "aqi": 39,
         "safetyIndex": 6.33,
         "walkability": 9
       },
@@ -309,26 +309,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 38,
+          "value": 39,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 1.4,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.606Z",
+          "observedAt": "2026-11-08T05:29:39.077Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 1,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 83,
+      "healthyScore": 82,
       "breakdown": {
-        "total": 83,
+        "total": 82,
         "components": [
           {
             "key": "crowdDensity",
@@ -349,8 +349,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "38 AQI",
-            "subScore": 85.8,
+            "display": "39 AQI",
+            "subScore": 85.3,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -422,7 +422,7 @@
       },
       "metrics": {
         "crowdDensity": 0.5,
-        "aqi": 38,
+        "aqi": 39,
         "safetyIndex": 7.39,
         "walkability": 7.4
       },
@@ -434,26 +434,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 38,
+          "value": 39,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 0.5,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.600Z",
+          "observedAt": "2026-11-08T05:29:39.030Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 86,
+      "healthyScore": 85,
       "breakdown": {
-        "total": 86,
+        "total": 85,
         "components": [
           {
             "key": "crowdDensity",
@@ -474,8 +474,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "38 AQI",
-            "subScore": 85.8,
+            "display": "39 AQI",
+            "subScore": 85.3,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -542,7 +542,7 @@
       "photo": null,
       "metrics": {
         "crowdDensity": 0.3,
-        "aqi": 38,
+        "aqi": 39,
         "safetyIndex": 5.13,
         "walkability": 5.2
       },
@@ -554,22 +554,22 @@
       },
       "readings": {
         "aqi": {
-          "value": 38,
+          "value": 39,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 0.3,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.578Z",
+          "observedAt": "2026-11-08T05:29:38.997Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
       "healthyScore": 76,
       "breakdown": {
@@ -594,8 +594,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "38 AQI",
-            "subScore": 85.8,
+            "display": "39 AQI",
+            "subScore": 85.3,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -667,7 +667,7 @@
       },
       "metrics": {
         "crowdDensity": 1.8,
-        "aqi": 51,
+        "aqi": 43,
         "safetyIndex": 6.6,
         "walkability": 7.4
       },
@@ -685,26 +685,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 51,
+          "value": 43,
           "provenance": "live",
-          "observedAt": "2026-11-07T05:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Air4Thai · Laem Chabang Municipal Stadium (PCD o61) · 0.3 km · ground station"
         },
         "crowdDensity": {
           "value": 1.8,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:33.824Z",
+          "observedAt": "2026-11-08T05:29:38.297Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 77,
+      "healthyScore": 78,
       "breakdown": {
-        "total": 77,
+        "total": 78,
         "components": [
           {
             "key": "crowdDensity",
@@ -725,8 +725,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "51 AQI",
-            "subScore": 79.5,
+            "display": "43 AQI",
+            "subScore": 83.4,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -798,7 +798,7 @@
       },
       "metrics": {
         "crowdDensity": 0.6,
-        "aqi": 51,
+        "aqi": 43,
         "safetyIndex": 6,
         "walkability": 7
       },
@@ -816,26 +816,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 51,
+          "value": 43,
           "provenance": "live",
-          "observedAt": "2026-11-07T05:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Air4Thai · Laem Chabang Municipal Stadium (PCD o61) · 0.3 km · ground station"
         },
         "crowdDensity": {
           "value": 0.6,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:33.800Z",
+          "observedAt": "2026-11-08T05:29:38.288Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 79,
+      "healthyScore": 80,
       "breakdown": {
-        "total": 79,
+        "total": 80,
         "components": [
           {
             "key": "crowdDensity",
@@ -856,8 +856,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "51 AQI",
-            "subScore": 79.5,
+            "display": "43 AQI",
+            "subScore": 83.4,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -929,7 +929,7 @@
       },
       "metrics": {
         "crowdDensity": 0.4,
-        "aqi": 51,
+        "aqi": 43,
         "safetyIndex": 6,
         "walkability": 6.8
       },
@@ -947,26 +947,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 51,
+          "value": 43,
           "provenance": "live",
-          "observedAt": "2026-11-07T05:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Air4Thai · Laem Chabang Municipal Stadium (PCD o61) · 0.4 km · ground station"
         },
         "crowdDensity": {
           "value": 0.4,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:33.789Z",
+          "observedAt": "2026-11-08T05:29:38.282Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 79,
+      "healthyScore": 81,
       "breakdown": {
-        "total": 79,
+        "total": 81,
         "components": [
           {
             "key": "crowdDensity",
@@ -987,8 +987,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "51 AQI",
-            "subScore": 79.5,
+            "display": "43 AQI",
+            "subScore": 83.4,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -1060,7 +1060,7 @@
       },
       "metrics": {
         "crowdDensity": 1.4,
-        "aqi": 51,
+        "aqi": 43,
         "safetyIndex": 6.2,
         "walkability": 7
       },
@@ -1078,26 +1078,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 51,
+          "value": 43,
           "provenance": "live",
-          "observedAt": "2026-11-07T05:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Air4Thai · Laem Chabang Municipal Stadium (PCD o61) · 0.1 km · ground station"
         },
         "crowdDensity": {
           "value": 1.4,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:33.806Z",
+          "observedAt": "2026-11-08T05:29:38.285Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 77,
+      "healthyScore": 78,
       "breakdown": {
-        "total": 77,
+        "total": 78,
         "components": [
           {
             "key": "crowdDensity",
@@ -1118,8 +1118,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "51 AQI",
-            "subScore": 79.5,
+            "display": "43 AQI",
+            "subScore": 83.4,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -1191,7 +1191,7 @@
       },
       "metrics": {
         "crowdDensity": 2.6,
-        "aqi": 51,
+        "aqi": 43,
         "safetyIndex": 6.6,
         "walkability": 7.6
       },
@@ -1209,26 +1209,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 51,
+          "value": 43,
           "provenance": "live",
-          "observedAt": "2026-11-07T05:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Air4Thai · Laem Chabang Municipal Stadium (PCD o61) · 0.3 km · ground station"
         },
         "crowdDensity": {
           "value": 2.6,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:33.814Z",
+          "observedAt": "2026-11-08T05:29:38.278Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 75,
+      "healthyScore": 77,
       "breakdown": {
-        "total": 75,
+        "total": 77,
         "components": [
           {
             "key": "crowdDensity",
@@ -1249,8 +1249,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "51 AQI",
-            "subScore": 79.5,
+            "display": "43 AQI",
+            "subScore": 83.4,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -1322,7 +1322,7 @@
       },
       "metrics": {
         "crowdDensity": 1.6,
-        "aqi": 51,
+        "aqi": 43,
         "safetyIndex": 6.4,
         "walkability": 7.2
       },
@@ -1340,26 +1340,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 51,
+          "value": 43,
           "provenance": "live",
-          "observedAt": "2026-11-07T05:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Air4Thai · Laem Chabang Municipal Stadium (PCD o61) · 0.5 km · ground station"
         },
         "crowdDensity": {
           "value": 1.6,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:33.809Z",
+          "observedAt": "2026-11-08T05:29:38.292Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 77,
+      "healthyScore": 78,
       "breakdown": {
-        "total": 77,
+        "total": 78,
         "components": [
           {
             "key": "crowdDensity",
@@ -1380,8 +1380,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "51 AQI",
-            "subScore": 79.5,
+            "display": "43 AQI",
+            "subScore": 83.4,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -1448,7 +1448,7 @@
       "photo": null,
       "metrics": {
         "crowdDensity": 1.7,
-        "aqi": 62,
+        "aqi": 80,
         "safetyIndex": 6.5,
         "walkability": 7
       },
@@ -1460,26 +1460,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 62,
+          "value": 80,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 1.7,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.409Z",
+          "observedAt": "2026-11-08T05:29:38.876Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 74,
+      "healthyScore": 71,
       "breakdown": {
-        "total": 74,
+        "total": 71,
         "components": [
           {
             "key": "crowdDensity",
@@ -1500,8 +1500,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "62 AQI",
-            "subScore": 74,
+            "display": "80 AQI",
+            "subScore": 65,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -1568,7 +1568,7 @@
       "photo": null,
       "metrics": {
         "crowdDensity": 1.1,
-        "aqi": 62,
+        "aqi": 80,
         "safetyIndex": 6.5,
         "walkability": 7.6
       },
@@ -1580,26 +1580,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 62,
+          "value": 80,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 1.1,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.435Z",
+          "observedAt": "2026-11-08T05:29:38.934Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 77,
+      "healthyScore": 74,
       "breakdown": {
-        "total": 77,
+        "total": 74,
         "components": [
           {
             "key": "crowdDensity",
@@ -1620,8 +1620,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "62 AQI",
-            "subScore": 74,
+            "display": "80 AQI",
+            "subScore": 65,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -1688,7 +1688,7 @@
       "photo": null,
       "metrics": {
         "crowdDensity": 3.4,
-        "aqi": 62,
+        "aqi": 80,
         "safetyIndex": 6.4,
         "walkability": 7.2
       },
@@ -1700,26 +1700,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 62,
+          "value": 80,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 3.4,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.352Z",
+          "observedAt": "2026-11-08T05:29:38.959Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 70,
+      "healthyScore": 67,
       "breakdown": {
-        "total": 70,
+        "total": 67,
         "components": [
           {
             "key": "crowdDensity",
@@ -1740,8 +1740,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "62 AQI",
-            "subScore": 74,
+            "display": "80 AQI",
+            "subScore": 65,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -1808,7 +1808,7 @@
       "photo": null,
       "metrics": {
         "crowdDensity": 1.4,
-        "aqi": 62,
+        "aqi": 80,
         "safetyIndex": 6.3,
         "walkability": 6.8
       },
@@ -1820,26 +1820,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 62,
+          "value": 80,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 1.4,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.350Z",
+          "observedAt": "2026-11-08T05:29:38.862Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 74,
+      "healthyScore": 71,
       "breakdown": {
-        "total": 74,
+        "total": 71,
         "components": [
           {
             "key": "crowdDensity",
@@ -1860,8 +1860,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "62 AQI",
-            "subScore": 74,
+            "display": "80 AQI",
+            "subScore": 65,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -1928,7 +1928,7 @@
       "photo": null,
       "metrics": {
         "crowdDensity": 1.5,
-        "aqi": 62,
+        "aqi": 80,
         "safetyIndex": 6.4,
         "walkability": 7.4
       },
@@ -1940,26 +1940,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 62,
+          "value": 80,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 1.5,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.436Z",
+          "observedAt": "2026-11-08T05:29:38.937Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 75,
+      "healthyScore": 72,
       "breakdown": {
-        "total": 75,
+        "total": 72,
         "components": [
           {
             "key": "crowdDensity",
@@ -1980,8 +1980,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "62 AQI",
-            "subScore": 74,
+            "display": "80 AQI",
+            "subScore": 65,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -2056,7 +2056,7 @@
       },
       "metrics": {
         "crowdDensity": 2,
-        "aqi": 62,
+        "aqi": 80,
         "safetyIndex": 6.2,
         "walkability": 5
       },
@@ -2068,26 +2068,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 62,
+          "value": 80,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 2,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.429Z",
+          "observedAt": "2026-11-08T05:29:38.871Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 68,
+      "healthyScore": 65,
       "breakdown": {
-        "total": 68,
+        "total": 65,
         "components": [
           {
             "key": "crowdDensity",
@@ -2108,8 +2108,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "62 AQI",
-            "subScore": 74,
+            "display": "80 AQI",
+            "subScore": 65,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -2176,7 +2176,7 @@
       "photo": null,
       "metrics": {
         "crowdDensity": 1.7,
-        "aqi": 40,
+        "aqi": 34,
         "safetyIndex": 6.5,
         "walkability": 7
       },
@@ -2194,26 +2194,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 40,
+          "value": 34,
           "provenance": "live",
-          "observedAt": "2026-11-07T05:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Air4Thai · Kasetsart University intersection, roadside (BMA bkp73t) · 1 km · ground station"
         },
         "crowdDensity": {
           "value": 1.7,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:33.855Z",
+          "observedAt": "2026-11-08T05:29:38.392Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 78,
+      "healthyScore": 79,
       "breakdown": {
-        "total": 78,
+        "total": 79,
         "components": [
           {
             "key": "crowdDensity",
@@ -2234,8 +2234,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "40 AQI",
-            "subScore": 84.8,
+            "display": "34 AQI",
+            "subScore": 87.7,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -2301,7 +2301,7 @@
       "photo": null,
       "metrics": {
         "crowdDensity": 1.1,
-        "aqi": 40,
+        "aqi": 34,
         "safetyIndex": 6.5,
         "walkability": 7.4
       },
@@ -2319,26 +2319,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 40,
+          "value": 34,
           "provenance": "live",
-          "observedAt": "2026-11-07T05:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Air4Thai · Kasetsart University intersection, roadside (BMA bkp73t) · 1.5 km · ground station"
         },
         "crowdDensity": {
           "value": 1.1,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:33.820Z",
+          "observedAt": "2026-11-08T05:29:38.440Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 81,
+      "healthyScore": 82,
       "breakdown": {
-        "total": 81,
+        "total": 82,
         "components": [
           {
             "key": "crowdDensity",
@@ -2359,8 +2359,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "40 AQI",
-            "subScore": 84.8,
+            "display": "34 AQI",
+            "subScore": 87.7,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -2426,7 +2426,7 @@
       "photo": null,
       "metrics": {
         "crowdDensity": 1.5,
-        "aqi": 40,
+        "aqi": 34,
         "safetyIndex": 6.4,
         "walkability": 7.2
       },
@@ -2444,26 +2444,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 40,
+          "value": 34,
           "provenance": "live",
-          "observedAt": "2026-11-07T05:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Air4Thai · Kasetsart University intersection, roadside (BMA bkp73t) · 0.2 km · ground station"
         },
         "crowdDensity": {
           "value": 1.5,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:33.917Z",
+          "observedAt": "2026-11-08T05:29:38.360Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 79,
+      "healthyScore": 80,
       "breakdown": {
-        "total": 79,
+        "total": 80,
         "components": [
           {
             "key": "crowdDensity",
@@ -2484,8 +2484,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "40 AQI",
-            "subScore": 84.8,
+            "display": "34 AQI",
+            "subScore": 87.7,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -2551,7 +2551,7 @@
       "photo": null,
       "metrics": {
         "crowdDensity": 1.4,
-        "aqi": 40,
+        "aqi": 34,
         "safetyIndex": 6.3,
         "walkability": 6.8
       },
@@ -2569,26 +2569,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 40,
+          "value": 34,
           "provenance": "live",
-          "observedAt": "2026-11-07T05:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Air4Thai · Kasetsart University intersection, roadside (BMA bkp73t) · 1.3 km · ground station"
         },
         "crowdDensity": {
           "value": 1.4,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:33.954Z",
+          "observedAt": "2026-11-08T05:29:38.443Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 78,
+      "healthyScore": 79,
       "breakdown": {
-        "total": 78,
+        "total": 79,
         "components": [
           {
             "key": "crowdDensity",
@@ -2609,8 +2609,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "40 AQI",
-            "subScore": 84.8,
+            "display": "34 AQI",
+            "subScore": 87.7,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -2676,7 +2676,7 @@
       "photo": null,
       "metrics": {
         "crowdDensity": 3.4,
-        "aqi": 40,
+        "aqi": 34,
         "safetyIndex": 6.4,
         "walkability": 7.2
       },
@@ -2694,26 +2694,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 40,
+          "value": 34,
           "provenance": "live",
-          "observedAt": "2026-11-07T05:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Air4Thai · Kasetsart University intersection, roadside (BMA bkp73t) · 1.3 km · ground station"
         },
         "crowdDensity": {
           "value": 3.4,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:33.929Z",
+          "observedAt": "2026-11-08T05:29:38.433Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 74,
+      "healthyScore": 75,
       "breakdown": {
-        "total": 74,
+        "total": 75,
         "components": [
           {
             "key": "crowdDensity",
@@ -2734,8 +2734,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "40 AQI",
-            "subScore": 84.8,
+            "display": "34 AQI",
+            "subScore": 87.7,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -2806,7 +2806,7 @@
       },
       "metrics": {
         "crowdDensity": 4,
-        "aqi": 54,
+        "aqi": 58,
         "safetyIndex": 6,
         "walkability": 6
       },
@@ -2818,26 +2818,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 54,
+          "value": 58,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 4,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.474Z",
+          "observedAt": "2026-11-08T05:29:38.840Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 67,
+      "healthyScore": 66,
       "breakdown": {
-        "total": 67,
+        "total": 66,
         "components": [
           {
             "key": "crowdDensity",
@@ -2858,8 +2858,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "54 AQI",
-            "subScore": 78,
+            "display": "58 AQI",
+            "subScore": 76,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -2930,7 +2930,7 @@
       },
       "metrics": {
         "crowdDensity": 1.5,
-        "aqi": 54,
+        "aqi": 58,
         "safetyIndex": 6.5,
         "walkability": 6
       },
@@ -2942,26 +2942,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 54,
+          "value": 58,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 1.5,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.472Z",
+          "observedAt": "2026-11-08T05:29:38.834Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 74,
+      "healthyScore": 73,
       "breakdown": {
-        "total": 74,
+        "total": 73,
         "components": [
           {
             "key": "crowdDensity",
@@ -2982,8 +2982,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "54 AQI",
-            "subScore": 78,
+            "display": "58 AQI",
+            "subScore": 76,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -3054,7 +3054,7 @@
       },
       "metrics": {
         "crowdDensity": 2.5,
-        "aqi": 54,
+        "aqi": 58,
         "safetyIndex": 5.8,
         "walkability": 5
       },
@@ -3066,22 +3066,22 @@
       },
       "readings": {
         "aqi": {
-          "value": 54,
+          "value": 58,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 2.5,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.434Z",
+          "observedAt": "2026-11-08T05:29:38.965Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
       "healthyScore": 67,
       "breakdown": {
@@ -3106,8 +3106,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "54 AQI",
-            "subScore": 78,
+            "display": "58 AQI",
+            "subScore": 76,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -3179,7 +3179,7 @@
       },
       "metrics": {
         "crowdDensity": 3,
-        "aqi": 54,
+        "aqi": 58,
         "safetyIndex": 6.5,
         "walkability": 7
       },
@@ -3191,22 +3191,22 @@
       },
       "readings": {
         "aqi": {
-          "value": 54,
+          "value": 58,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 3,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.355Z",
+          "observedAt": "2026-11-08T05:29:38.942Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
       "healthyScore": 72,
       "breakdown": {
@@ -3231,8 +3231,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "54 AQI",
-            "subScore": 78,
+            "display": "58 AQI",
+            "subScore": 76,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -3304,7 +3304,7 @@
       },
       "metrics": {
         "crowdDensity": 1.5,
-        "aqi": 54,
+        "aqi": 58,
         "safetyIndex": 6.5,
         "walkability": 6
       },
@@ -3316,26 +3316,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 54,
+          "value": 58,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 1.5,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.438Z",
+          "observedAt": "2026-11-08T05:29:38.944Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 74,
+      "healthyScore": 73,
       "breakdown": {
-        "total": 74,
+        "total": 73,
         "components": [
           {
             "key": "crowdDensity",
@@ -3356,8 +3356,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "54 AQI",
-            "subScore": 78,
+            "display": "58 AQI",
+            "subScore": 76,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -3428,7 +3428,7 @@
       },
       "metrics": {
         "crowdDensity": 3.5,
-        "aqi": 54,
+        "aqi": 58,
         "safetyIndex": 6,
         "walkability": 6.5
       },
@@ -3440,26 +3440,26 @@
       },
       "readings": {
         "aqi": {
-          "value": 54,
+          "value": 58,
           "provenance": "live",
-          "observedAt": "2026-11-07T06:00:00.000Z",
+          "observedAt": "2026-11-08T05:00:00.000Z",
           "source": "Open-Meteo · Copernicus CAMS (~11 km area reading)"
         },
         "crowdDensity": {
           "value": 3.5,
           "provenance": "estimated",
-          "observedAt": "2026-11-07T06:13:34.432Z",
+          "observedAt": "2026-11-08T05:29:38.865Z",
           "source": "Seeded survey estimate - no live density feed"
         }
       },
       "crowd": {
         "checkinsLastHour": 0,
         "windowMinutes": 60,
-        "countedAt": "2026-11-07T06:13:33.343Z"
+        "countedAt": "2026-11-08T05:29:37.905Z"
       },
-      "healthyScore": 69,
+      "healthyScore": 68,
       "breakdown": {
-        "total": 69,
+        "total": 68,
         "components": [
           {
             "key": "crowdDensity",
@@ -3480,8 +3480,8 @@
               "th": "คุณภาพอากาศ",
               "zh": "空气质量"
             },
-            "display": "54 AQI",
-            "subScore": 78,
+            "display": "58 AQI",
+            "subScore": 76,
             "weight": 0.375,
             "provenance": "live"
           },
@@ -3555,7 +3555,7 @@
     },
     "metrics": {
       "crowdDensity": 3,
-      "aqi": 38,
+      "aqi": 39,
       "safetyIndex": 6.77,
       "walkability": 8.1
     },
@@ -3567,22 +3567,22 @@
     },
     "readings": {
       "aqi": {
-        "value": 38,
+        "value": 39,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.456Z",
+        "observedAt": "2026-11-08T05:29:38.900Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 3,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:34.636Z",
+        "observedAt": "2026-11-08T05:29:39.096Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:34.631Z"
+      "countedAt": "2026-11-08T05:29:39.091Z"
     },
     "healthyScore": 78,
     "breakdown": {
@@ -3607,8 +3607,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "38 AQI",
-          "subScore": 85.8,
+          "display": "39 AQI",
+          "subScore": 85.3,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -3658,13 +3658,13 @@
     "reported": []
   },
   "/places/chaweng/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 38,
-        "max": 38,
-        "avg": 38,
+        "day": "2026-11-08",
+        "min": 39,
+        "max": 39,
+        "avg": 39,
         "samples": 1
       }
     ]
@@ -3703,7 +3703,7 @@
     },
     "metrics": {
       "crowdDensity": 0.4,
-      "aqi": 38,
+      "aqi": 39,
       "safetyIndex": 8.85,
       "walkability": 6.9
     },
@@ -3715,26 +3715,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 38,
+        "value": 39,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.441Z",
+        "observedAt": "2026-11-08T05:29:38.883Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 0.4,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:34.727Z",
+        "observedAt": "2026-11-08T05:29:39.173Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:34.725Z"
+      "countedAt": "2026-11-08T05:29:39.170Z"
     },
-    "healthyScore": 88,
+    "healthyScore": 87,
     "breakdown": {
-      "total": 88,
+      "total": 87,
       "components": [
         {
           "key": "crowdDensity",
@@ -3755,8 +3755,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "38 AQI",
-          "subScore": 85.8,
+          "display": "39 AQI",
+          "subScore": 85.3,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -3806,13 +3806,13 @@
     "reported": []
   },
   "/places/namuang/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 38,
-        "max": 38,
-        "avg": 38,
+        "day": "2026-11-08",
+        "min": 39,
+        "max": 39,
+        "avg": 39,
         "samples": 1
       }
     ]
@@ -3851,7 +3851,7 @@
     },
     "metrics": {
       "crowdDensity": 1.4,
-      "aqi": 38,
+      "aqi": 39,
       "safetyIndex": 6.33,
       "walkability": 9
     },
@@ -3863,26 +3863,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 38,
+        "value": 39,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.410Z",
+        "observedAt": "2026-11-08T05:29:38.917Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 1.4,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:34.789Z",
+        "observedAt": "2026-11-08T05:29:39.235Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 1,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:34.787Z"
+      "countedAt": "2026-11-08T05:29:39.233Z"
     },
-    "healthyScore": 83,
+    "healthyScore": 82,
     "breakdown": {
-      "total": 83,
+      "total": 82,
       "components": [
         {
           "key": "crowdDensity",
@@ -3903,8 +3903,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "38 AQI",
-          "subScore": 85.8,
+          "display": "39 AQI",
+          "subScore": 85.3,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -3954,13 +3954,13 @@
     "reported": []
   },
   "/places/fisherman/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 38,
-        "max": 38,
-        "avg": 38,
+        "day": "2026-11-08",
+        "min": 39,
+        "max": 39,
+        "avg": 39,
         "samples": 1
       }
     ]
@@ -3998,7 +3998,7 @@
     },
     "metrics": {
       "crowdDensity": 0.5,
-      "aqi": 38,
+      "aqi": 39,
       "safetyIndex": 7.39,
       "walkability": 7.4
     },
@@ -4010,26 +4010,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 38,
+        "value": 39,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.441Z",
+        "observedAt": "2026-11-08T05:29:38.883Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 0.5,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:34.851Z",
+        "observedAt": "2026-11-08T05:29:39.297Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:34.849Z"
+      "countedAt": "2026-11-08T05:29:39.295Z"
     },
-    "healthyScore": 86,
+    "healthyScore": 85,
     "breakdown": {
-      "total": 86,
+      "total": 85,
       "components": [
         {
           "key": "crowdDensity",
@@ -4050,8 +4050,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "38 AQI",
-          "subScore": 85.8,
+          "display": "39 AQI",
+          "subScore": 85.3,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -4101,13 +4101,13 @@
     "reported": []
   },
   "/places/lamai/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 38,
-        "max": 38,
-        "avg": 38,
+        "day": "2026-11-08",
+        "min": 39,
+        "max": 39,
+        "avg": 39,
         "samples": 1
       }
     ]
@@ -4140,7 +4140,7 @@
     "photo": null,
     "metrics": {
       "crowdDensity": 0.3,
-      "aqi": 38,
+      "aqi": 39,
       "safetyIndex": 5.13,
       "walkability": 5.2
     },
@@ -4152,22 +4152,22 @@
     },
     "readings": {
       "aqi": {
-        "value": 38,
+        "value": 39,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.356Z",
+        "observedAt": "2026-11-08T05:29:38.814Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 0.3,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:34.899Z",
+        "observedAt": "2026-11-08T05:29:39.358Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:34.897Z"
+      "countedAt": "2026-11-08T05:29:39.357Z"
     },
     "healthyScore": 76,
     "breakdown": {
@@ -4192,8 +4192,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "38 AQI",
-          "subScore": 85.8,
+          "display": "39 AQI",
+          "subScore": 85.3,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -4243,13 +4243,13 @@
     "reported": []
   },
   "/places/mangrove/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 38,
-        "max": 38,
-        "avg": 38,
+        "day": "2026-11-08",
+        "min": 39,
+        "max": 39,
+        "avg": 39,
         "samples": 1
       }
     ]
@@ -4287,7 +4287,7 @@
     },
     "metrics": {
       "crowdDensity": 1.8,
-      "aqi": 51,
+      "aqi": 43,
       "safetyIndex": 6.6,
       "walkability": 7.4
     },
@@ -4305,26 +4305,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 51,
+        "value": 43,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:33.823Z",
+        "observedAt": "2026-11-08T05:29:38.296Z",
         "source": "Air4Thai · Laem Chabang Municipal Stadium (PCD o61) · 0.3 km · ground station (cached)"
       },
       "crowdDensity": {
         "value": 1.8,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:34.961Z",
+        "observedAt": "2026-11-08T05:29:39.422Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:34.958Z"
+      "countedAt": "2026-11-08T05:29:39.420Z"
     },
-    "healthyScore": 77,
+    "healthyScore": 78,
     "breakdown": {
-      "total": 77,
+      "total": 78,
       "components": [
         {
           "key": "crowdDensity",
@@ -4345,8 +4345,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "51 AQI",
-          "subScore": 79.5,
+          "display": "43 AQI",
+          "subScore": 83.4,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -4396,13 +4396,13 @@
     "reported": []
   },
   "/places/ku-library/history": {
-    "since": "2026-11-07T05:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 51,
-        "max": 51,
-        "avg": 51,
+        "day": "2026-11-08",
+        "min": 43,
+        "max": 43,
+        "avg": 43,
         "samples": 2
       }
     ]
@@ -4440,7 +4440,7 @@
     },
     "metrics": {
       "crowdDensity": 0.6,
-      "aqi": 51,
+      "aqi": 43,
       "safetyIndex": 6,
       "walkability": 7
     },
@@ -4458,26 +4458,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 51,
+        "value": 43,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:33.823Z",
+        "observedAt": "2026-11-08T05:29:38.296Z",
         "source": "Air4Thai · Laem Chabang Municipal Stadium (PCD o61) · 0.3 km · ground station (cached)"
       },
       "crowdDensity": {
         "value": 0.6,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.024Z",
+        "observedAt": "2026-11-08T05:29:39.467Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.021Z"
+      "countedAt": "2026-11-08T05:29:39.466Z"
     },
-    "healthyScore": 79,
+    "healthyScore": 80,
     "breakdown": {
-      "total": 79,
+      "total": 80,
       "components": [
         {
           "key": "crowdDensity",
@@ -4498,8 +4498,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "51 AQI",
-          "subScore": 79.5,
+          "display": "43 AQI",
+          "subScore": 83.4,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -4549,13 +4549,13 @@
     "reported": []
   },
   "/places/ku-park/history": {
-    "since": "2026-11-07T05:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 51,
-        "max": 51,
-        "avg": 51,
+        "day": "2026-11-08",
+        "min": 43,
+        "max": 43,
+        "avg": 43,
         "samples": 2
       }
     ]
@@ -4593,7 +4593,7 @@
     },
     "metrics": {
       "crowdDensity": 0.4,
-      "aqi": 51,
+      "aqi": 43,
       "safetyIndex": 6,
       "walkability": 6.8
     },
@@ -4611,26 +4611,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 51,
+        "value": 43,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:33.823Z",
+        "observedAt": "2026-11-08T05:29:38.296Z",
         "source": "Air4Thai · Laem Chabang Municipal Stadium (PCD o61) · 0.4 km · ground station (cached)"
       },
       "crowdDensity": {
         "value": 0.4,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.071Z",
+        "observedAt": "2026-11-08T05:29:39.516Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.069Z"
+      "countedAt": "2026-11-08T05:29:39.514Z"
     },
-    "healthyScore": 79,
+    "healthyScore": 81,
     "breakdown": {
-      "total": 79,
+      "total": 81,
       "components": [
         {
           "key": "crowdDensity",
@@ -4651,8 +4651,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "51 AQI",
-          "subScore": 79.5,
+          "display": "43 AQI",
+          "subScore": 83.4,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -4702,13 +4702,13 @@
     "reported": []
   },
   "/places/ku-viewpoint/history": {
-    "since": "2026-11-07T05:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 51,
-        "max": 51,
-        "avg": 51,
+        "day": "2026-11-08",
+        "min": 43,
+        "max": 43,
+        "avg": 43,
         "samples": 2
       }
     ]
@@ -4746,7 +4746,7 @@
     },
     "metrics": {
       "crowdDensity": 1.4,
-      "aqi": 51,
+      "aqi": 43,
       "safetyIndex": 6.2,
       "walkability": 7
     },
@@ -4764,26 +4764,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 51,
+        "value": 43,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:33.823Z",
+        "observedAt": "2026-11-08T05:29:38.296Z",
         "source": "Air4Thai · Laem Chabang Municipal Stadium (PCD o61) · 0.1 km · ground station (cached)"
       },
       "crowdDensity": {
         "value": 1.4,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.134Z",
+        "observedAt": "2026-11-08T05:29:39.560Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.131Z"
+      "countedAt": "2026-11-08T05:29:39.558Z"
     },
-    "healthyScore": 77,
+    "healthyScore": 78,
     "breakdown": {
-      "total": 77,
+      "total": 78,
       "components": [
         {
           "key": "crowdDensity",
@@ -4804,8 +4804,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "51 AQI",
-          "subScore": 79.5,
+          "display": "43 AQI",
+          "subScore": 83.4,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -4855,13 +4855,13 @@
     "reported": []
   },
   "/places/ku-sports/history": {
-    "since": "2026-11-07T05:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 51,
-        "max": 51,
-        "avg": 51,
+        "day": "2026-11-08",
+        "min": 43,
+        "max": 43,
+        "avg": 43,
         "samples": 2
       }
     ]
@@ -4899,7 +4899,7 @@
     },
     "metrics": {
       "crowdDensity": 2.6,
-      "aqi": 51,
+      "aqi": 43,
       "safetyIndex": 6.6,
       "walkability": 7.6
     },
@@ -4917,26 +4917,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 51,
+        "value": 43,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:33.823Z",
+        "observedAt": "2026-11-08T05:29:38.296Z",
         "source": "Air4Thai · Laem Chabang Municipal Stadium (PCD o61) · 0.3 km · ground station (cached)"
       },
       "crowdDensity": {
         "value": 2.6,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.183Z",
+        "observedAt": "2026-11-08T05:29:39.608Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.181Z"
+      "countedAt": "2026-11-08T05:29:39.605Z"
     },
-    "healthyScore": 75,
+    "healthyScore": 77,
     "breakdown": {
-      "total": 75,
+      "total": 77,
       "components": [
         {
           "key": "crowdDensity",
@@ -4957,8 +4957,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "51 AQI",
-          "subScore": 79.5,
+          "display": "43 AQI",
+          "subScore": 83.4,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -5008,13 +5008,13 @@
     "reported": []
   },
   "/places/ku-shops/history": {
-    "since": "2026-11-07T05:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 51,
-        "max": 51,
-        "avg": 51,
+        "day": "2026-11-08",
+        "min": 43,
+        "max": 43,
+        "avg": 43,
         "samples": 2
       }
     ]
@@ -5052,7 +5052,7 @@
     },
     "metrics": {
       "crowdDensity": 1.6,
-      "aqi": 51,
+      "aqi": 43,
       "safetyIndex": 6.4,
       "walkability": 7.2
     },
@@ -5070,26 +5070,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 51,
+        "value": 43,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:33.823Z",
+        "observedAt": "2026-11-08T05:29:38.296Z",
         "source": "Air4Thai · Laem Chabang Municipal Stadium (PCD o61) · 0.5 km · ground station (cached)"
       },
       "crowdDensity": {
         "value": 1.6,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.212Z",
+        "observedAt": "2026-11-08T05:29:39.669Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.209Z"
+      "countedAt": "2026-11-08T05:29:39.667Z"
     },
-    "healthyScore": 77,
+    "healthyScore": 78,
     "breakdown": {
-      "total": 77,
+      "total": 78,
       "components": [
         {
           "key": "crowdDensity",
@@ -5110,8 +5110,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "51 AQI",
-          "subScore": 79.5,
+          "display": "43 AQI",
+          "subScore": 83.4,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -5161,13 +5161,13 @@
     "reported": []
   },
   "/places/ku-building13/history": {
-    "since": "2026-11-07T05:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 51,
-        "max": 51,
-        "avg": 51,
+        "day": "2026-11-08",
+        "min": 43,
+        "max": 43,
+        "avg": 43,
         "samples": 2
       }
     ]
@@ -5200,7 +5200,7 @@
     "photo": null,
     "metrics": {
       "crowdDensity": 1.7,
-      "aqi": 62,
+      "aqi": 80,
       "safetyIndex": 6.5,
       "walkability": 7
     },
@@ -5212,26 +5212,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 62,
+        "value": 80,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.435Z",
+        "observedAt": "2026-11-08T05:29:38.958Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 1.7,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.256Z",
+        "observedAt": "2026-11-08T05:29:39.731Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.255Z"
+      "countedAt": "2026-11-08T05:29:39.729Z"
     },
-    "healthyScore": 74,
+    "healthyScore": 71,
     "breakdown": {
-      "total": 74,
+      "total": 71,
       "components": [
         {
           "key": "crowdDensity",
@@ -5252,8 +5252,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "62 AQI",
-          "subScore": 74,
+          "display": "80 AQI",
+          "subScore": 65,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -5303,13 +5303,13 @@
     "reported": []
   },
   "/places/rmutt-library/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 62,
-        "max": 62,
-        "avg": 62,
+        "day": "2026-11-08",
+        "min": 80,
+        "max": 80,
+        "avg": 80,
         "samples": 1
       }
     ]
@@ -5342,7 +5342,7 @@
     "photo": null,
     "metrics": {
       "crowdDensity": 1.1,
-      "aqi": 62,
+      "aqi": 80,
       "safetyIndex": 6.5,
       "walkability": 7.6
     },
@@ -5354,26 +5354,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 62,
+        "value": 80,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.435Z",
+        "observedAt": "2026-11-08T05:29:38.958Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 1.1,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.318Z",
+        "observedAt": "2026-11-08T05:29:39.777Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.316Z"
+      "countedAt": "2026-11-08T05:29:39.775Z"
     },
-    "healthyScore": 77,
+    "healthyScore": 74,
     "breakdown": {
-      "total": 77,
+      "total": 74,
       "components": [
         {
           "key": "crowdDensity",
@@ -5394,8 +5394,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "62 AQI",
-          "subScore": 74,
+          "display": "80 AQI",
+          "subScore": 65,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -5445,13 +5445,13 @@
     "reported": []
   },
   "/places/rmutt-park/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 62,
-        "max": 62,
-        "avg": 62,
+        "day": "2026-11-08",
+        "min": 80,
+        "max": 80,
+        "avg": 80,
         "samples": 1
       }
     ]
@@ -5484,7 +5484,7 @@
     "photo": null,
     "metrics": {
       "crowdDensity": 3.4,
-      "aqi": 62,
+      "aqi": 80,
       "safetyIndex": 6.4,
       "walkability": 7.2
     },
@@ -5496,26 +5496,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 62,
+        "value": 80,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.435Z",
+        "observedAt": "2026-11-08T05:29:38.958Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 3.4,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.368Z",
+        "observedAt": "2026-11-08T05:29:39.840Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.366Z"
+      "countedAt": "2026-11-08T05:29:39.839Z"
     },
-    "healthyScore": 70,
+    "healthyScore": 67,
     "breakdown": {
-      "total": 70,
+      "total": 67,
       "components": [
         {
           "key": "crowdDensity",
@@ -5536,8 +5536,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "62 AQI",
-          "subScore": 74,
+          "display": "80 AQI",
+          "subScore": 65,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -5587,13 +5587,13 @@
     "reported": []
   },
   "/places/rmutt-canteen/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 62,
-        "max": 62,
-        "avg": 62,
+        "day": "2026-11-08",
+        "min": 80,
+        "max": 80,
+        "avg": 80,
         "samples": 1
       }
     ]
@@ -5626,7 +5626,7 @@
     "photo": null,
     "metrics": {
       "crowdDensity": 1.4,
-      "aqi": 62,
+      "aqi": 80,
       "safetyIndex": 6.3,
       "walkability": 6.8
     },
@@ -5638,26 +5638,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 62,
+        "value": 80,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.435Z",
+        "observedAt": "2026-11-08T05:29:38.958Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 1.4,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.426Z",
+        "observedAt": "2026-11-08T05:29:39.903Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.424Z"
+      "countedAt": "2026-11-08T05:29:39.901Z"
     },
-    "healthyScore": 74,
+    "healthyScore": 71,
     "breakdown": {
-      "total": 74,
+      "total": 71,
       "components": [
         {
           "key": "crowdDensity",
@@ -5678,8 +5678,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "62 AQI",
-          "subScore": 74,
+          "display": "80 AQI",
+          "subScore": 65,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -5729,13 +5729,13 @@
     "reported": []
   },
   "/places/rmutt-stadium/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 62,
-        "max": 62,
-        "avg": 62,
+        "day": "2026-11-08",
+        "min": 80,
+        "max": 80,
+        "avg": 80,
         "samples": 1
       }
     ]
@@ -5768,7 +5768,7 @@
     "photo": null,
     "metrics": {
       "crowdDensity": 1.5,
-      "aqi": 62,
+      "aqi": 80,
       "safetyIndex": 6.4,
       "walkability": 7.4
     },
@@ -5780,26 +5780,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 62,
+        "value": 80,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.435Z",
+        "observedAt": "2026-11-08T05:29:38.958Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 1.5,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.490Z",
+        "observedAt": "2026-11-08T05:29:39.949Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.488Z"
+      "countedAt": "2026-11-08T05:29:39.947Z"
     },
-    "healthyScore": 75,
+    "healthyScore": 72,
     "breakdown": {
-      "total": 75,
+      "total": 72,
       "components": [
         {
           "key": "crowdDensity",
@@ -5820,8 +5820,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "62 AQI",
-          "subScore": 74,
+          "display": "80 AQI",
+          "subScore": 65,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -5871,13 +5871,13 @@
     "reported": []
   },
   "/places/rmutt-fountain/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 62,
-        "max": 62,
-        "avg": 62,
+        "day": "2026-11-08",
+        "min": 80,
+        "max": 80,
+        "avg": 80,
         "samples": 1
       }
     ]
@@ -5918,7 +5918,7 @@
     },
     "metrics": {
       "crowdDensity": 2,
-      "aqi": 62,
+      "aqi": 80,
       "safetyIndex": 6.2,
       "walkability": 5
     },
@@ -5930,26 +5930,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 62,
+        "value": 80,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.435Z",
+        "observedAt": "2026-11-08T05:29:38.958Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 2,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.537Z",
+        "observedAt": "2026-11-08T05:29:40.009Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.535Z"
+      "countedAt": "2026-11-08T05:29:40.008Z"
     },
-    "healthyScore": 68,
+    "healthyScore": 65,
     "breakdown": {
-      "total": 68,
+      "total": 65,
       "components": [
         {
           "key": "crowdDensity",
@@ -5970,8 +5970,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "62 AQI",
-          "subScore": 74,
+          "display": "80 AQI",
+          "subScore": 65,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -6021,13 +6021,13 @@
     "reported": []
   },
   "/places/sinthani-badminton/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 62,
-        "max": 62,
-        "avg": 62,
+        "day": "2026-11-08",
+        "min": 80,
+        "max": 80,
+        "avg": 80,
         "samples": 1
       }
     ]
@@ -6060,7 +6060,7 @@
     "photo": null,
     "metrics": {
       "crowdDensity": 1.7,
-      "aqi": 40,
+      "aqi": 34,
       "safetyIndex": 6.5,
       "walkability": 7
     },
@@ -6078,26 +6078,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 40,
+        "value": 34,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:33.953Z",
+        "observedAt": "2026-11-08T05:29:38.442Z",
         "source": "Air4Thai · Kasetsart University intersection, roadside (BMA bkp73t) · 1 km · ground station (cached)"
       },
       "crowdDensity": {
         "value": 1.7,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.599Z",
+        "observedAt": "2026-11-08T05:29:40.031Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.596Z"
+      "countedAt": "2026-11-08T05:29:40.028Z"
     },
-    "healthyScore": 78,
+    "healthyScore": 79,
     "breakdown": {
-      "total": 78,
+      "total": 79,
       "components": [
         {
           "key": "crowdDensity",
@@ -6118,8 +6118,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "40 AQI",
-          "subScore": 84.8,
+          "display": "34 AQI",
+          "subScore": 87.7,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -6169,13 +6169,13 @@
     "reported": []
   },
   "/places/ku-bk-library/history": {
-    "since": "2026-11-07T05:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 40,
-        "max": 40,
-        "avg": 40,
+        "day": "2026-11-08",
+        "min": 34,
+        "max": 34,
+        "avg": 34,
         "samples": 2
       }
     ]
@@ -6207,7 +6207,7 @@
     "photo": null,
     "metrics": {
       "crowdDensity": 1.1,
-      "aqi": 40,
+      "aqi": 34,
       "safetyIndex": 6.5,
       "walkability": 7.4
     },
@@ -6225,26 +6225,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 40,
+        "value": 34,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:33.953Z",
+        "observedAt": "2026-11-08T05:29:38.442Z",
         "source": "Air4Thai · Kasetsart University intersection, roadside (BMA bkp73t) · 1.5 km · ground station (cached)"
       },
       "crowdDensity": {
         "value": 1.1,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.661Z",
+        "observedAt": "2026-11-08T05:29:40.085Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.659Z"
+      "countedAt": "2026-11-08T05:29:40.084Z"
     },
-    "healthyScore": 81,
+    "healthyScore": 82,
     "breakdown": {
-      "total": 81,
+      "total": 82,
       "components": [
         {
           "key": "crowdDensity",
@@ -6265,8 +6265,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "40 AQI",
-          "subScore": 84.8,
+          "display": "34 AQI",
+          "subScore": 87.7,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -6316,13 +6316,13 @@
     "reported": []
   },
   "/places/ku-bk-park/history": {
-    "since": "2026-11-07T05:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 40,
-        "max": 40,
-        "avg": 40,
+        "day": "2026-11-08",
+        "min": 34,
+        "max": 34,
+        "avg": 34,
         "samples": 2
       }
     ]
@@ -6354,7 +6354,7 @@
     "photo": null,
     "metrics": {
       "crowdDensity": 1.5,
-      "aqi": 40,
+      "aqi": 34,
       "safetyIndex": 6.4,
       "walkability": 7.2
     },
@@ -6372,26 +6372,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 40,
+        "value": 34,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:33.953Z",
+        "observedAt": "2026-11-08T05:29:38.442Z",
         "source": "Air4Thai · Kasetsart University intersection, roadside (BMA bkp73t) · 0.2 km · ground station (cached)"
       },
       "crowdDensity": {
         "value": 1.5,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.726Z",
+        "observedAt": "2026-11-08T05:29:40.148Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.724Z"
+      "countedAt": "2026-11-08T05:29:40.146Z"
     },
-    "healthyScore": 79,
+    "healthyScore": 80,
     "breakdown": {
-      "total": 79,
+      "total": 80,
       "components": [
         {
           "key": "crowdDensity",
@@ -6412,8 +6412,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "40 AQI",
-          "subScore": 84.8,
+          "display": "34 AQI",
+          "subScore": 87.7,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -6463,13 +6463,13 @@
     "reported": []
   },
   "/places/ku-bk-auditorium/history": {
-    "since": "2026-11-07T05:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 40,
-        "max": 40,
-        "avg": 40,
+        "day": "2026-11-08",
+        "min": 34,
+        "max": 34,
+        "avg": 34,
         "samples": 2
       }
     ]
@@ -6501,7 +6501,7 @@
     "photo": null,
     "metrics": {
       "crowdDensity": 1.4,
-      "aqi": 40,
+      "aqi": 34,
       "safetyIndex": 6.3,
       "walkability": 6.8
     },
@@ -6519,26 +6519,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 40,
+        "value": 34,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:33.953Z",
+        "observedAt": "2026-11-08T05:29:38.442Z",
         "source": "Air4Thai · Kasetsart University intersection, roadside (BMA bkp73t) · 1.3 km · ground station (cached)"
       },
       "crowdDensity": {
         "value": 1.4,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.786Z",
+        "observedAt": "2026-11-08T05:29:40.209Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.785Z"
+      "countedAt": "2026-11-08T05:29:40.207Z"
     },
-    "healthyScore": 78,
+    "healthyScore": 79,
     "breakdown": {
-      "total": 78,
+      "total": 79,
       "components": [
         {
           "key": "crowdDensity",
@@ -6559,8 +6559,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "40 AQI",
-          "subScore": 84.8,
+          "display": "34 AQI",
+          "subScore": 87.7,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -6610,13 +6610,13 @@
     "reported": []
   },
   "/places/ku-bk-stadium/history": {
-    "since": "2026-11-07T05:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 40,
-        "max": 40,
-        "avg": 40,
+        "day": "2026-11-08",
+        "min": 34,
+        "max": 34,
+        "avg": 34,
         "samples": 2
       }
     ]
@@ -6648,7 +6648,7 @@
     "photo": null,
     "metrics": {
       "crowdDensity": 3.4,
-      "aqi": 40,
+      "aqi": 34,
       "safetyIndex": 6.4,
       "walkability": 7.2
     },
@@ -6666,26 +6666,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 40,
+        "value": 34,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:33.953Z",
+        "observedAt": "2026-11-08T05:29:38.442Z",
         "source": "Air4Thai · Kasetsart University intersection, roadside (BMA bkp73t) · 1.3 km · ground station (cached)"
       },
       "crowdDensity": {
         "value": 3.4,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.850Z",
+        "observedAt": "2026-11-08T05:29:40.271Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.847Z"
+      "countedAt": "2026-11-08T05:29:40.269Z"
     },
-    "healthyScore": 74,
+    "healthyScore": 75,
     "breakdown": {
-      "total": 74,
+      "total": 75,
       "components": [
         {
           "key": "crowdDensity",
@@ -6706,8 +6706,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "40 AQI",
-          "subScore": 84.8,
+          "display": "34 AQI",
+          "subScore": 87.7,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -6757,13 +6757,13 @@
     "reported": []
   },
   "/places/ku-bk-canteen/history": {
-    "since": "2026-11-07T05:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 40,
-        "max": 40,
-        "avg": 40,
+        "day": "2026-11-08",
+        "min": 34,
+        "max": 34,
+        "avg": 34,
         "samples": 2
       }
     ]
@@ -6800,7 +6800,7 @@
     },
     "metrics": {
       "crowdDensity": 4,
-      "aqi": 54,
+      "aqi": 58,
       "safetyIndex": 6,
       "walkability": 6
     },
@@ -6812,26 +6812,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 54,
+        "value": 58,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.473Z",
+        "observedAt": "2026-11-08T05:29:38.943Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 4,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.912Z",
+        "observedAt": "2026-11-08T05:29:40.333Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.910Z"
+      "countedAt": "2026-11-08T05:29:40.331Z"
     },
-    "healthyScore": 67,
+    "healthyScore": 66,
     "breakdown": {
-      "total": 67,
+      "total": 66,
       "components": [
         {
           "key": "crowdDensity",
@@ -6852,8 +6852,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "54 AQI",
-          "subScore": 78,
+          "display": "58 AQI",
+          "subScore": 76,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -6903,13 +6903,13 @@
     "reported": []
   },
   "/places/sc-pier/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 54,
-        "max": 54,
-        "avg": 54,
+        "day": "2026-11-08",
+        "min": 58,
+        "max": 58,
+        "avg": 58,
         "samples": 1
       }
     ]
@@ -6946,7 +6946,7 @@
     },
     "metrics": {
       "crowdDensity": 1.5,
-      "aqi": 54,
+      "aqi": 58,
       "safetyIndex": 6.5,
       "walkability": 6
     },
@@ -6958,26 +6958,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 54,
+        "value": 58,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.473Z",
+        "observedAt": "2026-11-08T05:29:38.943Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 1.5,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:35.961Z",
+        "observedAt": "2026-11-08T05:29:40.394Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:35.960Z"
+      "countedAt": "2026-11-08T05:29:40.393Z"
     },
-    "healthyScore": 74,
+    "healthyScore": 73,
     "breakdown": {
-      "total": 74,
+      "total": 73,
       "components": [
         {
           "key": "crowdDensity",
@@ -6998,8 +6998,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "54 AQI",
-          "subScore": 78,
+          "display": "58 AQI",
+          "subScore": 76,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -7049,13 +7049,13 @@
     "reported": []
   },
   "/places/sc-hospital/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 54,
-        "max": 54,
-        "avg": 54,
+        "day": "2026-11-08",
+        "min": 58,
+        "max": 58,
+        "avg": 58,
         "samples": 1
       }
     ]
@@ -7092,7 +7092,7 @@
     },
     "metrics": {
       "crowdDensity": 2.5,
-      "aqi": 54,
+      "aqi": 58,
       "safetyIndex": 5.8,
       "walkability": 5
     },
@@ -7104,22 +7104,22 @@
     },
     "readings": {
       "aqi": {
-        "value": 54,
+        "value": 58,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.433Z",
+        "observedAt": "2026-11-08T05:29:38.964Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 2.5,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:36.004Z",
+        "observedAt": "2026-11-08T05:29:40.456Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:36.003Z"
+      "countedAt": "2026-11-08T05:29:40.455Z"
     },
     "healthyScore": 67,
     "breakdown": {
@@ -7144,8 +7144,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "54 AQI",
-          "subScore": 78,
+          "display": "58 AQI",
+          "subScore": 76,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -7195,13 +7195,13 @@
     "reported": []
   },
   "/places/sc-thamphang/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 54,
-        "max": 54,
-        "avg": 54,
+        "day": "2026-11-08",
+        "min": 58,
+        "max": 58,
+        "avg": 58,
         "samples": 1
       }
     ]
@@ -7239,7 +7239,7 @@
     },
     "metrics": {
       "crowdDensity": 3,
-      "aqi": 54,
+      "aqi": 58,
       "safetyIndex": 6.5,
       "walkability": 7
     },
@@ -7251,22 +7251,22 @@
     },
     "readings": {
       "aqi": {
-        "value": 54,
+        "value": 58,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.433Z",
+        "observedAt": "2026-11-08T05:29:38.964Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 3,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:36.067Z",
+        "observedAt": "2026-11-08T05:29:40.505Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:36.065Z"
+      "countedAt": "2026-11-08T05:29:40.503Z"
     },
     "healthyScore": 72,
     "breakdown": {
@@ -7291,8 +7291,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "54 AQI",
-          "subScore": 78,
+          "display": "58 AQI",
+          "subScore": 76,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -7342,13 +7342,13 @@
     "reported": []
   },
   "/places/sc-palace/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 54,
-        "max": 54,
-        "avg": 54,
+        "day": "2026-11-08",
+        "min": 58,
+        "max": 58,
+        "avg": 58,
         "samples": 1
       }
     ]
@@ -7386,7 +7386,7 @@
     },
     "metrics": {
       "crowdDensity": 1.5,
-      "aqi": 54,
+      "aqi": 58,
       "safetyIndex": 6.5,
       "walkability": 6
     },
@@ -7398,26 +7398,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 54,
+        "value": 58,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.473Z",
+        "observedAt": "2026-11-08T05:29:38.943Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 1.5,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:36.129Z",
+        "observedAt": "2026-11-08T05:29:40.566Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:36.127Z"
+      "countedAt": "2026-11-08T05:29:40.564Z"
     },
-    "healthyScore": 74,
+    "healthyScore": 73,
     "breakdown": {
-      "total": 74,
+      "total": 73,
       "components": [
         {
           "key": "crowdDensity",
@@ -7438,8 +7438,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "54 AQI",
-          "subScore": 78,
+          "display": "58 AQI",
+          "subScore": 76,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -7489,13 +7489,13 @@
     "reported": []
   },
   "/places/sc-marinestation/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 54,
-        "max": 54,
-        "avg": 54,
+        "day": "2026-11-08",
+        "min": 58,
+        "max": 58,
+        "avg": 58,
         "samples": 1
       }
     ]
@@ -7532,7 +7532,7 @@
     },
     "metrics": {
       "crowdDensity": 3.5,
-      "aqi": 54,
+      "aqi": 58,
       "safetyIndex": 6,
       "walkability": 6.5
     },
@@ -7544,26 +7544,26 @@
     },
     "readings": {
       "aqi": {
-        "value": 54,
+        "value": 58,
         "provenance": "live",
-        "observedAt": "2026-11-07T06:13:34.473Z",
+        "observedAt": "2026-11-08T05:29:38.943Z",
         "source": "Open-Meteo · Copernicus CAMS (~11 km area reading, cached)"
       },
       "crowdDensity": {
         "value": 3.5,
         "provenance": "estimated",
-        "observedAt": "2026-11-07T06:13:36.174Z",
+        "observedAt": "2026-11-08T05:29:40.618Z",
         "source": "Seeded survey estimate - no live density feed"
       }
     },
     "crowd": {
       "checkinsLastHour": 0,
       "windowMinutes": 60,
-      "countedAt": "2026-11-07T06:13:36.173Z"
+      "countedAt": "2026-11-08T05:29:40.616Z"
     },
-    "healthyScore": 69,
+    "healthyScore": 68,
     "breakdown": {
-      "total": 69,
+      "total": 68,
       "components": [
         {
           "key": "crowdDensity",
@@ -7584,8 +7584,8 @@
             "th": "คุณภาพอากาศ",
             "zh": "空气质量"
           },
-          "display": "54 AQI",
-          "subScore": 78,
+          "display": "58 AQI",
+          "subScore": 76,
           "weight": 0.375,
           "provenance": "live"
         },
@@ -7635,13 +7635,13 @@
     "reported": []
   },
   "/places/sc-shops/history": {
-    "since": "2026-11-07T06:00:00.000Z",
+    "since": "2026-11-08T05:00:00.000Z",
     "days": [
       {
-        "day": "2026-11-07",
-        "min": 54,
-        "max": 54,
-        "avg": 54,
+        "day": "2026-11-08",
+        "min": 58,
+        "max": 58,
+        "avg": 58,
         "samples": 1
       }
     ]
@@ -7682,10 +7682,10 @@
       "questId": "q1",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-11-07T06:13:19.422Z",
-      "arrivedAt": "2026-11-06T14:13:19.352Z",
-      "proofSubmittedAt": "2026-11-06T14:58:19.352Z",
-      "verifiedAt": "2026-11-07T06:13:19.427Z",
+      "joinedAt": "2026-11-08T05:29:27.457Z",
+      "arrivedAt": "2026-11-07T13:29:27.379Z",
+      "proofSubmittedAt": "2026-11-07T14:14:27.379Z",
+      "verifiedAt": "2026-11-08T05:29:27.461Z",
       "weightKg": 3.2,
       "rejectedAt": null,
       "rejectionReason": null
@@ -7723,10 +7723,10 @@
       "questId": "q2",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-11-07T06:13:19.428Z",
-      "arrivedAt": "2026-11-06T17:13:19.352Z",
-      "proofSubmittedAt": "2026-11-06T17:58:19.352Z",
-      "verifiedAt": "2026-11-07T06:13:19.432Z",
+      "joinedAt": "2026-11-08T05:29:27.463Z",
+      "arrivedAt": "2026-11-07T16:29:27.379Z",
+      "proofSubmittedAt": "2026-11-07T17:14:27.379Z",
+      "verifiedAt": "2026-11-08T05:29:27.466Z",
       "weightKg": 3.2,
       "rejectedAt": null,
       "rejectionReason": null
@@ -7794,10 +7794,10 @@
       "questId": "q4",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-11-07T06:13:19.433Z",
-      "arrivedAt": "2026-11-06T20:13:19.352Z",
-      "proofSubmittedAt": "2026-11-06T20:58:19.352Z",
-      "verifiedAt": "2026-11-07T06:13:19.436Z",
+      "joinedAt": "2026-11-08T05:29:27.467Z",
+      "arrivedAt": "2026-11-07T19:29:27.379Z",
+      "proofSubmittedAt": "2026-11-07T20:14:27.379Z",
+      "verifiedAt": "2026-11-08T05:29:27.471Z",
       "weightKg": 3.2,
       "rejectedAt": null,
       "rejectionReason": null
@@ -7835,10 +7835,10 @@
       "questId": "q5",
       "userId": "demo-user",
       "stage": "complete",
-      "joinedAt": "2026-11-07T06:13:19.438Z",
-      "arrivedAt": "2026-11-06T23:13:19.352Z",
-      "proofSubmittedAt": "2026-11-06T23:58:19.352Z",
-      "verifiedAt": "2026-11-07T06:13:19.441Z",
+      "joinedAt": "2026-11-08T05:29:27.472Z",
+      "arrivedAt": "2026-11-07T22:29:27.379Z",
+      "proofSubmittedAt": "2026-11-07T23:14:27.379Z",
+      "verifiedAt": "2026-11-08T05:29:27.475Z",
       "weightKg": 3.2,
       "rejectedAt": null,
       "rejectionReason": null
@@ -8406,10 +8406,10 @@
         "questId": "q1",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-11-07T06:13:19.422Z",
-        "arrivedAt": "2026-11-06T14:13:19.352Z",
-        "proofSubmittedAt": "2026-11-06T14:58:19.352Z",
-        "verifiedAt": "2026-11-07T06:13:19.427Z",
+        "joinedAt": "2026-11-08T05:29:27.457Z",
+        "arrivedAt": "2026-11-07T13:29:27.379Z",
+        "proofSubmittedAt": "2026-11-07T14:14:27.379Z",
+        "verifiedAt": "2026-11-08T05:29:27.461Z",
         "weightKg": 3.2,
         "rejectedAt": null,
         "rejectionReason": null
@@ -8418,10 +8418,10 @@
         "questId": "q2",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-11-07T06:13:19.428Z",
-        "arrivedAt": "2026-11-06T17:13:19.352Z",
-        "proofSubmittedAt": "2026-11-06T17:58:19.352Z",
-        "verifiedAt": "2026-11-07T06:13:19.432Z",
+        "joinedAt": "2026-11-08T05:29:27.463Z",
+        "arrivedAt": "2026-11-07T16:29:27.379Z",
+        "proofSubmittedAt": "2026-11-07T17:14:27.379Z",
+        "verifiedAt": "2026-11-08T05:29:27.466Z",
         "weightKg": 3.2,
         "rejectedAt": null,
         "rejectionReason": null
@@ -8430,10 +8430,10 @@
         "questId": "q4",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-11-07T06:13:19.433Z",
-        "arrivedAt": "2026-11-06T20:13:19.352Z",
-        "proofSubmittedAt": "2026-11-06T20:58:19.352Z",
-        "verifiedAt": "2026-11-07T06:13:19.436Z",
+        "joinedAt": "2026-11-08T05:29:27.467Z",
+        "arrivedAt": "2026-11-07T19:29:27.379Z",
+        "proofSubmittedAt": "2026-11-07T20:14:27.379Z",
+        "verifiedAt": "2026-11-08T05:29:27.471Z",
         "weightKg": 3.2,
         "rejectedAt": null,
         "rejectionReason": null
@@ -8442,10 +8442,10 @@
         "questId": "q5",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-11-07T06:13:19.438Z",
-        "arrivedAt": "2026-11-06T23:13:19.352Z",
-        "proofSubmittedAt": "2026-11-06T23:58:19.352Z",
-        "verifiedAt": "2026-11-07T06:13:19.441Z",
+        "joinedAt": "2026-11-08T05:29:27.472Z",
+        "arrivedAt": "2026-11-07T22:29:27.379Z",
+        "proofSubmittedAt": "2026-11-07T23:14:27.379Z",
+        "verifiedAt": "2026-11-08T05:29:27.475Z",
         "weightKg": 3.2,
         "rejectedAt": null,
         "rejectionReason": null
@@ -8730,10 +8730,10 @@
         "questId": "q1",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-11-07T06:13:19.422Z",
-        "arrivedAt": "2026-11-06T14:13:19.352Z",
-        "proofSubmittedAt": "2026-11-06T14:58:19.352Z",
-        "verifiedAt": "2026-11-07T06:13:19.427Z",
+        "joinedAt": "2026-11-08T05:29:27.457Z",
+        "arrivedAt": "2026-11-07T13:29:27.379Z",
+        "proofSubmittedAt": "2026-11-07T14:14:27.379Z",
+        "verifiedAt": "2026-11-08T05:29:27.461Z",
         "weightKg": 3.2,
         "rejectedAt": null,
         "rejectionReason": null
@@ -8742,10 +8742,10 @@
         "questId": "q2",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-11-07T06:13:19.428Z",
-        "arrivedAt": "2026-11-06T17:13:19.352Z",
-        "proofSubmittedAt": "2026-11-06T17:58:19.352Z",
-        "verifiedAt": "2026-11-07T06:13:19.432Z",
+        "joinedAt": "2026-11-08T05:29:27.463Z",
+        "arrivedAt": "2026-11-07T16:29:27.379Z",
+        "proofSubmittedAt": "2026-11-07T17:14:27.379Z",
+        "verifiedAt": "2026-11-08T05:29:27.466Z",
         "weightKg": 3.2,
         "rejectedAt": null,
         "rejectionReason": null
@@ -8754,10 +8754,10 @@
         "questId": "q4",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-11-07T06:13:19.433Z",
-        "arrivedAt": "2026-11-06T20:13:19.352Z",
-        "proofSubmittedAt": "2026-11-06T20:58:19.352Z",
-        "verifiedAt": "2026-11-07T06:13:19.436Z",
+        "joinedAt": "2026-11-08T05:29:27.467Z",
+        "arrivedAt": "2026-11-07T19:29:27.379Z",
+        "proofSubmittedAt": "2026-11-07T20:14:27.379Z",
+        "verifiedAt": "2026-11-08T05:29:27.471Z",
         "weightKg": 3.2,
         "rejectedAt": null,
         "rejectionReason": null
@@ -8766,10 +8766,10 @@
         "questId": "q5",
         "userId": "demo-user",
         "stage": "complete",
-        "joinedAt": "2026-11-07T06:13:19.438Z",
-        "arrivedAt": "2026-11-06T23:13:19.352Z",
-        "proofSubmittedAt": "2026-11-06T23:58:19.352Z",
-        "verifiedAt": "2026-11-07T06:13:19.441Z",
+        "joinedAt": "2026-11-08T05:29:27.472Z",
+        "arrivedAt": "2026-11-07T22:29:27.379Z",
+        "proofSubmittedAt": "2026-11-07T23:14:27.379Z",
+        "verifiedAt": "2026-11-08T05:29:27.475Z",
         "weightKg": 3.2,
         "rejectedAt": null,
         "rejectionReason": null
@@ -8788,27 +8788,27 @@
     "places": [
       {
         "placeId": "chaweng",
-        "firstAt": "2026-11-03T11:00:00.000Z",
+        "firstAt": "2026-11-04T11:00:00.000Z",
         "how": "checkin"
       },
       {
         "placeId": "namuang",
-        "firstAt": "2026-11-03T13:00:00.000Z",
-        "how": "checkin"
-      },
-      {
-        "placeId": "fisherman",
-        "firstAt": "2026-11-04T12:00:00.000Z",
-        "how": "checkin"
-      },
-      {
-        "placeId": "lamai",
         "firstAt": "2026-11-04T13:00:00.000Z",
         "how": "checkin"
       },
       {
-        "placeId": "mangrove",
+        "placeId": "fisherman",
+        "firstAt": "2026-11-05T12:00:00.000Z",
+        "how": "checkin"
+      },
+      {
+        "placeId": "lamai",
         "firstAt": "2026-11-05T13:00:00.000Z",
+        "how": "checkin"
+      },
+      {
+        "placeId": "mangrove",
+        "firstAt": "2026-11-06T13:00:00.000Z",
         "how": "checkin"
       }
     ]
@@ -8829,7 +8829,7 @@
         },
         "mark": "footprints",
         "earned": true,
-        "earnedAt": "2026-11-03T11:00:00.000Z",
+        "earnedAt": "2026-11-04T11:00:00.000Z",
         "progress": {
           "done": 1,
           "total": 1,
@@ -8850,7 +8850,7 @@
         },
         "mark": "compass",
         "earned": true,
-        "earnedAt": "2026-11-04T12:00:00.000Z",
+        "earnedAt": "2026-11-05T12:00:00.000Z",
         "progress": {
           "done": 3,
           "total": 3,
@@ -8871,7 +8871,7 @@
         },
         "mark": "waves",
         "earned": true,
-        "earnedAt": "2026-11-04T13:00:00.000Z",
+        "earnedAt": "2026-11-05T13:00:00.000Z",
         "progress": {
           "done": 3,
           "total": 3,
@@ -8892,7 +8892,7 @@
         },
         "mark": "trees",
         "earned": true,
-        "earnedAt": "2026-11-05T13:00:00.000Z",
+        "earnedAt": "2026-11-06T13:00:00.000Z",
         "progress": {
           "done": 2,
           "total": 2,
@@ -8913,7 +8913,7 @@
         },
         "mark": "palm",
         "earned": true,
-        "earnedAt": "2026-11-05T13:00:00.000Z",
+        "earnedAt": "2026-11-06T13:00:00.000Z",
         "progress": {
           "done": 5,
           "total": 5,
@@ -8974,7 +8974,7 @@
   "/me/statements": {
     "statements": [
       {
-        "id": "CG-2026-567GWK",
+        "id": "CG-2026-FQTPYJ",
         "host": {
           "id": "h-samui-muni",
           "name": "Samui Municipality",
@@ -8984,7 +8984,7 @@
           "from": "2026-01-01",
           "to": "2026-12-31"
         },
-        "issuedAt": "2026-11-07T06:13:19.457Z",
+        "issuedAt": "2026-11-08T05:29:27.498Z",
         "quests": [
           {
             "id": "q1",
@@ -9262,10 +9262,10 @@
     },
     "ledger": [
       {
-        "id": "cb031094-72b4-42ab-9ccd-c7de07285153",
+        "id": "4f654ea9-61da-4bb5-af11-c2b8c05e4d56",
         "label": "Fisherman’s Village food trail",
         "subject": "Fisherman’s Village food trail",
-        "occurredAt": "2026-11-07T06:13:19.441Z",
+        "occurredAt": "2026-11-08T05:29:27.475Z",
         "host": "Fisherman's Village Traders",
         "amount": 120,
         "currency": "trip",
@@ -9274,10 +9274,10 @@
         "sourceRef": "quest:q5:user:demo-user"
       },
       {
-        "id": "321c7210-78d8-45f5-aa89-c94976e3f264",
+        "id": "67d0048c-6753-4752-861b-4729c5aa2cac",
         "label": "Walk, don’t ride",
         "subject": "Walk, don’t ride",
-        "occurredAt": "2026-11-07T06:13:19.436Z",
+        "occurredAt": "2026-11-08T05:29:27.471Z",
         "host": "ChivarGo",
         "amount": 60,
         "currency": "green",
@@ -9286,10 +9286,10 @@
         "sourceRef": "quest:q4:user:demo-user"
       },
       {
-        "id": "19036b00-fdb5-4e4d-8000-b62e793e300d",
+        "id": "447f9c87-2a07-4407-9718-7abf0fc99034",
         "label": "Mangrove Planting",
         "subject": "Mangrove Planting",
-        "occurredAt": "2026-11-07T06:13:19.432Z",
+        "occurredAt": "2026-11-08T05:29:27.466Z",
         "host": "Samui Green Foundation (NGO)",
         "amount": 400,
         "currency": "green",
@@ -9298,10 +9298,10 @@
         "sourceRef": "quest:q2:user:demo-user"
       },
       {
-        "id": "1e8e77cf-6ddb-460f-9644-562a3162375d",
+        "id": "496fd959-f94e-477c-baa9-4799665bd46b",
         "label": "Beach Cleanup",
         "subject": "Beach Cleanup",
-        "occurredAt": "2026-11-07T06:13:19.427Z",
+        "occurredAt": "2026-11-08T05:29:27.461Z",
         "host": "Samui Municipality",
         "amount": 150,
         "currency": "green",
@@ -9310,34 +9310,58 @@
         "sourceRef": "quest:q1:user:demo-user"
       },
       {
-        "id": "6cbd28ca-688c-453e-9f61-b739eb370561",
+        "id": "1db43e7e-f22f-405d-ad67-64e10767eaa0",
         "label": "Walked · Chaweng Beach → Fisherman's Village",
         "subject": "Chaweng Beach → Fisherman's Village",
-        "occurredAt": "2026-11-07T06:13:19.352Z",
+        "occurredAt": "2026-11-08T05:29:27.379Z",
         "host": "ChivarGo · measured leg on foot",
         "amount": 30,
         "currency": "trip",
         "exp": 30,
         "kind": "walk",
-        "sourceRef": "walk:chaweng:fisherman:user:demo-user:2026-11-07"
+        "sourceRef": "walk:chaweng:fisherman:user:demo-user:2026-11-08"
       },
       {
-        "id": "0ba5355b-48e7-4a31-95e2-276ed4815ae7",
+        "id": "63c0e5a3-951b-4640-b26d-a11ef1684f65",
         "label": "Checked in · Fisherman's Village",
         "subject": "Fisherman's Village",
-        "occurredAt": "2026-11-07T06:13:19.352Z",
+        "occurredAt": "2026-11-08T05:29:27.379Z",
         "host": "ChivarGo · self check-in",
         "amount": 20,
         "currency": "trip",
         "exp": 20,
         "kind": "checkin",
-        "sourceRef": "checkin:fisherman:user:demo-user:2026-11-07"
+        "sourceRef": "checkin:fisherman:user:demo-user:2026-11-08"
       },
       {
-        "id": "77f35873-9013-4f8c-a53f-571ccead543c",
+        "id": "cc700d37-3e29-47ba-a474-b0f8b80f35fd",
         "label": "Checked in · Chaweng Beach",
         "subject": "Chaweng Beach",
-        "occurredAt": "2026-11-07T04:13:19.352Z",
+        "occurredAt": "2026-11-08T03:29:27.379Z",
+        "host": "ChivarGo · self check-in",
+        "amount": 20,
+        "currency": "trip",
+        "exp": 20,
+        "kind": "checkin",
+        "sourceRef": "checkin:chaweng:user:demo-user:2026-11-08"
+      },
+      {
+        "id": "bd0be4e2-b850-4010-a616-c12155e93dd1",
+        "label": "Walked · Fisherman's Village → Chaweng Beach",
+        "subject": "Fisherman's Village → Chaweng Beach",
+        "occurredAt": "2026-11-07T13:00:00.000Z",
+        "host": "ChivarGo · measured leg on foot",
+        "amount": 30,
+        "currency": "trip",
+        "exp": 30,
+        "kind": "walk",
+        "sourceRef": "walk:fisherman:chaweng:user:demo-user:2026-11-07"
+      },
+      {
+        "id": "2c64f310-359a-4bb6-8a68-bf1e0a5ad57f",
+        "label": "Checked in · Chaweng Beach",
+        "subject": "Chaweng Beach",
+        "occurredAt": "2026-11-07T13:00:00.000Z",
         "host": "ChivarGo · self check-in",
         "amount": 20,
         "currency": "trip",
@@ -9346,136 +9370,112 @@
         "sourceRef": "checkin:chaweng:user:demo-user:2026-11-07"
       },
       {
-        "id": "70a092dd-58fc-4b1f-8169-f896f50f3969",
-        "label": "Walked · Fisherman's Village → Chaweng Beach",
-        "subject": "Fisherman's Village → Chaweng Beach",
+        "id": "8854806a-dbab-42ae-b9bf-7b4184bdbc54",
+        "label": "Checked in · Fisherman's Village",
+        "subject": "Fisherman's Village",
+        "occurredAt": "2026-11-07T11:00:00.000Z",
+        "host": "ChivarGo · self check-in",
+        "amount": 20,
+        "currency": "trip",
+        "exp": 20,
+        "kind": "checkin",
+        "sourceRef": "checkin:fisherman:user:demo-user:2026-11-07"
+      },
+      {
+        "id": "3505747e-a5d5-4750-9148-5798d275149b",
+        "label": "Walked · Na Muang Waterfall → Thong Krut Mangrove",
+        "subject": "Na Muang Waterfall → Thong Krut Mangrove",
         "occurredAt": "2026-11-06T13:00:00.000Z",
         "host": "ChivarGo · measured leg on foot",
         "amount": 30,
         "currency": "trip",
         "exp": 30,
         "kind": "walk",
-        "sourceRef": "walk:fisherman:chaweng:user:demo-user:2026-11-06"
+        "sourceRef": "walk:namuang:mangrove:user:demo-user:2026-11-06"
       },
       {
-        "id": "b40f8947-840e-4068-8e63-071e5963b363",
-        "label": "Checked in · Chaweng Beach",
-        "subject": "Chaweng Beach",
+        "id": "b591ff22-0203-4bc4-994c-1d1b81d82906",
+        "label": "Checked in · Thong Krut Mangrove",
+        "subject": "Thong Krut Mangrove",
         "occurredAt": "2026-11-06T13:00:00.000Z",
         "host": "ChivarGo · self check-in",
         "amount": 20,
         "currency": "trip",
         "exp": 20,
         "kind": "checkin",
-        "sourceRef": "checkin:chaweng:user:demo-user:2026-11-06"
+        "sourceRef": "checkin:mangrove:user:demo-user:2026-11-06"
       },
       {
-        "id": "38fa4417-cfdd-434b-8096-ca9453483535",
-        "label": "Checked in · Fisherman's Village",
-        "subject": "Fisherman's Village",
+        "id": "ec801182-1ce8-4cfe-a863-26c2835210ef",
+        "label": "Checked in · Na Muang Waterfall",
+        "subject": "Na Muang Waterfall",
         "occurredAt": "2026-11-06T11:00:00.000Z",
         "host": "ChivarGo · self check-in",
         "amount": 20,
         "currency": "trip",
         "exp": 20,
         "kind": "checkin",
-        "sourceRef": "checkin:fisherman:user:demo-user:2026-11-06"
+        "sourceRef": "checkin:namuang:user:demo-user:2026-11-06"
       },
       {
-        "id": "fb575f7b-ab33-49f2-9ce2-e700e172ec06",
-        "label": "Walked · Na Muang Waterfall → Thong Krut Mangrove",
-        "subject": "Na Muang Waterfall → Thong Krut Mangrove",
+        "id": "a9c546a9-0fab-436d-874d-b7e67738e2b7",
+        "label": "Checked in · Lamai Beach",
+        "subject": "Lamai Beach",
         "occurredAt": "2026-11-05T13:00:00.000Z",
+        "host": "ChivarGo · self check-in",
+        "amount": 20,
+        "currency": "trip",
+        "exp": 20,
+        "kind": "checkin",
+        "sourceRef": "checkin:lamai:user:demo-user:2026-11-05"
+      },
+      {
+        "id": "db1062bd-6158-4ec1-a6f8-e0cdb6496fb7",
+        "label": "Checked in · Fisherman's Village",
+        "subject": "Fisherman's Village",
+        "occurredAt": "2026-11-05T12:00:00.000Z",
+        "host": "ChivarGo · self check-in",
+        "amount": 20,
+        "currency": "trip",
+        "exp": 20,
+        "kind": "checkin",
+        "sourceRef": "checkin:fisherman:user:demo-user:2026-11-05"
+      },
+      {
+        "id": "7ce4b456-a561-4220-a4dc-1046f58cdb98",
+        "label": "Walked · Chaweng Beach → Na Muang Waterfall",
+        "subject": "Chaweng Beach → Na Muang Waterfall",
+        "occurredAt": "2026-11-04T13:00:00.000Z",
         "host": "ChivarGo · measured leg on foot",
         "amount": 30,
         "currency": "trip",
         "exp": 30,
         "kind": "walk",
-        "sourceRef": "walk:namuang:mangrove:user:demo-user:2026-11-05"
+        "sourceRef": "walk:chaweng:namuang:user:demo-user:2026-11-04"
       },
       {
-        "id": "d2d41399-cf33-4e11-a23c-7d74204f9c8a",
-        "label": "Checked in · Thong Krut Mangrove",
-        "subject": "Thong Krut Mangrove",
-        "occurredAt": "2026-11-05T13:00:00.000Z",
-        "host": "ChivarGo · self check-in",
-        "amount": 20,
-        "currency": "trip",
-        "exp": 20,
-        "kind": "checkin",
-        "sourceRef": "checkin:mangrove:user:demo-user:2026-11-05"
-      },
-      {
-        "id": "b32f5585-509d-4036-ad11-634dce39652b",
+        "id": "39da1eca-aef9-4b78-931e-c06703c2b5e9",
         "label": "Checked in · Na Muang Waterfall",
         "subject": "Na Muang Waterfall",
-        "occurredAt": "2026-11-05T11:00:00.000Z",
-        "host": "ChivarGo · self check-in",
-        "amount": 20,
-        "currency": "trip",
-        "exp": 20,
-        "kind": "checkin",
-        "sourceRef": "checkin:namuang:user:demo-user:2026-11-05"
-      },
-      {
-        "id": "16802a04-b22c-4892-8779-e27f044db404",
-        "label": "Checked in · Lamai Beach",
-        "subject": "Lamai Beach",
         "occurredAt": "2026-11-04T13:00:00.000Z",
         "host": "ChivarGo · self check-in",
         "amount": 20,
         "currency": "trip",
         "exp": 20,
         "kind": "checkin",
-        "sourceRef": "checkin:lamai:user:demo-user:2026-11-04"
+        "sourceRef": "checkin:namuang:user:demo-user:2026-11-04"
       },
       {
-        "id": "11adbd9e-a44e-4293-898e-a1093ed09f16",
-        "label": "Checked in · Fisherman's Village",
-        "subject": "Fisherman's Village",
-        "occurredAt": "2026-11-04T12:00:00.000Z",
-        "host": "ChivarGo · self check-in",
-        "amount": 20,
-        "currency": "trip",
-        "exp": 20,
-        "kind": "checkin",
-        "sourceRef": "checkin:fisherman:user:demo-user:2026-11-04"
-      },
-      {
-        "id": "fecb5590-7ef6-4c14-890f-2c2e83956cc9",
-        "label": "Walked · Chaweng Beach → Na Muang Waterfall",
-        "subject": "Chaweng Beach → Na Muang Waterfall",
-        "occurredAt": "2026-11-03T13:00:00.000Z",
-        "host": "ChivarGo · measured leg on foot",
-        "amount": 30,
-        "currency": "trip",
-        "exp": 30,
-        "kind": "walk",
-        "sourceRef": "walk:chaweng:namuang:user:demo-user:2026-11-03"
-      },
-      {
-        "id": "392d4079-9029-4157-9739-13916da05df9",
-        "label": "Checked in · Na Muang Waterfall",
-        "subject": "Na Muang Waterfall",
-        "occurredAt": "2026-11-03T13:00:00.000Z",
-        "host": "ChivarGo · self check-in",
-        "amount": 20,
-        "currency": "trip",
-        "exp": 20,
-        "kind": "checkin",
-        "sourceRef": "checkin:namuang:user:demo-user:2026-11-03"
-      },
-      {
-        "id": "8d44f8eb-0271-4c82-bad2-543d99dc034c",
+        "id": "acf355e3-9ce7-435a-a3a2-e31d3a71109e",
         "label": "Checked in · Chaweng Beach",
         "subject": "Chaweng Beach",
-        "occurredAt": "2026-11-03T11:00:00.000Z",
+        "occurredAt": "2026-11-04T11:00:00.000Z",
         "host": "ChivarGo · self check-in",
         "amount": 20,
         "currency": "trip",
         "exp": 20,
         "kind": "checkin",
-        "sourceRef": "checkin:chaweng:user:demo-user:2026-11-03"
+        "sourceRef": "checkin:chaweng:user:demo-user:2026-11-04"
       }
     ]
   },
@@ -9517,6 +9517,19 @@
       "currency": "trip",
       "imageUrl": null,
       "available": true
+    },
+    {
+      "id": "o-sc-1",
+      "category": "Local experience",
+      "name": "Sea-pattern batik cloth",
+      "merchant": "มาลีบาติก เกาะสีชัง",
+      "merchantShort": "มาลีบาติก",
+      "costPoints": 200,
+      "valueTHB": null,
+      "currency": "green",
+      "imageUrl": null,
+      "available": true,
+      "example": true
     },
     {
       "id": "o10",
@@ -9786,7 +9799,7 @@
   "/notifications": {
     "items": [
       {
-        "id": "76c17d83-995a-4a15-af16-ad1b228f329a",
+        "id": "e1e59ca8-7a66-424c-9ba3-0e8aa550073a",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -9802,11 +9815,11 @@
           "screen": "wallet",
           "questId": "q5"
         },
-        "createdAt": "2026-11-07T06:13:19.441Z",
+        "createdAt": "2026-11-08T05:29:27.476Z",
         "readAt": null
       },
       {
-        "id": "a2eae9db-2f2c-495d-8b83-8564c1505284",
+        "id": "edde9628-24bf-47cf-b4c4-f5b5ffdd3def",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -9822,11 +9835,11 @@
           "screen": "wallet",
           "questId": "q4"
         },
-        "createdAt": "2026-11-07T06:13:19.436Z",
+        "createdAt": "2026-11-08T05:29:27.471Z",
         "readAt": null
       },
       {
-        "id": "42f40276-3fb9-4a07-8608-b564467d213e",
+        "id": "c35fd679-5461-493e-b7a0-78cd19fc1263",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -9842,11 +9855,11 @@
           "screen": "wallet",
           "questId": "q2"
         },
-        "createdAt": "2026-11-07T06:13:19.432Z",
+        "createdAt": "2026-11-08T05:29:27.466Z",
         "readAt": null
       },
       {
-        "id": "e876c685-f7e8-44f1-a6ec-9b767515dff6",
+        "id": "8aa62821-81d2-4823-ae58-46a4d9b83bd9",
         "kind": "quest_approved",
         "title": {
           "en": "Quest verified",
@@ -9862,7 +9875,7 @@
           "screen": "wallet",
           "questId": "q1"
         },
-        "createdAt": "2026-11-07T06:13:19.427Z",
+        "createdAt": "2026-11-08T05:29:27.461Z",
         "readAt": null
       }
     ],
