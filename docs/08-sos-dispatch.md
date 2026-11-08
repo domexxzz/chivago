@@ -1,6 +1,6 @@
 # SOS dispatch
 
-**Read this first: ChivaGo cannot send an ambulance.**
+**Read this first: ChivarGo cannot send an ambulance.**
 
 Thailand's emergency medical service is **1669**. The tourist police line, with
 English-speaking operators, is **1155**. Nothing in this system replaces either,
@@ -32,8 +32,8 @@ contacts    : 1 of 2 reached
 channels:
   share_link  Live location link     delivered    Ready to share…
   sms         Mae (mum)              unavailable  No SMS provider configured — send the link yourself
-  push        Somchai (brother)      sent         Push queued to their ChivaGo app
-  operator    ChivaGo duty desk      sent         Visible in the operator console. Not yet acknowledged
+  push        Somchai (brother)      sent         Push queued to their ChivarGo app
+  operator    ChivarGo duty desk      sent         Visible in the operator console. Not yet acknowledged
 ```
 
 That "unavailable" row is the point of the whole design. The alternative —
@@ -72,7 +72,7 @@ It exposes only what a family member needs: name, position, their note, status,
 nearest hospital. No user id, no contacts, no points, no trip history. There is
 a test asserting the exact field list, so nothing can be added by accident.
 
-### 2. Push to contacts who also use ChivaGo
+### 2. Push to contacts who also use ChivarGo
 
 Instant, and free. For a domestic traveller whose family is also on the app this
 is the fastest channel there is. For an international tourist it usually is not
@@ -151,8 +151,8 @@ Before this, a desk nobody watched failed **silently**. The traveller's app said
 
 The instinct is to escalate *inwards* — find another operator, page harder, try
 more of our own channels. That is the wrong instinct, and it is worth being
-explicit about why: **ChivaGo cannot send help**, so a ladder that only searches
-inside ChivaGo is a ladder that leads nowhere.
+explicit about why: **ChivarGo cannot send help**, so a ladder that only searches
+inside ChivarGo is a ladder that leads nowhere.
 
 The most valuable thing this system can do when its own channel has demonstrably
 failed is **tell the person, so they use the one that works.**
@@ -161,7 +161,7 @@ failed is **tell the person, so they use the one that works.**
 | --- | --- | --- |
 | `nudge_1` | **2 min** unacknowledged | Traveller: *"No one has picked up your alert after 2 min. Call 1669 now if anyone is hurt."* Contacts who use the app are re-alerted. |
 | `oncall` | **5 min** | On-call webhook paged with position, live link and desk link. Alert flagged **ESCALATED** on the desk. |
-| `nudge_2` | **10 min** | Blunter and final: *"ChivaGo cannot send help — call 1669 or 1155."* |
+| `nudge_2` | **10 min** | Blunter and final: *"ChivarGo cannot send help — call 1669 or 1155."* |
 
 All three intervals are env-overridable (`CHIVAGO_ESCALATE_NUDGE_1`, `_ONCALL`,
 `_NUDGE_2`), because a desk staffed round the clock by three people can
@@ -211,7 +211,7 @@ Verified end to end against a stand-in receiver:
 
 ```
 PAGE: SOS unacknowledged for 5 min — Lamai, 400 m.
-      Nobody has picked it up on the ChivaGo desk.
+      Nobody has picked it up on the ChivarGo desk.
   live: https://…/sos/live/nTAtrwlk…
 ```
 

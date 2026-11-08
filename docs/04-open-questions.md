@@ -142,7 +142,7 @@ Also added, because they follow from taking the alert seriously:
   a heavy impact on fire. The prototype has no feedback at all during the hold.
 - **The official Thai emergency numbers on the screen**: 1669 (EMS), 1155
   (Tourist Police, English-speaking, 24h), 191 (police). All free to call, no
-  airtime credit needed. ChivaGo dispatch runs *alongside* them, never instead
+  airtime credit needed. ChivarGo dispatch runs *alongside* them, never instead
   of them — an app-mediated dispatch can fail, and the user must never be left
   with only our button.
 

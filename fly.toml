@@ -1,4 +1,4 @@
-# ChivaGo on Fly.io.
+# ChivarGo on Fly.io.
 #
 #   fly auth login
 #   fly launch --no-deploy --copy-config --name chivago

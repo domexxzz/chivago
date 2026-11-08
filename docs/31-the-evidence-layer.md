@@ -138,8 +138,8 @@ prints that figure or no figure at all.
 
 - **The digest proves the paper matches our record, not that our record is
   true.** What the record rests on is a named reviewer approving geotagged
-  proof, and the page says so. An independent signature (a key ChivaGo does
-  not hold) would let a statement be checked without trusting ChivaGo's
+  proof, and the page says so. An independent signature (a key ChivarGo does
+  not hold) would let a statement be checked without trusting ChivarGo's
   database at all; that is the next honest step, and it is not built.
 - **No PDF, no CSV.** A hotel copies the id and the digest by hand. Fine for
   a pilot; not for a chain.
