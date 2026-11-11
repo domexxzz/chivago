@@ -94,6 +94,9 @@ primary_region = "sin"
   # mints nothing. Put a number back before this deployment ever hands out
   # points on registration.
   CHIVAGO_REGISTRATIONS_PER_HOUR = "0"
+  # Insert-only and safe to leave enabled. The password is a Fly secret and
+  # the phone is deployment configuration; neither credential belongs in Git.
+  CHIVAGO_BOOTSTRAP_KOH_SICHANG = "1"
   # The stories door (docs/46) is a moderator's switch in the console, not an
   # env var, so it needs no deploy on the day. Setting CHIVAGO_STORIES_OPEN=1
   # here would hold the door open through a deploy; leave it unset.

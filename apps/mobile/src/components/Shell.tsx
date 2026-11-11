@@ -5,7 +5,7 @@
 import React from 'react';
 import { Animated, Image, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
-import { ChevronLeft, House, Leaf, Map as MapIcon, PawPrint, Shield } from 'lucide-react-native';
+import { ChevronLeft, House, Leaf, Map as MapIcon, MessageCircle, PawPrint, Shield, Sparkles } from 'lucide-react-native';
 import { strings } from '@chivago/core';
 import { color, gutter, headerGutter, layout, motion, onFill, radius, ruleStrong, ruleStrongTop, shadow } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from './Type.tsx';
@@ -22,12 +22,74 @@ export type { TabKey } from '../state/store.tsx';
 import type { TabKey } from '../state/store.tsx';
 import { t } from '../i18n/locale.ts';
 import travelHero from '../../assets/chivago-travel-hero-v2.png';
+import aiGuideRobot from '../../assets/chivargo-ai-robot-v1.png';
 
 const TAB_ICONS = {
   home: House, map: MapIcon, quests: Leaf, game: PawPrint, safety: Shield,
 } as const;
 
 const TAB_ORDER: TabKey[] = ['home', 'map', 'quests', 'game', 'safety'];
+
+/** Global door to the AI-guide mockup. It floats above, never inside, the five-tab contract. */
+export function AiGuideButton({ onPress, wide = false }: { onPress: () => void; wide?: boolean }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={t({ en: 'Open ChivarGo AI Guide', th: 'เปิด ChivarGo AI Guide', zh: '打开 ChivarGo AI Guide' })}
+      style={({ pressed }) => [
+        shadow.md,
+        {
+          position: 'absolute',
+          right: wide ? 28 : 16,
+          bottom: wide ? 24 : 82,
+          zIndex: 50,
+          width: 70,
+          height: 78,
+          borderRadius: 35,
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          transform: [{ scale: pressed ? 0.96 : 1 }],
+        },
+      ]}
+    >
+      <View
+        style={{
+          width: 60,
+          height: 60,
+          borderRadius: 30,
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          paddingBottom: 6,
+          backgroundColor: '#009FA3',
+          borderWidth: 3,
+          borderColor: '#FFFFFF',
+          overflow: 'visible',
+        }}
+      >
+        <Image
+          source={aiGuideRobot}
+          resizeMode="contain"
+          accessibilityIgnoresInvertColors
+          style={{
+            position: 'absolute',
+            width: 62,
+            height: 66,
+            top: -22,
+            left: -1,
+          }}
+        />
+        <View style={{ position: 'absolute', right: 1, top: 3 }}>
+          <Sparkles size={11} color="#FFE28A" fill="#FFE28A" strokeWidth={2} />
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+          <MessageCircle size={10} color="#FFFFFF" strokeWidth={2.2} />
+          <Label size={9} tracking={0} colour="#FFFFFF" style={{ textTransform: 'none' }}>{t({ en: 'AI Guide', th: 'AI Guide', zh: 'AI Guide' })}</Label>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
 
 /**
  * Shared Ocean Wave SVG backdrop used across headers, hero banners, and elevated cards.

@@ -712,24 +712,33 @@ export function MapScreen({
           {
             marginTop: 10,
             marginHorizontal: gutter,
-            minHeight: 48,
-            paddingVertical: 14,
-            paddingHorizontal: 16,
-            backgroundColor: color.surface,
+            padding: 16,
+            backgroundColor: '#F4FEFD',
             borderWidth: 1,
-            borderColor: '#D7E9EC',
-            borderRadius: 18,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 12,
+            borderColor: '#A9E5DF',
+            borderRadius: 22,
           },
         ]}
       >
-        <MessageCircle size={18} color={color.brand} strokeWidth={2} />
-        <View style={{ flex: 1 }}>
-          <Heading size={14}>{t({ en: 'Ask where to go', th: 'ถามว่าไปไหนดี', zh: '问问去哪儿好' })}</Heading>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11 }}>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#D9F8F4', alignItems: 'center', justifyContent: 'center' }}>
+            <MessageCircle size={20} color={color.brand} strokeWidth={2.2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Heading size={16}>{t({ en: 'Let AI help plan?', th: 'ให้ AI ช่วยวางแผนไหม?', zh: '让 AI 帮你规划？' })}</Heading>
+            <Body size={13} colour={color.neutral600} style={{ marginTop: 3 }}>
+              {t({ en: 'Suggestions based on your area and time', th: 'แนะนำจากพื้นที่และเวลาของคุณ', zh: '根据你所在区域和时间推荐' })}
+            </Body>
+          </View>
+          <ChevronRight size={18} color={color.brand} strokeWidth={2} />
         </View>
-        <ChevronRight size={18} color={color.brand} strokeWidth={2} />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+          {[t({ en: 'Half-day trip', th: 'ทริปครึ่งวัน', zh: '半日游' }), t({ en: 'Near me', th: 'ที่เที่ยวใกล้ฉัน', zh: '附近景点' })].map((label) => (
+            <View key={label} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CDECE8' }}>
+              <Label size={10} tracking={0} colour={color.brand} style={{ textTransform: 'none' }}>{label}</Label>
+            </View>
+          ))}
+        </View>
       </Pressable>
 
       {/*
