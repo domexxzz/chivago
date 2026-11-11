@@ -585,3 +585,36 @@ describe('the summoning is reachable from Home', () => {
     ui.unmount();
   });
 });
+
+/**
+ * The one way in.
+ *
+ * Local Picks is not a door - the door row is full, and the last thing added
+ * to it had to be rescued from under a floating button. It is reached from
+ * "see all" over the service cards, which means that one control now has two
+ * destinations depending on what the reader is looking at. A head that sends
+ * somebody to a map when they asked to see all the shops is the kind of wrong
+ * that reads as the app being broken, so both directions are pinned here.
+ */
+describe('see all leads where the list is pointing', () => {
+  test('over services it opens Local Picks, over places it still opens the map', async () => {
+    const s = server(routes({ '/shops?area=samui': [fx.shop()] })); restore = s.restore;
+    let picks = 0;
+    let map = 0;
+    const ui = await mountScreen(h(HomeScreen, {
+      ...props,
+      onOpenMap: () => { map += 1; },
+      onOpenLocalPicks: () => { picks += 1; },
+    }));
+
+    await ui.press(/^See all/);
+    assert.equal(map, 1, 'see all over places should open the map');
+    assert.equal(picks, 0, 'places sent the reader to the shop directory');
+
+    await ui.pressText(/^Services$/);
+    await ui.press(/^See all/);
+    assert.equal(picks, 1, 'see all over services should open Local Picks');
+    assert.equal(map, 1, 'services sent the reader to the map');
+    ui.unmount();
+  });
+});

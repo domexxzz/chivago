@@ -49,8 +49,9 @@ import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import { StallsCard } from '../components/Stalls.tsx';
 import { SeaAndSkyCard } from '../components/SeaAndSky.tsx';
 import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
+import { serviceAppearance, shopCategoryLabel } from '../components/ShopCategory.tsx';
 import {
-  BedDouble, ShoppingBag, Car, Scissors, Dumbbell, Grid2X2, Star, ArrowRight, Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MapPin, UserRound, Search, Shield, Sparkles, Ticket, Trees, Utensils, Wallet, Waves, Shell as ShellIcon,
+  Grid2X2, Star, ArrowRight, Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MapPin, Search, Shield, Sparkles, Ticket, Trees, Utensils, Wallet, Waves, Shell as ShellIcon,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
@@ -122,7 +123,7 @@ export function questOrder(
 
 export function HomeScreen({
   onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenMarket, onOpenFair, onOpenPassport,
-  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenShop, onOpenMascots, onOpenStays, onOpenSummon,
+  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenShop, onOpenMascots, onOpenStays, onOpenSummon, onOpenLocalPicks,
   onToast, now = new Date(),
 }: {
   onOpenMap: () => void;
@@ -155,6 +156,12 @@ export function HomeScreen({
    * door on Home, for the same reason `onOpenStays` has one.
    */
   onOpenSummon?: () => void;
+  /**
+   * Local Picks: this area's businesses by category. Reached from "see all"
+   * over the service cards, not from a door - the door row is full, and the
+   * last thing added to it had to be rescued from under a floating button.
+   */
+  onOpenLocalPicks?: () => void;
   /** A fair's market in this area, lot by lot (docs/66). Optional so the older screen tests still render. */
   onOpenFair?: () => void;
   /** A one-line acknowledgement, for actions that finish without leaving the screen. */
@@ -233,7 +240,7 @@ export function HomeScreen({
           </View>
         </View>
       </View>
-      <Places places={here} shops={shops} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} onOpenShop={onOpenShop ?? onOpenMap} />
+      <Places places={here} shops={shops} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} onOpenShop={onOpenShop ?? onOpenMap} onOpenLocalPicks={onOpenLocalPicks} />
       <MarketPromoCard onOpenMarket={onOpenMarket ?? onOpenWallet} />
       {/*
         The board, under the places and above today's missions: it is what
@@ -587,8 +594,8 @@ function noteForOrder(pinned: boolean, located: boolean): string | undefined {
 }
 
 function Places({
-  places, shops, onOpenMap, onOpenPlace, onOpenShop,
-}: { places: Async<ScoredPlace[]>; shops: Async<Shop[]>; onOpenMap: () => void; onOpenPlace: (id: string) => void; onOpenShop: (id: string) => void }) {
+  places, shops, onOpenMap, onOpenPlace, onOpenShop, onOpenLocalPicks,
+}: { places: Async<ScoredPlace[]>; shops: Async<Shop[]>; onOpenMap: () => void; onOpenPlace: (id: string) => void; onOpenShop: (id: string) => void; onOpenLocalPicks?: () => void }) {
   const [gridWidth, setGridWidth] = React.useState(0);
   const columns = gridWidth >= 1200 ? 5 : gridWidth >= 960 ? 4 : gridWidth >= 700 ? 3 : gridWidth >= 380 ? 2 : 1;
   const cardWidth = gridWidth > 0 ? (gridWidth - 16 * (columns - 1)) / columns : 280;
@@ -628,7 +635,12 @@ function Places({
         th="สถานที่ในพื้นที่นี้"
         zh="这一带的地点"
         note={noteForOrder(pinned, here !== null)}
-        onSeeAll={onOpenMap}
+        /*
+          Services has a screen of its own now; places still belong to the
+          map. One head, two destinations, because "see all" over a list of
+          shops that lands on a map answers a different question.
+        */
+        onSeeAll={kind === 'shops' && onOpenLocalPicks ? onOpenLocalPicks : onOpenMap}
       />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: gutter, gap: 8, paddingBottom: 4 }}>
         {([['all', { en: 'All', th: 'ทั้งหมด', zh: '全部' }], ['places', { en: 'Places', th: 'สถานที่', zh: '地点' }], ['shops', { en: 'Services', th: 'สถานบริการ', zh: '服务' }]] as const).map(([value, label]) => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: kind === value }} onPress={() => setKind(value)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: kind === value ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: kind === value ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{t(label)}</Text></Pressable>)}
@@ -656,32 +668,6 @@ function Places({
     </View>
   );
 }
-
-function shopCategoryLabel(category: string): string {
-  const labels: Record<string, { en: string; th: string; zh?: string }> = {
-    'ที่พัก': { en: 'Accommodation', th: 'ที่พัก', zh: '住宿' },
-    'ร้านอาหาร': { en: 'Restaurants', th: 'ร้านอาหาร', zh: '餐厅' },
-    'ร้านขายของ': { en: 'Souvenirs & shopping', th: 'ของฝาก/ช้อปปิ้ง', zh: '纪念品与购物' },
-    'เช่ารถ': { en: 'Car rental', th: 'เช่ารถ', zh: '租车' },
-    'เสริมสวย': { en: 'Beauty', th: 'เสริมสวย', zh: '美容' },
-    'ตัดผม': { en: 'Haircuts', th: 'ตัดผม', zh: '理发' },
-    'ไกด์นำเที่ยว': { en: 'Tour guide', th: 'ไกด์นำเที่ยว', zh: '导游' },
-    'กีฬาและนันทนาการ': { en: 'Sports & recreation', th: 'กีฬาและนันทนาการ', zh: '运动与休闲' },
-    'อื่นๆ': { en: 'Other', th: 'อื่นๆ', zh: '其他' },
-  };
-  return t(labels[category] ?? { en: category, th: category, zh: category });
-}
-
-const serviceAppearance: Record<string, { icon: LucideIcon; accent: string; pale: string }> = {
-  'ที่พัก': { icon: BedDouble, accent: '#0077B6', pale: '#E5F4FF' },
-  'ร้านอาหาร': { icon: Utensils, accent: '#C65B16', pale: '#FFF0E5' },
-  'ร้านขายของ': { icon: ShoppingBag, accent: '#7953B9', pale: '#F1EBFF' },
-  'เช่ารถ': { icon: Car, accent: '#00848F', pale: '#E1F6F5' },
-  'เสริมสวย': { icon: Sparkles, accent: '#BE4B78', pale: '#FDECF3' },
-  'ตัดผม': { icon: Scissors, accent: '#2776B5', pale: '#E8F3FC' },
-  'ไกด์นำเที่ยว': { icon: UserRound, accent: '#16806D', pale: '#E5F5EF' },
-  'กีฬาและนันทนาการ': { icon: Dumbbell, accent: '#24834F', pale: '#E7F5EC' },
-};
 
 function ShopCard({ shop, onPress, width }: { shop: Shop; onPress: () => void; width: number }) {
   const [failedPhoto, setFailedPhoto] = React.useState<string | null>(null);

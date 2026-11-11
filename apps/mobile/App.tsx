@@ -37,6 +37,7 @@ import { MarketScreen } from './src/screens/MarketScreen.tsx';
 import { AskScreen } from './src/screens/AskScreen.tsx';
 import { ImpactScreen } from './src/screens/ImpactScreen.tsx';
 import { HomeScreen } from './src/screens/HomeScreen.tsx';
+import { LocalPicksScreen } from './src/screens/LocalPicksScreen.tsx';
 import { PassportScreen } from './src/screens/PassportScreen.tsx';
 import { MascotsScreen } from './src/screens/MascotsScreen.tsx';
 import { MascotRoomScreen } from './src/screens/MascotRoom.tsx';
@@ -478,11 +479,20 @@ export default function App() {
             onOpenParty={() => nav.push('party')}
             onOpenStays={() => nav.push('stays')}
             onOpenSummon={() => nav.push('summon')}
+            onOpenLocalPicks={() => nav.push('localPicks')}
             onOpenSafety={() => nav.selectTab('safety')}
             onOpenProfile={() => nav.push('profile')}
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
             onOpenShop={(id) => nav.push('shop', { shopId: id })}
             onToast={toast.show}
+          />
+        );
+
+      case 'localPicks':
+        return (
+          <LocalPicksScreen
+            onBack={nav.pop}
+            onOpenShop={(id) => nav.push('shop', { shopId: id })}
           />
         );
 
