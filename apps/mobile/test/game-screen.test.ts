@@ -76,6 +76,18 @@ describe('the lobby', () => {
     ui.unmount();
   });
 
+  test('an unfound collection card opens its real habitat and unlock rule', async () => {
+    const s = server({ 'GET /companions': reply([]), 'GET /wallet': fx.wallet() }); restore = s.restore;
+    const ui = await mountScreen(h(GameScreen, props));
+    const safe = SPECIES.Safe;
+
+    await ui.press(new RegExp(`^${safe.eggName.en}, not found yet`));
+    assert.match(ui.text(), new RegExp(safe.habitat.en));
+    assert.match(ui.text(), /A companion arrives on your second day in this habitat/);
+    await ui.press('Close');
+    ui.unmount();
+  });
+
   test('a found companion is a tile you can open, and the big card names its step', async () => {
     const turtle = companion('Safe', 'hatchling', 'Finish one quest a host verifies on this beach');
     const s = server({ 'GET /companions': reply([turtle]), 'GET /wallet': fx.wallet() }); restore = s.restore;

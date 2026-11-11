@@ -42,7 +42,7 @@ reasons that stack:
 
 **Inquiry.** The traveller asks an operator a question — *two people, the
 longtail to Koh Taen, Saturday morning?* — and the operator answers. Nothing
-is reserved, no money moves through ChivaGo, and the operator is the seller
+is reserved, no money moves through ChivarGo, and the operator is the seller
 from the first word to the last. This is what the proposal actually named, and
 it is the version whose obligations are **small, known, and the same ones this
 platform already carries**: a message between two people, delivered through
@@ -116,7 +116,7 @@ that drifts the day the window changes.
 An answered inquiry is **not a contract** and the state machine does not
 pretend otherwise. There is no `confirmed`.
 
-## What ChivaGo earns from it
+## What ChivarGo earns from it
 
 Not a commission on money it never touches. The honest models are a fee per
 answered inquiry or a listing subscription, settled with the operator

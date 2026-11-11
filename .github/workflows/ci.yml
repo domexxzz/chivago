@@ -40,6 +40,9 @@ jobs:
       # would fail on Workers fails here instead of after a deploy.
       - run: pnpm --filter @chivago/api test:durable
       - run: pnpm test:scripts
+      # New user-facing copy must be complete in English, Thai and Simplified
+      # Chinese. Suspected bare JSX is reported for review without blocking.
+      - run: pnpm localization:check
       # The Thai copy audit is advisory until a native speaker has been through
       # it, so it reports and does not fail the build. It is here so the count
       # is visible on every run and a regression is a number that went up.

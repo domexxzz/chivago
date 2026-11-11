@@ -3,7 +3,7 @@
  * are free, shown above the "Book" button so a student can tell whether the
  * trip is worth making before tapping through.
  *
- * ChivaGo takes no booking and moves no money, and the line says where both
+ * ChivarGo takes no booking and moves no money, and the line says where both
  * go. The count is the venue's own; nothing is estimated here. A count the
  * service did not just give is dated, and when it could not be reached that is
  * said plainly - never a nought, which would read as "the place is full".
@@ -17,16 +17,13 @@ import { useAsync } from '../state/store.tsx';
 import { color, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from './Type.tsx';
 import { Button } from './Button.tsx';
-import { localeTag, t } from '../i18n/locale.ts';
+import { t } from '../i18n/locale.ts';
+import { formatDate, formatTime } from '../i18n/format.ts';
 
 const DAY_MS = 86_400_000;
-const lang = localeTag;
-
 /** "18:30" on the island's clock, whatever the phone's own is set to. */
 function clock(iso: string): string {
-  return new Date(iso).toLocaleTimeString(lang(), {
-    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok',
-  });
+  return formatTime(iso, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Bangkok' });
 }
 
 /** When a shut venue opens: a time today, tomorrow and a time, or the day and a time further out. */
@@ -34,7 +31,7 @@ function closedLine(opensAt: string, now: Date): string {
   const day = islandDateKey(new Date(opensAt));
   if (day === islandDateKey(now)) return t(strings.place.courtsClosedUntil(clock(opensAt)));
   if (day === islandDateKey(new Date(now.getTime() + DAY_MS))) return t(strings.place.courtsClosedTomorrow(clock(opensAt)));
-  const date = new Date(opensAt).toLocaleDateString(lang(), {
+  const date = formatDate(opensAt, {
     weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Bangkok',
   });
   return t(strings.place.courtsClosedOn(date, clock(opensAt)));

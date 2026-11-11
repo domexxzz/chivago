@@ -1,4 +1,4 @@
-# ChivaGo on Fly.io.
+# ChivarGo on Fly.io.
 #
 #   fly auth login
 #   fly launch --no-deploy --copy-config --name chivago
@@ -94,6 +94,19 @@ primary_region = "sin"
   # mints nothing. Put a number back before this deployment ever hands out
   # points on registration.
   CHIVAGO_REGISTRATIONS_PER_HOUR = "0"
+  # Insert-only. The password is a Fly secret and the phone is deployment
+  # configuration; neither credential belongs in Git, and with neither set the
+  # bootstrap warns and does nothing.
+  #
+  # It said "safe to leave enabled" here and it was not. It runs at the top of
+  # server.ts on every boot, and two paths threw: a shop renamed after it was
+  # planted (the duplicate check read the name while the INSERT was keyed on
+  # the id) and this email already existing as a non-operator account. Either
+  # one ended the process during import, so the machine woke and crashed in a
+  # loop. Both are now a warning and a skip, the call is wrapped, and both
+  # cases have tests. It is safe to leave enabled because of that, not because
+  # inserting is harmless.
+  CHIVAGO_BOOTSTRAP_KOH_SICHANG = "1"
   # The stories door (docs/46) is a moderator's switch in the console, not an
   # env var, so it needs no deploy on the day. Setting CHIVAGO_STORIES_OPEN=1
   # here would hold the door open through a deploy; leave it unset.

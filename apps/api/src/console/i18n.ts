@@ -79,7 +79,7 @@ export const loc = (entry: Localised | Copy, locale: Locale): string => {
 };
 
 export const consoleStrings = {
-  brand: c('ChivaGo · ระบบตรวจสำหรับผู้จัดภารกิจ', 'ChivaGo · Host Console', 'ChivaGo · 主办方审核台'),
+  brand: c('ChivarGo · ระบบตรวจสำหรับผู้จัดภารกิจ', 'ChivarGo · Host Console', 'ChivarGo · 主办方审核台'),
 
   signIn: c('เข้าสู่ระบบ', 'Sign in', '登录'),
   signOut: c('ออกจากระบบ', 'Sign out', '退出登录'),

@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, afterEach } from 'node:test';
 
 import {
-  __setLocaleForTests, deviceLocale, getLocale, setLocale, subscribe, t,
+  __setLocaleForTests, deviceLocale, getLocale, loadLocale, setLocale, subscribe, t,
 } from '../src/i18n/locale.ts';
 import { BilingualTitle, Thai } from '../src/components/Type.tsx';
 import { Button } from '../src/components/Button.tsx';
@@ -21,16 +21,19 @@ import { h, labels, text } from './render.ts';
  */
 
 const THAI = /[฀-๿]/;
-const pair = { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด' };
+const HAN = /[\u3400-\u9fff]/;
+const pair = { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด', zh: '海滩清理' };
 
 afterEach(() => { __setLocaleForTests('en'); });
 
 describe('t() picks the language', () => {
-  test('English by default, Thai when asked', () => {
+  test('English by default, Thai and Chinese when asked', () => {
     __setLocaleForTests('en');
     assert.equal(t(pair), 'Beach Cleanup');
     __setLocaleForTests('th');
     assert.equal(t(pair), 'เก็บขยะชายหาด');
+    __setLocaleForTests('zh');
+    assert.equal(t(pair), '海滩清理');
   });
 
   test('a missing translation falls back to the other language, never to a blank', () => {
@@ -41,13 +44,11 @@ describe('t() picks the language', () => {
     assert.equal(t(null), '');
   });
 
-  test('the phone decides the default, and only Thai counts as Thai', () => {
-    // deviceLocale still tells the truth about the phone: the app's OPENING
-    // language is English regardless (see loadLocale), but the device
-    // registration uses this, and a notification must arrive in the language
-    // its reader actually speaks.
+  test('the phone chooses a supported first-launch language', () => {
     assert.equal(deviceLocale(['th-TH']), 'th');
     assert.equal(deviceLocale(['en-GB', 'th']), 'en', 'the first language the phone lists wins');
+    assert.equal(deviceLocale(['zh-CN']), 'zh');
+    assert.equal(deviceLocale(['zh-HK']), 'zh', 'Chinese variants use the available Simplified Chinese UI');
     assert.equal(deviceLocale(['de-DE']), 'en', 'a language the app does not have reads as English');
     assert.equal(deviceLocale([]), 'en');
   });
@@ -63,6 +64,29 @@ describe('t() picks the language', () => {
     setLocale('en');
     assert.equal(calls, 1, 'an unsubscribed listener stays quiet');
   });
+
+  test('first launch follows the device, persists it, and a saved choice wins later', async () => {
+    const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => { values.set(key, value); },
+      removeItem: (key: string) => { values.delete(key); },
+      clear: () => { values.clear(); },
+      key: (index: number) => [...values.keys()][index] ?? null,
+      get length() { return values.size; },
+    } satisfies Storage;
+    Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage });
+    try {
+      assert.equal(await loadLocale(['zh-CN']), 'zh');
+      assert.equal(values.get('chivago.locale'), 'zh');
+      values.set('chivago.locale', 'th');
+      assert.equal(await loadLocale(['en-GB']), 'th', 'stored manual preference takes precedence');
+    } finally {
+      if (original) Object.defineProperty(globalThis, 'localStorage', original);
+      else delete (globalThis as { localStorage?: Storage }).localStorage;
+    }
+  });
 });
 
 describe('what a screen prints', () => {
@@ -76,6 +100,11 @@ describe('what a screen prints', () => {
     const th = text(h(BilingualTitle, { value: pair }));
     assert.match(th, /เก็บขยะชายหาด/);
     assert.doesNotMatch(th, /Beach Cleanup/);
+
+    __setLocaleForTests('zh');
+    const zh = text(h(BilingualTitle, { value: pair }));
+    assert.match(zh, HAN);
+    assert.doesNotMatch(zh, /Beach Cleanup/);
   });
 
   test('a Thai caption stays quiet in English and speaks in Thai', () => {
@@ -105,6 +134,15 @@ describe('what a screen prints', () => {
     assert.doesNotMatch(out, /No quests today/);
   });
 
+  test('a button and empty state render Chinese rather than English fallback', () => {
+    __setLocaleForTests('zh');
+    const button = text(h(Button, { label: 'Check in here', thai: 'เช็กอินที่นี่', chinese: '在此签到', onPress: () => {} }));
+    assert.match(button, /在此签到/);
+    assert.doesNotMatch(button, /Check in here/);
+    const empty = text(h(EmptyState, { en: 'No quests today', th: 'วันนี้ไม่มีภารกิจ', zh: '今天没有任务' }));
+    assert.match(empty, /今天没有任务/);
+  });
+
   test('a mission card in English carries no Thai at all', () => {
     __setLocaleForTests('en');
     const out = text(h(QuestRow, { quest: fx.quest(), progress: null, onPress: () => {} }));
@@ -131,7 +169,7 @@ describe('what stays bilingual, on purpose', () => {
     // places (`locale.ts`, `Type.tsx`, and the commit that restored it after
     // #150 broke the same thing), and the code never stopped being bilingual.
     // The test is what was wrong, so the test is what moves back.
-    for (const locale of ['en', 'th'] as const) {
+    for (const locale of ['en', 'th', 'zh'] as const) {
       __setLocaleForTests(locale);
       const out = text(h(SosBanner, { onPress: () => {} }));
       assert.match(out, /SOS|Live|active/i, `the English line, in ${locale}`);
@@ -176,6 +214,25 @@ describe('the heading face in Thai', () => {
       const ls = flat(label.props.style);
       assert.equal(ls.fontFamily, font.body);
       assert.equal(ls.lineHeight, Math.round(10 * 1.45));
+    } finally { __setLocaleForTests('en'); }
+  });
+});
+
+describe('the heading face in Chinese', () => {
+  test('Chinese uses a platform CJK face and generous leading', async () => {
+    const { create } = await import('react-test-renderer');
+    const { Text } = await import('react-native');
+    const { Heading } = await import('../src/components/Type.tsx');
+    const { font } = await import('../src/theme/index.ts');
+    const flat = (style: unknown): Record<string, unknown> =>
+      Object.assign({}, ...(Array.isArray(style) ? style.flat(Infinity) : [style]).filter(Boolean));
+    __setLocaleForTests('zh');
+    try {
+      const heading = create(h(Heading, { size: 24 }, '收藏')).root.findByType(Text as never);
+      const style = flat(heading.props.style);
+      assert.notEqual(style.fontFamily, font.heading);
+      assert.equal(style.fontWeight, '700');
+      assert.equal(style.lineHeight, Math.round(24 * 1.5));
     } finally { __setLocaleForTests('en'); }
   });
 });

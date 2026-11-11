@@ -1,6 +1,6 @@
 # The third language
 
-ChivaGo speaks English, Thai and now Simplified Chinese. This file is the
+ChivarGo speaks English, Thai and now Simplified Chinese. This file is the
 glossary the Chinese was written against, and the reason a glossary exists at
 all.
 
@@ -23,7 +23,7 @@ drift.
 
 | English | 中文 | Note |
 |---|---|---|
-| ChivaGo | ChivaGo | The brand stays Latin. It is not transliterated. |
+| ChivarGo | ChivarGo | The brand stays Latin. It is not transliterated. |
 | Green Points | 绿色积分 | Never 绿点. |
 | Healthy Score | 健康评分 | |
 | Quest / Mission | 任务 | The product uses both English words for one thing. |

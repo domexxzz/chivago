@@ -38,7 +38,7 @@ export function GuestActionProvider({
       <Modal visible={reason !== null} transparent animationType="fade" onRequestClose={() => setReason(null)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(5,32,54,0.48)', justifyContent: 'center', padding: 24 }}>
           <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 22, gap: 14 }}>
-            <Pressable onPress={() => setReason(null)} accessibilityRole="button" accessibilityLabel="ปิด" style={{ alignSelf: 'flex-end', padding: 4 }}>
+            <Pressable onPress={() => setReason(null)} accessibilityRole="button" accessibilityLabel={t({ en: 'Close', th: 'ปิด', zh: '关闭' })} style={{ alignSelf: 'flex-end', padding: 4 }}>
               <X size={20} color="#557080" />
             </Pressable>
             <View style={{ width: 54, height: 54, borderRadius: 27, backgroundColor: '#E5F5FA', alignItems: 'center', justifyContent: 'center', alignSelf: 'center' }}>

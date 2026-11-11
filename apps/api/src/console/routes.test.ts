@@ -425,7 +425,7 @@ describe('review moderation is a ROLE, not a scope', () => {
   /** A moderator host, a place, a visit and a review to act on. */
   const seedReview = (): string => {
     db.prepare('INSERT INTO hosts (id,name,type,role,api_key_hash,created_at) VALUES (?,?,?,?,?,?)')
-      .run('h-platform', 'ChivaGo', 'platform', 'moderator', hashApiKey(MOD_KEY),
+      .run('h-platform', 'ChivarGo', 'platform', 'moderator', hashApiKey(MOD_KEY),
            new Date().toISOString());
     db.prepare(
       `INSERT INTO places (id,name_en,name_th,short,layer,lat,lng,meta,blurb_en,blurb_th,
@@ -540,7 +540,7 @@ describe('the report queue on the desk', () => {
 
   const seedReported = (): string => {
     db.prepare('INSERT INTO hosts (id,name,type,role,api_key_hash,created_at) VALUES (?,?,?,?,?,?)')
-      .run('h-platform', 'ChivaGo', 'platform', 'moderator', hashApiKey(MOD_KEY),
+      .run('h-platform', 'ChivarGo', 'platform', 'moderator', hashApiKey(MOD_KEY),
            new Date().toISOString());
     db.prepare(
       `INSERT INTO places (id,name_en,name_th,short,layer,lat,lng,meta,blurb_en,blurb_th,
@@ -633,7 +633,7 @@ describe('bulk take-down needs two people', () => {
   const seedWave = (n: number): string[] => {
     for (const [id, key] of [['h-platform', MOD_KEY], ['h-platform2', MOD2_KEY]]) {
       db.prepare('INSERT INTO hosts (id,name,type,role,api_key_hash,created_at) VALUES (?,?,?,?,?,?)')
-        .run(id, 'ChivaGo', 'platform', 'moderator', hashApiKey(key!), new Date().toISOString());
+        .run(id, 'ChivarGo', 'platform', 'moderator', hashApiKey(key!), new Date().toISOString());
     }
     db.prepare(
       `INSERT INTO places (id,name_en,name_th,short,layer,lat,lng,meta,blurb_en,blurb_th,
@@ -1049,7 +1049,7 @@ describe('the stories page', () => {
        VALUES ('chaweng','Chaweng Beach','หาดเฉวง','Chaweng','Safe','TH-84',9.5357,100.0617,'','','','[]','x','x',1,20,6,7)`,
     ).run();
     db.prepare('INSERT INTO hosts (id,name,type,api_key_hash,created_at) VALUES (?,?,?,?,?)').run(
-      'h-ku', 'ChivaGo team · KU Sriracha', 'community', hashApiKey(KU_KEY), new Date().toISOString());
+      'h-ku', 'ChivarGo team · KU Sriracha', 'community', hashApiKey(KU_KEY), new Date().toISOString());
     db.prepare(
       `INSERT INTO quests (id,code,name_en,name_th,where_label,duration,reward_points,host_id,kind,lat,lng,geofence_radius_m)
        VALUES ('q-ku','KU01','Campus clean-up','x','Sapandao','45 min',120,'h-ku','today',13.12189,100.92055,100)`,
@@ -1115,7 +1115,7 @@ describe('the door', () => {
   const MOD_KEY = 'chv_MODAA-MODBB-MODCC-MODDD';
   beforeEach(() => {
     db.prepare('INSERT INTO hosts (id,name,type,role,api_key_hash,created_at) VALUES (?,?,?,?,?,?)').run(
-      'h-mod', 'ChivaGo', 'platform', 'moderator', hashApiKey(MOD_KEY), new Date().toISOString());
+      'h-mod', 'ChivarGo', 'platform', 'moderator', hashApiKey(MOD_KEY), new Date().toISOString());
     delete process.env.CHIVAGO_STORIES_OPEN;
   });
 
@@ -1162,7 +1162,7 @@ describe('the funder in a row, not in a constant', () => {
   const MOD2_KEY = 'chv_ORGAA-ORGBB-ORGCC-ORGDD';
   beforeEach(() => {
     db.prepare('INSERT INTO hosts (id,name,type,role,api_key_hash,created_at) VALUES (?,?,?,?,?,?)').run(
-      'h-org-mod', 'ChivaGo', 'platform', 'moderator', hashApiKey(MOD2_KEY), new Date().toISOString());
+      'h-org-mod', 'ChivarGo', 'platform', 'moderator', hashApiKey(MOD2_KEY), new Date().toISOString());
   });
 
   const form = (token: string, path: string, fields: Record<string, string>) => app.request(path, {
@@ -1507,7 +1507,7 @@ describe('reviewing a declared file', () => {
     const mod = await asModerator();
     const page = await (await app.request('/review', { headers: withCookie(mod) })).text();
     assert.match(page, /ไม่ใช่เอกสารรับรอง|This is not a statement/);
-    assert.match(page, /ไม่มีใครที่ ChivaGo ตรวจสอบ|Nobody at ChivaGo verified/);
+    assert.match(page, /ไม่มีใครที่ ChivarGo ตรวจสอบ|Nobody at ChivarGo verified/);
     // None of the things that make a statement page look issued.
     assert.doesNotMatch(page, /\/verify\//, 'a review page offered a verify link');
     assert.doesNotMatch(page, /digest/i, 'a review page showed a digest');
@@ -1597,7 +1597,7 @@ describe('reviewing a declared file', () => {
  * An assurer's conclusion, on the console and on the public page.
  *
  * Rung four of the ladder. The danger is not a wrong conclusion; it is a
- * conclusion that reads as ChivaGo's own.
+ * conclusion that reads as ChivarGo's own.
  */
 describe('recording an independent conclusion', () => {
   const MOD_KEY = 'chv_CSAAA-CSBBB-CSCCC-CSDDD';
@@ -1651,7 +1651,7 @@ describe('recording an independent conclusion', () => {
 
     const page = publicPage(id);
     assert.match(page, /Andaman Assurance/);
-    assert.match(page, /ChivaGo did not perform it/);
+    assert.match(page, /ChivarGo did not perform it/);
     assert.match(page, /has not verified the firm/);
     // The one sentence the page must never contain.
     assert.doesNotMatch(page, /this statement is assured/i);
@@ -1738,7 +1738,7 @@ describe('recording an independent conclusion', () => {
  * An organisation declaring it used a statement, on the console and in public.
  *
  * The danger here is the opposite of the countersignature's. A conclusion can
- * read as ChivaGo's own; a declaration can read as a GUARANTEE - that the
+ * read as ChivarGo's own; a declaration can read as a GUARANTEE - that the
  * statement is now spent, that one declaration means one use. It is neither,
  * and these are about the page saying so.
  */
@@ -1803,7 +1803,7 @@ describe('declaring that a statement was used', () => {
 
     const page = publicPage(id);
     assert.match(page, /Siam Retail states it used/);
-    assert.match(page, /ChivaGo has not read that report/);
+    assert.match(page, /ChivarGo has not read that report/);
     assert.match(page, /is not saying the use was appropriate/);
     // The word that would borrow a registry's guarantee.
     assert.doesNotMatch(page, /retired/i);
@@ -2042,7 +2042,7 @@ describe('a partner standing down from a claim', () => {
   const MOD3_KEY = 'chv_ADJAA-ADJBB-ADJCC-ADJDD';
   beforeEach(() => {
     db.prepare('INSERT INTO hosts (id,name,type,role,api_key_hash,created_at) VALUES (?,?,?,?,?,?)').run(
-      'h-adj-mod', 'ChivaGo', 'platform', 'moderator', hashApiKey(MOD3_KEY), new Date().toISOString());
+      'h-adj-mod', 'ChivarGo', 'platform', 'moderator', hashApiKey(MOD3_KEY), new Date().toISOString());
   });
 
   const form = (t: string, path: string, fields: Record<string, string>) => app.request(path, {
@@ -2269,7 +2269,7 @@ describe('where a partner wants to file their figure', () => {
       carry: '1', framework: 'ifrs_s', line: 'S2-29a', materialOrigin: 'third_party',
     })).text();
     assert.match(page, /Not examined|ยังไม่ได้ตรวจสอบคู่นี้/);
-    assert.match(page, /gap in what ChivaGo has studied|ช่องว่างของสิ่งที่ ChivaGo ศึกษา/);
+    assert.match(page, /gap in what ChivarGo has studied|ช่องว่างของสิ่งที่ ChivarGo ศึกษา/);
   });
 
   test('the placement panel never turns the page into a statement', async () => {

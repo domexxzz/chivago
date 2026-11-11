@@ -43,7 +43,7 @@ describe('what an inquiry is', () => {
 
   test('the refusal that travels with every inquiry', () => {
     assert.match(INQUIRY_IS_NOT_A_BOOKING.en, /This is a question, not a booking/);
-    assert.match(INQUIRY_IS_NOT_A_BOOKING.en, /no money moves through\s+ChivaGo/);
+    assert.match(INQUIRY_IS_NOT_A_BOOKING.en, /no money moves through\s+ChivarGo/);
     assert.match(INQUIRY_IS_NOT_A_BOOKING.th, /ไม่ใช่การจอง/);
   });
 });
@@ -157,10 +157,10 @@ describe('an operator’s answer', () => {
     assert.doesNotMatch(note.en, /the price is/i);
   });
 
-  test('it says nothing is booked, and that ChivaGo takes no payment', () => {
+  test('it says nothing is booked, and that ChivarGo takes no payment', () => {
     const note = answerNote('Thong Krut Boat Co-op', null);
     assert.match(note.en, /Nothing is booked until you agree it with them directly/);
-    assert.match(note.en, /ChivaGo takes no payment/);
+    assert.match(note.en, /ChivarGo takes no payment/);
     assert.match(note.th, /ยังไม่มีการจอง/);
   });
 

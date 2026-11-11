@@ -31,22 +31,22 @@ export const SEED_HOSTS: Record<string, QuestHost> = {
   municipality: { id: 'h-samui-muni', name: 'Samui Municipality', type: 'municipality' },
   greenFoundation: { id: 'h-samui-green', name: 'Samui Green Foundation (NGO)', type: 'ngo' },
   oceanLab: { id: 'h-ocean-lab', name: 'Ocean Lab · Hotel partner', type: 'hotel' },
-  platform: { id: 'h-chivago', name: 'ChivaGo', type: 'platform' },
+  platform: { id: 'h-chivago', name: 'ChivarGo', type: 'platform' },
   community: { id: 'h-fisherman-village', name: "Fisherman's Village Traders", type: 'community' },
   // The team, as a host, on the Si Racha campus: the named reviewer on
   // stage when the campus is the venue. Its own record, so its statement
   // and its queue never mix with the platform's island quests.
-  kuTeam: { id: 'h-ku-chivago', name: 'ChivaGo team · KU Sriracha', type: 'community' },
+  kuTeam: { id: 'h-ku-chivago', name: 'ChivarGo team · KU Sriracha', type: 'community' },
   // The same again on the Thanyaburi campus. A separate record, for the same
   // reason kuTeam is one: a host is the party vouching for the work, and two
   // campuses are two parties even when the same people staff both.
-  rmuttTeam: { id: 'h-rmutt-chivago', name: 'ChivaGo team · RMUTT Thanyaburi', type: 'community' },
+  rmuttTeam: { id: 'h-rmutt-chivago', name: 'ChivarGo team · RMUTT Thanyaburi', type: 'community' },
   // A separate review queue and statement for the Bangkhen campus.
-  kuBangkhen: { id: 'h-ku-bangkhen-chivago', name: 'ChivaGo Team · KU Bangkhen', type: 'community' },
+  kuBangkhen: { id: 'h-ku-bangkhen-chivago', name: 'ChivarGo Team · KU Bangkhen', type: 'community' },
   // The team on Koh Sichang, for the field trial. Not the municipality: the
   // municipality has not agreed to vouch for anything yet, and a host is the
   // party vouching for the work.
-  sichangTeam: { id: 'h-sichang-chivago', name: 'ChivaGo team · Koh Sichang', type: 'community' },
+  sichangTeam: { id: 'h-sichang-chivago', name: 'ChivarGo team · Koh Sichang', type: 'community' },
 };
 
 // ---------------------------------------------------------------------------
@@ -263,7 +263,7 @@ export const SEED_PLACES: Place[] = [
     tags: ['Library', 'Indoor', 'Quiet'],
     photo: {
       url: '/media/places/ku-library.jpg',
-      credit: "ChivaGo team · KU Sriracha",
+      credit: "ChivarGo team · KU Sriracha",
       licence: "Team photograph",
       sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
@@ -287,7 +287,7 @@ export const SEED_PLACES: Place[] = [
     tags: ['Green space', 'Walking route', 'Lake'],
     photo: {
       url: '/media/places/ku-park.jpg',
-      credit: "ChivaGo team · KU Sriracha",
+      credit: "ChivarGo team · KU Sriracha",
       licence: "Team photograph",
       sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
@@ -311,7 +311,7 @@ export const SEED_PLACES: Place[] = [
     tags: ['Viewpoint', 'Quest here', 'Green space'],
     photo: {
       url: '/media/places/ku-viewpoint.jpg',
-      credit: "ChivaGo team · KU Sriracha",
+      credit: "ChivarGo team · KU Sriracha",
       licence: "Team photograph",
       sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
@@ -335,7 +335,7 @@ export const SEED_PLACES: Place[] = [
     tags: ['Exercise', 'Pitch', 'Pool'],
     photo: {
       url: '/media/places/ku-sports.jpg',
-      credit: "ChivaGo team · KU Sriracha",
+      credit: "ChivarGo team · KU Sriracha",
       licence: "Team photograph",
       sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
@@ -359,7 +359,7 @@ export const SEED_PLACES: Place[] = [
     tags: ['Café', 'Convenience', 'Meeting point'],
     photo: {
       url: '/media/places/ku-shops.jpg',
-      credit: "ChivaGo team · KU Sriracha",
+      credit: "ChivarGo team · KU Sriracha",
       licence: "Team photograph",
       sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
@@ -402,7 +402,7 @@ export const SEED_PLACES: Place[] = [
     */
     photo: {
       url: '/media/places/ku-building13.jpg',
-      credit: 'ChivaGo team · KU Sriracha',
+      credit: 'ChivarGo team · KU Sriracha',
       licence: 'Team photograph',
       sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
@@ -713,7 +713,7 @@ export const SEED_PLACES: Place[] = [
     tags: ['Pier', 'Ferry'],
     photo: {
       url: '/media/places/sc-pier.jpg',
-      credit: 'ChivaGo team · Koh Sichang',
+      credit: 'ChivarGo team · Koh Sichang',
       licence: 'Team photograph · used with permission',
       sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
@@ -734,7 +734,7 @@ export const SEED_PLACES: Place[] = [
     tags: ['Hospital', 'Help'],
     photo: {
       url: '/media/places/sc-hospital.jpg',
-      credit: 'ChivaGo team · Koh Sichang',
+      credit: 'ChivarGo team · Koh Sichang',
       licence: 'Team photograph · used with permission',
       sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
@@ -755,7 +755,7 @@ export const SEED_PLACES: Place[] = [
     tags: ['Beach', 'Swimming'],
     photo: {
       url: '/media/places/sc-thamphang.jpg',
-      credit: 'ChivaGo team · Koh Sichang',
+      credit: 'ChivarGo team · Koh Sichang',
       licence: 'Team photograph · used with permission',
       sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
@@ -776,7 +776,7 @@ export const SEED_PLACES: Place[] = [
     tags: ['History', 'Garden', 'Walking'],
     photo: {
       url: '/media/places/sc-palace.jpg',
-      credit: 'ChivaGo team · Koh Sichang',
+      credit: 'ChivarGo team · Koh Sichang',
       licence: 'Team photograph · used with permission',
       sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },
@@ -841,7 +841,7 @@ export const SEED_PLACES: Place[] = [
     tags: ['Food', 'Shops'],
     photo: {
       url: '/media/places/sc-shops.jpg',
-      credit: 'ChivaGo team · Koh Sichang',
+      credit: 'ChivarGo team · Koh Sichang',
       licence: 'Team photograph · used with permission',
       sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
     },

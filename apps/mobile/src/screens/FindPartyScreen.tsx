@@ -58,7 +58,7 @@ export function FindPartyScreen({
   const data = board.data;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
+    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} contentContainerStyle={{ width: '100%', maxWidth: 760, alignSelf: 'center', paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
       <PushHeader context={t({ en: 'Find a party', th: 'หาปาร์ตี้', zh: '寻找队伍' })} onBack={onBack} />
 
       {board.error ? <ErrorState message={board.error} onRetry={board.reload} /> : null}
@@ -78,7 +78,7 @@ export function FindPartyScreen({
         </>
       ) : null}
 
-      <View style={{ height: 32 }} />
+      <View style={{ height: 8 }} />
     </ScrollView>
   );
 }

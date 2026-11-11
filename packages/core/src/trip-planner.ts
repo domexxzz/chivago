@@ -47,7 +47,7 @@ export const MIDDAY = { from: 10 * 60, until: 15 * 60 } as const;
 export const AIR_LIMIT = { shift: 80, avoid: 120 } as const;
 
 /**
- * This many ChivaGo travellers checked in at a place in the last hour is a
+ * This many ChivarGo travellers checked in at a place in the last hour is a
  * crowd the planner has actually seen, and it keeps a crowd-watcher out of
  * there at midday - on top of the seeded estimate, which it now trusts
  * less. Three, because two is a couple.

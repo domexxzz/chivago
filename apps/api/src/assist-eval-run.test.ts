@@ -14,7 +14,7 @@ const item = (id: string, over: Partial<EvalItem> = {}): EvalItem => ({
 
 const answer = (over: Record<string, unknown> = {}) => ({
   work: 'shown', weight: 'consistent', concerns: [], suggestedReason: null, photos: [],
-  summary: { en: 'Bags on a beach.', th: 'ถุงขยะบนหาด' }, ...over,
+  summary: { en: 'Bags on a beach.', th: 'ถุงขยะบนหาด', zh: '海滩上的垃圾袋。' }, ...over,
 });
 
 test('each proof becomes the console check its answer would, with its cost', async () => {

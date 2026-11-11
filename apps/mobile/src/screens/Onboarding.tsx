@@ -104,7 +104,7 @@ export function OnboardingScreen({
           </>
         ) : null}
         <View style={{ position: 'absolute', left: 26, bottom: 18 }}>
-          <Heading size={30} tracking={-0.6} colour={onFill.brand}>ChivaGo</Heading>
+          <Heading size={30} tracking={-0.6} colour={onFill.brand}>ChivarGo</Heading>
           <Label size={10} tracking={0.14} colour={color.brandSoft}>{t({ en: 'Koh Samui', th: 'เกาะสมุย', zh: '苏梅岛' })}</Label>
         </View>
       </View>

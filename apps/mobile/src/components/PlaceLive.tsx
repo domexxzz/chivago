@@ -1,7 +1,7 @@
 /**
  * Two things the seed could only fake, shown as what they are.
  *
- * HereNow: how many ChivaGo travellers checked in at this place in the last
+ * HereNow: how many ChivarGo travellers checked in at this place in the last
  * hour, counted from the ledger. Beside the crowd estimate, not instead of
  * it - the estimate is labelled an estimate now, and this is the fact.
  *

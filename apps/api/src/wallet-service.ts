@@ -286,7 +286,7 @@ export function awardCheckin(
     subject: args.placeName,
     // Named honestly. A self-verified row must not carry a municipality's name
     // in the column the whole ledger uses to mean "who vouched for this".
-    host: 'ChivaGo · self check-in',
+    host: 'ChivarGo · self check-in',
     amount: args.points,
     currency: 'trip',
     kind: 'checkin',
@@ -311,7 +311,7 @@ export function awardWalk(
     userId: args.userId,
     label: `Walked · ${args.fromName} → ${args.toName}`,
     subject: `${args.fromName} → ${args.toName}`,
-    host: 'ChivaGo · measured leg on foot',
+    host: 'ChivarGo · measured leg on foot',
     amount: args.points,
     currency: 'trip',
     kind: 'walk',
@@ -389,30 +389,26 @@ export function reverseMovement(
 }
 
 /**
- * The pilot's opening balance.
+ * Optional opening balance for an explicitly configured showcase environment.
  *
- * The prototype starts a demo user at 1,240 points so the wallet screen has
- * something to show. That figure is kept, but it now goes through the ledger
- * like every other movement instead of being written straight into the wallet.
+ * Real accounts start at zero. Older builds silently defaulted to 1,240 Green
+ * and 320 Trip, which made a newly registered person's profile look as though
+ * they had earned points and EXP they had never earned. A deployment may still
+ * opt in for a disposable showcase by setting CHIVAGO_OPENING_* explicitly.
  *
- * Two reasons. It has to be visible: a balance with no ledger row is exactly
- * the thing a user cannot account for, and "where did this come from" deserves
- * an answer even when the answer is "we gave it to you to try the app". And it
- * has to grant EXP, or a demo account reads as Level 1 while holding a
- * four-figure balance.
- *
- * Idempotent per user, so a restart never doubles it.
+ * Idempotent per user, so a restart never doubles an explicitly configured
+ * showcase grant.
  */
 export function grantOpeningBalance(db: DB, userId: string): void {
-  const trip = Number(process.env.CHIVAGO_OPENING_TRIP ?? 320);
-  const green = Number(process.env.CHIVAGO_OPENING_GREEN ?? 1240);
+  const trip = Number(process.env.CHIVAGO_OPENING_TRIP ?? 0);
+  const green = Number(process.env.CHIVAGO_OPENING_GREEN ?? 0);
   const grants: [Currency, number][] = [['trip', trip], ['green', green]];
   for (const [currency, amount] of grants) {
     if (!Number.isFinite(amount) || amount <= 0) continue;
     applyMovement(db, {
       userId,
       label: 'Pilot opening balance',
-      host: 'ChivaGo · pilot seed',
+      host: 'ChivarGo · pilot seed',
       amount,
       currency,
       kind: 'adjustment',

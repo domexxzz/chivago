@@ -11,15 +11,27 @@ import { __setLocaleForTests } from '../src/i18n/locale.ts';
 beforeEach(() => { __setLocaleForTests('th'); });
 afterEach(() => { __setLocaleForTests('en'); });
 
-describe('Chivargo LoginScreen', () => {
+describe('ChivarGo LoginScreen', () => {
+  it('renders the complete Chinese authentication path', async () => {
+    __setLocaleForTests('zh');
+    const ui = await mountScreen(h(LoginScreen, {}));
+    const out = ui.text();
+    assert.match(out, /欢迎回来/);
+    assert.match(out, /登录以继续旅程/);
+    assert.match(out, /使用 Google 登录/);
+    assert.match(out, /使用 LINE 登录/);
+    assert.match(out, /创建账户/);
+    assert.doesNotMatch(out, /ยินดีต้อนรับกลับ/);
+    ui.unmount();
+  });
+
   it('renders branding, headings, inputs, and OAuth buttons', async () => {
     const ui = await mountScreen(h(LoginScreen, {}));
     const text = ui.text();
 
     assert.match(text, /เดินทางไปด้วยกันให้ไกลกว่าเดิม/);
     assert.match(text, /ยินดีต้อนรับกลับ/);
-    assert.match(text, /เข้าสู่ระบบเพื่อไปยัง Chivargo/);
-    assert.match(text, /จดจำฉันไว้/);
+    assert.match(text, /เข้าสู่ระบบเพื่อเดินทางต่อ/);
     assert.match(text, /ลืมรหัสผ่าน\?/);
     assert.match(text, /เข้าสู่ระบบ/);
     assert.match(text, /หรือ/);
@@ -49,12 +61,12 @@ describe('Chivargo LoginScreen', () => {
 
     // Press login with empty inputs
     await ui.press(/เข้าสู่ระบบ/);
-    assert.match(ui.text(), /กรุณากรอกอีเมลหรือเบอร์โทรศัพท์/);
+    assert.match(ui.text(), /กรุณากรอกชื่อผู้ใช้ อีเมล หรือเบอร์โทรศัพท์/);
 
     // Type invalid email/phone format
     await ui.type('invalid-id', /อีเมลหรือเบอร์โทรศัพท์/);
     await ui.press(/เข้าสู่ระบบ/);
-    assert.match(ui.text(), /รูปแบบอีเมลหรือเบอร์โทรศัพท์ไม่ถูกต้อง/);
+    assert.match(ui.text(), /กรุณากรอกรหัสผ่าน/);
 
     // Type valid email with empty password
     await ui.type('user@example.com', /อีเมลหรือเบอร์โทรศัพท์/);
@@ -75,8 +87,8 @@ describe('Chivargo LoginScreen', () => {
     await ui.press(/ลืมรหัสผ่าน\?/);
     const text = ui.text();
     assert.match(text, /การกู้คืนบัญชี/);
-    assert.match(text, /กุญแจอุปกรณ์/);
-    assert.match(text, /รหัสเชื่อมต่อ 8 หลัก/);
+    assert.match(text, /ยังไม่มีระบบรีเซ็ตรหัสผ่านอัตโนมัติ/);
+    assert.match(text, /กรุณาติดต่อทีม ChivarGo/);
 
     // Dismiss modal
     await ui.pressText(/เข้าใจแล้ว/);
@@ -89,7 +101,7 @@ describe('Chivargo LoginScreen', () => {
     // Press Google button
     await ui.press(/เข้าสู่ระบบด้วย Google/);
     assert.match(ui.text(), /เข้าสู่ระบบด้วย Google/);
-    assert.match(ui.text(), /กำลังเตรียมพร้อมสำหรับการอัปเดตเวอร์ชันถัดไป/);
+    assert.match(ui.text(), /เซิร์ฟเวอร์นี้ยังไม่ได้เปิดใช้งานการเข้าสู่ระบบด้วย Google/);
     await ui.pressText(/ตกลง/);
 
     // Press LINE button
@@ -139,7 +151,7 @@ describe('Chivargo LoginScreen', () => {
         }),
       );
 
-      await ui.type('0812345678', /อีเมลหรือเบอร์โทรศัพท์/);
+      await ui.type('milk4taa', /อีเมลหรือเบอร์โทรศัพท์/);
       await ui.type('password123', /รหัสผ่าน/);
       await ui.press(/เข้าสู่ระบบ/);
       await settle();
@@ -184,34 +196,10 @@ describe('Chivargo LoginScreen', () => {
     }
   });
 
-  it('supports logging in via 8-character device link code', async () => {
-    await clearLoggedIn();
-    assert.equal(await hasLoggedIn(), false);
-
-    const s = server({
-      'POST /account/claim': { userId: 'u_linked', deviceKey: 'test_linked_key' },
-    });
-    try {
-      let success = false;
-      const ui = await mountScreen(
-        h(LoginScreen, {
-          onLoginSuccess: () => {
-            success = true;
-          },
-        }),
-      );
-
-      await ui.type('RHW6 FXT7', /อีเมลหรือเบอร์โทรศัพท์/);
-      await ui.type('password123', /รหัสผ่าน/);
-      await ui.press(/เข้าสู่ระบบ/);
-      await settle();
-
-      assert.equal(success, true);
-      assert.equal(await hasLoggedIn(), true);
-      ui.unmount();
-    } finally {
-      s.restore();
-    }
+  it('does not expose the legacy device-transfer flow', async () => {
+    const ui = await mountScreen(h(LoginScreen, {}));
+    assert.doesNotMatch(ui.text(), /ย้ายบัญชีจากเครื่องเดิม|รหัสเชื่อมต่อ/);
+    ui.unmount();
   });
 
   it('does not ask for an account role on login', async () => {
@@ -222,7 +210,7 @@ describe('Chivargo LoginScreen', () => {
     );
 
     assert.doesNotMatch(ui.text(), /เข้าสู่ระบบในฐานะ|นักท่องเที่ยว|ผู้ประกอบการ/);
-    assert.match(ui.text(), /เข้าสู่ระบบเพื่อไปยัง Chivargo/);
+    assert.match(ui.text(), /เข้าสู่ระบบเพื่อเดินทางต่อ/);
     await ui.press(/สมัครสมาชิก/);
 
     ui.unmount();

@@ -8,7 +8,7 @@ import {
 
 const sponsor: Sponsor = {
   id: 'sp1',
-  name: { en: 'Samui Green Foundation', th: 'มูลนิธิสมุยสีเขียว' },
+  name: { en: 'Samui Green Foundation', th: 'มูลนิธิสมุยสีเขียว', zh: '苏梅岛绿色基金会' },
   kind: 'ngo',
 };
 

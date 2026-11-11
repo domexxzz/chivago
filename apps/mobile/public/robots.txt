@@ -1,0 +1,24 @@
+# What a crawler may read.
+#
+# This file exists because /robots.txt used to fall through to the API's
+# catch-all and answer 401 UNAUTHENTICATED. Google's current rule is that a
+# 4xx means "no robots.txt, no restrictions", but a 401 specifically has
+# historically been read as "this whole site is private", and other crawlers
+# still read it that way. A site whose front door is meant to be found should
+# not leave that to interpretation.
+
+User-agent: *
+
+# The operator's console. Behind a sign-in, useful to nobody who is not
+# already holding an account, and every crawl of it is a 401.
+Disallow: /console
+
+# The live-location pages a traveller shares in an emergency. The 32-byte
+# token in the URL is the entire credential, so these must never be fetched
+# by anything that was not handed the link. They already answer
+# `x-robots-tag: noindex`; this stops the request from being made at all.
+Disallow: /sos/
+
+# Everything else is open on purpose - the app itself, an area's feed, the
+# board, a story, and above all a statement: an evidence record nobody can
+# find is not evidence (docs/31).

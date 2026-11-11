@@ -29,6 +29,7 @@ import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { formatDate, formatInteger } from '../i18n/format.ts';
 
 /** Currency as it reads mid-sentence, e.g. "180 more Trip Points". */
 const currencyName = (c: Offer['currency']): string =>
@@ -58,10 +59,10 @@ export function PurseChips({ balances }: { balances: Balances }) {
       }}
     >
       <Heading size={14} colour={color.accent700}>
-        {`${balances.green.toLocaleString('en-US')} G`}
+        {`${formatInteger(balances.green)} G`}
       </Heading>
       <Heading size={14} colour={color.neutral700}>
-        {`${balances.trip.toLocaleString('en-US')} T`}
+        {`${formatInteger(balances.trip)} T`}
       </Heading>
     </View>
   );
@@ -398,7 +399,7 @@ export function OfferRow({
         }}
       >
         <Heading size={12} colour={affordable ? currencyTone(offer.currency).text : color.neutral500}>
-          {`${offer.costPoints.toLocaleString('en-US')} ${offer.currency === 'green' ? 'G' : 'T'}`}
+          {`${formatInteger(offer.costPoints)} ${offer.currency === 'green' ? 'G' : 'T'}`}
         </Heading>
       </Pressable>
     </View>
@@ -496,9 +497,7 @@ function VoucherCard({
   onSelect: () => void;
   isPast?: boolean;
 }) {
-  const expires = new Date(voucher.expiresAt).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  });
+  const expires = formatDate(voucher.expiresAt, { day: 'numeric', month: 'short', year: 'numeric' });
   const isActive = voucher.status === 'active';
 
   return (
@@ -593,9 +592,7 @@ function VoucherSheet({
   onToast?: (msg: string) => void;
 }) {
   if (!voucher) return null;
-  const expires = new Date(voucher.expiresAt).toLocaleDateString('en-GB', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  });
+  const expires = formatDate(voucher.expiresAt, { day: 'numeric', month: 'short', year: 'numeric' });
 
   const copyCode = () => {
     try {
@@ -694,9 +691,9 @@ function VoucherSheet({
 
           <Body size={13} colour={color.neutral700} style={{ marginTop: 8, textAlign: 'center' }}>
             {t({
-              en: `${voucher.costPoints.toLocaleString('en-US')} points settled to the merchant.`,
-              th: `โอน ${voucher.costPoints.toLocaleString('en-US')} แต้มให้ร้านแล้ว`,
-              zh: `已向商家结算 ${voucher.costPoints.toLocaleString('en-US')} 积分。`,
+              en: `${formatInteger(voucher.costPoints)} points settled to the merchant.`,
+              th: `โอน ${formatInteger(voucher.costPoints)} แต้มให้ร้านแล้ว`,
+              zh: `已向商家结算 ${formatInteger(voucher.costPoints)} 积分。`,
             })}
           </Body>
         </View>

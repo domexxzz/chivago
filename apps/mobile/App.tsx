@@ -1,5 +1,5 @@
 /**
- * ChivaGo - Smart Wellness & Sustainable Tourism.
+ * ChivarGo - Smart Wellness & Sustainable Tourism.
  * Pilot: Koh Samui, Thailand.
  *
  * Composition root: fonts, navigation, the global SOS banner, the toast.
@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import {
@@ -24,7 +24,7 @@ import {
   useAccount, useLayers, useNav, useNotifications, useProfile, useSos, useToast, type ScreenKey,
 } from './src/state/store.tsx';
 import type { DeepLink } from './src/notifications/push.ts';
-import { ScreenTransition, SosBanner, TabBar, Toast } from './src/components/Shell.tsx';
+import { AiGuideButton, NavigationRail, ScreenTransition, SosBanner, TabBar, Toast, WIDE_TABS_AT } from './src/components/Shell.tsx';
 import { LoadingState } from './src/components/States.tsx';
 import { OnboardingScreen } from './src/screens/Onboarding.tsx';
 import { MapScreen } from './src/screens/MapScreen.tsx';
@@ -37,6 +37,7 @@ import { MarketScreen } from './src/screens/MarketScreen.tsx';
 import { AskScreen } from './src/screens/AskScreen.tsx';
 import { ImpactScreen } from './src/screens/ImpactScreen.tsx';
 import { HomeScreen } from './src/screens/HomeScreen.tsx';
+import { LocalPicksScreen } from './src/screens/LocalPicksScreen.tsx';
 import { PassportScreen } from './src/screens/PassportScreen.tsx';
 import { MascotsScreen } from './src/screens/MascotsScreen.tsx';
 import { MascotRoomScreen } from './src/screens/MascotRoom.tsx';
@@ -59,6 +60,7 @@ import { CompanionHomeScreen } from './src/screens/CompanionHome.tsx';
 import type { Companion } from '@chivago/core';
 import './src/polyfills/location-emitter.ts';
 import { loadLocale, t, useLocale } from './src/i18n/locale.ts';
+import { formatDate } from './src/i18n/format.ts';
 import { loadArea, placeFromUrl } from './src/state/area.ts';
 import { clearLoggedIn, hasLoggedIn, isGuest, setGuest, setLoggedIn } from './src/state/auth.ts';
 import { GuestBand, GuestGate } from './src/components/GuestGate.tsx';
@@ -77,6 +79,8 @@ const GUEST_GATED: ReadonlySet<ScreenKey> = new Set<ScreenKey>([
 ]);
 
 export default function App() {
+  const { width: viewportWidth } = useWindowDimensions();
+  const wideShell = viewportWidth >= WIDE_TABS_AT;
   // Both families are bundled locally rather than fetched at runtime: the app
   // is used on a beach with one bar of signal, and a font that fails to load
   // takes the whole type system with it.
@@ -87,6 +91,8 @@ export default function App() {
   });
 
   const nav = useNav('login');
+  const detailScroll = React.useRef<Record<string, { offset: number }>>({});
+  const scrollStateFor = (key: string) => detailScroll.current[key] ??= { offset: 0 };
 
   const [authReady, setAuthReady] = React.useState(false);
   const [loggedIn, setLoggedInState] = React.useState(false);
@@ -216,7 +222,7 @@ export default function App() {
 
   const [trip, setTrip] = React.useState<TripState>({
     dayNumber: 2,
-    dateLabel: new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
+    dateLabel: formatDate(new Date(), { weekday: 'short', day: 'numeric', month: 'short' }),
     walkingKm: 0,
     pointsToday: 0,
     airLabel: '—',
@@ -319,6 +325,8 @@ export default function App() {
       case 'concierge':
         return (
           <ConciergeScreen
+            onBack={nav.pop}
+            onOpenMap={() => nav.selectTab('map')}
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
             onAction={(action) => {
               // The concierge hands OFF rather than reimplementing a screen.
@@ -365,6 +373,7 @@ export default function App() {
       case 'place':
         return (
           <PlaceScreen
+            scrollState={scrollStateFor(`place:${nav.placeId}`)}
             placeId={nav.placeId ?? 'chaweng'}
             onBack={nav.pop}
             onAddToTrip={() => {
@@ -372,7 +381,7 @@ export default function App() {
                 {
                   id: `place-${nav.placeId}-${trip.items.length}`,
                   time: '16:00',
-                  name: { en: 'Saved place', th: 'สถานที่ที่บันทึก' },
+                  name: { en: 'Saved place', th: 'สถานที่ที่บันทึก', zh: '已保存的地点' },
                   tag: 'Saved',
                   isPointsRelated: false,
                   placeId: nav.placeId,
@@ -469,11 +478,21 @@ export default function App() {
             onOpenConcierge={() => nav.push('concierge')}
             onOpenParty={() => nav.push('party')}
             onOpenStays={() => nav.push('stays')}
+            onOpenSummon={() => nav.push('summon')}
+            onOpenLocalPicks={() => nav.push('localPicks')}
             onOpenSafety={() => nav.selectTab('safety')}
             onOpenProfile={() => nav.push('profile')}
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
             onOpenShop={(id) => nav.push('shop', { shopId: id })}
             onToast={toast.show}
+          />
+        );
+
+      case 'localPicks':
+        return (
+          <LocalPicksScreen
+            onBack={nav.pop}
+            onOpenShop={(id) => nav.push('shop', { shopId: id })}
           />
         );
 
@@ -498,7 +517,7 @@ export default function App() {
               setSignedInAccountType(undefined);
               setLoggedInState(false);
               nav.reset('login');
-              toast.show(t({ en: 'Logged out successfully', th: 'ออกจากระบบเรียบร้อยแล้ว' }));
+              toast.show(t({ en: 'Logged out successfully', th: 'ออกจากระบบเรียบร้อยแล้ว', zh: '已成功退出登录' }));
             }}
           />
         );
@@ -507,7 +526,7 @@ export default function App() {
         return <EditProfileScreen onBack={nav.pop} onSaved={() => { setProfileRefreshKey((k) => k + 1); nav.pop(); }} />;
 
       case 'shop':
-        return <ShopProfileScreen shopId={nav.shopId ?? ''} guest={guest || !loggedIn} onSignIn={() => nav.push('login')} onBack={nav.pop} onEdit={() => { if (loggedIn && !guest) nav.push('shopManage', { shopId: nav.shopId ?? undefined }); }} />;
+        return <ShopProfileScreen scrollState={scrollStateFor(`shop:${nav.shopId}`)} shopId={nav.shopId ?? ''} guest={guest || !loggedIn} onSignIn={() => nav.push('login')} onBack={nav.pop} onEdit={() => { if (loggedIn && !guest) nav.push('shopManage', { shopId: nav.shopId ?? undefined }); }} />;
 
       case 'shopManage':
         return <ShopManageScreen initialShopId={nav.shopId} onBack={nav.pop} onOpenShop={(id) => nav.push('shop', { shopId: id })} />;
@@ -516,7 +535,7 @@ export default function App() {
         return <MedalsScreen onBack={nav.pop} />;
 
       case 'passport':
-        return <PassportScreen onOpenMascots={() => nav.push('mascots')} />;
+        return <PassportScreen onBack={nav.pop} onOpenMascots={() => nav.push('mascots')} />;
 
       case 'mascots':
         return <MascotsScreen onBack={nav.pop} onOpen={(code) => nav.push('mascot', { code })} />;
@@ -544,14 +563,14 @@ export default function App() {
               setLoggedInState(true);
               setGuestState(false);
               setSignedInAccountType(accountType);
-              toast.show(t({ en: 'Signed in successfully', th: 'เข้าสู่ระบบสำเร็จ' }));
-              nav.selectTab('home');
+              toast.show(t({ en: 'Signed in successfully', th: 'เข้าสู่ระบบสำเร็จ', zh: '登录成功' }));
+              if (!nav.returnAfterAuth()) nav.selectTab('home');
             }}
             onRegister={() => nav.push('register')}
             onGuest={loggedIn || guest ? undefined : async () => {
               await setGuest(true);
               setGuestState(true);
-              toast.show(t({ en: 'Browsing as a guest', th: 'เข้าชมแบบผู้เยี่ยมชม' }));
+              toast.show(t({ en: 'Browsing as a guest', th: 'เข้าชมแบบผู้เยี่ยมชม', zh: '正在以访客身份浏览' }));
               nav.selectTab('home');
             }}
             onBack={nav.stack.length > 0 ? nav.pop : undefined}
@@ -568,10 +587,11 @@ export default function App() {
               setGuestState(false);
               setSignedInAccountType(accountType);
               toast.show(t({
-                en: 'Registration successful! Welcome to Chivargo',
-                th: 'สมัครสมาชิกสำเร็จ! ยินดีต้อนรับสู่ Chivargo',
+                en: 'Registration successful! Welcome to ChivarGo',
+                th: 'สมัครสมาชิกสำเร็จ! ยินดีต้อนรับสู่ ChivarGo',
+                zh: '注册成功！欢迎使用 ChivarGo',
               }));
-              nav.push('onboarding');
+              if (!nav.returnAfterAuth()) nav.push('onboarding');
             }}
             onLogin={() => {
               if (nav.stack[nav.stack.length - 1] === 'login') {
@@ -645,10 +665,13 @@ export default function App() {
         {fenceOff ? <UnfencedBand /> : null}
         {guest && showTabs ? <GuestBand onSignIn={() => nav.push('login')} /> : null}
 
-        <View style={{ flex: 1 }}>
-          <ErrorBoundary key={nav.screen} onReset={() => nav.selectTab('home')}>
-            <ScreenTransition screenKey={nav.screen}>{renderScreen(nav.screen)}</ScreenTransition>
-          </ErrorBoundary>
+        <View style={{ flex: 1, width: '100%', maxWidth: 1440, alignSelf: 'center', flexDirection: wideShell ? 'row' : 'column' }}>
+          {showTabs && wideShell ? <NavigationRail active={nav.activeTab} onChange={nav.selectTab} /> : null}
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <ErrorBoundary key={nav.screen} onReset={() => nav.selectTab('home')}>
+              <ScreenTransition screenKey={nav.screen}>{renderScreen(nav.screen)}</ScreenTransition>
+            </ErrorBoundary>
+          </View>
         </View>
 
         {/* A live alert follows the user everywhere. Handoff open question 5,
@@ -657,7 +680,11 @@ export default function App() {
           <SosBanner onPress={() => nav.selectTab('safety')} />
         ) : null}
 
-        {showTabs ? <TabBar active={nav.activeTab} onChange={nav.selectTab} /> : null}
+        {showTabs && nav.screen !== 'concierge' && nav.screen !== 'safety' ? (
+          <AiGuideButton wide={wideShell} onPress={() => nav.push('concierge')} />
+        ) : null}
+
+        {showTabs && !wideShell ? <TabBar active={nav.activeTab} onChange={nav.selectTab} /> : null}
 
         <Toast message={toast.message} />
       </SafeAreaView>

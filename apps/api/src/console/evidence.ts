@@ -145,7 +145,7 @@ export function evidenceCsv(
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const lines: string[] = [
-    `# ChivaGo evidence pack,${q(statement.id)}`,
+    `# ChivarGo evidence pack,${q(statement.id)}`,
     `# statement,${q(`${origin}/statements/${statement.id}`)}`,
     `# digest,${q(statement.digest)}`,
     `# period,${q(statement.period.from)},${q(statement.period.to)}`,
