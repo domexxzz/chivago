@@ -24,7 +24,7 @@ import {
   useAccount, useLayers, useNav, useNotifications, useProfile, useSos, useToast, type ScreenKey,
 } from './src/state/store.tsx';
 import type { DeepLink } from './src/notifications/push.ts';
-import { NavigationRail, ScreenTransition, SosBanner, TabBar, Toast, WIDE_TABS_AT } from './src/components/Shell.tsx';
+import { AiGuideButton, NavigationRail, ScreenTransition, SosBanner, TabBar, Toast, WIDE_TABS_AT } from './src/components/Shell.tsx';
 import { LoadingState } from './src/components/States.tsx';
 import { OnboardingScreen } from './src/screens/Onboarding.tsx';
 import { MapScreen } from './src/screens/MapScreen.tsx';
@@ -324,6 +324,8 @@ export default function App() {
       case 'concierge':
         return (
           <ConciergeScreen
+            onBack={nav.pop}
+            onOpenMap={() => nav.selectTab('map')}
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
             onAction={(action) => {
               // The concierge hands OFF rather than reimplementing a screen.
@@ -665,6 +667,10 @@ export default function App() {
             resolved against the prototype - see src/state/store.tsx. */}
         {sos.alert && nav.screen !== 'safety' ? (
           <SosBanner onPress={() => nav.selectTab('safety')} />
+        ) : null}
+
+        {showTabs && nav.screen !== 'concierge' && nav.screen !== 'safety' ? (
+          <AiGuideButton wide={wideShell} onPress={() => nav.push('concierge')} />
         ) : null}
 
         {showTabs && !wideShell ? <TabBar active={nav.activeTab} onChange={nav.selectTab} /> : null}
