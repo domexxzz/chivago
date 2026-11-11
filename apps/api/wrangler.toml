@@ -1,0 +1,41 @@
+# ChivarGo on Cloudflare Workers — step one of docs/74, and no more.
+#
+#   pnpm --filter @chivago/api exec wrangler deploy
+#   curl https://chivago-api.<subdomain>.workers.dev/health
+#
+# NOTHING POINTS AT THIS. The pilot runs on Fly and keeps running on Fly;
+# chivargo.com is not touched by anything in this file. What it is for is the
+# two things no test in this repository can prove: that the toolchain bundles
+# `worker.ts` at all, and that the database opens inside
+# `blockConcurrencyWhile` before a request is served. `do-storage.ts` has only
+# ever been exercised against a node:sqlite stand-in.
+#
+# `wrangler` is not a dependency of this package yet. Adding it brings
+# `@cloudflare/workers-types`, whose globals collide with `@types/node` that
+# the rest of apps/api needs — see the note in `worker.ts` about why the four
+# runtime types it touches are declared locally instead. That fight belongs to
+# the step that runs this, not to the step that writes it.
+
+name = "chivago-api"
+main = "src/worker.ts"
+compatibility_date = "2026-11-12"
+
+# `nodejs_compat` is deliberately ABSENT.
+#
+# It would make several of the remaining ports look easy and would hide the
+# one that is not: Workers cannot spawn a process, so `transcode.ts` and its
+# ffmpeg do not come across however compatible the flag claims to be. Leaving
+# it off means `worker-is-node-free.test.ts` and the bundler agree about what
+# is actually portable, rather than the test being the only one telling the
+# truth. Turn it on when a specific import needs it and say which.
+
+[[durable_objects.bindings]]
+name = "CHIVAGO_DB"
+class_name = "ChivagoDatabase"
+
+# SQLite storage, not the key-value kind. This is the whole reason the route
+# is Durable Objects and not D1: the adapter in `do-storage.ts` presents a
+# SYNCHRONOUS database, which is what all 543 call sites already expect.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ChivagoDatabase"]
