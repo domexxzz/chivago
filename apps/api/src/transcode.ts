@@ -104,6 +104,23 @@ export const ffmpegTranscoder: Transcoder = {
   async video(input, outMp4, outPoster) {
     const log = await run([
       '-y', '-i', input,
+      /*
+        -map_metadata -1: the same strip the photo path does, and for the same
+        reason. WITHOUT IT A STORY CLIP PUBLISHES THE PHONE'S POSITION.
+
+        ffmpeg copies global metadata into an MP4 by default, and an iPhone
+        writes the recording location into exactly that - as `location` and
+        `com.apple.quicktime.location.ISO6709`. Measured against ffmpeg 8.1:
+        a clip tagged `+09.5357+100.0617/` came out of this pipeline still
+        carrying it, so every video story posted from a phone with location
+        services on was publishing a coordinate inside the file. The comment
+        over `createStory` in story-service.ts said the re-encode strips
+        position; that was true of photographs and not of clips.
+
+        -map_chapters -1 for the same reason: chapter titles are free text a
+        phone or an editing app can put a place name into.
+      */
+      '-map_metadata', '-1', '-map_chapters', '-1',
       '-t', String(STORY_MAX_SECONDS),
       // Never upscale a small clip; always fit a big one. Even dimensions,
       // because yuv420p needs them.
@@ -115,7 +132,12 @@ export const ffmpegTranscoder: Transcoder = {
     ]);
     // The poster from the OUTPUT, half a second in, so it is a frame that
     // will actually be shown rather than one the trim discarded.
-    await run(['-y', '-ss', '0.5', '-i', outMp4, '-frames:v', '1', '-q:v', '4', outPoster]);
+    // Also stripped here, so the poster's cleanliness does not depend on the
+    // step above having run on this particular input.
+    await run([
+      '-y', '-ss', '0.5', '-i', outMp4, '-map_metadata', '-1',
+      '-frames:v', '1', '-q:v', '4', outPoster,
+    ]);
     const input_s = durationFrom(log);
     return { durationS: input_s === null ? null : Math.min(input_s, STORY_MAX_SECONDS) };
   },
@@ -123,6 +145,7 @@ export const ffmpegTranscoder: Transcoder = {
     // -map_metadata -1: say it rather than rely on a build's default. Some
     // ffmpeg builds carry EXIF through as frame side data, and this file is
     // what strips a position before a photo is public or sent to the AI.
+    // The video path above needs the same flag and did not have it.
     await run([
       '-y', '-i', input, '-map_metadata', '-1',
       '-vf', `scale='min(${STORY_WIDTH},iw)':-2`, '-q:v', '4', outJpg,

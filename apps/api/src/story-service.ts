@@ -21,8 +21,11 @@
  *
  *   NOBODY IS NAMED, AND NOTHING LASTS. No display name exists to show.
  *   The media is re-encoded, which strips the phone's EXIF, position
- *   included. Every story expires seven days after it was made and the
- *   file goes with the row.
+ *   included - see `-map_metadata -1` in transcode.ts, on BOTH the photo and
+ *   the video path. It was on the photo path only until 2 November, so clips
+ *   posted before then were published carrying the recording location; this
+ *   sentence described an intention rather than the code. Every story expires
+ *   seven days after it was made and the file goes with the row.
  */
 
 import { randomUUID, timingSafeEqual } from 'node:crypto';
