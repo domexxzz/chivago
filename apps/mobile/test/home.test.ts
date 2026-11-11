@@ -107,6 +107,11 @@ describe('the quest order claims nothing it cannot support', () => {
   test('with no progress at all the server order is left alone', () => {
     // Deliberately NOT sorted by reward. Ranking by payout would be the app
     // recommending whatever it most wants done and calling it a suggestion.
+    //
+    // These two lines were the only place that rule was written down, which is
+    // how long it would have lasted on a screen nobody was testing. `docs/73`
+    // now carries it, and extends it to paid placement, where the money comes
+    // from a partner instead of a sponsor and the temptation is larger.
     assert.deepEqual(questOrder([a, b, c], {}).map((q) => q.id), ['a', 'b', 'c']);
   });
 });
