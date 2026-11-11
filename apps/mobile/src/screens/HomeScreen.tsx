@@ -50,7 +50,7 @@ import { StallsCard } from '../components/Stalls.tsx';
 import { SeaAndSkyCard } from '../components/SeaAndSky.tsx';
 import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
 import {
-  BedDouble, ShoppingBag, Car, Scissors, Dumbbell, Grid2X2, Star, ArrowRight, Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MapPin, UserRound, Search, Shield, Sparkles, Ticket, Trees, Utensils, Wallet, Waves,
+  BedDouble, ShoppingBag, Car, Scissors, Dumbbell, Grid2X2, Star, ArrowRight, Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MapPin, UserRound, Search, Shield, Sparkles, Ticket, Trees, Utensils, Wallet, Waves, Shell as ShellIcon,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
@@ -122,7 +122,7 @@ export function questOrder(
 
 export function HomeScreen({
   onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenMarket, onOpenFair, onOpenPassport,
-  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenShop, onOpenMascots, onOpenStays,
+  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenShop, onOpenMascots, onOpenStays, onOpenSummon,
   onToast, now = new Date(),
 }: {
   onOpenMap: () => void;
@@ -149,6 +149,12 @@ export function HomeScreen({
    * and the owner could not find it.
    */
   onOpenStays?: () => void;
+  /**
+   * The summoning (docs/68): a charm from a verified quest or a day checked
+   * in, spent on a creature. Reached from the game tab as well; this is the
+   * door on Home, for the same reason `onOpenStays` has one.
+   */
+  onOpenSummon?: () => void;
   /** A fair's market in this area, lot by lot (docs/66). Optional so the older screen tests still render. */
   onOpenFair?: () => void;
   /** A one-line acknowledgement, for actions that finish without leaving the screen. */
@@ -219,6 +225,7 @@ export function HomeScreen({
             onOpenSafety={onOpenSafety}
             onOpenParty={onOpenParty}
             onOpenStays={onOpenStays}
+            onOpenSummon={onOpenSummon}
             onOpenMarket={onOpenMarket ?? onOpenWallet}
           />
           <View style={{ paddingHorizontal: gutter }}>
@@ -447,11 +454,11 @@ function Conditions({
 
 function Doors({
   onOpenMap, onOpenQuests, onOpenWallet, onOpenConcierge, onOpenImpact, onOpenSafety, onOpenParty,
-  onOpenStays, onOpenMarket,
+  onOpenStays, onOpenMarket, onOpenSummon,
 }: {
   onOpenMap: () => void; onOpenQuests: () => void; onOpenWallet: () => void; onOpenConcierge: () => void;
   onOpenImpact: () => void; onOpenSafety: () => void; onOpenParty: () => void; onOpenStays?: () => void;
-  onOpenMarket: () => void;
+  onOpenMarket: () => void; onOpenSummon?: () => void;
 }) {
   const doors = [
     { Icon: MapIcon, name: strings.tabs.map, onPress: onOpenMap, fill: '#C8F0FA', ink: '#0077B6' },
@@ -459,12 +466,44 @@ function Doors({
     { Icon: Sparkles, name: strings.tabs.quests, onPress: onOpenQuests, fill: '#FFD6AF', ink: '#B34C00' },
     { Icon: Wallet, name: strings.tabs.wallet, onPress: onOpenWallet, fill: '#FFD5CF', ink: '#AE433C' },
     { Icon: Ticket, name: { en: 'Deals', th: 'สิทธิพิเศษ', zh: '优惠' }, onPress: onOpenMarket, fill: '#FFF0AD', ink: '#916000' },
+    /*
+      The summoning (docs/68), on Home.
+
+      It was three taps inside the game tab, which is exactly how the Stays
+      door was lost - docs/61 records the owner not finding that screen - and
+      this is the same fix: a door on the surface somebody actually opens.
+
+      LILAC FROM THE TOKEN SET, not a hex typed in here. The five doors above
+      predate `tint` and carry their own hand-mixed pairs; a sixth one adding
+      to that pile is a sixth place to fix later. Lilac also keeps it off
+      gold, which on this screen belongs to points - and the summoning takes
+      no points and pays none out.
+
+      A SHELL, not dice, a gift or a four-leaf clover. lucide has all three,
+      and each one would be the interface calling this a gamble or a prize -
+      the two words docs/68 spent a legal argument refusing, and the two the
+      server still scans its own result payloads for. A shell is something
+      picked up by being on the island, which is where the charm came from.
+
+      Rendered only when the door has somewhere to go. A screen test that
+      predates this prop shows five doors rather than a sixth that does
+      nothing, which is the rule the place cards above already follow.
+    */
+    ...(onOpenSummon
+      ? [{
+        Icon: ShellIcon,
+        name: { en: 'Summon', th: 'อัญเชิญ', zh: '召唤' },
+        onPress: onOpenSummon,
+        fill: tint.lilac.fill,
+        ink: tint.lilac.ink,
+      }]
+      : []),
   ];
   return (
     <View style={{ flexDirection: 'row', paddingHorizontal: Math.max(8, gutter - 8), paddingTop: 22 }}>
       {doors.map(({ Icon, name, onPress, fill, ink }) => (
         <Pressable key={name.en} onPress={onPress} accessibilityRole="button" accessibilityLabel={t(name)}
-          style={{ flex: 1, alignItems: 'center', gap: 8, minHeight: 88 }}>
+          style={{ flex: 1, alignItems: 'center', gap: 8, minHeight: 96 }}>
           <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: fill, alignItems: 'center', justifyContent: 'center', borderTopWidth: 2, borderTopColor: 'rgba(255,255,255,0.8)', shadowColor: ink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 5, elevation: 2 }}>
             <Icon size={25} color={ink} strokeWidth={1.8} />
           </View>

@@ -548,3 +548,35 @@ describe('stays and tours has a door on Home', () => {
     ui.unmount();
   });
 });
+
+/**
+ * The summoning's door (docs/68).
+ *
+ * It was three taps inside the game tab. docs/61 has already paid this bill
+ * once - the owner could not find Stays & tours, and the line it wrote then
+ * was that a feature nobody can find is a feature nobody has.
+ *
+ * Two tests, because the door's ABSENCE is the half that breaks quietly: a
+ * sixth door drawn for a caller that passes no handler is a button that eats
+ * the tap and says nothing, which is worse than no door at all.
+ */
+describe('the summoning is reachable from Home', () => {
+  test('the door is there, and it opens the summoning', async () => {
+    const s = server(routes()); restore = s.restore;
+    let opened = 0;
+    const ui = await mountScreen(h(HomeScreen, { ...props, onOpenSummon: () => { opened += 1; } }));
+
+    assert.ok(ui.labels().includes('Summon'), 'Home has no door to the summoning');
+    await ui.press('Summon');
+    assert.equal(opened, 1, 'the door did not open the summoning');
+    ui.unmount();
+  });
+
+  test('with nowhere to go, the door is not drawn at all', async () => {
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+
+    assert.ok(!ui.labels().includes('Summon'), 'a door was drawn with nothing behind it');
+    ui.unmount();
+  });
+});
