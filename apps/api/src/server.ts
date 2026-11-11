@@ -120,8 +120,16 @@ import {
 } from './assist-service.ts';
 import { bedrockModel } from './bedrock.ts';
 import type { Voucher, WellnessProfile } from '@chivago/core';
+import { bootstrapKohSichangBusinesses } from './bootstrap-koh-sichang.ts';
+import { isPrimary } from './primary.ts';
 
 const db = openDb();
+if (isPrimary()) {
+  const bootstrapped = bootstrapKohSichangBusinesses(db);
+  if (!bootstrapped.skipped && (bootstrapped.accountCreated || bootstrapped.shopsInserted > 0)) {
+    console.log('[chivago] Ko Sichang businesses bootstrapped:', bootstrapped);
+  }
+}
 const app = new Hono<AppEnv>();
 
 const push = expoTransport();
