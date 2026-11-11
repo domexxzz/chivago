@@ -18,7 +18,13 @@
 
 name = "chivago-api"
 main = "src/worker.ts"
-compatibility_date = "2026-11-12"
+# NOT today's date. Cloudflare rejects a compatibility date it considers to
+# be in the future - `Can't set compatibility date in the future [10021]` -
+# and "today" is whatever their clock says, not whatever the machine running
+# wrangler says. The two disagreed by a day on the first deploy. Set this to
+# a date that has certainly passed where Cloudflare is, and move it forward
+# deliberately, which is what the field is for.
+compatibility_date = "2026-11-11"
 
 # `nodejs_compat` is deliberately ABSENT.
 #
