@@ -477,6 +477,7 @@ export default function App() {
             onOpenConcierge={() => nav.push('concierge')}
             onOpenParty={() => nav.push('party')}
             onOpenStays={() => nav.push('stays')}
+            onOpenSummon={() => nav.push('summon')}
             onOpenSafety={() => nav.selectTab('safety')}
             onOpenProfile={() => nav.push('profile')}
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
