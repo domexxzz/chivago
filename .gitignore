@@ -60,3 +60,7 @@ thai-review.html
 # Local scripts and wrong lockfile
 package-lock.json
 run.bat
+
+# wrangler build output and local state (docs/74)
+.wrangler/
+.wrangler-dryrun/
