@@ -125,9 +125,19 @@ import { isPrimary } from './primary.ts';
 
 const db = openDb();
 if (isPrimary()) {
-  const bootstrapped = bootstrapKohSichangBusinesses(db);
-  if (!bootstrapped.skipped && (bootstrapped.accountCreated || bootstrapped.shopsInserted > 0)) {
-    console.log('[chivago] Ko Sichang businesses bootstrapped:', bootstrapped);
+  // WRAPPED, because this runs while the module is still being imported.
+  // Anything thrown here has no handler above it: the process ends before a
+  // port is open, the health check never answers, and `auto_start_machines`
+  // wakes the machine only to crash it again. Seeding eight shop rows is not
+  // worth the pilot being unreachable, so a failure is logged and the server
+  // comes up without them.
+  try {
+    const bootstrapped = bootstrapKohSichangBusinesses(db);
+    if (!bootstrapped.skipped && (bootstrapped.accountCreated || bootstrapped.shopsInserted > 0)) {
+      console.log('[chivago] Ko Sichang businesses bootstrapped:', bootstrapped);
+    }
+  } catch (err) {
+    console.error('[chivago] Ko Sichang bootstrap failed; starting without it:', err);
   }
 }
 const app = new Hono<AppEnv>();
