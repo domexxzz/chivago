@@ -11,6 +11,7 @@
     "seed:marketplace": "node --experimental-strip-types src/seed-marketplace.ts",
     "seed:offers": "node --experimental-strip-types src/seed-offers.ts",
     "host:add": "node --experimental-strip-types src/add-host.ts",
+    "transcode": "node --experimental-strip-types src/transcode-service.ts",
     "test": "node --test --experimental-strip-types \"src/*.test.ts\" \"src/console/*.test.ts\"",
     "test:durable": "node --env-file=durable-driver.env --test --experimental-strip-types \"src/*.test.ts\" \"src/console/*.test.ts\"",
     "typecheck": "tsc --noEmit",

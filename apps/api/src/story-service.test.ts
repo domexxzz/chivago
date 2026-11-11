@@ -24,14 +24,16 @@ const mp4 = (): Buffer => Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.fr
 const webm = (): Buffer => Buffer.concat([Buffer.from([0x1a, 0x45, 0xdf, 0xa3]), Buffer.alloc(64, 2)]);
 const jpeg = (): Buffer => Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(64, 3)]);
 
-/** Writes recognisable bytes where ffmpeg would write media. */
+/** Hands back recognisable bytes where ffmpeg would hand back media. */
+const bytesOf = (text: string): Uint8Array => new TextEncoder().encode(text);
 const fake: Transcoder = {
-  async video(_input, outMp4, outPoster) {
-    writeFileSync(outMp4, 'MP4-BYTES');
-    writeFileSync(outPoster, 'POSTER-BYTES');
-    return { durationS: 8.2 };
+  async video() {
+    return { media: bytesOf('MP4-BYTES'), poster: bytesOf('POSTER-BYTES'), durationS: 8.2 };
   },
-  async photo(_input, outJpg) { writeFileSync(outJpg, 'JPG-BYTES'); },
+  async photo() {
+    const media = bytesOf('JPG-BYTES');
+    return { media, poster: media, durationS: null };
+  },
 };
 const broken: Transcoder = {
   async video() { throw new Error('moov atom not found'); },
@@ -124,7 +126,10 @@ describe('from the place, with the second signal', () => {
 
   test('a mocked fix is refused before ffmpeg runs', async () => {
     let ran = false;
-    const spy: Transcoder = { async video() { ran = true; return { durationS: 1 }; }, async photo() { ran = true; } };
+    const spy: Transcoder = {
+      async video() { ran = true; return { media: bytesOf('x'), poster: bytesOf('x'), durationS: 1 }; },
+      async photo() { ran = true; const media = bytesOf('x'); return { media, poster: media, durationS: null }; },
+    };
     await assert.rejects(submit({ fix: { ...here, mocked: true }, transcoder: spy }), MockedLocation);
     assert.equal(ran, false);
   });
@@ -264,15 +269,20 @@ describe('what an iPhone sends', () => {
   });
 
   test('a HEIC the server can convert becomes a JPEG like any photograph', async () => {
-    const inputs: string[] = [];
+    // The extension is what tells ffmpeg this is HEIC, so that is what is
+    // recorded: the transcoder no longer sees a filename at all.
+    const exts: string[] = [];
     const recording: Transcoder = {
       ...fake,
-      async photo(input, outJpg) { inputs.push(input); writeFileSync(outJpg, 'JPG-BYTES'); },
+      async photo(_bytes, ext) {
+        exts.push(ext);
+        const media = bytesOf('JPG-BYTES');
+        return { media, poster: media, durationS: null };
+      },
     };
     const s = await submit({ bytes: heic(), transcoder: recording });
     assert.equal(s.kind, 'photo');
-    assert.equal(inputs.length, 1, 'the photo encode ran, not the video one');
-    assert.match(inputs[0]!, /\.heic$/, 'ffmpeg was handed the file under its own extension');
+    assert.deepEqual(exts, ['heic'], 'the photo encode ran, and saw the HEIC extension');
     assert.match(readStoryMedia(db, s.id, 'media', { forHost: 'h-ku' })!.mime, /image\/jpeg/);
   });
 
@@ -315,11 +325,20 @@ describe('what an iPhone sends', () => {
     await assert.rejects(submit({ transcoder: absent }), TranscoderUnavailable);
   });
 
-  test('a missing encoder leaves no row and no scratch file behind', async () => {
+  test('a missing encoder leaves no row and nothing on the disk', async () => {
     await assert.rejects(submit({ transcoder: absent }), TranscoderUnavailable);
     const left = (db.prepare('SELECT COUNT(*) AS n FROM stories').get() as unknown as { n: number }).n;
     assert.equal(left, 0, 'no half-made story');
-    assert.deepEqual(readdirSync(join(dir, 'stories')), [], 'no input file left in the stories directory');
+    /*
+      Stronger than it was. This used to assert the stories directory was
+      EMPTY, because the transcode wrote its input there and a failure had to
+      clean up after itself. Nothing is written there at all now - the encoder
+      owns its own scratch space - so the directory is never even created.
+    */
+    const stories = join(dir, 'stories');
+    if (existsSync(stories)) {
+      assert.deepEqual(readdirSync(stories), [], 'nothing was left in the stories directory');
+    }
   });
 
   test('an iPhone HEIC on a server with NO encoder is not blamed on the camera setting', async () => {
