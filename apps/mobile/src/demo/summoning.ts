@@ -52,7 +52,8 @@
 import {
   DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, RARE_PITY, RARITIES,
   RARITY_EFFECTIVE_PERCENT, RARITY_EFFECTIVE_WEIGHT, RARITY_PERCENT,
-  RARITY_WEIGHT, SPIRITS, WEIGHT_TOTAL, advancePity, drawSpirit,
+  POOL, PULL_COST, TEN_PULL_COST, TEN_PULL_SIZE, POOL_VERSION,
+  RARITY_WEIGHT, SPIRITS, WEIGHT_TOTAL, advancePity, drawItem, itemKey,
   type PityState, type SpiritRarity,
 } from '@chivago/core';
 
@@ -66,6 +67,7 @@ import {
 import type { SpiritCard, SummonReceipt, SummonResult, SummonState } from '../api/client.ts';
 
 /** One visitor, the same one the rest of the demo answers for. */
+const DEMO_TRIP_POINTS = 1_200;
 const USER = 'demo-user';
 
 /**
@@ -304,10 +306,14 @@ export function createSummoning(ledgerNow: () => readonly LedgerRow[], opened: D
       const mine = held();
       return {
         charms: charms(),
+        // The demo wallet is not the real one; it shows the published price
+        // and enough points to exercise both buttons, and says so on screen.
+        tripPoints: DEMO_TRIP_POINTS,
+        price: { one: PULL_COST, ten: TEN_PULL_COST, tenSize: TEN_PULL_SIZE, currency: 'trip' },
         dust: dust(),
         pity: pity(),
         collected: mine.size,
-        total: SPIRITS.length,
+        total: POOL.length,
         // Cast because `fromEntries` is typed over string keys and cannot
         // know `RARITIES` covers every one of them. A test asserts it does,
         // which is the only thing that would make this cast a lie.
@@ -377,15 +383,15 @@ export function createSummoning(ledgerNow: () => readonly LedgerRow[], opened: D
 
       const e = await openEpoch();
       const { roll, pick } = await rollFor(e.seed, USER, nonce);
-      const drawn = drawSpirit(roll, pick, pity());
+      const drawn = drawItem(roll, pick, pity());
 
-      const duplicate = held().has(drawn.spirit.key);
+      const duplicate = held().has(itemKey(drawn.item));
       const dustGained = duplicate ? DUST_FROM_DUPLICATE[drawn.rarity] : 0;
       const id = crypto.randomUUID();
 
       pulls.push({
         id, at: now.toISOString(), epochId: e.id, nonce, roll, pick,
-        spiritKey: drawn.spirit.key, rarity: drawn.rarity, byPity: drawn.byPity,
+        spiritKey: itemKey(drawn.item), rarity: drawn.rarity, byPity: drawn.byPity,
         duplicate, dust: dustGained,
       });
 
@@ -393,7 +399,8 @@ export function createSummoning(ledgerNow: () => readonly LedgerRow[], opened: D
         ok: true,
         value: {
           id,
-          spirit: drawn.spirit,
+          item: drawn.item,
+          spirit: drawn.item.kind === 'spirit' ? drawn.item.spirit : null,
           rarity: drawn.rarity,
           byPity: drawn.byPity,
           duplicate,
@@ -401,7 +408,7 @@ export function createSummoning(ledgerNow: () => readonly LedgerRow[], opened: D
           dust: dust(),
           charms: charms(),
           pity: pity(),
-          receipt: { epochId: e.id, commitment: e.commitment, nonce, roll, pick },
+          receipt: { epochId: e.id, commitment: e.commitment, nonce, roll, pick, poolVersion: POOL_VERSION },
         },
       };
     },

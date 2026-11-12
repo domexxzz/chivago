@@ -5,7 +5,7 @@
 import React from 'react';
 import { Animated, Image, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
-import { ChevronLeft, House, Leaf, Map as MapIcon, MessageCircle, PawPrint, Shield, Sparkles } from 'lucide-react-native';
+import { Backpack, ChevronLeft, House, Leaf, Map as MapIcon, MessageCircle, PawPrint, Shield, Smartphone, Sparkles, Users } from 'lucide-react-native';
 import { strings } from '@chivago/core';
 import { color, gutter, headerGutter, layout, motion, onFill, radius, ruleStrong, ruleStrongTop, shadow } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from './Type.tsx';
@@ -273,12 +273,99 @@ export function TabBar({
  * The same five destinations become a rail once a screen is wide enough to
  * keep them visible beside the content. This is not a second navigation
  * model: order, labels, state and callbacks all come from the mobile bar.
+ *
+ * THE FOURTH CELL IS NOT COLLECT, on a wide screen. It is My Backpack, in
+ * Collect's place and at Collect's position, and that is a deliberate split
+ * between the two shapes of the app rather than an accident of width.
+ *
+ * On a phone the bar still reads Collect, because five cells is all a 375px
+ * bar holds and the wallet has a door on Home (`store.tsx` carries the whole
+ * argument). On a rail the collection itself has MOVED into the backpack -
+ * the habitat rail, the seventy-seven, the Summoning - so the backpack is
+ * now where that layer is entered, and a cell for the lobby in front of it
+ * would be a door standing beside the room it opens onto.
+ *
+ * So the backpack cell reads selected for everything the Collect tab owns,
+ * not only the wallet, and the Collect lobby keeps a door of its own from
+ * "View all" on the collection rail inside the backpack. Nothing became
+ * unreachable; one destination moved behind another.
+ *
+ * THE RAIL DOES NOT CHANGE SKIN. It wore canvas, leather straps and brass
+ * while My Backpack was open, and that was one chrome too many: navigation
+ * that restyles itself per destination makes the reader check, every time,
+ * whether they are still looking at the same five things. The adventure
+ * surface belongs to the content beside it, which is what the traveller came
+ * to look at. The rail stays white, quiet and identical everywhere.
  */
 export function NavigationRail({
-  active, onChange,
-}: { active: TabKey; onChange: (tab: TabKey) => void }) {
+  active, onChange, onOpenBackpack, backpackActive = false,
+  onOpenConnectApp, connectAppActive = false,
+  onOpenCommunity, communityActive = false,
+}: {
+  active: TabKey;
+  onChange: (tab: TabKey) => void;
+  /**
+   * Opens the wallet — My Backpack. Given, it takes Collect's cell on the
+   * rail. Omitted, the rail is the mobile bar's five destinations exactly.
+   */
+  onOpenBackpack?: () => void;
+  backpackActive?: boolean;
+  onOpenConnectApp?: () => void;
+  connectAppActive?: boolean;
+  onOpenCommunity?: () => void;
+  communityActive?: boolean;
+}) {
   const { width } = useWindowDimensions();
   const expanded = width >= 1200;
+  const cell = {
+    minHeight: 52,
+    paddingHorizontal: expanded ? 14 : 0,
+    borderRadius: 18,
+    flexDirection: (expanded ? 'row' : 'column') as 'row' | 'column',
+    alignItems: 'center' as const,
+    justifyContent: (expanded ? 'flex-start' : 'center') as 'flex-start' | 'center',
+    gap: expanded ? 12 : 4,
+  };
+  const fill = (selected: boolean, pressed: boolean) => (selected
+    ? color.brand
+    : pressed ? color.brandSoft : 'transparent');
+  const ink = (selected: boolean) => (selected ? onFill.brand : color.neutral700);
+  const pushedActive = backpackActive || connectAppActive || communityActive;
+  const entries: {
+    key: string;
+    Icon: typeof House;
+    label: string;
+    selected: boolean;
+    onPress: () => void;
+  }[] = TAB_ORDER.map((key) => {
+    const backpack = key === 'game' && onOpenBackpack !== undefined;
+    return {
+      key,
+      Icon: backpack ? Backpack : TAB_ICONS[key],
+      label: t(backpack ? strings.tabs.backpack : strings.tabs[key]),
+      selected: backpack ? backpackActive : key === active && !pushedActive,
+      onPress: () => {
+        if (!backpack) { onChange(key); return; }
+        if (!backpackActive) onOpenBackpack!();
+      },
+    };
+  });
+  const safetyIndex = entries.findIndex((entry) => entry.key === 'safety');
+  const extraEntries = [
+    ...(onOpenCommunity ? [{
+      key: 'community', Icon: Users,
+      label: t({ en: 'Community', th: 'คอมมูนิตี้', zh: '社区' }),
+      selected: communityActive,
+      onPress: () => { if (!communityActive) onOpenCommunity(); },
+    }] : []),
+    ...(onOpenConnectApp ? [{
+      key: 'connect-app', Icon: Smartphone,
+      label: t({ en: 'Connect App', th: 'เชื่อมต่อแอป', zh: '连接应用' }),
+      selected: connectAppActive,
+      onPress: () => { if (!connectAppActive) onOpenConnectApp(); },
+    }] : []),
+  ];
+  entries.splice(safetyIndex, 0, ...extraEntries);
   return (
     <View
       accessibilityRole="tablist"
@@ -300,29 +387,18 @@ export function NavigationRail({
         {expanded ? <Label size={9} tracking={0.14} colour={color.neutral600} style={{ marginTop: 3 }}>{t({ en: 'EXPLORE TOGETHER', th: 'ออกเดินทางไปด้วยกัน', zh: '一起探索' })}</Label> : null}
       </View>
       <View style={{ gap: 8 }}>
-        {TAB_ORDER.map((key) => {
-          const selected = key === active;
-          const Icon = TAB_ICONS[key];
+        {entries.map(({ key, Icon, label, selected, onPress }) => {
           return (
             <Pressable
               key={key}
-              onPress={() => onChange(key)}
+              onPress={onPress}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
-              accessibilityLabel={t(strings.tabs[key])}
-              style={({ pressed }) => ({
-                minHeight: 52,
-                paddingHorizontal: expanded ? 14 : 0,
-                borderRadius: 18,
-                flexDirection: expanded ? 'row' : 'column',
-                alignItems: 'center',
-                justifyContent: expanded ? 'flex-start' : 'center',
-                gap: expanded ? 12 : 4,
-                backgroundColor: selected ? color.brand : pressed ? color.brandSoft : 'transparent',
-              })}
+              accessibilityLabel={label}
+              style={({ pressed }) => ({ ...cell, backgroundColor: fill(selected, pressed) })}
             >
-              <Icon size={21} color={selected ? onFill.brand : color.neutral700} strokeWidth={selected ? 2.4 : 1.9} />
-              <Label size={10} tracking={0.05} colour={selected ? onFill.brand : color.neutral700}>{t(strings.tabs[key])}</Label>
+              <Icon size={21} color={ink(selected)} strokeWidth={selected ? 2.4 : 1.9} />
+              <Label size={10} tracking={0.05} colour={ink(selected)}>{label}</Label>
             </Pressable>
           );
         })}

@@ -50,6 +50,8 @@ import { LoginScreen } from './src/screens/LoginScreen.tsx';
 import { RegisterScreen } from './src/screens/RegisterScreen.tsx';
 import { GuestProfileScreen, ProfileScreen } from './src/screens/ProfileScreen.tsx';
 import { EditProfileScreen } from './src/screens/EditProfileScreen.tsx';
+import { ConnectAppScreen } from './src/screens/ConnectAppScreen.tsx';
+import { CommunityFeedScreen } from './src/screens/CommunityFeedScreen.tsx';
 import { ShopProfileScreen } from './src/screens/ShopProfileScreen.tsx';
 import { ShopManageScreen } from './src/screens/ShopManageScreen.tsx';
 import { MedalsScreen } from './src/screens/MedalsScreen.tsx';
@@ -78,7 +80,7 @@ import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
  * would be a lie, and spending or editing needs an account to land on.
  */
 const GUEST_GATED: ReadonlySet<ScreenKey> = new Set<ScreenKey>([
-  'editProfile', 'wallet', 'market', 'account', 'shopManage', 'fashion',
+  'editProfile', 'connectApp', 'community', 'wallet', 'market', 'account', 'shopManage', 'fashion',
 ]);
 
 export default function App() {
@@ -439,9 +441,6 @@ export default function App() {
           <GameScreen
             onOpenCompanion={(c) => { setCompanion(c); nav.push('companion'); }}
             onOpenMascots={() => nav.push('mascots')}
-            onOpenSummon={() => nav.push('summon')}
-            onOpenMedals={() => nav.push('medals')}
-            onOpenPassport={() => nav.push('passport')}
             onOpenParty={() => nav.push('party')}
             onOpenProfile={() => nav.push('profile')}
             onOpenWallet={() => nav.push('wallet')}
@@ -462,6 +461,9 @@ export default function App() {
             onMarkRead={notifications.markRead}
             onMarkAllRead={notifications.markAllRead}
             onOpenQuest={(id) => nav.push('quest', { questId: id })}
+            onOpenMascots={() => nav.push('mascots')}
+            onOpenSummon={() => nav.push('summon')}
+            onOpenCollect={() => nav.push('game')}
           />
         );
 
@@ -492,6 +494,7 @@ export default function App() {
             onOpenStays={() => nav.push('stays')}
             onOpenSummon={() => nav.push('summon')}
             onOpenLocalPicks={() => nav.push('localPicks')}
+            onOpenCommunity={() => nav.push('community')}
             onOpenSafety={() => nav.selectTab('safety')}
             onOpenProfile={() => nav.push('profile')}
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
@@ -507,6 +510,9 @@ export default function App() {
             onOpenShop={(id) => nav.push('shop', { shopId: id })}
           />
         );
+
+      case 'community':
+        return <CommunityFeedScreen onBack={nav.pop} onToast={toast.show} />;
 
       case 'profile':
         if (guest) {
@@ -536,6 +542,9 @@ export default function App() {
 
       case 'editProfile':
         return <EditProfileScreen onBack={nav.pop} onSaved={() => { setProfileRefreshKey((k) => k + 1); nav.pop(); }} />;
+
+      case 'connectApp':
+        return <ConnectAppScreen onBack={nav.pop} />;
 
       case 'shop':
         return <ShopProfileScreen scrollState={scrollStateFor(`shop:${nav.shopId}`)} shopId={nav.shopId ?? ''} guest={guest || !loggedIn} onSignIn={() => nav.push('login')} onBack={nav.pop} onEdit={() => { if (loggedIn && !guest) nav.push('shopManage', { shopId: nav.shopId ?? undefined }); }} />;
@@ -681,7 +690,24 @@ export default function App() {
         {guest && showTabs ? <GuestBand onSignIn={() => nav.push('login')} /> : null}
 
         <View style={{ flex: 1, width: '100%', maxWidth: 1440, alignSelf: 'center', flexDirection: wideShell ? 'row' : 'column' }}>
-          {showTabs && wideShell ? <NavigationRail active={nav.activeTab} onChange={nav.selectTab} /> : null}
+          {showTabs && wideShell ? (
+            <NavigationRail
+              active={nav.activeTab}
+              onChange={nav.selectTab}
+              /*
+                A cell, so it resets the stack the way every other cell does.
+                It reads selected across the whole Collect layer as well as
+                the wallet: on a rail that layer is entered from the backpack,
+                and a tablist with nothing selected strands the reader.
+              */
+              onOpenBackpack={() => nav.reset('wallet')}
+              backpackActive={nav.screen === 'wallet' || nav.activeTab === 'game'}
+              onOpenCommunity={() => nav.reset('community')}
+              communityActive={nav.screen === 'community'}
+              onOpenConnectApp={() => nav.reset('connectApp')}
+              connectAppActive={nav.screen === 'connectApp'}
+            />
+          ) : null}
           <View style={{ flex: 1, minWidth: 0 }}>
             <ErrorBoundary key={nav.screen} onReset={() => nav.selectTab('home')}>
               <ScreenTransition screenKey={nav.screen}>{renderScreen(nav.screen)}</ScreenTransition>

@@ -656,9 +656,9 @@ function TravellerTools({ onOpenEditProfile, onOpenPassport, onOpenWallet, onOpe
       <Label size={10} tracking={0.12} colour={color.brand} style={{ marginBottom: 12 }}>{t({ en: 'My profile', th: 'เมนูของฉัน', zh: '我的资料' })}</Label>
       <View style={{ gap: 9 }}>
         <ProfileAction Mark={UserRound} title={t({ en: 'Edit personal details', th: 'แก้ไขข้อมูลส่วนตัว', zh: '编辑个人资料' })} onPress={onOpenEditProfile} />
-        <ProfileAction Mark={MapPinned} title={t({ en: 'Travel passport', th: 'พาสปอร์ตการเดินทาง', zh: '旅行护照' })} onPress={onOpenPassport} />
+        <ProfileAction Mark={MapPinned} title={t({ en: 'Digital passport', th: 'พาสปอร์ตดิจิทัล', zh: '数字护照' })} onPress={onOpenPassport} />
         <ProfileAction Mark={Leaf} title={t({ en: 'Points and wallet', th: 'คะแนนและกระเป๋าของฉัน', zh: '积分与钱包' })} onPress={onOpenWallet} />
-        <ProfileAction Mark={Crown} title={t({ en: 'My medals', th: 'เหรียญของฉัน', zh: '我的奖章' })} onPress={onOpenMedals} />
+        <ProfileAction Mark={Crown} title={t({ en: 'Medals', th: 'เหรียญรางวัล', zh: '奖章' })} onPress={onOpenMedals} />
         <ProfileAction Mark={Settings} title={t({ en: 'Account and devices', th: 'บัญชีและอุปกรณ์', zh: '账号与设备' })} onPress={onOpenAccount} />
       </View>
     </Card>

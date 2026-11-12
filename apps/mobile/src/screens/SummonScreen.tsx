@@ -23,7 +23,7 @@
 
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { ChevronLeft, Sparkles } from 'lucide-react-native';
+import { ChevronLeft, Flag, Shirt, Sparkles } from 'lucide-react-native';
 import {
   COURT_LABEL, RARITIES, RARITY_LABEL, strings, type SpiritRarity,
 } from '@chivago/core';
@@ -38,7 +38,7 @@ import { ErrorState, LoadingState } from '../components/States.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { MascotMark } from '../components/MascotMark.tsx';
 import { t } from '../i18n/locale.ts';
-import { formatDate } from '../i18n/format.ts';
+import { formatDate, formatInteger } from '../i18n/format.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 
 /** The day a round opened, in the reader's own calendar conventions. */
@@ -209,22 +209,99 @@ export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
   );
 }
 
+/**
+ * One of the two buttons at the box.
+ *
+ * Dimensional, because the mockup asks for a game surface, and still a plain
+ * accessible control underneath: a `button` role, a localized label that says
+ * the price out loud, and a disabled state announced rather than only
+ * greyed - the price is the whole decision and it cannot be carried by
+ * colour and shadow alone.
+ */
+function PullButton({
+  tone, title, cost, affordable, busy, onPress,
+}: {
+  tone: 'teal' | 'gold';
+  title: string;
+  cost: number;
+  affordable: boolean;
+  busy: boolean;
+  onPress: () => void;
+}) {
+  const gold = tone === 'gold';
+  const off = !affordable || busy;
+  const priced = t({
+    en: `${title}, ${formatInteger(cost)} Trip Points`,
+    th: `${title} ${formatInteger(cost)} แต้มทริป`,
+    zh: `${title}，${formatInteger(cost)} 旅行积分`,
+  });
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={off}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: off, busy }}
+      accessibilityLabel={affordable
+        ? priced
+        : t({
+          en: `${priced}. Not enough Trip Points yet.`,
+          th: `${priced} แต้มทริปยังไม่พอ`,
+          zh: `${priced}。旅行积分还不够。`,
+        })}
+      style={({ pressed }) => ({
+        flex: 1,
+        minHeight: 72,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 3,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        borderRadius: 20,
+        borderWidth: 3,
+        borderColor: off ? '#9FB4C2' : (gold ? '#FFE7A3' : '#7FE3E0'),
+        backgroundColor: off ? '#C9D7E0' : (gold ? '#E8A72A' : '#0E7E9E'),
+        opacity: pressed ? 0.92 : 1,
+        shadowColor: gold ? '#7A4E05' : '#063E54',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: off ? 0.1 : 0.3,
+        shadowRadius: 8,
+        elevation: off ? 1 : 5,
+      })}
+    >
+      <Heading size={17} colour={off ? '#4C606D' : '#FFFFFF'}>{title}</Heading>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 11, paddingVertical: 3, borderRadius: 11, backgroundColor: off ? 'rgba(255,255,255,0.45)' : 'rgba(4,34,50,0.35)' }}>
+        <Flag size={13} color={off ? '#4C606D' : '#BFF1FF'} strokeWidth={2.4} />
+        <Label size={11} tracking={0} colour={off ? '#4C606D' : '#FFFFFF'} style={{ textTransform: 'none' }}>
+          {t({
+            en: `${formatInteger(cost)} Trip Points`,
+            th: `${formatInteger(cost)} แต้มทริป`,
+            zh: `${formatInteger(cost)} 旅行积分`,
+          })}
+        </Label>
+      </View>
+      {busy ? (
+        <Label size={9} tracking={0.08} colour="#FFFFFF">{t({ en: 'DRAWING', th: 'กำลังสุ่ม', zh: '抽取中' })}</Label>
+      ) : null}
+    </Pressable>
+  );
+}
+
 export function SummonScreen({ onBack }: { onBack: () => void }) {
   const requireAccount = useRequireAccount();
   const state = useAsync(() => api.summon(), []);
   const guide = useAsync(() => api.spirits(), []);
-  const [pulling, setPulling] = React.useState(false);
-  const [last, setLast] = React.useState<SummonResult | null>(null);
+  const [pulling, setPulling] = React.useState<1 | 10 | null>(null);
+  const [last, setLast] = React.useState<SummonResult[]>([]);
   const [toast, setToast] = React.useState<string | null>(null);
 
-  const pull = React.useCallback(async () => {
+  const pull = React.useCallback(async (pulls: 1 | 10) => {
     if (requireAccount({ en: 'Please sign in or create an account to collect a spirit.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อรับมาสคอต', zh: '请先登录或注册账号，才能收集精灵。' })) return;
-    setPulling(true);
+    setPulling(pulls);
     setToast(null);
-    const res = await api.pull();
-    setPulling(false);
+    const res = await api.pull(pulls);
+    setPulling(null);
     if (!res.ok) { setToast(res.error); return; }
-    setLast(res.data);
+    setLast(res.data.results);
     state.reload();
     guide.reload();
   }, [state, guide, requireAccount]);
@@ -279,22 +356,51 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
         </View>
       </Tray>
 
-      <View style={{ paddingHorizontal: gutter, paddingTop: 12 }}>
-        <Button
-          label={s.charms.available > 0 ? 'Summon a spirit' : 'No charms yet'}
-          thai={s.charms.available > 0 ? 'อัญเชิญภูต' : 'ยังไม่มีเครื่องราง'}
-          chinese={s.charms.available > 0 ? '召唤一只精灵' : '还没有护符'}
-          onPress={() => { void pull(); }}
-          disabled={s.charms.available < 1}
-          busy={pulling}
-          busyLabel="Summoning…"
+      {/*
+        THE TWO BUTTONS, AND THE PRICE ON EACH.
+
+        The price comes from the server's `price` block, never multiplied
+        here: a screen that worked out its own ten-price would eventually
+        print a total the server refuses, and the number under a button is a
+        promise about what the tap will cost.
+
+        Gold is the ten, which is the only place gold appears on this screen
+        besides the mythic band - it is the heavier commitment, and the look
+        should say so before the number is read. Neither button is reachable
+        without the points for it, so nobody taps into a refusal.
+      */}
+      <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: gutter, paddingTop: 12 }}>
+        <PullButton
+          tone="teal"
+          title={t({ en: 'Pull once', th: 'สุ่ม 1 ครั้ง', zh: '抽 1 次' })}
+          cost={s.price.one}
+          affordable={s.tripPoints >= s.price.one}
+          busy={pulling === 1}
+          onPress={() => { void pull(1); }}
         />
+        <PullButton
+          tone="gold"
+          title={t({ en: `Pull ${s.price.tenSize}`, th: `สุ่ม ${s.price.tenSize} ครั้ง`, zh: `抽 ${s.price.tenSize} 次` })}
+          cost={s.price.ten}
+          affordable={s.tripPoints >= s.price.ten}
+          busy={pulling === 10}
+          onPress={() => { void pull(10); }}
+        />
+      </View>
+      <View style={{ paddingHorizontal: gutter, paddingTop: 8 }}>
+        <Label size={10} tracking={0.04} colour={color.neutral600} style={{ textTransform: 'none' }}>
+          {t({
+            en: 'Paid with Trip Points earned by exploring. Never with money, and never with Green Points.',
+            th: 'จ่ายด้วยแต้มทริปที่ได้จากการออกไปเที่ยว ไม่มีการซื้อด้วยเงินจริง และใช้แต้มสีเขียวไม่ได้',
+            zh: '用探索赚来的旅行积分支付。不能用真钱购买，也不能用绿色积分。',
+          })}
+        </Label>
         {toast ? (
           <Body size={13} style={{ color: color.neutral800, paddingTop: 8 }}>{toast}</Body>
         ) : null}
       </View>
 
-      {last ? <Outcome result={last} /> : null}
+      {last.map((result) => <Outcome key={result.id} result={result} />)}
 
       {/* How far each floor is. Printed because it is published. */}
       <Tray style={{ marginHorizontal: gutter, marginTop: 12, borderRadius: gameRadius.panel }}>
@@ -366,16 +472,33 @@ function Outcome({ result }: { result: SummonResult }) {
         flexDirection: 'row', alignItems: 'center', gap: 14,
       }]}
     >
-      <MascotMark mascot={result.spirit.form} size={72} />
+      {/*
+        A costume has no `form` to draw, because it is worn rather than met.
+        It gets the same card with its own line: what it is, and the sentence
+        in `costumes.ts` that opens by saying it is decoration.
+      */}
+      {result.item.kind === 'spirit'
+        ? <MascotMark mascot={result.item.spirit.form} size={72} />
+        : (
+          <View style={{ width: 72, height: 72, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EAF7FB', borderWidth: 2, borderColor: '#9ED8E8' }}>
+            <Shirt size={34} color="#0E7E9E" strokeWidth={2} />
+          </View>
+        )}
       <View style={{ flex: 1, gap: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Heading size={18}>{t(result.spirit.name)}</Heading>
+          <Heading size={18}>
+            {t(result.item.kind === 'spirit' ? result.item.spirit.name : result.item.costume.name)}
+          </Heading>
           <RarityPill rarity={result.rarity} />
         </View>
         <Label size={10} tracking={0.06} colour={color.neutral700} style={{ textTransform: 'none' }}>
-          {t(result.spirit.creature)}
+          {result.item.kind === 'spirit'
+            ? t(result.item.spirit.creature)
+            : t({ en: 'Fashion', th: 'แฟชั่น', zh: '时装' })}
         </Label>
-        <Body size={13} style={{ color: color.neutral800 }}>{t(result.spirit.lore)}</Body>
+        <Body size={13} style={{ color: color.neutral800 }}>
+          {t(result.item.kind === 'spirit' ? result.item.spirit.lore : result.item.costume.why)}
+        </Body>
         {result.byPity ? (
           <Label size={9} tracking={0.1} colour={color.neutral600}>
             {result.byPity === 'mythic'

@@ -31,18 +31,39 @@
 
 import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import {
-  DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, RARE_PITY, RARITIES,
+  DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, POOL, POOL_COUNT, POOL_VERSION,
+  PULL_CURRENCY, PULL_COST, RARE_PITY, RARITIES,
   RARITY_EFFECTIVE_PERCENT, RARITY_EFFECTIVE_WEIGHT, RARITY_PERCENT,
-  RARITY_WEIGHT, SPIRITS, WEIGHT_TOTAL, advancePity, drawSpirit, islandDateKey, spiritFor,
-  type PityState, type Spirit, type SpiritRarity,
+  RARITY_WEIGHT, SPIRITS, TEN_PULL_COST, TEN_PULL_SIZE, WEIGHT_TOTAL,
+  advancePity, drawItem, islandDateKey, itemFor, itemKey, pullCost, spiritFor,
+  type PityState, type DrawnItem, type Spirit, type SpiritRarity,
 } from '@chivago/core';
 import { row, rows, transact, type DB } from './db.ts';
 import { notReversed } from './ledger-sql.ts';
+import { applyMovement, getBalances } from './wallet-service.ts';
 
 // ---------------------------------------------------------------------------
 // Refusals
 // ---------------------------------------------------------------------------
 
+/**
+ * Not enough Trip Points for the pulls asked for.
+ *
+ * Names the currency and the shortfall, the way `InsufficientPoints` does
+ * for a voucher, because a traveller holding two balances needs to know
+ * WHICH one is short - and because the other one, Green, can never be the
+ * answer here however full it is.
+ */
+export class NotEnoughPoints extends Error {
+  readonly have: number;
+  readonly need: number;
+  constructor(have: number, need: number) {
+    super(`That takes ${need} Trip Points and you have ${have}.`);
+    this.name = 'NotEnoughPoints';
+    this.have = have;
+    this.need = need;
+  }
+}
 export class NoCharms extends Error {
   readonly earned: number;
   readonly spent: number;
@@ -273,6 +294,12 @@ export interface SummonRow {
   nonce: number | null; roll: number | null; pick: number | null;
   spirit_key: string; rarity: SpiritRarity; by_pity: 'mythic' | 'rare' | null;
   duplicate: number; dust: number; created_at: string;
+  /** 'spirit' or 'costume'. Every row written before the fashion went in is a spirit. */
+  item_kind: 'spirit' | 'costume';
+  /** The box this was drawn from. 1 is spirits alone; see `draw-pool.ts`. */
+  pool_version: number;
+  /** Trip Points this pull cost. 0 on a forge and on every charm-era row. */
+  cost_points: number;
 }
 
 /** Keys this traveller holds, and how many of each. */
@@ -321,72 +348,146 @@ export function rollFor(seed: string, userId: string, nonce: number): { roll: nu
 
 export interface SummonResult {
   id: string;
-  spirit: Spirit;
+  /**
+   * What came out. `spirit` stays for the forge door and for every caller
+   * that predates the fashion going into the box; `prize` is the one to read.
+   */
+  item: DrawnItem;
+  spirit: Spirit | null;
   rarity: SpiritRarity;
   byPity: 'mythic' | 'rare' | null;
-  /** True when this spirit was already held. It became stardust instead. */
+  /** True when this one was already held. It became stardust instead. */
   duplicate: boolean;
   dustGained: number;
   dust: number;
   charms: CharmBreakdown;
   pity: PityState;
   /** Everything a third party needs to recheck this roll once the seed is out. */
-  receipt: { epochId: string; commitment: string; nonce: number; roll: number; pick: number };
+  receipt: { epochId: string; commitment: string; nonce: number; roll: number; pick: number; poolVersion: number };
+}
+
+/** One tap: the pulls it made, what it cost, and the balance left. */
+export interface PullResult {
+  results: SummonResult[];
+  /** Trip Points debited. The sum the client showed on the button. */
+  cost: number;
+  /** Trip Points left afterwards. */
+  tripPoints: number;
+  dust: number;
+  pity: PityState;
 }
 
 /**
- * Spend one charm, draw one spirit.
+ * Spend Trip Points, draw one item or ten.
  *
- * The whole thing is one transaction, and the nonce is taken inside it. Two
- * taps that arrive together therefore do not both read "you have one charm"
- * and both spend it: the second collides with the unique index on
- * (user, epoch, nonce) and is retried against the state the first one left.
+ * WHAT GOES IN IS A CURRENCY NOW, AND WHAT COMES OUT STILL IS NOT. The pull
+ * debits Trip Points through the ordinary ledger path - one `redemption` row,
+ * zero EXP, the same movement a voucher makes - and hands back decoration.
+ * Nothing it returns can be sold, sent, spent or redeemed anywhere, so the
+ * exchange runs one way and there is nothing here to cash out. The tests in
+ * `summon-service.test.ts` hold both halves of that.
+ *
+ * GREEN POINTS CANNOT PAY. `PULL_CURRENCY` is `'trip'`, it is read from core
+ * rather than typed here, and a test pins it. Green is the figure an ESG
+ * auditor is asked to trust; it must never be spendable on a game.
+ *
+ * ONE TRANSACTION, ONE DEBIT, N ROLLS. The nonces are taken inside the
+ * transaction, so two taps arriving together do not both read the same
+ * balance: the second collides with the unique index on (user, epoch, nonce)
+ * and is retried against the state the first one left. The debit's
+ * `sourceRef` names the epoch and the first nonce, which makes a retried
+ * delivery idempotent rather than a second charge.
  */
-export function summon(db: DB, userId: string, now = new Date()): SummonResult {
+export function pull(db: DB, userId: string, pulls = 1, now = new Date()): PullResult {
+  const count = pulls === TEN_PULL_SIZE ? TEN_PULL_SIZE : 1;
+  const cost = pullCost(count);
+
   return transact(db, () => {
-    const charms = charmsFor(db, userId);
-    if (charms.available < 1) throw new NoCharms(charms.earned, charms.spent);
+    const held = getBalances(db, userId)[PULL_CURRENCY];
+    if (held < cost) throw new NotEnoughPoints(held, cost);
 
     // Inside the transaction, before the epoch is read: a rotation that
-    // happened half a statement later would hand this summon a seed that is
+    // happened half a statement later would hand this pull a seed that is
     // already published, which is the one thing the commitment forbids.
     rotateEpochs(db, now);
     const epoch = currentEpoch(db, now);
-    const nonce = (row<{ n: number }>(
+    const first = (row<{ n: number }>(
       db.prepare("SELECT COALESCE(MAX(nonce), 0) AS n FROM summons WHERE user_id = ? AND epoch_id = ? AND source = 'summon'")
         .get(userId, epoch.id),
     )?.n ?? 0) + 1;
 
-    const { roll, pick } = rollFor(epoch.seed!, userId, nonce);
-    const drawn = drawSpirit(roll, pick, pityFor(db, userId));
+    applyMovement(db, {
+      userId,
+      label: count === TEN_PULL_SIZE ? 'Ten pulls at the traveller\'s box' : 'One pull at the traveller\'s box',
+      subject: null,
+      host: 'ChivarGo',
+      amount: -cost,
+      currency: PULL_CURRENCY,
+      kind: 'redemption',
+      // Deterministic, so a retried request settles once. Never a random id.
+      sourceRef: `summon:${epoch.id}:${userId}:${first}`,
+      occurredAt: now.toISOString(),
+    });
 
-    const held = heldBy(db, userId);
-    const duplicate = held.has(drawn.spirit.key);
-    const dustGained = duplicate ? DUST_FROM_DUPLICATE[drawn.rarity] : 0;
+    const results: SummonResult[] = [];
+    let pity = pityFor(db, userId);
+    const have = heldBy(db, userId);
 
-    const id = randomUUID();
-    db.prepare(
-      `INSERT INTO summons (id, user_id, epoch_id, source, nonce, roll, pick, spirit_key, rarity,
-         by_pity, duplicate, dust, created_at)
-       VALUES (?,?,?,'summon',?,?,?,?,?,?,?,?,?)`,
-    ).run(
-      id, userId, epoch.id, nonce, roll, pick, drawn.spirit.key, drawn.rarity,
-      drawn.byPity, duplicate ? 1 : 0, dustGained, now.toISOString(),
-    );
+    for (let i = 0; i < count; i += 1) {
+      const nonce = first + i;
+      const { roll, pick } = rollFor(epoch.seed!, userId, nonce);
+      const drawn = drawItem(roll, pick, pity);
+      const key = itemKey(drawn.item);
+
+      // Within a ten-pull the duplicate check has to see what the earlier
+      // nine just produced, or ten of the same item would all read as new.
+      const duplicate = (have.get(key) ?? 0) > 0;
+      have.set(key, (have.get(key) ?? 0) + 1);
+      const dustGained = duplicate ? DUST_FROM_DUPLICATE[drawn.rarity] : 0;
+
+      const id = randomUUID();
+      db.prepare(
+        `INSERT INTO summons (id, user_id, epoch_id, source, nonce, roll, pick, spirit_key, rarity,
+           by_pity, duplicate, dust, created_at, item_kind, pool_version, cost_points)
+         VALUES (?,?,?,'summon',?,?,?,?,?,?,?,?,?,?,?,?)`,
+      ).run(
+        id, userId, epoch.id, nonce, roll, pick, key, drawn.rarity,
+        drawn.byPity, duplicate ? 1 : 0, dustGained, now.toISOString(),
+        drawn.item.kind, POOL_VERSION, i === 0 ? cost : 0,
+      );
+
+      pity = advancePity(pity, drawn.rarity);
+      results.push({
+        id,
+        item: drawn.item,
+        spirit: drawn.item.kind === 'spirit' ? drawn.item.spirit : null,
+        rarity: drawn.rarity,
+        byPity: drawn.byPity,
+        duplicate,
+        dustGained,
+        dust: 0,
+        charms: charmsFor(db, userId),
+        pity,
+        receipt: { epochId: epoch.id, commitment: epoch.commitment, nonce, roll, pick, poolVersion: POOL_VERSION },
+      });
+    }
+
+    const dust = dustFor(db, userId);
+    for (const r of results) r.dust = dust;
 
     return {
-      id,
-      spirit: drawn.spirit,
-      rarity: drawn.rarity,
-      byPity: drawn.byPity,
-      duplicate,
-      dustGained,
-      dust: dustFor(db, userId),
-      charms: charmsFor(db, userId),
-      pity: pityFor(db, userId),
-      receipt: { epochId: epoch.id, commitment: epoch.commitment, nonce, roll, pick },
+      results,
+      cost,
+      tripPoints: getBalances(db, userId)[PULL_CURRENCY],
+      dust,
+      pity,
     };
   });
+}
+
+/** One pull, for the callers that only ever wanted one. */
+export function summon(db: DB, userId: string, now = new Date()): SummonResult {
+  return pull(db, userId, 1, now).results[0]!;
 }
 
 /**
@@ -419,6 +520,16 @@ export function forge(db: DB, userId: string, spiritKey: string, now = new Date(
 
     return {
       id,
+      /*
+        The forge stays SPIRITS ONLY, and that is not an omission.
+
+        Its job is the rule "nothing is behind luck alone": every drawable
+        thing needs a certain path to it. A costume already has one and
+        always did - `costumesFor` awards them, without replacement, one per
+        host-verified quest - so the fashion going into the box did not put
+        anything behind luck that was not reachable by walking.
+      */
+      item: { kind: 'spirit', spirit, rarity: spirit.rarity },
       spirit,
       rarity: spirit.rarity,
       byPity: null,
@@ -427,7 +538,7 @@ export function forge(db: DB, userId: string, spiritKey: string, now = new Date(
       dust: dustFor(db, userId),
       charms: charmsFor(db, userId),
       pity: pityFor(db, userId),
-      receipt: { epochId: epoch.id, commitment: epoch.commitment, nonce: 0, roll: 0, pick: 0 },
+      receipt: { epochId: epoch.id, commitment: epoch.commitment, nonce: 0, roll: 0, pick: 0, poolVersion: POOL_VERSION },
     };
   });
 }
@@ -484,10 +595,15 @@ export function summonState(db: DB, userId: string, now = new Date()) {
   const epoch = currentEpoch(db, now);
   return {
     charms: charmsFor(db, userId),
+    /** What a pull is paid with, and what one and ten cost. Printed on the buttons. */
+    tripPoints: getBalances(db, userId)[PULL_CURRENCY],
+    price: { one: PULL_COST, ten: TEN_PULL_COST, tenSize: TEN_PULL_SIZE, currency: PULL_CURRENCY },
     dust: dustFor(db, userId),
     pity: pityFor(db, userId),
     collected: held.size,
-    total: SPIRITS.length,
+    /** The whole box now: the spirits and the fashion that went in with them. */
+    total: POOL.length,
+    poolByRarity: POOL_COUNT,
     byRarity: Object.fromEntries(
       RARITIES.map((r) => [r, {
         held: SPIRITS.filter((s) => s.rarity === r && held.has(s.key)).length,
@@ -567,7 +683,10 @@ export function verifySummon(db: DB, summonId: string): Verification {
     return { found: true, checkable: true, matches: false, detail: 'The revealed seed does not match the commitment that was published.' };
   }
   const { roll, pick } = rollFor(e.seed, r.user_id, r.nonce!);
-  const redrawn = drawSpirit(roll, pick, { sinceMythic: 0, sinceRare: 0 });
+  // Against the pool THIS row was drawn from. The box was widened when the
+  // fashion went in, and a receipt recomputed against today's box when it
+  // was drawn from yesterday's would fail for a reason that is not a fault.
+  const redrawn = drawItem(roll, pick, { sinceMythic: 0, sinceRare: 0 }, r.pool_version);
   const numbersMatch = roll === r.roll && pick === r.pick;
   /*
     The spirit is only re-derivable when no floor was involved: a floor
@@ -576,7 +695,7 @@ export function verifySummon(db: DB, summonId: string): Verification {
     the seed alone determines, and the spirit is compared only where the
     receipt says the roll decided it.
   */
-  const spiritMatches = r.by_pity !== null || redrawn.spirit.key === r.spirit_key;
+  const spiritMatches = r.by_pity !== null || itemKey(redrawn.item) === r.spirit_key;
   return {
     found: true,
     checkable: true,

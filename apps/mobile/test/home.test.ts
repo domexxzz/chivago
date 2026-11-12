@@ -571,8 +571,8 @@ describe('the summoning is reachable from Home', () => {
     let opened = 0;
     const ui = await mountScreen(h(HomeScreen, { ...props, onOpenSummon: () => { opened += 1; } }));
 
-    assert.ok(ui.labels().includes('Summon'), 'Home has no door to the summoning');
-    await ui.press('Summon');
+    assert.ok(ui.labels().includes('Traveller’s box'), 'Home has no door to the summoning');
+    await ui.press('Traveller’s box');
     assert.equal(opened, 1, 'the door did not open the summoning');
     ui.unmount();
   });
@@ -581,7 +581,7 @@ describe('the summoning is reachable from Home', () => {
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, props));
 
-    assert.ok(!ui.labels().includes('Summon'), 'a door was drawn with nothing behind it');
+    assert.ok(!ui.labels().includes('Traveller’s box'), 'a door was drawn with nothing behind it');
     ui.unmount();
   });
 });

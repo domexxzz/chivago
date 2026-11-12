@@ -16,14 +16,15 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import { ChevronRight, Footprints, MapPin, Scale, Sparkles, Star, Ticket } from 'lucide-react-native';
+import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Award, Backpack, Camera, ChevronRight, Compass, Flag, Footprints, Gift, LockKeyhole, Map as MapIcon, MapPin, Scale, Sparkles, Star, Ticket } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { tint, type TintKey } from '@chivago/tokens';
 import {
-  ledgerDate,
+  ledgerDate, featuredMascot, provinceCompanions,
   ledgerLine,
   formatAmount, levelProgressPct, strings,
+  type ProvinceCompanion,
   type Wallet,
   type Companion,
 } from '@chivago/core';
@@ -34,15 +35,17 @@ import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { Button } from '../components/Button.tsx';
-import { OceanBackdrop, TravelHeroBackdrop } from '../components/Shell.tsx';
+import { TravelHeroBackdrop } from '../components/Shell.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
+import { MyCollection } from '../components/MyCollection.tsx';
+import { MascotPortrait } from '../components/MascotPortrait.tsx';
 import { t } from '../i18n/locale.ts';
 import { formatInteger } from '../i18n/format.ts';
 
 export function WalletScreen({
   onOpenCompanion,
   onOpenMarket, onOpenAccount, refreshKey, notifications, unread, onMarkRead, onMarkAllRead,
-  onOpenQuest,
+  onOpenQuest, onOpenMascots = () => {}, onOpenSummon = () => {}, onOpenCollect,
 }: {
   onOpenMarket: () => void;
   onOpenAccount: () => void;
@@ -53,42 +56,59 @@ export function WalletScreen({
   onMarkAllRead: () => void;
   onOpenQuest: (id: string) => void;
   onOpenCompanion: (c: Companion) => void;
+  onOpenMascots?: () => void;
+  onOpenSummon?: () => void;
+  /** The Collect lobby, behind "View all" on the collection rail. */
+  onOpenCollect?: () => void;
 }) {
   const wallet = useAsync(() => api.wallet(), [refreshKey]);
   const companions = useAsync(() => api.companions(), [refreshKey]);
+  /*
+    The passport, for ONE thing: which province emblem belongs on the
+    companions card. It is read separately and allowed to fail - a backpack
+    whose mascot is missing still shows every balance, rank and collectible
+    on it, the same bargain the companion fetch already makes.
+  */
+  const passport = useAsync(() => api.passport(), [refreshKey]);
+  const province = React.useMemo<ProvinceCompanion | null>(
+    () => (passport.data ? featuredMascot(provinceCompanions(passport.data.evidence ?? [])) : null),
+    [passport.data],
+  );
+  const { width } = useWindowDimensions();
+  const wide = width >= 900;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <View
-        style={{
-          paddingHorizontal: gutter,
-          paddingTop: 22,
-          paddingBottom: 20,
-          backgroundColor: '#028090',
-          borderBottomLeftRadius: 28,
-          borderBottomRightRadius: 28,
-          overflow: 'hidden',
-          shadowColor: '#004E64',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.14,
-          shadowRadius: 10,
-          elevation: 3,
-        }}
-      >
-        <TravelHeroBackdrop compact focalPoint="right" />
-        <Label size={10} tracking={0.16} colour="#D5F6FF">
-          {t({ en: 'YOUR WALLET', th: 'กระเป๋าแต้มของคุณ', zh: '你的钱包' })}
-        </Label>
-        <Heading size={26} tracking={-0.5} colour="#FFFFFF" style={{ marginTop: 4 }}>
-          {`${t(strings.common.greenPoints)} & ${t(strings.common.tripPoints)}`}
-        </Heading>
-      </View>
+    <ScrollView style={{ flex: 1, backgroundColor: '#DDF3FC' }} showsVerticalScrollIndicator={false}>
+      <BackpackHeader wallet={wallet.data} />
 
       {wallet.loading ? <LoadingState /> : null}
       {wallet.error ? <ErrorState message={wallet.error} onRetry={wallet.reload} /> : null}
       {wallet.data ? (
-        <>
-          <Balances wallet={wallet.data} />
+        <View style={{ width: '100%', maxWidth: 1180, alignSelf: 'center', paddingBottom: 34 }}>
+          <View style={{ flexDirection: wide ? 'row' : 'column', gap: 16, paddingHorizontal: gutter, paddingTop: 18 }}>
+            <View style={{ flex: wide ? 0.78 : undefined, minWidth: 0, gap: 14 }}>
+              <Balances wallet={wallet.data} embedded />
+              <TravelCompanions
+                companions={companions.data?.companions ?? null}
+                province={province}
+                onOpenCompanion={onOpenCompanion}
+                onOpenMascots={onOpenMascots}
+              />
+            </View>
+            <View style={{ flex: wide ? 1.22 : undefined, minWidth: 0, gap: 14 }}>
+              <RankLadder wallet={wallet.data} embedded />
+              <LevelBlock wallet={wallet.data} embedded />
+            </View>
+          </View>
+          {companions.data ? (
+            <MyCollection
+              companions={companions.data.companions}
+              onOpenCompanion={onOpenCompanion}
+              onOpenMascots={onOpenMascots}
+              onOpenSummon={onOpenSummon}
+              onOpenCollect={onOpenCollect}
+            />
+          ) : null}
           <Inbox
             items={notifications}
             unread={unread}
@@ -96,14 +116,210 @@ export function WalletScreen({
             onMarkAllRead={onMarkAllRead}
             onOpenQuest={onOpenQuest}
           />
-          <LevelBlock wallet={wallet.data} />
-          <RankLadder wallet={wallet.data} />
           <Companions data={companions.data} onOpenCompanion={onOpenCompanion} />
           <Ledger wallet={wallet.data} onOpenMarket={onOpenMarket} />
           <AccountRow onOpenAccount={onOpenAccount} />
-        </>
+        </View>
       ) : null}
     </ScrollView>
+  );
+}
+
+/**
+ * The capsule at the top: who this backpack belongs to, and how far along.
+ *
+ * The level block drops BELOW the title under 540px rather than shrinking
+ * beside it. A progress bar squeezed into a third of a 375px screen is a bar
+ * nobody can read, and the two lines it carries - "Level 3" and "60 / 1,200
+ * EXP" - wrap into each other long before the bar itself runs out of room.
+ */
+function BackpackHeader({ wallet }: { wallet: Wallet | null }) {
+  const progression = wallet?.progression ?? null;
+  const pct = progression ? levelProgressPct(progression.exp) : 0;
+  const { width } = useWindowDimensions();
+  const stacked = width < 540;
+  return (
+    <View style={{
+      marginHorizontal: gutter,
+      marginTop: 10,
+      paddingHorizontal: 20,
+      paddingVertical: 18,
+      borderRadius: 26,
+      borderWidth: 3,
+      borderColor: '#E8B943',
+      backgroundColor: '#082F58',
+      overflow: 'hidden',
+      shadowColor: '#021B33',
+      shadowOffset: { width: 0, height: 7 },
+      shadowOpacity: 0.24,
+      shadowRadius: 14,
+      elevation: 6,
+    }}>
+      <TravelHeroBackdrop compact focalPoint="right" />
+      <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(3,31,58,0.72)' }} />
+      <View style={{ flexDirection: stacked ? 'column' : 'row', alignItems: stacked ? 'stretch' : 'center', gap: stacked ? 12 : 14 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: stacked ? undefined : 1, minWidth: 0 }}>
+          <View style={{ width: 52, height: 52, borderRadius: 17, borderWidth: 2, borderColor: '#F4D06B', backgroundColor: '#0B5F82', alignItems: 'center', justifyContent: 'center' }}>
+            <Backpack size={29} color="#F7D66F" strokeWidth={2.2} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Label size={10} tracking={0.18} colour="#9FDDF2">
+              {t({ en: 'CHIVARGO ADVENTURE INVENTORY', th: 'คลังไอเทมนักผจญภัย CHIVARGO', zh: 'CHIVARGO 冒险物品栏' })}
+            </Label>
+            <Heading size={stacked ? 24 : 28} tracking={-0.5} colour="#FFFFFF" style={{ marginTop: 3 }}>
+              {t(strings.tabs.backpack)}
+            </Heading>
+          </View>
+        </View>
+        {progression ? (
+          <View
+            accessible
+            accessibilityLabel={`${t(strings.wallet.level(progression.level))}. ${t(strings.wallet.levelBar(progression.intoLevel, progression.levelSpan))}`}
+            style={{
+              width: stacked ? undefined : 190,
+              maxWidth: stacked ? undefined : '42%',
+              padding: 10,
+              borderRadius: 17,
+              borderWidth: 2,
+              borderColor: '#F4D06B',
+              backgroundColor: 'rgba(4,34,65,0.9)',
+            }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <Heading size={14} colour="#F7D66F">{t(strings.wallet.level(progression.level))}</Heading>
+              <Label size={9} tracking={0} colour="#FFFFFF" style={{ textTransform: 'none' }}>
+                {t(strings.wallet.levelBar(progression.intoLevel, progression.levelSpan))}
+              </Label>
+            </View>
+            <View style={{ height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: '#174A71', marginTop: 7 }}>
+              <View style={{ width: `${pct}%`, height: '100%', borderRadius: 4, backgroundColor: '#35D3D0' }} />
+            </View>
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * The two faces in the backpack: a province emblem and the traveller's pet.
+ *
+ * NEITHER IS INVENTED. The mascot is whichever province this traveller has
+ * the most evidence in (`featuredMascot`), and when they have been nowhere
+ * the tile says so and still opens the collection - a backpack showing an
+ * emblem for a province nobody visited would be picturing a trip that did not
+ * happen. The pet is the first companion they actually hold, and an empty
+ * collection gets a stated locked state rather than a silhouette to guess at.
+ *
+ * An egg keeps its species hidden here exactly as it does everywhere else:
+ * the tile reads the egg's name, never the animal's.
+ */
+function TravelCompanions({
+  companions,
+  province,
+  onOpenCompanion,
+  onOpenMascots,
+}: {
+  companions: Companion[] | null;
+  province: ProvinceCompanion | null;
+  onOpenCompanion: (companion: Companion) => void;
+  onOpenMascots: () => void;
+}) {
+  const pet = companions?.[0] ?? null;
+  const mascotName = province ? t(province.mascot.name) : '';
+  const provinceName = province ? t(province.province.name) : '';
+  return (
+    <View style={{
+      minHeight: 154,
+      padding: 15,
+      borderRadius: 24,
+      borderWidth: 3,
+      borderColor: '#123E68',
+      backgroundColor: '#F3FBFF',
+      shadowColor: '#082E53',
+      shadowOffset: { width: 0, height: 5 },
+      shadowOpacity: 0.15,
+      shadowRadius: 10,
+      elevation: 4,
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Compass size={18} color="#C78B13" />
+        <Heading size={17} colour="#082E53">{t({ en: 'Travel companions', th: 'เพื่อนร่วมเดินทาง', zh: '旅行伙伴' })}</Heading>
+      </View>
+      <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+        <Pressable
+          onPress={onOpenMascots}
+          accessibilityRole="button"
+          accessibilityLabel={province
+            ? t({
+              en: `${mascotName}, the emblem of ${provinceName}. Open the Mascot collection.`,
+              th: `${mascotName} มาสคอตประจำ${provinceName} เปิดคอลเลกชันมาสคอต`,
+              zh: `${mascotName}，${provinceName}的吉祥物。打开吉祥物收藏。`,
+            })
+            : t({
+              en: 'No province mascot yet. Open the Mascot collection.',
+              th: 'ยังไม่มีมาสคอตประจำจังหวัด เปิดคอลเลกชันมาสคอต',
+              zh: '还没有府吉祥物。打开吉祥物收藏。',
+            })}
+          style={({ pressed }) => ({
+            flex: 1,
+            minHeight: 92,
+            padding: 10,
+            borderRadius: 18,
+            borderWidth: 2,
+            borderColor: province ? '#E2B13E' : '#7592AA',
+            backgroundColor: pressed
+              ? (province ? '#FFF0BD' : '#DFE8EE')
+              : (province ? '#FFF8DE' : '#EAF1F5'),
+            alignItems: 'center',
+            justifyContent: 'center',
+          })}
+        >
+          {province
+            ? <MascotPortrait mascot={province.mascot} size={58} />
+            : <Compass size={42} color="#607A91" />}
+          <Label size={9} tracking={0.08} colour={province ? '#7B5714' : '#607A91'}>
+            {province
+              ? t({ en: 'MASCOT', th: 'มาสคอต', zh: '吉祥物' })
+              : t({ en: 'NO MASCOT YET', th: 'ยังไม่มีมาสคอต', zh: '尚无吉祥物' })}
+          </Label>
+        </Pressable>
+        {pet ? (
+          <Pressable
+            onPress={() => onOpenCompanion(pet)}
+            accessibilityRole="button"
+            accessibilityLabel={`${t(pet.stage === 'egg' ? pet.species.eggName : pet.species.name)}, ${t(STAGE_LABEL[pet.stage])}`}
+            style={({ pressed }) => ({
+              flex: 1,
+              minHeight: 92,
+              padding: 10,
+              borderRadius: 18,
+              borderWidth: 2,
+              borderColor: '#19769A',
+              backgroundColor: pressed ? '#D7F2FA' : '#EAF8FC',
+              alignItems: 'center',
+              justifyContent: 'center',
+            })}
+          >
+            <Creature species={pet.species.key} stage={pet.stage} size={58} />
+            <Label size={9} tracking={0.08} colour="#0B6386">{t({ en: 'PET', th: 'สัตว์เลี้ยง', zh: '伙伴' })}</Label>
+          </Pressable>
+        ) : (
+          <View
+            accessible
+            accessibilityLabel={t({
+              en: 'No travel pet yet. Check in anywhere to find your first egg.',
+              th: 'ยังไม่มีสัตว์เลี้ยงร่วมทาง เช็กอินที่ไหนก็ได้เพื่อพบไข่ใบแรก',
+              zh: '还没有旅行伙伴。在任何地方签到，找到你的第一颗蛋。',
+            })}
+            style={{ flex: 1, minHeight: 92, padding: 10, borderRadius: 18, borderWidth: 2, borderColor: '#7592AA', backgroundColor: '#EAF1F5', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          >
+            <LockKeyhole size={30} color="#607A91" />
+            <Label size={9} tracking={0.08} colour="#607A91">{t({ en: 'PET LOCKED', th: 'ยังไม่มีสัตว์เลี้ยง', zh: '伙伴未解锁' })}</Label>
+          </View>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -158,52 +374,130 @@ function AccountRow({ onOpenAccount }: { onOpenAccount: () => void }) {
  * from, because two numbers with no explanation read as one number split in
  * two, and the difference between them is the whole design.
  */
-export function Balances({ wallet }: { wallet: Wallet }) {
+export function Balances({ wallet, embedded = false }: { wallet: Wallet; embedded?: boolean }) {
   return (
+    /*
+      TWO PLAQUES ON THE SKY, not two rows in a panel.
+
+      The card that used to box them in made the pair read as one component
+      with a divider. They are two separate things a traveller carries, and
+      standing them apart on the background is what says so before a word is
+      read.
+    */
     <View
-      style={[shadow.card, {
-        flexDirection: 'row',
-        marginHorizontal: gutter,
-        marginTop: 16,
-        padding: 20,
-        gap: 20,
-        backgroundColor: color.surface,
-        borderRadius: 24,
-        borderWidth: 1,
-        borderColor: '#DCEFF5',
-        overflow: 'hidden',
-      }]}
+      style={{
+        gap: 12,
+        marginHorizontal: embedded ? 0 : gutter,
+        marginTop: embedded ? 0 : 16,
+      }}
     >
-      <OceanBackdrop subtle />
       <Purse
         figure={wallet.balances.green}
         label={t(strings.common.greenPoints)}
         note={t(strings.common.greenPointsNote)}
         accent
+        icon={Star}
       />
       <Purse
         figure={wallet.balances.trip}
         label={t(strings.common.tripPoints)}
         note={t(strings.common.tripPointsNote)}
+        icon={Flag}
       />
     </View>
   );
 }
 
 export function Purse({
-  figure, label, note, accent = false,
-}: { figure: number; label: string; note: string; accent?: boolean }) {
+  figure, label, note, accent = false, icon: Icon,
+}: { figure: number; label: string; note: string; accent?: boolean; icon?: LucideIcon }) {
+  /*
+    A PARCHMENT PLAQUE, not a tile.
+
+    Both purses wear the same weathered card because they are the same kind
+    of object - a figure the traveller carries - and the design asks for them
+    to read as two items in a pack rather than two panels in a dashboard.
+
+    What stays DIFFERENT is everything that matters: the emblem (a gold star
+    against a teal flag), the frame it sits in, the name, and the one line
+    saying where the figure came from. The two currencies have to survive
+    being read quickly, and a traveller holding both will otherwise take them
+    for one number split in two.
+  */
+  const frame = accent ? '#C9962F' : '#1C7E9C';
   return (
-    <View style={{ flex: 1 }} accessibilityLabel={`${figure} ${label}. ${note}`}>
-      <Label size={10} tracking={0.16}>{label}</Label>
-      {accent ? (
-        <AccentNumeral size={40}>{formatInteger(figure)}</AccentNumeral>
-      ) : (
-        <Heading size={40} tracking={-0.8}>{formatInteger(figure)}</Heading>
-      )}
-      <Label size={9} tracking={0} colour={color.neutral600} style={{ textTransform: 'none' }}>
-        {note}
-      </Label>
+    <View
+      accessible
+      accessibilityLabel={`${formatInteger(figure)} ${label}. ${note}`}
+      style={{
+        minHeight: 104,
+        padding: 6,
+        borderRadius: 20,
+        borderWidth: 3,
+        borderColor: frame,
+        backgroundColor: '#EFDDB2',
+        shadowColor: '#6B4C14',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.26,
+        shadowRadius: 9,
+        elevation: 4,
+      }}
+    >
+      {/* The inner rule. A plaque has a face inset from its edge. */}
+      <View
+        style={{
+          flex: 1,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          paddingHorizontal: 10,
+          paddingVertical: 9,
+          borderRadius: 15,
+          borderWidth: 1,
+          borderColor: accent ? '#D9B868' : '#8FBDCE',
+          backgroundColor: '#F7ECCE',
+        }}
+      >
+        <View
+          style={{
+            width: 62,
+            height: 62,
+            borderRadius: 31,
+            borderWidth: 3,
+            borderColor: accent ? '#E8C25C' : '#53C6D6',
+            backgroundColor: accent ? '#F5C53F' : '#17A2B6',
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: accent ? '#9A6A0B' : '#07586E',
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.3,
+            shadowRadius: 5,
+            elevation: 3,
+          }}
+        >
+          {Icon ? <Icon size={34} color="#FFFFFF" fill={accent ? '#FFFFFF' : 'transparent'} strokeWidth={2.2} /> : null}
+        </View>
+        <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+          <Label size={11} tracking={0.08} colour="#4A3410">{label}</Label>
+          {/* The figure in a navy capsule, the way a plaque carries a number. */}
+          <View style={{ alignSelf: 'flex-start', minWidth: 96, paddingHorizontal: 14, paddingVertical: 4, borderRadius: 13, backgroundColor: '#0E3A63' }}>
+            {/*
+              White on the navy capsule, in both purses. `accent700` is a dark
+              gold and reads as a smudge against this background; the accent
+              survives on the emblem and the frame, where it has the contrast
+              to mean something.
+            */}
+            {accent ? (
+              <AccentNumeral size={26} style={{ color: '#FFFFFF' }}>{formatInteger(figure)}</AccentNumeral>
+            ) : (
+              <Heading size={26} tracking={-0.6} colour="#FFFFFF">{formatInteger(figure)}</Heading>
+            )}
+          </View>
+          <Label size={9} tracking={0} colour="#6B5424" style={{ textTransform: 'none' }}>
+            {note}
+          </Label>
+        </View>
+      </View>
     </View>
   );
 }
@@ -216,19 +510,19 @@ export function Purse({
  * passes it - and worse, fell when they spent. EXP cannot fall, so this bar
  * only ever moves one way.
  */
-export function LevelBlock({ wallet }: { wallet: Wallet }) {
+export function LevelBlock({ wallet, embedded = false }: { wallet: Wallet; embedded?: boolean }) {
   const { progression: p } = wallet;
   const pct = levelProgressPct(p.exp);
   return (
     <View
       style={[shadow.card, {
-        marginHorizontal: gutter,
-        marginTop: 12,
+        marginHorizontal: embedded ? 0 : gutter,
+        marginTop: embedded ? 0 : 12,
         padding: 16,
         backgroundColor: color.surface,
         borderRadius: radius.md,
-        borderWidth: 1,
-        borderColor: '#DCEFF5',
+        borderWidth: 2,
+        borderColor: '#123E68',
       }]}
     >
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -264,54 +558,121 @@ export function LevelBlock({ wallet }: { wallet: Wallet }) {
 }
 
 /** The five ranks. Earned squares fill; locked squares state the level needed. */
-export function RankLadder({ wallet }: { wallet: Wallet }) {
+const REWARD_ICONS: LucideIcon[] = [Compass, MapIcon, Camera, Award, Backpack];
+
+/*
+  Locked and unlocked, SAID rather than coloured.
+
+  A gold slot and a navy one are the same slot to a screen reader and to
+  anybody who cannot tell them apart, so each slot carries the state in words
+  and a locked one carries the level it opens at. The lock icon and the "Lv."
+  line do the same job for a sighted reader; neither state is signalled by
+  colour alone.
+*/
+const RANK_UNLOCKED = { en: 'Unlocked', th: 'ปลดล็อกแล้ว', zh: '已解锁' };
+const RANK_LOCKED = (level: number) => ({
+  en: `Locked until level ${level}`,
+  th: `ล็อกอยู่ จนถึงเลเวล ${level}`,
+  zh: `锁定，需达到 ${level} 级`,
+});
+
+export function RankLadder({ wallet, embedded = false }: { wallet: Wallet; embedded?: boolean }) {
   return (
     <View
       style={[
         shadow.card,
         {
-          marginHorizontal: gutter,
-          marginTop: 12,
-          padding: 16,
-          backgroundColor: color.surface,
-          borderRadius: radius.md,
-          borderWidth: 1,
-          borderColor: '#DCEFF5',
+          marginHorizontal: embedded ? 0 : gutter,
+          // Room above for the capsule that overlaps this panel's top edge.
+          marginTop: embedded ? 18 : 30,
+          paddingHorizontal: 16,
+          paddingTop: 16,
+          paddingBottom: 16,
+          backgroundColor: '#D7ECF9',
+          borderRadius: 24,
+          borderWidth: 3,
+          borderColor: '#123E68',
         },
       ]}
     >
-      <Label size={10} tracking={0.14}>{t(strings.wallet.ranks)}</Label>
-      <View style={{ flexDirection: 'row', gap: 6, marginTop: 12 }}>
-        {wallet.progression.ladder.map((rank) => (
-          <View
-            key={rank.key}
-            accessibilityLabel={`${t(rank.label)}, ${rank.earned ? 'reached' : `locked until level ${rank.fromLevel}`}`}
-            style={{
-              flex: 1,
-              aspectRatio: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 4,
-              padding: 4,
-              borderWidth: layout.ruleStrong,
-              borderRadius: radius.sm,
-              borderColor: rank.earned ? color.gold : color.neutral300,
-              backgroundColor: rank.earned ? color.gold : '#F7FBFD',
-            }}
-          >
-            <Heading size={15} colour={rank.earned ? onFill.gold : color.neutral500}>
-              {String(rank.index).padStart(2, '0')}
-            </Heading>
-            <Label
-              size={9}
-              tracking={0.06}
-              colour={rank.earned ? onFill.gold : color.neutral500}
-              style={{ textAlign: 'center', fontSize: 8 }}
+      {/* The panel's name on a navy capsule, sitting over its top edge. */}
+      <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: -31, marginBottom: 4, paddingHorizontal: 15, paddingVertical: 8, borderRadius: 19, borderWidth: 2, borderColor: '#E8B943', backgroundColor: '#0E3A63' }}>
+        <Gift size={18} color="#F6CF61" strokeWidth={2.2} />
+        <Heading size={17} colour="#FFFFFF">{t({ en: 'Reward Inventory', th: 'ช่องเก็บรางวัล', zh: '奖励物品栏' })}</Heading>
+      </View>
+      <Label size={9} tracking={0.08} colour="#4A6A82" style={{ marginBottom: 2 }}>{t(strings.wallet.ranks)}</Label>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginTop: 12 }}>
+        {wallet.progression.ladder.map((rank, index) => {
+          const RewardIcon = REWARD_ICONS[index % REWARD_ICONS.length]!;
+          /*
+            FIVE SLOTS, because there are five ranks.
+
+            The reference art shows ten, half of them counting up to numbers
+            no rank in `RANKS` has. Drawing empty slots to fill a grid is the
+            one move this screen cannot make: a slot is a promise that
+            something goes in it, and five is how many promises exist.
+          */
+          return (
+            <View
+              key={rank.key}
+              accessible
+              accessibilityLabel={`${t(rank.label)}. ${t(rank.earned ? RANK_UNLOCKED : RANK_LOCKED(rank.fromLevel))}`}
+              style={{
+                width: '18.2%',
+                minWidth: 92,
+                flexGrow: 1,
+                aspectRatio: 0.9,
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                padding: 7,
+                borderWidth: 3,
+                borderRadius: 18,
+                // The earned slot is lit from inside: a pale gold rim around
+                // a warmer face. The locked one is flat, and that difference
+                // is doing the same work as the lock icon, not replacing it.
+                borderColor: rank.earned ? '#FFE9A8' : '#2A5278',
+                backgroundColor: rank.earned ? '#F0B52F' : '#133E66',
+                shadowColor: rank.earned ? '#8A5B06' : '#082740',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: rank.earned ? 0.34 : 0.16,
+                shadowRadius: rank.earned ? 9 : 6,
+                elevation: rank.earned ? 5 : 2,
+              }}
             >
-              {t(rank.label)}
-            </Label>
-          </View>
-        ))}
+              <View
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: rank.earned ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.07)',
+                }}
+              >
+                {rank.earned
+                  ? <RewardIcon size={25} color="#FFFFFF" strokeWidth={2.3} />
+                  : <LockKeyhole size={23} color="#9AB7CA" strokeWidth={2.1} />}
+              </View>
+              <Heading size={13} colour={rank.earned ? '#4A3105' : '#CFE2EE'}>
+                {String(rank.index).padStart(2, '0')}
+              </Heading>
+              <Label
+                size={9}
+                tracking={0.04}
+                colour={rank.earned ? '#4A3105' : '#CFE2EE'}
+                style={{ textAlign: 'center', fontSize: 8 }}
+              >
+                {t(rank.label)}
+              </Label>
+              {!rank.earned ? (
+                <Label size={9} tracking={0} colour="#9AB7CA" style={{ textTransform: 'none', fontSize: 8 }}>
+                  {t({ en: `Lv. ${rank.fromLevel}`, th: `เลเวล ${rank.fromLevel}`, zh: `${rank.fromLevel} 级` })}
+                </Label>
+              ) : null}
+            </View>
+          );
+        })}
       </View>
     </View>
   );

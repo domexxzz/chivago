@@ -51,7 +51,7 @@ import { SeaAndSkyCard } from '../components/SeaAndSky.tsx';
 import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
 import { serviceAppearance, shopCategoryLabel } from '../components/ShopCategory.tsx';
 import {
-  Grid2X2, Star, ArrowRight, Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MapPin, Search, Shield, Sparkles, Ticket, Trees, Utensils, Wallet, Waves, Shell as ShellIcon,
+  Grid2X2, Star, ArrowRight, Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MapPin, Search, Shield, Sparkles, Ticket, Trees, Users, Utensils, Wallet, Waves, Shell as ShellIcon,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
@@ -123,7 +123,7 @@ export function questOrder(
 
 export function HomeScreen({
   onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenMarket, onOpenFair, onOpenPassport,
-  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenShop, onOpenMascots, onOpenStays, onOpenSummon, onOpenLocalPicks,
+  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenShop, onOpenMascots, onOpenStays, onOpenSummon, onOpenLocalPicks, onOpenCommunity,
   onToast, now = new Date(),
 }: {
   onOpenMap: () => void;
@@ -162,6 +162,8 @@ export function HomeScreen({
    * last thing added to it had to be rescued from under a floating button.
    */
   onOpenLocalPicks?: () => void;
+  /** Shared posts from travellers and operators. */
+  onOpenCommunity?: () => void;
   /** A fair's market in this area, lot by lot (docs/66). Optional so the older screen tests still render. */
   onOpenFair?: () => void;
   /** A one-line acknowledgement, for actions that finish without leaving the screen. */
@@ -233,6 +235,7 @@ export function HomeScreen({
             onOpenParty={onOpenParty}
             onOpenStays={onOpenStays}
             onOpenSummon={onOpenSummon}
+            onOpenCommunity={onOpenCommunity}
             onOpenMarket={onOpenMarket ?? onOpenWallet}
           />
           <View style={{ paddingHorizontal: gutter }}>
@@ -461,11 +464,11 @@ function Conditions({
 
 function Doors({
   onOpenMap, onOpenQuests, onOpenWallet, onOpenConcierge, onOpenImpact, onOpenSafety, onOpenParty,
-  onOpenStays, onOpenMarket, onOpenSummon,
+  onOpenStays, onOpenMarket, onOpenSummon, onOpenCommunity,
 }: {
   onOpenMap: () => void; onOpenQuests: () => void; onOpenWallet: () => void; onOpenConcierge: () => void;
   onOpenImpact: () => void; onOpenSafety: () => void; onOpenParty: () => void; onOpenStays?: () => void;
-  onOpenMarket: () => void; onOpenSummon?: () => void;
+  onOpenMarket: () => void; onOpenSummon?: () => void; onOpenCommunity?: () => void;
 }) {
   const doors = [
     { Icon: MapIcon, name: strings.tabs.map, onPress: onOpenMap, fill: '#C8F0FA', ink: '#0077B6' },
@@ -496,13 +499,35 @@ function Doors({
       predates this prop shows five doors rather than a sixth that does
       nothing, which is the rule the place cards above already follow.
     */
+    /*
+      THE DOOR'S NAME CHANGED WITH WHAT IS BEHIND IT. It read "Summon" while
+      the box held invented spirits alone and cost a charm. It now holds the
+      fashion as well and costs Trip Points, so it is named for the box
+      rather than for the act.
+
+      THE SHELL STAYS, and the paragraph above it still applies: lucide has
+      dice, a gift and a four-leaf clover, and each one would be the
+      interface calling this a gamble or a prize - the two words docs/68
+      spent a legal argument refusing and the two the server still scans its
+      own result payloads for. Lilac keeps it off gold, which on this screen
+      belongs to points.
+    */
     ...(onOpenSummon
       ? [{
         Icon: ShellIcon,
-        name: { en: 'Summon', th: 'อัญเชิญ', zh: '召唤' },
+        name: { en: 'Traveller’s box', th: 'ตู้สุ่มนักเดินทาง', zh: '旅人扭蛋机' },
         onPress: onOpenSummon,
         fill: tint.lilac.fill,
         ink: tint.lilac.ink,
+      }]
+      : []),
+    ...(onOpenCommunity
+      ? [{
+        Icon: Users,
+        name: { en: 'Community', th: 'คอมมูนิตี้', zh: '社区' },
+        onPress: onOpenCommunity,
+        fill: '#DDF4EE',
+        ink: '#087F6B',
       }]
       : []),
   ];

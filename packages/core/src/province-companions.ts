@@ -297,3 +297,28 @@ export function provinceNextStep(c: ProvinceCompanion): Bilingual | null {
 
 /** The evidence-bearing states, in ladder order. Used by the UI and the tests. */
 export const HELD_STATES: ProvinceCompanionState[] = ['egg', 'hatchling', 'grown'];
+
+/**
+ * The one province emblem to put on a card with room for exactly one.
+ *
+ * My Backpack shows a single travel companion mascot, and picking it is a
+ * claim about the traveller: it has to be the province they have the most
+ * evidence in, not the first row of a list that happens to be alphabetical.
+ * So the ladder decides - grown over hatchling over egg - and the province
+ * level breaks the tie, which is the same arithmetic `provinceLevelFor`
+ * already runs on check-ins and verified quests.
+ *
+ * Null when they hold nothing. A backpack that invented a province emblem for
+ * somebody who has never checked in would be claiming a visit that did not
+ * happen, which is the one thing this collection refuses to do anywhere else.
+ */
+export function featuredMascot(companions: ProvinceCompanion[]): ProvinceCompanion | null {
+  const rung = (c: ProvinceCompanion): number => HELD_STATES.indexOf(c.state);
+  return companions
+    .filter((c) => rung(c) >= 0)
+    .reduce<ProvinceCompanion | null>((best, c) => {
+      if (!best) return c;
+      if (rung(c) !== rung(best)) return rung(c) > rung(best) ? c : best;
+      return c.level > best.level ? c : best;
+    }, null);
+}

@@ -18,7 +18,7 @@ import { RANKED_BY, companionsFor, collectionSummary, progressionFor, type Compa
 
 const noop = () => {};
 const props = {
-  onBack: noop, onOpenAccount: noop, onOpenWallet: noop, onOpenPassport: noop, onOpenCompanion: noop,
+  onBack: noop, onOpenAccount: noop, onOpenWallet: noop, onOpenPassport: noop, onOpenMedals: noop, onOpenCompanion: noop,
 };
 
 const wallet = (exp = 2640) => ({
@@ -233,6 +233,23 @@ describe('distinction between operator and traveller roles', () => {
     assert.match(text, /โปรไฟล์นักท่องเที่ยว/);
     assert.match(text, /เมนูของฉัน/);
     assert.match(text, /0812345678/);
+    ui.unmount();
+  });
+
+  test('opens Digital passport and Medals from the traveller profile menu', async () => {
+    let passport = 0;
+    let medals = 0;
+    const s = server(routes());
+    restore = s.restore;
+    const ui = await mountScreen(h(ProfileScreen, {
+      ...props,
+      onOpenPassport: () => { passport += 1; },
+      onOpenMedals: () => { medals += 1; },
+    }));
+
+    await ui.press(/^พาสปอร์ตดิจิทัล$/);
+    await ui.press(/^เหรียญรางวัล$/);
+    assert.deepEqual([passport, medals], [1, 1]);
     ui.unmount();
   });
 
