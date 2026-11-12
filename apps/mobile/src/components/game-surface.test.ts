@@ -115,6 +115,8 @@ const EVIDENCE_LAYER: Record<string, string> = {
   'LoginScreen.tsx': 'authentication and credentials are not play',
   'RegisterScreen.tsx': 'registration and consent are not play',
   'EditProfileScreen.tsx': 'account details and profile credentials are not play',
+  'ConnectAppScreen.tsx': 'account connections and credentials are not play',
+  'CommunityFeedScreen.tsx': 'a conversation between real people is not play',
   'ShopManageScreen.tsx': 'business management and shop operations are not play',
   'ShopProfileScreen.tsx': 'real shop discovery and customer reviews are not play',
   'LocalPicksScreen.tsx': 'a directory of real businesses is not play',

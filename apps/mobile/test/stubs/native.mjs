@@ -74,6 +74,7 @@ export const stopLocationUpdatesAsync = noop;
 export const launchCameraAsync = async () => control.camera;
 export const launchImageLibraryAsync = noop;
 export const requestCameraPermissionsAsync = async () => control.permission;
+export const requestMediaLibraryPermissionsAsync = async () => control.permission;
 export const MediaTypeOptions = noop;
 export const impactAsync = noop;
 export const ImpactFeedbackStyle = noop;

@@ -42,7 +42,7 @@ export type ScreenKey =
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
   | 'companion' | 'passport' | 'account' | 'party' | 'findParty' | 'game'
   | 'mascots' | 'mascot' | 'fashion' | 'profile' | 'medals' | 'stays' | 'fair'
-  | 'summon' | 'editProfile' | 'shop' | 'shopManage' | 'localPicks' | 'miniGame';
+  | 'summon' | 'editProfile' | 'connectApp' | 'community' | 'shop' | 'shopManage' | 'localPicks' | 'miniGame';
 
 /**
  * Five tabs. Impact left the bar, and now the wallet has too.
@@ -107,7 +107,7 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   quests: 'quests', quest: 'quests',
   // The wallet kept its screen and lost its tab, so Home stays lit behind it -
   // the same place its door is.
-  wallet: 'home', market: 'home', account: 'home',
+  wallet: 'home', market: 'home', account: 'home', connectApp: 'home', community: 'home',
   // The game layer, all of it, under one cell. This is the change: every one
   // of these used to hang off Home or the wallet, two or three taps down.
   game: 'game', companion: 'game', mascots: 'game', mascot: 'game', fashion: 'game', summon: 'game',

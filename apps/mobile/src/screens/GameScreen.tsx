@@ -34,19 +34,13 @@
  */
 
 import React from 'react';
-import { Image, Modal, Pressable, ScrollView, Text, useWindowDimensions, View, type ImageSourcePropType } from 'react-native';
-import { Backpack, ChevronRight, Map as MapIcon, PawPrint, Shirt, Sparkles, X, type LucideIcon } from 'lucide-react-native';
-import collectMedal from '../../assets/collect-medal-v1.png';
-import collectPassport from '../../assets/collect-passport-v1.png';
+import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Backpack, ChevronRight, PawPrint, Shirt, type LucideIcon } from 'lucide-react-native';
 import collectFriends from '../../assets/collect-travel-friends-v1.png';
-import collectBackdrop from '../../assets/chivago-travel-hero-v2.png';
 import chivagoLogo from '../../assets/chivago-logo.png';
-import coralArt from '../../assets/mission-coral-v1.png';
-import communityArt from '../../assets/mission-community-v1.png';
-import beachArt from '../../assets/mission-beach-cleanup-v1.png';
 import {
-  collectionSummary, SPECIES, strings,
-  type Companion, type LayerKey, type Progression, type Species,
+  collectionSummary, strings,
+  type Companion, type Progression,
 } from '@chivago/core';
 import { gameRadius, gameShadow } from '@chivago/tokens';
 import { api } from '../api/client.ts';
@@ -56,13 +50,9 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { GameScene, Medal, Tray, TrayLine } from '../components/Game.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
-import { STAGE_LABEL } from './CompanionHome.tsx';
 import { t } from '../i18n/locale.ts';
 import { ProfileButton } from '../components/ProfileButton.tsx';
 import { TravelHeroBackdrop } from '../components/Shell.tsx';
-
-/** The habitats in the order the grid draws them. */
-const HABITATS = Object.keys(SPECIES) as LayerKey[];
 
 /**
  * The companion to put on the big card: the one with a step left to take.
@@ -77,14 +67,11 @@ export function nextUp(companions: Companion[]): Companion | null {
 }
 
 export function GameScreen({
-  onOpenCompanion, onOpenMascots, onOpenSummon, onOpenMedals, onOpenPassport, onOpenParty,
+  onOpenCompanion, onOpenMascots, onOpenParty,
   onOpenProfile, onOpenWallet, onOpenFashion,
 }: {
   onOpenCompanion: (companion: Companion) => void;
   onOpenMascots: () => void;
-  onOpenSummon: () => void;
-  onOpenMedals: () => void;
-  onOpenPassport: () => void;
   onOpenParty: () => void;
   onOpenProfile?: () => void;
   onOpenWallet: () => void;
@@ -108,19 +95,13 @@ export function GameScreen({
         onOpenMascots={onOpenMascots}
         onOpenFashion={onOpenFashion}
       />
-      <Doors onOpenMedals={onOpenMedals} onOpenPassport={onOpenPassport} onOpenParty={onOpenParty} />
+      <PartyDoor onOpen={onOpenParty} />
 
       {held.error ? <ErrorState message={held.error} onRetry={held.reload} /> : null}
       {held.loading && !data ? <LoadingState /> : null}
 
       {data ? (
         <>
-          <Grid
-            companions={companions}
-            onOpen={onOpenCompanion}
-            onOpenMascots={onOpenMascots}
-            onOpenSummon={onOpenSummon}
-          />
           <NextUp companion={nextUp(companions)} anyFound={companions.length > 0} onOpen={onOpenCompanion} />
           {summary ? <Counts found={summary.found} grown={summary.grown} total={summary.total} /> : null}
           <Footnote />
@@ -213,48 +194,33 @@ function HeaderAction({
   );
 }
 
-/** Round doors, the way a lobby opens: an icon you can find before you can read. */
-function Doors({
-  onOpenMedals, onOpenPassport, onOpenParty,
-}: { onOpenMedals: () => void; onOpenPassport: () => void; onOpenParty: () => void }) {
-  return (
-    <View style={{ flexDirection: 'row', paddingHorizontal: gutter, paddingTop: 8, gap: 10 }}>
-      <Door
-        image={collectMedal}
-        label={t({ en: 'Medals', th: 'เหรียญรางวัล', zh: '奖章' })}
-        fill="#FFF3D5"
-        onPress={onOpenMedals}
-      />
-      <Door
-        image={collectPassport}
-        label={t({ en: 'Digital passport', th: 'พาสปอร์ตดิจิทัล', zh: '数字护照' })}
-        accessibilityLabel={t({ en: 'Passport', th: 'พาสปอร์ต', zh: '护照' })}
-        fill="#DDF4FF"
-        onPress={onOpenPassport}
-      />
-      <Door
-        image={collectFriends}
-        label={t({ en: 'Travelling with', th: 'เพื่อนร่วมทาง', zh: '同行的人' })}
-        fill="#FFF0D7"
-        onPress={onOpenParty}
-      />
-    </View>
-  );
-}
-
-function Door({
-  image, label, accessibilityLabel = label, fill, onPress,
-}: { image: ImageSourcePropType; label: string; accessibilityLabel?: string; fill: string; onPress: () => void }) {
+/** The social door stays here; personal awards and documents live on Profile. */
+function PartyDoor({ onOpen }: { onOpen: () => void }) {
   return (
     <Pressable
-      onPress={onPress}
+      onPress={onOpen}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      style={[shadow.card, { flex: 1, height: 142, borderRadius: 20, backgroundColor: fill, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(13,88,122,.08)' }]}
+      accessibilityLabel={t({ en: 'Travelling with', th: 'เพื่อนร่วมทาง', zh: '同行的人' })}
+      style={[shadow.card, {
+        height: 108,
+        marginHorizontal: gutter,
+        marginTop: 10,
+        borderRadius: 22,
+        backgroundColor: '#FFF0D7',
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(13,88,122,.08)',
+        flexDirection: 'row',
+        alignItems: 'center',
+      }]}
     >
-      <Image source={image} resizeMode="cover" style={{ width: '100%', height: 94 }} />
-      <View style={{ flex: 1, paddingHorizontal: 7, alignItems: 'center', justifyContent: 'center' }}>
-        <Text numberOfLines={2} style={{ color: '#082E53', fontSize: 12, lineHeight: 16, fontWeight: '800', textAlign: 'center' }}>{label}</Text>
+      <Image source={collectFriends} resizeMode="cover" style={{ width: '42%', height: '100%' }} />
+      <View style={{ flex: 1, paddingHorizontal: 16, justifyContent: 'center' }}>
+        <Label size={9} tracking={0.12} colour="#B26A18">{t({ en: 'SOCIAL COLLECTION', th: 'คอลเลกชันเพื่อนร่วมทาง', zh: '同行收藏' })}</Label>
+        <Heading size={18} colour="#082E53" style={{ marginTop: 4 }}>{t({ en: 'Travelling with', th: 'เพื่อนร่วมทาง', zh: '同行的人' })}</Heading>
+      </View>
+      <View style={{ width: 38, height: 38, marginRight: 14, borderRadius: 19, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+        <ChevronRight size={19} color="#087DA4" strokeWidth={2.4} />
       </View>
     </Pressable>
   );
@@ -319,166 +285,6 @@ function NextUp({
           <Creature species={companion.species.key} stage={companion.stage} size={88} />
         </View>
       </GameScene>
-    </Pressable>
-  );
-}
-
-/**
- * Every habitat as a tile, found or not, and the seventy-seven as a sixth.
- *
- * An unfound habitat shows its EGG name and the place it comes from, never
- * the animal: the egg is the one thing in this layer that is meant to keep a
- * secret, and a grid that named every species would give all five away.
- */
-function Grid({
-  companions, onOpen, onOpenMascots, onOpenSummon,
-}: {
-  companions: Companion[];
-  onOpen: (c: Companion) => void;
-  onOpenMascots: () => void;
-  onOpenSummon: () => void;
-}) {
-  const byLayer = new Map(companions.map((c) => [c.species.layer, c]));
-  const { width } = useWindowDimensions();
-  const cardWidth = Math.max(92, Math.min(124, (width - gutter * 2 - 58) / 3));
-  const rail = React.useRef<ScrollView>(null);
-  const [lockedSpecies, setLockedSpecies] = React.useState<Species | null>(null);
-  return (
-    <>
-    <View style={[gameShadow.lift, { marginHorizontal: gutter, marginTop: 20, height: 246, borderRadius: 28, overflow: 'hidden', backgroundColor: '#38A9CF' }]}> 
-      <Text style={hiddenText}>{t({ en: 'HABITATS', th: 'ถิ่นที่อยู่', zh: '栖息地' })}</Text>
-      <Image source={collectBackdrop} resizeMode="cover" style={{ position: 'absolute', width: '100%', height: '100%', opacity: 0.78 }} />
-      <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(10,137,184,.24)' }} />
-      <View style={{ paddingHorizontal: 16, paddingTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,.92)', alignItems: 'center', justifyContent: 'center' }}>
-            <MapIcon size={18} color="#087DA4" strokeWidth={2.2} />
-          </View>
-          <Heading size={20} colour="#07335A">{t({ en: 'My collection', th: 'คอลเลกชันของฉัน', zh: '我的收藏' })}</Heading>
-        </View>
-        <Pressable
-          onPress={() => rail.current?.scrollToEnd({ animated: true })}
-          accessibilityRole="button"
-          accessibilityLabel={t({ en: 'View all collections', th: 'ดูคอลเลกชันทั้งหมด', zh: '查看全部收藏' })}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: 'rgba(255,255,255,.94)' }}
-        >
-          <Text style={{ color: '#07335A', fontSize: 11, fontWeight: '800' }}>{t({ en: 'View all', th: 'ดูทั้งหมด', zh: '查看全部' })}</Text>
-          <ChevronRight size={14} color="#087DA4" strokeWidth={2.5} />
-        </Pressable>
-      </View>
-      <ScrollView ref={rail} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 }}>
-        {HABITATS.map((layer, index) => {
-          const found = byLayer.get(layer);
-          return found
-            ? <FoundTile key={layer} companion={found} onOpen={onOpen} width={cardWidth} turn={cardTurn(index)} />
-            : <UnfoundTile key={layer} species={SPECIES[layer]} width={cardWidth} turn={cardTurn(index)} onPress={() => setLockedSpecies(SPECIES[layer])} />;
-        })}
-        <Pressable
-          onPress={onOpenMascots}
-          accessibilityRole="button"
-          accessibilityLabel={t({ en: 'The seventy-seven province emblems', th: 'มาสคอตครบ 77 จังหวัด', zh: '七十七府吉祥物' })}
-          style={[tileFrame(cardWidth, cardTurn(5)), gameShadow.lift]}
-        >
-          <Image source={collectPassport} resizeMode="cover" style={tileImage} />
-          <View style={tileBadge}><MapIcon size={16} color="#087DA4" /></View>
-          <Text style={hiddenText}>{t({ en: 'The 77 Province emblems', th: 'ครบ 77 จังหวัด มาสคอตประจำจังหวัด', zh: '七十七府吉祥物' })}</Text>
-        </Pressable>
-        {/*
-          The summoning (docs/68), next to the two collections it is not.
-
-          The companions are real animals on an evidence ladder and the
-          seventy-seven are province emblems; the spirits are invented and
-          the tile says so in its own subtitle, because a traveller meeting
-          all three in one grid has to be able to tell them apart.
-        */}
-        <Pressable
-          onPress={onOpenSummon}
-          accessibilityRole="button"
-          accessibilityLabel={t({ en: 'The Summoning: invented spirits, from charms you earned', th: 'การอัญเชิญ: ภูตที่แต่งขึ้น แลกด้วยเครื่องรางที่สะสมเอง', zh: '召唤：虚构的精灵，用你赚得的护符换取' })}
-          style={[tileFrame(cardWidth, cardTurn(6)), gameShadow.lift]}
-        >
-          <Image source={collectMedal} resizeMode="cover" style={tileImage} />
-          <View style={tileBadge}><Sparkles size={16} color="#C47B00" /></View>
-          <Text style={hiddenText}>{t({ en: 'The Summoning, invented spirits', th: 'การอัญเชิญ ภูตที่แต่งขึ้น', zh: '召唤虚构精灵' })}</Text>
-        </Pressable>
-      </ScrollView>
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 42, backgroundColor: 'rgba(6,145,191,.72)', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#FFFFFF', fontSize: 12, fontStyle: 'italic', fontWeight: '700' }}>✦ {t({ en: 'Collect more, explore more!', th: 'ยิ่งสะสม ยิ่งได้ออกไปค้นพบ!', zh: '收藏更多，探索更多！' })} ✦</Text>
-      </View>
-    </View>
-    <Modal visible={lockedSpecies !== null} transparent animationType="fade" onRequestClose={() => setLockedSpecies(null)}>
-      <View style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(3,31,50,.58)' }}>
-        <View style={[gameShadow.lift, { width: '100%', maxWidth: 380, alignSelf: 'center', borderRadius: 28, backgroundColor: '#FFFFFF', padding: 22 }]}> 
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-            <View style={{ flex: 1 }}>
-              <Label size={9} tracking={0.14} colour="#0A8AA8">{t({ en: 'NOT FOUND YET', th: 'ยังไม่พบ', zh: '尚未发现' })}</Label>
-              <Heading size={22} colour="#082E53" style={{ marginTop: 4 }}>{lockedSpecies ? t(lockedSpecies.eggName) : ''}</Heading>
-            </View>
-            <Pressable onPress={() => setLockedSpecies(null)} accessibilityRole="button" accessibilityLabel={t({ en: 'Close', th: 'ปิด', zh: '关闭' })} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#EAF7FB', alignItems: 'center', justifyContent: 'center' }}>
-              <X size={20} color="#087DA4" />
-            </Pressable>
-          </View>
-          {lockedSpecies ? <>
-            <Body size={14} colour={color.neutral800} style={{ marginTop: 14 }}>{t(lockedSpecies.habitat)}</Body>
-            <View style={{ marginTop: 16, padding: 14, borderRadius: 18, backgroundColor: '#EAF7FB', borderWidth: 1, borderColor: '#CFEAF2' }}>
-              <Body size={13} colour="#31566C">{t({ en: 'A companion arrives on your second day in this habitat.', th: 'เพื่อนร่วมทางจะมาถึงในวันที่สองที่คุณอยู่ในถิ่นนี้', zh: '在这个栖息地停留到第二天，伙伴就会出现。' })}</Body>
-            </View>
-          </> : null}
-        </View>
-      </View>
-    </Modal>
-    </>
-  );
-}
-
-const collectionArt: Record<LayerKey, ImageSourcePropType> = {
-  Green: collectFriends,
-  Wellness: communityArt,
-  Food: beachArt,
-  Safe: coralArt,
-  Quest: collectPassport,
-};
-
-const cardTurn = (index: number) => `${[-4, 2.5, -2, 3, -3, 2, -2][index % 7]}deg`;
-const tileImage = { position: 'absolute' as const, width: '100%' as const, height: '100%' as const };
-const tileBadge = { position: 'absolute' as const, right: 7, bottom: 7, width: 31, height: 31, borderRadius: 16, backgroundColor: 'rgba(255,255,255,.9)', alignItems: 'center' as const, justifyContent: 'center' as const };
-const hiddenText = { position: 'absolute' as const, left: -9999, width: 1, height: 1, opacity: 0 };
-
-const tileFrame = (width: number, turn: string) => ({
-  width, height: 116, borderRadius: 15,
-  backgroundColor: '#FFFFFF', overflow: 'hidden' as const,
-  borderWidth: 3, borderColor: '#FFFFFF', transform: [{ rotate: turn }],
-});
-
-function FoundTile({ companion, onOpen, width, turn }: { companion: Companion; onOpen: (c: Companion) => void; width: number; turn: string }) {
-  const name = t(companion.species.name);
-  const stage = t(STAGE_LABEL[companion.stage]);
-  return (
-    <Pressable
-      onPress={() => onOpen(companion)}
-      accessibilityRole="button"
-      accessibilityLabel={`${name}, ${stage}. ${t(strings.place.visitItsHome)}`}
-      style={[tileFrame(width, turn), gameShadow.lift]}
-    >
-      <Image source={collectionArt[companion.species.layer]} resizeMode="cover" style={tileImage} />
-      <View style={{ position: 'absolute', right: 0, bottom: -3 }}><Creature species={companion.species.key} stage={companion.stage} size={66} /></View>
-      <Text style={hiddenText}>{name} {stage}</Text>
-    </Pressable>
-  );
-}
-
-function UnfoundTile({ species, width, turn, onPress }: { species: Species; width: number; turn: string; onPress: () => void }) {
-  const egg = t(species.eggName);
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${egg}, ${t({ en: 'not found yet', th: 'ยังไม่พบ', zh: '尚未发现' })}. ${t(species.habitat)}`}
-      style={({ pressed }) => [tileFrame(width, turn), pressed && { opacity: 0.86, transform: [{ rotate: turn }, { scale: 0.97 }] }]}
-    >
-      <Image source={collectionArt[species.layer]} resizeMode="cover" style={[tileImage, { opacity: 0.82 }]} />
-      <View style={{ position: 'absolute', right: 0, bottom: -3, opacity: 0.9 }}><Creature species={species.key} stage="egg" size={66} /></View>
-      <Text style={hiddenText}>{egg} {t({ en: 'Not found yet', th: 'ยังไม่พบ', zh: '尚未发现' })}</Text>
     </Pressable>
   );
 }

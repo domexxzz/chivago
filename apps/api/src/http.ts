@@ -12,7 +12,7 @@ import {
   WrongEventToken,
 } from './story-service.ts';
 import { TranscoderUnavailable } from './transcode.ts';
-import { AlreadyHave, NoCharms, NotEnoughDust, UnknownSpirit } from './summon-service.ts';
+import { AlreadyHave, NoCharms, NotEnoughDust, NotEnoughPoints, UnknownSpirit } from './summon-service.ts';
 import type { ApiFailure, ApiSuccess } from '@chivago/core';
 import { InsufficientPoints } from './wallet-service.ts';
 import { InvalidTransition, OutsideGeofence } from './quest-service.ts';
@@ -23,6 +23,9 @@ import {
   AlreadyReported, AppealAlreadyOpen, CannotReportOwn, InvalidRating, NeverVisited,
   NothingToAppeal, NotYourReview, ReportRateLimited, TakedownRateLimited,
 } from './place-review-service.ts';
+import {
+  CommunityPostNotFound, InvalidCommunityMedia, InvalidCommunityPost,
+} from './community-service.ts';
 
 /**
  * What the auth middleware puts on the context.
@@ -136,11 +139,20 @@ export function handleError(c: Context, err: unknown) {
   // The summoning (docs/68). None of these is a payment failure, because
   // nothing here is bought: a charm is earned and stardust comes from
   // duplicates. 409, not 402.
+  /*
+    409, not 402. A 402 would be the interface saying this is a purchase
+    somebody could complete by paying, and a pull cannot be: Trip Points are
+    earned by walking and checking in, and no amount of money buys one.
+  */
+  if (err instanceof NotEnoughPoints) return fail(c, 'NOT_ENOUGH_TRIP_POINTS', err.message, 409);
   if (err instanceof NoCharms) return fail(c, 'NO_CHARMS', err.message, 409);
   if (err instanceof NotEnoughDust) return fail(c, 'NOT_ENOUGH_DUST', err.message, 409);
   if (err instanceof AlreadyHave) return fail(c, 'ALREADY_HAVE', err.message, 409);
   if (err instanceof UnknownSpirit) return fail(c, 'NOT_FOUND', err.message, 404);
   if (err instanceof BodyTooLarge) return fail(c, 'BODY_TOO_LARGE', err.message, 413);
+  if (err instanceof InvalidCommunityMedia) return fail(c, 'INVALID_COMMUNITY_MEDIA', err.message, 415);
+  if (err instanceof InvalidCommunityPost) return fail(c, 'INVALID_COMMUNITY_POST', err.message, 400);
+  if (err instanceof CommunityPostNotFound) return fail(c, 'NOT_FOUND', err.message, 404);
   if (err instanceof UnknownPlace) return fail(c, 'NOT_FOUND', err.message, 404);
   if (err instanceof StoryNotFound) return fail(c, 'NOT_FOUND', err.message, 404);
   if (err instanceof SelfVisitQuotaReached) {

@@ -5,7 +5,7 @@ import { test, describe } from 'node:test';
 import {
   DUST_FROM_DUPLICATE, MYTHIC_PITY, RARE_PITY, RARITIES, RARITY_EFFECTIVE_PERCENT,
   RARITY_PERCENT, RARITY_WEIGHT, SPIRITS,
-  WEIGHT_TOTAL, advancePity, drawSpirit,
+  POOL, WEIGHT_TOTAL, advancePity, drawItem, itemKey,
 } from '@chivago/core';
 
 import { charmsFrom, commitmentOf, createSummoning, rollFor, type LedgerRow } from './summoning.ts';
@@ -128,7 +128,8 @@ describe('the demo summoning answers the screen', () => {
     assert.equal(s.rules.weightTotal, WEIGHT_TOTAL);
     assert.deepEqual(s.rules.pity, { mythic: MYTHIC_PITY, rare: RARE_PITY });
     assert.deepEqual(s.rules.dustFromDuplicate, DUST_FROM_DUPLICATE);
-    assert.equal(s.total, SPIRITS.length);
+    // The whole box: the spirits and the fashion that went in with them.
+    assert.equal(s.total, POOL.length);
   });
 
   test('every rarity is accounted for, which is what the byRarity cast rests on', async () => {
@@ -167,7 +168,12 @@ describe('the demo summoning answers the screen', () => {
     const pulled = await summoning.pull();
 
     assert.ok(pulled.ok);
-    assert.ok(SPIRITS.some((s) => s.key === pulled.value.spirit.key), 'the drawn key is one of the twenty-four');
+    // One of the box's own entries — the twenty-four spirits, or the fashion
+    // that went in with them. Never anything that certifies.
+    assert.ok(
+      POOL.some((entry) => itemKey(entry) === itemKey(pulled.value.item)),
+      'the drawn key is not in the box',
+    );
     assert.equal(pulled.value.charms.spent, 1);
     assert.equal(pulled.value.charms.available, 8);
   });
@@ -199,8 +205,8 @@ describe('the demo summoning answers the screen', () => {
       assert.ok(r.receipt.roll !== null && r.receipt.pick !== null,
         `summon ${r.receipt.nonce} kept no numbers`);
 
-      const redrawn = drawSpirit(r.receipt.roll, r.receipt.pick, pity);
-      assert.equal(redrawn.spirit.key, r.spiritKey, `summon ${r.receipt.nonce} does not recompute`);
+      const redrawn = drawItem(r.receipt.roll, r.receipt.pick, pity);
+      assert.equal(itemKey(redrawn.item), r.spiritKey, `summon ${r.receipt.nonce} does not recompute`);
       assert.equal(redrawn.rarity, r.rarity);
       assert.equal(redrawn.byPity, r.byPity);
       pity = advancePity(pity, redrawn.rarity);
@@ -277,7 +283,11 @@ describe('the field guide shows a collection filling up, not a finished one', ()
     const summoning = createSummoning(ledgerOf(CAPTURED));
     const pulled = await summoning.pull();
     assert.ok(pulled.ok);
-    const { spirit } = pulled.value;
+    // The guide lists spirits, so this case asks for one. A costume is a
+    // real outcome of the same box and simply has no card in that guide.
+    const { item } = pulled.value;
+    if (item.kind !== 'spirit') return;
+    const spirit = item.spirit;
 
     const card = summoning.collection().find((c) => c.key === spirit.key)!;
     const state = await summoning.state();

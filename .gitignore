@@ -11,6 +11,7 @@ dist*/
 build/
 .expo/
 web-build/
+apps/mobile/.expo-validation-export/
 
 # Databases. These carry real seeded host api_key_hash values and traveller
 # data, and they are rebuilt by `pnpm --filter @chivago/api seed`. A database
