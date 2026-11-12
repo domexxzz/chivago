@@ -65,3 +65,10 @@ run.bat
 # `wrangler dev`. It holds a local Durable Object database and an R2 stub,
 # which are this machine's and nobody else's.
 .wrangler/
+
+# The migration working set (docs/71): a snapshot of the pilot and the
+# batches made from it. Both carry every row of real personal data there is,
+# and the runbook tells you to make them right here in the repository root.
+# `*.db` above covers the snapshot; this covers what comes out of it.
+batches/
+batches*/

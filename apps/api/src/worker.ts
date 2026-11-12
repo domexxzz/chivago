@@ -29,6 +29,7 @@ import { openDurableDatabase } from './db.ts';
 import type { DurableStorage } from './do-storage.ts';
 import { r2BlobStore, setBlobStore } from './blob-store.ts';
 import { nextDueAt, runDueSweeps, type LastRunAt, type Sweep } from './sweeps.ts';
+import { servedFromExport } from './served-from-export.ts';
 
 export interface Env {
   /** The one object. See the note above about why there is only one. */
@@ -141,24 +142,17 @@ export class ChivagoPilot extends DurableObject<Env> {
  * on Node. THE CACHE HEADERS MATTER AND ARE NOT THE DEFAULT: hashed Expo
  * bundles and fonts are immutable for a year, unhashed photographs get an
  * hour, and `index.html` is `no-cache` so a deploy is visible at once. Those
- * rules are set in `wrangler.jsonc`; the comment over `serveWebApp` in
+ * rules are set in `apps/mobile/public/_headers`, which Workers Assets reads
+ * and `public/` carries into the export; the comment over `serveWebApp` in
  * `server-node.ts` explains why each one is what it is, and the two must not
  * drift apart.
  */
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    /*
-      Anything that is not the API is a static file. The prefixes are the ones
-      `server.ts` already treats as static; keeping one list is the point,
-      because a path that is static here and dynamic there is a 404 nobody can
-      reproduce.
-    */
-    const isAsset = url.pathname === '/'
-      || url.pathname === '/favicon.ico'
-      || ['/_expo/', '/assets/', '/media/', '/shops/media/', '/shops/guide-photos/']
-        .some((p) => url.pathname.startsWith(p));
+    const isAsset = servedFromExport(url.pathname);
 
     if (isAsset && request.method === 'GET') {
       const asset = await env.ASSETS.fetch(request);

@@ -132,8 +132,13 @@ replaying is written, tested and not improvised at two in the morning:
 ### 3a. Make the batches (**owner**, on the snapshot)
 
 ```bash
-pnpm --filter @chivago/api export:import -- --db ./snapshot.db --out ./batches
+cd apps/api
+node --experimental-strip-types src/export-for-import.ts --db ../../snapshot.db --out ../../batches
 ```
+
+Called directly rather than through `pnpm run export:import --`: pnpm passes
+the `--` through to the script, `parseArgs` sees it as a positional argument
+and refuses the whole command.
 
 It prints a line per table and writes `manifest.json` with the row counts -
 **keep that file**, it is what Step 5 checks against. Files are numbered in the
