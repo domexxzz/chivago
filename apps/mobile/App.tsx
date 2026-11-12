@@ -38,6 +38,8 @@ import { AskScreen } from './src/screens/AskScreen.tsx';
 import { ImpactScreen } from './src/screens/ImpactScreen.tsx';
 import { HomeScreen } from './src/screens/HomeScreen.tsx';
 import { LocalPicksScreen } from './src/screens/LocalPicksScreen.tsx';
+import { MiniGameScreen } from './src/screens/MiniGameScreen.tsx';
+import type { MiniGameKey } from './src/games/index.ts';
 import { PassportScreen } from './src/screens/PassportScreen.tsx';
 import { MascotsScreen } from './src/screens/MascotsScreen.tsx';
 import { MascotRoomScreen } from './src/screens/MascotRoom.tsx';
@@ -154,6 +156,10 @@ export default function App() {
   React.useEffect(() => { void loadArea(); }, []);
   // Route state: it belongs to the pushed screen and dies with it.
   const [companion, setCompanion] = React.useState<Companion | null>(null);
+  // Which mini-game the game tab opened. Carried here rather than in the nav
+  // state for the same reason `companion` is: it belongs to one pushed screen
+  // and nothing else in the app has any use for it.
+  const [gameKey, setGameKey] = React.useState<MiniGameKey | null>(null);
   const toast = useToast();
   // The account first: every other request carries its key in a header.
   const account = useAccount();
@@ -436,8 +442,11 @@ export default function App() {
             onOpenPassport={() => nav.push('passport')}
             onOpenParty={() => nav.push('party')}
             onOpenProfile={() => nav.push('profile')}
+            onOpenGame={(key) => { setGameKey(key); nav.push('miniGame'); }}
           />
         );
+      case 'miniGame':
+        return <MiniGameScreen gameKey={gameKey ?? ''} onBack={nav.pop} />;
       case 'wallet':
         return (
           <WalletScreen
@@ -680,7 +689,14 @@ export default function App() {
           <SosBanner onPress={() => nav.selectTab('safety')} />
         ) : null}
 
-        {showTabs && nav.screen !== 'concierge' && nav.screen !== 'safety' ? (
+        {/*
+          Not over a mini-game. A game fills the viewport with a document that
+          has its own controls, and this button landed on top of the one that
+          restarts it - the same way it landed on Home's last door before it
+          moved up to 120. There is nothing to move it above here: the page
+          below is a browser and the app cannot see what is under the button.
+        */}
+        {showTabs && nav.screen !== 'concierge' && nav.screen !== 'safety' && nav.screen !== 'miniGame' ? (
           <AiGuideButton wide={wideShell} onPress={() => nav.push('concierge')} />
         ) : null}
 

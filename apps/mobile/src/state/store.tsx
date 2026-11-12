@@ -42,7 +42,7 @@ export type ScreenKey =
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
   | 'companion' | 'passport' | 'account' | 'party' | 'findParty' | 'game'
   | 'mascots' | 'mascot' | 'profile' | 'medals' | 'stays' | 'fair'
-  | 'summon' | 'editProfile' | 'shop' | 'shopManage' | 'localPicks';
+  | 'summon' | 'editProfile' | 'shop' | 'shopManage' | 'localPicks' | 'miniGame';
 
 /**
  * Five tabs. Impact left the bar, and now the wallet has too.
@@ -111,7 +111,7 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   // The game layer, all of it, under one cell. This is the change: every one
   // of these used to hang off Home or the wallet, two or three taps down.
   game: 'game', companion: 'game', mascots: 'game', mascot: 'game', summon: 'game',
-  medals: 'game', passport: 'game', party: 'game', findParty: 'game',
+  medals: 'game', passport: 'game', party: 'game', findParty: 'game', miniGame: 'game',
   // The profile is the button at the top of Home.
   profile: 'home',
   editProfile: 'home', shopManage: 'home', shop: 'map', localPicks: 'home',
