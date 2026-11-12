@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { beforeEach, describe, test } from 'node:test';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { addOrganisation, addSponsorship, InvalidFunding, removeSponsorship } from './organisation-service.ts';
 import {
   communityTreesPlanted, InvalidTreeRecord, recordTreePlanting, setTreeCommitment,

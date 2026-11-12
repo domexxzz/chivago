@@ -12,7 +12,7 @@ silent, this says so rather than filling the gap.
 
 It is the nearest island to the campus work (`43-the-campus.md`): a short ferry
 from Sriracha, a day trip from Bangkok, and a place the province is already
-spending on. If ChivaGo is going to show it is not a Samui-only product, the
+spending on. If ChivarGo is going to show it is not a Samui-only product, the
 second island should be one where the same problems exist at a smaller scale
 and the people who own them are reachable.
 
@@ -80,7 +80,7 @@ That is a claim to check on the ground, not to repeat.
   eight months later the province was still talking rather than acting
   ([Pattaya Mail](https://www.pattayamail.com/news/chonburi-talking-not-walking-koh-sichang-environmental-problems-163357)).
 
-## Where ChivaGo fits
+## Where ChivarGo fits
 
 - **Problem 5 is the product.** The island does not lack plans; it lacks a
   record that a specific thing happened on a specific day with somebody

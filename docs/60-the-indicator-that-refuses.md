@@ -163,7 +163,7 @@ already exists and stores nothing; this adds a column to it.
 writes the disclosure.
 
 **It does not become an assurance opinion.** `countersign.ts` exists for an
-accredited firm's conclusion and this is not one. A refusal is ChivaGo's
+accredited firm's conclusion and this is not one. A refusal is ChivarGo's
 reading, and the page says so with the same weight `DECLARED_NOT_VERIFIED`
 gets today.
 

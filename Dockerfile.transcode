@@ -1,0 +1,65 @@
+# ChivaGo's encoder, on its own.
+#
+# WHY THERE IS A SECOND IMAGE AT ALL. Some things need Node, and Workers is not
+# Node. Two of them, so far:
+#
+#   1. ffmpeg, a native binary. Workers cannot spawn a process.
+#   2. Air4Thai's feed, whose server omits its own intermediate certificates.
+#      node:https can be handed the chain; workerd's fetch cannot - measured as
+#      "TLS peer's certificate is not trusted". That request is the air
+#      CROSS-CHECK, the thing that stops a modelled number being published as a
+#      measured one, so losing it is not cosmetic.
+#
+# Everything else the API does moves to Workers. This image is specific
+# capabilities Workers lacks, not an architecture that wanted two services.
+#
+# It is NOT the main image with a different command. The main image carries the
+# exported web app and the whole API; this needs ffmpeg, Node, and two source
+# files. Keeping them apart means the encoder can be redeployed without
+# shipping the API, and the encoder's attack surface is two routes rather than
+# all of them.
+#
+#   docker build -f Dockerfile.transcode -t chivago-transcode .
+#   docker run -p 8788:8788 -e CHIVAGO_TRANSCODE_TOKEN=... chivago-transcode
+#
+# IT REFUSES TO START WITHOUT CHIVAGO_TRANSCODE_TOKEN. Transcoding is the most
+# expensive thing this product does - up to a minute of CPU per clip - so an
+# unauthenticated encoder is a free CPU-burning endpoint for anyone who finds
+# it. See transcode-service.ts.
+
+FROM node:24-slim AS runtime
+
+# The first reason for the container. Every clip is re-encoded to H.264 so an
+# iPhone's HEVC plays on an Android in the same room, and the re-encode is
+# also what strips the phone's EXIF and position before anything is public.
+# The second reason needs no package: see /air4thai in transcode-service.ts.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ffmpeg \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN corepack enable
+WORKDIR /repo
+
+# Manifests first, so this layer rebuilds only when a dependency changes.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/core/package.json packages/core/
+COPY apps/api/package.json apps/api/
+RUN pnpm install --frozen-lockfile --filter @chivago/api... --prod=false
+
+# `@chivago/core` is a workspace dependency of the API package, so it has to be
+# present even though the encoder itself does not import it.
+COPY packages/core packages/core
+COPY apps/api/src apps/api/src
+
+ENV NODE_ENV=production
+ENV PORT=8788
+EXPOSE 8788
+
+# `/health` reports whether ffmpeg answers, so an orchestrator restarts a
+# container whose binary has gone rather than one that merely looks busy. It
+# needs no token, and says nothing but yes or no.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8788)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+USER node
+CMD ["node", "--experimental-strip-types", "apps/api/src/transcode-service.ts"]

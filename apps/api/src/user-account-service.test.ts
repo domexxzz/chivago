@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { beforeEach, describe, it } from 'node:test';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { resolveDevice } from './account-service.ts';
 import {
   hashPassword,

@@ -1,5 +1,5 @@
 /**
- * ChivarGo API.
+ * ChivaGo API.
  *
  * Implements the backend surface the design implies (handoff section 6), with
  * the two rules the prototype could not enforce:
@@ -8,11 +8,6 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { serve } from '@hono/node-server';
-import { serveStatic } from '@hono/node-server/serve-static';
-import { existsSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import {
@@ -42,7 +37,24 @@ import {
 } from './local-business-service.ts';
 import { logger } from 'hono/logger';
 
-import { openDb, row, transact } from './db.ts';
+import { row, transact, type DB } from './db.ts';
+import {
+  finishImportRun, importBatch, importBlockers, provisionedUserCount, recordBatch,
+  type ImportBatch,
+} from './import-service.ts';
+
+/**
+ * Ceilings on one import batch.
+ *
+ * Bytes because an isolate gets 128 MB and it hosts the whole app; rows
+ * because a batch is one synchronous loop the object cannot serve anything
+ * else during. Both are deliberately well under what the platform allows, so
+ * a too-large batch is a 413 the operator can act on rather than an isolate
+ * that died.
+ */
+const MAX_IMPORT_BYTES = 16 * 1024 * 1024;
+const MAX_IMPORT_ROWS = 5_000;
+import { constantTimeEqual } from './scrypt.ts';
 import { BodyTooLarge, boundedForm, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
 import { publicConfig } from './fence.ts';
 import { boardFeed, type BoardEntry } from '@chivago/core';
@@ -66,7 +78,7 @@ import { airHistoryFor, checkinsLastHour } from './crowd-service.ts';
 import { readStatement, statementsIncluding } from './statement-service.ts';
 import { countersignaturesFor } from './countersign-service.ts';
 import {
-  STORY_FORM_MAX_BYTES, StoryTooLarge, expireStories, readStoryMedia, storiesAt, storiesInArea, storiesOpen,
+  STORY_FORM_MAX_BYTES, StoryTooLarge, readStoryMedia, storiesAt, storiesInArea, storiesOpen,
   storyEtag, submitStory,
 } from './story-service.ts';
 import { areaByKey, inArea, isAreaKey } from '@chivago/core';
@@ -105,23 +117,33 @@ import {
 } from './sos-service.ts';
 import { recordPositions, type PositionFix, type PositionSource } from './position-service.ts';
 import { sosLivePage } from './console/sos-live.ts';
-import { sweep } from './escalation-service.ts';
-import { sweepOverdue } from './sla-service.ts';
 import { webhookTransport } from './push/webhook.ts';
 import { hostOwnsQuest, resolveSession, readCookie, SESSION_COOKIE } from './host-auth.ts';
-import { onPrimary } from './primary.ts';
+import { isPrimary, onPrimary } from './primary.ts';
+import { bootstrapKohSichangBusinesses } from './bootstrap-koh-sichang.ts';
+import { buildSweeps, startSweepTimers, type Sweep } from './sweeps.ts';
 import { MAX_BYTES, MAX_PHOTOS_PER_PROOF, storePhoto, UnsupportedUpload } from './uploads.ts';
 import { FFMPEG, transcoderAvailable } from './transcode.ts';
 import {
-  collectionFor, forge, historyFor, rotateEpochs, summon, summonState, verifySummon,
+  collectionFor, forge, historyFor, summon, summonState, verifySummon,
 } from './summon-service.ts';
 import {
-  assistConfig, ffmpegPrepare, requestAssist, staleAssists, type AssistDeps,
+  assistConfig, ffmpegPrepare, requestAssist, type AssistDeps,
 } from './assist-service.ts';
 import { bedrockModel } from './bedrock.ts';
 import type { Voucher, WellnessProfile } from '@chivago/core';
 
 const db = openDb();
+if (isPrimary()) {
+  const bootstrapped = bootstrapKohSichangBusinesses(db);
+  if (!bootstrapped.skipped && (bootstrapped.accountCreated || bootstrapped.shopsInserted > 0 || bootstrapped.attractionsInserted > 0)) {
+    console.log('[chivago] Ko Sichang content bootstrapped:', bootstrapped);
+  }
+}
+
+/** The jobs an alarm or a timer should run. Empty until `useDatabase`. */
+export const scheduledSweeps = (): Sweep[] => sweeps;
+
 const app = new Hono<AppEnv>();
 
 const push = expoTransport();
@@ -141,75 +163,6 @@ function flushNotifications(): void {
   });
 }
 
-/**
- * The retry tick. One minute is short enough that a blip clears quickly and
- * long enough that a dead upstream is not hammered.
- */
-const DISPATCH_INTERVAL_MS = 60_000;
-const dispatchTimer = setInterval(onPrimary(flushNotifications), DISPATCH_INTERVAL_MS);
-
-/**
- * The overdue sweep.
- *
- * Hourly, deliberately slow. It is chasing promises measured in DAYS - a
- * proof unreviewed for 24 hours, an appeal unread for 48 - and running it any
- * faster would burn queries to discover the same nothing.
- *
- * Never flushes. Being told your appeal is still waiting is not urgent enough
- * to jump the dispatch queue, and quiet hours should hold it like anything
- * else.
- */
-const SLA_INTERVAL_MS = 3_600_000;
-// Seven days on, a story and its files go. Hourly; nobody is waiting on it.
-const storyTimer = setInterval(onPrimary(() => {
-  try { expireStories(db); } catch (e) { console.error('[chivago] story expiry:', (e as Error).message); }
-}), 3_600_000);
-storyTimer.unref();
-
-/*
-  The summoning's seed reveal (docs/68).
-
-  An epoch's commitment is published the second it opens, and the SEED - the
-  thing that makes every roll under it recomputable by a stranger - is only
-  handed out once the epoch closes. Nothing closed one. `closeEpoch` was
-  written, tested and never called by the running product, so every receipt
-  answered "this epoch is still open" forever and the one promise the mechanic
-  is built on could not be kept.
-
-  Hourly, on the primary, and logged: a reveal is a thing we want to be able
-  to point at afterwards. `summon` rotates too, so a server restarted every
-  hour still reveals.
-*/
-const epochTimer = setInterval(onPrimary(() => {
-  try {
-    for (const closed of rotateEpochs(db)) {
-      console.log(`[chivago] summon epoch ${closed.id} closed; its seed is now published`);
-    }
-  } catch (err) {
-    // Swallowed like the other sweeps. A throw here must not take the
-    // process down, and the next tick tries again an hour later.
-    console.error('[chivago] epoch rotation failed', (err as Error).message);
-  }
-}), 3_600_000);
-epochTimer.unref();
-
-const slaTimer = setInterval(onPrimary(() => {
-  try {
-    const summary = sweepOverdue(db);
-    if (summary.proofsChased + summary.appealsChased > 0) {
-      console.warn(
-        `[chivago] overdue: ${summary.proofsChased} proofs, ${summary.appealsChased} appeals`,
-      );
-    }
-  } catch (err) {
-    // Swallowed like the escalation sweep: a throw here must not stop the
-    // process, and the worst case is that somebody is told late twice.
-    console.error('[chivago] overdue sweep failed', err);
-  }
-}), SLA_INTERVAL_MS);
-// Never hold the process open just to run the notification loop.
-dispatchTimer.unref?.();
-slaTimer.unref?.();
 
 /**
  * A second pair of eyes (docs/64). Off unless CHIVAGO_ASSIST=on with a model
@@ -233,46 +186,18 @@ const startAssist = (proofId: string) => {
   });
 };
 
-// Picks up what a restart interrupted. A minute is plenty: nobody is waiting
-// on it, and the host can decide without it.
-const assistTimer = setInterval(onPrimary(() => {
-  try { for (const id of staleAssists(db)) startAssist(id); } catch (e) {
-    console.error('[chivago] assist sweep:', (e as Error).message);
-  }
-}), 60_000);
-assistTimer.unref();
 
 const oncall = webhookTransport();
 
-/**
- * The escalation sweep.
- *
- * Every 30 seconds, faster than the notification retry, because the first rung
- * fires at two minutes and a sweep that ran on the same minute-long clock could
- * turn that into three.
- *
- * A fired rung flushes notifications immediately rather than waiting for the
- * next dispatch tick - the whole value of telling someone "nobody has answered,
- * call 1669" is that it arrives while it still matters.
- */
-const ESCALATION_INTERVAL_MS = 30_000;
-const escalationTimer = setInterval(onPrimary(() => {
-  void sweep(db, oncall)
-    .then((summary) => {
-      if (summary.rungsFired > 0) {
-        for (const o of summary.outcomes) {
-          console.warn(`[chivago] SOS escalated ${o.alertId} · ${o.rung} · ${o.detail}`);
-        }
-        flushNotifications();
-      }
-    })
-    .catch((err) => {
-      // Swallowed deliberately. A sweep that throws stops escalating for
-      // everybody, and breaking silence is this module's entire job.
-      console.error('[chivago] escalation sweep failed', err);
-    });
-}), ESCALATION_INTERVAL_MS);
-escalationTimer.unref?.();
+/*
+  The jobs that run because time passed, not because somebody asked.
+
+  They used to be six `setInterval` calls here. They live in `sweeps.ts` now,
+  with their intervals and their reasons, because a Durable Object has no
+  process to hold a timer and schedules the same work with an alarm instead.
+  The schedule did not change; see the header there.
+*/
+
 
 app.use('*', logger());
 
@@ -325,6 +250,136 @@ app.get('/sos/live/:token', (c) => {
 */
 const publicLocale = (c: { req: { header: (n: string) => string | undefined } }) =>
   localeFromAcceptLanguage(c.req.header('accept-language')) ?? DEFAULT_LOCALE;
+
+/**
+ * Replay a database into this one. OFF unless armed.
+ *
+ * WHY A ROUTE AT ALL. A Durable Object's SQLite is not a file anyone can
+ * upload - there is no `wrangler do import` and the storage is reachable only
+ * from inside the object - so the only way to move the pilot's database onto
+ * Workers is to send the rows through it. See
+ * `docs/71-moving-the-data-to-cloudflare.md`, which calls this the hardest
+ * step; `apps/api/src/export-for-import.ts` produces what this consumes.
+ *
+ * FOUR LOCKS, because this writes to a live database:
+ *
+ *  1. WITHOUT `CHIVAGO_IMPORT_TOKEN` THE ROUTE DOES NOT EXIST. It answers 404,
+ *     not 403 - an unarmed deployment should not even admit the door is there.
+ *     That is also what makes "delete it after the migration" a one-line
+ *     change somebody can actually be relied on to make: unset the secret.
+ *  2. The token, compared in constant time.
+ *  3. The database must be EMPTY. An import onto a database with people in it
+ *     is the accident that cannot be undone, so `users` having any row at all
+ *     refuses the whole request.
+ *  4. The batch carries values, never SQL. Table and column names are checked
+ *     against the live schema before they reach a statement and every value is
+ *     bound - see `import-service.ts`.
+ *
+ * Registered HERE, before the device-authentication middleware, because it
+ * authenticates itself and there is no traveller to be.
+ */
+app.post('/admin/import/finish', async (c, next) => {
+  const token = process.env.CHIVAGO_IMPORT_TOKEN ?? '';
+  // Fall THROUGH when unarmed, rather than answering 404 here. A bare
+  // `notFound()` from this handler looks different from a genuine unknown
+  // path - no CORS header, Hono's plain text body - so the 404 itself
+  // announced the route, and 404-versus-403 announced whether it was armed.
+  if (token === '') return next();
+  const utf8 = new TextEncoder();
+  if (!constantTimeEqual(utf8.encode(c.req.header('x-import-token') ?? ''), utf8.encode(token))) {
+    return fail(c, 'FORBIDDEN', 'That token is not the one this deployment was armed with.', 403);
+  }
+  /*
+    Said at the end, by the operator, when the counts match - not inferred.
+    Until it is said the run stays open, which is what lets an interrupted
+    import be continued instead of being refused by the rows it already wrote.
+  */
+  const closed = finishImportRun(db, 'closed over /admin/import/finish');
+  return ok(c, { closed });
+});
+
+app.post('/admin/import', async (c, next) => {
+  const token = process.env.CHIVAGO_IMPORT_TOKEN ?? '';
+  // See the note on /admin/import/finish: unarmed falls through so the
+  // response is whatever any other unknown path would have been.
+  if (token === '') return next();
+
+  /*
+    A short token is not a door, it is a doorway. There is no throttle on this
+    route - adding one is a bigger change than this is - so the only thing
+    standing between a guesser and every table is the secret's length.
+  */
+  if (token.length < 32) {
+    console.error('[chivago] CHIVAGO_IMPORT_TOKEN is shorter than 32 characters; refusing to import.');
+    return fail(c, 'WEAK_IMPORT_TOKEN', 'This deployment’s import token is too short to be used.', 500);
+  }
+
+  const offered = c.req.header('x-import-token') ?? '';
+  const utf8 = new TextEncoder();
+  if (!constantTimeEqual(utf8.encode(offered), utf8.encode(token))) {
+    return fail(c, 'FORBIDDEN', 'That token is not the one this deployment was armed with.', 403);
+  }
+
+  const blockers = importBlockers(db);
+  if (blockers.length > 0) return fail(c, 'DATABASE_NOT_EMPTY', blockers.join(' '), 409);
+
+  /*
+    A ceiling, in BYTES, before the body is read.
+
+    `c.req.json()` buffers and parses the whole thing and then `decodeValue`
+    copies it again, so a batch of 500 rows of story media can pass Workers'
+    request limit and the 128 MB an isolate gets - and that isolate is the
+    WHOLE app, not just this request. The exporter chunks by rows, which says
+    nothing about bytes, so the limit belongs here as well as there.
+  */
+  const declared = Number(c.req.header('content-length') ?? '0');
+  if (Number.isFinite(declared) && declared > MAX_IMPORT_BYTES) {
+    return fail(
+      c,
+      'BATCH_TOO_LARGE',
+      `A batch may be at most ${Math.floor(MAX_IMPORT_BYTES / 1024 / 1024)} MB; `
+      + 'export with a smaller --chunk.',
+      413,
+    );
+  }
+
+  let batch: ImportBatch;
+  try {
+    batch = (await c.req.json()) as ImportBatch;
+  } catch {
+    return fail(c, 'BAD_BATCH', 'The body is not JSON.', 400);
+  }
+  if (typeof batch?.table !== 'string' || !Array.isArray(batch.columns) || !Array.isArray(batch.values)) {
+    return fail(c, 'BAD_BATCH', 'A batch needs a table, columns and values.', 400);
+  }
+  // One batch is one synchronous insert loop, and the object serves nothing
+  // else while it runs.
+  if (batch.values.length > MAX_IMPORT_ROWS) {
+    return fail(
+      c,
+      'BATCH_TOO_LARGE',
+      `A batch may carry at most ${MAX_IMPORT_ROWS} rows, not ${batch.values.length}.`,
+      413,
+    );
+  }
+
+  try {
+    const inserted = importBatch(db, batch);
+    /*
+      Recorded AFTER the rows land, not before. Before, a token-bearing
+      request naming a table that does not exist left an open run behind on an
+      untouched database - a door propped open by a typo.
+    */
+    const run = recordBatch(db);
+    const provisioned = provisionedUserCount(db);
+    console.log(`[chivago] imported ${inserted} row(s) into ${batch.table} (${run})`);
+    return ok(c, { table: batch.table, inserted, run, provisionedUsers: provisioned });
+  } catch (err) {
+    // The service's messages name the table, the column or the constraint, and
+    // whoever is running a migration at two in the morning needs to read them.
+    return fail(c, 'IMPORT_FAILED', (err as Error).message, 400);
+  }
+});
 
 app.get('/statements/:id', (c) => {
   const statement = readStatement(db, c.req.param('id'));
@@ -598,12 +653,9 @@ const PUBLIC_PREFIXES = [
   // moved off `/assets/` because Metro's dev server shadows that prefix and
   // answered every one of them 404. Both must stay unauthenticated: a font
   // or a place photograph behind a 401 is the whole app sitting on LOADING.
-  // `/icons/` is the tab and home-screen icon set plus the web manifest, for
-  // the same reason `/favicon.ico` is in PUBLIC_PATHS below: a browser asks
-  // for these before anyone has signed in, and 401 there is a blank tab.
-  '/_expo/', '/assets/', '/media/', '/icons/', '/shops/media/', '/shops/guide-photos/',
+  '/_expo/', '/assets/', '/media/', '/shops/media/', '/shops/guide-photos/',
 ];
-const PUBLIC_PATHS = new Set(['/', '/index.html', '/favicon.ico', '/robots.txt', '/metadata.json', '/health', '/config']);
+const PUBLIC_PATHS = new Set(['/', '/index.html', '/favicon.ico', '/metadata.json', '/health', '/config']);
 const isPublicPath = (path: string): boolean =>
   PUBLIC_PATHS.has(path) || PUBLIC_PREFIXES.some((p) => path.startsWith(p));
 
@@ -931,9 +983,8 @@ app.post('/account/profile/photo', async (c) => {
   const bytes = Buffer.from(await file.arrayBuffer());
   if (bytes.length > 5 * 1024 * 1024) return fail(c, 'FILE_TOO_LARGE', 'รูปโปรไฟล์ต้องมีขนาดไม่เกิน 5MB', 413);
   const photo = `data:${file.type};base64,${bytes.toString('base64')}`;
-  // This endpoint prepares the image but deliberately does not update the
-  // profile. The edit screen submits this value with the rest of the form so
-  // leaving without saving really discards every change, including the photo.
+  const uid = userId(c);
+  db.prepare('INSERT INTO profiles (user_id, profile_photo_url) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET profile_photo_url = excluded.profile_photo_url').run(uid, photo);
   return ok(c, { profilePhotoUrl: photo });
 });
 
@@ -1624,7 +1675,7 @@ app.post('/quests/:id/proof', async (c) => {
 
     try {
       for (const [i, file] of files.entries()) {
-        storePhoto(db, {
+        await storePhoto(db, {
           proofId: result.proofId,
           bytes: Buffer.from(await file.arrayBuffer()),
           lat: meta[i]?.lat ?? null,
@@ -2611,124 +2662,5 @@ function nearestArea(lat: number, lng: number): string {
  * on a real port and hope nothing else held it. The contract capture needs
  * exactly that in-process access, and so would any future route test.
  */
-/**
- * Serve the built web app from the API itself, when there is one to serve.
- *
- * ONE ORIGIN, and that is the whole point. A tunnel gives out a fresh random
- * hostname every run, so a web build with the API baked into it would have to
- * be rebuilt and redeployed before every demo - and would be wrong the moment
- * the tunnel reconnected. Served from here, the app talks to the origin it was
- * loaded from: no rebuild, no CORS, no stale hostname, one link to hand over.
- *
- * Mounted LAST so it can never shadow an API route, and only when the
- * directory actually exists - `pnpm --filter @chivago/api start` on a dev
- * machine with no web build should still be an API, not a 500.
- *
- * Set CHIVAGO_WEB_DIR to point at the export. Nothing is served without it.
- */
-const webDir = process.env.CHIVAGO_WEB_DIR;
-
-if (webDir !== undefined && existsSync(join(webDir, 'index.html'))) {
-  // `serveStatic` resolves `root` against the process cwd, which is not where
-  // this file lives and not where the build lands. Relative-ise it once here
-  // rather than depending on how the server happened to be launched.
-  const root = relative(process.cwd(), webDir).split(sep).join('/') || '.';
-
-  /*
-    How long a static file may be kept.
-
-    `serveStatic` sends no cache header of its own, so before this every open
-    AND every refresh re-downloaded the whole bundle - 681 KB over the wire
-    even with brotli on. Measured at 150 concurrent readers the CPU was fine;
-    it is the bundle, on venue wifi, that falls over first.
-
-    Expo stamps a content hash into bundle and font filenames, so those can be
-    kept forever: a new build is a new name, and there is nothing to
-    invalidate. The place photographs are NOT hashed (`ku-park.jpg`), so they
-    get an hour - long enough to carry a room full of people opening the app
-    at once, short enough that replacing one is not a support call.
-
-    index.html is `no-cache`, which does not mean "do not store": it means
-    revalidate every time. That is what makes a deploy visible immediately
-    while still costing one 304 rather than 1.4 KB.
-  */
-  const HASHED = /[.-][0-9a-f]{16,}\.[a-z0-9]+$/i;
-  const cacheFor = (file: string): string =>
-    (HASHED.test(file) ? 'public, max-age=31536000, immutable' : 'public, max-age=3600');
-
-  app.get('/', serveStatic({
-    path: `${root}/index.html`,
-    onFound: (_p, c) => { c.header('cache-control', 'no-cache'); },
-  }));
-  app.use('/_expo/*', serveStatic({
-    root,
-    onFound: (p, c) => { c.header('cache-control', cacheFor(p)); },
-  }));
-  app.use('/assets/*', serveStatic({
-    root,
-    onFound: (p, c) => { c.header('cache-control', cacheFor(p)); },
-  }));
-  // The repository's own photographs, copied into the export from
-  // `apps/mobile/public/media`. Unhashed names, so `cacheFor` gives them the
-  // hour rather than forever - replacing one must not be a support call.
-  app.use('/media/*', serveStatic({
-    root,
-    onFound: (p, c) => { c.header('cache-control', cacheFor(p)); },
-  }));
-  // The tab/home-screen icons and the web manifest, copied into the export
-  // from `apps/mobile/public/icons`. A day, like the favicon: a browser that
-  // has one does not re-ask, and replacing a logo should reach people the
-  // same day rather than whenever their cache happens to turn over.
-  app.use('/icons/*', serveStatic({
-    root,
-    onFound: (_p, c) => { c.header('cache-control', 'public, max-age=86400'); },
-  }));
-  app.get('/favicon.ico', serveStatic({
-    path: `${root}/favicon.ico`,
-    onFound: (_p, c) => { c.header('cache-control', 'public, max-age=86400'); },
-  }));
-  /*
-    The crawling rules. Served out of the export like the favicon rather
-    than written into this file, because they are content somebody edits
-    and not behaviour. Without this route /robots.txt fell through to the
-    traveller middleware and answered 401, which a crawler is entitled to
-    read as "this site is private".
-
-    An hour of cache, not the favicon's day: tightening a rule should
-    reach a crawler the same afternoon.
-  */
-  app.get('/robots.txt', serveStatic({
-    path: `${root}/robots.txt`,
-    onFound: (_p, c) => { c.header('cache-control', 'public, max-age=3600'); },
-  }));
-
-  console.log(`[chivago] serving the web app from ${webDir}`);
-}
-
-const isEntryPoint = process.argv[1] !== undefined
-  && import.meta.url === pathToFileURL(process.argv[1]).href;
-
-if (isEntryPoint) {
-  const port = Number(process.env.PORT ?? 8787);
-  serve({ fetch: app.fetch, port }, (info) => {
-    console.log(`[chivago] API listening on http://localhost:${info.port}`);
-  });
-  /*
-    Say at the door whether stories can be processed at all.
-
-    Not a gate - the server is useful without ffmpeg, and everything except
-    stories works - but a machine that has lost the binary should announce it
-    on an empty console, not through the first person in the room who tries
-    to post. Deliberately after `serve`, so a slow probe never delays the
-    port opening.
-  */
-  void transcoderAvailable().then((ok_) => {
-    if (ok_) return;
-    console.error(
-      `[chivago] WARNING: ffmpeg ('${FFMPEG}') was not found. Stories cannot be posted on this machine;`
-      + ' every upload will answer STORY_TRANSCODER_DOWN (503). Install ffmpeg, or set CHIVAGO_FFMPEG.',
-    );
-  });
-}
 
 export { app, db };

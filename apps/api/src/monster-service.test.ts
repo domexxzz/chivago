@@ -3,7 +3,7 @@ import { test, describe, beforeEach } from 'node:test';
 
 import { DEEDS_TO_REST } from '@chivago/core';
 import { readFileSync } from 'node:fs';
-import { openTestDb, rows, type DB } from './db.ts';
+import { openTestDb, rows, type DB } from './db-node.ts';
 import {
   VERIFIED_QUEST_DEEDS_SQL, WALKED_LEG_DEEDS_SQL, forgetDeedSweeps, monstersInArea,
 } from './monster-service.ts';

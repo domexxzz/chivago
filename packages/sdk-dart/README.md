@@ -1,6 +1,6 @@
 # `chivago` — Dart client
 
-A typed client for the ChivaGo API, for a Flutter front end or any other Dart
+A typed client for the ChivarGo API, for a Flutter front end or any other Dart
 program.
 
 Written against `contract/api-contract.json` at the repository root, which is

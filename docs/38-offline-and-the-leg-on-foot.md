@@ -26,7 +26,7 @@ same island day were far enough apart to have been a journey (800 m) and
 close enough in time that only a walk fits (under 6 km/h, within four
 hours). That is a measured leg, and it pays 30 Trip Points, the
 self-verified currency, as a ledger row of its own kind — `walk`, "Walked ·
-Chaweng Beach → Fisherman's Village", host "ChivaGo · measured leg on foot"
+Chaweng Beach → Fisherman's Village", host "ChivarGo · measured leg on foot"
 — once per pair per day. The bounds are walking, not cycling: a songthaew
 in Chaweng traffic does fifteen kilometres an hour too, and a rule that
 could not tell a bicycle from a bus would be paying for the bus.

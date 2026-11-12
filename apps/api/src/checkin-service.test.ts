@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { CHECKIN_TRIP_POINTS, LOW_CARBON_TRIP_POINTS } from '@chivago/core';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { getBalances, getExp, getLedger } from './wallet-service.ts';
 import { OutsideGeofence } from './quest-service.ts';
 import { checkedInToday, checkIn } from './checkin-service.ts';

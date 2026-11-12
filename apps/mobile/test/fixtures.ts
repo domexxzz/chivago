@@ -5,6 +5,7 @@ import {
   type Offer, type PlaceReview, type Quest, type QuestProgress,
   type ReviewSummary, type ScoredPlace, type ShieldService, type Wallet,
 } from '@chivago/core';
+import type { Shop } from '../src/api/shops.ts';
 
 export const wallet = (over: Partial<Wallet> = {}): Wallet => ({
   balances: { trip: 320, green: 1240 },
@@ -104,3 +105,41 @@ export const shield = (): ShieldService[] => [
   { key: 'interpreter', label: { en: 'Thai interpreter', th: 'ล่ามภาษาไทย' }, note: { en: 'Joins within 90 seconds', th: 'เข้าร่วมภายใน 90 วินาที' }, state: 'on' },
   { key: 'share', label: { en: 'Live location share', th: 'แชร์ตำแหน่งสด' }, note: { en: 'Off until you turn it on', th: 'ปิดอยู่จนกว่าคุณจะเปิด' }, state: 'off' },
 ];
+
+/**
+ * A local business, as `/shops` answers it.
+ *
+ * Every field the API sends, because a screen that reads one this fixture
+ * forgot fails on `undefined` in a way that looks like a screen bug and is
+ * not. Override the two that tests actually vary: `category` and `name`.
+ */
+export const shop = (over: Partial<Shop> = {}): Shop => ({
+  id: 's-1',
+  name: 'Novotel Koh Si Chang',
+  category: 'ที่พัก',
+  areaKey: 'samui',
+  description: '',
+  address: '',
+  lat: null,
+  lng: null,
+  phone: '',
+  email: '',
+  openingHours: '',
+  amenities: [],
+  active: true,
+  rating: null,
+  reviewCount: 0,
+  coverUrl: null,
+  guideProfilePhotoUrl: null,
+  owner: false,
+  createdAt: '2026-11-01T00:00:00.000Z',
+  updatedAt: '2026-11-01T00:00:00.000Z',
+  serviceType: 'business',
+  guideLanguages: [],
+  guideSkills: [],
+  guideTourStyles: [],
+  guideLineId: '',
+  guideStatus: 'not_required',
+  hasGuideDocument: false,
+  ...over,
+});

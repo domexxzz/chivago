@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
-import { openTestDb, transact, type DB } from './db.ts';
+import { openTestDb, transact, type DB } from './db-node.ts';
 
 let db: DB;
 

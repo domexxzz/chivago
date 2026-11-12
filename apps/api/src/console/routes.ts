@@ -6,11 +6,10 @@
  */
 
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { Hono } from 'hono';
 
 import type { DB } from '../db.ts';
+import { MODERNIST_CSS } from './stylesheet.ts';
 import {
   login, logout, pruneSessions, readCookie, resolveSession,
   SESSION_COOKIE, SESSION_TTL_MS, type HostSession,
@@ -202,12 +201,29 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
    * computes to none - so on /console/apply the first three required fields
    * were invisible to the business trying to fill them in.
    */
-  const STYLESHEET = join(import.meta.dirname, '..', '..', 'public', 'modernist.css');
+  /*
+    Served from the bundle, not from disk.
 
-  app.get('/assets/modernist.css', (c) => {
-    const css = readFileSync(STYLESHEET, 'utf8');
-    return c.body(css, 200, { 'content-type': 'text/css; charset=utf-8' });
-  });
+    It was a `readFileSync` of `public/modernist.css`, which is fine on one
+    machine and impossible on Cloudflare Workers - there is no disk, and the
+    route answered 503 there. That is not cosmetic, for the reason above: with
+    no stylesheet the custom property is undefined, the border shorthand is
+    invalid, and the first three required fields on /console/apply are
+    invisible to the business filling them in.
+
+    `stylesheet.ts` is generated from the .css file by
+    `scripts/build-console-css.mjs`, so the CSS is still CSS to edit, and
+    `stylesheet.test.ts` fails the build if the two drift. In the bundle it is
+    always there - no deploy step to forget, which a stylesheet the console
+    cannot do without should not depend on.
+  */
+  app.get('/assets/modernist.css', (c) =>
+    c.body(MODERNIST_CSS, 200, {
+      'content-type': 'text/css; charset=utf-8',
+      // Hashless name, so it must revalidate: a console whose stylesheet is a
+      // year stale is the invisible-borders bug again, arriving by cache.
+      'cache-control': 'no-cache',
+    }));
 
   const currentSession = (c: { req: { header: (n: string) => string | undefined } }) =>
     resolveSession(db, readCookie(c.req.header('cookie'), SESSION_COOKIE));
@@ -501,12 +517,12 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
   });
 
   /** Photo bytes. Authorisation is enforced in the SQL, not here. */
-  app.get('/photo/:id', (c) => {
+  app.get('/photo/:id', async (c) => {
     const session = currentSession(c)!;
-    const blob = readPhotoForHost(db, session.hostId, c.req.param('id'));
+    const blob = await readPhotoForHost(db, session.hostId, c.req.param('id'));
     if (!blob) return c.text('Not found', 404);
-    // Hono wants a plain Uint8Array; a Node Buffer's backing store is
-    // typed loosely enough that TypeScript rejects it.
+    // Hono wants a plain Uint8Array over a plain ArrayBuffer; the bytes may
+    // arrive over a buffer type TypeScript treats more loosely, so re-wrap.
     return c.body(new Uint8Array(blob.bytes), 200, {
       'content-type': blob.mime,
       // Photos of volunteers are personal data. Never let a shared proxy hold

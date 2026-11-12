@@ -63,7 +63,7 @@ reading is downgraded to `estimated` and the Healthy Score weights it lower.
 ### The honest fix
 
 **Three low-cost PM2.5 sensors** — Chaweng, Lamai, Na Muang — would cost less
-than a month of ad spend and would let ChivaGo publish *real* island readings
+than a month of ad spend and would let ChivarGo publish *real* island readings
 instead of a modelled area average. For a product whose central claim is
 "travel healthily", owning the air data is close to a strategic asset. It also
 turns a liability (making air claims you cannot substantiate) into a

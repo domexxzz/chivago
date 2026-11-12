@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { describe, it } from 'node:test';
 
 process.env.CHIVAGO_DB = ':memory:';
-const { app } = await import('./server.ts');
+const { app } = await import('./server-node.ts');
 
 const json = async (res: Response) =>
   (await res.json()) as { ok: boolean; data?: any; code?: string; error?: string };

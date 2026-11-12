@@ -33,7 +33,10 @@ export const strings = {
   tabs: {
     home: t('Home', 'หน้าแรก', '首页'),
     map: t('Map', 'แผนที่', '地图'),
-    quests: t('Missions', 'ภารกิจ', '任务'),
+    // This destination now contains the bundled games as well as island quests.
+    // Keep the product label consistent in every locale: it is the name of the
+    // combined section, not a sentence that needs translating independently.
+    quests: t('Games & Quests', 'Games & Quests', 'Games & Quests'),
     wallet: t('Wallet', 'กระเป๋าแต้ม', '钱包'),
     /*
       The game tab took the wallet's place on the bar.

@@ -261,7 +261,7 @@ Report, or preparing for IFRS S1/S2, or answering a customer's CBAM question,
 needs evidence that survives a reviewer — and that is a different market with
 a different size, which nothing in this repository has measured either.
 
-**The honest position is the one we already hold: ChivaGo is MRV
+**The honest position is the one we already hold: ChivarGo is MRV
 infrastructure, not a credit issuer.** What the note changed is that we can
 now say it in four letters that a sustainability lead already knows.
 
@@ -314,7 +314,7 @@ all:
 - **The report does not launder it.** Work that became this partner's only
   because a co-funder stood down is counted in `byAdjustment`, never in
   `exclusiveVerified`, because *"funded by this partner alone"* would be false
-  about it. The report says how many, and that ChivaGo did not witness the
+  about it. The report says how many, and that ChivarGo did not witness the
   statement.
 - **The partner who stood down does not count it either.** Before stand-downs,
   a funder was always a claimant, so nothing had to ask. It asks now.
@@ -341,7 +341,7 @@ the statement had, and the platform carries it **without ever having made it**
 — every sentence on the page has the firm as its subject, and a test asserts
 the page never says "this statement is assured".
 
-What has not changed is who does the work. ChivaGo is still rung three and
+What has not changed is who does the work. ChivarGo is still rung three and
 still says so on every document. What is new is that rung four has somewhere
 to land.
 

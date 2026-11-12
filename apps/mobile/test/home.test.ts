@@ -116,6 +116,11 @@ describe('the quest order claims nothing it cannot support', () => {
   test('with no progress at all the server order is left alone', () => {
     // Deliberately NOT sorted by reward. Ranking by payout would be the app
     // recommending whatever it most wants done and calling it a suggestion.
+    //
+    // These two lines were the only place that rule was written down, which is
+    // how long it would have lasted on a screen nobody was testing. `docs/73`
+    // now carries it, and extends it to paid placement, where the money comes
+    // from a partner instead of a sponsor and the temptation is larger.
     assert.deepEqual(questOrder([a, b, c], {}).map((q) => q.id), ['a', 'b', 'c']);
   });
 });
@@ -550,10 +555,75 @@ describe('stays and tours has a door on Home', () => {
     let opened = 0;
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, { ...props, onOpenStays: () => { opened++; } }));
-    const doors = [...new Set(ui.labels())].filter((l) => ['Map', 'Stays & tours', 'Missions'].includes(l));
-    assert.deepEqual(doors, ['Map', 'Stays & tours', 'Missions']);
+    const doors = [...new Set(ui.labels())].filter((l) => ['Map', 'Stays & tours', 'Games & Quests'].includes(l));
+    assert.deepEqual(doors, ['Map', 'Stays & tours', 'Games & Quests']);
     await ui.press('Stays & tours');
     assert.equal(opened, 1);
+    ui.unmount();
+  });
+});
+
+/**
+ * The summoning's door (docs/68).
+ *
+ * It was three taps inside the game tab. docs/61 has already paid this bill
+ * once - the owner could not find Stays & tours, and the line it wrote then
+ * was that a feature nobody can find is a feature nobody has.
+ *
+ * Two tests, because the door's ABSENCE is the half that breaks quietly: a
+ * sixth door drawn for a caller that passes no handler is a button that eats
+ * the tap and says nothing, which is worse than no door at all.
+ */
+describe('the summoning is reachable from Home', () => {
+  test('the door is there, and it opens the summoning', async () => {
+    const s = server(routes()); restore = s.restore;
+    let opened = 0;
+    const ui = await mountScreen(h(HomeScreen, { ...props, onOpenSummon: () => { opened += 1; } }));
+
+    assert.ok(ui.labels().includes('Summon'), 'Home has no door to the summoning');
+    await ui.press('Summon');
+    assert.equal(opened, 1, 'the door did not open the summoning');
+    ui.unmount();
+  });
+
+  test('with nowhere to go, the door is not drawn at all', async () => {
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+
+    assert.ok(!ui.labels().includes('Summon'), 'a door was drawn with nothing behind it');
+    ui.unmount();
+  });
+});
+
+/**
+ * The one way in.
+ *
+ * Local Picks is not a door - the door row is full, and the last thing added
+ * to it had to be rescued from under a floating button. It is reached from
+ * "see all" over the service cards, which means that one control now has two
+ * destinations depending on what the reader is looking at. A head that sends
+ * somebody to a map when they asked to see all the shops is the kind of wrong
+ * that reads as the app being broken, so both directions are pinned here.
+ */
+describe('see all leads where the list is pointing', () => {
+  test('over services it opens Local Picks, over places it still opens the map', async () => {
+    const s = server(routes({ '/shops?area=samui': [fx.shop()] })); restore = s.restore;
+    let picks = 0;
+    let map = 0;
+    const ui = await mountScreen(h(HomeScreen, {
+      ...props,
+      onOpenMap: () => { map += 1; },
+      onOpenLocalPicks: () => { picks += 1; },
+    }));
+
+    await ui.press(/^See all/);
+    assert.equal(map, 1, 'see all over places should open the map');
+    assert.equal(picks, 0, 'places sent the reader to the shop directory');
+
+    await ui.pressText(/^Services$/);
+    await ui.press(/^See all/);
+    assert.equal(picks, 1, 'see all over services should open Local Picks');
+    assert.equal(map, 1, 'services sent the reader to the map');
     ui.unmount();
   });
 });

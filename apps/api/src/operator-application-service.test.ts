@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
-import { openTestDb, row, type DB } from './db.ts';
+import { openTestDb, row, type DB } from './db-node.ts';
 import { verifyApiKey } from './host-auth.ts';
 import {
   InvalidApplication, applicationById, applicationsWaiting, approveApplication,

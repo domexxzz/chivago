@@ -22,7 +22,7 @@
 
 import React from 'react';
 import { Image, Pressable, ScrollView, Text, View } from 'react-native';
-import { ChevronRight, Clock, MapPin } from 'lucide-react-native';
+import { ChevronRight, Clock, Gamepad2, MapPin } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import { greetingFor, isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
 import { api } from '../api/client.ts';
@@ -36,12 +36,20 @@ import { t } from '../i18n/locale.ts';
 import { formatInteger } from '../i18n/format.ts';
 import { ProfileButton } from '../components/ProfileButton.tsx';
 import { questArtworkSource } from '../components/QuestArtwork.tsx';
+import { MINI_GAMES, type MiniGameKey } from '../games/index.ts';
 
 type Filter = 'today' | 'weekend' | 'all';
+type Section = 'games' | 'quests';
 
 export function MissionsScreen({
-  onOpen, onOpenMarket, onOpenProfile,
-}: { onOpen: (id: string) => void; onOpenMarket: () => void; onOpenProfile?: () => void }) {
+  onOpen, onOpenMarket, onOpenProfile, onOpenGame,
+}: {
+  onOpen: (id: string) => void;
+  onOpenMarket: () => void;
+  onOpenProfile?: () => void;
+  onOpenGame?: (key: MiniGameKey) => void;
+}) {
+  const [section, setSection] = React.useState<Section>('quests');
   const [filter, setFilter] = React.useState<Filter>('today');
 
   // Fetch ALL quests once and filter locally. Two reasons:
@@ -83,7 +91,11 @@ export function MissionsScreen({
               {t(strings.tabs.quests)}
             </Heading>
             <Label size={11} tracking={0.12} colour="#E2F6FC" style={{ marginTop: 4 }}>
-              {`${t({ en: 'ISLAND MISSIONS', th: 'ภารกิจรักษ์เกาะ', zh: '岛屿任务' })} · ${t(strings.quests.title)}`}
+              {t({
+                en: 'PLAY, EXPLORE & HELP THE ISLAND',
+                th: 'เล่นเกม ออกสำรวจ และช่วยดูแลเกาะ',
+                zh: '畅玩、探索并守护岛屿',
+              })}
             </Label>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -98,33 +110,169 @@ export function MissionsScreen({
         </View>
       </View>
 
-      <SegmentedFilter value={filter} total={all.length} onChange={setFilter} />
+      <SectionTabs value={section} onChange={setSection} />
 
-      {data.loading ? <LoadingState /> : null}
-      {data.error ? <ErrorState message={data.error} onRetry={data.reload} /> : null}
+      {section === 'games' ? <GamesPanel onOpenGame={onOpenGame} /> : null}
 
-      {!data.loading && visible.length === 0 ? (
-        <EmptyState en={t(strings.quests.empty)} th={strings.quests.empty.th} />
+      {section === 'quests' ? (
+        <>
+          <SegmentedFilter value={filter} total={all.length} onChange={setFilter} />
+
+          {data.loading ? <LoadingState /> : null}
+          {data.error ? <ErrorState message={data.error} onRetry={data.reload} /> : null}
+
+          {!data.loading && visible.length === 0 ? (
+            <EmptyState en={t(strings.quests.empty)} th={strings.quests.empty.th} />
+          ) : null}
+
+          {visible.map((quest) => (
+            <QuestRow
+              key={quest.id}
+              quest={quest}
+              progress={data.data?.progress[quest.id] ?? null}
+              onPress={() => onOpen(quest.id)}
+            />
+          ))}
+
+          <View style={{ paddingHorizontal: gutter, paddingVertical: 20 }}>
+            <Body size={13} colour={color.neutral700}>{t(strings.quests.footer)}</Body>
+          </View>
+
+          <Standing />
+          <PartnerRewards onOpenMarket={onOpenMarket} />
+        </>
       ) : null}
-
-      {visible.map((quest) => (
-        <QuestRow
-          key={quest.id}
-          quest={quest}
-          progress={data.data?.progress[quest.id] ?? null}
-          onPress={() => onOpen(quest.id)}
-        />
-      ))}
-
-      <View style={{ paddingHorizontal: gutter, paddingVertical: 20 }}>
-        <Body size={13} colour={color.neutral700}>{t(strings.quests.footer)}</Body>
-
-      </View>
-
-      <Standing />
-      <PartnerRewards onOpenMarket={onOpenMarket} />
       <View style={{ height: 28 }} />
     </ScrollView>
+  );
+}
+
+function SectionTabs({
+  value, onChange,
+}: { value: Section; onChange: (section: Section) => void }) {
+  const options: { key: Section; label: string; hint: string }[] = [
+    {
+      key: 'games',
+      label: 'Games',
+      hint: t({ en: 'Mini-games you can play anytime', th: 'มินิเกมที่เล่นได้ทุกเวลา', zh: '随时可玩的小游戏' }),
+    },
+    {
+      key: 'quests',
+      label: 'Quests',
+      hint: t({ en: 'Activities around the island', th: 'กิจกรรมที่ทำได้ทั่วเกาะ', zh: '岛上各处的活动' }),
+    },
+  ];
+
+  return (
+    <View
+      accessibilityRole="tablist"
+      style={{
+        width: '92%',
+        maxWidth: 760,
+        alignSelf: 'center',
+        flexDirection: 'row',
+        gap: 10,
+        paddingTop: 18,
+        paddingBottom: 4,
+      }}
+    >
+      {options.map((option) => {
+        const active = option.key === value;
+        return (
+          <Pressable
+            key={option.key}
+            onPress={() => onChange(option.key)}
+            accessibilityRole="tab"
+            accessibilityLabel={option.label}
+            accessibilityHint={option.hint}
+            accessibilityState={{ selected: active }}
+            style={({ pressed }) => [
+              shadow.card,
+              {
+                flex: 1,
+                minHeight: 50,
+                paddingHorizontal: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 18,
+                backgroundColor: active ? color.brand : color.surface,
+                borderWidth: 1,
+                borderColor: active ? color.brand : '#CBE7F0',
+                opacity: pressed ? 0.86 : 1,
+              },
+            ]}
+          >
+            <Heading size={15} colour={active ? onFill.brand : color.text}>{option.label}</Heading>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/**
+ * Games live beside quests, but never inherit quest rewards or progress.
+ * Each document is bundled with the app, so this panel remains playable even
+ * when the island connection is unavailable.
+ */
+function GamesPanel({ onOpenGame }: { onOpenGame?: (key: MiniGameKey) => void }) {
+  return (
+    <View style={{ width: '92%', maxWidth: 760, alignSelf: 'center', paddingTop: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#D9F5FB', alignItems: 'center', justifyContent: 'center' }}>
+          <Gamepad2 size={20} color={color.brand} strokeWidth={2.2} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Heading size={18} colour={color.text}>{t({ en: 'Choose a game', th: 'เลือกเกมที่อยากเล่น', zh: '选择一个游戏' })}</Heading>
+          <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>
+            {t({ en: 'Play anytime — no quest rewards or points.', th: 'เล่นได้ทุกเวลา โดยไม่เกี่ยวกับรางวัลหรือคะแนนภารกิจ', zh: '随时畅玩，不计入任务奖励或积分。' })}
+          </Body>
+        </View>
+      </View>
+
+      <View style={{ gap: 12 }}>
+        {MINI_GAMES.map((game) => (
+          <Pressable
+            key={game.key}
+            disabled={!onOpenGame}
+            onPress={() => onOpenGame?.(game.key)}
+            accessibilityRole="button"
+            accessibilityLabel={t(game.name)}
+            accessibilityHint={t(game.blurb)}
+            accessibilityState={{ disabled: !onOpenGame }}
+            style={({ pressed }) => [
+              shadow.card,
+              {
+                minHeight: 94,
+                backgroundColor: color.surface,
+                borderRadius: 22,
+                borderWidth: 1,
+                borderColor: '#CBE7F0',
+                padding: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 14,
+                opacity: pressed ? 0.86 : 1,
+              },
+            ]}
+          >
+            <View style={{ width: 52, height: 52, flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+              {game.swatches.map((fill) => (
+                <View key={fill} style={{ width: 24, height: 24, borderRadius: 8, backgroundColor: fill }} />
+              ))}
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Label size={9} tracking={0.1} colour={color.brand}>{t({ en: 'MINI GAME', th: 'มินิเกม', zh: '小游戏' })}</Label>
+              <Heading size={17} colour={color.text} style={{ marginTop: 3 }}>{t(game.name)}</Heading>
+              <Body size={13} colour={color.neutral700} style={{ marginTop: 3 }}>{t(game.blurb)}</Body>
+            </View>
+            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: color.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
+              <ChevronRight size={18} color={color.brand} strokeWidth={2.2} />
+            </View>
+          </Pressable>
+        ))}
+      </View>
+    </View>
   );
 }
 

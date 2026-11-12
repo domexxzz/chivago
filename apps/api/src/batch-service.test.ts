@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { BATCH_MAX_REVIEWS, TAKEDOWN_LIMIT_PER_WINDOW } from '@chivago/core';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { checkIn } from './checkin-service.ts';
 import { inbox } from './notification-service.ts';
 import { moderatorWatch } from './moderator-watch.ts';

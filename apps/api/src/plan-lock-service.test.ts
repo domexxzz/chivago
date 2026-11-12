@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { planStanding } from '@chivago/core';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import {
   InvalidPlanLock, lockFor, lockPlan, locksFor, planDigest, planOf, supersedePlan, verifiedSoFar,
 } from './plan-lock-service.ts';

@@ -252,7 +252,7 @@ describe('GET /places/:id/courts', () => {
   const realFetch = globalThis.fetch;
 
   before(async () => {
-    const server = await import('./server.ts');
+    const server = await import('./server-node.ts');
     app = server.app;
     const p = SEED_PLACES.find((x) => x.id === 'sinthani-badminton')!;
     const safety = SAFETY_PHRASES[p.id]!;

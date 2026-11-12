@@ -24,7 +24,7 @@ import {
   useAccount, useLayers, useNav, useNotifications, useProfile, useSos, useToast, type ScreenKey,
 } from './src/state/store.tsx';
 import type { DeepLink } from './src/notifications/push.ts';
-import { NavigationRail, ScreenTransition, SosBanner, TabBar, Toast, WIDE_TABS_AT } from './src/components/Shell.tsx';
+import { AiGuideButton, NavigationRail, ScreenTransition, SosBanner, TabBar, Toast, WIDE_TABS_AT } from './src/components/Shell.tsx';
 import { LoadingState } from './src/components/States.tsx';
 import { OnboardingScreen } from './src/screens/Onboarding.tsx';
 import { MapScreen } from './src/screens/MapScreen.tsx';
@@ -37,9 +37,13 @@ import { MarketScreen } from './src/screens/MarketScreen.tsx';
 import { AskScreen } from './src/screens/AskScreen.tsx';
 import { ImpactScreen } from './src/screens/ImpactScreen.tsx';
 import { HomeScreen } from './src/screens/HomeScreen.tsx';
+import { LocalPicksScreen } from './src/screens/LocalPicksScreen.tsx';
+import { MiniGameScreen } from './src/screens/MiniGameScreen.tsx';
+import type { MiniGameKey } from './src/games/index.ts';
 import { PassportScreen } from './src/screens/PassportScreen.tsx';
 import { MascotsScreen } from './src/screens/MascotsScreen.tsx';
 import { MascotRoomScreen } from './src/screens/MascotRoom.tsx';
+import { FashionScreen } from './src/screens/FashionScreen.tsx';
 import { SummonScreen } from './src/screens/SummonScreen.tsx';
 import { AccountScreen } from './src/screens/AccountScreen.tsx';
 import { LoginScreen } from './src/screens/LoginScreen.tsx';
@@ -74,7 +78,7 @@ import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
  * would be a lie, and spending or editing needs an account to land on.
  */
 const GUEST_GATED: ReadonlySet<ScreenKey> = new Set<ScreenKey>([
-  'editProfile', 'wallet', 'market', 'account', 'shopManage',
+  'editProfile', 'wallet', 'market', 'account', 'shopManage', 'fashion',
 ]);
 
 export default function App() {
@@ -153,6 +157,10 @@ export default function App() {
   React.useEffect(() => { void loadArea(); }, []);
   // Route state: it belongs to the pushed screen and dies with it.
   const [companion, setCompanion] = React.useState<Companion | null>(null);
+  // Which mini-game the game tab opened. Carried here rather than in the nav
+  // state for the same reason `companion` is: it belongs to one pushed screen
+  // and nothing else in the app has any use for it.
+  const [gameKey, setGameKey] = React.useState<MiniGameKey | null>(null);
   const toast = useToast();
   // The account first: every other request carries its key in a header.
   const account = useAccount();
@@ -324,6 +332,8 @@ export default function App() {
       case 'concierge':
         return (
           <ConciergeScreen
+            onBack={nav.pop}
+            onOpenMap={() => nav.selectTab('map')}
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
             onAction={(action) => {
               // The concierge hands OFF rather than reimplementing a screen.
@@ -409,6 +419,7 @@ export default function App() {
             onOpen={(id) => nav.push('quest', { questId: id })}
             onOpenMarket={() => nav.push('market')}
             onOpenProfile={() => nav.push('profile')}
+            onOpenGame={(key) => { setGameKey(key); nav.push('miniGame'); }}
           />
         );
 
@@ -433,8 +444,12 @@ export default function App() {
             onOpenPassport={() => nav.push('passport')}
             onOpenParty={() => nav.push('party')}
             onOpenProfile={() => nav.push('profile')}
+            onOpenWallet={() => nav.push('wallet')}
+            onOpenFashion={() => nav.push('fashion')}
           />
         );
+      case 'miniGame':
+        return <MiniGameScreen gameKey={gameKey ?? ''} onBack={nav.pop} />;
       case 'wallet':
         return (
           <WalletScreen
@@ -475,11 +490,21 @@ export default function App() {
             onOpenConcierge={() => nav.push('concierge')}
             onOpenParty={() => nav.push('party')}
             onOpenStays={() => nav.push('stays')}
+            onOpenSummon={() => nav.push('summon')}
+            onOpenLocalPicks={() => nav.push('localPicks')}
             onOpenSafety={() => nav.selectTab('safety')}
             onOpenProfile={() => nav.push('profile')}
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
             onOpenShop={(id) => nav.push('shop', { shopId: id })}
             onToast={toast.show}
+          />
+        );
+
+      case 'localPicks':
+        return (
+          <LocalPicksScreen
+            onBack={nav.pop}
+            onOpenShop={(id) => nav.push('shop', { shopId: id })}
           />
         );
 
@@ -529,6 +554,9 @@ export default function App() {
 
       case 'mascot':
         return <MascotRoomScreen code={nav.code ?? 'TH-84'} onBack={nav.pop} />;
+
+      case 'fashion':
+        return <FashionScreen onBack={nav.pop} />;
 
       case 'summon':
         return <SummonScreen onBack={nav.pop} />;
@@ -665,6 +693,17 @@ export default function App() {
             resolved against the prototype - see src/state/store.tsx. */}
         {sos.alert && nav.screen !== 'safety' ? (
           <SosBanner onPress={() => nav.selectTab('safety')} />
+        ) : null}
+
+        {/*
+          Not over a mini-game. A game fills the viewport with a document that
+          has its own controls, and this button landed on top of the one that
+          restarts it - the same way it landed on Home's last door before it
+          moved up to 120. There is nothing to move it above here: the page
+          below is a browser and the app cannot see what is under the button.
+        */}
+        {showTabs && nav.screen !== 'concierge' && nav.screen !== 'safety' && nav.screen !== 'miniGame' ? (
+          <AiGuideButton wide={wideShell} onPress={() => nav.push('concierge')} />
         ) : null}
 
         {showTabs && !wideShell ? <TabBar active={nav.activeTab} onChange={nav.selectTab} /> : null}

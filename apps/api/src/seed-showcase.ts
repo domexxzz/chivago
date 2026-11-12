@@ -32,7 +32,7 @@
  *   node --experimental-strip-types apps/api/src/seed-showcase.ts
  */
 
-import { openDb, row, rows } from './db.ts';
+import { openDb, row, rows } from './db-node.ts';
 import { checkIn } from './checkin-service.ts';
 import { ensureWallet, grantOpeningBalance } from './wallet-service.ts';
 import { habitatEvidenceFor } from './wellness-service.ts';

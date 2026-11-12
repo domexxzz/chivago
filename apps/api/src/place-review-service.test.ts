@@ -6,7 +6,7 @@ import {
   TAKEDOWN_LIMIT_PER_WINDOW,
   REVIEW_TRIP_POINTS,
 } from '@chivago/core';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { checkIn } from './checkin-service.ts';
 import { getBalances, getLedger } from './wallet-service.ts';
 import { inbox } from './notification-service.ts';

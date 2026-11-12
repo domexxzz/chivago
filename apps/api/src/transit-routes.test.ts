@@ -19,7 +19,7 @@ import { test, describe, before } from 'node:test';
 delete process.env.CHIVAGO_OPEN_IDENTITY;
 process.env.CHIVAGO_DB = ':memory:';
 
-const { app } = await import('./server.ts');
+const { app } = await import('./server-node.ts');
 
 const json = async (res: Response | Promise<Response>) =>
   (await (await res).json()) as { ok: boolean; data?: any; code?: string };

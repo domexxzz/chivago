@@ -10,5 +10,8 @@
     "allowImportingTsExtensions": true,
     "types": ["node"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Typechecked by tsconfig.worker.json instead: its globals are Cloudflare's,
+  // not Node's, and the two type packages conflict in one project.
+  "exclude": ["src/worker.ts", "src/worker-alarm-fixture.ts"]
 }

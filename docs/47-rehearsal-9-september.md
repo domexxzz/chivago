@@ -46,8 +46,8 @@ the team's to do - is no longer true.
 
 ## 1 · ของที่ต้องเอาไป · Kit
 
-- [ ] โทรศัพท์ 5 เครื่อง: iOS อย่างน้อย 2, Android อย่างน้อย 2, อย่างน้อย 1 เครื่องที่ไม่เคยเปิด ChivaGo, อย่างน้อย 1 เครื่องมี 4G
-      · Five phones: two or more iOS, two or more Android, at least one that has never opened ChivaGo, at least one with mobile data
+- [ ] โทรศัพท์ 5 เครื่อง: iOS อย่างน้อย 2, Android อย่างน้อย 2, อย่างน้อย 1 เครื่องที่ไม่เคยเปิด ChivarGo, อย่างน้อย 1 เครื่องมี 4G
+      · Five phones: two or more iOS, two or more Android, at least one that has never opened ChivarGo, at least one with mobile data
 - [ ] โทรศัพท์เวที (console) และโน้ตบุ๊ก (board) พร้อมสาย HDMI/adapter ที่ชาร์จ และ power bank
       · The stage phone, the board laptop, HDMI and adapter, chargers, a power bank
 - [ ] QR พิมพ์แล้ว 6 ใบ และเทปกาว

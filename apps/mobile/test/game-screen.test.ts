@@ -32,8 +32,11 @@ const reply = (companions: Companion[]) => ({
   speciesAsOf: '2026-09-08',
 });
 
-const opened: { companion: Companion | null; mascots: number; medals: number; passport: number; party: number } = {
-  companion: null, mascots: 0, medals: 0, passport: 0, party: 0,
+const opened: {
+  companion: Companion | null; mascots: number; medals: number; passport: number;
+  party: number; wallet: number; fashion: number;
+} = {
+  companion: null, mascots: 0, medals: 0, passport: 0, party: 0, wallet: 0, fashion: 0,
 };
 const props = {
   onOpenCompanion: (c: Companion) => { opened.companion = c; },
@@ -41,12 +44,14 @@ const props = {
   onOpenMedals: () => { opened.medals += 1; },
   onOpenPassport: () => { opened.passport += 1; },
   onOpenParty: () => { opened.party += 1; },
+  onOpenWallet: () => { opened.wallet += 1; },
+  onOpenFashion: () => { opened.fashion += 1; },
 };
 
 let restore: (() => void) | null = null;
 afterEach(() => {
   restore?.(); restore = null;
-  Object.assign(opened, { companion: null, mascots: 0, medals: 0, passport: 0, party: 0 });
+  Object.assign(opened, { companion: null, mascots: 0, medals: 0, passport: 0, party: 0, wallet: 0, fashion: 0 });
 });
 
 describe('nextUp picks the companion with a step left', () => {
@@ -110,6 +115,17 @@ describe('the lobby', () => {
       [opened.medals, opened.passport, opened.party, opened.mascots],
       [1, 1, 1, 1],
     );
+    ui.unmount();
+  });
+
+  test('the header opens My Backpack, Mascot and Fashion', async () => {
+    const s = server({ 'GET /companions': reply([]), 'GET /wallet': fx.wallet() }); restore = s.restore;
+    const ui = await mountScreen(h(GameScreen, props));
+
+    await ui.press('My Backpack');
+    await ui.press('Mascot');
+    await ui.press('Fashion');
+    assert.deepEqual([opened.wallet, opened.mascots, opened.fashion], [1, 1, 1]);
     ui.unmount();
   });
 });

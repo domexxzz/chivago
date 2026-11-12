@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { rootCertificates } from 'node:tls';
 import { test, describe, beforeEach } from 'node:test';
 
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import {
   AIR_RESOLUTION_KM, CROSS_CHECK_REACH_KM, CROSS_CHECK_TOLERANCE, STATION_MISS_TTL_MS, crossCheckReaches,
   getAir, gridKey, NEAREST_GROUND_STATION, reconcile, toInstant, type AirReading,
