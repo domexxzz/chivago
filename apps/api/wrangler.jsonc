@@ -55,8 +55,20 @@
   ],
 
   "assets": {
-    // The Expo web export. `pnpm --filter @chivago/mobile` builds it; the
-    // Dockerfile's `web` stage is the same build.
+    // The Expo web export, built with `EXPO_PUBLIC_API_URL=same-origin`:
+    //
+    //   cd apps/mobile
+    //   EXPO_PUBLIC_API_URL=same-origin npx expo export --platform web \
+    //     --output-dir dist-live && node scripts/flatten-assets.mjs dist-live
+    //
+    // THAT VARIABLE IS NOT OPTIONAL and is the one thing about this build a
+    // person has to know. Without it `client.ts` falls back to
+    // `http://localhost:8787`, which is baked into the bundle - so the site
+    // loads, looks perfect, and every request goes to the visitor's own
+    // machine. It fails as a page full of empty states rather than as an
+    // error, which is the expensive way to find out. The Dockerfile's `web`
+    // stage sets it (`ENV EXPO_PUBLIC_API_URL=same-origin`); a hand build has
+    // nothing to remind you, so it is written here as well.
     "directory": "../mobile/dist-live",
     "binding": "ASSETS",
     // The Worker decides what is static and what is a route, because some
@@ -103,24 +115,15 @@
     // with CHIVAGO_TRANSCODE_TOKEN.
   },
 
-  // Cache rules for the static export, which Workers Assets does not infer.
+  // Cache rules live in `apps/mobile/public/_headers`, NOT here.
   //
-  // THESE ARE THE HEADERS THE NODE DEPLOYMENT ALREADY SENDS and they were
-  // measured: the bundle is 681 KB and venue wifi, not CPU, is what falls over
-  // first. Expo stamps a content hash into bundle and font names, so those are
-  // immutable for a year - a new build is a new name and there is nothing to
-  // invalidate. The place photographs are NOT hashed (`ku-park.jpg`), so an
-  // hour: long enough for a room full of people opening the app at once, short
-  // enough that replacing one is not a support call. index.html is `no-cache`,
-  // which means revalidate rather than do-not-store - that is what makes a
-  // deploy visible at once while costing one 304 instead of 1.4 KB.
-  "headers": [
-    { "source": "/_expo/*", "headers": { "cache-control": "public, max-age=31536000, immutable" } },
-    { "source": "/assets/*", "headers": { "cache-control": "public, max-age=31536000, immutable" } },
-    { "source": "/media/*", "headers": { "cache-control": "public, max-age=3600" } },
-    { "source": "/favicon.ico", "headers": { "cache-control": "public, max-age=86400" } },
-    { "source": "/", "headers": { "cache-control": "no-cache" } }
-  ],
+  // They used to be a top-level `headers` key in this file. That key is not
+  // part of the Worker configuration: wrangler printed
+  //   Unexpected fields found in top-level field: "headers"
+  // on every deploy and dropped the block, so the bundle was served with no
+  // cache-control at all while the reasoning sat here looking authoritative.
+  // Workers Assets reads `_headers` from the assets directory, and `public/`
+  // is copied into the export verbatim, so the rules ship with the build.
 
   "observability": { "enabled": true }
 }

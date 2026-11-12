@@ -1,0 +1,38 @@
+# Cache rules for the exported web app, as Workers Assets actually reads them.
+#
+# THESE LIVED IN `wrangler.jsonc` AND DID NOTHING. A top-level `headers` key is
+# not part of the Worker configuration, and wrangler says so on every deploy -
+#   Unexpected fields found in top-level field: "headers"
+# - which is a warning in a wall of output that nobody reads twice. The rules
+# were written with care, measured against venue wifi, and were being dropped
+# in silence. Workers Assets reads this file instead, and `public/` is copied
+# into the export verbatim, so it ships with the build and needs no step.
+#
+# WHY THESE NUMBERS. The bundle is 3.9 MB uncompressed and venue wifi, not CPU,
+# is what falls over when a room opens the app at once. Expo stamps a content
+# hash into bundle and asset names, so those are immutable for a year: a new
+# build is a new name and there is nothing to invalidate. The place
+# photographs under /media are NOT hashed (`ku-park.jpg`), so an hour - long
+# enough for that room, short enough that replacing one is not a support call.
+#
+# index.html is `no-cache`, which means REVALIDATE, not do-not-store. That is
+# what makes a deploy visible immediately while costing one 304 instead of
+# re-sending the document.
+
+/_expo/*
+  cache-control: public, max-age=31536000, immutable
+
+/assets/*
+  cache-control: public, max-age=31536000, immutable
+
+/media/*
+  cache-control: public, max-age=3600
+
+/favicon.ico
+  cache-control: public, max-age=86400
+
+/
+  cache-control: no-cache
+
+/index.html
+  cache-control: no-cache
