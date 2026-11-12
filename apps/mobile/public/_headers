@@ -31,6 +31,9 @@
 /favicon.ico
   cache-control: public, max-age=86400
 
+/icons/*
+  cache-control: public, max-age=86400
+
 /
   cache-control: no-cache
 
