@@ -122,7 +122,19 @@
     // Posting is immediate; nothing is reviewed before it is public. The
     // console hides a story in one click and every clip expires in seven days.
     // Delete this to put the queue back. See fly.toml for the full argument.
-    "CHIVAGO_STORIES_AUTO_APPROVE": "1"
+    "CHIVAGO_STORIES_AUTO_APPROVE": "1",
+
+    // Where this deployment is, as a URL that works from somebody else's
+    // phone. Two things build links from it and both are the kind that fail
+    // silently: the LINE sign-in redirect, and the SOS escalation message -
+    // whose default is 'http://localhost:8787', so an escalation sent
+    // without this carries a link to the recipient's own machine.
+    //
+    // It was a Fly SECRET. It is a var here because it is not one: it is the
+    // address on the tin, and a value nobody can read is a value nobody
+    // notices is missing - which is how it came to be missing for the first
+    // hour this Worker served the domain.
+    "CHIVAGO_PUBLIC_URL": "https://chivargo.com"
 
     // CHIVAGO_TRANSCODE_URL is deliberately absent here, and SETTING IT IS NOT
     // OPTIONAL for a real deployment. It is the address of the box that runs
