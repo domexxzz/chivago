@@ -6,9 +6,12 @@
  * container, and this is that container's whole program: the same
  * `ffmpegTranscoder` the single machine uses, behind two routes.
  *
- * It is deliberately the ONLY thing that moves to a container. Everything the
- * API does besides re-encoding media runs on Workers; this is here because of
- * one binary, not because the architecture wanted a second service.
+ * IT IS THE BOX THAT RUNS NODE. ffmpeg was the first thing that needed one,
+ * and for a while the only one - but Air4Thai's feed needs `node:https` to
+ * supply intermediates its server omits, which Workers cannot do either, so
+ * that request happens here too (`/air4thai`). Everything else the API does
+ * runs on Workers. This exists because of specific capabilities Workers lacks,
+ * not because the architecture wanted a second service.
  *
  * WHAT IT MUST NOT BE: open to the internet. Transcoding is the most expensive
  * thing this product does - a minute of CPU per clip, bounded only by a
@@ -20,6 +23,7 @@
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 
+import { fetchOverNodeTls } from './air4thai.ts';
 import {
   STORY_MAX_SECONDS,
   STORY_WIDTH,
@@ -87,6 +91,39 @@ export function buildApp(): Hono {
   app.get('/health', async (c) => {
     const ready = await transcoderAvailable();
     return c.json({ ok: ready, encoder: ready ? 'ffmpeg' : 'missing' }, ready ? 200 : 503);
+  });
+
+  /**
+   * Air4Thai, fetched from here because it cannot be fetched from Workers.
+   *
+   * Measured: workerd's `fetch` answers "TLS peer's certificate is not
+   * trusted; unable to get local issuer certificate", because Air4Thai's
+   * server omits its intermediates and Cloudflare's stack neither fetches them
+   * (AIA) nor offers a way to hand them over. `node:https` does, with the
+   * chain bundled in `apps/api/certs`.
+   *
+   * SO THIS SERVICE IS NO LONGER ONLY THE ENCODER. It is the box that runs
+   * Node, and ffmpeg was the first thing that needed one rather than the only
+   * thing. A second container for one HTTP call would cost more and explain
+   * less.
+   *
+   * It is a cross-check and nothing is built on its absence: a failure here
+   * downgrades an air reading to `estimated`, which is the correct outcome and
+   * is what `air.ts` already does. So this answers plainly and lets the caller
+   * degrade, rather than retrying or caching - `air_cache` upstream already
+   * holds the reading.
+   */
+  app.get('/air4thai', async (c) => {
+    if (!authorised(c.req.header('x-transcode-token'))) {
+      return c.text('Forbidden', 403);
+    }
+    try {
+      return c.json(await fetchOverNodeTls(10_000) as Record<string, unknown>);
+    } catch (err) {
+      // 502, not 500: the fault is upstream, and the caller's log should say
+      // which of the two servers let it down.
+      return c.text(`Air4Thai could not be read: ${(err as Error).message}`, 502);
+    }
   });
 
   app.post('/:kind{video|photo}', async (c) => {

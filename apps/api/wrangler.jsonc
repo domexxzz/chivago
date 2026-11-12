@@ -85,11 +85,22 @@
     // Delete this to put the queue back. See fly.toml for the full argument.
     "CHIVAGO_STORIES_AUTO_APPROVE": "1"
 
-    // CHIVAGO_TRANSCODE_URL is deliberately absent here. Without it the API
-    // tries to run ffmpeg in-process, which on Workers fails loudly as
-    // TranscoderUnavailable (503) rather than quietly storing a broken clip -
-    // the right failure while the container's address is not yet known. Set it
-    // with `wrangler secret put` or add it here once the container is up.
+    // CHIVAGO_TRANSCODE_URL is deliberately absent here, and SETTING IT IS NOT
+    // OPTIONAL for a real deployment. It is the address of the box that runs
+    // Node, and TWO things need it:
+    //
+    //   1. Stories. Without it the API tries to run ffmpeg in-process, which
+    //      fails loudly as TranscoderUnavailable (503) rather than quietly
+    //      storing a clip nobody can play.
+    //   2. The AIR CROSS-CHECK. Air4Thai's server omits its intermediates and
+    //      workerd's fetch cannot be given a chain - measured: "TLS peer's
+    //      certificate is not trusted". Without the sidecar the cross-check
+    //      REJECTS with a message naming this variable, and every air reading
+    //      is a model's number with nothing checking it.
+    //
+    // Absent here rather than guessed, because the container's address is not
+    // known until it is deployed. Add it with `wrangler secret put` together
+    // with CHIVAGO_TRANSCODE_TOKEN.
   },
 
   // Cache rules for the static export, which Workers Assets does not infer.
