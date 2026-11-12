@@ -49,7 +49,6 @@ import {
   type Companion, type LayerKey, type Progression, type Species,
 } from '@chivago/core';
 import { gameRadius, gameShadow } from '@chivago/tokens';
-import { MINI_GAMES, type MiniGameKey } from '../games/index.ts';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, radius, shadow } from '../theme/index.ts';
@@ -79,7 +78,7 @@ export function nextUp(companions: Companion[]): Companion | null {
 
 export function GameScreen({
   onOpenCompanion, onOpenMascots, onOpenSummon, onOpenMedals, onOpenPassport, onOpenParty,
-  onOpenProfile, onOpenGame,
+  onOpenProfile,
 }: {
   onOpenCompanion: (companion: Companion) => void;
   onOpenMascots: () => void;
@@ -88,8 +87,6 @@ export function GameScreen({
   onOpenPassport: () => void;
   onOpenParty: () => void;
   onOpenProfile?: () => void;
-  /** Absent until the host wires it, which is how every door here arrived. */
-  onOpenGame?: (key: MiniGameKey) => void;
 }) {
   const held = useAsync(() => api.companions(), []);
   // Only the progression is read from the wallet. Its balances are the ledger
@@ -104,14 +101,6 @@ export function GameScreen({
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
       <Header progression={wallet.data?.progression ?? null} onOpenProfile={onOpenProfile} />
       <Doors onOpenMedals={onOpenMedals} onOpenPassport={onOpenPassport} onOpenParty={onOpenParty} />
-      {/*
-        Above the error and loading gates on purpose. A mini-game is a whole
-        document that ships with the app: it needs no account, no network and
-        nothing from `/companions`, so it is the one thing on this screen that
-        still works when the island's connection does not. Putting it below
-        the gate would hide the only playable thing left on a bad day.
-      */}
-      <MiniGameRow onOpenGame={onOpenGame} />
 
       {held.error ? <ErrorState message={held.error} onRetry={held.reload} /> : null}
       {held.loading && !data ? <LoadingState /> : null}
@@ -216,65 +205,6 @@ function Door({
         <Text numberOfLines={2} style={{ color: '#082E53', fontSize: 12, lineHeight: 16, fontWeight: '800', textAlign: 'center' }}>{label}</Text>
       </View>
     </Pressable>
-  );
-}
-
-/**
- * The mini-games, one card each.
- *
- * WHY THE APP'S OWN TYPE AND COLOUR rather than the artwork inside the game.
- * The waste-sorting page has a mascot on it - ชังชัง, a white squirrel - and
- * putting that character on a card here would make it part of ChivarGo's own
- * furniture. The app already has companions and mascots of its own, and
- * whether a second family joins them is a decision about the brand that
- * nobody has made. So the card speaks in the app's voice and shows the game's
- * four bins as four swatches, which is also a better preview of the game than
- * a portrait of its narrator.
- *
- * Nothing on this card is a claim. A mini-game awards no balance, no medal
- * and no progress: its score lives and dies inside its own document, and
- * `src/games/index.ts` says why at length.
- */
-function MiniGameRow({ onOpenGame }: { onOpenGame?: (key: MiniGameKey) => void }) {
-  if (!onOpenGame) return null;
-  return (
-    <View style={{ paddingHorizontal: gutter, paddingTop: 12, gap: 10 }}>
-      {MINI_GAMES.map((game) => (
-        <Pressable
-          key={game.key}
-          onPress={() => onOpenGame(game.key)}
-          accessibilityRole="button"
-          accessibilityLabel={t(game.name)}
-          style={[
-            gameShadow.lift,
-            {
-              backgroundColor: color.surface,
-              borderRadius: gameRadius.panel,
-              borderWidth: 1,
-              borderColor: 'rgba(13,88,122,.08)',
-              padding: 14,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 14,
-            },
-          ]}
-        >
-          <View style={{ width: 46, height: 46, flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
-            {game.swatches.map((fill) => (
-              <View key={fill} style={{ width: 21, height: 21, borderRadius: 7, backgroundColor: fill }} />
-            ))}
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Label size={10} colour={color.neutral700}>
-              {t({ en: 'MINI GAME', th: 'มินิเกม', zh: '小游戏' })}
-            </Label>
-            <Body size={14} style={{ fontWeight: '800', marginTop: 2 }}>{t(game.name)}</Body>
-            <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>{t(game.blurb)}</Body>
-          </View>
-          <ChevronRight size={18} color={color.neutral700} strokeWidth={2} />
-        </Pressable>
-      ))}
-    </View>
   );
 }
 

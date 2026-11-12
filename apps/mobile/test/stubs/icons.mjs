@@ -39,6 +39,7 @@ export const EyeOff = Icon;
 export const FileText = Icon;
 export const Flag = Icon;
 export const Footprints = Icon;
+export const Gamepad2 = Icon;
 export const GraduationCap = Icon;
 export const Grid2X2 = Icon;
 export const Heart = Icon;

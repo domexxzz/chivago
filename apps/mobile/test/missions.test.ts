@@ -16,8 +16,13 @@ import * as fx from './fixtures.ts';
  * a podium for one person, or hiding the host nobody has visited yet.
  */
 
+const opened = { game: '' };
 const noop = () => {};
-const props = { onOpen: noop, onOpenMarket: noop };
+const props = {
+  onOpen: noop,
+  onOpenMarket: noop,
+  onOpenGame: (key: string) => { opened.game = key; },
+};
 
 const standing = (over: Record<string, unknown> = {}) => ({
   hosts: [
@@ -39,7 +44,41 @@ const routes = (over: Record<string, unknown> = {}) => ({
 });
 
 let restore: (() => void) | null = null;
-afterEach(() => { restore?.(); restore = null; });
+afterEach(() => { restore?.(); restore = null; opened.game = ''; });
+
+describe('Games & Quests navigation', () => {
+  test('starts with quests and keeps their filters inside the Quests section', async () => {
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(MissionsScreen, props));
+
+    assert.match(ui.text(), /Games & Quests/);
+    assert.match(ui.text(), /Beach Cleanup/);
+    assert.match(ui.text(), /Today/);
+    ui.unmount();
+  });
+
+  test('the Games button replaces quests with the bundled game and opens it', async () => {
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(MissionsScreen, props));
+
+    await ui.press('Games');
+    assert.match(ui.text(), /Sort it right/);
+    assert.doesNotMatch(ui.text(), /Beach Cleanup/);
+    assert.doesNotMatch(ui.text(), /Today/);
+    await ui.press('Sort it right');
+    assert.equal(opened.game, 'waste-sort');
+    ui.unmount();
+  });
+
+  test('Games remain available when quest data fails', async () => {
+    const s = server(routes({ '/quests': offline() })); restore = s.restore;
+    const ui = await mountScreen(h(MissionsScreen, props));
+
+    await ui.press('Games');
+    assert.match(ui.text(), /Sort it right/);
+    ui.unmount();
+  });
+});
 
 describe('the board says what it ranked on', () => {
   test('the basis is printed, not assumed', async () => {

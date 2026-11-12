@@ -418,6 +418,7 @@ export default function App() {
             onOpen={(id) => nav.push('quest', { questId: id })}
             onOpenMarket={() => nav.push('market')}
             onOpenProfile={() => nav.push('profile')}
+            onOpenGame={(key) => { setGameKey(key); nav.push('miniGame'); }}
           />
         );
 
@@ -442,7 +443,6 @@ export default function App() {
             onOpenPassport={() => nav.push('passport')}
             onOpenParty={() => nav.push('party')}
             onOpenProfile={() => nav.push('profile')}
-            onOpenGame={(key) => { setGameKey(key); nav.push('miniGame'); }}
           />
         );
       case 'miniGame':

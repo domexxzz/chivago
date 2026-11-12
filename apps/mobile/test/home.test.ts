@@ -546,8 +546,8 @@ describe('stays and tours has a door on Home', () => {
     let opened = 0;
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, { ...props, onOpenStays: () => { opened++; } }));
-    const doors = [...new Set(ui.labels())].filter((l) => ['Map', 'Stays & tours', 'Missions'].includes(l));
-    assert.deepEqual(doors, ['Map', 'Stays & tours', 'Missions']);
+    const doors = [...new Set(ui.labels())].filter((l) => ['Map', 'Stays & tours', 'Games & Quests'].includes(l));
+    assert.deepEqual(doors, ['Map', 'Stays & tours', 'Games & Quests']);
     await ui.press('Stays & tours');
     assert.equal(opened, 1);
     ui.unmount();
