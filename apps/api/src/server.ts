@@ -38,6 +38,23 @@ import {
 import { logger } from 'hono/logger';
 
 import { row, transact, type DB } from './db.ts';
+import {
+  finishImportRun, importBatch, importBlockers, provisionedUserCount, recordBatch,
+  type ImportBatch,
+} from './import-service.ts';
+
+/**
+ * Ceilings on one import batch.
+ *
+ * Bytes because an isolate gets 128 MB and it hosts the whole app; rows
+ * because a batch is one synchronous loop the object cannot serve anything
+ * else during. Both are deliberately well under what the platform allows, so
+ * a too-large batch is a 413 the operator can act on rather than an isolate
+ * that died.
+ */
+const MAX_IMPORT_BYTES = 16 * 1024 * 1024;
+const MAX_IMPORT_ROWS = 5_000;
+import { constantTimeEqual } from './scrypt.ts';
 import { BodyTooLarge, boundedForm, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
 import { publicConfig } from './fence.ts';
 import { boardFeed, type BoardEntry } from '@chivago/core';
@@ -280,6 +297,136 @@ app.get('/sos/live/:token', (c) => {
 */
 const publicLocale = (c: { req: { header: (n: string) => string | undefined } }) =>
   localeFromAcceptLanguage(c.req.header('accept-language')) ?? DEFAULT_LOCALE;
+
+/**
+ * Replay a database into this one. OFF unless armed.
+ *
+ * WHY A ROUTE AT ALL. A Durable Object's SQLite is not a file anyone can
+ * upload - there is no `wrangler do import` and the storage is reachable only
+ * from inside the object - so the only way to move the pilot's database onto
+ * Workers is to send the rows through it. See
+ * `docs/71-moving-the-data-to-cloudflare.md`, which calls this the hardest
+ * step; `apps/api/src/export-for-import.ts` produces what this consumes.
+ *
+ * FOUR LOCKS, because this writes to a live database:
+ *
+ *  1. WITHOUT `CHIVAGO_IMPORT_TOKEN` THE ROUTE DOES NOT EXIST. It answers 404,
+ *     not 403 - an unarmed deployment should not even admit the door is there.
+ *     That is also what makes "delete it after the migration" a one-line
+ *     change somebody can actually be relied on to make: unset the secret.
+ *  2. The token, compared in constant time.
+ *  3. The database must be EMPTY. An import onto a database with people in it
+ *     is the accident that cannot be undone, so `users` having any row at all
+ *     refuses the whole request.
+ *  4. The batch carries values, never SQL. Table and column names are checked
+ *     against the live schema before they reach a statement and every value is
+ *     bound - see `import-service.ts`.
+ *
+ * Registered HERE, before the device-authentication middleware, because it
+ * authenticates itself and there is no traveller to be.
+ */
+app.post('/admin/import/finish', async (c, next) => {
+  const token = process.env.CHIVAGO_IMPORT_TOKEN ?? '';
+  // Fall THROUGH when unarmed, rather than answering 404 here. A bare
+  // `notFound()` from this handler looks different from a genuine unknown
+  // path - no CORS header, Hono's plain text body - so the 404 itself
+  // announced the route, and 404-versus-403 announced whether it was armed.
+  if (token === '') return next();
+  const utf8 = new TextEncoder();
+  if (!constantTimeEqual(utf8.encode(c.req.header('x-import-token') ?? ''), utf8.encode(token))) {
+    return fail(c, 'FORBIDDEN', 'That token is not the one this deployment was armed with.', 403);
+  }
+  /*
+    Said at the end, by the operator, when the counts match - not inferred.
+    Until it is said the run stays open, which is what lets an interrupted
+    import be continued instead of being refused by the rows it already wrote.
+  */
+  const closed = finishImportRun(db, 'closed over /admin/import/finish');
+  return ok(c, { closed });
+});
+
+app.post('/admin/import', async (c, next) => {
+  const token = process.env.CHIVAGO_IMPORT_TOKEN ?? '';
+  // See the note on /admin/import/finish: unarmed falls through so the
+  // response is whatever any other unknown path would have been.
+  if (token === '') return next();
+
+  /*
+    A short token is not a door, it is a doorway. There is no throttle on this
+    route - adding one is a bigger change than this is - so the only thing
+    standing between a guesser and every table is the secret's length.
+  */
+  if (token.length < 32) {
+    console.error('[chivago] CHIVAGO_IMPORT_TOKEN is shorter than 32 characters; refusing to import.');
+    return fail(c, 'WEAK_IMPORT_TOKEN', 'This deployment’s import token is too short to be used.', 500);
+  }
+
+  const offered = c.req.header('x-import-token') ?? '';
+  const utf8 = new TextEncoder();
+  if (!constantTimeEqual(utf8.encode(offered), utf8.encode(token))) {
+    return fail(c, 'FORBIDDEN', 'That token is not the one this deployment was armed with.', 403);
+  }
+
+  const blockers = importBlockers(db);
+  if (blockers.length > 0) return fail(c, 'DATABASE_NOT_EMPTY', blockers.join(' '), 409);
+
+  /*
+    A ceiling, in BYTES, before the body is read.
+
+    `c.req.json()` buffers and parses the whole thing and then `decodeValue`
+    copies it again, so a batch of 500 rows of story media can pass Workers'
+    request limit and the 128 MB an isolate gets - and that isolate is the
+    WHOLE app, not just this request. The exporter chunks by rows, which says
+    nothing about bytes, so the limit belongs here as well as there.
+  */
+  const declared = Number(c.req.header('content-length') ?? '0');
+  if (Number.isFinite(declared) && declared > MAX_IMPORT_BYTES) {
+    return fail(
+      c,
+      'BATCH_TOO_LARGE',
+      `A batch may be at most ${Math.floor(MAX_IMPORT_BYTES / 1024 / 1024)} MB; `
+      + 'export with a smaller --chunk.',
+      413,
+    );
+  }
+
+  let batch: ImportBatch;
+  try {
+    batch = (await c.req.json()) as ImportBatch;
+  } catch {
+    return fail(c, 'BAD_BATCH', 'The body is not JSON.', 400);
+  }
+  if (typeof batch?.table !== 'string' || !Array.isArray(batch.columns) || !Array.isArray(batch.values)) {
+    return fail(c, 'BAD_BATCH', 'A batch needs a table, columns and values.', 400);
+  }
+  // One batch is one synchronous insert loop, and the object serves nothing
+  // else while it runs.
+  if (batch.values.length > MAX_IMPORT_ROWS) {
+    return fail(
+      c,
+      'BATCH_TOO_LARGE',
+      `A batch may carry at most ${MAX_IMPORT_ROWS} rows, not ${batch.values.length}.`,
+      413,
+    );
+  }
+
+  try {
+    const inserted = importBatch(db, batch);
+    /*
+      Recorded AFTER the rows land, not before. Before, a token-bearing
+      request naming a table that does not exist left an open run behind on an
+      untouched database - a door propped open by a typo.
+    */
+    const run = recordBatch(db);
+    const provisioned = provisionedUserCount(db);
+    console.log(`[chivago] imported ${inserted} row(s) into ${batch.table} (${run})`);
+    return ok(c, { table: batch.table, inserted, run, provisionedUsers: provisioned });
+  } catch (err) {
+    // The service's messages name the table, the column or the constraint, and
+    // whoever is running a migration at two in the morning needs to read them.
+    return fail(c, 'IMPORT_FAILED', (err as Error).message, 400);
+  }
+});
 
 app.get('/statements/:id', (c) => {
   const statement = readStatement(db, c.req.param('id'));

@@ -1926,6 +1926,42 @@ export function migrate(db: DB): string[] {
   }
 
   /*
+    Where the data came from.
+
+    An import replays a whole database into this one through `/admin/import`
+    (see `import-service.ts`). That has to be allowed to take MANY requests -
+    63 tables, chunked - while still refusing to run against a live database,
+    and "is `users` empty" cannot answer both: it is true before the first
+    batch and false before the second.
+
+    So an import says it has started, and the guard asks whether one is in
+    progress rather than whether the database is untouched. `PRAGMA
+    user_version` would have been the cheap place to keep that, and Durable
+    Object SQLite refuses it - `not authorized: SQLITE_AUTH`, measured - so it
+    is a row.
+
+    It is worth having for its own sake either way: this database will one day
+    be somewhere else, and a row saying when its contents arrived and from
+    where is the kind of provenance this product asks of everything else.
+  */
+  if (!hasTable(db, 'import_runs')) {
+    db.exec(`
+      CREATE TABLE import_runs (
+        id            TEXT PRIMARY KEY,
+        started_at    TEXT NOT NULL,
+        finished_at   TEXT,
+        -- When a batch last landed, and how many have. An import that was
+        -- abandoned halfway must not leave the door open for ever, so the
+        -- guard refuses a run that has gone quiet; see importBlockers.
+        last_batch_at TEXT,
+        batches       INTEGER NOT NULL DEFAULT 0,
+        note          TEXT
+      );
+    `);
+    applied.push('import_runs');
+  }
+
+  /*
     -- Take back the prototype-only account scores --------------------------
 
     Older builds defaulted `grantOpeningBalance` to 1,240 Green and 320 Trip,
