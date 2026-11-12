@@ -23,6 +23,33 @@
   // not provide and which is why db.ts was split from db-node.ts.
   "compatibility_flags": ["nodejs_compat"],
 
+  // Kept ON alongside the custom domain. It is the only address that does not
+  // depend on the zone's DNS being right, which is exactly what you need when
+  // the zone's DNS is what you are changing: adding "routes" without this
+  // silently turned workers.dev OFF, and with the custom domain refused for
+  // an unrelated reason the Worker briefly had no address at all.
+  "workers_dev": true,
+
+  // The domain, served by this Worker.
+  //
+  // A custom domain, not a route: Cloudflare owns the DNS record for it and
+  // issues the edge certificate, so there is no origin to keep a certificate
+  // on any more. Before this, chivargo.com was an A record at Fly behind the
+  // orange cloud with a Cloudflare Origin CA certificate installed on the
+  // machine; that whole arrangement exists to make a proxy trust an origin,
+  // and there is no origin now.
+  //
+  // TO GO BACK: delete these two entries, deploy, and re-create the records
+  // that were here before - A 66.241.124.199 and AAAA 2a09:8280:1::186:7a1:0,
+  // both proxied, SSL mode Full (strict). The Origin CA certificate is still
+  // installed on the Fly app and still verified, so nothing has to be
+  // re-issued. What does NOT come back is anything written here since the
+  // cut: the two databases stopped being the same database at that moment.
+  "routes": [
+    { "pattern": "chivargo.com", "custom_domain": true },
+    { "pattern": "www.chivargo.com", "custom_domain": true }
+  ],
+
   "durable_objects": {
     "bindings": [
       {
