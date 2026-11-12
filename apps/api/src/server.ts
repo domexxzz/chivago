@@ -133,58 +133,11 @@ import {
 import { bedrockModel } from './bedrock.ts';
 import type { Voucher, WellnessProfile } from '@chivago/core';
 
-/**
- * The database these routes read, and the sweeps that run against it.
- *
- * `let`, not `const`, and NOT opened here. A Node process opens a file; a
- * Durable Object is handed storage it already has, and cannot open anything at
- * import time. So whichever entry point is running calls `useDatabase` before
- * it serves a single request.
- *
- * The 134 route handlers below close over this BINDING rather than capturing a
- * value, which is what makes a late assignment work at all. `openDb` used to
- * be called here, which meant importing this file touched the disk - and on
- * Workers there is no disk to touch.
- */
-let db: DB = undefined as unknown as DB;
-let sweeps: Sweep[] = [];
-
-export function useDatabase(handle: DB): void {
-  db = handle;
-  /*
-    Rebuilt here rather than at module scope. `buildSweeps` DESTRUCTURES the
-    handle, so a list built before the database existed would hold `undefined`
-    for ever - unlike the route closures above, which read the binding each
-    time they run.
-  */
-  sweeps = buildSweeps({ db, oncall, flushNotifications, startAssist });
-
-  /*
-    The Ko Sichang bootstrap, which used to run at module scope beside
-    `openDb()`. There is no database at import time any more, so it runs here
-    instead - once, on whichever entry point supplied the handle.
-
-    WRAPPED, and that is not caution. #196: a throw here used to happen while
-    this module was still being imported, so nothing above it could catch one.
-    The process ended before a port was open, the health check never answered,
-    and `auto_start_machines` woke the machine only to crash it again. On a
-    Durable Object the same throw leaves the object unable to construct, which
-    is the same outage wearing different clothes. Eight shop rows are not worth
-    either.
-
-    `isPrimary()` still guards it: on Node with LiteFS a replica must not write
-    to a database it does not own, and with LITEFS_DIR unset - every Worker, and
-    any Node process without LiteFS - it answers true without reading a disk.
-  */
-  if (isPrimary()) {
-    try {
-      const bootstrapped = bootstrapKohSichangBusinesses(db);
-      if (!bootstrapped.skipped && (bootstrapped.accountCreated || bootstrapped.shopsInserted > 0)) {
-        console.log('[chivago] Ko Sichang businesses bootstrapped:', bootstrapped);
-      }
-    } catch (err) {
-      console.error('[chivago] Ko Sichang bootstrap failed; starting without it:', err);
-    }
+const db = openDb();
+if (isPrimary()) {
+  const bootstrapped = bootstrapKohSichangBusinesses(db);
+  if (!bootstrapped.skipped && (bootstrapped.accountCreated || bootstrapped.shopsInserted > 0 || bootstrapped.attractionsInserted > 0)) {
+    console.log('[chivago] Ko Sichang content bootstrapped:', bootstrapped);
   }
 }
 
