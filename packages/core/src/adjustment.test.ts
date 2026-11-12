@@ -159,8 +159,8 @@ describe('what the report is allowed to say', () => {
 
   test('it says who made the statement and that we did not witness it', () => {
     const note = exclusivityNote(0, 40, 9);
-    assert.match(note.en, /not witnessed by ChivaGo/);
-    assert.match(note.th, /ChivaGo ไม่ได้เป็นพยาน/);
+    assert.match(note.en, /not witnessed by ChivarGo/);
+    assert.match(note.th, /ChivarGo ไม่ได้เป็นพยาน/);
   });
 
   test('shared work that is still shared is still reported as shared', () => {
@@ -206,7 +206,7 @@ describe('the borrowed name, handed back at the door', () => {
 });
 
 describe('the sentence on one adjustment', () => {
-  const name = { en: 'PTT Green', th: 'ปตท. กรีน' };
+  const name = { en: 'PTT Green', th: 'ปตท. กรีน', zh: 'PTT Green' };
 
   test('THE RELINQUISHING PARTNER IS THE SUBJECT, NEVER CHIVAGO', () => {
     const note = adjustmentNote(adj(), name);

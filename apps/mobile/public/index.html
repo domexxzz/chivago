@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<!--
+  The Expo web template, with the ChivarGo icons added.
+
+  Expo's own favicon step (`web.favicon` in app.json) resizes the source image
+  at BUILD time through sharp, and injects nothing at all once a
+  `public/favicon.ico` exists - which is why this file has to carry the link
+  tags itself. Checking the icons in rather than generating them keeps the
+  Docker web stage free of an image toolchain, and keeps what ships byte-for-
+  byte what was reviewed.
+
+  Everything else is Expo's stock template verbatim. The two percent-delimited
+  placeholders below are filled from app.json (lang, then title), and the
+  bundle's <script> and the stylesheet <link>s are appended to <head> by the
+  exporter. Do NOT spell either placeholder out anywhere else in this file:
+  the exporter fills them with a plain `String.replace`, which takes the FIRST
+  occurrence - naming them in this comment left the real ones in the shipped
+  page. Changing the shape of <head> or dropping #root breaks the export too.
+-->
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>%WEB_TITLE%</title>
+
+    <!--
+      The tab icon, in the three forms that are actually read:
+
+      - favicon.ico holds 16/32/48/64. Google's crawler wants 48 or a multiple
+        of it, and it fetches /favicon.ico whether or not a tag points there,
+        so the .ico is the one that decides what shows up in search results.
+      - icon-192 is what Chrome prefers on a high-DPI tab.
+      - apple-touch-icon is flattened onto white, because iOS composites a home
+        screen icon over BLACK and the mark's outlines would vanish into it.
+    -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/icons/site.webmanifest" />
+    <meta name="theme-color" content="#0077B6" />
+
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>

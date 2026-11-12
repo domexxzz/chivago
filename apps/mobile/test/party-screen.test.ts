@@ -72,8 +72,7 @@ describe('travelling on your own', () => {
     ui.unmount();
   });
 
-  test('the server’s own refusal reaches the traveller', async () => {
-    // unknown / full / already-in / disbanded need four different actions.
+  test('an unknown refusal uses safe localised copy', async () => {
     const said: string[] = [];
     const s = server({
       'GET /party': solo,
@@ -85,7 +84,8 @@ describe('travelling on your own', () => {
     await ui.type('K7M2QP');
     await ui.pressText(/^Join$/);
     assert.equal(said.length, 1);
-    assert.match(said[0]!, /full/);
+    assert.equal(said[0], 'Something went wrong. Please try again.');
+    assert.doesNotMatch(said[0]!, /8 people/, 'the raw server message reached the toast');
     ui.unmount();
   });
 

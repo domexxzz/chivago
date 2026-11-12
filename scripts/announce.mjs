@@ -173,7 +173,7 @@ async function toDiscord(text, ctx, attachPaths = []) {
   const heading = text.th.title.trim() || text.en.title.trim() || 'Update';
 
   const payload = {
-    username: 'ChivaGo',
+    username: 'ChivarGo',
     embeds: [{
       title: clip(heading, 250),
       description: clip(describe(text), 3800),
@@ -238,7 +238,7 @@ async function toHermes(text, ctx) {
   // Hermes is recalled in Thai far more often than in English, so it gets the
   // same two-language body the channel does rather than a summary of one.
   const content = [
-    `[ChivaGo ${ctx.sha}] ${text.th.title.trim() || text.en.title.trim()}`,
+    `[ChivarGo ${ctx.sha}] ${text.th.title.trim() || text.en.title.trim()}`,
     describe(text),
     `branch ${ctx.branch} · ${ctx.dirty === 0 ? 'tree clean' : `${ctx.dirty} uncommitted`} · ${REPO_URL}`,
   ].filter(Boolean).join('\n');

@@ -35,6 +35,7 @@ import { useReduceMotion } from './reduce-motion.ts';
 import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Heading, Label } from './Type.tsx';
 import { LayerChips, MapLegend, PinChip, PlaceFeedRow, type MapMode } from './map-parts.tsx';
+import { ShopMapMarker } from './shop-map-marker.tsx';
 
 // Re-exported so `MapScreen` and the tests keep importing the map's whole
 // surface from one module, whichever implementation the platform resolves.
@@ -512,6 +513,8 @@ export function SamuiMap(props: SamuiMapProps) {
         area={props.area}
         places={props.places}
         onSelect={props.onSelect}
+        shops={props.shops}
+        onSelectShop={props.onSelectShop}
         here={props.here ?? null}
         height={height}
         explored={props.explored}
@@ -582,8 +585,9 @@ function AreaPointMap({ area, places, shops = [], onSelect, onSelectShop, onPick
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       /> : null}
       {selectedCoordinate && onPickCoordinate ? (() => { const pos = point(selectedCoordinate.lat, selectedCoordinate.lng); return <View pointerEvents="none" style={{ position: 'absolute', left: pos.left - 10, top: pos.top - 10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#0077B6', borderWidth: 4, borderColor: '#fff', elevation: 5 }} />; })() : null}
-      <View style={{ position: 'absolute', top: 8, left: 12, backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }}><Label size={10} colour="#0077B6">{t(area.name)} · แผนผังพิกัด</Label></View>
+      <View style={{ position: 'absolute', top: 8, left: 12, backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }}><Label size={10} colour="#0077B6">{t(area.name)} · {t({ en: 'Coordinate map', th: 'แผนผังพิกัด', zh: '坐标地图' })}</Label></View>
       {places.map((place) => { const pos = point(place.lat, place.lng); return <Pressable key={place.id} onPress={() => onSelect(place)} accessibilityLabel={t(place.name)} style={{ position: 'absolute', left: pos.left - 16, top: pos.top - 20, backgroundColor: '#0077B6', borderWidth: 2, borderColor: '#fff', borderRadius: 16, paddingHorizontal: 5, paddingVertical: 4 }}><Label size={10} colour="#fff">{place.healthyScore}</Label></Pressable>; })}
+      {!onPickCoordinate ? shops.filter(hasMapPoint).map((shop) => { const pos = point(shop.lat, shop.lng); return <Pressable key={shop.id} onPress={() => onSelectShop?.(shop)} accessibilityLabel={`${shop.category}: ${shop.name}`} style={{ position: 'absolute', left: pos.left - 23, top: pos.top - 51 }}><ShopMapMarker category={shop.category} /></Pressable>; }) : null}
     </View>
     {!onPickCoordinate ? <PlaceList places={places} shops={shops} onSelect={onSelect} onSelectShop={onSelectShop} height={100} /> : null}
   </View>;
@@ -751,8 +755,8 @@ function IslandMap({
         const point = project(shop.lat, shop.lng);
         const location = tilt(point.x, point.y);
         return <Pressable key={`shop-${shop.id}`} onPress={() => onSelectShop?.(shop)} accessibilityLabel={`ร้าน ${shop.name}`}
-          style={{ position: 'absolute', left: location.x * width - 22, top: location.y * height - 44, backgroundColor: '#F77F00', borderRadius: 22, padding: 8, borderWidth: 2, borderColor: '#fff' }}>
-          <Label size={11} colour="#fff">🏪</Label>
+          style={{ position: 'absolute', left: location.x * width - 23, top: location.y * height - 51 }}>
+          <ShopMapMarker category={shop.category} />
         </Pressable>;
       }) : null}
 

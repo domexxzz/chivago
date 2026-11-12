@@ -61,7 +61,7 @@ export function detectLang(text: string): Lang {
   return 'en';
 }
 
-const say = (en: string, th: string, zh?: string): Localised => ({ en, th, zh });
+const say = (en: string, th: string, zh: string): Localised => ({ en, th, zh });
 
 // ---------------------------------------------------------------------------
 // Intent
@@ -264,17 +264,20 @@ function reasonFor(place: ScoredPlace, filters: Filters): Bilingual {
     return say(
       `${crowd.en} right now · ${place.metrics.crowdDensity.toFixed(1)} people per 100 m²`,
       `ตอนนี้${crowd.th} · ${place.metrics.crowdDensity.toFixed(1)} คนต่อ 100 ตร.ม.`,
+      `目前${crowd.zh ?? crowd.en} · 每 100 平方米 ${place.metrics.crowdDensity.toFixed(1)} 人`,
     );
   }
   if (filters.cleanAir) {
     return say(
       `Air ${place.metrics.aqi} AQI, measured today`,
       `อากาศ ${place.metrics.aqi} AQI วัดวันนี้`,
+      `今日实测空气质量指数 ${place.metrics.aqi} AQI`,
     );
   }
   return say(
     `Healthy Score ${place.healthyScore} · ${crowd.en} · air ${place.metrics.aqi} AQI`,
     `คะแนนสุขภาพ ${place.healthyScore} · ${crowd.th} · อากาศ ${place.metrics.aqi} AQI`,
+    `健康评分 ${place.healthyScore} · ${crowd.zh ?? crowd.en} · 空气 ${place.metrics.aqi} AQI`,
   );
 }
 
@@ -324,6 +327,8 @@ export function answer(input: string, ctx: Context): Reply {
         'โทร 1669 เรียกรถพยาบาล ฟรี ตลอด 24 ชั่วโมง รับสายทั่วประเทศ '
         + '1155 คือตำรวจท่องเที่ยว พูดภาษาอังกฤษได้ '
         + 'แท็บความปลอดภัยจะแชร์ตำแหน่งคุณระหว่างที่คุยสาย',
+        '拨打 1669 可叫救护车，免费、24 小时服务，泰国全境均可接通。'
+        + '1155 是旅游警察，可使用英语沟通。通话时可在“安全”页分享实时位置。',
       ), lang),
       dial: SAMUI_EMERGENCY
         .filter((n) => n.scope === 'national')
@@ -341,6 +346,8 @@ export function answer(input: string, ctx: Context): Reply {
         + 'somewhere: real, spendable, and never counted as verified.',
         'แต้มสีเขียวได้จากภารกิจที่ผู้จัดยืนยันแล้วเท่านั้น จึงเป็นแต้มเดียวที่นับเข้ารายงานผลกระทบได้ '
         + 'ส่วนแต้มทริปได้จากการเช็กอิน ใช้ได้จริง แต่ไม่นับว่าผ่านการตรวจสอบ',
+        '绿色积分只来自主办方审核通过的任务，因此只有它们会计入影响力数据。'
+        + '行程积分来自签到，可正常使用，但不会被计为已验证。',
       ), lang),
       action: 'wallet',
     };
@@ -354,6 +361,8 @@ export function answer(input: string, ctx: Context): Reply {
         + 'quests are, and every stop tells you why it is there.',
         'จัดให้ได้ทั้งวัน โดยดูจากโปรไฟล์ของคุณ อากาศวันนี้ และตำแหน่งภารกิจ '
         + 'ทุกจุดจะบอกด้วยว่าทำไมถึงเลือกที่นั่น',
+        '我可以安排整天行程，结合你的资料、今日空气和任务位置，'
+        + '并说明每一站的选择理由。',
       ), lang),
       action: 'plan',
     };
@@ -367,6 +376,8 @@ export function answer(input: string, ctx: Context): Reply {
         + 'so a ferry that leaves in 40 minutes is not shown as a 40 minute journey.',
         'บอกชื่อสถานที่มาได้เลย ระบบจะคำนวณเส้นทางให้ โดยแยกเวลารอออกจากเวลาเดินทาง '
         + 'เรือที่ออกอีก 40 นาที จะไม่ถูกนับเป็นเดินทาง 40 นาที',
+        '告诉我目的地，我会规划路线并将等待时间与行程时间分开；'
+        + '例如轮渡 40 分钟后出发，不会被显示为 40 分钟的行程。',
       ), lang),
       action: 'route',
     };
@@ -380,6 +391,7 @@ export function answer(input: string, ctx: Context): Reply {
         + 'Never a single number — nobody can promise you one.',
         'ดูช่วงราคาให้ได้ พร้อมบอกว่าอะไรทำให้ราคาขยับและมั่นใจแค่ไหน '
         + 'ไม่ให้เป็นตัวเลขเดียว เพราะไม่มีใครรับประกันได้',
+        '我可以给出价格区间、影响因素和置信度，但不会给出单一价格，因为无人能保证该价格。',
       ), lang),
       action: 'price',
     };
@@ -397,6 +409,7 @@ export function answer(input: string, ctx: Context): Reply {
         text: pick(say(
           `Nothing on the island matches that yet. Right now I can suggest: ${available}.`,
           `ยังไม่มีที่ไหนบนเกาะตรงกับที่ถามมา ตอนนี้แนะนำได้: ${available}`,
+          `岛上暂时没有符合条件的地点。目前可推荐：${available}。`,
         ), lang),
       };
     }
@@ -430,6 +443,8 @@ export function answer(input: string, ctx: Context): Reply {
       + '“a beach”. I can also plan your day, price a trip, or find help fast.',
       'แนะนำที่เที่ยวได้ ลองพิมพ์ “ที่เงียบ ๆ”, “อากาศดี”, “ร้านอาหาร” หรือ “ทะเล” '
       + 'จัดแผนวัน ดูราคา หรือหาความช่วยเหลือด่วนก็ได้',
+      '我可以推荐去处——试试输入“安静的地方”、“空气好”、“美食”或“海滩”。'
+      + '我也可以规划一日行程、查询价格或快速寻求帮助。',
     ), lang),
   };
 }

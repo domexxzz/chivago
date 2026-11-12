@@ -1,15 +1,16 @@
 /**
- * Every shared UI string in the app, in both languages.
+ * Every shared UI string in the app, in all supported languages.
  *
  * The app shows ONE at a time, chosen from the phone's locale and switchable on
  * the Account screen - see `apps/mobile/src/i18n/locale.ts`. It used to print
- * both, English with the Thai captioned underneath, which doubled the length of
+ * English with the Thai captioned underneath, which doubled the length of
  * every screen on a phone. The pairs are still authored together here so a
- * translation can never drift from what it translates.
+ * every screen on a phone. The translations are still authored together here
+ * so they cannot drift from what they translate.
  *
  * The exception is anything an emergency responder might read off a
  * traveller's phone - the SOS banner, the Safety screen, the emergency numbers.
- * Those keep both languages whatever the app is set to.
+ * Those intentionally keep English and Thai together whatever the app locale.
  *
  * WHY ONE FILE
  * Handoff open question 8: "all Thai strings in this bundle were authored for
@@ -22,10 +23,10 @@
  * speaker. See docs/04-open-questions.md.
  */
 
-import type { Bilingual, Localised } from './types.ts';
+import type { Localised } from './types.ts';
 import { type Lang, localise } from './localise.ts';
 
-const t = (en: string, th: string, zh?: string): Localised => ({ en, th, zh });
+const t = (en: string, th: string, zh: string): Localised => ({ en, th, zh });
 
 export const strings = {
   // -- App shell ----------------------------------------------------------
@@ -92,9 +93,9 @@ export const strings = {
 
     /** The beach illustration on Home and the collection. One alt text, two sites. */
     companionsAlt: t(
-      'ChivaGo companions on Koh Samui beach',
-      'เพื่อนร่วมทาง ChivaGo บนชายหาดเกาะสมุย',
-      'ChivaGo 伙伴在苏梅岛海滩上',
+      'ChivarGo companions on Koh Samui beach',
+      'เพื่อนร่วมทาง ChivarGo บนชายหาดเกาะสมุย',
+      'ChivarGo 伙伴在苏梅岛海滩上',
     ),
   },
 
@@ -102,7 +103,7 @@ export const strings = {
   onboarding: {
     step: (n: number) => t(`Step ${n} of 3`, `ขั้นที่ ${n} จาก 3`, `第 ${n} 步，共 3 步`),
     continueCta: t('Continue', 'ต่อไป', '继续'),
-    enterCta: t('Enter ChivaGo', 'เข้าสู่ ChivaGo', '进入 ChivaGo'),
+    enterCta: t('Enter ChivarGo', 'เข้าสู่ ChivarGo', '进入 ChivarGo'),
     q1: t('What are you here for?', 'คุณมาเพื่ออะไร', '你此行的目的是什么？'),
     q2: t('How active are your days?', 'ระดับกิจกรรมต่อวัน', '你每天的活动量如何？'),
     q3: t('What should we watch for you?', 'ให้เราดูแลเรื่องอะไร', '希望我们为你留意什么？'),
@@ -332,7 +333,7 @@ export const strings = {
     visitItsHome: t('Visit its home.', 'ไปที่บ้านของมัน', '去它的家乡看看。'),
     addToRoute: t("Add to today's route", 'เพิ่มลงเส้นทาง', '加入今天的路线'),
     safePath: t('Safe path from here', 'เส้นทางปลอดภัยจากที่นี่', '从这里出发的安全路线'),
-    // The place's own booking page. Chivago takes no booking and no money.
+    // The place's own booking page. ChivarGo takes no booking and no money.
     book: t('Book on their site', 'จองที่เว็บของสถานที่', '在对方官网预订'),
     /**
      * Getting there (docs/52). The heading is a question because that is the
@@ -501,9 +502,9 @@ export const strings = {
     ),
     weatherVia: t('Read from Open-Meteo. Not a forecast for navigation.', 'อ่านจาก Open-Meteo ไม่ใช่พยากรณ์สำหรับการเดินเรือ', '数据来自 Open-Meteo。不作航海预报使用。'),
     courtsVia: t(
-      'Counted by the venue\'s own booking system. Booking and payment happen there, not in ChivaGo.',
-      'นับโดยระบบจองของสนามเอง การจองและชำระเงินเกิดขึ้นที่นั่น ไม่ใช่ใน ChivaGo',
-      '由场馆自己的预订系统统计。预订和付款在那边完成，不在 ChivaGo 内。',
+      'Counted by the venue\'s own booking system. Booking and payment happen there, not in ChivarGo.',
+      'นับโดยระบบจองของสนามเอง การจองและชำระเงินเกิดขึ้นที่นั่น ไม่ใช่ใน ChivarGo',
+      '由场馆自己的预订系统统计。预订和付款在那边完成，不在 ChivarGo 内。',
     ),
     provenance: {
       live: t('Live', 'ข้อมูลสด', '实时'),
@@ -1001,13 +1002,13 @@ export const strings = {
     acknowledgedBy: (who: string) => t(`${who} has your alert`, `${who} รับเรื่องแล้ว`, `${who} 已收到你的警报`),
     /** The line that must never be buried. */
     cannotDispatch: t(
-      'ChivaGo cannot send an ambulance. Call 1669 if anyone is hurt.',
-      'ChivaGo ส่งรถพยาบาลไม่ได้ หากมีผู้บาดเจ็บ กรุณาโทร 1669',
-      'ChivaGo 无法派出救护车。如有人受伤，请拨打 1669。',
+      'ChivarGo cannot send an ambulance. Call 1669 if anyone is hurt.',
+      'ChivarGo ส่งรถพยาบาลไม่ได้ หากมีผู้บาดเจ็บ กรุณาโทร 1669',
+      'ChivarGo 无法派出救护车。如有人受伤，请拨打 1669。',
     ),
     /**
      * Official Thai emergency numbers. Free to call, no airtime credit needed.
-     * ChivaGo dispatch never replaces these - it runs alongside them.
+     * ChivarGo dispatch never replaces these - it runs alongside them.
      */
     callDirect: t('Or call directly', 'หรือโทรโดยตรง', '或直接拨打'),
     numbers: {
@@ -1537,10 +1538,10 @@ export const isRejectionReasonKey = (v: unknown): v is RejectionReasonKey =>
 export function rejectionMessage(
   reasonKey: RejectionReasonKey | null,
   note: string | null,
-): Bilingual | null {
+): Localised | null {
   const preset = reasonKey ? REJECTION_REASONS[reasonKey] : null;
   if (!preset && !note) return null;
-  if (!preset) return { en: note!, th: note! };
+  if (!preset) return { en: note!, th: note!, zh: note! };
   if (!note) return preset;
   return { en: `${preset.en} — ${note}`, th: `${preset.th} — ${note}`, zh: `${preset.zh ?? preset.en} — ${note}` };
 }
@@ -1695,7 +1696,7 @@ export const NOTIFICATIONS = {
       '{host} 还没有核验完 {quest}。一有结果我们就会告诉你。',
     ),
   },
-  /** Sent to an emergency contact who also uses ChivaGo. */
+  /** Sent to an emergency contact who also uses ChivarGo. */
   sos_contact_alerted: {
     title: t('Emergency alert', 'แจ้งเตือนฉุกเฉิน', '紧急警报'),
     body: t(
@@ -1736,9 +1737,9 @@ export const NOTIFICATIONS = {
   sos_still_unacknowledged: {
     title: t('Please call 1669', 'กรุณาโทร 1669', '请拨打 1669'),
     body: t(
-      'Your alert has been open {minutes} min with no response. ChivaGo cannot send help — call 1669 or 1155.',
-      'การแจ้งเตือนของคุณเปิดมา {minutes} นาทีแล้วโดยไม่มีการตอบรับ ChivaGo ส่งความช่วยเหลือไม่ได้ กรุณาโทร 1669 หรือ 1155',
-      '你的警报已持续 {minutes} 分钟无人回应。ChivaGo 无法派出救援 — 请拨打 1669 或 1155。',
+      'Your alert has been open {minutes} min with no response. ChivarGo cannot send help — call 1669 or 1155.',
+      'การแจ้งเตือนของคุณเปิดมา {minutes} นาทีแล้วโดยไม่มีการตอบรับ ChivarGo ส่งความช่วยเหลือไม่ได้ กรุณาโทร 1669 หรือ 1155',
+      '你的警报已持续 {minutes} 分钟无人回应。ChivarGo 无法派出救援 — 请拨打 1669 或 1155。',
     ),
   },
   /** Sent to app-using contacts when the desk has gone quiet. */
@@ -1803,7 +1804,7 @@ export const isNotificationKind = (v: unknown): v is NotificationKind =>
 export function renderNotification(
   kind: NotificationKind,
   params: Record<string, string | number>,
-): { title: Bilingual; body: Bilingual } {
+): { title: Localised; body: Localised } {
   const template = NOTIFICATIONS[kind];
 
   /**
@@ -1824,7 +1825,7 @@ export function renderNotification(
     return String(value);
   };
 
-  const fill = (s: string, lang: keyof Bilingual): string =>
+  const fill = (s: string, lang: keyof Localised): string =>
     s.replace(/\{(\w+)\}/g, (whole, name: string) =>
       Object.hasOwn(params, name) ? resolve(params[name]!, lang) : whole,
     );
@@ -1835,7 +1836,7 @@ export function renderNotification(
    * Chinese and `notification-service.ts` already stored and honoured
    * `locale: 'zh'`. The service's `pick` then fell back to English, so a
    * device registered in Chinese was pushed English - including
-   * `sos_contact_escalated`, the line that says ChivaGo cannot send help and
+   * `sos_contact_escalated`, the line that says ChivarGo cannot send help and
    * to call 1669. A notification is the one place somebody reads a single
    * line and acts on it without opening anything.
    *

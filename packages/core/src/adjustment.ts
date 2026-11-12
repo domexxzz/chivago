@@ -53,12 +53,12 @@ export type AdjustmentChannel = 'entered_by_staff';
 
 export const ADJUSTMENT_CHANNEL_LABEL: Record<AdjustmentChannel, Bilingual> = {
   entered_by_staff: {
-    en: 'Entered by ChivaGo staff from a written statement supplied by the partner standing down. '
-      + 'That partner did not enter it here, and ChivaGo did not witness it.',
-    th: 'บันทึกโดยทีมงาน ChivaGo จากหนังสือที่พันธมิตรผู้สละสิทธิ์ส่งมา '
-      + 'พันธมิตรรายนั้นไม่ได้เป็นผู้กรอกในระบบนี้ และ ChivaGo ไม่ได้เป็นพยาน',
-    zh: '由 ChivaGo 工作人员根据放弃主张的合作方提供的书面声明录入。'
-      + '该合作方并未在本系统中录入，ChivaGo 也未亲眼见证。',
+    en: 'Entered by ChivarGo staff from a written statement supplied by the partner standing down. '
+      + 'That partner did not enter it here, and ChivarGo did not witness it.',
+    th: 'บันทึกโดยทีมงาน ChivarGo จากหนังสือที่พันธมิตรผู้สละสิทธิ์ส่งมา '
+      + 'พันธมิตรรายนั้นไม่ได้เป็นผู้กรอกในระบบนี้ และ ChivarGo ไม่ได้เป็นพยาน',
+    zh: '由 ChivarGo 工作人员根据放弃主张的合作方提供的书面声明录入。'
+      + '该合作方并未在本系统中录入，ChivarGo 也未亲眼见证。',
   },
 };
 
@@ -179,13 +179,13 @@ export function adjustmentNote(adj: ClaimAdjustment, partnerName: Bilingual): Bi
     : { en: `until ${adj.resumedAt.slice(0, 10)}`, th: `ถึง ${adj.resumedAt.slice(0, 10)}`, zh: `起至 ${adj.resumedAt.slice(0, 10)}` };
   return {
     en: `${partnerName.en} states it is not claiming this quest's verified activity from `
-      + `${from} ${until.en}. ChivaGo records that statement; it did not witness it, and it `
+      + `${from} ${until.en}. ChivarGo records that statement; it did not witness it, and it `
       + 'has not asked any other partner whether they agree.',
     th: `${partnerName.th} ระบุว่าจะไม่อ้างสิทธิ์กิจกรรมที่ผ่านการตรวจของภารกิจนี้ ตั้งแต่ `
-      + `${from} ${until.th} ChivaGo เป็นผู้บันทึกข้อความนั้น ไม่ได้เป็นพยาน `
+      + `${from} ${until.th} ChivarGo เป็นผู้บันทึกข้อความนั้น ไม่ได้เป็นพยาน `
       + 'และไม่ได้สอบถามพันธมิตรรายอื่นว่าเห็นด้วยหรือไม่',
     zh: `${partnerName.zh ?? partnerName.en} 声明，自 `
-      + `${from} ${until.zh}，不主张本任务经核实的活动。ChivaGo 只是记录该声明，并未亲眼见证，`
+      + `${from} ${until.zh}，不主张本任务经核实的活动。ChivarGo 只是记录该声明，并未亲眼见证，`
       + '也未询问其他合作方是否同意。',
   };
 }

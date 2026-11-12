@@ -66,11 +66,12 @@ describe('the wallet screen, fetching its own wallet', () => {
     } finally { net.restore(); }
   });
 
-  test('a server that refuses shows the reason and offers a retry', async () => {
+  test('a server that refuses shows safe copy and offers a retry', async () => {
     const net = server({ 'GET /wallet': refuses('WALLET_LOCKED', 'Your wallet is being repaired.') });
     try {
       const ui = await mountScreen(h(WalletScreen, walletProps));
-      assert.match(ui.text(), /Your wallet is being repaired\./);
+      assert.match(ui.text(), /Something went wrong\. Please try again\./);
+      assert.doesNotMatch(ui.text(), /Your wallet is being repaired\./);
       assert.ok(ui.find(/retry/i), 'a failed screen must offer a way out');
       ui.unmount();
     } finally { net.restore(); }
@@ -85,7 +86,8 @@ describe('the wallet screen, fetching its own wallet', () => {
     });
     try {
       const ui = await mountScreen(h(WalletScreen, walletProps));
-      assert.match(ui.text(), /Try again in a moment\./);
+      assert.match(ui.text(), /Something went wrong\. Please try again\./);
+      assert.doesNotMatch(ui.text(), /Try again in a moment\./);
 
       await ui.press(/retry/i);
       await settle();
@@ -267,7 +269,8 @@ describe('the marketplace, which needs two fetches to be usable', () => {
       await ui.press(/^Redeem /);
       await settle();
 
-      assert.equal(toasted, 'That offer just sold out.');
+      assert.equal(toasted, 'Something went wrong. Please try again.');
+      assert.notEqual(toasted, 'That offer just sold out.', 'the raw server message reached the toast');
       assert.doesNotMatch(ui.text(), /CHV-/, 'a refused redemption must not show a code');
       ui.unmount();
     } finally { net.restore(); }
@@ -372,7 +375,8 @@ describe('the impact screen, whose personal, tree and community records load ind
     try {
       const ui = await mountScreen(h(ImpactScreen, { onToast: noop, refreshKey: 0 }));
       const said = ui.text();
-      assert.match(said, /We could not read your activity\./);
+      assert.match(said, /Something went wrong\. Please try again\./);
+      assert.doesNotMatch(said, /We could not read your activity\./);
       assert.match(said, /8,400|8400/, 'one half failing must not hide the other');
       ui.unmount();
     } finally { net.restore(); }
@@ -392,7 +396,7 @@ describe('the impact screen, whose personal, tree and community records load ind
       assert.match(said, /12 kg/, 'the personal half is fine and should render');
       assert.match(
         said,
-        /Community totals are unavailable\./,
+        /Something went wrong\. Please try again\./,
         'a failed community fetch must be visible, not silent',
       );
       ui.unmount();
@@ -453,7 +457,8 @@ describe('the map, whose two fetches fail independently', () => {
       const ui = await mountScreen(h(MapScreen, mapProps));
       const said = ui.text();
       assert.match(said, /Healthy Score/, 'the map itself is fine');
-      assert.match(said, /Today's quests are unavailable\./, 'the strip must say why it is empty');
+      assert.match(said, /Something went wrong\. Please try again\./, 'the strip must say why it is empty');
+      assert.doesNotMatch(said, /Today's quests are unavailable\./);
       ui.unmount();
     } finally { net.restore(); }
   });
@@ -466,7 +471,8 @@ describe('the map, whose two fetches fail independently', () => {
     try {
       const ui = await mountScreen(h(MapScreen, mapProps));
       const said = ui.text();
-      assert.match(said, /The map is unavailable\./);
+      assert.match(said, /Something went wrong\. Please try again\./);
+      assert.doesNotMatch(said, /The map is unavailable\./);
       assert.match(said, /Beach Cleanup/, 'one failure must not take the whole screen down');
       ui.unmount();
     } finally { net.restore(); }

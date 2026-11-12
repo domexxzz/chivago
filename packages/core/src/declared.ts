@@ -7,7 +7,7 @@
  * Until those can come in, side A is a service rather than a product.
  *
  * THE TRAP, AND THE WHOLE DESIGN. Run an imported spreadsheet through the
- * machinery that produces a ChivaGo statement and the output looks identical:
+ * machinery that produces a ChivarGo statement and the output looks identical:
  * the same page, the same digest, the same green. It would be LEVEL ONE
  * evidence — somebody typed it — wearing level three's clothes, and it would
  * be the most damaging thing this codebase could ship, because it is the
@@ -70,13 +70,13 @@ export interface DeclaredReview {
  * The strongest sentence in this module, and it is a refusal.
  */
 export const DECLARED_NOT_VERIFIED: Bilingual = {
-  en: 'Every row here was declared by the organisation that sent the file. Nobody at ChivaGo '
+  en: 'Every row here was declared by the organisation that sent the file. Nobody at ChivarGo '
     + 'verified any of it, and this review does not make it true. It is level 1 evidence: '
     + 'self-reported. What follows is what is wrong on the face of the file.',
-  th: 'ทุกบรรทัดในที่นี้เป็นข้อมูลที่องค์กรผู้ส่งไฟล์แจ้งมาเอง ไม่มีใครที่ ChivaGo ตรวจสอบ '
+  th: 'ทุกบรรทัดในที่นี้เป็นข้อมูลที่องค์กรผู้ส่งไฟล์แจ้งมาเอง ไม่มีใครที่ ChivarGo ตรวจสอบ '
     + 'และการทบทวนนี้ไม่ได้ทำให้ข้อมูลเป็นจริง ถือเป็นหลักฐานระดับ 1 คือผู้แจ้งรายงานเอง '
     + 'สิ่งที่อยู่ด้านล่างคือสิ่งที่ผิดบนหน้าไฟล์',
-  zh: '此处每一行都由提交文件的机构自行申报。ChivaGo 没有任何人核实过，'
+  zh: '此处每一行都由提交文件的机构自行申报。ChivarGo 没有任何人核实过，'
     + '本次检查也不会使其成为事实。它属于第 1 级证据，即自行申报。'
     + '以下列出的，只是文件表面上就能看出的问题。',
 };

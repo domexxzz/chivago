@@ -32,7 +32,7 @@
 
 import React from 'react';
 import * as SecureStore from 'expo-secure-store';
-import type { Bilingual } from '@chivago/core';
+import type { Localised } from '@chivago/core';
 
 export type Locale = 'en' | 'th' | 'zh';
 
@@ -77,7 +77,7 @@ export function subscribe(listener: () => void): () => void {
  * has not been written yet shows the English, which is wrong in a way a
  * reader can act on, where a blank is wrong in a way they cannot see.
  */
-export function t(value: Bilingual | null | undefined): string {
+export function t(value: Localised | null | undefined): string {
   if (!value) return '';
   for (const key of FALLBACK[current]) {
     const s = value[key];
@@ -95,7 +95,7 @@ export function t(value: Bilingual | null | undefined): string {
  * each other before trying English: showing Thai to a Chinese reader helps
  * nobody and hides the gap.
  */
-const FALLBACK: Record<Locale, readonly (keyof Bilingual)[]> = {
+const FALLBACK: Record<Locale, readonly (keyof Localised)[]> = {
   en: ['en', 'th', 'zh'],
   th: ['th', 'en', 'zh'],
   zh: ['zh', 'en', 'th'],
@@ -104,7 +104,7 @@ const FALLBACK: Record<Locale, readonly (keyof Bilingual)[]> = {
 export const isLocale = (v: unknown): v is Locale => v === 'en' || v === 'th' || v === 'zh';
 
 /**
- * What the phone speaks, reduced to the two languages the app has.
+ * What the phone speaks, reduced to the three languages the app supports.
  *
  * Reads `Intl` rather than a native module because it is the one answer
  * available on every platform this runs on - Hermes ships it - and because a
@@ -167,24 +167,22 @@ async function persist(locale: Locale): Promise<void> {
 }
 
 /**
- * Resolve the language once at start-up: the stored choice, else English.
+ * Resolve the language once at start-up: the stored choice, else the phone.
  *
- * NOT the phone's language any more. The pitch and the pilot are read by
- * judges, partners and hosts who do not all read Thai, and a screen that
- * opens in a language somebody cannot read is a screen they close. A Thai
- * speaker changes it in one tap on Account and the choice is remembered, so
- * the cost falls on the person who has somewhere to go and not on the person
- * who does not.
+ * A saved choice always wins. On a first launch the phone has already told us
+ * which of the three supported languages its owner reads, so making everybody
+ * find the language switcher in English was an accessibility failure rather
+ * than a neutral default. Unsupported phone languages still resolve to
+ * English in `deviceLocale()`.
  *
- * `deviceLocale()` is deliberately still used elsewhere: `state/store.tsx`
- * registers the device with the phone's REAL language, because that is what
- * decides which language a notification arrives in. Forcing that to English
- * would push English at Thai speakers on their own phones, which is a
- * different question from what the app opens in.
+ * Persisting the first answer makes start-up deterministic after the first
+ * run, and gives an explicit choice made later with `setLocale()` the same
+ * precedence on every subsequent launch.
  */
-export async function loadLocale(): Promise<Locale> {
+export async function loadLocale(deviceTags?: readonly string[]): Promise<Locale> {
   const stored = await readStored();
-  current = stored ?? 'en';
+  current = stored ?? deviceLocale(deviceTags);
+  if (!stored) await persist(current);
   listeners.forEach((l) => l());
   return current;
 }

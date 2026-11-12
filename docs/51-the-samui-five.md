@@ -83,7 +83,7 @@ horns.
 ## The reference art
 
 `docs/assets/mascots/*.jpg`, five files, 720×960, downsized from the
-1086×1448 images the team sent. Supplied by the ChivaGo team in chat on
+1086×1448 images the team sent. Supplied by the ChivarGo team in chat on
 8 September 2026. **Not shipped in the app** — the app renders its own
 primitives — the images are here so the models can be checked against them.
 

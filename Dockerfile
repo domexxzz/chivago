@@ -1,4 +1,4 @@
-# ChivaGo: the API and the web app it serves, in one image.
+# ChivarGo: the API and the web app it serves, in one image.
 #
 # ONE ORIGIN, for the same reason the tunnel does it: the browser talks to the
 # host it was loaded from, so there is no CORS, no second deploy, and no build

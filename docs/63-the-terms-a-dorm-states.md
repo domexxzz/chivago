@@ -9,17 +9,17 @@ Prepared for Yoshi on 4 October 2026 against `main b65bb7b`, after
 not the implementation baseline.
 
 Students should see **สิ่งที่หอระบุ** about rent, deposits and utilities before
-asking a question. ChivaGo passes that question to the operator and shows the
+asking a question. ChivarGo passes that question to the operator and shows the
 operator's answer. A sourced comparison may say **เกินเกณฑ์ในประกาศ**; it does
 not certify a business or decide its legal liability. There is no booking,
-deposit collection or payment through ChivaGo.
+deposit collection or payment through ChivarGo.
 
 This document is the first deliverable. It proposes technical decisions, not
 implemented tables, endpoints, screens or legal rules.
 
 The labels distinguish the sources of a statement:
 
-- **Stated:** a requirement in the supplied *dorm × ChivaGo* brief.
+- **Stated:** a requirement in the supplied *dorm × ChivarGo* brief.
 - **Observed:** checked in the repository or the explicitly identified source.
 - **Inference / proposed decision:** the design author's recommendation, for review.
 - **Unknown / pending:** an answer that the repository or research did not establish.
@@ -277,7 +277,7 @@ Water / ค่าน้ำ: [mode, amount and calculation basis or หอไม�
 Deposit return / คืนเงินประกัน: [days and day kind or หอไม่ได้ระบุ]
 Declaration revision/date; historical/current label
 Comparison reason or named missing information; comparison date; source link
-ChivaGo has not verified these declarations / ChivaGo ยังไม่ได้ตรวจสอบข้อมูลที่หอระบุ
+ChivarGo has not verified these declarations / ChivarGo ยังไม่ได้ตรวจสอบข้อมูลที่หอระบุ
 Ask a question / ส่งคำถาม
 Existing not-a-booking notice
 ```
@@ -301,7 +301,7 @@ existing demo replies are explicitly seeded example history.
 
 1. No feature identifies who lives at which dorm. No resident directory,
    tenancy status, room assignment or dorm link on a student's profile.
-2. No booking, deposit collection or money through ChivaGo.
+2. No booking, deposit collection or money through ChivarGo.
 3. No dorm reviews, named-business ratings or review publishing flow.
 4. No real dorm seed data without that business's agreement. Fictional
    demos must carry the example label everywhere the business appears.

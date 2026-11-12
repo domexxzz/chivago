@@ -917,7 +917,7 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
   /*
     Side A: reviewing a file a partner who already files sends in.
 
-    Moderator only. This is ChivaGo's own judgement applied to somebody
+    Moderator only. This is ChivarGo's own judgement applied to somebody
     else's data, not a self-service check a host runs on themselves - and the
     page it produces is a REVIEW, never a statement. See
     `packages/core/src/declared.ts` for why that distinction is the feature.

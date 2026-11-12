@@ -173,9 +173,10 @@ describe('what the phone is told when the server says no', () => {
     assert.match(toasts[0]!, /over 25 MB/);
   });
 
-  test('any other refusal still carries the server’s reason', async () => {
+  test('a quota refusal uses the translated registry', async () => {
     const toasts = await tell(refuses('STORY_QUOTA', 'That is 3 stories today already. Tomorrow is another day.'));
-    assert.match(toasts[0]!, /3 stories today/);
+    assert.equal(toasts[0], 'The story limit has been reached for now.');
+    assert.doesNotMatch(toasts[0]!, /3 stories today/, 'the raw server message reached the toast');
   });
 });
 
@@ -333,7 +334,7 @@ describe('adding a moment from the map', () => {
     ui.unmount();
   });
 
-  test('a refusal carries the server’s own sentence, not a thank-you', async () => {
+  test('a refusal carries translated safe copy, not a thank-you', async () => {
     __setAreaForTests('samui');
     control.camera = clip as typeof control.camera;
     const toasts: string[] = [];
@@ -345,7 +346,8 @@ describe('adding a moment from the map', () => {
     await ui.pressText(/Add your moment/);
     await settle();
     assert.equal(toasts.length, 1);
-    assert.match(toasts[0]!, /3 stories today/);
+    assert.equal(toasts[0], 'The story limit has been reached for now.');
+    assert.doesNotMatch(toasts[0]!, /3 stories today/, 'the raw server message reached the toast');
     assert.doesNotMatch(toasts[0]!, /Thank you/, 'a refused clip was thanked for');
     ui.unmount();
   });

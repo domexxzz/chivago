@@ -205,7 +205,7 @@ export function statementPage(args: {
       <!--
         Recorded FROM a signed report the firm supplied, not signed here. The
         channel is on the public page beside every conclusion, so a reader
-        knows a ChivaGo hand typed it.
+        knows a ChivarGo hand typed it.
       -->
       <p class="note">${esc(COUNTERSIGNATURE_LIMIT.en)}
         <span lang="th">${esc(COUNTERSIGNATURE_LIMIT.th)}</span></p>
@@ -473,7 +473,7 @@ export function verifyPage(
 ): string {
   const headline = statementHeadline(s);
   const body = html`
-    <p class="kicker">ChivaGo · Statement of verified activity · รายการกิจกรรมที่ตรวจผ่าน</p>
+    <p class="kicker">ChivarGo · Statement of verified activity · รายการกิจกรรมที่ตรวจผ่าน</p>
     <h1>${esc(s.host.name)}</h1>
     <p class="lede"><strong>${esc(s.period.from)} → ${esc(s.period.to)}</strong> · <code>${esc(s.id)}</code></p>
     <p class="lede">${esc(headline.en)} <span lang="th">${esc(headline.th)}</span></p>
@@ -512,7 +512,7 @@ export function verifyPage(
 
 export function statementMissingPage(locale: Locale, id: string): string {
   const body = html`
-    <p class="kicker">ChivaGo · Statement of verified activity</p>
+    <p class="kicker">ChivarGo · Statement of verified activity</p>
     <h1>No statement has this id</h1>
     <p class="lede"><code>${esc(id)}</code></p>
     <p>

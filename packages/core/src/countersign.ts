@@ -77,11 +77,11 @@ export type SignatureChannel = 'entered_by_staff';
 
 export const CHANNEL_LABEL: Record<SignatureChannel, Bilingual> = {
   entered_by_staff: {
-    en: 'Entered by ChivaGo staff from a signed report supplied by the firm. '
+    en: 'Entered by ChivarGo staff from a signed report supplied by the firm. '
       + 'The signer did not enter it here.',
-    th: 'บันทึกโดยทีมงาน ChivaGo จากรายงานที่ลงนามแล้วซึ่งสำนักงานส่งมา '
+    th: 'บันทึกโดยทีมงาน ChivarGo จากรายงานที่ลงนามแล้วซึ่งสำนักงานส่งมา '
       + 'ผู้ลงนามไม่ได้เป็นผู้กรอกในระบบนี้',
-    zh: '由 ChivaGo 工作人员根据该事务所提供的已签署报告录入。'
+    zh: '由 ChivarGo 工作人员根据该事务所提供的已签署报告录入。'
       + '签署方并未在本系统中录入。',
   },
 };
@@ -142,13 +142,13 @@ export function signatureNote(sig: Countersignature, standing: SignatureStanding
   }
   return {
     en: `${firm} states it performed ${STANDARD_LABEL[sig.standard].en} on this record and reached `
-      + `a ${OPINION_LABEL[sig.opinion].en.toLowerCase()} conclusion. ChivaGo did not perform it and `
+      + `a ${OPINION_LABEL[sig.opinion].en.toLowerCase()} conclusion. ChivarGo did not perform it and `
       + 'has not verified the firm’s accreditation.',
     th: `${firm} ระบุว่าได้ปฏิบัติงาน ${STANDARD_LABEL[sig.standard].th} กับเอกสารฉบับนี้ `
-      + `และให้ข้อสรุป${OPINION_LABEL[sig.opinion].th} ChivaGo ไม่ได้เป็นผู้ปฏิบัติงาน `
+      + `และให้ข้อสรุป${OPINION_LABEL[sig.opinion].th} ChivarGo ไม่ได้เป็นผู้ปฏิบัติงาน `
       + 'และไม่ได้ตรวจสอบการขึ้นทะเบียนของสำนักงาน',
     zh: `${firm} 声称其对本记录执行了${STANDARD_LABEL[sig.standard].zh}，`
-      + `并得出${OPINION_LABEL[sig.opinion].zh}。ChivaGo 不是执行方，`
+      + `并得出${OPINION_LABEL[sig.opinion].zh}。ChivarGo 不是执行方，`
       + '也未核实该事务所的资质登记。',
   };
 }
@@ -160,11 +160,11 @@ export function signatureNote(sig: Countersignature, standing: SignatureStanding
  * the unmodified ones, and especially those.
  */
 export const COUNTERSIGNATURE_LIMIT: Bilingual = {
-  en: 'ChivaGo records this conclusion; it does not make it, check the firm’s accreditation, '
+  en: 'ChivarGo records this conclusion; it does not make it, check the firm’s accreditation, '
     + 'or change any figure in the statement. The statement says exactly what it said before.',
-  th: 'ChivaGo เป็นผู้บันทึกข้อสรุปนี้ ไม่ได้เป็นผู้ให้ข้อสรุป ไม่ได้ตรวจสอบการขึ้นทะเบียนของสำนักงาน '
+  th: 'ChivarGo เป็นผู้บันทึกข้อสรุปนี้ ไม่ได้เป็นผู้ให้ข้อสรุป ไม่ได้ตรวจสอบการขึ้นทะเบียนของสำนักงาน '
     + 'และไม่ได้เปลี่ยนตัวเลขใดในเอกสาร เอกสารยังคงระบุสิ่งเดิมทุกประการ',
-  zh: 'ChivaGo 只是记录此项结论；它既不出具该结论，也不核实该事务所的资质登记，'
+  zh: 'ChivarGo 只是记录此项结论；它既不出具该结论，也不核实该事务所的资质登记，'
     + '更不会改动报表中的任何数字。报表所述的内容与此前完全一致。',
 };
 

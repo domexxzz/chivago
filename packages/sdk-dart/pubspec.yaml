@@ -1,5 +1,5 @@
 name: chivago
-description: Dart client for the ChivaGo API. Written against contract/api-contract.json.
+description: Dart client for the ChivarGo API. Written against contract/api-contract.json.
 version: 0.1.0
 publish_to: none
 

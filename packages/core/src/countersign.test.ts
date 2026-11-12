@@ -65,9 +65,9 @@ describe('what the platform says by carrying it', () => {
     // claim, so the firm is the grammatical subject.
     const said = signatureNote(sig(), 'applies');
     assert.ok(said.en.startsWith('Andaman Assurance states'), said.en);
-    assert.match(said.en, /ChivaGo did not perform it/);
+    assert.match(said.en, /ChivarGo did not perform it/);
     assert.match(said.en, /has not verified the firm’s accreditation/);
-    assert.match(said.th, /ChivaGo ไม่ได้เป็นผู้ปฏิบัติงาน/);
+    assert.match(said.th, /ChivarGo ไม่ได้เป็นผู้ปฏิบัติงาน/);
   });
 
   test('the limit ships with every signature, including the clean ones', () => {

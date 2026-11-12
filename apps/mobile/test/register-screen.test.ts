@@ -11,14 +11,28 @@ import { __setLocaleForTests } from '../src/i18n/locale.ts';
 beforeEach(() => { __setLocaleForTests('th'); });
 afterEach(() => { __setLocaleForTests('en'); });
 
-describe('Chivargo RegisterScreen', () => {
+describe('ChivarGo RegisterScreen', () => {
+  it('renders Chinese role selection and registration actions', async () => {
+    __setLocaleForTests('zh');
+    const ui = await mountScreen(h(RegisterScreen, {}));
+    const out = ui.text();
+    assert.match(out, /创建 ChivarGo 账户/);
+    assert.match(out, /注册身份/);
+    assert.match(out, /旅行者/);
+    assert.match(out, /商家/);
+    assert.match(out, /使用 Google 注册/);
+    assert.match(out, /使用 LINE 注册/);
+    assert.doesNotMatch(out, /ลงทะเบียนในฐานะ/);
+    ui.unmount();
+  });
+
   it('renders branding, headings, 5 form fields, and action buttons', async () => {
     const ui = await mountScreen(h(RegisterScreen, {}));
     const text = ui.text();
 
     assert.match(text, /เดินทางไปด้วยกันให้ไกลกว่าเดิม/);
     assert.match(text, /สมัครสมาชิก/);
-    assert.match(text, /เริ่มต้นการเดินทางไปด้วยกันกับ Chivargo/);
+    assert.match(text, /เริ่มสะสมประสบการณ์ทั่วไทย/);
     assert.match(text, /ลงทะเบียนในฐานะ/);
     assert.match(text, /นักท่องเที่ยว/);
     assert.match(text, /ผู้ประกอบการ/);
@@ -194,7 +208,7 @@ describe('Chivargo RegisterScreen', () => {
 
     await ui.press(/สมัครด้วย Google/);
     assert.match(ui.text(), /สมัครด้วย Google/);
-    assert.match(ui.text(), /กำลังอยู่ในช่วงเตรียมความพร้อมสำหรับการอัปเดตเวอร์ชันถัดไป/);
+    assert.match(ui.text(), /เซิร์ฟเวอร์นี้ยังไม่ได้เปิดใช้งานการสมัครด้วย Google/);
     await ui.pressText(/ตกลง/);
 
     await ui.press(/สมัครด้วย LINE/);

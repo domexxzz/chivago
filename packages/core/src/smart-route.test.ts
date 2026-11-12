@@ -8,7 +8,7 @@ import {
 } from './smart-route.ts';
 
 const wp = (id: string, lat: number, lng: number, island = false): Waypoint =>
-  ({ id, name: { en: id, th: id }, lat, lng, ...(island ? { island: true } : {}) });
+  ({ id, name: { en: id, th: id, zh: id }, lat, lng, ...(island ? { island: true } : {}) });
 
 // Real Samui coordinates, so the distances mean something.
 const CHAWENG = wp('chaweng', 9.5357, 100.0617);
