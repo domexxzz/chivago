@@ -105,13 +105,18 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   // A fair's market (docs/66) is a card on Home, so Home stays lit behind it.
   fair: 'home',
   quests: 'quests', quest: 'quests',
+  // The mini-games are cards on the Quests screen now, not on the Game tab, so
+  // Quests is what owns them. Left as `game` this lit the Game tab while the
+  // reader was in a game they opened from Quests, and back popped them to a
+  // tab they had not been on.
+  miniGame: 'quests',
   // The wallet kept its screen and lost its tab, so Home stays lit behind it -
   // the same place its door is.
   wallet: 'home', market: 'home', account: 'home',
   // The game layer, all of it, under one cell. This is the change: every one
   // of these used to hang off Home or the wallet, two or three taps down.
   game: 'game', companion: 'game', mascots: 'game', mascot: 'game', fashion: 'game', summon: 'game',
-  medals: 'game', passport: 'game', party: 'game', findParty: 'game', miniGame: 'game',
+  medals: 'game', passport: 'game', party: 'game', findParty: 'game',
   // The profile is the button at the top of Home.
   profile: 'home',
   editProfile: 'home', shopManage: 'home', shop: 'map', localPicks: 'home',
