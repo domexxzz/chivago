@@ -414,13 +414,18 @@ const PLANS: Record<string, Plan> = {
       { day: 1, places: ['sc-shops', 'sc-hospital'], mood: 'steady' },
       { day: 0, places: ['sc-hospital', 'sc-shops'], mood: 'bright' },
     ],
-    // All three of the island's quests. They are the team's own sample quests
-    // and say so in their names; the demo shows the mechanic, not a claim that
-    // somebody on the island ran them. 60 + 120 + 90 = 270 Green, which is
-    // what the Marketplace check spends.
-    verifiedQuests: ['q-sc-dropoff', 'q-sc-beach', 'q-sc-litter'],
-    secondQuest: 'q-sc-beach',
-    statementQuest: 'q-sc-dropoff',
+    // All five of the island's quests, from the field guide of 12 November.
+    // They are the team's own sample quests and say so in their names; the
+    // demo shows the mechanic, not a claim that somebody on the island ran
+    // them. 120 + 90 + 120 + 90 + 120 = 540 Green, which is what the
+    // Marketplace check spends.
+    verifiedQuests: [
+      'q-sc-explorer', 'q-sc-recipe', 'q-sc-trash-hero', 'q-sc-treasure', 'q-sc-green-journey',
+    ],
+    secondQuest: 'q-sc-explorer',
+    // The statement is issued against the waste quest, because that is the one
+    // with a pillar an ESG report reads and a figure a host weighed.
+    statementQuest: 'q-sc-trash-hero',
     secondDays: [
       { day: 3, places: ['sc-shops'] },
       { day: 2, places: ['sc-hospital', 'sc-shops'] },

@@ -87,12 +87,24 @@ describe('Koh Sichang', () => {
     }
   });
 
-  test('the sample waste quests are the team\'s, environmental, and say they are samples', () => {
+  test('the five sample quests are the team\'s, pillared, and say they are samples', () => {
     const quests = SEED_QUESTS.filter((q) => inArea(area, q));
-    assert.deepEqual(quests.map((q) => q.id).sort(), ['q-sc-beach', 'q-sc-dropoff', 'q-sc-litter']);
+    assert.deepEqual(
+      quests.map((q) => q.id).sort(),
+      ['q-sc-explorer', 'q-sc-green-journey', 'q-sc-recipe', 'q-sc-trash-hero', 'q-sc-treasure'],
+    );
+    // Not all environmental any more. The field guide of 12 November put three
+    // of the five on the shop and heritage side, and an ESG report excludes an
+    // unpillared quest rather than guessing - so what matters here is that
+    // every one of them declares, and that the waste quest is still the
+    // environmental one.
+    assert.equal(
+      quests.find((q) => q.id === 'q-sc-trash-hero')?.esgPillar, 'environmental',
+      'the waste quest stopped reporting as environmental',
+    );
     for (const q of quests) {
       assert.equal(q.host.id, SEED_HOSTS.sichangTeam!.id, 'the municipality has not agreed to host');
-      assert.equal(q.esgPillar, 'environmental');
+      assert.ok(q.esgPillar, `${q.id} declares no ESG pillar, so a report would exclude it`);
       assert.equal(q.rewardCurrency, 'green');
       assert.match(q.name.th, /ตัวอย่าง/);
       assert.match(q.name.en, /sample/i);
@@ -122,10 +134,11 @@ describe('Koh Sichang', () => {
   });
 
   test('the island\'s quests come to the total the demo is seeded against', () => {
-    // Read off the work: 15 min for 60, 45 for 120, 30 for 90. Pinned because
-    // the demo's Marketplace walk depends on the total, and a quiet edit to a
-    // reward would move it without anything else noticing.
+    // Read off the work, at the rate the three quests before these set: 60 min
+    // for 120, 45 for 120, 30 for 90. Pinned because the demo's Marketplace
+    // walk depends on the total, and a quiet edit to a reward would move it
+    // without anything else noticing.
     const quests = SEED_QUESTS.filter((q) => inArea(area, q));
-    assert.equal(quests.reduce((sum, q) => sum + q.rewardPoints, 0), 270);
+    assert.equal(quests.reduce((sum, q) => sum + q.rewardPoints, 0), 540);
   });
 });

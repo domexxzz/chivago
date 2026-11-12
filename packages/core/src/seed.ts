@@ -1093,60 +1093,58 @@ export const SEED_QUESTS: Quest[] = [
     lat: 13.8413167, lng: 100.5747727, geofenceRadiusM: 100,
   },
   /*
-    Koh Sichang's two waste quests, for the field trial of the Spark Hack
-    proposal (docs/68). SAMPLES, and named so: the team hosts and verifies
-    them itself, because no shop or the municipality has agreed to yet. The
-    Data Pack says the island's bottleneck is waste reaching the incinerator
-    unsorted, so the first asks a day-tripper to bring theirs sorted to the
-    pier before the boat home.
+    Koh Sichang's five quests, from the field guide of 12 November 2026
+    ("Chiva Go x Sichang - 5 เควส"), which replaced the three waste samples
+    that stood here before it. The guide is a DESIGN, not a report: it says so
+    on every page, and its own XP column calls itself a proposal rather than a
+    measured value.
+
+    Still SAMPLES, and still named so in all three languages. The team hosts
+    and verifies them itself because no shop and not the municipality has
+    agreed to anything yet, and the day one of them does is the day the
+    "(ตัวอย่าง)" comes off that quest and nothing else changes.
+
+    What the guide asks for and this does NOT do: three check-ins inside one
+    quest, the ingredient game, the two-question knowledge check, the shop's
+    confirmation of a purchase, the route log. A quest here is still one
+    anchor, one geofence, one host pressing verify. The extra steps live in
+    the guide and in what the host checks, not in enforcement - which is the
+    honest shape for a sample whose hosts are us.
+
+    Green, not the guide's XP, and inside the band the rest of the island's
+    quests already use: the beach rate was 120 for forty-five minutes, the
+    pier drop-off 60 for fifteen. These sit between those, lower per minute as
+    they get longer, exactly as the three they replace did. 540 Green across
+    the five, which keeps the cheapest Green reward in the marketplace (250)
+    reachable from quests alone.
   */
   {
-    id: 'q-sc-dropoff',
-    esgPillar: 'environmental',
+    id: 'q-sc-explorer',
+    esgPillar: 'social',
     code: 'SC-01',
-    name: { en: 'Bring your waste back sorted (sample)', th: 'นำขยะที่แยกแล้วมาส่งที่ท่าเรือ (ตัวอย่าง)', zh: '把分类好的垃圾带回来（示例）' },
-    where: { en: 'Tha Lang pier, Koh Sichang', th: 'ท่าเรือท่าล่าง เกาะสีชัง', zh: '塔朗码头，锡昌岛' },
-    duration: { en: '15 min', th: '15 นาที', zh: '15 分钟' },
-    rewardPoints: 60, rewardCurrency: 'green',
-    host: SEED_HOSTS.sichangTeam!, kind: 'today',
-    lat: 13.161443, lng: 100.810441, geofenceRadiusM: 120,
-  },
-  {
-    id: 'q-sc-beach',
-    esgPillar: 'environmental',
-    code: 'SC-02',
-    name: { en: 'Tham Phang beach clean-up (sample)', th: 'เก็บขยะหาดถ้ำพัง (ตัวอย่าง)', zh: '探蓬海滩清洁（示例）' },
-    where: { en: 'Tham Phang Beach, Koh Sichang', th: 'หาดถ้ำพัง เกาะสีชัง', zh: '探蓬海滩，锡昌岛' },
-    duration: { en: '45 min', th: '45 นาที', zh: '45 分钟' },
+    name: {
+      en: 'Sichang Explorer (sample)',
+      th: 'นักสำรวจเกาะสีชัง (ตัวอย่าง)',
+      zh: '锡昌岛探索者（示例）',
+    },
+    where: {
+      en: 'Phra Chudadhuj Palace, Koh Sichang',
+      th: 'พระจุฑาธุชราชฐาน เกาะสีชัง',
+      zh: '朱他度皇家行宫，锡昌岛',
+    },
+    duration: { en: '60 min', th: '60 นาที', zh: '60 分钟' },
     rewardPoints: 120, rewardCurrency: 'green',
     host: SEED_HOSTS.sichangTeam!, kind: 'today',
-    lat: 13.1454, lng: 100.806835, geofenceRadiusM: 120,
+    lat: 13.1504555, lng: 100.8180568, geofenceRadiusM: 120,
   },
   {
-    /*
-      The third sample, added 7 November 2026.
-
-      The stretch between the pier and the shop row is the first thing every
-      day-tripper walks and the first thing they photograph, which is the
-      deck's whole argument in one place: the good things are still there,
-      with litter in front of them. It is public road, so this needs nobody's
-      permission - not the municipality's and not a shop's - which is why it
-      can be a sample the team hosts without implying anybody has signed up.
-
-      90 Green for thirty minutes, read off the two quests above rather than
-      off the price of anything: carrying your own sorted waste to the pier is
-      fifteen minutes for 60, the beach is forty-five for 120, and picking a
-      roadside is nearer the beach in effort than the drop-off. Thirty minutes
-      at the beach's rate is 80; 90 rounds it to the work, and the island's
-      three quests then come to 270 Green in total.
-    */
-    id: 'q-sc-litter',
-    esgPillar: 'environmental',
-    code: 'SC-03',
+    id: 'q-sc-recipe',
+    esgPillar: 'social',
+    code: 'SC-02',
     name: {
-      en: 'Clear the walk from the pier to the shops (sample)',
-      th: 'เก็บขยะริมทางจากท่าเรือถึงย่านร้านค้า (ตัวอย่าง)',
-      zh: '清理码头到商铺街的步道（示例）',
+      en: 'Secret Recipe (sample)',
+      th: 'ตามล่ารสชาติสีชัง (ตัวอย่าง)',
+      zh: '寻味锡昌（示例）',
     },
     where: {
       en: 'Shop row by Tha Lang pier, Koh Sichang',
@@ -1157,6 +1155,77 @@ export const SEED_QUESTS: Quest[] = [
     rewardPoints: 90, rewardCurrency: 'green',
     host: SEED_HOSTS.sichangTeam!, kind: 'today',
     lat: 13.160059, lng: 100.809817, geofenceRadiusM: 120,
+  },
+  {
+    /*
+      The waste quest the three samples before it collapse into. Tham Phang is
+      kept as its anchor because it is the one of the three with a beach to
+      clean, and 120 for forty-five minutes is that quest's own old rate,
+      carried over unchanged.
+    */
+    id: 'q-sc-trash-hero',
+    esgPillar: 'environmental',
+    code: 'SC-03',
+    name: {
+      en: 'Trash Hero (sample)',
+      th: 'ฮีโร่พิทักษ์เกาะ (ตัวอย่าง)',
+      zh: '海岛垃圾英雄（示例）',
+    },
+    where: {
+      en: 'Tham Phang Beach, Koh Sichang',
+      th: 'หาดถ้ำพัง เกาะสีชัง',
+      zh: '探蓬海滩，锡昌岛',
+    },
+    duration: { en: '45 min', th: '45 นาที', zh: '45 分钟' },
+    rewardPoints: 120, rewardCurrency: 'green',
+    host: SEED_HOSTS.sichangTeam!, kind: 'today',
+    lat: 13.1454, lng: 100.806835, geofenceRadiusM: 120,
+  },
+  {
+    id: 'q-sc-treasure',
+    esgPillar: 'social',
+    code: 'SC-04',
+    name: {
+      en: 'Local Treasure (sample)',
+      th: 'ตามล่าของดีสีชัง (ตัวอย่าง)',
+      zh: '寻找锡昌好物（示例）',
+    },
+    where: {
+      en: 'Tha Lang pier, Koh Sichang',
+      th: 'ท่าเรือท่าล่าง เกาะสีชัง',
+      zh: '塔朗码头，锡昌岛',
+    },
+    duration: { en: '30 min', th: '30 นาที', zh: '30 分钟' },
+    rewardPoints: 90, rewardCurrency: 'green',
+    host: SEED_HOSTS.sichangTeam!, kind: 'today',
+    lat: 13.161443, lng: 100.810441, geofenceRadiusM: 120,
+  },
+  {
+    id: 'q-sc-green-journey',
+    esgPillar: 'environmental',
+    code: 'SC-05',
+    name: {
+      en: 'Green Journey (sample)',
+      th: 'เที่ยวเกาะอย่างใส่ใจ (ตัวอย่าง)',
+      zh: '用心游岛（示例）',
+    },
+    /*
+      Anchored at the Cholatassathan museum, not at the hill shrine the field
+      guide pictures. The shrine is one of the six landmarks the Ko Sichang
+      bootstrap inserts at run time, so it is not in SEED_PLACES - and a quest
+      whose pin sits on no mapped place is a pin nobody can walk to. The
+      museum is east-coast and a real end for a walk or a bicycle, which is
+      what this quest is about.
+    */
+    where: {
+      en: 'Cholatassathan Museum, Koh Sichang',
+      th: 'พิพิธภัณฑ์ชลทัศนสถาน เกาะสีชัง',
+      zh: '乔拉塔沙坦博物馆，锡昌岛',
+    },
+    duration: { en: '60 min', th: '60 นาที', zh: '60 分钟' },
+    rewardPoints: 120, rewardCurrency: 'green',
+    host: SEED_HOSTS.sichangTeam!, kind: 'today',
+    lat: 13.1521963, lng: 100.8147057, geofenceRadiusM: 120,
   },
 ];
 
