@@ -41,7 +41,7 @@ export type ScreenKey =
   | 'login' | 'register' | 'onboarding' | 'home' | 'map' | 'place' | 'quests' | 'quest'
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
   | 'companion' | 'passport' | 'account' | 'party' | 'findParty' | 'game'
-  | 'mascots' | 'mascot' | 'profile' | 'medals' | 'stays' | 'fair'
+  | 'mascots' | 'mascot' | 'fashion' | 'profile' | 'medals' | 'stays' | 'fair'
   | 'summon' | 'editProfile' | 'shop' | 'shopManage' | 'localPicks' | 'miniGame';
 
 /**
@@ -110,7 +110,7 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   wallet: 'home', market: 'home', account: 'home',
   // The game layer, all of it, under one cell. This is the change: every one
   // of these used to hang off Home or the wallet, two or three taps down.
-  game: 'game', companion: 'game', mascots: 'game', mascot: 'game', summon: 'game',
+  game: 'game', companion: 'game', mascots: 'game', mascot: 'game', fashion: 'game', summon: 'game',
   medals: 'game', passport: 'game', party: 'game', findParty: 'game', miniGame: 'game',
   // The profile is the button at the top of Home.
   profile: 'home',

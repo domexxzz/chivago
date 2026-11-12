@@ -42,6 +42,7 @@ const GAME_LAYER = [
   'CompanionHome.tsx',
   'MascotRoom.tsx',
   'MascotsScreen.tsx',
+  'FashionScreen.tsx',
   'MedalsScreen.tsx',
   'PassportScreen.tsx',
   'PartyScreen.tsx',

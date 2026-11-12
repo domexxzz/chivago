@@ -35,7 +35,7 @@
 
 import React from 'react';
 import { Image, Modal, Pressable, ScrollView, Text, useWindowDimensions, View, type ImageSourcePropType } from 'react-native';
-import { ChevronRight, Map as MapIcon, Sparkles, X } from 'lucide-react-native';
+import { Backpack, ChevronRight, Map as MapIcon, PawPrint, Shirt, Sparkles, X, type LucideIcon } from 'lucide-react-native';
 import collectMedal from '../../assets/collect-medal-v1.png';
 import collectPassport from '../../assets/collect-passport-v1.png';
 import collectFriends from '../../assets/collect-travel-friends-v1.png';
@@ -49,7 +49,6 @@ import {
   type Companion, type LayerKey, type Progression, type Species,
 } from '@chivago/core';
 import { gameRadius, gameShadow } from '@chivago/tokens';
-import { MINI_GAMES, type MiniGameKey } from '../games/index.ts';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, radius, shadow } from '../theme/index.ts';
@@ -79,7 +78,7 @@ export function nextUp(companions: Companion[]): Companion | null {
 
 export function GameScreen({
   onOpenCompanion, onOpenMascots, onOpenSummon, onOpenMedals, onOpenPassport, onOpenParty,
-  onOpenProfile, onOpenGame,
+  onOpenProfile, onOpenWallet, onOpenFashion,
 }: {
   onOpenCompanion: (companion: Companion) => void;
   onOpenMascots: () => void;
@@ -88,8 +87,8 @@ export function GameScreen({
   onOpenPassport: () => void;
   onOpenParty: () => void;
   onOpenProfile?: () => void;
-  /** Absent until the host wires it, which is how every door here arrived. */
-  onOpenGame?: (key: MiniGameKey) => void;
+  onOpenWallet: () => void;
+  onOpenFashion: () => void;
 }) {
   const held = useAsync(() => api.companions(), []);
   // Only the progression is read from the wallet. Its balances are the ledger
@@ -102,16 +101,14 @@ export function GameScreen({
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <Header progression={wallet.data?.progression ?? null} onOpenProfile={onOpenProfile} />
+      <Header
+        progression={wallet.data?.progression ?? null}
+        onOpenProfile={onOpenProfile}
+        onOpenWallet={onOpenWallet}
+        onOpenMascots={onOpenMascots}
+        onOpenFashion={onOpenFashion}
+      />
       <Doors onOpenMedals={onOpenMedals} onOpenPassport={onOpenPassport} onOpenParty={onOpenParty} />
-      {/*
-        Above the error and loading gates on purpose. A mini-game is a whole
-        document that ships with the app: it needs no account, no network and
-        nothing from `/companions`, so it is the one thing on this screen that
-        still works when the island's connection does not. Putting it below
-        the gate would hide the only playable thing left on a bad day.
-      */}
-      <MiniGameRow onOpenGame={onOpenGame} />
 
       {held.error ? <ErrorState message={held.error} onRetry={held.reload} /> : null}
       {held.loading && !data ? <LoadingState /> : null}
@@ -136,7 +133,15 @@ export function GameScreen({
 }
 
 /** The screen's name and the level, which is the game layer's own number. */
-function Header({ progression, onOpenProfile }: { progression: Progression | null; onOpenProfile?: () => void }) {
+function Header({
+  progression, onOpenProfile, onOpenWallet, onOpenMascots, onOpenFashion,
+}: {
+  progression: Progression | null;
+  onOpenProfile?: () => void;
+  onOpenWallet: () => void;
+  onOpenMascots: () => void;
+  onOpenFashion: () => void;
+}) {
   return (
     <View style={{
       paddingHorizontal: gutter,
@@ -167,8 +172,44 @@ function Header({ progression, onOpenProfile }: { progression: Progression | nul
           <ProfileButton onPress={onOpenProfile} />
         </View>
       </View>
-      {progression ? <View style={{ alignSelf: 'flex-start', marginTop: 10, paddingVertical: 5, paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.94)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }}><Label size={9} tracking={0.08} colour="#08748A">{t(strings.profile.levelChip(progression.level, progression.exp))}</Label></View> : null}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 11 }}>
+        {progression ? <View style={{ flexShrink: 0, paddingVertical: 5, paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.94)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }}><Label size={9} tracking={0.08} colour="#08748A">{t(strings.profile.levelChip(progression.level, progression.exp))}</Label></View> : null}
+        <HeaderAction icon={Backpack} label="My Backpack" onPress={onOpenWallet} />
+        <HeaderAction icon={PawPrint} label="Mascot" onPress={onOpenMascots} />
+        <HeaderAction icon={Shirt} label="Fashion" onPress={onOpenFashion} />
+      </View>
     </View>
+  );
+}
+
+function HeaderAction({
+  icon: Icon, label, onPress,
+}: { icon: LucideIcon; label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => ({
+        flex: 1,
+        minWidth: 0,
+        minHeight: 44,
+        paddingHorizontal: 8,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.52)',
+        backgroundColor: pressed ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.20)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+      })}
+    >
+      <Icon size={17} color="#FFFFFF" strokeWidth={2.1} />
+      <Text numberOfLines={2} style={{ flexShrink: 1, color: '#FFFFFF', fontSize: 11, lineHeight: 14, fontWeight: '700', textAlign: 'center' }}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -216,65 +257,6 @@ function Door({
         <Text numberOfLines={2} style={{ color: '#082E53', fontSize: 12, lineHeight: 16, fontWeight: '800', textAlign: 'center' }}>{label}</Text>
       </View>
     </Pressable>
-  );
-}
-
-/**
- * The mini-games, one card each.
- *
- * WHY THE APP'S OWN TYPE AND COLOUR rather than the artwork inside the game.
- * The waste-sorting page has a mascot on it - ชังชัง, a white squirrel - and
- * putting that character on a card here would make it part of ChivarGo's own
- * furniture. The app already has companions and mascots of its own, and
- * whether a second family joins them is a decision about the brand that
- * nobody has made. So the card speaks in the app's voice and shows the game's
- * four bins as four swatches, which is also a better preview of the game than
- * a portrait of its narrator.
- *
- * Nothing on this card is a claim. A mini-game awards no balance, no medal
- * and no progress: its score lives and dies inside its own document, and
- * `src/games/index.ts` says why at length.
- */
-function MiniGameRow({ onOpenGame }: { onOpenGame?: (key: MiniGameKey) => void }) {
-  if (!onOpenGame) return null;
-  return (
-    <View style={{ paddingHorizontal: gutter, paddingTop: 12, gap: 10 }}>
-      {MINI_GAMES.map((game) => (
-        <Pressable
-          key={game.key}
-          onPress={() => onOpenGame(game.key)}
-          accessibilityRole="button"
-          accessibilityLabel={t(game.name)}
-          style={[
-            gameShadow.lift,
-            {
-              backgroundColor: color.surface,
-              borderRadius: gameRadius.panel,
-              borderWidth: 1,
-              borderColor: 'rgba(13,88,122,.08)',
-              padding: 14,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 14,
-            },
-          ]}
-        >
-          <View style={{ width: 46, height: 46, flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
-            {game.swatches.map((fill) => (
-              <View key={fill} style={{ width: 21, height: 21, borderRadius: 7, backgroundColor: fill }} />
-            ))}
-          </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Label size={10} colour={color.neutral700}>
-              {t({ en: 'MINI GAME', th: 'มินิเกม', zh: '小游戏' })}
-            </Label>
-            <Body size={14} style={{ fontWeight: '800', marginTop: 2 }}>{t(game.name)}</Body>
-            <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>{t(game.blurb)}</Body>
-          </View>
-          <ChevronRight size={18} color={color.neutral700} strokeWidth={2} />
-        </Pressable>
-      ))}
-    </View>
   );
 }
 
