@@ -126,8 +126,8 @@ import { isPrimary } from './primary.ts';
 const db = openDb();
 if (isPrimary()) {
   const bootstrapped = bootstrapKohSichangBusinesses(db);
-  if (!bootstrapped.skipped && (bootstrapped.accountCreated || bootstrapped.shopsInserted > 0)) {
-    console.log('[chivago] Ko Sichang businesses bootstrapped:', bootstrapped);
+  if (!bootstrapped.skipped && (bootstrapped.accountCreated || bootstrapped.shopsInserted > 0 || bootstrapped.attractionsInserted > 0)) {
+    console.log('[chivago] Ko Sichang content bootstrapped:', bootstrapped);
   }
 }
 const app = new Hono<AppEnv>();
