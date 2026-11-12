@@ -43,6 +43,7 @@ import type { MiniGameKey } from './src/games/index.ts';
 import { PassportScreen } from './src/screens/PassportScreen.tsx';
 import { MascotsScreen } from './src/screens/MascotsScreen.tsx';
 import { MascotRoomScreen } from './src/screens/MascotRoom.tsx';
+import { FashionScreen } from './src/screens/FashionScreen.tsx';
 import { SummonScreen } from './src/screens/SummonScreen.tsx';
 import { AccountScreen } from './src/screens/AccountScreen.tsx';
 import { LoginScreen } from './src/screens/LoginScreen.tsx';
@@ -77,7 +78,7 @@ import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
  * would be a lie, and spending or editing needs an account to land on.
  */
 const GUEST_GATED: ReadonlySet<ScreenKey> = new Set<ScreenKey>([
-  'editProfile', 'wallet', 'market', 'account', 'shopManage',
+  'editProfile', 'wallet', 'market', 'account', 'shopManage', 'fashion',
 ]);
 
 export default function App() {
@@ -443,6 +444,8 @@ export default function App() {
             onOpenPassport={() => nav.push('passport')}
             onOpenParty={() => nav.push('party')}
             onOpenProfile={() => nav.push('profile')}
+            onOpenWallet={() => nav.push('wallet')}
+            onOpenFashion={() => nav.push('fashion')}
           />
         );
       case 'miniGame':
@@ -551,6 +554,9 @@ export default function App() {
 
       case 'mascot':
         return <MascotRoomScreen code={nav.code ?? 'TH-84'} onBack={nav.pop} />;
+
+      case 'fashion':
+        return <FashionScreen onBack={nav.pop} />;
 
       case 'summon':
         return <SummonScreen onBack={nav.pop} />;

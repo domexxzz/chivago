@@ -35,7 +35,7 @@
 
 import React from 'react';
 import { Image, Modal, Pressable, ScrollView, Text, useWindowDimensions, View, type ImageSourcePropType } from 'react-native';
-import { ChevronRight, Map as MapIcon, Sparkles, X } from 'lucide-react-native';
+import { Backpack, ChevronRight, Map as MapIcon, PawPrint, Shirt, Sparkles, X, type LucideIcon } from 'lucide-react-native';
 import collectMedal from '../../assets/collect-medal-v1.png';
 import collectPassport from '../../assets/collect-passport-v1.png';
 import collectFriends from '../../assets/collect-travel-friends-v1.png';
@@ -78,7 +78,7 @@ export function nextUp(companions: Companion[]): Companion | null {
 
 export function GameScreen({
   onOpenCompanion, onOpenMascots, onOpenSummon, onOpenMedals, onOpenPassport, onOpenParty,
-  onOpenProfile,
+  onOpenProfile, onOpenWallet, onOpenFashion,
 }: {
   onOpenCompanion: (companion: Companion) => void;
   onOpenMascots: () => void;
@@ -87,6 +87,8 @@ export function GameScreen({
   onOpenPassport: () => void;
   onOpenParty: () => void;
   onOpenProfile?: () => void;
+  onOpenWallet: () => void;
+  onOpenFashion: () => void;
 }) {
   const held = useAsync(() => api.companions(), []);
   // Only the progression is read from the wallet. Its balances are the ledger
@@ -99,7 +101,13 @@ export function GameScreen({
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <Header progression={wallet.data?.progression ?? null} onOpenProfile={onOpenProfile} />
+      <Header
+        progression={wallet.data?.progression ?? null}
+        onOpenProfile={onOpenProfile}
+        onOpenWallet={onOpenWallet}
+        onOpenMascots={onOpenMascots}
+        onOpenFashion={onOpenFashion}
+      />
       <Doors onOpenMedals={onOpenMedals} onOpenPassport={onOpenPassport} onOpenParty={onOpenParty} />
 
       {held.error ? <ErrorState message={held.error} onRetry={held.reload} /> : null}
@@ -125,7 +133,15 @@ export function GameScreen({
 }
 
 /** The screen's name and the level, which is the game layer's own number. */
-function Header({ progression, onOpenProfile }: { progression: Progression | null; onOpenProfile?: () => void }) {
+function Header({
+  progression, onOpenProfile, onOpenWallet, onOpenMascots, onOpenFashion,
+}: {
+  progression: Progression | null;
+  onOpenProfile?: () => void;
+  onOpenWallet: () => void;
+  onOpenMascots: () => void;
+  onOpenFashion: () => void;
+}) {
   return (
     <View style={{
       paddingHorizontal: gutter,
@@ -156,8 +172,44 @@ function Header({ progression, onOpenProfile }: { progression: Progression | nul
           <ProfileButton onPress={onOpenProfile} />
         </View>
       </View>
-      {progression ? <View style={{ alignSelf: 'flex-start', marginTop: 10, paddingVertical: 5, paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.94)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }}><Label size={9} tracking={0.08} colour="#08748A">{t(strings.profile.levelChip(progression.level, progression.exp))}</Label></View> : null}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 11 }}>
+        {progression ? <View style={{ flexShrink: 0, paddingVertical: 5, paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.94)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }}><Label size={9} tracking={0.08} colour="#08748A">{t(strings.profile.levelChip(progression.level, progression.exp))}</Label></View> : null}
+        <HeaderAction icon={Backpack} label="My Backpack" onPress={onOpenWallet} />
+        <HeaderAction icon={PawPrint} label="Mascot" onPress={onOpenMascots} />
+        <HeaderAction icon={Shirt} label="Fashion" onPress={onOpenFashion} />
+      </View>
     </View>
+  );
+}
+
+function HeaderAction({
+  icon: Icon, label, onPress,
+}: { icon: LucideIcon; label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => ({
+        flex: 1,
+        minWidth: 0,
+        minHeight: 44,
+        paddingHorizontal: 8,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.52)',
+        backgroundColor: pressed ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.20)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+      })}
+    >
+      <Icon size={17} color="#FFFFFF" strokeWidth={2.1} />
+      <Text numberOfLines={2} style={{ flexShrink: 1, color: '#FFFFFF', fontSize: 11, lineHeight: 14, fontWeight: '700', textAlign: 'center' }}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
