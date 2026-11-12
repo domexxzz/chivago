@@ -27,7 +27,7 @@ import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts
 import { gameHabitat, gameRadius, gameShadow } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
-import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
+import { OceanBackdrop, PushHeader, TravelHeroBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
@@ -42,7 +42,7 @@ export function PartyScreen({
   const data = party.data;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
+    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} contentContainerStyle={{ width: '100%', maxWidth: 760, alignSelf: 'center', paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
       <PushHeader context={t({ en: 'Travelling with', th: 'ไปกับใคร', zh: '与谁同行' })} onBack={onBack} />
 
       {party.error ? <ErrorState message={party.error} onRetry={party.reload} /> : null}
@@ -68,7 +68,7 @@ export function PartyScreen({
           )
       ) : null}
 
-      <View style={{ height: 32 }} />
+      <View style={{ height: 8 }} />
     </ScrollView>
   );
 }
@@ -121,11 +121,11 @@ function Alone({
     <>
       <View
         style={[shadow.card, {
-          margin: gutter, padding: 20, borderRadius: gameRadius.panel, backgroundColor: color.paper,
+          margin: gutter, padding: 20, borderRadius: 22, backgroundColor: color.paper,
           overflow: 'hidden',
         }]}
       >
-        <OceanBackdrop compact />
+        <TravelHeroBackdrop compact focalPoint="right" />
         <Label size={10} tracking={0.16} colour={color.brandSoft}>
           {t(PARTY_KIND_LABEL.solo).toUpperCase()}
         </Label>
@@ -134,8 +134,8 @@ function Alone({
         </Heading>
       </View>
 
-      <View style={{ paddingHorizontal: gutter }}>
-        <Body size={13} colour={color.neutral700}>{t({ en: 'A group does not share points — everyone keeps their own. What it adds is the count of provinces you have reached between you.', th: 'กลุ่มไม่แชร์แต้ม แต่ละคนได้ของตัวเอง สิ่งที่เพิ่มคือจำนวนจังหวัดที่ไปถึงรวมกัน', zh: '队伍不共享积分，每个人的积分都是自己的。队伍带来的，是你们一起走到过的府数。' })}</Body>
+      <View style={[shadow.card, { marginHorizontal: gutter, padding: 17, borderRadius: 20, backgroundColor: color.surface, borderWidth: 1, borderColor: '#DCEFF5' }]}>
+        <Label size={10} tracking={0.14} colour={color.brand}>{t({ en: 'CREATE A GROUP', th: 'สร้างกลุ่มเดินทาง', zh: '创建队伍' })}</Label><Body size={13} colour={color.neutral700} style={{ marginTop: 7 }}>{t({ en: 'A group does not share points — everyone keeps their own. What it adds is the count of provinces you have reached between you.', th: 'กลุ่มไม่แชร์แต้ม แต่ละคนได้ของตัวเอง สิ่งที่เพิ่มคือจำนวนจังหวัดที่ไปถึงรวมกัน', zh: '队伍不共享积分，每个人的积分都是自己的。队伍带来的，是你们一起走到过的府数。' })}</Body>
 
         {made === null ? (
           <Button
@@ -164,8 +164,8 @@ function Alone({
         )}
       </View>
 
-      <View style={{ paddingHorizontal: gutter, paddingTop: 26 }}>
-        <Label size={10} tracking={0.14}>{t({ en: 'Have a code?', th: 'มีรหัสอยู่แล้ว?', zh: '已经有代码了？' })}</Label>
+      <View style={[shadow.card, { marginHorizontal: gutter, marginTop: 12, padding: 17, borderRadius: 20, backgroundColor: color.surface, borderWidth: 1, borderColor: '#DCEFF5' }]}>
+        <Label size={10} tracking={0.14} colour={color.brand}>{t({ en: 'JOIN WITH A CODE', th: 'เข้าร่วมด้วยรหัส', zh: '使用代码加入' })}</Label><Body size={13} colour={color.neutral700} style={{ marginTop: 6, marginBottom: 11 }}>{t({ en: 'Have a code? Enter the invite code from the group owner.', th: 'มีรหัสอยู่แล้ว? กรอกรหัสเชิญจากเจ้าของกลุ่มด้านล่าง', zh: '已有代码？请输入队伍创建者的邀请码。' })}</Body>
 
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <TextInput
@@ -184,7 +184,7 @@ function Alone({
               // (Thai's "เข้าร่วม" against English's "Join"); without it flex:1
               // holds its content width and the button overflows the row.
               flex: 1, minWidth: 0, minHeight: 48, paddingHorizontal: 14,
-              borderWidth: 1, borderColor: color.neutral400, borderRadius: radius.sm,
+              borderWidth: 1, borderColor: '#BFDCE7', borderRadius: 14, backgroundColor: '#F7FBFC',
               color: color.text, fontSize: 18, letterSpacing: 3,
             }}
           />
@@ -196,7 +196,7 @@ function Alone({
             style={{
               minWidth: 76, minHeight: 48, flexShrink: 0, paddingHorizontal: 12,
               alignItems: 'center', justifyContent: 'center',
-              borderRadius: radius.sm,
+              borderRadius: 14,
               backgroundColor: code.trim().length === 0 ? color.neutral300 : color.cta,
             }}
           >
@@ -224,7 +224,7 @@ function Together({ name, summary }: { name: string; summary: PartySummary }) {
         overflow: 'hidden',
       }]}
     >
-      <OceanBackdrop compact />
+      <TravelHeroBackdrop compact focalPoint="right" />
       <Label size={10} tracking={0.16} colour={color.brandSoft}>
         {`${t(PARTY_KIND_LABEL[summary.kind]).toUpperCase()} · ${summary.size}`}
       </Label>
@@ -346,6 +346,7 @@ function Leave({
       <Button
         label="Leave this group"
         thai="ออกจากกลุ่ม"
+        chinese="退出此小组"
         variant="secondary"
         height={48}
         onPress={async () => {
@@ -489,6 +490,7 @@ function Requests({
             <Button
               label="Yes"
               thai="รับ"
+              chinese="接受"
               onPress={() => decide(who.inviteId, who.userId, true)}
               disabled={busy !== null}
               height={44}
@@ -497,6 +499,7 @@ function Requests({
             <Button
               label="No"
               thai="ไม่รับ"
+              chinese="拒绝"
               variant="secondary"
               onPress={() => decide(who.inviteId, who.userId, false)}
               disabled={busy !== null}

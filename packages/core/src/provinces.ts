@@ -19,11 +19,13 @@
  * say that out loud instead of quietly showing an empty province page.
  */
 
+import type { Localised } from './types.ts';
+
 export type RegionKey = 'north' | 'northeast' | 'central' | 'east' | 'west' | 'south';
 
 export interface Region {
   key: RegionKey;
-  name: { en: string; th: string; zh?: string };
+  name: Localised;
 }
 
 export const REGIONS: Region[] = [
@@ -48,7 +50,7 @@ export type ProvinceStatus = 'open' | 'listed';
 export interface Province {
   /** ISO 3166-2:TH subdivision code, so this joins to outside data later. */
   code: string;
-  name: { en: string; th: string; zh?: string };
+  name: Localised;
   region: RegionKey;
   status: ProvinceStatus;
 }

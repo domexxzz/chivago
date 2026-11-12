@@ -2,7 +2,7 @@
  * Food stalls that take orders ahead - the first is RMUTT's central food
  * court, where everybody turns up at the same hour (docs/65).
  *
- * ChivaGo does not take the orders and moves no money. สั่งก่อน
+ * ChivarGo does not take the orders and moves no money. สั่งก่อน
  * (sangkon.fly.dev) does: the menu, the PromptPay QR that pays the stall
  * directly, the kitchen's own queue. This app shows which stalls take orders
  * ahead and how long each says it needs, and opens the stall's order page.

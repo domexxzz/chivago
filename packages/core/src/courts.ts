@@ -2,7 +2,7 @@
  * Courts you book before you go, and how many are free right now - the first
  * is แบดมินตัน@สินธานี, the indoor badminton venue south of RMUTT.
  *
- * ChivaGo takes no booking and moves no money. The venue's own booking site
+ * ChivarGo takes no booking and moves no money. The venue's own booking site
  * does: the courts, the hours, the PromptPay payment, the double-booking
  * guarantee. This app shows how many courts its system says are free, so a
  * student can tell whether the trip is worth making before tapping through.

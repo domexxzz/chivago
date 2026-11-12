@@ -12,16 +12,16 @@ const statement: ActivityStatement = {
   issuedAt: '2026-09-01T02:00:00.000Z',
   issuedBy: 'K. Somchai',
   lines: [
-    { questId: 'q1', name: { en: 'Beach Cleanup, "Chaweng"', th: 'เก็บขยะชายหาด' }, pillar: 'environmental', day: '2026-08-12', verified: 14, weightKg: 62.5 },
-    { questId: 'q4', name: { en: 'Walk, don\'t ride', th: 'เดินแทนการใช้รถ' }, pillar: null, day: '2026-08-20', verified: 3, weightKg: null },
+    { questId: 'q1', name: { en: 'Beach Cleanup, "Chaweng"', th: 'เก็บขยะชายหาด', zh: '查汶海滩清理' }, pillar: 'environmental', day: '2026-08-12', verified: 14, weightKg: 62.5 },
+    { questId: 'q4', name: { en: 'Walk, don\'t ride', th: 'เดินแทนการใช้รถ', zh: '步行代替乘车' }, pillar: null, day: '2026-08-20', verified: 3, weightKg: null },
   ],
   verified: 17,
   participants: 15,
   refused: 2,
   weightKg: 62.5,
-  assurance: { en: 'Verified by the host, not an accredited assurer.', th: 'x' },
-  boundary: { en: 'Activity only; no building measured.', th: 'x' },
-  notClaimable: [{ en: 'A carbon figure.', th: 'x' }],
+  assurance: { en: 'Verified by the host, not an accredited assurer.', th: 'x', zh: '由主办方验证。' },
+  boundary: { en: 'Activity only; no building measured.', th: 'x', zh: '仅限活动。' },
+  notClaimable: [{ en: 'A carbon figure.', th: 'x', zh: '碳数据。' }],
 };
 
 describe('the statement as a spreadsheet', () => {

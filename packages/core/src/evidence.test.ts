@@ -23,7 +23,7 @@ const statementOf = (approvals: number): StatementBody => activityStatement({
   period,
   activities: Array.from({ length: approvals }, (unused, i) => ({
     questId: 'q1',
-    name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด' },
+    name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด', zh: '海滩清理' },
     pillar: 'environmental' as const,
     day: '2026-06-15',
     participants: [`u${i}`],
@@ -36,7 +36,7 @@ const statementOf = (approvals: number): StatementBody => activityStatement({
 
 const item = (over: Partial<EvidenceItem> = {}): EvidenceItem => ({
   questId: 'q1',
-  questName: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด' },
+  questName: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด', zh: '海滩清理' },
   day: '2026-06-15',
   verifiedAt: '2026-06-15T04:00:00.000Z',
   reviewedBy: 'Nok',

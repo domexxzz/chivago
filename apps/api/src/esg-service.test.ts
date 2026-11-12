@@ -298,7 +298,7 @@ describe('an approval belongs to one filer, or says that it does not', () => {
  * Work the platform took back does not reach a partner's disclosure.
  *
  * This report is what a company files. A withdrawn approval counted here is a
- * figure ChivaGo had already disowned, sitting inside somebody else's
+ * figure ChivarGo had already disowned, sitting inside somebody else's
  * published document — the most expensive place in the product to be wrong.
  */
 describe('a withdrawn approval is not in the report', () => {

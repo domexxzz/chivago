@@ -1,4 +1,4 @@
-# Deploy ChivaGo to Fly.io, BY HAND, from a Linux runner.
+# Deploy ChivarGo to Fly.io, BY HAND, from a Linux runner.
 #
 # WHY THIS EXISTS. `fly.toml` documents the deploy as `fly deploy` from a
 # laptop. On a Windows 11 machine with Smart App Control enforced, the

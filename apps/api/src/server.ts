@@ -119,7 +119,8 @@ import { recordPositions, type PositionFix, type PositionSource } from './positi
 import { sosLivePage } from './console/sos-live.ts';
 import { webhookTransport } from './push/webhook.ts';
 import { hostOwnsQuest, resolveSession, readCookie, SESSION_COOKIE } from './host-auth.ts';
-import { onPrimary } from './primary.ts';
+import { isPrimary, onPrimary } from './primary.ts';
+import { bootstrapKohSichangBusinesses } from './bootstrap-koh-sichang.ts';
 import { buildSweeps, startSweepTimers, type Sweep } from './sweeps.ts';
 import { MAX_BYTES, MAX_PHOTOS_PER_PROOF, storePhoto, UnsupportedUpload } from './uploads.ts';
 import { FFMPEG, transcoderAvailable } from './transcode.ts';
@@ -157,6 +158,34 @@ export function useDatabase(handle: DB): void {
     time they run.
   */
   sweeps = buildSweeps({ db, oncall, flushNotifications, startAssist });
+
+  /*
+    The Ko Sichang bootstrap, which used to run at module scope beside
+    `openDb()`. There is no database at import time any more, so it runs here
+    instead - once, on whichever entry point supplied the handle.
+
+    WRAPPED, and that is not caution. #196: a throw here used to happen while
+    this module was still being imported, so nothing above it could catch one.
+    The process ended before a port was open, the health check never answered,
+    and `auto_start_machines` woke the machine only to crash it again. On a
+    Durable Object the same throw leaves the object unable to construct, which
+    is the same outage wearing different clothes. Eight shop rows are not worth
+    either.
+
+    `isPrimary()` still guards it: on Node with LiteFS a replica must not write
+    to a database it does not own, and with LITEFS_DIR unset - every Worker, and
+    any Node process without LiteFS - it answers true without reading a disk.
+  */
+  if (isPrimary()) {
+    try {
+      const bootstrapped = bootstrapKohSichangBusinesses(db);
+      if (!bootstrapped.skipped && (bootstrapped.accountCreated || bootstrapped.shopsInserted > 0)) {
+        console.log('[chivago] Ko Sichang businesses bootstrapped:', bootstrapped);
+      }
+    } catch (err) {
+      console.error('[chivago] Ko Sichang bootstrap failed; starting without it:', err);
+    }
+  }
 }
 
 /** The jobs an alarm or a timer should run. Empty until `useDatabase`. */

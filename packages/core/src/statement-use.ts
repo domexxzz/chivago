@@ -204,11 +204,11 @@ export function useNote(use: StatementUse, standing: UseStanding): Bilingual {
   }
   return {
     en: `${org} states it used this record in ${DISCLOSURE_PHRASE[use.kind].en} `
-      + `for ${use.reportingYear}. ChivaGo has not read that report and is not saying the use was appropriate.`,
+      + `for ${use.reportingYear}. ChivarGo has not read that report and is not saying the use was appropriate.`,
     th: `${orgTh} ระบุว่าได้นำเอกสารฉบับนี้ไปใช้ใน${DISCLOSURE_PHRASE[use.kind].th} `
-      + `ของปี ${use.reportingYear} ChivaGo ไม่ได้อ่านรายงานนั้น และไม่ได้ระบุว่าการนำไปใช้นั้นเหมาะสม`,
+      + `ของปี ${use.reportingYear} ChivarGo ไม่ได้อ่านรายงานนั้น และไม่ได้ระบุว่าการนำไปใช้นั้นเหมาะสม`,
     zh: `${org} 声称其在${DISCLOSURE_PHRASE[use.kind].zh}中使用了本记录，`
-      + `报告年度为 ${use.reportingYear}。ChivaGo 未阅读该报告，也未表示此项使用是否恰当。`,
+      + `报告年度为 ${use.reportingYear}。ChivarGo 未阅读该报告，也未表示此项使用是否恰当。`,
   };
 }
 

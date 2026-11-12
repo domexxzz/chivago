@@ -198,7 +198,7 @@ describe('an unstudied pair', () => {
     // refusal might have been is the failure this module is about.
     const p = assess(INDICATOR_RULES, 'weight_kg', 'ifrs_s', 'S2-29a', facts(), ASOF);
     assert.equal(p.verdict, 'unexamined');
-    assert.match(p.because.en, /gap in what ChivaGo has studied/);
+    assert.match(p.because.en, /gap in what ChivarGo has studied/);
     assert.match(p.because.en, /not a finding that the placement is sound/);
     assert.match(p.because.th, /ไม่ใช่ข้อสรุปว่าการจัดวางนั้นถูกต้อง/);
   });
@@ -408,7 +408,7 @@ describe('GHG Protocol Scope 3 Category 5', () => {
     const p = cat5({ materialOrigin: 'third_party' });
     const instead = p.insteadTry.map((i) => i.en).join(' ');
     assert.match(instead, /never deducted from them/);
-    assert.match(instead, /which ChivaGo does not supply/);
+    assert.match(instead, /which ChivarGo does not supply/);
   });
 
   test('THE COMPANY’S OWN WASTE IS ACTIVITY DATA, AND STILL NOT THE ANSWER', () => {

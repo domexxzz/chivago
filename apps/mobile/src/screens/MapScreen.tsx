@@ -16,6 +16,7 @@ import {
   type Balances, type ExploredPlace, type Quest, type QuestProgress, type RouteMode, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
+import { photoUri } from '../api/photos.ts';
 import { SHOP_CATEGORIES, shopImageUri, shopOpenNow, type Shop } from '../api/shops.ts';
 import { areaOfPlace, fairById, fairLots, fairsIn, inArea, nearestFirst } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
@@ -29,7 +30,7 @@ import { useAsync, type LayerKey } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button, IconButton } from '../components/Button.tsx';
-import { OceanBackdrop } from '../components/Shell.tsx';
+import { OceanBackdrop, TravelHeroBackdrop } from '../components/Shell.tsx';
 import { LayerChips, PlaceFeedRow, SamuiMap, drawsFairLots, type MapMode } from '../components/SamuiMap.tsx';
 import { NearYou } from '../components/map-parts.tsx';
 import type { MapHandle } from '../components/WebTerrainMap.tsx';
@@ -39,6 +40,7 @@ import { pickStoryMedia, postStory } from '../state/tell-story.ts';
 import type { Story } from '../api/client.ts';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { formatDate, formatDateTime, formatInteger } from '../i18n/format.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 import { ProfileButton } from '../components/ProfileButton.tsx';
 import { cachedPlaces, cachedShops, clearPublicCache, deleteAreaCache, inspectAreaCache, placesWithFallback, shopsWithFallback, storageInfo } from '../offline/public-cache.ts';
@@ -55,7 +57,7 @@ const mapShopCategory = (category: string) => {
     'ร้านขายของ': { en: 'Souvenirs & shopping', th: 'ของฝาก/ช้อปปิ้ง', zh: '纪念品与购物' }, 'เช่ารถ': { en: 'Car rental', th: 'เช่ารถ', zh: '租车' },
     'เสริมสวย': { en: 'Beauty', th: 'เสริมสวย', zh: '美容' }, 'ตัดผม': { en: 'Haircut', th: 'ตัดผม', zh: '理发' }, 'ไกด์นำเที่ยว': { en: 'Tour guide', th: 'ไกด์นำเที่ยว', zh: '导游' }, 'อื่นๆ': { en: 'Other', th: 'อื่นๆ', zh: '其他' },
   };
-  return t(values[category] ?? { en: category, th: category });
+  return t(values[category] ?? { en: category, th: category, zh: category });
 };
 
 export function MapScreen({
@@ -213,9 +215,13 @@ export function MapScreen({
     return () => clearInterval(timer);
   }, [area.key]);
   const [selectedShop, setSelectedShop] = React.useState<Shop | null>(null);
+  const [selectedPlace, setSelectedPlace] = React.useState<ScoredPlace | null>(null);
   React.useEffect(() => {
     if (shops.data) setSelectedShop((current) => current ? shops.data!.find((s) => s.id === current.id) ?? null : null);
   }, [shops.data]);
+  React.useEffect(() => {
+    if (places.data) setSelectedPlace((current) => current ? places.data!.find((place) => place.id === current.id) ?? null : null);
+  }, [places.data]);
   const [shopSearch, setShopSearch] = React.useState('');
   const [shopCategory, setShopCategory] = React.useState('');
   const [shopMinRating, setShopMinRating] = React.useState(0);
@@ -225,7 +231,7 @@ export function MapScreen({
     && (s.rating ?? 0) >= shopMinRating && (!shopsOpenOnly || (!shopOfflineStamp && shopOpenNow(s.openingHours)))),
   [shops.data, shopCategory, shopSearch, shopMinRating, shopsOpenOnly, shopOfflineStamp]);
   const shopCategories = React.useMemo(() => SHOP_CATEGORIES.filter((category) => (shops.data ?? []).some((shop) => shop.category === category)), [shops.data]);
-  React.useEffect(() => { setSelectedShop(null); setShopCategory(''); setShopSearch(''); setShopMinRating(0); setShopsOpenOnly(false); }, [area.key]);
+  React.useEffect(() => { setSelectedPlace(null); setSelectedShop(null); setShopCategory(''); setShopSearch(''); setShopMinRating(0); setShopsOpenOnly(false); }, [area.key]);
   React.useEffect(() => { setExpandedMap(false); setExpandedLayers(false); }, [area.key, mode]);
   // Which pins wear a story. One request for the whole area, public.
   const areaStories = useAsync(() => api.areaStories(area.key), [area.key]);
@@ -310,7 +316,14 @@ export function MapScreen({
     () => (quests.data?.quests ?? NO_QUESTS).filter((q) => inArea(area, q)),
     [quests.data, area],
   );
-  const onSelect = React.useCallback((p: ScoredPlace) => onOpenPlace(p.id), [onOpenPlace]);
+  const onSelect = React.useCallback((place: ScoredPlace) => {
+    setSelectedShop(null);
+    setSelectedPlace(place);
+  }, []);
+  const onSelectShop = React.useCallback((shop: Shop) => {
+    setSelectedPlace(null);
+    setSelectedShop(shop);
+  }, []);
 
   /*
     Posting from the map itself, without opening a place first.
@@ -369,8 +382,8 @@ export function MapScreen({
     onOpenStory={(placeId) => { setExpandedMap(false); openStory(placeId); }}
     places={visible}
     shops={visibleShops}
-    onSelectShop={(shop) => { setExpandedMap(false); setSelectedShop(shop); }}
-    onSelect={(place) => { setExpandedMap(false); onSelect(place); }}
+    onSelectShop={onSelectShop}
+    onSelect={onSelect}
     quests={questsHere}
     progress={quests.data?.progress ?? NO_PROGRESS}
     onOpenQuest={(id) => { setExpandedMap(false); onOpenQuest(id); }}
@@ -435,10 +448,10 @@ export function MapScreen({
           <Text style={{ color: '#123B64', fontWeight: '700' }}>{offlineStamp || shopOfflineStamp ? t({ en: 'Using cached data · information may have changed', th: 'กำลังใช้ข้อมูลที่บันทึกไว้ · ข้อมูลอาจเปลี่ยนแล้ว', zh: '正在使用缓存数据 · 信息可能已变化' }) : t({ en: 'No network · showing what was already loaded', th: 'ไม่มีสัญญาณ · แสดงข้อมูลที่โหลดไว้แล้ว', zh: '无网络 · 显示已加载的数据' })}  ▾</Text>
           {offlineMap ? <Text style={{ color: '#684B12', fontSize: 12, marginTop: 3 }}>{t({ en: 'Map from saved tiles · only areas you have opened', th: 'แผนที่จากข้อมูลที่บันทึกไว้ · เฉพาะบริเวณที่เคยเปิด', zh: '地图来自已保存的瓦片 · 仅限你打开过的区域' })}</Text> : null}
         </Pressable>
-        {offlineStamp || shopOfflineStamp ? <Text style={{ color: '#684B12', fontSize: 12, marginTop: 3 }}>{t({ en: 'Last successful update: ', th: 'อัปเดตสำเร็จล่าสุด: ', zh: '上次成功更新：' })}{new Date(offlineStamp ?? shopOfflineStamp!).toLocaleString()} · {Math.max(0, Math.floor((Date.now() - Date.parse(offlineStamp ?? shopOfflineStamp!)) / 3600_000))} {t({ en: 'hours old', th: 'ชั่วโมงที่ผ่านมา', zh: '小时前' })}</Text> : null}
+        {offlineStamp || shopOfflineStamp ? <Text style={{ color: '#684B12', fontSize: 12, marginTop: 3 }}>{t({ en: 'Last successful update: ', th: 'อัปเดตสำเร็จล่าสุด: ', zh: '上次成功更新：' })}{formatDateTime(offlineStamp ?? shopOfflineStamp!)} · {formatInteger(Math.max(0, Math.floor((Date.now() - Date.parse(offlineStamp ?? shopOfflineStamp!)) / 3600_000)))} {t({ en: 'hours old', th: 'ชั่วโมงที่ผ่านมา', zh: '小时前' })}</Text> : null}
         {cachePanel ? <View style={{ marginTop: 8, gap: 5 }}>
           {storageSummary ? <Text style={{ color: '#435E70', fontSize: 12 }}>{t({ en: 'Saved data', th: 'ข้อมูลที่บันทึก', zh: '已保存数据' })}: {storageSummary.records.length} · {storageSummary.areas.length} {t({ en: 'areas', th: 'พื้นที่', zh: '区域' })} · {(storageSummary.totalBytes / 1024).toFixed(1)} KB</Text> : null}
-          {(['places', 'shops'] as const).map((kind) => <Text key={kind} style={{ color: '#435E70', fontSize: 12 }}>{kind === 'places' ? t({ en: 'Places', th: 'สถานที่', zh: '地点' }) : t({ en: 'Services', th: 'สถานบริการ', zh: '服务' })}: {cacheInfo?.[kind] ? `${cacheInfo[kind].data.length} · ${t({ en: 'saved', th: 'บันทึก', zh: '保存' })} ${new Date(cacheInfo[kind].downloadedAt).toLocaleString()} · ${t({ en: 'expires', th: 'หมดอายุ', zh: '过期' })} ${new Date(cacheInfo[kind].expiresAt).toLocaleDateString()}` : t({ en: 'No saved data', th: 'ไม่มีข้อมูลที่บันทึก', zh: '无缓存数据' })}</Text>)}
+          {(['places', 'shops'] as const).map((kind) => <Text key={kind} style={{ color: '#435E70', fontSize: 12 }}>{kind === 'places' ? t({ en: 'Places', th: 'สถานที่', zh: '地点' }) : t({ en: 'Services', th: 'สถานบริการ', zh: '服务' })}: {cacheInfo?.[kind] ? `${formatInteger(cacheInfo[kind].data.length)} · ${t({ en: 'saved', th: 'บันทึก', zh: '保存' })} ${formatDateTime(cacheInfo[kind].downloadedAt)} · ${t({ en: 'expires', th: 'หมดอายุ', zh: '过期' })} ${formatDate(cacheInfo[kind].expiresAt)}` : t({ en: 'No saved data', th: 'ไม่มีข้อมูลที่บันทึก', zh: '无缓存数据' })}</Text>)}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 5 }}>
             <Pressable onPress={() => { places.reload(); shops.reload(); }} accessibilityRole="button"><Text style={{ color: '#0077B6' }}>{t({ en: 'Refresh area', th: 'อัปเดตพื้นที่นี้', zh: '刷新区域' })}</Text></Pressable>
             <Pressable onPress={() => { void deleteAreaCache(area.key).then(() => setCacheRevision((v) => v + 1)).catch(() => onToast(t({ en: 'Could not delete saved data', th: 'ลบข้อมูลที่บันทึกไม่สำเร็จ', zh: '无法删除缓存数据' }))); }} accessibilityRole="button"><Text style={{ color: '#B91C1C' }}>{t({ en: 'Delete area cache', th: 'ลบแคชพื้นที่นี้', zh: '删除区域缓存' })}</Text></Pressable>
@@ -541,7 +554,7 @@ export function MapScreen({
               onOpenStory={openStory}
               places={visible}
               shops={visibleShops}
-              onSelectShop={setSelectedShop}
+              onSelectShop={onSelectShop}
               onSelect={onSelect}
               quests={questsHere}
               progress={quests.data?.progress ?? NO_PROGRESS}
@@ -561,6 +574,15 @@ export function MapScreen({
               accessibilityLabel={t({ en: 'Expand map', th: 'ขยายแผนที่', zh: '展开地图' })}
               style={{ position: 'absolute', top: 12, right: 12, width: 42, height: 42, borderRadius: 14, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#D1E8EE', elevation: 4, shadowColor: '#123B64', shadowOpacity: 0.16, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}
             ><Expand size={20} color="#0077B6" /></Pressable>
+            {selectedPlace || selectedShop ? (
+              <View style={{ position: 'absolute', left: 12, right: 12, bottom: 12 }}>
+                <MapSelectionCard
+                  place={selectedPlace}
+                  shop={selectedShop}
+                  onOpen={() => selectedPlace ? onOpenPlace(selectedPlace.id) : selectedShop ? onOpenShop?.(selectedShop.id) : undefined}
+                />
+              </View>
+            ) : null}
             </View>
             {/*
               Under the map, not inside it: the drawn island has no roads and
@@ -593,14 +615,9 @@ export function MapScreen({
                 .map((p) => (
                   <PlaceFeedRow key={p.id} place={p} onPress={() => onOpenPlace(p.id)} />
                 ))}
-              {visibleShops.map((shop) => <Pressable key={`shop-${shop.id}`} onPress={() => setSelectedShop(shop)} style={{ marginHorizontal: gutter, marginBottom: 8, borderRadius: 14, backgroundColor: '#fff', padding: 12, flexDirection: 'row', gap: 10, alignItems: 'center' }}><Store color="#F77F00" /><View><Heading size={15}>{shop.name}</Heading><Body size={13}>{mapShopCategory(shop.category)} · {shop.rating === null ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว', zh: '还没有评价' }) : `★ ${shop.rating}`}</Body></View></Pressable>)}
+              {visibleShops.map((shop) => <Pressable key={`shop-${shop.id}`} onPress={() => onOpenShop?.(shop.id)} style={{ marginHorizontal: gutter, marginBottom: 8, borderRadius: 14, backgroundColor: '#fff', padding: 12, flexDirection: 'row', gap: 10, alignItems: 'center' }}><Store color="#F77F00" /><View><Heading size={15}>{shop.name}</Heading><Body size={13}>{mapShopCategory(shop.category)} · {shop.rating === null ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว', zh: '还没有评价' }) : `★ ${shop.rating}`}</Body></View></Pressable>)}
             </View>
           )}
-          {selectedShop ? <View style={{ marginHorizontal: gutter, marginTop: 10, backgroundColor: '#fff', borderRadius: 18, padding: 12, flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-            {selectedShop.coverUrl ? <Image source={{ uri: shopImageUri(selectedShop.coverUrl) }} style={{ width: 68, height: 68, borderRadius: 12 }} /> : <Store color="#F77F00" size={36} />}
-            <View style={{ flex: 1 }}><Heading size={16}>{selectedShop.name}</Heading><Body size={13}>{mapShopCategory(selectedShop.category)} · {selectedShop.rating === null ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว', zh: '还没有评价' }) : `★ ${selectedShop.rating} (${selectedShop.reviewCount})`}</Body><Pressable onPress={() => onOpenShop?.(selectedShop.id)}><Body size={13} colour="#0077B6">{t({ en: 'View business details →', th: 'ดูรายละเอียดร้าน →', zh: '查看商家详情 →' })}</Body></Pressable></View>
-            <Pressable onPress={() => setSelectedShop(null)} accessibilityLabel={t({ en: 'Close business details', th: 'ปิดข้อมูลร้าน', zh: '关闭商家详情' })}><Text>✕</Text></Pressable>
-          </View> : null}
           {/*
             The bar at the foot of the map, from the journey sketch: post
             without opening a place first. Only when there is somewhere for a
@@ -695,24 +712,33 @@ export function MapScreen({
           {
             marginTop: 10,
             marginHorizontal: gutter,
-            minHeight: 48,
-            paddingVertical: 14,
-            paddingHorizontal: 16,
-            backgroundColor: color.surface,
+            padding: 16,
+            backgroundColor: '#F4FEFD',
             borderWidth: 1,
-            borderColor: '#D7E9EC',
-            borderRadius: 18,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 12,
+            borderColor: '#A9E5DF',
+            borderRadius: 22,
           },
         ]}
       >
-        <MessageCircle size={18} color={color.brand} strokeWidth={2} />
-        <View style={{ flex: 1 }}>
-          <Heading size={14}>{t({ en: 'Ask where to go', th: 'ถามว่าไปไหนดี', zh: '问问去哪儿好' })}</Heading>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 11 }}>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#D9F8F4', alignItems: 'center', justifyContent: 'center' }}>
+            <MessageCircle size={20} color={color.brand} strokeWidth={2.2} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Heading size={16}>{t({ en: 'Let AI help plan?', th: 'ให้ AI ช่วยวางแผนไหม?', zh: '让 AI 帮你规划？' })}</Heading>
+            <Body size={13} colour={color.neutral600} style={{ marginTop: 3 }}>
+              {t({ en: 'Suggestions based on your area and time', th: 'แนะนำจากพื้นที่และเวลาของคุณ', zh: '根据你所在区域和时间推荐' })}
+            </Body>
+          </View>
+          <ChevronRight size={18} color={color.brand} strokeWidth={2} />
         </View>
-        <ChevronRight size={18} color={color.brand} strokeWidth={2} />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+          {[t({ en: 'Half-day trip', th: 'ทริปครึ่งวัน', zh: '半日游' }), t({ en: 'Near me', th: 'ที่เที่ยวใกล้ฉัน', zh: '附近景点' })].map((label) => (
+            <View key={label} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CDECE8' }}>
+              <Label size={10} tracking={0} colour={color.brand} style={{ textTransform: 'none' }}>{label}</Label>
+            </View>
+          ))}
+        </View>
       </Pressable>
 
       {/*
@@ -795,6 +821,19 @@ export function MapScreen({
           frame back to the middle.
         */}
         <View style={{ height: windowHeight, width: windowWidth, backgroundColor: '#EAF7FB' }}>{expandedMapContent(windowHeight)}</View>
+        {selectedPlace || selectedShop ? (
+          <View style={{ position: 'absolute', left: 16, right: 16, bottom: Platform.OS === 'web' ? 24 : 32 }}>
+            <MapSelectionCard
+              place={selectedPlace}
+              shop={selectedShop}
+              onOpen={() => {
+                setExpandedMap(false);
+                if (selectedPlace) onOpenPlace(selectedPlace.id);
+                else if (selectedShop) onOpenShop?.(selectedShop.id);
+              }}
+            />
+          </View>
+        ) : null}
         <Pressable
           onPress={() => setExpandedMap(false)}
           accessibilityRole="button"
@@ -810,7 +849,7 @@ export function MapScreen({
           MapLibre's own controls and would end up with two sets.
         */}
         {Platform.OS !== 'web' ? (
-          <View style={{ position: 'absolute', right: 16, bottom: 42, gap: 12 }}>
+          <View style={{ position: 'absolute', right: 16, bottom: selectedPlace || selectedShop ? 156 : 42, gap: 12 }}>
             <Pressable
               onPress={() => expandedZoom.current?.zoomIn()}
               accessibilityRole="button"
@@ -832,7 +871,7 @@ export function MapScreen({
             ><Satellite size={25} color={expandedSat ? '#FFFFFF' : '#12283D'} strokeWidth={2.5} /></Pressable>
           </View>
         ) : null}
-        <View style={{ position: 'absolute', left: 16, bottom: Platform.OS === 'web' ? 24 : 42, gap: 12 }}>
+        <View style={{ position: 'absolute', left: 16, bottom: selectedPlace || selectedShop ? 156 : Platform.OS === 'web' ? 24 : 42, gap: 12 }}>
           <Pressable
             onPress={() => setExpandedLayers((open) => !open)}
             accessibilityRole="button"
@@ -855,6 +894,62 @@ export function MapScreen({
       </View>
       </Modal>
     </ScrollView>
+  );
+}
+
+function MapSelectionCard({
+  place,
+  shop,
+  onOpen,
+}: {
+  place: ScoredPlace | null;
+  shop: Shop | null;
+  onOpen: () => void | undefined;
+}) {
+  if (!place && !shop) return null;
+  const title = place ? t(place.name) : shop!.name;
+  const image = place?.photo ? photoUri(place.photo.url) : shop?.coverUrl ? shopImageUri(shop.coverUrl) : null;
+  const eyebrow = place
+    ? t({ en: 'Place', th: 'สถานที่', zh: '地点' })
+    : mapShopCategory(shop!.category);
+  const detail = place
+    ? `${t({ en: 'Healthy score', th: 'คะแนนสุขภาวะ', zh: '健康评分' })} ${place.healthyScore}`
+    : shop!.rating === null
+      ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว', zh: '暂无评价' })
+      : `★ ${shop!.rating.toFixed(1)} (${shop!.reviewCount})`;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t({ en: `Open details for ${title}`, th: `เปิดรายละเอียด ${title}`, zh: `查看 ${title} 详情` })}
+      onPress={onOpen}
+      style={({ pressed }) => [shadow.md, {
+        minHeight: 104,
+        padding: 10,
+        borderRadius: 22,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1,
+        borderColor: '#D4E9EF',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        opacity: pressed ? 0.88 : 1,
+      }]}
+    >
+      <View style={{ width: 88, height: 82, borderRadius: 16, overflow: 'hidden', backgroundColor: '#DDF4FA', alignItems: 'center', justifyContent: 'center' }}>
+        {image ? <Image source={{ uri: image }} style={{ width: '100%', height: '100%' }} resizeMode="cover" /> : place ? <MapIcon size={32} color="#0077B6" /> : <Store size={32} color="#F77F00" />}
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Label size={9} tracking={0.12} colour={place ? color.accent700 : color.brand}>{eyebrow}</Label>
+        <Text numberOfLines={1} style={{ marginTop: 3, color: color.text, fontSize: 18, lineHeight: 23, fontWeight: '800' }}>{title}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 7 }}>
+          <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: place && place.healthyScore >= 65 ? '#22A75A' : shop?.rating !== null && shop?.rating !== undefined ? '#F59E0B' : '#94A3B8' }} />
+          <Body size={13} colour={color.neutral700}>{detail}</Body>
+        </View>
+      </View>
+      <View style={{ width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: color.brandSoft }}>
+        <ChevronRight size={22} color={color.brand} strokeWidth={2.5} />
+      </View>
+    </Pressable>
   );
 }
 
@@ -883,9 +978,9 @@ export function MapHeader({
         overflow: 'hidden',
       }}
     >
-      <OceanBackdrop compact />
+      <TravelHeroBackdrop compact focalPoint="right" />
 
-      {/* Row 1: Greeting & Area Name on Left, ChivaGo Logo + Profile on Right (matching Home screen) */}
+      {/* Row 1: Greeting & Area Name on Left, ChivarGo Logo + Profile on Right (matching Home screen) */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: '#D5F6FF', fontSize: 12, fontWeight: '500', letterSpacing: 1.8, textTransform: 'uppercase' }}>
@@ -900,7 +995,7 @@ export function MapHeader({
           <Image
             source={chivagoLogo}
             resizeMode="contain"
-            accessibilityLabel="ChivaGo"
+            accessibilityLabel="ChivarGo"
             style={{ width: 68, height: 48 }}
           />
 
@@ -925,9 +1020,9 @@ export function MapHeader({
         onPress={onOpenWallet}
         accessibilityRole="button"
         accessibilityLabel={
-          `${balances.green.toLocaleString('en-US')} ${t(strings.common.greenPoints)}, `
+          `${formatInteger(balances.green)} ${t(strings.common.greenPoints)}, `
           + `${t(strings.common.greenPointsNote)}. `
-          + `${balances.trip.toLocaleString('en-US')} ${t(strings.common.tripPoints)}, `
+          + `${formatInteger(balances.trip)} ${t(strings.common.tripPoints)}, `
           + `${t(strings.common.tripPointsNote)}. ${t({ en: 'Open wallet.', th: 'เปิดกระเป๋าแต้ม', zh: '打开钱包。' })}`
         }
         style={{
@@ -957,7 +1052,7 @@ export function MapHeader({
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 }}>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
                 <Heading size={16} colour="#004B7E" style={{ fontWeight: '800' }}>
-                  {balances.green.toLocaleString('en-US')}
+                  {formatInteger(balances.green)}
                 </Heading>
                 <Label size={10} tracking={0.1} colour="#006EA8" style={{ fontWeight: '700' }}>
                   {t(strings.wallet.green)}
@@ -968,7 +1063,7 @@ export function MapHeader({
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
                 <Heading size={13} colour="#396184" style={{ fontWeight: '700' }}>
-                  {balances.trip.toLocaleString('en-US')}
+                  {formatInteger(balances.trip)}
                 </Heading>
                 <Label size={9} tracking={0.1} colour="#52749D" style={{ fontWeight: '600' }}>
                   {t(strings.wallet.trip)}

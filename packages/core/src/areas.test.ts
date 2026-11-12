@@ -141,7 +141,7 @@ describe('the campus is real, and its seed stays inside it', () => {
       // and shadows `public/` on the dev server, which made every one of
       // these a 404 under `expo start --web`.
       assert.match(p.photo.url, /^\/media\/places\/[a-z0-9-]+\.jpg$/, `${p.id}: a campus photo must ship with the app`);
-      assert.match(p.photo.credit, /ChivaGo team/, `${p.id}: not the team's photograph`);
+      assert.match(p.photo.credit, /ChivarGo team/, `${p.id}: not the team's photograph`);
       assert.ok(p.photo.licence && p.photo.sourceUrl, `${p.id}: no licence or source`);
     }
   });

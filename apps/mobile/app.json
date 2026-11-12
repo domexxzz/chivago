@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ChivaGo",
+    "name": "ChivarGo",
     "slug": "chivago",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -18,10 +18,10 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.chivago.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "ChivaGo uses your location to check you in at quest sites, show nearby places, and share your position with your emergency contacts if you trigger SOS.",
-        "NSCameraUsageDescription": "ChivaGo uses the camera to capture geo-tagged proof photos for Green Quests.",
-        "NSPhotoLibraryUsageDescription": "ChivaGo lets you attach existing photos as quest proof.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "If you trigger SOS, ChivaGo keeps sharing your location with your emergency contacts and the duty desk even when your phone is locked, until you cancel the alert. It is never used at any other time.",
+        "NSLocationWhenInUseUsageDescription": "ChivarGo uses your location to check you in at quest sites, show nearby places, and share your position with your emergency contacts if you trigger SOS.",
+        "NSCameraUsageDescription": "ChivarGo uses the camera to capture geo-tagged proof photos for Green Quests.",
+        "NSPhotoLibraryUsageDescription": "ChivarGo lets you attach existing photos as quest proof.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "If you trigger SOS, ChivarGo keeps sharing your location with your emergency contacts and the duty desk even when your phone is locked, until you cancel the alert. It is never used at any other time.",
         "UIBackgroundModes": [
           "location"
         ]
@@ -48,8 +48,8 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "If you trigger SOS, ChivaGo keeps sharing your location with your emergency contacts and the duty desk even when your phone is locked, until you cancel the alert.",
-          "locationWhenInUsePermission": "ChivaGo uses your location to check you in at quest sites and show nearby places.",
+          "locationAlwaysAndWhenInUsePermission": "If you trigger SOS, ChivarGo keeps sharing your location with your emergency contacts and the duty desk even when your phone is locked, until you cancel the alert.",
+          "locationWhenInUsePermission": "ChivarGo uses your location to check you in at quest sites and show nearby places.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
@@ -57,7 +57,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "ChivaGo lets you attach photos as quest proof."
+          "photosPermission": "ChivarGo lets you attach photos as quest proof."
         }
       ]
     ]

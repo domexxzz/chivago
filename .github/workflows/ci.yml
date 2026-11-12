@@ -55,6 +55,9 @@ jobs:
       # fields - so it is a build failure, not a surprise in production.
       - run: node scripts/build-console-css.mjs --check
       - run: pnpm test:scripts
+      # New user-facing copy must be complete in English, Thai and Simplified
+      # Chinese. Suspected bare JSX is reported for review without blocking.
+      - run: pnpm localization:check
       # The Thai copy audit is advisory until a native speaker has been through
       # it, so it reports and does not fail the build. It is here so the count
       # is visible on every run and a regression is a number that went up.

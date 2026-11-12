@@ -3,9 +3,9 @@
  */
 
 import React from 'react';
-import { Animated, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Animated, Image, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
-import { ChevronLeft, House, Leaf, Map as MapIcon, PawPrint, Shield } from 'lucide-react-native';
+import { ChevronLeft, House, Leaf, Map as MapIcon, MessageCircle, PawPrint, Shield, Sparkles } from 'lucide-react-native';
 import { strings } from '@chivago/core';
 import { color, gutter, headerGutter, layout, motion, onFill, radius, ruleStrong, ruleStrongTop, shadow } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from './Type.tsx';
@@ -21,12 +21,112 @@ import { IconButton } from './Button.tsx';
 export type { TabKey } from '../state/store.tsx';
 import type { TabKey } from '../state/store.tsx';
 import { t } from '../i18n/locale.ts';
+import travelHero from '../../assets/chivago-travel-hero-v2.png';
+import aiGuideRobot from '../../assets/chivargo-ai-robot-v1.png';
 
 const TAB_ICONS = {
   home: House, map: MapIcon, quests: Leaf, game: PawPrint, safety: Shield,
 } as const;
 
 const TAB_ORDER: TabKey[] = ['home', 'map', 'quests', 'game', 'safety'];
+
+/**
+ * Global door to the AI-guide mockup. It floats above, never inside, the
+ * five-tab contract.
+ *
+ * FLOATING ABOVE THE TAB BAR IS NOT THE SAME AS FLOATING ABOVE NOTHING.
+ *
+ * At `bottom: 82` this sat on top of the rightmost door in Home's door row
+ * and swallowed every tap meant for it. Measured on production at 375x812,
+ * scrolled to the top, which is where somebody opening the app lands:
+ *
+ *   AI guide   x 289-359   y 652-730
+ *   door row               y 700-796, six doors of 59
+ *   last door  x 306-365 - inside the guide's x range from edge to edge
+ *
+ *   elementFromPoint on that door's icon returned "Open ChivarGo AI Guide".
+ *   Scrolled down 120 it returned "Summon", so the door was never broken;
+ *   it was covered, on the one screen position nobody has to scroll to.
+ *
+ * This is older than the door it was found on. With five doors they were 71
+ * wide, which put the last one at x 294-365 and its centre at 329 - inside
+ * 289-359 as well. `Deals` was unreachable there in the same way and nobody
+ * noticed, because the same marketplace has a card lower down the screen.
+ *
+ * `bottom: 120` lifts it to y 614-692, clear of the row by 8. It then covers
+ * 48 of the 212 points of the "see every place" link below the score, which
+ * leaves 164 of that link tappable: a wide control losing its right quarter,
+ * in exchange for a 59-wide door that had nothing left at all.
+ *
+ * WHAT THIS IS NOT: a rule. Home is dense from y 550 down and a fixed button
+ * over a scrolling screen covers SOMETHING at every height - raising it
+ * further only trades the link for the search field. The number is right for
+ * the content Home has today, and a screen test cannot hold it there: this
+ * harness renders what a screen says, never where it is. If the row above
+ * the doors changes height, re-measure. `wide` is untouched: on the
+ * dashboard layout the door row is at y 429 and this at 666, far apart.
+ */
+export function AiGuideButton({ onPress, wide = false }: { onPress: () => void; wide?: boolean }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={t({ en: 'Open ChivarGo AI Guide', th: 'เปิด ChivarGo AI Guide', zh: '打开 ChivarGo AI Guide' })}
+      style={({ pressed }) => [
+        shadow.md,
+        {
+          position: 'absolute',
+          right: wide ? 28 : 16,
+          // 120, not 82: see the note above. 82 put this on top of Home's
+          // last door and ate the tap.
+          bottom: wide ? 24 : 120,
+          zIndex: 50,
+          width: 70,
+          height: 78,
+          borderRadius: 35,
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          transform: [{ scale: pressed ? 0.96 : 1 }],
+        },
+      ]}
+    >
+      <View
+        style={{
+          width: 60,
+          height: 60,
+          borderRadius: 30,
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          paddingBottom: 6,
+          backgroundColor: '#009FA3',
+          borderWidth: 3,
+          borderColor: '#FFFFFF',
+          overflow: 'visible',
+        }}
+      >
+        <Image
+          source={aiGuideRobot}
+          resizeMode="contain"
+          accessibilityIgnoresInvertColors
+          style={{
+            position: 'absolute',
+            width: 62,
+            height: 66,
+            top: -22,
+            left: -1,
+          }}
+        />
+        <View style={{ position: 'absolute', right: 1, top: 3 }}>
+          <Sparkles size={11} color="#FFE28A" fill="#FFE28A" strokeWidth={2} />
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+          <MessageCircle size={10} color="#FFFFFF" strokeWidth={2.2} />
+          <Label size={9} tracking={0} colour="#FFFFFF" style={{ textTransform: 'none' }}>{t({ en: 'AI Guide', th: 'AI Guide', zh: 'AI Guide' })}</Label>
+        </View>
+      </View>
+    </Pressable>
+  );
+}
 
 /**
  * Shared Ocean Wave SVG backdrop used across headers, hero banners, and elevated cards.
@@ -60,6 +160,46 @@ export function OceanBackdrop({
           fill={compact ? '#CAF0F8' : '#EDF6F9'}
           opacity={subtle ? 0.8 : compact ? 0.16 : 1}
         />
+      </Svg>
+    </View>
+  );
+}
+
+/**
+ * The photographic layer shared by the app's primary headers.
+ *
+ * The image is bundled with the app, so a weak or offline connection never
+ * turns the first impression into an empty grey box. The navy/teal veil is a
+ * real accessibility layer rather than text shadow: every crop keeps white
+ * labels readable, from a narrow phone to an ultrawide browser.
+ */
+export function TravelHeroBackdrop({
+  compact = false,
+  focalPoint = 'center',
+}: {
+  compact?: boolean;
+  focalPoint?: 'left' | 'center' | 'right';
+}) {
+  const position = focalPoint === 'left' ? '20% center' : focalPoint === 'right' ? '80% center' : 'center';
+  return (
+    <View pointerEvents="none" accessible={false} style={StyleSheet.absoluteFillObject}>
+      <Image
+        source={travelHero}
+        resizeMode="cover"
+        style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%', objectPosition: position } as never]}
+      />
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: compact ? 'rgba(0,55,73,0.66)' : 'rgba(0,48,70,0.52)' }]} />
+      <Svg width="100%" height="100%" viewBox="0 0 480 260" preserveAspectRatio="none">
+        <Defs>
+          <LinearGradient id="travelVeil" x1="0%" y1="15%" x2="100%" y2="90%">
+            <Stop offset="0" stopColor="#003B52" stopOpacity={compact ? 0.78 : 0.7} />
+            <Stop offset="0.58" stopColor="#006B7D" stopOpacity={compact ? 0.42 : 0.24} />
+            <Stop offset="1" stopColor="#00A9C6" stopOpacity={compact ? 0.28 : 0.08} />
+          </LinearGradient>
+        </Defs>
+        <Rect width="480" height="260" fill="url(#travelVeil)" />
+        <Path d="M0 224 Q92 188 205 226 T480 214 V260 H0Z" fill="#48CAE4" opacity="0.25" />
+        <Path d="M0 242 Q110 215 250 245 T480 232 V260 H0Z" fill="#EDF6F9" opacity="0.18" />
       </Svg>
     </View>
   );
@@ -130,6 +270,76 @@ export function TabBar({
 }
 
 /**
+ * The same five destinations become a rail once a screen is wide enough to
+ * keep them visible beside the content. This is not a second navigation
+ * model: order, labels, state and callbacks all come from the mobile bar.
+ */
+export function NavigationRail({
+  active, onChange,
+}: { active: TabKey; onChange: (tab: TabKey) => void }) {
+  const { width } = useWindowDimensions();
+  const expanded = width >= 1200;
+  return (
+    <View
+      accessibilityRole="tablist"
+      style={{
+        width: expanded ? 220 : 88,
+        marginVertical: 18,
+        marginLeft: 18,
+        paddingHorizontal: expanded ? 12 : 10,
+        paddingVertical: 16,
+        backgroundColor: 'rgba(255,255,255,0.96)',
+        borderRadius: 28,
+        borderWidth: 1,
+        borderColor: '#D7E8EF',
+        ...shadow.card,
+      }}
+    >
+      <View style={{ paddingHorizontal: expanded ? 10 : 0, paddingBottom: 22, alignItems: expanded ? 'flex-start' : 'center' }}>
+        <Heading size={expanded ? 20 : 14} colour={color.brandDeep}>ChivarGo</Heading>
+        {expanded ? <Label size={9} tracking={0.14} colour={color.neutral600} style={{ marginTop: 3 }}>{t({ en: 'EXPLORE TOGETHER', th: 'ออกเดินทางไปด้วยกัน', zh: '一起探索' })}</Label> : null}
+      </View>
+      <View style={{ gap: 8 }}>
+        {TAB_ORDER.map((key) => {
+          const selected = key === active;
+          const Icon = TAB_ICONS[key];
+          return (
+            <Pressable
+              key={key}
+              onPress={() => onChange(key)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
+              accessibilityLabel={t(strings.tabs[key])}
+              style={({ pressed }) => ({
+                minHeight: 52,
+                paddingHorizontal: expanded ? 14 : 0,
+                borderRadius: 18,
+                flexDirection: expanded ? 'row' : 'column',
+                alignItems: 'center',
+                justifyContent: expanded ? 'flex-start' : 'center',
+                gap: expanded ? 12 : 4,
+                backgroundColor: selected ? color.brand : pressed ? color.brandSoft : 'transparent',
+              })}
+            >
+              <Icon size={21} color={selected ? onFill.brand : color.neutral700} strokeWidth={selected ? 2.4 : 1.9} />
+              <Label size={10} tracking={0.05} colour={selected ? onFill.brand : color.neutral700}>{t(strings.tabs[key])}</Label>
+            </Pressable>
+          );
+        })}
+      </View>
+      {expanded ? (
+        <View style={{ marginTop: 'auto', padding: 12, borderRadius: 16, backgroundColor: color.brandSoft }}>
+          <Label size={9} tracking={0.1} colour={color.brand}>ChivarGo</Label>
+          <Body size={13} colour={color.neutral700} style={{ marginTop: 4 }}>
+            {t({ en: 'Explore local. Travel safely.', th: 'เที่ยวท้องถิ่น เดินทางปลอดภัย', zh: '探索本地，安心旅行。' })}
+          </Body>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/**
  * The header on a pushed screen: back control, uppercase context label.
  * Tab screens do not use this - they carry their own 18px header block.
  */
@@ -155,7 +365,7 @@ export function PushHeader({
         elevation: 3,
       }}
     >
-      <OceanBackdrop compact />
+      <TravelHeroBackdrop compact focalPoint="right" />
       <IconButton inverted onPress={onBack} accessibilityLabel={t(strings.common.back)}>
         <ChevronLeft size={18} color="#FFFFFF" strokeWidth={2} />
       </IconButton>

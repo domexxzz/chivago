@@ -26,7 +26,10 @@
  * phone, and a test can hold that no two are the same creature.
  */
 
-import type { Bilingual, LayerKey, Localised } from './types.ts';
+import type { LayerKey, Localised } from './types.ts';
+
+/** Legacy catalogue rows still awaiting reviewed Simplified Chinese copy. */
+type LegacyLocalised = Omit<Localised, 'zh'> & { zh?: string };
 
 export type MascotArchetype = 'bird' | 'beast' | 'sea' | 'naga' | 'bug' | 'sprite' | 'ape' | 'shell';
 
@@ -48,11 +51,11 @@ export interface Mascot {
   /** A stable key for assets and tests. */
   key: string;
   /** The mascot's name - a nickname a child would use. */
-  name: Bilingual;
+  name: LegacyLocalised;
   /** What it is: "a white elephant", "a durian". */
-  creature: Bilingual;
+  creature: LegacyLocalised;
   /** One line on why this, for this province. */
-  why: Bilingual;
+  why: LegacyLocalised;
   basis: MascotBasis;
   archetype: MascotArchetype;
   /** Which of the five habitats its room is drawn as. */
@@ -65,7 +68,9 @@ export interface Mascot {
   shape: MascotShape;
 }
 
-const B = (en: string, th: string, zh?: string): Localised => ({ en, th, zh });
+function B(en: string, th: string, zh: string): Localised;
+function B(en: string, th: string): LegacyLocalised;
+function B(en: string, th: string, zh?: string): LegacyLocalised { return { en, th, zh }; }
 
 type Row = [
   code: string, key: string, name: [string, string], creature: [string, string], why: [string, string],
@@ -180,7 +185,7 @@ export const mascotFor = (code: string): Mascot | null => BY_CODE.get(code) ?? n
 export const mascotByKey = (key: string): Mascot | null => BY_KEY.get(key) ?? null;
 
 /** What a `basis` says on the card. */
-export const BASIS_LABEL: Record<MascotBasis, Bilingual> = {
+export const BASIS_LABEL: Record<MascotBasis, Localised> = {
   seal: B('From the provincial seal', 'จากตราประจำจังหวัด', '取自府徽'),
   wildlife: B('An animal the province is known for', 'สัตว์ที่จังหวัดขึ้นชื่อ', '该府著名的动物'),
   produce: B('Something the province grows or makes', 'ของดีของจังหวัด', '该府出产的特产'),

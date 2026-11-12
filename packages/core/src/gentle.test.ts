@@ -94,7 +94,7 @@ describe('the support line is shown to everyone who sees a set', () => {
 
 describe('somewhere to go, chosen from what was measured', () => {
   const place = (over: Partial<RechargeCandidate> & { id: string }): RechargeCandidate => ({
-    name: { en: over.id, th: over.id }, layer: 'Green', crowd: 0, aqi: 20, metresAway: 100, ...over,
+    name: { en: over.id, th: over.id, zh: over.id }, layer: 'Green', crowd: 0, aqi: 20, metresAway: 100, ...over,
   });
 
   test('the quietest open-ground place with air worth breathing', () => {

@@ -49,8 +49,9 @@ import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import { StallsCard } from '../components/Stalls.tsx';
 import { SeaAndSkyCard } from '../components/SeaAndSky.tsx';
 import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
+import { serviceAppearance, shopCategoryLabel } from '../components/ShopCategory.tsx';
 import {
-  BedDouble, ShoppingBag, Car, Scissors, Dumbbell, Grid2X2, Star, ArrowRight, Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MapPin, UserRound, Search, Shield, Sparkles, Ticket, Trees, Utensils, Wallet, Waves,
+  Grid2X2, Star, ArrowRight, Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MapPin, Search, Shield, Sparkles, Ticket, Trees, Utensils, Wallet, Waves, Shell as ShellIcon,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
@@ -66,8 +67,10 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { formatInteger } from '../i18n/format.ts';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import { ProfileButton } from '../components/ProfileButton.tsx';
+import { TravelHeroBackdrop } from '../components/Shell.tsx';
 
 const HOME_QUEST_LIMIT = 3;
 
@@ -120,7 +123,7 @@ export function questOrder(
 
 export function HomeScreen({
   onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenMarket, onOpenFair, onOpenPassport,
-  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenShop, onOpenMascots, onOpenStays,
+  onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenShop, onOpenMascots, onOpenStays, onOpenSummon, onOpenLocalPicks,
   onToast, now = new Date(),
 }: {
   onOpenMap: () => void;
@@ -147,6 +150,18 @@ export function HomeScreen({
    * and the owner could not find it.
    */
   onOpenStays?: () => void;
+  /**
+   * The summoning (docs/68): a charm from a verified quest or a day checked
+   * in, spent on a creature. Reached from the game tab as well; this is the
+   * door on Home, for the same reason `onOpenStays` has one.
+   */
+  onOpenSummon?: () => void;
+  /**
+   * Local Picks: this area's businesses by category. Reached from "see all"
+   * over the service cards, not from a door - the door row is full, and the
+   * last thing added to it had to be rescued from under a floating button.
+   */
+  onOpenLocalPicks?: () => void;
   /** A fair's market in this area, lot by lot (docs/66). Optional so the older screen tests still render. */
   onOpenFair?: () => void;
   /** A one-line acknowledgement, for actions that finish without leaving the screen. */
@@ -154,6 +169,8 @@ export function HomeScreen({
   /** Injected so the greeting is testable rather than whatever the clock says. */
   now?: Date;
 }) {
+  const { width: viewportWidth } = useWindowDimensions();
+  const dashboard = viewportWidth >= 980;
   const places = useAsync(() => api.places(), []);
   const quests = useAsync(() => api.quests('today'), []);
   const wallet = useAsync(() => api.wallet(), []);
@@ -201,28 +218,29 @@ export function HomeScreen({
         asks for nothing, so the island's Home is unchanged.
       */}
       <TopCards courts={courts} fair={fair} onOpenFair={onOpenFair} />
-      <Conditions places={here} onOpenMap={onOpenMap} overHero={courts.length === 0 && fair === null} />
-      <Doors
-        onOpenMap={onOpenMap}
-        onOpenQuests={onOpenQuests}
-        onOpenWallet={onOpenWallet}
-        onOpenConcierge={onOpenConcierge}
-        onOpenImpact={onOpenImpact}
-        onOpenSafety={onOpenSafety}
-        onOpenParty={onOpenParty}
-        onOpenStays={onOpenStays}
-        onOpenMarket={onOpenMarket ?? onOpenWallet}
-      />
-      {/*
-        What it is like outside, above where to go: the sea and the sky decide
-        whether any of the places below are worth the trip. Read per area, and
-        it draws nothing where the feed has nothing - inland there is no wave
-        tab at all (components/SeaAndSky.tsx).
-      */}
-      <View style={{ paddingHorizontal: gutter }}>
-        <SeaAndSkyCard area={area.key} />
+      <View style={dashboard ? { flexDirection: 'row', alignItems: 'flex-start', gap: 18, paddingHorizontal: gutter, marginTop: -42 } : undefined}>
+        <View style={dashboard ? { flex: 0.9, minWidth: 0 } : undefined}>
+          <Conditions places={here} onOpenMap={onOpenMap} overHero={!dashboard && courts.length === 0 && fair === null} />
+        </View>
+        <View style={dashboard ? { flex: 1.1, minWidth: 0, paddingTop: 38 } : undefined}>
+          <Doors
+            onOpenMap={onOpenMap}
+            onOpenQuests={onOpenQuests}
+            onOpenWallet={onOpenWallet}
+            onOpenConcierge={onOpenConcierge}
+            onOpenImpact={onOpenImpact}
+            onOpenSafety={onOpenSafety}
+            onOpenParty={onOpenParty}
+            onOpenStays={onOpenStays}
+            onOpenSummon={onOpenSummon}
+            onOpenMarket={onOpenMarket ?? onOpenWallet}
+          />
+          <View style={{ paddingHorizontal: gutter }}>
+            <SeaAndSkyCard area={area.key} />
+          </View>
+        </View>
       </View>
-      <Places places={here} shops={shops} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} onOpenShop={onOpenShop ?? onOpenMap} />
+      <Places places={here} shops={shops} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} onOpenShop={onOpenShop ?? onOpenMap} onOpenLocalPicks={onOpenLocalPicks} />
       <MarketPromoCard onOpenMarket={onOpenMarket ?? onOpenWallet} />
       {/*
         The board, under the places and above today's missions: it is what
@@ -244,7 +262,10 @@ export function HomeScreen({
       */}
       <Bus areaKey={area.key} onToast={onToast} />
       <Board areaKey={area.key} onOpenPlace={onOpenPlace ?? onOpenMap} />
-      <Today quests={todayHere} onOpenQuest={onOpenQuest} onOpenQuests={onOpenQuests} />
+      <View style={dashboard ? { flexDirection: 'row', alignItems: 'flex-start', gap: 6 } : undefined}>
+        <View style={dashboard ? { flex: 1, minWidth: 0 } : undefined}>
+          <Today quests={todayHere} onOpenQuest={onOpenQuest} onOpenQuests={onOpenQuests} />
+        </View>
       {/*
         The companion sits with the rest of the game layer now, not between the
         places and what is happening around them. A full-width portrait at the
@@ -254,14 +275,17 @@ export function HomeScreen({
         YOU rather than the island. The place-first order above it (problems,
         transit, board, then today's missions) is unchanged.
       */}
-      <MascotHeroCard now={now} onOpen={onOpenMascots ?? onOpenPassport} />
-      <Carrying
-        wallet={wallet}
-        passport={passport}
-        companions={companions}
-        onOpenWallet={onOpenWallet}
-        onOpenPassport={onOpenPassport}
-      />
+        <View style={dashboard ? { flex: 1, minWidth: 0 } : undefined}>
+          <MascotHeroCard now={now} onOpen={onOpenMascots ?? onOpenPassport} />
+          <Carrying
+            wallet={wallet}
+            passport={passport}
+            companions={companions}
+            onOpenWallet={onOpenWallet}
+            onOpenPassport={onOpenPassport}
+          />
+        </View>
+      </View>
       <View style={{ height: 32 }} />
     </ScrollView>
   );
@@ -298,8 +322,8 @@ function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile }: {
   onOpenConcierge: () => void; onOpenProfile: () => void;
 }) {
   return (
-    <View style={{ backgroundColor: '#028090', paddingHorizontal: gutter, paddingTop: 24, paddingBottom: 70, overflow: 'hidden' }}>
-      <OceanBackdrop />
+    <View style={{ backgroundColor: '#028090', minHeight: 330, paddingHorizontal: gutter, paddingTop: 26, paddingBottom: 82, overflow: 'hidden' }}>
+      <TravelHeroBackdrop focalPoint="right" />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: '#D5F6FF', fontSize: 12, fontWeight: '500', letterSpacing: 1.8, textTransform: 'uppercase' }}>{t(greetingFor(now))}</Text>
@@ -308,14 +332,22 @@ function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile }: {
         <Image
           source={chivagoLogo}
           resizeMode="contain"
-          accessibilityLabel="ChivaGo"
+          accessibilityLabel="ChivarGo"
           style={{ width: 68, height: 48, marginLeft: 8, marginRight: 12 }}
         />
         <ProfileButton onPress={onOpenProfile} />
       </View>
       <AreaSwitch area={area.key} onChange={onChangeArea} tone="inverted" />
+      <View style={{ marginTop: 18, maxWidth: 720 }}>
+        <Heading size={34} tracking={-0.7} colour="#FFFFFF" style={{ maxWidth: 560 }}>
+          {t({ en: 'Discover. Travel. Remember.', th: 'ค้นหา เดินทาง และจดจำ', zh: '探索、旅行、铭记。' })}
+        </Heading>
+        <Body size={13} colour="#E8FBFF" style={{ marginTop: 6, maxWidth: 520 }}>
+          {t({ en: 'Island stories, local people and safer journeys — all in one place.', th: 'เรื่องราวของเกาะ ผู้คนท้องถิ่น และการเดินทางที่ปลอดภัยในที่เดียว', zh: '岛屿故事、当地人与安心旅程，尽在一处。' })}
+        </Body>
+      </View>
       <Pressable onPress={onOpenConcierge} accessibilityRole="button" accessibilityLabel={t({ en: 'Ask where to go', th: 'ถามว่าไปไหนดี', zh: '问问去哪儿好' })}
-        style={{ marginTop: 20, minHeight: 56, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFFFFF', borderRadius: 28, shadowColor: '#004E64', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 }}>
+        style={{ marginTop: 20, minHeight: 58, maxWidth: 720, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 29, shadowColor: '#003B52', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.22, shadowRadius: 20, elevation: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.72)' }}>
         <Search size={21} color="#78909C" />
         <Body colour="#78909C" style={{ flex: 1 }}>{t({ en: 'Where to go today?', th: 'วันนี้ไปไหนดี?', zh: '今天去哪儿好？' })}</Body>
         <ScanLine size={21} color="#0077B6" />
@@ -429,11 +461,11 @@ function Conditions({
 
 function Doors({
   onOpenMap, onOpenQuests, onOpenWallet, onOpenConcierge, onOpenImpact, onOpenSafety, onOpenParty,
-  onOpenStays, onOpenMarket,
+  onOpenStays, onOpenMarket, onOpenSummon,
 }: {
   onOpenMap: () => void; onOpenQuests: () => void; onOpenWallet: () => void; onOpenConcierge: () => void;
   onOpenImpact: () => void; onOpenSafety: () => void; onOpenParty: () => void; onOpenStays?: () => void;
-  onOpenMarket: () => void;
+  onOpenMarket: () => void; onOpenSummon?: () => void;
 }) {
   const doors = [
     { Icon: MapIcon, name: strings.tabs.map, onPress: onOpenMap, fill: '#C8F0FA', ink: '#0077B6' },
@@ -441,12 +473,44 @@ function Doors({
     { Icon: Sparkles, name: strings.tabs.quests, onPress: onOpenQuests, fill: '#FFD6AF', ink: '#B34C00' },
     { Icon: Wallet, name: strings.tabs.wallet, onPress: onOpenWallet, fill: '#FFD5CF', ink: '#AE433C' },
     { Icon: Ticket, name: { en: 'Deals', th: 'สิทธิพิเศษ', zh: '优惠' }, onPress: onOpenMarket, fill: '#FFF0AD', ink: '#916000' },
+    /*
+      The summoning (docs/68), on Home.
+
+      It was three taps inside the game tab, which is exactly how the Stays
+      door was lost - docs/61 records the owner not finding that screen - and
+      this is the same fix: a door on the surface somebody actually opens.
+
+      LILAC FROM THE TOKEN SET, not a hex typed in here. The five doors above
+      predate `tint` and carry their own hand-mixed pairs; a sixth one adding
+      to that pile is a sixth place to fix later. Lilac also keeps it off
+      gold, which on this screen belongs to points - and the summoning takes
+      no points and pays none out.
+
+      A SHELL, not dice, a gift or a four-leaf clover. lucide has all three,
+      and each one would be the interface calling this a gamble or a prize -
+      the two words docs/68 spent a legal argument refusing, and the two the
+      server still scans its own result payloads for. A shell is something
+      picked up by being on the island, which is where the charm came from.
+
+      Rendered only when the door has somewhere to go. A screen test that
+      predates this prop shows five doors rather than a sixth that does
+      nothing, which is the rule the place cards above already follow.
+    */
+    ...(onOpenSummon
+      ? [{
+        Icon: ShellIcon,
+        name: { en: 'Summon', th: 'อัญเชิญ', zh: '召唤' },
+        onPress: onOpenSummon,
+        fill: tint.lilac.fill,
+        ink: tint.lilac.ink,
+      }]
+      : []),
   ];
   return (
     <View style={{ flexDirection: 'row', paddingHorizontal: Math.max(8, gutter - 8), paddingTop: 22 }}>
       {doors.map(({ Icon, name, onPress, fill, ink }) => (
         <Pressable key={name.en} onPress={onPress} accessibilityRole="button" accessibilityLabel={t(name)}
-          style={{ flex: 1, alignItems: 'center', gap: 8, minHeight: 88 }}>
+          style={{ flex: 1, alignItems: 'center', gap: 8, minHeight: 96 }}>
           <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: fill, alignItems: 'center', justifyContent: 'center', borderTopWidth: 2, borderTopColor: 'rgba(255,255,255,0.8)', shadowColor: ink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 5, elevation: 2 }}>
             <Icon size={25} color={ink} strokeWidth={1.8} />
           </View>
@@ -530,8 +594,8 @@ function noteForOrder(pinned: boolean, located: boolean): string | undefined {
 }
 
 function Places({
-  places, shops, onOpenMap, onOpenPlace, onOpenShop,
-}: { places: Async<ScoredPlace[]>; shops: Async<Shop[]>; onOpenMap: () => void; onOpenPlace: (id: string) => void; onOpenShop: (id: string) => void }) {
+  places, shops, onOpenMap, onOpenPlace, onOpenShop, onOpenLocalPicks,
+}: { places: Async<ScoredPlace[]>; shops: Async<Shop[]>; onOpenMap: () => void; onOpenPlace: (id: string) => void; onOpenShop: (id: string) => void; onOpenLocalPicks?: () => void }) {
   const [gridWidth, setGridWidth] = React.useState(0);
   const columns = gridWidth >= 1200 ? 5 : gridWidth >= 960 ? 4 : gridWidth >= 700 ? 3 : gridWidth >= 380 ? 2 : 1;
   const cardWidth = gridWidth > 0 ? (gridWidth - 16 * (columns - 1)) / columns : 280;
@@ -571,7 +635,12 @@ function Places({
         th="สถานที่ในพื้นที่นี้"
         zh="这一带的地点"
         note={noteForOrder(pinned, here !== null)}
-        onSeeAll={onOpenMap}
+        /*
+          Services has a screen of its own now; places still belong to the
+          map. One head, two destinations, because "see all" over a list of
+          shops that lands on a map answers a different question.
+        */
+        onSeeAll={kind === 'shops' && onOpenLocalPicks ? onOpenLocalPicks : onOpenMap}
       />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: gutter, gap: 8, paddingBottom: 4 }}>
         {([['all', { en: 'All', th: 'ทั้งหมด', zh: '全部' }], ['places', { en: 'Places', th: 'สถานที่', zh: '地点' }], ['shops', { en: 'Services', th: 'สถานบริการ', zh: '服务' }]] as const).map(([value, label]) => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: kind === value }} onPress={() => setKind(value)} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: kind === value ? '#0077B6' : '#E1F2F7' }}><Text style={{ color: kind === value ? '#fff' : '#123B64', fontSize: 12, fontWeight: '700' }}>{t(label)}</Text></Pressable>)}
@@ -599,32 +668,6 @@ function Places({
     </View>
   );
 }
-
-function shopCategoryLabel(category: string): string {
-  const labels: Record<string, { en: string; th: string; zh?: string }> = {
-    'ที่พัก': { en: 'Accommodation', th: 'ที่พัก', zh: '住宿' },
-    'ร้านอาหาร': { en: 'Restaurants', th: 'ร้านอาหาร', zh: '餐厅' },
-    'ร้านขายของ': { en: 'Souvenirs & shopping', th: 'ของฝาก/ช้อปปิ้ง', zh: '纪念品与购物' },
-    'เช่ารถ': { en: 'Car rental', th: 'เช่ารถ', zh: '租车' },
-    'เสริมสวย': { en: 'Beauty', th: 'เสริมสวย', zh: '美容' },
-    'ตัดผม': { en: 'Haircuts', th: 'ตัดผม', zh: '理发' },
-    'ไกด์นำเที่ยว': { en: 'Tour guide', th: 'ไกด์นำเที่ยว', zh: '导游' },
-    'กีฬาและนันทนาการ': { en: 'Sports & recreation', th: 'กีฬาและนันทนาการ', zh: '运动与休闲' },
-    'อื่นๆ': { en: 'Other', th: 'อื่นๆ', zh: '其他' },
-  };
-  return t(labels[category] ?? { en: category, th: category });
-}
-
-const serviceAppearance: Record<string, { icon: LucideIcon; accent: string; pale: string }> = {
-  'ที่พัก': { icon: BedDouble, accent: '#0077B6', pale: '#E5F4FF' },
-  'ร้านอาหาร': { icon: Utensils, accent: '#C65B16', pale: '#FFF0E5' },
-  'ร้านขายของ': { icon: ShoppingBag, accent: '#7953B9', pale: '#F1EBFF' },
-  'เช่ารถ': { icon: Car, accent: '#00848F', pale: '#E1F6F5' },
-  'เสริมสวย': { icon: Sparkles, accent: '#BE4B78', pale: '#FDECF3' },
-  'ตัดผม': { icon: Scissors, accent: '#2776B5', pale: '#E8F3FC' },
-  'ไกด์นำเที่ยว': { icon: UserRound, accent: '#16806D', pale: '#E5F5EF' },
-  'กีฬาและนันทนาการ': { icon: Dumbbell, accent: '#24834F', pale: '#E7F5EC' },
-};
 
 function ShopCard({ shop, onPress, width }: { shop: Shop; onPress: () => void; width: number }) {
   const [failedPhoto, setFailedPhoto] = React.useState<string | null>(null);
@@ -904,7 +947,7 @@ function Today({
           ) : (
             <Body size={13} colour={color.neutral700}>{t({ en: 'No missions running today. The map still works, and the weekend list usually has something.', th: 'วันนี้ยังไม่มีภารกิจ แผนที่ยังใช้ได้ และรายการสุดสัปดาห์มักมีให้ทำ', zh: '今天没有进行中的任务。地图照常可用，周末的任务列表通常也有可做的。' })}</Body>
           )}
-          <Button label="See all missions" thai="ดูภารกิจทั้งหมด" onPress={onOpenQuests} variant="secondary" height={44} style={{ marginTop: 12 }} />
+          <Button label="See all missions" thai="ดูภารกิจทั้งหมด" chinese="查看全部任务" onPress={onOpenQuests} variant="secondary" height={44} style={{ marginTop: 12 }} />
         </View>
       ) : (
         <>
@@ -1010,8 +1053,8 @@ function Carrying({
           screen where somebody first learns there are two of them. Green is
           host-verified, gold is self-verified, and the labels say which.
         */}
-        <Figure value={green === null ? '—' : green.toLocaleString('en-US')} unit="G" en="Green · verified" th="ตรวจแล้ว" zh="绿色 · 已验证" tone={color.accent700} onPress={onOpenWallet} />
-        <Figure value={trip === null ? '—' : trip.toLocaleString('en-US')} unit="T" en="Trip · self" th="บันทึกเอง" zh="旅行 · 自行记录" tone={color.goldDeep} onPress={onOpenWallet} />
+        <Figure value={green === null ? '—' : formatInteger(green)} unit="G" en="Green · verified" th="ตรวจแล้ว" zh="绿色 · 已验证" tone={color.accent700} onPress={onOpenWallet} />
+        <Figure value={trip === null ? '—' : formatInteger(trip)} unit="T" en="Trip · self" th="บันทึกเอง" zh="旅行 · 自行记录" tone={color.goldDeep} onPress={onOpenWallet} />
       </View>
 
       <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: gutter, marginTop: 10 }}>

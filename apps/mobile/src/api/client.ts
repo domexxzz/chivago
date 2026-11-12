@@ -12,6 +12,7 @@ import { Platform } from 'react-native';
 import type { Shop, ShopDetail, ShopInput, ShopReview } from './shops.ts';
 import { adoptKey, forgetKey, loadDeviceKey } from './account.ts';
 import { t } from '../i18n/locale.ts';
+import { apiErrorMessage } from '../i18n/api-errors.ts';
 import { getEvent } from '../state/area.ts';
 import type {
   AreaKey,
@@ -252,28 +253,6 @@ export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; code: string; error: string };
 
-/** Server error codes are stable; render known shop errors in the language the app currently uses. */
-const translatedApiError = (code: string, fallback: string): string => {
-  const messages: Record<string, Bilingual> = {
-    OPERATOR_REQUIRED: { en: 'Only business operator accounts can manage services.', th: 'เฉพาะบัญชีผู้ประกอบการเท่านั้นที่จัดการบริการได้', zh: '只有商家账号才能管理服务。' },
-    FORBIDDEN: { en: 'You can only manage your own service.', th: 'จัดการได้เฉพาะบริการของตนเอง', zh: '你只能管理自己的服务。' },
-    NOT_FOUND: { en: 'This service was not found.', th: 'ไม่พบบริการนี้', zh: '未找到此服务。' },
-    INVALID_SHOP: { en: 'Enter a name and service type.', th: 'กรอกชื่อและประเภทบริการ', zh: '请填写名称和服务类型。' },
-    INVALID_CATEGORY: { en: 'Choose a valid service type.', th: 'เลือกประเภทบริการจากรายการที่กำหนด', zh: '请从列表中选择有效的服务类型。' },
-    INVALID_GUIDE_PROFILE: { en: 'Choose at least one language you can speak.', th: 'กรุณาเลือกภาษาที่สื่อสารได้', zh: '请至少选择一种你会说的语言。' },
-    INVALID_ADDRESS: { en: 'Enter the business address.', th: 'กรุณากรอกที่อยู่ร้านค้า', zh: '请填写商家地址。' },
-    INVALID_PHONE: { en: 'Enter a valid phone number.', th: 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง', zh: '请填写有效的电话号码。' },
-    INVALID_EMAIL: { en: 'Enter a valid email address.', th: 'รูปแบบอีเมลไม่ถูกต้อง', zh: '请填写有效的电子邮件地址。' },
-    INVALID_LOCATION: { en: 'The coordinates must be inside the selected area.', th: 'พิกัดต้องอยู่ในพื้นที่ที่เลือก', zh: '坐标必须位于所选区域内。' },
-    INVALID_GUIDE_HOURS: { en: 'Guide profiles do not use business opening hours.', th: 'โปรไฟล์ไกด์ไม่ใช้เวลาเปิด–ปิดร้าน', zh: '导游资料不使用营业时间。' },
-    INVALID_HOURS: { en: 'Opening hours must use HH:MM-HH:MM.', th: 'เวลาเปิดปิดต้องเป็น HH:MM-HH:MM', zh: '营业时间必须使用 HH:MM-HH:MM 格式。' },
-    GUIDE_PROFILE_REQUIRED: { en: 'Profile photos are available for guides only.', th: 'รูปโปรไฟล์ใช้ได้กับไกด์เท่านั้น', zh: '个人头像仅适用于导游。' },
-    PHOTO_REQUIRED: { en: 'Choose a profile photo first.', th: 'เลือกรูปโปรไฟล์ก่อน', zh: '请先选择一张个人头像。' },
-    INVALID_PHOTO: { en: 'Use a JPG, PNG, or WebP image no larger than 5 MB.', th: 'ใช้ไฟล์ JPG, PNG หรือ WebP ไม่เกิน 5MB', zh: '请使用不超过 5 MB 的 JPG、PNG 或 WebP 图片。' },
-  };
-  return messages[code] ? t(messages[code]) : fallback;
-};
-
 /**
  * A phone whose key the server has never heard of takes a new one.
  *
@@ -359,7 +338,7 @@ async function call<T>(
         clearTimeout(timer);
         return call<T>(path, init, timeoutMs, true);
       }
-      return { ok: false, code: body.code, error: translatedApiError(body.code, body.error) };
+      return { ok: false, code: body.code, error: apiErrorMessage(body.code) };
     }
     return { ok: true, data: body.data };
   } catch (err) {

@@ -42,6 +42,7 @@ import { SAMUI_BBOX as SAMUI_FRAME } from '@chivago/core';
 import type { Here } from '../state/here.ts';
 import { Label } from './Type.tsx';
 import { MapLegend } from './map-parts.tsx';
+import { shopMarkerSvg, shopMarkerVisual } from './shop-map-marker.tsx';
 import { t } from '../i18n/locale.ts';
 import { hourFrom, mix } from './island-clock.ts';
 import {
@@ -262,6 +263,15 @@ const MARK_CSS = `
 .cg-stem{width:2px;height:18px;background:${color.text};opacity:.9}
 .cg-foot{width:14px;height:5px;border-radius:50%;background:rgba(8,26,48,.4);margin-top:-1px}
 .cg-pin.cg-storied .cg-chip{box-shadow:0 0 0 2px ${color.bg},0 0 0 5px ${color.gold}}
+.cg-shop-pin{display:flex;flex-direction:column;align-items:center;width:46px;height:51px;padding:0;border:0;
+  background:transparent;cursor:pointer;color:#fff;filter:drop-shadow(0 4px 5px rgba(8,26,48,.42))}
+.cg-shop-pin-core{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;width:42px;height:42px;
+  border:3px solid #fff;border-radius:50%;background:var(--cg-shop-colour);transition:transform .16s ease,box-shadow .16s ease}
+.cg-shop-pin-core svg{width:21px;height:21px;display:block}
+.cg-shop-pin-tail{position:absolute;z-index:0;top:34px;width:14px;height:14px;transform:rotate(45deg);
+  background:var(--cg-shop-colour);border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;border-radius:2px}
+.cg-shop-pin:hover .cg-shop-pin-core,.cg-shop-pin:focus-visible .cg-shop-pin-core{transform:translateY(-2px) scale(1.07);box-shadow:0 0 0 4px rgba(255,255,255,.24)}
+.cg-shop-pin:focus-visible{outline:3px solid #8fe7ff;outline-offset:3px;border-radius:24px}
 /*
   The story bubble: the poster itself, on the pin.
 
@@ -1251,11 +1261,13 @@ export function TerrainMap({
 
     for (const shop of shops) {
       if (shop.lat === null || shop.lng === null) continue;
+      const visual = shopMarkerVisual(shop.category);
       const el = document.createElement('button');
       el.type = 'button';
-      el.setAttribute('aria-label', `ร้าน ${shop.name}`);
-      el.style.cssText = 'border:2px solid white;border-radius:20px;background:#F77F00;color:white;min-width:38px;height:38px;cursor:pointer;box-shadow:0 3px 9px #123b6477;font-size:19px';
-      el.textContent = '🏪';
+      el.className = 'cg-shop-pin';
+      el.setAttribute('aria-label', `${shop.category}: ${shop.name}`);
+      el.style.setProperty('--cg-shop-colour', visual.colour);
+      el.innerHTML = `<span class="cg-shop-pin-tail"></span><span class="cg-shop-pin-core">${shopMarkerSvg(shop.category)}</span>`;
       el.addEventListener('click', () => onSelectShop?.(shop));
       markers.current.push(new Marker({ element: el, anchor: 'bottom' }).setLngLat([shop.lng, shop.lat]).addTo(m));
     }

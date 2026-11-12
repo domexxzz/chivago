@@ -66,10 +66,12 @@ describe('registering', () => {
     assert.equal(res.data.userId, user);
   });
 
-  test('a new account arrives with a wallet, not a 500', async () => {
+  test('a new account arrives with an empty wallet, not prototype points', async () => {
     const res = await json(await get('/wallet', { 'x-chivago-device-key': key }));
     assert.equal(res.ok, true);
-    assert.equal(typeof res.data.balances.green, 'number');
+    assert.deepEqual(res.data.balances, { trip: 0, green: 0 });
+    assert.equal(res.data.progression.exp, 0);
+    assert.deepEqual(res.data.ledger, []);
   });
 });
 

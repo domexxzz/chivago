@@ -81,7 +81,7 @@ const net = server({
 - **Safety** (4) — every service with its own state; "2 of 3 contacts reached"
   counted from real attempts; the shield list failing does **not** take the SOS
   control with it; and — the single most important sentence in the app — that
-  it never implies ChivaGo is the ambulance, with 1669 on screen.
+  it never implies ChivarGo is the ambulance, with 1669 on screen.
 - **Trip** (3) — the only screen that fetches nothing; stats, itemised times,
   and back reaching the caller.
 - **Onboarding** (6) — it starts on step one; walking all three hands back

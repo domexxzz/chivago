@@ -11,8 +11,8 @@
  */
 
 import React from 'react';
-import { Image, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
-import { Play, X } from 'lucide-react-native';
+import { Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { AlertTriangle, Camera, Play, Star, Trash2, X } from 'lucide-react-native';
 import {
   ledgerDate,
   APPEAL_MAX_MESSAGE, isModerationReasonKey, MODERATION_REASONS,
@@ -26,6 +26,7 @@ import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { ErrorState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { ratingMeaning } from '../components/review-copy.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 
 export function ReviewsBlock({
@@ -81,22 +82,22 @@ export function ReviewsBlock({
   React.useEffect(load, [load]);
 
   return (
-    <View style={{ marginTop: 24, borderTopWidth: layout.ruleHair, borderTopColor: color.neutral300, paddingTop: 16 }}>
+    <View style={{ marginTop: 24, paddingTop: 4 }}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
-        <Label size={10} tracking={0.14}>
+        <Heading size={20}>
           {`${t(strings.reviews.title)}`}
-        </Label>
+        </Heading>
         {/* A place nobody has reviewed shows nothing here, not "0.0" - zero is
             a rating, and we have no basis for that claim. */}
         {summary.average !== null ? (
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFF4D8', borderRadius: 18, paddingHorizontal: 10, paddingVertical: 6 }}>
+            <Star size={14} color="#F5A623" fill="#F5A623" strokeWidth={2} />
             <AccentNumeral size={22}>{summary.average.toFixed(1)}</AccentNumeral>
-            <Label size={10} tracking={0.1}>{t(strings.reviews.count(summary.count))}</Label>
           </View>
         ) : null}
       </View>
 
-      <Body size={13} colour={color.neutral700} style={{ marginTop: 8 }}>
+      <Body size={13} colour={color.neutral700} style={{ marginTop: 6 }}>
         {t(strings.reviews.verifiedOnly)}
       </Body>
 
@@ -114,12 +115,12 @@ export function ReviewsBlock({
           thai={mine ? strings.place.leaveAgain.th : strings.place.leaveSomething.th}
           chinese={mine ? strings.place.leaveAgain.zh : strings.place.leaveSomething.zh}
           onPress={() => {
-            if (requireAccount({ en: 'Please sign in or create an account to write a review or post a story.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเขียนรีวิวหรือโพสต์เรื่องราว', zh: '请登录或注册账号，以撰写评价或发布故事。' })) return;
+            if (requireAccount({ en: 'Please sign in or create an account to write a review or post a story.', th: 'เข้าสู่ระบบเพื่อเขียนรีวิวสถานที่นี้หรือโพสต์เรื่องราว', zh: '请登录或注册账号，以撰写评价或发布故事。' })) return;
             setComposing(true);
           }}
           variant="secondary"
           height={44}
-          style={{ marginTop: 14 }}
+          style={{ marginTop: 16, borderRadius: 24 }}
         />
       ) : (
         // Never a disabled button with no explanation. The answer is "check
@@ -223,15 +224,15 @@ export function ReviewRow({
   return (
     <View
       style={[shadow.card, {
-        marginTop: 10,
-        padding: 14,
+        marginTop: 12,
+        padding: 16,
         backgroundColor: color.surface,
-        borderRadius: radius.md,
+        borderRadius: 20,
         borderWidth: 1,
         borderColor: '#DCEFF5',
       }]}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         {/*
           No author name. The pilot has no accounts, so `review.authorName` is
           the default "Traveller" for everyone - a column of identical names
@@ -243,7 +244,12 @@ export function ReviewRow({
         <Heading size={14}>
           {isMine ? t(strings.reviews.yours) : t(strings.reviews.verifiedVisit)}
         </Heading>
-        <Label size={11} tracking={0.08}>{`${review.rating} / 5`}</Label>
+        <View style={{ flexDirection: 'row', gap: 2 }} accessibilityLabel={`${review.rating} / 5`}>
+          <Text style={{ position: 'absolute', color: 'transparent', fontSize: 1 }}>{`${review.rating} / 5`}</Text>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <Star key={n} size={14} color={n <= review.rating ? '#F5A623' : '#D8E3E8'} fill={n <= review.rating ? '#F5A623' : 'transparent'} strokeWidth={2} />
+          ))}
+        </View>
       </View>
 
       {/* When they were THERE, not when they typed. */}
@@ -383,6 +389,10 @@ export function ComposeSheet({
   const [media, setMedia] = React.useState<PickedMedia | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [checkingIn, setCheckingIn] = React.useState(false);
+  const actionLock = React.useRef(false);
+  const uploadedMedia = React.useRef<PickedMedia | null>(null);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [confirmWithdraw, setConfirmWithdraw] = React.useState(false);
   const [checkInError, setCheckInError] = React.useState<string | null>(null);
 
   const handleCheckIn = async () => {
@@ -406,6 +416,7 @@ export function ComposeSheet({
     setRating(existing?.rating ?? 0);
     setBody(existing?.body ?? '');
     setMedia(null);
+    uploadedMedia.current = null; setSubmitError(null); setConfirmWithdraw(false);
     setCheckInError(null);
   }, [visible, existing]);
 
@@ -419,30 +430,24 @@ export function ComposeSheet({
     way round: the clip is the thing they made.
   */
   const save = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to write a review or post a story.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเขียนรีวิวหรือโพสต์เรื่องราว', zh: '请登录或注册账号，以撰写评价或发布故事。' })) return;
-    const words = body.trim();
-    if (rating < 1 && !media) return;
-    setBusy(true);
-    let said: string | null = null;
-
-    if (media) {
-      const up = await onPostStory(media, words);
-      if (!up) { setBusy(false); return; }
-      said = t(strings.place.storyPosted);
-    }
-
-    if (rating >= 1) {
-      const res = await api.writeReview(placeId, { rating, body: words || null });
-      if (!res.ok) { setBusy(false); onSaved(res.error); return; }
-      said = res.data.pointsAwarded > 0
-        ? t(strings.reviews.posted(res.data.pointsAwarded))
-        : res.data.created
-          ? t(strings.reviews.tooShortForPoints(40))
-          : t(strings.reviews.updated);
-    }
-
-    setBusy(false);
-    onSaved(said ?? t(strings.place.storyPosted));
+    if (actionLock.current || (rating < 1 && !media)) return;
+    if (requireAccount({ en: 'Sign in to review this place.', th: 'เข้าสู่ระบบเพื่อเขียนรีวิวสถานที่นี้', zh: '登录以评价此地点。' })) return;
+    actionLock.current = true; setBusy(true); setSubmitError(null);
+    try {
+      const words = body.trim();
+      if (media && uploadedMedia.current !== media) {
+        if (!await onPostStory(media, words)) { setSubmitError(t({ en: 'Upload failed. Your draft is kept.', th: 'อัปโหลดไม่สำเร็จ ข้อมูลที่กรอกยังอยู่', zh: '上传失败，草稿已保留。' })); return; }
+        uploadedMedia.current = media;
+      }
+      let message = t(strings.place.storyPosted);
+      if (rating >= 1) {
+        const res = await api.writeReview(placeId, { rating, body: words || null });
+        if (!res.ok) { setSubmitError(res.error); return; }
+        message = res.data.pointsAwarded > 0 ? t(strings.reviews.posted(res.data.pointsAwarded)) : res.data.created ? t(strings.reviews.tooShortForPoints(40)) : t(strings.reviews.updated);
+      }
+      onSaved(message);
+    } catch { setSubmitError(t({ en: 'Could not save. Your draft is kept.', th: 'บันทึกไม่สำเร็จ ข้อมูลที่กรอกยังอยู่', zh: '保存失败，草稿已保留。' })); }
+    finally { actionLock.current = false; setBusy(false); }
   };
 
   const attach = async () => {
@@ -451,32 +456,35 @@ export function ComposeSheet({
   };
 
   const withdraw = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to remove your review.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อลบรีวิว', zh: '请登录或注册账号，以删除你的评价。' })) return;
-    setBusy(true);
-    await api.withdrawReview(placeId);
-    setBusy(false);
-    onWithdrawn();
+    if (actionLock.current) return;
+    actionLock.current = true; setBusy(true); setSubmitError(null);
+    try {
+      const result = await api.withdrawReview(placeId);
+      if (!result.ok) { setSubmitError(result.error); return; }
+      setConfirmWithdraw(false); onWithdrawn();
+    } catch { setSubmitError(t({ en: 'Could not delete. Try again.', th: 'ลบไม่สำเร็จ กรุณาลองใหม่', zh: '删除失败，请重试。' })); }
+    finally { actionLock.current = false; setBusy(false); }
   };
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: 'rgba(32,30,29,0.45)', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: color.bg, maxHeight: '85%' }}>
+        <View style={{ backgroundColor: '#F5FBFD', maxHeight: '92%', borderTopLeftRadius: 32, borderTopRightRadius: 32, overflow: 'hidden' }}>
+          <View style={{ width: 42, height: 4, borderRadius: 2, backgroundColor: color.neutral400, alignSelf: 'center', marginTop: 9 }} />
           <View
             style={{
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
               paddingHorizontal: gutter,
-              paddingVertical: 14,
-              borderBottomWidth: layout.ruleHair,
-              borderBottomColor: color.neutral300,
+              paddingTop: 14,
+              paddingBottom: 12,
             }}
           >
-            <Heading size={16}>
+            <Heading size={20}>
               {existing ? t(strings.place.leaveAgain) : t(strings.place.leaveSomething)}
             </Heading>
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t(strings.common.close)} hitSlop={12}>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t(strings.common.close)} hitSlop={12} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: color.neutral200, alignItems: 'center', justifyContent: 'center' }}>
               <X size={20} color={color.text} />
             </Pressable>
           </View>
@@ -521,9 +529,9 @@ export function ComposeSheet({
             ) : null}
 
             <Label size={10} tracking={0.12} style={{ marginTop: 16 }}>
-              {t(strings.reviews.rating(rating || 0))}
+              {t(strings.reviews.rating(rating || 0))} · {ratingMeaning(rating)}
             </Label>
-            <View style={{ flexDirection: 'row', gap: 6, marginTop: 8 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 12, marginTop: 12, paddingVertical: 8 }}>
               {[1, 2, 3, 4, 5].map((n) => (
                 <Pressable
                   key={n}
@@ -532,19 +540,16 @@ export function ComposeSheet({
                   accessibilityState={{ selected: rating === n, disabled: !canReview }}
                   accessibilityLabel={t(strings.reviews.rating(n))}
                   style={{
-                    flex: 1,
-                    aspectRatio: 1,
+                    width: 45,
+                    height: 45,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderWidth: layout.ruleStrong,
-                    borderRadius: radius.sm,
-                    // A rating the traveller sets themselves. Gold, like every
-                    // other self-reported figure in the app.
-                    borderColor: n <= rating ? color.gold : color.neutral400,
-                    backgroundColor: n <= rating ? color.gold : 'transparent',
+                    borderRadius: 23,
+                    backgroundColor: n <= rating ? '#FFF4D8' : 'transparent',
                   }}
                 >
-                  <Heading size={16} colour={n <= rating ? onFill.gold : color.neutral500}>{n}</Heading>
+                  <Star size={34} color={n <= rating ? '#F5A623' : '#C9D7DD'} fill={n <= rating ? '#F5A623' : 'transparent'} strokeWidth={2} />
+                  <Text style={{ position: 'absolute', color: 'transparent', fontSize: 1 }}>{n}</Text>
                 </Pressable>
               ))}
             </View>
@@ -562,17 +567,17 @@ export function ComposeSheet({
               accessibilityLabel={t(strings.reviews.placeholder)}
               style={{
                 borderWidth: 1,
-                borderColor: color.neutral400,
-                borderRadius: radius.sm,
-                paddingHorizontal: 10,
-                paddingVertical: 10,
-                marginTop: 6,
-                minHeight: 110,
+                borderColor: '#D7E8EE',
+                borderRadius: 18,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                marginTop: 8,
+                minHeight: 104,
                 fontSize: 15,
                 lineHeight: 21,
                 textAlignVertical: 'top',
                 color: color.text,
-                backgroundColor: color.bg,
+                backgroundColor: color.surface,
               }}
             />
             <Label size={9} tracking={0.06} colour={color.neutral600} style={{ marginTop: 6 }}>
@@ -598,8 +603,9 @@ export function ComposeSheet({
                   <View
                     style={{
                       flexDirection: 'row', alignItems: 'center',
-                      gap: 10, marginTop: 8, padding: 10,
-                      borderWidth: 1, borderColor: color.neutral400, borderRadius: radius.sm,
+                      gap: 12, marginTop: 10, padding: 10,
+                      borderWidth: 1, borderColor: '#D7E8EE', borderRadius: 18,
+                      backgroundColor: color.surface,
                     }}
                   >
                     <MediaPreview media={media} />
@@ -617,16 +623,24 @@ export function ComposeSheet({
                     </Pressable>
                   </View>
                 ) : (
-                  <Button
-                    label={t(strings.place.addMedia)}
-                    thai={strings.place.addMedia.th}
-                    chinese={strings.place.addMedia.zh}
+                  <Pressable
                     onPress={attach}
                     disabled={busy || postingStory}
-                    variant="secondary"
-                    height={44}
-                    style={{ marginTop: 8 }}
-                  />
+                    accessibilityRole="button"
+                    accessibilityLabel={t(strings.place.addMedia)}
+                    style={({ pressed }) => ({
+                      marginTop: 10, height: 76, borderRadius: 18,
+                      borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9DCBD8',
+                      backgroundColor: pressed ? '#E8F7FB' : color.surface,
+                      flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+                      opacity: busy || postingStory ? 0.5 : 1,
+                    })}
+                  >
+                    <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: '#E4F7FC', alignItems: 'center', justifyContent: 'center' }}>
+                      <Camera size={22} color="#1598BE" strokeWidth={2} />
+                    </View>
+                    <Heading size={14} colour="#127C9B">{t(strings.place.addMedia)}</Heading>
+                  </Pressable>
                 )}
               </>
             ) : null}
@@ -638,19 +652,25 @@ export function ComposeSheet({
               </Body>
             ) : null}
 
+            {submitError ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 12, padding: 11, borderRadius: radius.sm, backgroundColor: '#FEF2F2' }}><AlertTriangle size={16} color={color.accent2} /><Body colour={color.accent2} style={{ flex: 1 }}>{submitError}</Body></View> : null}
             <Button
-              label={t(strings.place.leaveSubmit)}
+              label={busy ? t({ en: 'Saving…', th: 'กำลังบันทึก…', zh: '正在保存…' }) : t(strings.place.leaveSubmit)}
               thai={strings.place.leaveSubmit.th}
               chinese={strings.place.leaveSubmit.zh}
               onPress={save}
               disabled={busy || postingStory || (rating < 1 && !media)}
               height={48}
-              style={{ marginTop: 20 }}
+              style={{ marginTop: 20, borderRadius: 24 }}
             />
+            {confirmWithdraw ? <View accessibilityRole="alert" style={{ padding: 16, marginTop: 12, borderRadius: radius.md, backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><Trash2 size={20} color={color.accent2} /><Heading size={15} colour={color.accent2}>{t({ en: 'Delete your review?', th: 'ยืนยันลบรีวิวของคุณ?', zh: '删除您的评价？' })}</Heading></View><Body size={13} colour={color.neutral700} style={{ marginTop: 6 }}>{t({ en: 'This action cannot be undone.', th: 'เมื่อลบแล้วจะไม่สามารถกู้คืนรีวิวได้', zh: '此操作无法撤销。' })}</Body>
+              <Button label={t({ en: 'Confirm delete', th: 'ยืนยันลบ', zh: '确认删除' })} onPress={withdraw} disabled={busy} style={{ marginTop: 12 }} />
+              <Button label={t({ en: 'Cancel', th: 'ยกเลิก', zh: '取消' })} onPress={() => setConfirmWithdraw(false)} disabled={busy} variant="ghost" style={{ marginTop: 6 }} />
+            </View> : null}
             {existing ? (
               <Button
                 label={t(strings.reviews.remove)}
-                onPress={withdraw}
+                onPress={() => setConfirmWithdraw(true)}
                 disabled={busy}
                 variant="ghost"
                 style={{ marginTop: 12, marginBottom: 28 }}
@@ -683,29 +703,36 @@ export function ReportSheet({
   const requireAccount = useRequireAccount();
   const [reason, setReason] = React.useState<ReportReasonKey | null>(null);
   const [note, setNote] = React.useState('');
+  const requestLock = React.useRef(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
 
   React.useEffect(() => {
     if (!review) return;
     setReason(null);
+    setSubmitError(null);
     setNote('');
   }, [review]);
 
   if (!review) return null;
 
   const send = async () => {
-    if (requireAccount({ en: 'Please sign in or create an account to report a review.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อรายงานรีวิว', zh: '请登录或注册账号，以举报评价。' })) return;
-    if (!reason) return;
-    setBusy(true);
-    const res = await api.reportReview(review.id, { reason, note: note.trim() || null });
-    setBusy(false);
-    onSent(res.ok ? t(strings.reviews.reported) : res.error);
+    if (!reason || requestLock.current) return;
+    if (requireAccount({ en: 'Sign in to report a review.', th: 'เข้าสู่ระบบเพื่อรายงานรีวิว', zh: '登录以举报评价。' })) return;
+    requestLock.current = true; setBusy(true); setSubmitError(null);
+    try {
+      const result = await api.reportReview(review.id, { reason, note: note.trim() || null });
+      if (!result.ok) { setSubmitError(result.error); return; }
+      onSent(t(strings.reviews.reported));
+    } catch { setSubmitError(t({ en: 'Report failed. Your text is kept.', th: 'ส่งรายงานไม่สำเร็จ ข้อความยังอยู่ กรุณาลองใหม่', zh: '举报失败，内容已保留。' })); }
+    finally { requestLock.current = false; setBusy(false); }
   };
 
   return (
     <Modal visible animationType="slide" transparent onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: 'rgba(32,30,29,0.45)', justifyContent: 'flex-end' }}>
-        <View style={{ backgroundColor: color.bg, maxHeight: '85%' }}>
+        <View style={{ backgroundColor: color.bg, maxHeight: '88%', borderTopLeftRadius: 26, borderTopRightRadius: 26, overflow: 'hidden' }}>
+          <View style={{ width: 42, height: 4, borderRadius: 2, backgroundColor: color.neutral400, alignSelf: 'center', marginTop: 9 }} />
           <View
             style={{
               flexDirection: 'row',
@@ -717,8 +744,8 @@ export function ReportSheet({
               borderBottomColor: color.neutral300,
             }}
           >
-            <Heading size={16}>{t(strings.reviews.reportTitle)}</Heading>
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t(strings.common.close)} hitSlop={12}>
+            <View><Heading size={16}>{t(strings.reviews.reportTitle)}</Heading>{submitError ? <Body colour={color.accent2}>{submitError}</Body> : null}</View>
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t(strings.common.close)} hitSlop={12} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: color.neutral200, alignItems: 'center', justifyContent: 'center' }}>
               <X size={20} color={color.text} />
             </Pressable>
           </View>
@@ -731,7 +758,7 @@ export function ReportSheet({
             <ReasonPicker reason={reason} onPick={setReason} />
             <NoteField note={note} onChange={setNote} />
             <Button
-              label={t(strings.reviews.reportSubmit)}
+              label={busy ? t({ en: 'Sending…', th: 'กำลังส่ง…', zh: '正在发送…' }) : t(strings.reviews.reportSubmit)}
               onPress={send}
               disabled={busy || reason === null}
               height={48}

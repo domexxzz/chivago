@@ -10,7 +10,7 @@
  * for a few minutes, never passed off as live, and never invented when there
  * are none.
  *
- * ChivaGo takes no booking and moves no money. แบดมินตัน@สินธานี's own site
+ * ChivarGo takes no booking and moves no money. แบดมินตัน@สินธานี's own site
  * does, and its `/api/court-status` answers one aggregate number: free, total,
  * open or shut, and when it counted. Nothing about a booker is asked for or
  * returned, so this can be read without anyone's permission but the venue's.

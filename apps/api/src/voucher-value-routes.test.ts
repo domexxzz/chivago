@@ -38,9 +38,10 @@ const offer = (id: string, valueTHB: number | null, costPoints = 10) =>
   ).run(id, 'Café', `Offer ${id}`, `Merchant ${id}`, `M${id}`, costPoints, valueTHB);
 
 before(async () => {
-  ana = (await json(await post('/devices', { displayName: 'Ana', label: 'Ana' }))).data.deviceKey;
+  const registered = (await json(await post('/devices', { displayName: 'Ana', label: 'Ana' }))).data;
+  ana = registered.deviceKey;
   // Points to spend. The redemption debits before it writes the voucher.
-  db.prepare("UPDATE wallets SET trip_points = 5000 WHERE user_id = (SELECT id FROM users LIMIT 1)").run();
+  db.prepare('UPDATE wallets SET trip_points = 5000 WHERE user_id = ?').run(registered.userId);
 });
 
 describe('a voucher keeps the price it was issued at', () => {
