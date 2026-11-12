@@ -15,7 +15,7 @@
  */
 
 import { SEED_OFFERS } from '@chivago/core';
-import { openDb, type DB } from './db.ts';
+import { openDb, type DB } from './db-node.ts';
 
 export interface SeedOffersResult {
   added: string[];

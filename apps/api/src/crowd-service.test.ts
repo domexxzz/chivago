@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { airHistoryFor, checkinsLastHour } from './crowd-service.ts';
 import { gridKey } from './air.ts';
 

@@ -27,9 +27,7 @@
  */
 
 import type { DB } from './db.ts';
-import { readFileSync } from 'node:fs';
-import { request as httpsRequest } from 'node:https';
-import { rootCertificates } from 'node:tls';
+import { fetchAir4Thai } from './air4thai.ts';
 import { metresBetween, type AirStation } from '@chivago/core';
 
 export interface AirReading {
@@ -42,54 +40,6 @@ export interface AirReading {
 }
 
 const OPEN_METEO = 'https://air-quality-api.open-meteo.com/v1/air-quality';
-
-const AIR4THAI = 'https://air4thai.pcd.go.th/services/getNewAQI_JSON.php';
-
-/**
- * The chain Air4Thai's server forgets to send.
- *
- * Its certificate is a Let's Encrypt leaf signed by the YR1 intermediate,
- * but the server sends Sectigo's intermediates under it, so a client that
- * does not go and fetch the right ones for itself cannot build the chain.
- * Browsers and Windows do that (AIA fetching); Node does not, and on
- * Linux there is no system store that would. So every Air4Thai request
- * from this process was `fetch failed` - the Samui cross-check had been
- * silently absent, and a station 300 m from the campus was the model.
- *
- * The two missing links are bundled in `apps/api/certs/`, copied from
- * letsencrypt.org/certificates and checked against what the leaf's own
- * AIA pointer serves: the YR1 intermediate, and Root YR cross-signed by
- * ISRG Root X1. Trust still ends at ISRG Root X1, which Node ships. When
- * Air4Thai renews under a different intermediate this breaks again, out
- * loud - the warning below names the directory.
- */
-const AIR4THAI_CHAIN = ['lets-encrypt-yr1.pem', 'isrg-root-yr-by-x1.pem']
-  .map((file) => readFileSync(new URL(`../certs/${file}`, import.meta.url), 'utf8'));
-
-/** The whole-country feed, over a request that carries the chain above. */
-function fetchAir4Thai(timeoutMs: number): Promise<unknown> {
-  return new Promise((resolve, reject) => {
-    const req = httpsRequest(
-      AIR4THAI,
-      { ca: [...rootCertificates, ...AIR4THAI_CHAIN], timeout: timeoutMs },
-      (res) => {
-        if (res.statusCode !== 200) {
-          res.resume();
-          reject(new Error(`upstream ${res.statusCode}`));
-          return;
-        }
-        const chunks: Buffer[] = [];
-        res.on('data', (chunk: Buffer) => chunks.push(chunk));
-        res.on('end', () => {
-          try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); } catch (e) { reject(e as Error); }
-        });
-      },
-    );
-    req.on('timeout', () => req.destroy(new Error('air4thai: timed out')));
-    req.on('error', reject);
-    req.end();
-  });
-}
 
 /**
  * Nearest official ground station to KOH SAMUI. Cross-check only.
@@ -237,7 +187,7 @@ export async function fetchStation(id: string): Promise<StationReading | null> {
     // that silently became the model, and nobody would know why.
     const code = (err as { code?: string }).code ?? '';
     const hint = /ISSUER|LEAF_SIGNATURE|CERT/.test(code)
-      ? ' - the chain in apps/api/certs may be stale; see air.ts'
+      ? ' - the chain in apps/api/certs may be stale; see air4thai.ts'
       : '';
     console.warn(`[chivago] air4thai ${id}: ${(err as Error).message}${hint}`);
     return null;

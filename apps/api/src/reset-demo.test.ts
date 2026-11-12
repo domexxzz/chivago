@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { seedArea } from './seed-area.ts';
 import { KEPT_TABLES, TRAVELLER_TABLES, checkSchema, reset } from './reset-demo.ts';
 

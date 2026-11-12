@@ -1,0 +1,18 @@
+{
+  // The alarm fixture, for `pnpm --filter @chivago/api test:alarm`.
+  //
+  // A SEPARATE config so the fixture is never in the deployed Worker: it is
+  // test scaffolding, and `wrangler.jsonc` does not mention it. Nothing here
+  // needs R2, Assets or the real routes - the thing under test is whether a
+  // real alarm in a real Durable Object runs the sweeps and books the next
+  // one. See the header of `worker-alarm-fixture.ts`.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "chivago-alarm-fixture",
+  "main": "src/worker-alarm-fixture.ts",
+  "compatibility_date": "2026-08-06",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [{ "name": "ALARM_FIXTURE", "class_name": "AlarmFixture" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AlarmFixture"] }]
+}

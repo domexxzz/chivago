@@ -1,18 +1,19 @@
 /**
- * Persistence. Uses node:sqlite (built into Node 22+), so the API has no native
- * build step and runs anywhere Node runs - including a Windows dev machine and
- * a small VPS on the island.
+ * Persistence, the half that runs anywhere.
  *
- * SQLite is the right call for the pilot: single-region, read-heavy, a few
- * thousand users. The schema is deliberately plain SQL so the move to Postgres
- * later is a dump-and-load, not a rewrite.
+ * The schema, `transact`, the row helpers, the `DB` type and the Durable
+ * Object driver. NOTHING HERE IMPORTS A NODE BUILTIN, and that is the point:
+ * `node:sqlite` does not exist on Cloudflare Workers and `nodejs_compat` does
+ * not provide it, so a module holding both drivers would put it in the Workers
+ * bundle and nothing would start. The file driver lives in `db-node.ts`, which
+ * re-exports all of this.
+ *
+ * SQLite is still the right call for the pilot: single-region, read-heavy, a
+ * few thousand users. The schema is deliberately plain SQL so the move to
+ * Postgres later is a dump-and-load, not a rewrite.
  */
 
-import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
 import { migrate } from './migrations.ts';
-import { isPrimary } from './primary.ts';
 import {
   durableStorageFor,
   openDurableDb,
@@ -20,7 +21,6 @@ import {
   type DurableStorage,
   type SyncDatabase,
 } from './do-storage.ts';
-import { standInStorage } from './do-storage-stand-in.ts';
 
 /**
  * The database, as the codebase uses it: `prepare`, `exec`, `close`, and on a
@@ -47,7 +47,7 @@ export type DB = SyncDatabase;
  *  - Times are ISO-8601 UTC strings. SQLite has no date type and storing text
  *    keeps the dumps human-readable.
  */
-const SCHEMA = `
+export const SCHEMA = `
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS quests (
 );
 `;
 
-const SCHEMA_2 = `
+export const SCHEMA_2 = `
 -- Server-owned quest state. The client can request a transition; only the
 -- server decides whether it happened.
 CREATE TABLE IF NOT EXISTS quest_progress (
@@ -276,93 +276,6 @@ CREATE TABLE IF NOT EXISTS air_cache (
 );
 `;
 
-let instance: DB | null = null;
-
-/** Open (and migrate) the database. Idempotent. */
-export function openDb(path = process.env.CHIVAGO_DB ?? './data/chivago.db'): DB {
-  if (instance) return instance;
-  if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
-  const db = new DatabaseSync(path);
-
-  /*
-    Only the writer builds the schema.
-
-    Under LiteFS every replica's filesystem refuses writes, so a replica
-    running `db.exec(SCHEMA)` at boot fills its log with `read only replica`
-    and, worse, looks like it started cleanly. It waits for the primary's
-    tables to replicate instead.
-
-    Without LiteFS `isPrimary()` is true and this is exactly what it always
-    was - a single machine on a volume migrating itself.
-  */
-  if (isPrimary()) {
-    db.exec(SCHEMA);
-    db.exec(SCHEMA_2);
-    const applied = migrate(db);
-    if (applied.length > 0) console.log('[chivago] migrated:', applied.join(', '));
-  } else {
-    awaitSchema(db);
-  }
-
-  instance = db;
-  return db;
-}
-
-/**
- * Block until the primary's tables arrive.
- *
- * A replica can open its database before replication has delivered anything,
- * and an empty file answers every query with "no such table" - which reads
- * downstream as an empty island rather than as a node that is not ready.
- * Better to hold the boot for a few seconds than to serve nothing
- * confidently.
- */
-function awaitSchema(db: DB, tries = 60): void {
-  for (let i = 0; i < tries; i += 1) {
-    try {
-      db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='places'").get();
-      const ready = db.prepare(
-        "SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='places'",
-      ).get() as unknown as { n: number };
-      if (ready.n > 0) {
-        if (i > 0) console.log(`[chivago] replica: schema arrived after ${i * 250}ms`);
-        return;
-      }
-    } catch { /* not there yet */ }
-    // Synchronous on purpose: nothing may query this database until it is real.
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
-  }
-  console.warn('[chivago] replica: schema never arrived; serving whatever is here');
-}
-
-/**
- * Fresh in-memory database, for tests. Never memoised.
- *
- * With `CHIVAGO_DB_DRIVER=durable` the same schema and the same migrations are
- * built through the Durable Object adapter instead, over the node:sqlite
- * stand-in. That is what lets the entire existing suite run against the
- * adapter without a Cloudflare account: `pnpm test:durable`.
- */
-export function openTestDb(): DB {
-  const sqlite = new DatabaseSync(':memory:');
-  const db = process.env.CHIVAGO_DB_DRIVER === 'durable' ? viaDurableAdapter(sqlite) : sqlite;
-  db.exec(SCHEMA);
-  db.exec(SCHEMA_2);
-  migrate(db);
-  return db;
-}
-
-/**
- * Wrap a node:sqlite handle in the Durable Object adapter, for tests.
- *
- * This file is the Node driver - it already imports `node:sqlite`, `node:fs`
- * and the LiteFS check, none of which exist on Workers. The Worker entry point
- * will import `openDurableDatabase` from a module split out of here; it will
- * not reach this function or the stand-in.
- */
-function viaDurableAdapter(sqlite: DatabaseSync): DB {
-  return openDurableDatabase(standInStorage(sqlite), { migrate: false });
-}
 
 /**
  * Open the API's database on Durable Object storage, building the schema and
@@ -387,10 +300,6 @@ export function openDurableDatabase(
   return db;
 }
 
-export function closeDb(): void {
-  instance?.close();
-  instance = null;
-}
 
 /**
  * Nesting depth per database handle. SQLite has no nested BEGIN, so an inner

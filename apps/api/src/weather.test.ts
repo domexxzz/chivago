@@ -227,7 +227,7 @@ describe('GET /areas/:key/weather', () => {
   const realFetch = globalThis.fetch;
 
   before(async () => {
-    app = (await import('./server.ts')).app;
+    app = (await import('./server-node.ts')).app;
   });
 
   test('answers an area\'s sea and sky', async () => {

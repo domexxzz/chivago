@@ -1,0 +1,156 @@
+{
+  // ChivaGo on Cloudflare.
+  //
+  // One Worker, one Durable Object, one R2 bucket, and the exported web app on
+  // Workers Assets. Media transcoding is NOT here: ffmpeg cannot run on
+  // Workers, so it is a container this Worker calls (Dockerfile.transcode).
+  //
+  //   pnpm --filter @chivago/api wrangler dev     # local workerd, no account
+  //   pnpm --filter @chivago/api wrangler deploy  # needs an account
+  //
+  // Secrets are NOT in this file. `wrangler secret put CHIVAGO_TRANSCODE_TOKEN`
+  // and the rest; anything written here is in the repository for ever.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "chivago",
+  "main": "src/worker.ts",
+
+  // Measured, not chosen: the probes behind do-storage.ts ran against this
+  // date. Moving it changes runtime behaviour, so it moves deliberately.
+  "compatibility_date": "2026-08-06",
+
+  // `node:crypto` for randomUUID and randomBytes, and `node:path`/`node:url`
+  // where the routes still use them. NOT for node:sqlite, which this flag does
+  // not provide and which is why db.ts was split from db-node.ts.
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Kept ON alongside the custom domain. It is the only address that does not
+  // depend on the zone's DNS being right, which is exactly what you need when
+  // the zone's DNS is what you are changing: adding "routes" without this
+  // silently turned workers.dev OFF, and with the custom domain refused for
+  // an unrelated reason the Worker briefly had no address at all.
+  "workers_dev": true,
+
+  // The domain, served by this Worker.
+  //
+  // A custom domain, not a route: Cloudflare owns the DNS record for it and
+  // issues the edge certificate, so there is no origin to keep a certificate
+  // on any more. Before this, chivargo.com was an A record at Fly behind the
+  // orange cloud with a Cloudflare Origin CA certificate installed on the
+  // machine; that whole arrangement exists to make a proxy trust an origin,
+  // and there is no origin now.
+  //
+  // TO GO BACK: delete these two entries, deploy, and re-create the records
+  // that were here before - A 66.241.124.199 and AAAA 2a09:8280:1::186:7a1:0,
+  // both proxied, SSL mode Full (strict). The Origin CA certificate is still
+  // installed on the Fly app and still verified, so nothing has to be
+  // re-issued. What does NOT come back is anything written here since the
+  // cut: the two databases stopped being the same database at that moment.
+  "routes": [
+    { "pattern": "chivargo.com", "custom_domain": true },
+    { "pattern": "www.chivargo.com", "custom_domain": true }
+  ],
+
+  "durable_objects": {
+    "bindings": [
+      {
+        // ONE object, named `pilot` at the call site. See worker.ts: a second
+        // object would be a second database, which is the thing fly.toml's
+        // one-machine rule exists to prevent.
+        "name": "CHIVAGO",
+        "class_name": "ChivagoPilot"
+      }
+    ]
+  },
+
+  "migrations": [
+    {
+      // `new_sqlite_classes`, not `new_classes`: the SQLite-backed storage is
+      // the whole reason this is a Durable Object. A key-value class could not
+      // run the schema at all.
+      "tag": "v1",
+      "new_sqlite_classes": ["ChivagoPilot"]
+    }
+  ],
+
+  "r2_buckets": [
+    {
+      // Proof photographs. Story media lives in the database (media_blob), so
+      // this bucket holds less than its name suggests.
+      "binding": "UPLOADS",
+      "bucket_name": "chivago-uploads"
+    }
+  ],
+
+  "assets": {
+    // The Expo web export, built with `EXPO_PUBLIC_API_URL=same-origin`:
+    //
+    //   cd apps/mobile
+    //   EXPO_PUBLIC_API_URL=same-origin npx expo export --platform web \
+    //     --output-dir dist-live && node scripts/flatten-assets.mjs dist-live
+    //
+    // THAT VARIABLE IS NOT OPTIONAL and is the one thing about this build a
+    // person has to know. Without it `client.ts` falls back to
+    // `http://localhost:8787`, which is baked into the bundle - so the site
+    // loads, looks perfect, and every request goes to the visitor's own
+    // machine. It fails as a page full of empty states rather than as an
+    // error, which is the expensive way to find out. The Dockerfile's `web`
+    // stage sets it (`ENV EXPO_PUBLIC_API_URL=same-origin`); a hand build has
+    // nothing to remind you, so it is written here as well.
+    "directory": "../mobile/dist-live",
+    "binding": "ASSETS",
+    // The Worker decides what is static and what is a route, because some
+    // paths (/media/<id>) are served from the database and must reach the API
+    // when the export has no such file. See the `isAsset` check in worker.ts.
+    "run_worker_first": true
+  },
+
+  "vars": {
+    // Locked to the app's own origin, as on Fly: the web build is served from
+    // here, so it needs no cross-origin grant, and a wildcard on a deployment
+    // with a host console behind it is a wildcard on the console too.
+    "CHIVAGO_ORIGINS": "https://chivargo.com,https://www.chivargo.com",
+
+    // NO OPENING BALANCE, and no registration limit, exactly as fly.toml has
+    // them and for the same reasons recorded there: a gift handed to every
+    // unauthenticated registration is a voucher printer, and a per-address
+    // limit refuses the back half of a hall that shares one address. The
+    // second is only safe because the first is zero.
+    "CHIVAGO_OPENING_TRIP": "0",
+    "CHIVAGO_OPENING_GREEN": "0",
+    "CHIVAGO_REGISTRATIONS_PER_HOUR": "0",
+
+    // Posting is immediate; nothing is reviewed before it is public. The
+    // console hides a story in one click and every clip expires in seven days.
+    // Delete this to put the queue back. See fly.toml for the full argument.
+    "CHIVAGO_STORIES_AUTO_APPROVE": "1"
+
+    // CHIVAGO_TRANSCODE_URL is deliberately absent here, and SETTING IT IS NOT
+    // OPTIONAL for a real deployment. It is the address of the box that runs
+    // Node, and TWO things need it:
+    //
+    //   1. Stories. Without it the API tries to run ffmpeg in-process, which
+    //      fails loudly as TranscoderUnavailable (503) rather than quietly
+    //      storing a clip nobody can play.
+    //   2. The AIR CROSS-CHECK. Air4Thai's server omits its intermediates and
+    //      workerd's fetch cannot be given a chain - measured: "TLS peer's
+    //      certificate is not trusted". Without the sidecar the cross-check
+    //      REJECTS with a message naming this variable, and every air reading
+    //      is a model's number with nothing checking it.
+    //
+    // Absent here rather than guessed, because the container's address is not
+    // known until it is deployed. Add it with `wrangler secret put` together
+    // with CHIVAGO_TRANSCODE_TOKEN.
+  },
+
+  // Cache rules live in `apps/mobile/public/_headers`, NOT here.
+  //
+  // They used to be a top-level `headers` key in this file. That key is not
+  // part of the Worker configuration: wrangler printed
+  //   Unexpected fields found in top-level field: "headers"
+  // on every deploy and dropped the block, so the bundle was served with no
+  // cache-control at all while the reasoning sat here looking authoritative.
+  // Workers Assets reads `_headers` from the assets directory, and `public/`
+  // is copied into the export verbatim, so the rules ship with the build.
+
+  "observability": { "enabled": true }
+}

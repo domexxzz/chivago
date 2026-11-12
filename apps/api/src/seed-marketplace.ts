@@ -47,7 +47,7 @@
  *   pnpm --filter @chivago/api seed:marketplace
  */
 
-import { openDb, row } from './db.ts';
+import { openDb, row } from './db-node.ts';
 import { generateApiKey, hashApiKey } from './host-auth.ts';
 import { listingCards, inquiriesForOperator, medianResponseHours } from './inquiry-service.ts';
 import { LISTING_KIND_LABEL, type ListingKind } from '@chivago/core';

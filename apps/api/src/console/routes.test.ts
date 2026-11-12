@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach, afterEach } from 'node:test';
 
-import { openTestDb, type DB } from '../db.ts';
+import { openTestDb, type DB } from '../db-node.ts';
 import { hashApiKey, resolveSession, SESSION_COOKIE } from '../host-auth.ts';
 import { checkIn } from '../checkin-service.ts';
 import {
@@ -1027,11 +1027,15 @@ describe('the stories page', () => {
   // the one that cannot.
   let dir: string;
   let storyId: string;
+  const encode = (text: string): Uint8Array => new TextEncoder().encode(text);
   const fake = {
-    async video(_i: string, outMp4: string, outPoster: string) {
-      writeFileSync(outMp4, 'MP4-BYTES'); writeFileSync(outPoster, 'POSTER-BYTES'); return { durationS: 5 };
+    async video() {
+      return { media: encode('MP4-BYTES'), poster: encode('POSTER-BYTES'), durationS: 5 };
     },
-    async photo(_i: string, outJpg: string) { writeFileSync(outJpg, 'JPG-BYTES'); },
+    async photo() {
+      const media = encode('JPG-BYTES');
+      return { media, poster: media, durationS: null };
+    },
   };
   const mp4 = () => Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypisom'), Buffer.alloc(32, 1)]);
   const KU_KEY = 'chv_KUKUA-KUKUB-KUKUC-KUKUD';

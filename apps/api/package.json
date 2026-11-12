@@ -4,16 +4,22 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --experimental-strip-types --watch src/server.ts",
-    "start": "node --experimental-strip-types src/server.ts",
+    "dev": "node --experimental-strip-types --watch src/server-node.ts",
+    "start": "node --experimental-strip-types src/server-node.ts",
     "seed": "node --experimental-strip-types src/seed-db.ts",
     "seed:area": "node --experimental-strip-types src/seed-area.ts",
     "seed:marketplace": "node --experimental-strip-types src/seed-marketplace.ts",
     "seed:offers": "node --experimental-strip-types src/seed-offers.ts",
-    "host:add": "node --experimental-strip-types src/add-host.ts",
+    "export:import": "node --experimental-strip-types src/export-for-import.ts",
+    "host:add": "node --experimental-strip-types src/add-host-cli.ts",
+    "transcode": "node --experimental-strip-types src/transcode-service.ts",
     "test": "node --test --experimental-strip-types \"src/*.test.ts\" \"src/console/*.test.ts\"",
+    "test:import": "node ../../scripts/import-integration.mjs",
+    "test:alarm": "node ../../scripts/alarm-integration.mjs",
     "test:durable": "node --env-file=durable-driver.env --test --experimental-strip-types \"src/*.test.ts\" \"src/console/*.test.ts\"",
+    "console:css": "node ../../scripts/build-console-css.mjs",
     "typecheck": "tsc --noEmit",
+    "typecheck:worker": "tsc --noEmit -p tsconfig.worker.json",
     "contract": "node --experimental-strip-types src/capture-contract.ts",
     "demo:reset": "node --experimental-strip-types src/reset-demo.ts",
     "demo:capture": "node --experimental-strip-types src/capture-demo.ts",
@@ -28,7 +34,9 @@
     "hono": "^4.7.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261102.1",
     "@types/node": "^24.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrangler": "^4.160.1"
   }
 }

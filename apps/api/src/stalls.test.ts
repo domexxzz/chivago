@@ -234,7 +234,7 @@ describe('GET /places/:id/stalls', () => {
   const realFetch = globalThis.fetch;
 
   before(async () => {
-    const server = await import('./server.ts');
+    const server = await import('./server-node.ts');
     app = server.app;
     const p = SEED_PLACES.find((x) => x.id === 'rmutt-canteen')!;
     const safety = SAFETY_PHRASES[p.id]!;

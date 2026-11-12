@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { MAX_PARTY_SIZE } from '@chivago/core';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import {
   applyMovement, awardQuestReward, ensureWallet, reverseMovement,
 } from './wallet-service.ts';

@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import { SEED_OFFERS } from '@chivago/core';
-import { openTestDb } from './db.ts';
+import { openTestDb } from './db-node.ts';
 import { insertMissingOffers } from './seed-offers.ts';
 import { getShield, listOffers } from './repo.ts';
 

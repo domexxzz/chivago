@@ -32,8 +32,11 @@ const reply = (companions: Companion[]) => ({
   speciesAsOf: '2026-09-08',
 });
 
-const opened: { companion: Companion | null; mascots: number; medals: number; passport: number; party: number } = {
-  companion: null, mascots: 0, medals: 0, passport: 0, party: 0,
+const opened: {
+  companion: Companion | null; mascots: number; medals: number; passport: number;
+  party: number; game: string | null;
+} = {
+  companion: null, mascots: 0, medals: 0, passport: 0, party: 0, game: null,
 };
 const props = {
   onOpenCompanion: (c: Companion) => { opened.companion = c; },
@@ -41,12 +44,13 @@ const props = {
   onOpenMedals: () => { opened.medals += 1; },
   onOpenPassport: () => { opened.passport += 1; },
   onOpenParty: () => { opened.party += 1; },
+  onOpenGame: (key: string) => { opened.game = key; },
 };
 
 let restore: (() => void) | null = null;
 afterEach(() => {
   restore?.(); restore = null;
-  Object.assign(opened, { companion: null, mascots: 0, medals: 0, passport: 0, party: 0 });
+  Object.assign(opened, { companion: null, mascots: 0, medals: 0, passport: 0, party: 0, game: null });
 });
 
 describe('nextUp picks the companion with a step left', () => {
@@ -139,6 +143,43 @@ describe('the level is here and the balances are not', () => {
     assert.ok(!/Level \d+/.test(said));
     assert.match(said, /HABITATS/);
     assert.ok(!said.includes('Something broke'));
+    ui.unmount();
+  });
+});
+
+describe('the mini-games sit above the gate, because they need nothing', () => {
+  test('the card is there even when /companions fails', async () => {
+    // The point of putting the row above the loading and error gates: a
+    // mini-game is a document that ships with the app. No account, no
+    // network, nothing from the API - so on the day the island's connection
+    // is down it is the only thing on this screen that still works, and
+    // hiding it behind a failed request would be exactly backwards.
+    const s = server({
+      'GET /companions': refuses('INTERNAL', 'Something broke'),
+      'GET /wallet': fx.wallet(),
+    }); restore = s.restore;
+    const ui = await mountScreen(h(GameScreen, props));
+
+    assert.match(ui.text(), /ภารกิจแยกขยะ|Sort it right/);
+    ui.unmount();
+  });
+
+  test('tapping one asks the host for that game by key', async () => {
+    const s = server({ 'GET /companions': reply([]), 'GET /wallet': fx.wallet() }); restore = s.restore;
+    const ui = await mountScreen(h(GameScreen, props));
+
+    await ui.press('Sort it right');
+    assert.equal(opened.game, 'waste-sort');
+    ui.unmount();
+  });
+
+  test('no host, no card - the row is not a promise the app cannot keep', async () => {
+    // `onOpenGame` is optional so that a caller which has not wired the route
+    // shows nothing rather than a card that does nothing when tapped.
+    const s = server({ 'GET /companions': reply([]), 'GET /wallet': fx.wallet() }); restore = s.restore;
+    const ui = await mountScreen(h(GameScreen, { ...props, onOpenGame: undefined }));
+
+    assert.ok(!/Sort it right/.test(ui.text()));
     ui.unmount();
   });
 });

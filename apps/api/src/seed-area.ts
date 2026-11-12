@@ -32,7 +32,7 @@ import {
   AREAS, SAFETY_PHRASES, SEED_PLACES, SEED_QUESTS, areaByKey, inArea, isAreaKey,
   type AreaKey,
 } from '@chivago/core';
-import { openDb, transact, type DB } from './db.ts';
+import { openDb, transact, type DB } from './db-node.ts';
 import { generateApiKey, hashApiKey } from './host-auth.ts';
 
 export interface SeedAreaResult {

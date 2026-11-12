@@ -5,6 +5,15 @@
  * Git never replace it. This bootstrap deliberately adds only rows that are
  * absent and never overwrites a profile an operator may already have edited.
  * The operator password remains a deployment secret and is never committed.
+ *
+ * NOTHING IN HERE MAY THROW. server.ts calls this at the top level of the
+ * module, so a thrown error happens during import and ends the process before
+ * a port is open - and with `auto_stop_machines = "stop"` in fly.toml the
+ * machine then wakes on the next request, crashes again, and the pilot stays
+ * dark until somebody edits fly.toml and redeploys. Every refusal below is a
+ * warning and a `skipped` result for that reason, and the one case that used
+ * to get there by accident - a row renamed after it was planted - is covered
+ * by a test.
  */
 import { row, transact, type DB } from './db.ts';
 import { registerUser } from './user-account-service.ts';
@@ -239,16 +248,32 @@ export function bootstrapKohSichangBusinesses(db: DB, env: NodeJS.ProcessEnv = p
     accountCreated = true;
   }
   if (owner.account_type !== 'operator') {
-    throw new Error(`Ko Sichang bootstrap refused: ${KOH_SICHANG_OPERATOR_EMAIL} is not an operator account`);
+    // Refuse, but do not throw. server.ts calls this while it is still being
+    // imported, so an exception here never reaches a handler: it kills the
+    // process before the port is open. Attaching eight businesses to an
+    // account that is not the operator would be wrong, and taking the pilot
+    // off the air to say so would be worse.
+    console.warn(
+      `[chivago] Ko Sichang bootstrap refused: ${KOH_SICHANG_OPERATOR_EMAIL} is not an operator account`,
+    );
+    return { accountCreated, shopsInserted: 0, shopsAlreadyPresent: 0, skipped: true };
   }
 
   let shopsInserted = 0;
   let shopsAlreadyPresent = 0;
   transact(db, () => {
     for (const shop of KOH_SICHANG_BUSINESSES) {
+      // BY ID FIRST, because the id is what the INSERT below is keyed on and
+      // the name is not. Checking the name alone missed a row this bootstrap
+      // had already planted as soon as its operator renamed it, and the
+      // INSERT then hit `UNIQUE constraint failed: local_shops.id` - which,
+      // called from the top of server.ts, took the whole deployment down.
+      //
+      // The name is still checked, for the other case: a shop somebody added
+      // by hand before this ever ran keeps its own row and gets no twin.
       const existing = row<{ id: string }>(db.prepare(
-        'SELECT id FROM local_shops WHERE area_key = ? AND lower(name) = lower(?) LIMIT 1',
-      ).get('koh-sichang', shop.name));
+        'SELECT id FROM local_shops WHERE id = ? OR (area_key = ? AND lower(name) = lower(?)) LIMIT 1',
+      ).get(shop.id, 'koh-sichang', shop.name));
       if (existing) { shopsAlreadyPresent += 1; continue; }
       const now = new Date().toISOString();
       db.prepare(`INSERT INTO local_shops
