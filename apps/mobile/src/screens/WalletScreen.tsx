@@ -34,9 +34,10 @@ import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { Button } from '../components/Button.tsx';
-import { OceanBackdrop } from '../components/Shell.tsx';
+import { OceanBackdrop, TravelHeroBackdrop } from '../components/Shell.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { formatInteger } from '../i18n/format.ts';
 
 export function WalletScreen({
   onOpenCompanion,
@@ -74,7 +75,7 @@ export function WalletScreen({
           elevation: 3,
         }}
       >
-        <OceanBackdrop compact />
+        <TravelHeroBackdrop compact focalPoint="right" />
         <Label size={10} tracking={0.16} colour="#D5F6FF">
           {t({ en: 'YOUR WALLET', th: 'กระเป๋าแต้มของคุณ', zh: '你的钱包' })}
         </Label>
@@ -196,9 +197,9 @@ export function Purse({
     <View style={{ flex: 1 }} accessibilityLabel={`${figure} ${label}. ${note}`}>
       <Label size={10} tracking={0.16}>{label}</Label>
       {accent ? (
-        <AccentNumeral size={40}>{figure.toLocaleString('en-US')}</AccentNumeral>
+        <AccentNumeral size={40}>{formatInteger(figure)}</AccentNumeral>
       ) : (
-        <Heading size={40} tracking={-0.8}>{figure.toLocaleString('en-US')}</Heading>
+        <Heading size={40} tracking={-0.8}>{formatInteger(figure)}</Heading>
       )}
       <Label size={9} tracking={0} colour={color.neutral600} style={{ textTransform: 'none' }}>
         {note}

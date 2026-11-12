@@ -199,13 +199,12 @@ describe('distinction between operator and traveller roles', () => {
     const ui = await mountScreen(h(ProfileScreen, props));
     const text = ui.text();
 
-    assert.match(text, /ผู้ประกอบการ \/ ข้อมูลสถานประกอบการ/);
+    assert.match(text, /โปรไฟล์ผู้ประกอบการ/);
     assert.match(text, /สีชัง ซันเซ็ท วิลล่า/);
-    assert.match(text, /Chivargo Business Partner/);
-    assert.match(text, /ข้อมูลสถานประกอบการ/);
     assert.match(text, /ลงทะเบียนแล้ว/);
     assert.match(text, /0829998877/);
     assert.match(text, /somkid@resort.com/);
+    assert.match(text, /จัดการร้านค้าของฉัน/);
     ui.unmount();
   });
 
@@ -231,8 +230,8 @@ describe('distinction between operator and traveller roles', () => {
 
     assert.match(text, /นักท่องเที่ยว/);
     assert.match(text, /สมชาย รักเที่ยว/);
-    assert.match(text, /ประเภทผู้ใช้งาน/);
-    assert.match(text, /Chivargo Traveller · นักท่องเที่ยว/);
+    assert.match(text, /โปรไฟล์นักท่องเที่ยว/);
+    assert.match(text, /เมนูของฉัน/);
     assert.match(text, /0812345678/);
     ui.unmount();
   });
@@ -256,12 +255,17 @@ describe('distinction between operator and traveller roles', () => {
     const opText = opUI.text();
 
     // Contains operator elements
-    assert.match(opText, /Operator Dashboard|แดชบอร์ดผู้ประกอบการ/);
-    assert.match(opText, /ผู้ประกอบการ \/ ข้อมูลสถานประกอบการ/);
+    assert.match(opText, /บัญชีผู้ประกอบการ/);
+    assert.match(opText, /โปรไฟล์ผู้ประกอบการ/);
     assert.match(opText, /สมุย มารีน่า & รีสอร์ท/);
     assert.match(opText, /เครื่องมือสำหรับผู้ประกอบการ/);
-    assert.match(opText, /รับรองภารกิจนักท่องเที่ยว/);
-    assert.match(opText, /ภารกิจที่รับรองแล้ว/);
+    assert.match(opText, /จัดการร้านค้าของฉัน/);
+    // Until the backend exposes operator KPIs, the profile must not present
+    // hard-coded zeroes as if they were measured business statistics.
+    assert.doesNotMatch(opText, /ภารกิจที่รับรองแล้ว/);
+    assert.doesNotMatch(opText, /นักท่องเที่ยวเช็คอิน/);
+    assert.doesNotMatch(opText, /คะแนนพาร์ทเนอร์/);
+    assert.doesNotMatch(opText, /รับรองภารกิจนักท่องเที่ยว/);
 
     // Does NOT contain traveller game collection elements
     assert.doesNotMatch(opText, /first egg/);

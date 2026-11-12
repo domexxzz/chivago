@@ -23,7 +23,7 @@ export function boardPage(area: Area): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(area.name.th)} · ChivaGo Stories</title>
+<title>${esc(area.name.th)} · ChivarGo Stories</title>
 <style>
   :root { --bg: #0b1418; --ink: #f2f4f1; --dim: #8fa3a8; --gold: #e0a92a; --teal: #0e7480; --card: #142026; }
   * { box-sizing: border-box; }
@@ -49,7 +49,7 @@ export function boardPage(area: Area): string {
 </head>
 <body>
 <header>
-  <h1>${esc(area.name.th)} <small>${esc(area.name.en)} · ChivaGo Stories</small></h1>
+  <h1>${esc(area.name.th)} <small>${esc(area.name.en)} · ChivarGo Stories</small></h1>
   <div class="status"><span id="count">…</span><span id="door" class="door shut">closed</span></div>
 </header>
 <main>

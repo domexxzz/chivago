@@ -1,4 +1,4 @@
-/// Dart client for the ChivaGo API.
+/// Dart client for the ChivarGo API.
 ///
 /// Written against `contract/api-contract.json`, which is captured from the
 /// running API and guarded by a test. See the package README.

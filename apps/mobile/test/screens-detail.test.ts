@@ -253,7 +253,7 @@ describe('a place, and checking in to it', () => {
     } finally { net.restore(); resetControl(); }
   });
 
-  test('standing too far away shows the server\'s reason, not a client guess', async () => {
+  test('standing too far away shows safe localised copy, not the raw server sentence', async () => {
     let toasted = '';
     const net = server({
       'GET /places/chaweng': place(),
@@ -268,7 +268,8 @@ describe('a place, and checking in to it', () => {
       await ui.pressText(/Check in here/);
       await settle();
 
-      assert.match(toasted, /about 800 m away/);
+      assert.match(toasted, /need to be at the place/i);
+      assert.doesNotMatch(toasted, /800 m away/, 'diagnostic server copy must not reach the UI');
 
       // Recorded, not scored: the refusal is followed by the other half.
       assert.ok(ui.find(/Note that I was here/), 'a failed check-in should offer to note the visit');
@@ -343,7 +344,8 @@ describe('the reviews block, which fetches its own list', () => {
     });
     try {
       const ui = await mountScreen(h(ReviewsBlock, props()));
-      assert.match(ui.text(), /Reviews are unavailable right now\./);
+      assert.match(ui.text(), /Something went wrong\. Please try again\./);
+      assert.doesNotMatch(ui.text(), /Reviews are unavailable right now\./);
       ui.unmount();
     } finally { net.restore(); }
   });
@@ -495,7 +497,8 @@ describe('a quest, from joining to verification', () => {
     try {
       const ui = await mountScreen(h(QuestDetailScreen, props()));
       const said = ui.text();
-      assert.match(said, /That quest has ended\./);
+      assert.match(said, /Something went wrong\. Please try again\./);
+      assert.doesNotMatch(said, /That quest has ended\./);
       assert.doesNotMatch(said, /Join this quest/, 'no CTA without a quest behind it');
       ui.unmount();
     } finally { net.restore(); }
@@ -637,7 +640,7 @@ describe('the safety shield', () => {
     } finally { net.restore(); }
   });
 
-  test('it never implies ChivaGo is the ambulance', async () => {
+  test('it never implies ChivarGo is the ambulance', async () => {
     // The single most important sentence in the app. It must survive any
     // rewording of this screen.
     const net = server({ 'GET /shield': shield() });
@@ -831,7 +834,7 @@ describe('the SOS demo countdown', () => {
     try {
       const { ui, fired } = await start();
       await ui.press(SOS);
-      await ui.pressText(/Stop/);
+      await ui.pressText(/Cancel simulation/);
       await advance(motion.sosCountdownMs * 2);
       assert.deepEqual(fired, [], 'Stop means stop, even after the clock runs out');
       assert.doesNotMatch(ui.text(), /Start SOS\?/);
@@ -846,7 +849,7 @@ describe('the SOS demo countdown', () => {
       await ui.press(SOS);
       for (let second = 0; second < 5; second += 1) await advance(1000);
       assert.deepEqual(fired, [], 'the demo must never send a real alert');
-      assert.match(ui.text(), /Demo only/);
+      assert.match(ui.text(), /Simulation complete/);
       ui.unmount();
     } finally { mock.timers.reset(); net.restore(); }
   });
@@ -1036,7 +1039,7 @@ describe('onboarding, three steps and out', () => {
 
     assert.match(ui.text(), /Step 3 of 3/);
     await ui.press(/^Air quality alerts/);
-    await ui.pressText('Enter ChivaGo');
+    await ui.pressText('Enter ChivarGo');
 
     assert.deepEqual(answers, {
       purposes: ['nature', 'volunteering'],
@@ -1056,7 +1059,7 @@ describe('onboarding, three steps and out', () => {
     await ui.press(/^Gentle/);
     await ui.press(/^Full days/);
     await ui.pressText('Continue');
-    await ui.pressText('Enter ChivaGo');
+    await ui.pressText('Enter ChivarGo');
 
     assert.equal(answers!.activity, 'full', 'the second pick replaces the first, never adds');
     ui.unmount();
@@ -1072,7 +1075,7 @@ describe('onboarding, three steps and out', () => {
     await ui.press(/^Quiet, away from crowds/);
     await ui.pressText('Continue');
     await ui.pressText('Continue');
-    await ui.pressText('Enter ChivaGo');
+    await ui.pressText('Enter ChivarGo');
 
     assert.deepEqual(answers!.purposes, []);
     ui.unmount();

@@ -94,7 +94,7 @@ export const airSubScore = (aqi: number): number =>
  * Crowd. People per 100 sq m, lower is better.
  * Thresholds follow pedestrian level-of-service research (Fruin LOS A-F):
  * under 0.3 p/100sqm is free flow, ~2.0 is constrained, ~5.0 is a crush.
- * ChivaGo is a wellness product - "quiet, away from crowds" is an explicit
+ * ChivarGo is a wellness product - "quiet, away from crowds" is an explicit
  * onboarding answer - so the curve punishes density harder than a transport
  * model would.
  */

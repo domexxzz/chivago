@@ -29,7 +29,7 @@ const verifiedQuest = (userId: string, questId: string, amount: number) =>
 
 const openingBalance = (userId: string) =>
   applyMovement(db, {
-    userId, label: 'Pilot opening balance', host: 'ChivaGo', amount: 1240,
+    userId, label: 'Pilot opening balance', host: 'ChivarGo', amount: 1240,
     currency: 'green', kind: 'adjustment', sourceRef: `opening:green:${userId}`,
   });
 
@@ -314,7 +314,7 @@ describe('a member is not credited with work that was taken back', () => {
     // gift means. Passes with the fix in and with it out.
     partyOfTwo();
     applyMovement(db, {
-      userId: 'bo', label: 'Welcome', host: 'ChivaGo', amount: 1240, currency: 'green',
+      userId: 'bo', label: 'Welcome', host: 'ChivarGo', amount: 1240, currency: 'green',
       kind: 'adjustment', sourceRef: 'opening:green:user:bo',
     });
     award('bo', 'q1');

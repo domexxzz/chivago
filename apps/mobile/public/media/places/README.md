@@ -39,7 +39,7 @@ which serves `/media/*` from the same export.
 ```ts
 photo: {
   url: '/media/places/ku-library.jpg',
-  credit: 'ChivaGo team · KU Sriracha',
+  credit: 'ChivarGo team · KU Sriracha',
   licence: 'Team photograph · used with permission',
   sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
 },

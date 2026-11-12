@@ -100,6 +100,6 @@ describe('the badge script that ships inside a template string', () => {
     const source = /var base = document\.title\.replace\((\/.+\/), ''\)/.exec(page)?.[1];
     assert.equal(source, String.raw`/^\(\d+\) /`);
     const pattern = new Function(`return ${source}`)() as RegExp;
-    assert.equal('(12) Queue · ChivaGo Host Console'.replace(pattern, ''), 'Queue · ChivaGo Host Console');
+    assert.equal('(12) Queue · ChivarGo Host Console'.replace(pattern, ''), 'Queue · ChivarGo Host Console');
   });
 });

@@ -30,7 +30,7 @@ const checkin = (placeId: string, day: string) => {
     `INSERT INTO ledger (id, user_id, label, occurred_at, host, amount, currency, exp, kind, source_ref)
      VALUES (?,?,?,?,?,?,?,?,?,?)`,
   ).run(
-    `l-${placeId}-${day}`, 'u1', 'Checked in', `${day}T03:00:00.000Z`, 'ChivaGo',
+    `l-${placeId}-${day}`, 'u1', 'Checked in', `${day}T03:00:00.000Z`, 'ChivarGo',
     20, 'trip', 20, 'checkin', `checkin:${placeId}:u1:${day}`,
   );
 };
@@ -187,7 +187,7 @@ describe('habitat evidence, counted in island days', () => {
     db.prepare(
       `INSERT INTO ledger (id, user_id, label, occurred_at, host, amount, currency, exp, kind, source_ref)
        VALUES (?,?,?,?,?,?,?,?,?,?)`,
-    ).run('l-u2', 'u2', 'Checked in', '2026-08-30T03:00:00.000Z', 'ChivaGo',
+    ).run('l-u2', 'u2', 'Checked in', '2026-08-30T03:00:00.000Z', 'ChivarGo',
       20, 'trip', 20, 'checkin', 'checkin:namuang:u2:2026-08-30');
     assert.equal(found('Green')?.visitDays, 1);
   });
@@ -212,7 +212,7 @@ describe('habitat evidence, counted in island days', () => {
     checkin('namuang', '2026-09-11');
     db.prepare(
       `INSERT INTO ledger (id, user_id, label, occurred_at, host, amount, kind, currency, source_ref)
-       VALUES ('l-walk-1', 'u1', 'Walked leg', '2026-09-11T04:00:00.000Z', 'ChivaGo', 20,
+       VALUES ('l-walk-1', 'u1', 'Walked leg', '2026-09-11T04:00:00.000Z', 'ChivarGo', 20,
                'walk', 'trip', 'walk:namuang:chaweng:user:u1:2026-09-11')`,
     ).run();
 

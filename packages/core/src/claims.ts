@@ -109,15 +109,15 @@ export function exclusivityNote(
       en: `${alone} of these ${total} approvals were funded by this partner alone. `
         + `A further ${byAdjustment} were co-funded, and the co-funding partner has stated it is `
         + `not claiming them. ${shared === 0 ? 'None of the rest remains shared.' : `The remaining ${shared} ${shared === 1 ? 'is' : 'are'} still shared.`} `
-        + 'A stand-down is a statement by that partner, recorded here and not witnessed by ChivaGo.',
+        + 'A stand-down is a statement by that partner, recorded here and not witnessed by ChivarGo.',
       th: `${alone} จาก ${total} รายการที่ผ่านการตรวจนี้ พันธมิตรรายนี้สนับสนุนเพียงรายเดียว `
         + `อีก ${byAdjustment} รายการมีผู้สนับสนุนร่วม และผู้สนับสนุนร่วมได้ระบุว่าจะไม่อ้างสิทธิ์รายการเหล่านั้น `
         + `${shared === 0 ? 'ส่วนที่เหลือไม่มีรายการที่ยังใช้ร่วมกัน' : `ที่เหลืออีก ${shared} รายการยังใช้ร่วมกันอยู่`} `
-        + 'การสละสิทธิ์เป็นข้อความของพันธมิตรรายนั้น ซึ่งบันทึกไว้ที่นี่โดย ChivaGo ไม่ได้เป็นพยาน',
+        + 'การสละสิทธิ์เป็นข้อความของพันธมิตรรายนั้น ซึ่งบันทึกไว้ที่นี่โดย ChivarGo ไม่ได้เป็นพยาน',
       zh: `这 ${total} 项审批中，有 ${alone} 项由本合作方独家出资。`
         + `另有 ${byAdjustment} 项为共同出资，且共同出资方已声明不主张这些项目。`
         + `${shared === 0 ? '其余没有仍处于共享状态的项目。' : `其余 ${shared} 项仍为共享。`} `
-        + '放弃主张是该合作方自己的声明，此处仅作记录，ChivaGo 并未亲眼见证。',
+        + '放弃主张是该合作方自己的声明，此处仅作记录，ChivarGo 并未亲眼见证。',
     };
   }
   if (shared === 0) {

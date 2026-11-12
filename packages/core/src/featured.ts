@@ -17,7 +17,7 @@
  * The pinned places, in the order they are pinned.
  *
  * แบดมินตัน@สินธานี is here because it is the one venue whose live court
- * availability ChivaGo can show (courts.ts), which is worth seeing before you
+ * availability ChivarGo can show (courts.ts), which is worth seeing before you
  * set off - not because it ranks above anything.
  */
 export const FEATURED_PLACES: readonly string[] = ['sinthani-badminton'];

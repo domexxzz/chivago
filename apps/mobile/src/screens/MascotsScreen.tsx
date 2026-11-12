@@ -22,7 +22,7 @@ import { gameRadius, gameRegion, gameShadow } from '@chivago/tokens';
 import { GameBar, Medal, Tray, TrayLine } from '../components/Game.tsx';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { IconButton } from '../components/Button.tsx';
-import { OceanBackdrop } from '../components/Shell.tsx';
+import { OceanBackdrop, TravelHeroBackdrop } from '../components/Shell.tsx';
 import { MascotPortrait } from '../components/MascotPortrait.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -126,7 +126,7 @@ export function MascotsScreen({
           overflow: 'hidden',
         }}
       >
-        <OceanBackdrop compact />
+        <TravelHeroBackdrop compact focalPoint="right" />
         <IconButton inverted onPress={onBack} accessibilityLabel={t(strings.common.back)}>
           <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2} />
         </IconButton>

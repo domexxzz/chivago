@@ -3,7 +3,7 @@
  *
  * NOT the points market. A voucher is a transaction - points out, a code in -
  * and an inquiry is deliberately not one: it reserves nothing and no money
- * moves through ChivaGo. Putting listings inside the market would blur exactly
+ * moves through ChivarGo. Putting listings inside the market would blur exactly
  * the line docs/61 exists to draw, so they have their own screen, reached from
  * the trip planner, which is where a traveller wonders about stays and boats.
  *
@@ -45,7 +45,8 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, SkeletonList } from '../components/States.tsx';
-import { localeTag, t } from '../i18n/locale.ts';
+import { t } from '../i18n/locale.ts';
+import { formatDate, formatInteger } from '../i18n/format.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 
 const DAY_MS = 86_400_000;
@@ -62,13 +63,13 @@ export function dayChoices(now: Date = new Date(), count = 14): string[] {
  */
 function dayLabel(key: string, spelt = false): string {
   const d = new Date(`${key}T12:00:00+07:00`);
-  return d.toLocaleDateString(localeTag(), {
+  return formatDate(d, {
     weekday: spelt ? 'long' : 'short', day: 'numeric', month: spelt ? 'long' : 'short',
     timeZone: 'Asia/Bangkok',
   });
 }
 
-const baht = (n: number): string => n.toLocaleString('en-US');
+const baht = (n: number): string => formatInteger(n);
 
 /** A sentence the traveller reads as a boundary, shown whole and plain. */
 function NotABooking() {

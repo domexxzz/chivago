@@ -1,11 +1,11 @@
-# ChivaGo
+# ChivarGo
 
 **The evidence layer hotels do not have.** Pilot region: Koh Samui, Thailand.
 
 A hotel's sustainability numbers are its own: HCMI and CHSB are computed and
 submitted by the hotel, and Thailand's CF-Hotels is a carbon calculator the
 hotel fills in itself. None of them can show a third party that a specific
-thing happened on a specific day with somebody standing behind it. ChivaGo
+thing happened on a specific day with somebody standing behind it. ChivarGo
 produces exactly that — activity a named host verified, inside a geofence, on
 a date — as a **statement anyone can check**, attached to the report a hotel
 already files. It measures no building and replaces no number.
@@ -226,7 +226,7 @@ reason, not retried forever. And **the leg on foot**: two check-ins a walk
 apart on the same day pay Trip Points for the walk — measured by the phone,
 so never green (`docs/38-offline-and-the-leg-on-foot.md`).
 
-**The island counts itself.** Every place carries how many ChivaGo travellers
+**The island counts itself.** Every place carries how many ChivarGo travellers
 checked in there in the last hour, counted from the ledger; and the air over
 it by day, as the server recorded it, from the day it started recording
 (`docs/37-the-island-counts-itself.md`). The seeded crowd figure is labelled

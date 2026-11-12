@@ -99,7 +99,7 @@ function reviewPage(pairs, findings) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ChivaGo · Thai copy review</title>
+<title>ChivarGo · Thai copy review</title>
 <style>
   :root { --ink: #0e2a4f; --ink2: #3d5578; --bg: #eaf2fc; --card: #fff; --line: rgba(14,42,79,.14); --brand: #1e6fd9; --coral: #d32f24; --gold: #8f5a00; --green: #1f7a44; }
   * { box-sizing: border-box; }
@@ -134,7 +134,7 @@ function reviewPage(pairs, findings) {
 </head>
 <body>
 <header>
-  <h1>ChivaGo · Thai copy review · ตรวจคำแปลภาษาไทย</h1>
+  <h1>ChivarGo · Thai copy review · ตรวจคำแปลภาษาไทย</h1>
   <span class="count">${pairs.length} pairs · ${findings.length} flagged · <span id="edited">0</span> edited</span>
   <label><input type="checkbox" id="only"> flagged only · เฉพาะที่ถูกทำเครื่องหมาย</label>
   <button id="do-export">Export corrections · ส่งออกคำแก้</button>

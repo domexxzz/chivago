@@ -368,7 +368,7 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     if (!already) {
       state.checkins.push(placeId);
       credit(
-        20, 'trip', `Checked in · ${place?.short ?? placeId}`, 'ChivaGo', 'checkin',
+        20, 'trip', `Checked in · ${place?.short ?? placeId}`, 'ChivarGo', 'checkin',
         String(place?.short ?? placeId),
         `checkin:${placeId}:user:demo-user:${islandDateKey(new Date())}`,
       );
@@ -425,7 +425,7 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     block.mine = { review, hiddenAt: null, hiddenReasonKey: null, appeal: null };
     // Points are paid once per place, however many times the words change.
     const paid = existing !== undefined;
-    if (!paid && body.body) credit(30, 'trip', 'Review written', 'ChivaGo', 'review');
+    if (!paid && body.body) credit(30, 'trip', 'Review written', 'ChivarGo', 'review');
     return { review, created: !existing, pointsAwarded: paid || !body.body ? 0 : 30 };
   },
 

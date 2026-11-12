@@ -13,24 +13,16 @@ import type { Progression } from './progression.ts';
 /**
  * A string in every language the product speaks.
  *
- * WHY `zh` IS OPTIONAL AND THE OTHER TWO ARE NOT
- *
- * English and Thai were written together from the first commit, so a pair
- * missing one of them is a mistake worth a type error. Chinese arrived with
- * 1,786 pairs already in the tree. Making it required would have turned every
- * one of those into a compile error on the same afternoon, which forces the
- * translation to be done in one unreviewable sweep - exactly how the Thai got
- * into its current state.
- *
- * Optional means a screen with no Chinese yet falls back to English (see the
- * app's `t()`), which is wrong in a way a reader can act on. The checker in
- * scripts/lib/thai-pairs.mjs counts what is still missing, so "optional" does
- * not quietly become "never written".
+ * Static UI copy is required to provide all three languages by its registry
+ * helpers and the AST coverage guard. This shared wire type remains optional
+ * because existing database rows and external API data still have an EN/TH
+ * contract; changing that storage schema is a separate migration. The UI's
+ * fallback remains safe while the tracked legacy catalogue is translated.
  */
 export interface Localised {
   en: string;
   th: string;
-  /** Simplified Chinese (zh-Hans). Absent until translated; `t()` falls back. */
+  /** Simplified Chinese (zh-Hans). */
   zh?: string;
 }
 
@@ -182,7 +174,7 @@ export interface PlacePhoto {
 }
 
 /**
- * How many ChivaGo travellers checked in at a place in the last hour.
+ * How many ChivarGo travellers checked in at a place in the last hour.
  *
  * Counted from the ledger's geofenced check-ins - the same rows the wallet
  * paid - so it is a number the island produced, not one somebody typed. It

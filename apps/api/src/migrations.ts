@@ -178,7 +178,7 @@ export function migrate(db: DB): string[] {
       -- shown to the user so THEY can call, which needs no provider at all.
       phone         TEXT,
       relationship  TEXT,
-      -- When the contact is also a ChivaGo user, they can be pushed directly.
+      -- When the contact is also a ChivarGo user, they can be pushed directly.
       -- For a domestic traveller this is the fastest channel we have.
       linked_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
       created_at    TEXT NOT NULL
@@ -1923,6 +1923,122 @@ export function migrate(db: DB): string[] {
   if (hasTable(db, 'places')) {
     if (addColumn(db, 'places', 'photo_kind', 'TEXT')) applied.push('places.photo_kind');
     if (addColumn(db, 'places', 'photo_backdrop', 'TEXT')) applied.push('places.photo_backdrop');
+  }
+
+  /*
+    -- Take back the prototype-only account scores --------------------------
+
+    Older builds defaulted `grantOpeningBalance` to 1,240 Green and 320 Trip,
+    so a newly registered person's profile claimed points and EXP they had
+    never earned. The default is 0 now, and the grants those builds wrote have
+    to come back off the accounts that got them.
+
+    THIS TAKES THEM BACK AS A REVERSAL, NOT A DELETION, and takes back only
+    what is still held.
+
+    The first version subtracted the whole grant from the wallet under
+    MAX(0, ...) and deleted the ledger rows. It broke on the one account shape
+    that matters most here: somebody given 1,240 Green who SPENT 1,200 of it
+    ended with a wallet of 0 against a ledger summing to -1,200 - a voucher
+    purchase with nothing it was ever paid from, which is exactly the number a
+    traveller cannot account for and exactly what the ledger exists to
+    prevent. The clamp was load-bearing, because `wallets` declares
+    CHECK (green_points >= 0) and the subtraction would otherwise abort the
+    migration; what it actually did was hide the gap it had opened.
+
+    A spent point cannot be un-given - the voucher was issued. So this takes
+    back MIN(granted, still held), which is the same amount `applyMovement`
+    would allow, since it refuses any debit that would put a balance below
+    zero, and it records the take-back as a `reversal:` row the way
+    `reverseMovement` does. The wallet still equals what its own ledger
+    explains, afterwards as before, and the history reads truthfully: you were
+    given 1,240, you spent 1,200, we withdrew the 40 that were left.
+
+    EXP moves the same way and for the same reason. `wallets.exp` is
+    documented MONOTONIC - "nothing in the codebase may subtract from it" -
+    with a reversal as the one sanctioned exception, because a reversal row
+    takes back the EXP it gave. Reducing EXP with no row at all, as the first
+    version did, is the unsanctioned form of this very operation.
+
+    `reversal:<source_ref>` is UNIQUE, so the reversal row is its own record
+    of having run: a grant that already has one is skipped, and migrating
+    twice takes nothing back twice. The grant row is left in place, because it
+    happened.
+
+    ORDER MATTERS, because there is no transaction to lean on. `migrate` is
+    never called inside one, and it also runs against Durable Object storage,
+    where explicit BEGIN/COMMIT is not available. So the reversal row is
+    written BEFORE the wallet is debited: a crash in that window leaves a
+    traveller holding points we meant to take back, which the UNIQUE key then
+    makes permanent - whereas debiting first would let the next startup take
+    the same points a second time. Of the two, erring toward the traveller is
+    the one to pick.
+
+    Only the exact source-ref shape `grantOpeningBalance` emits is matched, so
+    an unrelated adjustment that merely contains the word "opening" is left
+    alone.
+  */
+  const openingShowcaseConfigured = ['CHIVAGO_OPENING_TRIP', 'CHIVAGO_OPENING_GREEN']
+    .some((name) => Number(process.env[name] ?? 0) > 0);
+
+  /*
+    A deployment that deliberately opted into a showcase balance is left
+    alone. Reversing a grant the operator has just configured would zero their
+    demo at the next restart with no error to explain it, and the environment
+    variable exists to say "I want these points to be here". fly.toml sets
+    both to 0, so the pilot takes the cleanup.
+  */
+  if (hasTable(db, 'ledger') && hasTable(db, 'wallets')
+      && hasColumn(db, 'wallets', 'trip_points') && hasColumn(db, 'wallets', 'exp')
+      && !openingShowcaseConfigured) {
+    const grants = db.prepare(
+      `SELECT user_id, label, host, amount, currency, exp, source_ref FROM ledger
+        WHERE (source_ref LIKE 'opening:green:%' OR source_ref LIKE 'opening:trip:%')
+          AND amount > 0
+          AND NOT EXISTS (
+            SELECT 1 FROM ledger undo WHERE undo.source_ref = 'reversal:' || ledger.source_ref
+          )
+        ORDER BY source_ref`,
+    ).all() as unknown as {
+      user_id: string; label: string; host: string;
+      amount: number; currency: string; exp: number; source_ref: string;
+    }[];
+
+    // Re-read per grant rather than joining the wallet into the query above:
+    // an account can hold both a Trip and a Green grant, and the second one
+    // must see the EXP the first has already taken back or it can drive
+    // `exp` below zero and abort the migration on the CHECK.
+    const walletOf = db.prepare(
+      'SELECT trip_points, green_points, exp FROM wallets WHERE user_id = ?',
+    );
+    const writeReversal = db.prepare(
+      `INSERT INTO ledger (id, user_id, label, occurred_at, host, amount, currency, exp, kind, source_ref)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'adjustment', ?)`,
+    );
+    let reversals = 0;
+
+    for (const grant of grants) {
+      const wallet = walletOf.get(grant.user_id) as unknown as
+        { trip_points: number; green_points: number; exp: number } | undefined;
+      if (!wallet) continue;
+
+      const column = grant.currency === 'trip' ? 'trip_points' : 'green_points';
+      const held = grant.currency === 'trip' ? wallet.trip_points : wallet.green_points;
+      const amount = Math.min(grant.amount, held);
+      const exp = Math.min(grant.exp, wallet.exp);
+      // Nothing left to take back: the grant was spent down to zero, and a
+      // reversal of nothing is a row that says nothing.
+      if (amount <= 0 && exp <= 0) continue;
+
+      const sourceRef = `reversal:${grant.source_ref}`;
+      writeReversal.run(sourceRef, grant.user_id, `${grant.label} — prototype balance removed`,
+        new Date().toISOString(), grant.host, -amount, grant.currency, -exp, sourceRef);
+      db.prepare(`UPDATE wallets SET ${column} = ${column} - ?, exp = exp - ? WHERE user_id = ?`)
+        .run(amount, exp, grant.user_id);
+      reversals += 1;
+    }
+
+    if (reversals > 0) applied.push('reverse prototype opening balances');
   }
 
   return applied;

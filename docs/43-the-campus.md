@@ -21,7 +21,7 @@ place below is a mapped feature at these coordinates):
 
 One place per layer, so every companion can hatch on the campus.
 
-Two quests, hosted by **the team** — `SEED_HOSTS.kuTeam`, "ChivaGo team ·
+Two quests, hosted by **the team** — `SEED_HOSTS.kuTeam`, "ChivarGo team ·
 KU Sriracha", its own host record so its queue and its statement never mix
 with the platform's island quests. `q7` is a clean-up at the viewpoint,
 Green, environmental, 100 m fence; `q8` is a walk round the lake, Trip,

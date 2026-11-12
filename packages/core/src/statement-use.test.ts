@@ -22,7 +22,7 @@ const use = (over: Partial<StatementUse> = {}): StatementUse => ({
   statementId: 'CG-2026-K7M2PQ',
   digest: DIGEST,
   orgId: 'org-siam',
-  orgName: { en: 'Siam Retail', th: 'สยามรีเทล' },
+  orgName: { en: 'Siam Retail', th: 'สยามรีเทล', zh: '暹罗零售' },
   kind: 'one_report',
   reportingYear: 2026,
   placeNote: null,
@@ -91,7 +91,7 @@ describe('counting by organisation, not by declaration', () => {
   });
 
   test('two companies is what is worth seeing', () => {
-    const list = [use({ id: 'a' }), use({ id: 'b', orgId: 'org-ptt', orgName: { en: 'PTT Green', th: 'ปตท. กรีน' } })];
+    const list = [use({ id: 'a' }), use({ id: 'b', orgId: 'org-ptt', orgName: { en: 'PTT Green', th: 'ปตท. กรีน', zh: 'PTT Green' } })];
     assert.deepEqual(declaringOrgs(list, DIGEST).sort(), ['org-ptt', 'org-siam']);
   });
 
@@ -129,7 +129,7 @@ describe('what a declaration attributes to whom', () => {
   test('THE DECLARER IS THE SUBJECT, NEVER CHIVAGO', () => {
     const note = useNote(use(), 'applies');
     assert.match(note.en, /^Siam Retail states it used/);
-    assert.match(note.en, /ChivaGo has not read that report/);
+    assert.match(note.en, /ChivarGo has not read that report/);
     assert.match(note.th, /^สยามรีเทล ระบุว่า/);
   });
 
