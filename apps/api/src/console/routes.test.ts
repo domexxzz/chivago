@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach, afterEach } from 'node:test';
 
-import { openTestDb, type DB } from '../db.ts';
+import { openTestDb, type DB } from '../db-node.ts';
 import { hashApiKey, resolveSession, SESSION_COOKIE } from '../host-auth.ts';
 import { checkIn } from '../checkin-service.ts';
 import {

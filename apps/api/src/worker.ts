@@ -1,118 +1,175 @@
 /**
- * The Cloudflare Worker entry point. Step one of `docs/74`, and no more.
+ * The Cloudflare entry point.
  *
- * WHAT THIS IS FOR. `do-storage.ts` presents Durable Object SQLite through
- * the same `DB` surface the whole codebase already uses, and its tests pass -
- * against a node:sqlite stand-in. Nothing in this repository has ever run it
- * against a real Durable Object. Two things no test here can prove are
- * whether the toolchain bundles this at all, and whether the database opens
- * inside `blockConcurrencyWhile` before a request is served. This Worker
- * exists to find that out, on a workers.dev subdomain with nothing pointing
- * at it, while the pilot keeps running on Fly.
+ * `server.ts` is the routes, `server-node.ts` is the Node process, and this is
+ * the third thing that can own them: a Worker in front of one Durable Object.
  *
- * WHY ONLY `/health`. `docs/74` said step one was `/health` and `/config`.
- * `/config` turned out to be unreachable from here: `publicConfig()` lives in
- * `fence.ts`, which imports `assist-service.ts`, which imports
- * `node:fs/promises`, `node:os` and the ffmpeg transcoder. Serving it would
- * mean either dragging Node into the Worker or copying the config shape and
- * letting the two drift. Neither is worth it for a spike, so `/config` waits
- * for the step that untangles `fence.ts`.
+ * ONE DURABLE OBJECT, DELIBERATELY. `fly.toml` says it in the shape of a
+ * comment about machines - "SQLite is a file on one disk: a second machine
+ * would be a second database, diverging from the first, and neither would be
+ * wrong in a way anyone could detect from the outside". A Durable Object is
+ * that rule expressed as a platform guarantee rather than as a configuration
+ * nobody must change: every request is routed to the object named `pilot`, so
+ * there is exactly one database and the runtime enforces it.
  *
- * WHY THE ENVELOPE IS WRITTEN OUT HERE. `ok()` lives in `http.ts`, which
- * imports `transcode.ts` for its error mapping - `node:child_process`, the
- * one thing Workers genuinely cannot do. Six lines of duplication beat
- * importing the whole error map to reach them, and the duplication is
- * temporary: the step that moves the routes across moves `http.ts` with them.
+ * It is also why this is a Durable Object and not D1. D1's API is async, which
+ * would make every one of the 536 `prepare(` call sites and every function
+ * above them async. Durable Object SQLite is synchronous, like `node:sqlite`,
+ * so `do-storage.ts` re-presents it and not one call site changed.
  *
- * NOTHING FROM NODE MAY REACH THIS FILE, and that is not a convention:
- * `worker-is-node-free.test.ts` walks every runtime import from here and
- * fails on the first `node:` specifier it finds.
+ * WHAT STILL LIVES ELSEWHERE. ffmpeg cannot run here - Workers cannot spawn a
+ * process - so media transcoding is a container this Worker calls over HTTP
+ * (`CHIVAGO_TRANSCODE_URL`, see `transcode-service.ts`). That is not a
+ * temporary state of this port; it is the shape of the deployment.
  */
-import { Hono } from 'hono';
-import { openDurableDatabase } from './schema.ts';
-import type { SyncDatabase } from './do-storage.ts';
+
+import { DurableObject } from 'cloudflare:workers';
+
+import { openDurableDatabase } from './db.ts';
 import type { DurableStorage } from './do-storage.ts';
+import { r2BlobStore, setBlobStore } from './blob-store.ts';
+import { nextDueAt, runDueSweeps, type LastRunAt, type Sweep } from './sweeps.ts';
 
-/*
-  The slice of the Cloudflare runtime this file touches, declared here.
-
-  `@cloudflare/workers-types` would bring the real ones, and the step that
-  adds `wrangler` should add them. It is not installed yet, and the global
-  types it ships collide with `@types/node`, which this package needs for the
-  rest of its code. Declaring the four members actually used keeps that fight
-  for the day it has to be had, and keeps this file honestly typed meanwhile.
-*/
-interface DurableObjectState {
-  storage: DurableStorage;
-  blockConcurrencyWhile<T>(fn: () => Promise<T>): Promise<T>;
-}
-interface DurableObjectStub {
-  fetch(request: Request): Promise<Response>;
-}
-interface DurableObjectNamespace {
-  idFromName(name: string): unknown;
-  get(id: unknown): DurableObjectStub;
-}
 export interface Env {
-  CHIVAGO_DB: DurableObjectNamespace;
+  /** The one object. See the note above about why there is only one. */
+  CHIVAGO: DurableObjectNamespace<ChivagoPilot>;
+  /** Proof photographs. Story media lives in the database, not here. */
+  UPLOADS: R2Bucket;
+  /** The exported web app, served by Workers Assets. */
+  ASSETS: Fetcher;
 }
 
-/**
- * The database, as one Durable Object.
- *
- * ONE OBJECT, ONE DATABASE - the rule `fly.toml` keeps with one machine and
- * one volume, expressed in the only way this platform offers. `idFromName`
- * below always asks for the same name, so every request reaches this one
- * object and there is never a second database to diverge from the first.
- *
- * The open happens inside `blockConcurrencyWhile`, so the schema and the
- * migrations finish before any request is served. That is the half of this
- * spike the node:sqlite stand-in cannot test.
- */
-export class ChivagoDatabase {
-  #db: SyncDatabase | null = null;
-  #failure: string | null = null;
+/** Where the sweep bookkeeping lives, so a restart does not re-run everything. */
+const LAST_RUN_KEY = 'sweeps:lastRunAt';
 
-  constructor(state: DurableObjectState) {
-    void state.blockConcurrencyWhile(async () => {
-      try {
-        this.#db = openDurableDatabase(state.storage);
-      } catch (err) {
-        /*
-          Kept, not thrown. A constructor that throws here takes the object
-          down on every request with nothing to read, which is the shape of
-          the Ko Sichang bootstrap failure in #196: an exception during
-          start-up, no port, no explanation. Holding the reason lets /health
-          report it.
-        */
-        this.#failure = err instanceof Error ? err.message : String(err);
+export class ChivagoPilot extends DurableObject<Env> {
+  /*
+    Typed as "something that answers a Request" rather than as `Hono`. The app
+    carries its own env generic (`Hono<AppEnv>`), which does not match a bare
+    `Hono`, and naming the generic here would tie the platform entry point to
+    the routes' internals for no gain: all this needs is `fetch`.
+  */
+  #app: { fetch: (request: Request) => Response | Promise<Response> } | null = null;
+  #sweeps: Sweep[] = [];
+
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+
+    /*
+      blockConcurrencyWhile, and nothing else, is what makes this safe.
+
+      The schema and the migrations run here, and until they finish no request
+      may be served against a half-built database. This is the Workers
+      equivalent of what `openDb` does on Node - and it is why
+      `openDurableDatabase` exists as a separate function from `openDb`.
+
+      It is also the ONE place a constructor may do I/O. Anything heavier than
+      this belongs in a request.
+    */
+    ctx.blockConcurrencyWhile(async () => {
+      // Uploaded bytes go to R2 rather than a volume. Set before the routes
+      // exist, so no handler can read the default disk store by accident.
+      setBlobStore(r2BlobStore(env.UPLOADS));
+
+      /*
+        A DYNAMIC import, and the order matters.
+
+        `server.ts` reads its database from a binding that `useDatabase` sets.
+        Importing it statically would evaluate its module scope - and build the
+        sweep list - before this object's storage was available. Importing it
+        here means the routes are created with a database already in hand.
+      */
+      const { app, scheduledSweeps, useDatabase } = await import('./server.ts');
+      /*
+        The cast is the whole price of not depending on Cloudflare's types in
+        `do-storage.ts`. `DurableStorage` there describes the three methods
+        this code uses, declared structurally so that 58 service files and the
+        Node driver never import `@cloudflare/workers-types`. The real
+        `DurableObjectStorage` satisfies it in substance - the probes behind
+        `do-storage.ts` ran against this very API - but its `sql.exec` is
+        generic over `Record<string, SqlStorageValue>` where ours is generic
+        over the row type a caller asks for, and TypeScript cannot see those as
+        the same. One cast, at the one place the platform meets the port.
+      */
+      useDatabase(openDurableDatabase(ctx.storage as unknown as DurableStorage));
+
+      this.#app = app;
+      this.#sweeps = scheduledSweeps();
+
+      // Six timers became one alarm. Booked now, so a freshly created object
+      // starts sweeping without waiting for a request to wake it.
+      if ((await ctx.storage.getAlarm()) === null) {
+        await ctx.storage.setAlarm(Date.now() + 1_000);
       }
     });
   }
 
-  async fetch(_request: Request): Promise<Response> {
-    if (this.#db === null) {
-      return Response.json({ ok: false, error: { code: 'DB_UNAVAILABLE', message: this.#failure ?? 'the database did not open' } }, { status: 503 });
-    }
+  override async fetch(request: Request): Promise<Response> {
+    // `blockConcurrencyWhile` has finished by the time any request arrives, so
+    // this is never null in practice; the check is here because a null
+    // dereference under load is a worse way to find out.
+    if (!this.#app) return new Response('Starting', { status: 503 });
+    return this.#app.fetch(request);
+  }
+
+  /**
+   * The six sweeps, on one alarm.
+   *
+   * Each decides whether its turn has come, so the hourly ones are not dragged
+   * along by the thirty-second one; `sweeps.ts` holds that logic and the
+   * reasons for each cadence. The record of when each last ran is persisted,
+   * because an alarm has no memory of the last one and an object that forgot
+   * would re-run every hourly job on every restart.
+   */
+  override async alarm(): Promise<void> {
+    const last = (await this.ctx.storage.get<LastRunAt>(LAST_RUN_KEY)) ?? {};
+    const updated = await runDueSweeps(this.#sweeps, last);
+    await this.ctx.storage.put(LAST_RUN_KEY, updated);
     /*
-      Not `SELECT 1`. The question this spike asks is whether the SCHEMA and
-      the migrations ran, and only a real table answers that - a connection
-      that opened over an empty database would pass `SELECT 1` and prove
-      nothing.
+      Book the next one even if this one threw something `runDueSweeps` did not
+      catch. Without this an unhandled alarm is the end of all scheduled work
+      on this object, silently - SOS escalation included.
     */
-    const counted = this.#db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type = 'table'").get() as { n: number | bigint } | undefined;
-    return Response.json({
-      ok: true,
-      data: { status: 'up', time: new Date().toISOString(), tables: Number(counted?.n ?? 0) },
-    });
+    await this.ctx.storage.setAlarm(nextDueAt(this.#sweeps, updated));
   }
 }
 
-const app = new Hono<{ Bindings: Env }>();
+/**
+ * Static files first, then the one object.
+ *
+ * Workers Assets serves the exported web app, which is what `serveStatic` did
+ * on Node. THE CACHE HEADERS MATTER AND ARE NOT THE DEFAULT: hashed Expo
+ * bundles and fonts are immutable for a year, unhashed photographs get an
+ * hour, and `index.html` is `no-cache` so a deploy is visible at once. Those
+ * rules are set in `wrangler.jsonc`; the comment over `serveWebApp` in
+ * `server-node.ts` explains why each one is what it is, and the two must not
+ * drift apart.
+ */
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
 
-app.get('/health', async (c) => {
-  const stub = c.env.CHIVAGO_DB.get(c.env.CHIVAGO_DB.idFromName('chivago'));
-  return stub.fetch(new Request('https://do/health'));
-});
+    /*
+      Anything that is not the API is a static file. The prefixes are the ones
+      `server.ts` already treats as static; keeping one list is the point,
+      because a path that is static here and dynamic there is a 404 nobody can
+      reproduce.
+    */
+    const isAsset = url.pathname === '/'
+      || url.pathname === '/favicon.ico'
+      || ['/_expo/', '/assets/', '/media/', '/shops/media/', '/shops/guide-photos/']
+        .some((p) => url.pathname.startsWith(p));
 
-export default app;
+    if (isAsset && request.method === 'GET') {
+      const asset = await env.ASSETS.fetch(request);
+      // A miss falls through to the API, which is what makes `/media/<id>` -
+      // served from the database, not from the export - still work.
+      if (asset.status !== 404) return asset;
+    }
+
+    // `getByName` is deterministic: the same name is always the same object,
+    // which is how "one machine, one database" survives being a platform
+    // promise rather than a configuration setting.
+    return env.CHIVAGO.getByName('pilot').fetch(request);
+  },
+};

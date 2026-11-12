@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { APPEAL_SLA_HOURS, PROOF_SLA_HOURS } from '@chivago/core';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { checkIn } from './checkin-service.ts';
 import { inbox } from './notification-service.ts';
 import { appealTakedown, hideReview, writeReview } from './place-review-service.ts';

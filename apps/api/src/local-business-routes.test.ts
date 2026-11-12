@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 
 process.env.CHIVAGO_DB = ':memory:';
-const { app, db } = await import('./server.ts');
+const { app, db } = await import('./server-node.ts');
 const { isOpenNow } = await import('./local-business-service.ts');
 const parse = async (res: Response): Promise<any> => res.json();
 const register = async (suffix: string, accountType: 'operator' | 'traveller') => {

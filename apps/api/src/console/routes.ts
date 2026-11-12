@@ -202,11 +202,33 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
    * computes to none - so on /console/apply the first three required fields
    * were invisible to the business trying to fill them in.
    */
-  const STYLESHEET = join(import.meta.dirname, '..', '..', 'public', 'modernist.css');
+  /*
+    Resolved and read ON REQUEST, not at import.
 
+    `import.meta.dirname` is undefined on Cloudflare Workers, so computing this
+    at module scope threw `join(undefined, ...)` the moment the routes were
+    built - which took the whole Worker down at startup, before any route
+    answered, including /health. Lazily, the failure is confined to this one
+    file.
+
+    STILL OUTSTANDING FOR THE WORKERS DEPLOYMENT: there is no filesystem
+    there, so this answers 503 and the console is unstyled - which is not
+    cosmetic, for the reason above: the required fields on /console/apply lose
+    their borders and become invisible. Before the console is used on Workers
+    this stylesheet has to come from Workers Assets instead.
+  */
+  let stylesheet: string | null = null;
   app.get('/assets/modernist.css', (c) => {
-    const css = readFileSync(STYLESHEET, 'utf8');
-    return c.body(css, 200, { 'content-type': 'text/css; charset=utf-8' });
+    if (stylesheet === null) {
+      if (import.meta.dirname === undefined) {
+        return c.text('The console stylesheet is not available on this runtime.', 503);
+      }
+      stylesheet = readFileSync(
+        join(import.meta.dirname, '..', '..', 'public', 'modernist.css'),
+        'utf8',
+      );
+    }
+    return c.body(stylesheet, 200, { 'content-type': 'text/css; charset=utf-8' });
   });
 
   const currentSession = (c: { req: { header: (n: string) => string | undefined } }) =>

@@ -4,7 +4,7 @@ import { before, describe, test } from 'node:test';
 // Route-level coverage uses its own process and never opens the pilot DB.
 delete process.env.CHIVAGO_OPEN_IDENTITY;
 process.env.CHIVAGO_DB = ':memory:';
-const { app, db } = await import('./server.ts');
+const { app, db } = await import('./server-node.ts');
 const { seedArea } = await import('./seed-area.ts');
 
 const COURT = 'sinthani-badminton';

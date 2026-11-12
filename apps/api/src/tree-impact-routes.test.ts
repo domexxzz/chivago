@@ -4,7 +4,7 @@ import { test } from 'node:test';
 delete process.env.CHIVAGO_OPEN_IDENTITY;
 process.env.CHIVAGO_DB = ':memory:';
 
-const { app, db } = await import('./server.ts');
+const { app, db } = await import('./server-node.ts');
 const { addOrganisation, addSponsorship } = await import('./organisation-service.ts');
 const { recordTreePlanting, setTreeCommitment } = await import('./tree-impact-service.ts');
 const { awardQuestReward, ensureWallet, reverseMovement } = await import('./wallet-service.ts');

@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 import { readFileSync } from 'node:fs';
 
-import { openTestDb, rows, type DB } from './db.ts';
+import { openTestDb, rows, type DB } from './db-node.ts';
 import { addOrganisation, addSponsorship, removeSponsorship } from './organisation-service.ts';
 import { awardQuestReward, getBalances } from './wallet-service.ts';
 

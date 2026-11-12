@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
-import { openTestDb } from '../db.ts';
+import { openTestDb } from '../db-node.ts';
 import { hashApiKey, SESSION_COOKIE } from '../host-auth.ts';
 import { consoleRoutes } from './routes.ts';
 

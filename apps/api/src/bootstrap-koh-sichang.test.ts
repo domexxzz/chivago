@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { openTestDb } from './db.ts';
+import { openTestDb } from './db-node.ts';
 import { registerUser } from './user-account-service.ts';
 import {
   bootstrapKohSichangBusinesses,

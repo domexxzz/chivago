@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { adjustedClaimState, esgReport, type Funder } from '@chivago/core';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import {
   InvalidAdjustment, adjustmentById, adjustmentsFor, adjustmentsForQuests,
   resumeClaim, standDown, voidAdjustment,

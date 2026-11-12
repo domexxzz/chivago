@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test, describe, beforeEach } from 'node:test';
 
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import {
   LINK_CODE_TTL_MS, LinkCodeRefused,
   claimLinkCode, devicesFor, generateDeviceKey, generateLinkCode, hashToken,

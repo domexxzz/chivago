@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { STATEMENT_ID_PATTERN, canonicalJson } from '@chivago/core';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import {
   InvalidPeriod, StatementTampered, UnknownHost, digestOf, draftStatement, issueStatement,
   readStatement, statementsFor, statementsIncluding,

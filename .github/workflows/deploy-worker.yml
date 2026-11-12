@@ -1,0 +1,77 @@
+# Deploy ChivaGo to Cloudflare, BY HAND.
+#
+# The sibling of `deploy.yml`, which deploys the Fly machine. Both exist on
+# purpose while the move is unfinished: one of them is the live deployment and
+# the other is the destination, and which is which is a decision somebody makes
+# rather than a consequence of merging.
+#
+# IT NEVER FIRES ON ITS OWN. `workflow_dispatch` only, for the same reason
+# `deploy.yml` says: the pilot is ONE database - one Durable Object here, one
+# volume there - and putting a deploy on every merge is exactly the accident
+# that turns a green build into a reset pilot.
+#
+# WHAT IT NEEDS, as repository secrets:
+#   CLOUDFLARE_API_TOKEN  - with Workers Scripts:Edit, Durable Objects and R2.
+#   CLOUDFLARE_ACCOUNT_ID - the account the Worker belongs to.
+#
+# WHAT IT DOES NOT DO:
+#   - It does not seed. The pilot's content seed and the demo marketplace seed
+#     are deliberate, separate commands, exactly as on Fly.
+#   - It does not migrate the DATA. Moving the SQLite file and the uploads off
+#     the Fly volume is `docs/71-moving-the-data-to-cloudflare.md`, and most of
+#     it needs a human with the accounts.
+#   - It does not deploy the transcoder. ffmpeg cannot run on Workers, so the
+#     encoder is a container (`Dockerfile.transcode`) deployed separately. Set
+#     CHIVAGO_TRANSCODE_URL and CHIVAGO_TRANSCODE_TOKEN with
+#     `wrangler secret put` before stories will work.
+
+name: deploy-worker
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: deploy to cloudflare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Never two deploys to the one pilot at once.
+    concurrency: deploy-chivago-worker
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Both projects, because the Worker entry is typechecked separately: its
+      # globals are Cloudflare's, not Node's. A deploy that skipped this would
+      # be the one place in this repository where a type error ships.
+      - run: pnpm typecheck
+      - run: pnpm --filter @chivago/api typecheck:worker
+
+      # The suite twice: on node:sqlite, and through the Durable Object adapter
+      # that this deployment actually uses. The second is the one that matters
+      # here, and it is cheap.
+      - run: pnpm test
+      - run: pnpm --filter @chivago/api test:durable
+
+      # The web app, served by Workers Assets from apps/mobile/dist-live -
+      # the directory wrangler.jsonc points at. Same build as the Dockerfile's
+      # `web` stage; `same-origin` because the app talks to the host it was
+      # loaded from, so there is no hostname baked in to go stale.
+      - name: build the web app
+        run: |
+          cd apps/mobile
+          EXPO_PUBLIC_API_URL=same-origin npx expo export --platform web --output-dir dist-live
+          node ../../scripts/flatten-assets.mjs dist-live
+
+      - name: deploy
+        run: pnpm --filter @chivago/api exec wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

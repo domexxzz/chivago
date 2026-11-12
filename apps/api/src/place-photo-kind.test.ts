@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { SEED_PLACES } from '@chivago/core';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { getScoredPlace } from './repo.ts';
 import { refreshPhotos, seedArea } from './seed-area.ts';
 

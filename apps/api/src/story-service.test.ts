@@ -4,7 +4,7 @@ import { existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { OutsideGeofence } from './quest-service.ts';
 import { MockedLocation } from './presence-service.ts';
 import {

@@ -14,11 +14,11 @@ delete process.env.CHIVAGO_OPEN_IDENTITY;
 process.env.CHIVAGO_DB = ':memory:';
 process.env.CHIVAGO_HOST_SECRET = 'test-host-secret';
 
-const { app, db } = await import('./server.ts');
+const { app, db } = await import('./server-node.ts');
 const { readCookie } = await import('./host-auth.ts');
 const { getAir, CROSS_CHECK_TOLERANCE } = await import('./air.ts');
 type AirSources = import('./air.ts').AirSources;
-const { openTestDb } = await import('./db.ts');
+const { openTestDb } = await import('./db-node.ts');
 const { issueStatement } = await import('./statement-service.ts');
 const { setStoriesOpen, STORY_FORM_MAX_BYTES } = await import('./story-service.ts');
 const { MAX_BYTES, MAX_PHOTOS_PER_PROOF } = await import('./uploads.ts');

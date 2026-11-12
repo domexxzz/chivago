@@ -5,7 +5,7 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ASSIST_PROMPT_VERSION } from '@chivago/core';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import {
   assistConfig, assistStateFor, ffmpegPrepare, requestAssist, staleAssists,
   type AssistDeps, type AssistModel, type AssistModelRequest,

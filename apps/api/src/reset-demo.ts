@@ -20,7 +20,7 @@
  * non-zero naming any screen that would open empty.
  */
 
-import { openDb, type DB } from './db.ts';
+import { openDb, type DB } from './db-node.ts';
 import { checkIn } from './checkin-service.ts';
 import { joinQuest, arriveAtQuest, submitProof, resolveVerification } from './quest-service.ts';
 import { issueStatement } from './statement-service.ts';

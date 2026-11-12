@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
 import { SAME_VEHICLE_MIN, SEED_TRANSIT } from '@chivago/core';
-import { openTestDb, type DB } from './db.ts';
+import { openTestDb, type DB } from './db-node.ts';
 import { reportSighting, routesForArea, sightingsToday } from './transit-service.ts';
 
 /**

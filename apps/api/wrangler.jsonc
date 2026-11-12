@@ -1,0 +1,115 @@
+{
+  // ChivaGo on Cloudflare.
+  //
+  // One Worker, one Durable Object, one R2 bucket, and the exported web app on
+  // Workers Assets. Media transcoding is NOT here: ffmpeg cannot run on
+  // Workers, so it is a container this Worker calls (Dockerfile.transcode).
+  //
+  //   pnpm --filter @chivago/api wrangler dev     # local workerd, no account
+  //   pnpm --filter @chivago/api wrangler deploy  # needs an account
+  //
+  // Secrets are NOT in this file. `wrangler secret put CHIVAGO_TRANSCODE_TOKEN`
+  // and the rest; anything written here is in the repository for ever.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "chivago",
+  "main": "src/worker.ts",
+
+  // Measured, not chosen: the probes behind do-storage.ts ran against this
+  // date. Moving it changes runtime behaviour, so it moves deliberately.
+  "compatibility_date": "2026-08-06",
+
+  // `node:crypto` for randomUUID and randomBytes, and `node:path`/`node:url`
+  // where the routes still use them. NOT for node:sqlite, which this flag does
+  // not provide and which is why db.ts was split from db-node.ts.
+  "compatibility_flags": ["nodejs_compat"],
+
+  "durable_objects": {
+    "bindings": [
+      {
+        // ONE object, named `pilot` at the call site. See worker.ts: a second
+        // object would be a second database, which is the thing fly.toml's
+        // one-machine rule exists to prevent.
+        "name": "CHIVAGO",
+        "class_name": "ChivagoPilot"
+      }
+    ]
+  },
+
+  "migrations": [
+    {
+      // `new_sqlite_classes`, not `new_classes`: the SQLite-backed storage is
+      // the whole reason this is a Durable Object. A key-value class could not
+      // run the schema at all.
+      "tag": "v1",
+      "new_sqlite_classes": ["ChivagoPilot"]
+    }
+  ],
+
+  "r2_buckets": [
+    {
+      // Proof photographs. Story media lives in the database (media_blob), so
+      // this bucket holds less than its name suggests.
+      "binding": "UPLOADS",
+      "bucket_name": "chivago-uploads"
+    }
+  ],
+
+  "assets": {
+    // The Expo web export. `pnpm --filter @chivago/mobile` builds it; the
+    // Dockerfile's `web` stage is the same build.
+    "directory": "../mobile/dist-live",
+    "binding": "ASSETS",
+    // The Worker decides what is static and what is a route, because some
+    // paths (/media/<id>) are served from the database and must reach the API
+    // when the export has no such file. See the `isAsset` check in worker.ts.
+    "run_worker_first": true
+  },
+
+  "vars": {
+    // Locked to the app's own origin, as on Fly: the web build is served from
+    // here, so it needs no cross-origin grant, and a wildcard on a deployment
+    // with a host console behind it is a wildcard on the console too.
+    "CHIVAGO_ORIGINS": "https://chivargo.com,https://www.chivargo.com",
+
+    // NO OPENING BALANCE, and no registration limit, exactly as fly.toml has
+    // them and for the same reasons recorded there: a gift handed to every
+    // unauthenticated registration is a voucher printer, and a per-address
+    // limit refuses the back half of a hall that shares one address. The
+    // second is only safe because the first is zero.
+    "CHIVAGO_OPENING_TRIP": "0",
+    "CHIVAGO_OPENING_GREEN": "0",
+    "CHIVAGO_REGISTRATIONS_PER_HOUR": "0",
+
+    // Posting is immediate; nothing is reviewed before it is public. The
+    // console hides a story in one click and every clip expires in seven days.
+    // Delete this to put the queue back. See fly.toml for the full argument.
+    "CHIVAGO_STORIES_AUTO_APPROVE": "1"
+
+    // CHIVAGO_TRANSCODE_URL is deliberately absent here. Without it the API
+    // tries to run ffmpeg in-process, which on Workers fails loudly as
+    // TranscoderUnavailable (503) rather than quietly storing a broken clip -
+    // the right failure while the container's address is not yet known. Set it
+    // with `wrangler secret put` or add it here once the container is up.
+  },
+
+  // Cache rules for the static export, which Workers Assets does not infer.
+  //
+  // THESE ARE THE HEADERS THE NODE DEPLOYMENT ALREADY SENDS and they were
+  // measured: the bundle is 681 KB and venue wifi, not CPU, is what falls over
+  // first. Expo stamps a content hash into bundle and font names, so those are
+  // immutable for a year - a new build is a new name and there is nothing to
+  // invalidate. The place photographs are NOT hashed (`ku-park.jpg`), so an
+  // hour: long enough for a room full of people opening the app at once, short
+  // enough that replacing one is not a support call. index.html is `no-cache`,
+  // which means revalidate rather than do-not-store - that is what makes a
+  // deploy visible at once while costing one 304 instead of 1.4 KB.
+  "headers": [
+    { "source": "/_expo/*", "headers": { "cache-control": "public, max-age=31536000, immutable" } },
+    { "source": "/assets/*", "headers": { "cache-control": "public, max-age=31536000, immutable" } },
+    { "source": "/media/*", "headers": { "cache-control": "public, max-age=3600" } },
+    { "source": "/favicon.ico", "headers": { "cache-control": "public, max-age=86400" } },
+    { "source": "/", "headers": { "cache-control": "no-cache" } }
+  ],
+
+  "observability": { "enabled": true }
+}
