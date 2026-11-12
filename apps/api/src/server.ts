@@ -82,6 +82,7 @@ import {
   storyEtag, submitStory,
 } from './story-service.ts';
 import { areaByKey, inArea, isAreaKey } from '@chivago/core';
+import { TEN_PULL_SIZE } from '@chivago/core';
 import { isLang } from '@chivago/core';
 import { statementMissingPage, verifyPage } from './console/statement.ts';
 import { usesOf } from './statement-use-service.ts';
@@ -123,9 +124,13 @@ import { isPrimary, onPrimary } from './primary.ts';
 import { bootstrapKohSichangBusinesses } from './bootstrap-koh-sichang.ts';
 import { buildSweeps, startSweepTimers, type Sweep } from './sweeps.ts';
 import { MAX_BYTES, MAX_PHOTOS_PER_PROOF, storePhoto, UnsupportedUpload } from './uploads.ts';
+import {
+  COMMUNITY_MEDIA_MAX_BYTES, addCommunityComment, createCommunityPost, listCommunityFeed,
+  readCommunityMedia, recordCommunityShare, toggleCommunityLike,
+} from './community-service.ts';
 import { FFMPEG, transcoderAvailable } from './transcode.ts';
 import {
-  collectionFor, forge, historyFor, summon, summonState, verifySummon,
+  collectionFor, forge, historyFor, pull, summonState, verifySummon,
 } from './summon-service.ts';
 import {
   assistConfig, ffmpegPrepare, requestAssist, type AssistDeps,
@@ -703,7 +708,7 @@ const PUBLIC_PREFIXES = [
   // moved off `/assets/` because Metro's dev server shadows that prefix and
   // answered every one of them 404. Both must stay unauthenticated: a font
   // or a place photograph behind a 401 is the whole app sitting on LOADING.
-  '/_expo/', '/assets/', '/media/', '/shops/media/', '/shops/guide-photos/',
+  '/_expo/', '/assets/', '/media/', '/shops/media/', '/shops/guide-photos/', '/community/media/',
 ];
 const PUBLIC_PATHS = new Set(['/', '/index.html', '/favicon.ico', '/metadata.json', '/health', '/config']);
 const isPublicPath = (path: string): boolean =>
@@ -743,6 +748,49 @@ app.use('*', async (c, next) => {
 app.onError((err, c) => err instanceof ShopError ? fail(c, err.code, err.message, err.status) : handleError(c, err));
 
 app.get('/health', (c) => ok(c, { status: 'up', time: new Date().toISOString() }));
+
+// ---------------------------------------------------------------------------
+// Community feed
+// ---------------------------------------------------------------------------
+
+app.get('/community/feed', (c) => ok(c, {
+  posts: listCommunityFeed(db, userId(c), num(c.req.query('limit'), 30)),
+}));
+
+app.post('/community/posts', async (c) => {
+  if (!(c.req.header('content-type') ?? '').includes('multipart/form-data')) {
+    return fail(c, 'MULTIPART_REQUIRED', 'Send the post as multipart/form-data.');
+  }
+  const form = await boundedForm(c, COMMUNITY_MEDIA_MAX_BYTES + 128 * 1024);
+  const body = form.get('body');
+  const file = form.get('file');
+  return ok(c, createCommunityPost(db, userId(c), {
+    body: typeof body === 'string' ? body : '',
+    media: file instanceof File ? Buffer.from(await file.arrayBuffer()) : null,
+  }));
+});
+
+app.post('/community/posts/:id/like', (c) =>
+  ok(c, toggleCommunityLike(db, c.req.param('id'), userId(c))));
+
+app.post('/community/posts/:id/comments', async (c) => {
+  const body: { body?: unknown } = await c.req.json<{ body?: unknown }>().catch(() => ({}));
+  return ok(c, addCommunityComment(
+    db, c.req.param('id'), userId(c), typeof body.body === 'string' ? body.body : '',
+  ));
+});
+
+app.post('/community/posts/:id/share', (c) =>
+  ok(c, { shareCount: recordCommunityShare(db, c.req.param('id')) }));
+
+app.get('/community/media/:id', (c) => {
+  const media = readCommunityMedia(db, c.req.param('id'));
+  if (!media) return fail(c, 'NOT_FOUND', 'This media is no longer available.', 404);
+  c.header('content-type', media.mime);
+  c.header('cache-control', 'public, max-age=3600');
+  c.header('x-content-type-options', 'nosniff');
+  return c.body(Buffer.from(media.bytes));
+});
 
 // ---------------------------------------------------------------------------
 // Accounts
@@ -2321,8 +2369,19 @@ app.get('/summon/history', (c) => ok(c, { summons: historyFor(db, userId(c), num
  */
 app.get('/summon/verify/:id', (c) => ok(c, verifySummon(db, c.req.param('id'))));
 
-/** Spend one charm. */
-app.post('/summon', (c) => ok(c, summon(db, userId(c))));
+/**
+ * One pull, or ten.
+ *
+ * `pulls` is 1 or 10 and nothing else: the ten has a published price and a
+ * number in between would need one of its own. Anything unrecognised is read
+ * as one rather than refused, so an older client that sends no body at all
+ * keeps working.
+ */
+app.post('/summon', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as { pulls?: unknown };
+  const pulls = body.pulls === TEN_PULL_SIZE ? TEN_PULL_SIZE : 1;
+  return ok(c, pull(db, userId(c), pulls));
+});
 
 /**
  * Choose one outright, for stardust. The door with no luck in it - see

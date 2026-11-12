@@ -3,7 +3,7 @@ import { test, describe } from 'node:test';
 
 import { PROVINCES } from './provinces.ts';
 import {
-  SEALED_EGG, bondOf, provinceCollection, provinceCompanions, provinceLevelFor, provinceNextStep,
+  SEALED_EGG, bondOf, featuredMascot, provinceCollection, provinceCompanions, provinceLevelFor, provinceNextStep,
   type ProvinceEvidence,
 } from './province-companions.ts';
 
@@ -216,5 +216,40 @@ describe('a province level reads back to the evidence under it', () => {
       .find((x) => x.province.code === 'TH-20')!;
     assert.equal(c.level, 6);
     assert.equal(c.level, provinceLevelFor(c), 'the row and the function disagree');
+  });
+});
+
+describe('the one emblem the backpack has room for', () => {
+  test('nobody who has been nowhere gets a mascot invented for them', () => {
+    // A backpack that showed a province emblem to a traveller with no
+    // check-ins would be picturing a visit that did not happen.
+    assert.equal(featuredMascot(provinceCompanions([])), null);
+  });
+
+  test('the ladder decides: a verified province outranks one with more days', () => {
+    const picked = featuredMascot(provinceCompanions([
+      ev({ code: SAMUI, visitDays: 6, questsVerified: 0 }),
+      ev({ code: CHONBURI, layer: 'Green', visitDays: 1, questsVerified: 1 }),
+    ]));
+    assert.equal(picked?.province.code, CHONBURI);
+    assert.equal(picked?.state, 'grown');
+  });
+
+  test('on the same rung the higher province level wins', () => {
+    const picked = featuredMascot(provinceCompanions([
+      ev({ code: SAMUI, visitDays: 2, questsVerified: 0 }),
+      ev({ code: BANGKOK, layer: 'Green', visitDays: 5, questsVerified: 0 }),
+    ]));
+    assert.equal(picked?.province.code, BANGKOK);
+    assert.equal(picked?.state, 'hatchling');
+  });
+
+  test('a sealed or unvisited province is never the one on the card', () => {
+    const picked = featuredMascot(provinceCompanions([
+      ev({ code: PATHUM_THANI, visitDays: 1, questsVerified: 0 }),
+    ]));
+    assert.equal(picked?.province.code, PATHUM_THANI);
+    assert.ok(picked && PROVINCES.some((p) => p.code === picked.province.code));
+    assert.ok(picked!.mascot.name.en.length > 0, 'the emblem travels with the row');
   });
 });

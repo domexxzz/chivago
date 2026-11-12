@@ -49,6 +49,13 @@ export const strings = {
       open the app for.
     */
     game: t('Collect', 'สะสม', '收集'),
+    /*
+      My Backpack. A DESKTOP-ONLY cell: the rail has room for a sixth
+      destination and a 375px bar does not, so on a phone the wallet keeps
+      the door on Home it has always had. The label names the wallet screen
+      as the traveller sees it, which is a backpack full of what they own.
+    */
+    backpack: t('My Backpack', 'กระเป๋าของฉัน', '我的背包'),
     impact: t('Impact', 'ผลลัพธ์', '成效'),
     safety: t('Safety', 'ความปลอดภัย', '安全'),
   },

@@ -114,6 +114,9 @@ export const TRAVELLER_TABLES = [
   'moderation_log', 'notifications', 'push_tokens',
   'sos_alerts', 'sos_dispatch', 'sos_escalations', 'sos_positions',
   'emergency_contacts',
+  // The community is user-authored too. Reactions and replies point at posts,
+  // so they leave first; the posts then leave before their authors.
+  'community_comments', 'community_likes', 'community_posts',
   // Accounts and parties are the traveller's, not the pilot's. Both arrived
   // after this list was written, and the schema guard below did its job: the
   // reset refused to run at all until they were classified.

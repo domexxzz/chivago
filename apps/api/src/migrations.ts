@@ -1704,6 +1704,27 @@ export function migrate(db: DB): string[] {
     CREATE INDEX IF NOT EXISTS idx_summons_user ON summons(user_id, created_at);
   `);
   applied.push('summon_epochs', 'summons');
+  /*
+    The box widened, so a row has to say WHICH box it was drawn from.
+
+    `item_kind` names what came out, because the fashion went into the same
+    draw as the spirits and `spirit_key` now holds either kind of key.
+    `pool_version` is the one that matters: `GET /summon/verify/:id` recomputes
+    an old roll and compares it to what was stored, and the pool a `pick` is
+    taken modulo decides the answer. Every row written before this migration
+    was drawn against the spirits alone, which is pool version 1 - so that is
+    the default, and those receipts keep checking out.
+  */
+  if (addColumn(db, 'summons', 'item_kind', "TEXT NOT NULL DEFAULT 'spirit'")) {
+    applied.push('summons.item_kind');
+  }
+  if (addColumn(db, 'summons', 'pool_version', 'INTEGER NOT NULL DEFAULT 1')) {
+    applied.push('summons.pool_version');
+  }
+  /* What a pull cost, in Trip Points. 0 on every row that predates the price. */
+  if (addColumn(db, 'summons', 'cost_points', 'INTEGER NOT NULL DEFAULT 0')) {
+    applied.push('summons.cost_points');
+  }
 
   // Real database accounts for user registration and authentication
   db.exec(`
@@ -1923,6 +1944,55 @@ export function migrate(db: DB): string[] {
   if (hasTable(db, 'places')) {
     if (addColumn(db, 'places', 'photo_kind', 'TEXT')) applied.push('places.photo_kind');
     if (addColumn(db, 'places', 'photo_backdrop', 'TEXT')) applied.push('places.photo_backdrop');
+  }
+
+  /*
+    -- Community feed -------------------------------------------------------
+
+    A shared feed for travellers and operators. Posts, reactions, comments
+    and share acknowledgements are server records rather than client-side
+    counters, so every device sees the same conversation. Media bytes live
+    with the post for the same deployment reason as story blobs: a rolling
+    deploy must not keep a row whose file disappeared with the old machine.
+  */
+  if (!hasTable(db, 'community_posts')) {
+    db.exec(`
+      CREATE TABLE community_posts (
+        id          TEXT PRIMARY KEY,
+        author_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        body        TEXT NOT NULL DEFAULT '',
+        media_mime  TEXT,
+        media_bytes BLOB,
+        share_count INTEGER NOT NULL DEFAULT 0 CHECK(share_count >= 0),
+        created_at  TEXT NOT NULL,
+        updated_at  TEXT NOT NULL,
+        hidden_at   TEXT,
+        CHECK(length(trim(body)) > 0 OR media_bytes IS NOT NULL),
+        CHECK((media_mime IS NULL) = (media_bytes IS NULL))
+      );
+      CREATE INDEX idx_community_posts_page ON community_posts(created_at DESC, id DESC)
+        WHERE hidden_at IS NULL;
+
+      CREATE TABLE community_likes (
+        post_id    TEXT NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
+        user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY(post_id, user_id)
+      );
+      CREATE INDEX idx_community_likes_user ON community_likes(user_id, created_at DESC);
+
+      CREATE TABLE community_comments (
+        id         TEXT PRIMARY KEY,
+        post_id    TEXT NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
+        author_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        body       TEXT NOT NULL CHECK(length(trim(body)) > 0),
+        created_at TEXT NOT NULL,
+        hidden_at  TEXT
+      );
+      CREATE INDEX idx_community_comments_post ON community_comments(post_id, created_at, id)
+        WHERE hidden_at IS NULL;
+    `);
+    applied.push('community_posts', 'community_likes', 'community_comments');
   }
 
   /*

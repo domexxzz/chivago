@@ -1,15 +1,17 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
+import { applyMovement, getBalances } from './wallet-service.ts';
 import { openTestDb, type DB } from './db-node.ts';
 import {
   AlreadyHave, EPOCH_HOURS, NoCharms, NotEnoughDust, UnknownSpirit, charmsFor, closeEpoch,
   collectionFor, commitmentOf, currentEpoch, dustFor, forge, heldBy, historyFor, pityFor,
-  publicEpoch, publishedRules, rollFor, rotateEpochs, summon, summonState, verifySummon,
+  NotEnoughPoints, publicEpoch, publishedRules, pull, rollFor, rotateEpochs, summon, summonState, verifySummon,
 } from './summon-service.ts';
 import {
   DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, RARITIES, RARITY_EFFECTIVE_PERCENT,
-  RARITY_PERCENT, SPIRITS, spiritFor,
+  POOL, RARITY_PERCENT, SPIRITS, itemKey, spiritFor,
+  PULL_COST, TEN_PULL_COST, TEN_PULL_SIZE, PULL_CURRENCY,
 } from '@chivago/core';
 
 let db: DB;
@@ -36,6 +38,24 @@ function giveCharms(userId: string, n: number): void {
   for (let i = 0; i < n; i += 1) checkinOn(userId, 'chaweng', `2026-09-${String(i + 1).padStart(2, '0')}`);
 }
 
+/**
+ * Trip Points enough for n pulls, credited the way the walk credits them.
+ *
+ * Through `applyMovement` rather than a raw INSERT, so the wallet row exists
+ * and `getBalances` sees the same number the pull will check.
+ */
+function fund(userId: string, pulls: number): void {
+  applyMovement(db, {
+    userId,
+    label: 'Seeded for a test',
+    host: 'x',
+    amount: PULL_COST * pulls,
+    currency: 'trip',
+    kind: 'walk',
+    sourceRef: `seed:${userId}:${pulls}:${Math.random()}`,
+  });
+}
+
 /*
   A FIXED EPOCH, so a roll is the same roll on every run.
 
@@ -59,9 +79,22 @@ beforeEach(() => {
 });
 
 describe('a charm is earned, never bought', () => {
-  test('a new traveller has none, and a summon is refused rather than sold', () => {
+  test('a new traveller has none, and cannot pull with nothing', () => {
+    /*
+      THE PRICE MOVED, ON THE OWNER'S WORD. A pull cost a charm until
+      13 November 2026 and now costs Trip Points, which is a currency rather
+      than a receipt for a deed. `draw-pool.ts` records who asked and what
+      was said back. Charms are still counted and still shown; they no
+      longer gate the box.
+
+      What did NOT move is the floor under it: with nothing in the wallet
+      there is no pull, and the refusal names the currency and the shortfall
+      instead of saying "not enough points" to somebody whose other balance
+      is full.
+    */
     assert.equal(charmsFor(db, 'ana').available, 0);
-    assert.throws(() => summon(db, 'ana', T), NoCharms);
+    assert.equal(getBalances(db, 'ana').trip, 0);
+    assert.throws(() => summon(db, 'ana', T), NotEnoughPoints);
   });
 
   test('a host-verified quest is one charm; a day with check-ins is one charm', () => {
@@ -95,20 +128,59 @@ describe('a charm is earned, never bought', () => {
     assert.equal(charmsFor(db, 'ana').earned, 0, 'a clawed-back quest still bought a summon');
   });
 
-  test('a summon spends exactly one charm', () => {
-    giveCharms('ana', 3);
+  test('a pull spends exactly its published price, and stops when the wallet is empty', () => {
+    fund('ana', 3);
+    assert.equal(getBalances(db, 'ana').trip, PULL_COST * 3);
     summon(db, 'ana', T);
-    assert.equal(charmsFor(db, 'ana').available, 2);
+    assert.equal(getBalances(db, 'ana').trip, PULL_COST * 2);
     summon(db, 'ana', later(1));
     summon(db, 'ana', later(2));
-    assert.equal(charmsFor(db, 'ana').available, 0);
-    assert.throws(() => summon(db, 'ana', later(3)), NoCharms);
+    assert.equal(getBalances(db, 'ana').trip, 0);
+    assert.throws(() => summon(db, 'ana', later(3)), NotEnoughPoints);
   });
 
-  test('one traveller\'s charms are not another\'s', () => {
-    giveCharms('ana', 2);
-    assert.equal(charmsFor(db, 'bo').available, 0);
-    assert.throws(() => summon(db, 'bo', T), NoCharms);
+  test('ten pulls cost the published ten-price, not ten times the one-price', () => {
+    fund('ana', 10);
+    const res = pull(db, 'ana', TEN_PULL_SIZE, T);
+    assert.equal(res.results.length, TEN_PULL_SIZE);
+    assert.equal(res.cost, TEN_PULL_COST);
+    assert.equal(res.tripPoints, PULL_COST * 10 - TEN_PULL_COST);
+    assert.ok(TEN_PULL_COST < PULL_COST * TEN_PULL_SIZE, 'the ten is not cheaper');
+  });
+
+  test('ten pulls take ten consecutive nonces, so every one of them is checkable', () => {
+    fund('ana', 10);
+    const nonces = pull(db, 'ana', TEN_PULL_SIZE, T).results.map((r) => r.receipt.nonce);
+    assert.deepEqual(nonces, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  });
+
+  test('a duplicate inside one ten-pull is seen as a duplicate, not as ten firsts', () => {
+    fund('ana', 10);
+    const res = pull(db, 'ana', TEN_PULL_SIZE, T);
+    const keys = res.results.map((r) => itemKey(r.item));
+    keys.forEach((key, at) => {
+      const seenBefore = keys.slice(0, at).includes(key);
+      assert.equal(res.results[at]!.duplicate, seenBefore, `${key} at ${at} read its duplicate flag wrong`);
+    });
+  });
+
+  test('one traveller\'s points are not another\'s', () => {
+    fund('ana', 2);
+    assert.equal(getBalances(db, 'bo').trip, 0);
+    assert.throws(() => summon(db, 'bo', T), NotEnoughPoints);
+  });
+
+  test('Green Points can never pay for a pull, however full that balance is', () => {
+    // The ESG currency. A figure an auditor is asked to trust must not be
+    // spendable on a game, and this is the test that says so at the service.
+    applyMovement(db, {
+      userId: 'ana', label: 'Verified', host: 'x', amount: 5_000,
+      currency: 'green', kind: 'quest_reward', sourceRef: 'quest:green:user:ana',
+    });
+    assert.equal(getBalances(db, 'ana').green, 5_000);
+    assert.equal(PULL_CURRENCY, 'trip');
+    assert.throws(() => summon(db, 'ana', T), NotEnoughPoints);
+    assert.equal(getBalances(db, 'ana').green, 5_000, 'a pull reached into Green');
   });
 });
 
@@ -122,22 +194,52 @@ describe('a charm is earned, never bought', () => {
   unlock anything, these are the tests that have to be deleted to do it -
   which is the point of writing them.
 */
-describe('a summon yields a spirit and NOTHING else', () => {
-  test('no wallet, no ledger row, no voucher, no EXP', () => {
-    giveCharms('ana', 1);
+describe('a summon yields decoration and NOTHING else', () => {
+  test('a pull debits once, grants no EXP, and issues no voucher', () => {
+    /*
+      THE DIRECTION IS THE WHOLE POINT. This suite used to assert that a
+      summon did not touch the ledger at all, because a summon cost a charm.
+      It costs Trip Points now, so one debit row is expected and is the only
+      change allowed: points go IN, decoration comes OUT, and nothing on the
+      way out can be redeemed for anything.
+
+      EXP is the one that would be easy to miss. A pull that granted EXP
+      would be a roll moving the progression ladder, which is the thing
+      `progression.ts` says may only move on activity.
+    */
+    fund('ana', 1);
     const before = {
-      wallets: count('wallets'), ledger: count('ledger'), vouchers: count('vouchers'),
+      ledger: count('ledger'), vouchers: count('vouchers'), exp: getExpOf('ana'),
     };
     summon(db, 'ana', T);
-    assert.equal(count('wallets'), before.wallets, 'a summon touched the wallets table');
-    assert.equal(count('ledger'), before.ledger, 'a summon wrote to the ledger');
-    assert.equal(count('vouchers'), before.vouchers, 'a summon issued a voucher');
+    assert.equal(count('ledger'), before.ledger + 1, 'a pull wrote more than its one debit');
+    assert.equal(count('vouchers'), before.vouchers, 'a pull issued a voucher');
+    assert.equal(getExpOf('ana'), before.exp, 'a pull granted EXP');
+
+    const debit = db.prepare('SELECT amount, currency, kind, exp FROM ledger ORDER BY rowid DESC LIMIT 1')
+      .get() as { amount: number; currency: string; kind: string; exp: number };
+    assert.equal(debit.amount, -PULL_COST);
+    assert.equal(debit.currency, 'trip');
+    assert.equal(debit.kind, 'redemption');
+    assert.equal(debit.exp, 0);
   });
 
-  test('the result carries no currency, points, value or prize of any kind', () => {
-    giveCharms('ana', 1);
+  test('a pull never credits anything back, so there is nothing here to cash', () => {
+    fund('ana', 10);
+    const before = getBalances(db, 'ana');
+    pull(db, 'ana', TEN_PULL_SIZE, T);
+    const after = getBalances(db, 'ana');
+    assert.ok(after.trip < before.trip, 'the pull did not cost anything');
+    assert.equal(after.green, before.green, 'a pull moved Green');
+    const credits = db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE amount > 0 AND kind = 'redemption'")
+      .get() as { n: number };
+    assert.equal(credits.n, 0, 'a pull paid something back');
+  });
+
+  test('the result carries no voucher, no cash and no discount', () => {
+    fund('ana', 1);
     const result = summon(db, 'ana', T) as unknown as Record<string, unknown>;
-    for (const forbidden of ['balances', 'points', 'green', 'trip', 'exp', 'voucher', 'offer', 'thb', 'valueTHB', 'prize', 'reward']) {
+    for (const forbidden of ['balances', 'voucher', 'offer', 'thb', 'valueTHB', 'reward']) {
       assert.ok(!(forbidden in result), `a summon result carries '${forbidden}'`);
     }
     const flat = JSON.stringify(result).toLowerCase();
@@ -235,6 +337,7 @@ describe('the commit-reveal', () => {
 
   test('a summon rotates before it reads the epoch, so no roll uses a published seed', () => {
     giveCharms('ana', 2);
+    fund('ana', 2);
     const first = summon(db, 'ana', T);
     // A day later: the epoch the first summon used is now past the window.
     const second = summon(db, 'ana', hours(EPOCH_HOURS + 1));
@@ -250,6 +353,7 @@ describe('the commit-reveal', () => {
 
   test('a day of rolls all become checkable together, by anybody holding a receipt', () => {
     giveCharms('ana', 3);
+    fund('ana', 3);
     const made = [summon(db, 'ana', T), summon(db, 'ana', hours(1)), summon(db, 'ana', hours(2))];
     for (const s of made) assert.equal(verifySummon(db, s.id).checkable, false);
     rotateEpochs(db, hours(EPOCH_HOURS));
@@ -272,6 +376,7 @@ describe('the commit-reveal', () => {
 
   test('a summon can be rechecked once the seed is out, and not before', () => {
     giveCharms('ana', 1);
+    fund('ana', 1);
     const s = summon(db, 'ana', T);
     const live = verifySummon(db, s.id);
     assert.equal(live.found, true);
@@ -285,6 +390,7 @@ describe('the commit-reveal', () => {
 
   test('a row edited after the fact fails the recheck', () => {
     giveCharms('ana', 1);
+    fund('ana', 1);
     const s = summon(db, 'ana', T);
     closeEpoch(db, s.receipt.epochId, later(60));
     // Somebody upgrades their own pull in the database.
@@ -297,6 +403,7 @@ describe('the commit-reveal', () => {
 
   test('a seed that does not match its commitment is caught, not trusted', () => {
     giveCharms('ana', 1);
+    fund('ana', 1);
     const s = summon(db, 'ana', T);
     closeEpoch(db, s.receipt.epochId, later(60));
     db.prepare('UPDATE summon_epochs SET seed = ? WHERE id = ?').run('f'.repeat(64), s.receipt.epochId);
@@ -315,6 +422,7 @@ describe('the commit-reveal', () => {
 describe('what a traveller ends up with', () => {
   test('the first of a spirit is kept; a second becomes stardust', () => {
     giveCharms('ana', 40);
+    fund('ana', 40);
     let firstDuplicate: ReturnType<typeof summon> | null = null;
     for (let i = 0; i < 40 && firstDuplicate === null; i += 1) {
       const s = summon(db, 'ana', later(i));
@@ -327,6 +435,7 @@ describe('what a traveller ends up with', () => {
 
   test('the floor fires by the thirtieth summon, and the receipt says it was the floor', () => {
     giveCharms('ana', MYTHIC_PITY);
+    fund('ana', MYTHIC_PITY);
     let sawMythic = false;
     for (let i = 0; i < MYTHIC_PITY; i += 1) {
       const s = summon(db, 'ana', later(i));
@@ -338,10 +447,11 @@ describe('what a traveller ends up with', () => {
 
   test('the collection hides what has not been met, and shows what has', () => {
     giveCharms('ana', 1);
+    fund('ana', 1);
     const got = summon(db, 'ana', T);
     const list = collectionFor(db, 'ana');
     assert.equal(list.length, SPIRITS.length);
-    const met = list.find((s) => s.key === got.spirit.key)!;
+    const met = list.find((s) => s.key === itemKey(got.item))!;
     assert.equal(met.held, 1);
     assert.ok('name' in met && 'lore' in met, 'a met spirit still has no name');
     const unmet = list.find((s) => s.held === 0)!;
@@ -351,16 +461,26 @@ describe('what a traveller ends up with', () => {
 
   test('the state counts the collection honestly', () => {
     giveCharms('ana', 2);
+    fund('ana', 2);
     summon(db, 'ana', T);
     const state = summonState(db, 'ana', later(1));
-    assert.equal(state.total, SPIRITS.length);
+    // The denominator is the WHOLE box, spirits and fashion together. Showing
+    // "1 of 24" while the box holds thirty would be a collection lying about
+    // its own size, which is the thing `provinceCollection` refuses too.
+    assert.equal(state.total, POOL.length);
+    assert.ok(state.total > SPIRITS.length, 'the fashion is not counted in the box');
     assert.equal(state.collected, heldBy(db, 'ana').size);
     assert.equal(state.charms.available, 1);
     assert.equal(state.rules.weightTotal, 10_000);
+    assert.equal(state.price.one, PULL_COST);
+    assert.equal(state.price.ten, TEN_PULL_COST);
+    assert.equal(state.price.currency, 'trip');
+    assert.equal(state.tripPoints, getBalances(db, 'ana').trip);
   });
 
   test('history returns the receipts, newest first', () => {
     giveCharms('ana', 2);
+    fund('ana', 2);
     const one = summon(db, 'ana', T);
     const two = summon(db, 'ana', later(5));
     const h = historyFor(db, 'ana');
@@ -385,7 +505,7 @@ describe('the door with no luck in it', () => {
     const target = SPIRITS.find((s) => s.rarity === 'rare')!;
     dust('ana', DUST_TO_FORGE.rare);
     const got = forge(db, 'ana', target.key, T);
-    assert.equal(got.spirit.key, target.key);
+    assert.equal(itemKey(got.item), target.key);
     assert.equal(got.receipt.nonce, 0, 'a forge consumed a roll nonce');
     assert.equal(dustFor(db, 'ana'), 0);
     assert.ok(heldBy(db, 'ana').has(target.key));
@@ -395,6 +515,7 @@ describe('the door with no luck in it', () => {
   test('a forge does not spend a charm, and a summon never takes stardust away', () => {
     const target = SPIRITS.find((s) => s.rarity === 'common')!;
     giveCharms('ana', 1);
+    fund('ana', 1);
     dust('ana', DUST_TO_FORGE.common);
     forge(db, 'ana', target.key, T);
     assert.equal(charmsFor(db, 'ana').available, 1, 'a forge spent a charm');
@@ -438,6 +559,11 @@ describe('the door with no luck in it', () => {
 
 function count(table: string): number {
   return (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as unknown as { n: number }).n;
+}
+
+/** Lifetime EXP, off the ledger — the figure a pull must never move. */
+function getExpOf(userId: string): number {
+  return (db.prepare('SELECT COALESCE(SUM(exp), 0) AS n FROM ledger WHERE user_id = ?').get(userId) as unknown as { n: number }).n;
 }
 
 /**

@@ -10,9 +10,9 @@ import * as fx from './fixtures.ts';
 /**
  * The game lobby.
  *
- * Worth asserting: every habitat is on the screen whether found or not, an
- * egg keeps its secret, the big card names a real next step, and neither
- * balance reaches a screen that wears the game surface.
+ * Worth asserting: the big card names a real next step, the lobby doors work,
+ * and neither balance reaches a screen that wears the game surface. The visual
+ * collection itself now lives in My Backpack and has its own component tests.
  */
 
 const companion = (layer: LayerKey, stage: CompanionStage, step: string | null = null): Companion => ({
@@ -33,16 +33,14 @@ const reply = (companions: Companion[]) => ({
 });
 
 const opened: {
-  companion: Companion | null; mascots: number; medals: number; passport: number;
+  companion: Companion | null; mascots: number;
   party: number; wallet: number; fashion: number;
 } = {
-  companion: null, mascots: 0, medals: 0, passport: 0, party: 0, wallet: 0, fashion: 0,
+  companion: null, mascots: 0, party: 0, wallet: 0, fashion: 0,
 };
 const props = {
   onOpenCompanion: (c: Companion) => { opened.companion = c; },
   onOpenMascots: () => { opened.mascots += 1; },
-  onOpenMedals: () => { opened.medals += 1; },
-  onOpenPassport: () => { opened.passport += 1; },
   onOpenParty: () => { opened.party += 1; },
   onOpenWallet: () => { opened.wallet += 1; },
   onOpenFashion: () => { opened.fashion += 1; },
@@ -51,7 +49,7 @@ const props = {
 let restore: (() => void) | null = null;
 afterEach(() => {
   restore?.(); restore = null;
-  Object.assign(opened, { companion: null, mascots: 0, medals: 0, passport: 0, party: 0, wallet: 0, fashion: 0 });
+  Object.assign(opened, { companion: null, mascots: 0, party: 0, wallet: 0, fashion: 0 });
 });
 
 describe('nextUp picks the companion with a step left', () => {
@@ -68,53 +66,23 @@ describe('nextUp picks the companion with a step left', () => {
 });
 
 describe('the lobby', () => {
-  test('every habitat is a tile before anything is found, and no egg names its animal', async () => {
-    const s = server({ 'GET /companions': reply([]), 'GET /wallet': fx.wallet() }); restore = s.restore;
-    const ui = await mountScreen(h(GameScreen, props));
-    const said = ui.text();
-
-    for (const species of Object.values(SPECIES)) {
-      assert.ok(said.includes(species.eggName.en), `no tile for ${species.eggName.en}`);
-      assert.ok(!said.includes(species.name.en), `the egg gave away ${species.name.en}`);
-    }
-    assert.match(said, /A companion arrives on your second day/);
-    ui.unmount();
-  });
-
-  test('an unfound collection card opens its real habitat and unlock rule', async () => {
-    const s = server({ 'GET /companions': reply([]), 'GET /wallet': fx.wallet() }); restore = s.restore;
-    const ui = await mountScreen(h(GameScreen, props));
-    const safe = SPECIES.Safe;
-
-    await ui.press(new RegExp(`^${safe.eggName.en}, not found yet`));
-    assert.match(ui.text(), new RegExp(safe.habitat.en));
-    assert.match(ui.text(), /A companion arrives on your second day in this habitat/);
-    await ui.press('Close');
-    ui.unmount();
-  });
-
-  test('a found companion is a tile you can open, and the big card names its step', async () => {
+  test('the big card names its real next step and opens the companion', async () => {
     const turtle = companion('Safe', 'hatchling', 'Finish one quest a host verifies on this beach');
     const s = server({ 'GET /companions': reply([turtle]), 'GET /wallet': fx.wallet() }); restore = s.restore;
     const ui = await mountScreen(h(GameScreen, props));
 
     assert.match(ui.text(), /Finish one quest a host verifies on this beach/);
-    await ui.press(/^Green sea turtle, Hatchling/);
+    await ui.press(/^Next up: Green sea turtle/);
     assert.equal(opened.companion?.species.key, 'green-turtle');
     ui.unmount();
   });
 
-  test('the doors and the seventy-seven go where they say', async () => {
+  test('the social door stays here while medals and passport move to Profile', async () => {
     const s = server({ 'GET /companions': reply([]), 'GET /wallet': fx.wallet() }); restore = s.restore;
     const ui = await mountScreen(h(GameScreen, props));
-    await ui.press('Medals');
-    await ui.press('Passport');
     await ui.press('Travelling with');
-    await ui.press('The seventy-seven province emblems');
-    assert.deepEqual(
-      [opened.medals, opened.passport, opened.party, opened.mascots],
-      [1, 1, 1, 1],
-    );
+    assert.equal(opened.party, 1);
+    assert.doesNotMatch(ui.text(), /Medals|Digital passport/);
     ui.unmount();
   });
 
@@ -153,7 +121,7 @@ describe('the level is here and the balances are not', () => {
     const said = ui.text();
 
     assert.ok(!/Level \d+/.test(said));
-    assert.match(said, /HABITATS/);
+    assert.match(said, /Collect & collections/);
     assert.ok(!said.includes('Something broke'));
     ui.unmount();
   });

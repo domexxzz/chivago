@@ -7,7 +7,7 @@
  */
 
 import { strings } from '@chivago/core';
-import type { Lang } from '@chivago/core';
+import type { DrawnItem, Lang } from '@chivago/core';
 import { Platform } from 'react-native';
 import type { Shop, ShopDetail, ShopInput, ShopReview } from './shops.ts';
 import { adoptKey, forgetKey, loadDeviceKey } from './account.ts';
@@ -72,6 +72,10 @@ export interface CheckinResult {
  */
 export interface SummonState {
   charms: { verifiedQuests: number; checkinDays: number; earned: number; spent: number; available: number };
+  /** Trip Points on hand — what a pull is paid with. */
+  tripPoints: number;
+  /** The published price of one pull and of ten. Never multiplied on the client. */
+  price: { one: number; ten: number; tenSize: number; currency: 'trip' };
   dust: number;
   pity: { sinceMythic: number; sinceRare: number };
   collected: number;
@@ -109,7 +113,14 @@ export interface SpiritCard {
 
 export interface SummonResult {
   id: string;
-  spirit: Spirit;
+  /**
+   * What came out: an invented spirit, or a costume. The box holds both
+   * since 13 November 2026 — see `draw-pool.ts` for which rules moved and
+   * which did not.
+   */
+  item: DrawnItem;
+  /** Null when a costume came out. Kept for the forge, which draws spirits only. */
+  spirit: Spirit | null;
   rarity: SpiritRarity;
   byPity: 'mythic' | 'rare' | null;
   duplicate: boolean;
@@ -117,7 +128,16 @@ export interface SummonResult {
   dust: number;
   charms: SummonState['charms'];
   pity: SummonState['pity'];
-  receipt: { epochId: string; commitment: string; nonce: number; roll: number; pick: number };
+  receipt: { epochId: string; commitment: string; nonce: number; roll: number; pick: number; poolVersion: number };
+}
+
+/** One tap at the box: what it drew, what it cost, and the Trip Points left. */
+export interface PullResult {
+  results: SummonResult[];
+  cost: number;
+  tripPoints: number;
+  dust: number;
+  pity: SummonState['pity'];
 }
 
 export interface SummonReceipt {
@@ -249,6 +269,34 @@ export interface PickedMedia {
   file?: Blob;
 }
 
+export interface CommunityAuthor {
+  id: string;
+  displayName: string;
+  accountType: 'traveller' | 'operator';
+  profilePhotoUrl: string | null;
+}
+
+export interface CommunityComment {
+  id: string;
+  body: string;
+  createdAt: string;
+  author: CommunityAuthor;
+}
+
+export interface CommunityPost {
+  id: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+  author: CommunityAuthor;
+  media: { kind: 'image' | 'video'; url: string } | null;
+  likeCount: number;
+  commentCount: number;
+  shareCount: number;
+  likedByMe: boolean;
+  comments: CommunityComment[];
+}
+
 export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; code: string; error: string };
@@ -367,6 +415,20 @@ const upload = <T>(path: string, form: FormData) => call<T>(path, { method: 'POS
 
 export const api = {
   health: () => get<{ status: string }>('/health'),
+
+  communityFeed: () => get<{ posts: CommunityPost[] }>('/community/feed'),
+  createCommunityPost: (body: string, media?: PickedMedia | null) => {
+    const form = new FormData();
+    form.append('body', body);
+    if (media) {
+      if (media.file) form.append('file', media.file, media.name);
+      else form.append('file', { uri: media.uri, name: media.name, type: media.type } as unknown as Blob);
+    }
+    return upload<CommunityPost>('/community/posts', form);
+  },
+  toggleCommunityLike: (id: string) => post<{ liked: boolean; likeCount: number }>(`/community/posts/${encodeURIComponent(id)}/like`),
+  addCommunityComment: (id: string, body: string) => post<CommunityComment>(`/community/posts/${encodeURIComponent(id)}/comments`, { body }),
+  recordCommunityShare: (id: string) => post<{ shareCount: number }>(`/community/posts/${encodeURIComponent(id)}/share`),
 
   shops: (q: { area?: string; category?: string; search?: string; minRating?: number; openNow?: boolean; owner?: 'me' } = {}) => {
     const params = new URLSearchParams();
@@ -813,8 +875,8 @@ export const api = {
   /** Every spirit; the unmet ones silhouetted, with a rarity and a court only. */
   spirits: () => get<{ spirits: SpiritCard[] }>('/summon/collection'),
 
-  /** Spend one earned charm. */
-  pull: () => post<SummonResult>('/summon', {}),
+  /** Spend Trip Points: one pull, or the ten at its published price. */
+  pull: (pulls = 1) => post<PullResult>('/summon', { pulls }),
 
   /** Choose one outright for stardust - the door with no luck in it. */
   forge: (spirit: string) => post<SummonResult>('/summon/forge', { spirit }),
