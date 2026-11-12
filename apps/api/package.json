@@ -14,6 +14,7 @@
     "transcode": "node --experimental-strip-types src/transcode-service.ts",
     "test": "node --test --experimental-strip-types \"src/*.test.ts\" \"src/console/*.test.ts\"",
     "test:durable": "node --env-file=durable-driver.env --test --experimental-strip-types \"src/*.test.ts\" \"src/console/*.test.ts\"",
+    "console:css": "node ../../scripts/build-console-css.mjs",
     "typecheck": "tsc --noEmit",
     "typecheck:worker": "tsc --noEmit -p tsconfig.worker.json",
     "contract": "node --experimental-strip-types src/capture-contract.ts",

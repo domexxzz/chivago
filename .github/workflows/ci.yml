@@ -39,6 +39,11 @@ jobs:
       # exactly the SQL Cloudflare's runtime refuses, so a statement that
       # would fail on Workers fails here instead of after a deploy.
       - run: pnpm --filter @chivago/api test:durable
+      # The console stylesheet is generated from public/modernist.css into a
+      # module the bundle carries. A stale module means the console serves
+      # last week's styles, which for this stylesheet can mean invisible form
+      # fields - so it is a build failure, not a surprise in production.
+      - run: node scripts/build-console-css.mjs --check
       - run: pnpm test:scripts
       # New user-facing copy must be complete in English, Thai and Simplified
       # Chinese. Suspected bare JSX is reported for review without blocking.
