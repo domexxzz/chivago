@@ -1,7 +1,7 @@
 # Mascot reference photographs
 
 Five photographs, one per companion species, taken by the project owner
-(**Domezzxx**, ChivaGo / GFD Venture).
+(**Domezzxx**, ChivarGo / GFD Venture).
 
 **© Domezzxx. All rights reserved.** This repository carries no `LICENSE`
 file, so nothing here is granted to anyone by default — which is the correct

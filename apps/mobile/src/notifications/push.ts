@@ -56,7 +56,7 @@ export async function registerForPush(locale: Lang): Promise<PushRegistration> {
     if (Platform.OS === 'android') {
       // Android 8+ requires a channel before anything is delivered.
       await Notifications.setNotificationChannelAsync('default', {
-        name: 'ChivaGo',
+        name: 'ChivarGo',
         importance: Notifications.AndroidImportance.DEFAULT,
         vibrationPattern: [0, 250, 250, 250],
       });

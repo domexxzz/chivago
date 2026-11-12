@@ -114,7 +114,12 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${pendingCount ? `(${pendingCount}) ` : ''}${esc(title)} · ChivaGo Host Console</title>
+<title>${pendingCount ? `(${pendingCount}) ` : ''}${esc(title)} · ChivarGo Host Console</title>
+<!-- Same origin as the app, so /favicon.ico would be found anyway; this names
+     the 192px mark so a retina tab gets the sharp one. Both come out of the
+     web export, and 404 harmlessly on an API started without one. -->
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="stylesheet" href="/console/assets/modernist.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -211,7 +216,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
 <body>
 <header class="bar">
   <div>
-    <div class="kicker">${esc(options.publicPage ? 'ChivaGo' : tr('brand'))}</div>
+    <div class="kicker">${esc(options.publicPage ? 'ChivarGo' : tr('brand'))}</div>
     <div class="brand">${esc(hostName ?? tr('signIn'))}</div>
   </div>
   <div style="display:flex;align-items:center">
@@ -275,7 +280,7 @@ ${signedIn ? `<script>
       .then(function(j){
         if (!j) return;
         if (j.pending > last && 'Notification' in window && Notification.permission === 'granted') {
-          new Notification('ChivaGo', { body: ${JSON.stringify(tr(marketplaceOnly ? 'newQuestionWaiting' : 'newProofWaiting'))}, tag: 'chivago-pending' });
+          new Notification('ChivarGo', { body: ${JSON.stringify(tr(marketplaceOnly ? 'newQuestionWaiting' : 'newProofWaiting'))}, tag: 'chivago-pending' });
         }
         last = j.pending; show(j.pending);
       }).catch(function(){});

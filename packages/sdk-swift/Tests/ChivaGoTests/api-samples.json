@@ -1464,7 +1464,7 @@
         "rewardCurrency": "green",
         "host": {
           "id": "h-ku-chivago",
-          "name": "ChivaGo team · KU Sriracha",
+          "name": "ChivarGo team · KU Sriracha",
           "type": "community"
         },
         "kind": "today",
@@ -1491,7 +1491,7 @@
         "rewardCurrency": "trip",
         "host": {
           "id": "h-chivago",
-          "name": "ChivaGo",
+          "name": "ChivarGo",
           "type": "platform"
         },
         "kind": "today",
@@ -1518,7 +1518,7 @@
         "rewardCurrency": "green",
         "host": {
           "id": "h-chivago",
-          "name": "ChivaGo",
+          "name": "ChivarGo",
           "type": "platform"
         },
         "kind": "today",
@@ -1545,7 +1545,7 @@
         "rewardCurrency": "trip",
         "host": {
           "id": "h-ku-chivago",
-          "name": "ChivaGo team · KU Sriracha",
+          "name": "ChivarGo team · KU Sriracha",
           "type": "community"
         },
         "kind": "today",
@@ -1684,7 +1684,7 @@
         "label": "Review · Chaweng Beach",
         "subject": "Chaweng Beach",
         "occurredAt": "2026-09-05T15:58:11.961Z",
-        "host": "ChivaGo · verified visit",
+        "host": "ChivarGo · verified visit",
         "amount": 40,
         "currency": "trip",
         "exp": 40,
@@ -1696,7 +1696,7 @@
         "label": "Checked in · Chaweng Beach",
         "subject": "Chaweng Beach",
         "occurredAt": "2026-09-05T15:58:11.923Z",
-        "host": "ChivaGo · self check-in",
+        "host": "ChivarGo · self check-in",
         "amount": 20,
         "currency": "trip",
         "exp": 20,
@@ -1708,7 +1708,7 @@
         "label": "Pilot opening balance",
         "subject": null,
         "occurredAt": "2026-09-05T15:58:11.918Z",
-        "host": "ChivaGo · pilot seed",
+        "host": "ChivarGo · pilot seed",
         "amount": 1240,
         "currency": "green",
         "exp": 1240,
@@ -1720,7 +1720,7 @@
         "label": "Pilot opening balance",
         "subject": null,
         "occurredAt": "2026-09-05T15:58:11.917Z",
-        "host": "ChivaGo · pilot seed",
+        "host": "ChivarGo · pilot seed",
         "amount": 320,
         "currency": "trip",
         "exp": 320,

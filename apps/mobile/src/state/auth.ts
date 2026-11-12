@@ -1,7 +1,7 @@
 /**
  * Persistent authentication and login state.
  *
- * Keeps track of whether a user has logged into Chivargo on this device.
+ * Keeps track of whether a user has logged into ChivarGo on this device.
  * Used at app launch:
  * - If already logged in, the app bypasses the login screen and jumps straight to Home.
  * - If not logged in, the app starts at the Login screen.

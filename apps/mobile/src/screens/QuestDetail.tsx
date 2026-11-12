@@ -16,10 +16,10 @@
  */
 
 import React from 'react';
-import { Animated, Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Animated, Image, Linking, Pressable, ScrollView, Share, TextInput, View } from 'react-native';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera } from 'lucide-react-native';
+import { ArrowLeft, ArrowRight, Camera, Check, Send } from 'lucide-react-native';
 import {
   QUEST_STAGES, stageIndex, strings,
   type Bilingual, type ProofPhoto, type Quest, type QuestProgress, type QuestStage,
@@ -30,13 +30,13 @@ import { enqueueProof, pendingFor } from '../state/outbox.ts';
 import { deviceOutbox } from '../state/outbox-device.ts';
 import { useServerConfig } from '../state/server-config.ts';
 import { color, gutter, layout, motion, onFill, radius, shadow } from '../theme/index.ts';
-import { tintFor } from '@chivago/tokens';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
-import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
+import { OceanBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
+import { questArtworkSource } from '../components/QuestArtwork.tsx';
 
 export function QuestDetailScreen({
   questId, onBack, onOpenWallet, onToast, onPointsChanged,
@@ -61,6 +61,17 @@ export function QuestDetailScreen({
   const quest = data.data?.quest ?? null;
   const progress = data.data?.progress ?? null;
   const stage: QuestStage | null = progress?.stage ?? null;
+
+  const shareQuest = async () => {
+    if (!quest) return;
+    try {
+      await Share.share({
+        message: `${t(quest.name)} — ${t(quest.where)} · ${t(quest.duration)}`,
+      });
+    } catch {
+      onToast(t({ en: 'Could not open the share menu.', th: 'ไม่สามารถเปิดเมนูแชร์ได้', zh: '无法打开分享菜单。' }));
+    }
+  };
 
   /*
     Whose record this is on. Asked only once the host has verified, because
@@ -209,45 +220,62 @@ export function QuestDetailScreen({
 
   return (
     <View style={{ flex: 1 }}>
-      <PushHeader context={quest ? t(strings.quest.context(quest.code)) : ''} onBack={onBack} />
-
-      {data.loading ? <LoadingState /> : null}
-      {data.error ? <ErrorState message={data.error} onRetry={data.reload} /> : null}
+      {data.loading ? (
+        <View style={{ flex: 1 }}>
+          <View style={{ paddingHorizontal: gutter, paddingTop: 18 }}><Pressable accessibilityRole="button" accessibilityLabel={t({ en: 'Back', th: 'ย้อนกลับ', zh: '返回' })} onPress={onBack}><ArrowLeft size={24} color={color.brandDeep} /></Pressable></View>
+          <LoadingState />
+        </View>
+      ) : null}
+      {data.error ? (
+        <View style={{ flex: 1 }}>
+          <View style={{ paddingHorizontal: gutter, paddingTop: 18 }}><Pressable accessibilityRole="button" accessibilityLabel={t({ en: 'Back', th: 'ย้อนกลับ', zh: '返回' })} onPress={onBack}><ArrowLeft size={24} color={color.brandDeep} /></Pressable></View>
+          <ErrorState message={data.error} onRetry={data.reload} />
+        </View>
+      ) : null}
 
       {quest ? (
-        <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
-          {/* The code tile from the missions list, same tint, so the quest
-              you tapped is visibly the one you are now looking at. */}
-          <View style={{ paddingHorizontal: gutter, paddingTop: 16, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-            <View
-              style={{
-                width: 48, height: 48, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center',
-                backgroundColor: tintFor(quest.code.slice(0, 2)).fill,
-              }}
-            >
-              <Heading size={12} colour={tintFor(quest.code.slice(0, 2)).ink}>{quest.code}</Heading>
+        <>
+        <ScrollView contentContainerStyle={{ width: '100%', maxWidth: 760, alignSelf: 'center', paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+          <View style={{ height: 340, position: 'relative', overflow: 'hidden', backgroundColor: color.brandDeep, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 }}>
+            <Image source={questArtworkSource(quest)} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
+            <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,35,52,0.16)' }} />
+            <View style={{ position: 'absolute', left: 16, right: 16, top: 16, flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Pressable accessibilityRole="button" accessibilityLabel={t({ en: 'Back', th: 'ย้อนกลับ', zh: '返回' })} onPress={onBack} style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.92)', opacity: pressed ? 0.75 : 1 })}>
+                <ArrowLeft size={23} color={color.brandDeep} strokeWidth={2.4} />
+              </Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel={t({ en: 'Share quest', th: 'แชร์ภารกิจ', zh: '分享任务' })} onPress={() => { void shareQuest(); }} style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.92)', opacity: pressed ? 0.75 : 1 })}>
+                <Send size={21} color={color.brandDeep} strokeWidth={2.2} />
+              </Pressable>
             </View>
-            <Heading size={28} tracking={-0.56} style={{ flex: 1 }}>{t(quest.name)}</Heading>
+            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 158, backgroundColor: 'rgba(0,42,55,0.42)' }} />
+            <View style={{ position: 'absolute', left: gutter, right: gutter, bottom: 22 }}>
+              <View style={{ alignSelf: 'flex-start', paddingHorizontal: 11, paddingVertical: 5, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.94)' }}><Label size={9} tracking={0.12} colour={color.brandDeep}>{quest.code}</Label></View>
+              <Heading size={30} colour="#FFFFFF" tracking={-0.6} style={{ marginTop: 8 }}>{t(quest.name)}</Heading>
+              <Body size={14} colour="#F1FCFF" style={{ marginTop: 4 }}>{`${t(quest.where)} · ${t(quest.duration)}`}</Body>
+            </View>
           </View>
 
-          <StatBand quest={quest} />
-
-          <View style={[shadow.card, { marginHorizontal: gutter, marginTop: 12, padding: 16, borderRadius: radius.md, backgroundColor: color.surface, borderWidth: 1, borderColor: '#DCEFF5' }]}>
-            <Label size={10} tracking={0.14}>{`${t(strings.quest.host)}`}</Label>
-            <Heading size={15} style={{ marginTop: 4 }}>{quest.host.name}</Heading>
+          <View style={[shadow.card, { marginHorizontal: gutter, marginTop: -1, paddingTop: 18, paddingBottom: 16, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, backgroundColor: color.surface, borderWidth: 1, borderTopWidth: 0, borderColor: '#DCEFF5' }]}>
+            <StatBand quest={quest} />
+            <View style={{ height: 1, backgroundColor: '#E3F0F4', marginHorizontal: 16, marginTop: 14 }} />
+            <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+              <Label size={9} tracking={0.14}>{t(strings.quest.host)}</Label>
+              <Body size={13} colour={color.neutral700} style={{ marginTop: 3 }}>{quest.host.name}</Body>
+            </View>
           </View>
 
-          <Timeline stage={stage} />
+          <Timeline
+            stage={stage}
+            action={stage === null || stage === 'joined' ? {
+              label: stage === null ? t(strings.quest.ctaJoin) : t(strings.quest.ctaArrive),
+              onPress: stage === null ? join : arrive,
+              busy,
+            } : null}
+          />
 
           <View style={{ paddingHorizontal: gutter, marginTop: 20 }}>
             {progress?.rejectedAt ? <RejectionNotice reason={progress.rejectionReason} /> : null}
 
-            {stage === null ? (
-              <Button label={t(strings.quest.ctaJoin)} onPress={join} height={52} disabled={busy} />
-            ) : null}
-            {stage === 'joined' ? (
-              <Button label={t(strings.quest.ctaArrive)} onPress={arrive} height={52} disabled={busy} />
-            ) : null}
             {pending > 0 ? (
               <View style={{ marginHorizontal: gutter, marginTop: 12, padding: 12, borderRadius: radius.md, backgroundColor: color.brandSoft }}>
                 <Body size={13} colour={color.brandDeep}>{t(strings.quest.outboxPending(pending))}</Body>
@@ -275,6 +303,7 @@ export function QuestDetailScreen({
             {stage === 'complete' && onRecord ? <OnRecordPanel statement={onRecord} /> : null}
           </View>
         </ScrollView>
+        </>
       ) : null}
     </View>
   );
@@ -282,20 +311,7 @@ export function QuestDetailScreen({
 
 function StatBand({ quest }: { quest: Quest }) {
   return (
-    <View
-      style={[shadow.card, {
-        flexDirection: 'row',
-        marginTop: 16,
-        marginHorizontal: gutter,
-        padding: 16,
-        borderRadius: radius.md,
-        backgroundColor: color.surface,
-        borderWidth: 1,
-        borderColor: '#DCEFF5',
-        overflow: 'hidden',
-      }]}
-    >
-      <OceanBackdrop subtle />
+    <View style={{ flexDirection: 'row', paddingHorizontal: 16 }}>
       <View style={{ flex: 1 }}>
         <Label size={10} tracking={0.12}>{t(strings.quest.reward)}</Label>
         <AccentNumeral size={22} style={{ marginTop: 4 }}>
@@ -314,20 +330,18 @@ function StatBand({ quest }: { quest: Quest }) {
  * The progress rail. Completed AND current markers fill accent; future steps
  * drop to 40% opacity, and the current label goes accent-700.
  */
-function Timeline({ stage }: { stage: QuestStage | null }) {
+function Timeline({
+  stage,
+  action,
+}: {
+  stage: QuestStage | null;
+  action: { label: string; onPress: () => void; busy: boolean } | null;
+}) {
   const current = stage ? stageIndex(stage) : -1;
   return (
-    <View style={[shadow.card, { marginHorizontal: gutter, marginTop: 12, padding: 16, borderRadius: radius.md, backgroundColor: color.surface, borderWidth: 1, borderColor: '#DCEFF5' }]}>
-      <Label size={10} tracking={0.16}>{t(strings.quest.progress)}</Label>
-      <View
-        style={{
-          borderLeftWidth: layout.ruleStrong,
-          borderLeftColor: color.neutral300,
-          paddingLeft: 16,
-          marginTop: 12,
-          marginLeft: 6,
-        }}
-      >
+    <View style={[shadow.card, { marginHorizontal: gutter, marginTop: 14, padding: 18, borderRadius: 24, backgroundColor: color.surface, borderWidth: 1, borderColor: '#DCEFF5' }]}>
+      <Heading size={17}>{t(strings.quest.progress)}</Heading>
+      <View style={{ marginTop: 14, gap: 2 }}>
         {QUEST_STAGES.map((key, i) => {
           const done = i < current;
           const now = i === current;
@@ -338,31 +352,57 @@ function Timeline({ stage }: { stage: QuestStage | null }) {
               key={key}
               style={{
                 flexDirection: 'row',
-                gap: 12,
-                alignItems: 'flex-start',
-                paddingVertical: 9,
+                gap: 11,
+                alignItems: 'center',
+                minHeight: 38,
+                paddingVertical: 5,
+                paddingHorizontal: 2,
                 opacity: reached ? 1 : layout.futureStepOpacity,
               }}
             >
               <View
                 style={{
-                  width: 12,
-                  height: 12,
-                  marginLeft: -23,
-                  marginTop: 5,
+                  width: 24,
+                  height: 24,
                   borderWidth: 2,
                   borderRadius: radius.lg,
-                  backgroundColor: done || now ? color.accent : color.surface,
-                  borderColor: reached ? color.accent : color.neutral400,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: done ? color.brand : color.surface,
+                  borderColor: reached ? color.brand : color.neutral400,
                 }}
-              />
+              >
+                {done ? <Check size={14} color={onFill.brand} strokeWidth={3} /> : now ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color.brand }} /> : null}
+              </View>
               <View style={{ flex: 1 }}>
-                <Heading size={14} colour={now ? color.accent700 : color.text}>{t(copy)}</Heading>
+                <Body size={14} colour={now ? color.brandDeep : color.text}>{t(copy)}</Body>
               </View>
             </View>
           );
         })}
       </View>
+      {action ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={action.label}
+          disabled={action.busy}
+          onPress={action.onPress}
+          style={({ pressed }) => ({
+            height: 50,
+            marginTop: 16,
+            borderRadius: 25,
+            backgroundColor: color.brand,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            opacity: action.busy ? 0.55 : pressed ? 0.82 : 1,
+          })}
+        >
+          <Heading size={15} colour={onFill.brand}>{action.label}</Heading>
+          <ArrowRight size={18} color={onFill.brand} strokeWidth={2.4} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }

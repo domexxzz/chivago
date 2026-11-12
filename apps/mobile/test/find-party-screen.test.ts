@@ -159,9 +159,7 @@ describe('reading and asking', () => {
     ui.unmount();
   });
 
-  test('a refusal arrives in the server’s own words', async () => {
-    // Seven refusals, seven sentences. "Somebody took the last space" and
-    // "leave your current party first" send a traveller to different places.
+  test('an unknown refusal uses safe localised copy', async () => {
     const said: string[] = [];
     const s = server({
       'GET /places': places, 'GET /invites/pins': pins, 'GET /invites': at(),
@@ -174,7 +172,8 @@ describe('reading and asking', () => {
     await ui.pressText(/Thong Krut Mangrove/);
     await ui.pressText(/Ask to come along/);
 
-    assert.deepEqual(said, ['Somebody took the last space.']);
+    assert.deepEqual(said, ['Something went wrong. Please try again.']);
+    assert.doesNotMatch(said[0]!, /last space/, 'the raw server message reached the toast');
     ui.unmount();
   });
 

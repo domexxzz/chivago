@@ -18,13 +18,14 @@
 
 import React from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Bell, ChevronRight, Languages, LogIn, ShieldCheck, Smartphone, UserRound } from 'lucide-react-native';
 import { api } from '../api/client.ts';
 import { adoptKey } from '../api/account.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
-import { OceanBackdrop, PushHeader } from '../components/Shell.tsx';
+import { OceanBackdrop, PushHeader, TravelHeroBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { LOCALES, LOCALE_NAMES, setLocale, t, useLocale } from '../i18n/locale.ts';
 
@@ -43,11 +44,11 @@ export function AccountScreen({
 }: { onBack: () => void; onToast: (msg: string) => void; onOpenLogin?: () => void }) {
   const account = useAsync(() => api.account(), []);
   const [refresh, setRefresh] = React.useState(0);
+  const [openSetting, setOpenSetting] = React.useState<'language' | 'notifications' | 'account' | 'privacy' | null>(null);
   const reload = () => { account.reload(); setRefresh((n) => n + 1); };
-
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <PushHeader context={t({ en: 'Your account', th: 'บัญชีของคุณ', zh: '您的账户' })} onBack={onBack} />
+    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} contentContainerStyle={{ width: '100%', maxWidth: 760, alignSelf: 'center', paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <PushHeader context={t({ en: 'Settings', th: 'การตั้งค่า', zh: '设置' })} onBack={onBack} />
 
       {account.error ? <ErrorState message={account.error} onRetry={account.reload} /> : null}
       {account.loading && !account.data ? <LoadingState /> : null}
@@ -68,41 +69,33 @@ export function AccountScreen({
         chivago.fly.dev on 8 September, once on a phone with no devtools to
         clear storage from.
       */}
-      {!account.data && !account.loading ? (
-        <EnterCode onLinked={reload} onToast={onToast} />
-      ) : null}
+      {!account.data && !account.loading && onOpenLogin ? <Section en="Sign in" th="เข้าสู่ระบบ" zh="登录"><Body size={13} colour={color.neutral700} style={{ marginBottom: 12 }}>{t({ en: 'Sign in again to manage your settings.', th: 'เข้าสู่ระบบอีกครั้งเพื่อจัดการการตั้งค่า', zh: '请重新登录以管理设置。' })}</Body><Button label={t({ en: 'Go to sign in', th: 'ไปหน้าเข้าสู่ระบบ', zh: '前往登录' })} onPress={onOpenLogin} height={48} /></Section> : null}
 
       {account.data ? (
         <>
-          <Summary count={account.data.devices.length} />
-          {onOpenLogin ? (
-            <Section en="Sign in" th="เข้าสู่ระบบ" zh="登录">
-              <Body size={13} colour={color.neutral700} style={{ marginBottom: 12 }}>
-                {t({
-                  en: 'Sign in with your email, phone, or Chivargo account.',
-                  th: 'เข้าสู่ระบบด้วยอีเมล เบอร์โทรศัพท์ หรือบัญชี Chivargo ของคุณ',
-                  zh: '使用您的邮箱、手机号或 ChivaGo 账户登录。',
-                })}
-              </Body>
-              <Button
-                label={t({ en: 'Sign in to Chivargo', th: 'เข้าสู่ระบบ Chivargo', zh: '登录 ChivaGo' })}
-                onPress={onOpenLogin}
-                variant="secondary"
-                height={44}
-              />
-            </Section>
-          ) : null}
-          <ShowCode onToast={onToast} />
-          <EnterCode onLinked={reload} onToast={onToast} />
-          <Phones
-            devices={account.data.devices}
-            onRevoked={reload}
-            onToast={onToast}
-            key={refresh}
+          <View style={{ paddingHorizontal: gutter, paddingTop: 22, paddingBottom: 6 }}>
+            <Heading size={22}>{t({ en: 'Settings', th: 'ตั้งค่า', zh: '设置' })}</Heading>
+            <Body size={13} colour={color.neutral600} style={{ marginTop: 5 }}>{t({ en: 'Manage how ChivarGo works for you.', th: 'จัดการภาษา การแจ้งเตือน บัญชี และข้อมูลของคุณ', zh: '管理语言、通知、账户和您的数据。' })}</Body>
+          </View>
+          <SettingsMenu
+            open={openSetting}
+            onToggle={(key) => setOpenSetting((current) => current === key ? null : key)}
+            deviceCount={account.data.devices.length}
           />
-          <Language />
-          <QuietHours onToast={onToast} />
-          <NoRecovery />
+          {openSetting === 'language' ? <Language /> : null}
+          {openSetting === 'notifications' ? <QuietHours onToast={onToast} /> : null}
+          {openSetting === 'account' ? (
+            <>
+              {onOpenLogin ? (
+                <Section en="Sign in" th="เข้าสู่ระบบ" zh="登录">
+                  <Body size={13} colour={color.neutral700} style={{ marginBottom: 12 }}>{t({ en: 'Sign in with your email, phone, or ChivarGo account.', th: 'เข้าสู่ระบบด้วยอีเมล เบอร์โทรศัพท์ หรือบัญชี ChivarGo ของคุณ', zh: '使用您的邮箱、手机号或 ChivarGo 账户登录。' })}</Body>
+                  <Button label={t({ en: 'Sign in to ChivarGo', th: 'เข้าสู่ระบบ ChivarGo', zh: '登录 ChivarGo' })} onPress={onOpenLogin} variant="secondary" height={44} />
+                </Section>
+              ) : null}
+              <Phones devices={account.data.devices} onRevoked={reload} onToast={onToast} key={refresh} />
+            </>
+          ) : null}
+          {openSetting === 'privacy' ? <PrivacyPanel account={account.data} /> : null}
         </>
       ) : null}
 
@@ -111,25 +104,72 @@ export function AccountScreen({
   );
 }
 
-function Summary({ count }: { count: number }) {
+type SettingKey = 'language' | 'notifications' | 'account' | 'privacy';
+
+function SettingsMenu({ open, onToggle, deviceCount }: { open: SettingKey | null; onToggle: (key: SettingKey) => void; deviceCount: number }) {
+  const locale = useLocale();
+  const rows: Array<{ key: SettingKey; Mark: typeof Languages; title: string; note: string; value?: string }> = [
+    { key: 'language', Mark: Languages, title: t({ en: 'Language', th: 'ภาษา', zh: '语言' }), note: t({ en: 'App display language', th: 'ภาษาที่ใช้แสดงในแอป', zh: '应用显示语言' }), value: LOCALE_NAMES[locale] },
+    { key: 'notifications', Mark: Bell, title: t({ en: 'Notifications', th: 'การแจ้งเตือน', zh: '通知' }), note: t({ en: 'Quiet hours and notification timing', th: 'จัดการช่วงเวลาแจ้งเตือน', zh: '免打扰时段和通知时间' }) },
+    { key: 'account', Mark: UserRound, title: t({ en: 'Account', th: 'บัญชี', zh: '账户' }), note: t({ en: `${deviceCount} ${deviceCount === 1 ? 'device' : 'devices'} connected`, th: `เชื่อมต่ออยู่ ${deviceCount} อุปกรณ์`, zh: `已连接 ${deviceCount} 台设备` }) },
+    { key: 'privacy', Mark: ShieldCheck, title: t({ en: 'Privacy', th: 'ความเป็นส่วนตัว', zh: '隐私' }), note: t({ en: 'Review data stored on your account', th: 'ตรวจสอบข้อมูลที่จัดเก็บในบัญชี', zh: '查看账户中保存的数据' }) },
+  ];
+  return (
+    <View style={{ marginHorizontal: gutter, marginTop: 12, gap: 10 }}>
+      {rows.map(({ key, Mark, title, note, value }) => {
+        const selected = open === key;
+        return (
+          <Pressable
+            key={key}
+            onPress={() => onToggle(key)}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: selected }}
+            accessibilityLabel={title}
+            style={[shadow.card, { minHeight: 76, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1.5, borderColor: selected ? color.brand : '#DCE8ED', backgroundColor: color.surface, flexDirection: 'row', alignItems: 'center', gap: 12 }]}
+          >
+            <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: selected ? color.brand : '#E8F5F8', alignItems: 'center', justifyContent: 'center' }}><Mark size={21} color={selected ? '#FFFFFF' : color.brand} strokeWidth={2} /></View>
+            <View style={{ flex: 1 }}><Heading size={15}>{title}</Heading><Body size={13} colour={color.neutral600} style={{ marginTop: 2 }}>{note}</Body></View>
+            {value ? <Label size={10} tracking={0.04} colour={color.neutral700} style={{ textTransform: 'none' }}>{value}</Label> : null}
+            <ChevronRight size={19} color={color.neutral500} style={{ transform: [{ rotate: selected ? '90deg' : '0deg' }] }} />
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function PrivacyPanel({ account }: { account: { fullName?: string | null; email?: string | null; phone?: string | null; bio?: string | null; devices: Device[] } }) {
+  const facts = [
+    account.fullName ? t({ en: 'Profile name', th: 'ชื่อโปรไฟล์', zh: '个人资料名称' }) : null,
+    account.email ? t({ en: 'Email address', th: 'อีเมล', zh: '邮箱地址' }) : null,
+    account.phone ? t({ en: 'Phone number', th: 'เบอร์โทรศัพท์', zh: '电话号码' }) : null,
+    account.bio ? t({ en: 'Profile description', th: 'รายละเอียดโปรไฟล์', zh: '个人简介' }) : null,
+    t({ en: `${account.devices.length} connected ${account.devices.length === 1 ? 'device' : 'devices'}`, th: `อุปกรณ์ที่เชื่อมต่อ ${account.devices.length} เครื่อง`, zh: `${account.devices.length} 台已连接设备` }),
+  ].filter((item): item is string => Boolean(item));
+  return (
+    <Section en="Privacy" th="ความเป็นส่วนตัว" zh="隐私">
+      <Body size={13} colour={color.neutral700}>{t({ en: 'This account currently stores the following information for sign-in and profile features:', th: 'บัญชีนี้จัดเก็บข้อมูลต่อไปนี้เพื่อใช้เข้าสู่ระบบและแสดงโปรไฟล์:', zh: '此账户目前保存以下信息，用于登录和个人资料功能：' })}</Body>
+      <View style={{ marginTop: 12, gap: 8 }}>{facts.map((fact) => <View key={fact} style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}><View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: color.brand }} /><Body size={13} colour={color.neutral800}>{fact}</Body></View>)}</View>
+    </Section>
+  );
+}
+
+function SettingsHero({ count }: { count: number }) {
   return (
     <View
       style={[shadow.card, {
         margin: gutter, padding: 20,
-        borderRadius: radius.md, backgroundColor: color.paper,
+        borderRadius: 22, backgroundColor: color.paper,
         overflow: 'hidden',
       }]}
     >
-      <OceanBackdrop compact />
+      <TravelHeroBackdrop compact focalPoint="right" />
       <Label size={10} tracking={0.16} colour={color.brandSoft}>
-        {t({ en: 'Signed in on this phone', th: 'เข้าใช้งานบนเครื่องนี้', zh: '已在本机登录' })}
+        {t({ en: 'ChivarGo settings', th: 'การตั้งค่า ChivarGo', zh: 'ChivarGo 设置' })}
       </Label>
-      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 10 }}>
-        <Heading size={34} colour={color.surface} tracking={-0.8}>{count}</Heading>
-        <Body size={14} colour={color.brandSoft}>
-          {t({ en: count === 1 ? 'phone on this account' : 'phones on this account', th: 'เครื่องที่ใช้บัญชีนี้', zh: '部手机使用此账户' })}
-        </Body>
-      </View>
+      <Heading size={26} colour={color.surface} tracking={-0.4} style={{ marginTop: 10 }}>{t({ en: 'Make the app work your way', th: 'ปรับแอปให้เหมาะกับคุณ', zh: '按照您的方式使用应用' })}</Heading>
+      <Body size={13} colour={color.brandSoft} style={{ marginTop: 7 }}>{t({ en: 'Language, notifications and account access in one place.', th: 'จัดการภาษา การแจ้งเตือน และการเข้าสู่ระบบได้ในที่เดียว', zh: '在一个地方管理语言、通知和账户访问。' })}</Body>
+      <View style={{ alignSelf: 'flex-start', marginTop: 14, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.14)' }}><Body size={13} colour={color.surface}>{t({ en: `${count} ${count === 1 ? 'phone' : 'phones'} on this account`, th: `${count} เครื่องที่ใช้บัญชีนี้`, zh: `${count} 部手机使用此账户` })}</Body></View>
     </View>
   );
 }
@@ -216,6 +256,7 @@ function ShowCode({ onToast }: { onToast: (msg: string) => void }) {
           <Button
             label="Show a different code"
             thai="ขอรหัสใหม่"
+            chinese="显示其他代码"
             variant="secondary"
             height={44}
             onPress={ask}
@@ -571,11 +612,11 @@ function Section({
     <View
       style={[shadow.card, {
         marginHorizontal: gutter, marginTop: 14, padding: 16,
-        backgroundColor: color.surface, borderRadius: radius.md,
+        backgroundColor: color.surface, borderRadius: 20,
         borderWidth: 1, borderColor: '#DCEFF5',
       }]}
     >
-      <Label size={10} tracking={0.14} style={{ marginBottom: 12 }}>{t({ en, th, zh })}</Label>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 }}><View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#DDF4FA', alignItems: 'center', justifyContent: 'center' }}>{en.toLowerCase().includes('language') ? <Languages size={19} color={color.brand} /> : en.toLowerCase().includes('quiet') ? <Bell size={19} color={color.brand} /> : en.toLowerCase().includes('phone') ? <Smartphone size={19} color={color.brand} /> : <LogIn size={19} color={color.brand} />}</View><Label size={11} tracking={0.12} colour={color.brand} style={{ flex: 1 }}>{t({ en, th, zh })}</Label></View>
       {children}
     </View>
   );

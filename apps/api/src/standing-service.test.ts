@@ -58,7 +58,7 @@ describe('a platform gift is not verified work', () => {
     // itself credit for. A board ranked on that ranks who signed up.
     addUser('u1', 'Ana');
     applyMovement(db, {
-      userId: 'u1', label: 'Pilot opening balance', host: 'ChivaGo', amount: 1240,
+      userId: 'u1', label: 'Pilot opening balance', host: 'ChivarGo', amount: 1240,
       currency: 'green', kind: 'adjustment', sourceRef: 'opening:green:u1',
     });
     addHost('h1', 'Samui Municipality');
@@ -75,7 +75,7 @@ describe('a platform gift is not verified work', () => {
     addHost('h1', 'A'); addQuest('q1', 'h1', 'trip');
     reward('u1', 'q1', 500, 'trip');
     applyMovement(db, {
-      userId: 'u1', label: 'Check-in', host: 'ChivaGo', amount: 20,
+      userId: 'u1', label: 'Check-in', host: 'ChivarGo', amount: 20,
       currency: 'trip', kind: 'checkin', sourceRef: 'checkin:p1:u1:2026-09-01',
     });
 
@@ -266,7 +266,7 @@ describe('a reversed award leaves no standing behind', () => {
     addQuest('q1', 'h1');
     addUser('ana', 'Ana');
     applyMovement(db, {
-      userId: 'ana', label: 'Welcome', host: 'ChivaGo', amount: 1240, currency: 'green',
+      userId: 'ana', label: 'Welcome', host: 'ChivarGo', amount: 1240, currency: 'green',
       kind: 'adjustment', sourceRef: 'opening:green:user:ana',
     });
     award('ana', 'q1');

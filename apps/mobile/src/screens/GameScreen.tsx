@@ -34,26 +34,33 @@
  */
 
 import React from 'react';
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
-import { BookOpen, Map as MapIcon, Medal as MedalIcon, Sparkles, Users } from 'lucide-react-native';
-import type { LucideIcon } from 'lucide-react-native';
+import { Image, Modal, Pressable, ScrollView, Text, useWindowDimensions, View, type ImageSourcePropType } from 'react-native';
+import { ChevronRight, Map as MapIcon, Sparkles, X } from 'lucide-react-native';
+import collectMedal from '../../assets/collect-medal-v1.png';
+import collectPassport from '../../assets/collect-passport-v1.png';
+import collectFriends from '../../assets/collect-travel-friends-v1.png';
+import collectBackdrop from '../../assets/chivago-travel-hero-v2.png';
 import chivagoLogo from '../../assets/chivago-logo.png';
+import coralArt from '../../assets/mission-coral-v1.png';
+import communityArt from '../../assets/mission-community-v1.png';
+import beachArt from '../../assets/mission-beach-cleanup-v1.png';
 import {
-  collectionSummary, greetingFor, SPECIES, strings,
+  collectionSummary, SPECIES, strings,
   type Companion, type LayerKey, type Progression, type Species,
 } from '@chivago/core';
-import { gameHabitat, gameRadius, gameShadow } from '@chivago/tokens';
+import { gameRadius, gameShadow } from '@chivago/tokens';
+import { MINI_GAMES, type MiniGameKey } from '../games/index.ts';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
-import { OceanBackdrop } from '../components/Shell.tsx';
 import { GameScene, Medal, Tray, TrayLine } from '../components/Game.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { STAGE_LABEL } from './CompanionHome.tsx';
 import { t } from '../i18n/locale.ts';
 import { ProfileButton } from '../components/ProfileButton.tsx';
+import { TravelHeroBackdrop } from '../components/Shell.tsx';
 
 /** The habitats in the order the grid draws them. */
 const HABITATS = Object.keys(SPECIES) as LayerKey[];
@@ -71,7 +78,8 @@ export function nextUp(companions: Companion[]): Companion | null {
 }
 
 export function GameScreen({
-  onOpenCompanion, onOpenMascots, onOpenSummon, onOpenMedals, onOpenPassport, onOpenParty, onOpenProfile,
+  onOpenCompanion, onOpenMascots, onOpenSummon, onOpenMedals, onOpenPassport, onOpenParty,
+  onOpenProfile, onOpenGame,
 }: {
   onOpenCompanion: (companion: Companion) => void;
   onOpenMascots: () => void;
@@ -80,6 +88,8 @@ export function GameScreen({
   onOpenPassport: () => void;
   onOpenParty: () => void;
   onOpenProfile?: () => void;
+  /** Absent until the host wires it, which is how every door here arrived. */
+  onOpenGame?: (key: MiniGameKey) => void;
 }) {
   const held = useAsync(() => api.companions(), []);
   // Only the progression is read from the wallet. Its balances are the ledger
@@ -94,19 +104,27 @@ export function GameScreen({
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
       <Header progression={wallet.data?.progression ?? null} onOpenProfile={onOpenProfile} />
       <Doors onOpenMedals={onOpenMedals} onOpenPassport={onOpenPassport} onOpenParty={onOpenParty} />
+      {/*
+        Above the error and loading gates on purpose. A mini-game is a whole
+        document that ships with the app: it needs no account, no network and
+        nothing from `/companions`, so it is the one thing on this screen that
+        still works when the island's connection does not. Putting it below
+        the gate would hide the only playable thing left on a bad day.
+      */}
+      <MiniGameRow onOpenGame={onOpenGame} />
 
       {held.error ? <ErrorState message={held.error} onRetry={held.reload} /> : null}
       {held.loading && !data ? <LoadingState /> : null}
 
       {data ? (
         <>
-          <NextUp companion={nextUp(companions)} anyFound={companions.length > 0} onOpen={onOpenCompanion} />
           <Grid
             companions={companions}
             onOpen={onOpenCompanion}
             onOpenMascots={onOpenMascots}
             onOpenSummon={onOpenSummon}
           />
+          <NextUp companion={nextUp(companions)} anyFound={companions.length > 0} onOpen={onOpenCompanion} />
           {summary ? <Counts found={summary.found} grown={summary.grown} total={summary.total} /> : null}
           <Footnote />
         </>
@@ -120,60 +138,36 @@ export function GameScreen({
 /** The screen's name and the level, which is the game layer's own number. */
 function Header({ progression, onOpenProfile }: { progression: Progression | null; onOpenProfile?: () => void }) {
   return (
-    <View
-      style={{
-        paddingHorizontal: gutter,
-        paddingTop: 20,
-        paddingBottom: 20,
-        backgroundColor: '#097097',
-        borderBottomLeftRadius: 28,
-        borderBottomRightRadius: 28,
-        overflow: 'hidden',
-        shadowColor: '#00263E',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.14,
-        shadowRadius: 10,
-        elevation: 3,
-      }}
-    >
-      <OceanBackdrop compact />
+    <View style={{
+      paddingHorizontal: gutter,
+      paddingTop: 20,
+      paddingBottom: 20,
+      backgroundColor: '#097097',
+      borderBottomLeftRadius: 30,
+      borderBottomRightRadius: 30,
+      overflow: 'hidden',
+      shadowColor: '#00263E',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.18,
+      shadowRadius: 12,
+      elevation: 4,
+    }}>
+      <TravelHeroBackdrop compact focalPoint="right" />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: '#D5F6FF', fontSize: 12, fontWeight: '500', letterSpacing: 1.8, textTransform: 'uppercase' }}>
-            {t(greetingFor(new Date()))}
-          </Text>
-          <Heading size={28} colour="#FFFFFF" style={{ marginTop: 4, fontWeight: '800' }}>
-            {t(strings.tabs.game)}
+          <Label size={10} tracking={0.16} colour="#D5F6FF">
+            {t({ en: 'COLLECT & DISCOVER', th: 'สะสมและออกเดินทาง', zh: '收藏与探索' })}
+          </Label>
+          <Heading size={27} colour="#FFFFFF" style={{ marginTop: 3, fontWeight: '800' }}>
+            {t({ en: 'Collect & collections', th: 'สะสม & เก็บคอลเลกชัน', zh: '收集与收藏' })}
           </Heading>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
-            <Label size={11} tracking={0.12} colour="#E2F6FC">
-              {t({ en: 'ISLAND COMPANIONS', th: 'เพื่อนร่วมทาง', zh: '岛屿伙伴' })}
-            </Label>
-            {progression ? (
-              <View
-                style={{
-                  paddingVertical: 3, paddingHorizontal: 10, borderRadius: radius.lg,
-                  backgroundColor: color.goldSoft, borderWidth: 1, borderColor: color.gold,
-                }}
-              >
-                <Label size={9} tracking={0.08} colour={color.goldDeep}>
-                  {t(strings.profile.levelChip(progression.level, progression.exp))}
-                </Label>
-              </View>
-            ) : null}
-          </View>
         </View>
-
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Image
-            source={chivagoLogo}
-            resizeMode="contain"
-            accessibilityLabel="ChivaGo"
-            style={{ width: 68, height: 48 }}
-          />
+          <Image source={chivagoLogo} resizeMode="contain" accessibilityLabel="ChivarGo" style={{ width: 62, height: 44 }} />
           <ProfileButton onPress={onOpenProfile} />
         </View>
       </View>
+      {progression ? <View style={{ alignSelf: 'flex-start', marginTop: 10, paddingVertical: 5, paddingHorizontal: 12, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.94)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.8)' }}><Label size={9} tracking={0.08} colour="#08748A">{t(strings.profile.levelChip(progression.level, progression.exp))}</Label></View> : null}
     </View>
   );
 }
@@ -183,26 +177,24 @@ function Doors({
   onOpenMedals, onOpenPassport, onOpenParty,
 }: { onOpenMedals: () => void; onOpenPassport: () => void; onOpenParty: () => void }) {
   return (
-    <View style={{ flexDirection: 'row', paddingHorizontal: gutter, paddingTop: 12, gap: 8 }}>
+    <View style={{ flexDirection: 'row', paddingHorizontal: gutter, paddingTop: 8, gap: 10 }}>
       <Door
-        Icon={MedalIcon}
-        label={t({ en: 'Medals', th: 'เหรียญตรา', zh: '奖章' })}
-        fill={color.goldSoft}
-        ink={color.goldDeep}
+        image={collectMedal}
+        label={t({ en: 'Medals', th: 'เหรียญรางวัล', zh: '奖章' })}
+        fill="#FFF3D5"
         onPress={onOpenMedals}
       />
       <Door
-        Icon={BookOpen}
-        label={t({ en: 'Passport', th: 'พาสปอร์ต', zh: '护照' })}
-        fill={gameHabitat.Quest.fill}
-        ink={gameHabitat.Quest.ink}
+        image={collectPassport}
+        label={t({ en: 'Digital passport', th: 'พาสปอร์ตดิจิทัล', zh: '数字护照' })}
+        accessibilityLabel={t({ en: 'Passport', th: 'พาสปอร์ต', zh: '护照' })}
+        fill="#DDF4FF"
         onPress={onOpenPassport}
       />
       <Door
-        Icon={Users}
-        label={t({ en: 'Travelling with', th: 'ไปกับใคร', zh: '同行的人' })}
-        fill={color.brandSoft}
-        ink={color.brandDeep}
+        image={collectFriends}
+        label={t({ en: 'Travelling with', th: 'เพื่อนร่วมทาง', zh: '同行的人' })}
+        fill="#FFF0D7"
         onPress={onOpenParty}
       />
     </View>
@@ -210,28 +202,79 @@ function Doors({
 }
 
 function Door({
-  Icon, label, fill, ink, onPress,
-}: { Icon: LucideIcon; label: string; fill: string; ink: string; onPress: () => void }) {
+  image, label, accessibilityLabel = label, fill, onPress,
+}: { image: ImageSourcePropType; label: string; accessibilityLabel?: string; fill: string; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={label}
-      style={{ flex: 1, alignItems: 'center', gap: 6, paddingVertical: 4 }}
+      accessibilityLabel={accessibilityLabel}
+      style={[shadow.card, { flex: 1, height: 142, borderRadius: 20, backgroundColor: fill, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(13,88,122,.08)' }]}
     >
-      <View
-        style={[
-          {
-            width: 56, height: 56, borderRadius: gameRadius.control,
-            backgroundColor: fill, alignItems: 'center', justifyContent: 'center',
-          },
-          gameShadow.lift,
-        ]}
-      >
-        <Icon size={26} color={ink} strokeWidth={2} />
+      <Image source={image} resizeMode="cover" style={{ width: '100%', height: 94 }} />
+      <View style={{ flex: 1, paddingHorizontal: 7, alignItems: 'center', justifyContent: 'center' }}>
+        <Text numberOfLines={2} style={{ color: '#082E53', fontSize: 12, lineHeight: 16, fontWeight: '800', textAlign: 'center' }}>{label}</Text>
       </View>
-      <Body size={13} colour={color.neutral800}>{label}</Body>
     </Pressable>
+  );
+}
+
+/**
+ * The mini-games, one card each.
+ *
+ * WHY THE APP'S OWN TYPE AND COLOUR rather than the artwork inside the game.
+ * The waste-sorting page has a mascot on it - ชังชัง, a white squirrel - and
+ * putting that character on a card here would make it part of ChivarGo's own
+ * furniture. The app already has companions and mascots of its own, and
+ * whether a second family joins them is a decision about the brand that
+ * nobody has made. So the card speaks in the app's voice and shows the game's
+ * four bins as four swatches, which is also a better preview of the game than
+ * a portrait of its narrator.
+ *
+ * Nothing on this card is a claim. A mini-game awards no balance, no medal
+ * and no progress: its score lives and dies inside its own document, and
+ * `src/games/index.ts` says why at length.
+ */
+function MiniGameRow({ onOpenGame }: { onOpenGame?: (key: MiniGameKey) => void }) {
+  if (!onOpenGame) return null;
+  return (
+    <View style={{ paddingHorizontal: gutter, paddingTop: 12, gap: 10 }}>
+      {MINI_GAMES.map((game) => (
+        <Pressable
+          key={game.key}
+          onPress={() => onOpenGame(game.key)}
+          accessibilityRole="button"
+          accessibilityLabel={t(game.name)}
+          style={[
+            gameShadow.lift,
+            {
+              backgroundColor: color.surface,
+              borderRadius: gameRadius.panel,
+              borderWidth: 1,
+              borderColor: 'rgba(13,88,122,.08)',
+              padding: 14,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 14,
+            },
+          ]}
+        >
+          <View style={{ width: 46, height: 46, flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+            {game.swatches.map((fill) => (
+              <View key={fill} style={{ width: 21, height: 21, borderRadius: 7, backgroundColor: fill }} />
+            ))}
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Label size={10} colour={color.neutral700}>
+              {t({ en: 'MINI GAME', th: 'มินิเกม', zh: '小游戏' })}
+            </Label>
+            <Body size={14} style={{ fontWeight: '800', marginTop: 2 }}>{t(game.name)}</Body>
+            <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>{t(game.blurb)}</Body>
+          </View>
+          <ChevronRight size={18} color={color.neutral700} strokeWidth={2} />
+        </Pressable>
+      ))}
+    </View>
   );
 }
 
@@ -314,30 +357,49 @@ function Grid({
   onOpenSummon: () => void;
 }) {
   const byLayer = new Map(companions.map((c) => [c.species.layer, c]));
+  const { width } = useWindowDimensions();
+  const cardWidth = Math.max(92, Math.min(124, (width - gutter * 2 - 58) / 3));
+  const rail = React.useRef<ScrollView>(null);
+  const [lockedSpecies, setLockedSpecies] = React.useState<Species | null>(null);
   return (
-    <View style={{ paddingHorizontal: gutter, paddingTop: 18, gap: 10 }}>
-      <Label size={10} tracking={0.14}>{t({ en: 'HABITATS', th: 'ถิ่นที่อยู่', zh: '栖息地' })}</Label>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-        {HABITATS.map((layer) => {
+    <>
+    <View style={[gameShadow.lift, { marginHorizontal: gutter, marginTop: 20, height: 246, borderRadius: 28, overflow: 'hidden', backgroundColor: '#38A9CF' }]}> 
+      <Text style={hiddenText}>{t({ en: 'HABITATS', th: 'ถิ่นที่อยู่', zh: '栖息地' })}</Text>
+      <Image source={collectBackdrop} resizeMode="cover" style={{ position: 'absolute', width: '100%', height: '100%', opacity: 0.78 }} />
+      <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'rgba(10,137,184,.24)' }} />
+      <View style={{ paddingHorizontal: 16, paddingTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,.92)', alignItems: 'center', justifyContent: 'center' }}>
+            <MapIcon size={18} color="#087DA4" strokeWidth={2.2} />
+          </View>
+          <Heading size={20} colour="#07335A">{t({ en: 'My collection', th: 'คอลเลกชันของฉัน', zh: '我的收藏' })}</Heading>
+        </View>
+        <Pressable
+          onPress={() => rail.current?.scrollToEnd({ animated: true })}
+          accessibilityRole="button"
+          accessibilityLabel={t({ en: 'View all collections', th: 'ดูคอลเลกชันทั้งหมด', zh: '查看全部收藏' })}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: 'rgba(255,255,255,.94)' }}
+        >
+          <Text style={{ color: '#07335A', fontSize: 11, fontWeight: '800' }}>{t({ en: 'View all', th: 'ดูทั้งหมด', zh: '查看全部' })}</Text>
+          <ChevronRight size={14} color="#087DA4" strokeWidth={2.5} />
+        </Pressable>
+      </View>
+      <ScrollView ref={rail} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 }}>
+        {HABITATS.map((layer, index) => {
           const found = byLayer.get(layer);
           return found
-            ? <FoundTile key={layer} companion={found} onOpen={onOpen} />
-            : <UnfoundTile key={layer} species={SPECIES[layer]} />;
+            ? <FoundTile key={layer} companion={found} onOpen={onOpen} width={cardWidth} turn={cardTurn(index)} />
+            : <UnfoundTile key={layer} species={SPECIES[layer]} width={cardWidth} turn={cardTurn(index)} onPress={() => setLockedSpecies(SPECIES[layer])} />;
         })}
         <Pressable
           onPress={onOpenMascots}
           accessibilityRole="button"
           accessibilityLabel={t({ en: 'The seventy-seven province emblems', th: 'มาสคอตครบ 77 จังหวัด', zh: '七十七府吉祥物' })}
-          style={[tileFrame(gameHabitat.mascots.fill), gameShadow.lift]}
+          style={[tileFrame(cardWidth, cardTurn(5)), gameShadow.lift]}
         >
-          <TileText
-            title={t({ en: 'The 77', th: 'ครบ 77 จังหวัด', zh: '七十七府' })}
-            sub={t({ en: 'Province emblems', th: 'มาสคอตประจำจังหวัด', zh: '各府吉祥物' })}
-            ink={gameHabitat.mascots.ink}
-          />
-          <View style={{ position: 'absolute', right: 10, bottom: 10 }}>
-            <MapIcon size={34} color={gameHabitat.mascots.ink} strokeWidth={1.8} />
-          </View>
+          <Image source={collectPassport} resizeMode="cover" style={tileImage} />
+          <View style={tileBadge}><MapIcon size={16} color="#087DA4" /></View>
+          <Text style={hiddenText}>{t({ en: 'The 77 Province emblems', th: 'ครบ 77 จังหวัด มาสคอตประจำจังหวัด', zh: '七十七府吉祥物' })}</Text>
         </Pressable>
         {/*
           The summoning (docs/68), next to the two collections it is not.
@@ -351,38 +413,62 @@ function Grid({
           onPress={onOpenSummon}
           accessibilityRole="button"
           accessibilityLabel={t({ en: 'The Summoning: invented spirits, from charms you earned', th: 'การอัญเชิญ: ภูตที่แต่งขึ้น แลกด้วยเครื่องรางที่สะสมเอง', zh: '召唤：虚构的精灵，用你赚得的护符换取' })}
-          style={[tileFrame('#1f2a5c'), gameShadow.lift]}
+          style={[tileFrame(cardWidth, cardTurn(6)), gameShadow.lift]}
         >
-          <TileText
-            title={t({ en: 'The Summoning', th: 'การอัญเชิญ', zh: '召唤' })}
-            sub={t({ en: 'Invented spirits', th: 'ภูตที่แต่งขึ้น', zh: '虚构的精灵' })}
-            ink="#FFFFFF"
-          />
-          <View style={{ position: 'absolute', right: 10, bottom: 10 }}>
-            <Sparkles size={34} color="#FFFFFF" strokeWidth={1.8} />
-          </View>
+          <Image source={collectMedal} resizeMode="cover" style={tileImage} />
+          <View style={tileBadge}><Sparkles size={16} color="#C47B00" /></View>
+          <Text style={hiddenText}>{t({ en: 'The Summoning, invented spirits', th: 'การอัญเชิญ ภูตที่แต่งขึ้น', zh: '召唤虚构精灵' })}</Text>
         </Pressable>
+      </ScrollView>
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 42, backgroundColor: 'rgba(6,145,191,.72)', alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: '#FFFFFF', fontSize: 12, fontStyle: 'italic', fontWeight: '700' }}>✦ {t({ en: 'Collect more, explore more!', th: 'ยิ่งสะสม ยิ่งได้ออกไปค้นพบ!', zh: '收藏更多，探索更多！' })} ✦</Text>
       </View>
     </View>
+    <Modal visible={lockedSpecies !== null} transparent animationType="fade" onRequestClose={() => setLockedSpecies(null)}>
+      <View style={{ flex: 1, justifyContent: 'center', padding: 24, backgroundColor: 'rgba(3,31,50,.58)' }}>
+        <View style={[gameShadow.lift, { width: '100%', maxWidth: 380, alignSelf: 'center', borderRadius: 28, backgroundColor: '#FFFFFF', padding: 22 }]}> 
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Label size={9} tracking={0.14} colour="#0A8AA8">{t({ en: 'NOT FOUND YET', th: 'ยังไม่พบ', zh: '尚未发现' })}</Label>
+              <Heading size={22} colour="#082E53" style={{ marginTop: 4 }}>{lockedSpecies ? t(lockedSpecies.eggName) : ''}</Heading>
+            </View>
+            <Pressable onPress={() => setLockedSpecies(null)} accessibilityRole="button" accessibilityLabel={t({ en: 'Close', th: 'ปิด', zh: '关闭' })} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#EAF7FB', alignItems: 'center', justifyContent: 'center' }}>
+              <X size={20} color="#087DA4" />
+            </Pressable>
+          </View>
+          {lockedSpecies ? <>
+            <Body size={14} colour={color.neutral800} style={{ marginTop: 14 }}>{t(lockedSpecies.habitat)}</Body>
+            <View style={{ marginTop: 16, padding: 14, borderRadius: 18, backgroundColor: '#EAF7FB', borderWidth: 1, borderColor: '#CFEAF2' }}>
+              <Body size={13} colour="#31566C">{t({ en: 'A companion arrives on your second day in this habitat.', th: 'เพื่อนร่วมทางจะมาถึงในวันที่สองที่คุณอยู่ในถิ่นนี้', zh: '在这个栖息地停留到第二天，伙伴就会出现。' })}</Body>
+            </View>
+          </> : null}
+        </View>
+      </View>
+    </Modal>
+    </>
   );
 }
 
-const tileFrame = (fill: string) => ({
-  width: '48%' as const, flexGrow: 1, height: 104, borderRadius: gameRadius.panel,
-  backgroundColor: fill, padding: 12, overflow: 'hidden' as const,
+const collectionArt: Record<LayerKey, ImageSourcePropType> = {
+  Green: collectFriends,
+  Wellness: communityArt,
+  Food: beachArt,
+  Safe: coralArt,
+  Quest: collectPassport,
+};
+
+const cardTurn = (index: number) => `${[-4, 2.5, -2, 3, -3, 2, -2][index % 7]}deg`;
+const tileImage = { position: 'absolute' as const, width: '100%' as const, height: '100%' as const };
+const tileBadge = { position: 'absolute' as const, right: 7, bottom: 7, width: 31, height: 31, borderRadius: 16, backgroundColor: 'rgba(255,255,255,.9)', alignItems: 'center' as const, justifyContent: 'center' as const };
+const hiddenText = { position: 'absolute' as const, left: -9999, width: 1, height: 1, opacity: 0 };
+
+const tileFrame = (width: number, turn: string) => ({
+  width, height: 116, borderRadius: 15,
+  backgroundColor: '#FFFFFF', overflow: 'hidden' as const,
+  borderWidth: 3, borderColor: '#FFFFFF', transform: [{ rotate: turn }],
 });
 
-function TileText({ title, sub, ink }: { title: string; sub: string; ink: string }) {
-  return (
-    <View style={{ maxWidth: '62%', gap: 2 }}>
-      <Heading size={15} colour={ink}>{title}</Heading>
-      <Body size={13} colour={ink}>{sub}</Body>
-    </View>
-  );
-}
-
-function FoundTile({ companion, onOpen }: { companion: Companion; onOpen: (c: Companion) => void }) {
-  const tone = gameHabitat[companion.species.layer];
+function FoundTile({ companion, onOpen, width, turn }: { companion: Companion; onOpen: (c: Companion) => void; width: number; turn: string }) {
   const name = t(companion.species.name);
   const stage = t(STAGE_LABEL[companion.stage]);
   return (
@@ -390,29 +476,28 @@ function FoundTile({ companion, onOpen }: { companion: Companion; onOpen: (c: Co
       onPress={() => onOpen(companion)}
       accessibilityRole="button"
       accessibilityLabel={`${name}, ${stage}. ${t(strings.place.visitItsHome)}`}
-      style={[tileFrame(tone.fill), gameShadow.lift]}
+      style={[tileFrame(width, turn), gameShadow.lift]}
     >
-      <TileText title={name} sub={stage} ink={tone.ink} />
-      <View style={{ position: 'absolute', right: -6, bottom: -6 }}>
-        <Creature species={companion.species.key} stage={companion.stage} size={72} />
-      </View>
+      <Image source={collectionArt[companion.species.layer]} resizeMode="cover" style={tileImage} />
+      <View style={{ position: 'absolute', right: 0, bottom: -3 }}><Creature species={companion.species.key} stage={companion.stage} size={66} /></View>
+      <Text style={hiddenText}>{name} {stage}</Text>
     </Pressable>
   );
 }
 
-function UnfoundTile({ species }: { species: Species }) {
-  const tone = gameHabitat[species.layer];
+function UnfoundTile({ species, width, turn, onPress }: { species: Species; width: number; turn: string; onPress: () => void }) {
   const egg = t(species.eggName);
   return (
-    <View
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
       accessibilityLabel={`${egg}, ${t({ en: 'not found yet', th: 'ยังไม่พบ', zh: '尚未发现' })}. ${t(species.habitat)}`}
-      style={tileFrame(tone.fill)}
+      style={({ pressed }) => [tileFrame(width, turn), pressed && { opacity: 0.86, transform: [{ rotate: turn }, { scale: 0.97 }] }]}
     >
-      <TileText title={egg} sub={t({ en: 'Not found yet', th: 'ยังไม่พบ', zh: '尚未发现' })} ink={tone.ink} />
-      <View style={{ position: 'absolute', right: -6, bottom: -6, opacity: 0.55 }}>
-        <Creature species={species.key} stage="egg" size={72} />
-      </View>
-    </View>
+      <Image source={collectionArt[species.layer]} resizeMode="cover" style={[tileImage, { opacity: 0.82 }]} />
+      <View style={{ position: 'absolute', right: 0, bottom: -3, opacity: 0.9 }}><Creature species={species.key} stage="egg" size={66} /></View>
+      <Text style={hiddenText}>{egg} {t({ en: 'Not found yet', th: 'ยังไม่พบ', zh: '尚未发现' })}</Text>
+    </Pressable>
   );
 }
 

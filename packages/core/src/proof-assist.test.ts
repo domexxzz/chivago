@@ -17,8 +17,8 @@ import { REJECTION_REASON_KEYS } from './strings.ts';
 
 const beach: AssistQuest = {
   code: 'BC-04',
-  name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด' },
-  where: { en: 'Chaweng Beach', th: 'หาดเฉวง' },
+  name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด', zh: '海滩清理' },
+  where: { en: 'Chaweng Beach', th: 'หาดเฉวง', zh: '查汶海滩' },
   weightKg: 4,
 };
 
@@ -32,8 +32,8 @@ const good = (over: Partial<Record<keyof Assist, unknown>> = {}): Record<string,
   weight: 'consistent',
   concerns: [],
   suggestedReason: null,
-  photos: [{ index: 0, en: 'Three full bags on the sand', th: 'ถุงขยะเต็ม 3 ใบบนหาด' }],
-  summary: { en: 'Three bags of litter on a beach.', th: 'เห็นถุงขยะ 3 ใบบนหาด' },
+  photos: [{ index: 0, en: 'Three full bags on the sand', th: 'ถุงขยะเต็ม 3 ใบบนหาด', zh: '沙滩上有三袋装满的垃圾' }],
+  summary: { en: 'Three bags of litter on a beach.', th: 'เห็นถุงขยะ 3 ใบบนหาด', zh: '海滩上有三袋垃圾。' },
   ...over,
 });
 
@@ -152,21 +152,22 @@ describe('parsing what the model said', () => {
     }
   });
 
-  test('a summary missing either language is null: a Thai host would get nothing to read', () => {
+  test('a summary missing any language is null: a host would get nothing to read', () => {
     assert.equal(parseAssist(good({ summary: { en: 'Bags.' } }), one), null);
-    assert.equal(parseAssist(good({ summary: { en: 'Bags.', th: '   ' } }), one), null);
+    assert.equal(parseAssist(good({ summary: { en: 'Bags.', th: '   ', zh: '垃圾袋。' } }), one), null);
+    assert.equal(parseAssist(good({ summary: { en: 'Bags.', th: 'ถุงขยะ' } }), one), null);
     assert.equal(parseAssist(good({ summary: 'Bags.' }), one), null);
   });
 
   test('text that is not a string is null, whatever it is', () => {
     for (const th of [5, ['ถุง'], { th: 'ถุง' }, true]) {
-      assert.equal(parseAssist(good({ summary: { en: 'Bags.', th } }), one), null, JSON.stringify(th));
+      assert.equal(parseAssist(good({ summary: { en: 'Bags.', th, zh: '垃圾袋。' } }), one), null, JSON.stringify(th));
     }
   });
 
   test('English in the Thai slot is not Thai', () => {
-    assert.equal(parseAssist(good({ summary: { en: 'Bags.', th: 'Bags.' } }), one), null);
-    const a = parseAssist(good({ photos: [{ index: 0, en: 'bags', th: 'bags' }] }), one);
+    assert.equal(parseAssist(good({ summary: { en: 'Bags.', th: 'Bags.', zh: '垃圾袋。' } }), one), null);
+    const a = parseAssist(good({ photos: [{ index: 0, en: 'bags', th: 'bags', zh: '垃圾袋' }] }), one);
     assert.deepEqual(a?.photos, []);
   });
 
@@ -214,12 +215,12 @@ describe('parsing what the model said', () => {
   test('photo notes that point at a photo we did not send are dropped, and they come in order', () => {
     const a = parseAssist(good({
       photos: [
-        { index: 1, en: 'b', th: 'ข' },
-        { index: 0, en: 'a', th: 'ก' },
-        { index: 2, en: 'ghost', th: 'ผี' },
-        { index: -1, en: 'neg', th: 'ลบ' },
-        { index: 0.5, en: 'half', th: 'ครึ่ง' },
-        { index: 1, en: 'dupe', th: 'ซ้ำ' },
+        { index: 1, en: 'b', th: 'ข', zh: '乙' },
+        { index: 0, en: 'a', th: 'ก', zh: '甲' },
+        { index: 2, en: 'ghost', th: 'ผี', zh: '幽灵' },
+        { index: -1, en: 'neg', th: 'ลบ', zh: '负' },
+        { index: 0.5, en: 'half', th: 'ครึ่ง', zh: '半' },
+        { index: 1, en: 'dupe', th: 'ซ้ำ', zh: '重复' },
         { index: 0, en: 'no thai' },
       ],
     }), two);
@@ -230,7 +231,8 @@ describe('parsing what the model said', () => {
   test('long text is cut to the cap, so a runaway answer cannot fill the console', () => {
     const en = 'x'.repeat(ASSIST_TEXT_MAX * 3);
     const th = 'ขยะ'.repeat(ASSIST_TEXT_MAX);
-    const a = parseAssist(good({ summary: { en, th }, photos: [{ index: 0, en, th }] }), one);
+    const zh = '垃圾'.repeat(ASSIST_TEXT_MAX);
+    const a = parseAssist(good({ summary: { en, th, zh }, photos: [{ index: 0, en, th, zh }] }), one);
     assert.ok(a);
     for (const s of [a.summary.en, a.summary.th, a.photos[0]!.en, a.photos[0]!.th]) {
       assert.ok(s.length <= ASSIST_TEXT_MAX, `${s.length} > cap`);
@@ -240,7 +242,7 @@ describe('parsing what the model said', () => {
 
   test('cutting never splits an emoji into a lone surrogate', () => {
     const en = `${'x'.repeat(ASSIST_TEXT_MAX - 2)}😀tail`;
-    const a = parseAssist(good({ summary: { en, th: 'ถุงขยะ' } }), one);
+    const a = parseAssist(good({ summary: { en, th: 'ถุงขยะ', zh: '垃圾袋。' } }), one);
     assert.ok(a);
     assert.doesNotMatch(a.summary.en, /[\uD800-\uDBFF](?![\uDC00-\uDFFF])/);
   });
@@ -249,7 +251,7 @@ describe('parsing what the model said', () => {
     // "ที่" is three code points - ท + ี + ่ - and one character to a reader.
     // Pad so the cap lands inside it.
     const th = `${'ก'.repeat(ASSIST_TEXT_MAX - 2)}ที่นี่`;
-    const a = parseAssist(good({ summary: { en: 'Bags.', th } }), one);
+    const a = parseAssist(good({ summary: { en: 'Bags.', th, zh: '垃圾袋。' } }), one);
     assert.ok(a);
     const body = a.summary.th.slice(0, -1);
     assert.doesNotMatch(body.slice(-1), /[ัิ-ฺ็-๎]/, 'ends on a bare mark');
@@ -260,15 +262,15 @@ describe('parsing what the model said', () => {
     const a = parseAssist(good({
       approve: true,
       points: 999,
-      summary: { en: 'Bags.', th: 'ถุง', approve: true },
-      photos: [{ index: 0, en: 'a', th: 'ก', points: 5 }],
+      summary: { en: 'Bags.', th: 'ถุง', zh: '垃圾袋。', approve: true },
+      photos: [{ index: 0, en: 'a', th: 'ก', zh: '甲', points: 5 }],
     } as never), one);
     assert.deepEqual(
       Object.keys(a!).sort(),
       ['concerns', 'photos', 'suggestedReason', 'summary', 'weight', 'work'],
     );
-    assert.deepEqual(Object.keys(a!.summary).sort(), ['en', 'th']);
-    assert.deepEqual(Object.keys(a!.photos[0]!).sort(), ['en', 'index', 'th']);
+    assert.deepEqual(Object.keys(a!.summary).sort(), ['en', 'th', 'zh']);
+    assert.deepEqual(Object.keys(a!.photos[0]!).sort(), ['en', 'index', 'th', 'zh']);
   });
 });
 

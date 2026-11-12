@@ -9,7 +9,7 @@ import type { Sponsor } from './sponsorship.ts';
 
 const partner: Sponsor = {
   id: 'sp1',
-  name: { en: 'Samui Green Foundation', th: 'มูลนิธิสมุยสีเขียว' },
+  name: { en: 'Samui Green Foundation', th: 'มูลนิธิสมุยสีเขียว', zh: '苏梅岛绿色基金会' },
   kind: 'ngo',
 };
 
@@ -26,7 +26,7 @@ const period: EsgPeriod = { from: '2026-01-01', to: '2026-12-31' };
  */
 const activity = (over: Partial<EsgActivity> = {}): EsgActivity => ({
   questId: 'q1',
-  name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด' },
+  name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด', zh: '海滩清理' },
   pillar: 'environmental',
   hostName: 'Samui Municipality',
   verified: 0,

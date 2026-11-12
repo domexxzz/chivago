@@ -3,7 +3,7 @@
  * each with the wait its own kitchen queue gives, and a button that opens the
  * stall's order page in สั่งก่อน.
  *
- * ChivaGo takes no order and moves no money, and the card says where both go.
+ * ChivarGo takes no order and moves no money, and the card says where both go.
  * Figures the service did not just give are dated, and what a stall can do is
  * not claimed from them; a stand-in stall is labelled an example, the way an
  * example offer is.
@@ -18,16 +18,13 @@ import { useAsync } from '../state/store.tsx';
 import { color, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from './Type.tsx';
 import { Button } from './Button.tsx';
-import { localeTag, t } from '../i18n/locale.ts';
+import { t } from '../i18n/locale.ts';
+import { formatDate, formatTime } from '../i18n/format.ts';
 
 const DAY_MS = 86_400_000;
-const lang = localeTag;
-
 /** "06:00" on the island's clock, whatever the phone's own is set to. */
 function clock(iso: string): string {
-  return new Date(iso).toLocaleTimeString(lang(), {
-    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok',
-  });
+  return formatTime(iso, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Bangkok' });
 }
 
 /** When a closed stall opens: a time today, tomorrow and a time, or the day and a time further out. */
@@ -35,7 +32,7 @@ function closedLine(opensAt: string, now: Date): string {
   const day = islandDateKey(new Date(opensAt));
   if (day === islandDateKey(now)) return t(strings.place.stallClosedUntil(clock(opensAt)));
   if (day === islandDateKey(new Date(now.getTime() + DAY_MS))) return t(strings.place.stallClosedTomorrow(clock(opensAt)));
-  const date = new Date(opensAt).toLocaleDateString(lang(), {
+  const date = formatDate(opensAt, {
     weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Bangkok',
   });
   return t(strings.place.stallClosedOn(date, clock(opensAt)));

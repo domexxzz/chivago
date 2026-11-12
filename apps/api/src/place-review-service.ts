@@ -184,7 +184,7 @@ export function writeReview(db: DB, input: WriteReviewInput): WriteReviewResult 
         subject: placeName,
         // Self-verified, like the check-in it depends on. Naming a host here
         // would put a municipality's name against something nobody reviewed.
-        host: 'ChivaGo · verified visit',
+        host: 'ChivarGo · verified visit',
         amount: REVIEW_TRIP_POINTS,
         currency: 'trip',
         kind: 'review',

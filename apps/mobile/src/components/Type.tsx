@@ -5,8 +5,8 @@
  * that has both goes through `t()`. In Thai and Chinese these primitives add
  * that script's LEADING - Thai tone marks clip at Latin line-height, and Han
  * glyphs fill the em box so consecutive lines touch - and nothing else. They
- * do NOT switch typeface: the heading face in
- * `packages/tokens` is IBM Plex Sans Thai 700, which carries both scripts.
+ * Chinese switches to the platform CJK face: the bundled Thai families do
+ * not contain a complete Simplified Chinese glyph set.
  * The first version of this file swapped every Heading and Label to the body
  * face on the belief that "Archivo carries no Thai glyphs", which had been
  * true two commits before the tokens replaced Archivo; the effect was that
@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { Text, View, type TextStyle, type ViewStyle } from 'react-native';
+import { Platform, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import type { Bilingual } from '@chivago/core';
 import { color, font, label as labelStyle, thaiText, type } from '../theme/index.ts';
 import { getLocale, t, type Locale } from '../i18n/locale.ts';
@@ -35,6 +35,21 @@ import { getLocale, t, type Locale } from '../i18n/locale.ts';
  * buying room for one mark while this is buying room for the whole line.
  */
 const SCRIPT_LEADING: Partial<Record<Locale, number>> = { th: 1.45, zh: 1.5 };
+
+/**
+ * A platform CJK stack avoids bundling several megabytes of font weights.
+ * iOS and Android ship these faces; web uses the installed OS equivalent.
+ * The weight is explicit because the custom Thai font's embedded weight no
+ * longer applies after the family is replaced.
+ */
+const CJK_FONT = Platform.select({
+  ios: 'PingFang SC',
+  android: 'sans-serif',
+  web: '"Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif',
+  default: 'sans-serif',
+});
+export const scriptTypeface = (weight: TextStyle['fontWeight'] = '400'): TextStyle | null =>
+  getLocale() === 'zh' ? { fontFamily: CJK_FONT, fontWeight: weight } : null;
 
 /** The script's leading, where it needs one; otherwise nothing to add. The face stays. */
 const scriptLeading = (size: number): TextStyle | null => {
@@ -56,6 +71,7 @@ export function Heading({ children, style, size = 26, colour = color.text, track
     <Text
       style={[
         { fontFamily: font.heading, fontSize: size, color: colour, lineHeight: Math.round(size * 1.12) },
+        scriptTypeface('700'),
         scriptLeading(size),
         tracking !== undefined && { letterSpacing: tracking },
         style,
@@ -84,7 +100,7 @@ interface BodyProps {
 
 export function Body({ children, style, size = 14, colour = color.neutral800 }: BodyProps) {
   return (
-    <Text style={[{ fontFamily: font.body, fontSize: size, color: colour, lineHeight: Math.round(size * 1.5) }, style]}>
+    <Text style={[{ fontFamily: font.body, fontSize: size, color: colour, lineHeight: Math.round(size * 1.5) }, scriptTypeface('400'), style]}>
       {children}
     </Text>
   );
@@ -112,7 +128,7 @@ export function Label({
   children: React.ReactNode; size?: 9 | 10 | 11; tracking?: number;
   colour?: string; style?: TextStyle;
 }) {
-  return <Text style={[labelStyle(size, tracking, colour), scriptLeading(size), style]}>{children}</Text>;
+  return <Text style={[labelStyle(size, tracking, colour), scriptTypeface('600'), scriptLeading(size), style]}>{children}</Text>;
 }
 
 /**
@@ -155,6 +171,7 @@ export function AccentNumeral({
           color: color.accent700,
           lineHeight: Math.round(size * 1.05),
         },
+        scriptTypeface('700'),
         size >= 40 && { letterSpacing: -size * 0.02 },
         style,
       ]}

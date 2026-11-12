@@ -1,6 +1,6 @@
 # `ChivaGo` — Swift client
 
-A typed client for the ChivaGo API, for a SwiftUI app or any other Swift
+A typed client for the ChivarGo API, for a SwiftUI app or any other Swift
 program.
 
 ## Compiled, and tested in CI

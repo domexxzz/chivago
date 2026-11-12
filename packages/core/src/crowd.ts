@@ -15,15 +15,15 @@ export function crowdLine(crowd: LiveCrowd): Bilingual {
   const n = crowd.checkinsLastHour;
   if (n === 0) {
     return {
-      en: 'No ChivaGo traveller has checked in here in the last hour.',
-      th: 'ยังไม่มีนักเดินทาง ChivaGo เช็กอินที่นี่ในชั่วโมงที่ผ่านมา',
-      zh: '过去一小时内没有 ChivaGo 旅行者在这里签到。',
+      en: 'No ChivarGo traveller has checked in here in the last hour.',
+      th: 'ยังไม่มีนักเดินทาง ChivarGo เช็กอินที่นี่ในชั่วโมงที่ผ่านมา',
+      zh: '过去一小时内没有 ChivarGo 旅行者在这里签到。',
     };
   }
   return {
-    en: `${n} ChivaGo traveller${n === 1 ? '' : 's'} checked in here in the last hour.`,
-    th: `นักเดินทาง ChivaGo เช็กอินที่นี่ ${n} คนในชั่วโมงที่ผ่านมา`,
-    zh: `过去一小时内有 ${n} 位 ChivaGo 旅行者在这里签到。`,
+    en: `${n} ChivarGo traveller${n === 1 ? '' : 's'} checked in here in the last hour.`,
+    th: `นักเดินทาง ChivarGo เช็กอินที่นี่ ${n} คนในชั่วโมงที่ผ่านมา`,
+    zh: `过去一小时内有 ${n} 位 ChivarGo 旅行者在这里签到。`,
   };
 }
 

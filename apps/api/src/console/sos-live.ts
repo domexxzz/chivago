@@ -36,7 +36,7 @@ export function sosLivePage(view: PublicAlertView | null): string {
       <div class="kicker">Emergency alert · แจ้งเตือนฉุกเฉิน</div>
       <h1>${esc(view.name)}</h1>
       <p class="lead">
-        triggered SOS in ChivaGo and is sharing their live location with you.<br>
+        triggered SOS in ChivarGo and is sharing their live location with you.<br>
         <span class="th">กดขอความช่วยเหลือและกำลังแชร์ตำแหน่งกับคุณ</span>
       </p>
     </div>
@@ -76,14 +76,14 @@ export function sosLivePage(view: PublicAlertView | null): string {
     </div>
 
     <!--
-      The most important block on the page. ChivaGo cannot send an ambulance;
+      The most important block on the page. ChivarGo cannot send an ambulance;
       these numbers can. Placed above everything optional, in the accent, and
       never behind a tap.
     -->
     <div class="card urgent">
       <div class="kicker">If they need help now · หากต้องการความช่วยเหลือทันที</div>
-      <p>ChivaGo cannot send an ambulance. Call Thailand's emergency services directly.</p>
-      <p class="th">ChivaGo ไม่สามารถส่งรถพยาบาลได้ กรุณาโทรหาหน่วยฉุกเฉินโดยตรง</p>
+      <p>ChivarGo cannot send an ambulance. Call Thailand's emergency services directly.</p>
+      <p class="th">ChivarGo ไม่สามารถส่งรถพยาบาลได้ กรุณาโทรหาหน่วยฉุกเฉินโดยตรง</p>
       <div class="calls">
         <a class="call" href="tel:1669"><b>1669</b><span>Medical · เจ็บป่วยฉุกเฉิน</span></a>
         <a class="call" href="tel:1155"><b>1155</b><span>Tourist Police · ตำรวจท่องเที่ยว</span></a>
@@ -152,7 +152,7 @@ function page(title: string, body: string): string {
 <meta name="robots" content="noindex, nofollow, noarchive">
 <!-- The URL IS the credential; do not let it leak through an outbound click. -->
 <meta name="referrer" content="no-referrer">
-<title>${esc(title)} · ChivaGo</title>
+<title>${esc(title)} · ChivarGo</title>
 <style>
   :root { --ink:#201e1d; --bg:#f3f2f2; --accent:#ec3013; --accent-700:#ae1800;
           --n300:#d7d3d3; --n700:#605d5d; }
@@ -183,8 +183,8 @@ function page(title: string, body: string): string {
 <body>
 ${body}
 <p class="muted" style="margin-top:32px">
-  Shared through ChivaGo. This page stops updating when the alert ends.<br>
-  <span class="th">แชร์ผ่าน ChivaGo หน้านี้จะหยุดอัปเดตเมื่อการแจ้งเตือนสิ้นสุด</span>
+  Shared through ChivarGo. This page stops updating when the alert ends.<br>
+  <span class="th">แชร์ผ่าน ChivarGo หน้านี้จะหยุดอัปเดตเมื่อการแจ้งเตือนสิ้นสุด</span>
 </p>
 <script>
   // Poll rather than push: a family member on roaming data in another country

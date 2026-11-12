@@ -53,10 +53,10 @@ export function ErrorState({
   );
 }
 
-export function EmptyState({ en, th }: { en: string; th: string }) {
+export function EmptyState({ en, th, zh }: { en: string; th: string; zh?: string }) {
   return (
     <View style={{ paddingHorizontal: gutter, paddingVertical: 40 }}>
-      <Body colour={color.neutral700}>{t({ en, th })}</Body>
+      <Body colour={color.neutral700}>{t({ en, th, zh })}</Body>
     </View>
   );
 }

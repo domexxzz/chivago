@@ -585,7 +585,7 @@ describe('a device registered in Chinese is pushed Chinese', () => {
    * already carried Chinese and this service already stored and honoured
    * `locale: 'zh'`. `pick` is `localise`, so it fell through to English and a
    * Chinese device was pushed English - `sos_contact_escalated` included,
-   * which is the line that says ChivaGo cannot send help and to call 1669.
+   * which is the line that says ChivarGo cannot send help and to call 1669.
    */
   const HAN = /[一-鿿]/;
 
@@ -600,10 +600,10 @@ describe('a device registered in Chinese is pushed Chinese', () => {
     assert.match(sent.body, HAN, `body was not Chinese: ${sent.body}`);
   });
 
-  test('the one that says ChivaGo cannot send help arrives in Chinese, 1669 intact', async () => {
+  test('the one that says ChivarGo cannot send help arrives in Chinese, 1669 intact', async () => {
     /*
      * `sos_still_unacknowledged` is the notification that matters most here:
-     * its title IS "Please call 1669" and its body says ChivaGo cannot send
+     * its title IS "Please call 1669" and its body says ChivarGo cannot send
      * help. In Chinese that was being pushed in English.
      *
      * The number is asserted separately from the Chinese, because a

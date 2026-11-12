@@ -20,15 +20,12 @@ import { color, radius } from '../theme/index.ts';
 import { Body, Heading, Label } from './Type.tsx';
 import { Button } from './Button.tsx';
 import { WeatherCategoriesBar, categoryLine } from './WeatherCategoriesBar.tsx';
-import { localeTag, t } from '../i18n/locale.ts';
-
-const lang = localeTag;
+import { t } from '../i18n/locale.ts';
+import { formatTime } from '../i18n/format.ts';
 
 /** "22:45" on the island's clock, whatever the phone's own is set to. */
 function clock(iso: string): string {
-  return new Date(iso).toLocaleTimeString(lang(), {
-    hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok',
-  });
+  return formatTime(iso, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Bangkok' });
 }
 
 /**

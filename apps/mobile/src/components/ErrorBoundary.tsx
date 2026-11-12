@@ -35,7 +35,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('[ChivaGo ErrorBoundary caught error]:', error, errorInfo);
+    console.error('[ChivarGo ErrorBoundary caught error]:', error, errorInfo);
   }
 
   reset = () => {
