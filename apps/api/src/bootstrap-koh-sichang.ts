@@ -256,7 +256,17 @@ export function bootstrapKohSichangBusinesses(db: DB, env: NodeJS.ProcessEnv = p
     console.warn(
       `[chivago] Ko Sichang bootstrap refused: ${KOH_SICHANG_OPERATOR_EMAIL} is not an operator account`,
     );
-    return { accountCreated, shopsInserted: 0, shopsAlreadyPresent: 0, skipped: true };
+    // The attractions counts are here because the refusal path predates them
+    // and `BootstrapResult` requires them: nothing was planted, so both are
+    // zero, the same as the shop counts beside them.
+    return {
+      accountCreated,
+      shopsInserted: 0,
+      shopsAlreadyPresent: 0,
+      attractionsInserted: 0,
+      attractionsAlreadyPresent: 0,
+      skipped: true,
+    };
   }
 
   let shopsInserted = 0;
