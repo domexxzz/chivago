@@ -190,3 +190,21 @@ if (failures.length > 0) {
   process.exit(1);
 }
 console.log('\n[alarm] every check passed.');
+
+/*
+  AND EXIT, which the failure path above always did and this one never did.
+
+  That asymmetry is the whole bug. On 13 November every check passed, the
+  script printed exactly the line above at 05:51:59, and then sat there until
+  CI cancelled the job at its twenty-minute ceiling seventeen minutes later -
+  a green test that reads as a hung one, and a `workers` job that failed
+  without anything being wrong with the alarm.
+
+  `wrangler.kill()` in the `finally` kills the npx wrapper, not the workerd
+  grandchild it spawned, and workerd keeps hold of the stdout pipe this
+  script is still reading into `log`. An open pipe is a live handle, so
+  node's event loop has something left to wait on and waits on it for as long
+  as anybody lets it. There is nothing left to do by this point, so say so
+  rather than hoping the handles drain.
+*/
+process.exit(0);
