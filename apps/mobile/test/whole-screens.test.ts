@@ -125,8 +125,9 @@ describe('the quests screen, fetching its list', () => {
   test('every quest that arrives is on screen', async () => {
     const net = server({
       'GET /quests': listed([
-        quest({ id: 'q1', code: 'SG-01', name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด' } }),
-        quest({ id: 'q2', code: 'SG-02', name: { en: 'Coral Nursery', th: 'อนุบาลปะการัง' } }),
+        // On Ko Sichang, because that is where the screen's island card counts.
+        quest({ id: 'q1', code: 'SG-01', lat: 13.15, lng: 100.81, name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด' } }),
+        quest({ id: 'q2', code: 'SG-02', lat: 13.15, lng: 100.81, name: { en: 'Coral Nursery', th: 'อนุบาลปะการัง' } }),
       ]),
     });
     try {
