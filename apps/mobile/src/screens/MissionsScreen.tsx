@@ -26,7 +26,7 @@ import { ChevronRight, Clock, MapPin } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import sichangBanner from '../../assets/quest-sichang-explorer.png';
 import trashHeroLogo from '../../assets/trash-hero-logo.png';
-import { greetingFor, isActiveQuestCode, isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
+import { areaByKey, greetingFor, inArea, isRetiredQuestCode, isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
@@ -64,11 +64,36 @@ export function MissionsScreen({
   //    be instant rather than a network round-trip on a weak beach signal.
   const data = useAsync(() => api.quests(), []);
 
-  // Defence in depth: deployed APIs may briefly lag a mobile release and an
-  // offline snapshot can outlive its seed. Retired quests must not reappear
-  // merely because one of those stores still contains historical rows.
-  const all = (data.data?.quests ?? []).filter((q) => isActiveQuestCode(q.code));
-  const sichangQuests = all;
+  /*
+    Defence in depth: a deployed API may briefly lag a mobile release and an
+    offline snapshot can outlive its seed, so a retired quest must not reappear
+    merely because one of those stores still holds historical rows.
+
+    EXCLUDE THE RETIRED, DO NOT ALLOW-LIST THE ACTIVE. This read the other way
+    round until 14 November 2026 - `isActiveQuestCode(q.code)` - and an
+    allow-list drops everything it was not told about. The pilot database
+    publishes SC-01..SC-05, this release knew only SG-01..SG-05, and MISSIONS
+    came up empty on the demo island with the API answering correctly. Stated
+    as an exclusion it can only ever hide something deliberately retired, and
+    the screen cannot be blanked by the two stores merely disagreeing.
+
+    The server already decides what is published (`publishedWhere` in
+    `repo.ts`); this is a second opinion about retirement, not a second
+    publishing rule.
+  */
+  const all = (data.data?.quests ?? []).filter((q) => !isRetiredQuestCode(q.code));
+  /*
+    The island's own quests, by where they are.
+
+    This was `all` - every published quest, counted as Ko Sichang's - and it
+    read correctly only because the publishing filter happened to leave nothing
+    else. That is the sort of accident that holds right up until the day it
+    does not: the card promises "5 quests · up to 800 XP" to a judge, and a
+    quest published for Samui would have been counted into that promise.
+
+    A quest carries its coordinates, so ask the question directly.
+  */
+  const sichangQuests = all.filter((q) => inArea(areaByKey('koh-sichang'), q));
   const visible = filter === 'sichang'
     ? sichangQuests
     : filter === 'all'

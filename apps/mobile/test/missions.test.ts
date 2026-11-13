@@ -35,9 +35,13 @@ const standing = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+/** Ko Sichang, where a quest called a Sichang quest actually is. */
+const SICHANG = { lat: 13.15, lng: 100.81 };
+
 const sichangQuest = () => fx.quest({
   id: 'sg-1',
   code: 'SG-01',
+  ...SICHANG,
   name: { en: 'Sichang Explorer', th: 'นักสำรวจเกาะสีชัง', zh: '锡昌岛探索家' },
   where: { en: 'Koh Sichang', th: 'เกาะสีชัง', zh: '锡昌岛' },
   rewardPoints: 0,
@@ -99,6 +103,7 @@ describe('Game&Quest navigation', () => {
     ].map(([code, name, rewardExp], index) => fx.quest({
       id: `sg-${index + 1}`,
       code: String(code),
+      ...SICHANG,
       name: { en: String(name), th: String(name), zh: String(name) },
       rewardPoints: 0,
       rewardExp: Number(rewardExp),
@@ -246,6 +251,73 @@ describe('the sections fail apart', () => {
     const said = ui.text();
     assert.match(said, /180 T/, 'the price disappeared because the balance did');
     assert.doesNotMatch(said, /more$/m, 'it guessed a shortfall without knowing the balance');
+    ui.unmount();
+  });
+});
+
+describe('what MISSIONS shows when the API and the release disagree', () => {
+  /*
+    On 14 November 2026 the pilot database published SC-01..SC-05 and this
+    screen filtered the response by an allow-list of SG-01..SG-05. Both halves
+    were doing what they were told, the API answered correctly, and the demo
+    island's missions page came up EMPTY.
+
+    The rule now excludes what is retired instead of allow-listing what is
+    active, so the two stores merely disagreeing can no longer blank the
+    screen. These are the tests that would have caught it.
+  */
+
+  const liveQuest = (code: string, name: string) => fx.quest({
+    id: code.toLowerCase(),
+    code,
+    ...SICHANG,
+    name: { en: name, th: name, zh: name },
+    where: { en: 'Koh Sichang', th: 'เกาะสีชัง', zh: '锡昌岛' },
+  });
+
+  test('A QUEST CODE THIS RELEASE HAS NEVER SEEN IS STILL SHOWN', async () => {
+    const s = server(routes({
+      '/quests': { quests: [liveQuest('SC-01', 'Sichang Explorer')], progress: {} },
+    }));
+    restore = s.restore;
+    const ui = await mountScreen(h(MissionsScreen, props));
+
+    assert.match(ui.text(), /Sichang Explorer/, 'the server published it; the screen must show it');
+    ui.unmount();
+  });
+
+  test('a retired quest is still kept off the screen', async () => {
+    const s = server(routes({
+      '/quests': {
+        quests: [liveQuest('X-SC-02', 'Retired Beach Clean-up'), liveQuest('SC-01', 'Sichang Explorer')],
+        progress: {},
+      },
+    }));
+    restore = s.restore;
+    const ui = await mountScreen(h(MissionsScreen, props));
+
+    assert.doesNotMatch(ui.text(), /Retired Beach/, 'a retired quest leaked back onto the screen');
+    assert.match(ui.text(), /Sichang Explorer/);
+    ui.unmount();
+  });
+
+  test('the whole published list survives, whatever the codes are', async () => {
+    const s = server(routes({
+      '/quests': {
+        quests: [
+          liveQuest('SC-01', 'Explorer'), liveQuest('SC-02', 'Recipe'),
+          liveQuest('SC-03', 'Trash Hero'), liveQuest('SC-04', 'Treasure'),
+          liveQuest('SC-05', 'Green Journey'),
+        ],
+        progress: {},
+      },
+    }));
+    restore = s.restore;
+    const ui = await mountScreen(h(MissionsScreen, props));
+
+    for (const name of ['Explorer', 'Recipe', 'Trash Hero', 'Treasure', 'Green Journey']) {
+      assert.match(ui.text(), new RegExp(name), `${name} was dropped`);
+    }
     ui.unmount();
   });
 });
