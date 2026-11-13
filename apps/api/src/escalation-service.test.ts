@@ -4,7 +4,7 @@ import { test, describe, beforeEach } from 'node:test';
 import { openTestDb, type DB } from './db-node.ts';
 import {
   dueRungs, escalationsFor, firedRungs, fireRung, isEscalated, LADDER,
-  minutesOpen, sweep, unansweredSeconds,
+  minutesOpen, nothingToEscalate, sweep, unansweredSeconds,
 } from './escalation-service.ts';
 import { acknowledgeAlert, activeAlert, addContact, cancelAlert, fireAlert } from './sos-service.ts';
 import { inbox } from './notification-service.ts';
@@ -303,5 +303,48 @@ describe('what a contact is told, by name', () => {
     assert.ok(theirs, 'the contact was not re-alerted');
     assert.match(theirs.body.en, /^John's alert/);
     assert.doesNotMatch(theirs.body.en, /Chaweng/);
+  });
+});
+
+describe('whether there is anything to escalate', () => {
+  /*
+    Read before every alarm and at the end of every request, to decide whether
+    the object needs waking in thirty seconds or in five minutes. Getting it
+    wrong in the "nothing here" direction delays an SOS, so each state an alert
+    can be in is pinned rather than inferred from the SQL.
+  */
+
+  test('an island where nothing has happened', () => {
+    assert.equal(nothingToEscalate(db), true);
+  });
+
+  test('a live alert is something to escalate', () => {
+    fireOld(0);
+    assert.equal(nothingToEscalate(db), false);
+  });
+
+  test('so is one a responder has acknowledged but not closed', () => {
+    const alert = fireOld(0);
+    acknowledgeAlert(db, alert.id, 'ops');
+    assert.equal(nothingToEscalate(db), false, 'acknowledged is not finished');
+  });
+
+  test('a cancelled alert is not', () => {
+    fireOld(0);
+    cancelAlert(db, 'u1');
+    assert.equal(nothingToEscalate(db), true);
+  });
+
+  test('and a closed one does not keep the object awake for ever', () => {
+    /*
+      The whole saving depends on this. If a resolved alert still counted, the
+      pilot would go back to a thirty-second alarm permanently the first time
+      anybody pressed the button.
+    */
+    fireOld(0);
+    cancelAlert(db, 'u1');
+    fireOld(0);
+    cancelAlert(db, 'u1');
+    assert.equal(nothingToEscalate(db), true, 'two alerts, both closed');
   });
 });

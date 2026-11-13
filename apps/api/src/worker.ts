@@ -25,7 +25,7 @@
 
 import { DurableObject } from 'cloudflare:workers';
 
-import { openDurableDatabase } from './db.ts';
+import { openDurableDatabase, SCHEMA_VERSION } from './db.ts';
 import type { DurableStorage } from './do-storage.ts';
 import { r2BlobStore, setBlobStore } from './blob-store.ts';
 import { nextDueAt, runDueSweeps, type LastRunAt, type Sweep } from './sweeps.ts';
@@ -42,6 +42,9 @@ export interface Env {
 
 /** Where the sweep bookkeeping lives, so a restart does not re-run everything. */
 const LAST_RUN_KEY = 'sweeps:lastRunAt';
+
+/** Which `SCHEMA_VERSION` this object's database was last built to. */
+const SCHEMA_KEY = 'schema:version';
 
 export class ChivagoPilot extends DurableObject<Env> {
   /*
@@ -92,7 +95,34 @@ export class ChivagoPilot extends DurableObject<Env> {
         over the row type a caller asks for, and TypeScript cannot see those as
         the same. One cast, at the one place the platform meets the port.
       */
-      useDatabase(openDurableDatabase(ctx.storage as unknown as DurableStorage));
+      /*
+        THE SCHEMA RUNS ONCE PER VERSION, NOT ONCE PER BOOT.
+
+        A Node process applies the schema at startup and then lives for days.
+        This object does not: it is constructed, serves, hibernates, and is
+        constructed again by the next alarm - 2,880 times a day at the pilot's
+        cadence. Re-applying the schema each time is 142 statements against 222
+        schema objects, and Durable Object SQLite charges by rows read, so on
+        12 November 2026 it burned the whole five-million-row daily allowance
+        and the pilot answered 500 for everything. See `SCHEMA_VERSION`.
+
+        The version is read from key-value storage rather than from the
+        database, so the boot that skips the migration touches no table at all.
+      */
+      const installed = await ctx.storage.get<number>(SCHEMA_KEY);
+      const migrate = installed !== SCHEMA_VERSION;
+      useDatabase(
+        openDurableDatabase(ctx.storage as unknown as DurableStorage, { migrate }),
+      );
+      /*
+        Written AFTER the migration, never before: a boot that dies halfway
+        through `migrate()` must come back and finish, and a version recorded
+        up front would tell the next boot there was nothing to do.
+      */
+      if (migrate) {
+        await ctx.storage.put(SCHEMA_KEY, SCHEMA_VERSION);
+        console.log(`[chivago] schema at version ${SCHEMA_VERSION}`);
+      }
 
       this.#app = app;
       this.#sweeps = scheduledSweeps();
@@ -110,7 +140,39 @@ export class ChivagoPilot extends DurableObject<Env> {
     // this is never null in practice; the check is here because a null
     // dereference under load is a worse way to find out.
     if (!this.#app) return new Response('Starting', { status: 503 });
-    return this.#app.fetch(request);
+    const response = await this.#app.fetch(request);
+    await this.#pullAlarmForward();
+    return response;
+  }
+
+  /**
+   * Book the alarm sooner if this request gave a sweep something to do.
+   *
+   * THIS IS WHAT MAKES THE IDLE CADENCE SAFE. The escalation sweep drops to
+   * five minutes while no alert is open (see `Sweep.idle`), and the only way
+   * an alert can come into being is a request - this one. So the cadence is
+   * recomputed here, with the alert already written, and the alarm is dragged
+   * back to thirty seconds before the response leaves the object.
+   *
+   * AWAITED, NOT `waitUntil`. The two storage reads cost about a millisecond,
+   * and the thing being protected is how fast somebody in trouble is escalated
+   * when nobody answers. That is not a guarantee to hand to a best-effort
+   * callback.
+   *
+   * Only ever moves the alarm EARLIER. Pushing it out would let a steady
+   * trickle of requests postpone the hourly sweeps indefinitely.
+   */
+  async #pullAlarmForward(): Promise<void> {
+    try {
+      const last = (await this.ctx.storage.get<LastRunAt>(LAST_RUN_KEY)) ?? {};
+      const due = nextDueAt(this.#sweeps, last);
+      const booked = await this.ctx.storage.getAlarm();
+      if (booked === null || booked > due) await this.ctx.storage.setAlarm(due);
+    } catch (err) {
+      // A response that was already produced must not be lost to bookkeeping.
+      // The worst case is the next alarm fires on the cadence it already had.
+      console.error('[chivago] could not re-book the alarm', err);
+    }
   }
 
   /**

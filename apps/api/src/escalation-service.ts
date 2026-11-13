@@ -264,6 +264,25 @@ export async function sweep(
   return summary;
 }
 
+/**
+ * Whether there is no alert for `sweep` to look at.
+ *
+ * Asked on the request path and before every alarm, so it must stay a single
+ * indexed probe - `idx_sos_status` exists for this and for `liveAlerts`, which
+ * until then scanned the table on a thirty-second timer. It answers the
+ * narrowest possible question (is there one row?) rather than reusing
+ * `liveAlerts`, which builds every alert in full with its contacts.
+ */
+export function nothingToEscalate(db: DB): boolean {
+  const row = db
+    .prepare(
+      `SELECT 1 AS live FROM sos_alerts
+       WHERE status IN ('dispatching','acknowledged') LIMIT 1`,
+    )
+    .get() as { live?: number } | undefined;
+  return row === undefined;
+}
+
 /** Escalation history for one alert, for the desk and the incident record. */
 export interface EscalationRecord {
   rung: Rung;

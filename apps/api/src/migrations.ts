@@ -2147,5 +2147,20 @@ export function migrate(db: DB): string[] {
     if (reversals > 0) applied.push('reverse prototype opening balances');
   }
 
+  /*
+    -- Live alerts, without reading every alert there has ever been ----------
+    `liveAlerts` and `nothingToEscalate` both ask which alerts are open, and
+    both run on a timer. `idx_sos_active` cannot serve them: it leads with
+    `user_id`, so a query that names only the status scans the table - once
+    every thirty seconds, for ever, growing with every alert the pilot has
+    ever filed. On Durable Object SQLite that scan is billed by the row.
+
+    `fired_at` is in the index so the console's "oldest first" ordering comes
+    out of it rather than out of a sort.
+  */
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_sos_status ON sos_alerts(status, fired_at);
+  `);
+
   return applied;
 }
