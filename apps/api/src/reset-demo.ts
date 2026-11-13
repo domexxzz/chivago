@@ -373,12 +373,32 @@ interface Plan {
  * Typed against the real mood union, so a key the app does not have fails at
  * the typecheck rather than three days before the demo.
  */
-const VERIFIED_QUESTS = [
-  'q-sg-explorer',
-  'q-sg-secret-recipe',
-  'q-sg-trash-hero',
-  'q-sg-local-treasure',
-] as const;
+const PLAN: Plan = {
+  area: 'Koh Sichang',
+  days: [
+    { day: 4, places: ['sc-hospital', 'sc-thamphang'], mood: 'steady' },
+    { day: 3, places: ['sc-palace'], mood: 'bright' },
+    { day: 2, places: ['sc-thamphang', 'sc-pier'], mood: 'tense' },
+    { day: 1, places: ['sc-shops', 'sc-hospital'], mood: 'steady' },
+    { day: 0, places: ['sc-hospital', 'sc-shops'], mood: 'bright' },
+  ],
+  verifiedQuests: [
+    'q-sg-explorer',
+    'q-sg-secret-recipe',
+    'q-sg-trash-hero',
+    'q-sg-local-treasure',
+    'q-sg-green-journey',
+  ],
+  secondQuest: 'q-sg-explorer',
+  statementQuest: 'q-sg-trash-hero',
+  secondDays: [
+    { day: 3, places: ['sc-shops'] },
+    { day: 2, places: ['sc-hospital', 'sc-shops'] },
+  ],
+};
+
+const HISTORY = PLAN.days;
+const VERIFIED_QUESTS = PLAN.verifiedQuests;
 
 function seed(db: DB): void {
   db.prepare('INSERT INTO users (id, display_name, locale, created_at) VALUES (?,?,?,?)')
@@ -489,7 +509,7 @@ function seed(db: DB): void {
   // year the statement covers.
   {
     const year = new Date().getUTCFullYear();
-    issueStatement(db, quest('q-sg-explorer').host.id, { from: `${year}-01-01`, to: `${year}-12-31` }, 'Demo host');
+    issueStatement(db, quest(PLAN.statementQuest).host.id, { from: `${year}-01-01`, to: `${year}-12-31` }, 'Demo host');
   }
 
   // Contacts, so the SOS panel reports a real reached-count rather than the
@@ -545,7 +565,7 @@ function seedSecondTraveller(db: DB): void {
 
   // Sichang Explorer, all the way through the pilot host's approval: one
   // verified mission and its EXP - a participant, and second to the presenter.
-  const q = quest('q-sg-explorer');
+  const q = quest(PLAN.secondQuest);
   const arrivedAt = new Date(daysAgo(2).getTime() + 6 * 3_600_000);
   const provedAt = new Date(arrivedAt.getTime() + 50 * 60_000);
   const here = { lat: q.lat, lng: q.lng, accuracyM: 9 };

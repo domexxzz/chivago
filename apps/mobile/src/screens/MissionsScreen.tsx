@@ -38,7 +38,6 @@ import { t } from '../i18n/locale.ts';
 import { formatInteger } from '../i18n/format.ts';
 import { ProfileButton } from '../components/ProfileButton.tsx';
 import { questArtworkSource } from '../components/QuestArtwork.tsx';
-import { QuestStatusIcon } from '../components/IslandIcons.tsx';
 import { MINI_GAMES, type MiniGameKey } from '../games/index.ts';
 import { ChivarIcon, questStateIcon, type ChivarIconName } from '../components/ChivarIcon.tsx';
 
@@ -459,16 +458,6 @@ export function QuestRow({
           ) : null}
           {progress?.stage === 'complete' ? (
             <View style={{ paddingRight: 9, minHeight: 30, borderRadius: 999, backgroundColor: color.accent100, flexDirection: 'row', alignItems: 'center', gap: 2 }}><ChivarIcon name="questCompleted" size={28} /><Label size={9} tracking={0.08} colour={color.accent700}>{t({ en: 'DONE', th: 'เสร็จแล้ว', zh: '已完成' })}</Label></View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: color.brandSoft }}>
-              <QuestStatusIcon status="inProgress" />
-              <Label size={9} tracking={0.08} colour={color.brand}>{t({ en: 'IN PROGRESS', th: 'กำลังทำอยู่', zh: '进行中' })}</Label>
-            </View>
-          ) : null}
-          {progress?.stage === 'complete' ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: color.accent100 }}>
-              <QuestStatusIcon status="completed" />
-              <Label size={9} tracking={0.08} colour={color.accent700}>{t({ en: 'DONE', th: 'เสร็จแล้ว', zh: '已完成' })}</Label>
-            </View>
           ) : null}
         </View>
       </View>

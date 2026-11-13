@@ -1,11 +1,9 @@
 import { strict as assert } from 'node:assert';
-import { test, describe, mock } from 'node:test';
-import { test, describe, afterEach, beforeEach } from 'node:test';
+import { test, describe, mock, afterEach, beforeEach } from 'node:test';
 import { createElement as h } from 'react';
 import { Linking } from 'react-native';
 
 import { LocalPicksScreen } from '../src/screens/LocalPicksScreen.tsx';
-import { mountScreen } from './interact.ts';
 import { mountScreen, server, offline } from './interact.ts';
 import * as fx from './fixtures.ts';
 import { __setAreaForTests } from '../src/state/area.ts';
