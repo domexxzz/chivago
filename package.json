@@ -16,6 +16,7 @@
     "localization:report": "node scripts/localization-audit.mjs --json",
     "thai:review": "node scripts/thai-review.mjs --html thai-review.html",
     "thai:apply": "node scripts/thai-apply.mjs",
+    "navigator:demo": "python3 hardware/navigator/led_temperature.py",
     "announce": "node scripts/announce.mjs --from-git"
   },
   "packageManager": "pnpm@10.33.0",
