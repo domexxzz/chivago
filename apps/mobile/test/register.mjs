@@ -73,6 +73,17 @@ const loadSync = (url, context, next) => {
   if (/\.(png|jpe?g|webp|svg)$/i.test(url)) {
     return { format: 'module', shortCircuit: true, source: 'export default 1;' };
   }
+  if (url.endsWith('.json')) {
+    // Node 24 requires an import attribute for JSON modules. Metro does not,
+    // and production code must keep the import form Metro understands, so the
+    // test bundler performs the same conversion explicitly.
+    const path = fileURLToPath(url);
+    return {
+      format: 'module',
+      shortCircuit: true,
+      source: `export default ${readFileSync(path, 'utf8')};`,
+    };
+  }
   if (url.endsWith('.tsx')) {
     const path = fileURLToPath(url);
     const { code } = transform(readFileSync(path, 'utf8'), {

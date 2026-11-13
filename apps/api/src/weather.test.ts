@@ -247,6 +247,22 @@ describe('GET /areas/:key/weather', () => {
     }
   });
 
+  test('is readable by the Expo web app on another local origin', async () => {
+    __resetWeather();
+    globalThis.fetch = (async (u: string | URL | Request) => new Response(
+      JSON.stringify(bothOk(String(u))), { status: 200 },
+    )) as typeof fetch;
+    try {
+      const res = await app.request('/areas/koh-sichang/weather', {
+        headers: { origin: 'http://localhost:8081' },
+      });
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get('access-control-allow-origin'), '*');
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  });
+
   test('an area the app does not have is a 404', async () => {
     const res = await app.request('/areas/nowhere/weather');
     assert.equal(res.status, 404);

@@ -38,20 +38,19 @@ import Svg, { Defs, LinearGradient, Stop, Rect, Path } from 'react-native-svg';
 import {
   Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
 } from 'react-native';
-import { AREAS, areaOfPlace, fairsIn, featuredFirst, hasFeatured, inArea, isFeatured, stallPlacesIn, type Area, type AreaKey, type Fair } from '@chivago/core';
+import { AREAS, areaOfPlace, fairsIn, featuredFirst, hasFeatured, isFeatured, stallPlacesIn, type Area, type AreaKey, type Fair } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { creditWord, fitsWhole, mascotBeachUri, photoBackdrop, photoUri } from '../api/photos.ts';
 import { SHOP_CATEGORIES, shopImageUri, type Shop } from '../api/shops.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { BoardFeed } from '../components/BoardFeed.tsx';
 import { BusStrip } from '../components/BusStrip.tsx';
-import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import { StallsCard } from '../components/Stalls.tsx';
 import { SeaAndSkyCard } from '../components/SeaAndSky.tsx';
 import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
 import { serviceAppearance, shopCategoryLabel } from '../components/ShopCategory.tsx';
 import {
-  Grid2X2, Star, ArrowRight, Mic, ScanLine, Umbrella, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MapPin, Search, Shield, Sparkles, Ticket, Trees, Users, Utensils, Wallet, Waves, Shell as ShellIcon,
+  Grid2X2, Star, ArrowRight, Mic, ScanLine, Umbrella, ChevronDown, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MapPin, Search, Shield, Sparkles, Ticket, Trees, Users, Utensils, Wallet, Waves, Shell as ShellIcon,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import {
@@ -61,18 +60,16 @@ import {
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { useHere, type Here } from '../state/here.ts';
-import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
+import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { tint } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
-import { ErrorState } from '../components/States.tsx';
-import { t } from '../i18n/locale.ts';
+import { LOCALES, LOCALE_NAMES, setLocale, t, useLocale, type Locale } from '../i18n/locale.ts';
 import { formatInteger } from '../i18n/format.ts';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import { ProfileButton } from '../components/ProfileButton.tsx';
 import { TravelHeroBackdrop, WIDE_TABS_AT } from '../components/Shell.tsx';
 
-const HOME_QUEST_LIMIT = 3;
 
 /**
  * The island's condition, as one number.
@@ -174,7 +171,6 @@ export function HomeScreen({
   const { width: viewportWidth } = useWindowDimensions();
   const dashboard = viewportWidth >= 980;
   const places = useAsync(() => api.places(), []);
-  const quests = useAsync(() => api.quests('today'), []);
   const wallet = useAsync(() => api.wallet(), []);
   /*
     One area at a time. The API answers with every place and every quest;
@@ -186,13 +182,6 @@ export function HomeScreen({
   const here = React.useMemo(
     () => ({ ...places, data: places.data ? places.data.filter((p) => areaOfPlace(p) === area.key) : places.data }),
     [places, area.key],
-  );
-  const todayHere = React.useMemo(
-    () => ({
-      ...quests,
-      data: quests.data ? { ...quests.data, quests: quests.data.quests.filter((q) => inArea(area, q)) } : quests.data,
-    }),
-    [quests, area],
   );
   // Food courts here whose stalls take orders ahead (docs/65). Known without
   // the places list, so the card and the layout under it do not wait for
@@ -246,39 +235,23 @@ export function HomeScreen({
       <Places places={here} shops={shops} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} onOpenShop={onOpenShop ?? onOpenMap} onOpenLocalPicks={onOpenLocalPicks} />
       <MarketPromoCard onOpenMarket={onOpenMarket ?? onOpenWallet} />
       {/*
-        The board, under the places and above today's missions: it is what
-        other people did, which belongs after what is around you and before
-        what you could do next. Keyed by area, because the board of a campus
-        and the board of an island are two different rooms.
-      */}
-      {/*
-        What is wrong here, above what other people left. A problem the
-        island can act on outranks a clip somebody filmed, and both outrank
-        the missions list because both are about THIS place today.
-      */}
-      <Monsters areaKey={area.key} onOpenPlace={onOpenPlace ?? onOpenMap} />
-      {/*
-        How to get here, above the board and below the problems. Somebody who
+        How to get here, above the board. Somebody who
         is not here yet needs it before anything about what to do once they
         are; somebody who IS here has already scrolled past it. It draws
         nothing at all in an area with no route, so the island is unchanged.
       */}
       <Bus areaKey={area.key} onToast={onToast} />
       <Board areaKey={area.key} onOpenPlace={onOpenPlace ?? onOpenMap} />
-      <View style={dashboard ? { flexDirection: 'row', alignItems: 'flex-start', gap: 6 } : undefined}>
-        <View style={dashboard ? { flex: 1, minWidth: 0 } : undefined}>
-          <Today quests={todayHere} onOpenQuest={onOpenQuest} onOpenQuests={onOpenQuests} />
-        </View>
       {/*
         The companion sits with the rest of the game layer now, not between the
         places and what is happening around them. A full-width portrait at the
         top of the feed interrupted "around you" before it had started; down
         here it opens the keepsake band - the mascot, then Carrying's points,
         passport and companions - the one stretch of this screen that is about
-        YOU rather than the island. The place-first order above it (problems,
-        transit, board, then today's missions) is unchanged.
+        YOU rather than the island. The place-first order above it (transit,
+        board, then today's missions) is unchanged.
       */}
-        <View style={dashboard ? { flex: 1, minWidth: 0 } : undefined}>
+        <View style={dashboard ? { width: '100%', maxWidth: 760, alignSelf: 'center' } : undefined}>
           <MascotHeroCard now={now} onOpen={onOpenMascots ?? onOpenPassport} />
           <Carrying
             wallet={wallet}
@@ -288,7 +261,6 @@ export function HomeScreen({
             onOpenPassport={onOpenPassport}
           />
         </View>
-      </View>
       <View style={{ height: 32 }} />
     </ScrollView>
   );
@@ -325,8 +297,9 @@ function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile }: {
   onOpenConcierge: () => void; onOpenProfile: () => void;
 }) {
   return (
-    <View style={{ backgroundColor: '#028090', minHeight: 330, paddingHorizontal: gutter, paddingTop: 26, paddingBottom: 82, overflow: 'hidden' }}>
+    <View style={{ position: 'relative', backgroundColor: '#028090', minHeight: 330, paddingHorizontal: gutter, paddingTop: 58, paddingBottom: 82, overflow: 'hidden' }}>
       <TravelHeroBackdrop focalPoint="right" />
+      <LanguageFlagMenu />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: '#D5F6FF', fontSize: 12, fontWeight: '500', letterSpacing: 1.8, textTransform: 'uppercase' }}>{t(greetingFor(now))}</Text>
@@ -356,6 +329,94 @@ function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile }: {
         <ScanLine size={21} color="#0077B6" />
         <Mic size={21} color="#0077B6" />
       </Pressable>
+    </View>
+  );
+}
+
+function AppLanguageFlag({ locale, width = 28 }: { locale: Locale; width?: number }) {
+  const height = Math.round(width * 2 / 3);
+  return (
+    <View style={{ width, height, borderRadius: Math.max(2, width * 0.12), overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(15,50,70,0.18)' }}>
+      <Svg width={width} height={height} viewBox="0 0 36 24" preserveAspectRatio="none">
+        {locale === 'th' ? (
+          <>
+            <Rect width="36" height="24" fill="#A51931" />
+            <Rect y="4" width="36" height="16" fill="#F4F5F8" />
+            <Rect y="8" width="36" height="8" fill="#2D2A75" />
+          </>
+        ) : locale === 'zh' ? (
+          <>
+            <Rect width="36" height="24" fill="#DE2910" />
+            <Path d="M7 2.5 L8.2 6 L11.8 6 L8.9 8.1 L10 11.6 L7 9.5 L4 11.6 L5.1 8.1 L2.2 6 L5.8 6 Z" fill="#FFDE00" />
+            <Path d="M14 3 L14.6 4.5 L16.2 4.6 L15 5.6 L15.4 7.1 L14 6.2 L12.7 7.1 L13.1 5.6 L11.9 4.6 L13.5 4.5 Z" fill="#FFDE00" />
+            <Path d="M17 7 L17.6 8.5 L19.2 8.6 L18 9.6 L18.4 11.1 L17 10.2 L15.7 11.1 L16.1 9.6 L14.9 8.6 L16.5 8.5 Z" fill="#FFDE00" />
+          </>
+        ) : (
+          <>
+            <Rect width="36" height="24" fill="#012169" />
+            <Path d="M0 0 L36 24 M36 0 L0 24" stroke="#FFFFFF" strokeWidth="6" />
+            <Path d="M0 0 L36 24 M36 0 L0 24" stroke="#C8102E" strokeWidth="2.5" />
+            <Rect x="14" width="8" height="24" fill="#FFFFFF" />
+            <Rect y="8" width="36" height="8" fill="#FFFFFF" />
+            <Rect x="16" width="4" height="24" fill="#C8102E" />
+            <Rect y="10" width="36" height="4" fill="#C8102E" />
+          </>
+        )}
+      </Svg>
+    </View>
+  );
+}
+
+/** A quick language switch at the first place every visitor sees. */
+function LanguageFlagMenu() {
+  const locale = useLocale();
+  const [open, setOpen] = React.useState(false);
+  return (
+    <View style={{ position: 'absolute', top: 12, left: gutter, zIndex: 30, elevation: 30 }}>
+      <Pressable
+        onPress={() => setOpen((value) => !value)}
+        accessibilityRole="button"
+        accessibilityLabel={t({ en: `Language: ${LOCALE_NAMES[locale]}`, th: `ภาษา: ${LOCALE_NAMES[locale]}`, zh: `语言：${LOCALE_NAMES[locale]}` })}
+        accessibilityState={{ expanded: open }}
+        style={({ pressed }) => ({
+          minWidth: 64, height: 38, paddingHorizontal: 10, borderRadius: 19,
+          flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+          backgroundColor: pressed ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.95)',
+          borderWidth: 1, borderColor: 'rgba(255,255,255,0.92)',
+          shadowColor: '#003B52', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 8,
+        })}
+      >
+        <AppLanguageFlag locale={locale} width={28} />
+        <ChevronDown size={15} color="#164D73" strokeWidth={2.2} style={{ transform: [{ rotate: open ? '180deg' : '0deg' }] }} />
+      </Pressable>
+      {open ? (
+        <View style={[shadow.card, {
+          width: 178, marginTop: 7, padding: 6, borderRadius: 16,
+          backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CBE4EE', gap: 2,
+        }]}>
+          {LOCALES.map((option) => {
+            const selected = option === locale;
+            return (
+              <Pressable
+                key={option}
+                onPress={() => { setLocale(option); setOpen(false); }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                accessibilityLabel={LOCALE_NAMES[option]}
+                style={({ pressed }) => ({
+                  minHeight: 44, paddingHorizontal: 10, borderRadius: 12,
+                  flexDirection: 'row', alignItems: 'center', gap: 10,
+                  backgroundColor: selected ? '#DDF4FA' : pressed ? '#F2F7F9' : 'transparent',
+                })}
+              >
+                <AppLanguageFlag locale={option} width={30} />
+                <Label size={11} colour={selected ? color.brand : color.text} style={{ flex: 1 }}>{LOCALE_NAMES[option]}</Label>
+                {selected ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color.brand }} /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -984,138 +1045,7 @@ function MascotHeroCard({
 }
 
 // ---------------------------------------------------------------------------
-// 3. What you can do today
-// ---------------------------------------------------------------------------
-
-function Today({
-  quests, onOpenQuest, onOpenQuests,
-}: {
-  quests: Async<{ quests: Quest[]; progress: Record<string, QuestProgress> }>;
-  onOpenQuest: (id: string) => void;
-  onOpenQuests: () => void;
-}) {
-  const all = quests.data?.quests ?? [];
-  const progress = quests.data?.progress ?? {};
-  /*
-    Finished quests are not things you can do today, so they leave this list.
-    The demo account has completed all four of today's, which rendered a
-    "Today" block listing four missions the traveller had already done - an
-    invitation to repeat work that cannot be repeated.
-  */
-  const open = all.filter((q) => progress[q.id]?.stage !== 'complete');
-  const finished = all.length - open.length;
-  const ordered = questOrder(open, progress).slice(0, HOME_QUEST_LIMIT);
-  const rest = open.length - ordered.length;
-
-  return (
-    <View style={{ paddingTop: 26 }}>
-      <SectionHead
-        en="Recommended"
-        th="แนะนำสำหรับคุณ"
-        zh="为你推荐"
-        note={t({ en: "Today's Eco-Adventures", th: "ภารกิจกรีนวันนี้", zh: "今日绿色任务" })}
-        onSeeAll={onOpenQuests}
-      />
-
-      {quests.error ? (
-        <ErrorState message={quests.error} onRetry={quests.reload} />
-      ) : quests.loading ? (
-        <Body size={13} colour={color.neutral600} style={{ paddingHorizontal: gutter }}>
-          {t({ en: 'Loading today’s missions…', th: 'กำลังโหลดภารกิจวันนี้…', zh: '正在加载今天的任务…' })}
-        </Body>
-      ) : ordered.length === 0 ? (
-        <View style={[shadow.card, { marginHorizontal: gutter, padding: 18, borderRadius: 24, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(14, 165, 233, 0.16)' }]}>
-          {finished > 0 ? (
-            <Body size={13} colour={color.accent700}>
-              {t({
-                en: `All ${finished} of today’s missions are done. Nothing left to verify until tomorrow.`,
-                th: `ทำภารกิจวันนี้ครบทั้ง ${finished} รายการแล้ว ไม่มีอะไรรอตรวจจนถึงพรุ่งนี้`,
-                zh: `今天的 ${finished} 个任务都完成了，明天之前没有要验证的了。`,
-              })}
-            </Body>
-          ) : (
-            <Body size={13} colour={color.neutral700}>{t({ en: 'No missions running today. The map still works, and the weekend list usually has something.', th: 'วันนี้ยังไม่มีภารกิจ แผนที่ยังใช้ได้ และรายการสุดสัปดาห์มักมีให้ทำ', zh: '今天没有进行中的任务。地图照常可用，周末的任务列表通常也有可做的。' })}</Body>
-          )}
-          <Button label="See all missions" thai="ดูภารกิจทั้งหมด" chinese="查看全部任务" onPress={onOpenQuests} variant="secondary" height={44} style={{ marginTop: 12 }} />
-        </View>
-      ) : (
-        <>
-          {ordered.map((q) => (
-            <QuestCard key={q.id} quest={q} progress={progress[q.id] ?? null} onPress={() => onOpenQuest(q.id)} />
-          ))}
-          {rest > 0 ? (
-            <Pressable
-              onPress={onOpenQuests}
-              accessibilityRole="button"
-              accessibilityLabel={t({ en: `See all missions, ${rest} more`, th: `ดูภารกิจทั้งหมด อีก ${rest} รายการ`, zh: `查看全部任务，还有 ${rest} 个` })}
-              style={{ marginHorizontal: gutter, marginTop: 10, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-            >
-              <Label size={10} tracking={0.12} colour="#0284c7">{t({ en: `${rest} more today`, th: `อีก ${rest} ภารกิจวันนี้`, zh: `今天还有 ${rest} 个` })}</Label>
-              <ChevronRight size={16} color="#0284c7" strokeWidth={2} />
-            </Pressable>
-          ) : null}
-        </>
-      )}
-    </View>
-  );
-}
-
-function QuestCard({
-  quest, progress, onPress,
-}: { quest: Quest; progress: QuestProgress | null; onPress: () => void }) {
-  const started = progress != null && progress.stage !== 'complete';
-  const tone = currencyTone(quest.rewardCurrency);
-
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`${t(quest.name)}. ${t(quest.where)}. ${started ? 'In progress' : 'Not started'}`}
-      style={[shadow.card, {
-        marginHorizontal: gutter,
-        marginTop: 12,
-        padding: 16,
-        backgroundColor: '#ffffff',
-        borderRadius: 22,
-        borderWidth: started ? 2 : 1,
-        borderColor: started ? '#0284c7' : 'rgba(14, 165, 233, 0.18)',
-        shadowColor: '#0284c7',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 2,
-      }]}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-        <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            {started ? (
-              <Label size={9} tracking={0.14} colour="#0284c7">{t({ en: 'IN PROGRESS', th: 'กำลังทำอยู่', zh: '进行中' })}</Label>
-            ) : null}
-            <View style={{ backgroundColor: 'rgba(14, 165, 233, 0.1)', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 }}>
-              <Label size={9} tracking={0.06} colour="#0284c7">{t(quest.duration)}</Label>
-            </View>
-          </View>
-          <Heading size={16}>{t(quest.name)}</Heading>
-          <Body size={13} colour={color.neutral600} style={{ marginTop: 4 }}>
-            {`${t(quest.where)} · ${t(quest.duration)}`}
-          </Body>
-          <Label size={9} tracking={0.06} colour={color.neutral600} style={{ marginTop: 4, textTransform: 'none' }}>
-            {t(strings.quests.by(quest.host.name))}
-          </Label>
-        </View>
-        <View style={{ backgroundColor: tone.fill, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16 }}>
-          <Heading size={13} colour={tone.on}>
-            {`+${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'G' : 'T'}`}
-          </Heading>
-        </View>
-      </View>
-    </Pressable>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// 4. What you are carrying
+// 3. What you are carrying
 // ---------------------------------------------------------------------------
 
 function Carrying({
@@ -1296,20 +1226,6 @@ function FairCard({ fair, onOpen }: { fair: Fair; onOpen: () => void }) {
       </View>
       <ChevronRight size={18} color={color.brand} strokeWidth={2.2} />
     </Pressable>
-  );
-}
-
-/** The area's monsters, fetched here so Home owns one request for them. */
-function Monsters({ areaKey, onOpenPlace }: { areaKey: string; onOpenPlace: (placeId: string) => void }) {
-  const found = useAsync(() => api.monsters(areaKey), [areaKey]);
-  return (
-    <MonsterFeed
-      monsters={found.data?.monsters ?? null}
-      loading={found.loading}
-      error={found.error}
-      onRetry={found.reload}
-      onOpenPlace={onOpenPlace}
-    />
   );
 }
 

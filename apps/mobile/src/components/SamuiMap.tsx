@@ -22,14 +22,14 @@ import React from 'react';
 import { Animated, Easing, Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, Line, Mask, Path, Polygon, RadialGradient, Rect, Stop } from 'react-native-svg';
 import {
-  isHighScore, strings,
+  areaByKey, isHighScore, strings,
   type Area, type Bilingual, type ExploredPlace, type FairLot, type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { t } from '../i18n/locale.ts';
 import { WebTerrainMap, type MapHandle } from './WebTerrainMap.tsx';
 import type { Shop } from '../api/shops.ts';
 import type { Here } from '../state/here.ts';
-import { CHIP, REVEAL_FEATHER, TALE_W, insideSamui, layoutPins, mistCircles, project, projectArea, tilt } from './map-geometry.ts';
+import { CHIP, REVEAL_FEATHER, TALE_W, UNPINNED_NOTE, insideSamui, layoutPins, mappable, mistCircles, project, projectArea, servicePoints, tilt } from './map-geometry.ts';
 import { cloudField } from './terrain-style.ts';
 import { useReduceMotion } from './reduce-motion.ts';
 import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
@@ -41,7 +41,8 @@ import { ShopMapMarker } from './shop-map-marker.tsx';
 // surface from one module, whichever implementation the platform resolves.
 export { LayerChips, PinChip, PlaceFeedRow, type MapMode };
 
-const hasMapPoint = (shop: Shop): shop is Shop & { lat: number; lng: number } => shop.lat !== null && shop.lng !== null;
+/** The island, for the drawing that only ever draws the island. */
+const SAMUI_AREA = areaByKey('samui');
 
 /**
  * The island silhouette, traced from the approved comp.
@@ -587,7 +588,8 @@ function AreaPointMap({ area, places, shops = [], onSelect, onSelectShop, onPick
       {selectedCoordinate && onPickCoordinate ? (() => { const pos = point(selectedCoordinate.lat, selectedCoordinate.lng); return <View pointerEvents="none" style={{ position: 'absolute', left: pos.left - 10, top: pos.top - 10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#0077B6', borderWidth: 4, borderColor: '#fff', elevation: 5 }} />; })() : null}
       <View style={{ position: 'absolute', top: 8, left: 12, backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }}><Label size={10} colour="#0077B6">{t(area.name)} · {t({ en: 'Coordinate map', th: 'แผนผังพิกัด', zh: '坐标地图' })}</Label></View>
       {places.map((place) => { const pos = point(place.lat, place.lng); return <Pressable key={place.id} onPress={() => onSelect(place)} accessibilityLabel={t(place.name)} style={{ position: 'absolute', left: pos.left - 16, top: pos.top - 20, backgroundColor: '#0077B6', borderWidth: 2, borderColor: '#fff', borderRadius: 16, paddingHorizontal: 5, paddingVertical: 4 }}><Label size={10} colour="#fff">{place.healthyScore}</Label></Pressable>; })}
-      {!onPickCoordinate ? shops.filter(hasMapPoint).map((shop) => { const pos = point(shop.lat, shop.lng); return <Pressable key={shop.id} onPress={() => onSelectShop?.(shop)} accessibilityLabel={`${shop.category}: ${shop.name}`} style={{ position: 'absolute', left: pos.left - 23, top: pos.top - 51 }}><ShopMapMarker category={shop.category} /></Pressable>; }) : null}
+      {/* Every service, one pin - an unpinned one on the area's ring, marked as such. */}
+      {!onPickCoordinate ? servicePoints(mappable(shops), area.center, area.bbox).map((spot) => { const shop = spot.source; const pos = point(spot.lat, spot.lng); return <Pressable key={shop.id} onPress={() => onSelectShop?.(shop)} accessibilityLabel={spot.approximate ? `${shop.category}: ${shop.name}. ${t(UNPINNED_NOTE)}` : `${shop.category}: ${shop.name}`} style={{ position: 'absolute', left: pos.left - 23, top: pos.top - 51 }}><ShopMapMarker category={shop.category} approximate={spot.approximate} /></Pressable>; }) : null}
     </View>
     {!onPickCoordinate ? <PlaceList places={places} shops={shops} onSelect={onSelect} onSelectShop={onSelectShop} height={100} /> : null}
   </View>;
@@ -751,12 +753,19 @@ function IslandMap({
           })
         : null}
 
-      {width > 0 ? shops.filter(hasMapPoint).map((shop) => {
-        const point = project(shop.lat, shop.lng);
+      {/*
+        Every service, one pin. The label used to be the Thai word for "shop"
+        whatever language the reader had chosen; it now says the category,
+        as the other three maps do, in the reader's own language.
+      */}
+      {width > 0 ? servicePoints(mappable(shops), SAMUI_AREA.center, SAMUI_AREA.bbox).map((spot) => {
+        const shop = spot.source;
+        const point = project(spot.lat, spot.lng);
         const location = tilt(point.x, point.y);
-        return <Pressable key={`shop-${shop.id}`} onPress={() => onSelectShop?.(shop)} accessibilityLabel={`ร้าน ${shop.name}`}
+        return <Pressable key={`shop-${shop.id}`} onPress={() => onSelectShop?.(shop)}
+          accessibilityLabel={spot.approximate ? `${shop.category}: ${shop.name}. ${t(UNPINNED_NOTE)}` : `${shop.category}: ${shop.name}`}
           style={{ position: 'absolute', left: location.x * width - 23, top: location.y * height - 51 }}>
-          <ShopMapMarker category={shop.category} />
+          <ShopMapMarker category={shop.category} approximate={spot.approximate} />
         </Pressable>;
       }) : null}
 

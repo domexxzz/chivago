@@ -36,13 +36,17 @@ import {
 } from '@chivago/core';
 import { color, onFill } from '../theme/index.ts';
 import { zoneTone } from './fair-tones.ts';
-import { edgeNudge, edgeNudgeTop, haloMetres, metreRing, tightPins, type PinBox } from './map-geometry.ts';
+import { edgeNudge, edgeNudgeTop, haloMetres, metreRing, mappable, servicePoints, tightPins, UNPINNED_NOTE, type PinBox } from './map-geometry.ts';
 import { API_BASE } from '../api/client.ts';
-import { SAMUI_BBOX as SAMUI_FRAME } from '@chivago/core';
+import { SAMUI_BBOX as SAMUI_FRAME, areaByKey } from '@chivago/core';
+
+/** The island, for a map that was not told which area it is drawing. */
+const SAMUI_AREA = areaByKey('samui');
 import type { Here } from '../state/here.ts';
 import { Label } from './Type.tsx';
 import { MapLegend } from './map-parts.tsx';
 import { shopMarkerSvg, shopMarkerVisual } from './shop-map-marker.tsx';
+import { chivarIconUri } from './ChivarIcon.tsx';
 import { t } from '../i18n/locale.ts';
 import { hourFrom, mix } from './island-clock.ts';
 import {
@@ -264,14 +268,21 @@ const MARK_CSS = `
 .cg-foot{width:14px;height:5px;border-radius:50%;background:rgba(8,26,48,.4);margin-top:-1px}
 .cg-pin.cg-storied .cg-chip{box-shadow:0 0 0 2px ${color.bg},0 0 0 5px ${color.gold}}
 .cg-shop-pin{display:flex;flex-direction:column;align-items:center;width:46px;height:51px;padding:0;border:0;
-  background:transparent;cursor:pointer;color:#fff;filter:drop-shadow(0 4px 5px rgba(8,26,48,.42))}
+  background:transparent;cursor:pointer;color:#fff}
 .cg-shop-pin-core{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;width:42px;height:42px;
-  border:3px solid #fff;border-radius:50%;background:var(--cg-shop-colour);transition:transform .16s ease,box-shadow .16s ease}
+  border:3px solid #fff;border-radius:50%;background:var(--cg-shop-colour);transition:transform .16s ease,box-shadow .16s ease;
+  box-shadow:0 4px 7px rgba(8,26,48,.4)}
 .cg-shop-pin-core svg{width:21px;height:21px;display:block}
+.cg-shop-pin-core img{width:140px;height:140px;max-width:none;display:block;object-fit:contain}
 .cg-shop-pin-tail{position:absolute;z-index:0;top:34px;width:14px;height:14px;transform:rotate(45deg);
-  background:var(--cg-shop-colour);border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;border-radius:2px}
-.cg-shop-pin:hover .cg-shop-pin-core,.cg-shop-pin:focus-visible .cg-shop-pin-core{transform:translateY(-2px) scale(1.07);box-shadow:0 0 0 4px rgba(255,255,255,.24)}
+  background:var(--cg-shop-colour);border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;border-radius:2px;
+  box-shadow:3px 3px 5px rgba(8,26,48,.32)}
+.cg-shop-pin:hover .cg-shop-pin-core,.cg-shop-pin:focus-visible .cg-shop-pin-core{transform:translateY(-2px) scale(1.07);box-shadow:0 0 0 4px rgba(255,255,255,.24),0 6px 10px rgba(8,26,48,.4)}
 .cg-shop-pin:focus-visible{outline:3px solid #8fe7ff;outline-offset:3px;border-radius:24px}
+.cg-shop-pin.cg-approx .cg-shop-pin-core{border-style:dashed;opacity:.9}
+.cg-shop-pin.cg-approx .cg-shop-pin-tail{opacity:.55}
+.cg-approx-badge{position:absolute;z-index:2;top:-4px;right:-2px;width:18px;height:18px;border-radius:50%;
+  background:${color.gold};color:#3b2a10;border:2px solid #fff;font:800 11px/14px system-ui,sans-serif;text-align:center}
 /*
   The story bubble: the poster itself, on the pin.
 
@@ -309,7 +320,8 @@ const MARK_CSS = `
   border:3px solid #f2b531;opacity:.8;animation:cg-pulse 2.4s ease-out infinite;will-change:transform,opacity}
 .cg-quest.cg-active .cg-ring{border-color:${color.brand};animation-duration:1.6s}
 .cg-quest.cg-done .cg-ring{border-color:${color.accent};animation:none;opacity:.55;transform:scale(.9)}
-.cg-x{width:38px;height:38px;filter:drop-shadow(0 3px 4px rgba(8,26,48,.45))}
+.cg-x{width:38px;height:38px;overflow:hidden;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 3px 4px rgba(8,26,48,.45))}
+.cg-x img{width:128px;height:128px;max-width:none;display:block;object-fit:contain}
 .cg-tag{margin-top:-2px;padding:2px 6px;border-radius:8px;font-size:9.5px;font-weight:700;letter-spacing:.08em;white-space:nowrap;
   background:#3b2a10;color:#ffe9b3;box-shadow:0 2px 6px rgba(8,26,48,.35)}
 .cg-quest.cg-active .cg-tag{background:${color.brand};color:${onFill.brand}}
@@ -406,10 +418,11 @@ function ensureMarkCss(): void {
   document.head.appendChild(style);
 }
 
-/** X marks the spot: two rounded strokes in gold with a dark edge; a tick once a host has verified. */
-const questGlyph = (done: boolean): string => (done
-  ? `<svg class="cg-x" viewBox="0 0 38 38" aria-hidden="true"><circle cx="19" cy="19" r="14" fill="${color.accent}" stroke="#ffffff" stroke-width="3"/><path d="M11 19.5 L16.5 25 L27 13.5" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`
-  : `<svg class="cg-x" viewBox="0 0 38 38" aria-hidden="true"><path d="M9 9 L29 29 M29 9 L9 29" stroke="#3b2a10" stroke-width="10" stroke-linecap="round"/><path d="M9 9 L29 29 M29 9 L9 29" stroke="#f2b531" stroke-width="5.5" stroke-linecap="round"/></svg>`);
+/** The approved quest artwork, with the state still owned by server progress. */
+const questGlyph = (mark: 'open' | 'active' | 'done'): string => {
+  const icon = mark === 'done' ? 'questCompleted' : mark === 'active' ? 'questInProgress' : 'questNew';
+  return `<span class="cg-x" aria-hidden="true"><img src="${esc(chivarIconUri(icon))}" alt=""></span>`;
+};
 
 /**
  * A bus stop: small, quiet, and deliberately not a pin.
@@ -696,8 +709,34 @@ export function TerrainMap({
     const born = performance.now();
     let routePhase = 0;
     let tick = 0;
+    /*
+      IS ANYBODY LOOKING, and is the camera still?
+
+      The map is the hero of a screen that scrolls: read the list under it
+      and the map is off the top of the page, still rendering a 3D island
+      nobody can see - and every one of those frames competes with the
+      scroll the reader is actually doing. `onScreen` is that question,
+      answered by the browser rather than guessed.
+    */
+    let onScreen = true;
+    let drifting = false;
+    const sight = typeof IntersectionObserver === 'undefined' || !holder.current ? null
+      : new IntersectionObserver(([entry]) => {
+        onScreen = !!entry && entry.isIntersecting && entry.intersectionRatio >= 0.15;
+        // The 45-second turn is a flourish for somebody looking at it. Off
+        // screen it is a full-rate 3D render for nobody, so it ends there.
+        if (!onScreen && drifting) { drifting = false; m.stop(); }
+      }, { threshold: [0, 0.15, 0.5] });
+    if (sight && holder.current) sight.observe(holder.current);
     const tide = (still || campus) ? 0 : window.setInterval(() => {
-      if (document.hidden) return;
+      /*
+        Not while hidden, not while scrolled away, and NOT WHILE THE CAMERA
+        MOVES. During a pan MapLibre already renders every frame, so the
+        repaint below buys nothing, and the paint-property writes above it
+        made the style re-evaluate in the middle of the very frames the
+        traveller was dragging. The surf can hold its breath for a gesture.
+      */
+      if (document.hidden || !onScreen || m.isMoving()) return;
       const t = (performance.now() - born) / 1000;
       const palette = paletteFor(hour);
       tick += 1;
@@ -862,7 +901,9 @@ export function TerrainMap({
       intro too, for the reason in prefersReducedMotion.
     */
     const drift = () => {
-      if (focusRef.current) return;
+      if (focusRef.current || !onScreen) return;
+      drifting = true;
+      m.once('moveend', () => { drifting = false; });
       m.easeTo({
         bearing: settled.bearing + DRIFT.degrees,
         duration: DRIFT.ms,
@@ -1068,6 +1109,7 @@ export function TerrainMap({
     const bail = () => {
       window.clearInterval(relight);
       window.clearInterval(tide);
+      sight?.disconnect();
       watcher?.disconnect();
       window.removeEventListener('chivago-map-reset', resetMapView);
       fog.current = null;
@@ -1259,18 +1301,31 @@ export function TerrainMap({
       );
     });
 
-    for (const shop of shops) {
-      if (shop.lat === null || shop.lng === null) continue;
+    /*
+      EVERY SERVICE, ONE PIN. A service without usable coordinates used to be
+      skipped here - listed under the map, absent from it. `servicePoints`
+      stands those on a dashed ring around the area's centre and says so in
+      the label. The tap still hands over the ORIGINAL shop, never the ring
+      copy, so nothing downstream can route a traveller to a point the
+      business never gave.
+    */
+    // Guides are people, not places, and have no pin; see `isGuide`.
+    const onMap = mappable(shops);
+    const placed = servicePoints(onMap, (area ?? SAMUI_AREA).center, (area ?? SAMUI_AREA).bbox);
+    placed.forEach((point) => {
+      const shop = point.source;
       const visual = shopMarkerVisual(shop.category);
       const el = document.createElement('button');
       el.type = 'button';
-      el.className = 'cg-shop-pin';
-      el.setAttribute('aria-label', `${shop.category}: ${shop.name}`);
+      el.className = point.approximate ? 'cg-shop-pin cg-approx' : 'cg-shop-pin';
+      el.setAttribute('aria-label', point.approximate
+        ? `${shop.category}: ${shop.name}. ${t(UNPINNED_NOTE)}`
+        : `${shop.category}: ${shop.name}`);
       el.style.setProperty('--cg-shop-colour', visual.colour);
-      el.innerHTML = `<span class="cg-shop-pin-tail"></span><span class="cg-shop-pin-core">${shopMarkerSvg(shop.category)}</span>`;
+      el.innerHTML = `<span class="cg-shop-pin-tail"></span><span class="cg-shop-pin-core">${shopMarkerSvg(shop.category)}</span>${point.approximate ? '<span class="cg-approx-badge" aria-hidden="true">?</span>' : ''}`;
       el.addEventListener('click', () => onSelectShop?.(shop));
-      markers.current.push(new Marker({ element: el, anchor: 'bottom' }).setLngLat([shop.lng, shop.lat]).addTo(m));
-    }
+      markers.current.push(new Marker({ element: el, anchor: 'bottom' }).setLngLat([point.lng, point.lat]).addTo(m));
+    });
 
     /*
       X marks the spot. Every quest on today's list stands on the map where
@@ -1285,8 +1340,9 @@ export function TerrainMap({
       const el = document.createElement('button');
       el.type = 'button';
       el.className = `cg-quest cg-${mark}`;
-      el.setAttribute('aria-label', `${t(quest.name)}, ${t(quest.where)}. ${t(strings.map.questPin(quest.rewardPoints))}`);
-      el.innerHTML = `<span class="cg-ring"></span>${questGlyph(mark === 'done')}<span class="cg-tag">${esc(quest.code)} · +${quest.rewardPoints}</span>`;
+      const reward = quest.rewardExp != null ? `${quest.rewardExp} XP` : t(strings.map.questPin(quest.rewardPoints));
+      el.setAttribute('aria-label', `${t(quest.name)}, ${t(quest.where)}. ${reward}`);
+      el.innerHTML = `<span class="cg-ring"></span>${questGlyph(mark)}<span class="cg-tag">${esc(quest.code)} · +${quest.rewardExp ?? quest.rewardPoints}${quest.rewardExp != null ? ' XP' : ''}</span>`;
       if (onOpenQuest) el.addEventListener('click', () => onOpenQuest(quest.id));
 
       questEls.current.push({ el, pays: quest.rewardPoints });
@@ -1413,24 +1469,32 @@ export function TerrainMap({
         enough, on the first run of this, to hide every tag on the island.
         What cannot be read through is another label.
       */
-      for (const { el } of [...marks].sort((a, b) => b.pays - a.pays)) {
-        const tag = el.querySelector<HTMLElement>('.cg-tag');
-        if (!tag) continue;
-        /*
-          Measured with the edge slide already applied, because a tag that
-          only overruns the frame is not crowded, it is near the side, and
-          there is somewhere to put it. Deciding before the slide would
-          drop tags that had room all along.
-        */
-        tag.style.transform = '';
-        const slide = edgeNudge(tag.getBoundingClientRect(), frame, TAG_SLIDE_PX);
-        tag.style.transform = slide ? `translateX(${slide}px)` : '';
+      /*
+        Measured with the edge slide already applied, because a tag that
+        only overruns the frame is not crowded, it is near the side, and
+        there is somewhere to put it. Deciding before the slide would drop
+        tags that had room all along.
+
+        In BATCHES, for the reason the pin loop above gives: reset every
+        tag, read every tag, slide every tag, read every tag once more -
+        two layouts for the set instead of two for each mark.
+      */
+      const ordered = [...marks].sort((a, b) => b.pays - a.pays)
+        .map(({ el }) => ({ el, tag: el.querySelector<HTMLElement>('.cg-tag') }))
+        .filter((mark): mark is { el: HTMLElement; tag: HTMLElement } => mark.tag !== null);
+      for (const { tag } of ordered) tag.style.transform = '';
+      const slides = ordered.map(({ tag }) => edgeNudge(tag.getBoundingClientRect(), frame, TAG_SLIDE_PX));
+      ordered.forEach(({ tag }, i) => { tag.style.transform = slides[i] ? `translateX(${slides[i]}px)` : ''; });
+      const tagBoxes = ordered.map(({ tag }) => {
         const t = tag.getBoundingClientRect();
-        const box = { left: t.left, right: t.right, top: t.top, bottom: t.bottom };
+        return { left: t.left, right: t.right, top: t.top, bottom: t.bottom };
+      });
+      ordered.forEach(({ el }, i) => {
+        const box = tagBoxes[i]!;
         const keep = clear(box);
         el.classList.toggle('cg-untagged', !keep);
         if (keep) taken.push(box);
-      }
+      });
     };
     const relabel = () => {
       const pins = pinEls.current;
@@ -1469,17 +1533,25 @@ export function TerrainMap({
         the same trap the traveller's dot fell into - see the note at the
         top of this file.
       */
+      /*
+        ALL THE READS, THEN ALL THE WRITES. This loop used to zero a chip,
+        measure it and nudge it one pin at a time - a write, a read, a write
+        - which makes the browser lay the whole page out again for every
+        pin, five times a second while the camera moves. The chips were
+        already zeroed at the top of `relabel`, so one pass can measure
+        them all and a second can place them all: one layout instead of
+        one per pin, and the same answer.
+      */
       const frame = m.getContainer().getBoundingClientRect();
-      for (const pin of pins) {
-        const row = pin.el.querySelector<HTMLElement>('.cg-top');
-        if (!row) continue;
-        row.style.left = '0px';
-        row.style.top = '0px';
-        const box = row.getBoundingClientRect();
+      const rows = pins.map((pin) => pin.el.querySelector<HTMLElement>('.cg-top'));
+      const rowBoxes = rows.map((row) => row?.getBoundingClientRect() ?? null);
+      rows.forEach((row, i) => {
+        const box = rowBoxes[i];
+        if (!row || !box) return;
         row.style.left = `${edgeNudge(box, frame)}px`;
         // And down, when a pin wearing a photograph has climbed off the top.
         row.style.top = `${edgeNudgeTop(box, frame)}px`;
-      }
+      });
       // The pins are settled now - names decided, edges cleared - so the
       // quest marks can be told where they ended up and step around them.
       thinTheTags(frame, pins.map((pin) => boxOf(pin.el)));
@@ -1524,7 +1596,7 @@ export function TerrainMap({
       m.off('moveend', relabel);
       m.off('resize', relabel);
     };
-  }, [places, shops, quests, progress, onSelect, onSelectShop, onOpenQuest, compact, storied, tales, onOpenStory, stops]);
+  }, [places, shops, quests, progress, onSelect, onSelectShop, onOpenQuest, compact, storied, tales, onOpenStory, stops, area]);
 
   /*
     You are here.

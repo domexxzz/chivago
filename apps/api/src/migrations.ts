@@ -288,6 +288,9 @@ export function migrate(db: DB): string[] {
   if (addColumn(db, 'quests', 'reward_currency', "TEXT NOT NULL DEFAULT 'green'")) {
     applied.push('quests.reward_currency');
   }
+  if (addColumn(db, 'quests', 'reward_exp', 'INTEGER')) {
+    applied.push('quests.reward_exp');
+  }
   if (addColumn(db, 'offers', 'currency', "TEXT NOT NULL DEFAULT 'green'")) {
     applied.push('offers.currency');
   }
@@ -2146,6 +2149,41 @@ export function migrate(db: DB): string[] {
 
     if (reversals > 0) applied.push('reverse prototype opening balances');
   }
+
+  /* Global administration: credentials, reversible moderation and a complete audit trail. */
+  if (addColumn(db, 'hosts', 'console_username', 'TEXT')) applied.push('hosts.console_username');
+  if (addColumn(db, 'places', 'admin_hidden_at', 'TEXT')) applied.push('places.admin_hidden_at');
+  db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_hosts_console_username
+      ON hosts(lower(console_username)) WHERE console_username IS NOT NULL;
+    CREATE TABLE IF NOT EXISTS admin_user_status (
+      user_id       TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      disabled_at   TEXT,
+      updated_by    TEXT NOT NULL REFERENCES hosts(id),
+      updated_at    TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS admin_inventory_grants (
+      id            TEXT PRIMARY KEY,
+      user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      item_key      TEXT NOT NULL,
+      item_kind     TEXT NOT NULL CHECK(item_kind IN ('spirit','costume')),
+      rarity        TEXT NOT NULL CHECK(rarity IN ('common','uncommon','rare','mythic')),
+      note          TEXT NOT NULL,
+      granted_by    TEXT NOT NULL REFERENCES hosts(id),
+      created_at    TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_admin_inventory_user ON admin_inventory_grants(user_id,created_at DESC);
+    CREATE TABLE IF NOT EXISTS admin_audit_log (
+      id            TEXT PRIMARY KEY,
+      admin_host_id TEXT NOT NULL REFERENCES hosts(id),
+      action        TEXT NOT NULL,
+      target_type   TEXT NOT NULL,
+      target_id     TEXT NOT NULL,
+      details_json  TEXT NOT NULL,
+      created_at    TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_admin_audit_at ON admin_audit_log(created_at DESC);
+  `);
 
   return applied;
 }

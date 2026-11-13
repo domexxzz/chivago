@@ -2,7 +2,8 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  ROUTER, decodePolyline, detourRatio, formatDuration, metresBetween, parseRoute, routeRequestUrl,
+  ROUTER, ROUTE_MAX_M, beyondRouter, decodePolyline, detourRatio, formatDuration, metresBetween,
+  parseRoute, routeRefusal, routeRequestUrl,
 } from './index.ts';
 
 /**
@@ -134,5 +135,51 @@ describe('saying it to a person', () => {
     // A ratio under one would mean a shortcut through the earth's crust.
     assert.equal(detourRatio(500, 1_000), 1);
     assert.equal(detourRatio(1_000, 0), 1);
+  });
+});
+
+/*
+  WHAT THE ROUTER SAYS WHEN IT SAYS NO.
+
+  Every code below was read off a live reply from
+  `valhalla1.openstreetmap.de` on 13 November 2026, for a real 220 km trip
+  from Nakhon Ratchasima to Ko Sichang:
+
+    pedestrian  154  "Path distance exceeds the max distance limit: 100000 meters"
+    bicycle     154  "...150000 meters"
+    auto        442  "No path could be found for input"
+
+  The car's refusal is the interesting one: Ko Sichang is an ISLAND, the
+  road stops at the water, and no amount of retrying will change it.
+*/
+describe('reading a refusal', () => {
+  test('the distance limit is told apart from no path at all', () => {
+    assert.equal(routeRefusal({ error_code: 154, error: 'Path distance exceeds the max distance limit: 100000 meters' }), 'too-far');
+    assert.equal(routeRefusal({ error_code: 442, error: 'No path could be found for input' }), 'no-path');
+    assert.equal(routeRefusal({ error_code: 171 }), 'unreachable');
+    assert.equal(routeRefusal({ error_code: 172 }), 'unreachable');
+  });
+
+  test('anything else is unknown, including a body that is not the router’s', () => {
+    assert.equal(routeRefusal({ error_code: 999 }), 'unknown');
+    assert.equal(routeRefusal('<html>502 Bad Gateway</html>'), 'unknown');
+    assert.equal(routeRefusal(null), 'unknown');
+    assert.equal(routeRefusal(undefined), 'unknown');
+    assert.equal(routeRefusal({}), 'unknown');
+  });
+
+  test('a walk past the router’s limit is refused without asking it', () => {
+    // The straight line is never longer than the road, so over the limit on
+    // the straight line is certainly over it on the road.
+    assert.equal(beyondRouter('walk', 99_000), false);
+    assert.equal(beyondRouter('walk', 100_001), true);
+    // The car has no limit worth modelling: it refuses for other reasons.
+    assert.equal(beyondRouter('ride', 5_000_000), false);
+    assert.equal(beyondRouter('walk', NaN), false);
+  });
+
+  test('the limits are the ones the server actually enforces', () => {
+    assert.equal(ROUTE_MAX_M.walk, 100_000);
+    assert.equal(ROUTE_MAX_M.ride, Infinity);
   });
 });

@@ -89,14 +89,14 @@ describe('Home frames one area', () => {
     ui.unmount();
   });
 
-  test('on the campus it shows the campus, and not the island', async () => {
+  test('on the campus it shows campus places without reviving retired campus quests', async () => {
     __setAreaForTests('ku-sriracha');
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, props));
     const said = ui.text();
     assert.match(said, /KU Sriracha/);
     assert.match(said, /Campus park/);
-    assert.match(said, /Campus clean-up/);
+    assert.doesNotMatch(said, /Campus clean-up/, 'only the active Koh Sichang quest catalogue is published');
     assert.doesNotMatch(said, /Chaweng/, 'an island place on the campus screen');
     assert.match(said, /Average score across 1 place/, 'the average is of the campus only');
     ui.unmount();
@@ -112,14 +112,14 @@ describe('Home frames one area', () => {
     ui.unmount();
   });
 
-  test('Bangkhen shows only its library and local walk with honest score wording', async () => {
+  test('Bangkhen shows its library, no retired quest, and honest score wording', async () => {
     __setAreaForTests('samui');
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, props));
     await ui.pressText(/KU Bangkhen/);
     const said = ui.text();
     assert.match(said, /Kasetsart University Library/);
-    assert.match(said, /Three Founders campus walk/);
+    assert.doesNotMatch(said, /Three Founders campus walk/, 'retired campus quests stay out of the active catalogue');
     assert.match(said, /Average score across 1 place/);
     assert.match(said, /Healthy Score · area average/);
     assert.match(said, /Places in this area/);

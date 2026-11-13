@@ -29,7 +29,7 @@
 
 import { parseArgs } from 'node:util';
 import {
-  AREAS, SAFETY_PHRASES, SEED_PLACES, SEED_QUESTS, areaByKey, inArea, isAreaKey,
+  ACTIVE_QUESTS, AREAS, SAFETY_PHRASES, SEED_PLACES, areaByKey, inArea, isAreaKey,
   type AreaKey,
 } from '@chivago/core';
 import { openDb, transact, type DB } from './db-node.ts';
@@ -50,7 +50,7 @@ export function seedArea(db: DB, key: AreaKey, now = new Date()): SeedAreaResult
   if (!isAreaKey(key)) throw new Error(`area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
   const area = areaByKey(key);
   const places = SEED_PLACES.filter((p) => p.province === area.province);
-  const quests = SEED_QUESTS.filter((q) => inArea(area, q));
+  const quests = ACTIVE_QUESTS.filter((q) => inArea(area, q));
   const hosts = [...new Map(quests.map((q) => [q.host.id, q.host])).values()];
 
   return transact(db, () => {
@@ -105,13 +105,13 @@ export function seedArea(db: DB, key: AreaKey, now = new Date()): SeedAreaResult
     for (const q of quests) {
       const added = db.prepare(
         `INSERT INTO quests (id, code, name_en, name_th, where_label, where_label_th,
-           duration, duration_th, reward_points,
+           duration, duration_th, reward_points, reward_exp,
            reward_currency, host_id, kind, lat, lng, geofence_radius_m, esg_pillar)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
          ON CONFLICT(id) DO NOTHING`,
       ).run(
         q.id, q.code, q.name.en, q.name.th, q.where.en, q.where.th,
-        q.duration.en, q.duration.th, q.rewardPoints,
+        q.duration.en, q.duration.th, q.rewardPoints, q.rewardExp ?? null,
         q.rewardCurrency, q.host.id, q.kind, q.lat, q.lng, q.geofenceRadiusM,
         q.esgPillar ?? null,
       );

@@ -15,6 +15,7 @@ import { API_BASE } from '../api/client.ts';
 import { TALE_H, TALE_W } from './map-geometry.ts';
 import { Body, Heading, Label } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
+import { ChivarIcon, placeIconName } from './ChivarIcon.tsx';
 
 /**
  * A map pin chip.
@@ -297,6 +298,7 @@ export function PlaceFeedRow({
         },
       ]}
     >
+      <ChivarIcon name={placeIconName(place)} size={42} />
       <View style={{ width: 38 }}>
         <Heading size={24} colour={color.accent700}>{place.healthyScore}</Heading>
       </View>

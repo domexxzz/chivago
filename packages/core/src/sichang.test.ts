@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, test } from 'node:test';
 import { KOH_SICHANG_BBOX, KU_SRIRACHA_BBOX, areaByKey, areaOfPlace, inArea } from './areas.ts';
-import { SAFETY_PHRASES, SEED_HOSTS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
+import { ACTIVE_QUESTS, SAFETY_PHRASES, SEED_HOSTS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
 
 const area = areaByKey('koh-sichang');
 const places = SEED_PLACES.filter((p) => areaOfPlace(p) === 'koh-sichang');
@@ -87,15 +87,21 @@ describe('Koh Sichang', () => {
     }
   });
 
-  test('the sample waste quests are the team\'s, environmental, and say they are samples', () => {
-    const quests = SEED_QUESTS.filter((q) => inArea(area, q));
-    assert.deepEqual(quests.map((q) => q.id).sort(), ['q-sc-beach', 'q-sc-dropoff']);
-    for (const q of quests) {
+  test('only the five field-trial quests are active; the two old samples remain historical', () => {
+    const historical = SEED_QUESTS.filter((q) => ['q-sc-beach', 'q-sc-dropoff'].includes(q.id));
+    assert.equal(historical.length, 2);
+    for (const q of historical) {
       assert.equal(q.host.id, SEED_HOSTS.sichangTeam!.id, 'the municipality has not agreed to host');
       assert.equal(q.esgPillar, 'environmental');
       assert.equal(q.rewardCurrency, 'green');
       assert.match(q.name.th, /ตัวอย่าง/);
       assert.match(q.name.en, /sample/i);
     }
+
+    assert.deepEqual(
+      ACTIVE_QUESTS.map((q) => q.code).sort(),
+      ['SG-01', 'SG-02', 'SG-03', 'SG-04', 'SG-05'],
+    );
+    assert.ok(ACTIVE_QUESTS.every((q) => inArea(area, q)));
   });
 });

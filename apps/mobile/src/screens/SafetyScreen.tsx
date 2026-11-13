@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Animated, Image, Linking, Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { AlertTriangle, Bell, ChevronRight, Phone, ShieldCheck } from 'lucide-react-native';
+import { AlertTriangle, Bell, ChevronLeft, ChevronRight, Phone, ShieldCheck } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import {
   EMERGENCY_AS_OF, emergencyNear, greetingFor, strings, type ShieldService,
@@ -12,7 +12,7 @@ import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, motion, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from '../components/Type.tsx';
-import { Button } from '../components/Button.tsx';
+import { Button, IconButton } from '../components/Button.tsx';
 import { TravelHeroBackdrop } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 // This screen prints both languages wherever a responder may read the screen,
@@ -24,13 +24,14 @@ import { ProfileButton } from '../components/ProfileButton.tsx';
 const SOS_RADIUS = 34;
 
 export function SafetyScreen({
-  alert, onCancel, onShare, onOpenProfile,
+  alert, onCancel, onShare, onBack, onOpenProfile,
 }: {
   alert: SosAlertRecord | null;
   onFire: (pos?: { lat: number; lng: number }) => void;
   onCancel: () => void;
   onShare: () => void;
   firing: boolean;
+  onBack?: () => void;
   onOpenProfile?: () => void;
 }) {
   const shield = useAsync(() => api.shield(), []);
@@ -55,6 +56,13 @@ export function SafetyScreen({
       >
         <TravelHeroBackdrop compact focalPoint="right" />
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          {onBack ? (
+            <View style={{ marginRight: 10 }}>
+              <IconButton inverted onPress={onBack} accessibilityLabel={t(strings.common.back)}>
+                <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2.4} />
+              </IconButton>
+            </View>
+          ) : null}
           <View style={{ flex: 1 }}>
             <Label size={10} tracking={0.14} colour="#D5F6FF">{t(greetingFor(new Date()))}</Label>
             <Heading size={25} colour="#FFFFFF" style={{ marginTop: 3, fontWeight: '800' }}>
@@ -503,7 +511,7 @@ function EmergencyNumbers({ at }: { at: { lat: number; lng: number } | null }) {
       {/*
         The stations on the island, nearest first once we know where you are.
         A hotline dispatches; these are the people who actually arrive, and on
-        Samui the difference is twenty minutes of road.
+        Koh Sichang even a short distance matters when somebody needs help.
       */}
       {island.map((n) => (
         <Pressable

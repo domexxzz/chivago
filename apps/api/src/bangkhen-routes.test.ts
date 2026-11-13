@@ -12,6 +12,7 @@ const campusIds = [
   'ku-bk-auditorium', 'ku-bk-canteen', 'ku-bk-library', 'ku-bk-park', 'ku-bk-stadium',
 ];
 const quest = SEED_QUESTS.find((q) => q.id === 'q-ku-bk-walk')!;
+const activeQuest = SEED_QUESTS.find((q) => q.id === 'q-sg-explorer')!;
 const host = SEED_HOSTS.kuBangkhen!;
 const { minLng, minLat, maxLng, maxLat } = KU_BANGKHEN_BBOX;
 const bbox = `${minLng},${minLat},${maxLng},${maxLat}`;
@@ -34,13 +35,15 @@ before(() => {
       p.airStation ? JSON.stringify(p.airStation) : null,
     );
   }
-  db.prepare(`
+  const insertQuest = db.prepare(`
     INSERT INTO quests (id, code, name_en, name_th, where_label, where_label_th,
       duration, duration_th, reward_points, reward_currency, host_id, kind, lat, lng, geofence_radius_m)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(quest.id, quest.code, quest.name.en, quest.name.th, quest.where.en, quest.where.th,
-      quest.duration.en, quest.duration.th, quest.rewardPoints, quest.rewardCurrency,
-      host.id, quest.kind, quest.lat, quest.lng, quest.geofenceRadiusM);
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  for (const item of [quest, activeQuest]) {
+    insertQuest.run(item.id, item.code, item.name.en, item.name.th, item.where.en, item.where.th,
+      item.duration.en, item.duration.th, item.rewardPoints, item.rewardCurrency,
+      host.id, item.kind, item.lat, item.lng, item.geofenceRadiusM);
+  }
 });
 
 const data = async (path: string) => {
@@ -72,12 +75,15 @@ describe('Bangkhen over the API', () => {
     }
   });
 
-  test('the local walk is public, host-named, and awards only Trip Points', async () => {
+  test('the retired campus quest is no longer published', async () => {
     const { quests } = await data('/quests') as { quests: any[] };
     const found = quests.find((q) => q.id === quest.id);
-    assert.ok(found);
-    assert.equal(found.host.id, host.id);
-    assert.equal(found.rewardCurrency, 'trip');
-    assert.equal(found.geofenceRadiusM, 100);
+    assert.equal(found, undefined, 'a retired quest leaked into the public list');
+    assert.ok(quests.some((q) => q.id === activeQuest.id), 'the active Koh Sichang quest was hidden too');
+
+    const detail = await app.request(`/quests/${quest.id}`, {
+      headers: { origin: 'http://localhost:8085' },
+    });
+    assert.equal(detail.status, 404, 'a retired quest remained reachable by its old URL');
   });
 });

@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { Image, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
-import { ArrowLeft, BedDouble, ChevronRight, Expand, Layers3, LayoutGrid, List, Map as MapIcon, MessageCircle, Minus, Plus, Satellite, Store } from 'lucide-react-native';
+import { ArrowLeft, BedDouble, ChevronRight, Expand, Layers3, LayoutGrid, List, Map as MapIcon, MessageCircle, Minus, Navigation, Plus, Satellite, Store } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import {
   greetingFor, strings,
@@ -62,14 +62,16 @@ const mapShopCategory = (category: string) => {
 
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
-  onAskConcierge, onOpenStays, onOpenShop, onToast,
-  onOpenWallet, onOpenProfile, wayTo = null, onClearWay, fairFocus = null, onClearFair, onOpenFair, onBackToFair,
+  onAskConcierge, onOpenStays, onOpenShop, onNavigateShop, onToast,
+  onOpenWallet, onOpenProfile, wayTo = null, onClearWay, onNavigate, fairFocus = null, onClearFair, onOpenFair, onBackToFair,
 }: {
   layers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
   onPlanDay: () => void;
   onOpenPlace: (id: string) => void;
   onOpenShop?: (id: string) => void;
+  /** Opens turn-by-turn for a business pin that carries a verified coordinate. */
+  onNavigateShop?: (shop: Shop) => void;
   onOpenQuest: (id: string) => void;
   onSeeAllQuests: () => void;
   onAskConcierge: () => void;
@@ -86,6 +88,8 @@ export function MapScreen({
    */
   wayTo?: ScoredPlace | null;
   onClearWay?: () => void;
+  /** Opens turn-by-turn for the place the way banner is about. */
+  onNavigate?: (place: ScoredPlace) => void;
   /** A fair lot chosen on the fair screen (docs/66): the map flies to it and marks it among the others. */
   fairFocus?: { fairId: string; code: string } | null;
   onClearFair?: () => void;
@@ -365,7 +369,7 @@ export function MapScreen({
   // Named for the way, not just 'mode': this screen already has one, and it
   // means map-or-feed.
   const [wayMode, setWayMode] = React.useState<RouteMode>('walk');
-  const { route, loading: routing, failed: routeFailed } = useRoute(here, wayTo, wayMode);
+  const { route, loading: routing, failed: routeFailed, refusal: routeRefused } = useRoute(here, wayTo, wayMode);
   const way = React.useMemo<[number, number][] | null>(() => {
     if (route) return route.line;
     if (!here || !wayTo) return null;
@@ -521,10 +525,12 @@ export function MapScreen({
               route={route}
               loading={routing}
               failed={routeFailed}
+              refusal={routeRefused}
               haveHere={here !== null}
               mode={wayMode}
               onMode={setWayMode}
               onClear={() => onClearWay?.()}
+              onNavigate={onNavigate ? () => onNavigate(wayTo) : undefined}
             />
           ) : null}
           {mode === 'map' ? (
@@ -580,6 +586,11 @@ export function MapScreen({
                   place={selectedPlace}
                   shop={selectedShop}
                   onOpen={() => selectedPlace ? onOpenPlace(selectedPlace.id) : selectedShop ? onOpenShop?.(selectedShop.id) : undefined}
+                  onNavigate={selectedPlace && onNavigate
+                    ? () => onNavigate(selectedPlace)
+                    : selectedShop && selectedShop.lat !== null && selectedShop.lng !== null && onNavigateShop
+                      ? () => onNavigateShop(selectedShop)
+                      : undefined}
                 />
               </View>
             ) : null}
@@ -831,6 +842,11 @@ export function MapScreen({
                 if (selectedPlace) onOpenPlace(selectedPlace.id);
                 else if (selectedShop) onOpenShop?.(selectedShop.id);
               }}
+              onNavigate={selectedPlace && onNavigate
+                ? () => { setExpandedMap(false); onNavigate(selectedPlace); }
+                : selectedShop && selectedShop.lat !== null && selectedShop.lng !== null && onNavigateShop
+                  ? () => { setExpandedMap(false); onNavigateShop(selectedShop); }
+                  : undefined}
             />
           </View>
         ) : null}
@@ -849,7 +865,7 @@ export function MapScreen({
           MapLibre's own controls and would end up with two sets.
         */}
         {Platform.OS !== 'web' ? (
-          <View style={{ position: 'absolute', right: 16, bottom: selectedPlace || selectedShop ? 156 : 42, gap: 12 }}>
+          <View style={{ position: 'absolute', right: 16, bottom: selectedPlace || selectedShop ? 218 : 42, gap: 12 }}>
             <Pressable
               onPress={() => expandedZoom.current?.zoomIn()}
               accessibilityRole="button"
@@ -897,14 +913,16 @@ export function MapScreen({
   );
 }
 
-function MapSelectionCard({
+export function MapSelectionCard({
   place,
   shop,
   onOpen,
+  onNavigate,
 }: {
   place: ScoredPlace | null;
   shop: Shop | null;
   onOpen: () => void | undefined;
+  onNavigate?: () => void;
 }) {
   if (!place && !shop) return null;
   const title = place ? t(place.name) : shop!.name;
@@ -918,6 +936,33 @@ function MapSelectionCard({
       ? t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว', zh: '暂无评价' })
       : `★ ${shop!.rating.toFixed(1)} (${shop!.reviewCount})`;
   return (
+    <View>
+      {onNavigate ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t({ en: `Navigate to ${title}`, th: `นำทางไป ${title}`, zh: `导航至 ${title}` })}
+          onPress={onNavigate}
+          style={({ pressed }) => [shadow.md, {
+            alignSelf: 'flex-end',
+            marginBottom: 10,
+            minHeight: 46,
+            paddingHorizontal: 18,
+            borderRadius: 23,
+            backgroundColor: pressed ? '#006A94' : '#008FB5',
+            borderWidth: 2,
+            borderColor: '#FFFFFF',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+          }]}
+        >
+          <Navigation size={20} color="#FFFFFF" fill="rgba(255,255,255,0.18)" strokeWidth={2.6} />
+          <Text style={{ color: '#FFFFFF', fontSize: 15, lineHeight: 20, fontWeight: '800' }}>
+            {t({ en: 'Navigate', th: 'นำทาง', zh: '导航' })}
+          </Text>
+        </Pressable>
+      ) : null}
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={t({ en: `Open details for ${title}`, th: `เปิดรายละเอียด ${title}`, zh: `查看 ${title} 详情` })}
@@ -950,6 +995,7 @@ function MapSelectionCard({
         <ChevronRight size={22} color={color.brand} strokeWidth={2.5} />
       </View>
     </Pressable>
+    </View>
   );
 }
 
@@ -1124,9 +1170,9 @@ export function QuestsNearYou({
             <View style={{ flex: 1 }}>
               <Heading size={17}>{t(top.name)}</Heading>
             </View>
-            <View style={{ backgroundColor: currencyTone(top.rewardCurrency).fill, paddingVertical: 4, paddingHorizontal: 8, borderRadius: radius.sm }}>
-              <Heading size={13} colour={currencyTone(top.rewardCurrency).on}>
-                {`+${top.rewardPoints} ${top.rewardCurrency === 'green' ? 'G' : 'T'}`}
+            <View style={{ backgroundColor: top.rewardExp != null ? '#FFD166' : currencyTone(top.rewardCurrency).fill, paddingVertical: 4, paddingHorizontal: 8, borderRadius: radius.sm }}>
+              <Heading size={13} colour={top.rewardExp != null ? '#493300' : currencyTone(top.rewardCurrency).on}>
+                {top.rewardExp != null ? `+${top.rewardExp} XP` : `+${top.rewardPoints} ${top.rewardCurrency === 'green' ? 'G' : 'T'}`}
               </Heading>
             </View>
           </View>

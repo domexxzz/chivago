@@ -35,7 +35,7 @@
 import type { Bilingual, LayerKey, Localised, Quest, ScoredPlace } from './types.ts';
 import { type Lang, localise } from './localise.ts';
 import { crowdLabel } from './healthy-score.ts';
-import { SAMUI_EMERGENCY } from './emergency.ts';
+import { KOH_SICHANG_EMERGENCY } from './emergency.ts';
 
 // ---------------------------------------------------------------------------
 // Language
@@ -330,7 +330,7 @@ export function answer(input: string, ctx: Context): Reply {
         '拨打 1669 可叫救护车，免费、24 小时服务，泰国全境均可接通。'
         + '1155 是旅游警察，可使用英语沟通。通话时可在“安全”页分享实时位置。',
       ), lang),
-      dial: SAMUI_EMERGENCY
+      dial: KOH_SICHANG_EMERGENCY
         .filter((n) => n.scope === 'national')
         .map((n) => ({ name: n.name, printed: n.printed, dial: n.dial })),
       action: 'safety',

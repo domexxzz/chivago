@@ -1,8 +1,8 @@
 import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
-import { KOH_SICHANG_BBOX, SAMUI_BBOX, SEED_PLACES, computeHealthyScore, type ScoredPlace } from '@chivago/core';
-import { CHIP, TALE_H, TALE_W, layoutPins, mistCircles, project, projectArea, tilt } from './map-geometry.ts';
+import { AREAS, KOH_SICHANG_BBOX, areaByKey, SAMUI_BBOX, SEED_PLACES, computeHealthyScore, inArea, type ScoredPlace } from '@chivago/core';
+import { CHIP, TALE_H, TALE_W, UNPINNED_NOTE, UNPINNED_RING_M, isGuide, layoutPins, mappable, mistCircles, project, projectArea, servicePoints, tilt } from './map-geometry.ts';
 
 /**
  * The island's places only. The projection is Samui's bounding box and the
@@ -319,5 +319,92 @@ describe('the mist on the drawn island', () => {
     assert.equal(mistCircles([{ placeId: 'nowhere' }], places, W, H).length, 0);
     assert.equal(mistCircles([{ placeId: 'lamai' }], places, W, H).length, 1);
     assert.equal(mistCircles([], places, W, H).length, 0);
+  });
+});
+
+describe('every service gets a pin', () => {
+  // The real area record, not a hand-copied centre: the first draft of this
+  // test used another area's centre and failed for it.
+  const SICHANG = areaByKey('koh-sichang').center;
+  const shop = (id: string, lat: number | null, lng: number | null) => ({ id, lat, lng });
+  const metresBetween = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+    const dLat = (a.lat - b.lat) * 111_320;
+    const dLng = (a.lng - b.lng) * 111_320 * Math.cos((b.lat * Math.PI) / 180);
+    return Math.hypot(dLat, dLng);
+  };
+
+  test('one point per service, in the order given - never fewer', () => {
+    const shops = [shop('a', 13.15, 100.81), shop('b', null, null), shop('c', 13.16, 100.80), shop('d', null, 100.81)];
+    const out = servicePoints(shops, SICHANG, KOH_SICHANG_BBOX);
+    assert.equal(out.length, shops.length, 'a service was dropped from the map');
+    assert.deepEqual(out.map((p) => p.id), ['a', 'b', 'c', 'd']);
+  });
+
+  test('a service with a real spot keeps exactly that spot', () => {
+    const [p] = servicePoints([shop('a', 13.1534, 100.8087)], SICHANG, KOH_SICHANG_BBOX);
+    assert.equal(p!.lat, 13.1534);
+    assert.equal(p!.lng, 100.8087);
+    assert.equal(p!.approximate, false);
+  });
+
+  test('missing, broken and Null-Island coordinates stand on the ring, flagged', () => {
+    const shops = [shop('none', null, null), shop('nan', Number.NaN, 100.81), shop('zero', 0, 0), shop('half', 13.15, null)];
+    for (const p of servicePoints(shops, SICHANG, KOH_SICHANG_BBOX)) {
+      assert.equal(p.approximate, true, `${p.id} was drawn as a real address`);
+      assert.ok(Math.abs(metresBetween(p, SICHANG) - UNPINNED_RING_M) < 1, `${p.id} is not on the ring`);
+    }
+  });
+
+  test('a coordinate outside the listed area is a typo, not a place on this map', () => {
+    // Bangkok, in Koh Sichang's list: drawn there, it would be off the edge
+    // of the only map that lists it.
+    const [p] = servicePoints([shop('typo', 13.7563, 100.5018)], SICHANG, KOH_SICHANG_BBOX);
+    assert.equal(p!.approximate, true);
+    assert.ok(p!.lat >= KOH_SICHANG_BBOX.minLat && p!.lat <= KOH_SICHANG_BBOX.maxLat);
+    assert.ok(p!.lng >= KOH_SICHANG_BBOX.minLng && p!.lng <= KOH_SICHANG_BBOX.maxLng);
+  });
+
+  test('several unpinned services do not stack on one spot', () => {
+    const out = servicePoints(['a', 'b', 'c', 'd', 'e'].map((id) => shop(id, null, null)), SICHANG, KOH_SICHANG_BBOX);
+    for (let i = 0; i < out.length; i += 1) {
+      for (let j = i + 1; j < out.length; j += 1) {
+        assert.ok(metresBetween(out[i]!, out[j]!) > 50, `${out[i]!.id} and ${out[j]!.id} share a spot`);
+      }
+    }
+  });
+
+  test('the note an approximate pin carries is in every language', () => {
+    for (const lang of ['en', 'th', 'zh'] as const) assert.ok(UNPINNED_NOTE[lang].length > 10, `${lang} is missing`);
+  });
+});
+
+describe('every place lands on a map that can draw it', () => {
+  test('each seed place lies inside the frame of an area', () => {
+    // A pin outside every area's frame is as invisible as no pin at all.
+    for (const place of SEED_PLACES) {
+      assert.ok(AREAS.some((area) => inArea(area, place)), `${place.id} belongs to no area's map`);
+    }
+  });
+});
+
+describe('a tour guide is a person, not a place', () => {
+  test('guides are left off the map, by service type or by category', () => {
+    const shops = [
+      { id: 'cafe', serviceType: 'business', category: 'ร้านอาหาร' },
+      { id: 'guide', serviceType: 'guide', category: 'ไกด์นำเที่ยว' },
+      // A row written before `serviceType` existed carries only the category.
+      { id: 'old-guide', category: 'ไกด์นำเที่ยว' },
+    ];
+    assert.deepEqual(mappable(shops).map((s) => s.id), ['cafe']);
+    assert.equal(isGuide(shops[1]!), true);
+    assert.equal(isGuide(shops[2]!), true);
+    assert.equal(isGuide(shops[0]!), false);
+  });
+
+  test('a point always carries the untouched business, so a tap never gets the ring copy', () => {
+    const shop = { id: 'x', lat: null, lng: null };
+    const [p] = servicePoints([shop], areaByKey('koh-sichang').center, KOH_SICHANG_BBOX);
+    assert.equal(p!.source, shop);
+    assert.equal(p!.source.lat, null, 'the ring position leaked into the record');
   });
 });

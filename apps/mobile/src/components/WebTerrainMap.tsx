@@ -38,6 +38,7 @@ import { color } from '../theme/index.ts';
 import { t } from '../i18n/locale.ts';
 import type { Shop } from '../api/shops.ts';
 import { shopMarkerSvg, shopMarkerVisual } from './shop-map-marker.tsx';
+import { UNPINNED_NOTE, mappable, servicePoints } from './map-geometry.ts';
 
 /**
  * Where the page thinks it lives.
@@ -115,7 +116,7 @@ export interface WebTerrainMapProps {
  * to serve, and no second place for the style to drift out of sync.
  */
 function page(style: unknown, pins: { id: string; lat: number; lng: number; label: string; high: boolean }[],
-  shopPins: { id: string; lat: number; lng: number; name: string; category: string; colour: string; svg: string }[],
+  shopPins: { id: string; lat: number; lng: number; name: string; category: string; colour: string; svg: string; approximate: boolean; note: string }[],
   centre: [number, number], here: { lat: number; lng: number } | null,
   box: { minLat: number; maxLat: number; minLng: number; maxLng: number },
   inlineSatellite: boolean): string {
@@ -132,12 +133,17 @@ function page(style: unknown, pins: { id: string; lat: number; lng: number; labe
        box-shadow:0 2px 6px rgba(0,0,0,.3)}
   .pin.high{background:#1B7F5A}
   .shop-pin{position:relative;display:flex;align-items:center;justify-content:center;width:42px;height:48px;
-    padding:0;border:0;background:transparent;color:#fff;filter:drop-shadow(0 4px 5px rgba(8,26,48,.42))}
+    padding:0;border:0;background:transparent;color:#fff}
   .shop-pin-core{position:absolute;top:0;z-index:1;display:flex;align-items:center;justify-content:center;width:38px;height:38px;
-    border:3px solid #fff;border-radius:50%;background:var(--marker-colour)}
+    border:3px solid #fff;border-radius:50%;background:var(--marker-colour);box-shadow:0 4px 7px rgba(8,26,48,.4)}
   .shop-pin-core svg{width:19px;height:19px}
+  .shop-pin-core img{width:128px;height:128px;max-width:none;display:block;object-fit:contain}
   .shop-pin-tail{position:absolute;top:31px;width:13px;height:13px;transform:rotate(45deg);background:var(--marker-colour);
-    border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;border-radius:2px}
+    border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;border-radius:2px;box-shadow:3px 3px 5px rgba(8,26,48,.32)}
+  .shop-pin.approx .shop-pin-core{border-style:dashed;opacity:.9}
+  .shop-pin.approx .shop-pin-tail{opacity:.55}
+  .approx-badge{position:absolute;z-index:2;top:-5px;right:-3px;width:17px;height:17px;border-radius:50%;
+    background:#F2B531;color:#3B2A10;border:2px solid #fff;font:800 10px/13px system-ui,sans-serif;text-align:center}
   .me{width:16px;height:16px;border-radius:8px;background:#0077B6;border:3px solid #fff;
       box-shadow:0 0 0 6px rgba(0,119,182,.25)}
   /* Bigger than MapLibre's default: these are pressed with a thumb, not a mouse. */
@@ -325,10 +331,10 @@ function start(){
     });
     D.shopPins.forEach(function(p){
       var el=document.createElement('button');
-      el.type='button'; el.className='shop-pin';
-      el.setAttribute('aria-label',p.category+': '+p.name);
+      el.type='button'; el.className=p.approximate?'shop-pin approx':'shop-pin';
+      el.setAttribute('aria-label',p.category+': '+p.name+(p.approximate?'. '+p.note:''));
       el.style.setProperty('--marker-colour',p.colour);
-      el.innerHTML='<span class="shop-pin-tail"></span><span class="shop-pin-core">'+p.svg+'</span>';
+      el.innerHTML='<span class="shop-pin-tail"></span><span class="shop-pin-core">'+p.svg+'</span>'+(p.approximate?'<span class="approx-badge" aria-hidden="true">?</span>':'');
       el.addEventListener('click',function(){ post({type:'selectShop',id:p.id}); });
       new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([p.lng,p.lat]).addTo(map);
     });
@@ -383,13 +389,18 @@ export function WebTerrainMap({
         label: `${p.healthyScore} ${t(p.name)}`,
         high: isHighScore(p.healthyScore),
       })),
-      shops.flatMap((shop) => {
-        if (shop.lat === null || shop.lng === null) return [];
+      // Every service, one pin: `servicePoints` stands the unpinned ones on
+      // the area's ring and flags them, and the page draws them dashed.
+      // Guides are people, not places, and have no pin; see `isGuide`.
+      servicePoints(mappable(shops), area.center, area.bbox).map((spot) => {
+        const shop = spot.source;
         const visual = shopMarkerVisual(shop.category);
-        return [{
-          id: shop.id, lat: shop.lat, lng: shop.lng, name: shop.name, category: shop.category,
+        return {
+          id: shop.id, lat: spot.lat, lng: spot.lng, name: shop.name, category: shop.category,
           colour: visual.colour, svg: shopMarkerSvg(shop.category),
-        }];
+          approximate: spot.approximate,
+          note: spot.approximate ? t(UNPINNED_NOTE) : '',
+        };
       }),
       centre,
       here,

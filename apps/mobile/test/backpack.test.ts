@@ -257,7 +257,7 @@ describe('on a rail the fourth cell is the backpack, not Collect', () => {
     assert.equal(tab, null, 'and it should not be a tab switch in disguise');
 
     assert.equal(ui.find('Collect'), undefined, 'Collect should not also have a cell');
-    assert.deepEqual([...new Set(ui.labels())], ['Home', 'Map', 'Games & Quests', 'My Backpack', 'Safety']);
+    assert.deepEqual([...new Set(ui.labels())], ['Home', 'Map', 'Game&Quest', 'My Backpack']);
     ui.unmount();
   });
 
@@ -269,7 +269,7 @@ describe('on a rail the fourth cell is the backpack, not Collect', () => {
       onChange: (key: string) => { tab = key; },
     }));
 
-    assert.deepEqual([...new Set(ui.labels())], ['Home', 'Map', 'Games & Quests', 'Collect', 'Safety']);
+    assert.deepEqual([...new Set(ui.labels())], ['Home', 'Map', 'Game&Quest', 'Collect']);
     await ui.press('Collect');
     assert.equal(tab, 'game');
     ui.unmount();

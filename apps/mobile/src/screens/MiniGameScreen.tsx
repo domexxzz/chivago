@@ -34,14 +34,15 @@
  */
 
 import React from 'react';
-import { Platform, View } from 'react-native';
+import { Image, Platform, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { miniGame } from '../games/index.ts';
 import { color, gutter } from '../theme/index.ts';
-import { Body } from '../components/Type.tsx';
+import { Body, Heading, Label } from '../components/Type.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState } from '../components/States.tsx';
 import { t, useLocale } from '../i18n/locale.ts';
+import trashHeroLogo from '../../assets/trash-hero-logo.png';
 
 /**
  * Where the document thinks it lives.
@@ -78,6 +79,34 @@ export function MiniGameScreen({ gameKey, onBack }: { gameKey: string; onBack: (
         />
       ) : (
         <>
+          <View
+            style={{
+              marginHorizontal: gutter,
+              marginBottom: 10,
+              minHeight: 82,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: '#CBE7F0',
+              backgroundColor: '#FFFFFF',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <Image
+              source={trashHeroLogo}
+              resizeMode="contain"
+              accessibilityLabel={t(game.name)}
+              style={{ width: 72, height: 72 }}
+            />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Label size={9} tracking={0.12} colour={color.brand}>{t({ en: 'TRASH HERO', th: 'ฮีโร่แยกขยะ', zh: '垃圾分类英雄' })}</Label>
+              <Heading size={18} colour={color.text} style={{ marginTop: 3 }}>{t(game.name)}</Heading>
+              <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>{t(game.blurb)}</Body>
+            </View>
+          </View>
           {/*
             Said before the game opens, not discovered inside it. A page in a
             language somebody cannot read looks exactly like a page that

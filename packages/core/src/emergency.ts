@@ -1,5 +1,5 @@
 /**
- * Emergency numbers for Koh Samui.
+ * Emergency numbers for Koh Sichang.
  *
  * The most consequential data in this application. A wrong number here does
  * not degrade an experience - it delays an ambulance. Three rules follow, and
@@ -8,26 +8,26 @@
  *  1. EVERY entry carries the URL it came from and the date it was read.
  *     Emergency numbers change, and a number nobody can trace is a number
  *     nobody can re-check.
- *  2. NOTHING here was recalled from memory. Every local number was read from
- *     the Koh Samui City Municipality's own emergency page on the date below.
- *  3. A source being official is not the same as a source being right. That
- *     municipality page lists "สายด่วนตำรวจท่องเที่ยว 1699", which is wrong:
- *     the Tourist Police line is 1155, and 1699 is the number people already
- *     misdial when they mean 1669. It is deliberately absent, and
- *     `nearMissOf` below exists so it cannot be added back by accident.
+ *  2. NOTHING here was recalled from memory. Local numbers come from the
+ *     hospital and police station's own sites; national lines come from the
+ *     Thai government's public emergency-number directory.
+ *  3. A source being official is not enough on its own. `nearMissOf` below
+ *     protects the four national lines from a transposition or typo.
  */
 
 import type { Bilingual } from './types.ts';
 
 /** When every number below was last read from its source. */
-export const EMERGENCY_AS_OF = '2026-09-01';
+export const EMERGENCY_AS_OF = '2026-11-13';
 
 export const SOURCES = {
-  municipality: 'https://kohsamuicity.go.th/tel_emergency',
-  touristPolice: 'https://www.facebook.com/1155TPB/',
+  national: 'https://info.go.th/emergency-number',
+  touristPolice: 'https://www.touristpolice.go.th/',
+  hospital: 'https://kschospital.go.th/',
+  policeStation: 'https://kosichang.chonburi.police.go.th/contact/',
 } as const;
 
-/** National lines answer anywhere in Thailand; island ones are on Samui. */
+/** National lines answer anywhere in Thailand; island ones are on Koh Sichang. */
 export type EmergencyScope = 'national' | 'island';
 
 export interface EmergencyNumber {
@@ -51,7 +51,7 @@ export interface EmergencyNumber {
  * name and dial the nearest actual station rather than leaving somebody to
  * search for one.
  */
-export const SAMUI_EMERGENCY: EmergencyNumber[] = [
+export const KOH_SICHANG_EMERGENCY: EmergencyNumber[] = [
   {
     key: 'ems',
     name: { en: 'Medical emergency', th: 'สายด่วนศูนย์แพทย์ฉุกเฉิน', zh: '医疗急救' },
@@ -59,7 +59,7 @@ export const SAMUI_EMERGENCY: EmergencyNumber[] = [
     printed: '1669',
     scope: 'national',
     at: null,
-    sourceUrl: SOURCES.municipality,
+    sourceUrl: SOURCES.national,
   },
   {
     key: 'police',
@@ -68,7 +68,7 @@ export const SAMUI_EMERGENCY: EmergencyNumber[] = [
     printed: '191',
     scope: 'national',
     at: null,
-    sourceUrl: SOURCES.municipality,
+    sourceUrl: SOURCES.national,
   },
   {
     key: 'fire',
@@ -77,11 +77,9 @@ export const SAMUI_EMERGENCY: EmergencyNumber[] = [
     printed: '199',
     scope: 'national',
     at: null,
-    sourceUrl: SOURCES.municipality,
+    sourceUrl: SOURCES.national,
   },
   {
-    // NOT from the municipality page, which prints 1699 under this label and
-    // is wrong. Sourced from the Tourist Police Bureau's own channel.
     key: 'tourist-police',
     name: { en: 'Tourist Police', th: 'สายด่วนตำรวจท่องเที่ยว', zh: '旅游警察' },
     dial: '1155',
@@ -91,31 +89,24 @@ export const SAMUI_EMERGENCY: EmergencyNumber[] = [
     sourceUrl: SOURCES.touristPolice,
   },
   {
-    key: 'samui-hospital',
-    name: { en: 'Koh Samui Hospital', th: 'โรงพยาบาลเกาะสมุย', zh: '苏梅岛医院' },
-    dial: '077913200',
-    printed: '0-7791-3200',
+    key: 'koh-sichang-hospital-er',
+    name: { en: 'Koh Sichang Hospital emergency room', th: 'ห้องฉุกเฉิน โรงพยาบาลเกาะสีชัง', zh: '锡昌岛医院急诊室' },
+    dial: '0887504872',
+    printed: '088-7504872',
     scope: 'island',
-    at: { lat: 9.5121, lng: 100.0608 },
-    sourceUrl: SOURCES.municipality,
+    at: { lat: 13.1631992, lng: 100.8076481 },
+    sourceUrl: SOURCES.hospital,
   },
   {
-    key: 'samui-police-station',
-    name: { en: 'Koh Samui Police Station', th: 'สถานีตำรวจภูธรเกาะสมุย', zh: '苏梅岛警察局' },
-    dial: '077420506',
-    printed: '0-7742-0506',
+    key: 'koh-sichang-police-station',
+    name: { en: 'Koh Sichang Police Station', th: 'สถานีตำรวจภูธรเกาะสีชัง', zh: '锡昌岛警察局' },
+    dial: '038216218',
+    printed: '0 3821 6218',
     scope: 'island',
-    at: { lat: 9.5333, lng: 99.9333 },
-    sourceUrl: SOURCES.municipality,
-  },
-  {
-    key: 'bophut-police-station',
-    name: { en: 'Bophut Police Station', th: 'สถานีตำรวจบ่อผุด', zh: '波普警察局' },
-    dial: '077414567',
-    printed: '0-7741-4567',
-    scope: 'island',
-    at: { lat: 9.5573, lng: 100.0596 },
-    sourceUrl: SOURCES.municipality,
+    // The official contact page publishes an address but no coordinates. Do
+    // not invent a map point merely to display a distance.
+    at: null,
+    sourceUrl: SOURCES.policeStation,
   },
 ];
 
@@ -178,10 +169,10 @@ export function kmBetween(
 export function emergencyNear(
   position: { lat: number; lng: number } | null,
 ): (EmergencyNumber & { km: number | null })[] {
-  const national = SAMUI_EMERGENCY
+  const national = KOH_SICHANG_EMERGENCY
     .filter((e) => e.scope === 'national')
     .map((e) => ({ ...e, km: null }));
-  const island = SAMUI_EMERGENCY
+  const island = KOH_SICHANG_EMERGENCY
     .filter((e) => e.scope === 'island')
     .map((e) => ({
       ...e,

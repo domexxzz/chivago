@@ -42,7 +42,9 @@ export type ScreenKey =
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
   | 'companion' | 'passport' | 'account' | 'party' | 'findParty' | 'game'
   | 'mascots' | 'mascot' | 'fashion' | 'profile' | 'medals' | 'stays' | 'fair'
-  | 'summon' | 'editProfile' | 'connectApp' | 'community' | 'shop' | 'shopManage' | 'localPicks' | 'miniGame';
+  | 'summon' | 'editProfile' | 'connectApp' | 'community' | 'shop' | 'shopManage' | 'localPicks' | 'miniGame'
+  /** Turn-by-turn, full screen. Reached from the way banner on the map. */
+  | 'navigate';
 
 /**
  * Five tabs. Impact left the bar, and now the wallet has too.
@@ -95,6 +97,9 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   login: 'home',
   register: 'home',
   onboarding: 'home', home: 'home', map: 'map', place: 'map', trip: 'map',
+  // The map's tab stays lit behind the navigator: it is the map, full screen,
+  // and a tab tap from it should land back on the map rather than on Home.
+  navigate: 'map',
   // Reached from the trip planner, so the map stays lit behind it the same
   // way it does behind the trip.
   stays: 'map',

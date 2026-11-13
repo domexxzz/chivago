@@ -308,63 +308,6 @@ describe('what Home says', () => {
     ui.unmount();
   });
 
-  test('a Trip reward on the Home card is not green either', async () => {
-    const s = server(routes({
-      '/quests?filter=today': { quests: [fx.quest({ rewardCurrency: 'trip', rewardPoints: 60 })], progress: {} },
-    }));
-    restore = s.restore;
-    const ui = await mountScreen(h(HomeScreen, props));
-    assert.match(ui.text(), /\+60 T/);
-    ui.unmount();
-  });
-
-  test('the host who will approve it is named on the card', async () => {
-    // A mission with an anonymous verifier is a task list. The name is the
-    // reason the reward means anything, so it is on the card and not only
-    // inside the detail screen.
-    const s = server(routes()); restore = s.restore;
-    const ui = await mountScreen(h(HomeScreen, props));
-    assert.match(ui.text(), /Samui Municipality/);
-    ui.unmount();
-  });
-
-  test('a completed mission is not offered again as something to do', async () => {
-    // The demo account had finished all four of today's, and Home listed them
-    // under "Today" — an invitation to repeat work that cannot be repeated.
-    const s = server(routes({
-      '/quests?filter=today': {
-        quests: [fx.quest({ id: 'done' })],
-        progress: { done: fx.progress({ questId: 'done', stage: 'complete' }) },
-      },
-    }));
-    restore = s.restore;
-    const ui = await mountScreen(h(HomeScreen, props));
-    const said = ui.text();
-    assert.doesNotMatch(said, /\+150 G/, 'a finished quest is still being offered');
-    assert.match(said, /All 1 of today’s missions are done/);
-    ui.unmount();
-  });
-
-  test('finishing everything and there being nothing are different days', async () => {
-    // Praise for an empty schedule the traveller had no part in is the kind of
-    // hollow encouragement that teaches people to ignore the app's messages.
-    const s = server(routes({ '/quests?filter=today': { quests: [], progress: {} } }));
-    restore = s.restore;
-    const ui = await mountScreen(h(HomeScreen, props));
-    assert.doesNotMatch(ui.text(), /are done/, 'it congratulated somebody for doing nothing');
-    ui.unmount();
-  });
-
-  test('no missions today is said plainly, not padded', async () => {
-    const s = server(routes({ '/quests?filter=today': { quests: [], progress: {} } }));
-    restore = s.restore;
-    const ui = await mountScreen(h(HomeScreen, props));
-    const said = ui.text();
-    assert.match(said, /No missions running today/);
-    assert.doesNotMatch(said, /\+\d+ [GT]/, 'it invented a reward to fill the space');
-    ui.unmount();
-  });
-
   test('the two purses are labelled by what separates them', async () => {
     // This is the screen where somebody first learns there are two currencies.
     // If it shows two numbers and no reason, the distinction is decoration.
@@ -388,14 +331,13 @@ describe('what Home says', () => {
 describe('one endpoint dying does not take the screen with it', () => {
   test('places is down, and everything else still renders', async () => {
     // The worst screen in the app to lose, because it is the one somebody
-    // opens when they are lost. Five independent loads, five independent
+    // opens when they are lost. Independent loads stay independent
     // failures.
     const s = server(routes({ '/places': offline() })); restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, props));
     const said = ui.text();
 
     assert.match(said, /Conditions are unavailable/, 'it did not admit the conditions failed');
-    assert.match(said, /Beach Cleanup/, 'a dead /places took the quests with it');
     assert.match(said, /120/, 'a dead /places took the wallet with it');
     ui.unmount();
   });
@@ -476,70 +418,6 @@ describe('the board on Home', () => {
   });
 });
 
-/**
- * The monsters on Home.
- *
- * The island's problems wearing a face, made of readings the app already
- * holds. What these hold is the pair of promises the mechanic rests on: the
- * card never hides the number that summoned it, and nothing on the screen
- * suggests that pushing one back changed the world it came from.
- */
-describe('what is wrong here', () => {
-  const monsterRoute = (monsters: unknown[]) => ({
-    '/areas/samui/monsters': { monsters },
-  });
-
-  const smog = {
-    kind: 'smog', key: 'smog', placeId: 'chaweng',
-    placeName: { en: 'Chaweng Beach', th: 'หาดเฉวง' },
-    because: { en: 'Air measured at 140 AQI here, over 51.', th: 'วัดอากาศได้ 140 AQI ที่นี่ สูงกว่า 51' },
-    progress: 2, needed: 5, restingUntil: null,
-  };
-
-  test('a monster shows with the number that summoned it', async () => {
-    const fake = server(routes(monsterRoute([smog])));
-    restore = fake.restore;
-    const ui = await mountScreen(h(HomeScreen, props));
-    const said = ui.text();
-    assert.match(said, /Smog/);
-    assert.match(said, /140 AQI/, 'the reason is never hidden');
-    assert.match(said, /Chaweng Beach/);
-  });
-
-  test('and the screen says plainly that pushing it back does not fix it', async () => {
-    const fake = server(routes(monsterRoute([smog])));
-    restore = fake.restore;
-    const ui = await mountScreen(h(HomeScreen, props));
-    assert.match(ui.text(), /does not change the reading/i);
-  });
-
-  test('an empty issue list does not claim every condition was measured', async () => {
-    const fake = server(routes(monsterRoute([])));
-    restore = fake.restore;
-    const ui = await mountScreen(h(HomeScreen, props));
-    const said = ui.text();
-    assert.match(said, /No issue is flagged here today/);
-    assert.match(said, /modelled or unavailable/);
-    assert.doesNotMatch(said, /Smog/);
-  });
-
-  test('a monster opens the place, because that is where the work is', async () => {
-    const opened: string[] = [];
-    const fake = server(routes(monsterRoute([smog])));
-    restore = fake.restore;
-    const ui = await mountScreen(h(HomeScreen, { ...props, onOpenPlace: (id: string) => opened.push(id) }));
-    await ui.pressText(/140 AQI/);
-    assert.deepEqual(opened, ['chaweng']);
-  });
-
-  test('monsters that will not load do not take the rest of Home with them', async () => {
-    const fake = server(routes({ '/areas/samui/monsters': offline() }));
-    restore = fake.restore;
-    const ui = await mountScreen(h(HomeScreen, props));
-    assert.match(ui.text(), /Chaweng/, 'the places are still there');
-  });
-});
-
 describe('stays and tours has a door on Home', () => {
   test('STAYS & TOURS IS THE SECOND DOOR, ON SCREEN WITHOUT SCROLLING THE ROW', async () => {
     // It used to be reachable only from the bottom of the trip planner, three
@@ -547,8 +425,8 @@ describe('stays and tours has a door on Home', () => {
     let opened = 0;
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, { ...props, onOpenStays: () => { opened++; } }));
-    const doors = [...new Set(ui.labels())].filter((l) => ['Map', 'Stays & tours', 'Games & Quests'].includes(l));
-    assert.deepEqual(doors, ['Map', 'Stays & tours', 'Games & Quests']);
+    const doors = [...new Set(ui.labels())].filter((l) => ['Map', 'Stays & tours', 'Game&Quest'].includes(l));
+    assert.deepEqual(doors, ['Map', 'Stays & tours', 'Game&Quest']);
     await ui.press('Stays & tours');
     assert.equal(opened, 1);
     ui.unmount();

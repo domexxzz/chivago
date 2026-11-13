@@ -90,7 +90,7 @@ export function ConciergeScreen({
             <Sparkles size={11} color="#F2A93B" fill="#F2A93B" style={{ position: 'absolute', right: 2, top: 2 }} />
           </View>
           <View style={{ flex: 1 }}>
-            <Heading size={18} colour="#FFFFFF">{t({ en: 'ChivarGo AI Guide', th: 'ChivarGo AI Guide', zh: 'ChivarGo AI Guide' })}</Heading>
+            <Heading size={18} colour="#FFFFFF">Chivar Bot</Heading>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
               <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: '#83E48E' }} />
               <Body size={13} colour="#D5F6FF">{t({ en: 'Mockup · ready to explore', th: 'Mockup · พร้อมช่วยวางแผน', zh: 'Mockup · 随时为你规划' })}</Body>
@@ -145,7 +145,7 @@ function Openers({ areaName, onPick }: { areaName: string; onPick: (text: string
           <Image
             source={aiGuideRobot}
             resizeMode="contain"
-            accessibilityLabel={t({ en: 'ChivarGo AI Guide robot', th: 'หุ่นยนต์ผู้ช่วย ChivarGo AI Guide', zh: 'ChivarGo AI Guide 机器人' })}
+            accessibilityLabel={t({ en: 'Chivar Bot robot', th: 'หุ่นยนต์ผู้ช่วย Chivar Bot', zh: 'Chivar Bot 机器人' })}
             style={{ width: 108, height: 116 }}
           />
         </View>

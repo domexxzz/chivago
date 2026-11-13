@@ -46,7 +46,13 @@ export * from './low-carbon.ts';
 export * from './statement-export.ts';
 export * from './presence.ts';
 export * from './wayfinding.ts';
-export { ROUTER, decodePolyline, detourRatio, formatDuration, parseRoute, routeRequestUrl, type Route, type RouteMode } from './routing.ts';
+export {
+  ROUTER, ROUTE_MAX_M, beyondRouter, decodePolyline, detourRatio, formatDuration, parseRoute,
+  routeRefusal, routeRequestUrl,
+  type Route, type RouteMode, type RouteRefusal,
+} from './routing.ts';
+export * from './navigation.ts';
+export * from './navigation-progress.ts';
 export * from './statement.ts';
 export * from './areas.ts';
 export * from './greeting.ts';

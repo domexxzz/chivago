@@ -46,14 +46,15 @@ export function loginPage(locale: Locale, error?: boolean): string {
       }
       <form method="post" action="/console/login" style="max-width:420px;margin-top:24px">
         <div class="field">
-          <label for="reviewer">${tr('yourName')}</label>
-          <input class="input" type="text" id="reviewer" name="reviewer"
-                 autocomplete="name" required style="width:100%">
+          <label for="username">${locale === 'th' ? 'ชื่อผู้ใช้แอดมิน' : locale === 'zh' ? '管理员用户名' : 'Admin username'}</label>
+          <input class="input" type="text" id="username" name="username"
+                 autocomplete="username" style="width:100%">
+          <p class="muted">${locale === 'th' ? 'ผู้ดูแลระบบกรอกชื่อผู้ใช้ ผู้จัดกิจกรรมที่ใช้ Access Key เว้นช่องนี้ไว้' : locale === 'zh' ? '管理员填写用户名；使用访问密钥的合作方请留空。' : 'Admins enter a username. Partners using an access key leave this blank.'}</p>
         </div>
         <div class="field" style="margin-top:16px">
-          <label for="key">${tr('accessKey')}</label>
+          <label for="key">${locale === 'th' ? 'รหัสผ่าน / Access Key' : locale === 'zh' ? '密码 / 访问密钥' : 'Password / access key'}</label>
           <input class="input" type="password" id="key" name="key"
-                 placeholder="chv_XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off"
+                 autocomplete="current-password"
                  required style="width:100%" dir="ltr">
         </div>
         <button class="btn btn-primary btn-block" type="submit" style="margin-top:20px">

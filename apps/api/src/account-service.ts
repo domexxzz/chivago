@@ -135,11 +135,12 @@ export function registerDevice(
 export function resolveDevice(db: DB, key: string | undefined, now = new Date()): string | null {
   if (!key || !key.startsWith(KEY_PREFIX)) return null;
 
-  const found = row<{ user_id: string; revoked_at: string | null }>(
-    db.prepare('SELECT user_id, revoked_at FROM device_keys WHERE key_hash = ?')
+  const found = row<{ user_id: string; revoked_at: string | null; disabled_at: string | null }>(
+    db.prepare(`SELECT d.user_id, d.revoked_at, s.disabled_at FROM device_keys d
+      LEFT JOIN admin_user_status s ON s.user_id=d.user_id WHERE d.key_hash = ?`)
       .get(hashToken(key)),
   );
-  if (!found || found.revoked_at !== null) return null;
+  if (!found || found.revoked_at !== null || found.disabled_at !== null) return null;
 
   /*
     Last seen is best-effort telemetry for "which of my phones is this", and
