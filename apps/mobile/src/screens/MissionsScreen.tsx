@@ -21,11 +21,30 @@
  */
 
 import React from 'react';
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, Text, View, type ImageSourcePropType } from 'react-native';
 import { ChevronRight, Clock, MapPin } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import sichangBanner from '../../assets/quest-sichang-explorer.png';
 import trashHeroLogo from '../../assets/trash-hero-logo.png';
+import secretRecipeLogo from '../../assets/game-secret-recipe-logo.png';
+
+/**
+ * The picture on each mini-game's card.
+ *
+ * Every card used to show `trashHeroLogo`, which is the waste game's own
+ * badge, so เชฟชังชังเปิดร้าน sat on the Games list wearing another game's
+ * logo. It was not a placeholder anybody had meant to leave - the second game
+ * simply arrived after the card was written, and one hardcoded `source` has no
+ * way of noticing.
+ *
+ * Keyed by `MiniGameKey`, so a third game is a missing key the compiler points
+ * at rather than a card quietly wearing the wrong face. The fallback is the
+ * same picture as before, because a card with no image at all is worse.
+ */
+export const GAME_ICON: Partial<Record<MiniGameKey, ImageSourcePropType>> = {
+  'waste-sort': trashHeroLogo,
+  'chef-shop': secretRecipeLogo,
+};
 import { areaByKey, greetingFor, inArea, isRetiredQuestCode, isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
@@ -359,7 +378,7 @@ function GamesPanel({ onOpenGame }: { onOpenGame?: (key: MiniGameKey) => void })
           >
             <View style={{ width: 72, height: 72, borderRadius: 18, backgroundColor: '#E9FBF8', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
               <Image
-                source={trashHeroLogo}
+                source={GAME_ICON[game.key] ?? trashHeroLogo}
                 resizeMode="contain"
                 accessibilityLabel={t(game.name)}
                 style={{ width: 70, height: 70 }}
