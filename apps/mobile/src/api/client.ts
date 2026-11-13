@@ -111,6 +111,22 @@ export interface SpiritCard {
   form?: MascotForm;
 }
 
+/**
+ * One costume in the box.
+ *
+ * Named whether or not it has been drawn — a costume is described decoration
+ * and has nothing to withhold, unlike a spirit, whose first meeting is the
+ * only thing a card about it can be.
+ */
+export interface FashionCard {
+  key: string;
+  rarity: SpiritRarity;
+  /** How many came out of the BOX. The deed-earned wardrobe is counted elsewhere. */
+  held: number;
+  name: Bilingual;
+  why: Bilingual;
+}
+
 export interface SummonResult {
   id: string;
   /**
@@ -872,8 +888,11 @@ export const api = {
    */
   summon: () => get<SummonState>('/summon'),
 
-  /** Every spirit; the unmet ones silhouetted, with a rarity and a court only. */
-  spirits: () => get<{ spirits: SpiritCard[] }>('/summon/collection'),
+  /**
+   * The whole box: every spirit, the unmet ones silhouetted with a rarity
+   * and a court only, and the fashion, which is named from the start.
+   */
+  spirits: () => get<{ spirits: SpiritCard[]; fashion: FashionCard[] }>('/summon/collection'),
 
   /** Spend Trip Points: one pull, or the ten at its published price. */
   pull: (pulls = 1) => post<PullResult>('/summon', { pulls }),

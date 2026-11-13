@@ -235,6 +235,8 @@ describe('the two purses stay two different things', () => {
     assert.match(said, /1,240 Green Points\. Verified by a host/);
     assert.match(said, /320 Trip Points\. Earned as you explore/);
     assert.doesNotMatch(said, /1,240 Trip Points|320 Green Points/);
+    assert.match(ui.text(), /Star Points/, 'the game inventory should name the verified purse as an item');
+    assert.match(ui.text(), /Travel Flags/, 'the game inventory should name the exploration purse as an item');
     ui.unmount();
   });
 });

@@ -21,6 +21,13 @@
       "runtimeArgs": ["apps/mobile/scripts/serve-demo.mjs", "apps/mobile/dist-demo", "4173"],
       "port": 4173,
       "url": "http://localhost:4173"
+    },
+    {
+      "name": "qa",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["apps/mobile/scripts/serve-demo.mjs", "apps/mobile/dist-qa", "4174"],
+      "port": 4174,
+      "url": "http://localhost:4174"
     }
   ]
 }

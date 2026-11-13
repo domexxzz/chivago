@@ -123,12 +123,14 @@ export function Thai({
 
 /** Uppercase micro-label. The system's workhorse for section kickers. */
 export function Label({
-  children, size = 10, tracking = 0.14, colour = color.neutral700, style,
+  children, size = 10, tracking = 0.14, colour = color.neutral700, style, numberOfLines,
 }: {
   children: React.ReactNode; size?: 9 | 10 | 11; tracking?: number;
   colour?: string; style?: TextStyle;
+  /** Clamp to this many lines with an ellipsis. Omitted, a label wraps freely. */
+  numberOfLines?: number;
 }) {
-  return <Text style={[labelStyle(size, tracking, colour), scriptTypeface('600'), scriptLeading(size), style]}>{children}</Text>;
+  return <Text numberOfLines={numberOfLines} style={[labelStyle(size, tracking, colour), scriptTypeface('600'), scriptLeading(size), style]}>{children}</Text>;
 }
 
 /**

@@ -3,8 +3,9 @@ import { test, describe, afterEach, beforeEach } from 'node:test';
 import { createElement as h } from 'react';
 
 import {
-  HomeScreen, islandAverage, questOrder, weakestProvenance,
+  DOOR_MIN, HomeScreen, islandAverage, questOrder, weakestProvenance,
 } from '../src/screens/HomeScreen.tsx';
+import { act } from 'react-test-renderer';
 import { mountScreen, server, offline } from './interact.ts';
 import { control, resetControl } from './stubs/native.mjs';
 import * as fx from './fixtures.ts';
@@ -580,8 +581,8 @@ describe('the summoning is reachable from Home', () => {
     let opened = 0;
     const ui = await mountScreen(h(HomeScreen, { ...props, onOpenSummon: () => { opened += 1; } }));
 
-    assert.ok(ui.labels().includes('Traveller’s box'), 'Home has no door to the summoning');
-    await ui.press('Traveller’s box');
+    assert.ok(ui.labels().includes('Travel box'), 'Home has no door to the summoning');
+    await ui.press('Travel box');
     assert.equal(opened, 1, 'the door did not open the summoning');
     ui.unmount();
   });
@@ -590,7 +591,68 @@ describe('the summoning is reachable from Home', () => {
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, props));
 
-    assert.ok(!ui.labels().includes('Traveller’s box'), 'a door was drawn with nothing behind it');
+    assert.ok(!ui.labels().includes('Travel box'), 'a door was drawn with nothing behind it');
+    ui.unmount();
+  });
+});
+
+/**
+ * The door row, on a phone.
+ *
+ * Seven doors in one row gave each 51px at 375 wide, and "Community" (62px)
+ * ran over its neighbour. Below `DOOR_MIN` a door the row wraps instead -
+ * every door still on screen, none of them behind a swipe.
+ */
+describe('the door row fits the width it is given', () => {
+  const sizes = (ui: Awaited<ReturnType<typeof mountScreen>>) => {
+    const row = ui.root.findAll(
+      (n) => typeof n.props.onLayout === 'function' && n.props.style?.paddingTop === 22,
+      { deep: true },
+    )[0]!;
+    return {
+      row,
+      layout: async (width: number) => {
+        await act(async () => { row.props.onLayout({ nativeEvent: { layout: { width, height: 100 } } }); });
+      },
+      doorWidths: () => ['Map', 'Wallet', 'Community', 'Travel box'].map(
+        (label) => ui.find(label)?.props.style?.width ?? ui.find(label)?.props.style?.flex,
+      ),
+    };
+  };
+
+  test('on a phone the row wraps, and no door is narrower than the floor', async () => {
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, {
+      ...props, onOpenSummon: noop, onOpenCommunity: noop, onOpenStays: noop,
+    }));
+    const row = sizes(ui);
+    await row.layout(375);
+
+    const style = row.row.props.style;
+    assert.equal(style.flexWrap, 'wrap', 'seven doors at 375px should wrap');
+    const inner = 375 - 2 * style.paddingHorizontal;
+    for (const w of row.doorWidths()) {
+      assert.equal(typeof w, 'string', 'a wrapped door should take a share of the row');
+      const px = (parseFloat(String(w)) / 100) * inner;
+      assert.ok(px >= DOOR_MIN, `a door is ${Math.round(px)}px, under the ${DOOR_MIN}px floor`);
+    }
+    // Every door is still there. Wrapping must not drop or hide one.
+    for (const label of ['Map', 'Wallet', 'Deals', 'Travel box', 'Community']) {
+      assert.ok(ui.find(label), `${label} is missing from the wrapped row`);
+    }
+    ui.unmount();
+  });
+
+  test('on a wide screen the row stays one row', async () => {
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, {
+      ...props, onOpenSummon: noop, onOpenCommunity: noop, onOpenStays: noop,
+    }));
+    const row = sizes(ui);
+    await row.layout(1100);
+
+    assert.equal(row.row.props.style.flexWrap, 'nowrap');
+    assert.ok(row.doorWidths().every((w) => w === 1), 'each door should share one row equally');
     ui.unmount();
   });
 });

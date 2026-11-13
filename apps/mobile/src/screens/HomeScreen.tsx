@@ -72,7 +72,7 @@ import { t } from '../i18n/locale.ts';
 import { formatInteger } from '../i18n/format.ts';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import { ProfileButton } from '../components/ProfileButton.tsx';
-import { TravelHeroBackdrop } from '../components/Shell.tsx';
+import { TravelHeroBackdrop, WIDE_TABS_AT } from '../components/Shell.tsx';
 
 const HOME_QUEST_LIMIT = 3;
 
@@ -531,7 +531,13 @@ function Doors({
     ...(onOpenSummon
       ? [{
         Icon: ShellIcon,
-        name: { en: 'Traveller’s box', th: 'ตู้สุ่มนักเดินทาง', zh: '旅人扭蛋机' },
+        /*
+          SHORT, because this is a door label in a row of seven. "Traveller's
+          box" put one word wider than its cell and it ran into Community;
+          the Thai "ตู้สุ่มนักเดินทาง" was worse, since Thai has no spaces to
+          wrap at. The screen behind it keeps the full name.
+        */
+        name: { en: 'Travel box', th: 'ตู้สุ่ม', zh: '扭蛋机' },
         onPress: onOpenSummon,
         fill: tint.lilac.fill,
         ink: tint.lilac.ink,
@@ -547,20 +553,78 @@ function Doors({
       }]
       : []),
   ];
+  /*
+    ONE ROW WHEN THEY FIT, TWO WHEN THEY DO NOT.
+
+    Seven doors in one row on a 375px phone give each one 51px, and
+    "Community" is 62px at this size - it ran out of its cell and over its
+    neighbour. A word that long cannot wrap, and Thai labels cannot wrap at
+    all, since Thai has no spaces to break at. Shrinking the type until it
+    fitted meant 10px for every label, which is too small to read.
+
+    So below `DOOR_MIN` per door the row WRAPS, with every door still on
+    screen. Not a sideways scroll: a door you have to swipe to find is the
+    exact failure docs/61 records - the owner not finding a screen that was
+    one gesture away. The last row is centred so a short row reads as the end
+    of the set rather than as a gap.
+  */
+  //
+  // DECIDED BEFORE THE FIRST FRAME, refined after it. Below the width where
+  // the rail appears, the row spans the window, so the window says how wide
+  // it is without waiting for a layout pass - waiting drew one frame of
+  // overlapped labels first, and in a backgrounded tab the measurement can
+  // be held back entirely. Above that width the content is beside the rail
+  // and always roomy enough for one row. `onLayout` then corrects either
+  // guess with the real width.
+  const { width: viewport } = useWindowDimensions();
+  const pad = Math.max(8, gutter - 8);
+  // A measurement counts only at the window width it was taken at. Without
+  // that, a row measured on a phone stayed wrapped after the window grew to
+  // a desktop - four doors to a 1,400px row - until a fresh layout pass
+  // happened to arrive.
+  const [measured, setMeasured] = React.useState<{ width: number; at: number } | null>(null);
+  const setRow = (width: number) => setMeasured({ width, at: viewport });
+  const row = measured && measured.at === viewport && measured.width > 0
+    ? measured.width
+    : (viewport < WIDE_TABS_AT ? viewport - 2 * pad : Number.POSITIVE_INFINITY);
+  const perRow = row / doors.length < DOOR_MIN
+    ? Math.max(1, Math.min(doors.length, Math.floor(row / DOOR_MIN)))
+    : doors.length;
+  const wrapped = perRow < doors.length;
   return (
-    <View style={{ flexDirection: 'row', paddingHorizontal: Math.max(8, gutter - 8), paddingTop: 22 }}>
+    <View
+      onLayout={(e) => setRow(e.nativeEvent.layout.width - 2 * Math.max(8, gutter - 8))}
+      style={{
+        flexDirection: 'row',
+        flexWrap: wrapped ? 'wrap' : 'nowrap',
+        justifyContent: wrapped ? 'center' : 'flex-start',
+        rowGap: wrapped ? 6 : 0,
+        paddingHorizontal: Math.max(8, gutter - 8),
+        paddingTop: 22,
+      }}
+    >
       {doors.map(({ Icon, name, onPress, fill, ink }) => (
         <Pressable key={name.en} onPress={onPress} accessibilityRole="button" accessibilityLabel={t(name)}
-          style={{ flex: 1, alignItems: 'center', gap: 8, minHeight: 96 }}>
+          style={wrapped
+            ? { width: `${100 / perRow}%`, alignItems: 'center', gap: 8, minHeight: 96 }
+            : { flex: 1, alignItems: 'center', gap: 8, minHeight: 96 }}>
           <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: fill, alignItems: 'center', justifyContent: 'center', borderTopWidth: 2, borderTopColor: 'rgba(255,255,255,0.8)', shadowColor: ink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 5, elevation: 2 }}>
             <Icon size={25} color={ink} strokeWidth={1.8} />
           </View>
-          <Text style={{ fontSize: 12, color: '#2B2D42', textAlign: 'center' }}>{t(name)}</Text>
+          <Text style={{ fontSize: 12, color: '#2B2D42', textAlign: 'center', paddingHorizontal: 2 }}>{t(name)}</Text>
         </Pressable>
       ))}
     </View>
   );
 }
+
+/**
+ * The narrowest a door may be before the row wraps.
+ *
+ * The widest label in the row at 12px is "Community", 62px, measured in the
+ * running app; 72 leaves it 5px each side so neighbouring labels never touch.
+ */
+export const DOOR_MIN = 72;
 
 /**
  * The travel marketplace, as a card under the places.

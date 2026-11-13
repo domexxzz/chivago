@@ -22,12 +22,18 @@
  */
 
 import React from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import { ChevronLeft, Flag, Shirt, Sparkles } from 'lucide-react-native';
+import {
+  Image, ImageBackground, Pressable, ScrollView, View, useWindowDimensions,
+} from 'react-native';
+import { ChevronLeft, Compass, Flag, Gift, Shirt, Sparkles } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import {
   COURT_LABEL, RARITIES, RARITY_LABEL, strings, type SpiritRarity,
 } from '@chivago/core';
-import { api, type SpiritCard, type SummonResult, type SummonState } from '../api/client.ts';
+import {
+  api,
+  type FashionCard, type SpiritCard, type SummonReceipt, type SummonResult, type SummonState,
+} from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, radius, shadow } from '../theme/index.ts';
 import { gameRadius, gameShadow, gameTray } from '@chivago/tokens';
@@ -35,11 +41,12 @@ import { GameBar, Tray, TrayLine } from '../components/Game.tsx';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button, IconButton } from '../components/Button.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
-import { OceanBackdrop } from '../components/Shell.tsx';
 import { MascotMark } from '../components/MascotMark.tsx';
 import { t } from '../i18n/locale.ts';
 import { formatDate, formatInteger } from '../i18n/format.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
+import travelHero from '../../assets/chivago-travel-hero-v2.png';
+import summonTravelCapsule from '../../assets/summon-travel-capsule-v1.png';
 
 /** The day a round opened, in the reader's own calendar conventions. */
 const openedOn = (iso: string): string =>
@@ -286,10 +293,311 @@ function PullButton({
   );
 }
 
+/** A figure the traveller carries, on a capsule. Trip Points, and stardust. */
+function Chip({
+  icon: Icon, label, figure, tone,
+}: { icon: LucideIcon; label: string; figure: number; tone: 'teal' | 'gold' }) {
+  const gold = tone === 'gold';
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${formatInteger(figure)} ${label}`}
+      style={{
+        flexDirection: 'row', alignItems: 'center', gap: 7,
+        paddingHorizontal: 13, paddingVertical: 7,
+        borderRadius: 18, borderWidth: 2,
+        borderColor: gold ? '#F2CE6A' : '#6FD8E6',
+        backgroundColor: 'rgba(255,255,255,0.92)',
+        shadowColor: '#073454', shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.13, shadowRadius: 7, elevation: 3,
+      }}
+    >
+      <Icon size={15} color={gold ? '#D39A13' : '#0898B5'} strokeWidth={2.3} />
+      <Label size={10} tracking={0.04} colour="#406276" style={{ textTransform: 'none' }}>{label}</Label>
+      <Heading size={14} colour="#082F58">{formatInteger(figure)}</Heading>
+    </View>
+  );
+}
+
+type RewardCategory = 'mascot' | 'fashion';
+
+/** The tabs filter the preview only; every pull still draws from the whole published box. */
+function RewardTabs({
+  value, onChange,
+}: { value: RewardCategory; onChange: (next: RewardCategory) => void }) {
+  return (
+    <View
+      style={{
+        flexDirection: 'row', alignSelf: 'center', width: '100%', maxWidth: 520,
+        padding: 5, borderRadius: 24, borderWidth: 2, borderColor: '#8ED7E5',
+        backgroundColor: 'rgba(247,253,255,0.92)',
+        shadowColor: '#073454', shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15, shadowRadius: 9, elevation: 3,
+      }}
+    >
+      {(['mascot', 'fashion'] as const).map((kind) => {
+        const active = kind === value;
+        const Icon = kind === 'mascot' ? Sparkles : Shirt;
+        const title = kind === 'mascot' ? 'Mascot' : 'Fashion';
+        return (
+          <Pressable
+            key={kind}
+            onPress={() => onChange(kind)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={t({
+              en: `${title} reward preview`,
+              th: `ดูตัวอย่างรางวัล ${title}`,
+              zh: `${title} 奖励预览`,
+            })}
+            style={({ pressed }) => ({
+              flex: 1, minHeight: 52, borderRadius: 19,
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9,
+              backgroundColor: active ? '#069CAB' : 'transparent',
+              borderWidth: active ? 2 : 0,
+              borderColor: active ? '#F4D36D' : 'transparent',
+              opacity: pressed ? 0.88 : 1,
+              shadowColor: active ? '#07506B' : 'transparent',
+              shadowOffset: { width: 0, height: 4 }, shadowOpacity: active ? 0.28 : 0,
+              shadowRadius: 7, elevation: active ? 4 : 0,
+            })}
+          >
+            <Icon size={21} color={active ? '#FFFFFF' : '#123E68'} strokeWidth={2.3} />
+            <Heading size={18} colour={active ? '#FFFFFF' : '#123E68'}>{title}</Heading>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/**
+ * The box itself, rendered as one bundled illustration rather than a stack
+ * of circles. Keeping it in the app means the hero remains available offline.
+ *
+ * A glass dome over a brass base with ONE silhouette inside it, and the
+ * silhouette is the same shape `Unmet` uses for every unmet spirit — which
+ * is the point. It says nothing about what is in there, because the screen
+ * does not know and must not imply it does. There is no spinning, no
+ * flashing and no near-miss: a machine that performed a near-miss would be
+ * teaching the reader something false about its own odds.
+ */
+function TheBox({ busy, wide }: { busy: boolean; wide: boolean }) {
+  const size = wide ? 420 : 260;
+  return (
+    <View
+      accessible
+      accessibilityLabel={t({
+        en: 'The traveller’s box. What is inside is not shown until it is drawn.',
+        th: 'ตู้สุ่มนักเดินทาง ข้างในจะยังไม่ถูกเปิดเผยจนกว่าจะสุ่มได้',
+        zh: '旅人扭蛋机。抽到之前不会显示里面是什么。',
+      })}
+      style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: wide ? 8 : 2 }}
+    >
+      <Image
+        source={summonTravelCapsule}
+        resizeMode="contain"
+        accessibilityIgnoresInvertColors
+        style={{
+          width: size, height: size,
+          opacity: busy ? 0.86 : 1,
+          transform: [{ scale: busy ? 1.025 : 1 }],
+        }}
+      />
+    </View>
+  );
+}
+
+/**
+ * The headline entries, and the honesty rule they have to survive.
+ *
+ * A spirit nobody has met is a SILHOUETTE with its rarity and its court and
+ * no name — the same rule the guide follows, and it cannot be relaxed here
+ * just because this panel is the one trying to be attractive. A featured
+ * grid of named mythics nobody owns would be showing the reader creatures
+ * the box has not given them, which is the shape of a near-miss.
+ *
+ * Fashion is named, because a costume has nothing to withhold.
+ */
+function Featured({
+  spirits, fashion, category,
+}: { spirits: SpiritCard[]; fashion: FashionCard[]; category: RewardCategory }) {
+  const featuredSpirits = [...spirits]
+    .sort((a, b) => RARITY_ORDER[b.rarity] - RARITY_ORDER[a.rarity])
+    .slice(0, category === 'mascot' ? 2 : 1);
+  const featuredFashion = [...fashion]
+    .sort((a, b) => RARITY_ORDER[b.rarity] - RARITY_ORDER[a.rarity])
+    .slice(0, category === 'fashion' ? 3 : 2);
+  // Both kinds remain visible in either preview because they share one box.
+  // The selected tab decides which kind leads, not what a paid pull can draw.
+  const top = category === 'mascot'
+    ? [...featuredSpirits, ...featuredFashion]
+    : [...featuredFashion, ...featuredSpirits];
+  if (top.length === 0) return null;
+
+  return (
+    <View style={{ gap: 9 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
+        {top.map((entry) => {
+          const spirit = 'court' in entry ? entry : null;
+          const met = spirit ? spirit.held > 0 : true;
+          const rarity = entry.rarity;
+          const gold = rarity === 'mythic';
+          return (
+            <View
+              key={entry.key}
+              accessible
+              accessibilityLabel={spirit && !met
+                ? t({
+                  en: `Not yet met. ${t(RARITY_LABEL[rarity])}, ${t(COURT_LABEL[spirit.court])} court.`,
+                  th: `ยังไม่ได้พบ ${t(RARITY_LABEL[rarity])} สำนัก${t(COURT_LABEL[spirit.court])}`,
+                  zh: `尚未遇见。${t(RARITY_LABEL[rarity])}，${t(COURT_LABEL[spirit.court])}宗。`,
+                })
+                : `${t(spirit ? spirit.name! : (entry as FashionCard).name)}, ${t(RARITY_LABEL[rarity])}`}
+              style={{
+                width: '47.5%', minWidth: 132, flexGrow: 1,
+                alignItems: 'center', justifyContent: 'center', gap: 5,
+                paddingVertical: 13, paddingHorizontal: 9,
+                borderRadius: 18, borderWidth: 3,
+                borderColor: gold ? '#FFE9A8' : '#9ED8E8',
+                backgroundColor: gold ? '#F3C44D' : '#EAF8FC',
+                shadowColor: gold ? '#8A5B06' : '#0B5A74',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: gold ? 0.3 : 0.16,
+                shadowRadius: 8,
+                elevation: gold ? 5 : 2,
+              }}
+            >
+              {spirit
+                ? (met && spirit.form
+                  ? <MascotMark mascot={spirit.form} size={52} />
+                  : <Unmet tint={RARITY_TINT[rarity]} />)
+                : (
+                  <View style={{ width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(14,126,158,0.12)' }}>
+                    <Shirt size={26} color="#0E7E9E" strokeWidth={2} />
+                  </View>
+                )}
+              <Heading size={13} colour={gold ? '#4A3105' : '#07335A'} style={{ textAlign: 'center' }}>
+                {spirit
+                  ? (met ? t(spirit.name!) : '???')
+                  : t((entry as FashionCard).name)}
+              </Heading>
+              <RarityPill rarity={rarity} />
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const RARITY_ORDER: Record<SpiritRarity, number> = { common: 0, uncommon: 1, rare: 2, mythic: 3 };
+
+/**
+ * The rates, in one line, and the floor that backs them.
+ *
+ * The EFFECTIVE table, never the roll band: the right-hand column of
+ * docs/68's two tables is the one printed above a button, because a rate
+ * shown next to a price is a promise about what will happen. `RulesPanel`
+ * below still prints both in full, for a reader who wants to follow the
+ * arithmetic.
+ */
+function RatesAndFloor({ s }: { s: SummonState }) {
+  const toRare = Math.max(0, s.rules.pity.rare - s.pity.sinceRare);
+  const toMythic = Math.max(0, s.rules.pity.mythic - s.pity.sinceMythic);
+  return (
+    <View style={{ gap: 9 }}>
+      <View
+        style={{
+          flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center',
+          gap: 8, paddingHorizontal: 12, paddingVertical: 9,
+          borderRadius: 15, borderWidth: 2, borderColor: '#9ED8E8', backgroundColor: '#EAF8FC',
+        }}
+      >
+        {RARITIES.map((rarity) => (
+          <View key={rarity} style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <View style={{ width: 9, height: 9, borderRadius: 2, backgroundColor: RARITY_TINT[rarity], transform: [{ rotate: '45deg' }] }} />
+            <Label size={10} tracking={0} colour="#2A5068" style={{ textTransform: 'none' }}>
+              {`${t(RARITY_LABEL[rarity])} ${s.rules.rates[rarity]}%`}
+            </Label>
+          </View>
+        ))}
+      </View>
+
+      {/* The nearer floor, as a bar. Both numbers are printed, not just drawn. */}
+      <View
+        accessible
+        accessibilityLabel={t({
+          en: `A rare is guaranteed within ${toRare} pulls, a mythic within ${toMythic}.`,
+          th: `รับประกันระดับหายากภายใน ${toRare} ครั้ง ระดับเทพภายใน ${toMythic} ครั้ง`,
+          zh: `${toRare} 次内必出稀有，${toMythic} 次内必出传说。`,
+        })}
+        style={{ gap: 6, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 15, borderWidth: 2, borderColor: '#2A5278', backgroundColor: '#123E68' }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <Label size={10} tracking={0.04} colour="#CFE2EE" style={{ textTransform: 'none' }}>
+            {t({
+              en: `${toRare} more for a guaranteed ${t(RARITY_LABEL.rare)}`,
+              th: `อีก ${toRare} ครั้ง การันตี${t(RARITY_LABEL.rare)}`,
+              zh: `再 ${toRare} 次必出${t(RARITY_LABEL.rare)}`,
+            })}
+          </Label>
+          <Label size={10} tracking={0.04} colour="#9AB7CA" style={{ textTransform: 'none' }}>
+            {t({
+              en: `${toMythic} for a ${t(RARITY_LABEL.mythic)}`,
+              th: `${toMythic} ครั้ง การันตี${t(RARITY_LABEL.mythic)}`,
+              zh: `${toMythic} 次必出${t(RARITY_LABEL.mythic)}`,
+            })}
+          </Label>
+        </View>
+        <GameBar pct={(s.pity.sinceRare / Math.max(1, s.rules.pity.rare)) * 100} height={9} />
+      </View>
+    </View>
+  );
+}
+
+/** The last few that came out, smallest possible: a mark and its rarity. */
+function RecentPulls({ history }: { history: SummonReceipt[] }) {
+  const recent = history.slice(0, 5);
+  if (recent.length === 0) return null;
+  return (
+    <View style={{ gap: 7, paddingTop: 4 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+        <Gift size={15} color="#C78B13" strokeWidth={2.2} />
+        <Label size={10} tracking={0.08} colour="#2A5068">
+          {t({ en: 'Latest from the box', th: 'รางวัลล่าสุด', zh: '最近抽到' })}
+        </Label>
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+        {recent.map((r) => (
+          <View
+            key={r.id}
+            accessible
+            accessibilityLabel={`${t(RARITY_LABEL[r.rarity])}${r.duplicate ? `, ${t({ en: 'a duplicate', th: 'ตัวซ้ำ', zh: '重复' })}` : ''}`}
+            style={{
+              width: 48, height: 48, borderRadius: 14,
+              alignItems: 'center', justifyContent: 'center',
+              borderWidth: 2, borderColor: RARITY_TINT[r.rarity],
+              backgroundColor: r.rarity === 'mythic' ? '#FBEFD2' : '#FFFFFF',
+              opacity: r.duplicate ? 0.65 : 1,
+            }}
+          >
+            <Sparkles size={19} color={RARITY_TINT[r.rarity]} strokeWidth={1.9} />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 export function SummonScreen({ onBack }: { onBack: () => void }) {
   const requireAccount = useRequireAccount();
   const state = useAsync(() => api.summon(), []);
   const guide = useAsync(() => api.spirits(), []);
+  const history = useAsync(() => api.summonHistory(), []);
+  const { width } = useWindowDimensions();
+  const wide = width >= 960;
+  const [previewCategory, setPreviewCategory] = React.useState<RewardCategory>('mascot');
   const [pulling, setPulling] = React.useState<1 | 10 | null>(null);
   const [last, setLast] = React.useState<SummonResult[]>([]);
   const [toast, setToast] = React.useState<string | null>(null);
@@ -304,100 +612,152 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
     setLast(res.data.results);
     state.reload();
     guide.reload();
-  }, [state, guide, requireAccount]);
+    history.reload();
+  }, [state, guide, history, requireAccount]);
 
   if (state.loading && !state.data) return <LoadingState label={t({ en: 'The summoning', th: 'การอัญเชิญ', zh: '召唤' })} />;
   if (state.error && !state.data) return <ErrorState message={state.error} onRetry={state.reload} />;
   const s = state.data!;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
-      <View
+    <ScrollView style={{ flex: 1, backgroundColor: '#DDF3FC' }} showsVerticalScrollIndicator={false}>
+      {/*
+        THE HEADER, and the two figures a pull depends on.
+
+        Deep navy under a gold rule, the same capsule My Backpack wears, so
+        the two screens that hold what a traveller owns read as one place.
+        The figures are up here because the price is on the buttons below:
+        somebody deciding whether to tap needs both numbers in one glance.
+      */}
+      <ImageBackground
+        source={travelHero}
+        resizeMode="cover"
+        imageStyle={{ opacity: 0.34 }}
         style={{
-          flexDirection: 'row', alignItems: 'center', gap: 12,
-          paddingHorizontal: gutter, paddingTop: 14, paddingBottom: 14, marginBottom: 8,
-          backgroundColor: '#1f2a5c',
-          borderBottomLeftRadius: 24, borderBottomRightRadius: 24, overflow: 'hidden',
+          paddingHorizontal: wide ? 28 : gutter, paddingTop: 16, paddingBottom: 18, marginBottom: 4,
+          backgroundColor: '#9FE5F1',
+          borderBottomLeftRadius: 26, borderBottomRightRadius: 26, overflow: 'hidden',
+          borderBottomWidth: 3, borderBottomColor: '#E8B943',
         }}
       >
-        <OceanBackdrop compact />
-        <IconButton inverted onPress={onBack} accessibilityLabel={t(strings.common.back)}>
-          <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2} />
-        </IconButton>
-        <View style={{ flex: 1 }}>
-          <Heading size={20} tracking={-0.3} colour="#FFFFFF">{t({ en: 'The Summoning', th: 'การอัญเชิญ', zh: '召唤' })}</Heading>
-        </View>
-      </View>
-
-      {/* Where the charms came from. Named, because a charm is earned. */}
-      <Tray style={{ marginHorizontal: gutter, marginTop: 4, borderRadius: gameRadius.panel }}>
-        <View style={{ gap: 8 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Heading size={30} colour={color.gold}>{s.charms.available}</Heading>
-            <View style={{ flex: 1 }}>
-              <TrayLine>{t({ en: s.charms.available === 1 ? 'charm' : 'charms', th: 'เครื่องราง', zh: '护符' })}</TrayLine>
-              <Label size={10} tracking={0.06} colour={gameTray.muted}>
-                {t({
-                  en: `${s.charms.verifiedQuests} verified quest${s.charms.verifiedQuests === 1 ? '' : 's'}`
-                    + ` · ${s.charms.checkinDays} day${s.charms.checkinDays === 1 ? '' : 's'} with a check-in`,
-                  th: `ภารกิจที่ผ่านการตรวจ ${s.charms.verifiedQuests} รายการ`
-                    + ` · เช็กอิน ${s.charms.checkinDays} วัน`,
-                  zh: `已验证的任务 ${s.charms.verifiedQuests} 个`
-                    + ` · 签到 ${s.charms.checkinDays} 天`,
-                })}
-              </Label>
+        <View pointerEvents="none" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(182,239,247,0.56)' }} />
+        <View style={{ flexDirection: wide ? 'row' : 'column', alignItems: wide ? 'center' : 'stretch', justifyContent: 'space-between', gap: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: wide ? 1 : undefined }}>
+            <IconButton inverted onPress={onBack} accessibilityLabel={t(strings.common.back)}>
+              <ChevronLeft size={20} color="#FFFFFF" strokeWidth={2} />
+            </IconButton>
+            <View style={{ width: 50, height: 50, borderRadius: 17, borderWidth: 2, borderColor: '#F4D06B', backgroundColor: '#087F96', alignItems: 'center', justifyContent: 'center' }}>
+              <Compass size={27} color="#FFE08B" strokeWidth={2.2} />
             </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Heading size={18} colour={gameTray.text}>{s.dust}</Heading>
-              <Label size={9} tracking={0.1} colour={gameTray.muted}>{t({ en: 'stardust', th: 'ผงดาว', zh: '星尘' })}</Label>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Heading size={wide ? 30 : 21} tracking={-0.5} colour="#082F58">
+                {t({ en: 'The traveller’s box', th: 'ตู้สุ่มนักเดินทาง', zh: '旅人扭蛋机' })}
+              </Heading>
+              <Body size={wide ? 14 : 13} style={{ color: '#315B70', marginTop: 2 }}>
+                {t({
+                  en: 'Companions and fashion for the next adventure, in one box.',
+                  th: 'สะสมเพื่อนร่วมทางและแฟชั่นสำหรับการผจญภัยครั้งใหม่ ในตู้เดียว',
+                  zh: '下一场冒险的伙伴与时装，都在同一个机子里。',
+                })}
+              </Body>
             </View>
           </View>
-          <Body size={13} style={{ color: gameTray.text }}>{t(s.rules.notice)}</Body>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9, justifyContent: wide ? 'flex-end' : 'flex-start' }}>
+            <Chip icon={Flag} tone="teal" label={t(strings.common.tripPoints)} figure={s.tripPoints} />
+            <Chip icon={Sparkles} tone="gold" label={t({ en: 'Stardust', th: 'ผงดาว', zh: '星尘' })} figure={s.dust} />
+          </View>
         </View>
-      </Tray>
+      </ImageBackground>
 
       {/*
-        THE TWO BUTTONS, AND THE PRICE ON EACH.
+        THE DASHBOARD: the box on one side, what it holds on the other.
 
-        The price comes from the server's `price` block, never multiplied
-        here: a screen that worked out its own ten-price would eventually
-        print a total the server refuses, and the number under a button is a
-        promise about what the tap will cost.
-
-        Gold is the ten, which is the only place gold appears on this screen
-        besides the mythic band - it is the heavier commitment, and the look
-        should say so before the number is read. Neither button is reachable
-        without the points for it, so nobody taps into a refusal.
+        Two columns once there is room for them, stacked below 900px with the
+        box first - on a phone the machine is the thing somebody came to tap,
+        and the rates read better underneath it than above it.
       */}
-      <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: gutter, paddingTop: 12 }}>
-        <PullButton
-          tone="teal"
-          title={t({ en: 'Pull once', th: 'สุ่ม 1 ครั้ง', zh: '抽 1 次' })}
-          cost={s.price.one}
-          affordable={s.tripPoints >= s.price.one}
-          busy={pulling === 1}
-          onPress={() => { void pull(1); }}
-        />
-        <PullButton
-          tone="gold"
-          title={t({ en: `Pull ${s.price.tenSize}`, th: `สุ่ม ${s.price.tenSize} ครั้ง`, zh: `抽 ${s.price.tenSize} 次` })}
-          cost={s.price.ten}
-          affordable={s.tripPoints >= s.price.ten}
-          busy={pulling === 10}
-          onPress={() => { void pull(10); }}
-        />
-      </View>
-      <View style={{ paddingHorizontal: gutter, paddingTop: 8 }}>
-        <Label size={10} tracking={0.04} colour={color.neutral600} style={{ textTransform: 'none' }}>
-          {t({
-            en: 'Paid with Trip Points earned by exploring. Never with money, and never with Green Points.',
-            th: 'จ่ายด้วยแต้มทริปที่ได้จากการออกไปเที่ยว ไม่มีการซื้อด้วยเงินจริง และใช้แต้มสีเขียวไม่ได้',
-            zh: '用探索赚来的旅行积分支付。不能用真钱购买，也不能用绿色积分。',
-          })}
-        </Label>
-        {toast ? (
-          <Body size={13} style={{ color: color.neutral800, paddingTop: 8 }}>{toast}</Body>
-        ) : null}
+      <View style={{ width: '100%', maxWidth: 1320, alignSelf: 'center', paddingBottom: 8 }}>
+        <View style={{ flexDirection: wide ? 'row' : 'column', gap: 18, paddingHorizontal: wide ? 24 : gutter, paddingTop: 18 }}>
+          <ImageBackground
+            source={travelHero}
+            resizeMode="cover"
+            imageStyle={{ borderRadius: 27, opacity: 0.72 }}
+            style={{
+              flex: wide ? 1.08 : undefined, minWidth: 0, minHeight: wide ? 615 : undefined,
+              borderRadius: 27, borderWidth: 3, borderColor: '#0D4D73', overflow: 'hidden',
+              backgroundColor: '#8FE0EA',
+              shadowColor: '#082E53', shadowOffset: { width: 0, height: 7 },
+              shadowOpacity: 0.2, shadowRadius: 14, elevation: 5,
+            }}
+          >
+            <View pointerEvents="none" style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(195,245,249,0.35)' }} />
+            <View style={{ flex: 1, padding: wide ? 18 : 12, gap: 11, justifyContent: 'space-between' }}>
+              <RewardTabs value={previewCategory} onChange={setPreviewCategory} />
+              <TheBox busy={pulling !== null} wide={wide} />
+              <View style={{ padding: 12, borderRadius: 20, borderWidth: 2, borderColor: 'rgba(255,255,255,0.88)', backgroundColor: 'rgba(247,253,255,0.9)' }}>
+                <RecentPulls history={history.data?.summons ?? []} />
+                {history.data?.summons.length ? null : (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Gift size={16} color="#C78B13" strokeWidth={2.2} />
+                    <Label size={10} tracking={0.05} colour="#315B70" style={{ textTransform: 'none' }}>
+                      {t({ en: 'Your latest rewards will appear here.', th: 'รางวัลล่าสุดของคุณจะแสดงที่นี่', zh: '你最近获得的奖励会显示在这里。' })}
+                    </Label>
+                  </View>
+                )}
+              </View>
+            </View>
+          </ImageBackground>
+
+          <View
+            style={{
+              flex: wide ? 1 : undefined, minWidth: 0, minHeight: wide ? 615 : undefined,
+              paddingHorizontal: wide ? 18 : 13, paddingTop: 18, paddingBottom: 16,
+              borderRadius: 27, borderWidth: 3, borderColor: '#0D4D73', backgroundColor: 'rgba(247,253,255,0.96)',
+              shadowColor: '#082E53', shadowOffset: { width: 0, height: 7 },
+              shadowOpacity: 0.18, shadowRadius: 14, elevation: 5, gap: 12,
+            }}
+          >
+            <View style={{ alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, borderWidth: 2, borderColor: '#E8B943', backgroundColor: '#0E3A63' }}>
+              <Gift size={18} color="#F6CF61" strokeWidth={2.2} />
+              <Heading size={wide ? 20 : 17} colour="#FFFFFF">{t({ en: 'Featured rewards', th: 'รางวัลเด่น', zh: '精选奖励' })}</Heading>
+            </View>
+            <Featured
+              spirits={guide.data?.spirits ?? []}
+              fashion={guide.data?.fashion ?? []}
+              category={previewCategory}
+            />
+            <RatesAndFloor s={s} />
+
+            {/* The server owns both prices; the screen only presents them. */}
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 'auto' }}>
+              <PullButton
+                tone="teal"
+                title={t({ en: 'Pull once', th: 'สุ่ม 1 ครั้ง', zh: '抽 1 次' })}
+                cost={s.price.one}
+                affordable={s.tripPoints >= s.price.one}
+                busy={pulling === 1}
+                onPress={() => { void pull(1); }}
+              />
+              <PullButton
+                tone="gold"
+                title={t({ en: `Pull ${s.price.tenSize}`, th: `สุ่ม ${s.price.tenSize} ครั้ง`, zh: `抽 ${s.price.tenSize} 次` })}
+                cost={s.price.ten}
+                affordable={s.tripPoints >= s.price.ten}
+                busy={pulling === 10}
+                onPress={() => { void pull(10); }}
+              />
+            </View>
+
+            <Label size={10} tracking={0.03} colour="#315B70" style={{ textTransform: 'none', textAlign: 'center' }}>
+              {t({
+                en: 'Paid with Trip Points earned from missions. Never with money, and never with Green Points. No real-money purchase is available.',
+                th: 'ใช้แต้มทริปที่ได้จากภารกิจ ไม่มีการซื้อด้วยเงินจริง และใช้แต้มสีเขียวไม่ได้',
+                zh: '使用任务获得的旅行积分。不能用真钱购买，也不能使用绿色积分。',
+              })}
+            </Label>
+            {toast ? <Body size={13} style={{ color: color.neutral800 }}>{toast}</Body> : null}
+          </View>
+        </View>
       </View>
 
       {last.map((result) => <Outcome key={result.id} result={result} />)}

@@ -40,6 +40,21 @@ export const Image = ({ source, accessibilityLabel, style }) =>
     style,
   });
 
+/**
+ * The production component composes an Image behind its children. Tests care
+ * about the children and labels, not Metro resolving a numbered PNG asset.
+ */
+export const ImageBackground = ({ source, accessibilityLabel, style, children }) =>
+  createElement(
+    View,
+    {
+      accessibilityLabel,
+      'data-background-uri': typeof source === 'object' && source !== null ? source.uri : source,
+      style,
+    },
+    children,
+  );
+
 export const TextInput = ({ value, onChangeText, accessibilityLabel, placeholder }) =>
   createElement(
     View,
