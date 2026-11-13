@@ -3,8 +3,9 @@ import { test, describe, afterEach } from 'node:test';
 import { createElement as h } from 'react';
 
 import { RANKED_BY } from '@chivago/core';
-import { MissionsScreen } from '../src/screens/MissionsScreen.tsx';
+import { GAME_ICON, MissionsScreen } from '../src/screens/MissionsScreen.tsx';
 import { mountScreen, server, offline } from './interact.ts';
+import { MINI_GAMES } from '../src/games/index.ts';
 import * as fx from './fixtures.ts';
 
 /**
@@ -318,6 +319,62 @@ describe('what MISSIONS shows when the API and the release disagree', () => {
     for (const name of ['Explorer', 'Recipe', 'Trash Hero', 'Treasure', 'Green Journey']) {
       assert.match(ui.text(), new RegExp(name), `${name} was dropped`);
     }
+    ui.unmount();
+  });
+});
+
+describe('the Games list', () => {
+  /*
+    Every card used to show the waste game's badge, including the cooking
+    game's, because one `source` was hardcoded and the second game arrived
+    after the card was written. A card is a promise about what you are about
+    to open, so a card wearing another game's face is a small lie on the way in.
+  */
+
+  test('THE COOKING GAME CARD WEARS THE COOKING GAME LOGO', async () => {
+    /*
+      Asserted on what is rendered, not on the map it reads from - the bug was
+      a card that ignored the map entirely, so a test of the map alone would
+      have stayed green through all of it.
+    */
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(MissionsScreen, props));
+    await ui.press('Games');
+
+    const pictures = ui.root
+      .findAll((n: { props: Record<string, unknown> }) => typeof n.props.source === 'string', { deep: true })
+      .map((n: { props: Record<string, unknown> }) => String(n.props.source));
+
+    assert.ok(
+      pictures.includes('game-secret-recipe-logo.png'),
+      `the cooking game's card is not showing its logo; the Games list drew ${pictures.join(', ') || 'no pictures'}`,
+    );
+    /*
+      And the waste game's badge appears once, not once per card. That count
+      is the bug itself: with one hardcoded `source` it was drawn twice and
+      the cooking game's logo not at all.
+    */
+    assert.equal(
+      pictures.filter((p) => p === 'trash-hero-logo.png').length, 1,
+      `the waste game's badge was drawn ${pictures.filter((p) => p === 'trash-hero-logo.png').length} times`,
+    );
+    ui.unmount();
+  });
+
+  test('the icon map knows every game and invents none', () => {
+    const keys = new Set(MINI_GAMES.map((g) => g.key));
+    for (const key of Object.keys(GAME_ICON)) {
+      assert.ok(keys.has(key as never), `${key} has an icon but is not a game`);
+    }
+  });
+
+  test('both games are on the Games list, each under its own name', async () => {
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(MissionsScreen, props));
+
+    await ui.press('Games');
+    assert.match(ui.text(), /Sort it right/);
+    assert.match(ui.text(), /เชฟชังชัง|ChangChang/);
     ui.unmount();
   });
 });
