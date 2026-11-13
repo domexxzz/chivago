@@ -99,6 +99,27 @@ async function waitForReady(timeoutMs = 120_000) {
   return false;
 }
 
+/*
+  The backstop. `waitForReady` has a deadline; every request after it did not,
+  and the sibling script (`alarm-integration.mjs`) proved on 13 November what
+  that costs: wrangler came up, one request was never answered, the script sat
+  inside `try` past the runner's twenty minutes, and the job was cut with no
+  reason given and orphan `workerd` left behind.
+
+  This one moves a database, so ten minutes rather than the alarm script's
+  five - but it is still a point past which waiting is not going to help.
+  `unref`ed, so a healthy run is never held open by it.
+*/
+const watchdog = setTimeout(() => {
+  console.error(
+    `\n[import] no result after 10 minutes - giving up rather than holding the job open.\n`
+    + `wrangler's output:\n${log.slice(-2_000)}`,
+  );
+  wrangler.kill();
+  process.exit(1);
+}, 10 * 60_000);
+watchdog.unref();
+
 try {
   if (!(await waitForReady())) {
     console.error(`wrangler dev never answered on ${BASE}. Its output:\n${log.slice(-2_000)}`);
@@ -165,6 +186,7 @@ try {
 } catch (e) {
   check('the run completed', false, String(e.message).slice(0, 300));
 } finally {
+  clearTimeout(watchdog);
   wrangler.kill();
   rmSync(join(API, '.dev.vars'), { force: true });
   await sleep(1_000);

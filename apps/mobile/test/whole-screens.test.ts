@@ -10,13 +10,14 @@
  * path a screen asks for is asserted rather than assumed.
  */
 
-import { describe, test } from 'node:test';
+import { beforeEach, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 
 import { mountScreen, offline, refuses, server, settle } from './interact.ts';
 import { offer, quest, wallet } from './fixtures.ts';
 import * as fx from './fixtures.ts';
+import { __setAreaForTests } from '../src/state/area.ts';
 
 import { WalletScreen } from '../src/screens/WalletScreen.tsx';
 import { MissionsScreen } from '../src/screens/MissionsScreen.tsx';
@@ -416,8 +417,16 @@ describe('the impact screen, whose personal, tree and community records load ind
 });
 
 describe('the map, whose two fetches fail independently', () => {
+  // The map draws the current area's places, and these are Samui's. Said out
+  // loud rather than inherited from DEFAULT_AREA, which is now Koh Sichang.
+  beforeEach(() => { __setAreaForTests('samui'); });
+
   const place = {
     id: 'chaweng', name: { en: 'Chaweng Beach', th: 'หาดเฉวง' }, short: 'Chaweng',
+    // Its own province, for the reason given on the fixture in fixtures.ts:
+    // a place without one falls through to DEFAULT_AREA and belongs to
+    // whichever area that happens to be.
+    province: 'TH-84',
     layer: 'beach', lat: 9.5357, lng: 100.0617, healthyScore: 82,
     crowd: 'moderate', signals: [], address: 'Chaweng', openNow: true,
   };

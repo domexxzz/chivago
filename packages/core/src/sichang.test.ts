@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, test } from 'node:test';
 import { KOH_SICHANG_BBOX, KU_SRIRACHA_BBOX, areaByKey, areaOfPlace, inArea } from './areas.ts';
-import { SAFETY_PHRASES, SEED_HOSTS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
+import { SAFETY_PHRASES, SEED_HOSTS, SEED_OFFERS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
 
 const area = areaByKey('koh-sichang');
 const places = SEED_PLACES.filter((p) => areaOfPlace(p) === 'koh-sichang');
@@ -87,15 +87,58 @@ describe('Koh Sichang', () => {
     }
   });
 
-  test('the sample waste quests are the team\'s, environmental, and say they are samples', () => {
+  test('the five sample quests are the team\'s, pillared, and say they are samples', () => {
     const quests = SEED_QUESTS.filter((q) => inArea(area, q));
-    assert.deepEqual(quests.map((q) => q.id).sort(), ['q-sc-beach', 'q-sc-dropoff']);
+    assert.deepEqual(
+      quests.map((q) => q.id).sort(),
+      ['q-sc-explorer', 'q-sc-green-journey', 'q-sc-recipe', 'q-sc-trash-hero', 'q-sc-treasure'],
+    );
+    // Not all environmental any more. The field guide of 12 November put three
+    // of the five on the shop and heritage side, and an ESG report excludes an
+    // unpillared quest rather than guessing - so what matters here is that
+    // every one of them declares, and that the waste quest is still the
+    // environmental one.
+    assert.equal(
+      quests.find((q) => q.id === 'q-sc-trash-hero')?.esgPillar, 'environmental',
+      'the waste quest stopped reporting as environmental',
+    );
     for (const q of quests) {
       assert.equal(q.host.id, SEED_HOSTS.sichangTeam!.id, 'the municipality has not agreed to host');
-      assert.equal(q.esgPillar, 'environmental');
+      assert.ok(q.esgPillar, `${q.id} declares no ESG pillar, so a report would exclude it`);
       assert.equal(q.rewardCurrency, 'green');
       assert.match(q.name.th, /ตัวอย่าง/);
       assert.match(q.name.en, /sample/i);
+      assert.ok(
+        SEED_PLACES.some((p) => p.id.startsWith('sc-') && Math.hypot(p.lat - q.lat, p.lng - q.lng) < 0.003),
+        `${q.id} is not at any mapped place on the island`,
+      );
     }
+  });
+
+  test('the island has a reward its own verified work can reach, and it is not claimed as a partner', () => {
+    const total = SEED_QUESTS.filter((q) => inArea(area, q))
+      .reduce((sum, q) => sum + q.rewardPoints, 0);
+    const island = SEED_OFFERS.filter((o) => /เกาะสีชัง|Koh Sichang/.test(o.merchant));
+    assert.ok(island.length > 0, 'every reward is somebody else\'s island');
+    const green = island.filter((o) => o.currency === 'green' && o.available);
+    assert.ok(
+      green.some((o) => o.costPoints <= total),
+      `nothing on the island costs ${total} Green or less, so the Green half of the redeem flow cannot be shown here`,
+    );
+    for (const o of island) {
+      // Nobody has walked in and asked yet. Until they have, the app has to
+      // keep saying so, and the price stays the merchant's to name.
+      assert.equal(o.example, true, `${o.id} claims a partner nobody has signed`);
+      assert.equal(o.valueTHB, null, `${o.id} puts a price in the merchant's mouth`);
+    }
+  });
+
+  test('the island\'s quests come to the total the demo is seeded against', () => {
+    // Read off the work, at the rate the three quests before these set: 60 min
+    // for 120, 45 for 120, 30 for 90. Pinned because the demo's Marketplace
+    // walk depends on the total, and a quiet edit to a reward would move it
+    // without anything else noticing.
+    const quests = SEED_QUESTS.filter((q) => inArea(area, q));
+    assert.equal(quests.reduce((sum, q) => sum + q.rewardPoints, 0), 540);
   });
 });

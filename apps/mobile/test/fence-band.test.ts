@@ -56,16 +56,49 @@ describe("reading the server's own description", () => {
   });
 
   test('a server that says the fence is open is believed', async () => {
-    const fake = server({ 'GET /config': { fenceOff: true, autoApprove: false } });
+    const fake = server({ 'GET /config': { fenceOff: true, storiesAutoApprove: false } });
     try {
-      assert.deepEqual(await serverConfig(), { fenceOff: true, autoApprove: false, aiAssist: true });
+      assert.deepEqual(await serverConfig(), { fenceOff: true, storiesAutoApprove: false, aiAssist: true });
     } finally { fake.restore(); }
   });
 
   test('a server that reviews nothing is believed about that too', async () => {
+    const fake = server({ 'GET /config': { fenceOff: false, storiesAutoApprove: true } });
+    try {
+      assert.deepEqual(await serverConfig(), { fenceOff: false, storiesAutoApprove: true, aiAssist: true });
+    } finally { fake.restore(); }
+  });
+
+  /*
+   * `/config` is public, so the rename of `autoApprove` to `storiesAutoApprove`
+   * had to keep the old key working: a build in somebody's pocket, or an SDK
+   * nobody has updated, still reads the alias. These three pin the three
+   * states that matter - alias alone, new name alone, and the two together.
+   */
+  test('a server older than the rename, sending only the alias, is still read', async () => {
     const fake = server({ 'GET /config': { fenceOff: false, autoApprove: true } });
     try {
-      assert.deepEqual(await serverConfig(), { fenceOff: false, autoApprove: true, aiAssist: true });
+      assert.equal((await serverConfig()).storiesAutoApprove, true);
+    } finally { fake.restore(); }
+  });
+
+  test('the new name wins when a server sends both', async () => {
+    // Not a state a correct server reaches - publicConfig() reads the switch
+    // once and writes it to both - but a proxy or a stale cache could, and
+    // believing the deprecated half would be the wrong way round.
+    const fake = server({ 'GET /config': { fenceOff: false, storiesAutoApprove: false, autoApprove: true } });
+    try {
+      assert.equal((await serverConfig()).storiesAutoApprove, false);
+    } finally { fake.restore(); }
+  });
+
+  test('an explicit false on the new name is not overruled by a truthy alias', async () => {
+    // The reason the read is `??` and not `||`: `false || true` is true, and
+    // that would tell a traveller nobody is watching when the server said
+    // somebody is.
+    const fake = server({ 'GET /config': { fenceOff: false, storiesAutoApprove: false } });
+    try {
+      assert.equal((await serverConfig()).storiesAutoApprove, false);
     } finally { fake.restore(); }
   });
 

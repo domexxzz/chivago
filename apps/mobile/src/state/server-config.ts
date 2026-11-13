@@ -17,8 +17,12 @@ import { api } from '../api/client.ts';
 export interface ServerConfig {
   /** The server is not checking positions. Say so, loudly. */
   fenceOff: boolean;
-  /** Nothing is reviewed before it is public. Say so before somebody posts. */
-  autoApprove: boolean;
+  /**
+   * Clips and photographs people post go public with nobody looking at them
+   * first. Say so before somebody posts. Named for what it governs: quest
+   * proof is never auto-approved, and the old name did not make that clear.
+   */
+  storiesAutoApprove: boolean;
   /** Proof photos may be shown to an AI for the host (docs/64). Say so before somebody sends them. */
   aiAssist: boolean;
 }
@@ -32,7 +36,7 @@ export interface ServerConfig {
  * be checked, nor into sending a photograph on the belief that no machine
  * will look at it. The notice says "may", so it stays true either way.
  */
-export const FENCED: ServerConfig = { fenceOff: false, autoApprove: false, aiAssist: true };
+export const FENCED: ServerConfig = { fenceOff: false, storiesAutoApprove: false, aiAssist: true };
 
 let inFlight: Promise<ServerConfig> | null = null;
 
@@ -42,7 +46,11 @@ export function serverConfig(): Promise<ServerConfig> {
     (res) => (res.ok
       ? {
           fenceOff: res.data.fenceOff === true,
-          autoApprove: res.data.autoApprove === true,
+          // The new name wins; `autoApprove` is the deprecated alias a server
+          // older than the rename still sends alone. `??` and not `||` so a
+          // server saying `storiesAutoApprove: false` is believed rather than
+          // falling through to the alias.
+          storiesAutoApprove: (res.data.storiesAutoApprove ?? res.data.autoApprove) === true,
           // Only an explicit false stands the notice down; an older server
           // that does not send the field gets the careful reading.
           aiAssist: res.data.aiAssist !== false,

@@ -1093,34 +1093,139 @@ export const SEED_QUESTS: Quest[] = [
     lat: 13.8413167, lng: 100.5747727, geofenceRadiusM: 100,
   },
   /*
-    Koh Sichang's two waste quests, for the field trial of the Spark Hack
-    proposal (docs/68). SAMPLES, and named so: the team hosts and verifies
-    them itself, because no shop or the municipality has agreed to yet. The
-    Data Pack says the island's bottleneck is waste reaching the incinerator
-    unsorted, so the first asks a day-tripper to bring theirs sorted to the
-    pier before the boat home.
+    Koh Sichang's five quests, from the field guide of 12 November 2026
+    ("Chiva Go x Sichang - 5 เควส"), which replaced the three waste samples
+    that stood here before it. The guide is a DESIGN, not a report: it says so
+    on every page, and its own XP column calls itself a proposal rather than a
+    measured value.
+
+    Still SAMPLES, and still named so in all three languages. The team hosts
+    and verifies them itself because no shop and not the municipality has
+    agreed to anything yet, and the day one of them does is the day the
+    "(ตัวอย่าง)" comes off that quest and nothing else changes.
+
+    What the guide asks for and this does NOT do: three check-ins inside one
+    quest, the ingredient game, the two-question knowledge check, the shop's
+    confirmation of a purchase, the route log. A quest here is still one
+    anchor, one geofence, one host pressing verify. The extra steps live in
+    the guide and in what the host checks, not in enforcement - which is the
+    honest shape for a sample whose hosts are us.
+
+    Green, not the guide's XP, and inside the band the rest of the island's
+    quests already use: the beach rate was 120 for forty-five minutes, the
+    pier drop-off 60 for fifteen. These sit between those, lower per minute as
+    they get longer, exactly as the three they replace did. 540 Green across
+    the five, which keeps the cheapest Green reward in the marketplace (250)
+    reachable from quests alone.
   */
   {
-    id: 'q-sc-dropoff',
-    esgPillar: 'environmental',
+    id: 'q-sc-explorer',
+    esgPillar: 'social',
     code: 'SC-01',
-    name: { en: 'Bring your waste back sorted (sample)', th: 'นำขยะที่แยกแล้วมาส่งที่ท่าเรือ (ตัวอย่าง)', zh: '把分类好的垃圾带回来（示例）' },
-    where: { en: 'Tha Lang pier, Koh Sichang', th: 'ท่าเรือท่าล่าง เกาะสีชัง', zh: '塔朗码头，锡昌岛' },
-    duration: { en: '15 min', th: '15 นาที', zh: '15 分钟' },
-    rewardPoints: 60, rewardCurrency: 'green',
+    name: {
+      en: 'Sichang Explorer (sample)',
+      th: 'นักสำรวจเกาะสีชัง (ตัวอย่าง)',
+      zh: '锡昌岛探索者（示例）',
+    },
+    where: {
+      en: 'Phra Chudadhuj Palace, Koh Sichang',
+      th: 'พระจุฑาธุชราชฐาน เกาะสีชัง',
+      zh: '朱他度皇家行宫，锡昌岛',
+    },
+    duration: { en: '60 min', th: '60 นาที', zh: '60 分钟' },
+    rewardPoints: 120, rewardCurrency: 'green',
     host: SEED_HOSTS.sichangTeam!, kind: 'today',
-    lat: 13.161443, lng: 100.810441, geofenceRadiusM: 120,
+    lat: 13.1504555, lng: 100.8180568, geofenceRadiusM: 120,
   },
   {
-    id: 'q-sc-beach',
-    esgPillar: 'environmental',
+    id: 'q-sc-recipe',
+    esgPillar: 'social',
     code: 'SC-02',
-    name: { en: 'Tham Phang beach clean-up (sample)', th: 'เก็บขยะหาดถ้ำพัง (ตัวอย่าง)', zh: '探蓬海滩清洁（示例）' },
-    where: { en: 'Tham Phang Beach, Koh Sichang', th: 'หาดถ้ำพัง เกาะสีชัง', zh: '探蓬海滩，锡昌岛' },
+    name: {
+      en: 'Secret Recipe (sample)',
+      th: 'ตามล่ารสชาติสีชัง (ตัวอย่าง)',
+      zh: '寻味锡昌（示例）',
+    },
+    where: {
+      en: 'Shop row by Tha Lang pier, Koh Sichang',
+      th: 'ย่านร้านค้าหน้าท่าล่าง เกาะสีชัง',
+      zh: '塔朗码头旁的商铺街，锡昌岛',
+    },
+    duration: { en: '30 min', th: '30 นาที', zh: '30 分钟' },
+    rewardPoints: 90, rewardCurrency: 'green',
+    host: SEED_HOSTS.sichangTeam!, kind: 'today',
+    lat: 13.160059, lng: 100.809817, geofenceRadiusM: 120,
+  },
+  {
+    /*
+      The waste quest the three samples before it collapse into. Tham Phang is
+      kept as its anchor because it is the one of the three with a beach to
+      clean, and 120 for forty-five minutes is that quest's own old rate,
+      carried over unchanged.
+    */
+    id: 'q-sc-trash-hero',
+    esgPillar: 'environmental',
+    code: 'SC-03',
+    name: {
+      en: 'Trash Hero (sample)',
+      th: 'ฮีโร่พิทักษ์เกาะ (ตัวอย่าง)',
+      zh: '海岛垃圾英雄（示例）',
+    },
+    where: {
+      en: 'Tham Phang Beach, Koh Sichang',
+      th: 'หาดถ้ำพัง เกาะสีชัง',
+      zh: '探蓬海滩，锡昌岛',
+    },
     duration: { en: '45 min', th: '45 นาที', zh: '45 分钟' },
     rewardPoints: 120, rewardCurrency: 'green',
     host: SEED_HOSTS.sichangTeam!, kind: 'today',
     lat: 13.1454, lng: 100.806835, geofenceRadiusM: 120,
+  },
+  {
+    id: 'q-sc-treasure',
+    esgPillar: 'social',
+    code: 'SC-04',
+    name: {
+      en: 'Local Treasure (sample)',
+      th: 'ตามล่าของดีสีชัง (ตัวอย่าง)',
+      zh: '寻找锡昌好物（示例）',
+    },
+    where: {
+      en: 'Tha Lang pier, Koh Sichang',
+      th: 'ท่าเรือท่าล่าง เกาะสีชัง',
+      zh: '塔朗码头，锡昌岛',
+    },
+    duration: { en: '30 min', th: '30 นาที', zh: '30 分钟' },
+    rewardPoints: 90, rewardCurrency: 'green',
+    host: SEED_HOSTS.sichangTeam!, kind: 'today',
+    lat: 13.161443, lng: 100.810441, geofenceRadiusM: 120,
+  },
+  {
+    id: 'q-sc-green-journey',
+    esgPillar: 'environmental',
+    code: 'SC-05',
+    name: {
+      en: 'Green Journey (sample)',
+      th: 'เที่ยวเกาะอย่างใส่ใจ (ตัวอย่าง)',
+      zh: '用心游岛（示例）',
+    },
+    /*
+      Anchored at the Cholatassathan museum, not at the hill shrine the field
+      guide pictures. The shrine is one of the six landmarks the Ko Sichang
+      bootstrap inserts at run time, so it is not in SEED_PLACES - and a quest
+      whose pin sits on no mapped place is a pin nobody can walk to. The
+      museum is east-coast and a real end for a walk or a bicycle, which is
+      what this quest is about.
+    */
+    where: {
+      en: 'Cholatassathan Museum, Koh Sichang',
+      th: 'พิพิธภัณฑ์ชลทัศนสถาน เกาะสีชัง',
+      zh: '乔拉塔沙坦博物馆，锡昌岛',
+    },
+    duration: { en: '60 min', th: '60 นาที', zh: '60 分钟' },
+    rewardPoints: 120, rewardCurrency: 'green',
+    host: SEED_HOSTS.sichangTeam!, kind: 'today',
+    lat: 13.1521963, lng: 100.8147057, geofenceRadiusM: 120,
   },
 ];
 
@@ -1353,6 +1458,46 @@ export const SEED_OFFERS: Offer[] = [
     merchant: 'Koh Tao Coral Sanctuary Volunteers',
     merchantShort: 'Coral Sanctuary',
     costPoints: 850,
+    currency: 'green',
+    imageUrl: null,
+    available: true,
+  },
+  {
+    /*
+      The first reward on Koh Sichang, and the only one not from Samui.
+
+      Until this, every offer in the marketplace was a Samui merchant, so a
+      traveller standing on Sichang with Green Points earned on Sichang could
+      only spend them on an island four hundred kilometres away. That is not
+      a bug in the code; it is the marketplace having been built for one
+      island. The Offer type has no area, so this one shows up everywhere -
+      the same way the Samui offers already show up here.
+
+      The producer is real and comes from the municipality's OTOP register,
+      which is where the pitch deck's page of island goods comes from too.
+      It is named in Thai because that is how the register names it, and a
+      romanisation invented here would be this file naming a real business
+      something it does not call itself.
+
+      `example: true` for the same reason the Samui ones carry it: NOBODY HAS
+      ASKED THEM. The app says so under the merchant - "ตัวอย่าง · ร้านยัง
+      ไม่ได้ร่วมโครงการ" - and this stays an example until somebody walks
+      into the shop and comes back with a yes. `valueTHB` stays null on the
+      same rule as the rest: what it is worth is the merchant's to say.
+
+      200 Green because the island's three sample quests come to 270, so one
+      round of the work reaches it, and because Samui's nearest comparable
+      good - the upcycled tote - is 250. Not read back from any price.
+    */
+    id: 'o-sc-1',
+    example: true,
+    // Unpriced until the merchant says what it is worth.
+    valueTHB: null,
+    category: 'Local experience',
+    name: 'Sea-pattern batik cloth',
+    merchant: 'มาลีบาติก เกาะสีชัง',
+    merchantShort: 'มาลีบาติก',
+    costPoints: 200,
     currency: 'green',
     imageUrl: null,
     available: true,

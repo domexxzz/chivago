@@ -49,6 +49,7 @@ export * from './wayfinding.ts';
 export { ROUTER, decodePolyline, detourRatio, formatDuration, parseRoute, routeRequestUrl, type Route, type RouteMode } from './routing.ts';
 export * from './statement.ts';
 export * from './areas.ts';
+export * from './greeters.ts';
 export * from './greeting.ts';
 export * from './medals.ts';
 export * from './transit.ts';

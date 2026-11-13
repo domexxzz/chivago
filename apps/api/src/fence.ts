@@ -64,7 +64,23 @@ export const storiesAutoApprove = (): boolean => process.env.CHIVAGO_STORIES_AUT
 export interface PublicConfig {
   /** Presence is not being checked. The app must say so where it counts. */
   fenceOff: boolean;
-  /** Nothing is reviewed before it is public. The app must say so before posting. */
+  /**
+   * CLIPS AND PHOTOGRAPHS people post go public with nobody looking at them
+   * first. The app must say so before posting.
+   *
+   * It is named for what it governs because the old name did not. Read on its
+   * own, `autoApprove` sounds like the thing this product exists to refuse -
+   * quest proof approved without a host - and somebody reading `/config` over
+   * the presenter's shoulder has no way to tell that it is not. Proof is never
+   * auto-approved: `resolveVerification` is the only path that mints a Green
+   * Point, and a named host has to call it.
+   */
+  storiesAutoApprove: boolean;
+  /**
+   * @deprecated Use `storiesAutoApprove`. Same value, kept because `/config`
+   * is public and older app builds and the SDKs read this name. Removing it
+   * would break them for a rename, so both ship until those have moved.
+   */
   autoApprove: boolean;
   /**
    * Proof photos are shown to an AI for the host (docs/64). The app must say
@@ -73,8 +89,14 @@ export interface PublicConfig {
   aiAssist: boolean;
 }
 
-export const publicConfig = (): PublicConfig => ({
-  fenceOff: fenceOff(),
-  autoApprove: storiesAutoApprove(),
-  aiAssist: assistConfig(process.env).enabled,
-});
+export const publicConfig = (): PublicConfig => {
+  // One read, two names: an alias that could disagree with the field it
+  // aliases would be worse than no alias at all.
+  const stories = storiesAutoApprove();
+  return {
+    fenceOff: fenceOff(),
+    storiesAutoApprove: stories,
+    autoApprove: stories,
+    aiAssist: assistConfig(process.env).enabled,
+  };
+};

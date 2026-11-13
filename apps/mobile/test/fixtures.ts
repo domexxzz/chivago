@@ -62,6 +62,12 @@ export const place = (over: Partial<ScoredPlace> = {}): ScoredPlace => ({
   name: { en: 'Chaweng Beach', th: 'หาดเฉวง' },
   short: 'Chaweng',
   layer: 'beach',
+  // Surat Thani, because Chaweng is on Samui. It was left off until 7 November
+  // 2026, and `areaOfPlace` reads the province first: with none to read, this
+  // place fell through to DEFAULT_AREA and so belonged to whichever area that
+  // happened to be. Every screen test that filters by area was passing on that
+  // accident, and they all broke together when the default moved to Sichang.
+  province: 'TH-84',
   lat: 9.5357, lng: 100.0617,
   meta: 'Beach · 2.1 km of sand',
   blurb: {

@@ -1,10 +1,11 @@
 import { strict as assert } from 'node:assert';
-import { test, describe, afterEach } from 'node:test';
+import { test, describe, afterEach, beforeEach } from 'node:test';
 import { createElement as h } from 'react';
 
 import { LocalPicksScreen } from '../src/screens/LocalPicksScreen.tsx';
 import { mountScreen, server, offline } from './interact.ts';
 import * as fx from './fixtures.ts';
+import { __setAreaForTests } from '../src/state/area.ts';
 
 /**
  * Local Picks - the island's own businesses, by category.
@@ -27,7 +28,20 @@ const noop = () => {};
 const props = { onBack: noop, onOpenShop: noop };
 
 let restore: (() => void) | null = null;
-afterEach(() => { restore?.(); restore = null; });
+
+/*
+  THE AREA IS PINNED, because these routes name one.
+
+  The screen asks `/shops?area=<the area you are in>`, and the fake server
+  below answers exactly one of those. When the app's default area moved from
+  Samui to Koh Sichang - the pilot island, `DEFAULT_AREA` in areas.ts - the
+  screen started asking for a route nobody had registered, and all four of
+  these failed with "Could not load this area's businesses" rather than with
+  anything about categories. `near-you.test.ts` carries the same pin and the
+  same scar.
+*/
+beforeEach(() => { __setAreaForTests('samui'); });
+afterEach(() => { restore?.(); restore = null; __setAreaForTests('samui'); });
 
 const routes = (shops: unknown[]) => ({ '/shops?area=samui': shops });
 

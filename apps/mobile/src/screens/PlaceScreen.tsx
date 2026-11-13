@@ -124,7 +124,7 @@ export function PlaceScreen({
   // finished. The server does the counting both times; the phone compares.
   const medals = useAsync(() => api.medals(), [placeId]);
   // Whether a clip is looked at before it is public. See apps/api/src/fence.ts.
-  const { autoApprove } = useServerConfig();
+  const { storiesAutoApprove } = useServerConfig();
   const requireAccount = useRequireAccount();
 
   React.useEffect(() => {

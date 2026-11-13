@@ -62,6 +62,15 @@ thai-review.html
 package-lock.json
 run.bat
 
+# Deck exports and image-generation scratch, all at the repo root. These come
+# out of the Canva decks and get remade whenever a slide changes, so they are
+# output, not source. Deck artwork the docs actually reference is committed
+# under docs/assets/ instead.
+/outputs/
+/slide-*.png
+/ChivarGo-*.png
+/*.pptx
+
 # wrangler's local state: a workerd scratch directory, written by
 # `wrangler dev`. It holds a local Durable Object database and an R2 stub,
 # which are this machine's and nobody else's.

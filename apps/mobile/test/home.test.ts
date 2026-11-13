@@ -1,5 +1,5 @@
 import { strict as assert } from 'node:assert';
-import { test, describe, afterEach } from 'node:test';
+import { test, describe, afterEach, beforeEach } from 'node:test';
 import { createElement as h } from 'react';
 
 import {
@@ -8,6 +8,7 @@ import {
 import { mountScreen, server, offline } from './interact.ts';
 import { control, resetControl } from './stubs/native.mjs';
 import * as fx from './fixtures.ts';
+import { __setAreaForTests } from '../src/state/area.ts';
 
 /**
  * Home.
@@ -41,6 +42,14 @@ const routes = (over: Record<string, unknown> = {}) => ({
 });
 
 let restore: (() => void) | null = null;
+/*
+ * Home filters its places to the current area, and these fixtures are Samui
+ * places on Samui routes - so the area has to be said out loud rather than
+ * inherited from DEFAULT_AREA. It was inherited until the default moved to
+ * Koh Sichang, at which point every place in this file was filtered out and
+ * Home rendered "no places in this area yet" into a dozen assertions.
+ */
+beforeEach(() => { __setAreaForTests('samui'); });
 afterEach(() => { restore?.(); restore = null; });
 
 /**
