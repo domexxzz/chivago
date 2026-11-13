@@ -138,7 +138,7 @@ export function GreeterCard({ area }: { area: AreaKey }) {
               <Label size={9} tracking={0.04} colour={color.neutral600} style={{ textTransform: 'none' }}>
                 {t({
                   en: 'Tap ChangChang',
-                  th: 'แตะช้างช้างสิ',
+                  th: 'แตะชังชังสิ',
                   zh: '点一下昌昌',
                 })}
               </Label>

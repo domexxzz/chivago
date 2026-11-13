@@ -37,7 +37,7 @@ describe('area greeters', () => {
     const g = greeterFor('koh-sichang');
     assert.ok(g);
     assert.equal(g.key, 'changchang');
-    assert.equal(g.name.th, 'ช้างช้าง');
+    assert.equal(g.name.th, 'ชังชัง');
   });
 
   test('every greeter says what it is in all three languages', () => {

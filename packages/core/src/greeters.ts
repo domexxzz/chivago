@@ -105,11 +105,11 @@ export const GREETERS: Greeter[] = [
   {
     area: 'koh-sichang',
     key: 'changchang',
-    name: { en: 'ChangChang', th: 'ช้างช้าง', zh: '昌昌' },
+    name: { en: 'ChangChang', th: 'ชังชัง', zh: '昌昌' },
     creature: { en: 'a travelling squirrel', th: 'กระรอกนักเที่ยว', zh: '爱旅行的松鼠' },
     blurb: {
       en: 'Bucket hat, camera, one bag. ChangChang walks the island the way the app asks you to - on foot, and looking at things.',
-      th: 'หมวกปีก กล้องหนึ่งตัว กระเป๋าหนึ่งใบ ช้างช้างเดินเที่ยวเกาะแบบที่แอปชวนให้ทำ คือเดินไป แล้วมองสิ่งรอบตัว',
+      th: 'หมวกปีก กล้องหนึ่งตัว กระเป๋าหนึ่งใบ ชังชังเดินเที่ยวเกาะแบบที่แอปชวนให้ทำ คือเดินไป แล้วมองสิ่งรอบตัว',
       zh: '渔夫帽、一台相机、一个包。昌昌用这个应用建议的方式逛岛：步行，并且好好地看。',
     },
     made: {
