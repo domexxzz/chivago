@@ -45,6 +45,9 @@ import { SHOP_CATEGORIES, shopImageUri, type Shop } from '../api/shops.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { BoardFeed } from '../components/BoardFeed.tsx';
 import { BusStrip } from '../components/BusStrip.tsx';
+import { GreeterCard } from '../components/GreeterCard.tsx';
+import { GreeterMark } from '../components/GreeterMark.tsx';
+import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import { StallsCard } from '../components/Stalls.tsx';
 import { SeaAndSkyCard } from '../components/SeaAndSky.tsx';
 import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
@@ -232,6 +235,11 @@ export function HomeScreen({
           </View>
         </View>
       </View>
+      {/*
+        The island's greeter, where the screen stops reporting and starts
+        suggesting. Draws nothing in an area without one - see GreeterCard.
+      */}
+      <GreeterCard area={area.key} />
       <Places places={here} shops={shops} onOpenMap={onOpenMap} onOpenPlace={onOpenPlace ?? onOpenMap} onOpenShop={onOpenShop ?? onOpenMap} onOpenLocalPicks={onOpenLocalPicks} />
       <MarketPromoCard onOpenMarket={onOpenMarket ?? onOpenWallet} />
       {/*
@@ -314,13 +322,22 @@ function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile }: {
         <ProfileButton onPress={onOpenProfile} />
       </View>
       <AreaSwitch area={area.key} onChange={onChangeArea} tone="inverted" />
-      <View style={{ marginTop: 18, maxWidth: 720 }}>
-        <Heading size={34} tracking={-0.7} colour="#FFFFFF" style={{ maxWidth: 560 }}>
-          {t({ en: 'Discover. Travel. Remember.', th: 'ค้นหา เดินทาง และจดจำ', zh: '探索、旅行、铭记。' })}
-        </Heading>
-        <Body size={13} colour="#E8FBFF" style={{ marginTop: 6, maxWidth: 520 }}>
-          {t({ en: 'Island stories, local people and safer journeys — all in one place.', th: 'เรื่องราวของเกาะ ผู้คนท้องถิ่น และการเดินทางที่ปลอดภัยในที่เดียว', zh: '岛屿故事、当地人与安心旅程，尽在一处。' })}
-        </Body>
+      {/*
+        The greeter stands beside the promise, not over it. A row rather than
+        anything absolutely positioned: the headline keeps whatever width is
+        left, the mark never covers a word of it at any screen size, and an
+        area without a greeter draws nothing and leaves the row as it was.
+      */}
+      <View style={{ marginTop: 18, maxWidth: 720, flexDirection: 'row', alignItems: 'flex-end', gap: 8 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Heading size={34} tracking={-0.7} colour="#FFFFFF" style={{ maxWidth: 560 }}>
+            {t({ en: 'Discover. Travel. Remember.', th: 'ค้นหา เดินทาง และจดจำ', zh: '探索、旅行、铭记。' })}
+          </Heading>
+          <Body size={13} colour="#E8FBFF" style={{ marginTop: 6, maxWidth: 520 }}>
+            {t({ en: 'Island stories, local people and safer journeys — all in one place.', th: 'เรื่องราวของเกาะ ผู้คนท้องถิ่น และการเดินทางที่ปลอดภัยในที่เดียว', zh: '岛屿故事、当地人与安心旅程，尽在一处。' })}
+          </Body>
+        </View>
+        <GreeterMark area={area.key} />
       </View>
       <Pressable onPress={onOpenConcierge} accessibilityRole="button" accessibilityLabel={t({ en: 'Ask where to go', th: 'ถามว่าไปไหนดี', zh: '问问去哪儿好' })}
         style={{ marginTop: 20, minHeight: 58, maxWidth: 720, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 29, shadowColor: '#003B52', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.22, shadowRadius: 20, elevation: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.72)' }}>

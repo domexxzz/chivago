@@ -6,6 +6,13 @@
 # a hard OOM. Sequential costs a minute and is the difference between a suite
 # you trust and one you re-run.
 #
+# That rule is about one runner. Across runners there is no shared memory to
+# exhaust, which is why the TypeScript half is four jobs rather than one: it
+# was a single job of twelve steps and on 12 November it stopped finishing
+# inside its twenty minutes, so every pull request went red on a clock rather
+# than on a test. Each job below now carries a quarter of the work, starts
+# its own runner, and reports which part broke instead of "the job".
+#
 # Node 24, matching the Dockerfile. `node:sqlite` is unflagged from 22.13 and
 # `module.registerHooks` (the mobile test harness) exists from 22.15; the
 # root package.json says so. Anything older fails before the first test.
@@ -18,7 +25,40 @@ on:
   pull_request:
 
 jobs:
-  typescript:
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
+  # Everything that needs Cloudflare's runtime rather than Node's. Its own job
+  # because two of the three start `wrangler dev`, which is slow to come up and
+  # has nothing to do with whether the Node suites pass.
+  workers:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -31,24 +71,36 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm test
-      # The same API suite again, through the Durable Object adapter
+      # The same API suite as `test`, through the Durable Object adapter
       # (apps/api/src/do-storage.ts) instead of node:sqlite directly. It is
       # the only thing that keeps the adapter honest: the stand-in refuses
       # exactly the SQL Cloudflare's runtime refuses, so a statement that
       # would fail on Workers fails here instead of after a deploy.
       - run: pnpm --filter @chivago/api test:durable
-      # A real alarm, in a real Durable Object, in real workerd. Its own step
-      # because it starts `wrangler dev` and takes half a minute - and it is
-      # worth that: an alarm books the next alarm, and if that ever stops, all
+      # A real alarm, in a real Durable Object, in real workerd. Worth its
+      # minutes: an alarm books the next alarm, and if that ever stops, all
       # scheduled work on the object stops silently, SOS escalation included.
       - run: pnpm --filter @chivago/api test:alarm
       # The migration, end to end, in the runtime it will run in: export a
       # snapshot, send the batches over HTTP to a real Durable Object, read
-      # the data back through the public API. Its own step for the same reason
-      # as the alarm test - it starts `wrangler dev`.
+      # the data back through the public API.
       - run: pnpm --filter @chivago/api test:import
+
+  # The cheap guards. They finish in a couple of minutes and used to sit at the
+  # end of the long job, which meant a timeout upstream hid them entirely.
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       # The console stylesheet is generated from public/modernist.css into a
       # module the bundle carries. A stale module means the console serves
       # last week's styles, which for this stylesheet can mean invisible form
@@ -82,7 +134,10 @@ jobs:
 
   swift:
     runs-on: macos-latest
-    timeout-minutes: 15
+    # Thirty, not fifteen. A cold macOS runner resolves and compiles the
+    # package from nothing, and on 12 November it was still doing that when
+    # fifteen minutes ran out - the build had not failed, it had not finished.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       # The package that "had never been compiled" for its first forty commits.

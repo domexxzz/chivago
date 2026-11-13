@@ -94,4 +94,17 @@ describe('the tab bar and the navigator agree', () => {
       assert.match(owning[1]!, new RegExp(`\\b${key}:`), `'${key}' has no owning tab`);
     }
   });
+
+  test('a mini-game is owned by the tab it is opened from', () => {
+    // The game cards live on the Quests screen, not on the Game tab. Owned by
+    // 'game' the reader watched a different tab light up than the one they had
+    // tapped, and back popped them onto it. If the cards ever move again, this
+    // is the line that moves with them.
+    const owning = /const OWNING_TAB: Record<ScreenKey, TabKey> = \{([\s\S]*?)\n\};/.exec(store);
+    assert.ok(owning, 'OWNING_TAB moved');
+    assert.match(
+      owning[1]!, /\bminiGame: 'quests'/,
+      "miniGame must be owned by 'quests' while the game cards are on MissionsScreen",
+    );
+  });
 });

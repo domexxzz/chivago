@@ -15,9 +15,16 @@
  *
  *   pnpm --filter @chivago/api demo:reset
  *   pnpm --filter @chivago/api demo:reset --walk
+ *   pnpm --filter @chivago/api demo:reset --area koh-sichang --walk
  *
  * `--walk` reads the seeded state back through the real read paths and exits
  * non-zero naming any screen that would open empty.
+ *
+ * `--area` picks which area the seeded history happens in. It defaults to
+ * `samui`, which is what this script did before the flag existed, so the
+ * command without it behaves exactly as it always has. `koh-sichang` is the
+ * pilot area: seed that one before a pitch about the island, or the demo
+ * opens on five days somebody spent on the wrong island.
  */
 
 import { openDb, type DB } from './db-node.ts';
@@ -327,26 +334,44 @@ const quest = (id: string) => {
  * Typed against the real mood union, so a key the app does not have fails at
  * the typecheck rather than three days before the demo.
  */
-const HISTORY: { day: number; places: string[]; mood: MoodKey | null; rode?: true }[] = [
-  { day: 4, places: ['chaweng', 'namuang'], mood: 'steady' },
-  // RODE, an hour apart: Fisherman's Village to Lamai is ten kilometres, and
-  // in an hour that is a songthaew, not a walk. So Lamai's companion is still
-  // an egg - the one the presenter hatches live (docs/28). Since a single
-  // walked leg hatches an egg (e04a5df), a history walked end to end has none,
-  // and --walk failed on it from the day that landed.
-  { day: 3, places: ['fisherman', 'lamai'], mood: 'bright', rode: true },
-  { day: 2, places: ['namuang', 'mangrove'], mood: 'tense' },
-  { day: 1, places: ['fisherman', 'chaweng'], mood: 'steady' },
-  { day: 0, places: ['chaweng', 'fisherman'], mood: 'bright' },
-];
+interface Plan {
+  /** The area this history happens in, for the line the script prints. */
+  area: string;
+  days: { day: number; places: string[]; mood: MoodKey | null; rode?: true }[];
+  /**
+   * Quests taken all the way through host verification.
+   *
+   * Green Points exist ONLY at the end of this path - joined, arrived, proof
+   * submitted, host approved - which is the whole difference between the two
+   * currencies.
+   */
+  verifiedQuests: string[];
+  /** The quest the second traveller does, so the standing has two names in it. */
+  secondQuest: string;
+  /** The quest whose host files a statement (docs/31). */
+  statementQuest: string;
+  /** The second traveller's shorter history. */
+  secondDays: { day: number; places: string[] }[];
+}
 
 /**
- * Quests taken all the way through host verification.
+ * Five days in the area, ending today.
  *
- * Three green and one trip, because the two currencies are the product's
- * central claim and a demo that can only spend one of them proves half of it.
- * Green Points exist ONLY at the end of this path - joined, arrived, proof
- * submitted, host approved - which is the whole difference between the two.
+ * The shape matters more than the volume, and every part of it is doing a job:
+ *
+ *  - Habitats visited on more than one day, so companions can hatch. One
+ *    habitat three days, another two, and one visited ONCE - which puts an
+ *    egg, a hatchling and a grown companion on screen together. The single
+ *    day is deliberate: it leaves the presenter an egg to hatch live, which
+ *    is the one moment in the demo where the mechanic is shown working
+ *    rather than described.
+ *  - Enough days for the Healthy Score to hold a baseline. Below that it shows
+ *    its "too short to judge" state, which is correct and undemonstrative.
+ *  - Enough Trip Points to actually redeem something. A marketplace nobody can
+ *    afford is a screen you can open and not use.
+ *
+ * Typed against the real mood union, so a key the app does not have fails at
+ * the typecheck rather than three days before the demo.
  */
 const VERIFIED_QUESTS = [
   'q-sg-explorer',
@@ -494,10 +519,7 @@ function seed(db: DB): void {
 const SECOND = 'demo-traveller-2';
 
 /** Two days on the island, both before the demo traveller's last two. */
-const SECOND_HISTORY: { day: number; places: string[] }[] = [
-  { day: 3, places: ['chaweng'] },
-  { day: 2, places: ['fisherman', 'chaweng'] },
-];
+const SECOND_HISTORY = PLAN.secondDays;
 
 function seedSecondTraveller(db: DB): void {
   db.prepare('INSERT INTO users (id, display_name, locale, created_at) VALUES (?,?,?,?)')
@@ -698,7 +720,7 @@ if (process.argv[1]?.replace(/\\/g, '/').endsWith('/reset-demo.ts')) {
 
   const balances = getBalances(db, USER);
   console.log(
-    `[chivago] demo reset: ${USER} · ${HISTORY.length} days · ` +
+    `[chivago] demo reset: ${PLAN.area} · ${USER} · ${HISTORY.length} days · ` +
     `${balances.trip} trip · ${balances.green} green`,
   );
 

@@ -55,6 +55,7 @@ export * from './navigation.ts';
 export * from './navigation-progress.ts';
 export * from './statement.ts';
 export * from './areas.ts';
+export * from './greeters.ts';
 export * from './greeting.ts';
 export * from './medals.ts';
 export * from './transit.ts';

@@ -70,6 +70,13 @@ describe('five areas, derived from provinces', () => {
     assert.equal(areaOfPlace({ province: 'TH-99', lat: 13.1614, lng: 100.8104 }), DEFAULT_AREA);
   });
 
+  test('the default area is the pilot, not whichever area was built first', () => {
+    // Pinned by name on purpose. Every other test here reads DEFAULT_AREA
+    // symbolically, so all of them passed just as happily when it was Samui
+    // and the app opened on the wrong island. This one fails if it moves.
+    assert.equal(DEFAULT_AREA, 'koh-sichang');
+  });
+
   test('the key check refuses what a URL might carry', () => {
     assert.ok(isAreaKey('ku-sriracha'));
     assert.ok(isAreaKey('ku-bangkhen'));

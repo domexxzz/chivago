@@ -116,6 +116,14 @@ const EXACT: Readonly<Record<string, Localised>> = {
   NO_ACTIVE_ALERT: message('There is no active alert.', 'ไม่มีการแจ้งเตือนที่กำลังทำงาน', '当前没有活动警报。'),
   UNAVAILABLE_UPLOAD: message('This upload is not supported.', 'ไม่รองรับไฟล์ที่อัปโหลด', '不支持此上传文件。'),
   UNSUPPORTED_UPLOAD: message('This upload is not supported.', 'ไม่รองรับไฟล์ที่อัปโหลด', '不支持此上传文件。'),
+  // The migration route (docs/71). These reach an operator moving a database
+  // between deployments, never a traveller - but the contract is that every
+  // code the API can return has copy here, because the alternative is an
+  // operator reading GENERIC_API_ERROR while a migration sits half-done.
+  WEAK_IMPORT_TOKEN: message('This deployment cannot accept an import: its token is too short.', 'ปลายทางนี้รับข้อมูลเข้าไม่ได้ เพราะโทเคนสั้นเกินไป', '此部署无法接收导入：令牌太短。'),
+  DATABASE_NOT_EMPTY: message('The database already holds data, so the import was refused.', 'ฐานข้อมูลปลายทางมีข้อมูลอยู่แล้ว จึงปฏิเสธการนำเข้า', '目标数据库已有数据，导入已被拒绝。'),
+  BAD_BATCH: message('This import batch is malformed.', 'ชุดข้อมูลที่ส่งมาไม่ถูกรูปแบบ', '此导入批次格式不正确。'),
+  IMPORT_FAILED: message('The import did not finish.', 'การนำเข้าไม่สำเร็จ', '导入未完成。'),
   INTERNAL: message('The service had a problem. Please try again.', 'ระบบขัดข้อง กรุณาลองอีกครั้ง', '服务出现问题，请重试。'),
 };
 

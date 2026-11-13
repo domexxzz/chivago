@@ -92,10 +92,14 @@ describe('Koh Sichang', () => {
     assert.equal(historical.length, 2);
     for (const q of historical) {
       assert.equal(q.host.id, SEED_HOSTS.sichangTeam!.id, 'the municipality has not agreed to host');
-      assert.equal(q.esgPillar, 'environmental');
+      assert.ok(q.esgPillar, `${q.id} declares no ESG pillar, so a report would exclude it`);
       assert.equal(q.rewardCurrency, 'green');
       assert.match(q.name.th, /ตัวอย่าง/);
       assert.match(q.name.en, /sample/i);
+      assert.ok(
+        SEED_PLACES.some((p) => p.id.startsWith('sc-') && Math.hypot(p.lat - q.lat, p.lng - q.lng) < 0.003),
+        `${q.id} is not at any mapped place on the island`,
+      );
     }
 
     assert.deepEqual(
@@ -103,5 +107,32 @@ describe('Koh Sichang', () => {
       ['SG-01', 'SG-02', 'SG-03', 'SG-04', 'SG-05'],
     );
     assert.ok(ACTIVE_QUESTS.every((q) => inArea(area, q)));
+  });
+
+  test('the island has a reward its own verified work can reach, and it is not claimed as a partner', () => {
+    const total = SEED_QUESTS.filter((q) => inArea(area, q))
+      .reduce((sum, q) => sum + q.rewardPoints, 0);
+    const island = SEED_OFFERS.filter((o) => /เกาะสีชัง|Koh Sichang/.test(o.merchant));
+    assert.ok(island.length > 0, 'every reward is somebody else\'s island');
+    const green = island.filter((o) => o.currency === 'green' && o.available);
+    assert.ok(
+      green.some((o) => o.costPoints <= total),
+      `nothing on the island costs ${total} Green or less, so the Green half of the redeem flow cannot be shown here`,
+    );
+    for (const o of island) {
+      // Nobody has walked in and asked yet. Until they have, the app has to
+      // keep saying so, and the price stays the merchant's to name.
+      assert.equal(o.example, true, `${o.id} claims a partner nobody has signed`);
+      assert.equal(o.valueTHB, null, `${o.id} puts a price in the merchant's mouth`);
+    }
+  });
+
+  test('the island\'s quests come to the total the demo is seeded against', () => {
+    // Read off the work, at the rate the three quests before these set: 60 min
+    // for 120, 45 for 120, 30 for 90. Pinned because the demo's Marketplace
+    // walk depends on the total, and a quiet edit to a reward would move it
+    // without anything else noticing.
+    const quests = SEED_QUESTS.filter((q) => inArea(area, q));
+    assert.equal(quests.reduce((sum, q) => sum + q.rewardPoints, 0), 540);
   });
 });

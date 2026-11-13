@@ -45,7 +45,7 @@ export function StoriesBlock({
 }) {
   const [viewer, setViewer] = React.useState<number | null>(null);
   // Whether anybody looks at a clip before it is public. See fence.ts.
-  const { autoApprove } = useServerConfig();
+  const { storiesAutoApprove } = useServerConfig();
   return (
     <View style={{ marginTop: 24 }}>
       <Label size={10} tracking={0.14}>{t(strings.place.stories)}</Label>
@@ -79,7 +79,7 @@ export function StoriesBlock({
         <Body size={13} colour={color.neutral600} style={{ marginTop: 10 }}>{t(strings.place.storiesClosed)}</Body>
       )}
       {/* Only a queue that exists can be waited on. */}
-      {pending > 0 && !autoApprove ? (
+      {pending > 0 && !storiesAutoApprove ? (
         <Body size={13} colour={color.brand} style={{ marginTop: 8 }}>{`${t(strings.place.storyPending)} · ${pending}`}</Body>
       ) : null}
 

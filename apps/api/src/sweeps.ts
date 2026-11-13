@@ -30,7 +30,7 @@ import { expireStories } from './story-service.ts';
 import { rotateEpochs } from './summon-service.ts';
 import { sweepOverdue } from './sla-service.ts';
 import { staleAssists } from './assist-service.ts';
-import { sweep as escalationSweep } from './escalation-service.ts';
+import { nothingToEscalate, sweep as escalationSweep } from './escalation-service.ts';
 
 /** One scheduled job. */
 export interface Sweep {
@@ -38,6 +38,47 @@ export interface Sweep {
   name: string;
   everyMs: number;
   run: () => void | Promise<void>;
+  /**
+   * Whether there is nothing for this sweep to watch right now.
+   *
+   * ONLY THE CADENCE CHANGES, never whether the sweep runs. A sweep that says
+   * it is idle is still run on every alarm; what it loses is the right to
+   * drag the next alarm forward to its own interval. The escalation sweep
+   * wants thirty seconds because a distress call is on the line - but there is
+   * no distress call at four in the morning on a quiet island, and waking the
+   * object 2,880 times a day to confirm that is work nobody asked for.
+   *
+   * SAFE ONLY BECAUSE OF `fetch`. An alert can only begin with a request, and
+   * `worker.ts` pulls the alarm back in at the end of every request it serves.
+   * So the moment an alert exists the cadence is thirty seconds again, before
+   * the response has even left the object. Remove that and this becomes a
+   * three-minute delay on an SOS, which is not a trade anybody should make.
+   *
+   * Must be cheap and must not throw: it is consulted on the request path.
+   */
+  idle?: () => boolean;
+  /** The cadence while `idle()` is true. Ignored without one. */
+  idleMs?: number;
+}
+
+/**
+ * How often a sweep wants the next alarm, given what it can see right now.
+ *
+ * A sweep with no `idle` always wants `everyMs`, which is every sweep but one.
+ */
+export function cadenceOf(sweep: Sweep): number {
+  if (sweep.idle === undefined || sweep.idleMs === undefined) return sweep.everyMs;
+  try {
+    return sweep.idle() ? sweep.idleMs : sweep.everyMs;
+  } catch (err) {
+    /*
+      A broken idle check must never be the reason an escalation is late. The
+      answer to "I cannot tell whether anything is happening" is to assume
+      something is, and pay for the alarm.
+    */
+    console.error(`[chivago] idle check for '${sweep.name}' threw; assuming busy`, err);
+    return sweep.everyMs;
+  }
 }
 
 export interface SweepDeps {
@@ -76,6 +117,16 @@ export function buildSweeps(deps: SweepDeps): Sweep[] {
       */
       name: 'escalation',
       everyMs: 30_000,
+      /*
+        Five minutes while no alert is open, because thirty seconds buys
+        nothing when there is nothing to escalate - and on Workers every one of
+        those wake-ups re-opens the object and is billed. `worker.ts` pulls the
+        alarm back to thirty seconds at the end of the request that files an
+        alert, so this never delays a real one; `Sweep.idle` says why that
+        guarantee is the whole basis for doing this at all.
+      */
+      idle: () => nothingToEscalate(db),
+      idleMs: 300_000,
       run: () =>
         escalationSweep(db, oncall)
           .then((summary) => {
@@ -256,11 +307,15 @@ export async function runDueSweeps(
  * shortest interval - so a Durable Object that has just been created, with
  * nothing in `lastRunAt`, still books an alarm rather than waiting an hour
  * because the hourly jobs are not due.
+ *
+ * Each sweep's interval is `cadenceOf`, not `everyMs`, so a sweep with nothing
+ * to watch stops pulling the alarm forward. See `Sweep.idle`.
  */
 export function nextDueAt(sweeps: Sweep[], lastRunAt: LastRunAt, now = Date.now()): number {
-  const due = sweeps.map((s) => {
+  const cadences = sweeps.map(cadenceOf);
+  const due = sweeps.map((s, i) => {
     const last = lastRunAt[s.name];
-    return last === undefined ? now : last + s.everyMs;
+    return last === undefined ? now : last + cadences[i]!;
   });
-  return Math.min(...due, now + Math.min(...sweeps.map((s) => s.everyMs)));
+  return Math.min(...due, now + Math.min(...cadences));
 }

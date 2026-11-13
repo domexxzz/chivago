@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#75d9e7"/><stop offset="1" stop-color="#e9f7dd"/></linearGradient>
+<linearGradient id="sand" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f4e3aa"/><stop offset="1" stop-color="#dbb965"/></linearGradient>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0a8"/><stop offset=".48" stop-color="#d99e32"/><stop offset="1" stop-color="#f7d56d"/></linearGradient>
+<clipPath id="disc"><circle cx="256" cy="256" r="208"/></clipPath>
+</defs>
+<circle cx="256" cy="256" r="232" fill="#8b5a16"/>
+<circle cx="256" cy="256" r="224" fill="url(#gold)" stroke="#fff0b2" stroke-width="5"/>
+<circle cx="256" cy="256" r="210" fill="#117e91" stroke="#9f6c23" stroke-width="4"/>
+<path d="M48 250V76Q256 5 464 76V258Z" fill="url(#sky)" clip-path="url(#disc)"/>
+<path d="M45 251Q132 223 222 249T465 244V337Q357 324 260 343T45 344Z" fill="#168ba1" clip-path="url(#disc)"/>
+<path d="M45 321Q160 294 250 318T465 313V465H45Z" fill="url(#sand)" clip-path="url(#disc)"/>
+<path d="M61 386Q140 371 207 384M315 407Q377 392 445 409M88 433Q151 422 196 432" fill="none" stroke="#fff0c2" stroke-width="5" opacity=".75" clip-path="url(#disc)"/>
+<path d="M112 404Q148 333 197 306M396 428Q361 343 313 303" fill="none" stroke="#2d8059" stroke-width="14" stroke-linecap="round"/>
+<path d="M180 354Q125 340 137 300Q181 302 190 337Q195 295 232 285Q240 328 206 349Q251 320 276 343Q250 379 210 364Q246 385 232 423Q192 410 194 373Q176 410 140 402Q149 362 180 354Z" fill="#f9fbef" stroke="#d4c887" stroke-width="4"/>
+<path d="M213 350Q252 320 278 342Q252 378 213 364Q251 387 234 420Q196 406 197 371Q179 405 144 399Q149 362 183 352Q129 340 139 303Q179 304 190 337Q195 295 231 286Q239 327 207 349Z" fill="#fffdf4" stroke="#d7d1b1" stroke-width="4"/>
+<circle cx="195" cy="355" r="17" fill="#f3bc41" stroke="#d89a2e" stroke-width="4"/>
+<path d="M100 281L105 271M403 272L408 282M345 107Q357 96 370 107" stroke="#fff9e6" stroke-width="5" stroke-linecap="round"/>
+<circle cx="256" cy="256" r="224" fill="none" stroke="#fff2bd" stroke-width="3"/>
+</svg>

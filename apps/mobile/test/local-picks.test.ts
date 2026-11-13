@@ -1,10 +1,31 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, mock } from 'node:test';
+import { test, describe, afterEach, beforeEach } from 'node:test';
 import { createElement as h } from 'react';
 import { Linking } from 'react-native';
 
 import { LocalPicksScreen } from '../src/screens/LocalPicksScreen.tsx';
 import { mountScreen } from './interact.ts';
+import { mountScreen, server, offline } from './interact.ts';
+import * as fx from './fixtures.ts';
+import { __setAreaForTests } from '../src/state/area.ts';
+
+/**
+ * Local Picks - the island's own businesses, by category.
+ *
+ * The categories are not new. `/shops` has filtered on `category` since the
+ * directory shipped, Home has carried the same chips inside its "places in
+ * this area" section, and `SHOP_CATEGORIES` has listed all eight - including
+ * `เช่ารถ`, which is how a rental shop gets a place to stand without anybody
+ * building a rental feature.
+ *
+ * What was missing is a screen: on Home the chips are two taps down, behind a
+ * `Services` switch, in a row that scrolls sideways off a screen somebody is
+ * already scrolling. These tests are about the screen, and the thing they
+ * guard hardest is the EMPTY category - a filter that silently shows nothing
+ * reads as a broken app, and this island will have empty categories for
+ * months.
+ */
 
 const noop = () => {};
 const props = { onBack: noop, onOpenShop: noop };

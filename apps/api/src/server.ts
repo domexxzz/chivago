@@ -146,7 +146,7 @@ import type { Voucher, WellnessProfile } from '@chivago/core';
  * import time. So whichever entry point is running calls `useDatabase` before
  * it serves a single request.
  *
- * The 134 route handlers below close over this BINDING rather than capturing a
+ * The route handlers below close over this BINDING rather than capturing a
  * value, which is what makes a late assignment work at all. `openDb` used to
  * be called here, which meant importing this file touched the disk - and on
  * Workers there is no disk to touch.
@@ -184,8 +184,11 @@ export function useDatabase(handle: DB): void {
   if (isPrimary()) {
     try {
       const bootstrapped = bootstrapKohSichangBusinesses(db);
-      if (!bootstrapped.skipped && (bootstrapped.accountCreated || bootstrapped.shopsInserted > 0)) {
-        console.log('[chivago] Ko Sichang businesses bootstrapped:', bootstrapped);
+      const planted = bootstrapped.accountCreated
+        || bootstrapped.shopsInserted > 0
+        || bootstrapped.attractionsInserted > 0;
+      if (!bootstrapped.skipped && planted) {
+        console.log('[chivago] Ko Sichang content bootstrapped:', bootstrapped);
       }
     } catch (err) {
       console.error('[chivago] Ko Sichang bootstrap failed; starting without it:', err);

@@ -51,7 +51,23 @@ async function waitForReady(timeoutMs = 90_000) {
   return false;
 }
 
-const state = async () => (await fetch(`${BASE}/state`)).json();
+/**
+ * Every call to the object carries a deadline.
+ *
+ * `waitForReady` above always had one; these did not, and on 13 November that
+ * was the difference between a job that fails and a job that hangs. wrangler
+ * came up, the suite asked it for `/arm`, and the answer never came - so the
+ * script sat inside `try` for seventeen minutes, never reached the `finally`
+ * that kills wrangler, and CI cut the whole job at twenty. The leftovers were
+ * visible as orphan `workerd` processes in the runner's cleanup.
+ *
+ * A request that cannot be answered in ten seconds, against a local object on
+ * loopback, is not slow. It is not coming.
+ */
+const call = async (path, timeoutMs = 10_000) =>
+  fetch(`${BASE}${path}`, { signal: AbortSignal.timeout(timeoutMs) });
+
+const state = async () => (await call('/state')).json();
 
 const wrangler = spawn(
   process.platform === 'win32' ? 'npx.cmd' : 'npx',
@@ -66,6 +82,28 @@ let log = '';
 wrangler.stdout.on('data', (c) => { log += c.toString('utf8'); });
 wrangler.stderr.on('data', (c) => { log += c.toString('utf8'); });
 
+/*
+  The backstop, for the hang the per-request deadlines do not catch.
+
+  This script takes about two minutes, most of it wrangler starting up. Five
+  minutes is not a budget, it is the point past which something is wrong in a
+  way no amount of waiting fixes
+  - and the difference between learning that from a failed step with wrangler's
+  output attached, and learning it from a job the runner cut with no reason
+  given, which is what happened on 13 November.
+
+  `unref`ed, so a healthy run is never held open by it.
+*/
+const watchdog = setTimeout(() => {
+  console.error(
+    `\n[alarm] no result after 5 minutes - giving up rather than holding the job open.\n`
+    + `wrangler's output:\n${log.slice(-2_000)}`,
+  );
+  wrangler.kill();
+  process.exit(1);
+}, 5 * 60_000);
+watchdog.unref();
+
 try {
   if (!(await waitForReady())) {
     console.error('wrangler dev never answered. Its output:\n' + log.slice(-2_000));
@@ -74,7 +112,7 @@ try {
   console.log('[alarm] wrangler dev is up\n');
 
   // --- the loop runs at all -------------------------------------------------
-  await fetch(`${BASE}/arm`);
+  await call('/arm');
   await sleep(2_500);
   const first = await state();
 
@@ -140,6 +178,7 @@ try {
     + `${later.counts.fast} by the end - local alarm timing is not steady, so that is `
     + `context and not a rate. The hourly sweep ran ${later.counts.hourly} time(s).`);
 } finally {
+  clearTimeout(watchdog);
   wrangler.kill();
   // Give workerd a moment to let go of its lock files on Windows.
   await sleep(500);
@@ -151,3 +190,21 @@ if (failures.length > 0) {
   process.exit(1);
 }
 console.log('\n[alarm] every check passed.');
+
+/*
+  AND EXIT, which the failure path above always did and this one never did.
+
+  That asymmetry is the whole bug. On 13 November every check passed, the
+  script printed exactly the line above at 05:51:59, and then sat there until
+  CI cancelled the job at its twenty-minute ceiling seventeen minutes later -
+  a green test that reads as a hung one, and a `workers` job that failed
+  without anything being wrong with the alarm.
+
+  `wrangler.kill()` in the `finally` kills the npx wrapper, not the workerd
+  grandchild it spawned, and workerd keeps hold of the stdout pipe this
+  script is still reading into `log`. An open pipe is a live handle, so
+  node's event loop has something left to wait on and waits on it for as long
+  as anybody lets it. There is nothing left to do by this point, so say so
+  rather than hoping the handles drain.
+*/
+process.exit(0);
