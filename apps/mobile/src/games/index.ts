@@ -8,11 +8,11 @@
  * nothing a player can see while costing days and introducing bugs the
  * original did not have.
  *
- * WHY A LIST AND NOT A SCREEN PER GAME. There is one game today and a second
- * one - เชฟชังชังเปิดร้าน - already written and waiting on its artwork. One
- * route, one screen and one card component that read from this list means the
- * second game is an entry here rather than a route, a screen, a card and four
- * edits somebody has to remember to make together.
+ * WHY A LIST AND NOT A SCREEN PER GAME. There are two games, and the second -
+ * เชฟชังชังเปิดร้าน - landed on 13 November as an entry below and two files
+ * beside it, which is the whole point: one route, one screen and one card
+ * component read from this list, so a new game is not a route, a screen, a
+ * card and four edits somebody has to remember to make together.
  *
  * WHAT A GAME MAY NOT DO, and this is the part to defend:
  *
@@ -33,9 +33,10 @@
 
 import type { Localised } from '@chivago/core';
 import type { Locale } from '../i18n/locale.ts';
+import { CHEF_SHOP_HTML } from './chef-shop.ts';
 import { WASTE_SORT_HTML } from './waste-sort.ts';
 
-export type MiniGameKey = 'waste-sort';
+export type MiniGameKey = 'waste-sort' | 'chef-shop';
 
 export type MiniGame = {
   key: MiniGameKey;
@@ -69,6 +70,20 @@ export const MINI_GAMES: readonly MiniGame[] = [
     // ขยะเปียก · รีไซเคิล · ทั่วไป · อันตราย, in the page's own four colours.
     swatches: ['#39A65F', '#E6B33C', '#388EC5', '#DF6862'],
     html: WASTE_SORT_HTML,
+  },
+  {
+    key: 'chef-shop',
+    name: { en: "ChangChang's kitchen", th: 'เชฟชังชังเปิดร้าน', zh: '松松厨师开店' },
+    blurb: {
+      en: 'Five Ko Sichang dishes. Guess what is in them, then hear where they come from.',
+      th: 'ห้าจานของสีชัง เดาส่วนผสมให้ถูก แล้วฟังที่มาของจานนั้น',
+      zh: '锡昌岛五道菜。猜出食材，再听听它们的来历。',
+    },
+    language: 'th',
+    // The page's own: brand teal, the pot's green, the cream board, the dashes
+    // around the pot.
+    swatches: ['#008EAA', '#00A998', '#FFFAF0', '#70C7C7'],
+    html: CHEF_SHOP_HTML,
   },
 ];
 
