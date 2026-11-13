@@ -81,7 +81,8 @@ import {
   STORY_FORM_MAX_BYTES, StoryTooLarge, readStoryMedia, storiesAt, storiesInArea, storiesOpen,
   storyEtag, submitStory,
 } from './story-service.ts';
-import { areaByKey, inArea, isAreaKey } from '@chivago/core';
+import { AREAS, areaByKey, inArea, isAreaKey } from '@chivago/core';
+import { openArea } from './area-opening.ts';
 import { TEN_PULL_SIZE } from '@chivago/core';
 import { isLang } from '@chivago/core';
 import { statementMissingPage, verifyPage } from './console/statement.ts';
@@ -1826,6 +1827,47 @@ function parsePosition(raw: unknown): Fix | null {
  * the user header, because the caller is the host console, not the traveller.
  * Replace with signed webhooks or mTLS before public launch.
  */
+/**
+ * Open an area on the database this process is talking to.
+ *
+ * THE ONLY WAY CONTENT REACHES A DURABLE OBJECT. `seed-db.ts` and the
+ * `seed-area.ts` CLI both open a local SQLite file, so on Cloudflare there was
+ * no way to get a quest in at all - which is how production spent a week
+ * serving two Ko Sichang quests while the code, the deck and the field guide
+ * all said five. See the note at the top of `area-opening.ts`.
+ *
+ * INSERT ONLY, plus retiring the quests the seed replaced. It never asserts
+ * the seed over a row that exists and never touches another area, so it is
+ * safe against a database with travellers in it - which `seed-db.ts`, with its
+ * prune, is not, and says so by refusing.
+ *
+ * Guarded by the same operator secret as `/internal/verify`, and for the same
+ * stated reason: replace with something better before public launch.
+ */
+app.post('/internal/open-area', async (c) => {
+  const secret = process.env.CHIVAGO_HOST_SECRET;
+  if (!secret || c.req.header('x-host-secret') !== secret) {
+    return fail(c, 'FORBIDDEN', 'Host credentials required', 403);
+  }
+  const body = (await c.req.json().catch(() => ({}))) as { area?: unknown };
+  if (!isAreaKey(body.area)) {
+    return fail(c, 'BAD_AREA', `area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
+  }
+  const result = openArea(db, body.area);
+  console.log(
+    `[chivago] area ${result.area}: +${result.questsAdded}/${result.questsTotal} quests, `
+    + `+${result.placesAdded}/${result.placesTotal} places, `
+    + `retired ${result.retired.deleted.length} deleted / ${result.retired.kept.length} kept`,
+  );
+  /*
+    The console keys a new host is issued are shown ONCE, by the CLI, to a
+    person. This route is machine-to-machine over a shared secret, so it says
+    how many were issued and not what they are - a key in a response body is a
+    key in a log, in a proxy and in somebody's shell history.
+  */
+  return ok(c, { ...result, keys: undefined, keysIssued: result.keys.length });
+});
+
 app.post('/internal/verify', async (c) => {
   const secret = process.env.CHIVAGO_HOST_SECRET;
   if (!secret || c.req.header('x-host-secret') !== secret) {
