@@ -11,12 +11,16 @@ import './src/polyfills/location-emitter.ts';
 import { registerRootComponent } from 'expo';
 import App from './App';
 
-// The static demo build has no API behind it. Installed here rather than in
-// App so it is in place before the first screen can fetch.
-if (process.env.EXPO_PUBLIC_DEMO === '1') {
-  const { installDemoServer, markAsDemo } = require('./src/demo/server.ts');
-  installDemoServer(process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8787');
-  markAsDemo();
-}
+// Installed before React so a persisted guest never races the first account
+// request. In a static demo it owns every API request; in the normal app it
+// wakes only for Guest Sandbox mode and otherwise passes through untouched.
+const { installDemoServer, markAsDemo } = require('./src/demo/server.ts');
+const { guestSandboxActive } = require('./src/demo/mode.ts');
+const staticDemo = process.env.EXPO_PUBLIC_DEMO === '1';
+installDemoServer(process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8787', {
+  active: () => staticDemo || guestSandboxActive(),
+  fallThroughUnknownReads: !staticDemo,
+});
+if (staticDemo) markAsDemo();
 
 registerRootComponent(App);

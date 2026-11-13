@@ -298,7 +298,7 @@ export function fireAlert(db: DB, input: FireInput): SosAlertRecord {
        VALUES (?,?,'dispatching',?,?,?,?,?,0,1,?,?,?,?,?)`,
     ).run(
       id, input.userId, input.lat, input.lng, input.locationLabel, now,
-      input.nearestHospital ?? 'Bangkok Hospital Samui',
+      input.nearestHospital ?? 'Koh Sichang Hospital',
       token, input.lat, input.lng, input.lat === null ? null : now, input.note ?? null,
     );
 

@@ -37,16 +37,16 @@ describe('every table is decided', () => {
 
 /** Content, one traveller, and a row in every table the classification decided. */
 function populated(): void {
-  seedArea(db, 'ku-bangkhen');
-  const host = 'h-ku-bangkhen-chivago';
-  const quest = 'q-ku-bk-walk';
+  seedArea(db, 'koh-sichang');
+  const host = 'h-sichang-chivago';
+  const quest = 'q-sg-explorer';
   db.exec(`
     INSERT INTO offers (id, category, name, merchant, merchant_short, cost_points) VALUES ('o1','food','Tea','Shop','Shop',10);
     INSERT INTO users (id, display_name, created_at) VALUES ('u1','Traveller','${AT}');
     INSERT INTO parties (id, name, code_hash, created_by, created_at) VALUES ('p1','Party','hash','u1','${AT}');
     INSERT INTO party_members (party_id, user_id, joined_at) VALUES ('p1','u1','${AT}');
     INSERT INTO party_invites (id, party_id, place_id, from_at, until_at, spaces, created_by, created_at)
-      VALUES ('pi1','p1','ku-bk-library','${AT}','${AT}',2,'u1','${AT}');
+      VALUES ('pi1','p1','sc-pier','${AT}','${AT}',2,'u1','${AT}');
     INSERT INTO invite_requests (invite_id, user_id, asked_at) VALUES ('pi1','u1','${AT}');
     INSERT INTO listings (id, operator_id, kind, title_en, title_th, where_label, created_at)
       VALUES ('l1','${host}','stay','Room','ห้องพัก','Bangkhen','${AT}');

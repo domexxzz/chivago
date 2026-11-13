@@ -101,6 +101,22 @@ export const KOH_SICHANG_BBOX: Bbox = {
   maxLng: 100.8230,
 };
 
+/**
+ * Whether a coordinate is on the Koh Sichang map that ChivarGo can route.
+ *
+ * This deliberately does not use `inArea`: that helper includes a generous
+ * content margin so a quest just outside a frame still belongs to the right
+ * area. A navigation-provider decision cannot use that margin, otherwise a
+ * mainland destination near Si Racha could be sent to the island-only map.
+ */
+export const isOnKohSichang = (at: { lat: number; lng: number }): boolean =>
+  at.lat >= KOH_SICHANG_BBOX.minLat && at.lat <= KOH_SICHANG_BBOX.maxLat
+  && at.lng >= KOH_SICHANG_BBOX.minLng && at.lng <= KOH_SICHANG_BBOX.maxLng;
+
+/** The one routing-provider policy shared by every navigation entry point. */
+export const navigationProviderFor = (destination: { lat: number; lng: number }): 'chivago' | 'google' =>
+  isOnKohSichang(destination) ? 'chivago' : 'google';
+
 export const AREAS: Area[] = [
   {
     key: 'samui',

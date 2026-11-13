@@ -46,7 +46,7 @@ import { t } from '../i18n/locale.ts';
 import { formatDate, formatInteger } from '../i18n/format.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 import travelHero from '../../assets/chivago-travel-hero-v2.png';
-import summonTravelCapsule from '../../assets/summon-travel-capsule-v1.png';
+import summonPetStyleMachine from '../../assets/summon-pet-style-machine-v1.png';
 
 /** The day a round opened, in the reader's own calendar conventions. */
 const openedOn = (iso: string): string =>
@@ -375,15 +375,13 @@ function RewardTabs({
  * The box itself, rendered as one bundled illustration rather than a stack
  * of circles. Keeping it in the app means the hero remains available offline.
  *
- * A glass dome over a brass base with ONE silhouette inside it, and the
- * silhouette is the same shape `Unmet` uses for every unmet spirit — which
- * is the point. It says nothing about what is in there, because the screen
- * does not know and must not imply it does. There is no spinning, no
- * flashing and no near-miss: a machine that performed a near-miss would be
- * teaching the reader something false about its own odds.
+ * The Pet & Style machine makes the two reward families visible without
+ * pretending to reveal the next result. There is no spinning, flashing or
+ * near-miss: the illustration is presentation, while the server remains the
+ * only source of the actual draw.
  */
 function TheBox({ busy, wide }: { busy: boolean; wide: boolean }) {
-  const size = wide ? 420 : 260;
+  const machineWidth = wide ? 340 : 224;
   return (
     <View
       accessible
@@ -395,11 +393,11 @@ function TheBox({ busy, wide }: { busy: boolean; wide: boolean }) {
       style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: wide ? 8 : 2 }}
     >
       <Image
-        source={summonTravelCapsule}
+        source={summonPetStyleMachine}
         resizeMode="contain"
         accessibilityIgnoresInvertColors
         style={{
-          width: size, height: size,
+          width: machineWidth, height: machineWidth * 1.5,
           opacity: busy ? 0.86 : 1,
           transform: [{ scale: busy ? 1.025 : 1 }],
         }}

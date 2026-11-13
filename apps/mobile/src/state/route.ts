@@ -21,7 +21,11 @@
  */
 
 import React from 'react';
-import { parseRoute, routeRequestUrl, type LatLng, type Route, type RouteMode } from '@chivago/core';
+import {
+  beyondRouter, parseRoute, routeRefusal, routeRequestUrl,
+  type LatLng, type Route, type RouteMode, type RouteRefusal,
+} from '@chivago/core';
+import { metresBetween } from '@chivago/core';
 
 /** Long enough for a busy free server, short enough that nobody waits twice. */
 export const ROUTE_TIMEOUT_MS = 8_000;
@@ -38,9 +42,18 @@ export interface RouteState {
   loading: boolean;
   /** True once a request has come back with nothing. The map says so. */
   failed: boolean;
+  /**
+   * WHY it came back with nothing, when the router said.
+   *
+   * Null while there is nothing to explain. The map's banner has always
+   * been able to say "no road route right now"; this is what lets it say
+   * the more useful thing instead - that the walk is simply too long, and
+   * the other mode will answer.
+   */
+  refusal: RouteRefusal | null;
 }
 
-const IDLE: RouteState = { route: null, loading: false, failed: false };
+const IDLE: RouteState = { route: null, loading: false, failed: false, refusal: null };
 
 /** Rounded so a walking traveller does not re-key the effect every second. */
 const gridKey = (p: LatLng | null): string => {
@@ -57,10 +70,25 @@ export function useRoute(from: LatLng | null, to: LatLng | null, mode: RouteMode
 
   React.useEffect(() => {
     if (!from || !to) { setState(IDLE); return undefined; }
+
+    /*
+      A QUESTION WHOSE ANSWER IS ARITHMETIC IS NOT WORTH ASKING.
+
+      The router plans a walk up to a hundred kilometres and returns 400
+      past it. A browser log caught this app sending that doomed request
+      three times for one 220 km trip - three round trips to a free
+      community server, each one guaranteed to fail, for an answer the
+      straight line already gives.
+    */
+    if (beyondRouter(mode, metresBetween(from, to))) {
+      setState({ route: null, loading: false, failed: true, refusal: 'too-far' });
+      return undefined;
+    }
+
     let live = true;
     const control = new AbortController();
     const timer = setTimeout(() => control.abort(), ROUTE_TIMEOUT_MS);
-    setState((was) => ({ route: was.route, loading: true, failed: false }));
+    setState((was) => ({ route: was.route, loading: true, failed: false, refusal: null }));
 
     void (async () => {
       try {
@@ -68,12 +96,19 @@ export function useRoute(from: LatLng | null, to: LatLng | null, mode: RouteMode
         const body: unknown = await res.json();
         if (!live) return;
         const route = res.ok ? parseRoute(body, mode) : null;
-        setState({ route, loading: false, failed: route === null });
+        setState({
+          route,
+          loading: false,
+          failed: route === null,
+          // The router's own reason when it gave one. A body that parsed to
+          // a route needs no explanation.
+          refusal: route !== null ? null : routeRefusal(body),
+        });
       } catch {
         // A timeout, an offline phone, a server having a bad afternoon. The
         // caller draws the straight line; none of them is worth telling
         // apart on a map.
-        if (live) setState({ route: null, loading: false, failed: true });
+        if (live) setState({ route: null, loading: false, failed: true, refusal: null });
       } finally {
         clearTimeout(timer);
       }

@@ -308,6 +308,9 @@ export function heldBy(db: DB, userId: string): Map<string, number> {
   for (const r of rows<{ spirit_key: string; n: number }>(
     db.prepare('SELECT spirit_key, COUNT(*) AS n FROM summons WHERE user_id = ? GROUP BY spirit_key').all(userId),
   )) held.set(r.spirit_key, r.n);
+  for (const r of rows<{ item_key: string; n: number }>(
+    db.prepare('SELECT item_key, COUNT(*) AS n FROM admin_inventory_grants WHERE user_id = ? GROUP BY item_key').all(userId),
+  )) held.set(r.item_key, (held.get(r.item_key) ?? 0) + r.n);
   return held;
 }
 

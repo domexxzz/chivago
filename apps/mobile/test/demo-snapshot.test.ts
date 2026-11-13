@@ -3,8 +3,9 @@ import { test, describe } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { AREAS, PLACE_COURTS, SEED_OFFERS, SEED_PLACES, SEED_QUESTS, inArea } from '@chivago/core';
+import { ACTIVE_QUESTS, AREAS, PLACE_COURTS, SEED_OFFERS, SEED_PLACES, SEED_QUESTS, inArea } from '@chivago/core';
 import { demoCourts } from '../src/demo/courts.ts';
+import { demoQuestDetail, demoQuestList } from '../src/demo/quests.ts';
 
 /**
  * The public demo replays a snapshot (src/demo/fixtures.json), and a snapshot
@@ -42,8 +43,12 @@ describe('the public demo has what the seed has', () => {
     }
   });
 
-  test('every seeded quest opens', () => {
-    for (const q of SEED_QUESTS) assert.ok(`/quests/${q.id}` in snapshot, `/quests/${q.id} is not in the demo snapshot`);
+  test('only the active Koh Sichang quests list and open', () => {
+    assert.deepEqual(demoQuestList().quests.map((q) => q.id).sort(), ACTIVE_QUESTS.map((q) => q.id).sort());
+    for (const quest of ACTIVE_QUESTS) {
+      assert.equal(demoQuestDetail(quest.id)?.quest.id, quest.id, `${quest.id} does not open in the demo`);
+    }
+    assert.equal(demoQuestDetail('q1'), null, 'a retired quest still opens in the demo');
   });
 
   test('every seeded reward is on the demo\'s shelf', () => {

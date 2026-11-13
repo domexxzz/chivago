@@ -12,11 +12,32 @@
  * is checked in a browser and on a device, not in this harness. What a test
  * CAN still see is everything around it - the rows under the map, the
  * banners, the chips - which is what the screen tests are for.
+ *
+ * WHAT IT ALSO RECORDS, and why.
+ *
+ * `sources` below keeps the `source` prop of every render, in order. One
+ * property of the navigator cannot be checked any other way and is the
+ * difference between a map and a slideshow: A POSITION UPDATE MUST NOT
+ * RELOAD THE DOCUMENT. A reload throws away MapLibre, the tile cache and the
+ * camera several times a minute, and it is invisible in a screenshot -
+ * the map simply looks like it is stuttering.
+ *
+ * Holding the prop lets a test drive fixes through the screen and then
+ * assert that the html handed to the WebView is the SAME STRING it was
+ * before, which is exactly what React would have to re-render to reload it.
  */
 import { createElement } from 'react';
 import { View } from 'react-native';
 
-export const WebView = ({ accessibilityLabel, style }) =>
-  createElement(View, { accessibilityLabel: accessibilityLabel ?? 'map', style });
+/** Every `source` this stub has been given, oldest first. */
+export const sources = [];
+
+/** Forget what was recorded. Call it in a test's setup, like resetControl. */
+export const resetWebView = () => { sources.length = 0; };
+
+export const WebView = ({ accessibilityLabel, style, source }) => {
+  sources.push(source);
+  return createElement(View, { accessibilityLabel: accessibilityLabel ?? 'map', style });
+};
 
 export default WebView;

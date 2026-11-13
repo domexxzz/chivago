@@ -1181,53 +1181,83 @@ export const SEED_QUESTS: Quest[] = [
     host: SEED_HOSTS.sichangTeam!, kind: 'today',
     lat: 13.1454, lng: 100.806835, geofenceRadiusM: 120,
   },
+  /*
+    Five Koh Sichang pilot briefs from the 12 Nov 2026 field-trial pack.
+
+    They award EXP only. `rewardPoints` therefore stays zero: turning EXP
+    into Trip or Green Points would create a payment the pilot pack never
+    promised. The normal verified quest workflow handles their GPS arrival,
+    evidence upload and Koh Sichang host review before releasing EXP.
+  */
   {
-    id: 'q-sc-treasure',
-    esgPillar: 'social',
-    code: 'SC-04',
-    name: {
-      en: 'Local Treasure (sample)',
-      th: 'ตามล่าของดีสีชัง (ตัวอย่าง)',
-      zh: '寻找锡昌好物（示例）',
-    },
-    where: {
-      en: 'Tha Lang pier, Koh Sichang',
-      th: 'ท่าเรือท่าล่าง เกาะสีชัง',
-      zh: '塔朗码头，锡昌岛',
-    },
-    duration: { en: '30 min', th: '30 นาที', zh: '30 分钟' },
-    rewardPoints: 90, rewardCurrency: 'green',
+    id: 'q-sg-explorer',
+    code: 'SG-01',
+    name: { en: 'Sichang Explorer', th: 'นักสำรวจเกาะสีชัง', zh: '锡昌岛探索家' },
+    where: { en: 'Koh Sichang', th: 'เกาะสีชัง', zh: '锡昌岛' },
+    duration: { en: 'Pilot schedule', th: 'ตามรอบทดลอง', zh: '试运行时段' },
+    rewardPoints: 0, rewardExp: 150, rewardCurrency: 'trip',
     host: SEED_HOSTS.sichangTeam!, kind: 'today',
+    lat: 13.14909, lng: 100.818436, geofenceRadiusM: 120,
+  },
+  {
+    id: 'q-sg-secret-recipe',
+    code: 'SG-02',
+    name: { en: 'Secret Recipe', th: 'ตามล่ารสชาติสีชัง', zh: '锡昌风味寻味' },
+    where: { en: 'Tha Lang shop row, Koh Sichang', th: 'ย่านร้านค้าหน้าท่าล่าง เกาะสีชัง', zh: '锡昌岛塔朗码头商铺街' },
+    duration: { en: 'Pilot schedule', th: 'ตามรอบทดลอง', zh: '试运行时段' },
+    rewardPoints: 0, rewardExp: 150, rewardCurrency: 'trip',
+    host: SEED_HOSTS.sichangTeam!, kind: 'today',
+    lat: 13.160059, lng: 100.809817, geofenceRadiusM: 120,
+  },
+  {
+    id: 'q-sg-trash-hero',
+    code: 'SG-03',
+    name: { en: 'Trash Hero', th: 'ฮีโร่พิทักษ์เกาะ', zh: '岛屿守护英雄' },
+    where: { en: 'Supervised activity, Koh Sichang', th: 'กิจกรรมที่มีผู้ดูแล เกาะสีชัง', zh: '锡昌岛有监督活动' },
+    duration: { en: 'Pilot schedule', th: 'ตามรอบกิจกรรม', zh: '按活动时段' },
+    rewardPoints: 0, rewardExp: 200, rewardCurrency: 'trip',
+    host: SEED_HOSTS.sichangTeam!, kind: 'weekend',
+    lat: 13.1454, lng: 100.806835, geofenceRadiusM: 120,
+  },
+  {
+    id: 'q-sg-local-treasure',
+    code: 'SG-04',
+    name: { en: 'Local Treasure', th: 'ตามล่าของดีสีชัง', zh: '锡昌好物寻宝' },
+    where: { en: 'Local shops, Koh Sichang', th: 'ร้านค้าท้องถิ่น เกาะสีชัง', zh: '锡昌岛本地商店' },
+    duration: { en: 'Pilot schedule', th: 'ตามรอบทดลอง', zh: '试运行时段' },
+    rewardPoints: 0, rewardExp: 150, rewardCurrency: 'trip',
+    host: SEED_HOSTS.sichangTeam!, kind: 'today',
+    lat: 13.160059, lng: 100.809817, geofenceRadiusM: 120,
+  },
+  {
+    id: 'q-sg-green-journey',
+    code: 'SG-05',
+    name: { en: 'Green Journey', th: 'เที่ยวเกาะอย่างใส่ใจ', zh: '绿色环岛之旅' },
+    where: { en: 'Verified route, Koh Sichang', th: 'เส้นทางที่ตรวจสอบแล้ว เกาะสีชัง', zh: '锡昌岛已核验路线' },
+    duration: { en: 'Pilot schedule', th: 'ตามรอบทดลอง', zh: '试运行时段' },
+    rewardPoints: 0, rewardExp: 150, rewardCurrency: 'trip',
+    host: SEED_HOSTS.sichangTeam!, kind: 'weekend',
     lat: 13.161443, lng: 100.810441, geofenceRadiusM: 120,
   },
-  {
-    id: 'q-sc-green-journey',
-    esgPillar: 'environmental',
-    code: 'SC-05',
-    name: {
-      en: 'Green Journey (sample)',
-      th: 'เที่ยวเกาะอย่างใส่ใจ (ตัวอย่าง)',
-      zh: '用心游岛（示例）',
-    },
-    /*
-      Anchored at the Cholatassathan museum, not at the hill shrine the field
-      guide pictures. The shrine is one of the six landmarks the Ko Sichang
-      bootstrap inserts at run time, so it is not in SEED_PLACES - and a quest
-      whose pin sits on no mapped place is a pin nobody can walk to. The
-      museum is east-coast and a real end for a walk or a bicycle, which is
-      what this quest is about.
-    */
-    where: {
-      en: 'Cholatassathan Museum, Koh Sichang',
-      th: 'พิพิธภัณฑ์ชลทัศนสถาน เกาะสีชัง',
-      zh: '乔拉塔沙坦博物馆，锡昌岛',
-    },
-    duration: { en: '60 min', th: '60 นาที', zh: '60 分钟' },
-    rewardPoints: 120, rewardCurrency: 'green',
-    host: SEED_HOSTS.sichangTeam!, kind: 'today',
-    lat: 13.1521963, lng: 100.8147057, geofenceRadiusM: 120,
-  },
 ];
+
+/**
+ * Quests currently published in ChivarGo.
+ *
+ * `SEED_QUESTS` remains the historical content catalogue because completed
+ * progress and ledger rows can still refer to an older quest. New clients,
+ * API reads and fresh database seeds publish only the five verified Koh
+ * Sichang field-trial quests. Keeping that boundary in one exported value
+ * prevents a stale database or the offline demo from bringing retired quests
+ * back into the UI.
+ */
+export const ACTIVE_QUEST_CODES = ['SG-01', 'SG-02', 'SG-03', 'SG-04', 'SG-05'] as const;
+
+export function isActiveQuestCode(code: string): boolean {
+  return (ACTIVE_QUEST_CODES as readonly string[]).includes(code.toUpperCase());
+}
+
+export const ACTIVE_QUESTS: Quest[] = SEED_QUESTS.filter((quest) => isActiveQuestCode(quest.code));
 
 // ---------------------------------------------------------------------------
 // Marketplace

@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, useWindowDimensions } from 'react-native';
+import { Linking, View, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import {
@@ -16,7 +16,10 @@ import {
 import { Anuphan_400Regular, Anuphan_600SemiBold } from '@expo-google-fonts/anuphan';
 import { IBMPlexMono_500Medium } from '@expo-google-fonts/ibm-plex-mono';
 
-import { emptyBalances, strings, type Balances, type ItineraryItem, type ScoredPlace } from '@chivago/core';
+import {
+  emptyBalances, mapsDirectionsUrl, navigationProviderFor, strings,
+  type Balances, type ItineraryItem, type ScoredPlace,
+} from '@chivago/core';
 import { api } from './src/api/client.ts';
 import { useOutboxFlush } from './src/state/outbox-hook.ts';
 import { color } from './src/theme/index.ts';
@@ -28,6 +31,8 @@ import { AiGuideButton, NavigationRail, ScreenTransition, SosBanner, TabBar, Toa
 import { LoadingState } from './src/components/States.tsx';
 import { OnboardingScreen } from './src/screens/Onboarding.tsx';
 import { MapScreen } from './src/screens/MapScreen.tsx';
+import { NavigateScreen } from './src/screens/NavigateScreen.tsx';
+import type { NavDestination } from './src/navigation/session.ts';
 import { ALL_OF_THE_FAIR, FairScreen, type FairView } from './src/screens/FairScreen.tsx';
 import { PlaceScreen } from './src/screens/PlaceScreen.tsx';
 import { MissionsScreen } from './src/screens/MissionsScreen.tsx';
@@ -48,7 +53,7 @@ import { SummonScreen } from './src/screens/SummonScreen.tsx';
 import { AccountScreen } from './src/screens/AccountScreen.tsx';
 import { LoginScreen } from './src/screens/LoginScreen.tsx';
 import { RegisterScreen } from './src/screens/RegisterScreen.tsx';
-import { GuestProfileScreen, ProfileScreen } from './src/screens/ProfileScreen.tsx';
+import { ProfileScreen } from './src/screens/ProfileScreen.tsx';
 import { EditProfileScreen } from './src/screens/EditProfileScreen.tsx';
 import { ConnectAppScreen } from './src/screens/ConnectAppScreen.tsx';
 import { CommunityFeedScreen } from './src/screens/CommunityFeedScreen.tsx';
@@ -67,21 +72,13 @@ import './src/polyfills/location-emitter.ts';
 import { loadLocale, t, useLocale } from './src/i18n/locale.ts';
 import { formatDate } from './src/i18n/format.ts';
 import { loadArea, placeFromUrl } from './src/state/area.ts';
-import { clearLoggedIn, hasLoggedIn, isGuest, setGuest, setLoggedIn } from './src/state/auth.ts';
-import { GuestBand, GuestGate } from './src/components/GuestGate.tsx';
+import { clearGuest, clearLoggedIn, hasLoggedIn, isGuest, setGuest, setLoggedIn } from './src/state/auth.ts';
+import { GuestBand } from './src/components/GuestGate.tsx';
 import { GuestActionProvider } from './src/components/GuestActionGate.tsx';
+import { setGuestSandboxActive } from './src/demo/mode.ts';
 import { useServerConfig } from './src/state/server-config.ts';
 import { UnfencedBand } from './src/components/UnfencedBand.tsx';
 import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
-
-/**
- * Screens that are about one person. A guest (see `state/auth.ts`) is shown
- * `GuestGate` in their place: an anonymous empty wallet presented as theirs
- * would be a lie, and spending or editing needs an account to land on.
- */
-const GUEST_GATED: ReadonlySet<ScreenKey> = new Set<ScreenKey>([
-  'editProfile', 'connectApp', 'community', 'wallet', 'market', 'account', 'shopManage', 'fashion',
-]);
 
 export default function App() {
   const { width: viewportWidth } = useWindowDimensions();
@@ -143,6 +140,31 @@ export default function App() {
   // in the Map tab because the ASK happens on the place screen, and the tab
   // is remounted by its own key when the area changes.
   const [wayTo, setWayTo] = React.useState<ScoredPlace | null>(null);
+  /*
+    Where the navigator is taking them, and what to open on arrival.
+
+    Separate from `wayTo`, which is a SCORED PLACE and always will be - it
+    is what the map's way banner draws and what the place screen asks for.
+    A business is not one of those, and the navigator does not care: it
+    needs a name and a coordinate. Keeping the destination in its own piece
+    of state is what lets the shop screen's "นำทาง" reach the same
+    navigator as the map's, without either of them pretending to be the
+    other's kind of thing.
+  */
+  const [navTo, setNavTo] = React.useState<{ destination: NavDestination; kind: 'place' | 'shop' } | null>(null);
+  const navigateTo = React.useCallback((destination: NavDestination, kind: 'place' | 'shop') => {
+    // ChivarGo's own turn-by-turn map is intentionally scoped to Koh
+    // Sichang. Everywhere else is handed to Google Maps. Leaving `origin`
+    // out makes Google start from the phone's current position while still
+    // letting the traveller replace it in Google's own start field.
+    if (navigationProviderFor(destination) === 'google') {
+      void Linking.openURL(mapsDirectionsUrl(destination));
+      return;
+    }
+    setNavTo({ destination, kind });
+    nav.push('navigate');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nav.push]);
   // The fair lot the traveller asked to see on the map (docs/66), kept here like `wayTo`,
   // and the list it was found in, so the way back from the lot finds the same list.
   // Opening the fair afresh - its card on Home, its pill on the map - starts from the whole directory.
@@ -209,6 +231,12 @@ export default function App() {
   /** Bumped whenever the server-owned balance may have changed. */
   const [walletKey, setWalletKey] = React.useState(0);
   const refreshWallet = React.useCallback(() => setWalletKey((k) => k + 1), []);
+
+  /** Leave the sandbox before real credentials are submitted. */
+  const openLogin = React.useCallback(() => {
+    setGuestSandboxActive(false);
+    nav.push('login');
+  }, [nav]);
 
   /**
    * Stable, because QuestDetail runs it from an effect. An inline arrow here
@@ -289,15 +317,6 @@ export default function App() {
   }
 
   const renderScreen = (screen: ScreenKey) => {
-    if (guest && GUEST_GATED.has(screen)) {
-      return (
-        <GuestGate
-          onSignIn={() => nav.push('login')}
-          onRegister={() => nav.push('register')}
-          onBack={nav.stack.length > 0 ? nav.pop : undefined}
-        />
-      );
-    }
     switch (screen) {
       case 'onboarding':
         return (
@@ -362,6 +381,15 @@ export default function App() {
             onPlanDay={() => nav.push('trip')}
             onOpenPlace={openPlaceOnMap}
             onOpenShop={(id) => nav.push('shop', { shopId: id })}
+            onNavigateShop={(shop) => {
+              if (shop.lat === null || shop.lng === null) return;
+              navigateTo({
+                id: shop.id,
+                name: { en: shop.name, th: shop.name, zh: shop.name },
+                lat: shop.lat,
+                lng: shop.lng,
+              }, 'shop');
+            }}
             onOpenQuest={openQuestOnMap}
             onSeeAllQuests={() => nav.selectTab('quests')}
             onAskConcierge={() => nav.push('concierge')}
@@ -372,10 +400,47 @@ export default function App() {
             balances={balances}
             wayTo={wayTo}
             onClearWay={() => setWayTo(null)}
+            onNavigate={(place) => {
+              const destination = { id: place.id, name: place.name, lat: place.lat, lng: place.lng };
+              // Keep the in-app route banner only for the island router. An
+              // external Google handoff must not leave a stale ChivarGo line
+              // behind when the traveller returns to the app.
+              setWayTo(navigationProviderFor(destination) === 'chivago' ? place : null);
+              navigateTo(destination, 'place');
+            }}
             fairFocus={fairFocus}
             onClearFair={() => setFairFocus(null)}
             onOpenFair={openFair}
             onBackToFair={() => nav.push('fair')}
+          />
+        );
+
+      /*
+        TURN-BY-TURN. It takes the destination from `wayTo`, which is the
+        same piece of state the map's way banner already reads - so the
+        place somebody asked the way to and the place they are navigating to
+        cannot drift apart.
+
+        With no destination there is nothing to navigate, which happens only
+        if the screen is reached by a deep link; it falls back to the map
+        rather than to an empty navigator.
+      */
+      case 'navigate':
+        return (
+          <NavigateScreen
+            destination={navTo?.destination ?? null}
+            onBack={nav.pop}
+            /*
+              On arrival, back to whatever this was. A place opens its place
+              screen; a business opens its own, which is where its hours,
+              its phone and its reviews are - and which is almost certainly
+              the screen the traveller set off from.
+            */
+            onOpenPlace={(id) => {
+              if (navTo?.kind === 'shop') { nav.push('shop', { shopId: id }); return; }
+              setWayTo(null);
+              nav.push('place', { placeId: id });
+            }}
           />
         );
 
@@ -516,27 +581,29 @@ export default function App() {
         return <CommunityFeedScreen onBack={nav.pop} onToast={toast.show} />;
 
       case 'profile':
-        if (guest) {
-          return <GuestProfileScreen onBack={nav.pop} onSignIn={() => nav.push('login')} onRegister={() => nav.push('register')} />;
-        }
         return (
           <ProfileScreen
             refreshKey={profileRefreshKey}
             onOpenEditProfile={() => nav.push('editProfile')}
             onOpenShops={() => nav.push('shopManage')}
-            accountTypeOverride={signedInAccountType}
+            accountTypeOverride={guest ? 'traveller' : signedInAccountType}
             onBack={nav.pop}
             onOpenAccount={() => nav.push('account')}
             onOpenWallet={() => nav.push('wallet')}
             onOpenPassport={() => nav.push('passport')}
             onOpenMedals={() => nav.push('medals')}
             onOpenCompanion={(c) => { setCompanion(c); nav.push('companion'); }}
+            onOpenSafety={() => nav.push('safety')}
             onLogout={async () => {
-              await clearLoggedIn();
+              if (guest) await clearGuest();
+              else await clearLoggedIn();
               setSignedInAccountType(undefined);
               setLoggedInState(false);
+              setGuestState(false);
               nav.reset('login');
-              toast.show(t({ en: 'Logged out successfully', th: 'ออกจากระบบเรียบร้อยแล้ว', zh: '已成功退出登录' }));
+              toast.show(t(guest
+                ? { en: 'Demo session ended', th: 'จบการทดลองใช้งานแล้ว', zh: '演示会话已结束' }
+                : { en: 'Logged out successfully', th: 'ออกจากระบบเรียบร้อยแล้ว', zh: '已成功退出登录' }));
             }}
           />
         );
@@ -548,7 +615,7 @@ export default function App() {
         return <ConnectAppScreen onBack={nav.pop} />;
 
       case 'shop':
-        return <ShopProfileScreen scrollState={scrollStateFor(`shop:${nav.shopId}`)} shopId={nav.shopId ?? ''} guest={guest || !loggedIn} onSignIn={() => nav.push('login')} onBack={nav.pop} onEdit={() => { if (loggedIn && !guest) nav.push('shopManage', { shopId: nav.shopId ?? undefined }); }} />;
+        return <ShopProfileScreen scrollState={scrollStateFor(`shop:${nav.shopId}`)} shopId={nav.shopId ?? ''} guest={false} onSignIn={openLogin} onBack={nav.pop} onEdit={() => { if (loggedIn && !guest) nav.push('shopManage', { shopId: nav.shopId ?? undefined }); }} onNavigate={(shop) => navigateTo({ id: shop.id, name: { en: shop.name, th: shop.name, zh: shop.name }, lat: shop.lat, lng: shop.lng }, 'shop')} />;
 
       case 'shopManage':
         return <ShopManageScreen initialShopId={nav.shopId} onBack={nav.pop} onOpenShop={(id) => nav.push('shop', { shopId: id })} />;
@@ -584,6 +651,7 @@ export default function App() {
         return (
           <LoginScreen
             onLoginSuccess={async (accountType) => {
+              setGuestSandboxActive(false);
               await setLoggedIn(true);
               setLoggedInState(true);
               setGuestState(false);
@@ -595,10 +663,19 @@ export default function App() {
             onGuest={loggedIn || guest ? undefined : async () => {
               await setGuest(true);
               setGuestState(true);
-              toast.show(t({ en: 'Browsing as a guest', th: 'เข้าชมแบบผู้เยี่ยมชม', zh: '正在以访客身份浏览' }));
+              refreshWallet();
+              setProfileRefreshKey((k) => k + 1);
+              toast.show(t({
+                en: 'Demo mode: explore everything. Changes reset when you reload.',
+                th: 'โหมดเดโม: ทดลองได้ทุกอย่าง ข้อมูลจะรีเซ็ตเมื่อรีโหลด',
+                zh: '演示模式：可体验全部功能，重新加载后数据会重置。',
+              }));
               nav.selectTab('home');
             }}
-            onBack={nav.stack.length > 0 ? nav.pop : undefined}
+            onBack={nav.stack.length > 0 ? () => {
+              if (guest) setGuestSandboxActive(true);
+              nav.pop();
+            } : undefined}
           />
         );
 
@@ -607,6 +684,7 @@ export default function App() {
           <RegisterScreen
             initialAccountType={nav.accountType ?? 'traveller'}
             onRegisterSuccess={async (accountType) => {
+              setGuestSandboxActive(false);
               await setLoggedIn(true);
               setLoggedInState(true);
               setGuestState(false);
@@ -645,6 +723,7 @@ export default function App() {
             onCancel={sos.cancel}
             onShare={sos.shareLink}
             firing={sos.firing}
+            onBack={nav.pop}
             onOpenProfile={() => nav.push('profile')}
           />
         );
@@ -676,11 +755,20 @@ export default function App() {
     }
   };
 
-  const showTabs = nav.screen !== 'onboarding' && nav.screen !== 'login' && nav.screen !== 'register' && nav.screen !== 'shopManage';
+  /*
+    The navigator joins the list of screens with no chrome over them.
+
+    A tab bar across the bottom of a turn-by-turn view covers the trip panel,
+    and the AI button covers the re-centre control - the same collision the
+    mini-game note below describes. The way out of the navigator is its own
+    Back and its own Stop, both of which are on the screen.
+  */
+  const showTabs = nav.screen !== 'onboarding' && nav.screen !== 'login' && nav.screen !== 'register'
+    && nav.screen !== 'shopManage' && nav.screen !== 'navigate';
 
   return (
     <SafeAreaProvider>
-      <GuestActionProvider guest={guest} onSignIn={() => nav.push('login')} onRegister={() => nav.push('register')}>
+      <GuestActionProvider guest={guest} onSignIn={openLogin} onRegister={() => nav.push('register')}>
       <SafeAreaView style={{ flex: 1, backgroundColor: color.bg }} edges={['top', 'bottom']}>
         <StatusBar style="dark" />
 
@@ -688,7 +776,7 @@ export default function App() {
             checking where anybody is. See apps/api/src/fence.ts: the switch
             is allowed to exist only because the app is required to say so. */}
         {fenceOff ? <UnfencedBand /> : null}
-        {guest && showTabs ? <GuestBand onSignIn={() => nav.push('login')} /> : null}
+        {guest && showTabs ? <GuestBand onSignIn={openLogin} /> : null}
 
         <View style={{ flex: 1, width: '100%', maxWidth: 1440, alignSelf: 'center', flexDirection: wideShell ? 'row' : 'column' }}>
           {showTabs && wideShell ? (
@@ -705,8 +793,10 @@ export default function App() {
               backpackActive={nav.screen === 'wallet' || nav.activeTab === 'game'}
               onOpenCommunity={() => nav.reset('community')}
               communityActive={nav.screen === 'community'}
-              onOpenConnectApp={() => nav.reset('connectApp')}
-              connectAppActive={nav.screen === 'connectApp'}
+              onOpenConnectApp={() => nav.reset('localPicks')}
+              connectAppActive={nav.screen === 'localPicks'}
+              onOpenProfile={() => nav.reset('profile')}
+              profileActive={nav.screen === 'profile'}
             />
           ) : null}
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -733,7 +823,14 @@ export default function App() {
           <AiGuideButton wide={wideShell} onPress={() => nav.push('concierge')} />
         ) : null}
 
-        {showTabs && !wideShell ? <TabBar active={nav.activeTab} onChange={nav.selectTab} /> : null}
+        {showTabs && !wideShell ? (
+          <TabBar
+            active={nav.activeTab}
+            onChange={nav.selectTab}
+            onOpenLocalPicks={() => nav.reset('localPicks')}
+            localPicksActive={nav.screen === 'localPicks'}
+          />
+        ) : null}
 
         <Toast message={toast.message} />
       </SafeAreaView>

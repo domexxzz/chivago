@@ -86,6 +86,15 @@ const EVIDENCE_LAYER: Record<string, string> = {
   'ProfileScreen.tsx': 'standing, which is public and ranked',
   'PlaceScreen.tsx': 'the healthy score is a measured claim',
   'MapScreen.tsx': 'crowd counts and air are measured',
+  /*
+    The navigator is the sharpest case on this list.
+
+    Every number on it is a claim about the real world that somebody is
+    about to act on at speed: which way to turn, in how many metres, and how
+    long until they are there. A bevelled, springy surface under "turn left
+    in 120 m" would be the interface suggesting the distance is a score.
+  */
+  'NavigateScreen.tsx': 'a turn instruction is acted on at speed, not played',
   'MarketScreen.tsx': 'a voucher is money',
   'AskScreen.tsx': 'a question to a real business, and its quote is theirs',
   'TripScreen.tsx': 'a plan with prices in it',

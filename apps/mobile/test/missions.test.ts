@@ -35,8 +35,18 @@ const standing = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+const sichangQuest = () => fx.quest({
+  id: 'sg-1',
+  code: 'SG-01',
+  name: { en: 'Sichang Explorer', th: 'นักสำรวจเกาะสีชัง', zh: '锡昌岛探索家' },
+  where: { en: 'Koh Sichang', th: 'เกาะสีชัง', zh: '锡昌岛' },
+  rewardPoints: 0,
+  rewardExp: 150,
+  rewardCurrency: 'trip',
+});
+
 const routes = (over: Record<string, unknown> = {}) => ({
-  '/quests': { quests: [fx.quest()], progress: {} },
+  '/quests': { quests: [sichangQuest()], progress: {} },
   '/standing': standing(),
   '/offers': [fx.offer({ id: 'o1', costPoints: 180, currency: 'trip' })],
   '/wallet': { balances: { green: 610, trip: 340 }, progression: null, ledger: [] },
@@ -46,13 +56,13 @@ const routes = (over: Record<string, unknown> = {}) => ({
 let restore: (() => void) | null = null;
 afterEach(() => { restore?.(); restore = null; opened.game = ''; });
 
-describe('Games & Quests navigation', () => {
+describe('Game&Quest navigation', () => {
   test('starts with quests and keeps their filters inside the Quests section', async () => {
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(MissionsScreen, props));
 
-    assert.match(ui.text(), /Games & Quests/);
-    assert.match(ui.text(), /Beach Cleanup/);
+    assert.match(ui.text(), /Game&Quest/);
+    assert.match(ui.text(), /Sichang Explorer/);
     assert.match(ui.text(), /Today/);
     ui.unmount();
   });
@@ -63,7 +73,7 @@ describe('Games & Quests navigation', () => {
 
     await ui.press('Games');
     assert.match(ui.text(), /Sort it right/);
-    assert.doesNotMatch(ui.text(), /Beach Cleanup/);
+    assert.doesNotMatch(ui.text(), /Sichang Explorer/);
     assert.doesNotMatch(ui.text(), /Today/);
     await ui.press('Sort it right');
     assert.equal(opened.game, 'waste-sort');
@@ -76,6 +86,36 @@ describe('Games & Quests navigation', () => {
 
     await ui.press('Games');
     assert.match(ui.text(), /Sort it right/);
+    ui.unmount();
+  });
+
+  test('the Koh Sichang feature opens exactly the five pilot quests with EXP rewards', async () => {
+    const sichang = [
+      ['SG-01', 'Sichang Explorer', 150],
+      ['SG-02', 'Secret Recipe', 150],
+      ['SG-03', 'Trash Hero', 200],
+      ['SG-04', 'Local Treasure', 150],
+      ['SG-05', 'Green Journey', 150],
+    ].map(([code, name, rewardExp], index) => fx.quest({
+      id: `sg-${index + 1}`,
+      code: String(code),
+      name: { en: String(name), th: String(name), zh: String(name) },
+      rewardPoints: 0,
+      rewardExp: Number(rewardExp),
+      rewardCurrency: 'trip',
+    }));
+    const s = server(routes({ '/quests': { quests: [fx.quest(), ...sichang], progress: {} } }));
+    restore = s.restore;
+    const ui = await mountScreen(h(MissionsScreen, props));
+
+    assert.match(ui.text(), /Koh Sichang/);
+    assert.match(ui.text(), /5 quests · up to 800 XP/);
+    await ui.press('Koh Sichang');
+    const said = ui.text();
+    assert.match(said, /Sichang Explorer/);
+    assert.match(said, /Green Journey/);
+    assert.match(said, /\+200 XP/);
+    assert.doesNotMatch(said, /Beach Cleanup/);
     ui.unmount();
   });
 });
@@ -195,7 +235,7 @@ describe('the sections fail apart', () => {
     const s = server(routes({ '/standing': offline() })); restore = s.restore;
     const ui = await mountScreen(h(MissionsScreen, props));
     const said = ui.text();
-    assert.match(said, /Beach Cleanup/, 'the quest list vanished with the leaderboard');
+    assert.match(said, /Sichang Explorer/, 'the quest list vanished with the leaderboard');
     assert.match(said, /Cold brew/, 'the rewards vanished with the leaderboard');
     ui.unmount();
   });

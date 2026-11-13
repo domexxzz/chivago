@@ -74,6 +74,7 @@ const EXACT: Readonly<Record<string, Localised>> = {
   PHONE_EXISTS: message('This phone number is already in use.', 'เบอร์โทรศัพท์นี้ถูกใช้งานแล้ว', '此电话号码已被使用。'),
   PASSWORD_TOO_SHORT: message('Use a longer password.', 'รหัสผ่านสั้นเกินไป', '请使用更长的密码。'),
   ACCOUNT_TYPE_MISMATCH: message('Use the sign-in option for this account type.', 'กรุณาเลือกวิธีเข้าสู่ระบบให้ตรงกับประเภทบัญชี', '请使用与此账户类型匹配的登录方式。'),
+  ACCOUNT_DISABLED: message('This account has been disabled. Contact an administrator.', 'บัญชีนี้ถูกระงับ กรุณาติดต่อผู้ดูแลระบบ', '此账户已被停用，请联系管理员。'),
   INVALID_SHOP: message('Check the service profile and try again.', 'ตรวจสอบโปรไฟล์บริการแล้วลองใหม่', '请检查服务资料后重试。'),
   INVALID_CATEGORY: message('Choose a valid service category.', 'กรุณาเลือกหมวดบริการให้ถูกต้อง', '请选择有效的服务类别。'),
   INVALID_GUIDE_PROFILE: message('Check the guide profile and try again.', 'ตรวจสอบโปรไฟล์ไกด์แล้วลองใหม่', '请检查向导资料后重试。'),

@@ -125,8 +125,8 @@ describe('the quests screen, fetching its list', () => {
   test('every quest that arrives is on screen', async () => {
     const net = server({
       'GET /quests': listed([
-        quest({ id: 'q1', name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด' } }),
-        quest({ id: 'q2', name: { en: 'Coral Nursery', th: 'อนุบาลปะการัง' } }),
+        quest({ id: 'q1', code: 'SG-01', name: { en: 'Beach Cleanup', th: 'เก็บขยะชายหาด' } }),
+        quest({ id: 'q2', code: 'SG-02', name: { en: 'Coral Nursery', th: 'อนุบาลปะการัง' } }),
       ]),
     });
     try {
@@ -154,12 +154,13 @@ describe('the quests screen, fetching its list', () => {
     // count stays honest. A refetch here would be the regression.
     const net = server({
       'GET /quests': listed([
-        quest({ id: 'q1', kind: 'today', name: { en: 'Beach Cleanup', th: 'ก' } }),
-        quest({ id: 'q2', kind: 'weekend', name: { en: 'Coral Nursery', th: 'ข' } }),
+        quest({ id: 'q1', code: 'SG-01', kind: 'today', name: { en: 'Beach Cleanup', th: 'ก' } }),
+        quest({ id: 'q2', code: 'SG-03', kind: 'weekend', name: { en: 'Coral Nursery', th: 'ข' } }),
       ]),
     });
     try {
       const ui = await mountScreen(h(MissionsScreen, { onOpen: noop, onOpenMarket: noop }));
+      await ui.pressText(/^today$/i);
       assert.match(ui.text(), /Beach Cleanup/);
       assert.doesNotMatch(ui.text(), /Coral Nursery/, 'a weekend quest is not today');
 
@@ -441,7 +442,7 @@ describe('the map, whose two fetches fail independently', () => {
   test('places and today\'s quests both arrive', async () => {
     const net = server({
       'GET /places': [place],
-      '/quests': { quests: [quest({ name: { en: 'Beach Cleanup', th: 'ก' } })], progress: {} },
+      '/quests': { quests: [quest({ code: 'SG-01', name: { en: 'Beach Cleanup', th: 'ก' } })], progress: {} },
     });
     try {
       const ui = await mountScreen(h(MapScreen, mapProps));
@@ -479,7 +480,7 @@ describe('the map, whose two fetches fail independently', () => {
   test('places failing still leaves the quest strip usable', async () => {
     const net = server({
       'GET /places': refuses('PLACES_DOWN', 'The map is unavailable.'),
-      '/quests': { quests: [quest({ name: { en: 'Beach Cleanup', th: 'ก' } })], progress: {} },
+      '/quests': { quests: [quest({ code: 'SG-01', name: { en: 'Beach Cleanup', th: 'ก' } })], progress: {} },
     });
     try {
       const ui = await mountScreen(h(MapScreen, mapProps));

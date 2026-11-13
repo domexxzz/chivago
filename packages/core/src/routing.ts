@@ -159,6 +159,69 @@ export function parseRoute(body: unknown, mode: RouteMode): Route | null {
 }
 
 /**
+ * Why the router said no.
+ *
+ * A refusal is not a failure to be swallowed: each of these has a DIFFERENT
+ * thing the traveller can do about it, and collapsing them into "no route"
+ * throws away the only useful half of the answer.
+ *
+ *   - `too-far`     the distance exceeds what this costing will plan. The
+ *                   traveller can switch mode, and the app can say so.
+ *   - `no-path`     the graph has no way through at all. On an island this
+ *                   is the ordinary answer for a car: the road stops at the
+ *                   water and the ferry is not a routable edge.
+ *   - `unreachable` one of the two points is not near any road.
+ *   - `unknown`     anything else, including a body that is not Valhalla's.
+ */
+export type RouteRefusal = 'too-far' | 'no-path' | 'unreachable' | 'unknown';
+
+/**
+ * The distance each costing will plan for, in metres, as the FOSSGIS server
+ * actually enforces it.
+ *
+ * MEASURED, NOT GUESSED. Asked on 13 November 2026 for a 220 km trip:
+ * pedestrian answered `"Path distance exceeds the max distance limit:
+ * 100000 meters"` and bicycle `"...150000 meters"`. The car has no distance
+ * limit worth modelling here - it refuses for other reasons first - so it
+ * is not pre-checked at all.
+ */
+export const ROUTE_MAX_M: Record<RouteMode, number> = {
+  walk: 100_000,
+  ride: Infinity,
+};
+
+/**
+ * Whether the router would refuse this on distance alone.
+ *
+ * Checked against the STRAIGHT LINE, which is never longer than the road,
+ * so a true here means the road certainly exceeds the limit too. It exists
+ * to stop the app asking somebody's free community server a question whose
+ * answer is arithmetic - a browser log showed three identical 400s for one
+ * 220 km walk, which is three requests nobody should have had to serve.
+ */
+export const beyondRouter = (mode: RouteMode, straightMetres: number): boolean =>
+  Number.isFinite(straightMetres) && straightMetres > ROUTE_MAX_M[mode];
+
+interface ValhallaError { error_code?: number; error?: string }
+
+/**
+ * Read the refusal out of an error body.
+ *
+ * Valhalla's own numeric codes, which are stable and documented: 154 is the
+ * distance limit, 442 is no path, 171 and 172 are a location with no road
+ * near it. Everything else is `unknown`, which the app words as plainly as
+ * it words a server being down - because to a traveller they are the same
+ * afternoon.
+ */
+export function routeRefusal(body: unknown): RouteRefusal {
+  const code = (body as ValhallaError)?.error_code;
+  if (code === 154) return 'too-far';
+  if (code === 442) return 'no-path';
+  if (code === 171 || code === 172) return 'unreachable';
+  return 'unknown';
+}
+
+/**
  * A duration a person reads, from one a router returned.
  *
  * Rounded to five minutes past the first quarter hour: a router's seconds

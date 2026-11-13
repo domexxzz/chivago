@@ -96,6 +96,11 @@ import {
 } from '@chivago/core';
 import { flaggedModerators, moderatorWatch } from '../moderator-watch.ts';
 import { isModerationReasonKey } from '@chivago/core';
+import {
+  InvalidAdminAction, adminCounts, adminPlaces, adminPosts, adminUsers, editAdminUser,
+  grantToUser, grantableItems, saveAdminPlace, setPlaceHidden, setPostHidden,
+} from '../admin-service.ts';
+import { adminPage } from './admin.ts';
 
 /**
  * CSRF token, derived from the session token.
@@ -181,7 +186,22 @@ export interface ConsoleHooks {
   afterDecision?: () => void;
 }
 
-export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
+export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {}): Hono {
+  /*
+    `server.ts` receives its database after import (Node opens a file; Workers
+    supply Durable Object storage). A plain argument would capture the
+    pre-initialisation `undefined` forever. Tests still pass a concrete DB;
+    production passes a getter and this proxy resolves it on every operation.
+  */
+  const db: DB = typeof database === 'function'
+    ? new Proxy({} as DB, {
+      get(_target, property) {
+        const current = database();
+        const value = Reflect.get(current as object, property);
+        return typeof value === 'function' ? value.bind(current) : value;
+      },
+    })
+    : database;
   const app = new Hono();
 
   /**
@@ -229,7 +249,8 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     resolveSession(db, readCookie(c.req.header('cookie'), SESSION_COOKIE));
 
   /** Whether to draw the Reviews tab at all. Hidden, not disabled. */
-  const canModerate = (s: HostSession) => s.role === 'moderator';
+  const canModerate = (s: HostSession) => s.role === 'moderator' || s.role === 'admin';
+  const canAdmin = (s: HostSession) => s.role === 'admin';
 
   /** An operator's login: its listings and its questions, nothing else. */
   const marketplaceOnly = (s: HostSession) => s.hostType === 'operator';
@@ -308,10 +329,11 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     }
     const form = await c.req.parseBody();
     const key = String(form.key ?? '').trim();
-    const reviewer = String(form.reviewer ?? '').trim() || null;
+    const username = String(form.username ?? '').trim() || null;
+    const reviewer = String(form.reviewer ?? '').trim() || username;
 
     pruneSessions(db);
-    const session = login(db, key, reviewer);
+    const session = login(db, key, reviewer, username);
     if (session) clearLoginFailures(address);
     else noteLoginFailure(address);
     if (!session) {
@@ -438,8 +460,94 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
     return next();
   });
 
+  const requireAdmin = (c: Parameters<typeof currentSession>[0]): HostSession | null => {
+    const session = currentSession(c);
+    return session && canAdmin(session) ? session : null;
+  };
+
+  const adminFailure = (c: { text: (value: string, status?: 400 | 403 | 404) => Response }, err: unknown) => {
+    if (err instanceof InvalidAdminAction) return c.text(err.message, 400);
+    throw err;
+  };
+
+  // -- Global administration ---------------------------------------------
+  app.get('/admin', (c) => {
+    const session = requireAdmin(c);
+    if (!session) return c.text('Not found', 404);
+    const query = (c.req.query('q') ?? '').trim().slice(0, 100);
+    return c.html(adminPage({
+      locale: localeFor(c), hostName: session.hostName, reviewer: session.reviewer,
+      csrf: csrfFor(session), query, users: adminUsers(db, query), places: adminPlaces(db, query),
+      posts: adminPosts(db, query), items: grantableItems(), counts: adminCounts(db),
+      notice: c.req.query('notice') ?? null,
+    }));
+  });
+
+  app.post('/admin/users/:id', async (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) return c.text('Session expired', 403);
+    try {
+      editAdminUser(db, session.hostId, c.req.param('id'), {
+        displayName: String(form.displayName ?? ''),
+        accountType: String(form.accountType) === 'operator' ? 'operator' : 'traveller',
+        disabled: String(form.disabled ?? '') === '1',
+      });
+      return c.redirect('/console/admin?notice=user-saved', 303);
+    } catch (err) { return adminFailure(c, err); }
+  });
+
+  app.post('/admin/places', async (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) return c.text('Session expired', 403);
+    try {
+      saveAdminPlace(db, session.hostId, {
+        id: String(form.id ?? ''), nameEn: String(form.nameEn ?? ''), nameTh: String(form.nameTh ?? ''),
+        layer: String(form.layer ?? ''), province: String(form.province ?? ''),
+        lat: Number(form.lat), lng: Number(form.lng),
+      });
+      return c.redirect('/console/admin?notice=place-saved', 303);
+    } catch (err) { return adminFailure(c, err); }
+  });
+
+  app.post('/admin/places/:id/visibility', async (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) return c.text('Session expired', 403);
+    try {
+      setPlaceHidden(db, session.hostId, c.req.param('id'), String(form.hidden) === '1');
+      return c.redirect('/console/admin?notice=place-visibility-saved', 303);
+    } catch (err) { return adminFailure(c, err); }
+  });
+
+  app.post('/admin/posts/:id/visibility', async (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) return c.text('Session expired', 403);
+    try {
+      setPostHidden(db, session.hostId, c.req.param('id'), String(form.hidden) === '1');
+      return c.redirect('/console/admin?notice=post-visibility-saved', 303);
+    } catch (err) { return adminFailure(c, err); }
+  });
+
+  app.post('/admin/grants', async (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) return c.text('Session expired', 403);
+    const kind = String(form.kind ?? '');
+    if (!['trip', 'green', 'exp', 'item'].includes(kind)) return c.text('Invalid grant', 400);
+    try {
+      grantToUser(db, session.hostId, { userId: String(form.userId ?? ''),
+        kind: kind as 'trip' | 'green' | 'exp' | 'item', amount: Number(form.amount),
+        itemKey: String(form.itemKey ?? ''), note: String(form.note ?? '') });
+      return c.redirect('/console/admin?notice=grant-complete', 303);
+    } catch (err) { return adminFailure(c, err); }
+  });
+
   app.get('/', (c) => {
     const session = currentSession(c)!;
+    if (canAdmin(session)) return c.redirect('/console/admin', 303);
     const items = pendingQueue(db, session.hostId);
     const stats = queueStats(db, session.hostId);
     return c.html(
@@ -1774,7 +1882,7 @@ export function consoleRoutes(db: DB, hooks: ConsoleHooks = {}): Hono {
   /** Refuse anything under /reviews to a non-moderator, in one place. */
   const requireModerator = (c: { req: { header: (n: string) => string | undefined } }) => {
     const session = currentSession(c)!;
-    return session.role === 'moderator' ? session : null;
+    return canModerate(session) ? session : null;
   };
 
   // Reports on locally owned shops share the existing moderator session.

@@ -3,7 +3,7 @@ import { test, describe, beforeEach } from 'node:test';
 
 import { openTestDb, type DB } from './db-node.ts';
 import {
-  applyMovement, awardQuestReward, ensureWallet, getBalances, getLedger, reverseMovement,
+  applyMovement, awardQuestReward, ensureWallet, getBalances, getExp, getLedger, reverseMovement,
 } from './wallet-service.ts';
 import { inbox } from './notification-service.ts';
 import { arriveAtQuest, distanceMetres, getProgress, InvalidTransition, joinQuest, OutsideGeofence, questCountsFor, resolveVerification, submitProof, TooSoonAfterArrival } from './quest-service.ts';
@@ -93,6 +93,33 @@ describe('the happy path', () => {
     assert.equal(result.pointsAwarded, 150);
     assert.equal(getBalances(db, USER).green, 1390);
     assert.equal(getLedger(db, USER)[0]!.host, 'Samui Municipality');
+  });
+
+  test('a Koh Sichang quest completes through real GPS, proof and host approval, then grants EXP only', () => {
+    const questId = 'q-sg-explorer';
+    db.prepare(
+      `INSERT INTO quests (id, code, name_en, name_th, where_label, duration,
+         reward_points, reward_exp, reward_currency, host_id, kind, lat, lng, geofence_radius_m)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    ).run(questId, 'SG-01', 'Sichang Explorer', 'นักสำรวจเกาะสีชัง', 'Koh Sichang',
+      'Pilot schedule', 0, 150, 'trip', 'h1', 'today', SITE.lat, SITE.lng, 250);
+
+    assert.equal(joinQuest(db, USER, questId).stage, 'joined');
+    assert.equal(arriveAtQuest(db, USER, questId, SITE).stage, 'arrived');
+    const { proofId, progress } = submitProof(
+      db, USER, questId, { photos: PHOTO, weightKg: null }, afterDwell(),
+    );
+    assert.equal(progress.stage, 'host_verification');
+    assert.equal(getExp(db, USER), 1240, 'no EXP before host approval');
+
+    const result = resolveVerification(db, {
+      userId: USER, questId, proofId, approved: true,
+    });
+    assert.equal(result.progress.stage, 'complete');
+    assert.equal(getBalances(db, USER).trip, 0, 'the EXP quest must not invent Trip Points');
+    assert.equal(getBalances(db, USER).green, 1240, 'the EXP quest must not invent Green Points');
+    assert.equal(getExp(db, USER), 1390);
+    assert.equal(movements()[0]?.exp, 150);
   });
 });
 

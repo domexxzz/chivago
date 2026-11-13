@@ -16,7 +16,7 @@ export function ConnectAppScreen({ onBack }: { onBack: () => void }) {
   return (
     <View style={{ flex: 1, backgroundColor: color.bg }}>
       <PushHeader
-        context={t({ en: 'Connect App', th: 'เชื่อมต่อแอป', zh: '连接应用' })}
+        context={t({ en: 'Local Picks', th: 'ร้านเด็ดในพื้นที่', zh: '本地精选' })}
         onBack={onBack}
       />
       <View style={{ flex: 1 }} />

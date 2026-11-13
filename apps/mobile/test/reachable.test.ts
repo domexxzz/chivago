@@ -52,6 +52,7 @@ describe('nothing is built and left unreachable', () => {
 
 describe('the tab bar and the navigator agree', () => {
   const tabs = union(store, 'TabKey');
+  const visibleTabs = ['home', 'map', 'game', 'collect', 'local-picks'];
 
   test('every tab is a real screen', () => {
     for (const tab of tabs) {
@@ -59,21 +60,23 @@ describe('the tab bar and the navigator agree', () => {
     }
   });
 
-  test('every tab has an icon', () => {
-    // A missing icon is a runtime crash in the tab bar, not a type error,
-    // because TAB_ICONS is indexed by a key the compiler already trusts.
-    const icons = /const TAB_ICONS = \{([\s\S]*?)\} as const;/.exec(shell);
-    assert.ok(icons, 'TAB_ICONS moved');
-    for (const tab of tabs) {
-      assert.match(icons[1]!, new RegExp(`\\b${tab}:`), `tab '${tab}' has no icon`);
+  test('every visible mobile destination has an icon', () => {
+    // The mobile bar intentionally maps product destinations onto screens:
+    // Game opens quests, Collect opens the game/collection hub, and Local
+    // Picks is a pushed screen. Assert what a traveller can actually see.
+    for (const tab of visibleTabs) {
+      assert.match(
+        shell,
+        new RegExp(`\\{ key: '${tab}',[^\\n]*Icon:`),
+        `visible tab '${tab}' has no icon`,
+      );
     }
   });
 
-  test('the bar shows every tab, and only tabs', () => {
-    const order = /const TAB_ORDER: TabKey\[\] = \[([^\]]*)\]/.exec(shell);
-    assert.ok(order, 'TAB_ORDER moved');
-    const shown = [...order[1]!.matchAll(/'([a-z]+)'/g)].map((m) => m[1]!);
-    assert.deepEqual([...shown].sort(), [...tabs].sort(), 'TAB_ORDER and TabKey disagree');
+  test('the mobile bar shows the five requested destinations in order', () => {
+    const positions = visibleTabs.map((tab) => shell.indexOf(`{ key: '${tab}',`));
+    positions.forEach((position, index) => assert.ok(position >= 0, `${visibleTabs[index]} is missing`));
+    assert.deepEqual([...positions].sort((a, b) => a - b), positions, 'mobile tab order changed');
   });
 
   test('five tabs, because a sixth stops being a label and becomes decoration', () => {

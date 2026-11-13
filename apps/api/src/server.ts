@@ -263,7 +263,7 @@ app.use('*', logger());
  * middleware below, which would provision a mobile user for a municipal
  * reviewer and hand them a wallet.
  */
-app.route('/console', consoleRoutes(db, {
+app.route('/console', consoleRoutes(() => db, {
   // A console approval should reach the volunteer's phone as fast as the
   // automation path does. Without this it waited for the 60-second ticker.
   afterDecision: () => flushNotifications(),
@@ -559,6 +559,14 @@ app.get('/board/:area', (c) => {
  * shape is one shape.
  */
 app.get('/areas/:key/weather', async (c) => {
+  /*
+    This route is registered before the app-wide CORS middleware below.
+    Hono applies middleware in registration order, so Expo Web could read
+    every other area endpoint but the live weather request was blocked by
+    the browser. Weather is public, read-only area data, just like stories
+    and transit, and is deliberately readable by the local web client.
+  */
+  c.header('access-control-allow-origin', '*');
   const key = c.req.param('key');
   if (!isAreaKey(key)) return fail(c, 'NOT_FOUND', 'No such area', 404);
   c.header('cache-control', 'no-store');

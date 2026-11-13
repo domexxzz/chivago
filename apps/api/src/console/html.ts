@@ -80,10 +80,12 @@ interface LayoutOptions {
   /** Renders the nav only when signed in. */
   signedIn?: boolean;
   activeNav?: 'queue' | 'history' | 'moderation' | 'guides' | 'sponsor' | 'esg' | 'statement' | 'stories'
-    | 'organisations' | 'quests' | 'reviewDeclared' | 'inquiries' | 'applications';
+    | 'organisations' | 'quests' | 'reviewDeclared' | 'inquiries' | 'applications' | 'admin';
   pendingCount?: number;
   /** Shows the Reviews tab. Moderators only - see place-review-service.ts. */
   canModerate?: boolean;
+  /** Global data administration. Never inferred from moderator access. */
+  canAdmin?: boolean;
   /**
    * An operator's console (docs/62): the nav is its questions and the way
    * out, and the badge counts questions waiting on it rather than proofs -
@@ -106,6 +108,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
   // them to ask why, and the answer is a permission boundary they cannot
   // cross. Better it simply is not theirs.
   const canModerate = options.canModerate ?? false;
+  const canAdmin = options.canAdmin ?? false;
   const marketplaceOnly = options.marketplaceOnly ?? false;
   const tr = (key: ConsoleStringKey) => t(key, locale);
   const returnTo = options.path ?? '/console';
@@ -239,6 +242,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
              ${canModerate ? `<a href="/console/review" class="${activeNav === 'reviewDeclared' ? 'on' : ''}">${tr('reviewDeclared')}</a>` : ''}
              ${canModerate ? `<a href="/console/organisations" class="${activeNav === 'organisations' ? 'on' : ''}">${tr('organisations')}</a>` : ''}
              ${canModerate ? `<a href="/console/applications" class="${activeNav === 'applications' ? 'on' : ''}">${tr('applications')}</a>` : ''}
+             ${canAdmin ? `<a href="/console/admin" class="${activeNav === 'admin' ? 'on' : ''}">ADMIN</a>` : ''}
              <a href="/console/quests" class="${activeNav === 'quests' ? 'on' : ''}">${tr('quests')}</a>
              <a href="/console/sponsor" class="${activeNav === 'sponsor' ? 'on' : ''}">${tr('sponsor')}</a>
              <a href="/console/esg" class="${activeNav === 'esg' ? 'on' : ''}">${tr('esg')}</a>

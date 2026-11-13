@@ -2,12 +2,12 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  EMERGENCY_AS_OF, PROTECTED_LINES, SAMUI_EMERGENCY,
+  EMERGENCY_AS_OF, KOH_SICHANG_EMERGENCY, PROTECTED_LINES,
   emergencyNear, kmBetween, nearMissOf,
 } from './emergency.ts';
 
-const CHAWENG = { lat: 9.5357, lng: 100.0617 };
-const THONG_KRUT = { lat: 9.4179, lng: 99.9433 };
+const KOH_SICHANG_HOSPITAL = { lat: 13.1631992, lng: 100.8076481 };
+const THAM_PHANG = { lat: 13.1454, lng: 100.806835 };
 
 describe('every number can be traced back', () => {
   test('each one names its source and the date it was read', () => {
@@ -15,7 +15,7 @@ describe('every number can be traced back', () => {
     // change. This is the same discipline the fares and the photo credits
     // carry, applied to the data where being wrong costs the most.
     assert.match(EMERGENCY_AS_OF, /^\d{4}-\d{2}-\d{2}$/);
-    for (const e of SAMUI_EMERGENCY) {
+    for (const e of KOH_SICHANG_EMERGENCY) {
       assert.match(e.sourceUrl, /^https:\/\//, `${e.key} has no source`);
       assert.ok(e.name.th.length > 3, `${e.key} has no Thai name`);
       assert.ok(e.name.en.length > 3, `${e.key} has no English name`);
@@ -24,21 +24,20 @@ describe('every number can be traced back', () => {
 
   test('the dialled form is digits only, and matches what the source printed', () => {
     // `tel:` takes the dial string. A dash in it is a call that does not connect.
-    for (const e of SAMUI_EMERGENCY) {
+    for (const e of KOH_SICHANG_EMERGENCY) {
       assert.match(e.dial, /^\d+$/, `${e.key} dial is not digits: ${e.dial}`);
       assert.equal(e.dial, e.printed.replace(/\D/g, ''), `${e.key} dial and printed disagree`);
     }
   });
 
-  test('an island number has a position; a national hotline does not', () => {
-    for (const e of SAMUI_EMERGENCY) {
-      if (e.scope === 'island') assert.ok(e.at, `${e.key} is on the island but has no position`);
-      else assert.equal(e.at, null, `${e.key} is national and should not have one`);
+  test('national hotlines have no invented position', () => {
+    for (const e of KOH_SICHANG_EMERGENCY) {
+      if (e.scope === 'national') assert.equal(e.at, null, `${e.key} is national and should not have one`);
     }
   });
 
   test('no two entries share a key', () => {
-    const keys = SAMUI_EMERGENCY.map((e) => e.key);
+    const keys = KOH_SICHANG_EMERGENCY.map((e) => e.key);
     assert.equal(new Set(keys).size, keys.length);
   });
 });
@@ -62,14 +61,14 @@ describe('a misdial can never get into the directory', () => {
   });
 
   test('an ordinary local number is not flagged', () => {
-    assert.equal(nearMissOf('077913200'), null);
-    assert.equal(nearMissOf('0-7742-0506'), null);
+    assert.equal(nearMissOf('0887504872'), null);
+    assert.equal(nearMissOf('0 3821 6218'), null);
   });
 
   test('NOTHING in the shipped directory is a near miss', () => {
     // The guard is worthless if it is not run against the real table. If
     // somebody adds 1699 in a future edit, this is what stops it.
-    for (const e of SAMUI_EMERGENCY) {
+    for (const e of KOH_SICHANG_EMERGENCY) {
       const clash = nearMissOf(e.dial);
       assert.equal(clash, null, `${e.key} (${e.dial}) is one slip from ${clash}`);
     }
@@ -79,34 +78,33 @@ describe('a misdial can never get into the directory', () => {
 describe('the nearest station is the one that can come', () => {
   test('national lines lead, whatever is nearest', () => {
     // However close a police box is, 1669 is still what sends an ambulance.
-    const list = emergencyNear(CHAWENG);
+    const list = emergencyNear(THAM_PHANG);
     const firstIsland = list.findIndex((e) => e.scope === 'island');
     assert.ok(list.slice(0, firstIsland).every((e) => e.scope === 'national'));
     assert.equal(list[0]!.dial, '1669');
   });
 
   test('island entries are ordered by distance from where you are', () => {
-    const list = emergencyNear(CHAWENG).filter((e) => e.scope === 'island');
-    const km = list.map((e) => e.km!);
+    const list = emergencyNear(THAM_PHANG).filter((e) => e.scope === 'island');
+    const km = list.map((e) => e.km).filter((distance): distance is number => distance !== null);
     assert.deepEqual([...km].sort((a, b) => a - b), km, 'island stations came back out of order');
+    assert.equal(list.at(-1)!.km, null, 'a responder without a published coordinate should sort last');
   });
 
-  test('standing somewhere else changes which station is first', () => {
-    // The whole point. A directory that names the same station wherever you
-    // are is a directory that did not need your position.
-    const atChaweng = emergencyNear(CHAWENG).filter((e) => e.scope === 'island')[0]!;
-    const atThongKrut = emergencyNear(THONG_KRUT).filter((e) => e.scope === 'island')[0]!;
-    assert.notEqual(atChaweng.key, atThongKrut.key);
+  test('a published coordinate yields a real distance and an unpublished one does not', () => {
+    const local = emergencyNear(THAM_PHANG).filter((e) => e.scope === 'island');
+    assert.ok(local.find((e) => e.key === 'koh-sichang-hospital-er')!.km! > 0);
+    assert.equal(local.find((e) => e.key === 'koh-sichang-police-station')!.km, null);
   });
 
   test('with no position, everything is still listed and nothing claims a distance', () => {
     const list = emergencyNear(null);
-    assert.equal(list.length, SAMUI_EMERGENCY.length);
+    assert.equal(list.length, KOH_SICHANG_EMERGENCY.length);
     assert.ok(list.every((e) => e.km === null), 'a distance was invented without a position');
   });
 
-  test('the distances are plausible for an island 25 km across', () => {
-    const across = kmBetween(CHAWENG, THONG_KRUT);
-    assert.ok(across > 5 && across < 40, `${across} km across Samui is not credible`);
+  test('the hospital and Tham Phang are a plausible distance apart on Koh Sichang', () => {
+    const across = kmBetween(KOH_SICHANG_HOSPITAL, THAM_PHANG);
+    assert.ok(across > 1 && across < 5, `${across} km across Koh Sichang is not credible`);
   });
 });

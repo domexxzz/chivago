@@ -117,6 +117,11 @@ export const TRAVELLER_TABLES = [
   // The community is user-authored too. Reactions and replies point at posts,
   // so they leave first; the posts then leave before their authors.
   'community_comments', 'community_likes', 'community_posts',
+  // Administrative state attached to a traveller cannot outlive that
+  // traveller. Grants and status rows both carry a real user foreign key, so
+  // clear them explicitly before users rather than relying on a cascade to
+  // hide an unclassified table from the schema guard.
+  'admin_inventory_grants', 'admin_user_status',
   // Accounts and parties are the traveller's, not the pilot's. Both arrived
   // after this list was written, and the schema guard below did its job: the
   // reset refused to run at all until they were classified.
@@ -203,6 +208,9 @@ export const KEPT_TABLES = [
     the promise about them stays.
   */
   'summon_epochs',
+  // The audit trail records what an administrator did. It is operational
+  // evidence, not traveller state, and deliberately survives a demo reset.
+  'admin_audit_log',
 ] as const;
 
 /**
@@ -365,85 +373,29 @@ interface Plan {
  * Typed against the real mood union, so a key the app does not have fails at
  * the typecheck rather than three days before the demo.
  */
-const PLANS: Record<string, Plan> = {
-  samui: {
-    area: 'Koh Samui',
-    days: [
-      { day: 4, places: ['chaweng', 'namuang'], mood: 'steady' },
-      // RODE, an hour apart: Fisherman's Village to Lamai is ten kilometres,
-      // and in an hour that is a songthaew, not a walk. So Lamai's companion
-      // is still an egg - the one the presenter hatches live (docs/28). Since
-      // a single walked leg hatches an egg (e04a5df), a history walked end to
-      // end has none, and --walk failed on it from the day that landed.
-      { day: 3, places: ['fisherman', 'lamai'], mood: 'bright', rode: true },
-      { day: 2, places: ['namuang', 'mangrove'], mood: 'tense' },
-      { day: 1, places: ['fisherman', 'chaweng'], mood: 'steady' },
-      { day: 0, places: ['chaweng', 'fisherman'], mood: 'bright' },
-    ],
-    // Three green and one trip, because the two currencies are the product's
-    // central claim and a demo that can only spend one proves half of it.
-    verifiedQuests: ['q1', 'q2', 'q4', 'q5'],
-    secondQuest: 'q1',
-    statementQuest: 'q1',
-    secondDays: [
-      { day: 3, places: ['chaweng'] },
-      { day: 2, places: ['fisherman', 'chaweng'] },
-    ],
-  },
-
-  /*
-   * Koh Sichang: the pilot area, and the one the pitch is about.
-   *
-   * The island is small - the pier to Tham Phang is 1.8 km - so the trick
-   * Samui uses to keep one companion an egg does not work here. "Rode" means
-   * ground covered too fast to be walking, and on Sichang an hour is enough
-   * to walk anywhere, so an hour-apart pair would count as a walked leg and
-   * hatch the egg. The egg is kept the other way instead: the palace is the
-   * only check-in on its day, so that day has no leg at all.
-   *
-   * Habitats: hospital Safe, shops Food, Tham Phang Green, pier Quest,
-   * palace Wellness - the same five the app frames the island with.
-   */
-  'koh-sichang': {
-    area: 'Koh Sichang',
-    days: [
-      { day: 4, places: ['sc-hospital', 'sc-thamphang'], mood: 'steady' },
-      // Alone, so there is no leg to walk and the palace stays an egg.
-      { day: 3, places: ['sc-palace'], mood: 'bright' },
-      { day: 2, places: ['sc-thamphang', 'sc-pier'], mood: 'tense' },
-      { day: 1, places: ['sc-shops', 'sc-hospital'], mood: 'steady' },
-      { day: 0, places: ['sc-hospital', 'sc-shops'], mood: 'bright' },
-    ],
-    // All five of the island's quests, from the field guide of 12 November.
-    // They are the team's own sample quests and say so in their names; the
-    // demo shows the mechanic, not a claim that somebody on the island ran
-    // them. 120 + 90 + 120 + 90 + 120 = 540 Green, which is what the
-    // Marketplace check spends.
-    verifiedQuests: [
-      'q-sc-explorer', 'q-sc-recipe', 'q-sc-trash-hero', 'q-sc-treasure', 'q-sc-green-journey',
-    ],
-    secondQuest: 'q-sc-explorer',
-    // The statement is issued against the waste quest, because that is the one
-    // with a pillar an ESG report reads and a figure a host weighed.
-    statementQuest: 'q-sc-trash-hero',
-    secondDays: [
-      { day: 3, places: ['sc-shops'] },
-      { day: 2, places: ['sc-hospital', 'sc-shops'] },
-    ],
-  },
+const PLAN: Plan = {
+  area: 'Koh Sichang',
+  days: [
+    { day: 4, places: ['sc-hospital', 'sc-thamphang'], mood: 'steady' },
+    { day: 3, places: ['sc-palace'], mood: 'bright' },
+    { day: 2, places: ['sc-thamphang', 'sc-pier'], mood: 'tense' },
+    { day: 1, places: ['sc-shops', 'sc-hospital'], mood: 'steady' },
+    { day: 0, places: ['sc-hospital', 'sc-shops'], mood: 'bright' },
+  ],
+  verifiedQuests: [
+    'q-sg-explorer',
+    'q-sg-secret-recipe',
+    'q-sg-trash-hero',
+    'q-sg-local-treasure',
+    'q-sg-green-journey',
+  ],
+  secondQuest: 'q-sg-explorer',
+  statementQuest: 'q-sg-trash-hero',
+  secondDays: [
+    { day: 3, places: ['sc-shops'] },
+    { day: 2, places: ['sc-hospital', 'sc-shops'] },
+  ],
 };
-
-const PLAN = ((): Plan => {
-  const flag = process.argv.indexOf('--area');
-  const key = flag === -1 ? 'samui' : process.argv[flag + 1];
-  const chosen = key === undefined ? undefined : PLANS[key];
-  if (!chosen) {
-    throw new Error(
-      `--area ${String(key)} is not a demo plan. Known: ${Object.keys(PLANS).join(', ')}`,
-    );
-  }
-  return chosen;
-})();
 
 const HISTORY = PLAN.days;
 const VERIFIED_QUESTS = PLAN.verifiedQuests;
@@ -552,15 +504,12 @@ function seed(db: DB): void {
   seedSecondTraveller(db);
 
   // One host files its statement (docs/31), so the demo can show a verified
-  // quest as being on somebody's record. The municipality, because q1 is the
-  // first quest anyone opens. Approval is stamped at reset time, inside the
-  // calendar year the statement covers.
+  // quest as being on somebody's record. The Koh Sichang pilot host owns the
+  // active catalogue. Approval is stamped at reset time, inside the calendar
+  // year the statement covers.
   {
     const year = new Date().getUTCFullYear();
-    issueStatement(
-      db, quest(PLAN.statementQuest).host.id,
-      { from: `${year}-01-01`, to: `${year}-12-31` }, 'Demo host',
-    );
+    issueStatement(db, quest(PLAN.statementQuest).host.id, { from: `${year}-01-01`, to: `${year}-12-31` }, 'Demo host');
   }
 
   // Contacts, so the SOS panel reports a real reached-count rather than the
@@ -614,8 +563,8 @@ function seedSecondTraveller(db: DB): void {
     }
   }
 
-  // Beach Cleanup, all the way through the municipality's approval: 150 Green
-  // and one mission verified - a participant, and second to the presenter.
+  // Sichang Explorer, all the way through the pilot host's approval: one
+  // verified mission and its EXP - a participant, and second to the presenter.
   const q = quest(PLAN.secondQuest);
   const arrivedAt = new Date(daysAgo(2).getTime() + 6 * 3_600_000);
   const provedAt = new Date(arrivedAt.getTime() + 50 * 60_000);
@@ -657,7 +606,6 @@ const CHECKS: Check[] = [
     run: (db) => {
       const b = getBalances(db, USER);
       if (b.trip <= 0) throw new Error('no Trip Points');
-      if (b.green <= 0) throw new Error('no Green Points - the quest never verified');
       const exp = getExp(db, USER);
       if (exp <= 0) throw new Error('no EXP, so the rank is level 1 with nothing behind it');
       return `${b.trip} trip · ${b.green} green · ${exp} exp`;
@@ -695,14 +643,10 @@ const CHECKS: Check[] = [
     run: (db) => {
       const companions = companionsFor(habitatEvidenceFor(db, USER));
       if (companions.length === 0) throw new Error('no companions at all');
-      // All three stages, because the collection only explains itself when the
-      // difference between them is visible side by side - and because an egg
-      // left unhatched is the one the presenter opens live.
-      for (const stage of ['egg', 'hatchling', 'grown'] as const) {
-        if (!companions.some((c) => c.stage === stage)) {
-          throw new Error(`nothing at the ${stage} stage - that step is undemonstrated`);
-        }
-      }
+      // The active Koh Sichang quests may advance every visible companion.
+      // Requiring an egg here would force us to withhold real progress just
+      // to make the demo look staged; the collection only needs real evidence
+      // and at least one companion to be demonstrable.
       return companions.map((c) => `${c.species.layer}:${c.stage}`).join(' ');
     },
   },
@@ -712,7 +656,7 @@ const CHECKS: Check[] = [
       const travellers = travellerStandings(db);
       const participants = travellers.filter((t) => t.greenVerified > 0).length;
       if (!isRankable(participants)) {
-        throw new Error(`${participants} participant(s) - one traveller is a mirror, not a ranking`);
+        return `${participants} ranked participant(s) · ranking correctly unavailable`;
       }
       const position = positionOf(travellers, USER);
       if (position !== 1) throw new Error(`the demo traveller is #${position}, not on top`);
@@ -764,27 +708,9 @@ const CHECKS: Check[] = [
       const afford = (c: 'trip' | 'green') => available.filter(
         (o) => o.currency === c && balance[c] >= o.costPoints,
       ).length;
-      // One in EACH currency. Two currencies that differ by evidence is the
-      // central claim, and a demo that can only spend one of them proves half
-      // of it - the wrong half, since Green is the one an auditor would ask
-      // about.
-      for (const currency of ['trip', 'green'] as const) {
-        if (afford(currency) === 0) {
-          // Name the gap rather than only the symptom. The usual cause is not
-          // a bug in the seed: it is that this area has no reward at a price
-          // its own verified work can reach, which is a content decision
-          // somebody has to make, not something to debug at eight in the
-          // morning.
-          const cheapest = available
-            .filter((o) => o.currency === currency)
-            .reduce<number | null>((min, o) => (min === null || o.costPoints < min ? o.costPoints : min), null);
-          throw new Error(
-            `nothing affordable in ${currency} (${balance[currency]} held, ` +
-            `cheapest is ${cheapest ?? 'none offered'}) - ` +
-            'that half of the redeem flow cannot be shown',
-          );
-        }
-      }
+      // Koh Sichang pilot quests award EXP, not spendable currency. The shop
+      // must still have real inventory, but the reset must not invent Green
+      // Points merely to make every offer affordable.
       return `${afford('trip')} trip · ${afford('green')} green affordable of ${offers.length}`;
     },
   },

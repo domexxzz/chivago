@@ -11,6 +11,7 @@
  */
 
 import * as SecureStore from 'expo-secure-store';
+import { setGuestSandboxActive } from '../demo/mode.ts';
 
 const LOGIN_SLOT = 'chivago.isLoggedIn';
 /**
@@ -131,17 +132,22 @@ export async function setLoggedIn(val: boolean): Promise<void> {
 }
 
 export async function isGuest(): Promise<boolean> {
-  if (cachedGuest !== null) return cachedGuest;
+  if (cachedGuest !== null) {
+    setGuestSandboxActive(cachedGuest);
+    return cachedGuest;
+  }
   try {
     cachedGuest = await (await currentGuestStore()).get();
   } catch {
     cachedGuest = false;
   }
+  setGuestSandboxActive(cachedGuest);
   return cachedGuest;
 }
 
 export async function setGuest(val: boolean): Promise<void> {
   cachedGuest = val;
+  setGuestSandboxActive(val);
   try {
     await (await currentGuestStore()).set(val);
   } catch {
@@ -151,6 +157,7 @@ export async function setGuest(val: boolean): Promise<void> {
 
 export async function clearGuest(): Promise<void> {
   cachedGuest = false;
+  setGuestSandboxActive(false);
   try {
     await (await currentGuestStore()).clear();
   } catch {

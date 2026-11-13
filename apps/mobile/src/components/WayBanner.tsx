@@ -16,32 +16,58 @@
 
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { Footprints, Route as RouteIcon, X } from 'lucide-react-native';
-import { formatDistance, formatDuration, strings, type Route, type RouteMode, type ScoredPlace } from '@chivago/core';
+import { Footprints, Navigation, Route as RouteIcon, X } from 'lucide-react-native';
+import {
+  formatDistance, formatDuration, strings,
+  type Route, type RouteMode, type RouteRefusal, type ScoredPlace,
+} from '@chivago/core';
 import { color, gutter, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
 
 export function WayBanner({
-  place, route, loading, failed, haveHere, mode, onMode, onClear,
+  place, route, loading, failed, refusal = null, haveHere, mode, onMode, onClear, onNavigate,
 }: {
   place: ScoredPlace;
   route: Route | null;
   loading: boolean;
   failed: boolean;
+  /**
+   * The router's own reason for saying no.
+   *
+   * Optional: the banner was complete without it and still is. What it adds
+   * is the difference between "no road route right now", which sounds like
+   * the server is down, and "too far for this mode", which tells the
+   * traveller to press the other chip.
+   */
+  refusal?: RouteRefusal | null;
   /** Without a position there is no line to draw and nothing to route from. */
   haveHere: boolean;
   mode: RouteMode;
   onMode: (mode: RouteMode) => void;
   onClear: () => void;
+  /**
+   * Opens turn-by-turn for this place.
+   *
+   * Offered beside the modes rather than instead of them, because the banner
+   * answers a question the navigator does not: how far, and how long, for
+   * somebody who has not decided to go yet. Absent on a build with no
+   * navigator, and the banner is complete without it - which is how it
+   * shipped before there was one.
+   */
+  onNavigate?: () => void;
 }) {
   const summary = route
     ? t(strings.map.waySummary(t(formatDistance(route.metres)), t(formatDuration(route.seconds))))
     : loading
       ? t(strings.map.wayLoading)
-      : haveHere
-        ? t(strings.map.wayStraight)
-        : t(strings.place.distanceUnknown);
+      : refusal === 'too-far'
+        ? t(strings.map.wayTooFar)
+        : refusal === 'no-path' || refusal === 'unreachable'
+          ? t(strings.map.wayNoPath)
+          : haveHere
+            ? t(strings.map.wayStraight)
+            : t(strings.place.distanceUnknown);
 
   return (
     <View style={{ paddingHorizontal: gutter, paddingBottom: 10 }}>
@@ -79,7 +105,7 @@ export function WayBanner({
           roads at roughly the same speed, and a third line labelled
           "songthaew" would be the car answer wearing a different name.
         */}
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 }}>
           <ModeChip
             label={t(strings.map.wayWalk)}
             icon={Footprints}
@@ -92,6 +118,27 @@ export function WayBanner({
             active={mode === 'ride'}
             onPress={() => onMode('ride')}
           />
+          {/*
+            PUSHED TO THE RIGHT, and deliberately the only filled control in
+            the banner. Choosing a mode is a setting; starting is the thing
+            the screen is for, and the two should not read as a row of three
+            equal chips.
+          */}
+          {onNavigate ? (
+            <Pressable
+              onPress={onNavigate}
+              accessibilityRole="button"
+              accessibilityLabel={t(strings.navigate.start)}
+              style={{
+                marginLeft: 'auto', flexDirection: 'row', alignItems: 'center', gap: 6,
+                minHeight: 40, paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.lg,
+                backgroundColor: color.ctaDeep,
+              }}
+            >
+              <Navigation size={14} color={onFill.ctaDeep} strokeWidth={2.4} />
+              <Label size={10} tracking={0.08} colour={onFill.ctaDeep}>{t(strings.navigate.start)}</Label>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </View>

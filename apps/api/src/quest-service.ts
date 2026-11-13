@@ -480,11 +480,11 @@ export function resolveVerification(
 
   const quest = db
     .prepare(
-      `SELECT q.name_en, q.reward_points, q.reward_currency, h.name AS host_name
+      `SELECT q.name_en, q.reward_points, q.reward_exp, q.reward_currency, h.name AS host_name
        FROM quests q JOIN hosts h ON h.id = q.host_id WHERE q.id = ?`,
     )
     .get(args.questId) as
-    | { name_en: string; reward_points: number; reward_currency: string; host_name: string }
+    | { name_en: string; reward_points: number; reward_exp: number | null; reward_currency: string; host_name: string }
     | undefined;
   if (!quest) throw new Error(`unknown quest: ${args.questId}`);
 
@@ -545,6 +545,7 @@ export function resolveVerification(
       questName: quest.name_en,
       host: quest.host_name,
       points: quest.reward_points,
+      exp: quest.reward_exp ?? quest.reward_points,
       // From the QUEST, never from the caller. Whether work counts as
       // environmental is a property of what was posted and verified.
       currency: quest.reward_currency as Currency,
@@ -558,7 +559,8 @@ export function resolveVerification(
         .run(now, uid, args.questId);
       awardQuestReward(db, {
         userId: uid, questId: args.questId, questName: quest.name_en, host: quest.host_name,
-        points: quest.reward_points, currency: quest.reward_currency as Currency,
+        points: quest.reward_points, exp: quest.reward_exp ?? quest.reward_points,
+        currency: quest.reward_currency as Currency,
       });
       enqueue(db, {
         userId: uid,

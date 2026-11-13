@@ -244,7 +244,7 @@ export function awardQuestReward(
   db: DB,
   args: {
     userId: string; questId: string; questName: string; host: string;
-    points: number; currency: Currency;
+    points: number; currency: Currency; exp?: number;
   },
 ): MovementResult {
   return applyMovement(db, {
@@ -254,6 +254,7 @@ export function awardQuestReward(
     host: args.host,
     amount: args.points,
     currency: args.currency,
+    exp: args.exp,
     kind: 'quest_reward',
     sourceRef: `quest:${args.questId}:user:${args.userId}`,
   });

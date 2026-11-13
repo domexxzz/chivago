@@ -127,6 +127,7 @@ CREATE TABLE IF NOT EXISTS quests (
   where_label       TEXT NOT NULL,
   duration          TEXT NOT NULL,
   reward_points     INTEGER NOT NULL CHECK (reward_points >= 0),
+  reward_exp        INTEGER CHECK (reward_exp IS NULL OR reward_exp >= 0),
   reward_currency   TEXT NOT NULL DEFAULT 'green' CHECK (reward_currency IN ('trip','green')),
   host_id           TEXT NOT NULL REFERENCES hosts(id),
   kind              TEXT NOT NULL,
@@ -300,7 +301,7 @@ CREATE TABLE IF NOT EXISTS air_cache (
  * number. `db-schema-version.test.ts` fails when you forget, which is the only
  * reason this is safe to rely on.
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /**
  * Open the API's database on Durable Object storage, building the schema and

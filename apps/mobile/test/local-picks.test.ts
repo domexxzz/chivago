@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
-import { test, describe, afterEach, beforeEach } from 'node:test';
+import { test, describe, mock, afterEach, beforeEach } from 'node:test';
 import { createElement as h } from 'react';
+import { Linking } from 'react-native';
 
 import { LocalPicksScreen } from '../src/screens/LocalPicksScreen.tsx';
 import { mountScreen, server, offline } from './interact.ts';
@@ -27,89 +28,33 @@ import { __setAreaForTests } from '../src/state/area.ts';
 const noop = () => {};
 const props = { onBack: noop, onOpenShop: noop };
 
-let restore: (() => void) | null = null;
-
-/*
-  THE AREA IS PINNED, because these routes name one.
-
-  The screen asks `/shops?area=<the area you are in>`, and the fake server
-  below answers exactly one of those. When the app's default area moved from
-  Samui to Koh Sichang - the pilot island, `DEFAULT_AREA` in areas.ts - the
-  screen started asking for a route nobody had registered, and all four of
-  these failed with "Could not load this area's businesses" rather than with
-  anything about categories. `near-you.test.ts` carries the same pin and the
-  same scar.
-*/
-beforeEach(() => { __setAreaForTests('samui'); });
-afterEach(() => { restore?.(); restore = null; __setAreaForTests('samui'); });
-
-const routes = (shops: unknown[]) => ({ '/shops?area=samui': shops });
-
-describe('Local Picks lists the island by category', () => {
-  test('every category has a chip, vehicle rental among them', async () => {
-    const s = server(routes([fx.shop()])); restore = s.restore;
+describe('Local Picks category shell', () => {
+  test('defaults to All and exposes the four categories in one dropdown', async () => {
     const ui = await mountScreen(h(LocalPicksScreen, props));
 
+    assert.match(ui.text(), /All local picks/i);
+    assert.match(ui.text(), /Sinrani Badminton/);
+    await ui.press('Category: All');
     const said = ui.text();
-    for (const label of ['Accommodation', 'Restaurants', 'Car rental', 'Tour guide']) {
-      assert.match(said, new RegExp(label), `the ${label} chip is missing`);
+
+    for (const label of ['All', 'Food', 'Accommodation', 'Transportation', 'Sports']) {
+      assert.match(said, new RegExp(label), `the ${label} category is missing`);
     }
     ui.unmount();
   });
 
-  test('choosing a category leaves only that category on screen', async () => {
-    const s = server(routes([
-      fx.shop({ id: 'a', name: 'Somewhere Koh Sichang', category: 'ที่พัก' }),
-      fx.shop({ id: 'b', name: 'Islandish Cafe', category: 'ร้านอาหาร' }),
-    ]));
-    restore = s.restore;
-    const ui = await mountScreen(h(LocalPicksScreen, props));
-    assert.match(ui.text(), /Islandish Cafe/, 'everything should show before a category is chosen');
-
-    await ui.press('Accommodation');
-    const said = ui.text();
-    assert.match(said, /Somewhere Koh Sichang/, 'the accommodation is missing');
-    assert.doesNotMatch(said, /Islandish Cafe/, 'a restaurant survived the accommodation filter');
-    ui.unmount();
-  });
-
-  /*
-    THE ONE THAT MATTERS. Koh Sichang has eight businesses and eight
-    categories, so most categories are empty and will stay empty. A chip that
-    leads to a blank screen is indistinguishable from a chip that is broken.
-  */
-  test('a category with nothing in it says so, rather than going blank', async () => {
-    const s = server(routes([fx.shop({ category: 'ที่พัก' })])); restore = s.restore;
+  test('the Sports category shows Sinrani Badminton and opens its booking page', async () => {
+    const opened = mock.method(Linking, 'openURL', async () => true);
     const ui = await mountScreen(h(LocalPicksScreen, props));
 
-    await ui.press('Haircuts');
-    assert.match(ui.text(), /Nothing listed here yet/, 'an empty category said nothing at all');
+    await ui.press('Category: All');
+    await ui.press('Sports');
+    assert.match(ui.text(), /Activities and active experiences/);
+    assert.match(ui.text(), /Sinrani Badminton/);
+    assert.doesNotMatch(ui.text(), /No recommendations yet/);
+    await ui.press('Sinrani Badminton');
+    assert.deepEqual(opened.mock.calls.map((call) => call.arguments[0]), ['https://badminton-booking-ihw1.onrender.com/']);
     ui.unmount();
-  });
-
-  test('an area with no businesses says so too', async () => {
-    const s = server(routes([])); restore = s.restore;
-    const ui = await mountScreen(h(LocalPicksScreen, props));
-    assert.match(ui.text(), /Nothing listed here yet/, 'an empty area said nothing at all');
-    ui.unmount();
-  });
-
-  test('a shop opens its own page', async () => {
-    const opened: string[] = [];
-    const s = server(routes([fx.shop({ id: 'novotel', name: 'Novotel Koh Si Chang' })]));
-    restore = s.restore;
-    const ui = await mountScreen(h(LocalPicksScreen, { ...props, onOpenShop: (id: string) => { opened.push(id); } }));
-
-    await ui.press('Novotel Koh Si Chang');
-    assert.deepEqual(opened, ['novotel'], 'the card did not open the shop');
-    ui.unmount();
-  });
-
-  test('a dead endpoint is said out loud, not shown as an empty island', async () => {
-    const s = server({ '/shops?area=samui': offline() }); restore = s.restore;
-    const ui = await mountScreen(h(LocalPicksScreen, props));
-
-    assert.doesNotMatch(ui.text(), /Nothing listed here yet/, 'a failed request was dressed up as an empty area');
-    ui.unmount();
+    opened.mock.restore();
   });
 });

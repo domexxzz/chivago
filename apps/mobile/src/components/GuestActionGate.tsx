@@ -24,12 +24,12 @@ export function GuestActionProvider({
   const [reason, setReason] = React.useState<Bilingual | null>(null);
   const requireAccount = React.useCallback((message?: Bilingual) => {
     if (!guest) return false;
-    setReason(message ?? {
-      en: 'Please sign in or create an account to join quests or create a party.',
-      th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเข้าร่วมเควสต์/สร้างปาร์ตี้',
-      zh: '请登录或注册账号，才能参加任务或创建队伍。',
-    });
-    return true;
+    // Guest mode is a presentation sandbox. The API interceptor handles the
+    // action in memory and discards it on reload, so the screen should proceed
+    // exactly as it would for a member instead of opening an account wall.
+    void message;
+    setReason(null);
+    return false;
   }, [guest]);
 
   return (

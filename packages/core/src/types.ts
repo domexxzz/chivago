@@ -313,6 +313,14 @@ export interface Quest {
    */
   duration: Bilingual;
   rewardPoints: number;
+  /**
+   * EXP earned independently of wallet points.
+   *
+   * Most existing quests omit this and continue to earn EXP equal to their
+   * point reward. Pilot quests can promise progression without inventing a
+   * Trip or Green Point payment.
+   */
+  rewardExp?: number;
   /** Which currency the reward pays in. Environmental work pays green. */
   rewardCurrency: Currency;
   host: QuestHost;

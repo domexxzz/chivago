@@ -148,10 +148,10 @@ export async function listScoredPlaces(
   const placeRows = bbox
     ? rows<PlaceRow>(
         db
-          .prepare('SELECT * FROM places WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?')
+          .prepare('SELECT * FROM places WHERE admin_hidden_at IS NULL AND lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?')
           .all(bbox.minLat, bbox.maxLat, bbox.minLng, bbox.maxLng),
       )
-    : rows<PlaceRow>(db.prepare('SELECT * FROM places').all());
+    : rows<PlaceRow>(db.prepare('SELECT * FROM places WHERE admin_hidden_at IS NULL').all());
 
   const profile = getProfile(db, userId);
   // One grouped query for every place on screen. A per-place lookup would
@@ -207,7 +207,7 @@ export async function getScoredPlace(
   userId: string,
   placeId: string,
 ): Promise<ScoredPlace | null> {
-  const found = row<PlaceRow>(db.prepare('SELECT * FROM places WHERE id = ?').get(placeId));
+  const found = row<PlaceRow>(db.prepare('SELECT * FROM places WHERE id = ? AND admin_hidden_at IS NULL').get(placeId));
   if (!found) return null;
   const all = await listScoredPlaces(db, userId);
   return all.find((p) => p.id === placeId) ?? null;
@@ -216,7 +216,7 @@ export async function getScoredPlace(
 interface QuestRow {
   id: string; code: string; name_en: string; name_th: string;
   where_label: string; where_label_th: string | null;
-  duration: string; duration_th: string | null; reward_points: number; reward_currency: string; kind: string;
+  duration: string; duration_th: string | null; reward_points: number; reward_exp: number | null; reward_currency: string; kind: string;
   lat: number; lng: number;
   geofence_radius_m: number; host_id: string; host_name: string; host_type: string;
 }
@@ -228,6 +228,7 @@ const toQuest = (r: QuestRow): Quest => ({
   where: { en: r.where_label, th: r.where_label_th ?? r.where_label },
   duration: { en: r.duration, th: r.duration_th ?? r.duration },
   rewardPoints: r.reward_points,
+  rewardExp: r.reward_exp ?? undefined,
   rewardCurrency: r.reward_currency as Quest['rewardCurrency'],
   host: { id: r.host_id, name: r.host_name, type: r.host_type as Quest['host']['type'] },
   kind: r.kind as Quest['kind'],
@@ -238,22 +239,24 @@ const toQuest = (r: QuestRow): Quest => ({
 
 const QUEST_SELECT = `
   SELECT q.id, q.code, q.name_en, q.name_th, q.where_label, q.where_label_th, q.duration, q.duration_th, q.reward_points,
-         q.reward_currency,
+         q.reward_exp, q.reward_currency,
          q.kind, q.lat, q.lng, q.geofence_radius_m,
          h.id AS host_id, h.name AS host_name, h.type AS host_type
   FROM quests q JOIN hosts h ON h.id = q.host_id`;
 
+const ACTIVE_QUEST_WHERE = "q.code IN ('SG-01','SG-02','SG-03','SG-04','SG-05')";
+
 export function listQuests(db: DB, filter?: 'today' | 'weekend'): Quest[] {
   const questRows = filter
     ? rows<QuestRow>(
-        db.prepare(`${QUEST_SELECT} WHERE q.kind = ? ORDER BY q.reward_points DESC`).all(filter),
+        db.prepare(`${QUEST_SELECT} WHERE ${ACTIVE_QUEST_WHERE} AND q.kind = ? ORDER BY q.reward_points DESC`).all(filter),
       )
-    : rows<QuestRow>(db.prepare(`${QUEST_SELECT} ORDER BY q.reward_points DESC`).all());
+    : rows<QuestRow>(db.prepare(`${QUEST_SELECT} WHERE ${ACTIVE_QUEST_WHERE} ORDER BY q.reward_points DESC`).all());
   return questRows.map(toQuest);
 }
 
 export function getQuest(db: DB, questId: string): Quest | null {
-  const found = row<QuestRow>(db.prepare(`${QUEST_SELECT} WHERE q.id = ?`).get(questId));
+  const found = row<QuestRow>(db.prepare(`${QUEST_SELECT} WHERE q.id = ? AND ${ACTIVE_QUEST_WHERE}`).get(questId));
   return found ? toQuest(found) : null;
 }
 
@@ -395,7 +398,7 @@ export function getShield(db: DB, userId: string): ShieldService[] {
     { key: 'antiScam', label: { en: 'Anti-Scam', th: 'ป้องกันการหลอกลวง', zh: '防诈骗' }, note: { en: `${verifiedMerchants.n} QR merchants verified this trip`, th: `ตรวจสอบร้านค้า QR แล้ว ${verifiedMerchants.n} ร้านในทริปนี้`, zh: `本次行程已验证 ${verifiedMerchants.n} 家 QR 商家` }, state: 'on' },
     // No invented distance. The hospital is named; how far it is depends on
     // where the traveller is, which this read model does not know.
-    { key: 'emergency', label: { en: 'Emergency Assistance', th: 'ความช่วยเหลือฉุกเฉิน', zh: '紧急援助' }, note: { en: '1669 · Bangkok Hospital Samui', th: '1669 · โรงพยาบาลกรุงเทพสมุย', zh: '1669 · 苏梅岛曼谷医院' }, state: 'ready' },
+    { key: 'emergency', label: { en: 'Emergency Assistance', th: 'ความช่วยเหลือฉุกเฉิน', zh: '紧急援助' }, note: { en: '1669 · Koh Sichang Hospital', th: '1669 · โรงพยาบาลเกาะสีชัง', zh: '1669 · 锡昌岛医院' }, state: 'ready' },
     { key: 'language', label: { en: 'Language Help', th: 'ช่วยเหลือด้านภาษา', zh: '语言帮助' }, note: { en: 'Thai↔English interpreter on call', th: 'ล่ามไทย-อังกฤษพร้อมให้บริการ', zh: '泰语↔英语口译随时待命' }, state: 'ready' },
   ];
 }
