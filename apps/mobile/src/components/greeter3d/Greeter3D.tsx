@@ -34,7 +34,8 @@ import {
   CLIP_MS, REST, blend, blinkAt, nextPerformance, poseAt, widthFor,
   type ClipName, type Pose,
 } from './choreography.ts';
-import { ARM, EYE_A, EYE_B, EYE_RADIUS, HEAD, TAIL, weightBuffers } from './rig.ts';
+import { ARM, EYE_A, EYE_B, EYE_RADIUS, HEAD, SPINE, TAIL, weightBuffers } from './rig.ts';
+import { atRest, stepBone, type SpringState } from './spring.ts';
 
 /**
  * The blink, drawn rather than moved.
@@ -102,12 +103,16 @@ const SKIN_HEAD = /* glsl */`
 attribute float aArm;
 attribute float aTail;
 attribute float aHead;
+attribute float aSpine;
 uniform float uArm;
+uniform float uArmOut;
 uniform float uTail;
+uniform float uSpine;
 uniform vec3 uHeadTurn;
 uniform vec3 uArmPivot;
 uniform vec3 uTailPivot;
 uniform vec3 uHeadPivot;
+uniform vec3 uSpinePivot;
 
 vec3 chivagoSpinX(vec3 p, vec3 pivot, float a) {
   vec3 q = p - pivot;
@@ -123,6 +128,18 @@ vec3 chivagoSpinZ(vec3 p, vec3 pivot, float a) {
   vec3 q = p - pivot;
   float c = cos(a); float s = sin(a);
   return pivot + vec3(q.x * c - q.y * s, q.x * s + q.y * c, q.z);
+}
+
+/* The arm: the swing, then the reach toward the viewer. Two axes, so the
+   hand travels round rather than along.
+
+   The second angle is named reach and not out, because out is a storage
+   qualifier in GLSL: a parameter called that compiles to nothing, the
+   material's program fails to link, and the whole mascot disappears while
+   its shadow - an unpatched mesh - carries on being drawn underneath. */
+vec3 chivagoArm(vec3 p, vec3 pivot, float swing, float reach, float w) {
+  vec3 r = chivagoSpinZ(p, pivot, swing * w);
+  return chivagoSpinY(r, pivot, reach * w);
 }
 
 /* Yaw, then pitch, then roll - the order a head moves in. */
@@ -185,7 +202,7 @@ export function Greeter3D({
   label: string;
   /** Reduce-motion. Still means still: the pose holds and nothing loops. */
   still: boolean;
-  onTap?: () => void;
+  onTap?: (clip: ClipName) => void;
 }) {
   const host = React.useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = React.useState(false);
@@ -248,24 +265,65 @@ export function Greeter3D({
     const key = new THREE.DirectionalLight(light.warm, light.key * 0.75);
     key.position.set(2.2, 3.4, 2.6);
     scene.add(key);
-    const fill = new THREE.DirectionalLight(0xbfe6ff, 0.35);
+    // Tinted to the shore he now stands on, so the light on him belongs to
+    // the same picture as the ground under him.
+    const fill = new THREE.DirectionalLight(0xd8f1f7, 0.38);
     fill.position.set(-2.4, 1.2, -1.8);
     scene.add(fill);
 
     const camera = new THREE.PerspectiveCamera(32, (el.clientWidth || 320) / height, 0.1, 40);
-    camera.position.set(0, 0.62, 2.35);
+    // Closer than it was: he sat small in a wide band with dead space either
+    // side, and empty frame is its own kind of floating.
+    camera.position.set(0, 0.58, 1.95);
     camera.lookAt(0, 0.5, 0);
 
-    // The shadow is a flat disc, not a shadow map: one mesh, no second render
-    // pass, and at this camera angle nobody can tell. What it buys is the
-    // thing a shadow is actually for, which is the mascot standing on the
-    // page rather than floating in front of it.
+    /*
+      A SOFT SHADOW, because the hard one was most of what made him look
+      pasted on.
+
+      This was a flat disc at a single opacity: a grey ellipse with a crisp
+      edge, which is a sticker's drop shadow and not light. Real contact
+      shadow is dark and tight where the feet meet the ground and fades to
+      nothing a short way out, so the texture below is a radial gradient
+      painted once into a canvas - dense in the middle, gone at the rim -
+      and the disc samples it.
+
+      Tinted toward the shore it sits on rather than grey. A neutral shadow
+      on a blue-green ground reads as dirt.
+    */
+    const shadowTexture = (() => {
+      const size = 128;
+      const pad = document.createElement('canvas');
+      pad.width = size;
+      pad.height = size;
+      const ink = pad.getContext('2d')!;
+      const gradient = ink.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+      // Stronger than it was: this now falls on sunlit sand rather than on
+      // a pale flat band, and the first setting simply vanished into it.
+      gradient.addColorStop(0, 'rgba(26, 62, 76, 0.6)');
+      gradient.addColorStop(0.45, 'rgba(26, 62, 76, 0.32)');
+      gradient.addColorStop(1, 'rgba(26, 72, 88, 0)');
+      ink.fillStyle = gradient;
+      ink.fillRect(0, 0, size, size);
+      const texture = new THREE.CanvasTexture(pad);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    })();
     const shadow = new THREE.Mesh(
-      new THREE.CircleGeometry(0.42, 40),
-      new THREE.MeshBasicMaterial({ color: 0x2a3b4a, transparent: true, opacity: 0.16, depthWrite: false }),
+      new THREE.PlaneGeometry(1.25, 1.25),
+      new THREE.MeshBasicMaterial({
+        map: shadowTexture, transparent: true, depthWrite: false, opacity: 1,
+      }),
     );
     shadow.rotation.x = -Math.PI / 2;
     shadow.position.y = 0.002;
+    /*
+      Squashed so it reads as a shadow on the ground rather than a circle.
+      LOCAL Y, not z: the plane is rotated flat, so its own y is the world's
+      z. Scaling z here would stretch the plane along its own normal and do
+      nothing at all, which is a quiet way to spend an afternoon.
+    */
+    shadow.scale.y = 0.62;
     scene.add(shadow);
 
     const pivot = new THREE.Group();
@@ -288,10 +346,29 @@ export function Greeter3D({
     // Shared with every material the shader patch touches, so one write a
     // frame drives the whole skeleton.
     const armAngle = { value: 0 };
+    const armOutAngle = { value: 0 };
     const tailAngle = { value: 0 };
     // Yaw, pitch, roll in one vector, so the shader takes one uniform.
     const headTurn = { value: new THREE.Vector3(0, 0, 0) };
+    const spineAngle = { value: 0 };
     const blink = { value: 0 };
+
+    /*
+      Every bone chases the clip through a spring rather than being set to
+      it. That is where lag, overshoot and follow-through come from, and
+      they are most of the difference between a skeleton and a puppet on
+      rods - see spring.ts for what each bone is made of.
+    */
+    const bones: Record<string, SpringState> = {
+      arm: atRest(),
+      armOut: atRest(),
+      tail: atRest(),
+      yaw: atRest(),
+      pitch: atRest(),
+      roll: atRest(),
+      spine: atRest(),
+    };
+    let lastFrameAt = 0;
     const skinned: { arm: number; tail: number; head: number }[] = [];
 
     const play = (clip: ClipName, now: number) => {
@@ -325,8 +402,19 @@ export function Greeter3D({
           }
         }
 
-        armAngle.value = pose.wave;
-        tailAngle.value = pose.wag;
+        // Seconds since the last frame, which the springs integrate over.
+        // The first frame has no previous one; spring.ts clamps the rest.
+        const deltaS = lastFrameAt === 0 ? 1 / 60 : (now - lastFrameAt) / 1000;
+        lastFrameAt = now;
+
+        bones.arm = stepBone(bones.arm, pose.wave, deltaS, 'arm');
+        bones.armOut = stepBone(bones.armOut, pose.waveOut, deltaS, 'arm');
+        bones.tail = stepBone(bones.tail, pose.wag, deltaS, 'tail');
+        bones.spine = stepBone(bones.spine, pose.torso, deltaS, 'spine');
+        armAngle.value = bones.arm.value;
+        armOutAngle.value = bones.armOut.value;
+        tailAngle.value = bones.tail.value;
+        spineAngle.value = bones.spine.value;
         /*
           Off the ROOM's clock, not the clip's. Blinking belongs to the
           animal rather than to any performance: it carries on while it
@@ -344,11 +432,10 @@ export function Greeter3D({
           two together read as attention rather than as rotation.
         */
         const watch = still ? 0 : pointerYaw;
-        headTurn.value.set(
-          pose.glance + watch * 0.75,
-          pose.nod,
-          pose.tilt,
-        );
+        bones.yaw = stepBone(bones.yaw, pose.glance + watch * 0.75, deltaS, 'headYaw');
+        bones.pitch = stepBone(bones.pitch, pose.nod, deltaS, 'headPitch');
+        bones.roll = stepBone(bones.roll, pose.tilt, deltaS, 'headRoll');
+        headTurn.value.set(bones.yaw.value, bones.pitch.value, bones.roll.value);
         pivot.position.set(pose.drift, pose.lift, 0);
         // Pivoting at the feet, which is where a standing body bends from.
         pivot.scale.set(widthFor(pose.squash), pose.squash, widthFor(pose.squash));
@@ -365,8 +452,9 @@ export function Greeter3D({
           same body simply drawn larger.
         */
         const height = Math.max(0, pose.lift);
-        shadow.scale.setScalar(Math.max(0.45, 1 - height * 1.5));
-        (shadow.material as THREE.MeshBasicMaterial).opacity = Math.max(0.05, 0.16 - height * 0.25);
+        const spread = Math.max(0.5, 1 - height * 1.4);
+        shadow.scale.set(spread, spread * 0.62, 1);
+        (shadow.material as THREE.MeshBasicMaterial).opacity = Math.max(0.25, 1 - height * 1.8);
         shadow.position.x = pose.drift;
       }
       renderer.render(scene, camera);
@@ -386,8 +474,10 @@ export function Greeter3D({
     */
     const onClick = () => {
       if (still) return;
-      play(nextPerformance(lastPerformance), performance.now());
-      onTap?.();
+      const clip = nextPerformance(lastPerformance);
+      play(clip, performance.now());
+      // Which one, so the card can let it speak only when it is greeting.
+      onTap?.(clip);
     };
 
     new GLTFLoader().load(
@@ -424,19 +514,23 @@ export function Greeter3D({
           // The weights, computed once, here, from the positions this mesh
           // actually has. `rig.ts` has the measurements behind the radii.
           const positions = mesh.geometry.attributes.position.array as ArrayLike<number>;
-          const { arm, tail, head, moved } = weightBuffers(positions);
+          const { arm, tail, head, spine, moved } = weightBuffers(positions);
           mesh.geometry.setAttribute('aArm', new THREE.BufferAttribute(arm, 1));
           mesh.geometry.setAttribute('aTail', new THREE.BufferAttribute(tail, 1));
           mesh.geometry.setAttribute('aHead', new THREE.BufferAttribute(head, 1));
+          mesh.geometry.setAttribute('aSpine', new THREE.BufferAttribute(spine, 1));
           skinned.push(moved);
 
           material.onBeforeCompile = (shader) => {
             shader.uniforms.uArm = armAngle;
+            shader.uniforms.uArmOut = armOutAngle;
             shader.uniforms.uTail = tailAngle;
             shader.uniforms.uHeadTurn = headTurn;
             shader.uniforms.uArmPivot = { value: new THREE.Vector3(...ARM.pivot) };
             shader.uniforms.uTailPivot = { value: new THREE.Vector3(...TAIL.pivot) };
             shader.uniforms.uHeadPivot = { value: new THREE.Vector3(...HEAD.pivot) };
+            shader.uniforms.uSpine = spineAngle;
+            shader.uniforms.uSpinePivot = { value: new THREE.Vector3(0, SPINE.hip, 0) };
             shader.uniforms.uBlink = blink;
             shader.uniforms.uEyeA = { value: new THREE.Vector3(...EYE_A) };
             shader.uniforms.uEyeB = { value: new THREE.Vector3(...EYE_B) };
@@ -461,16 +555,21 @@ export function Greeter3D({
             shader.vertexShader = shader.vertexShader.replace(
               '#include <beginnormal_vertex>',
               `#include <beginnormal_vertex>
-               objectNormal = chivagoSpinZ(objectNormal, vec3(0.0), uArm * aArm);
+               objectNormal = chivagoArm(objectNormal, vec3(0.0), uArm, uArmOut, aArm);
                objectNormal = chivagoSpinY(objectNormal, vec3(0.0), uTail * aTail);
-               objectNormal = chivagoHead(objectNormal, vec3(0.0), uHeadTurn, aHead);`,
+               objectNormal = chivagoHead(objectNormal, vec3(0.0), uHeadTurn, aHead);
+               objectNormal = chivagoSpinZ(objectNormal, vec3(0.0), uSpine * aSpine);`,
             );
             shader.vertexShader = shader.vertexShader.replace(
               '#include <begin_vertex>',
               `#include <begin_vertex>
-               transformed = chivagoSpinZ(transformed, uArmPivot, uArm * aArm);
+               transformed = chivagoArm(transformed, uArmPivot, uArm, uArmOut, aArm);
                transformed = chivagoSpinY(transformed, uTailPivot, uTail * aTail);
-               transformed = chivagoHead(transformed, uHeadPivot, uHeadTurn, aHead);`,
+               transformed = chivagoHead(transformed, uHeadPivot, uHeadTurn, aHead);
+               /* LAST, and that is what makes it their parent: the limbs pose
+                  about their own joints first, then the whole posed upper
+                  body swings over the hips. */
+               transformed = chivagoSpinZ(transformed, uSpinePivot, uSpine * aSpine);`,
             );
           };
           material.needsUpdate = true;
@@ -525,6 +624,7 @@ export function Greeter3D({
       // The generated environment is a render target's texture and is not
       // reached by the traversal above; without this every remount of the
       // card leaks one cube map.
+      shadowTexture.dispose();
       environment.dispose();
       renderer.dispose();
       el.removeChild(renderer.domElement);

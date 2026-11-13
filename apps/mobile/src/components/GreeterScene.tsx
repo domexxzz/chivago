@@ -98,6 +98,32 @@ export function GreeterScene({
   const { width } = useWindowDimensions();
   const still = useReduceMotion();
   const Room = useRoom(inBrowser);
+
+  /*
+    ChangChang's voice, which plays ONLY on a tap and only when the tap
+    started the greeting - not when it jumps, not when it dances, and never
+    when the card first appears and greets by itself. Sound nobody asked for
+    on a home screen is the kind of thing people close an app over, and a
+    browser would refuse to play it unprompted anyway.
+
+    One audio element, reused: a fresh one per tap stacks half a dozen
+    ChangChangs talking over each other if somebody taps quickly.
+  */
+  const voice = React.useRef<HTMLAudioElement | null>(null);
+  const speak = React.useCallback((clip: string) => {
+    if (!inBrowser || clip !== 'greet' || still || !greeter.voice) return;
+    if (!voice.current) {
+      voice.current = new Audio(photoUri(greeter.voice));
+      voice.current.preload = 'none';
+    }
+    voice.current.currentTime = 0;
+    // A refusal is not worth a word: autoplay policy, a missing file and a
+    // muted device all land here, and none of them is the traveller's
+    // problem or something the card can do anything about.
+    voice.current.play().catch(() => {});
+  }, [greeter.voice, still]);
+
+  React.useEffect(() => () => { voice.current?.pause(); voice.current = null; }, []);
   React.useEffect(() => { onLive?.(Room !== null && !still); }, [Room, still, onLive]);
 
   // Taller on a wide screen, where there is room; a phone gets close to square.
@@ -112,7 +138,7 @@ export function GreeterScene({
           height={height}
           label={label}
           still={still}
-          onTap={onTap}
+          onTap={(clip) => { speak(clip); onTap?.(); }}
         />
       </View>
     );

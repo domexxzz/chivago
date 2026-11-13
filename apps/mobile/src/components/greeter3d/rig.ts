@@ -39,6 +39,24 @@ export interface Bone {
   tip: readonly [number, number, number];
   /** Vertices beyond this distance from the segment do not move at all. */
   radius: number;
+  /**
+   * How much the rotation grows along the bone, 0 to 1. THIS IS THE
+   * DIFFERENCE BETWEEN A LIMB AND A LEVER.
+   *
+   * At 0 the whole weighted region turns by the same angle: the bone is a
+   * rigid stick on a hinge, which is what a tail looked like swinging from
+   * its base, and what an arm looked like swinging from the shoulder with no
+   * elbow in it.
+   *
+   * At 1 the angle is scaled by how far along the bone the vertex sits, so
+   * nothing moves at the joint and everything moves at the tip - the shape
+   * CURVES. On the tail that is a tail; on the arm it is a crude elbow, with
+   * the upper arm nearly still and the hand doing the travelling, which is
+   * what a wave actually looks like.
+   *
+   * A head is rigid and keeps 0. Faces do not bend.
+   */
+  bend: number;
 }
 
 /**
@@ -53,6 +71,9 @@ export const ARM: Bone = {
   pivot: [0.18, 0.55, 0.07],
   tip: [0.431, 0.659, 0.152],
   radius: 0.11,
+  // Most of the swing at the hand, almost none at the shoulder: the elbow
+  // this model does not have, approximated by the only means available.
+  bend: 0.85,
 };
 
 /** The tail, from where the bush leaves the hip to its tip, found the same way. */
@@ -60,6 +81,9 @@ export const TAIL: Bone = {
   pivot: [-0.1, 0.28, -0.14],
   tip: [-0.403, 0.397, -0.362],
   radius: 0.1,
+  // A tail is the clearest case: hinged at the base it is a broom handle,
+  // and curving along its length it is an animal's tail.
+  bend: 1,
 };
 
 /**
@@ -84,6 +108,8 @@ export const HEAD: Bone = {
   pivot: [0, 0.55, 0],
   tip: [0, 0.97, 0],
   radius: 0.3,
+  // Rigid. A head that bends is a horror film.
+  bend: 0,
 };
 
 /**
@@ -111,8 +137,8 @@ export const EYE_B: readonly [number, number, number] = [0.165, 0.759, 0.188];
 /** Half the eye's width. The dark texels run to 0.086 at the ninetieth centile. */
 export const EYE_RADIUS = 0.072;
 
-/** Distance from a point to a bone's segment. */
-export function distanceToBone(x: number, y: number, z: number, bone: Bone): number {
+/** Distance from a point to a bone's segment, and how far along it that lands. */
+export function alongBone(x: number, y: number, z: number, bone: Bone): { distance: number; t: number } {
   const ax = bone.tip[0] - bone.pivot[0];
   const ay = bone.tip[1] - bone.pivot[1];
   const az = bone.tip[2] - bone.pivot[2];
@@ -122,8 +148,12 @@ export function distanceToBone(x: number, y: number, z: number, bone: Bone): num
   const length2 = ax * ax + ay * ay + az * az;
   let t = (bx * ax + by * ay + bz * az) / length2;
   t = t < 0 ? 0 : t > 1 ? 1 : t;
-  return Math.hypot(bx - ax * t, by - ay * t, bz - az * t);
+  return { distance: Math.hypot(bx - ax * t, by - ay * t, bz - az * t), t };
 }
+
+/** Distance from a point to a bone's segment. */
+export const distanceToBone = (x: number, y: number, z: number, bone: Bone): number =>
+  alongBone(x, y, z, bone).distance;
 
 /**
  * How much of a bone's rotation this vertex takes, 0 to 1.
@@ -134,10 +164,45 @@ export function distanceToBone(x: number, y: number, z: number, bone: Bone): num
  * zero flat, so the deformation fades out instead of stopping.
  */
 export function weightFor(x: number, y: number, z: number, bone: Bone): number {
-  const d = distanceToBone(x, y, z, bone);
-  if (d >= bone.radius) return 0;
-  const k = 1 - d / bone.radius;
-  return k * k;
+  const { distance, t } = alongBone(x, y, z, bone);
+  if (distance >= bone.radius) return 0;
+  const k = 1 - distance / bone.radius;
+  // The bend is folded in here rather than kept as a second attribute: the
+  // shader only ever needs the product, and one float a bone is one float a
+  // bone. At bend 0 this is the plain weight; at 1 it is zero at the joint.
+  return k * k * (1 - bone.bend + bone.bend * t);
+}
+
+/**
+ * The spine, which is not a tube and so is not a `Bone`.
+ *
+ * THE COMPLAINT THIS ANSWERS: everything below the waist was a rigid lump.
+ * The body leaned and squashed as one block with its feet welded to it, which
+ * is a statue being tilted - no amount of arm and tail fixes that, because
+ * the eye reads the legs.
+ *
+ * A tube with a radius is the wrong shape for a spine: the legs sit directly
+ * under the hips, well inside any radius wide enough to hold the torso, so a
+ * tube takes them with it. What a spine actually is, is a HEIGHT RAMP -
+ * nothing turns at the hips, everything turns by the top of the chest, and
+ * whatever is above that carries the full rotation because it is riding on
+ * the chest. No radius, so nothing to leak.
+ *
+ * It is applied LAST in the shader, after the limb bones, which makes it
+ * their parent: the arm bends about its own shoulder first, and then the
+ * whole posed upper body swings about the waist, exactly as a two-level
+ * skeleton composes.
+ */
+export const SPINE = { hip: 0.22, chest: 0.6 } as const;
+
+/** How much of the waist's bend this vertex carries. Zero at and below the hips. */
+export function spineDrive(y: number): number {
+  const k = (y - SPINE.hip) / (SPINE.chest - SPINE.hip);
+  if (k <= 0) return 0;
+  if (k >= 1) return 1;
+  // Eased at both ends: a linear ramp creases at the hip, and a waist that
+  // creases is a hinge in a soft body.
+  return (1 - Math.cos(k * Math.PI)) / 2;
 }
 
 /**
@@ -150,13 +215,17 @@ export function weightBuffers(positions: ArrayLike<number>): {
   arm: Float32Array;
   tail: Float32Array;
   head: Float32Array;
-  moved: { arm: number; tail: number; head: number };
+  spine: Float32Array;
+  moved: { arm: number; tail: number; head: number; spine: number };
 } {
   const count = Math.floor(positions.length / 3);
   const arm = new Float32Array(count);
   const tail = new Float32Array(count);
   const head = new Float32Array(count);
-  const moved = { arm: 0, tail: 0, head: 0 };
+  const spine = new Float32Array(count);
+  const moved = {
+    arm: 0, tail: 0, head: 0, spine: 0,
+  };
   for (let i = 0; i < count; i += 1) {
     const x = positions[i * 3];
     const y = positions[i * 3 + 1];
@@ -176,9 +245,19 @@ export function weightBuffers(positions: ArrayLike<number>): {
     */
     tail[i] = weightFor(x, y, z, TAIL) * (1 - a);
     head[i] = weightFor(x, y, z, HEAD) * (1 - a);
+    /*
+      The spine is NOT scaled down by the others, because it is their parent
+      rather than their rival. A hand riding on a bending torso goes where
+      the torso puts it and then does its own waving on top; that is what a
+      skeleton is. The shader applies this one last for the same reason.
+    */
+    spine[i] = spineDrive(y);
     if (arm[i] > 0.02) moved.arm += 1;
     if (tail[i] > 0.02) moved.tail += 1;
     if (head[i] > 0.02) moved.head += 1;
+    if (spine[i] > 0.02) moved.spine += 1;
   }
-  return { arm, tail, head, moved };
+  return {
+    arm, tail, head, spine, moved,
+  };
 }

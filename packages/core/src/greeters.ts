@@ -85,6 +85,20 @@ export interface Greeter {
    * named one of them "the model" would have hidden that choice.
    */
   modelDetailed: string;
+  /**
+   * What it says when somebody taps it, as a path on the app's own origin.
+   *
+   * OPTIONAL, AND UNSET UNTIL THE RECORDING EXISTS. A greeter with no voice
+   * is silent and nothing else changes; pointing this at a file that is not
+   * there would turn every tap into a 404 and a console error, which is a
+   * worse state than quiet.
+   *
+   * IT NEVER PLAYS ON ITS OWN. Only a tap starts it - not the greeting the
+   * card plays when it first appears. Sound that arrives unasked on a home
+   * screen is the kind of thing people close an app over, and browsers block
+   * it anyway.
+   */
+  voice?: string;
 }
 
 export const GREETERS: Greeter[] = [

@@ -46,6 +46,8 @@ describe('every performance starts and ends standing', () => {
       assert.ok(Math.abs(first.squash - 1) < 0.01, `${clip} starts at squash ${first.squash}`);
       assert.ok(Math.abs(first.wave) < 0.02, `${clip} starts with the arm at ${first.wave}`);
       assert.ok(Math.abs(first.wag) < 0.02, `${clip} starts with the tail at ${first.wag}`);
+      assert.ok(Math.abs(first.waveOut) < 0.02, `${clip} starts reaching ${first.waveOut}`);
+      assert.ok(Math.abs(first.torso) < 0.02, `${clip} starts bent ${first.torso}`);
     });
 
     test(`${clip} returns to rest and stays there`, () => {
@@ -103,6 +105,10 @@ describe('nothing leaves the stage or turns inside out', () => {
           `${clip} wave stepped ${(now.wave - previous.wave).toFixed(4)} at ${ms} ms`);
         assert.ok(Math.abs(now.wag - previous.wag) < 0.006,
           `${clip} wag stepped ${(now.wag - previous.wag).toFixed(4)} at ${ms} ms`);
+        assert.ok(Math.abs(now.waveOut - previous.waveOut) < 0.006,
+          `${clip} waveOut stepped ${(now.waveOut - previous.waveOut).toFixed(4)} at ${ms} ms`);
+        assert.ok(Math.abs(now.torso - previous.torso) < 0.006,
+          `${clip} torso stepped ${(now.torso - previous.torso).toFixed(4)} at ${ms} ms`);
         previous = now;
       }
     });
@@ -322,5 +328,39 @@ describe('blending and the tap order', () => {
     }
     assert.deepEqual([...seen].sort(), [...PERFORMANCES].sort());
     assert.equal(nextPerformance(seen[seen.length - 1]), seen[0]);
+  });
+});
+
+describe('the waist carries the lean, not the feet', () => {
+  test('every performance bends more at the waist than it tips as a whole', () => {
+    /*
+      THE STATUE TEST. Tilting the whole object pivots the FEET, which slide
+      and lift; bending at the waist leaves them on the ground and moves the
+      body over them. A clip that goes back to leaning the whole figure will
+      fail here, which is the point - it is the single change that stopped
+      this reading as a tipped statue.
+    */
+    for (const clip of FINITE) {
+      const f = frames(clip);
+      const torso = Math.max(...f.map((p) => Math.abs(p.torso)));
+      const lean = Math.max(...f.map((p) => Math.abs(p.lean)));
+      assert.ok(torso > lean * 2,
+        `${clip} leans ${lean.toFixed(3)} and bends only ${torso.toFixed(3)}`);
+    }
+  });
+
+  test('the greeting swings the hand on two axes, out of phase', () => {
+    /*
+      One axis is a lever: the hand travels a straight line. Two in phase is
+      a diagonal line and no better. The pair has to peak at different times
+      for the hand to go round, so the frame where the swing is widest must
+      NOT be the frame where the reach is.
+    */
+    const f = frames('greet');
+    const swingPeak = f.reduce((best, p, i) => (Math.abs(p.wave) > Math.abs(f[best].wave) ? i : best), 0);
+    const reachPeak = f.reduce((best, p, i) => (Math.abs(p.waveOut) > Math.abs(f[best].waveOut) ? i : best), 0);
+    assert.ok(Math.max(...f.map((p) => Math.abs(p.waveOut))) > 0.1, 'the hand never reached out at all');
+    assert.ok(Math.abs(swingPeak - reachPeak) > 4,
+      `both axes peak together at sample ${swingPeak}, so the hand travels a line`);
   });
 });

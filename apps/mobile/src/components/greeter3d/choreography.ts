@@ -51,6 +51,16 @@ export interface Pose {
    * that arrived with no skeleton.
    */
   wave: number;
+  /**
+   * The hand swinging toward the viewer and back, radians.
+   *
+   * A wave is not a windscreen wiper. `wave` alone swings the hand in ONE
+   * plane, so it travels a straight line and reads as a lever; run a quarter
+   * cycle out of phase with it and the hand traces an ellipse instead, which
+   * is the shape a hand actually makes and the whole difference between
+   * waving and signalling.
+   */
+  waveOut: number;
   /** The tail, radians about its base. Positive sweeps it to its left. */
   wag: number;
   /** Head turn, radians. Positive looks to its left. */
@@ -59,10 +69,30 @@ export interface Pose {
   nod: number;
   /** Head roll, radians. The curious tilt. */
   tilt: number;
+  /**
+   * The waist, radians. Positive bends the torso to its left.
+   *
+   * This is where a lean should come from and `lean` largely stopped being:
+   * tilting the whole object pivots the FEET, which slide and lift like a
+   * statue being tipped. Bending at the waist leaves them on the ground and
+   * moves the body over them, which is what a body does.
+   */
+  torso: number;
 }
 
 export const REST: Pose = {
-  lift: 0, drift: 0, lean: 0, turn: 0, squash: 1, wave: 0, wag: 0, glance: 0, nod: 0, tilt: 0,
+  lift: 0,
+  drift: 0,
+  lean: 0,
+  turn: 0,
+  squash: 1,
+  wave: 0,
+  waveOut: 0,
+  wag: 0,
+  glance: 0,
+  nod: 0,
+  tilt: 0,
+  torso: 0,
 };
 
 /** The horizontal scale that keeps the body's volume as it squashes. */
@@ -118,7 +148,9 @@ const BREAKS: readonly ((k: number) => Partial<Pose>)[] = [
   // Looks away to its left, and the ear-tilt that goes with looking.
   (k) => ({ glance: arch(k) * -0.5, tilt: arch(k) * 0.1 }),
   // Shifts its weight, with the head staying put as the body moves under it.
-  (k) => ({ drift: arch(k) * 0.03, lean: arch(k) * 0.07, glance: arch(k) * 0.06, squash: 1 - arch(k) * 0.025 }),
+  (k) => ({
+    drift: arch(k) * 0.03, torso: arch(k) * 0.09, glance: arch(k) * 0.06, squash: 1 - arch(k) * 0.025,
+  }),
   // Looks up and to its right, at something that is not there.
   (k) => ({ glance: arch(k) * 0.42, nod: arch(k) * 0.16, tilt: arch(k) * -0.08 }),
   // A tail flick, and the head follows it round.
@@ -152,11 +184,15 @@ function idlePose(ms: number): Pose {
     */
     lift: 0.009 + breath * 0.009,
     drift: weight * 0.022,
-    lean: weight * 0.035,
+    // Most of what used to tilt the whole figure now bends the waist, so the
+    // weight shifts over the feet instead of taking them with it.
+    lean: weight * 0.01,
+    torso: weight * 0.055,
     turn: weight * 0.05 + wander * 0.05,
     squash: 1 + breath * 0.022,
     // An arm held perfectly still for a minute is a mannequin's.
     wave: breath * 0.07,
+    waveOut: breath * 0.04,
     wag: tailRhythm * 0.16,
     glance: wander * 0.17,
     nod: breath * 0.03,
@@ -176,10 +212,12 @@ function idlePose(ms: number): Pose {
     turn: base.turn + (overlay.turn ?? 0),
     squash: base.squash + ((overlay.squash ?? 1) - 1),
     wave: base.wave + (overlay.wave ?? 0),
+    waveOut: base.waveOut + (overlay.waveOut ?? 0),
     wag: base.wag + (overlay.wag ?? 0),
     glance: base.glance + (overlay.glance ?? 0),
     nod: base.nod + (overlay.nod ?? 0),
     tilt: base.tilt + (overlay.tilt ?? 0),
+    torso: base.torso + (overlay.torso ?? 0),
   };
 }
 
@@ -204,11 +242,19 @@ function greetPose(ms: number): Pose {
   return {
     lift: envelope * Math.abs(dragged) * 0.014,
     drift: envelope * dragged * 0.014,
-    lean: envelope * dragged * 0.05,
+    lean: envelope * dragged * 0.012,
+    torso: envelope * dragged * 0.07,
     turn: envelope * 0.16,
     squash: 1 + envelope * Math.abs(dragged) * 0.014,
-    // Half a radian is about 29 degrees - a greeting, not a semaphore.
-    wave: envelope * swing * 0.5,
+    /*
+      Bigger than it was, and no longer flat. 0.62 rad is about 36 degrees of
+      swing; the out-and-back runs a quarter cycle behind it, so the hand
+      goes round an ellipse rather than up and down a line. That phase offset
+      is the whole trick - the same two amplitudes in phase give a diagonal
+      line and look worse than either on its own.
+    */
+    wave: envelope * swing * 0.62,
+    waveOut: envelope * Math.cos(k * TAU * 2.4) * 0.3,
     wag: envelope * dragged * 0.18,
     /*
       THE HEAD LEADS. It turns toward you and tips a quarter of a beat before
@@ -263,7 +309,8 @@ function jumpPose(ms: number): Pose {
     return {
       lift: 4 * d * (1 - d) * 0.34, // a parabola, zero at both ends
       drift: 0,
-      lean: Math.sin(d * Math.PI) * 0.05,
+      lean: Math.sin(d * Math.PI) * 0.02,
+      torso: Math.sin(d * Math.PI) * 0.07,
       turn: 0,
       // Stretched where it is moving fastest, neutral at the top.
       squash: LAUNCH - 0.2 * Math.sin(d * Math.PI),
@@ -274,6 +321,7 @@ function jumpPose(ms: number): Pose {
         jump reading as one rigid object translated up and down.
       */
       wave: Math.sin(d * Math.PI) * -0.3,
+      waveOut: Math.sin(d * Math.PI) * 0.14,
       wag: Math.sin(d * Math.PI) * 0.35,
       // The head goes up first and comes down last: it leads the rise and
       // lags the fall, which is what a head on a neck does.
@@ -320,13 +368,15 @@ function dancePose(ms: number): Pose {
   return {
     lift: envelope * bounce * 0.05,
     drift: envelope * sway * 0.055,
-    lean: envelope * sway * 0.13,
+    lean: envelope * sway * 0.03,
+    torso: envelope * sway * 0.17,
     turn: envelope * (Math.sin((beat / 4) * TAU) * 0.1 + (beat > 6 ? Math.sin(((beat - 6) / 2) * TAU) * 0.5 : 0)),
     squash: 1 + envelope * (bounce * 0.05 - 0.035),
     // The arm keeps the beat at double time; the tail answers the sway at
     // half. Three rates across one body is what stops a dance looking like
     // one gesture repeated.
     wave: envelope * Math.sin(beat * TAU) * 0.26,
+    waveOut: envelope * Math.cos(beat * TAU) * 0.16,
     wag: envelope * -sway * 0.4,
     /*
       The head keeps the beat but on the OFF-beat, and looks where the body
@@ -374,10 +424,12 @@ export function blend(a: Pose, b: Pose, k: number): Pose {
     turn: mix(a.turn, b.turn),
     squash: mix(a.squash, b.squash),
     wave: mix(a.wave, b.wave),
+    waveOut: mix(a.waveOut, b.waveOut),
     wag: mix(a.wag, b.wag),
     glance: mix(a.glance, b.glance),
     nod: mix(a.nod, b.nod),
     tilt: mix(a.tilt, b.tilt),
+    torso: mix(a.torso, b.torso),
   };
 }
 

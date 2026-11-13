@@ -1,7 +1,9 @@
 import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
-import { ARM, TAIL, distanceToBone, weightBuffers, weightFor } from './rig.ts';
+import {
+  ARM, HEAD, SPINE, TAIL, distanceToBone, spineDrive, weightBuffers, weightFor,
+} from './rig.ts';
 
 /**
  * Points read off the model, not invented. The occupancy map in the bake
@@ -39,10 +41,35 @@ describe('the arm bone moves an arm and nothing else', () => {
     });
   }
 
-  test('the shoulder is held still so the arm has something to turn against', () => {
-    // At the pivot itself the weight is full, but the geometry there does not
-    // move, because rotation about a point leaves that point where it is.
-    assert.ok(weightFor(ARM.pivot[0], ARM.pivot[1], ARM.pivot[2], ARM) > 0.95);
+  test('the swing grows along the arm: nothing at the shoulder, everything at the hand', () => {
+    /*
+      THE ELBOW THIS MODEL DOES NOT HAVE. With `bend` at 0, the whole arm
+      swings by one angle and reads as a stick on a hinge. Scaling by how far
+      along the bone a vertex sits leaves the shoulder alone and gives the
+      travel to the hand, which is what a wave looks like.
+    */
+    const at = (t: number) => {
+      const p = [0, 1, 2].map((i) => ARM.pivot[i] + (ARM.tip[i] - ARM.pivot[i]) * t);
+      return weightFor(p[0], p[1], p[2], ARM);
+    };
+    assert.ok(at(0) < 0.2, `the shoulder swings ${at(0).toFixed(2)} of the way`);
+    assert.ok(at(1) > 0.95, `the hand only swings ${at(1).toFixed(2)}`);
+    let previous = -1;
+    for (let t = 0; t <= 1.0001; t += 0.05) {
+      const w = at(t);
+      assert.ok(w >= previous - 1e-9, `the swing fell back to ${w} at ${t.toFixed(2)} along`);
+      previous = w;
+    }
+  });
+
+  test('a rigid bone still moves as one piece', () => {
+    // The head keeps bend 0 on purpose. Faces do not bend.
+    assert.equal(HEAD.bend, 0);
+    const mid = [0, 1, 2].map((i) => (HEAD.pivot[i] + HEAD.tip[i]) / 2);
+    const tip = HEAD.tip;
+    assert.ok(Math.abs(
+      weightFor(mid[0], mid[1], mid[2], HEAD) - weightFor(tip[0], tip[1], tip[2], HEAD),
+    ) < 1e-9, 'the head is bending');
   });
 });
 
@@ -163,5 +190,53 @@ describe('the weight buffers', () => {
     const { arm, moved } = weightBuffers(new Float32Array(0));
     assert.equal(arm.length, 0);
     assert.equal(moved.arm, 0);
+  });
+});
+
+describe('the spine keeps the feet on the ground', () => {
+  test('nothing at or below the hips turns at all', () => {
+    /*
+      THE COMPLAINT THIS ANSWERS: the body leaned as one block with its feet
+      welded to it, which is a statue being tipped. A tube with a radius
+      cannot fix it - the legs sit directly under the hips, inside any radius
+      wide enough to hold the torso - so the spine is a height ramp instead,
+      and a height ramp cannot reach down.
+    */
+    for (const y of [0, 0.05, 0.12, 0.2, SPINE.hip]) {
+      assert.equal(spineDrive(y), 0, `the body bent at y ${y}, where the legs are`);
+    }
+  });
+
+  test('the chest and everything riding on it carry the whole bend', () => {
+    assert.equal(spineDrive(SPINE.chest), 1);
+    assert.equal(spineDrive(0.8), 1, 'the head should ride on the chest');
+    assert.equal(spineDrive(1), 1);
+  });
+
+  test('it only ever rises, and eases in at the hip', () => {
+    let previous = -1;
+    for (let y = 0; y <= 1.0001; y += 0.01) {
+      const d = spineDrive(y);
+      assert.ok(d >= previous - 1e-12, `the bend fell back to ${d} at y ${y.toFixed(2)}`);
+      assert.ok(d >= 0 && d <= 1, `drive ${d} at y ${y.toFixed(2)}`);
+      previous = d;
+    }
+    // Eased, not linear: a linear ramp creases at the waist, and a crease in
+    // a soft body is a hinge.
+    const quarter = spineDrive(SPINE.hip + (SPINE.chest - SPINE.hip) * 0.25);
+    assert.ok(quarter < 0.25, `the hip creases: ${quarter.toFixed(3)} a quarter of the way up`);
+  });
+
+  test('every vertex gets a spine weight, and the lowest get none', () => {
+    const positions = new Float32Array([
+      0, 0.02, 0, // a foot
+      0, 0.4, 0, // the belly
+      0, 0.9, 0, // the head
+    ]);
+    const { spine, moved } = weightBuffers(positions);
+    assert.equal(spine[0], 0);
+    assert.ok(spine[1] > 0 && spine[1] < 1);
+    assert.equal(spine[2], 1);
+    assert.equal(moved.spine, 2);
   });
 });
