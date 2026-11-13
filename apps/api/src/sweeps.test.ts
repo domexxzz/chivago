@@ -16,6 +16,7 @@ import {
   buildSweeps,
   nextDueAt,
   runDueSweeps,
+  cadenceOf,
   startSweepTimers,
   type LastRunAt,
   type Sweep,
@@ -202,5 +203,81 @@ describe('one long-lived process', () => {
     // minute after the test finished rather than exiting.
     stop();
     assert.ok(true);
+  });
+});
+
+describe('a sweep with nothing to watch', () => {
+  /*
+    The reason this exists is in `Sweep.idle`, and the short version is that
+    the escalation sweep asked to be woken 2,880 times a day on an island where
+    nothing had happened. What these tests defend is the OTHER half of that
+    bargain: the moment there is something to escalate, the fast cadence comes
+    straight back.
+  */
+
+  const watcher = (idle: boolean): Sweep => ({
+    name: 'escalation',
+    everyMs: 30_000,
+    idle: () => idle,
+    idleMs: 300_000,
+    run: () => {},
+  });
+
+  test('uses the idle cadence while idle, and the real one otherwise', () => {
+    assert.equal(cadenceOf(watcher(true)), 300_000);
+    assert.equal(cadenceOf(watcher(false)), 30_000);
+  });
+
+  test('a sweep without an idle check always uses its own cadence', () => {
+    assert.equal(cadenceOf({ name: 'dispatch', everyMs: 60_000, run: () => {} }), 60_000);
+  });
+
+  test('an idle check that throws is treated as busy, never as idle', () => {
+    /*
+      The failure that must not happen: a broken probe quietly putting an SOS
+      on a five-minute clock. Erring towards the expensive answer is the whole
+      policy, so it is pinned here rather than left to a reader of the catch.
+    */
+    const broken: Sweep = {
+      name: 'escalation',
+      everyMs: 30_000,
+      idle: () => { throw new Error('database is gone'); },
+      idleMs: 300_000,
+      run: () => {},
+    };
+    assert.equal(cadenceOf(broken), 30_000);
+  });
+
+  test('the alarm is booked on the idle cadence while nothing is live', () => {
+    const now = 1_000_000;
+    const last: LastRunAt = { escalation: now };
+    assert.equal(nextDueAt([watcher(true)], last, now), now + 300_000);
+  });
+
+  test('and comes straight back to the fast one when something is', () => {
+    const now = 1_000_000;
+    const last: LastRunAt = { escalation: now };
+    assert.equal(nextDueAt([watcher(false)], last, now), now + 30_000);
+  });
+
+  test('being idle never stops the sweep running, only the waking up', () => {
+    /*
+      `runDueSweeps` still judges due-ness by `everyMs`. An idle sweep that the
+      alarm reaches is therefore always run - it simply finds nothing, cheaply.
+      If this ever changed, an alert filed between two alarms would sit for a
+      whole idle period before anyone looked at it.
+    */
+    const ran: string[] = [];
+    const s: Sweep = {
+      name: 'escalation',
+      everyMs: 30_000,
+      idle: () => true,
+      idleMs: 300_000,
+      run: () => { ran.push('escalation'); },
+    };
+    const now = 1_000_000;
+    return runDueSweeps([s], { escalation: now - 300_000 }, now).then(() => {
+      assert.deepEqual(ran, ['escalation']);
+    });
   });
 });

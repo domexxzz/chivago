@@ -278,12 +278,38 @@ CREATE TABLE IF NOT EXISTS air_cache (
 
 
 /**
+ * The shape of the schema, as a number somebody bumps.
+ *
+ * WHY THIS EXISTS, and it is not tidiness. On Node the schema is applied once
+ * when the process starts and the process then runs for days. A Durable Object
+ * has no such life: it is constructed, it serves, it hibernates, and the next
+ * alarm constructs it again. The pilot's alarm fires every thirty seconds, so
+ * that is 2,880 constructions a day - and each one was re-applying the whole
+ * schema: 142 statements against 222 schema objects, measured, every time.
+ *
+ * Cloudflare charges Durable Object SQLite by ROWS READ, and a `CREATE TABLE
+ * IF NOT EXISTS` reads the schema to find out that the table is there. On
+ * 12 November 2026 that arithmetic exhausted the free tier's five million rows
+ * in a single day and took the pilot down with `Exceeded allowed rows read`.
+ * Almost none of it touched a row of actual data; the database is nearly
+ * empty. It was the schema, re-checked 2,880 times.
+ *
+ * So the object records which version it has and skips the work when it
+ * matches. BUMP THIS whenever `SCHEMA`, `SCHEMA_2` or `migrations.ts` changes,
+ * or the new column will not exist on a database that already has the old
+ * number. `db-schema-version.test.ts` fails when you forget, which is the only
+ * reason this is safe to rely on.
+ */
+export const SCHEMA_VERSION = 1;
+
+/**
  * Open the API's database on Durable Object storage, building the schema and
  * running the migrations exactly as the single-machine deployment does.
  *
  * A Durable Object calls this once from its constructor, inside
  * `blockConcurrencyWhile`, so no request is served against a half-built
- * schema. `migrate: false` leaves that to the caller.
+ * schema. `migrate: false` leaves that to the caller - see `SCHEMA_VERSION`
+ * for why the Worker does exactly that on every boot but the first.
  */
 export function openDurableDatabase(
   storage: DurableStorage,
