@@ -1259,6 +1259,33 @@ export function isActiveQuestCode(code: string): boolean {
 
 export const ACTIVE_QUESTS: Quest[] = SEED_QUESTS.filter((quest) => isActiveQuestCode(quest.code));
 
+/**
+ * The mark a retired quest carries, in its own code.
+ *
+ * RETIREMENT IS WRITTEN INTO THE DATA, not held in a list here, and the
+ * difference is not a style preference - it is the only version that cannot
+ * empty the app.
+ *
+ * The first attempt published an allow-list: `q.code IN ('SG-01'..'SG-05')`.
+ * Two facts turned that into an outage. The live database holds quests this
+ * seed has never listed - Samui and the campuses, `BC-04`, `MG-11`, `KU-01`
+ * and the rest - and an allow-list hides every one of them. And the SG rows
+ * are not in the live database yet, because the only way content reaches a
+ * Durable Object is an operator running `POST /internal/open-area`. Asked
+ * against production on 14 November 2026, that filter published 0 of 16.
+ *
+ * A quest is retired at the moment its replacement arrives, by the same
+ * transaction, in the same database - `retireSupersededQuests` renames the
+ * code it is giving up. So there is no window where the island has nothing,
+ * no list for anybody to forget, and a database that never ran the migration
+ * keeps serving exactly what it served yesterday.
+ */
+export const RETIRED_CODE_PREFIX = 'X-';
+
+export function isRetiredQuestCode(code: string): boolean {
+  return code.toUpperCase().startsWith(RETIRED_CODE_PREFIX);
+}
+
 // ---------------------------------------------------------------------------
 // Marketplace
 // ---------------------------------------------------------------------------
