@@ -464,6 +464,7 @@ export default function App() {
             onOpenMascots={() => nav.push('mascots')}
             onOpenSummon={() => nav.push('summon')}
             onOpenCollect={() => nav.push('game')}
+            onOpenMedals={() => nav.push('medals')}
           />
         );
 

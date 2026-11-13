@@ -32,7 +32,7 @@
 import { createHash, createHmac, randomBytes, randomUUID } from 'node:crypto';
 import {
   DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, POOL, POOL_COUNT, POOL_VERSION,
-  PULL_CURRENCY, PULL_COST, RARE_PITY, RARITIES,
+  COSTUME_RARITY, PULL_CURRENCY, PULL_COST, RARE_PITY, RARITIES, ROLL_POOL,
   RARITY_EFFECTIVE_PERCENT, RARITY_EFFECTIVE_WEIGHT, RARITY_PERCENT,
   RARITY_WEIGHT, SPIRITS, TEN_PULL_COST, TEN_PULL_SIZE, WEIGHT_TOTAL,
   advancePity, drawItem, islandDateKey, itemFor, itemKey, pullCost, spiritFor,
@@ -631,6 +631,33 @@ export function collectionFor(db: DB, userId: string) {
       meeting is worth keeping.
     */
     ...(held.has(s.key) ? { name: s.name, creature: s.creature, lore: s.lore, form: s.form } : {}),
+  }));
+}
+
+/**
+ * The fashion in the box, with how many of each this traveller holds.
+ *
+ * NAMED EVEN BEFORE IT IS DRAWN, which is the opposite of what a spirit
+ * does, and the difference is the one `collectionFor` already explains. A
+ * spirit is invented and has nothing public about it, so the first meeting
+ * is worth keeping. A costume is a described piece of decoration whose line
+ * in `costumes.ts` opens by saying so — there is nothing to withhold, and
+ * hiding it would only make the box look like it held more mystery than it
+ * does.
+ *
+ * `held` counts BOTH routes: the deed-earned awards from `costumesFor` are
+ * not in this table, so a costume shown here as 0 may still be in the
+ * wardrobe. The screen says "from the box" rather than "owned" for that
+ * reason.
+ */
+export function fashionFor(db: DB, userId: string) {
+  const held = heldBy(db, userId);
+  return ROLL_POOL.map((costume) => ({
+    key: costume.key,
+    rarity: COSTUME_RARITY[costume.key]!,
+    held: held.get(costume.key) ?? 0,
+    name: costume.name,
+    why: costume.why,
   }));
 }
 

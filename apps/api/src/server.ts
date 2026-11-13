@@ -130,7 +130,7 @@ import {
 } from './community-service.ts';
 import { FFMPEG, transcoderAvailable } from './transcode.ts';
 import {
-  collectionFor, forge, historyFor, pull, summonState, verifySummon,
+  collectionFor, fashionFor, forge, historyFor, pull, summonState, verifySummon,
 } from './summon-service.ts';
 import {
   assistConfig, ffmpegPrepare, requestAssist, type AssistDeps,
@@ -2351,7 +2351,12 @@ app.get('/companions', (c) => {
 app.get('/summon', (c) => ok(c, summonState(db, userId(c))));
 
 /** Every spirit; the unmet ones as a silhouette with a rarity and a court. */
-app.get('/summon/collection', (c) => ok(c, { spirits: collectionFor(db, userId(c)) }));
+app.get('/summon/collection', (c) => ok(c, {
+  spirits: collectionFor(db, userId(c)),
+  // The fashion that went into the same box, so the guide shows the whole
+  // thing rather than the two thirds of it that are spirits.
+  fashion: fashionFor(db, userId(c)),
+}));
 
 /** The traveller's own receipts, newest first. */
 app.get('/summon/history', (c) => ok(c, { summons: historyFor(db, userId(c), num(c.req.query('limit'), 50)) }));
