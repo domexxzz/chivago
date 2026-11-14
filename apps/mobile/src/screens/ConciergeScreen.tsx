@@ -33,8 +33,22 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { ErrorState, SkeletonList } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
-import aiGuideRobot from '../../assets/chivargo-ai-robot-v1.png';
+import { ChivarBot, type BotMood } from '../components/ChivarBot.tsx';
 import aiGuideSamuiCard from '../../assets/ai-guide-samui-card-v1.png';
+
+/** The face Chivar Bot wears for a given answer. */
+function moodFor(intent: string): BotMood {
+  switch (intent) {
+    case 'emergency': return 'surprised';
+    case 'recommend': return 'happy';
+    case 'plan': return 'cheer';
+    case 'route': return 'cool';
+    case 'price':
+    case 'currency': return 'smile';
+    case 'unknown': return 'thinking';
+    default: return 'smile';
+  }
+}
 
 interface Turn {
   /** Null for the concierge's own opening line. */
@@ -67,6 +81,12 @@ export function ConciergeScreen({
     requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: true }));
   }, [places.data, area.key]);
 
+  // The bot in the header mirrors the last thing it said - surprised at an
+  // emergency, pleased at a recommendation, thinking when it did not follow.
+  const headerMood: BotMood = turns.length === 0
+    ? 'happy'
+    : moodFor(turns[turns.length - 1]!.reply.intent);
+
   return (
     <View style={{ flex: 1, backgroundColor: color.bg }}>
       <View
@@ -85,9 +105,8 @@ export function ConciergeScreen({
               <ChevronLeft size={23} color="#FFFFFF" strokeWidth={2.2} />
             </Pressable>
           ) : null}
-          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#77E3DB', alignItems: 'center', justifyContent: 'center' }}>
-            <Compass size={25} color="#008C91" strokeWidth={2} />
-            <Sparkles size={11} color="#F2A93B" fill="#F2A93B" style={{ position: 'absolute', right: 2, top: 2 }} />
+          <View style={{ width: 52, height: 52, alignItems: 'center', justifyContent: 'center' }}>
+            <ChivarBot size={52} mood={headerMood} waving={turns.length === 0} />
           </View>
           <View style={{ flex: 1 }}>
             <Heading size={18} colour="#FFFFFF">Chivar Bot</Heading>
@@ -141,13 +160,11 @@ function Openers({ areaName, onPick }: { areaName: string; onPick: (text: string
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 16, paddingBottom: 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 9 }}>
-        <View style={{ width: 94, height: 104, alignItems: 'center', justifyContent: 'center' }}>
-          <Image
-            source={aiGuideRobot}
-            resizeMode="contain"
-            accessibilityLabel={t({ en: 'Chivar Bot robot', th: 'หุ่นยนต์ผู้ช่วย Chivar Bot', zh: 'Chivar Bot 机器人' })}
-            style={{ width: 108, height: 116 }}
-          />
+        <View
+          style={{ width: 94, height: 104, alignItems: 'center', justifyContent: 'center' }}
+          accessibilityLabel={t({ en: 'Chivar Bot robot', th: 'หุ่นยนต์ผู้ช่วย Chivar Bot', zh: 'Chivar Bot 机器人' })}
+        >
+          <ChivarBot size={104} mood="happy" waving />
         </View>
         <View style={[shadow.card, { flex: 1, minHeight: 104, justifyContent: 'center', padding: 15, borderRadius: 22, borderTopLeftRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DCEFF0' }]}>
           <Heading size={16}>{t({ en: 'Hello! Welcome to ChivarGo', th: 'สวัสดี! ยินดีต้อนรับสู่ ChivarGo', zh: '你好！欢迎来到 ChivarGo' })}</Heading>
