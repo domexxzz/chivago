@@ -32,8 +32,8 @@ const story = (over: Partial<Parameters<typeof StoriesBlock>[0]['stories'][numbe
 describe('the door', () => {
   test('shut: says when it opens, offers no button', async () => {
     const ui = await mountScreen(h(StoriesBlock, { open: false, stories: [], pending: 0 }));
-    assert.match(ui.text(), /Stories open at the event/);
-    assert.match(ui.text(), /No stories here yet/);
+    assert.match(ui.text(), /Posting is temporarily unavailable/);
+    assert.match(ui.text(), /No check-in stories yet/);
     assert.doesNotMatch(ui.text(), /Tell a story/);
     ui.unmount();
   });
@@ -45,17 +45,21 @@ describe('the door', () => {
     clip are one sheet now (ComposeSheet), so an open door here means the
     block simply stops saying the door is shut.
   */
-  test('open: the block stops saying the door is shut, and offers no button of its own', async () => {
-    const ui = await mountScreen(h(StoriesBlock, { open: true, stories: [], pending: 0 }));
-    assert.doesNotMatch(ui.text(), /Stories open at the event/);
-    assert.doesNotMatch(ui.text(), /Tell a story/);
+  test('open: offers its own location-free check-in story composer', async () => {
+    const ui = await mountScreen(h(StoriesBlock, {
+      open: true, stories: [], pending: 0,
+      onPickMedia: async () => null, onPostStory: async () => true,
+    }));
+    assert.doesNotMatch(ui.text(), /Posting is temporarily unavailable/);
+    assert.match(ui.text(), /Post a check-in story/);
+    assert.match(ui.text(), /Post from anywhere/);
     ui.unmount();
   });
 
   test('a sent story is pending, counted, and not in the row', async () => {
     const ui = await mountScreen(h(StoriesBlock, { open: true, stories: [], pending: 1 }));
     assert.match(ui.text(), /Sent\. It shows once the team has looked at it · 1/);
-    assert.match(ui.text(), /No stories here yet/);
+    assert.match(ui.text(), /No check-in stories yet/);
     ui.unmount();
   });
 });
@@ -66,8 +70,8 @@ describe('the viewer', () => {
       open: false, stories: [story(), story({ id: 's2', caption: 'the 7-11 queue', durationS: 4, media: '/stories/s2/media', poster: '/stories/s2/poster' })],
       pending: 0, busy: false, onTell: noop,
     }));
-    assert.doesNotMatch(ui.text(), /low tide, nobody about/, 'captions live in the viewer, not the row');
-    await ui.pressText(/^4 s$/);
+    assert.match(ui.text(), /low tide, nobody about/, 'the polaroid carries its short caption');
+    await ui.pressText(/VIDEO · 4 S/);
     assert.match(ui.text(), /the 7-11 queue/);
     assert.match(ui.text(), /2 \/ 2/);
     ui.unmount();
@@ -82,7 +86,7 @@ describe('the place screen carries the block', () => {
       'GET /visits/self': { places: [], remainingThisYear: 10 },
       'GET /places/chaweng/reviews': { reviews: [], mine: null, canReview: false, reported: [] },
       'GET /places/chaweng/history': { since: null, days: [] },
-      'GET /places/chaweng/stories': { open: false, stories: [story()] },
+      'GET /places/chaweng/stories': { open: true, stories: [story()] },
     });
     try {
       const ui = await mountScreen(h(PlaceScreen, {
@@ -90,8 +94,9 @@ describe('the place screen carries the block', () => {
       }));
       await settle();
       assert.ok(net.calls.some((c) => c.path === '/places/chaweng/stories'), 'the stories were never asked for');
-      assert.match(ui.text(), /Stories open at the event/);
-      assert.match(ui.text(), /8 s/, 'the approved story is in the row');
+      assert.match(ui.text(), /Check-in stories/);
+      assert.match(ui.text(), /Post a check-in story/);
+      assert.match(ui.text(), /VIDEO · 8 S/, 'the approved story is in the polaroid row');
       ui.unmount();
     } finally { net.restore(); }
   });
@@ -112,7 +117,7 @@ describe('the notice at the door', () => {
 
   test('a shut door still says when it opens', async () => {
     const ui = await mountScreen(h(StoriesBlock, { open: false, stories: [], pending: 0 }));
-    assert.match(ui.text(), /Stories open at the event/);
+    assert.match(ui.text(), /Posting is temporarily unavailable/);
     ui.unmount();
   });
 });
@@ -149,7 +154,7 @@ describe('what the phone is told when the server says no', () => {
         placeId: 'chaweng', onBack: noop, onAddToTrip: noop, onSafePath: noop, onToast: (m: string) => { toasts.push(m); }, onPointsChanged: noop,
       }));
       // Through the one sheet now: open it, attach a clip, then post.
-      await ui.pressText(/Leave something here/);
+      await ui.pressText(/Post a check-in story/);
       await settle();
       await ui.pressText(/Add a photo or a clip/);
       await settle();
@@ -396,14 +401,14 @@ describe('the drawn map wears its posters too', () => {
   test('a place with a story gets a poster on its pin', async () => {
     const ui = await mountScreen(h(SamuiMap, mapProps()));
     await withWidth(ui);
-    assert.ok(ui.find('Stories: Chaweng Beach'), 'the pin wears no poster');
+    assert.ok(ui.find('Check-in stories: Chaweng Beach'), 'the pin wears no poster');
     ui.unmount();
   });
 
   test('a place with none gets none, rather than an empty frame', async () => {
     const ui = await mountScreen(h(SamuiMap, mapProps({ tales: new Map() })));
     await withWidth(ui);
-    assert.equal(ui.find('Stories: Chaweng Beach'), undefined);
+    assert.equal(ui.find('Check-in stories: Chaweng Beach'), undefined);
     // The pin itself is still there; it is the photograph that is absent.
     assert.ok(ui.find(/Chaweng Beach, Healthy Score/), 'the pin went with the poster');
     ui.unmount();
@@ -421,7 +426,7 @@ describe('the drawn map wears its posters too', () => {
     })));
     await withWidth(ui);
 
-    await ui.press('Stories: Chaweng Beach');
+    await ui.press('Check-in stories: Chaweng Beach');
     assert.equal(openedStory, 'chaweng');
     assert.equal(openedPlace, null, 'the poster opened the place instead of the story');
 
@@ -435,7 +440,7 @@ describe('the drawn map wears its posters too', () => {
     // worse than no bubble, because it reads as a record of being here.
     const ui = await mountScreen(h(SamuiMap, mapProps()));
     await withWidth(ui);
-    const bubble = ui.find('Stories: Chaweng Beach')!;
+    const bubble = ui.find('Check-in stories: Chaweng Beach')!;
     const image = bubble.findAll((n) => typeof n.props.source?.uri === 'string', { deep: true })[0];
     assert.ok(image, 'the bubble has no image in it');
     assert.match(image.props.source.uri as string, /\/stories\/s1\/poster$/);
@@ -447,7 +452,7 @@ describe('the drawn map wears its posters too', () => {
     // nothing would be a photograph you cannot tap.
     const ui = await mountScreen(h(SamuiMap, mapProps({ onOpenStory: undefined })));
     await withWidth(ui);
-    assert.equal(ui.find('Stories: Chaweng Beach'), undefined);
+    assert.equal(ui.find('Check-in stories: Chaweng Beach'), undefined);
     ui.unmount();
   });
 });

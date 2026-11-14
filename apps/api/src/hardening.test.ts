@@ -353,14 +353,14 @@ describe('the board in the room', () => {
     assert.equal((await app.request('/board/bangkok')).status, 404);
   });
 
-  test('the feed is public, readable from any origin, and says the door is shut', async () => {
+  test('the feed is public, readable from any origin, and posting is open by default', async () => {
     const raw = await app.request('/areas/ku-sriracha/stories');
     // The map on the Expo dev origin and the board on a laptop both read
     // this from another origin; without the header the map's rings never lit.
     assert.equal(raw.headers.get('access-control-allow-origin'), '*');
     const res = await json(raw);
     assert.equal(res.ok, true);
-    assert.equal(res.data.open, false);
+    assert.equal(res.data.open, true);
     assert.deepEqual(res.data.stories, []);
   });
 });

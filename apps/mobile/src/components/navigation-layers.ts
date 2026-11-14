@@ -36,7 +36,10 @@ export const NAV = {
   active: 'cg-nav-route-active',
   travelled: 'cg-nav-route-travelled',
   maneuvers: 'cg-nav-maneuvers',
+  origin: 'cg-nav-origin',
+  originLabel: 'cg-nav-origin-label',
   destination: 'cg-nav-destination',
+  destinationLabel: 'cg-nav-destination-label',
   accuracy: 'cg-nav-accuracy',
 } as const;
 
@@ -185,6 +188,32 @@ export const navigationLayers = (): Record<string, unknown>[] => [
     },
   },
   {
+    id: NAV.origin,
+    type: 'circle',
+    source: NAV.pointsSource,
+    filter: ['==', ['get', 'kind'], 'origin'],
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 7, 17, 12],
+      'circle-color': '#1565C0',
+      'circle-stroke-color': '#FFFFFF',
+      'circle-stroke-width': 3,
+    },
+  },
+  {
+    id: NAV.originLabel,
+    type: 'symbol',
+    source: NAV.pointsSource,
+    filter: ['==', ['get', 'kind'], 'origin'],
+    layout: {
+      'text-field': 'A',
+      'text-size': ['interpolate', ['linear'], ['zoom'], 12, 9, 17, 13],
+      'text-font': ['Noto Sans Bold'],
+      'text-allow-overlap': true,
+      'text-ignore-placement': true,
+    },
+    paint: { 'text-color': '#FFFFFF' },
+  },
+  {
     id: NAV.destination,
     type: 'circle',
     source: NAV.pointsSource,
@@ -195,6 +224,20 @@ export const navigationLayers = (): Record<string, unknown>[] => [
       'circle-stroke-color': '#FFFFFF',
       'circle-stroke-width': 3,
     },
+  },
+  {
+    id: NAV.destinationLabel,
+    type: 'symbol',
+    source: NAV.pointsSource,
+    filter: ['==', ['get', 'kind'], 'destination'],
+    layout: {
+      'text-field': 'B',
+      'text-size': ['interpolate', ['linear'], ['zoom'], 12, 9, 17, 13],
+      'text-font': ['Noto Sans Bold'],
+      'text-allow-overlap': true,
+      'text-ignore-placement': true,
+    },
+    paint: { 'text-color': '#4A3210' },
   },
 ];
 
@@ -214,6 +257,7 @@ export const lineFeature = (coordinates: readonly (readonly [number, number])[])
 export const pointsFeature = (
   maneuvers: readonly { lat: number; lng: number }[],
   destination: { lat: number; lng: number } | null,
+  origin: { lat: number; lng: number } | null = null,
 ) => ({
   type: 'FeatureCollection',
   features: [
@@ -222,9 +266,14 @@ export const pointsFeature = (
       properties: { kind: 'maneuver' },
       geometry: { type: 'Point', coordinates: [point.lng, point.lat] },
     })),
+    ...(origin ? [{
+      type: 'Feature',
+      properties: { kind: 'origin', endpoint: 'A' },
+      geometry: { type: 'Point', coordinates: [origin.lng, origin.lat] },
+    }] : []),
     ...(destination ? [{
       type: 'Feature',
-      properties: { kind: 'destination' },
+      properties: { kind: 'destination', endpoint: 'B' },
       geometry: { type: 'Point', coordinates: [destination.lng, destination.lat] },
     }] : []),
   ],

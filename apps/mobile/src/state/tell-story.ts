@@ -13,7 +13,6 @@
  */
 
 import * as ImagePicker from 'expo-image-picker';
-import * as Location from 'expo-location';
 import { strings } from '@chivago/core';
 import { api, type PickedMedia } from '../api/client.ts';
 import { t } from '../i18n/locale.ts';
@@ -29,8 +28,8 @@ import { t } from '../i18n/locale.ts';
 export async function pickStoryMedia(onToast: (msg: string) => void): Promise<PickedMedia | null> {
   let result: ImagePicker.ImagePickerResult | undefined;
   try {
-    await ImagePicker.requestCameraPermissionsAsync().catch(() => null);
-    result = await ImagePicker.launchCameraAsync({
+    await ImagePicker.requestMediaLibraryPermissionsAsync().catch(() => null);
+    result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['videos', 'images'],
       videoMaxDuration: 10,
       quality: 0.7,
@@ -50,7 +49,8 @@ export async function pickStoryMedia(onToast: (msg: string) => void): Promise<Pi
 }
 
 /**
- * Post it, with the fix the fence judges.
+ * Post it. A check-in story is associated with the selected place, but is
+ * not evidence that somebody is physically there, so no GPS is requested.
  *
  * Two of the server's refusals are things a person can act on from where
  * they are standing - the file is too big, the iPhone gave us a HEIC - so
@@ -64,23 +64,9 @@ export async function postStory(
   caption: string,
   onToast: (msg: string) => void,
 ): Promise<boolean> {
-  let pos: Location.LocationObject;
-  try {
-    pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-  } catch {
-    onToast(t(strings.place.storyNoFix));
-    return false;
-  }
-
   const res = await api.tellStory(placeId, {
     media,
     caption,
-    position: {
-      lat: pos.coords.latitude,
-      lng: pos.coords.longitude,
-      accuracyM: pos.coords.accuracy ?? null,
-      mocked: pos.mocked ?? false,
-    },
   });
 
   if (res.ok) return true;

@@ -13,7 +13,6 @@ import type { Shop, ShopDetail, ShopInput, ShopReview } from './shops.ts';
 import { adoptKey, forgetKey, loadDeviceKey } from './account.ts';
 import { t } from '../i18n/locale.ts';
 import { apiErrorMessage } from '../i18n/api-errors.ts';
-import { getEvent } from '../state/area.ts';
 import type {
   AreaKey,
   ApiResponse, Balances, Bilingual, ImpactStat, LedgerEntry, NotificationKind, Offer, Quest, TreeImpact,
@@ -771,25 +770,21 @@ export const api = {
   medals: () => get<MedalsView>('/medals'),
 
   // -- stories (docs/44) ---------------------------------------------------
-  /** What is on the pin, and whether the door is open. */
+  /** Check-in stories attached to this place, newest first. */
   stories: (placeId: string) => get<{ open: boolean; stories: Story[] }>(`/places/${placeId}/stories`),
   /** Every approved story in an area: the rings on the map. */
   areaStories: (area: AreaKey) =>
     get<{ open: boolean; stories: (Story & { placeName: Bilingual })[] }>(`/areas/${area}/stories`),
   /**
-   * Tell one. Multipart: the clip or photograph, a caption, and the fix the
-   * fence judges. On the web the picker hands over the File itself; on a
-   * phone it is a path, and React Native's FormData reads it.
+   * Post one. A check-in story is social content about a place, not evidence
+   * of presence, so it deliberately carries no position. On the web the
+   * picker hands over the File itself; on a phone FormData reads its path.
    */
-  tellStory: (placeId: string, args: { media: PickedMedia; caption: string; position: Fix }) => {
+  tellStory: (placeId: string, args: { media: PickedMedia; caption: string }) => {
     const form = new FormData();
     if (args.media.file) form.append('file', args.media.file, args.media.name);
     else form.append('file', { uri: args.media.uri, name: args.media.name, type: args.media.type } as unknown as Blob);
     form.append('caption', args.caption);
-    form.append('position', JSON.stringify(args.position));
-    // The token from the QR code, when there was one (docs/46).
-    const event = getEvent();
-    if (event) form.append('event', event);
     return upload<Story>(`/places/${placeId}/stories`, form);
   },
 

@@ -54,6 +54,8 @@ export interface NavigationMapViewProps {
   onReady?: () => void;
   /** The traveller took the camera. The screen stops driving it. */
   onUserMovedMap?: () => void;
+  /** A coordinate tapped while the screen is in point-picking mode. */
+  onPressCoordinate?: (point: { lat: number; lng: number }) => void;
   /** MapLibre could not start at all. The screen says so rather than showing grey. */
   onFailed?: (code: string) => void;
   handleRef?: React.Ref<NavigationMapHandle>;
@@ -202,7 +204,14 @@ function apply(c){
   if(c.type==='FIT'){
     var b=line(c.bounds), p=pad(c.padding);
     if(!b||b.length!==2||!p) return;
-    map.fitBounds(b,{padding:p,bearing:0,pitch:0,duration:600});
+    var fitted=map.cameraForBounds(b,{padding:p,bearing:0});
+    var maxZoom=fitted?Math.max(map.getMinZoom(),fitted.zoom-0.7):undefined;
+    map.fitBounds(b,{padding:p,bearing:0,pitch:0,duration:600,maxZoom:maxZoom});
+    return;
+  }
+  if(c.type==='ZOOM'){
+    if(c.delta!==1&&c.delta!==-1) return;
+    map.easeTo({zoom:map.getZoom()+c.delta,duration:220,essential:true});
     return;
   }
   if(c.type==='CLEAR_ROUTE'){
@@ -249,6 +258,11 @@ function start(){
     No backticks in here: this comment lives inside a template literal.
   */
   map.on('movestart',function(e){ if(e&&e.originalEvent) post({type:'USER_MOVED_MAP'}); });
+  map.on('click',function(e){
+    if(e&&e.lngLat&&num(e.lngLat.lng)&&num(e.lngLat.lat)){
+      post({type:'MAP_PRESS',lng:e.lngLat.lng,lat:e.lngLat.lat});
+    }
+  });
   map.on('load',function(){
     Object.keys(D.sources).forEach(function(id){
       if(!map.getSource(id)) map.addSource(id, D.sources[id]);
@@ -273,7 +287,7 @@ document.head.appendChild(s);
 }
 
 export function NavigationMapView({
-  hour = 12, centre, onReady, onUserMovedMap, onFailed, handleRef,
+  hour = 12, centre, onReady, onUserMovedMap, onPressCoordinate, onFailed, handleRef,
 }: NavigationMapViewProps) {
   const web = React.useRef<WebView>(null);
   const ready = React.useRef(false);
@@ -315,8 +329,12 @@ export function NavigationMapView({
       return;
     }
     if (message.type === 'USER_MOVED_MAP') { onUserMovedMap?.(); return; }
+    if (message.type === 'MAP_PRESS') {
+      onPressCoordinate?.({ lat: message.lat, lng: message.lng });
+      return;
+    }
     onFailed?.(message.code);
-  }, [onReady, onUserMovedMap, onFailed]);
+  }, [onReady, onUserMovedMap, onPressCoordinate, onFailed]);
 
   /*
     THE ONE MEMO THAT DEFINES THIS COMPONENT.

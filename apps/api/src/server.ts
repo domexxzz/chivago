@@ -2068,8 +2068,9 @@ app.get('/me/statements', (c) => ok(c, { statements: statementsIncluding(db, use
 app.get('/places/:id/stories', (c) => ok(c, { open: storiesOpen(db), stories: storiesAt(db, c.req.param('id')) }));
 
 /**
- * Tell one. Multipart: `file` (a clip or a photograph), `caption`, and
- * `position` as JSON - the fix the fence and the second signal judge.
+ * Post one. Multipart: `file` (a clip or a photograph) and `caption`.
+ * This is social content about a place, not proof of presence, so it does
+ * not accept or store a location.
  * Pending until a host approves; the reply says so.
  */
 app.post('/places/:id/stories', async (c) => {
@@ -2089,18 +2090,12 @@ app.post('/places/:id/stories', async (c) => {
   }
   const file = form.get('file');
   if (!(file instanceof File)) return fail(c, 'FILE_REQUIRED', 'A clip or a photograph is needed.');
-  const position = parsePosition(form.get('position'));
-  if (!position) return fail(c, 'LOCATION_REQUIRED', 'Your location is needed to tell a story here.');
   const caption = form.get('caption');
-  const event = form.get('event');
   const story = await submitStory(db, {
     userId: userId(c),
     placeId: c.req.param('id'),
     bytes: Buffer.from(await file.arrayBuffer()),
     caption: typeof caption === 'string' ? caption : '',
-    fix: position,
-    // The token from the QR code, when the deployment set one (docs/46).
-    event: typeof event === 'string' ? event : null,
   });
   return ok(c, story);
 });

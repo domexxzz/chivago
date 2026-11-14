@@ -1056,7 +1056,7 @@ describe('the stories page', () => {
     ).run();
     const s = await submitStory(db, {
       userId: 'u1', placeId: 'chaweng', bytes: mp4(), caption: 'low tide',
-      fix: { lat: 9.5357, lng: 100.0617, accuracyM: 8 }, transcoder: fake, open: true,
+      transcoder: fake, open: true,
     });
     storyId = s.id;
   });

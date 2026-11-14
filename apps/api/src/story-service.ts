@@ -1,18 +1,11 @@
 /**
- * Stories: a short clip or a photograph, pinned on a place by someone who
- * was standing there.
+ * Check-in stories: a short clip or photograph about a place.
  *
  * Built for one day - the pitch at the Si Racha campus (docs/42) - and kept
  * honest the way everything else here is:
  *
- *   CLOSED UNLESS OPENED. Uploads are refused unless the deployment says
- *   `CHIVAGO_STORIES_OPEN=1`. The switch is thrown at the door on the day
- *   and back after the talk; a QR code photographed and shared a week later
- *   finds the door shut.
- *
- *   FROM THE PLACE. The same 250 m fence a check-in uses, and the second
- *   signal under it (docs/30): a mocked or coarse fix is refused, and the
- *   fix is remembered like any other.
+ *   ABOUT THE PLACE, NOT PROOF OF PRESENCE. It deliberately accepts posts
+ *   without GPS. Verified visits and ratings remain a separate system.
  *
  *   NOTHING SHOWS UNTIL A HOST SAYS SO. A story is `pending` until a host
  *   who hosts in that area approves it, on the console, on stage. The big
@@ -29,16 +22,14 @@
  */
 
 import { randomUUID, timingSafeEqual } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  CHECKIN_RADIUS_M, areaByKey, areaOfPlace, inArea, isAreaKey, metresBetween,
-  type AreaKey, type Bilingual, type Fix,
+  areaByKey, areaOfPlace, inArea, isAreaKey,
+  type AreaKey, type Bilingual,
 } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
-import { OutsideGeofence } from './quest-service.ts';
-import { assertPresence, recordFix } from './presence-service.ts';
-import { fenceOff, storiesAutoApprove } from './fence.ts';
+import { storiesAutoApprove } from './fence.ts';
 import { UnsupportedUpload, sniff, uploadRoot } from './uploads.ts';
 import { TranscoderUnavailable, transcoderFromEnv, type Encoded, type Transcoder } from './transcode.ts';
 
@@ -54,7 +45,6 @@ export const STORY_CAPTION_MAX = 80;
 /** Three a day. Enough to tell a story, not enough to paper a pin. */
 export const STORIES_PER_DAY = 3;
 export const STORY_TTL_DAYS = 7;
-export const STORY_RADIUS_M = CHECKIN_RADIUS_M;
 
 export type StoryKind = 'video' | 'photo';
 export type StoryStatus = 'pending' | 'approved' | 'hidden';
@@ -116,9 +106,12 @@ export class UnknownPlace extends Error {
  * each upload.
  */
 export function storiesOpen(db: DB): boolean {
+  if (process.env.CHIVAGO_STORIES_OPEN === '0') return false;
   if (process.env.CHIVAGO_STORIES_OPEN === '1') return true;
   const r = row<{ value: string }>(db.prepare("SELECT value FROM settings WHERE key = 'stories_open'").get());
-  return r?.value === '1';
+  // Place moments are open by default. A moderator can still pause posting
+  // without a deploy when moderation capacity is unavailable.
+  return r?.value !== '0';
 }
 
 /** Open or shut the door, and remember who did. */
@@ -291,8 +284,8 @@ const areaOf = (p: PlaceRef): AreaKey => areaOfPlace({ ...p, province: p.provinc
 
 /**
  * Take a story. The order is the cheapest refusal first: the door, the size,
- * the bytes, the place, the fence, the second signal, the quota - and only
- * then ffmpeg, which is the expensive step and the one that writes to disk.
+ * the bytes, the place and the quota - and only then ffmpeg, which is the
+ * expensive step.
  */
 export async function submitStory(
   db: DB,
@@ -301,30 +294,21 @@ export async function submitStory(
     placeId: string;
     bytes: Buffer;
     caption: string;
-    fix: Fix;
     now?: Date;
     /** Tests hand in a transcoder that writes bytes; production runs ffmpeg. */
     transcoder?: Transcoder;
     /** Tests open the door without an env var. */
     open?: boolean;
-    /** The event token from the QR code, when the deployment set one. */
-    event?: string | null;
   },
 ): Promise<Story> {
   const now = args.now ?? new Date();
   if (!(args.open ?? storiesOpen(db))) throw new StoriesClosed();
-  if (!eventTokenOk(args.event ?? null)) throw new WrongEventToken();
   if (args.bytes.length > STORY_MAX_BYTES) throw new StoryTooLarge();
   if (args.bytes.length === 0) throw new UnsupportedStory('the file is empty');
   const caption = args.caption.trim().slice(0, STORY_CAPTION_MAX);
   const { kind, ext } = sniffStory(args.bytes);
 
   const place = placeRef(db, args.placeId);
-  const distance = metresBetween(args.fix, place);
-  if (!fenceOff()) {
-    if (distance > STORY_RADIUS_M) throw new OutsideGeofence(distance, STORY_RADIUS_M);
-    assertPresence(db, { userId: args.userId, fix: args.fix, radiusM: STORY_RADIUS_M, now });
-  }
 
   const since = new Date(now.getTime() - 24 * 3_600_000).toISOString();
   const today = row<{ n: number }>(
@@ -402,8 +386,6 @@ export async function submitStory(
     auto ? createdAt : null, auto ? 'auto' : null, null,
     mediaBytes, posterBytes,
   );
-  recordFix(db, args.userId, args.fix, now);
-
   return toStory(row<StoryRow>(db.prepare(`${SELECT} WHERE id = ?`).get(id))!);
 }
 
