@@ -1,0 +1,55 @@
+# The Swift SDK, on the only runner that can build it.
+#
+# SPLIT OUT OF `ci.yml` ON 14 NOVEMBER 2026, FOR MONEY. A macOS runner is
+# billed at TEN TIMES a Linux one on a private repository, and this job was
+# running on every push and every pull request. A cold runner resolves and
+# compiles the package from nothing - fifteen minutes was not enough for it on
+# 12 November - so one run of it could cost 150 of the Free plan's 2,000
+# minutes a month. Thirteen pushes and the month is gone, which is roughly
+# what happened: by 13 November no job would start at all, and four pull
+# requests were merged with no CI behind them.
+#
+# Linux jobs are 1x and stay in `ci.yml` where they run on everything. This
+# one runs when the thing it checks has actually changed.
+#
+# WHY `contract/**` IS IN THE FILTER. The Swift tests decode
+# `contract/api-contract.json` and `contract/api-samples.json` from the
+# repository root - `apps/api`'s `pnpm contract` writes them. Filtering on
+# `packages/sdk-swift/**` alone would mean the one change most likely to break
+# this SDK, the API contract moving under it, is the one change that would not
+# run it.
+#
+# `workflow_dispatch` because "it only runs when Swift changes" has to come
+# with a way to run it when you want to - before a release, or after a month
+# of nobody touching it.
+
+name: swift
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/sdk-swift/**'
+      - 'contract/**'
+      - '.github/workflows/swift.yml'
+  pull_request:
+    paths:
+      - 'packages/sdk-swift/**'
+      - 'contract/**'
+      - '.github/workflows/swift.yml'
+  workflow_dispatch:
+
+jobs:
+  swift:
+    runs-on: macos-latest
+    # Thirty, not fifteen. A cold macOS runner resolves and compiles the
+    # package from nothing, and on 12 November it was still doing that when
+    # fifteen minutes ran out - the build had not failed, it had not finished.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      # The package that "had never been compiled" for its first forty commits.
+      - run: swift build
+        working-directory: packages/sdk-swift
+      - run: swift test
+        working-directory: packages/sdk-swift

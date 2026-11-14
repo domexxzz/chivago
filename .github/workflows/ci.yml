@@ -13,6 +13,14 @@
 # than on a test. Each job below now carries a quarter of the work, starts
 # its own runner, and reports which part broke instead of "the job".
 #
+# THE TWO SDKs LIVE IN THEIR OWN WORKFLOWS, from 14 November 2026. `swift.yml`
+# needs a macOS runner, which a private repository is billed for at TEN TIMES
+# a Linux one, and it was running on every push: one run could cost 150 of the
+# Free plan's 2,000 minutes a month. By 13 November no job would start at all
+# and four pull requests were merged with nothing behind them. Both SDKs run
+# now when their own files or `contract/**` change, and on demand. Everything
+# below is Linux at 1x and still runs on everything.
+#
 # Node 24, matching the Dockerfile. `node:sqlite` is unflagged from 22.13 and
 # `module.registerHooks` (the mobile test harness) exists from 22.15; the
 # root package.json says so. Anything older fails before the first test.
@@ -115,33 +123,3 @@ jobs:
       # is visible on every run and a regression is a number that went up.
       - run: node scripts/thai-review.mjs
         continue-on-error: true
-
-  dart:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-      - uses: dart-lang/setup-dart@v1
-        with:
-          sdk: stable
-      - run: dart pub get
-        working-directory: packages/sdk-dart
-      - run: dart analyze
-        working-directory: packages/sdk-dart
-      # Decodes the tracked contract/api-samples.json from the repository root.
-      - run: dart test
-        working-directory: packages/sdk-dart
-
-  swift:
-    runs-on: macos-latest
-    # Thirty, not fifteen. A cold macOS runner resolves and compiles the
-    # package from nothing, and on 12 November it was still doing that when
-    # fifteen minutes ran out - the build had not failed, it had not finished.
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v5
-      # The package that "had never been compiled" for its first forty commits.
-      - run: swift build
-        working-directory: packages/sdk-swift
-      - run: swift test
-        working-directory: packages/sdk-swift

@@ -1,0 +1,46 @@
+# The Dart SDK.
+#
+# Split out of `ci.yml` alongside the Swift one, for consistency rather than
+# for money: this runs on Linux at 1x, so it costs a couple of minutes, not a
+# hundred and fifty. The reason to move it anyway is that `ci.yml` is about
+# the TypeScript monorepo - six jobs that all install the same pnpm workspace
+# - and an SDK in another language that nothing else depends on is not part of
+# that. It changed in 8 of the last 60 commits; it does not need to run on the
+# other 52.
+#
+# `contract/**` is in the filter for the same reason it is in the Swift one:
+# `dart test` decodes `contract/api-samples.json` from the repository root, so
+# the change most likely to break this SDK lives outside its folder.
+
+name: dart
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/sdk-dart/**'
+      - 'contract/**'
+      - '.github/workflows/dart.yml'
+  pull_request:
+    paths:
+      - 'packages/sdk-dart/**'
+      - 'contract/**'
+      - '.github/workflows/dart.yml'
+  workflow_dispatch:
+
+jobs:
+  dart:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+        working-directory: packages/sdk-dart
+      - run: dart analyze
+        working-directory: packages/sdk-dart
+      # Decodes the tracked contract/api-samples.json from the repository root.
+      - run: dart test
+        working-directory: packages/sdk-dart
