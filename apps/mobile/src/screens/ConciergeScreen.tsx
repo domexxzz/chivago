@@ -33,7 +33,7 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { ErrorState, SkeletonList } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
-import { ChivarBot, type BotMood } from '../components/ChivarBot.tsx';
+import type { BotMood } from '../components/ChivarBot.tsx';
 import { ChivarBotScene } from '../components/ChivarBotScene.tsx';
 import aiGuideSamuiCard from '../../assets/ai-guide-samui-card-v1.png';
 
@@ -107,7 +107,7 @@ export function ConciergeScreen({
             </Pressable>
           ) : null}
           <View style={{ width: 52, height: 52, alignItems: 'center', justifyContent: 'center' }}>
-            <ChivarBot size={52} mood={headerMood} waving={turns.length === 0} />
+            <ChivarBotScene width={52} height={52} mood={headerMood} waving={turns.length === 0} label="" interactive={false} />
           </View>
           <View style={{ flex: 1 }}>
             <Heading size={18} colour="#FFFFFF">Chivar Bot</Heading>

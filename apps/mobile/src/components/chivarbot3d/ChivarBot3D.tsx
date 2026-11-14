@@ -398,7 +398,7 @@ function shadowDisc(): THREE.Mesh {
 // ---------------------------------------------------------------------------
 
 export function ChivarBot3D({
-  mood, waving, height, label, still, onReady, onFail,
+  mood, waving, height, label, still, onReady, onFail, interactive = true,
 }: {
   mood: BotMood;
   waving: boolean;
@@ -410,6 +410,13 @@ export function ChivarBot3D({
   onReady?: () => void;
   /** No WebGL here; leave the drawn one where it is. */
   onFail?: () => void;
+  /**
+   * False for an avatar inside something else that is pressed - the header,
+   * the floating door. He still breathes, blinks and changes face, but the
+   * canvas takes no pointer at all, so a tap reaches the button underneath
+   * instead of becoming the start of a turn.
+   */
+  interactive?: boolean;
 }) {
   const host = React.useRef<HTMLDivElement | null>(null);
   const moodRef = React.useRef(mood);
@@ -437,13 +444,15 @@ export function ChivarBot3D({
     renderer.setClearColor(0x000000, 0);
     const canvas = renderer.domElement;
     canvas.setAttribute('role', 'img');
-    canvas.setAttribute('aria-label', label);
+    // A decorative avatar inside a labelled button has nothing to add.
+    if (label) canvas.setAttribute('aria-label', label); else canvas.setAttribute('aria-hidden', 'true');
     canvas.style.display = 'block';
     canvas.style.width = '100%';
     canvas.style.height = `${height}px`;
     // Vertical drags still scroll the chat; horizontal ones turn him.
     canvas.style.touchAction = 'pan-y';
-    canvas.style.cursor = 'grab';
+    canvas.style.cursor = interactive ? 'grab' : 'inherit';
+    if (!interactive) canvas.style.pointerEvents = 'none';
     el.appendChild(canvas);
 
     const scene = new THREE.Scene();
@@ -519,7 +528,7 @@ export function ChivarBot3D({
       if (moved < TAP_SLOP_PX) tappedAt = now();
     };
     const onLeave = () => { look = { yaw: 0, pitch: 0 }; };
-    canvas.addEventListener('pointerdown', onDown);
+    if (interactive) canvas.addEventListener('pointerdown', onDown);
     canvas.addEventListener('pointermove', onMove);
     canvas.addEventListener('pointerup', onUp);
     canvas.addEventListener('pointercancel', onUp);
@@ -612,7 +621,7 @@ export function ChivarBot3D({
       renderer.dispose();
       if (canvas.parentNode === el) el.removeChild(canvas);
     };
-  }, [height, label, still, onReady, onFail]);
+  }, [height, label, still, onReady, onFail, interactive]);
 
   return <div ref={host} style={{ width: '100%', height }} />;
 }

@@ -22,7 +22,7 @@ export type { TabKey } from '../state/store.tsx';
 import type { TabKey } from '../state/store.tsx';
 import { t } from '../i18n/locale.ts';
 import travelHero from '../../assets/chivago-travel-hero-v2.png';
-import { ChivarBot } from './ChivarBot.tsx';
+import { ChivarBotScene } from './ChivarBotScene.tsx';
 import homeMenuIcon from '../../assets/menu-home-3d-v1.png';
 import mapMenuIcon from '../../assets/menu-map-3d-v1.png';
 import localPicksMenuIcon from '../../assets/menu-local-picks-3d-v1.png';
@@ -113,7 +113,7 @@ export function AiGuideButton({ onPress, wide = false }: { onPress: () => void; 
         }}
       >
         <View style={{ position: 'absolute', width: 64, height: 64, top: -26, left: -2 }}>
-          <ChivarBot size={64} mood="smile" />
+          <ChivarBotScene width={64} height={64} mood="smile" label="" interactive={false} />
         </View>
         <View style={{ position: 'absolute', right: 1, top: 3 }}>
           <Sparkles size={11} color="#FFE28A" fill="#FFE28A" strokeWidth={2} />
