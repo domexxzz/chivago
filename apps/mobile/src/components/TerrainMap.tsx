@@ -263,7 +263,7 @@ const MARK_CSS = `
 .cg-place-pin-core{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;width:42px;height:42px;
   border:3px solid #fff;border-radius:50%;background:var(--cg-place-colour);transition:transform .16s ease,box-shadow .16s ease;
   box-shadow:0 4px 7px rgba(8,26,48,.4)}
-.cg-place-pin-core img{width:140px;height:140px;max-width:none;display:block;object-fit:contain}
+.cg-place-pin-core img{width:94px;height:94px;max-width:none;display:block;object-fit:contain}
 .cg-place-pin-tail{position:absolute;z-index:0;top:34px;width:14px;height:14px;transform:rotate(45deg);
   background:var(--cg-place-colour);border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;border-radius:2px;
   box-shadow:3px 3px 5px rgba(8,26,48,.32)}
@@ -275,7 +275,7 @@ const MARK_CSS = `
   border:3px solid #fff;border-radius:50%;background:var(--cg-shop-colour);transition:transform .16s ease,box-shadow .16s ease;
   box-shadow:0 4px 7px rgba(8,26,48,.4)}
 .cg-shop-pin-core svg{width:21px;height:21px;display:block}
-.cg-shop-pin-core img{width:140px;height:140px;max-width:none;display:block;object-fit:contain}
+.cg-shop-pin-core img{width:94px;height:94px;max-width:none;display:block;object-fit:contain}
 .cg-shop-pin-tail{position:absolute;z-index:0;top:34px;width:14px;height:14px;transform:rotate(45deg);
   background:var(--cg-shop-colour);border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;border-radius:2px;
   box-shadow:3px 3px 5px rgba(8,26,48,.32)}

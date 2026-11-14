@@ -131,7 +131,7 @@ function page(style: unknown, pins: { id: string; lat: number; lng: number; labe
   .pin{position:relative;display:flex;align-items:center;justify-content:center;width:42px;height:48px;padding:0;border:0;background:transparent;color:#fff}
   .pin-core{position:absolute;top:0;z-index:1;display:flex;align-items:center;justify-content:center;width:38px;height:38px;
     border:3px solid #fff;border-radius:50%;background:var(--marker-colour);box-shadow:0 4px 7px rgba(8,26,48,.4)}
-  .pin-core img{width:128px;height:128px;max-width:none;display:block;object-fit:contain}
+  .pin-core img{width:84px;height:84px;max-width:none;display:block;object-fit:contain}
   .pin-tail{position:absolute;top:31px;width:13px;height:13px;transform:rotate(45deg);background:var(--marker-colour);
     border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;border-radius:2px;box-shadow:3px 3px 5px rgba(8,26,48,.32)}
   .shop-pin{position:relative;display:flex;align-items:center;justify-content:center;width:42px;height:48px;
@@ -139,7 +139,7 @@ function page(style: unknown, pins: { id: string; lat: number; lng: number; labe
   .shop-pin-core{position:absolute;top:0;z-index:1;display:flex;align-items:center;justify-content:center;width:38px;height:38px;
     border:3px solid #fff;border-radius:50%;background:var(--marker-colour);box-shadow:0 4px 7px rgba(8,26,48,.4)}
   .shop-pin-core svg{width:19px;height:19px}
-  .shop-pin-core img{width:128px;height:128px;max-width:none;display:block;object-fit:contain}
+  .shop-pin-core img{width:84px;height:84px;max-width:none;display:block;object-fit:contain}
   .shop-pin-tail{position:absolute;top:31px;width:13px;height:13px;transform:rotate(45deg);background:var(--marker-colour);
     border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;border-radius:2px;box-shadow:3px 3px 5px rgba(8,26,48,.32)}
   .shop-pin.approx .shop-pin-core{border-style:dashed;opacity:.9}

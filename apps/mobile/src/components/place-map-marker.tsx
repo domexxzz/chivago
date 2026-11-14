@@ -39,7 +39,7 @@ export function PlaceMapMarker({ place }: { place: ScoredPlace }) {
         shadowColor: '#082A46', shadowOpacity: 0.34, shadowRadius: 5, shadowOffset: { width: 0, height: 3 },
         elevation: 5,
       }}>
-        <ChivarIcon name={visual.icon} size={38} />
+        <ChivarIcon name={visual.icon} size={28} />
       </View>
     </View>
   );
