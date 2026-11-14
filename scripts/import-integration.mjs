@@ -23,7 +23,7 @@
 
 import { spawn } from 'node:child_process';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -65,6 +65,15 @@ db.prepare(
   'Safe', '\\u0e1b\\u0e25\\u0e2d\\u0e14\\u0e20\\u0e31\\u0e22', 0.3, 18, 0.9, 0.7);
 console.log('seeded');
 `, 'utf8');
+
+// `wrangler.jsonc` serves the web export from apps/mobile/dist-live, a build
+// output that is gitignored - so a plain checkout (CI, or a laptop that has not
+// run `expo export`) does not have it, and `wrangler dev` refuses to start
+// against a missing assets directory. This test is about the import API, not
+// the web app, so an empty directory is enough: somewhere for Workers Assets
+// to point, with nothing to serve.
+const ASSETS_DIR = join(API, '..', 'mobile', 'dist-live');
+if (!existsSync(ASSETS_DIR)) mkdirSync(ASSETS_DIR, { recursive: true });
 
 writeFileSync(join(API, '.dev.vars'), `CHIVAGO_IMPORT_TOKEN=${TOKEN}\n`, 'utf8');
 
