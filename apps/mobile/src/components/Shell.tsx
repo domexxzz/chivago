@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { Animated, Image, Platform, Pressable, StyleSheet, View, useWindowDimensions, type ImageSourcePropType } from 'react-native';
+import { Animated, Image, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { Backpack, ChevronLeft, House, Leaf, Map as MapIcon, PawPrint, Sparkles, UserRound, Users } from 'lucide-react-native';
 import { strings } from '@chivago/core';
@@ -23,13 +23,15 @@ import type { TabKey } from '../state/store.tsx';
 import { t } from '../i18n/locale.ts';
 import travelHero from '../../assets/chivago-travel-hero-v2.png';
 import aiGuideRobot from '../../assets/chivargo-ai-robot-v1.png';
-import homeMenuIcon from '../../assets/menu-home-3d-v1.png';
-import mapMenuIcon from '../../assets/menu-map-3d-v1.png';
-import localPicksMenuIcon from '../../assets/menu-local-picks-3d-v1.png';
-import backpackMenuIcon from '../../assets/menu-backpack-3d-v1.png';
-import communityMenuIcon from '../../assets/menu-community-3d-v1.png';
-import profileMenuIcon from '../../assets/menu-profile-3d-v1.png';
-import { ChivarIcon, type ChivarIconName } from './ChivarIcon.tsx';
+/*
+  ONE SET OF SEVEN, not six renders and a line icon.
+
+  These replace `menu-*-3d-v1.png`. Six of the menu's cells wore a 3D
+  render and Games & Quests wore a leaf outline, because no quest art had
+  ever been drawn - and on a wide rail, where all seven are seen together,
+  the odd one out was the first thing the eye found. See `MenuIcon.tsx`.
+*/
+import { MenuIcon, type MenuIconKey } from './MenuIcon.tsx';
 
 const TAB_ICONS = {
   home: House, map: MapIcon, quests: Leaf, game: PawPrint,
@@ -37,6 +39,11 @@ const TAB_ICONS = {
 
 type PrimaryTabKey = Exclude<TabKey, 'safety'>;
 const RAIL_TAB_ORDER: PrimaryTabKey[] = ['home', 'map', 'quests', 'game'];
+
+/** Which drawn icon each primary cell wears. See `MenuIcon.tsx`. */
+const RAIL_MENU_ICONS: Record<PrimaryTabKey, MenuIconKey> = {
+  home: 'home', map: 'map', quests: 'game-and-quest', game: 'my-backpack',
+};
 
 /**
  * Global door to Chivar Bot. It floats above, never inside, the
@@ -233,11 +240,11 @@ export function TabBar({
   const { width } = useWindowDimensions();
   const floating = width >= WIDE_TABS_AT;
   const entries = [
-    { key: 'home', label: t(strings.tabs.home), Icon: House, imageSource: homeMenuIcon, branded: false, selected: active === 'home' && !localPicksActive, onPress: () => onChange('home') },
-    { key: 'map', label: t(strings.tabs.map), Icon: MapIcon, imageSource: mapMenuIcon, branded: false, selected: active === 'map' && !localPicksActive, onPress: () => onChange('map') },
-    { key: 'game', label: t({ en: 'Game', th: 'เกม', zh: '游戏' }), Icon: Leaf, imageSource: null, branded: true, selected: active === 'quests' && !localPicksActive, onPress: () => onChange('quests') },
-    { key: 'collect', label: t(strings.tabs.game), Icon: Backpack, imageSource: backpackMenuIcon, branded: false, selected: active === 'game' && !localPicksActive, onPress: () => onChange('game') },
-    { key: 'local-picks', label: t({ en: 'Local Picks', th: 'ร้านเด็ด', zh: '本地精选' }), Icon: Sparkles, imageSource: localPicksMenuIcon, branded: false, selected: localPicksActive, onPress: onOpenLocalPicks },
+    { key: 'home', label: t(strings.tabs.home), Icon: House, menuIcon: 'home' as MenuIconKey, selected: active === 'home' && !localPicksActive, onPress: () => onChange('home') },
+    { key: 'map', label: t(strings.tabs.map), Icon: MapIcon, menuIcon: 'map' as MenuIconKey, selected: active === 'map' && !localPicksActive, onPress: () => onChange('map') },
+    { key: 'game', label: t({ en: 'Game', th: 'เกม', zh: '游戏' }), Icon: Leaf, menuIcon: 'game-and-quest' as MenuIconKey, selected: active === 'quests' && !localPicksActive, onPress: () => onChange('quests') },
+    { key: 'collect', label: t(strings.tabs.game), Icon: Backpack, menuIcon: 'my-backpack' as MenuIconKey, selected: active === 'game' && !localPicksActive, onPress: () => onChange('game') },
+    { key: 'local-picks', label: t({ en: 'Local Picks', th: 'ร้านเด็ด', zh: '本地精选' }), Icon: Sparkles, menuIcon: 'local-picks' as MenuIconKey, selected: localPicksActive, onPress: onOpenLocalPicks },
   ];
   return (
     <View
@@ -255,7 +262,7 @@ export function TabBar({
         shadowColor: '#005BBB', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 6,
       }}
     >
-      {entries.map(({ key, label, Icon, imageSource, branded, selected: isActive, onPress }) => {
+      {entries.map(({ key, label, Icon, menuIcon, selected: isActive, onPress }) => {
         const fg = isActive ? '#005BBB' : '#52749D';
         return (
           <Pressable
@@ -275,10 +282,8 @@ export function TabBar({
             }}
           >
             <View style={{ height: layout.tabIconSize + 7, alignItems: 'center', justifyContent: 'center' }}>
-              {branded ? (
-                <ChivarIcon name="quest" size={layout.tabIconSize + 5} />
-              ) : imageSource ? (
-                <Image source={imageSource} resizeMode="contain" style={{ width: layout.tabIconSize + 10, height: layout.tabIconSize + 10 }} />
+              {menuIcon ? (
+                <MenuIcon name={menuIcon} size={layout.tabIconSize + 10} />
               ) : (
                 <Icon size={layout.tabIconSize + 2} color={fg} strokeWidth={isActive ? 2.3 : 1.9} />
               )}
@@ -369,8 +374,7 @@ export function NavigationRail({
   const entries: {
     key: string;
     Icon: typeof House;
-    branded?: ChivarIconName;
-    imageSource?: ImageSourcePropType;
+    menuIcon?: MenuIconKey;
     label: string;
     selected: boolean;
     onPress: () => void;
@@ -379,8 +383,7 @@ export function NavigationRail({
     return {
       key,
       Icon: backpack ? Backpack : TAB_ICONS[key],
-      branded: key === 'quests' ? 'quest' : undefined,
-      imageSource: backpack ? backpackMenuIcon : key === 'home' ? homeMenuIcon : key === 'map' ? mapMenuIcon : undefined,
+      menuIcon: backpack ? 'my-backpack' : RAIL_MENU_ICONS[key],
       label: t(backpack ? strings.tabs.backpack : strings.tabs[key]),
       selected: backpack ? backpackActive : key === active && !pushedActive,
       onPress: () => {
@@ -391,19 +394,19 @@ export function NavigationRail({
   });
   const extraEntries: typeof entries = [
     ...(onOpenCommunity ? [{
-      key: 'community', Icon: Users, imageSource: communityMenuIcon,
+      key: 'community', Icon: Users, menuIcon: 'community' as MenuIconKey,
       label: t({ en: 'Community', th: 'คอมมูนิตี้', zh: '社区' }),
       selected: communityActive,
       onPress: () => { if (!communityActive) onOpenCommunity(); },
     }] : []),
     ...(onOpenConnectApp ? [{
-      key: 'local-picks', Icon: Sparkles, imageSource: localPicksMenuIcon,
+      key: 'local-picks', Icon: Sparkles, menuIcon: 'local-picks' as MenuIconKey,
       label: t({ en: 'Local Picks', th: 'ร้านเด็ดในพื้นที่', zh: '本地精选' }),
       selected: connectAppActive,
       onPress: () => { if (!connectAppActive) onOpenConnectApp(); },
     }] : []),
     ...(onOpenProfile ? [{
-      key: 'profile', Icon: UserRound, imageSource: profileMenuIcon,
+      key: 'profile', Icon: UserRound, menuIcon: 'profile' as MenuIconKey,
       label: t({ en: 'Profile', th: 'โปรไฟล์', zh: '个人资料' }),
       selected: profileActive,
       onPress: () => { if (!profileActive) onOpenProfile(); },
@@ -431,7 +434,7 @@ export function NavigationRail({
         {expanded ? <Label size={9} tracking={0.14} colour={color.neutral600} style={{ marginTop: 3 }}>{t({ en: 'EXPLORE TOGETHER', th: 'ออกเดินทางไปด้วยกัน', zh: '一起探索' })}</Label> : null}
       </View>
       <View style={{ gap: 8 }}>
-        {entries.map(({ key, Icon, branded, imageSource, label, selected, onPress }) => {
+        {entries.map(({ key, Icon, menuIcon, label, selected, onPress }) => {
           return (
             <Pressable
               key={key}
@@ -441,10 +444,8 @@ export function NavigationRail({
               accessibilityLabel={label}
               style={({ pressed }) => ({ ...cell, backgroundColor: fill(selected, pressed) })}
             >
-              {branded
-                ? <ChivarIcon name={branded} size={26} />
-                : imageSource
-                  ? <Image source={imageSource} resizeMode="contain" style={{ width: expanded ? 34 : 32, height: expanded ? 34 : 32 }} />
+              {menuIcon
+                ? <MenuIcon name={menuIcon} size={expanded ? 34 : 32} />
                 : <Icon size={21} color={ink(selected)} strokeWidth={selected ? 2.4 : 1.9} />}
               <Label size={10} tracking={0.05} colour={ink(selected)}>{label}</Label>
             </Pressable>

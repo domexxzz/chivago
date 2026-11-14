@@ -609,7 +609,14 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     There is no `POST /summon/forge` here. Nothing on the screen offers one
     yet, and a route nobody calls is a route nobody notices has gone wrong.
   */
-  'POST /summon': async () => settle(await summoning.pull()),
+  'POST /summon': async (body) => {
+    const category = body.category === 'fashion' ? 'fashion' : 'mascot';
+    const quantity = body.quantity === 10 ? 10 : 1;
+    const idempotencyKey = typeof body.idempotencyKey === 'string'
+      ? body.idempotencyKey
+      : `demo-${Date.now()}`;
+    return settle(await summoning.pullBatch(category, quantity, idempotencyKey));
+  },
   'PUT /notifications/quiet': (body) => {
     state.routes['/notifications/quiet'] = body;
     return body;
@@ -782,7 +789,7 @@ export function installDemoServer(apiBase: string, options: DemoServerOptions = 
         committed to.
       */
       if (path === '/summon') return answer(await summoning.state());
-      if (path === '/summon/collection') return answer({ spirits: summoning.collection() });
+      if (path === '/summon/collection') return answer({ spirits: summoning.collection(), fashion: summoning.fashion() });
       if (path === '/summon/history') {
         const limit = Number(new URLSearchParams(query).get('limit') ?? 50);
         return answer({ summons: summoning.history(Number.isFinite(limit) ? limit : 50) });

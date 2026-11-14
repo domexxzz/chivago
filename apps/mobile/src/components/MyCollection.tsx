@@ -27,6 +27,7 @@ import beachArt from '../../assets/mission-beach-cleanup-v1.png';
 import backpackWorld from '../../assets/backpack-tropical-world-v1.png';
 import { Creature } from './Creature.tsx';
 import { INV, SectionBanner } from './AdventureInventory.tsx';
+import { BackpackIcon } from './BackpackIcon.tsx';
 import { Heading, Label, Body } from './Type.tsx';
 import { STAGE_LABEL } from '../screens/CompanionHome.tsx';
 import { color, gutter } from '../theme/index.ts';
@@ -112,7 +113,11 @@ export function MyCollection({
         <View pointerEvents="none" style={{ position: 'absolute', top: 6, left: 6, right: 6, bottom: 6, borderRadius: 20, borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(22,77,115,0.28)' }} />
         <Text style={hiddenText}>{t({ en: 'HABITATS', th: 'ถิ่นที่อยู่', zh: '栖息地' })}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-          <SectionBanner icon={Images} title={t({ en: 'My collection', th: 'คอลเลกชันของฉัน', zh: '我的收藏' })} />
+          <SectionBanner
+            icon={Images}
+            art={<BackpackIcon name="my-collection" size={22} />}
+            title={t({ en: 'My collection', th: 'คอลเลกชันของฉัน', zh: '我的收藏' })}
+          />
           <Pressable
             onPress={() => {
               if (onOpenCollect) onOpenCollect();

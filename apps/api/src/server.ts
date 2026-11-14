@@ -2391,9 +2391,24 @@ app.get('/summon/verify/:id', (c) => ok(c, verifySummon(db, c.req.param('id'))))
  * keeps working.
  */
 app.post('/summon', async (c) => {
-  const body = (await c.req.json().catch(() => ({}))) as { pulls?: unknown };
-  const pulls = body.pulls === TEN_PULL_SIZE ? TEN_PULL_SIZE : 1;
-  return ok(c, pull(db, userId(c), pulls));
+  const body = (await c.req.json().catch(() => ({}))) as {
+    category?: unknown; quantity?: unknown; pulls?: unknown; idempotencyKey?: unknown;
+  };
+  if (body.category !== 'mascot' && body.category !== 'fashion') {
+    return fail(c, 'BAD_REQUEST', 'Category must be mascot or fashion.');
+  }
+  const quantity = body.quantity ?? body.pulls;
+  if (quantity !== 1 && quantity !== TEN_PULL_SIZE) {
+    return fail(c, 'BAD_REQUEST', 'Quantity must be 1 or 10.');
+  }
+  if (typeof body.idempotencyKey !== 'string' || body.idempotencyKey.length < 8 || body.idempotencyKey.length > 128) {
+    return fail(c, 'BAD_REQUEST', 'A unique idempotency key is required.');
+  }
+  return ok(c, pull(db, userId(c), {
+    category: body.category,
+    quantity,
+    idempotencyKey: body.idempotencyKey,
+  }));
 });
 
 /**

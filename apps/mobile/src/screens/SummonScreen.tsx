@@ -23,7 +23,7 @@
 
 import React from 'react';
 import {
-  Image, ImageBackground, Pressable, ScrollView, View, useWindowDimensions,
+  Animated, Easing, Image, ImageBackground, Modal, Platform, Pressable, ScrollView, Vibration, View, useWindowDimensions,
 } from 'react-native';
 import { ChevronLeft, Compass, Flag, Gift, Shirt, Sparkles } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
@@ -32,7 +32,8 @@ import {
 } from '@chivago/core';
 import {
   api,
-  type FashionCard, type SpiritCard, type SummonReceipt, type SummonResult, type SummonState,
+  newGachaIdempotencyKey,
+  type FashionCard, type PullResult, type SpiritCard, type SummonReceipt, type SummonResult, type SummonState,
 } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, radius, shadow } from '../theme/index.ts';
@@ -45,12 +46,44 @@ import { MascotMark } from '../components/MascotMark.tsx';
 import { t } from '../i18n/locale.ts';
 import { formatDate, formatInteger } from '../i18n/format.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
+import { useReduceMotion } from '../components/reduce-motion.ts';
+import { announceTravelReward } from '../state/travel-companion-events.ts';
 import travelHero from '../../assets/chivago-travel-hero-v2.png';
 import summonPetStyleMachine from '../../assets/summon-pet-style-machine-v1.png';
 
 /** The day a round opened, in the reader's own calendar conventions. */
 const openedOn = (iso: string): string =>
   formatDate(iso);
+
+/** Keep a fast local/demo response on screen long enough for the machine to perform. */
+const MINIMUM_DRAW_MS = 1_650;
+
+const wait = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Lightweight generated cues: no network asset and no delay on the draw. */
+function playCue(kind: 'machine' | 'rare' | 'mythic'): void {
+  if (Platform.OS !== 'web') {
+    Vibration.vibrate(kind === 'mythic' ? [0, 45, 35, 90] : kind === 'rare' ? 65 : 35);
+    return;
+  }
+  if (typeof window === 'undefined') return;
+  const AudioCtor = window.AudioContext
+    ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioCtor) return;
+  const ctx = new AudioCtor();
+  const oscillator = ctx.createOscillator();
+  const gain = ctx.createGain();
+  oscillator.type = kind === 'machine' ? 'square' : 'sine';
+  oscillator.frequency.setValueAtTime(kind === 'mythic' ? 520 : kind === 'rare' ? 390 : 120, ctx.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(kind === 'machine' ? 82 : 880, ctx.currentTime + 0.18);
+  gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.22);
+  oscillator.connect(gain); gain.connect(ctx.destination);
+  oscillator.start(); oscillator.stop(ctx.currentTime + 0.23);
+  oscillator.addEventListener('ended', () => { void ctx.close(); });
+}
 
 /**
  * A rarity's colour.
@@ -123,6 +156,30 @@ export function SpiritCardView({ card, onOpen }: { card: SpiritCard; onOpen?: (k
   );
 }
 
+function FashionCardView({ card }: { card: FashionCard }) {
+  const owned = card.held > 0;
+  return (
+    <View
+      accessible
+      accessibilityLabel={owned
+        ? `${t(card.name)}, ${t(RARITY_LABEL[card.rarity])}`
+        : t({ en: `Locked fashion, ${t(RARITY_LABEL[card.rarity])}`, th: `แฟชั่นยังล็อก ระดับ${t(RARITY_LABEL[card.rarity])}`, zh: `未解锁时装，${t(RARITY_LABEL[card.rarity])}` })}
+      style={[owned ? gameShadow.lift : shadow.sm, {
+        width: '31%', minWidth: 104, backgroundColor: color.surface, borderRadius: gameRadius.panel,
+        borderWidth: owned ? 2 : 1, borderColor: owned ? RARITY_TINT[card.rarity] : color.neutral300,
+        padding: 10, alignItems: 'center', gap: 5, opacity: owned ? 1 : 0.64,
+      }]}
+    >
+      <View style={{ width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', backgroundColor: owned ? '#DDF3F8' : '#D9E0E5' }}>
+        <Shirt size={26} color={owned ? '#0E7E9E' : '#667782'} strokeWidth={2} />
+      </View>
+      <Heading size={13} style={{ textAlign: 'center' }}>{owned ? t(card.name) : 'LOCKED'}</Heading>
+      <RarityPill rarity={card.rarity} />
+      {card.held > 1 ? <Label size={9} tracking={0.1} colour={color.neutral600}>{`×${card.held}`}</Label> : null}
+    </View>
+  );
+}
+
 /** The silhouette. Deliberately one shape for all of them: it says nothing. */
 function Unmet({ tint }: { tint: string }) {
   return (
@@ -148,19 +205,8 @@ export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
   return (
     <Tray style={{ marginHorizontal: gutter, marginTop: 10, borderRadius: gameRadius.panel }}>
       <View style={{ gap: 10 }}>
-        {/*
-          "Floors included" is not decoration on this heading.
-
-          The table under it prints the EFFECTIVE rate - the one a player
-          actually meets once the pity floors are counted - not the per-roll
-          band. The two differ (mythic reads 5.01%, the roll band 0.31%), so a
-          heading that says only "Published odds" leaves the reader to assume
-          the smaller number and the screen quietly overstates nothing while
-          explaining nothing. The clause was lost in translation once already;
-          summon.test.ts asserts it so it cannot be lost again.
-        */}
         <TrayLine>
-          {t({ en: 'Published odds — floors included', th: 'อัตราที่ประกาศไว้ — รวมเพดานรับประกันแล้ว', zh: '公布的概率 — 已计入保底' })}
+          {t({ en: 'Published base drop rates', th: 'อัตราสุ่มพื้นฐานที่ประกาศไว้', zh: '公布的基础掉落概率' })}
         </TrayLine>
         {RARITIES.map((r) => (
           <View key={r} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -186,17 +232,12 @@ export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
               + '没有其他权重 — 这些数字就是全部。',
           })}
         </Body>
-        {/*
-          THE TABLE ABOVE IS THE TABLE A PLAYER MEETS, floors and all. This
-          line is the other half of the arithmetic, and it is here rather
-          than hidden because the screen used to print the roll band under
-          the word "odds" — which reads as a promise of 3% mythic against
-          about 5% in play. Both numbers, or the published one is not the
-          published one (docs/68).
-        */}
         <Body size={13} style={{ color: gameTray.muted }}>
-          {`One roll on its own: ${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.rollBand[r]}%`).join(', ')}. `
-            + 'The floors lift the rest, and the table above is what the two come to together.'}
+          {t({
+            en: 'Pity guarantees are applied separately and can only lift a result.',
+            th: 'ระบบการันตีทำงานแยกจากอัตราพื้นฐาน และจะยกระดับผลลัพธ์เท่านั้น',
+            zh: '保底机制与基础概率分开计算，并且只会提升结果。',
+          })}
         </Body>
         <Body size={13} style={{ color: gameTray.muted }}>
           {t({
@@ -226,17 +267,18 @@ export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
  * colour and shadow alone.
  */
 function PullButton({
-  tone, title, cost, affordable, busy, onPress,
+  tone, title, cost, affordable, busy, locked, onPress,
 }: {
   tone: 'teal' | 'gold';
   title: string;
   cost: number;
   affordable: boolean;
   busy: boolean;
+  locked: boolean;
   onPress: () => void;
 }) {
   const gold = tone === 'gold';
-  const off = !affordable || busy;
+  const off = !affordable || locked;
   const priced = t({
     en: `${title}, ${formatInteger(cost)} Trip Points`,
     th: `${title} ${formatInteger(cost)} แต้มทริป`,
@@ -376,12 +418,54 @@ function RewardTabs({
  * of circles. Keeping it in the app means the hero remains available offline.
  *
  * The Pet & Style machine makes the two reward families visible without
- * pretending to reveal the next result. There is no spinning, flashing or
- * near-miss: the illustration is presentation, while the server remains the
- * only source of the actual draw.
+ * pretending to reveal the next result. While the server works it gives one
+ * short, physical shake and glow — never a spinning reel, flashing light or
+ * near-miss. The server remains the only source of the actual draw.
  */
 function TheBox({ busy, wide }: { busy: boolean; wide: boolean }) {
   const machineWidth = wide ? 340 : 224;
+  const still = useReduceMotion();
+  const motion = React.useRef(new Animated.Value(0)).current;
+  const charge = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    motion.stopAnimation();
+    charge.stopAnimation();
+    if (still) {
+      motion.setValue(0);
+      charge.setValue(busy ? 1 : 0);
+      return undefined;
+    }
+    if (!busy) {
+      charge.setValue(0);
+      const idle = Animated.loop(Animated.sequence([
+        Animated.timing(motion, { toValue: 0.16, duration: 1_800, easing: Easing.inOut(Easing.sin), useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(motion, { toValue: -0.12, duration: 2_100, easing: Easing.inOut(Easing.sin), useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(motion, { toValue: 0, duration: 1_700, easing: Easing.inOut(Easing.sin), useNativeDriver: Platform.OS !== 'web' }),
+      ]));
+      idle.start();
+      return () => idle.stop();
+    }
+    charge.setValue(0);
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(motion, { toValue: 1, duration: 110, easing: Easing.out(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(motion, { toValue: -1, duration: 160, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(motion, { toValue: 0.55, duration: 130, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(motion, { toValue: 0, duration: 150, easing: Easing.out(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.delay(260),
+    ]));
+    loop.start();
+    Animated.timing(charge, {
+      toValue: 1, duration: MINIMUM_DRAW_MS - 120,
+      easing: Easing.inOut(Easing.cubic), useNativeDriver: Platform.OS !== 'web',
+    }).start();
+    return () => { loop.stop(); charge.stopAnimation(); };
+  }, [busy, charge, motion, still]);
+
+  const shake = motion.interpolate({ inputRange: [-1, 0, 1], outputRange: ['-3.2deg', '0deg', '3.2deg'] });
+  const swell = motion.interpolate({ inputRange: [-1, 0, 1], outputRange: [1.035, 1, 1.065] });
+  const halo = motion.interpolate({ inputRange: [-1, 0, 1], outputRange: [0.38, 0.16, 0.62] });
+  const sparkleScale = motion.interpolate({ inputRange: [-1, 0, 1], outputRange: [0.72, 1, 1.32] });
   return (
     <View
       accessible
@@ -390,18 +474,63 @@ function TheBox({ busy, wide }: { busy: boolean; wide: boolean }) {
         th: 'ตู้สุ่มนักเดินทาง ข้างในจะยังไม่ถูกเปิดเผยจนกว่าจะสุ่มได้',
         zh: '旅人扭蛋机。抽到之前不会显示里面是什么。',
       })}
-      style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: wide ? 8 : 2 }}
+      style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: wide ? 8 : 2, position: 'relative' }}
     >
-      <Image
-        source={summonPetStyleMachine}
-        resizeMode="contain"
-        accessibilityIgnoresInvertColors
+      {busy ? (
+        <>
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute', width: machineWidth * 0.94, height: machineWidth * 0.94,
+              borderRadius: machineWidth, backgroundColor: '#FFF1A8', opacity: still ? 0.24 : halo,
+              shadowColor: '#FFD75E', shadowOpacity: 0.95, shadowRadius: 34,
+              transform: [{ scale: still ? 1 : swell }],
+            }}
+          />
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute', width: machineWidth * 1.04, height: machineWidth * 1.04,
+              borderRadius: machineWidth, borderWidth: 4, borderColor: '#FFE37D',
+              opacity: still ? 0.48 : halo,
+              transform: [{ scale: still ? 1 : sparkleScale }],
+            }}
+          />
+          <Animated.View pointerEvents="none" style={{ position: 'absolute', top: '18%', left: '13%', opacity: still ? 0.8 : halo, transform: [{ scale: still ? 1 : sparkleScale }, { rotate: '-14deg' }] }}>
+            <Sparkles size={wide ? 34 : 26} color="#FFF2A6" strokeWidth={2.4} />
+          </Animated.View>
+          <Animated.View pointerEvents="none" style={{ position: 'absolute', top: '28%', right: '11%', opacity: still ? 0.8 : halo, transform: [{ scale: still ? 1 : sparkleScale }, { rotate: '18deg' }] }}>
+            <Sparkles size={wide ? 30 : 23} color="#FFFFFF" strokeWidth={2.4} />
+          </Animated.View>
+        </>
+      ) : null}
+      <Animated.View
         style={{
           width: machineWidth, height: machineWidth * 1.5,
-          opacity: busy ? 0.86 : 1,
-          transform: [{ scale: busy ? 1.025 : 1 }],
+          opacity: 1,
+          transform: !still ? [{ rotate: shake }, { scale: swell }] : [{ scale: 1 }],
         }}
-      />
+      >
+        <Image
+          source={summonPetStyleMachine}
+          resizeMode="contain"
+          accessibilityIgnoresInvertColors
+          style={{ width: '100%', height: '100%' }}
+        />
+      </Animated.View>
+      {busy ? (
+        <View style={{ position: 'absolute', bottom: wide ? 26 : 12, alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 18, borderWidth: 2, borderColor: '#FFE18A', backgroundColor: 'rgba(8,47,88,0.94)' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+            <Sparkles size={15} color="#FFE18A" strokeWidth={2.2} />
+            <Label size={10} tracking={0.08} colour="#FFFFFF">
+              {t({ en: 'OPENING THE BOX', th: 'กำลังเปิดตู้สุ่ม', zh: '正在开启' })}
+            </Label>
+          </View>
+          <View style={{ width: 112, height: 4, borderRadius: 2, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.24)' }}>
+            <Animated.View style={{ width: '100%', height: '100%', borderRadius: 2, backgroundColor: '#FFE37D', transform: [{ scaleX: charge }] }} />
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -426,11 +555,9 @@ function Featured({
   const featuredFashion = [...fashion]
     .sort((a, b) => RARITY_ORDER[b.rarity] - RARITY_ORDER[a.rarity])
     .slice(0, category === 'fashion' ? 3 : 2);
-  // Both kinds remain visible in either preview because they share one box.
-  // The selected tab decides which kind leads, not what a paid pull can draw.
-  const top = category === 'mascot'
-    ? [...featuredSpirits, ...featuredFashion]
-    : [...featuredFashion, ...featuredSpirits];
+  // Banners are independent: the preview must show only what the selected
+  // pull can actually return.
+  const top = category === 'mascot' ? featuredSpirits : featuredFashion;
   if (top.length === 0) return null;
 
   return (
@@ -500,9 +627,10 @@ const RARITY_ORDER: Record<SpiritRarity, number> = { common: 0, uncommon: 1, rar
  * below still prints both in full, for a reader who wants to follow the
  * arithmetic.
  */
-function RatesAndFloor({ s }: { s: SummonState }) {
-  const toRare = Math.max(0, s.rules.pity.rare - s.pity.sinceRare);
-  const toMythic = Math.max(0, s.rules.pity.mythic - s.pity.sinceMythic);
+function RatesAndFloor({ s, category }: { s: SummonState; category: RewardCategory }) {
+  const pity = s.banners?.[category]?.pity ?? s.pity;
+  const toRare = Math.max(0, s.rules.pity.rare - pity.sinceRare);
+  const toMythic = Math.max(0, s.rules.pity.mythic - pity.sinceMythic);
   return (
     <View style={{ gap: 9 }}>
       <View
@@ -548,7 +676,7 @@ function RatesAndFloor({ s }: { s: SummonState }) {
             })}
           </Label>
         </View>
-        <GameBar pct={(s.pity.sinceRare / Math.max(1, s.rules.pity.rare)) * 100} height={9} />
+        <GameBar pct={(pity.sinceRare / Math.max(1, s.rules.pity.rare)) * 100} height={9} />
       </View>
     </View>
   );
@@ -598,26 +726,61 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
   const [previewCategory, setPreviewCategory] = React.useState<RewardCategory>('mascot');
   const [pulling, setPulling] = React.useState<1 | 10 | null>(null);
   const [last, setLast] = React.useState<SummonResult[]>([]);
+  const [lastPull, setLastPull] = React.useState<PullResult | null>(null);
+  const [revealOpen, setRevealOpen] = React.useState(false);
   const [toast, setToast] = React.useState<string | null>(null);
+  const pendingRequest = React.useRef<{ signature: string; key: string } | null>(null);
+  const reduceMotion = useReduceMotion();
 
   const pull = React.useCallback(async (pulls: 1 | 10) => {
     if (requireAccount({ en: 'Please sign in or create an account to collect a spirit.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อรับมาสคอต', zh: '请先登录或注册账号，才能收集精灵。' })) return;
     setPulling(pulls);
     setToast(null);
-    const res = await api.pull(pulls);
+    playCue('machine');
+    const startedAt = Date.now();
+    const signature = `${previewCategory}:${pulls}`;
+    if (pendingRequest.current?.signature !== signature) {
+      pendingRequest.current = { signature, key: newGachaIdempotencyKey() };
+    }
+    const res = await api.pull(previewCategory, pulls, pendingRequest.current.key);
+    if (!res.ok) {
+      if (res.code !== 'NETWORK' && res.code !== 'TIMEOUT') pendingRequest.current = null;
+      setPulling(null); setToast(res.error); return;
+    }
+    pendingRequest.current = null;
+    // Static demo builds before the multi-pull API returned one SummonResult
+    // directly. Accept that envelope as well so the reveal stage cannot turn
+    // a successful draw into an error screen while old demos are still live.
+    const payload = res.data as PullResult | SummonResult;
+    const results = 'results' in payload ? payload.results : [payload];
+    // A demo response often arrives in one frame. Without this floor the
+    // busy state begins and ends before the display paints, so the animation
+    // technically runs but nobody can see it. A slow network adds no delay;
+    // only a fast response is held until the physical box performance ends.
+    if (!reduceMotion && results.length > 0) {
+      await wait(Math.max(0, MINIMUM_DRAW_MS - (Date.now() - startedAt)));
+    }
+    if (results.some((result) => result.rarity === 'mythic')) playCue('mythic');
+    else if (results.some((result) => result.rarity === 'rare')) playCue('rare');
     setPulling(null);
-    if (!res.ok) { setToast(res.error); return; }
-    setLast(res.data.results);
+    setLast(results);
+    setLastPull('results' in payload ? payload : null);
+    setRevealOpen(results.length > 0);
+    if (results.some((result) => result.isNew)) announceTravelReward();
     state.reload();
     guide.reload();
     history.reload();
-  }, [state, guide, history, requireAccount]);
+  }, [state, guide, history, reduceMotion, requireAccount, previewCategory]);
 
   if (state.loading && !state.data) return <LoadingState label={t({ en: 'The summoning', th: 'การอัญเชิญ', zh: '召唤' })} />;
   if (state.error && !state.data) return <ErrorState message={state.error} onRetry={state.reload} />;
   const s = state.data!;
+  const activeBanner = s.banners?.[previewCategory] ?? {
+    pity: s.pity, collected: s.collected, total: s.total, active: s.total,
+  };
 
   return (
+    <>
     <ScrollView style={{ flex: 1, backgroundColor: '#DDF3FC' }} showsVerticalScrollIndicator={false}>
       {/*
         THE HEADER, and the two figures a pull depends on.
@@ -653,9 +816,9 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
               </Heading>
               <Body size={wide ? 14 : 13} style={{ color: '#315B70', marginTop: 2 }}>
                 {t({
-                  en: 'Companions and fashion for the next adventure, in one box.',
-                  th: 'สะสมเพื่อนร่วมทางและแฟชั่นสำหรับการผจญภัยครั้งใหม่ ในตู้เดียว',
-                  zh: '下一场冒险的伙伴与时装，都在同一个机子里。',
+                  en: 'Choose a Mascot or Fashion banner for the next adventure.',
+                  th: 'เลือกตู้มาสคอตหรือแฟชั่นสำหรับการผจญภัยครั้งใหม่',
+                  zh: '为下一场冒险选择伙伴或时装卡池。',
                 })}
               </Body>
             </View>
@@ -724,7 +887,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
               fashion={guide.data?.fashion ?? []}
               category={previewCategory}
             />
-            <RatesAndFloor s={s} />
+            <RatesAndFloor s={s} category={previewCategory} />
 
             {/* The server owns both prices; the screen only presents them. */}
             <View style={{ flexDirection: 'row', gap: 10, marginTop: 'auto' }}>
@@ -734,6 +897,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
                 cost={s.price.one}
                 affordable={s.tripPoints >= s.price.one}
                 busy={pulling === 1}
+                locked={pulling !== null}
                 onPress={() => { void pull(1); }}
               />
               <PullButton
@@ -742,6 +906,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
                 cost={s.price.ten}
                 affordable={s.tripPoints >= s.price.ten}
                 busy={pulling === 10}
+                locked={pulling !== null}
                 onPress={() => { void pull(10); }}
               />
             </View>
@@ -763,18 +928,18 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
       {/* How far each floor is. Printed because it is published. */}
       <Tray style={{ marginHorizontal: gutter, marginTop: 12, borderRadius: gameRadius.panel }}>
         <View style={{ gap: 8 }}>
-          <TrayLine>{t({ en: `Collected ${s.collected} of ${s.total}`, th: `สะสมแล้ว ${s.collected} จาก ${s.total}`, zh: `已收集 ${s.collected} / ${s.total}` })}</TrayLine>
+          <TrayLine>{t({ en: `Collected ${activeBanner.collected} of ${activeBanner.total}`, th: `สะสมแล้ว ${activeBanner.collected} จาก ${activeBanner.total}`, zh: `已收集 ${activeBanner.collected} / ${activeBanner.total}` })}</TrayLine>
           <View style={{ flexDirection: 'row' }}>
-            <GameBar pct={(s.collected / s.total) * 100} height={10} />
+            <GameBar pct={(activeBanner.collected / Math.max(1, activeBanner.total)) * 100} height={10} />
           </View>
           <Label size={10} tracking={0.06} colour={gameTray.muted}>
             {t({
-              en: `A rare is guaranteed in ${Math.max(0, s.rules.pity.rare - s.pity.sinceRare)}`
-                + ` · a mythic in ${Math.max(0, s.rules.pity.mythic - s.pity.sinceMythic)}`,
-              th: `รับประกันระดับหายากในอีก ${Math.max(0, s.rules.pity.rare - s.pity.sinceRare)} ครั้ง`
-                + ` · ระดับเทพในอีก ${Math.max(0, s.rules.pity.mythic - s.pity.sinceMythic)} ครั้ง`,
-              zh: `再 ${Math.max(0, s.rules.pity.rare - s.pity.sinceRare)} 次必出稀有`
-                + ` · 再 ${Math.max(0, s.rules.pity.mythic - s.pity.sinceMythic)} 次必出传说`,
+              en: `A rare is guaranteed in ${Math.max(0, s.rules.pity.rare - activeBanner.pity.sinceRare)}`
+                + ` · a mythic in ${Math.max(0, s.rules.pity.mythic - activeBanner.pity.sinceMythic)}`,
+              th: `รับประกันระดับหายากในอีก ${Math.max(0, s.rules.pity.rare - activeBanner.pity.sinceRare)} ครั้ง`
+                + ` · ระดับเทพในอีก ${Math.max(0, s.rules.pity.mythic - activeBanner.pity.sinceMythic)} ครั้ง`,
+              zh: `再 ${Math.max(0, s.rules.pity.rare - activeBanner.pity.sinceRare)} 次必出稀有`
+                + ` · 再 ${Math.max(0, s.rules.pity.mythic - activeBanner.pity.sinceMythic)} 次必出传说`,
             })}
           </Label>
         </View>
@@ -811,12 +976,303 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
       </View>
 
       <View style={{ paddingHorizontal: gutter, paddingTop: 20, paddingBottom: 8 }}>
-        <Heading size={16}>{t({ en: 'The guide', th: 'สมุดภูต', zh: '图鉴' })}</Heading>
+        <Heading size={16}>{t({ en: 'Collection Book', th: 'สมุดสะสม', zh: '收藏图鉴' })}</Heading>
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: gutter, paddingBottom: 32 }}>
-        {(guide.data?.spirits ?? []).map((card) => <SpiritCardView key={card.key} card={card} />)}
+        {previewCategory === 'mascot'
+          ? (guide.data?.spirits ?? []).map((card) => <SpiritCardView key={card.key} card={card} />)
+          : (guide.data?.fashion ?? []).map((card) => <FashionCardView key={card.key} card={card} />)}
+      </View>
+
+      <View style={{ paddingHorizontal: gutter, paddingBottom: 40, gap: 10 }}>
+        <Heading size={16}>{t({ en: 'Gacha History', th: 'ประวัติการสุ่ม', zh: '抽取记录' })}</Heading>
+        {(history.data?.summons ?? []).slice(0, 20).map((entry) => (
+          <View key={entry.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 11, borderRadius: 16, borderWidth: 1, borderColor: '#A9D5E2', backgroundColor: 'rgba(255,255,255,0.9)' }}>
+            <Sparkles size={18} color={RARITY_TINT[entry.rarity]} />
+            <View style={{ flex: 1 }}>
+              <Heading size={13}>{entry.item ? t(entry.item.kind === 'spirit' ? entry.item.spirit.name : entry.item.costume.name) : entry.spiritKey}</Heading>
+              <Label size={9} tracking={0.03} colour="#526A78" style={{ textTransform: 'none' }}>
+                {formatDate(entry.at) + ' · ' + (entry.category ?? 'mascot') + (entry.pointsSpent ? ' · ' + entry.pointsSpent + ' Trip Points' : '')}
+              </Label>
+            </View>
+            <RarityPill rarity={entry.rarity} />
+          </View>
+        ))}
       </View>
     </ScrollView>
+    <SummonReveal
+      visible={revealOpen}
+      results={last}
+      pull={lastPull}
+      onClose={() => setRevealOpen(false)}
+      onPullAgain={() => {
+        setRevealOpen(false);
+        if (last.length === 1 || last.length === 10) void pull(last.length as 1 | 10);
+      }}
+    />
+    </>
+  );
+}
+
+/**
+ * The result stage appears only after the server has committed the draw.
+ * It celebrates what actually arrived; it never cycles through unowned
+ * creatures or manufactures a near-miss while the request is in flight.
+ */
+function SummonReveal({
+  visible, results, pull, onClose, onPullAgain,
+}: {
+  visible: boolean;
+  results: SummonResult[];
+  pull: PullResult | null;
+  onClose: () => void;
+  onPullAgain: () => void;
+}) {
+  const still = useReduceMotion();
+  const curtain = React.useRef(new Animated.Value(0)).current;
+  const prize = React.useRef(new Animated.Value(0)).current;
+  const [phase, setPhase] = React.useState<'release' | 'opening' | 'reveal' | 'summary'>('release');
+  const [revealedCount, setRevealedCount] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!visible) return;
+    curtain.stopAnimation();
+    prize.stopAnimation();
+    if (still) {
+      curtain.setValue(1);
+      prize.setValue(1);
+      return;
+    }
+    curtain.setValue(0);
+    prize.setValue(0);
+    Animated.parallel([
+      Animated.timing(curtain, {
+        toValue: 1, duration: 240, easing: Easing.out(Easing.cubic),
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.sequence([
+        Animated.delay(120),
+        Animated.spring(prize, {
+          toValue: 1, friction: 6, tension: 72,
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ]),
+    ]).start();
+  }, [curtain, prize, still, visible, results]);
+
+  React.useEffect(() => {
+    if (!visible || results.length === 0) return undefined;
+    if (still) {
+      setPhase('summary');
+      setRevealedCount(results.length);
+      return undefined;
+    }
+    setPhase('release');
+    setRevealedCount(0);
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    timers.push(setTimeout(() => setPhase('opening'), 420));
+    timers.push(setTimeout(() => setPhase('reveal'), 920));
+    results.forEach((result, index) => {
+      const dramatic = result.rarity === 'mythic' ? 650 : result.rarity === 'rare' ? 430 : 260;
+      const previous = results.slice(0, index).reduce((sum, entry) => (
+        sum + (entry.rarity === 'mythic' ? 650 : entry.rarity === 'rare' ? 430 : 260)
+      ), 0);
+      timers.push(setTimeout(() => {
+        setRevealedCount(index + 1);
+        if (index === results.length - 1) setPhase('summary');
+      }, 980 + previous + dramatic));
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [results, still, visible]);
+
+  if (results.length === 0) return null;
+  const hero = results[0]!;
+  const tint = RARITY_TINT[hero.rarity];
+  const mythic = hero.rarity === 'mythic';
+  const skip = () => {
+    setRevealedCount(results.length);
+    setPhase('summary');
+  };
+  const hide = () => {
+    if (still) { onClose(); return; }
+    Animated.parallel([
+      Animated.timing(prize, { toValue: 0, duration: 120, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(curtain, { toValue: 0, duration: 160, useNativeDriver: Platform.OS !== 'web' }),
+    ]).start(onClose);
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={hide}>
+      <Animated.View
+        accessibilityViewIsModal
+        style={{
+          flex: 1, justifyContent: 'center', alignItems: 'center', padding: 18,
+          backgroundColor: 'rgba(3,20,42,0.88)', opacity: curtain,
+        }}
+      >
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute', width: 360, height: 360, borderRadius: 180,
+            borderWidth: mythic ? 6 : 3, borderColor: mythic ? '#FFE27A' : `${tint}AA`,
+            backgroundColor: mythic ? 'rgba(255,213,83,0.18)' : `${tint}24`,
+            opacity: prize,
+            transform: [{ scale: prize.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1.15] }) }],
+          }}
+        />
+        <Animated.View
+          style={{
+            width: '100%', maxWidth: 520, maxHeight: '90%', padding: 18,
+            borderRadius: 30, borderWidth: 3, borderColor: mythic ? '#FFE08B' : tint,
+            backgroundColor: '#F8FDFF',
+            shadowColor: mythic ? '#FFD75E' : '#000000', shadowOpacity: 0.46,
+            shadowRadius: 28, shadowOffset: { width: 0, height: 12 }, elevation: 16,
+            opacity: prize,
+            transform: [
+              { translateY: prize.interpolate({ inputRange: [0, 1], outputRange: [36, 0] }) },
+              { scale: prize.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) },
+            ],
+          }}
+        >
+          <View style={{ alignItems: 'center', gap: 5, marginBottom: 13 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+              <Sparkles size={18} color={mythic ? '#D99A0A' : tint} strokeWidth={2.3} />
+              <Label size={11} tracking={0.13} colour="#315B70">
+                {phase === 'release'
+                  ? t({ en: 'CAPSULE RELEASE', th: 'ปล่อยแคปซูล', zh: '胶囊释放' })
+                  : phase === 'opening'
+                    ? t({ en: 'CAPSULE OPENING', th: 'กำลังเปิดแคปซูล', zh: '胶囊开启' })
+                    : phase === 'reveal'
+                      ? t({ en: 'REWARD REVEAL', th: 'เปิดเผยรางวัล', zh: '奖励揭晓' })
+                      : t({ en: 'SUMMON COMPLETE', th: 'สุ่มสำเร็จ', zh: '召唤完成' })}
+              </Label>
+              <Sparkles size={18} color={mythic ? '#D99A0A' : tint} strokeWidth={2.3} />
+            </View>
+            <Heading size={results.length > 1 ? 23 : 27} colour="#082F58" style={{ textAlign: 'center' }}>
+              {revealedCount === 0
+                ? t({ en: 'The capsule is glowing…', th: 'แคปซูลกำลังเปล่งแสง…', zh: '胶囊正在发光…' })
+                : results.length > 1 && phase === 'summary'
+                ? t({ en: `${results.length} rewards arrived!`, th: `ได้รับรางวัล ${results.length} ชิ้น!`, zh: `获得了 ${results.length} 件奖励！` })
+                : t(hero.item.kind === 'spirit' ? hero.item.spirit.name : hero.item.costume.name)}
+            </Heading>
+          </View>
+
+          {revealedCount === 0 ? (
+            results.length > 1 ? (
+              <Animated.View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, paddingHorizontal: 20, transform: [{ scale: prize }] }}>
+                {results.map((result, index) => (
+                  <View key={result.id} style={{ width: 48, height: 48, borderRadius: 24, borderWidth: 3, borderColor: '#8BD8E7', backgroundColor: '#E7FAFF', transform: [{ translateY: index % 2 === 0 ? 4 : -4 }] }}>
+                    <View style={{ position: 'absolute', left: -3, right: -3, top: 20, height: 6, backgroundColor: '#0E7E9E' }} />
+                  </View>
+                ))}
+              </Animated.View>
+            ) : (
+              <Animated.View style={{ alignSelf: 'center', width: 128, height: 128, borderRadius: 64, borderWidth: 6, borderColor: mythic ? '#FFD65A' : '#8BD8E7', backgroundColor: mythic ? '#FFF0A8' : '#E7FAFF', transform: [{ scale: prize }] }}>
+                <View style={{ position: 'absolute', left: -6, right: -6, top: 55, height: 10, backgroundColor: mythic ? '#E5A619' : '#0E7E9E' }} />
+                <Sparkles size={36} color={mythic ? '#D99A0A' : '#0E7E9E'} style={{ alignSelf: 'center', marginTop: 40 }} />
+              </Animated.View>
+            )
+          ) : null}
+
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 10, paddingVertical: 4 }}>
+            {results.slice(0, revealedCount).map((result, index) => (
+              <RevealTile key={result.id} result={result} featured={results.length === 1 || index === 0} />
+            ))}
+          </ScrollView>
+
+          {phase !== 'summary' ? (
+            <Pressable onPress={skip} accessibilityRole="button" accessibilityLabel={t({ en: 'Skip animation', th: 'ข้ามแอนิเมชัน', zh: '跳过动画' })} style={{ alignSelf: 'center', paddingHorizontal: 16, paddingVertical: 9 }}>
+              <Label size={10} tracking={0.04} colour="#315B70">{t({ en: 'SKIP ANIMATION', th: 'ข้ามแอนิเมชัน', zh: '跳过动画' })}</Label>
+            </Pressable>
+          ) : null}
+
+          {phase === 'summary' && pull ? (
+            <View style={{ padding: 10, borderRadius: 14, backgroundColor: '#EAF8FC', gap: 3 }}>
+              <Body size={13} style={{ color: '#315B70', textAlign: 'center' }}>
+                {`${results.length} rewards · ${formatInteger(pull.cost)} Trip Points spent · ${formatInteger(pull.tripPoints)} remaining`}
+              </Body>
+            </View>
+          ) : null}
+
+          <View style={{ flexDirection: 'row', gap: 9 }}>
+          <Pressable
+            onPress={hide}
+            accessibilityRole="button"
+            accessibilityLabel={t({ en: 'Keep in collection', th: 'เก็บเข้าคอลเลกชัน', zh: '收入收藏' })}
+            style={({ pressed }) => ({
+              flex: 1, minHeight: 54, marginTop: 15, borderRadius: 18, borderWidth: 2,
+              borderColor: '#FFE08B', backgroundColor: pressed ? '#0A6880' : '#0E7E9E',
+              alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8,
+              shadowColor: '#073454', shadowOpacity: 0.3, shadowRadius: 8,
+              shadowOffset: { width: 0, height: 4 }, elevation: 5,
+            })}
+          >
+            <Gift size={19} color="#FFE08B" strokeWidth={2.2} />
+            <Heading size={17} colour="#FFFFFF">
+              {t({ en: 'Keep in collection', th: 'เก็บเข้าคอลเลกชัน', zh: '收入收藏' })}
+            </Heading>
+          </Pressable>
+          {phase === 'summary' ? (
+            <Pressable
+              onPress={onPullAgain}
+              accessibilityRole="button"
+              accessibilityLabel={t({ en: 'Pull again', th: 'สุ่มอีกครั้ง', zh: '再次抽取' })}
+              style={({ pressed }) => ({ flex: 1, minHeight: 54, marginTop: 15, borderRadius: 18, borderWidth: 2, borderColor: '#D9A72A', backgroundColor: pressed ? '#D49318' : '#E8A72A', alignItems: 'center', justifyContent: 'center' })}
+            >
+              <Heading size={16} colour="#FFFFFF">{t({ en: 'Pull again', th: 'สุ่มอีกครั้ง', zh: '再次抽取' })}</Heading>
+            </Pressable>
+          ) : null}
+          </View>
+        </Animated.View>
+      </Animated.View>
+    </Modal>
+  );
+}
+
+function RevealTile({ result, featured }: { result: SummonResult; featured: boolean }) {
+  const size = featured ? 108 : 70;
+  const tint = RARITY_TINT[result.rarity];
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${t(result.item.kind === 'spirit' ? result.item.spirit.name : result.item.costume.name)}, ${t(RARITY_LABEL[result.rarity])}`}
+      style={{
+        width: featured ? '100%' : '29%', minWidth: featured ? 0 : 92,
+        alignItems: 'center', gap: 6, padding: featured ? 15 : 9,
+        borderRadius: featured ? 24 : 17, borderWidth: featured ? 3 : 2, borderColor: tint,
+        backgroundColor: result.rarity === 'mythic' ? '#FFF3C9' : `${tint}12`,
+      }}
+    >
+      {result.item.kind === 'spirit'
+        ? <MascotMark mascot={result.item.spirit.form} size={size} />
+        : (
+          <View style={{ width: size, height: size, borderRadius: size / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: '#DDF3F8', borderWidth: 2, borderColor: '#8BCBDC' }}>
+            <Shirt size={featured ? 48 : 30} color="#0E7E9E" strokeWidth={2} />
+          </View>
+        )}
+      <Heading size={featured ? 19 : 12} colour="#082F58" style={{ textAlign: 'center' }}>
+        {t(result.item.kind === 'spirit' ? result.item.spirit.name : result.item.costume.name)}
+      </Heading>
+      <RarityPill rarity={result.rarity} />
+      {!result.duplicate ? (
+        <Label size={9} tracking={0.08} colour="#0E7E9E">NEW</Label>
+      ) : null}
+      {featured ? (
+        <Body size={13} style={{ color: '#526A78', textAlign: 'center' }}>
+          {t(result.item.kind === 'spirit' ? result.item.spirit.lore : result.item.costume.why)}
+        </Body>
+      ) : null}
+      {result.byPity ? (
+        <Label size={9} tracking={0.05} colour={result.rarity === 'mythic' ? '#9A6500' : '#6B3FB0'}>
+          {result.byPity === 'mythic' ? 'MYTHIC GUARANTEE' : 'RARE GUARANTEE'}
+        </Label>
+      ) : null}
+      {result.duplicate ? (
+        <Label size={9} tracking={0.03} colour="#526A78" style={{ textTransform: 'none', textAlign: 'center' }}>
+          {t({ en: `Duplicate · +${result.dustGained} stardust`, th: `ตัวซ้ำ · +${result.dustGained} ผงดาว`, zh: `重复 · +${result.dustGained} 星尘` })}
+        </Label>
+      ) : null}
+    </View>
   );
 }
 

@@ -46,12 +46,14 @@ describe('the box holds decoration and nothing that certifies', () => {
 });
 
 describe('the rarities, and where the costumes sit in them', () => {
-  test('every rolled costume has a rarity and none of them is mythic', () => {
+  test('every rolled costume has a rarity and the fashion banner can satisfy every guarantee', () => {
+    const seen = new Set<string>();
     for (const costume of ROLL_POOL) {
       const rarity = COSTUME_RARITY[costume.key];
       assert.ok(rarity, `${costume.key} has no rarity`);
-      assert.notEqual(rarity, 'mythic', `${costume.key} dilutes the rarest band`);
+      seen.add(rarity);
     }
+    assert.deepEqual([...seen].sort(), [...RARITIES].sort());
   });
 
   test('the counts add up to the whole box', () => {
@@ -167,6 +169,6 @@ describe('what a pull costs', () => {
   });
 
   test('the pool version shipped is the widened one', () => {
-    assert.equal(POOL_VERSION, 2);
+    assert.equal(POOL_VERSION, 3);
   });
 });

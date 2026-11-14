@@ -35,8 +35,8 @@ import {
   COSTUME_RARITY, PULL_CURRENCY, PULL_COST, RARE_PITY, RARITIES, ROLL_POOL,
   RARITY_EFFECTIVE_PERCENT, RARITY_EFFECTIVE_WEIGHT, RARITY_PERCENT,
   RARITY_WEIGHT, SPIRITS, TEN_PULL_COST, TEN_PULL_SIZE, WEIGHT_TOTAL,
-  advancePity, drawItem, islandDateKey, itemFor, itemKey, pullCost, spiritFor,
-  type PityState, type DrawnItem, type Spirit, type SpiritRarity,
+  advancePity, drawItem, islandDateKey, itemFor, itemKey, itemsForCategory, pullCost, spiritFor,
+  type PityState, type DrawnItem, type Spirit, type SpiritRarity, type SummonCategory,
 } from '@chivago/core';
 import { row, rows, transact, type DB } from './db.ts';
 import { notReversed } from './ledger-sql.ts';
@@ -94,6 +94,48 @@ export class AlreadyHave extends Error {
   constructor(key: string) {
     super(`${key} is already in your collection - forging is for the ones you are missing.`);
     this.name = 'AlreadyHave';
+  }
+}
+/*
+  NO PARAMETER PROPERTIES ANYWHERE IN THIS REPOSITORY.
+
+  `constructor(readonly category: ...)` is valid TypeScript and this project
+  cannot run it. Everything here is executed by `node --experimental-strip-
+  types`, which ERASES types rather than compiling them - and a parameter
+  property is not a type, it is a field declaration plus an assignment that
+  the compiler has to emit. Node refuses the whole file:
+
+    SyntaxError [ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX]:
+    TypeScript parameter property is not supported in strip-only mode
+
+  which takes the entire API server down at boot, not just this class. The
+  fields are declared and assigned by hand instead; the class's shape is
+  unchanged for anyone constructing or catching it.
+*/
+export class NoEligibleRewards extends Error {
+  readonly category: SummonCategory;
+  readonly rarity: SpiritRarity;
+
+  constructor(category: SummonCategory, rarity: SpiritRarity) {
+    super(`No active ${rarity} rewards are configured for the ${category} banner.`);
+    this.name = 'NoEligibleRewards';
+    this.category = category;
+    this.rarity = rarity;
+  }
+}
+export class InvalidRewardPool extends Error {
+  readonly rewardKey: string;
+
+  constructor(rewardKey: string) {
+    super(`The active reward pool contains an unknown reward: ${rewardKey}.`);
+    this.name = 'InvalidRewardPool';
+    this.rewardKey = rewardKey;
+  }
+}
+export class IdempotencyConflict extends Error {
+  constructor() {
+    super('That idempotency key was already used for a different pull request.');
+    this.name = 'IdempotencyConflict';
   }
 }
 
@@ -300,6 +342,8 @@ export interface SummonRow {
   pool_version: number;
   /** Trip Points this pull cost. 0 on a forge and on every charm-era row. */
   cost_points: number;
+  category: SummonCategory;
+  transaction_id: string | null;
 }
 
 /** Keys this traveller holds, and how many of each. */
@@ -320,9 +364,10 @@ export const dustFor = (db: DB, userId: string): number => row<{ n: number }>(
 )?.n ?? 0;
 
 /** The pity counters, read off the rolls in order. Never stored. */
-export function pityFor(db: DB, userId: string): PityState {
+export function pityFor(db: DB, userId: string, category: SummonCategory = 'mascot'): PityState {
   const past = rows<{ rarity: SpiritRarity }>(
-    db.prepare("SELECT rarity FROM summons WHERE user_id = ? AND source = 'summon' ORDER BY created_at, nonce").all(userId),
+    db.prepare("SELECT rarity FROM summons WHERE user_id = ? AND source = 'summon' AND category = ? ORDER BY created_at, nonce")
+      .all(userId, category),
   );
   let pity: PityState = { sinceMythic: 0, sinceRare: 0 };
   for (const r of past) pity = advancePity(pity, r.rarity);
@@ -349,6 +394,20 @@ export function rollFor(seed: string, userId: string, nonce: number): { roll: nu
   return { roll, pick, digest };
 }
 
+/** Version 3 binds the banner into the committed roll, so the same nonce on
+ * different banners can never be used to steer toward the same result. */
+export function rollForCategory(
+  seed: string, userId: string, category: SummonCategory, nonce: number,
+): { roll: number; pick: number; digest: string } {
+  const digest = createHmac('sha256', Buffer.from(seed, 'hex'))
+    .update(`${userId}:${category}:${nonce}`, 'utf8').digest('hex');
+  return {
+    roll: parseInt(digest.slice(0, 8), 16) % WEIGHT_TOTAL,
+    pick: parseInt(digest.slice(8, 16), 16),
+    digest,
+  };
+}
+
 export interface SummonResult {
   id: string;
   /**
@@ -365,12 +424,18 @@ export interface SummonResult {
   dust: number;
   charms: CharmBreakdown;
   pity: PityState;
+  category: SummonCategory;
+  /** First acquisition of this reward through any inventory source. */
+  isNew: boolean;
+  transactionId: string;
   /** Everything a third party needs to recheck this roll once the seed is out. */
   receipt: { epochId: string; commitment: string; nonce: number; roll: number; pick: number; poolVersion: number };
 }
 
 /** One tap: the pulls it made, what it cost, and the balance left. */
 export interface PullResult {
+  transactionId: string;
+  category: SummonCategory;
   results: SummonResult[];
   /** Trip Points debited. The sum the client showed on the button. */
   cost: number;
@@ -378,6 +443,65 @@ export interface PullResult {
   tripPoints: number;
   dust: number;
   pity: PityState;
+}
+
+export interface PullRequest {
+  category: SummonCategory;
+  quantity: 1 | 10;
+  idempotencyKey: string;
+}
+
+interface RewardPoolRow {
+  reward_key: string;
+  weight: number;
+}
+
+/**
+ * Seed the operator-controlled pool with the real catalogue. INSERT OR IGNORE
+ * is deliberate: once a row exists, its active flag and weight belong to the
+ * database/operator and an application restart must not overwrite them.
+ */
+export function ensureRewardPool(db: DB, now = new Date()): void {
+  const insert = db.prepare(
+    `INSERT OR IGNORE INTO gacha_reward_pool
+       (reward_key, category, rarity, weight, active, updated_at)
+     VALUES (?,?,?,?,1,?)`,
+  );
+  for (const category of ['mascot', 'fashion'] as const) {
+    for (const item of itemsForCategory(category)) {
+      insert.run(itemKey(item), category, item.rarity, 100, now.toISOString());
+    }
+  }
+}
+
+/** Select within a rarity using the weights stored in the database. */
+function rewardFromPool(
+  db: DB, category: SummonCategory, rarity: SpiritRarity, pick: number,
+): DrawnItem {
+  const eligible = rows<RewardPoolRow>(
+    db.prepare(
+      `SELECT reward_key, weight FROM gacha_reward_pool
+       WHERE category = ? AND rarity = ? AND active = 1
+       ORDER BY reward_key`,
+    ).all(category, rarity),
+  );
+  if (eligible.length === 0) throw new NoEligibleRewards(category, rarity);
+
+  const validated = eligible.map((entry) => {
+    const item = itemFor(entry.reward_key);
+    if (!item || !itemsForCategory(category).some((candidate) => itemKey(candidate) === entry.reward_key)) {
+      throw new InvalidRewardPool(entry.reward_key);
+    }
+    return { item, weight: entry.weight };
+  });
+  const total = validated.reduce((sum, entry) => sum + entry.weight, 0);
+  if (!Number.isSafeInteger(total) || total <= 0) throw new NoEligibleRewards(category, rarity);
+  let target = pick % total;
+  for (const entry of validated) {
+    if (target < entry.weight) return entry.item;
+    target -= entry.weight;
+  }
+  throw new NoEligibleRewards(category, rarity);
 }
 
 /**
@@ -401,72 +525,104 @@ export interface PullResult {
  * `sourceRef` names the epoch and the first nonce, which makes a retried
  * delivery idempotent rather than a second charge.
  */
-export function pull(db: DB, userId: string, pulls = 1, now = new Date()): PullResult {
-  const count = pulls === TEN_PULL_SIZE ? TEN_PULL_SIZE : 1;
+export function pull(
+  db: DB,
+  userId: string,
+  request: PullRequest | number = 1,
+  now = new Date(),
+): PullResult {
+  // Numeric calls are retained for internal callers and old tests. The HTTP
+  // route is strict and always supplies the full request with an idempotency
+  // key generated by the client.
+  const asked: PullRequest = typeof request === 'number'
+    ? {
+      category: 'mascot',
+      quantity: request === TEN_PULL_SIZE ? TEN_PULL_SIZE : 1,
+      idempotencyKey: `internal-${randomUUID()}`,
+    }
+    : request;
+  const count = asked.quantity;
   const cost = pullCost(count);
 
   return transact(db, () => {
-    const held = getBalances(db, userId)[PULL_CURRENCY];
-    if (held < cost) throw new NotEnoughPoints(held, cost);
+    ensureRewardPool(db, now);
+    const replay = row<{ response_json: string | null; category: SummonCategory; quantity: number }>(
+      db.prepare('SELECT response_json, category, quantity FROM gacha_transactions WHERE user_id = ? AND idempotency_key = ?')
+        .get(userId, asked.idempotencyKey),
+    );
+    if (replay) {
+      if (replay.category !== asked.category || replay.quantity !== asked.quantity) throw new IdempotencyConflict();
+      if (replay.response_json) return JSON.parse(replay.response_json) as PullResult;
+    }
 
-    // Inside the transaction, before the epoch is read: a rotation that
-    // happened half a statement later would hand this pull a seed that is
-    // already published, which is the one thing the commitment forbids.
+    const balance = getBalances(db, userId)[PULL_CURRENCY];
+    if (balance < cost) throw new NotEnoughPoints(balance, cost);
+
     rotateEpochs(db, now);
     const epoch = currentEpoch(db, now);
+    const transactionId = randomUUID();
+    db.prepare(
+      `INSERT INTO gacha_transactions
+         (id, user_id, category, quantity, idempotency_key, cost_points, response_json, created_at)
+       VALUES (?,?,?,?,?,?,NULL,?)`,
+    ).run(transactionId, userId, asked.category, count, asked.idempotencyKey, cost, now.toISOString());
+
     const first = (row<{ n: number }>(
       db.prepare("SELECT COALESCE(MAX(nonce), 0) AS n FROM summons WHERE user_id = ? AND epoch_id = ? AND source = 'summon'")
         .get(userId, epoch.id),
     )?.n ?? 0) + 1;
 
+    const keyDigest = createHash('sha256').update(asked.idempotencyKey, 'utf8').digest('hex').slice(0, 24);
     applyMovement(db, {
       userId,
       label: count === TEN_PULL_SIZE ? 'Ten pulls at the traveller\'s box' : 'One pull at the traveller\'s box',
-      subject: null,
+      subject: asked.category,
       host: 'ChivarGo',
       amount: -cost,
       currency: PULL_CURRENCY,
       kind: 'redemption',
-      // Deterministic, so a retried request settles once. Never a random id.
-      sourceRef: `summon:${epoch.id}:${userId}:${first}`,
+      sourceRef: `gacha:${userId}:${keyDigest}`,
       occurredAt: now.toISOString(),
     });
 
     const results: SummonResult[] = [];
-    let pity = pityFor(db, userId);
+    let pity = pityFor(db, userId, asked.category);
     const have = heldBy(db, userId);
 
     for (let i = 0; i < count; i += 1) {
       const nonce = first + i;
-      const { roll, pick } = rollFor(epoch.seed!, userId, nonce);
-      const drawn = drawItem(roll, pick, pity);
-      const key = itemKey(drawn.item);
-
-      // Within a ten-pull the duplicate check has to see what the earlier
-      // nine just produced, or ten of the same item would all read as new.
+      const { roll, pick } = rollForCategory(epoch.seed!, userId, asked.category, nonce);
+      // drawItem owns the published rarity and pity arithmetic. The concrete
+      // reward is then selected from the active, weighted DB pool only.
+      const rarityDecision = drawItem(roll, pick, pity);
+      const item = rewardFromPool(db, asked.category, rarityDecision.rarity, pick);
+      const key = itemKey(item);
       const duplicate = (have.get(key) ?? 0) > 0;
       have.set(key, (have.get(key) ?? 0) + 1);
-      const dustGained = duplicate ? DUST_FROM_DUPLICATE[drawn.rarity] : 0;
+      const dustGained = duplicate ? DUST_FROM_DUPLICATE[rarityDecision.rarity] : 0;
 
       const id = randomUUID();
       db.prepare(
         `INSERT INTO summons (id, user_id, epoch_id, source, nonce, roll, pick, spirit_key, rarity,
-           by_pity, duplicate, dust, created_at, item_kind, pool_version, cost_points)
-         VALUES (?,?,?,'summon',?,?,?,?,?,?,?,?,?,?,?,?)`,
+           by_pity, duplicate, dust, created_at, item_kind, pool_version, cost_points, category, transaction_id)
+         VALUES (?,?,?,'summon',?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       ).run(
-        id, userId, epoch.id, nonce, roll, pick, key, drawn.rarity,
-        drawn.byPity, duplicate ? 1 : 0, dustGained, now.toISOString(),
-        drawn.item.kind, POOL_VERSION, i === 0 ? cost : 0,
+        id, userId, epoch.id, nonce, roll, pick, key, rarityDecision.rarity,
+        rarityDecision.byPity, duplicate ? 1 : 0, dustGained, now.toISOString(),
+        item.kind, POOL_VERSION, i === 0 ? cost : 0, asked.category, transactionId,
       );
 
-      pity = advancePity(pity, drawn.rarity);
+      pity = advancePity(pity, rarityDecision.rarity);
       results.push({
         id,
-        item: drawn.item,
-        spirit: drawn.item.kind === 'spirit' ? drawn.item.spirit : null,
-        rarity: drawn.rarity,
-        byPity: drawn.byPity,
+        item,
+        spirit: item.kind === 'spirit' ? item.spirit : null,
+        rarity: rarityDecision.rarity,
+        byPity: rarityDecision.byPity,
         duplicate,
+        isNew: !duplicate,
+        category: asked.category,
+        transactionId,
         dustGained,
         dust: 0,
         charms: charmsFor(db, userId),
@@ -476,15 +632,19 @@ export function pull(db: DB, userId: string, pulls = 1, now = new Date()): PullR
     }
 
     const dust = dustFor(db, userId);
-    for (const r of results) r.dust = dust;
-
-    return {
+    for (const result of results) result.dust = dust;
+    const response: PullResult = {
+      transactionId,
+      category: asked.category,
       results,
       cost,
       tripPoints: getBalances(db, userId)[PULL_CURRENCY],
       dust,
       pity,
     };
+    db.prepare('UPDATE gacha_transactions SET response_json = ? WHERE id = ?')
+      .run(JSON.stringify(response), transactionId);
+    return response;
   });
 }
 
@@ -537,10 +697,13 @@ export function forge(db: DB, userId: string, spiritKey: string, now = new Date(
       rarity: spirit.rarity,
       byPity: null,
       duplicate: false,
+      isNew: true,
+      category: 'mascot',
+      transactionId: id,
       dustGained: 0,
       dust: dustFor(db, userId),
       charms: charmsFor(db, userId),
-      pity: pityFor(db, userId),
+      pity: pityFor(db, userId, 'mascot'),
       receipt: { epochId: epoch.id, commitment: epoch.commitment, nonce: 0, roll: 0, pick: 0, poolVersion: POOL_VERSION },
     };
   });
@@ -558,19 +721,10 @@ export function forge(db: DB, userId: string, spiritKey: string, now = new Date(
  * outcome is absent from it.
  */
 export const publishedRules = () => ({
-  /*
-    THE RATES A PLAYER MEETS, floors included. `rates` is the field the app
-    prints under the word "rate", so it has to be the number that actually
-    happens - it used to be the roll band, which reads as a promise of 3%
-    mythic against about 5% in play (docs/68).
-  */
-  rates: RARITY_EFFECTIVE_PERCENT,
+  /* Exact configured base rates. Pity is disclosed and applied separately. */
+  rates: RARITY_PERCENT,
   effectiveWeights: RARITY_EFFECTIVE_WEIGHT,
-  /*
-    The roll band, kept and named for what it is: what one roll is compared
-    against before a floor can lift it. A stranger recomputing a receipt
-    needs this one, not the table above.
-  */
+  /* Kept for receipt verification and older clients. */
   rollBand: RARITY_PERCENT,
   weights: RARITY_WEIGHT,
   weightTotal: WEIGHT_TOTAL,
@@ -587,22 +741,43 @@ export const publishedRules = () => ({
     would be drawing a different product (docs/68).
   */
   notice: {
-    en: 'A summon costs a charm you earned, never money. It yields a spirit and nothing else - no points, no vouchers, no prizes.',
-    th: 'การอัญเชิญใช้เครื่องรางที่คุณสะสมเอง ไม่ใช่เงิน และได้เป็นภูตเท่านั้น ไม่มีแต้ม ไม่มีคูปอง ไม่มีของรางวัล',
-    zh: '召唤消耗的是你自己赢得的护符，绝不需要花钱。它只会带来一只精灵，别无其他——没有积分，没有代金券，没有奖品。',
+    en: 'A pull uses Trip Points only, never money or Green Points. It returns no points, no vouchers, no prizes — only a cosmetic collectible.',
+    th: 'การสุ่มใช้เฉพาะแต้มทริป ไม่ใช้เงินจริงหรือแต้มกรีน และได้ของสะสมตกแต่งเท่านั้น ไม่มีเงินสด คูปอง หรือของรางวัลที่แลกมูลค่าได้',
+    zh: '抽取只使用旅行积分，绝不使用现金或绿色积分；所得仅为装饰收藏品，不含现金、代金券或可兑换奖品。',
   },
 });
 
 export function summonState(db: DB, userId: string, now = new Date()) {
+  ensureRewardPool(db, now);
   const held = heldBy(db, userId);
   const epoch = currentEpoch(db, now);
+  const banner = (category: SummonCategory) => {
+    const catalogue = itemsForCategory(category);
+    const active = rows<{ reward_key: string; rarity: SpiritRarity }>(
+      db.prepare('SELECT reward_key, rarity FROM gacha_reward_pool WHERE category = ? AND active = 1')
+        .all(category),
+    );
+    return {
+      category,
+      pity: pityFor(db, userId, category),
+      collected: catalogue.filter((item) => held.has(itemKey(item))).length,
+      total: catalogue.length,
+      active: active.length,
+      byRarity: Object.fromEntries(RARITIES.map((rarity) => [rarity, {
+        held: catalogue.filter((item) => item.rarity === rarity && held.has(itemKey(item))).length,
+        total: active.filter((item) => item.rarity === rarity).length,
+      }])),
+    };
+  };
+  const banners = { mascot: banner('mascot'), fashion: banner('fashion') };
   return {
     charms: charmsFor(db, userId),
     /** What a pull is paid with, and what one and ten cost. Printed on the buttons. */
     tripPoints: getBalances(db, userId)[PULL_CURRENCY],
     price: { one: PULL_COST, ten: TEN_PULL_COST, tenSize: TEN_PULL_SIZE, currency: PULL_CURRENCY },
     dust: dustFor(db, userId),
-    pity: pityFor(db, userId),
+    pity: banners.mascot.pity,
+    banners,
     collected: held.size,
     /** The whole box now: the spirits and the fashion that went in with them. */
     total: POOL.length,
@@ -668,17 +843,25 @@ export function fashionFor(db: DB, userId: string) {
 export function historyFor(db: DB, userId: string, limit = 50) {
   return rows<SummonRow>(
     db.prepare('SELECT * FROM summons WHERE user_id = ? ORDER BY created_at DESC, nonce DESC LIMIT ?').all(userId, limit),
-  ).map((r) => ({
-    id: r.id,
-    at: r.created_at,
-    source: r.source,
-    spiritKey: r.spirit_key,
-    rarity: r.rarity,
-    byPity: r.by_pity,
-    duplicate: r.duplicate === 1,
-    dust: r.dust,
-    receipt: { epochId: r.epoch_id, nonce: r.nonce, roll: r.roll, pick: r.pick },
-  }));
+  ).map((r) => {
+    const item = itemFor(r.spirit_key, r.pool_version);
+    return {
+      id: r.id,
+      transactionId: r.transaction_id,
+      at: r.created_at,
+      source: r.source,
+      category: r.category,
+      spiritKey: r.spirit_key,
+      item: item ?? null,
+      rarity: r.rarity,
+      byPity: r.by_pity,
+      duplicate: r.duplicate === 1,
+      isNew: r.duplicate !== 1,
+      dust: r.dust,
+      pointsSpent: r.cost_points,
+      receipt: { epochId: r.epoch_id, nonce: r.nonce, roll: r.roll, pick: r.pick },
+    };
+  });
 }
 
 export interface Verification {
@@ -712,7 +895,9 @@ export function verifySummon(db: DB, summonId: string): Verification {
   if (commitmentOf(e.seed) !== e.commitment) {
     return { found: true, checkable: true, matches: false, detail: 'The revealed seed does not match the commitment that was published.' };
   }
-  const { roll, pick } = rollFor(e.seed, r.user_id, r.nonce!);
+  const { roll, pick } = r.pool_version >= 3
+    ? rollForCategory(e.seed, r.user_id, r.category, r.nonce!)
+    : rollFor(e.seed, r.user_id, r.nonce!);
   // Against the pool THIS row was drawn from. The box was widened when the
   // fashion went in, and a receipt recomputed against today's box when it
   // was drawn from yesterday's would fail for a reason that is not a fault.
@@ -725,7 +910,11 @@ export function verifySummon(db: DB, summonId: string): Verification {
     the seed alone determines, and the spirit is compared only where the
     receipt says the roll decided it.
   */
-  const spiritMatches = r.by_pity !== null || itemKey(redrawn.item) === r.spirit_key;
+  const expectedV3 = r.pool_version >= 3 && r.by_pity === null
+    ? rewardFromPool(db, r.category, redrawn.rarity, pick)
+    : null;
+  const spiritMatches = r.by_pity !== null
+    || (expectedV3 ? itemKey(expectedV3) === r.spirit_key : itemKey(redrawn.item) === r.spirit_key);
   return {
     found: true,
     checkable: true,

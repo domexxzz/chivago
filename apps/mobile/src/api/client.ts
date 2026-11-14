@@ -78,6 +78,14 @@ export interface SummonState {
   price: { one: number; ten: number; tenSize: number; currency: 'trip' };
   dust: number;
   pity: { sinceMythic: number; sinceRare: number };
+  banners: Record<'mascot' | 'fashion', {
+    category: 'mascot' | 'fashion';
+    pity: { sinceMythic: number; sinceRare: number };
+    collected: number;
+    total: number;
+    active: number;
+    byRarity: Record<SpiritRarity, { held: number; total: number }>;
+  }>;
   collected: number;
   total: number;
   byRarity: Record<SpiritRarity, { held: number; total: number }>;
@@ -144,11 +152,16 @@ export interface SummonResult {
   dust: number;
   charms: SummonState['charms'];
   pity: SummonState['pity'];
+  category: 'mascot' | 'fashion';
+  isNew: boolean;
+  transactionId: string;
   receipt: { epochId: string; commitment: string; nonce: number; roll: number; pick: number; poolVersion: number };
 }
 
 /** One tap at the box: what it drew, what it cost, and the Trip Points left. */
 export interface PullResult {
+  transactionId: string;
+  category: 'mascot' | 'fashion';
   results: SummonResult[];
   cost: number;
   tripPoints: number;
@@ -165,6 +178,11 @@ export interface SummonReceipt {
   byPity: 'mythic' | 'rare' | null;
   duplicate: boolean;
   dust: number;
+  transactionId?: string | null;
+  category?: 'mascot' | 'fashion';
+  item?: DrawnItem | null;
+  isNew?: boolean;
+  pointsSpent?: number;
   receipt: { epochId: string; nonce: number | null; roll: number | null; pick: number | null };
 }
 
@@ -428,6 +446,14 @@ const put = <T>(path: string, body: unknown) =>
 const del = <T>(path: string) => call<T>(path, { method: 'DELETE' });
 /** A multipart POST. A minute, because a clip on one bar of signal is not a JSON envelope. */
 const upload = <T>(path: string, form: FormData) => call<T>(path, { method: 'POST', body: form }, 60_000);
+
+let gachaRequestSequence = 0;
+export const newGachaIdempotencyKey = (): string => {
+  const secure = globalThis.crypto?.randomUUID?.();
+  if (secure) return secure;
+  gachaRequestSequence += 1;
+  return `gacha-${Date.now().toString(36)}-${gachaRequestSequence.toString(36)}`;
+};
 
 export const api = {
   health: () => get<{ status: string }>('/health'),
@@ -895,7 +921,12 @@ export const api = {
   spirits: () => get<{ spirits: SpiritCard[]; fashion: FashionCard[] }>('/summon/collection'),
 
   /** Spend Trip Points: one pull, or the ten at its published price. */
-  pull: (pulls = 1) => post<PullResult>('/summon', { pulls }),
+  pull: (category: 'mascot' | 'fashion' = 'mascot', quantity: 1 | 10 = 1, idempotencyKey?: string) =>
+    post<PullResult>('/summon', {
+      category,
+      quantity,
+      idempotencyKey: idempotencyKey ?? newGachaIdempotencyKey(),
+    }),
 
   /** Choose one outright for stardust - the door with no luck in it. */
   forge: (spirit: string) => post<SummonResult>('/summon/forge', { spirit }),

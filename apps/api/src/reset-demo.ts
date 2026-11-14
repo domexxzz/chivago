@@ -139,7 +139,7 @@ export const TRAVELLER_TABLES = [
   // charms behind them are derived from a ledger this reset clears - so
   // leaving the rolls would hand the next demo a collection with no
   // earnings behind it. The epochs are NOT here: see KEPT_TABLES.
-  'summons',
+  'gacha_transactions', 'summons',
   // Trees credited to a traveller. The planting they were credited from is a
   // partner's evidence and is kept; the credit to a person goes with them.
   'tree_attributions',
@@ -164,6 +164,9 @@ export const TRAVELLER_TABLES = [
 export const KEPT_TABLES = [
   'places', 'quests', 'offers', 'hosts', 'host_sessions',
   'community_metrics', 'air_cache', 'air_history',
+  // Gacha reward availability and weights are operator-owned catalogue
+  // configuration, not traveller state.
+  'gacha_reward_pool',
   // An operator's listings are content, like a place (docs/61).
   'listings',
   // The organisations, what they fund, and what their staff recorded about

@@ -16,6 +16,8 @@
 import { strict as assert } from 'node:assert';
 import { afterEach, describe, test } from 'node:test';
 import { createElement as h } from 'react';
+import { act } from 'react-test-renderer';
+import { AccessibilityInfo } from 'react-native';
 
 import { SPECIES, progressionFor, type Companion } from '@chivago/core';
 
@@ -112,6 +114,34 @@ describe('the collection lives in the backpack, and only there', () => {
 });
 
 describe('travel companions name only what the traveller holds', () => {
+  test('the supplied explorer and dog are independent controls that return to idle', async () => {
+    // react-native-web reports reduced motion in Node. Override only this
+    // interaction test; the production hook still honours the real setting.
+    const originalReducedMotion = AccessibilityInfo.isReduceMotionEnabled;
+    AccessibilityInfo.isReduceMotionEnabled = async () => false;
+    const net = backpack({ companions: [turtle] });
+    restore = net.restore;
+    const ui = await mountScreen(h(WalletScreen, walletProps));
+    try {
+      const boy = 'Greet the ChivaGo Explorer';
+      const dog = 'Play with the ChivaGo Explorer Dog';
+
+      assert.equal(ui.find(boy)?.props.accessibilityState.busy, false);
+      assert.equal(ui.find(dog)?.props.accessibilityState.busy, false);
+      await ui.press(boy);
+      await ui.press(dog);
+      assert.equal(ui.find(boy)?.props.accessibilityState.busy, true);
+      assert.equal(ui.find(dog)?.props.accessibilityState.busy, true);
+
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 1_050)); });
+      assert.equal(ui.find(boy)?.props.accessibilityState.busy, false);
+      assert.equal(ui.find(dog)?.props.accessibilityState.busy, false);
+    } finally {
+      ui.unmount();
+      AccessibilityInfo.isReduceMotionEnabled = originalReducedMotion;
+    }
+  });
+
   test('a traveller who has been nowhere is given no province mascot', async () => {
     // An emblem on this card is a claim that somebody went there.
     const net = backpack();
@@ -323,5 +353,49 @@ describe('on a rail the fourth cell is the backpack, not Collect', () => {
 
     assert.equal(ui.find('My Backpack')?.props.accessibilityState?.selected, true);
     ui.unmount();
+  });
+});
+
+/*
+  A LOCKED REWARD HAS TO SAY WHAT OPENS IT.
+
+  Twelve rank tiles used to draw a hover and a press scale and then do
+  nothing at all - they looked exactly as pressable as the medals beside
+  them, which do open a screen. The locked ones are the tiles a traveller
+  taps hardest, because the padlock says "not yet" without saying what
+  "yet" costs.
+
+  Every number in the answer is the ladder's own: 1560 EXP is level 3, and
+  Wanderer opens at level 5, so the gap is two. Nothing here is written
+  into the test that the progression does not compute - the level came from
+  `progressionFor`, not from this file.
+*/
+describe('a reward tile answers when it is pressed', () => {
+  test('a locked rank says the level it opens at and how far away that is', async () => {
+    const net = backpack();
+    restore = net.restore;
+    const ui = await mountScreen(h(WalletScreen, walletProps));
+    try {
+      const before = ui.text();
+      assert.ok(!/Opens at level 5/.test(before), 'the explanation must not be on screen already');
+
+      await ui.press(/^Wanderer\./);
+      const after = ui.text();
+      assert.match(after, /Opens at level 5/);
+      assert.match(after, /You are level 3/);
+      assert.match(after, /2 to go/);
+    } finally { ui.unmount(); }
+  });
+
+  test('an unlocked rank says so, rather than explaining a requirement already met', async () => {
+    const net = backpack();
+    restore = net.restore;
+    const ui = await mountScreen(h(WalletScreen, walletProps));
+    try {
+      await ui.press(/^Newcomer\./);
+      const said = ui.text();
+      assert.match(said, /Unlocked/);
+      assert.ok(!/to go/.test(said.split('Unlocked')[1] ?? ''), 'nothing is owed on a rank already held');
+    } finally { ui.unmount(); }
   });
 });
