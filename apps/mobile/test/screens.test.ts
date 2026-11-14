@@ -201,15 +201,15 @@ describe('the seed data the pins render', () => {
     }
   });
 
-  test('what a pin SHOWS and what it ANNOUNCES agree', () => {
-    // The accessibility label was right the whole time — a screen reader said
-    // "Na Muang Waterfall" while the pin said "GREEN". The assistive path
-    // being more informative than the visible one is exactly backwards.
+  test('a category pin shows an icon and announces the full place name', () => {
+    // The compact map mark is intentionally pictorial. Its category is visible
+    // through the approved icon and its exact destination remains available to
+    // assistive technology instead of being reduced to a colour alone.
     const place = SEED_PLACES[1]!;
     const pin = h(PinChip, { place: { ...place, healthyScore: 89, breakdown: null, reviews: null }, onPress: () => {} });
-    const shown = text(pin);
+    const shown = html(pin);
     const spoken = labels(pin).join(' ');
-    assert.match(shown, /Na Muang/);
+    assert.match(shown, /role="img"/);
     assert.match(spoken, /Na Muang Waterfall/);
   });
 });

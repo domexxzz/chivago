@@ -46,6 +46,7 @@ import type { Here } from '../state/here.ts';
 import { Label } from './Type.tsx';
 import { MapLegend } from './map-parts.tsx';
 import { shopMarkerSvg, shopMarkerVisual } from './shop-map-marker.tsx';
+import { placeMarkerHtml, placeMarkerVisual } from './place-map-marker.tsx';
 import { chivarIconUri } from './ChivarIcon.tsx';
 import { t } from '../i18n/locale.ts';
 import { hourFrom, mix } from './island-clock.ts';
@@ -258,15 +259,16 @@ const WAY_LINE = 'chivago-way-line';
 const RELABEL_MS = 200;
 const MARK_CSS = `
 .cg-pin{display:flex;flex-direction:column;align-items:center;cursor:pointer;border:0;background:none;padding:0;font-family:Anuphan,system-ui,sans-serif}
-.cg-chip{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:11px;font-size:13px;font-weight:700;line-height:1;
-  border:2px solid ${color.text};background:${color.surface};color:${color.text};
-  box-shadow:0 3px 10px rgba(8,26,48,.35);animation:cg-bob 3.2s ease-in-out infinite;will-change:transform}
-.cg-chip small{font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
-.cg-pin.cg-tight .cg-chip small{display:none}
-.cg-pin.cg-high .cg-chip{border-color:${color.accent};background:${color.accent};color:${onFill.accent}}
-.cg-stem{width:2px;height:18px;background:${color.text};opacity:.9}
-.cg-foot{width:14px;height:5px;border-radius:50%;background:rgba(8,26,48,.4);margin-top:-1px}
-.cg-pin.cg-storied .cg-chip{box-shadow:0 0 0 2px ${color.bg},0 0 0 5px ${color.gold}}
+.cg-place-pin{position:relative;display:flex;flex-direction:column;align-items:center;width:46px;height:51px;color:#fff}
+.cg-place-pin-core{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;width:42px;height:42px;
+  border:3px solid #fff;border-radius:50%;background:var(--cg-place-colour);transition:transform .16s ease,box-shadow .16s ease;
+  box-shadow:0 4px 7px rgba(8,26,48,.4)}
+.cg-place-pin-core img{width:140px;height:140px;max-width:none;display:block;object-fit:contain}
+.cg-place-pin-tail{position:absolute;z-index:0;top:34px;width:14px;height:14px;transform:rotate(45deg);
+  background:var(--cg-place-colour);border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;border-radius:2px;
+  box-shadow:3px 3px 5px rgba(8,26,48,.32)}
+.cg-pin:hover .cg-place-pin-core,.cg-pin:focus-visible .cg-place-pin-core{transform:translateY(-2px) scale(1.07);box-shadow:0 0 0 4px rgba(255,255,255,.24),0 6px 10px rgba(8,26,48,.4)}
+.cg-pin.cg-storied .cg-place-pin-core{box-shadow:0 0 0 3px ${color.gold},0 5px 10px rgba(8,26,48,.45)}
 .cg-shop-pin{display:flex;flex-direction:column;align-items:center;width:46px;height:51px;padding:0;border:0;
   background:transparent;cursor:pointer;color:#fff}
 .cg-shop-pin-core{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;width:42px;height:42px;
@@ -1260,7 +1262,7 @@ export function TerrainMap({
     const nudge = compact ? crowdOffsets(places) : new Map<string, [number, number]>();
 
     pinEls.current = [];
-    places.forEach((place, i) => {
+    places.forEach((place) => {
       const el = document.createElement('button');
       el.type = 'button';
       el.className = `cg-pin${isHighScore(place.healthyScore) ? ' cg-high' : ''}${storied?.has(place.id) ? ' cg-storied' : ''}`;
@@ -1279,7 +1281,8 @@ export function TerrainMap({
         score. The fallback is this same chip wearing `cg-tight`.
       */
       const tale = tales?.get(place.id);
-      el.innerHTML = `<span class="cg-top">${tale ? `<button type="button" class="cg-tale" aria-label="${esc(t(strings.place.stories))}: ${esc(t(place.name))}"><img src="${esc(API_BASE)}${esc(tale)}" alt=""></button>` : ''}<span class="cg-chip" style="animation-delay:${-(i * 0.7).toFixed(1)}s"><span>${place.healthyScore}</span><small>${esc(place.short)}</small></span></span><span class="cg-stem"></span><span class="cg-foot"></span>`;
+      const visual = placeMarkerVisual(place);
+      el.innerHTML = `<span class="cg-top">${tale ? `<button type="button" class="cg-tale" aria-label="${esc(t(strings.place.stories))}: ${esc(t(place.name))}"><img src="${esc(API_BASE)}${esc(tale)}" alt=""></button>` : ''}<span class="cg-place-pin" style="--cg-place-colour:${visual.colour}"><span class="cg-place-pin-tail"></span><span class="cg-place-pin-core">${placeMarkerHtml(place)}</span></span></span>`;
       el.addEventListener('click', () => onSelect(place));
       /*
         The poster answers first and keeps the tap. Without stopping it here
