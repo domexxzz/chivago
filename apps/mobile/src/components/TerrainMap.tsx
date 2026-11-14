@@ -31,7 +31,7 @@ import {
 // three unstyled buttons stacked in the corner.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import {
-  isHighScore, islandHour, strings,
+  islandHour, strings,
   type Bilingual, type ExploredPlace, type FairLot, type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { color, onFill } from '../theme/index.ts';
@@ -244,8 +244,10 @@ function foldAttribution(m: MapLibreMap): void {
   mark sits in the map's top-left corner while its inline style still reads
   the right position - so every DOM check agrees and only a screenshot
   disagrees. That is exactly how the traveller's dot shipped and was caught.
-  Every animation here rides a CHILD: `.cg-chip` inside `.cg-pin`, the `<i>`
-  inside `.cg-here`.
+  Every animation here rides a CHILD: `.cg-place-pin-core` inside `.cg-pin`,
+  the `<i>` inside `.cg-here`. The place pin no longer bobs - the chip it
+  bobbed on was replaced by a category mark - but the rule is what keeps the
+  NEXT animation off the marker root, so it stays written down.
 */
 const CSS_ID = 'chivago-map-marks';
 /** The accuracy halo's source and fill. Named so the effect can find them again. */
@@ -316,7 +318,7 @@ const MARK_CSS = `
 .cg-tale img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;
   background:${color.neutral200};border:2px solid ${color.bg}}
 .cg-night .cg-tale{box-shadow:0 0 0 1px rgba(255,255,255,.14),0 0 16px rgba(255,214,120,.5)}
-.cg-night .cg-chip{box-shadow:0 0 0 2px rgba(255,255,255,.08),0 0 18px rgba(255,236,190,.55)}
+.cg-night .cg-place-pin-core,.cg-night .cg-shop-pin-core{box-shadow:0 0 0 2px rgba(255,255,255,.08),0 0 18px rgba(255,236,190,.55)}
 .cg-quest{display:flex;flex-direction:column;align-items:center;cursor:pointer;border:0;background:none;padding:0;width:56px;font-family:Anuphan,system-ui,sans-serif}
 .cg-ring{position:absolute;top:2px;left:50%;width:34px;height:34px;margin-left:-17px;border-radius:50%;
   border:3px solid #f2b531;opacity:.8;animation:cg-pulse 2.4s ease-out infinite;will-change:transform,opacity}
@@ -347,9 +349,8 @@ const MARK_CSS = `
 .maplibregl-map.cg-fullscreen .maplibregl-ctrl-bottom-left{left:auto;right:10px}
 .maplibregl-map.cg-fullscreen .cg-compass{top:202px;left:auto;right:10px;width:58px;height:58px;border:0;background:#fff;box-shadow:0 3px 14px rgba(4,30,55,.24)}
 .maplibregl-map.cg-fullscreen .cg-compass svg{width:26px;height:26px}
-@keyframes cg-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
 @keyframes cg-pulse{0%{transform:scale(.7);opacity:.9}100%{transform:scale(2.1);opacity:0}}
-@media (prefers-reduced-motion: reduce){.cg-chip,.cg-ring,.cg-here i,.cg-mote{animation:none}.cg-compass svg{transition:none}}
+@media (prefers-reduced-motion: reduce){.cg-ring,.cg-here i,.cg-mote{animation:none}.cg-compass svg{transition:none}}
 /*
   THE AIR IN FRONT OF THE ISLAND.
 
@@ -1265,7 +1266,7 @@ export function TerrainMap({
     places.forEach((place) => {
       const el = document.createElement('button');
       el.type = 'button';
-      el.className = `cg-pin${isHighScore(place.healthyScore) ? ' cg-high' : ''}${storied?.has(place.id) ? ' cg-storied' : ''}`;
+      el.className = `cg-pin${storied?.has(place.id) ? ' cg-storied' : ''}`;
       el.setAttribute('aria-label', `${t(place.name)}, ${t(strings.place.healthyScore)} ${place.healthyScore}`);
       /*
         THE PIN SAYS WHAT IT IS, at every width.
@@ -1391,7 +1392,7 @@ export function TerrainMap({
       the map does, and the pins move under a pan anyway.
     */
     const boxOf = (el: HTMLElement): PinBox => {
-      const r = (el.querySelector('.cg-top') ?? el.querySelector('.cg-chip') ?? el).getBoundingClientRect();
+      const r = (el.querySelector('.cg-top') ?? el.querySelector('.cg-place-pin') ?? el).getBoundingClientRect();
       return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
     };
     /*
@@ -1412,8 +1413,8 @@ export function TerrainMap({
       It is applied in `thinTheTags`, with a transform rather than `left`:
       the tag is a flex child centred under the mark, and `left` on it does
       nothing without a `position`, which would take it out of that
-      centring. Nothing animates the tag's transform - the bob is on
-      `.cg-chip`, the pulse on `.cg-ring` - so unlike the chips this one is
+      centring. Nothing animates the tag's transform - the pulse is on
+      `.cg-ring`, the hover lift on `.cg-place-pin-core` - so this one is
       safe to move this way.
     */
     const TAG_SLIDE_PX = 44;
@@ -1530,9 +1531,9 @@ export function TerrainMap({
         The chip slides back; the stem does not, so the pin still points at
         the true position and the offset can be seen for what it is.
 
-        The slide is `left` on the chip, not a transform: a CSS animation
-        outranks an inline style, `.cg-chip` bobs on a transform keyframe,
-        and an inline `translateX` here would simply be thrown away. It is
+        The slide is `left` on the mark, not a transform: a CSS rule
+        outranks an inline style - `.cg-place-pin-core` moves on a transform
+        for hover - and an inline `translateX` here would be thrown away. It is
         the same trap the traveller's dot fell into - see the note at the
         top of this file.
       */
@@ -1667,7 +1668,7 @@ export function TerrainMap({
         here replaces the placement and the dot snaps to the map's top-left
         corner. It did, until a screenshot showed it there. Same trap as the
         `position` one in the header, one cascade rule along; the place pins
-        avoid it the same way, by animating `.cg-chip` inside `.cg-pin`.
+        avoid it the same way, by moving `.cg-place-pin-core` inside `.cg-pin`.
       */
       el.innerHTML = '<i></i>';
       el.setAttribute('role', 'img');
