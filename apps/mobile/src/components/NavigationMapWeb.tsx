@@ -33,7 +33,7 @@ import { color } from '../theme/index.ts';
 const EMPTY = { type: 'FeatureCollection' as const, features: [] };
 
 export function NavigationMapWeb({
-  hour = 12, centre, onReady, onUserMovedMap, onFailed, handleRef,
+  hour = 12, centre, onReady, onUserMovedMap, onPressCoordinate, onFailed, handleRef,
 }: NavigationMapViewProps) {
   const holder = React.useRef<HTMLDivElement | null>(null);
   const map = React.useRef<MapLibreMap | null>(null);
@@ -44,8 +44,8 @@ export function NavigationMapWeb({
   // never rebuild the map.
   const centreRef = React.useRef(centre);
   centreRef.current = centre;
-  const callbacks = React.useRef({ onReady, onUserMovedMap, onFailed });
-  callbacks.current = { onReady, onUserMovedMap, onFailed };
+  const callbacks = React.useRef({ onReady, onUserMovedMap, onPressCoordinate, onFailed });
+  callbacks.current = { onReady, onUserMovedMap, onPressCoordinate, onFailed };
 
   const apply = React.useCallback((command: MapCommand) => {
     const m = map.current;
@@ -93,8 +93,22 @@ export function NavigationMapWeb({
           essential: true,
         });
         return;
-      case 'FIT':
-        m.fitBounds(command.bounds, { padding: command.padding, bearing: 0, pitch: 0, duration: 600 });
+      case 'FIT': {
+        // A mathematical edge-to-edge fit can leave the endpoint circles
+        // clipped by the visible map boundary. Back off slightly from that
+        // exact zoom so A and B have breathing room on every screen size.
+        const fitted = m.cameraForBounds(command.bounds, { padding: command.padding, bearing: 0 });
+        const maxZoom = typeof fitted?.zoom === 'number'
+          ? Math.max(m.getMinZoom(), fitted.zoom - 0.7)
+          : undefined;
+        m.fitBounds(command.bounds, {
+          padding: command.padding, bearing: 0, pitch: 0, duration: 600,
+          ...(maxZoom === undefined ? {} : { maxZoom }),
+        });
+        return;
+      }
+      case 'ZOOM':
+        m.easeTo({ zoom: m.getZoom() + command.delta, duration: 220, essential: true });
         return;
       case 'CLEAR_ROUTE':
         source(NAV.routeSource)?.setData(lineFeature([]) as never);
@@ -159,6 +173,13 @@ export function NavigationMapWeb({
     const onMoveStart = (event: { originalEvent?: unknown }) => {
       if (event?.originalEvent) callbacks.current.onUserMovedMap?.();
     };
+    const onMapPress = (event: { lngLat?: { lng?: number; lat?: number } }) => {
+      const lng = event?.lngLat?.lng;
+      const lat = event?.lngLat?.lat;
+      if (typeof lng === 'number' && Number.isFinite(lng) && typeof lat === 'number' && Number.isFinite(lat)) {
+        callbacks.current.onPressCoordinate?.({ lng, lat });
+      }
+    };
     const onLoad = () => {
       const sources = navigationSources();
       for (const [id, spec] of Object.entries(sources)) {
@@ -177,6 +198,7 @@ export function NavigationMapWeb({
 
     m.on('error', onError);
     m.on('movestart', onMoveStart);
+    m.on('click', onMapPress);
     m.on('load', onLoad);
 
     return () => {
@@ -186,6 +208,7 @@ export function NavigationMapWeb({
       try {
         m.off('error', onError);
         m.off('movestart', onMoveStart);
+        m.off('click', onMapPress);
         m.off('load', onLoad);
         m.remove();
       } catch {

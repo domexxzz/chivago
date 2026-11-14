@@ -440,11 +440,30 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     };
   },
 
-  // Stories open at the event, at the place - never in the static demo.
-  'POST /places/:id/stories': () => refuse(
-    'STORIES_CLOSED',
-    'สตอรี่เปิดรับที่งานวันที่ 11 ก.ย. ที่ มก. ศรีราชา · Stories open at the event on 11 September, at the campus.',
-  ),
+  // Check-in stories are social posts about a place, not presence evidence.
+  // The selected browser-local file is kept as an object URL for this demo
+  // sitting only; the DEMO strip already says reloads do not persist it.
+  'POST /places/:id/stories': (body, m) => {
+    const file = body.file;
+    if (!(file instanceof Blob)) return refuse('FILE_REQUIRED', 'Choose a photo or a short clip.');
+    const placeId = m[1]!;
+    const key = `/places/${placeId}/stories`;
+    const block = (state.routes[key] ?? { open: true, stories: [] }) as { open: boolean; stories: Json[] };
+    const kind = file.type.startsWith('video/') ? 'video' : 'photo';
+    const localUri = typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : '';
+    const createdAt = now();
+    const story = {
+      id: id('story'), placeId, kind,
+      caption: typeof body.caption === 'string' ? body.caption.trim().slice(0, 80) : '',
+      status: 'approved', createdAt,
+      expiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+      durationS: null, media: localUri, poster: localUri,
+    };
+    block.open = true;
+    block.stories = [story, ...block.stories];
+    state.routes[key] = block;
+    return story;
+  },
 
   // Recorded, not scored: a dashed stamp in the passport, nothing in the wallet.
   'POST /places/:id/visits': (_b, m) => {
@@ -609,7 +628,14 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     There is no `POST /summon/forge` here. Nothing on the screen offers one
     yet, and a route nobody calls is a route nobody notices has gone wrong.
   */
-  'POST /summon': async () => settle(await summoning.pull()),
+  'POST /summon': async (body) => {
+    const category = body.category === 'fashion' ? 'fashion' : 'mascot';
+    const quantity = body.quantity === 10 ? 10 : 1;
+    const idempotencyKey = typeof body.idempotencyKey === 'string'
+      ? body.idempotencyKey
+      : `demo-${Date.now()}`;
+    return settle(await summoning.pullBatch(category, quantity, idempotencyKey));
+  },
   'PUT /notifications/quiet': (body) => {
     state.routes['/notifications/quiet'] = body;
     return body;
@@ -701,6 +727,11 @@ export function installDemoServer(apiBase: string, options: DemoServerOptions = 
       */
       if (/^\/areas\/[^/]+\/weather$/.test(path)) return answer({ ...NO_WEATHER, source: 'Demo build · the sky is not read here' });
       if (path === '/checkins/today') return answer(state.checkins);
+      const placeStories = /^\/places\/([^/]+)\/stories$/.exec(path);
+      if (placeStories) {
+        const block = (state.routes[path] ?? { stories: [] }) as Json;
+        return answer({ ...block, open: true });
+      }
       if (path === '/medals') {
         // The same rules the server runs, over the captured check-ins plus
         // this session's own - so a check-in in the demo earns what it
@@ -782,7 +813,7 @@ export function installDemoServer(apiBase: string, options: DemoServerOptions = 
         committed to.
       */
       if (path === '/summon') return answer(await summoning.state());
-      if (path === '/summon/collection') return answer({ spirits: summoning.collection() });
+      if (path === '/summon/collection') return answer({ spirits: summoning.collection(), fashion: summoning.fashion() });
       if (path === '/summon/history') {
         const limit = Number(new URLSearchParams(query).get('limit') ?? 50);
         return answer({ summons: summoning.history(Number.isFinite(limit) ? limit : 50) });

@@ -259,7 +259,11 @@ export function PlaceScreen({
     setTelling(true);
     const ok = await postStory(placeId, media, caption, onToast);
     setTelling(false);
-    if (ok) { setStoriesPending((n) => n + 1); stories.reload(); }
+    if (ok) {
+      setStoriesPending((n) => n + 1);
+      stories.reload();
+      onToast(t(strings.place.storyPosted));
+    }
     return ok;
   };
 
@@ -389,7 +393,10 @@ export function PlaceScreen({
       justCheckedIn={checkedIn}
       // One sheet takes the stars, the words and the clip, so the
       // things it needs to do all three live here.
-      storiesOpen={stories.data?.open ?? false}
+      // Check-in stories now have their own polaroid composer above. Keeping
+      // media out of the review sheet makes the difference explicit: reviews
+      // require a verified visit; social posts do not.
+      storiesOpen={false}
       busy={telling}
       onPickMedia={pickMedia}
       onPostStory={sendStory}
@@ -409,6 +416,9 @@ export function PlaceScreen({
       open={stories.data?.open ?? false}
       stories={stories.data?.stories ?? []}
       pending={storiesPending}
+      busy={telling}
+      onPickMedia={pickMedia}
+      onPostStory={sendStory}
     />
   );
 

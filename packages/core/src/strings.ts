@@ -391,12 +391,24 @@ export const strings = {
   // -- Place --------------------------------------------------------------
   place: {
     context: t('Place', 'สถานที่', '地点'),
-    // Stories (docs/44-45). The door's line is the honest one: no button that
-    // fails, a sentence that says when.
-    stories: t('Stories', 'สตอรี่', '故事'),
-    storiesEmpty: t('No stories here yet.', 'ยังไม่มีสตอรี่ที่นี่', '这里还没有故事。'),
-    storiesClosed: t('Stories open at the event, at the place.', 'สตอรี่เปิดรับที่งาน ณ สถานที่จริง', '故事仅在活动现场开放发布。'),
-    tellStory: t('Tell a story here', 'เล่าสตอรี่ที่นี่', '在这里讲个故事'),
+    // A social check-in is a moment ABOUT a place, not proof that the author
+    // is standing there. Reviews keep the verified-visit rule below.
+    stories: t('Check-in stories', 'เช็กอินสตอรี่', '打卡动态'),
+    storiesIntro: t(
+      'Little moments about this place — not ratings. Post from anywhere.',
+      'โมเมนต์สั้น ๆ เกี่ยวกับสถานที่นี้ ไม่ใช่รีวิว และโพสต์จากที่ไหนก็ได้',
+      '分享与这里有关的小瞬间，不是评价；在任何地方都能发布。',
+    ),
+    storiesEmpty: t('No check-in stories yet. Start the first one.', 'ยังไม่มีเช็กอินสตอรี่ มาโพสต์เป็นคนแรกกัน', '还没有打卡动态，来发布第一条吧。'),
+    storiesClosed: t('Posting is temporarily unavailable.', 'ปิดรับโพสต์ชั่วคราว', '暂时无法发布。'),
+    tellStory: t('Post a check-in story', 'โพสต์เช็กอินสตอรี่', '发布打卡动态'),
+    storyComposeTitle: t('A moment from this place', 'โมเมนต์จากสถานที่นี้', '这里的一个瞬间'),
+    storyCaption: t('Write a short caption…', 'เขียนรายละเอียดสั้น ๆ…', '写一句简短说明…'),
+    storyFromAnywhere: t(
+      'No live location needed. Your post will be attached to this place.',
+      'ไม่ต้องเปิดพิกัด โพสต์นี้จะผูกกับสถานที่นี้',
+      '无需实时定位，动态会关联到这个地点。',
+    ),
     /*
       One entry for everything a person leaves at a place.
 
@@ -459,12 +471,12 @@ export const strings = {
     ),
     /** The notice at the door (docs/46). Going on to record is the consent. */
     storyNotice: t(
-      'Your clip shows on the screen at the event and stays in the app for 7 days. Film only people who are happy to be filmed.',
-      'คลิปของคุณจะขึ้นจอในงานและอยู่ในแอป 7 วัน ถ่ายเฉพาะคนที่ยินดีให้ถ่าย',
-      '你的短片会显示在活动现场的屏幕上，并在应用内保留 7 天。请只拍摄愿意出镜的人。',
+      'This stays in the app for 7 days. Share only media you have permission to post.',
+      'โพสต์จะอยู่ในแอป 7 วัน ใช้เฉพาะรูปหรือคลิปที่คุณมีสิทธิ์โพสต์',
+      '动态会在应用内保留 7 天。请只分享你有权发布的照片或短片。',
     ),
     storyNoFix: t('Your position is needed to tell a story here.', 'ต้องมีตำแหน่งเพื่อเล่าสตอรี่ที่นี่', '需要你的位置才能在这里讲故事。'),
-    storyPickerUnavailable: t('The camera could not open.', 'เปิดกล้องไม่ได้', '无法打开相机。'),
+    storyPickerUnavailable: t('The photo picker could not open.', 'เปิดตัวเลือกรูปไม่ได้', '无法打开照片选择器。'),
     storyTooLarge: t('That file is over 25 MB. Ten seconds is plenty.', 'ไฟล์เกิน 25 MB ถ่ายสั้นๆ 10 วินาทีก็พอ', '该文件超过 25 MB。拍十秒就够了。'),
     storyHeic: t(
       'iPhone HEIC photos cannot be converted here yet. Set Settings › Camera › Formats to Most Compatible, or send a JPEG.',

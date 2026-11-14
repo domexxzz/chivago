@@ -12,7 +12,10 @@ import {
   WrongEventToken,
 } from './story-service.ts';
 import { TranscoderUnavailable } from './transcode.ts';
-import { AlreadyHave, NoCharms, NotEnoughDust, NotEnoughPoints, UnknownSpirit } from './summon-service.ts';
+import {
+  AlreadyHave, IdempotencyConflict, InvalidRewardPool, NoCharms, NoEligibleRewards,
+  NotEnoughDust, NotEnoughPoints, UnknownSpirit,
+} from './summon-service.ts';
 import type { ApiFailure, ApiSuccess } from '@chivago/core';
 import { InsufficientPoints } from './wallet-service.ts';
 import { InvalidTransition, OutsideGeofence } from './quest-service.ts';
@@ -149,6 +152,9 @@ export function handleError(c: Context, err: unknown) {
   if (err instanceof NotEnoughDust) return fail(c, 'NOT_ENOUGH_DUST', err.message, 409);
   if (err instanceof AlreadyHave) return fail(c, 'ALREADY_HAVE', err.message, 409);
   if (err instanceof UnknownSpirit) return fail(c, 'NOT_FOUND', err.message, 404);
+  if (err instanceof NoEligibleRewards) return fail(c, 'NO_ELIGIBLE_REWARDS', err.message, 409);
+  if (err instanceof InvalidRewardPool) return fail(c, 'INVALID_REWARD_POOL', 'The reward pool needs operator attention.', 503);
+  if (err instanceof IdempotencyConflict) return fail(c, 'IDEMPOTENCY_CONFLICT', err.message, 409);
   if (err instanceof BodyTooLarge) return fail(c, 'BODY_TOO_LARGE', err.message, 413);
   if (err instanceof InvalidCommunityMedia) return fail(c, 'INVALID_COMMUNITY_MEDIA', err.message, 415);
   if (err instanceof InvalidCommunityPost) return fail(c, 'INVALID_COMMUNITY_POST', err.message, 400);

@@ -85,6 +85,8 @@ export function Heading({ children, style, size = 26, colour = color.text, track
 interface BodyProps {
   children: React.ReactNode;
   style?: TextStyle | TextStyle[];
+  /** Clamp longer copy where a card has a fixed visual height. */
+  numberOfLines?: number;
   /**
    * Two sizes, and 13 is the floor on purpose.
    *
@@ -98,9 +100,9 @@ interface BodyProps {
   colour?: string;
 }
 
-export function Body({ children, style, size = 14, colour = color.neutral800 }: BodyProps) {
+export function Body({ children, style, size = 14, colour = color.neutral800, numberOfLines }: BodyProps) {
   return (
-    <Text style={[{ fontFamily: font.body, fontSize: size, color: colour, lineHeight: Math.round(size * 1.5) }, scriptTypeface('400'), style]}>
+    <Text numberOfLines={numberOfLines} style={[{ fontFamily: font.body, fontSize: size, color: colour, lineHeight: Math.round(size * 1.5) }, scriptTypeface('400'), style]}>
       {children}
     </Text>
   );

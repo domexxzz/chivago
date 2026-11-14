@@ -19,10 +19,12 @@
 import { describe, test, afterEach, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
+import { act } from 'react-test-renderer';
 
 import { NavigateScreen } from '../src/screens/NavigateScreen.tsx';
 import { ShopProfileScreen } from '../src/screens/ShopProfileScreen.tsx';
 import { WayBanner } from '../src/components/WayBanner.tsx';
+import { NavigationMap } from '../src/components/NavigationMap.tsx';
 import { IDLE, REROUTE_COOLDOWN_MS, isFollowing, run, step } from '../src/navigation/machine.ts';
 import { SESSION_GOOD_FOR_MS, parseSession } from '../src/navigation/session.ts';
 import { parseMapEvent, validateCommand } from '../src/components/navigation-bridge.ts';
@@ -283,6 +285,15 @@ describe('what may cross into the map’s document, and back', () => {
     assert.deepEqual(parseMapEvent(JSON.stringify({ type: 'MAP_READY' })), { type: 'MAP_READY' });
   });
 
+  test('a tapped map coordinate crosses the bridge only when it is valid', () => {
+    assert.deepEqual(
+      parseMapEvent(JSON.stringify({ type: 'MAP_PRESS', lat: 13.15123, lng: 100.80876 })),
+      { type: 'MAP_PRESS', lat: 13.15123, lng: 100.80876 },
+    );
+    assert.equal(parseMapEvent(JSON.stringify({ type: 'MAP_PRESS', lat: 100, lng: 100.8 })), null);
+    assert.equal(parseMapEvent(JSON.stringify({ type: 'MAP_PRESS', lat: 13.15, lng: '100.8' })), null);
+  });
+
   test('an error code is truncated rather than trusted', () => {
     const long = JSON.stringify({ type: 'MAP_ERROR', code: 'x'.repeat(5_000) });
     const event = parseMapEvent(long);
@@ -296,6 +307,9 @@ describe('what may cross into the map’s document, and back', () => {
     assert.equal(validateCommand({ type: 'SET_ROUTE', remaining: 'all of it', travelled: [] }), null);
     assert.equal(validateCommand({ type: 'UPDATE_POSITION', lng: 100, lat: NaN, bearing: 0 }), null);
     assert.equal(validateCommand({ type: 'CAMERA', centre: [1, 2], bearing: 0, zoom: 17, pitch: 50 }), null);
+    assert.deepEqual(validateCommand({ type: 'ZOOM', delta: 1 }), { type: 'ZOOM', delta: 1 });
+    assert.deepEqual(validateCommand({ type: 'ZOOM', delta: -1 }), { type: 'ZOOM', delta: -1 });
+    assert.equal(validateCommand({ type: 'ZOOM', delta: 2 }), null);
     assert.equal(validateCommand({ type: 'NOT_A_COMMAND' }), null);
     assert.equal(validateCommand(null), null);
   });
@@ -375,12 +389,21 @@ describe('the layers and the camera, as data', () => {
     assert.equal(routeBounds([[NaN, NaN]]), null);
   });
 
-  test('the junctions and the pin travel as one collection', () => {
-    const points = pointsFeature([{ lat: 9, lng: 100 }], { lat: 8, lng: 99 }) as {
+  test('the junctions and clearly different A/B endpoint pins travel as one collection', () => {
+    const points = pointsFeature(
+      [{ lat: 9, lng: 100 }],
+      { lat: 8, lng: 99 },
+      { lat: 7, lng: 98 },
+    ) as {
       features: { properties: { kind: string } }[];
     };
-    assert.equal(points.features.length, 2);
-    assert.deepEqual(points.features.map((f) => f.properties.kind), ['maneuver', 'destination']);
+    assert.equal(points.features.length, 3);
+    assert.deepEqual(points.features.map((f) => f.properties.kind), ['maneuver', 'origin', 'destination']);
+    const layerIds = navigationLayers().map((layer) => layer.id);
+    assert.ok(layerIds.includes('cg-nav-origin'));
+    assert.ok(layerIds.includes('cg-nav-origin-label'));
+    assert.ok(layerIds.includes('cg-nav-destination'));
+    assert.ok(layerIds.includes('cg-nav-destination-label'));
   });
 });
 
@@ -465,6 +488,52 @@ describe('the screen, before setting off', () => {
         starts.some((point) => point.lat === chosen.lat && point.lon === chosen.lng),
         'the preview route begins at the selected place',
       );
+      ui.unmount();
+    } finally {
+      net.restore();
+      app.restore();
+    }
+  });
+
+  test('a traveller can tap an island coordinate for A while B stays the named destination', async () => {
+    const destination = {
+      id: 'sichang-destination',
+      name: { en: 'Khao Yai Shrine', th: 'ศาลเจ้าพ่อเขาใหญ่', zh: '大山神庙' },
+      lat: 13.1618,
+      lng: 100.8072,
+    };
+    const app = server({ '/places': [] });
+    const net = router(REPLY);
+    try {
+      const ui = await mountScreen(h(NavigateScreen, { destination, onBack: noop }));
+      assert.match(ui.text(), /STARTING POINT My current location/);
+      assert.match(ui.text(), /DESTINATION Khao Yai Shrine/);
+      assert.ok(ui.labels().includes('Zoom in'));
+      assert.ok(ui.labels().includes('Zoom out'));
+
+      await ui.press('Choose starting point');
+      assert.match(ui.text(), /Pick a point on the map/);
+      await ui.pressText('Pick a point on the map');
+      assert.match(ui.text(), /Tap your starting point/);
+
+      const map = ui.root.findByType(NavigationMap);
+      await act(async () => {
+        map.props.onPressCoordinate({ lat: 13.25, lng: 100.95 });
+      });
+      assert.match(ui.text(), /Choose a point on Koh Sichang/);
+      await act(async () => {
+        map.props.onPressCoordinate({ lat: 13.1508, lng: 100.8088 });
+      });
+      assert.match(ui.text(), /STARTING POINT Map point · 13\.15080, 100\.80880/);
+      assert.match(ui.text(), /DESTINATION Khao Yai Shrine/);
+
+      const starts = net.asked.map((url) => {
+        const body = JSON.parse(decodeURIComponent(url.split('json=')[1]!)) as {
+          locations: { lat: number; lon: number }[];
+        };
+        return body.locations[0]!;
+      });
+      assert.ok(starts.some((point) => point.lat === 13.1508 && point.lon === 100.8088));
       ui.unmount();
     } finally {
       net.restore();

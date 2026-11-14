@@ -3,7 +3,7 @@ import { test, describe } from 'node:test';
 
 import {
   DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, RARE_PITY, RARITIES,
-  RARITY_EFFECTIVE_PERCENT, RARITY_EFFECTIVE_WEIGHT, RARITY_PERCENT, RARITY_WEIGHT,
+  RARITY_EFFECTIVE_WEIGHT, RARITY_PERCENT, RARITY_WEIGHT,
   SPIRITS, WEIGHT_TOTAL, type SpiritRarity,
 } from '@chivago/core';
 import { MascotMark } from '../src/components/MascotMark.tsx';
@@ -78,19 +78,18 @@ describe('a card says nothing before it has been met', () => {
   });
 });
 
-describe('the odds the screen prints are the odds a player meets', () => {
+describe('the published base odds are exact and pity is disclosed separately', () => {
   /*
-    The panel used to print the ROLL BAND under the word "odds" - 3% mythic,
-    against about 5% once the floors are counted (docs/68). The server now
-    sends both, `rates` being the one a player meets, and this holds the
-    screen to printing that one.
+    The production contract publishes the exact configured rarity table.
+    Pity is a separate, stateful guarantee and must not be blended into a
+    misleading "effective" percentage.
 
     Rendered, not inspected: the number has to reach the text a thumb is
     held over, and a test that read `rules.rates` straight back would have
     passed on the old screen too.
   */
   const rules = (): SummonState['rules'] => ({
-    rates: RARITY_EFFECTIVE_PERCENT,
+    rates: RARITY_PERCENT,
     effectiveWeights: RARITY_EFFECTIVE_WEIGHT,
     rollBand: RARITY_PERCENT,
     weights: RARITY_WEIGHT,
@@ -103,33 +102,27 @@ describe('the odds the screen prints are the odds a player meets', () => {
     notice: { en: 'x', th: 'x' },
   });
 
-  test('every rarity shows its effective rate, floors included', () => {
+  test('every rarity shows its exact configured base rate', () => {
     const out = html(h(RulesPanel, { rules: rules() }));
     for (const r of RARITIES) {
       assert.ok(
-        out.includes(`${RARITY_EFFECTIVE_PERCENT[r]}%`),
-        `${r}: the panel does not print its effective rate (${RARITY_EFFECTIVE_PERCENT[r]}%)`,
+        out.includes(`${RARITY_PERCENT[r]}%`),
+        `${r}: the panel does not print its base rate (${RARITY_PERCENT[r]}%)`,
       );
     }
-    assert.ok(out.includes('5.01%'), 'the mythic rate on screen is not the one a player meets');
-    assert.ok(/floors included/i.test(out), 'the heading does not say the floors are in the table');
+    assert.match(out, /Published base drop rates/i);
   });
 
-  test('the roll band is printed too, and labelled as one roll', () => {
+  test('pity guarantees are named separately from the base table', () => {
     const out = html(h(RulesPanel, { rules: rules() }));
-    assert.ok(/One roll on its own/i.test(out), 'the roll band is not named on the screen');
-    for (const r of RARITIES) {
-      assert.ok(out.includes(`${RARITY_PERCENT[r]}%`), `${r}: the roll band is missing from the panel`);
-    }
+    assert.match(out, new RegExp(`rare within ${RARE_PITY} summons`, 'i'));
+    assert.match(out, new RegExp(`mythic within ${MYTHIC_PITY}`, 'i'));
+    assert.match(out, /Pity guarantees are applied separately/i);
   });
 
-  test('a mythic reads higher than its roll band, which is the whole correction', () => {
+  test('the configured rarity probabilities total exactly one hundred percent', () => {
     const out = html(h(RulesPanel, { rules: rules() }));
-    const shown = out.match(/(\d+(?:\.\d+)?)%/g) ?? [];
-    assert.ok(shown.includes('5.01%') && shown.includes('3%'), `both mythic numbers should be on screen: ${shown.join(' ')}`);
-    assert.ok(
-      RARITY_EFFECTIVE_PERCENT.mythic > RARITY_PERCENT.mythic,
-      'if these are ever equal the floors stopped working, not the screen',
-    );
+    assert.equal(RARITIES.reduce((sum, rarity) => sum + RARITY_PERCENT[rarity], 0), 100);
+    assert.ok(out.includes('5.01%'));
   });
 });

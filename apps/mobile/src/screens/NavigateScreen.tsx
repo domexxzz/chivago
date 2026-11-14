@@ -21,8 +21,8 @@
  */
 
 import React from 'react';
-import { Linking, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
-import { ArrowLeft, Crosshair, ExternalLink, Footprints, MapPin, Route as RouteIcon } from 'lucide-react-native';
+import { Linking, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { ArrowLeft, Crosshair, ExternalLink, Footprints, MapPin, Minus, Plus, Route as RouteIcon } from 'lucide-react-native';
 import {
   arrivalAt, formatDistance, formatDuration, isOnKohSichang, mapsDirectionsUrl, maneuverPoint, remainingLine,
   strings, travelledLine,
@@ -52,6 +52,11 @@ import { formatTime } from '../i18n/format.ts';
 /** Room the banner and the panel take, for the camera's padding. */
 const BANNER_H = 96;
 const PANEL_H = 150;
+// The preview card is taller than the active-navigation panel because it now
+// includes both A/B endpoint rows. The preview map ends behind the opaque
+// card instead of continuing beneath it, so both endpoint markers remain in
+// the part of the map the traveller can actually see.
+const PREVIEW_PANEL_H = 380;
 
 /** The map fills the screen; everything else is drawn over it. */
 const FILL = { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 };
@@ -99,12 +104,17 @@ export function NavigateScreen({
   */
   const [mapGeneration, setMapGeneration] = React.useState(0);
   const onMapReady = React.useCallback(() => setMapGeneration((n) => n + 1), []);
+  const [previewPanelHeight, setPreviewPanelHeight] = React.useState(PREVIEW_PANEL_H);
+  const onPreviewPanelLayout = React.useCallback((event: { nativeEvent: { layout: { height: number } } }) => {
+    const measured = Math.ceil(event.nativeEvent.layout.height);
+    if (measured > 0) setPreviewPanelHeight((current) => current === measured ? current : measured);
+  }, []);
 
   /*
     GPS IS THE DEFAULT START, not a hard-coded island centre. A traveller can
-    still plan ahead from any known Koh Sichang place; only those points are
-    offered because this navigator has deliberately been scoped to this one
-    island. Arbitrary mainland origins belong in Google Maps.
+    plan ahead from any known Koh Sichang place or tap a coordinate on the
+    island map. Mainland origins still belong in Google Maps because this
+    navigator has deliberately been scoped to this one island.
   */
   const places = useAsync(() => api.places(), []);
   const originOptions = React.useMemo<NavDestination[]>(
@@ -115,11 +125,36 @@ export function NavigateScreen({
   );
   const [origin, setOrigin] = React.useState<NavDestination | null>(null);
   const [choosingOrigin, setChoosingOrigin] = React.useState(false);
+  const [pickingOrigin, setPickingOrigin] = React.useState(false);
+  const [pickOriginError, setPickOriginError] = React.useState(false);
   const destinationKey = destination ? `${destination.lat.toFixed(5)},${destination.lng.toFixed(5)}` : '';
   React.useEffect(() => {
     setOrigin(null);
     setChoosingOrigin(false);
+    setPickingOrigin(false);
+    setPickOriginError(false);
   }, [destinationKey]);
+
+  const chooseMapOrigin = React.useCallback((point: { lat: number; lng: number }) => {
+    if (!pickingOrigin) return;
+    if (!isOnKohSichang(point)) {
+      setPickOriginError(true);
+      return;
+    }
+    const coordinate = `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`;
+    setOrigin({
+      id: null,
+      name: {
+        en: `Map point · ${coordinate}`,
+        th: `จุดบนแผนที่ · ${coordinate}`,
+        zh: `地图点 · ${coordinate}`,
+      },
+      lat: point.lat,
+      lng: point.lng,
+    });
+    setPickOriginError(false);
+    setPickingOrigin(false);
+  }, [pickingOrigin]);
 
   // The preview's origin: a single fix, not a watcher. Nothing is being
   // followed yet, and a watcher here would run the GPS while somebody reads.
@@ -133,6 +168,10 @@ export function NavigateScreen({
   const following = isCameraOwned(nav.status);
   const previewing = nav.status === 'idle' || nav.status === 'preview'
     || nav.status === 'acquiring-location' || nav.status === 'routing';
+  const zoomMap = React.useCallback((delta: 1 | -1) => {
+    if (following) nav.releaseCamera();
+    map.current?.send({ type: 'ZOOM', delta });
+  }, [following, nav.releaseCamera]);
 
   /*
     WHICH LINE IS ON THE MAP.
@@ -163,6 +202,12 @@ export function NavigateScreen({
       .map((_, index) => maneuverPoint(nav.route!, index))
       .filter((point): point is { lat: number; lng: number } => point !== null);
   }, [nav.route]);
+  const routeStart = React.useMemo(
+    () => (drawn.whole[0]
+      ? { lng: drawn.whole[0][0], lat: drawn.whole[0][1] }
+      : previewOrigin),
+    [drawn.whole, previewOrigin],
+  );
 
   // -- Driving the map ------------------------------------------------------
 
@@ -175,9 +220,9 @@ export function NavigateScreen({
       type: 'SET_ROUTE',
       remaining: drawn.remaining,
       travelled: drawn.travelled,
-      points: pointsFeature(maneuverPoints, destination),
+      points: pointsFeature(maneuverPoints, destination, routeStart),
     });
-  }, [mapGeneration, routeKey, drawn.remaining, drawn.travelled, maneuverPoints, destination]);
+  }, [mapGeneration, routeKey, drawn.remaining, drawn.travelled, maneuverPoints, destination, routeStart]);
 
   // The arrow and its ring, once per fix. The one message that is allowed to
   // be frequent, and the one that must never touch the document.
@@ -228,7 +273,15 @@ export function NavigateScreen({
   }, [mapGeneration, camera?.centre[0], camera?.centre[1], camera?.bearing, camera?.zoom, camera?.pitch, padding]);
 
   // The overview, and the preview, both frame the whole route.
-  const bounds = React.useMemo(() => routeBounds(drawn.whole), [drawn.whole]);
+  // Router geometry may stop at the nearest walkable road instead of the
+  // exact place coordinate. Frame the endpoint markers as well as the road,
+  // otherwise B can sit just beyond the fitted line and under the panel.
+  const framedCoordinates = React.useMemo(() => [
+    ...drawn.whole,
+    ...(routeStart ? [[routeStart.lng, routeStart.lat] as [number, number]] : []),
+    ...(destination ? [[destination.lng, destination.lat] as [number, number]] : []),
+  ], [drawn.whole, routeStart, destination]);
+  const bounds = React.useMemo(() => routeBounds(framedCoordinates), [framedCoordinates]);
   const framed = nav.status === 'overview' || previewing || nav.status === 'arrived';
   const boundsKey = bounds ? bounds.flat().join(',') : '';
   React.useEffect(() => {
@@ -239,11 +292,11 @@ export function NavigateScreen({
       bounds,
       padding: {
         top: previewing ? 70 : BANNER_H,
-        bottom: previewing ? 220 : PANEL_H,
+        bottom: previewing ? 24 : PANEL_H,
         left: 40, right: 40,
       },
     });
-  }, [mapGeneration, framed, boundsKey, previewing]);
+  }, [mapGeneration, framed, boundsKey, previewing, previewPanelHeight]);
 
   // -- What the banner says -------------------------------------------------
 
@@ -297,13 +350,14 @@ export function NavigateScreen({
 
   return (
     <View style={{ flex: 1, backgroundColor: color.brandSoft }}>
-      <View style={FILL}>
+      <View style={[FILL, previewing && !pickingOrigin ? { bottom: previewPanelHeight } : null]}>
         {mapFailed === null ? (
           <NavigationMap
             handleRef={map}
             centre={{ lat: destination.lat, lng: destination.lng }}
             onReady={onMapReady}
             onUserMovedMap={nav.releaseCamera}
+            onPressCoordinate={chooseMapOrigin}
             onFailed={setMapFailed}
           />
         ) : (
@@ -336,6 +390,38 @@ export function NavigateScreen({
           <ArrowLeft size={20} color={color.brand} strokeWidth={2.2} />
         </Pressable>
       </View>
+
+      {mapFailed === null ? (
+        <View style={{
+          position: 'absolute', right: gutter, zIndex: 5, gap: 8,
+          bottom: pickingOrigin ? 22
+            : previewing ? previewPanelHeight + 16
+              : (following || nav.status === 'overview') ? PANEL_H + 82 : PANEL_H + 16,
+        }}>
+          <Pressable
+            onPress={() => zoomMap(1)}
+            accessibilityRole="button"
+            accessibilityLabel={t({ en: 'Zoom in', th: 'ซูมเข้า', zh: '放大' })}
+            style={[shadow.card, {
+              width: 48, height: 48, borderRadius: 24, backgroundColor: color.surface,
+              alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: color.neutral300,
+            }]}
+          >
+            <Plus size={24} color={color.brand} strokeWidth={2.8} />
+          </Pressable>
+          <Pressable
+            onPress={() => zoomMap(-1)}
+            accessibilityRole="button"
+            accessibilityLabel={t({ en: 'Zoom out', th: 'ซูมออก', zh: '缩小' })}
+            style={[shadow.card, {
+              width: 48, height: 48, borderRadius: 24, backgroundColor: color.surface,
+              alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: color.neutral300,
+            }]}
+          >
+            <Minus size={24} color={color.brand} strokeWidth={2.8} />
+          </Pressable>
+        </View>
+      ) : null}
 
       {following || nav.status === 'overview' ? (
         <>
@@ -378,8 +464,11 @@ export function NavigateScreen({
         </>
       ) : null}
 
-      {previewing ? (
-        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 2 }}>
+      {previewing && !pickingOrigin ? (
+        <View
+          onLayout={onPreviewPanelLayout}
+          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 2 }}
+        >
           <PreviewCard
             destination={destination}
             mode={mode}
@@ -398,6 +487,30 @@ export function NavigateScreen({
               void Linking.openURL(mapsDirectionsUrl(destination, { walking: mode === 'walk' }));
             }}
           />
+        </View>
+      ) : null}
+
+      {pickingOrigin ? (
+        <View style={{ position: 'absolute', left: gutter, right: gutter, top: 64, zIndex: 4, alignItems: 'center' }}>
+          <View style={[shadow.card, {
+            width: '100%', maxWidth: 540, paddingHorizontal: 16, paddingVertical: 14,
+            borderRadius: radius.md, backgroundColor: color.surface,
+          }]}
+          >
+            <Heading size={17}>{t({ en: 'Tap your starting point', th: 'จิ้มจุดเริ่มต้นบนแผนที่', zh: '在地图上点击起点' })}</Heading>
+            <Body size={13} colour={pickOriginError ? '#B42318' : color.neutral700} style={{ marginTop: 4 }}>
+              {pickOriginError
+                ? t({ en: 'Choose a point on Koh Sichang.', th: 'กรุณาเลือกจุดที่อยู่บนเกาะสีชัง', zh: '请选择锡昌岛上的位置。' })
+                : t({ en: 'Tap anywhere on Koh Sichang. A blue A marker will show the start.', th: 'จิ้มตำแหน่งบนเกาะสีชัง หมุด A สีน้ำเงินคือจุดเริ่มต้น', zh: '点击锡昌岛上的位置，蓝色 A 标记表示起点。' })}
+            </Body>
+            <View style={{ marginTop: 10, alignSelf: 'flex-start' }}>
+              <Button
+                label={t(strings.common.cancel)}
+                variant="secondary"
+                onPress={() => { setPickingOrigin(false); setPickOriginError(false); }}
+              />
+            </View>
+          </View>
         </View>
       ) : null}
 
@@ -495,8 +608,20 @@ export function NavigateScreen({
               <OriginOption
                 label={t({ en: 'My current location', th: 'ตำแหน่งปัจจุบันของฉัน', zh: '我的当前位置' })}
                 selected={origin === null}
-                onPress={() => { setOrigin(null); setChoosingOrigin(false); }}
+                onPress={() => { setOrigin(null); setChoosingOrigin(false); setPickOriginError(false); }}
               />
+              <OriginOption
+                label={t({ en: 'Pick a point on the map', th: 'จิ้มพิกัดบนแผนที่', zh: '在地图上选点' })}
+                selected={origin?.id === null}
+                onPress={() => {
+                  setChoosingOrigin(false);
+                  setPickOriginError(false);
+                  setPickingOrigin(true);
+                }}
+              />
+              <Label size={9} tracking={0.1} colour={color.neutral600} style={{ marginTop: 8, marginBottom: 2 }}>
+                {t({ en: 'PLACES ON KOH SICHANG', th: 'สถานที่บนเกาะสีชัง', zh: '锡昌岛上的地点' })}
+              </Label>
               {originOptions.map((option) => (
                 <OriginOption
                   key={option.id ?? `${option.lat},${option.lng}`}
@@ -597,7 +722,12 @@ function PreviewCard({
           flexDirection: 'row', alignItems: 'center', gap: 10,
         }}
       >
-        <Crosshair size={18} color={color.brand} strokeWidth={2.1} />
+        <View style={{
+          width: 28, height: 28, borderRadius: 14, backgroundColor: '#1565C0',
+          borderWidth: 2, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '900' }}>A</Text>
+        </View>
         <View style={{ flex: 1 }}>
           <Label size={9} tracking={0.08} colour={color.neutral600}>
             {t({ en: 'STARTING POINT', th: 'จุดเริ่มต้น', zh: '起点' })}
@@ -608,6 +738,25 @@ function PreviewCard({
           {t({ en: 'Choose', th: 'เลือก', zh: '选择' })}
         </Label>
       </Pressable>
+
+      <View style={{
+        marginTop: 8, minHeight: 48, borderRadius: radius.sm, borderWidth: 1, borderColor: '#E5C466',
+        backgroundColor: '#FFF7DA', paddingHorizontal: 12, paddingVertical: 8,
+        flexDirection: 'row', alignItems: 'center', gap: 10,
+      }}>
+        <View style={{
+          width: 28, height: 28, borderRadius: 14, backgroundColor: '#E0A42B',
+          borderWidth: 2, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Text style={{ color: '#4A3210', fontSize: 13, fontWeight: '900' }}>B</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Label size={9} tracking={0.08} colour={color.neutral600}>
+            {t({ en: 'DESTINATION', th: 'จุดปลายทาง', zh: '终点' })}
+          </Label>
+          <Label size={11} tracking={0} colour={color.neutral900} numberOfLines={1}>{t(destination.name)}</Label>
+        </View>
+      </View>
 
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
         <ModeChip label={t(strings.map.wayWalk)} icon={Footprints} active={mode === 'walk'} onPress={() => onMode('walk')} />

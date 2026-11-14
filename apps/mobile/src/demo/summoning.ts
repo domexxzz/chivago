@@ -52,9 +52,9 @@
 import {
   DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, RARE_PITY, RARITIES,
   RARITY_EFFECTIVE_PERCENT, RARITY_EFFECTIVE_WEIGHT, RARITY_PERCENT,
-  POOL, PULL_COST, TEN_PULL_COST, TEN_PULL_SIZE, POOL_VERSION,
-  RARITY_WEIGHT, SPIRITS, WEIGHT_TOTAL, advancePity, drawItem, itemKey,
-  type PityState, type SpiritRarity,
+  POOL, PULL_COST, ROLL_POOL, TEN_PULL_COST, TEN_PULL_SIZE, POOL_VERSION,
+  RARITY_WEIGHT, SPIRITS, WEIGHT_TOTAL, advancePity, drawItem, itemFor, itemKey, itemsForCategory,
+  type PityState, type SpiritRarity, type SummonCategory,
 } from '@chivago/core';
 
 /*
@@ -64,7 +64,7 @@ import {
   through, and a demo whose `/summon` was missing a field the screen prints
   would otherwise compile and then show an empty line at the pitch.
 */
-import type { SpiritCard, SummonReceipt, SummonResult, SummonState } from '../api/client.ts';
+import type { FashionCard, PullResult, SpiritCard, SummonReceipt, SummonResult, SummonState } from '../api/client.ts';
 
 /** One visitor, the same one the rest of the demo answers for. */
 const DEMO_TRIP_POINTS = 1_200;
@@ -110,7 +110,7 @@ const PUBLISHED_RULES = {
     on its own - so the demo would have printed "Mythic 3%" to a judge while
     the live app printed 5.01%.
   */
-  rates: RARITY_EFFECTIVE_PERCENT,
+  rates: RARITY_PERCENT,
   effectiveWeights: RARITY_EFFECTIVE_WEIGHT,
   /* The roll band, under its own name, same as the server. */
   rollBand: RARITY_PERCENT,
@@ -238,6 +238,9 @@ interface Pull {
   byPity: 'mythic' | 'rare' | null;
   duplicate: boolean;
   dust: number;
+  category: SummonCategory;
+  transactionId: string | null;
+  costPoints: number;
 }
 
 interface Epoch {
@@ -285,8 +288,9 @@ export function createSummoning(ledgerNow: () => readonly LedgerRow[], opened: D
   const dust = (): number => pulls.reduce((n, p) => n + p.dust, 0);
 
   /** The counters, folded over the rolls in the order they were made. */
-  const pity = (): PityState =>
-    pulls.reduce<PityState>((p, r) => advancePity(p, r.rarity), { sinceMythic: 0, sinceRare: 0 });
+  const pity = (category?: SummonCategory): PityState =>
+    pulls.filter((pull) => category === undefined || pull.category === category)
+      .reduce<PityState>((p, r) => advancePity(p, r.rarity), { sinceMythic: 0, sinceRare: 0 });
 
   /**
    * Charms committed this sitting, a roll still in flight included.
@@ -297,6 +301,8 @@ export function createSummoning(ledgerNow: () => readonly LedgerRow[], opened: D
    * read "you have one charm" across the await in between.
    */
   let taken = 0;
+  let spentPoints = 0;
+  const idempotent = new Map<string, PullResult>();
   const charms = (): CharmBreakdown => charmsFrom(ledgerNow(), taken);
 
   return {
@@ -308,10 +314,30 @@ export function createSummoning(ledgerNow: () => readonly LedgerRow[], opened: D
         charms: charms(),
         // The demo wallet is not the real one; it shows the published price
         // and enough points to exercise both buttons, and says so on screen.
-        tripPoints: DEMO_TRIP_POINTS,
+        tripPoints: DEMO_TRIP_POINTS - spentPoints,
         price: { one: PULL_COST, ten: TEN_PULL_COST, tenSize: TEN_PULL_SIZE, currency: 'trip' },
         dust: dust(),
         pity: pity(),
+        banners: {
+          mascot: {
+            category: 'mascot', pity: pity('mascot'),
+            collected: SPIRITS.filter((s) => mine.has(s.key)).length,
+            total: SPIRITS.length, active: SPIRITS.length,
+            byRarity: Object.fromEntries(RARITIES.map((r) => [r, {
+              held: SPIRITS.filter((s) => s.rarity === r && mine.has(s.key)).length,
+              total: SPIRITS.filter((s) => s.rarity === r).length,
+            }])) as SummonState['byRarity'],
+          },
+          fashion: {
+            category: 'fashion', pity: pity('fashion'),
+            collected: ROLL_POOL.filter((costume) => mine.has(costume.key)).length,
+            total: ROLL_POOL.length, active: ROLL_POOL.length,
+            byRarity: Object.fromEntries(RARITIES.map((r) => [r, {
+              held: itemsForCategory('fashion', r).filter((item) => mine.has(itemKey(item))).length,
+              total: itemsForCategory('fashion', r).length,
+            }])) as SummonState['byRarity'],
+          },
+        },
         collected: mine.size,
         total: POOL.length,
         // Cast because `fromEntries` is typed over string keys and cannot
@@ -349,6 +375,17 @@ export function createSummoning(ledgerNow: () => readonly LedgerRow[], opened: D
       }));
     },
 
+    fashion(): FashionCard[] {
+      const mine = held();
+      return ROLL_POOL.map((costume) => ({
+        key: costume.key,
+        rarity: itemsForCategory('fashion').find((item) => itemKey(item) === costume.key)!.rarity,
+        held: mine.get(costume.key) ?? 0,
+        name: costume.name,
+        why: costume.why,
+      }));
+    },
+
     /** `GET /summon/history`: this sitting's receipts, newest first. */
     history(limit = 50): SummonReceipt[] {
       return [...pulls].reverse().slice(0, limit).map((p) => ({
@@ -360,6 +397,11 @@ export function createSummoning(ledgerNow: () => readonly LedgerRow[], opened: D
         byPity: p.byPity,
         duplicate: p.duplicate,
         dust: p.dust,
+        category: p.category,
+        transactionId: p.transactionId,
+        item: itemFor(p.spiritKey) ?? null,
+        isNew: !p.duplicate,
+        pointsSpent: p.costPoints,
         receipt: { epochId: p.epochId, nonce: p.nonce, roll: p.roll, pick: p.pick },
       }));
     },
@@ -377,13 +419,17 @@ export function createSummoning(ledgerNow: () => readonly LedgerRow[], opened: D
      * BEFORE this roll, and the roll is consumed even when a floor fires -
      * exactly as `drawSpirit` documents, and for the same reason.
      */
-    async pull(now: Date = new Date()): Promise<SummonAnswer<SummonResult>> {
-      if (charms().available < 1) return { ok: false, code: 'NO_CHARMS', error: NO_CHARMS };
+    async pull(now: Date = new Date(), category?: SummonCategory): Promise<SummonAnswer<SummonResult>> {
+      if (category === undefined && charms().available < 1) return { ok: false, code: 'NO_CHARMS', error: NO_CHARMS };
       const nonce = (taken += 1);
 
       const e = await openEpoch();
       const { roll, pick } = await rollFor(e.seed, USER, nonce);
-      const drawn = drawItem(roll, pick, pity());
+      const decision = drawItem(roll, pick, pity(category));
+      const item = category
+        ? itemsForCategory(category, decision.rarity)[pick % itemsForCategory(category, decision.rarity).length]!
+        : decision.item;
+      const drawn = { ...decision, item };
 
       const duplicate = held().has(itemKey(drawn.item));
       const dustGained = duplicate ? DUST_FROM_DUPLICATE[drawn.rarity] : 0;
@@ -392,7 +438,7 @@ export function createSummoning(ledgerNow: () => readonly LedgerRow[], opened: D
       pulls.push({
         id, at: now.toISOString(), epochId: e.id, nonce, roll, pick,
         spiritKey: itemKey(drawn.item), rarity: drawn.rarity, byPity: drawn.byPity,
-        duplicate, dust: dustGained,
+        duplicate, dust: dustGained, category: category ?? 'mascot', transactionId: null, costPoints: 0,
       });
 
       return {
@@ -404,13 +450,56 @@ export function createSummoning(ledgerNow: () => readonly LedgerRow[], opened: D
           rarity: drawn.rarity,
           byPity: drawn.byPity,
           duplicate,
+          isNew: !duplicate,
+          category: category ?? 'mascot',
+          transactionId: id,
           dustGained,
           dust: dust(),
           charms: charms(),
-          pity: pity(),
+          pity: pity(category),
           receipt: { epochId: e.id, commitment: e.commitment, nonce, roll, pick, poolVersion: POOL_VERSION },
         },
       };
+    },
+
+    async pullBatch(
+      category: SummonCategory,
+      quantity: 1 | 10,
+      idempotencyKey: string,
+      now: Date = new Date(),
+    ): Promise<SummonAnswer<PullResult>> {
+      const replay = idempotent.get(idempotencyKey);
+      if (replay) return { ok: true, value: replay };
+      const cost = quantity === 10 ? TEN_PULL_COST : PULL_COST;
+      if (DEMO_TRIP_POINTS - spentPoints < cost) {
+        return { ok: false, code: 'NOT_ENOUGH_TRIP_POINTS', error: 'Not enough Trip Points.' };
+      }
+      spentPoints += cost;
+      const transactionId = crypto.randomUUID();
+      const results: SummonResult[] = [];
+      for (let index = 0; index < quantity; index += 1) {
+        const result = await this.pull(now, category);
+        if (!result.ok) {
+          spentPoints -= cost;
+          return result;
+        }
+        result.value.transactionId = transactionId;
+        const recorded = pulls.find((pull) => pull.id === result.value.id)!;
+        recorded.transactionId = transactionId;
+        recorded.costPoints = index === 0 ? cost : 0;
+        results.push(result.value);
+      }
+      const value: PullResult = {
+        transactionId,
+        category,
+        results,
+        cost,
+        tripPoints: DEMO_TRIP_POINTS - spentPoints,
+        dust: dust(),
+        pity: pity(category),
+      };
+      idempotent.set(idempotencyKey, value);
+      return { ok: true, value };
     },
   };
 }

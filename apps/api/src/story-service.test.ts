@@ -5,11 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { openTestDb, type DB } from './db-node.ts';
-import { OutsideGeofence } from './quest-service.ts';
-import { MockedLocation } from './presence-service.ts';
 import {
   STORIES_PER_DAY, STORY_MAX_BYTES, StoriesClosed, StoryNotFound, StoryQuotaReached, StoryTooLarge,
-  UnsupportedStory, WrongEventToken, canReviewStories, eventTokenRequired, expireStories, pendingStories,
+  UnsupportedStory, canReviewStories, expireStories, pendingStories,
   readStoryMedia, reviewStory, setStoriesOpen, sniffStory, storiesAt, storiesInArea, storiesOpen, submitStory,
 } from './story-service.ts';
 import { TranscoderUnavailable, type Transcoder } from './transcode.ts';
@@ -46,10 +44,8 @@ const absent: Transcoder = {
 };
 
 const park = { lat: 13.12154, lng: 100.91812 };
-const here = { ...park, accuracyM: 10 };
-
 const submit = (over: Partial<Parameters<typeof submitStory>[1]> = {}) => submitStory(db, {
-  userId: 'ana', placeId: 'ku-park', bytes: mp4(), caption: 'first rain of the day', fix: here,
+  userId: 'ana', placeId: 'ku-park', bytes: mp4(), caption: 'first rain of the day',
   now: T, transcoder: fake, open: true, ...over,
 });
 
@@ -83,14 +79,10 @@ afterEach(() => {
 });
 
 describe('the door', () => {
-  test('is shut unless the deployment opened it', async () => {
+  test('is shut by default, and opens only when asked', async () => {
     delete process.env.CHIVAGO_STORIES_OPEN;
     await assert.rejects(submit({ open: undefined }), StoriesClosed);
-    process.env.CHIVAGO_STORIES_OPEN = '1';
-    try {
-      const s = await submit({ open: undefined });
-      assert.equal(s.status, 'pending');
-    } finally { delete process.env.CHIVAGO_STORIES_OPEN; }
+    assert.equal((await submit({ open: true, now: later(1) })).status, 'pending');
   });
 });
 
@@ -119,19 +111,10 @@ describe('what a story must be', () => {
   });
 });
 
-describe('from the place, with the second signal', () => {
-  test('standing at the beach you cannot tell the park’s story', async () => {
-    await assert.rejects(submit({ fix: { lat: 9.5357, lng: 100.0617, accuracyM: 10 } }), OutsideGeofence);
-  });
-
-  test('a mocked fix is refused before ffmpeg runs', async () => {
-    let ran = false;
-    const spy: Transcoder = {
-      async video() { ran = true; return { media: bytesOf('x'), poster: bytesOf('x'), durationS: 1 }; },
-      async photo() { ran = true; const media = bytesOf('x'); return { media, poster: media, durationS: null }; },
-    };
-    await assert.rejects(submit({ fix: { ...here, mocked: true }, transcoder: spy }), MockedLocation);
-    assert.equal(ran, false);
+describe('about the place, without claiming presence', () => {
+  test('a story can be attached to a place without a GPS fix', async () => {
+    const s = await submit({ placeId: 'chaweng' });
+    assert.equal(s.placeId, 'chaweng');
   });
 
   test('three a day, then no more until tomorrow', async () => {
@@ -218,32 +201,25 @@ describe('nothing lasts', () => {
   });
 });
 
-describe('the door, from the console, and the token from the QR', () => {
-  test('a moderator opens the door as a setting, and shuts it, with no environment', async () => {
+describe('the moderation pause', () => {
+  test('posting is shut by default and a moderator can open, pause and reopen it', async () => {
     delete process.env.CHIVAGO_STORIES_OPEN;
     assert.equal(storiesOpen(db), false);
-    setStoriesOpen(db, true, 'Nok', T);
+    setStoriesOpen(db, true, 'Nok', later(0));
     assert.equal(storiesOpen(db), true);
-    const s = await submit({ open: undefined });
-    assert.equal(s.status, 'pending');
     setStoriesOpen(db, false, 'Nok', later(1));
     assert.equal(storiesOpen(db), false);
     await assert.rejects(submit({ open: undefined, now: later(2) }), StoriesClosed);
+    setStoriesOpen(db, true, 'Nok', later(3));
+    assert.equal((await submit({ open: undefined, now: later(4) })).status, 'pending');
     const who = db.prepare("SELECT updated_by FROM settings WHERE key = 'stories_open'").get() as unknown as { updated_by: string };
     assert.equal(who.updated_by, 'Nok');
   });
 
-  test('with a token on the deployment, an upload needs the right one; without, none', async () => {
-    delete process.env.CHIVAGO_EVENT_TOKEN;
-    assert.equal(eventTokenRequired(), false);
-    assert.equal((await submit()).status, 'pending', 'no token configured, none needed');
+  test('an old event token cannot turn a place post into an event-only post', async () => {
     process.env.CHIVAGO_EVENT_TOKEN = 'K7M2-the-room-on-the-11th';
     try {
-      assert.equal(eventTokenRequired(), true);
-      await assert.rejects(submit({ now: later(1) }), WrongEventToken);
-      await assert.rejects(submit({ now: later(2), event: 'last-years-poster' }), WrongEventToken);
-      await assert.rejects(submit({ now: later(3), event: 'K7M2-the-room-on-the-11th-' }), WrongEventToken, 'a longer string is not a prefix match');
-      assert.equal((await submit({ now: later(4), event: 'K7M2-the-room-on-the-11th' })).status, 'pending');
+      assert.equal((await submit()).status, 'pending');
     } finally {
       delete process.env.CHIVAGO_EVENT_TOKEN;
     }

@@ -1728,6 +1728,49 @@ export function migrate(db: DB): string[] {
   if (addColumn(db, 'summons', 'cost_points', 'INTEGER NOT NULL DEFAULT 0')) {
     applied.push('summons.cost_points');
   }
+  /*
+    Version 3 separates the box into two real banners. Old rows are classified
+    from item_kind after the column arrives, so their history remains useful
+    and each new banner can derive its own pity counter without a second
+    mutable source of truth.
+  */
+  if (addColumn(db, 'summons', 'category', "TEXT NOT NULL DEFAULT 'mascot' CHECK(category IN ('mascot','fashion'))")) {
+    applied.push('summons.category');
+  }
+  if (addColumn(db, 'summons', 'transaction_id', 'TEXT')) {
+    applied.push('summons.transaction_id');
+  }
+  db.exec(`
+    UPDATE summons SET category = 'fashion' WHERE item_kind = 'costume';
+    CREATE INDEX IF NOT EXISTS idx_summons_user_category
+      ON summons(user_id, category, created_at, nonce);
+
+    CREATE TABLE IF NOT EXISTS gacha_reward_pool (
+      reward_key TEXT PRIMARY KEY,
+      category   TEXT NOT NULL CHECK(category IN ('mascot','fashion')),
+      rarity     TEXT NOT NULL CHECK(rarity IN ('common','uncommon','rare','mythic')),
+      weight     INTEGER NOT NULL DEFAULT 100 CHECK(weight > 0),
+      active     INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)),
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_gacha_reward_pool_banner
+      ON gacha_reward_pool(category, rarity, active);
+
+    CREATE TABLE IF NOT EXISTS gacha_transactions (
+      id              TEXT PRIMARY KEY,
+      user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      category        TEXT NOT NULL CHECK(category IN ('mascot','fashion')),
+      quantity        INTEGER NOT NULL CHECK(quantity IN (1,10)),
+      idempotency_key TEXT NOT NULL,
+      cost_points     INTEGER NOT NULL CHECK(cost_points IN (100,900)),
+      response_json   TEXT,
+      created_at      TEXT NOT NULL,
+      UNIQUE(user_id, idempotency_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_gacha_transactions_user
+      ON gacha_transactions(user_id, created_at DESC);
+  `);
+  applied.push('gacha_reward_pool', 'gacha_transactions');
 
   // Real database accounts for user registration and authentication
   db.exec(`

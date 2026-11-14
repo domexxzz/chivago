@@ -525,12 +525,12 @@ describe('a summon receipt is checkable by a stranger', () => {
     assert.equal((await app.request('/summon', { method: 'POST' })).status, 401);
   });
 
-  test('the published rates it serves are the ones with the floors in them', async () => {
+  test('the published rates are the exact base table and pity is separate', async () => {
     const body = await json(await app.request('/summon', { headers: auth() }));
     assert.equal(body.ok, true);
-    const { rates, rollBand } = body.data.rules;
-    assert.ok(rates.mythic > rollBand.mythic, 'the screen is being served the pre-floor band as "rates" again');
-    assert.ok(rates.rare > rollBand.rare);
-    assert.equal(rollBand.mythic, 3, 'the roll band itself moved, which is a different change');
+    const { rates, rollBand, pity } = body.data.rules;
+    assert.deepEqual(rates, { common: 56.26, uncommon: 25.32, rare: 13.41, mythic: 5.01 });
+    assert.deepEqual(rollBand, rates, 'receipt verification and the displayed base table must agree');
+    assert.deepEqual(pity, { mythic: 27, rare: 7 });
   });
 });

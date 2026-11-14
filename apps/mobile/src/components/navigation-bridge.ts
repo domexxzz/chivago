@@ -52,6 +52,8 @@ export type MapCommand =
   | { type: 'CAMERA'; centre: [number, number]; bearing: number; zoom: number; pitch: number; duration: number; padding: { top: number; bottom: number; left: number; right: number } }
   /** Frame the whole route, for the overview. */
   | { type: 'FIT'; bounds: [[number, number], [number, number]]; padding: { top: number; bottom: number; left: number; right: number } }
+  /** One deliberate step from the visible + / - controls. */
+  | { type: 'ZOOM'; delta: 1 | -1 }
   /** Take the route and the arrow off the map. */
   | { type: 'CLEAR_ROUTE' };
 
@@ -60,6 +62,8 @@ export type MapEvent =
   | { type: 'MAP_READY' }
   /** A drag, a pinch or a two-finger tilt. The camera is theirs now. */
   | { type: 'USER_MOVED_MAP' }
+  /** A deliberate tap, used only while the traveller is choosing an origin. */
+  | { type: 'MAP_PRESS'; lng: number; lat: number }
   /** A tile or style failure the map could not recover from. */
   | { type: 'MAP_ERROR'; code: string };
 
@@ -78,9 +82,15 @@ export function parseMapEvent(raw: unknown): MapEvent | null {
   let body: unknown;
   try { body = JSON.parse(raw); } catch { return null; }
   if (!body || typeof body !== 'object') return null;
-  const { type, code } = body as { type?: unknown; code?: unknown };
+  const { type, code, lng, lat } = body as {
+    type?: unknown; code?: unknown; lng?: unknown; lat?: unknown;
+  };
   if (type === 'MAP_READY') return { type: 'MAP_READY' };
   if (type === 'USER_MOVED_MAP') return { type: 'USER_MOVED_MAP' };
+  if (type === 'MAP_PRESS') {
+    if (!isNumber(lng) || !isNumber(lat) || lng < -180 || lng > 180 || lat < -90 || lat > 90) return null;
+    return { type: 'MAP_PRESS', lng, lat };
+  }
   if (type === 'MAP_ERROR') return { type: 'MAP_ERROR', code: typeof code === 'string' ? code.slice(0, 200) : 'unknown' };
   return null;
 }
@@ -139,6 +149,8 @@ export function validateCommand(command: unknown): MapCommand | null {
       if (!bounds || bounds.length !== 2 || !padding) return null;
       return { type: 'FIT', bounds: [bounds[0]!, bounds[1]!], padding };
     }
+    case 'ZOOM':
+      return c.delta === 1 || c.delta === -1 ? { type: 'ZOOM', delta: c.delta } : null;
     case 'CLEAR_ROUTE':
       return { type: 'CLEAR_ROUTE' };
     default:

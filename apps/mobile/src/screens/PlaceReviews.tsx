@@ -111,11 +111,11 @@ export function ReviewsBlock({
       */}
       {canReview || storiesOpen ? (
         <Button
-          label={mine ? t(strings.place.leaveAgain) : t(strings.place.leaveSomething)}
-          thai={mine ? strings.place.leaveAgain.th : strings.place.leaveSomething.th}
-          chinese={mine ? strings.place.leaveAgain.zh : strings.place.leaveSomething.zh}
+          label={mine ? t(strings.reviews.edit) : t(strings.reviews.write)}
+          thai={mine ? strings.reviews.edit.th : strings.reviews.write.th}
+          chinese={mine ? strings.reviews.edit.zh : strings.reviews.write.zh}
           onPress={() => {
-            if (requireAccount({ en: 'Please sign in or create an account to write a review or post a story.', th: 'เข้าสู่ระบบเพื่อเขียนรีวิวสถานที่นี้หรือโพสต์เรื่องราว', zh: '请登录或注册账号，以撰写评价或发布故事。' })) return;
+            if (requireAccount({ en: 'Please sign in or create an account to write a review.', th: 'เข้าสู่ระบบเพื่อเขียนรีวิวสถานที่นี้', zh: '请登录或注册账号以撰写评价。' })) return;
             setComposing(true);
           }}
           variant="secondary"
@@ -482,7 +482,7 @@ export function ComposeSheet({
             }}
           >
             <Heading size={20}>
-              {existing ? t(strings.place.leaveAgain) : t(strings.place.leaveSomething)}
+              {existing ? t(strings.reviews.edit) : t(strings.reviews.write)}
             </Heading>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t(strings.common.close)} hitSlop={12} style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: color.neutral200, alignItems: 'center', justifyContent: 'center' }}>
               <X size={20} color={color.text} />
