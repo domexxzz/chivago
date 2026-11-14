@@ -31,13 +31,13 @@ import React from 'react';
 import { View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import type { Area, ExploredPlace, ScoredPlace } from '@chivago/core';
-import { isHighScore } from '@chivago/core';
 import { MapLegend } from './map-parts.tsx';
 import { chivagoStyle } from './terrain-style.ts';
 import { color } from '../theme/index.ts';
 import { t } from '../i18n/locale.ts';
 import type { Shop } from '../api/shops.ts';
 import { shopMarkerSvg, shopMarkerVisual } from './shop-map-marker.tsx';
+import { placeMarkerHtml, placeMarkerVisual } from './place-map-marker.tsx';
 import { UNPINNED_NOTE, mappable, servicePoints } from './map-geometry.ts';
 
 /**
@@ -115,7 +115,7 @@ export interface WebTerrainMapProps {
  * Built as a string rather than a file so there is nothing to bundle, nothing
  * to serve, and no second place for the style to drift out of sync.
  */
-function page(style: unknown, pins: { id: string; lat: number; lng: number; label: string; high: boolean }[],
+function page(style: unknown, pins: { id: string; lat: number; lng: number; label: string; colour: string; html: string }[],
   shopPins: { id: string; lat: number; lng: number; name: string; category: string; colour: string; svg: string; approximate: boolean; note: string }[],
   centre: [number, number], here: { lat: number; lng: number } | null,
   box: { minLat: number; maxLat: number; minLng: number; maxLng: number },
@@ -128,16 +128,18 @@ function page(style: unknown, pins: { id: string; lat: number; lng: number; labe
 <link href="${MAPLIBRE_CSS}" rel="stylesheet">
 <style>
   html,body,#map{margin:0;padding:0;height:100%;width:100%;background:${color.brandSoft}}
-  .pin{display:flex;align-items:center;gap:4px;padding:3px 7px;border-radius:14px;border:2px solid #fff;
-       background:#0077B6;color:#fff;font:700 11px/1 system-ui,sans-serif;white-space:nowrap;
-       box-shadow:0 2px 6px rgba(0,0,0,.3)}
-  .pin.high{background:#1B7F5A}
+  .pin{position:relative;display:flex;align-items:center;justify-content:center;width:42px;height:48px;padding:0;border:0;background:transparent;color:#fff}
+  .pin-core{position:absolute;top:0;z-index:1;display:flex;align-items:center;justify-content:center;width:38px;height:38px;
+    border:3px solid #fff;border-radius:50%;background:var(--marker-colour);box-shadow:0 4px 7px rgba(8,26,48,.4)}
+  .pin-core img{width:84px;height:84px;max-width:none;display:block;object-fit:contain}
+  .pin-tail{position:absolute;top:31px;width:13px;height:13px;transform:rotate(45deg);background:var(--marker-colour);
+    border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;border-radius:2px;box-shadow:3px 3px 5px rgba(8,26,48,.32)}
   .shop-pin{position:relative;display:flex;align-items:center;justify-content:center;width:42px;height:48px;
     padding:0;border:0;background:transparent;color:#fff}
   .shop-pin-core{position:absolute;top:0;z-index:1;display:flex;align-items:center;justify-content:center;width:38px;height:38px;
     border:3px solid #fff;border-radius:50%;background:var(--marker-colour);box-shadow:0 4px 7px rgba(8,26,48,.4)}
   .shop-pin-core svg{width:19px;height:19px}
-  .shop-pin-core img{width:128px;height:128px;max-width:none;display:block;object-fit:contain}
+  .shop-pin-core img{width:84px;height:84px;max-width:none;display:block;object-fit:contain}
   .shop-pin-tail{position:absolute;top:31px;width:13px;height:13px;transform:rotate(45deg);background:var(--marker-colour);
     border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;border-radius:2px;box-shadow:3px 3px 5px rgba(8,26,48,.32)}
   .shop-pin.approx .shop-pin-core{border-style:dashed;opacity:.9}
@@ -324,8 +326,10 @@ function start(){
     window.__sat=function(){ btn.click(); };
     D.pins.forEach(function(p){
       var el=document.createElement('div');
-      el.className='pin'+(p.high?' high':'');
-      el.textContent=p.label;
+      el.className='pin';
+      el.setAttribute('aria-label',p.label);
+      el.style.setProperty('--marker-colour',p.colour);
+      el.innerHTML='<span class="pin-tail"></span><span class="pin-core">'+p.html+'</span>';
       el.addEventListener('click',function(){ post({type:'select',id:p.id}); });
       new maplibregl.Marker({element:el}).setLngLat([p.lng,p.lat]).addTo(map);
     });
@@ -386,8 +390,9 @@ export function WebTerrainMap({
       chivagoStyle(hour),
       places.map((p) => ({
         id: p.id, lat: p.lat, lng: p.lng,
-        label: `${p.healthyScore} ${t(p.name)}`,
-        high: isHighScore(p.healthyScore),
+        label: `${t(p.name)}, ${t({ en: 'category pin', th: 'หมุดแยกตามประเภท', zh: '分类图钉' })}`,
+        colour: placeMarkerVisual(p).colour,
+        html: placeMarkerHtml(p),
       })),
       // Every service, one pin: `servicePoints` stands the unpinned ones on
       // the area's ring and flags them, and the page draws them dashed.

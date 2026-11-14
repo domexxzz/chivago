@@ -36,6 +36,7 @@ import { color, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Heading, Label } from './Type.tsx';
 import { LayerChips, MapLegend, PinChip, PlaceFeedRow, type MapMode } from './map-parts.tsx';
 import { ShopMapMarker } from './shop-map-marker.tsx';
+import { PlaceMapMarker } from './place-map-marker.tsx';
 
 // Re-exported so `MapScreen` and the tests keep importing the map's whole
 // surface from one module, whichever implementation the platform resolves.
@@ -587,7 +588,7 @@ function AreaPointMap({ area, places, shops = [], onSelect, onSelectShop, onPick
       /> : null}
       {selectedCoordinate && onPickCoordinate ? (() => { const pos = point(selectedCoordinate.lat, selectedCoordinate.lng); return <View pointerEvents="none" style={{ position: 'absolute', left: pos.left - 10, top: pos.top - 10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#0077B6', borderWidth: 4, borderColor: '#fff', elevation: 5 }} />; })() : null}
       <View style={{ position: 'absolute', top: 8, left: 12, backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }}><Label size={10} colour="#0077B6">{t(area.name)} · {t({ en: 'Coordinate map', th: 'แผนผังพิกัด', zh: '坐标地图' })}</Label></View>
-      {places.map((place) => { const pos = point(place.lat, place.lng); return <Pressable key={place.id} onPress={() => onSelect(place)} accessibilityLabel={t(place.name)} style={{ position: 'absolute', left: pos.left - 16, top: pos.top - 20, backgroundColor: '#0077B6', borderWidth: 2, borderColor: '#fff', borderRadius: 16, paddingHorizontal: 5, paddingVertical: 4 }}><Label size={10} colour="#fff">{place.healthyScore}</Label></Pressable>; })}
+      {places.map((place) => { const pos = point(place.lat, place.lng); return <Pressable key={place.id} onPress={() => onSelect(place)} accessibilityLabel={t(place.name)} style={{ position: 'absolute', left: pos.left - 23, top: pos.top - 51 }}><PlaceMapMarker place={place} /></Pressable>; })}
       {/* Every service, one pin - an unpinned one on the area's ring, marked as such. */}
       {!onPickCoordinate ? servicePoints(mappable(shops), area.center, area.bbox).map((spot) => { const shop = spot.source; const pos = point(spot.lat, spot.lng); return <Pressable key={shop.id} onPress={() => onSelectShop?.(shop)} accessibilityLabel={spot.approximate ? `${shop.category}: ${shop.name}. ${t(UNPINNED_NOTE)}` : `${shop.category}: ${shop.name}`} style={{ position: 'absolute', left: pos.left - 23, top: pos.top - 51 }}><ShopMapMarker category={shop.category} approximate={spot.approximate} /></Pressable>; }) : null}
     </View>
@@ -736,8 +737,8 @@ function IslandMap({
                   // off the chip's left, so the whole pin shifts left by its
                   // width to leave the stem exactly where it was.
                   transform: [
-                    { translateX: -CHIP.halfWidth - (tale && onOpenStory ? TALE_W : 0) },
-                    { translateY: -40 },
+                    { translateX: -23 - (tale && onOpenStory ? TALE_W : 0) },
+                    { translateY: -51 },
                   ],
                 }}
               >

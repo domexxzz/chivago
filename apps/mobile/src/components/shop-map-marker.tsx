@@ -79,7 +79,7 @@ export function ShopMapMarker({ category, approximate = false }: { category: str
         elevation: 5,
       }}>
         {brandedIcon
-          ? <ChivarIcon name={brandedIcon} size={38} />
+          ? <ChivarIcon name={brandedIcon} size={28} />
           : <Icon size={21} strokeWidth={2.4} color="#FFFFFF" />}
       </View>
       {approximate ? (
