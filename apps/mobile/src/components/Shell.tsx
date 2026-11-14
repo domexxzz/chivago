@@ -119,18 +119,9 @@ export function AiGuideButton({ onPress, wide = false }: { onPress: () => void; 
           overflow: 'visible',
         }}
       >
-        <Image
-          source={aiGuideRobot}
-          resizeMode="contain"
-          accessibilityIgnoresInvertColors
-          style={{
-            position: 'absolute',
-            width: 62,
-            height: 66,
-            top: -22,
-            left: -1,
-          }}
-        />
+        <View style={{ position: 'absolute', width: 64, height: 64, top: -26, left: -2 }}>
+          <ChivarBotScene width={64} height={64} mood="smile" label="" interactive={false} />
+        </View>
         <View style={{ position: 'absolute', right: 1, top: 3 }}>
           <Sparkles size={11} color="#FFE28A" fill="#FFE28A" strokeWidth={2} />
         </View>

@@ -16,7 +16,7 @@ import type {
   ShieldService,
   WellnessProfile,
 } from '@chivago/core';
-import { computeHealthyScore, EMPTY_PROFILE, isBookingLink } from '@chivago/core';
+import { ACTIVE_QUEST_CODES, computeHealthyScore, EMPTY_PROFILE, isBookingLink, RETIRED_CODE_PREFIX } from '@chivago/core';
 import type { AirStation } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
 import { getAir } from './air.ts';
@@ -244,19 +244,60 @@ const QUEST_SELECT = `
          h.id AS host_id, h.name AS host_name, h.type AS host_type
   FROM quests q JOIN hosts h ON h.id = q.host_id`;
 
-const ACTIVE_QUEST_WHERE = "q.code IN ('SG-01','SG-02','SG-03','SG-04','SG-05')";
+/**
+ * Which quests the app publishes.
+ *
+ * THE RULE the pilot wants: only the five verified Ko Sichang field-trial
+ * quests, so a stale database cannot put a retired quest back on a traveller's
+ * screen. `ACTIVE_QUEST_CODES` in the seed is where that list lives.
+ *
+ * THE HOLE THAT RULE HAD, found on 14 November 2026. Written as a bare
+ * allow-list, it hides everything it was not told about - and the live
+ * database holds quests this repository's seed has never listed, Samui and the
+ * campuses among them. Worse, the five SG rows are not in the live database
+ * yet: content reaches a Durable Object only when an operator runs
+ * `POST /internal/open-area`. Asked against production, the allow-list alone
+ * published **0 of 16 quests**, a week before the finals.
+ *
+ * So the rule stands and gains one clause: IT MAY NOT PUBLISH NOTHING. When
+ * this database has none of the active set in it, the replacements have not
+ * arrived, and what is on the island is still the island's. Those are
+ * published instead - minus anything explicitly retired, which
+ * `retireSupersededQuests` marks in the code itself when it hands a code over.
+ *
+ * The fallback heals by itself: the moment the active set lands, the first
+ * clause takes over again, in the same transaction that retired what it
+ * replaced. Nobody has to remember to turn anything off.
+ */
+const ACTIVE_QUEST_WHERE = `q.code IN (${ACTIVE_QUEST_CODES.map((c) => `'${c}'`).join(',')})`;
+const NOT_RETIRED_WHERE = `q.code NOT LIKE '${RETIRED_CODE_PREFIX}%'`;
+
+/**
+ * The clause to publish by, decided per call against this database.
+ *
+ * One `LIMIT 1` on a UNIQUE column, which is the cheapest question SQLite can
+ * be asked, and the alternative is an app that shows an empty list and gives
+ * nobody a reason why.
+ */
+function publishedWhere(db: DB): string {
+  const hasActive = db.prepare(`SELECT 1 FROM quests q WHERE ${ACTIVE_QUEST_WHERE} LIMIT 1`).get();
+  return hasActive ? ACTIVE_QUEST_WHERE : NOT_RETIRED_WHERE;
+}
 
 export function listQuests(db: DB, filter?: 'today' | 'weekend'): Quest[] {
+  const where = publishedWhere(db);
   const questRows = filter
     ? rows<QuestRow>(
-        db.prepare(`${QUEST_SELECT} WHERE ${ACTIVE_QUEST_WHERE} AND q.kind = ? ORDER BY q.reward_points DESC`).all(filter),
+        db.prepare(`${QUEST_SELECT} WHERE ${where} AND q.kind = ? ORDER BY q.reward_points DESC`).all(filter),
       )
-    : rows<QuestRow>(db.prepare(`${QUEST_SELECT} WHERE ${ACTIVE_QUEST_WHERE} ORDER BY q.reward_points DESC`).all());
+    : rows<QuestRow>(db.prepare(`${QUEST_SELECT} WHERE ${where} ORDER BY q.reward_points DESC`).all());
   return questRows.map(toQuest);
 }
 
 export function getQuest(db: DB, questId: string): Quest | null {
-  const found = row<QuestRow>(db.prepare(`${QUEST_SELECT} WHERE q.id = ? AND ${ACTIVE_QUEST_WHERE}`).get(questId));
+  const found = row<QuestRow>(
+    db.prepare(`${QUEST_SELECT} WHERE q.id = ? AND ${publishedWhere(db)}`).get(questId),
+  );
   return found ? toQuest(found) : null;
 }
 

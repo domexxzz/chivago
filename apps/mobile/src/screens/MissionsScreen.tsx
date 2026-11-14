@@ -21,12 +21,31 @@
  */
 
 import React from 'react';
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, Text, View, type ImageSourcePropType } from 'react-native';
 import { ChevronRight, Clock, MapPin } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import sichangBanner from '../../assets/quest-sichang-explorer.png';
 import trashHeroLogo from '../../assets/trash-hero-logo.png';
-import { greetingFor, isActiveQuestCode, isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
+import secretRecipeLogo from '../../assets/game-secret-recipe-logo.png';
+
+/**
+ * The picture on each mini-game's card.
+ *
+ * Every card used to show `trashHeroLogo`, which is the waste game's own
+ * badge, so เชฟชังชังเปิดร้าน sat on the Games list wearing another game's
+ * logo. It was not a placeholder anybody had meant to leave - the second game
+ * simply arrived after the card was written, and one hardcoded `source` has no
+ * way of noticing.
+ *
+ * Keyed by `MiniGameKey`, so a third game is a missing key the compiler points
+ * at rather than a card quietly wearing the wrong face. The fallback is the
+ * same picture as before, because a card with no image at all is worse.
+ */
+export const GAME_ICON: Partial<Record<MiniGameKey, ImageSourcePropType>> = {
+  'waste-sort': trashHeroLogo,
+  'chef-shop': secretRecipeLogo,
+};
+import { areaByKey, greetingFor, inArea, isRetiredQuestCode, isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
@@ -64,11 +83,36 @@ export function MissionsScreen({
   //    be instant rather than a network round-trip on a weak beach signal.
   const data = useAsync(() => api.quests(), []);
 
-  // Defence in depth: deployed APIs may briefly lag a mobile release and an
-  // offline snapshot can outlive its seed. Retired quests must not reappear
-  // merely because one of those stores still contains historical rows.
-  const all = (data.data?.quests ?? []).filter((q) => isActiveQuestCode(q.code));
-  const sichangQuests = all;
+  /*
+    Defence in depth: a deployed API may briefly lag a mobile release and an
+    offline snapshot can outlive its seed, so a retired quest must not reappear
+    merely because one of those stores still holds historical rows.
+
+    EXCLUDE THE RETIRED, DO NOT ALLOW-LIST THE ACTIVE. This read the other way
+    round until 14 November 2026 - `isActiveQuestCode(q.code)` - and an
+    allow-list drops everything it was not told about. The pilot database
+    publishes SC-01..SC-05, this release knew only SG-01..SG-05, and MISSIONS
+    came up empty on the demo island with the API answering correctly. Stated
+    as an exclusion it can only ever hide something deliberately retired, and
+    the screen cannot be blanked by the two stores merely disagreeing.
+
+    The server already decides what is published (`publishedWhere` in
+    `repo.ts`); this is a second opinion about retirement, not a second
+    publishing rule.
+  */
+  const all = (data.data?.quests ?? []).filter((q) => !isRetiredQuestCode(q.code));
+  /*
+    The island's own quests, by where they are.
+
+    This was `all` - every published quest, counted as Ko Sichang's - and it
+    read correctly only because the publishing filter happened to leave nothing
+    else. That is the sort of accident that holds right up until the day it
+    does not: the card promises "5 quests · up to 800 XP" to a judge, and a
+    quest published for Samui would have been counted into that promise.
+
+    A quest carries its coordinates, so ask the question directly.
+  */
+  const sichangQuests = all.filter((q) => inArea(areaByKey('koh-sichang'), q));
   const visible = filter === 'sichang'
     ? sichangQuests
     : filter === 'all'
@@ -334,7 +378,7 @@ function GamesPanel({ onOpenGame }: { onOpenGame?: (key: MiniGameKey) => void })
           >
             <View style={{ width: 72, height: 72, borderRadius: 18, backgroundColor: '#E9FBF8', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
               <Image
-                source={trashHeroLogo}
+                source={GAME_ICON[game.key] ?? trashHeroLogo}
                 resizeMode="contain"
                 accessibilityLabel={t(game.name)}
                 style={{ width: 70, height: 70 }}

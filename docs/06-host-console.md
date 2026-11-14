@@ -20,10 +20,14 @@ pnpm --filter @chivago/api seed
 [chivago] Host console access keys — shown ONCE, store them now:
           http://localhost:8787/console/login
 
-          chv_6AWYW-C4WX6-VDQZA-HQPUI   Samui Municipality
-          chv_EBSTJ-AURIB-50M0R-MSYS9   Samui Green Foundation (NGO)
+          chv_XXXXX-XXXXX-XXXXX-XXXXX   Samui Municipality
+          chv_XXXXX-XXXXX-XXXXX-XXXXX   Samui Green Foundation (NGO)
           ...
 ```
+
+> คีย์จริงถูกสุ่มใหม่ทุกครั้งที่ `pnpm --filter @chivago/api seed` รัน และ
+> **แสดงครั้งเดียวในเทอร์มินัลตอน seed** — เก็บจากตรงนั้น ไม่ได้เก็บไว้ในเอกสาร
+> `chv_XXXXX-...` ข้างบนเป็นแค่รูปแบบ ไม่ใช่คีย์ที่ใช้ได้ (เอกสารนี้เป็น public repo)
 
 Only a salted scrypt hash is stored. Re-seeding to update content leaves
 existing keys alone — it must never lock a municipality out mid-pilot. To rotate
