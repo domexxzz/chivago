@@ -34,6 +34,7 @@ import { OceanBackdrop } from '../components/Shell.tsx';
 import { ErrorState, SkeletonList } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 import { ChivarBot, type BotMood } from '../components/ChivarBot.tsx';
+import { ChivarBotScene } from '../components/ChivarBotScene.tsx';
 import aiGuideSamuiCard from '../../assets/ai-guide-samui-card-v1.png';
 
 /** The face Chivar Bot wears for a given answer. */
@@ -160,12 +161,13 @@ function Openers({ areaName, onPick }: { areaName: string; onPick: (text: string
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 16, paddingBottom: 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 9 }}>
-        <View
-          style={{ width: 94, height: 104, alignItems: 'center', justifyContent: 'center' }}
-          accessibilityLabel={t({ en: 'Chivar Bot robot', th: 'หุ่นยนต์ผู้ช่วย Chivar Bot', zh: 'Chivar Bot 机器人' })}
-        >
-          <ChivarBot size={104} mood="happy" waving />
-        </View>
+        <ChivarBotScene
+          width={118}
+          height={138}
+          mood="happy"
+          waving
+          label={t({ en: 'Chivar Bot robot - drag to turn him round', th: 'หุ่นยนต์ผู้ช่วย Chivar Bot - ลากเพื่อหมุนดูรอบตัว', zh: 'Chivar Bot 机器人 - 拖动可转身' })}
+        />
         <View style={[shadow.card, { flex: 1, minHeight: 104, justifyContent: 'center', padding: 15, borderRadius: 22, borderTopLeftRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DCEFF0' }]}>
           <Heading size={16}>{t({ en: 'Hello! Welcome to ChivarGo', th: 'สวัสดี! ยินดีต้อนรับสู่ ChivarGo', zh: '你好！欢迎来到 ChivarGo' })}</Heading>
           <Body size={13} colour={color.neutral600} style={{ marginTop: 6 }}>{t({ en: 'Your travel AI assistant, ready to plan and find the right places for you.', th: 'ผู้ช่วย AI ด้านการท่องเที่ยว ที่พร้อมแนะนำ วางแผนทริป และหาที่เที่ยวให้คุณ', zh: '你的旅行 AI 助手，随时为你规划行程并寻找合适的目的地。' })}</Body>
