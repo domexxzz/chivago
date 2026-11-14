@@ -42,13 +42,16 @@ function useModel(): Model | null {
 }
 
 export function ChivarBotScene({
-  mood = 'idle', waving = false, width, height, label,
+  mood = 'idle', waving = false, width, height, label, interactive = true,
 }: {
   mood?: BotMood;
   waving?: boolean;
   width: number;
   height: number;
+  /** Empty for an avatar inside a labelled button: it is decoration there. */
   label: string;
+  /** False where the avatar sits inside something pressable. See `ChivarBot3D`. */
+  interactive?: boolean;
 }) {
   const still = useReduceMotion();
   const Model = useModel();
@@ -58,7 +61,7 @@ export function ChivarBotScene({
   const onFail = React.useCallback(() => setFailed(true), []);
 
   return (
-    <View style={{ width, height }} accessible accessibilityLabel={label}>
+    <View style={{ width, height }} accessible={label !== ''} accessibilityLabel={label || undefined} pointerEvents={interactive ? 'auto' : 'none'}>
       {!live ? (
         <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
           <ChivarBot size={Math.min(width, height)} mood={mood} waving={waving} />
@@ -66,7 +69,7 @@ export function ChivarBotScene({
       ) : null}
       {Model && !failed ? (
         <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, opacity: live ? 1 : 0 }}>
-          <Model mood={mood} waving={waving} height={height} label={label} still={still} onReady={onReady} onFail={onFail} />
+          <Model mood={mood} waving={waving} height={height} label={label} still={still} onReady={onReady} onFail={onFail} interactive={interactive} />
         </View>
       ) : null}
     </View>
