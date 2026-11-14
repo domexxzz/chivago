@@ -79,10 +79,10 @@ afterEach(() => {
 });
 
 describe('the door', () => {
-  test('is open by default, and can still be paused explicitly', async () => {
+  test('is shut by default, and opens only when asked', async () => {
     delete process.env.CHIVAGO_STORIES_OPEN;
-    assert.equal((await submit({ open: undefined })).status, 'pending');
-    await assert.rejects(submit({ open: false, now: later(1) }), StoriesClosed);
+    await assert.rejects(submit({ open: undefined }), StoriesClosed);
+    assert.equal((await submit({ open: true, now: later(1) })).status, 'pending');
   });
 });
 
@@ -202,8 +202,10 @@ describe('nothing lasts', () => {
 });
 
 describe('the moderation pause', () => {
-  test('posting is open by default and a moderator can pause and reopen it', async () => {
+  test('posting is shut by default and a moderator can open, pause and reopen it', async () => {
     delete process.env.CHIVAGO_STORIES_OPEN;
+    assert.equal(storiesOpen(db), false);
+    setStoriesOpen(db, true, 'Nok', later(0));
     assert.equal(storiesOpen(db), true);
     setStoriesOpen(db, false, 'Nok', later(1));
     assert.equal(storiesOpen(db), false);

@@ -109,9 +109,10 @@ export function storiesOpen(db: DB): boolean {
   if (process.env.CHIVAGO_STORIES_OPEN === '0') return false;
   if (process.env.CHIVAGO_STORIES_OPEN === '1') return true;
   const r = row<{ value: string }>(db.prepare("SELECT value FROM settings WHERE key = 'stories_open'").get());
-  // Place moments are open by default. A moderator can still pause posting
-  // without a deploy when moderation capacity is unavailable.
-  return r?.value !== '0';
+  // Closed unless a moderator opens it (docs/46). Posts no longer need GPS,
+  // so the door is the one thing standing between an upload and any place
+  // at any hour - it stays shut by default.
+  return r?.value === '1';
 }
 
 /** Open or shut the door, and remember who did. */

@@ -22,7 +22,7 @@ export type { TabKey } from '../state/store.tsx';
 import type { TabKey } from '../state/store.tsx';
 import { t } from '../i18n/locale.ts';
 import travelHero from '../../assets/chivago-travel-hero-v2.png';
-import aiGuideRobot from '../../assets/chivargo-ai-robot-v1.png';
+import { ChivarBotScene } from './ChivarBotScene.tsx';
 /*
   ONE SET OF SEVEN, not six renders and a line icon.
 
