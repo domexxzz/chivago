@@ -12,6 +12,7 @@ import { ArrowUpRight, BedDouble, BusFront, Check, ChevronDown, Dumbbell, Layout
 import { color, gutter, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { PushHeader } from '../components/Shell.tsx';
+import { SolutionConnect } from '../components/SolutionConnect.tsx';
 import { t } from '../i18n/locale.ts';
 import sinraniBadminton from '../../assets/sinrani-badminton-local-pick.png';
 
@@ -30,6 +31,18 @@ export function LocalPicksScreen({
   const [category, setCategory] = React.useState<LocalPickCategory>('all');
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const compact = width < 520;
+  /*
+    Beside the picker, or under the whole screen.
+
+    The content column is 1040 wide and the category picker is capped at 520,
+    so on a desktop browser the right half of this screen was empty - which is
+    where Solution Connect goes. Below 900 there is no second column to fill,
+    and the partner then goes AFTER the local picks rather than above them:
+    the traveller opened this screen for the island's own businesses, and a
+    paid placement ahead of them would be the layout making the same claim the
+    copy is careful not to make.
+  */
+  const twoColumn = width >= 900;
 
   const categories: Array<{
     key: LocalPickCategory;
@@ -90,60 +103,71 @@ export function LocalPicksScreen({
             })}
           </Body>
 
-          <View style={{ marginTop: 20, width: '100%', maxWidth: 520, zIndex: 5 }}>
-            <Label size={10} tracking={0.1} colour={color.neutral700} style={{ marginBottom: 7 }}>
-              {t({ en: 'CATEGORY', th: 'เลือกหมวด', zh: '选择类别' })}
-            </Label>
-            <Pressable
-              onPress={() => setDropdownOpen((open) => !open)}
-              accessibilityRole="button"
-              accessibilityLabel={t({ en: `Category: ${selected.label}`, th: `หมวด: ${selected.label}`, zh: `类别：${selected.label}` })}
-              accessibilityState={{ expanded: dropdownOpen }}
-              style={({ pressed }) => [shadow.card, {
-                minHeight: 64, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1.5,
-                borderColor: dropdownOpen ? selected.accent : '#BFD9E5', backgroundColor: color.surface,
-                flexDirection: 'row', alignItems: 'center', gap: 12, opacity: pressed ? 0.86 : 1,
-              }]}
-            >
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: selected.pale, alignItems: 'center', justifyContent: 'center' }}>
-                <SelectedIcon size={21} color={selected.accent} strokeWidth={2.1} />
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Heading size={16} colour={color.text}>{selected.label}</Heading>
-                <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>{selected.description}</Body>
-              </View>
-              <ChevronDown size={21} color={color.neutral700} style={{ transform: [{ rotate: dropdownOpen ? '180deg' : '0deg' }] }} />
-            </Pressable>
+          <View style={{
+            marginTop: 20, flexDirection: twoColumn ? 'row' : 'column',
+            alignItems: 'flex-start', gap: twoColumn ? 24 : 0, zIndex: 5,
+          }}>
+            <View style={{ width: '100%', maxWidth: 520, flexShrink: 1, zIndex: 5 }}>
+              <Label size={10} tracking={0.1} colour={color.neutral700} style={{ marginBottom: 7 }}>
+                {t({ en: 'CATEGORY', th: 'เลือกหมวด', zh: '选择类别' })}
+              </Label>
+              <Pressable
+                onPress={() => setDropdownOpen((open) => !open)}
+                accessibilityRole="button"
+                accessibilityLabel={t({ en: `Category: ${selected.label}`, th: `หมวด: ${selected.label}`, zh: `类别：${selected.label}` })}
+                accessibilityState={{ expanded: dropdownOpen }}
+                style={({ pressed }) => [shadow.card, {
+                  minHeight: 64, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1.5,
+                  borderColor: dropdownOpen ? selected.accent : '#BFD9E5', backgroundColor: color.surface,
+                  flexDirection: 'row', alignItems: 'center', gap: 12, opacity: pressed ? 0.86 : 1,
+                }]}
+              >
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: selected.pale, alignItems: 'center', justifyContent: 'center' }}>
+                  <SelectedIcon size={21} color={selected.accent} strokeWidth={2.1} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Heading size={16} colour={color.text}>{selected.label}</Heading>
+                  <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>{selected.description}</Body>
+                </View>
+                <ChevronDown size={21} color={color.neutral700} style={{ transform: [{ rotate: dropdownOpen ? '180deg' : '0deg' }] }} />
+              </Pressable>
 
-            {dropdownOpen ? (
-              <View style={[shadow.card, {
-                marginTop: 8, padding: 7, borderRadius: 18, borderWidth: 1,
-                borderColor: '#C9DEE8', backgroundColor: color.surface, gap: 3,
-              }]}>
-                {categories.map((item) => {
-                  const Icon = item.icon;
-                  const active = item.key === category;
-                  return (
-                    <Pressable
-                      key={item.key}
-                      onPress={() => { setCategory(item.key); setDropdownOpen(false); }}
-                      accessibilityRole="menuitem"
-                      accessibilityLabel={item.label}
-                      accessibilityState={{ selected: active }}
-                      style={({ pressed }) => ({
-                        minHeight: 50, paddingHorizontal: 11, borderRadius: 13,
-                        backgroundColor: active ? item.pale : pressed ? color.neutral100 : 'transparent',
-                        flexDirection: 'row', alignItems: 'center', gap: 11,
-                      })}
-                    >
-                      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: item.pale, alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon size={18} color={item.accent} strokeWidth={2} />
-                      </View>
-                      <Label size={11} colour={active ? item.accent : color.text} style={{ flex: 1 }}>{item.label}</Label>
-                      {active ? <Check size={18} color={item.accent} strokeWidth={2.4} /> : null}
-                    </Pressable>
-                  );
-                })}
+              {dropdownOpen ? (
+                <View style={[shadow.card, {
+                  marginTop: 8, padding: 7, borderRadius: 18, borderWidth: 1,
+                  borderColor: '#C9DEE8', backgroundColor: color.surface, gap: 3,
+                }]}>
+                  {categories.map((item) => {
+                    const Icon = item.icon;
+                    const active = item.key === category;
+                    return (
+                      <Pressable
+                        key={item.key}
+                        onPress={() => { setCategory(item.key); setDropdownOpen(false); }}
+                        accessibilityRole="menuitem"
+                        accessibilityLabel={item.label}
+                        accessibilityState={{ selected: active }}
+                        style={({ pressed }) => ({
+                          minHeight: 50, paddingHorizontal: 11, borderRadius: 13,
+                          backgroundColor: active ? item.pale : pressed ? color.neutral100 : 'transparent',
+                          flexDirection: 'row', alignItems: 'center', gap: 11,
+                        })}
+                      >
+                        <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: item.pale, alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon size={18} color={item.accent} strokeWidth={2} />
+                        </View>
+                        <Label size={11} colour={active ? item.accent : color.text} style={{ flex: 1 }}>{item.label}</Label>
+                        {active ? <Check size={18} color={item.accent} strokeWidth={2.4} /> : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : null}
+            </View>
+
+            {twoColumn ? (
+              <View style={{ flex: 1, minWidth: 300 }}>
+                <SolutionConnect />
               </View>
             ) : null}
           </View>
@@ -176,6 +200,14 @@ export function LocalPicksScreen({
               <Label size={10} colour={color.neutral700} style={{ marginTop: 5, textAlign: 'center' }}>
                 {t({ en: 'COMING SOON', th: 'เร็ว ๆ นี้', zh: '即将上线' })}
               </Label>
+            </View>
+          )}
+
+          {/* One screen, one Solution Connect: beside the picker when there is
+              room, underneath the picks when there is not. */}
+          {twoColumn ? null : (
+            <View style={{ marginTop: 20 }}>
+              <SolutionConnect compact={compact} />
             </View>
           )}
         </View>
