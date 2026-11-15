@@ -45,57 +45,10 @@ import { generateApiKey, hashApiKey } from './host-auth.ts';
   reached in here would have broken the Worker build. The CLI, `reseedRefusal`
   and the photo/station refreshers stay - they are Node-side tools.
 */
-import { seedArea } from './area-opening.ts';
+import { refreshPhotos, seedArea } from './area-opening.ts';
 
-export { openArea, retireSupersededQuests, seedArea } from './area-opening.ts';
+export { openArea, refreshPhotos, retireSupersededQuests, seedArea } from './area-opening.ts';
 export type { OpenAreaResult, RetireResult, SeedAreaResult } from './area-opening.ts';
-
-/**
- * Bring an area's place photographs in line with the seed: the one thing this
- * script changes on a row that exists, and only when asked (`--photos`).
- *
- * A photograph is a file in this repository (apps/mobile/public/media/places)
- * with its credit and licence written beside it in the seed, so for these four
- * columns the seed IS the source of truth, as it is not for a place's scores
- * or a host's name. They are set to exactly what the seed says, null included:
- * a photograph taken out of the seed - somebody in frame took back their
- * consent - comes off the live place as well. Nothing else in the row moves.
- *
- * Returns the ids of the places whose photograph changed.
- */
-export function refreshPhotos(db: DB, key: AreaKey): string[] {
-  if (!isAreaKey(key)) throw new Error(`area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
-  const area = areaByKey(key);
-  return transact(db, () => {
-    const changed: string[] = [];
-    for (const p of SEED_PLACES.filter((x) => x.province === area.province)) {
-      /*
-        Six fields, not four (#169). `kind` and `backdrop` say whether the
-        picture is a photograph or the venue's own logo, and what colour the
-        frame around a logo should be - facts the seed has carried since
-        Badminton@Sinthani was added and the database had nowhere to put.
-
-        They travel with the url for the same reason the credit does: a
-        picture and what may be said about it are one record, and bringing
-        half of it in line is how a logo ends up credited to a photographer.
-      */
-      const photo = [
-        p.photo?.url ?? null, p.photo?.credit ?? null, p.photo?.licence ?? null, p.photo?.sourceUrl ?? null,
-        p.photo?.kind ?? null, p.photo?.backdrop ?? null,
-      ];
-      // `IS` compares null to null as equal, so a row already in line is not
-      // written and not reported.
-      const set = db.prepare(
-        `UPDATE places SET photo_url = ?, photo_credit = ?, photo_licence = ?, photo_source = ?,
-                           photo_kind = ?, photo_backdrop = ?
-         WHERE id = ? AND NOT (photo_url IS ? AND photo_credit IS ? AND photo_licence IS ? AND photo_source IS ?
-                               AND photo_kind IS ? AND photo_backdrop IS ?)`,
-      ).run(...photo, p.id, ...photo);
-      if (Number(set.changes ?? 0) > 0) changed.push(p.id);
-    }
-    return changed;
-  });
-}
 
 /**
  * Bring an area's air stations in line with the seed (`--stations`).

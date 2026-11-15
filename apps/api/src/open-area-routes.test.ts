@@ -112,6 +112,45 @@ describe('POST /internal/open-area', () => {
    * before the first phone registers every one of these calls sails through
    * for a reason that has nothing to do with operators.
    */
+  /**
+   * A photograph that arrives after the place did.
+   *
+   * Koniix went on the Ko Sichang map with none, and the property gave one an
+   * hour later. `seedArea` inserts and never asserts, so the row kept its
+   * `NULL` - and the tool that refreshes a photograph lived in `seed-area.ts`,
+   * behind `node:sqlite`, which a Durable Object cannot load. The picture was
+   * in the repository and unreachable by the thing serving the island.
+   *
+   * It is OPT-IN on purpose. An ordinary run must stay the thing that is safe
+   * against a live database; asking for photographs is a second sentence in
+   * the body, and the answer says which places changed.
+   */
+  test('refreshes a photograph only when the body asks, and says which', async () => {
+    await post('/internal/open-area', { area: 'koh-sichang' }, SECRET);
+    db.prepare('UPDATE places SET photo_url = NULL, photo_credit = NULL WHERE id = ?')
+      .run('sc-koniix-garden-cottage');
+
+    const ordinary = await post('/internal/open-area', { area: 'koh-sichang' }, SECRET);
+    assert.deepEqual((await ordinary.json()).data.photosRefreshed, [], 'an ordinary run touched a live row');
+    const stillBlank = db.prepare('SELECT photo_url FROM places WHERE id = ?')
+      .get('sc-koniix-garden-cottage') as unknown as { photo_url: string | null };
+    assert.equal(stillBlank.photo_url, null);
+
+    const asked = await post('/internal/open-area', { area: 'koh-sichang', photos: true }, SECRET);
+    const { data } = await asked.json();
+    assert.ok(
+      data.photosRefreshed.includes('sc-koniix-garden-cottage'),
+      `the photograph never arrived: ${JSON.stringify(data.photosRefreshed)}`,
+    );
+    const filled = db.prepare('SELECT photo_url, photo_credit, photo_licence FROM places WHERE id = ?')
+      .get('sc-koniix-garden-cottage') as unknown as
+        { photo_url: string; photo_credit: string; photo_licence: string };
+    assert.match(filled.photo_url, /sc-koniix-garden-cottage\.jpg$/);
+    // A picture and what may be said about it are one record.
+    assert.ok(filled.photo_credit?.trim(), 'a photograph with no credit cannot be published');
+    assert.ok(filled.photo_licence?.trim(), 'nor one with no licence');
+  });
+
   test('reaches the route without a device key, once a phone has registered', async () => {
     const registered = await post('/devices', { displayName: 'A traveller' });
     assert.equal(registered.status, 200, 'a device must register for this test to mean anything');
