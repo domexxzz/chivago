@@ -1,109 +1,173 @@
 # Handoff — ChivaGo
 
-Written 15 Nov 2026 · for the next session (another Claude)
-The previous version of this file (6 Nov) is in git history: `git show 25d43d8:handoff.md`
+Written 15 Nov 2026, evening · for the next session (another Claude)
+Earlier versions are in git history: `git show c690a34:handoff.md` (15 Nov, morning) and `git show 25d43d8:handoff.md` (6 Nov)
 
 ---
 
 ## 1. Context
 
-- **ChivaGo** — a travel app pitched at the **Spark Hack PTT Season 2** finals on **21–22 Nov 2026**. Pilot area: Koh Sichang. Team: GFD Venture.
+- **ChivaGo** — a travel app pitched at the **Spark Hack PTT Season 2** finals on **21–22 Nov 2026**. Six days away. Pilot area: Koh Sichang. Team: GFD Venture.
 - pnpm monorepo: `apps/mobile` (Expo / React Native Web), `apps/api` (Hono on a Cloudflare Worker + Durable Object + SQLite), `packages/core`, `packages/sdk-*`
 - Live: **https://chivargo.com** (+ `www.` and `chivago.dometeenlek.workers.dev`)
-- GitHub: `domexxzz/chivago` — **now public** (made public 14 Nov so Actions would run; free for public repos)
+- GitHub: `domexxzz/chivago` — **public** since 14 Nov (so Actions run free)
+- Cloudflare account `dometeenlek@gmail.com` · `416e3cec13d835ff3b36d0d904dec8fc` · **Workers free plan, chosen deliberately**
 
 ---
 
 ## 2. Rules from the owner that still apply
 
 1. **Billing / payments / card changes are the owner's job** — never do them yourself
-2. **Never print token or key values** in chat, logs or files
-3. **Never test leaked keys against production** (a safety classifier has already stopped this once — don't try again in any form). If you find a leaked key, recommend that the owner rotate it
-4. Push / PR / merge / deploy have been done regularly this session with the owner's agreement — if unsure, ask
-5. This machine runs out of memory easily (Metro worker killed) → avoid running the mobile test suite in parallel with typecheck. If the dev server dies, restart it
+2. **Never print token or key values** in chat, logs or files. Move them with a pipe, from a file into `wrangler secret put`, and log only lengths
+3. **Never test leaked keys against production.** If you find one, recommend rotation. This came up for real today — see §5
+4. Push / PR / merge / deploy have all been done with the owner's agreement this week — if unsure, ask
+5. This machine runs out of memory easily. Build the web export with `--max-workers 2`, and do not run the mobile test suite beside a typecheck
 
 ---
 
-## 3. Repo state (current)
+## 3. Repo state
 
 ```
-branch: main @ 50c1624   (working tree clean)
-live:   version 073dcc06-8ba2-4699-82f0-481266f3a6b6
-CI:     green on main (typecheck / test / checks / workers)
+branch: main @ c07524c   (working tree clean)
+live:   version 46fd00e2-4290-40bf-a029-8e38067d95a6
+CI:     green on main (checks / test / typecheck / workers)
 ```
 
-### Merged + deployed in this session
+### Merged and deployed this session (15 Nov, afternoon)
+
 | PR | What |
 | --- | --- |
-| #222 | GitHub Actions: SDK workflows run only when their own paths change |
-| #223 | replace real `chv_` keys in docs with placeholders · create empty `dist-live` before `test:import` |
-| #224 | Chivar Bot as SVG with 9 moods (`ChivarBot.tsx`) |
-| #225 | 3D Chivar Bot (three.js built from primitives, `chivarbot3d/`) — drag to turn, tap to hop |
-| #226 | 3D Chivar Bot in the Concierge header and on the floating door (`Shell.tsx`) |
-| #227 | **Fanta's work**: two gacha banners (mascot/fashion) + idempotency, backpack, navigation, place stories. I fixed 3 things before merging (below) |
-| #228 | ChangChang: tablets get the detailed build |
-| #229 | **ChangChang sharp on every screen**: meshopt-compressed GLB 7.8→3.2 MB + `dequantize.ts` |
+| #214 | `POST /internal/open-area` — the only way content reaches the Durable Object |
+| #230 | docs/72 says what the screen says: 800 EXP, SG codes, and the offer nobody can reach |
 
-### What I fixed in #227 (Fanta's PR)
-- `Shell.tsx` merge conflict brought back the old PNG import while the code calls `<ChivarBotScene>` → web Home would have thrown a ReferenceError
-- `storiesOpen()` back to **closed by default** (Fanta had made it open by default). Posting no longer needs GPS/geofence/event token, and production sets `CHIVAGO_STORIES_AUTO_APPROVE=1` → open by default = anyone could post to any place and it goes public immediately. Fanta's tests changed to match
-- Added Thai/English/Chinese messages for 3 new error codes (`NO_ELIGIBLE_REWARDS`, `INVALID_REWARD_POOL`, `IDEMPOTENCY_CONFLICT`) to `apps/mobile/src/i18n/api-errors.ts`
+**The deploy carried 87 commits forward.** The live Worker had been running 13 Nov code; it now runs main, which includes the 3D Chivar Bot, ChangChang, Fanta's gacha/backpack and place stories. Checked after deploying: every static path 200 with the right cache headers, `/wallet` 401, `/console/apply` 200, the bundle free of `localhost:8787`, and the Durable Object alarm firing every 30 s.
+
+### Koh Sichang is open
+
+`POST /internal/open-area` was run against production for the first time. Measured afterwards through `GET /quests?area=koh-sichang`:
+
+```
+SG-01 นักสำรวจเกาะสีชัง      150 EXP
+SG-02 ตามล่ารสชาติสีชัง      150 EXP
+SG-03 ฮีโร่พิทักษ์เกาะ        200 EXP
+SG-04 ตามล่าของดีสีชัง       150 EXP
+SG-05 เที่ยวเกาะอย่างใส่ใจ    150 EXP        5 quests · 800 EXP · 0 Green
+```
+
+The two superseded quests are **kept, not deleted** — both had been started, and `q-sc-beach` carries the certificate the speaker opens on stage. Their codes moved to `X-SC-01` / `X-SC-02` and `GET /quests` filters retired codes, so the screen shows five.
+
+Running it again is safe: the second run reported `questsAdded: 0`.
 
 ---
 
-## 4. Deploying (the method that works — don't use the workflow)
+## 4. 🔴 There is still no way to back up the live database
+
+**The most important thing on this page, and nobody has started it.**
+
+A Durable Object's SQLite is reachable only from inside the object. This codebase has `POST /admin/import` and no export beside it; `export-for-import.ts` reads a local SQLite file, which the live database is not. So **the pilot's only copy of its data is the live object**, six days before it is demonstrated.
+
+The shape of the fix is a counterpart to the import: a token-gated `GET /admin/export` that streams tables the way `exportTable()` already does, re-using `tablesInDependencyOrder`. The import half is written, tested under both drivers, and is the model to copy.
+
+The backups that exist are from the Fly migration on 12 Nov and are three days behind:
+
+```
+C:\Users\DomeCB\chivago-migration-backup\
+  final-fly.db  snapshot.db  fly.toml.bak  rollback-to-fly.md
+  handoff-2026-11-12.md   ← the migration's own notes, not in git
+```
+
+---
+
+## 5. Secrets
+
+```
+vars     CHIVAGO_ORIGINS · CHIVAGO_OPENING_TRIP · CHIVAGO_OPENING_GREEN
+         CHIVAGO_REGISTRATIONS_PER_HOUR · CHIVAGO_STORIES_AUTO_APPROVE
+         CHIVAGO_PUBLIC_URL
+secrets  CHIVAGO_HOST_SECRET · CHIVAGO_LINE_CHANNEL_ID · CHIVAGO_LINE_CHANNEL_SECRET
+```
+
+**`CHIVAGO_HOST_SECRET` was rotated today.** The previous value was committed to `README.md` in the first commit (`24d4248`, 1 Sep) and has been readable by anybody since the repo went public on 14 Nov. Removing it from the README never removed it from the history. The new value was generated, written to `apps/api/.env` (gitignored — verified) and piped into `wrangler secret put` without being printed.
+
+Anything still holding the old value now gets 403, including callers of `/internal/verify`.
+
+**A new secret needs a redeploy before the running Worker sees it.** Setting it is not enough.
+
+**`wrangler secret list` shows names only.** That is how three secrets went missing unnoticed during the Fly cut: an unset secret looks exactly like a set one.
+
+---
+
+## 6. Deploying (the method that works — do not use the workflow)
 
 ```bash
 cd apps/mobile
 rm -rf dist-live
-EXPO_PUBLIC_API_URL=same-origin npx expo export --platform web --output-dir dist-live --clear
-grep -c "localhost:8787'" dist-live/_expo/static/js/web/index-*.js   # must print 0
+EXPO_PUBLIC_API_URL=same-origin NODE_OPTIONS=--max-old-space-size=8192 \
+  npx expo export --platform web --output-dir dist-live --clear --max-workers 2
 node scripts/flatten-assets.mjs dist-live
-cd ../..
-pnpm --filter @chivago/api exec wrangler deploy
+cd ../.. && pnpm --filter @chivago/api exec wrangler deploy
 ```
 
-**Traps that have bitten before:**
-- Without `EXPO_PUBLIC_API_URL=same-origin` → the bundle calls `http://localhost:8787` and the live site drops into demo-only mode
-- Without `--clear` → Metro's cache keeps the old env value (`index-<hash>.js` keeps the same hash = still broken)
-- `.github/workflows/deploy-worker.yml` is broken — don't use it
-- After deploying, check with the chrome-devtools MCP (the app's built-in browser pane fires no `requestAnimationFrame`, so it can't check 3D/animation)
+Check the build before deploying it — all five, every time:
+
+1. `dist-live/_expo/static/js/web/` exists
+2. `index.html` has a `<script>` tag
+3. the file count is in the hundreds (166 today)
+4. `grep -rl "localhost:8787" dist-live` finds nothing
+5. `dist-live/_headers` is there
+
+**Why 1–3:** a plain export was once killed mid-transform (`jest worker … SIGTERM`) and still **exited 0**, leaving a deployable website with no application in it.
+
+**Why 4:** without `EXPO_PUBLIC_API_URL=same-origin` the bundle calls `http://localhost:8787` — the site loads, looks perfect, and sends every request to the visitor's own machine. It fails as a page of empty states, never as an error. `--clear` matters too: Metro's cache keeps the old value and the hashed filename does not change.
+
+**Why 5:** cache rules live in `apps/mobile/public/_headers`, which Workers Assets reads. A `headers` key in `wrangler.jsonc` is silently ignored.
+
+After deploying, check 3D and animation with the chrome-devtools MCP — the built-in browser pane fires no `requestAnimationFrame`.
 
 ---
 
-## 5. Unfinished work / to decide
+## 7. Open, and what is left
 
-### For the owner to decide
-- **Stories are open in the live database** (`settings.stories_open = '1'`, set earlier from the console). The code default is closed, but this value overrides it. With auto-approve on, anyone signed in can post to any place and it goes public immediately. Close it from the moderator console if it's not needed yet
-- **Rotate the host keys** that were in `docs/` before #223 (the repo is public now; the keys were in git history) — the owner's job
-- `verifySummon` checks v3 receipts against **today's** `gacha_reward_pool` → if an operator changes weights or deactivates a reward, old receipts may fail to verify. Should store the pool snapshot/version per pull
+### For the owner, outside this repo
+- **The deck and the field guide still say "540 Green".** The screen says 800 EXP. Somebody has to change them before the 21st. docs/72 now carries the correct figures and the answer to *"where do the points come from"*
+- **Rotate the host keys** that were in `docs/` before #223 — same reasoning as §5, the repo is public
+- **Stories are open in the live database** (`settings.stories_open = '1'`, auto-approve on). Measured today: `/areas/samui/stories` returns `open: true`. Anyone who taps "Continue as a guest" can post to any place and it goes public immediately. The owner chose to leave it open; the console hides a story in one click and clips expire in seven days
 
-### Leftovers (not urgent)
-- `origin/feat/permanent-qr` — a permanent QR into the site + poster with ChangChang (`artifacts/qr/`, `scripts/make-qr.py`), **not merged**
-- Dead code from #227: `eventTokenOk` / `WrongEventToken` in `apps/api/src/story-service.ts` and `http.ts`
-- `POST /summon` now requires `category` + `idempotencyKey` → old app builds sending only `{pulls}` get 400 (fine if app and API deploy together)
-- Orphan file `apps/mobile/assets/chivargo-ai-robot-v1.png` (no longer used since the 3D bot)
-- Old open PRs: #214, #194, #174, #151, #99, #98, #97
+### Decided today, do not reopen without reading why
+- **Quests do not pay Green.** `seed.ts` says the five SG quests come from the 12 Nov field-trial pack and pay EXP only — paying Green would create a payment the pack never promised
+- **An offer cannot be priced in EXP.** `progression.ts`: EXP is lifetime, monotonic, never spent, granted alongside the spendable currencies. `Offer.currency` is `'trip' | 'green'`
+- So the island's 200 Green sample offer **cannot be reached by island work**, and the answer is not to demo redemption from it. It is already labelled "ตัวอย่าง · ร้านยังไม่ได้ร่วมโครงการ" with a null `valueTHB`
+
+### Small and clearly right
+- **`.dev.vars` is not in `.gitignore`.** It is wrangler's conventional secrets file and the first place somebody will write a value. `.env` is covered; this is not. One commit
+- **`/internal/*` sits behind the traveller device middleware.** Calling an operator route means registering a device first, and being handed a wallet on the way in. `/admin/import` does it correctly — registered *before* the middleware. Two test accounts ("Operator probe", "Operator") were left on production proving this today; there is no route to delete them
+- Every alarm — every 30 s — logs `[chivago] migrated:` and 27 table names. Nothing is re-migrated; they are `CREATE TABLE IF NOT EXISTS` blocks pushing their name unconditionally. It is also the only place a real migration would announce itself
+
+### Older open PRs
+#194 (proof photographs reach the server as files — sounds like a live bug) · #174 · #151 · #99 · #98 · #97
 
 ---
 
-## 6. Where to look
+## 8. Where to look
 
 | Topic | File |
 | --- | --- |
-| 3D Chivar Bot | `apps/mobile/src/components/chivarbot3d/` (`bot-rig.ts` is pure logic + tests), `ChivarBotScene.tsx` (SVG fallback until 3D is ready) |
-| ChangChang 3D | `apps/mobile/src/components/greeter3d/Greeter3D.tsx`, `build-choice.ts`, `dequantize.ts`, `GreeterScene.tsx` |
-| ChangChang model + how it was made | `apps/mobile/public/media/mascots/README.md` (gltf-transform command at the bottom) |
-| Gacha | `apps/api/src/summon-service.ts`, `apps/mobile/src/screens/SummonScreen.tsx` |
-| Stories | `apps/api/src/story-service.ts`, `apps/mobile/src/components/Stories.tsx` |
-| DB schema | `apps/api/src/db.ts` + `migrations.ts` — **change the schema = bump `SCHEMA_VERSION` + update `PINNED` in `db-schema-version.test.ts`** |
-| Wrangler config / env | `apps/api/wrangler.jsonc` |
-| Mobile error messages | `apps/mobile/src/i18n/api-errors.ts` (every new backend error code must be added, or `test:scripts` fails) |
+| Opening an area on a live DB | `apps/api/src/area-opening.ts` · tests in `area-opening.test.ts`, `open-area-routes.test.ts` |
+| Quest content, active vs historical | `packages/core/src/seed.ts` — `ACTIVE_QUESTS` is the published five, `SEED_QUESTS` is the catalogue, `RETIRED_CODE_PREFIX` is `X-` |
+| Why EXP is never spent | `packages/core/src/progression.ts` |
+| What the Worker serves vs the API | `apps/api/src/served-from-export.ts` · `worker-assets.test.ts` walks `public/` |
+| Judge Q&A, with today's measurements | `docs/72-judge-qa-th.md` |
+| The Fly → Cloudflare move | `docs/71-moving-the-data-to-cloudflare.md` · `docs/74-the-move-to-workers.md` |
+| 3D Chivar Bot / ChangChang | `apps/mobile/src/components/chivarbot3d/` · `greeter3d/` |
+| Mobile error messages | `apps/mobile/src/i18n/api-errors.ts` — every new backend code needs an entry or `test:scripts` fails |
+| DB schema | `apps/api/src/db.ts` + `migrations.ts` — **schema change = bump `SCHEMA_VERSION` + update `PINNED` in `db-schema-version.test.ts`** |
 
-### Commands to check before every PR
+### Before every PR
 ```bash
 pnpm --filter @chivago/mobile exec tsc --noEmit -p .
 pnpm --filter @chivago/api exec tsc --noEmit -p .
 pnpm --filter @chivago/api test
 pnpm test:scripts
 ```
+
+CI's `typescript` job hung for over a day once. Local runs were the real signal for most of this week's merges. The full suite run all at once sometimes fails 4–6 mobile files under memory pressure; they pass alone — check before believing a failure.
