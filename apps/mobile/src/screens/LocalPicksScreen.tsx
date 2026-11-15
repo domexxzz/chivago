@@ -105,9 +105,9 @@ export function LocalPicksScreen({
 
           <View style={{
             marginTop: 20, flexDirection: twoColumn ? 'row' : 'column',
-            alignItems: 'flex-start', gap: twoColumn ? 24 : 0, zIndex: 5,
+            alignItems: 'flex-start', gap: twoColumn ? 28 : 0, zIndex: 5,
           }}>
-            <View style={{ width: '100%', maxWidth: 520, flexShrink: 1, zIndex: 5 }}>
+            <View style={{ flex: 1, minWidth: 0, width: '100%', maxWidth: twoColumn ? 600 : 520, zIndex: 5 }}>
               <Label size={10} tracking={0.1} colour={color.neutral700} style={{ marginBottom: 7 }}>
                 {t({ en: 'CATEGORY', th: 'เลือกหมวด', zh: '选择类别' })}
               </Label>
@@ -163,45 +163,46 @@ export function LocalPicksScreen({
                   })}
                 </View>
               ) : null}
+
+              {category === 'all' || category === 'sport' ? (
+                <View style={{ marginTop: 20 }}>
+                  <Label size={10} tracking={0.12} colour={selected.accent} style={{ marginBottom: 10 }}>
+                    {category === 'all'
+                      ? t({ en: 'ALL LOCAL PICKS', th: 'รายการทั้งหมด', zh: '全部本地精选' })
+                      : t({ en: 'SPORTS', th: 'กีฬา', zh: '运动' })}
+                  </Label>
+                  <SportsPickCard compact={compact} />
+                </View>
+              ) : (
+                <View style={[
+                  shadow.card,
+                  {
+                    marginTop: 18, minHeight: 190, padding: 24, borderRadius: radius.md, borderWidth: 1,
+                    borderColor: color.neutral300, backgroundColor: color.surface,
+                    alignItems: 'center', justifyContent: 'center',
+                  },
+                ]}>
+                  <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: selected.pale, alignItems: 'center', justifyContent: 'center' }}>
+                    <SelectedIcon size={29} color={selected.accent} strokeWidth={1.9} />
+                  </View>
+                  <Heading size={18} style={{ marginTop: 14, textAlign: 'center' }}>{selected.label}</Heading>
+                  <Body size={14} colour={color.neutral700} style={{ marginTop: 6, textAlign: 'center' }}>
+                    {t({ en: 'No recommendations yet', th: 'ยังไม่มีข้อมูลแนะนำในหมวดนี้', zh: '此类别暂无推荐' })}
+                  </Body>
+                  <Label size={10} colour={color.neutral700} style={{ marginTop: 5, textAlign: 'center' }}>
+                    {t({ en: 'COMING SOON', th: 'เร็ว ๆ นี้', zh: '即将上线' })}
+                  </Label>
+                </View>
+              )}
             </View>
 
             {twoColumn ? (
-              <View style={{ flex: 1, minWidth: 300 }}>
+              <View style={{ width: 380, flexShrink: 0 }}>
                 <SolutionConnect />
               </View>
             ) : null}
           </View>
 
-          {category === 'all' || category === 'sport' ? (
-            <View style={{ marginTop: 20 }}>
-              <Label size={10} tracking={0.12} colour={selected.accent} style={{ marginBottom: 10 }}>
-                {category === 'all'
-                  ? t({ en: 'ALL LOCAL PICKS', th: 'รายการทั้งหมด', zh: '全部本地精选' })
-                  : t({ en: 'SPORTS', th: 'กีฬา', zh: '运动' })}
-              </Label>
-              <SportsPickCard compact={compact} />
-            </View>
-          ) : (
-            <View style={[
-              shadow.card,
-              {
-                marginTop: 18, minHeight: 190, padding: 24, borderRadius: radius.md, borderWidth: 1,
-                borderColor: color.neutral300, backgroundColor: color.surface,
-                alignItems: 'center', justifyContent: 'center',
-              },
-            ]}>
-              <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: selected.pale, alignItems: 'center', justifyContent: 'center' }}>
-                <SelectedIcon size={29} color={selected.accent} strokeWidth={1.9} />
-              </View>
-              <Heading size={18} style={{ marginTop: 14, textAlign: 'center' }}>{selected.label}</Heading>
-              <Body size={14} colour={color.neutral700} style={{ marginTop: 6, textAlign: 'center' }}>
-                {t({ en: 'No recommendations yet', th: 'ยังไม่มีข้อมูลแนะนำในหมวดนี้', zh: '此类别暂无推荐' })}
-              </Body>
-              <Label size={10} colour={color.neutral700} style={{ marginTop: 5, textAlign: 'center' }}>
-                {t({ en: 'COMING SOON', th: 'เร็ว ๆ นี้', zh: '即将上线' })}
-              </Label>
-            </View>
-          )}
 
           {/* One screen, one Solution Connect: beside the picker when there is
               room, underneath the picks when there is not. */}
