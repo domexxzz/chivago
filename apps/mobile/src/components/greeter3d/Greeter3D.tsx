@@ -27,6 +27,7 @@
 import React from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { Greeter } from '@chivago/core';
 import { dayArc, hourFrom } from '../island-clock.ts';
@@ -36,6 +37,7 @@ import {
 } from './choreography.ts';
 import { ARM, EYE_A, EYE_B, EYE_RADIUS, HEAD, SPINE, TAIL, weightBuffers } from './rig.ts';
 import { atRest, stepBone, type SpringState } from './spring.ts';
+import { bakeQuantisedMesh } from './dequantize.ts';
 
 /**
  * The blink, drawn rather than moved.
@@ -480,7 +482,9 @@ export function Greeter3D({
       onTap?.(clip);
     };
 
-    new GLTFLoader().load(
+    // The detailed build ships EXT_meshopt_compression (quantised, 7.8 MB ->
+    // 3.2 MB) so phones can afford it; without the decoder it will not load.
+    new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(
       modelUri,
       (gltf) => {
         if (!alive) return;
@@ -488,6 +492,8 @@ export function Greeter3D({
         model.traverse((o) => {
           const mesh = o as THREE.Mesh;
           if (!mesh.isMesh) return;
+          // Before anything reads a position: the detailed build is quantised.
+          bakeQuantisedMesh(mesh);
           const material = mesh.material as THREE.MeshStandardMaterial;
           /*
             TWO BAKES, TWO MATERIALS, AND ONLY ONE OF THEM WANTS TO BE TOLD

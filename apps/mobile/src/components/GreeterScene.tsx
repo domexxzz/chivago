@@ -35,19 +35,13 @@ const inBrowser = Platform.OS === 'web'
 
 /**
  * Which of the two builds this machine should be sent: 771 KB of vertex
- * colour, or 7.4 MB with the textures - the build with eyes. The rule, and why
- * a mouse OR a tablet-sized screen earns the big one, is in `build-choice.ts`.
+ * colour, or 3.2 MB with the textures - the build with eyes. The rule, and why
+ * everyone but Data Saver now gets the detailed one, is in `build-choice.ts`.
  */
 function wantsDetail(): boolean {
   if (!inBrowser) return false;
   const connection = (navigator as { connection?: { saveData?: boolean } }).connection;
-  const screen = window.screen;
-  return wantsDetailedBuild({
-    pointerFine: typeof window.matchMedia === 'function'
-      && window.matchMedia('(pointer: fine)').matches,
-    saveData: !!connection?.saveData,
-    screenShortSidePx: screen ? Math.min(screen.width, screen.height) : Number.NaN,
-  });
+  return wantsDetailedBuild({ saveData: !!connection?.saveData });
 }
 
 type RoomComponent = typeof import('./greeter3d/Greeter3D.tsx')['Greeter3D'];
