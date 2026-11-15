@@ -53,9 +53,31 @@ import { SeaAndSkyCard } from '../components/SeaAndSky.tsx';
 import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
 import { serviceAppearance, shopCategoryLabel } from '../components/ShopCategory.tsx';
 import {
-  Grid2X2, Star, ArrowRight, Mic, ScanLine, Umbrella, ChevronDown, ChevronRight, HeartPulse, Leaf, Map as MapIcon, MapPin, Search, Shield, Sparkles, Ticket, Trees, Users, Utensils, Wallet, Waves, Shell as ShellIcon,
+  Grid2X2, Star, ArrowRight, Mic, ScanLine, ChevronDown, ChevronRight, HeartPulse, Leaf, MapPin, Search, Shield, Sparkles, Ticket, Trees, Utensils, Waves,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
+/*
+  THE SEVEN DOORS ARE DRAWINGS, NOT GLYPHS.
+
+  They were lucide line icons tinted to the circle behind them, which is the
+  right choice for a toolbar and the wrong one for the front door: seven
+  one-weight outlines in seven pastel circles read as a settings menu rather
+  than as somewhere to go.
+
+  The supplied artwork is 512px with the drawing filling about a third of
+  each, off-centre and at differing sizes - Map sat right of centre and
+  Community left, and the two differed by a fifth in size. Pasted in as they
+  came, the row stepped up and down. Each is cropped to its own ink, centred,
+  and scaled to one optical size by scripts/normalise-menu-icons.py, which is
+  kept so the next icon can be made to match rather than guessed at.
+*/
+import menuMapArt from '../../assets/menu-map-v1.png';
+import menuStaysArt from '../../assets/menu-stays-v1.png';
+import menuQuestsArt from '../../assets/menu-quests-v1.png';
+import menuWalletArt from '../../assets/menu-wallet-v1.png';
+import menuDealsArt from '../../assets/menu-deals-v1.png';
+import menuTravelBoxArt from '../../assets/menu-travel-box-v1.png';
+import menuCommunityArt from '../../assets/menu-community-v1.png';
 import {
   greetingFor, isHighScore, nearestFirst, passportProgress, strings, wayThere,
   type Quest, type QuestProgress, type ScoredPlace,
@@ -549,11 +571,11 @@ function Doors({
   onOpenMarket: () => void; onOpenSummon?: () => void; onOpenCommunity?: () => void;
 }) {
   const doors = [
-    { Icon: MapIcon, name: strings.tabs.map, onPress: onOpenMap, fill: '#C8F0FA', ink: '#0077B6' },
-    { Icon: Umbrella, name: strings.ask.context, onPress: onOpenStays ?? onOpenConcierge, fill: '#FFE2D4', ink: '#B95429' },
-    { Icon: Sparkles, name: strings.tabs.quests, onPress: onOpenQuests, fill: '#FFD6AF', ink: '#B34C00' },
-    { Icon: Wallet, name: strings.tabs.wallet, onPress: onOpenWallet, fill: '#FFD5CF', ink: '#AE433C' },
-    { Icon: Ticket, name: { en: 'Deals', th: 'สิทธิพิเศษ', zh: '优惠' }, onPress: onOpenMarket, fill: '#FFF0AD', ink: '#916000' },
+    { art: menuMapArt, name: strings.tabs.map, onPress: onOpenMap, fill: '#C8F0FA', ink: '#0077B6' },
+    { art: menuStaysArt, name: strings.ask.context, onPress: onOpenStays ?? onOpenConcierge, fill: '#FFE2D4', ink: '#B95429' },
+    { art: menuQuestsArt, name: strings.tabs.quests, onPress: onOpenQuests, fill: '#FFD6AF', ink: '#B34C00' },
+    { art: menuWalletArt, name: strings.tabs.wallet, onPress: onOpenWallet, fill: '#FFD5CF', ink: '#AE433C' },
+    { art: menuDealsArt, name: { en: 'Deals', th: 'สิทธิพิเศษ', zh: '优惠' }, onPress: onOpenMarket, fill: '#FFF0AD', ink: '#916000' },
     /*
       The summoning (docs/68), on Home.
 
@@ -592,7 +614,7 @@ function Doors({
     */
     ...(onOpenSummon
       ? [{
-        Icon: ShellIcon,
+        art: menuTravelBoxArt,
         /*
           SHORT, because this is a door label in a row of seven. "Traveller's
           box" put one word wider than its cell and it ran into Community;
@@ -607,7 +629,7 @@ function Doors({
       : []),
     ...(onOpenCommunity
       ? [{
-        Icon: Users,
+        art: menuCommunityArt,
         name: { en: 'Community', th: 'คอมมูนิตี้', zh: '社区' },
         onPress: onOpenCommunity,
         fill: '#DDF4EE',
@@ -665,13 +687,21 @@ function Doors({
         paddingTop: 22,
       }}
     >
-      {doors.map(({ Icon, name, onPress, fill, ink }) => (
+      {doors.map(({ art, name, onPress, fill, ink }) => (
         <Pressable key={name.en} onPress={onPress} accessibilityRole="button" accessibilityLabel={t(name)}
           style={wrapped
             ? { width: `${100 / perRow}%`, alignItems: 'center', gap: 8, minHeight: 96 }
             : { flex: 1, alignItems: 'center', gap: 8, minHeight: 96 }}>
           <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: fill, alignItems: 'center', justifyContent: 'center', borderTopWidth: 2, borderTopColor: 'rgba(255,255,255,0.8)', shadowColor: ink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 5, elevation: 2 }}>
-            <Icon size={25} color={ink} strokeWidth={1.8} />
+            {/*
+              34 rather than the glyph's 25: a line icon reads at any size
+              because it is one weight, and a drawing with a shadow and four
+              colours in it does not. `contain` because the normalising step
+              squares the canvas but not the drawing - the wallet is square,
+              the gashapon is wide - and stretching them to fill would be the
+              one thing that undoes that work.
+            */}
+            <Image source={art} style={{ width: 34, height: 34 }} resizeMode="contain" />
           </View>
           <Text style={{ fontSize: 12, color: '#2B2D42', textAlign: 'center', paddingHorizontal: 2 }}>{t(name)}</Text>
         </Pressable>
