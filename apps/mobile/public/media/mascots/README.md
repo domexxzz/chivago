@@ -7,12 +7,12 @@ claim about the animals of Koh Sichang.** That sentence ships on the card.
 | File | What it is | Size |
 | --- | --- | --- |
 | `changchang.glb` | the small build: vertex-coloured, no textures — 39,726 triangles, 19,630 vertices | 771 KB |
-| `changchang-detailed.glb` | the full build: base colour, normal and metallic-roughness maps — 149,992 triangles, 155,527 vertices | 7.4 MB (4.9 MB gzipped) |
+| `changchang-detailed.glb` | the full build: base colour, normal and metallic-roughness maps — 149,992 triangles, 155,527 vertices; quantised + `EXT_meshopt_compression` | 3.2 MB (2.9 MB gzipped) |
 | `changchang-greeting.png` | the detailed model rendered face-on, waving; 626 × 760, alpha trimmed to the character | 538 KB |
 | `changchang-mark.png` | the same render at 181 × 220, for a row or a chip | 61 KB |
 
-`GreeterScene` decides which build a machine is sent: `(pointer: fine)` and no
-Data Saver gets the detailed one, everything else gets the small one. Both
+`GreeterScene` decides which build a machine is sent: everyone gets the
+detailed one except Data Saver, which gets the small one (`greeter3d/build-choice.ts`). Both
 portraits are rendered from the detailed build, so a phone that never
 downloads it still sees the face it has.
 
@@ -82,12 +82,18 @@ build and the maps go out at 2048 / 1024 / 2048 (base colour, roughness,
 normal), JPEG, with higher quality on the normal map because its channels are
 a direction vector rather than a picture.
 
-**The obvious next optimisation, not done:** `EXT_meshopt_compression` would
-take the 6.8 MB of geometry to somewhere near 1.5 MB. Both the encoder and the
-decoder are already in the workspace (`meshoptimizer`), and three's
-`GLTFLoader` takes the decoder through `setMeshoptDecoder`. It was left alone
-because the device gate already keeps the big file off phones, and gzip takes
-it to 4.9 MB on the wire.
+**Compressed for phones (15 November 2026).** The small build blotched the coat
+and lost the eyes on real phones and tablets, so the detailed build was made
+cheap enough to send everywhere:
+
+```bash
+npx @gltf-transform/cli@4.1.1 meshopt changchang-detailed.glb out.glb --level medium
+```
+
+7.8 MB -> 3.2 MB. Positions and normals become normalised int16 with the
+offset on the node; `greeter3d/dequantize.ts` widens them back to model units
+at load so `rig.ts` and the shader patch see what they always saw, and the
+loader is given three's `MeshoptDecoder`. Re-run this after any re-bake.
 
 The bake also stands the model up: feet at y = 0, centred on x and z, exactly
 one unit tall, so no scene has to measure it. Vertex colours are converted
