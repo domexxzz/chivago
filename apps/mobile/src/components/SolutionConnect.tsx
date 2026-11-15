@@ -66,7 +66,15 @@ const partners = (): Partner[] => [
       th: 'ระบบ AI ดูแลบ้าน ผู้สูงอายุ และธุรกิจ แบบ Privacy-First ประมวลผลภายในสถานที่',
       zh: '隐私优先的本地部署 AI，守护住家、长者与商家。',
     }),
-    url: 'https://sentiara-web.dometeenlek.workers.dev',
+    /*
+      Their own domain, given by the owner on 15 November. It serves the same
+      site as the workers.dev address it replaces - checked, byte for byte -
+      so only the link changed and the description above still says what the
+      site says. A partner's link is the one thing on this card that must not
+      rot: a dead link on a paid placement is the one failure the partner
+      notices first.
+    */
+    url: 'https://sentiaratech.com/',
     mark: sentiaraMark,
     accent: SENTIARA_ACCENT,
     pale: '#F3EDFF',
