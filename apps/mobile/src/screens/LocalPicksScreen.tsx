@@ -8,11 +8,12 @@
  */
 import React from 'react';
 import { Image, Linking, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
-import { ArrowUpRight, BedDouble, BusFront, Check, ChevronDown, Dumbbell, LayoutGrid, Utensils, type LucideIcon } from 'lucide-react-native';
+import { ArrowUpRight, BedDouble, BusFront, Check, ChevronDown, Dumbbell, LayoutGrid, Navigation, Utensils, type LucideIcon } from 'lucide-react-native';
 import { color, gutter, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { SolutionConnect } from '../components/SolutionConnect.tsx';
+import type { NavDestination } from '../navigation/session.ts';
 import { t } from '../i18n/locale.ts';
 import sinraniBadminton from '../../assets/sinrani-badminton-local-pick.png';
 
@@ -20,12 +21,48 @@ type LocalPickCategory = 'all' | 'food' | 'stay' | 'transport' | 'sport';
 
 const SINRANI_BOOKING_URL = 'https://badminton-booking-ihw1.onrender.com/';
 
+/**
+ * A stay on Koh Sichang, carried by its coordinate.
+ *
+ * WHAT IS KNOWN ABOUT IT, AND NOTHING ELSE. The owner gave a name and a
+ * point, on 15 November. There is no photograph anybody has the right to
+ * publish, no confirmed telephone number, no room list and no price - so the
+ * card shows none of those rather than filling the shape of a listing with
+ * guesses. `docs/61` is the rule it follows: a listing is the BUSINESS'S own
+ * claim, and this app invents none on their behalf.
+ *
+ * It is also not in OpenStreetMap - checked through Overpass on the day, 250 m
+ * around the point, which is why it is not a map place: `sichang.test.ts`
+ * requires every island place to be a mapped feature with a team photograph,
+ * and the test next to it refuses to put a named business on the map at all.
+ *
+ * So what the card offers is the one thing that is true and useful: where it
+ * is. Tapping it opens the island's own navigator, the same one the map and
+ * the shop screen use.
+ */
+const KONIIX = {
+  id: 'koniix-garden-cottage',
+  /*
+    The same in all three, because it is a brand name and a brand name is not
+    translated. The navigator takes a localised name like any destination, so
+    it is written out rather than cast.
+  */
+  name: { en: 'Koniix Garden Cottage', th: 'Koniix Garden Cottage', zh: 'Koniix Garden Cottage' },
+  // As given, rounded to six decimals - about 0.1 m, and the precision every
+  // other coordinate in this repository carries.
+  lat: 13.156753,
+  lng: 100.808781,
+} as const;
+
 export function LocalPicksScreen({
   onBack,
+  onNavigate,
 }: {
   onBack: () => void;
   /** Retained on the public screen props while Local Picks has no entries yet. */
   onOpenShop: (id: string) => void;
+  /** The app's one navigator — in-app on Koh Sichang, Google elsewhere. */
+  onNavigate?: (destination: NavDestination) => void;
 }) {
   const { width } = useWindowDimensions();
   const [category, setCategory] = React.useState<LocalPickCategory>('all');
@@ -164,14 +201,21 @@ export function LocalPicksScreen({
                 </View>
               ) : null}
 
-              {category === 'all' || category === 'sport' ? (
+              {category === 'all' || category === 'sport' || category === 'stay' ? (
                 <View style={{ marginTop: 20 }}>
                   <Label size={10} tracking={0.12} colour={selected.accent} style={{ marginBottom: 10 }}>
                     {category === 'all'
                       ? t({ en: 'ALL LOCAL PICKS', th: 'รายการทั้งหมด', zh: '全部本地精选' })
-                      : t({ en: 'SPORTS', th: 'กีฬา', zh: '运动' })}
+                      : category === 'stay'
+                        ? t({ en: 'ACCOMMODATION', th: 'ที่พัก', zh: '住宿' })
+                        : t({ en: 'SPORTS', th: 'กีฬา', zh: '运动' })}
                   </Label>
-                  <SportsPickCard compact={compact} />
+                  {category !== 'stay' ? <SportsPickCard compact={compact} /> : null}
+                  {category !== 'sport' ? (
+                    <View style={{ marginTop: category === 'all' ? 12 : 0 }}>
+                      <StayPickCard compact={compact} onNavigate={onNavigate} />
+                    </View>
+                  ) : null}
                 </View>
               ) : (
                 <View style={[
@@ -216,6 +260,79 @@ export function LocalPicksScreen({
     </View>
   );
 }
+
+/**
+ * The stay, with the one claim it can make: where it is.
+ *
+ * NO PHOTOGRAPH FRAME, deliberately. `SportsPickCard` leads with a picture
+ * because there is a licensed picture to lead with. An empty 16:9 grey box
+ * here would read as a photograph that failed to load - a broken listing
+ * rather than a short one - so this card is built to the size of what is
+ * known instead of to the shape of a card that knows more.
+ */
+function StayPickCard({
+  compact,
+  onNavigate,
+}: {
+  compact: boolean;
+  onNavigate?: (destination: NavDestination) => void;
+}) {
+  const stay = categoriesAccent.stay;
+  return (
+    <Pressable
+      onPress={() => onNavigate?.(KONIIX)}
+      disabled={onNavigate === undefined}
+      accessibilityRole="button"
+      accessibilityLabel={t(KONIIX.name)}
+      accessibilityHint={t({
+        en: 'Open directions to this stay',
+        th: 'เปิดเส้นทางไปที่พักนี้',
+        zh: '打开前往该住宿的路线',
+      })}
+      style={({ pressed }) => [
+        shadow.card,
+        {
+          width: compact ? '100%' : 300,
+          minWidth: 220,
+          maxWidth: 340,
+          borderRadius: 18,
+          borderWidth: 1,
+          borderColor: '#CFE6F0',
+          backgroundColor: color.surface,
+          padding: 14,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+          opacity: pressed ? 0.88 : 1,
+        },
+      ]}
+    >
+      <View style={{
+        width: 46, height: 46, borderRadius: 14, backgroundColor: stay.pale,
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <BedDouble size={22} color={stay.accent} strokeWidth={2} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Heading size={16} colour={color.text}>{t(KONIIX.name)}</Heading>
+        <Label size={9} tracking={0.08} colour={color.neutral600} style={{ marginTop: 5 }}>
+          {t({ en: 'STAY · KOH SICHANG', th: 'ที่พัก · เกาะสีชัง', zh: '住宿 · 锡昌岛' })}
+        </Label>
+      </View>
+      <View style={{
+        width: 36, height: 36, borderRadius: 18, backgroundColor: stay.accent,
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Navigation size={17} color="#FFFFFF" strokeWidth={2.4} />
+      </View>
+    </Pressable>
+  );
+}
+
+/** The accent pair each category carries, so a card can match its own chip. */
+const categoriesAccent = {
+  stay: { accent: '#177DA5', pale: '#E5F6FC' },
+} as const;
 
 function SportsPickCard({ compact }: { compact: boolean }) {
   const name = t({ en: 'Sinrani Badminton', th: 'สินธานี แบดมินตัน', zh: '辛拉尼羽毛球馆' });
