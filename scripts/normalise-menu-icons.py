@@ -41,11 +41,93 @@ NAMES = {
 }
 
 
+GAP_MAX = 24   # a piece further than this from the drawing is not part of it
+
+
+def pieces(mask, w, h):
+    """
+    Every separately-drawn piece, as (pixel count, bounding box).
+
+    Flood fill in plain Python rather than scipy: this runs seven times when
+    someone adds an icon, and a dependency costs more than the second it
+    saves.
+    """
+    seen = bytearray(w * h)
+    found = []
+    for start in range(w * h):
+        if not mask[start] or seen[start]:
+            continue
+        stack = [start]
+        seen[start] = 1
+        count = 0
+        x0 = x1 = start % w
+        y0 = y1 = start // w
+        while stack:
+            i = stack.pop()
+            count += 1
+            x, y = i % w, i // w
+            if x < x0: x0 = x
+            if x > x1: x1 = x
+            if y < y0: y0 = y
+            if y > y1: y1 = y
+            for dy in (-1, 0, 1):
+                ny = y + dy
+                if ny < 0 or ny >= h:
+                    continue
+                for dx in (-1, 0, 1):
+                    nx = x + dx
+                    if nx < 0 or nx >= w:
+                        continue
+                    j = ny * w + nx
+                    if mask[j] and not seen[j]:
+                        seen[j] = 1
+                        stack.append(j)
+        found.append((count, (x0, y0, x1 + 1, y1 + 1)))
+    found.sort(key=lambda p: -p[0])
+    return found
+
+
+def box_gap(a, b):
+    """Shortest distance between two boxes; 0 when they touch or overlap."""
+    return max(max(0, a[0] - b[2], b[0] - a[2]), max(0, a[1] - b[3], b[1] - a[3]))
+
+
 def visible_box(img):
-    """The drawing's own bounds, ignoring the near-transparent halo."""
+    """
+    The drawing's own bounds - its main mass plus the flecks that belong to it,
+    and not the ones that do not.
+
+    A plain alpha bounding box was the obvious thing and it was wrong on one
+    icon: the gashapon art carries two clipped fragments of a second machine
+    about ninety pixels off to the right. They are invisible at icon size but
+    the box stretched to reach them, so the drawing was pushed small and left
+    of centre with a sliver floating beside it.
+
+    Dropping everything but the largest piece would have been worse - the
+    sparkle strokes beside the house, the wallet and the ticket are separate
+    pieces too, and they are meant to be there. The two tell themselves apart
+    by distance and nothing else: every intentional fleck sits within eleven
+    pixels of the main mass, and the two strays sit at eighty-six and
+    ninety-one.
+    """
+    w, h = img.size
     alpha = img.getchannel("A")
-    mask = alpha.point(lambda v: 255 if v > ALPHA_FLOOR else 0)
-    return mask.getbbox()
+    # `tobytes` rather than `getdata`: one byte per pixel for an L-mode image,
+    # no per-pixel Python object, and not deprecated.
+    mask = alpha.tobytes().translate(bytes(1 if v > ALPHA_FLOOR else 0 for v in range(256)))
+    found = pieces(mask, w, h)
+    if not found:
+        return None, []
+
+    keep = [found[0][1]]
+    dropped = []
+    for count, box in found[1:]:
+        (keep.append(box) if box_gap(found[0][1], box) <= GAP_MAX else dropped.append((count, box)))
+
+    return (
+        min(b[0] for b in keep), min(b[1] for b in keep),
+        max(b[2] for b in keep), max(b[3] for b in keep),
+    ), dropped
 
 
 def main(src_dir, out_dir):
@@ -57,10 +139,14 @@ def main(src_dir, out_dir):
             continue
 
         img = Image.open(path).convert("RGBA")
-        box = visible_box(img)
+        box, dropped = visible_box(img)
         if box is None:
             print(f"skip {stem}: no visible pixels")
             continue
+        for count, stray in dropped:
+            # Said out loud: silently cropping part of someone's artwork away
+            # is the kind of help nobody asked for.
+            print(f"  {stem}: dropped a stray piece, {count}px at {stray}")
 
         drawing = img.crop(box)
         w, h = drawing.size

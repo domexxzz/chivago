@@ -571,11 +571,11 @@ function Doors({
   onOpenMarket: () => void; onOpenSummon?: () => void; onOpenCommunity?: () => void;
 }) {
   const doors = [
-    { art: menuMapArt, name: strings.tabs.map, onPress: onOpenMap, fill: '#C8F0FA', ink: '#0077B6' },
-    { art: menuStaysArt, name: strings.ask.context, onPress: onOpenStays ?? onOpenConcierge, fill: '#FFE2D4', ink: '#B95429' },
-    { art: menuQuestsArt, name: strings.tabs.quests, onPress: onOpenQuests, fill: '#FFD6AF', ink: '#B34C00' },
-    { art: menuWalletArt, name: strings.tabs.wallet, onPress: onOpenWallet, fill: '#FFD5CF', ink: '#AE433C' },
-    { art: menuDealsArt, name: { en: 'Deals', th: 'สิทธิพิเศษ', zh: '优惠' }, onPress: onOpenMarket, fill: '#FFF0AD', ink: '#916000' },
+    { art: menuMapArt, name: strings.tabs.map, onPress: onOpenMap },
+    { art: menuStaysArt, name: strings.ask.context, onPress: onOpenStays ?? onOpenConcierge },
+    { art: menuQuestsArt, name: strings.tabs.quests, onPress: onOpenQuests },
+    { art: menuWalletArt, name: strings.tabs.wallet, onPress: onOpenWallet },
+    { art: menuDealsArt, name: { en: 'Deals', th: 'สิทธิพิเศษ', zh: '优惠' }, onPress: onOpenMarket },
     /*
       The summoning (docs/68), on Home.
 
@@ -623,8 +623,6 @@ function Doors({
         */
         name: { en: 'Travel box', th: 'ตู้สุ่ม', zh: '扭蛋机' },
         onPress: onOpenSummon,
-        fill: tint.lilac.fill,
-        ink: tint.lilac.ink,
       }]
       : []),
     ...(onOpenCommunity
@@ -632,8 +630,6 @@ function Doors({
         art: menuCommunityArt,
         name: { en: 'Community', th: 'คอมมูนิตี้', zh: '社区' },
         onPress: onOpenCommunity,
-        fill: '#DDF4EE',
-        ink: '#087F6B',
       }]
       : []),
   ];
@@ -687,21 +683,30 @@ function Doors({
         paddingTop: 22,
       }}
     >
-      {doors.map(({ art, name, onPress, fill, ink }) => (
+      {doors.map(({ art, name, onPress }) => (
         <Pressable key={name.en} onPress={onPress} accessibilityRole="button" accessibilityLabel={t(name)}
           style={wrapped
             ? { width: `${100 / perRow}%`, alignItems: 'center', gap: 8, minHeight: 96 }
             : { flex: 1, alignItems: 'center', gap: 8, minHeight: 96 }}>
-          <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: fill, alignItems: 'center', justifyContent: 'center', borderTopWidth: 2, borderTopColor: 'rgba(255,255,255,0.8)', shadowColor: ink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.12, shadowRadius: 5, elevation: 2 }}>
+          {/*
+            NO DISC BEHIND THE DRAWING. The tinted circle was there to give a
+            one-weight line icon something to sit on; these drawings carry
+            their own colour and shadow, and the circle only boxed them in.
+
+            The 52px square stays, empty. It is what the row measures itself
+            against - `DOOR_MIN` and the wrap arithmetic are in these units -
+            and it keeps the labels on one baseline whether a drawing is tall
+            or wide. Taking it out would reflow the row for no visible gain.
+          */}
+          <View style={{ width: 52, height: 52, alignItems: 'center', justifyContent: 'center' }}>
             {/*
-              34 rather than the glyph's 25: a line icon reads at any size
-              because it is one weight, and a drawing with a shadow and four
-              colours in it does not. `contain` because the normalising step
-              squares the canvas but not the drawing - the wallet is square,
-              the gashapon is wide - and stretching them to fill would be the
-              one thing that undoes that work.
+              46 now, against 34 inside the circle and the old glyph's 25:
+              without a disc to sit on, a drawing has to hold the space by
+              itself. `contain` because the normalising step squares the
+              canvas but not the drawing - the wallet is square, the gashapon
+              is wide - and stretching them to fill would undo that work.
             */}
-            <Image source={art} style={{ width: 34, height: 34 }} resizeMode="contain" />
+            <Image source={art} style={{ width: 46, height: 46 }} resizeMode="contain" />
           </View>
           <Text style={{ fontSize: 12, color: '#2B2D42', textAlign: 'center', paddingHorizontal: 2 }}>{t(name)}</Text>
         </Pressable>
