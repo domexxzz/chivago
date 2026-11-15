@@ -285,6 +285,54 @@ export function refreshPhotos(db: DB, key: AreaKey): string[] {
   });
 }
 
+/**
+ * Bring an area's place WORDING in line with the seed (`{ "text": true }`).
+ *
+ * The sibling of `refreshPhotos`, and it exists for the same reason: Koniix
+ * was planted as a stay and the owner then asked for it to read as
+ * accommodation, and there was no way to say so to a row that was already
+ * live. A pilot that can never correct a sentence ships its first wording
+ * for ever.
+ *
+ * WHICH COLUMNS, AND WHY THESE. `admin-service.ts` lets an operator edit a
+ * place's NAME, short name, layer, province and position. Nothing in the
+ * application can edit its meta line, its blurb, its tags or its safety
+ * phrase - so the seed may own the second set outright while the first stays
+ * the operator's. The line is checkable rather than a feeling: if an admin
+ * path ever learns to edit a blurb, this list must shrink the same day.
+ *
+ * OPT-IN, like the photographs. An ordinary `openArea` inserts and never
+ * asserts, which is what makes it safe to run against a database with
+ * travellers in it; changing the words on live rows is a thing somebody asks
+ * for out loud, and the answer says which places changed.
+ *
+ * Returns the ids of the places whose wording changed.
+ */
+export function refreshText(db: DB, key: AreaKey): string[] {
+  if (!isAreaKey(key)) throw new Error(`area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
+  const area = areaByKey(key);
+  return transact(db, () => {
+    const changed: string[] = [];
+    // The same selection `seedArea` uses for places - by province, not by
+    // bounding box - so the two can never disagree about which rows an area
+    // owns. It is why opening Ko Sichang also reaches the Si Racha campus:
+    // both are TH-20, and that is this file's convention rather than a slip.
+    for (const p of SEED_PLACES.filter((x) => x.province === area.province)) {
+      const safety = SAFETY_PHRASES[p.id];
+      if (!safety) continue; // a place with no phrase is not the seed's to assert
+      const text = [p.meta, p.blurb.en, p.blurb.th, JSON.stringify(p.tags), safety.en, safety.th];
+      const set = db.prepare(
+        `UPDATE places SET meta = ?, blurb_en = ?, blurb_th = ?, tags = ?,
+                           safety_label_en = ?, safety_label_th = ?
+         WHERE id = ? AND NOT (meta IS ? AND blurb_en IS ? AND blurb_th IS ? AND tags IS ?
+                               AND safety_label_en IS ? AND safety_label_th IS ?)`,
+      ).run(...text, p.id, ...text);
+      if (Number(set.changes ?? 0) > 0) changed.push(p.id);
+    }
+    return changed;
+  });
+}
+
 
 /**
  * Retire what the seed replaced, then add what the seed has. One transaction.
