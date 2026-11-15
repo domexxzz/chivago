@@ -913,6 +913,21 @@ export function MapScreen({
   );
 }
 
+/**
+ * The words a place may wear on the map card, in every language it needs.
+ *
+ * Keyed by the TAG in the seed. One entry today: the island gained a stay on
+ * 15 November, and a guest house labelled "Place" beside a shop labelled
+ * "ที่พัก" reads as the app knowing less about the thing it knows more about.
+ *
+ * The next kind joins it the day somebody writes its three words, which is
+ * the whole admission price — a tag with no translation is not shown, because
+ * a raw English tag would be a worse card for a Thai reader, not a better one.
+ */
+const PLACE_KIND: Record<string, { en: string; th: string; zh: string } | undefined> = {
+  Accommodation: { en: 'Accommodation', th: 'ที่พัก', zh: '住宿' },
+};
+
 export function MapSelectionCard({
   place,
   shop,
@@ -927,8 +942,24 @@ export function MapSelectionCard({
   if (!place && !shop) return null;
   const title = place ? t(place.name) : shop!.name;
   const image = place?.photo ? photoUri(place.photo.url) : shop?.coverUrl ? shopImageUri(shop.coverUrl) : null;
+  /*
+    A PLACE SAYS WHAT KIND OF THING IT IS, when the app has the word.
+
+    The line beside a shop has always been its category - ที่พัก, ร้านอาหาร -
+    and a place said only "Place", because it had nothing better to say. It
+    does now: Koniix Garden Cottage is tagged Accommodation, and a card that
+    calls a guest house "Place" while the shop beside it says "ที่พัก" is the
+    map being vaguer about the thing it knows more about.
+
+    ONLY TAGS WITH A TRANSLATION. Tags are English content written in the
+    seed; printing one raw would hand a Thai reader "Accommodation" where
+    they used to read สถานที่, which is a worse card, not a better one. So a
+    tag appears here only once somebody has written it in all three
+    languages, and everything else keeps the old word.
+  */
+  const kind = place?.tags.map((tag) => PLACE_KIND[tag]).find(Boolean);
   const eyebrow = place
-    ? t({ en: 'Place', th: 'สถานที่', zh: '地点' })
+    ? t(kind ?? { en: 'Place', th: 'สถานที่', zh: '地点' })
     : mapShopCategory(shop!.category);
   const detail = place
     ? `${t({ en: 'Healthy score', th: 'คะแนนสุขภาวะ', zh: '健康评分' })} ${place.healthyScore}`
