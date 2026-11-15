@@ -47,10 +47,29 @@ const USAGE = `usage: snapshot-live --api <https://host> --out <dir outside the 
 
 CHIVAGO_EXPORT_TOKEN must be set in the environment (never passed as an argument).`;
 
+/**
+ * Stop, before a single request has been made.
+ *
+ * `process.exit` is safe HERE and nowhere after a fetch - see the note over
+ * the dispatcher at the foot of this file. Everything this refuses (no token,
+ * a token too short, an argument that is not a URL) is decided before any
+ * socket exists, so there is nothing open to tear down.
+ */
 const die = (message: string, code = 2): never => {
   console.error(message);
   process.exit(code);
 };
+
+/** The same, once a request HAS been made: thrown, and caught by the dispatcher. */
+class Refused extends Error {
+  readonly code: number;
+  constructor(message: string, code = 2) {
+    super(message);
+    this.code = code;
+  }
+}
+
+const refuse = (message: string, code = 2): never => { throw new Refused(message, code); };
 
 const token = process.env.CHIVAGO_EXPORT_TOKEN ?? '';
 if (token === '') die(`CHIVAGO_EXPORT_TOKEN is not set.\n\n${USAGE}`);
@@ -104,29 +123,29 @@ async function ask(path: string): Promise<{ status: number; text: string; header
     }
     await new Promise((r) => setTimeout(r, attempt * 1000));
   }
-  return die(`${path}: ${last} after 3 attempts`);
+  return refuse(`${path}: ${last} after 3 attempts`);
 }
 
 /** Say what a refusal means, in the words of the thing that refused. */
 function explain(status: number, text: string): never {
   if (status === 404) {
-    return die(
+    return refuse(
       'The deployment answered 404: it is not armed for export.\n'
       + '  wrangler secret put CHIVAGO_EXPORT_TOKEN      (then redeploy - a new secret needs one)',
     );
   }
-  if (status === 403) return die('403: that token is not the one the deployment was armed with.');
+  if (status === 403) return refuse('403: that token is not the one the deployment was armed with.');
   if (status === 401) {
-    return die('401: the request reached the traveller middleware, which means the route is not armed.');
+    return refuse('401: the request reached the traveller middleware, which means the route is not armed.');
   }
-  return die(`${status}: ${text.slice(0, 400)}`);
+  return refuse(`${status}: ${text.slice(0, 400)}`);
 }
 
 async function manifestNow(): Promise<Manifest> {
   const res = await ask('/admin/export');
   if (res.status !== 200) explain(res.status, res.text);
   const body = JSON.parse(res.text) as { ok: boolean; data: Manifest };
-  if (!body?.ok) return die(`/admin/export answered something unexpected: ${res.text.slice(0, 200)}`);
+  if (!body?.ok) return refuse(`/admin/export answered something unexpected: ${res.text.slice(0, 200)}`);
   return body.data;
 }
 
@@ -159,8 +178,8 @@ function readSavedManifest(path: string): SavedManifest {
 
 // ---------------------------------------------------------------- checking
 
-if (values.check !== undefined) {
-  const dir = resolve(values.check);
+async function checkSnapshot(target: string): Promise<number> {
+  const dir = resolve(target);
   const manifestPath = join(dir, 'manifest.json');
   const saved = readSavedManifest(manifestPath);
 
@@ -227,157 +246,192 @@ if (values.check !== undefined) {
   if (bad.length === 0 && fileProblems === 0) {
     console.log('  Every table is consistent with what the live database held while it was read.');
     console.log('  "live now" drifting is expected: the pilot gains users and expires stories.');
-    process.exit(0);
+    return 0;
   }
   console.error(`\n  ${bad.length} table(s) and ${fileProblems} file(s) wrong. This snapshot is not sound.`);
-  process.exit(1);
+  return 1;
 }
 
 // --------------------------------------------------------------- snapshotting
 
-const outDir = resolve(values.out ?? '');
-if (values.out === undefined) die(USAGE);
-if (outDir.startsWith(repoRoot) && values.force !== true) {
-  die(
-    `${outDir} is inside the repository, and this snapshot is 339 people's personal data.\n`
-    + 'Write it somewhere else, or pass --force if you really mean it (batches/ and *.db are\n'
-    + 'the only paths .gitignore already covers).',
-  );
-}
-
-mkdirSync(outDir, { recursive: true });
-const existing = readdirSync(outDir).filter((f) => /^\d{4}-.*\.json$/.test(f));
-if (existing.length > 0 && values.force !== true) {
-  die(
-    `${outDir} already holds ${existing.length} batch file(s) from another snapshot.\n`
-    + 'Two snapshots in one directory restore as one database that never existed. '
-    + 'Use a new directory.',
-  );
-}
-
-console.log(`[chivago] ${api}`);
-console.log(`[chivago] token: ${token.length} characters`);
-
-const before = await manifestNow();
-console.log(
-  `[chivago] ${before.tables.length} table(s), ${before.totalRows} row(s), `
-  + `schema version ${before.schemaVersion}.`,
-);
-
-let fileNumber = 0;
-let totalRows = 0;
-const batches: { file: string; table: string; rows: number }[] = [];
-const skipped: string[] = [];
-const tooBig: string[] = [];
-
-for (const { table, rows: expected } of before.tables) {
-  if (expected === 0) {
-    // Not an error and not worth a file: most of a pilot's schema is empty.
-    skipped.push(table);
-    continue;
+async function takeSnapshot(): Promise<number> {
+  const outDir = resolve(values.out ?? '');
+  if (values.out === undefined) die(USAGE);
+  if (outDir.startsWith(repoRoot) && values.force !== true) {
+    die(
+      `${outDir} is inside the repository, and this snapshot is 339 people's personal data.\n`
+      + 'Write it somewhere else, or pass --force if you really mean it (batches/ and *.db are\n'
+      + 'the only paths .gitignore already covers).',
+    );
   }
 
-  let after: string | null = null;
-  let rowsHere = 0;
-  /*
-    THE PAGE SIZE ADAPTS instead of being configured per table. A row of
-    `wallets` is tens of bytes and a row of `stories` carries video in the
-    row, so one number cannot be right for both - and a hand-written list of
-    exceptions is a list that rots as tables are added. On a 413 the page
-    halves and the same cursor is asked again; a failed page inserted nothing
-    and cost nothing.
-  */
-  let rowsPerPage = pageRows;
-  for (;;) {
-    const query = new URLSearchParams({ table, rows: String(rowsPerPage) });
-    if (after !== null) query.set('after', after);
-    const res = await ask(`/admin/export/batch?${query}`);
+  mkdirSync(outDir, { recursive: true });
+  const existing = readdirSync(outDir).filter((f) => /^\d{4}-.*\.json$/.test(f));
+  if (existing.length > 0 && values.force !== true) {
+    die(
+      `${outDir} already holds ${existing.length} batch file(s) from another snapshot.\n`
+      + 'Two snapshots in one directory restore as one database that never existed. '
+      + 'Use a new directory.',
+    );
+  }
 
-    if (res.status === 413 && rowsPerPage > 1) {
-      rowsPerPage = Math.max(1, Math.floor(rowsPerPage / 2));
-      console.log(`  ${table}: a page was too large; trying ${rowsPerPage} row(s) at a time`);
+  console.log(`[chivago] ${api}`);
+  console.log(`[chivago] token: ${token.length} characters`);
+
+  const before = await manifestNow();
+  console.log(
+    `[chivago] ${before.tables.length} table(s), ${before.totalRows} row(s), `
+    + `schema version ${before.schemaVersion}.`,
+  );
+
+  let fileNumber = 0;
+  let totalRows = 0;
+  const batches: { file: string; table: string; rows: number }[] = [];
+  const skipped: string[] = [];
+  const tooBig: string[] = [];
+
+  for (const { table, rows: expected } of before.tables) {
+    if (expected === 0) {
+      // Not an error and not worth a file: most of a pilot's schema is empty.
+      skipped.push(table);
       continue;
     }
-    if (res.status === 413) {
-      /*
-        One row on its own is over the 16 MB a batch may be. It cannot be
-        exported AND it could never have been imported either - the ceiling is
-        the same on both halves - so this is a hole to report rather than
-        paper over. A story may be 25 MB (`STORY_MAX_BYTES`) and base64 adds a
-        third, so this is reachable with one long clip.
-      */
-      console.error(`  ${table}: a single row is over the batch ceiling. NOT COPIED.`);
-      tooBig.push(table);
-      break;
-    }
-    if (res.status !== 200) explain(res.status, res.text);
 
-    const batch = JSON.parse(res.text) as ImportBatch;
-    if (batch.values.length > 0) {
-      fileNumber += 1;
-      // Zero-padded and in send order, so `ls`, `sort` and a shell loop agree.
-      const file = `${String(fileNumber).padStart(4, '0')}-${table}.json`;
-      // The bytes exactly as they arrived: re-serialising would be a second
-      // chance to change them.
-      writeFileSync(join(outDir, file), res.text, 'utf8');
-      batches.push({ file, table, rows: batch.values.length });
-      rowsHere += batch.values.length;
-      totalRows += batch.values.length;
-    }
+    let after: string | null = null;
+    let rowsHere = 0;
+    /*
+      THE PAGE SIZE ADAPTS instead of being configured per table. A row of
+      `wallets` is tens of bytes and a row of `stories` carries video in the
+      row, so one number cannot be right for both - and a hand-written list of
+      exceptions is a list that rots as tables are added. On a 413 the page
+      halves and the same cursor is asked again; a failed page inserted nothing
+      and cost nothing.
+    */
+    let rowsPerPage = pageRows;
+    for (;;) {
+      const query = new URLSearchParams({ table, rows: String(rowsPerPage) });
+      if (after !== null) query.set('after', after);
+      const res = await ask(`/admin/export/batch?${query}`);
 
-    after = res.headers.get('x-chivago-export-next');
-    if (after === null) break;
+      if (res.status === 413 && rowsPerPage > 1) {
+        rowsPerPage = Math.max(1, Math.floor(rowsPerPage / 2));
+        console.log(`  ${table}: a page was too large; trying ${rowsPerPage} row(s) at a time`);
+        continue;
+      }
+      if (res.status === 413) {
+        /*
+          One row on its own is over the 16 MB a batch may be. It cannot be
+          exported AND it could never have been imported either - the ceiling is
+          the same on both halves - so this is a hole to report rather than
+          paper over. A story may be 25 MB (`STORY_MAX_BYTES`) and base64 adds a
+          third, so this is reachable with one long clip.
+        */
+        console.error(`  ${table}: a single row is over the batch ceiling. NOT COPIED.`);
+        tooBig.push(table);
+        break;
+      }
+      if (res.status !== 200) explain(res.status, res.text);
+
+      const batch = JSON.parse(res.text) as ImportBatch;
+      if (batch.values.length > 0) {
+        fileNumber += 1;
+        // Zero-padded and in send order, so `ls`, `sort` and a shell loop agree.
+        const file = `${String(fileNumber).padStart(4, '0')}-${table}.json`;
+        // The bytes exactly as they arrived: re-serialising would be a second
+        // chance to change them.
+        writeFileSync(join(outDir, file), res.text, 'utf8');
+        batches.push({ file, table, rows: batch.values.length });
+        rowsHere += batch.values.length;
+        totalRows += batch.values.length;
+      }
+
+      after = res.headers.get('x-chivago-export-next');
+      if (after === null) break;
+    }
+    console.log(`  ${table}: ${rowsHere} row(s)`);
   }
-  console.log(`  ${table}: ${rowsHere} row(s)`);
+
+  /*
+    The counts AFTER the read, from the live system, because the database did not
+    hold still while it was read. Those two numbers are the bracket
+    `snapshot-check.ts` judges the file against; writing them down now is what
+    makes the snapshot checkable later, when the database has moved on again.
+  */
+  const after = await manifestNow();
+
+  writeFileSync(
+    join(outDir, 'manifest.json'),
+    JSON.stringify({
+      source: api,
+      takenAt: before.takenAt,
+      finishedAt: after.takenAt,
+      schemaVersion: before.schemaVersion,
+      totalRows,
+      batches,
+      skipped,
+      tooBig,
+      live: { before: countsOf(before), after: countsOf(after) },
+    }, null, 2),
+    'utf8',
+  );
+
+  const verdicts = checkCounts(before.tables.map(({ table }) => ({
+    table,
+    inSnapshot: batches.filter((b) => b.table === table).reduce((n, b) => n + b.rows, 0),
+    before: countsOf(before)[table] ?? 0,
+    after: countsOf(after)[table] ?? 0,
+  })));
+  const bad = failures(verdicts);
+
+  console.log(`\n[chivago] ${totalRows} row(s) in ${fileNumber} file(s) under ${outDir}`);
+  if (skipped.length > 0) console.log(`[chivago] ${skipped.length} empty table(s), no file written.`);
+  for (const f of bad) console.error(`[chivago] FAIL ${f.reason}`);
+  if (tooBig.length > 0) {
+    console.error(`[chivago] NOT COPIED, row too large for a batch: ${tooBig.join(', ')}`);
+  }
+
+  console.log('\nCheck it again later, against the live counts:');
+  console.log(`  snapshot-live --api ${api} --check "${outDir}"`);
+  console.log('\nTo restore it into an EMPTY deployment, arm the import and send them in order:');
+  console.log('  for f in "' + outDir + '"/[0-9]*.json; do');
+  console.log('    curl -fsS -X POST "$API/admin/import" \\');
+  console.log('      -H "x-import-token: $CHIVAGO_IMPORT_TOKEN" \\');
+  console.log('      -H "content-type: application/json" \\');
+  console.log('      --data-binary "@$f" || { echo "FAILED on $f"; break; }');
+  console.log('  done');
+
+  return bad.length > 0 || tooBig.length > 0 ? 1 : 0;
 }
 
 /*
-  The counts AFTER the read, from the live system, because the database did not
-  hold still while it was read. Those two numbers are the bracket
-  `snapshot-check.ts` judges the file against; writing them down now is what
-  makes the snapshot checkable later, when the database has moved on again.
+  `process.exitCode`, never `process.exit()`.
+
+  MEASURED, on 15 November, against production. `--check` printed its verdict -
+  every one of 36 tables consistent - and then the process ABORTED:
+
+    Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c
+    exit=127
+
+  `process.exit()` tears the loop down while undici still holds the keep-alive
+  socket from the fetches above, and on Windows that trips a libuv assertion.
+  The exit code is this command's entire contract - a script or a person asking
+  "is last night's backup sound?" reads nothing else - so answering 127 for
+  "sound" is the one failure mode it must not have. Setting `exitCode` and
+  letting the loop drain leaves the socket to close on its own.
+
+  `die()` still exits immediately, deliberately: those paths refuse before any
+  request is made, so there is nothing open to tear down. Everything that
+  refuses AFTER a request - a wrong token, an unarmed deployment, a connection
+  that gave up - throws `Refused` instead and is caught here, so the operator
+  reads the message and nothing else. A clear refusal followed by a libuv
+  assertion reads as a broken tool rather than as a wrong token.
 */
-const after = await manifestNow();
-
-writeFileSync(
-  join(outDir, 'manifest.json'),
-  JSON.stringify({
-    source: api,
-    takenAt: before.takenAt,
-    finishedAt: after.takenAt,
-    schemaVersion: before.schemaVersion,
-    totalRows,
-    batches,
-    skipped,
-    tooBig,
-    live: { before: countsOf(before), after: countsOf(after) },
-  }, null, 2),
-  'utf8',
-);
-
-const verdicts = checkCounts(before.tables.map(({ table }) => ({
-  table,
-  inSnapshot: batches.filter((b) => b.table === table).reduce((n, b) => n + b.rows, 0),
-  before: countsOf(before)[table] ?? 0,
-  after: countsOf(after)[table] ?? 0,
-})));
-const bad = failures(verdicts);
-
-console.log(`\n[chivago] ${totalRows} row(s) in ${fileNumber} file(s) under ${outDir}`);
-if (skipped.length > 0) console.log(`[chivago] ${skipped.length} empty table(s), no file written.`);
-for (const f of bad) console.error(`[chivago] FAIL ${f.reason}`);
-if (tooBig.length > 0) {
-  console.error(`[chivago] NOT COPIED, row too large for a batch: ${tooBig.join(', ')}`);
+try {
+  process.exitCode = values.check !== undefined
+    ? await checkSnapshot(values.check)
+    : await takeSnapshot();
+} catch (err) {
+  if (!(err instanceof Refused)) throw err;
+  console.error(err.message);
+  process.exitCode = err.code;
 }
-
-console.log('\nCheck it again later, against the live counts:');
-console.log(`  snapshot-live --api ${api} --check "${outDir}"`);
-console.log('\nTo restore it into an EMPTY deployment, arm the import and send them in order:');
-console.log('  for f in "' + outDir + '"/[0-9]*.json; do');
-console.log('    curl -fsS -X POST "$API/admin/import" \\');
-console.log('      -H "x-import-token: $CHIVAGO_IMPORT_TOKEN" \\');
-console.log('      -H "content-type: application/json" \\');
-console.log('      --data-binary "@$f" || { echo "FAILED on $f"; break; }');
-console.log('  done');
-
-if (bad.length > 0 || tooBig.length > 0) process.exit(1);
