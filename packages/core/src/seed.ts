@@ -847,6 +847,56 @@ export const SEED_PLACES: Place[] = [
     },
     metrics: { aqi: 40, crowdDensity: 3.5, safetyIndex: 6.0, walkability: 6.5 },
   },
+  {
+    /*
+      THE FIRST PLACE ON THIS ISLAND THAT IS NOT A MAPPED FEATURE, and the
+      first that is somebody's business. Both are deliberate and both were
+      the owner's call, asked and answered on 15 November 2026.
+
+      THE POSITION IS THE PROPERTY'S OWN. The owner gave
+      13.156753478777897, 100.80878104485248 - rounded here to six decimals,
+      about 0.1 m, which is what every other coordinate in this file carries.
+      OpenStreetMap was asked first and has nothing called Koniix: 250 m
+      around the point holds Tiew Pai Park Resort at 199 m and three unnamed
+      `guest_house` nodes. For a private property the owner is a better
+      source than OSM, not a worse one - it is simply a different claim, and
+      `sichang.test.ts` now records which of the two each place rests on
+      rather than assuming OSM for all of them.
+
+      NO PHOTOGRAPH. `photo: null`, which is what the island's own five
+      places carried until the team went and photographed them, and it is
+      the honest state: there is no picture of this place anybody here has
+      the right to publish. A URL with no credit and licence beside it would
+      be the app claiming a right it does not have - see the photograph test.
+
+      WELLNESS, NOT GREEN. Green on this map carries an environmental claim -
+      the beach where the island's litter arrives first, the museum of the
+      sea - and a private stay makes none. Wellness is where the palace sits:
+      somewhere to be calm.
+
+      THE BLURB SAYS WHAT THE NAME SAYS AND NO MORE. No rooms, no price, no
+      facilities, because none were given. docs/61: a business's claims are
+      the business's to make, and this app makes none on their behalf.
+    */
+    id: 'sc-koniix-garden-cottage',
+    name: {
+      en: 'Koniix Garden Cottage',
+      // A brand name is not translated.
+      th: 'Koniix Garden Cottage',
+      zh: 'Koniix Garden Cottage',
+    },
+    short: 'Koniix', layer: 'Wellness', province: 'TH-20',
+    lat: 13.156753, lng: 100.808781,
+    meta: 'Stay · Position from the property · Air modelled',
+    blurb: {
+      en: 'A garden cottage stay on the island. Rooms and opening are not confirmed here — ask the property before travelling.',
+      th: 'ที่พักแบบคอทเทจในสวนบนเกาะ ยังไม่ได้ยืนยันรายละเอียดห้องและการเปิดให้บริการ กรุณาสอบถามที่พักก่อนเดินทาง',
+      zh: '岛上的花园小屋住宿。房型与营业情况尚未在此确认，出行前请先向该住宿查询。',
+    },
+    tags: ['Stay', 'Garden'],
+    photo: null,
+    metrics: { aqi: 40, crowdDensity: 1.0, safetyIndex: 6.0, walkability: 6.0 },
+  },
 ];
 
 /**
@@ -948,6 +998,13 @@ export const SAFETY_PHRASES: Record<string, { en: string; th: string; zh?: strin
   'sc-palace': { en: 'Staffed grounds', th: 'มีเจ้าหน้าที่ดูแล', zh: '园区有工作人员' },
   'sc-shops': { en: 'Town street', th: 'ถนนในตัวเมือง', zh: '镇上的街道' },
   'sc-marinestation': { en: 'Access not confirmed', th: 'ยังไม่ยืนยันว่าเข้าได้', zh: '尚未确认可否进入' },
+  // A stay is somebody's home ground, not a doorway to walk through. The
+  // phrase says so rather than implying the grounds are open to look round.
+  'sc-koniix-garden-cottage': {
+    en: 'Private property — ask before entering',
+    th: 'เป็นพื้นที่ส่วนบุคคล ควรติดต่อก่อนเข้า',
+    zh: '私人场所，进入前请先联系',
+  },
 };
 
 // ---------------------------------------------------------------------------
