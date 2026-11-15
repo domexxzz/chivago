@@ -96,7 +96,7 @@ describe('Solution Connect', () => {
     await ui.press('Sentiara AI');
     assert.deepEqual(
       opened.mock.calls.map((call) => call.arguments[0]),
-      ['https://sentiara-web.dometeenlek.workers.dev'],
+      ['https://sentiaratech.com/'],
     );
     ui.unmount();
     opened.mock.restore();
