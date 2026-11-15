@@ -1,177 +1,109 @@
-# Handoff — ChivaGo / Spark Hack PTT Season 2
+# Handoff — ChivaGo
 
-เขียนเมื่อ 6 พ.ย. 2569 · ส่งต่อให้ session ถัดไป
-
----
-
-## 1. บริบท
-
-ทีม **GFD Venture** (4 คน) เข้ารอบ **20 ทีมสุดท้าย** ของ Spark Hack PTT Season 2
-แข่งต่อ **21–22 พ.ย. 2569** · พื้นที่นำร่อง **เกาะสีชัง จ.ชลบุรี**
-
-เป้าหมายของเจ้าของงาน: เข้ารอบให้ได้
+Written 15 Nov 2026 · for the next session (another Claude)
+The previous version of this file (6 Nov) is in git history: `git show 25d43d8:handoff.md`
 
 ---
 
-## 2. ข้อห้ามที่ยังมีผล
+## 1. Context
 
-> **ห้าม push** — commit เก็บไว้ในเครื่องเท่านั้น (เจ้าของงานสั่งไว้ตั้งแต่ต้นและยังไม่ยกเลิก)
-
-ถ้าจะ push ต้องถามก่อนทุกครั้ง
+- **ChivaGo** — a travel app pitched at the **Spark Hack PTT Season 2** finals on **21–22 Nov 2026**. Pilot area: Koh Sichang. Team: GFD Venture.
+- pnpm monorepo: `apps/mobile` (Expo / React Native Web), `apps/api` (Hono on a Cloudflare Worker + Durable Object + SQLite), `packages/core`, `packages/sdk-*`
+- Live: **https://chivargo.com** (+ `www.` and `chivago.dometeenlek.workers.dev`)
+- GitHub: `domexxzz/chivago` — **now public** (made public 14 Nov so Actions would run; free for public repos)
 
 ---
 
-## 3. สถานะ repo
+## 2. Rules from the owner that still apply
+
+1. **Billing / payments / card changes are the owner's job** — never do them yourself
+2. **Never print token or key values** in chat, logs or files
+3. **Never test leaked keys against production** (a safety classifier has already stopped this once — don't try again in any form). If you find a leaked key, recommend that the owner rotate it
+4. Push / PR / merge / deploy have been done regularly this session with the owner's agreement — if unsure, ask
+5. This machine runs out of memory easily (Metro worker killed) → avoid running the mobile test suite in parallel with typecheck. If the dev server dies, restart it
+
+---
+
+## 3. Repo state (current)
 
 ```
-E:\D-drive-rescue\Chivago
-branch: docs/infrastructure-and-bmc   (นำหน้า main อยู่ 3 commit · ยังไม่ push)
-
-e3b24d6  chore: ignore deck exports and image-generation scratch
-bc344a0  docs: add pitch deck collectible artwork
-3967b35  docs: add infrastructure definition and 11-block business model canvas
-54ba6e3  (main) Merge pull request #193
+branch: main @ 50c1624   (working tree clean)
+live:   version 073dcc06-8ba2-4699-82f0-481266f3a6b6
+CI:     green on main (typecheck / test / checks / workers)
 ```
 
-working tree สะอาด
+### Merged + deployed in this session
+| PR | What |
+| --- | --- |
+| #222 | GitHub Actions: SDK workflows run only when their own paths change |
+| #223 | replace real `chv_` keys in docs with placeholders · create empty `dist-live` before `test:import` |
+| #224 | Chivar Bot as SVG with 9 moods (`ChivarBot.tsx`) |
+| #225 | 3D Chivar Bot (three.js built from primitives, `chivarbot3d/`) — drag to turn, tap to hop |
+| #226 | 3D Chivar Bot in the Concierge header and on the floating door (`Shell.tsx`) |
+| #227 | **Fanta's work**: two gacha banners (mascot/fashion) + idempotency, backpack, navigation, place stories. I fixed 3 things before merging (below) |
+| #228 | ChangChang: tablets get the detailed build |
+| #229 | **ChangChang sharp on every screen**: meshopt-compressed GLB 7.8→3.2 MB + `dequantize.ts` |
 
-**ไฟล์หลักที่ต้องอ่านก่อนทำอะไรต่อ**
-
-| ไฟล์ | คืออะไร |
-|---|---|
-| artifact [`ChivaGo Business Model`](https://claude.ai/artifact/9rhyPcmGuA8pgvZgyUXSCj) | **เอกสารแม่ฝั่งธุรกิจ** — BMC 11 ช่อง + roadmap 5 ระยะ ถ้าขัดกับอย่างอื่น ยึดอันนี้ |
-| `docs/70-infrastructure-and-bmc-th.md` | Infrastructure (นับจากโค้ด) + ส่วนธุรกิจที่ปรับให้ตรง artifact |
-| `docs/71-disaster-recovery-th.md` | ผลซ้อมกู้คืนจริง 6 พ.ย. + ขั้นตอนที่รันได้ |
-| `docs/72-judge-qa-th.md` | คำตอบสามคำถามกรรมการ + ผลตรวจ quest flow |
-| `docs/73-checklist-th.md` | **เช็กลิสต์ก่อนแข่ง** — งานค้าง · เช้าวันที่ 21 · ตัวเลขที่พูดได้ · สิ่งที่ห้ามพูดผิด |
-
----
-
-## 4. ตัวเลขจริง นับจาก `main` เมื่อ 6 พ.ย. 2569
-
-| รายการ | ค่า |
-|---|---|
-| เทสทั้งหมด | **3,404** (API 1,653 · core 954 · mobile 781 · อื่น ๆ 16) |
-| HTTP endpoints | **198** (ไม่นับซ้ำ · ประกาศดิบ 202 ครั้ง) |
-| หน้าจอ mobile | **31** |
-| ตารางฐานข้อมูล | **63** (production จริง · `CREATE TABLE` ใน `apps/api/src` = 64 ครั้ง) |
-| บรรทัดโค้ด .ts/.tsx | **131,946** |
-| ไฟล์ที่ track | 714 |
-
-> ~~15 ตาราง~~ เป็นตัวเลขผิด มาจาก grep เฉพาะ `db.ts` ไฟล์เดียว แก้แล้ว 6 พ.ย.
-
-คำสั่งนับใหม่อยู่ท้าย `docs/70-infrastructure-and-bmc-th.md`
-**อย่าเชื่อตัวเลขบนสไลด์เก่าหรือในเอกสารเก่า — นับใหม่ทุกครั้งก่อนอ้าง**
+### What I fixed in #227 (Fanta's PR)
+- `Shell.tsx` merge conflict brought back the old PNG import while the code calls `<ChivarBotScene>` → web Home would have thrown a ReferenceError
+- `storiesOpen()` back to **closed by default** (Fanta had made it open by default). Posting no longer needs GPS/geofence/event token, and production sets `CHIVAGO_STORIES_AUTO_APPROVE=1` → open by default = anyone could post to any place and it goes public immediately. Fanta's tests changed to match
+- Added Thai/English/Chinese messages for 3 new error codes (`NO_ELIGIBLE_REWARDS`, `INVALID_REWARD_POOL`, `IDEMPOTENCY_CONFLICT`) to `apps/mobile/src/i18n/api-errors.ts`
 
 ---
 
-## 5. Infrastructure ย่อ
+## 4. Deploying (the method that works — don't use the workflow)
 
-```
-Expo / React Native (iOS · Android · Web)
-        ↓ HTTPS same-origin
-Node.js 24 + Hono · TypeScript รันตรง ไม่มี build step
-        ↓ node:sqlite
-SQLite ไฟล์เดียวบน Fly volume  /data/chivago.db
+```bash
+cd apps/mobile
+rm -rf dist-live
+EXPO_PUBLIC_API_URL=same-origin npx expo export --platform web --output-dir dist-live --clear
+grep -c "localhost:8787'" dist-live/_expo/static/js/web/index-*.js   # must print 0
+node scripts/flatten-assets.mjs dist-live
+cd ../..
+pnpm --filter @chivago/api exec wrangler deploy
 ```
 
-- Fly.io app `chivago` · region `sin` · 1 × shared-cpu-2x / 1 GB
-- `auto_stop_machines` + `min_machines_running = 0` → ค่าเครื่องจริง **$17.89–34.46/เดือน**
-- Deploy ผ่าน GitHub Actions **`workflow_dispatch` เท่านั้น** — push เข้า main ไม่ deploy
-- โดเมน chivargo.com
-- เส้นทางสเกลขั้น 2: LiteFS (`fly.ha.toml`, `litefs.yml`, แอป `chivago-ha`) — มีโค้ด ทดสอบแยกแอปแล้ว
-- เส้นทางสเกลขั้น 3: Cloudflare Durable Objects (`apps/api/src/do-storage.ts`) — CI รันชุดเทส API ซ้ำผ่าน adapter ด้วย `pnpm test:durable`
+**Traps that have bitten before:**
+- Without `EXPO_PUBLIC_API_URL=same-origin` → the bundle calls `http://localhost:8787` and the live site drops into demo-only mode
+- Without `--clear` → Metro's cache keeps the old env value (`index-<hash>.js` keeps the same hash = still broken)
+- `.github/workflows/deploy-worker.yml` is broken — don't use it
+- After deploying, check with the chrome-devtools MCP (the app's built-in browser pane fires no `requestAnimationFrame`, so it can't check 3D/animation)
 
 ---
 
-## 6. สไลด์ที่มีอยู่
+## 5. Unfinished work / to decide
 
-| Canva ID | ชื่อ | หน้า | ใช้ทำอะไร |
-|---|---|---|---|
-| `DAHY0C99HQk` | ChivaGo ปลุกของดี | 18 | เด็คเล่าเรื่องภาษาไทย ตัวหลักที่ใช้พิตช์ |
-| `DAHY4irvKq0` | Chiva Go Pitch Deck (Sichang Quest Island) | 19 | เด็คฝั่งธุรกิจ BMC / market / competition |
-| `DAHTMxqA0LQ` | Chiva Go | 21 | เด็คต้นฉบับเก่า ใช้เป็นคลังภาพ |
+### For the owner to decide
+- **Stories are open in the live database** (`settings.stories_open = '1'`, set earlier from the console). The code default is closed, but this value overrides it. With auto-approve on, anyone signed in can post to any place and it goes public immediately. Close it from the moderator console if it's not needed yet
+- **Rotate the host keys** that were in `docs/` before #223 (the repo is public now; the keys were in git history) — the owner's job
+- `verifySummon` checks v3 receipts against **today's** `gacha_reward_pool` → if an operator changes weights or deactivates a reward, old receipts may fail to verify. Should store the pool snapshot/version per pull
 
-### แก้ไปแล้วเมื่อ 6 พ.ย.
-
-**`DAHY0C99HQk`**
-- หน้า 9: `23 หน้าจอ · 87 API routes` → `31 หน้าจอ · 198 endpoints`
-- หน้า 9: `1,967 เทส` → `3,404 เทส`
-- หน้า 9: เพิ่มเลขหน้า `09 / 18` ที่หายไป
-- ไล่เลขหน้าใหม่ทั้งเด็ค `/ 19` → `/ 18` (ปกไม่มีเลข จากนั้น 02/18 ถึง 18/18)
-- หน้า 17 กับ 18: เลื่อนเลขขึ้นชั้นบนสุด + เปลี่ยนเป็นสีขาวให้อ่านออก
-
-**`DAHY4irvKq0`**
-- หน้า 9–10: แก้ถ้อยคำคอมมิชชัน 7 จุด — จาก "ค่าธรรมเนียมการจอง / ยอดผ่านระบบ"
-  เป็น "คอมมิชชันจากดีลที่ยืนยันได้ · เงินไม่ผ่านแพลตฟอร์ม"
-  เหตุผล: `docs/59` และ `docs/61` ระบุว่าการรับเงินแทนผู้ประกอบการทำให้เป็นตัวกลางชำระเงิน
-- หน้า 16: แก้คำพิมพ์เพี้ยน `การนับซ้ยังไม่` → `การนับซ้ำ • ยังไม่`
+### Leftovers (not urgent)
+- `origin/feat/permanent-qr` — a permanent QR into the site + poster with ChangChang (`artifacts/qr/`, `scripts/make-qr.py`), **not merged**
+- Dead code from #227: `eventTokenOk` / `WrongEventToken` in `apps/api/src/story-service.ts` and `http.ts`
+- `POST /summon` now requires `category` + `idempotencyKey` → old app builds sending only `{pulls}` get 400 (fine if app and API deploy together)
+- Orphan file `apps/mobile/assets/chivargo-ai-robot-v1.png` (no longer used since the 3D bot)
+- Old open PRs: #214, #194, #174, #151, #99, #98, #97
 
 ---
 
-## 7. ที่ยังค้าง เรียงตามความเร่ง
+## 6. Where to look
 
-| # | เรื่อง | ทำไมสำคัญ |
-|---|---|---|
-| 1 | **ผูกวิธีชำระเงินกับ Fly** | ✅ ซ้อมกู้คืนแล้ว 6 พ.ย. กู้จากไฟล์ได้จริง **แต่สร้าง volume จาก snapshot ไม่ได้ ติดโควตา** งานนี้ทำแทนไม่ได้ ต้องเจ้าของบัญชี · `docs/71` |
-| 2 | **สำรองไฟล์เก็บนอก Fly** | snapshot เก็บแค่ 5 วัน และกู้ไม่ได้ในวันนี้ ถ้าไม่มีใครรัน ก็ไม่มีสำเนาอยู่นอก Fly เลย · `docs/71` ข้อ 3 |
-| 3 | **ตั้ง `min_machines_running = 1`** เช้าวันแข่ง | **วัดจริง 6 พ.ย. เครื่องหลับใช้ 4.76 วินาที** ไม่ใช่ 1–2 วินาที |
-| 4 | **อย่ารัน `demo:reset --walk`** | มัน seed เกาะสมุย ไม่ใช่สีชัง และแอปก็เปิดมาที่สมุยด้วย ต้องกดสลับเอง · `docs/72` |
-| 5 | **หาเจ้าบ้านจริงบนเกาะ** | ตอนนี้ quest สีชังเจ้าบ้านคือทีมเอง (เขียน "(ตัวอย่าง)" กำกับไว้แล้ว) เป้าระยะ 1 = host 30 ราย · ร้าน 50 แห่ง |
-| 6 | ~~สไลด์ยังไม่ได้ปรับตามโมเดลใหม่~~ **แก้แล้ว 6 พ.ย.** | ตรวจครบสองเด็ค **ไม่มี ฿757K / 6 ราย / 28 เท่า บนสไลด์เลย** · ปรับให้ตรง artifact แล้ว ดู `docs/70` ส่วนที่ 8 |
-| 7 | หน้า "แผน" ที่หายจาก `DAHY0C99HQk` | เดิมเป็นหน้า 17 (`PBCDlBZ97xyJmrtm`) หายไปแล้ว ตัดสินใจว่าจะทำใหม่ไหม — ถ้าทำต้องไล่เลขหน้าใหม่อีกรอบ |
-| 8 | ฟอนต์หน้าที่สร้างผ่าน Canva API | API ไม่มีพารามิเตอร์ฟอนต์ ต้องเข้าไปตั้งเองใน Canva |
-| 9 | branch ยังไม่ push | รอคำสั่งจากเจ้าของงาน |
+| Topic | File |
+| --- | --- |
+| 3D Chivar Bot | `apps/mobile/src/components/chivarbot3d/` (`bot-rig.ts` is pure logic + tests), `ChivarBotScene.tsx` (SVG fallback until 3D is ready) |
+| ChangChang 3D | `apps/mobile/src/components/greeter3d/Greeter3D.tsx`, `build-choice.ts`, `dequantize.ts`, `GreeterScene.tsx` |
+| ChangChang model + how it was made | `apps/mobile/public/media/mascots/README.md` (gltf-transform command at the bottom) |
+| Gacha | `apps/api/src/summon-service.ts`, `apps/mobile/src/screens/SummonScreen.tsx` |
+| Stories | `apps/api/src/story-service.ts`, `apps/mobile/src/components/Stories.tsx` |
+| DB schema | `apps/api/src/db.ts` + `migrations.ts` — **change the schema = bump `SCHEMA_VERSION` + update `PINNED` in `db-schema-version.test.ts`** |
+| Wrangler config / env | `apps/api/wrangler.jsonc` |
+| Mobile error messages | `apps/mobile/src/i18n/api-errors.ts` (every new backend error code must be added, or `test:scripts` fails) |
 
----
-
-## 8. เรื่องที่ต้องระวังเวลาพิตช์
-
-> **อัปเดต 6 พ.ย. — เอกสารแม่ฝั่งธุรกิจเปลี่ยนแล้ว**
-> เจ้าของงานเลือกให้ยึด artifact [`ChivaGo Business Model`](https://claude.ai/artifact/9rhyPcmGuA8pgvZgyUXSCj)
-> `docs/70` ส่วนที่ 2–7 ปรับตามแล้ว · ส่วนที่ 1 (Infrastructure) ยังนับจากโค้ดเหมือนเดิม
-
-**โมเดลนำด้วยโรงแรม ไม่ใช่ร้านท้องถิ่น** — artifact ให้โรงแรม/รีสอร์ทเป็นกลุ่มที่ 1
-จ่ายคอมมิชชัน 8–12% ส่วน SaaS ฿529/เดือน ไม่อยู่ในโมเดลนี้แล้ว
-ยังห้ามพูดลูกค้าสองขนาดปนกันเหมือนเดิม แต่ตอนนี้ลำดับกลับด้าน
-
-**ต้นทุนที่ 50,000 คน = ~฿1,665,600/ปี** — เรื่องนี้จบแล้ว ไม่ต้องเลี่ยงอีก
-`docs/58` แจกแจงได้ครบ (฿4,800 เครื่อง + ฿25,000 กลั่นกรอง + ฿109,000 โต๊ะ SOS
-= ฿138,800/เดือน) ส่วนยอด **฿757,332/ปี ใน `docs/59` เลิกใช้** —
-ตรวจแล้วมันปรากฏในรีโปครั้งเดียว ไม่มีรายการย่อย ย้อนรอยการคำนวณไม่ได้
-
-ประโยคที่ใช้บนเวที — **เจ้าของงานอนุมัติแล้ว 6 พ.ย.**:
-**"ลูกค้าองค์กร 12 รายที่ ฿150K ก็จ่ายค่าแพลตฟอร์มได้ทั้งหมด"** (รายได้ต่อต้นทุน ~13 เท่า)
-~~6 ราย~~ และ ~~28 เท่า~~ มาจากยอด ฿757K ที่ไม่มีที่มา **อย่าเอากลับมาใช้**
-
-**คาร์บอนเครดิต พูดให้แยกชั้น** — "เราไม่ขายคาร์บอนเครดิต เราขายหลักฐานกิจกรรม
-ที่โครงการ T-VER เอาไปใช้ประกอบได้" สไลด์เขียนถูกอยู่แล้ว อย่าพูดเกินสไลด์
-
----
-
-## 9. ข้อควรรู้เรื่อง Canva MCP (กันเสียเวลาซ้ำ)
-
-- `read-design` แบบขอ `design_content` ทั้งเด็ค **ทะลุลิมิต token** ระบบจะเซฟลงไฟล์ให้
-  → อ่านด้วย python แล้ว parse เอา ข้อความอยู่ที่ `pages[].elements[].textRegions[].characters`
-  (**ไม่ใช่** `textContents` — อันนั้นว่างเปล่าสำหรับ element ชนิด text)
-- **ไม่มี operation `delete_page`** ต้องไปลบใน UI เอง
-- `add_text` **ไม่คืน id** และได้ค่าเริ่มต้นเป็นสีดำ 16 px ชิดซ้ายเสมอ
-  → อ่าน id ใหม่จาก `document` ใน response แล้วเรียก `format_text` ตามทันที
-- `format_text` **ไม่มีพารามิเตอร์ฟอนต์**
-- อ้าง media ข้ามเด็คไม่ได้ (`entity_not_found` / `mediaRef not found`)
-- `edit-design` รับ **`page_index` เดียวต่อ 1 call** — แก้หลายหน้าต้องยิงหลายครั้ง
-- element ที่อยู่**ท้ายลิสต์ = อยู่ชั้นบนสุด** ถ้าของถูกบังให้ใช้ `layer_element` position `front`
-- `page_metadata` **ค้างได้** หลังเพิ่งลบหน้า อย่าเชื่อทันที ให้ export หรืออ่านซ้ำยืนยัน
-- `/` ที่เห็นในข้อความอาจเป็นขีดจริงหรือขึ้นบรรทัดใหม่ก็ได้
-  → ใช้ `find_and_replace_text` กับชิ้นสั้น ๆ ที่ไม่คร่อมบรรทัด ปลอดภัยกว่า `replace_text`
-
----
-
-## 10. ข้อควรรู้เรื่องเครื่องนี้
-
-- เครื่อง OOM ถ้ารัน typecheck ขนานหรือรันชุดเทส mobile เต็ม → ลด concurrency
-- Browser pane ในแอป **ไม่มี `requestAnimationFrame`** MapLibre จะไม่เรนเดอร์
-  → ถ้าต้องดูแผนที่ ใช้ chrome-devtools MCP แทน
-- เวลา emulate มือถือใน chrome-devtools **อย่าใส่ `mobile,touch`** จะทำให้ปุ่มของ
-  React Native Web กดไม่ติด → ใช้ `390x844x1` เฉย ๆ
-- `curl` / `wget` ถูก hook บล็อก → ใช้ `ctx_execute` รัน Node `fetch` แทน
+### Commands to check before every PR
+```bash
+pnpm --filter @chivago/mobile exec tsc --noEmit -p .
+pnpm --filter @chivago/api exec tsc --noEmit -p .
+pnpm --filter @chivago/api test
+pnpm test:scripts
+```
