@@ -151,6 +151,42 @@ describe('POST /internal/open-area', () => {
     assert.ok(filled.photo_licence?.trim(), 'nor one with no licence');
   });
 
+  /**
+   * Wording that was corrected after the place went live.
+   *
+   * Koniix was planted reading "Stay" and the owner asked for
+   * "Accommodation" an hour later. The seed had it; the live row did not,
+   * and nothing could say so to a row that already existed.
+   *
+   * The pair of assertions is the whole design: the seed owns what nobody
+   * can edit (meta, blurb, tags, safety phrase) and never touches what an
+   * operator can (name, short name, layer, province, position).
+   */
+  test('refreshes wording only when asked, and never an operator’s own edits', async () => {
+    await post('/internal/open-area', { area: 'koh-sichang' }, SECRET);
+    // Exactly the columns `admin-service.ts` writes, and a drifted meta line.
+    db.prepare('UPDATE places SET name_en = ?, layer = ?, meta = ?, tags = ? WHERE id = ?')
+      .run('Renamed in the console', 'Safe', 'drifted', '[]', 'sc-koniix-garden-cottage');
+
+    const ordinary = await post('/internal/open-area', { area: 'koh-sichang' }, SECRET);
+    assert.deepEqual((await ordinary.json()).data.textRefreshed, [], 'an ordinary run rewrote a live row');
+
+    const asked = await post('/internal/open-area', { area: 'koh-sichang', text: true }, SECRET);
+    const { data } = await asked.json();
+    assert.ok(
+      data.textRefreshed.includes('sc-koniix-garden-cottage'),
+      `the wording never caught up: ${JSON.stringify(data.textRefreshed)}`,
+    );
+
+    const row = db.prepare('SELECT name_en, layer, meta, tags FROM places WHERE id = ?')
+      .get('sc-koniix-garden-cottage') as unknown as
+        { name_en: string; layer: string; meta: string; tags: string };
+    assert.match(row.meta, /^Accommodation/, 'the page still does not say what it is');
+    assert.notDeepEqual(JSON.parse(row.tags), [], 'the tags never came back');
+    assert.equal(row.name_en, 'Renamed in the console', 'the seed overwrote an operator’s name');
+    assert.equal(row.layer, 'Safe', 'the seed overwrote an operator’s layer');
+  });
+
   test('reaches the route without a device key, once a phone has registered', async () => {
     const registered = await post('/devices', { displayName: 'A traveller' });
     assert.equal(registered.status, 200, 'a device must register for this test to mean anything');

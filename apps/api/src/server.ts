@@ -92,7 +92,7 @@ import {
   storyEtag, submitStory,
 } from './story-service.ts';
 import { AREAS, areaByKey, inArea, isAreaKey } from '@chivago/core';
-import { openArea, refreshPhotos } from './area-opening.ts';
+import { openArea, refreshPhotos, refreshText } from './area-opening.ts';
 import { TEN_PULL_SIZE } from '@chivago/core';
 import { isLang } from '@chivago/core';
 import { statementMissingPage, verifyPage } from './console/statement.ts';
@@ -2032,7 +2032,7 @@ app.post('/internal/open-area', async (c) => {
   if (!secret || c.req.header('x-host-secret') !== secret) {
     return fail(c, 'FORBIDDEN', 'Host credentials required', 403);
   }
-  const body = (await c.req.json().catch(() => ({}))) as { area?: unknown; photos?: unknown };
+  const body = (await c.req.json().catch(() => ({}))) as { area?: unknown; photos?: unknown; text?: unknown };
   if (!isAreaKey(body.area)) {
     return fail(c, 'BAD_AREA', `area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
   }
@@ -2053,6 +2053,13 @@ app.post('/internal/open-area', async (c) => {
     could was on the Node side of a wall a Durable Object cannot cross.
   */
   const photosRefreshed = body.photos === true ? refreshPhotos(db, body.area) : [];
+  /*
+    `{ "text": true }`, the same bargain as the photographs: the meta line,
+    the blurb, the tags and the safety phrase are the seed's to own, because
+    no path in the application lets anybody edit them. A name, a layer or a
+    position belongs to whoever moved it in the console and is never touched.
+  */
+  const textRefreshed = body.text === true ? refreshText(db, body.area) : [];
   console.log(
     `[chivago] area ${result.area}: +${result.questsAdded}/${result.questsTotal} quests, `
     + `+${result.placesAdded}/${result.placesTotal} places, `
@@ -2065,7 +2072,7 @@ app.post('/internal/open-area', async (c) => {
     key in a log, in a proxy and in somebody's shell history.
   */
   return ok(c, {
-    ...result, keys: undefined, keysIssued: result.keys.length, photosRefreshed,
+    ...result, keys: undefined, keysIssued: result.keys.length, photosRefreshed, textRefreshed,
   });
 });
 
