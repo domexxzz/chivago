@@ -60,21 +60,38 @@ Running it again is safe: the second run reported `questsAdded: 0`.
 
 ---
 
-## 4. 🔴 There is still no way to back up the live database
+## 4. ✅ The live database can be backed up (done, 15 Nov evening)
 
-**The most important thing on this page, and nobody has started it.**
-
-A Durable Object's SQLite is reachable only from inside the object. This codebase has `POST /admin/import` and no export beside it; `export-for-import.ts` reads a local SQLite file, which the live database is not. So **the pilot's only copy of its data is the live object**, six days before it is demonstrated.
-
-The shape of the fix is a counterpart to the import: a token-gated `GET /admin/export` that streams tables the way `exportTable()` already does, re-using `tablesInDependencyOrder`. The import half is written, tested under both drivers, and is the model to copy.
-
-The backups that exist are from the Fly migration on 12 Nov and are three days behind:
+This was the open item at the top of this page. It is closed: PR #231 is merged and deployed, the secret is set, and **a copy of the pilot was taken from production and checked**.
 
 ```
 C:\Users\DomeCB\chivago-migration-backup\
+  2026-11-15-live\        ← 6,826 rows · 36 tables · taken from chivargo.com, --check exit 0
   final-fly.db  snapshot.db  fly.toml.bak  rollback-to-fly.md
   handoff-2026-11-12.md   ← the migration's own notes, not in git
 ```
+
+A Durable Object's SQLite is reachable only from inside the object, so the rows come out over HTTP the way they went in: `GET /admin/export` (the manifest — every table, its row count now, parents-first) and `GET /admin/export/batch?table=…&rows=…&after=…`, whose body **is** an `ImportBatch`, so a restore is the loop already in docs/71 step 3c.
+
+To take another one:
+
+```bash
+cd apps/api
+CHIVAGO_EXPORT_TOKEN=... node --experimental-strip-types src/snapshot-live.ts \
+  --api https://chivargo.com --out "C:/Users/DomeCB/chivago-migration-backup/<date>-live"
+# and later, against the live counts:
+... src/snapshot-live.ts --api https://chivargo.com --check "<that directory>"
+```
+
+The token is in `apps/api/.env` (gitignored) and on Cloudflare as `CHIVAGO_EXPORT_TOKEN`. **Unset the secret and the route answers 404**, identical to a path that does not exist — that is how it closes, with no deploy.
+
+Three things not to undo, all explained in `docs/71` and in the code:
+
+- paging is a **rowid cursor**, not `LIMIT`/`OFFSET` — the sweeps delete rows every 30 s, and an offset taken behind a deletion skips a row silently
+- the export **writes nothing**, not even a run record
+- it has **its own secret**, not the import token, which is meant to be deleted after a migration
+
+Known hole: a single row over 16 MB cannot be copied, on either half (`STORY_MAX_BYTES` is 25 MB and base64 adds a third). The snapshot names the table and exits non-zero rather than writing a file that pretends to be complete. Nothing hit it tonight — `stories` was empty.
 
 ---
 

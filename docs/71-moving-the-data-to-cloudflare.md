@@ -217,14 +217,27 @@ secret.
 and the thing you will use far more often: taking a backup of a database that
 is already living inside a Durable Object.
 
-**Unlike the rest of this document, this half has been run.** Measured on
-15 November against a local deployment of the Worker's own routes: a seeded
-database of 64 rows across five tables snapshotted over HTTP, checked, and
-then replayed with the loop in step 3c into a second, empty deployment —
-`inserted: 64`, no translation step anywhere. The tests run under both drivers,
-the Durable Object adapter included. What has **not** been done is running it
-against production, which needs the secret and a deploy and is the owner's
-call.
+**Unlike the rest of this document, this half has been run — against
+production.** On the evening of 15 November, with `CHIVAGO_EXPORT_TOKEN` set
+and main deployed, the pilot was copied to a laptop and checked:
+
+```
+6,826 rows · 36 non-empty tables of 71 · schema version 3
+users 387 · device_keys 393 · wallets 386 · ledger 394 · air_history 4,916
+→ C:\Users\DomeCB\chivago-migration-backup\2026-11-15-live\
+--check: every table consistent with what the live database held. exit 0
+```
+
+That is the first copy of the pilot's data taken since the Fly volume on
+12 November. Before it, the three days that included the public launch, the
+host-secret rotation and the opening of Koh Sichang existed in exactly one
+place.
+
+The restore direction was measured locally rather than against production, for
+obvious reasons: a 64-row database snapshotted over HTTP from one deployment
+and replayed with the loop in step 3c into a second, empty one — `inserted:
+64`, no translation step anywhere. The tests run under both drivers, the
+Durable Object adapter included.
 
 ### Why it needed writing at all
 
