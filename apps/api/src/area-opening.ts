@@ -1,0 +1,251 @@
+/**
+ * Opening an area on a database that is already live.
+ *
+ * WHY THIS IS NOT IN `seed-area.ts`, which is where it used to be. That file
+ * imports `openDb` from `db-node.ts`, which imports `node:sqlite`, which does
+ * not exist on Workers. Importing it from a route would break the Worker
+ * build. So the logic lives here, against `./db.ts` and nothing Node-only, and
+ * `seed-area.ts` keeps the CLI and re-exports this.
+ *
+ * THE PROBLEM THIS SOLVES, found on 13 November 2026 while re-walking
+ * `docs/72`. The field guide replaced Ko Sichang's quests: three became five,
+ * 270 Green became 540. The code had them. Production did not - it was still
+ * serving two quests worth 180 - and there was no way to get them there.
+ * Nothing in the running application could write the `quests` table at all:
+ * every writer was a test, or `seed-db.ts` / `seed-area.ts`, which open a
+ * local SQLite file and cannot reach a Durable Object. The deploy does not
+ * seed, deliberately, and `bootstrapKohSichangBusinesses` writes only
+ * `places` and `local_shops`.
+ *
+ * So on the day, the screen would have shown a number the deck contradicts.
+ *
+ * NOT ON BOOT, and that is deliberate too. A Durable Object is constructed
+ * thousands of times a day, and the outage of 12 November was caused by
+ * exactly this reflex - doing setup work on every wake-up. This runs when an
+ * operator asks for it and not otherwise. `POST /internal/open-area`.
+ */
+
+import {
+  ACTIVE_QUESTS, AREAS, RETIRED_CODE_PREFIX, SAFETY_PHRASES, SEED_PLACES,
+  areaByKey, inArea, isAreaKey,
+  type AreaKey,
+} from '@chivago/core';
+import { rows, transact, type DB } from './db.ts';
+import { generateApiKey, hashApiKey } from './host-auth.ts';
+
+export interface SeedAreaResult {
+  area: AreaKey;
+  hostsCreated: string[];
+  placesAdded: number;
+  placesTotal: number;
+  questsAdded: number;
+  questsTotal: number;
+  /** New console keys, host name first. Shown once; only the hash is stored. */
+  keys: [string, string][];
+}
+
+/**
+ * A code that is no longer the seed's, kept out of the seed's way.
+ *
+ * `quests.code` is UNIQUE, and the five-quest set reuses SC-01 and SC-02 -
+ * which the superseded quests were holding. Inserting over that throws, so the
+ * old code has to move before the new one can land.
+ */
+/*
+  The prefix comes from `@chivago/core`, not from here.
+
+  This file defined its own `'X-'` while the branch was open, and `seed.ts`
+  then exported `RETIRED_CODE_PREFIX` with `isRetiredQuestCode` beside it —
+  two copies of one convention, in the one place where disagreeing about it
+  means a retired quest that nothing recognises as retired.
+*/
+const RETIRED_PREFIX = RETIRED_CODE_PREFIX;
+
+export interface RetireResult {
+  /** Superseded quests nobody had started. Gone. */
+  deleted: string[];
+  /** Superseded quests somebody's work points at. Kept, code freed. */
+  kept: string[];
+}
+
+/**
+ * Get the superseded quests out of the way of the seeded ones.
+ *
+ * A quest inside the area that the seed no longer lists has been replaced, and
+ * what happens to it depends on one question: has anybody started it?
+ *
+ *   NOBODY HAS → delete it. It is content, it was replaced, and leaving it on
+ *   the screen means the app shows more missions than the deck claims.
+ *
+ *   SOMEBODY HAS → KEEP IT. On 6 November a volunteer walked `q-sc-beach` end
+ *   to end and a certificate was issued against that work; `docs/72` tells the
+ *   speaker to open it on stage. Deleting the quest would orphan the evidence
+ *   behind a certificate we are asking a judge to trust. Evidence is the
+ *   product. Only the `code` moves, which frees SC-01/SC-02 for the seed and
+ *   changes nothing a traveller sees - the screen shows `name`, not `code`.
+ *
+ * Returns both lists, because an operator who runs this needs to know a quest
+ * was kept: it will still be in the app, and that is a decision somebody may
+ * want to take further than this function is allowed to.
+ */
+export function retireSupersededQuests(db: DB, key: AreaKey): RetireResult {
+  if (!isAreaKey(key)) throw new Error(`area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
+  const area = areaByKey(key);
+  /*
+    ACTIVE_QUESTS, not SEED_QUESTS, and the difference is the bug this
+    function exists for.
+
+    `SEED_QUESTS` is the historical catalogue - it still holds SC-01..SC-03
+    beside the SG-01..SG-05 that replaced them, because finished progress and
+    ledger rows can still name an older quest. Asking it what is current
+    answers "both", so the superseded SC rows would survive the run that was
+    meant to supersede them and the island would show more missions than the
+    deck claims. `ACTIVE_QUESTS` is the published five.
+
+    Only this area's quests are considered either way - the filter below is
+    `inArea` - so Samui's BC-04 and the campuses' KU-01 are never in reach.
+  */
+  const seeded = new Set(ACTIVE_QUESTS.filter((q) => inArea(area, q)).map((q) => q.id));
+
+  const live = rows<{ id: string; code: string; lat: number; lng: number }>(
+    db.prepare('SELECT id, code, lat, lng FROM quests').all(),
+  ).filter((q) => inArea(area, q) && !seeded.has(q.id));
+
+  const result: RetireResult = { deleted: [], kept: [] };
+
+  for (const q of live) {
+    const started = db.prepare('SELECT 1 FROM quest_progress WHERE quest_id = ? LIMIT 1').get(q.id);
+    if (!started) {
+      db.prepare('DELETE FROM quests WHERE id = ?').run(q.id);
+      result.deleted.push(q.id);
+      continue;
+    }
+    // Already moved aside by an earlier run: leave the code alone rather than
+    // growing an X-X-X- prefix on every call.
+    if (!q.code.startsWith(RETIRED_PREFIX)) {
+      db.prepare('UPDATE quests SET code = ? WHERE id = ?').run(RETIRED_PREFIX + q.code, q.id);
+    }
+    result.kept.push(q.id);
+  }
+
+  return result;
+}
+
+/**
+ * Add an area's hosts, places and quests. INSERT ONLY.
+ *
+ * Nothing here updates a row that exists. `seed-db.ts` is the one that asserts
+ * the seed over a whole database and prunes what it does not list, and it
+ * refuses to do that to production for good reason. This is the other shape:
+ * safe to run against a database with travellers in it, because the worst it
+ * can do is add something that was already there, which it then does not.
+ */
+export function seedArea(db: DB, key: AreaKey, now = new Date()): SeedAreaResult {
+  if (!isAreaKey(key)) throw new Error(`area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
+  const area = areaByKey(key);
+  const places = SEED_PLACES.filter((p) => p.province === area.province);
+  const quests = ACTIVE_QUESTS.filter((q) => inArea(area, q));
+  const hosts = [...new Map(quests.map((q) => [q.host.id, q.host])).values()];
+
+  return transact(db, () => {
+    const result: SeedAreaResult = {
+      area: key, hostsCreated: [], keys: [],
+      placesAdded: 0, placesTotal: places.length, questsAdded: 0, questsTotal: quests.length,
+    };
+
+    // Hosts first: a quest names its host, and the host must exist to be named.
+    for (const host of hosts) {
+      const made = db.prepare(
+        `INSERT INTO hosts (id, name, type, role, created_at) VALUES (?, ?, ?, 'host', ?)
+         ON CONFLICT(id) DO NOTHING`,
+      ).run(host.id, host.name, host.type, now.toISOString());
+      if (Number(made.changes ?? 0) > 0) result.hostsCreated.push(host.id);
+
+      // A key only for a host that has none. The UPDATE re-checks, so a key
+      // issued between the read and the write is never replaced.
+      const keyless = db.prepare('SELECT 1 FROM hosts WHERE id = ? AND api_key_hash IS NULL').get(host.id);
+      if (keyless) {
+        const apiKey = generateApiKey();
+        const set = db.prepare('UPDATE hosts SET api_key_hash = ? WHERE id = ? AND api_key_hash IS NULL')
+          .run(hashApiKey(apiKey), host.id);
+        if (Number(set.changes ?? 0) > 0) result.keys.push([host.name, apiKey]);
+      }
+    }
+
+    for (const p of places) {
+      const safety = SAFETY_PHRASES[p.id]!;
+      const added = db.prepare(
+        `INSERT INTO places (id, name_en, name_th, short, layer, province, lat, lng, meta,
+           blurb_en, blurb_th, tags, photo_url, photo_credit, photo_licence, photo_source,
+           photo_kind, photo_backdrop,
+           safety_label_en, safety_label_th,
+           crowd_density, aqi, safety_index, walkability, air_station, booking_url)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         ON CONFLICT(id) DO NOTHING`,
+      ).run(
+        p.id, p.name.en, p.name.th, p.short, p.layer, p.province, p.lat, p.lng, p.meta,
+        p.blurb.en, p.blurb.th, JSON.stringify(p.tags),
+        p.photo?.url ?? null, p.photo?.credit ?? null,
+        p.photo?.licence ?? null, p.photo?.sourceUrl ?? null,
+        p.photo?.kind ?? null, p.photo?.backdrop ?? null,
+        safety.en, safety.th,
+        p.metrics.crowdDensity, p.metrics.aqi, p.metrics.safetyIndex, p.metrics.walkability,
+        p.airStation ? JSON.stringify(p.airStation) : null,
+        p.bookingUrl ?? null,
+      );
+      result.placesAdded += Number(added.changes ?? 0);
+    }
+
+    for (const q of quests) {
+      const added = db.prepare(
+        `INSERT INTO quests (id, code, name_en, name_th, where_label, where_label_th,
+           duration, duration_th, reward_points, reward_exp,
+           reward_currency, host_id, kind, lat, lng, geofence_radius_m, esg_pillar)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         ON CONFLICT(id) DO NOTHING`,
+      ).run(
+        q.id, q.code, q.name.en, q.name.th, q.where.en, q.where.th,
+        q.duration.en, q.duration.th, q.rewardPoints, q.rewardExp ?? null,
+        q.rewardCurrency, q.host.id, q.kind, q.lat, q.lng, q.geofenceRadiusM,
+        q.esgPillar ?? null,
+      );
+      result.questsAdded += Number(added.changes ?? 0);
+    }
+
+    return result;
+  });
+}
+
+export interface OpenAreaResult extends SeedAreaResult {
+  retired: RetireResult;
+  /** Every quest the area has once this has run, newest set first. */
+  questsLive: { id: string; code: string; rewardPoints: number }[];
+}
+
+/**
+ * Retire what the seed replaced, then add what the seed has. One transaction.
+ *
+ * Both halves together, because half of this is worse than neither: codes
+ * freed but the new quests not inserted leaves an area with nothing, and
+ * inserting without freeing throws on the UNIQUE code and rolls back anyway.
+ *
+ * The result carries the quests the area ENDS UP WITH, not only what changed,
+ * because the question an operator actually has is "what will the screen show
+ * now" - and after a kept-but-retired quest the answer is not simply the seed.
+ */
+export function openArea(db: DB, key: AreaKey, now = new Date()): OpenAreaResult {
+  if (!isAreaKey(key)) throw new Error(`area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
+  const area = areaByKey(key);
+
+  return transact(db, () => {
+    const retired = retireSupersededQuests(db, key);
+    const seeded = seedArea(db, key, now);
+    const questsLive = rows<{ id: string; code: string; reward_points: number; lat: number; lng: number }>(
+      db.prepare('SELECT id, code, reward_points, lat, lng FROM quests ORDER BY code').all(),
+    )
+      .filter((q) => inArea(area, q))
+      .map((q) => ({ id: q.id, code: q.code, rewardPoints: q.reward_points }));
+
+    return { ...seeded, retired, questsLive };
+  });
+}

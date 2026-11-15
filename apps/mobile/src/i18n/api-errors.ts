@@ -39,6 +39,11 @@ const EXACT: Readonly<Record<string, Localised>> = {
   TOO_FAR: message('You need to be at the place to check in.', 'คุณต้องอยู่ที่สถานที่จึงจะเช็กอินได้', '请到达该地点后再签到。'),
   TOO_MANY_REGISTRATIONS: message('Too many attempts. Please try again later.', 'มีการลองหลายครั้งเกินไป กรุณาลองใหม่ภายหลัง', '尝试次数过多，请稍后再试。'),
   BAD_REQUEST: message('Check the information and try again.', 'ตรวจสอบข้อมูลแล้วลองอีกครั้ง', '请检查信息后重试。'),
+  // `POST /internal/open-area` with an area key that is not one of ours. An
+  // operator's mistake, not a traveller's, but every code the API can answer
+  // with needs a sentence here or `test:scripts` fails - and an untranslated
+  // code reaches somebody as the raw string.
+  BAD_AREA: message('That is not an area this app knows.', 'ไม่ใช่พื้นที่ที่แอพนี้รู้จัก', '这不是本应用识别的区域。'),
   CODE_REQUIRED: message('Enter the required code.', 'กรุณากรอกรหัสที่จำเป็น', '请输入必填代码。'),
   DECISION_INCOMPLETE: message('Complete the decision before continuing.', 'กรอกผลการพิจารณาให้ครบก่อนดำเนินการต่อ', '请先完成审核决定。'),
   EVENT_TOKEN: message('This event link is invalid or has expired.', 'ลิงก์กิจกรรมไม่ถูกต้องหรือหมดอายุแล้ว', '活动链接无效或已过期。'),

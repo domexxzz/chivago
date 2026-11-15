@@ -29,98 +29,26 @@
 
 import { parseArgs } from 'node:util';
 import {
-  ACTIVE_QUESTS, AREAS, SAFETY_PHRASES, SEED_PLACES, areaByKey, inArea, isAreaKey,
+  AREAS, SAFETY_PHRASES, SEED_PLACES, SEED_QUESTS, areaByKey, inArea, isAreaKey,
   type AreaKey,
 } from '@chivago/core';
 import { openDb, transact, type DB } from './db-node.ts';
 import { generateApiKey, hashApiKey } from './host-auth.ts';
 
-export interface SeedAreaResult {
-  area: AreaKey;
-  hostsCreated: string[];
-  placesAdded: number;
-  placesTotal: number;
-  questsAdded: number;
-  questsTotal: number;
-  /** New console keys, host name first. Shown once; only the hash is stored. */
-  keys: [string, string][];
-}
+/*
+  `seedArea` MOVED to `area-opening.ts` on 13 November 2026 and is re-exported
+  here so every existing caller and test keeps working.
 
-export function seedArea(db: DB, key: AreaKey, now = new Date()): SeedAreaResult {
-  if (!isAreaKey(key)) throw new Error(`area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
-  const area = areaByKey(key);
-  const places = SEED_PLACES.filter((p) => p.province === area.province);
-  const quests = ACTIVE_QUESTS.filter((q) => inArea(area, q));
-  const hosts = [...new Map(quests.map((q) => [q.host.id, q.host])).values()];
+  The reason it had to move: this file imports `openDb` from `db-node.ts` for
+  its CLI, `db-node.ts` imports `node:sqlite`, and `node:sqlite` does not exist
+  on Workers. `POST /internal/open-area` needs the same logic, and a route that
+  reached in here would have broken the Worker build. The CLI, `reseedRefusal`
+  and the photo/station refreshers stay - they are Node-side tools.
+*/
+import { seedArea } from './area-opening.ts';
 
-  return transact(db, () => {
-    const result: SeedAreaResult = {
-      area: key, hostsCreated: [], keys: [],
-      placesAdded: 0, placesTotal: places.length, questsAdded: 0, questsTotal: quests.length,
-    };
-
-    // Hosts first: a quest names its host, and the host must exist to be named.
-    for (const host of hosts) {
-      const made = db.prepare(
-        `INSERT INTO hosts (id, name, type, role, created_at) VALUES (?, ?, ?, 'host', ?)
-         ON CONFLICT(id) DO NOTHING`,
-      ).run(host.id, host.name, host.type, now.toISOString());
-      if (Number(made.changes ?? 0) > 0) result.hostsCreated.push(host.id);
-
-      // A key only for a host that has none. The UPDATE re-checks, so a key
-      // issued between the read and the write is never replaced.
-      const keyless = db.prepare('SELECT 1 FROM hosts WHERE id = ? AND api_key_hash IS NULL').get(host.id);
-      if (keyless) {
-        const apiKey = generateApiKey();
-        const set = db.prepare('UPDATE hosts SET api_key_hash = ? WHERE id = ? AND api_key_hash IS NULL')
-          .run(hashApiKey(apiKey), host.id);
-        if (Number(set.changes ?? 0) > 0) result.keys.push([host.name, apiKey]);
-      }
-    }
-
-    for (const p of places) {
-      const safety = SAFETY_PHRASES[p.id]!;
-      const added = db.prepare(
-        `INSERT INTO places (id, name_en, name_th, short, layer, province, lat, lng, meta,
-           blurb_en, blurb_th, tags, photo_url, photo_credit, photo_licence, photo_source,
-           photo_kind, photo_backdrop,
-           safety_label_en, safety_label_th,
-           crowd_density, aqi, safety_index, walkability, air_station, booking_url)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-         ON CONFLICT(id) DO NOTHING`,
-      ).run(
-        p.id, p.name.en, p.name.th, p.short, p.layer, p.province, p.lat, p.lng, p.meta,
-        p.blurb.en, p.blurb.th, JSON.stringify(p.tags),
-        p.photo?.url ?? null, p.photo?.credit ?? null,
-        p.photo?.licence ?? null, p.photo?.sourceUrl ?? null,
-        p.photo?.kind ?? null, p.photo?.backdrop ?? null,
-        safety.en, safety.th,
-        p.metrics.crowdDensity, p.metrics.aqi, p.metrics.safetyIndex, p.metrics.walkability,
-        p.airStation ? JSON.stringify(p.airStation) : null,
-        p.bookingUrl ?? null,
-      );
-      result.placesAdded += Number(added.changes ?? 0);
-    }
-
-    for (const q of quests) {
-      const added = db.prepare(
-        `INSERT INTO quests (id, code, name_en, name_th, where_label, where_label_th,
-           duration, duration_th, reward_points, reward_exp,
-           reward_currency, host_id, kind, lat, lng, geofence_radius_m, esg_pillar)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-         ON CONFLICT(id) DO NOTHING`,
-      ).run(
-        q.id, q.code, q.name.en, q.name.th, q.where.en, q.where.th,
-        q.duration.en, q.duration.th, q.rewardPoints, q.rewardExp ?? null,
-        q.rewardCurrency, q.host.id, q.kind, q.lat, q.lng, q.geofenceRadiusM,
-        q.esgPillar ?? null,
-      );
-      result.questsAdded += Number(added.changes ?? 0);
-    }
-
-    return result;
-  });
-}
+export { openArea, retireSupersededQuests, seedArea } from './area-opening.ts';
+export type { OpenAreaResult, RetireResult, SeedAreaResult } from './area-opening.ts';
 
 /**
  * Bring an area's place photographs in line with the seed: the one thing this
