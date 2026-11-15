@@ -26,6 +26,7 @@ import { Image, Platform, View, useWindowDimensions } from 'react-native';
 import type { Greeter } from '@chivago/core';
 import { photoUri } from '../api/photos.ts';
 import { GreeterIdle } from './GreeterIdle.tsx';
+import { wantsDetailedBuild } from './greeter3d/build-choice.ts';
 import { useReduceMotion } from './reduce-motion.ts';
 
 const inBrowser = Platform.OS === 'web'
@@ -33,28 +34,20 @@ const inBrowser = Platform.OS === 'web'
   && typeof window !== 'undefined';
 
 /**
- * Which of the two builds this machine should be sent.
- *
- * 771 KB against 7.4 MB, and the big one is worth every byte on a screen
- * somebody is presenting from - it is the build with eyes. It is not worth
- * seven megabytes on a phone on island mobile data, where the room is small,
- * the detail is invisible, and the download is the whole experience.
- *
- * POINTER, NOT WIDTH. A narrow window on a laptop is still a laptop, and the
- * pitch demo is viewed in a phone-shaped frame on exactly such a machine - a
- * width test would have sent that screen the small build, which is the one
- * case this choice exists to get right. `(pointer: fine)` asks the question
- * that actually matters: is there a mouse on the other end of this.
- *
- * Data Saver overrides it either way. Somebody who has asked their browser
- * to spend less has asked us too.
+ * Which of the two builds this machine should be sent: 771 KB of vertex
+ * colour, or 7.4 MB with the textures - the build with eyes. The rule, and why
+ * a mouse OR a tablet-sized screen earns the big one, is in `build-choice.ts`.
  */
 function wantsDetail(): boolean {
   if (!inBrowser) return false;
   const connection = (navigator as { connection?: { saveData?: boolean } }).connection;
-  if (connection?.saveData) return false;
-  return typeof window.matchMedia === 'function'
-    && window.matchMedia('(pointer: fine)').matches;
+  const screen = window.screen;
+  return wantsDetailedBuild({
+    pointerFine: typeof window.matchMedia === 'function'
+      && window.matchMedia('(pointer: fine)').matches,
+    saveData: !!connection?.saveData,
+    screenShortSidePx: screen ? Math.min(screen.width, screen.height) : Number.NaN,
+  });
 }
 
 type RoomComponent = typeof import('./greeter3d/Greeter3D.tsx')['Greeter3D'];
