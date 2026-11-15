@@ -6,7 +6,19 @@ import { ACTIVE_QUESTS, SAFETY_PHRASES, SEED_HOSTS, SEED_OFFERS, SEED_PLACES, SE
 const area = areaByKey('koh-sichang');
 const places = SEED_PLACES.filter((p) => areaOfPlace(p) === 'koh-sichang');
 
-/** Centres and IDs checked against OSM features through Overpass. */
+/**
+ * Centres and IDs, and WHERE EACH POSITION CAME FROM.
+ *
+ * This was "checked against OSM features through Overpass" and for six places
+ * it still is. The seventh is a private property whose owner gave the point
+ * for it, which OpenStreetMap does not hold - checked, 250 m around it, where
+ * the nearest named feature is Tiew Pai Park Resort at 199 m.
+ *
+ * The rule the list protects is not "OSM says so". It is that a pin on this
+ * map can be traced to somebody who knew - so the source is written down per
+ * place instead of being assumed from the file, and a place with neither is
+ * still refused.
+ */
 const mapped = [
   ['sc-pier', 'Quest', 13.161443, 100.810441, 'way 40354093'],
   ['sc-hospital', 'Safe', 13.163311, 100.807704, 'way 412192327'],
@@ -17,7 +29,12 @@ const mapped = [
   // read on 2026-10-24. The signboard 33 m away names it ชลทัศนสถาน, which
   // is where the place's own name comes from - see SEED_PLACES.
   ['sc-marinestation', 'Green', 13.1521963, 100.8147057, 'way 412143703'],
+  // Not in OpenStreetMap. The property gave this point on 2026-11-15.
+  ['sc-koniix-garden-cottage', 'Wellness', 13.156753, 100.808781, 'the property, 2026-11-15'],
 ] as const;
+
+/** Places with no photograph anybody here has the right to publish. */
+const WITHOUT_A_PHOTOGRAPH = ['sc-koniix-garden-cottage'];
 
 /** Every layer the island map can filter by. */
 const LAYERS = ['Food', 'Green', 'Quest', 'Safe', 'Wellness'];
@@ -79,6 +96,18 @@ describe('Koh Sichang', () => {
   test('every photograph on the island carries its credit, its licence and a source', () => {
     assert.ok(places.length > 0);
     for (const p of places) {
+      /*
+        A PLACE MAY HAVE NO PICTURE. That is where this island started - five
+        places, `photo: null`, asserted - and it is still the honest state
+        when no photograph exists that anybody here may publish. What is
+        refused is a picture WITHOUT its terms, which is the claim the app
+        cannot make. So the absence is listed by name above, and everything
+        else must still carry the whole shape.
+      */
+      if (WITHOUT_A_PHOTOGRAPH.includes(p.id)) {
+        assert.equal(p.photo, null, `${p.id} has a photograph now - take it off the list above`);
+        continue;
+      }
       assert.ok(p.photo, `${p.id} lost its photograph`);
       assert.match(p.photo.url, /^\/media\/places\/sc-[a-z0-9-]+\.jpg$/, `${p.id}: not an own-origin island photo`);
       assert.ok(p.photo.credit.trim(), `${p.id}: a photograph with no credit cannot be published`);
