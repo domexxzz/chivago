@@ -887,14 +887,38 @@ export const SEED_PLACES: Place[] = [
     },
     short: 'Koniix', layer: 'Wellness', province: 'TH-20',
     lat: 13.156753, lng: 100.808781,
-    meta: 'Stay · Position from the property · Air modelled',
+    /*
+      ACCOMMODATION LEADS THE LINE, because that is what somebody standing on
+      the island wants to know first, and because `layer` cannot say it: the
+      five layers are Green, Wellness, Food, Safe and Quest, and each one has
+      a companion and a 3D rig behind it (`companions.ts`, `creature3d/`). A
+      sixth would be a game change, not a label change. Wellness is where it
+      sits on the map; the page says what it is.
+    */
+    meta: 'Accommodation · Position from the property · Air modelled',
     blurb: {
       en: 'A garden cottage stay on the island. Rooms and opening are not confirmed here — ask the property before travelling.',
       th: 'ที่พักแบบคอทเทจในสวนบนเกาะ ยังไม่ได้ยืนยันรายละเอียดห้องและการเปิดให้บริการ กรุณาสอบถามที่พักก่อนเดินทาง',
       zh: '岛上的花园小屋住宿。房型与营业情况尚未在此确认，出行前请先向该住宿查询。',
     },
-    tags: ['Stay', 'Garden'],
-    photo: null,
+    tags: ['Accommodation', 'Garden', 'Sea view'],
+    /*
+      THE PROPERTY'S OWN PHOTOGRAPH, given by the owner on 15 November - the
+      roof terrace, looking north over the strait to Si Racha. It replaces the
+      `photo: null` this place opened with, which is why `sichang.test.ts` no
+      longer lists it among the places without one.
+
+      Credited and licensed like the island's other six. "Used with
+      permission" is the claim being made here and the only one: the app does
+      not own this picture, it was given for this purpose, and the credit is
+      printed under it on the place screen in the traveller's language.
+    */
+    photo: {
+      url: '/media/places/sc-koniix-garden-cottage.jpg',
+      credit: 'Koniix Garden Cottage',
+      licence: 'Provided by the property · used with permission',
+      sourceUrl: 'https://github.com/domexxzz/chivago/tree/main/apps/mobile/public/media/places',
+    },
     metrics: { aqi: 40, crowdDensity: 1.0, safetyIndex: 6.0, walkability: 6.0 },
   },
 ];

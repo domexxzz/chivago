@@ -33,8 +33,15 @@ const mapped = [
   ['sc-koniix-garden-cottage', 'Wellness', 13.156753, 100.808781, 'the property, 2026-11-15'],
 ] as const;
 
-/** Places with no photograph anybody here has the right to publish. */
-const WITHOUT_A_PHOTOGRAPH = ['sc-koniix-garden-cottage'];
+/**
+ * Places with no photograph anybody here has the right to publish.
+ *
+ * Empty since 15 November, when the property gave one for Koniix - the last
+ * place on the island that had none. The list stays, because the state it
+ * describes is legitimate and the next place to arrive may well arrive
+ * without a picture: what it must never be is a silent `null` nobody listed.
+ */
+const WITHOUT_A_PHOTOGRAPH: string[] = [];
 
 /** Every layer the island map can filter by. */
 const LAYERS = ['Food', 'Green', 'Quest', 'Safe', 'Wellness'];

@@ -92,7 +92,7 @@ import {
   storyEtag, submitStory,
 } from './story-service.ts';
 import { AREAS, areaByKey, inArea, isAreaKey } from '@chivago/core';
-import { openArea } from './area-opening.ts';
+import { openArea, refreshPhotos } from './area-opening.ts';
 import { TEN_PULL_SIZE } from '@chivago/core';
 import { isLang } from '@chivago/core';
 import { statementMissingPage, verifyPage } from './console/statement.ts';
@@ -2032,11 +2032,27 @@ app.post('/internal/open-area', async (c) => {
   if (!secret || c.req.header('x-host-secret') !== secret) {
     return fail(c, 'FORBIDDEN', 'Host credentials required', 403);
   }
-  const body = (await c.req.json().catch(() => ({}))) as { area?: unknown };
+  const body = (await c.req.json().catch(() => ({}))) as { area?: unknown; photos?: unknown };
   if (!isAreaKey(body.area)) {
     return fail(c, 'BAD_AREA', `area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
   }
   const result = openArea(db, body.area);
+  /*
+    `{ "photos": true }`, and only then.
+
+    Opening an area INSERTS and never asserts the seed over a row that is
+    already live - that is the promise which makes this route safe to run
+    against a database with travellers in it. Photographs are the one
+    exception the seed owns outright (the file is in this repository and its
+    credit and licence are beside it), so `refreshPhotos` brings them in line
+    - but it is a separate thing to ask for, said out loud in the body, and
+    it reports which places changed rather than claiming the run was ordinary.
+
+    It exists because Koniix went on the map with no photograph and one
+    arrived an hour later: `seedArea` could not attach it, and the tool that
+    could was on the Node side of a wall a Durable Object cannot cross.
+  */
+  const photosRefreshed = body.photos === true ? refreshPhotos(db, body.area) : [];
   console.log(
     `[chivago] area ${result.area}: +${result.questsAdded}/${result.questsTotal} quests, `
     + `+${result.placesAdded}/${result.placesTotal} places, `
@@ -2048,7 +2064,9 @@ app.post('/internal/open-area', async (c) => {
     how many were issued and not what they are - a key in a response body is a
     key in a log, in a proxy and in somebody's shell history.
   */
-  return ok(c, { ...result, keys: undefined, keysIssued: result.keys.length });
+  return ok(c, {
+    ...result, keys: undefined, keysIssued: result.keys.length, photosRefreshed,
+  });
 });
 
 app.post('/internal/verify', async (c) => {

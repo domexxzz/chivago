@@ -222,6 +222,70 @@ export interface OpenAreaResult extends SeedAreaResult {
   questsLive: { id: string; code: string; rewardPoints: number }[];
 }
 
+/*
+  MOVED HERE on 15 November 2026, from `seed-area.ts`, for the reason that
+  file records about `seedArea` before it: the CLI half imports `node:sqlite`,
+  which does not exist on Workers, so a route reaching in there breaks the
+  build.
+
+  WHAT MADE IT URGENT. Koniix Garden Cottage went on the Ko Sichang map with
+  no photograph, the property gave one an hour later, and nothing running
+  inside a Durable Object could attach it: `seedArea` inserts and never
+  asserts, and the one tool that refreshes a photograph was on the Node side
+  of the wall. A pilot whose pictures can only be fixed by rebuilding the
+  database is a pilot that ships its first omission for ever.
+
+  Unchanged otherwise, and `seed-area.ts` re-exports it so the CLI and its
+  tests still call the same function.
+*/
+/**
+ * Bring an area's place photographs in line with the seed: the one thing this
+ * script changes on a row that exists, and only when asked (`--photos`).
+ *
+ * A photograph is a file in this repository (apps/mobile/public/media/places)
+ * with its credit and licence written beside it in the seed, so for these four
+ * columns the seed IS the source of truth, as it is not for a place's scores
+ * or a host's name. They are set to exactly what the seed says, null included:
+ * a photograph taken out of the seed - somebody in frame took back their
+ * consent - comes off the live place as well. Nothing else in the row moves.
+ *
+ * Returns the ids of the places whose photograph changed.
+ */
+export function refreshPhotos(db: DB, key: AreaKey): string[] {
+  if (!isAreaKey(key)) throw new Error(`area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
+  const area = areaByKey(key);
+  return transact(db, () => {
+    const changed: string[] = [];
+    for (const p of SEED_PLACES.filter((x) => x.province === area.province)) {
+      /*
+        Six fields, not four (#169). `kind` and `backdrop` say whether the
+        picture is a photograph or the venue's own logo, and what colour the
+        frame around a logo should be - facts the seed has carried since
+        Badminton@Sinthani was added and the database had nowhere to put.
+
+        They travel with the url for the same reason the credit does: a
+        picture and what may be said about it are one record, and bringing
+        half of it in line is how a logo ends up credited to a photographer.
+      */
+      const photo = [
+        p.photo?.url ?? null, p.photo?.credit ?? null, p.photo?.licence ?? null, p.photo?.sourceUrl ?? null,
+        p.photo?.kind ?? null, p.photo?.backdrop ?? null,
+      ];
+      // `IS` compares null to null as equal, so a row already in line is not
+      // written and not reported.
+      const set = db.prepare(
+        `UPDATE places SET photo_url = ?, photo_credit = ?, photo_licence = ?, photo_source = ?,
+                           photo_kind = ?, photo_backdrop = ?
+         WHERE id = ? AND NOT (photo_url IS ? AND photo_credit IS ? AND photo_licence IS ? AND photo_source IS ?
+                               AND photo_kind IS ? AND photo_backdrop IS ?)`,
+      ).run(...photo, p.id, ...photo);
+      if (Number(set.changes ?? 0) > 0) changed.push(p.id);
+    }
+    return changed;
+  });
+}
+
+
 /**
  * Retire what the seed replaced, then add what the seed has. One transaction.
  *
