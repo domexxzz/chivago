@@ -19,7 +19,7 @@ import { ACTIVE_QUESTS, areaByKey, inArea } from '@chivago/core';
 process.env.CHIVAGO_DB = ':memory:';
 process.env.CHIVAGO_HOST_SECRET = 'test-operator-secret';
 
-const { app } = await import('./server-node.ts');
+const { app, db } = await import('./server-node.ts');
 
 const post = (path: string, body?: unknown, headers: Record<string, string> = {}) =>
   app.request(path, {
@@ -94,5 +94,39 @@ describe('POST /internal/open-area', () => {
     assert.equal(data.questsAdded, 0);
     assert.equal(data.placesAdded, 0);
     assert.equal(data.keysIssued, 0);
+  });
+
+  /**
+   * An operator is not a traveller, and must not have to become one.
+   *
+   * MEASURED ON PRODUCTION, 15 November: with the correct operator secret in
+   * the header this route answered `401 UNAUTHENTICATED — "Sign in on this
+   * device to continue"`. The traveller middleware was refusing on the
+   * route's behalf, because the caller had no DEVICE KEY - and the only way
+   * to get one is to register a phone, which mints an account and a wallet.
+   * That is why two accounts called "Operator probe" and "Operator" are on
+   * production tonight, and nothing deletes them.
+   *
+   * The test has to hold a REGISTERED DEVICE for the question to mean
+   * anything: the open-identity path is on while `device_keys` is empty, so
+   * before the first phone registers every one of these calls sails through
+   * for a reason that has nothing to do with operators.
+   */
+  test('reaches the route without a device key, once a phone has registered', async () => {
+    const registered = await post('/devices', { displayName: 'A traveller' });
+    assert.equal(registered.status, 200, 'a device must register for this test to mean anything');
+    assert.ok(
+      db.prepare('SELECT 1 FROM device_keys LIMIT 1').get(),
+      'the open-identity path is still open, so this test proves nothing yet',
+    );
+
+    // No secret: the ROUTE refuses, not the traveller gate.
+    const refused = await post('/internal/open-area', { area: 'koh-sichang' });
+    assert.equal(refused.status, 403, 'an operator route must answer for itself');
+    assert.equal((await refused.json()).code, 'FORBIDDEN');
+
+    // With the secret: through, with no device key anywhere in sight.
+    const opened = await post('/internal/open-area', { area: 'koh-sichang' }, SECRET);
+    assert.equal(opened.status, 200, await opened.text());
   });
 });
