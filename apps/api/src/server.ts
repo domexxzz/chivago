@@ -868,6 +868,25 @@ const PUBLIC_PREFIXES = [
     published. There is nothing here a traveller account is needed for.
   */
   '/summon/verify/',
+  /*
+    THE OPERATOR ROUTES AUTHENTICATE THEMSELVES, and must not be asked to be
+    a traveller first.
+
+    `/internal/open-area` and `/internal/verify` are machine-to-machine over
+    `CHIVAGO_HOST_SECRET`. Behind this middleware they answered 401 to a
+    caller holding a perfectly good operator secret, because the caller had
+    no device key - so the only way to open an area on production was to
+    REGISTER A PHONE first and be handed a wallet on the way in. Two accounts
+    named "Operator probe" and "Operator" are on production for that reason,
+    and nothing deletes them.
+
+    `/admin/import` avoided this by being registered before the middleware.
+    These are listed here instead, which does the same thing without moving
+    a points-awarding handler around the file. A caller with no secret still
+    gets 403 from the route itself; what changes is that it is the ROUTE
+    refusing, rather than the traveller gate refusing on its behalf.
+  */
+  '/internal/',
   // `/assets/` is Metro's bundle output - the fonts and the JavaScript.
   // `/media/` is the repository's own photographs and illustrations, which
   // moved off `/assets/` because Metro's dev server shadows that prefix and
