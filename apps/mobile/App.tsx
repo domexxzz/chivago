@@ -574,6 +574,14 @@ export default function App() {
           <LocalPicksScreen
             onBack={nav.pop}
             onOpenShop={(id) => nav.push('shop', { shopId: id })}
+            /*
+              The same navigator the map and the shop screen use, not a second
+              one. On Koh Sichang `navigationProviderFor` keeps the route
+              in-app; anywhere else it hands off to Google. A pick that opened
+              its own kind of map would be a third answer to "how do I get
+              there" on a screen that already has two.
+            */
+            onNavigate={(destination) => navigateTo(destination, 'place')}
           />
         );
 

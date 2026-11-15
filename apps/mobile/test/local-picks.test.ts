@@ -60,6 +60,73 @@ describe('Local Picks category shell', () => {
 });
 
 /**
+ * Koniix Garden Cottage — a stay carried by its coordinate.
+ *
+ * The owner gave a name and a point on 15 November, and that is ALL this app
+ * knows about it: no licensed photograph, no confirmed telephone number, no
+ * rooms, no price. It is also not in OpenStreetMap, checked 250 m around the
+ * point, which is why it is a pick and not a map place - `sichang.test.ts`
+ * requires every island place to be a mapped feature with a team photograph,
+ * and refuses a named business on the map besides.
+ *
+ * So these tests guard the SHAPE OF THE CLAIM: the card offers the one thing
+ * that is true, which is where it is, and nothing that would read as a
+ * listing nobody confirmed.
+ */
+describe('the stay on the island', () => {
+  test('appears under Accommodation, which was an empty category before it', async () => {
+    const ui = await mountScreen(h(LocalPicksScreen, props));
+
+    await ui.press('Category: All');
+    await ui.press('Accommodation');
+    const said = ui.text();
+
+    assert.match(said, /Koniix Garden Cottage/);
+    assert.doesNotMatch(said, /No recommendations yet/, 'the category is no longer empty');
+    ui.unmount();
+  });
+
+  test('navigates with the app’s own navigator, carrying the coordinate', async () => {
+    /*
+      Not a Google link and not a map of its own: `navigationProviderFor`
+      keeps a Koh Sichang destination in the island's router, and a third
+      answer to "how do I get there" on a screen that already has two would
+      be the one that is wrong on the day.
+    */
+    const seen: { id: string; lat: number; lng: number }[] = [];
+    const ui = await mountScreen(h(LocalPicksScreen, {
+      ...props,
+      onNavigate: (d: { id: string; lat: number; lng: number }) => { seen.push(d); },
+    }));
+
+    await ui.press('Koniix Garden Cottage');
+    assert.equal(seen.length, 1);
+    assert.equal(seen[0]?.id, 'koniix-garden-cottage');
+    assert.deepEqual([seen[0]?.lat, seen[0]?.lng], [13.156753, 100.808781], 'the point the owner gave');
+    ui.unmount();
+  });
+
+  test('claims nothing it was not told: no price, no phone, no rating, no stars', async () => {
+    /*
+      THE RULE, not the layout. docs/61: a listing is the business's own
+      claim, and this app invents none on their behalf. A card that filled
+      the empty fields of a listing - "from ฿1,200", "4.8", "open daily" -
+      would be ChivarGo making those claims about a real business that never
+      made them.
+    */
+    const ui = await mountScreen(h(LocalPicksScreen, props));
+    await ui.press('Category: All');
+    await ui.press('Accommodation');
+    const said = ui.text();
+
+    assert.doesNotMatch(said, /฿|THB|\bbaht\b/i, 'no price was given, so none is shown');
+    assert.doesNotMatch(said, /\b0[0-9][- ]?[0-9]{3}[- ]?[0-9]{4}\b/, 'no telephone number was given');
+    assert.doesNotMatch(said, /★|⭐|\b[0-5]\.[0-9]\s*\/\s*5\b/, 'nobody has reviewed it here');
+    ui.unmount();
+  });
+});
+
+/**
  * Solution Connect — the paid surface, next to the unpaid one.
  *
  * These are not layout tests. Connect is where a partner PAYS to appear, on a
