@@ -69,7 +69,15 @@ describe('the Worker serves what the export carries', () => {
   test('the API is still the API', () => {
     // The list must not grow into a catch-all: a path that reaches the export
     // instead of the routes is a feature that stops answering.
-    for (const p of ['/health', '/wallet', '/quests', '/admin/import', '/shops']) {
+    /*
+      `/admin/export` matters more here than the others. `worker.ts` tries
+      Workers Assets FIRST for every GET whose path is on this list, and the
+      export is the first operator route that is a GET - the import is a POST,
+      which never reaches the asset check at all. A path that drifted onto the
+      list would answer a backup request with a static file, or a 404 that
+      looks exactly like an unarmed deployment.
+    */
+    for (const p of ['/health', '/wallet', '/quests', '/admin/import', '/admin/export', '/admin/export/batch', '/shops']) {
       assert.ok(!servedFromExport(p), `${p} would be served as a static file`);
     }
   });

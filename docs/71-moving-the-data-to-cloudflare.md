@@ -129,6 +129,10 @@ replaying is written, tested and not improvised at two in the morning:
   it is tested under BOTH drivers - including through the Durable Object
   adapter, which is where it will run.
 
+**Reading the data back out is the section after this one.** Step 3 gets rows
+IN, which is a migration and happens once; getting them OUT is a backup and
+happens every week. They share the batch format on purpose.
+
 ### 3a. Make the batches (**owner**, on the snapshot)
 
 ```bash
@@ -206,6 +210,176 @@ cannot create, alter or drop anything, and cannot reach a table that does not
 exist. `sqlite3 .dump` and replaying statements would have been easier to write
 and would have put arbitrary DDL on a wire into a live database behind one
 secret.
+
+## The other half of step 3 — getting the data back OUT
+
+**Not part of the migration sequence.** This is the counterpart to the import
+and the thing you will use far more often: taking a backup of a database that
+is already living inside a Durable Object.
+
+**Unlike the rest of this document, this half has been run.** Measured on
+15 November against a local deployment of the Worker's own routes: a seeded
+database of 64 rows across five tables snapshotted over HTTP, checked, and
+then replayed with the loop in step 3c into a second, empty deployment —
+`inserted: 64`, no translation step anywhere. The tests run under both drivers,
+the Durable Object adapter included. What has **not** been done is running it
+against production, which needs the secret and a deploy and is the owner's
+call.
+
+### Why it needed writing at all
+
+The sentence at the top of step 3 reads worse in the other direction. A Durable
+Object's SQLite is not a file you can upload — and it is not a file you can
+**download** either. There is no `wrangler do export`, nothing to `sftp get`,
+and `export-for-import.ts` reads a local file, which the live database is not.
+
+So from the cutover on 12 November until this was written, the pilot's only
+copy of its data was the live object. The only backups in existence are the
+ones pulled off the Fly volume that day:
+
+```
+C:\Users\DomeCB\chivago-migration-backup\   final-fly.db  snapshot.db
+```
+
+Everything after 12 November — every registration, every check-in, every
+ledger row, and the five Koh Sichang quests opened on the 15th — existed in
+exactly one place.
+
+### What the export is
+
+`GET /admin/export` and `GET /admin/export/batch`, built as the mirror of the
+import rather than as a new idea:
+
+| | |
+|---|---|
+| `GET /admin/export` | the manifest: every table, its row count **now**, in parents-first order, and the schema version |
+| `GET /admin/export/batch?table=T&rows=N&after=R` | one page of one table, **as an `ImportBatch`** |
+
+A page is byte-for-byte what `POST /admin/import` accepts — same table, same
+columns, same values, same base64 for a BLOB — so a snapshot replays with the
+loop in step 3c and there is no format in the middle to get wrong. That is
+also why a page comes back **bare** rather than inside the `{ ok, data }`
+envelope the rest of the API uses: the file on your laptop has to *be* the
+batch.
+
+Paging is by **rowid cursor**, not `LIMIT`/`OFFSET`, and that is the one place
+this differs from `export-for-import.ts`. The CLI reads a snapshot file nothing
+can write; this reads the pilot while it is serving, and the alarm runs six
+sweeps every thirty seconds, expiring stories, sessions and link codes. A row
+deleted *behind* an offset shifts every later offset down by one and the next
+page silently skips a row — a backup that restores, passes every constraint,
+and is missing somebody. The cursor cannot skip; `export-service.test.ts`
+proves both halves of that claim, including that offset paging really does drop
+a row.
+
+**It reads.** Nothing on the path writes a row, a counter or a run record. The
+import keeps `import_runs` because an interrupted import must be continuable;
+an interrupted export costs a retry, so it earns no state.
+
+### Arming it (**owner**)
+
+```bash
+wrangler secret put CHIVAGO_EXPORT_TOKEN      # something long and random; 32 characters minimum
+pnpm --filter @chivago/api exec wrangler deploy
+```
+
+**Its own secret, not `CHIVAGO_IMPORT_TOKEN`.** Step 3d tells you to delete the
+import token when the migration ends, because deleting it is what removes the
+write route. A backup is not a migration — it happens again next week — and
+sharing the secret would mean arming the write door every time somebody wanted
+a copy.
+
+Two things that have caught people here before: **a new secret needs a redeploy
+before the running Worker sees it**, and `wrangler secret list` shows names
+only, so an unset secret looks exactly like a set one. Without the secret the
+route answers **404**, identical to a path that does not exist.
+
+### Taking a snapshot (from a laptop)
+
+```bash
+cd apps/api
+CHIVAGO_EXPORT_TOKEN=... node --experimental-strip-types src/snapshot-live.ts \
+  --api https://chivargo.com --out "C:/Users/DomeCB/chivago-backups/2026-11-15"
+```
+
+Called directly rather than through `pnpm run`, for the same reason as step 3a:
+pnpm passes `--` through and `parseArgs` refuses the command.
+
+The token comes **from the environment, never from an argument** — `ps` shows
+another user's command line and a shell keeps its history. Nothing prints it;
+the run logs its length.
+
+`--out` must be **outside this repository** and the script refuses otherwise
+(`--force` overrides it). What it writes is 339 people, their wallets and a
+ledger.
+
+It writes numbered batch files in send order plus `manifest.json`, the same
+layout step 3a produces — so a restore is step 3c unchanged:
+
+```
+0001-users.json  0002-wallets.json  …  manifest.json
+```
+
+`manifest.json` also records the live row counts **before** the read and
+**after** it, which is what makes the snapshot checkable later.
+
+The page size adapts: on a 413 it halves and retries the same cursor, because a
+row of `wallets` is tens of bytes and a row of `stories` carries video. `--rows`
+sets the starting size (500).
+
+### Checking it — with numbers, against the live system
+
+```bash
+CHIVAGO_EXPORT_TOKEN=... node --experimental-strip-types src/snapshot-live.ts \
+  --api https://chivargo.com --check "C:/Users/DomeCB/chivago-backups/2026-11-15"
+```
+
+It parses every batch file (a truncated download agrees with itself), counts
+the rows it really holds, re-asks the live system for its counts, and prints a
+line per table:
+
+```
+  table                          in snapshot   when taken   live now
+  users                                  339          339        341
+  stories                                 13        15→12         11
+```
+
+Exit status 0 means every table is consistent; 1 means it is not, and names
+which. The rule is a **bracket, not a subtraction**, and it is worth
+understanding before trusting the answer: the database does not hold still
+while it is read, so a count that differs from the live one is the ordinary
+case. What is a failure is a file holding fewer rows than the live system had
+*both* before and after the read — that means rows were skipped. More than it
+ever had means a page was read twice. Anything between the two is a database
+that moved while it was copied, which is what a snapshot is.
+`snapshot-check.ts` holds that rule and `snapshot-check.test.ts` holds the
+cases.
+
+**"live now" drifting is expected** and never decides the verdict: the pilot
+gains users by the hour and expires stories after seven days.
+
+### Two things to know before relying on it
+
+- **A single row over 16 MB cannot be copied.** That is the batch ceiling on
+  both halves, and `STORY_MAX_BYTES` is 25 MB with base64 adding a third on top
+  — so one long clip can exceed it. Such a row could never have been imported
+  either; this is a known hole, not a regression. The script says which table
+  and exits non-zero rather than writing a file that pretends to be complete.
+- **A snapshot costs one row read per row, against the free plan's daily
+  budget.** On 12 November schema re-checking exhausted five million rows in a
+  day and took the pilot down. A snapshot of this database is tens of thousands
+  of rows, which is nothing — but do not put it in a loop.
+
+### Shutting the door again
+
+```bash
+wrangler secret delete CHIVAGO_EXPORT_TOKEN
+```
+
+Which is what removes the route, with no deploy. Whether to leave it armed
+between backups is the owner's call: armed, the length of the secret is the
+only thing standing between a guesser and every row, because there is no
+throttle on the route — exactly as on the import.
 
 ## Step 4 — the deploy
 

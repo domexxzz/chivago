@@ -133,6 +133,14 @@ const EXACT: Readonly<Record<string, Localised>> = {
   DATABASE_NOT_EMPTY: message('The database already holds data, so the import was refused.', 'ฐานข้อมูลปลายทางมีข้อมูลอยู่แล้ว จึงปฏิเสธการนำเข้า', '目标数据库已有数据，导入已被拒绝。'),
   BAD_BATCH: message('This import batch is malformed.', 'ชุดข้อมูลที่ส่งมาไม่ถูกรูปแบบ', '此导入批次格式不正确。'),
   IMPORT_FAILED: message('The import did not finish.', 'การนำเข้าไม่สำเร็จ', '导入未完成。'),
+  // Both halves share this one: a batch too big to post in is also a page too
+  // big to read out, and it is the same ceiling and the same fix (fewer rows).
+  BATCH_TOO_LARGE: message('This batch is too large. Use fewer rows.', 'ชุดข้อมูลนี้ใหญ่เกินไป ลองลดจำนวนแถว', '此批次过大，请减少行数。'),
+  // The export route (docs/71, the backup half). Operator-facing like the
+  // import codes above, and here for the same reason: an operator taking a
+  // backup must read what went wrong, not GENERIC_API_ERROR.
+  WEAK_EXPORT_TOKEN: message('This deployment cannot be exported: its token is too short.', 'ปลายทางนี้ส่งข้อมูลออกไม่ได้ เพราะโทเคนสั้นเกินไป', '此部署无法导出：令牌太短。'),
+  BAD_EXPORT_REQUEST: message('That export request is not one this database answers.', 'คำขอส่งออกนี้ไม่ถูกต้อง', '此导出请求无效。'),
   INTERNAL: message('The service had a problem. Please try again.', 'ระบบขัดข้อง กรุณาลองอีกครั้ง', '服务出现问题，请重试。'),
 };
 

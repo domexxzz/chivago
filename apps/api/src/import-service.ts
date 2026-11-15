@@ -213,11 +213,96 @@ export function exportTable(
   const found = rows<Record<string, unknown>>(
     db.prepare(`SELECT ${quoted} FROM "${table}" ORDER BY rowid LIMIT ? OFFSET ?`).all(limit, offset),
   );
+  return batchOf(table, columns, found);
+}
+
+/** Rows into a batch. The one place a cell is encoded, however it was read. */
+const batchOf = (
+  table: string,
+  columns: string[],
+  found: Record<string, unknown>[],
+): ImportBatch => ({
+  table,
+  columns,
+  values: found.map((r) => columns.map((c) => encodeValue(r[c]))),
+});
+
+/**
+ * One page of a table, and where the next page starts.
+ *
+ * `nextAfterRowid` is null only when this page came back SHORT of its limit,
+ * which is the only cheap proof that there is nothing after it. A full page
+ * always hands back a cursor, so an exact multiple of the page size costs one
+ * empty request at the end rather than a guess.
+ */
+export interface ExportPage {
+  batch: ImportBatch;
+  nextAfterRowid: number | null;
+}
+
+/**
+ * Read one page of a table, for an export of a LIVE database.
+ *
+ * WHY NOT LIMIT/OFFSET, which `exportTable` uses. OFFSET counts rows that are
+ * still there. `exportTable` reads a snapshot file that nothing can write, so
+ * counting is safe there; this reads the pilot while it is serving, and the
+ * alarm runs six sweeps - expiring stories, sessions and link codes - every
+ * thirty seconds. A row deleted BEHIND the cursor shifts every later offset
+ * down by one and the next page silently skips a row. The symptom would be a
+ * backup that restores, passes every constraint, and is missing somebody.
+ *
+ * A rowid cursor cannot skip: rows already read are below it whether they
+ * still exist or not. Rows written DURING the export land above the cursor
+ * and are picked up; rows deleted during it are simply absent, which is the
+ * ordinary meaning of a backup taken at a moment rather than an instant.
+ *
+ * It reads. There is no statement here that writes anything - that is the
+ * whole contract of this route, over a database holding 339 real people.
+ */
+export function exportPage(
+  db: DB,
+  table: string,
+  opts: { limit: number; afterRowid?: number },
+): ExportPage {
+  const columns = columnsOf(db, table);
+  if (columns.length === 0) throw new Error(`No such table: ${table}`);
+  if (!Number.isInteger(opts.limit) || opts.limit < 1) {
+    throw new Error(`A page must be at least one row, not ${JSON.stringify(opts.limit)}`);
+  }
+  const quoted = columns.map((c) => `"${c}"`).join(', ');
+  /*
+    The cursor comes back as a column, so it needs a name no real column has.
+    `rowid` itself would collide with the alias of an INTEGER PRIMARY KEY, and
+    a schema is free to hold a column called `_rowid`, so the name is widened
+    until it is unused rather than asserted to be safe.
+  */
+  let cursor = '_rowid';
+  while (columns.includes(cursor)) cursor += '_';
+  // Rowids start at 1, so 0 is "from the beginning" and needs no second query.
+  const after = opts.afterRowid ?? 0;
+  const found = rows<Record<string, unknown>>(
+    db
+      .prepare(
+        `SELECT rowid AS "${cursor}", ${quoted} FROM "${table}"
+          WHERE rowid > ? ORDER BY rowid LIMIT ?`,
+      )
+      .all(after, opts.limit),
+  );
+  const last = found.at(-1);
   return {
-    table,
-    columns,
-    values: found.map((r) => columns.map((c) => encodeValue(r[c]))),
+    batch: batchOf(table, columns, found),
+    // Short page: nothing follows it. Full page: here is where to carry on.
+    nextAfterRowid: last === undefined || found.length < opts.limit
+      ? null
+      : Number(last[cursor]),
   };
+}
+
+/** How many rows a table holds, right now. */
+export function rowCountOf(db: DB, table: string): number {
+  if (!SAFE_IDENTIFIER.test(table)) throw new Error(`Unsafe table name: ${JSON.stringify(table)}`);
+  if (!tablesInDatabase(db).includes(table)) throw new Error(`No such table: ${table}`);
+  return row<{ n: number }>(db.prepare(`SELECT COUNT(*) AS n FROM "${table}"`).get())?.n ?? 0;
 }
 
 /**

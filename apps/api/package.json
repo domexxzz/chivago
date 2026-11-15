@@ -11,6 +11,7 @@
     "seed:marketplace": "node --experimental-strip-types src/seed-marketplace.ts",
     "seed:offers": "node --experimental-strip-types src/seed-offers.ts",
     "export:import": "node --experimental-strip-types src/export-for-import.ts",
+    "snapshot:live": "node --experimental-strip-types src/snapshot-live.ts",
     "host:add": "node --experimental-strip-types src/add-host-cli.ts",
     "admin:add": "node --experimental-strip-types src/add-admin-cli.ts",
     "transcode": "node --experimental-strip-types src/transcode-service.ts",
