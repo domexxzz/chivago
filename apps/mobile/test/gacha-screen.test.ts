@@ -14,6 +14,7 @@
 import { strict as assert } from 'node:assert';
 import { afterEach, describe, test } from 'node:test';
 import { createElement as h } from 'react';
+import { act } from 'react-test-renderer';
 
 import {
   MYTHIC_PITY, POOL, PULL_COST, RARE_PITY, RARITIES,
@@ -40,7 +41,7 @@ const state = (over: Record<string, unknown> = {}) => ({
     closedAt: null, seed: null,
   },
   rules: {
-    rates: RARITY_EFFECTIVE_PERCENT,
+    rates: RARITY_PERCENT,
     effectiveWeights: Object.fromEntries(RARITIES.map((r) => [r, 2_500])),
     rollBand: RARITY_PERCENT,
     weights: Object.fromEntries(RARITIES.map((r) => [r, 2_500])),
@@ -110,7 +111,76 @@ describe('the price on each button is the server’s, never the screen’s arith
     await ui.press(new RegExp(`^Pull ${TEN_PULL_SIZE}, `));
     const posted = net.calls.filter((c) => c.method === 'POST' && c.path === '/summon');
     assert.equal(posted.length, 1);
-    assert.deepEqual(posted[0]!.body, { pulls: TEN_PULL_SIZE });
+    assert.equal(posted[0]!.body.category, 'mascot');
+    assert.equal(posted[0]!.body.quantity, TEN_PULL_SIZE);
+    assert.match(String(posted[0]!.body.idempotencyKey), /^.{8,128}$/);
+    ui.unmount();
+  });
+
+  test('the selected banner is sent to the server', async () => {
+    const net = routes({
+      'POST /summon': { transactionId: 'tx-fashion', category: 'fashion', results: [], cost: PULL_COST, tripPoints: 1_100, dust: 24, pity: { sinceMythic: 1, sinceRare: 1 } },
+    });
+    restore = net.restore;
+    const ui = await mountScreen(h(SummonScreen, { onBack: noop }));
+    await ui.press(/^Fashion reward preview$/);
+    await ui.press(/^Pull once, /);
+    const posted = net.calls.find((c) => c.method === 'POST' && c.path === '/summon');
+    assert.equal(posted?.body.category, 'fashion');
+    assert.equal(posted?.body.quantity, 1);
+    ui.unmount();
+  });
+
+  test('a successful pull opens the reward reveal, including legacy single-result demos', async () => {
+    const spirit = SPIRITS[0]!;
+    const result = {
+      id: 'summon-reveal-1',
+      item: { kind: 'spirit' as const, spirit, rarity: spirit.rarity },
+      spirit,
+      rarity: spirit.rarity,
+      byPity: null,
+      duplicate: false,
+      dustGained: 0,
+      dust: 24,
+      charms: state().charms,
+      pity: { sinceMythic: 1, sinceRare: 1 },
+      receipt: { epochId: 'e1', commitment: 'ab'.repeat(32), nonce: 1, roll: 42, pick: 7, poolVersion: 2 },
+    };
+    // The static demo used this direct result envelope before multi-pull was
+    // added. It is still live in exported builds, so the screen accepts it
+    // without sacrificing the current API's `{ results: [...] }` response.
+    const net = routes({ 'POST /summon': result });
+    restore = net.restore;
+    const ui = await mountScreen(h(SummonScreen, { onBack: noop }));
+
+    await ui.press(/^Pull once, /);
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 1_750)); });
+
+    assert.match(ui.text(), new RegExp(spirit.name.en));
+    assert.ok(ui.labels().includes('Keep in collection'), 'the reveal stage did not open');
+    ui.unmount();
+  });
+
+  test('a confirmed result can skip the reveal without rerolling it', async () => {
+    const spirit = SPIRITS[0]!;
+    const result = {
+      id: 'summon-skip-1', item: { kind: 'spirit' as const, spirit, rarity: spirit.rarity }, spirit,
+      rarity: spirit.rarity, byPity: null, duplicate: false, isNew: true, category: 'mascot' as const,
+      transactionId: 'tx-skip', dustGained: 0, dust: 24, charms: state().charms,
+      pity: { sinceMythic: 1, sinceRare: 1 },
+      receipt: { epochId: 'e1', commitment: 'ab'.repeat(32), nonce: 1, roll: 42, pick: 7, poolVersion: 3 },
+    };
+    const net = routes({
+      'POST /summon': { transactionId: 'tx-skip', category: 'mascot', results: [result], cost: PULL_COST, tripPoints: 1_100, dust: 24, pity: result.pity },
+    });
+    restore = net.restore;
+    const ui = await mountScreen(h(SummonScreen, { onBack: noop }));
+    await ui.press(/^Pull once, /);
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+    if (ui.labels().includes('Skip animation')) await ui.press(/^Skip animation$/);
+    assert.match(ui.text(), /100 Trip Points spent · 1,100 remaining/);
+    assert.ok(ui.text().includes(spirit.name.en));
+    assert.equal(net.calls.filter((c) => c.method === 'POST' && c.path === '/summon').length, 1);
     ui.unmount();
   });
 });
@@ -196,6 +266,7 @@ describe('what the box shows of itself', () => {
     const net = routes();
     restore = net.restore;
     const ui = await mountScreen(h(SummonScreen, { onBack: noop }));
+    await ui.press(/^Fashion reward preview$/);
     const said = ui.text();
 
     assert.ok(
@@ -207,7 +278,7 @@ describe('what the box shows of itself', () => {
 });
 
 describe('the rates and the floor are the published ones', () => {
-  test('every rarity prints the EFFECTIVE rate, not the roll band', async () => {
+  test('every rarity prints the exact configured rate', async () => {
     const net = routes();
     restore = net.restore;
     const ui = await mountScreen(h(SummonScreen, { onBack: noop }));
@@ -215,12 +286,11 @@ describe('the rates and the floor are the published ones', () => {
 
     for (const rarity of RARITIES) {
       assert.ok(
-        said.includes(`${RARITY_EFFECTIVE_PERCENT[rarity]}%`),
-        `${rarity} does not print its effective rate`,
+        said.includes(`${RARITY_PERCENT[rarity]}%`),
+        `${rarity} does not print its configured rate`,
       );
     }
-    // The correction docs/68 made: a mythic is met more often than its band.
-    assert.ok(RARITY_EFFECTIVE_PERCENT.mythic > RARITY_PERCENT.mythic);
+    assert.equal(RARITIES.reduce((sum, rarity) => sum + RARITY_PERCENT[rarity], 0), 100);
     ui.unmount();
   });
 

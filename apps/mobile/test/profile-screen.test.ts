@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test, describe, afterEach, beforeEach } from 'node:test';
 import { createElement as h } from 'react';
 
-import { ProfileScreen, leadCompanion } from '../src/screens/ProfileScreen.tsx';
+import { GuestProfileScreen, ProfileScreen, leadCompanion } from '../src/screens/ProfileScreen.tsx';
 import { mountScreen, server } from './interact.ts';
 import { __setLocaleForTests } from '../src/i18n/locale.ts';
 import { RANKED_BY, companionsFor, collectionSummary, progressionFor, type Companion } from '@chivago/core';
@@ -53,6 +53,26 @@ const routes = (over: Record<string, unknown> = {}) => {
 
 let restore: (() => void) | null = null;
 afterEach(() => { restore?.(); restore = null; });
+
+describe('visitor profile access', () => {
+  test('a guest can open the public profile without account API data', async () => {
+    let action = '';
+    const ui = await mountScreen(h(GuestProfileScreen, {
+      onBack: noop,
+      onSignIn: () => { action = 'login'; },
+      onRegister: () => { action = 'register'; },
+    }));
+
+    assert.match(ui.text(), /Profile/);
+    assert.match(ui.text(), /Browsing as a guest/);
+    assert.match(ui.text(), /Language/);
+    await ui.press('Sign in');
+    assert.equal(action, 'login');
+    await ui.press('Create an account');
+    assert.equal(action, 'register');
+    ui.unmount();
+  });
+});
 
 describe('who the profile says you are', () => {
   test('the name is the account’s, the rank and level are the wallet’s, the face is a companion', async () => {
@@ -169,6 +189,17 @@ describe('what follows you everywhere', () => {
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(ProfileScreen, { ...props, onOpenAccount: () => { opened += 1; } }));
     await ui.press('Account and devices');
+    assert.equal(opened, 1);
+    ui.unmount();
+  });
+
+  test('Safety lives in the profile and opens the safety screen', async () => {
+    let opened = 0;
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(ProfileScreen, { ...props, onOpenSafety: () => { opened += 1; } }));
+
+    assert.match(ui.text(), /Help and safety/);
+    await ui.press('Safety');
     assert.equal(opened, 1);
     ui.unmount();
   });

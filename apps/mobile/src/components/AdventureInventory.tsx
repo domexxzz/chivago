@@ -17,15 +17,15 @@
 
 import React from 'react';
 import {
-  Animated, Image, Platform, Pressable, View,
+  Animated, Image, Modal, Platform, Pressable, View,
   type ImageSourcePropType, type LayoutChangeEvent,
 } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, RadialGradient, Stop } from 'react-native-svg';
 import {
-  Gift, LockKeyhole, type LucideIcon,
+  Gift, LockKeyhole, X, type LucideIcon,
 } from 'lucide-react-native';
 import { strings, type MedalState, type Progression } from '@chivago/core';
-import { Heading, Label } from './Type.tsx';
+import { Body, Heading, Label } from './Type.tsx';
 import { useReduceMotion } from './reduce-motion.ts';
 import { t } from '../i18n/locale.ts';
 import { formatInteger } from '../i18n/format.ts';
@@ -38,6 +38,7 @@ import allCampusArt from '../../assets/medal-all-campus-v1.png';
 import hopperArt from '../../assets/medal-hopper-v1.png';
 import currencyItems from '../../assets/backpack-currency-items-v1.png';
 import rewardItems from '../../assets/backpack-reward-items-v1.png';
+import { BackpackIcon } from './BackpackIcon.tsx';
 
 /**
  * The generated currency strip contains two equal cells: Star, then Flag.
@@ -129,7 +130,12 @@ export function GoldCorners({ inset = 6, size = 14, colour = INV.antique }: { in
  * The capsule is what makes a panel read as a piece of game UI rather than a
  * card with a heading in it: the title is an object sitting ON the frame.
  */
-export function SectionBanner({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
+export function SectionBanner({ icon: Icon, art, title }: {
+  icon: LucideIcon;
+  /** A drawn icon from the reference set, used in place of the line one. */
+  art?: React.ReactNode;
+  title: string;
+}) {
   return (
     <View
       accessibilityRole="header"
@@ -147,7 +153,7 @@ export function SectionBanner({ icon: Icon, title }: { icon: LucideIcon; title: 
       {/* The inner line that makes the capsule read as a raised object. */}
       <View pointerEvents="none" style={{ position: 'absolute', top: 2, left: 2, right: 2, bottom: 2, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,230,160,0.45)' }} />
       <View style={{ width: 28, height: 28, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: INV.gold }}>
-        <Icon size={17} color={INV.navy} strokeWidth={2.4} />
+        {art ?? <Icon size={17} color={INV.navy} strokeWidth={2.4} />}
       </View>
       <Heading size={18} colour={INV.white}>{title}</Heading>
     </View>
@@ -311,7 +317,13 @@ export function CurrencyItemCard({
         <View pointerEvents="none" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 14, backgroundColor: 'rgba(185,128,37,0.12)' }} />
         <GoldCorners inset={5} size={12} />
         <View style={{ width: emblem, height: emblem, alignItems: 'center', justifyContent: 'center' }}>
-          <CurrencySprite index={kind === 'star' ? 0 : 1} size={emblem} />
+          {/*
+            THE REFERENCE'S OWN STAR AND FLAG, not the sprite strip that
+            stood in for them. Neither carries any state in its pixels - a
+            star is a star whether the balance is 0 or 540 - so swapping
+            them is a straight substitution with nothing to get wrong.
+          */}
+          <BackpackIcon name={kind === 'star' ? 'star-points' : 'travel-flag'} size={emblem} />
         </View>
         <View style={{ flex: 1, minWidth: 0, alignItems: 'center', gap: 5 }}>
           <View style={{ alignItems: 'center' }}>
@@ -372,7 +384,7 @@ export const RANK_LOCKED = (level: number) => ({
 });
 
 type Slot =
-  | { kind: 'rank'; key: string; name: string; earned: boolean; artIndex: number; condition: string; label: string }
+  | { kind: 'rank'; key: string; name: string; earned: boolean; artIndex: number; fromLevel: number; condition: string; label: string }
   | { kind: 'medal'; key: string; name: string; earned: boolean; art: ImageSourcePropType; condition: string; label: string };
 
 function slotsFor(progression: Progression, medals: readonly MedalState[] | null): Slot[] {
@@ -382,6 +394,7 @@ function slotsFor(progression: Progression, medals: readonly MedalState[] | null
     name: t(rank.label),
     earned: rank.earned,
     artIndex: index,
+    fromLevel: rank.fromLevel,
     condition: t({ en: `Lv. ${rank.fromLevel}`, th: `เลเวล ${rank.fromLevel}`, zh: `${rank.fromLevel} 级` }),
     label: `${t(rank.label)}. ${t(rank.earned ? RANK_UNLOCKED : RANK_LOCKED(rank.fromLevel))}`,
   }));
@@ -441,8 +454,13 @@ function Glints() {
 }
 
 function RewardSlot({
-  slot, width, glow, onOpenMedals,
-}: { slot: Slot; width: number; glow: Animated.Value; onOpenMedals?: () => void }) {
+  slot, width, glow, onOpenMedals, onOpenRank,
+}: {
+  slot: Slot; width: number; glow: Animated.Value;
+  onOpenMedals?: () => void;
+  /** A rank has no screen of its own; it explains itself where it stands. */
+  onOpenRank?: (slot: Slot) => void;
+}) {
   // The medal PNGs carry a wide transparent margin around the medal itself,
   // so they are drawn larger than the rank emblems to read at the same size.
   //
@@ -452,10 +470,22 @@ function RewardSlot({
   const art = Math.round(width * (slot.kind === 'medal'
     ? (slot.earned ? 0.8 : 0.56)
     : (slot.earned ? 0.56 : 0.48)));
-  const opens = slot.kind === 'medal' && onOpenMedals !== undefined;
+  /*
+    EVERY SLOT ANSWERS WHEN IT IS PRESSED.
+
+    A medal opens the Medals screen, as it always has. A RANK used to do
+    nothing at all - twelve tiles that looked exactly as pressable as the
+    medals beside them, with a hover and a press scale, and no response.
+    A locked rank in particular is the one a traveller taps hardest,
+    because the tile tells them it is locked without telling them what
+    would open it. Now it says so, from the ladder's own numbers.
+  */
+  const opens = slot.kind === 'medal'
+    ? onOpenMedals !== undefined
+    : onOpenRank !== undefined;
   return (
     <Pressable
-      onPress={opens ? onOpenMedals : undefined}
+      onPress={opens ? () => { if (slot.kind === 'medal') onOpenMedals?.(); else onOpenRank?.(slot); } : undefined}
       focusable={opens}
       accessible
       accessibilityRole={opens ? 'button' : undefined}
@@ -584,6 +614,7 @@ export function RewardInventory({
   // slot onto a line of its own - the 5 + 5 + 2 the first build shipped.
   const width = inner > 0 ? Math.floor((inner - 1 - gap * (columns - 1)) / columns) : 96;
   const earned = slots.filter((s) => s.earned).length;
+  const [openRank, setOpenRank] = React.useState<Slot | null>(null);
 
   return (
     <View
@@ -598,7 +629,11 @@ export function RewardInventory({
     >
       {/* The stitched inner line: the panel is a case, not a card. */}
       <View pointerEvents="none" style={{ position: 'absolute', top: 6, left: 6, right: 6, bottom: 6, borderRadius: 20, borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(22,77,115,0.28)' }} />
-      <SectionBanner icon={Gift} title={t({ en: 'Reward Inventory', th: 'ช่องเก็บรางวัล', zh: '奖励物品栏' })} />
+      <SectionBanner
+        icon={Gift}
+        art={<BackpackIcon name="reward-gift" size={22} />}
+        title={t({ en: 'Reward Inventory', th: 'ช่องเก็บรางวัล', zh: '奖励物品栏' })}
+      />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}>
         <Label size={10} tracking={0.06} colour="#3F6782">{t(strings.wallet.ranks)}</Label>
         <Label size={10} tracking={0.02} colour="#3F6782" style={{ textTransform: 'none' }}>
@@ -614,9 +649,78 @@ export function RewardInventory({
         style={{ flexDirection: 'row', flexWrap: 'wrap', gap }}
       >
         {slots.map((slot) => (
-          <RewardSlot key={slot.key} slot={slot} width={width} glow={glow} onOpenMedals={onOpenMedals} />
+          <RewardSlot
+            key={slot.key}
+            slot={slot}
+            width={width}
+            glow={glow}
+            onOpenMedals={onOpenMedals}
+            onOpenRank={setOpenRank}
+          />
         ))}
       </View>
+
+      {/*
+        WHAT A RANK IS, AND WHAT OPENS IT.
+
+        Every number in here is the ladder's own: the rank's name, the level
+        it starts at, and the level the traveller is actually on. Nothing is
+        computed twice and nothing is invented - if it says three levels to
+        go, that is `fromLevel - level` from the same progression the bar
+        above is drawn from.
+      */}
+      <Modal
+        visible={openRank !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpenRank(null)}
+      >
+        <Pressable
+          onPress={() => setOpenRank(null)}
+          accessibilityRole="button"
+          accessibilityLabel={t({ en: 'Close', th: 'ปิด', zh: '关闭' })}
+          style={{ flex: 1, backgroundColor: 'rgba(8,36,58,0.5)', alignItems: 'center', justifyContent: 'center', padding: 22 }}
+        >
+          <View
+            style={{
+              width: '100%', maxWidth: 420, borderRadius: 26, padding: 20,
+              backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#D7EBF3',
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Label size={10} tracking={0.14} colour="#3F6782">{t(strings.wallet.ranks)}</Label>
+                <Heading size={22} colour="#082E53" style={{ marginTop: 4 }}>{openRank?.name ?? ''}</Heading>
+              </View>
+              <Pressable
+                onPress={() => setOpenRank(null)}
+                accessibilityRole="button"
+                accessibilityLabel={t({ en: 'Close', th: 'ปิด', zh: '关闭' })}
+                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#EAF7FB', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={20} color="#087DA4" />
+              </Pressable>
+            </View>
+            {openRank && openRank.kind === 'rank' ? (
+              <View style={{ marginTop: 16, padding: 14, borderRadius: 18, backgroundColor: '#EAF7FB', borderWidth: 1, borderColor: '#CFEAF2' }}>
+                <Body size={14} colour="#31566C">
+                  {openRank.earned
+                    ? t({
+                      en: `Unlocked. This rank opens at level ${openRank.fromLevel}, and you are level ${progression.level}.`,
+                      th: `ปลดล็อกแล้ว ยศนี้เปิดที่เลเวล ${openRank.fromLevel} และตอนนี้คุณเลเวล ${progression.level}`,
+                      zh: `已解锁。此头衔在 ${openRank.fromLevel} 级开启，你目前 ${progression.level} 级。`,
+                    })
+                    : t({
+                      en: `Opens at level ${openRank.fromLevel}. You are level ${progression.level} — ${Math.max(0, openRank.fromLevel - progression.level)} to go. EXP comes from quests and check-ins, and is never spent.`,
+                      th: `เปิดที่เลเวล ${openRank.fromLevel} ตอนนี้คุณเลเวล ${progression.level} เหลืออีก ${Math.max(0, openRank.fromLevel - progression.level)} เลเวล EXP ได้จากภารกิจและการเช็กอิน และไม่ถูกใช้ไป`,
+                      zh: `在 ${openRank.fromLevel} 级开启。你目前 ${progression.level} 级，还差 ${Math.max(0, openRank.fromLevel - progression.level)} 级。经验来自任务与签到，且永不消耗。`,
+                    })}
+                </Body>
+              </View>
+            ) : null}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

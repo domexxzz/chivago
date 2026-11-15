@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { describe, test } from 'node:test';
 import { KOH_SICHANG_BBOX, KU_SRIRACHA_BBOX, areaByKey, areaOfPlace, inArea } from './areas.ts';
-import { SAFETY_PHRASES, SEED_HOSTS, SEED_OFFERS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
+import { ACTIVE_QUESTS, SAFETY_PHRASES, SEED_HOSTS, SEED_OFFERS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
 
 const area = areaByKey('koh-sichang');
 const places = SEED_PLACES.filter((p) => areaOfPlace(p) === 'koh-sichang');
@@ -87,32 +87,12 @@ describe('Koh Sichang', () => {
     }
   });
 
-  test('the five sample quests are the team\'s, pillared, and say they are samples', () => {
-    const quests = SEED_QUESTS.filter((q) => inArea(area, q));
+  test('only the five field-trial quests are active', () => {
     assert.deepEqual(
-      quests.map((q) => q.id).sort(),
-      ['q-sc-explorer', 'q-sc-green-journey', 'q-sc-recipe', 'q-sc-trash-hero', 'q-sc-treasure'],
+      ACTIVE_QUESTS.map((q) => q.code).sort(),
+      ['SG-01', 'SG-02', 'SG-03', 'SG-04', 'SG-05'],
     );
-    // Not all environmental any more. The field guide of 12 November put three
-    // of the five on the shop and heritage side, and an ESG report excludes an
-    // unpillared quest rather than guessing - so what matters here is that
-    // every one of them declares, and that the waste quest is still the
-    // environmental one.
-    assert.equal(
-      quests.find((q) => q.id === 'q-sc-trash-hero')?.esgPillar, 'environmental',
-      'the waste quest stopped reporting as environmental',
-    );
-    for (const q of quests) {
-      assert.equal(q.host.id, SEED_HOSTS.sichangTeam!.id, 'the municipality has not agreed to host');
-      assert.ok(q.esgPillar, `${q.id} declares no ESG pillar, so a report would exclude it`);
-      assert.equal(q.rewardCurrency, 'green');
-      assert.match(q.name.th, /ตัวอย่าง/);
-      assert.match(q.name.en, /sample/i);
-      assert.ok(
-        SEED_PLACES.some((p) => p.id.startsWith('sc-') && Math.hypot(p.lat - q.lat, p.lng - q.lng) < 0.003),
-        `${q.id} is not at any mapped place on the island`,
-      );
-    }
+    assert.ok(ACTIVE_QUESTS.every((q) => inArea(area, q) && q.host.id === SEED_HOSTS.sichangTeam!.id));
   });
 
   test('the island has a reward its own verified work can reach, and it is not claimed as a partner', () => {
@@ -133,12 +113,8 @@ describe('Koh Sichang', () => {
     }
   });
 
-  test('the island\'s quests come to the total the demo is seeded against', () => {
-    // Read off the work, at the rate the three quests before these set: 60 min
-    // for 120, 45 for 120, 30 for 90. Pinned because the demo's Marketplace
-    // walk depends on the total, and a quiet edit to a reward would move it
-    // without anything else noticing.
-    const quests = SEED_QUESTS.filter((q) => inArea(area, q));
-    assert.equal(quests.reduce((sum, q) => sum + q.rewardPoints, 0), 540);
+  test('the field-trial quests award the published EXP and no spendable points', () => {
+    assert.equal(ACTIVE_QUESTS.reduce((sum, q) => sum + (q.rewardExp ?? 0), 0), 800);
+    assert.ok(ACTIVE_QUESTS.every((q) => q.rewardPoints === 0));
   });
 });

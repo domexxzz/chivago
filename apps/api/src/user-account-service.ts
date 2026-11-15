@@ -189,6 +189,7 @@ export function loginUser(
     phone: string;
     account_type: AccountType;
     business_name: string | null;
+    disabled_at: string | null;
   } | undefined;
 
   if (isEmail) {
@@ -200,9 +201,11 @@ export function loginUser(
       phone: string;
       account_type: AccountType;
       business_name: string | null;
+      disabled_at: string | null;
     }>(
       db.prepare(`
-        SELECT u.id, u.display_name, a.password_hash, a.email, a.phone, a.account_type, a.business_name
+        SELECT u.id, u.display_name, a.password_hash, a.email, a.phone, a.account_type, a.business_name,
+          (SELECT disabled_at FROM admin_user_status s WHERE s.user_id=u.id) AS disabled_at
         FROM user_accounts a
         JOIN users u ON u.id = a.id
         WHERE lower(a.email) = ?
@@ -218,9 +221,11 @@ export function loginUser(
       phone: string;
       account_type: AccountType;
       business_name: string | null;
+      disabled_at: string | null;
     }>(
       db.prepare(`
-        SELECT u.id, u.display_name, a.password_hash, a.email, a.phone, a.account_type, a.business_name
+        SELECT u.id, u.display_name, a.password_hash, a.email, a.phone, a.account_type, a.business_name,
+          (SELECT disabled_at FROM admin_user_status s WHERE s.user_id=u.id) AS disabled_at
         FROM user_accounts a
         JOIN users u ON u.id = a.id
       WHERE a.phone = ? OR lower(a.email) = ? OR lower(substr(a.email, 1, instr(a.email, '@') - 1)) = ?
@@ -230,6 +235,10 @@ export function loginUser(
 
   if (!userRow) {
     throw new UserAuthError('INVALID_CREDENTIALS', 'อีเมล เบอร์โทรศัพท์ หรือรหัสผ่านไม่ถูกต้อง', 401);
+  }
+
+  if (userRow.disabled_at !== null) {
+    throw new UserAuthError('ACCOUNT_DISABLED', 'บัญชีนี้ถูกระงับ กรุณาติดต่อผู้ดูแลระบบ', 403);
   }
 
   const valid = verifyPassword(params.password, userRow.password_hash);

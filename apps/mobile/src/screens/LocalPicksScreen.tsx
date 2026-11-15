@@ -1,210 +1,238 @@
 /**
- * Local Picks - the businesses in this area, by category.
+ * Local Picks is intentionally category-first.
  *
- * NOTHING HERE IS NEW EXCEPT THE SCREEN. `/shops` has taken a `category`
- * filter since the directory shipped, `SHOP_CATEGORIES` has listed all eight,
- * and Home has carried the same chips. They sit two taps down on Home, behind
- * a `Services` switch, in a row that scrolls sideways inside a screen
- * somebody is already scrolling - which is the shape of every feature this
- * app has had to re-find, and the reason docs/61 wrote down that a feature
- * nobody can find is a feature nobody has.
- *
- * ONE FETCH, FILTERED IN MEMORY. The server would filter by category, and on
- * a directory of thousands it should. With eight businesses on Ko Sichang a
- * round trip per chip tap is a spinner between a traveller and an answer they
- * already have on the device. Home filters the same way; when a directory
- * arrives that makes this wrong, both change together.
- *
- * AN EMPTY CATEGORY SAYS SO. This island has eight businesses and eight
- * categories, so most categories are empty and will stay empty for months. A
- * chip that leads to a blank screen cannot be told apart from a chip that is
- * broken, and a traveller who taps one learns the app is unreliable rather
- * than that the island is small. The empty line is the feature.
- *
- * A FAILED REQUEST IS NOT AN EMPTY ISLAND. The two are one word apart on
- * screen and nothing alike, so the error state never borrows the empty line.
+ * The first release is an empty structure: it establishes the four traveller
+ * needs before any business is promoted inside them. Keeping this screen free
+ * of the existing shop feed also prevents old directory data from looking
+ * like an editorial recommendation.
  */
 import React from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { ChevronRight, Star } from 'lucide-react-native';
-import { api } from '../api/client.ts';
-import { SHOP_CATEGORIES, type Shop } from '../api/shops.ts';
-import { useArea } from '../state/area.ts';
-import { useAsync } from '../state/store.tsx';
+import { Image, Linking, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+import { ArrowUpRight, BedDouble, BusFront, Check, ChevronDown, Dumbbell, LayoutGrid, Utensils, type LucideIcon } from 'lucide-react-native';
 import { color, gutter, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { PushHeader } from '../components/Shell.tsx';
-import { ErrorState, LoadingState } from '../components/States.tsx';
-import { DEFAULT_APPEARANCE, serviceAppearance, shopCategoryLabel } from '../components/ShopCategory.tsx';
 import { t } from '../i18n/locale.ts';
+import sinraniBadminton from '../../assets/sinrani-badminton-local-pick.png';
 
-const ALL = '';
+type LocalPickCategory = 'all' | 'food' | 'stay' | 'transport' | 'sport';
+
+const SINRANI_BOOKING_URL = 'https://badminton-booking-ihw1.onrender.com/';
 
 export function LocalPicksScreen({
-  onBack, onOpenShop,
+  onBack,
 }: {
   onBack: () => void;
-  /** A card opens the shop's own page, where its reviews and hours live. */
+  /** Retained on the public screen props while Local Picks has no entries yet. */
   onOpenShop: (id: string) => void;
 }) {
-  const area = useArea();
-  const shops = useAsync(() => api.shops({ area: area.key }), [area.key]);
-  const [category, setCategory] = React.useState<string>(ALL);
+  const { width } = useWindowDimensions();
+  const [category, setCategory] = React.useState<LocalPickCategory>('all');
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
+  const compact = width < 520;
 
-  const all = shops.data ?? [];
-  const shown = category === ALL ? all : all.filter((shop) => shop.category === category);
+  const categories: Array<{
+    key: LocalPickCategory;
+    icon: LucideIcon;
+    label: string;
+    description: string;
+    accent: string;
+    pale: string;
+  }> = [
+    {
+      key: 'all', icon: LayoutGrid,
+      label: t({ en: 'All', th: 'ทั้งหมด', zh: '全部' }),
+      description: t({ en: 'Every local pick', th: 'ดูคำแนะนำทุกหมวด', zh: '查看全部本地精选' }),
+      accent: color.brand, pale: color.brandSoft,
+    },
+    {
+      key: 'food', icon: Utensils,
+      label: t({ en: 'Food', th: 'อาหาร', zh: '美食' }),
+      description: t({ en: 'Restaurants and local flavours', th: 'ร้านอาหารและรสชาติท้องถิ่น', zh: '餐厅与当地风味' }),
+      accent: '#D9682A', pale: '#FFF0E6',
+    },
+    {
+      key: 'stay', icon: BedDouble,
+      label: t({ en: 'Accommodation', th: 'ที่พัก', zh: '住宿' }),
+      description: t({ en: 'Hotels, resorts and homestays', th: 'โรงแรม รีสอร์ต และโฮมสเตย์', zh: '酒店、度假村与民宿' }),
+      accent: '#177DA5', pale: '#E5F6FC',
+    },
+    {
+      key: 'transport', icon: BusFront,
+      label: t({ en: 'Transportation', th: 'การเดินทาง', zh: '交通出行' }),
+      description: t({ en: 'Getting around the local area', th: 'บริการเดินทางภายในพื้นที่', zh: '当地出行服务' }),
+      accent: '#16796E', pale: '#E4F7F3',
+    },
+    {
+      key: 'sport', icon: Dumbbell,
+      label: t({ en: 'Sports', th: 'กีฬา', zh: '运动' }),
+      description: t({ en: 'Activities and active experiences', th: 'กิจกรรมกีฬาและประสบการณ์แอ็กทีฟ', zh: '运动与活力体验' }),
+      accent: '#7755B7', pale: '#F0EAFB',
+    },
+  ];
+
+  const selected = categories.find((item) => item.key === category) ?? categories[0];
+  const SelectedIcon = selected.icon;
 
   return (
     <View style={{ flex: 1, backgroundColor: color.bg }}>
-      <PushHeader
-        context={t({ en: 'LOCAL PICKS', th: 'ร้านเด็ดในพื้นที่', zh: '本地精选' })}
-        onBack={onBack}
-      />
+      <PushHeader context={t({ en: 'LOCAL PICKS', th: 'ร้านเด็ดในพื้นที่', zh: '本地精选' })} onBack={onBack} />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <View style={{ paddingHorizontal: gutter, paddingTop: 8 }}>
-          <Heading size={20} tracking={-0.4}>
-            {t({ en: 'Local Picks', th: 'ร้านเด็ดในพื้นที่', zh: '本地精选' })}
+        <View style={{ width: '100%', maxWidth: 1040, alignSelf: 'center', paddingHorizontal: gutter, paddingTop: 16 }}>
+          <Heading size={24} tracking={-0.4}>
+            {t({ en: 'Explore local picks', th: 'เลือกดูสิ่งน่าสนใจในพื้นที่', zh: '探索本地精选' })}
           </Heading>
-          <Body size={13} colour={color.neutral700} style={{ marginTop: 4 }}>
+          <Body size={13} colour={color.neutral700} style={{ marginTop: 6 }}>
             {t({
-              en: 'Businesses listed in this area, by what they do. Hours and prices are the business’s own — check with them before you go.',
-              th: 'ร้านและบริการที่ลงไว้ในพื้นที่นี้ แยกตามประเภท เวลาเปิดและราคาเป็นของร้าน ควรตรวจสอบกับร้านก่อนเดินทาง',
-              zh: '这一带登记的商家，按类别排列。营业时间与价格由商家自定，出发前请先与商家确认。',
+              en: 'Choose a category. Local recommendations will be added here soon.',
+              th: 'เลือกหมวดที่สนใจ เร็ว ๆ นี้จะมีคำแนะนำจากคนในพื้นที่เพิ่มเข้ามา',
+              zh: '选择感兴趣的类别，本地推荐即将上线。',
             })}
           </Body>
-        </View>
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: gutter, gap: 8, paddingTop: 14, paddingBottom: 4 }}
-        >
-          <Chip
-            label={t({ en: 'All', th: 'ทั้งหมด', zh: '全部' })}
-            selected={category === ALL}
-            onPress={() => setCategory(ALL)}
-          />
-          {SHOP_CATEGORIES.map((key) => (
-            <Chip
-              key={key}
-              label={shopCategoryLabel(key)}
-              selected={category === key}
-              onPress={() => setCategory(key)}
-            />
-          ))}
-        </ScrollView>
+          <View style={{ marginTop: 20, width: '100%', maxWidth: 520, zIndex: 5 }}>
+            <Label size={10} tracking={0.1} colour={color.neutral700} style={{ marginBottom: 7 }}>
+              {t({ en: 'CATEGORY', th: 'เลือกหมวด', zh: '选择类别' })}
+            </Label>
+            <Pressable
+              onPress={() => setDropdownOpen((open) => !open)}
+              accessibilityRole="button"
+              accessibilityLabel={t({ en: `Category: ${selected.label}`, th: `หมวด: ${selected.label}`, zh: `类别：${selected.label}` })}
+              accessibilityState={{ expanded: dropdownOpen }}
+              style={({ pressed }) => [shadow.card, {
+                minHeight: 64, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1.5,
+                borderColor: dropdownOpen ? selected.accent : '#BFD9E5', backgroundColor: color.surface,
+                flexDirection: 'row', alignItems: 'center', gap: 12, opacity: pressed ? 0.86 : 1,
+              }]}
+            >
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: selected.pale, alignItems: 'center', justifyContent: 'center' }}>
+                <SelectedIcon size={21} color={selected.accent} strokeWidth={2.1} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Heading size={16} colour={color.text}>{selected.label}</Heading>
+                <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>{selected.description}</Body>
+              </View>
+              <ChevronDown size={21} color={color.neutral700} style={{ transform: [{ rotate: dropdownOpen ? '180deg' : '0deg' }] }} />
+            </Pressable>
 
-        {shops.loading ? <LoadingState /> : null}
-
-        {shops.error ? (
-          <ErrorState
-            message={t({
-              en: 'Could not load this area’s businesses.',
-              th: 'โหลดร้านในพื้นที่นี้ไม่สำเร็จ',
-              zh: '无法加载这一带的商家。',
-            })}
-            onRetry={shops.reload}
-          />
-        ) : null}
-
-        {!shops.loading && !shops.error && shown.length === 0 ? (
-          <View style={{ paddingHorizontal: gutter, paddingTop: 28 }}>
-            <Body size={14} colour={color.neutral700}>
-              {t({
-                en: 'Nothing listed here yet.',
-                th: 'ยังไม่มีร้านในหมวดนี้',
-                zh: '这里还没有登记的商家。',
-              })}
-            </Body>
-            <Body size={13} colour={color.neutral700} style={{ marginTop: 6 }}>
-              {t({
-                en: 'This area is small and most categories are still empty. It is not a fault.',
-                th: 'พื้นที่นี้ยังเล็ก หลายหมวดจึงยังว่างอยู่ ไม่ใช่ความผิดพลาด',
-                zh: '这一带还小，多数类别仍是空的，并非出错。',
-              })}
-            </Body>
+            {dropdownOpen ? (
+              <View style={[shadow.card, {
+                marginTop: 8, padding: 7, borderRadius: 18, borderWidth: 1,
+                borderColor: '#C9DEE8', backgroundColor: color.surface, gap: 3,
+              }]}>
+                {categories.map((item) => {
+                  const Icon = item.icon;
+                  const active = item.key === category;
+                  return (
+                    <Pressable
+                      key={item.key}
+                      onPress={() => { setCategory(item.key); setDropdownOpen(false); }}
+                      accessibilityRole="menuitem"
+                      accessibilityLabel={item.label}
+                      accessibilityState={{ selected: active }}
+                      style={({ pressed }) => ({
+                        minHeight: 50, paddingHorizontal: 11, borderRadius: 13,
+                        backgroundColor: active ? item.pale : pressed ? color.neutral100 : 'transparent',
+                        flexDirection: 'row', alignItems: 'center', gap: 11,
+                      })}
+                    >
+                      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: item.pale, alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon size={18} color={item.accent} strokeWidth={2} />
+                      </View>
+                      <Label size={11} colour={active ? item.accent : color.text} style={{ flex: 1 }}>{item.label}</Label>
+                      {active ? <Check size={18} color={item.accent} strokeWidth={2.4} /> : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
           </View>
-        ) : null}
 
-        <View style={{ paddingHorizontal: gutter, paddingTop: 14, gap: 10 }}>
-          {shown.map((shop) => (
-            <ShopRow key={shop.id} shop={shop} onPress={() => onOpenShop(shop.id)} />
-          ))}
+          {category === 'all' || category === 'sport' ? (
+            <View style={{ marginTop: 20 }}>
+              <Label size={10} tracking={0.12} colour={selected.accent} style={{ marginBottom: 10 }}>
+                {category === 'all'
+                  ? t({ en: 'ALL LOCAL PICKS', th: 'รายการทั้งหมด', zh: '全部本地精选' })
+                  : t({ en: 'SPORTS', th: 'กีฬา', zh: '运动' })}
+              </Label>
+              <SportsPickCard compact={compact} />
+            </View>
+          ) : (
+            <View style={[
+              shadow.card,
+              {
+                marginTop: 18, minHeight: 190, padding: 24, borderRadius: radius.md, borderWidth: 1,
+                borderColor: color.neutral300, backgroundColor: color.surface,
+                alignItems: 'center', justifyContent: 'center',
+              },
+            ]}>
+              <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: selected.pale, alignItems: 'center', justifyContent: 'center' }}>
+                <SelectedIcon size={29} color={selected.accent} strokeWidth={1.9} />
+              </View>
+              <Heading size={18} style={{ marginTop: 14, textAlign: 'center' }}>{selected.label}</Heading>
+              <Body size={14} colour={color.neutral700} style={{ marginTop: 6, textAlign: 'center' }}>
+                {t({ en: 'No recommendations yet', th: 'ยังไม่มีข้อมูลแนะนำในหมวดนี้', zh: '此类别暂无推荐' })}
+              </Body>
+              <Label size={10} colour={color.neutral700} style={{ marginTop: 5, textAlign: 'center' }}>
+                {t({ en: 'COMING SOON', th: 'เร็ว ๆ นี้', zh: '即将上线' })}
+              </Label>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
   );
 }
 
-function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+function SportsPickCard({ compact }: { compact: boolean }) {
+  const name = t({ en: 'Sinrani Badminton', th: 'สินธานี แบดมินตัน', zh: '辛拉尼羽毛球馆' });
   return (
     <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={label}
-      style={{
-        paddingHorizontal: 12,
-        paddingVertical: 7,
-        borderRadius: 16,
-        backgroundColor: selected ? color.brand : '#E1F2F7',
-      }}
-    >
-      <Text style={{ color: selected ? '#FFFFFF' : '#123B64', fontSize: 12, fontWeight: '700' }}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function ShopRow({ shop, onPress }: { shop: Shop; onPress: () => void }) {
-  const look = serviceAppearance[shop.category] ?? DEFAULT_APPEARANCE;
-  const Icon = look.icon;
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={shop.name}
-      style={[
+      onPress={() => { void Linking.openURL(SINRANI_BOOKING_URL); }}
+      accessibilityRole="link"
+      accessibilityLabel={name}
+      accessibilityHint={t({ en: 'Open court booking', th: 'เปิดระบบจองสนาม', zh: '打开球场预订' })}
+      style={({ pressed }) => [
         shadow.card,
         {
-          backgroundColor: color.surface,
-          borderRadius: radius.md,
+          width: compact ? '72%' : 260,
+          minWidth: 220,
+          maxWidth: 280,
+          borderRadius: 18,
           borderWidth: 1,
-          borderColor: color.neutral300,
-          padding: 14,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 12,
+          borderColor: '#D7E8EF',
+          backgroundColor: '#FFFFFF',
+          overflow: 'hidden',
+          opacity: pressed ? 0.88 : 1,
+          transform: [{ scale: pressed ? 0.99 : 1 }],
         },
       ]}
     >
+      <View style={{ width: '100%', aspectRatio: 16 / 9, overflow: 'hidden', backgroundColor: '#064E3B' }}>
+        <Image
+          source={sinraniBadminton}
+          resizeMode="stretch"
+          accessibilityLabel={t({ en: 'Sinrani Badminton indoor court', th: 'สนามแบดมินตันในร่ม สินธานี แบดมินตัน', zh: '辛拉尼室内羽毛球馆' })}
+          style={{ position: 'absolute', width: '100%', height: '178%', top: '-66%', left: 0 }}
+        />
+      </View>
       <View
         style={{
-          width: 44, height: 44, borderRadius: 22, backgroundColor: look.pale,
-          alignItems: 'center', justifyContent: 'center',
+          minHeight: 76, paddingVertical: 11, paddingHorizontal: 12,
+          backgroundColor: '#FFFFFF',
+          flexDirection: 'row', alignItems: 'center', gap: 10,
         }}
       >
-        <Icon size={20} color={look.accent} strokeWidth={1.9} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Heading size={16} colour={color.text}>{name}</Heading>
+          <Label size={9} tracking={0.08} colour={color.neutral600} style={{ marginTop: 5 }}>
+            {t({ en: 'BADMINTON COURT', th: 'สนามแบดมินตัน', zh: '羽毛球馆' })}
+          </Label>
+        </View>
+        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F6C453', alignItems: 'center', justifyContent: 'center' }}>
+          <ArrowUpRight size={18} color="#064E3B" strokeWidth={2.5} />
+        </View>
       </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Body size={14} style={{ fontWeight: '700' }}>{shop.name}</Body>
-        <Label size={11} colour={color.neutral700} style={{ marginTop: 2 }}>
-          {shopCategoryLabel(shop.category)}
-        </Label>
-        {/*
-          A rating only when somebody left one. `reviewCount` of 0 with a
-          rating of null is the ordinary case on a new directory, and a row
-          of empty stars reads as a bad business rather than a new one.
-        */}
-        {shop.rating !== null && shop.reviewCount > 0 ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-            <Star size={12} color={color.goldDeep} fill={color.goldDeep} strokeWidth={0} />
-            <Label size={11} colour={color.neutral700}>
-              {shop.rating.toFixed(1)} · {shop.reviewCount}
-            </Label>
-          </View>
-        ) : null}
-      </View>
-      <ChevronRight size={18} color={color.neutral700} strokeWidth={2} />
     </Pressable>
   );
 }

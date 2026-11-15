@@ -26,6 +26,7 @@ import { createInquiryDesk, type DeskAnswer } from './inquiries.ts';
 import { demoCourts } from './courts.ts';
 import { demoStalls } from './stalls.ts';
 import { createSummoning } from './summoning.ts';
+import { demoQuestDetail, demoQuestList } from './quests.ts';
 
 type Json = Record<string, unknown>;
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
@@ -75,6 +76,8 @@ const PRIOR: Record<string, { days: number; verified: number }> = {
 
 const state = {
   routes: clone(snapshot) as Record<string, unknown>,
+  /** Live public posts, copied only when a guest opens the feed. Mutated here, never remotely. */
+  communityPosts: null as Json[] | null,
   checkins: [] as string[],
   /** Self-issued stamps: recorded, not scored. */
   selfVisits: [] as string[],
@@ -94,7 +97,13 @@ const state = {
  * no, which is not this one.
  */
 class Refused {
-  constructor(readonly code: string, readonly error: string) {}
+  readonly code: string;
+  readonly error: string;
+
+  constructor(code: string, error: string) {
+    this.code = code;
+    this.error = error;
+  }
 }
 const refuse = (code: string, error: string) => new Refused(code, error);
 
@@ -242,6 +251,53 @@ function credit(
 
 /** Writes, in the order a traveller meets them. */
 const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
+  // Community actions are deliberately complete in the presentation
+  // sandbox: the feed is copied into memory, then likes, comments, shares
+  // and new posts change only that copy until the page is reloaded.
+  'POST /community/posts': (body) => {
+    const file = body.file;
+    const mime = file instanceof Blob ? file.type : '';
+    const localUri = (() => {
+      if (file instanceof Blob && typeof URL.createObjectURL === 'function') return URL.createObjectURL(file);
+      if (file && typeof file === 'object' && 'uri' in file) return String((file as { uri: unknown }).uri);
+      return null;
+    })();
+    const post = {
+      id: id('demo-post'), body: String(body.body ?? ''), createdAt: now(), updatedAt: now(),
+      author: { id: 'demo-user', displayName: 'Demo Traveller', accountType: 'traveller', profilePhotoUrl: null },
+      media: localUri ? { kind: mime.startsWith('video/') ? 'video' : 'image', url: localUri } : null,
+      likeCount: 0, commentCount: 0, shareCount: 0, likedByMe: false, comments: [],
+    };
+    (state.communityPosts ??= []).unshift(post);
+    return post;
+  },
+  'POST /community/posts/:id/like': (_body, m) => {
+    const post = state.communityPosts?.find((item) => item.id === m[1]);
+    if (!post) return refuse('NOT_FOUND', 'Post not found');
+    post.likedByMe = !post.likedByMe;
+    post.likeCount = Math.max(0, Number(post.likeCount ?? 0) + (post.likedByMe ? 1 : -1));
+    return { liked: post.likedByMe, likeCount: post.likeCount };
+  },
+  'POST /community/posts/:id/comments': (body, m) => {
+    const post = state.communityPosts?.find((item) => item.id === m[1]);
+    if (!post) return refuse('NOT_FOUND', 'Post not found');
+    const comment = {
+      id: id('demo-comment'), body: String(body.body ?? ''), createdAt: now(),
+      author: { id: 'demo-user', displayName: 'Demo Traveller', accountType: 'traveller', profilePhotoUrl: null },
+    };
+    const comments = (post.comments as Json[] | undefined) ?? [];
+    comments.push(comment);
+    post.comments = comments;
+    post.commentCount = comments.length;
+    return comment;
+  },
+  'POST /community/posts/:id/share': (_body, m) => {
+    const post = state.communityPosts?.find((item) => item.id === m[1]);
+    if (!post) return refuse('NOT_FOUND', 'Post not found');
+    post.shareCount = Number(post.shareCount ?? 0) + 1;
+    return { shareCount: post.shareCount };
+  },
+
   // -- accounts and parties: the four screens that were "Not in the demo
   // build" since they arrived, because nobody re-captured after adding them.
   'POST /devices': () => ({ userId: 'demo-user', deviceKey: 'chvg_dev_demo-build-only' }),
@@ -384,11 +440,30 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     };
   },
 
-  // Stories open at the event, at the place - never in the static demo.
-  'POST /places/:id/stories': () => refuse(
-    'STORIES_CLOSED',
-    'สตอรี่เปิดรับที่งานวันที่ 11 ก.ย. ที่ มก. ศรีราชา · Stories open at the event on 11 September, at the campus.',
-  ),
+  // Check-in stories are social posts about a place, not presence evidence.
+  // The selected browser-local file is kept as an object URL for this demo
+  // sitting only; the DEMO strip already says reloads do not persist it.
+  'POST /places/:id/stories': (body, m) => {
+    const file = body.file;
+    if (!(file instanceof Blob)) return refuse('FILE_REQUIRED', 'Choose a photo or a short clip.');
+    const placeId = m[1]!;
+    const key = `/places/${placeId}/stories`;
+    const block = (state.routes[key] ?? { open: true, stories: [] }) as { open: boolean; stories: Json[] };
+    const kind = file.type.startsWith('video/') ? 'video' : 'photo';
+    const localUri = typeof URL.createObjectURL === 'function' ? URL.createObjectURL(file) : '';
+    const createdAt = now();
+    const story = {
+      id: id('story'), placeId, kind,
+      caption: typeof body.caption === 'string' ? body.caption.trim().slice(0, 80) : '',
+      status: 'approved', createdAt,
+      expiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+      durationS: null, media: localUri, poster: localUri,
+    };
+    block.open = true;
+    block.stories = [story, ...block.stories];
+    state.routes[key] = block;
+    return story;
+  },
 
   // Recorded, not scored: a dashed stamp in the passport, nothing in the wallet.
   'POST /places/:id/visits': (_b, m) => {
@@ -530,10 +605,10 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
 
   'POST /sos': () => {
     const alert = {
-      id: id('sos'), status: 'dispatching', lat: 9.5357, lng: 100.0617,
-      locationLabel: 'Chaweng, 120 m', firedAt: now(),
+      id: id('sos'), status: 'dispatching', lat: 13.161443, lng: 100.810441,
+      locationLabel: 'Tha Lang pier, 120 m', firedAt: now(),
       acknowledgedAt: null, acknowledgedBy: null,
-      nearestHospital: 'Bangkok Hospital Samui', note: null,
+      nearestHospital: 'Koh Sichang Hospital', note: null,
       shareUrl: 'https://chiva.go/s/demo', lastPositionAt: now(),
       dispatches: [], contactsReached: 2, contactsTotal: 2,
     };
@@ -553,7 +628,14 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     There is no `POST /summon/forge` here. Nothing on the screen offers one
     yet, and a route nobody calls is a route nobody notices has gone wrong.
   */
-  'POST /summon': async () => settle(await summoning.pull()),
+  'POST /summon': async (body) => {
+    const category = body.category === 'fashion' ? 'fashion' : 'mascot';
+    const quantity = body.quantity === 10 ? 10 : 1;
+    const idempotencyKey = typeof body.idempotencyKey === 'string'
+      ? body.idempotencyKey
+      : `demo-${Date.now()}`;
+    return settle(await summoning.pullBatch(category, quantity, idempotencyKey));
+  },
   'PUT /notifications/quiet': (body) => {
     state.routes['/notifications/quiet'] = body;
     return body;
@@ -587,17 +669,31 @@ const PATTERNS = Object.keys(writes).map((k) => {
  * Only requests aimed at the API are answered here; anything else — fonts, the
  * bundle itself — goes to the real fetch untouched.
  */
-export function installDemoServer(apiBase: string): void {
+export interface DemoServerOptions {
+  /** Allows the normal app to keep the interceptor asleep for signed-in members. */
+  active?: () => boolean;
+  /** Guest mode may read a newly-added public route without risking a write. */
+  fallThroughUnknownReads?: boolean;
+}
+
+export function installDemoServer(apiBase: string, options: DemoServerOptions = {}): () => void {
   const real = globalThis.fetch;
+  const isActive = options.active ?? (() => true);
 
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : String((input as Request).url ?? input);
-    if (!url.startsWith(apiBase)) return real(input as RequestInfo, init);
+    if (!url.startsWith(apiBase) || !isActive()) return real(input as RequestInfo, init);
 
     const [path, query] = url.slice(apiBase.length).split('?') as [string, string | undefined];
     const method = (init?.method ?? 'GET').toUpperCase();
-    // A JSON body is read; a FormData one (a story) is not, and is refused below.
-    const body = init?.body && typeof init.body === 'string' ? (JSON.parse(init.body) as Json) : {};
+    const form = init?.body instanceof FormData
+      ? init.body as unknown as { entries?: () => Iterable<[string, unknown]> }
+      : null;
+    const body = init?.body && typeof init.body === 'string'
+      ? (JSON.parse(init.body) as Json)
+      : form && typeof form.entries === 'function'
+        ? Object.fromEntries(form.entries()) as Json
+        : {};
 
     const answer = (data: unknown) => new Response(
       JSON.stringify({ ok: true, data }),
@@ -605,6 +701,19 @@ export function installDemoServer(apiBase: string): void {
     );
 
     if (method === 'GET') {
+      if (path === '/community/feed') {
+        if (state.communityPosts !== null) return answer({ posts: state.communityPosts });
+        if (options.fallThroughUnknownReads) {
+          const response = await real(input as RequestInfo, init);
+          try {
+            const envelope = await response.clone().json() as { ok?: boolean; data?: { posts?: Json[] } };
+            if (envelope.ok && Array.isArray(envelope.data?.posts)) state.communityPosts = clone(envelope.data.posts);
+          } catch { /* The real response remains the honest answer. */ }
+          return response;
+        }
+        state.communityPosts = [];
+        return answer({ posts: state.communityPosts });
+      }
       // The stalls that take orders ahead: answered, never replayed (demo/stalls.ts).
       const stallsAt = /^\/places\/([^/]+)\/stalls$/.exec(path);
       if (stallsAt) return answer(demoStalls(stallsAt[1]!));
@@ -618,6 +727,11 @@ export function installDemoServer(apiBase: string): void {
       */
       if (/^\/areas\/[^/]+\/weather$/.test(path)) return answer({ ...NO_WEATHER, source: 'Demo build · the sky is not read here' });
       if (path === '/checkins/today') return answer(state.checkins);
+      const placeStories = /^\/places\/([^/]+)\/stories$/.exec(path);
+      if (placeStories) {
+        const block = (state.routes[path] ?? { stories: [] }) as Json;
+        return answer({ ...block, open: true });
+      }
       if (path === '/medals') {
         // The same rules the server runs, over the captured check-ins plus
         // this session's own - so a check-in in the demo earns what it
@@ -699,7 +813,7 @@ export function installDemoServer(apiBase: string): void {
         committed to.
       */
       if (path === '/summon') return answer(await summoning.state());
-      if (path === '/summon/collection') return answer({ spirits: summoning.collection() });
+      if (path === '/summon/collection') return answer({ spirits: summoning.collection(), fashion: summoning.fashion() });
       if (path === '/summon/history') {
         const limit = Number(new URLSearchParams(query).get('limit') ?? 50);
         return answer({ summons: summoning.history(Number.isFinite(limit) ? limit : 50) });
@@ -767,6 +881,18 @@ export function installDemoServer(apiBase: string): void {
       if (path === '/invites/mine') {
         return answer({ invitation: null, requests: [], doesNot: INVITE_DOES_NOT });
       }
+      if (path === '/quests') {
+        return answer(demoQuestList());
+      }
+      const questDetail = /^\/quests\/([^/]+)$/.exec(path);
+      if (questDetail) {
+        const detail = demoQuestDetail(questDetail[1]!);
+        if (detail) return answer(detail);
+        return new Response(
+          JSON.stringify({ ok: false, code: 'NOT_FOUND', error: 'Quest not found' }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
       // A filtered list is its own capture. The query used to be stripped
       // and the full list answered, so "quests near you" led with a weekend
       // quest on a Tuesday.
@@ -791,6 +917,13 @@ export function installDemoServer(apiBase: string): void {
       }
     }
 
+    // A new public read is safe to show in Guest Sandbox mode. Mutations never
+    // fall through: an unrecognised button must fail locally rather than save
+    // something to the presentation database.
+    if (method === 'GET' && options.fallThroughUnknownReads) {
+      return real(input as RequestInfo, init);
+    }
+
     // Unknown route: say so in the envelope the client already understands,
     // rather than throwing something the app would read as "you are offline".
     return new Response(
@@ -798,6 +931,7 @@ export function installDemoServer(apiBase: string): void {
       { status: 200, headers: { 'content-type': 'application/json' } },
     );
   }) as typeof fetch;
+  return () => { globalThis.fetch = real; };
 }
 
 /**

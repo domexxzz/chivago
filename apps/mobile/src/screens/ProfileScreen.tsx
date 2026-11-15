@@ -139,7 +139,7 @@ export function GuestProfileScreen({
 }
 
 export function ProfileScreen({
-  onBack, onOpenAccount, onOpenEditProfile, onOpenShops, onOpenWallet, onOpenPassport, onOpenMedals, onOpenCompanion, onLogout, accountTypeOverride, refreshKey = 0,
+  onBack, onOpenAccount, onOpenEditProfile, onOpenShops, onOpenWallet, onOpenPassport, onOpenMedals, onOpenCompanion, onOpenSafety, onLogout, accountTypeOverride, refreshKey = 0,
 }: {
   onBack: () => void;
   onOpenAccount: () => void;
@@ -149,6 +149,7 @@ export function ProfileScreen({
   onOpenPassport: () => void;
   onOpenMedals: () => void;
   onOpenCompanion: (c: Companion) => void;
+  onOpenSafety?: () => void;
   onLogout?: () => void;
   accountTypeOverride?: 'traveller' | 'operator';
   refreshKey?: number;
@@ -218,6 +219,22 @@ export function ProfileScreen({
       ) : null}
 
       {!isOperator ? <Figures wallet={wallet} passport={passport} onOpenWallet={onOpenWallet} onOpenPassport={onOpenPassport} /> : null}
+
+      {onOpenSafety ? (
+        <Card>
+          <Label size={10} tracking={0.12} colour="#C2413A" style={{ marginBottom: 12 }}>
+            {t({ en: 'Help and safety', th: 'ความช่วยเหลือและความปลอดภัย', zh: '帮助与安全' })}
+          </Label>
+          <ProfileAction
+            Mark={ShieldCheck}
+            title={t({ en: 'Safety', th: 'ความปลอดภัย', zh: '安全' })}
+            note={t({ en: 'Emergency contacts, SOS and safety guidance', th: 'เบอร์ติดต่อฉุกเฉิน SOS และคำแนะนำความปลอดภัย', zh: '紧急联系方式、SOS 与安全指南' })}
+            onPress={onOpenSafety}
+            tone="#C2413A"
+            soft="#FFF0EE"
+          />
+        </Card>
+      ) : null}
 
       {onLogout ? (
         <View style={{ marginHorizontal: gutter, marginTop: 20 }}>

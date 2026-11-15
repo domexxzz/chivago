@@ -18,7 +18,7 @@ import { t } from '../i18n/locale.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, radius, shadow } from '../theme/index.ts';
 
-const mediaUri = (path: string): string => /^https?:\/\//.test(path) ? path : `${API_BASE}${path}`;
+const mediaUri = (path: string): string => /^(https?:\/\/|blob:|data:|file:)/.test(path) ? path : `${API_BASE}${path}`;
 
 export function CommunityFeedScreen({
   onBack, onToast,

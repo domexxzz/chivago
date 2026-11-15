@@ -1,9 +1,10 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 import {
   BedDouble, Car, MapPin, Scissors, ShoppingBag, Sparkles, Store, Utensils,
   type LucideIcon,
 } from 'lucide-react-native';
+import { ChivarIcon, chivarIconUri, serviceIconName } from './ChivarIcon.tsx';
 
 /**
  * One visual language for service markers on both map implementations.
@@ -49,25 +50,47 @@ const FALLBACK = SHOP_MARKERS['อื่นๆ'];
 
 export const shopMarkerVisual = (category: string) => SHOP_MARKERS[category] ?? FALLBACK;
 
-/** Native/SVG-fallback marker. The tip, not the circle centre, is the coordinate. */
-export function ShopMapMarker({ category }: { category: string }) {
+/**
+ * Native/SVG-fallback marker. The tip, not the circle centre, is the coordinate.
+ *
+ * `approximate` is a service with no location of its own, standing on its
+ * area's ring (`servicePoints`): a dashed rim and a gold "?", the same marks
+ * the web map gives it, so the two maps cannot disagree about which pins are
+ * real addresses.
+ */
+export function ShopMapMarker({ category, approximate = false }: { category: string; approximate?: boolean }) {
   const visual = shopMarkerVisual(category);
   const Icon = visual.icon;
+  const brandedIcon = serviceIconName(category);
   return (
     <View style={{ width: 46, height: 51, alignItems: 'center' }}>
       <View style={{
         position: 'absolute', top: 33, width: 14, height: 14,
         backgroundColor: visual.colour, borderRightWidth: 2.5, borderBottomWidth: 2.5,
         borderColor: '#FFFFFF', transform: [{ rotate: '45deg' }],
+        opacity: approximate ? 0.55 : 1,
       }} />
       <View style={{
         width: 42, height: 42, borderRadius: 21, backgroundColor: visual.colour,
-        borderWidth: 3, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center',
+        borderWidth: 3, borderColor: '#FFFFFF', borderStyle: approximate ? 'dashed' : 'solid',
+        alignItems: 'center', justifyContent: 'center',
+        opacity: approximate ? 0.9 : 1,
         shadowColor: '#082A46', shadowOpacity: 0.34, shadowRadius: 5, shadowOffset: { width: 0, height: 3 },
         elevation: 5,
       }}>
-        <Icon size={21} strokeWidth={2.4} color="#FFFFFF" />
+        {brandedIcon
+          ? <ChivarIcon name={brandedIcon} size={28} />
+          : <Icon size={21} strokeWidth={2.4} color="#FFFFFF" />}
       </View>
+      {approximate ? (
+        <View style={{
+          position: 'absolute', top: -4, right: -2, width: 18, height: 18, borderRadius: 9,
+          backgroundColor: '#F2B531', borderWidth: 2, borderColor: '#FFFFFF',
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Text style={{ fontSize: 11, lineHeight: 13, fontWeight: '800', color: '#3B2A10' }}>?</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -75,5 +98,10 @@ export function ShopMapMarker({ category }: { category: string }) {
 /** Inline icon for MapLibre's DOM marker. Paths deliberately use currentColor. */
 export const shopMarkerSvg = (category: string): string => {
   const visual = shopMarkerVisual(category);
+  const brandedIcon = serviceIconName(category);
+  if (brandedIcon) {
+    const uri = chivarIconUri(brandedIcon).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    return `<img src="${uri}" alt="" aria-hidden="true">`;
+  }
   return `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${visual.svg}</svg>`;
 };

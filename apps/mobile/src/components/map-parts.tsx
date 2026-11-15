@@ -15,6 +15,8 @@ import { API_BASE } from '../api/client.ts';
 import { TALE_H, TALE_W } from './map-geometry.ts';
 import { Body, Heading, Label } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
+import { ChivarIcon, placeIconName } from './ChivarIcon.tsx';
+import { PlaceMapMarker } from './place-map-marker.tsx';
 
 /**
  * A map pin chip.
@@ -35,7 +37,6 @@ export function PinChip({
   tale?: string | null;
   onOpenStory?: () => void;
 }) {
-  const high = isHighScore(place.healthyScore);
   const showTale = tale !== null && onOpenStory !== undefined;
   return (
     <Pressable
@@ -65,41 +66,8 @@ export function PinChip({
           beach. This column holds the chip and its stem alone; the caller
           shifts the pin left by TALE_W to make room for the bubble.
         */}
-        <View style={{ alignItems: 'center' }}>
-          <View
-            style={[
-              shadow.sm,
-              {
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 5,
-                paddingVertical: 3,
-                paddingHorizontal: 6,
-                borderWidth: 2,
-                borderRadius: radius.sm,
-                backgroundColor: high ? color.accent : color.bg,
-                // Gold: the ring a place wears when it has a story (docs/45).
-                borderColor: storied ? color.gold : high ? color.accent : color.text,
-              },
-            ]}
-          >
-            <Heading size={13} colour={high ? onFill.accent : color.text}>{place.healthyScore}</Heading>
-            {/*
-              The name rides with the score at every width.
-
-              It was dropped on a phone for a fortnight because the five names
-              overlapped each other, Fisherman's covering Chaweng entirely. The
-              collision was real and the answer was wrong: a chip reading "81"
-              over a coastline says the air is good SOMEWHERE, and leaves you to
-              tap five pins to find out where. Room is what was missing, and
-              `layoutPins` has always reserved a NAMED chip's footprint -
-              CHIP.halfWidth is 46, which is score plus name, not score alone.
-              So the names go back and the de-collision does its job.
-            */}
-            <Label size={9} tracking={0.1} colour={high ? onFill.accent : color.text}>{place.short}</Label>
-          </View>
-          {/* The 2x16 ink stem that pins the chip to its point. */}
-          <View style={{ width: 2, height: 16, backgroundColor: color.text }} />
+        <View style={storied ? { borderRadius: 24, shadowColor: color.gold, shadowOpacity: 0.9, shadowRadius: 5 } : undefined}>
+          <PlaceMapMarker place={place} />
         </View>
       </View>
     </Pressable>
@@ -297,6 +265,7 @@ export function PlaceFeedRow({
         },
       ]}
     >
+      <ChivarIcon name={placeIconName(place)} size={42} />
       <View style={{ width: 38 }}>
         <Heading size={24} colour={color.accent700}>{place.healthyScore}</Heading>
       </View>

@@ -39,6 +39,11 @@ const EXACT: Readonly<Record<string, Localised>> = {
   TOO_FAR: message('You need to be at the place to check in.', 'คุณต้องอยู่ที่สถานที่จึงจะเช็กอินได้', '请到达该地点后再签到。'),
   TOO_MANY_REGISTRATIONS: message('Too many attempts. Please try again later.', 'มีการลองหลายครั้งเกินไป กรุณาลองใหม่ภายหลัง', '尝试次数过多，请稍后再试。'),
   BAD_REQUEST: message('Check the information and try again.', 'ตรวจสอบข้อมูลแล้วลองอีกครั้ง', '请检查信息后重试。'),
+  // `POST /internal/open-area` with an area key that is not one of ours. An
+  // operator's mistake, not a traveller's, but every code the API can answer
+  // with needs a sentence here or `test:scripts` fails - and an untranslated
+  // code reaches somebody as the raw string.
+  BAD_AREA: message('That is not an area this app knows.', 'ไม่ใช่พื้นที่ที่แอพนี้รู้จัก', '这不是本应用识别的区域。'),
   CODE_REQUIRED: message('Enter the required code.', 'กรุณากรอกรหัสที่จำเป็น', '请输入必填代码。'),
   DECISION_INCOMPLETE: message('Complete the decision before continuing.', 'กรอกผลการพิจารณาให้ครบก่อนดำเนินการต่อ', '请先完成审核决定。'),
   EVENT_TOKEN: message('This event link is invalid or has expired.', 'ลิงก์กิจกรรมไม่ถูกต้องหรือหมดอายุแล้ว', '活动链接无效或已过期。'),
@@ -74,6 +79,7 @@ const EXACT: Readonly<Record<string, Localised>> = {
   PHONE_EXISTS: message('This phone number is already in use.', 'เบอร์โทรศัพท์นี้ถูกใช้งานแล้ว', '此电话号码已被使用。'),
   PASSWORD_TOO_SHORT: message('Use a longer password.', 'รหัสผ่านสั้นเกินไป', '请使用更长的密码。'),
   ACCOUNT_TYPE_MISMATCH: message('Use the sign-in option for this account type.', 'กรุณาเลือกวิธีเข้าสู่ระบบให้ตรงกับประเภทบัญชี', '请使用与此账户类型匹配的登录方式。'),
+  ACCOUNT_DISABLED: message('This account has been disabled. Contact an administrator.', 'บัญชีนี้ถูกระงับ กรุณาติดต่อผู้ดูแลระบบ', '此账户已被停用，请联系管理员。'),
   INVALID_SHOP: message('Check the service profile and try again.', 'ตรวจสอบโปรไฟล์บริการแล้วลองใหม่', '请检查服务资料后重试。'),
   INVALID_CATEGORY: message('Choose a valid service category.', 'กรุณาเลือกหมวดบริการให้ถูกต้อง', '请选择有效的服务类别。'),
   INVALID_GUIDE_PROFILE: message('Check the guide profile and try again.', 'ตรวจสอบโปรไฟล์ไกด์แล้วลองใหม่', '请检查向导资料后重试。'),
@@ -107,6 +113,9 @@ const EXACT: Readonly<Record<string, Localised>> = {
   ),
   NO_CHARMS: message('You do not have enough charms.', 'คุณมีเครื่องรางไม่เพียงพอ', '你的护符不足。'),
   NOT_ENOUGH_DUST: message('You do not have enough stardust.', 'คุณมีผงดาวไม่เพียงพอ', '你的星尘不足。'),
+  NO_ELIGIBLE_REWARDS: message('There is nothing left to win in this banner right now.', 'ตู้นี้ไม่มีรางวัลให้สุ่มในตอนนี้', '这个卡池目前没有可抽取的奖励。'),
+  INVALID_REWARD_POOL: message('The prize box is being fixed. Please try again later.', 'ตู้สุ่มกำลังปรับปรุง ลองใหม่ภายหลังนะ', '奖池正在维护，请稍后再试。'),
+  IDEMPOTENCY_CONFLICT: message('That pull was already sent differently. Please try again.', 'การสุ่มนี้ถูกส่งไปแล้วในแบบอื่น ลองใหม่อีกครั้ง', '这次抽取已以不同方式提交，请重试。'),
   ALREADY_HAVE: message('You already have this item.', 'คุณมีรายการนี้แล้ว', '你已经拥有此项目。'),
   ALREADY_REPORTED: message('You have already reported this review.', 'คุณรายงานรีวิวนี้แล้ว', '你已经举报过此评价。'),
   APPEAL_OPEN: message('Your appeal is already being reviewed.', 'คำอุทธรณ์ของคุณกำลังอยู่ระหว่างการตรวจสอบ', '你的申诉正在审核中。'),

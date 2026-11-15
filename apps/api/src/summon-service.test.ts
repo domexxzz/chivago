@@ -4,7 +4,7 @@ import { test, describe, beforeEach } from 'node:test';
 import { applyMovement, getBalances } from './wallet-service.ts';
 import { openTestDb, type DB } from './db-node.ts';
 import {
-  AlreadyHave, EPOCH_HOURS, NoCharms, NotEnoughDust, UnknownSpirit, charmsFor, closeEpoch,
+  AlreadyHave, EPOCH_HOURS, NoCharms, NoEligibleRewards, NotEnoughDust, UnknownSpirit, charmsFor, closeEpoch,
   collectionFor, commitmentOf, currentEpoch, dustFor, forge, heldBy, historyFor, pityFor,
   NotEnoughPoints, publicEpoch, publishedRules, pull, rollFor, rotateEpochs, summon, summonState, verifySummon,
 } from './summon-service.ts';
@@ -184,6 +184,54 @@ describe('a charm is earned, never bought', () => {
   });
 });
 
+describe('production gacha transaction safety', () => {
+  test('an idempotency key replays the exact transaction without a second debit', () => {
+    fund('ana', 3);
+    const request = { category: 'mascot' as const, quantity: 1 as const, idempotencyKey: 'same-request-0001' };
+    const first = pull(db, 'ana', request, T);
+    const second = pull(db, 'ana', request, later(1));
+    assert.equal(second.transactionId, first.transactionId);
+    assert.deepEqual(second.results, first.results);
+    assert.equal(getBalances(db, 'ana').trip, PULL_COST * 2);
+    assert.equal(count('gacha_transactions'), 1);
+  });
+
+  test('mascot and fashion pity counters are independent', () => {
+    const epoch = currentEpoch(db, T);
+    for (let i = 1; i <= 4; i += 1) {
+      db.prepare(
+        `INSERT INTO summons
+           (id,user_id,epoch_id,source,nonce,roll,pick,spirit_key,rarity,duplicate,dust,created_at,item_kind,pool_version,cost_points,category)
+         VALUES (?,?,?,'summon',?,?,?,'tide-minnow','common',0,0,?,'spirit',3,0,'mascot')`,
+      ).run(`pity-${i}`, 'ana', epoch.id, i, 0, i, later(i).toISOString());
+    }
+    assert.deepEqual(pityFor(db, 'ana', 'mascot'), { sinceMythic: 4, sinceRare: 4 });
+    assert.deepEqual(pityFor(db, 'ana', 'fashion'), { sinceMythic: 0, sinceRare: 0 });
+  });
+
+  test('an empty guaranteed rarity rolls back both acquisition and points', () => {
+    fund('ana', 1);
+    const epoch = currentEpoch(db, T);
+    for (let i = 1; i < MYTHIC_PITY; i += 1) {
+      db.prepare(
+        `INSERT INTO summons
+           (id,user_id,epoch_id,source,nonce,roll,pick,spirit_key,rarity,duplicate,dust,created_at,item_kind,pool_version,cost_points,category)
+         VALUES (?,?,?,'summon',?,?,?,'refill-flask','common',0,0,?,'costume',3,0,'fashion')`,
+      ).run(`fashion-pity-${i}`, 'ana', epoch.id, i, 0, i, later(i).toISOString());
+    }
+    // Seed the DB catalogue, then deliberately disable the only Fashion Mythic.
+    summonState(db, 'ana', T);
+    db.prepare("UPDATE gacha_reward_pool SET active = 0 WHERE category = 'fashion' AND rarity = 'mythic'").run();
+    const before = getBalances(db, 'ana').trip;
+    assert.throws(
+      () => pull(db, 'ana', { category: 'fashion', quantity: 1, idempotencyKey: 'empty-pool-0001' }, later(40)),
+      NoEligibleRewards,
+    );
+    assert.equal(getBalances(db, 'ana').trip, before);
+    assert.equal(count('gacha_transactions'), 0);
+  });
+});
+
 /*
   THE RULE THE WHOLE MECHANIC RESTS ON.
 
@@ -261,12 +309,10 @@ describe('a summon yields decoration and NOTHING else', () => {
     mythic a long way above it. This test is the one that has to be deleted to
     put the old number back on the screen.
   */
-  test('the rates served are the ones a player meets, not the roll band', () => {
+  test('the exact configured rates are served and total one hundred percent', () => {
     const rules = publishedRules();
-    assert.deepEqual(rules.rates, RARITY_EFFECTIVE_PERCENT);
-    assert.notDeepEqual(rules.rates, RARITY_PERCENT, 'the published rate is the pre-floor band again');
-    assert.ok(rules.rates.mythic > RARITY_PERCENT.mythic);
-    assert.ok(rules.rates.rare > RARITY_PERCENT.rare);
+    assert.deepEqual(rules.rates, RARITY_PERCENT);
+    assert.equal(RARITIES.reduce((sum, rarity) => sum + rules.rates[rarity], 0), 100);
   });
 
   test('the roll band is still published, because a verifier needs it', () => {

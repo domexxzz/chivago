@@ -21,10 +21,31 @@
  */
 
 import React from 'react';
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
-import { ChevronRight, Clock, Gamepad2, MapPin } from 'lucide-react-native';
+import { Image, Pressable, ScrollView, Text, View, type ImageSourcePropType } from 'react-native';
+import { ChevronRight, Clock, MapPin } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
-import { greetingFor, isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
+import sichangBanner from '../../assets/quest-sichang-explorer.png';
+import trashHeroLogo from '../../assets/trash-hero-logo.png';
+import secretRecipeLogo from '../../assets/game-secret-recipe-logo.png';
+
+/**
+ * The picture on each mini-game's card.
+ *
+ * Every card used to show `trashHeroLogo`, which is the waste game's own
+ * badge, so เชฟชังชังเปิดร้าน sat on the Games list wearing another game's
+ * logo. It was not a placeholder anybody had meant to leave - the second game
+ * simply arrived after the card was written, and one hardcoded `source` has no
+ * way of noticing.
+ *
+ * Keyed by `MiniGameKey`, so a third game is a missing key the compiler points
+ * at rather than a card quietly wearing the wrong face. The fallback is the
+ * same picture as before, because a card with no image at all is worse.
+ */
+export const GAME_ICON: Partial<Record<MiniGameKey, ImageSourcePropType>> = {
+  'waste-sort': trashHeroLogo,
+  'chef-shop': secretRecipeLogo,
+};
+import { areaByKey, greetingFor, inArea, isRetiredQuestCode, isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
@@ -36,10 +57,11 @@ import { t } from '../i18n/locale.ts';
 import { formatInteger } from '../i18n/format.ts';
 import { ProfileButton } from '../components/ProfileButton.tsx';
 import { questArtworkSource } from '../components/QuestArtwork.tsx';
-import { QuestStatusIcon } from '../components/IslandIcons.tsx';
 import { MINI_GAMES, type MiniGameKey } from '../games/index.ts';
+import { ChivarIcon, questStateIcon, type ChivarIconName } from '../components/ChivarIcon.tsx';
 
-type Filter = 'today' | 'weekend' | 'all';
+type Filter = 'today' | 'weekend' | 'all' | 'sichang';
+type StandardFilter = Exclude<Filter, 'sichang'>;
 type Section = 'games' | 'quests';
 
 export function MissionsScreen({
@@ -51,7 +73,7 @@ export function MissionsScreen({
   onOpenGame?: (key: MiniGameKey) => void;
 }) {
   const [section, setSection] = React.useState<Section>('quests');
-  const [filter, setFilter] = React.useState<Filter>('today');
+  const [filter, setFilter] = React.useState<Filter>('sichang');
 
   // Fetch ALL quests once and filter locally. Two reasons:
   //  - the "All 24" segment must show the TOTAL, not the current filter's
@@ -61,8 +83,41 @@ export function MissionsScreen({
   //    be instant rather than a network round-trip on a weak beach signal.
   const data = useAsync(() => api.quests(), []);
 
-  const all = data.data?.quests ?? [];
-  const visible = filter === 'all' ? all : all.filter((q) => q.kind === filter);
+  /*
+    Defence in depth: a deployed API may briefly lag a mobile release and an
+    offline snapshot can outlive its seed, so a retired quest must not reappear
+    merely because one of those stores still holds historical rows.
+
+    EXCLUDE THE RETIRED, DO NOT ALLOW-LIST THE ACTIVE. This read the other way
+    round until 14 November 2026 - `isActiveQuestCode(q.code)` - and an
+    allow-list drops everything it was not told about. The pilot database
+    publishes SC-01..SC-05, this release knew only SG-01..SG-05, and MISSIONS
+    came up empty on the demo island with the API answering correctly. Stated
+    as an exclusion it can only ever hide something deliberately retired, and
+    the screen cannot be blanked by the two stores merely disagreeing.
+
+    The server already decides what is published (`publishedWhere` in
+    `repo.ts`); this is a second opinion about retirement, not a second
+    publishing rule.
+  */
+  const all = (data.data?.quests ?? []).filter((q) => !isRetiredQuestCode(q.code));
+  /*
+    The island's own quests, by where they are.
+
+    This was `all` - every published quest, counted as Ko Sichang's - and it
+    read correctly only because the publishing filter happened to leave nothing
+    else. That is the sort of accident that holds right up until the day it
+    does not: the card promises "5 quests · up to 800 XP" to a judge, and a
+    quest published for Samui would have been counted into that promise.
+
+    A quest carries its coordinates, so ask the question directly.
+  */
+  const sichangQuests = all.filter((q) => inArea(areaByKey('koh-sichang'), q));
+  const visible = filter === 'sichang'
+    ? sichangQuests
+    : filter === 'all'
+      ? all
+      : all.filter((q) => q.kind === filter);
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
@@ -117,7 +172,17 @@ export function MissionsScreen({
 
       {section === 'quests' ? (
         <>
-          <SegmentedFilter value={filter} total={all.length} onChange={setFilter} />
+          <SichangFeatureButton
+            selected={filter === 'sichang'}
+            count={sichangQuests.length}
+            exp={sichangQuests.reduce((sum, quest) => sum + (quest.rewardExp ?? quest.rewardPoints), 0)}
+            onPress={() => setFilter('sichang')}
+          />
+          <SegmentedFilter
+            value={filter === 'sichang' ? null : filter}
+            total={all.length}
+            onChange={setFilter}
+          />
 
           {data.loading ? <LoadingState /> : null}
           {data.error ? <ErrorState message={data.error} onRetry={data.reload} /> : null}
@@ -148,19 +213,70 @@ export function MissionsScreen({
   );
 }
 
+function SichangFeatureButton({
+  selected, count, exp, onPress,
+}: { selected: boolean; count: number; exp: number; onPress: () => void }) {
+  const title = t({ en: 'Koh Sichang', th: 'เกาะสีชัง', zh: '锡昌岛' });
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={t({
+        en: selected ? 'Show all quests' : 'Show the Koh Sichang pilot quests',
+        th: selected ? 'แสดงเควสทั้งหมด' : 'แสดงเควสทดลองเกาะสีชัง',
+        zh: selected ? '显示全部任务' : '显示锡昌岛试点任务',
+      })}
+      accessibilityState={{ selected }}
+      style={({ pressed }) => [
+        shadow.card,
+        {
+          width: '92%', maxWidth: 760, height: 128, alignSelf: 'center',
+          marginTop: 16, borderRadius: 24, overflow: 'hidden',
+          borderWidth: selected ? 3 : 2, borderColor: selected ? '#FFD166' : '#7BDDE5',
+          opacity: pressed ? 0.88 : 1,
+        },
+      ]}
+    >
+      <Image source={sichangBanner} resizeMode="cover" style={{ position: 'absolute', width: '100%', height: '100%' }} />
+      <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,42,68,0.68)' }} />
+      <View style={{ flex: 1, paddingHorizontal: 18, paddingVertical: 15, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ alignSelf: 'flex-start', backgroundColor: '#FFD166', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
+            <Label size={9} tracking={0.13} colour="#493300">{t({ en: 'SPECIAL PILOT', th: 'เควสพิเศษ', zh: '特别试点' })}</Label>
+          </View>
+          <Heading size={25} colour="#FFFFFF" style={{ marginTop: 7 }}>{title}</Heading>
+          <Body size={13} colour="#E7FBFF" style={{ marginTop: 3 }}>
+            {t({
+              en: `${count} quests · up to ${formatInteger(exp)} XP`,
+              th: `${count} เควส · สูงสุด ${formatInteger(exp)} XP`,
+              zh: `${count} 个任务 · 最高 ${formatInteger(exp)} XP`,
+            })}
+          </Body>
+        </View>
+        <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: selected ? '#FFD166' : 'rgba(255,255,255,0.94)', alignItems: 'center', justifyContent: 'center' }}>
+          <ChevronRight size={23} color="#075078" strokeWidth={2.5} />
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
 function SectionTabs({
   value, onChange,
 }: { value: Section; onChange: (section: Section) => void }) {
-  const options: { key: Section; label: string; hint: string }[] = [
+  const options: { key: Section; label: string; hint: string; icon: ChivarIconName }[] = [
     {
       key: 'games',
       label: 'Games',
       hint: t({ en: 'Mini-games you can play anytime', th: 'มินิเกมที่เล่นได้ทุกเวลา', zh: '随时可玩的小游戏' }),
+      icon: 'game',
     },
     {
       key: 'quests',
       label: 'Quests',
       hint: t({ en: 'Activities around the island', th: 'กิจกรรมที่ทำได้ทั่วเกาะ', zh: '岛上各处的活动' }),
+      icon: 'quest',
     },
   ];
 
@@ -203,7 +319,10 @@ function SectionTabs({
               },
             ]}
           >
-            <Heading size={15} colour={active ? onFill.brand : color.text}>{option.label}</Heading>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <ChivarIcon name={option.icon} size={30} />
+              <Heading size={15} colour={active ? onFill.brand : color.text}>{option.label}</Heading>
+            </View>
           </Pressable>
         );
       })}
@@ -221,7 +340,7 @@ function GamesPanel({ onOpenGame }: { onOpenGame?: (key: MiniGameKey) => void })
     <View style={{ width: '92%', maxWidth: 760, alignSelf: 'center', paddingTop: 14 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#D9F5FB', alignItems: 'center', justifyContent: 'center' }}>
-          <Gamepad2 size={20} color={color.brand} strokeWidth={2.2} />
+          <ChivarIcon name="game" size={34} />
         </View>
         <View style={{ flex: 1 }}>
           <Heading size={18} colour={color.text}>{t({ en: 'Choose a game', th: 'เลือกเกมที่อยากเล่น', zh: '选择一个游戏' })}</Heading>
@@ -257,10 +376,13 @@ function GamesPanel({ onOpenGame }: { onOpenGame?: (key: MiniGameKey) => void })
               },
             ]}
           >
-            <View style={{ width: 52, height: 52, flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
-              {game.swatches.map((fill) => (
-                <View key={fill} style={{ width: 24, height: 24, borderRadius: 8, backgroundColor: fill }} />
-              ))}
+            <View style={{ width: 72, height: 72, borderRadius: 18, backgroundColor: '#E9FBF8', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              <Image
+                source={GAME_ICON[game.key] ?? trashHeroLogo}
+                resizeMode="contain"
+                accessibilityLabel={t(game.name)}
+                style={{ width: 70, height: 70 }}
+              />
             </View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Label size={9} tracking={0.1} colour={color.brand}>{t({ en: 'MINI GAME', th: 'มินิเกม', zh: '小游戏' })}</Label>
@@ -279,8 +401,8 @@ function GamesPanel({ onOpenGame }: { onOpenGame?: (key: MiniGameKey) => void })
 
 function SegmentedFilter({
   value, total, onChange,
-}: { value: Filter; total: number; onChange: (f: Filter) => void }) {
-  const options: [Filter, string][] = [
+}: { value: StandardFilter | null; total: number; onChange: (f: StandardFilter) => void }) {
+  const options: [StandardFilter, string][] = [
     ['today', t(strings.quests.filters.today)],
     ['weekend', t(strings.quests.filters.weekend)],
     ['all', `${t(strings.quests.filters.all)} ${total}`],
@@ -327,8 +449,7 @@ export function QuestRow({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={
-        `${t(quest.name)}, ${quest.rewardPoints} `
-        + `${quest.rewardCurrency === 'green' ? 'Green' : 'Trip'} Points, `
+        `${t(quest.name)}, ${quest.rewardExp != null ? `${quest.rewardExp} EXP` : `${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'Green' : 'Trip'} Points`}, `
         + `at ${t(quest.where)}, by ${quest.host.name}`
       }
       style={({ pressed }) => [shadow.card, {
@@ -347,11 +468,16 @@ export function QuestRow({
       <View style={{ height: 150, position: 'relative', backgroundColor: color.brandSoft }}>
         <Image source={questArtworkSource(quest)} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
         <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,38,60,0.16)' }} />
-        <View style={{ position: 'absolute', top: 12, left: 12, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.94)' }}>
+        <View style={{ position: 'absolute', top: 9, left: 9, width: 42, height: 42, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.96)', alignItems: 'center', justifyContent: 'center' }}>
+          <ChivarIcon name={questStateIcon(progress)} size={36} />
+        </View>
+        <View style={{ position: 'absolute', top: 12, left: 57, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.94)' }}>
           <Label size={9} tracking={0.1} colour={tintFor(quest.code.slice(0, 2)).ink}>{quest.code}</Label>
         </View>
-        <View style={{ position: 'absolute', top: 12, right: 12, backgroundColor: currencyTone(quest.rewardCurrency).fill, paddingVertical: 6, paddingHorizontal: 11, borderRadius: 999 }}>
-          <Heading size={13} colour={currencyTone(quest.rewardCurrency).on}>{`+${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'G' : 'T'}`}</Heading>
+        <View style={{ position: 'absolute', top: 12, right: 12, backgroundColor: quest.rewardExp != null ? '#FFD166' : currencyTone(quest.rewardCurrency).fill, paddingVertical: 6, paddingHorizontal: 11, borderRadius: 999 }}>
+          <Heading size={13} colour={quest.rewardExp != null ? '#493300' : currencyTone(quest.rewardCurrency).on}>
+            {quest.rewardExp != null ? `+${quest.rewardExp} XP` : `+${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'G' : 'T'}`}
+          </Heading>
         </View>
       </View>
       <View style={{ padding: 16 }}>
@@ -372,16 +498,10 @@ export function QuestRow({
             keeps its label; the icon is hidden from accessibility.
           */}
           {progress && progress.stage !== 'complete' ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: color.brandSoft }}>
-              <QuestStatusIcon status="inProgress" />
-              <Label size={9} tracking={0.08} colour={color.brand}>{t({ en: 'IN PROGRESS', th: 'กำลังทำอยู่', zh: '进行中' })}</Label>
-            </View>
+            <View style={{ paddingRight: 9, minHeight: 30, borderRadius: 999, backgroundColor: color.brandSoft, flexDirection: 'row', alignItems: 'center', gap: 2 }}><ChivarIcon name="questInProgress" size={28} /><Label size={9} tracking={0.08} colour={color.brand}>{t({ en: 'IN PROGRESS', th: 'กำลังทำอยู่', zh: '进行中' })}</Label></View>
           ) : null}
           {progress?.stage === 'complete' ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: color.accent100 }}>
-              <QuestStatusIcon status="completed" />
-              <Label size={9} tracking={0.08} colour={color.accent700}>{t({ en: 'DONE', th: 'เสร็จแล้ว', zh: '已完成' })}</Label>
-            </View>
+            <View style={{ paddingRight: 9, minHeight: 30, borderRadius: 999, backgroundColor: color.accent100, flexDirection: 'row', alignItems: 'center', gap: 2 }}><ChivarIcon name="questCompleted" size={28} /><Label size={9} tracking={0.08} colour={color.accent700}>{t({ en: 'DONE', th: 'เสร็จแล้ว', zh: '已完成' })}</Label></View>
           ) : null}
         </View>
       </View>

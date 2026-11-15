@@ -3,9 +3,9 @@
  */
 
 import React from 'react';
-import { Animated, Image, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Animated, Image, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
-import { Backpack, ChevronLeft, House, Leaf, Map as MapIcon, MessageCircle, PawPrint, Shield, Smartphone, Sparkles, Users } from 'lucide-react-native';
+import { Backpack, ChevronLeft, House, Leaf, Map as MapIcon, PawPrint, Sparkles, UserRound, Users } from 'lucide-react-native';
 import { strings } from '@chivago/core';
 import { color, gutter, headerGutter, layout, motion, onFill, radius, ruleStrong, ruleStrongTop, shadow } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from './Type.tsx';
@@ -22,16 +22,31 @@ export type { TabKey } from '../state/store.tsx';
 import type { TabKey } from '../state/store.tsx';
 import { t } from '../i18n/locale.ts';
 import travelHero from '../../assets/chivago-travel-hero-v2.png';
-import aiGuideRobot from '../../assets/chivargo-ai-robot-v1.png';
+import { ChivarBotScene } from './ChivarBotScene.tsx';
+/*
+  ONE SET OF SEVEN, not six renders and a line icon.
+
+  These replace `menu-*-3d-v1.png`. Six of the menu's cells wore a 3D
+  render and Games & Quests wore a leaf outline, because no quest art had
+  ever been drawn - and on a wide rail, where all seven are seen together,
+  the odd one out was the first thing the eye found. See `MenuIcon.tsx`.
+*/
+import { MenuIcon, type MenuIconKey } from './MenuIcon.tsx';
 
 const TAB_ICONS = {
-  home: House, map: MapIcon, quests: Leaf, game: PawPrint, safety: Shield,
+  home: House, map: MapIcon, quests: Leaf, game: PawPrint,
 } as const;
 
-const TAB_ORDER: TabKey[] = ['home', 'map', 'quests', 'game', 'safety'];
+type PrimaryTabKey = Exclude<TabKey, 'safety'>;
+const RAIL_TAB_ORDER: PrimaryTabKey[] = ['home', 'map', 'quests', 'game'];
+
+/** Which drawn icon each primary cell wears. See `MenuIcon.tsx`. */
+const RAIL_MENU_ICONS: Record<PrimaryTabKey, MenuIconKey> = {
+  home: 'home', map: 'map', quests: 'game-and-quest', game: 'my-backpack',
+};
 
 /**
- * Global door to the AI-guide mockup. It floats above, never inside, the
+ * Global door to Chivar Bot. It floats above, never inside, the
  * five-tab contract.
  *
  * FLOATING ABOVE THE TAB BAR IS NOT THE SAME AS FLOATING ABOVE NOTHING.
@@ -40,11 +55,11 @@ const TAB_ORDER: TabKey[] = ['home', 'map', 'quests', 'game', 'safety'];
  * and swallowed every tap meant for it. Measured on production at 375x812,
  * scrolled to the top, which is where somebody opening the app lands:
  *
- *   AI guide   x 289-359   y 652-730
+ *   Chivar Bot x 289-359   y 652-730
  *   door row               y 700-796, six doors of 59
  *   last door  x 306-365 - inside the guide's x range from edge to edge
  *
- *   elementFromPoint on that door's icon returned "Open ChivarGo AI Guide".
+ *   elementFromPoint on that door's icon returned "Open Chivar Bot".
  *   Scrolled down 120 it returned "Summon", so the door was never broken;
  *   it was covered, on the one screen position nobody has to scroll to.
  *
@@ -71,7 +86,7 @@ export function AiGuideButton({ onPress, wide = false }: { onPress: () => void; 
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={t({ en: 'Open ChivarGo AI Guide', th: 'เปิด ChivarGo AI Guide', zh: '打开 ChivarGo AI Guide' })}
+      accessibilityLabel={t({ en: 'Open Chivar Bot', th: 'เปิด Chivar Bot', zh: '打开 Chivar Bot' })}
       style={({ pressed }) => [
         shadow.md,
         {
@@ -104,24 +119,14 @@ export function AiGuideButton({ onPress, wide = false }: { onPress: () => void; 
           overflow: 'visible',
         }}
       >
-        <Image
-          source={aiGuideRobot}
-          resizeMode="contain"
-          accessibilityIgnoresInvertColors
-          style={{
-            position: 'absolute',
-            width: 62,
-            height: 66,
-            top: -22,
-            left: -1,
-          }}
-        />
+        <View style={{ position: 'absolute', width: 64, height: 64, top: -26, left: -2 }}>
+          <ChivarBotScene width={64} height={64} mood="smile" label="" interactive={false} />
+        </View>
         <View style={{ position: 'absolute', right: 1, top: 3 }}>
           <Sparkles size={11} color="#FFE28A" fill="#FFE28A" strokeWidth={2} />
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-          <MessageCircle size={10} color="#FFFFFF" strokeWidth={2.2} />
-          <Label size={9} tracking={0} colour="#FFFFFF" style={{ textTransform: 'none' }}>{t({ en: 'AI Guide', th: 'AI Guide', zh: 'AI Guide' })}</Label>
+        <View style={{ width: 56, alignItems: 'center', justifyContent: 'center' }}>
+          <Label size={9} tracking={0} colour="#FFFFFF" numberOfLines={1} style={{ width: '100%', textAlign: 'center', textTransform: 'none' }}>Chivar Bot</Label>
         </View>
       </View>
     </Pressable>
@@ -136,7 +141,7 @@ export function OceanBackdrop({
 }: { subtle?: boolean; compact?: boolean }) {
   const gradId = subtle ? 'sand' : compact ? 'oceanCompact' : 'ocean';
   return (
-    <View pointerEvents="none" accessible={false} style={StyleSheet.absoluteFillObject}>
+    <View accessible={false} style={[StyleSheet.absoluteFillObject, { pointerEvents: 'none' }]}>
       <Svg width="100%" height="100%" viewBox="0 0 480 340" preserveAspectRatio="none">
         <Defs>
           <LinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="80%">
@@ -182,7 +187,7 @@ export function TravelHeroBackdrop({
 }) {
   const position = focalPoint === 'left' ? '20% center' : focalPoint === 'right' ? '80% center' : 'center';
   return (
-    <View pointerEvents="none" accessible={false} style={StyleSheet.absoluteFillObject}>
+    <View accessible={false} style={[StyleSheet.absoluteFillObject, { pointerEvents: 'none' }]}>
       <Image
         source={travelHero}
         resizeMode="cover"
@@ -206,22 +211,32 @@ export function TravelHeroBackdrop({
 }
 
 /**
- * Five tabs on a soft white surface. Ocean blue and a dot mark the active tab.
+ * Five phone destinations on a soft white surface. Ocean blue and a dot mark the active tab.
  *
  * TWO SHAPES, ONE BAR. On a phone it is the full-width bar wedged against the
  * bottom edge, which is where a thumb is. A wide window has no thumb and no
- * bottom edge worth filling - a bar stretched across 1900 px puts five icons
- * in a corner of an empty white stripe - so past `WIDE_TABS_AT` the same five
- * become a centred pill floating clear of the content. Same tabs, same order,
- * same behaviour: only the container moves.
+ * bottom edge worth filling. The wide shell replaces this with the application
+ * rail, where My Backpack and the additional desktop destinations still live.
  */
 export const WIDE_TABS_AT = 940;
 
 export function TabBar({
-  active, onChange,
-}: { active: TabKey; onChange: (tab: TabKey) => void }) {
+  active, onChange, onOpenLocalPicks, localPicksActive = false,
+}: {
+  active: TabKey;
+  onChange: (tab: TabKey) => void;
+  onOpenLocalPicks: () => void;
+  localPicksActive?: boolean;
+}) {
   const { width } = useWindowDimensions();
   const floating = width >= WIDE_TABS_AT;
+  const entries = [
+    { key: 'home', label: t(strings.tabs.home), Icon: House, menuIcon: 'home' as MenuIconKey, selected: active === 'home' && !localPicksActive, onPress: () => onChange('home') },
+    { key: 'map', label: t(strings.tabs.map), Icon: MapIcon, menuIcon: 'map' as MenuIconKey, selected: active === 'map' && !localPicksActive, onPress: () => onChange('map') },
+    { key: 'game', label: t({ en: 'Game', th: 'เกม', zh: '游戏' }), Icon: Leaf, menuIcon: 'game-and-quest' as MenuIconKey, selected: active === 'quests' && !localPicksActive, onPress: () => onChange('quests') },
+    { key: 'collect', label: t(strings.tabs.game), Icon: Backpack, menuIcon: 'my-backpack' as MenuIconKey, selected: active === 'game' && !localPicksActive, onPress: () => onChange('game') },
+    { key: 'local-picks', label: t({ en: 'Local Picks', th: 'ร้านเด็ด', zh: '本地精选' }), Icon: Sparkles, menuIcon: 'local-picks' as MenuIconKey, selected: localPicksActive, onPress: onOpenLocalPicks },
+  ];
   return (
     <View
       style={floating ? {
@@ -238,30 +253,42 @@ export function TabBar({
         shadowColor: '#005BBB', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 6,
       }}
     >
-      {TAB_ORDER.map((key) => {
-        const isActive = key === active;
-        const Icon = TAB_ICONS[key];
+      {entries.map(({ key, label, Icon, menuIcon, selected: isActive, onPress }) => {
         const fg = isActive ? '#005BBB' : '#52749D';
         return (
           <Pressable
             key={key}
-            onPress={() => onChange(key)}
+            onPress={onPress}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
-            accessibilityLabel={t(strings.tabs[key])}
+            accessibilityLabel={label}
             style={{
               flex: 1,
+              minWidth: 0,
               alignItems: 'center',
               justifyContent: 'center',
-              paddingTop: 6,
-              gap: 3,
+              paddingHorizontal: 2,
+              paddingTop: 5,
+              gap: 2,
             }}
           >
-            <Icon size={layout.tabIconSize + 2} color={fg} strokeWidth={isActive ? 2.3 : 1.9} />
-            <Label size={10} tracking={0.06} colour={fg} style={{ fontWeight: isActive ? '700' : '500' }}>
-              {t(strings.tabs[key])}
+            <View style={{ height: layout.tabIconSize + 7, alignItems: 'center', justifyContent: 'center' }}>
+              {menuIcon ? (
+                <MenuIcon name={menuIcon} size={layout.tabIconSize + 10} />
+              ) : (
+                <Icon size={layout.tabIconSize + 2} color={fg} strokeWidth={isActive ? 2.3 : 1.9} />
+              )}
+            </View>
+            <Label
+              size={key === 'local-picks' || key === 'collect' ? 9 : 10}
+              tracking={key === 'local-picks' || key === 'collect' ? 0.02 : 0.05}
+              colour={fg}
+              numberOfLines={1}
+              style={{ width: '100%', textAlign: 'center', fontWeight: isActive ? '700' : '500' }}
+            >
+              {label}
             </Label>
-            <View style={{ width: 32, height: 3.5, borderRadius: 2, backgroundColor: isActive ? '#005EB9' : 'transparent', marginTop: 2 }} />
+            <View style={{ width: 30, height: 3.5, borderRadius: 2, backgroundColor: isActive ? '#005EB9' : 'transparent', marginTop: 1 }} />
           </Pressable>
         );
       })}
@@ -301,6 +328,7 @@ export function NavigationRail({
   active, onChange, onOpenBackpack, backpackActive = false,
   onOpenConnectApp, connectAppActive = false,
   onOpenCommunity, communityActive = false,
+  onOpenProfile, profileActive = false,
 }: {
   active: TabKey;
   onChange: (tab: TabKey) => void;
@@ -314,6 +342,9 @@ export function NavigationRail({
   connectAppActive?: boolean;
   onOpenCommunity?: () => void;
   communityActive?: boolean;
+  /** Public guest profile for visitors; personal actions remain account-gated. */
+  onOpenProfile?: () => void;
+  profileActive?: boolean;
 }) {
   const { width } = useWindowDimensions();
   const expanded = width >= 1200;
@@ -330,18 +361,20 @@ export function NavigationRail({
     ? color.brand
     : pressed ? color.brandSoft : 'transparent');
   const ink = (selected: boolean) => (selected ? onFill.brand : color.neutral700);
-  const pushedActive = backpackActive || connectAppActive || communityActive;
+  const pushedActive = backpackActive || connectAppActive || communityActive || profileActive;
   const entries: {
     key: string;
     Icon: typeof House;
+    menuIcon?: MenuIconKey;
     label: string;
     selected: boolean;
     onPress: () => void;
-  }[] = TAB_ORDER.map((key) => {
+  }[] = RAIL_TAB_ORDER.map((key) => {
     const backpack = key === 'game' && onOpenBackpack !== undefined;
     return {
       key,
       Icon: backpack ? Backpack : TAB_ICONS[key],
+      menuIcon: backpack ? 'my-backpack' : RAIL_MENU_ICONS[key],
       label: t(backpack ? strings.tabs.backpack : strings.tabs[key]),
       selected: backpack ? backpackActive : key === active && !pushedActive,
       onPress: () => {
@@ -350,22 +383,27 @@ export function NavigationRail({
       },
     };
   });
-  const safetyIndex = entries.findIndex((entry) => entry.key === 'safety');
-  const extraEntries = [
+  const extraEntries: typeof entries = [
     ...(onOpenCommunity ? [{
-      key: 'community', Icon: Users,
+      key: 'community', Icon: Users, menuIcon: 'community' as MenuIconKey,
       label: t({ en: 'Community', th: 'คอมมูนิตี้', zh: '社区' }),
       selected: communityActive,
       onPress: () => { if (!communityActive) onOpenCommunity(); },
     }] : []),
     ...(onOpenConnectApp ? [{
-      key: 'connect-app', Icon: Smartphone,
-      label: t({ en: 'Connect App', th: 'เชื่อมต่อแอป', zh: '连接应用' }),
+      key: 'local-picks', Icon: Sparkles, menuIcon: 'local-picks' as MenuIconKey,
+      label: t({ en: 'Local Picks', th: 'ร้านเด็ดในพื้นที่', zh: '本地精选' }),
       selected: connectAppActive,
       onPress: () => { if (!connectAppActive) onOpenConnectApp(); },
     }] : []),
+    ...(onOpenProfile ? [{
+      key: 'profile', Icon: UserRound, menuIcon: 'profile' as MenuIconKey,
+      label: t({ en: 'Profile', th: 'โปรไฟล์', zh: '个人资料' }),
+      selected: profileActive,
+      onPress: () => { if (!profileActive) onOpenProfile(); },
+    }] : []),
   ];
-  entries.splice(safetyIndex, 0, ...extraEntries);
+  entries.push(...extraEntries);
   return (
     <View
       accessibilityRole="tablist"
@@ -387,7 +425,7 @@ export function NavigationRail({
         {expanded ? <Label size={9} tracking={0.14} colour={color.neutral600} style={{ marginTop: 3 }}>{t({ en: 'EXPLORE TOGETHER', th: 'ออกเดินทางไปด้วยกัน', zh: '一起探索' })}</Label> : null}
       </View>
       <View style={{ gap: 8 }}>
-        {entries.map(({ key, Icon, label, selected, onPress }) => {
+        {entries.map(({ key, Icon, menuIcon, label, selected, onPress }) => {
           return (
             <Pressable
               key={key}
@@ -397,7 +435,9 @@ export function NavigationRail({
               accessibilityLabel={label}
               style={({ pressed }) => ({ ...cell, backgroundColor: fill(selected, pressed) })}
             >
-              <Icon size={21} color={ink(selected)} strokeWidth={selected ? 2.4 : 1.9} />
+              {menuIcon
+                ? <MenuIcon name={menuIcon} size={expanded ? 34 : 32} />
+                : <Icon size={21} color={ink(selected)} strokeWidth={selected ? 2.4 : 1.9} />}
               <Label size={10} tracking={0.05} colour={ink(selected)}>{label}</Label>
             </Pressable>
           );
@@ -463,7 +503,9 @@ export function Toast({ message }: { message: string | null }) {
     Animated.timing(opacity, {
       toValue: message ? 1 : 0,
       duration: 160,
-      useNativeDriver: true,
+      // React Native Web has no native animation module; asking for it emits
+      // a warning and falls back to this exact JS animation anyway.
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
   }, [message, opacity]);
 
@@ -506,8 +548,8 @@ export function SosBanner({ onPress }: { onPress: () => void }) {
   React.useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: motion.sosPulseMs / 2, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: motion.sosPulseMs / 2, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: motion.sosPulseMs / 2, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(pulse, { toValue: 0, duration: motion.sosPulseMs / 2, useNativeDriver: Platform.OS !== 'web' }),
       ]),
     );
     loop.start();
@@ -554,7 +596,7 @@ export function ScreenTransition({
     Animated.timing(progress, {
       toValue: 1,
       duration: motion.screenEnterMs,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
     }).start();
   }, [screenKey, progress, reduceMotion]);
 

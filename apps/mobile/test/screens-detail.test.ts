@@ -398,6 +398,30 @@ describe('a quest, from joining to verification', () => {
     } finally { net.restore(); }
   });
 
+  test('a Koh Sichang pilot shows its real criteria and opens the verified quest workflow', async () => {
+    const pilot = quest({
+      id: 'q-sg-explorer',
+      code: 'SG-01',
+      name: { en: 'Sichang Explorer', th: 'นักสำรวจเกาะสีชัง', zh: '锡昌岛探索家' },
+      where: { en: 'Koh Sichang', th: 'เกาะสีชัง', zh: '锡昌岛' },
+      duration: { en: 'Pilot schedule', th: 'ตามรอบทดลอง', zh: '试运行时段' },
+      rewardPoints: 0,
+      rewardExp: 150,
+      rewardCurrency: 'trip',
+    });
+    const net = server({ 'GET /quests/q-sg-explorer': { quest: pilot, progress: null } });
+    try {
+      const ui = await mountScreen(h(QuestDetailScreen, props({ questId: pilot.id })));
+      const said = ui.text();
+      assert.match(said, /150 XP/);
+      assert.match(said, /Check in at 3 designated points/);
+      assert.match(said, /Answer at least 5 of 6 questions correctly/);
+      assert.match(said, /Open for participation/);
+      assert.match(said, /Join this quest/);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
   test('joining posts, and the screen moves on to arriving', async () => {
     // Joining reloads the quest rather than trusting the POST's own reply, so
     // the route has to answer the way the server would the second time.
@@ -609,9 +633,9 @@ describe('the safety shield', () => {
     alert: null, onFire: noop, onCancel: noop, onShare: noop, firing: false, ...over,
   });
   const alert = {
-    id: 's1', status: 'dispatching' as const, lat: 9.5357, lng: 100.0617,
-    locationLabel: 'Bophut, 400 m', firedAt: '2026-08-31T05:00:00.000Z',
-    acknowledgedAt: null, acknowledgedBy: null, nearestHospital: 'Bandon International Hospital',
+    id: 's1', status: 'dispatching' as const, lat: 13.161443, lng: 100.810441,
+    locationLabel: 'Tha Lang pier, 120 m', firedAt: '2026-08-31T05:00:00.000Z',
+    acknowledgedAt: null, acknowledgedBy: null, nearestHospital: 'Koh Sichang Hospital',
     note: null, shareUrl: 'https://chiva.go/s/abc', lastPositionAt: null,
     dispatches: [], contactsReached: 2, contactsTotal: 3,
   };
@@ -636,7 +660,7 @@ describe('the safety shield', () => {
       const ui = await mountScreen(h(SafetyScreen, props({ alert })));
       const said = ui.text();
       assert.match(said, /2 of 3 contacts reached/);
-      assert.match(said, /Bophut, 400 m/, 'the location is on screen');
+      assert.match(said, /Tha Lang pier, 120 m/, 'the location is on screen');
       assert.match(said, /Nobody has picked this up yet/, 'unacknowledged must say so');
       ui.unmount();
     } finally { net.restore(); }
@@ -679,7 +703,7 @@ describe('the safety shield', () => {
         // this test passed with `always` stripped from all ten lines.
         assert.match(said, /ส่งรถพยาบาลไม่ได้/, `"we cannot send an ambulance", in ${locale}`);
         assert.match(said, /ยังไม่มีเจ้าหน้าที่รับเรื่อง/, `"nobody has picked this up", in ${locale}`);
-        assert.match(said, /Bophut, 400 m/, `the location, in ${locale}`);
+        assert.match(said, /Tha Lang pier, 120 m/, `the location, in ${locale}`);
         ui.unmount();
       }
     } finally {
@@ -707,26 +731,26 @@ describe('the safety shield', () => {
     try {
       const ui = await mountScreen(h(SafetyScreen, props()));
       const said = ui.text();
-      assert.match(said, /Koh Samui Hospital/);
-      assert.match(said, /0-7791-3200/, 'printed the way it is dialled locally');
-      assert.match(said, /Bophut Police Station/);
+      assert.match(said, /Koh Sichang Hospital emergency room/);
+      assert.match(said, /088-7504872/, 'printed the way it is dialled locally');
+      assert.match(said, /Koh Sichang Police Station/);
       ui.unmount();
     } finally { net.restore(); }
   });
 
   test('with an alert live, the nearest station comes first', async () => {
-    // The alert fixture is in Bophut. Bophut station is 2.4 km away and Koh
-    // Samui station is 14 km. A list that puts the far one first is a list
-    // that sends help the long way round.
+    // The alert fixture is at Tha Lang pier. The hospital has an official map
+    // coordinate; the police contact page publishes only its street address,
+    // so the UI must not fabricate a police-station distance.
     const net = server({ 'GET /shield': shield() });
     try {
       const ui = await mountScreen(h(SafetyScreen, props({ alert })));
       const said = ui.text();
-      const bophut = said.indexOf('Bophut Police Station');
-      const samui = said.indexOf('Koh Samui Police Station');
-      assert.ok(bophut > -1 && samui > -1, 'both stations are listed');
-      assert.ok(bophut < samui, 'the 2.4 km station is above the 14 km one');
-      assert.match(said, /2\.4 km away/, 'and it says how far, so the wait makes sense');
+      const hospital = said.indexOf('Koh Sichang Hospital emergency room');
+      const police = said.indexOf('Koh Sichang Police Station');
+      assert.ok(hospital > -1 && police > -1, 'both responders are listed');
+      assert.ok(hospital < police, 'the responder with a verified coordinate is ordered first');
+      assert.match(said, /0\.[1-9] km away/, 'and it says the measured hospital distance');
       ui.unmount();
     } finally { net.restore(); }
   });
@@ -748,7 +772,7 @@ describe('the safety shield', () => {
     try {
       const ui = await mountScreen(h(SafetyScreen, props()));
       const said = ui.labels().join(' | ');
-      for (const n of ['1669', '191', '1155', '0-7791-3200', '0-7741-4567']) {
+      for (const n of ['1669', '191', '1155', '088-7504872', '0 3821 6218']) {
         assert.match(said, new RegExp(n.replace(/-/g, '\-')), `${n} has no dial control`);
       }
       ui.unmount();
@@ -771,7 +795,7 @@ describe('the safety shield', () => {
     try {
       const said = (await mountScreen(h(SafetyScreen, props()))).text();
       assert.match(said, /1669/);
-      assert.match(said, /Koh Samui Hospital/);
+      assert.match(said, /Koh Sichang Hospital/);
     } finally { net.restore(); }
   });
 });

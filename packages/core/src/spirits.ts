@@ -271,10 +271,10 @@ export const spiritSignature = (s: Spirit): string =>
  * check, and "the rates are checkable" is most of the point of this file.
  */
 export const RARITY_WEIGHT: Record<SpiritRarity, number> = {
-  common: 6_000,
-  uncommon: 2_700,
-  rare: 1_000,
-  mythic: 300,
+  common: 5_626,
+  uncommon: 2_532,
+  rare: 1_341,
+  mythic: 501,
 };
 
 export const WEIGHT_TOTAL = 10_000;
@@ -300,8 +300,8 @@ export const RARITY_PERCENT: Record<SpiritRarity, number> = {
  * and no number the player is not told. On the summon where the counter
  * reaches the floor the rarity is simply fixed, and the receipt says it was.
  */
-export const MYTHIC_PITY = 30;
-export const RARE_PITY = 10;
+export const MYTHIC_PITY = 27;
+export const RARE_PITY = 7;
 
 // ---------------------------------------------------------------------------
 // What that table actually comes to

@@ -11,14 +11,22 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
-import { SEED_QUESTS, areaByKey, inArea } from '@chivago/core';
+import { ACTIVE_QUESTS, areaByKey, inArea } from '@chivago/core';
 import { openTestDb, type DB } from './db-node.ts';
 import { openArea, retireSupersededQuests, seedArea } from './area-opening.ts';
 
 let db: DB;
 
 const SICHANG = areaByKey('koh-sichang');
-const seededSichang = SEED_QUESTS.filter((q) => inArea(SICHANG, q));
+/*
+  ACTIVE_QUESTS, which is what the opener seeds.
+
+  `SEED_QUESTS` is the historical catalogue and still holds SC-01..SC-03
+  beside the SG-01..SG-05 that replaced them, so measuring against it expects
+  eight quests on an island the deck says has five - and the test named "the
+  five quests land" would be asserting the opposite of its own name.
+*/
+const seededSichang = ACTIVE_QUESTS.filter((q) => inArea(SICHANG, q));
 
 /** One of the quests the field guide replaced, as production still holds it. */
 function insertOldQuest(id: string, code: string, lat: number, lng: number): void {

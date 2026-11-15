@@ -29,7 +29,11 @@ export function GuestBand({ onSignIn }: { onSignIn: () => void }) {
       }}
     >
       <Label size={10} tracking={0.06} colour="#24547A" style={{ textTransform: 'none' }}>
-        {t({ en: 'Browsing as a guest', th: 'กำลังเข้าชมแบบผู้เยี่ยมชม', zh: '以访客身份浏览' })}
+        {t({
+          en: 'DEMO · Explore everything · changes are not saved',
+          th: 'เดโม · ทดลองได้ทุกอย่าง · ไม่บันทึกข้อมูล',
+          zh: '演示 · 可体验全部功能 · 不保存数据',
+        })}
       </Label>
       <Pressable
         onPress={onSignIn}

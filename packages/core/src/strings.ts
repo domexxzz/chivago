@@ -25,6 +25,9 @@
 
 import type { Localised } from './types.ts';
 import { type Lang, localise } from './localise.ts';
+// One rule for where Thai and Chinese need a space, written beside the turn
+// instructions it was first needed for.
+import { gapAfter } from './navigation.ts';
 
 const t = (en: string, th: string, zh: string): Localised => ({ en, th, zh });
 
@@ -36,7 +39,7 @@ export const strings = {
     // This destination now contains the bundled games as well as island quests.
     // Keep the product label consistent in every locale: it is the name of the
     // combined section, not a sentence that needs translating independently.
-    quests: t('Games & Quests', 'Games & Quests', 'Games & Quests'),
+    quests: t('Game&Quest', 'Game&Quest', 'Game&Quest'),
     wallet: t('Wallet', 'กระเป๋าแต้ม', '钱包'),
     /*
       The game tab took the wallet's place on the bar.
@@ -183,6 +186,27 @@ export const strings = {
       '暂时找不到道路路线 — 虚线表示方向，不是道路。',
     ),
     wayClear: t('Clear the route', 'ล้างเส้นทาง', '清除路线'),
+    /**
+     * Too far for this mode, and the traveller can do something about it.
+     *
+     * The router plans a walk up to a hundred kilometres and refuses past
+     * it (`ROUTE_MAX_M`). Saying only "no route" would hide the one fact
+     * that helps: the OTHER mode may well answer.
+     */
+    wayTooFar: t(
+      'Too far for this mode. Try by road.',
+      'ไกลเกินไปสำหรับโหมดนี้ ลองเลือกทางถนน',
+      '此方式距离过远，请改用驾车。',
+    ),
+    /**
+     * The graph has no way through at all - which on an island is the
+     * ordinary answer for a car, because the road stops at the water.
+     */
+    wayNoPath: t(
+      'No road goes all the way there. The last part is by boat.',
+      'ไม่มีถนนไปถึงที่นั่นตลอดทาง ช่วงสุดท้ายต้องไปทางเรือ',
+      '没有道路可以直达，最后一段需要搭船。',
+    ),
     /** A quest's mark on the map: what it is, where, and what it pays. */
     questPin: (points: number) => t(`Quest · +${points} points`, `ภารกิจ · +${points} แต้ม`, `任务 · +${points} 积分`),
     /** The legend's second line: how much of the chart this traveller has lifted the mist from. */
@@ -196,6 +220,123 @@ export const strings = {
       Safe: t('Safe', 'ปลอดภัย', '安全'),
       Quest: t('Quest', 'ภารกิจ', '任务'),
     },
+  },
+
+  /*
+    -- Turn-by-turn ---------------------------------------------------------
+
+    Everything the navigator says, except the TURNS themselves: those are
+    written in `navigation.ts`, beside the maneuver types they belong to, so
+    that adding a maneuver and forgetting its sentence is impossible.
+
+    What is here is the frame around them - the banner's distances, the trip
+    panel, and the handful of states a navigator can be in that are not
+    "drive on". Those states carry most of the honesty in this feature: a
+    router that cannot answer, a phone that cannot see the sky, and a cache
+    that has a route but no way to compute a new one are three different
+    things, and a traveller who is told the right one can act on it.
+  */
+  navigate: {
+    start: t('Start', 'เริ่มนำทาง', '开始导航'),
+    stop: t('Stop', 'หยุด', '结束'),
+    stopA11y: t('Stop navigation', 'หยุดนำทาง', '结束导航'),
+    overview: t('Overview', 'ภาพรวม', '全览'),
+    recentre: t('Re-centre', 'จัดกึ่งกลาง', '回到当前位置'),
+    /**
+     * The banner's distance to the next turn, e.g. "Turn left in 120 m".
+     *
+     * `gapAfter` is there because the instruction may END in a Latin road
+     * name - a great many of this island's roads are in OpenStreetMap under
+     * one - and Thai runs its own words together but puts a space around
+     * Latin script. Without it a live route reads "Soi Nalatในอีก 2.5 กม.".
+     */
+    inDistance: (instruction: string, distance: string) =>
+      t(
+        `${instruction} in ${distance}`,
+        `${instruction}${gapAfter(instruction)}ในอีก ${distance}`,
+        `${distance}后${instruction}`,
+      ),
+    /** Close enough that a distance would be read after the junction. */
+    now: (instruction: string) =>
+      t(`${instruction} now`, `${instruction}${gapAfter(instruction)}ตอนนี้`, `现在${instruction}`),
+    remaining: t('Left', 'เหลือ', '剩余'),
+    timeLeft: t('Time', 'เวลา', '时间'),
+    arrival: t('Arrival', 'ถึงเวลา', '到达'),
+    /** The three lines of the trip panel, read by a screen reader as one. */
+    tripSummary: (distance: string, duration: string, at: string) =>
+      t(`${distance} left, about ${duration}, arriving around ${at}`,
+        `เหลือ ${distance} ประมาณ ${duration} ถึงราว ${at}`,
+        `剩余 ${distance}，约 ${duration}，预计 ${at} 到达`),
+
+    waitingForGps: t('Waiting for GPS…', 'กำลังรอสัญญาณ GPS…', '正在等待 GPS…'),
+    weakGps: t('GPS signal is weak', 'สัญญาณ GPS อ่อน', 'GPS 信号较弱'),
+    gpsLost: t('Lost the GPS signal — the route is still here', 'สัญญาณ GPS หาย เส้นทางยังอยู่', 'GPS 信号中断 — 路线仍在'),
+    /**
+     * The permission refusal. It names the thing to change rather than
+     * scolding: a traveller who said no to a dialog three screens ago does
+     * not remember doing it, and "enable location" with no verb is not an
+     * instruction anybody can follow.
+     */
+    noPermission: t(
+      'Navigation needs your location. Turn it on for ChivarGo in your phone settings.',
+      'การนำทางต้องใช้ตำแหน่งของคุณ เปิดการเข้าถึงตำแหน่งให้ ChivarGo ในการตั้งค่าเครื่อง',
+      '导航需要你的位置。请在手机设置中为 ChivarGo 开启定位权限。',
+    ),
+    finding: t('Finding the route…', 'กำลังหาเส้นทาง…', '正在规划路线…'),
+    rerouting: t('Finding a new route…', 'กำลังหาเส้นทางใหม่…', '正在重新规划…'),
+    offRoute: t('Off the route', 'ออกนอกเส้นทาง', '已偏离路线'),
+    /**
+     * The reroute failed and the OLD route is still on screen. Said plainly,
+     * because a stale route drawn silently is the one failure in this
+     * feature that can walk somebody into the sea.
+     */
+    rerouteFailed: t(
+      'Could not find a new route. The one shown is the old one.',
+      'หาเส้นทางใหม่ไม่ได้ เส้นทางที่เห็นคือเส้นทางเดิม',
+      '无法重新规划。当前显示的是原路线。',
+    ),
+    /** Offline with a saved route: progress still works, a new route does not. */
+    offlineRoute: t(
+      'Offline — following the saved route. A new route needs a connection.',
+      'ออฟไลน์ — กำลังใช้เส้นทางที่บันทึกไว้ การหาเส้นทางใหม่ต้องมีสัญญาณ',
+      '离线 — 正在沿已保存的路线。重新规划需要网络。',
+    ),
+    noRoute: t(
+      'No route to this place right now.',
+      'ตอนนี้หาเส้นทางไปที่นี่ไม่ได้',
+      '暂时找不到前往该地点的路线。',
+    ),
+    /**
+     * The heading when the problem is the permission rather than the road.
+     *
+     * Its own line because "no route to this place" over an explanation
+     * about settings is two different failures in one card, and the
+     * traveller has to read the small print to find out which one they met.
+     */
+    locationOff: t('Location is off', 'ตำแหน่งปิดอยู่', '定位未开启'),
+    /**
+     * The phone has permission and still cannot say where it is.
+     *
+     * Its own state because the ACTION is different from every other
+     * failure here: nothing in the app or its settings will fix it, and the
+     * traveller has to move. Before this existed the screen simply sat on a
+     * disabled "Waiting for GPS…" button for as long as it was left there,
+     * which is the worst of the three - it looks like the app is working.
+     */
+    tooFarTitle: t('Too far to walk', 'ไกลเกินกว่าจะเดิน', '步行距离过远'),
+    noPathTitle: t('No road all the way', 'ไม่มีถนนตลอดเส้นทาง', '无法全程驾车'),
+    noFixTitle: t('No position yet', 'ยังหาตำแหน่งไม่ได้', '尚未定位'),
+    noFixBody: t(
+      'Your phone has not found a position. Somewhere with a clearer view of the sky usually fixes it.',
+      'โทรศัพท์ยังหาตำแหน่งไม่พบ ลองย้ายไปที่ที่เห็นท้องฟ้าโล่งขึ้น แล้วลองใหม่',
+      '手机尚未取得定位。换到能看见更开阔天空的位置通常就能解决。',
+    ),
+    arrived: t('You have arrived', 'ถึงจุดหมายแล้ว', '你已到达'),
+    arrivedAt: (place: string) => t(`You have arrived at ${place}`, `ถึง${place}แล้ว`, `你已到达${place}`),
+    seePlace: t('Open this place', 'ดูรายละเอียดสถานที่', '查看该地点'),
+    done: t('Done', 'เสร็จสิ้น', '完成'),
+    /** The dot, for a screen reader. A graphic, not a control. */
+    you: t('You, and the way you are facing', 'คุณ และทิศที่คุณหันไป', '你与你的朝向'),
   },
 
   // -- Mascots ------------------------------------------------------------
@@ -250,12 +391,24 @@ export const strings = {
   // -- Place --------------------------------------------------------------
   place: {
     context: t('Place', 'สถานที่', '地点'),
-    // Stories (docs/44-45). The door's line is the honest one: no button that
-    // fails, a sentence that says when.
-    stories: t('Stories', 'สตอรี่', '故事'),
-    storiesEmpty: t('No stories here yet.', 'ยังไม่มีสตอรี่ที่นี่', '这里还没有故事。'),
-    storiesClosed: t('Stories open at the event, at the place.', 'สตอรี่เปิดรับที่งาน ณ สถานที่จริง', '故事仅在活动现场开放发布。'),
-    tellStory: t('Tell a story here', 'เล่าสตอรี่ที่นี่', '在这里讲个故事'),
+    // A social check-in is a moment ABOUT a place, not proof that the author
+    // is standing there. Reviews keep the verified-visit rule below.
+    stories: t('Check-in stories', 'เช็กอินสตอรี่', '打卡动态'),
+    storiesIntro: t(
+      'Little moments about this place — not ratings. Post from anywhere.',
+      'โมเมนต์สั้น ๆ เกี่ยวกับสถานที่นี้ ไม่ใช่รีวิว และโพสต์จากที่ไหนก็ได้',
+      '分享与这里有关的小瞬间，不是评价；在任何地方都能发布。',
+    ),
+    storiesEmpty: t('No check-in stories yet. Start the first one.', 'ยังไม่มีเช็กอินสตอรี่ มาโพสต์เป็นคนแรกกัน', '还没有打卡动态，来发布第一条吧。'),
+    storiesClosed: t('Posting is temporarily unavailable.', 'ปิดรับโพสต์ชั่วคราว', '暂时无法发布。'),
+    tellStory: t('Post a check-in story', 'โพสต์เช็กอินสตอรี่', '发布打卡动态'),
+    storyComposeTitle: t('A moment from this place', 'โมเมนต์จากสถานที่นี้', '这里的一个瞬间'),
+    storyCaption: t('Write a short caption…', 'เขียนรายละเอียดสั้น ๆ…', '写一句简短说明…'),
+    storyFromAnywhere: t(
+      'No live location needed. Your post will be attached to this place.',
+      'ไม่ต้องเปิดพิกัด โพสต์นี้จะผูกกับสถานที่นี้',
+      '无需实时定位，动态会关联到这个地点。',
+    ),
     /*
       One entry for everything a person leaves at a place.
 
@@ -318,12 +471,12 @@ export const strings = {
     ),
     /** The notice at the door (docs/46). Going on to record is the consent. */
     storyNotice: t(
-      'Your clip shows on the screen at the event and stays in the app for 7 days. Film only people who are happy to be filmed.',
-      'คลิปของคุณจะขึ้นจอในงานและอยู่ในแอป 7 วัน ถ่ายเฉพาะคนที่ยินดีให้ถ่าย',
-      '你的短片会显示在活动现场的屏幕上，并在应用内保留 7 天。请只拍摄愿意出镜的人。',
+      'This stays in the app for 7 days. Share only media you have permission to post.',
+      'โพสต์จะอยู่ในแอป 7 วัน ใช้เฉพาะรูปหรือคลิปที่คุณมีสิทธิ์โพสต์',
+      '动态会在应用内保留 7 天。请只分享你有权发布的照片或短片。',
     ),
     storyNoFix: t('Your position is needed to tell a story here.', 'ต้องมีตำแหน่งเพื่อเล่าสตอรี่ที่นี่', '需要你的位置才能在这里讲故事。'),
-    storyPickerUnavailable: t('The camera could not open.', 'เปิดกล้องไม่ได้', '无法打开相机。'),
+    storyPickerUnavailable: t('The photo picker could not open.', 'เปิดตัวเลือกรูปไม่ได้', '无法打开照片选择器。'),
     storyTooLarge: t('That file is over 25 MB. Ten seconds is plenty.', 'ไฟล์เกิน 25 MB ถ่ายสั้นๆ 10 วินาทีก็พอ', '该文件超过 25 MB。拍十秒就够了。'),
     storyHeic: t(
       'iPhone HEIC photos cannot be converted here yet. Set Settings › Camera › Formats to Most Compatible, or send a JPEG.',
@@ -955,7 +1108,7 @@ export const strings = {
       antiScam: t('Anti-Scam', 'ป้องกันการหลอกลวง', '防诈骗'),
       antiScamNote: t('11 QR merchants verified this trip', 'ตรวจสอบร้านค้า QR แล้ว 11 ร้านในทริปนี้', '本次行程已验证 11 家 QR 商户'),
       emergency: t('Emergency Assistance', 'ความช่วยเหลือฉุกเฉิน', '紧急援助'),
-      emergencyNote: t('Bangkok Hospital Samui · 4.1 km', 'โรงพยาบาลกรุงเทพสมุย · 4.1 กม.', '苏梅岛曼谷医院 · 4.1 km'),
+      emergencyNote: t('Koh Sichang Hospital emergency room', 'ห้องฉุกเฉิน โรงพยาบาลเกาะสีชัง', '锡昌岛医院急诊室'),
       language: t('Language Help', 'ช่วยเหลือด้านภาษา', '语言协助'),
       languageNote: t('Thai↔English interpreter on call', 'ล่ามไทย-อังกฤษพร้อมให้บริการ', '泰英口译随时待命'),
     },
@@ -965,9 +1118,9 @@ export const strings = {
     sosArmed: t('Alert sent', 'ส่งการแจ้งเตือนแล้ว', '警报已发送'),
     dispatching: (where: string) => t(`Dispatching · ${where}`, `กำลังส่งความช่วยเหลือ · ${where}`, `正在调度 · ${where}`),
     dispatchDetail: t(
-      'Bangkok Hospital Samui notified · Live location shared with 2 contacts · Thai↔English interpreter joining',
-      'แจ้งโรงพยาบาลกรุงเทพสมุยแล้ว · แชร์ตำแหน่งกับผู้ติดต่อ 2 คน · ล่ามไทย-อังกฤษกำลังเข้าร่วม',
-      '已通知苏梅岛曼谷医院 · 已与 2 位联系人共享位置 · 泰英口译正在加入',
+      'Koh Sichang Hospital notified · Live location shared with 2 contacts · Thai↔English interpreter joining',
+      'แจ้งโรงพยาบาลเกาะสีชังแล้ว · แชร์ตำแหน่งกับผู้ติดต่อ 2 คน · ล่ามไทย-อังกฤษกำลังเข้าร่วม',
+      '已通知锡昌岛医院 · 已与 2 位联系人共享位置 · 泰英口译正在加入',
     ),
     cancelAlert: t('Cancel alert', 'ยกเลิกการแจ้งเตือน', '取消警报'),
     /**

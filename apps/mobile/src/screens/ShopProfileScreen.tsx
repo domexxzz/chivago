@@ -3,6 +3,7 @@ import React from 'react';
 import { ActivityIndicator, Image, Linking, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { AlertTriangle, ArrowLeft, Camera, Clock, Flag, Mail, MapPin, MessageCircle, Navigation, Phone, Star, Store, Trash2, UserRound, X } from 'lucide-react-native';
+import { mapsDirectionsUrl } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { shopImageUri, shopOpenNow, type ShopReview } from '../api/shops.ts';
 import { useAsync } from '../state/store.tsx';
@@ -49,7 +50,19 @@ function ShopPhoto({ url, height, hero = false, guide = false }: { url: string |
     : <View style={{ width: '100%', height, backgroundColor: guide ? '#D8F1F4' : '#DDF4FA', borderRadius: hero ? 0 : 16, marginBottom: hero ? 0 : 12, alignItems: 'center', justifyContent: 'center' }}>{guide ? <UserRound size={64} color={blue} /> : <Store size={54} color={blue} />}</View>;
 }
 
-export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onEdit, scrollState }: { scrollState?: DetailScrollState; shopId: string; guest?: boolean; onSignIn?: () => void; onBack: () => void; onEdit: () => void }) {
+export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onEdit, onNavigate, scrollState }: {
+  scrollState?: DetailScrollState; shopId: string; guest?: boolean; onSignIn?: () => void;
+  onBack: () => void; onEdit: () => void;
+  /**
+   * Take the traveller to this business on the app's own map.
+   *
+   * Optional, and the button is complete without it: a build with no
+   * navigator - or a shop screen rendered somewhere that cannot push a
+   * route - still offers the Google Maps handoff it always did, which is
+   * the line below the button rather than the button itself.
+   */
+  onNavigate?: (destination: { id: string; name: string; lat: number; lng: number }) => void;
+}) {
   const [offlineStamp, setOfflineStamp] = React.useState<string | null>(null);
   const shop = useAsync(() => shopWithFallback(shopId, async () => {
     const result = await api.shop(shopId);
@@ -187,7 +200,41 @@ export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onE
         {shop.data.serviceType === 'guide' && shop.data.guideLineId ? <Text style={{ marginTop: 8 }}>LINE ID: {shop.data.guideLineId}</Text> : null}
         {shop.data.serviceType === 'guide' && shop.data.email ? <Text style={{ marginTop: 8 }}>{t({ en: 'Email', th: 'อีเมล', zh: '邮箱' })}: {shop.data.email}</Text> : null}
         {shop.data.serviceType !== 'guide' && shop.data.amenities.length ? <Text style={{ marginTop: 8 }}>{t({ en: 'Amenities', th: 'สิ่งอำนวยความสะดวก', zh: '设施' })}: {shop.data.amenities.join(', ')}</Text> : null}
-        {shop.data.lat !== null && shop.data.lng !== null ? <Pressable onPress={() => void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${shop.data!.lat},${shop.data!.lng}`)} style={[button, { marginTop: 14, flexDirection: 'row', justifyContent: 'center', gap: 6 }]}><Navigation size={16} color="#fff" /><Text style={{ color: '#fff' }}>{t({ en: 'Get directions', th: 'นำทาง', zh: '导航' })}</Text></Pressable> : null}
+        {/*
+          NAVIGATION GOES TO THE APP'S OWN MAP.
+
+          This button used to leave for Google Maps, which meant the one
+          moment a traveller most needs this app - standing outside, trying
+          to find a shop that is three sois away - was the moment it handed
+          them to somebody else's. It now opens ChivarGo's own turn-by-turn,
+          on the island's own map, with the roads and the Healthy Score pins
+          already on it.
+
+          THE HANDOFF IS KEPT, as a quiet link underneath. The island's
+          router is a free community server and is allowed to say nothing
+          (see packages/core/src/routing.ts); somebody who needs the road
+          NOW should not have to go back three screens to find the map that
+          has it. And where no navigator was passed in, the handoff IS the
+          button, exactly as it was before.
+        */}
+        {shop.data.lat !== null && shop.data.lng !== null ? <View style={{ marginTop: 14 }}>
+          <Pressable
+            onPress={() => {
+              const place = shop.data!;
+              if (onNavigate) { onNavigate({ id: place.id, name: place.name, lat: place.lat!, lng: place.lng! }); return; }
+              void Linking.openURL(mapsDirectionsUrl({ lat: place.lat!, lng: place.lng! }));
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={t({ en: 'Get directions', th: 'นำทาง', zh: '导航' })}
+            style={[button, { flexDirection: 'row', justifyContent: 'center', gap: 6 }]}
+          ><Navigation size={16} color="#fff" /><Text style={{ color: '#fff' }}>{t({ en: 'Get directions', th: 'นำทาง', zh: '导航' })}</Text></Pressable>
+          {onNavigate ? <Pressable
+            onPress={() => { void Linking.openURL(mapsDirectionsUrl({ lat: shop.data!.lat!, lng: shop.data!.lng! })); }}
+            accessibilityRole="link"
+            accessibilityLabel={t({ en: 'Open in Google Maps', th: 'เปิดใน Google Maps', zh: '在 Google 地图中打开' })}
+            style={{ minHeight: 40, alignItems: 'center', justifyContent: 'center', marginTop: 6 }}
+          ><Text style={{ color: blue, fontWeight: '700', fontSize: 12 }}>{t({ en: 'Open in Google Maps', th: 'เปิดใน Google Maps', zh: '在 Google 地图中打开' })}</Text></Pressable> : null}
+        </View> : null}
       </View>
       {shop.data.images.length > 0 ? <View style={{ marginBottom: 14 }}><Text style={{ color: '#123B64', fontWeight: '800', fontSize: 17, marginBottom: 10 }}>{t({ en: 'Photos from this service', th: 'รูปภาพจากสถานบริการ', zh: '服务照片' })}</Text><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
         {shop.data.images.map((img) => <Image key={img.id} source={{ uri: shopImageUri(img.url) }} style={{ width: Math.min(width * 0.5, 210), height: 138, borderRadius: 16 }} />)}

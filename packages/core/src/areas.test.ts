@@ -3,7 +3,8 @@ import { test, describe } from 'node:test';
 
 import {
   AREAS, DEFAULT_AREA, KU_BANGKHEN_BBOX, KU_SRIRACHA_BBOX, RMUTT_BBOX,
-  areaByKey, areaOfPlace, areaOfProvince, inArea, isAreaKey, nearestArea,
+  areaByKey, areaOfPlace, areaOfProvince, inArea, isAreaKey, isOnKohSichang,
+  navigationProviderFor, nearestArea,
 } from './areas.ts';
 import { CHECKIN_RADIUS_M, SEED_HOSTS, SEED_PLACES, SEED_QUESTS } from './seed.ts';
 import { CAMPUS_LEG_MIN_M, LEG_MIN_M, lowCarbonLeg } from './low-carbon.ts';
@@ -21,6 +22,15 @@ const kuPlaces = SEED_PLACES.filter((p) => areaOfPlace(p) === 'ku-sriracha');
 const kuQuests = SEED_QUESTS.filter((q) => inArea(ku, q));
 
 describe('five areas, derived from provinces', () => {
+  test('the in-app navigation boundary is the island frame without the content margin', () => {
+    assert.ok(isOnKohSichang({ lat: 13.1599, lng: 100.8096 }), 'Tha Lang is on the island');
+    assert.ok(isOnKohSichang({ lat: 13.1250, lng: 100.7970 }), 'the boundary is included');
+    assert.ok(!isOnKohSichang({ lat: 13.1205, lng: 100.9205 }), 'Si Racha is handed to Google Maps');
+    assert.ok(!isOnKohSichang({ lat: 13.1249, lng: 100.8100 }), 'the area content margin is not navigation coverage');
+    assert.equal(navigationProviderFor({ lat: 13.1599, lng: 100.8096 }), 'chivago');
+    assert.equal(navigationProviderFor({ lat: 13.1205, lng: 100.9205 }), 'google');
+  });
+
   test('no two areas overlap, so a coordinate is never in two frames at once', () => {
     /*
       `areaOfPlace` picks the first frame a place stands in. If two frames

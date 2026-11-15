@@ -77,6 +77,25 @@ describe('balance and ledger stay in step', () => {
 });
 
 describe('idempotency', () => {
+  test('an EXP-only pilot award changes progression without inventing wallet points', () => {
+    const before = getExp(db, USER);
+    const result = awardQuestReward(db, {
+      userId: USER,
+      questId: 'q-sg-explorer',
+      questName: 'Sichang Explorer',
+      host: 'ChivarGo team · Koh Sichang',
+      points: 0,
+      currency: 'trip',
+      exp: 150,
+    });
+
+    assert.equal(result.applied, true);
+    assert.equal(getBalances(db, USER).trip, 0);
+    assert.equal(getExp(db, USER), before + 150);
+    assert.equal(movements()[0]?.amount, 0);
+    assert.equal(movements()[0]?.exp, 150);
+  });
+
   test('the same sourceRef never pays twice', () => {
     const args = {
       userId: USER, questId: 'q1', questName: 'Beach Cleanup',

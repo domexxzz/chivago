@@ -473,3 +473,115 @@ export function edgeNudgeTop(
   const wanted = box.top < frame.top ? frame.top - box.top : 0;
   return wanted <= max ? Math.round(wanted) : 0;
 }
+
+// ---------------------------------------------------------------------------
+// Every service gets a pin
+// ---------------------------------------------------------------------------
+
+/**
+ * How far from the area's centre an unpinned service is drawn, in metres.
+ *
+ * Far enough that a handful of them do not sit on one another's tails, near
+ * enough that the ring reads as "in this area" and not as one more address.
+ */
+export const UNPINNED_RING_M = 160;
+
+/**
+ * What an approximate pin says about itself, in every language the app
+ * speaks. One sentence for all four maps, so the claim cannot drift between
+ * them: the business gave no location, and this is the area, not the door.
+ */
+export const UNPINNED_NOTE = {
+  en: 'Location not given by the business. Shown in this area, not at its door.',
+  th: 'ร้านยังไม่ได้ระบุตำแหน่ง หมุดนี้แสดงพื้นที่ ไม่ใช่ที่ตั้งจริง',
+  zh: '商家未提供位置。此标记只表示所在区域，并非实际地址。',
+} as const;
+
+/** Where a service sits on the map, and whether that is its real spot. */
+export interface ServicePoint {
+  lat: number;
+  lng: number;
+  /**
+   * True when the business gave no usable coordinates and the pin stands on
+   * the area's ring instead. The renderers draw these dashed and say so in
+   * their accessibility label: the pin promises "this service is here, in
+   * this area", never "this is its door".
+   */
+  approximate: boolean;
+}
+
+/**
+ * Coordinates a pin can honestly stand on.
+ *
+ * Missing, non-finite and Null Island (0, 0 - what an empty form posts as
+ * two zeros) are not a place. Neither is a point outside the area the
+ * service is listed under: a shop in Koh Sichang's list with a Bangkok
+ * coordinate is a typo, and drawing it there would put its pin off the edge
+ * of the very map that lists it.
+ */
+const usable = (lat: number | null, lng: number | null, bbox?: Bbox): lat is number => {
+  if (lat === null || lng === null || !Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  if (lat === 0 && lng === 0) return false;
+  if (!bbox) return true;
+  // A small margin, so a beach bar on the waterline is not pushed off its beach.
+  const padLat = (bbox.maxLat - bbox.minLat) * 0.05;
+  const padLng = (bbox.maxLng - bbox.minLng) * 0.05;
+  return lat >= bbox.minLat - padLat && lat <= bbox.maxLat + padLat
+    && lng >= bbox.minLng - padLng && lng <= bbox.maxLng + padLng;
+};
+
+/**
+ * A map point for EVERY service, never fewer.
+ *
+ * The maps used to `continue` past a service with no coordinates, so a tour
+ * guide who had not dropped a pin simply did not exist on the map while
+ * appearing in the list under it. Now every one comes back: the ones with a
+ * real spot at that spot, and the rest spread evenly around the area's
+ * centre on `UNPINNED_RING_M`, starting due north, flagged `approximate`.
+ *
+ * Order and length are preserved, and each point carries the untouched
+ * record as `source`: a tap must hand over the business as it is, never the
+ * ring copy, or something downstream could route a traveller to a point the
+ * business never gave. Pure, so the tests can hold it to "one point each".
+ */
+export function servicePoints<T extends { lat: number | null; lng: number | null }>(
+  shops: readonly T[],
+  center: { lat: number; lng: number },
+  bbox?: Bbox,
+): (Omit<T, 'lat' | 'lng'> & ServicePoint & { source: T })[] {
+  const unpinned = shops.filter((s) => !usable(s.lat, s.lng, bbox)).length;
+  const degLat = UNPINNED_RING_M / 111_320;
+  const degLng = UNPINNED_RING_M / (111_320 * Math.cos((center.lat * Math.PI) / 180));
+  let k = 0;
+  return shops.map((shop) => {
+    if (usable(shop.lat, shop.lng, bbox)) {
+      return { ...shop, lat: shop.lat as number, lng: shop.lng as number, approximate: false, source: shop };
+    }
+    const angle = (2 * Math.PI * k) / Math.max(1, unpinned);
+    k += 1;
+    return {
+      ...shop,
+      lat: center.lat + degLat * Math.cos(angle),
+      lng: center.lng + degLng * Math.sin(angle),
+      approximate: true,
+      source: shop,
+    };
+  });
+}
+
+/**
+ * A tour guide is a PERSON, not a place, and has no pin.
+ *
+ * A guide meets you at the pier one morning and on the hill the next; a pin
+ * would claim a door that does not exist, and an approximate one on the
+ * area's ring would still read as "the guide is here". So guides stay in the
+ * service list and the guide directory, and off every map. Checked on both
+ * fields because rows written before `serviceType` existed only carry the
+ * category.
+ */
+export const isGuide = (s: { serviceType?: string; category?: string }): boolean =>
+  s.serviceType === 'guide' || s.category === 'ไกด์นำเที่ยว';
+
+/** The services a map draws: everything with a door, never a guide. */
+export const mappable = <T extends { serviceType?: string; category?: string }>(shops: readonly T[]): T[] =>
+  shops.filter((s) => !isGuide(s));

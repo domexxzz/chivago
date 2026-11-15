@@ -264,7 +264,7 @@ app.use('*', logger());
  * middleware below, which would provision a mobile user for a municipal
  * reviewer and hand them a wallet.
  */
-app.route('/console', consoleRoutes(db, {
+app.route('/console', consoleRoutes(() => db, {
   // A console approval should reach the volunteer's phone as fast as the
   // automation path does. Without this it waited for the 60-second ticker.
   afterDecision: () => flushNotifications(),
@@ -560,6 +560,14 @@ app.get('/board/:area', (c) => {
  * shape is one shape.
  */
 app.get('/areas/:key/weather', async (c) => {
+  /*
+    This route is registered before the app-wide CORS middleware below.
+    Hono applies middleware in registration order, so Expo Web could read
+    every other area endpoint but the live weather request was blocked by
+    the browser. Weather is public, read-only area data, just like stories
+    and transit, and is deliberately readable by the local web client.
+  */
+  c.header('access-control-allow-origin', '*');
   const key = c.req.param('key');
   if (!isAreaKey(key)) return fail(c, 'NOT_FOUND', 'No such area', 404);
   c.header('cache-control', 'no-store');
@@ -2102,8 +2110,9 @@ app.get('/me/statements', (c) => ok(c, { statements: statementsIncluding(db, use
 app.get('/places/:id/stories', (c) => ok(c, { open: storiesOpen(db), stories: storiesAt(db, c.req.param('id')) }));
 
 /**
- * Tell one. Multipart: `file` (a clip or a photograph), `caption`, and
- * `position` as JSON - the fix the fence and the second signal judge.
+ * Post one. Multipart: `file` (a clip or a photograph) and `caption`.
+ * This is social content about a place, not proof of presence, so it does
+ * not accept or store a location.
  * Pending until a host approves; the reply says so.
  */
 app.post('/places/:id/stories', async (c) => {
@@ -2123,18 +2132,12 @@ app.post('/places/:id/stories', async (c) => {
   }
   const file = form.get('file');
   if (!(file instanceof File)) return fail(c, 'FILE_REQUIRED', 'A clip or a photograph is needed.');
-  const position = parsePosition(form.get('position'));
-  if (!position) return fail(c, 'LOCATION_REQUIRED', 'Your location is needed to tell a story here.');
   const caption = form.get('caption');
-  const event = form.get('event');
   const story = await submitStory(db, {
     userId: userId(c),
     placeId: c.req.param('id'),
     bytes: Buffer.from(await file.arrayBuffer()),
     caption: typeof caption === 'string' ? caption : '',
-    fix: position,
-    // The token from the QR code, when the deployment set one (docs/46).
-    event: typeof event === 'string' ? event : null,
   });
   return ok(c, story);
 });
@@ -2425,9 +2428,24 @@ app.get('/summon/verify/:id', (c) => ok(c, verifySummon(db, c.req.param('id'))))
  * keeps working.
  */
 app.post('/summon', async (c) => {
-  const body = (await c.req.json().catch(() => ({}))) as { pulls?: unknown };
-  const pulls = body.pulls === TEN_PULL_SIZE ? TEN_PULL_SIZE : 1;
-  return ok(c, pull(db, userId(c), pulls));
+  const body = (await c.req.json().catch(() => ({}))) as {
+    category?: unknown; quantity?: unknown; pulls?: unknown; idempotencyKey?: unknown;
+  };
+  if (body.category !== 'mascot' && body.category !== 'fashion') {
+    return fail(c, 'BAD_REQUEST', 'Category must be mascot or fashion.');
+  }
+  const quantity = body.quantity ?? body.pulls;
+  if (quantity !== 1 && quantity !== TEN_PULL_SIZE) {
+    return fail(c, 'BAD_REQUEST', 'Quantity must be 1 or 10.');
+  }
+  if (typeof body.idempotencyKey !== 'string' || body.idempotencyKey.length < 8 || body.idempotencyKey.length > 128) {
+    return fail(c, 'BAD_REQUEST', 'A unique idempotency key is required.');
+  }
+  return ok(c, pull(db, userId(c), {
+    category: body.category,
+    quantity,
+    idempotencyKey: body.idempotencyKey,
+  }));
 });
 
 /**

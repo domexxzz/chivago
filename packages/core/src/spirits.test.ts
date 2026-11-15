@@ -112,12 +112,12 @@ describe('the published table', () => {
 
   test('the boundaries are where the table says, not one off', () => {
     assert.equal(rarityFromRoll(0), 'common');
-    assert.equal(rarityFromRoll(5_999), 'common');
-    assert.equal(rarityFromRoll(6_000), 'uncommon');
-    assert.equal(rarityFromRoll(8_699), 'uncommon');
-    assert.equal(rarityFromRoll(8_700), 'rare');
-    assert.equal(rarityFromRoll(9_699), 'rare');
-    assert.equal(rarityFromRoll(9_700), 'mythic');
+    assert.equal(rarityFromRoll(5_625), 'common');
+    assert.equal(rarityFromRoll(5_626), 'uncommon');
+    assert.equal(rarityFromRoll(8_157), 'uncommon');
+    assert.equal(rarityFromRoll(8_158), 'rare');
+    assert.equal(rarityFromRoll(9_498), 'rare');
+    assert.equal(rarityFromRoll(9_499), 'mythic');
     assert.equal(rarityFromRoll(9_999), 'mythic');
   });
 

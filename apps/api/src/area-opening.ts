@@ -26,7 +26,8 @@
  */
 
 import {
-  AREAS, SAFETY_PHRASES, SEED_PLACES, SEED_QUESTS, areaByKey, inArea, isAreaKey,
+  ACTIVE_QUESTS, AREAS, RETIRED_CODE_PREFIX, SAFETY_PHRASES, SEED_PLACES,
+  areaByKey, inArea, isAreaKey,
   type AreaKey,
 } from '@chivago/core';
 import { rows, transact, type DB } from './db.ts';
@@ -50,7 +51,15 @@ export interface SeedAreaResult {
  * which the superseded quests were holding. Inserting over that throws, so the
  * old code has to move before the new one can land.
  */
-const RETIRED_PREFIX = 'X-';
+/*
+  The prefix comes from `@chivago/core`, not from here.
+
+  This file defined its own `'X-'` while the branch was open, and `seed.ts`
+  then exported `RETIRED_CODE_PREFIX` with `isRetiredQuestCode` beside it —
+  two copies of one convention, in the one place where disagreeing about it
+  means a retired quest that nothing recognises as retired.
+*/
+const RETIRED_PREFIX = RETIRED_CODE_PREFIX;
 
 export interface RetireResult {
   /** Superseded quests nobody had started. Gone. */
@@ -82,7 +91,21 @@ export interface RetireResult {
 export function retireSupersededQuests(db: DB, key: AreaKey): RetireResult {
   if (!isAreaKey(key)) throw new Error(`area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
   const area = areaByKey(key);
-  const seeded = new Set(SEED_QUESTS.filter((q) => inArea(area, q)).map((q) => q.id));
+  /*
+    ACTIVE_QUESTS, not SEED_QUESTS, and the difference is the bug this
+    function exists for.
+
+    `SEED_QUESTS` is the historical catalogue - it still holds SC-01..SC-03
+    beside the SG-01..SG-05 that replaced them, because finished progress and
+    ledger rows can still name an older quest. Asking it what is current
+    answers "both", so the superseded SC rows would survive the run that was
+    meant to supersede them and the island would show more missions than the
+    deck claims. `ACTIVE_QUESTS` is the published five.
+
+    Only this area's quests are considered either way - the filter below is
+    `inArea` - so Samui's BC-04 and the campuses' KU-01 are never in reach.
+  */
+  const seeded = new Set(ACTIVE_QUESTS.filter((q) => inArea(area, q)).map((q) => q.id));
 
   const live = rows<{ id: string; code: string; lat: number; lng: number }>(
     db.prepare('SELECT id, code, lat, lng FROM quests').all(),
@@ -121,7 +144,7 @@ export function seedArea(db: DB, key: AreaKey, now = new Date()): SeedAreaResult
   if (!isAreaKey(key)) throw new Error(`area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
   const area = areaByKey(key);
   const places = SEED_PLACES.filter((p) => p.province === area.province);
-  const quests = SEED_QUESTS.filter((q) => inArea(area, q));
+  const quests = ACTIVE_QUESTS.filter((q) => inArea(area, q));
   const hosts = [...new Map(quests.map((q) => [q.host.id, q.host])).values()];
 
   return transact(db, () => {
@@ -176,13 +199,13 @@ export function seedArea(db: DB, key: AreaKey, now = new Date()): SeedAreaResult
     for (const q of quests) {
       const added = db.prepare(
         `INSERT INTO quests (id, code, name_en, name_th, where_label, where_label_th,
-           duration, duration_th, reward_points,
+           duration, duration_th, reward_points, reward_exp,
            reward_currency, host_id, kind, lat, lng, geofence_radius_m, esg_pillar)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
          ON CONFLICT(id) DO NOTHING`,
       ).run(
         q.id, q.code, q.name.en, q.name.th, q.where.en, q.where.th,
-        q.duration.en, q.duration.th, q.rewardPoints,
+        q.duration.en, q.duration.th, q.rewardPoints, q.rewardExp ?? null,
         q.rewardCurrency, q.host.id, q.kind, q.lat, q.lng, q.geofenceRadiusM,
         q.esgPillar ?? null,
       );

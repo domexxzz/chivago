@@ -4,30 +4,32 @@ import type { Quest } from '@chivago/core';
 import beachCleanup from '../../assets/mission-beach-cleanup-v1.png';
 import community from '../../assets/mission-community-v1.png';
 import coral from '../../assets/mission-coral-v1.png';
-import sichangExplorer from '../../assets/mission-sichang-explorer-v1.png';
-import sichangGreenJourney from '../../assets/mission-sichang-green-journey-v1.png';
-import sichangRecipe from '../../assets/mission-sichang-recipe-v1.png';
-import sichangTrashHero from '../../assets/mission-sichang-trash-hero-v1.png';
-import sichangTreasure from '../../assets/mission-sichang-treasure-v1.png';
+import sichangExplorer from '../../assets/quest-sichang-explorer.png';
+import sichangSecretRecipe from '../../assets/quest-sichang-secret-recipe.png';
+import sichangTrashHero from '../../assets/quest-sichang-trash-hero.png';
+import sichangLocalTreasure from '../../assets/quest-sichang-local-treasure.png';
+import sichangGreenJourney from '../../assets/quest-sichang-green-journey.png';
 
 /**
- * The five Ko Sichang quests have artwork of their own, one drawing each,
- * rather than a family image shared across the area.
+ * The island's five activities, under both codes they have been issued.
  *
- * Keyed on the whole code, not the family, because that is the point: the
- * drawing shows what THAT quest asks for - the ingredient game, the sorted
- * bins, the shop counter - and a family fallback would put a beach on all
- * five. If a code is ever reused for different work the picture must move
- * with the work, so this map is the thing to change, not the asset file.
- *
- * Concept drawings. They are not photographs of the island, and they picture
- * no real shop, route or participant.
+ * SC and SG are the same five briefs renumbered - explorer, recipe, trash
+ * hero, treasure, green journey - and the pilot database is still serving the
+ * SC set while the SG set waits for an operator to open the area. Keying only
+ * the new codes put all five of the live quests on the generic community
+ * image, so the demo island showed one picture five times. Both map to the
+ * same artwork, which is the truth: it is the same activity either way.
  */
-const SICHANG_ARTWORK: Readonly<Record<string, ImageSourcePropType>> = {
+const SICHANG_ARTWORK: Record<string, ImageSourcePropType> = {
+  'SG-01': sichangExplorer,
+  'SG-02': sichangSecretRecipe,
+  'SG-03': sichangTrashHero,
+  'SG-04': sichangLocalTreasure,
+  'SG-05': sichangGreenJourney,
   'SC-01': sichangExplorer,
-  'SC-02': sichangRecipe,
+  'SC-02': sichangSecretRecipe,
   'SC-03': sichangTrashHero,
-  'SC-04': sichangTreasure,
+  'SC-04': sichangLocalTreasure,
   'SC-05': sichangGreenJourney,
 };
 
@@ -40,10 +42,9 @@ const SICHANG_ARTWORK: Readonly<Record<string, ImageSourcePropType>> = {
  * it makes no claim about a measured result, reward, place, or participant.
  */
 export function questArtworkSource(quest: Pick<Quest, 'code'>): ImageSourcePropType {
-  const code = quest.code.toUpperCase();
-  const sichang = SICHANG_ARTWORK[code];
+  const sichang = SICHANG_ARTWORK[quest.code.toUpperCase()];
   if (sichang) return sichang;
-  const family = code.split('-')[0];
+  const family = quest.code.split('-')[0]?.toUpperCase();
   if (family === 'CR') return coral;
   if (family === 'BC' || family === 'KU' || family === 'RM') return beachCleanup;
   return community;

@@ -76,7 +76,10 @@ import type { Bilingual } from './types.ts';
  * it was drawn under and `itemsOfRarity` is asked for that version, so
  * yesterday's pulls keep recomputing to yesterday's answer.
  */
-export const POOL_VERSION = 2;
+export const POOL_VERSION = 3;
+
+/** The two independent banners. Their pools and pity counters never cross. */
+export type SummonCategory = 'mascot' | 'fashion';
 
 /** What a pull can pay in. Never `'green'`; see the header. */
 export const PULL_CURRENCY = 'trip' as const;
@@ -108,10 +111,11 @@ export type DrawnItem =
  * without ever mentioning one of these words. This map is a fact about THE
  * BOX, so it lives with the box.
  *
- * No costume is mythic. The rarest band stays the three spirits it already
- * held: a mythic is the one card the collection makes a fuss about, and
- * quietly diluting it with a hat would be worse odds for the thing people
- * are actually looking for while the printed number said nothing changed.
+ * Every banner has at least one eligible item in every published rarity.
+ * Tide crest already existed as the most elaborate fashion collectible; the
+ * independent Fashion banner now places it in Mythic so its guarantee can be
+ * honoured without inventing a reward or silently falling through to a
+ * different rarity.
  */
 export const COSTUME_RARITY: Readonly<Record<string, SpiritRarity>> = Object.freeze({
   'refill-flask': 'common',
@@ -119,7 +123,7 @@ export const COSTUME_RARITY: Readonly<Record<string, SpiritRarity>> = Object.fre
   'sun-umbrella': 'uncommon',
   'deck-scarf': 'uncommon',
   'field-notebook': 'rare',
-  'tide-crest': 'rare',
+  'tide-crest': 'mythic',
 });
 
 const SPIRIT_ITEMS: readonly DrawnItem[] = SPIRITS.map(
@@ -134,6 +138,20 @@ const COSTUME_ITEMS: readonly DrawnItem[] = ROLL_POOL.map((costume) => {
 
 /** Everything in the box, spirits first. The denominator a collection screen shows. */
 export const POOL: readonly DrawnItem[] = Object.freeze([...SPIRIT_ITEMS, ...COSTUME_ITEMS]);
+
+/** The static catalogue behind each DB-configured banner. */
+export const CATEGORY_POOL: Readonly<Record<SummonCategory, readonly DrawnItem[]>> = Object.freeze({
+  mascot: SPIRIT_ITEMS,
+  fashion: COSTUME_ITEMS,
+});
+
+export function itemsForCategory(
+  category: SummonCategory,
+  rarity?: SpiritRarity,
+): readonly DrawnItem[] {
+  const pool = CATEGORY_POOL[category];
+  return rarity ? pool.filter((item) => item.rarity === rarity) : pool;
+}
 
 /**
  * The entries of one rarity, for one pool version.

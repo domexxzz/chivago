@@ -106,7 +106,7 @@ export interface HostSession {
    * down. Separate because reviews are about PLACES, which no host owns -
    * see migrations.ts.
    */
-  role: 'host' | 'moderator';
+  role: 'host' | 'moderator' | 'admin';
   /**
    * What kind of organisation signed in. `operator` is the one that matters
    * to the console: a business answering travellers' questions, whose login
@@ -121,12 +121,13 @@ export function login(
   db: DB,
   apiKey: string,
   reviewer: string | null,
+  username: string | null = null,
   now = new Date(),
 ): HostSession | null {
   const candidates = rows<{
-    id: string; name: string; role: string; type: string; api_key_hash: string | null;
+    id: string; name: string; role: string; type: string; api_key_hash: string | null; console_username: string | null;
   }>(
-    db.prepare('SELECT id, name, role, type, api_key_hash FROM hosts WHERE api_key_hash IS NOT NULL')
+    db.prepare('SELECT id, name, role, type, api_key_hash, console_username FROM hosts WHERE api_key_hash IS NOT NULL')
       .all(),
   );
 
@@ -134,7 +135,10 @@ export function login(
   // reveal which host a key belongs to or how far down the table it sat.
   let matched: { id: string; name: string; role: string; type: string } | null = null;
   for (const host of candidates) {
-    if (verifyApiKey(apiKey, host.api_key_hash) && !matched) {
+    const usernameMatches = username === null
+      ? host.role !== 'admin'
+      : host.console_username?.toLocaleLowerCase('en-US') === username.toLocaleLowerCase('en-US');
+    if (verifyApiKey(apiKey, host.api_key_hash) && usernameMatches && !matched) {
       matched = { id: host.id, name: host.name, role: host.role, type: host.type };
     }
   }
@@ -148,7 +152,7 @@ export function login(
 
   return {
     token, hostId: matched.id, hostName: matched.name,
-    role: matched.role === 'moderator' ? 'moderator' : 'host',
+    role: matched.role === 'admin' ? 'admin' : matched.role === 'moderator' ? 'moderator' : 'host',
     hostType: matched.type,
     reviewer, expiresAt,
   };
@@ -182,7 +186,7 @@ export function resolveSession(
     token: found.token,
     hostId: found.host_id,
     hostName: found.name,
-    role: found.role === 'moderator' ? 'moderator' : 'host',
+    role: found.role === 'admin' ? 'admin' : found.role === 'moderator' ? 'moderator' : 'host',
     // Read on every request, not frozen into the session at sign-in: a host
     // re-typed as an operator loses the rest of the console at once.
     hostType: found.type,

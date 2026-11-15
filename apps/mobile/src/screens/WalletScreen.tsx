@@ -16,8 +16,13 @@
  */
 
 import React from 'react';
-import { Animated, Image, ImageBackground, Platform, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
-import { Award, Backpack, Camera, ChevronRight, Compass, Flag, Footprints, Gift, LockKeyhole, Map as MapIcon, MapPin, Scale, Sparkles, Star, Ticket } from 'lucide-react-native';
+import { Image, ImageBackground, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
+/*
+  The line icons that remain belong to the LEDGER's entry types - a quest,
+  a check-in, a voucher - which the reference design does not illustrate.
+  Everything the reference does draw now comes from `BackpackIcon.tsx`.
+*/
+import { Footprints, MapPin, Scale, Sparkles, Star, Ticket } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { tint, type TintKey } from '@chivago/tokens';
 import {
@@ -39,12 +44,14 @@ import { Button } from '../components/Button.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { MyCollection } from '../components/MyCollection.tsx';
+import { BackpackIcon } from '../components/BackpackIcon.tsx';
 import { CurrencyItemCard, RewardInventory } from '../components/AdventureInventory.tsx';
 import { MascotPortrait } from '../components/MascotPortrait.tsx';
-import { useReduceMotion } from '../components/reduce-motion.ts';
+import { InteractiveTravelDuo } from '../components/InteractiveTravelDuo.tsx';
 import { t } from '../i18n/locale.ts';
 import { formatInteger } from '../i18n/format.ts';
 import adventureDuo from '../../assets/backpack-adventure-duo-v1.png';
+import lighthouseBanner from '../../assets/menu/backpack-lighthouse-banner.png';
 import backpackWorld from '../../assets/backpack-tropical-world-v1.png';
 
 export function WalletScreen({
@@ -90,87 +97,160 @@ export function WalletScreen({
   const { width } = useWindowDimensions();
   const wide = width >= 900;
   const phone = width < 560;
+  /*
+    Three columns need about 360px each before the rank tiles and the
+    collection cards start clipping; below that two of them merge and the
+    collection takes the full width under them.
+  */
+  const three = width >= 1180;
 
   return (
-    <ImageBackground source={backpackWorld} resizeMode="cover" imageStyle={{ opacity: 0.9 }} style={{ flex: 1, backgroundColor: '#CDEFFC' }}>
-      <View pointerEvents="none" style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(210,241,251,0.48)' }} />
+    /*
+      THE SKY, NOT THE PHOTOGRAPH.
+
+      The island photo is still here and still doing its job - it is what
+      makes this screen feel like somewhere rather than a form - but it sits
+      under a much heavier veil than it used to. Three white cards standing
+      on a full-strength tropical photograph is two busy things fighting:
+      the gold plaques, the rank tiles and the wooden shelf are the loud
+      part of this page, and the ground they stand on should not be.
+    */
+    /*
+      `overflow: hidden` IS LOAD-BEARING HERE, and it fixes a bug older than
+      this layout.
+
+      react-native-web lays this background out at the image's NATURAL size -
+      1672 x 941 - rather than at the size of the box it fills, so on a
+      375px phone the document itself became 1672px wide and the whole
+      screen scrolled sideways against a band of empty sea. Measured on the
+      unmodified screen before this redesign, so it is not something the
+      three columns introduced; clipping the frame is what stops it.
+    */
+    <ImageBackground
+      source={backpackWorld}
+      resizeMode="cover"
+      imageStyle={{ opacity: 0.55 }}
+      style={{ flex: 1, backgroundColor: '#E8F6FD', overflow: 'hidden' }}
+    >
+      <View pointerEvents="none" style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(232,246,253,0.78)' }} />
     <ScrollView style={{ flex: 1, backgroundColor: 'transparent' }} showsVerticalScrollIndicator={false}>
       <BackpackHeader wallet={wallet.data} />
 
       {wallet.loading ? <LoadingState /> : null}
       {wallet.error ? <ErrorState message={wallet.error} onRetry={wallet.reload} /> : null}
       {wallet.data ? (
-        <View style={{ width: '100%', maxWidth: 1320, alignSelf: 'center', paddingBottom: 34 }}>
-          <ImageBackground
-            source={backpackWorld}
-            resizeMode="cover"
-            imageStyle={{ borderRadius: 27, opacity: 0.48 }}
+        /*
+          THREE COLUMNS, and the split is the design.
+
+          What the traveller carries, what they have earned, and what they
+          have collected are three different questions, and the reference
+          layout answers them side by side rather than stacking one long
+          scroll. Each column is a white card on the sky: a backpack, a
+          reward case, and a display shelf with the account rows beneath it.
+
+          The widths are where the CONTENT breaks, not where a device is.
+          Below 1180 the collection column is wider than the other two put
+          together and drops under them; below 780 everything stacks, in the
+          order a thumb reads it.
+        */
+        <View style={{ width: '100%', maxWidth: 1440, alignSelf: 'center', paddingBottom: 40 }}>
+          <View
             style={{
-            marginHorizontal: phone ? 10 : gutter,
-            marginTop: 18,
-            padding: wide ? 18 : phone ? 10 : 12,
-            borderRadius: 30,
-            borderWidth: 3,
-            borderColor: '#0B3B68',
-            backgroundColor: '#EAF9FF',
-            shadowColor: '#06335A',
-            shadowOffset: { width: 0, height: 10 },
-            shadowOpacity: 0.2,
-            shadowRadius: 22,
-            elevation: 7,
-            overflow: 'hidden',
-          }}>
-            <View pointerEvents="none" style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(218,246,255,0.72)' }} />
-            <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 22, right: 22, height: 5, borderRadius: 3, backgroundColor: '#F3C64F' }} />
-            {wide ? (
-              <View style={{ flexDirection: 'row', gap: 18 }}>
-                <View style={{ flex: 0.72, minWidth: 0, gap: 14 }}>
-                  <Balances wallet={wallet.data} embedded />
-                  <TravelCompanions
-                    companions={companions.data?.companions ?? null}
-                    province={province}
-                    onOpenCompanion={onOpenCompanion}
-                    onOpenMascots={onOpenMascots}
-                  />
-                </View>
-                <View style={{ flex: 1.28, minWidth: 0, gap: 14 }}>
-                  <RankLadder wallet={wallet.data} embedded medals={medals.data?.medals ?? null} onOpenMedals={onOpenMedals} />
-                  <LevelBlock wallet={wallet.data} embedded />
-                </View>
-              </View>
-            ) : (
-              <View style={{ gap: phone ? 12 : 14 }}>
+              flexDirection: three ? 'row' : 'column',
+              alignItems: 'flex-start',
+              gap: phone ? 12 : 16,
+              paddingHorizontal: phone ? 10 : gutter,
+              marginTop: 16,
+            }}
+          >
+            <View style={{ flex: three ? 1 : undefined, width: three ? undefined : '100%', gap: phone ? 12 : 16 }}>
+              <SectionPanel
+                icon={<BackpackIcon name="my-backpack" size={46} />}
+                title={t({ en: 'My Backpack', th: 'กระเป๋าของฉัน', zh: '我的背包' })}
+              >
                 <Balances wallet={wallet.data} embedded />
-                <RankLadder wallet={wallet.data} embedded medals={medals.data?.medals ?? null} onOpenMedals={onOpenMedals} />
+              </SectionPanel>
+              <TravelCompanions
+                companions={companions.data?.companions ?? null}
+                province={province}
+                motionReady={companions.data !== null && passport.data !== null}
+                onOpenCompanion={onOpenCompanion}
+                onOpenMascots={onOpenMascots}
+              />
+            </View>
+
+            <View style={{ flex: three ? 1 : undefined, width: three ? undefined : '100%', gap: phone ? 12 : 16 }}>
+              {/*
+                NOT WRAPPED IN A TITLED PANEL, and that is the point of the
+                comment: `RewardInventory` already draws its own header -
+                the gift tile, the words "Reward Inventory", the "1 of 12
+                unlocked" count - so a second heading above it said the
+                same two words twice, one above the other. The first
+                version of this layout did exactly that.
+              */}
+              <RankLadder wallet={wallet.data} embedded medals={medals.data?.medals ?? null} onOpenMedals={onOpenMedals} />
+              <SectionPanel>
                 <LevelBlock wallet={wallet.data} embedded />
-                <TravelCompanions
-                  companions={companions.data?.companions ?? null}
-                  province={province}
+              </SectionPanel>
+            </View>
+
+            {/*
+              The widest of the three, because a shelf of seven exhibits and
+              three account rows need the room - and because this is the
+              column somebody opens the screen to look at.
+            */}
+            <View style={{ flex: three ? 1.18 : undefined, width: three ? undefined : '100%', gap: phone ? 12 : 16 }}>
+              {companions.data ? (
+                <MyCollection
+                  companions={companions.data.companions}
                   onOpenCompanion={onOpenCompanion}
                   onOpenMascots={onOpenMascots}
+                  onOpenSummon={onOpenSummon}
+                  onOpenCollect={onOpenCollect}
                 />
-              </View>
-            )}
-          </ImageBackground>
-          {companions.data ? (
-            <MyCollection
-              companions={companions.data.companions}
-              onOpenCompanion={onOpenCompanion}
-              onOpenMascots={onOpenMascots}
-              onOpenSummon={onOpenSummon}
-              onOpenCollect={onOpenCollect}
-            />
-          ) : null}
-          <Inbox
-            items={notifications}
-            unread={unread}
-            onMarkRead={onMarkRead}
-            onMarkAllRead={onMarkAllRead}
-            onOpenQuest={onOpenQuest}
+              ) : null}
+              <Companions data={companions.data} onOpenCompanion={onOpenCompanion} />
+              <Ledger wallet={wallet.data} onOpenMarket={onOpenMarket} />
+              <AccountRow onOpenAccount={onOpenAccount} />
+              {/*
+                The inbox is not in the reference layout and is not dropped
+                for it: it is where a host's reply to a quest arrives, and
+                losing that would cost a traveller an answer they are
+                waiting for. It sits last in the column somebody scrolls.
+              */}
+              <Inbox
+                items={notifications}
+                unread={unread}
+                onMarkRead={onMarkRead}
+                onMarkAllRead={onMarkAllRead}
+                onOpenQuest={onOpenQuest}
+              />
+            </View>
+          </View>
+
+          {/*
+            THE PAGE ENDS AT AN ISLAND.
+
+            The reference closes on a strip of sea with a lighthouse on it,
+            and it is doing real work: three columns of unequal height leave
+            a ragged bottom edge, and a full-width band underneath gives the
+            eye somewhere for the page to finish. Decorative, so it is
+            hidden from a screen reader entirely.
+          */}
+          <Image
+            source={lighthouseBanner}
+            resizeMode="cover"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{
+              width: '100%',
+              height: phone ? 86 : 118,
+              marginTop: phone ? 14 : 20,
+              borderRadius: 26,
+              alignSelf: 'center',
+              maxWidth: 1440 - (phone ? 20 : gutter * 2),
+            }}
           />
-          <Companions data={companions.data} onOpenCompanion={onOpenCompanion} />
-          <Ledger wallet={wallet.data} onOpenMarket={onOpenMarket} />
-          <AccountRow onOpenAccount={onOpenAccount} />
         </View>
       ) : null}
     </ScrollView>
@@ -218,7 +298,7 @@ function BackpackHeader({ wallet }: { wallet: Wallet | null }) {
       <View style={{ flexDirection: stacked ? 'column' : 'row', alignItems: stacked ? 'stretch' : 'center', gap: stacked ? 12 : 14 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: stacked ? undefined : 1, minWidth: 0 }}>
           <View style={{ width: stacked ? 50 : 58, height: stacked ? 50 : 58, borderRadius: stacked ? 17 : 20, borderWidth: 3, borderColor: '#F4D06B', backgroundColor: '#0B5F82', alignItems: 'center', justifyContent: 'center', shadowColor: '#075076', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.24, shadowRadius: 8, elevation: 4 }}>
-            <Backpack size={stacked ? 25 : 29} color="#F7D66F" strokeWidth={2.2} />
+            <BackpackIcon name="my-backpack" size={stacked ? 28 : 34} />
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Label size={10} tracking={0.18} colour="#0B6B89">
@@ -289,47 +369,81 @@ function BackpackHeader({ wallet }: { wallet: Wallet | null }) {
  * The float is four pixels over 2.6 seconds and stops entirely for anybody
  * who asked their system for less motion.
  */
-function FloatingDuo({ compact }: { compact: boolean }) {
-  const still = useReduceMotion();
-  const lift = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => {
-    if (still) { lift.setValue(0); return undefined; }
-    const native = Platform.OS !== 'web';
-    const loop = Animated.loop(Animated.sequence([
-      Animated.timing(lift, { toValue: -4, duration: 1300, useNativeDriver: native }),
-      Animated.timing(lift, { toValue: 0, duration: 1300, useNativeDriver: native }),
-    ]));
-    loop.start();
-    return () => loop.stop();
-  }, [still, lift]);
-  // The float lives on a wrapping view, not on `Animated.Image`: the plain
-  // `Image` is the one every renderer in this repo knows how to resolve.
+/**
+ * One of the three cards the backpack is built from.
+ *
+ * A white card on the sky with a title and a drawn icon beside it - the
+ * same furniture for all three columns, so "My Backpack", "Reward
+ * Inventory" and the level block read as parts of one page rather than
+ * three components that happen to be next to each other.
+ *
+ * NO HEADING WITHOUT A TITLE. The level block is a panel with no header at
+ * all: it carries its own "Level 2 · Newcomer" line, and a second title
+ * above it would say the same word twice.
+ *
+ * The chrome is deliberately quiet - a hairline, a soft shadow, generous
+ * radius - because everything inside it is loud: gold plaques, rank tiles,
+ * a wooden shelf. A heavy frame around those competes with them.
+ */
+function SectionPanel({
+  icon, title, right, children,
+}: {
+  icon?: React.ReactNode;
+  title?: string;
+  /** A control that belongs to the section, such as "View all". */
+  right?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const { width } = useWindowDimensions();
+  const compact = width < 560;
   return (
-    <Animated.View
-      pointerEvents="none"
+    <View
       style={{
-        position: 'absolute',
-        left: compact ? -10 : -20,
-        bottom: compact ? -13 : -24,
-        width: compact ? '48%' : '59%',
-        height: compact ? 192 : 272,
-        zIndex: 2,
-        transform: [{ translateY: lift }],
+        width: '100%',
+        backgroundColor: color.surface,
+        borderRadius: 26,
+        borderWidth: 1,
+        borderColor: '#E2EEF5',
+        padding: compact ? 14 : 18,
+        gap: title ? (compact ? 12 : 14) : 0,
+        shadowColor: '#0B5A86',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        elevation: 3,
       }}
     >
-      <Image source={adventureDuo} resizeMode="contain" accessible={false} style={{ width: '100%', height: '100%' }} />
-    </Animated.View>
+      {title ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          {icon ? (
+            <View
+              style={{
+                width: compact ? 46 : 54, height: compact ? 46 : 54, borderRadius: 16,
+                backgroundColor: '#EAF7FB', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {icon}
+            </View>
+          ) : null}
+          <Heading size={compact ? 20 : 24} colour={color.brandDeep} style={{ flex: 1, minWidth: 0 }}>{title}</Heading>
+          {right}
+        </View>
+      ) : null}
+      {children}
+    </View>
   );
 }
 
 function TravelCompanions({
   companions,
   province,
+  motionReady,
   onOpenCompanion,
   onOpenMascots,
 }: {
   companions: Companion[] | null;
   province: ProvinceCompanion | null;
+  motionReady: boolean;
   onOpenCompanion: (companion: Companion) => void;
   onOpenMascots: () => void;
 }) {
@@ -355,15 +469,14 @@ function TravelCompanions({
     }}>
       <View pointerEvents="none" style={{ position: 'absolute', inset: 7, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)' }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Compass size={18} color="#C78B13" />
+        <BackpackIcon name="companions-badge" size={24} />
         <Heading size={17} colour="#082E53">{t({ en: 'Travel companions', th: 'เพื่อนร่วมเดินทาง', zh: '旅行伙伴' })}</Heading>
       </View>
-      {/*
-        The duo is decorative key art. The two interactive tiles remain the
-        only claims about what this traveller actually owns; their labels and
-        empty states still come entirely from province/companion evidence.
-      */}
-      <FloatingDuo compact={compact} />
+      <InteractiveTravelDuo
+        compact={compact}
+        petSignal={motionReady ? (pet ? `${pet.species.key}:${pet.stage}` : 'locked') : null}
+        mascotSignal={motionReady ? (province ? province.province.code : 'locked') : null}
+      />
       <View style={{
         marginTop: 12,
         marginLeft: compact ? '43%' : '49%',
@@ -404,7 +517,7 @@ function TravelCompanions({
         >
           {province
             ? <MascotPortrait mascot={province.mascot} size={58} />
-            : <Compass size={42} color="#607A91" />}
+            : <BackpackIcon name="no-mascot-leaf" size={38} />}
           <Label size={9} tracking={0.08} colour={province ? '#7B5714' : '#607A91'}>
             {province
               ? t({ en: 'MASCOT', th: 'มาสคอต', zh: '吉祥物' })
@@ -445,7 +558,7 @@ function TravelCompanions({
             })}
             style={{ minHeight: compact ? 78 : 96, padding: 10, borderRadius: 18, borderWidth: 3, borderColor: '#7592AA', backgroundColor: '#EAF1F5', alignItems: 'center', justifyContent: 'center', gap: 6, shadowColor: '#183B59', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.16, shadowRadius: 7, elevation: 3 }}
           >
-            <LockKeyhole size={30} color="#607A91" />
+            <BackpackIcon name="lock" size={33} />
             <Label size={9} tracking={0.08} colour="#607A91">{t({ en: 'PET LOCKED', th: 'ยังไม่มีสัตว์เลี้ยง', zh: '伙伴未解锁' })}</Label>
           </View>
         )}
@@ -482,6 +595,7 @@ function AccountRow({ onOpenAccount }: { onOpenAccount: () => void }) {
         },
       ]}
     >
+      <BackpackIcon name="your-account" size={34} />
       <View style={{ flex: 1 }}>
         <Heading size={15}>{t({ en: 'Your account', th: 'บัญชีของคุณ', zh: '你的账号' })}</Heading>
         <Label size={9} tracking={0.04} colour={color.neutral600} style={{ marginTop: 5, textTransform: 'none' }}>
@@ -492,7 +606,7 @@ function AccountRow({ onOpenAccount }: { onOpenAccount: () => void }) {
           })}
         </Label>
       </View>
-      <ChevronRight size={18} color={color.brand} strokeWidth={2} />
+      <BackpackIcon name="chevron-right" width={13} height={19} />
     </Pressable>
   );
 }
@@ -742,7 +856,10 @@ export function Ledger({ wallet, onOpenMarket }: { wallet: Wallet; onOpenMarket:
   return (
     <View style={{ paddingHorizontal: gutter, paddingVertical: 16 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Label size={10} tracking={0.14}>{t(strings.wallet.ledger)}</Label>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+          <BackpackIcon name="ledger" size={26} />
+          <Label size={10} tracking={0.14}>{t(strings.wallet.ledger)}</Label>
+        </View>
         <Button label={t(strings.wallet.spendPoints)} onPress={onOpenMarket} variant="ghost" />
       </View>
 
@@ -940,7 +1057,10 @@ function Companions({
         flexDirection: 'row', justifyContent: 'space-between',
         alignItems: 'baseline', paddingHorizontal: gutter,
       }}>
-        <Label size={10} tracking={0.16}>{t(strings.profile.companions)}</Label>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <BackpackIcon name="companions" size={26} />
+          <Label size={10} tracking={0.16}>{t(strings.profile.companions)}</Label>
+        </View>
         <Label size={10} tracking={0.12} colour={color.neutral600}>
           {`${summary.found}/${summary.total} · ${summary.grown} ${t(strings.profile.companionsGrown)}`}
         </Label>

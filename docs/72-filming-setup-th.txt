@@ -17,7 +17,7 @@ ChivaGo - สภาพแวดล้อมพร้อมอัดคลิป 
 ล็อกอินคอนโซล host (ช็อต 11-12)
 --------------------------------
   URL        http://localhost:8787/console/login
-  access key chv_7UBPP-EVS5D-SHSWH-QN63B
+  access key chv_XXXXX-XXXXX-XXXXX-XXXXX   (รูปแบบ ไม่ใช่คีย์จริง — ดูคีย์จริงจากเทอร์มินัลตอน seed)
   host       ChivarGo team · KU Sriracha (h-ku-chivago)
   ช่อง reviewer พิมพ์ชื่อใครก็ได้ จะไปโชว์บนหน้าจอว่าใครเป็นคนตรวจ
 

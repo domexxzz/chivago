@@ -1,9 +1,8 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, beforeEach } from 'node:test';
 
-import { SEED_PLACES, SEED_QUESTS, areaByKey, inArea } from '@chivago/core';
+import { ACTIVE_QUESTS, SEED_PLACES, areaByKey, inArea } from '@chivago/core';
 import { openTestDb, type DB } from './db-node.ts';
-import { verifyApiKey } from './host-auth.ts';
 import { refreshPhotos, refreshStations, reseedRefusal, seedArea } from './seed-area.ts';
 
 /**
@@ -26,16 +25,12 @@ describe('adding an area', () => {
     const r = seedArea(db, 'ku-bangkhen');
     const area = areaByKey('ku-bangkhen');
     const places = SEED_PLACES.filter((p) => p.province === area.province).length;
-    const quests = SEED_QUESTS.filter((q) => inArea(area, q)).length;
+    const quests = ACTIVE_QUESTS.filter((q) => inArea(area, q)).length;
     assert.equal(r.placesAdded, places);
     assert.equal(r.questsAdded, quests);
     assert.equal(count("SELECT COUNT(*) AS n FROM places WHERE province = 'TH-10'"), places);
-    assert.deepEqual(r.hostsCreated, ['h-ku-bangkhen-chivago']);
-    const host = db.prepare("SELECT role, api_key_hash FROM hosts WHERE id = 'h-ku-bangkhen-chivago'").get() as
-      { role: string; api_key_hash: string };
-    assert.equal(host.role, 'host', 'a seeded area never creates a moderator');
-    assert.equal(r.keys.length, 1);
-    assert.ok(verifyApiKey(r.keys[0]![1], host.api_key_hash), 'the printed key must open the console');
+    assert.deepEqual(r.hostsCreated, []);
+    assert.deepEqual(r.keys, []);
   });
 
   test('an area with places and no quests adds the places and no host', () => {
@@ -64,23 +59,21 @@ describe('what it must never do to a running database', () => {
     assert.equal(again.questsAdded, 0);
     assert.deepEqual(again.hostsCreated, []);
     assert.deepEqual(again.keys, [], 'a second run printed a second key');
-    const hash = (db.prepare("SELECT api_key_hash FROM hosts WHERE id = 'h-ku-bangkhen-chivago'").get() as
-      { api_key_hash: string }).api_key_hash;
-    assert.ok(verifyApiKey(first.keys[0]![1], hash), 'the first key stopped working');
+    assert.deepEqual(first.keys, []);
   });
 
   test('IT NEVER CHANGES A ROW THAT EXISTS - A CORRECTION MADE IN PRODUCTION SURVIVES', () => {
-    seedArea(db, 'ku-bangkhen');
-    db.prepare("UPDATE places SET name_en = 'Corrected in production', aqi = 12 WHERE id = 'ku-bk-library'").run();
-    db.prepare("UPDATE hosts SET name = 'Renamed by the owner' WHERE id = 'h-ku-bangkhen-chivago'").run();
-    db.prepare("UPDATE quests SET reward_points = 999 WHERE id = 'q-ku-bk-walk'").run();
-    seedArea(db, 'ku-bangkhen');
-    const place = db.prepare("SELECT name_en, aqi FROM places WHERE id = 'ku-bk-library'").get() as
+    seedArea(db, 'koh-sichang');
+    db.prepare("UPDATE places SET name_en = 'Corrected in production', aqi = 12 WHERE id = 'sc-hospital'").run();
+    db.prepare("UPDATE hosts SET name = 'Renamed by the owner' WHERE id = 'h-sichang-chivago'").run();
+    db.prepare("UPDATE quests SET reward_points = 999 WHERE id = 'q-sg-explorer'").run();
+    seedArea(db, 'koh-sichang');
+    const place = db.prepare("SELECT name_en, aqi FROM places WHERE id = 'sc-hospital'").get() as
       { name_en: string; aqi: number };
     assert.deepEqual({ ...place }, { name_en: 'Corrected in production', aqi: 12 });
-    assert.equal((db.prepare("SELECT name FROM hosts WHERE id = 'h-ku-bangkhen-chivago'").get() as { name: string }).name,
+    assert.equal((db.prepare("SELECT name FROM hosts WHERE id = 'h-sichang-chivago'").get() as { name: string }).name,
       'Renamed by the owner');
-    assert.equal((db.prepare("SELECT reward_points AS n FROM quests WHERE id = 'q-ku-bk-walk'").get() as { n: number }).n, 999);
+    assert.equal((db.prepare("SELECT reward_points AS n FROM quests WHERE id = 'q-sg-explorer'").get() as { n: number }).n, 999);
   });
 
   test('IT NEVER DELETES: A PLACE THE SEED DOES NOT LIST SURVIVES', () => {

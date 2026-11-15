@@ -37,6 +37,7 @@ import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 import { questArtworkSource } from '../components/QuestArtwork.tsx';
+import { sichangPilotBrief } from '../data/sichang-quests.ts';
 
 export function QuestDetailScreen({
   questId, onBack, onOpenWallet, onToast, onPointsChanged,
@@ -59,6 +60,7 @@ export function QuestDetailScreen({
   const requireAccount = useRequireAccount();
 
   const quest = data.data?.quest ?? null;
+  const pilotBrief = quest ? sichangPilotBrief(quest.code) : null;
   const progress = data.data?.progress ?? null;
   const stage: QuestStage | null = progress?.stage ?? null;
 
@@ -264,6 +266,7 @@ export function QuestDetailScreen({
             </View>
           </View>
 
+          {pilotBrief ? <PilotBriefPanel brief={pilotBrief} /> : null}
           <Timeline
             stage={stage}
             action={stage === null || stage === 'joined' ? {
@@ -315,12 +318,58 @@ function StatBand({ quest }: { quest: Quest }) {
       <View style={{ flex: 1 }}>
         <Label size={10} tracking={0.12}>{t(strings.quest.reward)}</Label>
         <AccentNumeral size={22} style={{ marginTop: 4 }}>
-          {`+${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'G' : 'T'}`}
+          {quest.rewardExp != null
+            ? `+${quest.rewardExp} XP`
+            : `+${quest.rewardPoints} ${quest.rewardCurrency === 'green' ? 'G' : 'T'}`}
         </AccentNumeral>
       </View>
       <View style={{ flex: 1, borderLeftWidth: 1, borderLeftColor: '#DCEFF5', paddingLeft: 14 }}>
         <Label size={10} tracking={0.12}>{t(strings.quest.duration)}</Label>
         <Heading size={22} style={{ marginTop: 4 }}>{t(quest.duration)}</Heading>
+      </View>
+    </View>
+  );
+}
+
+function PilotBriefPanel({
+  brief,
+}: { brief: NonNullable<ReturnType<typeof sichangPilotBrief>> }) {
+  return (
+    <View style={[shadow.card, { marginHorizontal: gutter, marginTop: 14, padding: 18, borderRadius: 24, backgroundColor: '#F4FCFE', borderWidth: 1.5, borderColor: '#71D6E2' }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          <Label size={10} tracking={0.14} colour={color.brand}>{t({ en: 'KOH SICHANG PILOT', th: 'เควสทดลองเกาะสีชัง', zh: '锡昌岛试点任务' })}</Label>
+          <Heading size={19} colour={color.brandDeep} style={{ marginTop: 4 }}>{t({ en: 'Completion criteria', th: 'เงื่อนไขการสำเร็จ', zh: '完成条件' })}</Heading>
+        </View>
+        <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: '#FFF0C2' }}>
+          <Label size={9} tracking={0.1} colour="#705000">PILOT</Label>
+        </View>
+      </View>
+      <Body size={14} colour={color.neutral700} style={{ marginTop: 10 }}>{t(brief.summary)}</Body>
+      <View style={{ marginTop: 14, gap: 10 }}>
+        {brief.requirements.map((requirement, index) => (
+          <View key={`${brief.code}-${index}`} style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start' }}>
+            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: color.brand, alignItems: 'center', justifyContent: 'center' }}>
+              <Label size={10} tracking={0} colour={onFill.brand}>{index + 1}</Label>
+            </View>
+            <Body size={14} colour={color.text} style={{ flex: 1, paddingTop: 2 }}>{t(requirement)}</Body>
+          </View>
+        ))}
+      </View>
+      {brief.note ? (
+        <View style={{ marginTop: 14, padding: 12, borderRadius: 14, backgroundColor: '#FFF7DC', borderWidth: 1, borderColor: '#F1D886' }}>
+          <Body size={13} colour="#604B17">{t(brief.note)}</Body>
+        </View>
+      ) : null}
+      <View style={{ marginTop: 16, padding: 13, borderRadius: 16, backgroundColor: '#E4F8EE', borderWidth: 1, borderColor: '#8DD8B1' }}>
+        <Heading size={14} colour="#17633E">{t({ en: 'Open for participation', th: 'เปิดให้เข้าร่วมแล้ว', zh: '现已开放参与' })}</Heading>
+        <Body size={13} colour={color.neutral600} style={{ marginTop: 4 }}>
+          {t({
+            en: 'Join, check in with a real GPS fix, complete every condition above, then upload clear evidence. The Koh Sichang host reviews it before EXP is released.',
+            th: 'กดเข้าร่วม เช็กอินด้วย GPS จริง ทำเงื่อนไขด้านบนให้ครบ แล้วอัปโหลดหลักฐานที่ชัดเจน ทีมผู้ดูแลเกาะสีชังจะตรวจก่อนปล่อย EXP',
+            zh: '加入任务后使用真实 GPS 签到，完成以上全部条件并上传清晰证据。锡昌岛审核团队通过后才会发放 EXP。',
+          })}
+        </Body>
       </View>
     </View>
   );

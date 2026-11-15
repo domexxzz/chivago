@@ -71,7 +71,28 @@ const NULL_DEFAULT_SAFE = 'module.exports = exports.default == null ? exports : 
 
 const loadSync = (url, context, next) => {
   if (/\.(png|jpe?g|webp|svg)$/i.test(url)) {
-    return { format: 'module', shortCircuit: true, source: 'export default 1;' };
+    /*
+      The file's own name, not a bare 1.
+
+      Metro turns an image import into an opaque handle, so the value never
+      mattered - until a test wanted to ask WHICH picture a component chose.
+      Every mini-game card showed the waste game's badge for a while, and no
+      test could see it, because every image in this harness was the same
+      number. A name costs nothing and makes that question answerable.
+    */
+    const name = url.split('/').pop() ?? url;
+    return { format: 'module', shortCircuit: true, source: `export default ${JSON.stringify(name)};` };
+  }
+  if (url.endsWith('.json')) {
+    // Node 24 requires an import attribute for JSON modules. Metro does not,
+    // and production code must keep the import form Metro understands, so the
+    // test bundler performs the same conversion explicitly.
+    const path = fileURLToPath(url);
+    return {
+      format: 'module',
+      shortCircuit: true,
+      source: `export default ${readFileSync(path, 'utf8')};`,
+    };
   }
   if (url.endsWith('.tsx')) {
     const path = fileURLToPath(url);

@@ -5,7 +5,7 @@
  * it does not belong in a component - add it to the token sheet first.
  */
 
-import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 import {
   color, font, gutter, headerGutter, layout, microLabel, motion, onFill, radius, shadow, space,
   THAI_LINE_HEIGHT_RATIO, type,
@@ -100,6 +100,16 @@ export const flushLeftButton: ViewStyle = {
   borderRadius: radius.md,
 };
 
+/*
+ * React Native Web deprecated the four legacy shadow props in favour of a
+ * CSS box shadow. Keep the native token on iOS/Android, but do not feed those
+ * deprecated props into StyleSheet.create when this shared module loads in a
+ * browser (which was the first warning printed on every development start).
+ */
+const boxedShadow: ViewStyle = Platform.OS === 'web'
+  ? ({ boxShadow: '0 4px 12px rgba(0, 119, 182, 0.08)' } as ViewStyle)
+  : shadow.card;
+
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.bg },
   gutter: { paddingHorizontal: gutter },
@@ -116,7 +126,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DCEFF5',
     borderRadius: radius.md,
-    ...shadow.card,
+    ...boxedShadow,
   },
 
   /** Photo placeholder, until real Koh Samui photography is licensed. */

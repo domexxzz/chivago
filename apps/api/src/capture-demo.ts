@@ -24,7 +24,7 @@
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { AREAS, SEED_PLACES, SEED_QUESTS } from '@chivago/core';
+import { ACTIVE_QUESTS, AREAS, SEED_PLACES } from '@chivago/core';
 
 const BASE = process.env.CHIVAGO_DEMO_URL ?? 'http://localhost:8787';
 const USER = process.env.CHIVAGO_DEMO_USER ?? 'demo-user';
@@ -54,7 +54,7 @@ const SEEDED = [
     // Stories on every pin (docs/44): empty until the day, and honest about it.
     `/places/${p.id}/stories`,
   ]),
-  ...SEED_QUESTS.map((q) => `/quests/${q.id}`),
+  ...ACTIVE_QUESTS.map((q) => `/quests/${q.id}`),
   ...AREAS.map((a) => `/areas/${a.key}/stories`),
 ];
 

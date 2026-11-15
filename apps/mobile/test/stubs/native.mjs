@@ -24,6 +24,14 @@ export const control = {
   camera: { canceled: true, assets: [] },
   /** How many position watchers are open. A test asserts it returns to zero. */
   watching: 0,
+  /**
+   * Pushes another fix through the open watcher, or null when none is open.
+   *
+   * Set by `watchPositionAsync` and cleared by its `remove`, so a test that
+   * calls it after the screen has gone is told so rather than quietly
+   * feeding a dead callback.
+   */
+  emit: null,
 };
 
 /** Put the defaults back. Call it in a finally, like restoring fetch. */
@@ -32,6 +40,7 @@ export const resetControl = () => {
   control.position = { coords: { latitude: 9.5357, longitude: 100.0617, accuracy: 12 } };
   control.camera = { canceled: true, assets: [] };
   control.watching = 0;
+  control.emit = null;
 };
 export const setNotificationHandler = noop;
 export const setNotificationChannelAsync = noop;
@@ -64,15 +73,22 @@ export const getCurrentPositionAsync = async () => control.position;
  */
 export const watchPositionAsync = async (_opts, cb) => {
   control.watching += 1;
+  // Held so a test can push a second, third and fourth fix through the same
+  // watcher - which is the only way to exercise anything that debounces, and
+  // everything a navigator concludes is debounced.
+  control.emit = (position) => cb(position ?? control.position);
   cb(control.position);
-  return { remove: () => { control.watching -= 1; } };
+  return { remove: () => { control.watching -= 1; control.emit = null; } };
 };
-export const Accuracy = { Balanced: 3, High: 4, Lowest: 1 };
+// `BestForNavigation` is what expo-location calls its tightest setting, and
+// it is the one the navigator asks for; a stub without it would make the
+// request read `undefined` and pass anyway.
+export const Accuracy = { Lowest: 1, Low: 2, Balanced: 3, High: 4, Highest: 5, BestForNavigation: 6 };
 export const hasStartedLocationUpdatesAsync = noop;
 export const startLocationUpdatesAsync = noop;
 export const stopLocationUpdatesAsync = noop;
 export const launchCameraAsync = async () => control.camera;
-export const launchImageLibraryAsync = noop;
+export const launchImageLibraryAsync = async () => control.camera;
 export const requestCameraPermissionsAsync = async () => control.permission;
 export const requestMediaLibraryPermissionsAsync = async () => control.permission;
 export const MediaTypeOptions = noop;
