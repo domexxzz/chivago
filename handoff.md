@@ -28,12 +28,29 @@ Earlier versions are in git history: `git show c690a34:handoff.md` (15 Nov, morn
 ## 3. Repo state
 
 ```
-branch: main @ c07524c   (working tree clean)
-live:   version 46fd00e2-4290-40bf-a029-8e38067d95a6
+branch: main @ 9f212ff   (working tree clean)
+live:   version bfe230e2-9414-4855-bcf8-d36aed06a3b3
 CI:     green on main (checks / test / typecheck / workers)
 ```
 
-### Merged and deployed this session (15 Nov, afternoon)
+### Merged and deployed the night of 15 November
+
+| PR | What |
+| --- | --- |
+| #231 | `GET /admin/export` — the backup half, and the first copy of the pilot since 12 Nov |
+| #232 | the backup check answers 0 when it is sound (it was aborting with 127) |
+| #233 | Solution Connect on Local Picks, with Sentiara AI |
+| #234 | the picks moved into the left column — the gap beside Solution Connect |
+| #235 | Sentiara's link is `sentiaratech.com` |
+| #236 | **Fanta**: the seven Home doors are drawings now |
+| #237 | Koniix Garden Cottage as a stay pick, under Accommodation |
+| #238 | every door carries its own drawing, tested |
+| #239 | Koniix on the Koh Sichang map — the island's seventh place |
+| #240 | `/internal/*` answers for itself, instead of the traveller gate answering for it |
+
+Three deploys: `461b8762`, `fb19aae7`, then `378ee8a7` → `bfe230e2`.
+
+### Merged and deployed earlier (15 Nov, afternoon)
 
 | PR | What |
 | --- | --- |
@@ -129,7 +146,7 @@ Check the build before deploying it — all five, every time:
 
 1. `dist-live/_expo/static/js/web/` exists
 2. `index.html` has a `<script>` tag
-3. the file count is in the hundreds (166 today)
+3. the file count is in the hundreds (174 on the night of the 15th — 166 before Fanta's seven menu drawings and the Sentiara mark)
 4. `grep -rl "localhost:8787" dist-live` finds nothing
 5. `dist-live/_headers` is there
 
@@ -148,7 +165,8 @@ After deploying, check 3D and animation with the chrome-devtools MCP — the bui
 ### For the owner, outside this repo
 - **The deck and the field guide still say "540 Green".** The screen says 800 EXP. Somebody has to change them before the 21st. docs/72 now carries the correct figures and the answer to *"where do the points come from"*
 - **Rotate the host keys** that were in `docs/` before #223 — same reasoning as §5, the repo is public
-- **Stories are open in the live database** (`settings.stories_open = '1'`, auto-approve on). Measured today: `/areas/samui/stories` returns `open: true`. Anyone who taps "Continue as a guest" can post to any place and it goes public immediately. The owner chose to leave it open; the console hides a story in one click and clips expire in seven days
+- **The geofence is ON, and the stage demo needs it off.** Measured on the night of the 15th, all three against a Koh Sichang database: check-in works (20 Trip Points at Tha Lang pier, and refused from Bangkok — "74,089 m away"), a community post works, a story posts and reaches the island feed. None of it works **from a stage**, because the fence is real: `/config` says `fenceOff: false`. `CHIVAGO_FENCE_OFF=1` opens it for the whole deployment and the app then wears a band saying presence is not being checked, with `fence_enforced` recorded per row so the evidence layer does not count those arrivals. Turn it on for the 21st–22nd and **off again afterwards** — left on, every real traveller's check-in after the event is unguarded
+- **Stories are open in the live database** (`settings.stories_open = '1'`, auto-approve on). Measured on the 15th: both `/areas/samui/stories` and `/areas/koh-sichang/stories` return `open: true`. Anyone who taps "Continue as a guest" can post to any place and it goes public immediately. The owner chose to leave it open; the console hides a story in one click and clips expire in seven days
 
 ### Decided today, do not reopen without reading why
 - **Quests do not pay Green.** `seed.ts` says the five SG quests come from the 12 Nov field-trial pack and pay EXP only — paying Green would create a payment the pack never promised
@@ -156,8 +174,9 @@ After deploying, check 3D and animation with the chrome-devtools MCP — the bui
 - So the island's 200 Green sample offer **cannot be reached by island work**, and the answer is not to demo redemption from it. It is already labelled "ตัวอย่าง · ร้านยังไม่ได้ร่วมโครงการ" with a null `valueTHB`
 
 ### Small and clearly right
-- **`.dev.vars` is not in `.gitignore`.** It is wrangler's conventional secrets file and the first place somebody will write a value. `.env` is covered; this is not. One commit
-- **`/internal/*` sits behind the traveller device middleware.** Calling an operator route means registering a device first, and being handed a wallet on the way in. `/admin/import` does it correctly — registered *before* the middleware. Two test accounts ("Operator probe", "Operator") were left on production proving this today; there is no route to delete them
+- ~~**`.dev.vars` is not in `.gitignore`.**~~ Done in #231, with `backups/` and `snapshot-*/` beside it
+- ~~**`/internal/*` sits behind the traveller device middleware.**~~ Done in #240. It was measured again that night: with the right operator secret, `POST /internal/open-area` answered 401 and the pin could not be planted. `/internal/` is now on the no-traveller list, so the route refuses with its own 403 instead of the gate refusing on its behalf. **The two accounts are still there** — "Operator probe" and "Operator", and nothing deletes them. Nobody needs to make a third one now
+- **A place cannot be deleted.** Noticed while putting Koniix on the map: `seedArea` inserts, nothing removes. A place planted by mistake stays until somebody writes a route or restores a backup — and there is a backup now, which is the only reason this is a note rather than a warning
 - Every alarm — every 30 s — logs `[chivago] migrated:` and 27 table names. Nothing is re-migrated; they are `CREATE TABLE IF NOT EXISTS` blocks pushing their name unconditionally. It is also the only place a real migration would announce itself
 
 ### Older open PRs
