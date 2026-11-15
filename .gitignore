@@ -27,6 +27,15 @@ apps/api/data/
 !.env.example
 .vercel/
 
+# `.dev.vars` is WRANGLER'S conventional secrets file - the one its own docs
+# tell you to create, and so the first place somebody writes a value when they
+# are working on the Worker. `.env` above never covered it. This repository has
+# been public since 14 November, and the host secret that sat in README.md from
+# the first commit had to be rotated on the 15th because removing a value from
+# a file does not remove it from the history. One line, before it happens again.
+.dev.vars
+.dev.vars.*
+
 # Captured API responses used to keep the three clients in step are TRACKED
 # (`contract/*.json`), on purpose. They were ignored for the first forty
 # commits, which meant `pnpm test` failed on every fresh clone and the drift
@@ -86,3 +95,11 @@ __pycache__/
 # `*.db` above covers the snapshot; this covers what comes out of it.
 batches/
 batches*/
+
+# A snapshot taken OUT of the live Durable Object (`snapshot-live.ts`, docs/71
+# step 6) is the same personal data in the same shape, and the script refuses
+# to write inside the repository without `--force`. This is here for the
+# person who passes `--force` anyway at two in the morning.
+backups/
+backups*/
+snapshot-*/

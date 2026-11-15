@@ -8,7 +8,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import {
   PartyRefused, activePartyFor, createParty, disbandParty, joinParty, leaveParty, membersOf,
@@ -42,6 +42,7 @@ import {
   finishImportRun, importBatch, importBlockers, provisionedUserCount, recordBatch,
   type ImportBatch,
 } from './import-service.ts';
+import { exportManifest, exportOnePage } from './export-service.ts';
 
 /**
  * Ceilings on one import batch.
@@ -54,6 +55,15 @@ import {
  */
 const MAX_IMPORT_BYTES = 16 * 1024 * 1024;
 const MAX_IMPORT_ROWS = 5_000;
+
+/**
+ * How many BYTES a string will be on the wire.
+ *
+ * `String#length` counts UTF-16 code units, and this database is half Thai -
+ * where one unit is three bytes. A ceiling checked against the wrong unit is
+ * a ceiling that passes a page three times too big.
+ */
+const utf8Length = (s: string): number => new TextEncoder().encode(s).byteLength;
 import { constantTimeEqual } from './scrypt.ts';
 import { BodyTooLarge, boundedForm, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
 import { publicConfig } from './fence.ts';
@@ -435,6 +445,152 @@ app.post('/admin/import', async (c, next) => {
     // whoever is running a migration at two in the morning needs to read them.
     return fail(c, 'IMPORT_FAILED', (err as Error).message, 400);
   }
+});
+
+/**
+ * Read this database out. OFF unless armed.
+ *
+ * THE COUNTERPART TO THE IMPORT, AND THE REASON IT EXISTS. A Durable Object's
+ * SQLite is reachable only from inside the object: there is no
+ * `wrangler do export` and nothing to `sftp get`. Until this route the pilot's
+ * only copy of its data was the live object, and the only backups were the
+ * ones taken off the Fly volume on 12 November.
+ *
+ * A PAGE IS AN `ImportBatch`. Same table, same columns, same values, same
+ * base64 for a BLOB - so a snapshot replays through `POST /admin/import` with
+ * the loop already written in `docs/71`, and there is no format in the middle
+ * to get wrong. That is also why a page is returned BARE rather than inside
+ * the `{ ok, data }` envelope every other route uses: the file on the laptop
+ * has to be the batch, not something a script has to unwrap first.
+ *
+ * ITS OWN SECRET. `CHIVAGO_EXPORT_TOKEN`, not `CHIVAGO_IMPORT_TOKEN` - the
+ * import token is meant to be deleted when a migration ends, and a backup
+ * happens again next week. Sharing them would mean arming the write door to
+ * take a copy. See the header of `export-service.ts`.
+ *
+ * THE LOCKS, in the order they apply:
+ *
+ *  1. WITHOUT `CHIVAGO_EXPORT_TOKEN` THE ROUTE DOES NOT EXIST - the request
+ *     falls through to the ordinary pipeline and gets whatever an unknown
+ *     path gets, which on the live deployment is the device middleware's 401.
+ *     Unsetting the secret is what closes it, with no deploy.
+ *  2. A token under 32 characters is refused outright. There is no throttle
+ *     here, exactly as on the import, so the secret's length is the whole of
+ *     the defence - and this one answers with personal data.
+ *  3. The token, compared in constant time.
+ *  4. It reads. Nothing on this path writes a row, a counter or a run record.
+ *
+ * Registered HERE, before the device-authentication middleware, for the same
+ * reason the import is: an operator taking a backup is not a traveller and
+ * must not be handed an account and a wallet to get at it.
+ */
+const exportTokenRefusal = (c: Context<AppEnv>): Response | 'unarmed' | null => {
+  const token = process.env.CHIVAGO_EXPORT_TOKEN ?? '';
+  if (token === '') return 'unarmed';
+  if (token.length < 32) {
+    // Logged with its LENGTH, never its value - the rule in handoff section 2.
+    console.error(
+      `[chivago] CHIVAGO_EXPORT_TOKEN is ${token.length} characters; refusing to export.`,
+    );
+    return fail(
+      c,
+      'WEAK_EXPORT_TOKEN',
+      'This deployment’s export token is too short to be used.',
+      500,
+    );
+  }
+  const utf8 = new TextEncoder();
+  const offered = c.req.header('x-export-token') ?? '';
+  if (!constantTimeEqual(utf8.encode(offered), utf8.encode(token))) {
+    return fail(c, 'FORBIDDEN', 'That token is not the one this deployment was armed with.', 403);
+  }
+  return null;
+};
+
+/** Headers for a response that is somebody's personal data in a file. */
+const noStore = (c: Context<AppEnv>): void => {
+  c.header('cache-control', 'no-store, private');
+  c.header('x-robots-tag', 'noindex, nofollow');
+  c.header('x-content-type-options', 'nosniff');
+};
+
+/**
+ * What is here and how much of it: the plan for a snapshot, and the numbers a
+ * finished snapshot is checked against.
+ *
+ * Counts come from the live database at the moment of asking, which is the
+ * only check worth having - a truncated download agrees with itself.
+ */
+app.get('/admin/export', async (c, next) => {
+  const refusal = exportTokenRefusal(c);
+  if (refusal === 'unarmed') return next();
+  if (refusal !== null) return refusal;
+
+  const manifest = exportManifest(db);
+  noStore(c);
+  console.log(
+    `[chivago] export manifest: ${manifest.tables.length} table(s), ${manifest.totalRows} row(s)`,
+  );
+  return ok(c, manifest);
+});
+
+/**
+ * One page of one table, as a batch.
+ *
+ * PAGED BY ROWID, not by offset - see `exportPage`. This reads the pilot while
+ * it is serving and the alarm expires rows every thirty seconds, so an offset
+ * taken behind a deletion skips a row and says nothing about it.
+ */
+app.get('/admin/export/batch', async (c, next) => {
+  const refusal = exportTokenRefusal(c);
+  if (refusal === 'unarmed') return next();
+  if (refusal !== null) return refusal;
+
+  const table = c.req.query('table') ?? '';
+  const rowsParam = c.req.query('rows');
+  const afterParam = c.req.query('after');
+
+  let page;
+  try {
+    page = exportOnePage(db, table, {
+      // `num` would swallow a typo as the default. A backup that silently
+      // read 500 rows because `rows=5oo` is a backup with a hole in it.
+      limit: rowsParam === undefined ? undefined : Number(rowsParam),
+      afterRowid: afterParam === undefined ? undefined : Number(afterParam),
+    });
+  } catch (err) {
+    return fail(c, 'BAD_EXPORT_REQUEST', (err as Error).message, 400);
+  }
+
+  /*
+    Serialised once, here, so the size that is CHECKED is the size that is
+    SENT. The ceiling is the import's: a page too big to be posted back is not
+    a backup, it is a file that will be refused on the day it is needed.
+  */
+  const body = JSON.stringify(page.batch);
+  const bytes = utf8Length(body);
+  if (bytes > MAX_IMPORT_BYTES) {
+    return fail(
+      c,
+      'BATCH_TOO_LARGE',
+      `${table} returned ${Math.round(bytes / 1024 / 1024)} MB in ${page.batch.values.length} `
+      + `row(s), over the ${Math.floor(MAX_IMPORT_BYTES / 1024 / 1024)} MB a batch may be. `
+      + 'Ask for fewer rows - stories carry video in the row.',
+      413,
+    );
+  }
+
+  noStore(c);
+  c.header('x-chivago-export-rows', String(page.batch.values.length));
+  /*
+    The cursor travels in a HEADER because the body has to stay exactly what
+    the import accepts. Absent means this was the last page.
+  */
+  if (page.nextAfterRowid !== null) {
+    c.header('x-chivago-export-next', String(page.nextAfterRowid));
+  }
+  c.header('content-type', 'application/json; charset=utf-8');
+  return c.body(body);
 });
 
 app.get('/statements/:id', (c) => {
