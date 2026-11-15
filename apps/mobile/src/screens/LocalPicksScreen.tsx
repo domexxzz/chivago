@@ -14,6 +14,7 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { PushHeader } from '../components/Shell.tsx';
 import { SolutionConnect } from '../components/SolutionConnect.tsx';
 import type { NavDestination } from '../navigation/session.ts';
+import { photoUri } from '../api/photos.ts';
 import { t } from '../i18n/locale.ts';
 import sinraniBadminton from '../../assets/sinrani-badminton-local-pick.png';
 
@@ -52,6 +53,8 @@ const KONIIX = {
   // other coordinate in this repository carries.
   lat: 13.156753,
   lng: 100.808781,
+  /* The same file the place page shows - see the note on the card. */
+  photo: '/media/places/sc-koniix-garden-cottage.jpg',
 } as const;
 
 export function LocalPicksScreen({
@@ -299,24 +302,42 @@ function StayPickCard({
           borderWidth: 1,
           borderColor: '#CFE6F0',
           backgroundColor: color.surface,
-          padding: 14,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 12,
+          overflow: 'hidden',
           opacity: pressed ? 0.88 : 1,
         },
       ]}
     >
-      <View style={{
-        width: 46, height: 46, borderRadius: 14, backgroundColor: stay.pale,
-        alignItems: 'center', justifyContent: 'center',
-      }}>
-        <BedDouble size={22} color={stay.accent} strokeWidth={2} />
+      {/*
+        THE SAME FILE THE PLACE PAGE SHOWS, by the same path - `photoUri`
+        resolves it relative on the web and against the API host on a phone.
+        Not a copy in `assets/`: one picture of one property, in one place,
+        so a replacement reaches the card and the map pin together.
+
+        The card led with an icon until the property sent this, and the
+        reason was written here: an empty 16:9 frame reads as a photograph
+        that failed to load. Now there is one, so it leads with it - the same
+        shape as the badminton card above it.
+      */}
+      <View style={{ width: '100%', aspectRatio: 16 / 9, backgroundColor: stay.pale }}>
+        <Image
+          source={{ uri: photoUri(KONIIX.photo) }}
+          resizeMode="cover"
+          accessibilityLabel={t({
+            en: 'The roof terrace at Koniix Garden Cottage, looking over the strait',
+            th: 'ดาดฟ้าของ Koniix Garden Cottage มองออกไปเห็นทะเล',
+            zh: 'Koniix Garden Cottage 的屋顶平台，可望见海峡',
+          })}
+          style={{ width: '100%', height: '100%' }}
+        />
       </View>
+      <View style={{
+        minHeight: 76, paddingVertical: 11, paddingHorizontal: 12,
+        flexDirection: 'row', alignItems: 'center', gap: 10,
+      }}>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Heading size={16} colour={color.text}>{t(KONIIX.name)}</Heading>
         <Label size={9} tracking={0.08} colour={color.neutral600} style={{ marginTop: 5 }}>
-          {t({ en: 'STAY · KOH SICHANG', th: 'ที่พัก · เกาะสีชัง', zh: '住宿 · 锡昌岛' })}
+          {t({ en: 'ACCOMMODATION · KOH SICHANG', th: 'ที่พัก · เกาะสีชัง', zh: '住宿 · 锡昌岛' })}
         </Label>
       </View>
       <View style={{
@@ -324,6 +345,7 @@ function StayPickCard({
         alignItems: 'center', justifyContent: 'center',
       }}>
         <Navigation size={17} color="#FFFFFF" strokeWidth={2.4} />
+      </View>
       </View>
     </Pressable>
   );
