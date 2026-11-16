@@ -81,6 +81,7 @@ export interface MapHandle {
 export interface WebTerrainMapProps {
   area: Area;
   places: ScoredPlace[];
+  highlightedPlaceIds?: ReadonlySet<string>;
   onSelect: (place: ScoredPlace) => void;
   shops?: Shop[];
   onSelectShop?: (shop: Shop) => void;
@@ -115,7 +116,7 @@ export interface WebTerrainMapProps {
  * Built as a string rather than a file so there is nothing to bundle, nothing
  * to serve, and no second place for the style to drift out of sync.
  */
-function page(style: unknown, pins: { id: string; lat: number; lng: number; label: string; colour: string; html: string }[],
+function page(style: unknown, pins: { id: string; lat: number; lng: number; label: string; colour: string; html: string; highlighted: boolean }[],
   shopPins: { id: string; lat: number; lng: number; name: string; category: string; colour: string; svg: string; approximate: boolean; note: string }[],
   centre: [number, number], here: { lat: number; lng: number } | null,
   box: { minLat: number; maxLat: number; minLng: number; maxLng: number },
@@ -132,6 +133,7 @@ function page(style: unknown, pins: { id: string; lat: number; lng: number; labe
   .pin-core{position:absolute;top:0;z-index:1;display:flex;align-items:center;justify-content:center;width:38px;height:38px;
     border:3px solid #fff;border-radius:50%;background:var(--marker-colour);box-shadow:0 4px 7px rgba(8,26,48,.4)}
   .pin-core img{width:84px;height:84px;max-width:none;display:block;object-fit:contain}
+  .pin.recommended .pin-core{box-shadow:0 0 0 4px #F2B84B,0 0 0 7px rgba(255,255,255,.9),0 7px 14px rgba(8,26,48,.5)}
   .pin-tail{position:absolute;top:31px;width:13px;height:13px;transform:rotate(45deg);background:var(--marker-colour);
     border-right:2.5px solid #fff;border-bottom:2.5px solid #fff;border-radius:2px;box-shadow:3px 3px 5px rgba(8,26,48,.32)}
   .shop-pin{position:relative;display:flex;align-items:center;justify-content:center;width:42px;height:48px;
@@ -326,13 +328,21 @@ function start(){
     window.__sat=function(){ btn.click(); };
     D.pins.forEach(function(p){
       var el=document.createElement('div');
-      el.className='pin';
+      el.className='pin'+(p.highlighted?' recommended':'');
       el.setAttribute('aria-label',p.label);
       el.style.setProperty('--marker-colour',p.colour);
       el.innerHTML='<span class="pin-tail"></span><span class="pin-core">'+p.html+'</span>';
       el.addEventListener('click',function(){ post({type:'select',id:p.id}); });
       new maplibregl.Marker({element:el}).setLngLat([p.lng,p.lat]).addTo(map);
     });
+    var recommended=D.pins.filter(function(p){return p.highlighted;});
+    if(recommended.length>1){
+      var bounds=new maplibregl.LngLatBounds();
+      recommended.forEach(function(p){bounds.extend([p.lng,p.lat]);});
+      map.fitBounds(bounds,{padding:54,maxZoom:14,duration:0});
+    }else if(recommended.length===1){
+      map.easeTo({center:[recommended[0].lng,recommended[0].lat],zoom:14,duration:0});
+    }
     D.shopPins.forEach(function(p){
       var el=document.createElement('button');
       el.type='button'; el.className=p.approximate?'shop-pin approx':'shop-pin';
@@ -366,7 +376,7 @@ document.head.appendChild(s);
  * which is why that drawing is kept rather than deleted.
  */
 export function WebTerrainMap({
-  area, places, onSelect, shops = [], onSelectShop, here, height, hour = 12, explored = [], inlineSatellite = true, handleRef, onFallback,
+  area, places, highlightedPlaceIds, onSelect, shops = [], onSelectShop, here, height, hour = 12, explored = [], inlineSatellite = true, handleRef, onFallback,
 }: WebTerrainMapProps & { onFallback?: () => void }) {
   const web = React.useRef<WebView>(null);
   // `true;` on the end: injectJavaScript warns about a non-boolean result.
@@ -393,6 +403,7 @@ export function WebTerrainMap({
         label: `${t(p.name)}, ${t({ en: 'category pin', th: 'หมุดแยกตามประเภท', zh: '分类图钉' })}`,
         colour: placeMarkerVisual(p).colour,
         html: placeMarkerHtml(p),
+        highlighted: highlightedPlaceIds?.has(p.id) ?? false,
       })),
       // Every service, one pin: `servicePoints` stands the unpinned ones on
       // the area's ring and flags them, and the page draws them dashed.
@@ -416,7 +427,7 @@ export function WebTerrainMap({
     // for every fix would tear the map down mid-pan. The dot is placed from
     // the position the map STARTED with, and the map is not rebuilt for it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [area.key, places, shops, hour]);
+  }, [area.key, places, highlightedPlaceIds, shops, hour]);
 
   const onMessage = React.useCallback((event: WebViewMessageEvent) => {
     let message: { type?: string; id?: string; error?: string };

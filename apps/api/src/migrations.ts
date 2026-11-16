@@ -2228,5 +2228,43 @@ export function migrate(db: DB): string[] {
     CREATE INDEX IF NOT EXISTS idx_admin_audit_at ON admin_audit_log(created_at DESC);
   `);
 
+  /* Chivar Bot context: isolated by user and durable across devices. */
+  if (!hasTable(db, 'concierge_conversations')) {
+    db.exec(`
+      CREATE TABLE concierge_conversations (
+        id           TEXT PRIMARY KEY,
+        user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        area_key     TEXT NOT NULL,
+        context_json TEXT NOT NULL,
+        created_at   TEXT NOT NULL,
+        updated_at   TEXT NOT NULL
+      );
+      CREATE INDEX idx_concierge_user_recent
+        ON concierge_conversations(user_id,area_key,updated_at DESC);
+      CREATE TABLE concierge_messages (
+        id              TEXT PRIMARY KEY,
+        conversation_id TEXT NOT NULL REFERENCES concierge_conversations(id) ON DELETE CASCADE,
+        role            TEXT NOT NULL CHECK(role IN ('user','assistant')),
+        content         TEXT NOT NULL,
+        created_at      TEXT NOT NULL
+      );
+      CREATE INDEX idx_concierge_messages
+        ON concierge_messages(conversation_id,created_at,id);
+    `);
+    applied.push('concierge_conversations', 'concierge_messages');
+  }
+
+  /* One fixed-size bucket protects the shared Groq credential across users. */
+  if (!hasTable(db, 'concierge_provider_quota')) {
+    db.exec(`
+      CREATE TABLE concierge_provider_quota (
+        provider          TEXT PRIMARY KEY,
+        window_started_at INTEGER NOT NULL,
+        used              INTEGER NOT NULL CHECK(used >= 0)
+      );
+    `);
+    applied.push('concierge_provider_quota');
+  }
+
   return applied;
 }

@@ -65,7 +65,7 @@ const MAX_IMPORT_ROWS = 5_000;
  */
 const utf8Length = (s: string): number => new TextEncoder().encode(s).byteLength;
 import { constantTimeEqual } from './scrypt.ts';
-import { BodyTooLarge, boundedForm, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
+import { BodyTooLarge, boundedForm, boundedJson, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
 import { publicConfig } from './fence.ts';
 import { boardFeed, type BoardEntry } from '@chivago/core';
 import { monstersInArea } from './monster-service.ts';
@@ -91,7 +91,7 @@ import {
   STORY_FORM_MAX_BYTES, StoryTooLarge, readStoryMedia, storiesAt, storiesInArea, storiesOpen,
   storyEtag, submitStory,
 } from './story-service.ts';
-import { AREAS, areaByKey, inArea, isAreaKey } from '@chivago/core';
+import { AREAS, areaByKey, inArea, isAreaKey, type TravelLocation } from '@chivago/core';
 import { openArea, refreshPhotos, refreshText } from './area-opening.ts';
 import { TEN_PULL_SIZE } from '@chivago/core';
 import { isLang } from '@chivago/core';
@@ -147,6 +147,14 @@ import {
   assistConfig, ffmpegPrepare, requestAssist, type AssistDeps,
 } from './assist-service.ts';
 import { bedrockModel } from './bedrock.ts';
+import { groqConciergeConfig } from './groq-concierge.ts';
+import { createConciergeRateLimiter } from './concierge-rate-limit.ts';
+import { groqRequestsPerMinute, takeGroqProviderQuota } from './concierge-provider-quota.ts';
+import { processConcierge } from './concierge-service.ts';
+import {
+  ConversationLimitReached, ConversationNotFound, clearConversationHistory,
+  conversationHistory, latestConversationHistory,
+} from './concierge-context.ts';
 import type { Voucher, WellnessProfile } from '@chivago/core';
 
 /**
@@ -251,6 +259,22 @@ const startAssist = (proofId: string) => {
     console.error('[chivago] assist failed to start:', (err as Error).message);
   });
 };
+
+/**
+ * Chivar Bot's language understanding. Unlike the proof assistant above, this
+ * never sees photographs and never writes a factual answer: Groq classifies
+ * the question and core answers from the database. One missing env value
+ * leaves the existing offline classifier in charge.
+ */
+const groqBase = groqConciergeConfig(process.env);
+const groqGlobalRequestsPerMinute = groqRequestsPerMinute(process.env);
+const groqConcierge = {
+  ...groqBase,
+  takeQuota: () => takeGroqProviderQuota(db, groqGlobalRequestsPerMinute),
+};
+console.log(`[chivago] Groq concierge: ${groqConcierge.enabled ? `on (${groqConcierge.model})` : 'off'}`);
+
+const conciergeRateLimit = createConciergeRateLimiter();
 
 
 const oncall = webhookTransport();
@@ -1617,6 +1641,96 @@ app.get('/areas/:key/transit', (c) => {
   if (!isAreaKey(key)) return fail(c, 'NOT_FOUND', 'No such area', 404);
   const routes = routesForArea(db, key);
   return ok(c, { routes, campus: routes.filter((r) => r.kind === 'campus') }, { total: routes.length });
+});
+
+/**
+ * Understand one Chivar Bot message with Groq, then answer from ChivaGo data.
+ * The client cannot submit a place, score, action or emergency number for the
+ * model to repeat. All of those are reconstructed here after classification.
+ */
+app.post('/concierge/chat', async (c) => {
+  let parsed: unknown = null;
+  try {
+    parsed = await boundedJson(c, 8_192);
+  } catch (error) {
+    if (error instanceof BodyTooLarge) {
+      return fail(c, 'BODY_TOO_LARGE', 'A concierge message must be under 8 KB.', 413);
+    }
+  }
+  const body = parsed as {
+    message?: unknown; area?: unknown; conversationId?: unknown;
+    location?: { lat?: unknown; lng?: unknown; accuracyM?: unknown } | null;
+  } | null;
+  const message = typeof body?.message === 'string' ? body.message.trim() : '';
+  if (message.length === 0 || message.length > 500) {
+    return fail(c, 'BAD_REQUEST', 'message must contain 1 to 500 characters', 400);
+  }
+  if (typeof body?.area !== 'string' || !isAreaKey(body.area)) {
+    return fail(c, 'BAD_REQUEST', 'area is not one ChivaGo knows', 400);
+  }
+  const conversationId = body.conversationId === undefined || body.conversationId === null
+    ? null
+    : typeof body.conversationId === 'string'
+        && body.conversationId.length >= 1 && body.conversationId.length <= 100
+      ? body.conversationId
+      : undefined;
+  if (conversationId === undefined) return fail(c, 'BAD_REQUEST', 'conversationId is invalid', 400);
+
+  let location: TravelLocation | null = null;
+  if (body.location !== undefined && body.location !== null) {
+    const lat = Number(body.location.lat);
+    const lng = Number(body.location.lng);
+    const accuracy = body.location.accuracyM === null || body.location.accuracyM === undefined
+      ? null : Number(body.location.accuracyM);
+    if (!Number.isFinite(lat) || lat < -90 || lat > 90 || !Number.isFinite(lng) || lng < -180 || lng > 180
+        || (accuracy !== null && (!Number.isFinite(accuracy) || accuracy < 0 || accuracy > 100_000))) {
+      return fail(c, 'BAD_REQUEST', 'location is invalid', 400);
+    }
+    location = { lat, lng, accuracyM: accuracy };
+  }
+
+  const caller = userId(c);
+  if (!conciergeRateLimit.take(caller)) {
+    return fail(c, 'RATE_LIMITED', 'Chivar Bot has received too many messages. Try again in a minute.', 429);
+  }
+
+  try {
+    return ok(c, await processConcierge(db, {
+      userId: caller,
+      message,
+      area: body.area,
+      conversationId,
+      location,
+    }, { groq: groqConcierge }));
+  } catch (error) {
+    if (error instanceof ConversationNotFound) {
+      return fail(c, 'NOT_FOUND', 'No such conversation', 404);
+    }
+    if (error instanceof ConversationLimitReached) {
+      return fail(c, 'CONVERSATION_LIMIT', error.message, 429);
+    }
+    throw error;
+  }
+});
+
+app.get('/concierge/history', (c) => {
+  const id = c.req.query('conversationId');
+  if (id) {
+    if (id.length > 100) return fail(c, 'BAD_REQUEST', 'conversationId is invalid', 400);
+    const history = conversationHistory(db, userId(c), id, 100);
+    return history ? ok(c, { conversationId: id, messages: history }) : fail(c, 'NOT_FOUND', 'No such conversation', 404);
+  }
+  const area = c.req.query('area');
+  if (!area || !isAreaKey(area)) return fail(c, 'BAD_REQUEST', 'area is required', 400);
+  return ok(c, latestConversationHistory(db, userId(c), area, 100)
+    ?? { conversationId: null, messages: [] });
+});
+
+app.delete('/concierge/history', (c) => {
+  const area = c.req.query('area');
+  if (!area || !isAreaKey(area)) return fail(c, 'BAD_REQUEST', 'area is required', 400);
+  const deletedConversations = clearConversationHistory(db, userId(c), area);
+  return ok(c, { cleared: true, deletedConversations });
 });
 
 app.get('/places', async (c) => {

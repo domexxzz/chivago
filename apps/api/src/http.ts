@@ -96,6 +96,42 @@ export async function boundedForm(c: Context, maxBytes: number): Promise<FormDat
 }
 
 /**
+ * Read JSON without ever buffering more than the route's byte ceiling.
+ *
+ * `content-length` is only an early refusal: chunked requests may omit it and
+ * a hostile client may lie. Counting the stream itself keeps that metadata
+ * from becoming the memory limit.
+ */
+export async function boundedJson(c: Context, maxBytes: number): Promise<unknown> {
+  const declared = Number(c.req.header('content-length'));
+  if (Number.isFinite(declared) && declared > maxBytes) throw new BodyTooLarge(maxBytes);
+
+  const stream = c.req.raw.body;
+  if (!stream) return JSON.parse('');
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => undefined);
+      throw new BodyTooLarge(maxBytes);
+    }
+    chunks.push(value);
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+/**
  * Turn a thrown error into a response.
  *
  * Unknown errors return a generic message and log the detail server-side: an

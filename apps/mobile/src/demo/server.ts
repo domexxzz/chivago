@@ -674,6 +674,11 @@ export interface DemoServerOptions {
   active?: () => boolean;
   /** Guest mode may read a newly-added public route without risking a write. */
   fallThroughUnknownReads?: boolean;
+  /**
+   * Normal guest mode may use the real grounded Concierge and persist only its
+   * transcript. Static demos keep this off and never contact a backend.
+   */
+  allowLiveConcierge?: boolean;
 }
 
 export function installDemoServer(apiBase: string, options: DemoServerOptions = {}): () => void {
@@ -686,6 +691,13 @@ export function installDemoServer(apiBase: string, options: DemoServerOptions = 
 
     const [path, query] = url.slice(apiBase.length).split('?') as [string, string | undefined];
     const method = (init?.method ?? 'GET').toUpperCase();
+    const isLiveConciergeRoute = options.allowLiveConcierge === true && (
+      (method === 'POST' && path === '/devices')
+      || ((method === 'GET' || method === 'DELETE') && path === '/concierge/history')
+      || (method === 'POST' && path === '/concierge/chat')
+    );
+    if (isLiveConciergeRoute) return real(input as RequestInfo, init);
+
     const form = init?.body instanceof FormData
       ? init.body as unknown as { entries?: () => Iterable<[string, unknown]> }
       : null;

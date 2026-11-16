@@ -63,4 +63,36 @@ describe('guest presentation sandbox', () => {
     assert.equal(post?.likedByMe, true);
     assert.equal(post?.comments[0]?.body, 'Looks great');
   });
+
+  test('normal guest mode sends only identity and Concierge traffic to the real API', async () => {
+    const realCalls: string[] = [];
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      realCalls.push(String(input));
+      return new Response(JSON.stringify({ ok: true, data: { live: true } }), {
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as typeof fetch;
+    restores.push(() => { globalThis.fetch = original; });
+    restores.push(installDemoServer('https://api.example', {
+      active: () => true,
+      fallThroughUnknownReads: true,
+      allowLiveConcierge: true,
+    }));
+
+    await fetch('https://api.example/devices', { method: 'POST', body: '{}' });
+    await fetch('https://api.example/concierge/chat', { method: 'POST', body: '{}' });
+    await fetch('https://api.example/concierge/history?area=koh-sichang');
+    await fetch('https://api.example/concierge/history?area=koh-sichang', { method: 'DELETE' });
+    const blocked = await fetch('https://api.example/unrelated-write', { method: 'POST', body: '{}' });
+
+    assert.equal(realCalls.length, 4);
+    assert.deepEqual(realCalls, [
+      'https://api.example/devices',
+      'https://api.example/concierge/chat',
+      'https://api.example/concierge/history?area=koh-sichang',
+      'https://api.example/concierge/history?area=koh-sichang',
+    ]);
+    assert.equal((await blocked.json() as { code: string }).code, 'DEMO_ROUTE');
+  });
 });

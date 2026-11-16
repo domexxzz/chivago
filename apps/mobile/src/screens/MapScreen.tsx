@@ -63,7 +63,7 @@ const mapShopCategory = (category: string) => {
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
   onAskConcierge, onOpenStays, onOpenShop, onNavigateShop, onToast,
-  onOpenWallet, onOpenProfile, wayTo = null, onClearWay, onNavigate, fairFocus = null, onClearFair, onOpenFair, onBackToFair,
+  onOpenWallet, onOpenProfile, wayTo = null, onClearWay, onNavigate, recommendedPlaces = [], onClearRecommendations, fairFocus = null, onClearFair, onOpenFair, onBackToFair,
 }: {
   layers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
@@ -90,6 +90,9 @@ export function MapScreen({
   onClearWay?: () => void;
   /** Opens turn-by-turn for the place the way banner is about. */
   onNavigate?: (place: ScoredPlace) => void;
+  /** All real ChivaGo records returned by the concierge for this result set. */
+  recommendedPlaces?: ScoredPlace[];
+  onClearRecommendations?: () => void;
   /** A fair lot chosen on the fair screen (docs/66): the map flies to it and marks it among the others. */
   fairFocus?: { fairId: string; code: string } | null;
   onClearFair?: () => void;
@@ -220,6 +223,7 @@ export function MapScreen({
   }, [area.key]);
   const [selectedShop, setSelectedShop] = React.useState<Shop | null>(null);
   const [selectedPlace, setSelectedPlace] = React.useState<ScoredPlace | null>(null);
+  const recommendedPlaceIds = React.useMemo(() => new Set(recommendedPlaces.map((place) => place.id)), [recommendedPlaces]);
   React.useEffect(() => {
     if (shops.data) setSelectedShop((current) => current ? shops.data!.find((s) => s.id === current.id) ?? null : null);
   }, [shops.data]);
@@ -385,6 +389,7 @@ export function MapScreen({
     tales={tales}
     onOpenStory={(placeId) => { setExpandedMap(false); openStory(placeId); }}
     places={visible}
+    highlightedPlaceIds={recommendedPlaceIds}
     shops={visibleShops}
     onSelectShop={onSelectShop}
     onSelect={onSelect}
@@ -519,6 +524,19 @@ export function MapScreen({
             ) : null}
           </View>
           {fairPanel}
+          {recommendedPlaces.length ? (
+            <View style={{ marginHorizontal: gutter, marginBottom: 10, padding: 12, borderRadius: 16, backgroundColor: '#EAF9F7', borderWidth: 1, borderColor: '#8FD8D3' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                <View style={{ flex: 1 }}>
+                  <Heading size={14}>{t({ en: 'AI-recommended places', th: 'สถานที่ที่ AI แนะนำ', zh: 'AI 推荐地点' })}</Heading>
+                  <Body size={13} colour={color.neutral600} style={{ marginTop: 3 }}>{recommendedPlaces.map((place) => t(place.name)).join(' · ')}</Body>
+                </View>
+                <Pressable onPress={onClearRecommendations} accessibilityRole="button" accessibilityLabel={t({ en: 'Clear recommended markers', th: 'ล้างหมุดแนะนำ', zh: '清除推荐标记' })} style={{ minHeight: 36, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' }}>
+                  <Body size={13} colour={color.brand}>{t({ en: 'Clear', th: 'ล้าง', zh: '清除' })}</Body>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
           {wayTo ? (
             <WayBanner
               place={wayTo}
@@ -559,6 +577,7 @@ export function MapScreen({
               tales={tales}
               onOpenStory={openStory}
               places={visible}
+              highlightedPlaceIds={recommendedPlaceIds}
               shops={visibleShops}
               onSelectShop={onSelectShop}
               onSelect={onSelect}

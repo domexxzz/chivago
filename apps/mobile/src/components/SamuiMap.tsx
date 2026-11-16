@@ -399,6 +399,8 @@ export interface SamuiMapProps {
   /** False where the screen draws its own satellite button over the map. */
   inlineSatellite?: boolean;
   places: ScoredPlace[];
+  /** Pins returned together by the concierge; rendered with a gold focus ring. */
+  highlightedPlaceIds?: ReadonlySet<string>;
   onSelect: (place: ScoredPlace) => void;
   shops?: Shop[];
   onSelectShop?: (shop: Shop) => void;
@@ -514,6 +516,7 @@ export function SamuiMap(props: SamuiMapProps) {
       <WebTerrainMap
         area={props.area}
         places={props.places}
+        highlightedPlaceIds={props.highlightedPlaceIds}
         onSelect={props.onSelect}
         shops={props.shops}
         onSelectShop={props.onSelectShop}
@@ -560,7 +563,7 @@ export function SamuiMap(props: SamuiMapProps) {
 }
 
 /** Native's existing SVG engine: a coordinate grid, never another island's coastline. */
-function AreaPointMap({ area, places, shops = [], onSelect, onSelectShop, onPickCoordinate, selectedCoordinate, height }: SamuiMapProps & { area: Area; height: number }) {
+function AreaPointMap({ area, places, highlightedPlaceIds, shops = [], onSelect, onSelectShop, onPickCoordinate, selectedCoordinate, height }: SamuiMapProps & { area: Area; height: number }) {
   const { width: windowWidth } = useWindowDimensions();
   const [measured, setMeasured] = React.useState(0);
   const width = measured || windowWidth;
@@ -588,7 +591,7 @@ function AreaPointMap({ area, places, shops = [], onSelect, onSelectShop, onPick
       /> : null}
       {selectedCoordinate && onPickCoordinate ? (() => { const pos = point(selectedCoordinate.lat, selectedCoordinate.lng); return <View pointerEvents="none" style={{ position: 'absolute', left: pos.left - 10, top: pos.top - 10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#0077B6', borderWidth: 4, borderColor: '#fff', elevation: 5 }} />; })() : null}
       <View style={{ position: 'absolute', top: 8, left: 12, backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }}><Label size={10} colour="#0077B6">{t(area.name)} · {t({ en: 'Coordinate map', th: 'แผนผังพิกัด', zh: '坐标地图' })}</Label></View>
-      {places.map((place) => { const pos = point(place.lat, place.lng); return <Pressable key={place.id} onPress={() => onSelect(place)} accessibilityLabel={t(place.name)} style={{ position: 'absolute', left: pos.left - 23, top: pos.top - 51 }}><PlaceMapMarker place={place} /></Pressable>; })}
+      {places.map((place) => { const pos = point(place.lat, place.lng); const highlighted = highlightedPlaceIds?.has(place.id) ?? false; return <Pressable key={place.id} onPress={() => onSelect(place)} accessibilityLabel={t(place.name)} style={{ position: 'absolute', left: pos.left - 23, top: pos.top - 51, zIndex: highlighted ? 8 : 1 }}>{highlighted ? <View pointerEvents="none" style={{ position: 'absolute', left: -4, top: -4, width: 50, height: 50, borderRadius: 25, borderWidth: 3, borderColor: color.gold, backgroundColor: 'rgba(255,255,255,0.2)' }} /> : null}<PlaceMapMarker place={place} /></Pressable>; })}
       {/* Every service, one pin - an unpinned one on the area's ring, marked as such. */}
       {!onPickCoordinate ? servicePoints(mappable(shops), area.center, area.bbox).map((spot) => { const shop = spot.source; const pos = point(spot.lat, spot.lng); return <Pressable key={shop.id} onPress={() => onSelectShop?.(shop)} accessibilityLabel={spot.approximate ? `${shop.category}: ${shop.name}. ${t(UNPINNED_NOTE)}` : `${shop.category}: ${shop.name}`} style={{ position: 'absolute', left: pos.left - 23, top: pos.top - 51 }}><ShopMapMarker category={shop.category} approximate={spot.approximate} /></Pressable>; }) : null}
     </View>
@@ -631,7 +634,7 @@ function PlaceList({
 
 function IslandMap({
   places, onSelect, shops = [], onSelectShop, explored = [], height = 344, compact = false, storied, tales, onOpenStory,
-  here = null, area, onPickCoordinate, selectedCoordinate,
+  here = null, area, onPickCoordinate, selectedCoordinate, highlightedPlaceIds,
 }: SamuiMapProps) {
   /**
    * The map is full-bleed, so the window IS its width.
@@ -742,6 +745,7 @@ function IslandMap({
                   ],
                 }}
               >
+                {highlightedPlaceIds?.has(place.id) ? <View pointerEvents="none" style={{ position: 'absolute', left: -4, top: -4, width: 50, height: 50, borderRadius: 25, borderWidth: 3, borderColor: color.gold, backgroundColor: 'rgba(255,255,255,0.2)', zIndex: 4 }} /> : null}
                 <PinChip
                   place={place}
                   onPress={() => onSelect(place)}

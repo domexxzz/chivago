@@ -271,6 +271,7 @@ const MARK_CSS = `
   box-shadow:3px 3px 5px rgba(8,26,48,.32)}
 .cg-pin:hover .cg-place-pin-core,.cg-pin:focus-visible .cg-place-pin-core{transform:translateY(-2px) scale(1.07);box-shadow:0 0 0 4px rgba(255,255,255,.24),0 6px 10px rgba(8,26,48,.4)}
 .cg-pin.cg-storied .cg-place-pin-core{box-shadow:0 0 0 3px ${color.gold},0 5px 10px rgba(8,26,48,.45)}
+.cg-pin.cg-recommended .cg-place-pin-core{box-shadow:0 0 0 4px #F2B84B,0 0 0 7px rgba(255,255,255,.9),0 7px 14px rgba(8,26,48,.5)}
 .cg-shop-pin{display:flex;flex-direction:column;align-items:center;width:46px;height:51px;padding:0;border:0;
   background:transparent;cursor:pointer;color:#fff}
 .cg-shop-pin-core{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;width:42px;height:42px;
@@ -511,12 +512,13 @@ const CAMPUS_EXAGGERATION = 1.15;
 const DEM_SOURCES = ['terrain', 'relief', 'deep'];
 
 export function TerrainMap({
-  places, onSelect, shops = [], onSelectShop, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area, storied,
+  places, highlightedPlaceIds, onSelect, shops = [], onSelectShop, quests = [], progress = {}, onOpenQuest, explored = [], height = 344, compact = false, area, storied,
   tales, onOpenStory, stops = [], interactive = true, fullScreenControls = false,
   onPickCoordinate, selectedCoordinate = null,
   here = null, way = null, wayIsRoute = false, fairLots = null, fairFocus = null,
 }: {
   places: ScoredPlace[];
+  highlightedPlaceIds?: ReadonlySet<string>;
   onSelect: (place: ScoredPlace) => void;
   shops?: Shop[];
   onSelectShop?: (shop: Shop) => void;
@@ -1229,6 +1231,25 @@ export function TerrainMap({
     // mount and a fresh map, not a map of the island asked to show the campus.
   }, []);
 
+  const recommendedKey = [...(highlightedPlaceIds ?? [])].sort().join('|');
+  React.useEffect(() => {
+    const m = map.current;
+    const recommended = places.filter((place) => highlightedPlaceIds?.has(place.id));
+    if (!m || recommended.length === 0) return undefined;
+    const focus = () => {
+      if (recommended.length === 1) {
+        m.easeTo({ center: [recommended[0]!.lng, recommended[0]!.lat], zoom: Math.max(m.getZoom(), 14), duration: 550, essential: true });
+        return;
+      }
+      const lngs = recommended.map((place) => place.lng);
+      const lats = recommended.map((place) => place.lat);
+      m.fitBounds([[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]], { padding: 64, maxZoom: 14, duration: 550, essential: true });
+    };
+    if (m.loaded()) focus();
+    else m.once('load', focus);
+    return () => { m.off('load', focus); };
+  }, [recommendedKey, places, highlightedPlaceIds]);
+
   /*
     The mist follows the places REACHED, and nothing else.
 
@@ -1266,7 +1287,7 @@ export function TerrainMap({
     places.forEach((place) => {
       const el = document.createElement('button');
       el.type = 'button';
-      el.className = `cg-pin${storied?.has(place.id) ? ' cg-storied' : ''}`;
+      el.className = `cg-pin${storied?.has(place.id) ? ' cg-storied' : ''}${highlightedPlaceIds?.has(place.id) ? ' cg-recommended' : ''}`;
       el.setAttribute('aria-label', `${t(place.name)}, ${t(strings.place.healthyScore)} ${place.healthyScore}`);
       /*
         THE PIN SAYS WHAT IT IS, at every width.
@@ -1600,7 +1621,7 @@ export function TerrainMap({
       m.off('moveend', relabel);
       m.off('resize', relabel);
     };
-  }, [places, shops, quests, progress, onSelect, onSelectShop, onOpenQuest, compact, storied, tales, onOpenStory, stops, area]);
+  }, [places, shops, quests, progress, onSelect, onSelectShop, onOpenQuest, compact, storied, highlightedPlaceIds, tales, onOpenStory, stops, area]);
 
   /*
     You are here.

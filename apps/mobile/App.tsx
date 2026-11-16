@@ -140,6 +140,9 @@ export default function App() {
   // in the Map tab because the ASK happens on the place screen, and the tab
   // is remounted by its own key when the area changes.
   const [wayTo, setWayTo] = React.useState<ScoredPlace | null>(null);
+  // A concierge result set is a group of highlighted map pins, not a route.
+  // Routing still starts only after the traveller chooses Navigate.
+  const [mapRecommendations, setMapRecommendations] = React.useState<ScoredPlace[]>([]);
   /*
     Where the navigator is taking them, and what to open on arrival.
 
@@ -356,6 +359,12 @@ export default function App() {
             onBack={nav.pop}
             onOpenMap={() => nav.selectTab('map')}
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
+            onShowOnMap={(place) => { setWayTo(null); setMapRecommendations([place]); nav.selectTab('map'); }}
+            onShowRecommendationsOnMap={(places) => { setWayTo(null); setMapRecommendations(places); nav.selectTab('map'); }}
+            onNavigatePlace={(place) => {
+              setWayTo(navigationProviderFor(place) === 'chivago' ? place : null);
+              navigateTo({ id: place.id, name: place.name, lat: place.lat, lng: place.lng }, 'place');
+            }}
             onAction={(action) => {
               // The concierge hands OFF rather than reimplementing a screen.
               if (action === 'plan' || action === 'route' || action === 'price') {
@@ -399,6 +408,8 @@ export default function App() {
             onOpenProfile={() => nav.push('profile')}
             balances={balances}
             wayTo={wayTo}
+            recommendedPlaces={mapRecommendations}
+            onClearRecommendations={() => setMapRecommendations([])}
             onClearWay={() => setWayTo(null)}
             onNavigate={(place) => {
               const destination = { id: place.id, name: place.name, lat: place.lat, lng: place.lng };

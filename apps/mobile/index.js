@@ -20,6 +20,9 @@ const staticDemo = process.env.EXPO_PUBLIC_DEMO === '1';
 installDemoServer(process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8787', {
   active: () => staticDemo || guestSandboxActive(),
   fallThroughUnknownReads: !staticDemo,
+  // The normal guest experience uses the real, server-grounded Concierge and
+  // its persistent transcript. The fully static export stays self-contained.
+  allowLiveConcierge: !staticDemo,
 });
 if (staticDemo) markAsDemo();
 
