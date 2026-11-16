@@ -20,7 +20,7 @@ import type {
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
   InviteListing, PartyInvite, RequestOutcome, InquiryView, ListingCard, TravellerInquiry,
-  MascotForm, Spirit, SpiritCourt, SpiritRarity,
+  MascotForm, Reply, Spirit, SpiritCourt, SpiritRarity, ConciergeChatData, TravelLocation,
 } from '@chivago/core';
 import type {
   AirHistory, AreaWeather, BoardEntry, Explored, Fix, Headway, MedalsView, PlaceCourts, PlaceStalls, SelfVisitResult, SelfVisitSummary, TransitRoute,
@@ -516,6 +516,21 @@ export const api = {
 
   // -- places -------------------------------------------------------------
   places: () => get<ScoredPlace[]>('/places'),
+  conciergeChat: (
+    message: string,
+    area: AreaKey,
+    context: { conversationId?: string | null; location?: TravelLocation | null } = {},
+  ) =>
+    post<ConciergeChatData>(
+      '/concierge/chat',
+      { message, area, conversationId: context.conversationId ?? null, location: context.location ?? null },
+    ),
+  conciergeHistory: (area: AreaKey) =>
+    get<{ conversationId: string | null; messages: { role: 'user' | 'assistant'; content: string; createdAt: string }[] }>(
+      `/concierge/history?area=${encodeURIComponent(area)}`,
+    ),
+  clearConciergeHistory: (area: AreaKey) =>
+    del<{ cleared: true; deletedConversations: number }>(`/concierge/history?area=${encodeURIComponent(area)}`),
   /** Which provinces this traveller has been to. The arithmetic is in core. */
   /**
    * Where they have been, and the evidence behind each province's companion.

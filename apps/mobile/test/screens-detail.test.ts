@@ -14,7 +14,7 @@ import { Linking } from 'react-native';
 
 import { act } from 'react-test-renderer';
 import { motion } from '@chivago/tokens';
-import { DEFAULT_AREA } from '@chivago/core';
+import { DEFAULT_AREA, type ScoredPlace } from '@chivago/core';
 import { mountScreen, offline, refuses, server, settle } from './interact.ts';
 import { __setLocaleForTests } from '../src/i18n/locale.ts';
 import { __setAreaForTests } from '../src/state/area.ts';
@@ -1457,13 +1457,36 @@ describe('the companion collection on the wallet', () => {
   });
 });
 
-describe('the concierge screen, which answers without a server', () => {
+describe('the concierge screen, which shows only server-backed answers', () => {
   // The concierge suggests places in the CURRENT area, and the fixture is on
   // Samui, so the area is said out loud here rather than inherited from
   // DEFAULT_AREA - which is Koh Sichang, where this place is not.
-  beforeEach(() => { __setAreaForTests('samui'); });
+  beforeEach(() => { __setAreaForTests('samui'); __setLocaleForTests('en'); });
 
-  const props = (over = {}) => ({ onOpenPlace: noop, onAction: noop, ...over });
+  const props = (over = {}) => ({ onOpenMap: noop, onOpenPlace: noop, onAction: noop, ...over });
+  const chat = (over: Record<string, unknown> = {}) => ({
+    conversationId: 'conversation-1',
+    reply: {
+      intent: 'recommend', lang: 'en', text: 'Chaweng is the quietest verified option in this set.',
+      suggestions: [{
+        placeId: 'chaweng', name: { en: 'Chaweng Beach', th: 'หาดเฉวง' },
+        because: { en: 'Estimated crowd · 2 check-ins in the last hour', th: 'ค่าประเมิน' },
+        healthyScore: 82, photoUrl: null, distanceKm: 1.2,
+        crowd: { checkinsLastHour: 2, estimateLabel: { en: 'Low', th: 'น้อย' }, provenance: 'live-checkins-plus-estimate' },
+      }],
+      dial: [], action: null,
+    },
+    source: 'groq', model: 'openai/gpt-oss-120b',
+    analysis: {
+      intent: 'CROWD', confidence: 0.94, language: 'en',
+      entities: { category: null, placeName: null, time: null, budgetBaht: null, travelMode: null, quiet: true, indoor: false, nearMe: false, familyFriendly: false, showMore: false, closest: false },
+      contextReference: 'none', requiredActions: ['get_crowd_information'], needsClarification: false, sentiment: 'neutral',
+    },
+    quickReplies: ['How do I get there?'], weather: null,
+    evidence: [{ kind: 'crowd', label: 'Crowd information', source: 'ChivaGo check-ins + survey estimate', fetchedAt: '2026-11-16T08:00:00Z', validity: 'estimated' }],
+    aiNotice: null, retryable: false, recommendations: null,
+    ...over,
+  });
 
   test('it opens with questions, not an empty box', async () => {
     // An empty chat makes the reader guess what it is for. They guess
@@ -1484,21 +1507,57 @@ describe('the concierge screen, which answers without a server', () => {
     } finally { net.restore(); }
   });
 
+  test('restores chat history and requires confirmation before permanently clearing it', async () => {
+    const net = server({
+      'GET /places': [place()],
+      'GET /concierge/history': {
+        conversationId: 'saved-conversation',
+        messages: [
+          { role: 'user', content: 'Recommend a quiet beach', createdAt: '2026-11-16T08:00:00Z' },
+          { role: 'assistant', content: 'Lamai Beach matches that request.', createdAt: '2026-11-16T08:00:01Z' },
+        ],
+      },
+      'DELETE /concierge/history': { cleared: true, deletedConversations: 1 },
+    });
+    try {
+      const ui = await mountScreen(h(ConciergeScreen, props()));
+      assert.match(ui.text(), /Recommend a quiet beach/);
+      assert.match(ui.text(), /Lamai Beach matches that request/);
+
+      await ui.press(/Clear chat/i);
+      assert.match(ui.text(), /Clear chat history/);
+      assert.match(ui.text(), /permanently deleted/);
+      assert.equal(net.calls.some((call) => call.method === 'DELETE'), false, 'opening the warning deleted history');
+
+      await ui.press(/Cancel/i);
+      assert.match(ui.text(), /Lamai Beach matches that request/);
+      await ui.press(/Clear chat/i);
+      await ui.press(/Confirm clear chat/i);
+      await settle();
+
+      assert.ok(net.calls.some((call) => call.method === 'DELETE' && call.path === '/concierge/history?area=samui'));
+      assert.doesNotMatch(ui.text(), /Lamai Beach matches that request/);
+      assert.match(ui.text(), /Try asking/i);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
   test('asking in English answers in English, with a reason', async () => {
-    const net = server({ 'GET /places': [place()] });
+    const net = server({ 'GET /places': [place()], 'POST /concierge/chat': chat() });
     try {
       const ui = await mountScreen(h(ConciergeScreen, props()));
       await ui.pressText(/Somewhere quiet/);
       const said = ui.text();
-      assert.match(said, /Quietest right now/i);
-      assert.match(said, /people per 100/, 'recommended with no measurement behind it');
+      assert.match(said, /quietest verified option/i);
+      assert.match(said, /Estimated crowd/, 'recommended with no measurement behind it');
+      assert.doesNotMatch(said, /Healthy Score|\b82\b/, 'a health score leaked into a tourism recommendation');
       ui.unmount();
     } finally { net.restore(); }
   });
 
   test('a place suggestion is a control, not a sentence about a place', async () => {
     const opened: string[] = [];
-    const net = server({ 'GET /places': [place()] });
+    const net = server({ 'GET /places': [place()], 'POST /concierge/chat': chat() });
     try {
       const ui = await mountScreen(h(ConciergeScreen, props({
         onOpenPlace: (id: string) => { opened.push(id); },
@@ -1506,6 +1565,141 @@ describe('the concierge screen, which answers without a server', () => {
       await ui.pressText(/Somewhere quiet/);
       await ui.pressText(/Chaweng/);
       assert.deepEqual(opened, ['chaweng'], 'the suggestion did not open the place');
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('shows thinking, then grounded Groq cards, distance, sources and contextual quick replies', async () => {
+    let release!: (value: unknown) => void;
+    const pending = new Promise((resolve) => { release = resolve; });
+    const net = server({ 'GET /places': [place()], 'POST /concierge/chat': () => pending });
+    try {
+      const ui = await mountScreen(h(ConciergeScreen, props()));
+      await ui.pressText(/Somewhere quiet/);
+      assert.match(ui.text(), /checking ChivaGo data/i);
+
+      release(chat());
+      await settle();
+      const said = ui.text();
+      assert.match(said, /GROQ AI · CHIVAGO VERIFIED DATA/i);
+      assert.match(said, /1\.2 km/);
+      assert.match(said, /Crowd information\s*:\s*ChivaGo check-ins \+ survey estimate · estimated/);
+      assert.match(said, /How do I get there/);
+      assert.deepEqual(net.calls.find((call) => call.path === '/concierge/chat')?.body, {
+        message: 'Somewhere quiet', area: 'samui', conversationId: null,
+        location: { lat: 9.5357, lng: 100.0617, accuracyM: 12 },
+      });
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('renders structured recommendation cards and hands map and navigation to existing screens', async () => {
+    const mapped: string[] = [];
+    const navigated: string[] = [];
+    const net = server({
+      'GET /places': [place()],
+      'POST /concierge/chat': chat({
+        recommendations: {
+          title: { en: 'Places ranked for your location', th: 'สถานที่เรียงตามตำแหน่งของคุณ', zh: '按你的位置排序的地点' },
+          hasMore: false,
+          limitations: [],
+          items: [{
+            placeId: 'chaweng', name: { en: 'Chaweng Beach', th: 'หาดเฉวง', zh: '查汶海滩' },
+            category: { en: 'Nature', th: 'ธรรมชาติ', zh: '自然' },
+            description: { en: 'A real place description.', th: 'คำอธิบายสถานที่จริง', zh: '真实地点描述。' },
+            image: null, coordinates: { lat: 9.53, lng: 100.06 }, distanceKm: 1.2,
+            rating: { average: 4.5, reviewCount: 8 }, openingStatus: null,
+            source: { name: 'ChivaGo database', fetchedAt: '2026-11-16T08:00:00Z', lastUpdatedAt: null },
+            reason: { en: '1.2 km from the permitted location', th: 'ห่าง 1.2 กม.', zh: '距离 1.2 公里' },
+            verificationStatus: 'partially-verified', score: 87, scoreBreakdown: [],
+          }],
+        },
+      }),
+    });
+    try {
+      const ui = await mountScreen(h(ConciergeScreen, props({
+        onShowOnMap: (item: ScoredPlace) => { mapped.push(item.id); },
+        onNavigatePlace: (item: ScoredPlace) => { navigated.push(item.id); },
+      })));
+      await ui.pressText(/Somewhere quiet/);
+      await settle();
+      assert.match(ui.text(), /Places ranked for your location/);
+      assert.match(ui.text(), /A real place description/);
+      assert.match(ui.text(), /4\.5\s*\(\s*8\s*\)/);
+      assert.match(ui.text(), /ChivaGo database · partially-verified/);
+      await ui.pressText(/^Map$/);
+      await ui.pressText(/^Navigate$/);
+      assert.deepEqual(mapped, ['chaweng']);
+      assert.deepEqual(navigated, ['chaweng']);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('renders an ordered trip and opens every recommended marker together', async () => {
+    const second = place({ id: 'lamai', name: { en: 'Lamai Beach', th: 'หาดละไม' }, lat: 9.47, lng: 100.04 });
+    const mapped: string[][] = [];
+    const item = (p: ScoredPlace, score: number) => ({
+      placeId: p.id, name: p.name, category: { en: 'Nature', th: 'ธรรมชาติ', zh: '自然' },
+      description: p.blurb, image: null, coordinates: { lat: p.lat, lng: p.lng }, distanceKm: null,
+      rating: null, openingStatus: null,
+      source: { name: 'ChivaGo database' as const, fetchedAt: '2026-11-16T08:00:00Z', lastUpdatedAt: null },
+      reason: { en: 'Selected for variety', th: 'คัดเพื่อความหลากหลาย', zh: '多样性' },
+      verificationStatus: 'partially-verified' as const, score, scoreBreakdown: [],
+    });
+    const net = server({
+      'GET /places': [place(), second],
+      'POST /concierge/chat': chat({
+        recommendations: {
+          title: { en: 'Recommended places', th: 'สถานที่แนะนำ', zh: '推荐地点' },
+          hasMore: false, limitations: [], items: [item(place(), 88), item(second, 82)],
+        },
+        tripRecommendation: {
+          title: { en: 'AI trip recommendation', th: 'ทริปแนะนำจาก AI', zh: 'AI 行程推荐' },
+          durationLabel: { en: 'Half-day · 2 places', th: 'ครึ่งวัน · 2 สถานที่', zh: '半日 · 2 个地点' },
+          stops: [
+            { order: 1, placeId: 'chaweng', name: place().name, coordinates: { lat: place().lat, lng: place().lng } },
+            { order: 2, placeId: 'lamai', name: second.name, coordinates: { lat: second.lat, lng: second.lng } },
+          ],
+          routeStatus: 'calculate-on-map',
+          limitation: { en: 'ChivaGo Routing calculates the actual route on the map.', th: 'คำนวณเส้นทางจริงบนแผนที่', zh: '在地图计算实际路线。' },
+        },
+      }),
+    });
+    try {
+      const ui = await mountScreen(h(ConciergeScreen, props({
+        onShowRecommendationsOnMap: (items: ScoredPlace[]) => { mapped.push(items.map((entry) => entry.id)); },
+      })));
+      await ui.pressText(/Somewhere quiet/);
+      await settle();
+      assert.match(ui.text(), /AI trip recommendation/);
+      assert.match(ui.text(), /1\s*Chaweng Beach/);
+      assert.match(ui.text(), /2\s*Lamai Beach/);
+      await ui.pressText(/View all stops on map/);
+      assert.deepEqual(mapped, [['chaweng', 'lamai']]);
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('shows no fabricated fallback and retries the same question against the server', async () => {
+    let calls = 0;
+    const net = server({
+      'GET /places': [place()],
+      'POST /concierge/chat': () => {
+        calls += 1;
+        return calls === 1 ? refuses('UPSTREAM', 'Groq unavailable') : chat();
+      },
+    });
+    try {
+      const ui = await mountScreen(h(ConciergeScreen, props()));
+      await ui.pressText(/Somewhere quiet/);
+      await settle();
+      assert.match(ui.text(), /could not reach the server/i);
+      assert.match(ui.text(), /No answer was generated/i);
+      assert.doesNotMatch(ui.text(), /quietest verified option/i);
+      await ui.pressText(/^Retry$/i);
+      await settle();
+      assert.equal(calls, 2);
+      assert.match(ui.text(), /CHIVAGO VERIFIED DATA/i);
       ui.unmount();
     } finally { net.restore(); }
   });

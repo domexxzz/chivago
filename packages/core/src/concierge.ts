@@ -1,35 +1,15 @@
 /**
  * The concierge: a bilingual chat that recommends places.
  *
- * WHY THIS IS NOT A LANGUAGE MODEL, stated up front because it is the first
- * question anybody will ask.
+ * This is the deterministic evidence engine and offline fallback. The live
+ * server wraps it with a hybrid Groq pipeline, but facts still come from the
+ * same places, weather and safety records these functions use. A static demo
+ * or a phone with no signal therefore loses natural rewriting, not the whole
+ * assistant, and never needs an API key in the client.
  *
- * Three reasons, in order of how much they cost to ignore.
- *
- * 1. It could not answer. The demo a judge opens is a static build with no
- *    server behind it - that is the whole point of it - and a client holding
- *    an API key is forbidden in this project by design. A chat that needs a
- *    round trip is a chat that is broken in the one place it gets seen, and
- *    broken again on a beach with one bar of signal.
- *
- * 2. It would break the only rule the product has. Every screen here refuses
- *    to claim more than it can show: a score returns its breakdown, a price is
- *    a band with drivers, a companion stage is derived from the ledger. A model
- *    that can invent a beach, a price or a safety fact would be the single most
- *    off-brand component in the app, and it would be the one users talk to.
- *
- * 3. It cannot be tested. Everything else here is.
- *
- * So this reads the same data the screens read and answers only from it. When
- * it does not know, it says which questions it can answer instead of guessing.
- * Every recommendation carries the measurement it was made from, because a
- * concierge that says "you'll love it" is not giving you a reason - it is
- * giving you a mood.
- *
- * The seam for a model is deliberate and narrow: `classify` turns a sentence
- * into an intent plus filters, and everything after it is pure retrieval. If a
- * model is ever added it replaces that one function, and the answers it can
- * produce stay bounded by the data underneath.
+ * Every recommendation carries the measurement it was made from. The server's
+ * model may classify a sentence or rewrite a validated factual answer, but it
+ * cannot invent a beach, price, route, crowd count or emergency number.
  */
 
 import type { Bilingual, LayerKey, Localised, Quest, ScoredPlace } from './types.ts';
@@ -233,7 +213,16 @@ export interface Suggestion {
   name: Bilingual;
   /** The measurement this was chosen on. Never a feeling. */
   because: Bilingual;
-  healthyScore: number;
+  /** Present only on legacy health-oriented cards, never tourism recommendations. */
+  healthyScore?: number;
+  /** Optional presentation data added by the live hybrid API. */
+  photoUrl?: string | null;
+  distanceKm?: number | null;
+  crowd?: {
+    checkinsLastHour: number;
+    estimateLabel: Bilingual;
+    provenance: 'live-checkins-plus-estimate';
+  } | null;
 }
 
 export interface Reply {
@@ -309,8 +298,8 @@ export interface Context {
  * Pure: the same question against the same island always produces the same
  * reply, which is why this can be tested and why it behaves the same offline.
  */
-export function answer(input: string, ctx: Context): Reply {
-  const { intent, filters, lang } = classify(input);
+export function answerFromReading(reading: Reading, ctx: Context): Reply {
+  const { intent, filters, lang } = reading;
 
   const base: Reply = { intent, lang, text: '', suggestions: [], dial: [], action: null };
 
@@ -447,6 +436,15 @@ export function answer(input: string, ctx: Context): Reply {
       + '我也可以规划一日行程、查询价格或快速寻求帮助。',
     ), lang),
   };
+}
+
+/**
+ * The offline/default entry point. A server-side classifier may call
+ * `answerFromReading` with a validated reading, but the answer itself remains
+ * the same evidence-bounded function either way.
+ */
+export function answer(input: string, ctx: Context): Reply {
+  return answerFromReading(classify(input), ctx);
 }
 
 /**

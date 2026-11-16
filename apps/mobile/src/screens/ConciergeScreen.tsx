@@ -1,11 +1,9 @@
 /**
  * The concierge, on screen.
  *
- * Answers come from `@chivago/core`, which reads the same places the map reads
- * and nothing else. See the header of `concierge.ts` for why this is not a
- * language model; the short version is that the demo has no server, the app is
- * used on a beach with one bar, and a component that can invent a beach would
- * be the only thing in the product allowed to.
+ * Every answer comes from the authenticated server pipeline. Network failure
+ * is shown as a failure with Retry; the client never manufactures a substitute
+ * answer or place list.
  *
  * Two things this screen does that a chat usually does not:
  *
@@ -19,12 +17,11 @@
  */
 
 import React from 'react';
-import { Image, Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
-import { CalendarDays, ChevronLeft, Clock3, CloudSun, Compass, Leaf, MapPin, Mic, Navigation, Phone, Plus, Send, ShieldCheck, Sparkles, Trees, Utensils, Waves } from 'lucide-react-native';
-import { OPENERS, answer, isHighScore, strings, type Bilingual, type Reply } from '@chivago/core';
+import { Image, Linking, Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { CalendarDays, ChevronLeft, Clock3, CloudSun, Compass, Leaf, MapPin, Mic, Navigation, Phone, Plus, RotateCw, Send, ShieldCheck, Sparkles, Star, Trash2, Trees, Utensils, Waves } from 'lucide-react-native';
+import { OPENERS, detectLang, isHighScore, strings, type AreaWeather, type Bilingual, type ConciergeEvidence, type PlaceRecommendationSet, type Reply, type TripRecommendation } from '@chivago/core';
 import type { ScoredPlace } from '@chivago/core';
 import { api } from '../api/client.ts';
-import { areaOfPlace } from '@chivago/core';
 import { useArea } from '../state/area.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
@@ -33,60 +30,182 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
 import { ErrorState, SkeletonList } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
-import type { BotMood } from '../components/ChivarBot.tsx';
-import { ChivarBotScene } from '../components/ChivarBotScene.tsx';
-import aiGuideSamuiCard from '../../assets/ai-guide-samui-card-v1.png';
-
-/** The face Chivar Bot wears for a given answer. */
-function moodFor(intent: string): BotMood {
-  switch (intent) {
-    case 'emergency': return 'surprised';
-    case 'recommend': return 'happy';
-    case 'plan': return 'cheer';
-    case 'route': return 'cool';
-    case 'price':
-    case 'currency': return 'smile';
-    case 'unknown': return 'thinking';
-    default: return 'smile';
-  }
-}
+import { useHere } from '../state/here.ts';
+import { photoUri } from '../api/photos.ts';
+import aiGuideRobot from '../../assets/chivargo-ai-robot-v1.png';
 
 interface Turn {
+  id: number;
   /** Null for the concierge's own opening line. */
   asked: string | null;
-  reply: Reply;
+  /** Null only while the server is classifying the question. */
+  reply: Reply | null;
+  source: 'groq' | 'rules' | null;
+  quickReplies: string[];
+  weather: AreaWeather | null;
+  evidence: ConciergeEvidence[];
+  aiNotice: string | null;
+  retryable: boolean;
+  recommendations: PlaceRecommendationSet | null;
+  tripRecommendation: TripRecommendation | null;
+  error: string | null;
+}
+
+interface HistoryMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: string;
+}
+
+/** Restore the transcript without inventing cards that were not persisted. */
+function turnsFromHistory(messages: HistoryMessage[]): Turn[] {
+  const turns: Turn[] = [];
+  let asked: string | null = null;
+  for (const message of messages) {
+    if (message.role === 'user') {
+      asked = message.content;
+      continue;
+    }
+    turns.push({
+      id: turns.length + 1,
+      asked,
+      reply: {
+        intent: 'unknown', lang: detectLang(message.content), text: message.content,
+        suggestions: [], dial: [], action: null,
+      },
+      source: null,
+      quickReplies: [],
+      weather: null,
+      evidence: [],
+      aiNotice: null,
+      retryable: false,
+      recommendations: null,
+      tripRecommendation: null,
+      error: null,
+    });
+    asked = null;
+  }
+  return turns;
 }
 
 export function ConciergeScreen({
-  onBack, onOpenMap, onOpenPlace, onAction,
+  onBack, onOpenMap, onOpenPlace, onShowOnMap, onShowRecommendationsOnMap, onNavigatePlace, onAction,
 }: {
   onBack?: () => void;
   onOpenMap: () => void;
   onOpenPlace: (placeId: string) => void;
+  onShowOnMap?: (place: ScoredPlace) => void;
+  onShowRecommendationsOnMap?: (places: ScoredPlace[]) => void;
+  onNavigatePlace?: (place: ScoredPlace) => void;
   onAction: (action: NonNullable<Reply['action']>) => void;
 }) {
   const places = useAsync(() => api.places(), []);
   const area = useArea();
+  const here = useHere();
   const [turns, setTurns] = React.useState<Turn[]>([]);
   const [draft, setDraft] = React.useState('');
+  const [conversationId, setConversationId] = React.useState<string | null>(null);
+  const [historyLoading, setHistoryLoading] = React.useState(true);
+  const [clearModalVisible, setClearModalVisible] = React.useState(false);
+  const [clearing, setClearing] = React.useState(false);
+  const [clearError, setClearError] = React.useState<string | null>(null);
   const scroller = React.useRef<ScrollView>(null);
+  const turnSequence = React.useRef(0);
+
+  React.useEffect(() => {
+    let active = true;
+    setHistoryLoading(true);
+    setTurns([]);
+    setConversationId(null);
+    turnSequence.current = 0;
+    void api.conciergeHistory(area.key).then((result) => {
+      if (!active) return;
+      if (result.ok) {
+        const restored = turnsFromHistory(result.data.messages);
+        turnSequence.current = restored.length;
+        setConversationId(result.data.conversationId);
+        setTurns(restored);
+        requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: false }));
+      }
+      setHistoryLoading(false);
+    });
+    return () => { active = false; };
+  }, [area.key]);
 
   const ask = React.useCallback((text: string) => {
     const question = text.trim();
     if (question.length === 0) return;
-    // The concierge speaks about the area on screen, not about a beach 400 km from the campus.
-    const ctx = { places: (places.data ?? []).filter((p) => areaOfPlace(p) === area.key) as ScoredPlace[], quests: [] };
-    setTurns((prev) => [...prev, { asked: question, reply: answer(question, ctx) }]);
+    const id = ++turnSequence.current;
+    setTurns((prev) => [...prev, {
+      id, asked: question, reply: null, source: null, quickReplies: [], weather: null,
+      evidence: [], aiNotice: null, retryable: false, recommendations: null, tripRecommendation: null, error: null,
+    }]);
     setDraft('');
-    // A reply that lands below the fold reads as no reply at all.
     requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: true }));
-  }, [places.data, area.key]);
 
-  // The bot in the header mirrors the last thing it said - surprised at an
-  // emergency, pleased at a recommendation, thinking when it did not follow.
-  const headerMood: BotMood = turns.length === 0
-    ? 'happy'
-    : moodFor(turns[turns.length - 1]!.reply.intent);
+    void api.conciergeChat(question, area.key, { conversationId, location: here }).then((result) => {
+      if (result.ok) setConversationId(result.data.conversationId);
+      setTurns((prev) => prev.map((turn) => turn.id === id
+        ? {
+            ...turn,
+            reply: result.ok ? result.data.reply : null,
+            source: result.ok ? result.data.source : null,
+            quickReplies: result.ok ? result.data.quickReplies : [],
+            weather: result.ok ? result.data.weather : null,
+            evidence: result.ok ? result.data.evidence : [],
+            aiNotice: result.ok ? result.data.aiNotice : null,
+            retryable: result.ok ? result.data.retryable : true,
+            recommendations: result.ok ? result.data.recommendations : null,
+            tripRecommendation: result.ok ? result.data.tripRecommendation ?? null : null,
+            error: result.ok ? null : t({
+              en: 'Chivar Bot could not reach the server. No answer was generated. Check your connection and try again.',
+              th: 'Chivar Bot ติดต่อเซิร์ฟเวอร์ไม่ได้ จึงไม่มีการสร้างคำตอบ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่',
+              zh: 'Chivar Bot 无法连接服务器，因此没有生成回答。请检查网络后重试。',
+            }),
+          }
+        : turn));
+      // A reply that lands below the fold reads as no reply at all.
+      requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: true }));
+    });
+  }, [area.key, conversationId, here]);
+
+  const waiting = turns.some((turn) => turn.reply === null && turn.error === null);
+  const placeAction = React.useCallback((placeId: string, action: 'map' | 'navigate') => {
+    const place = (places.data ?? []).find((item) => item.id === placeId) as ScoredPlace | undefined;
+    if (!place) { onOpenMap(); return; }
+    if (action === 'map') (onShowOnMap ?? (() => onOpenMap()))(place);
+    else (onNavigatePlace ?? onShowOnMap ?? (() => onOpenMap()))(place);
+  }, [places.data, onNavigatePlace, onOpenMap, onShowOnMap]);
+  const showRecommendationSet = React.useCallback((placeIds: string[]) => {
+    const wanted = new Set(placeIds);
+    const found = (places.data ?? []).filter((place) => wanted.has(place.id)) as ScoredPlace[];
+    if (found.length === 0) { onOpenMap(); return; }
+    if (onShowRecommendationsOnMap) onShowRecommendationsOnMap(found);
+    else if (onShowOnMap) onShowOnMap(found[0]!);
+    else onOpenMap();
+  }, [onOpenMap, onShowOnMap, onShowRecommendationsOnMap, places.data]);
+
+  const clearChat = React.useCallback(() => {
+    if (clearing) return;
+    setClearing(true);
+    setClearError(null);
+    void api.clearConciergeHistory(area.key).then((result) => {
+      if (result.ok) {
+        setTurns([]);
+        setConversationId(null);
+        setDraft('');
+        turnSequence.current = 0;
+        setClearModalVisible(false);
+      } else {
+        setClearError(t({
+          en: 'The chat could not be cleared. Please try again.',
+          th: 'ยังล้างแชทไม่ได้ กรุณาลองอีกครั้ง',
+          zh: '无法清除聊天记录，请重试。',
+        }));
+      }
+      setClearing(false);
+    });
+  }, [area.key, clearing]);
 
   return (
     <View style={{ flex: 1, backgroundColor: color.bg }}>
@@ -106,16 +225,27 @@ export function ConciergeScreen({
               <ChevronLeft size={23} color="#FFFFFF" strokeWidth={2.2} />
             </Pressable>
           ) : null}
-          <View style={{ width: 52, height: 52, alignItems: 'center', justifyContent: 'center' }}>
-            <ChivarBotScene width={52} height={52} mood={headerMood} waving={turns.length === 0} label="" interactive={false} />
+          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#77E3DB', alignItems: 'center', justifyContent: 'center' }}>
+            <Compass size={25} color="#008C91" strokeWidth={2} />
+            <Sparkles size={11} color="#F2A93B" fill="#F2A93B" style={{ position: 'absolute', right: 2, top: 2 }} />
           </View>
           <View style={{ flex: 1 }}>
             <Heading size={18} colour="#FFFFFF">Chivar Bot</Heading>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
               <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: '#83E48E' }} />
-              <Body size={13} colour="#D5F6FF">{t({ en: 'Mockup · ready to explore', th: 'Mockup · พร้อมช่วยวางแผน', zh: 'Mockup · 随时为你规划' })}</Body>
+              <Body size={13} colour="#D5F6FF">{t({ en: 'Hybrid AI · ready to explore', th: 'Hybrid AI · พร้อมช่วยวางแผน', zh: '混合式 AI · 随时为你规划' })}</Body>
             </View>
           </View>
+          {turns.length > 0 ? (
+            <Pressable
+              onPress={() => { setClearError(null); setClearModalVisible(true); }}
+              accessibilityRole="button"
+              accessibilityLabel={t({ en: 'Clear chat', th: 'ล้างแชท', zh: '清除聊天' })}
+              style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.16)' }}
+            >
+              <Trash2 size={19} color="#FFFFFF" strokeWidth={2.1} />
+            </Pressable>
+          ) : null}
         </View>
       </View>
 
@@ -128,19 +258,102 @@ export function ConciergeScreen({
         contentContainerStyle={{ paddingBottom: 20 }}
         showsVerticalScrollIndicator={false}
       >
-        {turns.length === 0 ? <Openers areaName={t(area.name)} onPick={ask} /> : null}
+        {!historyLoading && turns.length === 0 ? <Openers areaName={t(area.name)} onPick={ask} /> : null}
 
-        {turns.map((turn, i) => (
-          <View key={`${i}-${turn.asked ?? ''}`}>
+        {turns.map((turn) => (
+          <View key={turn.id}>
             {turn.asked ? <Asked text={turn.asked} /> : null}
-            <Answered reply={turn.reply} onOpenPlace={onOpenPlace} onAction={onAction} />
+            {turn.error
+              ? <FailedAnswer message={turn.error} onRetry={() => { if (turn.asked) ask(turn.asked); }} />
+              : turn.reply
+              ? <Answered
+                  reply={turn.reply}
+                  source={turn.source}
+                  quickReplies={turn.quickReplies}
+                  weather={turn.weather}
+                  evidence={turn.evidence}
+                  aiNotice={turn.aiNotice}
+                  retryable={turn.retryable}
+                  recommendations={turn.recommendations}
+                  tripRecommendation={turn.tripRecommendation}
+                  onQuickReply={ask}
+                  onRetry={() => { if (turn.asked) ask(turn.asked); }}
+                  onOpenPlace={onOpenPlace}
+                  onShowOnMap={(placeId) => placeAction(placeId, 'map')}
+                  onNavigatePlace={(placeId) => placeAction(placeId, 'navigate')}
+                  onShowRecommendationsOnMap={showRecommendationSet}
+                  onAction={onAction}
+                />
+              : <Thinking />}
           </View>
         ))}
-        {turns.length > 0 ? <MockPlanCard onOpen={onOpenMap} /> : null}
       </ScrollView>
 
-      <Composer value={draft} onChange={setDraft} onSend={() => ask(draft)} />
+      <Composer value={draft} onChange={setDraft} onSend={() => ask(draft)} busy={waiting || historyLoading || clearing} />
+
+      <ClearChatModal
+        visible={clearModalVisible}
+        clearing={clearing}
+        error={clearError}
+        onCancel={() => { if (!clearing) setClearModalVisible(false); }}
+        onConfirm={clearChat}
+      />
     </View>
+  );
+}
+
+function ClearChatModal({
+  visible, clearing, error, onCancel, onConfirm,
+}: {
+  visible: boolean;
+  clearing: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(2,43,66,0.62)', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <View style={[shadow.card, { width: '100%', maxWidth: 370, padding: 22, borderRadius: 24, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0' }]}>
+          <View style={{ width: 52, height: 52, borderRadius: 26, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FEE2E2' }}>
+            <Trash2 size={24} color="#DC2626" strokeWidth={2.2} />
+          </View>
+          <Heading size={18} style={{ textAlign: 'center', marginTop: 14 }}>
+            {t({ en: 'Clear chat history?', th: 'ล้างประวัติแชท?', zh: '清除聊天记录？' })}
+          </Heading>
+          <Body size={13} colour={color.neutral600} style={{ textAlign: 'center', lineHeight: 20, marginTop: 8 }}>
+            {t({
+              en: 'All messages and travel context from this area will be permanently deleted. Are you sure you want to continue?',
+              th: 'ข้อความและบริบทการเดินทางที่คุยกันในพื้นที่นี้จะหายทั้งหมดและกู้คืนไม่ได้ ยืนยันที่จะลบหรือไม่?',
+              zh: '此区域的所有消息和旅行上下文将被永久删除且无法恢复。确定要继续吗？',
+            })}
+          </Body>
+          {error ? <Body size={13} colour="#B91C1C" style={{ textAlign: 'center', marginTop: 9 }}>{error}</Body> : null}
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
+            <Pressable
+              onPress={onCancel}
+              disabled={clearing}
+              accessibilityRole="button"
+              accessibilityLabel={t({ en: 'Cancel', th: 'ยกเลิก', zh: '取消' })}
+              style={{ flex: 1, minHeight: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0' }}
+            >
+              <Heading size={13}>{t({ en: 'Cancel', th: 'ยกเลิก', zh: '取消' })}</Heading>
+            </Pressable>
+            <Pressable
+              onPress={onConfirm}
+              disabled={clearing}
+              accessibilityRole="button"
+              accessibilityLabel={t({ en: 'Confirm clear chat', th: 'ยืนยันล้างแชท', zh: '确认清除聊天' })}
+              style={{ flex: 1, minHeight: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: clearing ? '#FCA5A5' : '#DC2626' }}
+            >
+              <Heading size={13} colour="#FFFFFF">
+                {clearing ? t({ en: 'Clearing…', th: 'กำลังล้าง…', zh: '正在清除…' }) : t({ en: 'Delete all', th: 'ลบทั้งหมด', zh: '全部删除' })}
+              </Heading>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -161,13 +374,14 @@ function Openers({ areaName, onPick }: { areaName: string; onPick: (text: string
   return (
     <View style={{ paddingHorizontal: gutter, paddingTop: 16, paddingBottom: 10 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 9 }}>
-        <ChivarBotScene
-          width={118}
-          height={138}
-          mood="happy"
-          waving
-          label={t({ en: 'Chivar Bot robot - drag to turn him round', th: 'หุ่นยนต์ผู้ช่วย Chivar Bot - ลากเพื่อหมุนดูรอบตัว', zh: 'Chivar Bot 机器人 - 拖动可转身' })}
-        />
+        <View style={{ width: 94, height: 104, alignItems: 'center', justifyContent: 'center' }}>
+          <Image
+            source={aiGuideRobot}
+            resizeMode="contain"
+            accessibilityLabel={t({ en: 'Chivar Bot robot', th: 'หุ่นยนต์ผู้ช่วย Chivar Bot', zh: 'Chivar Bot 机器人' })}
+            style={{ width: 108, height: 116 }}
+          />
+        </View>
         <View style={[shadow.card, { flex: 1, minHeight: 104, justifyContent: 'center', padding: 15, borderRadius: 22, borderTopLeftRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DCEFF0' }]}>
           <Heading size={16}>{t({ en: 'Hello! Welcome to ChivarGo', th: 'สวัสดี! ยินดีต้อนรับสู่ ChivarGo', zh: '你好！欢迎来到 ChivarGo' })}</Heading>
           <Body size={13} colour={color.neutral600} style={{ marginTop: 6 }}>{t({ en: 'Your travel AI assistant, ready to plan and find the right places for you.', th: 'ผู้ช่วย AI ด้านการท่องเที่ยว ที่พร้อมแนะนำ วางแผนทริป และหาที่เที่ยวให้คุณ', zh: '你的旅行 AI 助手，随时为你规划行程并寻找合适的目的地。' })}</Body>
@@ -175,15 +389,12 @@ function Openers({ areaName, onPick }: { areaName: string; onPick: (text: string
       </View>
 
       <View style={[shadow.card, { marginTop: 16, borderRadius: 24, overflow: 'hidden', borderWidth: 1, borderColor: '#9FE1DC', backgroundColor: '#E9FBF9' }]}>
-        <Image source={aiGuideSamuiCard} resizeMode="cover" accessibilityIgnoresInvertColors style={{ position: 'absolute', right: 0, top: 0, width: '100%', height: '100%' }} />
-        <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(229,252,249,0.28)' }} />
-        <View style={{ padding: 16, backgroundColor: 'rgba(235,253,251,0.34)' }}>
+        <View style={{ padding: 16 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
             <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: '#D4F7F2', alignItems: 'center', justifyContent: 'center' }}><Navigation size={21} color={color.brand} /></View>
             <Heading size={20}>{t({ en: 'What kind of trip today?', th: 'วันนี้อยากเที่ยวแบบไหน?', zh: '今天想怎样旅行？' })}</Heading>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-            <ContextPill icon={CloudSun} text={t({ en: 'Local conditions', th: 'สภาพอากาศพื้นที่', zh: '当地天气' })} />
             <ContextPill icon={Clock3} text={dayPart} />
             <ContextPill icon={MapPin} text={areaName} />
           </View>
@@ -240,29 +451,6 @@ function PrimarySuggestion({ icon: Icon, label, onPress, filled = false }: { ico
   return <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => ({ flex: 1, minHeight: 50, borderRadius: 25, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, backgroundColor: filled ? (pressed ? '#007F83' : '#009FA3') : (pressed ? '#E8F8F7' : '#FFFFFF'), borderWidth: 1, borderColor: '#85DAD5' })}><Icon size={18} color={filled ? '#FFFFFF' : color.brand} /><Heading size={13} colour={filled ? '#FFFFFF' : color.text}>{label}</Heading></Pressable>;
 }
 
-function MockPlanCard({ onOpen }: { onOpen: () => void }) {
-  return (
-    <View style={[shadow.card, { marginHorizontal: gutter, marginTop: 12, padding: 12, borderRadius: 22, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CFE9EC' }]}>
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        <View style={{ width: 92, height: 92, borderRadius: 16, overflow: 'hidden', backgroundColor: '#42C8CF' }}>
-          <OceanBackdrop compact />
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><MapPin size={28} color="#FFFFFF" /></View>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Label size={9} tracking={0.12} colour={color.brand}>{t({ en: 'MOCK ITINERARY', th: 'แผนตัวอย่าง', zh: '示例行程' })}</Label>
-          <Heading size={16} style={{ marginTop: 4 }}>{t({ en: 'Koh Samui half-day', th: 'ทริปสมุยครึ่งวัน', zh: '苏梅岛半日游' })}</Heading>
-          <Body size={13} colour={color.neutral600} style={{ marginTop: 5 }}>{t({ en: 'About 4 hours · 3 nearby stops', th: 'ประมาณ 4 ชั่วโมง · 3 จุดใกล้กัน', zh: '约 4 小时 · 3 个邻近地点' })}</Body>
-          <Body size={13} colour="#347A54" style={{ marginTop: 5 }}>{t({ en: 'Safe route · lower travel distance', th: 'เส้นทางปลอดภัย · ลดระยะเดินทาง', zh: '安全路线 · 减少路程' })}</Body>
-        </View>
-      </View>
-      <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={t({ en: 'View mock itinerary on map', th: 'ดูแผนตัวอย่างบนแผนที่', zh: '在地图上查看示例行程' })} style={{ marginTop: 12, minHeight: 46, borderRadius: 23, backgroundColor: '#009FA3', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-        <MapPin size={17} color="#FFFFFF" />
-        <Heading size={14} colour="#FFFFFF">{t({ en: 'View on map', th: 'ดูบนแผนที่', zh: '在地图上查看' })}</Heading>
-      </Pressable>
-    </View>
-  );
-}
-
 function Asked({ text }: { text: string }) {
   return (
     <View style={{ paddingHorizontal: gutter, marginTop: 18, alignItems: 'flex-end' }}>
@@ -283,16 +471,59 @@ function Asked({ text }: { text: string }) {
   );
 }
 
+function Thinking() {
+  return (
+    <View style={{ paddingHorizontal: gutter, marginTop: 12 }}>
+      <View style={[shadow.card, { maxWidth: '92%', paddingVertical: 12, paddingHorizontal: 14, backgroundColor: color.surface, borderRadius: radius.md, borderWidth: 1, borderColor: '#DCEFF5' }]}>
+        <Body size={14} colour={color.neutral600}>{t({ en: 'Chivar Bot is checking ChivaGo data…', th: 'Chivar Bot กำลังตรวจข้อมูล ChivaGo…', zh: 'Chivar Bot 正在查询 ChivaGo 数据…' })}</Body>
+      </View>
+    </View>
+  );
+}
+
+function FailedAnswer({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <View style={{ paddingHorizontal: gutter, marginTop: 12 }}>
+      <View style={[shadow.card, { maxWidth: '92%', padding: 14, backgroundColor: '#FFF7E6', borderRadius: radius.md, borderWidth: 1, borderColor: '#F3D59B' }]}>
+        <Body size={14} colour="#765A22">{message}</Body>
+        <Pressable onPress={onRetry} accessibilityRole="button" style={{ marginTop: 8, minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <RotateCw size={15} color={color.brand} />
+          <Heading size={13} colour={color.brand}>{t({ en: 'Retry', th: 'ลองใหม่', zh: '重试' })}</Heading>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 function Answered({
-  reply, onOpenPlace, onAction,
+  reply, source, quickReplies, weather, evidence, aiNotice, retryable,
+  recommendations, tripRecommendation, onQuickReply, onRetry, onOpenPlace, onShowOnMap, onNavigatePlace, onShowRecommendationsOnMap, onAction,
 }: {
   reply: Reply;
+  source: Turn['source'];
+  quickReplies: string[];
+  weather: AreaWeather | null;
+  evidence: ConciergeEvidence[];
+  aiNotice: string | null;
+  retryable: boolean;
+  recommendations: PlaceRecommendationSet | null;
+  tripRecommendation: TripRecommendation | null;
+  onQuickReply: (text: string) => void;
+  onRetry: () => void;
   onOpenPlace: (placeId: string) => void;
+  onShowOnMap: (placeId: string) => void;
+  onNavigatePlace: (placeId: string) => void;
+  onShowRecommendationsOnMap: (placeIds: string[]) => void;
   onAction: (action: NonNullable<Reply['action']>) => void;
 }) {
   const urgent = reply.intent === 'emergency';
   return (
     <View style={{ paddingHorizontal: gutter, marginTop: 12 }}>
+      {source === 'groq' ? (
+        <Label size={9} tracking={0.08} colour={color.brand} style={{ marginBottom: 5 }}>
+          {t({ en: 'GROQ AI · CHIVAGO VERIFIED DATA', th: 'GROQ AI · ข้อมูลจริงจาก CHIVAGO', zh: 'GROQ AI · CHIVAGO 已验证数据' })}
+        </Label>
+      ) : null}
       <View
         style={[shadow.card, {
           maxWidth: '92%',
@@ -307,6 +538,35 @@ function Answered({
       >
         <Body size={14}>{reply.text}</Body>
       </View>
+
+      {aiNotice ? (
+        <View style={{ maxWidth: '92%', marginTop: 7, padding: 10, borderRadius: 12, backgroundColor: '#FFF7E6', borderWidth: 1, borderColor: '#F3D59B' }}>
+          <Body size={13} colour="#765A22">{aiNotice}</Body>
+          {retryable ? (
+            <Pressable onPress={onRetry} accessibilityRole="button" style={{ marginTop: 7, minHeight: 32, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <RotateCw size={14} color={color.brand} />
+              <Heading size={12} colour={color.brand}>{t({ en: 'Try Groq again', th: 'ลองเรียก Groq อีกครั้ง', zh: '重试 Groq' })}</Heading>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+
+      {weather && weather.observedAt ? (
+        <View style={[shadow.card, { marginTop: 9, maxWidth: '92%', padding: 12, borderRadius: 16, backgroundColor: '#EAF8FC', borderWidth: 1, borderColor: '#BFE7F0' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <CloudSun size={20} color={color.brand} />
+            <Heading size={14}>{t({ en: 'Current conditions', th: 'สภาพอากาศปัจจุบัน', zh: '当前天气' })}</Heading>
+          </View>
+          <Body size={13} style={{ marginTop: 7 }}>
+            {weather.tempC === null ? '—' : `${weather.tempC.toFixed(1)}°C`}
+            {weather.rainMm === null ? '' : ` · ${t({ en: 'rain', th: 'ฝน', zh: '降雨' })} ${weather.rainMm.toFixed(1)} mm`}
+            {weather.windKn === null ? '' : ` · ${t({ en: 'wind', th: 'ลม', zh: '风' })} ${weather.windKn.toFixed(1)} kn`}
+          </Body>
+          <Label size={9} tracking={0.02} colour={color.neutral600} style={{ marginTop: 7, textTransform: 'none' }}>
+            {weather.source} · {weather.provenance}
+          </Label>
+        </View>
+      ) : null}
 
       {/* An emergency is a number you press, not a number you read out. */}
       {reply.dial.length > 0 ? (
@@ -335,13 +595,82 @@ function Answered({
         </View>
       ) : null}
 
-      {/* Each suggestion carries the measurement it was chosen on. */}
-      {reply.suggestions.map((s) => (
+      {tripRecommendation ? (
+        <View style={[shadow.card, { marginTop: 10, padding: 14, borderRadius: 18, backgroundColor: '#EAF9F7', borderWidth: 1, borderColor: '#8FD8D3' }]}>
+          <Label size={9} tracking={0.08} colour={color.brand}>{t({ en: 'TRIP RECOMMENDATION', th: 'TRIP RECOMMENDATION', zh: '行程推荐' })}</Label>
+          <Heading size={17} style={{ marginTop: 4 }}>{t(tripRecommendation.title)}</Heading>
+          <Body size={13} colour={color.neutral600} style={{ marginTop: 3 }}>{t(tripRecommendation.durationLabel)}</Body>
+          <View style={{ marginTop: 10, gap: 7 }}>
+            {tripRecommendation.stops.map((stop) => (
+              <View key={stop.placeId} style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}>
+                <View style={{ width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: color.brand }}><Label size={10} colour="#FFFFFF">{stop.order}</Label></View>
+                <Heading size={14}>{t(stop.name)}</Heading>
+              </View>
+            ))}
+          </View>
+          <Body size={13} colour={color.neutral600} style={{ marginTop: 10 }}>{t(tripRecommendation.limitation)}</Body>
+          <Pressable onPress={() => onShowRecommendationsOnMap(tripRecommendation.stops.map((stop) => stop.placeId))} accessibilityRole="button" style={{ marginTop: 11, minHeight: 42, borderRadius: 21, backgroundColor: color.brand, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+            <MapPin size={15} color="#FFFFFF" />
+            <Heading size={13} colour="#FFFFFF">{t({ en: 'View all stops on map', th: 'ดูทุกจุดบนแผนที่', zh: '在地图查看全部站点' })}</Heading>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {recommendations ? (
+        <View style={{ marginTop: 10, gap: 9 }}>
+          <Heading size={16}>{t(recommendations.title)}</Heading>
+          {recommendations.items.map((item) => (
+            <View key={item.placeId} style={[shadow.card, { overflow: 'hidden', backgroundColor: color.surface, borderWidth: 1, borderColor: '#CDE8EA', borderRadius: 18 }]}>
+              {item.image ? <Image source={{ uri: photoUri(item.image.url) }} resizeMode="cover" style={{ width: '100%', height: 128, backgroundColor: color.neutral200 }} /> : null}
+              <View style={{ padding: 13 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <Label size={9} tracking={0.06} colour={color.brand}>{t(item.category).toUpperCase()}</Label>
+                    <Heading size={16} style={{ marginTop: 3 }}>{t(item.name)}</Heading>
+                  </View>
+                  <View style={{ minWidth: 48, alignItems: 'center', paddingVertical: 5, paddingHorizontal: 8, borderRadius: 12, backgroundColor: '#E7F8F5' }}>
+                    <Heading size={16} colour={color.brand}>{item.score}</Heading>
+                    <Label size={9} colour={color.neutral600}>{t({ en: 'MATCH', th: 'ตรงใจ', zh: '匹配' })}</Label>
+                  </View>
+                </View>
+                <Body size={13} colour={color.neutral600} style={{ marginTop: 7 }}>{t(item.description)}</Body>
+                <Body size={13} colour={color.brand} style={{ marginTop: 7 }}>{t(item.reason)}</Body>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
+                  {item.distanceKm !== null ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><MapPin size={13} color={color.brand} /><Body size={13}>{item.distanceKm.toFixed(1)} km</Body></View> : null}
+                  {item.rating ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><Star size={13} color="#D79A19" fill="#F5C451" /><Body size={13}>{item.rating.average.toFixed(1)} ({item.rating.reviewCount})</Body></View> : null}
+                </View>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 11 }}>
+                  <RecommendationAction label={t({ en: 'Details', th: 'รายละเอียด', zh: '详情' })} onPress={() => onOpenPlace(item.placeId)} />
+                  <RecommendationAction label={t({ en: 'Map', th: 'ดูบนแผนที่', zh: '地图' })} onPress={() => onShowOnMap(item.placeId)} />
+                  <RecommendationAction label={t({ en: 'Navigate', th: 'นำทาง', zh: '导航' })} onPress={() => onNavigatePlace(item.placeId)} filled />
+                </View>
+                <Label size={9} tracking={0.01} colour={color.neutral600} style={{ marginTop: 9, textTransform: 'none' }}>
+                  {item.source.name} · {item.verificationStatus}
+                </Label>
+              </View>
+            </View>
+          ))}
+          {recommendations.limitations.map((limitation, index) => (
+            <Body key={`${limitation.en}-${index}`} size={13} colour={color.neutral600}>• {t(limitation)}</Body>
+          ))}
+          {recommendations.items.length > 1 ? (
+            <Pressable onPress={() => onShowRecommendationsOnMap(recommendations.items.map((item) => item.placeId))} accessibilityRole="button" style={{ minHeight: 42, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7, borderRadius: 21, backgroundColor: color.brand }}>
+              <MapPin size={15} color="#FFFFFF" />
+              <Heading size={13} colour="#FFFFFF">{t({ en: 'View all on map', th: 'ดูทั้งหมดบนแผนที่', zh: '在地图查看全部' })}</Heading>
+            </Pressable>
+          ) : null}
+          {recommendations.hasMore ? (
+            <Pressable onPress={() => onQuickReply(t({ en: 'Show more places', th: 'ดูสถานที่เพิ่ม', zh: '查看更多地点' }))} accessibilityRole="button" style={{ minHeight: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 21, borderWidth: 1, borderColor: '#8FD8D3', backgroundColor: '#EAF9F7' }}>
+              <Heading size={13} colour={color.brand}>{t({ en: 'Show more', th: 'ดูเพิ่ม', zh: '查看更多' })}</Heading>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : reply.suggestions.map((s) => (
         <Pressable
           key={s.placeId}
           onPress={() => onOpenPlace(s.placeId)}
           accessibilityRole="button"
-          accessibilityLabel={`${t(s.name)}. ${t(s.because)}. ${t(strings.place.healthyScore)} ${s.healthyScore}`}
+          accessibilityLabel={`${t(s.name)}. ${t(s.because)}${reply.intent !== 'recommend' && typeof s.healthyScore === 'number' ? `. ${t(strings.place.healthyScore)} ${s.healthyScore}` : ''}`}
           style={[shadow.card, {
             flexDirection: 'row',
             alignItems: 'center',
@@ -354,6 +683,9 @@ function Answered({
             borderRadius: radius.md,
           }]}
         >
+          {s.photoUrl ? (
+            <Image source={{ uri: photoUri(s.photoUrl) }} resizeMode="cover" style={{ width: 70, height: 66, borderRadius: 12, backgroundColor: color.neutral200 }} />
+          ) : null}
           <View style={{ flex: 1 }}>
             <Heading size={15}>{t(s.name)}</Heading>
             <Label
@@ -364,15 +696,20 @@ function Answered({
             >
               {t(s.because)}
             </Label>
+            {s.distanceKm !== undefined && s.distanceKm !== null ? (
+              <Body size={13} colour={color.brand} style={{ marginTop: 5 }}>{s.distanceKm.toFixed(1)} km</Body>
+            ) : null}
           </View>
           {/*
             Green only when the score has earned it. Painting every score green
             made the colour mean "this is a score" rather than "this one is
             good", which is the same as not colouring it at all.
           */}
-          <Heading size={20} colour={isHighScore(s.healthyScore) ? color.accent700 : color.text}>
-            {s.healthyScore}
-          </Heading>
+          {reply.intent !== 'recommend' && typeof s.healthyScore === 'number' ? (
+            <Heading size={20} colour={isHighScore(s.healthyScore) ? color.accent700 : color.text}>
+              {s.healthyScore}
+            </Heading>
+          ) : null}
         </Pressable>
       ))}
 
@@ -395,8 +732,32 @@ function Answered({
           <Heading size={14} colour={color.ctaDeep}>{t(ACTION_LABEL[reply.action])}</Heading>
         </Pressable>
       ) : null}
+
+      {evidence.length > 0 ? (
+        <View style={{ marginTop: 10, gap: 3 }}>
+          {evidence.map((item, index) => (
+            <Label key={`${item.kind}-${index}`} size={9} tracking={0.02} colour={color.neutral600} style={{ textTransform: 'none' }}>
+              {item.label}: {item.source} · {item.validity}
+            </Label>
+          ))}
+        </View>
+      ) : null}
+
+      {quickReplies.length > 0 ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 11 }}>
+          {quickReplies.map((item) => (
+            <Pressable key={item} onPress={() => onQuickReply(item)} accessibilityRole="button" style={{ minHeight: 38, justifyContent: 'center', paddingHorizontal: 12, borderRadius: 19, backgroundColor: '#E6F7F6', borderWidth: 1, borderColor: '#A9E1DD' }}>
+              <Body size={13} colour={color.brand}>{item}</Body>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
+}
+
+function RecommendationAction({ label, onPress, filled = false }: { label: string; onPress: () => void; filled?: boolean }) {
+  return <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={{ minHeight: 36, justifyContent: 'center', paddingHorizontal: 11, borderRadius: 18, borderWidth: 1, borderColor: color.brand, backgroundColor: filled ? color.brand : '#FFFFFF' }}><Heading size={11} colour={filled ? onFill.brand : color.brand}>{label}</Heading></Pressable>;
 }
 
 const ACTION_LABEL: Record<NonNullable<Reply['action']>, Bilingual> = {
@@ -408,8 +769,8 @@ const ACTION_LABEL: Record<NonNullable<Reply['action']>, Bilingual> = {
 };
 
 function Composer({
-  value, onChange, onSend,
-}: { value: string; onChange: (v: string) => void; onSend: () => void }) {
+  value, onChange, onSend, busy,
+}: { value: string; onChange: (v: string) => void; onSend: () => void; busy: boolean }) {
   return (
     <View
       style={{
@@ -434,7 +795,9 @@ function Composer({
       <TextInput
         value={value}
         onChangeText={onChange}
-        onSubmitEditing={onSend}
+        onSubmitEditing={busy ? undefined : onSend}
+        editable={!busy}
+        maxLength={500}
         returnKeyType="send"
         placeholder={t({ en: 'Ask about your trip…', th: 'ถามเรื่องการเดินทาง…', zh: '询问旅行问题…' })}
         placeholderTextColor={color.neutral500}
@@ -457,7 +820,7 @@ function Composer({
       </View>
       <Pressable
         onPress={onSend}
-        disabled={value.trim().length === 0}
+        disabled={busy || value.trim().length === 0}
         accessibilityRole="button"
         accessibilityLabel={t({ en: 'Send', th: 'ส่ง', zh: '发送' })}
         style={{
@@ -466,12 +829,12 @@ function Composer({
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: 22,
-          backgroundColor: value.trim().length === 0 ? color.neutral300 : color.brand,
+          backgroundColor: busy || value.trim().length === 0 ? color.neutral300 : color.brand,
         }}
       >
         <Send
           size={17}
-          color={value.trim().length === 0 ? color.neutral600 : onFill.brand}
+          color={busy || value.trim().length === 0 ? color.neutral600 : onFill.brand}
           strokeWidth={2}
         />
       </Pressable>

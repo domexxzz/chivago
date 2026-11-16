@@ -117,6 +117,10 @@ export const TRAVELLER_TABLES = [
   // The community is user-authored too. Reactions and replies point at posts,
   // so they leave first; the posts then leave before their authors.
   'community_comments', 'community_likes', 'community_posts',
+  // Chat history and context belong to the traveller. Messages point at the
+  // conversation, and the conversation points at the user, so clear in that
+  // order before the account row disappears.
+  'concierge_messages', 'concierge_conversations',
   // Administrative state attached to a traveller cannot outlive that
   // traveller. Grants and status rows both carry a real user foreign key, so
   // clear them explicitly before users rather than relying on a cascade to
@@ -164,6 +168,9 @@ export const TRAVELLER_TABLES = [
 export const KEPT_TABLES = [
   'places', 'quests', 'offers', 'hosts', 'host_sessions',
   'community_metrics', 'air_cache', 'air_history',
+  // Shared provider abuse-control state is operational, not traveller data.
+  // Resetting the demo must not reopen the Groq quota window.
+  'concierge_provider_quota',
   // Gacha reward availability and weights are operator-owned catalogue
   // configuration, not traveller state.
   'gacha_reward_pool',

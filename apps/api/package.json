@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --experimental-strip-types --watch src/server-node.ts",
-    "start": "node --experimental-strip-types src/server-node.ts",
+    "dev": "node --env-file-if-exists=../../.env --experimental-strip-types --watch src/server-node.ts",
+    "start": "node --env-file-if-exists=../../.env --experimental-strip-types src/server-node.ts",
     "seed": "node --experimental-strip-types src/seed-db.ts",
     "seed:area": "node --experimental-strip-types src/seed-area.ts",
     "seed:marketplace": "node --experimental-strip-types src/seed-marketplace.ts",

@@ -251,6 +251,7 @@ export function server(routes: Record<string, Reply>): {
   */
   const answered: Record<string, Reply> = {
     '/config': { fenceOff: false },
+    '/concierge/history': { conversationId: null, messages: [] },
     '/account': {
       userId: 'test-user',
       accountType: 'traveller',
@@ -282,7 +283,8 @@ export function server(routes: Record<string, Reply>): {
     }
 
     const route = answered[key];
-    const value = typeof route === 'function' ? (route as (b: unknown) => unknown)(body) : route;
+    const pending = typeof route === 'function' ? (route as (b: unknown) => unknown)(body) : route;
+    const value = pending instanceof Promise ? await pending : pending;
 
     if (isMarked(value, '__throws')) {
       const err = new Error('fetch failed');
