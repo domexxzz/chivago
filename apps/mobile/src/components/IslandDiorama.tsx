@@ -320,7 +320,14 @@ Promise.all([
 ]).then(([bin, list]) => new Promise((resolve, reject) => {
   new GLTFLoader().parse(bin, '', (gltf) => {
     gltf.scene.traverse((o) => {
-      if (o.isMesh) o.material = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+      if (!o.isMesh) return;
+      /*
+        The file carries POSITION and COLOR_0 and nothing else: normals are
+        recomputed here because the mesh is unindexed, so this produces
+        exactly the flat normals that used to be shipped - 451 KB of them.
+      */
+      if (!o.geometry.getAttribute('normal')) o.geometry.computeVertexNormals();
+      o.material = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
     });
     scene.add(gltf.scene);
     island = gltf.scene;

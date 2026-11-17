@@ -28,6 +28,13 @@
 /media/*
   cache-control: public, max-age=3600
 
+# The island is 602 KB and its name is NOT content-hashed, so "immutable" would
+# strand a rebuild behind a year of caches. An hour is the same bargain /media
+# makes: a room that opens the app together pays once, and replacing the model
+# is not a support call.
+/islands/*
+  cache-control: public, max-age=3600
+
 /favicon.ico
   cache-control: public, max-age=86400
 
