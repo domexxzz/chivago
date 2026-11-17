@@ -208,13 +208,51 @@ export async function fetchOsm(bbox, cachePath = null, log = console.log) {
     log(`[chivago] OpenStreetMap, from cache: ${cachePath}`);
     return JSON.parse(readFileSync(cachePath, 'utf8'));
   }
-  const res = await fetch(OVERPASS, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'chivago-island-surface/1.0' },
-    body: `data=${encodeURIComponent(overpassQuery(bbox))}`,
-  });
-  if (!res.ok) throw new Error(`Overpass answered ${res.status}`);
-  const body = await res.json();
+  /*
+    OVERPASS IS A PUBLIC SERVICE AND IT IS OFTEN BUSY.
+
+    This was one request with no second chance: on 17 November it answered
+    502 - "at capacity, all query workers are busy" - and the island could
+    not be rebuilt at all until somebody tried again by hand. The island is
+    rebuilt rarely and under time pressure, which is exactly when a single
+    attempt against somebody else's free server is worth least.
+
+    Four tries across the public mirrors, waiting longer each round. Any of
+    them will do; they serve the same data.
+  */
+  const MIRRORS = [
+    OVERPASS,
+    'https://overpass.private.coffee/api/interpreter',
+    'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  ];
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let body = null;
+  let last = '';
+  outer:
+  for (let round = 1; round <= 4 && !body; round += 1) {
+    for (const url of MIRRORS) {
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'chivago-island-surface/1.0' },
+          body: `data=${encodeURIComponent(overpassQuery(bbox))}`,
+        });
+        if (res.ok) {
+          const text = await res.text();
+          if (text.trim().startsWith('{')) { body = JSON.parse(text); break outer; }
+          last = `${url} answered with ${text.slice(0, 60).replace(/s+/g, ' ')}`;
+        } else {
+          last = `${url} answered ${res.status}`;
+        }
+      } catch (err) {
+        last = `${url}: ${err.message}`;
+      }
+      log(`[chivago] ${last}`);
+      await sleep(2000);
+    }
+    if (!body) await sleep(round * 5000);
+  }
+  if (!body) throw new Error(`no Overpass mirror answered - last was ${last}`);
   if (cachePath) {
     mkdirSync(dirname(cachePath), { recursive: true });
     writeFileSync(cachePath, JSON.stringify(body));

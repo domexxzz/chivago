@@ -297,14 +297,30 @@ export function meshSurface({ bbox, sample, spacingM = SPACING_M, seaLevel = SEA
     const h01 = grid[(r0 + 1) * cols + c0];
     const h11 = grid[(r0 + 1) * cols + c0 + 1];
     /*
-      THE HIGHEST CORNER OF THE CELL, not the interpolated height.
+      THE TRIANGLE THE POINT IS ACTUALLY STANDING ON.
 
-      A quad is drawn as two triangles, and an interpolated height sits above
-      one of them and below the other: with bilinear placement a third of the
-      village still had its feet under the ground. A building that floats a
-      little reads as a building on a plinth. One that sinks reads as a bug.
+      This used to return the highest corner of the cell, for a reason that
+      was half right: "a quad is drawn as two triangles, and an interpolated
+      height sits above one of them and below the other" - true of BILINEAR
+      interpolation, which is what had been tried, and which does leave a
+      third of the village with its feet underground. The answer taken then
+      was the highest corner, on the grounds that a building floating a
+      little reads as a plinth while one that sinks reads as a bug.
+
+      But the premise points at the fix rather than away from it. The quad is
+      drawn as p00,p01,p10 and p10,p01,p11, so its diagonal runs from (0,1)
+      to (1,0) and the halves are u+v<=1 and u+v>=1. Interpolate the triangle
+      the point is in and the height IS the drawn surface - not above it, not
+      below it, on it. There is nothing left to trade away.
+
+      It mattered: a cell is 70 m across, so on a steep face the highest
+      corner stood a building up to tens of metres above the ground it was
+      drawn on. Audited before this change, 33 of the island's 87 solid
+      objects floated more than 2 m, the worst of them by 40 m and more.
     */
-    const h = Math.max(h00, h10, h01, h11);
+    const h = u + v <= 1
+      ? h00 + (h10 - h00) * u + (h01 - h00) * v
+      : h11 + (h01 - h11) * (1 - u) + (h10 - h11) * (1 - v);
     return Math.max(h, seaLevel);
   };
 }

@@ -4,9 +4,9 @@
   "name": "Tha Lang pier",
   "short": "Pier",
   "x": 47.8,
-  "y": 22.9,
+  "y": 16.3,
   "z": -989.4,
-  "groundM": 8.8,
+  "groundM": 6.3,
   "kind": "pier"
  },
  {
@@ -14,9 +14,9 @@
   "name": "Ko Sichang Hospital",
   "short": "Hospital",
   "x": -248.9,
-  "y": 49.4,
+  "y": 43.4,
   "z": -1196,
-  "groundM": 19,
+  "groundM": 16.7,
   "kind": "ordinary"
  },
  {
@@ -24,9 +24,9 @@
   "name": "Tham Phang Beach",
   "short": "Tham Phang",
   "x": -343.1,
-  "y": 56.8,
+  "y": 18.8,
   "z": 785.5,
-  "groundM": 21.8,
+  "groundM": 7.2,
   "kind": "ordinary"
  },
  {
@@ -34,9 +34,9 @@
   "name": "Phra Chudadhuj Palace",
   "short": "Palace",
   "x": 914.6,
-  "y": 32.8,
+  "y": 15.8,
   "z": 377.3,
-  "groundM": 12.6,
+  "groundM": 6.1,
   "kind": "hero"
  },
  {
@@ -44,9 +44,9 @@
   "name": "Cholatassathan Museum",
   "short": "Cholatassathan",
   "x": 510.2,
-  "y": 27.8,
+  "y": 24.5,
   "z": 33.6,
-  "groundM": 10.7,
+  "groundM": 9.4,
   "kind": "hero"
  },
  {
@@ -54,9 +54,9 @@
   "name": "Shop row by Tha Lang pier",
   "short": "Shop row",
   "x": -19.8,
-  "y": 33.2,
+  "y": 28,
   "z": -836.3,
-  "groundM": 12.8,
+  "groundM": 10.8,
   "kind": "ordinary"
  },
  {
@@ -64,9 +64,9 @@
   "name": "Koniix Garden Cottage",
   "short": "Koniix",
   "x": -132.2,
-  "y": 101.4,
+  "y": 96.4,
   "z": -470.5,
-  "groundM": 39,
+  "groundM": 37.1,
   "kind": "ordinary"
  },
  {
@@ -74,9 +74,9 @@
   "name": "Atsadang Bridge",
   "short": "Atsadang Bridge",
   "x": 873.5,
-  "y": 11.4,
+  "y": 8.4,
   "z": 226.2,
-  "groundM": 4.4,
+  "groundM": 3.2,
   "kind": "pier"
  },
  {
@@ -84,9 +84,9 @@
   "name": "Wat Atsadang Nimit",
   "short": "Atsadang Nimit",
   "x": 720.2,
-  "y": 110.6,
+  "y": 105.2,
   "z": 654.3,
-  "groundM": 42.5,
+  "groundM": 40.5,
   "kind": "hero"
  },
  {
@@ -94,9 +94,9 @@
   "name": "Chao Pho Khao Yai Shrine",
   "short": "Khao Yai Shrine",
   "x": -362.2,
-  "y": 225.5,
+  "y": 120.5,
   "z": -1735.1,
-  "groundM": 86.7,
+  "groundM": 46.3,
   "kind": "hero"
  },
  {
@@ -104,9 +104,9 @@
   "name": "Buddha Footprint Mondop",
   "short": "Buddha Footprint",
   "x": -489.5,
-  "y": 312.5,
+  "y": 293.5,
   "z": -1838.4,
-  "groundM": 120.2,
+  "groundM": 112.9,
   "kind": "hero"
  },
  {
@@ -114,9 +114,9 @@
   "name": "Wat Tham Yai Prik",
   "short": "Tham Yai Prik",
   "x": -269.6,
-  "y": 186.3,
+  "y": 174.8,
   "z": -436.6,
-  "groundM": 71.6,
+  "groundM": 67.2,
   "kind": "hero"
  },
  {
@@ -124,9 +124,9 @@
   "name": "Ko Kham Yai",
   "short": "Ko Kham Yai",
   "x": 1574.8,
-  "y": 106.7,
+  "y": 105.4,
   "z": -1708.6,
-  "groundM": 41.1,
+  "groundM": 40.5,
   "kind": "ordinary"
  },
  {
@@ -134,9 +134,9 @@
   "name": "Laem Chakraphong",
   "short": "Laem Chakraphong",
   "x": -1055.9,
-  "y": 58.4,
+  "y": 52.2,
   "z": 480.6,
-  "groundM": 22.5,
+  "groundM": 20.1,
   "kind": "ordinary"
  },
  {
@@ -144,9 +144,9 @@
   "name": "Chong Khao Khat",
   "short": "Khao Khat",
   "x": -938.7,
-  "y": 77.9,
+  "y": 61.1,
   "z": -1117.4,
-  "groundM": 30,
+  "groundM": 23.5,
   "kind": "ordinary"
  },
  {
@@ -154,9 +154,9 @@
   "name": "Kuan Yin Shrine",
   "short": "Kuan Yin Shrine",
   "x": -408.1,
-  "y": 131,
+  "y": 92.6,
   "z": -1667.6,
-  "groundM": 50.4,
+  "groundM": 35.6,
   "kind": "ordinary"
  },
  {
@@ -164,9 +164,9 @@
   "name": "Wat Chuthathit Thammasapharam",
   "short": "Wat Chuthathit",
   "x": -306.1,
-  "y": 93,
+  "y": 33.5,
   "z": -1646.2,
-  "groundM": 35.8,
+  "groundM": 12.9,
   "kind": "hero"
  }
 ]
