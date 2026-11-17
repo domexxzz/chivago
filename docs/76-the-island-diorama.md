@@ -23,11 +23,22 @@ right. So the rule is: **lie about size, never about place.**
 |---|---|
 | Horizontal position and distance | ×1.0 |
 | Terrain height | ×2.6 |
-| Piers and bridges | ×1.4 |
-| Ordinary buildings | ×1.8 |
-| Hero buildings | ×2.2 |
+| Piers and bridges | ×3 |
+| Ordinary buildings | ×5 |
+| Hero buildings | ×8 |
 | Trees | ×2.2 |
 | Boats | ×3.0 |
+
+The building numbers started at 1.8 and 2.2, which is what a building needs at
+a close framing, and the first render killed them: a 31 m temple on a
+six-kilometre island came out as four grey pixels. The map opens on the whole
+island, so the multipliers have to suit that view. On the reference board a
+temple is about 3% of the island's length - 180 m of ground here - and a 22 m
+ubosot reaches that at ×8.
+
+**The cost, said plainly.** Zoomed to 1.2 km, the closest the camera goes, a
+hero is two thirds the width of a village. That is the trade a diorama makes.
+The place to change it is the constant, for the whole class at once.
 
 Horizontal is untouchable because people navigate with this map. Height and
 object size are the lie, and it has to be applied per class, never per object.
@@ -145,6 +156,90 @@ need surveying before the art pass:
 - Tham Chakraphong
 - Customs Lighthouse
 - Wat Chuthathit
+
+## Gate one: the grey boxes
+
+`scripts/island-blockout.mjs` puts a plain box where every landmark will
+stand, from the coordinates the app already navigates to, so the composition
+and the scale contract can be judged before anybody models anything.
+
+```bash
+node scripts/island-blockout.mjs --area koh-sichang --coastline <cached osm.json>
+```
+
+Run on 17 November 2026: **13 boxes, 6 of them heroes**, plus an anchors JSON
+for the label layer. Three findings, none of them about the boxes:
+
+**The southern half of the island is empty.** Every record is in the north,
+because that is where the database's places are. The reference board has
+landmarks the length of the island, and five of them have no coordinates yet
+(above). As it stands, the long view from the south is half a diorama.
+
+**Five anchors sit outside the surveyed shore**, and the script says so by
+name on every run. Measured:
+
+| | distance offshore |
+|---|---|
+| Tha Lang pier | 97 m |
+| Tham Phang Beach | 44 m |
+| Phra Chudadhuj Palace | 19 m |
+| Atsadang Bridge | over water by definition |
+| Ko Kham Yai | a different island |
+
+The first and the fourth are right: a pier head is in the water. The palace at
+19 m is coastline generalisation, not a wrong record. Tham Phang at 44 m wants
+an eye on it. None of them is fixed by moving a coordinate - the database is
+the truth and the shore is a drawn line - but a box standing in the sea has to
+be a decision rather than a surprise.
+
+**A shop row was given the shape of a jetty**, because the classifier matched
+`/pier|bridge/` against the name and the record is called "Shop row by Tha
+Lang pier". Classes now come from a list of ids. Anything that reads a name to
+decide what a thing *is* will eventually meet a name like that one.
+
+## The landmarks are built in code
+
+`scripts/island-landmarks.mjs` builds each one from primitives - boxes, gable
+and pyramid roofs, prisms, cones, domes - in the palette above. Ten archetypes
+cover the island: the palace's teak houses on stilts, the white dome and chedi
+of Wat Atsadang Nimit, the Chinese shrine's terrace and flag poles, the
+mondop's tiered gold roof and spire, the cave monastery under its rock, the
+museum's long block, a Thai ubosot, the lighthouse, a pier on piles, and the
+ordinary roofed building everything else gets.
+
+They are not the art. Every roof is flat planes and every curve is eight
+segments. They carry the proportion, the colour and the stance, so a
+composition can be judged and a silhouette specified - and so that nobody
+reaches for an asset pack whose generic Thai temple would stand in for a white
+European dome.
+
+Assignment is by id, never by reading the name.
+
+## Looking at it
+
+Nothing on this toolchain opens a glTF: the preview pane refuses a local file
+and a static server is not always available. So the thing every gate is judged
+by was the one thing nobody could see.
+
+`scripts/island-preview.mjs` renders a .glb to a PNG - a scanline rasteriser
+with a depth buffer, supersampled three times, lit by the rig above. Not a
+renderer to ship behind; a renderer to decide with.
+
+```bash
+node scripts/island-preview.mjs koh-sichang.glb --out preview.png --yaw 20 --pitch 30
+```
+
+It paid for itself immediately. Three things it caught that no test did:
+
+- **Every face in the landmark file was wound inside out.** Under a flat
+  Lambert with a floor it looked merely dull; under this rig the roofs came
+  out near black, because a roof facing down gets nothing but the sea bounce.
+- **A building sits on a plinth**, so the box's underside and the plinth's top
+  are one plane, and at equal depth float error decided which was drawn. Back
+  faces are culled now, which settles it.
+- **A wall out of the sun rendered black**, because the sky term clamped to
+  `max(0, n.y)` and a vertical face then sees no sky at all. A vertical
+  surface sees half the sky and half the water. Both terms say so now.
 
 ## Technical budget
 
