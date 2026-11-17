@@ -173,9 +173,16 @@ export const KOH_SICHANG_ATTRACTIONS: readonly AttractionSeed[] = [
     safetyEn: 'Open coast, no lifeguard', safetyTh: 'ชายฝั่งเปิด ไม่มีไลฟ์การ์ด',
   },
   {
-    id: 'sc-chong-khao-khat', nameEn: 'Itsariyaphon Pass', nameTh: 'ช่องอิศริยาภรณ์ (ช่องเขาขาด)', short: 'Khao Khat', layer: 'Green',
-    descriptionEn: 'The gap through the ridge on the west coast, known on the island as Chong Khao Khat, looking out over open sea towards the sunset.',
-    descriptionTh: 'ช่องเขาริมฝั่งตะวันตก ที่คนบนเกาะเรียกกันว่าช่องเขาขาด มองออกไปเห็นทะเลเปิด เป็นจุดชมพระอาทิตย์ตก',
+    /*
+      NAMED THE WAY PEOPLE NAME IT. OpenStreetMap calls this ช่องอิศริยาภรณ์,
+      which is its formal name and the one the map was labelled with at first.
+      Nobody on the island says it: the board says Chong Khao Khat and so does
+      everyone standing in it. The formal name is kept where it belongs, in
+      the sentence underneath.
+    */
+    id: 'sc-chong-khao-khat', nameEn: 'Chong Khao Khat', nameTh: 'ช่องเขาขาด', short: 'Khao Khat', layer: 'Green',
+    descriptionEn: 'The gap through the ridge on the west coast, formally Chong Itsariyaphon, looking out over open sea towards the sunset.',
+    descriptionTh: 'ช่องเขาริมฝั่งตะวันตก ชื่อทางการคือช่องอิศริยาภรณ์ มองออกไปเห็นทะเลเปิด เป็นจุดชมพระอาทิตย์ตก',
     lat: 13.1626, lng: 100.801342, tags: ['Viewpoint', 'Sunset', 'Walking'],
     photoUrl: '', photoCredit: '', photoLicence: '', photoSource: '',
     safetyEn: 'Cliff edge, keep back', safetyTh: 'ริมหน้าผา ควรอยู่ห่างขอบ',
