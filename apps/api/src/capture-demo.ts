@@ -138,7 +138,10 @@ if (failed.length > 0) {
  * fine and shows nothing - the same failure the reset script's --walk exists
  * to prevent, arriving by a different road.
  */
-const wallet = snapshot['/wallet'] as { balances?: { trip: number; green: number } };
+const wallet = snapshot['/wallet'] as {
+  balances?: { trip: number; green: number };
+  progression?: { exp: number };
+};
 // /places and /offers answer with bare arrays; /quests answers { quests, progress }.
 // Reading them the same way is how the first version of this guard reported
 // "there are no quests" about six of them.
@@ -146,7 +149,17 @@ const quests = (snapshot['/quests'] as { quests?: unknown[] })?.quests;
 const places = snapshot['/places'] as unknown[];
 
 const thin: string[] = [];
-if (!wallet?.balances || wallet.balances.green <= 0) thin.push('the wallet holds no Green Points');
+/*
+  What proves the traveller earned something used to be Green, because the
+  quests paid it. They pay EXP now and the island's rewards were repriced
+  instead, so a correct demo wallet can hold 0 Green - and this guard then
+  refused to capture the very state the running system produces. EXP is
+  lifetime and never spent, which makes it the honest witness that work
+  happened at all.
+*/
+if (!wallet?.balances || (wallet.progression?.exp ?? 0) <= 0) {
+  thin.push('the wallet shows no EXP, so this account earned nothing');
+}
 if (!Array.isArray(places) || places.length === 0) thin.push('there are no places');
 if (!Array.isArray(quests) || quests.length === 0) thin.push('there are no quests');
 // Every route answered is not every place shown: /places is what Home and the
@@ -164,5 +177,5 @@ if (thin.length > 0) {
 writeFileSync(OUT, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
 
 console.log(`[chivago] captured ${ROUTES.length} routes from ${BASE} as ${USER}`);
-console.log(`          wallet ${wallet.balances!.trip} trip · ${wallet.balances!.green} green`);
+console.log(`          wallet ${wallet.balances!.trip} trip · ${wallet.balances!.green} green · ${wallet.progression!.exp} exp`);
 console.log(`          -> ${OUT}`);
