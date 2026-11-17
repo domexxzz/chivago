@@ -81,26 +81,50 @@ describe('Ko Sichang production bootstrap', () => {
     assert.equal((db.prepare('SELECT COUNT(*) AS n FROM user_accounts').get() as { n: number }).n, 0);
   });
 
+  /*
+    ONE GAP IN THE RIDGE, NOT TWO.
+
+    This test arrived expecting 'sc-chong-khao-khad'. The same place had been
+    added hours earlier on the other side of the merge as
+    'sc-chong-khao-khat' - ขาด transliterates with a t - and git kept one
+    entry and the other's test, which is how main went red.
+
+    The id kept is the one ALREADY IN THE PRODUCTION DATABASE. The bootstrap
+    is insert-only: it skips an id it finds, so shipping the other spelling
+    would not have replaced anything, it would have put a second pin twenty
+    metres from the first and left the island with two gaps in one ridge.
+
+    The RECORD kept is the one that arrived with this test, because it is
+    better sourced: official coordinates from the Thailand Digital Tourism
+    Center rather than an OpenStreetMap viewpoint node, both names in Thai,
+    the provenance in `meta`, and the Landmark tag.
+
+    WHAT THIS DOES NOT DO is correct the row that is already live. Insert-only
+    means the deployed place keeps the coordinates it was created with, about
+    twenty metres from these. For a gap in a ridge that is inside the error of
+    standing in it; for anything that matters more, a seed edit is not enough
+    and never was.
+  */
   test('ships the two landmark additions with official coordinates and map taxonomy', () => {
     const db = openTestDb();
     bootstrapKohSichangBusinesses(db, { CHIVAGO_BOOTSTRAP_KOH_SICHANG: '1' } as NodeJS.ProcessEnv);
     const landmarks = db.prepare(`
       SELECT id, name_th, lat, lng, tags, meta, photo_url
       FROM places
-      WHERE id IN ('sc-chong-khao-khad', 'sc-phra-lueang-chakraphong')
+      WHERE id IN ('sc-chong-khao-khat', 'sc-phra-lueang-chakraphong')
       ORDER BY id
     `).all() as {
       id: string; name_th: string; lat: number; lng: number; tags: string; meta: string; photo_url: string | null;
     }[];
 
     assert.deepEqual(landmarks.map((place) => place.id), [
-      'sc-chong-khao-khad',
+      'sc-chong-khao-khat',
       'sc-phra-lueang-chakraphong',
     ]);
     assert.deepEqual(
       landmarks.map(({ id, name_th, lat, lng }) => ({ id, name_th, lat, lng })),
       [
-        { id: 'sc-chong-khao-khad', name_th: 'ช่องเขาขาด (ช่องอิศริยาภรณ์)', lat: 13.16246, lng: 100.80146 },
+        { id: 'sc-chong-khao-khat', name_th: 'ช่องเขาขาด (ช่องอิศริยาภรณ์)', lat: 13.16246, lng: 100.80146 },
         { id: 'sc-phra-lueang-chakraphong', name_th: 'พระเหลือง–วัดถ้ำจักรพงษ์', lat: 13.15779, lng: 100.80618 },
       ],
     );

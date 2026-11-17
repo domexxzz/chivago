@@ -183,11 +183,12 @@ export const KOH_SICHANG_ATTRACTIONS: readonly AttractionSeed[] = [
       everyone standing in it. The formal name is kept where it belongs, in
       the sentence underneath.
     */
-    id: 'sc-chong-khao-khat', nameEn: 'Chong Khao Khat', nameTh: 'ช่องเขาขาด', short: 'Khao Khat', layer: 'Green',
+    id: 'sc-chong-khao-khat', nameEn: 'Chong Khao Khat', nameTh: 'ช่องเขาขาด (ช่องอิศริยาภรณ์)', short: 'Khao Khat', layer: 'Green',
     descriptionEn: 'The gap through the ridge on the west coast, formally Chong Itsariyaphon, looking out over open sea towards the sunset.',
     descriptionTh: 'ช่องเขาริมฝั่งตะวันตก ชื่อทางการคือช่องอิศริยาภรณ์ มองออกไปเห็นทะเลเปิด เป็นจุดชมพระอาทิตย์ตก',
-    lat: 13.1626, lng: 100.801342, tags: ['Viewpoint', 'Sunset', 'Walking'],
-    photoUrl: '', photoCredit: '', photoLicence: '', photoSource: '',
+    lat: 13.16246, lng: 100.80146, tags: ['Landmark', 'Viewpoint', 'Sunset', 'Walking'],
+    meta: 'Viewpoint · Thailand Digital Tourism Center attraction 21533 · Official coordinates · Air modelled',
+    photoUrl: null, photoCredit: null, photoLicence: null, photoSource: null,
     safetyEn: 'Cliff edge, keep back', safetyTh: 'ริมหน้าผา ควรอยู่ห่างขอบ',
   },
   {
