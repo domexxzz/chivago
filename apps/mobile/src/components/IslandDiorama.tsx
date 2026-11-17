@@ -56,7 +56,19 @@ import { t } from '../i18n/locale.ts';
 const VENDOR = '/vendor/three-0.170.0.min.js';
 
 /** docs/76 §camera: constrained, never free. */
-export const CAMERA = { yaw: 20, yawRange: 35, pitch: 32, pitchMin: 24, pitchMax: 55 };
+export const CAMERA = {
+  yaw: 20, yawRange: 35, pitch: 32, pitchMin: 24, pitchMax: 55,
+  /*
+    HOW CLOSE A PERSON MAY COME. docs/76 asked for 1.2 km at the near end and
+    that is kept. The far end is not a number here: it is whatever distance
+    frames the whole island, measured from the model when it loads (6,872 m
+    for Ko Sichang, whose mesh is 2,871 by 5,976 m). There is nothing to see
+    further out than the whole island, and a second island of another size
+    would need a different number, which is exactly the kind of number that
+    goes stale in a constant.
+  */
+  zoomMin: 1200,
+};
 
 /**
  * Metres per degree, the same formula `scripts/lib/geo.mjs` uses to place
@@ -91,6 +103,8 @@ export interface IslandDioramaProps {
   /** The route the map is already showing, as [lng, lat] pairs. */
   route?: [number, number][] | null;
   onSelectPlace?: (placeId: string) => void;
+  /* The ids the app can actually open. Anything else is drawn, not offered. */
+  openable?: readonly string[];
 }
 
 export function dioramaPage(island: string, base: string): string {
@@ -120,6 +134,16 @@ export function dioramaPage(island: string, base: string): string {
     nudged aside to stay readable no longer says where anything is. The dot
     never moves, the leader joins the two, and together they can be trusted.
   */
+  /*
+    A NAME THAT OPENS SAYS SO. Every pill was styled the same and every pill
+    posted a tap, including the ones the app has no record for - so some of
+    the island's names were buttons that did nothing at all when pressed,
+    which is the worst kind of control: one that looks willing. The chevron
+    and the pointer are only worn by names the app can actually open.
+  */
+  .lab.open{cursor:pointer;padding-right:7px}
+  .lab.open::after{content:'›';margin-left:6px;color:#4E6B7A;font-weight:700}
+  .lab:not(.open){cursor:default}
   .dot{position:absolute;width:9px;height:9px;border-radius:999px;transform:translate(-50%,-50%);
     background:#fff;border:2px solid #13242e;box-shadow:0 1px 3px rgba(0,0,0,.35);pointer-events:none}
   /* North, and how far a hundred metres is. A drawn island owes both. */
@@ -130,12 +154,28 @@ export function dioramaPage(island: string, base: string): string {
     text-shadow:0 1px 3px rgba(0,0,0,.5)}
   #scale .bar{height:3px;background:#fff;border-radius:2px;margin-bottom:3px;
     box-shadow:0 1px 3px rgba(0,0,0,.4)}
+  /*
+    PINCH IS INVISIBLE. This map lives in a 320 px band inside a page that
+    scrolls, where a two-finger gesture is neither obvious nor comfortable,
+    so the two things it does are also buttons. They are the reason zoom can
+    be found at all, and the only way to work it with one hand on a phone.
+  */
+  #zoom{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:6px}
+  #zoom button{width:44px;height:44px;border:0;border-radius:999px;cursor:pointer;
+    background:rgba(255,255,255,.92);box-shadow:0 2px 6px rgba(0,0,0,.2);
+    color:#13242e;font-size:22px;font-weight:600;line-height:1;padding:0;
+    display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}
+  #zoom button:disabled{opacity:.4;cursor:default}
   #fail{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
     color:#fff;font-size:13px;text-align:center;padding:0 24px}
 </style>
 </head><body>
 <svg id="leads"></svg>
 <div id="labels"></div>
+<div id="zoom">
+  <button id="zoomIn" type="button" aria-label="Zoom in">+</button>
+  <button id="zoomOut" type="button" aria-label="Zoom out">−</button>
+</div>
 <div id="rose"><svg width="46" height="46" viewBox="0 0 46 46">
   <g id="needle" transform="translate(23,23)">
     <polygon points="0,-15 5,3 0,0 -5,3" fill="#C4452B"></polygon>
@@ -240,6 +280,20 @@ const camera = new THREE.PerspectiveCamera(32, window.innerWidth / window.innerH
 const target = new THREE.Vector3();
 let yaw = ${CAMERA.yaw}, pitch = ${CAMERA.pitch}, distance = 1;
 const yaw0 = ${CAMERA.yaw};
+/* Set from the model once it is measured; until then there is nothing to zoom. */
+let near = ${CAMERA.zoomMin}, far = 1;
+const zoomIn = document.getElementById('zoomIn');
+const zoomOut = document.getElementById('zoomOut');
+function dolly(to) {
+  distance = Math.min(far, Math.max(near, to));
+  /*
+    A control that cannot do anything says so. Both ends of this range are
+    reachable in a few taps, and a + that keeps looking live at the closest
+    the island has to offer is a small lie told repeatedly.
+  */
+  zoomIn.disabled = distance <= near + 1;
+  zoomOut.disabled = distance >= far - 1;
+}
 
 function place() {
   const y = yaw * Math.PI / 180, p = pitch * Math.PI / 180;
@@ -451,10 +505,72 @@ const move = (x, y) => {
   pitch = Math.max(${CAMERA.pitchMin}, Math.min(${CAMERA.pitchMax}, dragging.pitch + (y - dragging.y) * 0.16));
 };
 const up = () => { dragging = null; };
-renderer.domElement.addEventListener('pointerdown', (e) => down(e.clientX, e.clientY));
-renderer.domElement.addEventListener('pointermove', (e) => move(e.clientX, e.clientY));
-renderer.domElement.addEventListener('pointerup', up);
-renderer.domElement.addEventListener('pointercancel', up);
+
+/*
+  ONE FINGER TURNS THE ISLAND, TWO CHANGE HOW CLOSE YOU ARE.
+
+  Pointer events carry mouse, pen and every finger down the same path, so
+  both gestures are decided by how many are on the glass rather than by
+  guessing at the device. The map of live pointers is the whole of that
+  decision.
+*/
+const touching = new Map();
+let pinching = null;
+const spread = () => {
+  const two = [...touching.values()];
+  return Math.hypot(two[0].x - two[1].x, two[0].y - two[1].y);
+};
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  touching.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touching.size === 2) {
+    /* A second finger ends the turn it interrupted rather than fighting it. */
+    dragging = null;
+    pinching = { spread: spread(), distance };
+  } else if (touching.size === 1) {
+    down(e.clientX, e.clientY);
+  }
+});
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (!touching.has(e.pointerId)) return;
+  touching.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touching.size === 2 && pinching) {
+    const now = spread();
+    /* Fingers apart means closer in, which is why the ratio is this way up. */
+    if (now > 0) dolly(pinching.distance * (pinching.spread / now));
+  } else if (touching.size === 1) {
+    move(e.clientX, e.clientY);
+  }
+});
+const lift = (e) => {
+  touching.delete(e.pointerId);
+  if (touching.size < 2) pinching = null;
+  if (touching.size === 1) {
+    /*
+      ONE FINGER LEFT AFTER A PINCH starts a NEW turn from where it is.
+      Without this the drag still holds the yaw and the position it was given
+      before the pinch, and the island jumps the moment the other finger
+      leaves - which is the most common way a two-gesture map feels broken.
+    */
+    const rest = [...touching.values()][0];
+    down(rest.x, rest.y);
+  }
+  if (touching.size === 0) up();
+};
+renderer.domElement.addEventListener('pointerup', lift);
+renderer.domElement.addEventListener('pointercancel', lift);
+/* A pointer that leaves the canvas still ends, or the island keeps turning. */
+window.addEventListener('pointerup', lift);
+
+/* A trackpad or a wheel, for everyone not on a phone. */
+renderer.domElement.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  dolly(distance * Math.exp(e.deltaY * 0.0012));
+}, { passive: false });
+
+/* And the buttons, a third of the way in or out per press. */
+zoomIn.addEventListener('click', () => dolly(distance * 0.7));
+zoomOut.addEventListener('click', () => dolly(distance / 0.7));
 window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -466,7 +582,7 @@ window.addEventListener('resize', () => {
   move a dot would reload a megabyte of island and throw away whatever angle
   somebody had turned it to.
 */
-let pending = { here: null, route: null };
+let pending = { here: null, route: null, openable: null };
 window.__chivago = {
   setHere(x, z) {
     if (x === null || x === undefined) { hereGroup.visible = false; return; }
@@ -475,6 +591,17 @@ window.__chivago = {
     hereGroup.visible = true;
   },
   setRoute(points) { pending.route = points; drawRoute(points); },
+  /*
+    Which places the app holds. The island is drawn from a sidecar of
+    anchors and the app from its own list, and the two do not have to agree
+    - the shrine and the mondop are bootstrapped at run time, the pier and
+    the beach come from the seed. Rather than guess, the page is told.
+  */
+  setOpenable(ids) {
+    pending.openable = ids;
+    const can = new Set(ids || []);
+    for (const a of anchors) a.el.classList.toggle('open', can.has(a.id));
+  },
 };
 window.addEventListener('message', (e) => {
   let m = null;
@@ -482,6 +609,7 @@ window.addEventListener('message', (e) => {
   if (!m) return;
   if (m.type === 'here') window.__chivago.setHere(m.x, m.z);
   if (m.type === 'route') window.__chivago.setRoute(m.points);
+  if (m.type === 'openable') window.__chivago.setOpenable(m.ids);
 });
 
 /*
@@ -537,24 +665,29 @@ window.__island.then(([bin, list]) => new Promise((resolve) => {
     const box = new THREE.Box3().setFromObject(gltf.scene);
     box.getCenter(target);
     const size = box.getSize(new THREE.Vector3());
-    distance = Math.max(size.x, size.z) * 1.15;
+    far = Math.max(size.x, size.z) * 1.15;
+    dolly(far);
 
     for (const a of list) {
       const el = document.createElement('div');
       el.className = 'lab';
       el.textContent = a.name;
-      el.addEventListener('click', () => post({ type: 'place', id: a.id }));
+      el.addEventListener('click', () => {
+        /* Silence is not an answer. A pill only takes a tap it can honour. */
+        if (el.classList.contains('open')) post({ type: 'place', id: a.id });
+      });
       labels.appendChild(el);
       const lead = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       leads.appendChild(lead);
       const dot = document.createElement('div');
       dot.className = 'dot';
       labels.appendChild(dot);
-      anchors.push({ el, lead, dot, world: new THREE.Vector3(a.x, a.y + 40, a.z) });
+      anchors.push({ id: a.id, el, lead, dot, world: new THREE.Vector3(a.x, a.y + 40, a.z) });
     }
     /* Anything that arrived while the island was still loading. */
     if (pending.here) window.__chivago.setHere(pending.here[0], pending.here[1]);
     if (pending.route) window.__chivago.setRoute(pending.route);
+    if (pending.openable) window.__chivago.setOpenable(pending.openable);
     tick('built');
     post({ type: 'ready', labels: list.length });
     draw();
@@ -566,7 +699,7 @@ window.__island.then(([bin, list]) => new Promise((resolve) => {
 </body></html>`;
 }
 
-export function IslandDiorama({ island = 'koh-sichang', height, here, route, onSelectPlace }: IslandDioramaProps) {
+export function IslandDiorama({ island = 'koh-sichang', height, here, route, onSelectPlace, openable }: IslandDioramaProps) {
   const [ready, setReady] = React.useState(false);
   const [ticks, setTicks] = React.useState<{ what: string; ms: number }[]>([]);
   /*
@@ -618,6 +751,18 @@ export function IslandDiorama({ island = 'koh-sichang', height, here, route, onS
     const point = here ? toIsland(island, here.lng, here.lat) : null;
     send(point ? { type: 'here', x: point[0], z: point[1] } : { type: 'here', x: null });
   }, [ready, here, island, send]);
+
+  /*
+    The ids the app holds, joined into a string so the dependency is the
+    CONTENT and not the array - a fresh array of the same ids each render
+    would otherwise push a message into the page on every frame of the
+    parent's state.
+  */
+  const openKey = (openable ?? []).join(',');
+  React.useEffect(() => {
+    if (!ready) return;
+    send({ type: 'openable', ids: openKey ? openKey.split(',') : [] });
+  }, [ready, openKey, send]);
 
   React.useEffect(() => {
     if (!ready) return;
