@@ -327,6 +327,30 @@ describe('hybrid concierge data integration', () => {
     db.close();
   });
 
+  /**
+   * MEASURED 17 November on Ko Sichang, which has three attractions.
+   *
+   * Asking for more after the third produced "ยังไม่พบสถานที่จริงในพื้นที่นี้ที่
+   * ตรงกับคำขอ" - the sentence for a search that found nothing. To a traveller
+   * who has just been shown three places it reads as the island going empty,
+   * and the pagination test above passed the whole time because it only
+   * checked that the CARDS were empty, never what was said over them.
+   */
+  test('the end of the list sounds like the end, not like an empty island', async () => {
+    const db = fixtureDb();
+    const first = await ask(db, 'แนะนำที่เที่ยว');
+    assert.equal(first.recommendations?.items.length, 3);
+
+    // The phrasing a person actually uses, not the one the old list held.
+    const more = await ask(db, 'แล้วที่อื่นล่ะ', first.conversationId);
+    assert.equal(more.analysis.entities.showMore, true, 'a natural follow-up did not count as asking for more');
+
+    const exhausted = await ask(db, 'ขอเพิ่มอีก', more.conversationId);
+    assert.deepEqual(exhausted.recommendations?.items ?? [], []);
+    assert.match(exhausted.reply.text, /หมดแล้ว/, 'the end of the list must say so');
+    assert.doesNotMatch(exhausted.reply.text, /ยังไม่พบสถานที่จริง/, 'an exhausted list is not an empty area');
+    db.close();
+  });
   test('separates a multi-stop trip recommendation and orders only real attractions', async () => {
     const db = fixtureDb();
     const result = await ask(db, 'ช่วยจัดทริปครึ่งวัน 3 ที่');
