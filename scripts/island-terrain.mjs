@@ -462,9 +462,33 @@ const extent = (array, stride, offset) => {
  * sources over one surface is how a texture ends up looking muddy, and the
  * one drawn from real paths and real buildings is the one worth keeping.
  */
-export function glb({ positions, normals, colours, uvs, name = 'island', texture = null }) {
+/**
+ * How small the file is, and what it costs.
+ *
+ * MEASURED 17 November: 38,490 vertices as three float32 vec3 attributes is
+ * 1,354 KB, and the first thing anybody said about the island on a phone was
+ * that it took a long time to arrive. Two thirds of that file is avoidable.
+ *
+ *   NORMAL     451 KB and recomputable. The mesh is unindexed, so
+ *              `computeVertexNormals()` in the viewer produces exactly the
+ *              flat normals that were written - the same numbers, for free.
+ *   COLOR_0    451 KB as float32, 154 KB as unsigned bytes. A colour here is
+ *              eight bits of green at most; thirty-two is paying for
+ *              precision the palette does not have.
+ *
+ * That leaves POSITION, which is the only thing a viewer cannot derive.
+ */
+export function glb({ positions, normals, colours, uvs, name = 'island', texture = null, compact = false }) {
   const count = positions.length / 3;
-  const parts = texture ? [positions, normals, uvs] : [positions, normals, colours];
+  /* Unsigned bytes, VEC4 so each vertex lands on a four-byte boundary. */
+  const packed = compact && colours
+    ? Uint8Array.from({ length: count * 4 }, (unused, i) => (
+      i % 4 === 3 ? 255 : Math.max(0, Math.min(255, Math.round(colours[(i >> 2) * 3 + (i % 4)] * 255)))
+    ))
+    : null;
+  const parts = texture
+    ? [positions, normals, uvs]
+    : compact ? [positions, packed] : [positions, normals, colours];
   let offset = 0;
   const views = parts.map((part) => {
     const view = { buffer: 0, byteOffset: offset, byteLength: part.byteLength, target: GLTF_ARRAY_BUFFER };
@@ -486,7 +510,7 @@ export function glb({ positions, normals, colours, uvs, name = 'island', texture
       primitives: [{
         attributes: texture
           ? { POSITION: 0, NORMAL: 1, TEXCOORD_0: 2 }
-          : { POSITION: 0, NORMAL: 1, COLOR_0: 2 },
+          : compact ? { POSITION: 0, COLOR_0: 1 } : { POSITION: 0, NORMAL: 1, COLOR_0: 2 },
         material: 0,
         mode: 4,
       }],
@@ -508,11 +532,16 @@ export function glb({ positions, normals, colours, uvs, name = 'island', texture
           samplers: [{ magFilter: 9729, minFilter: 9987, wrapS: 33071, wrapT: 33071 }],
         }
       : {}),
-    accessors: [
-      { bufferView: 0, componentType: GLTF_FLOAT, count, type: 'VEC3', min: [minX, minY, minZ], max: [maxX, maxY, maxZ] },
-      { bufferView: 1, componentType: GLTF_FLOAT, count, type: 'VEC3' },
-      { bufferView: 2, componentType: GLTF_FLOAT, count, type: texture ? 'VEC2' : 'VEC3' },
-    ],
+    accessors: compact
+      ? [
+        { bufferView: 0, componentType: GLTF_FLOAT, count, type: 'VEC3', min: [minX, minY, minZ], max: [maxX, maxY, maxZ] },
+        { bufferView: 1, componentType: 5121, normalized: true, count, type: 'VEC4' },
+      ]
+      : [
+        { bufferView: 0, componentType: GLTF_FLOAT, count, type: 'VEC3', min: [minX, minY, minZ], max: [maxX, maxY, maxZ] },
+        { bufferView: 1, componentType: GLTF_FLOAT, count, type: 'VEC3' },
+        { bufferView: 2, componentType: GLTF_FLOAT, count, type: texture ? 'VEC2' : 'VEC3' },
+      ],
     bufferViews: views,
     buffers: [{ byteLength: offset }],
   };

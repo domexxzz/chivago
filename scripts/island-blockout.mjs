@@ -327,7 +327,7 @@ async function main() {
     normals: Float32Array.from([...ground.normals, ...(roads?.normals ?? []), ...shaped.normals, ...(village?.normals ?? [])]),
     colours: Float32Array.from([...greyed, ...(roads?.colours ?? []), ...shaped.colours, ...(village?.colours ?? [])]),
   };
-  const file = terrain.glb({ ...merged, uvs: null, name: `${values.area}-blockout` });
+  const file = terrain.glb({ ...merged, uvs: null, name: `${values.area}-blockout`, compact: true });
 
   const out = values.out ?? `apps/mobile/assets/islands/${values.area}-blockout.glb`;
   mkdirSync(dirname(out), { recursive: true });

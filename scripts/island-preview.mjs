@@ -45,17 +45,72 @@ const dir = (azimuth, elevation) => {
 };
 
 /** Read POSITION, NORMAL and COLOR_0 out of a single-primitive .glb. */
+/** Keep the first three components of a wider attribute. */
+function narrow(raw, components) {
+  const out = new Float32Array((raw.length / components) * 3);
+  for (let i = 0; i < raw.length / components; i += 1) {
+    for (let k = 0; k < 3; k += 1) out[i * 3 + k] = raw[i * components + k];
+  }
+  return out;
+}
+
 export function readGlb(buffer) {
   const jsonLength = buffer.readUInt32LE(12);
   const json = JSON.parse(buffer.toString('utf8', 20, 20 + jsonLength));
   const binStart = 20 + jsonLength + 8;
+  /*
+    DECODED BY WHAT THE ACCESSOR SAYS, not by hope.
+
+    This read every attribute as float32, which was true until COLOR_0 became
+    unsigned bytes to halve the file. The first compact render came out a flat
+    5 KB image: the bytes were being read four at a time as floats, so every
+    colour was a denormal and every face was black.
+  */
   const attribute = (name) => {
-    const accessor = json.accessors[json.meshes[0].primitives[0].attributes[name]];
+    const index = json.meshes[0].primitives[0].attributes[name];
+    const accessor = json.accessors[index];
     const view = json.bufferViews[accessor.bufferView];
     const start = buffer.byteOffset + binStart + (view.byteOffset ?? 0);
-    return new Float32Array(buffer.buffer.slice(start, start + view.byteLength));
+    const components = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 }[accessor.type];
+    if (accessor.componentType === 5126) {
+      const raw = new Float32Array(buffer.buffer.slice(start, start + view.byteLength));
+      return components === 3 ? raw : narrow(raw, components);
+    }
+    if (accessor.componentType === 5121) {
+      const raw = new Uint8Array(buffer.buffer.slice(start, start + view.byteLength));
+      const scale = accessor.normalized ? 255 : 1;
+      const out = new Float32Array(accessor.count * 3);
+      for (let i = 0; i < accessor.count; i += 1) {
+        for (let k = 0; k < 3; k += 1) out[i * 3 + k] = raw[i * components + k] / scale;
+      }
+      return out;
+    }
+    throw new Error('unsupported componentType ' + accessor.componentType);
   };
-  return { positions: attribute('POSITION'), normals: attribute('NORMAL'), colours: attribute('COLOR_0') };
+  const positions = attribute('POSITION');
+  const attributes = json.meshes[0].primitives[0].attributes;
+  /*
+    A compact file carries POSITION and COLOR_0 only. The mesh is unindexed,
+    so the flat normal of a face is derivable from the face - which is why it
+    was worth 451 KB not to ship.
+  */
+  const normals = attributes.NORMAL === undefined ? flatNormals(positions) : attribute('NORMAL');
+  const colours = attribute('COLOR_0');
+  return { positions, normals, colours };
+}
+
+/** One normal per face, repeated for its three vertices. */
+export function flatNormals(positions) {
+  const out = new Float32Array(positions.length);
+  for (let i = 0; i < positions.length; i += 9) {
+    const ux = positions[i + 3] - positions[i], uy = positions[i + 4] - positions[i + 1], uz = positions[i + 5] - positions[i + 2];
+    const vx = positions[i + 6] - positions[i], vy = positions[i + 7] - positions[i + 1], vz = positions[i + 8] - positions[i + 2];
+    let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+    const len = Math.hypot(nx, ny, nz) || 1;
+    nx /= len; ny /= len; nz /= len;
+    for (let k = 0; k < 3; k += 1) { out[i + k * 3] = nx; out[i + k * 3 + 1] = ny; out[i + k * 3 + 2] = nz; }
+  }
+  return out;
 }
 
 /** Shade one face: key, sky, bounce, ambient. Values, not a tone curve. */

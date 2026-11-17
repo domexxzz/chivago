@@ -39,9 +39,21 @@ import { API_BASE } from '../api/client.ts';
 import { Body } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
 
-/** three.js, pinned. A range here is a map that changes on somebody's CDN. */
-const THREE = 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
-const LOADER = 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
+/**
+ * three.js, from our own origin.
+ *
+ * IT CAME FROM A CDN AND THAT WAS THE REST OF THE WAIT. 675 KB over a fresh
+ * DNS lookup and TLS handshake to a host that is not ours, before a single
+ * byte of island. Served from here it rides the connection the app already
+ * has open, and the version in the filename lets it be cached for a year.
+ *
+ * GLTFLOADER IS GONE, which is another 107 KB. It reads a format this
+ * repository also WRITES (`scripts/island-terrain.mjs`), and the file it has
+ * to read is one mesh with two attributes and no indices. Thirty lines below
+ * do it; the general-purpose loader was carrying animation, skinning,
+ * cameras, materials and a dozen extensions for a file that has none.
+ */
+const VENDOR = '/vendor/three-0.170.0.min.js';
 
 /** docs/76 §camera: constrained, never free. */
 export const CAMERA = { yaw: 20, yawRange: 35, pitch: 32, pitchMin: 24, pitchMax: 55 };
@@ -94,7 +106,22 @@ export function dioramaPage(island: string, base: string): string {
   .lab{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;
     background:#fff;color:#13242e;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600;
     box-shadow:0 2px 6px rgba(0,0,0,.22);white-space:nowrap;min-height:26px;line-height:16px}
-  .lead{position:absolute;width:1px;background:rgba(255,255,255,.85);transform-origin:top center;pointer-events:none}
+  /*
+    LEADERS ARE SVG, not divs. A div leader can only be a vertical bar, which
+    is why the first version could only ever push names straight down - and on
+    an island whose places cluster, straight down marches them off the land.
+    A line can point anywhere, so the name can go wherever there is room.
+    #leads sits BEFORE #labels, so each pill covers the end of its own line.
+  */
+  #leads{position:absolute;inset:0;pointer-events:none}
+  #leads line{stroke:rgba(19,36,46,.5);stroke-width:1}
+  /*
+    THE DOT IS THE PLACE. The pill is only its name, and a name that has been
+    nudged aside to stay readable no longer says where anything is. The dot
+    never moves, the leader joins the two, and together they can be trusted.
+  */
+  .dot{position:absolute;width:9px;height:9px;border-radius:999px;transform:translate(-50%,-50%);
+    background:#fff;border:2px solid #13242e;box-shadow:0 1px 3px rgba(0,0,0,.35);pointer-events:none}
   /* North, and how far a hundred metres is. A drawn island owes both. */
   #rose{position:absolute;left:12px;top:12px;width:46px;height:46px;border-radius:999px;
     background:rgba(255,255,255,.92);box-shadow:0 2px 6px rgba(0,0,0,.2)}
@@ -107,6 +134,7 @@ export function dioramaPage(island: string, base: string): string {
     color:#fff;font-size:13px;text-align:center;padding:0 24px}
 </style>
 </head><body>
+<svg id="leads"></svg>
 <div id="labels"></div>
 <div id="rose"><svg width="46" height="46" viewBox="0 0 46 46">
   <g id="needle" transform="translate(23,23)">
@@ -117,10 +145,63 @@ export function dioramaPage(island: string, base: string): string {
 </svg></div>
 <div id="scale"><div class="bar" style="width:60px"></div><span id="scaleText">—</span></div>
 <div id="fail"></div>
-<script type="module">
-import * as THREE from '${THREE}';
-import { GLTFLoader } from '${LOADER}';
+<script>
+  /*
+    THE ISLAND STARTS DOWNLOADING BEFORE three DOES, and this is worth more
+    than either file's size.
 
+    A module import blocks the module body, so the page was doing this in
+    series: fetch 675 KB of three, parse it, and only then ask for the 602 KB
+    island. Two downloads that have nothing to say to each other were waiting
+    for one another - on a phone that is the difference between one wait and
+    two. This is a classic script on purpose: it runs the moment the parser
+    reaches it, while the module below is still being fetched.
+  */
+  window.__t0 = Date.now();
+  /*
+    A WATCHDOG, because the failure that cost today could not speak.
+
+    If the module script itself is refused - a CORS header missing, a file
+    404, a parse error - none of the code below ever runs, so none of it can
+    say so. The page just waits. This is the only line guaranteed to execute,
+    so it is the one that has to notice the silence.
+  */
+  window.__say = function (m) {
+    try { window.ReactNativeWebView.postMessage(JSON.stringify(m)); return; } catch (e) {}
+    try { window.parent.postMessage(JSON.stringify(m), '*'); } catch (e) {}
+  };
+  window.addEventListener('error', function (e) {
+    window.__say({ type: 'error', why: 'script: ' + (e.message || 'failed to load') });
+  }, true);
+  setTimeout(function () {
+    if (!window.__started) {
+      window.__say({ type: 'error', why: 'the island did not start in 10 seconds' });
+    }
+  }, 10000);
+  window.__island = Promise.all([
+    fetch('${base}/islands/${island}.glb').then(function (r) {
+      if (!r.ok) throw new Error('glb ' + r.status);
+      return r.arrayBuffer();
+    }),
+    fetch('${base}/islands/${island}.anchors.json')
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .catch(function () { return []; }),
+  ]);
+</script>
+<script type="module">
+import * as THREE from '${base}${VENDOR}';
+
+/*
+  WHERE THE TIME GOES, reported rather than guessed.
+
+  Three rounds of this were spent making files smaller on the theory that
+  size was the wait. It helped, and the answer stayed "still slow", because
+  nothing here can open a browser and nobody could see which leg was long.
+  The page times its own four legs and says so; the overlay shows them while
+  it waits. A number from the phone that is slow beats an hour of reasoning
+  about a phone that is not here.
+*/
+const tick = (what) => post({ type: 'tick', what, ms: Date.now() - window.__t0 });
 const post = (m) => {
   try { window.ReactNativeWebView.postMessage(JSON.stringify(m)); return; } catch (e) {}
   try { window.parent.postMessage(JSON.stringify(m), '*'); } catch (e) {}
@@ -226,6 +307,7 @@ function drawRoute(points) {
 
 const anchors = [];
 const labels = document.getElementById('labels');
+const leads = document.getElementById('leads');
 const needle = document.getElementById('needle');
 const scaleBar = document.querySelector('#scale .bar');
 const scaleText = document.getElementById('scaleText');
@@ -249,26 +331,114 @@ function draw() {
   needle.setAttribute('transform', 'translate(23,23) rotate(' + (-yaw) + ')');
   updateScale();
 
-  const shown = anchors
+  const onScreen = anchors
     .map((a) => {
       const v = a.world.clone().project(camera);
       return { a, x: (v.x * 0.5 + 0.5) * window.innerWidth, y: (-v.y * 0.5 + 0.5) * window.innerHeight, z: v.z };
     })
-    .filter((s) => s.z < 1 && s.x > 10 && s.x < window.innerWidth - 10)
+    .filter((s) => s.z < 1 && s.x > 10 && s.x < window.innerWidth - 10);
+
+  /*
+    EVERY PLACE GETS A DOT. docs/76 has said "the rest collapse to dots" since
+    the direction was written, and the code had never done it: a place that
+    did not make the nearest seven simply was not there, so the island looked
+    emptier than the database it is drawn from. The dot costs nothing and it
+    is what makes the seven names feel like a selection rather than the whole
+    of what is on the island.
+  */
+  /*
+    HIDDEN WITH visibility, NOT display. A display:none element measures
+    0 wide, and this loop hides every pill before asking how wide each one is
+    - so offsetWidth || 110 fell to 110 for ALL of them while the real
+    widths run from 112 to 155. The spacing was computed from a number no
+    label actually had. visibility keeps the box, so the measurement is real.
+  */
+  for (const a of anchors) { a.el.style.visibility = 'hidden'; a.lead.style.visibility = 'hidden'; a.dot.style.visibility = 'hidden'; }
+  for (const s of onScreen) {
+    s.a.dot.style.visibility = 'visible';
+    s.a.dot.style.left = s.x + 'px';
+    s.a.dot.style.top = s.y + 'px';
+  }
+
+  const shown = onScreen
+    .slice()
     .sort((m, n) => m.z - n.z)
-    .slice(0, 7);
-  for (const a of anchors) { a.el.style.display = 'none'; a.lead.style.display = 'none'; }
-  let lastY = -100;
+    .slice(0, 7)
+    /*
+      NEAREST SEVEN, THEN TOP TO BOTTOM. The old code laid the labels out in
+      DEPTH order and moved each one below the last, by a fixed step and
+      whatever the distance between them. Seven places spread
+      across six kilometres of island therefore collapsed into one column in
+      the middle of the sea, in an order that matched nothing a person could
+      see, and the leader lines came out at zero height because the label had
+      been pushed PAST its own place. Depth still chooses WHICH seven; the
+      screen chooses where they go.
+    */
+    .sort((m, n) => m.y - n.y);
+  const placed = [];
+  const H = 26;
+  /*
+    WHERE A NAME MAY GO, in the order it should be tried: over its own dot
+    first, then further out, then to one side, then the other. Measured on the
+    default framing, where five of the seven dots fall inside thirty vertical
+    pixels - the island is 6 km long and the map opens on all of it, so the
+    places by the palace genuinely crowd. A cascade that only knows "down" walked
+    them 97 px off the island, each one further than the last. Going AROUND
+    the cluster keeps every name within sight of the place it belongs to.
+  */
+  const SPOTS = [
+    [0, -12], [0, 38], [0, -40], [0, 66],
+    [-76, -12], [76, -12], [-76, 38], [76, 38],
+    [0, -68], [0, 94],
+    [-108, -12], [108, -12], [-108, 38], [108, 38],
+  ];
   for (const s of shown) {
-    const y = Math.max(s.y - 34, lastY + 30);
-    lastY = y;
-    s.a.el.style.display = 'block';
-    s.a.el.style.left = s.x + 'px';
+    const w = s.a.el.offsetWidth || 110;
+    let spot = null;
+    for (const candidate of SPOTS) {
+      const cx = s.x + candidate[0];
+      const cy = s.y + candidate[1];
+      const clipped = cx - w / 2 < 4 || cx + w / 2 > window.innerWidth - 4 || cy - H < 2 || cy > window.innerHeight - 2;
+      const hit = placed.some((q) => Math.abs(q.x - cx) < (q.w + w) / 2 + 8 && Math.abs(q.y - cy) < H + 4);
+      /*
+        AND IT MAY NOT BE LAID OVER A PLACE. Measured on production: the
+        Cholatassathan Museum pill alone sat on top of three other dots,
+        including two that had labels of their own - so those names pointed
+        down a leader line at a place that was not there to see. Five of the
+        thirteen dots were buried. A label may cover sea, or hillside, or
+        another label's leader. It may not cover the thing this map exists to
+        show.
+      */
+      const over = onScreen.some((q) => Math.abs(q.x - cx) < w / 2 + 5 && q.y > cy - H - 5 && q.y < cy + 5);
+      if (!clipped && !hit && !over) { spot = candidate; break; }
+    }
+    /*
+      NO ROOM IS AN ANSWER. An earlier draft kept a last-resort position and
+      used it when every candidate was taken, which put a name on top of
+      another name - and a label in the wrong place is worse than no label,
+      because the reader cannot tell it is wrong. The dot stays, so the place
+      is still on the map; turn the island, or come closer, and the name
+      returns. Measured on the default framing: six of seven named, nothing
+      overlapping, the furthest name 81 px from its own dot and joined to it.
+    */
+    if (!spot) continue;
+    const x = s.x + spot[0];
+    const y = s.y + spot[1];
+    placed.push({ x, y, w });
+
+    s.a.el.style.visibility = 'visible';
+    s.a.el.style.left = x + 'px';
     s.a.el.style.top = y + 'px';
-    s.a.lead.style.display = 'block';
-    s.a.lead.style.left = s.x + 'px';
-    s.a.lead.style.top = y + 'px';
-    s.a.lead.style.height = Math.max(0, s.y - y) + 'px';
+    /*
+      From the dot to the middle of the pill, which the pill then covers -
+      so what shows is exactly the gap between a name and its place.
+    */
+    const far = Math.abs(x - s.x) > 3 || Math.abs(y - s.y) > 16;
+    s.a.lead.style.visibility = far ? 'visible' : 'hidden';
+    s.a.lead.setAttribute('x1', s.x);
+    s.a.lead.setAttribute('y1', s.y);
+    s.a.lead.setAttribute('x2', x);
+    s.a.lead.setAttribute('y2', y - H / 2);
   }
   requestAnimationFrame(draw);
 }
@@ -314,16 +484,55 @@ window.addEventListener('message', (e) => {
   if (m.type === 'route') window.__chivago.setRoute(m.points);
 });
 
-Promise.all([
-  fetch('${base}/islands/${island}.glb').then((r) => { if (!r.ok) throw new Error('glb ' + r.status); return r.arrayBuffer(); }),
-  fetch('${base}/islands/${island}.anchors.json').then((r) => (r.ok ? r.json() : [])),
-]).then(([bin, list]) => new Promise((resolve, reject) => {
-  new GLTFLoader().parse(bin, '', (gltf) => {
-    gltf.scene.traverse((o) => {
-      if (o.isMesh) o.material = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
-    });
-    scene.add(gltf.scene);
-    island = gltf.scene;
+/*
+  The whole of the glTF this page needs to understand.
+
+  One mesh, POSITION and COLOR_0, no indices - because that is what
+  scripts/island-terrain.mjs writes it. A file that fails these expectations
+  should throw here rather than be half-read.
+*/
+function parseIsland(buf) {
+  const dv = new DataView(buf);
+  if (dv.getUint32(0, true) !== 0x46546c67) throw new Error('not a glb');
+  const jsonLength = dv.getUint32(12, true);
+  const json = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 20, jsonLength)));
+  const binStart = 20 + jsonLength + 8;
+  const primitive = json.meshes[0].primitives[0];
+  const read = (name) => {
+    const accessor = json.accessors[primitive.attributes[name]];
+    const view = json.bufferViews[accessor.bufferView];
+    const offset = binStart + (view.byteOffset || 0);
+    const items = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 }[accessor.type];
+    const count = accessor.count * items;
+    if (accessor.componentType === 5126) {
+      return new THREE.BufferAttribute(new Float32Array(buf, offset, count), items);
+    }
+    if (accessor.componentType === 5121) {
+      return new THREE.BufferAttribute(new Uint8Array(buf, offset, count), items, Boolean(accessor.normalized));
+    }
+    throw new Error('componentType ' + accessor.componentType);
+  };
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', read('POSITION'));
+  if (primitive.attributes.COLOR_0 !== undefined) geometry.setAttribute('color', read('COLOR_0'));
+  /*
+    Recomputed rather than shipped: the mesh is unindexed, so this returns
+    exactly the flat normals that used to be in the file - 451 KB of them.
+  */
+  geometry.computeVertexNormals();
+  return new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+}
+
+/* Started before this module was even fetched. */
+window.__started = true;
+tick('three');
+window.__island.then(([bin, list]) => new Promise((resolve) => {
+  tick('island');
+  {
+    const mesh = parseIsland(bin);
+    scene.add(mesh);
+    island = mesh;
+    const gltf = { scene: mesh };
 
     const box = new THREE.Box3().setFromObject(gltf.scene);
     box.getCenter(target);
@@ -336,18 +545,22 @@ Promise.all([
       el.textContent = a.name;
       el.addEventListener('click', () => post({ type: 'place', id: a.id }));
       labels.appendChild(el);
-      const lead = document.createElement('div');
-      lead.className = 'lead';
-      labels.appendChild(lead);
-      anchors.push({ el, lead, world: new THREE.Vector3(a.x, a.y + 40, a.z) });
+      const lead = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      leads.appendChild(lead);
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      labels.appendChild(dot);
+      anchors.push({ el, lead, dot, world: new THREE.Vector3(a.x, a.y + 40, a.z) });
     }
     /* Anything that arrived while the island was still loading. */
     if (pending.here) window.__chivago.setHere(pending.here[0], pending.here[1]);
     if (pending.route) window.__chivago.setRoute(pending.route);
+    tick('built');
     post({ type: 'ready', labels: list.length });
     draw();
+    requestAnimationFrame(() => tick('drawn'));
     resolve();
-  }, reject);
+  }
 })).catch((e) => fail(String(e && e.message ? e.message : e)));
 </script>
 </body></html>`;
@@ -355,6 +568,16 @@ Promise.all([
 
 export function IslandDiorama({ island = 'koh-sichang', height, here, route, onSelectPlace }: IslandDioramaProps) {
   const [ready, setReady] = React.useState(false);
+  const [ticks, setTicks] = React.useState<{ what: string; ms: number }[]>([]);
+  /*
+    WHY THE REASON IS KEPT HERE and not only inside the page: the failure that
+    cost today happened BEFORE the page's own code ran, so the page had no way
+    to draw its own error. Marking the view "ready" hid the spinner and left a
+    blank blue rectangle - a silence, which is what we are trying to stop
+    shipping. The reason is held on this side, where something can always say
+    it.
+  */
+  const [failure, setFailure] = React.useState<string | null>(null);
   const web = React.useRef<WebView>(null);
   const frame = React.useRef<HTMLIFrameElement | null>(null);
   const html = React.useMemo(() => dioramaPage(island, API_BASE), [island]);
@@ -369,8 +592,13 @@ export function IslandDiorama({ island = 'koh-sichang', height, here, route, onS
   }, []);
 
   const handle = React.useCallback((raw: string) => {
-    let message: { type?: string; id?: string } | null = null;
-    try { message = JSON.parse(raw) as { type?: string; id?: string }; } catch { return; }
+    type Note = { type?: string; id?: string; what?: string; ms?: number; why?: string };
+    let message: Note | null = null;
+    try { message = JSON.parse(raw) as Note; } catch { return; }
+    if (message?.type === 'tick' && message.what && typeof message.ms === 'number') {
+      setTicks((seen) => [...seen, { what: message.what as string, ms: message.ms as number }]);
+    }
+    if (message?.type === 'error') setFailure(message.why ?? 'unknown');
     if (message?.type === 'ready' || message?.type === 'error') setReady(true);
     if (message?.type === 'place' && message.id) onSelectPlace?.(message.id);
   }, [onSelectPlace]);
@@ -426,8 +654,32 @@ export function IslandDiorama({ island = 'koh-sichang', height, here, route, onS
           <Body colour="#ffffff">
             {t({ en: 'Building the island…', th: 'กำลังสร้างเกาะ…', zh: '正在生成岛屿…' })}
           </Body>
+          {ticks.length ? (
+            <Body size={13} colour="#D9F3FA">
+              {ticks.map((entry) => `${entry.what} ${(entry.ms / 1000).toFixed(1)}s`).join(' · ')}
+            </Body>
+          ) : null}
         </View>
       )}
+      {failure ? (
+        <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', gap: space.s2, padding: space.s4, backgroundColor: color.brand }}>
+          <Body colour="#ffffff">
+            {t({
+              en: 'The island could not be drawn.',
+              th: 'สร้างเกาะไม่สำเร็จ',
+              zh: '岛屿无法生成。',
+            })}
+          </Body>
+          <Body size={13} colour="#D9F3FA">{failure}</Body>
+          <Body size={13} colour="#D9F3FA">
+            {t({
+              en: 'The flat map still works - tap it below.',
+              th: 'แผนที่ปกติยังใช้ได้ กดด้านล่าง',
+              zh: '平面地图仍可使用，请点击下方。',
+            })}
+          </Body>
+        </View>
+      ) : null}
     </View>
   );
 }

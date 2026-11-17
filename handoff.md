@@ -137,12 +137,17 @@ Anything still holding the old value now gets 403, including callers of `/intern
 cd apps/mobile
 rm -rf dist-live
 EXPO_PUBLIC_API_URL=same-origin NODE_OPTIONS=--max-old-space-size=8192 \
-  npx expo export --platform web --output-dir dist-live --clear --max-workers 2
+  npx expo export --platform web --output-dir dist-live --clear --max-workers 1
 node scripts/flatten-assets.mjs dist-live
+node scripts/check-export.mjs dist-live          # refuses an empty export
 cd ../.. && pnpm --filter @chivago/api exec wrangler deploy
 ```
 
-Check the build before deploying it — all five, every time:
+**`--max-workers 1`, not 2.** On 17 November two workers ran this machine out of memory on this bundle ("Data cannot be cloned, out of memory"), and the demo build died the same way. Raise it only on a machine that has been measured.
+
+**Never pipe a build through `tail` or `head`.** A pipeline reports the exit status of its LAST command, so `pnpm … | tail -5` succeeds while the build fails. That hid a failed demo export on the 17th: the directory was checked by eye instead. Write the log to a file and read the file.
+
+The five checks are now `scripts/check-export.mjs` — the demo build runs it on itself, and the line above runs it for the live one. Read them anyway, because knowing what each is for is the point:
 
 1. `dist-live/_expo/static/js/web/` exists
 2. `index.html` has a `<script>` tag

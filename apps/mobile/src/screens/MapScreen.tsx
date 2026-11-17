@@ -156,12 +156,25 @@ export function MapScreen({
   const [expandedMap, setExpandedMap] = React.useState(false);
   /*
     The island, drawn rather than tiled. Only Ko Sichang has an asset built
-    for it (docs/76), and it is OFF by default: the vector map is the one
-    that navigates, and this does not replace it. A traveller asks for the
-    view and gets it; nobody loses the map they were using.
+    for it (docs/76).
+
+    IT IS THE DEFAULT THERE NOW. It was opt-in at first, behind a chip, on
+    the reasoning that the vector map is the one that navigates. What came
+    back was "the Ko Sichang map is still the old one" - which is what a
+    chip nobody presses amounts to. The island now carries what it owed a
+    person on the ground (position, north, scale, the route), so it can be
+    what opens; the vector map is one tap away and keeps everything it had.
+
+    The state is three-valued on purpose: not-chosen, map, island. That is
+    what lets the default differ by area while an explicit choice still
+    wins, and it resets with the area - a choice about Ko Sichang says
+    nothing about Samui.
   */
-  const [diorama, setDiorama] = React.useState(false);
+  const [mapChoice, setMapChoice] = React.useState<boolean | null>(null);
   const hasDiorama = area.key === 'koh-sichang';
+  const diorama = hasDiorama && (mapChoice ?? true);
+  const setDiorama = setMapChoice;
+  React.useEffect(() => { setMapChoice(null); }, [area.key]);
   /*
     The expanded map's zoom, driven from the screen rather than from inside
     the map.
