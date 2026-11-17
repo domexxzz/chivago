@@ -106,7 +106,22 @@ export function dioramaPage(island: string, base: string): string {
   .lab{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;
     background:#fff;color:#13242e;border-radius:999px;padding:5px 11px;font-size:12px;font-weight:600;
     box-shadow:0 2px 6px rgba(0,0,0,.22);white-space:nowrap;min-height:26px;line-height:16px}
-  .lead{position:absolute;width:1px;background:rgba(255,255,255,.85);transform-origin:top center;pointer-events:none}
+  /*
+    LEADERS ARE SVG, not divs. A div leader can only be a vertical bar, which
+    is why the first version could only ever push names straight down - and on
+    an island whose places cluster, straight down marches them off the land.
+    A line can point anywhere, so the name can go wherever there is room.
+    #leads sits BEFORE #labels, so each pill covers the end of its own line.
+  */
+  #leads{position:absolute;inset:0;pointer-events:none}
+  #leads line{stroke:rgba(19,36,46,.5);stroke-width:1}
+  /*
+    THE DOT IS THE PLACE. The pill is only its name, and a name that has been
+    nudged aside to stay readable no longer says where anything is. The dot
+    never moves, the leader joins the two, and together they can be trusted.
+  */
+  .dot{position:absolute;width:9px;height:9px;border-radius:999px;transform:translate(-50%,-50%);
+    background:#fff;border:2px solid #13242e;box-shadow:0 1px 3px rgba(0,0,0,.35);pointer-events:none}
   /* North, and how far a hundred metres is. A drawn island owes both. */
   #rose{position:absolute;left:12px;top:12px;width:46px;height:46px;border-radius:999px;
     background:rgba(255,255,255,.92);box-shadow:0 2px 6px rgba(0,0,0,.2)}
@@ -119,6 +134,7 @@ export function dioramaPage(island: string, base: string): string {
     color:#fff;font-size:13px;text-align:center;padding:0 24px}
 </style>
 </head><body>
+<svg id="leads"></svg>
 <div id="labels"></div>
 <div id="rose"><svg width="46" height="46" viewBox="0 0 46 46">
   <g id="needle" transform="translate(23,23)">
@@ -291,6 +307,7 @@ function drawRoute(points) {
 
 const anchors = [];
 const labels = document.getElementById('labels');
+const leads = document.getElementById('leads');
 const needle = document.getElementById('needle');
 const scaleBar = document.querySelector('#scale .bar');
 const scaleText = document.getElementById('scaleText');
@@ -314,26 +331,114 @@ function draw() {
   needle.setAttribute('transform', 'translate(23,23) rotate(' + (-yaw) + ')');
   updateScale();
 
-  const shown = anchors
+  const onScreen = anchors
     .map((a) => {
       const v = a.world.clone().project(camera);
       return { a, x: (v.x * 0.5 + 0.5) * window.innerWidth, y: (-v.y * 0.5 + 0.5) * window.innerHeight, z: v.z };
     })
-    .filter((s) => s.z < 1 && s.x > 10 && s.x < window.innerWidth - 10)
+    .filter((s) => s.z < 1 && s.x > 10 && s.x < window.innerWidth - 10);
+
+  /*
+    EVERY PLACE GETS A DOT. docs/76 has said "the rest collapse to dots" since
+    the direction was written, and the code had never done it: a place that
+    did not make the nearest seven simply was not there, so the island looked
+    emptier than the database it is drawn from. The dot costs nothing and it
+    is what makes the seven names feel like a selection rather than the whole
+    of what is on the island.
+  */
+  /*
+    HIDDEN WITH visibility, NOT display. A display:none element measures
+    0 wide, and this loop hides every pill before asking how wide each one is
+    - so offsetWidth || 110 fell to 110 for ALL of them while the real
+    widths run from 112 to 155. The spacing was computed from a number no
+    label actually had. visibility keeps the box, so the measurement is real.
+  */
+  for (const a of anchors) { a.el.style.visibility = 'hidden'; a.lead.style.visibility = 'hidden'; a.dot.style.visibility = 'hidden'; }
+  for (const s of onScreen) {
+    s.a.dot.style.visibility = 'visible';
+    s.a.dot.style.left = s.x + 'px';
+    s.a.dot.style.top = s.y + 'px';
+  }
+
+  const shown = onScreen
+    .slice()
     .sort((m, n) => m.z - n.z)
-    .slice(0, 7);
-  for (const a of anchors) { a.el.style.display = 'none'; a.lead.style.display = 'none'; }
-  let lastY = -100;
+    .slice(0, 7)
+    /*
+      NEAREST SEVEN, THEN TOP TO BOTTOM. The old code laid the labels out in
+      DEPTH order and moved each one below the last, by a fixed step and
+      whatever the distance between them. Seven places spread
+      across six kilometres of island therefore collapsed into one column in
+      the middle of the sea, in an order that matched nothing a person could
+      see, and the leader lines came out at zero height because the label had
+      been pushed PAST its own place. Depth still chooses WHICH seven; the
+      screen chooses where they go.
+    */
+    .sort((m, n) => m.y - n.y);
+  const placed = [];
+  const H = 26;
+  /*
+    WHERE A NAME MAY GO, in the order it should be tried: over its own dot
+    first, then further out, then to one side, then the other. Measured on the
+    default framing, where five of the seven dots fall inside thirty vertical
+    pixels - the island is 6 km long and the map opens on all of it, so the
+    places by the palace genuinely crowd. A cascade that only knows "down" walked
+    them 97 px off the island, each one further than the last. Going AROUND
+    the cluster keeps every name within sight of the place it belongs to.
+  */
+  const SPOTS = [
+    [0, -12], [0, 38], [0, -40], [0, 66],
+    [-76, -12], [76, -12], [-76, 38], [76, 38],
+    [0, -68], [0, 94],
+    [-108, -12], [108, -12], [-108, 38], [108, 38],
+  ];
   for (const s of shown) {
-    const y = Math.max(s.y - 34, lastY + 30);
-    lastY = y;
-    s.a.el.style.display = 'block';
-    s.a.el.style.left = s.x + 'px';
+    const w = s.a.el.offsetWidth || 110;
+    let spot = null;
+    for (const candidate of SPOTS) {
+      const cx = s.x + candidate[0];
+      const cy = s.y + candidate[1];
+      const clipped = cx - w / 2 < 4 || cx + w / 2 > window.innerWidth - 4 || cy - H < 2 || cy > window.innerHeight - 2;
+      const hit = placed.some((q) => Math.abs(q.x - cx) < (q.w + w) / 2 + 8 && Math.abs(q.y - cy) < H + 4);
+      /*
+        AND IT MAY NOT BE LAID OVER A PLACE. Measured on production: the
+        Cholatassathan Museum pill alone sat on top of three other dots,
+        including two that had labels of their own - so those names pointed
+        down a leader line at a place that was not there to see. Five of the
+        thirteen dots were buried. A label may cover sea, or hillside, or
+        another label's leader. It may not cover the thing this map exists to
+        show.
+      */
+      const over = onScreen.some((q) => Math.abs(q.x - cx) < w / 2 + 5 && q.y > cy - H - 5 && q.y < cy + 5);
+      if (!clipped && !hit && !over) { spot = candidate; break; }
+    }
+    /*
+      NO ROOM IS AN ANSWER. An earlier draft kept a last-resort position and
+      used it when every candidate was taken, which put a name on top of
+      another name - and a label in the wrong place is worse than no label,
+      because the reader cannot tell it is wrong. The dot stays, so the place
+      is still on the map; turn the island, or come closer, and the name
+      returns. Measured on the default framing: six of seven named, nothing
+      overlapping, the furthest name 81 px from its own dot and joined to it.
+    */
+    if (!spot) continue;
+    const x = s.x + spot[0];
+    const y = s.y + spot[1];
+    placed.push({ x, y, w });
+
+    s.a.el.style.visibility = 'visible';
+    s.a.el.style.left = x + 'px';
     s.a.el.style.top = y + 'px';
-    s.a.lead.style.display = 'block';
-    s.a.lead.style.left = s.x + 'px';
-    s.a.lead.style.top = y + 'px';
-    s.a.lead.style.height = Math.max(0, s.y - y) + 'px';
+    /*
+      From the dot to the middle of the pill, which the pill then covers -
+      so what shows is exactly the gap between a name and its place.
+    */
+    const far = Math.abs(x - s.x) > 3 || Math.abs(y - s.y) > 16;
+    s.a.lead.style.visibility = far ? 'visible' : 'hidden';
+    s.a.lead.setAttribute('x1', s.x);
+    s.a.lead.setAttribute('y1', s.y);
+    s.a.lead.setAttribute('x2', x);
+    s.a.lead.setAttribute('y2', y - H / 2);
   }
   requestAnimationFrame(draw);
 }
@@ -440,10 +545,12 @@ window.__island.then(([bin, list]) => new Promise((resolve) => {
       el.textContent = a.name;
       el.addEventListener('click', () => post({ type: 'place', id: a.id }));
       labels.appendChild(el);
-      const lead = document.createElement('div');
-      lead.className = 'lead';
-      labels.appendChild(lead);
-      anchors.push({ el, lead, world: new THREE.Vector3(a.x, a.y + 40, a.z) });
+      const lead = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      leads.appendChild(lead);
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      labels.appendChild(dot);
+      anchors.push({ el, lead, dot, world: new THREE.Vector3(a.x, a.y + 40, a.z) });
     }
     /* Anything that arrived while the island was still loading. */
     if (pending.here) window.__chivago.setHere(pending.here[0], pending.here[1]);

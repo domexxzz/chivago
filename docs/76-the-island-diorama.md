@@ -321,9 +321,26 @@ Projected from 3D to screen each frame and drawn as DOM. Thai text in a
 texture atlas loses its vowel and tone marks to blurring and misplacement;
 HTML keeps IBM Plex Sans Thai crisp at every zoom and gives a 44 px tap
 target for free. At most seven labels at once, ranked by distance and
-importance; the rest collapse to dots. Leader lines are the same length and
-angle on every label - that consistency is most of what makes a board like
-this look designed.
+importance; the rest collapse to dots.
+
+**The dot is the place; the pill is only its name.** Measured on 17 November,
+after a screenshot showed seven labels stacked in a column over the sea: the
+layout sorted by DEPTH and moved each label below the last by a fixed step,
+whatever the horizontal distance between them, so places spread across six
+kilometres collapsed into one row in an order matching nothing a person could
+see. Depth now chooses *which* seven are named; the screen decides *where* the
+names go, and a label only moves when it would cover one already placed -
+which means overlapping on **both** axes.
+
+Two things this paragraph used to claim that the code had never done, and now
+does:
+
+- **every place on screen gets a dot**, not only the seven that are named, so
+  the island stops looking emptier than the database it is drawn from;
+- **a leader line joins a displaced name to its dot.** It cannot be "the same
+  length and angle on every label" - that is a static board's luxury, and this
+  camera orbits. It is drawn only when the name had to move, in whichever
+  direction it moved, and the dot is what stays put.
 
 ## Camera
 

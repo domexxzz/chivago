@@ -24,8 +24,19 @@ const here = dirname(fileURLToPath(import.meta.url));
 const app = join(here, '..');
 const out = process.argv[2] ?? 'dist-demo';
 
+/*
+  ONE WORKER, AND A BIG HEAP. Measured on 17 November: this bundle runs the
+  machine out of memory at the two workers this repository had used all day
+  ("Data cannot be cloned, out of memory"), and the demo build died the same
+  way - a jest worker gone, the export stopping with a directory that still
+  looked deployable. Both numbers are overridable for a machine with more to
+  give, but the DEFAULT has to be the one that finishes.
+*/
+const workers = process.env.CHIVAGO_EXPORT_WORKERS ?? '1';
+
 const env = {
   ...process.env,
+  NODE_OPTIONS: process.env.NODE_OPTIONS ?? '--max-old-space-size=8192',
   EXPO_PUBLIC_DEMO: '1',
   // The demo server only intercepts requests aimed at this base, so the
   // client and the server must agree on it. Nothing ever listens here.
@@ -38,6 +49,12 @@ const run = (cmd, args) => {
   if (res.status !== 0) process.exit(res.status ?? 1);
 };
 
-run('npx', ['expo', 'export', '--platform', 'web', '--output-dir', out, '--clear']);
+run('npx', ['expo', 'export', '--platform', 'web', '--output-dir', out, '--clear', '--max-workers', workers]);
 run('node', [join(here, 'flatten-assets.mjs'), out]);
+/*
+  AND THEN LOOK AT WHAT WAS BUILT. An export that dies mid-transform has been
+  seen to exit 0, and the five checks were until today a ritual in handoff.md
+  performed by hand on the OTHER build path. See scripts/check-export.mjs.
+*/
+run('node', [join(here, 'check-export.mjs'), out]);
 console.log(`\n[chivago] demo build in apps/mobile/${out}. Host it anywhere static.`);
