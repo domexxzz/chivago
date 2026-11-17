@@ -19,6 +19,47 @@ describe('Groq concierge configuration', () => {
     assert.equal(groqConciergeConfig({ GROQ_API_KEY: 'key' }).enabled, false);
   });
 
+  /**
+   * The switch is TYPED INTO A PROMPT, not written in a file.
+   *
+   * `wrangler secret put CHIVAGO_GROQ` on Windows handed the value along with
+   * the carriage return the console put there, and `'on\r' === 'on'` is false:
+   * on 17 November the key and the switch were both set on production and the
+   * object still started with "Groq concierge: off", with nothing in any log
+   * saying which half was wrong.
+   */
+  /**
+   * The request carries a bearer token, so a redirect is somewhere else.
+   *
+   * This used to be stated as `redirect: 'error'`, which Node honours and
+   * THE EDGE REFUSES TO PARSE - workerd throws before the request leaves, so
+   * on 17 November every call on production failed instantly while every
+   * test here passed. The mode is `manual` now and the refusal is this code,
+   * which is why it needs a test of its own.
+   */
+  test('a redirect is refused rather than followed', async () => {
+    const seen: string[] = [];
+    const redirecting: typeof fetch = async (url, init) => {
+      seen.push(String(url));
+      assert.equal((init as RequestInit).redirect, 'manual', 'the edge rejects any other mode');
+      return new Response(null, { status: 302, headers: { location: 'https://elsewhere.example/' } });
+    };
+
+    await assert.rejects(
+      () => analyzeWithGroq('where is quiet', emptyConversationContext(), [], config, redirecting),
+      (err: unknown) => (err as Error).message.includes('redirect (302)'),
+    );
+    assert.equal(seen.length, 1, 'the redirect was not followed');
+  });
+  test('a switch the console padded still reads as on', () => {
+    const key = { GROQ_API_KEY: 'key' };
+    assert.equal(groqConciergeConfig({ ...key, CHIVAGO_GROQ: 'on\r' }).enabled, true);
+    assert.equal(groqConciergeConfig({ ...key, CHIVAGO_GROQ: ' on\n' }).enabled, true);
+    assert.equal(groqConciergeConfig({ ...key, CHIVAGO_GROQ: 'ON' }).enabled, true);
+    assert.equal(groqConciergeConfig({ ...key, CHIVAGO_GROQ: 'yes' }).enabled, false, 'only "on" means on');
+    assert.equal(groqConciergeConfig({ ...key, CHIVAGO_GROQ: '' }).enabled, false);
+  });
+
   test('uses the current production multilingual model and supports timeout aliases', () => {
     assert.equal(groqConciergeConfig({ CHIVAGO_GROQ: 'on', GROQ_API_KEY: 'key' }).model, 'openai/gpt-oss-120b');
     assert.equal(groqConciergeConfig({ CHIVAGO_GROQ: 'on', GROQ_API_KEY: 'key', GROQ_TIMEOUT: '3000' }).timeoutMs, 3000);
@@ -173,7 +214,9 @@ test('grounded response generation never sends raw prompt injection or accepts u
   let requestBody = '';
   const safeFetch: typeof fetch = async (_url, init) => {
     requestBody = String(init?.body);
-    assert.equal(init?.redirect, 'error');
+    // 'manual' and not 'error': workerd refuses to parse 'error' (see the
+    // redirect test above). The refusal itself moved into `requestGroq`.
+    assert.equal(init?.redirect, 'manual');
     return response({ text: 'พบร้านจากฐานข้อมูล ChivaGo ครับ' });
   };
   assert.equal(

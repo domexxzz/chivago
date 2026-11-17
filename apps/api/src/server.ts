@@ -243,19 +243,65 @@ function flushNotifications(): void {
  * and a key; the console then shows the AI check as "off" and nothing else
  * changes. The key is read here and handed to the client, never logged.
  */
-const assist = assistConfig(process.env);
-const assistDeps: AssistDeps = {
-  model: assist.enabled
-    ? bedrockModel({ region: assist.region, modelId: assist.modelId!, token: assist.token! })
-    : null,
-  prepare: ffmpegPrepare(),
-  dailyLimit: assist.dailyLimit,
+/*
+  WHY EVERY ENVIRONMENT READ BELOW SITS INSIDE A FUNCTION.
+
+  MEASURED ON PRODUCTION, 17 November 2026: `GROQ_API_KEY` and `CHIVAGO_GROQ`
+  were set as secrets and the Worker redeployed, and the object still started
+  with "Groq concierge: off" - while `GET /config`, which reads its switches
+  inside a handler, reported them correctly from the same deployment.
+
+  Read the environment where the feature is used, not while this module is
+  being evaluated. Under Node both work, which is why no test caught it.
+*/
+const announced = new Set<string>();
+const announceOnce = (what: string, state: string): void => {
+  if (announced.has(what)) return;
+  announced.add(what);
+  console.log(`[chivago] ${what}: ${state}`);
 };
-console.log(`[chivago] AI host assistant: ${assist.enabled ? `on (${assist.modelId}, ${assist.region})` : 'off'}`);
+
+/**
+ * A switch, described without being quoted.
+ *
+ * An unset secret and a secret holding the wrong thing look identical from
+ * outside, and the difference is an evening. Shape and length only: if the
+ * API key were ever pasted into this one, the length says so and the value
+ * still never reaches a log.
+ */
+const describeSwitch = (value: string | undefined): string =>
+  value === undefined ? 'missing'
+    : value.trim().toLowerCase() === 'on' ? 'on'
+      : `set but not "on", ${value.length} character(s)`;
+
+/*
+  AND THE SAME THING AT MODULE LOAD, which is the question that cost the
+  evening of 17 November: whether a SECRET reaches this module at all, or
+  only a handler. A var does reach it - CORS is configured from one here and
+  refuses a foreign origin on production. If this line and the one the first
+  chat prints ever disagree, that is the answer, written down.
+*/
+console.log(`[chivago] env at module load: GROQ_API_KEY ${
+  process.env.GROQ_API_KEY ? 'set' : 'missing'}, CHIVAGO_GROQ ${
+  describeSwitch(process.env.CHIVAGO_GROQ)}`);
+const assistDepsNow = (): AssistDeps => {
+  const assist = assistConfig(process.env);
+  announceOnce(
+    'AI host assistant',
+    assist.enabled ? `on (${assist.modelId}, ${assist.region})` : 'off',
+  );
+  return {
+    model: assist.enabled
+      ? bedrockModel({ region: assist.region, modelId: assist.modelId!, token: assist.token! })
+      : null,
+    prepare: ffmpegPrepare(),
+    dailyLimit: assist.dailyLimit,
+  };
+};
 
 /** Never on a request path: the upload has already answered the volunteer. */
 const startAssist = (proofId: string) => {
-  void requestAssist(db, proofId, assistDeps).catch((err) => {
+  void requestAssist(db, proofId, assistDepsNow()).catch((err) => {
     console.error('[chivago] assist failed to start:', (err as Error).message);
   });
 };
@@ -266,13 +312,20 @@ const startAssist = (proofId: string) => {
  * the question and core answers from the database. One missing env value
  * leaves the existing offline classifier in charge.
  */
-const groqBase = groqConciergeConfig(process.env);
-const groqGlobalRequestsPerMinute = groqRequestsPerMinute(process.env);
-const groqConcierge = {
-  ...groqBase,
-  takeQuota: () => takeGroqProviderQuota(db, groqGlobalRequestsPerMinute),
+const groqConcierge = () => {
+  const base = groqConciergeConfig(process.env);
+  const perMinute = groqRequestsPerMinute(process.env);
+  /*
+    WHEN IT IS OFF, SAY WHICH HALF IS MISSING - by presence and length, never
+    by value. An unset secret and a secret holding the wrong thing look
+    identical from outside, and that is a whole evening either way.
+  */
+  const flag = process.env.CHIVAGO_GROQ;
+  announceOnce('Groq concierge', base.enabled
+    ? `on (${base.model})`
+    : `off (GROQ_API_KEY ${process.env.GROQ_API_KEY ? 'set' : 'missing'}, CHIVAGO_GROQ ${describeSwitch(flag)})`);
+  return { ...base, takeQuota: () => takeGroqProviderQuota(db, perMinute) };
 };
-console.log(`[chivago] Groq concierge: ${groqConcierge.enabled ? `on (${groqConcierge.model})` : 'off'}`);
 
 const conciergeRateLimit = createConciergeRateLimiter();
 
@@ -1701,7 +1754,7 @@ app.post('/concierge/chat', async (c) => {
       area: body.area,
       conversationId,
       location,
-    }, { groq: groqConcierge }));
+    }, { groq: groqConcierge() }));
   } catch (error) {
     if (error instanceof ConversationNotFound) {
       return fail(c, 'NOT_FOUND', 'No such conversation', 404);
