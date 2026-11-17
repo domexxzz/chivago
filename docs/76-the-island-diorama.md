@@ -164,8 +164,23 @@ stand, from the coordinates the app already navigates to, so the composition
 and the scale contract can be judged before anybody models anything.
 
 ```bash
-node scripts/island-blockout.mjs --area koh-sichang --coastline <cached osm.json>
+node scripts/island-blockout.mjs --area koh-sichang --coastline <cached osm.json> \
+  --village <village.json> --roads <roads.json>
 ```
+
+**RUN IT WITHOUT THOSE FLAGS AND IT WILL SUCCEED, QUIETLY, AT BUILDING A
+POORER ISLAND.** On 17 November it was run bare to pick up four new landmarks
+and exited 0 with a cheerful summary — 17 landmarks, 7 heroes — having
+dropped the 476 houses and every road, because those come from files it was
+not given. The only sign was the file size: **390 KB where the shipped island
+is 602**. Check that number before replacing the glb, or compare the two in
+git; the summary line will not tell you.
+
+The anchors sidecar is safe to regenerate on its own: it depends on the
+terrain sampler and the place list, not on the village or the coastline, so a
+bare run produces a correct `*.anchors.json` even when its glb must be thrown
+away. That is how the four landmarks of 17 November got their names onto the
+island while the model kept its village.
 
 Run on 17 November 2026: **13 boxes, 6 of them heroes**, plus an anchors JSON
 for the label layer. Three findings, none of them about the boxes:

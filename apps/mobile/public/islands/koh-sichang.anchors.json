@@ -115,5 +115,41 @@
   "z": -1708.6,
   "groundM": 41.1,
   "kind": "ordinary"
+ },
+ {
+  "id": "sc-laem-chakraphong",
+  "name": "Laem Chakraphong",
+  "x": -1055.9,
+  "y": 58.4,
+  "z": 480.6,
+  "groundM": 22.5,
+  "kind": "ordinary"
+ },
+ {
+  "id": "sc-chong-khao-khat",
+  "name": "Itsariyaphon Pass",
+  "x": -938.7,
+  "y": 77.9,
+  "z": -1117.4,
+  "groundM": 30,
+  "kind": "ordinary"
+ },
+ {
+  "id": "sc-kuan-yin-shrine",
+  "name": "Kuan Yin Shrine",
+  "x": -408.1,
+  "y": 131,
+  "z": -1667.6,
+  "groundM": 50.4,
+  "kind": "ordinary"
+ },
+ {
+  "id": "sc-wat-chuthathit",
+  "name": "Wat Chuthathit Thammasapharam",
+  "x": -306.1,
+  "y": 93,
+  "z": -1646.2,
+  "groundM": 35.8,
+  "kind": "hero"
  }
 ]

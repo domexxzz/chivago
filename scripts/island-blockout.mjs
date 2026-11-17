@@ -59,6 +59,9 @@ export const HEROES = new Set([
   'sc-buddha-footprint',
   'sc-wat-tham-yai-prik',
   'sc-atsadang-bridge',
+  /* Added 17 Nov with the landmarks the board asked for: a royal temple
+     carries the same weight as the shrines it stands beside. */
+  'sc-wat-chuthathit',
   'sc-marinestation',
 ]);
 
