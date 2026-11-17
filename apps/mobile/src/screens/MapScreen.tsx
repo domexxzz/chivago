@@ -389,7 +389,25 @@ export function MapScreen({
     return [[here.lng, here.lat], [wayTo.lng, wayTo.lat]];
   }, [route, here, wayTo]);
 
-  const expandedMapContent = (height: number) => <SamuiMap
+  /*
+    THE FULL-SCREEN MAP GETS THE SAME CHOICE.
+
+    The chips were only on the inline map at first, and the one screenshot
+    that came back was of the expanded view - where the island simply was not
+    on offer. A view somebody opens to look at the island is the last place to
+    hide the drawing of it.
+  */
+  const expandedMapContent = (height: number) => (hasDiorama && diorama
+    ? <IslandDiorama
+        height={height}
+        here={here}
+        route={way}
+        onSelectPlace={(id) => {
+          const found = (places.data ?? []).find((place) => place.id === id);
+          if (found) onSelect(found);
+        }}
+      />
+    : <SamuiMap
     key={`${area.key}-expanded-${height}`}
     mapRef={expandedZoom}
     inlineSatellite={false}
@@ -416,7 +434,7 @@ export function MapScreen({
     fullScreenControls
     height={height}
     compact={false}
-  />;
+  />);
   const fullMapControlTop = Platform.OS === 'web' ? 14 : 52;
 
   /*
@@ -587,10 +605,15 @@ export function MapScreen({
             ) : null}
             {hasDiorama && diorama ? (
               <View style={{ marginHorizontal: gutter }}>
-                <IslandDiorama height={320} onSelectPlace={(id) => {
-                  const found = (places.data ?? []).find((place) => place.id === id);
-                  if (found) onSelect(found);
-                }} />
+                <IslandDiorama
+                  height={320}
+                  here={here}
+                  route={way}
+                  onSelectPlace={(id) => {
+                    const found = (places.data ?? []).find((place) => place.id === id);
+                    if (found) onSelect(found);
+                  }}
+                />
               </View>
             ) : (
             <View style={{ position: 'relative', marginHorizontal: gutter, overflow: 'hidden', borderRadius: 18 }}>
