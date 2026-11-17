@@ -344,9 +344,33 @@ does:
 
 ## Camera
 
-Constrained, never free. ±35° of orbit from the default, 28°–55° of pitch,
-1.2–3.5 km of dolly. The default view looks from the south, because that is
-how the ferry arrives and it is the view anyone who has been will recognise.
+Constrained, never free. ±35° of orbit from the default, 24°–55° of pitch. The
+default view looks from the south, because that is how the ferry arrives and it
+is the view anyone who has been will recognise.
+
+**Dolly: 1.2 km in, and out to whatever frames the island.** This paragraph
+used to say "1.2–3.5 km", a range that did not contain the view the map opens
+on. Measured 17 November from the model itself: the Ko Sichang mesh is 2,871 ×
+5,976 m, and the framing that fits it is 6,872 m back. The far end is therefore
+not written down — it is read off the island when it loads, because there is
+nothing to see further out than the whole island, and a second island of
+another size would need a different number. Only the near end is a constant,
+`CAMERA.zoomMin`.
+
+**Three ways to work it, because the first two are invisible.** Pinch with two
+fingers, a wheel or trackpad, and a pair of buttons in the corner. The map
+lives in a 320 px band inside a page that scrolls, where a two-finger gesture
+is neither obvious nor comfortable; the buttons are how zoom is discovered at
+all and the only way to use it one-handed. They disable themselves at each end
+of the range, because a control that still looks live at the limit is a small
+lie told every time somebody presses it.
+
+One finger turns the island, two change how close you are. Both gestures come
+down the same pointer events, so which one is happening is decided by how many
+are on the glass, never by guessing at the device. When a pinch ends with one
+finger still down, that finger starts a *new* turn from where it is — without
+that the island jumps the moment the other finger lifts, which is the most
+common way a two-gesture map feels broken.
 
 ## What would make this bad
 

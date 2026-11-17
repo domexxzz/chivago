@@ -410,15 +410,32 @@ export function MapScreen({
     on offer. A view somebody opens to look at the island is the last place to
     hide the drawing of it.
   */
+  /*
+    WHICH NAMES ON THE ISLAND MAY BE TAPPED.
+
+    The island is labelled from a sidecar of anchors built at render time;
+    the app lists places from the API. They do not have to agree - the
+    shrine, the mondop and the bridge are bootstrapped into the database at
+    run time, while the pier and the beach come from the seed - and a name
+    with no place behind it used to take a tap and do nothing at all.
+    Measured on production: the tap reached the app ({"type":"place",
+    "id":"sc-thamphang"}) and then fell off the end, because the inline
+    branch drew no card and an unmatched id matched nothing.
+
+    So the page is told what can be opened, and wears a chevron only there.
+  */
+  const dioramaOpenable = React.useMemo(
+    () => (places.data ?? []).map((place) => place.id),
+    [places.data],
+  );
+
   const expandedMapContent = (height: number) => (hasDiorama && diorama
     ? <IslandDiorama
         height={height}
         here={here}
         route={way}
-        onSelectPlace={(id) => {
-          const found = (places.data ?? []).find((place) => place.id === id);
-          if (found) onSelect(found);
-        }}
+        openable={dioramaOpenable}
+        onSelectPlace={onOpenPlace}
       />
     : <SamuiMap
     key={`${area.key}-expanded-${height}`}
@@ -622,10 +639,8 @@ export function MapScreen({
                   height={320}
                   here={here}
                   route={way}
-                  onSelectPlace={(id) => {
-                    const found = (places.data ?? []).find((place) => place.id === id);
-                    if (found) onSelect(found);
-                  }}
+                  openable={dioramaOpenable}
+                  onSelectPlace={onOpenPlace}
                 />
               </View>
             ) : (
