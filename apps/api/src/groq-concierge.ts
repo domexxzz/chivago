@@ -101,9 +101,23 @@ async function requestGroq(
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), config.timeoutMs);
     try {
+      /*
+        MANUAL, NOT 'error', AND THE REASON IS THE WHOLE BUG OF 17 NOVEMBER.
+
+        `redirect: 'error'` is valid in Node and REFUSED BY THE EDGE: workerd
+        throws `TypeError: Invalid redirect value, must be one of "follow" or
+        "manual"` before the request leaves. So every call threw instantly,
+        Chivar Bot fell back to the rules on every message, and all 1,961 tests
+        passed because they run on Node. Production said only "Groq request
+        failed" until the thrown class was named.
+
+        The intent behind 'error' stands and is enforced below instead: this
+        request carries a bearer token, and a redirect is somewhere else. It is
+        refused, never followed.
+      */
       const response = await doFetch(ENDPOINT, {
         method: 'POST',
-        redirect: 'error',
+        redirect: 'manual',
         headers: {
           authorization: `Bearer ${config.apiKey}`,
           'content-type': 'application/json',
@@ -112,6 +126,10 @@ async function requestGroq(
         body: JSON.stringify({ model: config.model, store: false, ...body }),
         signal: ctl.signal,
       });
+      if (response.status >= 300 && response.status < 400) {
+        // Not retried: the same request would be sent to the same elsewhere.
+        throw new GroqError(`Groq answered with a redirect (${response.status})`, response.status, false);
+      }
       if (!response.ok) {
         const canRetry = retryableStatus(response.status);
         throw new GroqError(`Groq HTTP ${response.status}`, response.status, canRetry);
@@ -131,7 +149,20 @@ async function requestGroq(
   }
   if (last instanceof GroqError) throw last;
   if ((last as { name?: string } | null)?.name === 'AbortError') throw new GroqError('Groq timed out', null, true);
-  throw new GroqError('Groq request failed');
+  /*
+    NAME THE CAUSE, still without the body.
+
+    An HTTP refusal arrives above as `Groq HTTP 401` and a timeout as
+    `Groq timed out`. Everything else - the fetch itself rejecting - used to
+    arrive as four words with nothing in them, which on 17 November was all
+    production had to say about why Chivar Bot kept falling back to rules
+    while the configuration read `on`.
+
+    The error class and its own message carry no key and no upstream body:
+    the key travels in a header, and this is thrown before any body is read.
+  */
+  const cause = last instanceof Error ? `${last.name}: ${last.message}` : typeof last;
+  throw new GroqError(`Groq request failed (${cause})`);
 }
 
 const ANALYSIS_SCHEMA = {
