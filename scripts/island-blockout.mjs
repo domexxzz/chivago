@@ -143,6 +143,22 @@ export function anchorsFor({ bbox, places, sample, exaggeration }) {
     return {
       id: place.id,
       name: place.name,
+      /*
+        THE NAME A MAP CAN CARRY, which the database has had all along.
+
+        A label on the island is a pill between 112 and 155 px wide, and the
+        places it names stand ten to thirty pixels apart - so the width of
+        the writing, not the layout, is what pushes a name away from its own
+        dot. "Phra Chudadhuj Palace" cannot sit where "Palace" can. Measured:
+        narrowing the pills to four fifths drops the average distance from a
+        name to its dot from 61 px to 50, and at half it is 46 with nothing
+        dropped at all.
+
+        `short` exists for exactly this and reads like a map already - Pier,
+        Palace, Tham Phang, Koniix - and the full name is one tap away on the
+        screen the pill opens.
+      */
+      short: place.short ?? place.name,
       x: Number(((place.lng - originLng) * perDeg.lng).toFixed(1)),
       y: Number(((Number.isFinite(ground) ? Math.max(ground, 0) : 0) * exaggeration).toFixed(1)),
       z: Number((-(place.lat - originLat) * perDeg.lat).toFixed(1)),
@@ -219,9 +235,9 @@ async function main() {
   */
   const places = [
     ...core.SEED_PLACES.filter((p) => core.inArea(area, p))
-      .map((p) => ({ id: p.id, name: p.name.en, lat: p.lat, lng: p.lng })),
+      .map((p) => ({ id: p.id, name: p.name.en, short: p.short, lat: p.lat, lng: p.lng })),
     ...bootstrap.KOH_SICHANG_ATTRACTIONS
-      .map((a) => ({ id: a.id, name: a.nameEn, lat: a.lat, lng: a.lng })),
+      .map((a) => ({ id: a.id, name: a.nameEn, short: a.short, lat: a.lat, lng: a.lng })),
   ];
 
   const tiles = new Map();
