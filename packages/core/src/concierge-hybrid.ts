@@ -294,7 +294,21 @@ const entitiesFor = (input: string): TravelEntities => {
     indoor: includesAny(text, ['ในร่ม', 'indoor', '室内']),
     nearMe: includesAny(text, ['ใกล้ฉัน', 'แถวนี้', 'near me', 'nearby', '附近']),
     familyFriendly: includesAny(text, ['เด็ก', 'ครอบครัว', 'family-friendly', 'family friendly', 'children', 'kids', '亲子', '儿童', '家庭']),
-    showMore: includesAny(text, ['เพิ่มเติม', 'ที่อื่นอีก', 'ดูเพิ่ม', 'ดูสถานที่เพิ่ม', 'เอาอีก', 'ขออีก', 'show more', 'more places', 'anything else', '其他', '更多'])
+    /*
+      MEASURED 17 November, three natural phrasings in a row that did not
+      count as "more": "แล้วที่อื่นล่ะ", "ขอเพิ่มอีก", "มีอีกไหม". The list held
+      only "ที่อื่นอีก", "ขออีก" and "เพิ่มเติม", so pagination never engaged
+      and the same three places came back for as long as anybody kept asking.
+
+      A false positive on a FIRST message costs nothing: with no previous
+      search there is nothing to exclude.
+    */
+    showMore: includesAny(text, [
+      'เพิ่มเติม', 'ที่อื่น', 'อื่นอีก', 'อย่างอื่น', 'ดูเพิ่ม', 'ดูสถานที่เพิ่ม', 'ขอเพิ่ม', 'เพิ่มอีก',
+      'เอาอีก', 'ขออีก', 'มีอีก', 'อีกไหม', 'อีกมั้ย', 'ที่เหลือ',
+      'show more', 'more places', 'more options', 'other places', 'anything else', 'what else',
+      '其他', '更多', '还有', '别的',
+    ])
       || /อีก\s*\d{1,2}\s*(?:ที่|แห่ง)?/i.test(text),
     closest: includesAny(text, ['ใกล้ที่สุด', 'อันไหนใกล้', 'closest', 'nearest', '最近']),
   };

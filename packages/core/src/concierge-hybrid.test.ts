@@ -87,6 +87,34 @@ describe('hybrid concierge NLU', () => {
     assert.ok(quickRepliesFor('NAVIGATION', 'zh').every((item) => /[一-鿿]/.test(item)));
   });
 
+  /**
+   * MEASURED 17 November, against the island: three natural ways of asking
+   * for more in a row, none of which counted.
+   *
+   *   "แล้วที่อื่นล่ะ"  "ขอเพิ่มอีก"  "มีอีกไหม"
+   *
+   * The list held "ที่อื่นอีก", "ขออีก" and "เพิ่มเติม" - near-misses of all
+   * three - so pagination never engaged and the same three places came back
+   * for as long as anybody kept asking. Nothing failed; it just repeated.
+   */
+  test('recognises the ways a Thai speaker asks for more', () => {
+    const first = classifyTravel('มีที่เที่ยวอะไรบ้าง');
+    const context = mergeConversationContext(emptyConversationContext('th'), first, { resultPlaceIds: ['p1', 'p2', 'p3'] });
+
+    for (const phrase of ['แล้วที่อื่นล่ะ', 'ขอเพิ่มอีก', 'มีอีกไหม', 'อีกมั้ย', 'ขอที่เหลือ', 'อย่างอื่นมีไหม']) {
+      const more = classifyTravel(phrase, context);
+      assert.equal(more.entities.showMore, true, `"${phrase}" did not count as asking for more`);
+      assert.equal(more.intent, 'TOURISM', `"${phrase}" lost the thread`);
+    }
+
+    // And the words that only look like it.
+    for (const phrase of ['ที่นี่ดีไหม', 'ไปยังไง', 'อากาศเป็นไง']) {
+      assert.equal(
+        classifyTravel(phrase, context).entities.showMore, false,
+        `"${phrase}" was read as a request for more`,
+      );
+    }
+  });
   test('understands recommendation refinements without losing the tourism context', () => {
     const first = classifyTravel('Recommend places to visit');
     const context = mergeConversationContext(emptyConversationContext('en'), first, { resultPlaceIds: ['p1', 'p2'] });

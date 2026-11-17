@@ -134,6 +134,19 @@ const textFor = (
   const name = places[0] ? localise(places[0].name, lang) : null;
   const list = places.slice(0, 3).map((place) => localise(place.name, lang)).join(lang === 'zh' ? '、' : ', ');
   const noPlaces = lang === 'th' ? 'ยังไม่พบสถานที่จริงในพื้นที่นี้ที่ตรงกับคำขอ' : lang === 'zh' ? '该区域暂未找到符合条件的真实地点。' : 'No verified place in this area matches that request yet.';
+  /*
+    ASKING FOR MORE AND GETTING NOTHING IS NOT THE SAME AS FINDING NOTHING.
+
+    After a page of results, "ขอเพิ่มอีก" that excludes everything already
+    shown leaves an empty set - and answering it with "nothing here matches"
+    tells the traveller the island is empty, when what happened is that they
+    reached the end of it. Ko Sichang has one stay and seven places; the end
+    arrives quickly and has to sound like the end.
+  */
+  const nothingMore = lang === 'th' ? 'หมดแล้วครับ พื้นที่นี้ไม่มีที่อื่นนอกจากที่แสดงไปแล้ว'
+    : lang === 'zh' ? '就这些了，这个区域没有已显示之外的地点。'
+      : 'That is all of them - this area has nothing beyond what was already shown.';
+  const empty = analysis.entities.showMore ? nothingMore : noPlaces;
 
   switch (analysis.intent) {
     case 'WEATHER': {
@@ -152,7 +165,7 @@ const textFor = (
       return lang === 'th' ? `ข้อมูลล่าสุดจาก Open-Meteo: ${pieces}` : lang === 'zh' ? `Open-Meteo 最新数据：${pieces}` : `Latest Open-Meteo reading: ${pieces}`;
     }
     case 'CROWD':
-      if (!places.length) return noPlaces;
+      if (!places.length) return empty;
       return lang === 'th' ? `${name} มีค่าประเมินความหนาแน่นต่ำสุดในตัวเลือกนี้ ข้อมูลเช็กอินหนึ่งชั่วโมงล่าสุดแสดงบนการ์ด และไม่ใช่จำนวนคนทั้งหมดในสถานที่`
         : lang === 'zh' ? `${name} 在这些选项中的估算密度最低。卡片显示最近一小时的签到数，并不代表现场总人数。`
           : `${name} has the lowest estimated density in this set. The card shows last-hour ChivaGo check-ins, not the total number of people there.`;
@@ -162,13 +175,13 @@ const textFor = (
         : lang === 'zh' ? `可以打开前往 ${name} 的导航。实际路线将由 ChivaGo 路由系统从你选择的起点计算。`
           : `I can open navigation to ${name}. ChivaGo's routing system will calculate the real route from your chosen starting point.`;
     case 'TRIP_PLANNING':
-      return places.length ? (lang === 'th' ? `เริ่มแผนจาก ${list} ได้ครับ เปิดตัวจัดทริปเพื่อเรียงจุดและคำนวณการเดินทางจากข้อมูลจริง` : lang === 'zh' ? `可以从 ${list} 开始规划。打开行程规划器以使用真实数据排序并计算路程。` : `A plan can start with ${list}. Open the trip planner to order stops and calculate travel from real data.`) : noPlaces;
+      return places.length ? (lang === 'th' ? `เริ่มแผนจาก ${list} ได้ครับ เปิดตัวจัดทริปเพื่อเรียงจุดและคำนวณการเดินทางจากข้อมูลจริง` : lang === 'zh' ? `可以从 ${list} 开始规划。打开行程规划器以使用真实数据排序并计算路程。` : `A plan can start with ${list}. Open the trip planner to order stops and calculate travel from real data.`) : empty;
     case 'RESTAURANT':
-      return places.length ? (lang === 'th' ? `เจอตัวเลือกอาหารจากฐานข้อมูล ChivaGo: ${list}` : lang === 'zh' ? `在 ChivaGo 数据库中找到：${list}` : `I found these food options in ChivaGo: ${list}`) : noPlaces;
+      return places.length ? (lang === 'th' ? `เจอตัวเลือกอาหารจากฐานข้อมูล ChivaGo: ${list}` : lang === 'zh' ? `在 ChivaGo 数据库中找到：${list}` : `I found these food options in ChivaGo: ${list}`) : empty;
     case 'ACCOMMODATION':
-      return places.length ? (lang === 'th' ? `พบที่พักจากข้อมูล ChivaGo: ${list} แต่ยังยืนยันห้องว่างหรือราคาปัจจุบันไม่ได้` : lang === 'zh' ? `ChivaGo 中找到住宿：${list}，但无法确认实时房态或价格。` : `ChivaGo has these stays: ${list}. Live room availability and current prices are not verified.`) : noPlaces;
+      return places.length ? (lang === 'th' ? `พบที่พักจากข้อมูล ChivaGo: ${list} แต่ยังยืนยันห้องว่างหรือราคาปัจจุบันไม่ได้` : lang === 'zh' ? `ChivaGo 中找到住宿：${list}，但无法确认实时房态或价格。` : `ChivaGo has these stays: ${list}. Live room availability and current prices are not verified.`) : empty;
     case 'TOURISM':
-      return places.length ? (lang === 'th' ? `มีตัวเลือกที่ตรงกับสิ่งที่ถามครับ: ${list}` : lang === 'zh' ? `这些地点符合你的要求：${list}` : `These places match what you asked for: ${list}`) : noPlaces;
+      return places.length ? (lang === 'th' ? `มีตัวเลือกที่ตรงกับสิ่งที่ถามครับ: ${list}` : lang === 'zh' ? `这些地点符合你的要求：${list}` : `These places match what you asked for: ${list}`) : empty;
     case 'GENERAL':
       if (context.currentIntent) return lang === 'th' ? 'ผมช่วยค้นหาที่เที่ยว ร้านอาหาร ที่พัก อากาศ ความหนาแน่น วางแผนทริป และเปิดระบบนำทางจากข้อมูลจริงของ ChivaGo ได้ครับ' : lang === 'zh' ? '我可以使用 ChivaGo 的真实数据查找景点、餐厅、住宿、天气、人流、规划行程并打开导航。' : 'I can use verified ChivaGo data to find places, food, stays, weather, crowd information, plan a trip, and open navigation.';
       return lang === 'th' ? 'สวัสดีครับ อยากเที่ยวแบบไหน หรืออยากเช็กอากาศ ร้านอาหาร และสถานที่ใกล้ตัวก็บอกได้เลย' : lang === 'zh' ? '你好！想怎样旅行？也可以询问天气、餐厅或附近地点。' : 'Hello! Tell me what kind of trip you want, or ask about weather, food, and nearby places.';
