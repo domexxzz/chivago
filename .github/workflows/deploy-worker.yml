@@ -61,14 +61,19 @@ jobs:
       - run: pnpm --filter @chivago/api test:durable
 
       # The web app, served by Workers Assets from apps/mobile/dist-live -
-      # the directory wrangler.jsonc points at. Same build as the Dockerfile's
-      # `web` stage; `same-origin` because the app talks to the host it was
-      # loaded from, so there is no hostname baked in to go stale.
+      # the directory wrangler.jsonc points at.
+      #
+      # ONE SCRIPT, NOT STEPS PASTED HERE. This used to be the export command
+      # and a flatten command written out in this file, and it had been broken
+      # since 1 September: `flatten-assets.mjs` moved into apps/mobile/scripts
+      # and this kept calling `../../scripts/flatten-assets.mjs`. It also never
+      # ran check-export.mjs, the script written so that a half-finished export
+      # cannot ship. Neither mistake was ever seen, because this workflow has
+      # never been run - every deploy has gone through wrangler on somebody's
+      # machine. export-live.mjs sets same-origin, flattens, and runs the five
+      # checks, and it is the same file a person runs by hand.
       - name: build the web app
-        run: |
-          cd apps/mobile
-          EXPO_PUBLIC_API_URL=same-origin npx expo export --platform web --output-dir dist-live
-          node ../../scripts/flatten-assets.mjs dist-live
+        run: pnpm --filter @chivago/mobile export:live
 
       - name: deploy
         run: pnpm --filter @chivago/api exec wrangler deploy

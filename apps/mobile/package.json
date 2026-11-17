@@ -10,6 +10,7 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "node --test --experimental-strip-types \"src/**/*.test.ts\" && node --test --test-force-exit --experimental-strip-types --import ./test/register.mjs \"test/*.test.ts\"",
+    "export:live": "node scripts/export-live.mjs",
     "demo:web": "node scripts/export-demo.mjs",
     "demo:deploy": "wrangler deploy -c demo.wrangler.jsonc"
   },
@@ -54,6 +55,7 @@
     "fake-indexeddb": "^6.2.7",
     "react-test-renderer": "18.3.1",
     "sucrase": "^3.35.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrangler": "^4.160.1"
   }
 }
