@@ -146,6 +146,46 @@ need surveying before the art pass:
 - Customs Lighthouse
 - Wat Chuthathit
 
+## Gate one: the grey boxes
+
+`scripts/island-blockout.mjs` puts a plain box where every landmark will
+stand, from the coordinates the app already navigates to, so the composition
+and the scale contract can be judged before anybody models anything.
+
+```bash
+node scripts/island-blockout.mjs --area koh-sichang --coastline <cached osm.json>
+```
+
+Run on 17 November 2026: **13 boxes, 6 of them heroes**, plus an anchors JSON
+for the label layer. Three findings, none of them about the boxes:
+
+**The southern half of the island is empty.** Every record is in the north,
+because that is where the database's places are. The reference board has
+landmarks the length of the island, and five of them have no coordinates yet
+(above). As it stands, the long view from the south is half a diorama.
+
+**Five anchors sit outside the surveyed shore**, and the script says so by
+name on every run. Measured:
+
+| | distance offshore |
+|---|---|
+| Tha Lang pier | 97 m |
+| Tham Phang Beach | 44 m |
+| Phra Chudadhuj Palace | 19 m |
+| Atsadang Bridge | over water by definition |
+| Ko Kham Yai | a different island |
+
+The first and the fourth are right: a pier head is in the water. The palace at
+19 m is coastline generalisation, not a wrong record. Tham Phang at 44 m wants
+an eye on it. None of them is fixed by moving a coordinate - the database is
+the truth and the shore is a drawn line - but a box standing in the sea has to
+be a decision rather than a surprise.
+
+**A shop row was given the shape of a jetty**, because the classifier matched
+`/pier|bridge/` against the name and the record is called "Shop row by Tha
+Lang pier". Classes now come from a list of ids. Anything that reads a name to
+decide what a thing *is* will eventually meet a name like that one.
+
 ## Technical budget
 
 | | Ceiling |
