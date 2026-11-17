@@ -95,6 +95,22 @@ export function toIsland(island: string, lng: number, lat: number): [number, num
   ];
 }
 
+/**
+ * The drift sidecar, as `scripts/island-drift.mjs` writes it.
+ *
+ * `calibrated` and `seeding` are carried rather than dropped: they are the
+ * difference between "these shores are exposed" and "there is litter here",
+ * and only one of those is a thing this data may be used to say.
+ */
+export interface DriftFile {
+  window: number;
+  issued: string | null;
+  calibrated: boolean | null;
+  seeding: string | null;
+  max: number;
+  segments: { id: number; count: number; path: [number, number][] }[];
+}
+
 export interface IslandDioramaProps {
   island?: string;
   height: number;
@@ -181,6 +197,28 @@ export function dioramaPage(island: string, base: string): string {
     so the two things it does are also buttons. They are the reason zoom can
     be found at all, and the only way to work it with one hand on a phone.
   */
+  /*
+    ONE CONTROL THAT IS ALSO THE LEGEND. A band of colour along a coast says
+    nothing on its own, and a legend somebody has to go and find says very
+    little more. The button that turns the drift on carries the sentence
+    describing what it is, so the claim and the thing claimed arrive together.
+  */
+  /*
+    BOTTOM LEFT, ABOVE THE SCALE. It was top right, where the app floats a
+    weather card over the first thirty pixels of this page and cut the
+    control's first line in half - which is only visible from outside the
+    iframe, so the page could never have known.
+  */
+  #drift{position:absolute;left:12px;bottom:40px;max-width:68%;border:0;cursor:pointer;
+    border-radius:14px;padding:7px 11px;text-align:left;font:inherit;
+    background:rgba(255,255,255,.92);box-shadow:0 2px 6px rgba(0,0,0,.2);
+    color:#13242e;font-size:12px;font-weight:600;line-height:1.35;
+    -webkit-tap-highlight-color:transparent}
+  #drift small{display:block;font-weight:500;font-size:11px;color:#4E6B7A;margin-top:2px}
+  /* The control wears the high end of the ramp, so the button and the band
+     are visibly the same statement rather than two unrelated decorations. */
+  #drift[aria-pressed="true"]{background:#A21CAF;color:#fff}
+  #drift[aria-pressed="true"] small{color:#F5D0FE}
   #zoom{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:6px}
   #zoom button{width:44px;height:44px;border:0;border-radius:999px;cursor:pointer;
     background:rgba(255,255,255,.92);box-shadow:0 2px 6px rgba(0,0,0,.2);
@@ -193,6 +231,7 @@ export function dioramaPage(island: string, base: string): string {
 </head><body>
 <svg id="leads"></svg>
 <div id="labels"></div>
+<button id="drift" type="button" aria-pressed="false"></button>
 <div id="zoom">
   <button id="zoomIn" type="button" aria-label="Zoom in">+</button>
   <button id="zoomOut" type="button" aria-label="Zoom out">−</button>
@@ -378,6 +417,82 @@ function drawRoute(points) {
     color: 0xf26430, side: THREE.DoubleSide, transparent: true, opacity: 0.95,
   }));
   scene.add(routeMesh);
+}
+
+/*
+  WHERE THINGS ADRIFT WOULD COME ASHORE FIRST - and nothing more than that.
+
+  Forty-three segments of about 430 m, each coloured by how many of the
+  model's particles first touched land there. The model seeds a uniform grid
+  offshore with no observed debris, and reports itself uncalibrated, so this
+  is a shape of exposure, not a count of rubbish on a beach. The segments
+  nothing reached are drawn faintly rather than left out, because a shore the
+  model says is clear is an answer too, and a band that only appears where the
+  number is high looks like evidence of the thing it cannot measure.
+*/
+let driftMesh = null;
+const driftColour = (t) => {
+  /*
+    Fuchsia, after indigo failed for a reason worth writing down.
+
+    The first choice was indigo, picked by reasoning about meaning: the route
+    is orange, red reads as danger, and this dataset cannot support an alarm.
+    All true, and all beside the point - THE BAND IS DRAWN ON THE SEA, and the
+    sea is blue. A blue-violet line on blue water is very nearly nothing at
+    all, which is what it looked like. Fuchsia is the colour here because it
+    is none of the three things already on screen: not the blue water, not the
+    green hill, not the orange route. It reads as a layer somebody added,
+    which is exactly what it is, and it is not a hazard colour.
+
+    THE ALPHA CARRIES MOST OF THE SIGNAL, not the hue. Twenty-one of the
+    forty-three segments were reached by nothing, and at a flat opacity those
+    twenty-one were the loudest thing on the coast - a pale ring all the way
+    round the island that looked like surf, and buried the four shores the
+    model actually points at. They are still drawn, because a shore the model
+    says is clear is an answer; they are drawn as a whisper.
+  */
+  const lo = [0.961, 0.816, 0.996], hi = [0.753, 0.149, 0.827];
+  return [
+    lo[0] + (hi[0] - lo[0]) * t,
+    lo[1] + (hi[1] - lo[1]) * t,
+    lo[2] + (hi[2] - lo[2]) * t,
+    0.2 + 0.72 * t,
+  ];
+};
+function drawDrift(segments, max) {
+  if (driftMesh) { scene.remove(driftMesh); driftMesh.geometry.dispose(); driftMesh = null; }
+  if (!segments || !segments.length) return;
+  const pos = [], col = [], half = 46;
+  for (const seg of segments) {
+    const path = seg.path;
+    if (!path || path.length < 2) continue;
+    const t = max > 0 ? Math.min(1, seg.count / max) : 0;
+    const c = driftColour(t);
+    for (let i = 0; i + 1 < path.length; i += 1) {
+      const a = path[i], b = path[i + 1];
+      /* Just above the water, not on the hill behind it. */
+      const ay = Math.max(groundAt(a[0], a[1]), 0) + 5;
+      const by = Math.max(groundAt(b[0], b[1]), 0) + 5;
+      const dx = b[0] - a[0], dz = b[1] - a[1];
+      const len = Math.hypot(dx, dz) || 1;
+      const nx = (-dz / len) * half, nz = (dx / len) * half;
+      pos.push(
+        a[0] - nx, ay, a[1] - nz, b[0] - nx, by, b[1] - nz, b[0] + nx, by, b[1] + nz,
+        a[0] - nx, ay, a[1] - nz, b[0] + nx, by, b[1] + nz, a[0] + nx, ay, a[1] + nz,
+      );
+      for (let k = 0; k < 6; k += 1) col.push(c[0], c[1], c[2], c[3]);
+    }
+  }
+  if (!pos.length) return;
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  /* Four components: three.js reads an alpha channel off a vec4 colour. */
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
+  driftMesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+    vertexColors: true, side: THREE.DoubleSide, transparent: true, depthWrite: false,
+  }));
+  driftMesh.visible = false;
+  scene.add(driftMesh);
 }
 
 const anchors = [];
@@ -603,7 +718,15 @@ window.addEventListener('resize', () => {
   move a dot would reload a megabyte of island and throw away whatever angle
   somebody had turned it to.
 */
-let pending = { here: null, route: null, openable: null };
+let pending = { here: null, route: null, openable: null, drift: null };
+const driftBtn = document.getElementById('drift');
+let driftOn = false;
+const paintDrift = () => {
+  driftBtn.setAttribute('aria-pressed', String(driftOn));
+  if (driftMesh) driftMesh.visible = driftOn;
+};
+driftBtn.addEventListener('click', () => { driftOn = !driftOn; paintDrift(); });
+driftBtn.style.display = 'none';
 window.__chivago = {
   setHere(x, z) {
     if (x === null || x === undefined) { hereGroup.visible = false; return; }
@@ -612,6 +735,17 @@ window.__chivago = {
     hereGroup.visible = true;
   },
   setRoute(points) { pending.route = points; drawRoute(points); },
+  setDrift(segments, max, title, note) {
+    pending.drift = { segments, max, title, note };
+    drawDrift(segments, max);
+    driftBtn.style.display = segments && segments.length ? 'block' : 'none';
+    driftBtn.innerHTML = '';
+    driftBtn.appendChild(document.createTextNode(title));
+    const small = document.createElement('small');
+    small.textContent = note;
+    driftBtn.appendChild(small);
+    paintDrift();
+  },
   /*
     Which places the app holds. The island is drawn from a sidecar of
     anchors and the app from its own list, and the two do not have to agree
@@ -631,6 +765,7 @@ window.addEventListener('message', (e) => {
   if (m.type === 'here') window.__chivago.setHere(m.x, m.z);
   if (m.type === 'route') window.__chivago.setRoute(m.points);
   if (m.type === 'openable') window.__chivago.setOpenable(m.ids);
+  if (m.type === 'drift') window.__chivago.setDrift(m.segments, m.max, m.title, m.note);
 });
 
 /*
@@ -709,6 +844,7 @@ window.__island.then(([bin, list]) => new Promise((resolve) => {
     if (pending.here) window.__chivago.setHere(pending.here[0], pending.here[1]);
     if (pending.route) window.__chivago.setRoute(pending.route);
     if (pending.openable) window.__chivago.setOpenable(pending.openable);
+    if (pending.drift) window.__chivago.setDrift(pending.drift.segments, pending.drift.max, pending.drift.title, pending.drift.note);
     tick('built');
     post({ type: 'ready', labels: list.length });
     draw();
@@ -798,6 +934,61 @@ export function IslandDiorama({ island = 'koh-sichang', height, here, route, onS
     would otherwise push a message into the page on every frame of the
     parent's state.
   */
+  /*
+    THE DRIFT MODEL, FETCHED HERE RATHER THAN IN THE PAGE, because the file is
+    published in longitude and latitude - the coordinates its source wrote and
+    the only ones it can be checked against - and `toIsland` lives on this
+    side. The anchors sidecar is the other way round for the opposite reason.
+
+    It is optional in every direction: an island with no drift file simply has
+    no band, and the button that turns it on is not drawn at all.
+  */
+  const [drift, setDrift] = React.useState<DriftFile | null>(null);
+  React.useEffect(() => {
+    let alive = true;
+    const where = `${pageBase(Platform.OS, API_BASE)}/islands/${island}.drift.json`;
+    fetch(where)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (alive) setDrift(j as DriftFile | null); })
+      /* A missing or broken drift file must never cost anybody the island. */
+      .catch(() => { if (alive) setDrift(null); });
+    return () => { alive = false; };
+  }, [island]);
+
+  React.useEffect(() => {
+    if (!ready || !drift?.segments?.length) return;
+    const segments = drift.segments
+      .map((seg) => ({
+        count: seg.count,
+        path: seg.path
+          .map(([lng, lat]) => toIsland(island, lng, lat))
+          .filter((q): q is [number, number] => q !== null),
+      }))
+      .filter((seg) => seg.path.length > 1);
+    /*
+      THE SENTENCE IS PART OF THE DATA, not a caption somebody may forget to
+      update. "calibrated: false" and a uniform seeding with no observed
+      debris are carried in the file, and they are what makes the honest
+      wording the only wording available here.
+    */
+    const issued = (drift.issued ?? '').slice(0, 16).replace('T', ' ');
+    send({
+      type: 'drift',
+      max: drift.max,
+      segments,
+      title: t({
+        en: `Where drifting things land first · ${drift.window}h`,
+        th: `ฝั่งที่ของลอยจะถึงก่อน · ${drift.window} ชม.`,
+        zh: `漂流物最先靠岸处 · ${drift.window}小时`,
+      }),
+      note: t({
+        en: `Model, not a litter count. Uncalibrated. Issued ${issued}`,
+        th: `เป็นแบบจำลอง ไม่ใช่การนับขยะ ยังไม่สอบเทียบ · ออก ${issued}`,
+        zh: `模型推算，非垃圾计数，未经校准 · ${issued}`,
+      }),
+    });
+  }, [ready, drift, island, send]);
+
   const openKey = (openable ?? []).join(',');
   React.useEffect(() => {
     if (!ready) return;
