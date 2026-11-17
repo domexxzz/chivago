@@ -1,0 +1,119 @@
+[
+ {
+  "id": "sc-pier",
+  "name": "Tha Lang pier",
+  "x": 47.8,
+  "y": 22.9,
+  "z": -989.4,
+  "groundM": 8.8,
+  "kind": "pier"
+ },
+ {
+  "id": "sc-hospital",
+  "name": "Ko Sichang Hospital",
+  "x": -248.9,
+  "y": 49.4,
+  "z": -1196,
+  "groundM": 19,
+  "kind": "ordinary"
+ },
+ {
+  "id": "sc-thamphang",
+  "name": "Tham Phang Beach",
+  "x": -343.1,
+  "y": 56.8,
+  "z": 785.5,
+  "groundM": 21.8,
+  "kind": "ordinary"
+ },
+ {
+  "id": "sc-palace",
+  "name": "Phra Chudadhuj Palace",
+  "x": 914.6,
+  "y": 32.8,
+  "z": 377.3,
+  "groundM": 12.6,
+  "kind": "hero"
+ },
+ {
+  "id": "sc-marinestation",
+  "name": "Cholatassathan Museum",
+  "x": 510.2,
+  "y": 27.8,
+  "z": 33.6,
+  "groundM": 10.7,
+  "kind": "hero"
+ },
+ {
+  "id": "sc-shops",
+  "name": "Shop row by Tha Lang pier",
+  "x": -19.8,
+  "y": 33.2,
+  "z": -836.3,
+  "groundM": 12.8,
+  "kind": "ordinary"
+ },
+ {
+  "id": "sc-koniix-garden-cottage",
+  "name": "Koniix Garden Cottage",
+  "x": -132.2,
+  "y": 101.4,
+  "z": -470.5,
+  "groundM": 39,
+  "kind": "ordinary"
+ },
+ {
+  "id": "sc-atsadang-bridge",
+  "name": "Atsadang Bridge",
+  "x": 873.5,
+  "y": 11.4,
+  "z": 226.2,
+  "groundM": 4.4,
+  "kind": "pier"
+ },
+ {
+  "id": "sc-wat-atsadang",
+  "name": "Wat Atsadang Nimit",
+  "x": 720.2,
+  "y": 110.6,
+  "z": 654.3,
+  "groundM": 42.5,
+  "kind": "hero"
+ },
+ {
+  "id": "sc-chao-pho-khao-yai",
+  "name": "Chao Pho Khao Yai Shrine",
+  "x": -362.2,
+  "y": 225.5,
+  "z": -1735.1,
+  "groundM": 86.7,
+  "kind": "hero"
+ },
+ {
+  "id": "sc-buddha-footprint",
+  "name": "Buddha Footprint Mondop",
+  "x": -489.5,
+  "y": 312.5,
+  "z": -1838.4,
+  "groundM": 120.2,
+  "kind": "hero"
+ },
+ {
+  "id": "sc-wat-tham-yai-prik",
+  "name": "Wat Tham Yai Prik",
+  "x": -269.6,
+  "y": 186.3,
+  "z": -436.6,
+  "groundM": 71.6,
+  "kind": "hero"
+ },
+ {
+  "id": "sc-ko-kham-yai",
+  "name": "Ko Kham Yai",
+  "x": 1574.8,
+  "y": 106.7,
+  "z": -1708.6,
+  "groundM": 41.1,
+  "kind": "ordinary"
+ }
+]

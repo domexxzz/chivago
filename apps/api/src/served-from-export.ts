@@ -27,5 +27,5 @@ export const servedFromExport = (pathname: string): boolean =>
   pathname === '/'
   || pathname === '/favicon.ico'
   || pathname === '/robots.txt'
-  || ['/_expo/', '/assets/', '/icons/', '/media/', '/shops/media/', '/shops/guide-photos/']
+  || ['/_expo/', '/assets/', '/icons/', '/islands/', '/media/', '/shops/media/', '/shops/guide-photos/']
     .some((p) => pathname.startsWith(p));
