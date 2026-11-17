@@ -27,6 +27,9 @@ import chivagoLogo from '../../assets/chivago-logo.png';
 import sichangBanner from '../../assets/quest-sichang-explorer.png';
 import trashHeroLogo from '../../assets/trash-hero-logo.png';
 import secretRecipeLogo from '../../assets/game-secret-recipe-logo.png';
+import gamesTabIcon from '../../assets/party/05-game-controller.png';
+import questsTabIcon from '../../assets/party/03-quest-scroll.png';
+import partyTabIcon from '../../assets/party/04-party-group.png';
 
 /**
  * The picture on each mini-game's card.
@@ -58,22 +61,36 @@ import { formatInteger } from '../i18n/format.ts';
 import { ProfileButton } from '../components/ProfileButton.tsx';
 import { questArtworkSource } from '../components/QuestArtwork.tsx';
 import { MINI_GAMES, type MiniGameKey } from '../games/index.ts';
-import { ChivarIcon, questStateIcon, type ChivarIconName } from '../components/ChivarIcon.tsx';
+import { ChivarIcon, questStateIcon } from '../components/ChivarIcon.tsx';
+import { PartyHub } from '../components/party/PartyHub.tsx';
 
 type Filter = 'today' | 'weekend' | 'all' | 'sichang';
 type StandardFilter = Exclude<Filter, 'sichang'>;
-type Section = 'games' | 'quests';
+type Section = 'games' | 'quests' | 'party';
 
 export function MissionsScreen({
-  onOpen, onOpenMarket, onOpenProfile, onOpenGame,
+  onOpen, onOpenMarket, onOpenProfile, onOpenGame, onOpenParty, onFindParty,
+  initialSection = 'quests', onInitialSectionConsumed,
 }: {
   onOpen: (id: string) => void;
   onOpenMarket: () => void;
   onOpenProfile?: () => void;
   onOpenGame?: (key: MiniGameKey) => void;
+  onOpenParty?: () => void;
+  onFindParty?: () => void;
+  initialSection?: Section;
+  onInitialSectionConsumed?: () => void;
 }) {
-  const [section, setSection] = React.useState<Section>('quests');
+  const [section, setSection] = React.useState<Section>(initialSection);
   const [filter, setFilter] = React.useState<Filter>('sichang');
+
+  // Home can deep-link into the Party section without turning Party into the
+  // permanent default for Game&Quest. Once this mounted screen has captured
+  // the requested section, reset the composition-root hint for the next visit;
+  // this screen keeps its own local section until the traveller changes tabs.
+  React.useEffect(() => {
+    if (initialSection !== 'quests') onInitialSectionConsumed?.();
+  }, [initialSection, onInitialSectionConsumed]);
 
   // Fetch ALL quests once and filter locally. Two reasons:
   //  - the "All 24" segment must show the TOTAL, not the current filter's
@@ -166,9 +183,13 @@ export function MissionsScreen({
         </View>
       </View>
 
-      <SectionTabs value={section} onChange={setSection} />
+      <SectionTabs value={section} onChange={setSection} expanded={section === 'party'} />
 
       {section === 'games' ? <GamesPanel onOpenGame={onOpenGame} /> : null}
+
+      {section === 'party' && onOpenParty && onFindParty
+        ? <PartyHub onOpenParty={onOpenParty} onFindParty={onFindParty} />
+        : null}
 
       {section === 'quests' ? (
         <>
@@ -263,20 +284,28 @@ function SichangFeatureButton({
 }
 
 function SectionTabs({
-  value, onChange,
-}: { value: Section; onChange: (section: Section) => void }) {
-  const options: { key: Section; label: string; hint: string; icon: ChivarIconName }[] = [
+  value, onChange, expanded = false,
+}: { value: Section; onChange: (section: Section) => void; expanded?: boolean }) {
+  const options: {
+    key: Section; label: string; hint: string; icon: ImageSourcePropType;
+  }[] = [
     {
       key: 'games',
       label: 'Games',
       hint: t({ en: 'Mini-games you can play anytime', th: 'มินิเกมที่เล่นได้ทุกเวลา', zh: '随时可玩的小游戏' }),
-      icon: 'game',
+      icon: gamesTabIcon,
     },
     {
       key: 'quests',
       label: 'Quests',
       hint: t({ en: 'Activities around the island', th: 'กิจกรรมที่ทำได้ทั่วเกาะ', zh: '岛上各处的活动' }),
-      icon: 'quest',
+      icon: questsTabIcon,
+    },
+    {
+      key: 'party',
+      label: 'Party',
+      hint: t({ en: 'Travel and complete quests with friends', th: 'เดินทางและทำเควสกับเพื่อน', zh: '与朋友同行并完成任务' }),
+      icon: partyTabIcon,
     },
   ];
 
@@ -285,7 +314,7 @@ function SectionTabs({
       accessibilityRole="tablist"
       style={{
         width: '92%',
-        maxWidth: 760,
+        maxWidth: expanded ? 1180 : 760,
         alignSelf: 'center',
         flexDirection: 'row',
         gap: 10,
@@ -320,7 +349,7 @@ function SectionTabs({
             ]}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-              <ChivarIcon name={option.icon} size={30} />
+              <Image source={option.icon} resizeMode="contain" style={{ width: 30, height: 30 }} />
               <Heading size={15} colour={active ? onFill.brand : color.text}>{option.label}</Heading>
             </View>
           </Pressable>

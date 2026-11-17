@@ -1272,6 +1272,7 @@ function RevealTile({ result, featured }: { result: SummonResult; featured: bool
           {t({ en: `Duplicate · +${result.dustGained} stardust`, th: `ตัวซ้ำ · +${result.dustGained} ผงดาว`, zh: `重复 · +${result.dustGained} 星尘` })}
         </Label>
       ) : null}
+      {result.coupon ? <Label size={9} tracking={0.03} colour="#8A5A00" style={{ textTransform: 'none', textAlign: 'center' }}>{t({ en: `Coupon added · ${result.coupon.merchant}`, th: `เพิ่มคูปองแล้ว · ${result.coupon.merchant}`, zh: `优惠券已加入 · ${result.coupon.merchant}` })}</Label> : null}
     </View>
   );
 }
@@ -1329,6 +1330,7 @@ function Outcome({ result }: { result: SummonResult }) {
             })}
           </Label>
         ) : null}
+        {result.coupon ? <View style={{ padding: 9, borderRadius: 12, backgroundColor: '#FFF4C7' }}><Label size={10} tracking={0.03} colour="#7B5100" style={{ textTransform: 'none' }}>{t({ en: `Coupon saved to Backpack · ${result.coupon.merchant}`, th: `บันทึกคูปองลงกระเป๋าแล้ว · ${result.coupon.merchant}`, zh: `优惠券已保存到背包 · ${result.coupon.merchant}` })}</Label></View> : null}
       </View>
     </View>
   );

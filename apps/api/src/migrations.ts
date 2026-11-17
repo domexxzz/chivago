@@ -685,7 +685,7 @@ export function migrate(db: DB): string[] {
       name         TEXT NOT NULL,
       -- The join code, hashed like every other credential in this schema. It
       -- is long-lived rather than single-use, which is the trade for letting a
-      -- group of eight join over a weekend without re-reading it each time.
+      -- group of ten join over a weekend without re-reading it each time.
       code_hash    TEXT NOT NULL UNIQUE,
       created_by   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       created_at   TEXT NOT NULL,
@@ -707,6 +707,119 @@ export function migrate(db: DB): string[] {
   `);
   applied.push('parties');
   applied.push('party_members');
+
+  // Party live collaboration. Location is deliberately isolated from the
+  // public member/invitation views: only authenticated members can query it.
+  if (addColumn(db, 'parties', 'photo_mime', 'TEXT')) applied.push('parties.photo_mime');
+  if (addColumn(db, 'parties', 'photo_bytes', 'BLOB')) applied.push('parties.photo_bytes');
+  if (addColumn(db, 'party_members', 'sharing_enabled', 'INTEGER NOT NULL DEFAULT 0')) applied.push('party_members.sharing_enabled');
+  if (addColumn(db, 'party_members', 'last_seen_at', 'TEXT')) applied.push('party_members.last_seen_at');
+  if (addColumn(db, 'party_members', 'distance_travelled_m', 'REAL NOT NULL DEFAULT 0')) applied.push('party_members.distance_travelled_m');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS party_locations (
+      party_id   TEXT NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
+      user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      latitude   REAL NOT NULL CHECK(latitude BETWEEN -90 AND 90),
+      longitude  REAL NOT NULL CHECK(longitude BETWEEN -180 AND 180),
+      accuracy   REAL,
+      heading    REAL,
+      speed      REAL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (party_id, user_id),
+      FOREIGN KEY (party_id, user_id) REFERENCES party_members(party_id, user_id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_party_locations_updated ON party_locations(party_id, updated_at);
+
+    CREATE TABLE IF NOT EXISTS party_meeting_points (
+      party_id   TEXT PRIMARY KEY REFERENCES parties(id) ON DELETE CASCADE,
+      set_by     TEXT NOT NULL REFERENCES users(id),
+      latitude   REAL NOT NULL CHECK(latitude BETWEEN -90 AND 90),
+      longitude  REAL NOT NULL CHECK(longitude BETWEEN -180 AND 180),
+      label      TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS party_messages (
+      id         TEXT PRIMARY KEY,
+      party_id   TEXT NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
+      user_id    TEXT NOT NULL REFERENCES users(id),
+      kind       TEXT NOT NULL CHECK(kind IN ('chat','ping')),
+      body       TEXT NOT NULL,
+      ping_kind  TEXT,
+      place_id   TEXT REFERENCES places(id),
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_party_messages_feed ON party_messages(party_id, created_at, id);
+
+    CREATE TABLE IF NOT EXISTS party_itinerary (
+      id         TEXT PRIMARY KEY,
+      party_id   TEXT NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
+      place_id   TEXT NOT NULL REFERENCES places(id),
+      position   INTEGER NOT NULL CHECK(position >= 0),
+      added_by   TEXT NOT NULL REFERENCES users(id),
+      created_at TEXT NOT NULL,
+      UNIQUE(party_id, place_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_party_itinerary_order ON party_itinerary(party_id, position);
+
+    CREATE TABLE IF NOT EXISTS party_trip_summaries (
+      party_id             TEXT PRIMARY KEY REFERENCES parties(id) ON DELETE CASCADE,
+      party_name           TEXT NOT NULL,
+      started_at           TEXT NOT NULL,
+      ended_at             TEXT NOT NULL,
+      member_count         INTEGER NOT NULL,
+      message_count        INTEGER NOT NULL,
+      itinerary_json       TEXT NOT NULL,
+      distance_travelled_m REAL NOT NULL DEFAULT 0
+    );
+  `);
+  applied.push('party_live_collaboration');
+
+  // Party Quest foundation. Legacy quest_progress remains untouched: a
+  // Party Quest has its own lifecycle and an immutable start-time roster.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS party_quest_instances (
+      id               TEXT PRIMARY KEY,
+      party_id         TEXT NOT NULL REFERENCES parties(id) ON DELETE CASCADE,
+      quest_id         TEXT NOT NULL REFERENCES quests(id),
+      quest_type       TEXT NOT NULL CHECK(quest_type IN ('exploration','eco','local','boss')),
+      quest_mode       TEXT NOT NULL CHECK(quest_mode IN ('individual','collective','all_members','cooperative')),
+      state            TEXT NOT NULL CHECK(state IN ('selected','in_progress','verifying','completed','rewarded','failed','expired','cancelled')),
+      rules_version    TEXT NOT NULL,
+      quest_snapshot   TEXT NOT NULL,
+      selected_by      TEXT NOT NULL REFERENCES users(id),
+      selected_at      TEXT NOT NULL,
+      started_at       TEXT,
+      roster_locked_at TEXT,
+      cancelled_at     TEXT,
+      completed_at     TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_party_quest_party_state
+      ON party_quest_instances(party_id, state, selected_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_party_quest_quest
+      ON party_quest_instances(quest_id, selected_at DESC);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_party_quest_one_active
+      ON party_quest_instances(party_id)
+      WHERE state IN ('selected','in_progress','verifying');
+
+    CREATE TABLE IF NOT EXISTS party_quest_participants (
+      party_quest_id          TEXT NOT NULL REFERENCES party_quest_instances(id) ON DELETE CASCADE,
+      user_id                 TEXT NOT NULL REFERENCES users(id),
+      display_name_snapshot   TEXT NOT NULL,
+      owner_at_start          INTEGER NOT NULL DEFAULT 0 CHECK(owner_at_start IN (0,1)),
+      membership_status      TEXT NOT NULL DEFAULT 'active' CHECK(membership_status IN ('active','left')),
+      rostered_at             TEXT NOT NULL,
+      left_party_at           TEXT,
+      rejoined_at             TEXT,
+      completed_at            TEXT,
+      PRIMARY KEY (party_quest_id, user_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_party_quest_participant_user
+      ON party_quest_participants(user_id, party_quest_id);
+    CREATE INDEX IF NOT EXISTS idx_party_quest_participant_status
+      ON party_quest_participants(party_quest_id, membership_status);
+  `);
+  applied.push('party_quest_foundation');
 
   // Which ESG pillar a quest reports under.
   //
@@ -1134,6 +1247,31 @@ export function migrate(db: DB): string[] {
   }
   if (hasTable(db, 'vouchers') && addColumn(db, 'vouchers', 'value_thb', 'INTEGER')) {
     applied.push('vouchers.value_thb');
+  }
+  if (hasTable(db, 'vouchers') && addColumn(db, 'vouchers', 'source_kind', "TEXT NOT NULL DEFAULT 'marketplace'")) {
+    applied.push('vouchers.source_kind');
+  }
+  if (hasTable(db, 'vouchers') && addColumn(db, 'vouchers', 'source_ref', 'TEXT')) {
+    applied.push('vouchers.source_ref');
+  }
+  if (hasTable(db, 'vouchers')) {
+    db.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_vouchers_reward_source
+        ON vouchers(user_id, source_kind, source_ref) WHERE source_ref IS NOT NULL;
+      CREATE TABLE IF NOT EXISTS quest_coupon_rewards (
+        quest_id TEXT PRIMARY KEY REFERENCES quests(id) ON DELETE CASCADE,
+        offer_id TEXT NOT NULL REFERENCES offers(id),
+        expires_days INTEGER NOT NULL DEFAULT 30 CHECK(expires_days BETWEEN 1 AND 365),
+        active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1))
+      );
+      CREATE TABLE IF NOT EXISTS gacha_coupon_rewards (
+        reward_key TEXT PRIMARY KEY,
+        offer_id TEXT NOT NULL REFERENCES offers(id),
+        expires_days INTEGER NOT NULL DEFAULT 30 CHECK(expires_days BETWEEN 1 AND 365),
+        active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1))
+      );
+    `);
+    applied.push('configured_reward_coupons');
   }
 
   /*

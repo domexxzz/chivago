@@ -36,9 +36,9 @@
 import React from 'react';
 import Svg, { Defs, LinearGradient, Stop, Rect, Path } from 'react-native-svg';
 import {
-  Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions,
+  Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ImageSourcePropType,
 } from 'react-native';
-import { AREAS, areaOfPlace, fairsIn, featuredFirst, hasFeatured, isFeatured, stallPlacesIn, type Area, type AreaKey, type Fair } from '@chivago/core';
+import { AREAS, areaOfPlace, fairsIn, featuredFirst, hasFeatured, isFeatured, stallPlacesIn, type Area, type AreaKey, type Fair, type Localised } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { creditWord, fitsWhole, mascotBeachUri, photoBackdrop, photoUri } from '../api/photos.ts';
 import { SHOP_CATEGORIES, shopImageUri, type Shop } from '../api/shops.ts';
@@ -57,7 +57,7 @@ import {
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 /*
-  THE SEVEN DOORS ARE DRAWINGS, NOT GLYPHS.
+  THE MAIN DOORS ARE DRAWINGS, NOT GLYPHS.
 
   They were lucide line icons tinted to the circle behind them, which is the
   right choice for a toolbar and the wrong one for the front door: seven
@@ -76,6 +76,7 @@ import menuStaysArt from '../../assets/menu-stays-v1.png';
 import menuQuestsArt from '../../assets/menu-quests-v1.png';
 import menuWalletArt from '../../assets/menu-wallet-v1.png';
 import menuDealsArt from '../../assets/menu-deals-v1.png';
+import menuPartyArt from '../../assets/menu-party-v1.png';
 import menuTravelBoxArt from '../../assets/menu-travel-box-v1.png';
 import menuCommunityArt from '../../assets/menu-community-v1.png';
 import {
@@ -570,12 +571,25 @@ function Doors({
   onOpenImpact: () => void; onOpenSafety: () => void; onOpenParty: () => void; onOpenStays?: () => void;
   onOpenMarket: () => void; onOpenSummon?: () => void; onOpenCommunity?: () => void;
 }) {
-  const doors = [
+  type Door = {
+    art?: ImageSourcePropType;
+    icon?: LucideIcon;
+    name: Localised;
+    accessibilityName?: Localised;
+    onPress: () => void;
+  };
+  const doors: Door[] = [
     { art: menuMapArt, name: strings.tabs.map, onPress: onOpenMap },
     { art: menuStaysArt, name: strings.ask.context, onPress: onOpenStays ?? onOpenConcierge },
     { art: menuQuestsArt, name: strings.tabs.quests, onPress: onOpenQuests },
     { art: menuWalletArt, name: strings.tabs.wallet, onPress: onOpenWallet },
     { art: menuDealsArt, name: { en: 'Deals', th: 'สิทธิพิเศษ', zh: '优惠' }, onPress: onOpenMarket },
+    {
+      art: menuPartyArt,
+      name: { en: 'Party', th: 'ปาร์ตี้', zh: '队伍' },
+      accessibilityName: { en: 'Party', th: 'ปาร์ตี้', zh: '队伍' },
+      onPress: onOpenParty,
+    },
     /*
       The summoning (docs/68), on Home.
 
@@ -583,9 +597,9 @@ function Doors({
       door was lost - docs/61 records the owner not finding that screen - and
       this is the same fix: a door on the surface somebody actually opens.
 
-      LILAC FROM THE TOKEN SET, not a hex typed in here. The five doors above
-      predate `tint` and carry their own hand-mixed pairs; a sixth one adding
-      to that pile is a sixth place to fix later. Lilac also keeps it off
+      LILAC FROM THE TOKEN SET, not a hex typed in here. The illustrated doors
+      predate `tint` and carry their own hand-mixed pairs; another one adding
+      to that pile is another place to fix later. Lilac also keeps it off
       gold, which on this screen belongs to points - and the summoning takes
       no points and pays none out.
 
@@ -616,7 +630,7 @@ function Doors({
       ? [{
         art: menuTravelBoxArt,
         /*
-          SHORT, because this is a door label in a row of seven. "Traveller's
+          SHORT, because this is a door label in a crowded row. "Traveller's
           box" put one word wider than its cell and it ran into Community;
           the Thai "ตู้สุ่มนักเดินทาง" was worse, since Thai has no spaces to
           wrap at. The screen behind it keeps the full name.
@@ -636,11 +650,10 @@ function Doors({
   /*
     ONE ROW WHEN THEY FIT, TWO WHEN THEY DO NOT.
 
-    Seven doors in one row on a 375px phone give each one 51px, and
-    "Community" is 62px at this size - it ran out of its cell and over its
-    neighbour. A word that long cannot wrap, and Thai labels cannot wrap at
-    all, since Thai has no spaces to break at. Shrinking the type until it
-    fitted meant 10px for every label, which is too small to read.
+    The full set in one row on a 375px phone makes every cell too narrow.
+    "Community" alone is 62px at this size, while Thai labels often have no
+    spaces to break at. Shrinking the type until it fitted meant 10px for
+    every label, which is too small to read.
 
     So below `DOOR_MIN` per door the row WRAPS, with every door still on
     screen. Not a sideways scroll: a door you have to swipe to find is the
@@ -683,8 +696,8 @@ function Doors({
         paddingTop: 22,
       }}
     >
-      {doors.map(({ art, name, onPress }) => (
-        <Pressable key={name.en} onPress={onPress} accessibilityRole="button" accessibilityLabel={t(name)}
+      {doors.map(({ art, icon: PlaceholderIcon, name, accessibilityName, onPress }) => (
+        <Pressable key={name.en} onPress={onPress} accessibilityRole="button" accessibilityLabel={t(accessibilityName ?? name)}
           style={wrapped
             ? { width: `${100 / perRow}%`, alignItems: 'center', gap: 8, minHeight: 96 }
             : { flex: 1, alignItems: 'center', gap: 8, minHeight: 96 }}>
@@ -706,7 +719,11 @@ function Doors({
               canvas but not the drawing - the wallet is square, the gashapon
               is wide - and stretching them to fill would undo that work.
             */}
-            <Image source={art} style={{ width: 46, height: 46 }} resizeMode="contain" />
+            {art
+              ? <Image source={art} style={{ width: 46, height: 46 }} resizeMode="contain" />
+              : PlaceholderIcon
+                ? <PlaceholderIcon size={34} color="#607D8B" strokeWidth={1.8} />
+                : null}
           </View>
           <Text style={{ fontSize: 12, color: '#2B2D42', textAlign: 'center', paddingHorizontal: 2 }}>{t(name)}</Text>
         </Pressable>
@@ -718,8 +735,8 @@ function Doors({
 /**
  * The narrowest a door may be before the row wraps.
  *
- * The widest label in the row at 12px is "Community", 62px, measured in the
- * running app; 72 leaves it 5px each side so neighbouring labels never touch.
+ * Long labels may use an intentional line break. 72px still leaves enough
+ * room for each tap target while the row wraps instead of becoming a carousel.
  */
 export const DOOR_MIN = 72;
 

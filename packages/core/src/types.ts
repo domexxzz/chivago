@@ -516,6 +516,9 @@ export interface Voucher {
   expiresAt: string;
   redeemedAt: string | null;
   status: 'active' | 'redeemed' | 'expired' | 'cancelled';
+  /** Where this exact voucher entered the backpack. */
+  sourceKind?: 'marketplace' | 'quest' | 'gacha';
+  sourceRef?: string | null;
 }
 
 // ---------------------------------------------------------------------------

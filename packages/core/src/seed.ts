@@ -743,16 +743,16 @@ export const SEED_PLACES: Place[] = [
   {
     // OSM way 242270752: หาดถ้ำพัง, the island's swimming beach.
     id: 'sc-thamphang',
-    name: { en: 'Tham Phang Beach', th: 'หาดถ้ำพัง', zh: '探蓬海滩' },
+    name: { en: 'Tham Phang Beach (Ao Atsadang)', th: 'หาดถ้ำพัง (อ่าวอัษฎางค์)', zh: '探蓬海滩（阿萨当湾）' },
     short: 'Tham Phang', layer: 'Green', province: 'TH-20',
     lat: 13.1454, lng: 100.806835,
     meta: 'Beach · Outdoor · Air modelled',
     blurb: {
-      en: 'The beach on the west coast, and the one the island\'s litter reaches first.',
-      th: 'หาดฝั่งตะวันตกของเกาะ และเป็นที่ที่ขยะไปถึงก่อน',
-      zh: '岛西岸的海滩，也是岛上垃圾最先漂到的一处。',
+      en: 'The island\'s principal swimming beach on the west coast at Ao Atsadang, also known for sunset views.',
+      th: 'ชายหาดเล่นน้ำหลักทางฝั่งตะวันตกของเกาะในอ่าวอัษฎางค์ และเป็นจุดชมพระอาทิตย์ตกสำคัญ',
+      zh: '位于岛西岸阿萨当湾的主要游泳海滩，也是重要的日落观景点。',
     },
-    tags: ['Beach', 'Swimming'],
+    tags: ['Beach', 'Swimming', 'Sunset', 'Ao Atsadang'],
     photo: {
       url: '/media/places/sc-thamphang.jpg',
       credit: 'ChivarGo team · Koh Sichang',

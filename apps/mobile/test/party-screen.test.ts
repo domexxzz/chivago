@@ -81,11 +81,28 @@ describe('travelling on your own', () => {
     restore = s.restore;
 
     const ui = await mountScreen(h(PartyScreen, { ...props, onToast: (m: string) => said.push(m) }));
-    await ui.type('K7M2QP');
+    await ui.type('K7M2QP', 'Group code');
     await ui.pressText(/^Join$/);
     assert.equal(said.length, 1);
     assert.equal(said[0], 'Something went wrong. Please try again.');
     assert.doesNotMatch(said[0]!, /8 people/, 'the raw server message reached the toast');
+    ui.unmount();
+  });
+
+  test('an invite link can prefill the join code without submitting it', async () => {
+    let consumed = 0;
+    const s = server({ 'GET /party': solo }); restore = s.restore;
+    const ui = await mountScreen(h(PartyScreen, {
+      ...props,
+      initialInviteCode: 'K7M2QP',
+      onInviteCodeConsumed: () => { consumed += 1; },
+    }));
+    const inviteInput = ui.root.findAll((node) =>
+      typeof node.props.onChangeText === 'function'
+      && (node.props.accessibilityLabel === 'Group code' || node.props['aria-label'] === 'Group code'))[0];
+    assert.equal(inviteInput?.props.value, 'K7M2QP');
+    assert.equal(consumed, 1);
+    assert.equal(s.calls.filter((call) => call.path === '/party/join').length, 0);
     ui.unmount();
   });
 
@@ -158,9 +175,26 @@ describe('travelling together', () => {
     __setLocaleForTests('en');
   });
 
-  test('leaving says the points were always yours', async () => {
-    // Leaving costs nothing, and a scary confirmation would imply otherwise.
-    const s = server({ 'GET /party': together([member({ you: true })]) }); restore = s.restore;
+  test('an owner is told to transfer before leaving', async () => {
+    const s = server({
+      'GET /party': together([
+        member({ userId: 'u1', you: true }),
+        member({ userId: 'u2', displayName: 'Bo' }),
+      ]),
+    }); restore = s.restore;
+    const ui = await mountScreen(h(PartyScreen, props));
+    assert.match(ui.text(), /Transfer ownership/);
+    assert.match(ui.text(), /MAKE OWNER/);
+    ui.unmount();
+  });
+
+  test('a regular member can leave and keeps their own rewards', async () => {
+    const s = server({
+      'GET /party': together([
+        member({ userId: 'u1', displayName: 'Owner' }),
+        member({ userId: 'u2', displayName: 'Ana', you: true }),
+      ]),
+    }); restore = s.restore;
     const ui = await mountScreen(h(PartyScreen, props));
     assert.match(ui.text(), /They always were yours/);
     ui.unmount();

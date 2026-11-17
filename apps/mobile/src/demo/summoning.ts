@@ -453,6 +453,7 @@ export function createSummoning(ledgerNow: () => readonly LedgerRow[], opened: D
           isNew: !duplicate,
           category: category ?? 'mascot',
           transactionId: id,
+          coupon: null,
           dustGained,
           dust: dust(),
           charms: charms(),

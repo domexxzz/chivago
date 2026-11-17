@@ -45,10 +45,13 @@ type AttractionSeed = {
   lat: number;
   lng: number;
   tags: string[];
-  photoUrl: string;
-  photoCredit: string;
-  photoLicence: string;
-  photoSource: string;
+  /** Short provenance shown with the place record, not a claim of live data. */
+  meta?: string;
+  /** A place may ship without an image when no correctly licensed one exists. */
+  photoUrl: string | null;
+  photoCredit: string | null;
+  photoLicence: string | null;
+  photoSource: string | null;
   safetyEn: string;
   safetyTh: string;
 };
@@ -203,6 +206,17 @@ export const KOH_SICHANG_ATTRACTIONS: readonly AttractionSeed[] = [
     photoUrl: '', photoCredit: '', photoLicence: '', photoSource: '',
     safetyEn: 'Religious site', safetyTh: 'ศาสนสถาน',
   },
+  {
+    id: 'sc-phra-lueang-chakraphong', nameEn: 'Phra Lueang at Wat Tham Chakraphong', nameTh: 'พระเหลือง–วัดถ้ำจักรพงษ์', short: 'Phra Lueang', layer: 'Wellness',
+    descriptionEn: 'The island\'s large yellow seated Buddha above Chakraphong Cave, with a hillside temple and views towards Ko Kham Yai.',
+    descriptionTh: 'พระพุทธรูปปางสมาธิองค์ใหญ่สีเหลืองเหนือถ้ำจักรพงษ์ ภายในบริเวณวัดบนเขาที่มองเห็นเกาะขามใหญ่และชุมชนด้านหน้าเกาะ',
+    lat: 13.15779, lng: 100.80618, tags: ['Landmark', 'Temple', 'Cave', 'Culture'],
+    meta: 'Temple and cave · Thailand Digital Tourism Center attraction 21351 · Official coordinates · Air modelled',
+    photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/64/The_Yellow_Budha_-_panoramio.jpg',
+    photoCredit: 'ekeidar', photoLicence: 'CC BY-SA 3.0',
+    photoSource: 'https://commons.wikimedia.org/wiki/File:The_Yellow_Budha_-_panoramio.jpg',
+    safetyEn: 'Hillside temple and cave access', safetyTh: 'วัดบนเขาและทางเข้าถ้ำ',
+  },
 ] as const;
 
 export const KOH_SICHANG_BUSINESSES: readonly BusinessSeed[] = [
@@ -285,9 +299,10 @@ export function bootstrapKohSichangBusinesses(db: DB, env: NodeJS.ProcessEnv = p
         (id, name_en, name_th, short, layer, province, lat, lng, meta, blurb_en, blurb_th,
          tags, photo_url, photo_credit, photo_licence, photo_source, safety_label_en,
          safety_label_th, crowd_density, aqi, safety_index, walkability)
-        VALUES (?, ?, ?, ?, ?, 'TH-20', ?, ?, 'Ko Sichang attraction · Air modelled', ?, ?, ?, ?, ?, ?, ?, ?, ?, 1.5, 40, 6.0, 6.0)`).run(
+        VALUES (?, ?, ?, ?, ?, 'TH-20', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1.5, 40, 6.0, 6.0)`).run(
         attraction.id, attraction.nameEn, attraction.nameTh, attraction.short, attraction.layer,
-        attraction.lat, attraction.lng, attraction.descriptionEn, attraction.descriptionTh,
+        attraction.lat, attraction.lng, attraction.meta ?? 'Ko Sichang attraction · Air modelled',
+        attraction.descriptionEn, attraction.descriptionTh,
         JSON.stringify(attraction.tags), attraction.photoUrl, attraction.photoCredit,
         attraction.photoLicence, attraction.photoSource, attraction.safetyEn, attraction.safetyTh,
       );

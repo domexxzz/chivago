@@ -442,6 +442,22 @@ describe('stays and tours has a door on Home', () => {
   });
 });
 
+describe('the travel party is reachable from Home', () => {
+  test('the Party door opens the Party hub entry callback', async () => {
+    const s = server(routes()); restore = s.restore;
+    let opened = 0;
+    const ui = await mountScreen(h(HomeScreen, {
+      ...props,
+      onOpenParty: () => { opened += 1; },
+    }));
+
+    assert.ok(ui.labels().includes('Party'));
+    await ui.press('Party');
+    assert.equal(opened, 1);
+    ui.unmount();
+  });
+});
+
 /**
  * The summoning's door (docs/68).
  *
@@ -477,9 +493,8 @@ describe('the summoning is reachable from Home', () => {
 /**
  * The door row, on a phone.
  *
- * Seven doors in one row gave each 51px at 375 wide, and "Community" (62px)
- * ran over its neighbour. Below `DOOR_MIN` a door the row wraps instead -
- * every door still on screen, none of them behind a swipe.
+ * Eight doors in one row would be too narrow at 375px. Below `DOOR_MIN` the
+ * row wraps instead: every door stays on screen and none hides behind a swipe.
  */
 describe('the door row fits the width it is given', () => {
   const sizes = (ui: Awaited<ReturnType<typeof mountScreen>>) => {
@@ -492,7 +507,7 @@ describe('the door row fits the width it is given', () => {
       layout: async (width: number) => {
         await act(async () => { row.props.onLayout({ nativeEvent: { layout: { width, height: 100 } } }); });
       },
-      doorWidths: () => ['Map', 'Wallet', 'Community', 'Travel box'].map(
+      doorWidths: () => ['Map', 'Wallet', 'Party', 'Community', 'Travel box'].map(
         (label) => ui.find(label)?.props.style?.width ?? ui.find(label)?.props.style?.flex,
       ),
     };
@@ -507,7 +522,7 @@ describe('the door row fits the width it is given', () => {
     await row.layout(375);
 
     const style = row.row.props.style;
-    assert.equal(style.flexWrap, 'wrap', 'seven doors at 375px should wrap');
+    assert.equal(style.flexWrap, 'wrap', 'eight doors at 375px should wrap');
     const inner = 375 - 2 * style.paddingHorizontal;
     for (const w of row.doorWidths()) {
       assert.equal(typeof w, 'string', 'a wrapped door should take a share of the row');
@@ -515,7 +530,7 @@ describe('the door row fits the width it is given', () => {
       assert.ok(px >= DOOR_MIN, `a door is ${Math.round(px)}px, under the ${DOOR_MIN}px floor`);
     }
     // Every door is still there. Wrapping must not drop or hide one.
-    for (const label of ['Map', 'Wallet', 'Deals', 'Travel box', 'Community']) {
+    for (const label of ['Map', 'Wallet', 'Deals', 'Party', 'Travel box', 'Community']) {
       assert.ok(ui.find(label), `${label} is missing from the wrapped row`);
     }
     ui.unmount();

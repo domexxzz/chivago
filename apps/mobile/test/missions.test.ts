@@ -17,12 +17,14 @@ import * as fx from './fixtures.ts';
  * a podium for one person, or hiding the host nobody has visited yet.
  */
 
-const opened = { game: '' };
+const opened = { game: '', party: false, findParty: false };
 const noop = () => {};
 const props = {
   onOpen: noop,
   onOpenMarket: noop,
   onOpenGame: (key: string) => { opened.game = key; },
+  onOpenParty: () => { opened.party = true; },
+  onFindParty: () => { opened.findParty = true; },
 };
 
 const standing = (over: Record<string, unknown> = {}) => ({
@@ -55,11 +57,22 @@ const routes = (over: Record<string, unknown> = {}) => ({
   '/standing': standing(),
   '/offers': [fx.offer({ id: 'o1', costPoints: 180, currency: 'trip' })],
   '/wallet': { balances: { green: 610, trip: 340 }, progression: null, ledger: [] },
+  '/party': {
+    party: null,
+    summary: {
+      kind: 'solo', size: 1,
+      members: [{ userId: 'demo-user', displayName: 'Demo Traveller', missionsVerified: 3, greenEarned: 610, provinces: ['TH-84'], you: true }],
+      missionsVerified: 3, greenEarned: 610, provincesTogether: 1,
+    },
+    doesNot: [],
+  },
+  '/places': [fx.place({ id: 'sichang-place', name: { en: 'Tham Phang Beach', th: 'หาดถ้ำพัง', zh: '谭庞海滩' } })],
+  '/invites/pins': { pins: [{ placeId: 'sichang-place', invitesOpen: 0, checkinsLastHour: 0, line: { en: 'No open invitations', th: 'ยังไม่มีประกาศ', zh: '暂无邀请' } }] },
   ...over,
 });
 
 let restore: (() => void) | null = null;
-afterEach(() => { restore?.(); restore = null; opened.game = ''; });
+afterEach(() => { restore?.(); restore = null; opened.game = ''; opened.party = false; opened.findParty = false; });
 
 describe('Game&Quest navigation', () => {
   test('starts with quests and keeps their filters inside the Quests section', async () => {
@@ -91,6 +104,100 @@ describe('Game&Quest navigation', () => {
 
     await ui.press('Games');
     assert.match(ui.text(), /Sort it right/);
+    ui.unmount();
+  });
+
+  test('the Party tab beside Quests shows the real Party hub and opens its details', async () => {
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(MissionsScreen, props));
+
+    await ui.press('Party');
+    assert.ok(ui.labels().includes('Party adventure banner'));
+    assert.match(ui.text(), /adventure party starts here/i);
+    assert.match(ui.text(), /Create party/);
+    assert.match(ui.text(), /Join party/);
+    await ui.press('Party adventure banner');
+    assert.equal(opened.party, true);
+    ui.unmount();
+  });
+
+  test('a Home Party entry opens Game&Quest directly on the Party hub once', async () => {
+    const s = server(routes()); restore = s.restore;
+    let consumed = 0;
+    const ui = await mountScreen(h(MissionsScreen, {
+      ...props,
+      initialSection: 'party',
+      onInitialSectionConsumed: () => { consumed += 1; },
+    }));
+
+    assert.ok(ui.labels().includes('Party adventure banner'));
+    assert.doesNotMatch(ui.text(), /Sichang Explorer/);
+    assert.equal(consumed, 1);
+    ui.unmount();
+  });
+
+  test('the Party hub renders the current party from the API without invented team progress', async () => {
+    const s = server(routes({
+      '/party': {
+        party: { id: 'p-real', name: 'Sichang Quest Crew', createdBy: 'demo-user', createdAt: '2026-11-17T00:00:00.000Z' },
+        summary: {
+          kind: 'duo', size: 2,
+          members: [
+            { userId: 'demo-user', displayName: 'Demo Traveller', missionsVerified: 3, greenEarned: 610, provinces: ['TH-20'], you: true },
+            { userId: 'friend', displayName: 'Min', missionsVerified: 1, greenEarned: 100, provinces: ['TH-84'], you: false },
+          ],
+          missionsVerified: 4, greenEarned: 710, provincesTogether: 2,
+        },
+        doesNot: [],
+      },
+      '/party/quests/current': { partyQuest: null },
+    }));
+    restore = s.restore;
+    const ui = await mountScreen(h(MissionsScreen, props));
+
+    await ui.press('Party');
+    const said = ui.text();
+    assert.match(said, /Sichang Quest Crew/);
+    assert.match(said, /2\s*\/\s*10 members/);
+    assert.match(said, /4 Verified quests/);
+    assert.doesNotMatch(said, /60%|#12/, 'the dashboard invented quest progress or a ranking');
+    ui.unmount();
+  });
+
+  test('the Party hub renders only server-owned Quest roster facts', async () => {
+    const s = server(routes({
+      '/party': {
+        party: { id: 'p-real', name: 'Sichang Quest Crew', createdBy: 'demo-user', createdAt: '2026-11-17T00:00:00.000Z' },
+        summary: {
+          kind: 'duo', size: 2,
+          members: [
+            { userId: 'demo-user', displayName: 'Demo Traveller', missionsVerified: 3, greenEarned: 610, provinces: ['TH-20'], you: true },
+            { userId: 'friend', displayName: 'Min', missionsVerified: 1, greenEarned: 100, provinces: ['TH-84'], you: false },
+          ],
+          missionsVerified: 4, greenEarned: 710, provincesTogether: 2,
+        },
+        doesNot: [],
+      },
+      '/party/quests/current': {
+        partyQuest: {
+          id: 'pq-1', partyId: 'p-real', questId: 'sg-3', questType: 'eco', questMode: 'collective', state: 'in_progress',
+          rulesVersion: 'party-quest-foundation-v1', questSnapshot: { name: { en: 'Save Sichang Island', th: 'ช่วยกันดูแลเกาะสีชัง', zh: '守护锡昌岛' } },
+          selectedBy: 'demo-user', selectedAt: '2026-11-17T00:00:00.000Z', startedAt: '2026-11-17T00:01:00.000Z', rosterLockedAt: '2026-11-17T00:01:00.000Z', cancelledAt: null,
+          participants: [
+            { userId: 'demo-user', displayName: 'Demo Traveller', ownerAtStart: true, membershipStatus: 'active', rosteredAt: '2026-11-17T00:01:00.000Z', leftPartyAt: null, rejoinedAt: null, completedAt: null },
+            { userId: 'friend', displayName: 'Min', ownerAtStart: false, membershipStatus: 'active', rosteredAt: '2026-11-17T00:01:00.000Z', leftPartyAt: null, rejoinedAt: null, completedAt: null },
+          ],
+        },
+      },
+    }));
+    restore = s.restore;
+    const ui = await mountScreen(h(MissionsScreen, props));
+    await ui.press('Party');
+    const said = ui.text();
+    assert.match(said, /Save Sichang Island/);
+    assert.match(said, /2 members locked in the roster/);
+    assert.match(said, /0 server-confirmed complete/);
+    assert.doesNotMatch(said, /60%|1,250|Party EXP\s+\d/, 'the dashboard fabricated Party progress or EXP');
     ui.unmount();
   });
 

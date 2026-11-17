@@ -135,6 +135,8 @@ export const TRAVELLER_TABLES = [
   'user_accounts', 'device_keys', 'link_codes', 'line_identities',
   // A party's invitations and the requests to join them go with the party -
   // children first, so the foreign keys never see an orphan.
+  'party_quest_participants', 'party_quest_instances',
+  'party_locations', 'party_meeting_points', 'party_messages', 'party_itinerary', 'party_trip_summaries',
   'invite_requests', 'party_invites', 'party_members', 'parties',
   // A sighting is the rider's, like a check-in: it is their report that
   // they saw a bus, and a demo starts with nobody having seen one.
@@ -174,6 +176,9 @@ export const KEPT_TABLES = [
   // Gacha reward availability and weights are operator-owned catalogue
   // configuration, not traveller state.
   'gacha_reward_pool',
+  // Coupon bindings are also catalogue policy. A demo reset clears issued
+  // vouchers, not which verified Quest or Gacha reward is configured to issue one.
+  'quest_coupon_rewards', 'gacha_coupon_rewards',
   // An operator's listings are content, like a place (docs/61).
   'listings',
   // The organisations, what they fund, and what their staff recorded about

@@ -25,6 +25,7 @@ import { fenceOff } from './fence.ts';
 import { activePartyFor } from './party-service.ts';
 import { awardQuestReward, getBalances } from './wallet-service.ts';
 import { enqueue } from './notification-service.ts';
+import { issueQuestCoupon } from './reward-voucher-service.ts';
 
 export class InvalidTransition extends Error {
   constructor(from: QuestStage | null, to: QuestStage) {
@@ -550,6 +551,7 @@ export function resolveVerification(
       // environmental is a property of what was posted and verified.
       currency: quest.reward_currency as Currency,
     });
+    issueQuestCoupon(db, args.userId, args.questId, new Date(now));
     // The party that was there: the same approval, the same award each,
     // idempotent by source_ref like the submitter's. Told the same way.
     for (const uid of partyOnProof(db, args.proofId)) {
@@ -562,6 +564,7 @@ export function resolveVerification(
         points: quest.reward_points, exp: quest.reward_exp ?? quest.reward_points,
         currency: quest.reward_currency as Currency,
       });
+      issueQuestCoupon(db, uid, args.questId, new Date(now));
       enqueue(db, {
         userId: uid,
         kind: 'quest_approved',

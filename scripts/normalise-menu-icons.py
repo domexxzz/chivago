@@ -1,5 +1,5 @@
 """
-Trim, centre and size the seven menu icons.
+Trim, centre and size the home menu icons.
 
 The supplied PNGs are 512x512 but the drawing fills only about a third of
 each, and not the same third: Map sits right of centre, Community sits left,
@@ -38,6 +38,7 @@ NAMES = {
     "05-Deals": "menu-deals-v1.png",
     "06-Gashapon": "menu-travel-box-v1.png",
     "07-Community": "menu-community-v1.png",
+    "08-Party": "menu-party-v1.png",
 }
 
 

@@ -88,7 +88,7 @@ describe('hybrid concierge data integration', () => {
   test('resolves a verified named destination and hands navigation to the existing router', async () => {
     const db = fixtureDb();
     const found = await ask(db, 'อยากไปหาดถ้ำพัง');
-    assert.equal(found.analysis.entities.placeName, 'Tham Phang Beach');
+    assert.equal(found.analysis.entities.placeName, 'Tham Phang Beach (Ao Atsadang)');
     assert.deepEqual(found.reply.suggestions.map((item) => item.placeId), ['sc-thamphang']);
 
     const route = await ask(db, 'ไปยังไง', found.conversationId);

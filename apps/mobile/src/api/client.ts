@@ -21,6 +21,8 @@ import type {
   WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
   InviteListing, PartyInvite, RequestOutcome, InquiryView, ListingCard, TravellerInquiry,
   MascotForm, Reply, Spirit, SpiritCourt, SpiritRarity, ConciergeChatData, TravelLocation,
+  PartyItineraryItem, PartyLiveMember, PartyMeetingPoint, PartyMessage, PartyPingKind, PartyTripSummary,
+  PartyQuestInstance, PartyQuestMode, PartyQuestType,
 } from '@chivago/core';
 import type {
   AirHistory, AreaWeather, BoardEntry, Explored, Fix, Headway, MedalsView, PlaceCourts, PlaceStalls, SelfVisitResult, SelfVisitSummary, TransitRoute,
@@ -154,6 +156,7 @@ export interface SummonResult {
   category: 'mascot' | 'fashion';
   isNew: boolean;
   transactionId: string;
+  coupon: Voucher | null;
   receipt: { epochId: string; commitment: string; nonce: number; roll: number; pick: number; poolVersion: number };
 }
 
@@ -442,6 +445,8 @@ const post = <T>(path: string, body?: unknown) =>
   call<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) });
 const put = <T>(path: string, body: unknown) =>
   call<T>(path, { method: 'PUT', body: JSON.stringify(body) });
+const patch = <T>(path: string, body: unknown) =>
+  call<T>(path, { method: 'PATCH', body: JSON.stringify(body) });
 const del = <T>(path: string) => call<T>(path, { method: 'DELETE' });
 /** A multipart POST. A minute, because a clip on one bar of signal is not a JSON envelope. */
 const upload = <T>(path: string, form: FormData) => call<T>(path, { method: 'POST', body: form }, 60_000);
@@ -640,11 +645,51 @@ export const api = {
   createParty: (name: string) =>
     post<{ party: { id: string; name: string }; code: string }>('/party', { name }),
 
+  rotatePartyCode: () => post<{ code: string }>('/party/code', {}),
+
+  uploadPartyPhoto: async (uri: string, mimeType = 'image/jpeg') => {
+    const form = new FormData();
+    if (Platform.OS === 'web') {
+      const blob = await fetch(uri).then((response) => response.blob());
+      form.append('photo', blob, 'party-photo.jpg');
+    } else {
+      form.append('photo', { uri, name: 'party-photo.jpg', type: mimeType } as any);
+    }
+    return upload<{ photoUrl: string }>('/party/photo', form);
+  },
+
   joinParty: (code: string) =>
     post<{ party: { id: string; name: string } }>('/party/join', { code }),
 
   leaveParty: () => post<{ left: boolean }>('/party/leave', {}),
+  transferPartyOwnership: (memberId: string) =>
+    post<{ party: { id: string; name: string; createdBy: string; createdAt: string } }>('/party/owner', { memberId }),
   disbandParty: () => post<{ disbanded: boolean }>('/party/disband', {}),
+
+  partyLive: () => get<{ members: PartyLiveMember[]; meetingPoint: PartyMeetingPoint | null }>('/party/live'),
+  setPartyLocationSharing: (enabled: boolean) => patch<{ enabled: boolean }>('/party/location-sharing', { enabled }),
+  updatePartyLocation: (body: { latitude: number; longitude: number; accuracy?: number | null; heading?: number | null; speed?: number | null }) =>
+    put<{ updated: boolean }>('/party/location', body),
+  setPartyMeetingPoint: (body: { latitude: number; longitude: number; label?: string }) =>
+    put<{ meetingPoint: PartyMeetingPoint }>('/party/meeting-point', body),
+  partyMessages: (after?: string) => get<{ messages: PartyMessage[] }>(`/party/messages${after ? `?after=${encodeURIComponent(after)}` : ''}`),
+  sendPartyMessage: (body: string) => post<{ message: PartyMessage }>('/party/messages', { kind: 'chat', body }),
+  sendPartyPing: (pingKind: PartyPingKind, body: string, placeId?: string) =>
+    post<{ message: PartyMessage }>('/party/messages', { kind: 'ping', pingKind, body, placeId }),
+  partyItinerary: () => get<{ items: PartyItineraryItem[] }>('/party/itinerary'),
+  addPartyItinerary: (placeId: string) => post<{ items: PartyItineraryItem[] }>('/party/itinerary', { placeId }),
+  removePartyItinerary: (placeId: string) => del<{ items: PartyItineraryItem[] }>(`/party/itinerary/${encodeURIComponent(placeId)}`),
+  finishPartyTrip: () => post<{ summary: PartyTripSummary }>('/party/finish', {}),
+  partyTripSummary: (partyId: string) => get<{ summary: PartyTripSummary | null }>(`/party/summaries/${encodeURIComponent(partyId)}`),
+  currentPartyQuest: () => get<{ partyQuest: PartyQuestInstance | null }>('/party/quests/current'),
+  partyQuestHistory: () => get<{ partyQuests: PartyQuestInstance[] }>('/party/quests/history'),
+  partyQuest: (id: string) => get<{ partyQuest: PartyQuestInstance }>(`/party/quests/${encodeURIComponent(id)}`),
+  selectPartyQuest: (questId: string, questType: PartyQuestType, questMode: PartyQuestMode) =>
+    post<{ partyQuest: PartyQuestInstance }>('/party/quests/select', { questId, questType, questMode }),
+  startPartyQuest: (id: string) =>
+    post<{ partyQuest: PartyQuestInstance }>(`/party/quests/${encodeURIComponent(id)}/start`, {}),
+  cancelPartyQuest: (id: string) =>
+    post<{ partyQuest: PartyQuestInstance }>(`/party/quests/${encodeURIComponent(id)}/cancel`, {}),
 
   // -- invitations ---------------------------------------------------------
   //

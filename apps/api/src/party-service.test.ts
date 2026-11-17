@@ -7,8 +7,8 @@ import {
   applyMovement, awardCheckin, awardQuestReward, ensureWallet, getBalances, reverseMovement,
 } from './wallet-service.ts';
 import {
-  PartyRefused, activePartyFor, createParty, disbandParty, generatePartyCode,
-  joinParty, leaveParty, membersOf, normalisePartyCode,
+  PartyOwnershipError, PartyRefused, activePartyFor, createParty, disbandParty, generatePartyCode,
+  joinParty, leaveParty, membersOf, normalisePartyCode, transferPartyOwnership,
 } from './party-service.ts';
 
 let db: DB;
@@ -44,8 +44,7 @@ describe('a party aggregates, it never redistributes', () => {
   test('one member’s verified work does not appear in another’s figures', () => {
     // THE rule. Green means a named host checked it; the moment it arrives by
     // standing next to somebody who earned it, it means nothing.
-    const { party } = createParty(db, 'ana', 'Songkran trip', NOW);
-    const code = createParty(db, 'ana', 'Songkran trip', NOW).code;
+    const { party, code } = createParty(db, 'ana', 'Songkran trip', NOW);
     joinParty(db, 'bo', code, later(1000));
 
     verifiedQuest('ana', 'q1', 400);
@@ -108,11 +107,13 @@ describe('who is in it', () => {
     // Being silently in two makes "who am I travelling with" a question with
     // two answers.
     const first = createParty(db, 'ana', 'Trip one', NOW);
+    joinParty(db, 'cara', first.code, later(500));
+    transferPartyOwnership(db, 'ana', 'cara', later(750));
     const second = createParty(db, 'bo', 'Trip two', later(1000));
     joinParty(db, 'ana', second.code, later(2000));
 
     assert.equal(activePartyFor(db, 'ana')!.name, 'Trip two');
-    assert.deepEqual(membersOf(db, first.party.id, 'ana').map((m) => m.userId), []);
+    assert.equal(membersOf(db, first.party.id, 'ana').some((m) => m.userId === 'ana'), false);
   });
 
   test('a member who left stops counting towards the total', () => {
@@ -136,13 +137,32 @@ describe('who is in it', () => {
     assert.equal(n.c, 2, 'the membership row was deleted');
   });
 
-  test('the party survives its founder leaving', () => {
+  test('the owner must transfer before leaving and the party keeps a valid owner', () => {
     const { party, code } = createParty(db, 'ana', 'Trip', NOW);
     joinParty(db, 'bo', code, later(1000));
+    assert.throws(
+      () => leaveParty(db, 'ana', later(2000)),
+      (error: unknown) => error instanceof PartyOwnershipError && error.code === 'OWNER_TRANSFER_REQUIRED',
+    );
+    transferPartyOwnership(db, 'ana', 'bo', later(3000));
     leaveParty(db, 'ana', later(2000));
 
     assert.equal(activePartyFor(db, 'bo')!.id, party.id);
+    assert.equal(activePartyFor(db, 'bo')!.createdBy, 'bo');
     assert.deepEqual(membersOf(db, party.id, 'bo').map((m) => m.userId), ['bo']);
+  });
+
+  test('only the current owner can transfer to an active member', () => {
+    const { code } = createParty(db, 'ana', 'Trip', NOW);
+    joinParty(db, 'bo', code, later(1000));
+    assert.throws(
+      () => transferPartyOwnership(db, 'bo', 'cara'),
+      (error: unknown) => error instanceof PartyOwnershipError && error.code === 'OWNER_ONLY',
+    );
+    assert.throws(
+      () => transferPartyOwnership(db, 'ana', 'cara'),
+      (error: unknown) => error instanceof PartyOwnershipError && error.code === 'TRANSFER_TARGET_INVALID',
+    );
   });
 });
 
@@ -356,8 +376,12 @@ describe('a withdrawn check-in is not a province somebody visited', () => {
     });
 
   const provincesOf = (userId: string) => {
-    const { code } = createParty(db, 'ana', 'Trip', NOW);
-    if (userId !== 'ana') joinParty(db, userId, code, later(1000));
+    let party = activePartyFor(db, 'ana');
+    if (!party) {
+      const made = createParty(db, 'ana', 'Trip', NOW);
+      party = made.party;
+      if (userId !== 'ana') joinParty(db, userId, made.code, later(1000));
+    }
     return membersOf(db, activePartyFor(db, 'ana')!.id, 'ana')
       .find((m) => m.userId === userId)!.provinces;
   };
