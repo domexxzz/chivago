@@ -56,10 +56,15 @@ export const checkExport = (out, { expect = 100 } = {}) => {
   const leaks = files.filter(
     (f) => /\.(js|html|json)$/.test(f) && readFileSync(f, 'utf8').includes('localhost:8787'),
   );
-  // The demo is the exception: its own server answers that address in-process.
-  if (leaks.length && process.env.EXPO_PUBLIC_DEMO !== '1') {
+  const demo = process.env.EXPO_PUBLIC_DEMO === '1';
+  if (leaks.length && !demo) {
     wrong.push(`${leaks.length} file(s) still call localhost:8787`);
   }
+  // The demo is the exception: its own server answers that address in-process.
+  // NOTE: this cannot see a url built at RUNTIME from a base and a path, which
+  // is how the island page asks for its files - that is covered by
+  // island-diorama.test.ts, after the demo shipped for weeks asking the
+  // visitor's own machine for a megabyte of island and showing nothing.
 
   // 5. The headers. Cache rules AND the CORS rule the island cannot load
   //    without live here, not in wrangler.jsonc, where they are ignored.
