@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "node --test --experimental-strip-types \"src/**/*.test.ts\" && node --test --test-force-exit --experimental-strip-types --import ./test/register.mjs \"test/*.test.ts\"",
     "demo:web": "node scripts/export-demo.mjs",
-    "demo:deploy": "cd dist-demo && vercel link --yes --project chivago-demo && vercel deploy --prod --yes"
+    "demo:deploy": "wrangler deploy -c demo.wrangler.jsonc"
   },
   "dependencies": {
     "@babel/runtime": "^8.0.0",

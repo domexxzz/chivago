@@ -1,0 +1,32 @@
+/**
+ * The public demo, as a Worker that serves nothing but files.
+ *
+ * WHY NOT PAGES. `wrangler pages project create` now delegates to the new
+ * "Pages is part of Workers" flow, which wants to auto-configure this package
+ * - install itself as a devDependency, rewrite the scripts, invent a build
+ * command - inside a pnpm workspace it admits it does not understand. An
+ * assets-only Worker is the same product underneath with none of that: one
+ * file we own, no dependency added, and the same `wrangler deploy` the API
+ * already uses.
+ *
+ * WHY NOT VERCEL, where this used to go: on 17 November 2026 the deploy came
+ * back "Your Team exceeded our fair use limits and has been blocked". That is
+ * an account matter for the owner, and the demo did not need to wait for it.
+ *
+ * WHAT IT SERVES is `dist-demo`, built by `pnpm --filter @chivago/mobile
+ * demo:web`: the app with its network calls answered from a snapshot, so a
+ * judge can open a link with no account and no API. The snapshot is captured
+ * by `apps/api/src/capture-demo.ts` - see docs/76 and `demo-snapshot.test.ts`
+ * for how it falls behind the seed without a sound.
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "chivago-demo",
+  "compatibility_date": "2026-08-06",
+  "assets": {
+    "directory": "./dist-demo",
+    // A single-page app: an unknown path is a route, not a missing file.
+    "not_found_handling": "single-page-application"
+  },
+  "observability": { "enabled": true }
+}
