@@ -19,6 +19,24 @@ describe('Groq concierge configuration', () => {
     assert.equal(groqConciergeConfig({ GROQ_API_KEY: 'key' }).enabled, false);
   });
 
+  /**
+   * The switch is TYPED INTO A PROMPT, not written in a file.
+   *
+   * `wrangler secret put CHIVAGO_GROQ` on Windows handed the value along with
+   * the carriage return the console put there, and `'on\r' === 'on'` is false:
+   * on 17 November the key and the switch were both set on production and the
+   * object still started with "Groq concierge: off", with nothing in any log
+   * saying which half was wrong.
+   */
+  test('a switch the console padded still reads as on', () => {
+    const key = { GROQ_API_KEY: 'key' };
+    assert.equal(groqConciergeConfig({ ...key, CHIVAGO_GROQ: 'on\r' }).enabled, true);
+    assert.equal(groqConciergeConfig({ ...key, CHIVAGO_GROQ: ' on\n' }).enabled, true);
+    assert.equal(groqConciergeConfig({ ...key, CHIVAGO_GROQ: 'ON' }).enabled, true);
+    assert.equal(groqConciergeConfig({ ...key, CHIVAGO_GROQ: 'yes' }).enabled, false, 'only "on" means on');
+    assert.equal(groqConciergeConfig({ ...key, CHIVAGO_GROQ: '' }).enabled, false);
+  });
+
   test('uses the current production multilingual model and supports timeout aliases', () => {
     assert.equal(groqConciergeConfig({ CHIVAGO_GROQ: 'on', GROQ_API_KEY: 'key' }).model, 'openai/gpt-oss-120b');
     assert.equal(groqConciergeConfig({ CHIVAGO_GROQ: 'on', GROQ_API_KEY: 'key', GROQ_TIMEOUT: '3000' }).timeoutMs, 3000);

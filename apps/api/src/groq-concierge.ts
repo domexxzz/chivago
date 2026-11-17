@@ -48,7 +48,14 @@ export function groqConciergeConfig(env: Record<string, string | undefined>): Gr
   const timeout = Number(env.GROQ_TIMEOUT_MS ?? env.GROQ_TIMEOUT);
   const retries = Number(env.GROQ_RETRIES);
   return {
-    enabled: env.CHIVAGO_GROQ === 'on' && apiKey !== null,
+    /*
+      TRIMMED AND LOWERCASED on purpose. This value is typed into a prompt
+      (`wrangler secret put CHIVAGO_GROQ`), and a Windows console hands the
+      trailing carriage return along with it - and a value carrying one is not
+      equal to the two characters it looks like on screen. The exact
+      comparison turned the feature off and said nothing about why.
+    */
+    enabled: env.CHIVAGO_GROQ?.trim().toLowerCase() === 'on' && apiKey !== null,
     apiKey,
     model: env.GROQ_MODEL?.trim() || DEFAULT_MODEL,
     timeoutMs: Number.isInteger(timeout) && timeout >= 1_000 && timeout <= 30_000 ? timeout : 8_000,
