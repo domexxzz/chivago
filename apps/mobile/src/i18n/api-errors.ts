@@ -155,6 +155,143 @@ const EXACT: Readonly<Record<string, Localised>> = {
     'มีบทสนทนาเปิดอยู่มากเกินไป คุยต่อในบทสนทนาเดิม หรือรอให้ประวัติเก่าหมดอายุ',
     '打开的会话过多。请继续已有会话，或等待旧记录过期。',
   ),
+  /*
+    THE PARTY AND QUEST CODES, which arrived with #264 and had no entries.
+
+    `apiErrorMessage` falls back to the generic line when a code is missing,
+    and the generic line says to try again - which for IMAGE_TOO_LARGE or
+    NOT_MEMBER is the one thing that cannot work. The same gap shipped on
+    15 November with RATE_LIMITED and CONVERSATION_LIMIT; it is a test now,
+    and this is that test being paid.
+
+    Each of these says what happened and what the reader can do about it,
+    because "something went wrong" is not worth three translations.
+  */
+  NOT_OWNER: message(
+    'Only the party owner can do that.',
+    'เฉพาะหัวหน้ากลุ่มเท่านั้นที่ทำสิ่งนี้ได้',
+    '只有队长可以执行此操作。',
+  ),
+  OWNER_ONLY: message(
+    'Only the party owner can change this.',
+    'เฉพาะหัวหน้ากลุ่มเท่านั้นที่เปลี่ยนสิ่งนี้ได้',
+    '只有队长可以更改此设置。',
+  ),
+  NOT_MEMBER: message(
+    'You are not in this party.',
+    'คุณไม่ได้อยู่ในกลุ่มนี้',
+    '你不在这个队伍中。',
+  ),
+  MEMBER_REQUIRED: message(
+    'Join the party before doing that.',
+    'เข้าร่วมกลุ่มก่อนจึงจะทำสิ่งนี้ได้',
+    '请先加入队伍再进行此操作。',
+  ),
+  EMPTY_PARTY: message(
+    'This party has nobody in it yet.',
+    'ยังไม่มีใครอยู่ในกลุ่มนี้',
+    '这个队伍还没有成员。',
+  ),
+  PARTY_NOT_AVAILABLE: message(
+    'This party is not open just now.',
+    'กลุ่มนี้ยังไม่เปิดให้เข้าร่วมตอนนี้',
+    '该队伍目前未开放。',
+  ),
+  OWNER_TRANSFER_REQUIRED: message(
+    'Hand the party to somebody else before you leave.',
+    'ส่งต่อหัวหน้ากลุ่มให้คนอื่นก่อนออกจากกลุ่ม',
+    '离开前请先将队长转交给其他人。',
+  ),
+  TRANSFER_TARGET_INVALID: message(
+    'That person cannot take over the party.',
+    'ส่งต่อหัวหน้ากลุ่มให้คนนี้ไม่ได้',
+    '无法将队长转交给此人。',
+  ),
+  INVALID_IMAGE: message(
+    'That file is not an image the app can read.',
+    'ไฟล์นี้ไม่ใช่รูปภาพที่แอปอ่านได้',
+    '该文件不是应用可读取的图片。',
+  ),
+  IMAGE_TOO_LARGE: message(
+    'That picture is too large. Choose a smaller one.',
+    'รูปนี้ใหญ่เกินไป เลือกรูปที่เล็กกว่านี้',
+    '图片过大，请选择较小的图片。',
+  ),
+  PHOTO_NOT_FOUND: message(
+    'That photograph is no longer there.',
+    'ไม่พบรูปภาพนี้แล้ว',
+    '该照片已不存在。',
+  ),
+  SHARING_DISABLED: message(
+    'Sharing is turned off for this party.',
+    'กลุ่มนี้ปิดการแชร์ไว้',
+    '该队伍已关闭分享功能。',
+  ),
+  INVALID_SHARING: message(
+    'That sharing setting is not one the app offers.',
+    'การตั้งค่าการแชร์นี้ไม่ถูกต้อง',
+    '该分享设置无效。',
+  ),
+  LOCATION_RATE_LIMIT: message(
+    'Your position is being sent too often. It will catch up shortly.',
+    'ส่งตำแหน่งถี่เกินไป เดี๋ยวระบบจะตามให้ทัน',
+    '位置发送过于频繁，稍后会自动跟上。',
+  ),
+  MESSAGE_REQUIRED: message(
+    'Write something before sending.',
+    'พิมพ์ข้อความก่อนส่ง',
+    '发送前请先输入内容。',
+  ),
+  INVALID_PING: message(
+    'That ping is not one the app can send.',
+    'สัญญาณนี้ส่งไม่ได้',
+    '无法发送该提示。',
+  ),
+  PLACE_ALREADY_ADDED: message(
+    'That place is already on the party list.',
+    'สถานที่นี้อยู่ในรายการของกลุ่มแล้ว',
+    '该地点已在队伍列表中。',
+  ),
+  QUEST_REQUIRED: message(
+    'Choose a quest first.',
+    'เลือกเควสต์ก่อน',
+    '请先选择任务。',
+  ),
+  QUEST_NOT_FOUND: message(
+    'That quest is not available any more.',
+    'ไม่พบเควสต์นี้แล้ว',
+    '该任务已不存在。',
+  ),
+  PARTY_QUEST_NOT_FOUND: message(
+    'This party is not on that quest.',
+    'กลุ่มนี้ไม่ได้ทำเควสต์นั้นอยู่',
+    '该队伍未进行此任务。',
+  ),
+  PARTY_QUEST_ACTIVE: message(
+    'This party is already on a quest. Finish it first.',
+    'กลุ่มนี้มีเควสต์ที่ทำอยู่แล้ว ทำให้เสร็จก่อน',
+    '该队伍已有进行中的任务，请先完成。',
+  ),
+  INVALID_QUEST_TYPE: message(
+    'That kind of quest cannot be started here.',
+    'เควสต์ประเภทนี้เริ่มที่นี่ไม่ได้',
+    '此类型的任务无法在此开始。',
+  ),
+  INVALID_QUEST_MODE: message(
+    'That way of running the quest is not available.',
+    'โหมดของเควสต์นี้ใช้ไม่ได้',
+    '该任务模式不可用。',
+  ),
+  INVALID_QUEST_STATE: message(
+    'The quest has moved on. Open it again to see where it stands.',
+    'สถานะเควสต์เปลี่ยนไปแล้ว เปิดดูอีกครั้งเพื่อดูสถานะล่าสุด',
+    '任务状态已改变，请重新打开查看。',
+  ),
+  END_FAILED: message(
+    'The quest could not be closed. Try again.',
+    'ปิดเควสต์ไม่สำเร็จ ลองอีกครั้ง',
+    '无法结束任务，请重试。',
+  ),
   INTERNAL: message('The service had a problem. Please try again.', 'ระบบขัดข้อง กรุณาลองอีกครั้ง', '服务出现问题，请重试。'),
 };
 
