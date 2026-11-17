@@ -33,6 +33,7 @@ import {
   type ProvinceCompanion,
   type Wallet,
   type Companion,
+  type Voucher,
 } from '@chivago/core';
 import { api, type InboxItem } from '../api/client.ts';
 import { STAGE_LABEL } from './CompanionHome.tsx';
@@ -94,6 +95,7 @@ export function WalletScreen({
     and no medal slots at all, rather than seven drawn locked on a guess.
   */
   const medals = useAsync(() => api.medals(), [refreshKey]);
+  const vouchers = useAsync(() => api.vouchers(), [refreshKey]);
   const { width } = useWindowDimensions();
   const wide = width >= 900;
   const phone = width < 560;
@@ -164,6 +166,8 @@ export function WalletScreen({
             }}
           >
             <View style={{ flex: three ? 1 : undefined, width: three ? undefined : '100%', gap: phone ? 12 : 16 }}>
+              <TravelBoxDoor onOpen={onOpenSummon} />
+              <VoucherInventory vouchers={vouchers.data ?? []} />
               <SectionPanel
                 icon={<BackpackIcon name="my-backpack" size={46} />}
                 title={t({ en: 'My Backpack', th: 'กระเป๋าของฉัน', zh: '我的背包' })}
@@ -256,6 +260,27 @@ export function WalletScreen({
     </ScrollView>
     </ImageBackground>
   );
+}
+
+function TravelBoxDoor({ onOpen }: { onOpen: () => void }) {
+  return <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={t({ en: 'Open Traveller’s Box', th: 'เปิดตู้สุ่มนักเดินทาง', zh: '打开旅行者扭蛋机' })} style={[shadow.card, { marginHorizontal: gutter, padding: 16, borderRadius: 20, backgroundColor: '#F1E8FF', borderWidth: 2, borderColor: '#C4A8EE', flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
+    <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#7956B7', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={25} color="#FFF4B5" /></View>
+    <View style={{ flex: 1 }}><Heading size={17} colour="#3D286A">{t({ en: 'Traveller’s Box', th: 'ตู้สุ่มนักเดินทาง', zh: '旅行者扭蛋机' })}</Heading><Body size={13} colour="#604A82">{t({ en: 'Pull collectibles and view everything you own here.', th: 'สุ่มของสะสม แล้วกลับมาดูของที่ได้รับในกระเป๋า', zh: '抽取收藏品，并在背包查看所得物品。' })}</Body></View>
+  </Pressable>;
+}
+
+function VoucherInventory({ vouchers }: { vouchers: Voucher[] }) {
+  return <View style={[shadow.card, { marginHorizontal: gutter, padding: 16, borderRadius: 20, backgroundColor: color.surface, borderWidth: 1, borderColor: '#DCEFF5' }]}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}><Ticket size={23} color={color.brand} /><Heading size={17}>{t({ en: 'Discounts & coupons', th: 'ส่วนลดและคูปอง', zh: '折扣与优惠券' })}</Heading></View>
+    {vouchers.length === 0 ? <Body size={13} colour={color.neutral600} style={{ marginTop: 9 }}>{t({ en: 'No coupons in your backpack yet.', th: 'ยังไม่มีคูปองในกระเป๋า', zh: '背包里还没有优惠券。' })}</Body> : vouchers.slice(0, 6).map((voucher) => {
+      const source = voucher.sourceKind === 'quest'
+        ? t({ en: 'Quest reward', th: 'รางวัลจากเควส', zh: '任务奖励' })
+        : voucher.sourceKind === 'gacha'
+          ? t({ en: 'Traveller’s Box reward', th: 'รางวัลจากตู้สุ่ม', zh: '扭蛋机奖励' })
+          : t({ en: 'Redeemed with points', th: 'แลกด้วยแต้ม', zh: '使用积分兑换' });
+      return <View key={voucher.id} style={{ marginTop: 10, padding: 12, borderRadius: 14, backgroundColor: voucher.status === 'active' ? '#FFF8E7' : color.neutral200, borderWidth: 1, borderColor: voucher.status === 'active' ? '#E9C96D' : color.neutral300 }}><View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}><Heading size={14} style={{ flex: 1 }}>{voucher.merchant}</Heading><Label size={9} colour={voucher.status === 'active' ? color.accent700 : color.neutral600}>{voucher.status.toUpperCase()}</Label></View><Body size={13} colour={color.neutral700} style={{ marginTop: 4 }}>{source}</Body><Label size={9} colour={color.neutral600} style={{ marginTop: 4, textTransform: 'none' }}>{voucher.code}</Label></View>;
+    })}
+  </View>;
 }
 
 /**

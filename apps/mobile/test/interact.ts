@@ -134,7 +134,9 @@ export function mount(element: ReactElement): Mounted {
     async type(value, label) {
       const inputs = renderer.root.findAll(
         (n) => typeof n.props.onChangeText === 'function'
-          && (label === undefined || matches(n.props.accessibilityLabel, label)),
+          && (label === undefined
+            || matches(n.props.accessibilityLabel, label)
+            || matches(n.props['aria-label'], label)),
         { deep: true },
       );
       if (inputs.length === 0) throw new Error('no text input found');

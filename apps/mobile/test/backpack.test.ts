@@ -62,6 +62,7 @@ const backpack = (over: {
   'GET /wallet': wallet({ progression: progressionFor(over.exp ?? 1560) }),
   'GET /companions': collection(over.companions ?? []),
   'GET /passport': { visited: [], selfReported: [], evidence: over.evidence ?? [] },
+  'GET /vouchers': [],
 });
 
 let restore: (() => void) | null = null;
@@ -109,6 +110,25 @@ describe('the collection lives in the backpack, and only there', () => {
     }));
     assert.doesNotMatch(ui.text(), /My collection/, 'the rail should have left the Collect screen');
     assert.doesNotMatch(ui.text(), /Collect more, explore more/);
+    ui.unmount();
+  });
+});
+
+describe('discounts stay in the backpack with their real source', () => {
+  test('quest and Traveller’s Box coupons say where they came from', async () => {
+    const net = server({
+      'GET /wallet': wallet({ progression: progressionFor(1560) }),
+      'GET /companions': collection([]),
+      'GET /passport': { visited: [], selfReported: [], evidence: [] },
+      'GET /vouchers': [
+        { id: 'v1', offerId: 'o1', merchant: 'Island Cafe', title: 'Quest coupon', code: 'QUEST10', status: 'active', sourceKind: 'quest', sourceRef: 'quest-1', expiresAt: null },
+        { id: 'v2', offerId: 'o2', merchant: 'Pier Shop', title: 'Box coupon', code: 'BOX10', status: 'active', sourceKind: 'gacha', sourceRef: 'reward-1', expiresAt: null },
+      ],
+    });
+    restore = net.restore;
+    const ui = await mountScreen(h(WalletScreen, walletProps));
+    assert.match(ui.text(), /Quest reward/);
+    assert.match(ui.text(), /Traveller’s Box reward/);
     ui.unmount();
   });
 });

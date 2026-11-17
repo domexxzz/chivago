@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { describe, test } from 'node:test';
 import { openTestDb } from './db-node.ts';
 import {
@@ -78,5 +79,44 @@ describe('Ko Sichang production bootstrap', () => {
     });
     assert.equal((db.prepare('SELECT COUNT(*) AS n FROM places').get() as { n: number }).n, KOH_SICHANG_ATTRACTIONS.length);
     assert.equal((db.prepare('SELECT COUNT(*) AS n FROM user_accounts').get() as { n: number }).n, 0);
+  });
+
+  test('ships the two landmark additions with official coordinates and map taxonomy', () => {
+    const db = openTestDb();
+    bootstrapKohSichangBusinesses(db, { CHIVAGO_BOOTSTRAP_KOH_SICHANG: '1' } as NodeJS.ProcessEnv);
+    const landmarks = db.prepare(`
+      SELECT id, name_th, lat, lng, tags, meta, photo_url
+      FROM places
+      WHERE id IN ('sc-chong-khao-khad', 'sc-phra-lueang-chakraphong')
+      ORDER BY id
+    `).all() as {
+      id: string; name_th: string; lat: number; lng: number; tags: string; meta: string; photo_url: string | null;
+    }[];
+
+    assert.deepEqual(landmarks.map((place) => place.id), [
+      'sc-chong-khao-khad',
+      'sc-phra-lueang-chakraphong',
+    ]);
+    assert.deepEqual(
+      landmarks.map(({ id, name_th, lat, lng }) => ({ id, name_th, lat, lng })),
+      [
+        { id: 'sc-chong-khao-khad', name_th: 'ช่องเขาขาด (ช่องอิศริยาภรณ์)', lat: 13.16246, lng: 100.80146 },
+        { id: 'sc-phra-lueang-chakraphong', name_th: 'พระเหลือง–วัดถ้ำจักรพงษ์', lat: 13.15779, lng: 100.80618 },
+      ],
+    );
+    for (const landmark of landmarks) {
+      assert.ok((JSON.parse(landmark.tags) as string[]).includes('Landmark'));
+      assert.match(landmark.meta, /Thailand Digital Tourism Center attraction 21(?:533|351)/);
+    }
+    assert.equal(landmarks[0]?.photo_url, null, 'an unlicensed government-directory image must not be published');
+    assert.match(landmarks[1]?.photo_url ?? '', /^https:\/\/upload\.wikimedia\.org\//);
+    db.close();
+  });
+
+  test('production deploy keeps the insert-only landmark bootstrap enabled on server start', () => {
+    const fly = readFileSync(new URL('../../../fly.toml', import.meta.url), 'utf8');
+    const server = readFileSync(new URL('./server.ts', import.meta.url), 'utf8');
+    assert.match(fly, /CHIVAGO_BOOTSTRAP_KOH_SICHANG\s*=\s*"1"/);
+    assert.match(server, /bootstrapKohSichangBusinesses\(db\)/);
   });
 });

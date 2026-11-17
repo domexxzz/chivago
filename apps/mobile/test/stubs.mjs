@@ -3,6 +3,7 @@
 const STUBS = new Map([
   ['lucide-react-native', './stubs/icons.mjs'],
   ['react-native-svg', './stubs/views.mjs'],
+  ['react-native-qrcode-svg', './stubs/qrcode.mjs'],
   ['react-native-safe-area-context', './stubs/views.mjs'],
   ['react-native-webview', './stubs/webview.mjs'],
   ['expo-location', './stubs/native.mjs'],

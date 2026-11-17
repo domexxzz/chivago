@@ -516,6 +516,7 @@ export function TerrainMap({
   tales, onOpenStory, stops = [], interactive = true, fullScreenControls = false,
   onPickCoordinate, selectedCoordinate = null,
   here = null, way = null, wayIsRoute = false, fairLots = null, fairFocus = null,
+  partyMembers = [], meetingPoint = null,
 }: {
   places: ScoredPlace[];
   highlightedPlaceIds?: ReadonlySet<string>;
@@ -567,6 +568,8 @@ export function TerrainMap({
   fairLots?: FairLot[] | null;
   /** The lot asked for: labelled, and the camera flies to it. */
   fairFocus?: FairLot | null;
+  partyMembers?: { userId: string; displayName: string; profilePhotoUrl: string | null; lat: number; lng: number; you: boolean }[];
+  meetingPoint?: { lat: number; lng: number; label: string } | null;
 }) {
   const holder = React.useRef<HTMLDivElement | null>(null);
   // The lot to fly to, readable from the map's own load handler: when the map
@@ -591,6 +594,7 @@ export function TerrainMap({
   // Kept apart from `markers`, which is torn down and rebuilt whenever the
   // places change. The traveller is not a place and must not be swept up.
   const hereMark = React.useRef<Marker | null>(null);
+  const partyMarks = React.useRef<Marker[]>([]);
   // The place pins, kept in build order so the name declutter can measure
   // them without hunting through the map's DOM for a class.
   const pinEls = React.useRef<{ id: string; rank: number; el: HTMLElement }[]>([]);
@@ -1700,6 +1704,32 @@ export function TerrainMap({
     }
     return () => { m.off('load', drawHalo); };
   }, [here]);
+
+  React.useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+    for (const mark of partyMarks.current) mark.remove();
+    partyMarks.current = [];
+    for (const member of partyMembers) {
+      const el = document.createElement('div');
+      el.setAttribute('role', 'img'); el.setAttribute('aria-label', member.displayName);
+      Object.assign(el.style, { width: '44px', textAlign: 'center', font: '700 10px system-ui', color: '#123B64' });
+      const avatar = document.createElement(member.profilePhotoUrl ? 'img' : 'div');
+      Object.assign(avatar.style, { width: '38px', height: '38px', borderRadius: '50%', border: '3px solid #fff', background: '#10A7B5', boxShadow: '0 3px 10px rgba(0,0,0,.35)', objectFit: 'cover', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' });
+      if (member.profilePhotoUrl && avatar instanceof HTMLImageElement) avatar.src = member.profilePhotoUrl;
+      else avatar.textContent = member.displayName.slice(0, 1).toUpperCase();
+      const label = document.createElement('span'); label.textContent = member.displayName;
+      Object.assign(label.style, { display: 'block', marginTop: '2px', whiteSpace: 'nowrap', background: '#fff', padding: '3px 5px', borderRadius: '7px' });
+      el.append(avatar, label);
+      partyMarks.current.push(new Marker({ element: el, anchor: 'bottom' }).setLngLat([member.lng, member.lat]).addTo(m));
+    }
+    if (meetingPoint) {
+      const el = document.createElement('div'); el.setAttribute('aria-label', meetingPoint.label);
+      Object.assign(el.style, { width: '28px', height: '28px', borderRadius: '50% 50% 50% 0', transform: 'rotate(-45deg)', background: '#F2B84B', border: '3px solid #fff', boxShadow: '0 3px 9px rgba(0,0,0,.3)' });
+      partyMarks.current.push(new Marker({ element: el, anchor: 'bottom' }).setLngLat([meetingPoint.lng, meetingPoint.lat]).addTo(m));
+    }
+    return () => { for (const mark of partyMarks.current) mark.remove(); partyMarks.current = []; };
+  }, [partyMembers, meetingPoint]);
 
   /*
     The way to the chosen place.

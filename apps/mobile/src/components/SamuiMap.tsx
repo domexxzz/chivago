@@ -465,6 +465,9 @@ export interface SamuiMapProps {
    */
   fairLots?: FairLot[] | null;
   fairFocus?: FairLot | null;
+  /** Consented party positions. Never populated from public invitation data. */
+  partyMembers?: { userId: string; displayName: string; profilePhotoUrl: string | null; lat: number; lng: number; you: boolean }[];
+  meetingPoint?: { lat: number; lng: number; label: string } | null;
 }
 
 /**
@@ -525,6 +528,8 @@ export function SamuiMap(props: SamuiMapProps) {
         explored={props.explored}
         handleRef={props.mapRef}
         inlineSatellite={props.inlineSatellite}
+        partyMembers={props.partyMembers}
+        meetingPoint={props.meetingPoint}
         onFallback={onFallback}
       />
     );
@@ -563,7 +568,7 @@ export function SamuiMap(props: SamuiMapProps) {
 }
 
 /** Native's existing SVG engine: a coordinate grid, never another island's coastline. */
-function AreaPointMap({ area, places, highlightedPlaceIds, shops = [], onSelect, onSelectShop, onPickCoordinate, selectedCoordinate, height }: SamuiMapProps & { area: Area; height: number }) {
+function AreaPointMap({ area, places, highlightedPlaceIds, shops = [], onSelect, onSelectShop, onPickCoordinate, selectedCoordinate, height, partyMembers = [], meetingPoint = null }: SamuiMapProps & { area: Area; height: number }) {
   const { width: windowWidth } = useWindowDimensions();
   const [measured, setMeasured] = React.useState(0);
   const width = measured || windowWidth;
@@ -590,6 +595,8 @@ function AreaPointMap({ area, places, highlightedPlaceIds, shops = [], onSelect,
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       /> : null}
       {selectedCoordinate && onPickCoordinate ? (() => { const pos = point(selectedCoordinate.lat, selectedCoordinate.lng); return <View pointerEvents="none" style={{ position: 'absolute', left: pos.left - 10, top: pos.top - 10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#0077B6', borderWidth: 4, borderColor: '#fff', elevation: 5 }} />; })() : null}
+      {partyMembers.map((member) => { const pos = point(member.lat, member.lng); return <View key={member.userId} pointerEvents="none" style={{ position: 'absolute', left: pos.left - 20, top: pos.top - 46, alignItems: 'center', zIndex: 12 }}>{member.profilePhotoUrl ? <Animated.Image source={{ uri: member.profilePhotoUrl }} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: '#fff' }} /> : <View style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: '#fff', backgroundColor: color.brand, alignItems: 'center', justifyContent: 'center' }}><Heading size={14} colour="#fff">{member.displayName.slice(0, 1)}</Heading></View>}<Label size={9} colour={color.brandDeep} style={{ backgroundColor: '#fff', paddingHorizontal: 4 }}>{member.displayName}</Label></View>; })}
+      {meetingPoint ? (() => { const pos = point(meetingPoint.lat, meetingPoint.lng); return <View pointerEvents="none" style={{ position: 'absolute', left: pos.left - 11, top: pos.top - 22, width: 22, height: 22, borderRadius: 11, backgroundColor: color.gold, borderWidth: 3, borderColor: '#fff', zIndex: 11 }} />; })() : null}
       <View style={{ position: 'absolute', top: 8, left: 12, backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }}><Label size={10} colour="#0077B6">{t(area.name)} · {t({ en: 'Coordinate map', th: 'แผนผังพิกัด', zh: '坐标地图' })}</Label></View>
       {places.map((place) => { const pos = point(place.lat, place.lng); const highlighted = highlightedPlaceIds?.has(place.id) ?? false; return <Pressable key={place.id} onPress={() => onSelect(place)} accessibilityLabel={t(place.name)} style={{ position: 'absolute', left: pos.left - 23, top: pos.top - 51, zIndex: highlighted ? 8 : 1 }}>{highlighted ? <View pointerEvents="none" style={{ position: 'absolute', left: -4, top: -4, width: 50, height: 50, borderRadius: 25, borderWidth: 3, borderColor: color.gold, backgroundColor: 'rgba(255,255,255,0.2)' }} /> : null}<PlaceMapMarker place={place} /></Pressable>; })}
       {/* Every service, one pin - an unpinned one on the area's ring, marked as such. */}

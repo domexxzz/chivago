@@ -34,7 +34,7 @@ import type { Bilingual } from './types.ts';
  * A travel group, not a guild: two cars or one long-tail boat. It also bounds
  * how many people a single join code can let in before somebody notices.
  */
-export const MAX_PARTY_SIZE = 8;
+export const MAX_PARTY_SIZE = 10;
 
 export type PartyKind = 'solo' | 'duo' | 'party';
 
@@ -66,6 +66,8 @@ export interface PartyMember {
   provinces: string[];
   /** True for the member asking, so a list of names is navigable. */
   you: boolean;
+  /** Optional public profile picture. Precise location is intentionally elsewhere. */
+  profilePhotoUrl?: string | null;
 }
 
 export interface PartySummary {

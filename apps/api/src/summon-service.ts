@@ -8,11 +8,9 @@
  * have steered, and write down enough that the roll can be rechecked later
  * by somebody who does not trust us.
  *
- * NOTHING OF VALUE IS DRAWN. A summon returns a spirit. It does not touch
- * `wallets`, it does not write to `ledger`, it issues no voucher and it
- * grants no EXP. `summon-service.test.ts` holds that by assertion, because
- * the day it stops being true is the day this stops being a collection and
- * becomes a draw under the Gambling Act (docs/58, docs/68).
+ * The core draw is cosmetic. An operator may explicitly attach a real,
+ * merchant-backed coupon to a named reward through `gacha_coupon_rewards`;
+ * there is no fabricated offer and no fallback substitution.
  *
  * NO BALANCE IS STORED. Charms are counted off the ledger, dust is the SUM
  * of a signed column on the rows this file writes, and a collection is the
@@ -36,11 +34,12 @@ import {
   RARITY_EFFECTIVE_PERCENT, RARITY_EFFECTIVE_WEIGHT, RARITY_PERCENT,
   RARITY_WEIGHT, SPIRITS, TEN_PULL_COST, TEN_PULL_SIZE, WEIGHT_TOTAL,
   advancePity, drawItem, islandDateKey, itemFor, itemKey, itemsForCategory, pullCost, spiritFor,
-  type PityState, type DrawnItem, type Spirit, type SpiritRarity, type SummonCategory,
+  type PityState, type DrawnItem, type Spirit, type SpiritRarity, type SummonCategory, type Voucher,
 } from '@chivago/core';
 import { row, rows, transact, type DB } from './db.ts';
 import { notReversed } from './ledger-sql.ts';
 import { applyMovement, getBalances } from './wallet-service.ts';
+import { issueGachaCoupon } from './reward-voucher-service.ts';
 
 // ---------------------------------------------------------------------------
 // Refusals
@@ -428,6 +427,8 @@ export interface SummonResult {
   /** First acquisition of this reward through any inventory source. */
   isNew: boolean;
   transactionId: string;
+  /** Present only when an operator configured a real offer for this reward key. */
+  coupon: Voucher | null;
   /** Everything a third party needs to recheck this roll once the seed is out. */
   receipt: { epochId: string; commitment: string; nonce: number; roll: number; pick: number; poolVersion: number };
 }
@@ -611,6 +612,7 @@ export function pull(
         rarityDecision.byPity, duplicate ? 1 : 0, dustGained, now.toISOString(),
         item.kind, POOL_VERSION, i === 0 ? cost : 0, asked.category, transactionId,
       );
+      const coupon = issueGachaCoupon(db, userId, key, id, now);
 
       pity = advancePity(pity, rarityDecision.rarity);
       results.push({
@@ -623,6 +625,7 @@ export function pull(
         isNew: !duplicate,
         category: asked.category,
         transactionId,
+        coupon,
         dustGained,
         dust: 0,
         charms: charmsFor(db, userId),
@@ -700,6 +703,7 @@ export function forge(db: DB, userId: string, spiritKey: string, now = new Date(
       isNew: true,
       category: 'mascot',
       transactionId: id,
+      coupon: null,
       dustGained: 0,
       dust: dustFor(db, userId),
       charms: charmsFor(db, userId),
@@ -770,6 +774,8 @@ export function summonState(db: DB, userId: string, now = new Date()) {
     };
   };
   const banners = { mascot: banner('mascot'), fashion: banner('fashion') };
+  const couponRewards = Number(row<{ n: number }>(db.prepare(`SELECT COUNT(*) AS n FROM gacha_coupon_rewards g
+    JOIN offers o ON o.id=g.offer_id WHERE g.active=1 AND o.available=1`).get())?.n ?? 0);
   return {
     charms: charmsFor(db, userId),
     /** What a pull is paid with, and what one and ten cost. Printed on the buttons. */
@@ -789,7 +795,14 @@ export function summonState(db: DB, userId: string, now = new Date()) {
       }]),
     ),
     epoch: publicEpoch(epoch),
-    rules: publishedRules(),
+    rules: couponRewards > 0 ? {
+      ...publishedRules(),
+      notice: {
+        en: 'A pull uses Trip Points only, never money or Green Points. Some named collectibles include a real merchant coupon; the coupon is shown before it is placed in your Backpack.',
+        th: 'การสุ่มใช้เฉพาะแต้มทริป ไม่ใช้เงินจริงหรือแต้มกรีน ของสะสมบางรายการมีคูปองร้านค้าจริงแนบอยู่ และระบบจะแสดงให้เห็นก่อนเก็บลงกระเป๋า',
+        zh: '抽取只使用旅行积分，不使用现金或绿色积分。部分指定收藏品附带真实商家优惠券，存入背包前会明确显示。',
+      },
+    } : publishedRules(),
   };
 }
 

@@ -168,9 +168,10 @@ describe('spaces are bounded by the party, not only by the form', () => {
   });
 
   test('a party cannot offer more spaces than it has room for', () => {
-    // Six already travelling means two places, not the form's maximum.
-    assert.equal(spacesRefusal(3, 6), 'spaces');
-    assert.equal(spacesRefusal(2, 6), null);
+    // Eight already travelling means two places at the current ten-person
+    // ceiling, not the form's maximum.
+    assert.equal(spacesRefusal(3, 8), 'spaces');
+    assert.equal(spacesRefusal(2, 8), null);
   });
 
   test('zero, fractions and negatives are refused', () => {

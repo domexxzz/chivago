@@ -108,6 +108,8 @@ export interface WebTerrainMapProps {
    * fight the pinch and the pan, which change it too.
    */
   handleRef?: React.Ref<MapHandle>;
+  partyMembers?: { userId: string; displayName: string; profilePhotoUrl: string | null; lat: number; lng: number; you: boolean }[];
+  meetingPoint?: { lat: number; lng: number; label: string } | null;
 }
 
 /**
@@ -120,8 +122,9 @@ function page(style: unknown, pins: { id: string; lat: number; lng: number; labe
   shopPins: { id: string; lat: number; lng: number; name: string; category: string; colour: string; svg: string; approximate: boolean; note: string }[],
   centre: [number, number], here: { lat: number; lng: number } | null,
   box: { minLat: number; maxLat: number; minLng: number; maxLng: number },
-  inlineSatellite: boolean): string {
-  const data = JSON.stringify({ style, pins, shopPins, centre, here, box, inlineSatellite }).replace(/</g, '\\u003c');
+  inlineSatellite: boolean,
+  partyMembers: WebTerrainMapProps['partyMembers'] = [], meetingPoint: WebTerrainMapProps['meetingPoint'] = null): string {
+  const data = JSON.stringify({ style, pins, shopPins, centre, here, box, inlineSatellite, partyMembers, meetingPoint }).replace(/</g, '\\u003c');
   return `<!doctype html>
 <html><head>
 <meta charset="utf-8">
@@ -150,6 +153,10 @@ function page(style: unknown, pins: { id: string; lat: number; lng: number; labe
     background:#F2B531;color:#3B2A10;border:2px solid #fff;font:800 10px/13px system-ui,sans-serif;text-align:center}
   .me{width:16px;height:16px;border-radius:8px;background:#0077B6;border:3px solid #fff;
       box-shadow:0 0 0 6px rgba(0,119,182,.25)}
+  .party-person{position:relative;width:46px;height:56px;text-align:center;font:700 10px/1.1 system-ui,sans-serif;color:#123B64}
+  .party-avatar{width:38px;height:38px;border-radius:50%;border:3px solid #fff;background:#10A7B5;box-shadow:0 3px 10px rgba(0,0,0,.35);object-fit:cover}
+  .party-name{position:absolute;top:40px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#fff;padding:3px 6px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,.2)}
+  .meeting{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#F2B84B;border:3px solid #fff;box-shadow:0 3px 9px rgba(0,0,0,.3)}
   /* Bigger than MapLibre's default: these are pressed with a thumb, not a mouse. */
   .maplibregl-ctrl-group button{width:40px;height:40px}
   /*
@@ -356,6 +363,18 @@ function start(){
       var me=document.createElement('div'); me.className='me';
       new maplibregl.Marker({element:me}).setLngLat([D.here.lng,D.here.lat]).addTo(map);
     }
+    var partyMarks=[];
+    window.__party=function(data){
+      partyMarks.forEach(function(mark){mark.remove()}); partyMarks=[];
+      (data.members||[]).forEach(function(p){
+        var el=document.createElement('div'); el.className='party-person';
+        var avatar=p.profilePhotoUrl?'<img class="party-avatar" src="'+String(p.profilePhotoUrl).replace(/"/g,'&quot;')+'">':'<div class="party-avatar" style="display:flex;align-items:center;justify-content:center;color:white">'+String(p.displayName||'?').slice(0,1)+'</div>';
+        el.innerHTML=avatar+'<span class="party-name">'+String(p.displayName||'').replace(/</g,'&lt;')+'</span>';
+        partyMarks.push(new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([p.lng,p.lat]).addTo(map));
+      });
+      if(data.meeting){ var meet=document.createElement('div'); meet.className='meeting'; meet.setAttribute('aria-label',data.meeting.label||'Meeting point'); partyMarks.push(new maplibregl.Marker({element:meet,anchor:'bottom'}).setLngLat([data.meeting.lng,data.meeting.lat]).addTo(map)); }
+    };
+    window.__party(window.__partyData||{members:D.partyMembers||[],meeting:D.meetingPoint});
   });
 }
 var s=document.createElement('script');
@@ -376,7 +395,7 @@ document.head.appendChild(s);
  * which is why that drawing is kept rather than deleted.
  */
 export function WebTerrainMap({
-  area, places, highlightedPlaceIds, onSelect, shops = [], onSelectShop, here, height, hour = 12, explored = [], inlineSatellite = true, handleRef, onFallback,
+  area, places, highlightedPlaceIds, onSelect, shops = [], onSelectShop, here, height, hour = 12, explored = [], inlineSatellite = true, handleRef, onFallback, partyMembers = [], meetingPoint = null,
 }: WebTerrainMapProps & { onFallback?: () => void }) {
   const web = React.useRef<WebView>(null);
   // `true;` on the end: injectJavaScript warns about a non-boolean result.
@@ -422,12 +441,19 @@ export function WebTerrainMap({
       here,
       area.bbox,
       inlineSatellite,
+      partyMembers,
+      meetingPoint,
     );
     // `here` moves constantly while watched; re-rendering the whole document
     // for every fix would tear the map down mid-pan. The dot is placed from
     // the position the map STARTED with, and the map is not rebuilt for it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [area.key, places, highlightedPlaceIds, shops, hour]);
+
+  React.useEffect(() => {
+    const data = JSON.stringify({ members: partyMembers, meeting: meetingPoint }).replace(/</g, '\\u003c');
+    web.current?.injectJavaScript(`window.__partyData=${data};window.__party&&window.__party(window.__partyData);true;`);
+  }, [partyMembers, meetingPoint]);
 
   const onMessage = React.useCallback((event: WebViewMessageEvent) => {
     let message: { type?: string; id?: string; error?: string };

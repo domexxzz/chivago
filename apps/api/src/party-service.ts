@@ -1,7 +1,7 @@
 /**
  * Parties, read out of the same ledger everything else reads.
  *
- * No points table, no shared wallet, no transfer. A party's totals are its
+ * No points table and no shared wallet. Ownership can transfer, but a party's totals are its
  * members' own figures added up on read — the sixth time this codebase has
  * declined to keep a second record of a fact the ledger already holds.
  *
@@ -12,10 +12,11 @@
  */
 
 import { randomBytes, randomInt } from 'node:crypto';
-import { row, rows, type DB } from './db.ts';
+import { row, rows, transact, type DB } from './db.ts';
 import { notReversed } from './ledger-sql.ts';
 import { hashToken } from './account-service.ts';
 import { MAX_PARTY_SIZE, type JoinFailure, type PartyMember } from '@chivago/core';
+import { markPartyQuestMemberLeft, resumePartyQuestMember } from './party-quest-service.ts';
 
 /** Same alphabet as a link code: read off one screen, typed into another. */
 const CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
@@ -30,10 +31,35 @@ export class PartyRefused extends Error {
   }
 }
 
+export class PartyOwnershipError extends Error {
+  readonly code: 'OWNER_TRANSFER_REQUIRED' | 'OWNER_ONLY' | 'TRANSFER_TARGET_INVALID';
+  readonly status: number;
+  constructor(
+    code: 'OWNER_TRANSFER_REQUIRED' | 'OWNER_ONLY' | 'TRANSFER_TARGET_INVALID',
+    message: string,
+    status: number,
+  ) {
+    super(message);
+    this.name = 'PartyOwnershipError';
+    this.code = code;
+    this.status = status;
+  }
+}
+
 /** Six characters. Shorter than a device link code, and it does far less. */
 export function generatePartyCode(): string {
   let code = '';
   for (let i = 0; i < CODE_LENGTH; i += 1) code += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
+  return code;
+}
+
+/** Rotate the invite credential. The old code stops working immediately. */
+export function rotatePartyCode(db: DB, userId: string): string {
+  const party = activePartyFor(db, userId);
+  if (!party) throw new PartyRefused('unknown');
+  if (party.createdBy !== userId) throw new PartyRefused('unknown');
+  const code = generatePartyCode();
+  db.prepare('UPDATE parties SET code_hash=? WHERE id=?').run(hashToken(code), party.id);
   return code;
 }
 
@@ -68,19 +94,19 @@ export function activePartyFor(db: DB, userId: string): PartyRow | null {
 export function createParty(
   db: DB, userId: string, name: string, now = new Date(),
 ): { party: PartyRow; code: string } {
-  leaveParty(db, userId, now);
-
-  const id = `pty_${randomBytes(6).toString('base64url')}`;
-  const code = generatePartyCode();
-  const iso = now.toISOString();
-
-  db.prepare(
-    'INSERT INTO parties (id, name, code_hash, created_by, created_at) VALUES (?,?,?,?,?)',
-  ).run(id, name.trim() || 'Our trip', hashToken(code), userId, iso);
-  db.prepare('INSERT INTO party_members (party_id, user_id, joined_at) VALUES (?,?,?)')
-    .run(id, userId, iso);
-
-  return { party: { id, name, createdBy: userId, createdAt: iso }, code };
+  return transact(db, () => {
+    leaveParty(db, userId, now);
+    const id = `pty_${randomBytes(6).toString('base64url')}`;
+    const code = generatePartyCode();
+    const iso = now.toISOString();
+    const cleanName = name.trim().slice(0, 80) || 'Our trip';
+    db.prepare(
+      'INSERT INTO parties (id, name, code_hash, created_by, created_at) VALUES (?,?,?,?,?)',
+    ).run(id, cleanName, hashToken(code), userId, iso);
+    db.prepare('INSERT INTO party_members (party_id, user_id, joined_at, last_seen_at) VALUES (?,?,?,?)')
+      .run(id, userId, iso, iso);
+    return { party: { id, name: cleanName, createdBy: userId, createdAt: iso }, code };
+  });
 }
 
 /**
@@ -130,47 +156,91 @@ type FoundParty = {
 };
 
 function joinFound(db: DB, userId: string, found: FoundParty, now: Date): PartyRow {
-  if (found.disbanded_at !== null) throw new PartyRefused('disbanded');
-
-  const already = row<{ left_at: string | null }>(
-    db.prepare('SELECT left_at FROM party_members WHERE party_id = ? AND user_id = ?')
-      .get(found.id, userId),
-  );
-  if (already && already.left_at === null) throw new PartyRefused('already-in');
-
-  const size = (db.prepare(
-    'SELECT COUNT(*) AS n FROM party_members WHERE party_id = ? AND left_at IS NULL',
-  ).get(found.id) as { n: number }).n;
-  if (size >= MAX_PARTY_SIZE) throw new PartyRefused('full');
-
-  leaveParty(db, userId, now);
-  const iso = now.toISOString();
-  if (already) {
-    // Rejoining. The original joined_at is overwritten on purpose: they are in
-    // it from now, and pretending otherwise would date their membership to a
-    // trip they had already left.
-    db.prepare('UPDATE party_members SET left_at = NULL, joined_at = ? WHERE party_id = ? AND user_id = ?')
-      .run(iso, found.id, userId);
-  } else {
-    db.prepare('INSERT INTO party_members (party_id, user_id, joined_at) VALUES (?,?,?)')
-      .run(found.id, userId, iso);
-  }
-
-  return { id: found.id, name: found.name, createdBy: found.created_by, createdAt: found.created_at };
+  return transact(db, () => {
+    const current = row<FoundParty>(db.prepare(
+      'SELECT id, name, created_by, created_at, disbanded_at FROM parties WHERE id = ?',
+    ).get(found.id));
+    if (!current) throw new PartyRefused('unknown');
+    if (current.disbanded_at !== null) throw new PartyRefused('disbanded');
+    const already = row<{ left_at: string | null }>(
+      db.prepare('SELECT left_at FROM party_members WHERE party_id = ? AND user_id = ?').get(current.id, userId),
+    );
+    if (already?.left_at === null) throw new PartyRefused('already-in');
+    const size = Number((db.prepare(
+      'SELECT COUNT(*) AS n FROM party_members WHERE party_id = ? AND left_at IS NULL',
+    ).get(current.id) as { n: number }).n);
+    if (size >= MAX_PARTY_SIZE) throw new PartyRefused('full');
+    leaveParty(db, userId, now);
+    const iso = now.toISOString();
+    if (already) {
+      db.prepare('UPDATE party_members SET left_at=NULL, joined_at=?, sharing_enabled=0, last_seen_at=? WHERE party_id=? AND user_id=?')
+        .run(iso, iso, current.id, userId);
+    } else {
+      db.prepare('INSERT INTO party_members (party_id,user_id,joined_at,last_seen_at) VALUES (?,?,?,?)')
+        .run(current.id, userId, iso, iso);
+    }
+    resumePartyQuestMember(db, current.id, userId, now);
+    return { id: current.id, name: current.name, createdBy: current.created_by, createdAt: current.created_at };
+  });
 }
 
 /**
  * Leave. Returns how many memberships ended, which is 0 or 1.
  *
- * The party survives its founder leaving. A group that dissolves when one
- * person steps out would strand everybody else's shared progress on a row
- * nobody can reach.
+ * The party survives a member leaving. Its owner must transfer ownership or
+ * disband first, so authorization never points at somebody outside the party.
  */
 export function leaveParty(db: DB, userId: string, now = new Date()): number {
-  const res = db.prepare(
-    'UPDATE party_members SET left_at = ? WHERE user_id = ? AND left_at IS NULL',
-  ).run(now.toISOString(), userId);
-  return Number(res.changes ?? 0);
+  return transact(db, () => {
+    const active = rows<{ party_id: string; created_by: string }>(db.prepare(
+      `SELECT m.party_id,p.created_by FROM party_members m JOIN parties p ON p.id=m.party_id
+        WHERE m.user_id=? AND m.left_at IS NULL AND p.disbanded_at IS NULL`,
+    ).all(userId));
+    if (active.some((membership) => membership.created_by === userId)) {
+      throw new PartyOwnershipError(
+        'OWNER_TRANSFER_REQUIRED',
+        'Transfer Party ownership to an active member before leaving.',
+        409,
+      );
+    }
+    for (const membership of active) {
+      db.prepare('DELETE FROM party_locations WHERE party_id=? AND user_id=?').run(membership.party_id, userId);
+      markPartyQuestMemberLeft(db, membership.party_id, userId, now);
+    }
+    const res = db.prepare(
+      'UPDATE party_members SET left_at=?, sharing_enabled=0 WHERE user_id=? AND left_at IS NULL',
+    ).run(now.toISOString(), userId);
+    return Number(res.changes ?? 0);
+  });
+}
+
+/** Atomically transfer authorization to another active member. */
+export function transferPartyOwnership(
+  db: DB, userId: string, targetUserId: string, now = new Date(),
+): PartyRow {
+  return transact(db, () => {
+    const party = activePartyFor(db, userId);
+    if (!party || party.createdBy !== userId) {
+      throw new PartyOwnershipError('OWNER_ONLY', 'Only the current Party Owner can transfer ownership.', 403);
+    }
+    if (!targetUserId || targetUserId === userId) {
+      throw new PartyOwnershipError('TRANSFER_TARGET_INVALID', 'Choose another active Party member.', 400);
+    }
+    const target = row<{ user_id: string }>(db.prepare(
+      'SELECT user_id FROM party_members WHERE party_id=? AND user_id=? AND left_at IS NULL',
+    ).get(party.id, targetUserId));
+    if (!target) throw new PartyOwnershipError('TRANSFER_TARGET_INVALID', 'Choose an active member of this Party.', 400);
+    const changed = db.prepare(
+      'UPDATE parties SET created_by=? WHERE id=? AND created_by=? AND disbanded_at IS NULL',
+    ).run(targetUserId, party.id, userId);
+    if (Number(changed.changes ?? 0) !== 1) {
+      throw new PartyOwnershipError('OWNER_ONLY', 'Party ownership changed before this request completed.', 409);
+    }
+    // The timestamp is intentionally not stored: membership history already
+    // records who was present, while authorization has one current owner.
+    void now;
+    return { ...party, createdBy: targetUserId };
+  });
 }
 
 /**
@@ -181,11 +251,12 @@ export function leaveParty(db: DB, userId: string, now = new Date()): number {
  * their row on the host board can never disagree.
  */
 export function membersOf(db: DB, partyId: string, asking: string): PartyMember[] {
-  const people = rows<{ user_id: string; display_name: string }>(
+  const people = rows<{ user_id: string; display_name: string; profile_photo_url: string | null }>(
     db.prepare(
-      `SELECT u.id AS user_id, u.display_name AS display_name
+      `SELECT u.id AS user_id, u.display_name AS display_name, pr.profile_photo_url
        FROM party_members m
        JOIN users u ON u.id = m.user_id
+       LEFT JOIN profiles pr ON pr.user_id = u.id
        WHERE m.party_id = ? AND m.left_at IS NULL
        ORDER BY m.joined_at`,
     ).all(partyId),
@@ -245,13 +316,22 @@ export function membersOf(db: DB, partyId: string, asking: string): PartyMember[
     greenEarned: earned.get(p.user_id)?.green ?? 0,
     provinces: provinces.get(p.user_id) ?? [],
     you: p.user_id === asking,
+    profilePhotoUrl: p.profile_photo_url,
   }));
 }
 
-/** Only the person who started it may disband it. */
+/** Only the current owner may disband it. */
 export function disbandParty(db: DB, userId: string, partyId: string, now = new Date()): boolean {
-  const res = db.prepare(
-    'UPDATE parties SET disbanded_at = ? WHERE id = ? AND created_by = ? AND disbanded_at IS NULL',
-  ).run(now.toISOString(), partyId, userId);
-  return Number(res.changes ?? 0) > 0;
+  return transact(db, () => {
+    const iso = now.toISOString();
+    const res = db.prepare(
+      'UPDATE parties SET disbanded_at = ? WHERE id = ? AND created_by = ? AND disbanded_at IS NULL',
+    ).run(iso, partyId, userId);
+    if (Number(res.changes ?? 0) === 0) return false;
+    db.prepare(
+      `UPDATE party_quest_instances SET state='cancelled',cancelled_at=?
+        WHERE party_id=? AND state IN ('selected','in_progress','verifying')`,
+    ).run(iso, partyId);
+    return true;
+  });
 }

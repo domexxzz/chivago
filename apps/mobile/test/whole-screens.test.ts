@@ -39,15 +39,16 @@ describe('the wallet screen, fetching its own wallet', () => {
       'GET /companions': { companions: [], summary: { found: 0, total: 5, grown: 0 }, speciesAsOf: '2026-09-01' },
       'GET /passport': { visited: [], selfReported: [], evidence: [] },
       'GET /medals': { medals: [], earned: 0, total: 0, basis: { en: '', th: '', zh: '' } },
+      'GET /vouchers': [],
     });
     try {
       const ui = await mountScreen(h(WalletScreen, walletProps));
-      // Four fetches: the purse, the companion collection, the passport (only
+      // Five fetches: the purse, the companion collection, the passport (only
       // to know which province emblem the backpack carries), and the medals
-      // that fill the reward inventory beside the five ranks.
+      // that fill the reward inventory beside the five ranks, plus coupons.
       assert.deepEqual(
         net.calls.map((c) => `${c.method} ${c.path}`).sort(),
-        ['GET /companions', 'GET /medals', 'GET /passport', 'GET /wallet'],
+        ['GET /companions', 'GET /medals', 'GET /passport', 'GET /vouchers', 'GET /wallet'],
       );
       assert.deepEqual(net.missing, [], 'the screen fetched something untabled');
 

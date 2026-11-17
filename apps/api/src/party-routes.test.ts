@@ -1,5 +1,5 @@
 import { strict as assert } from 'node:assert';
-import { test, describe, before } from 'node:test';
+import { test, describe, before, beforeEach } from 'node:test';
 
 /**
  * Parties, over HTTP.
@@ -37,6 +37,19 @@ let bo: string;
 before(async () => {
   ana = await register('Ana');
   bo = await register('Bo');
+});
+
+const ensureSolo = async (key: string) => {
+  const current = await json(await get('/party', key));
+  if (!current.data.party) return;
+  const me = current.data.summary.members.find((member: any) => member.you)?.userId;
+  if (current.data.party.createdBy === me) await post('/party/disband', {}, key);
+  else await post('/party/leave', {}, key);
+};
+
+beforeEach(async () => {
+  await ensureSolo(ana);
+  await ensureSolo(bo);
 });
 
 describe('starting and joining', () => {
@@ -87,6 +100,8 @@ describe('starting and joining', () => {
   });
 
   test('no member row ever carries a balance', async () => {
+    const made = await json(await post('/party', { name: 'Privacy check' }, ana));
+    await post('/party/join', { code: made.data.code }, bo);
     const res = await get('/party', bo);
     const text = await res.text();
     const member = (await json(await get('/party', bo))).data.summary.members[0];

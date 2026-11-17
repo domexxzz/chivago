@@ -11,8 +11,18 @@ import { randomUUID } from 'node:crypto';
 import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
 import {
-  PartyRefused, activePartyFor, createParty, disbandParty, joinParty, leaveParty, membersOf,
+  PartyOwnershipError, PartyRefused, activePartyFor, createParty, disbandParty, joinParty, leaveParty,
+  membersOf, rotatePartyCode, transferPartyOwnership,
 } from './party-service.ts';
+import {
+  PartyQuestError, cancelPartyQuest, currentPartyQuest, getPartyQuest, partyQuestHistory,
+  selectPartyQuest, startPartyQuest,
+} from './party-quest-service.ts';
+import {
+  PartyLiveError, addItineraryPlace, addPartyMessage, finishPartyTrip, itinerary, liveMembers,
+  meetingPoint, partyMessages, readPartyPhoto, removeItineraryPlace, setLocationSharing,
+  setMeetingPoint, setPartyPhoto, tripSummary, updatePartyLocation,
+} from './party-live-service.ts';
 import {
   InviteRefused, closeInvite, decideRequest, listingsAt, openInviteCounts,
   openInviteFor, pendingFor, postInvite, requestJoin, requestsBy, withdrawRequest,
@@ -2349,7 +2359,7 @@ app.get('/vouchers', (c) => {
     .all(userId(c)) as unknown as {
       id: string; offer_id: string; user_id: string; merchant: string; code: string;
       cost_points: number; value_thb: number | null; issued_at: string; expires_at: string;
-      redeemed_at: string | null; status: string;
+      redeemed_at: string | null; status: string; source_kind: string | null; source_ref: string | null;
     }[];
   const vouchers: Voucher[] = rows.map((r) => ({
     id: r.id,
@@ -2363,6 +2373,8 @@ app.get('/vouchers', (c) => {
     expiresAt: r.expires_at,
     redeemedAt: r.redeemed_at,
     status: r.status as Voucher['status'],
+    sourceKind: (r.source_kind ?? 'marketplace') as Voucher['sourceKind'],
+    sourceRef: r.source_ref ?? null,
   }));
   return ok(c, vouchers, { total: vouchers.length });
 });
@@ -2557,7 +2569,7 @@ app.get('/standing', (c) => {
 // Parties
 //
 // A party is a VIEW over what its members separately earned. There is no
-// shared wallet and no transfer route below, and there never will be: Green
+// shared wallet. Ownership transfer changes authorization, never balances: Green
 // means a named host checked the work, so it cannot arrive by standing next to
 // somebody who did it.
 // ---------------------------------------------------------------------------
@@ -2580,8 +2592,13 @@ app.get('/party', (c) => {
 /** Start one. The code is returned here and only its hash is stored. */
 app.post('/party', async (c) => {
   const body = await c.req.json<{ name?: string }>().catch(() => ({} as { name?: string }));
-  const { party, code } = createParty(db, userId(c), body.name ?? '');
-  return ok(c, { party, code });
+  try {
+    const { party, code } = createParty(db, userId(c), body.name ?? '');
+    return ok(c, { party, code });
+  } catch (err) {
+    if (err instanceof PartyOwnershipError) return fail(c, err.code, err.message, err.status);
+    throw err;
+  }
 });
 
 app.post('/party/join', async (c) => {
@@ -2600,9 +2617,26 @@ app.post('/party/join', async (c) => {
   }
 });
 
-app.post('/party/leave', (c) => ok(c, { left: leaveParty(db, userId(c)) > 0 }));
+app.post('/party/owner', async (c) => {
+  try {
+    const body = await boundedJson(c, 1_024) as { memberId?: unknown };
+    if (typeof body.memberId !== 'string' || !body.memberId) return fail(c, 'MEMBER_REQUIRED', 'Choose a Party member.', 400);
+    return ok(c, { party: transferPartyOwnership(db, userId(c), body.memberId) });
+  } catch (err) {
+    if (err instanceof PartyOwnershipError) return fail(c, err.code, err.message, err.status);
+    throw err;
+  }
+});
 
-/** Only the founder may disband; the party survives anyone else leaving. */
+app.post('/party/leave', (c) => {
+  try { return ok(c, { left: leaveParty(db, userId(c)) > 0 }); }
+  catch (err) {
+    if (err instanceof PartyOwnershipError) return fail(c, err.code, err.message, err.status);
+    throw err;
+  }
+});
+
+/** Only the current owner may disband; the party survives anyone else leaving. */
 app.post('/party/disband', (c) => {
   const party = activePartyFor(db, userId(c));
   if (!party) return fail(c, 'NO_PARTY', 'You are not in a group.', 404);
@@ -2610,6 +2644,141 @@ app.post('/party/disband', (c) => {
     return fail(c, 'NOT_YOURS', 'Only whoever started this group can disband it.', 403);
   }
   return ok(c, { disbanded: true });
+});
+
+const partyLiveFailure = (c: Context<AppEnv>, err: unknown) => {
+  if (err instanceof PartyLiveError) return fail(c, err.code, err.message, err.status);
+  if (err instanceof PartyRefused) return fail(c, 'PARTY_NOT_AVAILABLE', 'The party is not available.', 404);
+  throw err;
+};
+
+/** Issue a fresh share code; only the owner receives the plaintext credential. */
+app.post('/party/code', (c) => {
+  try { return ok(c, { code: rotatePartyCode(db, userId(c)) }); }
+  catch (err) { return partyLiveFailure(c, err); }
+});
+
+app.post('/party/photo', async (c) => {
+  try {
+    if (!(c.req.header('content-type') ?? '').includes('multipart/form-data')) return fail(c, 'MULTIPART_REQUIRED', 'Send multipart/form-data.', 400);
+    const form = await boundedForm(c, 4 * 1024 * 1024); const file = form.get('photo');
+    if (!(file instanceof File)) return fail(c, 'FILE_REQUIRED', 'Choose a party picture first.', 400);
+    const url = setPartyPhoto(db, userId(c), file.type, new Uint8Array(await file.arrayBuffer()));
+    return ok(c, { photoUrl: url });
+  } catch (err) { return partyLiveFailure(c, err); }
+});
+
+app.get('/party/:id/photo', (c) => {
+  const media = readPartyPhoto(db, c.req.param('id'));
+  if (!media) return fail(c, 'PHOTO_NOT_FOUND', 'Party picture not found.', 404);
+  const body = new Uint8Array(media.bytes.byteLength);
+  body.set(media.bytes);
+  return c.body(body, 200, { 'content-type': media.mime, 'cache-control': 'private, max-age=300', 'x-content-type-options': 'nosniff' });
+});
+
+app.get('/party/live', (c) => {
+  try { return ok(c, { members: liveMembers(db, userId(c)), meetingPoint: meetingPoint(db, userId(c)) }); }
+  catch (err) { return partyLiveFailure(c, err); }
+});
+
+app.patch('/party/location-sharing', async (c) => {
+  try {
+    const body = await boundedJson(c, 1_024) as { enabled?: unknown };
+    if (typeof body.enabled !== 'boolean') return fail(c, 'INVALID_SHARING', 'enabled must be true or false.', 400);
+    return ok(c, { enabled: setLocationSharing(db, userId(c), body.enabled) && body.enabled });
+  } catch (err) { return partyLiveFailure(c, err); }
+});
+
+app.put('/party/location', async (c) => {
+  try {
+    const body = await boundedJson(c, 4_096) as { latitude?: unknown; longitude?: unknown; accuracy?: unknown; heading?: unknown; speed?: unknown };
+    updatePartyLocation(db, userId(c), { latitude: body.latitude, longitude: body.longitude, accuracy: body.accuracy, heading: body.heading, speed: body.speed });
+    return ok(c, { updated: true });
+  } catch (err) { return partyLiveFailure(c, err); }
+});
+
+app.put('/party/meeting-point', async (c) => {
+  try {
+    const body = await boundedJson(c, 4_096) as { latitude?: unknown; longitude?: unknown; label?: unknown };
+    return ok(c, { meetingPoint: setMeetingPoint(db, userId(c), { latitude: body.latitude, longitude: body.longitude, label: body.label }) });
+  } catch (err) { return partyLiveFailure(c, err); }
+});
+
+app.get('/party/messages', (c) => {
+  try { return ok(c, { messages: partyMessages(db, userId(c), c.req.query('after'), Number(c.req.query('limit') ?? 100)) }); }
+  catch (err) { return partyLiveFailure(c, err); }
+});
+
+app.post('/party/messages', async (c) => {
+  try {
+    const body = await boundedJson(c, 8_192) as { body?: unknown; kind?: unknown; pingKind?: unknown; placeId?: unknown };
+    return ok(c, { message: addPartyMessage(db, userId(c), body) });
+  } catch (err) { return partyLiveFailure(c, err); }
+});
+
+app.get('/party/itinerary', (c) => {
+  try { return ok(c, { items: itinerary(db, userId(c)) }); }
+  catch (err) { return partyLiveFailure(c, err); }
+});
+
+app.post('/party/itinerary', async (c) => {
+  try {
+    const body = await boundedJson(c, 2_048) as { placeId?: unknown };
+    if (typeof body.placeId !== 'string' || !body.placeId) return fail(c, 'PLACE_REQUIRED', 'Choose a place.', 400);
+    return ok(c, { items: addItineraryPlace(db, userId(c), body.placeId) });
+  } catch (err) { return partyLiveFailure(c, err); }
+});
+
+app.delete('/party/itinerary/:placeId', (c) => {
+  try { return ok(c, { items: removeItineraryPlace(db, userId(c), c.req.param('placeId')) }); }
+  catch (err) { return partyLiveFailure(c, err); }
+});
+
+app.post('/party/finish', (c) => {
+  try { return ok(c, { summary: finishPartyTrip(db, userId(c)) }); }
+  catch (err) { return partyLiveFailure(c, err); }
+});
+
+app.get('/party/summaries/:id', (c) => {
+  try { return ok(c, { summary: tripSummary(db, userId(c), c.req.param('id')) }); }
+  catch (err) { return partyLiveFailure(c, err); }
+});
+
+const partyQuestFailure = (c: Context<AppEnv>, err: unknown) => {
+  if (err instanceof PartyQuestError) return fail(c, err.code, err.message, err.status);
+  throw err;
+};
+
+app.get('/party/quests/current', (c) => {
+  try { return ok(c, { partyQuest: currentPartyQuest(db, userId(c)) }); }
+  catch (err) { return partyQuestFailure(c, err); }
+});
+
+app.get('/party/quests/history', (c) => {
+  try { return ok(c, { partyQuests: partyQuestHistory(db, userId(c)) }); }
+  catch (err) { return partyQuestFailure(c, err); }
+});
+
+app.get('/party/quests/:id', (c) => {
+  try { return ok(c, { partyQuest: getPartyQuest(db, userId(c), c.req.param('id')) }); }
+  catch (err) { return partyQuestFailure(c, err); }
+});
+
+app.post('/party/quests/select', async (c) => {
+  try {
+    const body = await boundedJson(c, 4_096) as { questId?: unknown; questType?: unknown; questMode?: unknown };
+    return ok(c, { partyQuest: selectPartyQuest(db, userId(c), body) });
+  } catch (err) { return partyQuestFailure(c, err); }
+});
+
+app.post('/party/quests/:id/start', (c) => {
+  try { return ok(c, { partyQuest: startPartyQuest(db, userId(c), c.req.param('id')) }); }
+  catch (err) { return partyQuestFailure(c, err); }
+});
+
+app.post('/party/quests/:id/cancel', (c) => {
+  try { return ok(c, { partyQuest: cancelPartyQuest(db, userId(c), c.req.param('id')) }); }
+  catch (err) { return partyQuestFailure(c, err); }
 });
 
 // ---------------------------------------------------------------------------

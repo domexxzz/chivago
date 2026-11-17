@@ -3,13 +3,15 @@
  */
 
 import React from 'react';
-import { Animated, Image, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Animated, Image, PanResponder, Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { Backpack, ChevronLeft, House, Leaf, Map as MapIcon, PawPrint, Sparkles, UserRound, Users } from 'lucide-react-native';
 import { strings } from '@chivago/core';
 import { color, gutter, headerGutter, layout, motion, onFill, radius, ruleStrong, ruleStrongTop, shadow } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from './Type.tsx';
 import { IconButton } from './Button.tsx';
+import { constrainLauncherPoint, snapLauncherPoint } from './launcher-position.ts';
 
 /**
  * Declared in state/store.tsx and re-exported here rather than written twice.
@@ -82,20 +84,63 @@ const RAIL_MENU_ICONS: Record<PrimaryTabKey, MenuIconKey> = {
  * dashboard layout the door row is at y 429 and this at 666, far apart.
  */
 export function AiGuideButton({ onPress, wide = false }: { onPress: () => void; wide?: boolean }) {
+  const { width, height } = useWindowDimensions();
+  const position = React.useRef(new Animated.ValueXY()).current;
+  const point = React.useRef({ x: 0, y: 0 });
+  const dragged = React.useRef(false);
+  const storageKey = 'chivago.chivarBotLauncherPosition';
+  const clamp = React.useCallback(
+    (p: { x: number; y: number }) => constrainLauncherPoint(p, width, height),
+    [width, height],
+  );
+  const persist = React.useCallback(async (p: { x: number; y: number }) => {
+    try {
+      if (Platform.OS === 'web') globalThis.localStorage?.setItem(storageKey, JSON.stringify(p));
+      else await SecureStore.setItemAsync(storageKey, JSON.stringify(p));
+    } catch {}
+  }, []);
+  React.useEffect(() => {
+    let live = true;
+    void (async () => {
+      let raw: string | null = null;
+      try { raw = Platform.OS === 'web' ? globalThis.localStorage?.getItem(storageKey) ?? null : await SecureStore.getItemAsync(storageKey); } catch {}
+      const fallback = { x: width - 86, y: height - (wide ? 110 : 206) };
+      let next = fallback;
+      if (raw) { try { const saved = JSON.parse(raw) as { x?: unknown; y?: unknown }; if (typeof saved.x === 'number' && typeof saved.y === 'number') next = { x: saved.x, y: saved.y }; } catch {} }
+      if (!live) return; point.current = clamp(next); position.setValue(point.current);
+    })();
+    return () => { live = false; };
+  }, [width, height, wide, clamp, position]);
+  const responder = React.useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_event, gesture) => Math.abs(gesture.dx) + Math.abs(gesture.dy) > 6,
+    onPanResponderGrant: () => { dragged.current = true; position.setOffset(point.current); position.setValue({ x: 0, y: 0 }); },
+    onPanResponderMove: Animated.event([null, { dx: position.x, dy: position.y }], { useNativeDriver: false }),
+    onPanResponderRelease: (_event, gesture) => {
+      position.flattenOffset();
+      const snapped = snapLauncherPoint(
+        { x: point.current.x + gesture.dx, y: point.current.y + gesture.dy },
+        width,
+        height,
+      );
+      point.current = snapped;
+      Animated.spring(position, { toValue: snapped, useNativeDriver: false, damping: 18, stiffness: 180 }).start();
+      void persist(snapped);
+      setTimeout(() => { dragged.current = false; }, 80);
+    },
+    onPanResponderTerminate: () => { position.flattenOffset(); dragged.current = false; },
+  }), [clamp, persist, position, width]);
   return (
+    <Animated.View
+      {...responder.panHandlers}
+      style={[shadow.md, { position: 'absolute', left: position.x, top: position.y, zIndex: 50, width: 70, height: 78, borderRadius: 35 }]}
+    >
     <Pressable
-      onPress={onPress}
+      onPress={() => { if (!dragged.current) onPress(); }}
       accessibilityRole="button"
-      accessibilityLabel={t({ en: 'Open Chivar Bot', th: 'เปิด Chivar Bot', zh: '打开 Chivar Bot' })}
+      accessibilityLabel={t({ en: 'Open or drag Chivar Bot', th: 'เปิดหรือลาก Chivar Bot', zh: '打开或拖动 Chivar Bot' })}
       style={({ pressed }) => [
-        shadow.md,
         {
-          position: 'absolute',
-          right: wide ? 28 : 16,
-          // 120, not 82: see the note above. 82 put this on top of Home's
-          // last door and ate the tap.
-          bottom: wide ? 24 : 120,
-          zIndex: 50,
           width: 70,
           height: 78,
           borderRadius: 35,
@@ -139,6 +184,7 @@ export function AiGuideButton({ onPress, wide = false }: { onPress: () => void; 
         </View>
       </View>
     </Pressable>
+    </Animated.View>
   );
 }
 

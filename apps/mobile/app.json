@@ -18,10 +18,10 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.chivago.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "ChivarGo uses your location to check you in at quest sites, show nearby places, and share your position with your emergency contacts if you trigger SOS.",
+        "NSLocationWhenInUseUsageDescription": "ChivarGo uses your location to check you in, show nearby places, and share your position with a travel party only when you turn sharing on.",
         "NSCameraUsageDescription": "ChivarGo uses the camera to capture geo-tagged proof photos for Green Quests.",
         "NSPhotoLibraryUsageDescription": "ChivarGo lets you attach existing photos as quest proof.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "If you trigger SOS, ChivarGo keeps sharing your location with your emergency contacts and the duty desk even when your phone is locked, until you cancel the alert. It is never used at any other time.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "When you explicitly enable Party background sharing or trigger SOS, ChivarGo can keep sharing your location while your phone is locked until you turn it off or the event ends.",
         "UIBackgroundModes": [
           "location"
         ]
@@ -48,8 +48,8 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "If you trigger SOS, ChivarGo keeps sharing your location with your emergency contacts and the duty desk even when your phone is locked, until you cancel the alert.",
-          "locationWhenInUsePermission": "ChivarGo uses your location to check you in at quest sites and show nearby places.",
+          "locationAlwaysAndWhenInUsePermission": "When you explicitly enable Party background sharing or trigger SOS, ChivarGo can keep sharing your location while your phone is locked until you turn it off or the event ends.",
+          "locationWhenInUsePermission": "ChivarGo uses your location to check you in, show nearby places, and share it with your party only when you turn sharing on.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }

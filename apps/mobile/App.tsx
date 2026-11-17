@@ -93,6 +93,9 @@ export default function App() {
   });
 
   const nav = useNav('login');
+  const [partyInviteCode, setPartyInviteCode] = React.useState<string | null>(null);
+  const [missionsInitialSection, setMissionsInitialSection] = React.useState<'quests' | 'party'>('quests');
+  const consumeMissionsInitialSection = React.useCallback(() => setMissionsInitialSection('quests'), []);
   const detailScroll = React.useRef<Record<string, { offset: number }>>({});
   const scrollStateFor = (key: string) => detailScroll.current[key] ??= { offset: 0 };
 
@@ -108,6 +111,26 @@ export default function App() {
       setAuthReady(true);
     });
   }, []);
+
+  // Party invite links are application links, so handle them at the
+  // composition root instead of only while PartyScreen happens to be open.
+  // This lets an OS camera open a QR invitation directly into the join flow.
+  React.useEffect(() => {
+    const openPartyInvite = (url: string | null) => {
+      if (!url) return;
+      const match = /[?&]code=([^&#]+)/i.exec(url);
+      if (!match?.[1]) return;
+      try {
+        setPartyInviteCode(decodeURIComponent(match[1]).trim());
+        nav.push('party');
+      } catch {
+        // A malformed external URL is ignored rather than breaking app boot.
+      }
+    };
+    void Linking.getInitialURL().then(openPartyInvite);
+    const subscription = Linking.addEventListener('url', ({ url }) => openPartyInvite(url));
+    return () => subscription.remove();
+  }, [nav.push]);
 
   /*
     THESE TWO ARE MEMOISED AND THE OTHERS ARE NOT, FOR A REASON.
@@ -498,6 +521,10 @@ export default function App() {
             onOpenMarket={() => nav.push('market')}
             onOpenProfile={() => nav.push('profile')}
             onOpenGame={(key) => { setGameKey(key); nav.push('miniGame'); }}
+            onOpenParty={() => nav.push('party')}
+            onFindParty={() => nav.push('findParty')}
+            initialSection={missionsInitialSection}
+            onInitialSectionConsumed={consumeMissionsInitialSection}
           />
         );
 
@@ -558,7 +585,7 @@ export default function App() {
         return (
           <HomeScreen
             onOpenMap={() => nav.selectTab('map')}
-            onOpenQuests={() => nav.selectTab('quests')}
+            onOpenQuests={() => { setMissionsInitialSection('quests'); nav.selectTab('quests'); }}
             onOpenQuest={(id) => nav.push('quest', { questId: id })}
             onOpenWallet={() => nav.push('wallet')}
             onOpenMarket={() => nav.push('market')}
@@ -567,7 +594,7 @@ export default function App() {
             onOpenMascots={() => nav.push('mascots')}
             onOpenImpact={() => nav.push('impact')}
             onOpenConcierge={() => nav.push('concierge')}
-            onOpenParty={() => nav.push('party')}
+            onOpenParty={() => { setMissionsInitialSection('party'); nav.selectTab('quests'); }}
             onOpenStays={() => nav.push('stays')}
             onOpenSummon={() => nav.push('summon')}
             onOpenLocalPicks={() => nav.push('localPicks')}
@@ -727,7 +754,15 @@ export default function App() {
         );
 
       case 'party':
-        return <PartyScreen onBack={nav.pop} onToast={toast.show} onFind={() => nav.push('findParty')} />;
+        return (
+          <PartyScreen
+            onBack={nav.pop}
+            onToast={toast.show}
+            onFind={() => nav.push('findParty')}
+            initialInviteCode={partyInviteCode ?? undefined}
+            onInviteCodeConsumed={() => setPartyInviteCode(null)}
+          />
+        );
       case 'findParty':
         return <FindPartyScreen onBack={nav.pop} onToast={toast.show} />;
 
