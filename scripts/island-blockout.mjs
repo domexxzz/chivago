@@ -28,8 +28,25 @@ import { parseArgs } from 'node:util';
 
 import { metresPerDegree } from './lib/geo.mjs';
 
-/** docs/76, section "the scale contract". */
-export const SCALE = { hero: 2.2, ordinary: 1.8, pier: 1.4 };
+/**
+ * docs/76's scale contract, re-measured against the reference board.
+ *
+ * The document's 1.8 and 2.2 are what a building needs at a close framing.
+ * The map opens on the WHOLE ISLAND - 2.8 by 6.1 km - and at that distance
+ * they vanish: the first render put a 31 m temple on a six-kilometre island
+ * and it came out as four grey pixels.
+ *
+ * The reference board answers it. A temple on it is about 3% of the island's
+ * length, which here is 180 m of ground. A 22 m ubosot reaches that at x8.
+ * The ordinary buildings and the piers are scaled to keep their relation to
+ * it, not to a number of their own.
+ *
+ * THE COST, said plainly: these are the multipliers for the view the product
+ * opens on. Zoomed to 1.2 km - the closest docs/76 allows - a hero is two
+ * thirds the width of a village. That is the trade a diorama makes, and the
+ * place to change it is here, for the whole class at once.
+ */
+export const SCALE = { hero: 8, ordinary: 5, pier: 3 };
 
 /**
  * The eight the direction document calls heroes, by the id the database uses.
@@ -238,10 +255,21 @@ async function main() {
     // Flat, so nothing competes with the boxes for the eye at this stage.
     greyed[i] = GREY[0]; greyed[i + 1] = GREY[1]; greyed[i + 2] = GREY[2];
   }
+  /*
+    SHAPES, NOT BOXES, once there is a shape to use.
+
+    A box answers "does it stand in the right place at the right size". It
+    does not answer "does the silhouette read", which docs/76 says is the
+    test, and a composition of thirteen identical cuboids cannot be judged
+    for it. `island-landmarks.mjs` builds each landmark from primitives;
+    anything with no archetype still gets the ordinary roofed building.
+  */
+  const { buildLandmarks } = await import('./island-landmarks.mjs');
+  const shaped = buildLandmarks(built.anchors, (a) => (a.kind === 'hero' ? SCALE.hero : a.kind === 'pier' ? SCALE.pier : SCALE.ordinary));
   const merged = {
-    positions: Float32Array.from([...ground.positions, ...built.positions]),
-    normals: Float32Array.from([...ground.normals, ...built.normals]),
-    colours: Float32Array.from([...greyed, ...built.colours]),
+    positions: Float32Array.from([...ground.positions, ...shaped.positions]),
+    normals: Float32Array.from([...ground.normals, ...shaped.normals]),
+    colours: Float32Array.from([...greyed, ...shaped.colours]),
   };
   const file = terrain.glb({ ...merged, uvs: null, name: `${values.area}-blockout` });
 
@@ -252,10 +280,10 @@ async function main() {
   writeFileSync(sidecar, `${JSON.stringify(built.anchors, null, 1)}\n`);
 
   const offIsland = built.anchors.filter((a) => a.groundM === null || a.groundM <= 0);
-  console.log(`[chivago] ${built.boxes} box(es) from the database, ${built.anchors.filter((a) => a.kind === 'hero').length} of them heroes`);
+  console.log(`[chivago] ${built.boxes} landmark(s) from the database, ${built.anchors.filter((a) => a.kind === 'hero').length} of them heroes`);
   console.log(`          -> ${out} (${Math.round(file.length / 1024)} KB)`);
   console.log(`          -> ${sidecar} (anchors for the label layer)`);
-  console.log(`          island included: ${ground.stats.triangles} terrain triangle(s) under the boxes`);
+  console.log(`          ${shaped.triangles} triangle(s) of landmark on ${ground.stats.triangles} of terrain`);
   for (const a of offIsland) {
     console.warn(`[chivago] ${a.id} (${a.name}) has no ground under it: the archive reads ${a.groundM} m there`);
   }

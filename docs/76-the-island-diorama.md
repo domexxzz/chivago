@@ -23,11 +23,22 @@ right. So the rule is: **lie about size, never about place.**
 |---|---|
 | Horizontal position and distance | ×1.0 |
 | Terrain height | ×2.6 |
-| Piers and bridges | ×1.4 |
-| Ordinary buildings | ×1.8 |
-| Hero buildings | ×2.2 |
+| Piers and bridges | ×3 |
+| Ordinary buildings | ×5 |
+| Hero buildings | ×8 |
 | Trees | ×2.2 |
 | Boats | ×3.0 |
+
+The building numbers started at 1.8 and 2.2, which is what a building needs at
+a close framing, and the first render killed them: a 31 m temple on a
+six-kilometre island came out as four grey pixels. The map opens on the whole
+island, so the multipliers have to suit that view. On the reference board a
+temple is about 3% of the island's length - 180 m of ground here - and a 22 m
+ubosot reaches that at ×8.
+
+**The cost, said plainly.** Zoomed to 1.2 km, the closest the camera goes, a
+hero is two thirds the width of a village. That is the trade a diorama makes.
+The place to change it is the constant, for the whole class at once.
 
 Horizontal is untouchable because people navigate with this map. Height and
 object size are the lie, and it has to be applied per class, never per object.
@@ -185,6 +196,24 @@ be a decision rather than a surprise.
 `/pier|bridge/` against the name and the record is called "Shop row by Tha
 Lang pier". Classes now come from a list of ids. Anything that reads a name to
 decide what a thing *is* will eventually meet a name like that one.
+
+## The landmarks are built in code
+
+`scripts/island-landmarks.mjs` builds each one from primitives - boxes, gable
+and pyramid roofs, prisms, cones, domes - in the palette above. Ten archetypes
+cover the island: the palace's teak houses on stilts, the white dome and chedi
+of Wat Atsadang Nimit, the Chinese shrine's terrace and flag poles, the
+mondop's tiered gold roof and spire, the cave monastery under its rock, the
+museum's long block, a Thai ubosot, the lighthouse, a pier on piles, and the
+ordinary roofed building everything else gets.
+
+They are not the art. Every roof is flat planes and every curve is eight
+segments. They carry the proportion, the colour and the stance, so a
+composition can be judged and a silhouette specified - and so that nobody
+reaches for an asset pack whose generic Thai temple would stand in for a white
+European dome.
+
+Assignment is by id, never by reading the name.
 
 ## Technical budget
 
