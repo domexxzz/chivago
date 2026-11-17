@@ -89,13 +89,24 @@ const orderTripStops = (places: ScoredPlace[], origin: TravelLocation | null): S
 
 const placeNamedIn = (message: string, places: ScoredPlace[], modelName: string | null): ScoredPlace | null => {
   const needle = message.toLowerCase();
+  const aliasesFor = (place: ScoredPlace): string[] => {
+    const names = [place.name.en, place.name.th, place.name.zh, place.short]
+      .filter((name): name is string => typeof name === 'string' && name.trim().length > 0);
+    return [...new Set(names.flatMap((name) => {
+      // A canonical label may retain a verified alternate name in parentheses,
+      // while travellers naturally ask for the shorter public name. Both still
+      // come from the same ChivaGo record; this does not invent a place alias.
+      const base = name.replace(/\s*[（(][^）)]*[）)]\s*$/u, '').trim();
+      return base && base !== name ? [name, base] : [name];
+    }))];
+  };
   if (modelName) {
-    const exact = places.find((place) => [place.name.en, place.name.th, place.name.zh]
-      .some((name) => typeof name === 'string' && name.toLowerCase() === modelName.toLowerCase()));
+    const exact = places.find((place) => aliasesFor(place)
+      .some((name) => name.toLowerCase() === modelName.toLowerCase()));
     if (exact) return exact;
   }
-  return places.find((place) => [place.name.en, place.name.th, place.name.zh]
-    .some((name) => typeof name === 'string' && name.length >= 4 && needle.includes(name.toLowerCase()))) ?? null;
+  return places.find((place) => aliasesFor(place)
+    .some((name) => name.length >= 4 && needle.includes(name.toLowerCase()))) ?? null;
 };
 
 const trustedActions = (analysis: TravelAnalysis): string[] => ({
