@@ -4,6 +4,13 @@
  * The live SQLite database is mounted on a Fly volume, so files committed to
  * Git never replace it. This bootstrap deliberately adds only rows that are
  * absent and never overwrites a profile an operator may already have edited.
+ *
+ * THE ONE EXCEPTION, AND WHY IT IS NOT ONE. `reconcileSupersededAttractions`
+ * rewrites a landmark whose seed was corrected after it went live - but only
+ * where the live row is still bit-for-bit what this file planted, which is
+ * checked before anything is written. A row an operator has touched does not
+ * match and is left alone. So the promise above still holds exactly: nothing
+ * anybody edited is ever overwritten.
  * The operator password remains a deployment secret and is never committed.
  *
  * NOTHING IN HERE MAY THROW. server.ts calls this at the top level of the
@@ -273,18 +280,143 @@ export const KOH_SICHANG_BUSINESSES: readonly BusinessSeed[] = [
   },
 ] as const;
 
+/**
+ * A row this bootstrap planted, whose seed was corrected AFTER it went live.
+ *
+ * WHY THIS LIST EXISTS. Insert-only is the right default - it is what protects
+ * a profile an operator has edited - but it has a cost that is easy to miss:
+ * correcting the seed does nothing at all for a place that already exists.
+ * `sc-chong-khao-khat` went live on 17 November with coordinates read off an
+ * OpenStreetMap viewpoint node. Hours later the seed was corrected to the
+ * Thailand Digital Tourism Center's official ones, twenty metres away. Two
+ * deploys have run since and the live pin has not moved, because nothing was
+ * ever going to move it. A seed edit is not a correction to a live row.
+ *
+ * WHY IT RECORDS THE OLD VALUE AND NOT THE NEW ONE. The corrected values are
+ * in `KOH_SICHANG_ATTRACTIONS`, where they already live and where the next
+ * correction will go. Repeating them here would make this a second source of
+ * truth for the same fields, which `migrations.ts` argues against at length
+ * and is right about. What is recorded here is the SUPERSEDED value: the
+ * fingerprint of a row nobody has touched since it was planted.
+ *
+ * THAT FINGERPRINT IS THE WHOLE SAFETY ARGUMENT. A row matching it is one this
+ * bootstrap wrote and nothing has edited since, so rewriting it from the seed
+ * cannot discard anybody's work. A row that does not match is left exactly as
+ * it is and reported. It also makes the correction self-limiting: once applied
+ * the row stops matching, so every later boot is a no-op - no flag, no version
+ * number, no record of having run, nothing to get out of step.
+ */
+export type SupersededAttraction = {
+  id: string;
+  /** The three fields that together identify an untouched planted row. */
+  nameEn: string;
+  lat: number;
+  lng: number;
+  /** For the next reader: where the superseded value came from. */
+  provenance: string;
+};
+
+export const KOH_SICHANG_SUPERSEDED: readonly SupersededAttraction[] = [
+  {
+    id: 'sc-chong-khao-khat',
+    nameEn: 'Itsariyaphon Pass',
+    lat: 13.1626,
+    lng: 100.801342,
+    provenance:
+      'planted from an OpenStreetMap viewpoint node; the seed now carries the '
+      + 'Thailand Digital Tourism Center coordinates for attraction 21533, and '
+      + 'the formal name has moved into the sentence underneath, because the '
+      + 'board and everyone standing in it say Chong Khao Khat',
+  },
+] as const;
+
+export type Reconciliation = {
+  /** Ids rewritten from the seed. */
+  corrected: string[];
+  /** Ids left untouched, because they are no longer what this bootstrap planted. */
+  leftAlone: string[];
+};
+
+/**
+ * Rewrite planted rows whose seed has since been corrected, and only those.
+ *
+ * The live measurements - crowd density, AQI, safety index, walkability - are
+ * deliberately not in the UPDATE. The seed sets them once to placeholder
+ * constants and everything since is real; a correction to a NAME has no
+ * business resetting a measurement.
+ */
+export function reconcileSupersededAttractions(db: DB): Reconciliation {
+  const corrected: string[] = [];
+  const leftAlone: string[] = [];
+
+  for (const planted of KOH_SICHANG_SUPERSEDED) {
+    const seed = KOH_SICHANG_ATTRACTIONS.find((a) => a.id === planted.id);
+    // The entry was removed from the seed. There is nothing to reconcile TO,
+    // and deleting a live row is not this function's decision to make.
+    if (!seed) continue;
+
+    const live = row<{ name_en: string; lat: number; lng: number }>(
+      db.prepare('SELECT name_en, lat, lng FROM places WHERE id = ?').get(planted.id),
+    );
+    if (!live) continue;
+
+    /*
+      A TOLERANCE RATHER THAN EQUALITY. These are REAL columns compared against
+      decimal literals. Both sides parse to the same double today, but a value
+      that has been through JSON or another float path need not, and a
+      correction that silently stops matching is worse than one that is
+      slightly generous. A metre is roughly 1e-5 degrees here, so 1e-9 is far
+      tighter than any edit a person could make on a map.
+    */
+    const matches = (nameEn: string, lat: number, lng: number) =>
+      live.name_en === nameEn
+      && Math.abs(live.lat - lat) < 1e-9
+      && Math.abs(live.lng - lng) < 1e-9;
+
+    /*
+      SETTLED FIRST, AND THIS ORDER IS NOT COSMETIC. A row already equal to the
+      seed is finished: it is neither corrected nor "left alone", and the first
+      version of this function had no such case, so the boot after a successful
+      correction reported the row as one somebody had edited - every boot,
+      forever, in a log line that exists to be believed. A test caught it. The
+      three states are: already right, exactly what we planted, or somebody
+      else's work.
+    */
+    if (matches(seed.nameEn, seed.lat, seed.lng)) continue;
+    if (!matches(planted.nameEn, planted.lat, planted.lng)) { leftAlone.push(planted.id); continue; }
+
+    db.prepare(`UPDATE places SET
+        name_en = ?, name_th = ?, short = ?, layer = ?, lat = ?, lng = ?, meta = ?,
+        blurb_en = ?, blurb_th = ?, tags = ?,
+        photo_url = ?, photo_credit = ?, photo_licence = ?, photo_source = ?,
+        safety_label_en = ?, safety_label_th = ?
+      WHERE id = ?`).run(
+      seed.nameEn, seed.nameTh, seed.short, seed.layer, seed.lat, seed.lng,
+      seed.meta ?? 'Ko Sichang attraction · Air modelled',
+      seed.descriptionEn, seed.descriptionTh, JSON.stringify(seed.tags),
+      seed.photoUrl, seed.photoCredit, seed.photoLicence, seed.photoSource,
+      seed.safetyEn, seed.safetyTh, planted.id,
+    );
+    corrected.push(planted.id);
+  }
+
+  return { corrected, leftAlone };
+}
+
 export type BootstrapResult = {
   accountCreated: boolean;
   shopsInserted: number;
   shopsAlreadyPresent: number;
   attractionsInserted: number;
   attractionsAlreadyPresent: number;
+  attractionsCorrected: string[];
+  attractionsLeftAlone: string[];
   skipped: boolean;
 };
 
 export function bootstrapKohSichangBusinesses(db: DB, env: NodeJS.ProcessEnv = process.env): BootstrapResult {
   if (env.CHIVAGO_BOOTSTRAP_KOH_SICHANG !== '1') {
-    return { accountCreated: false, shopsInserted: 0, shopsAlreadyPresent: 0, attractionsInserted: 0, attractionsAlreadyPresent: 0, skipped: true };
+    return { accountCreated: false, shopsInserted: 0, shopsAlreadyPresent: 0, attractionsInserted: 0, attractionsAlreadyPresent: 0, attractionsCorrected: [], attractionsLeftAlone: [], skipped: true };
   }
 
   // Landmarks are public map content and must not depend on an operator
@@ -292,6 +424,7 @@ export function bootstrapKohSichangBusinesses(db: DB, env: NodeJS.ProcessEnv = p
   // rows to an existing production volume when the bootstrap switch is on.
   let attractionsInserted = 0;
   let attractionsAlreadyPresent = 0;
+  let reconciled: Reconciliation = { corrected: [], leftAlone: [] };
   transact(db, () => {
     for (const attraction of KOH_SICHANG_ATTRACTIONS) {
       const existing = row<{ id: string }>(db.prepare('SELECT id FROM places WHERE id = ?').get(attraction.id));
@@ -309,6 +442,9 @@ export function bootstrapKohSichangBusinesses(db: DB, env: NodeJS.ProcessEnv = p
       );
       attractionsInserted += 1;
     }
+    // In the same transaction as the inserts, because a half-applied landmark
+    // deployment is the thing transact() is here to prevent.
+    reconciled = reconcileSupersededAttractions(db);
   });
 
   // Businesses are intentionally owner-managed. Keep the previously prepared
@@ -317,7 +453,9 @@ export function bootstrapKohSichangBusinesses(db: DB, env: NodeJS.ProcessEnv = p
   if (env.CHIVAGO_BOOTSTRAP_KOH_SICHANG_BUSINESSES !== '1') {
     return {
       accountCreated: false, shopsInserted: 0, shopsAlreadyPresent: 0,
-      attractionsInserted, attractionsAlreadyPresent, skipped: false,
+      attractionsInserted, attractionsAlreadyPresent,
+      attractionsCorrected: reconciled.corrected, attractionsLeftAlone: reconciled.leftAlone,
+      skipped: false,
     };
   }
 
@@ -331,7 +469,7 @@ export function bootstrapKohSichangBusinesses(db: DB, env: NodeJS.ProcessEnv = p
     const phone = env.CHIVAGO_BOOTSTRAP_OPERATOR_PHONE;
     if (!password || !phone) {
       console.warn('[chivago] Ko Sichang business bootstrap skipped: set CHIVAGO_BOOTSTRAP_OPERATOR_PASSWORD and CHIVAGO_BOOTSTRAP_OPERATOR_PHONE');
-      return { accountCreated: false, shopsInserted: 0, shopsAlreadyPresent: 0, attractionsInserted, attractionsAlreadyPresent, skipped: false };
+      return { accountCreated: false, shopsInserted: 0, shopsAlreadyPresent: 0, attractionsInserted, attractionsAlreadyPresent, attractionsCorrected: reconciled.corrected, attractionsLeftAlone: reconciled.leftAlone, skipped: false };
     }
     const registered = registerUser(db, {
       fullName: 'Fanta', email: KOH_SICHANG_OPERATOR_EMAIL, phone, password,
@@ -358,6 +496,11 @@ export function bootstrapKohSichangBusinesses(db: DB, env: NodeJS.ProcessEnv = p
       shopsAlreadyPresent: 0,
       attractionsInserted: 0,
       attractionsAlreadyPresent: 0,
+      // Unlike the two counts above, these report what actually happened: the
+      // reconcile runs before this refusal, and a correction that was applied
+      // to the database and then reported as zero is a lie in a log.
+      attractionsCorrected: reconciled.corrected,
+      attractionsLeftAlone: reconciled.leftAlone,
       skipped: true,
     };
   }
@@ -389,5 +532,5 @@ export function bootstrapKohSichangBusinesses(db: DB, env: NodeJS.ProcessEnv = p
       shopsInserted += 1;
     }
   });
-  return { accountCreated, shopsInserted, shopsAlreadyPresent, attractionsInserted, attractionsAlreadyPresent, skipped: false };
+  return { accountCreated, shopsInserted, shopsAlreadyPresent, attractionsInserted, attractionsAlreadyPresent, attractionsCorrected: reconciled.corrected, attractionsLeftAlone: reconciled.leftAlone, skipped: false };
 }

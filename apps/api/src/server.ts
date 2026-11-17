@@ -213,9 +213,14 @@ export function useDatabase(handle: DB): void {
   if (isPrimary()) {
     try {
       const bootstrapped = bootstrapKohSichangBusinesses(db);
+      // A correction counts as something having happened. It is rarer than an
+      // insert and more worth seeing in a deploy log, and the first version of
+      // this condition would have applied one in silence.
       const planted = bootstrapped.accountCreated
         || bootstrapped.shopsInserted > 0
-        || bootstrapped.attractionsInserted > 0;
+        || bootstrapped.attractionsInserted > 0
+        || bootstrapped.attractionsCorrected.length > 0
+        || bootstrapped.attractionsLeftAlone.length > 0;
       if (!bootstrapped.skipped && planted) {
         console.log('[chivago] Ko Sichang content bootstrapped:', bootstrapped);
       }
