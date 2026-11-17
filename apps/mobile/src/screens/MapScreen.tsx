@@ -43,6 +43,7 @@ import { t } from '../i18n/locale.ts';
 import { formatDate, formatDateTime, formatInteger } from '../i18n/format.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 import { ProfileButton } from '../components/ProfileButton.tsx';
+import { IslandDiorama } from '../components/IslandDiorama.tsx';
 import { cachedPlaces, cachedShops, clearPublicCache, deleteAreaCache, inspectAreaCache, placesWithFallback, shopsWithFallback, storageInfo } from '../offline/public-cache.ts';
 import { clearCachedImages } from '../offline/image-cache.ts';
 
@@ -153,6 +154,14 @@ export function MapScreen({
   const explored = useAsync(() => api.explored(), []);
   const [mode, setMode] = React.useState<MapMode>('map');
   const [expandedMap, setExpandedMap] = React.useState(false);
+  /*
+    The island, drawn rather than tiled. Only Ko Sichang has an asset built
+    for it (docs/76), and it is OFF by default: the vector map is the one
+    that navigates, and this does not replace it. A traveller asks for the
+    view and gets it; nobody loses the map they were using.
+  */
+  const [diorama, setDiorama] = React.useState(false);
+  const hasDiorama = area.key === 'koh-sichang';
   /*
     The expanded map's zoom, driven from the screen rather than from inside
     the map.
@@ -553,6 +562,37 @@ export function MapScreen({
           ) : null}
           {mode === 'map' ? (
             <>
+            {hasDiorama ? (
+              <View style={{ flexDirection: 'row', gap: 8, marginHorizontal: gutter, marginBottom: 8 }}>
+                {([
+                  [false, t({ en: 'Map', th: 'แผนที่', zh: '地图' })],
+                  [true, t({ en: 'The island', th: 'มุมเกาะ', zh: '岛屿视角' })],
+                ] as const).map(([value, label]) => (
+                  <Pressable
+                    key={String(value)}
+                    onPress={() => setDiorama(value)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: diorama === value }}
+                    accessibilityLabel={label}
+                    style={{
+                      paddingVertical: 7, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1,
+                      borderColor: diorama === value ? '#0077B6' : '#D1E8EE',
+                      backgroundColor: diorama === value ? '#0077B6' : '#FFFFFF',
+                    }}
+                  >
+                    <Body size={13} colour={diorama === value ? '#FFFFFF' : '#31485A'}>{label}</Body>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+            {hasDiorama && diorama ? (
+              <View style={{ marginHorizontal: gutter }}>
+                <IslandDiorama height={320} onSelectPlace={(id) => {
+                  const found = (places.data ?? []).find((place) => place.id === id);
+                  if (found) onSelect(found);
+                }} />
+              </View>
+            ) : (
             <View style={{ position: 'relative', marginHorizontal: gutter, overflow: 'hidden', borderRadius: 18 }}>
             <SamuiMap
               /*
@@ -614,6 +654,7 @@ export function MapScreen({
               </View>
             ) : null}
             </View>
+            )}
             {/*
               Under the map, not inside it: the drawn island has no roads and
               no scale, so the one thing it cannot say is which way to walk.
