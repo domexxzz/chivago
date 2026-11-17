@@ -142,6 +142,26 @@ export function dioramaPage(island: string, base: string): string {
     reaches it, while the module below is still being fetched.
   */
   window.__t0 = Date.now();
+  /*
+    A WATCHDOG, because the failure that cost today could not speak.
+
+    If the module script itself is refused - a CORS header missing, a file
+    404, a parse error - none of the code below ever runs, so none of it can
+    say so. The page just waits. This is the only line guaranteed to execute,
+    so it is the one that has to notice the silence.
+  */
+  window.__say = function (m) {
+    try { window.ReactNativeWebView.postMessage(JSON.stringify(m)); return; } catch (e) {}
+    try { window.parent.postMessage(JSON.stringify(m), '*'); } catch (e) {}
+  };
+  window.addEventListener('error', function (e) {
+    window.__say({ type: 'error', why: 'script: ' + (e.message || 'failed to load') });
+  }, true);
+  setTimeout(function () {
+    if (!window.__started) {
+      window.__say({ type: 'error', why: 'the island did not start in 10 seconds' });
+    }
+  }, 10000);
   window.__island = Promise.all([
     fetch('${base}/islands/${island}.glb').then(function (r) {
       if (!r.ok) throw new Error('glb ' + r.status);
@@ -399,6 +419,7 @@ function parseIsland(buf) {
 }
 
 /* Started before this module was even fetched. */
+window.__started = true;
 tick('three');
 window.__island.then(([bin, list]) => new Promise((resolve) => {
   tick('island');
@@ -441,6 +462,15 @@ window.__island.then(([bin, list]) => new Promise((resolve) => {
 export function IslandDiorama({ island = 'koh-sichang', height, here, route, onSelectPlace }: IslandDioramaProps) {
   const [ready, setReady] = React.useState(false);
   const [ticks, setTicks] = React.useState<{ what: string; ms: number }[]>([]);
+  /*
+    WHY THE REASON IS KEPT HERE and not only inside the page: the failure that
+    cost today happened BEFORE the page's own code ran, so the page had no way
+    to draw its own error. Marking the view "ready" hid the spinner and left a
+    blank blue rectangle - a silence, which is what we are trying to stop
+    shipping. The reason is held on this side, where something can always say
+    it.
+  */
+  const [failure, setFailure] = React.useState<string | null>(null);
   const web = React.useRef<WebView>(null);
   const frame = React.useRef<HTMLIFrameElement | null>(null);
   const html = React.useMemo(() => dioramaPage(island, API_BASE), [island]);
@@ -455,11 +485,13 @@ export function IslandDiorama({ island = 'koh-sichang', height, here, route, onS
   }, []);
 
   const handle = React.useCallback((raw: string) => {
-    let message: { type?: string; id?: string; what?: string; ms?: number } | null = null;
-    try { message = JSON.parse(raw) as { type?: string; id?: string; what?: string; ms?: number }; } catch { return; }
+    type Note = { type?: string; id?: string; what?: string; ms?: number; why?: string };
+    let message: Note | null = null;
+    try { message = JSON.parse(raw) as Note; } catch { return; }
     if (message?.type === 'tick' && message.what && typeof message.ms === 'number') {
       setTicks((seen) => [...seen, { what: message.what as string, ms: message.ms as number }]);
     }
+    if (message?.type === 'error') setFailure(message.why ?? 'unknown');
     if (message?.type === 'ready' || message?.type === 'error') setReady(true);
     if (message?.type === 'place' && message.id) onSelectPlace?.(message.id);
   }, [onSelectPlace]);
@@ -522,6 +554,25 @@ export function IslandDiorama({ island = 'koh-sichang', height, here, route, onS
           ) : null}
         </View>
       )}
+      {failure ? (
+        <View style={{ position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', gap: space.s2, padding: space.s4, backgroundColor: color.brand }}>
+          <Body colour="#ffffff">
+            {t({
+              en: 'The island could not be drawn.',
+              th: 'สร้างเกาะไม่สำเร็จ',
+              zh: '岛屿无法生成。',
+            })}
+          </Body>
+          <Body size={13} colour="#D9F3FA">{failure}</Body>
+          <Body size={13} colour="#D9F3FA">
+            {t({
+              en: 'The flat map still works - tap it below.',
+              th: 'แผนที่ปกติยังใช้ได้ กดด้านล่าง',
+              zh: '平面地图仍可使用，请点击下方。',
+            })}
+          </Body>
+        </View>
+      ) : null}
     </View>
   );
 }

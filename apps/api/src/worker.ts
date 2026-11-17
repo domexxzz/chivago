@@ -216,7 +216,16 @@ export default {
 
     const isAsset = servedFromExport(url.pathname);
 
-    if (isAsset && request.method === 'GET') {
+    /*
+      HEAD AS WELL AS GET, which is why `HEAD /islands/koh-sichang.glb` used to
+      answer 401 while GET answered 200 (recorded in #254 and left). A HEAD on
+      a static path fell past this branch to the Durable Object, which asks for
+      a token and refuses without one - so the one request a person makes to
+      ASK ABOUT a file, rather than download it, got an answer about
+      authentication. It cost real time today: headers read with HEAD looked
+      like an auth problem when the files were fine.
+    */
+    if (isAsset && (request.method === 'GET' || request.method === 'HEAD')) {
       const asset = await env.ASSETS.fetch(request);
       // A miss falls through to the API, which is what makes `/media/<id>` -
       // served from the database, not from the export - still work.

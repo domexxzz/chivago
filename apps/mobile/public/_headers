@@ -32,14 +32,25 @@
 # strand a rebuild behind a year of caches. An hour is the same bargain /media
 # makes: a room that opens the app together pays once, and replacing the model
 # is not a support call.
+# CORS, AND THE ISLAND NEVER LOADED WITHOUT IT.
+#
+# A WebView handed bare HTML has an OPAQUE origin, and so does an iframe with
+# srcDoc - which is both of the places the diorama runs. Every request such a
+# page makes is cross-origin, and an ES module import is always fetched in
+# CORS mode. Without this header the browser refused the import before a line
+# of our code ran, so nothing could report the failure: the page sat on
+# "Building the island" for ever, which reads as slow rather than as broken.
+# Three rounds were spent making the files smaller. They were never arriving.
 /islands/*
   cache-control: public, max-age=3600
+  access-control-allow-origin: *
 
 # three.js, served from here rather than a CDN: 675 KB over somebody else's
 # DNS and TLS was most of the wait before the island appeared. The version is
 # in the filename, so this one IS immutable - a new three is a new name.
 /vendor/*
   cache-control: public, max-age=31536000, immutable
+  access-control-allow-origin: *
 
 /favicon.ico
   cache-control: public, max-age=86400

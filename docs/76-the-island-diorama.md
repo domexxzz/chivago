@@ -342,3 +342,55 @@ how the ferry arrives and it is the view anyone who has been will recognise.
   been there.
 - The map and the database disagreeing. This product sells the credibility of
   its data. A map that points at the wrong place once discredits all of it.
+
+---
+
+## The page runs at an opaque origin, and that decides what it may fetch
+
+Measured on 17 November 2026, on production, after three rounds of making the
+island file smaller had failed to make it appear.
+
+A WebView handed bare HTML (`source={{ html }}`) has an **opaque origin**, and
+so does an iframe with `srcDoc` — which is both of the places this page runs.
+Every request such a page makes is therefore cross-origin, and **an ES module
+import is always fetched in CORS mode**. Workers Assets sends no
+`access-control-allow-origin` of its own, so:
+
+```
+import * as THREE from 'https://chivargo.com/vendor/three-0.170.0.min.js'
+```
+
+was refused by the browser **before the module body ran**. Nothing in the page
+could report it, because nothing in the page had executed. The spinner stayed
+up, which a person reads as *slow* — and two commits were spent making a thing
+faster that was not happening at all.
+
+The fix is in `apps/mobile/public/_headers`:
+
+```
+/islands/*
+  access-control-allow-origin: *
+/vendor/*
+  access-control-allow-origin: *
+```
+
+**Anything new the page fetches needs the same rule.** A texture, a second
+island, a font: add the prefix to `_headers` *and* to
+`apps/api/src/served-from-export.ts`, or it is invisible twice over — 401 for
+not being listed, then CORS-blocked for not being allowed.
+
+Proven from an opaque origin after the fix: module ran at 3 ms (three.js r170),
+`koh-sichang.glb` fetched whole, 616,752 bytes, at 16 ms.
+
+### And the page must be able to say when it cannot start
+
+Because the failure happened before any of the page's code ran, the page could
+not draw its own error. Two things now cover that:
+
+- a **watchdog in the classic script** — the one block guaranteed to execute —
+  which reports any resource error and anything still not started after ten
+  seconds;
+- the reason is held **on the React side**, not in the page, so there is always
+  something able to draw it, with a line pointing at the flat map.
+
+A diorama that fails should say so in one second, not look slow for ever.
