@@ -190,6 +190,7 @@ async function main() {
       area: { type: 'string', default: 'koh-sichang' },
       out: { type: 'string' },
       coastline: { type: 'string' },
+      grey: { type: 'boolean', default: false },
       exaggeration: { type: 'string' },
     },
   });
@@ -249,11 +250,21 @@ async function main() {
   const ground = terrain.buildTerrain({
     bbox, sample, spacingM: terrain.SPACING_M, exaggeration, isLand,
   });
+  /*
+    GREY IS A GATE, NOT A LOOK.
+
+    Flat grey ground is right when the question is whether the composition
+    stands up with nothing to distract the eye. It is wrong for everything
+    else: the terrain already carries its own colour, banded by height and
+    slope, and an island rendered in it reads as the island. --grey asks for
+    the gate; the default is the thing.
+  */
   const GREY = [0.74, 0.76, 0.72];
-  const greyed = new Float32Array(ground.colours.length);
-  for (let i = 0; i < greyed.length; i += 3) {
-    // Flat, so nothing competes with the boxes for the eye at this stage.
-    greyed[i] = GREY[0]; greyed[i + 1] = GREY[1]; greyed[i + 2] = GREY[2];
+  const greyed = values.grey ? new Float32Array(ground.colours.length) : ground.colours;
+  if (values.grey) {
+    for (let i = 0; i < greyed.length; i += 3) {
+      greyed[i] = GREY[0]; greyed[i + 1] = GREY[1]; greyed[i + 2] = GREY[2];
+    }
   }
   /*
     SHAPES, NOT BOXES, once there is a shape to use.

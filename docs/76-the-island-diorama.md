@@ -215,6 +215,32 @@ European dome.
 
 Assignment is by id, never by reading the name.
 
+## Looking at it
+
+Nothing on this toolchain opens a glTF: the preview pane refuses a local file
+and a static server is not always available. So the thing every gate is judged
+by was the one thing nobody could see.
+
+`scripts/island-preview.mjs` renders a .glb to a PNG - a scanline rasteriser
+with a depth buffer, supersampled three times, lit by the rig above. Not a
+renderer to ship behind; a renderer to decide with.
+
+```bash
+node scripts/island-preview.mjs koh-sichang.glb --out preview.png --yaw 20 --pitch 30
+```
+
+It paid for itself immediately. Three things it caught that no test did:
+
+- **Every face in the landmark file was wound inside out.** Under a flat
+  Lambert with a floor it looked merely dull; under this rig the roofs came
+  out near black, because a roof facing down gets nothing but the sea bounce.
+- **A building sits on a plinth**, so the box's underside and the plinth's top
+  are one plane, and at equal depth float error decided which was drawn. Back
+  faces are culled now, which settles it.
+- **A wall out of the sun rendered black**, because the sky term clamped to
+  `max(0, n.y)` and a vertical face then sees no sky at all. A vertical
+  surface sees half the sky and half the water. Both terms say so now.
+
 ## Technical budget
 
 | | Ceiling |
