@@ -141,6 +141,20 @@ const EXACT: Readonly<Record<string, Localised>> = {
   // backup must read what went wrong, not GENERIC_API_ERROR.
   WEAK_EXPORT_TOKEN: message('This deployment cannot be exported: its token is too short.', 'ปลายทางนี้ส่งข้อมูลออกไม่ได้ เพราะโทเคนสั้นเกินไป', '此部署无法导出：令牌太短。'),
   BAD_EXPORT_REQUEST: message('That export request is not one this database answers.', 'คำขอส่งออกนี้ไม่ถูกต้อง', '此导出请求无效。'),
+  // Chivar Bot's two ceilings (docs/75). Neither is the traveller's mistake,
+  // and without an entry here both fall through to GENERIC_API_ERROR - which
+  // tells somebody who sent one message too many to try again, the single
+  // thing that cannot work until the minute is out.
+  RATE_LIMITED: message(
+    'Chivar Bot has had too many messages. Try again in a minute.',
+    'Chivar Bot ได้รับข้อความมากเกินไป ลองอีกครั้งในอีกหนึ่งนาที',
+    'Chivar Bot 收到的消息过多，请一分钟后再试。',
+  ),
+  CONVERSATION_LIMIT: message(
+    'Too many conversations are open. Continue an existing one, or wait for the old history to expire.',
+    'มีบทสนทนาเปิดอยู่มากเกินไป คุยต่อในบทสนทนาเดิม หรือรอให้ประวัติเก่าหมดอายุ',
+    '打开的会话过多。请继续已有会话，或等待旧记录过期。',
+  ),
   INTERNAL: message('The service had a problem. Please try again.', 'ระบบขัดข้อง กรุณาลองอีกครั้ง', '服务出现问题，请重试。'),
 };
 
