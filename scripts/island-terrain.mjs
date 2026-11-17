@@ -36,9 +36,13 @@
  */
 
 import { inflateSync } from 'node:zlib';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { parseArgs } from 'node:util';
+
+import { lngLatToTile, metresPerDegree } from './lib/geo.mjs';
+
+export { lngLatToTile, metresPerDegree };
 
 /** The archive `terrain-style.ts` points MapLibre at. One source, one island. */
 export const TERRAIN_TILES = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
@@ -142,14 +146,6 @@ export const isPlausible = (metres) =>
 
 /* ------------------------------------------------------ web mercator -- */
 
-export function lngLatToTile(lng, lat, zoom) {
-  const n = 2 ** zoom;
-  const rad = (lat * Math.PI) / 180;
-  return {
-    x: ((lng + 180) / 360) * n,
-    y: ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n,
-  };
-}
 
 export function tileRangeFor(bbox, zoom) {
   const a = lngLatToTile(bbox.minLng, bbox.maxLat, zoom);
@@ -201,14 +197,6 @@ export function makeSampler(tiles, zoom = ZOOM) {
 
 /* ------------------------------------------------------- projection -- */
 
-/** Metres per degree at a latitude. Good to centimetres over one island. */
-export function metresPerDegree(lat) {
-  const rad = (lat * Math.PI) / 180;
-  return {
-    lat: 111_132.92 - 559.82 * Math.cos(2 * rad) + 1.175 * Math.cos(4 * rad),
-    lng: 111_412.84 * Math.cos(rad) - 93.5 * Math.cos(3 * rad),
-  };
-}
 
 /* -------------------------------------------------------------- mask -- */
 
@@ -275,6 +263,16 @@ export function buildTerrain({
   spacingM = SPACING_M,
   exaggeration = EXAGGERATION,
   seaLevel = SEA_LEVEL_M,
+  /*
+    A surveyed shore, when there is one.
+
+    MEASURED 17 November 2026: over this bbox the archive calls 12.8 km2 land
+    above 0.5 m and 8.4 km2 above 8 m, for an island of about 7.9 km2, with no
+    step anywhere in between. SRTM smears a coast over several metres, so no
+    threshold is right and the first attempt built an island half again too
+    big. `island-surface.mjs` turns the OSM coastline into this callback.
+  */
+  isLand = null,
 }) {
   const midLat = (bbox.minLat + bbox.maxLat) / 2;
   const perDeg = metresPerDegree(midLat);
@@ -290,8 +288,12 @@ export function buildTerrain({
       const lng = bbox.minLng + ((bbox.maxLng - bbox.minLng) * c) / (cols - 1);
       const lat = bbox.maxLat - ((bbox.maxLat - bbox.minLat) * r) / (rows - 1);
       const h = sample(lng, lat);
-      heights[r * cols + c] = h;
-      land[r * cols + c] = Number.isFinite(h) && h > seaLevel ? 1 : 0;
+      // Inside a surveyed shore, a sample the archive lost is still land: it
+      // is carried at the waterline rather than punched out of the island.
+      heights[r * cols + c] = isLand && isLand(lng, lat) ? Math.max(Number.isFinite(h) ? h : 0, 0.5) : h;
+      land[r * cols + c] = isLand
+        ? (isLand(lng, lat) ? 1 : 0)
+        : (Number.isFinite(h) && h > seaLevel ? 1 : 0);
     }
   }
   const kept = largestLandComponent(land, cols, rows);
@@ -312,10 +314,19 @@ export function buildTerrain({
   const positions = [];
   const normals = [];
   const colours = [];
+  const uvs = [];
   let triangles = 0;
   let highest = -Infinity;
 
-  const face = (a, b, c) => {
+  /*
+    PLANAR UV, STRAIGHT DOWN, because the mesh is a grid and the texture it
+    takes (`island-surface.mjs`) is drawn in the same bbox. A cliff's texels
+    stretch, which is correct here: a vertical face has no ground on it, and
+    the alternative is a seam somebody has to hide.
+  */
+  const uv = (c, r) => [c / (cols - 1), r / (rows - 1)];
+
+  const face = (a, b, c, uvA, uvB, uvC) => {
     const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
     const vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
     let nx = uy * vz - uz * vy;
@@ -327,10 +338,12 @@ export function buildTerrain({
     const slope = (Math.acos(Math.min(1, Math.max(-1, ny))) * 180) / Math.PI;
     const mid = (a[1] + b[1] + c[1]) / 3 / exaggeration;
     const colour = faceColour(mid, slope);
-    for (const p of [a, b, c]) {
+    const corners = [[a, uvA], [b, uvB], [c, uvC]];
+    for (const [p, t] of corners) {
       positions.push(p[0], p[1], p[2]);
       normals.push(nx, ny, nz);
       colours.push(colour[0], colour[1], colour[2]);
+      uvs.push(t[0], t[1]);
       if (p[1] > highest) highest = p[1];
     }
     triangles += 1;
@@ -347,8 +360,8 @@ export function buildTerrain({
       const p10 = point(c + 1, r);
       const p01 = point(c, r + 1);
       const p11 = point(c + 1, r + 1);
-      face(p00, p01, p10);
-      face(p10, p01, p11);
+      face(p00, p01, p10, uv(c, r), uv(c, r + 1), uv(c + 1, r));
+      face(p10, p01, p11, uv(c + 1, r), uv(c, r + 1), uv(c + 1, r + 1));
     }
   }
 
@@ -356,6 +369,7 @@ export function buildTerrain({
     positions: Float32Array.from(positions),
     normals: Float32Array.from(normals),
     colours: Float32Array.from(colours),
+    uvs: Float32Array.from(uvs),
     stats: {
       cols,
       rows,
@@ -387,10 +401,18 @@ const extent = (array, stride, offset) => {
   return [min, max];
 };
 
-/** A single-mesh binary glTF. No textures, no materials beyond vertex colour. */
-export function glb({ positions, normals, colours, name = 'island' }) {
+/**
+ * A single-mesh binary glTF.
+ *
+ * Untextured, the ground colour is the vertex colour and the facets carry it.
+ * With `texture`, the painted ground (`island-surface.mjs`) is the colour and
+ * COLOR_0 is left out entirely rather than multiplied into it: two colour
+ * sources over one surface is how a texture ends up looking muddy, and the
+ * one drawn from real paths and real buildings is the one worth keeping.
+ */
+export function glb({ positions, normals, colours, uvs, name = 'island', texture = null }) {
   const count = positions.length / 3;
-  const parts = [positions, normals, colours];
+  const parts = texture ? [positions, normals, uvs] : [positions, normals, colours];
   let offset = 0;
   const views = parts.map((part) => {
     const view = { buffer: 0, byteOffset: offset, byteLength: part.byteLength, target: GLTF_ARRAY_BUFFER };
@@ -409,17 +431,35 @@ export function glb({ positions, normals, colours, name = 'island' }) {
     nodes: [{ mesh: 0, name }],
     meshes: [{
       name,
-      primitives: [{ attributes: { POSITION: 0, NORMAL: 1, COLOR_0: 2 }, material: 0, mode: 4 }],
+      primitives: [{
+        attributes: texture
+          ? { POSITION: 0, NORMAL: 1, TEXCOORD_0: 2 }
+          : { POSITION: 0, NORMAL: 1, COLOR_0: 2 },
+        material: 0,
+        mode: 4,
+      }],
     }],
     materials: [{
       name: 'island',
-      pbrMetallicRoughness: { baseColorFactor: [1, 1, 1, 1], metallicFactor: 0, roughnessFactor: 1 },
+      pbrMetallicRoughness: {
+        baseColorFactor: [1, 1, 1, 1],
+        metallicFactor: 0,
+        roughnessFactor: 1,
+        ...(texture ? { baseColorTexture: { index: 0 } } : {}),
+      },
       doubleSided: false,
     }],
+    ...(texture
+      ? {
+          textures: [{ source: 0, sampler: 0 }],
+          images: [{ uri: texture }],
+          samplers: [{ magFilter: 9729, minFilter: 9987, wrapS: 33071, wrapT: 33071 }],
+        }
+      : {}),
     accessors: [
       { bufferView: 0, componentType: GLTF_FLOAT, count, type: 'VEC3', min: [minX, minY, minZ], max: [maxX, maxY, maxZ] },
       { bufferView: 1, componentType: GLTF_FLOAT, count, type: 'VEC3' },
-      { bufferView: 2, componentType: GLTF_FLOAT, count, type: 'VEC3' },
+      { bufferView: 2, componentType: GLTF_FLOAT, count, type: texture ? 'VEC2' : 'VEC3' },
     ],
     bufferViews: views,
     buffers: [{ byteLength: offset }],
@@ -485,6 +525,8 @@ async function main() {
       bbox: { type: 'string' },
       spacing: { type: 'string' },
       exaggeration: { type: 'string' },
+      texture: { type: 'string' },
+      coastline: { type: 'string' },
     },
   });
 
@@ -499,9 +541,20 @@ async function main() {
   const spacingM = values.spacing ? Number(values.spacing) : SPACING_M;
   const exaggeration = values.exaggeration ? Number(values.exaggeration) : EXAGGERATION;
 
+  let isLand = null;
+  if (values.coastline) {
+    const { landMaskFrom } = await import('./island-surface.mjs');
+    const mask = landMaskFrom(JSON.parse(readFileSync(values.coastline, 'utf8')));
+    if (!mask) throw new Error(`no coastline in ${values.coastline}`);
+    isLand = mask.isLand;
+    console.log(`[chivago] shore from the OSM coastline: ${mask.ring.length} point(s)`);
+  } else {
+    console.warn('[chivago] no --coastline: the shore comes from the elevation, which is wrong by square kilometres');
+  }
+
   const tiles = await fetchTiles(bbox, ZOOM);
-  const built = buildTerrain({ bbox, sample: makeSampler(tiles, ZOOM), spacingM, exaggeration });
-  const file = glb({ ...built, colours: built.colours, name: values.area });
+  const built = buildTerrain({ bbox, sample: makeSampler(tiles, ZOOM), spacingM, exaggeration, isLand });
+  const file = glb({ ...built, name: values.area, texture: values.texture ?? null });
 
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, file);
@@ -510,6 +563,7 @@ async function main() {
   console.log(`[chivago] ${values.area}: ${s.widthM} x ${s.heightM} m, grid ${s.cols} x ${s.rows} at ${s.spacingM} m`);
   console.log(`          ${s.triangles} triangle(s), ${s.landCells} land cell(s), highest ${s.highestM} m before exaggeration`);
   console.log(`          -> ${out} (${Math.round(file.length / 1024)} KB, exaggeration x${exaggeration})`);
+  if (values.texture) console.log(`          ground painted by ${values.texture}, vertex colour left out`);
 
   if (s.triangles === 0) throw new Error('no land in this bbox - check the bbox and the sea level');
   if (s.triangles > 12_000) {

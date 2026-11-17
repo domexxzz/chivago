@@ -67,13 +67,67 @@ wants and the triangle count falls out of it: 55 m gives 7,164 against a
 budget of 8,000, 70 m gives 3,950. Quadric decimation would be hundreds of
 lines to reach the same count with less control over how the facets read.
 
-**The shore is cut at sea level**, not against the OSM coastline, so the
-waterline is as good as the DEM is - tens of metres. Good enough for a
-greybox; decide before the art pass whether to carry the real polygon through.
+**The shore comes from the OSM coastline, not from the elevation.** It was the
+elevation at first, cut at 0.5 m, and the painted ground made the mistake
+impossible to miss: an island half again too big with grass and sand in the
+sea around it wherever the archive's noise landed above the line. Measured
+over this bbox on 17 November 2026, against a real island of about 7.9 km²:
+
+| threshold | land |  | threshold | land |
+|---|---|---|---|---|
+| > 0.5 m | 12.8 km² | | > 3 m | 10.7 km² |
+| > 1 m | 12.3 km² | | > 5 m | 9.7 km² |
+| > 2 m | 11.4 km² | | > 8 m | 8.4 km² |
+
+There is no step anywhere in that curve, because SRTM smears a coast over
+several metres. Every threshold is wrong, and the one that gets the area right
+eats real coastal ground to do it. `--coastline` takes the surveyed line
+instead; without it the script says in one line that the shore is wrong by
+square kilometres rather than letting somebody find out later.
 
 **One island per mesh.** The bbox catches neighbours, so only the largest
 connected run of land survives. Ko Kham Yai is a real island with a quest on
 it, so it gets its own bbox rather than a cleanup.
+
+## The ground is painted, not photographed
+
+`scripts/island-surface.mjs` draws the texture from OpenStreetMap - the same
+data behind the vector tiles the map already loads.
+
+```bash
+node scripts/island-surface.mjs --area koh-sichang --width 2048
+node scripts/island-terrain.mjs --area koh-sichang --spacing 55 \
+  --coastline <cached osm.json> --texture koh-sichang.png
+```
+
+Measured on 17 November 2026:
+
+```
+683 ways · 487 areas, 179 lines
+2,048 x 4,421 px over 2,819 x 6,085 m = 1.38 m a pixel
+125 KB, plus 476 building footprints in a sidecar JSON
+```
+
+**Why not satellite.** Google, Bing, Apple and Esri all forbid deriving a
+product like this from their imagery, and the imagery that is genuinely open
+is Sentinel-2 at 10 m a pixel, which makes this island about 280 pixels wide
+in total. There is no high-resolution orthophoto of Ko Sichang that may
+legally be baked into a shipped asset. And the reference board has no
+photography in it anywhere: the ground is flat colour with drawn paths, so a
+photograph would produce a different product rather than a better one.
+
+**What OSM has here**: 173 ways with a highway tag (40 of them paths), 478
+buildings, 16 coastline ways, 3 beaches. The paths end up where the paths are
+and the village ends up in the shape of the village. The building footprints
+go to a sidecar file for whoever instances the houses - the chorus does not
+have to be scattered by hand.
+
+**ODbL.** Anything drawn from this data carries "© OpenStreetMap contributors"
+wherever it is shown. That is a licence condition, not a courtesy.
+
+**Vertex colour is left out when a texture is used.** Two colour sources over
+one surface is how a texture ends up muddy, and the one drawn from real paths
+and real buildings is the one worth keeping.
 
 ## Placement comes from the database
 
