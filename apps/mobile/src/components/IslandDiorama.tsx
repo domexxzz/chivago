@@ -529,12 +529,21 @@ function draw() {
     .filter((s) => s.z < 1 && s.x > 10 && s.x < window.innerWidth - 10);
 
   /*
-    EVERY PLACE GETS A DOT. docs/76 has said "the rest collapse to dots" since
-    the direction was written, and the code had never done it: a place that
-    did not make the nearest seven simply was not there, so the island looked
-    emptier than the database it is drawn from. The dot costs nothing and it
-    is what makes the seven names feel like a selection rather than the whole
-    of what is on the island.
+    A DOT ONLY WHERE THERE IS A NAME - the opposite of what this did a few
+    hours ago, and the opposite of what docs/76 asks for.
+
+    The document has said "the rest collapse to dots" since the direction was
+    written, so when dots went in they went in for every place on screen, all
+    thirteen. On the island that reads as a scatter of identical white marks
+    over the town, most of them saying nothing: a mark with no name is not a
+    smaller label, it is a question the map refuses to answer. Those places
+    are all still there, listed under the map where they can carry a name, a
+    score and a photograph.
+
+    A dot now means exactly one thing - THIS NAME BELONGS HERE - so every dot
+    has a leader and a name at the other end. A name that finds no room drops
+    out and takes its dot with it, because a dot on its own is the thing this
+    change exists to remove.
   */
   /*
     HIDDEN WITH visibility, NOT display. A display:none element measures
@@ -544,12 +553,6 @@ function draw() {
     label actually had. visibility keeps the box, so the measurement is real.
   */
   for (const a of anchors) { a.el.style.visibility = 'hidden'; a.lead.style.visibility = 'hidden'; a.dot.style.visibility = 'hidden'; }
-  for (const s of onScreen) {
-    s.a.dot.style.visibility = 'visible';
-    s.a.dot.style.left = s.x + 'px';
-    s.a.dot.style.top = s.y + 'px';
-  }
-
   const shown = onScreen
     .slice()
     .sort((m, n) => m.z - n.z)
@@ -616,6 +619,9 @@ function draw() {
     const y = s.y + spot[1];
     placed.push({ x, y, w });
 
+    s.a.dot.style.visibility = 'visible';
+    s.a.dot.style.left = s.x + 'px';
+    s.a.dot.style.top = s.y + 'px';
     s.a.el.style.visibility = 'visible';
     s.a.el.style.left = x + 'px';
     s.a.el.style.top = y + 'px';
