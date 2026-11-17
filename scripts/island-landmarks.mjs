@@ -508,6 +508,268 @@ export function ordinaryBuilding(out, { x, y, z, s = 1 }) {
   gableRoof(out, { x, y: y + 2.6 * s, z: z + 6.4 * s, w: 3.4 * s, d: 2.2 * s, h: 0.9 * s, colour: C.tin, overhang: 0.5 * s });
 }
 
+/**
+ * Build into a temporary sink, then place the result: rotate about Y, then
+ * translate. Nothing else in this file needs to know how to rotate.
+ */
+export function placed(fn, { x, y, z, rotY = 0 }) {
+  const local = { positions: [], normals: [], colours: [] };
+  fn(local);
+  const c = Math.cos(rotY);
+  const sn = Math.sin(rotY);
+  for (let i = 0; i < local.positions.length; i += 3) {
+    const px = local.positions[i];
+    const pz = local.positions[i + 2];
+    local.positions[i] = px * c - pz * sn + x;
+    local.positions[i + 1] += y;
+    local.positions[i + 2] = px * sn + pz * c + z;
+    const nx = local.normals[i];
+    const nz = local.normals[i + 2];
+    local.normals[i] = nx * c - nz * sn;
+    local.normals[i + 2] = nx * sn + nz * c;
+  }
+  return local;
+}
+
+export const appendTo = (out, part) => {
+  out.positions.push(...part.positions);
+  out.normals.push(...part.normals);
+  out.colours.push(...part.colours);
+};
+
+/**
+ * The road network, as ribbons laid on the terrain.
+ *
+ * Each way becomes a strip of quads with the width its class carries, lifted
+ * a little so it does not fight the ground it lies on. The strip follows the
+ * surface sample by sample, which is why a road over a ridge bends with it
+ * instead of cutting through.
+ */
+export const ROAD_COLOUR = { road: [0.84, 0.78, 0.63], track: [0.80, 0.74, 0.58], path: [0.76, 0.71, 0.57] };
+
+export function roadWidth(tags = {}) {
+  const h = tags.highway;
+  if (!h) return null;
+  if (['motorway', 'trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'residential'].includes(h)) {
+    return { w: 7, colour: ROAD_COLOUR.road };
+  }
+  if (['service', 'track'].includes(h)) return { w: 4.5, colour: ROAD_COLOUR.track };
+  if (['path', 'footway', 'steps', 'pedestrian'].includes(h)) return { w: 2.6, colour: ROAD_COLOUR.path };
+  return null;
+}
+
+/*
+  WIDER THAN THE ROAD IS, for the same reason the buildings are taller.
+
+  At x2.2 the island's main lane came out fifteen metres across, which on a
+  six-kilometre island is four pixels and reads as nothing. x4 puts it at
+  twenty-eight, which is the width a road has to have to be a road at this
+  distance. The footpaths stay narrower than the lanes, which is the part
+  that matters.
+*/
+export function buildRoads(osm, { project, surface, exaggeration, lift = 2.5, scale = 4, isLand = null }) {
+  const out = { positions: [], normals: [], colours: [] };
+  let ways = 0;
+  for (const way of osm.elements ?? []) {
+    const style = roadWidth(way.tags);
+    if (!style || !Array.isArray(way.geometry) || way.geometry.length < 2) continue;
+    const half = (style.w * scale) / 2;
+    const points = way.geometry.map((g) => {
+      const [x, z] = project(g.lon, g.lat);
+      return { x, y: surface(g.lon, g.lat) * exaggeration + lift, z, land: !isLand || isLand(g.lon, g.lat) };
+    });
+    for (let i = 0; i + 1 < points.length; i += 1) {
+      /*
+        A ROAD NEEDS GROUND UNDER IT.
+
+        The mesh is one island, and OpenStreetMap's ways run on to the others:
+        the first render had a lane looping through open water beside Ko Kham
+        Yai, and the shore roads hanging a metre above the sea. A segment with
+        an end outside the surveyed shore is not drawn.
+      */
+      if (!points[i].land || !points[i + 1].land) continue;
+      const a = [points[i].x, points[i].y, points[i].z];
+      const b = [points[i + 1].x, points[i + 1].y, points[i + 1].z];
+      const dx = b[0] - a[0];
+      const dz = b[2] - a[2];
+      const len = Math.hypot(dx, dz);
+      if (len < 0.001) continue;
+      const nx = (-dz / len) * half;
+      const nz = (dx / len) * half;
+      /*
+        WOUND LIKE THE TOP OF A BOX, which is the convention `tri` expects.
+
+        The first order here produced an upward cross product, which this
+        file's flip turns into a downward normal - and the renderer culls it.
+        3,026 triangles of road were generated and not one of them was drawn.
+      */
+      quad(out,
+        [a[0] - nx, a[1], a[2] - nz], [b[0] - nx, b[1], b[2] - nz],
+        [b[0] + nx, b[1], b[2] + nz], [a[0] + nx, a[1], a[2] + nz],
+        style.colour);
+    }
+    ways += 1;
+  }
+  return {
+    positions: Float32Array.from(out.positions),
+    normals: Float32Array.from(out.normals),
+    colours: Float32Array.from(out.colours),
+    ways,
+    triangles: out.positions.length / 9,
+  };
+}
+
+/**
+ * The direction of the nearest road, for a house to face.
+ *
+ * Villages are not scattered: houses stand square to the lane they are on.
+ * Without this every roof points north and a few hundred of them read as a
+ * crate yard. With it the same footprints read as streets.
+ */
+export function roadBearings(osm, project) {
+  const segments = [];
+  for (const way of osm.elements ?? []) {
+    if (!roadWidth(way.tags) || !Array.isArray(way.geometry)) continue;
+    for (let i = 0; i + 1 < way.geometry.length; i += 1) {
+      const [ax, az] = project(way.geometry[i].lon, way.geometry[i].lat);
+      const [bx, bz] = project(way.geometry[i + 1].lon, way.geometry[i + 1].lat);
+      segments.push({ ax, az, bx, bz, angle: Math.atan2(bz - az, bx - ax) });
+    }
+  }
+  return (x, z) => {
+    let best = null;
+    let bestDistance = Infinity;
+    for (const seg of segments) {
+      const dx = seg.bx - seg.ax;
+      const dz = seg.bz - seg.az;
+      const len2 = dx * dx + dz * dz || 1;
+      const t = Math.max(0, Math.min(1, ((x - seg.ax) * dx + (z - seg.az) * dz) / len2));
+      const d = Math.hypot(x - (seg.ax + dx * t), z - (seg.az + dz * t));
+      if (d < bestDistance) { bestDistance = d; best = seg; }
+    }
+    return { angle: best ? best.angle : 0, distance: bestDistance };
+  };
+}
+
+/**
+ * One house of the village, from a surveyed footprint.
+ *
+ * The chorus is not scattered: OpenStreetMap has 476 building outlines on
+ * this island, so the village can stand where the village stands, in roughly
+ * the shape it has. Only the footprint's bounding box survives the trip -
+ * orientation would need the outline itself - so the ridge runs along
+ * whichever side is longer, which is what a roof usually does.
+ *
+ * COLOUR IS CHOSEN FROM THE ID, not at random: a rebuild has to produce the
+ * same village, or every render is a different place.
+ */
+export const VILLAGE_WALLS = [
+  [0.93, 0.92, 0.88], [0.86, 0.84, 0.78], [0.78, 0.76, 0.70], [0.70, 0.66, 0.58],
+];
+export const VILLAGE_ROOFS = [
+  [0.62, 0.66, 0.68], [0.55, 0.58, 0.60], [0.66, 0.40, 0.31], [0.47, 0.50, 0.52],
+];
+
+export const pick = (list, id) => {
+  let hash = 0;
+  for (const ch of String(id)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return list[hash % list.length];
+};
+
+export function villageHouse(out, { x, y, z, w, d, h, id = 0 }) {
+  const wall = pick(VILLAGE_WALLS, id);
+  const roof = pick(VILLAGE_ROOFS, `${id}r`);
+  box(out, { x, y, z, w, d, h, colour: wall });
+  if (w >= d) {
+    // Ridge along X: rotate the gable by swapping the span it runs down.
+    gableRoofAlongX(out, { x, y: y + h, z, w, d, h: Math.min(w, d) * 0.34, colour: roof, overhang: 0.6 });
+  } else {
+    gableRoof(out, { x, y: y + h, z, w, d, h: Math.min(w, d) * 0.34, colour: roof, overhang: 0.6 });
+  }
+}
+
+/** The same roof with its ridge running along X instead of Z. */
+export function gableRoofAlongX(out, { x = 0, y, z = 0, w, d, h, colour, overhang = 0 }) {
+  const hw = w / 2 + overhang;
+  const hd = d / 2 + overhang;
+  const ridge = [[x - hw, y + h, z], [x + hw, y + h, z]];
+  const eaves = [
+    [x - hw, y, z - hd], [x + hw, y, z - hd], [x + hw, y, z + hd], [x - hw, y, z + hd],
+  ];
+  quad(out, eaves[0], eaves[1], ridge[1], ridge[0], colour);
+  quad(out, eaves[3], ridge[0], ridge[1], eaves[2], colour);
+  tri(out, eaves[0], ridge[0], eaves[3], colour);
+  tri(out, eaves[1], eaves[2], ridge[1], colour);
+}
+
+/**
+ * The whole village, skipping anything that would stand inside a landmark.
+ *
+ * The heroes have footprints in OpenStreetMap too, so without this the temple
+ * gets a tin-roofed house in the middle of it.
+ */
+export function buildVillage(buildings, {
+  project, sample, exaggeration, scale = 2.4, clear = [], clearance = 45,
+  bearing = null, minArea = 26, spacing = 26, isLand = null,
+}) {
+  const out = { positions: [], normals: [], colours: [] };
+  let placedCount = 0;
+  let skipped = 0;
+  let tooSmall = 0;
+  let tooClose = 0;
+  let offIsland = 0;
+
+  /*
+    TIDYING, IN THREE STEPS, AND NONE OF THEM INVENTS ANYTHING.
+
+    1. Drop the sheds. A footprint under 26 m2 is a garage or a water tank,
+       and a few hundred of them are the difference between a village and a
+       rash. The record still exists; it is this drawing that leaves it out.
+    2. One building to a plot. Where two survive within 26 m of each other the
+       larger stands and the other is dropped - at this scale they overlap
+       into one blob anyway, and the blob reads as clutter rather than as two
+       houses.
+    3. Face the lane. Each house turns square to the nearest road, which is
+       what makes a village look laid out instead of spilled. Without it every
+       roof points north and the cluster reads as a crate yard.
+  */
+  const kept = [];
+  for (const b of [...buildings].sort((p, q) => (q.widthM * q.depthM) - (p.widthM * p.depthM))) {
+    if (b.widthM * b.depthM < minArea) { tooSmall += 1; continue; }
+    // Only this island has ground drawn for it; the rest would float.
+    if (isLand && !isLand(b.lng, b.lat)) { offIsland += 1; continue; }
+    const [x, z] = project(b.lng, b.lat);
+    if (clear.some((a) => Math.hypot(a.x - x, a.z - z) < clearance)) { skipped += 1; continue; }
+    if (kept.some((k) => Math.hypot(k.x - x, k.z - z) < spacing)) { tooClose += 1; continue; }
+    kept.push({ ...b, x, z });
+  }
+
+  for (const b of kept) {
+    const ground = sample(b.lng, b.lat);
+    const y = (Number.isFinite(ground) ? Math.max(ground, 0) : 0) * exaggeration;
+    const long = Math.max(4, Math.min(28, Math.max(b.widthM, b.depthM))) * scale;
+    const short = Math.max(4, Math.min(28, Math.min(b.widthM, b.depthM))) * scale;
+    const near = bearing ? bearing(b.x, b.z) : null;
+    const rotY = near && near.distance < 60 ? -near.angle : 0;
+    // Built facing +X, so the ridge runs with the lane once it is turned.
+    appendTo(out, placed((local) => villageHouse(local, {
+      x: 0, y: 0, z: 0, w: long, d: short, h: short * 0.62, id: b.id,
+    }), { x: b.x, y, z: b.z, rotY }));
+    placedCount += 1;
+  }
+  return {
+    positions: Float32Array.from(out.positions),
+    normals: Float32Array.from(out.normals),
+    colours: Float32Array.from(out.colours),
+    placed: placedCount,
+    skipped,
+    tooSmall,
+    tooClose,
+    offIsland,
+    triangles: out.positions.length / 9,
+  };
+}
+
 /** A rock in the sea, for an island that is not this island. */
 export function islet(out, { x, y, z, s = 1 }) {
   dome(out, { x, y, z, r: 10 * s, colour: C.rock, sides: 10, rings: 3 });

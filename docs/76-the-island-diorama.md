@@ -215,6 +215,58 @@ European dome.
 
 Assignment is by id, never by reading the name.
 
+## The village stands where the village stands
+
+`island-surface.mjs` writes out every building footprint OpenStreetMap holds
+for the island. `island-blockout.mjs --village` builds a house on each.
+
+```
+460 houses placed, 16 skipped inside a landmark, 8,280 triangles
+```
+
+Scattering houses by hand would put a village somewhere plausible. This puts
+it where it is, in roughly the shape it has - only the footprint's bounding
+box survives, so the ridge runs along whichever side is longer, which is what
+a roof usually does. Colour is chosen from the building's id, not at random,
+so a rebuild produces the same village.
+
+The sixteen skipped are the heroes' own footprints: without that clearance the
+temple gets a tin-roofed house in the middle of it.
+
+**Houses stand on the mesh, not on the archive.** Placed at the real ground
+height a third of the village had its feet underground, because between the
+mesh's 70 m nodes the surface is a flat facet several metres above the ground
+it was built from. Placement takes the highest corner of the cell: a building
+that floats a little reads as a building on a plinth, one that sinks reads as
+a bug.
+
+**×2.4, not the ordinary ×5.** A few hundred houses at the building multiplier
+merge into one grey mass, which is a suburb rather than a village.
+
+## Roads, and a village that is laid out
+
+`--roads` builds the network as ribbons on the terrain: 174 ways, widened
+x4 because at the real seven metres a lane is four pixels on a six-kilometre
+island, and lifted clear of the ground it lies on. A segment with an end
+outside the surveyed shore is not drawn - the mesh is one island and
+OpenStreetMap's ways run on to the others, so the first pass had a lane
+looping through open water beside Ko Kham Yai.
+
+The village is tidied in three steps, none of which invents anything:
+
+1. **Drop the sheds.** A footprint under 26 m² is a garage or a water tank.
+2. **One building to a plot.** Where two survive within 26 m the larger
+   stands: at this scale they overlap into one blob anyway, and the blob
+   reads as clutter rather than as two houses.
+3. **Face the lane.** Each house turns square to the nearest road. Without it
+   every roof points north and a few hundred footprints read as a crate yard;
+   with it the same footprints read as streets.
+
+```
+240 houses of 423 on this island
+0 too small, 169 sharing a plot, 14 inside a landmark, 53 on another island
+```
+
 ## Looking at it
 
 Nothing on this toolchain opens a glTF: the preview pane refuses a local file

@@ -104,7 +104,16 @@ export function render({ positions, normals, colours, width = 1600, height = 100
     const rz = x * sy + z * cy;
     view[i * 3] = rx;
     view[i * 3 + 1] = y * cp - rz * sp;
-    view[i * 3 + 2] = y * sp + rz * cp;
+    /*
+      HIGHER IS NEARER, and the first version had it backwards.
+
+      With the eye above and to the south, raising a point brings it TOWARDS
+      the camera, so height has to reduce depth. Written the other way round,
+      anything lying just above the ground lost the depth test to the ground
+      itself: 2,618 triangles of road were drawn under the island they run
+      across, and only the stretches that overhang the sea were visible.
+    */
+    view[i * 3 + 2] = rz * cp - y * sp;
   }
 
   let minX = Infinity; let maxX = -Infinity; let minY = Infinity; let maxY = -Infinity;

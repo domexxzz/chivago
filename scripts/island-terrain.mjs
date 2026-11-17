@@ -257,6 +257,58 @@ export function faceColour(metres, slopeDeg) {
 
 /* -------------------------------------------------------------- mesh -- */
 
+/**
+ * The height of the MESH at a point, which is not the height of the archive.
+ *
+ * MEASURED: houses placed at the DEM height sank into the ground. The mesh is
+ * a 70 m grid, so between its nodes the surface is a flat facet, and the real
+ * ground under a house can be several metres below that plane on a slope. A
+ * building has to stand on the thing that is drawn, not on the thing it was
+ * drawn from.
+ *
+ * This reads the same grid the mesh is built from and interpolates across the
+ * cell, which is what the facet does.
+ */
+export function meshSurface({ bbox, sample, spacingM = SPACING_M, seaLevel = SEA_LEVEL_M }) {
+  const midLat = (bbox.minLat + bbox.maxLat) / 2;
+  const perDeg = metresPerDegree(midLat);
+  const widthM = (bbox.maxLng - bbox.minLng) * perDeg.lng;
+  const heightM = (bbox.maxLat - bbox.minLat) * perDeg.lat;
+  const cols = Math.max(2, Math.round(widthM / spacingM) + 1);
+  const rows = Math.max(2, Math.round(heightM / spacingM) + 1);
+  const grid = new Float64Array(cols * rows);
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      const lng = bbox.minLng + ((bbox.maxLng - bbox.minLng) * c) / (cols - 1);
+      const lat = bbox.maxLat - ((bbox.maxLat - bbox.minLat) * r) / (rows - 1);
+      const h = sample(lng, lat);
+      grid[r * cols + c] = Number.isFinite(h) ? h : 0;
+    }
+  }
+  return (lng, lat) => {
+    const fc = ((lng - bbox.minLng) / (bbox.maxLng - bbox.minLng)) * (cols - 1);
+    const fr = ((bbox.maxLat - lat) / (bbox.maxLat - bbox.minLat)) * (rows - 1);
+    const c0 = Math.max(0, Math.min(cols - 2, Math.floor(fc)));
+    const r0 = Math.max(0, Math.min(rows - 2, Math.floor(fr)));
+    const u = Math.max(0, Math.min(1, fc - c0));
+    const v = Math.max(0, Math.min(1, fr - r0));
+    const h00 = grid[r0 * cols + c0];
+    const h10 = grid[r0 * cols + c0 + 1];
+    const h01 = grid[(r0 + 1) * cols + c0];
+    const h11 = grid[(r0 + 1) * cols + c0 + 1];
+    /*
+      THE HIGHEST CORNER OF THE CELL, not the interpolated height.
+
+      A quad is drawn as two triangles, and an interpolated height sits above
+      one of them and below the other: with bilinear placement a third of the
+      village still had its feet under the ground. A building that floats a
+      little reads as a building on a plinth. One that sinks reads as a bug.
+    */
+    const h = Math.max(h00, h10, h01, h11);
+    return Math.max(h, seaLevel);
+  };
+}
+
 export function buildTerrain({
   bbox,
   sample,
