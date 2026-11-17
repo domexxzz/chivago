@@ -243,6 +243,30 @@ a bug.
 **×2.4, not the ordinary ×5.** A few hundred houses at the building multiplier
 merge into one grey mass, which is a suburb rather than a village.
 
+## Roads, and a village that is laid out
+
+`--roads` builds the network as ribbons on the terrain: 174 ways, widened
+x4 because at the real seven metres a lane is four pixels on a six-kilometre
+island, and lifted clear of the ground it lies on. A segment with an end
+outside the surveyed shore is not drawn - the mesh is one island and
+OpenStreetMap's ways run on to the others, so the first pass had a lane
+looping through open water beside Ko Kham Yai.
+
+The village is tidied in three steps, none of which invents anything:
+
+1. **Drop the sheds.** A footprint under 26 m² is a garage or a water tank.
+2. **One building to a plot.** Where two survive within 26 m the larger
+   stands: at this scale they overlap into one blob anyway, and the blob
+   reads as clutter rather than as two houses.
+3. **Face the lane.** Each house turns square to the nearest road. Without it
+   every roof points north and a few hundred footprints read as a crate yard;
+   with it the same footprints read as streets.
+
+```
+240 houses of 423 on this island
+0 too small, 169 sharing a plot, 14 inside a landmark, 53 on another island
+```
+
 ## Looking at it
 
 Nothing on this toolchain opens a glTF: the preview pane refuses a local file

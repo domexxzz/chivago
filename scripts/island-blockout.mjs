@@ -192,6 +192,7 @@ async function main() {
       coastline: { type: 'string' },
       grey: { type: 'boolean', default: false },
       village: { type: 'string' },
+      roads: { type: 'string' },
       exaggeration: { type: 'string' },
     },
   });
@@ -282,7 +283,7 @@ async function main() {
     for it. `island-landmarks.mjs` builds each landmark from primitives;
     anything with no archetype still gets the ordinary roofed building.
   */
-  const { buildLandmarks, buildVillage } = await import('./island-landmarks.mjs');
+  const { buildLandmarks, buildVillage, buildRoads, roadBearings } = await import('./island-landmarks.mjs');
   const shaped = buildLandmarks(built.anchors, (a) => (a.kind === 'hero' ? SCALE.hero : a.kind === 'pier' ? SCALE.pier : SCALE.ordinary));
 
   /*
@@ -297,22 +298,34 @@ async function main() {
     Smaller than the ordinary multiplier on purpose: at x5 a few hundred
     houses merge into one grey mass, which is a suburb, not a village.
   */
+  const perDeg = metresPerDegree((bbox.minLat + bbox.maxLat) / 2);
+  const originLng = (bbox.minLng + bbox.maxLng) / 2;
+  const originLat = (bbox.minLat + bbox.maxLat) / 2;
+  const project = (lng, lat) => [(lng - originLng) * perDeg.lng, -(lat - originLat) * perDeg.lat];
+
+  /*
+    Roads first, because the village is laid out along them: a house turns to
+    face the nearest lane, which is what makes a few hundred footprints read
+    as streets instead of as a crate yard.
+  */
+  let roads = null;
+  let bearing = null;
+  if (values.roads) {
+    const osm = JSON.parse(readFileSync(values.roads, 'utf8'));
+    roads = buildRoads(osm, { project, surface, exaggeration, isLand });
+    bearing = roadBearings(osm, project);
+  }
+
   let village = null;
   if (values.village) {
-    const perDeg = metresPerDegree((bbox.minLat + bbox.maxLat) / 2);
-    const originLng = (bbox.minLng + bbox.maxLng) / 2;
-    const originLat = (bbox.minLat + bbox.maxLat) / 2;
     village = buildVillage(JSON.parse(readFileSync(values.village, 'utf8')), {
-      project: (lng, lat) => [(lng - originLng) * perDeg.lng, -(lat - originLat) * perDeg.lat],
-      sample: surface,
-      exaggeration,
-      clear: built.anchors,
+      project, sample: surface, exaggeration, clear: built.anchors, bearing, isLand,
     });
   }
   const merged = {
-    positions: Float32Array.from([...ground.positions, ...shaped.positions, ...(village?.positions ?? [])]),
-    normals: Float32Array.from([...ground.normals, ...shaped.normals, ...(village?.normals ?? [])]),
-    colours: Float32Array.from([...greyed, ...shaped.colours, ...(village?.colours ?? [])]),
+    positions: Float32Array.from([...ground.positions, ...(roads?.positions ?? []), ...shaped.positions, ...(village?.positions ?? [])]),
+    normals: Float32Array.from([...ground.normals, ...(roads?.normals ?? []), ...shaped.normals, ...(village?.normals ?? [])]),
+    colours: Float32Array.from([...greyed, ...(roads?.colours ?? []), ...shaped.colours, ...(village?.colours ?? [])]),
   };
   const file = terrain.glb({ ...merged, uvs: null, name: `${values.area}-blockout` });
 
@@ -327,7 +340,11 @@ async function main() {
   console.log(`          -> ${out} (${Math.round(file.length / 1024)} KB)`);
   console.log(`          -> ${sidecar} (anchors for the label layer)`);
   console.log(`          ${shaped.triangles} triangle(s) of landmark on ${ground.stats.triangles} of terrain`);
-  if (village) console.log(`          village: ${village.placed} house(s), ${village.skipped} skipped inside a landmark, ${village.triangles} triangle(s)`);
+  if (roads) console.log(`          roads: ${roads.ways} way(s), ${roads.triangles} triangle(s)`);
+  if (village) {
+    console.log(`          village: ${village.placed} house(s) of ${village.placed + village.tooSmall + village.tooClose + village.skipped}`);
+    console.log(`                   ${village.tooSmall} too small, ${village.tooClose} sharing a plot, ${village.skipped} inside a landmark, ${village.offIsland} on another island`);
+  }
   for (const a of offIsland) {
     console.warn(`[chivago] ${a.id} (${a.name}) has no ground under it: the archive reads ${a.groundM} m there`);
   }
