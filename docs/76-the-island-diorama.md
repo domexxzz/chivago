@@ -215,6 +215,34 @@ European dome.
 
 Assignment is by id, never by reading the name.
 
+## The village stands where the village stands
+
+`island-surface.mjs` writes out every building footprint OpenStreetMap holds
+for the island. `island-blockout.mjs --village` builds a house on each.
+
+```
+460 houses placed, 16 skipped inside a landmark, 8,280 triangles
+```
+
+Scattering houses by hand would put a village somewhere plausible. This puts
+it where it is, in roughly the shape it has - only the footprint's bounding
+box survives, so the ridge runs along whichever side is longer, which is what
+a roof usually does. Colour is chosen from the building's id, not at random,
+so a rebuild produces the same village.
+
+The sixteen skipped are the heroes' own footprints: without that clearance the
+temple gets a tin-roofed house in the middle of it.
+
+**Houses stand on the mesh, not on the archive.** Placed at the real ground
+height a third of the village had its feet underground, because between the
+mesh's 70 m nodes the surface is a flat facet several metres above the ground
+it was built from. Placement takes the highest corner of the cell: a building
+that floats a little reads as a building on a plinth, one that sinks reads as
+a bug.
+
+**×2.4, not the ordinary ×5.** A few hundred houses at the building multiplier
+merge into one grey mass, which is a suburb rather than a village.
+
 ## Looking at it
 
 Nothing on this toolchain opens a glTF: the preview pane refuses a local file

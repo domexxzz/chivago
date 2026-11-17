@@ -191,6 +191,7 @@ async function main() {
       out: { type: 'string' },
       coastline: { type: 'string' },
       grey: { type: 'boolean', default: false },
+      village: { type: 'string' },
       exaggeration: { type: 'string' },
     },
   });
@@ -232,7 +233,13 @@ async function main() {
   }
   const sample = terrain.makeSampler(tiles, terrain.ZOOM);
 
-  const built = blockout({ bbox, places, sample, exaggeration });
+  /*
+    Everything that stands on the island is placed on the MESH, not on the
+    archive: between the mesh's 70 m nodes the surface is a flat facet, and a
+    house placed at the real ground height sinks into it on any slope.
+  */
+  const surface = terrain.meshSurface({ bbox, sample, spacingM: terrain.SPACING_M });
+  const built = blockout({ bbox, places, sample: surface, exaggeration });
 
   /*
     ONE FILE, ISLAND INCLUDED.
@@ -275,12 +282,37 @@ async function main() {
     for it. `island-landmarks.mjs` builds each landmark from primitives;
     anything with no archetype still gets the ordinary roofed building.
   */
-  const { buildLandmarks } = await import('./island-landmarks.mjs');
+  const { buildLandmarks, buildVillage } = await import('./island-landmarks.mjs');
   const shaped = buildLandmarks(built.anchors, (a) => (a.kind === 'hero' ? SCALE.hero : a.kind === 'pier' ? SCALE.pier : SCALE.ordinary));
+
+  /*
+    THE VILLAGE STANDS WHERE THE VILLAGE STANDS.
+
+    `island-surface.mjs` writes out every building footprint OpenStreetMap
+    holds for the island - 476 of them here. Scattering houses by hand would
+    put a village somewhere plausible; this puts it where it is, in roughly
+    the shape it has, and the cluster in the middle of the island is the thing
+    that makes the reference board look inhabited rather than modelled.
+
+    Smaller than the ordinary multiplier on purpose: at x5 a few hundred
+    houses merge into one grey mass, which is a suburb, not a village.
+  */
+  let village = null;
+  if (values.village) {
+    const perDeg = metresPerDegree((bbox.minLat + bbox.maxLat) / 2);
+    const originLng = (bbox.minLng + bbox.maxLng) / 2;
+    const originLat = (bbox.minLat + bbox.maxLat) / 2;
+    village = buildVillage(JSON.parse(readFileSync(values.village, 'utf8')), {
+      project: (lng, lat) => [(lng - originLng) * perDeg.lng, -(lat - originLat) * perDeg.lat],
+      sample: surface,
+      exaggeration,
+      clear: built.anchors,
+    });
+  }
   const merged = {
-    positions: Float32Array.from([...ground.positions, ...shaped.positions]),
-    normals: Float32Array.from([...ground.normals, ...shaped.normals]),
-    colours: Float32Array.from([...greyed, ...shaped.colours]),
+    positions: Float32Array.from([...ground.positions, ...shaped.positions, ...(village?.positions ?? [])]),
+    normals: Float32Array.from([...ground.normals, ...shaped.normals, ...(village?.normals ?? [])]),
+    colours: Float32Array.from([...greyed, ...shaped.colours, ...(village?.colours ?? [])]),
   };
   const file = terrain.glb({ ...merged, uvs: null, name: `${values.area}-blockout` });
 
@@ -295,6 +327,7 @@ async function main() {
   console.log(`          -> ${out} (${Math.round(file.length / 1024)} KB)`);
   console.log(`          -> ${sidecar} (anchors for the label layer)`);
   console.log(`          ${shaped.triangles} triangle(s) of landmark on ${ground.stats.triangles} of terrain`);
+  if (village) console.log(`          village: ${village.placed} house(s), ${village.skipped} skipped inside a landmark, ${village.triangles} triangle(s)`);
   for (const a of offIsland) {
     console.warn(`[chivago] ${a.id} (${a.name}) has no ground under it: the archive reads ${a.groundM} m there`);
   }

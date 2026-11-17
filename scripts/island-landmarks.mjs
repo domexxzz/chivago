@@ -508,6 +508,89 @@ export function ordinaryBuilding(out, { x, y, z, s = 1 }) {
   gableRoof(out, { x, y: y + 2.6 * s, z: z + 6.4 * s, w: 3.4 * s, d: 2.2 * s, h: 0.9 * s, colour: C.tin, overhang: 0.5 * s });
 }
 
+/**
+ * One house of the village, from a surveyed footprint.
+ *
+ * The chorus is not scattered: OpenStreetMap has 476 building outlines on
+ * this island, so the village can stand where the village stands, in roughly
+ * the shape it has. Only the footprint's bounding box survives the trip -
+ * orientation would need the outline itself - so the ridge runs along
+ * whichever side is longer, which is what a roof usually does.
+ *
+ * COLOUR IS CHOSEN FROM THE ID, not at random: a rebuild has to produce the
+ * same village, or every render is a different place.
+ */
+export const VILLAGE_WALLS = [
+  [0.93, 0.92, 0.88], [0.86, 0.84, 0.78], [0.78, 0.76, 0.70], [0.70, 0.66, 0.58],
+];
+export const VILLAGE_ROOFS = [
+  [0.62, 0.66, 0.68], [0.55, 0.58, 0.60], [0.66, 0.40, 0.31], [0.47, 0.50, 0.52],
+];
+
+export const pick = (list, id) => {
+  let hash = 0;
+  for (const ch of String(id)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return list[hash % list.length];
+};
+
+export function villageHouse(out, { x, y, z, w, d, h, id = 0 }) {
+  const wall = pick(VILLAGE_WALLS, id);
+  const roof = pick(VILLAGE_ROOFS, `${id}r`);
+  box(out, { x, y, z, w, d, h, colour: wall });
+  if (w >= d) {
+    // Ridge along X: rotate the gable by swapping the span it runs down.
+    gableRoofAlongX(out, { x, y: y + h, z, w, d, h: Math.min(w, d) * 0.34, colour: roof, overhang: 0.6 });
+  } else {
+    gableRoof(out, { x, y: y + h, z, w, d, h: Math.min(w, d) * 0.34, colour: roof, overhang: 0.6 });
+  }
+}
+
+/** The same roof with its ridge running along X instead of Z. */
+export function gableRoofAlongX(out, { x = 0, y, z = 0, w, d, h, colour, overhang = 0 }) {
+  const hw = w / 2 + overhang;
+  const hd = d / 2 + overhang;
+  const ridge = [[x - hw, y + h, z], [x + hw, y + h, z]];
+  const eaves = [
+    [x - hw, y, z - hd], [x + hw, y, z - hd], [x + hw, y, z + hd], [x - hw, y, z + hd],
+  ];
+  quad(out, eaves[0], eaves[1], ridge[1], ridge[0], colour);
+  quad(out, eaves[3], ridge[0], ridge[1], eaves[2], colour);
+  tri(out, eaves[0], ridge[0], eaves[3], colour);
+  tri(out, eaves[1], eaves[2], ridge[1], colour);
+}
+
+/**
+ * The whole village, skipping anything that would stand inside a landmark.
+ *
+ * The heroes have footprints in OpenStreetMap too, so without this the temple
+ * gets a tin-roofed house in the middle of it.
+ */
+export function buildVillage(buildings, { project, sample, exaggeration, scale = 2.4, clear = [], clearance = 45 }) {
+  const out = { positions: [], normals: [], colours: [] };
+  let placed = 0;
+  let skipped = 0;
+  for (const b of buildings) {
+    const [x, z] = project(b.lng, b.lat);
+    if (clear.some((a) => Math.hypot(a.x - x, a.z - z) < clearance)) { skipped += 1; continue; }
+    const ground = sample(b.lng, b.lat);
+    const w = Math.max(4, Math.min(28, b.widthM)) * scale;
+    const d = Math.max(4, Math.min(28, b.depthM)) * scale;
+    villageHouse(out, {
+      x, z, y: (Number.isFinite(ground) ? Math.max(ground, 0) : 0) * exaggeration,
+      w, d, h: Math.min(w, d) * 0.55, id: b.id,
+    });
+    placed += 1;
+  }
+  return {
+    positions: Float32Array.from(out.positions),
+    normals: Float32Array.from(out.normals),
+    colours: Float32Array.from(out.colours),
+    placed,
+    skipped,
+    triangles: out.positions.length / 9,
+  };
+}
+
 /** A rock in the sea, for an island that is not this island. */
 export function islet(out, { x, y, z, s = 1 }) {
   dome(out, { x, y, z, r: 10 * s, colour: C.rock, sides: 10, rings: 3 });
