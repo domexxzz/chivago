@@ -138,12 +138,20 @@ export function blockout({ bbox, places, sample, exaggeration }) {
   for (const anchor of anchors) {
     const place = places.find((p) => p.id === anchor.id);
     const shape = shapeFor(place);
+    /*
+      THE MULTIPLIER IS THE OBJECT'S, NOT ITS HEIGHT'S.
+
+      It was on the height alone at first, and the first look at the file said
+      so: thirteen specks on an island six kilometres long. docs/76 multiplies
+      a BUILDING by 1.8 and a hero by 2.2 - all three dimensions - because
+      what has to read at this distance is the footprint as much as the roof.
+    */
     box({
       x: anchor.x,
       y: anchor.y,
       z: anchor.z,
-      width: shape.width,
-      depth: shape.depth,
+      width: shape.width * shape.scale,
+      depth: shape.depth * shape.scale,
       height: shape.height * shape.scale,
       colour: BOX_COLOUR[shape.kind],
     }, out);
@@ -207,7 +215,35 @@ async function main() {
   const sample = terrain.makeSampler(tiles, terrain.ZOOM);
 
   const built = blockout({ bbox, places, sample, exaggeration });
-  const file = terrain.glb({ ...built, uvs: null, name: `${values.area}-blockout` });
+
+  /*
+    ONE FILE, ISLAND INCLUDED.
+
+    The first version wrote the boxes alone and said to open them beside the
+    terrain. Nothing opens two glTFs at once, so what the gate actually showed
+    was thirteen grey specks on a white background. A grey box pass is the
+    ground AND the stand-ins, in one thing somebody can double-click.
+  */
+  let isLand = null;
+  if (values.coastline) {
+    const { landMaskFrom } = await import('./island-surface.mjs');
+    isLand = landMaskFrom(JSON.parse(readFileSync(values.coastline, 'utf8')))?.isLand ?? null;
+  }
+  const ground = terrain.buildTerrain({
+    bbox, sample, spacingM: terrain.SPACING_M, exaggeration, isLand,
+  });
+  const GREY = [0.74, 0.76, 0.72];
+  const greyed = new Float32Array(ground.colours.length);
+  for (let i = 0; i < greyed.length; i += 3) {
+    // Flat, so nothing competes with the boxes for the eye at this stage.
+    greyed[i] = GREY[0]; greyed[i + 1] = GREY[1]; greyed[i + 2] = GREY[2];
+  }
+  const merged = {
+    positions: Float32Array.from([...ground.positions, ...built.positions]),
+    normals: Float32Array.from([...ground.normals, ...built.normals]),
+    colours: Float32Array.from([...greyed, ...built.colours]),
+  };
+  const file = terrain.glb({ ...merged, uvs: null, name: `${values.area}-blockout` });
 
   const out = values.out ?? `apps/mobile/assets/islands/${values.area}-blockout.glb`;
   mkdirSync(dirname(out), { recursive: true });
@@ -219,14 +255,14 @@ async function main() {
   console.log(`[chivago] ${built.boxes} box(es) from the database, ${built.anchors.filter((a) => a.kind === 'hero').length} of them heroes`);
   console.log(`          -> ${out} (${Math.round(file.length / 1024)} KB)`);
   console.log(`          -> ${sidecar} (anchors for the label layer)`);
+  console.log(`          island included: ${ground.stats.triangles} terrain triangle(s) under the boxes`);
   for (const a of offIsland) {
     console.warn(`[chivago] ${a.id} (${a.name}) has no ground under it: the archive reads ${a.groundM} m there`);
   }
-  if (values.coastline) {
-    const { landMaskFrom } = await import('./island-surface.mjs');
-    const mask = landMaskFrom(JSON.parse(readFileSync(values.coastline, 'utf8')));
-    const outside = places.filter((p) => mask && !mask.isLand(p.lng, p.lat));
-    for (const p of outside) console.warn(`[chivago] ${p.id} (${p.name}) is outside the surveyed shore`);
+  if (isLand) {
+    for (const p of places.filter((q) => !isLand(q.lng, q.lat))) {
+      console.warn(`[chivago] ${p.id} (${p.name}) is outside the surveyed shore`);
+    }
   }
 }
 
