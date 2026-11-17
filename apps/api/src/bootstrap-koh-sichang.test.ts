@@ -168,10 +168,11 @@ describe('correcting a landmark that was already live', () => {
        tags, photo_url, photo_credit, photo_licence, photo_source, safety_label_en,
        safety_label_th, crowd_density, aqi, safety_index, walkability)
       VALUES (?, ?, ?, ?, ?, 'TH-20', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1.5, 40, 6.0, 6.0)`).run(
-      old.id, old.nameEn, 'ช่องอิศริยาภรณ์ (ช่องเขาขาด)', 'Khao Khat', 'Green',
+      // Copied from a20f304, the seed the live row was actually created from.
+      old.id, old.nameEn, 'ช่องเขาขาด', 'Khao Khat', 'Green',
       old.lat, old.lng, 'Ko Sichang attraction · Air modelled',
-      'The gap through the ridge on the west coast, known on the island as Chong Khao Khat, looking out over open sea towards the sunset.',
-      'ช่องเขาริมฝั่งตะวันตก ที่คนบนเกาะเรียกกันว่าช่องเขาขาด มองออกไปเห็นทะเลเปิด เป็นจุดชมพระอาทิตย์ตก',
+      'The gap through the ridge on the west coast, formally Chong Itsariyaphon, looking out over open sea towards the sunset.',
+      'ช่องเขาริมฝั่งตะวันตก ชื่อทางการคือช่องอิศริยาภรณ์ มองออกไปเห็นทะเลเปิด เป็นจุดชมพระอาทิตย์ตก',
       JSON.stringify(['Viewpoint', 'Sunset', 'Walking']), '', '', '', '',
       'Cliff edge, keep back', 'ริมหน้าผา ควรอยู่ห่างขอบ',
     );
@@ -195,6 +196,18 @@ describe('correcting a landmark that was already live', () => {
     }
   });
 
+  /*
+    THE LIMIT OF EVERY TEST BELOW, stated because it cost a deploy to learn.
+    `plantTheOldRow` plants whatever `KOH_SICHANG_SUPERSEDED` says, so these
+    tests prove the MECHANISM and can say nothing about whether the recorded
+    value is the one production holds. The first version recorded the name
+    from the commit that introduced the entry rather than the commit that was
+    deployed, every test here passed, and the correction did not apply.
+
+    What catches that is the deploy log, which now prints both rows side by
+    side when they disagree. A fingerprint is archaeology, and archaeology is
+    checked against the site, not against the notebook.
+  */
   test('a row still holding what was planted is rewritten from the seed', () => {
     const db = openTestDb();
     const old = plantTheOldRow(db);
@@ -245,13 +258,28 @@ describe('correcting a landmark that was already live', () => {
     assert.equal(after.name_en, old.nameEn, 'nothing else may be rewritten either');
   });
 
+  test('the recorded name is the one the deployed seed used, not the first one', () => {
+    /*
+      The entry went through three states: planted as 'Itsariyaphon Pass',
+      renamed to 'Chong Khao Khat' with the position untouched, then the
+      position corrected. A fingerprint taken from the first state matches a
+      row that was created in the second, which is to say it matches nothing.
+      This pins the pair that identifies the real row: the CURRENT name with
+      the SUPERSEDED position.
+    */
+    const old = KOH_SICHANG_SUPERSEDED.find((x) => x.id === 'sc-chong-khao-khat')!;
+    const seed = KOH_SICHANG_ATTRACTIONS.find((a) => a.id === 'sc-chong-khao-khat')!;
+    assert.equal(old.nameEn, seed.nameEn, 'the rename landed before the deploy that created the row');
+    assert.notEqual(old.lat, seed.lat, 'the position is what is actually being corrected');
+  });
+
   test('a renamed row is left alone even though the pin never moved', () => {
     const db = openTestDb();
     const old = plantTheOldRow(db);
-    db.prepare('UPDATE places SET name_en = ? WHERE id = ?').run('Khao Khat Pass', old.id);
+    db.prepare('UPDATE places SET name_en = ? WHERE id = ?').run('Khao Khat Gap', old.id);
 
     const result = bootstrapKohSichangBusinesses(db, { CHIVAGO_BOOTSTRAP_KOH_SICHANG: '1' } as NodeJS.ProcessEnv);
     assert.deepEqual(result.attractionsLeftAlone, [old.id]);
-    assert.equal(liveRow(db, old.id).name_en, 'Khao Khat Pass');
+    assert.equal(liveRow(db, old.id).name_en, 'Khao Khat Gap');
   });
 });

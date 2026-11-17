@@ -319,14 +319,27 @@ export type SupersededAttraction = {
 export const KOH_SICHANG_SUPERSEDED: readonly SupersededAttraction[] = [
   {
     id: 'sc-chong-khao-khat',
-    nameEn: 'Itsariyaphon Pass',
+    /*
+      THIS NAME IS NOT THE ONE THE ENTRY WAS BORN WITH, and the first version
+      of this list used that one and did not match. The seed went through
+      three states, not two: 74318fb planted 'Itsariyaphon Pass' at the
+      OpenStreetMap position, a20f304 renamed it to 'Chong Khao Khat' while
+      leaving the position alone, and 543400a corrected the position. The
+      deploy that created the live row landed between the second and the
+      third, so the row holds the NEW name and the OLD coordinates.
+
+      I found the first value with `git log -S`, which reports the commit
+      that introduced the id, and read that as the commit that was deployed.
+      It is not the same question. The row was reported as somebody else's
+      work for one deploy because of it.
+    */
+    nameEn: 'Chong Khao Khat',
     lat: 13.1626,
     lng: 100.801342,
     provenance:
-      'planted from an OpenStreetMap viewpoint node; the seed now carries the '
-      + 'Thailand Digital Tourism Center coordinates for attraction 21533, and '
-      + 'the formal name has moved into the sentence underneath, because the '
-      + 'board and everyone standing in it say Chong Khao Khat',
+      'planted from an OpenStreetMap viewpoint node in 74318fb, renamed in '
+      + 'a20f304 without moving; the seed now carries the Thailand Digital '
+      + 'Tourism Center coordinates for attraction 21533',
   },
 ] as const;
 
@@ -383,7 +396,23 @@ export function reconcileSupersededAttractions(db: DB): Reconciliation {
       else's work.
     */
     if (matches(seed.nameEn, seed.lat, seed.lng)) continue;
-    if (!matches(planted.nameEn, planted.lat, planted.lng)) { leftAlone.push(planted.id); continue; }
+    if (!matches(planted.nameEn, planted.lat, planted.lng)) {
+      /*
+        SAY WHAT THE ROW ACTUALLY HOLDS. The first version logged only the id,
+        which told me a correction had not applied and nothing about why - and
+        the live database is behind a sign-in, so there was no second way to
+        look. A diagnostic that reports a mismatch without reporting the two
+        values being compared sends the reader back to guessing from git.
+      */
+      console.warn(
+        `[chivago] ${planted.id} left as it is: the row holds `
+        + `${JSON.stringify({ name_en: live.name_en, lat: live.lat, lng: live.lng })}, `
+        + `and this bootstrap planted `
+        + `${JSON.stringify({ name_en: planted.nameEn, lat: planted.lat, lng: planted.lng })}`,
+      );
+      leftAlone.push(planted.id);
+      continue;
+    }
 
     db.prepare(`UPDATE places SET
         name_en = ?, name_th = ?, short = ?, layer = ?, lat = ?, lng = ?, meta = ?,
