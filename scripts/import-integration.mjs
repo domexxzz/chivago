@@ -146,7 +146,27 @@ try {
   check('the exporter produced batches', files.length > 0, files.join(', '));
 
   const places = async () => (await (await fetch(`${BASE}/places`)).json()).data;
-  check('the Durable Object started with no places', (await places()).length === 0);
+
+  /*
+    THE DATABASE IS NO LONGER EMPTY WHEN IT STARTS, and this test used to
+    require that it was.
+
+    `CHIVAGO_BOOTSTRAP_KOH_SICHANG=1` went into `apps/api/wrangler.jsonc` on
+    17 November so the island's landmarks exist in production, and
+    `wrangler dev` reads that same file - so a fresh Durable Object now comes
+    up with those landmarks already in it. This check went red on main the
+    moment that merged, and it was right to: it said something true that had
+    stopped being true.
+
+    What this script is actually for is whether an EXPORT LANDS AND IS SERVED.
+    That does not need an empty database, only a known one, so the baseline is
+    measured rather than assumed and the imported row is found by being new.
+  */
+  const before = await places();
+  const beforeIds = new Set(before.map((p) => p.id));
+  check('the Durable Object starts with only what the deployment seeds',
+    before.every((p) => p.id.startsWith('sc-')),
+    `${before.length} place(s): ${before.map((p) => p.id).join(', ') || 'none'}`);
 
   let inserted = 0;
   for (const f of files) {
@@ -168,8 +188,11 @@ try {
     whole point: the rows have to be usable by the app, not merely present.
   */
   const after = await places();
-  check('the place is served by the API', after.length === 1, `${after.length} place(s)`);
-  const place = after[0];
+  /* Found by being new, rather than by being the only one there. */
+  const fresh = after.filter((p) => !beforeIds.has(p.id));
+  check('the place is served by the API', fresh.length === 1,
+    `${fresh.length} new of ${after.length} total`);
+  const place = fresh[0];
   if (place) {
     // The DTO is `name: { en, th }`; an earlier version of this script looked
     // for `nameTh` and reported a failure that was its own.
