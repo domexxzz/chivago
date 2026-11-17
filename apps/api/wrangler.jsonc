@@ -119,6 +119,23 @@
     "CHIVAGO_OPENING_GREEN": "0",
     "CHIVAGO_REGISTRATIONS_PER_HOUR": "0",
 
+    // THE SIX LANDMARKS THE ISLAND DRAWS BUT THE DATABASE NEVER HAD.
+    //
+    // `bootstrapKohSichangBusinesses` returns `skipped` unless this is "1",
+    // and it has never been set here or as a secret - so the shrine, the
+    // mondop, the bridge, Wat Atsadang Nimit, Wat Tham Yai Prik and Ko Kham
+    // Yai have never existed in production. The 3D island labels all thirteen
+    // anchors from its own sidecar, so six of its names pointed at nothing:
+    // measured on 17 November, /places answered 200 with seven Ko Sichang
+    // places and the app fetched seven photographs, none of them the
+    // Wikimedia ones these six carry.
+    //
+    // IT ONLY ADDS LANDMARKS. Businesses stay behind their own switch
+    // (CHIVAGO_BOOTSTRAP_KOH_SICHANG_BUSINESSES), no operator account is
+    // created, and each row is skipped if its id is already there - so this
+    // is idempotent and a redeploy is not a second insert.
+    "CHIVAGO_BOOTSTRAP_KOH_SICHANG": "1",
+
     // Posting is immediate; nothing is reviewed before it is public. The
     // console hides a story in one click and every clip expires in seven days.
     // Delete this to put the queue back. See fly.toml for the full argument.

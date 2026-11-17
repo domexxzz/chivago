@@ -65,6 +65,20 @@ type AttractionSeed = {
  * figures as measurements; the factual content added here is the identity,
  * position, description and licensed photograph.
  */
+/*
+  PHOTOGRAPHS AT 1280, NOT AT WHATEVER THE CAMERA SHOT.
+
+  Four of these pointed straight at the original upload - 3648 x 2736 and up,
+  several megabytes each - which a phone on the island would have to pull over
+  whatever signal it has, to show in a card a few hundred pixels wide.
+  `Special:Redirect/file/NAME?width=1280` asks Commons for a thumbnail of the
+  same file, keeps the credit and the licence exactly as they were, and was
+  checked at 1280 for every one of the six.
+
+  THIS IS THE ONLY MOMENT THESE CAN BE SET. The insert below skips any id that
+  already exists, so a row written once keeps the url it was written with; a
+  later correction here would not reach a database that already has the place.
+*/
 export const KOH_SICHANG_ATTRACTIONS: readonly AttractionSeed[] = [
   {
     id: 'sc-atsadang-bridge', nameEn: 'Atsadang Bridge', nameTh: 'สะพานอัษฎางค์', short: 'Atsadang Bridge', layer: 'Wellness',
@@ -91,7 +105,7 @@ export const KOH_SICHANG_ATTRACTIONS: readonly AttractionSeed[] = [
     descriptionEn: 'A Chinese-style shrine on the northern hillside, visited by island residents and travellers paying respect.',
     descriptionTh: 'ศาลเจ้าจีนบนเนินเขาทางตอนเหนือของเกาะ เป็นสถานที่สักการะสำคัญของชาวเกาะและผู้มาเยือน',
     lat: 13.1681837, lng: 100.8066588, tags: ['Shrine', 'Culture', 'Viewpoint'],
-    photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a2/San_Jao_Phaw_Khao_Yai_Chinese_Temple_-_panoramio_%2815%29.jpg',
+    photoUrl: 'https://commons.wikimedia.org/wiki/Special:Redirect/file/San_Jao_Phaw_Khao_Yai_Chinese_Temple_-_panoramio_%2815%29.jpg?width=1280',
     photoCredit: 'ekeidar', photoLicence: 'CC BY-SA 3.0',
     photoSource: 'https://commons.wikimedia.org/wiki/File:San_Jao_Phaw_Khao_Yai_Chinese_Temple_-_panoramio_(15).jpg',
     safetyEn: 'Religious site', safetyTh: 'ศาสนสถาน',
@@ -101,7 +115,7 @@ export const KOH_SICHANG_ATTRACTIONS: readonly AttractionSeed[] = [
     descriptionEn: 'A hilltop mondop housing a replica Buddha footprint, reached by steps above Chao Pho Khao Yai Shrine.',
     descriptionTh: 'มณฑปบนยอดเขาประดิษฐานรอยพระพุทธบาทจำลอง เข้าถึงด้วยบันไดจากบริเวณศาลเจ้าพ่อเขาใหญ่และมองเห็นทิวทัศน์รอบเกาะ',
     lat: 13.1691171, lng: 100.8054852, tags: ['Buddhist site', 'Viewpoint', 'Walking'],
-    photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/9/99/Budha_Footprint_-_panoramio.jpg',
+    photoUrl: 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Budha_Footprint_-_panoramio.jpg?width=1280',
     photoCredit: 'ekeidar', photoLicence: 'CC BY-SA 3.0',
     photoSource: 'https://commons.wikimedia.org/wiki/File:Budha_Footprint_-_panoramio.jpg',
     safetyEn: 'Steep stair access', safetyTh: 'ทางขึ้นเป็นบันไดสูง',
@@ -111,7 +125,7 @@ export const KOH_SICHANG_ATTRACTIONS: readonly AttractionSeed[] = [
     descriptionEn: 'An island temple and meditation site with caves, Buddha images and elevated views over Ko Sichang.',
     descriptionTh: 'วัดและสถานปฏิบัติธรรมบนเกาะ มีถ้ำ พระพุทธรูป และพื้นที่สูงที่มองเห็นทิวทัศน์ของเกาะสีชัง',
     lat: 13.1564464, lng: 100.8075131, tags: ['Temple', 'Cave', 'Meditation'],
-    photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/06/The_Yellow_Budha_-_panoramio_%281%29.jpg',
+    photoUrl: 'https://commons.wikimedia.org/wiki/Special:Redirect/file/The_Yellow_Budha_-_panoramio_%281%29.jpg?width=1280',
     photoCredit: 'ekeidar', photoLicence: 'CC BY-SA 3.0',
     photoSource: 'https://commons.wikimedia.org/wiki/File:The_Yellow_Budha_-_panoramio_(1).jpg',
     safetyEn: 'Religious site', safetyTh: 'ศาสนสถาน',
@@ -121,7 +135,7 @@ export const KOH_SICHANG_ATTRACTIONS: readonly AttractionSeed[] = [
     descriptionEn: 'A small fishing-community island northeast of Ko Sichang, known for local life, fishing and coastal scenery.',
     descriptionTh: 'เกาะชุมชนประมงขนาดเล็กทางตะวันออกเฉียงเหนือของเกาะสีชัง เหมาะสำหรับสัมผัสวิถีชุมชน ตกปลา และชมทิวทัศน์ชายฝั่ง',
     lat: 13.1679437, lng: 100.8245248, tags: ['Island', 'Fishing community', 'Coast'],
-    photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/42/Ko_Sichang_06.JPG',
+    photoUrl: 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Ko_Sichang_06.JPG?width=1280',
     photoCredit: 'Ruslik0', photoLicence: 'CC BY-SA 4.0',
     photoSource: 'https://commons.wikimedia.org/wiki/File:Ko_Sichang_06.JPG',
     safetyEn: 'Boat access', safetyTh: 'เดินทางด้วยเรือ',
