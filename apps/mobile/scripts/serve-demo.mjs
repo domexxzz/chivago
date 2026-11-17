@@ -31,7 +31,26 @@ createServer((req, res) => {
   let path = normalize(join(dir, decodeURIComponent(url.pathname)));
   if (!path.startsWith(dir)) { res.writeHead(403); res.end(); return; }
   if (!existsSync(path) || statSync(path).isDirectory()) path = join(dir, 'index.html');
-  res.writeHead(200, { 'content-type': TYPES[extname(path)] ?? 'application/octet-stream', 'cache-control': 'no-store' });
+  /*
+    CORS, BECAUSE `_headers` IS A CLOUDFLARE FILE AND THIS IS NOT CLOUDFLARE.
+
+    The island page runs in an iframe with `srcDoc`, which gives it an opaque
+    origin, and an ES module import from an opaque origin is always fetched in
+    CORS mode. `apps/mobile/public/_headers` grants that in every deployment -
+    but only Workers Assets reads it, so locally the import was refused and
+    the island never built. Measured 17 November: the page's own watchdog
+    reported it correctly, which is the only reason it took a minute rather
+    than an afternoon.
+
+    Everything here is already public and this server is a local preview of a
+    public site, so the grant is blanket rather than per-path: a preview that
+    behaves differently from production is worth less than no preview.
+  */
+  res.writeHead(200, {
+    'content-type': TYPES[extname(path)] ?? 'application/octet-stream',
+    'cache-control': 'no-store',
+    'access-control-allow-origin': '*',
+  });
   createReadStream(path).pipe(res);
 }).listen(port, () => {
   console.log(`[chivago] demo at http://localhost:${port} from ${dir}`);

@@ -2,6 +2,7 @@
  {
   "id": "sc-pier",
   "name": "Tha Lang pier",
+  "short": "Pier",
   "x": 47.8,
   "y": 22.9,
   "z": -989.4,
@@ -11,6 +12,7 @@
  {
   "id": "sc-hospital",
   "name": "Ko Sichang Hospital",
+  "short": "Hospital",
   "x": -248.9,
   "y": 49.4,
   "z": -1196,
@@ -20,6 +22,7 @@
  {
   "id": "sc-thamphang",
   "name": "Tham Phang Beach",
+  "short": "Tham Phang",
   "x": -343.1,
   "y": 56.8,
   "z": 785.5,
@@ -29,6 +32,7 @@
  {
   "id": "sc-palace",
   "name": "Phra Chudadhuj Palace",
+  "short": "Palace",
   "x": 914.6,
   "y": 32.8,
   "z": 377.3,
@@ -38,6 +42,7 @@
  {
   "id": "sc-marinestation",
   "name": "Cholatassathan Museum",
+  "short": "Cholatassathan",
   "x": 510.2,
   "y": 27.8,
   "z": 33.6,
@@ -47,6 +52,7 @@
  {
   "id": "sc-shops",
   "name": "Shop row by Tha Lang pier",
+  "short": "Shop row",
   "x": -19.8,
   "y": 33.2,
   "z": -836.3,
@@ -56,6 +62,7 @@
  {
   "id": "sc-koniix-garden-cottage",
   "name": "Koniix Garden Cottage",
+  "short": "Koniix",
   "x": -132.2,
   "y": 101.4,
   "z": -470.5,
@@ -65,6 +72,7 @@
  {
   "id": "sc-atsadang-bridge",
   "name": "Atsadang Bridge",
+  "short": "Atsadang Bridge",
   "x": 873.5,
   "y": 11.4,
   "z": 226.2,
@@ -74,6 +82,7 @@
  {
   "id": "sc-wat-atsadang",
   "name": "Wat Atsadang Nimit",
+  "short": "Atsadang Nimit",
   "x": 720.2,
   "y": 110.6,
   "z": 654.3,
@@ -83,6 +92,7 @@
  {
   "id": "sc-chao-pho-khao-yai",
   "name": "Chao Pho Khao Yai Shrine",
+  "short": "Khao Yai Shrine",
   "x": -362.2,
   "y": 225.5,
   "z": -1735.1,
@@ -92,6 +102,7 @@
  {
   "id": "sc-buddha-footprint",
   "name": "Buddha Footprint Mondop",
+  "short": "Buddha Footprint",
   "x": -489.5,
   "y": 312.5,
   "z": -1838.4,
@@ -101,6 +112,7 @@
  {
   "id": "sc-wat-tham-yai-prik",
   "name": "Wat Tham Yai Prik",
+  "short": "Tham Yai Prik",
   "x": -269.6,
   "y": 186.3,
   "z": -436.6,
@@ -110,10 +122,51 @@
  {
   "id": "sc-ko-kham-yai",
   "name": "Ko Kham Yai",
+  "short": "Ko Kham Yai",
   "x": 1574.8,
   "y": 106.7,
   "z": -1708.6,
   "groundM": 41.1,
   "kind": "ordinary"
+ },
+ {
+  "id": "sc-laem-chakraphong",
+  "name": "Laem Chakraphong",
+  "short": "Laem Chakraphong",
+  "x": -1055.9,
+  "y": 58.4,
+  "z": 480.6,
+  "groundM": 22.5,
+  "kind": "ordinary"
+ },
+ {
+  "id": "sc-chong-khao-khat",
+  "name": "Chong Khao Khat",
+  "short": "Khao Khat",
+  "x": -938.7,
+  "y": 77.9,
+  "z": -1117.4,
+  "groundM": 30,
+  "kind": "ordinary"
+ },
+ {
+  "id": "sc-kuan-yin-shrine",
+  "name": "Kuan Yin Shrine",
+  "short": "Kuan Yin Shrine",
+  "x": -408.1,
+  "y": 131,
+  "z": -1667.6,
+  "groundM": 50.4,
+  "kind": "ordinary"
+ },
+ {
+  "id": "sc-wat-chuthathit",
+  "name": "Wat Chuthathit Thammasapharam",
+  "short": "Wat Chuthathit",
+  "x": -306.1,
+  "y": 93,
+  "z": -1646.2,
+  "groundM": 35.8,
+  "kind": "hero"
  }
 ]

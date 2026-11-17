@@ -32,7 +32,30 @@ describe('Ko Sichang production bootstrap', () => {
       id: string; photo_url: string | null; photo_credit: string | null; photo_licence: string | null; photo_source: string | null;
     }[];
     assert.equal(attractions.length, KOH_SICHANG_ATTRACTIONS.length);
+    /*
+      WHOLE RECORD OR NO RECORD, which is the rule `repo.ts` states:
+
+        "A photograph is only usable with its credit, so the whole record is
+         present or the whole record is null. Half of one is not shippable."
+
+      This test used to demand the record be PRESENT on every landmark, a
+      stricter rule than the code enforces, and on 17 November it refused four
+      landmarks that have no photograph anywhere. Commons holds no image of
+      Laem Chakraphong, the Khao Khat pass, Kuan Yin Shrine or Wat Chuthathit:
+      a geolocated search around the last two returns only photographs of a
+      DIFFERENT shrine eighty metres away, and a search for "Chakrabongse"
+      returns portraits of the prince the cape is named after. Either would
+      have been a false caption, which is a worse failure than an honest
+      blank.
+
+      So the bar is unchanged wherever a photograph exists, and a landmark
+      with none passes only with every field empty - never some of them.
+    */
     for (const attraction of attractions) {
+      const parts = [attraction.photo_url, attraction.photo_credit, attraction.photo_licence, attraction.photo_source];
+      const filled = parts.filter((v) => v && v.trim() !== '').length;
+      if (filled === 0) continue;
+      assert.equal(filled, 4, `${attraction.id} has half a photo record, which is not shippable`);
       assert.match(attraction.photo_url ?? '', /^https:\/\//);
       assert.ok(attraction.photo_credit, `${attraction.id} has no photo credit`);
       assert.match(attraction.photo_licence ?? '', /^CC BY/);

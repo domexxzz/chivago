@@ -140,6 +140,69 @@ export const KOH_SICHANG_ATTRACTIONS: readonly AttractionSeed[] = [
     photoSource: 'https://commons.wikimedia.org/wiki/File:Ko_Sichang_06.JPG',
     safetyEn: 'Boat access', safetyTh: 'เดินทางด้วยเรือ',
   },
+  /*
+    FOUR NAMES THE ISLAND HAD NOTHING FOR.
+
+    The landmark board asks for sixteen places; the database held nine. These
+    are the four whose coordinates OpenStreetMap could confirm by name. Two
+    of them are in the empty half - the whole south and west of the island
+    carried no landmark at all, which is why a quarter of the 3D map's coast
+    had nothing to say.
+
+    NONE OF THEM HAS A PHOTOGRAPH, deliberately rather than unfinished.
+    Commons has no image of any of the four. A geolocated search around the
+    two northern ones returns only photographs of San Jao Phaw Khao Yai - a
+    DIFFERENT shrine eighty metres away, already used by
+    sc-chao-pho-khao-yai - and a search for "Chakrabongse" returns portraits
+    of the prince the cape is named after. Either would be a false caption.
+    repo.ts puts the rule well: a photograph is only usable with its credit,
+    so the whole record is present or the whole record is null. PlaceScreen
+    already draws something deliberate when there is none.
+
+    THE THREE IN THE NORTH STAND CLOSE TOGETHER: Kuan Yin is 82 m from Chao
+    Pho Khao Yai, Wat Chuthathit 106 m, the Buddha Footprint 164 m. That is
+    one hillside complex rather than four scattered places, so at island zoom
+    the label layer names whichever fit and drops the rest.
+  */
+  {
+    id: 'sc-laem-chakraphong', nameEn: 'Laem Chakraphong', nameTh: 'แหลมจักรพงษ์', short: 'Laem Chakraphong', layer: 'Green',
+    descriptionEn: 'The cape on the south-west shore, named for Prince Chakrabongse. The coast here faces the open gulf, with no pier and no beach service.',
+    descriptionTh: 'แหลมทางชายฝั่งตะวันตกเฉียงใต้ของเกาะ ตั้งชื่อตามสมเด็จฯ เจ้าฟ้าจักรพงษ์ภูวนาถ ชายฝั่งด้านนี้หันออกอ่าวเปิด ไม่มีท่าเรือหรือบริการชายหาด',
+    lat: 13.148156, lng: 100.800261, tags: ['Cape', 'Coast', 'Viewpoint'],
+    photoUrl: '', photoCredit: '', photoLicence: '', photoSource: '',
+    safetyEn: 'Open coast, no lifeguard', safetyTh: 'ชายฝั่งเปิด ไม่มีไลฟ์การ์ด',
+  },
+  {
+    /*
+      NAMED THE WAY PEOPLE NAME IT. OpenStreetMap calls this ช่องอิศริยาภรณ์,
+      which is its formal name and the one the map was labelled with at first.
+      Nobody on the island says it: the board says Chong Khao Khat and so does
+      everyone standing in it. The formal name is kept where it belongs, in
+      the sentence underneath.
+    */
+    id: 'sc-chong-khao-khat', nameEn: 'Chong Khao Khat', nameTh: 'ช่องเขาขาด', short: 'Khao Khat', layer: 'Green',
+    descriptionEn: 'The gap through the ridge on the west coast, formally Chong Itsariyaphon, looking out over open sea towards the sunset.',
+    descriptionTh: 'ช่องเขาริมฝั่งตะวันตก ชื่อทางการคือช่องอิศริยาภรณ์ มองออกไปเห็นทะเลเปิด เป็นจุดชมพระอาทิตย์ตก',
+    lat: 13.1626, lng: 100.801342, tags: ['Viewpoint', 'Sunset', 'Walking'],
+    photoUrl: '', photoCredit: '', photoLicence: '', photoSource: '',
+    safetyEn: 'Cliff edge, keep back', safetyTh: 'ริมหน้าผา ควรอยู่ห่างขอบ',
+  },
+  {
+    id: 'sc-kuan-yin-shrine', nameEn: 'Kuan Yin Shrine', nameTh: 'ศาลเจ้าแม่กวนอิม', short: 'Kuan Yin Shrine', layer: 'Safe',
+    descriptionEn: 'A shrine to Guanyin on the northern hillside, in the same complex as Chao Pho Khao Yai and about eighty metres from it.',
+    descriptionTh: 'ศาลเจ้าแม่กวนอิมบนเนินเขาทางเหนือ อยู่ในบริเวณเดียวกับศาลเจ้าพ่อเขาใหญ่ ห่างกันราวแปดสิบเมตร',
+    lat: 13.167573, lng: 100.806236, tags: ['Shrine', 'Culture'],
+    photoUrl: '', photoCredit: '', photoLicence: '', photoSource: '',
+    safetyEn: 'Religious site', safetyTh: 'ศาสนสถาน',
+  },
+  {
+    id: 'sc-wat-chuthathit', nameEn: 'Wat Chuthathit Thammasapharam', nameTh: 'วัดจุฑาทิศธรรมสภารามวรวิหาร', short: 'Wat Chuthathit', layer: 'Wellness',
+    descriptionEn: 'A royal temple on the northern hillside, a short walk from the shrines above the harbour.',
+    descriptionTh: 'พระอารามหลวงบนเนินเขาทางเหนือของเกาะ เดินจากบริเวณศาลเจ้าเหนือท่าเรือได้ไม่ไกล',
+    lat: 13.16738, lng: 100.807177, tags: ['Buddhist site', 'Culture'],
+    photoUrl: '', photoCredit: '', photoLicence: '', photoSource: '',
+    safetyEn: 'Religious site', safetyTh: 'ศาสนสถาน',
+  },
 ] as const;
 
 export const KOH_SICHANG_BUSINESSES: readonly BusinessSeed[] = [

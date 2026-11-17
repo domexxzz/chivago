@@ -580,7 +580,20 @@ function draw() {
     the cluster keeps every name within sight of the place it belongs to.
   */
   const SPOTS = [
-    [0, -12], [0, 38], [0, -40], [0, 66],
+    [0, -12], [0, 38],
+    /*
+      THE SMALL SIDEWAYS STEPS, added because the ring had none.
+
+      It used to go 25 px, then 53, then 80: a name that could not have the
+      spot over its own dot was thrown most of a label's width away, and the
+      map read as a scatter of pills with the places somewhere behind them.
+      Nothing needed that much room - what it needed was somewhere nearer to
+      stand. These four tiers sit at 47 and 61 px, so a crowded name steps
+      aside rather than leaping, and only the genuinely stuck ones go far.
+    */
+    [-40, -12], [40, -12], [-40, 38], [40, 38],
+    [0, -40], [0, 66],
+    [-56, -40], [56, -40], [-56, 66], [56, 66],
     [-76, -12], [76, -12], [-76, 38], [76, 38],
     [0, -68], [0, 94],
     [-108, -12], [108, -12], [-108, 38], [108, 38],
@@ -833,7 +846,8 @@ window.__island.then(([bin, list]) => new Promise((resolve) => {
     for (const a of list) {
       const el = document.createElement('div');
       el.className = 'lab';
-      el.textContent = a.name;
+      /* The short name on the map, the full one on the screen it opens. */
+      el.textContent = a.short || a.name;
       el.addEventListener('click', () => {
         /* Silence is not an answer. A pill only takes a tap it can honour. */
         if (el.classList.contains('open')) post({ type: 'place', id: a.id });

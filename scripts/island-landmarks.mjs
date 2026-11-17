@@ -777,6 +777,17 @@ export function islet(out, { x, y, z, s = 1 }) {
 }
 
 /**
+ * A CAPE IS NOT A BUILDING, and neither is a gap in a ridge.
+ *
+ * `archetypeFor` falls back to `ordinaryBuilding`, which is right for a
+ * guest house and wrong for a headland: it would stand a little box on a
+ * clifftop and call it Laem Chakraphong. These places are already drawn -
+ * by the terrain - and what they need from this layer is nothing at all. The
+ * name and its dot come from the anchor either way.
+ */
+export const landform = () => {};
+
+/**
  * Which shape each record gets.
  *
  * By id, never by reading the name: a record called "Shop row by Tha Lang
@@ -792,6 +803,10 @@ export const ARCHETYPES = {
   'sc-atsadang-bridge': pier,
   'sc-pier': pier,
   'sc-ko-kham-yai': islet,
+  'sc-kuan-yin-shrine': chineseShrine,
+  'sc-wat-chuthathit': thaiTemple,
+  'sc-laem-chakraphong': landform,
+  'sc-chong-khao-khat': landform,
 };
 
 export const archetypeFor = (id) => ARCHETYPES[id] ?? ordinaryBuilding;
