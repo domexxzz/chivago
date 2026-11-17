@@ -107,6 +107,27 @@ export interface IslandDioramaProps {
   openable?: readonly string[];
 }
 
+/**
+ * Where the island's own files are asked for.
+ *
+ * `/islands/` and `/vendor/` are static assets served beside the web build in
+ * every deployment, so ON THE WEB the page needs no host at all - a relative
+ * path resolves against whatever origin served the page, which is right for
+ * the live site and right for the demo without either knowing its own name.
+ *
+ * ON NATIVE there is no origin to be relative to: the WebView is handed bare
+ * HTML with no document url, so only an absolute host will do, and that is
+ * the API.
+ *
+ * This was `API_BASE` for both. The public demo is built with
+ * EXPO_PUBLIC_API_URL=http://localhost:8787 - its in-process server answers
+ * the APP's calls from a snapshot - and the island page is not the app: it
+ * runs in an iframe of its own, whose requests that server never sees. So the
+ * demo asked the VISITOR'S OWN MACHINE for a megabyte of island, and the link
+ * a judge opens had never once shown the island to anybody.
+ */
+export const pageBase = (os: string, apiBase: string): string => (os === 'web' ? '' : apiBase);
+
 export function dioramaPage(island: string, base: string): string {
   return `<!doctype html>
 <html><head>
@@ -713,7 +734,26 @@ export function IslandDiorama({ island = 'koh-sichang', height, here, route, onS
   const [failure, setFailure] = React.useState<string | null>(null);
   const web = React.useRef<WebView>(null);
   const frame = React.useRef<HTMLIFrameElement | null>(null);
-  const html = React.useMemo(() => dioramaPage(island, API_BASE), [island]);
+  /*
+    THE ISLAND'S FILES COME FROM THE APP'S OWN ORIGIN, NOT THE API'S.
+
+    `/islands/` and `/vendor/` are static assets served beside the web build
+    in every deployment, so on the web the page needs no host at all - a
+    relative path resolves against whatever origin served the page, which is
+    the only value that is right for the live site AND for the demo.
+
+    Measured on the public demo, 17 November: it is built with
+    EXPO_PUBLIC_API_URL=http://localhost:8787, so API_BASE was that, and the
+    page asked the VISITOR'S OWN MACHINE for a megabyte of island. Nothing
+    answered, no canvas was ever created, and the demo has never shown the
+    island to anyone. The demo's in-process server answers the APP's fetches;
+    it cannot answer this page's, which run inside an iframe of their own.
+
+    On native there is no origin to be relative to - the WebView is handed
+    bare HTML - so there it still needs the absolute host, which is the API.
+  */
+  const base = pageBase(Platform.OS, API_BASE);
+  const html = React.useMemo(() => dioramaPage(island, base), [island, base]);
 
   const send = React.useCallback((message: Record<string, unknown>) => {
     const payload = JSON.stringify(message);
