@@ -129,9 +129,43 @@ export function dioramaPage(island: string, base: string): string {
 </svg></div>
 <div id="scale"><div class="bar" style="width:60px"></div><span id="scaleText">—</span></div>
 <div id="fail"></div>
+<script>
+  /*
+    THE ISLAND STARTS DOWNLOADING BEFORE three DOES, and this is worth more
+    than either file's size.
+
+    A module import blocks the module body, so the page was doing this in
+    series: fetch 675 KB of three, parse it, and only then ask for the 602 KB
+    island. Two downloads that have nothing to say to each other were waiting
+    for one another - on a phone that is the difference between one wait and
+    two. This is a classic script on purpose: it runs the moment the parser
+    reaches it, while the module below is still being fetched.
+  */
+  window.__t0 = Date.now();
+  window.__island = Promise.all([
+    fetch('${base}/islands/${island}.glb').then(function (r) {
+      if (!r.ok) throw new Error('glb ' + r.status);
+      return r.arrayBuffer();
+    }),
+    fetch('${base}/islands/${island}.anchors.json')
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .catch(function () { return []; }),
+  ]);
+</script>
 <script type="module">
 import * as THREE from '${base}${VENDOR}';
 
+/*
+  WHERE THE TIME GOES, reported rather than guessed.
+
+  Three rounds of this were spent making files smaller on the theory that
+  size was the wait. It helped, and the answer stayed "still slow", because
+  nothing here can open a browser and nobody could see which leg was long.
+  The page times its own four legs and says so; the overlay shows them while
+  it waits. A number from the phone that is slow beats an hour of reasoning
+  about a phone that is not here.
+*/
+const tick = (what) => post({ type: 'tick', what, ms: Date.now() - window.__t0 });
 const post = (m) => {
   try { window.ReactNativeWebView.postMessage(JSON.stringify(m)); return; } catch (e) {}
   try { window.parent.postMessage(JSON.stringify(m), '*'); } catch (e) {}
@@ -364,10 +398,10 @@ function parseIsland(buf) {
   return new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
 }
 
-Promise.all([
-  fetch('${base}/islands/${island}.glb').then((r) => { if (!r.ok) throw new Error('glb ' + r.status); return r.arrayBuffer(); }),
-  fetch('${base}/islands/${island}.anchors.json').then((r) => (r.ok ? r.json() : [])),
-]).then(([bin, list]) => new Promise((resolve) => {
+/* Started before this module was even fetched. */
+tick('three');
+window.__island.then(([bin, list]) => new Promise((resolve) => {
+  tick('island');
   {
     const mesh = parseIsland(bin);
     scene.add(mesh);
@@ -393,8 +427,10 @@ Promise.all([
     /* Anything that arrived while the island was still loading. */
     if (pending.here) window.__chivago.setHere(pending.here[0], pending.here[1]);
     if (pending.route) window.__chivago.setRoute(pending.route);
+    tick('built');
     post({ type: 'ready', labels: list.length });
     draw();
+    requestAnimationFrame(() => tick('drawn'));
     resolve();
   }
 })).catch((e) => fail(String(e && e.message ? e.message : e)));
@@ -404,6 +440,7 @@ Promise.all([
 
 export function IslandDiorama({ island = 'koh-sichang', height, here, route, onSelectPlace }: IslandDioramaProps) {
   const [ready, setReady] = React.useState(false);
+  const [ticks, setTicks] = React.useState<{ what: string; ms: number }[]>([]);
   const web = React.useRef<WebView>(null);
   const frame = React.useRef<HTMLIFrameElement | null>(null);
   const html = React.useMemo(() => dioramaPage(island, API_BASE), [island]);
@@ -418,8 +455,11 @@ export function IslandDiorama({ island = 'koh-sichang', height, here, route, onS
   }, []);
 
   const handle = React.useCallback((raw: string) => {
-    let message: { type?: string; id?: string } | null = null;
-    try { message = JSON.parse(raw) as { type?: string; id?: string }; } catch { return; }
+    let message: { type?: string; id?: string; what?: string; ms?: number } | null = null;
+    try { message = JSON.parse(raw) as { type?: string; id?: string; what?: string; ms?: number }; } catch { return; }
+    if (message?.type === 'tick' && message.what && typeof message.ms === 'number') {
+      setTicks((seen) => [...seen, { what: message.what as string, ms: message.ms as number }]);
+    }
     if (message?.type === 'ready' || message?.type === 'error') setReady(true);
     if (message?.type === 'place' && message.id) onSelectPlace?.(message.id);
   }, [onSelectPlace]);
@@ -475,6 +515,11 @@ export function IslandDiorama({ island = 'koh-sichang', height, here, route, onS
           <Body colour="#ffffff">
             {t({ en: 'Building the island…', th: 'กำลังสร้างเกาะ…', zh: '正在生成岛屿…' })}
           </Body>
+          {ticks.length ? (
+            <Body size={13} colour="#D9F3FA">
+              {ticks.map((entry) => `${entry.what} ${(entry.ms / 1000).toFixed(1)}s`).join(' · ')}
+            </Body>
+          ) : null}
         </View>
       )}
     </View>
