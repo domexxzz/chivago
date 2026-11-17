@@ -35,6 +35,12 @@
 /islands/*
   cache-control: public, max-age=3600
 
+# three.js, served from here rather than a CDN: 675 KB over somebody else's
+# DNS and TLS was most of the wait before the island appeared. The version is
+# in the filename, so this one IS immutable - a new three is a new name.
+/vendor/*
+  cache-control: public, max-age=31536000, immutable
+
 /favicon.ico
   cache-control: public, max-age=86400
 

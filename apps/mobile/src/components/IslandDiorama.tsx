@@ -39,9 +39,21 @@ import { API_BASE } from '../api/client.ts';
 import { Body } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
 
-/** three.js, pinned. A range here is a map that changes on somebody's CDN. */
-const THREE = 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
-const LOADER = 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
+/**
+ * three.js, from our own origin.
+ *
+ * IT CAME FROM A CDN AND THAT WAS THE REST OF THE WAIT. 675 KB over a fresh
+ * DNS lookup and TLS handshake to a host that is not ours, before a single
+ * byte of island. Served from here it rides the connection the app already
+ * has open, and the version in the filename lets it be cached for a year.
+ *
+ * GLTFLOADER IS GONE, which is another 107 KB. It reads a format this
+ * repository also WRITES (`scripts/island-terrain.mjs`), and the file it has
+ * to read is one mesh with two attributes and no indices. Thirty lines below
+ * do it; the general-purpose loader was carrying animation, skinning,
+ * cameras, materials and a dozen extensions for a file that has none.
+ */
+const VENDOR = '/vendor/three-0.170.0.min.js';
 
 /** docs/76 §camera: constrained, never free. */
 export const CAMERA = { yaw: 20, yawRange: 35, pitch: 32, pitchMin: 24, pitchMax: 55 };
@@ -118,8 +130,7 @@ export function dioramaPage(island: string, base: string): string {
 <div id="scale"><div class="bar" style="width:60px"></div><span id="scaleText">—</span></div>
 <div id="fail"></div>
 <script type="module">
-import * as THREE from '${THREE}';
-import { GLTFLoader } from '${LOADER}';
+import * as THREE from '${base}${VENDOR}';
 
 const post = (m) => {
   try { window.ReactNativeWebView.postMessage(JSON.stringify(m)); return; } catch (e) {}
@@ -314,23 +325,54 @@ window.addEventListener('message', (e) => {
   if (m.type === 'route') window.__chivago.setRoute(m.points);
 });
 
+/*
+  The whole of the glTF this page needs to understand.
+
+  One mesh, POSITION and COLOR_0, no indices - because that is what
+  scripts/island-terrain.mjs writes it. A file that fails these expectations
+  should throw here rather than be half-read.
+*/
+function parseIsland(buf) {
+  const dv = new DataView(buf);
+  if (dv.getUint32(0, true) !== 0x46546c67) throw new Error('not a glb');
+  const jsonLength = dv.getUint32(12, true);
+  const json = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 20, jsonLength)));
+  const binStart = 20 + jsonLength + 8;
+  const primitive = json.meshes[0].primitives[0];
+  const read = (name) => {
+    const accessor = json.accessors[primitive.attributes[name]];
+    const view = json.bufferViews[accessor.bufferView];
+    const offset = binStart + (view.byteOffset || 0);
+    const items = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4 }[accessor.type];
+    const count = accessor.count * items;
+    if (accessor.componentType === 5126) {
+      return new THREE.BufferAttribute(new Float32Array(buf, offset, count), items);
+    }
+    if (accessor.componentType === 5121) {
+      return new THREE.BufferAttribute(new Uint8Array(buf, offset, count), items, Boolean(accessor.normalized));
+    }
+    throw new Error('componentType ' + accessor.componentType);
+  };
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', read('POSITION'));
+  if (primitive.attributes.COLOR_0 !== undefined) geometry.setAttribute('color', read('COLOR_0'));
+  /*
+    Recomputed rather than shipped: the mesh is unindexed, so this returns
+    exactly the flat normals that used to be in the file - 451 KB of them.
+  */
+  geometry.computeVertexNormals();
+  return new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }));
+}
+
 Promise.all([
   fetch('${base}/islands/${island}.glb').then((r) => { if (!r.ok) throw new Error('glb ' + r.status); return r.arrayBuffer(); }),
   fetch('${base}/islands/${island}.anchors.json').then((r) => (r.ok ? r.json() : [])),
-]).then(([bin, list]) => new Promise((resolve, reject) => {
-  new GLTFLoader().parse(bin, '', (gltf) => {
-    gltf.scene.traverse((o) => {
-      if (!o.isMesh) return;
-      /*
-        The file carries POSITION and COLOR_0 and nothing else: normals are
-        recomputed here because the mesh is unindexed, so this produces
-        exactly the flat normals that used to be shipped - 451 KB of them.
-      */
-      if (!o.geometry.getAttribute('normal')) o.geometry.computeVertexNormals();
-      o.material = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
-    });
-    scene.add(gltf.scene);
-    island = gltf.scene;
+]).then(([bin, list]) => new Promise((resolve) => {
+  {
+    const mesh = parseIsland(bin);
+    scene.add(mesh);
+    island = mesh;
+    const gltf = { scene: mesh };
 
     const box = new THREE.Box3().setFromObject(gltf.scene);
     box.getCenter(target);
@@ -354,7 +396,7 @@ Promise.all([
     post({ type: 'ready', labels: list.length });
     draw();
     resolve();
-  }, reject);
+  }
 })).catch((e) => fail(String(e && e.message ? e.message : e)));
 </script>
 </body></html>`;
