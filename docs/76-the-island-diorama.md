@@ -350,8 +350,16 @@ which means overlapping on **both** axes.
 Two things this paragraph used to claim that the code had never done, and now
 does:
 
-- **every place on screen gets a dot**, not only the seven that are named, so
-  the island stops looking emptier than the database it is drawn from;
+- **a dot is drawn only where there is a name.** This paragraph asked for the
+  opposite — "the rest collapse to dots" — and on 17 November it was built
+  that way: thirteen dots, seven of them named. Looked at on the island, the
+  six nameless ones read as a scatter of identical white marks over the town,
+  and the owner's first words about it were that the dots should be on the
+  places that matter. **A mark with no name is not a smaller label; it is a
+  question the map refuses to answer.** The other places are listed under the
+  map, where each can carry a name, a score and a photograph instead of a
+  four-pixel circle. A name that finds no room drops out and takes its dot
+  with it;
 - **a leader line joins a displaced name to its dot.** It cannot be "the same
   length and angle on every label" - that is a static board's luxury, and this
   camera orbits. It is drawn only when the name had to move, in whichever
