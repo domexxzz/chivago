@@ -84,8 +84,8 @@ export const ruleHair: ViewStyle = {
 };
 
 /**
- * Thai text needs a looser line-height than Latin and its own family, because
- * Archivo carries no Thai glyphs. Never share a line-height across scripts.
+ * Thai text needs looser line-height so stacked vowels and tone marks remain
+ * clear. The same Noto family now carries both Latin and Thai interface copy.
  */
 export const thaiText = (size = 11, colour: string = color.neutral700): TextStyle => ({
   fontFamily: font.thai,
@@ -94,7 +94,7 @@ export const thaiText = (size = 11, colour: string = color.neutral700): TextStyl
   color: colour,
 });
 
-/** An uppercase micro-label. size 9-11, tracking 0.10-0.16em. */
+/** A compact label. `Label` removes caps/tracking for Thai and Chinese. */
 export const label = (
   size: 9 | 10 | 11,
   trackingEm: number,

@@ -93,6 +93,7 @@ export const Settings = Icon;
 export const Share2 = Icon;
 export const Shield = Icon;
 export const ShieldCheck = Icon;
+export const Ship = Icon;
 export const Shirt = Icon;
 export const ShoppingBag = Icon;
 export const Smartphone = Icon;

@@ -141,12 +141,12 @@ describe('discounts stay in the backpack with their real source', () => {
   });
 });
 
-describe('the mascot and pet collection names only what the traveller holds', () => {
-  test('the section is explicitly Mascot & Pet and not a Party feature', async () => {
+describe('the character and pet collection names only what the traveller holds', () => {
+  test('the section is explicitly Characters & Pets and not a Party feature', async () => {
     const net = backpack();
     restore = net.restore;
     const ui = await mountScreen(h(WalletScreen, walletProps));
-    assert.match(ui.text(), /Mascot & Pet/);
+    assert.match(ui.text(), /Characters & Pets/);
     assert.doesNotMatch(ui.text(), /Travel companions/);
     ui.unmount();
   });
@@ -179,13 +179,13 @@ describe('the mascot and pet collection names only what the traveller holds', ()
     }
   });
 
-  test('a traveller who has been nowhere is given no province mascot', async () => {
+  test('a traveller who has been nowhere is given no province character', async () => {
     // An emblem on this card is a claim that somebody went there.
     const net = backpack();
     restore = net.restore;
     const ui = await mountScreen(h(WalletScreen, walletProps));
     assert.ok(
-      ui.labels().some((l) => /No province mascot yet/.test(l)),
+      ui.labels().some((l) => /No character yet/.test(l)),
       'an unvisited traveller should get the honest state, not an invented emblem',
     );
     ui.unmount();
@@ -197,13 +197,13 @@ describe('the mascot and pet collection names only what the traveller holds', ()
     });
     restore = net.restore;
     const ui = await mountScreen(h(WalletScreen, walletProps));
-    const mascotLabel = ui.labels().find((l) => /Open the Mascot collection/.test(l));
-    assert.ok(mascotLabel, 'the mascot tile should still open the collection');
-    assert.match(mascotLabel!, /emblem of Chon Buri/, 'the emblem should name the province visited');
+    const mascotLabel = ui.labels().find((l) => /Open the Character collection/.test(l));
+    assert.ok(mascotLabel, 'the character tile should still open the collection');
+    assert.match(mascotLabel!, /representing Chon Buri/, 'the character should name the province visited');
     ui.unmount();
   });
 
-  test('the mascot tile opens the mascot collection and the pet opens its companion', async () => {
+  test('the character tile opens the character collection and the pet opens its companion', async () => {
     let mascots = 0;
     let opened: Companion | null = null;
     const net = backpack({
@@ -217,7 +217,7 @@ describe('the mascot and pet collection names only what the traveller holds', ()
       onOpenCompanion: (c: Companion) => { opened = c; },
     }));
 
-    await ui.press(/Open the Mascot collection/);
+    await ui.press(/Open the Character collection/);
     await ui.press(/^Green sea turtle, Hatchling$/);
     assert.equal(mascots, 1);
     assert.equal(opened?.species.key, 'green-turtle');
@@ -228,7 +228,8 @@ describe('the mascot and pet collection names only what the traveller holds', ()
     const net = backpack();
     restore = net.restore;
     const ui = await mountScreen(h(WalletScreen, walletProps));
-    assert.match(ui.text(), /PET LOCKED/);
+    assert.match(ui.text(), /NO PET YET/);
+    assert.match(ui.text(), /NO CHARACTER YET/);
     assert.ok(
       ui.labels().some((l) => /No pet yet/.test(l)),
       'the empty state should say what it is, in words',

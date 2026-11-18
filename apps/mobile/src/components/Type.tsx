@@ -34,7 +34,7 @@ import { getLocale, t, type Locale } from '../i18n/locale.ts';
  * body text, and it is a little looser than the Thai because the Thai is
  * buying room for one mark while this is buying room for the whole line.
  */
-const SCRIPT_LEADING: Partial<Record<Locale, number>> = { th: 1.45, zh: 1.5 };
+const SCRIPT_LEADING: Partial<Record<Locale, number>> = { th: 1.5, zh: 1.5 };
 
 /**
  * A platform CJK stack avoids bundling several megabytes of font weights.
@@ -65,12 +65,12 @@ interface HeadingProps {
   tracking?: number;
 }
 
-/** Archivo 800. Every heading, list title and display numeral. */
+/** Noto Sans Thai Bold. Every heading, list title and display numeral. */
 export function Heading({ children, style, size = 26, colour = color.text, tracking }: HeadingProps) {
   return (
     <Text
       style={[
-        { fontFamily: font.heading, fontSize: size, color: colour, lineHeight: Math.round(size * 1.12) },
+        { fontFamily: font.heading, fontSize: size, color: colour, lineHeight: Math.round(size * 1.3) },
         scriptTypeface('700'),
         scriptLeading(size),
         tracking !== undefined && { letterSpacing: tracking },
@@ -94,7 +94,7 @@ interface BodyProps {
    * line of Thai needs more height than the same line of English to stay
    * readable. Below 13 the marks start touching. A supporting line that
    * wants to be smaller than the body text is a `Label`, which has its own
-   * floor at 9 because it is set in caps with tracking.
+   * 10 px floor so Thai vowels and tone marks remain recognisable.
    */
   size?: 13 | 14;
   colour?: string;
@@ -102,7 +102,7 @@ interface BodyProps {
 
 export function Body({ children, style, size = 14, colour = color.neutral800, numberOfLines }: BodyProps) {
   return (
-    <Text numberOfLines={numberOfLines} style={[{ fontFamily: font.body, fontSize: size, color: colour, lineHeight: Math.round(size * 1.5) }, scriptTypeface('400'), style]}>
+    <Text numberOfLines={numberOfLines} style={[{ fontFamily: font.body, fontSize: size, color: colour, lineHeight: Math.round(size * 1.6) }, scriptTypeface('400'), style]}>
       {children}
     </Text>
   );
@@ -123,7 +123,7 @@ export function Thai({
   return <Text style={[thaiText(size, colour), style]}>{children}</Text>;
 }
 
-/** Uppercase micro-label. The system's workhorse for section kickers. */
+/** A compact section label; only Latin copy is uppercased and tracked. */
 export function Label({
   children, size = 10, tracking = 0.14, colour = color.neutral700, style, numberOfLines,
 }: {
@@ -132,7 +132,22 @@ export function Label({
   /** Clamp to this many lines with an ellipsis. Omitted, a label wraps freely. */
   numberOfLines?: number;
 }) {
-  return <Text numberOfLines={numberOfLines} style={[labelStyle(size, tracking, colour), scriptTypeface('600'), scriptLeading(size), style]}>{children}</Text>;
+  const readableSize = size === 9 ? 10 : size;
+  const nonLatin = getLocale() !== 'en';
+  return (
+    <Text
+      numberOfLines={numberOfLines}
+      style={[
+        labelStyle(readableSize, nonLatin ? 0 : tracking, colour),
+        { lineHeight: Math.round(readableSize * 1.45) },
+        nonLatin && { textTransform: 'none' },
+        scriptTypeface('600'),
+        style,
+      ]}
+    >
+      {children}
+    </Text>
+  );
 }
 
 /**

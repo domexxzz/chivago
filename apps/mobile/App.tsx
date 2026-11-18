@@ -11,9 +11,9 @@ import { Linking, View, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import {
-  IBMPlexSansThai_600SemiBold, IBMPlexSansThai_700Bold,
-} from '@expo-google-fonts/ibm-plex-sans-thai';
-import { Anuphan_400Regular, Anuphan_600SemiBold } from '@expo-google-fonts/anuphan';
+  NotoSansThai_400Regular, NotoSansThai_500Medium,
+  NotoSansThai_600SemiBold, NotoSansThai_700Bold,
+} from '@expo-google-fonts/noto-sans-thai';
 import { IBMPlexMono_500Medium } from '@expo-google-fonts/ibm-plex-mono';
 
 import {
@@ -87,8 +87,8 @@ export default function App() {
   // is used on a beach with one bar of signal, and a font that fails to load
   // takes the whole type system with it.
   const [fontsReady] = useFonts({
-    IBMPlexSansThai_600SemiBold, IBMPlexSansThai_700Bold,
-    Anuphan_400Regular, Anuphan_600SemiBold,
+    NotoSansThai_400Regular, NotoSansThai_500Medium,
+    NotoSansThai_600SemiBold, NotoSansThai_700Bold,
     IBMPlexMono_500Medium,
   });
 
@@ -612,6 +612,7 @@ export default function App() {
           <LocalPicksScreen
             onBack={nav.pop}
             onOpenShop={(id) => nav.push('shop', { shopId: id })}
+            onOpenMap={() => nav.selectTab('map')}
             /*
               The same navigator the map and the shop screen use, not a second
               one. On Koh Sichang `navigationProviderFor` keeps the route

@@ -55,6 +55,8 @@ import adventureDuo from '../../assets/backpack-adventure-duo-v1.png';
 import lighthouseBanner from '../../assets/menu/backpack-lighthouse-banner.png';
 import backpackWorld from '../../assets/backpack-tropical-world-v1.png';
 import gashaponArt from '../../assets/menu-travel-box-v1.png';
+import explorerCharacterIcon from '../../assets/backpack/backpack-explorer-v2.png';
+import petCharacterIcon from '../../assets/backpack/backpack-dog-v2.png';
 
 export function WalletScreen({
   onOpenCompanion,
@@ -496,7 +498,7 @@ function MascotAndPet({
       <View pointerEvents="none" style={{ position: 'absolute', inset: 7, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)' }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <BackpackIcon name="companions-badge" size={24} />
-        <Heading size={17} colour="#082E53">{t({ en: 'Mascot & Pet', th: 'มาสคอตและสัตว์เลี้ยง', zh: '吉祥物与宠物' })}</Heading>
+        <Heading size={17} colour="#082E53">{t({ en: 'Characters & Pets', th: 'ตัวละครและสัตว์เลี้ยง', zh: '角色与宠物' })}</Heading>
       </View>
       <InteractiveTravelDuo
         compact={compact}
@@ -514,14 +516,14 @@ function MascotAndPet({
           accessibilityRole="button"
           accessibilityLabel={province
             ? t({
-              en: `${mascotName}, the emblem of ${provinceName}. Open the Mascot collection.`,
-              th: `${mascotName} มาสคอตประจำ${provinceName} เปิดคอลเลกชันมาสคอต`,
-              zh: `${mascotName}，${provinceName}的吉祥物。打开吉祥物收藏。`,
+              en: `${mascotName}, the character representing ${provinceName}. Open the Character collection.`,
+              th: `${mascotName} ตัวละครประจำ${provinceName} เปิดคอลเลกชันตัวละคร`,
+              zh: `${mascotName}，代表${provinceName}的角色。打开角色收藏。`,
             })
             : t({
-              en: 'No province mascot yet. Open the Mascot collection.',
-              th: 'ยังไม่มีมาสคอตประจำจังหวัด เปิดคอลเลกชันมาสคอต',
-              zh: '还没有府吉祥物。打开吉祥物收藏。',
+              en: 'No character yet. Open the Character collection.',
+              th: 'ยังไม่มีตัวละคร เปิดคอลเลกชันตัวละคร',
+              zh: '尚无角色。打开角色收藏。',
             })}
           style={({ pressed }) => ({
             minHeight: compact ? 78 : 96,
@@ -543,11 +545,11 @@ function MascotAndPet({
         >
           {province
             ? <MascotPortrait mascot={province.mascot} size={58} />
-            : <BackpackIcon name="no-mascot-leaf" size={38} />}
+            : <Image source={explorerCharacterIcon} resizeMode="contain" style={{ width: 40, height: 48, opacity: 0.78 }} />}
           <Label size={9} tracking={0.08} colour={province ? '#7B5714' : '#607A91'}>
             {province
-              ? t({ en: 'MASCOT', th: 'มาสคอต', zh: '吉祥物' })
-              : t({ en: 'NO MASCOT YET', th: 'ยังไม่มีมาสคอต', zh: '尚无吉祥物' })}
+              ? t({ en: 'CHARACTER', th: 'ตัวละคร', zh: '角色' })
+              : t({ en: 'NO CHARACTER YET', th: 'ยังไม่มีตัวละคร', zh: '尚无角色' })}
           </Label>
         </Pressable>
         {pet ? (
@@ -584,8 +586,8 @@ function MascotAndPet({
             })}
             style={{ minHeight: compact ? 78 : 96, padding: 10, borderRadius: 18, borderWidth: 3, borderColor: '#7592AA', backgroundColor: '#EAF1F5', alignItems: 'center', justifyContent: 'center', gap: 6, shadowColor: '#183B59', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.16, shadowRadius: 7, elevation: 3 }}
           >
-            <BackpackIcon name="lock" size={33} />
-            <Label size={9} tracking={0.08} colour="#607A91">{t({ en: 'PET LOCKED', th: 'ยังไม่มีสัตว์เลี้ยง', zh: '宠物未解锁' })}</Label>
+            <Image source={petCharacterIcon} resizeMode="contain" style={{ width: 44, height: 40, opacity: 0.78 }} />
+            <Label size={9} tracking={0.08} colour="#607A91">{t({ en: 'NO PET YET', th: 'ยังไม่มีสัตว์เลี้ยง', zh: '尚无宠物' })}</Label>
           </View>
         )}
       </View>

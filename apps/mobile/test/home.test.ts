@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe, afterEach, beforeEach } from 'node:test';
 import { createElement as h } from 'react';
+import { Dimensions } from 'react-native';
 
 import {
   DOOR_MIN, HomeScreen, islandAverage, questOrder, weakestProvenance,
@@ -127,6 +128,27 @@ describe('the quest order claims nothing it cannot support', () => {
 });
 
 describe('what Home says', () => {
+  test('the phone header remains the sticky first row while Home scrolls', async () => {
+    const originalWindow = Dimensions.get('window');
+    const originalScreen = Dimensions.get('screen');
+    Dimensions.set({
+      window: { ...originalWindow, width: 390, height: 844 },
+      screen: { ...originalScreen, width: 390, height: 844 },
+    });
+    const s = server(routes()); restore = s.restore;
+    try {
+      const ui = await mountScreen(h(HomeScreen, props));
+      assert.ok(ui.root.findAll((node) => node.props.testID === 'mobile-sticky-header').length > 0, 'the compact phone header is missing');
+      const scroller = ui.root.findAll((node) => Array.isArray(node.props.stickyHeaderIndices) && node.props.stickyHeaderIndices.includes(0))[0];
+      assert.ok(scroller, 'Home does not keep its first row sticky');
+      assert.ok(ui.labels().includes('Open main menu'));
+      assert.ok(ui.labels().includes('Area: Koh Samui'));
+      ui.unmount();
+    } finally {
+      Dimensions.set({ window: originalWindow, screen: originalScreen });
+    }
+  });
+
   test('it leads with the measured condition and names its provenance', async () => {
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, props));
@@ -208,9 +230,15 @@ describe('what Home says', () => {
     assert.match(said, /Waves 0\.1 m/, 'the wave height is not the feed\'s');
     assert.match(said, /3 kn/, 'the wind is missing');
     assert.doesNotMatch(said, /1\.2 - 2\.0/, 'the invented figures are back');
-    // Every tab offered, because a coastal reading can fill them all.
-    for (const tab of ['Waves', 'Temp', 'Weather', 'Rain']) assert.match(said, new RegExp(tab));
-    assert.doesNotMatch(said, /Port/, 'a port tab with no feed behind it');
+    assert.match(said, /Today’s weather & sea/);
+    assert.match(said, /Rainfall now/);
+    assert.match(said, /Wave period/);
+    assert.match(said, /Alerts & ferry status/);
+    // Every supported category remains available behind the detail control.
+    await ui.pressText(/View data details/);
+    const detailed = ui.text();
+    for (const tab of ['Waves', 'Temp', 'Weather', 'Rain']) assert.match(detailed, new RegExp(tab));
+    assert.doesNotMatch(detailed, /Port/, 'a port tab with no feed behind it');
     ui.unmount();
   });
 

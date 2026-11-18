@@ -196,6 +196,7 @@ export function HomeScreen({
 }) {
   const { width: viewportWidth } = useWindowDimensions();
   const dashboard = viewportWidth >= 980;
+  const mobileHeader = viewportWidth < 700;
   const places = useAsync(() => api.places(), []);
   const wallet = useAsync(() => api.wallet(), []);
   /*
@@ -220,13 +221,30 @@ export function HomeScreen({
 
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#EDF6F9' }} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: '#EDF6F9' }}
+      showsVerticalScrollIndicator={false}
+      stickyHeaderIndices={mobileHeader ? [0] : undefined}
+    >
+      {mobileHeader ? (
+        <MobileHomeHeader
+          area={area}
+          onChangeArea={setArea}
+          onOpenMap={onOpenMap}
+          onOpenQuests={onOpenQuests}
+          onOpenWallet={onOpenWallet}
+          onOpenParty={onOpenParty}
+          onOpenCommunity={onOpenCommunity}
+          onOpenProfile={onOpenProfile}
+        />
+      ) : null}
       <Hero
         now={now}
         area={area}
         onChangeArea={setArea}
         onOpenConcierge={onOpenConcierge}
         onOpenProfile={onOpenProfile}
+        compactChrome={mobileHeader}
       />
       {/*
         Order ahead, first thing under the header, in an area with a food court
@@ -303,6 +321,140 @@ type Async<T> = { data: T | null; loading: boolean; error: string | null; reload
 // 0. The header: the island's name, your points, and a place to ask
 // ---------------------------------------------------------------------------
 
+type MobileHeaderPanel = 'menu' | 'area' | 'language' | null;
+
+/**
+ * The phone's persistent top bar.
+ *
+ * It is the first direct child of Home's ScrollView and is registered as its
+ * sticky header. That keeps the actual controls mounted while content moves
+ * underneath; duplicating a second visual header after a scroll would lose
+ * open menus, focus and accessibility state.
+ */
+function MobileHomeHeader({
+  area, onChangeArea, onOpenMap, onOpenQuests, onOpenWallet, onOpenParty, onOpenCommunity, onOpenProfile,
+}: {
+  area: Area;
+  onChangeArea: (next: AreaKey) => void;
+  onOpenMap: () => void;
+  onOpenQuests: () => void;
+  onOpenWallet: () => void;
+  onOpenParty: () => void;
+  onOpenCommunity?: () => void;
+  onOpenProfile: () => void;
+}) {
+  const locale = useLocale();
+  const [panel, setPanel] = React.useState<MobileHeaderPanel>(null);
+  const choose = (action: () => void) => {
+    setPanel(null);
+    action();
+  };
+  const menuItems = [
+    { key: 'map', label: t({ en: 'Map', th: 'แผนที่', zh: '地图' }), action: onOpenMap },
+    { key: 'quests', label: t({ en: 'Game & Quest', th: 'เกมและเควส', zh: '游戏与任务' }), action: onOpenQuests },
+    { key: 'wallet', label: t({ en: 'My Backpack', th: 'กระเป๋าของฉัน', zh: '我的背包' }), action: onOpenWallet },
+    { key: 'party', label: t({ en: 'Party', th: 'ปาร์ตี้', zh: '队伍' }), action: onOpenParty },
+    ...(onOpenCommunity ? [{ key: 'community', label: t({ en: 'Community', th: 'คอมมูนิตี้', zh: '社区' }), action: onOpenCommunity }] : []),
+  ];
+
+  return (
+    <View
+      collapsable={false}
+      testID="mobile-sticky-header"
+      style={{
+        height: 66,
+        paddingHorizontal: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 7,
+        backgroundColor: 'rgba(255,255,255,0.98)',
+        borderBottomWidth: 1,
+        borderBottomColor: '#D8E8EF',
+        zIndex: 1000,
+        elevation: 18,
+        ...platformShadow('0 4px 14px rgba(8, 46, 83, 0.13)', { shadowColor: '#082E53', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.13, shadowRadius: 14 }),
+      }}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t({ en: 'Open main menu', th: 'เปิดเมนูหลัก', zh: '打开主菜单' })}
+        accessibilityState={{ expanded: panel === 'menu' }}
+        onPress={() => setPanel((current) => current === 'menu' ? null : 'menu')}
+        style={({ pressed }) => ({ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? '#E8F5FA' : '#FFFFFF' })}
+      >
+        <View style={{ width: 21, gap: 4 }}>
+          {[0, 1, 2].map((line) => <View key={line} style={{ height: 2, borderRadius: 1, backgroundColor: '#123B64' }} />)}
+        </View>
+      </Pressable>
+
+      <Image source={chivagoLogo} resizeMode="contain" accessibilityLabel="ChivarGo" style={{ width: 58, height: 44 }} />
+      <View style={{ width: 1, height: 28, backgroundColor: '#D8E8EF' }} />
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t({ en: `Area: ${t(area.name)}`, th: `พื้นที่: ${t(area.name)}`, zh: `区域：${t(area.name)}` })}
+        accessibilityState={{ expanded: panel === 'area' }}
+        onPress={() => setPanel((current) => current === 'area' ? null : 'area')}
+        style={({ pressed }) => ({ flex: 1, minWidth: 0, height: 42, borderRadius: 21, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: pressed ? '#E8F5FA' : 'transparent' })}
+      >
+        <MapPin size={17} color="#123B64" />
+        <Text numberOfLines={1} style={{ flex: 1, color: '#123B64', fontSize: 13, fontWeight: '700' }}>{t(area.name)}</Text>
+        <ChevronDown size={14} color="#123B64" style={{ transform: [{ rotate: panel === 'area' ? '180deg' : '0deg' }] }} />
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t({ en: `Language: ${LOCALE_NAMES[locale]}`, th: `ภาษา: ${LOCALE_NAMES[locale]}`, zh: `语言：${LOCALE_NAMES[locale]}` })}
+        accessibilityState={{ expanded: panel === 'language' }}
+        onPress={() => setPanel((current) => current === 'language' ? null : 'language')}
+        style={({ pressed }) => ({ height: 42, paddingHorizontal: 7, borderRadius: 21, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: pressed ? '#E8F5FA' : '#FFFFFF', borderWidth: 1, borderColor: '#D8E8EF' })}
+      >
+        <AppLanguageFlag locale={locale} width={24} />
+        <ChevronDown size={13} color="#123B64" />
+      </Pressable>
+      <ProfileButton onPress={onOpenProfile} tone="light" />
+
+      {panel === 'menu' ? (
+        <View style={[shadow.card, { position: 'absolute', top: 58, left: 10, width: 218, padding: 7, borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CBE4EE', zIndex: 1002, elevation: 22 }]}>
+          {menuItems.map((item) => (
+            <Pressable key={item.key} accessibilityRole="button" onPress={() => choose(item.action)} style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 13, borderRadius: 12, justifyContent: 'center', backgroundColor: pressed ? '#E8F5FA' : 'transparent' })}>
+              <Heading size={14} colour="#123B64">{item.label}</Heading>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+
+      {panel === 'area' ? (
+        <View style={[shadow.card, { position: 'absolute', top: 58, left: 76, right: 60, padding: 7, borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CBE4EE', zIndex: 1002, elevation: 22 }]}>
+          {AREAS.map((option) => {
+            const selected = option.key === area.key;
+            return (
+              <Pressable key={option.key} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => choose(() => onChangeArea(option.key))} style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 11, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: selected ? '#DDF4FA' : pressed ? '#F2F7F9' : 'transparent' })}>
+                <MapPin size={16} color={selected ? color.brand : '#678094'} />
+                <Label size={11} colour={selected ? color.brand : color.text} style={{ flex: 1 }}>{t(option.name)}</Label>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {panel === 'language' ? (
+        <View style={[shadow.card, { position: 'absolute', top: 58, right: 54, width: 176, padding: 7, borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CBE4EE', zIndex: 1002, elevation: 22 }]}>
+          {LOCALES.map((option) => {
+            const selected = option === locale;
+            return (
+              <Pressable key={option} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => choose(() => { void setLocale(option); })} style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 10, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: selected ? '#DDF4FA' : pressed ? '#F2F7F9' : 'transparent' })}>
+                <AppLanguageFlag locale={option} width={28} />
+                <Label size={11} colour={selected ? color.brand : color.text} style={{ flex: 1 }}>{LOCALE_NAMES[option]}</Label>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 /** Native SVG keeps the ocean gradient and waves identical on web and phones. */
 function OceanBackdrop({ subtle = false }: { subtle?: boolean }) {
   return (
@@ -323,28 +475,29 @@ function OceanBackdrop({ subtle = false }: { subtle?: boolean }) {
   );
 }
 
-function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile }: {
+function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile, compactChrome = false }: {
   now: Date; area: Area; onChangeArea: (next: AreaKey) => void;
   onOpenConcierge: () => void; onOpenProfile: () => void;
+  compactChrome?: boolean;
 }) {
   return (
-    <View style={{ position: 'relative', backgroundColor: '#028090', minHeight: 330, paddingHorizontal: gutter, paddingTop: 58, paddingBottom: 82, overflow: 'hidden' }}>
+    <View style={{ position: 'relative', backgroundColor: '#028090', minHeight: compactChrome ? 260 : 330, paddingHorizontal: gutter, paddingTop: compactChrome ? 26 : 58, paddingBottom: 82, overflow: 'hidden' }}>
       <TravelHeroBackdrop focalPoint="right" />
-      <LanguageFlagMenu />
+      {compactChrome ? null : <LanguageFlagMenu />}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: '#D5F6FF', fontSize: 12, fontWeight: '500', letterSpacing: 1.8, textTransform: 'uppercase' }}>{t(greetingFor(now))}</Text>
           <Heading size={28} colour="#FFFFFF" style={{ marginTop: 5 }}>{t(area.name)}</Heading>
         </View>
-        <Image
+        {compactChrome ? null : <Image
           source={chivagoLogo}
           resizeMode="contain"
           accessibilityLabel="ChivarGo"
           style={{ width: 68, height: 48, marginLeft: 8, marginRight: 12 }}
-        />
-        <ProfileButton onPress={onOpenProfile} />
+        />}
+        {compactChrome ? null : <ProfileButton onPress={onOpenProfile} />}
       </View>
-      <AreaSwitch area={area.key} onChange={onChangeArea} tone="inverted" />
+      {compactChrome ? null : <AreaSwitch area={area.key} onChange={onChangeArea} tone="inverted" />}
       {/*
         The greeter stands beside the promise, not over it. A row rather than
         anything absolutely positioned: the headline keeps whatever width is

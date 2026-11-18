@@ -6,9 +6,10 @@ import { useAsync } from '../state/store.tsx';
 import { t } from '../i18n/locale.ts';
 
 /** Shared account photo button for the app's screen headers. */
-export function ProfileButton({ onPress }: { onPress?: () => void }) {
+export function ProfileButton({ onPress, tone = 'inverted' }: { onPress?: () => void; tone?: 'inverted' | 'light' }) {
   const account = useAsync(() => api.account(), []);
   const photo = account.data?.profilePhotoUrl;
+  const light = tone === 'light';
 
   return (
     <Pressable
@@ -17,14 +18,14 @@ export function ProfileButton({ onPress }: { onPress?: () => void }) {
       accessibilityLabel={t({ en: 'Profile', th: 'โปรไฟล์', zh: '个人资料' })}
       style={{
         width: 44, height: 44, borderRadius: 22,
-        borderWidth: 1, borderColor: 'rgba(255,255,255,0.7)',
-        backgroundColor: 'rgba(255,255,255,0.18)',
+        borderWidth: 1, borderColor: light ? '#D4E5ED' : 'rgba(255,255,255,0.7)',
+        backgroundColor: light ? '#FFFFFF' : 'rgba(255,255,255,0.18)',
         alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
       }}
     >
       {photo
         ? <Image source={{ uri: photo }} resizeMode="cover" style={{ width: '100%', height: '100%' }} />
-        : <UserRound size={23} color="#FFFFFF" strokeWidth={2} />}
+        : <UserRound size={23} color={light ? '#123B64' : '#FFFFFF'} strokeWidth={2} />}
     </Pressable>
   );
 }

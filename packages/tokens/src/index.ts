@@ -377,31 +377,30 @@ export const gameRegion = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Type - IBM Plex Sans Thai (display) + Anuphan (body) + IBM Plex Mono (data)
+// Type - Noto Sans Thai (all interface copy) + IBM Plex Mono (tabular data)
 // ---------------------------------------------------------------------------
 
 /**
- * Both faces carry Latin AND Thai, which the previous pair did not: Archivo had
- * no Thai glyphs, so every Thai string needed a second family and a looser
- * line-height. The names below are kept so no screen had to change, and `thai`
- * now resolves to the same family as `body` - one face, two scripts, no seam
- * where a sentence switches language mid-line.
+ * One highly legible family carries Latin and Thai throughout the interface.
+ * Keeping headings, body copy, controls and form fields in one family removes
+ * the visual jump that used to occur between IBM Plex Sans Thai and Anuphan.
  *
  * The looser Thai line-height stays: Thai still needs the room for its
  * above- and below-line marks, whatever face draws it.
  */
 export const font = {
-  heading: 'IBMPlexSansThai_700Bold',
-  headingSemi: 'IBMPlexSansThai_600SemiBold',
-  body: 'Anuphan_400Regular',
-  thai: 'Anuphan_400Regular',
-  thaiSemi: 'Anuphan_600SemiBold',
+  heading: 'NotoSansThai_700Bold',
+  headingSemi: 'NotoSansThai_600SemiBold',
+  body: 'NotoSansThai_400Regular',
+  bodyMedium: 'NotoSansThai_500Medium',
+  thai: 'NotoSansThai_400Regular',
+  thaiSemi: 'NotoSansThai_600SemiBold',
   /** Figures that must line up in columns: scores, codes, ledger amounts. */
   mono: 'IBMPlexMono_500Medium',
 } as const;
 
-export const THAI_LINE_HEIGHT_RATIO = 1.45;
-export const LATIN_LINE_HEIGHT_RATIO = 1.2;
+export const THAI_LINE_HEIGHT_RATIO = 1.5;
+export const LATIN_LINE_HEIGHT_RATIO = 1.35;
 
 /** Named type steps, straight out of handoff section 2. */
 export const type = {

@@ -977,7 +977,7 @@ export function markAsDemo(): void {
     // Coral, the deck's counter-accent: a warning that reads as a warning
     // without competing with the lime the whole app is built on.
     background: '#f87153', color: '#071812',
-    font: '600 9px/1 Anuphan, system-ui, sans-serif', letterSpacing: '0.12em',
+    font: '600 10px/1.35 Noto Sans Thai, system-ui, sans-serif', letterSpacing: '0.04em',
     pointerEvents: 'none',
   } as Partial<CSSStyleDeclaration>);
   document.body.appendChild(el);
