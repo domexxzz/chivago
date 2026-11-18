@@ -61,7 +61,7 @@ export function ChivarBotScene({
   const onFail = React.useCallback(() => setFailed(true), []);
 
   return (
-    <View style={{ width, height }} accessible={label !== ''} accessibilityLabel={label || undefined} pointerEvents={interactive ? 'auto' : 'none'}>
+    <View style={{ width, height, pointerEvents: interactive ? 'auto' : 'none' }} accessible={label !== ''} accessibilityLabel={label || undefined}>
       {!live ? (
         <View style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
           <ChivarBot size={Math.min(width, height)} mood={mood} waving={waving} />

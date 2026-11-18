@@ -18,7 +18,7 @@ import React from 'react';
 import { Pressable, View } from 'react-native';
 import { MapPin } from 'lucide-react-native';
 import { AREAS, type AreaKey } from '@chivago/core';
-import { color, onFill, radius } from '../theme/index.ts';
+import { color, onFill, platformShadow, radius } from '../theme/index.ts';
 import { Label } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
 
@@ -58,11 +58,10 @@ export function AreaSwitch({
               backgroundColor: fill,
               borderWidth: 1.5,
               borderColor: border,
-              shadowColor: '#0061A8',
-              shadowOffset: { width: 0, height: on ? 2 : 1 },
-              shadowOpacity: on ? 0.16 : 0.04,
-              shadowRadius: 4,
-              elevation: on ? 2 : 1,
+              ...platformShadow(
+                `0 ${on ? 2 : 1}px 4px rgba(0, 97, 168, ${on ? 0.16 : 0.04})`,
+                { shadowColor: '#0061A8', shadowOffset: { width: 0, height: on ? 2 : 1 }, shadowOpacity: on ? 0.16 : 0.04, shadowRadius: 4, elevation: on ? 2 : 1 },
+              ),
             }}
           >
             {on ? <MapPin size={14} color="#FFFFFF" strokeWidth={2.4} /> : null}

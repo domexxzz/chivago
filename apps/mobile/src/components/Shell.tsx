@@ -8,7 +8,7 @@ import * as SecureStore from 'expo-secure-store';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { Backpack, ChevronLeft, House, Leaf, Map as MapIcon, PawPrint, Sparkles, UserRound, Users } from 'lucide-react-native';
 import { strings } from '@chivago/core';
-import { color, gutter, headerGutter, layout, motion, onFill, radius, ruleStrong, ruleStrongTop, shadow } from '../theme/index.ts';
+import { color, gutter, headerGutter, layout, motion, onFill, platformShadow, radius, ruleStrong, ruleStrongTop, shadow } from '../theme/index.ts';
 import { Body, Heading, Label, Thai } from './Type.tsx';
 import { IconButton } from './Button.tsx';
 import { constrainLauncherPoint, snapLauncherPoint } from './launcher-position.ts';
@@ -300,12 +300,12 @@ export function TabBar({
         alignSelf: 'center', width: 540, maxWidth: '94%',
         marginBottom: 18, borderRadius: 28,
         borderWidth: layout.ruleHair, borderColor: '#D4E0EC',
-        shadowColor: '#005BBB', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 8,
+        ...platformShadow('0 6px 20px rgba(0, 91, 187, 0.12)', { shadowColor: '#005BBB', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 8 }),
       } : {
         flexDirection: 'row', height: layout.tabBarHeight + 8, backgroundColor: '#FFFFFF',
         borderTopWidth: layout.ruleHair, borderTopColor: '#D4E0EC',
         borderTopLeftRadius: 27, borderTopRightRadius: 27,
-        shadowColor: '#005BBB', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 6,
+        ...platformShadow('0 -3px 12px rgba(0, 91, 187, 0.08)', { shadowColor: '#005BBB', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 6 }),
       }}
     >
       {entries.map(({ key, label, Icon, menuIcon, selected: isActive, onPress }) => {
@@ -529,11 +529,7 @@ export function PushHeader({
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
         overflow: 'hidden',
-        shadowColor: '#004E64',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 10,
-        elevation: 3,
+        ...platformShadow('0 4px 10px rgba(0, 78, 100, 0.12)', { shadowColor: '#004E64', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 10, elevation: 3 }),
       }}
     >
       <TravelHeroBackdrop compact focalPoint="right" />

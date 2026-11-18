@@ -86,7 +86,7 @@ import {
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { useHere, type Here } from '../state/here.ts';
-import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
+import { color, gutter, layout, onFill, platformShadow, radius, shadow } from '../theme/index.ts';
 import { tint } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
@@ -306,7 +306,7 @@ type Async<T> = { data: T | null; loading: boolean; error: string | null; reload
 /** Native SVG keeps the ocean gradient and waves identical on web and phones. */
 function OceanBackdrop({ subtle = false }: { subtle?: boolean }) {
   return (
-    <View pointerEvents="none" accessible={false} style={StyleSheet.absoluteFillObject}>
+    <View accessible={false} style={[StyleSheet.absoluteFillObject, { pointerEvents: 'none' }]}>
       <Svg width="100%" height="100%" viewBox="0 0 480 340" preserveAspectRatio="none">
         <Defs>
           <LinearGradient id={subtle ? 'sand' : 'ocean'} x1="0%" y1="0%" x2="100%" y2="80%">
@@ -363,7 +363,7 @@ function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile }: {
         <GreeterMark area={area.key} />
       </View>
       <Pressable onPress={onOpenConcierge} accessibilityRole="button" accessibilityLabel={t({ en: 'Ask where to go', th: 'ถามว่าไปไหนดี', zh: '问问去哪儿好' })}
-        style={{ marginTop: 20, minHeight: 58, maxWidth: 720, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 29, shadowColor: '#003B52', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.22, shadowRadius: 20, elevation: 7, borderWidth: 1, borderColor: 'rgba(255,255,255,0.72)' }}>
+        style={{ marginTop: 20, minHeight: 58, maxWidth: 720, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 29, ...platformShadow('0 8px 20px rgba(0, 59, 82, 0.22)', { shadowColor: '#003B52', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.22, shadowRadius: 20, elevation: 7 }), borderWidth: 1, borderColor: 'rgba(255,255,255,0.72)' }}>
         <Search size={21} color="#78909C" />
         <Body colour="#78909C" style={{ flex: 1 }}>{t({ en: 'Where to go today?', th: 'วันนี้ไปไหนดี?', zh: '今天去哪儿好？' })}</Body>
         <ScanLine size={21} color="#0077B6" />
@@ -423,7 +423,7 @@ function LanguageFlagMenu() {
           flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
           backgroundColor: pressed ? 'rgba(255,255,255,0.82)' : 'rgba(255,255,255,0.95)',
           borderWidth: 1, borderColor: 'rgba(255,255,255,0.92)',
-          shadowColor: '#003B52', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 8,
+          ...platformShadow('0 3px 8px rgba(0, 59, 82, 0.18)', { shadowColor: '#003B52', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 8 }),
         })}
       >
         <AppLanguageFlag locale={locale} width={28} />
@@ -483,11 +483,7 @@ function Conditions({
         backgroundColor: '#ffffff',
         borderWidth: 1,
         borderColor: '#FFFFFF',
-        shadowColor: '#0077B6',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-        elevation: 2,
+        ...platformShadow('0 3px 10px rgba(0, 119, 182, 0.06)', { shadowColor: '#0077B6', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 }),
       }]}
     >
       <OceanBackdrop subtle />
@@ -630,12 +626,11 @@ function Doors({
       ? [{
         art: menuTravelBoxArt,
         /*
-          SHORT, because this is a door label in a crowded row. "Traveller's
-          box" put one word wider than its cell and it ran into Community;
-          the Thai "ตู้สุ่มนักเดินทาง" was worse, since Thai has no spaces to
-          wrap at. The screen behind it keeps the full name.
+          Keep the product name identical in every locale. "Gashapon" is
+          short enough for the crowded door row and matches the machine art,
+          while the destination screen can still explain how the draw works.
         */
-        name: { en: 'Travel box', th: 'ตู้สุ่ม', zh: '扭蛋机' },
+        name: { en: 'Gashapon', th: 'Gashapon', zh: 'Gashapon' },
         onPress: onOpenSummon,
       }]
       : []),
@@ -944,11 +939,7 @@ function PlaceCard({ place, here, onPress, width = 204 }: { place: ScoredPlace; 
           overflow: 'hidden',
           borderWidth: 1,
           borderColor: '#E2EFF3',
-          shadowColor: '#0077B6',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.10,
-          shadowRadius: 10,
-          elevation: 3,
+          ...platformShadow('0 4px 10px rgba(0, 119, 182, 0.10)', { shadowColor: '#0077B6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.10, shadowRadius: 10, elevation: 3 }),
         },
       ]}
     >
@@ -969,7 +960,7 @@ function PlaceCard({ place, here, onPress, width = 204 }: { place: ScoredPlace; 
           <NoPhotograph place={place} />
         )}
 
-        <View pointerEvents="none" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 60 }}>
+        <View style={{ pointerEvents: 'none', position: 'absolute', bottom: 0, left: 0, right: 0, height: 60 }}>
           <Svg width="100%" height="100%">
             <Defs><LinearGradient id="photoShade" x1="0%" y1="0%" x2="0%" y2="100%"><Stop offset="0" stopColor="#004E64" stopOpacity="0" /><Stop offset="1" stopColor="#004E64" stopOpacity="0.38" /></LinearGradient></Defs>
             <Rect width="100%" height="100%" fill="url(#photoShade)" />
@@ -981,7 +972,7 @@ function PlaceCard({ place, here, onPress, width = 204 }: { place: ScoredPlace; 
             position: 'absolute', top: 10, left: 10, paddingVertical: 4, paddingHorizontal: 10,
             borderRadius: 16, backgroundColor: high ? '#268250' : '#0077B6',
             flexDirection: 'row', alignItems: 'center', gap: 4,
-            shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.12, shadowRadius: 3,
+            ...platformShadow('0 1px 3px rgba(0, 0, 0, 0.12)', { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.12, shadowRadius: 3 }),
           }}
         >
           <Heading size={12} colour="#FFFFFF">{String(place.healthyScore)}</Heading>
@@ -993,7 +984,7 @@ function PlaceCard({ place, here, onPress, width = 204 }: { place: ScoredPlace; 
             style={{
               position: 'absolute', top: 10, right: 10, paddingVertical: 4, paddingHorizontal: 10,
               borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.92)',
-              shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.12, shadowRadius: 3,
+              ...platformShadow('0 1px 3px rgba(0, 0, 0, 0.12)', { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.12, shadowRadius: 3 }),
             }}
           >
             <Label size={10} tracking={0.06} colour={color.neutral800}>{far}</Label>
@@ -1011,7 +1002,7 @@ function PlaceCard({ place, here, onPress, width = 204 }: { place: ScoredPlace; 
             style={{
               position: 'absolute', bottom: 10, left: 10, paddingVertical: 4, paddingHorizontal: 10,
               borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.92)',
-              shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.12, shadowRadius: 3,
+              ...platformShadow('0 1px 3px rgba(0, 0, 0, 0.12)', { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.12, shadowRadius: 3 }),
             }}
           >
             <Label size={10} tracking={0.06} colour={color.neutral800}>{t(strings.place.featuredBadge)}</Label>
@@ -1184,11 +1175,7 @@ function Figure({
           borderRadius: 20,
           borderWidth: 1,
           borderColor: 'rgba(14, 165, 233, 0.16)',
-          shadowColor: '#0284c7',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 6,
-          elevation: 1,
+          ...platformShadow('0 2px 6px rgba(2, 132, 199, 0.06)', { shadowColor: '#0284c7', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 1 }),
         },
       ]}
     >

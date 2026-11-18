@@ -99,10 +99,11 @@ function Start-Api {
   Assert-GroqConfiguration
   Stop-ChivaGoProcesses 'api'
   Assert-PortFree 8787
-  Write-Host 'Starting ChivaGo API with .env on port 8787...'
-  $command = "title ChivaGo API - 8787 && cd /d `"$RepoDir`" && pnpm --filter @chivago/api start"
-  Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', $command -WorkingDirectory $RepoDir
+  Write-Host 'Starting ChivaGo API with .env and source watch on port 8787...'
+  $command = "title ChivaGo API - 8787 && cd /d `"$RepoDir`" && pnpm --filter @chivago/api dev"
+  Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', $command -WorkingDirectory $RepoDir -WindowStyle Hidden
   Wait-Http "$ApiUrl/health"
+  Wait-Http "$ApiUrl/areas/koh-sichang/coastal-intelligence"
   Write-Host "[OK] API is ready at $ApiUrl" -ForegroundColor Green
 }
 
@@ -111,7 +112,7 @@ function Start-Mobile {
   Assert-PortFree 8081
   Write-Host 'Starting ChivaGo Web through Expo on port 8081...'
   $command = "title ChivaGo Web - 8081 && cd /d `"$RepoDir`" && pnpm --dir apps/mobile exec expo start --web --port 8081"
-  Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', $command -WorkingDirectory $RepoDir
+  Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', $command -WorkingDirectory $RepoDir -WindowStyle Hidden
   Wait-Http $WebUrl 60
   Start-Process $WebUrl
   Write-Host "[OK] Web app is ready at $WebUrl" -ForegroundColor Green

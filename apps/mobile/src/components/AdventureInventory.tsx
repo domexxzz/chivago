@@ -67,11 +67,11 @@ function RewardSprite({ index, size, muted = false }: { index: number; size: num
       <Image
         source={rewardItems}
         resizeMode="stretch"
+        tintColor={muted ? '#6E8EA8' : undefined}
         style={{
           position: 'absolute', width: size * 3, height: size * 2,
           left: -column * size, top: -row * size,
           opacity: muted ? 0.58 : 1,
-          tintColor: muted ? '#6E8EA8' : undefined,
         }}
       />
     </View>
@@ -528,12 +528,13 @@ function RewardSlot({
             <Image
               source={slot.art}
               resizeMode="contain"
+              tintColor={slot.earned ? undefined : '#5F819C'}
               accessible={false}
               style={[
                 { width: art, height: art },
                 // A locked medal is its own SILHOUETTE: the shape of the thing
                 // waiting there, in the slot's ink, with nothing of its face.
-                slot.earned ? null : { tintColor: '#5F819C', opacity: 0.9 },
+                slot.earned ? null : { opacity: 0.9 },
               ]}
             />
           ) : (

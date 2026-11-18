@@ -4,7 +4,7 @@ import { openTestDb, type DB } from './db-node.ts';
 import { createParty, joinParty, leaveParty, transferPartyOwnership } from './party-service.ts';
 import {
   PartyQuestError, currentPartyQuest, getPartyQuest, partyQuestHistory,
-  selectPartyQuest, startPartyQuest,
+  partyQuestProgress, selectPartyQuest, startPartyQuest,
 } from './party-quest-service.ts';
 
 let db: DB;
@@ -99,5 +99,38 @@ describe('party quest foundation', () => {
       (error: unknown) => error instanceof PartyQuestError && error.code === 'PARTY_QUEST_NOT_FOUND',
     );
     assert.equal(partyQuestHistory(db, 'owner')[0]!.id, selected.id);
+  });
+
+  test('progress is projected from verified legacy Quest facts and never client percentages', () => {
+    const { code } = createParty(db, 'owner', 'Eco crew', at(1));
+    joinParty(db, 'member', code, at(2));
+    const selected = selectPartyQuest(db, 'owner', {
+      questId: 'quest', questType: 'eco', questMode: 'collective',
+    }, at(3));
+    startPartyQuest(db, 'owner', selected.id, at(4));
+    db.prepare(
+      `INSERT INTO quest_progress (user_id,quest_id,stage,joined_at,verified_at)
+       VALUES ('owner','quest','complete',?,?)`,
+    ).run(at(5).toISOString(), at(8).toISOString());
+    db.prepare(
+      `INSERT INTO proofs (id,user_id,quest_id,photos,weight_kg,submitted_at,reviewed_at,approved)
+       VALUES ('proof-owner','owner','quest','[]',2.75,?,?,1)`,
+    ).run(at(6).toISOString(), at(8).toISOString());
+    db.prepare(
+      `INSERT INTO quest_progress (user_id,quest_id,stage,joined_at,proof_submitted_at)
+       VALUES ('member','quest','host_verification',?,?)`,
+    ).run(at(5).toISOString(), at(7).toISOString());
+
+    const progress = partyQuestProgress(db, 'member', selected.id);
+    assert.equal(progress.rosterSize, 2);
+    assert.equal(progress.completedCount, 1);
+    assert.equal(progress.pendingReviewCount, 1);
+    assert.equal(progress.progressPercent, 50);
+    assert.equal(progress.totalVerifiedWeightKg, 2.75);
+    assert.equal(progress.participants.find((p) => p.userId === 'owner')?.verifiedWeightKg, 2.75);
+    assert.throws(
+      () => partyQuestProgress(db, 'outside', selected.id),
+      (error: unknown) => error instanceof PartyQuestError && error.code === 'PARTY_QUEST_NOT_FOUND',
+    );
   });
 });

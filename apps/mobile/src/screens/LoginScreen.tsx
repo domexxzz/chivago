@@ -51,7 +51,7 @@ import authIslandHero from '../../assets/auth-island-hero.png';
 import { api } from '../api/client.ts';
 import { adoptKey, ensureAccount } from '../api/account.ts';
 import { setLoggedIn } from '../state/auth.ts';
-import { color, font, radius, shadow } from '../theme/index.ts';
+import { color, font, platformShadow, radius, shadow } from '../theme/index.ts';
 import { t } from '../i18n/locale.ts';
 
 // Vector Google Brand Icon (Official 4-color G mark)
@@ -666,11 +666,7 @@ const styles = StyleSheet.create({
     paddingBottom: 18,
     borderWidth: 1,
     borderColor: 'rgba(210,235,242,0.9)',
-    shadowColor: '#002C48',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 16,
-    elevation: 4,
+    ...platformShadow('0 6px 16px rgba(0, 44, 72, 0.06)', { shadowColor: '#002C48', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.06, shadowRadius: 16, elevation: 4 }),
   },
   organicCurve: {
     position: 'absolute',
@@ -811,11 +807,7 @@ const styles = StyleSheet.create({
   inputPillFocused: {
     borderColor: '#0077D4',
     backgroundColor: '#FFFFFF',
-    shadowColor: '#0077D4',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.18,
-    shadowRadius: 5,
-    elevation: 2,
+    ...platformShadow('0 0 5px rgba(0, 119, 212, 0.18)', { shadowColor: '#0077D4', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.18, shadowRadius: 5, elevation: 2 }),
   },
   textInput: {
     flex: 1,
@@ -871,11 +863,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#079B98',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#079B98',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.28,
-    shadowRadius: 8,
-    elevation: 3,
+    ...platformShadow('0 3px 8px rgba(7, 155, 152, 0.28)', { shadowColor: '#079B98', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.28, shadowRadius: 8, elevation: 3 }),
   },
   primaryLoginButtonPressed: {
     opacity: 0.9,
@@ -922,11 +910,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    shadowColor: '#002C48',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
+    ...platformShadow('0 1px 3px rgba(0, 44, 72, 0.04)', { shadowColor: '#002C48', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1 }),
   },
   oauthButtonPressed: {
     backgroundColor: '#F8FAFC',
@@ -1010,11 +994,7 @@ const styles = StyleSheet.create({
     padding: 22,
     width: '100%',
     maxWidth: 380,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 5,
+    ...platformShadow('0 8px 16px rgba(0, 0, 0, 0.20)', { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 5 }),
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1124,10 +1104,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 28,
     borderRadius: 28,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 6,
+    ...platformShadow('0 8px 20px rgba(0, 44, 72, 0.12)', { shadowColor: '#002C48', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.12, shadowRadius: 20, elevation: 6 }),
   },
   cardDesktop: {
     width: '100%',

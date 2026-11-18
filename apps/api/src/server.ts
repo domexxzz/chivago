@@ -16,7 +16,7 @@ import {
 } from './party-service.ts';
 import {
   PartyQuestError, cancelPartyQuest, currentPartyQuest, getPartyQuest, partyQuestHistory,
-  selectPartyQuest, startPartyQuest,
+  partyQuestProgress, selectPartyQuest, startPartyQuest,
 } from './party-quest-service.ts';
 import {
   PartyLiveError, addItineraryPlace, addPartyMessage, finishPartyTrip, itinerary, liveMembers,
@@ -84,6 +84,7 @@ import { reviewsInArea } from './place-review-service.ts';
 import { getCourts } from './courts.ts';
 import { getStalls } from './stalls.ts';
 import { getWeather } from './weather.ts';
+import { getCoastalIntelligence } from './coastal-intelligence.ts';
 import {
   getCommunityImpact, getOffer, getPersonalImpact, getProfile,
   getQuest, getScoredPlace, getShield, listOffers, listQuests, listScoredPlaces,
@@ -820,6 +821,17 @@ app.get('/areas/:key/weather', async (c) => {
   if (!isAreaKey(key)) return fail(c, 'NOT_FOUND', 'No such area', 404);
   c.header('cache-control', 'no-store');
   return ok(c, await getWeather(key));
+});
+
+/**
+ * Live current context plus real shoreline survey checkpoints for Ko Sichang.
+ * This route never reports debris as present and never writes Quest progress.
+ */
+app.get('/areas/:key/coastal-intelligence', async (c) => {
+  c.header('access-control-allow-origin', '*');
+  c.header('cache-control', 'no-store');
+  if (c.req.param('key') !== 'koh-sichang') return fail(c, 'NOT_AVAILABLE', 'Coastal intelligence is available for Ko Sichang only.', 404);
+  return ok(c, await getCoastalIntelligence());
 });
 
 app.get('/areas/:key/stories', (c) => {
@@ -2761,6 +2773,11 @@ app.get('/party/quests/current', (c) => {
 
 app.get('/party/quests/history', (c) => {
   try { return ok(c, { partyQuests: partyQuestHistory(db, userId(c)) }); }
+  catch (err) { return partyQuestFailure(c, err); }
+});
+
+app.get('/party/quests/:id/progress', (c) => {
+  try { return ok(c, { progress: partyQuestProgress(db, userId(c), c.req.param('id')) }); }
   catch (err) { return partyQuestFailure(c, err); }
 });
 

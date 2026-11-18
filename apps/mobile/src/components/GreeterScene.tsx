@@ -142,7 +142,8 @@ export function GreeterScene({
           source={{ uri: photoUri(greeter.portrait) }}
           // The render is 626 x 760 with its alpha trimmed to the character,
           // so the box is the character and `contain` cannot letterbox it.
-          style={{ width: Math.round(height * 0.83), height, resizeMode: 'contain' }}
+          style={{ width: Math.round(height * 0.83), height }}
+          resizeMode="contain"
           accessibilityLabel={label}
           accessible
         />

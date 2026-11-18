@@ -9,13 +9,13 @@
 
 import React from 'react';
 import { Image, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
-import { ArrowLeft, BedDouble, ChevronRight, Expand, Layers3, LayoutGrid, List, Map as MapIcon, MessageCircle, Minus, Navigation, Plus, Satellite, Store } from 'lucide-react-native';
+import { ArrowLeft, BedDouble, ChevronRight, Expand, Layers3, LayoutGrid, List, Map as MapIcon, MessageCircle, Minus, Navigation, Plus, Satellite, Store, Waves } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
 import {
   greetingFor, strings,
   type Balances, type ExploredPlace, type Quest, type QuestProgress, type RouteMode, type ScoredPlace,
 } from '@chivago/core';
-import { api } from '../api/client.ts';
+import { API_BASE, api } from '../api/client.ts';
 import { photoUri } from '../api/photos.ts';
 import { SHOP_CATEGORIES, shopImageUri, shopOpenNow, type Shop } from '../api/shops.ts';
 import { areaOfPlace, fairById, fairLots, fairsIn, inArea, nearestFirst } from '@chivago/core';
@@ -43,7 +43,8 @@ import { t } from '../i18n/locale.ts';
 import { formatDate, formatDateTime, formatInteger } from '../i18n/format.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 import { ProfileButton } from '../components/ProfileButton.tsx';
-import { IslandDiorama } from '../components/IslandDiorama.tsx';
+import { IslandDiorama, pageBase } from '../components/IslandDiorama.tsx';
+import { coastalDriftPoints, loadCoastalDrift, type CoastalDriftFile, type CoastalDriftPoint, type CoastalSide } from '../components/coastal-drift.ts';
 import { cachedPlaces, cachedShops, clearPublicCache, deleteAreaCache, inspectAreaCache, placesWithFallback, shopsWithFallback, storageInfo } from '../offline/public-cache.ts';
 import { clearCachedImages } from '../offline/image-cache.ts';
 
@@ -170,11 +171,29 @@ export function MapScreen({
     wins, and it resets with the area - a choice about Ko Sichang says
     nothing about Samui.
   */
-  const [mapChoice, setMapChoice] = React.useState<boolean | null>(null);
+  const [mapChoice, setMapChoice] = React.useState<'map' | 'island' | 'drift' | null>(null);
   const hasDiorama = area.key === 'koh-sichang';
-  const diorama = hasDiorama && (mapChoice ?? true);
-  const setDiorama = setMapChoice;
+  const activeMapChoice = hasDiorama ? (mapChoice ?? 'island') : 'map';
+  const diorama = hasDiorama && activeMapChoice === 'island';
+  const driftMode = hasDiorama && activeMapChoice === 'drift';
   React.useEffect(() => { setMapChoice(null); }, [area.key]);
+  const driftSnapshot = useAsync<CoastalDriftFile | null>(
+    async () => ({
+      ok: true,
+      data: area.key === 'koh-sichang'
+        ? await loadCoastalDrift(`${pageBase(Platform.OS, API_BASE)}/islands/koh-sichang.drift.json`)
+        : null,
+    }),
+    [area.key],
+  );
+  const allDriftPoints = React.useMemo(() => coastalDriftPoints(driftSnapshot.data ?? null), [driftSnapshot.data]);
+  const [driftSide, setDriftSide] = React.useState<'all' | CoastalSide>('all');
+  const [selectedDriftPoint, setSelectedDriftPoint] = React.useState<CoastalDriftPoint | null>(null);
+  const visibleDriftPoints = React.useMemo(
+    () => allDriftPoints.filter((point) => driftSide === 'all' || point.side === driftSide),
+    [allDriftPoints, driftSide],
+  );
+  React.useEffect(() => { setDriftSide('all'); setSelectedDriftPoint(null); }, [area.key]);
   /*
     The expanded map's zoom, driven from the screen rather than from inside
     the map.
@@ -348,11 +367,18 @@ export function MapScreen({
   );
   const onSelect = React.useCallback((place: ScoredPlace) => {
     setSelectedShop(null);
+    setSelectedDriftPoint(null);
     setSelectedPlace(place);
   }, []);
   const onSelectShop = React.useCallback((shop: Shop) => {
     setSelectedPlace(null);
+    setSelectedDriftPoint(null);
     setSelectedShop(shop);
+  }, []);
+  const onSelectDriftPoint = React.useCallback((point: CoastalDriftPoint) => {
+    setSelectedPlace(null);
+    setSelectedShop(null);
+    setSelectedDriftPoint(point);
   }, []);
 
   /*
@@ -445,12 +471,12 @@ export function MapScreen({
     storied={storied}
     tales={tales}
     onOpenStory={(placeId) => { setExpandedMap(false); openStory(placeId); }}
-    places={visible}
+    places={driftMode ? [] : visible}
     highlightedPlaceIds={recommendedPlaceIds}
-    shops={visibleShops}
+    shops={driftMode ? [] : visibleShops}
     onSelectShop={onSelectShop}
     onSelect={onSelect}
-    quests={questsHere}
+    quests={driftMode ? [] : questsHere}
     progress={quests.data?.progress ?? NO_PROGRESS}
     onOpenQuest={(id) => { setExpandedMap(false); onOpenQuest(id); }}
     explored={explored.data?.places ?? NO_EXPLORED}
@@ -460,6 +486,8 @@ export function MapScreen({
     wayIsRoute={route !== null}
     fairLots={lots}
     fairFocus={lotShown}
+    driftPoints={driftMode ? visibleDriftPoints : []}
+    onSelectDriftPoint={onSelectDriftPoint}
     interactive
     fullScreenControls
     height={height}
@@ -611,28 +639,54 @@ export function MapScreen({
           {mode === 'map' ? (
             <>
             {hasDiorama ? (
-              <View style={{ flexDirection: 'row', gap: 8, marginHorizontal: gutter, marginBottom: 8 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginHorizontal: gutter, marginBottom: 8 }}>
                 {([
-                  [false, t({ en: 'Map', th: 'แผนที่', zh: '地图' })],
-                  [true, t({ en: 'The island', th: 'มุมเกาะ', zh: '岛屿视角' })],
+                  ['map', t({ en: 'Map', th: 'แผนที่', zh: '地图' })],
+                  ['island', t({ en: 'The island', th: 'มุมเกาะ', zh: '岛屿视角' })],
+                  ['drift', t({ en: 'Floating debris forecast', th: 'พยากรณ์ขยะลอย', zh: '海漂垃圾预报' })],
                 ] as const).map(([value, label]) => (
                   <Pressable
                     key={String(value)}
-                    onPress={() => setDiorama(value)}
+                    onPress={() => { setMapChoice(value); setSelectedDriftPoint(null); }}
                     accessibilityRole="button"
-                    accessibilityState={{ selected: diorama === value }}
+                    accessibilityState={{ selected: activeMapChoice === value }}
                     accessibilityLabel={label}
                     style={{
-                      paddingVertical: 7, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1,
-                      borderColor: diorama === value ? '#0077B6' : '#D1E8EE',
-                      backgroundColor: diorama === value ? '#0077B6' : '#FFFFFF',
+                      minHeight: 38, paddingVertical: 7, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1,
+                      flexDirection: 'row', alignItems: 'center', gap: 6,
+                      borderColor: activeMapChoice === value ? '#0077B6' : '#D1E8EE',
+                      backgroundColor: activeMapChoice === value ? '#0077B6' : '#FFFFFF',
                     }}
                   >
-                    <Body size={13} colour={diorama === value ? '#FFFFFF' : '#31485A'}>{label}</Body>
+                    {value === 'drift' ? <Waves size={15} color={activeMapChoice === value ? '#FFFFFF' : '#0077B6'} /> : null}
+                    <Body size={13} colour={activeMapChoice === value ? '#FFFFFF' : '#31485A'}>{label}</Body>
                   </Pressable>
                 ))}
               </View>
             ) : null}
+            {driftMode ? (
+              <View style={{ marginHorizontal: gutter, marginBottom: 10, padding: 14, borderRadius: 18, backgroundColor: '#073E59', borderWidth: 1, borderColor: '#1B7089' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0F6177' }}><Waves size={22} color="#8DE8EA" /></View>
+                  <View style={{ flex: 1 }}>
+                    <Heading size={18} colour="#FFFFFF">{t({ en: 'Floating debris forecast · Ko Sichang', th: 'พยากรณ์ขยะลอย · เกาะสีชัง', zh: '锡昌岛海漂垃圾预报' })}</Heading>
+                    <Body size={13} colour="#C9EEF2" style={{ marginTop: 3 }}>{t({ en: 'Tap a numbered point to see why that shoreline should be surveyed.', th: 'แตะจุดตัวเลขเพื่อดูว่าทำไมควรสำรวจชายฝั่งจุดนั้น', zh: '点击编号查看为何应该巡查该段海岸。' })}</Body>
+                  </View>
+                </View>
+                <Body size={13} colour="#F9E5A9" style={{ marginTop: 10 }}>{t({ en: 'Planning model only · not a live litter report and not a litter count.', th: 'แบบจำลองเพื่อวางแผนเท่านั้น · ไม่ใช่รายงานพบขยะสด และไม่ใช่จำนวนชิ้นขยะ', zh: '仅供规划参考 · 不是实时垃圾报告，也不是垃圾数量。' })}</Body>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7, paddingTop: 10 }}>
+                  {([
+                    ['all', { en: 'Whole island', th: 'ทั้งเกาะ', zh: '全岛' }],
+                    ['north', { en: 'North', th: 'เหนือ', zh: '北' }],
+                    ['east', { en: 'East', th: 'ตะวันออก', zh: '东' }],
+                    ['south', { en: 'South', th: 'ใต้', zh: '南' }],
+                    ['west', { en: 'West', th: 'ตะวันตก', zh: '西' }],
+                  ] as const).map(([side, label]) => <Pressable key={side} onPress={() => { setDriftSide(side); setSelectedDriftPoint(null); }} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: driftSide === side ? '#FFFFFF' : '#155D72', borderWidth: 1, borderColor: driftSide === side ? '#FFFFFF' : '#4A8798' }}><Body size={13} colour={driftSide === side ? '#073E59' : '#E5F8FA'}>{t(label)}</Body></Pressable>)}
+                </ScrollView>
+              </View>
+            ) : null}
+            {driftMode && driftSnapshot.loading ? <View style={{ marginHorizontal: gutter, marginBottom: 10 }}><Body size={13}>{t({ en: 'Loading shoreline forecast…', th: 'กำลังโหลดพยากรณ์ชายฝั่ง...', zh: '正在加载海岸预报…' })}</Body></View> : null}
+            {driftMode && !driftSnapshot.loading && visibleDriftPoints.length === 0 ? <View style={{ marginHorizontal: gutter, marginBottom: 10, padding: 12, borderRadius: 14, backgroundColor: '#FFF3D6' }}><Body size={13} colour="#684B12">{t({ en: 'Forecast data is unavailable for this view. No debris location will be guessed.', th: 'ไม่มีข้อมูลพยากรณ์สำหรับมุมมองนี้ ระบบจะไม่คาดเดาตำแหน่งขยะ', zh: '当前视图无预报数据，系统不会猜测垃圾位置。' })}</Body></View> : null}
             {hasDiorama && diorama ? (
               <View style={{ marginHorizontal: gutter }}>
                 <IslandDiorama
@@ -667,12 +721,12 @@ export function MapScreen({
               storied={storied}
               tales={tales}
               onOpenStory={openStory}
-              places={visible}
+              places={driftMode ? [] : visible}
               highlightedPlaceIds={recommendedPlaceIds}
-              shops={visibleShops}
+              shops={driftMode ? [] : visibleShops}
               onSelectShop={onSelectShop}
               onSelect={onSelect}
-              quests={questsHere}
+              quests={driftMode ? [] : questsHere}
               progress={quests.data?.progress ?? NO_PROGRESS}
               onOpenQuest={onOpenQuest}
               explored={explored.data?.places ?? NO_EXPLORED}
@@ -682,6 +736,8 @@ export function MapScreen({
               wayIsRoute={route !== null}
               fairLots={lots}
               fairFocus={lotShown}
+              driftPoints={driftMode ? visibleDriftPoints : []}
+              onSelectDriftPoint={onSelectDriftPoint}
               interactive={false}
             />
             <Pressable
@@ -690,7 +746,11 @@ export function MapScreen({
               accessibilityLabel={t({ en: 'Expand map', th: 'ขยายแผนที่', zh: '展开地图' })}
               style={{ position: 'absolute', top: 12, right: 12, width: 42, height: 42, borderRadius: 14, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#D1E8EE', elevation: 4, shadowColor: '#123B64', shadowOpacity: 0.16, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}
             ><Expand size={20} color="#0077B6" /></Pressable>
-            {selectedPlace || selectedShop ? (
+            {selectedDriftPoint && driftMode ? (
+              <View style={{ position: 'absolute', left: 12, right: 12, bottom: 12 }}>
+                <CoastalDriftSelectionCard point={selectedDriftPoint} file={driftSnapshot.data ?? null} />
+              </View>
+            ) : selectedPlace || selectedShop ? (
               <View style={{ position: 'absolute', left: 12, right: 12, bottom: 12 }}>
                 <MapSelectionCard
                   place={selectedPlace}
@@ -713,7 +773,7 @@ export function MapScreen({
               MAP, where somebody is looking at a shape and asking where they
               are.
             */}
-            <NearYou places={visible} here={here} onSelect={(place) => onOpenPlace(place.id)} />
+            {!driftMode ? <NearYou places={visible} here={here} onSelect={(place) => onOpenPlace(place.id)} /> : null}
             </>
           ) : (
             <View>
@@ -746,7 +806,7 @@ export function MapScreen({
             clip to land - with no pins the honest message is the empty one
             below, not an offer to post into nothing.
           */}
-          {visible.length > 0 ? (
+          {!driftMode && visible.length > 0 ? (
             <View style={{ paddingHorizontal: gutter, marginTop: 12 }}>
               <Button
                 label={
@@ -764,7 +824,7 @@ export function MapScreen({
             </View>
           ) : null}
 
-          {visible.length === 0 && visibleShops.length === 0 ? (
+          {!driftMode && visible.length === 0 && visibleShops.length === 0 ? (
             <View style={{ padding: gutter }}>
               <Body colour={color.neutral700}>
                 {areaPlaces.length === 0
@@ -1137,6 +1197,34 @@ export function MapSelectionCard({
         <ChevronRight size={22} color={color.brand} strokeWidth={2.5} />
       </View>
     </Pressable>
+    </View>
+  );
+}
+
+export function CoastalDriftSelectionCard({ point, file }: { point: CoastalDriftPoint; file: CoastalDriftFile | null }) {
+  const fill = point.attention === 'higher' ? '#F47B20' : point.attention === 'watch' ? '#F2B84B' : '#8CA3A9';
+  const arrival = point.firstHours === null
+    ? t({ en: 'No first-contact time in this model run', th: 'ไม่มีเวลาแตะฝั่งครั้งแรกในผลจำลองชุดนี้', zh: '本次模型运行无首次触岸时间' })
+    : t({ en: `First modelled contact around ${point.firstHours} hours`, th: `แบบจำลองเริ่มแตะฝั่งราว ${point.firstHours} ชม.`, zh: `模型约在 ${point.firstHours} 小时后首次触岸` });
+  return (
+    <View style={[shadow.md, { padding: 14, borderRadius: 20, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CFE4EA' }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: fill, borderWidth: 3, borderColor: '#FFF', alignItems: 'center', justifyContent: 'center' }}><Heading size={13} colour="#102A3A">{point.rank}</Heading></View>
+        <View style={{ flex: 1 }}>
+          <Label size={9} tracking={0.1} colour="#0B6D83">{t(point.attentionLabel).toUpperCase()}</Label>
+          <Heading size={16}>{t(point.sideLabel)} · {t(point.locationLabel)}</Heading>
+        </View>
+      </View>
+      <Body size={13} colour="#31485A" style={{ marginTop: 9 }}>{arrival}</Body>
+      <Body size={13} colour="#5A6E79" style={{ marginTop: 5 }}>{t({
+        en: `The ${file?.window ?? 6}-hour research run recorded ${formatInteger(point.count)} simulated shoreline contacts here. This number is not pieces of rubbish.`,
+        th: `ผลจำลอง ${file?.window ?? 6} ชั่วโมงมีอนุภาคสมมติแตะชายฝั่งตรงนี้ ${formatInteger(point.count)} ครั้ง ตัวเลขนี้ไม่ใช่จำนวนชิ้นขยะ`,
+        zh: `${file?.window ?? 6} 小时研究模型在此记录 ${formatInteger(point.count)} 次模拟触岸；该数字不是垃圾件数。`,
+      })}</Body>
+      <View style={{ marginTop: 9, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E2EEF2' }}>
+        <Body size={13} colour="#6B7F89">{t({ en: 'Source', th: 'แหล่งข้อมูล', zh: '数据源' })}: {file?.source ?? '—'}</Body>
+        <Body size={13} colour="#6B7F89" style={{ marginTop: 2 }}>{t({ en: 'Model issued', th: 'ออกผลจำลอง', zh: '模型发布' })}: {file?.issued ? formatDateTime(file.issued) : '—'} · {t({ en: 'Uncalibrated', th: 'ยังไม่ผ่านการสอบเทียบ', zh: '未校准' })}</Body>
+      </View>
     </View>
   );
 }

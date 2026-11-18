@@ -36,6 +36,7 @@ import { PushHeader } from '../components/Shell.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
+import { kohSichangPartyPlaces } from '../components/party/party-place-scope.ts';
 
 type Pin = {
   placeId: string; invitesOpen: number; checkinsLastHour: number; line: Bilingual;
@@ -49,10 +50,11 @@ export function FindPartyScreen({
   const board = useAsync(async () => {
     const places = await api.places();
     if (!places.ok) return { ok: false as const, error: places.error, code: places.code };
-    const ids = places.data.map((p) => p.id);
+    const islandPlaces = kohSichangPartyPlaces(places.data);
+    const ids = islandPlaces.map((p) => p.id);
     const pins = await api.invitePins(ids);
     if (!pins.ok) return { ok: false as const, error: pins.error, code: pins.code };
-    return { ok: true as const, data: { places: places.data, pins: pins.data.pins } };
+    return { ok: true as const, data: { places: islandPlaces, pins: pins.data.pins } };
   }, []);
 
   const data = board.data;

@@ -43,6 +43,30 @@ export interface PartyQuestInstance {
   participants: PartyQuestParticipant[];
 }
 
+export interface PartyQuestParticipantProgress {
+  userId: string;
+  displayName: string;
+  membershipStatus: PartyQuestMembershipStatus;
+  stage: import('./types.ts').QuestStage | null;
+  verifiedAt: string | null;
+  verifiedWeightKg: number | null;
+}
+
+/**
+ * Read model for a locked Party Quest roster. Every value comes from the
+ * legacy server-owned quest state; the client never supplies a percentage.
+ */
+export interface PartyQuestProgressSummary {
+  partyQuestId: string;
+  questId: string;
+  rosterSize: number;
+  completedCount: number;
+  pendingReviewCount: number;
+  progressPercent: number;
+  totalVerifiedWeightKg: number | null;
+  participants: PartyQuestParticipantProgress[];
+}
+
 export const isPartyQuestType = (value: unknown): value is PartyQuestType =>
   typeof value === 'string' && PARTY_QUEST_TYPES.includes(value as PartyQuestType);
 

@@ -20,6 +20,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Cloud, CloudRain, Thermometer, Waves } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
+import { platformShadow } from '../theme/index.ts';
 import {
   categoriesFor, strings, weatherDescription,
   type AreaWeather, type Bilingual, type WeatherCategoryKey,
@@ -135,21 +136,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#004C7F',
     borderWidth: 1,
     borderColor: '#003860',
-    shadowColor: '#002B48',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.22,
-    shadowRadius: 5,
-    elevation: 3,
+    ...platformShadow('0 2px 5px rgba(0, 43, 72, 0.22)', { shadowColor: '#002B48', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.22, shadowRadius: 5, elevation: 3 }),
   },
   tabItemUnselected: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#D4E2EE',
-    shadowColor: '#002B48',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    ...platformShadow('0 1px 3px rgba(0, 43, 72, 0.05)', { shadowColor: '#002B48', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 }),
   },
   tabLabel: {
     fontSize: 11,
