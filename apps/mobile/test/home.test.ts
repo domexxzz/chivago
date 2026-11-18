@@ -189,6 +189,9 @@ describe('what Home says', () => {
     const horizontalRail = rails.find((node) => node.props.horizontal === true);
     assert.ok(horizontalRail, 'the places rail must scroll sideways');
     assert.notEqual(horizontalRail.props.contentContainerStyle?.flexWrap, 'wrap', 'cards must not form a second row');
+    assert.ok(ui.root.findAll((node) => node.props.testID === 'place-category-icon-chaweng').length > 0, 'a place card needs its category icon');
+    assert.match(ui.text(), /Quiet at 7am, shade at the north end/, 'a place card should carry its real description');
+    assert.match(ui.text(), /View details/, 'a place card should expose the same detail action as a service card');
     ui.unmount();
   });
 

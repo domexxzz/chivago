@@ -922,10 +922,36 @@ function ShopCard({ shop, onPress, width }: { shop: Shop; onPress: () => void; w
   </Pressable>;
 }
 
+const PLACE_CATEGORY: Record<string, { label: Localised; Icon: LucideIcon; accent: string; pale: string }> = {
+  Beach: { label: { en: 'Beach', th: 'ชายหาด', zh: '海滩' }, Icon: Waves, accent: '#087EA4', pale: '#DFF5FB' },
+  Hospital: { label: { en: 'Hospital', th: 'โรงพยาบาล', zh: '医院' }, Icon: HeartPulse, accent: '#B23A48', pale: '#FCE8EB' },
+  Museum: { label: { en: 'Museum', th: 'พิพิธภัณฑ์', zh: '博物馆' }, Icon: Sparkles, accent: '#7653A6', pale: '#F0EAF8' },
+  'Palace grounds': { label: { en: 'Historic place', th: 'สถานที่ประวัติศาสตร์', zh: '历史景点' }, Icon: Sparkles, accent: '#9A6515', pale: '#FFF3D8' },
+  'Ferry pier': { label: { en: 'Ferry pier', th: 'ท่าเรือเฟอร์รี', zh: '渡轮码头' }, Icon: MapPin, accent: '#087EA4', pale: '#DFF5FB' },
+  'Shops and food': { label: { en: 'Shops & food', th: 'ร้านค้าและอาหาร', zh: '商店与餐饮' }, Icon: Utensils, accent: '#A45B18', pale: '#FFF0DC' },
+  Accommodation: { label: { en: 'Accommodation', th: 'ที่พัก', zh: '住宿' }, Icon: Grid2X2, accent: '#087EA4', pale: '#DFF5FB' },
+  Park: { label: { en: 'Park', th: 'สวนสาธารณะ', zh: '公园' }, Icon: Trees, accent: '#267A50', pale: '#E3F5E9' },
+  'Green space': { label: { en: 'Green space', th: 'พื้นที่สีเขียว', zh: '绿地' }, Icon: Trees, accent: '#267A50', pale: '#E3F5E9' },
+  'Healthy food': { label: { en: 'Healthy food', th: 'อาหารเพื่อสุขภาพ', zh: '健康餐饮' }, Icon: Utensils, accent: '#A45B18', pale: '#FFF0DC' },
+  'Food court': { label: { en: 'Food court', th: 'ศูนย์อาหาร', zh: '美食广场' }, Icon: Utensils, accent: '#A45B18', pale: '#FFF0DC' },
+  Wellness: { label: { en: 'Wellness', th: 'สุขภาวะ', zh: '康养' }, Icon: HeartPulse, accent: '#B23A48', pale: '#FCE8EB' },
+  Landmark: { label: { en: 'Landmark', th: 'แลนด์มาร์ก', zh: '地标' }, Icon: MapPin, accent: '#7653A6', pale: '#F0EAF8' },
+  Library: { label: { en: 'Library', th: 'ห้องสมุด', zh: '图书馆' }, Icon: Grid2X2, accent: '#315F91', pale: '#E7F0FA' },
+};
+
+function placeAppearance(place: ScoredPlace): { label: string; Icon: LucideIcon; accent: string; pale: string } {
+  const raw = place.meta.split(' · ')[0]?.trim() || 'Place';
+  const known = PLACE_CATEGORY[raw];
+  if (known) return { ...known, label: t(known.label) };
+  return { label: t({ en: raw, th: 'สถานที่', zh: '地点' }), Icon: MapPin, accent: '#087EA4', pale: '#DFF5FB' };
+}
+
 function PlaceCard({ place, here, onPress, width = 204 }: { place: ScoredPlace; here: Here | null; onPress: () => void; width?: number }) {
   const high = isHighScore(place.healthyScore);
   const way = here ? wayThere(here, place) : null;
   const far = way ? (way.arrived ? t(strings.place.arrivedShort) : t(way.distance)) : null;
+  const { label: category, Icon, accent, pale } = placeAppearance(place);
+  const rated = place.reviews.average !== null && place.reviews.count > 0;
 
   return (
     <Pressable
@@ -950,7 +976,7 @@ function PlaceCard({ place, here, onPress, width = 204 }: { place: ScoredPlace; 
       ]}
     >
       {/* A fitted logo sits on its own field colour, so the frame is the venue's panel, not a failed load. */}
-      <View style={{ height: 140, backgroundColor: photoBackdrop(place.photo), position: 'relative' }}>
+      <View style={{ aspectRatio: 1.55, backgroundColor: photoBackdrop(place.photo), position: 'relative' }}>
         {place.photo ? (
           <Image
             source={{ uri: photoUri(place.photo.url) }}
@@ -1016,11 +1042,24 @@ function PlaceCard({ place, here, onPress, width = 204 }: { place: ScoredPlace; 
         ) : null}
       </View>
 
-      <View style={{ padding: 12 }}>
-        <Heading size={16} colour="#03045E">{t(place.name)}</Heading>
-        <Label size={9} tracking={0.04} colour="#647F8B" style={{ marginTop: 5, textTransform: 'none' }} >
-          {place.meta}
-        </Label>
+      <View style={{ paddingHorizontal: 16, paddingBottom: 16, flex: 1 }}>
+        <View testID={`place-category-icon-${place.id}`} style={{ width: 52, height: 52, borderRadius: 26, borderWidth: 5, borderColor: '#fff', backgroundColor: accent, alignItems: 'center', justifyContent: 'center', marginTop: -26, marginBottom: 10 }}>
+          <Icon size={23} color="#fff" />
+        </View>
+        <Text style={{ color: accent, fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', fontWeight: '700', marginBottom: 6 }}>{category}</Text>
+        <Text numberOfLines={2} style={{ fontSize: 17, lineHeight: 24, fontWeight: '700', color: '#102F55', minHeight: 48 }}>{t(place.name)}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginVertical: 8 }}>
+          <Star size={14} color={rated ? '#B67918' : '#8298A8'} />
+          <Text style={{ fontSize: 12, color: '#60778C', flexShrink: 1 }}>
+            {rated ? `${place.reviews.average!.toFixed(1)} (${place.reviews.count})` : t({ en: 'No reviews yet', th: 'ยังไม่มีรีวิว', zh: '还没有评价' })}
+          </Text>
+        </View>
+        <Text numberOfLines={3} style={{ color: '#60778C', fontSize: 13, lineHeight: 20, marginBottom: 12 }}>{t(place.blurb)}</Text>
+        <Text numberOfLines={2} style={{ color: '#7890A3', fontSize: 11, lineHeight: 17, marginBottom: 8 }}>{place.meta}</Text>
+        <View style={{ marginTop: 'auto', paddingTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+          <Text style={{ color: accent, fontSize: 13, flexShrink: 1, fontWeight: '600' }}>{t({ en: 'View details', th: 'ดูรายละเอียด', zh: '查看详情' })}</Text>
+          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: pale, alignItems: 'center', justifyContent: 'center' }}><ArrowRight size={17} color={accent} /></View>
+        </View>
       </View>
     </Pressable>
   );
