@@ -29,33 +29,44 @@ const noop = () => {};
 const props = { onBack: noop, onOpenShop: noop };
 
 describe('Local Picks category shell', () => {
-  test('defaults to All and exposes the four categories in one dropdown', async () => {
+  test('uses the new island directory heading and exposes the five category chips', async () => {
     const ui = await mountScreen(h(LocalPicksScreen, props));
 
-    assert.match(ui.text(), /All local picks/i);
+    assert.match(ui.text(), /Local Picks/i);
+    assert.match(ui.text(), /Find shops and experiences from the community/i);
     assert.match(ui.text(), /Sinrani Badminton/);
-    await ui.press('Category: All');
     const said = ui.text();
 
-    for (const label of ['All', 'Food', 'Accommodation', 'Transportation', 'Sports']) {
+    for (const label of ['All', 'Food', 'Accommodation', 'Activities', 'Community goods']) {
       assert.match(said, new RegExp(label), `the ${label} category is missing`);
     }
     ui.unmount();
   });
 
-  test('the Sports category shows Sinrani Badminton and opens its booking page', async () => {
+  test('the Activities category shows Sinrani Badminton and opens its booking page', async () => {
     const opened = mock.method(Linking, 'openURL', async () => true);
     const ui = await mountScreen(h(LocalPicksScreen, props));
 
-    await ui.press('Category: All');
-    await ui.press('Sports');
-    assert.match(ui.text(), /Activities and active experiences/);
+    await ui.press('Category: Activities');
+    assert.match(ui.text(), /Sports & activities/);
     assert.match(ui.text(), /Sinrani Badminton/);
     assert.doesNotMatch(ui.text(), /No recommendations yet/);
     await ui.press('Sinrani Badminton');
     assert.deepEqual(opened.mock.calls.map((call) => call.arguments[0]), ['https://badminton-booking-ihw1.onrender.com/']);
     ui.unmount();
     opened.mock.restore();
+  });
+
+  test('search filters the verified cards and the map action reuses the app map', async () => {
+    let maps = 0;
+    const ui = await mountScreen(h(LocalPicksScreen, { ...props, onOpenMap: () => { maps += 1; } }));
+
+    await ui.type('Koniix', 'Search local picks');
+    assert.match(ui.text(), /Koniix Garden Cottage/);
+    assert.doesNotMatch(ui.text(), /Sinrani Badminton/);
+    await ui.press('Map');
+    assert.equal(maps, 1);
+    ui.unmount();
   });
 });
 
@@ -77,8 +88,7 @@ describe('the stay on the island', () => {
   test('appears under Accommodation, which was an empty category before it', async () => {
     const ui = await mountScreen(h(LocalPicksScreen, props));
 
-    await ui.press('Category: All');
-    await ui.press('Accommodation');
+    await ui.press('Category: Accommodation');
     const said = ui.text();
 
     assert.match(said, /Koniix Garden Cottage/);
@@ -115,8 +125,7 @@ describe('the stay on the island', () => {
       made them.
     */
     const ui = await mountScreen(h(LocalPicksScreen, props));
-    await ui.press('Category: All');
-    await ui.press('Accommodation');
+    await ui.press('Category: Accommodation');
     const said = ui.text();
 
     assert.doesNotMatch(said, /฿|THB|\bbaht\b/i, 'no price was given, so none is shown');
@@ -143,9 +152,9 @@ describe('Solution Connect', () => {
 
     assert.match(said, /Solution Connect/i);
     assert.match(said, /Sentiara AI/);
-    // The partner's own description, labelled as the partner's.
-    assert.match(said, /on-premise AI/i);
-    assert.match(said, /stated by the provider/i);
+    assert.match(said, /Connects camera data and incident reports/i);
+    assert.match(said, /Smart island management/i);
+    assert.match(said, /Opens an external website/i);
     // And the sentence the whole arrangement depends on.
     assert.match(said, /not a ChivarGo recommendation/i);
     ui.unmount();
@@ -178,11 +187,10 @@ describe('Solution Connect', () => {
     */
     const ui = await mountScreen(h(LocalPicksScreen, props));
 
-    await ui.press('Category: All');
-    await ui.press('Food');
+    await ui.press('Category: Food');
     const said = ui.text();
 
-    assert.match(said, /No recommendations yet/, 'the empty category still admits it is empty');
+    assert.match(said, /No verified recommendations are available here yet/, 'the empty category still admits it is empty');
     assert.match(said, /Sentiara AI/, 'and Connect is still there, beside it rather than inside it');
     assert.match(said, /not a ChivarGo recommendation/, 'still disclosed in the empty category');
     ui.unmount();

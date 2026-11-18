@@ -206,7 +206,7 @@ describe('the heading face in Thai', () => {
       const heading = create(h(Heading, { size: 24 }, 'ภารกิจ')).root.findByType(Text as never);
       const hs = flat(heading.props.style);
       assert.equal(hs.fontFamily, font.heading, 'the heading face carries Thai; it must not drop to the body face');
-      assert.equal(hs.lineHeight, Math.round(24 * 1.45), 'Thai leading still applies');
+      assert.equal(hs.lineHeight, Math.round(24 * 1.5), 'Thai leading still applies');
 
       // A Label is set in the body face by the tokens in every language; what
       // Thai must not change is the face it was given.

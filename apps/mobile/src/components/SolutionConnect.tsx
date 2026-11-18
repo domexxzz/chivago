@@ -31,9 +31,9 @@
  */
 import React from 'react';
 import { Image, Linking, Pressable, View } from 'react-native';
-import { ArrowUpRight } from 'lucide-react-native';
+import { AlertTriangle, ArrowUpRight, Leaf, ShieldCheck } from 'lucide-react-native';
 
-import { color, radius, shadow } from '../theme/index.ts';
+import { color, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
 import sentiaraMark from '../../assets/sentiara-mark.png';
@@ -62,9 +62,9 @@ const partners = (): Partner[] => [
   {
     name: 'Sentiara AI',
     blurb: t({
-      en: 'Privacy-first, on-premise AI for homes, elderly care and businesses.',
-      th: 'ระบบ AI ดูแลบ้าน ผู้สูงอายุ และธุรกิจ แบบ Privacy-First ประมวลผลภายในสถานที่',
-      zh: '隐私优先的本地部署 AI，守护住家、长者与商家。',
+      en: 'Connects camera data and incident reports to support environmental care, safety and area management.',
+      th: 'เชื่อมข้อมูลกล้องและการแจ้งเหตุ เพื่อสนับสนุนการดูแลสิ่งแวดล้อม ความปลอดภัย และการจัดการพื้นที่',
+      zh: '连接摄像头数据与事件报告，支持环境维护、安全与区域管理。',
     }),
     /*
       Their own domain, given by the owner on 15 November. It serves the same
@@ -89,49 +89,29 @@ export function SolutionConnect({ compact = false }: { compact?: boolean }) {
       accessibilityRole="summary"
       style={[shadow.card, {
         width: '100%',
-        padding: compact ? 16 : 20,
-        borderRadius: radius.md,
+        padding: compact ? 16 : 18,
+        borderRadius: 22,
         borderWidth: 1,
-        borderColor: '#D8E6EE',
-        backgroundColor: color.surface,
-        gap: 14,
+        borderColor: '#DED1FF',
+        backgroundColor: '#F5F0FF',
+        gap: 10,
       }]}
     >
-      <View style={{ gap: 6 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: SENTIARA_ACCENT }} />
-          <Label size={10} tracking={0.12} colour={color.neutral700}>
-            {t({ en: 'SOLUTION CONNECT', th: 'SOLUTION CONNECT', zh: 'SOLUTION CONNECT' })}
-          </Label>
-        </View>
-        <Heading size={18} tracking={-0.2}>
-          {t({
-            en: 'Solutions from our partners',
-            th: 'โซลูชันจากพาร์ตเนอร์',
-            zh: '来自合作伙伴的解决方案',
-          })}
-        </Heading>
-        {/*
-          The sentence that keeps this honest. It is first, before any partner,
-          because somebody who reads one line should read this one.
-        */}
-        <Body size={13} colour={color.neutral700}>
-          {t({
-            en: 'Partners who joined the programme. A place here is paid for — it is not a ChivarGo recommendation.',
-            th: 'พาร์ตเนอร์ที่ร่วมโครงการ พื้นที่ตรงนี้เป็นการลงพื้นที่โฆษณา ไม่ใช่คำแนะนำจาก ChivarGo',
-            zh: '已加入计划的合作伙伴。此处为付费展示，并非 ChivarGo 的推荐。',
-          })}
-        </Body>
-      </View>
-
       {list.map((partner) => (
-        <PartnerCard key={partner.name} partner={partner} />
+        <PartnerCard key={partner.name} partner={partner} compact={compact} />
       ))}
+      <Label size={9} tracking={0.03} colour={color.neutral700} style={{ textAlign: 'center', textTransform: 'none' }}>
+        {t({
+          en: 'Solution Connect · Paid partner placement — not a ChivarGo recommendation.',
+          th: 'Solution Connect · พื้นที่พาร์ตเนอร์แบบชำระเงิน ไม่ใช่คำแนะนำจาก ChivarGo',
+          zh: 'Solution Connect · 付费合作伙伴展示，并非 ChivarGo 推荐。',
+        })}
+      </Label>
     </View>
   );
 }
 
-function PartnerCard({ partner }: { partner: Partner }) {
+function PartnerCard({ partner, compact }: { partner: Partner; compact: boolean }) {
   return (
     <Pressable
       onPress={() => { void Linking.openURL(partner.url); }}
@@ -143,46 +123,49 @@ function PartnerCard({ partner }: { partner: Partner }) {
         zh: `打开 ${partner.name} 网站`,
       })}
       style={({ pressed }) => ({
-        padding: 14,
-        borderRadius: 16,
-        borderWidth: 1,
-        borderColor: partner.border,
-        backgroundColor: partner.pale,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
+        padding: compact ? 2 : 4,
+        borderRadius: 18,
+        flexDirection: compact ? 'column' : 'row',
+        alignItems: compact ? 'stretch' : 'center',
+        gap: compact ? 14 : 22,
         opacity: pressed ? 0.88 : 1,
         transform: [{ scale: pressed ? 0.995 : 1 }],
       })}
     >
-      <Image
-        source={partner.mark}
-        accessibilityLabel={partner.name}
-        resizeMode="cover"
-        style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: color.surface }}
-      />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Heading size={16} colour={color.text}>{partner.name}</Heading>
-        <Body size={13} colour={color.neutral700} style={{ marginTop: 3 }}>{partner.blurb}</Body>
-        {/*
-          Where the words came from, per card. `org_sponsorships` draws the
-          same line between what was declared and what was signed: the app may
-          repeat a partner's description, but it may not adopt it.
-        */}
-        <Label size={9} tracking={0.08} colour={color.neutral600} style={{ marginTop: 6 }}>
-          {t({
-            en: 'STATED BY THE PROVIDER',
-            th: 'ข้อมูลจากผู้ให้บริการ',
-            zh: '由服务方提供的信息',
-          })}
-        </Label>
+      <View style={{ minWidth: compact ? 0 : 270, flexDirection: 'row', alignItems: 'center', gap: 14, paddingRight: compact ? 0 : 20, borderRightWidth: compact ? 0 : 1, borderRightColor: '#BDA9FF' }}>
+        <Image source={partner.mark} accessibilityLabel={partner.name} resizeMode="cover" style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: color.surface }} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Heading size={22} colour={color.text}>{partner.name}</Heading>
+          <View style={{ alignSelf: 'flex-start', marginTop: 6, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 14, backgroundColor: '#E4D8FF' }}><Label size={9} colour="#6A39D8">{t({ en: 'TECHNOLOGY PARTNER', th: 'เทคโนโลยีพาร์ตเนอร์', zh: '技术合作伙伴' })}</Label></View>
+        </View>
       </View>
-      <View style={{
-        width: 34, height: 34, borderRadius: 17, backgroundColor: partner.accent,
-        alignItems: 'center', justifyContent: 'center',
-      }}>
-        <ArrowUpRight size={17} color="#FFFFFF" strokeWidth={2.5} />
+
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Heading size={18} colour={color.text}>{t({ en: 'Smart island management', th: 'ระบบบริหารเกาะอัจฉริยะ', zh: '智慧岛屿管理系统' })}</Heading>
+        <Body size={13} colour={color.neutral700} style={{ marginTop: 3 }}>{partner.blurb}</Body>
+        <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 7 }}>
+          <FeatureChip Icon={Leaf} label={t({ en: 'Environment', th: 'สิ่งแวดล้อม', zh: '环境' })} color="#00A77A" />
+          <FeatureChip Icon={ShieldCheck} label={t({ en: 'Safety', th: 'ความปลอดภัย', zh: '安全' })} color="#7047E8" />
+          <FeatureChip Icon={AlertTriangle} label={t({ en: 'Incident management', th: 'จัดการเหตุ', zh: '事件管理' })} color="#F27C78" />
+        </View>
+      </View>
+
+      <View style={{ minWidth: compact ? 0 : 235, alignItems: 'stretch', gap: 6 }}>
+        <View style={{ minHeight: 46, paddingHorizontal: 18, borderRadius: 15, backgroundColor: '#6E16ED', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+          <Heading size={14} colour="#FFFFFF">{t({ en: 'Visit Sentiara website', th: 'เข้าสู่เว็บไซต์ Sentiara', zh: '访问 Sentiara 网站' })}</Heading>
+          <ArrowUpRight size={18} color="#FFFFFF" strokeWidth={2.5} />
+        </View>
+        <Body size={13} colour={color.neutral700} style={{ textAlign: 'center' }}>{t({ en: 'Opens an external website', th: 'เปิดเว็บไซต์ภายนอก', zh: '打开外部网站' })}</Body>
       </View>
     </Pressable>
+  );
+}
+
+function FeatureChip({ Icon, label, color: ink }: { Icon: typeof Leaf; label: string; color: string }) {
+  return (
+    <View style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 6, ...shadow.sm }}>
+      <Icon size={16} color={ink} />
+      <Label size={9} tracking={0.02} colour={color.text}>{label}</Label>
+    </View>
   );
 }

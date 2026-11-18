@@ -151,7 +151,7 @@ export function dioramaPage(island: string, base: string): string {
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <style>
   html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;background:${color.brand};
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+    font-family:'Noto Sans Thai','Leelawadee UI',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
   canvas{display:block;touch-action:none}
   #labels{position:absolute;inset:0;pointer-events:none}
   .lab{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;

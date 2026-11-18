@@ -26,6 +26,7 @@ import { GameScreen } from '../src/screens/GameScreen.tsx';
 import { NavigationRail } from '../src/components/Shell.tsx';
 import { mountScreen, mount, server } from './interact.ts';
 import { wallet } from './fixtures.ts';
+import gashaponArt from '../assets/menu-travel-box-v1.png';
 
 const noop = () => {};
 
@@ -115,7 +116,7 @@ describe('the collection lives in the backpack, and only there', () => {
 });
 
 describe('discounts stay in the backpack with their real source', () => {
-  test('quest and Traveller’s Box coupons say where they came from', async () => {
+  test('the backpack uses the Gashapon name and the same machine art as Home', async () => {
     const net = server({
       'GET /wallet': wallet({ progression: progressionFor(1560) }),
       'GET /companions': collection([]),
@@ -127,13 +128,29 @@ describe('discounts stay in the backpack with their real source', () => {
     });
     restore = net.restore;
     const ui = await mountScreen(h(WalletScreen, walletProps));
+    const gashapon = ui.find('Open Gashapon');
+    assert.ok(gashapon, 'the Gashapon door remains accessible');
+    assert.ok(
+      gashapon.findAll((node) => node.props.source === gashaponArt).length > 0,
+      'the backpack reuses the Home Gashapon artwork',
+    );
     assert.match(ui.text(), /Quest reward/);
-    assert.match(ui.text(), /Traveller’s Box reward/);
+    assert.match(ui.text(), /Gashapon reward/);
+    assert.doesNotMatch(ui.text(), /Traveller’s Box/);
     ui.unmount();
   });
 });
 
-describe('travel companions name only what the traveller holds', () => {
+describe('the character and pet collection names only what the traveller holds', () => {
+  test('the section is explicitly Characters & Pets and not a Party feature', async () => {
+    const net = backpack();
+    restore = net.restore;
+    const ui = await mountScreen(h(WalletScreen, walletProps));
+    assert.match(ui.text(), /Characters & Pets/);
+    assert.doesNotMatch(ui.text(), /Travel companions/);
+    ui.unmount();
+  });
+
   test('the supplied explorer and dog are independent controls that return to idle', async () => {
     // react-native-web reports reduced motion in Node. Override only this
     // interaction test; the production hook still honours the real setting.
@@ -162,13 +179,13 @@ describe('travel companions name only what the traveller holds', () => {
     }
   });
 
-  test('a traveller who has been nowhere is given no province mascot', async () => {
+  test('a traveller who has been nowhere is given no province character', async () => {
     // An emblem on this card is a claim that somebody went there.
     const net = backpack();
     restore = net.restore;
     const ui = await mountScreen(h(WalletScreen, walletProps));
     assert.ok(
-      ui.labels().some((l) => /No province mascot yet/.test(l)),
+      ui.labels().some((l) => /No character yet/.test(l)),
       'an unvisited traveller should get the honest state, not an invented emblem',
     );
     ui.unmount();
@@ -180,13 +197,13 @@ describe('travel companions name only what the traveller holds', () => {
     });
     restore = net.restore;
     const ui = await mountScreen(h(WalletScreen, walletProps));
-    const mascotLabel = ui.labels().find((l) => /Open the Mascot collection/.test(l));
-    assert.ok(mascotLabel, 'the mascot tile should still open the collection');
-    assert.match(mascotLabel!, /emblem of Chon Buri/, 'the emblem should name the province visited');
+    const mascotLabel = ui.labels().find((l) => /Open the Character collection/.test(l));
+    assert.ok(mascotLabel, 'the character tile should still open the collection');
+    assert.match(mascotLabel!, /representing Chon Buri/, 'the character should name the province visited');
     ui.unmount();
   });
 
-  test('the mascot tile opens the mascot collection and the pet opens its companion', async () => {
+  test('the character tile opens the character collection and the pet opens its companion', async () => {
     let mascots = 0;
     let opened: Companion | null = null;
     const net = backpack({
@@ -200,7 +217,7 @@ describe('travel companions name only what the traveller holds', () => {
       onOpenCompanion: (c: Companion) => { opened = c; },
     }));
 
-    await ui.press(/Open the Mascot collection/);
+    await ui.press(/Open the Character collection/);
     await ui.press(/^Green sea turtle, Hatchling$/);
     assert.equal(mascots, 1);
     assert.equal(opened?.species.key, 'green-turtle');
@@ -211,9 +228,10 @@ describe('travel companions name only what the traveller holds', () => {
     const net = backpack();
     restore = net.restore;
     const ui = await mountScreen(h(WalletScreen, walletProps));
-    assert.match(ui.text(), /PET LOCKED/);
+    assert.match(ui.text(), /NO PET YET/);
+    assert.match(ui.text(), /NO CHARACTER YET/);
     assert.ok(
-      ui.labels().some((l) => /No travel pet yet/.test(l)),
+      ui.labels().some((l) => /No pet yet/.test(l)),
       'the empty state should say what it is, in words',
     );
     for (const species of Object.values(SPECIES)) {

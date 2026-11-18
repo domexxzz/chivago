@@ -7,18 +7,18 @@
  * like an editorial recommendation.
  */
 import React from 'react';
-import { Image, Linking, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
-import { ArrowUpRight, BedDouble, BusFront, Check, ChevronDown, Dumbbell, LayoutGrid, Navigation, Utensils, type LucideIcon } from 'lucide-react-native';
+import { Image, Linking, Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
+import { ArrowUpRight, BedDouble, Flag, LayoutGrid, List, Map, Search, ShoppingBag, Utensils, type LucideIcon } from 'lucide-react-native';
 import { color, gutter, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
-import { PushHeader } from '../components/Shell.tsx';
+import { PushHeader, TravelHeroBackdrop } from '../components/Shell.tsx';
 import { SolutionConnect } from '../components/SolutionConnect.tsx';
 import type { NavDestination } from '../navigation/session.ts';
 import { photoUri } from '../api/photos.ts';
 import { t } from '../i18n/locale.ts';
 import sinraniBadminton from '../../assets/sinrani-badminton-local-pick.png';
 
-type LocalPickCategory = 'all' | 'food' | 'stay' | 'transport' | 'sport';
+type LocalPickCategory = 'all' | 'food' | 'stay' | 'activity' | 'community';
 
 const SINRANI_BOOKING_URL = 'https://badminton-booking-ihw1.onrender.com/';
 
@@ -60,204 +60,135 @@ const KONIIX = {
 export function LocalPicksScreen({
   onBack,
   onNavigate,
+  onOpenMap,
 }: {
   onBack: () => void;
   /** Retained on the public screen props while Local Picks has no entries yet. */
   onOpenShop: (id: string) => void;
   /** The app's one navigator — in-app on Koh Sichang, Google elsewhere. */
   onNavigate?: (destination: NavDestination) => void;
+  /** Opens the existing MapLibre surface; this screen never creates a second map. */
+  onOpenMap?: () => void;
 }) {
   const { width } = useWindowDimensions();
   const [category, setCategory] = React.useState<LocalPickCategory>('all');
-  const [dropdownOpen, setDropdownOpen] = React.useState(false);
-  const compact = width < 520;
-  /*
-    Beside the picker, or under the whole screen.
-
-    The content column is 1040 wide and the category picker is capped at 520,
-    so on a desktop browser the right half of this screen was empty - which is
-    where Solution Connect goes. Below 900 there is no second column to fill,
-    and the partner then goes AFTER the local picks rather than above them:
-    the traveller opened this screen for the island's own businesses, and a
-    paid placement ahead of them would be the layout making the same claim the
-    copy is careful not to make.
-  */
-  const twoColumn = width >= 900;
+  const [query, setQuery] = React.useState('');
+  const compact = width < 700;
 
   const categories: Array<{
     key: LocalPickCategory;
     icon: LucideIcon;
     label: string;
-    description: string;
     accent: string;
     pale: string;
   }> = [
     {
       key: 'all', icon: LayoutGrid,
       label: t({ en: 'All', th: 'ทั้งหมด', zh: '全部' }),
-      description: t({ en: 'Every local pick', th: 'ดูคำแนะนำทุกหมวด', zh: '查看全部本地精选' }),
       accent: color.brand, pale: color.brandSoft,
     },
     {
       key: 'food', icon: Utensils,
       label: t({ en: 'Food', th: 'อาหาร', zh: '美食' }),
-      description: t({ en: 'Restaurants and local flavours', th: 'ร้านอาหารและรสชาติท้องถิ่น', zh: '餐厅与当地风味' }),
       accent: '#D9682A', pale: '#FFF0E6',
     },
     {
       key: 'stay', icon: BedDouble,
       label: t({ en: 'Accommodation', th: 'ที่พัก', zh: '住宿' }),
-      description: t({ en: 'Hotels, resorts and homestays', th: 'โรงแรม รีสอร์ต และโฮมสเตย์', zh: '酒店、度假村与民宿' }),
       accent: '#177DA5', pale: '#E5F6FC',
     },
     {
-      key: 'transport', icon: BusFront,
-      label: t({ en: 'Transportation', th: 'การเดินทาง', zh: '交通出行' }),
-      description: t({ en: 'Getting around the local area', th: 'บริการเดินทางภายในพื้นที่', zh: '当地出行服务' }),
+      key: 'activity', icon: Flag,
+      label: t({ en: 'Activities', th: 'กิจกรรม', zh: '活动' }),
       accent: '#16796E', pale: '#E4F7F3',
     },
     {
-      key: 'sport', icon: Dumbbell,
-      label: t({ en: 'Sports', th: 'กีฬา', zh: '运动' }),
-      description: t({ en: 'Activities and active experiences', th: 'กิจกรรมกีฬาและประสบการณ์แอ็กทีฟ', zh: '运动与活力体验' }),
+      key: 'community', icon: ShoppingBag,
+      label: t({ en: 'Community goods', th: 'สินค้าชุมชน', zh: '社区商品' }),
       accent: '#7755B7', pale: '#F0EAFB',
     },
   ];
 
   const selected = categories.find((item) => item.key === category) ?? categories[0];
   const SelectedIcon = selected.icon;
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const sportsName = t({ en: 'Sinrani Badminton', th: 'สินธานี แบดมินตัน', zh: '辛拉尼羽毛球馆' });
+  const stayName = t(KONIIX.name);
+  const showSport = (category === 'all' || category === 'activity') && (!normalizedQuery || sportsName.toLocaleLowerCase().includes(normalizedQuery));
+  const showStay = (category === 'all' || category === 'stay') && (!normalizedQuery || stayName.toLocaleLowerCase().includes(normalizedQuery));
+  const hasResults = showSport || showStay;
 
   return (
     <View style={{ flex: 1, backgroundColor: color.bg }}>
-      <PushHeader context={t({ en: 'LOCAL PICKS', th: 'ร้านเด็ดในพื้นที่', zh: '本地精选' })} onBack={onBack} />
+      <PushHeader context={t({ en: 'KOH SICHANG / LOCAL PICKS', th: 'เกาะสีชัง / ร้านเด็ดในพื้นที่', zh: '锡昌岛 / 本地精选' })} onBack={onBack} />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        <View style={{ width: '100%', maxWidth: 1040, alignSelf: 'center', paddingHorizontal: gutter, paddingTop: 16 }}>
-          <Heading size={24} tracking={-0.4}>
-            {t({ en: 'Explore local picks', th: 'เลือกดูสิ่งน่าสนใจในพื้นที่', zh: '探索本地精选' })}
-          </Heading>
-          <Body size={13} colour={color.neutral700} style={{ marginTop: 6 }}>
-            {t({
-              en: 'Choose a category. Local recommendations will be added here soon.',
-              th: 'เลือกหมวดที่สนใจ เร็ว ๆ นี้จะมีคำแนะนำจากคนในพื้นที่เพิ่มเข้ามา',
-              zh: '选择感兴趣的类别，本地推荐即将上线。',
-            })}
-          </Body>
-
-          <View style={{
-            marginTop: 20, flexDirection: twoColumn ? 'row' : 'column',
-            alignItems: 'flex-start', gap: twoColumn ? 28 : 0, zIndex: 5,
-          }}>
-            <View style={{ flex: 1, minWidth: 0, width: '100%', maxWidth: twoColumn ? 600 : 520, zIndex: 5 }}>
-              <Label size={10} tracking={0.1} colour={color.neutral700} style={{ marginBottom: 7 }}>
-                {t({ en: 'CATEGORY', th: 'เลือกหมวด', zh: '选择类别' })}
-              </Label>
-              <Pressable
-                onPress={() => setDropdownOpen((open) => !open)}
-                accessibilityRole="button"
-                accessibilityLabel={t({ en: `Category: ${selected.label}`, th: `หมวด: ${selected.label}`, zh: `类别：${selected.label}` })}
-                accessibilityState={{ expanded: dropdownOpen }}
-                style={({ pressed }) => [shadow.card, {
-                  minHeight: 64, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1.5,
-                  borderColor: dropdownOpen ? selected.accent : '#BFD9E5', backgroundColor: color.surface,
-                  flexDirection: 'row', alignItems: 'center', gap: 12, opacity: pressed ? 0.86 : 1,
-                }]}
-              >
-                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: selected.pale, alignItems: 'center', justifyContent: 'center' }}>
-                  <SelectedIcon size={21} color={selected.accent} strokeWidth={2.1} />
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Heading size={16} colour={color.text}>{selected.label}</Heading>
-                  <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>{selected.description}</Body>
-                </View>
-                <ChevronDown size={21} color={color.neutral700} style={{ transform: [{ rotate: dropdownOpen ? '180deg' : '0deg' }] }} />
-              </Pressable>
-
-              {dropdownOpen ? (
-                <View style={[shadow.card, {
-                  marginTop: 8, padding: 7, borderRadius: 18, borderWidth: 1,
-                  borderColor: '#C9DEE8', backgroundColor: color.surface, gap: 3,
-                }]}>
-                  {categories.map((item) => {
-                    const Icon = item.icon;
-                    const active = item.key === category;
-                    return (
-                      <Pressable
-                        key={item.key}
-                        onPress={() => { setCategory(item.key); setDropdownOpen(false); }}
-                        accessibilityRole="menuitem"
-                        accessibilityLabel={item.label}
-                        accessibilityState={{ selected: active }}
-                        style={({ pressed }) => ({
-                          minHeight: 50, paddingHorizontal: 11, borderRadius: 13,
-                          backgroundColor: active ? item.pale : pressed ? color.neutral100 : 'transparent',
-                          flexDirection: 'row', alignItems: 'center', gap: 11,
-                        })}
-                      >
-                        <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: item.pale, alignItems: 'center', justifyContent: 'center' }}>
-                          <Icon size={18} color={item.accent} strokeWidth={2} />
-                        </View>
-                        <Label size={11} colour={active ? item.accent : color.text} style={{ flex: 1 }}>{item.label}</Label>
-                        {active ? <Check size={18} color={item.accent} strokeWidth={2.4} /> : null}
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              ) : null}
-
-              {category === 'all' || category === 'sport' || category === 'stay' ? (
-                <View style={{ marginTop: 20 }}>
-                  <Label size={10} tracking={0.12} colour={selected.accent} style={{ marginBottom: 10 }}>
-                    {category === 'all'
-                      ? t({ en: 'ALL LOCAL PICKS', th: 'รายการทั้งหมด', zh: '全部本地精选' })
-                      : category === 'stay'
-                        ? t({ en: 'ACCOMMODATION', th: 'ที่พัก', zh: '住宿' })
-                        : t({ en: 'SPORTS', th: 'กีฬา', zh: '运动' })}
-                  </Label>
-                  {category !== 'stay' ? <SportsPickCard compact={compact} /> : null}
-                  {category !== 'sport' ? (
-                    <View style={{ marginTop: category === 'all' ? 12 : 0 }}>
-                      <StayPickCard compact={compact} onNavigate={onNavigate} />
-                    </View>
-                  ) : null}
-                </View>
-              ) : (
-                <View style={[
-                  shadow.card,
-                  {
-                    marginTop: 18, minHeight: 190, padding: 24, borderRadius: radius.md, borderWidth: 1,
-                    borderColor: color.neutral300, backgroundColor: color.surface,
-                    alignItems: 'center', justifyContent: 'center',
-                  },
-                ]}>
-                  <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: selected.pale, alignItems: 'center', justifyContent: 'center' }}>
-                    <SelectedIcon size={29} color={selected.accent} strokeWidth={1.9} />
-                  </View>
-                  <Heading size={18} style={{ marginTop: 14, textAlign: 'center' }}>{selected.label}</Heading>
-                  <Body size={14} colour={color.neutral700} style={{ marginTop: 6, textAlign: 'center' }}>
-                    {t({ en: 'No recommendations yet', th: 'ยังไม่มีข้อมูลแนะนำในหมวดนี้', zh: '此类别暂无推荐' })}
-                  </Body>
-                  <Label size={10} colour={color.neutral700} style={{ marginTop: 5, textAlign: 'center' }}>
-                    {t({ en: 'COMING SOON', th: 'เร็ว ๆ นี้', zh: '即将上线' })}
-                  </Label>
-                </View>
-              )}
+        <View style={{ width: '100%', maxWidth: 1220, alignSelf: 'center', paddingHorizontal: compact ? 14 : gutter, paddingTop: compact ? 14 : 20 }}>
+          {compact ? (
+            <View style={{ minHeight: 126, padding: 22, borderRadius: 24, overflow: 'hidden', justifyContent: 'flex-end' }}>
+              <TravelHeroBackdrop focalPoint="right" />
+              <Heading size={30} colour="#FFFFFF" tracking={-0.5}>{t({ en: 'Local Picks', th: 'ร้านเด็ดในพื้นที่', zh: '本地精选' })}</Heading>
+              <Body size={14} colour="#E9FBFF">{t({ en: 'Find shops and experiences from the community', th: 'ค้นหาร้านและประสบการณ์จากชุมชน', zh: '寻找社区商店与体验' })}</Body>
             </View>
+          ) : (
+            <View>
+              <Heading size={34} tracking={-0.7}>{t({ en: 'Local Picks', th: 'ร้านเด็ดในพื้นที่', zh: '本地精选' })}</Heading>
+              <Body size={14} colour={color.neutral700} style={{ marginTop: 2 }}>{t({ en: 'Find shops, food and experiences from the community', th: 'ค้นหาร้าน อาหาร และประสบการณ์จากชุมชน', zh: '寻找社区商店、美食与体验' })}</Body>
+            </View>
+          )}
 
-            {twoColumn ? (
-              <View style={{ width: 380, flexShrink: 0 }}>
-                <SolutionConnect />
+          <View style={{ marginTop: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View style={[shadow.card, { flex: 1, minHeight: 54, borderRadius: 27, borderWidth: 1, borderColor: '#BFDCE8', backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 10 }]}>
+              <Search size={23} color="#71889B" />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder={t({ en: 'Search shops or activities…', th: 'ค้นหาร้านหรือกิจกรรม…', zh: '搜索商店或活动…' })}
+                placeholderTextColor="#71889B"
+                accessibilityLabel={t({ en: 'Search local picks', th: 'ค้นหาร้านเด็ดในพื้นที่', zh: '搜索本地精选' })}
+                style={{ flex: 1, minWidth: 0, color: color.text, fontSize: 16, paddingVertical: 0 }}
+              />
+            </View>
+            {!compact ? (
+              <View style={[shadow.card, { flexDirection: 'row', padding: 3, borderRadius: 27, backgroundColor: '#FFFFFF' }]}>
+                <View style={{ minHeight: 46, paddingHorizontal: 20, borderRadius: 23, backgroundColor: color.brand, flexDirection: 'row', alignItems: 'center', gap: 8 }}><List size={20} color="#FFFFFF" /><Label size={11} colour="#FFFFFF">{t({ en: 'LIST', th: 'รายการ', zh: '列表' })}</Label></View>
+                <Pressable onPress={onOpenMap} disabled={!onOpenMap} accessibilityRole="button" accessibilityLabel={t({ en: 'Map', th: 'แผนที่', zh: '地图' })} style={({ pressed }) => ({ minHeight: 46, paddingHorizontal: 20, borderRadius: 23, flexDirection: 'row', alignItems: 'center', gap: 8, opacity: pressed ? 0.65 : 1 })}><Map size={20} color={color.text} /><Label size={11} colour={color.text}>{t({ en: 'MAP', th: 'แผนที่', zh: '地图' })}</Label></Pressable>
               </View>
             ) : null}
           </View>
 
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 14, gap: 10 }}>
+            {categories.map((item) => {
+              const Icon = item.icon;
+              const active = item.key === category;
+              return (
+                <Pressable key={item.key} onPress={() => setCategory(item.key)} accessibilityRole="button" accessibilityLabel={t({ en: `Category: ${item.label}`, th: `หมวด: ${item.label}`, zh: `类别：${item.label}` })} accessibilityState={{ selected: active }} style={({ pressed }) => ({ minHeight: 46, paddingHorizontal: 20, borderRadius: 23, borderWidth: active ? 0 : 1, borderColor: '#D3E7EF', backgroundColor: active ? color.brand : '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 8, opacity: pressed ? 0.76 : 1, ...shadow.sm })}>
+                  {item.key === 'all' ? null : <Icon size={20} color={active ? '#FFFFFF' : '#00A4B8'} strokeWidth={2} />}
+                  <Heading size={14} colour={active ? '#FFFFFF' : color.text}>{item.label}</Heading>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
 
-          {/* One screen, one Solution Connect: beside the picker when there is
-              room, underneath the picks when there is not. */}
-          {twoColumn ? null : (
-            <View style={{ marginTop: 20 }}>
-              <SolutionConnect compact={compact} />
+          <View style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <Heading size={24}>{t({ en: 'Explore nearby', th: 'สำรวจในพื้นที่', zh: '探索附近' })}</Heading>
+            {compact ? <Pressable onPress={onOpenMap} disabled={!onOpenMap} accessibilityRole="button" accessibilityLabel={t({ en: 'Map', th: 'แผนที่', zh: '地图' })} style={({ pressed }) => [shadow.card, { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 8, opacity: pressed ? 0.65 : 1 }]}><Map size={20} color="#00A4B8" /><Heading size={14}>{t({ en: 'Map', th: 'แผนที่', zh: '地图' })}</Heading></Pressable> : null}
+          </View>
+
+          {hasResults ? (
+            <View style={{ marginTop: 14, flexDirection: compact ? 'column' : 'row', flexWrap: compact ? 'nowrap' : 'wrap', gap: 18 }}>
+              {showSport ? <SportsPickCard compact={compact} /> : null}
+              {showStay ? <StayPickCard compact={compact} onNavigate={onNavigate} /> : null}
+            </View>
+          ) : (
+            <View style={[shadow.card, { marginTop: 14, minHeight: 180, padding: 24, borderRadius: radius.md, borderWidth: 1, borderColor: color.neutral300, backgroundColor: color.surface, alignItems: 'center', justifyContent: 'center' }]}>
+              <View style={{ width: 62, height: 62, borderRadius: 31, backgroundColor: selected.pale, alignItems: 'center', justifyContent: 'center' }}><SelectedIcon size={29} color={selected.accent} strokeWidth={1.9} /></View>
+              <Heading size={18} style={{ marginTop: 12, textAlign: 'center' }}>{query.trim() ? t({ en: 'No matching local picks', th: 'ไม่พบร้านหรือกิจกรรมที่ค้นหา', zh: '没有匹配的本地精选' }) : selected.label}</Heading>
+              <Body size={14} colour={color.neutral700} style={{ marginTop: 5, textAlign: 'center' }}>{t({ en: 'No verified recommendations are available here yet.', th: 'ยังไม่มีข้อมูลแนะนำที่ยืนยันแล้วในหมวดนี้', zh: '此类别暂无已验证推荐。' })}</Body>
             </View>
           )}
+
+          <View style={{ marginTop: 28, flexDirection: 'row', alignItems: 'center', gap: 14 }}><Heading size={22}>{t({ en: 'Technology for the community', th: 'เทคโนโลยีเพื่อชุมชน', zh: '社区科技' })}</Heading><View style={{ flex: 1, height: 1, backgroundColor: '#BFDCE8' }} /></View>
+          <View style={{ marginTop: 12 }}><SolutionConnect compact={compact} /></View>
         </View>
       </ScrollView>
     </View>
@@ -295,10 +226,9 @@ function StayPickCard({
       style={({ pressed }) => [
         shadow.card,
         {
-          width: compact ? '100%' : 300,
-          minWidth: 220,
-          maxWidth: 340,
-          borderRadius: 18,
+          width: compact ? '100%' : '48.5%',
+          minWidth: compact ? 0 : 320,
+          borderRadius: 20,
           borderWidth: 1,
           borderColor: '#CFE6F0',
           backgroundColor: color.surface,
@@ -331,20 +261,22 @@ function StayPickCard({
         />
       </View>
       <View style={{
-        minHeight: 76, paddingVertical: 11, paddingHorizontal: 12,
+        minHeight: 88, paddingVertical: 12, paddingHorizontal: 16,
         flexDirection: 'row', alignItems: 'center', gap: 10,
       }}>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Heading size={16} colour={color.text}>{t(KONIIX.name)}</Heading>
-        <Label size={9} tracking={0.08} colour={color.neutral600} style={{ marginTop: 5 }}>
-          {t({ en: 'ACCOMMODATION · KOH SICHANG', th: 'ที่พัก · เกาะสีชัง', zh: '住宿 · 锡昌岛' })}
-        </Label>
+        <Heading size={19} colour={color.text}>{t(KONIIX.name)}</Heading>
+        <View style={{ marginTop: 7, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+          <BedDouble size={20} color="#00A4B8" />
+          <Body size={13} colour={color.neutral700}>{t({ en: 'Accommodation', th: 'ที่พัก', zh: '住宿' })}</Body>
+        </View>
       </View>
       <View style={{
-        width: 36, height: 36, borderRadius: 18, backgroundColor: stay.accent,
-        alignItems: 'center', justifyContent: 'center',
+        minHeight: 42, paddingHorizontal: 16, borderRadius: 21, backgroundColor: '#05A7B4',
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
       }}>
-        <Navigation size={17} color="#FFFFFF" strokeWidth={2.4} />
+        <Heading size={13} colour="#FFFFFF">{t({ en: 'Details', th: 'ดูรายละเอียด', zh: '查看详情' })}</Heading>
+        <ArrowUpRight size={16} color="#FFFFFF" strokeWidth={2.4} />
       </View>
       </View>
     </Pressable>
@@ -367,10 +299,9 @@ function SportsPickCard({ compact }: { compact: boolean }) {
       style={({ pressed }) => [
         shadow.card,
         {
-          width: compact ? '72%' : 260,
-          minWidth: 220,
-          maxWidth: 280,
-          borderRadius: 18,
+          width: compact ? '100%' : '48.5%',
+          minWidth: compact ? 0 : 320,
+          borderRadius: 20,
           borderWidth: 1,
           borderColor: '#D7E8EF',
           backgroundColor: '#FFFFFF',
@@ -390,19 +321,21 @@ function SportsPickCard({ compact }: { compact: boolean }) {
       </View>
       <View
         style={{
-          minHeight: 76, paddingVertical: 11, paddingHorizontal: 12,
+          minHeight: 88, paddingVertical: 12, paddingHorizontal: 16,
           backgroundColor: '#FFFFFF',
           flexDirection: 'row', alignItems: 'center', gap: 10,
         }}
       >
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Heading size={16} colour={color.text}>{name}</Heading>
-          <Label size={9} tracking={0.08} colour={color.neutral600} style={{ marginTop: 5 }}>
-            {t({ en: 'BADMINTON COURT', th: 'สนามแบดมินตัน', zh: '羽毛球馆' })}
-          </Label>
+          <Heading size={19} colour={color.text}>{name}</Heading>
+          <View style={{ marginTop: 7, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+            <Flag size={20} color="#00A4B8" />
+            <Body size={13} colour={color.neutral700}>{t({ en: 'Sports & activities', th: 'กีฬาและกิจกรรม', zh: '运动与活动' })}</Body>
+          </View>
         </View>
-        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#F6C453', alignItems: 'center', justifyContent: 'center' }}>
-          <ArrowUpRight size={18} color="#064E3B" strokeWidth={2.5} />
+        <View style={{ minHeight: 42, paddingHorizontal: 16, borderRadius: 21, backgroundColor: '#05A7B4', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <Heading size={13} colour="#FFFFFF">{t({ en: 'Details', th: 'ดูรายละเอียด', zh: '查看详情' })}</Heading>
+          <ArrowUpRight size={16} color="#FFFFFF" strokeWidth={2.5} />
         </View>
       </View>
     </Pressable>

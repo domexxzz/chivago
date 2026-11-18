@@ -54,6 +54,9 @@ import { formatInteger } from '../i18n/format.ts';
 import adventureDuo from '../../assets/backpack-adventure-duo-v1.png';
 import lighthouseBanner from '../../assets/menu/backpack-lighthouse-banner.png';
 import backpackWorld from '../../assets/backpack-tropical-world-v1.png';
+import gashaponArt from '../../assets/menu-travel-box-v1.png';
+import explorerCharacterIcon from '../../assets/backpack/backpack-explorer-v2.png';
+import petCharacterIcon from '../../assets/backpack/backpack-dog-v2.png';
 
 export function WalletScreen({
   onOpenCompanion,
@@ -174,7 +177,7 @@ export function WalletScreen({
               >
                 <Balances wallet={wallet.data} embedded />
               </SectionPanel>
-              <TravelCompanions
+              <MascotAndPet
                 companions={companions.data?.companions ?? null}
                 province={province}
                 motionReady={companions.data !== null && passport.data !== null}
@@ -263,9 +266,9 @@ export function WalletScreen({
 }
 
 function TravelBoxDoor({ onOpen }: { onOpen: () => void }) {
-  return <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={t({ en: 'Open Traveller’s Box', th: 'เปิดตู้สุ่มนักเดินทาง', zh: '打开旅行者扭蛋机' })} style={[shadow.card, { marginHorizontal: gutter, padding: 16, borderRadius: 20, backgroundColor: '#F1E8FF', borderWidth: 2, borderColor: '#C4A8EE', flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
-    <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#7956B7', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={25} color="#FFF4B5" /></View>
-    <View style={{ flex: 1 }}><Heading size={17} colour="#3D286A">{t({ en: 'Traveller’s Box', th: 'ตู้สุ่มนักเดินทาง', zh: '旅行者扭蛋机' })}</Heading><Body size={13} colour="#604A82">{t({ en: 'Pull collectibles and view everything you own here.', th: 'สุ่มของสะสม แล้วกลับมาดูของที่ได้รับในกระเป๋า', zh: '抽取收藏品，并在背包查看所得物品。' })}</Body></View>
+  return <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={t({ en: 'Open Gashapon', th: 'เปิด Gashapon', zh: '打开 Gashapon' })} style={[shadow.card, { marginHorizontal: gutter, padding: 16, borderRadius: 20, backgroundColor: '#F1E8FF', borderWidth: 2, borderColor: '#C4A8EE', flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
+    <Image source={gashaponArt} resizeMode="contain" style={{ width: 50, height: 50 }} />
+    <View style={{ flex: 1 }}><Heading size={17} colour="#3D286A">Gashapon</Heading><Body size={13} colour="#604A82">{t({ en: 'Pull collectibles and view everything you own here.', th: 'สุ่มของสะสม แล้วกลับมาดูของที่ได้รับในกระเป๋า', zh: '抽取收藏品，并在背包查看所得物品。' })}</Body></View>
   </Pressable>;
 }
 
@@ -276,7 +279,7 @@ function VoucherInventory({ vouchers }: { vouchers: Voucher[] }) {
       const source = voucher.sourceKind === 'quest'
         ? t({ en: 'Quest reward', th: 'รางวัลจากเควส', zh: '任务奖励' })
         : voucher.sourceKind === 'gacha'
-          ? t({ en: 'Traveller’s Box reward', th: 'รางวัลจากตู้สุ่ม', zh: '扭蛋机奖励' })
+          ? t({ en: 'Gashapon reward', th: 'รางวัลจาก Gashapon', zh: 'Gashapon 奖励' })
           : t({ en: 'Redeemed with points', th: 'แลกด้วยแต้ม', zh: '使用积分兑换' });
       return <View key={voucher.id} style={{ marginTop: 10, padding: 12, borderRadius: 14, backgroundColor: voucher.status === 'active' ? '#FFF8E7' : color.neutral200, borderWidth: 1, borderColor: voucher.status === 'active' ? '#E9C96D' : color.neutral300 }}><View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}><Heading size={14} style={{ flex: 1 }}>{voucher.merchant}</Heading><Label size={9} colour={voucher.status === 'active' ? color.accent700 : color.neutral600}>{voucher.status.toUpperCase()}</Label></View><Body size={13} colour={color.neutral700} style={{ marginTop: 4 }}>{source}</Body><Label size={9} colour={color.neutral600} style={{ marginTop: 4, textTransform: 'none' }}>{voucher.code}</Label></View>;
     })}
@@ -459,7 +462,7 @@ function SectionPanel({
   );
 }
 
-function TravelCompanions({
+function MascotAndPet({
   companions,
   province,
   motionReady,
@@ -495,7 +498,7 @@ function TravelCompanions({
       <View pointerEvents="none" style={{ position: 'absolute', inset: 7, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)' }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <BackpackIcon name="companions-badge" size={24} />
-        <Heading size={17} colour="#082E53">{t({ en: 'Travel companions', th: 'เพื่อนร่วมเดินทาง', zh: '旅行伙伴' })}</Heading>
+        <Heading size={17} colour="#082E53">{t({ en: 'Characters & Pets', th: 'ตัวละครและสัตว์เลี้ยง', zh: '角色与宠物' })}</Heading>
       </View>
       <InteractiveTravelDuo
         compact={compact}
@@ -513,14 +516,14 @@ function TravelCompanions({
           accessibilityRole="button"
           accessibilityLabel={province
             ? t({
-              en: `${mascotName}, the emblem of ${provinceName}. Open the Mascot collection.`,
-              th: `${mascotName} มาสคอตประจำ${provinceName} เปิดคอลเลกชันมาสคอต`,
-              zh: `${mascotName}，${provinceName}的吉祥物。打开吉祥物收藏。`,
+              en: `${mascotName}, the character representing ${provinceName}. Open the Character collection.`,
+              th: `${mascotName} ตัวละครประจำ${provinceName} เปิดคอลเลกชันตัวละคร`,
+              zh: `${mascotName}，代表${provinceName}的角色。打开角色收藏。`,
             })
             : t({
-              en: 'No province mascot yet. Open the Mascot collection.',
-              th: 'ยังไม่มีมาสคอตประจำจังหวัด เปิดคอลเลกชันมาสคอต',
-              zh: '还没有府吉祥物。打开吉祥物收藏。',
+              en: 'No character yet. Open the Character collection.',
+              th: 'ยังไม่มีตัวละคร เปิดคอลเลกชันตัวละคร',
+              zh: '尚无角色。打开角色收藏。',
             })}
           style={({ pressed }) => ({
             minHeight: compact ? 78 : 96,
@@ -542,11 +545,11 @@ function TravelCompanions({
         >
           {province
             ? <MascotPortrait mascot={province.mascot} size={58} />
-            : <BackpackIcon name="no-mascot-leaf" size={38} />}
+            : <Image source={explorerCharacterIcon} resizeMode="contain" style={{ width: 40, height: 48, opacity: 0.78 }} />}
           <Label size={9} tracking={0.08} colour={province ? '#7B5714' : '#607A91'}>
             {province
-              ? t({ en: 'MASCOT', th: 'มาสคอต', zh: '吉祥物' })
-              : t({ en: 'NO MASCOT YET', th: 'ยังไม่มีมาสคอต', zh: '尚无吉祥物' })}
+              ? t({ en: 'CHARACTER', th: 'ตัวละคร', zh: '角色' })
+              : t({ en: 'NO CHARACTER YET', th: 'ยังไม่มีตัวละคร', zh: '尚无角色' })}
           </Label>
         </Pressable>
         {pet ? (
@@ -571,20 +574,20 @@ function TravelCompanions({
             })}
           >
             <Creature species={pet.species.key} stage={pet.stage} size={58} />
-            <Label size={9} tracking={0.08} colour="#0B6386">{t({ en: 'PET', th: 'สัตว์เลี้ยง', zh: '伙伴' })}</Label>
+            <Label size={9} tracking={0.08} colour="#0B6386">{t({ en: 'PET', th: 'สัตว์เลี้ยง', zh: '宠物' })}</Label>
           </Pressable>
         ) : (
           <View
             accessible
             accessibilityLabel={t({
-              en: 'No travel pet yet. Check in anywhere to find your first egg.',
-              th: 'ยังไม่มีสัตว์เลี้ยงร่วมทาง เช็กอินที่ไหนก็ได้เพื่อพบไข่ใบแรก',
-              zh: '还没有旅行伙伴。在任何地方签到，找到你的第一颗蛋。',
+              en: 'No pet yet. Check in anywhere to find your first egg.',
+              th: 'ยังไม่มีสัตว์เลี้ยง เช็กอินที่ไหนก็ได้เพื่อพบไข่ใบแรก',
+              zh: '还没有宠物。在任何地方签到，找到你的第一颗蛋。',
             })}
             style={{ minHeight: compact ? 78 : 96, padding: 10, borderRadius: 18, borderWidth: 3, borderColor: '#7592AA', backgroundColor: '#EAF1F5', alignItems: 'center', justifyContent: 'center', gap: 6, shadowColor: '#183B59', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.16, shadowRadius: 7, elevation: 3 }}
           >
-            <BackpackIcon name="lock" size={33} />
-            <Label size={9} tracking={0.08} colour="#607A91">{t({ en: 'PET LOCKED', th: 'ยังไม่มีสัตว์เลี้ยง', zh: '伙伴未解锁' })}</Label>
+            <Image source={petCharacterIcon} resizeMode="contain" style={{ width: 44, height: 40, opacity: 0.78 }} />
+            <Label size={9} tracking={0.08} colour="#607A91">{t({ en: 'NO PET YET', th: 'ยังไม่มีสัตว์เลี้ยง', zh: '尚无宠物' })}</Label>
           </View>
         )}
       </View>
