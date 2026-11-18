@@ -54,6 +54,7 @@ import { formatInteger } from '../i18n/format.ts';
 import adventureDuo from '../../assets/backpack-adventure-duo-v1.png';
 import lighthouseBanner from '../../assets/menu/backpack-lighthouse-banner.png';
 import backpackWorld from '../../assets/backpack-tropical-world-v1.png';
+import gashaponArt from '../../assets/menu-travel-box-v1.png';
 
 export function WalletScreen({
   onOpenCompanion,
@@ -263,9 +264,9 @@ export function WalletScreen({
 }
 
 function TravelBoxDoor({ onOpen }: { onOpen: () => void }) {
-  return <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={t({ en: 'Open Traveller’s Box', th: 'เปิดตู้สุ่มนักเดินทาง', zh: '打开旅行者扭蛋机' })} style={[shadow.card, { marginHorizontal: gutter, padding: 16, borderRadius: 20, backgroundColor: '#F1E8FF', borderWidth: 2, borderColor: '#C4A8EE', flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
-    <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#7956B7', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={25} color="#FFF4B5" /></View>
-    <View style={{ flex: 1 }}><Heading size={17} colour="#3D286A">{t({ en: 'Traveller’s Box', th: 'ตู้สุ่มนักเดินทาง', zh: '旅行者扭蛋机' })}</Heading><Body size={13} colour="#604A82">{t({ en: 'Pull collectibles and view everything you own here.', th: 'สุ่มของสะสม แล้วกลับมาดูของที่ได้รับในกระเป๋า', zh: '抽取收藏品，并在背包查看所得物品。' })}</Body></View>
+  return <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={t({ en: 'Open Gashapon', th: 'เปิด Gashapon', zh: '打开 Gashapon' })} style={[shadow.card, { marginHorizontal: gutter, padding: 16, borderRadius: 20, backgroundColor: '#F1E8FF', borderWidth: 2, borderColor: '#C4A8EE', flexDirection: 'row', alignItems: 'center', gap: 12 }]}>
+    <Image source={gashaponArt} resizeMode="contain" style={{ width: 50, height: 50 }} />
+    <View style={{ flex: 1 }}><Heading size={17} colour="#3D286A">Gashapon</Heading><Body size={13} colour="#604A82">{t({ en: 'Pull collectibles and view everything you own here.', th: 'สุ่มของสะสม แล้วกลับมาดูของที่ได้รับในกระเป๋า', zh: '抽取收藏品，并在背包查看所得物品。' })}</Body></View>
   </Pressable>;
 }
 
@@ -276,7 +277,7 @@ function VoucherInventory({ vouchers }: { vouchers: Voucher[] }) {
       const source = voucher.sourceKind === 'quest'
         ? t({ en: 'Quest reward', th: 'รางวัลจากเควส', zh: '任务奖励' })
         : voucher.sourceKind === 'gacha'
-          ? t({ en: 'Traveller’s Box reward', th: 'รางวัลจากตู้สุ่ม', zh: '扭蛋机奖励' })
+          ? t({ en: 'Gashapon reward', th: 'รางวัลจาก Gashapon', zh: 'Gashapon 奖励' })
           : t({ en: 'Redeemed with points', th: 'แลกด้วยแต้ม', zh: '使用积分兑换' });
       return <View key={voucher.id} style={{ marginTop: 10, padding: 12, borderRadius: 14, backgroundColor: voucher.status === 'active' ? '#FFF8E7' : color.neutral200, borderWidth: 1, borderColor: voucher.status === 'active' ? '#E9C96D' : color.neutral300 }}><View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}><Heading size={14} style={{ flex: 1 }}>{voucher.merchant}</Heading><Label size={9} colour={voucher.status === 'active' ? color.accent700 : color.neutral600}>{voucher.status.toUpperCase()}</Label></View><Body size={13} colour={color.neutral700} style={{ marginTop: 4 }}>{source}</Body><Label size={9} colour={color.neutral600} style={{ marginTop: 4, textTransform: 'none' }}>{voucher.code}</Label></View>;
     })}

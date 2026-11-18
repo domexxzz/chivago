@@ -26,6 +26,7 @@ import { GameScreen } from '../src/screens/GameScreen.tsx';
 import { NavigationRail } from '../src/components/Shell.tsx';
 import { mountScreen, mount, server } from './interact.ts';
 import { wallet } from './fixtures.ts';
+import gashaponArt from '../assets/menu-travel-box-v1.png';
 
 const noop = () => {};
 
@@ -115,7 +116,7 @@ describe('the collection lives in the backpack, and only there', () => {
 });
 
 describe('discounts stay in the backpack with their real source', () => {
-  test('quest and Traveller’s Box coupons say where they came from', async () => {
+  test('the backpack uses the Gashapon name and the same machine art as Home', async () => {
     const net = server({
       'GET /wallet': wallet({ progression: progressionFor(1560) }),
       'GET /companions': collection([]),
@@ -127,8 +128,15 @@ describe('discounts stay in the backpack with their real source', () => {
     });
     restore = net.restore;
     const ui = await mountScreen(h(WalletScreen, walletProps));
+    const gashapon = ui.find('Open Gashapon');
+    assert.ok(gashapon, 'the Gashapon door remains accessible');
+    assert.ok(
+      gashapon.findAll((node) => node.props.source === gashaponArt).length > 0,
+      'the backpack reuses the Home Gashapon artwork',
+    );
     assert.match(ui.text(), /Quest reward/);
-    assert.match(ui.text(), /Traveller’s Box reward/);
+    assert.match(ui.text(), /Gashapon reward/);
+    assert.doesNotMatch(ui.text(), /Traveller’s Box/);
     ui.unmount();
   });
 });
