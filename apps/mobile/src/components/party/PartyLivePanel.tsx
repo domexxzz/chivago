@@ -1,8 +1,8 @@
 import React from 'react';
 import * as Location from 'expo-location';
 import { Alert, Image, Platform, Pressable, ScrollView, Switch, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
-import { MapPin, MessageCircle, Navigation, Radio, Route, Users } from 'lucide-react-native';
-import { inArea, type PartyItineraryItem, type PartyLiveMember, type PartyMessage, type PartyPingKind, type PartyTripSummary, type ScoredPlace } from '@chivago/core';
+import { Compass, MapPin, MessageCircle, Navigation, Radio, Route, ShieldCheck, Users, Waves } from 'lucide-react-native';
+import { inArea, type CoastalIntelligence, type CoastalSurveyZone, type PartyItineraryItem, type PartyLiveMember, type PartyMessage, type PartyPingKind, type PartyTripSummary, type ScoredPlace } from '@chivago/core';
 import { api } from '../../api/client.ts';
 import { useHere } from '../../state/here.ts';
 import { requestPartyBackgroundPermission, startPartyBackgroundLocation, stopPartyBackgroundLocation } from '../../location/party-background.ts';
@@ -12,6 +12,7 @@ import { Body, Heading, Label } from '../Type.tsx';
 import { Button } from '../Button.tsx';
 import { SamuiMap } from '../SamuiMap.tsx';
 import { useArea } from '../../state/area.ts';
+import coastalWatchHero from '../../../assets/coastal-watch-party-hero-v1.png';
 
 const panel: StyleProp<ViewStyle> = [shadow.card, { marginHorizontal: gutter, marginTop: 14, padding: 16, borderRadius: 20, backgroundColor: color.surface }];
 
@@ -26,6 +27,7 @@ export function PartyLivePanel({ owner, onToast, onFinished }: { owner: boolean;
   const [members, setMembers] = React.useState<PartyLiveMember[]>([]);
   const [places, setPlaces] = React.useState<ScoredPlace[]>([]);
   const [meeting, setMeeting] = React.useState<{ label: string; latitude: number; longitude: number } | null>(null);
+  const [coastal, setCoastal] = React.useState<CoastalIntelligence | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [tab, setTab] = React.useState<'map' | 'activity' | 'chat' | 'members'>('map');
   const me = members.find((member) => member.you);
@@ -39,6 +41,10 @@ export function PartyLivePanel({ owner, onToast, onFinished }: { owner: boolean;
     void refresh(); const timer = setInterval(() => void refresh(), 5_000); return () => clearInterval(timer);
   }, [refresh]);
   React.useEffect(() => { void api.places().then((result) => { if (result.ok) setPlaces(result.data.filter((place) => inArea(area, place))); }); }, [area.key]);
+  React.useEffect(() => {
+    if (area.key !== 'koh-sichang') { setCoastal(null); return; }
+    void api.coastalIntelligence().then((result) => { if (result.ok) setCoastal(result.data); });
+  }, [area.key]);
 
   React.useEffect(() => {
     if (!me?.sharingEnabled || !here) return;
@@ -85,6 +91,7 @@ export function PartyLivePanel({ owner, onToast, onFinished }: { owner: boolean;
       <View style={[shadow.card, { marginHorizontal: gutter, marginTop: 12, borderRadius: 22, overflow: 'hidden', backgroundColor: color.surface, borderWidth: 1, borderColor: '#CFE7F0' }]}>
         <SamuiMap area={area} height={320} places={places} onSelect={() => undefined} here={here} partyMembers={members.filter((member) => member.latitude !== null && member.longitude !== null).map((member) => ({ userId: member.userId, displayName: member.displayName, profilePhotoUrl: member.profilePhotoUrl, lat: member.latitude!, lng: member.longitude!, you: member.you }))} meetingPoint={meeting ? { lat: meeting.latitude, lng: meeting.longitude, label: meeting.label } : null} />
       </View>
+      {area.key === 'koh-sichang' ? <CoastalFieldPanel intelligence={coastal} owner={owner} onToast={onToast} onMeeting={setMeeting} /> : null}
       <View style={panel}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}><Radio size={22} color={color.brand} /><View style={{ flex: 1 }}><Heading size={17}>{t({ en: 'Live location', th: 'แชร์ตำแหน่ง', zh: '实时位置' })}</Heading><Body size={13} colour={color.neutral600}>{t({ en: 'Only this party can see a recent fix.', th: 'เฉพาะสมาชิกกลุ่มนี้เท่านั้นที่เห็นตำแหน่งล่าสุด', zh: '只有本队成员能看到最近的位置。' })}</Body></View><Switch value={Boolean(me?.sharingEnabled)} disabled={busy} onValueChange={toggleSharing} /></View>
         {me?.sharingEnabled && Platform.OS !== 'web' ? <Button label="Keep sharing in background" thai="แชร์ต่อเมื่อปิดหน้าจอ" chinese="在后台继续共享" variant="secondary" height={42} style={{ marginTop: 12 }} onPress={enableBackground} /> : null}
@@ -118,6 +125,60 @@ function PartyLiveTabs({ value, onChange }: { value: 'map' | 'activity' | 'chat'
     ['members', <Users size={17} color={value === 'members' ? '#FFFFFF' : color.brand} />, t({ en: 'Members', th: 'สมาชิก', zh: '成员' })],
   ] as const;
   return <View accessibilityRole="tablist" style={[shadow.card, { marginHorizontal: gutter, marginTop: 12, padding: 5, borderRadius: 18, backgroundColor: '#FFFFFF', flexDirection: 'row', gap: 4 }]}>{tabs.map(([key, icon, label]) => <Pressable key={key} onPress={() => onChange(key)} accessibilityRole="tab" accessibilityState={{ selected: value === key }} accessibilityLabel={label} style={{ flex: 1, minHeight: 43, borderRadius: 14, backgroundColor: value === key ? color.brand : '#FFFFFF', alignItems: 'center', justifyContent: 'center', gap: 2 }}>{icon}<Label size={9} colour={value === key ? '#FFFFFF' : color.brand}>{label}</Label></Pressable>)}</View>;
+}
+
+function CoastalFieldPanel({ intelligence, owner, onToast, onMeeting }: {
+  intelligence: CoastalIntelligence | null;
+  owner: boolean;
+  onToast: (message: string) => void;
+  onMeeting: (meeting: { label: string; latitude: number; longitude: number }) => void;
+}) {
+  const [busy, setBusy] = React.useState<string | null>(null);
+  const choose = async (zone: CoastalSurveyZone) => {
+    if (!owner || busy) return;
+    setBusy(zone.id);
+    const label = t(zone.name);
+    const result = await api.setPartyMeetingPoint({ latitude: zone.lat, longitude: zone.lng, label });
+    setBusy(null);
+    if (!result.ok) { onToast(result.error); return; }
+    onMeeting(result.data.meetingPoint);
+    onToast(t({ en: `${label} is now the team meeting point.`, th: `ตั้ง ${label} เป็นจุดนัดพบของทีมแล้ว`, zh: `${label} 已设为队伍集合点。` }));
+  };
+  const live = intelligence?.status === 'live';
+  return <View style={[shadow.card, { marginHorizontal: gutter, marginTop: 12, borderRadius: 22, overflow: 'hidden', backgroundColor: '#073E5B', borderWidth: 1, borderColor: '#39C9D1' }]}>
+    <View style={{ height: 132, position: 'relative', overflow: 'hidden' }}>
+      <Image source={coastalWatchHero} resizeMode="cover" accessible={false} style={{ width: '100%', height: '100%' }} />
+      <View style={{ pointerEvents: 'none', position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(2,42,63,0.18)' }} />
+      <View style={{ position: 'absolute', left: 14, bottom: 13, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, backgroundColor: 'rgba(2,43,66,0.82)', borderWidth: 1, borderColor: 'rgba(143,245,240,0.46)' }}>
+        <Label size={9} tracking={0.11} colour="#8FF5F0">{t({ en: 'ECO PARTY · FIELD MISSION', th: 'อีโคปาร์ตี้ · ภารกิจภาคสนาม', zh: '环保队伍 · 实地任务' })}</Label>
+        <Body size={13} colour="#FFFFFF" style={{ marginTop: 2 }}>{t({ en: 'Explore the coast together', th: 'ออกสำรวจชายฝั่งด้วยกัน', zh: '一起探索海岸' })}</Body>
+      </View>
+    </View>
+    <View style={{ padding: 16 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.13)', alignItems: 'center', justifyContent: 'center' }}><Waves size={26} color="#8FF5F0" /></View>
+        <View style={{ flex: 1 }}><Label size={9} tracking={0.11} colour="#8FF5F0">{t({ en: 'COASTAL WATCH', th: 'เฝ้าระวังชายฝั่ง', zh: '海岸监测' })}</Label><Heading size={18} colour="#FFFFFF" style={{ marginTop: 2 }}>{t({ en: 'Eco Party field briefing', th: 'แผนลงพื้นที่ของอีโคปาร์ตี้', zh: '环保队伍现场简报' })}</Heading></View>
+        <View style={{ paddingHorizontal: 9, paddingVertical: 6, borderRadius: 999, backgroundColor: live ? 'rgba(77,240,160,0.16)' : 'rgba(255,216,90,0.16)', flexDirection: 'row', alignItems: 'center', gap: 5 }}><View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: live ? '#4DF0A0' : '#FFD85A' }} /><Label size={9} colour={live ? '#B9FFD9' : '#FFF0B1'}>{live ? t({ en: 'LIVE', th: 'สด', zh: '实时' }) : intelligence ? t({ en: 'UNAVAILABLE', th: 'ไม่พร้อมใช้งาน', zh: '不可用' }) : t({ en: 'LOADING', th: 'กำลังโหลด', zh: '加载中' })}</Label></View>
+      </View>
+
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+        <View style={{ flex: 1, padding: 11, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.1)', flexDirection: 'row', alignItems: 'center', gap: 9 }}><Waves size={20} color="#8FF5F0" /><View><Heading size={17} colour="#FFFFFF">{typeof intelligence?.current.speedKmh === 'number' ? `${intelligence.current.speedKmh.toFixed(1)} ${t({ en: 'km/h', th: 'กม./ชม.', zh: '公里/小时' })}` : '—'}</Heading><Label size={9} colour="#BFEAF2">{t({ en: 'CURRENT SPEED', th: 'ความเร็วกระแสน้ำ', zh: '海流速度' })}</Label></View></View>
+        <View style={{ flex: 1, padding: 11, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.1)', flexDirection: 'row', alignItems: 'center', gap: 9 }}><Compass size={20} color="#8FF5F0" /><View style={{ flex: 1 }}><Heading size={15} colour="#FFFFFF">{intelligence?.current.directionLabel ? t(intelligence.current.directionLabel) : '—'}</Heading><Label size={9} colour="#BFEAF2">{typeof intelligence?.current.directionDeg === 'number' ? `${Math.round(intelligence.current.directionDeg)}°` : t({ en: 'DIRECTION', th: 'ทิศทาง', zh: '方向' })}</Label></View></View>
+      </View>
+
+      <Body size={13} colour="#D6F7FB" style={{ marginTop: 11 }}>{t({ en: 'Choose a verified shoreline checkpoint to move the existing Party meeting marker. This does not report debris or award points.', th: 'เลือกจุดสำรวจชายฝั่งที่มีพิกัดอ้างอิงเพื่อย้ายหมุดนัดพบของปาร์ตี้ การเลือกจุดไม่ถือว่าพบขยะและไม่ให้แต้ม', zh: '选择有参考坐标的海岸检查点，移动现有队伍集合标记；选择地点不代表发现垃圾，也不会发放奖励。' })}</Body>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 9, paddingTop: 12, paddingBottom: 2 }}>
+        {(intelligence?.zones ?? []).map((zone, index) => <View key={zone.id} style={{ width: 218, padding: 12, borderRadius: 17, backgroundColor: '#FFFFFF' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}><View style={{ width: 28, height: 28, borderRadius: 10, backgroundColor: index === 0 ? '#DDF8E8' : '#E4F4FB', alignItems: 'center', justifyContent: 'center' }}><MapPin size={16} color={index === 0 ? '#16875C' : color.brand} /></View><Label size={9} colour={color.neutral600}>{t({ en: `SEGMENT ${zone.segmentId}`, th: `ช่วงชายฝั่ง ${zone.segmentId}`, zh: `岸段 ${zone.segmentId}` })}</Label></View>
+          <Heading size={14} style={{ marginTop: 8 }}>{t(zone.name)}</Heading>
+          <Body size={13} colour={color.neutral600} style={{ marginTop: 4 }}>{t(zone.purpose)}</Body>
+          <Pressable disabled={!owner || Boolean(busy)} onPress={() => choose(zone)} accessibilityRole="button" accessibilityLabel={t({ en: `Set ${t(zone.name)} as meeting point`, th: `ตั้ง ${t(zone.name)} เป็นจุดนัดพบ`, zh: `将${t(zone.name)}设为集合点` })} style={({ pressed }) => ({ marginTop: 10, minHeight: 38, borderRadius: 12, backgroundColor: owner ? (pressed ? '#00769C' : color.brand) : '#E7EEF1', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: busy && busy !== zone.id ? 0.55 : 1 })}><MapPin size={15} color={owner ? '#FFFFFF' : color.neutral600} /><Label size={9} colour={owner ? '#FFFFFF' : color.neutral600}>{busy === zone.id ? t({ en: 'SETTING…', th: 'กำลังตั้ง…', zh: '设置中…' }) : owner ? t({ en: 'MEET HERE', th: 'นัดทีมตรงนี้', zh: '在此集合' }) : t({ en: 'OWNER SETS POINT', th: 'หัวหน้าปาร์ตี้เป็นผู้ตั้ง', zh: '由队长设置' })}</Label></Pressable>
+        </View>)}
+      </ScrollView>
+    </View>
+    <View style={{ paddingHorizontal: 16, paddingVertical: 9, backgroundColor: 'rgba(0,18,35,0.33)', flexDirection: 'row', gap: 7, alignItems: 'center' }}><ShieldCheck size={15} color="#FFD85A" /><Body size={13} colour="#D7ECF3" style={{ flex: 1 }}>{intelligence ? t(intelligence.model.notice) : t({ en: 'Loading marine source…', th: 'กำลังโหลดแหล่งข้อมูลทะเล…', zh: '正在加载海洋数据源…' })}</Body></View>
+  </View>;
 }
 
 function PartyChat({ onToast }: { onToast: (message: string) => void }) {

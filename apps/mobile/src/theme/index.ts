@@ -7,13 +7,31 @@
 
 import { Platform, StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 import {
-  color, font, gutter, headerGutter, layout, microLabel, motion, onFill, radius, shadow, space,
+  color, font, gutter, headerGutter, layout, microLabel, motion, onFill, radius, shadow as nativeShadow, space,
   THAI_LINE_HEIGHT_RATIO, type,
 } from '@chivago/tokens';
 
 export {
-  color, font, gutter, headerGutter, layout, microLabel, motion, onFill, radius, shadow, space, type,
+  color, font, gutter, headerGutter, layout, microLabel, motion, onFill, radius, space, type,
 };
+
+/**
+ * React Native Web no longer accepts the native `shadow*` style family.
+ * Keep the established native tokens on iOS/Android and expose equivalent
+ * CSS shadows to every web call site through the same theme contract.
+ */
+export const shadow = Platform.OS === 'web' ? {
+  sm: { boxShadow: '0 2px 6px rgba(0, 78, 100, 0.14)' } as ViewStyle,
+  card: { boxShadow: '0 4px 12px rgba(0, 119, 182, 0.08)' } as ViewStyle,
+  md: { boxShadow: '0 6px 16px rgba(8, 32, 42, 0.50)' } as ViewStyle,
+  lg: { boxShadow: '0 18px 40px rgba(8, 32, 42, 0.60)' } as ViewStyle,
+  glow: { boxShadow: '0 0 18px rgba(37, 135, 76, 0.55)' } as ViewStyle,
+} : nativeShadow;
+
+/** A one-off shadow that preserves a component's tuned native elevation. */
+export const platformShadow = (boxShadow: string, native: ViewStyle): ViewStyle => (
+  Platform.OS === 'web' ? ({ boxShadow } as ViewStyle) : native
+);
 
 /**
  * The two currencies, coloured by the one thing that separates them.

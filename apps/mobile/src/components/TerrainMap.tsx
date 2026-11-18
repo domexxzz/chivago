@@ -25,7 +25,7 @@ import type { Shop } from '../api/shops.ts';
 import type { Area } from '@chivago/core';
 import type maplibregl from 'maplibre-gl';
 import {
-  AttributionControl, Map as MapLibreMap, Marker, NavigationControl,
+  AttributionControl, LngLatBounds, Map as MapLibreMap, Marker, NavigationControl,
 } from 'maplibre-gl';
 // MapLibre's own stylesheet. Without it the zoom/pitch control renders as
 // three unstyled buttons stacked in the corner.
@@ -48,6 +48,7 @@ import { MapLegend } from './map-parts.tsx';
 import { shopMarkerSvg, shopMarkerVisual } from './shop-map-marker.tsx';
 import { placeMarkerHtml, placeMarkerVisual } from './place-map-marker.tsx';
 import { chivarIconUri } from './ChivarIcon.tsx';
+import type { CoastalDriftPoint } from './coastal-drift.ts';
 import { t } from '../i18n/locale.ts';
 import { hourFrom, mix } from './island-clock.ts';
 import {
@@ -286,6 +287,10 @@ const MARK_CSS = `
 .cg-shop-pin:focus-visible{outline:3px solid #8fe7ff;outline-offset:3px;border-radius:24px}
 .cg-shop-pin.cg-approx .cg-shop-pin-core{border-style:dashed;opacity:.9}
 .cg-shop-pin.cg-approx .cg-shop-pin-tail{opacity:.55}
+.cg-drift-point{width:34px;height:34px;border:3px solid #fff;border-radius:10px;padding:0;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;background:var(--cg-drift-colour);color:#102a3a;
+  font:800 12px/1 Anuphan,system-ui,sans-serif;box-shadow:0 4px 11px rgba(4,25,39,.42);transition:transform .15s ease}
+.cg-drift-point:hover,.cg-drift-point:focus-visible{transform:translateY(-2px) scale(1.12);outline:3px solid #8fe7ff;outline-offset:2px}
 .cg-approx-badge{position:absolute;z-index:2;top:-4px;right:-2px;width:18px;height:18px;border-radius:50%;
   background:${color.gold};color:#3b2a10;border:2px solid #fff;font:800 11px/14px system-ui,sans-serif;text-align:center}
 /*
@@ -517,6 +522,7 @@ export function TerrainMap({
   onPickCoordinate, selectedCoordinate = null,
   here = null, way = null, wayIsRoute = false, fairLots = null, fairFocus = null,
   partyMembers = [], meetingPoint = null,
+  driftPoints = [], onSelectDriftPoint,
 }: {
   places: ScoredPlace[];
   highlightedPlaceIds?: ReadonlySet<string>;
@@ -570,6 +576,8 @@ export function TerrainMap({
   fairFocus?: FairLot | null;
   partyMembers?: { userId: string; displayName: string; profilePhotoUrl: string | null; lat: number; lng: number; you: boolean }[];
   meetingPoint?: { lat: number; lng: number; label: string } | null;
+  driftPoints?: CoastalDriftPoint[];
+  onSelectDriftPoint?: (point: CoastalDriftPoint) => void;
 }) {
   const holder = React.useRef<HTMLDivElement | null>(null);
   // The lot to fly to, readable from the map's own load handler: when the map
@@ -595,6 +603,14 @@ export function TerrainMap({
   // places change. The traveller is not a place and must not be swept up.
   const hereMark = React.useRef<Marker | null>(null);
   const partyMarks = React.useRef<Marker[]>([]);
+  const driftMarks = React.useRef<Marker[]>([]);
+  // The forecast markers must stay under the pointer. The normal hero map
+  // slowly turns after its intro; a locator (and a real finger) can otherwise
+  // chase a numbered target while the camera is still moving.
+  const driftLayerActive = React.useRef(false);
+  const driftReturnPose = React.useRef<Pose | null>(null);
+  const driftReturnMinZoom = React.useRef<number | null>(null);
+  const driftReturnMaxBounds = React.useRef<LngLatBounds | null>(null);
   // The place pins, kept in build order so the name declutter can measure
   // them without hunting through the map's DOM for a class.
   const pinEls = React.useRef<{ id: string; rank: number; el: HTMLElement }[]>([]);
@@ -910,7 +926,7 @@ export function TerrainMap({
       intro too, for the reason in prefersReducedMotion.
     */
     const drift = () => {
-      if (focusRef.current || !onScreen) return;
+      if (focusRef.current || !onScreen || driftLayerActive.current) return;
       drifting = true;
       m.once('moveend', () => { drifting = false; });
       m.easeTo({
@@ -1626,6 +1642,104 @@ export function TerrainMap({
       m.off('resize', relabel);
     };
   }, [places, shops, quests, progress, onSelect, onSelectShop, onOpenQuest, compact, storied, highlightedPlaceIds, tales, onOpenStory, stops, area]);
+
+  /*
+    The forecast is a separate layer from places and services. It can be
+    hidden without rebuilding either, and its labels explicitly describe a
+    modelled shoreline contact rather than an observed item of rubbish.
+  */
+  React.useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+    for (const marker of driftMarks.current) marker.remove();
+    driftMarks.current = [];
+    driftLayerActive.current = driftPoints.length > 0;
+    if (!driftLayerActive.current) {
+      const returnPose = driftReturnPose.current;
+      driftReturnPose.current = null;
+      const returnMinZoom = driftReturnMinZoom.current;
+      driftReturnMinZoom.current = null;
+      if (returnMinZoom != null) m.setMinZoom(returnMinZoom);
+      const returnMaxBounds = driftReturnMaxBounds.current;
+      driftReturnMaxBounds.current = null;
+      if (returnMaxBounds) m.setMaxBounds(returnMaxBounds);
+      if (returnPose) m.easeTo({ ...returnPose, duration: 450, essential: true });
+      return;
+    }
+    m.stop();
+    // Ko Sichang normally uses the campus floor (z14) so streets stay useful.
+    // The full 6 km forecast cannot fit inside the 560 px map at that floor,
+    // so lower it only while this overlay is open and restore it on exit.
+    if (driftReturnMinZoom.current == null) driftReturnMinZoom.current = m.getMinZoom();
+    if (driftReturnMaxBounds.current == null) driftReturnMaxBounds.current = m.getMaxBounds();
+    m.setMinZoom(12.5);
+    m.setMaxBounds(null);
+    if (!driftReturnPose.current) {
+      const centre = m.getCenter();
+      driftReturnPose.current = {
+        center: [centre.lng, centre.lat], zoom: m.getZoom(),
+        pitch: m.getPitch(), bearing: m.getBearing(),
+      };
+    }
+    for (const point of driftPoints) {
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'cg-drift-point';
+      el.style.setProperty('--cg-drift-colour', point.attention === 'higher' ? '#F47B20' : point.attention === 'watch' ? '#F2B84B' : '#8CA3A9');
+      el.textContent = String(point.rank);
+      el.setAttribute('aria-label', `${t(point.attentionLabel)} ${point.rank}, ${t(point.sideLabel)}. ${t({ en: 'Modelled shoreline contact, not observed rubbish.', th: 'ผลสัมผัสชายฝั่งจากแบบจำลอง ไม่ใช่การพบขยะจริง', zh: '模型海岸触达，非实地发现垃圾。' })}`);
+      // MapLibre listens for pointer/click events on the canvas underneath the
+      // marker.  Stop both phases here so selecting a forecast point cannot
+      // accidentally activate an overlapping map or page control.
+      el.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        // Select on press because MapLibre owns the canvas gesture and may
+        // consume the later click after a pointer begins over a marker.
+        onSelectDriftPoint?.(point);
+      });
+      el.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onSelectDriftPoint?.(point);
+      });
+      driftMarks.current.push(new Marker({ element: el, anchor: 'center' }).setLngLat([point.lng, point.lat]).addTo(m));
+    }
+    if (driftPoints.length > 0) {
+      const lngs = driftPoints.map((point) => point.lng);
+      const lats = driftPoints.map((point) => point.lat);
+      const forecastBounds: [[number, number], [number, number]] = [
+        [Math.min(...lngs), Math.min(...lats)],
+        [Math.max(...lngs), Math.max(...lats)],
+      ];
+      // Fit the actual reached shoreline points after lowering the normal
+      // street-map zoom floor. This guarantees the numbered controls remain
+      // inside the clipped map instead of projecting over the content below.
+      // Apply once now and again after the map's pending load/idle work: the
+      // hero camera may still be settling when forecast mode is opened.
+      const frameForecast = () => {
+        if (!driftLayerActive.current) return;
+        m.stop();
+        m.setMinZoom(12.5);
+        m.setMaxBounds(null);
+        m.fitBounds(forecastBounds, {
+          padding: { top: 52, right: 52, bottom: 52, left: 52 },
+          maxZoom: 13.2, pitch: 0, bearing: 0, duration: 0,
+        });
+      };
+      frameForecast();
+      m.once('idle', frameForecast);
+      return () => {
+        m.off('idle', frameForecast);
+        for (const marker of driftMarks.current) marker.remove();
+        driftMarks.current = [];
+      };
+    }
+    return () => {
+      for (const marker of driftMarks.current) marker.remove();
+      driftMarks.current = [];
+    };
+  }, [driftPoints, onSelectDriftPoint]);
 
   /*
     You are here.

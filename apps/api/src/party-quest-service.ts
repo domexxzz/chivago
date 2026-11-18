@@ -1,10 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import {
   isPartyQuestMode, isPartyQuestType,
-  type PartyQuestInstance, type PartyQuestMode, type PartyQuestParticipant, type PartyQuestType,
+  type PartyQuestInstance, type PartyQuestMode, type PartyQuestParticipant,
+  type PartyQuestProgressSummary, type PartyQuestType,
 } from '@chivago/core';
 import { row, rows, transact, type DB } from './db.ts';
 import { getQuest } from './repo.ts';
+import { getProgress } from './quest-service.ts';
 
 export const PARTY_QUEST_RULES_VERSION = 'party-quest-foundation-v1';
 
@@ -176,6 +178,41 @@ export function cancelPartyQuest(db: DB, userId: string, id: string, now = new D
 
 export function getPartyQuest(db: DB, userId: string, id: string): PartyQuestInstance {
   return toInstance(db, requireReadable(db, userId, id));
+}
+
+/**
+ * Project the locked Party Quest roster onto the existing, server-owned Quest
+ * state machine. No parallel progress table and no client-authored percentage.
+ */
+export function partyQuestProgress(db: DB, userId: string, id: string): PartyQuestProgressSummary {
+  const found = requireReadable(db, userId, id);
+  const instance = toInstance(db, found);
+  const participants = instance.participants.map((participant) => {
+    const progress = getProgress(db, participant.userId, instance.questId);
+    return {
+      userId: participant.userId,
+      displayName: participant.displayName,
+      membershipStatus: participant.membershipStatus,
+      stage: progress?.stage ?? null,
+      verifiedAt: progress?.verifiedAt ?? null,
+      verifiedWeightKg: progress?.stage === 'complete' ? (progress.weightKg ?? null) : null,
+    };
+  });
+  const completedCount = participants.filter((participant) => participant.stage === 'complete').length;
+  const pendingReviewCount = participants.filter((participant) => participant.stage === 'host_verification').length;
+  const weights = participants
+    .map((participant) => participant.verifiedWeightKg)
+    .filter((weight): weight is number => weight !== null);
+  return {
+    partyQuestId: instance.id,
+    questId: instance.questId,
+    rosterSize: participants.length,
+    completedCount,
+    pendingReviewCount,
+    progressPercent: participants.length === 0 ? 0 : Math.round((completedCount / participants.length) * 100),
+    totalVerifiedWeightKg: weights.length > 0 ? Number(weights.reduce((sum, weight) => sum + weight, 0).toFixed(2)) : null,
+    participants,
+  };
 }
 
 export function currentPartyQuest(db: DB, userId: string): PartyQuestInstance | null {

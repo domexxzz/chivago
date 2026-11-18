@@ -15,6 +15,7 @@ export * from './party.ts';
 export * from './party-live.ts';
 export * from './party-invites.ts';
 export * from './party-quest.ts';
+export * from './coastal-intelligence.ts';
 export * from './esg.ts';
 export * from './claims.ts';
 export * from './evidence.ts';

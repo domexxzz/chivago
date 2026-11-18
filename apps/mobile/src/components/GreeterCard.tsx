@@ -96,7 +96,7 @@ export function GreeterCard({ area }: { area: AreaKey }) {
             a hard horizontal line across the card. It also lifts the sand
             right where his feet and shadow cross the edge.
           */}
-          <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+          <View style={[StyleSheet.absoluteFillObject, { pointerEvents: 'none' }]}>
             <Svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100">
               <Defs>
                 <LinearGradient id="greeter-foot" x1="0" y1="0" x2="0" y2="1">

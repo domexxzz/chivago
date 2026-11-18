@@ -22,7 +22,7 @@ import { Image, Linking, Pressable, ScrollView, Share, TextInput, View, type Ima
 import * as ImagePicker from 'expo-image-picker';
 import QRCode from 'react-native-qrcode-svg';
 import { Camera, Check, ChevronRight, Share2, Users } from 'lucide-react-native';
-import { MAX_PARTY_SIZE, PARTY_KIND_LABEL, nextTogether, type Bilingual, type PartyQuestInstance, type PartySummary, type PartyTripSummary } from '@chivago/core';
+import { MAX_PARTY_SIZE, PARTY_KIND_LABEL, nextTogether, type Bilingual, type PartyQuestInstance, type PartyQuestProgressSummary, type PartySummary, type PartyTripSummary } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
@@ -54,8 +54,15 @@ export function PartyScreen({
 }) {
   const party = useAsync(() => api.party(), []);
   const data = party.data;
-  const currentQuest = useAsync<{ partyQuest: PartyQuestInstance | null }>(
-    () => data?.party ? api.currentPartyQuest() : Promise.resolve({ ok: true, data: { partyQuest: null } }),
+  const currentQuest = useAsync<{ partyQuest: PartyQuestInstance | null; progress: PartyQuestProgressSummary | null }>(
+    async () => {
+      if (!data?.party) return { ok: true, data: { partyQuest: null, progress: null } };
+      const current = await api.currentPartyQuest();
+      if (!current.ok) return current;
+      if (!current.data.partyQuest) return { ok: true, data: { partyQuest: null, progress: null } };
+      const progress = await api.partyQuestProgress(current.data.partyQuest.id);
+      return { ok: true, data: { partyQuest: current.data.partyQuest, progress: progress.ok ? progress.data.progress : null } };
+    },
     [data?.party?.id],
   );
   const [tripSummary, setTripSummary] = React.useState<PartyTripSummary | null>(null);
@@ -89,7 +96,7 @@ export function PartyScreen({
           )
           : (
             <>
-              <Together name={data.party.name} summary={data.summary} partyQuest={currentQuest.data?.partyQuest ?? null} />
+              <Together name={data.party.name} summary={data.summary} partyQuest={currentQuest.data?.partyQuest ?? null} partyQuestProgress={currentQuest.data?.progress ?? null} />
               <Members
                 summary={data.summary}
                 owner={data.party.createdBy === data.summary.members.find((member) => member.you)?.userId}
@@ -296,7 +303,7 @@ function InviteTools({ owner, onToast }: { owner: boolean; onToast: (message: st
 // Together
 // ---------------------------------------------------------------------------
 
-function Together({ name, summary, partyQuest }: { name: string; summary: PartySummary; partyQuest: PartyQuestInstance | null }) {
+function Together({ name, summary, partyQuest, partyQuestProgress }: { name: string; summary: PartySummary; partyQuest: PartyQuestInstance | null; partyQuestProgress: PartyQuestProgressSummary | null }) {
   const next = nextTogether(summary, OPEN_PROVINCES);
 
   return (
@@ -330,7 +337,7 @@ function Together({ name, summary, partyQuest }: { name: string; summary: PartyS
           <Body size={13} colour={color.brandSoft} style={{ marginTop: 16 }}>{t(next)}</Body>
         </>
       ) : null}
-      {partyQuest ? <PartyQuestStatusCard quest={partyQuest} /> : null}
+      {partyQuest ? <PartyQuestStatusCard quest={partyQuest} progress={partyQuestProgress} /> : null}
     </View>
   );
 }

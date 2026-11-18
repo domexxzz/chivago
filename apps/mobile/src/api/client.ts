@@ -23,6 +23,7 @@ import type {
   MascotForm, Reply, Spirit, SpiritCourt, SpiritRarity, ConciergeChatData, TravelLocation,
   PartyItineraryItem, PartyLiveMember, PartyMeetingPoint, PartyMessage, PartyPingKind, PartyTripSummary,
   PartyQuestInstance, PartyQuestMode, PartyQuestType,
+  PartyQuestProgressSummary, CoastalIntelligence,
 } from '@chivago/core';
 import type {
   AirHistory, AreaWeather, BoardEntry, Explored, Fix, Headway, MedalsView, PlaceCourts, PlaceStalls, SelfVisitResult, SelfVisitSummary, TransitRoute,
@@ -691,6 +692,8 @@ export const api = {
   currentPartyQuest: () => get<{ partyQuest: PartyQuestInstance | null }>('/party/quests/current'),
   partyQuestHistory: () => get<{ partyQuests: PartyQuestInstance[] }>('/party/quests/history'),
   partyQuest: (id: string) => get<{ partyQuest: PartyQuestInstance }>(`/party/quests/${encodeURIComponent(id)}`),
+  partyQuestProgress: (id: string) =>
+    get<{ progress: PartyQuestProgressSummary }>(`/party/quests/${encodeURIComponent(id)}/progress`),
   selectPartyQuest: (questId: string, questType: PartyQuestType, questMode: PartyQuestMode) =>
     post<{ partyQuest: PartyQuestInstance }>('/party/quests/select', { questId, questType, questMode }),
   startPartyQuest: (id: string) =>
@@ -766,6 +769,8 @@ export const api = {
   courts: (id: string) => get<PlaceCourts>(`/places/${id}/courts`),
   /** The sea and sky above an area, live from Open-Meteo. */
   weather: (area: string) => get<AreaWeather>(`/areas/${area}/weather`),
+  /** Live current context and field checkpoints; never treated as verified Quest evidence. */
+  coastalIntelligence: () => get<CoastalIntelligence>('/areas/koh-sichang/coastal-intelligence'),
 
   // -- quests -------------------------------------------------------------
   quests: (filter?: 'today' | 'weekend') =>

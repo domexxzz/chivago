@@ -37,6 +37,7 @@ import { Heading, Label } from './Type.tsx';
 import { LayerChips, MapLegend, PinChip, PlaceFeedRow, type MapMode } from './map-parts.tsx';
 import { ShopMapMarker } from './shop-map-marker.tsx';
 import { PlaceMapMarker } from './place-map-marker.tsx';
+import type { CoastalDriftPoint } from './coastal-drift.ts';
 
 // Re-exported so `MapScreen` and the tests keep importing the map's whole
 // surface from one module, whichever implementation the platform resolves.
@@ -224,8 +225,7 @@ function DrawnSwell({ width, height, still }: { width: number; height: number; s
   const ty = drift.interpolate({ inputRange: [0, 1], outputRange: [-SWELL_TILE, 0] });
   return (
     <Animated.View
-      pointerEvents="none"
-      style={{ position: 'absolute', top: 0, left: 0, transform: [{ translateX: tx }, { translateY: ty }] }}
+      style={{ pointerEvents: 'none', position: 'absolute', top: 0, left: 0, transform: [{ translateX: tx }, { translateY: ty }] }}
     >
       <Svg width={cols * SWELL_TILE} height={rows * SWELL_TILE}>{marks}</Svg>
     </Animated.View>
@@ -247,8 +247,7 @@ function DrawnClouds({ width, height, still }: { width: number; height: number; 
   const tx = drift.interpolate({ inputRange: [0, 1], outputRange: [0, -width] });
   return (
     <Animated.View
-      pointerEvents="none"
-      style={{ position: 'absolute', top: 0, left: 0, transform: [{ translateX: tx }] }}
+      style={{ pointerEvents: 'none', position: 'absolute', top: 0, left: 0, transform: [{ translateX: tx }] }}
     >
       <Svg width={width * 2} height={height}>
         <Defs>
@@ -297,8 +296,7 @@ function YouAreHere({
     // The label rides the View, not the Svg: a drawing is a drawing on every
     // platform, and this is the one node a screen reader can be sure to meet.
     <View
-      style={{ position: 'absolute', left: 0, top: 0 }}
-      pointerEvents="none"
+      style={{ pointerEvents: 'none', position: 'absolute', left: 0, top: 0 }}
       accessibilityLabel={t(strings.map.youAreHere)}
     >
       <Svg width={width} height={height}>
@@ -320,7 +318,7 @@ function DrawnMist({
 }: { width: number; height: number; explored: ExploredPlace[]; places: ScoredPlace[] }) {
   const circles = mistCircles(explored, places, width, height);
   return (
-    <Svg width={width} height={height} style={{ position: 'absolute', top: 0, left: 0 }} pointerEvents="none">
+    <Svg width={width} height={height} style={{ pointerEvents: 'none', position: 'absolute', top: 0, left: 0 }}>
       <Defs>
         <RadialGradient id="reveal" cx="50%" cy="50%" r="50%">
           <Stop offset="0" stopColor="#000000" stopOpacity={1} />
@@ -404,6 +402,9 @@ export interface SamuiMapProps {
   onSelect: (place: ScoredPlace) => void;
   shops?: Shop[];
   onSelectShop?: (shop: Shop) => void;
+  /** Uncalibrated shoreline model points; never verified debris reports. */
+  driftPoints?: CoastalDriftPoint[];
+  onSelectDriftPoint?: (point: CoastalDriftPoint) => void;
   /**
    * Today's quests, marked where the work is. Drawn by the web map only:
    * the native island is a diagram with real points on it, and a quest's X
@@ -530,6 +531,8 @@ export function SamuiMap(props: SamuiMapProps) {
         inlineSatellite={props.inlineSatellite}
         partyMembers={props.partyMembers}
         meetingPoint={props.meetingPoint}
+        driftPoints={props.driftPoints}
+        onSelectDriftPoint={props.onSelectDriftPoint}
         onFallback={onFallback}
       />
     );
@@ -568,7 +571,7 @@ export function SamuiMap(props: SamuiMapProps) {
 }
 
 /** Native's existing SVG engine: a coordinate grid, never another island's coastline. */
-function AreaPointMap({ area, places, highlightedPlaceIds, shops = [], onSelect, onSelectShop, onPickCoordinate, selectedCoordinate, height, partyMembers = [], meetingPoint = null }: SamuiMapProps & { area: Area; height: number }) {
+function AreaPointMap({ area, places, highlightedPlaceIds, shops = [], onSelect, onSelectShop, onPickCoordinate, selectedCoordinate, height, partyMembers = [], meetingPoint = null, driftPoints = [], onSelectDriftPoint }: SamuiMapProps & { area: Area; height: number }) {
   const { width: windowWidth } = useWindowDimensions();
   const [measured, setMeasured] = React.useState(0);
   const width = measured || windowWidth;
@@ -594,15 +597,16 @@ function AreaPointMap({ area, places, highlightedPlaceIds, shops = [], onSelect,
         accessibilityLabel={t({ en: 'Choose this map location', th: 'เลือกตำแหน่งนี้บนแผนที่', zh: '选择此地图位置' })}
         style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
       /> : null}
-      {selectedCoordinate && onPickCoordinate ? (() => { const pos = point(selectedCoordinate.lat, selectedCoordinate.lng); return <View pointerEvents="none" style={{ position: 'absolute', left: pos.left - 10, top: pos.top - 10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#0077B6', borderWidth: 4, borderColor: '#fff', elevation: 5 }} />; })() : null}
-      {partyMembers.map((member) => { const pos = point(member.lat, member.lng); return <View key={member.userId} pointerEvents="none" style={{ position: 'absolute', left: pos.left - 20, top: pos.top - 46, alignItems: 'center', zIndex: 12 }}>{member.profilePhotoUrl ? <Animated.Image source={{ uri: member.profilePhotoUrl }} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: '#fff' }} /> : <View style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: '#fff', backgroundColor: color.brand, alignItems: 'center', justifyContent: 'center' }}><Heading size={14} colour="#fff">{member.displayName.slice(0, 1)}</Heading></View>}<Label size={9} colour={color.brandDeep} style={{ backgroundColor: '#fff', paddingHorizontal: 4 }}>{member.displayName}</Label></View>; })}
-      {meetingPoint ? (() => { const pos = point(meetingPoint.lat, meetingPoint.lng); return <View pointerEvents="none" style={{ position: 'absolute', left: pos.left - 11, top: pos.top - 22, width: 22, height: 22, borderRadius: 11, backgroundColor: color.gold, borderWidth: 3, borderColor: '#fff', zIndex: 11 }} />; })() : null}
+      {selectedCoordinate && onPickCoordinate ? (() => { const pos = point(selectedCoordinate.lat, selectedCoordinate.lng); return <View style={{ pointerEvents: 'none', position: 'absolute', left: pos.left - 10, top: pos.top - 10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#0077B6', borderWidth: 4, borderColor: '#fff', elevation: 5 }} />; })() : null}
+      {partyMembers.map((member) => { const pos = point(member.lat, member.lng); return <View key={member.userId} style={{ pointerEvents: 'none', position: 'absolute', left: pos.left - 20, top: pos.top - 46, alignItems: 'center', zIndex: 12 }}>{member.profilePhotoUrl ? <Animated.Image source={{ uri: member.profilePhotoUrl }} style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: '#fff' }} /> : <View style={{ width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: '#fff', backgroundColor: color.brand, alignItems: 'center', justifyContent: 'center' }}><Heading size={14} colour="#fff">{member.displayName.slice(0, 1)}</Heading></View>}<Label size={9} colour={color.brandDeep} style={{ backgroundColor: '#fff', paddingHorizontal: 4 }}>{member.displayName}</Label></View>; })}
+      {meetingPoint ? (() => { const pos = point(meetingPoint.lat, meetingPoint.lng); return <View style={{ pointerEvents: 'none', position: 'absolute', left: pos.left - 11, top: pos.top - 22, width: 22, height: 22, borderRadius: 11, backgroundColor: color.gold, borderWidth: 3, borderColor: '#fff', zIndex: 11 }} />; })() : null}
+      {driftPoints.map((drift) => { const pos = point(drift.lat, drift.lng); const fill = drift.attention === 'higher' ? '#F47B20' : drift.attention === 'watch' ? '#F2B84B' : '#8CA3A9'; return <Pressable key={`drift-${drift.id}`} onPress={() => onSelectDriftPoint?.(drift)} accessibilityRole="button" accessibilityLabel={`${t(drift.attentionLabel)} ${drift.rank} ${t(drift.sideLabel)}`} style={{ position: 'absolute', left: pos.left - 16, top: pos.top - 16, width: 32, height: 32, borderRadius: 10, backgroundColor: fill, borderWidth: 3, borderColor: '#fff', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}><Heading size={12} colour="#102A3A">{drift.rank}</Heading></Pressable>; })}
       <View style={{ position: 'absolute', top: 8, left: 12, backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }}><Label size={10} colour="#0077B6">{t(area.name)} · {t({ en: 'Coordinate map', th: 'แผนผังพิกัด', zh: '坐标地图' })}</Label></View>
-      {places.map((place) => { const pos = point(place.lat, place.lng); const highlighted = highlightedPlaceIds?.has(place.id) ?? false; return <Pressable key={place.id} onPress={() => onSelect(place)} accessibilityLabel={t(place.name)} style={{ position: 'absolute', left: pos.left - 23, top: pos.top - 51, zIndex: highlighted ? 8 : 1 }}>{highlighted ? <View pointerEvents="none" style={{ position: 'absolute', left: -4, top: -4, width: 50, height: 50, borderRadius: 25, borderWidth: 3, borderColor: color.gold, backgroundColor: 'rgba(255,255,255,0.2)' }} /> : null}<PlaceMapMarker place={place} /></Pressable>; })}
+      {places.map((place) => { const pos = point(place.lat, place.lng); const highlighted = highlightedPlaceIds?.has(place.id) ?? false; return <Pressable key={place.id} onPress={() => onSelect(place)} accessibilityLabel={t(place.name)} style={{ position: 'absolute', left: pos.left - 23, top: pos.top - 51, zIndex: highlighted ? 8 : 1 }}>{highlighted ? <View style={{ pointerEvents: 'none', position: 'absolute', left: -4, top: -4, width: 50, height: 50, borderRadius: 25, borderWidth: 3, borderColor: color.gold, backgroundColor: 'rgba(255,255,255,0.2)' }} /> : null}<PlaceMapMarker place={place} /></Pressable>; })}
       {/* Every service, one pin - an unpinned one on the area's ring, marked as such. */}
       {!onPickCoordinate ? servicePoints(mappable(shops), area.center, area.bbox).map((spot) => { const shop = spot.source; const pos = point(spot.lat, spot.lng); return <Pressable key={shop.id} onPress={() => onSelectShop?.(shop)} accessibilityLabel={spot.approximate ? `${shop.category}: ${shop.name}. ${t(UNPINNED_NOTE)}` : `${shop.category}: ${shop.name}`} style={{ position: 'absolute', left: pos.left - 23, top: pos.top - 51 }}><ShopMapMarker category={shop.category} approximate={spot.approximate} /></Pressable>; }) : null}
     </View>
-    {!onPickCoordinate ? <PlaceList places={places} shops={shops} onSelect={onSelect} onSelectShop={onSelectShop} height={100} /> : null}
+    {!onPickCoordinate && driftPoints.length === 0 ? <PlaceList places={places} shops={shops} onSelect={onSelect} onSelectShop={onSelectShop} height={100} /> : null}
   </View>;
 }
 
@@ -710,7 +714,7 @@ function IslandMap({
       {width > 0 && onPickCoordinate && selectedCoordinate ? (() => {
         const pos = project(selectedCoordinate.lat, selectedCoordinate.lng);
         const ground = tilt(pos.x, pos.y);
-        return <View pointerEvents="none" style={{ position: 'absolute', left: ground.x * width - 10, top: ground.y * height - 10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#0077B6', borderWidth: 4, borderColor: '#fff', elevation: 5 }} />;
+        return <View style={{ pointerEvents: 'none', position: 'absolute', left: ground.x * width - 10, top: ground.y * height - 10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#0077B6', borderWidth: 4, borderColor: '#fff', elevation: 5 }} />;
       })() : null}
       {/*
         You are here, on the drawing.
@@ -752,7 +756,7 @@ function IslandMap({
                   ],
                 }}
               >
-                {highlightedPlaceIds?.has(place.id) ? <View pointerEvents="none" style={{ position: 'absolute', left: -4, top: -4, width: 50, height: 50, borderRadius: 25, borderWidth: 3, borderColor: color.gold, backgroundColor: 'rgba(255,255,255,0.2)', zIndex: 4 }} /> : null}
+                {highlightedPlaceIds?.has(place.id) ? <View style={{ pointerEvents: 'none', position: 'absolute', left: -4, top: -4, width: 50, height: 50, borderRadius: 25, borderWidth: 3, borderColor: color.gold, backgroundColor: 'rgba(255,255,255,0.2)', zIndex: 4 }} /> : null}
                 <PinChip
                   place={place}
                   onPress={() => onSelect(place)}

@@ -47,7 +47,8 @@ export function GreeterMark({ area, height = MARK_HEIGHT }: { area: AreaKey; hei
       <GreeterIdle amount={0.65} style={{ width: '100%', height: '100%' }}>
         <Image
           source={{ uri: photoUri(greeter.mark) }}
-          style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+          style={{ width: '100%', height: '100%' }}
+          resizeMode="contain"
         />
       </GreeterIdle>
     </View>

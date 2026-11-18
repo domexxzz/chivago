@@ -21,25 +21,26 @@ const noop = () => {};
 const props = { onBack: noop, onToast: noop };
 
 const places = [
-  place({ id: 'mangrove', name: { en: 'Thong Krut Mangrove', th: 'ป่าชายเลนท้องกรูด' } }),
+  place({ id: 'tha-lang', name: { en: 'Tha Lang pier', th: 'ท่าเรือท่าล่าง' }, province: 'TH-20', lat: 13.1603, lng: 100.8075 }),
+  place({ id: 'tham-phang', name: { en: 'Tham Phang Beach', th: 'หาดถ้ำพัง' }, province: 'TH-20', lat: 13.1367, lng: 100.8059 }),
   place({ id: 'chaweng', name: { en: 'Chaweng Beach', th: 'หาดเฉวง' } }),
 ];
 
 const pins = {
   pins: [
     {
-      placeId: 'mangrove', invitesOpen: 2, checkinsLastHour: 3,
+      placeId: 'tha-lang', invitesOpen: 2, checkinsLastHour: 3,
       line: { en: '3 checked in in the last hour · 2 parties are looking for people', th: 'เช็กอินในชั่วโมงที่ผ่านมา 3 คน · มี 2 ปาร์ตี้กำลังหาคน' },
     },
     {
-      placeId: 'chaweng', invitesOpen: 0, checkinsLastHour: 0,
+      placeId: 'tham-phang', invitesOpen: 0, checkinsLastHour: 0,
       line: { en: 'Nobody has checked in here in the last hour, and no party is asking.', th: 'ยังไม่มีใครเช็กอินที่นี่ในชั่วโมงที่ผ่านมา และยังไม่มีปาร์ตี้ประกาศหาคน' },
     },
   ],
 };
 
 const listing = (over: Record<string, unknown> = {}) => ({
-  id: 'inv_1', placeId: 'mangrove',
+  id: 'inv_1', placeId: 'tha-lang',
   from: '2026-09-15T00:00:00.000Z', until: '2026-09-15T03:00:00.000Z',
   spacesLeft: 2, note: 'Clean up then find breakfast', state: 'open',
   partyName: 'Two slow walkers', missionsVerified: 7, yours: false, ...over,
@@ -81,7 +82,7 @@ describe('nothing this screen does carries a position', () => {
     const said = ui.text();
 
     const promise = said.search(/never at a person/i);
-    const firstParty = said.search(/Two slow walkers|Thong Krut/i);
+    const firstParty = said.search(/Two slow walkers|Tha Lang/i);
     assert.ok(promise >= 0, 'the screen never says invitations are posted at a place');
     assert.ok(promise < firstParty || firstParty === -1, 'the promise came after the list');
     ui.unmount();
@@ -108,8 +109,9 @@ describe('the two counts are printed, never added', () => {
     const s = server({ 'GET /places': places, 'GET /invites/pins': pins });
     restore = s.restore;
     const ui = await mountScreen(h(FindPartyScreen, props));
-    assert.match(ui.text(), /Chaweng Beach/);
+    assert.match(ui.text(), /Tham Phang Beach/);
     assert.match(ui.text(), /Nobody has checked in here/);
+    assert.doesNotMatch(ui.text(), /Chaweng Beach/, 'a Koh Samui place leaked into Koh Sichang Party discovery');
     ui.unmount();
   });
 });
@@ -121,7 +123,7 @@ describe('reading and asking', () => {
     });
     restore = s.restore;
     const ui = await mountScreen(h(FindPartyScreen, props));
-    await ui.pressText(/Thong Krut Mangrove/);
+    await ui.pressText(/Tha Lang pier/);
     const said = ui.text();
 
     assert.match(said, /Two slow walkers/);
@@ -140,7 +142,7 @@ describe('reading and asking', () => {
     });
     restore = s.restore;
     const ui = await mountScreen(h(FindPartyScreen, props));
-    await ui.pressText(/Thong Krut Mangrove/);
+    await ui.pressText(/Tha Lang pier/);
     assert.match(ui.text(), /NOTHING VERIFIED YET/);
     ui.unmount();
   });
@@ -152,7 +154,7 @@ describe('reading and asking', () => {
     });
     restore = s.restore;
     const ui = await mountScreen(h(FindPartyScreen, props));
-    await ui.pressText(/Thong Krut Mangrove/);
+    await ui.pressText(/Tha Lang pier/);
     const said = ui.text();
     assert.match(said, /YOUR PARTY/);
     assert.ok(!/Ask to come along/.test(said), 'it offered to join your own party');
@@ -169,7 +171,7 @@ describe('reading and asking', () => {
     const ui = await mountScreen(
       h(FindPartyScreen, { ...props, onToast: (m: string) => said.push(m) }),
     );
-    await ui.pressText(/Thong Krut Mangrove/);
+    await ui.pressText(/Tha Lang pier/);
     await ui.pressText(/Ask to come along/);
 
     assert.deepEqual(said, ['Something went wrong. Please try again.']);
@@ -183,7 +185,7 @@ describe('reading and asking', () => {
     });
     restore = s.restore;
     const ui = await mountScreen(h(FindPartyScreen, props));
-    await ui.pressText(/Thong Krut Mangrove/);
+    await ui.pressText(/Tha Lang pier/);
     const said = ui.text();
     assert.match(said, /WHAT THIS DOES NOT DO/);
     assert.match(said, /never at a person/i);
@@ -197,7 +199,7 @@ describe('reading and asking', () => {
     });
     restore = s.restore;
     const ui = await mountScreen(h(FindPartyScreen, props));
-    await ui.pressText(/Chaweng Beach/);
+    await ui.pressText(/Tham Phang Beach/);
     assert.match(ui.text(), /No party is asking here yet/);
     ui.unmount();
   });

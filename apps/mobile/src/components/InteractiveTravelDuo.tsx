@@ -240,8 +240,8 @@ export const InteractiveTravelDuo = React.memo(function InteractiveTravelDuo({
 
   return (
     <View
-      pointerEvents="box-none"
       style={{
+        pointerEvents: 'box-none',
         position: 'absolute', left: compact ? -4 : -12, bottom: compact ? -10 : -19,
         width: compact ? '47%' : '53%', height: compact ? 202 : 276, zIndex: 2,
       }}

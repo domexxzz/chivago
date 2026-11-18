@@ -53,7 +53,22 @@ describe('the idle animation stands aside', () => {
 
   test('the drift ends when the map leaves the screen, and never starts off it', () => {
     assert.match(terrain, /if \(!onScreen && drifting\) \{ drifting = false; m\.stop\(\); \}/);
-    assert.match(terrain, /if \(focusRef\.current \|\| !onScreen\) return;\s*drifting = true;/);
+    assert.match(terrain, /if \(focusRef\.current \|\| !onScreen \|\| driftLayerActive\.current\) return;\s*drifting = true;/);
+  });
+
+  test('numbered forecast points stop the camera before they become interactive', () => {
+    assert.match(terrain, /driftLayerActive\.current = driftPoints\.length > 0;[\s\S]*?m\.stop\(\);/);
+    assert.match(terrain, /addEventListener\('pointerdown',[\s\S]*?onSelectDriftPoint\?\.\(point\);/);
+  });
+
+  test('forecast points stay inside a north-up view and the old camera returns afterwards', () => {
+    assert.match(terrain, /driftReturnMinZoom\.current = m\.getMinZoom\(\);[\s\S]*?m\.setMinZoom\(12\.5\);/);
+    assert.match(terrain, /driftReturnMaxBounds\.current = m\.getMaxBounds\(\);[\s\S]*?m\.setMaxBounds\(null\);/);
+    assert.match(terrain, /m\.fitBounds\(forecastBounds, \{[\s\S]*?maxZoom: 13\.2, pitch: 0, bearing: 0, duration: 0,/);
+    assert.match(terrain, /m\.once\('idle', frameForecast\);/);
+    assert.match(terrain, /if \(returnMinZoom != null\) m\.setMinZoom\(returnMinZoom\);/);
+    assert.match(terrain, /if \(returnMaxBounds\) m\.setMaxBounds\(returnMaxBounds\);/);
+    assert.match(terrain, /if \(returnPose\) m\.easeTo\(\{ \.\.\.returnPose, duration: 450, essential: true \}\);/);
   });
 });
 

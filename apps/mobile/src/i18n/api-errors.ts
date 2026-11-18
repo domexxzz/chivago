@@ -31,6 +31,7 @@ const EXACT: Readonly<Record<string, Localised>> = {
   NO_SUCH_DEVICE: message('This device was not found on the account.', 'ไม่พบอุปกรณ์นี้ในบัญชี', '未在账户中找到此设备。'),
   EXPIRED: message('This item has expired.', 'รายการนี้หมดอายุแล้ว', '此项目已过期。'),
   UNAVAILABLE: message('This item is not currently available.', 'รายการนี้ยังไม่พร้อมใช้งาน', '此项目当前不可用。'),
+  NOT_AVAILABLE: message('This is not available for this area yet.', 'ยังไม่เปิดให้บริการในพื้นที่นี้', '此区域暂不提供。'),
   LOCATION_REQUIRED: message('Your location is required for this action.', 'ต้องใช้ตำแหน่งของคุณเพื่อดำเนินการนี้', '此操作需要你的位置。'),
   MOCK_LOCATION: message('Turn off mock location and try again.', 'ปิดตำแหน่งจำลองแล้วลองอีกครั้ง', '请关闭模拟位置后重试。'),
   FIX_TOO_COARSE: message('Your location is not accurate enough. Try again outdoors.', 'ตำแหน่งยังไม่แม่นยำพอ ลองอีกครั้งในที่โล่ง', '定位精度不足，请在室外重试。'),

@@ -8,7 +8,8 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
 
-import { MapSelectionCard } from '../src/screens/MapScreen.tsx';
+import { CoastalDriftSelectionCard, MapSelectionCard } from '../src/screens/MapScreen.tsx';
+import type { CoastalDriftFile, CoastalDriftPoint } from '../src/components/coastal-drift.ts';
 import { mount } from './interact.ts';
 import * as fx from './fixtures.ts';
 
@@ -80,6 +81,31 @@ describe('the selected map pin card', () => {
         ui.labels().some((label) => /Navigate to|นำทางไป|导航至/.test(label)),
         false,
       );
+    } finally { ui.unmount(); }
+  });
+});
+
+describe('the floating-debris forecast point card', () => {
+  test('explains a modelled shoreline contact without claiming observed rubbish', () => {
+    const point: CoastalDriftPoint = {
+      id: 24, rank: 1, count: 83, firstHours: 0.5, arrivalP10: 1, arrivalP90: 4.7,
+      low: 73, high: 86, beach: null, near: 'หาดท่าวัง', path: [[100.819, 13.137]],
+      lat: 13.137, lng: 100.819, side: 'south', attention: 'higher',
+      sideLabel: { en: 'South coast', th: 'ชายฝั่งใต้', zh: '南岸' },
+      attentionLabel: { en: 'Survey first', th: 'ควรสำรวจก่อน', zh: '优先巡查' },
+    };
+    const file = {
+      model: 'sichang-rk2-sensitivity-v2', issued: '2026-11-17T04:08+07:00', window: 6,
+      calibrated: false, seeding: 'uniform offshore grid; no observed debris mass', sensitivityMeaning: null,
+      simulations: 5133, contacts: 717, afloat: 3937, outOfArea: 0, max: 83,
+      source: 'Copernicus SMOC via Open-Meteo', segments: [],
+    } satisfies CoastalDriftFile;
+    const ui = mount(h(CoastalDriftSelectionCard, { point, file }));
+    try {
+      const said = ui.text();
+      assert.match(said, /83/);
+      assert.match(said, /not pieces of rubbish|ไม่ใช่จำนวนชิ้นขยะ|不是垃圾件数/);
+      assert.match(said, /Uncalibrated|ยังไม่ผ่านการสอบเทียบ|未校准/);
     } finally { ui.unmount(); }
   });
 });

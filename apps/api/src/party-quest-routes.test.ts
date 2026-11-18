@@ -62,6 +62,11 @@ describe('Party Quest HTTP foundation', () => {
     assert.equal(current.data.partyQuest.participants.some((p: any) => p.displayName === 'Quest Late'), false);
     const hidden = await request('GET', `/party/quests/${instanceId}`, outsider);
     assert.equal(hidden.status, 404);
+    const progress = await json(await request('GET', `/party/quests/${instanceId}/progress`, owner));
+    assert.equal(progress.data.progress.rosterSize, 2);
+    assert.equal(progress.data.progress.progressPercent, 0);
+    const hiddenProgress = await request('GET', `/party/quests/${instanceId}/progress`, outsider);
+    assert.equal(hiddenProgress.status, 404);
   });
 
   test('a leaving member remains in the locked roster and can resume', async () => {

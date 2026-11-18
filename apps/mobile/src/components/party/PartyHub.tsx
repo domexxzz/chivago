@@ -5,16 +5,19 @@ import {
 } from 'react-native';
 import {
   ChevronRight, Compass, LockKeyhole, MapPinned, MessageCircle,
-  Plus, Route, Search, ShieldCheck, Sparkles, Users,
+  Plus, Route, Search, ShieldCheck, Sparkles, Users, Waves,
 } from 'lucide-react-native';
 import {
   MAX_PARTY_SIZE,
+  type CoastalIntelligence,
   type PartyQuestInstance,
+  type PartyQuestProgressSummary,
   type PartySummary,
   type ScoredPlace,
 } from '@chivago/core';
 
 import partyHero from '../../../assets/party-adventure-hero-v1.png';
+import coastalWatchHero from '../../../assets/coastal-watch-party-hero-v1.png';
 import travelPartyIcon from '../../../assets/party/01-travel-map-pin.png';
 import questPartyIcon from '../../../assets/party/03-quest-scroll.png';
 import partyGroupIcon from '../../../assets/party/04-party-group.png';
@@ -29,11 +32,13 @@ import { t } from '../../i18n/locale.ts';
 import { color, gutter, shadow } from '../../theme/index.ts';
 import { Body, Heading, Label } from '../Type.tsx';
 import { ErrorState, LoadingState } from '../States.tsx';
+import { kohSichangPartyPlaces } from './party-place-scope.ts';
 
 type PartyOverview = {
   party: { id: string; name: string; createdBy: string; createdAt: string } | null;
   summary: PartySummary;
   partyQuest: PartyQuestInstance | null;
+  partyQuestProgress: PartyQuestProgressSummary | null;
 };
 
 type Discovery = {
@@ -56,13 +61,21 @@ export function PartyHub({
     const party = await api.party();
     if (!party.ok) return party;
     let partyQuest: PartyQuestInstance | null = null;
+    let partyQuestProgress: PartyQuestProgressSummary | null = null;
     if (party.data.party) {
       const current = await api.currentPartyQuest();
-      if (current.ok) partyQuest = current.data.partyQuest;
+      if (current.ok) {
+        partyQuest = current.data.partyQuest;
+        if (partyQuest) {
+          const progress = await api.partyQuestProgress(partyQuest.id);
+          if (progress.ok) partyQuestProgress = progress.data.progress;
+        }
+      }
     }
-    return { ok: true, data: { ...party.data, partyQuest } };
+    return { ok: true, data: { ...party.data, partyQuest, partyQuestProgress } };
   }, []);
   const discovery = useAsync<Discovery>(loadDiscovery, []);
+  const coastal = useAsync<CoastalIntelligence>(() => api.coastalIntelligence(), []);
   const { width } = useWindowDimensions();
   const wide = width >= 900;
 
@@ -72,6 +85,8 @@ export function PartyHub({
       {wide
         ? <PartyNavigation onOpenParty={onOpenParty} onFindParty={onFindParty} />
         : <MobileShortcuts onOpenParty={onOpenParty} />}
+
+      <CoastalWatchSpotlight data={coastal.data} loading={coastal.loading} onOpenParty={onOpenParty} />
 
       {overview.loading && !overview.data ? <LoadingState /> : null}
       {overview.error ? <ErrorState message={overview.error} onRetry={overview.reload} /> : null}
@@ -103,9 +118,10 @@ export function PartyHub({
 async function loadDiscovery(): Promise<Result<Discovery>> {
   const places = await api.places();
   if (!places.ok) return places;
-  const pins = await api.invitePins(places.data.map((place) => place.id));
+  const islandPlaces = kohSichangPartyPlaces(places.data);
+  const pins = await api.invitePins(islandPlaces.map((place) => place.id));
   if (!pins.ok) return pins;
-  return { ok: true, data: { places: places.data, pins: pins.data.pins } };
+  return { ok: true, data: { places: islandPlaces, pins: pins.data.pins } };
 }
 
 function PartyHero({ onOpenParty, wide }: { onOpenParty: () => void; wide: boolean }) {
@@ -127,7 +143,7 @@ function PartyHero({ onOpenParty, wide }: { onOpenParty: () => void; wide: boole
         accessibilityLabel={t({ en: 'ChivaGo friends exploring Koh Sichang', th: 'เพื่อน ChivaGo เที่ยวเกาะสีชังด้วยกัน', zh: 'ChivaGo 好友结伴探索锡昌岛' })}
         style={{ width: '100%', height: '100%' }}
       />
-      {!wide ? <View pointerEvents="none" style={{ position: 'absolute', inset: 0, borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)', borderRadius: 24 }} /> : null}
+      {!wide ? <View style={{ pointerEvents: 'none', position: 'absolute', inset: 0, borderWidth: 1, borderColor: 'rgba(255,255,255,0.45)', borderRadius: 24 }} /> : null}
     </Pressable>
   );
 }
@@ -179,6 +195,67 @@ function MobileShortcuts({ onOpenParty }: { onOpenParty: () => void }) {
         detail={t({ en: 'Code or QR link', th: 'ใช้รหัส / QR', zh: '代码或二维码' })}
         onPress={onOpenParty}
       />
+    </View>
+  );
+}
+
+/**
+ * A live, read-only field briefing. It deliberately opens the existing Party
+ * experience: teams use the real map, meeting point and verified Quest proof
+ * flow instead of a second environmental mini-app.
+ */
+function CoastalWatchSpotlight({ data, loading, onOpenParty }: { data: CoastalIntelligence | null; loading: boolean; onOpenParty: () => void }) {
+  const live = data?.status === 'live';
+  const current = data?.current;
+  const speed = current?.speedKmh;
+  const direction = current?.directionLabel ? t(current.directionLabel) : null;
+  return (
+    <View style={[shadow.card, {
+      marginBottom: 14, minHeight: 168, borderRadius: 25, overflow: 'hidden',
+      backgroundColor: '#063F5E', borderWidth: 1, borderColor: '#3BC3D6',
+    }]}>
+      <Image
+        source={coastalWatchHero}
+        resizeMode="cover"
+        accessibilityIgnoresInvertColors
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.76 }}
+      />
+      <View style={{ pointerEvents: 'none', position: 'absolute', inset: 0, backgroundColor: 'rgba(1,35,55,0.4)' }} />
+      <View style={{ pointerEvents: 'none', position: 'absolute', top: 0, bottom: 0, left: 0, width: '58%', backgroundColor: 'rgba(1,43,66,0.5)' }} />
+      <View style={{ padding: 17, flexDirection: 'row', flexWrap: 'wrap', gap: 14, alignItems: 'stretch' }}>
+        <View style={{ flex: 1.2, minWidth: 260 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}><Waves size={23} color="#8FF5F0" /></View>
+            <View style={{ flex: 1 }}>
+              <Label size={9} tracking={0.12} colour="#8FF5F0">{t({ en: 'COASTAL WATCH · KO SICHANG', th: 'เฝ้าระวังชายฝั่ง · เกาะสีชัง', zh: '锡昌岛海岸监测' })}</Label>
+              <Heading size={20} colour="#FFFFFF" style={{ marginTop: 2 }}>{t({ en: 'Turn ocean data into team action', th: 'เปลี่ยนข้อมูลทะเลเป็นภารกิจของทีม', zh: '把海洋数据转化为团队行动' })}</Heading>
+            </View>
+          </View>
+          <Body size={13} colour="#D6F7FB" style={{ marginTop: 9, maxWidth: 630 }}>
+            {t({ en: 'Live current context and real shoreline checkpoints help plan an Eco Quest. Rewards still require geofence, photo evidence and host approval.', th: 'ดูกระแสน้ำสดและจุดสำรวจชายฝั่งจริงเพื่อวางแผน Eco Quest โดยแต้มจะเกิดเมื่อผ่าน geofence หลักฐานภาพ และผู้ดูแลอนุมัติเท่านั้น', zh: '用实时海流和真实海岸检查点规划环保任务；奖励仍须通过地理围栏、照片证据和主办方审核。' })}
+          </Body>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 11 }}>
+            {(data?.zones ?? []).map((zone) => <View key={zone.id} style={{ paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)', borderWidth: 1, borderColor: 'rgba(143,245,240,0.25)' }}><Label size={9} colour="#FFFFFF">{t(zone.nearBeach)}</Label></View>)}
+          </View>
+        </View>
+        <View style={{ minWidth: 230, flex: 0.75, padding: 13, borderRadius: 19, backgroundColor: 'rgba(3,49,72,0.78)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: live ? '#4DF0A0' : '#FFD85A' }} />
+            <Label size={9} colour={live ? '#B9FFD9' : '#FFF0B1'}>{loading ? t({ en: 'READING CURRENT…', th: 'กำลังอ่านกระแสน้ำ…', zh: '正在读取海流…' }) : live ? t({ en: 'LIVE MARINE FEED', th: 'ข้อมูลทะเลสด', zh: '实时海洋数据' }) : t({ en: 'SOURCE UNAVAILABLE', th: 'แหล่งข้อมูลไม่พร้อม', zh: '数据源不可用' })}</Label>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+            <View style={{ flex: 1, padding: 10, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.1)' }}><Waves size={18} color="#8FF5F0" /><Heading size={19} colour="#FFFFFF" style={{ marginTop: 4 }}>{typeof speed === 'number' ? speed.toFixed(1) : '—'}</Heading><Label size={9} colour="#BFEAF2">{t({ en: 'KM/H', th: 'กม./ชม.', zh: '公里/小时' })}</Label></View>
+            <View style={{ flex: 1, padding: 10, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.1)' }}><Compass size={18} color="#8FF5F0" /><Heading size={15} colour="#FFFFFF" style={{ marginTop: 6 }}>{direction ?? '—'}</Heading><Label size={9} colour="#BFEAF2">{typeof current?.directionDeg === 'number' ? `${Math.round(current.directionDeg)}°` : t({ en: 'DIRECTION', th: 'ทิศทาง', zh: '方向' })}</Label></View>
+          </View>
+          <Pressable onPress={onOpenParty} accessibilityRole="button" accessibilityLabel={t({ en: 'Open Eco Party field tools', th: 'เปิดเครื่องมือลงพื้นที่ของ Eco Party', zh: '打开环保队伍现场工具' })} style={({ pressed }) => ({ marginTop: 10, minHeight: 42, borderRadius: 13, backgroundColor: pressed ? '#D6F8F6' : '#FFFFFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 })}>
+            <ShieldCheck size={17} color="#056D8B" /><Heading size={12} colour="#056D8B">{t({ en: 'Open field mission', th: 'เปิดภารกิจลงพื้นที่', zh: '打开现场任务' })}</Heading>
+          </Pressable>
+        </View>
+      </View>
+      <View style={{ paddingHorizontal: 17, paddingVertical: 8, backgroundColor: 'rgba(0,18,35,0.3)', flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+        <Sparkles size={14} color="#FFD85A" />
+        <Body size={13} colour="#D7ECF3" style={{ flex: 1 }}>{t({ en: 'Research guidance, not a debris probability · Open-Meteo + published Ko Sichang survey geometry', th: 'ข้อมูลช่วยวางแผน ไม่ใช่ความน่าจะเป็นของขยะ · Open-Meteo + แนวสำรวจเกาะสีชังที่เผยแพร่แล้ว', zh: '仅供研究规划，并非垃圾概率 · Open-Meteo + 已发布的锡昌岛调查几何数据' })}</Body>
+      </View>
     </View>
   );
 }
@@ -330,7 +407,7 @@ function RecommendedPlaces({ data, loading, error, onRetry, onFindParty }: { dat
   );
 }
 
-function CurrentParty({ party, summary, partyQuest, onOpenParty }: PartyOverview & { party: NonNullable<PartyOverview['party']>; onOpenParty: () => void }) {
+function CurrentParty({ party, summary, partyQuest, partyQuestProgress, onOpenParty }: PartyOverview & { party: NonNullable<PartyOverview['party']>; onOpenParty: () => void }) {
   const me = summary.members.find((member) => member.you);
   const owner = me?.userId === party.createdBy;
   return (
@@ -358,7 +435,7 @@ function CurrentParty({ party, summary, partyQuest, onOpenParty }: PartyOverview
         {summary.members.map((member) => <MemberAvatar key={member.userId} member={member} />)}
       </ScrollView>
 
-      {partyQuest ? <PartyQuestStatusCard quest={partyQuest} /> : <TravelStatus summary={summary} />}
+      {partyQuest ? <PartyQuestStatusCard quest={partyQuest} progress={partyQuestProgress} /> : <TravelStatus summary={summary} />}
 
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 13 }}>
         <ActionButton icon={<MessageCircle size={17} color={color.brand} />} label={t({ en: 'Team chat', th: 'แชททีม', zh: '队伍聊天' })} onPress={onOpenParty} />
@@ -385,8 +462,8 @@ function TravelStatus({ summary }: { summary: PartySummary }) {
   );
 }
 
-export function PartyQuestStatusCard({ quest }: { quest: PartyQuestInstance }) {
-  const completed = quest.participants.filter((participant) => participant.completedAt !== null).length;
+export function PartyQuestStatusCard({ quest, progress = null }: { quest: PartyQuestInstance; progress?: PartyQuestProgressSummary | null }) {
+  const completed = progress?.completedCount ?? quest.participants.filter((participant) => participant.completedAt !== null).length;
   const state = quest.state.replaceAll('_', ' ');
   return (
     <View style={{ marginTop: 15, padding: 14, borderRadius: 18, backgroundColor: '#F2F8FB', borderWidth: 1, borderColor: '#CFE7F0' }}>
@@ -409,7 +486,14 @@ export function PartyQuestStatusCard({ quest }: { quest: PartyQuestInstance }) {
             : t({ en: 'Selected by the owner. The roster locks when the quest starts.', th: 'เจ้าของเลือกแล้ว รายชื่อจะล็อกเมื่อเริ่มเควส', zh: '队长已选择；任务开始时锁定名单。' })}
         </Body>
       </View>
-      <Body size={13} colour={color.neutral600} style={{ marginTop: 8 }}>{t({ en: 'Team EXP, achievements and contribution percentages appear only after verified reward events are implemented.', th: 'Party EXP เหรียญทีม และเปอร์เซ็นต์ผลงานจะแสดงเมื่อมีระบบเหตุการณ์รางวัลที่ยืนยันแล้วเท่านั้น', zh: '队伍经验、成就和贡献百分比仅在已验证奖励事件上线后显示。' })}</Body>
+      {progress ? <>
+        <View style={{ height: 9, borderRadius: 999, backgroundColor: '#DCECF1', overflow: 'hidden', marginTop: 11 }}><View style={{ width: `${progress.progressPercent}%`, height: '100%', borderRadius: 999, backgroundColor: '#20B875' }} /></View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 7 }}>
+          <Label size={9} colour="#16875C">{progress.progressPercent}% {t({ en: 'SERVER VERIFIED', th: 'เซิร์ฟเวอร์ยืนยัน', zh: '服务器已验证' })}</Label>
+          <Body size={13} colour={color.neutral600} style={{ flex: 1, textAlign: 'right' }}>{progress.pendingReviewCount > 0 ? t({ en: `${progress.pendingReviewCount} awaiting host review`, th: `รอผู้ดูแลตรวจ ${progress.pendingReviewCount} คน`, zh: `${progress.pendingReviewCount} 人等待审核` }) : t({ en: 'No evidence waiting for review', th: 'ไม่มีหลักฐานรอตรวจ', zh: '没有待审核证据' })}</Body>
+        </View>
+        {progress.totalVerifiedWeightKg !== null ? <View style={{ marginTop: 9, paddingHorizontal: 11, paddingVertical: 8, borderRadius: 13, backgroundColor: '#E8F8EF', flexDirection: 'row', alignItems: 'center', gap: 7 }}><Waves size={17} color="#16875C" /><Body size={13} colour="#116A49" style={{ flex: 1 }}>{t({ en: `${progress.totalVerifiedWeightKg.toFixed(2)} kg from host-approved evidence`, th: `หลักฐานที่ผู้ดูแลอนุมัติแล้ว ${progress.totalVerifiedWeightKg.toFixed(2)} กก.`, zh: `主办方已审核证据 ${progress.totalVerifiedWeightKg.toFixed(2)} 千克` })}</Body></View> : null}
+      </> : <Body size={13} colour={color.neutral600} style={{ marginTop: 8 }}>{t({ en: 'Verified progress will appear when members start this Quest.', th: 'ความคืบหน้าที่ตรวจสอบแล้วจะแสดงเมื่อสมาชิกเริ่มทำเควสนี้', zh: '成员开始此任务后将显示已验证进度。' })}</Body>}
     </View>
   );
 }

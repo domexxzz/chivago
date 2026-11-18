@@ -33,6 +33,7 @@ import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import type { Area, ExploredPlace, ScoredPlace } from '@chivago/core';
 import { MapLegend } from './map-parts.tsx';
 import { chivagoStyle } from './terrain-style.ts';
+import type { CoastalDriftPoint } from './coastal-drift.ts';
 import { color } from '../theme/index.ts';
 import { t } from '../i18n/locale.ts';
 import type { Shop } from '../api/shops.ts';
@@ -110,6 +111,8 @@ export interface WebTerrainMapProps {
   handleRef?: React.Ref<MapHandle>;
   partyMembers?: { userId: string; displayName: string; profilePhotoUrl: string | null; lat: number; lng: number; you: boolean }[];
   meetingPoint?: { lat: number; lng: number; label: string } | null;
+  driftPoints?: CoastalDriftPoint[];
+  onSelectDriftPoint?: (point: CoastalDriftPoint) => void;
 }
 
 /**
@@ -123,8 +126,9 @@ function page(style: unknown, pins: { id: string; lat: number; lng: number; labe
   centre: [number, number], here: { lat: number; lng: number } | null,
   box: { minLat: number; maxLat: number; minLng: number; maxLng: number },
   inlineSatellite: boolean,
-  partyMembers: WebTerrainMapProps['partyMembers'] = [], meetingPoint: WebTerrainMapProps['meetingPoint'] = null): string {
-  const data = JSON.stringify({ style, pins, shopPins, centre, here, box, inlineSatellite, partyMembers, meetingPoint }).replace(/</g, '\\u003c');
+  partyMembers: WebTerrainMapProps['partyMembers'] = [], meetingPoint: WebTerrainMapProps['meetingPoint'] = null,
+  driftPoints: WebTerrainMapProps['driftPoints'] = []): string {
+  const data = JSON.stringify({ style, pins, shopPins, centre, here, box, inlineSatellite, partyMembers, meetingPoint, driftPoints }).replace(/</g, '\\u003c');
   return `<!doctype html>
 <html><head>
 <meta charset="utf-8">
@@ -157,6 +161,10 @@ function page(style: unknown, pins: { id: string; lat: number; lng: number; labe
   .party-avatar{width:38px;height:38px;border-radius:50%;border:3px solid #fff;background:#10A7B5;box-shadow:0 3px 10px rgba(0,0,0,.35);object-fit:cover}
   .party-name{position:absolute;top:40px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#fff;padding:3px 6px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,.2)}
   .meeting{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#F2B84B;border:3px solid #fff;box-shadow:0 3px 9px rgba(0,0,0,.3)}
+  .drift-point{width:34px;height:34px;border:3px solid #fff;border-radius:10px;padding:0;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;background:var(--drift-colour);color:#102a3a;
+    font:800 12px/1 system-ui,sans-serif;box-shadow:0 4px 11px rgba(4,25,39,.42)}
+  .drift-point:focus-visible{outline:3px solid #8fe7ff;outline-offset:2px}
   /* Bigger than MapLibre's default: these are pressed with a thumb, not a mouse. */
   .maplibregl-ctrl-group button{width:40px;height:40px}
   /*
@@ -359,6 +367,21 @@ function start(){
       el.addEventListener('click',function(){ post({type:'selectShop',id:p.id}); });
       new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat([p.lng,p.lat]).addTo(map);
     });
+    (D.driftPoints||[]).forEach(function(p){
+      var el=document.createElement('button');
+      el.type='button'; el.className='drift-point'; el.textContent=String(p.rank);
+      el.style.setProperty('--drift-colour',p.attention==='higher'?'#F47B20':p.attention==='watch'?'#F2B84B':'#8CA3A9');
+      el.setAttribute('aria-label',String(p.rank)+' '+String((p.sideLabel&&p.sideLabel.th)||''));
+      el.addEventListener('pointerdown',function(event){
+        event.preventDefault(); event.stopImmediatePropagation();
+        post({type:'selectDrift',id:String(p.id)});
+      });
+      el.addEventListener('click',function(event){
+        event.preventDefault(); event.stopPropagation();
+        post({type:'selectDrift',id:String(p.id)});
+      });
+      new maplibregl.Marker({element:el,anchor:'center'}).setLngLat([p.lng,p.lat]).addTo(map);
+    });
     if(D.here){
       var me=document.createElement('div'); me.className='me';
       new maplibregl.Marker({element:me}).setLngLat([D.here.lng,D.here.lat]).addTo(map);
@@ -395,7 +418,7 @@ document.head.appendChild(s);
  * which is why that drawing is kept rather than deleted.
  */
 export function WebTerrainMap({
-  area, places, highlightedPlaceIds, onSelect, shops = [], onSelectShop, here, height, hour = 12, explored = [], inlineSatellite = true, handleRef, onFallback, partyMembers = [], meetingPoint = null,
+  area, places, highlightedPlaceIds, onSelect, shops = [], onSelectShop, here, height, hour = 12, explored = [], inlineSatellite = true, handleRef, onFallback, partyMembers = [], meetingPoint = null, driftPoints = [], onSelectDriftPoint,
 }: WebTerrainMapProps & { onFallback?: () => void }) {
   const web = React.useRef<WebView>(null);
   // `true;` on the end: injectJavaScript warns about a non-boolean result.
@@ -410,6 +433,7 @@ export function WebTerrainMap({
   }), [zoom]);
   const byId = React.useMemo(() => new Map(places.map((p) => [p.id, p])), [places]);
   const shopsById = React.useMemo(() => new Map(shops.map((shop) => [shop.id, shop])), [shops]);
+  const driftById = React.useMemo(() => new Map(driftPoints.map((point) => [String(point.id), point])), [driftPoints]);
 
   const html = React.useMemo(() => {
     const centre: [number, number] = here
@@ -443,12 +467,13 @@ export function WebTerrainMap({
       inlineSatellite,
       partyMembers,
       meetingPoint,
+      driftPoints,
     );
     // `here` moves constantly while watched; re-rendering the whole document
     // for every fix would tear the map down mid-pan. The dot is placed from
     // the position the map STARTED with, and the map is not rebuilt for it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [area.key, places, highlightedPlaceIds, shops, hour]);
+  }, [area.key, places, highlightedPlaceIds, shops, hour, driftPoints]);
 
   React.useEffect(() => {
     const data = JSON.stringify({ members: partyMembers, meeting: meetingPoint }).replace(/</g, '\\u003c');
@@ -464,11 +489,14 @@ export function WebTerrainMap({
     } else if (message.type === 'selectShop' && message.id) {
       const shop = shopsById.get(message.id);
       if (shop) onSelectShop?.(shop);
+    } else if (message.type === 'selectDrift' && message.id) {
+      const point = driftById.get(message.id);
+      if (point) onSelectDriftPoint?.(point);
     } else if (message.type === 'error') {
       // One honest exit: the drawing below still carries the pins.
       onFallback?.();
     }
-  }, [byId, shopsById, onSelect, onSelectShop, onFallback]);
+  }, [byId, shopsById, driftById, onSelect, onSelectShop, onSelectDriftPoint, onFallback]);
 
   return (
     <View style={{ height, backgroundColor: color.brandSoft }}>
@@ -496,7 +524,7 @@ export function WebTerrainMap({
         it in the HTML would have made a second copy to keep in step, and
         would have hidden it from every test that reads this screen.
       */}
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }} pointerEvents="box-none">
+      <View style={{ pointerEvents: 'box-none', position: 'absolute', left: 0, right: 0, bottom: 0 }}>
         <MapLegend places={places} explored={explored} />
       </View>
     </View>
