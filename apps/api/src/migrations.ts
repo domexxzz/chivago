@@ -2492,5 +2492,24 @@ export function migrate(db: DB): string[] {
     `);
   }
 
+  /*
+    Signing in with Google: google-auth.ts and google-identity.ts. The same
+    shape as line_identities - Google's subject id and the traveller it names,
+    nothing else. No email and no name, because the sign-in asks Google for
+    `openid` only and a column for something we never receive is a column
+    somebody would one day fill.
+  */
+  if (!hasTable(db, 'google_identities')) {
+    db.exec(`
+      CREATE TABLE google_identities (
+        google_sub TEXT PRIMARY KEY,
+        user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_google_identities_user ON google_identities(user_id);
+    `);
+    applied.push('google_identities');
+  }
+
   return applied;
 }

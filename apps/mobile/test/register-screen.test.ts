@@ -208,7 +208,8 @@ describe('ChivarGo RegisterScreen', () => {
 
     await ui.press(/สมัครด้วย Google/);
     assert.match(ui.text(), /สมัครด้วย Google/);
-    assert.match(ui.text(), /เซิร์ฟเวอร์นี้ยังไม่ได้เปิดใช้งานการสมัครด้วย Google/);
+    // Off the web build Google sign-up cannot run, and the notice says where it does.
+    assert.match(ui.text(), /การเข้าสู่ระบบด้วย Google ใช้งานได้บนเว็บที่ chivargo\.com/);
     await ui.pressText(/ตกลง/);
 
     await ui.press(/สมัครด้วย LINE/);

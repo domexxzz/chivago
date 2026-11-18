@@ -41,6 +41,8 @@ import {
   startRound, unpackRound,
 } from './line-auth.ts';
 import { resolveLineSignIn } from './line-identity.ts';
+import { GOOGLE_OAUTH_COOKIE, googleAuthorizeUrl, googleConfig, googleSubFor } from './google-auth.ts';
+import { resolveGoogleSignIn } from './google-identity.ts';
 import {
   ShopError, deleteReview as deleteShopReview, deleteShop, getShop, listReviews as listShopReviews,
   listShops, ownReview, ownedShop, recordShopEvent, recordShopTap, replyReview, reportShopReview,
@@ -1319,6 +1321,72 @@ app.get('/auth/line/callback', async (c) => {
   if (seen.outcome === 'clash' || !seen.userId) return back('clash');
 
   // The same single-use, ten-minute code the second-phone flow already uses.
+  return back(`ok.${issueLinkCode(db, seen.userId)}.${seen.outcome}`);
+});
+
+/*
+  Signing in with Google (google-auth.ts, google-identity.ts). The LINE round
+  trip above, step for step, with its own cookie and its own fragment key so
+  a LINE round and a Google round in two tabs cannot read each other's state.
+
+  ONE DIFFERENCE, on purpose. When Google is not configured, `/auth/google`
+  sends the browser back to the app with `#google=unavailable` instead of
+  answering 404. LINE's 404 is reached by nobody; this one would be reached by
+  every traveller who taps the button before the client is set up, and they
+  would land on a page of JSON. The callback still 404s: nobody reaches it
+  without having been sent to Google first.
+*/
+const nextFrom = (raw: string | undefined): string =>
+  raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/';
+
+app.get('/auth/google', (c) => {
+  const next = nextFrom(c.req.query('next'));
+  const cfg = googleConfig();
+  c.header('cache-control', 'no-store');
+  if (!cfg) return c.redirect(`${next}#google=unavailable`, 302);
+  const round = startRound(next);
+  c.header('set-cookie', [
+    `${GOOGLE_OAUTH_COOKIE}=${encodeURIComponent(packRound(round))}`,
+    'Path=/auth/google', 'HttpOnly', 'SameSite=Lax', 'Secure',
+    `Max-Age=${Math.floor(OAUTH_TTL_MS / 1000)}`,
+  ].join('; '));
+  return c.redirect(googleAuthorizeUrl(cfg, round), 302);
+});
+
+app.get('/auth/google/callback', async (c) => {
+  const cfg = googleConfig();
+  if (!cfg) return fail(c, 'NOT_FOUND', 'Google sign-in is not set up on this server', 404);
+
+  const round = unpackRound(
+    (() => {
+      const v = readCookie(c.req.header('cookie'), GOOGLE_OAUTH_COOKIE);
+      try { return v === undefined ? undefined : decodeURIComponent(v); } catch { return undefined; }
+    })(),
+  );
+  // Spent whatever happens next, so a failed round cannot be replayed.
+  c.header('set-cookie', `${GOOGLE_OAUTH_COOKIE}=; Path=/auth/google; HttpOnly; SameSite=Lax; Secure; Max-Age=0`);
+  c.header('cache-control', 'no-store');
+
+  const back = (reason: string) => c.redirect(`${round?.next ?? '/'}#google=${reason}`, 302);
+
+  if (c.req.query('error')) return back('cancelled');
+  const code = c.req.query('code');
+  const state = c.req.query('state');
+  if (!round || !code || !state || !sameToken(state, round.state)) return back('expired');
+
+  let sub: string | null = null;
+  try {
+    sub = await googleSubFor(cfg, code, round);
+  } catch (e) {
+    console.warn(`[google] ${e instanceof Error ? e.message : String(e)}`);
+    return back('failed');
+  }
+  if (!sub) return back('failed');
+
+  const deviceUserId = resolveDevice(db, c.req.header('x-chivago-device-key'));
+  const seen = resolveGoogleSignIn(db, sub, deviceUserId, () => registerAccountDevice(db).userId);
+  if (seen.outcome === 'clash' || !seen.userId) return back('clash');
+
   return back(`ok.${issueLinkCode(db, seen.userId)}.${seen.outcome}`);
 });
 

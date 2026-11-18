@@ -45,6 +45,10 @@ import {
 } from 'lucide-react-native';
 
 import { finishLineSignIn, lineSignInAvailable, startLineSignIn } from '../api/line-signin.ts';
+import {
+  GOOGLE_IN_APP_NOTICE, GOOGLE_WEB_ONLY_NOTICE, finishGoogleSignIn, googleFailureMessage,
+  googleSignInAvailable, insideAppBrowser, startGoogleSignIn,
+} from '../api/google-signin.ts';
 import chivagoColorLogo from '../../assets/chivago-color-logo.png';
 import authTropicalFooter from '../../assets/auth-tropical-footer-v1.png';
 import authIslandHero from '../../assets/auth-island-hero.png';
@@ -126,6 +130,8 @@ export function LoginScreen({
   // Dialog states for informational notices
   const [recoveryModalVisible, setRecoveryModalVisible] = React.useState(false);
   const [oauthNoticeProvider, setOauthNoticeProvider] = React.useState<'Google' | 'LINE' | null>(null);
+  /** The Google notice is about an in-app browser, not about the native app. */
+  const [googleInApp, setGoogleInApp] = React.useState(false);
 
   /*
     Coming back from LINE. The callback left a single-use link code in the URL
@@ -150,6 +156,17 @@ export function LoginScreen({
             ? { en: 'LINE sign-in was cancelled.', th: 'ยกเลิกการเข้าสู่ระบบด้วย LINE แล้ว', zh: '已取消 LINE 登录。' }
             : { en: 'LINE sign-in did not finish. Please try again.', th: 'เข้าสู่ระบบด้วย LINE ไม่สำเร็จ กรุณาลองใหม่', zh: 'LINE 登录未完成，请重试。' },
       ));
+    });
+    return () => { live = false; };
+  }, []);
+
+  /* Coming back from Google: the same round trip as LINE, its own fragment. */
+  React.useEffect(() => {
+    let live = true;
+    void finishGoogleSignIn().then((r) => {
+      if (!live || r.kind === 'none') return;
+      if (r.kind === 'signed-in') { onLoginSuccess?.('traveller'); return; }
+      setErrorMessage(t(googleFailureMessage(r.kind)));
     });
     return () => { live = false; };
   }, []);
@@ -410,7 +427,13 @@ export function LoginScreen({
 
             {/* Alternative Authentication: Google */}
             <Pressable
-              onPress={() => setOauthNoticeProvider('Google')}
+              onPress={() => {
+                // Web: a real sign-in, unless this is LINE's (or another app's)
+                // built-in browser, where Google refuses and says so badly.
+                if (googleSignInAvailable() && !insideAppBrowser()) { startGoogleSignIn(); return; }
+                setGoogleInApp(googleSignInAvailable());
+                setOauthNoticeProvider('Google');
+              }}
               accessibilityRole="button"
               accessibilityLabel={t({ en: 'Sign in with Google', th: 'เข้าสู่ระบบด้วย Google', zh: '使用 Google 登录' })}
               style={({ pressed }) => [
@@ -552,7 +575,7 @@ export function LoginScreen({
             </View>
             <Text style={styles.modalBody}>
               {oauthNoticeProvider === 'Google'
-                ? t({ en: 'Google sign-in is not enabled on this server.', th: 'เซิร์ฟเวอร์นี้ยังไม่ได้เปิดใช้งานการเข้าสู่ระบบด้วย Google', zh: '此服务器尚未启用 Google 登录。' })
+                ? t(googleInApp ? GOOGLE_IN_APP_NOTICE : GOOGLE_WEB_ONLY_NOTICE)
                 : t({ en: 'LINE sign-in is available on the web version when LINE OAuth is configured on the server.', th: 'การเข้าสู่ระบบด้วย LINE ใช้งานได้บนเว็บเมื่อเซิร์ฟเวอร์ตั้งค่า LINE OAuth แล้ว', zh: '服务器配置 LINE OAuth 后，可在网页版使用 LINE 登录。' })}
               {'\n\n'}
               {t({ en: 'Sign in with your username, email or phone number and password.', th: 'เข้าสู่ระบบด้วยชื่อผู้ใช้ อีเมล หรือเบอร์โทรศัพท์และรหัสผ่าน', zh: '请使用用户名、邮箱或手机号和密码登录。' })}
