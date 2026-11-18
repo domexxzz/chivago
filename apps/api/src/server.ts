@@ -46,7 +46,7 @@ import {
   listShops, ownReview, ownedShop, recordShopEvent, recordShopTap, replyReview, reportShopReview,
   saveReview as saveShopReview, saveShop, shopStats,
 } from './local-business-service.ts';
-import { NO_BYTES, mediaBytes, storeMedia, type MediaTable } from './media-store.ts';
+import { mediaBytes, storeMedia, type MediaTable } from './media-store.ts';
 import { blobStore } from './blob-store.ts';
 import { logger } from 'hono/logger';
 
@@ -1578,8 +1578,8 @@ app.post('/shops/:id/guide-document', async (c) => {
   if (!mime || bytes.length > 5 * 1024 * 1024) return fail(c, 'INVALID_DOCUMENT', 'ใช้ไฟล์ JPG, PNG หรือ WebP ไม่เกิน 5MB', 415);
   const id = randomUUID();
   await storeThenRecord('local_guide_documents', id, bytes, (key) => transact(db, () => {
-    db.prepare('INSERT INTO local_guide_documents(id,shop_id,mime_type,bytes,storage_key,uploaded_at) VALUES(?,?,?,?,?,?) ON CONFLICT(shop_id) DO UPDATE SET id=excluded.id,mime_type=excluded.mime_type,bytes=excluded.bytes,storage_key=excluded.storage_key,uploaded_at=excluded.uploaded_at')
-      .run(id, shopId, mime, NO_BYTES, key, new Date().toISOString());
+    db.prepare("INSERT INTO local_guide_documents(id,shop_id,mime_type,bytes,storage_key,uploaded_at) VALUES(?,?,?,x'',?,?) ON CONFLICT(shop_id) DO UPDATE SET id=excluded.id,mime_type=excluded.mime_type,bytes=excluded.bytes,storage_key=excluded.storage_key,uploaded_at=excluded.uploaded_at")
+      .run(id, shopId, mime, key, new Date().toISOString());
     db.prepare("UPDATE local_shops SET guide_status='pending',guide_reviewed_at=NULL,guide_reviewed_by=NULL,updated_at=? WHERE id=?").run(new Date().toISOString(), shopId);
   }));
   return ok(c, { uploaded: true, reviewStatus: 'pending' });
@@ -1601,8 +1601,8 @@ app.post('/shops/:id/guide-photo', async (c) => {
   const id = randomUUID();
   const now = new Date().toISOString();
   await storeThenRecord('local_guide_profile_photos', id, bytes, (key) => transact(db, () => {
-    db.prepare('INSERT INTO local_guide_profile_photos(id,shop_id,mime_type,bytes,storage_key,uploaded_at) VALUES(?,?,?,?,?,?) ON CONFLICT(shop_id) DO UPDATE SET id=excluded.id,mime_type=excluded.mime_type,bytes=excluded.bytes,storage_key=excluded.storage_key,uploaded_at=excluded.uploaded_at')
-      .run(id, shopId, mime, NO_BYTES, key, now);
+    db.prepare("INSERT INTO local_guide_profile_photos(id,shop_id,mime_type,bytes,storage_key,uploaded_at) VALUES(?,?,?,x'',?,?) ON CONFLICT(shop_id) DO UPDATE SET id=excluded.id,mime_type=excluded.mime_type,bytes=excluded.bytes,storage_key=excluded.storage_key,uploaded_at=excluded.uploaded_at")
+      .run(id, shopId, mime, key, now);
     db.prepare("UPDATE local_shops SET guide_status='pending',guide_reviewed_at=NULL,guide_reviewed_by=NULL,updated_at=? WHERE id=?").run(now, shopId);
   }));
   return ok(c, { id, url: `/shops/guide-photos/${id}` });
@@ -1644,8 +1644,8 @@ app.post('/shops/:id/images', async (c) => {
   const id = randomUUID();
   await storeThenRecord('local_shop_media', id, bytes, (key) => transact(db, () => {
     if (kind === 'cover' || kind === 'review') db.prepare('DELETE FROM local_shop_media WHERE shop_id=? AND kind=? AND review_id IS ?').run(shopId, kind, reviewId ?? null);
-    db.prepare('INSERT INTO local_shop_media(id,shop_id,review_id,kind,mime_type,bytes,storage_key,created_at) VALUES(?,?,?,?,?,?,?,?)')
-      .run(id, shopId, reviewId ?? null, kind ?? '', mime, NO_BYTES, key, new Date().toISOString());
+    db.prepare("INSERT INTO local_shop_media(id,shop_id,review_id,kind,mime_type,bytes,storage_key,created_at) VALUES(?,?,?,?,?,x'',?,?)")
+      .run(id, shopId, reviewId ?? null, kind ?? '', mime, key, new Date().toISOString());
   }));
   return ok(c, { id, url: `/shops/media/${id}` });
 });

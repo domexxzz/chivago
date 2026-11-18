@@ -30,8 +30,15 @@ export const MEDIA_TABLES = {
 
 export type MediaTable = keyof typeof MEDIA_TABLES;
 
-/** What `bytes` holds once the photograph lives in the store. The column is NOT NULL. */
-export const NO_BYTES = new Uint8Array(0);
+/*
+  What `bytes` holds once the photograph lives in the store: an empty blob,
+  because the column is NOT NULL. It is written as the SQL literal x'' and
+  NEVER as a bound empty Uint8Array. SQLite's C API binds a zero-length blob
+  whose data pointer is null as NULL, and whether a runtime hands it a null
+  pointer for an empty buffer is that runtime's business. The tests run on
+  node:sqlite and could not tell; a literal leaves nothing to interpret, on
+  Node or on workerd.
+*/
 
 /**
  * How many bytes one pass may move.
@@ -133,8 +140,8 @@ export async function migrateLegacyMedia(
         rather than left for somebody to find.
       */
       const changed = Number(
-        db.prepare(`UPDATE ${table} SET storage_key = ?, bytes = ? WHERE id = ? AND storage_key IS NULL`)
-          .run(key, NO_BYTES, id).changes ?? 0,
+        db.prepare(`UPDATE ${table} SET storage_key = ?, bytes = x'' WHERE id = ? AND storage_key IS NULL`)
+          .run(key, id).changes ?? 0,
       );
       if (changed === 0) {
         await store.delete(key);
