@@ -48,8 +48,11 @@ export function userForLineSub(db: DB, sub: string): string | null {
   return r ? r.user_id : null;
 }
 
-/** Whether a traveller has anything worth keeping. A brand-new row is not a history. */
-function hasHistory(db: DB, userId: string): boolean {
+/**
+ * Whether a traveller has anything worth keeping. A brand-new row is not a history.
+ * Exported because google-identity.ts applies the same clash rule.
+ */
+export function hasHistory(db: DB, userId: string): boolean {
   const n = row<{ n: number }>(
     db.prepare('SELECT COUNT(*) AS n FROM ledger WHERE user_id = ?').get(userId),
   );
