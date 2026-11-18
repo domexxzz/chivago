@@ -139,7 +139,10 @@ async function post(url: string, body: URLSearchParams, fetchImpl: typeof fetch,
     const res = await fetchImpl(url, {
       method: 'POST',
       signal: ctl.signal,
-      redirect: 'error',
+      // 'manual', never 'error': workerd refuses 'error' outright, which made every
+      // LINE login throw before the request left. A 3xx has ok === false and is
+      // refused by the check below.
+      redirect: 'manual',
       headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
       body: body.toString(),
     });
