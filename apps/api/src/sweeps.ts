@@ -31,6 +31,7 @@ import { rotateEpochs } from './summon-service.ts';
 import { sweepOverdue } from './sla-service.ts';
 import { staleAssists } from './assist-service.ts';
 import { nothingToEscalate, sweep as escalationSweep } from './escalation-service.ts';
+import { drainMediaDeletions, migrateLegacyMedia } from './media-store.ts';
 
 /** One scheduled job. */
 export interface Sweep {
@@ -225,6 +226,35 @@ export function buildSweeps(deps: SweepDeps): Sweep[] {
           // Swallowed like the escalation sweep: a throw here must not stop
           // the process, and the worst case is somebody told late twice.
           console.error('[chivago] overdue sweep failed', err);
+        }
+      },
+    },
+    {
+      /**
+       * Photographs and the object store. Two jobs, deletions first:
+       *
+       *  - Remove from R2 whatever has already left the database. A deleted
+       *    review picture or a replaced guide licence is personal data that
+       *    must not outlive its row, so this goes before anything else.
+       *  - Move a budgeted handful of photographs stored before R2 out of the
+       *    Durable Object, which is the whole reason this exists. See
+       *    `media-store.ts`. Once they are all out, this reads nothing.
+       *
+       * Five minutes: neither job is urgent, and both are bounded per pass.
+       * Swallowed like the others; a failed pass leaves everything queued or
+       * unmoved for the next one, never half-done.
+       */
+      name: 'media',
+      everyMs: 300_000,
+      run: async () => {
+        try {
+          const removed = await drainMediaDeletions(db);
+          const { moved, bytes } = await migrateLegacyMedia(db);
+          if (removed + moved > 0) {
+            console.log(`[chivago] media: moved ${moved} (${bytes} bytes) to the object store, removed ${removed}`);
+          }
+        } catch (err) {
+          console.error('[chivago] media sweep failed', err);
         }
       },
     },

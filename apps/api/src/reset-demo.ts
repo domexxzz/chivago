@@ -158,6 +158,13 @@ export const TRAVELLER_TABLES = [
   // database through a demo reset would keep a scan of somebody's card for a
   // shop that no longer exists.
   'local_guide_documents', 'local_guide_profile_photos',
+  //
+  // The daily view and tap counters go with the shop they count. They look
+  // like operator content - they are the numbers an owner quotes - but every
+  // one of them was produced by a traveller this reset is about to remove, and
+  // a demo that opens with four hundred views and nobody who made them is
+  // worse than one that opens at zero.
+  'local_shop_daily_stats',
   'local_shop_media', 'local_shop_review_reports', 'local_shop_reviews', 'local_shops',
   'users',
 ] as const;
@@ -226,6 +233,30 @@ export const KEPT_TABLES = [
   // The audit trail records what an administrator did. It is operational
   // evidence, not traveller state, and deliberately survives a demo reset.
   'admin_audit_log',
+  /*
+    What a camera reported, and the links to the pictures.
+
+    Not a traveller's doing - no row here references `users` at all - and the
+    same kind of record as a partner's planting: something a machine on the
+    island observed, with the imagery held by whoever owns the camera.
+
+    It is also the only measurement of how often that machine is wrong. The
+    one false-alarm figure we have from Sentiara is 62%, from a test house on
+    the mainland (docs/sentiara-integration-questions.md, answer 16), and
+    `incidentCounts` replaces it with Ko Sichang's own rate counted from
+    decisions people actually made. A demo reset that wiped those decisions
+    would quietly destroy the evidence for whether the camera pipeline should
+    be trusted at all, which is worth considerably more than a tidy demo.
+  */
+  'camera_incidents', 'camera_incident_evidence',
+  /*
+    The queue of photographs to remove from R2. KEPT, and a reset is the
+    reason: clearing `local_shop_media` fires the triggers that fill it, so
+    the queue is exactly how a reset's photographs leave the object store. A
+    reset that also cleared the queue would wipe the rows and leave every
+    picture behind in R2, unreachable and never deleted.
+  */
+  'media_deletions',
 ] as const;
 
 /**

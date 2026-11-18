@@ -43,8 +43,11 @@ import {
 import { resolveLineSignIn } from './line-identity.ts';
 import {
   ShopError, deleteReview as deleteShopReview, deleteShop, getShop, listReviews as listShopReviews,
-  listShops, ownReview, ownedShop, replyReview, reportShopReview, saveReview as saveShopReview, saveShop,
+  listShops, ownReview, ownedShop, recordShopEvent, recordShopTap, replyReview, reportShopReview,
+  saveReview as saveShopReview, saveShop, shopStats,
 } from './local-business-service.ts';
+import { mediaBytes, storeMedia, type MediaTable } from './media-store.ts';
+import { blobStore } from './blob-store.ts';
 import { logger } from 'hono/logger';
 
 import { row, transact, type DB } from './db.ts';
@@ -81,6 +84,10 @@ import { boardFeed, type BoardEntry } from '@chivago/core';
 import { monstersInArea } from './monster-service.ts';
 import { reportSighting, routesForArea } from './transit-service.ts';
 import { reviewsInArea } from './place-review-service.ts';
+import {
+  ForbiddenIncidentKind, IncidentAlreadyStored, InvalidIncident, receiveCameraIncident,
+} from './camera-incident-service.ts';
+import { MIN_SECRET_LENGTH, verifyIncidentSignature } from './incident-signature.ts';
 import { getCourts } from './courts.ts';
 import { getStalls } from './stalls.ts';
 import { getWeather } from './weather.ts';
@@ -398,6 +405,72 @@ app.get('/sos/live/:token', (c) => {
     'x-robots-tag': 'noindex, nofollow',
     'x-content-type-options': 'nosniff',
   });
+});
+
+/**
+ * The camera bridge: Sentiara's detector on Ko Sichang posts an incident here.
+ *
+ * Mounted OUTSIDE the traveller middleware for the same reason as the live
+ * page above - the caller has no account - but for the opposite kind of
+ * caller: a machine, proving itself with an HMAC over the raw body rather than
+ * with a token in a URL. See `incident-signature.ts` for the scheme and
+ * `camera-incident-service.ts` for why nothing here dispatches anybody.
+ *
+ * STATUS CODES ARE PART OF THE CONTRACT, not a style choice. Sentiara's outbox
+ * reads 2xx and 409 as delivered, retries 5xx/408/429 with backoff for 24
+ * hours, and drops anything else as refused (answer 4). So: 409 for a
+ * duplicate, which stops a day of pointless retries; 503 when this deployment
+ * has no secret to check against, because that is our fault and worth
+ * retrying; 400 and 422 only for payloads that would be just as wrong next
+ * time.
+ */
+app.post('/integrations/sentiara/incident', async (c, next) => {
+  const secret = process.env.CHIVAGO_SENTIARA_SECRET ?? '';
+  /*
+    Unarmed falls THROUGH to the normal 404, exactly as /admin/import does and
+    for the same reason: a distinctive refusal announces that the route exists.
+    There is also nothing honest to do with an unverifiable incident - storing
+    it would put a claim on the desk that nobody can attribute - and Sentiara's
+    own sender is off until a secret is set, so the two sides are symmetrical.
+  */
+  if (secret.length < MIN_SECRET_LENGTH) return next();
+
+  // The RAW bytes, before any parse. Re-serialising the body changes it and
+  // the signature is over what they sent.
+  const body = await c.req.text();
+  const verdict = verifyIncidentSignature({
+    secret,
+    timestamp: c.req.header('x-sentiara-timestamp'),
+    signature: c.req.header('x-sentiara-signature'),
+    body,
+  });
+  if (!verdict.ok) {
+    // The reason goes to the log, never to the caller: telling an
+    // unauthenticated poster that the secret was right and only the clock was
+    // wrong is a free oracle.
+    console.warn('[chivago] sentiara incident refused:', verdict.reason);
+    return fail(c, 'UNAUTHORIZED', 'That request is not signed for this deployment.', 401);
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return fail(c, 'BAD_REQUEST', 'The body is not JSON.');
+  }
+
+  try {
+    return ok(c, receiveCameraIncident(db, parsed));
+  } catch (err) {
+    if (err instanceof IncidentAlreadyStored) {
+      return fail(c, 'INCIDENT_ALREADY_STORED', 'That incident is already on file.', 409);
+    }
+    if (err instanceof ForbiddenIncidentKind) {
+      return fail(c, 'FORBIDDEN_INCIDENT_KIND', err.message, 422);
+    }
+    if (err instanceof InvalidIncident) return fail(c, 'BAD_REQUEST', err.message);
+    throw err;
+  }
 });
 
 /*
@@ -1406,19 +1479,48 @@ app.get('/shops', (c) => {
   const data = listShops(db, q, userId(c));
   return ok(c, data, { total: data.length });
 });
-app.get('/shops/media/:id', (c) => {
-  const media = row<{ mime_type: string; bytes: Uint8Array; review_id: string | null }>(db.prepare(`SELECT m.mime_type,m.bytes,m.review_id FROM local_shop_media m
+/*
+  Put a photograph in the object store, then run the write that records its
+  key. The store is called first because it is async and a transaction is not;
+  if the write then throws, the object belongs to no row and is removed, not
+  left in R2 where nothing would ever find it again.
+*/
+async function storeThenRecord<T>(table: MediaTable, id: string, bytes: Uint8Array, record: (key: string) => T): Promise<T> {
+  const key = await storeMedia(table, id, bytes);
+  try {
+    return record(key);
+  } catch (err) {
+    await blobStore().delete(key).catch((cleanup) => console.error('[chivago] media: orphan left in the object store', key, cleanup));
+    throw err;
+  }
+}
+
+/*
+  A row that names an object the store no longer has answers 404. Logged,
+  because "the database says it exists and R2 says it does not" is something
+  an operator needs to hear about and a viewer cannot fix.
+*/
+async function servedMedia(stored: { bytes: Uint8Array | null; storage_key: string | null }): Promise<Uint8Array | null> {
+  const bytes = await mediaBytes(stored);
+  if (!bytes && stored.storage_key) console.error('[chivago] media: object missing from the store', stored.storage_key);
+  return bytes;
+}
+
+app.get('/shops/media/:id', async (c) => {
+  const media = row<{ mime_type: string; bytes: Uint8Array; storage_key: string | null; review_id: string | null }>(db.prepare(`SELECT m.mime_type,m.bytes,m.storage_key,m.review_id FROM local_shop_media m
     LEFT JOIN local_shop_reviews r ON r.id=m.review_id WHERE m.id=? AND (m.review_id IS NULL OR r.hidden_at IS NULL)`).get(c.req.param('id')));
   if (!media) return fail(c, 'NOT_FOUND', 'ไม่พบรูปภาพ', 404);
+  const bytes = await servedMedia(media);
+  if (!bytes) return fail(c, 'NOT_FOUND', 'ไม่พบรูปภาพ', 404);
   c.header('content-type', media.mime_type);
   c.header('cache-control', media.review_id ? 'no-store' : 'public, max-age=3600');
   c.header('x-content-type-options', 'nosniff');
-  return c.body(Buffer.from(media.bytes));
+  return c.body(Buffer.from(bytes));
 });
-app.get('/shops/guide-photos/:id', (c) => {
+app.get('/shops/guide-photos/:id', async (c) => {
   /* A guide profile photo is public while the guide profile is active. */
-  const photo = row<{ mime_type: string; bytes: Uint8Array; owner_id: string; active: number; guide_status: string }>(
-    db.prepare(`SELECT p.mime_type, p.bytes, s.owner_id, s.active, s.guide_status
+  const photo = row<{ mime_type: string; bytes: Uint8Array; storage_key: string | null; owner_id: string; active: number; guide_status: string }>(
+    db.prepare(`SELECT p.mime_type, p.bytes, p.storage_key, s.owner_id, s.active, s.guide_status
       FROM local_guide_profile_photos p JOIN local_shops s ON s.id = p.shop_id WHERE p.id = ?`).get(c.req.param('id')),
   );
   if (!photo) return fail(c, 'NOT_FOUND', 'ไม่พบรูปโปรไฟล์', 404);
@@ -1434,15 +1536,29 @@ app.get('/shops/guide-photos/:id', (c) => {
   if (!photo.active && photo.owner_id !== viewer) {
     return fail(c, 'NOT_FOUND', 'ไม่พบรูปโปรไฟล์', 404);
   }
+  const bytes = await servedMedia(photo);
+  if (!bytes) return fail(c, 'NOT_FOUND', 'ไม่พบรูปโปรไฟล์', 404);
   c.header('content-type', photo.mime_type);
   c.header('cache-control', 'no-store');
   c.header('x-content-type-options', 'nosniff');
-  return c.body(Buffer.from(photo.bytes));
+  return c.body(Buffer.from(bytes));
 });
 app.get('/shops/:id', (c) => {
   const shop = getShop(db, c.req.param('id'), userId(c));
-  return shop ? ok(c, shop) : fail(c, 'NOT_FOUND', 'ไม่พบร้านค้า', 404);
+  if (!shop) return fail(c, 'NOT_FOUND', 'ไม่พบร้านค้า', 404);
+  /*
+    The owner refreshing their own listing is not a visitor. Counting it is how
+    a statistics panel starts lying to the person who trusts it most.
+  */
+  if (!shop.owner) recordShopEvent(db, c.req.param('id'), 'view');
+  return ok(c, shop);
 });
+app.post('/shops/:id/tap', async (c) => {
+  const body = await c.req.json<{ kind?: unknown }>().catch(() => ({ kind: undefined }));
+  recordShopTap(db, c.req.param('id'), body.kind, userId(c));
+  return ok(c, { counted: true });
+});
+app.get('/shops/:id/stats', (c) => ok(c, shopStats(db, userId(c), c.req.param('id'))));
 app.post('/shops', async (c) => ok(c, saveShop(db, userId(c), await c.req.json<Record<string, unknown>>().catch(() => ({})))));
 app.put('/shops/:id', async (c) => ok(c, saveShop(db, userId(c), await c.req.json<Record<string, unknown>>().catch(() => ({})), c.req.param('id'))));
 app.delete('/shops/:id', (c) => { deleteShop(db, userId(c), c.req.param('id')); return ok(c, { deleted: true }); });
@@ -1461,11 +1577,11 @@ app.post('/shops/:id/guide-document', async (c) => {
       : bytes.toString('ascii', 0, 4) === 'RIFF' && bytes.toString('ascii', 8, 12) === 'WEBP' ? 'image/webp' : null;
   if (!mime || bytes.length > 5 * 1024 * 1024) return fail(c, 'INVALID_DOCUMENT', 'ใช้ไฟล์ JPG, PNG หรือ WebP ไม่เกิน 5MB', 415);
   const id = randomUUID();
-  transact(db, () => {
-    db.prepare('INSERT INTO local_guide_documents(id,shop_id,mime_type,bytes,uploaded_at) VALUES(?,?,?,?,?) ON CONFLICT(shop_id) DO UPDATE SET id=excluded.id,mime_type=excluded.mime_type,bytes=excluded.bytes,uploaded_at=excluded.uploaded_at')
-      .run(id, shopId, mime, bytes, new Date().toISOString());
+  await storeThenRecord('local_guide_documents', id, bytes, (key) => transact(db, () => {
+    db.prepare("INSERT INTO local_guide_documents(id,shop_id,mime_type,bytes,storage_key,uploaded_at) VALUES(?,?,?,x'',?,?) ON CONFLICT(shop_id) DO UPDATE SET id=excluded.id,mime_type=excluded.mime_type,bytes=excluded.bytes,storage_key=excluded.storage_key,uploaded_at=excluded.uploaded_at")
+      .run(id, shopId, mime, key, new Date().toISOString());
     db.prepare("UPDATE local_shops SET guide_status='pending',guide_reviewed_at=NULL,guide_reviewed_by=NULL,updated_at=? WHERE id=?").run(new Date().toISOString(), shopId);
-  });
+  }));
   return ok(c, { uploaded: true, reviewStatus: 'pending' });
 });
 app.post('/shops/:id/guide-photo', async (c) => {
@@ -1484,11 +1600,11 @@ app.post('/shops/:id/guide-photo', async (c) => {
   if (!mime || bytes.length > 5 * 1024 * 1024) return fail(c, 'INVALID_PHOTO', 'ใช้ไฟล์ JPG, PNG หรือ WebP ไม่เกิน 5MB', 415);
   const id = randomUUID();
   const now = new Date().toISOString();
-  transact(db, () => {
-    db.prepare('INSERT INTO local_guide_profile_photos(id,shop_id,mime_type,bytes,uploaded_at) VALUES(?,?,?,?,?) ON CONFLICT(shop_id) DO UPDATE SET id=excluded.id,mime_type=excluded.mime_type,bytes=excluded.bytes,uploaded_at=excluded.uploaded_at')
-      .run(id, shopId, mime, bytes, now);
+  await storeThenRecord('local_guide_profile_photos', id, bytes, (key) => transact(db, () => {
+    db.prepare("INSERT INTO local_guide_profile_photos(id,shop_id,mime_type,bytes,storage_key,uploaded_at) VALUES(?,?,?,x'',?,?) ON CONFLICT(shop_id) DO UPDATE SET id=excluded.id,mime_type=excluded.mime_type,bytes=excluded.bytes,storage_key=excluded.storage_key,uploaded_at=excluded.uploaded_at")
+      .run(id, shopId, mime, key, now);
     db.prepare("UPDATE local_shops SET guide_status='pending',guide_reviewed_at=NULL,guide_reviewed_by=NULL,updated_at=? WHERE id=?").run(now, shopId);
-  });
+  }));
   return ok(c, { id, url: `/shops/guide-photos/${id}` });
 });
 app.delete('/shops/:id/guide-photo', (c) => {
@@ -1526,11 +1642,11 @@ app.post('/shops/:id/images', async (c) => {
     if (count >= 12) return fail(c, 'PHOTO_LIMIT', 'รูปภายในร้านได้สูงสุด 12 รูป', 400);
   }
   const id = randomUUID();
-  transact(db, () => {
+  await storeThenRecord('local_shop_media', id, bytes, (key) => transact(db, () => {
     if (kind === 'cover' || kind === 'review') db.prepare('DELETE FROM local_shop_media WHERE shop_id=? AND kind=? AND review_id IS ?').run(shopId, kind, reviewId ?? null);
-    db.prepare('INSERT INTO local_shop_media(id,shop_id,review_id,kind,mime_type,bytes,created_at) VALUES(?,?,?,?,?,?,?)')
-      .run(id, shopId, reviewId ?? null, kind ?? '', mime, bytes, new Date().toISOString());
-  });
+    db.prepare("INSERT INTO local_shop_media(id,shop_id,review_id,kind,mime_type,bytes,storage_key,created_at) VALUES(?,?,?,?,?,x'',?,?)")
+      .run(id, shopId, reviewId ?? null, kind ?? '', mime, key, new Date().toISOString());
+  }));
   return ok(c, { id, url: `/shops/media/${id}` });
 });
 app.delete('/shops/:id/images/:imageId', (c) => {

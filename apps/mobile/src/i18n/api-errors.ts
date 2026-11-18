@@ -294,6 +294,24 @@ const EXACT: Readonly<Record<string, Localised>> = {
     '无法结束任务，请重试。',
   ),
   INTERNAL: message('The service had a problem. Please try again.', 'ระบบขัดข้อง กรุณาลองอีกครั้ง', '服务出现问题，请重试。'),
+
+  /*
+    CODES NO PHONE IS MEANT TO SEE.
+
+    `POST /integrations/sentiara/incident` answers a camera's bridge, not a
+    traveller, so nothing in the app renders these today. They are here because
+    the registry is the one place that lists every code the backend can return,
+    and `scripts/api-error-contract.test.mjs` holds that line: a code without a
+    row fails the build rather than reaching somebody as English, or as the
+    generic sentence that explains nothing.
+
+    So the copy is written for the case that is not supposed to happen - a
+    person somehow seeing one - and says what occurred without inventing a
+    cause or an instruction they cannot act on.
+  */
+  UNAUTHORIZED: message('This request was not accepted.', 'คำขอนี้ไม่ได้รับการยอมรับ', '此请求未被接受。'),
+  INCIDENT_ALREADY_STORED: message('This report is already on file.', 'รายงานนี้ถูกบันทึกไว้แล้ว', '此报告已存档。'),
+  FORBIDDEN_INCIDENT_KIND: message('This kind of report is not accepted.', 'ไม่รับรายงานประเภทนี้', '不接受此类报告。'),
 };
 
 const INVALID = message('Check the information and try again.', 'ตรวจสอบข้อมูลแล้วลองอีกครั้ง', '请检查信息后重试。');

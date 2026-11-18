@@ -47,7 +47,7 @@ describe('getStalls', () => {
     const svc = fakeService(() => answer([stall()]));
     const r = await ask(svc.fetchImpl);
     assert.equal(svc.asked[0], `${BASE}/api/shop-status?slugs=demo`);
-    assert.equal(svc.inits[0]?.redirect, 'error', 'a redirect is not followed to another host');
+    assert.equal(svc.inits[0]?.redirect, 'manual', 'a redirect is not followed to another host (and never as error, which workerd refuses)');
     assert.equal(r.provider, 'sangkon');
     assert.equal(r.provenance, 'live');
     assert.equal(r.observedAt, new Date(T0).toISOString());

@@ -2392,6 +2392,36 @@ export function migrate(db: DB): string[] {
     applied.push('concierge_conversations', 'concierge_messages');
   }
 
+  /*
+    What a shop is told about itself, stored as a daily rollup.
+
+    Every paid tier sells "สถิติร้าน", and until now the platform produced a
+    profile view every time a tourist opened a shop and discarded it.
+
+    A ROW PER EVENT is the obvious shape and the wrong one here. Every table in
+    this pilot lives inside ONE Durable Object, and a SQLite-backed object stops
+    accepting writes - all writes, for the whole platform - at 10 GB. An event
+    log grows without a ceiling inside a database that has one. This keeps at
+    most three rows per shop per day however busy the day gets: 100 shops for a
+    year is on the order of a hundred thousand rows, which is nothing.
+
+    It also records no viewer. A shop needs to know how many, never who, and
+    the column that would answer "who" is the one we would have to justify
+    holding. There isn't one.
+  */
+  if (!hasTable(db, 'local_shop_daily_stats')) {
+    db.exec(`
+      CREATE TABLE local_shop_daily_stats (
+        shop_id TEXT NOT NULL REFERENCES local_shops(id) ON DELETE CASCADE,
+        day     TEXT NOT NULL,
+        kind    TEXT NOT NULL CHECK(kind IN ('view','phone','route')),
+        count   INTEGER NOT NULL DEFAULT 0 CHECK(count >= 0),
+        PRIMARY KEY (shop_id, day, kind)
+      );
+    `);
+    applied.push('local_shop_daily_stats');
+  }
+
   /* One fixed-size bucket protects the shared Groq credential across users. */
   if (!hasTable(db, 'concierge_provider_quota')) {
     db.exec(`
@@ -2402,6 +2432,64 @@ export function migrate(db: DB): string[] {
       );
     `);
     applied.push('concierge_provider_quota');
+  }
+
+  /*
+    PHOTOGRAPHS LEAVE THE DATABASE.
+
+    The whole platform is one Durable Object with a 10 GB ceiling, and when it
+    fills, SQLITE_FULL stops every write on the island - check-ins, quests,
+    SOS - not just the table that grew. A photograph is the one row that can
+    be five megabytes, so these three tables were the fastest road there.
+
+    `storage_key` names the object in R2 that holds the bytes. A row that has
+    one keeps an EMPTY blob in `bytes`: the column is NOT NULL, and lifting
+    that would mean rebuilding the table, which copies every photograph once
+    more inside the very object this exists to relieve. ADD COLUMN copies
+    nothing.
+
+    A row with no key is from before the move and is still served from
+    `bytes`. `media-store.ts` moves those a few megabytes at a time from the
+    alarm, and the partial index below is how it finds them without reading
+    every row on every pass - rows read are what Durable Objects bill.
+  */
+  for (const table of ['local_shop_media', 'local_guide_profile_photos', 'local_guide_documents']) {
+    if (!hasColumn(db, table, 'storage_key')) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN storage_key TEXT`);
+      applied.push(`${table}.storage_key`);
+    }
+  }
+
+  /*
+    WHAT HAS LEFT THE DATABASE MUST LEAVE THE OBJECT STORE.
+
+    A review picture somebody deleted, a guide's licence that was replaced:
+    under PDPA those have to go, and there are more ways to remove a row than
+    there are routes - replacing a cover, deleting a shop, deleting an account,
+    and every ON DELETE CASCADE behind them. Route code sees only its own
+    deletes. A trigger sees all of them, and writes the key here in the same
+    transaction as the delete, so a key cannot be lost between the two. The
+    alarm then removes the object and the row.
+  */
+  if (!hasTable(db, 'media_deletions')) {
+    db.exec(`
+      CREATE TABLE media_deletions (
+        key       TEXT PRIMARY KEY,
+        queued_at TEXT NOT NULL
+      );
+    `);
+    applied.push('media_deletions');
+  }
+  for (const table of ['local_shop_media', 'local_guide_profile_photos', 'local_guide_documents']) {
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS ${table}_queues_deleted_media
+        AFTER DELETE ON ${table} WHEN old.storage_key IS NOT NULL
+        BEGIN INSERT OR IGNORE INTO media_deletions(key, queued_at) VALUES (old.storage_key, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')); END;
+      CREATE TRIGGER IF NOT EXISTS ${table}_queues_replaced_media
+        AFTER UPDATE OF storage_key ON ${table} WHEN old.storage_key IS NOT NULL AND old.storage_key IS NOT new.storage_key
+        BEGIN INSERT OR IGNORE INTO media_deletions(key, queued_at) VALUES (old.storage_key, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')); END;
+      CREATE INDEX IF NOT EXISTS idx_${table}_unmoved ON ${table}(id) WHERE storage_key IS NULL;
+    `);
   }
 
   return applied;

@@ -275,6 +275,83 @@ CREATE TABLE IF NOT EXISTS air_cache (
   pm25       REAL,
   fetched_at TEXT NOT NULL
 );
+
+-- Incidents a camera's AI reported, from Sentiara's detector on the island.
+-- See camera-incident-service.ts for the whole argument; three decisions are
+-- visible in the columns and worth stating here.
+--
+-- NOT IN sos_alerts. That table's user_id is NOT NULL and references
+-- users, because a SOS is a person pressing a button. A camera incident has
+-- no person, and the way to force one in is to invent a system user - which
+-- would land camera traffic inside every count, rate and dashboard that reads
+-- sos_alerts and quietly corrupt the numbers the SOS module exists to keep
+-- honest.
+--
+-- id IS SENTIARA'S OWN incidentId, so the primary key does the
+-- de-duplication for us: the same incident re-sent is an INSERT that fails,
+-- which is precisely the 409 their outbox treats as "already delivered".
+--
+-- review_state AND outcome_sent_at ARE SEPARATE FACTS. One is what a human
+-- decided; the other is whether telling Sentiara about it actually succeeded.
+-- Collapsing them would let the desk show a decision as reported when the
+-- callback never went out, and sos-service.ts already settles that argument
+-- for this codebase.
+CREATE TABLE IF NOT EXISTS camera_incidents (
+  id                TEXT PRIMARY KEY,
+  source            TEXT NOT NULL,
+  kind              TEXT NOT NULL,
+  detector_version  TEXT,
+  camera_id         TEXT NOT NULL,
+  camera_owner      TEXT,
+  -- Nullable: a camera whose coordinates nobody recorded still gets to report.
+  -- Say "position unknown" on the desk, never (0, 0).
+  lat               REAL,
+  lng               REAL,
+  location_accuracy TEXT,
+  -- Frigate's 0..1 score, UNCALIBRATED (answer 14). Fine for ordering a queue,
+  -- useless as a probability, and never a threshold for acting without a human.
+  confidence        REAL,
+  provenance        TEXT NOT NULL,
+  description       TEXT NOT NULL,
+  observed_at       TEXT NOT NULL,
+  received_at       TEXT NOT NULL,
+  -- camera + kind + coarse time bucket. Sentiara's id already merges repeats
+  -- inside a 10-minute window; this merges across the seam between windows,
+  -- which they flagged themselves in answer 5.
+  dedupe_key        TEXT NOT NULL,
+  review_state      TEXT NOT NULL,
+  reviewed_by       TEXT,
+  reviewed_at       TEXT,
+  -- Set ONLY when the callback to Sentiara came back 2xx or 409.
+  outcome_sent_at   TEXT,
+  outcome_attempts  INTEGER NOT NULL DEFAULT 0,
+  outcome_error     TEXT,
+  -- The earlier incident this one was folded into, or NULL when it stands on
+  -- its own. A folded row is kept in full - the record of what the camera sent
+  -- is not ours to discard - it simply does not become a second job.
+  merged_into       TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_camera_incident_queue
+  ON camera_incidents(review_state, observed_at);
+CREATE INDEX IF NOT EXISTS idx_camera_incident_dedupe
+  ON camera_incidents(dedupe_key, observed_at);
+CREATE INDEX IF NOT EXISTS idx_camera_incident_outcome
+  ON camera_incidents(review_state, outcome_sent_at);
+
+-- The evidence for an incident: signed links with an expiry, never bytes.
+-- The whole platform is one Durable Object with a 10 GB ceiling, and filling
+-- it stops every write on the platform with SQLITE_FULL, so camera imagery
+-- stays on Sentiara's box and we hold a URL that stops working after 24 hours
+-- (answer 8). expires_at is stored so the desk can say "the link has
+-- expired" instead of showing a broken image and implying there is proof.
+CREATE TABLE IF NOT EXISTS camera_incident_evidence (
+  incident_id TEXT NOT NULL REFERENCES camera_incidents(id) ON DELETE CASCADE,
+  position    INTEGER NOT NULL,
+  kind        TEXT NOT NULL,
+  ref         TEXT NOT NULL,
+  expires_at  TEXT,
+  PRIMARY KEY (incident_id, position)
+);
 `;
 
 
@@ -301,7 +378,7 @@ CREATE TABLE IF NOT EXISTS air_cache (
  * number. `db-schema-version.test.ts` fails when you forget, which is the only
  * reason this is safe to rely on.
  */
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 9;
 
 /**
  * Open the API's database on Durable Object storage, building the schema and

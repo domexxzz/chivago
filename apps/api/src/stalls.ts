@@ -106,7 +106,9 @@ async function fetchJson(url: string, fetchImpl: typeof fetch, timeoutMs: number
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
     // No redirects: the answer comes from the service this app was set to ask, or not at all.
-    const res = await fetchImpl(url, { signal: ctl.signal, redirect: 'error', headers: { accept: 'application/json' } });
+    // 'manual', never 'error': workerd refuses 'error' and throws before the request leaves.
+    // A 3xx comes back with ok === false, so the throw below still refuses it.
+    const res = await fetchImpl(url, { signal: ctl.signal, redirect: 'manual', headers: { accept: 'application/json' } });
     if (!res.ok) throw new Error(`upstream ${res.status}`);
     return JSON.parse(await readCapped(res));
   } finally {
