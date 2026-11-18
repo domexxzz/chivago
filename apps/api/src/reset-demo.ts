@@ -233,6 +233,22 @@ export const KEPT_TABLES = [
   // The audit trail records what an administrator did. It is operational
   // evidence, not traveller state, and deliberately survives a demo reset.
   'admin_audit_log',
+  /*
+    What a camera reported, and the links to the pictures.
+
+    Not a traveller's doing - no row here references `users` at all - and the
+    same kind of record as a partner's planting: something a machine on the
+    island observed, with the imagery held by whoever owns the camera.
+
+    It is also the only measurement of how often that machine is wrong. The
+    one false-alarm figure we have from Sentiara is 62%, from a test house on
+    the mainland (docs/sentiara-integration-questions.md, answer 16), and
+    `incidentCounts` replaces it with Ko Sichang's own rate counted from
+    decisions people actually made. A demo reset that wiped those decisions
+    would quietly destroy the evidence for whether the camera pipeline should
+    be trusted at all, which is worth considerably more than a tidy demo.
+  */
+  'camera_incidents', 'camera_incident_evidence',
 ] as const;
 
 /**

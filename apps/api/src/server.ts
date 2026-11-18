@@ -82,6 +82,10 @@ import { boardFeed, type BoardEntry } from '@chivago/core';
 import { monstersInArea } from './monster-service.ts';
 import { reportSighting, routesForArea } from './transit-service.ts';
 import { reviewsInArea } from './place-review-service.ts';
+import {
+  ForbiddenIncidentKind, IncidentAlreadyStored, InvalidIncident, receiveCameraIncident,
+} from './camera-incident-service.ts';
+import { MIN_SECRET_LENGTH, verifyIncidentSignature } from './incident-signature.ts';
 import { getCourts } from './courts.ts';
 import { getStalls } from './stalls.ts';
 import { getWeather } from './weather.ts';
@@ -399,6 +403,72 @@ app.get('/sos/live/:token', (c) => {
     'x-robots-tag': 'noindex, nofollow',
     'x-content-type-options': 'nosniff',
   });
+});
+
+/**
+ * The camera bridge: Sentiara's detector on Ko Sichang posts an incident here.
+ *
+ * Mounted OUTSIDE the traveller middleware for the same reason as the live
+ * page above - the caller has no account - but for the opposite kind of
+ * caller: a machine, proving itself with an HMAC over the raw body rather than
+ * with a token in a URL. See `incident-signature.ts` for the scheme and
+ * `camera-incident-service.ts` for why nothing here dispatches anybody.
+ *
+ * STATUS CODES ARE PART OF THE CONTRACT, not a style choice. Sentiara's outbox
+ * reads 2xx and 409 as delivered, retries 5xx/408/429 with backoff for 24
+ * hours, and drops anything else as refused (answer 4). So: 409 for a
+ * duplicate, which stops a day of pointless retries; 503 when this deployment
+ * has no secret to check against, because that is our fault and worth
+ * retrying; 400 and 422 only for payloads that would be just as wrong next
+ * time.
+ */
+app.post('/integrations/sentiara/incident', async (c, next) => {
+  const secret = process.env.CHIVAGO_SENTIARA_SECRET ?? '';
+  /*
+    Unarmed falls THROUGH to the normal 404, exactly as /admin/import does and
+    for the same reason: a distinctive refusal announces that the route exists.
+    There is also nothing honest to do with an unverifiable incident - storing
+    it would put a claim on the desk that nobody can attribute - and Sentiara's
+    own sender is off until a secret is set, so the two sides are symmetrical.
+  */
+  if (secret.length < MIN_SECRET_LENGTH) return next();
+
+  // The RAW bytes, before any parse. Re-serialising the body changes it and
+  // the signature is over what they sent.
+  const body = await c.req.text();
+  const verdict = verifyIncidentSignature({
+    secret,
+    timestamp: c.req.header('x-sentiara-timestamp'),
+    signature: c.req.header('x-sentiara-signature'),
+    body,
+  });
+  if (!verdict.ok) {
+    // The reason goes to the log, never to the caller: telling an
+    // unauthenticated poster that the secret was right and only the clock was
+    // wrong is a free oracle.
+    console.warn('[chivago] sentiara incident refused:', verdict.reason);
+    return fail(c, 'UNAUTHORIZED', 'That request is not signed for this deployment.', 401);
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return fail(c, 'BAD_REQUEST', 'The body is not JSON.');
+  }
+
+  try {
+    return ok(c, receiveCameraIncident(db, parsed));
+  } catch (err) {
+    if (err instanceof IncidentAlreadyStored) {
+      return fail(c, 'INCIDENT_ALREADY_STORED', 'That incident is already on file.', 409);
+    }
+    if (err instanceof ForbiddenIncidentKind) {
+      return fail(c, 'FORBIDDEN_INCIDENT_KIND', err.message, 422);
+    }
+    if (err instanceof InvalidIncident) return fail(c, 'BAD_REQUEST', err.message);
+    throw err;
+  }
 });
 
 /*
