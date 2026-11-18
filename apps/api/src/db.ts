@@ -301,7 +301,7 @@ CREATE TABLE IF NOT EXISTS air_cache (
  * number. `db-schema-version.test.ts` fails when you forget, which is the only
  * reason this is safe to rely on.
  */
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 /**
  * Open the API's database on Durable Object storage, building the schema and

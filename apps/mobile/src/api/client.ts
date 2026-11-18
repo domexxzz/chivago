@@ -9,7 +9,7 @@
 import { strings } from '@chivago/core';
 import type { DrawnItem, Lang } from '@chivago/core';
 import { Platform } from 'react-native';
-import type { Shop, ShopDetail, ShopInput, ShopReview } from './shops.ts';
+import type { Shop, ShopDetail, ShopInput, ShopReview, ShopStats } from './shops.ts';
 import { adoptKey, forgetKey, loadDeviceKey } from './account.ts';
 import { t } from '../i18n/locale.ts';
 import { apiErrorMessage } from '../i18n/api-errors.ts';
@@ -482,6 +482,13 @@ export const api = {
     return get<Shop[]>(`/shops${params.size ? `?${params}` : ''}`);
   },
   shop: (id: string) => get<ShopDetail>(`/shops/${encodeURIComponent(id)}`),
+  /*
+    Dialling a number and opening a map leave the app, so the server never sees
+    them. These are the only two the client has to report; a view is counted
+    where the profile is served and is refused from here.
+  */
+  recordShopTap: (id: string, kind: 'phone' | 'route') => post<{ counted: boolean }>(`/shops/${encodeURIComponent(id)}/tap`, { kind }),
+  shopStats: (id: string) => get<ShopStats>(`/shops/${encodeURIComponent(id)}/stats`),
   createShop: (body: ShopInput) => post<ShopDetail>('/shops', body),
   updateShop: (id: string, body: ShopInput) => put<ShopDetail>(`/shops/${encodeURIComponent(id)}`, body),
   deleteShop: (id: string) => del<{ deleted: boolean }>(`/shops/${encodeURIComponent(id)}`),

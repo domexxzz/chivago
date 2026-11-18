@@ -88,6 +88,19 @@ export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onE
   const [messageTone, setMessageTone] = React.useState<'success' | 'error' | 'warning'>('error');
   const { width } = useWindowDimensions();
   const canManage = !guest && shop.data?.owner === true;
+  /*
+    A tap on Call or Get directions leaves the app, so the server never learns
+    it happened unless we say so. Failures are swallowed on purpose: a counter
+    that cannot be written must never stand between a customer and a phone call.
+  */
+  const tap = (kind: 'phone' | 'route') => { if (!canManage) void api.recordShopTap(shopId, kind).catch(() => {}); };
+  /* Only the owner may read these, so a visitor never spends a request to be told so. */
+  const stats = useAsync(
+    () => canManage
+      ? api.shopStats(shopId)
+      : Promise.resolve({ ok: false as const, code: 'NOT_OWNER', error: '' }),
+    [shopId, canManage],
+  );
   const loadReviews = React.useCallback(async (next?: string) => {
     setLoadingReviews(true); setReviewsError(null);
     try {
@@ -173,8 +186,23 @@ export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onE
           {shop.data.serviceType !== 'guide' ? <View style={{ marginTop: 14, borderTopWidth: 1, borderTopColor: '#E1ECF0' }}>
             <View style={{ minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: 1, borderBottomColor: '#E1ECF0' }}><Clock size={19} color="#123B64" /><Text style={{ flex: 1, color: '#123B64', fontWeight: '700' }}>{t({ en: 'Open status', th: 'สถานะเปิดบริการ', zh: '营业状态' })}</Text><View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: !offlineStamp && shopOpenNow(shop.data.openingHours) ? '#16A34A' : '#94A3B8' }} /><Text style={{ color: !offlineStamp && shopOpenNow(shop.data.openingHours) ? '#15803D' : '#64748B', fontWeight: '700' }}>{offlineStamp ? t({ en: 'Unavailable offline', th: 'ไม่ทราบขณะออฟไลน์', zh: '离线不可用' }) : shopOpenNow(shop.data.openingHours) ? t({ en: 'Open now', th: 'เปิดอยู่', zh: '营业中' }) : t({ en: 'Closed / unknown', th: 'ปิดอยู่/ไม่ระบุ', zh: '已打烊/不确定' })}</Text></View>
             <View style={{ minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: 1, borderBottomColor: '#E1ECF0' }}><Clock size={19} color="#123B64" /><Text style={{ flex: 1, color: '#123B64', fontWeight: '700' }}>{t({ en: 'Opening hours', th: 'เวลาให้บริการ', zh: '营业时间' })}</Text><Text style={{ color: '#52748A' }}>{shop.data.openingHours || t({ en: 'Not provided', th: 'ยังไม่ระบุ', zh: '未填写' })}</Text></View>
-            {shop.data.phone ? <Pressable onPress={() => void Linking.openURL(`tel:${shop.data!.phone}`)} style={{ minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: shop.data.email ? 1 : 0, borderBottomColor: '#E1ECF0' }}><Phone size={19} color="#123B64" /><Text style={{ flex: 1, color: '#123B64', fontWeight: '700' }}>{t({ en: 'Call', th: 'โทรติดต่อ', zh: '电话联系' })}</Text><Text style={{ color: blue }}>{shop.data.phone}</Text></Pressable> : null}
+            {shop.data.phone ? <Pressable onPress={() => { tap('phone'); void Linking.openURL(`tel:${shop.data!.phone}`); }} style={{ minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 12, borderBottomWidth: shop.data.email ? 1 : 0, borderBottomColor: '#E1ECF0' }}><Phone size={19} color="#123B64" /><Text style={{ flex: 1, color: '#123B64', fontWeight: '700' }}>{t({ en: 'Call', th: 'โทรติดต่อ', zh: '电话联系' })}</Text><Text style={{ color: blue }}>{shop.data.phone}</Text></Pressable> : null}
             {shop.data.email ? <Pressable onPress={() => void Linking.openURL(`mailto:${shop.data!.email}`)} style={{ minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 12 }}><Mail size={19} color="#123B64" /><Text style={{ flex: 1, color: '#123B64', fontWeight: '700' }}>{t({ en: 'Email', th: 'อีเมล', zh: '邮箱' })}</Text><Text numberOfLines={1} style={{ maxWidth: '58%', color: blue }}>{shop.data.email}</Text></Pressable> : null}
+          </View> : null}
+          {canManage && stats.data ? <View style={{ marginTop: 14, borderTopWidth: 1, borderTopColor: '#E1ECF0', paddingTop: 14 }}>
+            <Text style={{ color: '#123B64', fontWeight: '800', fontSize: 15 }}>{t({ en: 'Last 30 days', th: 'สถิติ 30 วันล่าสุด', zh: '最近 30 天' })}</Text>
+            <Text style={{ color: '#64748B', fontSize: 12, marginTop: 2, marginBottom: 11 }}>{t({ en: 'Visitors only. Your own visits are not counted, and we never record who they were.', th: 'นับเฉพาะผู้มาเยี่ยมชม ไม่นับการเปิดดูของคุณเอง และไม่เก็บว่าเป็นใคร', zh: '仅统计访客，不含您自己的访问，也不记录是谁。' })}</Text>
+            <View style={{ flexDirection: 'row', gap: 9 }}>
+              {([
+                { value: stats.data.totals.view, label: { en: 'Profile views', th: 'เปิดดูร้าน', zh: '浏览' } },
+                { value: stats.data.totals.phone, label: { en: 'Call taps', th: 'กดโทร', zh: '点击电话' } },
+                { value: stats.data.totals.route, label: { en: 'Directions', th: 'กดนำทาง', zh: '点击导航' } },
+              ] as const).map((tile) => <View key={tile.label.en} style={{ flex: 1, minWidth: 0, backgroundColor: '#F0F9FD', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 10 }}>
+                <Text style={{ color: blue, fontWeight: '800', fontSize: 23 }}>{tile.value}</Text>
+                <Text style={{ color: '#52748A', fontSize: 12, marginTop: 2 }} numberOfLines={2}>{t(tile.label)}</Text>
+              </View>)}
+            </View>
+            {stats.data.totals.view === 0 ? <Text style={{ color: '#64748B', fontSize: 12, marginTop: 10 }}>{t({ en: 'Nobody has opened this profile yet. Numbers appear the day they do.', th: 'ยังไม่มีใครเปิดดูร้านนี้ ตัวเลขจะขึ้นในวันที่มีคนเข้ามา', zh: '还没有人打开过此资料。有人访问当天即会显示数字。' })}</Text> : null}
           </View> : null}
           {canManage ? <Pressable onPress={() => { if (canManage) onEdit(); }} style={[button, { marginTop: 14 }]}><Text style={{ color: '#fff' }}>{t(shop.data.serviceType === 'guide' ? { en: 'Edit guide profile', th: 'แก้ไขโปรไฟล์ไกด์', zh: '编辑导游资料' } : { en: 'Edit business', th: 'แก้ไขร้านค้า', zh: '编辑店铺' })}</Text></Pressable> : null}
         </View>
@@ -221,6 +249,7 @@ export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onE
           <Pressable
             onPress={() => {
               const place = shop.data!;
+              tap('route');
               if (onNavigate) { onNavigate({ id: place.id, name: place.name, lat: place.lat!, lng: place.lng! }); return; }
               void Linking.openURL(mapsDirectionsUrl({ lat: place.lat!, lng: place.lng! }));
             }}

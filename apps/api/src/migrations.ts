@@ -2392,6 +2392,36 @@ export function migrate(db: DB): string[] {
     applied.push('concierge_conversations', 'concierge_messages');
   }
 
+  /*
+    What a shop is told about itself, stored as a daily rollup.
+
+    Every paid tier sells "สถิติร้าน", and until now the platform produced a
+    profile view every time a tourist opened a shop and discarded it.
+
+    A ROW PER EVENT is the obvious shape and the wrong one here. Every table in
+    this pilot lives inside ONE Durable Object, and a SQLite-backed object stops
+    accepting writes - all writes, for the whole platform - at 10 GB. An event
+    log grows without a ceiling inside a database that has one. This keeps at
+    most three rows per shop per day however busy the day gets: 100 shops for a
+    year is on the order of a hundred thousand rows, which is nothing.
+
+    It also records no viewer. A shop needs to know how many, never who, and
+    the column that would answer "who" is the one we would have to justify
+    holding. There isn't one.
+  */
+  if (!hasTable(db, 'local_shop_daily_stats')) {
+    db.exec(`
+      CREATE TABLE local_shop_daily_stats (
+        shop_id TEXT NOT NULL REFERENCES local_shops(id) ON DELETE CASCADE,
+        day     TEXT NOT NULL,
+        kind    TEXT NOT NULL CHECK(kind IN ('view','phone','route')),
+        count   INTEGER NOT NULL DEFAULT 0 CHECK(count >= 0),
+        PRIMARY KEY (shop_id, day, kind)
+      );
+    `);
+    applied.push('local_shop_daily_stats');
+  }
+
   /* One fixed-size bucket protects the shared Groq credential across users. */
   if (!hasTable(db, 'concierge_provider_quota')) {
     db.exec(`

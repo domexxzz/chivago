@@ -68,6 +68,80 @@ export function ownedShop(db: DB, uid: string, id: string) {
   if (shop.owner_id !== uid) throw new ShopError('FORBIDDEN', 'จัดการได้เฉพาะร้านของตนเอง', 403);
 }
 
+/**
+ * The three things a shop is told about. `view` is recorded by the server when
+ * a profile is served; the other two are the taps a client has to report,
+ * because dialling a number and opening a map never reach us.
+ */
+export const SHOP_EVENT_KINDS = ['view', 'phone', 'route'] as const;
+export type ShopEventKind = (typeof SHOP_EVENT_KINDS)[number];
+
+/** How far back the owner's panel looks. One month reads as "this month" without a date picker. */
+export const STATS_WINDOW_DAYS = 30;
+
+const dayOf = (when: Date) => when.toISOString().slice(0, 10);
+
+/**
+ * Add one to today's counter. Upsert rather than read-then-write: two tourists
+ * tapping at once must not lose a count to each other.
+ */
+export function recordShopEvent(db: DB, shopId: string, kind: ShopEventKind, when = new Date()) {
+  db.prepare(
+    `INSERT INTO local_shop_daily_stats(shop_id, day, kind, count) VALUES(?, ?, ?, 1)
+     ON CONFLICT(shop_id, day, kind)
+     DO UPDATE SET count = local_shop_daily_stats.count + 1`,
+  ).run(shopId, dayOf(when), kind);
+}
+
+/**
+ * A tap reported by a client. `view` is refused here on purpose: it is the
+ * server's to record, and accepting it from a client would let anyone inflate
+ * the one number a shop is most likely to quote.
+ */
+export function recordShopTap(db: DB, shopId: string, kind: unknown, viewer?: string) {
+  const valid = typeof kind === 'string' && kind !== 'view'
+    && (SHOP_EVENT_KINDS as readonly string[]).includes(kind);
+  if (!valid) throw new ShopError('INVALID_KIND', 'ชนิดการกดไม่ถูกต้อง', 400);
+  const shop = row<{ owner_id: string }>(db.prepare('SELECT owner_id FROM local_shops WHERE id = ?').get(shopId));
+  if (!shop) throw new ShopError('NOT_FOUND', 'ไม่พบร้านค้า', 404);
+  // Same rule as a view: the owner testing their own buttons is not a customer.
+  if (shop.owner_id === viewer) return;
+  recordShopEvent(db, shopId, kind as ShopEventKind);
+}
+
+/**
+ * The owner's panel. Days with no activity are left out rather than padded:
+ * the caller draws a chart and knows its own date range, and sending thirty
+ * rows of zeros to say nothing happened is thirty rows of nothing.
+ */
+export function shopStats(db: DB, uid: string, shopId: string, now = new Date()) {
+  ownedShop(db, uid, shopId);
+  const since = dayOf(new Date(now.getTime() - (STATS_WINDOW_DAYS - 1) * 86_400_000));
+  const counted = rows<{ day: string; kind: string; count: number }>(
+    db.prepare(
+      `SELECT day, kind, count FROM local_shop_daily_stats
+       WHERE shop_id = ? AND day >= ? ORDER BY day`,
+    ).all(shopId, since),
+  );
+
+  const blank = () => Object.fromEntries(SHOP_EVENT_KINDS.map((k) => [k, 0])) as Record<ShopEventKind, number>;
+  const byDay = new Map<string, Record<ShopEventKind, number>>();
+  for (const entry of counted) {
+    const day = byDay.get(entry.day) ?? blank();
+    if ((SHOP_EVENT_KINDS as readonly string[]).includes(entry.kind)) day[entry.kind as ShopEventKind] = entry.count;
+    byDay.set(entry.day, day);
+  }
+
+  const totals = blank();
+  for (const day of byDay.values()) for (const kind of SHOP_EVENT_KINDS) totals[kind] += day[kind];
+  return {
+    windowDays: STATS_WINDOW_DAYS,
+    since,
+    days: [...byDay.entries()].map(([day, counts]) => ({ day, ...counts })),
+    totals,
+  };
+}
+
 export function listShops(db: DB, q: Record<string, string | undefined>, viewer?: string) {
   const owner = q.owner === 'me' ? viewer : undefined;
   if (q.owner === 'me' && !owner) return [];

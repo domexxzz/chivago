@@ -13,6 +13,17 @@ export interface Shop {
   guideStatus: 'not_required' | 'pending' | 'approved' | 'rejected'; hasGuideDocument: boolean;
 }
 export interface ShopDetail extends Shop { images: { id: string; kind: string; url: string }[] }
+
+/** The three things a shop is told about itself. Counts only - never who. */
+export type ShopEventKind = 'view' | 'phone' | 'route';
+export interface ShopStatsDay { day: string; view: number; phone: number; route: number }
+export interface ShopStats {
+  windowDays: number;
+  since: string;
+  /** Only days something happened. A quiet day is absent, not a row of zeros. */
+  days: ShopStatsDay[];
+  totals: { view: number; phone: number; route: number };
+}
 export interface ShopReview {
   id: string; rating: number; body: string; author: string; mine: boolean;
   ownerReply: string | null; createdAt: string; updatedAt: string; photoUrl: string | null;

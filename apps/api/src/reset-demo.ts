@@ -158,6 +158,13 @@ export const TRAVELLER_TABLES = [
   // database through a demo reset would keep a scan of somebody's card for a
   // shop that no longer exists.
   'local_guide_documents', 'local_guide_profile_photos',
+  //
+  // The daily view and tap counters go with the shop they count. They look
+  // like operator content - they are the numbers an owner quotes - but every
+  // one of them was produced by a traveller this reset is about to remove, and
+  // a demo that opens with four hundred views and nobody who made them is
+  // worse than one that opens at zero.
+  'local_shop_daily_stats',
   'local_shop_media', 'local_shop_review_reports', 'local_shop_reviews', 'local_shops',
   'users',
 ] as const;
