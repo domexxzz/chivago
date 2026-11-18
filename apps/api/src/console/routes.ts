@@ -95,6 +95,7 @@ import {
   type ActivityFacts, type KpiMeasure, type Placement,
 } from '@chivago/core';
 import { flaggedModerators, moderatorWatch } from '../moderator-watch.ts';
+import { mediaBytes } from '../media-store.ts';
 import { isModerationReasonKey } from '@chivago/core';
 import {
   InvalidAdminAction, adminCounts, adminPlaces, adminPosts, adminUsers, editAdminUser,
@@ -1969,13 +1970,19 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
     }).join('');
     return c.html(`<!doctype html><html lang="${en ? 'en' : 'th'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${en ? 'Guide approvals' : 'ตรวจสอบโปรไฟล์ไกด์'}</title><link rel="stylesheet" href="/console/assets/modernist.css"></head><body style="padding:24px;max-width:900px;margin:auto;background:#edf6f9"><nav><a href="/console/shop-reviews">← ${en ? 'Shop review reports' : 'รายงานรีวิวร้านค้า'}</a></nav><h1>${en ? 'Guide profiles awaiting approval' : 'โปรไฟล์ไกด์ที่รอตรวจสอบ'}</h1><p>${en ? 'Approval does NOT control visibility. A guide profile is public as soon as its owner marks it active, whether it was approved, rejected, or never reviewed — approving or rejecting here records your decision and changes nothing a traveller sees. To take a profile down, deactivate it. License images are private and accessible to moderators only.' : 'การอนุมัติ “ไม่ได้” ควบคุมการแสดงผล โปรไฟล์ไกด์จะเป็นสาธารณะทันทีที่เจ้าของตั้งเป็น active ไม่ว่าจะอนุมัติ ปฏิเสธ หรือยังไม่เคยตรวจ — การกดอนุมัติหรือปฏิเสธที่นี่เป็นการบันทึกการตัดสินใจของคุณ และไม่เปลี่ยนสิ่งที่นักท่องเที่ยวเห็น หากต้องการเอาโปรไฟล์ลง ให้ปิดสถานะ active ภาพใบอนุญาตเป็นข้อมูลส่วนตัวและผู้ดูแลเท่านั้นที่เปิดดูได้'}</p>${entries || `<p>${en ? 'No guide profiles are waiting for review. Expect this list to stay empty: nothing in the app can add to it any more, because the licence and profile-photo upload screens were removed. An empty list does not mean every guide has been checked.' : 'ไม่มีโปรไฟล์ไกด์ที่รอตรวจสอบ และรายการนี้มีแนวโน้มจะว่างตลอด เพราะไม่มีส่วนใดในแอปที่เพิ่มเข้ามาได้อีก หน้าจออัปโหลดใบอนุญาตและรูปโปรไฟล์ถูกถอดออกไปแล้ว รายการว่างไม่ได้หมายความว่าไกด์ทุกคนถูกตรวจแล้ว'}</p>`}</body></html>`);
   });
-  app.get('/guides/:id/license', (c) => {
+  app.get('/guides/:id/license', async (c) => {
     if (!requireModerator(c)) return c.html(messagePage(localeFor(c), 'moderatorsOnly', 'moderatorsOnlyBlurb'), 403);
-    const doc = db.prepare(`SELECT d.mime_type,d.bytes FROM local_guide_documents d JOIN local_shops s ON s.id=d.shop_id
-      WHERE d.shop_id=? AND s.service_type='guide'`).get(c.req.param('id')) as { mime_type: string; bytes: Uint8Array } | undefined;
+    const doc = db.prepare(`SELECT d.mime_type,d.bytes,d.storage_key FROM local_guide_documents d JOIN local_shops s ON s.id=d.shop_id
+      WHERE d.shop_id=? AND s.service_type='guide'`).get(c.req.param('id')) as { mime_type: string; bytes: Uint8Array; storage_key: string | null } | undefined;
     if (!doc) return c.text('Not found', 404);
+    // The licence may live in the object store now; see media-store.ts.
+    const bytes = await mediaBytes(doc);
+    if (!bytes) {
+      if (doc.storage_key) console.error('[chivago] media: licence missing from the object store', doc.storage_key);
+      return c.text('Not found', 404);
+    }
     c.header('content-type', doc.mime_type); c.header('cache-control', 'private, no-store'); c.header('x-content-type-options', 'nosniff');
-    return c.body(Buffer.from(doc.bytes));
+    return c.body(Buffer.from(bytes));
   });
   app.post('/guides/:id/decide', async (c) => {
     const session = requireModerator(c);

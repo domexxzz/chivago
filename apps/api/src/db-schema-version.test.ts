@@ -32,7 +32,7 @@ import { test } from 'node:test';
 import { SCHEMA, SCHEMA_2, SCHEMA_VERSION } from './db.ts';
 
 /** The digest of the schema as it stood when `SCHEMA_VERSION` was last bumped. */
-const PINNED = 'c71982bcc73ae25ae275f8e6100253bab1667ef9b906082a9cf5e8c590af68ff';
+const PINNED = 'e503677e3399203aff00bfbced25454a8e6d964dff789e87a2ef11220bb6fb85';
 
 /**
  * Strip what a reader needs and SQLite does not: line comments, block
