@@ -17,8 +17,13 @@
  */
 
 import {
-  NO_WEATHER, areaByKey, isAreaKey, weatherFromOpenMeteo, type AreaKey, type AreaWeather,
+  NO_WEATHER, areaByKey, isAreaKey, marineFromOpenMeteo, weatherFromOpenMeteo,
+  type AreaKey, type AreaWeather,
 } from '@chivago/core';
+import {
+  readKohSichangObservation, readTmdNwp, readTmdWarnings, tmdNwpUrl,
+  tmdObservationUrl, tmdWarningUrl, type TmdConfig,
+} from './tmd-weather.ts';
 
 const FORECAST_API = 'https://api.open-meteo.com/v1/forecast';
 const MARINE_API = 'https://marine-api.open-meteo.com/v1/marine';
@@ -35,11 +40,15 @@ export const STALE_MAX_MS = 3 * 3_600_000;
 const TIMEOUT_MS = 4000;
 /** Two small current-readings. An answer far bigger is not one. */
 const MAX_BODY_BYTES = 32 * 1024;
+/** Station lists and warning narratives are larger than two Open-Meteo current readings. */
+const MAX_TMD_BODY_BYTES = 512 * 1024;
 
 export interface WeatherOptions {
   now?: number;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  /** Tests may inject credentials; null explicitly disables TMD. */
+  tmd?: TmdConfig | null;
 }
 
 const cache = new Map<string, { at: number; value: AreaWeather }>();
@@ -55,8 +64,14 @@ export function __resetWeather(): void {
 
 const SOURCE = 'Open-Meteo · forecast and marine';
 
+const tmdFromEnvironment = (): TmdConfig => ({
+  uid: process.env.TMD_API_UID,
+  apiKey: process.env.TMD_API_KEY,
+  nwpToken: process.env.TMD_NWP_TOKEN,
+});
+
 /** The answer's text, refused past the cap: the stream is cancelled, not drained. */
-async function readCapped(res: Response): Promise<string> {
+async function readCapped(res: Response, maxBytes = MAX_BODY_BYTES): Promise<string> {
   if (!res.body) return '';
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -66,25 +81,35 @@ async function readCapped(res: Response): Promise<string> {
     const { done, value } = await reader.read();
     if (done) return text + decoder.decode();
     size += value.byteLength;
-    if (size > MAX_BODY_BYTES) {
+    if (size > maxBytes) {
       await reader.cancel();
-      throw new Error(`answer over ${MAX_BODY_BYTES} bytes`);
+      throw new Error(`answer over ${maxBytes} bytes`);
     }
     text += decoder.decode(value, { stream: true });
   }
 }
 
 /** Fetch with a hard timeout and a size cap. A forecast must never hang or swamp a screen. */
-async function fetchJson(url: string, fetchImpl: typeof fetch, timeoutMs: number): Promise<unknown> {
+async function fetchJson(
+  url: string,
+  fetchImpl: typeof fetch,
+  timeoutMs: number,
+  headers: Record<string, string> = {},
+  maxBytes = MAX_BODY_BYTES,
+): Promise<unknown> {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
     // No redirects: the answer comes from the service this app was set to ask, or not at all.
     // 'manual', never 'error': workerd refuses 'error' and throws before the request leaves.
     // A 3xx comes back with ok === false, so the throw below still refuses it.
-    const res = await fetchImpl(url, { signal: ctl.signal, redirect: 'manual', headers: { accept: 'application/json' } });
+    const res = await fetchImpl(url, {
+      signal: ctl.signal,
+      redirect: 'manual',
+      headers: { accept: 'application/json', ...headers },
+    });
     if (!res.ok) throw new Error(`upstream ${res.status}`);
-    return JSON.parse(await readCapped(res));
+    return JSON.parse(await readCapped(res, maxBytes));
   } finally {
     clearTimeout(timer);
   }
@@ -117,7 +142,7 @@ export async function getWeather(area: AreaKey, opts: WeatherOptions = {}): Prom
 
   // The last figures, said to be old while they are hours old - or none, said to be none.
   const stale = (): AreaWeather => (hit && now - hit.at < STALE_MAX_MS
-    ? { ...hit.value, provenance: 'stale' }
+    ? { ...hit.value, provenance: 'stale', officialAlertStatus: 'unavailable', officialAlerts: [] }
     : { ...NO_WEATHER, source: SOURCE });
   if (now - (failedAt.get(area) ?? -Infinity) < RETRY_AFTER_MS) return stale();
 
@@ -128,21 +153,49 @@ export async function getWeather(area: AreaKey, opts: WeatherOptions = {}): Prom
     const { lat, lng } = areaByKey(area).center;
     const impl = opts.fetchImpl ?? fetch;
     const timeout = opts.timeoutMs ?? TIMEOUT_MS;
+    const tmd = opts.tmd === undefined ? tmdFromEnvironment() : opts.tmd ?? {};
+    const useTmd = area === 'koh-sichang';
+    const observationUrl = useTmd ? tmdObservationUrl(tmd) : null;
+    const warningUrl = useTmd ? tmdWarningUrl(tmd) : null;
+    const nwpUrl = useTmd && tmd.nwpToken?.trim() ? tmdNwpUrl(lat, lng, now) : null;
     try {
-      const [forecast, marine] = await Promise.all([
-        fetchJson(forecastUrl(lat, lng), impl, timeout),
-        // The sea may fail by itself; the sky is what decides there is a reading.
+      const [forecast, marine, observationPayload, nwpPayload, warningResult] = await Promise.all([
+        fetchJson(forecastUrl(lat, lng), impl, timeout).catch(() => null),
         fetchJson(marineUrl(lat, lng), impl, timeout).catch(() => null),
+        observationUrl
+          ? fetchJson(observationUrl, impl, timeout, {}, MAX_TMD_BODY_BYTES).catch(() => null)
+          : Promise.resolve(null),
+        nwpUrl
+          ? fetchJson(nwpUrl, impl, timeout, { authorization: `Bearer ${tmd.nwpToken!.trim()}` }, MAX_TMD_BODY_BYTES).catch(() => null)
+          : Promise.resolve(null),
+        warningUrl
+          ? fetchJson(warningUrl, impl, timeout, {}, MAX_TMD_BODY_BYTES)
+            .then((payload) => ({ ok: true as const, payload }))
+            .catch(() => ({ ok: false as const, payload: null }))
+          : Promise.resolve({ ok: false as const, payload: null }),
       ]);
-      const read = weatherFromOpenMeteo(forecast, marine, TZ_OFFSET, now);
-      if (!read) throw new Error('not a forecast answer');
+      const openMeteo = weatherFromOpenMeteo(forecast, marine, TZ_OFFSET, now);
+      const tmdAir = readKohSichangObservation(observationPayload, now) ?? readTmdNwp(nwpPayload, now);
+      if (!openMeteo && !tmdAir) throw new Error('not a weather answer');
+      const sea = marineFromOpenMeteo(marine);
+      const alerts = warningResult.ok ? readTmdWarnings(warningResult.payload) : [];
       const value: AreaWeather = {
         provenance: 'live',
-        // The feed's own step time when it gave a usable one - that is when
-        // the figures describe, and a slow hop should not hide it.
-        observedAt: new Date(read.observedAt ?? now).toISOString(),
-        source: SOURCE,
-        ...read.figures,
+        observedAt: new Date(tmdAir?.observedAt ?? openMeteo?.observedAt ?? now).toISOString(),
+        source: tmdAir ? `${tmdAir.source} · คลื่น Open-Meteo Marine` : SOURCE,
+        provider: tmdAir?.provider ?? 'open-meteo',
+        readingKind: tmdAir?.kind ?? 'forecast',
+        officialAlertStatus: warningResult.ok ? (alerts.length ? 'active' : 'none') : 'unavailable',
+        officialAlerts: alerts,
+        ...sea,
+        tempC: tmdAir?.tempC ?? openMeteo?.figures.tempC ?? null,
+        rainMm: tmdAir?.rainMm ?? openMeteo?.figures.rainMm ?? null,
+        windKn: tmdAir?.windKn ?? openMeteo?.figures.windKn ?? null,
+        windDirectionDeg: tmdAir?.windDirectionDeg ?? openMeteo?.figures.windDirectionDeg ?? null,
+        relativeHumidityPct: tmdAir?.relativeHumidityPct ?? openMeteo?.figures.relativeHumidityPct ?? null,
+        // The staffed station does not publish a WMO present-weather code in
+        // this feed, so the icon may still use the model condition.
+        weatherCode: openMeteo?.figures.weatherCode ?? null,
       };
       cache.set(area, { at: now, value });
       failedAt.delete(area);
