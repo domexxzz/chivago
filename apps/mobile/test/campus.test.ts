@@ -76,6 +76,17 @@ const routes = () => ({
 let restore: (() => void) | null = null;
 afterEach(() => { restore?.(); restore = null; __setAreaForTests('samui'); });
 
+/*
+  On a phone, Home keeps the areas behind one "Area: …" button (the compact
+  header from #275): a list that opens downwards with every area in it and
+  none in a sideways scroller. A wider screen shows the chips inline and has
+  no such button. Either way an area is one tap from Home, which is the rule
+  these tests hold; only how that tap is reached changed.
+*/
+const openAreaMenu = async (ui: { find: (l: RegExp) => unknown; press: (l: RegExp) => Promise<void> }) => {
+  if (ui.find(/^Area: /)) await ui.press(/^Area: /);
+};
+
 describe('Home frames one area', () => {
   test('on the island it shows the island, and not the campus', async () => {
     __setAreaForTests('samui');
@@ -106,6 +117,7 @@ describe('Home frames one area', () => {
     __setAreaForTests('samui');
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, props));
+    await openAreaMenu(ui);
     await ui.pressText(/KU Sriracha/);
     assert.match(ui.text(), /Campus park/);
     assert.doesNotMatch(ui.text(), /Chaweng/);
@@ -116,6 +128,7 @@ describe('Home frames one area', () => {
     __setAreaForTests('samui');
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, props));
+    await openAreaMenu(ui);
     await ui.pressText(/KU Bangkhen/);
     const said = ui.text();
     assert.match(said, /Kasetsart University Library/);
@@ -285,6 +298,7 @@ describe('every area chip can be seen', () => {
     __setAreaForTests('samui');
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, props));
+    await openAreaMenu(ui);
     noHiddenChip(ui as never);
     ui.unmount();
   });
