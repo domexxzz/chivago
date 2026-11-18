@@ -43,7 +43,8 @@ import {
 import { resolveLineSignIn } from './line-identity.ts';
 import {
   ShopError, deleteReview as deleteShopReview, deleteShop, getShop, listReviews as listShopReviews,
-  listShops, ownReview, ownedShop, replyReview, reportShopReview, saveReview as saveShopReview, saveShop,
+  listShops, ownReview, ownedShop, recordShopEvent, recordShopTap, replyReview, reportShopReview,
+  saveReview as saveShopReview, saveShop, shopStats,
 } from './local-business-service.ts';
 import { logger } from 'hono/logger';
 
@@ -1429,8 +1430,20 @@ app.get('/shops/guide-photos/:id', (c) => {
 });
 app.get('/shops/:id', (c) => {
   const shop = getShop(db, c.req.param('id'), userId(c));
-  return shop ? ok(c, shop) : fail(c, 'NOT_FOUND', 'ไม่พบร้านค้า', 404);
+  if (!shop) return fail(c, 'NOT_FOUND', 'ไม่พบร้านค้า', 404);
+  /*
+    The owner refreshing their own listing is not a visitor. Counting it is how
+    a statistics panel starts lying to the person who trusts it most.
+  */
+  if (!shop.owner) recordShopEvent(db, c.req.param('id'), 'view');
+  return ok(c, shop);
 });
+app.post('/shops/:id/tap', async (c) => {
+  const body = await c.req.json<{ kind?: unknown }>().catch(() => ({ kind: undefined }));
+  recordShopTap(db, c.req.param('id'), body.kind, userId(c));
+  return ok(c, { counted: true });
+});
+app.get('/shops/:id/stats', (c) => ok(c, shopStats(db, userId(c), c.req.param('id'))));
 app.post('/shops', async (c) => ok(c, saveShop(db, userId(c), await c.req.json<Record<string, unknown>>().catch(() => ({})))));
 app.put('/shops/:id', async (c) => ok(c, saveShop(db, userId(c), await c.req.json<Record<string, unknown>>().catch(() => ({})), c.req.param('id'))));
 app.delete('/shops/:id', (c) => { deleteShop(db, userId(c), c.req.param('id')); return ok(c, { deleted: true }); });
