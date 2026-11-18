@@ -30,6 +30,8 @@ const EXPECTED: ReadonlyArray<readonly [name: string, everyMs: number]> = [
   ['stories', 3_600_000],
   ['epochs', 3_600_000],
   ['overdue', 3_600_000],
+  // Photographs to and from R2 - see media-store.ts. Bounded per pass, never urgent.
+  ['media', 300_000],
 ];
 
 const sweepsWithNothingToDo = (): Sweep[] =>
@@ -51,7 +53,7 @@ const spy = (name: string, everyMs: number, log: string[]): Sweep => ({
 });
 
 describe('the cadences that were in server.ts', () => {
-  test('all six are here, named and in order', () => {
+  test('all seven are here, named and in order', () => {
     const built = sweepsWithNothingToDo();
     assert.deepEqual(built.map((s) => [s.name, s.everyMs]), EXPECTED.map((e) => [...e]));
   });

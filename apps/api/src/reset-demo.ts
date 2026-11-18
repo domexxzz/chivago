@@ -249,6 +249,14 @@ export const KEPT_TABLES = [
     be trusted at all, which is worth considerably more than a tidy demo.
   */
   'camera_incidents', 'camera_incident_evidence',
+  /*
+    The queue of photographs to remove from R2. KEPT, and a reset is the
+    reason: clearing `local_shop_media` fires the triggers that fill it, so
+    the queue is exactly how a reset's photographs leave the object store. A
+    reset that also cleared the queue would wipe the rows and leave every
+    picture behind in R2, unreachable and never deleted.
+  */
+  'media_deletions',
 ] as const;
 
 /**
