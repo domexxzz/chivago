@@ -50,7 +50,7 @@ describe('getCourts', () => {
     const svc = fakeService(() => answer());
     const r = await ask(svc.fetchImpl);
     assert.equal(svc.asked[0], `${BASE}/api/court-status`);
-    assert.equal(svc.inits[0]?.redirect, 'error', 'a redirect is not followed to another host');
+    assert.equal(svc.inits[0]?.redirect, 'manual', 'a redirect is not followed to another host (and never as error, which workerd refuses)');
     assert.equal(r.provider, 'badminton-booking');
     assert.equal(r.provenance, 'live');
     assert.equal(r.observedAt, new Date(T0).toISOString());

@@ -54,7 +54,7 @@ describe('getWeather', () => {
     assert.equal(r.windKn, 3);
     assert.equal(r.weatherCode, 3);
     assert.equal(svc.asked.length, 2, 'the sky and the sea are two services');
-    assert.ok(svc.inits[0]?.redirect === 'error', 'a redirect is not followed to another host');
+    assert.ok(svc.inits[0]?.redirect === 'manual', 'a redirect is not followed to another host (and never as error, which workerd refuses)');
   });
 
   test('it asks for the area\'s own centre, in knots and on the island clock', async () => {
