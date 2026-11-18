@@ -810,9 +810,11 @@ function noteForOrder(pinned: boolean, located: boolean): string | undefined {
 function Places({
   places, shops, onOpenMap, onOpenPlace, onOpenShop, onOpenLocalPicks,
 }: { places: Async<ScoredPlace[]>; shops: Async<Shop[]>; onOpenMap: () => void; onOpenPlace: (id: string) => void; onOpenShop: (id: string) => void; onOpenLocalPicks?: () => void }) {
-  const [gridWidth, setGridWidth] = React.useState(0);
-  const columns = gridWidth >= 1200 ? 5 : gridWidth >= 960 ? 4 : gridWidth >= 700 ? 3 : gridWidth >= 380 ? 2 : 1;
-  const cardWidth = gridWidth > 0 ? (gridWidth - 16 * (columns - 1)) / columns : 280;
+  const { width } = useWindowDimensions();
+  // This is a rail, never a grid. Fixed, readable cards keep every result on
+  // one horizontal line and let touch and trackpad users keep
+  // moving right through the complete list without a second row appearing.
+  const cardWidth = width < 420 ? Math.min(280, width - gutter * 2 - 24) : width < 900 ? 280 : 300;
   const categories = [...new Set([...SHOP_CATEGORIES, 'กีฬาและนันทนาการ', ...(shops.data ?? []).map(shop => shop.category)])];
   const served = places.data ?? [];
   const [kind, setKind] = React.useState<'all' | 'places' | 'shops'>('all');
@@ -869,16 +871,20 @@ function Places({
       {places.error && kind !== 'shops' ? <Pressable onPress={places.reload} style={{ paddingHorizontal: gutter, paddingTop: 8 }}><Body size={13} colour="#B91C1C">{t({ en: 'Could not load places. Try again.', th: 'โหลดสถานที่ไม่สำเร็จ · ลองใหม่', zh: '地点加载失败 · 请重试' })}</Body></Pressable> : null}
       {shops.error && kind !== 'places' ? <Pressable onPress={shops.reload} style={{ paddingHorizontal: gutter, paddingTop: 8 }}><Body size={13} colour="#B91C1C">{t({ en: 'Could not load services. Try again.', th: 'โหลดบริการไม่สำเร็จ · ลองใหม่', zh: '服务加载失败 · 请重试' })}</Body></Pressable> : null}
       {loading ? <Body size={13} style={{ paddingHorizontal: gutter, paddingTop: 8 }}>{t({ en: 'Loading this area…', th: 'กำลังโหลดข้อมูลในพื้นที่...', zh: '正在加载这一带的信息…' })}</Body> : null}
-      <View onLayout={event => setGridWidth(event.nativeEvent.layout.width)} style={{ marginHorizontal: gutter }}>
       {shownPlaces.length || shownShops.length ? (
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingVertical: 16, alignItems: 'stretch' }}>
+      <ScrollView
+        testID="places-horizontal-list"
+        horizontal
+        directionalLockEnabled
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: gutter, gap: 16, paddingVertical: 16, alignItems: 'stretch' }}
+      >
         {shownPlaces.map((p) => (
           <PlaceCard key={p.id} width={cardWidth} place={p} here={here} onPress={() => onOpenPlace(p.id)} />
         ))}
         {shownShops.map((shop) => <ShopCard key={shop.id} width={cardWidth} shop={shop} onPress={() => onOpenShop(shop.id)} />)}
-      </View>
-      ) : !loading && !places.error && !shops.error ? <Body style={{ padding: 24, marginTop: 16, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#DCECF3', textAlign: 'center' }} colour={color.neutral700}>{kind === 'shops' ? (shopCategory ? t({ en: `No ${shopCategoryLabel(shopCategory)} services in this area yet.`, th: `ยังไม่มีบริการประเภท${shopCategoryLabel(shopCategory)}ในพื้นที่นี้`, zh: `这一带还没有${shopCategoryLabel(shopCategory)}服务。` }) : t({ en: 'No services in this area yet.', th: 'ยังไม่มีสถานบริการในพื้นที่นี้', zh: '这一带还没有服务。' })) : kind === 'places' ? t({ en: 'No places in this area yet.', th: 'ยังไม่มีสถานที่ในพื้นที่นี้', zh: '这一带还没有地点。' }) : t({ en: 'No places or services in this area yet.', th: 'ยังไม่มีสถานที่หรือบริการในพื้นที่นี้', zh: '这一带还没有地点或服务。' })}</Body> : null}
-      </View>
+      </ScrollView>
+      ) : !loading && !places.error && !shops.error ? <Body style={{ padding: 24, marginHorizontal: gutter, marginTop: 16, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#DCECF3', textAlign: 'center' }} colour={color.neutral700}>{kind === 'shops' ? (shopCategory ? t({ en: `No ${shopCategoryLabel(shopCategory)} services in this area yet.`, th: `ยังไม่มีบริการประเภท${shopCategoryLabel(shopCategory)}ในพื้นที่นี้`, zh: `这一带还没有${shopCategoryLabel(shopCategory)}服务。` }) : t({ en: 'No services in this area yet.', th: 'ยังไม่มีสถานบริการในพื้นที่นี้', zh: '这一带还没有服务。' })) : kind === 'places' ? t({ en: 'No places in this area yet.', th: 'ยังไม่มีสถานที่ในพื้นที่นี้', zh: '这一带还没有地点。' }) : t({ en: 'No places or services in this area yet.', th: 'ยังไม่มีสถานที่หรือบริการในพื้นที่นี้', zh: '这一带还没有地点或服务。' })}</Body> : null}
     </View>
   );
 }

@@ -182,6 +182,16 @@ describe('what Home says', () => {
     } finally { resetControl(); }
   });
 
+  test('places and services stay in one horizontally swipeable row', async () => {
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+    const rails = ui.root.findAll((node) => node.props.testID === 'places-horizontal-list');
+    const horizontalRail = rails.find((node) => node.props.horizontal === true);
+    assert.ok(horizontalRail, 'the places rail must scroll sideways');
+    assert.notEqual(horizontalRail.props.contentContainerStyle?.flexWrap, 'wrap', 'cards must not form a second row');
+    ui.unmount();
+  });
+
   test('the sea and sky are the feed\'s own figures, and inland has no waves tab', async () => {
     const sky = {
       provenance: 'live', observedAt: '2026-10-24T15:45:00.000Z', source: 'Open-Meteo · forecast and marine',
