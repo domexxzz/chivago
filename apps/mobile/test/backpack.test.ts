@@ -141,7 +141,16 @@ describe('discounts stay in the backpack with their real source', () => {
   });
 });
 
-describe('travel companions name only what the traveller holds', () => {
+describe('the mascot and pet collection names only what the traveller holds', () => {
+  test('the section is explicitly Mascot & Pet and not a Party feature', async () => {
+    const net = backpack();
+    restore = net.restore;
+    const ui = await mountScreen(h(WalletScreen, walletProps));
+    assert.match(ui.text(), /Mascot & Pet/);
+    assert.doesNotMatch(ui.text(), /Travel companions/);
+    ui.unmount();
+  });
+
   test('the supplied explorer and dog are independent controls that return to idle', async () => {
     // react-native-web reports reduced motion in Node. Override only this
     // interaction test; the production hook still honours the real setting.
@@ -221,7 +230,7 @@ describe('travel companions name only what the traveller holds', () => {
     const ui = await mountScreen(h(WalletScreen, walletProps));
     assert.match(ui.text(), /PET LOCKED/);
     assert.ok(
-      ui.labels().some((l) => /No travel pet yet/.test(l)),
+      ui.labels().some((l) => /No pet yet/.test(l)),
       'the empty state should say what it is, in words',
     );
     for (const species of Object.values(SPECIES)) {

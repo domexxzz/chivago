@@ -175,7 +175,7 @@ export function WalletScreen({
               >
                 <Balances wallet={wallet.data} embedded />
               </SectionPanel>
-              <TravelCompanions
+              <MascotAndPet
                 companions={companions.data?.companions ?? null}
                 province={province}
                 motionReady={companions.data !== null && passport.data !== null}
@@ -460,7 +460,7 @@ function SectionPanel({
   );
 }
 
-function TravelCompanions({
+function MascotAndPet({
   companions,
   province,
   motionReady,
@@ -496,7 +496,7 @@ function TravelCompanions({
       <View pointerEvents="none" style={{ position: 'absolute', inset: 7, borderRadius: 17, borderWidth: 1, borderColor: 'rgba(255,255,255,0.9)' }} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <BackpackIcon name="companions-badge" size={24} />
-        <Heading size={17} colour="#082E53">{t({ en: 'Travel companions', th: 'เพื่อนร่วมเดินทาง', zh: '旅行伙伴' })}</Heading>
+        <Heading size={17} colour="#082E53">{t({ en: 'Mascot & Pet', th: 'มาสคอตและสัตว์เลี้ยง', zh: '吉祥物与宠物' })}</Heading>
       </View>
       <InteractiveTravelDuo
         compact={compact}
@@ -572,20 +572,20 @@ function TravelCompanions({
             })}
           >
             <Creature species={pet.species.key} stage={pet.stage} size={58} />
-            <Label size={9} tracking={0.08} colour="#0B6386">{t({ en: 'PET', th: 'สัตว์เลี้ยง', zh: '伙伴' })}</Label>
+            <Label size={9} tracking={0.08} colour="#0B6386">{t({ en: 'PET', th: 'สัตว์เลี้ยง', zh: '宠物' })}</Label>
           </Pressable>
         ) : (
           <View
             accessible
             accessibilityLabel={t({
-              en: 'No travel pet yet. Check in anywhere to find your first egg.',
-              th: 'ยังไม่มีสัตว์เลี้ยงร่วมทาง เช็กอินที่ไหนก็ได้เพื่อพบไข่ใบแรก',
-              zh: '还没有旅行伙伴。在任何地方签到，找到你的第一颗蛋。',
+              en: 'No pet yet. Check in anywhere to find your first egg.',
+              th: 'ยังไม่มีสัตว์เลี้ยง เช็กอินที่ไหนก็ได้เพื่อพบไข่ใบแรก',
+              zh: '还没有宠物。在任何地方签到，找到你的第一颗蛋。',
             })}
             style={{ minHeight: compact ? 78 : 96, padding: 10, borderRadius: 18, borderWidth: 3, borderColor: '#7592AA', backgroundColor: '#EAF1F5', alignItems: 'center', justifyContent: 'center', gap: 6, shadowColor: '#183B59', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.16, shadowRadius: 7, elevation: 3 }}
           >
             <BackpackIcon name="lock" size={33} />
-            <Label size={9} tracking={0.08} colour="#607A91">{t({ en: 'PET LOCKED', th: 'ยังไม่มีสัตว์เลี้ยง', zh: '伙伴未解锁' })}</Label>
+            <Label size={9} tracking={0.08} colour="#607A91">{t({ en: 'PET LOCKED', th: 'ยังไม่มีสัตว์เลี้ยง', zh: '宠物未解锁' })}</Label>
           </View>
         )}
       </View>
