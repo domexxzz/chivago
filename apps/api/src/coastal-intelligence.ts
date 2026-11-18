@@ -84,16 +84,7 @@ async function fetchCurrent(fetchImpl: typeof fetch, timeoutMs: number): Promise
   try {
     const response = await fetchImpl(coastalCurrentUrl(), {
       signal: controller.signal,
-      /*
-        'manual', NOT 'error', and the difference is the whole feature.
-        Workers refuses 'error' outright - "it does not make sense at the
-        edge" - so every call threw, every answer was `unavailable`, and the
-        current never once reached a traveller. Node accepts it and the tests
-        inject their own fetch, so nothing below production ever ran this line.
-        The intent is unchanged: 'manual' hands the 3xx back as a response,
-        and `ok` is false for it, so the throw below still refuses a redirect.
-      */
-      redirect: 'manual',
+      redirect: 'error',
       headers: { accept: 'application/json' },
     });
     if (!response.ok) throw new Error(`upstream ${response.status}`);

@@ -261,7 +261,7 @@ const WAY_LINE = 'chivago-way-line';
 /** How often the pin names are re-decided while the camera is moving, in ms. */
 const RELABEL_MS = 200;
 const MARK_CSS = `
-.cg-pin{display:flex;flex-direction:column;align-items:center;cursor:pointer;border:0;background:none;padding:0;font-family:Anuphan,system-ui,sans-serif}
+.cg-pin{display:flex;flex-direction:column;align-items:center;cursor:pointer;border:0;background:none;padding:0;font-family:'Noto Sans Thai','Leelawadee UI',system-ui,sans-serif}
 .cg-place-pin{position:relative;display:flex;flex-direction:column;align-items:center;width:46px;height:51px;color:#fff}
 .cg-place-pin-core{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;width:42px;height:42px;
   border:3px solid #fff;border-radius:50%;background:var(--cg-place-colour);transition:transform .16s ease,box-shadow .16s ease;
@@ -289,7 +289,7 @@ const MARK_CSS = `
 .cg-shop-pin.cg-approx .cg-shop-pin-tail{opacity:.55}
 .cg-drift-point{width:34px;height:34px;border:3px solid #fff;border-radius:10px;padding:0;cursor:pointer;
   display:flex;align-items:center;justify-content:center;background:var(--cg-drift-colour);color:#102a3a;
-  font:800 12px/1 Anuphan,system-ui,sans-serif;box-shadow:0 4px 11px rgba(4,25,39,.42);transition:transform .15s ease}
+  font:700 12px/1.25 'Noto Sans Thai','Leelawadee UI',system-ui,sans-serif;box-shadow:0 4px 11px rgba(4,25,39,.42);transition:transform .15s ease}
 .cg-drift-point:hover,.cg-drift-point:focus-visible{transform:translateY(-2px) scale(1.12);outline:3px solid #8fe7ff;outline-offset:2px}
 .cg-approx-badge{position:absolute;z-index:2;top:-4px;right:-2px;width:18px;height:18px;border-radius:50%;
   background:${color.gold};color:#3b2a10;border:2px solid #fff;font:800 11px/14px system-ui,sans-serif;text-align:center}
@@ -325,7 +325,7 @@ const MARK_CSS = `
   background:${color.neutral200};border:2px solid ${color.bg}}
 .cg-night .cg-tale{box-shadow:0 0 0 1px rgba(255,255,255,.14),0 0 16px rgba(255,214,120,.5)}
 .cg-night .cg-place-pin-core,.cg-night .cg-shop-pin-core{box-shadow:0 0 0 2px rgba(255,255,255,.08),0 0 18px rgba(255,236,190,.55)}
-.cg-quest{display:flex;flex-direction:column;align-items:center;cursor:pointer;border:0;background:none;padding:0;width:56px;font-family:Anuphan,system-ui,sans-serif}
+.cg-quest{display:flex;flex-direction:column;align-items:center;cursor:pointer;border:0;background:none;padding:0;width:56px;font-family:'Noto Sans Thai','Leelawadee UI',system-ui,sans-serif}
 .cg-ring{position:absolute;top:2px;left:50%;width:34px;height:34px;margin-left:-17px;border-radius:50%;
   border:3px solid #f2b531;opacity:.8;animation:cg-pulse 2.4s ease-out infinite;will-change:transform,opacity}
 .cg-quest.cg-active .cg-ring{border-color:${color.brand};animation-duration:1.6s}
@@ -395,7 +395,7 @@ const MARK_CSS = `
   placed against the mark, for the same reason as everything above: the mark
   itself is MapLibre's to position.
 */
-.cg-lot{pointer-events:none;font-family:Anuphan,system-ui,sans-serif}
+.cg-lot{pointer-events:none;font-family:'Noto Sans Thai','Leelawadee UI',system-ui,sans-serif}
 .cg-lot i{display:block;width:12px;height:12px;border-radius:3px;background:var(--lot);border:2px solid #ffffff;box-shadow:0 1px 4px rgba(8,26,48,.45)}
 .cg-lot.cg-lot-free i{background:#ffffff;border-color:var(--lot)}
 .cg-lot.cg-lot-on i{width:20px;height:20px;border-radius:6px;box-shadow:0 0 0 3px ${color.brand},0 3px 10px rgba(8,26,48,.5)}
@@ -455,7 +455,7 @@ const COMPASS_SVG = `<svg viewBox="0 0 46 46" aria-hidden="true">
 <path d="M23 5 L27.5 23 L23 20 L18.5 23 Z" fill="${color.ctaDeep}"/>
 <path d="M23 41 L27.5 23 L23 26 L18.5 23 Z" fill="${color.neutral500}"/>
 <path d="M5 23 L23 18.5 L20 23 L23 27.5 Z M41 23 L23 18.5 L26 23 L23 27.5 Z" fill="${color.neutral400}"/>
-<text x="23" y="12.5" text-anchor="middle" font-family="Anuphan,system-ui,sans-serif" font-size="7" font-weight="700" fill="${color.text}">N</text>
+<text x="23" y="12.5" text-anchor="middle" font-family="Noto Sans Thai, Leelawadee UI, system-ui, sans-serif" font-size="7" font-weight="700" fill="${color.text}">N</text>
 </svg>`;
 const LOCATE_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true">
 <path d="M21 3 14.5 21l-3.2-7.3L4 10.5 21 3Z" fill="none" stroke="${color.brand}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
