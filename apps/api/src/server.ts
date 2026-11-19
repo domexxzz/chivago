@@ -35,6 +35,7 @@ import {
   // called at three in the morning.
   registerDevice as registerAccountDevice, resolveDevice, revokeDevice,
 } from './account-service.ts';
+import { deleteAccount } from './account-deletion.ts';
 import { loginUser, registerUser, UserAuthError } from './user-account-service.ts';
 import {
   LINE_OAUTH_COOKIE, OAUTH_TTL_MS, authorizeUrl, lineConfig, lineSubFor, packRound, sameToken,
@@ -1845,9 +1846,13 @@ app.put('/profile', async (c) => {
   return ok(c, getProfile(db, id));
 });
 
-/** PDPA right to erasure. Deleting the user cascades to every table. */
+/**
+ * PDPA right to erasure, behind the app's "Delete account" button. Not a
+ * bare `DELETE FROM users`: that threw for anyone active in somebody else's
+ * party. See account-deletion.ts.
+ */
 app.delete('/profile', (c) => {
-  db.prepare('DELETE FROM users WHERE id = ?').run(userId(c));
+  deleteAccount(db, userId(c));
   return ok(c, { deleted: true });
 });
 

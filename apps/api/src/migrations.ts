@@ -2493,6 +2493,21 @@ export function migrate(db: DB): string[] {
   }
 
   /*
+    Proof photographs, which the loop above missed. Their key is
+    `proof_files.storage_path`, and a proof row goes by CASCADE when its
+    traveller deletes their account - so without this the account went and
+    the photographs stayed in R2, which is the opposite of what the privacy
+    policy says. Found 19 November 2026 (account-deletion.test.ts). Rows from
+    before the blob store hold a filesystem path instead of a key; deleting a
+    key that does not exist is a no-op, so those drain harmlessly.
+  */
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS proof_files_queues_deleted_media
+      AFTER DELETE ON proof_files
+      BEGIN INSERT OR IGNORE INTO media_deletions(key, queued_at) VALUES (old.storage_path, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')); END;
+  `);
+
+  /*
     Signing in with Google: google-auth.ts and google-identity.ts. The same
     shape as line_identities - Google's subject id and the traveller it names,
     nothing else. No email and no name, because the sign-in asks Google for

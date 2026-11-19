@@ -38,6 +38,7 @@ import { useAsync, type Async } from '../state/store.tsx';
 import { bar, color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { tint } from '@chivago/tokens';
 import { Body, Heading, Label } from '../components/Type.tsx';
+import { DeleteAccountAction } from '../components/DeleteAccount.tsx';
 import { Button, IconButton } from '../components/Button.tsx';
 import { Creature } from '../components/Creature.tsx';
 import { MedalMark } from '../components/MedalMark.tsx';
@@ -139,7 +140,7 @@ export function GuestProfileScreen({
 }
 
 export function ProfileScreen({
-  onBack, onOpenAccount, onOpenEditProfile, onOpenShops, onOpenWallet, onOpenPassport, onOpenMedals, onOpenCompanion, onOpenSafety, onLogout, accountTypeOverride, refreshKey = 0,
+  onBack, onOpenAccount, onOpenEditProfile, onOpenShops, onOpenWallet, onOpenPassport, onOpenMedals, onOpenCompanion, onOpenSafety, onLogout, onDeleteAccount, accountTypeOverride, refreshKey = 0,
 }: {
   onBack: () => void;
   onOpenAccount: () => void;
@@ -151,6 +152,8 @@ export function ProfileScreen({
   onOpenCompanion: (c: Companion) => void;
   onOpenSafety?: () => void;
   onLogout?: () => void;
+  /** Signed-in accounts only: there is nothing to erase for a demo session. Resolves once the server has deleted it. */
+  onDeleteAccount?: () => Promise<void>;
   accountTypeOverride?: 'traveller' | 'operator';
   refreshKey?: number;
 }) {
@@ -277,6 +280,8 @@ export function ProfileScreen({
           </Pressable>
         </View>
       ) : null}
+
+      {onDeleteAccount ? <DeleteAccountAction onDelete={onDeleteAccount} /> : null}
 
       <View style={{ height: 32 }} />
 

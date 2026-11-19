@@ -164,3 +164,27 @@ describe('a request never leaves without a key that exists', () => {
     );
   });
 });
+
+describe('deleting the account never deletes a different one', () => {
+  test('a refused key is a failure - no new device is registered and deleted in its place', async () => {
+    // Every other call answers UNAUTHENTICATED by registering a fresh device
+    // and retrying. For DELETE /profile that would erase a brand-new empty
+    // account and report success, while the real one was untouched.
+    __setCachedKeyForTests('chvg_dev_revoked');
+    const asked: string[] = [];
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+      asked.push(`${init?.method ?? 'GET'} ${new URL(String(url), 'http://x').pathname}`);
+      return { ok: false, status: 401, json: async () => ({ ok: false, code: 'UNAUTHENTICATED', error: 'no' }) } as Response;
+    }) as typeof fetch;
+    try {
+      const { api } = await import('../src/api/client.ts');
+      const res = await api.deleteProfile();
+      assert.equal(res.ok, false);
+    } finally {
+      globalThis.fetch = original;
+    }
+    assert.deepEqual(asked, ['DELETE /profile'], 'nothing was registered, nothing else was deleted');
+    assert.equal(deviceKey(), 'chvg_dev_revoked', 'and the key is left for the person to sort out');
+  });
+});
