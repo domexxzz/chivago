@@ -24,6 +24,7 @@
  */
 import { row, transact, type DB } from './db.ts';
 import { registerUser } from './user-account-service.ts';
+import { invalidatePlaceList } from './place-list-cache.ts';
 
 export const KOH_SICHANG_OPERATOR_EMAIL = 'fanta@tst.com';
 
@@ -429,6 +430,7 @@ export function reconcileSupersededAttractions(db: DB): Reconciliation {
     corrected.push(planted.id);
   }
 
+  invalidatePlaceList(db);
   return { corrected, leftAlone };
 }
 
@@ -443,7 +445,14 @@ export type BootstrapResult = {
   skipped: boolean;
 };
 
+/** Places it adds or corrects reach the place list on the next request. */
 export function bootstrapKohSichangBusinesses(db: DB, env: NodeJS.ProcessEnv = process.env): BootstrapResult {
+  const result = bootstrapOnce(db, env);
+  if (!result.skipped) invalidatePlaceList(db);
+  return result;
+}
+
+function bootstrapOnce(db: DB, env: NodeJS.ProcessEnv): BootstrapResult {
   if (env.CHIVAGO_BOOTSTRAP_KOH_SICHANG !== '1') {
     return { accountCreated: false, shopsInserted: 0, shopsAlreadyPresent: 0, attractionsInserted: 0, attractionsAlreadyPresent: 0, attractionsCorrected: [], attractionsLeftAlone: [], skipped: true };
   }

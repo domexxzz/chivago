@@ -6,6 +6,10 @@ delete process.env.CHIVAGO_OPEN_IDENTITY;
 process.env.CHIVAGO_DB = ':memory:';
 const { app, db } = await import('./server-node.ts');
 const { seedArea } = await import('./seed-area.ts');
+// A hand edit to the row goes through no writer, so nothing clears the place
+// list cache; on a live server it shows within the cache's minute. The test
+// clears it itself rather than wait.
+const { invalidatePlaceList } = await import('./place-list-cache.ts');
 
 const COURT = 'sinthani-badminton';
 const BOOKING = 'https://badminton-booking-ihw1.onrender.com/';
@@ -32,8 +36,10 @@ describe('a place you book before you go', () => {
   test('a link edited into the row by hand that is not plain https never reaches a phone', async () => {
     for (const bad of ['http://badminton-booking-ihw1.onrender.com/', 'javascript:alert(1)', 'https://a@evil.example/']) {
       db.prepare('UPDATE places SET booking_url = ? WHERE id = ?').run(bad, COURT);
+      invalidatePlaceList(db);
       assert.equal((await place(COURT)).bookingUrl, null, bad);
     }
     db.prepare('UPDATE places SET booking_url = ? WHERE id = ?').run(BOOKING, COURT);
+    invalidatePlaceList(db);
   });
 });

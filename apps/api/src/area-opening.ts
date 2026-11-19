@@ -32,6 +32,7 @@ import {
 } from '@chivago/core';
 import { rows, transact, type DB } from './db.ts';
 import { generateApiKey, hashApiKey } from './host-auth.ts';
+import { invalidatePlaceList } from './place-list-cache.ts';
 
 export interface SeedAreaResult {
   area: AreaKey;
@@ -212,6 +213,7 @@ export function seedArea(db: DB, key: AreaKey, now = new Date()): SeedAreaResult
       result.questsAdded += Number(added.changes ?? 0);
     }
 
+    invalidatePlaceList(db);
     return result;
   });
 }
@@ -281,6 +283,7 @@ export function refreshPhotos(db: DB, key: AreaKey): string[] {
       ).run(...photo, p.id, ...photo);
       if (Number(set.changes ?? 0) > 0) changed.push(p.id);
     }
+    invalidatePlaceList(db);
     return changed;
   });
 }
@@ -329,6 +332,7 @@ export function refreshText(db: DB, key: AreaKey): string[] {
       ).run(...text, p.id, ...text);
       if (Number(set.changes ?? 0) > 0) changed.push(p.id);
     }
+    invalidatePlaceList(db);
     return changed;
   });
 }

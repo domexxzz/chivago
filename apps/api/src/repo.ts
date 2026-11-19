@@ -20,7 +20,8 @@ import { ACTIVE_QUEST_CODES, computeHealthyScore, EMPTY_PROFILE, isBookingLink, 
 import type { AirStation } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
 import { awardStands } from './ledger-sql.ts';
-import { getAir } from './air.ts';
+import { getAir, type AirReading } from './air.ts';
+import { cachedPlaceList } from './place-list-cache.ts';
 import { checkinsLastHour } from './crowd-service.ts';
 import { summariesFor } from './place-review-service.ts';
 import { communityTreesPlanted, treeImpactForUser } from './tree-impact-service.ts';
@@ -141,76 +142,100 @@ export interface Bbox {
  * same place - that is the point of a personalised wellness score - and the
  * breakdown returned alongside says exactly why.
  */
+/** Test seams for the place list. Production passes nothing. */
+export interface PlaceListOptions {
+  now?: number;
+  /** The air reader. Tests count its calls and keep it off the network. */
+  air?: typeof getAir;
+}
+
+interface PlaceBase {
+  place: ReturnType<typeof toPlace>;
+  air: AirReading;
+}
+
+/**
+ * Every visible place with the air over it: the half of the list that is the
+ * same for every traveller, so it is built once a minute (place-list-cache.ts).
+ */
+function placeListBase(db: DB, now: number, air: typeof getAir): Promise<PlaceBase[]> {
+  return cachedPlaceList(db, now, async () => {
+    const placeRows = rows<PlaceRow>(db.prepare('SELECT * FROM places WHERE admin_hidden_at IS NULL').all());
+    // Air lookups run concurrently; the air cache keeps this to one upstream
+    // call per ~1.1 km grid cell, so a full island read is a couple of requests.
+    return Promise.all(placeRows.map(async (r) => {
+      const place = toPlace(r);
+      return { place, air: await air(db, place.lat, place.lng, place.metrics.aqi, undefined, place.airStation) };
+    }));
+  });
+}
+
+/** BETWEEN, as the query had it: both bounds inclusive. */
+const inBbox = (b: Bbox) => (p: { lat: number; lng: number }): boolean =>
+  p.lat >= b.minLat && p.lat <= b.maxLat && p.lng >= b.minLng && p.lng <= b.maxLng;
+
 export async function listScoredPlaces(
   db: DB,
   userId: string,
   bbox?: Bbox,
+  opts: PlaceListOptions = {},
 ): Promise<ScoredPlace[]> {
-  const placeRows = bbox
-    ? rows<PlaceRow>(
-        db
-          .prepare('SELECT * FROM places WHERE admin_hidden_at IS NULL AND lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?')
-          .all(bbox.minLat, bbox.maxLat, bbox.minLng, bbox.maxLng),
-      )
-    : rows<PlaceRow>(db.prepare('SELECT * FROM places WHERE admin_hidden_at IS NULL').all());
+  const all = await placeListBase(db, opts.now ?? Date.now(), opts.air ?? getAir);
+  const base = bbox ? all.filter((b) => inBbox(bbox)(b.place)) : all;
 
+  // Read on every request: these are personal or live.
   const profile = getProfile(db, userId);
   // One grouped query for every place on screen. A per-place lookup would
   // turn a map pan into one round trip per pin.
-  const reviews = summariesFor(db, placeRows.map((r) => r.id));
+  const reviews = summariesFor(db, base.map((b) => b.place.id));
   // And one for who is there now, from the ledger.
-  const crowds = checkinsLastHour(db, placeRows.map((r) => r.id));
+  const crowds = checkinsLastHour(db, base.map((b) => b.place.id));
 
-  // Air lookups run concurrently; the cache keeps this to one upstream call per
-  // ~1.1 km grid cell, so a full island read is a couple of requests at most.
-  return Promise.all(
-    placeRows.map(async (r) => {
-      const place = toPlace(r);
-      const air = await getAir(db, place.lat, place.lng, place.metrics.aqi, undefined, place.airStation);
-      const metrics = { ...place.metrics, aqi: air.aqi };
-      const breakdown = computeHealthyScore(metrics, {
-        profile,
-        // The crowd figure is the seed's survey estimate. It was scored as
-        // 'live' - the default - for the whole life of this file, which was
-        // a lie the score told about itself. Labelled, the score discounts
-        // it, and the live count sits beside it as its own fact.
-        provenance: { aqi: air.provenance, crowdDensity: 'estimated' },
-        safetyPhrase: place.safetyLabel.en,
-      });
-      return {
-        ...place,
-        metrics,
-        readings: {
-          aqi: {
-            value: air.aqi,
-            provenance: air.provenance,
-            observedAt: air.observedAt,
-            source: air.source,
-          },
-          crowdDensity: {
-            value: metrics.crowdDensity,
-            provenance: 'estimated',
-            observedAt: new Date().toISOString(),
-            source: 'Seeded survey estimate - no live density feed',
-          },
+  return base.map(({ place, air }) => {
+    const metrics = { ...place.metrics, aqi: air.aqi };
+    const breakdown = computeHealthyScore(metrics, {
+      profile,
+      // The crowd figure is the seed's survey estimate. It was scored as
+      // 'live' - the default - for the whole life of this file, which was
+      // a lie the score told about itself. Labelled, the score discounts
+      // it, and the live count sits beside it as its own fact.
+      provenance: { aqi: air.provenance, crowdDensity: 'estimated' },
+      safetyPhrase: place.safetyLabel.en,
+    });
+    return {
+      ...place,
+      metrics,
+      readings: {
+        aqi: {
+          value: air.aqi,
+          provenance: air.provenance,
+          observedAt: air.observedAt,
+          source: air.source,
         },
-        crowd: crowds.get(place.id)!,
-        healthyScore: breakdown.total,
-        breakdown,
-        reviews: reviews.get(place.id)!,
-      } as ScoredPlace;
-    }),
-  );
+        crowdDensity: {
+          value: metrics.crowdDensity,
+          provenance: 'estimated',
+          observedAt: new Date().toISOString(),
+          source: 'Seeded survey estimate - no live density feed',
+        },
+      },
+      crowd: crowds.get(place.id)!,
+      healthyScore: breakdown.total,
+      breakdown,
+      reviews: reviews.get(place.id)!,
+    } as ScoredPlace;
+  });
 }
 
 export async function getScoredPlace(
   db: DB,
   userId: string,
   placeId: string,
+  opts: PlaceListOptions = {},
 ): Promise<ScoredPlace | null> {
   const found = row<PlaceRow>(db.prepare('SELECT * FROM places WHERE id = ? AND admin_hidden_at IS NULL').get(placeId));
   if (!found) return null;
-  const all = await listScoredPlaces(db, userId);
+  const all = await listScoredPlaces(db, userId, undefined, opts);
   return all.find((p) => p.id === placeId) ?? null;
 }
 
