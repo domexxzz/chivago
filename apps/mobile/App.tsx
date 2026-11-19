@@ -21,6 +21,7 @@ import {
   type Balances, type ItineraryItem, type ScoredPlace,
 } from '@chivago/core';
 import { api } from './src/api/client.ts';
+import { forgetKey } from './src/api/account.ts';
 import { useOutboxFlush } from './src/state/outbox-hook.ts';
 import { color } from './src/theme/index.ts';
 import {
@@ -651,6 +652,21 @@ export default function App() {
               toast.show(t(guest
                 ? { en: 'Demo session ended', th: 'จบการทดลองใช้งานแล้ว', zh: '演示会话已结束' }
                 : { en: 'Logged out successfully', th: 'ออกจากระบบเรียบร้อยแล้ว', zh: '已成功退出登录' }));
+            }}
+            onDeleteAccount={guest ? undefined : async () => {
+              // Throwing keeps the dialog open with its error: nothing local is
+              // cleared until the server has said the account is gone.
+              const res = await api.deleteProfile();
+              if (!res.ok || !res.data.deleted) throw new Error(res.ok ? 'not deleted' : res.error);
+              // From here the account IS gone, so nothing below may throw: a
+              // throw would show "nothing was removed", which would be false.
+              await clearLoggedIn().catch(() => undefined);
+              await forgetKey().catch(() => undefined);
+              setSignedInAccountType(undefined);
+              setLoggedInState(false);
+              setGuestState(false);
+              nav.reset('login');
+              toast.show(t({ en: 'Your account has been deleted', th: 'ลบบัญชีของคุณเรียบร้อยแล้ว', zh: '你的账号已删除' }));
             }}
           />
         );
