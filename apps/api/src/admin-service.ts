@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { POOL, POOL_VERSION, itemKey, type SpiritRarity } from '@chivago/core';
 import { row, rows, transact, type DB } from './db.ts';
 import { applyMovement, ensureWallet } from './wallet-service.ts';
+import { invalidatePlaceList } from './place-list-cache.ts';
 
 export class InvalidAdminAction extends Error {}
 
@@ -91,12 +92,14 @@ export function saveAdminPlace(db: DB, actor: string, input: {
     }
     audit(db, actor, existing ? 'place.update' : 'place.create', 'place', id, input, now);
   });
+  invalidatePlaceList(db);
 }
 
 export function setPlaceHidden(db: DB, actor: string, placeId: string, hidden: boolean, now = new Date()): void {
   const changed = db.prepare('UPDATE places SET admin_hidden_at=? WHERE id=?').run(hidden ? now.toISOString() : null, placeId);
   if (Number(changed.changes) !== 1) throw new InvalidAdminAction('unknown place');
   audit(db, actor, hidden ? 'place.hide' : 'place.restore', 'place', placeId, {}, now);
+  invalidatePlaceList(db);
 }
 
 export function adminPosts(db: DB, query = ''): AdminPost[] {
