@@ -524,8 +524,15 @@ export const api = {
   getProfile: () => get<WellnessProfile>('/profile'),
   saveProfile: (p: Partial<WellnessProfile> & { consentVersion: string }) =>
     put<WellnessProfile>('/profile', p),
-  /** PDPA right to erasure. */
-  deleteProfile: () => del<{ deleted: boolean }>('/profile'),
+  /**
+   * PDPA right to erasure.
+   *
+   * Never revived. On an UNAUTHENTICATED answer `call` normally registers a
+   * fresh device and retries - which here would create a brand-new account,
+   * delete THAT, and report success while the account the person meant to
+   * erase was untouched. A refused key is reported as a failure instead.
+   */
+  deleteProfile: () => call<{ deleted: boolean }>('/profile', { method: 'DELETE' }, undefined, true),
 
   // -- places -------------------------------------------------------------
   places: () => get<ScoredPlace[]>('/places'),

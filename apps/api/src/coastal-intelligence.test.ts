@@ -17,16 +17,42 @@ const current = (over: Record<string, unknown> = {}) => ({
 
 function fake(reply: unknown | Error) {
   let calls = 0;
-  const fetchImpl = (async () => {
+  let sent: Parameters<typeof fetch>[1];
+  const fetchImpl = (async (
+    _url: Parameters<typeof fetch>[0],
+    init?: Parameters<typeof fetch>[1],
+  ) => {
     calls += 1;
+    sent = init;
     if (reply instanceof Error) throw reply;
     return new Response(JSON.stringify(reply), { status: 200 });
   }) as typeof fetch;
-  return { fetchImpl, calls: () => calls };
+  return { fetchImpl, calls: () => calls, sent: () => sent };
 }
+
+/*
+  THE EDGE DOES NOT ACCEPT EVERY VALUE NODE DOES, and this one cost the whole
+  feature. `redirect: 'error'` is legal in Node and refused outright by
+  Workers - "it does not make sense at the edge" - so the call threw on every
+  production request, every answer was `unavailable`, and the current never
+  reached a traveller. Nothing caught it: the fetch is injected here, so the
+  line only ever ran where it is rejected. This asserts the value that goes
+  out, not the one that comes back.
+*/
+const EDGE_SAFE_REDIRECTS = ['follow', 'manual'] as const;
 
 describe('Ko Sichang coastal intelligence', () => {
   beforeEach(() => __resetCoastalIntelligence());
+
+  test('asks for a redirect mode the edge will actually accept', async () => {
+    const service = fake(current());
+    await getCoastalIntelligence({ now: T0, fetchImpl: service.fetchImpl });
+    const redirect = service.sent()?.redirect ?? 'follow';
+    assert.ok(
+      (EDGE_SAFE_REDIRECTS as readonly string[]).includes(redirect),
+      `redirect must be one of ${EDGE_SAFE_REDIRECTS.join(' or ')} at the edge, got '${redirect}'`,
+    );
+  });
 
   test('serves a live current with honest research metadata and real checkpoints', async () => {
     const service = fake(current());

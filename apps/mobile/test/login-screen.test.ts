@@ -101,7 +101,8 @@ describe('ChivarGo LoginScreen', () => {
     // Press Google button
     await ui.press(/เข้าสู่ระบบด้วย Google/);
     assert.match(ui.text(), /เข้าสู่ระบบด้วย Google/);
-    assert.match(ui.text(), /เซิร์ฟเวอร์นี้ยังไม่ได้เปิดใช้งานการเข้าสู่ระบบด้วย Google/);
+    // Off the web build Google sign-in cannot run, and the notice says where it does.
+    assert.match(ui.text(), /การเข้าสู่ระบบด้วย Google ใช้งานได้บนเว็บที่ chivargo\.com/);
     await ui.pressText(/ตกลง/);
 
     // Press LINE button

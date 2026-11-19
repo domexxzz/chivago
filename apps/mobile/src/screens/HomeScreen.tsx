@@ -429,7 +429,7 @@ function MobileHomeHeader({
           {AREAS.map((option) => {
             const selected = option.key === area.key;
             return (
-              <Pressable key={option.key} accessibilityRole="button" accessibilityState={{ selected }} onPress={() => choose(() => onChangeArea(option.key))} style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 11, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: selected ? '#DDF4FA' : pressed ? '#F2F7F9' : 'transparent' })}>
+              <Pressable key={option.key} accessibilityRole="button" accessibilityLabel={t(option.name)} accessibilityState={{ selected }} onPress={() => choose(() => onChangeArea(option.key))} style={({ pressed }) => ({ minHeight: 44, paddingHorizontal: 11, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: selected ? '#DDF4FA' : pressed ? '#F2F7F9' : 'transparent' })}>
                 <MapPin size={16} color={selected ? color.brand : '#678094'} />
                 <Label size={11} colour={selected ? color.brand : color.text} style={{ flex: 1 }}>{t(option.name)}</Label>
               </Pressable>

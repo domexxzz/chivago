@@ -271,3 +271,20 @@ describe('what stays public once a real account exists', () => {
     assert.equal(res.status, 401);
   });
 });
+
+describe('deleting the account', () => {
+  test('DELETE /profile erases the account, and its key stops working', async () => {
+    // A traveller of its own, so the shared one above is untouched.
+    const reg = await json(await post('/devices', { displayName: 'Ben', label: 'Ben phone' }));
+    const own = { 'x-chivago-device-key': reg.data.deviceKey as string };
+    assert.equal((await get('/wallet', own)).status, 200);
+
+    const res = await app.request('/profile', { method: 'DELETE', headers: own });
+    assert.equal(res.status, 200);
+    assert.equal((await json(res)).data.deleted, true);
+
+    const gone = db.prepare('SELECT count(*) n FROM users WHERE id = ?').get(reg.data.userId) as { n: number };
+    assert.equal(gone.n, 0);
+    assert.equal((await get('/wallet', own)).status, 401, 'a deleted account cannot be signed into with its old key');
+  });
+});

@@ -10,7 +10,14 @@ import type { OfficialWeatherAlert, WeatherProvider } from '@chivago/core';
 export const KOH_SICHANG_WMO = '48460';
 export const TMD_OBSERVATION_API = 'https://data.tmd.go.th/api/Weather3HoursBySynop/V2/';
 export const TMD_WARNING_API = 'https://data.tmd.go.th/api/WeatherWarningNews/v2/';
-export const TMD_NWP_API = 'https://data.tmd.go.th/nwpapi/v1/forecast/location/hourly/at';
+/**
+ * The oldest station reading that may stand in for now. The station reports
+ * every three hours; an hour on top allows for TMD publishing late. Past
+ * that, the island's model forecast says more about now than the last report.
+ */
+export const TMD_OBSERVATION_MAX_AGE_MS = 4 * 3_600_000;
+
+/** TMD's NWP forecasts are read by tmd.ts, the one client for that quota. */
 
 export interface TmdConfig {
   uid?: string;
@@ -40,14 +47,18 @@ const finite = (value: unknown, min: number, max: number): number | null => {
   return Number.isFinite(parsed) && parsed >= min && parsed <= max ? parsed : null;
 };
 
-/** TMD legacy feeds stamp local ICT as MM/DD/YYYY HH:mm:ss. */
+/**
+ * TMD legacy feeds stamp local ICT as MM/DD/YYYY HH:mm:ss. An ISO stamp
+ * without an offset is ICT too: parsed bare it would be read on the server's
+ * clock, which on Cloudflare is UTC, seven hours off.
+ */
 export function parseTmdTime(value: unknown): number | null {
   if (typeof value !== 'string') return null;
   const raw = value.trim();
   const local = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(raw);
   const normalized = local
     ? `${local[3]}-${local[1]!.padStart(2, '0')}-${local[2]!.padStart(2, '0')}T${local[4]!.padStart(2, '0')}:${local[5]}:${local[6] ?? '00'}+07:00`
-    : raw;
+    : /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(raw) ? `${raw}+07:00` : raw;
   const time = Date.parse(normalized);
   return Number.isFinite(time) ? time : null;
 }
@@ -70,7 +81,7 @@ export function readKohSichangObservation(payload: unknown, now: number): TmdAir
   const observedAt = parseTmdTime(observation?.DateTime);
   // A 3-hour station reading remains useful between reporting slots. A future
   // stamp or an old/stuck feed must never replace current model data.
-  if (observedAt === null || observedAt > now + 5 * 60_000 || observedAt < now - 8 * 3_600_000) return null;
+  if (observedAt === null || observedAt > now + 5 * 60_000 || observedAt < now - TMD_OBSERVATION_MAX_AGE_MS) return null;
 
   const tempC = finite(observation?.AirTemperature, -50, 60);
   const rainMm = finite(observation?.Rainfall, 0, 500);
@@ -89,54 +100,6 @@ export function readKohSichangObservation(payload: unknown, now: number): TmdAir
     kind: 'observation',
     provider: 'tmd-station',
     source: 'กรมอุตุนิยมวิทยา · สถานีเกาะสีชัง (WMO 48460)',
-  };
-}
-
-/** The NWP docs have used several root spellings; find a documented forecasts list defensively. */
-function forecastRows(payload: unknown, depth = 0): JsonObject[] {
-  if (depth > 4) return [];
-  if (Array.isArray(payload)) {
-    for (const item of payload) {
-      const found = forecastRows(item, depth + 1);
-      if (found.length) return found;
-    }
-    return [];
-  }
-  const row = object(payload);
-  if (!row) return [];
-  if (Array.isArray(row.forecasts)) return row.forecasts.map(object).filter((item): item is JsonObject => item !== null);
-  for (const value of Object.values(row)) {
-    const found = forecastRows(value, depth + 1);
-    if (found.length) return found;
-  }
-  return [];
-}
-
-export function readTmdNwp(payload: unknown, now: number): TmdAirReading | null {
-  const candidates = forecastRows(payload)
-    .map((row) => ({ row, at: parseTmdTime(row.time) }))
-    .filter((item): item is { row: JsonObject; at: number } => item.at !== null)
-    .sort((a, b) => Math.abs(a.at - now) - Math.abs(b.at - now));
-  const picked = candidates[0];
-  if (!picked || Math.abs(picked.at - now) > 3 * 3_600_000) return null;
-  const data = object(picked.row.data);
-  if (!data) return null;
-  const tempC = finite(data.tc, -50, 60);
-  const rainMm = finite(data.rain, 0, 500);
-  const windMs = finite(data.ws10m, 0, 150);
-  const windDirectionDeg = finite(data.wd10m, 0, 360);
-  const relativeHumidityPct = finite(data.rh, 0, 100);
-  if ([tempC, rainMm, windMs, windDirectionDeg, relativeHumidityPct].every((value) => value === null)) return null;
-  return {
-    observedAt: picked.at,
-    tempC,
-    rainMm,
-    windKn: windMs === null ? null : windMs * 1.943844,
-    windDirectionDeg,
-    relativeHumidityPct,
-    kind: 'forecast',
-    provider: 'tmd-nwp',
-    source: 'กรมอุตุนิยมวิทยา · แบบจำลอง NWP ตามพิกัด',
   };
 }
 
@@ -203,14 +166,4 @@ export function tmdWarningUrl(config: TmdConfig): string | null {
   if (!config.uid?.trim() || !config.apiKey?.trim()) return null;
   const query = new URLSearchParams({ uid: config.uid.trim(), ukey: config.apiKey.trim(), format: 'json' });
   return `${TMD_WARNING_API}?${query}`;
-}
-
-export function tmdNwpUrl(lat: number, lng: number, now: number): string {
-  // Convert to ICT without depending on the server's own timezone.
-  const local = new Date(now + 7 * 3_600_000).toISOString();
-  const query = new URLSearchParams({
-    lat: lat.toFixed(4), lon: lng.toFixed(4), date: local.slice(0, 10),
-    hour: String(Number(local.slice(11, 13))), duration: '1', fields: 'tc,rh,rain,ws10m,wd10m,cond',
-  });
-  return `${TMD_NWP_API}?${query}`;
 }

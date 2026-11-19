@@ -45,7 +45,12 @@ function weatherSource(data: AreaWeather | null | undefined): string {
     en: 'Open-Meteo · weather forecast and marine model',
     th: 'Open-Meteo · พยากรณ์อากาศและแบบจำลองคลื่น',
     zh: 'Open-Meteo · 天气预报与海浪模型',
-  });
+  }) + (data.tmdCheck === 'agrees' ? t({
+    // Said only when a comparison was made and agreed; a disagreement has its own note.
+    en: ' · checked against TMD',
+    th: ' · ตรวจเทียบกับกรมอุตุนิยมวิทยาแล้ว',
+    zh: ' · 已与泰国气象局核对',
+  }) : '');
   return data?.source || t(strings.place.weatherVia);
 }
 
@@ -74,7 +79,10 @@ export function SeaAndSkyCard({ area, liveForMs = LIVE_FOR_MS }: { area: AreaKey
   // answerable (the sea feed drops out) falls back rather than showing empty.
   const selected = picked !== null && offered.includes(picked) ? picked : offered[0];
 
-  const live = data?.provenance === 'live';
+  // 'estimated' is a reading that arrived just now and that TMD disagrees
+  // with: as fresh as 'live', and never to be shown as an outage.
+  const unsure = data?.provenance === 'estimated';
+  const live = data?.provenance === 'live' || unsure;
   const fresh = live && Date.now() - receivedAt < liveForMs;
   const condition = data ? weatherDescription(data.weatherCode) : null;
   const officialAlert = data?.officialAlerts?.[0] ?? null;
@@ -85,9 +93,11 @@ export function SeaAndSkyCard({ area, liveForMs = LIVE_FOR_MS }: { area: AreaKey
     ? t(res.error !== null || data ? strings.place.weatherDown : strings.place.weatherNoStatus)
     : !data.observedAt
       ? t(strings.place.weatherNoStatus)
-      : fresh
+      : unsure
+        ? t(strings.place.weatherUnsure)
+        : fresh
         ? null
-        : t(data.provenance === 'live'
+        : t(live
           ? strings.place.weatherAsOf(clock(data.observedAt))
           : strings.place.weatherStale(clock(data.observedAt)));
 

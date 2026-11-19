@@ -1,8 +1,8 @@
 import { strict as assert } from 'node:assert';
 import { describe, test } from 'node:test';
 import {
-  KOH_SICHANG_WMO, readKohSichangObservation, readTmdNwp, readTmdWarnings,
-  tmdNwpUrl, tmdObservationUrl, tmdWarningUrl,
+  KOH_SICHANG_WMO, TMD_OBSERVATION_MAX_AGE_MS, parseTmdTime, readKohSichangObservation,
+  readTmdWarnings, tmdObservationUrl, tmdWarningUrl,
 } from './tmd-weather.ts';
 
 const NOW = Date.parse('2026-10-24T22:45:00+07:00');
@@ -40,15 +40,26 @@ describe('TMD weather adapters', () => {
     assert.equal(readKohSichangObservation(payload('10/24/2026 22:00:00', '99999'), NOW), null);
   });
 
-  test('reads documented NWP response variants and converts metres/second to knots', () => {
-    const reading = readTmdNwp({ WeatherForecasts: [{ forecasts: [{
-      time: '2026-10-24T22:00:00+07:00',
-      data: { tc: 28.2, rh: 76, rain: 0.4, ws10m: 5, wd10m: 180 },
-    }] }] }, NOW);
-    assert.ok(reading);
-    assert.equal(reading.kind, 'forecast');
-    assert.equal(reading.tempC, 28.2);
-    assert.ok(Math.abs(reading.windKn! - 9.71922) < 0.0001);
+  test('a reading older than the station reporting slot plus an hour is not used for now', () => {
+    const at = (offsetMs: number) => {
+      const d = new Date(NOW - offsetMs + 7 * 3_600_000);
+      const p2 = (n: number) => String(n).padStart(2, '0');
+      return `${p2(d.getUTCMonth() + 1)}/${p2(d.getUTCDate())}/${d.getUTCFullYear()} ${p2(d.getUTCHours())}:${p2(d.getUTCMinutes())}:00`;
+    };
+    const payload = (stamp: string) => ({ Stations: { Station: [{
+      WmoStationNumber: KOH_SICHANG_WMO, Observation: { DateTime: stamp, AirTemperature: '27' },
+    }] } });
+    assert.ok(readKohSichangObservation(payload(at(TMD_OBSERVATION_MAX_AGE_MS)), NOW));
+    assert.equal(readKohSichangObservation(payload(at(TMD_OBSERVATION_MAX_AGE_MS + 60_000)), NOW), null);
+  });
+
+  test('every TMD stamp is read on the Thai clock, whatever clock the server keeps', () => {
+    const ict = Date.parse('2026-10-24T22:00:00+07:00');
+    assert.equal(parseTmdTime('10/24/2026 22:00:00'), ict);
+    assert.equal(parseTmdTime('2026-10-24T22:00:00'), ict, 'a bare ISO stamp is ICT, not the server clock');
+    assert.equal(parseTmdTime('2026-10-24T22:00'), ict);
+    assert.equal(parseTmdTime('2026-10-24T15:00:00Z'), ict, 'a stamp with its own offset keeps it');
+    assert.equal(parseTmdTime('not a time'), null);
   });
 
   test('keeps official warning text, deduplicates it, and refuses non-TMD links', () => {
@@ -70,8 +81,6 @@ describe('TMD weather adapters', () => {
     assert.match(tmdObservationUrl(config)!, /uid=name%2Btest/);
     assert.match(tmdWarningUrl(config)!, /ukey=key%26secret/);
     assert.equal(tmdObservationUrl({}), null);
-    const nwp = tmdNwpUrl(13.1599, 100.8096, NOW);
-    assert.match(nwp, /lat=13.1599/);
-    assert.match(nwp, /fields=tc%2Crh%2Crain%2Cws10m%2Cwd10m%2Ccond/);
+    assert.equal(tmdWarningUrl({ uid: 'only-a-user' }), null);
   });
 });

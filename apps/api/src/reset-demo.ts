@@ -132,7 +132,7 @@ export const TRAVELLER_TABLES = [
   // A LINE sign-in is a fourth way into a traveller's account, alongside the
   // three above, so it is cleared with them: a reset that left the binding
   // behind would sign the next person in as a traveller who no longer exists.
-  'user_accounts', 'device_keys', 'link_codes', 'line_identities',
+  'user_accounts', 'device_keys', 'link_codes', 'line_identities', 'google_identities',
   // A party's invitations and the requests to join them go with the party -
   // children first, so the foreign keys never see an orphan.
   'party_quest_participants', 'party_quest_instances',

@@ -17,7 +17,8 @@
  */
 
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const walk = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
@@ -74,7 +75,12 @@ export const checkExport = (out, { expect = 100 } = {}) => {
 };
 
 // Run as a command when given a directory; importable as checkExport either way.
-if (process.argv[2]) {
+// "Run as a command" means THIS file is the script node was started with:
+// testing only `process.argv[2]` made any importer that took an argument of
+// its own (scripts/deploy-guard.mjs) run these checks, and exit, on import.
+const runAsCommand = process.argv[1] !== undefined
+  && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+if (runAsCommand && process.argv[2]) {
   const out = process.argv[2];
   const wrong = checkExport(out, { expect: Number(process.env.CHIVAGO_EXPECT_FILES ?? 100) });
   if (wrong.length) {

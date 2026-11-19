@@ -58,6 +58,10 @@ import authTropicalFooter from '../../assets/auth-tropical-footer-v1.png';
 import authIslandHero from '../../assets/auth-island-hero.png';
 import { api } from '../api/client.ts';
 import { finishLineSignIn, lineSignInAvailable, startLineSignIn } from '../api/line-signin.ts';
+import {
+  GOOGLE_IN_APP_NOTICE, GOOGLE_WEB_ONLY_NOTICE, finishGoogleSignIn, googleFailureMessage,
+  googleSignInAvailable, insideAppBrowser, startGoogleSignIn,
+} from '../api/google-signin.ts';
 import { adoptKey, ensureAccount } from '../api/account.ts';
 import { setLoggedIn } from '../state/auth.ts';
 import { CONSENT_VERSION } from '../state/store.tsx';
@@ -162,6 +166,7 @@ export function RegisterScreen({
   const [privacyModalOpen, setPrivacyModalOpen] = React.useState(false);
   const [oauthModalOpen, setOauthModalOpen] = React.useState(false);
   const [oauthProvider, setOauthProvider] = React.useState<'Google' | 'LINE'>('Google');
+  const [googleInApp, setGoogleInApp] = React.useState(false);
 
   const completionValues = [
     ...(accountType === 'operator' ? [businessName.trim()] : []),
@@ -184,6 +189,21 @@ export function RegisterScreen({
       setErrorMessage(t(result.kind === 'cancelled'
         ? { en: 'LINE registration was cancelled.', th: 'ยกเลิกการสมัครด้วย LINE แล้ว', zh: '已取消使用 LINE 注册。' }
         : { en: 'LINE registration could not be completed.', th: 'สมัครสมาชิกด้วย LINE ไม่สำเร็จ กรุณาลองใหม่', zh: '无法完成 LINE 注册。' }));
+    });
+    return () => { live = false; };
+  }, [onRegisterSuccess]);
+
+  /* Coming back from Google: the same as LINE, its own fragment. */
+  React.useEffect(() => {
+    let live = true;
+    void finishGoogleSignIn().then(async (result) => {
+      if (!live || result.kind === 'none') return;
+      if (result.kind === 'signed-in') {
+        await setLoggedIn(true);
+        onRegisterSuccess?.('traveller');
+        return;
+      }
+      setErrorMessage(t(googleFailureMessage(result.kind)));
     });
     return () => { live = false; };
   }, [onRegisterSuccess]);
@@ -838,6 +858,10 @@ export function RegisterScreen({
             >
               <Pressable
                 onPress={() => {
+                  // Same rule as LINE: Google creates traveller accounts only,
+                  // and never from inside another app's browser.
+                  if (accountType === 'traveller' && googleSignInAvailable() && !insideAppBrowser()) { startGoogleSignIn(); return; }
+                  setGoogleInApp(googleSignInAvailable() && insideAppBrowser());
                   setOauthProvider('Google');
                   setOauthModalOpen(true);
                 }}
@@ -1045,7 +1069,9 @@ export function RegisterScreen({
 
             <Text style={styles.modalParagraph}>
               {oauthProvider === 'Google'
-                ? t({ en: 'Google registration is not enabled on this server.', th: 'เซิร์ฟเวอร์นี้ยังไม่ได้เปิดใช้งานการสมัครด้วย Google', zh: '此服务器尚未启用 Google 注册。' })
+                ? (accountType === 'operator'
+                  ? t({ en: 'Google registration creates traveller accounts only. Use the form above to create a business account.', th: 'การสมัครด้วย Google รองรับบัญชีนักท่องเที่ยวเท่านั้น กรุณาใช้แบบฟอร์มด้านบนเพื่อสร้างบัญชีผู้ประกอบการ', zh: 'Google 注册仅支持旅行者账户。请使用上方表单创建商家账户。' })
+                  : t(googleInApp ? GOOGLE_IN_APP_NOTICE : GOOGLE_WEB_ONLY_NOTICE))
                 : accountType === 'operator'
                   ? t({ en: 'LINE registration currently creates traveller accounts only. Use the form above to create a business account.', th: 'การสมัครด้วย LINE รองรับบัญชีนักท่องเที่ยวเท่านั้น กรุณาใช้แบบฟอร์มด้านบนเพื่อสร้างบัญชีผู้ประกอบการ', zh: 'LINE 注册目前仅支持旅行者账户。请使用上方表单创建商家账户。' })
                   : t({ en: 'LINE registration is available on the web version when LINE OAuth is configured on the server.', th: 'การสมัครด้วย LINE ใช้งานได้บนเว็บเมื่อเซิร์ฟเวอร์ตั้งค่า LINE OAuth แล้ว', zh: '服务器配置 LINE OAuth 后，可在网页版使用 LINE 注册。' })}

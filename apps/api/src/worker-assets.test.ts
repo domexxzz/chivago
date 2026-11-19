@@ -93,4 +93,19 @@ describe('the Worker serves what the export carries', () => {
     assert.ok(servedFromExport('/media/ku-park.jpg'));
     assert.ok(servedFromExport('/media/01J9Zc4K2Q'));
   });
+
+  test('the privacy policy and about page are served by their short names, and nothing near them is', () => {
+    // Google's OAuth consent screen links to these. A 401 from the device-key
+    // middleware there is an app that cannot leave Testing mode.
+    for (const p of ['/privacy', '/about']) {
+      // The short name is served; the other two spellings are redirected to it by the asset server.
+      for (const spelling of [p, `${p}.html`, `${p}/`]) {
+        assert.ok(servedFromExport(spelling), `${spelling} would reach the API`);
+      }
+      assert.ok(publicPaths().includes(`${p}.html`), `public${p}.html is missing`);
+    }
+    for (const p of ['/privacy/anything', '/about-us', '/aboutx', '/privacyx']) {
+      assert.ok(!servedFromExport(p), `${p} would be served as a static file`);
+    }
+  });
 });

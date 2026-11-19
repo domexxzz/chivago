@@ -388,3 +388,56 @@ describe('logout functionality and confirmation popup', () => {
     ui.unmount();
   });
 });
+
+describe('deleting the account', () => {
+  const ask = /ลบบัญชีของคุณ\?|Delete your account\?/;
+
+  test('is not offered at all without a handler - a demo session has nothing to erase', async () => {
+    const s = server(routes());
+    restore = s.restore;
+    const ui = await mountScreen(h(ProfileScreen, { ...props, onLogout: () => {} }));
+    assert.doesNotMatch(ui.text(), /ลบบัญชี|Delete account/);
+    ui.unmount();
+  });
+
+  test('asks first, cancelling deletes nothing, and only the explicit confirm deletes', async () => {
+    let calls = 0;
+    const s = server(routes());
+    restore = s.restore;
+    const ui = await mountScreen(h(ProfileScreen, {
+      ...props,
+      onLogout: () => {},
+      onDeleteAccount: async () => { calls += 1; },
+    }));
+
+    assert.doesNotMatch(ui.text(), ask);
+    await ui.press(/^(ลบบัญชี|Delete account)$/);
+    assert.match(ui.text(), ask);
+    assert.match(ui.text(), /กู้คืนไม่ได้|cannot be undone/, 'it says plainly that this is permanent');
+
+    await ui.press(/^(ยกเลิก|Cancel)$/);
+    assert.doesNotMatch(ui.text(), ask);
+    assert.equal(calls, 0);
+
+    await ui.press(/^(ลบบัญชี|Delete account)$/);
+    await ui.press(/^(ลบถาวร|Delete permanently)$/);
+    assert.equal(calls, 1);
+    assert.doesNotMatch(ui.text(), ask, 'closed once the server has deleted it');
+    ui.unmount();
+  });
+
+  test('a failure keeps the dialog open and says nothing was removed', async () => {
+    const s = server(routes());
+    restore = s.restore;
+    const ui = await mountScreen(h(ProfileScreen, {
+      ...props,
+      onLogout: () => {},
+      onDeleteAccount: async () => { throw new Error('offline'); },
+    }));
+    await ui.press(/^(ลบบัญชี|Delete account)$/);
+    await ui.press(/^(ลบถาวร|Delete permanently)$/);
+    assert.match(ui.text(), ask, 'still open');
+    assert.match(ui.text(), /ยังไม่มีข้อมูลใดถูกลบ|Nothing was removed/);
+    ui.unmount();
+  });
+});

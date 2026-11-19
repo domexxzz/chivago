@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>นโยบายความเป็นส่วนตัว · Privacy Policy · ChivarGo</title>
+<meta name="description" content="ChivarGo เก็บข้อมูลอะไร ใช้ทำอะไร ส่งให้ใคร และลบอย่างไร · What ChivarGo collects, why, who receives it, and how to delete it.">
+<link rel="icon" href="/favicon.ico">
+<!--
+  Every statement below was checked against the code on 19 November 2026
+  (apps/api/src: migrations.ts, google-auth.ts, line-auth.ts, story-service.ts,
+  concierge-context.ts, groq-concierge.ts, sos-service.ts, server.ts). If a
+  feature changes what it collects or where it sends it, this page changes in
+  the same pull request.
+
+  OWNER TODO: the controller is named as the product until the registered
+  company name is supplied. Replace "ChivarGo" in both "Who is responsible"
+  sections with the registered name (Thai and English).
+-->
+<style>
+  :root {
+    --ink: #102F55; --muted: #4A6582; --line: #D3E9F0; --bg: #F8FDFF;
+    --card: #FFFFFF; --sea: #0077B6; --teal: #08AFC3; --sun: #D56B22;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #E6F2FA; --muted: #A9C1D6; --line: #23415E; --bg: #0B1A2C;
+      --card: #10243A; --sea: #5CB8F0; --teal: #3FD0E0; --sun: #F0A060; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.7 system-ui, -apple-system, "Segoe UI", "Noto Sans Thai", "Noto Sans", Roboto, sans-serif; }
+  a { color: var(--sea); }
+  .wrap { max-width: 46rem; margin: 0 auto; padding: 2rem max(1rem, env(safe-area-inset-left)) 4rem; }
+  header { border-bottom: 1px solid var(--line); padding-bottom: 1.25rem; margin-bottom: 1.5rem; }
+  .brand { font-weight: 900; color: var(--teal); text-decoration: none; letter-spacing: .01em; }
+  h1 { font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem); line-height: 1.25; margin: .5rem 0 .25rem; text-wrap: balance; }
+  h2 { font-size: 1.2rem; margin: 2.25rem 0 .5rem; }
+  h3 { font-size: 1rem; margin: 1.25rem 0 .25rem; }
+  .meta { color: var(--muted); font-size: .9rem; margin: 0; }
+  .lang { display: flex; gap: .5rem; margin-top: 1rem; flex-wrap: wrap; }
+  .lang a { padding: .3rem .8rem; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; font-size: .9rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.25rem; margin: 1rem 0; }
+  ul { padding-left: 1.25rem; } li { margin: .3rem 0; }
+  table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+  th, td { text-align: left; vertical-align: top; padding: .5rem .5rem .5rem 0; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; }
+  .scroll { overflow-x: auto; }
+  .contact { font-weight: 700; user-select: all; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 3rem 0; }
+  footer { color: var(--muted); font-size: .9rem; margin-top: 3rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <a class="brand" href="/">ChivarGo</a>
+  <h1>นโยบายความเป็นส่วนตัว<br><span style="font-weight:600;color:var(--muted)">Privacy Policy</span></h1>
+  <p class="meta">มีผลตั้งแต่ 19 พฤศจิกายน 2569 · Effective 19 November 2026</p>
+  <nav class="lang" aria-label="ภาษา / Language">
+    <a href="#th" lang="th">ภาษาไทย</a>
+    <a href="#en" lang="en">English</a>
+    <a href="/about">เกี่ยวกับ ChivarGo · About</a>
+  </nav>
+</header>
+
+<main>
+<!-- ===================================================== ภาษาไทย -->
+<section id="th" lang="th">
+  <h2>ใครเป็นผู้รับผิดชอบข้อมูลของคุณ</h2>
+  <p>ChivarGo (chivargo.com) เป็นผู้ควบคุมข้อมูลส่วนบุคคลตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA) สำหรับข้อมูลที่เก็บผ่านแอปและเว็บไซต์นี้</p>
+  <div class="card">ติดต่อเรื่องข้อมูลส่วนบุคคล: <span class="contact">privacy@chivargo.com</span></div>
+
+  <h2>ข้อมูลที่เราเก็บ</h2>
+  <h3>บัญชี</h3>
+  <ul>
+    <li>รหัสประจำเครื่องที่แอปสร้างขึ้นเอง ใช้แทนการสมัครสมาชิก</li>
+    <li>ชื่อที่แสดง ภาษาที่เลือก และถ้าคุณกรอกเอง ประวัติย่อ รูปโปรไฟล์ และความสนใจในการเที่ยว</li>
+    <li>ถ้าคุณสมัครด้วยอีเมล: อีเมล เบอร์โทร (ถ้าใส่) และรหัสผ่านที่เก็บแบบเข้ารหัสทางเดียว (hash) ไม่เก็บรหัสผ่านจริง</li>
+    <li>ถ้าคุณเข้าสู่ระบบด้วย Google หรือ LINE: เราเก็บเพียงรหัสบัญชีที่ผู้ให้บริการนั้นส่งมา ไม่เก็บอีเมล ชื่อ หรือรูปจาก Google หรือ LINE</li>
+  </ul>
+  <h3>สิ่งที่คุณสร้างหรือส่งเข้ามา</h3>
+  <ul>
+    <li>รีวิวสถานที่และร้านค้า โพสต์ ความคิดเห็น และสตอรี่ (รูปหรือวิดีโอสั้น)</li>
+    <li>ภาพถ่ายพร้อมพิกัดที่ส่งเป็นหลักฐานกิจกรรม ให้เจ้าของสถานที่ที่มีชื่อระบุตรวจยืนยัน</li>
+    <li>ข้อความที่พิมพ์คุยกับ Chivar Bot</li>
+    <li>การบันทึกอารมณ์ (mood check-in) และโน้ตที่แนบ</li>
+    <li>คำถามหรือคำขอจองที่ส่งถึงผู้ให้บริการในแอป</li>
+    <li>ข้อความในแชตกลุ่มทริป (party)</li>
+  </ul>
+  <h3>ตำแหน่งที่ตั้ง</h3>
+  <ul>
+    <li>ใช้เมื่อคุณเช็กอินหรือส่งหลักฐานกิจกรรม เพื่อยืนยันว่าอยู่ในพื้นที่จริง</li>
+    <li>แชร์ตำแหน่งสดให้สมาชิกกลุ่มทริปเห็น เฉพาะตอนที่คุณเปิดการแชร์</li>
+    <li>เมื่อคุณกด SOS ระบบบันทึกเส้นทางตำแหน่งของเหตุการณ์นั้นเพื่อให้คนที่คุณเลือกตามหาคุณได้</li>
+  </ul>
+  <p>ข้อมูลอากาศ ทะเล และคุณภาพอากาศ ใช้พิกัดกลางของพื้นที่ (เช่น เกาะสีชัง) ไม่ใช่ตำแหน่งของคุณ</p>
+  <h3>ความปลอดภัย</h3>
+  <ul>
+    <li>ผู้ติดต่อฉุกเฉินที่คุณเพิ่ม: ชื่อ เบอร์โทร และความสัมพันธ์ (โปรดแจ้งให้บุคคลนั้นทราบว่าคุณใส่ข้อมูลเขาไว้)</li>
+  </ul>
+  <h3>ข้อมูลทางเทคนิค</h3>
+  <ul>
+    <li>โทเค็นสำหรับส่งการแจ้งเตือน (push) ถ้าคุณอนุญาต</li>
+    <li>บันทึกการทำงานของเซิร์ฟเวอร์ที่ใช้แก้ปัญหาและป้องกันการใช้งานผิด</li>
+  </ul>
+
+  <h2>เราใช้ข้อมูลทำอะไร และฐานทางกฎหมาย</h2>
+  <div class="scroll"><table>
+    <tr><th>ใช้ทำอะไร</th><th>ฐานตาม PDPA</th></tr>
+    <tr><td>ให้บริการแอป: บัญชี แต้ม เควสต์ รีวิว กลุ่มทริป</td><td>การปฏิบัติตามสัญญา (ให้บริการที่คุณขอใช้)</td></tr>
+    <tr><td>ยืนยันกิจกรรมด้วยตำแหน่งและรูปถ่าย</td><td>การปฏิบัติตามสัญญา และความยินยอมในการเข้าถึงตำแหน่ง/กล้องของอุปกรณ์</td></tr>
+    <tr><td>แชร์ตำแหน่งสดในกลุ่มทริป</td><td>ความยินยอม (เปิด/ปิดได้ตลอดเวลา)</td></tr>
+    <tr><td>SOS และการแจ้งผู้ติดต่อฉุกเฉิน</td><td>การป้องกันอันตรายต่อชีวิต ร่างกาย หรือสุขภาพ</td></tr>
+    <tr><td>ตอบคำถามผ่าน Chivar Bot</td><td>การปฏิบัติตามสัญญา</td></tr>
+    <tr><td>ดูแลความปลอดภัยของระบบ ตรวจสอบเนื้อหาที่ถูกรายงาน</td><td>ประโยชน์โดยชอบด้วยกฎหมาย</td></tr>
+  </table></div>
+  <p>เราไม่ขายข้อมูลส่วนบุคคล ไม่ใช้ข้อมูลเพื่อโฆษณา และเว็บไซต์ไม่มีตัวติดตามเพื่อการวิเคราะห์หรือโฆษณา</p>
+
+  <h2>ใครเห็นหรือได้รับข้อมูล</h2>
+  <ul>
+    <li><b>ผู้ใช้คนอื่น:</b> ชื่อที่แสดง รูปและประวัติย่อในโปรไฟล์ รีวิว โพสต์ ความคิดเห็น และสตอรี่ เป็นข้อมูลสาธารณะในแอป สมาชิกกลุ่มทริปเห็นข้อความแชตกลุ่ม และเห็นตำแหน่งของคุณเฉพาะตอนเปิดแชร์</li>
+    <li><b>เจ้าของสถานที่ที่ตรวจยืนยัน:</b> เห็นหลักฐานกิจกรรมที่คุณส่งให้เขา ผู้ให้บริการเห็นคำถามหรือคำขอจองที่คุณส่งถึงเขา</li>
+    <li><b>ผู้ติดต่อฉุกเฉิน:</b> เมื่อคุณกด SOS จะได้ลิงก์ตำแหน่งที่หมดอายุได้ ถ้าเขาใช้ ChivarGo และเพิ่มคุณเป็นผู้ติดต่อด้วย จะได้การแจ้งเตือนในแอป</li>
+    <li><b>ผู้ให้บริการที่ประมวลผลแทนเรา:</b>
+      <ul>
+        <li>Cloudflare: โฮสต์เว็บไซต์ แอป ฐานข้อมูล และไฟล์รูป</li>
+        <li>Groq: ประมวลผลข้อความที่คุณพิมพ์ถึง Chivar Bot เพื่อทำความเข้าใจคำถามและเรียบเรียงคำตอบ</li>
+        <li>Expo: ส่งการแจ้งเตือน push ไปยังโทรศัพท์</li>
+        <li>Google และ LINE: ยืนยันตัวตนเมื่อคุณเลือกเข้าสู่ระบบด้วยบริการเหล่านั้น</li>
+      </ul>
+    </li>
+    <li><b>หน่วยงานรัฐ:</b> เฉพาะเมื่อกฎหมายบังคับ</li>
+  </ul>
+  <p>ผู้ให้บริการบางรายประมวลผลข้อมูลนอกประเทศไทย (เช่น Groq และ Expo ในสหรัฐอเมริกา และเครือข่ายของ Cloudflare ทั่วโลก) เราส่งเฉพาะข้อมูลที่จำเป็นต่อบริการนั้น</p>
+
+  <h2>เก็บไว้นานแค่ไหน</h2>
+  <ul>
+    <li>สตอรี่: หมดอายุหลัง 7 วัน</li>
+    <li>บทสนทนากับ Chivar Bot: ลบอัตโนมัติเมื่อไม่มีการใช้งาน 30 วัน</li>
+    <li>ตำแหน่งสดในกลุ่มทริป: ลบเมื่อคุณปิดการแชร์ ออกจากกลุ่ม หรือทริปจบ</li>
+    <li>คุกกี้ระหว่างเข้าสู่ระบบด้วย Google หรือ LINE: ลบทันทีเมื่อเข้าสู่ระบบเสร็จ</li>
+    <li>ข้อมูลอื่นที่ผูกกับบัญชี: เก็บจนกว่าคุณจะลบบัญชี</li>
+  </ul>
+
+  <h2>สิทธิของคุณ</h2>
+  <p>คุณมีสิทธิขอเข้าถึงและขอสำเนาข้อมูล ขอแก้ไข ขอลบ ขอโอนย้ายข้อมูล คัดค้านหรือขอระงับการประมวลผล และถอนความยินยอมเมื่อใดก็ได้ การถอนความยินยอมไม่กระทบสิ่งที่ทำไปก่อนหน้า</p>
+  <p><b>ลบบัญชี:</b> ในแอป ไปที่หน้าโปรไฟล์ แล้วกด "ลบบัญชี" ใต้ปุ่มออกจากระบบ บัญชีและข้อมูลทุกอย่างที่ผูกกับบัญชีจะถูกลบทันที รวมถึงสิ่งที่เผยแพร่แล้ว เช่น รีวิว โพสต์ และสตอรี่ ส่วนรูปหลักฐานกิจกรรมจะถูกลบออกจากที่เก็บไฟล์ตามมาภายในเวลาไม่นาน ถ้าเข้าแอปไม่ได้ อีเมลมาที่ <span class="contact">privacy@chivargo.com</span> พร้อมชื่อที่แสดงในแอป เราจะยืนยันว่าเป็นเจ้าของบัญชีแล้วลบให้ภายใน 30 วัน</p>
+  <p>ถ้าเห็นว่าเราใช้ข้อมูลไม่ถูกต้อง คุณร้องเรียนต่อสำนักงานคณะกรรมการคุ้มครองข้อมูลส่วนบุคคล (สคส.) ได้</p>
+
+  <h2>คุกกี้และพื้นที่เก็บข้อมูลในอุปกรณ์</h2>
+  <p>เว็บไซต์ตั้งคุกกี้เฉพาะตอนเข้าสู่ระบบด้วย Google หรือ LINE (คุกกี้ HttpOnly อายุสั้น ใช้ป้องกันการปลอมคำขอเข้าสู่ระบบ) แอปเก็บรหัสประจำเครื่อง คิว SOS ที่ยังส่งไม่ออก หลักฐานที่รออัปโหลด และคะแนนเกม ไว้ในพื้นที่เก็บข้อมูลของอุปกรณ์คุณ</p>
+
+  <h2>ความปลอดภัย</h2>
+  <p>รับส่งข้อมูลผ่าน HTTPS เท่านั้น รหัสผ่านและรหัสเข้ากลุ่มเก็บแบบ hash และเราขอข้อมูลจาก Google และ LINE น้อยที่สุดเท่าที่การเข้าสู่ระบบต้องใช้</p>
+
+  <h2>การเปลี่ยนแปลงนโยบาย</h2>
+  <p>ถ้านโยบายนี้เปลี่ยน เราจะแก้วันที่มีผลด้านบน และแจ้งในแอปถ้าเป็นการเปลี่ยนสาระสำคัญ</p>
+</section>
+
+<hr>
+
+<!-- ===================================================== English -->
+<section id="en" lang="en">
+  <h2>Who is responsible for your data</h2>
+  <p>ChivarGo (chivargo.com) is the data controller, under Thailand's Personal Data Protection Act B.E. 2562 (2019) ("PDPA"), for data collected through this app and website.</p>
+  <div class="card">Privacy contact: <span class="contact">privacy@chivargo.com</span></div>
+
+  <h2>What we collect</h2>
+  <h3>Your account</h3>
+  <ul>
+    <li>A device key the app creates for itself, so you can use the app without signing up.</li>
+    <li>Your display name and language. If you add them: a bio, a profile photo, and your travel interests.</li>
+    <li>If you sign up with email: your email, a phone number if you give one, and your password stored only as a one-way hash, never as the password itself.</li>
+    <li>If you sign in with Google or LINE: only the account identifier that provider sends us. We do not store your Google or LINE email, name or picture.</li>
+  </ul>
+  <h3>What you create or send</h3>
+  <ul>
+    <li>Reviews of places and shops, posts, comments, and stories (short photos or videos).</li>
+    <li>Geotagged photos you submit as proof of an activity, for a named host to verify.</li>
+    <li>What you type to Chivar Bot, the in-app assistant.</li>
+    <li>Mood check-ins and any note you add to them.</li>
+    <li>Questions or booking requests you send to providers in the app.</li>
+    <li>Messages in a travel party's group chat.</li>
+  </ul>
+  <h3>Location</h3>
+  <ul>
+    <li>When you check in or submit proof of an activity, to confirm you were really there.</li>
+    <li>Live location shared with your travel party, only while you have sharing switched on.</li>
+    <li>When you press SOS, a trail of positions for that incident, so the people you chose can find you.</li>
+  </ul>
+  <p>Weather, sea and air-quality readings use the centre of the area (for example Koh Sichang), not your location.</p>
+  <h3>Safety</h3>
+  <ul>
+    <li>Emergency contacts you add: their name, phone number and relationship to you. Please tell them you have added them.</li>
+  </ul>
+  <h3>Technical</h3>
+  <ul>
+    <li>A push-notification token, if you allow notifications.</li>
+    <li>Server logs used to fix problems and prevent abuse.</li>
+  </ul>
+
+  <h2>Why we use it, and the legal basis</h2>
+  <div class="scroll"><table>
+    <tr><th>Purpose</th><th>Basis under the PDPA</th></tr>
+    <tr><td>Running the app: your account, points, quests, reviews, travel parties</td><td>Contract (providing the service you asked for)</td></tr>
+    <tr><td>Verifying activities with location and photos</td><td>Contract, and your consent to device location and camera access</td></tr>
+    <tr><td>Live location in a travel party</td><td>Consent, which you can switch off at any time</td></tr>
+    <tr><td>SOS and alerting your emergency contacts</td><td>Preventing danger to life, body or health</td></tr>
+    <tr><td>Answering you through Chivar Bot</td><td>Contract</td></tr>
+    <tr><td>Keeping the service secure; reviewing reported content</td><td>Legitimate interest</td></tr>
+  </table></div>
+  <p>We do not sell personal data or use it for advertising, and the website runs no analytics or advertising trackers.</p>
+
+  <h2>Who sees or receives it</h2>
+  <ul>
+    <li><b>Other users.</b> Your display name, profile photo and bio, reviews, posts, comments and stories are public in the app. Members of your travel party see its group chat, and see your location only while you share it.</li>
+    <li><b>Hosts who verify activities</b> see the proof you sent them. <b>Providers</b> see the questions and booking requests you send them.</li>
+    <li><b>Your emergency contacts.</b> When you press SOS they get an expiring link to your location. If they use ChivarGo and have added you as a contact too, they also get an in-app alert.</li>
+    <li><b>Service providers who process data for us:</b>
+      <ul>
+        <li>Cloudflare hosts the website, the app, the database and uploaded photos.</li>
+        <li>Groq processes what you type to Chivar Bot, to understand the question and word the reply.</li>
+        <li>Expo delivers push notifications to your phone.</li>
+        <li>Google and LINE confirm who you are when you choose to sign in with them.</li>
+      </ul>
+    </li>
+    <li><b>Authorities,</b> only where the law requires it.</li>
+  </ul>
+  <p>Some of these providers process data outside Thailand (Groq and Expo in the United States, Cloudflare on its global network). Each receives only what its service needs.</p>
+
+  <h2>How long we keep it</h2>
+  <ul>
+    <li>Stories expire after 7 days.</li>
+    <li>Chivar Bot conversations are deleted automatically after 30 days without use.</li>
+    <li>Live party location is deleted when you stop sharing, leave the party, or the trip ends.</li>
+    <li>Google and LINE sign-in cookies are deleted as soon as sign-in completes.</li>
+    <li>Everything else tied to your account is kept until you delete the account.</li>
+  </ul>
+
+  <h2>Your rights</h2>
+  <p>You can ask to access and get a copy of your data, correct it, delete it, or move it elsewhere. You can object to or restrict processing, and withdraw consent at any time. Withdrawing consent does not undo what was done before.</p>
+  <p><b>Deleting your account:</b> in the app, open your profile and tap "Delete account" below Log out. The account and everything tied to it is deleted at once, including what you published, such as reviews, posts and stories. Activity photos are then removed from file storage shortly afterwards. If you cannot get into the app, email <span class="contact">privacy@chivargo.com</span> with your display name; we will confirm the account is yours and delete it within 30 days.</p>
+  <p>If you believe we have mishandled your data, you can complain to Thailand's Personal Data Protection Committee (PDPC).</p>
+
+  <h2>Cookies and on-device storage</h2>
+  <p>The website sets cookies only while you sign in with Google or LINE: short-lived HttpOnly cookies that protect the sign-in from forged requests. The app keeps its device key, any SOS alerts not yet sent, proof waiting to upload, and game high scores in your device's own storage.</p>
+
+  <h2>Security</h2>
+  <p>Data travels only over HTTPS. Passwords and party join codes are stored as hashes. We ask Google and LINE for the least information sign-in needs.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes we will update the effective date above, and tell you in the app if the change is significant.</p>
+</section>
+</main>
+
+<footer>
+  <a href="/">ChivarGo</a> · <a href="/about">เกี่ยวกับ · About</a> · <span class="contact">privacy@chivargo.com</span>
+</footer>
+</div>
+</body>
+</html>
