@@ -28,7 +28,8 @@ test('the reading is the service\'s own figures, with the moment it read them', 
   const r = readBoth(air(), sea());
   assert.ok(r);
   assert.deepEqual(r.figures, {
-    waveHeightM: 0.1, wavePeriodS: 2.35, tempC: 24.4, rainMm: 0, windKn: 3, weatherCode: 3,
+    waveHeightM: 0.1, wavePeriodS: 2.35, tempC: 24.4, rainMm: 0, windKn: 3,
+    windDirectionDeg: null, relativeHumidityPct: null, weatherCode: 3,
   });
   assert.equal(r.observedAt, NOW);
 });

@@ -25,6 +25,20 @@ import type { Bilingual, Provenance } from './types.ts';
 /** The conditions a reader can ask for. `port` is deliberately NOT here - see `WEATHER_CATEGORIES`. */
 export type WeatherCategoryKey = 'waves' | 'temp' | 'weather' | 'rain';
 
+export type WeatherReadingKind = 'observation' | 'forecast';
+export type WeatherProvider = 'tmd-station' | 'tmd-nwp' | 'open-meteo';
+
+export interface OfficialWeatherAlert {
+  /** Raw official title. TMD warnings are authoritative Thai source text. */
+  title: string;
+  headline: string | null;
+  announcedAt: string | null;
+  effectiveFrom: string | null;
+  effectiveUntil: string | null;
+  url: string | null;
+  source: 'TMD';
+}
+
 /**
  * The categories, in the order they are offered.
  *
@@ -46,6 +60,18 @@ export interface AreaWeather {
   /** When the figures were read (ISO), or null when they never were. */
   observedAt: string | null;
   source: string;
+  /** Structured provider identity lets each client localise attribution safely. */
+  provider?: WeatherProvider;
+  /** Whether the air figures came from an instrument reading or a model. */
+  readingKind?: WeatherReadingKind;
+  /** Official-warning availability is separate from the weather feed. */
+  officialAlertStatus?: 'active' | 'none' | 'unavailable';
+  officialAlerts?: OfficialWeatherAlert[];
+  /**
+   * Whether TMD's own forecast agreed with these figures (tmd.ts in the API).
+   * Absent when nothing was compared. 'differs' also makes the reading 'estimated'.
+   */
+  tmdCheck?: 'agrees' | 'differs';
   /** Metres. Null inland, where the marine feed has no sea to report. */
   waveHeightM: number | null;
   /** Seconds between crests. Null with no sea, or when the feed omitted it. */
@@ -55,6 +81,9 @@ export interface AreaWeather {
   rainMm: number | null;
   /** Knots. */
   windKn: number | null;
+  /** Direction the wind comes from, in degrees. */
+  windDirectionDeg?: number | null;
+  relativeHumidityPct?: number | null;
   /** WMO present-weather code, 0-99. */
   weatherCode: number | null;
 }
@@ -62,7 +91,9 @@ export interface AreaWeather {
 /** Nothing read. Not a zero anywhere: a figure nobody gave is absent, not nought. */
 export const NO_WEATHER: AreaWeather = {
   provenance: 'stale', observedAt: null, source: '',
-  waveHeightM: null, wavePeriodS: null, tempC: null, rainMm: null, windKn: null, weatherCode: null,
+  readingKind: 'forecast', officialAlertStatus: 'unavailable', officialAlerts: [],
+  waveHeightM: null, wavePeriodS: null, tempC: null, rainMm: null, windKn: null,
+  windDirectionDeg: null, relativeHumidityPct: null, weatherCode: null,
 };
 
 /**
@@ -127,6 +158,18 @@ export interface WeatherRead {
   observedAt: number | null;
 }
 
+export type MarineWeatherFigures = Pick<AreaWeather, 'waveHeightM' | 'wavePeriodS'>;
+
+/** Read only the marine half, so a trusted station can supply the air half. */
+export function marineFromOpenMeteo(marine: unknown): MarineWeatherFigures {
+  const sea = (marine as { current?: unknown } | null)?.current;
+  const s = typeof sea === 'object' && sea !== null ? sea as Record<string, unknown> : {};
+  return {
+    waveHeightM: num(s.wave_height, 0, WAVE_MAX_M),
+    wavePeriodS: num(s.wave_period, 0, PERIOD_MAX_S),
+  };
+}
+
 /**
  * One reading out of Open-Meteo's two answers, or null when the air answer is
  * not one at all.
@@ -152,14 +195,12 @@ export function weatherFromOpenMeteo(
   // failure rather than a reading of four nulls.
   if (tempC === null && rainMm === null && windKn === null && weatherCode === null) return null;
 
-  const sea = (marine as { current?: unknown } | null)?.current;
-  const s = typeof sea === 'object' && sea !== null ? sea as Record<string, unknown> : {};
+  const sea = marineFromOpenMeteo(marine);
 
   return {
     figures: {
-      waveHeightM: num(s.wave_height, 0, WAVE_MAX_M),
-      wavePeriodS: num(s.wave_period, 0, PERIOD_MAX_S),
-      tempC, rainMm, windKn, weatherCode,
+      ...sea,
+      tempC, rainMm, windKn, windDirectionDeg: null, relativeHumidityPct: null, weatherCode,
     },
     observedAt: readObservedAt(a.time, offset, now),
   };

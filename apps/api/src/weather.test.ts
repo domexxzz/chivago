@@ -15,6 +15,8 @@ delete process.env.CHIVAGO_OPEN_IDENTITY;
 // The TMD cross-check is asked for explicitly below; a token on the machine
 // running these must not turn it on for every other test.
 delete process.env.TMD_NWP_TOKEN;
+delete process.env.TMD_API_UID;
+delete process.env.TMD_API_KEY;
 process.env.CHIVAGO_DB = ':memory:';
 
 const T0 = Date.parse('2026-10-24T22:45:00+07:00');
@@ -59,6 +61,52 @@ describe('getWeather', () => {
     assert.equal(r.weatherCode, 3);
     assert.equal(svc.asked.length, 2, 'the sky and the sea are two services');
     assert.ok(svc.inits[0]?.redirect === 'manual', 'a redirect is not followed to another host (and never as error, which workerd refuses)');
+  });
+
+  test('Ko Sichang uses its TMD station and official warnings while keeping marine waves', async () => {
+    const svc = fakeService((url) => {
+      if (url.includes('marine-api')) return sea();
+      if (url.includes('Weather3HoursBySynop')) return { Stations: { Station: [{
+        WmoStationNumber: '48460', StationNameThai: 'เกาะสีชัง',
+        Observation: {
+          DateTime: '10/24/2026 22:00:00', AirTemperature: '29.1', Rainfall: '0.8',
+          WindSpeed: '18.52', WindDirection: '225', RelativeHumidity: '79',
+        },
+      }] } };
+      if (url.includes('WeatherWarningNews')) return { WarningNews: [{
+        IssueNo: '4', TitleThai: 'คลื่นลมแรง', WebUrlThai: 'https://www.tmd.go.th/warning/4',
+      }] };
+      return air();
+    });
+    const r = await getWeather('koh-sichang', {
+      now: T0, fetchImpl: svc.fetchImpl, tmd: { uid: 'server-user', apiKey: 'server-key' },
+    });
+    assert.equal(r.provenance, 'live');
+    assert.equal(r.readingKind, 'observation');
+    assert.equal(r.provider, 'tmd-station');
+    assert.equal(r.tempC, 29.1);
+    assert.equal(r.windKn, 10);
+    assert.equal(r.windDirectionDeg, 225);
+    assert.equal(r.relativeHumidityPct, 79);
+    assert.equal(r.waveHeightM, 0.1);
+    assert.equal(r.weatherCode, 3, 'the station has no condition code, so the icon keeps the model condition');
+    assert.match(r.source, /สถานีเกาะสีชัง/);
+    assert.equal(r.officialAlertStatus, 'active');
+    assert.equal(r.officialAlerts?.[0]?.title, 'คลื่นลมแรง');
+    assert.equal(svc.asked.length, 4);
+  });
+
+  test('a TMD outage falls back to Open-Meteo without making the weather card fail', async () => {
+    const svc = fakeService((url) => url.includes('data.tmd.go.th') ? new Error('TMD unavailable') : bothOk(url));
+    const r = await getWeather('koh-sichang', {
+      now: T0, fetchImpl: svc.fetchImpl, tmd: { uid: 'server-user', apiKey: 'server-key' },
+    });
+    assert.equal(r.provenance, 'live');
+    assert.equal(r.readingKind, 'forecast');
+    assert.equal(r.provider, 'open-meteo');
+    assert.equal(r.tempC, 24.4);
+    assert.equal(r.officialAlertStatus, 'unavailable');
+    assert.equal(r.officialAlerts?.length, 0);
   });
 
   test('it asks for the area\'s own centre, in knots and on the island clock', async () => {
@@ -369,12 +417,26 @@ describe('the TMD cross-check', () => {
     assert.match(next.source, /checked against TMD/);
   });
 
-  test('a stale reading stays stale whatever TMD says', async () => {
+  test('when Open-Meteo is down, the TMD forecast stands in and is labelled as TMD', async () => {
     let down = false;
     const svc = fakeService((u) => (isTmd(u) ? tmd({ tc: 24.4, ws10m: 1.5 }) : down ? new Error('down') : bothOk(u)));
     await askChecked(svc.fetchImpl);
     down = true;
     const r = await askChecked(svc.fetchImpl, T0 + WEATHER_TTL_MS);
+    assert.equal(r.provenance, 'live');
+    assert.equal(r.provider, 'tmd-nwp');
+    assert.equal(r.tempC, 24.4);
+    assert.equal(r.rainMm, null, 'nothing TMD was not asked for is filled in');
+    assert.doesNotMatch(r.source, /checked against TMD/, 'nothing was checked: there was nothing to check it against');
+  });
+
+  test('a stale reading stays stale when TMD is down too', async () => {
+    let down = false;
+    const svc = fakeService((u) => (down ? new Error('down') : isTmd(u) ? tmd({ tc: 24.4, ws10m: 1.5 }) : bothOk(u)));
+    await askChecked(svc.fetchImpl); // 22:45
+    down = true;
+    // 23:05: the 22:00 forecast no longer describes now, so TMD is asked again, and fails.
+    const r = await askChecked(svc.fetchImpl, Date.parse('2026-10-24T23:05:00+07:00'));
     assert.equal(r.provenance, 'stale');
   });
 });

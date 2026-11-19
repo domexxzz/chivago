@@ -90,11 +90,13 @@ describe('crossCheckWeather', () => {
     const r = crossCheckWeather(reading(), { tempC: 27 + TMD_TEMP_TOLERANCE_C, windKn: 6, time: null });
     assert.equal(r.provenance, 'live');
     assert.match(r.source, /checked against TMD/);
+    assert.equal(r.tmdCheck, 'agrees');
   });
 
   test('a temperature further apart than the tolerance makes the reading estimated, and says by how much', () => {
     const r = crossCheckWeather(reading({ tempC: 32 }), { tempC: 27, windKn: 6, time: null });
     assert.equal(r.provenance, 'estimated');
+    assert.equal(r.tmdCheck, 'differs');
     assert.match(r.source, /differs from TMD/);
     assert.match(r.source, /32/);
     assert.match(r.source, /27/);

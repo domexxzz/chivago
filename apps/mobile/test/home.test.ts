@@ -242,6 +242,52 @@ describe('what Home says', () => {
     ui.unmount();
   });
 
+  test('Ko Sichang names an observed TMD reading and its official warning plainly', async () => {
+    const sky = {
+      provenance: 'live', observedAt: '2026-10-24T15:00:00.000Z',
+      source: 'กรมอุตุนิยมวิทยา · สถานีเกาะสีชัง (WMO 48460) · คลื่น Open-Meteo Marine', provider: 'tmd-station',
+      readingKind: 'observation', officialAlertStatus: 'active',
+      officialAlerts: [{
+        title: 'คลื่นลมแรงบริเวณอ่าวไทย', headline: 'เดินเรือด้วยความระมัดระวัง',
+        announcedAt: '2026-10-24T09:00:00.000Z', effectiveFrom: null, effectiveUntil: null,
+        url: 'https://www.tmd.go.th/warning/8', source: 'TMD',
+      }],
+      waveHeightM: 0.6, wavePeriodS: 4.1, tempC: 28.2, rainMm: 0.4, windKn: 9.7,
+      windDirectionDeg: 225, relativeHumidityPct: 81, weatherCode: 3,
+    };
+    const s = server(routes({ '/areas/samui/weather': sky })); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, props));
+    const said = ui.text();
+    assert.match(said, /OBSERVED/, 'an instrument reading is not labelled as a forecast');
+    assert.match(said, /Humidity 81%/);
+    assert.match(said, /9\.7 kn · 225°/);
+    assert.match(said, /TMD: คลื่นลมแรงบริเวณอ่าวไทย/);
+    assert.match(said, /Land conditions are observed by TMD; waves remain model data/);
+    assert.match(said, /Ko Sichang station \(WMO 48460\)/, 'the source station is not localised');
+    ui.unmount();
+  });
+
+  test('an Open-Meteo reading says when TMD agreed, and when it did not', async () => {
+    const base = {
+      provenance: 'live', observedAt: '2026-10-24T15:00:00.000Z', source: 'Open-Meteo · forecast and marine',
+      provider: 'open-meteo', readingKind: 'forecast', officialAlertStatus: 'unavailable', officialAlerts: [],
+      waveHeightM: 0.3, wavePeriodS: 3, tempC: 27, rainMm: 0, windKn: 6, weatherCode: 1,
+    };
+    for (const [sky, expect, refuse] of [
+      [{ ...base, tmdCheck: 'agrees' }, /checked against TMD/, /forecasts differently/],
+      [{ ...base, provenance: 'estimated', tmdCheck: 'differs' }, /forecasts differently for this hour/, /checked against TMD/],
+    ] as const) {
+      const s = server(routes({ '/areas/samui/weather': sky })); restore = s.restore;
+      const ui = await mountScreen(h(HomeScreen, props));
+      const said = ui.text();
+      assert.match(said, expect);
+      assert.doesNotMatch(said, refuse);
+      assert.match(said, /FORECAST/, 'a disagreement is still a reading for this hour, not an outage');
+      ui.unmount();
+      restore();
+    }
+  });
+
   test('when the forecast cannot be reached it says so, and claims no calm sea', async () => {
     const s = server(routes()); restore = s.restore; // no weather route: the request fails
     const ui = await mountScreen(h(HomeScreen, props));

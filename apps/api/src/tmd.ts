@@ -143,10 +143,11 @@ export function crossCheckWeather(reading: AreaWeather, tmd: TmdForecast | null)
     }
   }
   if (!compared) return reading;
-  if (gaps.length === 0) return { ...reading, source: `${reading.source} · checked against TMD` };
+  if (gaps.length === 0) return { ...reading, tmdCheck: 'agrees', source: `${reading.source} · checked against TMD` };
   return {
     ...reading,
     provenance: 'estimated',
+    tmdCheck: 'differs',
     source: `${reading.source} (differs from TMD forecast: ${gaps.join(', ')})`,
   };
 }
