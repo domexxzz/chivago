@@ -14,6 +14,13 @@
   "name": "chivago",
   "main": "src/worker.ts",
 
+  // Runs before every `wrangler deploy` and `versions upload`, and refuses a
+  // web export that check-export.mjs refuses - above all one that still calls
+  // localhost:8787. On 19 November a hand-built bundle went out without
+  // that check and the site called each visitor's own machine for six and a
+  // half hours. Skipped under `wrangler dev`; see scripts/deploy-guard.mjs.
+  "build": { "command": "node ../../scripts/deploy-guard.mjs ../mobile/dist-live" },
+
   // Measured, not chosen: the probes behind do-storage.ts ran against this
   // date. Moving it changes runtime behaviour, so it moves deliberately.
   "compatibility_date": "2026-08-06",
