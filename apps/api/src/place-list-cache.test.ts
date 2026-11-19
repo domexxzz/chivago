@@ -6,6 +6,7 @@ import { listScoredPlaces, getScoredPlace } from './repo.ts';
 import { PLACE_LIST_TTL_MS, invalidatePlaceList } from './place-list-cache.ts';
 import { setPlaceHidden } from './admin-service.ts';
 import { openArea } from './area-opening.ts';
+import { importBatch } from './import-service.ts';
 import type { AirReading } from './air.ts';
 
 /*
@@ -118,5 +119,21 @@ describe('the writers clear it', () => {
     openArea(db, 'koh-sichang', new Date(T0));
     const after = (await list('u_ana', T0 + 1)).length;
     assert.ok(after > before, `${after} places after opening, ${before} before`);
+  });
+});
+
+describe('an import clears it', () => {
+  test('a place arriving through /admin/import is served on the next request', async () => {
+    const before = (await list()).length;
+    importBatch(db, {
+      table: 'places',
+      columns: ['id', 'name_en', 'name_th', 'short', 'layer', 'province', 'lat', 'lng', 'meta', 'blurb_en', 'blurb_th', 'tags',
+        'safety_label_en', 'safety_label_th', 'crowd_density', 'aqi', 'safety_index', 'walkability'],
+      values: [['imported', 'Imported', 'Imported', 'Imported', 'culture', 'Chonburi', 13.17, 100.8, 'meta', 'b', 'b', '[]',
+        'safe', 'safe', 0, 40, 80, 70]],
+    });
+    const after = await list('u_ana', T0 + 1);
+    assert.equal(after.length, before + 1);
+    assert.ok(after.some((p) => p.id === 'imported'));
   });
 });

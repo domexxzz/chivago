@@ -23,6 +23,7 @@
  */
 
 import { rows, row, transact, type DB } from './db.ts';
+import { invalidatePlaceList } from './place-list-cache.ts';
 
 /** One table's worth of rows. Arrays, not objects: 100k rows should not carry 100k copies of the column names. */
 export interface ImportBatch {
@@ -554,6 +555,9 @@ export function importBatch(db: DB, batch: ImportBatch): number {
       insert.run(...v.map(decodeValue));
       n += 1;
     }
+    // An imported place must show on the next request, not after the place
+    // list cache's minute (place-list-cache.ts).
+    if (batch.table === 'places') invalidatePlaceList(db);
     return n;
   });
 }
