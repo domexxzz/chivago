@@ -1078,12 +1078,12 @@ export const strings = {
   impact: {
     title: t('Your impact', 'ผลลัพธ์ของคุณ', '你的成效'),
     subtitle: t('What you have created on Koh Samui', 'ผลลัพธ์ที่คุณสร้างบนเกาะสมุย', '你在苏梅岛创造的成果'),
-    community: (year: number) => t(`Samui community total · ${year}`, `ผลรวมชุมชนเกาะสมุย · ${year}`, `苏梅岛社区总计 · ${year}`),
+    community: (year: number) => t(`ChivarGo community total · ${year}`, `ผลรวมชุมชน ChivarGo · ${year}`, `ChivarGo 社区总计 · ${year}`),
     verifiedData: t('Verified activity data', 'ข้อมูลกิจกรรมที่ตรวจสอบแล้ว', '已验证的活动数据'),
     verifiedBlurb: t(
-      'Your logged hours feed the Samui ESG Impact Report used by partner hotels and sponsors.',
-      'ชั่วโมงที่คุณบันทึกถูกรวมในรายงาน ESG เกาะสมุย ที่โรงแรมพันธมิตรและผู้สนับสนุนใช้',
-      '你记录的时长会汇入苏梅岛 ESG 成效报告，供合作酒店和赞助方使用。',
+      'Hours a host has verified go into the ESG impact report a sponsor can file.',
+      'ชั่วโมงที่เจ้าภาพรับรองแล้วจะถูกรวมในรายงานผลกระทบ ESG ที่ผู้สนับสนุนนำไปใช้ได้',
+      '经主办方核实的时长会计入赞助方可提交的 ESG 成效报告。',
     ),
     exportCard: t('Export my impact card', 'ส่งออกการ์ดผลลัพธ์', '导出我的成效卡'),
     exported: t('Impact card exported', 'ส่งออกการ์ดแล้ว', '成效卡已导出'),

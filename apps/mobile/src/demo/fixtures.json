@@ -9511,18 +9511,8 @@
           "th": "ขยะที่เก็บได้"
         },
         "actual": 0,
-        "target": 3000,
+        "target": 30,
         "unit": "kg"
-      },
-      {
-        "key": "treesPlanted",
-        "label": {
-          "en": "Trees planted",
-          "th": "ต้นไม้ที่ปลูก"
-        },
-        "actual": 0,
-        "target": 1500,
-        "unit": ""
       },
       {
         "key": "volunteerHours",
@@ -9531,7 +9521,7 @@
           "th": "ชั่วโมงอาสาสมัคร"
         },
         "actual": 0,
-        "target": 1620,
+        "target": 15,
         "unit": "hr"
       },
       {
@@ -9541,7 +9531,7 @@
           "th": "ผู้เข้าร่วม"
         },
         "actual": 0,
-        "target": 1000,
+        "target": 15,
         "unit": ""
       },
       {
@@ -9551,7 +9541,7 @@
           "th": "กิจกรรมชุมชน"
         },
         "actual": 0,
-        "target": 50,
+        "target": 20,
         "unit": ""
       }
     ]

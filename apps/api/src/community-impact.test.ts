@@ -3,6 +3,7 @@ import { beforeEach, describe, test } from 'node:test';
 
 import { openTestDb } from './db-node.ts';
 import { getCommunityImpact } from './repo.ts';
+import { COMMUNITY_TARGETS_2026, migrate } from './migrations.ts';
 import { awardQuestReward, ensureWallet, reverseMovement } from './wallet-service.ts';
 import type { DB } from './db.ts';
 
@@ -123,5 +124,36 @@ describe('community impact', () => {
     verified('u_ana', 'beach', 3.2, '2025-12-31T16:59:59.000Z');
     assert.equal(metric('wasteCollected').actual, 0);
     assert.equal(getCommunityImpact(db, 2025).length, 0, 'no 2025 metrics row, no 2025 figures');
+  });
+});
+
+describe('the 2026 targets', () => {
+  const targets = () => Object.fromEntries(
+    getCommunityImpact(db, 2026).map((m) => [m.key, m.target]),
+  ) as Record<string, number>;
+
+  test('the design placeholders become the pilot targets, and trees go', () => {
+    migrate(db);
+    assert.deepEqual(targets(), { wasteCollected: 30, volunteerHours: 15, participants: 15, activities: 20 });
+  });
+
+  test('a target an operator set is left alone', () => {
+    db.prepare("UPDATE community_metrics SET target = 120 WHERE key = 'wasteCollected'").run();
+    migrate(db);
+    assert.equal(targets().wasteCollected, 120);
+    assert.equal(targets().participants, 15);
+  });
+
+  test('running it again changes nothing', () => {
+    assert.ok(migrate(db).includes('community targets sized to the pilot'));
+    assert.ok(!migrate(db).includes('community targets sized to the pilot'));
+    assert.deepEqual(targets(), { wasteCollected: 30, volunteerHours: 15, participants: 15, activities: 20 });
+  });
+
+  test('every placeholder in the list is one the seed once wrote', () => {
+    for (const [key, placeholder] of COMMUNITY_TARGETS_2026) {
+      assert.ok(['wasteCollected', 'volunteerHours', 'participants', 'activities'].includes(key));
+      assert.ok(placeholder > 0);
+    }
   });
 });

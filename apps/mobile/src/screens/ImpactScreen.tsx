@@ -1,8 +1,8 @@
 /**
  * Impact dashboard.
  *
- * Personal verified activity, rolled into the Samui community total that feeds
- * the ESG report partner hotels and sponsors rely on.
+ * Personal verified activity, rolled into the community total that feeds
+ * the ESG report a sponsor can file.
  *
  * Every bar is COMPUTED as actual/target. The design's 83/67/74/50/40 are
  * placeholders (handoff open question 3); the targets now live in the database,

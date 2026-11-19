@@ -2526,5 +2526,41 @@ export function migrate(db: DB): string[] {
     applied.push('google_identities');
   }
 
+  /*
+    The 2026 community targets, sized to the pilot instead of the design.
+
+    The design's 3,000 kg, 1,620 hours, 1,000 people, 50 activities and 1,500
+    trees were drawn for a full Samui season. The pilot reached 21 active
+    people in its first ten weeks and has six weeks of 2026 left, so those
+    bars would sit at 0% all year. COMMUNITY_TARGETS_2026 is what six weeks
+    of Ko Sichang and the campuses can do; trees go, because no planting
+    partner exists yet and a target nobody can work toward is not a plan.
+
+    A data correction in a migration, like the opening-balance reversal above,
+    and guarded the same way: a row is changed only while it still holds the
+    design's own number. A target an operator has since set is theirs and is
+    never overwritten, and a second run finds nothing to change.
+  */
+  if (hasTable(db, 'community_metrics')) {
+    let changed = 0;
+    for (const [key, placeholder, target] of COMMUNITY_TARGETS_2026) {
+      changed += Number(db.prepare(
+        'UPDATE community_metrics SET target = ? WHERE key = ? AND year = 2026 AND target = ?',
+      ).run(target, key, placeholder).changes);
+    }
+    changed += Number(db.prepare(
+      "DELETE FROM community_metrics WHERE key = 'treesPlanted' AND year = 2026 AND target = 1500",
+    ).run().changes);
+    if (changed > 0) applied.push('community targets sized to the pilot');
+  }
+
   return applied;
 }
+
+/** [key, the design's placeholder target, the pilot's target] for 2026. */
+export const COMMUNITY_TARGETS_2026: readonly (readonly [string, number, number])[] = [
+  ['wasteCollected', 3000, 30],
+  ['volunteerHours', 1620, 15],
+  ['participants', 1000, 15],
+  ['activities', 50, 20],
+];
