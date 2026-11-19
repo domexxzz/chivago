@@ -652,6 +652,12 @@ export const strings = {
       `ติดต่อพยากรณ์ไม่ได้ตอนนี้ · ข้อมูลเมื่อ ${clock}`,
       `暂时联系不上预报服务 · 读取于 ${clock}`,
     ),
+    /** The forecast answered, but TMD's own forecast for the hour disagrees with it. */
+    weatherUnsure: t(
+      'The Thai Meteorological Department forecasts differently for this hour · treat as approximate',
+      'กรมอุตุนิยมวิทยาพยากรณ์ชั่วโมงนี้ต่างออกไป · ใช้เป็นค่าโดยประมาณ',
+      '泰国气象局对这一小时的预报不同 · 仅供参考',
+    ),
     weatherAgain: t('Check again', 'เช็กอีกครั้ง', '重新查看'),
     weatherDown: t(
       'Could not reach the forecast just now, so the sea and sky are not known.',
