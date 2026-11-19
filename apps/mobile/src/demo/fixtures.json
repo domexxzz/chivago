@@ -9510,7 +9510,7 @@
           "en": "Waste collected",
           "th": "ขยะที่เก็บได้"
         },
-        "actual": 2500,
+        "actual": 0,
         "target": 3000,
         "unit": "kg"
       },
@@ -9530,7 +9530,7 @@
           "en": "Volunteer hours",
           "th": "ชั่วโมงอาสาสมัคร"
         },
-        "actual": 1200,
+        "actual": 0,
         "target": 1620,
         "unit": "hr"
       },
@@ -9540,7 +9540,7 @@
           "en": "Participants",
           "th": "ผู้เข้าร่วม"
         },
-        "actual": 500,
+        "actual": 0,
         "target": 1000,
         "unit": ""
       },
@@ -9550,7 +9550,7 @@
           "en": "Community activities",
           "th": "กิจกรรมชุมชน"
         },
-        "actual": 20,
+        "actual": 0,
         "target": 50,
         "unit": ""
       }

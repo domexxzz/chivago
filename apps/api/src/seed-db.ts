@@ -138,12 +138,13 @@ for (const o of SEED_OFFERS) {
  */
 const YEAR = 2026;
 const COMMUNITY: [string, string, string, number, number, string][] = [
-  ['wasteCollected', 'Waste collected', 'ขยะที่เก็บได้', 2500, 3000, 'kg'],
-  // The tree actual is read from partner evidence, never from this seed.
+  ['wasteCollected', 'Waste collected', 'ขยะที่เก็บได้', 0, 3000, 'kg'],
+  // Every actual is counted from approvals (getCommunityImpact in repo.ts),
+  // never read from here; the column is written as zero so no guess sits in it.
   ['treesPlanted', 'Trees planted', 'ต้นไม้ที่ปลูก', 0, 1500, ''],
-  ['volunteerHours', 'Volunteer hours', 'ชั่วโมงอาสาสมัคร', 1200, 1620, 'hr'],
-  ['participants', 'Participants', 'ผู้เข้าร่วม', 500, 1000, ''],
-  ['activities', 'Community activities', 'กิจกรรมชุมชน', 20, 50, ''],
+  ['volunteerHours', 'Volunteer hours', 'ชั่วโมงอาสาสมัคร', 0, 1620, 'hr'],
+  ['participants', 'Participants', 'ผู้เข้าร่วม', 0, 1000, ''],
+  ['activities', 'Community activities', 'กิจกรรมชุมชน', 0, 50, ''],
 ];
 
 for (const [key, en, th, actual, target, unit] of COMMUNITY) {

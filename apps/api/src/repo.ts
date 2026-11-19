@@ -19,6 +19,7 @@ import type {
 import { ACTIVE_QUEST_CODES, computeHealthyScore, EMPTY_PROFILE, isBookingLink, RETIRED_CODE_PREFIX } from '@chivago/core';
 import type { AirStation } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
+import { awardStands } from './ledger-sql.ts';
 import { getAir } from './air.ts';
 import { checkinsLastHour } from './crowd-service.ts';
 import { summariesFor } from './place-review-service.ts';
@@ -393,18 +394,66 @@ function parseDurationHours(duration: string): number {
   return 0;
 }
 
-/** Community totals with their targets. The UI computes actual/target itself. */
+/**
+ * A person the app itself signed up. Every real account is created as `u_…`
+ * (account-service.ts, user-account-service.ts); the demo scripts insert fixed
+ * ids such as `demo-user` and `showcase-demo`, whose seeded approvals are not
+ * work anybody did and must not reach a community total.
+ */
+const signedUp = (alias: string): string => `${alias}.user_id LIKE 'u\\_%' ESCAPE '\\'`;
+
+/**
+ * The year's community actuals, counted from approvals that stand.
+ *
+ * The same rows the ESG report reads: a host approved the submission
+ * (`verified_at`, which also dates it), and its award was not taken back
+ * (`awardStands`). Kilograms are the approved proofs' own weights, hours the
+ * quest's stated duration - the rule `getPersonalImpact` uses - and an
+ * activity is one approved completion.
+ */
+function communityActuals(db: DB, year: number): Record<string, number> {
+  const done = rows<{ user_id: string; duration: string; kg: number }>(
+    db.prepare(
+      `SELECT qp.user_id AS user_id, q.duration AS duration,
+              (SELECT COALESCE(SUM(p.weight_kg), 0) FROM proofs p
+                WHERE p.quest_id = qp.quest_id AND p.user_id = qp.user_id AND p.approved = 1) AS kg
+         FROM quest_progress qp
+         JOIN quests q ON q.id = qp.quest_id
+        WHERE qp.verified_at IS NOT NULL
+          AND qp.verified_at >= ? AND qp.verified_at < ?
+          AND ${awardStands('qp')}
+          AND ${signedUp('qp')}`,
+    ).all(`${year}-01-01T00:00:00.000Z`, `${year + 1}-01-01T00:00:00.000Z`),
+  );
+  return {
+    wasteCollected: round1(done.reduce((n, d) => n + d.kg, 0)),
+    volunteerHours: round1(done.reduce((n, d) => n + parseDurationHours(d.duration), 0)),
+    participants: new Set(done.map((d) => d.user_id)).size,
+    activities: done.length,
+    // Trees need partner evidence; a quest code cannot plant one.
+    treesPlanted: communityTreesPlanted(db, year),
+  };
+}
+
+/**
+ * Community totals with their targets. The UI computes actual/target itself.
+ *
+ * ONLY THE TARGET AND THE LABEL COME FROM `community_metrics`. Its `actual`
+ * column held the design's placeholders (2,500 kg, 1,200 hours, 500 people,
+ * 20 activities) and the app showed them as achievements. Every actual is now
+ * counted, and a metric nothing counts reads zero rather than a stored guess.
+ */
 export function getCommunityImpact(db: DB, year: number): CommunityMetric[] {
-  const rows = db
-    .prepare('SELECT key, label_en, label_th, actual, target, unit FROM community_metrics WHERE year = ?')
+  const metrics = db
+    .prepare('SELECT key, label_en, label_th, target, unit FROM community_metrics WHERE year = ?')
     .all(year) as
-    { key: string; label_en: string; label_th: string; actual: number; target: number; unit: string }[];
-  return rows.map((r) => ({
+    { key: string; label_en: string; label_th: string; target: number; unit: string }[];
+  if (metrics.length === 0) return [];
+  const actual = communityActuals(db, year);
+  return metrics.map((r) => ({
     key: r.key,
     label: { en: r.label_en, th: r.label_th },
-    // The pilot seed's 1,000 trees was a design placeholder, not a planting
-    // record. Only partner evidence may supply this particular actual.
-    actual: r.key === 'treesPlanted' ? communityTreesPlanted(db, year) : r.actual,
+    actual: actual[r.key] ?? 0,
     target: r.target,
     unit: r.unit,
   }));
