@@ -2,7 +2,8 @@ import { strict as assert } from 'node:assert';
 import { before, beforeEach, describe, test } from 'node:test';
 import { areaByKey, isAreaKey } from '@chivago/core';
 import {
-  RETRY_AFTER_MS, STALE_MAX_MS, WEATHER_TTL_MS, __resetWeather, forecastUrl, getWeather, marineUrl,
+  RETRY_AFTER_MS, STALE_MAX_MS, TMD_RETRY_AFTER_MS, TMD_TTL_MS, WEATHER_TTL_MS, __resetWeather, forecastUrl,
+  getWeather, marineUrl,
 } from './weather.ts';
 
 /**
@@ -11,6 +12,9 @@ import {
  * The real service is never called: `fetch` is a stand-in that counts.
  */
 delete process.env.CHIVAGO_OPEN_IDENTITY;
+// The TMD cross-check is asked for explicitly below; a token on the machine
+// running these must not turn it on for every other test.
+delete process.env.TMD_NWP_TOKEN;
 process.env.CHIVAGO_DB = ':memory:';
 
 const T0 = Date.parse('2026-10-24T22:45:00+07:00');
@@ -266,5 +270,111 @@ describe('GET /areas/:key/weather', () => {
   test('an area the app does not have is a 404', async () => {
     const res = await app.request('/areas/nowhere/weather');
     assert.equal(res.status, 404);
+  });
+});
+
+describe('the TMD cross-check', () => {
+  beforeEach(() => __resetWeather());
+
+  const TOKEN = 'test-token';
+  const tmd = (data: Record<string, unknown>) => ({
+    WeatherForecasts: [{ location: { lat: 13, lon: 100 }, forecasts: [{ time: '2026-10-24T22:00:00+07:00', data }] }],
+  });
+  const isTmd = (u: string) => u.startsWith('https://data.tmd.go.th/');
+  const withTmd = (data: Record<string, unknown> | Error) => (u: string) =>
+    (isTmd(u) ? (data instanceof Error ? data : tmd(data)) : bothOk(u));
+  const askChecked = (fetchImpl: typeof fetch, now = T0) =>
+    getWeather('samui', { now, fetchImpl, tmdToken: TOKEN });
+  const tmdInit = (svc: ReturnType<typeof fakeService>) => svc.inits[svc.asked.findIndex(isTmd)];
+
+  test('without a token TMD is never asked, and the reading is what it was', async () => {
+    const svc = fakeService(withTmd({ tc: 40, ws10m: 30 }));
+    const r = await ask(svc.fetchImpl);
+    assert.equal(r.provenance, 'live');
+    assert.ok(!svc.asked.some(isTmd));
+  });
+
+  test('with a token it is asked with that token as a bearer, and agreement keeps the reading live', async () => {
+    const svc = fakeService(withTmd({ tc: 25, ws10m: 1.5 }));
+    const r = await askChecked(svc.fetchImpl);
+    assert.ok(svc.asked.some(isTmd), 'TMD was asked');
+    assert.equal(new Headers(tmdInit(svc)?.headers).get('authorization'), `Bearer ${TOKEN}`);
+    assert.equal(tmdInit(svc)?.redirect, 'manual');
+    assert.equal(r.provenance, 'live');
+    assert.match(r.source, /checked against TMD/);
+  });
+
+  test('a token pasted with a Windows line ending still works', async () => {
+    const svc = fakeService(withTmd({ tc: 25, ws10m: 1.5 }));
+    await getWeather('samui', { now: T0, fetchImpl: svc.fetchImpl, tmdToken: `${TOKEN}\r\n` });
+    assert.equal(new Headers(tmdInit(svc)?.headers).get('authorization'), `Bearer ${TOKEN}`);
+  });
+
+  test('when the two forecasts disagree the reading is estimated, not live', async () => {
+    const svc = fakeService(withTmd({ tc: 31, ws10m: 1.5 }));
+    const r = await askChecked(svc.fetchImpl);
+    assert.equal(r.provenance, 'estimated');
+    assert.equal(r.tempC, 24.4, 'still Open-Meteo\'s figure');
+  });
+
+  test('TMD failing changes nothing about the reading, and is not asked again at once', async () => {
+    const svc = fakeService(withTmd(new Error('ECONNRESET')));
+    const r = await askChecked(svc.fetchImpl);
+    assert.equal(r.provenance, 'live');
+    assert.doesNotMatch(r.source, /TMD/);
+    await askChecked(svc.fetchImpl, T0 + WEATHER_TTL_MS);
+    assert.equal(svc.asked.filter(isTmd).length, 1, 'a refused token or a spent quota is not hammered');
+    await askChecked(svc.fetchImpl, T0 + TMD_RETRY_AFTER_MS);
+    assert.equal(svc.asked.filter(isTmd).length, 2, 'after the wait it is asked again');
+  });
+
+  test('a 401 is a failure, not a reading', async () => {
+    const svc = fakeService((u) => (isTmd(u)
+      ? new Response('{"message":"Unauthenticated."}', { status: 401 })
+      : bothOk(u)));
+    const r = await askChecked(svc.fetchImpl);
+    assert.equal(r.provenance, 'live');
+    assert.doesNotMatch(r.source, /TMD/);
+  });
+
+  test('its answer is kept longer than Open-Meteo\'s, because every field asked counts against a quota', async () => {
+    const svc = fakeService(withTmd({ tc: 25, ws10m: 1.5 }));
+    await askChecked(svc.fetchImpl);
+    await askChecked(svc.fetchImpl, T0 + WEATHER_TTL_MS);
+    assert.equal(svc.asked.filter((u) => !isTmd(u)).length, 4, 'Open-Meteo asked twice');
+    assert.equal(svc.asked.filter(isTmd).length, 1, 'TMD asked once');
+    await askChecked(svc.fetchImpl, T0 + TMD_TTL_MS);
+    assert.equal(svc.asked.filter(isTmd).length, 2);
+  });
+
+  test('an answer for some other hour is compared with nothing', async () => {
+    const svc = fakeService((u) => (isTmd(u)
+      ? { WeatherForecasts: [{ forecasts: [{ time: '2026-10-24T03:00:00+07:00', data: { tc: 10, ws10m: 1 } }] }] }
+      : bothOk(u)));
+    const r = await askChecked(svc.fetchImpl);
+    assert.equal(r.provenance, 'live', 'three in the morning is not evidence about a quarter to eleven at night');
+    assert.doesNotMatch(r.source, /TMD/);
+  });
+
+  test('a forecast is not reused into the next hour, however recently it was fetched', async () => {
+    const svc = fakeService((u) => {
+      if (!isTmd(u)) return bothOk(u);
+      const q = new URL(u).searchParams;
+      const hh = q.get('hour')!.padStart(2, '0');
+      return { WeatherForecasts: [{ forecasts: [{ time: `${q.get('date')}T${hh}:00:00+07:00`, data: { tc: 25, ws10m: 1.5 } }] }] };
+    });
+    await askChecked(svc.fetchImpl); // 22:45
+    const next = await askChecked(svc.fetchImpl, Date.parse('2026-10-24T23:05:00+07:00'));
+    assert.equal(svc.asked.filter(isTmd).length, 2, '23:00 is a new question');
+    assert.match(next.source, /checked against TMD/);
+  });
+
+  test('a stale reading stays stale whatever TMD says', async () => {
+    let down = false;
+    const svc = fakeService((u) => (isTmd(u) ? tmd({ tc: 24.4, ws10m: 1.5 }) : down ? new Error('down') : bothOk(u)));
+    await askChecked(svc.fetchImpl);
+    down = true;
+    const r = await askChecked(svc.fetchImpl, T0 + WEATHER_TTL_MS);
+    assert.equal(r.provenance, 'stale');
   });
 });

@@ -37,8 +37,12 @@ export const WEATHER_CATEGORIES: readonly WeatherCategoryKey[] = ['waves', 'temp
 
 /** One reading of an area's sea and sky. Every figure is null when it was not read. */
 export interface AreaWeather {
-  /** 'live' when the feed answered just now; 'stale' for the last reading, or for none. */
-  provenance: Extract<Provenance, 'live' | 'stale'>;
+  /**
+   * 'live' when the feed answered just now; 'estimated' when it answered but
+   * the Thai Meteorological Department's forecast for the same hour disagrees
+   * with it (apps/api/src/tmd.ts); 'stale' for the last reading, or for none.
+   */
+  provenance: Extract<Provenance, 'live' | 'estimated' | 'stale'>;
   /** When the figures were read (ISO), or null when they never were. */
   observedAt: string | null;
   source: string;
