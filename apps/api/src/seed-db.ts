@@ -137,14 +137,15 @@ for (const o of SEED_OFFERS) {
  * pilot seed, so the actual starts at zero and is derived on read.
  */
 const YEAR = 2026;
+// Targets are the pilot's (see COMMUNITY_TARGETS_2026 in migrations.ts). Every
+// actual is counted from approvals (getCommunityImpact in repo.ts), never read
+// from here; the column is written as zero so no guess sits in it. Trees have
+// no row: there is no planting partner yet, so there is nothing to aim at.
 const COMMUNITY: [string, string, string, number, number, string][] = [
-  ['wasteCollected', 'Waste collected', 'ขยะที่เก็บได้', 0, 3000, 'kg'],
-  // Every actual is counted from approvals (getCommunityImpact in repo.ts),
-  // never read from here; the column is written as zero so no guess sits in it.
-  ['treesPlanted', 'Trees planted', 'ต้นไม้ที่ปลูก', 0, 1500, ''],
-  ['volunteerHours', 'Volunteer hours', 'ชั่วโมงอาสาสมัคร', 0, 1620, 'hr'],
-  ['participants', 'Participants', 'ผู้เข้าร่วม', 0, 1000, ''],
-  ['activities', 'Community activities', 'กิจกรรมชุมชน', 0, 50, ''],
+  ['wasteCollected', 'Waste collected', 'ขยะที่เก็บได้', 0, 30, 'kg'],
+  ['volunteerHours', 'Volunteer hours', 'ชั่วโมงอาสาสมัคร', 0, 15, 'hr'],
+  ['participants', 'Participants', 'ผู้เข้าร่วม', 0, 15, ''],
+  ['activities', 'Community activities', 'กิจกรรมชุมชน', 0, 20, ''],
 ];
 
 for (const [key, en, th, actual, target, unit] of COMMUNITY) {
