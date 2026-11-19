@@ -23,9 +23,22 @@
  * there is no directory to try. The 401 is the device-authentication
  * middleware answering a request that was never meant to reach it.
  */
+/**
+ * The two plain pages outside the app: `public/privacy.html` and
+ * `public/about.html`. Workers Assets answers `/privacy` with privacy.html
+ * and redirects `/privacy.html` and `/privacy/` to `/privacy` (measured
+ * locally, 307), so all three spellings are listed: an unlisted one would
+ * reach the API and answer 401 instead of redirecting.
+ * They are what Google's OAuth consent screen links to as the privacy policy
+ * and the home page, and both must be readable without a device key - a 401
+ * there is a sign-in screen that cannot be published.
+ */
+const PAGES = new Set(['/privacy', '/privacy.html', '/privacy/', '/about', '/about.html', '/about/']);
+
 export const servedFromExport = (pathname: string): boolean =>
   pathname === '/'
   || pathname === '/favicon.ico'
   || pathname === '/robots.txt'
+  || PAGES.has(pathname)
   || ['/_expo/', '/assets/', '/icons/', '/islands/', '/media/', '/shops/media/', '/shops/guide-photos/', '/vendor/']
     .some((p) => pathname.startsWith(p));
