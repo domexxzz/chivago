@@ -19,6 +19,8 @@ import {
   type EsgPeriod, type ListingKind, type Sponsor, type Sponsorship,
 } from '@chivago/core';
 import { listQuests } from '../repo.ts';
+import { acceptInvite, HostInviteRefused, readInvite } from '../host-invite-service.ts';
+import { inviteClosedPage, invitePage, inviteWelcomePage } from './invite.ts';
 import { sponsorPage } from './sponsor.ts';
 import { esgPage } from './esg.ts';
 import { questsPage } from './quests.ts';
@@ -317,6 +319,43 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
 
   // -- Sign in ------------------------------------------------------------
 
+  // -- An invitation to verify (host-invite-service.ts) ---------------------
+  // Public like /login: the link itself is the credential, once.
+
+  app.get('/invite/:token', (c) => {
+    const invite = readInvite(db, c.req.param('token'));
+    c.header('cache-control', 'no-store');
+    if (invite.state !== 'open') return c.html(inviteClosedPage(localeFor(c), invite.state), 404);
+    return c.html(invitePage(localeFor(c), invite));
+  });
+
+  app.post('/invite/:token', async (c) => {
+    const token = c.req.param('token');
+    const locale = localeFor(c);
+    c.header('cache-control', 'no-store');
+    const invite = readInvite(db, token);
+    if (invite.state !== 'open') return c.html(inviteClosedPage(locale, invite.state), 404);
+    const form = await c.req.parseBody();
+    const reviewer = String(form.reviewer ?? '').trim();
+    if (!reviewer) return c.html(invitePage(locale, invite, true), 400);
+    let accepted: { hostId: string; key: string };
+    try {
+      accepted = acceptInvite(db, token, reviewer);
+    } catch (err) {
+      if (err instanceof HostInviteRefused) return c.html(inviteClosedPage(locale, 'used'), 409);
+      throw err;
+    }
+    const session = login(db, accepted.key, reviewer);
+    if (session) {
+      c.header('set-cookie', [
+        `${SESSION_COOKIE}=${session.token}`, 'Path=/console', 'HttpOnly', 'SameSite=Strict',
+        `Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`,
+        process.env.CHIVAGO_SECURE_COOKIES === '1' ? 'Secure' : '',
+      ].filter(Boolean).join('; '));
+    }
+    return c.html(inviteWelcomePage(locale, invite.hostName, accepted.key));
+  });
+
   app.get('/login', (c) => c.html(loginPage(localeFor(c))));
 
   app.post('/login', async (c) => {
@@ -451,6 +490,8 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
       // a moderator approves it.
       c.req.path.endsWith('/apply') ||
       c.req.path.endsWith('/assets/modernist.css') ||
+      // An invitation link (host-invite-service.ts): the token is the credential.
+      c.req.path.includes('/invite/') ||
       c.req.path.includes('/lang/')
     ) {
       return next();

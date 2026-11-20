@@ -2527,6 +2527,28 @@ export function migrate(db: DB): string[] {
   }
 
   /*
+    One-time invitations for verifiers (host-invite-service.ts). Only the
+    token's hash is kept; used_at and used_by say who accepted it and when.
+  */
+  if (!hasTable(db, 'host_invites')) {
+    db.exec(`
+      CREATE TABLE host_invites (
+        token_hash  TEXT PRIMARY KEY,
+        host_id     TEXT NOT NULL,
+        host_name   TEXT NOT NULL,
+        host_type   TEXT NOT NULL,
+        quest_ids   TEXT NOT NULL,
+        created_at  TEXT NOT NULL,
+        expires_at  TEXT NOT NULL,
+        used_at     TEXT,
+        used_by     TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_host_invites_host ON host_invites(host_id);
+    `);
+    applied.push('host_invites');
+  }
+
+  /*
     The 2026 community targets, sized to the pilot instead of the design.
 
     The design's 3,000 kg, 1,620 hours, 1,000 people, 50 activities and 1,500

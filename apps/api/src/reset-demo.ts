@@ -175,7 +175,7 @@ export const TRAVELLER_TABLES = [
  * network calls in the middle of a demo.
  */
 export const KEPT_TABLES = [
-  'places', 'quests', 'offers', 'hosts', 'host_sessions',
+  'places', 'quests', 'offers', 'hosts', 'host_sessions', 'host_invites',
   'community_metrics', 'air_cache', 'air_history',
   // Shared provider abuse-control state is operational, not traveller data.
   // Resetting the demo must not reopen the Groq quota window.
