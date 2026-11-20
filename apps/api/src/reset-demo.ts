@@ -343,6 +343,10 @@ export function reset(db: DB): void {
   for (const table of TRAVELLER_TABLES) {
     db.prepare(`DELETE FROM ${table}`).run();
   }
+  // `offers` is KEPT - the partner offers are pilot content - but a reward a
+  // shop put on itself (shop-reward-service.ts) goes with the shop it belongs
+  // to, which the loop above just removed. Its vouchers went first.
+  db.prepare('DELETE FROM offers WHERE shop_id IS NOT NULL').run();
 }
 
 // ---------------------------------------------------------------------------

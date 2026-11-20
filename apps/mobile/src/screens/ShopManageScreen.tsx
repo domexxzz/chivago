@@ -12,6 +12,7 @@ import { useHere } from '../state/here.ts';
 import { t } from '../i18n/locale.ts';
 import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
 import { SamuiMap } from '../components/SamuiMap.tsx';
+import { ShopRewardsPanel } from '../components/ShopRewardsPanel.tsx';
 
 const blue = '#0077B6';
 type ShopManageForm = ShopInput & Pick<Shop, 'guideStatus' | 'guideProfilePhotoUrl'>;
@@ -247,6 +248,7 @@ export function ShopManageScreen({ initialShopId, onBack, onOpenShop }: { initia
         {form.category !== 'ไกด์นำเที่ยว' ? <><Text style={{ color: '#123B64', fontWeight: '700', marginBottom: 6 }}>{t({ en: 'Amenities (comma-separated)', th: 'สิ่งอำนวยความสะดวก (คั่นด้วยจุลภาค)', zh: '设施（用逗号分隔）' })}</Text><TextInput value={amenities} onChangeText={setAmenities} style={inputStyle} placeholder="Wi-Fi" /></> : null}
         <Pressable onPress={() => update('active', !form.active)} style={{ paddingVertical: 14 }}><Text style={{ color: blue }}>{form.active ? t({ en: '☑ Show profile publicly', th: '☑ แสดงโปรไฟล์', zh: '☑ 公开显示资料' }) : t({ en: '□ Hide profile', th: '□ ซ่อนโปรไฟล์', zh: '□ 隐藏资料' })}</Text></Pressable>
         {editing !== 'new' ? <><View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}><Pressable onPress={() => void uploadPhoto('cover')} disabled={busy} style={{ flex: 1, padding: 12, backgroundColor: '#E9F6FA', borderRadius: 12, alignItems: 'center' }}><Camera size={18} color={blue} /><Text style={{ color: blue }}>{t({ en: 'Cover photo', th: 'รูปหน้าปก', zh: '封面照片' })}</Text></Pressable><Pressable onPress={() => void uploadPhoto('interior')} disabled={busy} style={{ flex: 1, padding: 12, backgroundColor: '#E9F6FA', borderRadius: 12, alignItems: 'center' }}><Camera size={18} color={blue} /><Text style={{ color: blue }}>{t({ en: form.category === 'ไกด์นำเที่ยว' ? 'More photos' : 'Interior photo', th: form.category === 'ไกด์นำเที่ยว' ? 'รูปเพิ่มเติม' : 'รูปภายใน', zh: form.category === 'ไกด์นำเที่ยว' ? '更多照片' : '店内照片' })}</Text></Pressable></View><ScrollView horizontal contentContainerStyle={{ gap: 8, marginTop: 10 }}>{images.map((img) => <View key={img.id}><Image source={{ uri: shopImageUri(img.url) }} style={{ width: 110, height: 88, borderRadius: 10 }} /><Pressable onPress={() => void removeImage(img.id)}><Text style={{ color: '#B91C1C', textAlign: 'center' }}>{t({ en: 'Remove', th: 'ลบ', zh: '删除' })} {img.kind === 'cover' ? t({ en: 'cover', th: 'หน้าปก', zh: '封面' }) : t({ en: 'photo', th: 'รูป', zh: '照片' })}</Text></Pressable></View>)}</ScrollView><Pressable onPress={() => void remove()} disabled={busy} style={{ padding: 14 }}><Text style={{ color: '#B91C1C', textAlign: 'center' }}>{confirmDelete ? t({ en: 'Confirm deleting this profile and all reviews', th: 'ยืนยันลบร้านค้าและรีวิวทั้งหมด', zh: '确认删除此资料及全部评价' }) : t({ en: 'Delete this profile', th: 'ลบโปรไฟล์นี้', zh: '删除此资料' })}</Text></Pressable></> : null}
+        {editing !== 'new' ? <ShopRewardsPanel shopId={editing} /> : null}
         {message ? <Text style={{ color: message.ok ? '#15803D' : '#B91C1C', marginTop: 8 }}>{message.text}</Text> : null}
       </View>}
     </View>

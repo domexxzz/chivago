@@ -115,6 +115,36 @@ export interface SummonState {
   };
 }
 
+/** A reward a shop offers for Trip Points. Always Trip Points; see the API. */
+export interface ShopReward {
+  id: string;
+  shopId: string;
+  name: string;
+  costPoints: number;
+  valueTHB: number | null;
+  currency: 'trip';
+  available: boolean;
+}
+
+export interface ShopRewardInput {
+  name: string;
+  costPoints: number;
+  valueTHB: number | null;
+  available: boolean;
+}
+
+/** What the counter is shown for a code: what it is for, never who holds it. */
+export interface CounterVoucher {
+  code: string;
+  rewardName: string;
+  valueTHB: number | null;
+  costPoints: number;
+  status: 'active' | 'redeemed' | 'expired' | 'cancelled';
+  issuedAt: string;
+  expiresAt: string;
+  redeemedAt: string | null;
+}
+
 /** One card in the field guide. Named and drawn only once it has been met. */
 export interface SpiritCard {
   key: string;
@@ -497,6 +527,15 @@ export const api = {
   */
   recordShopTap: (id: string, kind: 'phone' | 'route') => post<{ counted: boolean }>(`/shops/${encodeURIComponent(id)}/tap`, { kind }),
   shopStats: (id: string) => get<ShopStats>(`/shops/${encodeURIComponent(id)}/stats`),
+  // A shop's rewards and its counter (docs: shop-reward-service.ts in the API).
+  shopRewards: (id: string) => get<ShopReward[]>(`/shops/${encodeURIComponent(id)}/rewards`),
+  saveShopReward: (id: string, body: ShopRewardInput, rewardId?: string) => (rewardId
+    ? put<ShopReward>(`/shops/${encodeURIComponent(id)}/rewards/${encodeURIComponent(rewardId)}`, body)
+    : post<ShopReward>(`/shops/${encodeURIComponent(id)}/rewards`, body)),
+  shopVoucher: (id: string, code: string) =>
+    get<CounterVoucher>(`/shops/${encodeURIComponent(id)}/vouchers/${encodeURIComponent(code.trim())}`),
+  redeemShopVoucher: (id: string, code: string) =>
+    post<CounterVoucher & { alreadyRedeemed: boolean }>(`/shops/${encodeURIComponent(id)}/vouchers/${encodeURIComponent(code.trim())}/redeem`),
   createShop: (body: ShopInput) => post<ShopDetail>('/shops', body),
   updateShop: (id: string, body: ShopInput) => put<ShopDetail>(`/shops/${encodeURIComponent(id)}`, body),
   deleteShop: (id: string) => del<{ deleted: boolean }>(`/shops/${encodeURIComponent(id)}`),

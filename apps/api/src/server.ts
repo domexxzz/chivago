@@ -49,6 +49,9 @@ import {
   listShops, ownReview, ownedShop, recordShopEvent, recordShopTap, replyReview, reportShopReview,
   saveReview as saveShopReview, saveShop, shopStats,
 } from './local-business-service.ts';
+import {
+  listShopRewards, previewShopVoucher, redeemShopVoucher, saveShopReward,
+} from './shop-reward-service.ts';
 import { mediaBytes, storeMedia, type MediaTable } from './media-store.ts';
 import { blobStore } from './blob-store.ts';
 import { logger } from 'hono/logger';
@@ -1734,6 +1737,21 @@ app.delete('/shops/:id/images/:imageId', (c) => {
   db.prepare('DELETE FROM local_shop_media WHERE id=?').run(c.req.param('imageId'));
   return ok(c, { deleted: true });
 });
+/*
+  A shop's rewards, and its counter (shop-reward-service.ts). The owner checks
+  are inside the service, so a stranger gets the same 403 or 404 from every
+  door. The voucher routes take the code the traveller shows, typed or read
+  off the QR.
+*/
+app.get('/shops/:id/rewards', (c) => ok(c, listShopRewards(db, userId(c), c.req.param('id'))));
+app.post('/shops/:id/rewards', async (c) => ok(c, saveShopReward(
+  db, userId(c), c.req.param('id'), await c.req.json<Record<string, unknown>>().catch(() => ({})),
+)));
+app.put('/shops/:id/rewards/:rewardId', async (c) => ok(c, saveShopReward(
+  db, userId(c), c.req.param('id'), await c.req.json<Record<string, unknown>>().catch(() => ({})), c.req.param('rewardId'),
+)));
+app.get('/shops/:id/vouchers/:code', (c) => ok(c, previewShopVoucher(db, userId(c), c.req.param('id'), c.req.param('code'))));
+app.post('/shops/:id/vouchers/:code/redeem', (c) => ok(c, redeemShopVoucher(db, userId(c), c.req.param('id'), c.req.param('code'))));
 app.get('/shops/:id/reviews', (c) => ok(c, listShopReviews(db, c.req.param('id'), c.req.query('cursor'), userId(c))));
 app.get('/shops/:id/reviews/mine', (c) => ok(c, { review: ownReview(db, c.req.param('id'), userId(c)) }));
 app.put('/shops/:id/reviews/mine', async (c) => {
@@ -2773,8 +2791,18 @@ app.post('/inquiries/:id/withdraw', (c) => {
   }
 });
 
-/** The merchant marks a voucher used. Idempotent - scanning twice is harmless. */
+/**
+ * A partner merchant's voucher marked used, by the operator. Idempotent.
+ *
+ * THIS ANSWERED ANY DEVICE KEY until 21 November 2026, which meant a traveller
+ * could mark their own voucher used without going near the shop, or anybody's
+ * voucher used if they had seen its code. A shop in the app now uses its own
+ * counter (`/shops/:id/vouchers/:code/redeem`, owner only); this door is left
+ * for partner offers settled outside the app, behind the host secret.
+ */
 app.post('/vouchers/:code/redeem', (c) => {
+  const refused = operatorRefused(c);
+  if (refused) return refused;
   const code = c.req.param('code');
   const row = db.prepare('SELECT * FROM vouchers WHERE code = ?').get(code) as
     | { status: string; expires_at: string }

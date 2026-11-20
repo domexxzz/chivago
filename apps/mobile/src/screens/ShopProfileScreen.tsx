@@ -5,6 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { AlertTriangle, ArrowLeft, Camera, Clock, Flag, Mail, MapPin, MessageCircle, Navigation, Phone, Star, Store, Trash2, UserRound, X } from 'lucide-react-native';
 import { mapsDirectionsUrl } from '@chivago/core';
 import { api } from '../api/client.ts';
+import { ShopRewardsForTravellers } from '../components/ShopRewardsPanel.tsx';
 import { shopImageUri, shopOpenNow, type ShopReview } from '../api/shops.ts';
 import { useAsync } from '../state/store.tsx';
 import { cachedShop, shopWithFallback } from '../offline/public-cache.ts';
@@ -207,6 +208,7 @@ export function ShopProfileScreen({ shopId, guest = false, onSignIn, onBack, onE
           {canManage ? <Pressable onPress={() => { if (canManage) onEdit(); }} style={[button, { marginTop: 14 }]}><Text style={{ color: '#fff' }}>{t(shop.data.serviceType === 'guide' ? { en: 'Edit guide profile', th: 'แก้ไขโปรไฟล์ไกด์', zh: '编辑导游资料' } : { en: 'Edit business', th: 'แก้ไขร้านค้า', zh: '编辑店铺' })}</Text></Pressable> : null}
         </View>
       </View>
+      {canManage ? null : <ShopRewardsForTravellers shopId={shopId} guest={guest} />}
       <View style={card}>
         <Text style={{ color: '#123B64', fontWeight: '700', fontSize: 16 }}>{t(shop.data.serviceType === 'guide' ? { en: 'Guide details', th: 'ข้อมูลไกด์', zh: '导游详情' } : { en: 'Business details', th: 'ข้อมูลร้านค้า', zh: '店铺详情' })}</Text>
         <Text style={{ marginTop: 10, color: '#344F61' }}>{shop.data.description || t({ en: 'No description yet.', th: 'ยังไม่มีคำอธิบาย', zh: '暂无简介。' })}</Text>

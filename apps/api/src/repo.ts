@@ -331,11 +331,21 @@ interface OfferRow {
   id: string; category: string; name: string; merchant: string; merchant_short: string;
   cost_points: number; value_thb: number | null; currency: string;
   image_url: string | null; available: number; example?: number;
+  shop_id?: string | null; shop_active?: number | null;
 }
 
-export function listOffers(db: DB): Offer[] {
+/**
+ * Every offer, with a shop's reward counted as available only while its shop
+ * is online - a reward is the shop's promise, and an offline shop is not at
+ * the counter to keep it.
+ */
+function allOffers(db: DB): Offer[] {
   const offerRows = rows<OfferRow>(
-    db.prepare('SELECT * FROM offers ORDER BY cost_points ASC').all(),
+    db.prepare(
+      `SELECT o.*, s.active AS shop_active FROM offers o
+         LEFT JOIN local_shops s ON s.id = o.shop_id
+        ORDER BY o.cost_points ASC`,
+    ).all(),
   );
   return offerRows.map((r) => ({
     id: r.id,
@@ -347,13 +357,25 @@ export function listOffers(db: DB): Offer[] {
     valueTHB: r.value_thb ?? null,
     currency: r.currency as Offer['currency'],
     imageUrl: r.image_url,
-    available: r.available === 1,
+    available: r.available === 1 && (!r.shop_id || r.shop_active === 1),
     ...(r.example === 1 ? { example: true } : {}),
+    ...(r.shop_id ? { shopId: r.shop_id } : {}),
   }));
 }
 
+/**
+ * The market. A partner offer that is switched off stays listed, greyed, as
+ * it always has; a SHOP's reward that is switched off or whose shop is offline
+ * is left out, because the shop took it down and the owner's own panel is
+ * where it still lives.
+ */
+export function listOffers(db: DB): Offer[] {
+  return allOffers(db).filter((o) => !o.shopId || o.available);
+}
+
 export function getOffer(db: DB, offerId: string): Offer | null {
-  return listOffers(db).find((o) => o.id === offerId) ?? null;
+  // From every offer, so a reward taken down answers UNAVAILABLE, not 404.
+  return allOffers(db).find((o) => o.id === offerId) ?? null;
 }
 
 /**
