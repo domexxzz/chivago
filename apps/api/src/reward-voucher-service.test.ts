@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { beforeEach, test } from 'node:test';
 import { openTestDb, type DB } from './db-node.ts';
-import { issueGachaCoupon, issueQuestCoupon } from './reward-voucher-service.ts';
+import { issueQuestCoupon } from './reward-voucher-service.ts';
 
 let db: DB;
 const now = new Date('2026-11-17T00:00:00.000Z');
@@ -26,17 +26,9 @@ test('a configured quest coupon is a real voucher with source provenance and is 
   assert.equal(first.valueTHB, 50);
 });
 
-test('a gacha coupon only exists when a named reward is explicitly configured', () => {
-  assert.equal(issueGachaCoupon(db, 'u1', 'spirit:reef', 'summon-1', now), null);
-  db.prepare('INSERT INTO gacha_coupon_rewards(reward_key,offer_id,expires_days) VALUES(?,?,?)').run('spirit:reef', 'offer1', 30);
-  const voucher = issueGachaCoupon(db, 'u1', 'spirit:reef', 'summon-1', now)!;
-  assert.equal(voucher.sourceKind, 'gacha');
-  assert.equal(voucher.sourceRef, 'summon:summon-1');
-});
-
 test('an unavailable merchant offer is never silently replaced', () => {
   db.prepare('UPDATE offers SET available=0 WHERE id=?').run('offer1');
-  db.prepare('INSERT INTO gacha_coupon_rewards(reward_key,offer_id) VALUES(?,?)').run('spirit:reef', 'offer1');
-  assert.equal(issueGachaCoupon(db, 'u1', 'spirit:reef', 'summon-1', now), null);
+  db.prepare('INSERT INTO quest_coupon_rewards(quest_id,offer_id) VALUES(?,?)').run('q1', 'offer1');
+  assert.equal(issueQuestCoupon(db, 'u1', 'q1', now), null);
   assert.equal((db.prepare('SELECT COUNT(*) AS n FROM vouchers').get() as { n: number }).n, 0);
 });

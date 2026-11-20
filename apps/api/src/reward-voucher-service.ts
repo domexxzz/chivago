@@ -5,7 +5,7 @@ import { row, type DB } from './db.ts';
 type ConfiguredReward = { offer_id: string; expires_days: number };
 type OfferRow = { id: string; merchant: string; cost_points: number; value_thb: number | null; available: number };
 
-function issue(db: DB, userId: string, config: ConfiguredReward, sourceKind: 'quest' | 'gacha', sourceRef: string, now: Date): Voucher | null {
+function issue(db: DB, userId: string, config: ConfiguredReward, sourceKind: 'quest', sourceRef: string, now: Date): Voucher | null {
   const prior = row<Record<string, unknown>>(db.prepare(
     'SELECT * FROM vouchers WHERE user_id=? AND source_kind=? AND source_ref=?',
   ).get(userId, sourceKind, sourceRef));
@@ -31,7 +31,3 @@ export function issueQuestCoupon(db: DB, userId: string, questId: string, now = 
   return config ? issue(db, userId, config, 'quest', `quest:${questId}`, now) : null;
 }
 
-export function issueGachaCoupon(db: DB, userId: string, rewardKey: string, summonId: string, now = new Date()): Voucher | null {
-  const config = row<ConfiguredReward>(db.prepare('SELECT offer_id,expires_days FROM gacha_coupon_rewards WHERE reward_key=? AND active=1').get(rewardKey));
-  return config ? issue(db, userId, config, 'gacha', `summon:${summonId}`, now) : null;
-}

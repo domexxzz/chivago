@@ -14,7 +14,7 @@ import {
 import { TranscoderUnavailable } from './transcode.ts';
 import {
   AlreadyHave, IdempotencyConflict, InvalidRewardPool, NoCharms, NoEligibleRewards,
-  NotEnoughDust, NotEnoughPoints, UnknownSpirit,
+  DailyPullLimit, NotEnoughDust, NotEnoughPoints, UnknownSpirit,
 } from './summon-service.ts';
 import type { ApiFailure, ApiSuccess } from '@chivago/core';
 import { InsufficientPoints } from './wallet-service.ts';
@@ -184,6 +184,7 @@ export function handleError(c: Context, err: unknown) {
     earned by walking and checking in, and no amount of money buys one.
   */
   if (err instanceof NotEnoughPoints) return fail(c, 'NOT_ENOUGH_TRIP_POINTS', err.message, 409);
+  if (err instanceof DailyPullLimit) return fail(c, 'DAILY_PULL_LIMIT', err.message, 429);
   if (err instanceof NoCharms) return fail(c, 'NO_CHARMS', err.message, 409);
   if (err instanceof NotEnoughDust) return fail(c, 'NOT_ENOUGH_DUST', err.message, 409);
   if (err instanceof AlreadyHave) return fail(c, 'ALREADY_HAVE', err.message, 409);

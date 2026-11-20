@@ -6,12 +6,12 @@ import { openTestDb, type DB } from './db-node.ts';
 import {
   AlreadyHave, EPOCH_HOURS, NoCharms, NoEligibleRewards, NotEnoughDust, UnknownSpirit, charmsFor, closeEpoch,
   collectionFor, commitmentOf, currentEpoch, dustFor, forge, heldBy, historyFor, pityFor,
-  NotEnoughPoints, publicEpoch, publishedRules, pull, rollFor, rotateEpochs, summon, summonState, verifySummon,
+  DailyPullLimit, NotEnoughPoints, publicEpoch, publishedRules, pull, rollFor, rotateEpochs, summon, summonState, verifySummon,
 } from './summon-service.ts';
 import {
   DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, RARITIES, RARITY_EFFECTIVE_PERCENT,
   POOL, RARITY_PERCENT, SPIRITS, itemKey, spiritFor,
-  PULL_COST, TEN_PULL_COST, TEN_PULL_SIZE, PULL_CURRENCY,
+  PULL_COST, TEN_PULL_COST, TEN_PULL_SIZE, PULL_CURRENCY, DAILY_PULL_LIMIT,
 } from '@chivago/core';
 
 let db: DB;
@@ -68,6 +68,13 @@ function fund(userId: string, pulls: number): void {
   in `rollFor`, which is pure.
 */
 const SEED = '7f3c91a2b4d6e805'.repeat(4);
+
+/*
+  The floor tests walk thirty pulls in one sitting, which the daily ceiling
+  would stop at ten. They lift it explicitly rather than fake three days,
+  because faking days would rotate the pinned epoch above.
+*/
+const PAST_THE_CEILING = { dailyLimit: Number.POSITIVE_INFINITY };
 
 beforeEach(() => {
   db = openTestDb();
@@ -224,7 +231,7 @@ describe('production gacha transaction safety', () => {
     db.prepare("UPDATE gacha_reward_pool SET active = 0 WHERE category = 'fashion' AND rarity = 'mythic'").run();
     const before = getBalances(db, 'ana').trip;
     assert.throws(
-      () => pull(db, 'ana', { category: 'fashion', quantity: 1, idempotencyKey: 'empty-pool-0001' }, later(40)),
+      () => pull(db, 'ana', { category: 'fashion', quantity: 1, idempotencyKey: 'empty-pool-0001' }, later(40), PAST_THE_CEILING),
       NoEligibleRewards,
     );
     assert.equal(getBalances(db, 'ana').trip, before);
@@ -484,7 +491,7 @@ describe('what a traveller ends up with', () => {
     fund('ana', MYTHIC_PITY);
     let sawMythic = false;
     for (let i = 0; i < MYTHIC_PITY; i += 1) {
-      const s = summon(db, 'ana', later(i));
+      const s = summon(db, 'ana', later(i), PAST_THE_CEILING);
       if (s.rarity === 'mythic') sawMythic = true;
     }
     assert.ok(sawMythic, `no mythic in ${MYTHIC_PITY} summons - the floor did not fire`);
@@ -627,3 +634,132 @@ function dust(userId: string, amount: number): void {
      VALUES (?,?,?,'forge',NULL,NULL,NULL,?,?,NULL,0,?,?)`,
   ).run(`dust-${userId}-${amount}`, userId, epoch.id, '__test_dust__', 'common', amount, T.toISOString());
 }
+
+/*
+  WHAT A JUDGE ASKS FIRST: "isn't this gambling?"
+
+  The three things that make a draw a gamble are a stake, a chance and a
+  prize. The chance is here on purpose and published to the last digit. The
+  stake is Trip Points, which nobody can buy. So the line this suite holds is
+  the third one: whatever an operator puts in a table, a roll never hands out
+  anything that can be spent at a shop. Coupons still exist - a host-verified
+  quest can carry one (`issueQuestCoupon`) - because a deed is not a roll.
+*/
+describe('judge-proof: a roll is never a prize', () => {
+  function offerEveryRewardACoupon(): void {
+    db.prepare(`INSERT INTO offers(id,category,name,merchant,merchant_short,cost_points,currency,available,value_thb)
+      VALUES('offer-box','food','Drink discount','Island Cafe','Cafe',100,'trip',1,50)`).run();
+    const insert = db.prepare('INSERT INTO gacha_coupon_rewards(reward_key,offer_id,expires_days,active) VALUES(?,?,30,1)');
+    for (const item of POOL) insert.run(itemKey(item), 'offer-box');
+  }
+
+  test('a coupon configured against every reward still issues no voucher from a pull', () => {
+    offerEveryRewardACoupon();
+    fund('ana', TEN_PULL_SIZE);
+    const res = pull(db, 'ana', TEN_PULL_SIZE, T);
+    assert.equal(count('vouchers'), 0, 'a roll issued a shop voucher');
+    assert.ok(res.results.every((r) => r.coupon === null), 'a pull result carried a coupon');
+  });
+
+  test('the notice never changes to admit a prize, whatever the tables say', () => {
+    offerEveryRewardACoupon();
+    const state = summonState(db, 'ana', T);
+    assert.deepEqual(state.rules.notice, publishedRules().notice);
+    assert.match(state.rules.notice.en, /no vouchers, no prizes/i);
+  });
+
+  test('the notice says where Trip Points come from, and that money cannot buy them', () => {
+    const { notice } = publishedRules();
+    assert.match(notice.en, /cannot be bought/i);
+    assert.match(notice.th, /ซื้อด้วยเงินไม่ได้/);
+    assert.match(notice.zh, /不能用钱购买/);
+  });
+});
+
+describe('judge-proof: a daily ceiling on pulls', () => {
+  const nextIslandDay = new Date('2026-10-23T17:00:00.000Z'); // 00:00 on the 24th, island time
+
+  test('the ceiling is published with the rates and is a positive whole number', () => {
+    assert.equal(publishedRules().dailyPullLimit, DAILY_PULL_LIMIT);
+    assert.ok(Number.isInteger(DAILY_PULL_LIMIT) && DAILY_PULL_LIMIT >= TEN_PULL_SIZE);
+  });
+
+  test('pulls stop at the ceiling, and the refusal spends nothing', () => {
+    fund('ana', DAILY_PULL_LIMIT + 5);
+    for (let i = 0; i < DAILY_PULL_LIMIT; i += 1) summon(db, 'ana', later(i));
+    const before = getBalances(db, 'ana').trip;
+    assert.throws(() => summon(db, 'ana', later(DAILY_PULL_LIMIT)), (err: unknown) => {
+      assert.ok(err instanceof DailyPullLimit);
+      assert.equal(err.used, DAILY_PULL_LIMIT);
+      assert.equal(err.limit, DAILY_PULL_LIMIT);
+      return true;
+    });
+    assert.equal(getBalances(db, 'ana').trip, before, 'a refused pull still cost points');
+  });
+
+  test('a ten that would cross the ceiling is refused whole, not cut short', () => {
+    fund('ana', TEN_PULL_SIZE + 5);
+    for (let i = 0; i < DAILY_PULL_LIMIT - TEN_PULL_SIZE + 1; i += 1) summon(db, 'ana', later(i));
+    const made = count('summons');
+    assert.throws(() => pull(db, 'ana', TEN_PULL_SIZE, later(30)), DailyPullLimit);
+    assert.equal(count('summons'), made);
+  });
+
+  test('both banners share one ceiling', () => {
+    fund('ana', DAILY_PULL_LIMIT + 1);
+    for (let i = 0; i < DAILY_PULL_LIMIT; i += 1) {
+      const category = i % 2 === 0 ? 'mascot' : 'fashion';
+      pull(db, 'ana', { category, quantity: 1, idempotencyKey: `shared-ceiling-${i}` }, later(i));
+    }
+    assert.throws(
+      () => pull(db, 'ana', { category: 'fashion', quantity: 1, idempotencyKey: 'shared-ceiling-x' }, later(20)),
+      DailyPullLimit,
+    );
+  });
+
+  test('the ceiling lifts at island midnight, not UTC midnight', () => {
+    fund('ana', DAILY_PULL_LIMIT + 1);
+    for (let i = 0; i < DAILY_PULL_LIMIT; i += 1) summon(db, 'ana', later(i));
+    assert.throws(() => summon(db, 'ana', new Date(nextIslandDay.getTime() - 60_000)), DailyPullLimit);
+    assert.doesNotThrow(() => summon(db, 'ana', nextIslandDay));
+  });
+
+  test('a retried delivery of a pull already made is answered, not refused', () => {
+    fund('ana', DAILY_PULL_LIMIT);
+    for (let i = 1; i < DAILY_PULL_LIMIT; i += 1) summon(db, 'ana', later(i));
+    const last = { category: 'mascot' as const, quantity: 1 as const, idempotencyKey: 'ceiling-replay-1' };
+    const first = pull(db, 'ana', last, later(20));
+    assert.equal(pull(db, 'ana', last, later(21)).transactionId, first.transactionId);
+  });
+
+  test('the state says how many are left today and when the count resets', () => {
+    fund('ana', 3);
+    summon(db, 'ana', T);
+    summon(db, 'ana', later(1));
+    const today = summonState(db, 'ana', later(2)).today;
+    assert.deepEqual(today, {
+      used: 2,
+      limit: DAILY_PULL_LIMIT,
+      left: DAILY_PULL_LIMIT - 2,
+      resetsAt: nextIslandDay.toISOString(),
+    });
+  });
+
+  test('a forge is not a pull and does not count', () => {
+    fund('ana', DAILY_PULL_LIMIT);
+    dust('ana', DUST_TO_FORGE.mythic);
+    const target = SPIRITS.find((s) => s.rarity === 'mythic')!;
+    forge(db, 'ana', target.key, T);
+    assert.equal(summonState(db, 'ana', T).today.used, 0);
+  });
+});
+
+describe('judge-proof: the odds a player actually meets', () => {
+  test('the effective rates, floors included, are served beside the base rates', () => {
+    const rules = publishedRules();
+    assert.deepEqual(rules.effectiveRates, RARITY_EFFECTIVE_PERCENT);
+    assert.ok(rules.effectiveRates.mythic > rules.rates.mythic, 'the floor should lift mythic above its base');
+    const sum = RARITIES.reduce((n, r) => n + rules.effectiveRates[r], 0);
+    assert.ok(Math.abs(sum - 100) < 0.05, `effective rates sum to ${sum}`);
+  });
+});

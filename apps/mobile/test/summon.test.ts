@@ -3,7 +3,7 @@ import { test, describe } from 'node:test';
 
 import {
   DUST_FROM_DUPLICATE, DUST_TO_FORGE, MYTHIC_PITY, RARE_PITY, RARITIES,
-  RARITY_EFFECTIVE_WEIGHT, RARITY_PERCENT, RARITY_WEIGHT,
+  DAILY_PULL_LIMIT, RARITY_EFFECTIVE_PERCENT, RARITY_EFFECTIVE_WEIGHT, RARITY_PERCENT, RARITY_WEIGHT,
   SPIRITS, WEIGHT_TOTAL, type SpiritRarity,
 } from '@chivago/core';
 import { MascotMark } from '../src/components/MascotMark.tsx';
@@ -81,8 +81,9 @@ describe('a card says nothing before it has been met', () => {
 describe('the published base odds are exact and pity is disclosed separately', () => {
   /*
     The production contract publishes the exact configured rarity table.
-    Pity is a separate, stateful guarantee and must not be blended into a
-    misleading "effective" percentage.
+    Pity is a separate, stateful guarantee and must not be blended into the
+    base table. The long-run figure with the floors in it is printed as well,
+    in its own labelled sentence (see the tests at the end of this block).
 
     Rendered, not inspected: the number has to reach the text a thumb is
     held over, and a test that read `rules.rates` straight back would have
@@ -124,5 +125,27 @@ describe('the published base odds are exact and pity is disclosed separately', (
     const out = html(h(RulesPanel, { rules: rules() }));
     assert.equal(RARITIES.reduce((sum, rarity) => sum + RARITY_PERCENT[rarity], 0), 100);
     assert.ok(out.includes('5.01%'));
+  });
+
+  /*
+    The long-run figure is printed as its OWN sentence, under the base table
+    and named for what it is - never in place of a base rate. A judge who asks
+    "what are the real odds of a mythic?" gets the number with the floor in it.
+  */
+  test('the long-run rates with the floors counted in are printed apart from the base table', () => {
+    const out = html(h(RulesPanel, { rules: { ...rules(), effectiveRates: RARITY_EFFECTIVE_PERCENT } }));
+    assert.match(out, /With the guarantees counted in/i);
+    for (const r of RARITIES) assert.ok(out.includes(`${RARITY_EFFECTIVE_PERCENT[r]}%`), `${r}: no long-run rate`);
+  });
+
+  test('the daily ceiling is printed when the server publishes one', () => {
+    const out = html(h(RulesPanel, { rules: { ...rules(), dailyPullLimit: DAILY_PULL_LIMIT } }));
+    assert.match(out, new RegExp(`Up to ${DAILY_PULL_LIMIT} pulls a day`, 'i'));
+  });
+
+  test('an older server without either field still renders the panel', () => {
+    const out = html(h(RulesPanel, { rules: rules() }));
+    assert.doesNotMatch(out, /With the guarantees counted in/i);
+    assert.doesNotMatch(out, /pulls a day/i);
   });
 });
