@@ -2439,7 +2439,7 @@ app.post('/internal/host-key', async (c) => {
   );
   if (!host) return fail(c, 'NOT_FOUND', 'No such host', 404);
   if (host.role === 'admin' || host.type === 'admin') {
-    return fail(c, 'ADMIN_HAS_NO_KEY', 'Admins sign in with a username and password.', 400);
+    return fail(c, 'BAD_REQUEST', 'Admins sign in with a username and password, not a key.', 400);
   }
   const key = generateApiKey();
   transact(db, () => {
