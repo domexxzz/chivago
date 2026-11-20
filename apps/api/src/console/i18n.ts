@@ -282,7 +282,12 @@ export const consoleStrings = {
   priorRejections: c('เคยถูกปฏิเสธ', 'prior rejections', '次此前被拒'),
 
   quest: c('ภารกิจ', 'Quest', '任务'),
-  pointsAtStake: c('แต้มสีเขียวที่จะได้รับ', 'Green Points at stake', '可获得的绿色积分'),
+  pointsAtStake: c('รางวัลที่จะได้รับ', 'Reward at stake', '可获得的奖励'),
+  greenPoints: c('แต้มสีเขียว', 'Green Points', '绿色积分'),
+  tripPoints: c('แต้มทริป', 'Trip Points', '旅行积分'),
+  reviewerName: c('ชื่อผู้ตรวจ', 'Your name', '审核人姓名'),
+  reviewerHint: c('บันทึกไว้กับทุกการตัดสิน เพื่อให้รู้ว่าใครเป็นผู้รับรอง', 'Recorded against every decision, so everyone can see who verified it.', '会记录在每一次判定上，以便知道由谁核实。'),
+  reviewerRequired: c('กรุณากรอกชื่อผู้ตรวจ ทุกการตัดสินต้องมีชื่อผู้รับรอง', 'Enter your name. Every decision has to say who made it.', '请填写审核人姓名，每一次判定都必须注明由谁做出。'),
   fence: c('รัศมีพื้นที่', 'fence', '范围'),
   submitted: c('ส่งเมื่อ', 'Submitted', '提交时间'),
   volunteer: c('อาสาสมัคร', 'Volunteer', '志愿者'),

@@ -153,6 +153,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
      tabs and overflowed the page sideways on a laptop long before Operators
      was added to it; a second row of tabs is better than a horizontal
      scrollbar on every page of the console. */
+  .bar-tools { display:flex; align-items:center; }
   .nav { display:flex; gap:2px; flex-wrap:wrap; justify-content:flex-end; }
   .nav a { display:inline-block; padding:8px 14px; font-family:var(--font-heading); font-weight:800;
            font-size:12px; letter-spacing:.06em; text-transform:uppercase; text-decoration:none;
@@ -203,7 +204,12 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
   @media (max-width:720px){
     body { padding: 0 14px 48px; }
     .bar { flex-direction:column; align-items:flex-start; gap:10px; padding:12px 0; }
-    .nav { flex-wrap:wrap; gap:4px; }
+    /* Menu and languages stacked under the host name, left-aligned. Side by
+       side, the right-aligned menu wrapped into a staggered column half a
+       phone screen tall, beside the language buttons (seen 20 Nov 2026). */
+    .bar-tools { flex-direction:column; align-items:flex-start; gap:10px; width:100%; }
+    .nav { justify-content:flex-start; flex-wrap:wrap; gap:4px; }
+    .lang { margin-left:0; }
     .nav a { padding:8px 10px; font-size:11px; }
     .row { flex-direction:column; gap:8px; }
     .photo img { width:100%; height:auto; max-height:60vh; }
@@ -222,7 +228,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
     <div class="kicker">${esc(options.publicPage ? 'ChivarGo' : tr('brand'))}</div>
     <div class="brand">${esc(hostName ?? tr('signIn'))}</div>
   </div>
-  <div style="display:flex;align-items:center">
+  <div class="bar-tools">
     ${
       signedIn && marketplaceOnly
         ? `<nav class="nav">
