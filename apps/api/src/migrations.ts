@@ -2576,6 +2576,20 @@ export function migrate(db: DB): string[] {
     if (changed > 0) applied.push('community targets sized to the pilot');
   }
 
+  /*
+    A reward belongs to a shop on the island (shop-reward-service.ts).
+
+    Nullable, because every offer seeded before this - the partner offers and
+    the examples - belongs to no shop in the app and is settled the old way.
+    ON DELETE CASCADE is deliberately absent: a shop deleted after a traveller
+    spent points on its reward must not take the voucher's offer row with it.
+    The listing hides a reward whose shop is gone or offline instead.
+  */
+  if (hasTable(db, 'offers') && addColumn(db, 'offers', 'shop_id', 'TEXT')) {
+    db.exec('CREATE INDEX IF NOT EXISTS idx_offers_shop ON offers(shop_id) WHERE shop_id IS NOT NULL');
+    applied.push('offers.shop_id');
+  }
+
   return applied;
 }
 

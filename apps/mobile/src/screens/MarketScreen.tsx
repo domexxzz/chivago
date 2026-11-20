@@ -21,6 +21,7 @@ import {
   canAfford, emptyBalances, shortfall, strings,
   type Balances, type Offer, type Voucher,
 } from '@chivago/core';
+import QRCode from 'react-native-qrcode-svg';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, currencyTone, font, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
@@ -630,29 +631,14 @@ function VoucherSheet({
             <Label size={10} tracking={0.16}>{t(strings.market.voucherShow)}</Label>
             <Heading size={30} tracking={1.2} style={{ marginTop: 12 }}>{voucher.code}</Heading>
 
-            {/* Stylized Merchant Barcode / Pass visual */}
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 3,
-                height: 36,
-                marginVertical: 14,
-                paddingHorizontal: 16,
-              }}
-            >
-              {[3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 1, 3, 1, 2, 4, 1, 3, 2].map((w, i) => (
-                <View
-                  key={i}
-                  style={{
-                    width: w,
-                    height: 32,
-                    backgroundColor: color.neutral800,
-                    borderRadius: 1,
-                  }}
-                />
-              ))}
+            {/*
+              A REAL QR of the code. This used to be a row of bars drawn to look
+              like a barcode, which a shop would try to scan and get nothing
+              from. The QR holds exactly the code printed above it, so the
+              counter can read it with any camera app or type it.
+            */}
+            <View style={{ marginVertical: 14, padding: 10, backgroundColor: '#FFFFFF', borderRadius: radius.md }}>
+              <QRCode value={voucher.code} size={148} color={color.neutral800} />
             </View>
 
             <Label size={11} tracking={0} style={{ textTransform: 'none', marginTop: 4 }}>

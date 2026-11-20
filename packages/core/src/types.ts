@@ -489,6 +489,12 @@ export interface Offer {
    * count of verified merchants. Absent means false.
    */
   example?: boolean;
+  /**
+   * The shop in the app this reward belongs to. Absent for a partner offer
+   * settled outside the app. When present, only that shop's owner can mark a
+   * voucher for it used (shop-reward-service.ts).
+   */
+  shopId?: string;
   /** False when the merchant paused redemptions or stock ran out. */
   available: boolean;
 }

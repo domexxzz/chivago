@@ -82,6 +82,22 @@ describe('what a reset clears and what it keeps', () => {
     }
   });
 
+  test('a reward a shop put on itself goes with the shop; a partner offer stays', () => {
+    populated();
+    db.exec(`
+      INSERT INTO local_shops (id, owner_id, name, category, area_key, description, address, phone, email,
+        opening_hours, amenities, active, created_at, updated_at)
+        VALUES ('sh1','u1','Pier Cafe','ร้านอาหาร','koh-sichang','','','','','','',1,'${AT}','${AT}');
+      INSERT INTO offers (id, category, name, merchant, merchant_short, cost_points, currency, shop_id)
+        VALUES ('shop-reward-1','local','Iced coffee','Pier Cafe','Pier Cafe',120,'trip','sh1');
+    `);
+    reset(db);
+    assert.equal(count('local_shops'), 0);
+    const left = (db.prepare('SELECT id FROM offers ORDER BY id').all() as { id: string }[]).map((r) => r.id);
+    assert.ok(left.includes('o1'), 'the partner offer was cleared');
+    assert.ok(!left.includes('shop-reward-1'), 'the shop reward outlived its shop');
+  });
+
   test('IT REFUSES TO DELETE A STATEMENT AN AUDITOR HAS COUNTERSIGNED, AND DELETES NOTHING', () => {
     populated();
     db.exec(`INSERT INTO statement_countersignatures (id, statement_id, digest, signer_name, signer_firm, standard, opinion, channel, recorded_at)
