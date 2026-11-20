@@ -82,6 +82,8 @@ const MAX_IMPORT_ROWS = 5_000;
 const utf8Length = (s: string): number => new TextEncoder().encode(s).byteLength;
 import { constantTimeEqual } from './scrypt.ts';
 import { addHost, isHostType } from './add-host.ts';
+import { createInvite, HostInviteRefused } from './host-invite-service.ts';
+import { publicBase } from './sos-service.ts';
 import { BodyTooLarge, boundedForm, boundedJson, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
 import { publicConfig } from './fence.ts';
 import { boardFeed, type BoardEntry } from '@chivago/core';
@@ -2507,6 +2509,33 @@ app.post('/internal/quests/host', async (c) => {
   db.prepare('UPDATE quests SET host_id = ? WHERE id = ?').run(host.id, quest.id);
   console.log(`[chivago] quest ${quest.id} moved from ${quest.host_id} to ${host.id}`);
   return ok(c, { questId: quest.id, from: quest.host_id, to: host.id });
+});
+
+/**
+ * An invitation for the place that will verify some quests
+ * (host-invite-service.ts). The operator decides WHO; the place receives a
+ * link, opens it, types the reviewer's name, and is signed in with its quests.
+ * The link is answered once and works once, for seven days.
+ */
+app.post('/internal/invites', async (c) => {
+  const refused = operatorRefused(c);
+  if (refused) return refused;
+  const body = (await c.req.json().catch(() => ({}))) as { hostId?: unknown; name?: unknown; type?: unknown; questIds?: unknown };
+  try {
+    const made = createInvite(db, {
+      hostId: typeof body.hostId === 'string' ? body.hostId : '',
+      name: typeof body.name === 'string' ? body.name : '',
+      type: body.type,
+      questIds: body.questIds,
+    });
+    noStore(c);
+    console.log(`[chivago] invitation created for host ${String(body.hostId)}`);
+    return ok(c, { url: `${publicBase()}/console/invite/${made.token}`, expiresAt: made.expiresAt });
+  } catch (err) {
+    if (!(err instanceof HostInviteRefused)) throw err;
+    const status = err.code === 'HOST_EXISTS' ? 409 : err.code === 'NO_SUCH_QUEST' ? 404 : 400;
+    return fail(c, status === 404 ? 'NOT_FOUND' : 'BAD_REQUEST', err.message, status);
+  }
 });
 
 app.post('/internal/open-area', async (c) => {
