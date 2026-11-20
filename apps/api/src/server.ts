@@ -81,6 +81,7 @@ const MAX_IMPORT_ROWS = 5_000;
  */
 const utf8Length = (s: string): number => new TextEncoder().encode(s).byteLength;
 import { constantTimeEqual } from './scrypt.ts';
+import { addHost, isHostType } from './add-host.ts';
 import { BodyTooLarge, boundedForm, boundedJson, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
 import { publicConfig } from './fence.ts';
 import { boardFeed, type BoardEntry } from '@chivago/core';
@@ -151,7 +152,9 @@ import {
 import { recordPositions, type PositionFix, type PositionSource } from './position-service.ts';
 import { sosLivePage } from './console/sos-live.ts';
 import { webhookTransport } from './push/webhook.ts';
-import { hostOwnsQuest, resolveSession, readCookie, SESSION_COOKIE } from './host-auth.ts';
+import {
+  generateApiKey, hashApiKey, hostOwnsQuest, resolveSession, readCookie, SESSION_COOKIE,
+} from './host-auth.ts';
 import { isPrimary, onPrimary } from './primary.ts';
 import { bootstrapKohSichangBusinesses } from './bootstrap-koh-sichang.ts';
 import { buildSweeps, startSweepTimers, type Sweep } from './sweeps.ts';
@@ -2410,6 +2413,102 @@ function parsePosition(raw: unknown): Fix | null {
  * Guarded by the same operator secret as `/internal/verify`, and for the same
  * stated reason: replace with something better before public launch.
  */
+/**
+ * A new console key for a host, on a live server (docs/62).
+ *
+ * The lost-key procedure was "clear the hash and run add-host.ts again", which
+ * needs a database file. A Durable Object has none, so on Cloudflare a lost
+ * key could not be replaced and a host on the island could not be handed one.
+ *
+ * Guarded by the deployment's host secret, compared in constant time. The new
+ * key is in the answer ONCE (no-store) and only its hash is kept; the old key
+ * stops working at once, and every console session signed in with it ends, so
+ * a key handed to the wrong person is shut out by issuing the next one. An
+ * admin is refused: admins sign in with a username and password, and a key
+ * route must not become a way round that. The log names the host, never the key.
+ */
+/** The operator's routes below share one check: the host secret, in constant time. */
+const operatorRefused = (c: Context<AppEnv>): Response | null => {
+  const secret = process.env.CHIVAGO_HOST_SECRET ?? '';
+  const utf8 = new TextEncoder();
+  if (!secret || !constantTimeEqual(utf8.encode(c.req.header('x-host-secret') ?? ''), utf8.encode(secret))) {
+    return fail(c, 'FORBIDDEN', 'Host credentials required', 403);
+  }
+  return null;
+};
+
+app.post('/internal/host-key', async (c) => {
+  const refused = operatorRefused(c);
+  if (refused) return refused;
+  const body = (await c.req.json().catch(() => ({}))) as { hostId?: unknown };
+  const hostId = typeof body.hostId === 'string' ? body.hostId.trim() : '';
+  const host = row<{ id: string; name: string; role: string | null; type: string }>(
+    db.prepare('SELECT id, name, role, type FROM hosts WHERE id = ?').get(hostId),
+  );
+  if (!host) return fail(c, 'NOT_FOUND', 'No such host', 404);
+  if (host.role === 'admin' || host.type === 'admin') {
+    return fail(c, 'BAD_REQUEST', 'Admins sign in with a username and password, not a key.', 400);
+  }
+  const key = generateApiKey();
+  transact(db, () => {
+    db.prepare('UPDATE hosts SET api_key_hash = ? WHERE id = ?').run(hashApiKey(key), host.id);
+    db.prepare('DELETE FROM host_sessions WHERE host_id = ?').run(host.id);
+  });
+  console.log(`[chivago] new console key issued for host ${host.id}`);
+  noStore(c);
+  return ok(c, { hostId: host.id, name: host.name, key });
+});
+
+/**
+ * A host for a real place: the municipality that runs the beach, the shop on
+ * the food trail. The verifier of a quest is whoever is responsible for the
+ * place it sends people to, not the ChivarGo team.
+ *
+ * Creates only. An id that exists is a 409, so this can never rename a host
+ * or touch an admin; the key is answered once (no-store), hash kept.
+ */
+app.post('/internal/hosts', async (c) => {
+  const refused = operatorRefused(c);
+  if (refused) return refused;
+  const body = (await c.req.json().catch(() => ({}))) as { id?: unknown; name?: unknown; type?: unknown };
+  const id = typeof body.id === 'string' ? body.id.trim() : '';
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  if (!/^h-[a-z0-9-]{2,60}$/.test(id) || !name || !isHostType(body.type)) {
+    return fail(c, 'BAD_REQUEST', 'id must look like h-<letters-and-digits>, a name is required, and type must be a host type.', 400);
+  }
+  if (db.prepare('SELECT 1 FROM hosts WHERE id = ?').get(id)) {
+    return fail(c, 'BAD_REQUEST', 'That host already exists. Use /internal/host-key for a new key.', 409);
+  }
+  const made = addHost(db, { id, name, type: body.type });
+  console.log(`[chivago] host created: ${id}`);
+  noStore(c);
+  return ok(c, { hostId: id, name, key: made.key });
+});
+
+/**
+ * Hand a quest to the host that verifies it. Its waiting proofs go with it:
+ * the console's queue is the quests a host owns, so they appear in the new
+ * host's queue on the next request. Decisions already made keep the reviewer
+ * who made them.
+ */
+app.post('/internal/quests/host', async (c) => {
+  const refused = operatorRefused(c);
+  if (refused) return refused;
+  const body = (await c.req.json().catch(() => ({}))) as { questId?: unknown; hostId?: unknown };
+  const questId = typeof body.questId === 'string' ? body.questId.trim() : '';
+  const hostId = typeof body.hostId === 'string' ? body.hostId.trim() : '';
+  const quest = row<{ id: string; host_id: string }>(db.prepare('SELECT id, host_id FROM quests WHERE id = ?').get(questId));
+  if (!quest) return fail(c, 'NOT_FOUND', 'No such quest', 404);
+  const host = row<{ id: string; role: string | null; type: string }>(db.prepare('SELECT id, role, type FROM hosts WHERE id = ?').get(hostId));
+  if (!host) return fail(c, 'NOT_FOUND', 'No such host', 404);
+  if (host.role === 'admin' || host.type === 'admin') {
+    return fail(c, 'BAD_REQUEST', 'An admin does not verify quests.', 400);
+  }
+  db.prepare('UPDATE quests SET host_id = ? WHERE id = ?').run(host.id, quest.id);
+  console.log(`[chivago] quest ${quest.id} moved from ${quest.host_id} to ${host.id}`);
+  return ok(c, { questId: quest.id, from: quest.host_id, to: host.id });
+});
+
 app.post('/internal/open-area', async (c) => {
   const secret = process.env.CHIVAGO_HOST_SECRET;
   if (!secret || c.req.header('x-host-secret') !== secret) {
