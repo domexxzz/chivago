@@ -78,6 +78,8 @@ export interface SummonState {
   tripPoints: number;
   /** The published price of one pull and of ten. Never multiplied on the client. */
   price: { one: number; ten: number; tenSize: number; currency: 'trip' };
+  /** Today's pulls against the published daily ceiling, both banners together. */
+  today?: { used: number; limit: number; left: number; resetsAt: string };
   dust: number;
   pity: { sinceMythic: number; sinceRare: number };
   banners: Record<'mascot' | 'fashion', {
@@ -93,8 +95,12 @@ export interface SummonState {
   byRarity: Record<SpiritRarity, { held: number; total: number }>;
   epoch: { id: string; commitment: string; openedAt: string; closedAt: string | null; seed: string | null };
   rules: {
-    /** What a player actually meets, floors included. The headline number. */
+    /** The configured base rate of one roll, before a floor can lift it. */
     rates: Record<SpiritRarity, number>;
+    /** What a player meets with the floors counted in. Optional for an older server. */
+    effectiveRates?: Record<SpiritRarity, number>;
+    /** Pulls allowed per island day, both banners together. */
+    dailyPullLimit?: number;
     effectiveWeights: Record<SpiritRarity, number>;
     /** What one roll is compared against, before a floor can lift it. */
     rollBand: Record<SpiritRarity, number>;
@@ -157,7 +163,8 @@ export interface SummonResult {
   category: 'mascot' | 'fashion';
   isNew: boolean;
   transactionId: string;
-  coupon: Voucher | null;
+  /** Always null: a roll never pays a coupon (docs/68, "Judge-proof"). */
+  coupon: null;
   receipt: { epochId: string; commitment: string; nonce: number; roll: number; pick: number; poolVersion: number };
 }
 

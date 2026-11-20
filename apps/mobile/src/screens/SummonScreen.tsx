@@ -194,6 +194,11 @@ function Unmet({ tint }: { tint: string }) {
   );
 }
 
+/** "Common 56.26%, Uncommon 25.32%, …" in the reader's language. */
+function effectiveLine(rates: Record<SpiritRarity, number>): string {
+  return RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rates[r]}%`).join(', ');
+}
+
 /**
  * The whole published table, printed.
  *
@@ -239,6 +244,24 @@ export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
             zh: '保底机制与基础概率分开计算，并且只会提升结果。',
           })}
         </Body>
+        {rules.effectiveRates ? (
+          <Body size={13} style={{ color: gameTray.muted }}>
+            {t({
+              en: `With the guarantees counted in, what you actually meet over time: ${effectiveLine(rules.effectiveRates)}.`,
+              th: `เมื่อนับการันตีรวมแล้ว โอกาสที่ได้จริงในระยะยาวคือ ${effectiveLine(rules.effectiveRates)}`,
+              zh: `计入保底后，长期实际获得的概率：${effectiveLine(rules.effectiveRates)}。`,
+            })}
+          </Body>
+        ) : null}
+        {rules.dailyPullLimit ? (
+          <Body size={13} style={{ color: gameTray.muted }}>
+            {t({
+              en: `Up to ${rules.dailyPullLimit} pulls a day across both boxes. The count resets at midnight, island time.`,
+              th: `สุ่มได้ไม่เกินวันละ ${rules.dailyPullLimit} ครั้ง รวมทั้งสองตู้ นับใหม่ตอนเที่ยงคืนเวลาไทย`,
+              zh: `两个卡池合计每天最多抽 ${rules.dailyPullLimit} 次，按泰国时间午夜重置。`,
+            })}
+          </Body>
+        ) : null}
         <Body size={13} style={{ color: gameTray.muted }}>
           {t({
             en: `A duplicate becomes stardust (${RARITIES.map((r) => `${t(RARITY_LABEL[r])} ${rules.dustFromDuplicate[r]}`).join(', ')}), `
@@ -267,18 +290,20 @@ export function RulesPanel({ rules }: { rules: SummonState['rules'] }) {
  * colour and shadow alone.
  */
 function PullButton({
-  tone, title, cost, affordable, busy, locked, onPress,
+  tone, title, cost, affordable, capped = false, busy, locked, onPress,
 }: {
   tone: 'teal' | 'gold';
   title: string;
   cost: number;
   affordable: boolean;
+  /** True when this many pulls would go past today's ceiling. */
+  capped?: boolean;
   busy: boolean;
   locked: boolean;
   onPress: () => void;
 }) {
   const gold = tone === 'gold';
-  const off = !affordable || locked;
+  const off = !affordable || capped || locked;
   const priced = t({
     en: `${title}, ${formatInteger(cost)} Trip Points`,
     th: `${title} ${formatInteger(cost)} แต้มทริป`,
@@ -290,13 +315,19 @@ function PullButton({
       disabled={off}
       accessibilityRole="button"
       accessibilityState={{ disabled: off, busy }}
-      accessibilityLabel={affordable
-        ? priced
-        : t({
-          en: `${priced}. Not enough Trip Points yet.`,
-          th: `${priced} แต้มทริปยังไม่พอ`,
-          zh: `${priced}。旅行积分还不够。`,
-        })}
+      accessibilityLabel={capped
+        ? t({
+          en: `${priced}. Today's pulls are used up.`,
+          th: `${priced} วันนี้สุ่มครบจำนวนแล้ว`,
+          zh: `${priced}。今天的抽取次数已用完。`,
+        })
+        : affordable
+          ? priced
+          : t({
+            en: `${priced}. Not enough Trip Points yet.`,
+            th: `${priced} แต้มทริปยังไม่พอ`,
+            zh: `${priced}。旅行积分还不够。`,
+          })}
       style={({ pressed }) => ({
         flex: 1,
         minHeight: 72,
@@ -896,6 +927,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
                 title={t({ en: 'Pull once', th: 'สุ่ม 1 ครั้ง', zh: '抽 1 次' })}
                 cost={s.price.one}
                 affordable={s.tripPoints >= s.price.one}
+                capped={(s.today?.left ?? Infinity) < 1}
                 busy={pulling === 1}
                 locked={pulling !== null}
                 onPress={() => { void pull(1); }}
@@ -905,6 +937,7 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
                 title={t({ en: `Pull ${s.price.tenSize}`, th: `สุ่ม ${s.price.tenSize} ครั้ง`, zh: `抽 ${s.price.tenSize} 次` })}
                 cost={s.price.ten}
                 affordable={s.tripPoints >= s.price.ten}
+                capped={(s.today?.left ?? Infinity) < s.price.tenSize}
                 busy={pulling === 10}
                 locked={pulling !== null}
                 onPress={() => { void pull(10); }}
@@ -913,11 +946,26 @@ export function SummonScreen({ onBack }: { onBack: () => void }) {
 
             <Label size={10} tracking={0.03} colour="#315B70" style={{ textTransform: 'none', textAlign: 'center' }}>
               {t({
-                en: 'Paid with Trip Points earned from missions. Never with money, and never with Green Points. No real-money purchase is available.',
-                th: 'ใช้แต้มทริปที่ได้จากภารกิจ ไม่มีการซื้อด้วยเงินจริง และใช้แต้มสีเขียวไม่ได้',
-                zh: '使用任务获得的旅行积分。不能用真钱购买，也不能使用绿色积分。',
+                en: 'Paid with Trip Points from check-ins, walks, reviews and quests. Never with money, and never with Green Points. Trip Points cannot be bought.',
+                th: 'ใช้แต้มทริปที่ได้จากการเช็กอิน เดิน รีวิว และทำเควส ไม่ใช้เงินจริงและใช้แต้มกรีนไม่ได้ แต้มทริปซื้อด้วยเงินไม่ได้',
+                zh: '使用签到、步行、评价和任务获得的旅行积分。不能用钱，也不能使用绿色积分。旅行积分不能购买。',
               })}
             </Label>
+            {s.today ? (
+              <Label size={10} tracking={0.03} colour="#315B70" style={{ textTransform: 'none', textAlign: 'center' }}>
+                {s.today.left > 0
+                  ? t({
+                    en: `${s.today.left} of ${s.today.limit} pulls left today`,
+                    th: `วันนี้สุ่มได้อีก ${s.today.left} จาก ${s.today.limit} ครั้ง`,
+                    zh: `今天还可抽 ${s.today.left} / ${s.today.limit} 次`,
+                  })
+                  : t({
+                    en: `That is today's ${s.today.limit} pulls. Back at midnight.`,
+                    th: `วันนี้สุ่มครบ ${s.today.limit} ครั้งแล้ว กลับมาใหม่หลังเที่ยงคืน`,
+                    zh: `今天的 ${s.today.limit} 次已用完，午夜后再来。`,
+                  })}
+              </Label>
+            ) : null}
             {toast ? <Body size={13} style={{ color: color.neutral800 }}>{toast}</Body> : null}
           </View>
         </View>
@@ -1272,7 +1320,6 @@ function RevealTile({ result, featured }: { result: SummonResult; featured: bool
           {t({ en: `Duplicate · +${result.dustGained} stardust`, th: `ตัวซ้ำ · +${result.dustGained} ผงดาว`, zh: `重复 · +${result.dustGained} 星尘` })}
         </Label>
       ) : null}
-      {result.coupon ? <Label size={9} tracking={0.03} colour="#8A5A00" style={{ textTransform: 'none', textAlign: 'center' }}>{t({ en: `Coupon added · ${result.coupon.merchant}`, th: `เพิ่มคูปองแล้ว · ${result.coupon.merchant}`, zh: `优惠券已加入 · ${result.coupon.merchant}` })}</Label> : null}
     </View>
   );
 }
@@ -1330,7 +1377,6 @@ function Outcome({ result }: { result: SummonResult }) {
             })}
           </Label>
         ) : null}
-        {result.coupon ? <View style={{ padding: 9, borderRadius: 12, backgroundColor: '#FFF4C7' }}><Label size={10} tracking={0.03} colour="#7B5100" style={{ textTransform: 'none' }}>{t({ en: `Coupon saved to Backpack · ${result.coupon.merchant}`, th: `บันทึกคูปองลงกระเป๋าแล้ว · ${result.coupon.merchant}`, zh: `优惠券已保存到背包 · ${result.coupon.merchant}` })}</Label></View> : null}
       </View>
     </View>
   );

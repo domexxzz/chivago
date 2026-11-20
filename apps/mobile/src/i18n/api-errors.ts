@@ -112,6 +112,11 @@ const EXACT: Readonly<Record<string, Localised>> = {
     'แต้มทริปยังไม่พอ แต้มทริปได้จากการออกไปเที่ยว',
     '你的旅行积分还不够。旅行积分来自外出探索。',
   ),
+  DAILY_PULL_LIMIT: message(
+    'All pulls for today are used. The box opens again at midnight.',
+    'วันนี้สุ่มครบจำนวนแล้ว ตู้จะเปิดอีกครั้งตอนเที่ยงคืน',
+    '今天的抽取次数已用完，午夜后再来。',
+  ),
   NO_CHARMS: message('You do not have enough charms.', 'คุณมีเครื่องรางไม่เพียงพอ', '你的护符不足。'),
   NOT_ENOUGH_DUST: message('You do not have enough stardust.', 'คุณมีผงดาวไม่เพียงพอ', '你的星尘不足。'),
   NO_ELIGIBLE_REWARDS: message('There is nothing left to win in this banner right now.', 'ตู้นี้ไม่มีรางวัลให้สุ่มในตอนนี้', '这个卡池目前没有可抽取的奖励。'),

@@ -162,6 +162,46 @@ and no name. That is the opposite of the mascot guide, which shows all
 seventy-seven — because an emblem is public and hiding it would hide nothing,
 while an invented creature's name is the only thing a first meeting has.
 
+## Judge-proof (21 November 2026)
+
+By November two things had moved since this document was written, and one
+of them crossed the line above without anybody deciding to.
+
+- **A pull costs Trip Points** (`draw-pool.ts`, the owner's call on 13
+  November). Trip Points are earned only by check-ins, walks, reviews and
+  quests. Nothing in `apps/api` sells them, takes a payment for them or
+  converts money into them; the only other credit is an operator
+  adjustment.
+- **A roll could hand out a shop coupon.** `gacha_coupon_rewards` let an
+  operator attach a merchant offer, with a baht value, to a named reward.
+  No row was ever written outside a test, but the code path was live, and
+  the screen switched its notice to say so when a row appeared. That is a
+  stake, a chance and a prize in one request, which is the shape a Gambling
+  Act question is asked about.
+
+What changed:
+
+1. **A roll never pays a coupon.** `pull` no longer reads
+   `gacha_coupon_rewards`; `issueGachaCoupon` is gone; `coupon` on a result
+   is always `null`, kept only so an older client reads "no coupon". The
+   table stays in the schema so old rows do not break a migration. A shop
+   coupon still exists, on a **host-verified quest** (`issueQuestCoupon`),
+   because a deed is not a roll. A test configures a coupon against every
+   reward in the pool, pulls ten, and asserts no voucher was written.
+2. **The notice cannot change.** It no longer has a second version for "some
+   rewards carry a coupon". It now also says where Trip Points come from and
+   that they cannot be bought.
+3. **A daily ceiling: `DAILY_PULL_LIMIT` = 10** pulls per island day, both
+   boxes together, published in `rules`, counted in `today` on the state,
+   refused with `DAILY_PULL_LIMIT` (429) and printed under the buttons. A ten
+   that would cross it is refused whole, not cut short. A forge is not a pull.
+   The mythic floor is therefore at least three days away.
+4. **The long-run rates are printed too.** The base table stays the headline,
+   as before. Under it, in its own sentence, are `effectiveRates`: what a
+   player meets over time with the floors counted in (mythic 6.68% against a
+   5.01% base). A judge who asks for "the real odds" gets the number with the
+   floor in it, and it is never shown in place of a base rate.
+
 ## What a lawyer still has to settle
 
 `58`'s eight questions stand and this adds nothing to them, because the

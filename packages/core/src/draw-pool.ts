@@ -97,6 +97,20 @@ export const PULL_COST = 100;
 export const TEN_PULL_COST = 900;
 export const TEN_PULL_SIZE = 10;
 
+/**
+ * The most pulls one traveller can make in one island day, both banners
+ * together.
+ *
+ * Trip Points cannot be bought, so this is not a spending cap in the usual
+ * sense. It is there so that the answer to "what stops somebody sitting on
+ * the box all night?" is a number on the screen rather than "they would run
+ * out of walking". Ten is one ten-pull, or ten singles. The mythic floor
+ * (`MYTHIC_PITY`) therefore takes at least three days to reach, which is the
+ * pace this is meant to have. The day is the island's (`islandDateKey`), the
+ * same day a check-in counts against.
+ */
+export const DAILY_PULL_LIMIT = 10;
+
 /** A drawn thing. Either an invented spirit or a costume; never anything that certifies. */
 export type DrawnItem =
   | { readonly kind: 'spirit'; readonly spirit: Spirit; readonly rarity: SpiritRarity }
