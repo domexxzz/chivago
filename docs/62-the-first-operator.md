@@ -129,8 +129,11 @@ These are decisions, and each is named so that it gets made on purpose:
 - **No billing.** `docs/61` notes the honest models: a fee per answered
   inquiry, or a listing subscription, settled directly with the operator. Not
   built, and not needed for the first one.
-- **A lost key** is rotated as for any host: clear `hosts.api_key_hash` for
-  it, and run `add-host.ts` again.
+- **A lost key** is rotated as for any host. On Cloudflare (no database file):
+  `POST /internal/host-key` with `{"hostId":"<id>"}` and the `x-host-secret`
+  header. The new key is in the answer once; the old key and its sessions end.
+  On a file database the old way still works: clear `hosts.api_key_hash` and
+  run `add-host.ts` again.
 
 ## What holds it
 
