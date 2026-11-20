@@ -54,8 +54,14 @@ export interface ReviewItem {
   questId: string;
   questCode: string;
   questName: string;
+  /** The quest's Thai name and place, when it has them; the console picks by locale. */
+  questNameTh: string | null;
+  questWhereTh: string | null;
   questWhere: string;
   rewardPoints: number;
+  rewardCurrency: 'trip' | 'green';
+  /** EXP the approval grants: reward_exp, or the points when it has none (quest-service.ts). */
+  rewardExp: number;
   geofenceRadiusM: number;
   userId: string;
   submittedAt: string;
@@ -81,6 +87,8 @@ export interface ReviewItem {
 interface ProofRow {
   id: string; user_id: string; quest_id: string; weight_kg: number | null;
   submitted_at: string; quest_code: string; quest_name: string; quest_where: string;
+  quest_name_th: string | null; quest_where_th: string | null;
+  reward_currency: string; reward_exp: number | null;
   reward_points: number; geofence_radius_m: number; quest_lat: number; quest_lng: number;
   arrived_at: string | null; party_present: string | null;
 }
@@ -88,6 +96,8 @@ interface ProofRow {
 const PROOF_SELECT = `
   SELECT p.id, p.user_id, p.quest_id, p.weight_kg, p.submitted_at, p.party_present,
          q.code AS quest_code, q.name_en AS quest_name, q.where_label AS quest_where,
+         q.name_th AS quest_name_th, q.where_label_th AS quest_where_th,
+         q.reward_currency, q.reward_exp,
          q.reward_points, q.geofence_radius_m, q.lat AS quest_lat, q.lng AS quest_lng,
          qp.arrived_at
   FROM proofs p
@@ -239,8 +249,12 @@ function toReviewItem(db: DB, hostId: string, p: ProofRow, now: Date): ReviewIte
     questId: p.quest_id,
     questCode: p.quest_code,
     questName: p.quest_name,
+    questNameTh: p.quest_name_th,
+    questWhereTh: p.quest_where_th,
     questWhere: p.quest_where,
     rewardPoints: p.reward_points,
+    rewardCurrency: p.reward_currency === 'trip' ? 'trip' : 'green',
+    rewardExp: p.reward_exp ?? p.reward_points,
     geofenceRadiusM: p.geofence_radius_m,
     userId: p.user_id,
     submittedAt: p.submitted_at,
@@ -303,6 +317,9 @@ export interface DecidedItem {
   /** Preset reason KEY, rendered in whichever language the reviewer is using. */
   reasonKey: RejectionReasonKey | null;
   rewardPoints: number;
+  questNameTh: string | null;
+  rewardCurrency: 'trip' | 'green';
+  rewardExp: number;
 }
 
 /** Recently decided submissions - the audit trail, visible to the host. */
@@ -311,11 +328,13 @@ export function recentDecisions(db: DB, hostId: string, limit = 30): DecidedItem
     id: string; quest_name: string; user_id: string; approved: number;
     reviewed_at: string; reviewed_by: string | null; review_note: string | null;
     reason_key: string | null; reward_points: number;
+    quest_name_th: string | null; reward_currency: string; reward_exp: number | null;
   }>(
     db
       .prepare(
         `SELECT p.id, q.name_en AS quest_name, p.user_id, p.approved, p.reviewed_at,
-                p.reviewed_by, p.review_note, p.reason_key, q.reward_points
+                p.reviewed_by, p.review_note, p.reason_key, q.reward_points,
+                q.name_th AS quest_name_th, q.reward_currency, q.reward_exp
          FROM proofs p JOIN quests q ON q.id = p.quest_id
          WHERE q.host_id = ? AND p.reviewed_at IS NOT NULL
          ORDER BY p.reviewed_at DESC LIMIT ?`,
@@ -331,6 +350,9 @@ export function recentDecisions(db: DB, hostId: string, limit = 30): DecidedItem
     reviewNote: r.review_note,
     reasonKey: isRejectionReasonKey(r.reason_key) ? r.reason_key : null,
     rewardPoints: r.reward_points,
+    questNameTh: r.quest_name_th,
+    rewardCurrency: r.reward_currency === 'trip' ? 'trip' : 'green',
+    rewardExp: r.reward_exp ?? r.reward_points,
   }));
 }
 

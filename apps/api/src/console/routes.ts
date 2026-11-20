@@ -331,7 +331,15 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
     const form = await c.req.parseBody();
     const key = String(form.key ?? '').trim();
     const username = String(form.username ?? '').trim() || null;
-    const reviewer = String(form.reviewer ?? '').trim() || username;
+    const reviewerTyped = String(form.reviewer ?? '').trim();
+    const reviewer = reviewerTyped || username;
+    // An access key is shared by an organisation, so the key says WHICH
+    // organisation and only the typed name says who. Without it the history
+    // reads "—" where the person vouching for the work belongs. Asked before
+    // the key is checked, so this answer says nothing about the key.
+    if (key && !username && !reviewerTyped) {
+      return c.html(loginPage(localeFor(c), 'reviewer'), 400);
+    }
 
     pruneSessions(db);
     const session = login(db, key, reviewer, username);

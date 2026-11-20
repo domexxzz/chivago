@@ -13,6 +13,28 @@ import {
 } from './i18n.ts';
 import type { DecidedItem, ReviewCheck, ReviewItem } from '../review-service.ts';
 
+/** The quest's own Thai name and place on a Thai screen; English otherwise. */
+const questNameFor = (q: { questName: string; questNameTh: string | null }, locale: Locale): string =>
+  (locale === 'th' && q.questNameTh?.trim() ? q.questNameTh : q.questName);
+const questWhereFor = (q: { questWhere: string; questWhereTh: string | null }, locale: Locale): string =>
+  (locale === 'th' && q.questWhereTh?.trim() ? q.questWhereTh : q.questWhere);
+
+/**
+ * What approving actually gives, said in its own units. A quest that pays
+ * EXP and no points used to read "+0 Green Points", which told a reviewer
+ * their approval was worth nothing. Points name their currency; EXP is EXP.
+ */
+function rewardText(
+  r: { rewardPoints: number; rewardCurrency: 'trip' | 'green'; rewardExp: number }, locale: Locale,
+): string {
+  const parts: string[] = [];
+  if (r.rewardPoints > 0) {
+    parts.push(`+${formatNumber(r.rewardPoints, locale)} ${t(r.rewardCurrency === 'trip' ? 'tripPoints' : 'greenPoints', locale)}`);
+  }
+  if (r.rewardExp > 0) parts.push(`+${formatNumber(r.rewardExp, locale)} EXP`);
+  return parts.join(' · ');
+}
+
 /** Check labels are localised here; the detail sentence stays as the service wrote it. */
 const CHECK_LABEL: Record<string, Parameters<typeof t>[0]> = {
   geotag: 'checkPhotoLocation',
@@ -32,7 +54,8 @@ function concernWords(keys: string, locale: Locale): string {
 
 // ---------------------------------------------------------------------------
 
-export function loginPage(locale: Locale, error?: boolean): string {
+/** `true` for a refused key; 'reviewer' when the name was left out. */
+export function loginPage(locale: Locale, error?: boolean | 'reviewer'): string {
   const tr = (k: Parameters<typeof t>[0]) => t(k, locale);
   return layout(
     { title: tr('signIn'), locale, path: '/console/login' },
@@ -41,7 +64,7 @@ export function loginPage(locale: Locale, error?: boolean): string {
       <p class="muted" style="max-width:56ch">${tr('signInBlurb')}</p>
       ${
         error
-          ? html`<p style="color:var(--color-accent-700)"><strong>${tr('signInFailed')}</strong></p>`
+          ? html`<p style="color:var(--color-accent-700)"><strong>${tr(error === 'reviewer' ? 'reviewerRequired' : 'signInFailed')}</strong></p>`
           : ''
       }
       <form method="post" action="/console/login" style="max-width:420px;margin-top:24px">
@@ -56,6 +79,12 @@ export function loginPage(locale: Locale, error?: boolean): string {
           <input class="input" type="password" id="key" name="key"
                  autocomplete="current-password"
                  required style="width:100%" dir="ltr">
+        </div>
+        <div class="field" style="margin-top:16px">
+          <label for="reviewer">${tr('reviewerName')}</label>
+          <input class="input" type="text" id="reviewer" name="reviewer" autocomplete="name"
+                 required maxlength="80" style="width:100%">
+          <p class="muted">${tr('reviewerHint')}</p>
         </div>
         <button class="btn btn-primary btn-block" type="submit" style="margin-top:20px">
           ${tr('signIn')}
@@ -213,10 +242,10 @@ export function queuePage(
                 <div style="flex:1">
                   <a href="/console/proof/${item.proofId}"
                      style="font-weight:800;font-size:17px;text-decoration:none">
-                    ${item.questName}
+                    ${questNameFor(item, locale)}
                   </a>
                   <div class="muted" style="margin-top:4px">
-                    ${item.questWhere} ·
+                    ${questWhereFor(item, locale)} ·
                     ${formatNumber(item.photos.length, locale)}
                     ${item.photos.length === 1 ? tr('photo') : tr('photos')}${
                       item.weightKg !== null ? ` · ${formatNumber(item.weightKg, locale)} kg` : ''
@@ -243,8 +272,8 @@ export function queuePage(
                   </div>
                 </div>
                 <div style="text-align:right">
-                  <div class="stat" style="font-size:22px;color:var(--color-accent-700)" dir="ltr">
-                    +${formatNumber(item.rewardPoints, locale)}
+                  <div class="stat" style="font-size:22px;color:var(--color-accent-700)">
+                    ${rewardText(item, locale)}
                   </div>
                 </div>
               </div>
@@ -280,14 +309,14 @@ export function detailPage(
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap">
       <div>
         <div class="kicker">${tr('quest')} · <span dir="ltr">${item.questCode}</span></div>
-        <h3 style="margin-top:6px">${item.questName}</h3>
+        <h3 style="margin-top:6px">${questNameFor(item, locale)}</h3>
         <p class="muted">
-          ${item.questWhere} · ${tr('fence')} ${formatNumber(item.geofenceRadiusM, locale)} m
+          ${questWhereFor(item, locale)} · ${tr('fence')} ${formatNumber(item.geofenceRadiusM, locale)} m
         </p>
       </div>
       <div style="text-align:right">
-        <div class="stat" style="color:var(--color-accent-700)" dir="ltr">
-          +${formatNumber(item.rewardPoints, locale)}
+        <div class="stat" style="color:var(--color-accent-700)">
+          ${rewardText(item, locale)}
         </div>
         <div class="kicker">${tr('pointsAtStake')}</div>
       </div>
@@ -333,7 +362,7 @@ export function detailPage(
             ${item.photos.map(
               (p) => html`
                 <figure class="photo">
-                  <img src="${p.url}" alt="${tr('photosHeading')} — ${item.questName}" loading="lazy">
+                  <img src="${p.url}" alt="${tr('photosHeading')} — ${questNameFor(item, locale)}" loading="lazy">
                   <figcaption>
                     ${
                       p.distanceM !== null
@@ -383,7 +412,7 @@ export function detailPage(
       <div class="actions">
         <button class="btn btn-primary" type="submit" name="decision" value="approve"
           style="padding:12px 20px">
-          ${tr('approveAndRelease')} <span dir="ltr">+${formatNumber(item.rewardPoints, locale)}</span>
+          ${tr('approveAndRelease')} <span>${rewardText(item, locale)}</span>
         </button>
         <button class="btn danger" type="submit" name="decision" value="reject"
           style="padding:12px 20px">
@@ -397,7 +426,7 @@ export function detailPage(
   `;
   return layout(
     {
-      title: item.questName, locale, hostName, reviewer,
+      title: questNameFor(item, locale), locale, hostName, reviewer,
       signedIn: true, activeNav: 'queue', pendingCount,
       path: `/console/proof/${item.proofId}`,
       canModerate,
@@ -434,12 +463,12 @@ export function historyPage(
               ${decisions.map(
                 (d) => html`
                   <tr>
-                    <td>${d.questName}</td>
+                    <td>${questNameFor(d, locale)}</td>
                     <td dir="ltr">${d.userId}</td>
                     <td style="color:${d.approved ? 'var(--color-accent-700)' : 'var(--color-neutral-600)'}">
                       ${
                         d.approved
-                          ? html`${tr('approved')} <span dir="ltr">+${formatNumber(d.rewardPoints, locale)}</span>`
+                          ? html`${tr('approved')} <span>${rewardText(d, locale)}</span>`
                           : tr('rejected')
                       }
                       ${

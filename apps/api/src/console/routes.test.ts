@@ -238,7 +238,11 @@ describe('cross-host isolation — the rule the console exists to enforce', () =
     const muni = await signIn(MUNI_KEY);
     const lab = await signIn(LAB_KEY);
     assert.ok(!(await (await app.request('/history', { headers: withCookie(muni) })).text()).includes('p-lab'));
-    const labBody = await (await app.request('/history', { headers: withCookie(lab) })).text();
+    // Read in English: the fixture's Thai names are a placeholder, and a Thai
+    // screen now shows a quest's Thai name (reviewer-flow.test.ts).
+    const labBody = await (await app.request('/history', {
+      headers: { cookie: `${withCookie(lab).cookie}; chivago_lang=en` },
+    })).text();
     assert.ok(labBody.includes('Quest q-lab'));
   });
 });
