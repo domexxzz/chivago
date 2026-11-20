@@ -30,6 +30,7 @@ import type { DurableStorage } from './do-storage.ts';
 import { r2BlobStore, setBlobStore } from './blob-store.ts';
 import { nextDueAt, runDueSweeps, type LastRunAt, type Sweep } from './sweeps.ts';
 import { servedFromExport } from './served-from-export.ts';
+import { edgeCacheKey, edgeCacheable, forClient, forEdge } from './edge-cache.ts';
 
 export interface Env {
   /** The one object. See the note above about why there is only one. */
@@ -211,7 +212,7 @@ export class ChivagoPilot extends DurableObject<Env> {
  */
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     const isAsset = servedFromExport(url.pathname);
@@ -235,6 +236,21 @@ export default {
     // `getByName` is deterministic: the same name is always the same object,
     // which is how "one machine, one database" survives being a platform
     // promise rather than a configuration setting.
-    return env.CHIVAGO.getByName('pilot').fetch(request);
+    const pilot = env.CHIVAGO.getByName('pilot');
+
+    // Public answers that are the same for everybody are kept at the edge
+    // for a minute and never reach the object again (edge-cache.ts).
+    if (edgeCacheable(request)) {
+      const cache = await caches.open('public-reads');
+      const key = edgeCacheKey(request);
+      const hit = await cache.match(key);
+      if (hit) return forClient(hit, 'HIT');
+      const response = await pilot.fetch(request);
+      const stored = forEdge(response.clone());
+      if (stored) ctx.waitUntil(cache.put(key, stored));
+      return forClient(response, 'MISS');
+    }
+
+    return pilot.fetch(request);
   },
 };
