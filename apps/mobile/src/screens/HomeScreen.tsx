@@ -1334,8 +1334,13 @@ function PlaceCard({ place, here, onPress, width = 204 }: { place: ScoredPlace; 
 
 /**
  * Meet your Island Companions hero card:
- * Showcases the 5 Koh Samui companions on the beach with dynamic daylight / sunset imagery,
- * and invites travellers into the 77-province Mascots field guide.
+ * the companions on the beach, and the way into the 77-province field guide.
+ *
+ * NO ISLAND IN THE TITLE. The Thai line read "เกาะสมุย" while the English
+ * beside it named no island at all, so the card disagreed with itself in two
+ * languages and named the wrong island in every area but the first pilot. The
+ * guide behind the card holds all 77 provinces; that is what the card can
+ * honestly promise, and it needs no island to say it.
  */
 function MascotHeroCard({
   now, onOpen,
@@ -1348,7 +1353,7 @@ function MascotHeroCard({
       <Pressable
         onPress={onOpen}
         accessibilityRole="button"
-        accessibilityLabel={`${t({ en: 'Meet your Island Companions', th: 'แก๊งเพื่อนร่วมทางเกาะสมุย', zh: '认识你的岛屿伙伴' })}. ${t({ en: 'Open Field Guide', th: 'เปิดสมุดบันทึกมาสคอต', zh: '打开伙伴图鉴' })}`}
+        accessibilityLabel={`${t({ en: 'Meet your Island Companions', th: 'แก๊งเพื่อนร่วมทาง', zh: '认识你的岛屿伙伴' })}. ${t({ en: 'Open Field Guide', th: 'เปิดสมุดบันทึกมาสคอต', zh: '打开伙伴图鉴' })}`}
         style={[
           shadow.card,
           {
@@ -1378,7 +1383,7 @@ function MascotHeroCard({
                 {t({ en: 'ISLAND COMPANIONS', th: 'แก๊งเพื่อนร่วมทาง', zh: '岛屿伙伴' })}
               </Label>
               <Heading size={15} tracking={-0.3} style={{ marginTop: 2 }}>
-                {t({ en: 'Meet your Island Companions', th: 'แก๊งเพื่อนร่วมทางเกาะสมุย', zh: '认识你的岛屿伙伴' })}
+                {t({ en: 'Meet your Island Companions', th: 'แก๊งเพื่อนร่วมทาง', zh: '认识你的岛屿伙伴' })}
               </Heading>
               <Body size={13} colour={color.neutral700} style={{ marginTop: 4 }}>
                 {t({
