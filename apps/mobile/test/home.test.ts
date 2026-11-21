@@ -234,6 +234,45 @@ describe('what Home says', () => {
       });
     });
 
+    /*
+      THE SAME BUG, THE WIDE WAY ROUND. The hero's language flag is the phone
+      header's counterpart at 700px and over, and it had the same single exit.
+      It shares the screen's panel state now, so the scroll that closes one
+      closes the other - and the two are never on screen together.
+    */
+    test('the hero language list closes on a tap and on a scroll', async () => {
+      const originalWindow = Dimensions.get('window');
+      const originalScreen = Dimensions.get('screen');
+      Dimensions.set({
+        window: { ...originalWindow, width: 1024, height: 800 },
+        screen: { ...originalScreen, width: 1024, height: 800 },
+      });
+      const s = server(routes()); restore = s.restore;
+      try {
+        const ui = await mountScreen(h(HomeScreen, props));
+        assert.equal(ui.labels().includes('Open main menu'), false, 'the phone header should be absent here');
+        assert.equal(ui.labels().includes('Close the language list'), false);
+
+        await ui.press(/^Language: /);
+        assert.ok(
+          ui.labels().includes('Close the language list'),
+          'the open language list left no way to dismiss it by clicking away',
+        );
+        await ui.press('Close the language list');
+        assert.equal(ui.labels().includes('Close the language list'), false, 'a click on the page left it open');
+
+        await ui.press(/^Language: /);
+        // Attached only while a panel is open, which is the point of finding it.
+        const scroller = ui.root.findAll((node) => typeof node.props.onScroll === 'function')[0];
+        assert.ok(scroller, 'Home does not report a scroll while the language list is open');
+        await act(async () => { scroller.props.onScroll(); });
+        assert.equal(ui.labels().includes('Close the language list'), false, 'the language list rode the scroll');
+        ui.unmount();
+      } finally {
+        Dimensions.set({ window: originalWindow, screen: originalScreen });
+      }
+    });
+
     test('and choosing something closes it, as it always did', async () => {
       await onPhone(async (ui) => {
         await ui.press('Open main menu');

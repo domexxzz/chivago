@@ -267,6 +267,14 @@ export function HomeScreen({
         onOpenConcierge={onOpenConcierge}
         onOpenProfile={onOpenProfile}
         compactChrome={mobileHeader}
+        /*
+          The hero's language menu shares `headerPanel` with the phone header's
+          three. They are never on screen together - the phone header is under
+          700px wide and this is at or above it - so one piece of state covers
+          both, and the scroll that closes one closes the other.
+        */
+        languageOpen={headerPanel === 'language'}
+        onLanguageOpen={(next) => setHeaderPanel(next ? 'language' : null)}
       />
       {/*
         Order ahead, first thing under the header, in an area with a food court
@@ -544,15 +552,20 @@ function OceanBackdrop({ subtle = false }: { subtle?: boolean }) {
   );
 }
 
-function Hero({ now, area, onChangeArea, onOpenConcierge, onOpenProfile, compactChrome = false }: {
+function Hero({
+  now, area, onChangeArea, onOpenConcierge, onOpenProfile, compactChrome = false,
+  languageOpen = false, onLanguageOpen,
+}: {
   now: Date; area: Area; onChangeArea: (next: AreaKey) => void;
   onOpenConcierge: () => void; onOpenProfile: () => void;
   compactChrome?: boolean;
+  languageOpen?: boolean;
+  onLanguageOpen?: (next: boolean) => void;
 }) {
   return (
     <View style={{ position: 'relative', backgroundColor: '#028090', minHeight: compactChrome ? 260 : 330, paddingHorizontal: gutter, paddingTop: compactChrome ? 26 : 58, paddingBottom: 82, overflow: 'hidden' }}>
       <TravelHeroBackdrop focalPoint="right" />
-      {compactChrome ? null : <LanguageFlagMenu />}
+      {compactChrome ? null : <LanguageFlagMenu open={languageOpen} onOpen={onLanguageOpen} />}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <View style={{ flex: 1 }}>
           <Text style={{ color: '#D5F6FF', fontSize: 12, fontWeight: '500', letterSpacing: 1.8, textTransform: 'uppercase' }}>{t(greetingFor(now))}</Text>
@@ -630,13 +643,45 @@ function AppLanguageFlag({ locale, width = 28 }: { locale: Locale; width?: numbe
 }
 
 /** A quick language switch at the first place every visitor sees. */
-function LanguageFlagMenu() {
+/**
+ * The language flag on the wide hero, and the list it opens.
+ *
+ * SHUTS THE WAY THE PHONE HEADER'S PANELS DO. It had the same single exit
+ * they did - press the flag again - so a reader who clicked the page or
+ * scrolled was left with the list sitting over the hero. `open` is the
+ * screen's state for the same reason it is there: only the ScrollView knows
+ * the page moved.
+ *
+ * The sheet that takes the click is clipped to the hero, which has
+ * `overflow: 'hidden'`. That is the band the menu sits in and the band a
+ * reader clicks to dismiss it; a click further down the page is caught by the
+ * scroll instead.
+ */
+function LanguageFlagMenu({ open, onOpen }: { open: boolean; onOpen?: (next: boolean) => void }) {
   const locale = useLocale();
-  const [open, setOpen] = React.useState(false);
+  const setOpen = (next: boolean) => onOpen?.(next);
+
+  React.useEffect(() => {
+    if (Platform.OS !== 'web' || !open) return undefined;
+    const target = typeof document === 'undefined' ? null : document;
+    if (!target) return undefined;
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onOpen?.(false); };
+    target.addEventListener('keydown', onKey);
+    return () => target.removeEventListener('keydown', onKey);
+  }, [open, onOpen]);
+
   return (
     <View style={{ position: 'absolute', top: 12, left: gutter, zIndex: 30, elevation: 30 }}>
+      {open ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t({ en: 'Close the language list', th: '\u0e1b\u0e34\u0e14\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23\u0e20\u0e32\u0e29\u0e32', zh: '\u5173\u95ed\u8bed\u8a00\u5217\u8868' })}
+          onPress={() => setOpen(false)}
+          style={{ position: 'absolute', top: -400, left: -1000, width: 3000, height: 1400 }}
+        />
+      ) : null}
       <Pressable
-        onPress={() => setOpen((value) => !value)}
+        onPress={() => setOpen(!open)}
         accessibilityRole="button"
         accessibilityLabel={t({ en: `Language: ${LOCALE_NAMES[locale]}`, th: `ภาษา: ${LOCALE_NAMES[locale]}`, zh: `语言：${LOCALE_NAMES[locale]}` })}
         accessibilityState={{ expanded: open }}
@@ -661,7 +706,7 @@ function LanguageFlagMenu() {
             return (
               <Pressable
                 key={option}
-                onPress={() => { setLocale(option); setOpen(false); }}
+                onPress={() => { void setLocale(option); setOpen(false); }}
                 accessibilityRole="radio"
                 accessibilityState={{ selected }}
                 accessibilityLabel={LOCALE_NAMES[option]}
