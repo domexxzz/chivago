@@ -27,6 +27,7 @@ import { WayBanner } from '../components/WayBanner.tsx';
 import { FairBanner } from '../components/FairBanner.tsx';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { DropOffLayer } from '../components/DropOffLayer.tsx';
+import { dropOffForPin, dropOffPins } from '../components/drop-off-pins.ts';
 import { useAsync, type LayerKey } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
@@ -282,6 +283,11 @@ export function MapScreen({
     (!shopCategory || s.category === shopCategory) && (!shopSearch || `${s.name} ${s.category}`.toLowerCase().includes(shopSearch.toLowerCase()))
     && (s.rating ?? 0) >= shopMinRating && (!shopsOpenOnly || (!shopOfflineStamp && shopOpenNow(s.openingHours)))),
   [shops.data, shopCategory, shopSearch, shopMinRating, shopsOpenOnly, shopOfflineStamp]);
+  // The shops on the map, plus this area's drop-off points as bin pins.
+  const mapShops = React.useMemo(
+    () => [...visibleShops, ...dropOffPins(area.bbox, t)],
+    [visibleShops, area.bbox],
+  );
   const shopCategories = React.useMemo(() => SHOP_CATEGORIES.filter((category) => (shops.data ?? []).some((shop) => shop.category === category)), [shops.data]);
   React.useEffect(() => { setSelectedPlace(null); setSelectedShop(null); setShopCategory(''); setShopSearch(''); setShopMinRating(0); setShopsOpenOnly(false); }, [area.key]);
   React.useEffect(() => { setExpandedMap(false); setExpandedLayers(false); }, [area.key, mode]);
@@ -374,10 +380,17 @@ export function MapScreen({
     setSelectedPlace(place);
   }, []);
   const onSelectShop = React.useCallback((shop: Shop) => {
+    // A bin rides the shop pin channel (`drop-off-pins.ts`); it goes straight
+    // to directions and never opens a shop card.
+    const dropOff = dropOffForPin(shop.id);
+    if (dropOff) {
+      if (onNavigateDropOff) { setExpandedMap(false); onNavigateDropOff(dropOff); }
+      return;
+    }
     setSelectedPlace(null);
     setSelectedDriftPoint(null);
     setSelectedShop(shop);
-  }, []);
+  }, [onNavigateDropOff]);
   const onSelectDriftPoint = React.useCallback((point: CoastalDriftPoint) => {
     setSelectedPlace(null);
     setSelectedShop(null);
@@ -476,7 +489,7 @@ export function MapScreen({
     onOpenStory={(placeId) => { setExpandedMap(false); openStory(placeId); }}
     places={driftMode ? [] : visible}
     highlightedPlaceIds={recommendedPlaceIds}
-    shops={driftMode ? [] : visibleShops}
+    shops={driftMode ? [] : mapShops}
     onSelectShop={onSelectShop}
     onSelect={onSelect}
     quests={driftMode ? [] : questsHere}
@@ -726,7 +739,7 @@ export function MapScreen({
               onOpenStory={openStory}
               places={driftMode ? [] : visible}
               highlightedPlaceIds={recommendedPlaceIds}
-              shops={driftMode ? [] : visibleShops}
+              shops={driftMode ? [] : mapShops}
               onSelectShop={onSelectShop}
               onSelect={onSelect}
               quests={driftMode ? [] : questsHere}
