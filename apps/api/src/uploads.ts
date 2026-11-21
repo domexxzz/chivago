@@ -133,6 +133,56 @@ export async function storePhoto(
   return { id, storagePath, mime, byteSize: args.bytes.length };
 }
 
+/** Store an Adventure evidence photo through the same sniffed blob pipeline. */
+export async function storeAdventureEvidencePhoto(
+  db: DB,
+  evidenceId: string,
+  bytes: Buffer,
+): Promise<StoredPhoto> {
+  const { mime, ext } = sniff(bytes);
+  const id = randomUUID();
+  const storagePath = `adventure-evidence/${evidenceId.slice(0, 2)}/${id}.${ext}`;
+  await blobStore().put(storagePath, bytes);
+  db.prepare(
+    `INSERT INTO adventure_evidence_files
+       (id,evidence_id,storage_path,mime_type,byte_size,uploaded_at)
+     VALUES (?,?,?,?,?,?)`,
+  ).run(id, evidenceId, storagePath, mime, bytes.length, new Date().toISOString());
+  return { id, storagePath, mime, byteSize: bytes.length };
+}
+
+/** Best-effort rollback for blobs written by a submission that later fails. */
+export async function deleteAdventureEvidencePhoto(
+  db: DB,
+  evidenceId: string,
+  photoId: string,
+): Promise<boolean> {
+  const found = row<{ storage_path: string }>(db.prepare(
+    'SELECT storage_path FROM adventure_evidence_files WHERE id=? AND evidence_id=?',
+  ).get(photoId, evidenceId));
+  if (!found) return false;
+  await blobStore().delete(found.storage_path);
+  db.prepare('DELETE FROM adventure_evidence_files WHERE id=? AND evidence_id=?').run(photoId, evidenceId);
+  return true;
+}
+
+/** Read Adventure evidence only when the reviewing host owns its policy. */
+export async function readAdventureEvidencePhotoForHost(
+  db: DB,
+  hostId: string,
+  photoId: string,
+): Promise<PhotoBlob | null> {
+  const found = row<{ storage_path: string; mime_type: string }>(db.prepare(
+    `SELECT f.storage_path,f.mime_type
+     FROM adventure_evidence_files f
+     JOIN adventure_evidence e ON e.id = f.evidence_id
+     WHERE f.id = ? AND e.host_id = ?`,
+  ).get(photoId, hostId));
+  if (!found) return null;
+  const bytes = await blobStore().get(found.storage_path);
+  return bytes ? { bytes, mime: found.mime_type } : null;
+}
+
 export interface PhotoBlob {
   /** A plain `Uint8Array`: what Hono's `c.body` takes, and what R2 returns. */
   bytes: Uint8Array;

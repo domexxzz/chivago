@@ -17,12 +17,13 @@ import * as fx from './fixtures.ts';
  * a podium for one person, or hiding the host nobody has visited yet.
  */
 
-const opened = { game: '', party: false, findParty: false };
+const opened = { game: '', adventure: false, party: false, findParty: false };
 const noop = () => {};
 const props = {
   onOpen: noop,
   onOpenMarket: noop,
   onOpenGame: (key: string) => { opened.game = key; },
+  onOpenAdventure: () => { opened.adventure = true; },
   onOpenParty: () => { opened.party = true; },
   onFindParty: () => { opened.findParty = true; },
 };
@@ -72,7 +73,7 @@ const routes = (over: Record<string, unknown> = {}) => ({
 });
 
 let restore: (() => void) | null = null;
-afterEach(() => { restore?.(); restore = null; opened.game = ''; opened.party = false; opened.findParty = false; });
+afterEach(() => { restore?.(); restore = null; opened.game = ''; opened.adventure = false; opened.party = false; opened.findParty = false; });
 
 describe('Game&Quest navigation', () => {
   test('starts with quests and keeps their filters inside the Quests section', async () => {
@@ -95,6 +96,18 @@ describe('Game&Quest navigation', () => {
     assert.doesNotMatch(ui.text(), /Today/);
     await ui.press('Sort it right');
     assert.equal(opened.game, 'waste-sort');
+    ui.unmount();
+  });
+
+  test('the Koh Sichang adventure moved to Games and opens the real Adventure route', async () => {
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(MissionsScreen, props));
+
+    assert.doesNotMatch(ui.text(), /Adventure on Koh Sichang/);
+    await ui.press('Games');
+    assert.match(ui.text(), /Adventure on Koh Sichang/);
+    await ui.press('Adventure on Koh Sichang');
+    assert.equal(opened.adventure, true);
     ui.unmount();
   });
 

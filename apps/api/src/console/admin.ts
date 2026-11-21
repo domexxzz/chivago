@@ -41,6 +41,7 @@ export function adminPage(input: {
       <input class="input" type="text" name="q" value="${input.query}" placeholder="${c.search}" style="flex:1">
       <button class="btn" type="submit">${c.search}</button>
     </form>
+    <p style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn btn-primary" href="/console/admin/adventures">Adventure CMS →</a><a class="btn" href="/console/admin/seasons">Season CMS →</a></p>
 
     <section id="users"><h2>${c.users}</h2>
       ${input.users.length === 0 ? html`<p class="muted">—</p>` : input.users.map((u) => html`

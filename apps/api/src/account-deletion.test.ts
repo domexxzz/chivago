@@ -93,6 +93,12 @@ describe('deleteAccount', () => {
     });
     insert('party_quest_participants', { party_quest_id: 'pq', user_id: 'ana', display_name_snapshot: 'Ana', rostered_at: T });
     insert('party_quest_participants', { party_quest_id: 'pq', user_id: 'ben', display_name_snapshot: 'Ben', rostered_at: T });
+    insert('party_quest_assignments', {
+      party_quest_id: 'pq', user_id: 'ana', assignment: 'Inspect the pier', assigned_by: 'ben', assigned_at: T,
+    });
+    insert('party_quest_assignments', {
+      party_quest_id: 'pq', user_id: 'ben', assignment: 'Photograph the route', assigned_by: 'ben', assigned_at: T,
+    });
   }
 
   test('a plain DELETE FROM users is refused for someone active in another person\'s party - the bug', () => {
@@ -107,6 +113,8 @@ describe('deleteAccount', () => {
     assert.equal(count("SELECT count(*) n FROM party_messages WHERE user_id = 'ben'"), 0, 'their words go with them');
     assert.equal(count("SELECT count(*) n FROM party_members WHERE user_id = 'ben'"), 0);
     assert.equal(count("SELECT count(*) n FROM party_quest_participants WHERE user_id = 'ben'"), 0);
+    assert.equal(count("SELECT count(*) n FROM party_quest_assignments WHERE user_id = 'ben'"), 0,
+      'their own assignment leaves with their locked roster entry');
     assert.equal(count('SELECT count(*) n FROM party_meeting_points'), 0, 'a pin they dropped is theirs');
   });
 
@@ -120,6 +128,8 @@ describe('deleteAccount', () => {
     assert.equal(count("SELECT count(*) n FROM party_quest_instances WHERE id = 'pq' AND selected_by = 'ana'"), 1,
       'a quest Ana is part of is not cancelled under her');
     assert.equal(count("SELECT count(*) n FROM party_quest_participants WHERE user_id = 'ana'"), 1);
+    assert.equal(count("SELECT count(*) n FROM party_quest_assignments WHERE user_id = 'ana' AND assigned_by = 'ana'"), 1,
+      'the remaining assignment is credited to the party owner');
   });
 
   test('deleting the party\'s creator takes the party with them, as it always has', () => {

@@ -64,6 +64,9 @@ import { MedalsScreen } from './src/screens/MedalsScreen.tsx';
 import { PartyScreen } from './src/screens/PartyScreen.tsx';
 import { FindPartyScreen } from './src/screens/FindPartyScreen.tsx';
 import { GameScreen } from './src/screens/GameScreen.tsx';
+import { AdventureScreen } from './src/screens/AdventureScreen.tsx';
+import { TravelJournalScreen } from './src/screens/TravelJournalScreen.tsx';
+import { SeasonScreen } from './src/screens/SeasonScreen.tsx';
 import { SafetyScreen } from './src/screens/SafetyScreen.tsx';
 import { TripScreen, type TripState } from './src/screens/TripScreen.tsx';
 import { ConciergeScreen } from './src/screens/ConciergeScreen.tsx';
@@ -522,6 +525,7 @@ export default function App() {
             onOpenMarket={() => nav.push('market')}
             onOpenProfile={() => nav.push('profile')}
             onOpenGame={(key) => { setGameKey(key); nav.push('miniGame'); }}
+            onOpenAdventure={() => nav.push('adventure')}
             onOpenParty={() => nav.push('party')}
             onFindParty={() => nav.push('findParty')}
             initialSection={missionsInitialSection}
@@ -551,6 +555,23 @@ export default function App() {
             onOpenFashion={() => nav.push('fashion')}
           />
         );
+      case 'adventure':
+        return (
+          <AdventureScreen
+            onBack={nav.pop}
+            onOpenPlace={(id) => nav.push('place', { placeId: id })}
+            onOpenJournal={() => nav.push('journal')}
+            onOpenSeason={() => nav.push('season')}
+            onOpenMissions={() => nav.selectTab('quests')}
+            onOpenExplore={() => nav.selectTab('map')}
+            onToast={toast.show}
+            onPointsChanged={onPointsChanged}
+          />
+        );
+      case 'journal':
+        return <TravelJournalScreen onBack={nav.pop} onToast={toast.show} />;
+      case 'season':
+        return <SeasonScreen onBack={nav.pop} onToast={toast.show} />;
       case 'miniGame':
         return <MiniGameScreen gameKey={gameKey ?? ''} onBack={nav.pop} />;
       case 'wallet':

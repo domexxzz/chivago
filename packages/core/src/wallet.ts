@@ -184,7 +184,9 @@ export function ledgerLine(
   if (!subject) return { en: entry.label, th: entry.label, zh: entry.label };
   switch (entry.kind) {
     // The quest's own name IS the sentence. Nothing to phrase around it.
-    case 'quest_reward': return { en: subject, th: subject, zh: subject };
+    case 'quest_reward':
+    case 'activity_reward':
+    case 'party_reward': return { en: subject, th: subject, zh: subject };
     case 'checkin': return { en: `Checked in · ${subject}`, th: `เช็กอินที่ ${subject}`, zh: `已签到 · ${subject}` };
     // A leg on foot between two check-ins: "Chaweng → Lamai".
     case 'walk': return { en: `Walked · ${subject}`, th: `เดินมา ${subject}`, zh: `步行 · ${subject}` };

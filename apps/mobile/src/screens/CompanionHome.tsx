@@ -25,13 +25,16 @@
 
 import React from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { crowdLabel, type Companion, type ScoredPlace } from '@chivago/core';
+import { ChevronLeft, ChevronRight, Lock, Sparkles } from 'lucide-react-native';
+import {
+  PET_GESTURES, crowdLabel, type Companion, type PetGesture, type ScoredPlace,
+  type PetMemory, type PetProgression,
+} from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, gutter, layout, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
-import { CreatureScene } from '../components/CreatureScene.tsx';
+import { CreatureScene, type PetGestureAction } from '../components/CreatureScene.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { IconButton } from '../components/Button.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
@@ -55,6 +58,10 @@ export function CompanionHomeScreen({
   onFindQuest: () => void;
 }) {
   const places = useAsync(() => api.places(), []);
+  const pet = useAsync(() => api.petProgression(companion.species.key), [companion.species.key]);
+  const [gestureAction, setGestureAction] = React.useState<PetGestureAction | undefined>();
+  const [gestureBusy, setGestureBusy] = React.useState<PetGesture | null>(null);
+  const [gestureError, setGestureError] = React.useState<string | null>(null);
 
   const { species, stage, evidence, nextStep } = companion;
   const grown = stage === 'grown';
@@ -120,6 +127,7 @@ export function CompanionHomeScreen({
           species={species.key}
           stage={stage}
           label={`${stage === 'egg' ? t(species.eggName) : t(species.name)}, ${t(STAGE_LABEL[stage])}. ${t({ en: 'Tap to say hello', th: 'แตะเพื่อทักทาย', zh: '轻点打招呼' })}`}
+          gestureAction={gestureAction}
         />
 
         {/*
@@ -141,6 +149,24 @@ export function CompanionHomeScreen({
           />
         </View>
       </View>
+
+      <PetProgressCard
+        data={pet.data}
+        loading={pet.loading}
+        error={pet.error ?? gestureError}
+        busy={gestureBusy}
+        onRetry={pet.reload}
+        onGesture={(gesture) => {
+          setGestureBusy(gesture);
+          setGestureError(null);
+          void api.selectPetGesture(species.key, gesture).then((result) => {
+            setGestureBusy(null);
+            if (!result.ok) { setGestureError(result.error); return; }
+            setGestureAction({ gesture, nonce: Date.now() });
+            pet.reload();
+          });
+        }}
+      />
 
       {/* What would move it on. An egg that does not say this is a locked box. */}
       {nextStep ? (
@@ -207,6 +233,89 @@ export function CompanionHomeScreen({
         />
       </View>
     </ScrollView>
+  );
+}
+
+function PetProgressCard({ data, loading, error, busy, onRetry, onGesture }: {
+  data: { progression: PetProgression; memories: PetMemory[]; selectedGesture: PetGesture } | null;
+  loading: boolean;
+  error: string | null;
+  busy: PetGesture | null;
+  onRetry: () => void;
+  onGesture: (gesture: PetGesture) => void;
+}) {
+  if (loading && !data) return <LoadingState />;
+  if (error && !data) return <ErrorState message={error} onRetry={onRetry} />;
+  if (!data) return null;
+  const { progression, memories, selectedGesture } = data;
+  const next = progression.nextLevelExp;
+  return (
+    <View style={[shadow.card, {
+      marginTop: 16, marginHorizontal: gutter, padding: 16, backgroundColor: color.surface,
+      borderRadius: radius.lg, borderWidth: 1, borderColor: '#BDE8EF', gap: 12,
+    }]}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <View>
+          <Label size={9} tracking={0.14} colour={color.brand}>{t({ en: 'PET BOND', th: 'สายสัมพันธ์ PET', zh: '伙伴羁绊' })}</Label>
+          <Heading size={20}>{t({ en: `Level ${progression.level}`, th: `เลเวล ${progression.level}`, zh: `${progression.level} 级` })}</Heading>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Label size={10} colour={color.neutral600}>{t({ en: `Bond ${progression.bondLevel}`, th: `ความผูกพัน ${progression.bondLevel}`, zh: `羁绊 ${progression.bondLevel}` })}</Label>
+          <Label size={10} colour={color.neutral600}>{`${progression.exp}${next === null ? '' : ` / ${next}`} EXP`}</Label>
+        </View>
+      </View>
+      <View style={{ height: 9, borderRadius: 9, backgroundColor: '#E4F1F4', overflow: 'hidden' }}>
+        <View style={{ width: `${Math.round(progression.levelProgress * 100)}%`, height: 9, backgroundColor: color.brand, borderRadius: 9 }} />
+      </View>
+
+      <View>
+        <Label size={10} tracking={0.1} colour={color.neutral600}>{t({ en: 'GESTURES', th: 'ท่าทาง', zh: '动作' })}</Label>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingTop: 8 }}>
+          {PET_GESTURES.map((definition) => {
+            const unlocked = progression.unlockedGestures.includes(definition.key);
+            const active = selectedGesture === definition.key;
+            return (
+              <Pressable
+                key={definition.key}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: !unlocked || busy !== null, selected: active }}
+                disabled={!unlocked || busy !== null}
+                onPress={() => onGesture(definition.key)}
+                style={({ pressed }) => ({
+                  minWidth: 92, minHeight: 68, padding: 10, justifyContent: 'center', alignItems: 'center', gap: 4,
+                  borderRadius: 16, borderWidth: 1.5,
+                  borderColor: active ? color.brand : '#CFE3E8',
+                  backgroundColor: active ? '#DDF8F8' : pressed ? '#EEF9FA' : color.surface,
+                  opacity: unlocked ? 1 : 0.55,
+                })}
+              >
+                {unlocked ? <Sparkles size={19} color={color.brand} /> : <Lock size={18} color={color.neutral600} />}
+                <Label size={10} colour={unlocked ? color.text : color.neutral600}>{t(definition.name)}</Label>
+                {!unlocked ? <Label size={9} colour={color.neutral600}>{t({ en: `Lv. ${definition.unlockLevel}`, th: `เลเวล ${definition.unlockLevel}`, zh: `${definition.unlockLevel} 级` })}</Label> : null}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      <View>
+        <Label size={10} tracking={0.1} colour={color.neutral600}>
+          {t({ en: `${memories.length} VERIFIED MEMORIES`, th: `ความทรงจำที่ยืนยันแล้ว ${memories.length} รายการ`, zh: `${memories.length} 条已验证记忆` })}
+        </Label>
+        {memories.slice(0, 3).map((memory) => (
+          <View key={memory.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 9 }}>
+            <Sparkles size={16} color={color.gold} />
+            <Body size={13}>
+              {t({
+                en: memory.memoryType === 'verified_visit' ? `Visited ${memory.place ? t(memory.place.name) : 'a new place'}` : memory.memoryType === 'story_unlock' ? 'Unlocked a story' : 'Completed a verified quest',
+                th: memory.memoryType === 'verified_visit' ? `ไปเยือน ${memory.place ? t(memory.place.name) : 'สถานที่ใหม่'}` : memory.memoryType === 'story_unlock' ? 'ปลดล็อกเรื่องราว' : 'ทำภารกิจที่ยืนยันแล้วสำเร็จ',
+                zh: memory.memoryType === 'verified_visit' ? `到访${memory.place ? t(memory.place.name) : '新地点'}` : memory.memoryType === 'story_unlock' ? '解锁故事' : '完成已验证任务',
+              })}
+            </Body>
+          </View>
+        ))}
+      </View>
+    </View>
   );
 }
 

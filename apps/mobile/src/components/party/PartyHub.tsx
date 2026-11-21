@@ -493,6 +493,22 @@ export function PartyQuestStatusCard({ quest, progress = null }: { quest: PartyQ
           <Body size={13} colour={color.neutral600} style={{ flex: 1, textAlign: 'right' }}>{progress.pendingReviewCount > 0 ? t({ en: `${progress.pendingReviewCount} awaiting host review`, th: `รอผู้ดูแลตรวจ ${progress.pendingReviewCount} คน`, zh: `${progress.pendingReviewCount} 人等待审核` }) : t({ en: 'No evidence waiting for review', th: 'ไม่มีหลักฐานรอตรวจ', zh: '没有待审核证据' })}</Body>
         </View>
         {progress.totalVerifiedWeightKg !== null ? <View style={{ marginTop: 9, paddingHorizontal: 11, paddingVertical: 8, borderRadius: 13, backgroundColor: '#E8F8EF', flexDirection: 'row', alignItems: 'center', gap: 7 }}><Waves size={17} color="#16875C" /><Body size={13} colour="#116A49" style={{ flex: 1 }}>{t({ en: `${progress.totalVerifiedWeightKg.toFixed(2)} kg from host-approved evidence`, th: `หลักฐานที่ผู้ดูแลอนุมัติแล้ว ${progress.totalVerifiedWeightKg.toFixed(2)} กก.`, zh: `主办方已审核证据 ${progress.totalVerifiedWeightKg.toFixed(2)} 千克` })}</Body></View> : null}
+        {progress.deadlineAt ? <Body size={13} colour={color.neutral600} style={{ marginTop: 8 }}>{t({ en: `Deadline: ${new Date(progress.deadlineAt).toLocaleString()}`, th: `กำหนดเวลา: ${new Date(progress.deadlineAt).toLocaleString('th-TH')}`, zh: `截止时间：${new Date(progress.deadlineAt).toLocaleString('zh-CN')}` })}</Body> : null}
+        <View style={{ marginTop: 9, gap: 6 }}>
+          {progress.participants.map((participant) => (
+            <View key={participant.userId} style={{ paddingHorizontal: 10, paddingVertical: 8, borderRadius: 12, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Body size={13} colour={color.neutral700} numberOfLines={1}>{participant.displayName}</Body>
+                {participant.assignment ? <Body size={13} colour={color.neutral600} numberOfLines={1}>{participant.assignment}</Body> : null}
+              </View>
+              <Label size={9} colour={participant.stage === 'complete' ? '#16875C' : color.neutral600}>
+                {participant.stage === 'complete'
+                  ? t({ en: `DONE · ${participant.contribution}`, th: `สำเร็จ · ${participant.contribution}`, zh: `完成 · ${participant.contribution}` })
+                  : t({ en: 'PENDING', th: 'รอดำเนินการ', zh: '待完成' })}
+              </Label>
+            </View>
+          ))}
+        </View>
       </> : <Body size={13} colour={color.neutral600} style={{ marginTop: 8 }}>{t({ en: 'Verified progress will appear when members start this Quest.', th: 'ความคืบหน้าที่ตรวจสอบแล้วจะแสดงเมื่อสมาชิกเริ่มทำเควสนี้', zh: '成员开始此任务后将显示已验证进度。' })}</Body>}
     </View>
   );

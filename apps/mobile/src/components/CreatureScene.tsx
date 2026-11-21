@@ -16,7 +16,7 @@
 
 import React from 'react';
 import { Animated, Easing, Platform, View, useWindowDimensions } from 'react-native';
-import type { CompanionStage, Mascot } from '@chivago/core';
+import type { CompanionStage, Mascot, PetGesture } from '@chivago/core';
 import { Creature, type CreatureKey } from './Creature.tsx';
 import { MascotPortrait } from './MascotPortrait.tsx';
 import { useReduceMotion } from './reduce-motion.ts';
@@ -89,8 +89,13 @@ function useBreath(): Animated.Value {
 const KNOWN: readonly CreatureKey[] = ['coconut-macaque', 'red-junglefowl', 'day-octopus', 'green-turtle', 'water-buffalo'];
 const isKnown = (s: string): s is CreatureKey => (KNOWN as readonly string[]).includes(s);
 
+export interface PetGestureAction {
+  gesture: PetGesture;
+  nonce: number;
+}
+
 export function CreatureScene({
-  species, mascot, stage, label, onTap,
+  species, mascot, stage, label, onTap, gestureAction,
 }: {
   /** A species key. An unknown one falls back to the drawn egg, as `Creature` does. */
   species: string;
@@ -100,6 +105,8 @@ export function CreatureScene({
   /** Spoken name of what is on screen, e.g. "Water buffalo, grown". */
   label: string;
   onTap?: () => void;
+  /** A server-unlocked gesture selection. Nonce replays the same gesture. */
+  gestureAction?: PetGestureAction;
 }) {
   const { width } = useWindowDimensions();
   const breath = useBreath();
@@ -111,8 +118,8 @@ export function CreatureScene({
 
   if (Room) {
     return mascot
-      ? <Room mascot={mascot} stage={stage} height={height} label={label} onTap={onTap} />
-      : <Room species={species as CreatureKey} stage={stage} height={height} label={label} onTap={onTap} />;
+      ? <Room mascot={mascot} stage={stage} height={height} label={label} onTap={onTap} gestureAction={gestureAction} />
+      : <Room species={species as CreatureKey} stage={stage} height={height} label={label} onTap={onTap} gestureAction={gestureAction} />;
   }
 
   // Standing in for the room, so it holds the room's height; or standing on
@@ -123,6 +130,7 @@ export function CreatureScene({
       mascot={mascot}
       stage={stage}
       breath={breath}
+      gestureAction={gestureAction}
       height={roomSuits ? height : undefined}
     />
   );
@@ -145,15 +153,38 @@ export function CreatureScene({
  * the moment the scene loads, which is its own small betrayal.
  */
 function DrawnScene({
-  species, mascot, stage, breath, height,
+  species, mascot, stage, breath, height, gestureAction,
 }: {
   species: string;
   mascot?: Mascot;
   stage: CompanionStage;
   breath: Animated.Value;
+  gestureAction?: PetGestureAction;
   /** The room's height, when standing in for one. Omitted on a phone. */
   height?: number;
 }) {
+  const gesture = React.useRef(new Animated.Value(0)).current;
+  const still = useReduceMotion();
+  React.useEffect(() => {
+    if (!gestureAction) return undefined;
+    if (still) { gesture.setValue(0); return undefined; }
+    gesture.setValue(0);
+    const sequence = Animated.sequence([
+      Animated.timing(gesture, { toValue: 1, duration: 360, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(gesture, { toValue: 0, duration: 720, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ]);
+    sequence.start();
+    return () => sequence.stop();
+  }, [gesture, gestureAction?.nonce, still]);
+  const motion = gestureAction?.gesture ?? 'happy';
+  const translateX = motion === 'wave' || motion === 'explore'
+    ? gesture.interpolate({ inputRange: [0, 1], outputRange: [0, motion === 'wave' ? 16 : 28] }) : 0;
+  const translateY = gesture.interpolate({
+    inputRange: [0, 1], outputRange: [0, motion === 'celebrate' || motion === 'happy' ? -28 : motion === 'sad' || motion === 'sleep' ? 12 : -8],
+  });
+  const rotate = gesture.interpolate({
+    inputRange: [0, 1], outputRange: ['0deg', motion === 'wave' ? '12deg' : motion === 'curious' ? '-10deg' : motion === 'sad' ? '6deg' : '0deg'],
+  });
   return (
     <View
       style={height === undefined
@@ -164,7 +195,11 @@ function DrawnScene({
         style={{
           transform: [
             { translateY: breath.interpolate({ inputRange: [0, 1], outputRange: [0, -6] }) },
+            { translateY },
+            { translateX },
+            { rotate },
             { scale: breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.03] }) },
+            { scale: gesture.interpolate({ inputRange: [0, 1], outputRange: [1, motion === 'sleep' ? 0.92 : 1.08] }) },
           ],
         }}
       >

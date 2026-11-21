@@ -26,6 +26,7 @@ import { randomUUID } from 'node:crypto';
 import { row, rows, transact, type DB } from './db.ts';
 import type { Balances, Currency, LedgerEntry, Wallet } from '@chivago/core';
 import { balanceOf, progressionFor } from '@chivago/core';
+import { invalidateTravelEventsForLedgerSource } from './travel-event-service.ts';
 
 export class InsufficientPoints extends Error {
   balance: number;
@@ -260,6 +261,28 @@ export function awardQuestReward(
   });
 }
 
+/** Server-policy reward for one verified Adventure activity. */
+export function awardActivityReward(
+  db: DB,
+  args: {
+    userId: string; nodeId: string; label: string; host: string;
+    points: number; currency: Currency; exp: number; occurredAt: string;
+  },
+): MovementResult {
+  return applyMovement(db, {
+    userId: args.userId,
+    label: args.label,
+    subject: args.label,
+    host: args.host,
+    amount: args.points,
+    currency: args.currency,
+    exp: args.exp,
+    kind: 'activity_reward',
+    sourceRef: `activity:${args.nodeId}:user:${args.userId}`,
+    occurredAt: args.occurredAt,
+  });
+}
+
 /**
  * Award a place check-in.
  *
@@ -377,15 +400,21 @@ export function reverseMovement(
   );
   if (!original) throw new Error(`nothing to reverse: ${args.originalSourceRef}`);
 
-  return applyMovement(db, {
-    userId: args.userId,
-    label: `${original.label} — ${args.reason}`,
-    host: original.host,
-    amount: -original.amount,
-    currency: original.currency as Currency,
-    exp: -original.exp,
-    kind: 'adjustment',
-    sourceRef: `reversal:${args.originalSourceRef}`,
+  return transact(db, () => {
+    const result = applyMovement(db, {
+      userId: args.userId,
+      label: `${original.label} — ${args.reason}`,
+      host: original.host,
+      amount: -original.amount,
+      currency: original.currency as Currency,
+      exp: -original.exp,
+      kind: 'adjustment',
+      sourceRef: `reversal:${args.originalSourceRef}`,
+    });
+    if (result.applied) {
+      invalidateTravelEventsForLedgerSource(db, args.userId, args.originalSourceRef);
+    }
+    return result;
   });
 }
 

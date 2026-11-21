@@ -22,8 +22,9 @@
 
 import React from 'react';
 import { Image, Pressable, ScrollView, Text, View, type ImageSourcePropType } from 'react-native';
-import { ChevronRight, Clock, MapPin } from 'lucide-react-native';
+import { ChevronRight, Clock, Compass, MapPin } from 'lucide-react-native';
 import chivagoLogo from '../../assets/chivago-logo.png';
+import adventureGameHero from '../../assets/adventure-koh-sichang-game-v1.png';
 import sichangBanner from '../../assets/quest-sichang-explorer.png';
 import trashHeroLogo from '../../assets/trash-hero-logo.png';
 import secretRecipeLogo from '../../assets/game-secret-recipe-logo.png';
@@ -63,19 +64,21 @@ import { questArtworkSource } from '../components/QuestArtwork.tsx';
 import { MINI_GAMES, type MiniGameKey } from '../games/index.ts';
 import { ChivarIcon, questStateIcon } from '../components/ChivarIcon.tsx';
 import { PartyHub } from '../components/party/PartyHub.tsx';
+import { questsWithFallback } from '../offline/adventure-cache.ts';
 
 type Filter = 'today' | 'weekend' | 'all' | 'sichang';
 type StandardFilter = Exclude<Filter, 'sichang'>;
 type Section = 'games' | 'quests' | 'party';
 
 export function MissionsScreen({
-  onOpen, onOpenMarket, onOpenProfile, onOpenGame, onOpenParty, onFindParty,
+  onOpen, onOpenMarket, onOpenProfile, onOpenGame, onOpenAdventure, onOpenParty, onFindParty,
   initialSection = 'quests', onInitialSectionConsumed,
 }: {
   onOpen: (id: string) => void;
   onOpenMarket: () => void;
   onOpenProfile?: () => void;
   onOpenGame?: (key: MiniGameKey) => void;
+  onOpenAdventure?: () => void;
   onOpenParty?: () => void;
   onFindParty?: () => void;
   initialSection?: Section;
@@ -98,7 +101,7 @@ export function MissionsScreen({
   //    two quests;
   //  - an island has tens of quests, not thousands, so switching filters should
   //    be instant rather than a network round-trip on a weak beach signal.
-  const data = useAsync(() => api.quests(), []);
+  const data = useAsync(() => questsWithFallback(() => api.quests()), []);
 
   /*
     Defence in depth: a deployed API may briefly lag a mobile release and an
@@ -185,7 +188,7 @@ export function MissionsScreen({
 
       <SectionTabs value={section} onChange={setSection} expanded={section === 'party'} />
 
-      {section === 'games' ? <GamesPanel onOpenGame={onOpenGame} /> : null}
+      {section === 'games' ? <GamesPanel onOpenGame={onOpenGame} onOpenAdventure={onOpenAdventure} /> : null}
 
       {section === 'party' && onOpenParty && onFindParty
         ? <PartyHub onOpenParty={onOpenParty} onFindParty={onFindParty} />
@@ -364,7 +367,12 @@ function SectionTabs({
  * Each document is bundled with the app, so this panel remains playable even
  * when the island connection is unavailable.
  */
-function GamesPanel({ onOpenGame }: { onOpenGame?: (key: MiniGameKey) => void }) {
+function GamesPanel({
+  onOpenGame, onOpenAdventure,
+}: {
+  onOpenGame?: (key: MiniGameKey) => void;
+  onOpenAdventure?: () => void;
+}) {
   return (
     <View style={{ width: '92%', maxWidth: 760, alignSelf: 'center', paddingTop: 14 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -380,6 +388,7 @@ function GamesPanel({ onOpenGame }: { onOpenGame?: (key: MiniGameKey) => void })
       </View>
 
       <View style={{ gap: 12 }}>
+        <AdventureGameCard onOpen={onOpenAdventure} />
         {MINI_GAMES.map((game) => (
           <Pressable
             key={game.key}
@@ -425,6 +434,78 @@ function GamesPanel({ onOpenGame }: { onOpenGame?: (key: MiniGameKey) => void })
         ))}
       </View>
     </View>
+  );
+}
+
+/**
+ * Adventure belongs beside the playable games and quests, not in the
+ * traveller's collection. The route still opens the same server-backed
+ * Adventure screen; only its discoverable door has moved.
+ */
+function AdventureGameCard({ onOpen }: { onOpen?: () => void }) {
+  const title = t({
+    en: 'Adventure on Koh Sichang',
+    th: 'การผจญภัยบนเกาะสีชัง',
+    zh: '阁西昌岛冒险',
+  });
+
+  return (
+    <Pressable
+      disabled={!onOpen}
+      onPress={onOpen}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      accessibilityHint={t({
+        en: 'Explore real places and unlock the island story',
+        th: 'ออกสำรวจสถานที่จริงและปลดล็อกเรื่องราวของเกาะ',
+        zh: '探索真实地点并解锁岛屿故事',
+      })}
+      accessibilityState={{ disabled: !onOpen }}
+      style={({ pressed }) => [
+        shadow.card,
+        {
+          minHeight: 184,
+          borderRadius: 24,
+          borderWidth: 2,
+          borderColor: '#72D8E5',
+          overflow: 'hidden',
+          justifyContent: 'flex-end',
+          opacity: pressed ? 0.88 : 1,
+        },
+      ]}
+    >
+      <Image
+        source={adventureGameHero}
+        resizeMode="cover"
+        accessibilityIgnoresInvertColors
+        style={{ position: 'absolute', width: '100%', height: '100%' }}
+      />
+      <View style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,45,73,0.34)' }} />
+      <View style={{
+        position: 'absolute', inset: 0,
+        backgroundColor: 'rgba(0,62,88,0.22)',
+      }} />
+      <View style={{ paddingHorizontal: 18, paddingVertical: 16, flexDirection: 'row', alignItems: 'flex-end', gap: 14 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999, backgroundColor: '#FFD166' }}>
+            <Label size={9} tracking={0.12} colour="#493300">
+              {t({ en: 'STORY ADVENTURE', th: 'เกมผจญภัยเนื้อเรื่อง', zh: '剧情冒险' })}
+            </Label>
+          </View>
+          <Heading size={24} colour="#FFFFFF" style={{ marginTop: 8 }}>{title}</Heading>
+          <Body size={13} colour="#E7FBFF" style={{ marginTop: 4 }}>
+            {t({
+              en: 'Follow clues, visit real places and unlock the island story.',
+              th: 'ตามหาเบาะแส เที่ยวสถานที่จริง และปลดล็อกเรื่องราวของเกาะ',
+              zh: '追寻线索、探访真实地点并解锁岛屿故事。',
+            })}
+          </Body>
+        </View>
+        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
+          <Compass size={25} color="#087DA4" strokeWidth={2.4} />
+        </View>
+      </View>
+    </Pressable>
   );
 }
 

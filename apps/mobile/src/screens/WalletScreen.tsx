@@ -22,7 +22,7 @@ import { Image, ImageBackground, Pressable, ScrollView, View, useWindowDimension
   a check-in, a voucher - which the reference design does not illustrate.
   Everything the reference does draw now comes from `BackpackIcon.tsx`.
 */
-import { Footprints, MapPin, Scale, Sparkles, Star, Ticket } from 'lucide-react-native';
+import { Footprints, MapPin, Scale, ShieldCheck, Sparkles, Star, Ticket, Users } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { tint, type TintKey } from '@chivago/tokens';
 import {
@@ -872,6 +872,8 @@ export function RankLadder({
  */
 const ENTRY_LOOK: Record<Wallet['ledger'][number]['kind'], { Icon: LucideIcon; tone: TintKey }> = {
   quest_reward: { Icon: Sparkles, tone: 'lilac' },
+  activity_reward: { Icon: ShieldCheck, tone: 'teal' },
+  party_reward: { Icon: Users, tone: 'sky' },
   checkin: { Icon: MapPin, tone: 'sky' },
   walk: { Icon: Footprints, tone: 'teal' },
   review: { Icon: Star, tone: 'peach' },

@@ -8,6 +8,7 @@ import {
 import { inbox } from './notification-service.ts';
 import { arriveAtQuest, distanceMetres, getProgress, InvalidTransition, joinQuest, OutsideGeofence, questCountsFor, resolveVerification, submitProof, TooSoonAfterArrival } from './quest-service.ts';
 import { FixTooCoarse, MockedLocation } from './presence-service.ts';
+import { travelEventsFor, travelJournalFor } from './travel-event-service.ts';
 
 let db: DB;
 const USER = 'u1';
@@ -93,6 +94,8 @@ describe('the happy path', () => {
     assert.equal(result.pointsAwarded, 150);
     assert.equal(getBalances(db, USER).green, 1390);
     assert.equal(getLedger(db, USER)[0]!.host, 'Samui Municipality');
+    assert.equal(travelEventsFor(db, USER).filter((event) => event.type === 'QUEST_COMPLETED').length, 1);
+    assert.equal(travelJournalFor(db, USER).filter((entry) => entry.kind === 'verified_quest').length, 1);
   });
 
   test('a Koh Sichang quest completes through real GPS, proof and host approval, then grants EXP only', () => {
@@ -138,6 +141,21 @@ describe('the client cannot award itself points', () => {
     // A second callback is now an invalid transition out of `complete`.
     assert.throws(() => resolveVerification(db, args), InvalidTransition);
     assert.equal(getBalances(db, USER).green, 1390, 'paid exactly once');
+  });
+
+  test('withdrawing a verified reward also withdraws its journal projection, but keeps the audit event', () => {
+    const { proofId } = runToVerification();
+    resolveVerification(db, { userId: USER, questId: QUEST, proofId, approved: true });
+    assert.equal(travelJournalFor(db, USER).filter((entry) => entry.kind === 'verified_quest').length, 1);
+
+    reverseMovement(db, {
+      userId: USER,
+      originalSourceRef: `quest:${QUEST}:user:${USER}`,
+      reason: 'verification withdrawn',
+    });
+    assert.equal(travelJournalFor(db, USER).length, 0);
+    const event = travelEventsFor(db, USER).find((entry) => entry.type === 'QUEST_COMPLETED');
+    assert.ok(event?.invalidatedAt, 'the immutable audit event should be marked invalidated');
   });
 });
 

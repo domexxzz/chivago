@@ -24,6 +24,7 @@ export interface PartyQuestParticipant {
   leftPartyAt: string | null;
   rejoinedAt: string | null;
   completedAt: string | null;
+  assignment: string | null;
 }
 
 export interface PartyQuestInstance {
@@ -40,6 +41,9 @@ export interface PartyQuestInstance {
   startedAt: string | null;
   rosterLockedAt: string | null;
   cancelledAt: string | null;
+  deadlineAt: string | null;
+  completedAt: string | null;
+  rewardedAt: string | null;
   participants: PartyQuestParticipant[];
 }
 
@@ -50,6 +54,8 @@ export interface PartyQuestParticipantProgress {
   stage: import('./types.ts').QuestStage | null;
   verifiedAt: string | null;
   verifiedWeightKg: number | null;
+  assignment: string | null;
+  contribution: number;
 }
 
 /**
@@ -64,6 +70,8 @@ export interface PartyQuestProgressSummary {
   pendingReviewCount: number;
   progressPercent: number;
   totalVerifiedWeightKg: number | null;
+  completionReady: boolean;
+  deadlineAt: string | null;
   participants: PartyQuestParticipantProgress[];
 }
 

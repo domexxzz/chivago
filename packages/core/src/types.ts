@@ -445,7 +445,7 @@ export interface LedgerEntry {
    * the ledger alone.
    */
   exp: number;
-  kind: 'quest_reward' | 'checkin' | 'walk' | 'review' | 'redemption' | 'adjustment';
+  kind: 'quest_reward' | 'activity_reward' | 'party_reward' | 'checkin' | 'walk' | 'review' | 'redemption' | 'adjustment';
   /** Idempotency key. The award must never double-fire. */
   sourceRef: string;
 }

@@ -19,8 +19,8 @@
       "bundleIdentifier": "com.chivago.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "ChivarGo uses your location to check you in, show nearby places, and share your position with a travel party only when you turn sharing on.",
-        "NSCameraUsageDescription": "ChivarGo uses the camera to capture geo-tagged proof photos for Green Quests.",
-        "NSPhotoLibraryUsageDescription": "ChivarGo lets you attach existing photos as quest proof.",
+        "NSCameraUsageDescription": "ChivarGo uses the camera to scan signed activity QR codes and capture evidence photos when you choose to verify an activity.",
+        "NSPhotoLibraryUsageDescription": "ChivarGo lets you choose a photo as activity or quest evidence.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "When you explicitly enable Party background sharing or trigger SOS, ChivarGo can keep sharing your location while your phone is locked until you turn it off or the event ends.",
         "UIBackgroundModes": [
           "location"
@@ -58,6 +58,13 @@
         "expo-image-picker",
         {
           "photosPermission": "ChivarGo lets you attach photos as quest proof."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "ChivarGo uses the camera to scan signed activity QR codes and capture evidence photos when you choose to verify an activity.",
+          "barcodeScannerEnabled": true
         }
       ]
     ]

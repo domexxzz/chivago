@@ -23,7 +23,9 @@ import type {
   MascotForm, Reply, Spirit, SpiritCourt, SpiritRarity, ConciergeChatData, TravelLocation,
   PartyItineraryItem, PartyLiveMember, PartyMeetingPoint, PartyMessage, PartyPingKind, PartyTripSummary,
   PartyQuestInstance, PartyQuestMode, PartyQuestType,
-  PartyQuestProgressSummary, CoastalIntelligence,
+  PartyQuestProgressSummary, CoastalIntelligence, AdventureOverview,
+  ActivityQrVerification, AdventureEvidence, PetMemory, TravelCycleResult, TravelEvent, TravelJournalEntry,
+  PetGesture, PetProgression, SeasonOverview, TravelTrip,
 } from '@chivago/core';
 import type {
   AirHistory, AreaWeather, BoardEntry, Explored, Fix, Headway, MedalsView, PlaceCourts, PlaceStalls, SelfVisitResult, SelfVisitSummary, TransitRoute,
@@ -63,7 +65,9 @@ export interface CheckinResult {
   pointsAwarded: number;
   balances: Balances;
   exp: number;
+  expAwarded: number;
   distanceM: number;
+  travel: TravelCycleResult;
 }
 
 /**
@@ -582,6 +586,70 @@ export const api = {
 
   // -- places -------------------------------------------------------------
   places: () => get<ScoredPlace[]>('/places'),
+  adventure: (area: AreaKey = 'koh-sichang') =>
+    get<AdventureOverview>(`/adventures/current?area=${encodeURIComponent(area)}`),
+  verifyAdventureQr: (body: {
+    token: string; nodeId: string; clientRequestId: string; position?: Fix | null;
+  }) => post<ActivityQrVerification>('/adventure/qr/verify', body),
+  adventureEvidence: () => get<{ evidence: AdventureEvidence[] }>('/adventure/evidence'),
+  createAdventureEvidence: (nodeId: string, clientRequestId: string, qrScanId?: string | null) =>
+    post<AdventureEvidence>(`/adventure/nodes/${encodeURIComponent(nodeId)}/evidence`, {
+      clientRequestId, qrScanId: qrScanId ?? null,
+    }),
+  submitAdventureEvidence: async (
+    evidenceId: string,
+    photos: { uri: string; mimeType?: string | null }[],
+    position: Fix | null,
+  ) => {
+    const form = new FormData();
+    for (const [index, photo] of photos.entries()) {
+      if (Platform.OS === 'web') {
+        const blob = await fetch(photo.uri).then((response) => response.blob());
+        form.append('photo', blob, `adventure-${index + 1}.jpg`);
+      } else {
+        form.append('photo', {
+          uri: photo.uri, name: `adventure-${index + 1}.jpg`, type: photo.mimeType ?? 'image/jpeg',
+        } as any);
+      }
+    }
+    form.append('position', JSON.stringify(position));
+    return upload<AdventureEvidence>(`/adventure/evidence/${encodeURIComponent(evidenceId)}/submit`, form);
+  },
+  cancelAdventureEvidence: (id: string) =>
+    post<AdventureEvidence>(`/adventure/evidence/${encodeURIComponent(id)}/cancel`, {}),
+  travelEvents: (limit = 50) =>
+    get<{ events: TravelEvent[] }>(`/travel/events?limit=${limit}`),
+  travelJournal: (limit = 50) =>
+    get<{ entries: TravelJournalEntry[] }>(`/travel/journal?limit=${limit}`),
+  updateTravelJournalEntry: (
+    id: string,
+    body: { note?: string | null; visibility?: 'private' | 'shared'; expectedUpdatedAt?: string },
+  ) => patch<TravelJournalEntry>(`/travel/journal/${encodeURIComponent(id)}`, body),
+  travelTrips: (limit = 20) => get<{ trips: TravelTrip[] }>(`/travel/trips?limit=${limit}`),
+  createTravelTrip: (name: string, entryIds: string[]) => post<TravelTrip>('/travel/trips', { name, entryIds }),
+  updateTravelTrip: (id: string, body: { name?: string; visibility?: 'private' | 'shared'; coverPhotoId?: string | null }) =>
+    patch<TravelTrip>(`/travel/trips/${encodeURIComponent(id)}`, body),
+  uploadTravelTripPhoto: async (tripId: string, photo: { uri: string; mimeType?: string }, caption?: string) => {
+    const form = new FormData();
+    if (Platform.OS === 'web') {
+      const blob = await fetch(photo.uri).then((response) => response.blob());
+      form.append('photo', blob, 'trip-photo.jpg');
+    } else {
+      form.append('photo', { uri: photo.uri, name: 'trip-photo.jpg', type: photo.mimeType ?? 'image/jpeg' } as any);
+    }
+    if (caption) form.append('caption', caption);
+    return upload<TravelTrip>(`/travel/trips/${encodeURIComponent(tripId)}/photos`, form);
+  },
+  deleteTravelTripPhoto: (photoId: string) => del<{ deleted: true }>(`/travel/photos/${encodeURIComponent(photoId)}`),
+  petMemories: () => get<{ memories: PetMemory[] }>('/companions/memories'),
+  petProgression: (companionKey: string) =>
+    get<{ progression: PetProgression; memories: PetMemory[]; selectedGesture: PetGesture }>(
+      `/companions/${encodeURIComponent(companionKey)}/progression`,
+    ),
+  selectPetGesture: (companionKey: string, gesture: PetGesture) =>
+    post<{ progression: PetProgression; memories: PetMemory[]; selectedGesture: PetGesture }>(
+      `/companions/${encodeURIComponent(companionKey)}/gesture`, { gesture },
+    ),
   conciergeChat: (
     message: string,
     area: AreaKey,
@@ -753,6 +821,15 @@ export const api = {
     post<{ partyQuest: PartyQuestInstance }>(`/party/quests/${encodeURIComponent(id)}/start`, {}),
   cancelPartyQuest: (id: string) =>
     post<{ partyQuest: PartyQuestInstance }>(`/party/quests/${encodeURIComponent(id)}/cancel`, {}),
+  assignPartyQuestMember: (id: string, memberId: string, assignment: string) =>
+    put<{ partyQuest: PartyQuestInstance }>(`/party/quests/${encodeURIComponent(id)}/assignments/${encodeURIComponent(memberId)}`, { assignment }),
+  completePartyQuest: (id: string) =>
+    post<{ partyQuest: PartyQuestInstance }>(`/party/quests/${encodeURIComponent(id)}/complete`, {}),
+  currentSeason: () => get<{ season: SeasonOverview | null }>('/seasons/current'),
+  seasonHistory: () => get<{ seasons: SeasonOverview[] }>('/seasons/history'),
+  season: (id: string) => get<{ season: SeasonOverview }>(`/seasons/${encodeURIComponent(id)}`),
+  exchangeSeasonItem: (itemId: string, clientRequestId: string) =>
+    post<{ season: SeasonOverview }>(`/seasons/items/${encodeURIComponent(itemId)}/exchange`, { clientRequestId }),
 
   // -- invitations ---------------------------------------------------------
   //

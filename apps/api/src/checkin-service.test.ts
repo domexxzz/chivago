@@ -35,6 +35,7 @@ describe('presence', () => {
     const r = checkIn(db, { userId: USER, placeId: PLACE, ...SITE })!;
     assert.equal(r.awarded, true);
     assert.equal(r.pointsAwarded, CHECKIN_TRIP_POINTS);
+    assert.equal(r.expAwarded, CHECKIN_TRIP_POINTS);
     assert.equal(r.balances.trip, CHECKIN_TRIP_POINTS);
   });
 
@@ -100,6 +101,7 @@ describe('rate limiting', () => {
     // Not an error. Coming back to a beach you like is the behaviour the
     // product wants; only the second payout is refused.
     assert.equal(second.awarded, false);
+    assert.equal(second.expAwarded, 0, 'lifetime EXP must not be shown as a new reward');
     assert.equal(second.pointsAwarded, 0);
     assert.equal(getBalances(db, USER).trip, CHECKIN_TRIP_POINTS, 'paid once');
     assert.equal(getLedger(db, USER).length, 1);
