@@ -11,10 +11,13 @@ with `resizeMode: cover` on both HomeScreen and MascotsScreen, so at this
 ratio nothing is cropped away. The image it replaced was 1024 x 768, which that
 frame cut top and bottom.
 
-**`mascots-beach-sunset.jpg` is untouched and still shows the previous
-characters.** `mascotBeachUri` serves it from 17:00 to 05:59, so the evening
-card does not match the daytime one until a sunset version of this artwork
-exists, or until both hours point at this file.
+**The sunset illustration is gone.** `mascots-beach-sunset.jpg` showed the
+previous cast, so from 17:00 the card changed cast and style rather than
+light, which reads as a bug. The owner chose one picture at every hour, so the
+file was deleted and `mascotBeachUri` no longer looks at the clock - it still
+takes the hour and ignores it, so a sunset illustration of this cast is one
+line away. The overlay chip that announced "Daylight" or "Golden Hour" went
+with it: one picture has no hour to announce. Git history still has the file.
 
 The owner is the source of the artwork; how it was produced is theirs to
 record here if they want it recorded.

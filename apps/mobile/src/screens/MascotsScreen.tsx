@@ -12,7 +12,7 @@
 
 import React from 'react';
 import { Image, Pressable, ScrollView, View } from 'react-native';
-import { ChevronLeft, Sparkles } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { BASIS_LABEL, MASCOTS, MASCOT_COUNT, REGIONS, mascotFor, provincesIn, strings, type Mascot } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { mascotBeachUri } from '../api/photos.ts';
@@ -113,7 +113,6 @@ export function MascotsScreen({
 }) {
   const passport = useAsync(() => api.passport(), []);
   const visited = React.useMemo(() => new Set(passport.data?.visited ?? []), [passport.data]);
-  const isSunset = now.getHours() >= 17 || now.getHours() < 6;
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: color.bg }} showsVerticalScrollIndicator={false}>
@@ -171,27 +170,8 @@ export function MascotsScreen({
             resizeMode="cover"
             accessibilityLabel={t(strings.common.companionsAlt)}
           />
-          <View
-            style={{
-              position: 'absolute',
-              top: 10,
-              right: 10,
-              paddingVertical: 3,
-              paddingHorizontal: 8,
-              borderRadius: radius.sm,
-              backgroundColor: 'rgba(0,0,0,0.55)',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <Sparkles size={11} color="#ffe28a" />
-            <Label size={9} tracking={0.08} colour="#ffffff">
-              {isSunset
-                ? t({ en: 'Golden Hour • Samui', th: 'ช่วงพระอาทิตย์ตก • สมุย', zh: '黄金时刻 • 苏梅岛' })
-                : t({ en: 'Daylight • Samui', th: 'ช่วงกลางวัน • สมุย', zh: '白昼 • 苏梅岛' })}
-            </Label>
-          </View>
+          {/* The time-of-day chip went with the second illustration (docs in
+              api/photos.ts). One picture has no hour to announce. */}
         </View>
         <View style={{ padding: 12, backgroundColor: color.surface }}>
           <Heading size={14} tracking={-0.2}>

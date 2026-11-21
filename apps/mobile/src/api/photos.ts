@@ -55,18 +55,19 @@ export const photoBackdrop = (photo: PlacePhoto | null | undefined): string =>
   (fitsWhole(photo) && photo?.backdrop ? photo.backdrop : color.neutral200);
 
 /**
- * The dynamic companion beach hero image (daytime vs. sunset/evening).
+ * The companions hero image.
  *
- * Switches smoothly based on local time:
- * - Daytime: 06:00 - 16:59 -> mascots-beach-day.jpg
- * - Sunset & Evening: 17:00 - 05:59 -> mascots-beach-sunset.jpg
+ * ONE PICTURE, ALL DAY, since 21 November 2026. This used to serve a second
+ * illustration from 17:00 to 05:59, and that was worth having while both were
+ * the same cast in different light. When the daytime card was redrawn the
+ * evening one was not, so after five o'clock the card showed a different cast
+ * in a different style - which reads as a bug rather than as dusk.
+ *
+ * `now` is still taken, and still ignored, so that bringing the hour back is
+ * one line here and no change at either call site. A sunset illustration of
+ * the current cast is what it is waiting for.
  */
-export function mascotBeachUri(now: Date = new Date(), os: string = Platform.OS): string {
-  const hour = now.getHours();
-  const isSunset = hour >= 17 || hour < 6;
-  const path = isSunset
-    ? '/media/illustrations/mascots-beach-sunset.jpg'
-    : '/media/illustrations/mascots-beach-day.jpg';
-  return photoUri(path, os);
+export function mascotBeachUri(_now: Date = new Date(), os: string = Platform.OS): string {
+  return photoUri('/media/illustrations/mascots-beach-day.jpg', os);
 }
 
