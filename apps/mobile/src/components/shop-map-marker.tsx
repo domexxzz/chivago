@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import {
-  BedDouble, Car, MapPin, Scissors, ShoppingBag, Sparkles, Store, Utensils,
+  BedDouble, Car, MapPin, Scissors, ShoppingBag, Sparkles, Store, Trash2, Utensils,
   type LucideIcon,
 } from 'lucide-react-native';
 import { ChivarIcon, chivarIconUri, serviceIconName } from './ChivarIcon.tsx';
@@ -39,6 +39,12 @@ const SHOP_MARKERS: Record<string, { colour: string; icon: LucideIcon; svg: stri
   'ไกด์นำเที่ยว': {
     colour: '#16806D', icon: MapPin,
     svg: '<path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z"/><path d="M9 3v15m6-12v15"/><circle cx="15" cy="11" r="2"/>',
+  },
+  // A drop-off point (`drop-off-pins.ts`): a bin, in a green that reads as
+  // waste rather than as the eco places' teal.
+  'จุดทิ้งขยะ': {
+    colour: '#3F8F29', icon: Trash2,
+    svg: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6M14 11v6"/>',
   },
   'อื่นๆ': {
     colour: '#486581', icon: Store,
