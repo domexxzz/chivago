@@ -149,6 +149,100 @@ describe('what Home says', () => {
     }
   });
 
+  /*
+    AN OPEN MENU HAS TO BE CLOSEABLE BY THE THINGS PEOPLE ACTUALLY DO.
+
+    The sticky header shipped able to open three panels and able to close them
+    exactly one way: press the same button again. Nobody does that. They tap
+    the page, or they carry on scrolling - and the panel stayed open through
+    both, sitting over the top third of a phone for as long as the reader kept
+    reading, hiding what was under it and taking the taps meant for it.
+
+    These are the two ways out, held as tests because the bug was invisible to
+    the one that existed: it only ever checked that the header was there.
+  */
+  describe('the sticky header panels close', () => {
+    const onPhone = async (body: (ui: Awaited<ReturnType<typeof mountScreen>>) => Promise<void>) => {
+      const originalWindow = Dimensions.get('window');
+      const originalScreen = Dimensions.get('screen');
+      Dimensions.set({
+        window: { ...originalWindow, width: 390, height: 844 },
+        screen: { ...originalScreen, width: 390, height: 844 },
+      });
+      const s = server(routes()); restore = s.restore;
+      try {
+        const ui = await mountScreen(h(HomeScreen, props));
+        await body(ui);
+        ui.unmount();
+      } finally {
+        Dimensions.set({ window: originalWindow, screen: originalScreen });
+      }
+    };
+
+    /** The sheet behind an open panel exists only while one is open. */
+    const closer = (ui: { labels(): string[] }) => ui.labels().includes('Close menu');
+
+    test('a tap on the page closes the menu', async () => {
+      await onPhone(async (ui) => {
+        assert.equal(closer(ui), false, 'nothing should cover the page before the menu opens');
+        await ui.press('Open main menu');
+        assert.ok(ui.text().includes('My Backpack'), 'the menu did not open');
+        assert.equal(closer(ui), true, 'an open menu left no way to dismiss it by tapping away');
+        await ui.press('Close menu');
+        assert.equal(ui.text().includes('My Backpack'), false, 'the menu survived a tap on the page');
+      });
+    });
+
+    test('so does a tap on the page with the area list open', async () => {
+      await onPhone(async (ui) => {
+        await ui.press(/^Area: /);
+        assert.equal(closer(ui), true, 'the area list left no way to dismiss it by tapping away');
+        await ui.press('Close menu');
+        assert.equal(closer(ui), false);
+      });
+    });
+
+    /*
+      THE ONE THAT MATTERED MOST. The panel is a child of the sticky header, so
+      it rode the scroll and stayed put over the page. Only the ScrollView
+      knows a drag began, which is why the open panel is the screen's state now
+      and not the header's.
+    */
+    test('starting to scroll closes it', async () => {
+      await onPhone(async (ui) => {
+        await ui.press('Open main menu');
+        assert.ok(ui.text().includes('My Backpack'));
+        const scroller = ui.root.findAll(
+          (node) => typeof node.props.onScrollBeginDrag === 'function'
+            && Array.isArray(node.props.stickyHeaderIndices),
+        )[0];
+        assert.ok(scroller, 'Home does not tell anything that a scroll began');
+        /*
+          BOTH HANDLERS, because they do not cover the same ways of scrolling.
+          `onScrollBeginDrag` is a finger; a wheel and a trackpad only ever
+          reach `onScroll`, which is how the menu still rode the scroll on a
+          laptop after the first fix.
+        */
+        assert.equal(typeof scroller.props.onScroll, 'function', 'a wheel would not close it');
+        await act(async () => { scroller.props.onScroll(); });
+        assert.equal(ui.text().includes('My Backpack'), false, 'the menu rode the scroll');
+        assert.equal(closer(ui), false);
+
+        await ui.press('Open main menu');
+        await act(async () => { scroller.props.onScrollBeginDrag(); });
+        assert.equal(ui.text().includes('My Backpack'), false, 'a finger drag left it open');
+      });
+    });
+
+    test('and choosing something closes it, as it always did', async () => {
+      await onPhone(async (ui) => {
+        await ui.press('Open main menu');
+        await ui.pressText('My Backpack');
+        assert.equal(closer(ui), false, 'choosing a destination left the menu open');
+      });
+    });
+  });
+
   test('it leads with the measured condition and names its provenance', async () => {
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, props));

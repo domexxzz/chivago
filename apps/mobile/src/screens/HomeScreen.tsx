@@ -36,7 +36,7 @@
 import React from 'react';
 import Svg, { Defs, LinearGradient, Stop, Rect, Path } from 'react-native-svg';
 import {
-  Image, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ImageSourcePropType,
+  Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ImageSourcePropType,
 } from 'react-native';
 import { AREAS, areaOfPlace, fairsIn, featuredFirst, hasFeatured, isFeatured, stallPlacesIn, type Area, type AreaKey, type Fair, type Localised } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
@@ -195,6 +195,15 @@ export function HomeScreen({
   now?: Date;
 }) {
   const { width: viewportWidth } = useWindowDimensions();
+  /*
+    WHICH HEADER PANEL IS OPEN, held here rather than in the header itself.
+
+    It was the header's own state, and nothing outside the header could clear
+    it - so an open menu survived a scroll and sat over the top third of the
+    phone for as long as the reader kept reading. A dropdown has to close when
+    the page moves under it, and only the ScrollView knows that it did.
+  */
+  const [headerPanel, setHeaderPanel] = React.useState<MobileHeaderPanel>(null);
   const dashboard = viewportWidth >= 980;
   const mobileHeader = viewportWidth < 700;
   const places = useAsync(() => api.places(), []);
@@ -225,9 +234,22 @@ export function HomeScreen({
       style={{ flex: 1, backgroundColor: '#EDF6F9' }}
       showsVerticalScrollIndicator={false}
       stickyHeaderIndices={mobileHeader ? [0] : undefined}
+      /*
+        ANY MOVEMENT OF THE PAGE CLOSES AN OPEN HEADER PANEL.
+
+        Both, because they do not cover the same ways of scrolling: the drag
+        is a finger on a phone, and `onScroll` is everything else - a wheel, a
+        trackpad, a keyboard. The listener is only attached while a panel is
+        open, so the usual case costs nothing.
+      */
+      onScrollBeginDrag={() => setHeaderPanel(null)}
+      onScroll={headerPanel === null ? undefined : () => setHeaderPanel(null)}
+      scrollEventThrottle={16}
     >
       {mobileHeader ? (
         <MobileHomeHeader
+          panel={headerPanel}
+          onPanel={setHeaderPanel}
           area={area}
           onChangeArea={setArea}
           onOpenMap={onOpenMap}
@@ -332,8 +354,11 @@ type MobileHeaderPanel = 'menu' | 'area' | 'language' | null;
  * open menus, focus and accessibility state.
  */
 function MobileHomeHeader({
+  panel, onPanel,
   area, onChangeArea, onOpenMap, onOpenQuests, onOpenWallet, onOpenParty, onOpenCommunity, onOpenProfile,
 }: {
+  panel: MobileHeaderPanel;
+  onPanel: (next: MobileHeaderPanel) => void;
   area: Area;
   onChangeArea: (next: AreaKey) => void;
   onOpenMap: () => void;
@@ -344,11 +369,27 @@ function MobileHomeHeader({
   onOpenProfile: () => void;
 }) {
   const locale = useLocale();
-  const [panel, setPanel] = React.useState<MobileHeaderPanel>(null);
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const setPanel = (next: MobileHeaderPanel | ((current: MobileHeaderPanel) => MobileHeaderPanel)) =>
+    onPanel(typeof next === 'function' ? next(panel) : next);
   const choose = (action: () => void) => {
-    setPanel(null);
+    onPanel(null);
     action();
   };
+
+  /*
+    ESCAPE CLOSES IT, on the web build - which is what chivargo.com serves and
+    what a judge opens. React Native has no key events to listen for, so this
+    is guarded rather than shimmed; the tap and the scroll close it everywhere.
+  */
+  React.useEffect(() => {
+    if (Platform.OS !== 'web' || panel === null) return undefined;
+    const target = typeof document === 'undefined' ? null : document;
+    if (!target) return undefined;
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onPanel(null); };
+    target.addEventListener('keydown', onKey);
+    return () => target.removeEventListener('keydown', onKey);
+  }, [panel, onPanel]);
   const menuItems = [
     { key: 'map', label: t({ en: 'Map', th: 'แผนที่', zh: '地图' }), action: onOpenMap },
     { key: 'quests', label: t({ en: 'Game & Quest', th: 'เกมและเควส', zh: '游戏与任务' }), action: onOpenQuests },
@@ -413,6 +454,34 @@ function MobileHomeHeader({
         <ChevronDown size={13} color="#123B64" />
       </Pressable>
       <ProfileButton onPress={onOpenProfile} tone="light" />
+
+      {/*
+        THE TAP THAT CLOSES IT.
+
+        Reaching for the button a second time is not what anybody does with an
+        open menu; they tap the page. Sized from the window and hung below the
+        header so the header's own buttons still answer, and under the panels
+        (z 1001 against their 1002) so their rows still do.
+
+        It overshoots sideways because an absolutely positioned child is laid
+        out against the header's padding box, and this has to reach the screen
+        edges whatever that padding is.
+      */}
+      {panel !== null ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t({ en: 'Close menu', th: '\u0e1b\u0e34\u0e14\u0e40\u0e21\u0e19\u0e39', zh: '\u5173\u95ed\u83dc\u5355' })}
+          onPress={() => onPanel(null)}
+          style={{
+            position: 'absolute',
+            top: 66,
+            left: -windowWidth,
+            width: windowWidth * 3,
+            height: windowHeight,
+            zIndex: 1001,
+          }}
+        />
+      ) : null}
 
       {panel === 'menu' ? (
         <View style={[shadow.card, { position: 'absolute', top: 58, left: 10, width: 218, padding: 7, borderRadius: 18, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CBE4EE', zIndex: 1002, elevation: 22 }]}>
