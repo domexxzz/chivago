@@ -26,6 +26,7 @@ import { useRoute } from '../state/route.ts';
 import { WayBanner } from '../components/WayBanner.tsx';
 import { FairBanner } from '../components/FairBanner.tsx';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
+import { DropOffLayer } from '../components/DropOffLayer.tsx';
 import { useAsync, type LayerKey } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
@@ -831,6 +832,25 @@ export function MapScreen({
                   ? t({ en: 'No places in this area yet.', th: 'ยังไม่มีสถานที่ในพื้นที่นี้', zh: '这一带还没有地点。' })
                   : t({ en: 'No places match the active layers.', th: 'ไม่มีสถานที่ตรงกับตัวกรองที่เลือก', zh: '没有地点符合当前选中的图层。' })}
               </Body>
+            </View>
+          ) : null}
+
+          {/*
+            Where to hand in waste you have already sorted.
+
+            It sits under the places rather than beside them because a
+            drop-off point is not a place: it cannot be checked in at, it
+            earns nothing for arriving, and it has no business in the
+            passport. It is here on the map because the one fact somebody
+            needs - which one is nearest, and how far - is a map fact.
+
+            It renders its own empty state, which is the state today, and
+            says why in words rather than hiding and leaving somebody to
+            guess whether the island has none or the feature broke.
+          */}
+          {!driftMode ? (
+            <View style={{ padding: gutter, paddingTop: 0 }}>
+              <DropOffLayer here={here} />
             </View>
           ) : null}
         </>

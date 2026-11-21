@@ -49,6 +49,7 @@ export * from './monsters.ts';
 export * from './low-carbon.ts';
 export * from './statement-export.ts';
 export * from './presence.ts';
+export * from './drop-off.ts';
 export * from './wayfinding.ts';
 export {
   ROUTER, ROUTE_MAX_M, beyondRouter, decodePolyline, detourRatio, formatDuration, parseRoute,
