@@ -22,6 +22,7 @@
 import type { Offer, Place, Quest, QuestHost, AirStation } from './types.ts';
 import type { TransitRoute } from './transit.ts';
 import { metresBetween } from './presence.ts';
+import { dropOffQuests } from './drop-off.ts';
 
 // ---------------------------------------------------------------------------
 // Hosts
@@ -1338,7 +1339,20 @@ export function isActiveQuestCode(code: string): boolean {
   return (ACTIVE_QUEST_CODES as readonly string[]).includes(code.toUpperCase());
 }
 
-export const ACTIVE_QUESTS: Quest[] = SEED_QUESTS.filter((quest) => isActiveQuestCode(quest.code));
+/*
+  The drop-off quests are appended rather than listed, because they are
+  derived from `DROP_OFF_POINTS` and there is no second place to keep in
+  step. With no point agreed on the island there is nothing to append, so
+  this is a no-op today and publishes DO-01 the day a shop says yes.
+
+  They are not filtered by `isActiveQuestCode`: a code that only exists
+  because a point exists cannot also need an entry in a list of live codes,
+  and adding one would be the allow-list mistake the note below describes.
+*/
+export const ACTIVE_QUESTS: Quest[] = [
+  ...SEED_QUESTS.filter((quest) => isActiveQuestCode(quest.code)),
+  ...dropOffQuests(),
+];
 
 /**
  * The mark a retired quest carries, in its own code.

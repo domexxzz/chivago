@@ -79,6 +79,7 @@ export const Phone = Icon;
 export const Play = Icon;
 export const Plus = Icon;
 export const Radio = Icon;
+export const Recycle = Icon;
 export const RotateCcw = Icon;
 export const RotateCw = Icon;
 export const Route = Icon;
