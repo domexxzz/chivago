@@ -426,6 +426,7 @@ export default function App() {
                 lng: shop.lng,
               }, 'shop');
             }}
+            onNavigateDropOff={(point) => navigateTo({ id: point.id, name: point.name, lat: point.lat, lng: point.lng }, 'place')}
             onOpenQuest={openQuestOnMap}
             onSeeAllQuests={() => nav.selectTab('quests')}
             onAskConcierge={() => nav.push('concierge')}

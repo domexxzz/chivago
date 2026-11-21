@@ -34,12 +34,31 @@ const SAMPLE: DropOffPoint = {
   source: 'sample, for tests only',
 };
 
-test('ships empty, because no shop on the island has agreed to be one yet', () => {
-  assert.equal(DROP_OFF_POINTS.length, 0);
+test('ships the four Koh Sichang pilot points, all still proposals', () => {
+  assert.equal(DROP_OFF_POINTS.length, 4);
+  for (const point of DROP_OFF_POINTS) assert.equal(point.pilot, true, `${point.id} is not marked as a pilot`);
 });
 
-test('no drop-off points means no drop-off quests', () => {
+test('a pilot point has no quest, because nobody has agreed to sign for it', () => {
   assert.deepEqual(dropOffQuests(), []);
+  assert.deepEqual(dropOffQuests([{ ...SAMPLE, pilot: true }]), []);
+});
+
+test('a confirmed point beside pilot points still gets the first code', () => {
+  const quests = dropOffQuests([{ ...SAMPLE, id: 'do-pilot', pilot: true }, SAMPLE]);
+  assert.equal(quests.length, 1);
+  assert.equal(quests[0].id, 'q-do-sample');
+});
+
+test('a pilot point prints no opening hours, because none are agreed', () => {
+  for (const point of DROP_OFF_POINTS) assert.equal(point.hours, null, `${point.id} claims hours`);
+});
+
+test('every pilot point sits on a coordinate a seeded OSM place already uses', () => {
+  const coords = new Set(SEED_PLACES.map((p) => `${p.lat},${p.lng}`));
+  for (const point of DROP_OFF_POINTS) {
+    assert.ok(coords.has(`${point.lat},${point.lng}`), `${point.id} is on a coordinate no mapped place uses`);
+  }
 });
 
 test('every seeded point carries a source somebody can be asked about', () => {
