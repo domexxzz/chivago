@@ -35,6 +35,17 @@ function rewardText(
   return parts.join(' · ');
 }
 
+/**
+ * The reward, in the colour of the currency it is paid in.
+ *
+ * Green Points printed in blue read as a different thing from the Green
+ * Points the app and the ESG report show, and the whole point of that
+ * currency is that it looks the same wherever it is counted. Trip Points take
+ * the app's gold, darkened until it holds its own on the page.
+ */
+const rewardColour = (r: { rewardCurrency: 'trip' | 'green' }): string =>
+  r.rewardCurrency === 'trip' ? 'var(--color-warn-700)' : 'var(--color-ok-700)';
+
 /** Check labels are localised here; the detail sentence stays as the service wrote it. */
 const CHECK_LABEL: Record<string, Parameters<typeof t>[0]> = {
   geotag: 'checkPhotoLocation',
@@ -274,7 +285,7 @@ export function queuePage(
                   </div>
                 </div>
                 <div style="text-align:right">
-                  <div class="stat" style="font-size:22px;color:var(--color-accent-700)">
+                  <div class="stat" style="font-size:22px;color:${rewardColour(item)}">
                     ${rewardText(item, locale)}
                   </div>
                 </div>
@@ -317,7 +328,7 @@ export function detailPage(
         </p>
       </div>
       <div style="text-align:right">
-        <div class="stat" style="color:var(--color-accent-700)">
+        <div class="stat" style="color:${rewardColour(item)}">
           ${rewardText(item, locale)}
         </div>
         <div class="kicker">${tr('pointsAtStake')}</div>
@@ -471,7 +482,7 @@ export function historyPage(
                   <tr>
                     <td>${questNameFor(d, locale)}</td>
                     <td dir="ltr">${d.userId}</td>
-                    <td style="color:${d.approved ? 'var(--color-accent-700)' : 'var(--color-neutral-600)'}">
+                    <td style="color:${d.approved ? 'var(--color-ok-700)' : 'var(--color-accent-700)'}">
                       ${
                         d.approved
                           ? html`${tr('approved')} <span>${rewardText(d, locale)}</span>`

@@ -1,45 +1,97 @@
-/* Modernist — design-system tokens and component classes. This file is the source of truth for the system's look; retune it here and see readme.md. */
+/* ChivarGo console — design-system tokens and component classes. This file is the source of truth for the console's look; retune it here and see readme.md.
+
+   RETUNED 21 November 2026 to the app's palette. The console was drawn in the
+   Modernist system the whole product once wore: warm greys, a red-orange
+   accent, square corners, 2px ink rules. `docs/36-the-look.md` records the app
+   moving to the coastal look - pale sky, white cards, teal-blue brand, rounded
+   corners - and lists every screen it touched. The console was not among them,
+   so it kept wearing the old system and stopped looking like the same product.
+
+   The STRUCTURE is untouched. Only the token values, the radii and the weight
+   of the rules moved, so a reviewer who knows this console still knows it.
+
+   One ramp became three. `--color-accent` used to be the only strong colour,
+   so it had to mean both "the primary action" and "something is wrong". Those
+   are now `--color-brand` (the app speaking) and `--color-accent` (the alert),
+   with `--color-ok` for a verified or approved state - the same three jobs the
+   app's own palette separates, and for the same reason. */
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&display=swap');
 
 :root {
-  --color-bg: #f3f2f2;
-  --color-surface: #eae9e9;
-  --color-text: #201e1d;
-  --color-accent: #ec3013;
-  --color-accent-2: #e15b47;
-  --color-divider: color-mix(in srgb, #201e1d 40%, transparent);
+  /* The app's own ground, card and ink (packages/tokens/src/index.ts). */
+  --color-bg: #e6f3f8;
+  --color-surface: #ffffff;
+  --color-text: #0e2a4f;
+  /* The alert. Red, because the one thing it must never be is the same colour
+     as the button somebody is meant to press. */
+  --color-accent: #d32f24;
+  --color-accent-2: #f26430;
+  --color-divider: color-mix(in srgb, #0e2a4f 16%, transparent);
 
-  /* Tonal ramps — generated in OKLCH on one shared lightness scale, so the
-     same step of any role matches the others in visual value. */
-  --color-neutral-100: #f8f4f4;
-  --color-neutral-200: #eae7e7;
-  --color-neutral-300: #d7d3d3;
-  --color-neutral-400: #bab6b6;
-  --color-neutral-500: #9b9797;
-  --color-neutral-600: #7d7979;
-  --color-neutral-700: #605d5d;
-  --color-neutral-800: #444141;
-  --color-neutral-900: #2d2b2b;
+  /* Tonal ramps on one shared lightness scale, so the same step of any role
+     matches the others in visual value. The neutrals are tinted toward the
+     ink rather than warm, so a hairline on the pale sky reads as part of it. */
+  --color-neutral-100: #f4f8fa;
+  --color-neutral-200: #e4ecf1;
+  --color-neutral-300: #cfdce5;
+  --color-neutral-400: #aebfcd;
+  --color-neutral-500: #8b9fb1;
+  --color-neutral-600: #6d8296;
+  --color-neutral-700: #52667a;
+  --color-neutral-800: #3a4a5c;
+  --color-neutral-900: #26323f;
 
-  --color-accent-100: #fff2ef;
-  --color-accent-200: #ffe0d9;
-  --color-accent-300: #ffc4b8;
-  --color-accent-400: #ff9783;
-  --color-accent-500: #ff563c;
-  --color-accent-600: #dd2b0f;
-  --color-accent-700: #ae1800;
-  --color-accent-800: #7c1405;
-  --color-accent-900: #4d170e;
+  /* THE APP SPEAKING: navigation, links, the button that starts something.
+     `--color-brand-600` is the app's `brand`, `-800` its `brandDeep`. */
+  --color-brand-100: #e8f4fb;
+  --color-brand-200: #cfe9f6;
+  --color-brand-300: #a5d6ef;
+  --color-brand-400: #5cb3df;
+  --color-brand-500: #1b90cb;
+  --color-brand-600: #0077b6;
+  --color-brand-700: #005f91;
+  --color-brand-800: #004e64;
+  --color-brand-900: #06384a;
 
-  --color-accent-2-100: #fff2ef;
-  --color-accent-2-200: #ffe0da;
-  --color-accent-2-300: #ffc4b9;
-  --color-accent-2-400: #ff9784;
-  --color-accent-2-500: #ef6853;
-  --color-accent-2-600: #c94b39;
-  --color-accent-2-700: #9e3526;
-  --color-accent-2-800: #71261b;
-  --color-accent-2-900: #471d16;
+  /* SOMETHING IS WRONG: an overdue queue, a failed check, a refusal. */
+  --color-accent-100: #fdeceb;
+  --color-accent-200: #fad5d2;
+  --color-accent-300: #f5b3ae;
+  --color-accent-400: #ec827a;
+  --color-accent-500: #e04d42;
+  --color-accent-600: #d32f24;
+  --color-accent-700: #a9251c;
+  --color-accent-800: #7d1b15;
+  --color-accent-900: #4f1210;
+
+  /* VERIFIED: a check that passed, a submission that was approved. The app's
+     evidence green, which is the colour Green Points are counted in. */
+  --color-ok-100: #e9f5ee;
+  --color-ok-200: #cce8d8;
+  --color-ok-300: #a3d5b8;
+  --color-ok-400: #62b586;
+  --color-ok-500: #2f9a5e;
+  --color-ok-600: #25874c;
+  --color-ok-700: #1f7a44;
+  --color-ok-800: #175c33;
+  --color-ok-900: #113f24;
+
+  /* WORTH A SECOND LOOK, but not a refusal. The app's gold. */
+  --color-warn-500: #f5a623;
+  --color-warn-700: #8f5a00;
+
+  /* THE CALL TO ACTION: the app's orange. Unused by the console's own pages
+     today - `.tag-accent-2` is the only class that reaches for it - but it is
+     retuned with the rest so the file does not hold two eras of the palette. */
+  --color-accent-2-100: #fff1ea;
+  --color-accent-2-200: #ffdccc;
+  --color-accent-2-300: #ffbfa4;
+  --color-accent-2-400: #fb9468;
+  --color-accent-2-500: #f26430;
+  --color-accent-2-600: #d94f1d;
+  --color-accent-2-700: #cc4610;
+  --color-accent-2-800: #92300a;
+  --color-accent-2-900: #5c2008;
 
   --font-heading: "Archivo", system-ui, sans-serif;
   --font-heading-weight: 800;
@@ -52,15 +104,17 @@
   --space-6: 24.0px;
   --space-8: 32.0px;
 
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
+  /* Rounded, like the app's cards. `-lg` is a card corner and not a pill:
+     `.dialog` is the only thing wearing it. */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
 
   /* Elevation — derived from the ground: soft ink-tinted shadows on a
      light theme, a hairline edge + ambient darkness on a dark one. */
-  --shadow-sm: 0 1px 2px color-mix(in srgb, #2d2b2b 14%, transparent);
-  --shadow-md: 0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
-  --shadow-lg: 0 12px 32px color-mix(in srgb, #2d2b2b 22%, transparent);
+  --shadow-sm: 0 1px 2px color-mix(in srgb, #0e2a4f 12%, transparent);
+  --shadow-md: 0 3px 10px color-mix(in srgb, #0e2a4f 14%, transparent);
+  --shadow-lg: 0 12px 32px color-mix(in srgb, #0e2a4f 20%, transparent);
 }
 
 body {
@@ -92,7 +146,7 @@ h5 { font-size: 16px; }
 h6 { font-size: 13px; }
 h6 { letter-spacing: 0.08em; text-transform: uppercase; }
 p { margin: 0 0 var(--space-3); }
-a { color: var(--color-accent); text-underline-offset: 3px; }
+a { color: var(--color-brand-700); text-underline-offset: 3px; }
 img { display: block; max-width: 100%; }
 figure { margin: 0; }
 figcaption {
@@ -101,12 +155,12 @@ figcaption {
 }
 .text-muted { color: color-mix(in srgb, var(--color-text) 55%, transparent); }
 :focus { outline: none; }
-:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
-::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
+:focus-visible { outline: 2px solid var(--color-brand-600); outline-offset: 2px; }
+::selection { background: color-mix(in srgb, var(--color-brand-400) 45%, transparent); }
 
 /* — rules — */
 .hr {
-  height: 2px; border: 0; margin: var(--space-4) 0;
+  height: 1px; border: 0; margin: var(--space-4) 0;
   background: var(--color-divider);
 }
 
@@ -123,15 +177,17 @@ figcaption {
 }
 .btn svg { display: block; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-.btn-primary { background: var(--color-accent); color: var(--color-bg); }
-.btn-primary:hover { background: var(--color-accent-600); }
-.btn-primary:active { background: var(--color-accent-700); }
+/* White on brand-700 is 6.89:1. On brand-600 the page ground only reached
+   4.30:1, which is under AA for a 14px bold label. */
+.btn-primary { background: var(--color-brand-700); color: #ffffff; }
+.btn-primary:hover { background: var(--color-brand-800); }
+.btn-primary:active { background: var(--color-brand-900); }
 .btn-secondary { border-color: var(--color-divider); }
 .btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
 .btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
-.btn-ghost { color: var(--color-accent); padding-inline: var(--space-1); }
-.btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
-.btn-ghost:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
+.btn-ghost { color: var(--color-brand-700); padding-inline: var(--space-1); }
+.btn-ghost:hover { background: color-mix(in srgb, var(--color-brand-600) 10%, transparent); }
+.btn-ghost:active { background: color-mix(in srgb, var(--color-brand-600) 18%, transparent); }
 .btn-icon { width: 36px; height: 36px; padding: 0; }
 .btn-block { width: 100%; margin-top: var(--space-2); justify-content: flex-start; text-align: left; }
 

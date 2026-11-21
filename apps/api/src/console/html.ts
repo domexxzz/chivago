@@ -6,8 +6,9 @@
  * machines and often on the island's patchy connection. A 2 MB SPA to render a
  * list of twelve submissions would be the wrong trade.
  *
- * It links the real Modernist stylesheet, so the console and the app are
- * visibly the same product.
+ * It links the real stylesheet, which carries the app's own palette since
+ * 21 November 2026 - see the header of `public/modernist.css` for what moved
+ * and what deliberately did not.
  */
 
 import {
@@ -141,13 +142,14 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
   html[lang="th"] .kicker { letter-spacing: .06em; }
   .lang { display:flex; gap:2px; margin-left:12px; }
   .lang a { display:inline-block; padding:8px 10px; font-size:11px; font-weight:600;
-            text-decoration:none; border:2px solid var(--color-neutral-400);
-            color:var(--color-neutral-700); }
+            text-decoration:none; border:1px solid var(--color-neutral-300);
+            border-radius:var(--radius-sm); color:var(--color-neutral-700); }
   .lang a.on { border-color:var(--color-text); background:var(--color-text); color:var(--color-bg); }
-  a { color: var(--color-accent-700); }
+  a { color: var(--color-brand-700); }
   .bar { display:flex; align-items:center; justify-content:space-between; gap:16px;
-         border-bottom:2px solid var(--color-text); padding:18px 0; margin-bottom:24px; }
-  .brand { font-family:var(--font-heading); font-weight:800; font-size:20px; letter-spacing:-0.02em; }
+         border-bottom:1px solid var(--color-divider); padding:18px 0; margin-bottom:24px; }
+  .brand { font-family:var(--font-heading); font-weight:800; font-size:20px; letter-spacing:-0.02em;
+           color:var(--color-brand-800); }
   .kicker { font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--color-neutral-700); }
   /* Wraps at every width, not only on a phone. A moderator's nav is thirteen
      tabs and overflowed the page sideways on a laptop long before Operators
@@ -157,48 +159,74 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
   .nav { display:flex; gap:2px; flex-wrap:wrap; justify-content:flex-end; }
   .nav a { display:inline-block; padding:8px 14px; font-family:var(--font-heading); font-weight:800;
            font-size:12px; letter-spacing:.06em; text-transform:uppercase; text-decoration:none;
-           border:2px solid var(--color-text); color:var(--color-text); }
-  .nav a.on { background:var(--color-text); color:var(--color-bg); }
+           border:1px solid var(--color-neutral-300); border-radius:var(--radius-sm);
+           background:var(--color-surface); color:var(--color-brand-800); }
+  .nav a:hover { border-color:var(--color-brand-400); }
+  .nav a.on { background:var(--color-brand-700); border-color:var(--color-brand-700); color:#ffffff; }
   .row { display:flex; gap:16px; align-items:flex-start; padding:16px 0;
-         border-bottom:1px solid var(--color-neutral-300); }
-  .code { width:56px; height:56px; flex:none; border:2px solid var(--color-text);
+         border-bottom:1px solid var(--color-neutral-200); }
+  .code { width:56px; height:56px; flex:none; border:1px solid var(--color-brand-200);
+          border-radius:var(--radius-md); background:var(--color-brand-100);
+          color:var(--color-brand-800);
           display:flex; align-items:center; justify-content:center;
           font-family:var(--font-heading); font-weight:800; font-size:12px; }
   .stat { font-family:var(--font-heading); font-weight:800; font-size:30px; letter-spacing:-0.02em; }
-  .grid { display:grid; grid-template-columns:repeat(3,1fr); border-top:2px solid var(--color-text); }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--color-divider); }
   .grid > div { padding:16px; border-bottom:1px solid var(--color-neutral-300);
                 border-right:1px solid var(--color-neutral-300); }
   .grid > div:last-child { border-right:0; }
   .check { display:flex; gap:12px; align-items:flex-start; padding:12px 0;
-           border-bottom:1px solid var(--color-neutral-300); }
-  .dot { width:10px; height:10px; flex:none; margin-top:5px; }
-  .pass { background:var(--color-text); }
-  .warn { background:var(--color-accent); }
+           border-bottom:1px solid var(--color-neutral-200); }
+  /*
+    FOUR STATES, FOUR COLOURS. Warn and fail were both the one strong
+    colour the old palette had, and pass was plain ink - so a reviewer
+    scanning the column could not tell a thing that needs a second look from a
+    thing that failed, and a pass looked like a bullet point. Now they read
+    the way they do everywhere else in the product: green verified, gold worth
+    checking, red wrong, grey unknowable.
+  */
+  .dot { width:10px; height:10px; flex:none; margin-top:5px; border-radius:50%; }
+  .pass { background:var(--color-ok-600); }
+  .warn { background:var(--color-warn-500); }
   .fail { background:var(--color-accent); }
   .unknown { background:var(--color-neutral-400); }
   .photos { display:flex; gap:12px; flex-wrap:wrap; margin:16px 0; }
-  .photo { border:2px solid var(--color-text); }
-  .photo img { display:block; width:220px; height:165px; object-fit:cover;
-               filter:grayscale(1) contrast(1.08); }
-  .photo figcaption { font-size:11px; padding:6px 8px; border-top:1px solid var(--color-neutral-300);
+  .photo { border:1px solid var(--color-neutral-300); border-radius:var(--radius-md);
+           overflow:hidden; background:var(--color-surface); }
+  /*
+    IN COLOUR. These were greyscaled, which was the old system's house style
+    and is the wrong treatment for the one thing on the page a reviewer is
+    being asked to judge: whether a beach got cleaned is a question about
+    green water, brown sand and the colour of what is in the bag.
+  */
+  .photo img { display:block; width:220px; height:165px; object-fit:cover; }
+  .photo figcaption { font-size:11px; padding:6px 8px; border-top:1px solid var(--color-neutral-200);
                       color:var(--color-neutral-700); }
   /* "read from the file" - quieter than the figure it qualifies, because it
      is provenance rather than a reading. */
-  .photo figcaption .src { color:var(--color-neutral-600); font-style:italic; }
+  .photo figcaption .src { color:var(--color-neutral-700); font-style:italic; }
   .badge { display:inline-block; font-family:var(--font-heading); font-weight:800; font-size:11px;
-           letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; }
-  .badge-overdue { background:var(--color-accent); color:var(--color-bg); }
-  .badge-ok { border:1px solid var(--color-divider); color:var(--color-neutral-700); }
+           letter-spacing:.06em; text-transform:uppercase; padding:3px 8px;
+           border-radius:999px; }
+  /* White on accent-700 is 7.07:1; the page ground on accent-600 was 4.41:1,
+     under AA for an 11px bold label. */
+  .badge-overdue { background:var(--color-accent-700); color:#ffffff; }
+  .badge-ok { border:1px solid var(--color-neutral-300); background:var(--color-surface);
+              color:var(--color-neutral-700); }
   .actions { display:flex; gap:12px; margin-top:24px; flex-wrap:wrap; }
   .actions form { display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap; }
+  /* A white field on the pale ground, so the box is found by its fill rather
+     than by a 2px rule around it. The border stays visible on its own. */
   textarea, input[type=text], input[type=password], select {
     font-family:var(--font-body); font-size:14px; padding:10px 12px;
-    border:2px solid var(--color-text); background:var(--color-bg); color:var(--color-text);
-    border-radius:0; }
+    border:1px solid var(--color-neutral-400); background:var(--color-surface);
+    color:var(--color-text); border-radius:var(--radius-sm); }
+  textarea:focus, input[type=text]:focus, input[type=password]:focus, select:focus {
+    border-color:var(--color-brand-600); }
   textarea { width:100%; min-height:80px; }
   button { cursor:pointer; }
-  .danger { background:var(--color-bg); color:var(--color-accent-700);
-            border:2px solid var(--color-accent); }
+  .danger { background:var(--color-surface); color:var(--color-accent-700);
+            border:1px solid var(--color-accent); border-radius:var(--radius-sm); }
   .muted { color:var(--color-neutral-700); font-size:13px; }
   .empty { padding:64px 0; text-align:left; }
   @media (max-width:720px){ .grid { grid-template-columns:1fr; } }

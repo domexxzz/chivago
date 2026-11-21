@@ -72,3 +72,38 @@ are cards; a service's state is a soft pill, brand when it is on. The
 safety header is the deep-teal inverted surface with rounded corners.
 Nothing of the look is still owed. What remains is a native reader's eye on
 the screens, which no pass by the author can supply.
+
+## The console, two months late
+
+This pass covered the app. It did not cover the host console, and nobody
+noticed until the owner opened one after the other on 21 November 2026 and
+asked why they did not look like the same product.
+
+They did not because the console was still wearing the system described in
+the first paragraph above: warm greys, the red-orange accent, square corners,
+2px ink rules. `apps/api/src/console/html.ts` even carried a comment saying it
+linked "the real Modernist stylesheet, so the console and the app are visibly
+the same product" - true when it was written, false the moment this pass
+landed.
+
+`public/modernist.css` now carries the app's own tokens. The structure is
+untouched, so a reviewer who knows the console still knows it; what moved is
+the ground (pale sky), the card (white), the ink (deep navy), the corners
+(rounded) and the weight of the rules (hairlines, not 2px ink).
+
+**One ramp became three.** The old palette had a single strong colour, so
+`--color-accent` meant both "the button to press" and "something is wrong" -
+which is why a failed check, an overdue queue and the reward at stake were all
+the same red. They are now `--color-brand` (the app speaking), `--color-accent`
+(the alert) and `--color-ok` (verified), with a gold for "worth a second look",
+matching the jobs the app's palette already separates. The four check states
+finally read as four states rather than two.
+
+**Proof photographs are in colour.** They were greyscaled, which was the old
+system's house style and the wrong treatment for the one thing on the page a
+reviewer is asked to judge.
+
+Every pair a reviewer reads was measured against WCAG AA before it shipped,
+and two had to move to clear it: the primary button's label and the overdue
+badge both sat around 4.3:1 on the new ground and are white on the deeper
+step instead.
