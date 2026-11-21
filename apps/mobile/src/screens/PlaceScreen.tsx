@@ -759,16 +759,34 @@ function BreakdownSheet({
               <Body size={13} style={{ marginTop: 8 }}>
                 {air?.source ?? t({ en: 'Seeded baseline', th: 'ค่าพื้นฐานตั้งต้น', zh: '预置基准值' })}
               </Body>
-              {/* Said plainly, because the alternative is implying a precision
-                  the data does not have. Thailand has no air monitoring station
-                  on Koh Samui; the nearest is ~87 km away on the mainland. */}
+              {/* Said plainly, because the alternative is implying a
+                  precision the data does not have.
+
+                  THE STATION SENTENCE BELONGS TO SAMUI AND TO NOWHERE ELSE.
+                  It used to run under every air reading in the app, so a
+                  traveller on a Koh Sichang beach was told, as though it were
+                  about the sand under them, a checked fact about an island on
+                  the far side of the gulf. The modelled-area caveat is true of
+                  every reading we serve and stays where it is; the station
+                  fact shows where someone went and looked the station up.
+                  Another area earns its own sentence the same way, by someone
+                  looking, and not before. */}
               <Body size={13} colour={color.neutral700} style={{ marginTop: 8 }}>
                 {t({
-                  en: 'Air is modelled for an ~11 km area, not this exact spot. Thailand has no monitoring station on Koh Samui — the nearest is about 87 km away on the mainland — so island-wide readings are the honest resolution today.',
-                  th: 'ค่าอากาศเป็นแบบจำลองครอบคลุมพื้นที่ราว 11 กม. ไม่ใช่จุดนี้จุดเดียว เกาะสมุยไม่มีสถานีตรวจวัดอากาศ สถานีที่ใกล้ที่สุดอยู่ห่างราว 87 กม. บนฝั่ง ค่าระดับเกาะจึงเป็นความละเอียดที่ตรงไปตรงมาที่สุดในวันนี้',
-                  zh: '空气数据按约 11 km 的范围建模，并非这一个具体位置。苏梅岛上没有监测站，最近的一座在约 87 km 外的陆地上，因此岛屿尺度的读数是今天能给出的最诚实的精度。',
+                  en: 'Air is modelled for an ~11 km area, not this exact spot, so an area-wide reading is the honest resolution today.',
+                  th: 'ค่าอากาศเป็นแบบจำลองครอบคลุมพื้นที่ราว 11 กม. ไม่ใช่จุดนี้จุดเดียว ค่าระดับเกาะจึงเป็นความละเอียดที่ตรงไปตรงมาที่สุดในวันนี้',
+                  zh: '空气数据按约 11 km 的范围建模，并非这一个具体位置，因此岛屿尺度的读数是今天能给出的最诚实的精度。',
                 })}
               </Body>
+              {areaOfPlace(place) === 'samui' ? (
+                <Body size={13} colour={color.neutral700} style={{ marginTop: 8 }}>
+                  {t({
+                    en: 'Thailand has no monitoring station on Koh Samui — the nearest is about 87 km away on the mainland.',
+                    th: 'เกาะสมุยไม่มีสถานีตรวจวัดอากาศ สถานีที่ใกล้ที่สุดอยู่ห่างราว 87 กม. บนฝั่ง',
+                    zh: '苏梅岛上没有监测站，最近的一座在约 87 km 外的陆地上。',
+                  })}
+                </Body>
+              ) : null}
             </View>
           </ScrollView>
         </View>

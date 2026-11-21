@@ -12,7 +12,7 @@
 import React from 'react';
 import { Image, Pressable, ScrollView, View } from 'react-native';
 import { Check, ChevronLeft } from 'lucide-react-native';
-import { strings, type ActivityKey, type PurposeKey, type ScoredPlace, type WatchKey } from '@chivago/core';
+import { areaByKey, DEFAULT_AREA, strings, type ActivityKey, type PurposeKey, type ScoredPlace, type WatchKey } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { creditWord, photoUri } from '../api/photos.ts';
 import { useAsync } from '../state/store.tsx';
@@ -105,7 +105,14 @@ export function OnboardingScreen({
         ) : null}
         <View style={{ position: 'absolute', left: 26, bottom: 18 }}>
           <Heading size={30} tracking={-0.6} colour={onFill.brand}>ChivarGo</Heading>
-          <Label size={10} tracking={0.14} colour={color.brandSoft}>{t({ en: 'Koh Samui', th: 'เกาะสมุย', zh: '苏梅岛' })}</Label>
+          {/*
+            THE PLACE UNDER THE WORDMARK IS READ, NOT TYPED. This said "Koh
+            Samui" from the pilot until the day the pilot moved, and the first
+            screen of the app then named the wrong island to everyone who
+            opened it - including anyone being shown the app. It follows
+            DEFAULT_AREA now, so moving the pilot moves this line with it.
+          */}
+          <Label size={10} tracking={0.14} colour={color.brandSoft}>{t(areaByKey(DEFAULT_AREA).name)}</Label>
         </View>
       </View>
 

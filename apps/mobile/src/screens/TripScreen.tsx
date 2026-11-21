@@ -379,7 +379,9 @@ function PriceOutlook({
       }]}
     >
       <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-        <Label size={10} tracking={0.16}>{t({ en: 'A night on Samui', th: 'ราคาที่พักต่อคืน', zh: '苏梅岛一晚住宿' })}</Label>
+        {/* The Thai already said only "per night". The other two named an
+            island, on a screen that is shown wherever the traveller is. */}
+        <Label size={10} tracking={0.16}>{t({ en: 'Per night', th: 'ราคาที่พักต่อคืน', zh: '每晚住宿' })}</Label>
 
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginTop: 8 }}>
           {/*

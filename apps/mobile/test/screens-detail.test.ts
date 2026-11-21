@@ -14,7 +14,7 @@ import { Linking } from 'react-native';
 
 import { act } from 'react-test-renderer';
 import { motion } from '@chivago/tokens';
-import { DEFAULT_AREA, type ScoredPlace } from '@chivago/core';
+import { areaByKey, DEFAULT_AREA, type ScoredPlace } from '@chivago/core';
 import { mountScreen, offline, refuses, server, settle } from './interact.ts';
 import { __setLocaleForTests } from '../src/i18n/locale.ts';
 import { __setAreaForTests } from '../src/state/area.ts';
@@ -1048,6 +1048,29 @@ describe('onboarding, three steps and out', () => {
     assert.match(said, /Step 1 of 3/);
     assert.match(said, /Wellness & spa/, 'the first question is about purpose');
     assert.doesNotMatch(said, /Gentle/, 'step two is not on screen yet');
+    ui.unmount();
+  });
+
+  /**
+   * THE FIRST LINE OF THE APP NAMES THE PILOT, AND THE PILOT MOVES.
+   *
+   * Under the wordmark it read "Koh Samui" for months after the pilot had
+   * moved to Koh Sichang, so the first words anyone read on opening the app
+   * named an island the app was no longer about - including anyone being shown
+   * it for the first time, which is the one audience that cannot tell the
+   * difference between a stale label and a confused product.
+   *
+   * The assertion reads DEFAULT_AREA rather than naming an island, so moving
+   * the pilot again moves this test with the screen instead of reddening it.
+   */
+  test('the line under the wordmark names the area the app opens on', async () => {
+    const ui = await mountScreen(h(OnboardingScreen, { onFinish: noop }));
+    const said = ui.text();
+    const opensOn = areaByKey(DEFAULT_AREA).name.en;
+    assert.match(said, new RegExp(opensOn), `the way in does not name ${opensOn}`);
+    if (DEFAULT_AREA !== 'samui') {
+      assert.doesNotMatch(said, /Koh Samui/, 'the first pilot is still named on the way in');
+    }
     ui.unmount();
   });
 

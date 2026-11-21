@@ -175,7 +175,9 @@ export function MascotsScreen({
         </View>
         <View style={{ padding: 12, backgroundColor: color.surface }}>
           <Heading size={14} tracking={-0.2}>
-            {t({ en: 'Island Companions • Koh Samui', th: 'แก๊งเพื่อนร่วมทางเกาะสมุย', zh: '岛屿伙伴 • 苏梅岛' })}
+            {/* One island named here, in a guide of 77 provinces, was always wrong
+                for 76 of them. */}
+            {t({ en: 'Island Companions', th: 'แก๊งเพื่อนร่วมทาง', zh: '岛屿伙伴' })}
           </Heading>
           <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>
             {t({
