@@ -65,7 +65,6 @@ describe('a photograph the seed names is a file that ships', () => {
 
   test('companion beach illustrations exist under public/media/illustrations/', () => {
     assert.ok(existsSync(join(PUBLIC, 'media/illustrations/mascots-beach-day.jpg')), 'mascots-beach-day.jpg missing');
-    assert.ok(existsSync(join(PUBLIC, 'media/illustrations/mascots-beach-sunset.jpg')), 'mascots-beach-sunset.jpg missing');
   });
 
   /*
@@ -112,26 +111,24 @@ describe('where the phone fetches a photograph from', () => {
     assert.equal(photoUri('/media/places/ku-library.jpg', 'android'), `${API_BASE.replace(/\/$/, '')}/media/places/ku-library.jpg`);
   });
 
-  test('mascotBeachUri switches dynamically between daytime and sunset/evening', () => {
-    // 10:00 (daytime) -> day photo
-    const morning = new Date('2026-09-11T10:00:00');
-    assert.match(mascotBeachUri(morning, 'web'), /mascots-beach-day\.jpg$/);
+  /*
+    ONE PICTURE, WHATEVER THE CLOCK SAYS.
 
-    // 18:30 (sunset / evening) -> sunset photo
-    const sunset = new Date('2026-09-11T18:30:00');
-    assert.match(mascotBeachUri(sunset, 'web'), /mascots-beach-sunset\.jpg$/);
-
-    // 23:00 (night) -> sunset/evening photo
-    const night = new Date('2026-09-11T23:00:00');
-    assert.match(mascotBeachUri(night, 'web'), /mascots-beach-sunset\.jpg$/);
-
-    // 05:30 (early dawn) -> sunset/evening photo
-    const dawn = new Date('2026-09-11T05:30:00');
-    assert.match(mascotBeachUri(dawn, 'web'), /mascots-beach-sunset\.jpg$/);
-
-    // 06:00 (morning begins) -> day photo
-    const earlyDay = new Date('2026-09-11T06:00:00');
-    assert.match(mascotBeachUri(earlyDay, 'web'), /mascots-beach-day\.jpg$/);
+    This used to assert the opposite: a second illustration from 17:00 to
+    05:59. That was right while both pictures were the same cast in different
+    light, and wrong the moment only one of them was redrawn - the evening
+    card went back to the previous cast in the previous style. The hour is
+    still accepted and ignored, so bringing it back is one line in photos.ts.
+  */
+  test('mascotBeachUri answers with one illustration at every hour', () => {
+    const hours = ['05:30', '06:00', '10:00', '16:59', '18:30', '23:00'];
+    for (const at of hours) {
+      assert.match(
+        mascotBeachUri(new Date(`2026-09-11T${at}:00`), 'web'),
+        /mascots-beach-day\.jpg$/,
+        `${at} should answer with the companions illustration`,
+      );
+    }
   });
 });
 

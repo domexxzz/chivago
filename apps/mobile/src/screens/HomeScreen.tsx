@@ -1229,7 +1229,6 @@ function MascotHeroCard({
   now: Date;
   onOpen: () => void;
 }) {
-  const isSunset = now.getHours() >= 17 || now.getHours() < 6;
   return (
     <View style={{ paddingTop: 20, paddingHorizontal: gutter }}>
       <Pressable
@@ -1254,27 +1253,8 @@ function MascotHeroCard({
             resizeMode="cover"
             accessibilityLabel={t(strings.common.companionsAlt)}
           />
-          <View
-            style={{
-              position: 'absolute',
-              top: 10,
-              right: 10,
-              paddingVertical: 3,
-              paddingHorizontal: 8,
-              borderRadius: radius.sm,
-              backgroundColor: 'rgba(0,0,0,0.55)',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <Sparkles size={11} color="#ffe28a" />
-            <Label size={9} tracking={0.08} colour="#ffffff">
-              {isSunset
-                ? t({ en: 'Golden Hour • Samui', th: 'ช่วงพระอาทิตย์ตก • สมุย', zh: '黄金时刻 • 苏梅岛' })
-                : t({ en: 'Daylight • Samui', th: 'ช่วงกลางวัน • สมุย', zh: '白天 • 苏梅岛' })}
-            </Label>
-          </View>
+          {/* The time-of-day chip went with the second illustration (docs in
+              api/photos.ts). One picture has no hour to announce. */}
         </View>
 
         <View style={{ padding: 14 }}>
