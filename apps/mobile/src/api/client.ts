@@ -912,7 +912,25 @@ export const api = {
   joinQuest: (id: string) => post<QuestProgress>(`/quests/${id}/join`),
   arriveAtQuest: (id: string, pos: Fix) =>
     post<QuestProgress>(`/quests/${id}/arrive`, pos),
-  submitProof: (
+  /**
+   * Submit proof. MULTIPART, because the photograph IS the thing being
+   * submitted.
+   *
+   * This used to be a JSON post of the same payload, and the payload carries
+   * `uri` - a path on the phone. No bytes ever left the device: the route's
+   * JSON branch is the one it keeps "for tests and for a client that has
+   * already uploaded out of band", so `proof_files` stayed empty and the host
+   * console rendered an `<img>` with nothing behind it. A host who cannot see
+   * the work cannot verify it, and verification is the only thing this
+   * product sells. Every other picture in the app - shop photos, a guide's
+   * licence, a story clip - was already uploaded properly; proof was the one
+   * that was not.
+   *
+   * The signature is unchanged on purpose: the offline outbox queues this
+   * same payload and replays it (`state/outbox.ts`), and a shape change there
+   * would drop proof already waiting on a phone.
+   */
+  submitProof: async (
     id: string,
     payload: {
       photos: { uri: string; lat: number | null; lng: number | null; takenAt: string | null }[];
@@ -920,7 +938,32 @@ export const api = {
       /** Where the volunteer is at submission - the second in-fence sample. */
       position: Fix;
     },
-  ) => post<{ progress: QuestProgress; proofId: string; partyPresent?: { userId: string; displayName: string }[] }>(`/quests/${id}/proof`, payload),
+  ): Promise<Result<{ progress: QuestProgress; proofId: string; partyPresent?: { userId: string; displayName: string }[] }>> => {
+    const form = new FormData();
+    try {
+      for (const [i, photo] of payload.photos.entries()) {
+        const name = `proof-${i + 1}.jpg`;
+        // On the web the picker hands back a blob: or data: URL and fetch is
+        // how you get the bytes; on a phone it is a path and React Native's
+        // FormData reads it. Same split as uploadShopImage and tellStory.
+        if (Platform.OS === 'web') form.append('photo', await fetch(photo.uri).then((r) => r.blob()), name);
+        else form.append('photo', { uri: photo.uri, name, type: 'image/jpeg' } as unknown as Blob);
+      }
+    } catch {
+      // A picked file the OS will no longer hand over - a revoked blob URL, a
+      // cache the system cleared. Not a network failure, so this must NOT be
+      // reported as one: the caller queues NETWORK in the outbox, and queueing
+      // a photo that can never be read again would retry it forever.
+      return { ok: false, code: 'INVALID_PHOTO', error: apiErrorMessage('INVALID_PHOTO') };
+    }
+    // EXIF is read on the device, where the original still has it, and travels
+    // beside the files IN THE SAME ORDER: the server pairs meta[i] with the
+    // i-th `photo` part.
+    form.append('meta', JSON.stringify(payload.photos.map((p) => ({ lat: p.lat, lng: p.lng, takenAt: p.takenAt }))));
+    if (payload.weightKg !== null) form.append('weightKg', String(payload.weightKg));
+    form.append('position', JSON.stringify(payload.position));
+    return upload<{ progress: QuestProgress; proofId: string; partyPresent?: { userId: string; displayName: string }[] }>(`/quests/${id}/proof`, form);
+  },
 
   // -- check-in -----------------------------------------------------------
   /**
