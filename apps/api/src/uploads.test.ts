@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { createHash } from 'node:crypto';
 import { openTestDb, type DB } from './db-node.ts';
 import { MAX_BYTES, readPhotoForHost, sniff, storePhoto, UnsupportedUpload, uploadRoot } from './uploads.ts';
 
@@ -137,5 +138,78 @@ describe('photo access is host-scoped in the SQL, not the route', async () => {
        VALUES (?,?,?,?,?,?)`,
     ).run('ghost', 'p-muni', '/no/such/file.jpg', 'image/jpeg', 1, new Date().toISOString());
     assert.equal(await readPhotoForHost(db, 'h-muni', 'ghost'), null);
+  });
+});
+
+
+/*
+  THE CHAIN, END TO END.
+
+  `photo-forensics.test.ts` proves the parser reads a file. This proves the
+  thing that actually matters: that a photograph arriving through the real
+  upload path is read on the way in and its findings land in columns a
+  reviewer's queue can be built from. A parser nothing calls is worth
+  nothing.
+*/
+describe('a stored photo is read on the way in', () => {
+  /** A JPEG carrying one EXIF tag: the make, written the way a camera does. */
+  function jpegWithMake(make: string): Buffer {
+    const value = Buffer.from(`${make}\0`, 'latin1');
+    // II, 42, IFD0 at 8 | one entry: Make (0x010F), ASCII, n, pointer | end.
+    const tiff = Buffer.alloc(8 + 2 + 12 + 4 + value.length);
+    tiff.write('II', 0, 'latin1');
+    tiff.writeUInt16LE(42, 2);
+    tiff.writeUInt32LE(8, 4);
+    tiff.writeUInt16LE(1, 8);
+    tiff.writeUInt16LE(0x010f, 10);
+    tiff.writeUInt16LE(2, 12);
+    tiff.writeUInt32LE(value.length, 14);
+    tiff.writeUInt32LE(26, 18);
+    value.copy(tiff, 26);
+    const payload = Buffer.concat([Buffer.from('Exif\0\0', 'latin1'), tiff]);
+    const length = Buffer.alloc(2);
+    length.writeUInt16BE(payload.length + 2);
+    return Buffer.concat([
+      Buffer.from([0xff, 0xd8, 0xff, 0xe1]), length, payload, Buffer.from([0xff, 0xd9]),
+    ]);
+  }
+
+  const stored = (id: string) => db
+    .prepare('SELECT sha256, camera, exif_lat FROM proof_files WHERE id = ?')
+    .get(id) as { sha256: string | null; camera: string | null; exif_lat: number | null };
+
+  test('the hash is written for every photo, whatever the file turned out to hold', async () => {
+    const photo = await storePhoto(db, {
+      proofId: 'p-muni', bytes: JPEG, lat: null, lng: null, takenAt: null,
+    });
+    const row = stored(photo.id);
+    assert.equal(row.sha256, createHash('sha256').update(JPEG).digest('hex'));
+    assert.equal(row.camera, null, 'a file with no EXIF must not invent any');
+  });
+
+  test('EXIF the file kept is read by the server and stored beside the claim', async () => {
+    const bytes = jpegWithMake('Fujifilm');
+    const photo = await storePhoto(db, {
+      // What the APP said. Deliberately different from the file, so the test
+      // shows the two are kept apart rather than one overwriting the other.
+      proofId: 'p-muni', bytes, lat: 9.5, lng: 100.0, takenAt: '2026-11-21T07:00:00.000Z',
+    });
+    assert.equal(stored(photo.id).camera, 'Fujifilm');
+    const claim = db.prepare('SELECT lat, taken_at FROM proof_files WHERE id = ?')
+      .get(photo.id) as { lat: number; taken_at: string };
+    assert.equal(claim.lat, 9.5, 'the client’s own claim must survive untouched');
+    assert.equal(claim.taken_at, '2026-11-21T07:00:00.000Z');
+  });
+
+  test('a file that cannot be parsed is still stored, with a hash and no findings', async () => {
+    const broken = Buffer.concat([
+      Buffer.from([0xff, 0xd8, 0xff, 0xe1, 0xff, 0xf0]), Buffer.from('Exif\0\0II', 'latin1'),
+    ]);
+    const photo = await storePhoto(db, {
+      proofId: 'p-muni', bytes: broken, lat: null, lng: null, takenAt: null,
+    });
+    const row = stored(photo.id);
+    assert.equal(row.sha256?.length, 64);
+    assert.equal(row.camera, null);
   });
 });

@@ -182,6 +182,9 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
                filter:grayscale(1) contrast(1.08); }
   .photo figcaption { font-size:11px; padding:6px 8px; border-top:1px solid var(--color-neutral-300);
                       color:var(--color-neutral-700); }
+  /* "read from the file" - quieter than the figure it qualifies, because it
+     is provenance rather than a reading. */
+  .photo figcaption .src { color:var(--color-neutral-600); font-style:italic; }
   .badge { display:inline-block; font-family:var(--font-heading); font-weight:800; font-size:11px;
            letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; }
   .badge-overdue { background:var(--color-accent); color:var(--color-bg); }

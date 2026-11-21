@@ -47,6 +47,11 @@ export interface ReviewPhoto {
   takenAt: string | null;
   /** Metres from the quest site, when the photo carries a geotag. */
   distanceM: number | null;
+  /**
+   * True when the location above was read out of the file by the server
+   * rather than taken from what the app said (photo-forensics.ts).
+   */
+  locationFromFile: boolean;
 }
 
 export interface ReviewItem {
@@ -179,31 +184,160 @@ function weightCheck(weightKg: number | null): ReviewCheck {
   return { key: 'weight', status: 'pass', detailKey: 'weightOk', params: { kg: weightKg } };
 }
 
-/** Photos for one proof, with distance from the quest site computed. */
+/**
+ * One proof's photo rows, both halves: what the app said, and what the server
+ * read out of the file.
+ */
+interface PhotoRow {
+  id: string; lat: number | null; lng: number | null; taken_at: string | null;
+  exif_lat: number | null; exif_lng: number | null; exif_taken_at: string | null;
+  sha256: string | null;
+}
+
+const photoRows = (db: DB, proofId: string): PhotoRow[] => rows<PhotoRow>(
+  db.prepare(
+    `SELECT id, lat, lng, taken_at, exif_lat, exif_lng, exif_taken_at, sha256
+       FROM proof_files WHERE proof_id = ? ORDER BY uploaded_at`,
+  ).all(proofId),
+);
+
+/**
+ * Photos for one proof, with distance from the quest site computed.
+ *
+ * THE FILE OUTRANKS THE CLAIM. Where the server could read a location or an
+ * instant out of the bytes, that is what the checks below see; the client's
+ * `meta` is the fallback for the stripped files that are most of them
+ * (photo-forensics.ts). Rows written before the fingerprint landed carry no
+ * EXIF columns, so they fall back and behave exactly as they always did.
+ *
+ * `exif_taken_at` is only ever set when the file also recorded the offset
+ * that makes it a real instant - a zone-less wall clock would fail a
+ * traveller whose camera is still on their own country's time.
+ */
 function photosFor(
   db: DB,
-  proofId: string,
+  rawPhotos: PhotoRow[],
   site: { lat: number; lng: number },
 ): ReviewPhoto[] {
-  return rows<{
-    id: string; lat: number | null; lng: number | null; taken_at: string | null;
-  }>(
-    db
-      .prepare(
-        'SELECT id, lat, lng, taken_at FROM proof_files WHERE proof_id = ? ORDER BY uploaded_at',
-      )
-      .all(proofId),
-  ).map((f) => ({
-    id: f.id,
-    url: `/console/photo/${f.id}`,
-    lat: f.lat,
-    lng: f.lng,
-    takenAt: f.taken_at,
-    distanceM:
-      f.lat !== null && f.lng !== null
-        ? distanceMetres({ lat: f.lat, lng: f.lng }, site)
-        : null,
-  }));
+  return rawPhotos.map((f) => {
+    const fromFile = f.exif_lat !== null && f.exif_lng !== null;
+    const lat = fromFile ? f.exif_lat : f.lat;
+    const lng = fromFile ? f.exif_lng : f.lng;
+    return {
+      id: f.id,
+      url: `/console/photo/${f.id}`,
+      lat,
+      lng,
+      takenAt: f.exif_taken_at ?? f.taken_at,
+      locationFromFile: fromFile,
+      distanceM:
+        lat !== null && lng !== null
+          ? distanceMetres({ lat, lng }, site)
+          : null,
+    };
+  });
+}
+
+/**
+ * Has this photograph been handed in before?
+ *
+ * Two ways one picture is recognised again, and neither is something the
+ * phone can talk its way out of:
+ *
+ *   - THE SAME BYTES. A SHA-256 the server computed over the file it stored.
+ *     The literal case of "ถ่ายรูปขยะกองเดิมส่งซ้ำ": the same file, sent twice.
+ *   - THE SAME SHUTTER. One camera cannot record two photographs at the same
+ *     instant, so the same body and the same EXIF moment is one original that
+ *     has been re-saved, cropped or filtered between submissions.
+ *
+ * SCOPED TO THIS HOST, deliberately, and this is a real limit rather than an
+ * oversight. `historyFor` below explains why nothing here crosses hosts: a
+ * cross-host lookup would be a quiet way to build a reputation file nobody
+ * agreed to. The cost is that the same photograph sent to two different
+ * hosts is not caught, and that is the owner's call to change, not this
+ * function's.
+ *
+ * A match is a SIGNAL. There are honest reasons for one - a host re-opening
+ * a submission, a volunteer resending after a rejection - so the reviewer is
+ * told what was found and when, and decides.
+ */
+function reuseCheck(
+  db: DB, hostId: string, proofId: string, rawPhotos: PhotoRow[],
+): ReviewCheck {
+  // Nothing was fingerprinted: every row here predates photo-forensics.ts.
+  if (!rawPhotos.some((f) => f.sha256)) {
+    return { key: 'reuse', status: 'unknown', detailKey: 'reuseUnknown', params: {} };
+  }
+  const matches = rows<{ other_proof: string; other_at: string; identical: number }>(
+    db.prepare(
+      `SELECT other.proof_id AS other_proof, p2.submitted_at AS other_at,
+              CASE WHEN other.sha256 = mine.sha256 THEN 1 ELSE 0 END AS identical
+         FROM proof_files mine
+         JOIN proof_files other
+           ON other.id <> mine.id
+          AND (
+            (mine.sha256 IS NOT NULL AND other.sha256 = mine.sha256)
+            OR (mine.camera IS NOT NULL AND mine.exif_moment IS NOT NULL
+                AND other.camera = mine.camera AND other.exif_moment = mine.exif_moment)
+          )
+         JOIN proofs p2 ON p2.id = other.proof_id
+         JOIN quests q2 ON q2.id = p2.quest_id
+        WHERE mine.proof_id = ? AND q2.host_id = ?
+        ORDER BY p2.submitted_at`,
+    ).all(proofId, hostId),
+  );
+
+  const elsewhere = matches.filter((m) => m.other_proof !== proofId);
+  if (elsewhere.length > 0) {
+    const first = elsewhere[0]!;
+    return {
+      key: 'reuse',
+      status: 'fail',
+      detailKey: first.identical ? 'reuseSameFile' : 'reuseSameShutter',
+      params: { when: first.other_at.slice(0, 10), count: elsewhere.length },
+    };
+  }
+  if (matches.length > 0) {
+    return { key: 'reuse', status: 'warn', detailKey: 'reuseInThisProof', params: {} };
+  }
+  return { key: 'reuse', status: 'pass', detailKey: 'reuseNone', params: {} };
+}
+
+/**
+ * Does the file back up what the app said about it?
+ *
+ * The app reads EXIF on the device and sends it alongside the upload, because
+ * re-encoding there strips it. That is the only way to get it off most
+ * phones, and it is also a JSON field a tampered client writes freely. When
+ * the uploaded file turns out to have kept its own GPS, the two can be put
+ * side by side - and they should agree, because they started as the same
+ * reading.
+ *
+ * Unknown when the file kept nothing, which is the ordinary case and must
+ * never read as a finding.
+ */
+const META_TOLERANCE_M = 100;
+
+function sourceCheck(rawPhotos: PhotoRow[]): ReviewCheck {
+  const withFile = rawPhotos.filter((f) => f.exif_lat !== null && f.exif_lng !== null);
+  if (withFile.length === 0) {
+    return { key: 'source', status: 'unknown', detailKey: 'sourceNone', params: {} };
+  }
+  const gaps = withFile
+    .filter((f) => f.lat !== null && f.lng !== null)
+    .map((f) => distanceMetres(
+      { lat: f.exif_lat!, lng: f.exif_lng! },
+      { lat: f.lat!, lng: f.lng! },
+    ));
+  const worst = gaps.length ? Math.round(Math.max(...gaps)) : 0;
+  if (worst > META_TOLERANCE_M) {
+    return {
+      key: 'source', status: 'fail', detailKey: 'sourceMismatch', params: { metres: worst },
+    };
+  }
+  return {
+    key: 'source', status: 'pass', detailKey: 'sourceConfirmed', params: { count: withFile.length },
+  };
 }
 
 /**
@@ -232,7 +366,8 @@ function historyFor(db: DB, hostId: string, userId: string, excludeProofId: stri
 
 function toReviewItem(db: DB, hostId: string, p: ProofRow, now: Date): ReviewItem {
   const site = { lat: p.quest_lat, lng: p.quest_lng };
-  const photos = photosFor(db, p.id, site);
+  const rawPhotos = photoRows(db, p.id);
+  const photos = photosFor(db, rawPhotos, site);
   const history = historyFor(db, hostId, p.user_id, p.id);
   const waitingHours = hoursBetween(p.submitted_at, now);
   let partyIds: string[] = [];
@@ -263,6 +398,11 @@ function toReviewItem(db: DB, hostId: string, p: ProofRow, now: Date): ReviewIte
     checks: [
       geotagCheck(photos, p.geofence_radius_m),
       timingCheck(photos, p.arrived_at),
+      // Read off the bytes, not off the phone. Both of these are new signals
+      // rather than replacements: the two above still answer the questions a
+      // reviewer asks first.
+      reuseCheck(db, hostId, p.id, rawPhotos),
+      sourceCheck(rawPhotos),
       weightCheck(p.weight_kg),
       assistToCheck(assistState),
     ],

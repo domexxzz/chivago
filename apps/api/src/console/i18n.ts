@@ -324,6 +324,9 @@ export const consoleStrings = {
   checkPhotoLocation: c('ตำแหน่งภาพถ่าย', 'Photo location', '照片位置'),
   checkCaptureTime: c('เวลาถ่ายภาพ', 'Capture time', '拍摄时间'),
   checkWeight: c('น้ำหนักที่บันทึก', 'Weight logged', '记录的重量'),
+  readFromFile: c('อ่านจากไฟล์ภาพ', 'read from the file', '读自文件'),
+  checkReuse: c('เคยส่งภาพนี้มาก่อนหรือไม่', 'Sent before?', '是否重复提交'),
+  checkSource: c('ข้อมูลในไฟล์ภาพ', 'The file’s own record', '文件自带信息'),
 
   decision: c('การตัดสิน', 'Decision', '决定'),
   reasonIfRejecting: c('เหตุผล หากไม่อนุมัติ', 'Reason, if rejecting', '理由，如不通过'),
@@ -424,6 +427,50 @@ export const consoleStrings = {
     '{kg} kg 对一名志愿者而言异常偏高——值得核实。',
   ),
   weightOk: c('{kg} กก.', '{kg} kg.', '重量 {kg} kg。'),
+
+  // -- Read off the bytes, not off the phone (photo-forensics.ts) ----------
+  // Every one of these is a SIGNAL for the reviewer, never a verdict. The
+  // wording says what was found and leaves the decision where it belongs.
+  reuseUnknown: c(
+    'ภาพชุดนี้ส่งมาก่อนระบบจะเริ่มเก็บลายนิ้วมือไฟล์ จึงเทียบกับภาพอื่นไม่ได้',
+    'These photos predate file fingerprinting, so they cannot be compared with others.',
+    '这些照片早于文件指纹功能，无法与其他照片比对。',
+  ),
+  reuseNone: c(
+    'ไม่พบว่าภาพเหล่านี้เคยถูกส่งให้หน่วยงานของคุณมาก่อน',
+    'None of these photos has been submitted to your organisation before.',
+    '这些照片此前未曾提交给贵机构。',
+  ),
+  reuseInThisProof: c(
+    'มีภาพซ้ำกันภายในชุดนี้เอง อาจกดส่งไฟล์เดิมหลายครั้ง',
+    'The same photo appears more than once in this submission.',
+    '本次提交中出现了重复的照片。',
+  ),
+  reuseSameFile: c(
+    'ไฟล์ภาพเดียวกันนี้เคยถูกส่งมาแล้วในงานอื่นเมื่อ {when} (พบ {count} รายการ)',
+    'This exact file was already submitted on another job on {when} ({count} match(es)).',
+    '同一文件已于 {when} 在另一项任务中提交过（共 {count} 条）。',
+  ),
+  reuseSameShutter: c(
+    'ภาพนี้มาจากการกดชัตเตอร์ครั้งเดียวกับภาพที่ส่งเมื่อ {when} คือเป็นภาพเดิมที่บันทึกใหม่ (พบ {count} รายการ)',
+    'Same camera and same shutter moment as a photo submitted on {when} — one original, re-saved ({count} match(es)).',
+    '与 {when} 提交的照片为同一相机、同一快门时刻——同一张原图重新保存（共 {count} 条）。',
+  ),
+  sourceNone: c(
+    'ไฟล์ไม่เหลือข้อมูลกล้อง ตรวจสอบกับข้อมูลที่แอปส่งมาไม่ได้ ซึ่งเป็นเรื่องปกติเพราะโทรศัพท์ส่วนใหญ่ตัดข้อมูลนี้ตอนย่อไฟล์',
+    'The file kept no camera data, so there is nothing to check the app against. This is normal — most phones strip it when they re-encode.',
+    '文件未保留相机信息，无法与应用上报的数据核对。这很常见——多数手机在重新编码时会剥除该信息。',
+  ),
+  sourceConfirmed: c(
+    'ไฟล์ {count} ภาพมีพิกัดของตัวเอง และตรงกับที่แอปรายงาน ระบบใช้ค่าจากไฟล์ในการตรวจ',
+    '{count} file(s) carry their own coordinates, matching what the app reported. The checks used the file.',
+    '{count} 个文件自带坐标，且与应用上报一致。核查以文件为准。',
+  ),
+  sourceMismatch: c(
+    'พิกัดในไฟล์ห่างจากที่แอปรายงาน {metres} ม. ให้เชื่อค่าจากไฟล์ และควรตรวจสอบเพิ่มเติม',
+    'The file’s own coordinates are {metres} m from what the app reported. Trust the file, and look closer.',
+    '文件自带坐标与应用上报相差 {metres} 米。请以文件为准并进一步核实。',
+  ),
 
   // -- The AI's opinion (docs/64) -------------------------------------------
   // Always named as the AI's, and always as a helper: the host is the one

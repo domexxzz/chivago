@@ -2590,6 +2590,34 @@ export function migrate(db: DB): string[] {
     applied.push('offers.shop_id');
   }
 
+  /*
+    WHAT THE PHOTOGRAPH SAYS ABOUT ITSELF (photo-forensics.ts).
+
+    `proof_files.lat`, `.lng` and `.taken_at` are what the CLIENT sent in the
+    `meta` field beside the upload. That is the only way to get EXIF off a
+    phone that re-encodes, and it is also a plain JSON field a tampered client
+    fills in freely - and every check in `review-service.ts` was reading it.
+
+    These columns hold what the server read out of the stored bytes instead.
+    They are nullable because most honest photographs arrive stripped, and
+    because nothing backfills the proofs already reviewed: a NULL means "not
+    read", which the checks report as unknown rather than as a finding.
+  */
+  if (hasTable(db, 'proof_files') && addColumn(db, 'proof_files', 'sha256', 'TEXT')) {
+    addColumn(db, 'proof_files', 'exif_moment', 'TEXT');
+    addColumn(db, 'proof_files', 'exif_taken_at', 'TEXT');
+    addColumn(db, 'proof_files', 'exif_lat', 'REAL');
+    addColumn(db, 'proof_files', 'exif_lng', 'REAL');
+    addColumn(db, 'proof_files', 'camera', 'TEXT');
+    // The two ways one photograph is recognised again: the same bytes, or the
+    // same camera recording the same moment after a re-save.
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_proof_files_sha ON proof_files(sha256) WHERE sha256 IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_proof_files_moment ON proof_files(camera, exif_moment) WHERE camera IS NOT NULL;
+    `);
+    applied.push('proof_files.fingerprint');
+  }
+
   return applied;
 }
 

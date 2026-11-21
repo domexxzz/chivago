@@ -432,17 +432,30 @@ describe('picking up after a restart', () => {
 });
 
 describe('in the console', () => {
-  test('the host sees a fourth check, after the three that read numbers', async () => {
+  /*
+    BY KEY, NOT BY POSITION. This read `checks[3]` until the file checks went
+    in beside the number ones (docs/78) and silently started asserting about
+    `reuse`. The AI's check is the LAST one, on purpose - a reviewer should
+    meet the measurements before the opinion - but its index is nobody's
+    contract.
+  */
+  const aiCheck = (item: { checks: { key: string; status: string }[] } | null) =>
+    item?.checks.find((c) => c.key === 'ai');
+
+  test('the host sees the AI’s check last, after the ones that read numbers and files', async () => {
     await requestAssist(db, 'p1', deps(fakeModel(() => shown)));
     const item = reviewItem(db, 'h1', 'p1', NOW);
-    assert.deepEqual(item?.checks.map((c) => c.key), ['geotag', 'timing', 'weight', 'ai']);
-    assert.equal(item?.checks[3]!.status, 'pass');
+    assert.deepEqual(
+      item?.checks.map((c) => c.key),
+      ['geotag', 'timing', 'reuse', 'source', 'weight', 'ai'],
+    );
+    assert.equal(aiCheck(item)?.status, 'pass');
     assert.equal(item?.assist?.summary.en, 'Three bags of litter on a beach.');
   });
 
   test('with no opinion yet, the check is unknown and the item has no assist', () => {
     const item = reviewItem(db, 'h1', 'p1', NOW);
-    assert.equal(item?.checks[3]!.status, 'unknown');
+    assert.equal(aiCheck(item)?.status, 'unknown');
     assert.equal(item?.assist, null);
   });
 
