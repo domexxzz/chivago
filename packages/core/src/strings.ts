@@ -104,11 +104,18 @@ export const strings = {
     /** A venue's own mark, not a photograph of the place - said as what it is. */
     logoOf: t('logo of', 'โลโก้ของ', '标志：'),
 
-    /** The beach illustration on Home and the collection. One alt text, two sites. */
+    /**
+     * The beach illustration on Home and the collection. One alt text, two sites.
+     *
+     * NO ISLAND. It said "Koh Samui beach" in all three languages, which is
+     * what a screen reader read out on Koh Sichang - and a blind reader has no
+     * second channel to correct it against, so the alt text was the only thing
+     * they were told about the picture, and it was wrong.
+     */
     companionsAlt: t(
-      'ChivarGo companions on Koh Samui beach',
-      'เพื่อนร่วมทาง ChivarGo บนชายหาดเกาะสมุย',
-      'ChivarGo 伙伴在苏梅岛海滩上',
+      'ChivarGo companions on the beach',
+      'เพื่อนร่วมทาง ChivarGo บนชายหาด',
+      'ChivarGo 伙伴在海滩上',
     ),
   },
 
@@ -155,7 +162,6 @@ export const strings = {
 
   // -- Map ----------------------------------------------------------------
   map: {
-    island: t('Koh Samui', 'เกาะสมุย', '苏梅岛'),
     legend: (avg: number) => t(`Healthy Score · ${avg} area average`, `คะแนนสุขภาวะ · เฉลี่ยพื้นที่ ${avg}`, `健康评分 · 区域平均 ${avg}`),
     placesInArea: (n: number) => t(`${n} places in this area`, `${n} สถานที่ในพื้นที่นี้`, `此区域有 ${n} 个地点`),
     questsNearYou: t('Quests near you', 'ภารกิจใกล้คุณ', '你附近的任务'),
@@ -820,14 +826,14 @@ export const strings = {
     verifiedDetail: (kg: number | null) =>
       kg === null
         ? t(
-          'Green Points added · logged to the Samui impact ledger',
-          'เพิ่มแต้มสีเขียวแล้ว · บันทึกลงบัญชีผลลัพธ์เกาะสมุย',
-          '绿色积分已添加 · 已记入苏梅岛成效台账',
+          'Green Points added · logged to the ChivarGo impact ledger',
+          'เพิ่มแต้มสีเขียวแล้ว · บันทึกลงบัญชีผลลัพธ์ ChivarGo',
+          '绿色积分已添加 · 已记入 ChivarGo 成效台账',
         )
         : t(
-          `Green Points added · ${kg} kg waste logged to Samui impact ledger`,
-          `เพิ่มแต้มสีเขียวแล้ว · บันทึกขยะ ${kg} กก. ลงบัญชีผลลัพธ์เกาะสมุย`,
-          `绿色积分已添加 · ${kg} kg 垃圾已记入苏梅岛成效台账`,
+          `Green Points added · ${kg} kg waste logged to the ChivarGo impact ledger`,
+          `เพิ่มแต้มสีเขียวแล้ว · บันทึกขยะ ${kg} กก. ลงบัญชีผลลัพธ์ ChivarGo`,
+          `绿色积分已添加 · ${kg} kg 垃圾已记入 ChivarGo 成效台账`,
         ),
     /**
      * The host filed this verification in a statement anyone can check - the
@@ -1077,7 +1083,6 @@ export const strings = {
   // -- Impact -------------------------------------------------------------
   impact: {
     title: t('Your impact', 'ผลลัพธ์ของคุณ', '你的成效'),
-    subtitle: t('What you have created on Koh Samui', 'ผลลัพธ์ที่คุณสร้างบนเกาะสมุย', '你在苏梅岛创造的成果'),
     community: (year: number) => t(`ChivarGo community total · ${year}`, `ผลรวมชุมชน ChivarGo · ${year}`, `ChivarGo 社区总计 · ${year}`),
     verifiedData: t('Verified activity data', 'ข้อมูลกิจกรรมที่ตรวจสอบแล้ว', '已验证的活动数据'),
     verifiedBlurb: t(
@@ -1953,7 +1958,7 @@ export const isUrgentKind = (kind: NotificationKind): boolean =>
  * Quiet hours, in ISLAND time.
  *
  * The device's clock is the wrong one: a traveller still set to Europe would
- * be woken at 03:00 Samui time by a rule meant to protect them.
+ * be woken at 03:00 island time by a rule meant to protect them.
  */
 export const QUIET_FROM_HOUR = 22;
 export const QUIET_UNTIL_HOUR = 7;
