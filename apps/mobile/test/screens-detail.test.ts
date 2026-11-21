@@ -611,7 +611,15 @@ describe('a verified quest, and whose record it is on', () => {
     try {
       const ui = await mountScreen(h(QuestDetailScreen, props()));
       await settle();
-      assert.match(ui.text(), /logged to the Samui impact ledger/);
+      assert.match(ui.text(), /logged to the ChivarGo impact ledger/);
+      /*
+        THE LEDGER IS THE APP'S, NOT AN ISLAND'S. This line told a traveller
+        who had just carried waste to a drop-off on Koh Sichang that the
+        record went into Samui's ledger. The quest fixture here is a Samui
+        one and says "Samui Municipality" a few words earlier, so the guard
+        is against the ledger being filed under a place, not against the word.
+      */
+      assert.doesNotMatch(ui.text(), /Samui impact ledger/, 'the ledger belongs to an island again');
       assert.doesNotMatch(ui.text(), /kg waste|4\.2/, 'a number the app does not hold');
       ui.unmount();
     } finally { unweighed.restore(); }
