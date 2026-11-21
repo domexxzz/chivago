@@ -1,3 +1,24 @@
+# Companions illustration — 21 November 2026
+
+`mascots-beach-day.jpg` was replaced with artwork the owner supplied. It is a
+decorative illustration of the app's companions, not a photograph of Ko Sichang
+or of any real place, and it is not evidence of anything.
+
+Supplied as WebP at 1584 x 993 and converted here with ffmpeg: cropped one
+pixel from the top to an exact 16:10 and encoded at `-q:v 5`, which is
+1584 x 990 and 420,315 bytes. The frame it renders in is `aspectRatio: 16 / 10`
+with `resizeMode: cover` on both HomeScreen and MascotsScreen, so at this
+ratio nothing is cropped away. The image it replaced was 1024 x 768, which that
+frame cut top and bottom.
+
+**`mascots-beach-sunset.jpg` is untouched and still shows the previous
+characters.** `mascotBeachUri` serves it from 17:00 to 05:59, so the evening
+card does not match the daytime one until a sunset version of this artwork
+exists, or until both hours point at this file.
+
+The owner is the source of the artwork; how it was produced is theirs to
+record here if they want it recorded.
+
 # Image refresh — 10 September 2026
 
 `mangrove-habitat-v1.jpg` is an AI-generated decorative habitat illustration,

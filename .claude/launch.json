@@ -4,30 +4,61 @@
     {
       "name": "api",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@chivago/api", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "@chivago/api",
+        "dev"
+      ],
       "port": 8787,
       "url": "http://localhost:8787"
     },
     {
       "name": "mobile",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@chivago/mobile", "exec", "expo", "start", "--web", "--clear"],
+      "runtimeArgs": [
+        "--filter",
+        "@chivago/mobile",
+        "exec",
+        "expo",
+        "start",
+        "--web",
+        "--clear"
+      ],
       "port": 8081,
       "url": "http://localhost:8081"
     },
     {
       "name": "demo",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["apps/mobile/scripts/serve-demo.mjs", "apps/mobile/dist-demo", "4173"],
+      "runtimeArgs": [
+        "apps/mobile/scripts/serve-demo.mjs",
+        "apps/mobile/dist-demo",
+        "4173"
+      ],
       "port": 4173,
       "url": "http://localhost:4173"
     },
     {
       "name": "qa",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["apps/mobile/scripts/serve-demo.mjs", "apps/mobile/dist-qa", "4174"],
+      "runtimeArgs": [
+        "apps/mobile/scripts/serve-demo.mjs",
+        "apps/mobile/dist-qa",
+        "4174"
+      ],
       "port": 4174,
       "url": "http://localhost:4174"
+    },
+    {
+      "name": "live",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "apps/mobile/scripts/serve-demo.mjs",
+        "apps/mobile/dist-live",
+        "4175"
+      ],
+      "port": 4175,
+      "url": "http://localhost:4175"
     }
   ]
 }
