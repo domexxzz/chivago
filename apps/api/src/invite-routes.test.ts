@@ -52,6 +52,23 @@ before(async () => {
   ).run();
 });
 
+/**
+ * Every key in a response body, with its path and value, however deep.
+ *
+ * So that "this field must not be here" is asked of the fields rather than
+ * of the JSON text, where a timestamp can spell a coordinate by accident.
+ */
+function* fields(value: unknown, path = ''): Generator<[string, string, unknown]> {
+  if (Array.isArray(value)) {
+    for (const [i, item] of value.entries()) yield* fields(item, `${path}[${i}]`);
+  } else if (value && typeof value === 'object') {
+    for (const [key, inner] of Object.entries(value)) {
+      yield [`${path}.${key}`, key, inner];
+      yield* fields(inner, `${path}.${key}`);
+    }
+  }
+}
+
 /** Ana starts a party and posts an invitation at the seeded place. */
 const postInvitation = async (over: Record<string, unknown> = {}) => {
   await post('/party', { name: 'Two slow walkers' }, ana);
@@ -66,9 +83,30 @@ describe('no route accepts or returns a position', () => {
     // ignored rather than rejected, and nothing they carried comes back.
     const res = await postInvitation({ lat: 9.51, lng: 100.06, accuracyM: 5 });
     assert.equal(res.ok, true);
-    const body = JSON.stringify(res.data.invitation);
-    for (const leak of ['9.51', '100.06', 'lat', 'lng', 'accuracy']) {
-      assert.ok(!body.includes(leak), `the invitation came back carrying ${leak}`);
+    /*
+      WALKED, NOT GREPPED.
+
+      This searched `JSON.stringify(invitation)` for the text "9.51", which
+      an ISO timestamp contains about one instant in a thousand - a second
+      ending in 9 followed by milliseconds starting 51, as in
+      `2026-11-21T00:00:09.510Z`. The invitation carries three timestamps, so
+      roughly one CI run in three hundred failed this on the clock and took
+      the rest of the file down with it, because the assertion threw before
+      the `close` below could run.
+
+      A privacy test that fails at random teaches people to re-run CI instead
+      of reading it, which is the opposite of what this file is for. The keys
+      and the values are now checked where they actually live.
+    */
+    const walked = [...fields(res.data.invitation)];
+    // Otherwise an invitation that came back empty would pass this silently.
+    assert.ok(walked.length > 0, 'there was nothing to check');
+    for (const [path, key, value] of walked) {
+      assert.ok(!/^(lat|lng|accuracy|position)/i.test(key), `the invitation came back carrying ${path}`);
+      assert.ok(
+        value !== 9.51 && value !== 100.06,
+        `the invitation came back carrying a posted coordinate at ${path}`,
+      );
     }
     await post(`/invites/${res.data.invitation.id}/close`, {}, ana);
   });

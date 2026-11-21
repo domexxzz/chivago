@@ -3,7 +3,9 @@ import { test, describe, beforeEach } from 'node:test';
 import { randomUUID } from 'node:crypto';
 
 import { openTestDb, type DB } from './db-node.ts';
-import { pendingQueue, queueStats, recentDecisions, reviewItem, SLA_HOURS } from './review-service.ts';
+import {
+  pendingQueue, queueStats, recentDecisions, reviewItem, SLA_HOURS, type ReviewItem,
+} from './review-service.ts';
 import { ensureWallet } from './wallet-service.ts';
 
 let db: DB;
@@ -19,7 +21,12 @@ const iso = (offsetHours: number) =>
 function addProof(args: {
   id: string; questId: string; userId: string; submittedHoursAgo: number;
   weightKg?: number | null; arrivedHoursAgo?: number | null;
-  photos?: { lat: number | null; lng: number | null; takenHoursAgo: number | null }[];
+  photos?: {
+    lat: number | null; lng: number | null; takenHoursAgo: number | null;
+    /** What the SERVER read out of the file, when the file kept anything. */
+    sha256?: string; camera?: string; moment?: string;
+    exifLat?: number; exifLng?: number;
+  }[];
   reviewed?: { approved: boolean; by: string; note: string };
 }) {
   db.prepare(
@@ -36,10 +43,12 @@ function addProof(args: {
 
   for (const p of args.photos ?? []) {
     db.prepare(
-      `INSERT INTO proof_files (id, proof_id, storage_path, mime_type, byte_size, lat, lng, taken_at, uploaded_at)
-       VALUES (?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO proof_files (id, proof_id, storage_path, mime_type, byte_size, lat, lng, taken_at, uploaded_at,
+         sha256, camera, exif_moment, exif_lat, exif_lng)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     ).run(randomUUID(), args.id, '/dev/null', 'image/jpeg', 1000, p.lat, p.lng,
-          p.takenHoursAgo === null ? null : iso(p.takenHoursAgo), iso(args.submittedHoursAgo));
+          p.takenHoursAgo === null ? null : iso(p.takenHoursAgo), iso(args.submittedHoursAgo),
+          p.sha256 ?? null, p.camera ?? null, p.moment ?? null, p.exifLat ?? null, p.exifLng ?? null);
   }
 
   if (args.reviewed) {
@@ -248,5 +257,187 @@ describe('weight check', () => {
   test('no weight is unknown', () => {
     addProof({ id: 'w4', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 1, weightKg: null });
     assert.equal(check('w4').status, 'unknown');
+  });
+});
+
+
+/*
+  WHAT THE SERVER READ, AGAINST WHAT THE PHONE SAID.
+
+  Every check above this block was reading `proof_files.lat/lng/taken_at`,
+  which is the `meta` field the client sent beside the upload - fine when the
+  app is the real one, worth nothing when it is not. These two read the
+  columns `photo-forensics.ts` fills from the stored bytes instead.
+
+  Both are signals. Neither decides anything, and that is the point: the
+  console shows its work and the host rules.
+*/
+const checkOf = (item: ReviewItem, key: string) =>
+  item.checks.find((c) => c.key === key)!;
+
+describe('has this photograph been handed in before', () => {
+  test('a submission nobody has seen before passes', () => {
+    addProof({
+      id: 'p-fresh', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 1,
+      photos: [{ lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 1, sha256: 'aaaa' }],
+    });
+    const check = checkOf(reviewItem(db, 'h-muni', 'p-fresh')!, 'reuse');
+    assert.equal(check.status, 'pass');
+    assert.equal(check.detailKey, 'reuseNone');
+  });
+
+  test('the same FILE sent twice is caught, and the reviewer is told when', () => {
+    addProof({
+      id: 'p-first', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 48,
+      photos: [{ lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 48, sha256: 'same-bytes' }],
+    });
+    addProof({
+      id: 'p-again', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 1,
+      photos: [{ lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 1, sha256: 'same-bytes' }],
+    });
+    const check = checkOf(reviewItem(db, 'h-muni', 'p-again')!, 'reuse');
+    assert.equal(check.status, 'fail');
+    assert.equal(check.detailKey, 'reuseSameFile');
+    assert.equal(check.params.count, 1);
+    assert.match(String(check.params.when), /^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  /*
+    THE ONE A RE-SAVE DOES NOT ESCAPE. Crop it, filter it, run it through a
+    compressor: the bytes change and the hash with them. But one camera body
+    cannot record two photographs at the same instant, so the make, model and
+    EXIF moment together still say it is the same original.
+  */
+  test('the same shutter moment is caught even when the bytes differ', () => {
+    const shot = { camera: 'Samsung|SM-S918B', moment: '2026:11:21 09:15:02' };
+    addProof({
+      id: 'p-original', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 72,
+      photos: [{ lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 72, sha256: 'bytes-a', ...shot }],
+    });
+    addProof({
+      id: 'p-resaved', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 1,
+      photos: [{ lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 1, sha256: 'bytes-b', ...shot }],
+    });
+    const check = checkOf(reviewItem(db, 'h-muni', 'p-resaved')!, 'reuse');
+    assert.equal(check.status, 'fail');
+    assert.equal(check.detailKey, 'reuseSameShutter');
+  });
+
+  test('two different shots from one camera are not a match', () => {
+    addProof({
+      id: 'p-shot1', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 5,
+      photos: [{
+        lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 5, sha256: 'b1',
+        camera: 'Apple|iPhone', moment: '2026:11:21 09:15:02',
+      }],
+    });
+    addProof({
+      id: 'p-shot2', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 1,
+      photos: [{
+        lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 1, sha256: 'b2',
+        camera: 'Apple|iPhone', moment: '2026:11:21 09:15:03',
+      }],
+    });
+    assert.equal(checkOf(reviewItem(db, 'h-muni', 'p-shot2')!, 'reuse').status, 'pass');
+  });
+
+  test('the same file uploaded twice inside one submission is a warning, not a rejection', () => {
+    addProof({
+      id: 'p-twice', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 1,
+      photos: [
+        { lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 1, sha256: 'dup' },
+        { lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 1, sha256: 'dup' },
+      ],
+    });
+    const check = checkOf(reviewItem(db, 'h-muni', 'p-twice')!, 'reuse');
+    assert.equal(check.status, 'warn');
+    assert.equal(check.detailKey, 'reuseInThisProof');
+  });
+
+  /*
+    THE LIMIT, WRITTEN DOWN AS A TEST SO IT CANNOT BE MISTAKEN FOR A BUG.
+
+    `historyFor` refuses to look across hosts, because a cross-host lookup is
+    a reputation file nobody agreed to. Reuse detection inherits that, so a
+    photograph sent to two different organisations is NOT caught. Changing
+    this is the owner's decision; until they make it, this is the behaviour.
+  */
+  test('a photo reused at ANOTHER host is deliberately not reported', () => {
+    addProof({
+      id: 'p-at-lab', questId: 'q-lab', userId: 'u1', submittedHoursAgo: 48,
+      photos: [{ lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 48, sha256: 'crosses-hosts' }],
+    });
+    addProof({
+      id: 'p-at-muni', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 1,
+      photos: [{ lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 1, sha256: 'crosses-hosts' }],
+    });
+    assert.equal(checkOf(reviewItem(db, 'h-muni', 'p-at-muni')!, 'reuse').status, 'pass');
+  });
+
+  test('photos from before fingerprinting are unknown, never a finding', () => {
+    addProof({
+      id: 'p-old', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 1,
+      photos: [{ lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 1 }],
+    });
+    const check = checkOf(reviewItem(db, 'h-muni', 'p-old')!, 'reuse');
+    assert.equal(check.status, 'unknown');
+    assert.equal(check.detailKey, 'reuseUnknown');
+  });
+});
+
+describe('does the file back up what the app said', () => {
+  test('a stripped file is unknown, because most honest photos are stripped', () => {
+    addProof({
+      id: 'p-stripped', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 1,
+      photos: [{ lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 1, sha256: 'x' }],
+    });
+    const check = checkOf(reviewItem(db, 'h-muni', 'p-stripped')!, 'source');
+    assert.equal(check.status, 'unknown');
+    assert.equal(check.detailKey, 'sourceNone');
+  });
+
+  test('a file that kept its own coordinates, agreeing with the app, passes', () => {
+    addProof({
+      id: 'p-agrees', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 1,
+      photos: [{
+        lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 1, sha256: 'x',
+        exifLat: SITE.lat, exifLng: SITE.lng,
+      }],
+    });
+    const check = checkOf(reviewItem(db, 'h-muni', 'p-agrees')!, 'source');
+    assert.equal(check.status, 'pass');
+    assert.equal(check.params.count, 1);
+  });
+
+  /*
+    THE WHOLE REASON THIS CHECK EXISTS. The app claims the beach; the file it
+    uploaded says the waterfall eleven kilometres inland. One of the two is
+    the picture, and it is not the claim.
+  */
+  test('an app claiming the site while the file says elsewhere is reported', () => {
+    addProof({
+      id: 'p-lies', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 1,
+      photos: [{
+        lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 1, sha256: 'x',
+        exifLat: FAR.lat, exifLng: FAR.lng,
+      }],
+    });
+    const check = checkOf(reviewItem(db, 'h-muni', 'p-lies')!, 'source');
+    assert.equal(check.status, 'fail');
+    assert.equal(check.detailKey, 'sourceMismatch');
+    assert.ok(Number(check.params.metres) > 1000, String(check.params.metres));
+  });
+
+  test('and the location check follows the FILE, not the claim', () => {
+    addProof({
+      id: 'p-lies2', questId: 'q-muni', userId: 'u1', submittedHoursAgo: 1,
+      photos: [{
+        lat: SITE.lat, lng: SITE.lng, takenHoursAgo: 1, sha256: 'x',
+        exifLat: FAR.lat, exifLng: FAR.lng,
+      }],
+    });
+    const item = reviewItem(db, 'h-muni', 'p-lies2')!;
+    assert.equal(checkOf(item, 'geotag').status, 'fail', 'the claim must not win');
+    assert.equal(item.photos[0]!.locationFromFile, true);
   });
 });

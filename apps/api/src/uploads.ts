@@ -14,6 +14,7 @@
 import { randomUUID } from 'node:crypto';
 import { row, type DB } from './db.ts';
 import { blobStore, uploadRoot } from './blob-store.ts';
+import { fingerprint } from './photo-forensics.ts';
 
 export { uploadRoot };
 
@@ -106,13 +107,27 @@ export async function storePhoto(
   const storagePath = `photos/${args.proofId.slice(0, 2)}/${id}.${ext}`;
   await blobStore().put(storagePath, args.bytes);
 
+  /*
+    Read here, where the bytes are already in hand, rather than at review
+    time. A reviewer opening a queue must not wait on the blob store, and the
+    comparison that matters - this photograph against every other one - is a
+    SQL question once the answer is a column.
+
+    `args.lat`, `.lng` and `.takenAt` stay exactly as the client sent them.
+    The point is to have BOTH: a check that can say the two disagree needs
+    the claim as well as the file (review-service.ts).
+  */
+  const print = fingerprint(args.bytes);
+
   db.prepare(
     `INSERT INTO proof_files
-       (id, proof_id, storage_path, mime_type, byte_size, lat, lng, taken_at, uploaded_at)
-     VALUES (?,?,?,?,?,?,?,?,?)`,
+       (id, proof_id, storage_path, mime_type, byte_size, lat, lng, taken_at, uploaded_at,
+        sha256, exif_moment, exif_taken_at, exif_lat, exif_lng, camera)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
   ).run(
     id, args.proofId, storagePath, mime, args.bytes.length,
     args.lat, args.lng, args.takenAt, new Date().toISOString(),
+    print.sha256, print.moment, print.takenAt, print.lat, print.lng, print.camera,
   );
 
   return { id, storagePath, mime, byteSize: args.bytes.length };

@@ -40,6 +40,8 @@ const CHECK_LABEL: Record<string, Parameters<typeof t>[0]> = {
   geotag: 'checkPhotoLocation',
   timing: 'checkCaptureTime',
   weight: 'checkWeight',
+  reuse: 'checkReuse',
+  source: 'checkSource',
   ai: 'checkAi',
 };
 
@@ -370,6 +372,10 @@ export function detailPage(
                         : tr('noLocation')
                     }
                     ${p.takenAt ? ` · ${formatDateTime(p.takenAt, locale)}` : ''}
+                    ${/* Where the figure came from. A distance read out of the
+                         file itself is worth more than one the app reported,
+                         and the reviewer is the one who should know which. */
+                      p.locationFromFile ? html`<span class="src">· ${tr('readFromFile')}</span>` : ''}
                   </figcaption>
                 </figure>
               `,
