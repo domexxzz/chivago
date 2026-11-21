@@ -4,7 +4,7 @@ import test from 'node:test';
 import {
   ACCEPTS_LABEL,
   DROP_OFF_POINTS,
-  DROP_OFF_QUEST_GREEN,
+  DROP_OFF_QUEST_TRIP,
   DROP_OFF_QUEST_MINUTES,
   dropOffDistanceLabel,
   dropOffQuest,
@@ -13,7 +13,8 @@ import {
   type DropOffPoint,
 } from './drop-off.ts';
 import { QUEST_RADIUS_MAX_M } from './presence.ts';
-import { SEED_PLACES } from './seed.ts';
+import { CHECKIN_TRIP_POINTS, REVIEW_TRIP_POINTS, SEED_PLACES } from './seed.ts';
+import { PULL_COST } from './draw-pool.ts';
 
 /*
   A point that exists only here, so the tests describe the shape without
@@ -63,13 +64,24 @@ test('the quest is fifteen minutes, in digits and English, so ESG hours parse', 
   assert.equal(DROP_OFF_QUEST_MINUTES, 15);
 });
 
-test('the quest pays green, inside the rate the seeded island quests already use', () => {
+/*
+  THE TEST THAT WOULD HAVE CAUGHT THE FIRST VERSION. It paid green, and
+  `shop-reward-service.ts` prices every island offer in trip - so the points
+  were real, the shop could not take them, and the promise the whole feature
+  rests on was false at the counter. Currency is not a label here; it decides
+  whether the loop closes before the boat leaves.
+*/
+test('it pays in the only currency an island shop can accept', () => {
   const quest = dropOffQuest(SAMPLE, 0);
-  assert.equal(quest.rewardCurrency, 'green');
-  assert.equal(quest.rewardPoints, DROP_OFF_QUEST_GREEN);
-  const perMinute = DROP_OFF_QUEST_GREEN / DROP_OFF_QUEST_MINUTES;
-  // 90 green / 30 min and 120 green / 45 min are the two seeded rates.
-  assert.ok(perMinute <= 3 && perMinute >= 120 / 45, `${perMinute} green a minute is outside the seeded band`);
+  assert.equal(quest.rewardCurrency, 'trip', 'a shop offer is always priced in Trip Points');
+  assert.equal(quest.rewardPoints, DROP_OFF_QUEST_TRIP);
+});
+
+test('it pays more than a review and less than a gacha pull', () => {
+  // Trip scale in seed.ts: check-in 20, low-carbon leg 30, review 40.
+  assert.ok(DROP_OFF_QUEST_TRIP > REVIEW_TRIP_POINTS, 'carrying sorted waste is more than typing 40 characters');
+  assert.ok(DROP_OFF_QUEST_TRIP > CHECKIN_TRIP_POINTS);
+  assert.ok(DROP_OFF_QUEST_TRIP < PULL_COST, 'one hand-in should not buy a whole roll');
 });
 
 test('the quest reports under the environmental pillar and sits on the point', () => {

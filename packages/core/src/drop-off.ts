@@ -141,20 +141,38 @@ export function dropOffsNearest(
 export const DROP_OFF_QUEST_MINUTES = 15;
 
 /**
- * What it pays, and why it pays in green.
+ * What it pays, and why it pays in TRIP rather than green.
  *
- * The seeded Koh Sichang quests pay 90 green for thirty minutes and 120 for
- * forty-five - three and 2.7 green a minute. Forty-five for fifteen minutes
- * sits inside that band rather than inventing a new rate for this one.
+ * THE FIRST VERSION OF THIS PAID GREEN, AND THAT WAS A LOOP THAT DID NOT
+ * CLOSE. Green reads as the obvious currency for environmental work, and it
+ * is wrong here for one reason that only shows up at the counter:
+ * `shop-reward-service.ts` writes every island offer with `currency: 'trip'`
+ * and its test says so in its name - "a reward is always priced in Trip
+ * Points, whatever currency is asked for". So a traveller who handed in
+ * sorted waste earned points that no shop on the island could take, and the
+ * promise this whole feature is built on - hand it in, get something you can
+ * use before the four o'clock boat - was not true.
  *
- * It pays GREEN rather than trip because the work is environmental, and it
- * pays at all - unlike a check-in - because the quest flow does not release
- * anything until a named host has approved the submission. That is rung
- * three on the evidence ladder. A photograph alone is rung two and would not
- * be enough to pay an environmental point, which is the rule the whole
- * reporting side depends on.
+ * WHAT IT COSTS TO SWITCH, SAID PLAINLY. Green is the unit the environmental
+ * side of a report is denominated in, and paying trip means this activity no
+ * longer adds to that total. It loses nothing that matters, because the
+ * figures a report actually carries are `verified_submissions`, `weight_kg`
+ * and `distinct_participants` (see `kpi.ts`) - counts and kilograms, not a
+ * points balance - and `esgPillar` below still files this under
+ * environmental. The pillar describes the WORK. The currency only decides
+ * what the person can spend afterwards, and those are different questions.
+ *
+ * THE RATE. On the trip scale a check-in is 20, a low-carbon leg is 30 and a
+ * written review is 40 (`seed.ts`). Forty-five sits just above the review:
+ * carrying sorted waste to a point and waiting for a named host to look at
+ * it is more than typing forty characters, and a point below a gacha pull's
+ * 100 means two hand-ins buy one roll rather than one.
+ *
+ * It pays at all - unlike a check-in - because the quest flow releases
+ * nothing until a named host has approved the submission. That is rung three
+ * on the evidence ladder; a photograph alone is rung two.
  */
-export const DROP_OFF_QUEST_GREEN = 45;
+export const DROP_OFF_QUEST_TRIP = 45;
 
 /**
  * The quest for one drop-off point.
@@ -186,8 +204,9 @@ export function dropOffQuest(point: DropOffPoint, index: number): Quest {
       th: `${DROP_OFF_QUEST_MINUTES} นาที`,
       zh: `${DROP_OFF_QUEST_MINUTES} 分钟`,
     },
-    rewardPoints: DROP_OFF_QUEST_GREEN,
-    rewardCurrency: 'green',
+    rewardPoints: DROP_OFF_QUEST_TRIP,
+    // Trip, because an island shop cannot accept anything else. See above.
+    rewardCurrency: 'trip',
     host: point.host,
     kind: 'today',
     lat: point.lat,
