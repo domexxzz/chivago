@@ -118,15 +118,30 @@ export function DropOffLayer({ here, points = DROP_OFF_POINTS, onRoute }: Props)
                 {point.accepts.map((key) => t(ACCEPTS_LABEL[key])).join(' · ')}
               </Label>
 
-              <Label colour={color.neutral700}>
-                {t({ en: 'Open', th: 'เวลาเปิด', zh: '开放时间' })}
-                {': '}
-                {point.hours}
-                {'  ·  '}
-                {t({ en: 'Signed for by', th: 'ผู้ลงนามรับ', zh: '签收人' })}
-                {': '}
-                {point.host.name}
-              </Label>
+              {/*
+                A pilot point is a proposal, and the line says so in place of
+                hours and a signer - neither exists yet, and printing a guess
+                sends somebody to a bin that is not there or not open.
+              */}
+              {point.pilot || point.hours === null ? (
+                <Label colour={color.accent}>
+                  {t({
+                    en: 'Pilot point · awaiting the municipality · no points paid here yet',
+                    th: 'จุดนำร่อง · รอเทศบาลยืนยัน · ยังไม่ได้รับแต้มที่จุดนี้',
+                    zh: '试点 · 等待市政方确认 · 此处暂不发放积分',
+                  })}
+                </Label>
+              ) : (
+                <Label colour={color.neutral700}>
+                  {t({ en: 'Open', th: 'เวลาเปิด', zh: '开放时间' })}
+                  {': '}
+                  {point.hours}
+                  {'  ·  '}
+                  {t({ en: 'Signed for by', th: 'ผู้ลงนามรับ', zh: '签收人' })}
+                  {': '}
+                  {point.host.name}
+                </Label>
+              )}
 
               {onRoute ? (
                 <Pressable

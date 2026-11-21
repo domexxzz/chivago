@@ -18,7 +18,7 @@ import {
 import { API_BASE, api } from '../api/client.ts';
 import { photoUri } from '../api/photos.ts';
 import { SHOP_CATEGORIES, shopImageUri, shopOpenNow, type Shop } from '../api/shops.ts';
-import { areaOfPlace, fairById, fairLots, fairsIn, inArea, nearestFirst } from '@chivago/core';
+import { areaOfPlace, fairById, fairLots, fairsIn, inArea, nearestFirst, type DropOffPoint } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { useHere } from '../state/here.ts';
 import { useOnline } from '../state/online.ts';
@@ -65,7 +65,7 @@ const mapShopCategory = (category: string) => {
 
 export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
-  onAskConcierge, onOpenStays, onOpenShop, onNavigateShop, onToast,
+  onAskConcierge, onOpenStays, onOpenShop, onNavigateShop, onNavigateDropOff, onToast,
   onOpenWallet, onOpenProfile, wayTo = null, onClearWay, onNavigate, recommendedPlaces = [], onClearRecommendations, fairFocus = null, onClearFair, onOpenFair, onBackToFair,
 }: {
   layers: Record<LayerKey, boolean>;
@@ -75,6 +75,8 @@ export function MapScreen({
   onOpenShop?: (id: string) => void;
   /** Opens turn-by-turn for a business pin that carries a verified coordinate. */
   onNavigateShop?: (shop: Shop) => void;
+  /** Turn-by-turn to a drop-off point. Absent where the app cannot route. */
+  onNavigateDropOff?: (point: DropOffPoint) => void;
   onOpenQuest: (id: string) => void;
   onSeeAllQuests: () => void;
   onAskConcierge: () => void;
@@ -850,7 +852,7 @@ export function MapScreen({
           */}
           {!driftMode ? (
             <View style={{ padding: gutter, paddingTop: 0 }}>
-              <DropOffLayer here={here} />
+              <DropOffLayer here={here} onRoute={onNavigateDropOff} />
             </View>
           ) : null}
         </>

@@ -67,23 +67,102 @@ export interface DropOffPoint {
    */
   host: QuestHost;
   accepts: Accepts[];
-  /** `HH:MM-HH:MM`, the same shape `shopOpenNow` already parses. */
-  hours: string;
+  /**
+   * `HH:MM-HH:MM`, the same shape `shopOpenNow` already parses.
+   *
+   * Null on a pilot point: nobody has agreed opening hours for a bin that is
+   * still a proposal, and printing a guess sends somebody to a closed one.
+   */
+  hours: string | null;
   /**
    * Where the coordinate came from, in a form somebody can be asked about:
    * an OSM way id, or the operator's own name and the date they gave it.
    */
   source: string;
+  /**
+   * A proposed pilot point the municipality has not yet agreed to.
+   *
+   * WHY A PILOT POINT IS ON THE LIST AT ALL. The Koh Sichang pilot budgets
+   * four sorting bins, and the place they go is part of what the team takes
+   * to the municipality. Showing them, marked as proposals, lets a traveller
+   * see the plan and find the way to the spot. Every pilot point sits on a
+   * coordinate the map already trusts (an OSM-mapped pier, beach or palace),
+   * so the walk ends somewhere real even before a bin is there.
+   *
+   * WHAT A PILOT POINT DOES NOT DO. It pays nothing and has no quest: a
+   * quest releases points only when a named host signs for what is handed
+   * in, and nobody signs for a bin that is still a proposal. The screen says
+   * "pilot, awaiting the municipality" in place of hours and a signer.
+   * Removing the flag, once a host agrees, is what turns the quest on.
+   */
+  pilot?: true;
 }
 
+/** Who proposes the pilot points until the municipality takes them on. */
+const SICHANG_TEAM: QuestHost = { id: 'h-sichang-chivago', name: 'ChivarGo team · Koh Sichang', type: 'community' };
+
+/** What every pilot sorting bin is planned to take. */
+const PILOT_ACCEPTS: Accepts[] = ['plastic', 'can', 'glass', 'general'];
+
 /**
- * Live drop-off points.
+ * Drop-off points.
  *
- * Empty until a shop or the municipality agrees to one. Adding the first is
- * one object: the layer, the distance line, the quest and the empty-state
- * message all read from here and need no further change.
+ * Today every entry is a pilot point (see `pilot` above): the four sorting
+ * bins the Koh Sichang pilot budgets, each on a coordinate copied from a
+ * place `seed.ts` already maps from OSM. None of them pays or has a quest
+ * until a host agrees. Adding a confirmed point is one object without the
+ * flag: the layer, the distance line and the quest read from here.
  */
-export const DROP_OFF_POINTS: readonly DropOffPoint[] = [];
+export const DROP_OFF_POINTS: readonly DropOffPoint[] = [
+  {
+    id: 'do-sc-pier',
+    name: { en: 'Pilot drop-off: Tha Lang pier', th: 'จุดนำร่อง: ท่าเรือท่าล่าง', zh: '试点投放点：塔朗码头' },
+    where: { en: 'By the Si Racha ferry landing', th: 'ข้างท่าเรือที่เรือจากศรีราชาเข้าเทียบ', zh: '是拉差渡轮停靠处旁' },
+    lat: 13.161443,
+    lng: 100.810441,
+    host: SICHANG_TEAM,
+    accepts: PILOT_ACCEPTS,
+    hours: null,
+    source: 'Proposed pilot spot at OSM way 40354093 (sc-pier in seed.ts); not yet agreed with the Ko Sichang municipality',
+    pilot: true,
+  },
+  {
+    id: 'do-sc-shops',
+    name: { en: 'Pilot drop-off: shop row', th: 'จุดนำร่อง: ย่านร้านค้าหน้าท่าล่าง', zh: '试点投放点：码头商铺街' },
+    where: { en: 'In the shop row facing Tha Lang pier', th: 'ย่านร้านค้าหน้าท่าล่าง', zh: '塔朗码头对面的商铺街' },
+    lat: 13.160059,
+    lng: 100.809817,
+    host: SICHANG_TEAM,
+    accepts: PILOT_ACCEPTS,
+    hours: null,
+    source: 'Proposed pilot spot at OSM way 412192126 (sc-shops in seed.ts); not yet agreed with the Ko Sichang municipality',
+    pilot: true,
+  },
+  {
+    id: 'do-sc-palace',
+    name: { en: 'Pilot drop-off: Phra Chudadhuj Palace', th: 'จุดนำร่อง: พระจุฑาธุชราชฐาน', zh: '试点投放点：朱他突王宫' },
+    where: { en: 'At the palace grounds', th: 'บริเวณพระจุฑาธุชราชฐาน', zh: '王宫园区' },
+    lat: 13.14909,
+    lng: 100.818436,
+    host: SICHANG_TEAM,
+    accepts: PILOT_ACCEPTS,
+    hours: null,
+    source: 'Proposed pilot spot at OSM way 40443539 (sc-palace in seed.ts); not yet agreed with the Ko Sichang municipality',
+    pilot: true,
+  },
+  {
+    id: 'do-sc-thamphang',
+    name: { en: 'Pilot drop-off: Tham Phang Beach', th: 'จุดนำร่อง: หาดถ้ำพัง', zh: '试点投放点：探蓬海滩' },
+    where: { en: 'At the swimming beach, Ao Atsadang', th: 'หาดถ้ำพัง (อ่าวอัษฎางค์)', zh: '阿萨当湾游泳海滩' },
+    lat: 13.1454,
+    lng: 100.806835,
+    host: SICHANG_TEAM,
+    accepts: PILOT_ACCEPTS,
+    hours: null,
+    source: 'Proposed pilot spot at OSM way 242270752 (sc-thamphang in seed.ts); not yet agreed with the Ko Sichang municipality',
+    pilot: true,
+  },
+];
 
 /** Metres from a position to a point. Re-exported shape so callers need one import. */
 export const metresToDropOff = (
@@ -215,7 +294,13 @@ export function dropOffQuest(point: DropOffPoint, index: number): Quest {
   };
 }
 
-/** Every drop-off quest there is, which is none until a point exists. */
+/**
+ * Every drop-off quest there is: one per CONFIRMED point.
+ *
+ * Pilot points are left out, because nobody has agreed to sign for what is
+ * handed in there, and a quest no host can approve is a promise of points
+ * that never arrive. The code stays positional over the confirmed points.
+ */
 export const dropOffQuests = (
   points: readonly DropOffPoint[] = DROP_OFF_POINTS,
-): Quest[] => points.map(dropOffQuest);
+): Quest[] => points.filter((point) => !point.pilot).map(dropOffQuest);
