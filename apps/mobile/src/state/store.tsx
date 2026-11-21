@@ -40,7 +40,7 @@ import { EMPTY_PROFILE } from '@chivago/core';
 export type ScreenKey =
   | 'login' | 'register' | 'onboarding' | 'home' | 'map' | 'place' | 'quests' | 'quest'
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
-  | 'companion' | 'passport' | 'account' | 'party' | 'findParty' | 'game'
+  | 'companion' | 'passport' | 'account' | 'party' | 'findParty' | 'game' | 'adventure' | 'journal' | 'season'
   | 'mascots' | 'mascot' | 'fashion' | 'profile' | 'medals' | 'stays' | 'fair'
   | 'summon' | 'editProfile' | 'connectApp' | 'community' | 'shop' | 'shopManage' | 'localPicks' | 'miniGame'
   /** Turn-by-turn, full screen. Reached from the way banner on the map. */
@@ -120,7 +120,7 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   wallet: 'home', market: 'home', account: 'home', connectApp: 'home', community: 'home',
   // The game layer, all of it, under one cell. This is the change: every one
   // of these used to hang off Home or the wallet, two or three taps down.
-  game: 'game', companion: 'game', mascots: 'game', mascot: 'game', fashion: 'game', summon: 'game',
+  game: 'game', adventure: 'game', journal: 'game', season: 'game', companion: 'game', mascots: 'game', mascot: 'game', fashion: 'game', summon: 'game',
   medals: 'game', passport: 'game', party: 'game', findParty: 'game',
   // The profile is the button at the top of Home.
   profile: 'home',

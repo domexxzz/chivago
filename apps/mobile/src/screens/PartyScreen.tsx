@@ -96,7 +96,15 @@ export function PartyScreen({
           )
           : (
             <>
-              <Together name={data.party.name} summary={data.summary} partyQuest={currentQuest.data?.partyQuest ?? null} partyQuestProgress={currentQuest.data?.progress ?? null} />
+              <Together
+                name={data.party.name}
+                summary={data.summary}
+                partyQuest={currentQuest.data?.partyQuest ?? null}
+                partyQuestProgress={currentQuest.data?.progress ?? null}
+                owner={data.party.createdBy === data.summary.members.find((member) => member.you)?.userId}
+                onQuestChanged={currentQuest.reload}
+                onToast={onToast}
+              />
               <Members
                 summary={data.summary}
                 owner={data.party.createdBy === data.summary.members.find((member) => member.you)?.userId}
@@ -303,7 +311,17 @@ function InviteTools({ owner, onToast }: { owner: boolean; onToast: (message: st
 // Together
 // ---------------------------------------------------------------------------
 
-function Together({ name, summary, partyQuest, partyQuestProgress }: { name: string; summary: PartySummary; partyQuest: PartyQuestInstance | null; partyQuestProgress: PartyQuestProgressSummary | null }) {
+function Together({
+  name, summary, partyQuest, partyQuestProgress, owner, onQuestChanged, onToast,
+}: {
+  name: string;
+  summary: PartySummary;
+  partyQuest: PartyQuestInstance | null;
+  partyQuestProgress: PartyQuestProgressSummary | null;
+  owner: boolean;
+  onQuestChanged: () => void;
+  onToast: (message: string) => void;
+}) {
   const next = nextTogether(summary, OPEN_PROVINCES);
 
   return (
@@ -338,6 +356,104 @@ function Together({ name, summary, partyQuest, partyQuestProgress }: { name: str
         </>
       ) : null}
       {partyQuest ? <PartyQuestStatusCard quest={partyQuest} progress={partyQuestProgress} /> : null}
+      {partyQuest && partyQuestProgress ? (
+        <PartyQuestActions
+          quest={partyQuest}
+          progress={partyQuestProgress}
+          owner={owner}
+          onChanged={onQuestChanged}
+          onToast={onToast}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+function PartyQuestActions({
+  quest, progress, owner, onChanged, onToast,
+}: {
+  quest: PartyQuestInstance;
+  progress: PartyQuestProgressSummary;
+  owner: boolean;
+  onChanged: () => void;
+  onToast: (message: string) => void;
+}) {
+  const [assignments, setAssignments] = React.useState<Record<string, string>>(() => Object.fromEntries(
+    progress.participants.map((participant) => [participant.userId, participant.assignment ?? '']),
+  ));
+  const [saving, setSaving] = React.useState<string | null>(null);
+  const [completing, setCompleting] = React.useState(false);
+  React.useEffect(() => {
+    setAssignments(Object.fromEntries(progress.participants.map((participant) => [participant.userId, participant.assignment ?? ''])));
+  }, [progress.partyQuestId, progress.participants]);
+
+  const saveAssignment = async (memberId: string) => {
+    const assignment = assignments[memberId]?.trim() ?? '';
+    if (!assignment) {
+      onToast(t({ en: 'Describe the member’s responsibility first.', th: 'ระบุหน้าที่ของสมาชิกก่อน', zh: '请先填写成员职责。' }));
+      return;
+    }
+    setSaving(memberId);
+    const result = await api.assignPartyQuestMember(quest.id, memberId, assignment);
+    setSaving(null);
+    if (!result.ok) onToast(result.error);
+    else {
+      onToast(t({ en: 'Assignment saved.', th: 'บันทึกหน้าที่แล้ว', zh: '分工已保存。' }));
+      onChanged();
+    }
+  };
+
+  const complete = async () => {
+    setCompleting(true);
+    const result = await api.completePartyQuest(quest.id);
+    setCompleting(false);
+    if (!result.ok) onToast(result.error);
+    else {
+      onToast(t({ en: 'Team completion verified and rewards recorded.', th: 'ตรวจสอบทีมสำเร็จและบันทึกรางวัลแล้ว', zh: '团队完成已验证，奖励已记录。' }));
+      onChanged();
+    }
+  };
+
+  return (
+    <View style={{ marginTop: 12, padding: 12, borderRadius: 16, backgroundColor: '#FFFFFF' }}>
+      {owner && quest.questMode === 'cooperative' && quest.state === 'in_progress' ? (
+        <View>
+          <Label size={9} colour={color.brand}>{t({ en: 'MEMBER ASSIGNMENTS', th: 'หน้าที่ของสมาชิก', zh: '成员分工' })}</Label>
+          {progress.participants.map((participant) => (
+            <View key={participant.userId} style={{ marginTop: 9 }}>
+              <Body size={13} colour={color.neutral700}>{participant.displayName}</Body>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 5 }}>
+                <TextInput
+                  value={assignments[participant.userId] ?? ''}
+                  onChangeText={(value) => setAssignments((current) => ({ ...current, [participant.userId]: value }))}
+                  maxLength={120}
+                  placeholder={t({ en: 'Assign a different task', th: 'มอบหมายหน้าที่', zh: '分配任务' })}
+                  style={{ flex: 1, minHeight: 42, paddingHorizontal: 11, borderWidth: 1, borderColor: '#CFE7F0', borderRadius: 12, color: color.text, backgroundColor: '#F8FCFD' }}
+                />
+                <Button
+                  label={saving === participant.userId ? t({ en: 'Saving…', th: 'กำลังบันทึก…', zh: '保存中…' }) : t({ en: 'Save', th: 'บันทึก', zh: '保存' })}
+                  onPress={() => void saveAssignment(participant.userId)}
+                  disabled={saving !== null}
+                  height={42}
+                />
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : null}
+      {quest.state === 'in_progress' ? (
+        <View style={{ marginTop: owner && quest.questMode === 'cooperative' ? 12 : 0 }}>
+          <Button
+            label={completing
+              ? t({ en: 'Verifying…', th: 'กำลังตรวจสอบ…', zh: '验证中…' })
+              : t({ en: 'Verify team completion', th: 'ตรวจสอบการสำเร็จของทีม', zh: '验证团队完成' })}
+            onPress={() => void complete()}
+            disabled={!progress.completionReady || completing}
+            height={44}
+          />
+          {!progress.completionReady ? <Body size={13} colour={color.neutral600} style={{ marginTop: 6, textAlign: 'center' }}>{t({ en: 'The server will enable completion after every rule is satisfied.', th: 'เซิร์ฟเวอร์จะเปิดให้จบเมื่อผ่านเงื่อนไขครบ', zh: '满足全部服务器规则后即可完成。' })}</Body> : null}
+        </View>
+      ) : null}
     </View>
   );
 }

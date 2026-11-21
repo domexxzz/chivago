@@ -12,6 +12,7 @@ import {
   formatDateTime, formatNumber, formatWaiting, t, tf, type Locale,
 } from './i18n.ts';
 import type { DecidedItem, ReviewCheck, ReviewItem } from '../review-service.ts';
+import type { HostAdventureEvidence } from '../activity-verification-service.ts';
 
 /** The quest's own Thai name and place on a Thai screen; English otherwise. */
 const questNameFor = (q: { questName: string; questNameTh: string | null }, locale: Locale): string =>
@@ -241,6 +242,8 @@ export function queuePage(
       </div>
     </div>
 
+    <p><a class="btn" href="/console/adventure/reviews">${locale === 'th' ? 'ตรวจหลักฐาน Adventure' : 'Review Adventure evidence'}</a></p>
+
     ${
       items.length === 0
         ? html`<div class="empty">
@@ -302,6 +305,75 @@ export function queuePage(
     },
     body,
   );
+}
+
+export function adventureReviewPage(
+  locale: Locale,
+  hostName: string,
+  reviewer: string | null,
+  items: HostAdventureEvidence[],
+  csrf: string,
+  pendingCount: number,
+): string {
+  const th = locale === 'th';
+  const body = html`
+    <p><a href="/console">&larr; ${th ? 'กลับคิวหลัก' : 'Back to main queue'}</a></p>
+    <div style="display:flex;justify-content:space-between;gap:16px;align-items:end;flex-wrap:wrap">
+      <div><div class="kicker">ADVENTURE VERIFICATION</div>
+      <h2 style="margin:4px 0">${th ? 'หลักฐานจากสถานที่จริง' : 'Real-world activity evidence'}</h2>
+      <p class="muted">${th ? 'อนุมัติเฉพาะกิจกรรมของสถานที่ที่คุณดูแล ระบบจะออกรางวัลหลังการยืนยันจากเซิร์ฟเวอร์เท่านั้น' : 'Approve only activities at places you manage. Rewards are issued only after server verification.'}</p></div>
+      <span class="badge badge-ok">${items.length} ${th ? 'รอตรวจ' : 'pending'}</span>
+    </div>
+    ${items.length === 0 ? html`<div class="empty"><h4>${th ? 'ยังไม่มีหลักฐานรอตรวจ' : 'No evidence waiting'}</h4></div>` : items.map((item) => html`
+      <article class="row" id="evidence-${item.id}" style="display:block;margin-top:16px">
+        <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div><div class="kicker">${th ? item.placeName.th : item.placeName.en}</div>
+          <h3 style="margin:4px 0">${th ? item.nodeTitle.th : item.nodeTitle.en}</h3>
+          <p class="muted" style="margin:0">${th ? 'ผู้ส่ง' : 'Submitted by'}: ${item.userDisplayName}</p></div>
+          <span class="badge badge-overdue">${th ? 'รอการตรวจสอบ' : 'Pending review'}</span>
+        </div>
+        <div style="display:flex;gap:12px;overflow-x:auto;margin:16px 0">
+          ${item.photoIds.map((photoId) => html`<a href="/console/adventure/evidence/photo/${photoId}" target="_blank" rel="noopener"><img src="/console/adventure/evidence/photo/${photoId}" alt="${th ? 'ภาพหลักฐาน' : 'Evidence photo'}" style="width:180px;height:130px;object-fit:cover;border-radius:14px;border:1px solid var(--color-border)"></a>`)}
+        </div>
+        <label style="display:block"><span class="muted">${th ? 'เหตุผลเมื่อปฏิเสธ' : 'Reason when rejecting'}</span>
+          <input id="reason-${item.id}" maxlength="500" style="width:100%;min-height:44px;margin-top:6px" placeholder="${th ? 'ระบุสิ่งที่ต้องแก้ไข' : 'Explain what needs correction'}"></label>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap">
+          <button class="btn" data-decision="reject" data-id="${item.id}" type="button">${th ? 'ปฏิเสธ' : 'Reject'}</button>
+          <button class="btn primary" data-decision="approve" data-id="${item.id}" type="button">${th ? 'อนุมัติหลักฐาน' : 'Approve evidence'}</button>
+        </div>
+        <p class="muted" id="status-${item.id}" aria-live="polite"></p>
+      </article>
+    `)}
+    ${raw(`<script>
+      (() => {
+        const csrf = ${JSON.stringify(csrf)};
+        document.querySelectorAll('[data-decision]').forEach((button) => button.addEventListener('click', async () => {
+          const id = button.dataset.id;
+          const approved = button.dataset.decision === 'approve';
+          const status = document.getElementById('status-' + id);
+          const reason = document.getElementById('reason-' + id)?.value || '';
+          button.disabled = true;
+          status.textContent = ${JSON.stringify(th ? 'กำลังส่งผลตรวจ…' : 'Saving decision…')};
+          try {
+            const response = await fetch('/console/adventure/evidence/' + encodeURIComponent(id) + '/decide', {
+              method: 'POST', headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
+              body: JSON.stringify({ approved, reason }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Request failed');
+            document.getElementById('evidence-' + id)?.remove();
+          } catch (error) {
+            status.textContent = error instanceof Error ? error.message : 'Request failed';
+            button.disabled = false;
+          }
+        }));
+      })();
+    </script>`)}
+  `;
+  return layout({
+    title: th ? 'ตรวจหลักฐาน Adventure' : 'Adventure evidence', locale, hostName, reviewer,
+    signedIn: true, activeNav: 'queue', pendingCount, path: '/console/adventure/reviews',
+  }, body);
 }
 
 // ---------------------------------------------------------------------------

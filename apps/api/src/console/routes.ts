@@ -70,11 +70,11 @@ import { pendingQueue, queueStats, recentDecisions, reviewItem } from '../review
 import {
   DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, localeFromAcceptLanguage, type Locale,
 } from './i18n.ts';
-import { readPhotoForHost } from '../uploads.ts';
+import { readAdventureEvidencePhotoForHost, readPhotoForHost } from '../uploads.ts';
 import { questCountsFor, resolveVerification } from '../quest-service.ts';
 import { recordAssistAtDecision } from '../assist-service.ts';
 import {
-  assistFragment, assistPending, detailPage, historyPage, loginPage, messagePage, queuePage,
+  adventureReviewPage, assistFragment, assistPending, detailPage, historyPage, loginPage, messagePage, queuePage,
 } from './views.ts';
 import { sosDeskPage } from './sos-desk.ts';
 import { acknowledgeAlert, liveAlerts, recentAlerts, resolveAlert } from '../sos-service.ts';
@@ -104,6 +104,21 @@ import {
   grantToUser, grantableItems, saveAdminPlace, setPlaceHidden, setPostHidden,
 } from '../admin-service.ts';
 import { adminPage } from './admin.ts';
+import { adventureCmsPage } from './adventure-cms.ts';
+import { seasonCmsPage } from './season-cms.ts';
+import {
+  AdventureCmsError, addAdventureChapter, addAdventureNode, adventureContentDetail,
+  cloneAdventureToDraft, createAdventureContent, listAdventureContent, setAdventureContentStatus,
+  type AdventureCmsStatus,
+} from '../adventure-cms-service.ts';
+import {
+  SeasonError, addSeasonItem, bindSeasonQuest, createSeason, listSeasonsForAdmin, setSeasonStatus,
+} from '../season-service.ts';
+import type { SeasonStatus } from '@chivago/core';
+import {
+  ActivityVerificationError, createActivityQr, pendingEvidenceForHost, reviewEvidence,
+  qrCodesForHost, revokeActivityQr, setPolicy,
+} from '../activity-verification-service.ts';
 
 /**
  * CSRF token, derived from the session token.
@@ -595,6 +610,123 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
     } catch (err) { return adminFailure(c, err); }
   });
 
+  const adventureCmsFailure = (c: { redirect: (location: string, status: 303) => Response }, err: unknown) => {
+    if (err instanceof AdventureCmsError) {
+      return c.redirect(`/console/admin/adventures?error=${encodeURIComponent(err.message)}`, 303);
+    }
+    throw err;
+  };
+
+  app.get('/admin/adventures', (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const details = listAdventureContent(db).map((arc) => adventureContentDetail(db, arc.id));
+    const places = db.prepare('SELECT id,name_en,name_th FROM places WHERE admin_hidden_at IS NULL ORDER BY name_en').all() as Array<{ id: string; name_en: string; name_th: string }>;
+    const quests = db.prepare('SELECT id,name_en,name_th FROM quests ORDER BY name_en').all() as Array<{ id: string; name_en: string; name_th: string }>;
+    return c.html(adventureCmsPage({
+      locale: localeFor(c), hostName: session.hostName, reviewer: session.reviewer, csrf: csrfFor(session), details,
+      places: places.map((p) => ({ id: p.id, name: `${p.name_th} · ${p.name_en}` })),
+      quests: quests.map((q) => ({ id: q.id, name: `${q.name_th} · ${q.name_en}` })),
+      notice: c.req.query('notice') ?? null, error: c.req.query('error') ?? null,
+    }));
+  });
+
+  app.post('/admin/adventures', async (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) return c.text('Session expired', 403);
+    try {
+      createAdventureContent(db, session.hostId, form);
+      return c.redirect('/console/admin/adventures?notice=adventure-draft-created', 303);
+    } catch (err) { return adventureCmsFailure(c, err); }
+  });
+
+  app.post('/admin/adventures/:id/chapters', async (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) return c.text('Session expired', 403);
+    try {
+      addAdventureChapter(db, session.hostId, c.req.param('id'), form);
+      return c.redirect('/console/admin/adventures?notice=chapter-created', 303);
+    } catch (err) { return adventureCmsFailure(c, err); }
+  });
+
+  app.post('/admin/adventures/:id/chapters/:chapterId/nodes', async (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) return c.text('Session expired', 403);
+    try {
+      addAdventureNode(db, session.hostId, c.req.param('id'), c.req.param('chapterId'), form);
+      return c.redirect('/console/admin/adventures?notice=location-created', 303);
+    } catch (err) { return adventureCmsFailure(c, err); }
+  });
+
+  app.post('/admin/adventures/:id/status', async (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) return c.text('Session expired', 403);
+    const status = String(form.status ?? '');
+    if (!['draft', 'published', 'archived'].includes(status)) return c.text('Invalid status', 400);
+    try {
+      setAdventureContentStatus(db, session.hostId, c.req.param('id'), status as AdventureCmsStatus);
+      return c.redirect(`/console/admin/adventures?notice=${encodeURIComponent(`adventure-${status}`)}`, 303);
+    } catch (err) { return adventureCmsFailure(c, err); }
+  });
+
+  app.post('/admin/adventures/:id/clone', async (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const form = await c.req.parseBody();
+    if (!csrfValid(session, form.csrf)) return c.text('Session expired', 403);
+    try {
+      cloneAdventureToDraft(db, session.hostId, c.req.param('id'), form.newId);
+      return c.redirect('/console/admin/adventures?notice=adventure-cloned-to-draft', 303);
+    } catch (err) { return adventureCmsFailure(c, err); }
+  });
+
+  const seasonCmsFailure = (c: { redirect: (location: string, status: 303) => Response }, err: unknown) => {
+    if (err instanceof SeasonError) return c.redirect(`/console/admin/seasons?error=${encodeURIComponent(err.message)}`, 303);
+    throw err;
+  };
+
+  app.get('/admin/seasons', (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const quests = db.prepare('SELECT id,name_en,name_th FROM quests ORDER BY name_en').all() as Array<{ id: string; name_en: string; name_th: string }>;
+    return c.html(seasonCmsPage({
+      locale: localeFor(c), hostName: session.hostName, reviewer: session.reviewer, csrf: csrfFor(session),
+      seasons: listSeasonsForAdmin(db), quests: quests.map((q) => ({ id: q.id, name: `${q.name_th} · ${q.name_en}` })),
+      notice: c.req.query('notice') ?? null, error: c.req.query('error') ?? null,
+    }));
+  });
+
+  app.post('/admin/seasons', async (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const form = await c.req.parseBody(); if (!csrfValid(session, form.csrf)) return c.text('Session expired', 403);
+    try { createSeason(db, session.hostId, form); return c.redirect('/console/admin/seasons?notice=season-draft-created', 303); }
+    catch (err) { return seasonCmsFailure(c, err); }
+  });
+
+  app.post('/admin/seasons/:id/quests', async (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const form = await c.req.parseBody(); if (!csrfValid(session, form.csrf)) return c.text('Session expired', 403);
+    try { bindSeasonQuest(db, session.hostId, c.req.param('id'), String(form.questId ?? ''), form.coinReward); return c.redirect('/console/admin/seasons?notice=quest-bound', 303); }
+    catch (err) { return seasonCmsFailure(c, err); }
+  });
+
+  app.post('/admin/seasons/:id/items', async (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const form = await c.req.parseBody(); if (!csrfValid(session, form.csrf)) return c.text('Session expired', 403);
+    try { addSeasonItem(db, session.hostId, c.req.param('id'), form); return c.redirect('/console/admin/seasons?notice=item-added', 303); }
+    catch (err) { return seasonCmsFailure(c, err); }
+  });
+
+  app.post('/admin/seasons/:id/status', async (c) => {
+    const session = requireAdmin(c); if (!session) return c.text('Not found', 404);
+    const form = await c.req.parseBody(); if (!csrfValid(session, form.csrf)) return c.text('Session expired', 403);
+    const status = String(form.status ?? '');
+    if (!['draft','scheduled','active','ended','archived'].includes(status)) return c.text('Invalid status', 400);
+    try { setSeasonStatus(db, session.hostId, c.req.param('id'), status as SeasonStatus); return c.redirect('/console/admin/seasons?notice=season-status-updated', 303); }
+    catch (err) { return seasonCmsFailure(c, err); }
+  });
+
   app.get('/', (c) => {
     const session = currentSession(c)!;
     if (canAdmin(session)) return c.redirect('/console/admin', 303);
@@ -619,6 +751,109 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
     const session = currentSession(c)!;
     c.header('cache-control', 'no-store');
     return c.json({ pending: queueStats(db, session.hostId).pending });
+  });
+
+  // Adventure activity verification uses the same host session and CSRF
+  // boundary as Quest proof. JSON keeps it usable by the responsive console.
+  app.get('/adventure/evidence', (c) => {
+    const session = currentSession(c)!;
+    c.header('cache-control', 'private, no-store');
+    return c.json({
+      evidence: pendingEvidenceForHost(db, session.hostId),
+      qrCodes: qrCodesForHost(db, session.hostId),
+      csrf: csrfFor(session),
+    });
+  });
+
+  app.get('/adventure/reviews', (c) => {
+    const session = currentSession(c)!;
+    const evidence = pendingEvidenceForHost(db, session.hostId);
+    return c.html(adventureReviewPage(
+      localeFor(c), session.hostName, session.reviewer, evidence,
+      csrfFor(session), queueStats(db, session.hostId).pending + evidence.length,
+    ));
+  });
+
+  app.post('/adventure/evidence/:id/decide', async (c) => {
+    const session = currentSession(c)!;
+    const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+    if (!csrfValid(session, c.req.header('x-csrf-token'))) return c.json({ error: 'session expired' }, 403);
+    try {
+      const evidence = reviewEvidence(db, {
+        hostId: session.hostId,
+        reviewer: session.reviewer ?? session.hostName,
+        evidenceId: c.req.param('id'),
+        approved: body.approved === true,
+        reason: typeof body.reason === 'string' ? body.reason : null,
+      });
+      return c.json({ data: evidence });
+    } catch (err) {
+      if (err instanceof ActivityVerificationError) return c.json({ error: err.message, code: err.code }, err.status as 400);
+      throw err;
+    }
+  });
+
+  app.post('/adventure/qr', async (c) => {
+    const session = currentSession(c)!;
+    const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+    if (!csrfValid(session, c.req.header('x-csrf-token'))) return c.json({ error: 'session expired' }, 403);
+    const secret = process.env.CHIVAGO_QR_SIGNING_SECRET ?? '';
+    try {
+      const created = createActivityQr(db, {
+        hostId: session.hostId,
+        nodeId: String(body.nodeId ?? ''),
+        type: body.type === 'dynamic' ? 'dynamic' : 'static',
+        createdBy: session.reviewer ?? session.hostName,
+        signingSecret: secret,
+        ttlSeconds: typeof body.ttlSeconds === 'number' ? body.ttlSeconds : undefined,
+      });
+      return c.json({ data: created });
+    } catch (err) {
+      if (err instanceof ActivityVerificationError) return c.json({ error: err.message, code: err.code }, err.status as 400);
+      throw err;
+    }
+  });
+
+  app.post('/adventure/qr/:id/revoke', (c) => {
+    const session = currentSession(c)!;
+    if (!csrfValid(session, c.req.header('x-csrf-token'))) return c.json({ error: 'session expired' }, 403);
+    return c.json({ data: { revoked: revokeActivityQr(db, session.hostId, c.req.param('id'), session.reviewer ?? session.hostName) } });
+  });
+
+  app.post('/adventure/policies/:nodeId', async (c) => {
+    const session = currentSession(c)!;
+    if (!canAdmin(session)) return c.json({ error: 'not found' }, 404);
+    if (!csrfValid(session, c.req.header('x-csrf-token'))) return c.json({ error: 'session expired' }, 403);
+    const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+    try {
+      const policy = setPolicy(db, String(body.hostId ?? session.hostId), {
+        nodeId: c.req.param('nodeId'),
+        requiresGps: body.requiresGps !== false,
+        requiresQr: body.requiresQr === true,
+        requiresEvidence: body.requiresEvidence === true,
+        requiresHost: body.requiresHost === true,
+        geofenceRadiusM: Number(body.geofenceRadiusM ?? 150),
+        rewardPoints: Number(body.rewardPoints ?? 0),
+        rewardExp: Number(body.rewardExp ?? 0),
+        rewardCurrency: body.rewardCurrency === 'green' ? 'green' : 'trip',
+      });
+      return c.json({ data: policy });
+    } catch (err) {
+      if (err instanceof ActivityVerificationError) return c.json({ error: err.message, code: err.code }, err.status as 400);
+      throw err;
+    }
+  });
+
+  app.get('/adventure/evidence/photo/:id', async (c) => {
+    const session = currentSession(c)!;
+    const blob = await readAdventureEvidencePhotoForHost(db, session.hostId, c.req.param('id'));
+    if (!blob) return c.text('Not found', 404);
+    return c.body(new Uint8Array(blob.bytes), 200, {
+      'content-type': blob.mime,
+      'cache-control': 'private, no-store',
+      'content-security-policy': "default-src 'none'",
+      'x-content-type-options': 'nosniff',
+    });
   });
 
   app.get('/history', (c) => {

@@ -28,6 +28,7 @@ export const OWN_ROWS_REMOVED: readonly Reference[] = [
   { table: 'party_messages', column: 'user_id' },
   { table: 'party_meeting_points', column: 'set_by' },
   { table: 'party_quest_participants', column: 'user_id' },
+  { table: 'party_quest_assignments', column: 'user_id' },
 ];
 
 /**
@@ -42,6 +43,7 @@ export const OWN_ROWS_REMOVED: readonly Reference[] = [
 export const ATTRIBUTIONS_KEPT: readonly Reference[] = [
   { table: 'party_itinerary', column: 'added_by' },
   { table: 'party_quest_instances', column: 'selected_by' },
+  { table: 'party_quest_assignments', column: 'assigned_by' },
 ];
 
 /**
@@ -56,6 +58,19 @@ export function deleteAccount(db: DB, userId: string): boolean {
       db.prepare(`DELETE FROM ${table} WHERE ${column} = ?`).run(userId);
     }
     for (const { table, column } of ATTRIBUTIONS_KEPT) {
+      if (table === 'party_quest_assignments') {
+        db.prepare(
+          `UPDATE party_quest_assignments
+             SET assigned_by = (
+               SELECT parties.created_by
+                 FROM party_quest_instances
+                 JOIN parties ON parties.id = party_quest_instances.party_id
+                WHERE party_quest_instances.id = party_quest_assignments.party_quest_id
+             )
+           WHERE assigned_by = ?`,
+        ).run(userId);
+        continue;
+      }
       db.prepare(
         `UPDATE ${table} SET ${column} = (SELECT created_by FROM parties WHERE parties.id = ${table}.party_id)
           WHERE ${column} = ?`,

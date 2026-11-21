@@ -12,7 +12,7 @@ import { test, describe, before } from 'node:test';
 
 delete process.env.CHIVAGO_OPEN_IDENTITY;
 process.env.CHIVAGO_DB = ':memory:';
-process.env.CHIVAGO_HOST_SECRET = 'test-host-secret';
+process.env.CHIVAGO_HOST_SECRET = 'test-host-secret-at-least-32-characters';
 
 const { app, db } = await import('./server-node.ts');
 const { readCookie } = await import('./host-auth.ts');
@@ -95,7 +95,7 @@ describe('an SOS with no fix is recorded as no fix', () => {
 });
 
 describe('the machine verification path must name its host', () => {
-  const secret = { 'x-host-secret': 'test-host-secret' };
+  const secret = { 'x-host-secret': 'test-host-secret-at-least-32-characters' };
 
   test('leaving hostId out is refused, not treated as "any host"', async () => {
     const raw = await post('/internal/verify', { userId: 'x', questId: 'q-a', proofId: 'p', approved: true }, secret);
@@ -121,7 +121,7 @@ describe('the machine verification path must name its host', () => {
     ).run(JSON.stringify({ work: 'shown', weight: null, concerns: [], suggestedReason: null, photos: [], summary: { en: 'x', th: 'ก' } }), now);
     const raw = await post('/internal/verify', {
       userId: 'u-machine', questId: 'q-a', proofId: 'p-machine', approved: true, hostId: 'h-a',
-    }, { 'x-host-secret': 'test-host-secret' });
+    }, { 'x-host-secret': 'test-host-secret-at-least-32-characters' });
     assert.equal(raw.status, 200);
     const p = db.prepare("SELECT approved, assist_at_decision FROM proofs WHERE id='p-machine'").get() as Record<string, unknown>;
     assert.equal(p.approved, 1);

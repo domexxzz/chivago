@@ -20,12 +20,13 @@ import {
   AREAS, CHECKIN_RADIUS_M, CHECKIN_TRIP_POINTS, LOW_CARBON_TRIP_POINTS, inArea, islandDateKey, lowCarbonLeg,
   nearestArea,
 } from '@chivago/core';
-import type { Balances, Fix } from '@chivago/core';
-import { row, type DB } from './db.ts';
+import type { Balances, Fix, TravelCycleResult } from '@chivago/core';
+import { row, transact, type DB } from './db.ts';
 import { distanceMetres, OutsideGeofence } from './quest-service.ts';
 import { awardCheckin, awardWalk } from './wallet-service.ts';
 import { assertPresence, recordFix } from './presence-service.ts';
 import { fenceOff } from './fence.ts';
+import { recordCheckinTravelCycle } from './travel-event-service.ts';
 
 export interface CheckinResult {
   placeId: string;
@@ -35,6 +36,8 @@ export interface CheckinResult {
   pointsAwarded: number;
   balances: Balances;
   exp: number;
+  /** EXP granted by this request, not the account's lifetime EXP total. */
+  expAwarded: number;
   /** Metres from the place centre when the check-in was accepted. */
   distanceM: number;
   /**
@@ -44,6 +47,8 @@ export interface CheckinResult {
    * already paid.
    */
   walk: { fromPlaceId: string; fromPlaceName: string; metres: number; minutes: number; points: number } | null;
+  /** Server-confirmed consequences of the verified check-in. */
+  travel: TravelCycleResult;
 }
 
 /** The most recent earlier check-in today, with its place. */
@@ -102,25 +107,32 @@ export function checkIn(
   // would refuse an honest tester who moved 450 km between two taps.
   if (!fenceOff()) assertPresence(db, { userId: args.userId, fix, radiusM: CHECKIN_RADIUS_M, now });
 
-  const movement = awardCheckin(db, {
-    userId: args.userId,
-    placeId: place.id,
-    placeName: place.name_en,
-    points: CHECKIN_TRIP_POINTS,
-    dayKey: islandDateKey(now),
-    occurredAt: now.toISOString(),
-  });
-  recordFix(db, args.userId, fix, now);
+  return transact(db, () => {
+    const movement = awardCheckin(db, {
+      userId: args.userId,
+      placeId: place.id,
+      placeName: place.name_en,
+      points: CHECKIN_TRIP_POINTS,
+      dayKey: islandDateKey(now),
+      occurredAt: now.toISOString(),
+    });
+    if (!movement.entry) throw new Error('check-in ledger entry was not recorded');
+    const travel = recordCheckinTravelCycle(db, {
+      userId: args.userId,
+      placeId: place.id,
+      ledgerSourceRef: movement.entry.sourceRef,
+    });
+    recordFix(db, args.userId, fix, now);
 
-  // The leg that brought them here. Only on a fresh check-in: a second
-  // check-in at the same beach closes no journey.
-  let walk: CheckinResult['walk'] = null;
-  let balances = movement.balances;
-  let exp = movement.exp;
-  if (movement.applied) {
-    const dayKey = islandDateKey(now);
-    const prev = previousCheckinToday(db, args.userId, dayKey, now);
-    if (prev) {
+    // The leg that brought them here. Only on a fresh check-in: a second
+    // check-in at the same beach closes no journey.
+    let walk: CheckinResult['walk'] = null;
+    let balances = movement.balances;
+    let exp = movement.exp;
+    if (movement.applied) {
+      const dayKey = islandDateKey(now);
+      const prev = previousCheckinToday(db, args.userId, dayKey, now);
+      if (prev) {
       /*
         The floor belongs to the area, not to the app.
 
@@ -134,36 +146,39 @@ export function checkIn(
         fallback so a place outside every outline still gets a number rather
         than an exception.
       */
-      const area = AREAS.find((a) => inArea(a, place)) ?? nearestArea(place.lat, place.lng);
-      const leg = lowCarbonLeg(
-        { placeId: prev.placeId, lat: prev.lat, lng: prev.lng, at: prev.at },
-        { placeId: place.id, lat: place.lat, lng: place.lng, at: now },
-        area.legMinM,
-      );
-      if (leg.qualifies) {
-        const paid = awardWalk(db, {
-          userId: args.userId, fromId: prev.placeId, fromName: prev.name, toId: place.id, toName: place.name_en,
-          points: LOW_CARBON_TRIP_POINTS, dayKey, occurredAt: now.toISOString(),
-        });
-        if (paid.applied) {
-          walk = { fromPlaceId: prev.placeId, fromPlaceName: prev.name, metres: leg.metres, minutes: leg.minutes, points: LOW_CARBON_TRIP_POINTS };
-          balances = paid.balances;
-          exp = paid.exp;
+        const area = AREAS.find((a) => inArea(a, place)) ?? nearestArea(place.lat, place.lng);
+        const leg = lowCarbonLeg(
+          { placeId: prev.placeId, lat: prev.lat, lng: prev.lng, at: prev.at },
+          { placeId: place.id, lat: place.lat, lng: place.lng, at: now },
+          area.legMinM,
+        );
+        if (leg.qualifies) {
+          const paid = awardWalk(db, {
+            userId: args.userId, fromId: prev.placeId, fromName: prev.name, toId: place.id, toName: place.name_en,
+            points: LOW_CARBON_TRIP_POINTS, dayKey, occurredAt: now.toISOString(),
+          });
+          if (paid.applied) {
+            walk = { fromPlaceId: prev.placeId, fromPlaceName: prev.name, metres: leg.metres, minutes: leg.minutes, points: LOW_CARBON_TRIP_POINTS };
+            balances = paid.balances;
+            exp = paid.exp;
+          }
         }
       }
     }
-  }
 
-  return {
-    placeId: place.id,
-    placeName: place.name_en,
-    awarded: movement.applied,
-    pointsAwarded: movement.applied ? CHECKIN_TRIP_POINTS : 0,
-    balances,
-    exp,
-    distanceM: Math.round(distanceM),
-    walk,
-  };
+    return {
+      placeId: place.id,
+      placeName: place.name_en,
+      awarded: movement.applied,
+      pointsAwarded: movement.applied ? CHECKIN_TRIP_POINTS : 0,
+      balances,
+      exp,
+      expAwarded: movement.applied ? movement.entry.exp : 0,
+      distanceM: Math.round(distanceM),
+      walk,
+      travel,
+    };
+  });
 }
 
 /** Places this user has already checked in at today, so the UI can say so. */

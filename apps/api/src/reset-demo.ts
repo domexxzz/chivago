@@ -106,6 +106,12 @@ export const TRAVELLER_TABLES = [
   // The door (docs/46) is operational state, not the pilot's: a reset shuts
   // it, so a day starts with a moderator opening it on purpose.
   'settings',
+  // Verified journey projections belong to the traveller. Children leave
+  // before their source events; narrative content remains published below.
+  'adventure_evidence_files', 'activity_verifications', 'adventure_evidence', 'activity_qr_scans',
+  'seasonal_exchanges', 'seasonal_item_ownership', 'seasonal_progress_events',
+  'pet_preferences', 'travel_trip_photos', 'travel_trip_entries', 'travel_trips',
+  'travel_journal_entries', 'pet_memories', 'travel_events', 'adventure_unlocks',
   'ledger', 'wallets', 'profiles',
   // The AI's opinion on a proof (docs/64) goes before the proof it is about.
   'proof_assists',
@@ -135,7 +141,7 @@ export const TRAVELLER_TABLES = [
   'user_accounts', 'device_keys', 'link_codes', 'line_identities', 'google_identities',
   // A party's invitations and the requests to join them go with the party -
   // children first, so the foreign keys never see an orphan.
-  'party_quest_participants', 'party_quest_instances',
+  'party_quest_assignments', 'party_quest_participants', 'party_quest_instances',
   'party_locations', 'party_meeting_points', 'party_messages', 'party_itinerary', 'party_trip_summaries',
   'invite_requests', 'party_invites', 'party_members', 'parties',
   // A sighting is the rider's, like a check-in: it is their report that
@@ -176,6 +182,10 @@ export const TRAVELLER_TABLES = [
  */
 export const KEPT_TABLES = [
   'places', 'quests', 'offers', 'hosts', 'host_sessions', 'host_invites',
+  // Published Adventure content is operator-owned, like Places and Quests.
+  'adventure_content_versions', 'adventure_arcs', 'adventure_chapters', 'adventure_nodes',
+  'adventure_verification_policies', 'activity_qr_codes', 'activity_verification_audit',
+  'seasonal_quest_bindings', 'seasonal_items', 'seasonal_events',
   'community_metrics', 'air_cache', 'air_history',
   // Shared provider abuse-control state is operational, not traveller data.
   // Resetting the demo must not reopen the Groq quota window.

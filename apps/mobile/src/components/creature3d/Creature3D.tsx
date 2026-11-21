@@ -29,7 +29,8 @@
 
 import React from 'react';
 import * as THREE from 'three';
-import type { CompanionStage, LayerKey, Mascot } from '@chivago/core';
+import type { CompanionStage, LayerKey, Mascot, PetGesture } from '@chivago/core';
+import type { PetGestureAction } from '../CreatureScene.tsx';
 import type { CreatureKey } from '../Creature.tsx';
 import { hourFrom } from '../island-clock.ts';
 import {
@@ -232,12 +233,17 @@ export interface Creature3DProps {
   label: string;
   /** Called on a tap, after the animal has reacted. The screen may toast. */
   onTap?: () => void;
+  gestureAction?: PetGestureAction;
 }
 
-export function Creature3D({ species, mascot, stage, height = 320, label, onTap }: Creature3DProps) {
+export function Creature3D({ species, mascot, stage, height = 320, label, onTap, gestureAction }: Creature3DProps) {
   const holder = React.useRef<HTMLDivElement | null>(null);
   const tapRef = React.useRef(onTap);
+  const gestureRef = React.useRef<{ gesture: PetGesture; startedAt: number; nonce: number } | null>(null);
   React.useEffect(() => { tapRef.current = onTap; });
+  React.useEffect(() => {
+    if (gestureAction) gestureRef.current = { ...gestureAction, startedAt: performance.now() };
+  }, [gestureAction?.nonce]);
 
   React.useEffect(() => {
     const el = holder.current;
@@ -419,6 +425,27 @@ export function Creature3D({ species, mascot, stage, height = 320, label, onTap 
       if (!dragging && pointer.active === false) yawTarget += dt * 0.06 * motion;
       yaw += (yawTarget - yaw) * Math.min(1, dt * 6);
       stageRoot.rotation.y = yaw;
+      stageRoot.rotation.x = 0;
+      stageRoot.rotation.z = 0;
+      stageRoot.position.set(0, 0, 0);
+      stageRoot.scale.setScalar(1);
+
+      const selected = gestureRef.current;
+      if (selected && !still) {
+        const age = (performance.now() - selected.startedAt) / 1400;
+        if (age >= 1) gestureRef.current = null;
+        else {
+          const wave = Math.sin(age * Math.PI * 4) * Math.sin(age * Math.PI);
+          const arc = Math.sin(age * Math.PI);
+          if (selected.gesture === 'happy') stageRoot.position.y = arc * 0.18;
+          if (selected.gesture === 'wave') stageRoot.rotation.z = wave * 0.18;
+          if (selected.gesture === 'celebrate') { stageRoot.position.y = Math.abs(Math.sin(age * Math.PI * 3)) * 0.3; stageRoot.scale.setScalar(1 + arc * 0.08); }
+          if (selected.gesture === 'sleep') { stageRoot.rotation.z = arc * 0.18; stageRoot.scale.setScalar(1 - arc * 0.08); }
+          if (selected.gesture === 'explore') stageRoot.rotation.y = yaw + wave * 0.45;
+          if (selected.gesture === 'curious') stageRoot.rotation.z = wave * 0.1;
+          if (selected.gesture === 'sad') { stageRoot.position.y = -arc * 0.08; stageRoot.rotation.x = arc * 0.12; }
+        }
+      }
 
       const reacting = performance.now() < reactUntil;
       const k = reacting ? (performance.now() - reactStart) / reactionMs : 0; // 0..1 through the reaction

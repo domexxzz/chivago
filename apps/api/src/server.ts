@@ -15,8 +15,9 @@ import {
   membersOf, rotatePartyCode, transferPartyOwnership,
 } from './party-service.ts';
 import {
-  PartyQuestError, cancelPartyQuest, currentPartyQuest, getPartyQuest, partyQuestHistory,
-  partyQuestProgress, selectPartyQuest, startPartyQuest,
+  PartyQuestError, assignPartyQuestMember, cancelPartyQuest, completePartyQuest,
+  currentPartyQuest, getPartyQuest, partyQuestHistory, partyQuestProgress,
+  selectPartyQuest, startPartyQuest,
 } from './party-quest-service.ts';
 import {
   PartyLiveError, addItineraryPlace, addPartyMessage, finishPartyTrip, itinerary, liveMembers,
@@ -162,8 +163,28 @@ import {
 } from './host-auth.ts';
 import { isPrimary, onPrimary } from './primary.ts';
 import { bootstrapKohSichangBusinesses } from './bootstrap-koh-sichang.ts';
+import { bootstrapKohSichangAdventure } from './adventure-bootstrap.ts';
+import { adventureOverviewFor } from './adventure-service.ts';
+import {
+  petMemoriesFor, travelEventsFor, travelJournalFor, updateTravelJournalEntry,
+} from './travel-event-service.ts';
+import {
+  TravelTripError, addTravelTripPhoto, createTravelTrip, deleteTravelTripPhoto,
+  readTravelTripPhoto, travelTripFor, travelTripsFor, updateTravelTrip,
+} from './travel-trip-service.ts';
+import {
+  PetProgressionError, petProgressionForUser, petProgressionsForUser, selectPetGesture,
+} from './pet-progression-service.ts';
+import { SeasonError, currentSeason, exchangeSeasonItem, seasonById, seasonHistory } from './season-service.ts';
+import {
+  ActivityVerificationError, cancelEvidence, createEvidenceDraft, evidenceForUser,
+  prepareEvidenceSubmission, recordRejectedQrAttempt, submitEvidence, verifyActivityQr,
+} from './activity-verification-service.ts';
 import { buildSweeps, startSweepTimers, type Sweep } from './sweeps.ts';
-import { MAX_BYTES, MAX_PHOTOS_PER_PROOF, storePhoto, UnsupportedUpload } from './uploads.ts';
+import {
+  deleteAdventureEvidencePhoto, MAX_BYTES, MAX_PHOTOS_PER_PROOF, sniff, storeAdventureEvidencePhoto,
+  storePhoto, UnsupportedUpload,
+} from './uploads.ts';
 import {
   COMMUNITY_MEDIA_MAX_BYTES, addCommunityComment, createCommunityPost, listCommunityFeed,
   readCommunityMedia, recordCommunityShare, toggleCommunityLike,
@@ -242,6 +263,10 @@ export function useDatabase(handle: DB): void {
         || bootstrapped.attractionsLeftAlone.length > 0;
       if (!bootstrapped.skipped && planted) {
         console.log('[chivago] Ko Sichang content bootstrapped:', bootstrapped);
+      }
+      const adventure = bootstrapKohSichangAdventure(db);
+      if (!adventure.skipped && adventure.inserted > 0) {
+        console.log('[chivago] Ko Sichang adventure bootstrapped:', adventure);
       }
     } catch (err) {
       console.error('[chivago] Ko Sichang bootstrap failed; starting without it:', err);
@@ -2025,6 +2050,255 @@ app.delete('/concierge/history', (c) => {
   return ok(c, { cleared: true, deletedConversations });
 });
 
+app.get('/adventures/current', (c) => {
+  const area = c.req.query('area')?.trim() || 'koh-sichang';
+  return ok(c, adventureOverviewFor(db, userId(c), area));
+});
+
+const seasonFailure = (c: Context<AppEnv>, err: unknown) => {
+  if (err instanceof SeasonError) return fail(c, err.code, err.message, err.status);
+  throw err;
+};
+
+app.get('/seasons/current', (c) => {
+  try { return ok(c, { season: currentSeason(db, userId(c)) }); }
+  catch (err) { return seasonFailure(c, err); }
+});
+
+app.get('/seasons/history', (c) => {
+  try { return ok(c, { seasons: seasonHistory(db, userId(c)) }); }
+  catch (err) { return seasonFailure(c, err); }
+});
+
+app.get('/seasons/:id', (c) => {
+  try { return ok(c, { season: seasonById(db, userId(c), c.req.param('id')) }); }
+  catch (err) { return seasonFailure(c, err); }
+});
+
+app.post('/seasons/items/:id/exchange', async (c) => {
+  try {
+    const body = await boundedJson(c, 2_048) as { clientRequestId?: unknown };
+    return ok(c, { season: exchangeSeasonItem(db, userId(c), c.req.param('id'), body.clientRequestId) });
+  } catch (err) { return seasonFailure(c, err); }
+});
+
+const qrSigningSecret = (): string => process.env.CHIVAGO_QR_SIGNING_SECRET ?? '';
+
+app.post('/adventure/qr/verify', async (c) => {
+  const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  if (typeof body.token !== 'string' || body.token.length > 4096) {
+    return fail(c, 'QR_REQUIRED', 'A ChivaGo QR token is required.');
+  }
+  if (typeof body.clientRequestId !== 'string' || body.clientRequestId.length < 8 || body.clientRequestId.length > 100) {
+    return fail(c, 'REQUEST_ID_REQUIRED', 'A valid request id is required.');
+  }
+  const secret = qrSigningSecret();
+  if (secret.length < 32) return fail(c, 'QR_NOT_CONFIGURED', 'QR verification is not configured.', 503);
+  try {
+    return ok(c, verifyActivityQr(db, {
+      userId: userId(c), token: body.token, clientRequestId: body.clientRequestId,
+      signingSecret: secret,
+      expectedNodeId: typeof body.nodeId === 'string' ? body.nodeId : null,
+      fix: parsePosition(body.position),
+    }));
+  } catch (err) {
+    if (err instanceof ActivityVerificationError) {
+      recordRejectedQrAttempt(db, {
+        userId: userId(c), clientRequestId: body.clientRequestId, errorCode: err.code,
+      });
+      return fail(c, err.code, err.message, err.status);
+    }
+    throw err;
+  }
+});
+
+app.get('/adventure/evidence', (c) => ok(c, { evidence: evidenceForUser(db, userId(c)) }));
+
+app.post('/adventure/nodes/:id/evidence', async (c) => {
+  const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+  if (typeof body.clientRequestId !== 'string' || body.clientRequestId.length < 8 || body.clientRequestId.length > 100) {
+    return fail(c, 'REQUEST_ID_REQUIRED', 'A valid request id is required.');
+  }
+  try {
+    return ok(c, createEvidenceDraft(db, {
+      userId: userId(c), nodeId: c.req.param('id'), clientRequestId: body.clientRequestId,
+      qrScanId: typeof body.qrScanId === 'string' ? body.qrScanId : null,
+    }));
+  } catch (err) {
+    if (err instanceof ActivityVerificationError) return fail(c, err.code, err.message, err.status);
+    throw err;
+  }
+});
+
+app.post('/adventure/evidence/:id/submit', async (c) => {
+  const evidenceId = c.req.param('id');
+  const mine = evidenceForUser(db, userId(c)).find((item) => item.id === evidenceId);
+  if (!mine) return fail(c, 'NOT_FOUND', 'Evidence not found.', 404);
+  if (mine.status !== 'draft') return ok(c, mine);
+  if (!(c.req.header('content-type') ?? '').includes('multipart/form-data')) {
+    return fail(c, 'MULTIPART_REQUIRED', 'Evidence must be uploaded as multipart form data.');
+  }
+  const form = await boundedForm(c, MAX_PHOTOS_PER_PROOF * MAX_BYTES + 64 * 1024);
+  const files = form.getAll('photo').filter((item): item is File => item instanceof File);
+  if (files.length > MAX_PHOTOS_PER_PROOF) {
+    return fail(c, 'TOO_MANY_PHOTOS', `At most ${MAX_PHOTOS_PER_PROOF} photos.`);
+  }
+  const fix = parsePosition(form.get('position'));
+  const storedPhotoIds: string[] = [];
+  try {
+    prepareEvidenceSubmission(db, {
+      userId: userId(c), evidenceId, incomingPhotos: files.length,
+      maxPhotos: MAX_PHOTOS_PER_PROOF, fix,
+    });
+    const buffers = await Promise.all(files.map(async (file) => Buffer.from(await file.arrayBuffer())));
+    buffers.forEach(sniff);
+    for (const bytes of buffers) {
+      const stored = await storeAdventureEvidencePhoto(db, evidenceId, bytes);
+      storedPhotoIds.push(stored.id);
+    }
+    prepareEvidenceSubmission(db, {
+      userId: userId(c), evidenceId, incomingPhotos: 0,
+      maxPhotos: MAX_PHOTOS_PER_PROOF, fix,
+    });
+    return ok(c, submitEvidence(db, {
+      userId: userId(c), evidenceId, fix,
+    }));
+  } catch (err) {
+    await Promise.all(storedPhotoIds.map((photoId) =>
+      deleteAdventureEvidencePhoto(db, evidenceId, photoId).catch(() => false)));
+    if (err instanceof UnsupportedUpload) return fail(c, 'UNSUPPORTED_UPLOAD', err.message, 415);
+    if (err instanceof ActivityVerificationError) return fail(c, err.code, err.message, err.status);
+    throw err;
+  }
+});
+
+app.post('/adventure/evidence/:id/cancel', (c) => {
+  try { return ok(c, cancelEvidence(db, userId(c), c.req.param('id'))); }
+  catch (err) {
+    if (err instanceof ActivityVerificationError) return fail(c, err.code, err.message, err.status);
+    throw err;
+  }
+});
+
+/** Immutable, server-authored facts behind this traveller's journey. */
+app.get('/travel/events', (c) =>
+  ok(c, { events: travelEventsFor(db, userId(c), num(c.req.query('limit'), 50)) }));
+
+/** Private-by-default journal entries built only from verified events. */
+app.get('/travel/journal', (c) =>
+  ok(c, { entries: travelJournalFor(db, userId(c), num(c.req.query('limit'), 50)) }));
+
+const tripFailure = (c: Context<AppEnv>, err: unknown) => {
+  if (err instanceof TravelTripError) return fail(c, err.code, err.message, err.status);
+  throw err;
+};
+
+app.get('/travel/trips', (c) =>
+  ok(c, { trips: travelTripsFor(db, userId(c), num(c.req.query('limit'), 20)) }));
+
+app.get('/travel/trips/:id', (c) => {
+  try { return ok(c, travelTripFor(db, userId(c), c.req.param('id'))); }
+  catch (err) { return tripFailure(c, err); }
+});
+
+app.post('/travel/trips', async (c) => {
+  const body = await c.req.json().catch(() => ({})) as { name?: unknown; entryIds?: unknown };
+  try { return ok(c, createTravelTrip(db, userId(c), body.name, body.entryIds)); }
+  catch (err) { return tripFailure(c, err); }
+});
+
+app.patch('/travel/trips/:id', async (c) => {
+  const body = await c.req.json().catch(() => ({})) as {
+    name?: unknown; visibility?: unknown; coverPhotoId?: unknown;
+  };
+  try { return ok(c, updateTravelTrip(db, userId(c), c.req.param('id'), body)); }
+  catch (err) { return tripFailure(c, err); }
+});
+
+app.post('/travel/trips/:id/photos', async (c) => {
+  if (!(c.req.header('content-type') ?? '').includes('multipart/form-data')) {
+    return fail(c, 'MULTIPART_REQUIRED', 'Photo must be uploaded as multipart form data.');
+  }
+  const form = await boundedForm(c, MAX_BYTES + 64 * 1024);
+  const photo = form.get('photo');
+  if (!(photo instanceof File)) return fail(c, 'PHOTO_REQUIRED', 'Choose one photo.');
+  try {
+    return ok(c, await addTravelTripPhoto(
+      db, userId(c), c.req.param('id'), Buffer.from(await photo.arrayBuffer()), form.get('caption'),
+    ));
+  } catch (err) {
+    if (err instanceof UnsupportedUpload) return fail(c, 'UNSUPPORTED_UPLOAD', err.message, 415);
+    return tripFailure(c, err);
+  }
+});
+
+app.get('/travel/photos/:id', async (c) => {
+  const photo = await readTravelTripPhoto(db, userId(c), c.req.param('id'));
+  if (!photo) return fail(c, 'NOT_FOUND', 'No such photo', 404);
+  return c.body(new Uint8Array(photo.bytes), 200, {
+    'content-type': photo.mime, 'cache-control': 'private, max-age=3600', 'x-content-type-options': 'nosniff',
+  });
+});
+
+app.delete('/travel/photos/:id', async (c) =>
+  (await deleteTravelTripPhoto(db, userId(c), c.req.param('id')))
+    ? ok(c, { deleted: true }) : fail(c, 'NOT_FOUND', 'No such photo', 404));
+
+app.patch('/travel/journal/:id', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as {
+    note?: unknown; visibility?: unknown; expectedUpdatedAt?: unknown;
+  };
+  if (body.note !== undefined && body.note !== null && typeof body.note !== 'string') {
+    return fail(c, 'BAD_REQUEST', 'note must be text or null');
+  }
+  if (body.visibility !== undefined && body.visibility !== 'private' && body.visibility !== 'shared') {
+    return fail(c, 'BAD_REQUEST', 'visibility must be private or shared');
+  }
+  if (body.expectedUpdatedAt !== undefined && typeof body.expectedUpdatedAt !== 'string') {
+    return fail(c, 'BAD_REQUEST', 'expectedUpdatedAt must be text');
+  }
+  if (typeof body.expectedUpdatedAt === 'string') {
+    const current = row<{ updated_at: string }>(db.prepare(
+      'SELECT updated_at FROM travel_journal_entries WHERE id=? AND user_id=?',
+    ).get(c.req.param('id'), userId(c)));
+    if (current && current.updated_at !== body.expectedUpdatedAt) {
+      return fail(c, 'JOURNAL_CONFLICT', 'This journal entry changed on another device. Reload before saving.', 409);
+    }
+  }
+  const entry = updateTravelJournalEntry(db, userId(c), c.req.param('id'), {
+    ...(body.note !== undefined ? { note: body.note as string | null } : {}),
+    ...(body.visibility !== undefined ? { visibility: body.visibility as 'private' | 'shared' } : {}),
+  });
+  return entry ? ok(c, entry) : fail(c, 'NOT_FOUND', 'No such journal entry', 404);
+});
+
+/** Pet memories can only be read by the account that earned them. */
+app.get('/companions/memories', (c) =>
+  ok(c, { memories: petMemoriesFor(db, userId(c)) }));
+
+/** Bond and level are projections of verified Pet Memories, never client counters. */
+app.get('/companions/progression', (c) =>
+  ok(c, { companions: petProgressionsForUser(db, userId(c)) }));
+
+app.get('/companions/:key/progression', (c) => {
+  try {
+    return ok(c, petProgressionForUser(db, userId(c), c.req.param('key')));
+  } catch (err) {
+    if (err instanceof PetProgressionError) return fail(c, err.code, err.message, err.status);
+    throw err;
+  }
+});
+
+app.post('/companions/:key/gesture', async (c) => {
+  const body = await c.req.json().catch(() => ({})) as { gesture?: unknown };
+  try {
+    return ok(c, selectPetGesture(db, userId(c), c.req.param('key'), body.gesture));
+  } catch (err) {
+    if (err instanceof PetProgressionError) return fail(c, err.code, err.message, err.status);
+    throw err;
+  }
+});
+
 app.get('/places', async (c) => {
   const q = c.req.query();
   const bbox = q.bbox
@@ -2558,10 +2832,16 @@ app.post('/internal/invites', async (c) => {
 
 app.post('/internal/open-area', async (c) => {
   const secret = process.env.CHIVAGO_HOST_SECRET;
-  if (!secret || c.req.header('x-host-secret') !== secret) {
+  if (!secret) {
     return fail(c, 'FORBIDDEN', 'Host credentials required', 403);
   }
-  const body = (await c.req.json().catch(() => ({}))) as { area?: unknown; photos?: unknown; text?: unknown };
+  if (secret.length < MIN_SECRET_LENGTH) {
+    return fail(c, 'HOST_SECRET_UNSAFE', 'Host machine credential is not configured safely.', 503);
+  }
+  if (!constantTimeEqual(new TextEncoder().encode(c.req.header('x-host-secret') ?? ''), new TextEncoder().encode(secret))) {
+    return fail(c, 'FORBIDDEN', 'Host credentials required', 403);
+  }
+  const body = (await boundedJson(c, 16 * 1024)) as { area?: unknown; photos?: unknown; text?: unknown };
   if (!isAreaKey(body.area)) {
     return fail(c, 'BAD_AREA', `area must be one of ${AREAS.map((a) => a.key).join(', ')}`);
   }
@@ -2607,10 +2887,16 @@ app.post('/internal/open-area', async (c) => {
 
 app.post('/internal/verify', async (c) => {
   const secret = process.env.CHIVAGO_HOST_SECRET;
-  if (!secret || c.req.header('x-host-secret') !== secret) {
+  if (!secret) {
     return fail(c, 'FORBIDDEN', 'Host credentials required', 403);
   }
-  const body = (await c.req.json()) as {
+  if (secret.length < MIN_SECRET_LENGTH) {
+    return fail(c, 'HOST_SECRET_UNSAFE', 'Host machine credential is not configured safely.', 503);
+  }
+  if (!constantTimeEqual(new TextEncoder().encode(c.req.header('x-host-secret') ?? ''), new TextEncoder().encode(secret))) {
+    return fail(c, 'FORBIDDEN', 'Host credentials required', 403);
+  }
+  const body = (await boundedJson(c, 16 * 1024)) as {
     userId: string; questId: string; proofId: string; approved: boolean;
     reason?: string; hostId?: string;
   };
@@ -2629,7 +2915,12 @@ app.post('/internal/verify', async (c) => {
   if (body.reason !== undefined && !isRejectionReasonKey(body.reason)) {
     return fail(c, 'INVALID_REASON', 'Not a rejection reason this app knows.', 400);
   }
-
+  const proof = db.prepare('SELECT user_id,quest_id FROM proofs WHERE id=?').get(body.proofId) as
+    | { user_id: string; quest_id: string } | undefined;
+  if (!proof) return fail(c, 'PROOF_NOT_FOUND', 'Proof not found.', 404);
+  if (proof.user_id !== body.userId || proof.quest_id !== body.questId) {
+    return fail(c, 'PROOF_MISMATCH', 'Proof does not belong to that traveller and quest.', 403);
+  }
   const result = resolveVerification(db, { ...body, reviewedBy: body.hostId });
   flushNotifications();
   return ok(c, result);
@@ -3145,6 +3436,22 @@ app.post('/party/quests/:id/start', (c) => {
 
 app.post('/party/quests/:id/cancel', (c) => {
   try { return ok(c, { partyQuest: cancelPartyQuest(db, userId(c), c.req.param('id')) }); }
+  catch (err) { return partyQuestFailure(c, err); }
+});
+
+app.put('/party/quests/:id/assignments/:memberId', async (c) => {
+  try {
+    const body = await boundedJson(c, 2_048) as { assignment?: unknown };
+    return ok(c, {
+      partyQuest: assignPartyQuestMember(
+        db, userId(c), c.req.param('id'), c.req.param('memberId'), body.assignment,
+      ),
+    });
+  } catch (err) { return partyQuestFailure(c, err); }
+});
+
+app.post('/party/quests/:id/complete', (c) => {
+  try { return ok(c, { partyQuest: completePartyQuest(db, userId(c), c.req.param('id')) }); }
   catch (err) { return partyQuestFailure(c, err); }
 });
 

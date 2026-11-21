@@ -1,30 +1,20 @@
 /**
- * The outbox on a device: the keystore where there is one, localStorage on
- * the web, memory when neither will have us. Kept apart from outbox.ts so
- * the logic there imports nothing a node test cannot load.
+ * The outbox uses the same durable adapter as Offline Lite: IndexedDB on Web
+ * and SQLite on Android/iOS. Evidence photos remain in the platform file/blob
+ * store; this record contains only their storage references.
  */
 
-import * as SecureStore from 'expo-secure-store';
 import { memoryStore, type OutboxItem, type OutboxStore } from './outbox.ts';
+import { offlineStorage } from '../offline/storage.ts';
 
 const KEY = 'chivago.proofOutbox';
 
-function webStore(): OutboxStore | null {
-  if (typeof localStorage === 'undefined') return null;
+function durableStore(): OutboxStore {
   return {
     read: async () => {
-      try { const raw = localStorage.getItem(KEY); return raw ? (JSON.parse(raw) as OutboxItem[]) : []; } catch { return []; }
+      try { const raw = await (await offlineStorage()).get(KEY); return raw ? (JSON.parse(raw) as OutboxItem[]) : []; } catch { return []; }
     },
-    write: async (items) => { try { localStorage.setItem(KEY, JSON.stringify(items)); } catch { /* full or private */ } },
-  };
-}
-
-function keystore(): OutboxStore {
-  return {
-    read: async () => {
-      try { const raw = await SecureStore.getItemAsync(KEY); return raw ? (JSON.parse(raw) as OutboxItem[]) : []; } catch { return []; }
-    },
-    write: async (items) => { try { await SecureStore.setItemAsync(KEY, JSON.stringify(items)); } catch { /* no keystore */ } },
+    write: async (items) => { try { await (await offlineStorage()).set(KEY, JSON.stringify(items)); } catch { /* unavailable: memory fallback below remains safe */ } },
   };
 }
 
@@ -33,6 +23,6 @@ const fallback = memoryStore();
 
 export function deviceOutbox(): OutboxStore {
   if (chosen) return chosen;
-  chosen = webStore() ?? (SecureStore && typeof SecureStore.getItemAsync === 'function' ? keystore() : fallback);
+  chosen = typeof indexedDB !== 'undefined' || (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') ? durableStore() : fallback;
   return chosen;
 }

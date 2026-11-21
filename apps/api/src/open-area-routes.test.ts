@@ -17,7 +17,7 @@ import { ACTIVE_QUESTS, areaByKey, inArea } from '@chivago/core';
 
 /** Its own database, set before server-node.ts is imported and opens one. */
 process.env.CHIVAGO_DB = ':memory:';
-process.env.CHIVAGO_HOST_SECRET = 'test-operator-secret';
+process.env.CHIVAGO_HOST_SECRET = 'test-operator-secret-at-least-32-characters';
 
 const { app, db } = await import('./server-node.ts');
 
@@ -28,7 +28,7 @@ const post = (path: string, body?: unknown, headers: Record<string, string> = {}
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
-const SECRET = { 'x-host-secret': 'test-operator-secret' };
+const SECRET = { 'x-host-secret': 'test-operator-secret-at-least-32-characters' };
 /** What the opener seeds: the published five, not the historical catalogue. */
 const seededSichang = ACTIVE_QUESTS.filter((q) => inArea(areaByKey('koh-sichang'), q));
 

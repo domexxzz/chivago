@@ -820,6 +820,451 @@ export function migrate(db: DB): string[] {
       ON party_quest_participants(party_quest_id, membership_status);
   `);
   applied.push('party_quest_foundation');
+  if (addColumn(db, 'party_quest_instances', 'deadline_at', 'TEXT')) applied.push('party_quest_instances.deadline_at');
+  if (addColumn(db, 'party_quest_instances', 'rewarded_at', 'TEXT')) applied.push('party_quest_instances.rewarded_at');
+  if (addColumn(db, 'party_quest_instances', 'reward_policy_json', "TEXT NOT NULL DEFAULT '{}'")) applied.push('party_quest_instances.reward_policy_json');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS party_quest_assignments (
+      party_quest_id TEXT NOT NULL REFERENCES party_quest_instances(id) ON DELETE CASCADE,
+      user_id        TEXT NOT NULL REFERENCES users(id),
+      assignment     TEXT NOT NULL,
+      assigned_by    TEXT NOT NULL REFERENCES users(id),
+      assigned_at    TEXT NOT NULL,
+      PRIMARY KEY(party_quest_id,user_id),
+      FOREIGN KEY(party_quest_id,user_id) REFERENCES party_quest_participants(party_quest_id,user_id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_party_quest_assignments_instance ON party_quest_assignments(party_quest_id);
+  `);
+  applied.push('party_quest_cooperation');
+
+  /*
+    Adventure narrative content.
+
+    These tables deliberately point at the existing Places and Quest engines.
+    A node is content and ordering; it is not another location record and it
+    is not another Quest progress table. Verified check-ins continue to live
+    in the ledger, while non-check-in unlock methods can write one auditable,
+    idempotent row to adventure_unlocks.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS adventure_arcs (
+      id             TEXT PRIMARY KEY,
+      area_key       TEXT NOT NULL,
+      status         TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','published','archived')),
+      title_en       TEXT NOT NULL,
+      title_th       TEXT NOT NULL,
+      title_zh       TEXT NOT NULL,
+      summary_en     TEXT NOT NULL,
+      summary_th     TEXT NOT NULL,
+      summary_zh     TEXT NOT NULL,
+      cover_place_id TEXT REFERENCES places(id),
+      created_at     TEXT NOT NULL,
+      published_at   TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_adventure_arcs_area_status
+      ON adventure_arcs(area_key, status, published_at DESC);
+
+    CREATE TABLE IF NOT EXISTS adventure_chapters (
+      id          TEXT PRIMARY KEY,
+      arc_id      TEXT NOT NULL REFERENCES adventure_arcs(id) ON DELETE CASCADE,
+      position    INTEGER NOT NULL CHECK(position >= 0),
+      title_en    TEXT NOT NULL,
+      title_th    TEXT NOT NULL,
+      title_zh    TEXT NOT NULL,
+      summary_en  TEXT NOT NULL,
+      summary_th  TEXT NOT NULL,
+      summary_zh  TEXT NOT NULL,
+      created_at  TEXT NOT NULL,
+      UNIQUE(arc_id, position)
+    );
+    CREATE INDEX IF NOT EXISTS idx_adventure_chapters_arc
+      ON adventure_chapters(arc_id, position);
+
+    CREATE TABLE IF NOT EXISTS adventure_nodes (
+      id                TEXT PRIMARY KEY,
+      chapter_id        TEXT NOT NULL REFERENCES adventure_chapters(id) ON DELETE CASCADE,
+      position          INTEGER NOT NULL CHECK(position >= 0),
+      place_id           TEXT NOT NULL REFERENCES places(id),
+      title_en           TEXT NOT NULL,
+      title_th           TEXT NOT NULL,
+      title_zh           TEXT NOT NULL,
+      story_en           TEXT NOT NULL,
+      story_th           TEXT NOT NULL,
+      story_zh           TEXT NOT NULL,
+      instruction_en     TEXT NOT NULL,
+      instruction_th     TEXT NOT NULL,
+      instruction_zh     TEXT NOT NULL,
+      verification_kind  TEXT NOT NULL CHECK(verification_kind IN ('checkin','quest','qr','host')),
+      quest_id            TEXT REFERENCES quests(id),
+      optional            INTEGER NOT NULL DEFAULT 0 CHECK(optional IN (0,1)),
+      created_at          TEXT NOT NULL,
+      UNIQUE(chapter_id, position)
+    );
+    CREATE INDEX IF NOT EXISTS idx_adventure_nodes_chapter
+      ON adventure_nodes(chapter_id, position);
+    CREATE INDEX IF NOT EXISTS idx_adventure_nodes_place
+      ON adventure_nodes(place_id);
+
+    CREATE TABLE IF NOT EXISTS adventure_unlocks (
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      node_id      TEXT NOT NULL REFERENCES adventure_nodes(id) ON DELETE CASCADE,
+      source_kind  TEXT NOT NULL,
+      source_ref   TEXT NOT NULL,
+      unlocked_at TEXT NOT NULL,
+      PRIMARY KEY(user_id, node_id),
+      UNIQUE(user_id, source_kind, source_ref)
+    );
+    CREATE INDEX IF NOT EXISTS idx_adventure_unlocks_user_at
+      ON adventure_unlocks(user_id, unlocked_at DESC);
+  `);
+  applied.push('adventure_narrative_foundation');
+  if (addColumn(db, 'adventure_unlocks', 'invalidated_at', 'TEXT')) {
+    applied.push('adventure_unlocks.invalidated_at');
+  }
+  if (addColumn(db, 'adventure_arcs', 'content_version', 'INTEGER NOT NULL DEFAULT 1')) applied.push('adventure_arcs.content_version');
+  if (addColumn(db, 'adventure_arcs', 'updated_at', 'TEXT')) applied.push('adventure_arcs.updated_at');
+  db.exec(`
+    UPDATE adventure_arcs SET updated_at=COALESCE(updated_at,created_at);
+    CREATE TABLE IF NOT EXISTS adventure_content_versions (
+      id              TEXT PRIMARY KEY,
+      arc_id          TEXT NOT NULL REFERENCES adventure_arcs(id) ON DELETE CASCADE,
+      content_version INTEGER NOT NULL,
+      status          TEXT NOT NULL CHECK(status IN ('draft','published','archived')),
+      snapshot_json   TEXT NOT NULL,
+      changed_by      TEXT NOT NULL REFERENCES hosts(id),
+      change_reason   TEXT NOT NULL,
+      created_at      TEXT NOT NULL,
+      UNIQUE(arc_id,content_version)
+    );
+    CREATE INDEX IF NOT EXISTS idx_adventure_versions_arc ON adventure_content_versions(arc_id,content_version DESC);
+  `);
+  applied.push('adventure_content_versioning');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS seasonal_events (
+      id TEXT PRIMARY KEY,
+      status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','scheduled','active','ended','archived')),
+      theme TEXT NOT NULL,
+      name_en TEXT NOT NULL, name_th TEXT NOT NULL, name_zh TEXT NOT NULL,
+      description_en TEXT NOT NULL, description_th TEXT NOT NULL, description_zh TEXT NOT NULL,
+      starts_at TEXT NOT NULL, ends_at TEXT NOT NULL,
+      created_by TEXT NOT NULL REFERENCES hosts(id), created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      CHECK(ends_at > starts_at)
+    );
+    CREATE INDEX IF NOT EXISTS idx_seasons_status_dates ON seasonal_events(status,starts_at,ends_at);
+    CREATE TABLE IF NOT EXISTS seasonal_quest_bindings (
+      season_id TEXT NOT NULL REFERENCES seasonal_events(id) ON DELETE CASCADE,
+      quest_id TEXT NOT NULL REFERENCES quests(id),
+      memory_coin_reward INTEGER NOT NULL DEFAULT 0 CHECK(memory_coin_reward BETWEEN 0 AND 100000),
+      PRIMARY KEY(season_id,quest_id)
+    );
+    CREATE TABLE IF NOT EXISTS seasonal_items (
+      id TEXT PRIMARY KEY,
+      season_id TEXT NOT NULL REFERENCES seasonal_events(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL CHECK(kind IN ('stamp','pet_costume','mascot_costume','memory','achievement','limited_item')),
+      name_en TEXT NOT NULL, name_th TEXT NOT NULL, name_zh TEXT NOT NULL,
+      description_en TEXT NOT NULL, description_th TEXT NOT NULL, description_zh TEXT NOT NULL,
+      coin_cost INTEGER NOT NULL DEFAULT 0 CHECK(coin_cost BETWEEN 0 AND 100000),
+      required_progress INTEGER NOT NULL DEFAULT 1 CHECK(required_progress >= 1),
+      catch_up_allowed INTEGER NOT NULL DEFAULT 0 CHECK(catch_up_allowed IN (0,1)),
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_season_items_season ON seasonal_items(season_id,coin_cost,id);
+    CREATE TABLE IF NOT EXISTS seasonal_progress_events (
+      season_id TEXT NOT NULL REFERENCES seasonal_events(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      travel_event_id TEXT NOT NULL REFERENCES travel_events(id) ON DELETE CASCADE,
+      quest_id TEXT REFERENCES quests(id),
+      memory_coins INTEGER NOT NULL CHECK(memory_coins >= 0),
+      earned_at TEXT NOT NULL,
+      invalidated_at TEXT,
+      PRIMARY KEY(season_id,user_id,travel_event_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_season_progress_user ON seasonal_progress_events(user_id,season_id,earned_at DESC);
+    CREATE TABLE IF NOT EXISTS seasonal_item_ownership (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      item_id TEXT NOT NULL REFERENCES seasonal_items(id),
+      source_kind TEXT NOT NULL CHECK(source_kind IN ('season_reward','catch_up_exchange')),
+      source_ref TEXT NOT NULL,
+      earned_at TEXT NOT NULL,
+      PRIMARY KEY(user_id,item_id), UNIQUE(user_id,source_kind,source_ref)
+    );
+    CREATE TABLE IF NOT EXISTS seasonal_exchanges (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      item_id TEXT NOT NULL REFERENCES seasonal_items(id),
+      coin_cost INTEGER NOT NULL CHECK(coin_cost >= 0),
+      client_request_id TEXT NOT NULL,
+      exchanged_at TEXT NOT NULL,
+      UNIQUE(user_id,client_request_id), UNIQUE(user_id,item_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_season_exchange_user ON seasonal_exchanges(user_id,exchanged_at DESC);
+  `);
+  applied.push('seasonal_adventure_collection');
+
+  /*
+    Verified travel event spine.
+
+    This does not replace ledger, quest_progress, Places or companions. It
+    records the consequence of a verified action and points back to the
+    existing idempotency key. Pet memories and journal entries cannot exist
+    without such an event, so neither can be minted from client prose.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS travel_events (
+      id           TEXT PRIMARY KEY,
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type         TEXT NOT NULL CHECK(type IN (
+        'LOCATION_VISITED','CHECK_IN_VERIFIED','QUEST_STARTED','QUEST_COMPLETED',
+        'CLUE_DISCOVERED','STORY_UNLOCKED','PARTY_QUEST_COMPLETED',
+        'SHOP_ACTIVITY_VERIFIED','STAMP_EARNED','PET_MEMORY_CREATED',
+        'SEASON_MILESTONE_REACHED'
+      )),
+      source_kind  TEXT NOT NULL,
+      source_ref   TEXT NOT NULL,
+      place_id     TEXT REFERENCES places(id),
+      quest_id     TEXT REFERENCES quests(id),
+      party_id     TEXT REFERENCES parties(id) ON DELETE SET NULL,
+      occurred_at  TEXT NOT NULL,
+      payload_json TEXT NOT NULL DEFAULT '{}',
+      created_at   TEXT NOT NULL,
+      invalidated_at TEXT,
+      UNIQUE(user_id, type, source_kind, source_ref)
+    );
+    CREATE INDEX IF NOT EXISTS idx_travel_events_user_at
+      ON travel_events(user_id, occurred_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_travel_events_place_at
+      ON travel_events(place_id, occurred_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_travel_events_quest_at
+      ON travel_events(quest_id, occurred_at DESC);
+
+    CREATE TABLE IF NOT EXISTS pet_memories (
+      id              TEXT PRIMARY KEY,
+      user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      travel_event_id TEXT NOT NULL REFERENCES travel_events(id) ON DELETE CASCADE,
+      companion_key   TEXT NOT NULL,
+      memory_type     TEXT NOT NULL CHECK(memory_type IN ('verified_visit','story_unlock','verified_quest')),
+      place_id        TEXT REFERENCES places(id),
+      occurred_at     TEXT NOT NULL,
+      created_at      TEXT NOT NULL,
+      UNIQUE(user_id, travel_event_id, companion_key, memory_type)
+    );
+    CREATE INDEX IF NOT EXISTS idx_pet_memories_user_at
+      ON pet_memories(user_id, occurred_at DESC);
+
+    CREATE TABLE IF NOT EXISTS travel_journal_entries (
+      id              TEXT PRIMARY KEY,
+      user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      travel_event_id TEXT NOT NULL REFERENCES travel_events(id) ON DELETE CASCADE,
+      place_id        TEXT REFERENCES places(id),
+      kind            TEXT NOT NULL CHECK(kind IN ('verified_visit','story_unlock','verified_quest')),
+      note            TEXT,
+      visibility      TEXT NOT NULL DEFAULT 'private' CHECK(visibility IN ('private','shared')),
+      created_at      TEXT NOT NULL,
+      updated_at      TEXT NOT NULL,
+      UNIQUE(user_id, travel_event_id, kind)
+    );
+    CREATE INDEX IF NOT EXISTS idx_travel_journal_user_at
+      ON travel_journal_entries(user_id, created_at DESC);
+  `);
+  applied.push('verified_travel_event_spine');
+  if (addColumn(db, 'travel_events', 'invalidated_at', 'TEXT')) {
+    applied.push('travel_events.invalidated_at');
+  }
+
+  /*
+    Real-world Adventure activity verification.
+
+    Policies attach to existing narrative nodes, QR codes attach to their
+    existing Place/Host, and evidence files reuse the same blob-store key
+    contract as Quest proof. Nothing here is a second Quest or wallet.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS adventure_verification_policies (
+      node_id              TEXT PRIMARY KEY REFERENCES adventure_nodes(id) ON DELETE CASCADE,
+      host_id              TEXT REFERENCES hosts(id),
+      requires_gps         INTEGER NOT NULL DEFAULT 1 CHECK(requires_gps IN (0,1)),
+      requires_qr          INTEGER NOT NULL DEFAULT 0 CHECK(requires_qr IN (0,1)),
+      requires_evidence    INTEGER NOT NULL DEFAULT 0 CHECK(requires_evidence IN (0,1)),
+      requires_host        INTEGER NOT NULL DEFAULT 0 CHECK(requires_host IN (0,1)),
+      geofence_radius_m    INTEGER NOT NULL DEFAULT 150 CHECK(geofence_radius_m BETWEEN 20 AND 2000),
+      reward_points        INTEGER NOT NULL DEFAULT 0 CHECK(reward_points >= 0),
+      reward_exp           INTEGER NOT NULL DEFAULT 0 CHECK(reward_exp >= 0),
+      reward_currency      TEXT NOT NULL DEFAULT 'trip' CHECK(reward_currency IN ('trip','green')),
+      updated_at           TEXT NOT NULL,
+      CHECK(requires_host = 0 OR host_id IS NOT NULL)
+    );
+    CREATE INDEX IF NOT EXISTS idx_adventure_policy_host
+      ON adventure_verification_policies(host_id, node_id);
+
+    CREATE TABLE IF NOT EXISTS activity_qr_codes (
+      id                 TEXT PRIMARY KEY,
+      token_id           TEXT NOT NULL UNIQUE,
+      qr_type            TEXT NOT NULL CHECK(qr_type IN ('static','dynamic')),
+      signature_version  INTEGER NOT NULL DEFAULT 1,
+      host_id            TEXT NOT NULL REFERENCES hosts(id),
+      node_id            TEXT NOT NULL REFERENCES adventure_nodes(id) ON DELETE CASCADE,
+      place_id           TEXT NOT NULL REFERENCES places(id),
+      issued_at          TEXT NOT NULL,
+      expires_at         TEXT,
+      revoked_at         TEXT,
+      consumed_at        TEXT,
+      consumed_by        TEXT REFERENCES users(id) ON DELETE SET NULL,
+      superseded_by      TEXT REFERENCES activity_qr_codes(id),
+      created_by         TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_activity_qr_host ON activity_qr_codes(host_id, issued_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_activity_qr_node ON activity_qr_codes(node_id, revoked_at);
+
+    CREATE TABLE IF NOT EXISTS activity_qr_scans (
+      id                 TEXT PRIMARY KEY,
+      qr_id              TEXT REFERENCES activity_qr_codes(id),
+      user_id            TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      node_id            TEXT REFERENCES adventure_nodes(id) ON DELETE SET NULL,
+      place_id           TEXT REFERENCES places(id) ON DELETE SET NULL,
+      client_request_id  TEXT NOT NULL,
+      status             TEXT NOT NULL CHECK(status IN ('verified','rejected')),
+      error_code         TEXT,
+      scanned_at         TEXT NOT NULL,
+      UNIQUE(user_id, client_request_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_activity_qr_scans_qr ON activity_qr_scans(qr_id, scanned_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_activity_qr_scans_user ON activity_qr_scans(user_id, scanned_at DESC);
+
+    CREATE TABLE IF NOT EXISTS adventure_evidence (
+      id                 TEXT PRIMARY KEY,
+      user_id            TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      node_id            TEXT NOT NULL REFERENCES adventure_nodes(id) ON DELETE CASCADE,
+      place_id           TEXT NOT NULL REFERENCES places(id),
+      host_id            TEXT REFERENCES hosts(id),
+      qr_scan_id         TEXT REFERENCES activity_qr_scans(id) ON DELETE SET NULL,
+      client_request_id  TEXT NOT NULL,
+      status             TEXT NOT NULL CHECK(status IN ('draft','submitted','pending_review','approved','rejected','cancelled')),
+      lat                REAL,
+      lng                REAL,
+      accuracy_m         REAL,
+      mocked             INTEGER NOT NULL DEFAULT 0 CHECK(mocked IN (0,1)),
+      submitted_at       TEXT,
+      reviewed_at        TEXT,
+      reviewed_by        TEXT,
+      rejection_reason   TEXT,
+      created_at         TEXT NOT NULL,
+      updated_at         TEXT NOT NULL,
+      UNIQUE(user_id, client_request_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_adventure_evidence_owner ON adventure_evidence(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_adventure_evidence_host
+      ON adventure_evidence(host_id, status, submitted_at);
+
+    CREATE TABLE IF NOT EXISTS adventure_evidence_files (
+      id            TEXT PRIMARY KEY,
+      evidence_id   TEXT NOT NULL REFERENCES adventure_evidence(id) ON DELETE CASCADE,
+      storage_path  TEXT NOT NULL,
+      mime_type     TEXT NOT NULL,
+      byte_size     INTEGER NOT NULL CHECK(byte_size > 0),
+      uploaded_at   TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_adventure_evidence_files_evidence
+      ON adventure_evidence_files(evidence_id);
+
+    CREATE TABLE IF NOT EXISTS activity_verifications (
+      id                 TEXT PRIMARY KEY,
+      user_id            TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      node_id            TEXT NOT NULL REFERENCES adventure_nodes(id) ON DELETE CASCADE,
+      place_id           TEXT NOT NULL REFERENCES places(id),
+      qr_scan_id         TEXT REFERENCES activity_qr_scans(id) ON DELETE SET NULL,
+      evidence_id        TEXT REFERENCES adventure_evidence(id) ON DELETE SET NULL,
+      ledger_source_ref  TEXT NOT NULL UNIQUE,
+      verified_at        TEXT NOT NULL,
+      invalidated_at     TEXT,
+      UNIQUE(user_id, node_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_activity_verifications_user
+      ON activity_verifications(user_id, verified_at DESC);
+
+    CREATE TABLE IF NOT EXISTS activity_verification_audit (
+      id           TEXT PRIMARY KEY,
+      actor_type   TEXT NOT NULL CHECK(actor_type IN ('traveller','host','system')),
+      actor_id     TEXT NOT NULL,
+      event_type   TEXT NOT NULL CHECK(event_type IN (
+        'QR_SCANNED','QR_VERIFIED','QR_REJECTED','EVIDENCE_SUBMITTED',
+        'EVIDENCE_APPROVED','EVIDENCE_REJECTED','EVIDENCE_CANCELLED',
+        'HOST_VERIFIED','ACTIVITY_VERIFIED','QR_CREATED','QR_REVOKED'
+      )),
+      source_kind  TEXT NOT NULL,
+      source_ref   TEXT NOT NULL,
+      user_id      TEXT REFERENCES users(id) ON DELETE SET NULL,
+      node_id      TEXT REFERENCES adventure_nodes(id) ON DELETE SET NULL,
+      occurred_at  TEXT NOT NULL,
+      detail_json  TEXT NOT NULL DEFAULT '{}',
+      UNIQUE(event_type, source_kind, source_ref)
+    );
+    CREATE INDEX IF NOT EXISTS idx_activity_audit_node ON activity_verification_audit(node_id, occurred_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_activity_audit_user ON activity_verification_audit(user_id, occurred_at DESC);
+  `);
+  applied.push('adventure_activity_verification');
+
+  // Pet progression is derived from verified pet_memories. Only the user's
+  // harmless presentation preference is stored; EXP and Bond never live in a
+  // client-writable balance that could drift from Travel Events.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS pet_preferences (
+      user_id           TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      companion_key     TEXT NOT NULL,
+      selected_gesture  TEXT NOT NULL,
+      updated_at        TEXT NOT NULL,
+      PRIMARY KEY(user_id, companion_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_pet_preferences_user
+      ON pet_preferences(user_id, updated_at DESC);
+  `);
+  applied.push('pet_progression_preferences');
+
+  /*
+    A Trip is a user-owned organisation layer over verified journal entries.
+    It never manufactures visits or rewards. Photos use the existing blob
+    adapter and remain private unless the trip owner explicitly shares it.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS travel_trips (
+      id              TEXT PRIMARY KEY,
+      user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name            TEXT NOT NULL,
+      visibility      TEXT NOT NULL DEFAULT 'private' CHECK(visibility IN ('private','shared')),
+      start_at        TEXT,
+      end_at          TEXT,
+      cover_photo_id  TEXT,
+      created_at      TEXT NOT NULL,
+      updated_at      TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_travel_trips_user_at
+      ON travel_trips(user_id, start_at DESC, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS travel_trip_entries (
+      trip_id          TEXT NOT NULL REFERENCES travel_trips(id) ON DELETE CASCADE,
+      journal_entry_id TEXT NOT NULL REFERENCES travel_journal_entries(id) ON DELETE CASCADE,
+      added_at         TEXT NOT NULL,
+      PRIMARY KEY(trip_id, journal_entry_id),
+      UNIQUE(journal_entry_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_travel_trip_entries_trip
+      ON travel_trip_entries(trip_id, added_at);
+
+    CREATE TABLE IF NOT EXISTS travel_trip_photos (
+      id           TEXT PRIMARY KEY,
+      trip_id      TEXT NOT NULL REFERENCES travel_trips(id) ON DELETE CASCADE,
+      user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      storage_path TEXT NOT NULL UNIQUE,
+      mime_type    TEXT NOT NULL,
+      byte_size    INTEGER NOT NULL CHECK(byte_size > 0),
+      caption      TEXT,
+      sort_order   INTEGER NOT NULL DEFAULT 0,
+      created_at   TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_travel_trip_photos_trip
+      ON travel_trip_photos(trip_id, sort_order, created_at);
+  `);
+  applied.push('travel_trip_organization');
 
   // Which ESG pillar a quest reports under.
   //

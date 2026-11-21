@@ -3,8 +3,8 @@ import { beforeEach, describe, test } from 'node:test';
 import { openTestDb, type DB } from './db-node.ts';
 import { createParty, joinParty, leaveParty, transferPartyOwnership } from './party-service.ts';
 import {
-  PartyQuestError, currentPartyQuest, getPartyQuest, partyQuestHistory,
-  partyQuestProgress, selectPartyQuest, startPartyQuest,
+  PartyQuestError, assignPartyQuestMember, completePartyQuest, currentPartyQuest,
+  getPartyQuest, partyQuestHistory, partyQuestProgress, selectPartyQuest, startPartyQuest,
 } from './party-quest-service.ts';
 
 let db: DB;
@@ -132,5 +132,67 @@ describe('party quest foundation', () => {
       () => partyQuestProgress(db, 'outside', selected.id),
       (error: unknown) => error instanceof PartyQuestError && error.code === 'PARTY_QUEST_NOT_FOUND',
     );
+  });
+
+  test('cooperative work requires a server-stored assignment for every locked member', () => {
+    const { code } = createParty(db, 'owner', 'Co-op crew', at(1));
+    joinParty(db, 'member', code, at(2));
+    const selected = selectPartyQuest(db, 'owner', {
+      questId: 'quest', questType: 'local', questMode: 'cooperative',
+    }, at(3));
+    startPartyQuest(db, 'owner', selected.id, at(4));
+    for (const id of ['owner', 'member']) {
+      db.prepare(`INSERT INTO quest_progress (user_id,quest_id,stage,joined_at,verified_at) VALUES (?,'quest','complete',?,?)`)
+        .run(id, at(5).toISOString(), at(6).toISOString());
+    }
+    assert.equal(partyQuestProgress(db, 'member', selected.id).completionReady, false);
+    assignPartyQuestMember(db, 'owner', selected.id, 'owner', 'Interview the host', at(7));
+    assignPartyQuestMember(db, 'owner', selected.id, 'member', 'Record the place', at(8));
+    const progress = partyQuestProgress(db, 'member', selected.id);
+    assert.equal(progress.completionReady, true);
+    assert.equal(progress.participants.find((p) => p.userId === 'member')?.assignment, 'Record the place');
+    assert.throws(
+      () => assignPartyQuestMember(db, 'member', selected.id, 'member', 'Change it', at(9)),
+      (error: unknown) => error instanceof PartyQuestError && error.code === 'OWNER_ONLY',
+    );
+  });
+
+  test('completion gives each snapshot member one idempotent team reward and one Travel Event', () => {
+    const { code } = createParty(db, 'owner', 'Reward crew', at(1));
+    joinParty(db, 'member', code, at(2));
+    const selected = selectPartyQuest(db, 'owner', {
+      questId: 'quest', questType: 'exploration', questMode: 'all_members',
+    }, at(3));
+    startPartyQuest(db, 'owner', selected.id, at(4));
+    for (const id of ['owner', 'member']) {
+      db.prepare(`INSERT INTO quest_progress (user_id,quest_id,stage,joined_at,verified_at) VALUES (?,'quest','complete',?,?)`)
+        .run(id, at(5).toISOString(), at(6).toISOString());
+    }
+    const completed = completePartyQuest(db, 'member', selected.id, at(7));
+    assert.equal(completed.state, 'rewarded');
+    assert.equal(completed.rewardedAt, at(7).toISOString());
+    completePartyQuest(db, 'owner', selected.id, at(8));
+    const rewards = db.prepare("SELECT user_id,amount,kind,source_ref FROM ledger WHERE kind='party_reward' ORDER BY user_id").all() as Array<Record<string, unknown>>;
+    assert.equal(rewards.length, 2);
+    assert.deepEqual(rewards.map((entry) => entry.amount), [25, 25]);
+    assert.equal(new Set(rewards.map((entry) => entry.source_ref)).size, 2);
+    const events = db.prepare("SELECT user_id FROM travel_events WHERE type='PARTY_QUEST_COMPLETED' AND source_kind='party_quest'").all() as Array<{ user_id: string }>;
+    assert.deepEqual(events.map((event) => event.user_id).sort(), ['member', 'owner']);
+  });
+
+  test('a deadline is enforced by the server before reward distribution', () => {
+    createParty(db, 'owner', 'Late crew', at(1));
+    const selected = selectPartyQuest(db, 'owner', {
+      questId: 'quest', questType: 'local', questMode: 'individual',
+    }, at(2));
+    startPartyQuest(db, 'owner', selected.id, at(3));
+    db.prepare(`INSERT INTO quest_progress (user_id,quest_id,stage,joined_at,verified_at) VALUES ('owner','quest','complete',?,?)`)
+      .run(at(4).toISOString(), at(5).toISOString());
+    assert.throws(
+      () => completePartyQuest(db, 'owner', selected.id, new Date('2026-11-21T00:00:00.000Z')),
+      (error: unknown) => error instanceof PartyQuestError && error.code === 'PARTY_QUEST_EXPIRED',
+    );
+    assert.equal(getPartyQuest(db, 'owner', selected.id).state, 'expired');
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM ledger WHERE kind='party_reward'").get()!.n, 0);
   });
 });
