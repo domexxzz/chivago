@@ -283,4 +283,18 @@ describe('the fence, and the switch that opens it', () => {
     withFenceOff(() => { /* opened and shut inside */ });
     assert.throws(() => checkIn(db, { userId: USER, placeId: PLACE, ...FAR }), OutsideGeofence);
   });
+
+  // The app sends no position at all while the fence is open (the trial
+  // switch, apps/mobile/src/state/server-config.ts `locationOff`).
+  test('open: a check-in with no position at all is taken, and keeps no fix', () => {
+    const result = withFenceOff(() => checkIn(db, { userId: USER, placeId: PLACE }));
+    assert.equal(result?.awarded, true);
+    const kept = db.prepare('SELECT COUNT(*) AS n FROM last_fix WHERE user_id = ?').get(USER) as { n: number };
+    assert.equal(kept.n, 0, 'a position nobody checks is not collected');
+  });
+
+  test('shut: a check-in with no position is refused, not waved through', () => {
+    assert.throws(() => checkIn(db, { userId: USER, placeId: PLACE }), /needs a position/);
+    assert.equal(getBalances(db, USER).trip, 0);
+  });
 });

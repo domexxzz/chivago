@@ -17,7 +17,7 @@ import { Image, Linking, Modal, Pressable, ScrollView, Text, View, useWindowDime
 import { ArrowLeft, Cloud, ExternalLink, Heart, MapPin, ShieldCheck, Sun, Trees, Waves, X } from 'lucide-react-native';
 import {
   areaByKey, areaOfPlace, courtSourceFor, findProvince, isBookingLink, newlyEarned, stallSourceFor, strings,
-  type MedalState, type MedalsView, type ScoredPlace,
+  type Fix, type MedalState, type MedalsView, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import type { PickedMedia } from '../api/client.ts';
@@ -25,7 +25,7 @@ import { creditWord, fitsWhole, photoBackdrop, photoUri } from '../api/photos.ts
 import { useAsync } from '../state/store.tsx';
 import { cachedPlace, placeWithFallback } from '../offline/public-cache.ts';
 import { cachedImageUri } from '../offline/image-cache.ts';
-import { useServerConfig } from '../state/server-config.ts';
+import { locationOff, useServerConfig } from '../state/server-config.ts';
 import { pickStoryMedia, postStory } from '../state/tell-story.ts';
 import { color, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
@@ -150,39 +150,44 @@ export function PlaceScreen({
   const checkIn = async (): Promise<{ ok: boolean; error?: string }> => {
     if (requireAccount({ en: 'Please sign in or create an account to check in and collect points.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเช็กอินและรับคะแนน', zh: '请登录或注册账号，以签到并获得积分。' })) return { ok: false };
     setBusy(true);
-    const perm = await Location.requestForegroundPermissionsAsync();
-    if (!perm.granted) {
-      setBusy(false);
-      const msg = t({
-        en: 'Location permission is needed to check in here.',
-        th: 'ต้องอนุญาตให้เข้าถึงตำแหน่งเพื่อเช็กอินที่นี่',
-        zh: '需要位置权限才能在这里签到。',
-      });
-      onToast(msg);
-      // A declined permission is the commonest way the phone cannot prove a
-      // visit. The other half is offered here too.
-      setOfferNote(true);
-      return { ok: false, error: msg };
+    // No GPS at all while the server has opened the fence. See server-config.ts.
+    let fix: Fix | null = null;
+    if (!(await locationOff())) {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted) {
+        setBusy(false);
+        const msg = t({
+          en: 'Location permission is needed to check in here.',
+          th: 'ต้องอนุญาตให้เข้าถึงตำแหน่งเพื่อเช็กอินที่นี่',
+          zh: '需要位置权限才能在这里签到。',
+        });
+        onToast(msg);
+        // A declined permission is the commonest way the phone cannot prove a
+        // visit. The other half is offered here too.
+        setOfferNote(true);
+        return { ok: false, error: msg };
+      }
+      // A fix that times out or fails must release the button, not strand it.
+      let pos: Location.LocationObject;
+      try {
+        pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      } catch {
+        setBusy(false);
+        const msg = t(strings.checkin.noFix);
+        onToast(msg);
+        setOfferNote(true);
+        return { ok: false, error: msg };
+      }
+      // The fix's own accuracy and mock flag travel with it - the second
+      // signal the server reads. See docs/30.
+      fix = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracyM: pos.coords.accuracy ?? null,
+        mocked: pos.mocked ?? false,
+      };
     }
-    // A fix that times out or fails must release the button, not strand it.
-    let pos: Location.LocationObject;
-    try {
-      pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    } catch {
-      setBusy(false);
-      const msg = t(strings.checkin.noFix);
-      onToast(msg);
-      setOfferNote(true);
-      return { ok: false, error: msg };
-    }
-    // The fix's own accuracy and mock flag travel with it - the second
-    // signal the server reads. See docs/30.
-    const res = await api.checkIn(placeId, {
-      lat: pos.coords.latitude,
-      lng: pos.coords.longitude,
-      accuracyM: pos.coords.accuracy ?? null,
-      mocked: pos.mocked ?? false,
-    });
+    const res = await api.checkIn(placeId, fix);
     setBusy(false);
     if (!res.ok) {
       onToast(res.error);

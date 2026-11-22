@@ -61,6 +61,39 @@ export function serverConfig(): Promise<ServerConfig> {
   return inFlight;
 }
 
+/** How long `locationOff` waits for the server's word before reading the GPS anyway. */
+export const LOCATION_PATIENCE_MS = 1_500;
+
+/**
+ * True when the app must not read the GPS for quests, check-ins, adventure
+ * stops or the map: the server has opened the fence (apps/api/src/fence.ts),
+ * so a position would be measured against nothing, and asking for one would
+ * only put a permission dialog in front of a tester who is not on the island.
+ *
+ * Awaits the shared fetch, so the answer is the server's and not the FENCED
+ * default a component holds before the fetch lands - but only for
+ * LOCATION_PATIENCE_MS. A failed fetch, or one still out after that, is
+ * FENCED, which keeps reading the GPS: the side that cannot refuse an honest
+ * visit, and the one that does not leave a phone on one bar of island signal
+ * waiting eight seconds for a map dot it used to get at once. The root fetches
+ * the config at launch, so in practice the answer is long settled by the time
+ * anybody opens a map or presses a button.
+ *
+ * SOS and live party sharing do not ask this. Somebody in trouble is found by
+ * their position whatever the fence says.
+ */
+export const locationOff = async (): Promise<boolean> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const patience = new Promise<ServerConfig>((resolve) => {
+    timer = setTimeout(() => resolve(FENCED), LOCATION_PATIENCE_MS);
+  });
+  try {
+    return (await Promise.race([serverConfig(), patience])).fenceOff;
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 /** Test seam: forget the cached answer. */
 export const __resetServerConfig = (): void => { inFlight = null; };
 

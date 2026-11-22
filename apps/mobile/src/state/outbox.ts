@@ -18,7 +18,8 @@ import type { Fix, ProofPhoto } from '@chivago/core';
 export interface ProofPayload {
   photos: ProofPhoto[];
   weightKg: number | null;
-  position: Fix;
+  /** Null while the fence is open: the app sends no position then. */
+  position: Fix | null;
 }
 
 export interface QuestOutboxItem {

@@ -97,6 +97,16 @@ function router(reply: unknown | 'fails'): { asked: string[]; restore: () => voi
       if (reply === 'fails') throw new Error('the router is having an afternoon');
       return new Response(JSON.stringify(reply), { status: 200, headers: { 'content-type': 'application/json' } });
     }
+    // The app's own `/config`, answered the way a fenced server answers it.
+    // The screen asks it before reading the GPS (server-config.ts
+    // `locationOff`); in the app the root has asked it long before a
+    // navigator opens, and left to the real network here it is a
+    // connection to nowhere that the screen would wait out.
+    if (url.endsWith('/config')) {
+      return new Response(JSON.stringify({ ok: true, data: { fenceOff: false, storiesAutoApprove: false, aiAssist: true } }), {
+        status: 200, headers: { 'content-type': 'application/json' },
+      });
+    }
     return inner(input as string, init);
   }) as typeof fetch;
   return { asked, restore: () => { globalThis.fetch = inner; } };

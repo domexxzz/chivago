@@ -36,6 +36,7 @@ import * as Location from 'expo-location';
 import type { NavFix } from '@chivago/core';
 
 import '../polyfills/location-emitter.ts';
+import { locationOff } from '../state/server-config.ts';
 
 export type FixPermission = 'asking' | 'granted' | 'denied';
 
@@ -136,6 +137,12 @@ export function useNavigationFix(active: boolean, attempt = 0): NavigationFix {
 
     void (async () => {
       try {
+        // The server has opened the fence, so the app keeps out of the GPS:
+        // no dialog, no watcher. The screen says why (strings.navigate.locationPaused).
+        if (await locationOff()) {
+          if (live) setState({ fix: null, permission: 'denied', count: 0 });
+          return;
+        }
         // Asked for, not merely read - see the file header.
         const permission = await Location.requestForegroundPermissionsAsync();
         if (!live) return;

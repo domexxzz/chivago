@@ -38,7 +38,11 @@ export interface CheckinResult {
   exp: number;
   /** EXP granted by this request, not the account's lifetime EXP total. */
   expAwarded: number;
-  /** Metres from the place centre when the check-in was accepted. */
+  /**
+   * Metres from the place centre when the check-in was accepted. 0 when no
+   * position was sent, which happens only while the fence is open: a number
+   * rather than null because the SDKs decode it as a required int.
+   */
   distanceM: number;
   /**
    * The leg on foot this check-in closed, if the previous check-in today was
@@ -81,31 +85,32 @@ function previousCheckinToday(
  */
 export function checkIn(
   db: DB,
-  args: { userId: string; placeId: string; now?: Date } & Fix,
+  // The fix is partial because it is absent while the fence is open: the app
+  // stops reading the GPS then (see fence.ts), so there is nothing to send.
+  args: { userId: string; placeId: string; now?: Date } & Partial<Fix>,
 ): CheckinResult | null {
   const place = row<{ id: string; name_en: string; lat: number; lng: number }>(
     db.prepare('SELECT id, name_en, lat, lng FROM places WHERE id = ?').get(args.placeId),
   );
   if (!place) return null;
 
-  const distanceM = distanceMetres(
-    { lat: place.lat, lng: place.lng },
-    { lat: args.lat, lng: args.lng },
-  );
-  // The fence, unless this deployment has deliberately opened it. See
-  // fence.ts: while it is open the app is required to say so on screen.
-  if (!fenceOff() && distanceM > CHECKIN_RADIUS_M) {
-    throw new OutsideGeofence(distanceM, CHECKIN_RADIUS_M);
-  }
-
   const now = args.now ?? new Date();
-  // The second signal: mocked, too coarse, or too fast since the last fix.
-  // After the fence, so 'too far' is still the first thing an honest
-  // traveller hears. See packages/core/src/presence.ts.
-  const fix: Fix = { lat: args.lat, lng: args.lng, accuracyM: args.accuracyM, mocked: args.mocked };
-  // With no fence there is no position worth judging, and the travel check
+  const fix: Fix | null = typeof args.lat === 'number' && typeof args.lng === 'number'
+    ? { lat: args.lat, lng: args.lng, accuracyM: args.accuracyM, mocked: args.mocked }
+    : null;
+  // The fence, unless this deployment has deliberately opened it. See
+  // fence.ts: while it is open the app is required to say so on screen. With
+  // no fence there is no position worth judging either, and the travel check
   // would refuse an honest tester who moved 450 km between two taps.
-  if (!fenceOff()) assertPresence(db, { userId: args.userId, fix, radiusM: CHECKIN_RADIUS_M, now });
+  const distanceM = fix ? distanceMetres({ lat: place.lat, lng: place.lng }, fix) : 0;
+  if (!fenceOff()) {
+    if (!fix) throw new Error('check-in needs a position while the fence is enforced');
+    if (distanceM > CHECKIN_RADIUS_M) throw new OutsideGeofence(distanceM, CHECKIN_RADIUS_M);
+    // The second signal: mocked, too coarse, or too fast since the last fix.
+    // After the fence, so 'too far' is still the first thing an honest
+    // traveller hears. See packages/core/src/presence.ts.
+    assertPresence(db, { userId: args.userId, fix, radiusM: CHECKIN_RADIUS_M, now });
+  }
 
   return transact(db, () => {
     const movement = awardCheckin(db, {
@@ -122,7 +127,7 @@ export function checkIn(
       placeId: place.id,
       ledgerSourceRef: movement.entry.sourceRef,
     });
-    recordFix(db, args.userId, fix, now);
+    if (fix) recordFix(db, args.userId, fix, now);
 
     // The leg that brought them here. Only on a fresh check-in: a second
     // check-in at the same beach closes no journey.

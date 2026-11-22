@@ -19,6 +19,7 @@ import React from 'react';
 import * as Location from 'expo-location';
 
 import '../polyfills/location-emitter.ts';
+import { locationOff } from './server-config.ts';
 
 export interface Here {
   lat: number;
@@ -64,6 +65,9 @@ export function useHere({ watch = false }: { watch?: boolean } = {}): Here | nul
 
     void (async () => {
       try {
+        // The fence is open, so the app keeps out of the GPS entirely - no
+        // dot, no distances. Null is already a complete screen everywhere.
+        if (await locationOff() || !live) return;
         const perm = await Location.getForegroundPermissionsAsync();
         if (!perm?.granted || !live) return;
         if (watch) {

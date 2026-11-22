@@ -13,6 +13,11 @@
  * the flows end to end otherwise means faking a GPS fix on every device, and
  * the owner asked for the switch by name.
  *
+ * The app follows it: while `/config` says `fenceOff`, it stops reading the
+ * GPS for quests, check-ins, adventure stops and the map, and sends those
+ * requests with no position at all - which the routes accept only while the
+ * fence is open. A position nobody checks is not worth collecting.
+ *
  * TWO RULES COME WITH IT, and they are not optional.
  *
  * 1. It is OFF unless the environment says otherwise. Not a database row, not

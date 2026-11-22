@@ -7,6 +7,7 @@ import { row, rows, transact, type DB } from './db.ts';
 import { adventureOverviewFor } from './adventure-service.ts';
 import { distanceMetres } from './quest-service.ts';
 import { assertPresence, recordFix } from './presence-service.ts';
+import { fenceOff } from './fence.ts';
 import { awardActivityReward } from './wallet-service.ts';
 import { recordActivityTravelCycle, recordTravelEvent } from './travel-event-service.ts';
 
@@ -226,6 +227,23 @@ function ensureAvailable(db: DB, userId: string, node: NodeRow): void {
   if (projected.state === 'locked') throw new ActivityVerificationError('NODE_LOCKED', 'Finish the preceding clue first.', 409);
 }
 
+/**
+ * The activity's GPS rule, when it has one and the fence is up.
+ *
+ * Skipped whole while this deployment has opened the fence (fence.ts): the
+ * app stops reading the GPS then, so a missing fix is the expected case, not
+ * a refusal. Before this, adventure stops were the one place the switch did
+ * not reach, and a tester off the island was refused here and nowhere else.
+ */
+function checkGps(
+  db: DB, userId: string, node: NodeRow, policy: PolicyRow,
+  fix: Fix | null | undefined, now: Date, missing: string,
+): void {
+  if (policy.requires_gps !== 1 || fenceOff()) return;
+  if (!fix) throw new ActivityVerificationError('LOCATION_REQUIRED', missing);
+  validateGps(db, userId, node, policy, fix, now);
+}
+
 function validateGps(db: DB, userId: string, node: NodeRow, policy: PolicyRow, fix: Fix, now: Date): void {
   const metres = distanceMetres(fix, node);
   if (metres > policy.geofence_radius_m) {
@@ -301,10 +319,7 @@ export function prepareEvidenceSubmission(db: DB, args: {
   if (policy.requires_evidence === 1 && found.photo_count + incoming < 1) {
     throw new ActivityVerificationError('PHOTO_REQUIRED', 'At least one photo is required.');
   }
-  if (policy.requires_gps === 1) {
-    if (!args.fix) throw new ActivityVerificationError('LOCATION_REQUIRED', 'Location is required to submit evidence.');
-    validateGps(db, args.userId, node, policy, args.fix, now);
-  }
+  checkGps(db, args.userId, node, policy, args.fix, now, 'Location is required to submit evidence.');
 }
 
 export function verifyActivityQr(db: DB, args: {
@@ -351,10 +366,7 @@ export function verifyActivityQr(db: DB, args: {
   const policy = policyFor(db, node.id);
   ensureAvailable(db, args.userId, node);
   if (policy.requires_qr !== 1) throw new ActivityVerificationError('QR_NOT_ALLOWED', 'This activity does not accept QR.');
-  if (policy.requires_gps === 1) {
-    if (!args.fix) throw new ActivityVerificationError('LOCATION_REQUIRED', 'Location is required with this QR.');
-    validateGps(db, args.userId, node, policy, args.fix, now);
-  }
+  checkGps(db, args.userId, node, policy, args.fix, now, 'Location is required with this QR.');
 
   return transact(db, () => {
     if (qr.qr_type === 'dynamic') {
@@ -443,10 +455,7 @@ export function submitEvidence(db: DB, args: {
   if (policy.requires_evidence === 1 && found.photo_count < 1) {
     throw new ActivityVerificationError('PHOTO_REQUIRED', 'At least one photo is required.');
   }
-  if (policy.requires_gps === 1) {
-    if (!args.fix) throw new ActivityVerificationError('LOCATION_REQUIRED', 'Location is required to submit evidence.');
-    validateGps(db, args.userId, node, policy, args.fix, now);
-  }
+  checkGps(db, args.userId, node, policy, args.fix, now, 'Location is required to submit evidence.');
   const next = policy.requires_host === 1 ? 'pending_review' : 'approved';
   return transact(db, () => {
     db.prepare(

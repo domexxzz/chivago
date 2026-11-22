@@ -22,13 +22,13 @@ import * as ImagePicker from 'expo-image-picker';
 import { ArrowLeft, ArrowRight, Camera, Check, Send } from 'lucide-react-native';
 import {
   QUEST_STAGES, stageIndex, strings,
-  type Bilingual, type ProofPhoto, type Quest, type QuestProgress, type QuestStage,
+  type Bilingual, type Fix, type ProofPhoto, type Quest, type QuestProgress, type QuestStage,
 } from '@chivago/core';
 import { API_BASE, api, type FiledStatement, type Result } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { enqueueProof, pendingFor } from '../state/outbox.ts';
 import { deviceOutbox } from '../state/outbox-device.ts';
-import { useServerConfig } from '../state/server-config.ts';
+import { locationOff, useServerConfig } from '../state/server-config.ts';
 import { color, gutter, layout, motion, onFill, radius, shadow } from '../theme/index.ts';
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
@@ -96,37 +96,44 @@ export function QuestDetailScreen({
     else onToast(res.error);
   };
 
-  /** Real GPS, checked server-side against the quest geofence. */
+  /**
+   * Real GPS, checked server-side against the quest geofence - unless the
+   * server has opened the fence, when the app asks for no position at all.
+   */
   const arrive = async () => {
     if (requireAccount({ en: 'Please sign in or create an account to check in to this quest.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเช็กอินเควสต์', zh: '请登录或注册账号，以为这个任务签到。' })) return;
     setBusy(true);
-    const perm = await Location.requestForegroundPermissionsAsync();
-    if (!perm.granted) {
-      setBusy(false);
-      onToast(t({
-        en: 'Location permission is needed to check in at the site.',
-        th: 'ต้องอนุญาตให้เข้าถึงตำแหน่งเพื่อเช็กอินที่จุดนั้น',
-        zh: '需要位置权限才能在该地点签到。',
-      }));
-      return;
+    let fix: Fix | null = null;
+    if (!(await locationOff())) {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (!perm.granted) {
+        setBusy(false);
+        onToast(t({
+          en: 'Location permission is needed to check in at the site.',
+          th: 'ต้องอนุญาตให้เข้าถึงตำแหน่งเพื่อเช็กอินที่จุดนั้น',
+          zh: '需要位置权限才能在该地点签到。',
+        }));
+        return;
+      }
+      // A fix can time out or fail under tree cover. Without the catch that
+      // rejection left `busy` true and the button dead until the screen was
+      // reopened - at the site, with the volunteer standing there.
+      let pos: Location.LocationObject;
+      try {
+        pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      } catch {
+        setBusy(false);
+        onToast(t(strings.checkin.noFix));
+        return;
+      }
+      fix = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracyM: pos.coords.accuracy ?? null,
+        mocked: pos.mocked ?? false,
+      };
     }
-    // A fix can time out or fail under tree cover. Without the catch that
-    // rejection left `busy` true and the button dead until the screen was
-    // reopened - at the site, with the volunteer standing there.
-    let pos: Location.LocationObject;
-    try {
-      pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    } catch {
-      setBusy(false);
-      onToast(t(strings.checkin.noFix));
-      return;
-    }
-    const res = await api.arriveAtQuest(questId, {
-      lat: pos.coords.latitude,
-      lng: pos.coords.longitude,
-      accuracyM: pos.coords.accuracy ?? null,
-      mocked: pos.mocked ?? false,
-    });
+    const res = await api.arriveAtQuest(questId, fix);
     setBusy(false);
     if (res.ok) data.reload();
     else onToast(res.error);
@@ -167,23 +174,28 @@ export function QuestDetailScreen({
     setBusy(true);
     // A second position, taken now. Arrival proved they got here; this
     // proves they were still here when the work was done. See docs/30.
-    let pos: Location.LocationObject;
-    try {
-      pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    } catch {
-      setBusy(false);
-      onToast(t(strings.checkin.noFix));
-      return;
-    }
-    const payload = {
-      photos,
-      weightKg: weight ? Number(weight) : null,
-      position: {
+    // None while the fence is open: nothing would check it.
+    let position: Fix | null = null;
+    if (!(await locationOff())) {
+      let pos: Location.LocationObject;
+      try {
+        pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      } catch {
+        setBusy(false);
+        onToast(t(strings.checkin.noFix));
+        return;
+      }
+      position = {
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
         accuracyM: pos.coords.accuracy ?? null,
         mocked: pos.mocked ?? false,
-      },
+      };
+    }
+    const payload = {
+      photos,
+      weightKg: weight ? Number(weight) : null,
+      position,
     };
     const res = await api.submitProof(questId, payload);
     setBusy(false);

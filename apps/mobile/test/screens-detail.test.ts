@@ -194,6 +194,32 @@ describe('a place, and checking in to it', () => {
     } finally { net.restore(); resetControl(); }
   });
 
+  test('with the fence open it asks for no location and sends none', async () => {
+    // The trial switch (apps/api/src/fence.ts). Permission is REFUSED here on
+    // purpose: if the screen still asked, the check-in would never be sent.
+    __resetServerConfig();
+    const net = server({
+      'GET /config': { fenceOff: true, autoApprove: false },
+      'GET /places/chaweng': place(),
+      'GET /checkins/today': [],
+      'POST /places/chaweng/checkin': {
+        placeId: 'chaweng', placeName: 'Chaweng Beach', awarded: true, pointsAwarded: 40,
+        balances: { trip: 360, green: 1240 }, exp: 40, distanceM: 0,
+      },
+    });
+    try {
+      control.permission = { granted: false, status: 'denied' };
+      const ui = await mountScreen(h(PlaceScreen, props()));
+      await ui.pressText(/Check in here/);
+      await settle();
+
+      const posted = net.calls.find((c) => c.method === 'POST' && c.path === '/places/chaweng/checkin');
+      assert.ok(posted, 'the check-in must still reach the server');
+      assert.deepEqual(posted.body, {}, 'no position is read, so none is sent');
+      ui.unmount();
+    } finally { net.restore(); resetControl(); __resetServerConfig(); }
+  });
+
   test('it says how far away the place is, and which way', async () => {
     // The distance existed before this and was only ever spoken while
     // REFUSING a check-in. Chaweng is at 9.5357/100.0617; standing a little
@@ -456,6 +482,28 @@ describe('a quest, from joining to verification', () => {
       assert.deepEqual(posted.body, { lat: 9.5357, lng: 100.0617, accuracyM: 12, mocked: false });
       ui.unmount();
     } finally { net.restore(); resetControl(); }
+  });
+
+  test('with the fence open, arriving asks for no location and sends none', async () => {
+    // Refused permission again: the arrival only goes through if the screen
+    // never asked. A tester in a hall is not on the island to be measured.
+    __resetServerConfig();
+    const net = server({
+      'GET /config': { fenceOff: true, autoApprove: false },
+      'GET /quests/q1': detail(progress({ stage: 'joined' })),
+      'POST /quests/q1/arrive': progress({ stage: 'arrived', arrivedAt: '2026-08-31T02:00:00.000Z' }),
+    });
+    try {
+      control.permission = { granted: false, status: 'denied' };
+      const ui = await mountScreen(h(QuestDetailScreen, props()));
+      await ui.pressText(/I'm at the site/);
+      await settle();
+
+      const posted = net.calls.find((c) => c.path === '/quests/q1/arrive');
+      assert.ok(posted, 'arriving must still reach the server');
+      assert.deepEqual(posted.body, {}, 'no position is read, so none is sent');
+      ui.unmount();
+    } finally { net.restore(); resetControl(); __resetServerConfig(); }
   });
 
   test('a quest awaiting the host says who is checking, not "done"', async () => {

@@ -30,6 +30,7 @@ import {
 } from '@chivago/core';
 
 import { useHere } from '../state/here.ts';
+import { useServerConfig } from '../state/server-config.ts';
 import { useRoute } from '../state/route.ts';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
@@ -159,6 +160,9 @@ export function NavigateScreen({
   // The preview's origin: a single fix, not a watcher. Nothing is being
   // followed yet, and a watcher here would run the GPS while somebody reads.
   const here = useHere();
+  // The fence is open, so a refused fix is the trial's switch and not the
+  // phone's settings: the failure sheet must not send anybody to Settings.
+  const { fenceOff } = useServerConfig();
   const previewOrigin = origin ?? here;
   const preview = useRoute(previewOrigin, destination, mode);
   const nav = useNavigator(destination, mode, origin);
@@ -532,7 +536,7 @@ export function NavigateScreen({
                       : t(strings.navigate.noRoute)}
             </Heading>
             <Body size={13} colour={color.neutral700} style={{ marginTop: 6 }}>
-              {nav.failure === 'no-permission' ? t(strings.navigate.noPermission)
+              {nav.failure === 'no-permission' ? t(fenceOff ? strings.navigate.locationPaused : strings.navigate.noPermission)
                 : nav.failure === 'no-location' ? t(strings.navigate.noFixBody)
                   : nav.failure === 'too-far' ? t(strings.map.wayTooFar)
                     : nav.failure === 'no-path' ? t(strings.map.wayNoPath)

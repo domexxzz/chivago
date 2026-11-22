@@ -148,6 +148,14 @@
     // Delete this to put the queue back. See fly.toml for the full argument.
     "CHIVAGO_STORIES_AUTO_APPROVE": "1",
 
+    // THE FENCE IS OPEN, for the Spark Lab trial on 22 November: testers are
+    // in a hall, not on Ko Sichang. No distance or presence check runs on a
+    // quest, a check-in or an adventure stop, and the app stops reading the
+    // GPS for quests and the map (state/server-config.ts `locationOff`). The
+    // app wears a band saying so. See apps/api/src/fence.ts.
+    // DELETE THIS LINE AND DEPLOY to put the fence back after the trial.
+    "CHIVAGO_FENCE_OFF": "1",
+
     // Where this deployment is, as a URL that works from somebody else's
     // phone. Two things build links from it and both are the kind that fail
     // silently: the LINE sign-in redirect, and the SOS escalation message -

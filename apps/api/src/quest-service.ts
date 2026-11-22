@@ -265,12 +265,15 @@ interface QuestGeo {
 /**
  * Mark arrival. Verified against the quest geofence rather than trusting the
  * tap, because arrival is what makes the later proof credible.
+ *
+ * `position` is null only while the fence is open: the app stops reading the
+ * GPS then (see fence.ts), so there is nothing to measure and nothing to keep.
  */
 export function arriveAtQuest(
   db: DB,
   userId: string,
   questId: string,
-  position: Fix,
+  position: Fix | null,
   now = new Date(),
 ): QuestProgress {
   const progress = getProgress(db, userId, questId);
@@ -283,13 +286,16 @@ export function arriveAtQuest(
     .get(questId) as unknown as QuestGeo | undefined;
   if (!quest) throw new Error(`unknown quest: ${questId}`);
 
-  const distance = distanceMetres(position, { lat: quest.lat, lng: quest.lng });
   // Unless this deployment has opened the fence on purpose. See fence.ts.
-  if (!fenceOff() && distance > quest.geofence_radius_m) {
-    throw new OutsideGeofence(distance, quest.geofence_radius_m);
+  if (!fenceOff()) {
+    if (!position) throw new Error('arrival needs a position while the fence is enforced');
+    const distance = distanceMetres(position, { lat: quest.lat, lng: quest.lng });
+    if (distance > quest.geofence_radius_m) {
+      throw new OutsideGeofence(distance, quest.geofence_radius_m);
+    }
+    // The second signal, after the fence. See packages/core/src/presence.ts.
+    assertPresence(db, { userId, fix: position, radiusM: quest.geofence_radius_m, now });
   }
-  // The second signal, after the fence. See packages/core/src/presence.ts.
-  if (!fenceOff()) assertPresence(db, { userId, fix: position, radiusM: quest.geofence_radius_m, now });
 
   /*
     Whether the fence was actually up, recorded with the arrival.
@@ -305,7 +311,7 @@ export function arriveAtQuest(
     `UPDATE quest_progress SET stage = 'arrived', arrived_at = ?, fence_enforced = ?
      WHERE user_id = ? AND quest_id = ?`,
   ).run(now.toISOString(), fenceOff() ? 0 : 1, userId, questId);
-  recordFix(db, userId, position, now);
+  if (position) recordFix(db, userId, position, now);
   return getProgress(db, userId, questId)!;
 }
 
@@ -350,6 +356,19 @@ export function partyPresentAt(db: DB, userId: string, questId: string, at = new
   if (!party) return [];
   const quest = db.prepare('SELECT lat, lng, geofence_radius_m FROM quests WHERE id = ?').get(questId) as unknown as QuestGeo | undefined;
   if (!quest) return [];
+  // With the fence open there is no fix to judge - the app reads none - so
+  // presence is the party itself, exactly as anybody may arrive from anywhere.
+  // The host still decides, once, for all of them. See fence.ts.
+  if (fenceOff()) {
+    const everyone = db.prepare(
+      `SELECT m.user_id AS user_id, u.display_name AS display_name
+       FROM party_members m JOIN users u ON u.id = m.user_id
+       WHERE m.party_id = ? AND m.left_at IS NULL AND m.user_id != ?`,
+    ).all(party.id, userId) as unknown as { user_id: string; display_name: string }[];
+    return everyone
+      .filter((m) => getProgress(db, m.user_id, questId)?.stage !== 'complete')
+      .map((m) => ({ userId: m.user_id, displayName: m.display_name }));
+  }
   const since = new Date(at.getTime() - PARTY_PRESENCE_MIN * 60_000).toISOString();
   const members = db.prepare(
     `SELECT m.user_id AS user_id, u.display_name AS display_name, f.lat, f.lng, f.at
@@ -387,17 +406,15 @@ export function submitProof(
     throw new TooSoonAfterArrival(minutesSinceArrival);
   }
 
-  // A second in-fence sample, when the client sent one.
-  if (input.position) {
+  // A second in-fence sample, when the client sent one and the fence is up.
+  if (input.position && !fenceOff()) {
     const quest = db
       .prepare('SELECT lat, lng, geofence_radius_m FROM quests WHERE id = ?')
       .get(questId) as unknown as QuestGeo | undefined;
     if (!quest) throw new Error(`unknown quest: ${questId}`);
     const distance = distanceMetres(input.position, { lat: quest.lat, lng: quest.lng });
-    if (!fenceOff()) {
-      if (distance > quest.geofence_radius_m) throw new OutsideGeofence(distance, quest.geofence_radius_m);
-      assertPresence(db, { userId, fix: input.position, radiusM: quest.geofence_radius_m, now: at });
-    }
+    if (distance > quest.geofence_radius_m) throw new OutsideGeofence(distance, quest.geofence_radius_m);
+    assertPresence(db, { userId, fix: input.position, radiusM: quest.geofence_radius_m, now: at });
   }
 
   const now = at.toISOString();

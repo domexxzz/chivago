@@ -288,6 +288,17 @@ export const strings = {
       'การนำทางต้องใช้ตำแหน่งของคุณ เปิดการเข้าถึงตำแหน่งให้ ChivarGo ในการตั้งค่าเครื่อง',
       '导航需要你的位置。请在手机设置中为 ChivarGo 开启定位权限。',
     ),
+    /**
+     * The same failure when nobody refused anything: the server has opened
+     * the fence for a trial and the app keeps out of the GPS. Pointing at the
+     * phone's settings then would send somebody to change a switch that is
+     * not the reason.
+     */
+    locationPaused: t(
+      'Location is switched off for this trial, so the app cannot follow you. Choose a starting place on Ko Sichang to see the route instead.',
+      'ช่วงทดลองนี้ปิดการใช้ตำแหน่งไว้ แอปจึงนำทางตามตำแหน่งจริงไม่ได้ เลือกจุดเริ่มต้นบนเกาะสีชังเพื่อดูเส้นทางแทนได้',
+      '试用期间已关闭定位，应用无法跟随你的位置。请选择锡昌岛上的起点来查看路线。',
+    ),
     finding: t('Finding the route…', 'กำลังหาเส้นทาง…', '正在规划路线…'),
     rerouting: t('Finding a new route…', 'กำลังหาเส้นทางใหม่…', '正在重新规划…'),
     offRoute: t('Off the route', 'ออกนอกเส้นทาง', '已偏离路线'),
