@@ -89,7 +89,7 @@ import { addHost, isHostType } from './add-host.ts';
 import { createInvite, HostInviteRefused } from './host-invite-service.ts';
 import { publicBase } from './sos-service.ts';
 import { BodyTooLarge, boundedForm, boundedJson, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
-import { publicConfig } from './fence.ts';
+import { fenceOff, publicConfig } from './fence.ts';
 import { boardFeed, type BoardEntry } from '@chivago/core';
 import { monstersInArea } from './monster-service.ts';
 import { reportSighting, routesForArea } from './transit-service.ts';
@@ -2367,7 +2367,10 @@ app.post('/places/:id/checkin', async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as {
     lat?: number; lng?: number; accuracyM?: number | null; mocked?: boolean;
   };
-  if (typeof body.lat !== 'number' || typeof body.lng !== 'number') {
+  const hasFix = typeof body.lat === 'number' && typeof body.lng === 'number';
+  // No position is fine only while the fence is open: the app stops reading
+  // the GPS then. See fence.ts.
+  if (!hasFix && !fenceOff()) {
     return fail(c, 'BAD_REQUEST', 'lat and lng are required');
   }
   // The whole fix, not just the point: the second signal (docs/30) reads
@@ -2375,7 +2378,7 @@ app.post('/places/:id/checkin', async (c) => {
   // the service checking nothing. Caught live, not by the unit tests.
   const result = checkIn(db, {
     userId: userId(c), placeId: c.req.param('id'),
-    ...readFix({ lat: body.lat, lng: body.lng, accuracyM: body.accuracyM, mocked: body.mocked }),
+    ...(hasFix ? readFix({ lat: body.lat!, lng: body.lng!, accuracyM: body.accuracyM, mocked: body.mocked }) : {}),
   });
   return result ? ok(c, result) : fail(c, 'NOT_FOUND', 'No such place', 404);
 });
@@ -2561,12 +2564,14 @@ function readFix(body: { lat: number; lng: number; accuracyM?: number | null; mo
 
 /** Arrival is geofence-verified, not taken on trust. */
 app.post('/quests/:id/arrive', async (c) => {
-  const body = (await c.req.json()) as { lat?: number; lng?: number; accuracyM?: number | null; mocked?: boolean };
-  if (typeof body.lat !== 'number' || typeof body.lng !== 'number') {
+  const body = (await c.req.json().catch(() => ({}))) as { lat?: number; lng?: number; accuracyM?: number | null; mocked?: boolean };
+  const hasFix = typeof body.lat === 'number' && typeof body.lng === 'number';
+  // No position is fine only while the fence is open. See fence.ts.
+  if (!hasFix && !fenceOff()) {
     return fail(c, 'LOCATION_REQUIRED', 'Your location is needed to check in at the site.');
   }
   return ok(c, arriveAtQuest(db, userId(c), c.req.param('id'),
-    readFix({ lat: body.lat, lng: body.lng, accuracyM: body.accuracyM, mocked: body.mocked })));
+    hasFix ? readFix({ lat: body.lat!, lng: body.lng!, accuracyM: body.accuracyM, mocked: body.mocked }) : null));
 });
 
 /**
@@ -2619,8 +2624,9 @@ app.post('/quests/:id/proof', async (c) => {
 
     // Where the volunteer is now - the second in-fence sample. Required:
     // a shape without it would be the weaker path a tampered client picks.
+    // Except while the fence is open, when the app sends none (fence.ts).
     const position = parsePosition(form.get('position'));
-    if (!position) return fail(c, 'LOCATION_REQUIRED', 'Your location is needed to submit proof.');
+    if (!position && !fenceOff()) return fail(c, 'LOCATION_REQUIRED', 'Your location is needed to submit proof.');
 
     // The state machine runs first: an invalid transition must not leave
     // orphaned files on disk.
@@ -2662,7 +2668,7 @@ app.post('/quests/:id/proof', async (c) => {
     position?: unknown;
   };
   const position = parsePosition(body.position);
-  if (!position) return fail(c, 'LOCATION_REQUIRED', 'Your location is needed to submit proof.');
+  if (!position && !fenceOff()) return fail(c, 'LOCATION_REQUIRED', 'Your location is needed to submit proof.');
   return ok(
     c,
     submitProof(db, id, questId, {

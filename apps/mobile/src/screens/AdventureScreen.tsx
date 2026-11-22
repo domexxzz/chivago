@@ -7,11 +7,12 @@ import {
   ArrowLeft, ArrowRight, BookOpen, Camera, Check, CheckCircle2, Compass,
   LockKeyhole, MapPinned, Navigation, NotebookPen, PawPrint, QrCode, Sparkles,
 } from 'lucide-react-native';
-import type { AdventureArc, AdventureNode, ScoredPlace } from '@chivago/core';
+import type { AdventureArc, AdventureNode, Fix, ScoredPlace } from '@chivago/core';
 import { areaByKey } from '@chivago/core';
 import travelHero from '../../assets/chivago-travel-hero-v2.png';
 import { api, type CheckinResult } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
+import { locationOff } from '../state/server-config.ts';
 import { t } from '../i18n/locale.ts';
 import { gutter, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
@@ -70,30 +71,35 @@ export function AdventureScreen({
   const checkIn = async () => {
     if (!selected || selected.state === 'completed') return;
     setBusy(true);
-    const permission = await Location.requestForegroundPermissionsAsync();
-    if (!permission.granted) {
-      setBusy(false);
-      onToast(t({
-        en: 'Location permission is required for a verified check-in.',
-        th: 'ต้องอนุญาตตำแหน่งเพื่อเช็กอินแบบตรวจสอบได้',
-        zh: '经验证的签到需要位置权限。',
-      }));
-      return;
+    // No GPS at all while the server has opened the fence. See server-config.ts.
+    let fix: Fix | null = null;
+    if (!(await locationOff())) {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (!permission.granted) {
+        setBusy(false);
+        onToast(t({
+          en: 'Location permission is required for a verified check-in.',
+          th: 'ต้องอนุญาตตำแหน่งเพื่อเช็กอินแบบตรวจสอบได้',
+          zh: '经验证的签到需要位置权限。',
+        }));
+        return;
+      }
+      let position: Location.LocationObject;
+      try {
+        position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      } catch {
+        setBusy(false);
+        onToast(t({ en: 'A location fix is not available yet.', th: 'ยังไม่สามารถระบุตำแหน่งได้', zh: '暂时无法获取位置。' }));
+        return;
+      }
+      fix = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        accuracyM: position.coords.accuracy ?? null,
+        mocked: position.mocked ?? false,
+      };
     }
-    let position: Location.LocationObject;
-    try {
-      position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    } catch {
-      setBusy(false);
-      onToast(t({ en: 'A location fix is not available yet.', th: 'ยังไม่สามารถระบุตำแหน่งได้', zh: '暂时无法获取位置。' }));
-      return;
-    }
-    const result = await api.checkIn(selected.place.id, {
-      lat: position.coords.latitude,
-      lng: position.coords.longitude,
-      accuracyM: position.coords.accuracy ?? null,
-      mocked: position.mocked ?? false,
-    });
+    const result = await api.checkIn(selected.place.id, fix);
     setBusy(false);
     if (!result.ok) { onToast(result.error); return; }
     setReward(result.data);

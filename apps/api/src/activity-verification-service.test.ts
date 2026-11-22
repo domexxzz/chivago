@@ -145,6 +145,59 @@ describe('signed Adventure QR verification', () => {
   });
 });
 
+/**
+ * The trial switch reaches adventure stops too. Before it, they were the one
+ * place `CHIVAGO_FENCE_OFF` did not, and a tester off the island was refused
+ * here and nowhere else.
+ */
+describe('the GPS rule with the fence open', () => {
+  const withFenceOff = <T>(run: () => T): T => {
+    const before = process.env.CHIVAGO_FENCE_OFF;
+    process.env.CHIVAGO_FENCE_OFF = '1';
+    try { return run(); } finally {
+      if (before === undefined) delete process.env.CHIVAGO_FENCE_OFF;
+      else process.env.CHIVAGO_FENCE_OFF = before;
+    }
+  };
+
+  test('a QR on a GPS activity verifies with no fix at all', () => {
+    configure({ requiresGps: true });
+    const live = makeQr();
+    const verified = withFenceOff(() => verifyActivityQr(db, {
+      userId: USER, token: live.token, clientRequestId: 'fence-open-no-fix', signingSecret: SECRET, now: NOW,
+    }));
+    assert.equal(verified.activityVerified, true);
+  });
+
+  test('evidence from far away, or with no fix, passes the preflight', () => {
+    setPolicy(db, HOST, {
+      nodeId: NODE, requiresGps: true, requiresQr: false, requiresEvidence: true,
+      requiresHost: true, geofenceRadiusM: 150, rewardPoints: 0, rewardExp: 0,
+      rewardCurrency: 'trip',
+    });
+    const draft = createEvidenceDraft(db, {
+      userId: USER, nodeId: NODE, clientRequestId: 'fence-open-draft',
+    });
+    withFenceOff(() => {
+      prepareEvidenceSubmission(db, {
+        userId: USER, evidenceId: draft.id, incomingPhotos: 1, maxPhotos: 3,
+        fix: { lat: 14, lng: 101, accuracyM: 10, mocked: false }, now: NOW,
+      });
+      prepareEvidenceSubmission(db, {
+        userId: USER, evidenceId: draft.id, incomingPhotos: 1, maxPhotos: 3, fix: null, now: NOW,
+      });
+    });
+    // And shut again, the far fix is refused as before, and so is none.
+    assert.throws(() => prepareEvidenceSubmission(db, {
+      userId: USER, evidenceId: draft.id, incomingPhotos: 1, maxPhotos: 3,
+      fix: { lat: 14, lng: 101, accuracyM: 10, mocked: false }, now: NOW,
+    }), (error: unknown) => error instanceof ActivityVerificationError && error.code === 'OUTSIDE_GEOFENCE');
+    assert.throws(() => prepareEvidenceSubmission(db, {
+      userId: USER, evidenceId: draft.id, incomingPhotos: 1, maxPhotos: 3, fix: null, now: NOW,
+    }), (error: unknown) => error instanceof ActivityVerificationError && error.code === 'LOCATION_REQUIRED');
+  });
+});
+
 describe('evidence and host approval', () => {
   test('preflights GPS and the cumulative photo quota before any blob is stored', () => {
     setPolicy(db, HOST, {

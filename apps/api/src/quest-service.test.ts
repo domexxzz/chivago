@@ -227,6 +227,54 @@ describe('geofence', () => {
   });
 });
 
+/**
+ * The trial switch at arrival and proof. With the fence open the app sends no
+ * position at all, so a null one must be taken - and that must be the only
+ * way a null one is taken.
+ */
+describe('arrival and proof with the fence open', () => {
+  const withFenceOff = <T>(run: () => T): T => {
+    const before = process.env.CHIVAGO_FENCE_OFF;
+    process.env.CHIVAGO_FENCE_OFF = '1';
+    try { return run(); } finally {
+      if (before === undefined) delete process.env.CHIVAGO_FENCE_OFF;
+      else process.env.CHIVAGO_FENCE_OFF = before;
+    }
+  };
+  const keptFixes = () =>
+    (db.prepare('SELECT COUNT(*) AS n FROM last_fix WHERE user_id = ?').get(USER) as { n: number }).n;
+
+  test('arrival with no position is taken, marked unfenced, and keeps no fix', () => {
+    joinQuest(db, USER, QUEST);
+    assert.equal(withFenceOff(() => arriveAtQuest(db, USER, QUEST, null)).stage, 'arrived');
+    const row = db.prepare('SELECT fence_enforced FROM quest_progress WHERE user_id = ? AND quest_id = ?')
+      .get(USER, QUEST) as { fence_enforced: number };
+    assert.equal(row.fence_enforced, 0);
+    assert.equal(keptFixes(), 0);
+  });
+
+  test('arrival from the other side of the island is taken too', () => {
+    joinQuest(db, USER, QUEST);
+    const namuang = { lat: 9.4611, lng: 99.9908 };
+    assert.equal(withFenceOff(() => arriveAtQuest(db, USER, QUEST, namuang)).stage, 'arrived');
+  });
+
+  test('proof with no position reaches the host, and the dwell still holds', () => {
+    joinQuest(db, USER, QUEST);
+    withFenceOff(() => arriveAtQuest(db, USER, QUEST, null));
+    const proof = { photos: PHOTO, weightKg: null, position: null };
+    assert.throws(() => withFenceOff(() => submitProof(db, USER, QUEST, proof)), TooSoonAfterArrival);
+    const { progress } = withFenceOff(() => submitProof(db, USER, QUEST, proof, afterDwell()));
+    assert.equal(progress.stage, 'host_verification');
+  });
+
+  test('shut: arrival with no position is refused and the stage stays', () => {
+    joinQuest(db, USER, QUEST);
+    assert.throws(() => arriveAtQuest(db, USER, QUEST, null), /needs a position/);
+    assert.equal(getProgress(db, USER, QUEST)!.stage, 'joined');
+  });
+});
+
 describe('illegal transitions are refused', () => {
   test('cannot arrive without joining', () => {
     assert.throws(() => arriveAtQuest(db, USER, QUEST, SITE), InvalidTransition);
@@ -450,6 +498,26 @@ describe('a party on one proof', () => {
     assert.equal(ann.stage, 'arrived');
     assert.ok(ann.rejectedAt, 'the refusal is on her record too');
     assert.equal(getBalances(db, ANN).green, 0);
+  });
+
+  test('with the fence open the party rides with no fix at all, still not twice', () => {
+    // The trial switch: the app reads no GPS, so nobody has a fix to be "in
+    // the fence" with. The party itself is the presence; finishers stay off.
+    addUser(ANN, 'Ann'); addUser(BOB, 'Bob');
+    party(USER, ANN, BOB);
+    db.prepare(`INSERT INTO quest_progress (user_id, quest_id, stage, joined_at, verified_at) VALUES (?, ?, 'complete', ?, ?)`)
+      .run(BOB, QUEST, new Date().toISOString(), new Date().toISOString());
+    const before = process.env.CHIVAGO_FENCE_OFF;
+    process.env.CHIVAGO_FENCE_OFF = '1';
+    try {
+      joinQuest(db, USER, QUEST);
+      arriveAtQuest(db, USER, QUEST, null);
+      const { partyPresent } = submitProof(db, USER, QUEST, { photos: PHOTO, weightKg: null, position: null }, afterDwell());
+      assert.deepEqual(partyPresent.map((m) => m.displayName), ['Ann']);
+    } finally {
+      if (before === undefined) delete process.env.CHIVAGO_FENCE_OFF;
+      else process.env.CHIVAGO_FENCE_OFF = before;
+    }
   });
 
   test('a member who already finished this quest does not ride it again', () => {

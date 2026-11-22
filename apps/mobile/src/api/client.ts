@@ -910,15 +910,16 @@ export const api = {
   quest: (id: string) =>
     get<{ quest: Quest; progress: QuestProgress | null }>(`/quests/${id}`),
   joinQuest: (id: string) => post<QuestProgress>(`/quests/${id}/join`),
-  arriveAtQuest: (id: string, pos: Fix) =>
-    post<QuestProgress>(`/quests/${id}/arrive`, pos),
+  /** `pos` is null only while the fence is open; see state/server-config.ts `locationOff`. */
+  arriveAtQuest: (id: string, pos: Fix | null) =>
+    post<QuestProgress>(`/quests/${id}/arrive`, pos ?? {}),
   submitProof: (
     id: string,
     payload: {
       photos: { uri: string; lat: number | null; lng: number | null; takenAt: string | null }[];
       weightKg: number | null;
-      /** Where the volunteer is at submission - the second in-fence sample. */
-      position: Fix;
+      /** Where the volunteer is at submission - the second in-fence sample. Null while the fence is open. */
+      position: Fix | null;
     },
   ) => post<{ progress: QuestProgress; proofId: string; partyPresent?: { userId: string; displayName: string }[] }>(`/quests/${id}/proof`, payload),
 
@@ -927,8 +928,8 @@ export const api = {
    * Check in at a place. The server does the geofence check, not us: a client
    * that decides whether it is close enough is a client that can lie.
    */
-  checkIn: (placeId: string, fix: Fix) =>
-    post<CheckinResult>(`/places/${placeId}/checkin`, fix),
+  checkIn: (placeId: string, fix: Fix | null) =>
+    post<CheckinResult>(`/places/${placeId}/checkin`, fix ?? {}),
   checkinsToday: () => get<string[]>('/checkins/today'),
   /** What the server says about itself. Public, and fetched before sign-in. */
   // `autoApprove` is the deprecated alias of `storiesAutoApprove`; a server

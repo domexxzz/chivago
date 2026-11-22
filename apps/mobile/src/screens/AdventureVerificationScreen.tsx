@@ -9,6 +9,7 @@ import {
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { AdventureEvidence, AdventureNode, Fix } from '@chivago/core';
 import { api } from '../api/client.ts';
+import { locationOff } from '../state/server-config.ts';
 import { t } from '../i18n/locale.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { shadow } from '../theme/index.ts';
@@ -20,6 +21,15 @@ type Step = 'scan' | 'evidence' | 'pending' | 'success' | 'error';
 
 const requestId = (prefix: string): string =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+
+/**
+ * Whether this activity needs a fix from the phone. Its policy may ask for
+ * one, but not while the server has opened the fence: the server checks
+ * nothing then, and the app keeps out of the GPS. See server-config.ts.
+ */
+async function needsFix(node: AdventureNode): Promise<boolean> {
+  return node.policy.requiresGps && !(await locationOff());
+}
 
 async function currentFix(): Promise<Fix | null> {
   const permission = await Location.requestForegroundPermissionsAsync();
@@ -57,7 +67,7 @@ export function AdventureVerificationScreen({ node, onBack, onCompleted }: {
     setBusy(true);
     let fix: Fix | null = null;
     try {
-      if (node.policy.requiresGps) {
+      if (await needsFix(node)) {
         fix = await currentFix();
         if (!fix) { fail(t({ en: 'Location permission is required for this activity.', th: 'กิจกรรมนี้ต้องอนุญาตตำแหน่ง', zh: '此活动需要位置权限。' })); return; }
       }
@@ -97,8 +107,9 @@ export function AdventureVerificationScreen({ node, onBack, onCompleted }: {
     setError('');
     const clientRequestId = requestId('evidence');
     try {
-      const fix = node.policy.requiresGps ? await currentFix() : null;
-      if (node.policy.requiresGps && !fix) { fail(t({ en: 'Location is required to submit evidence.', th: 'ต้องใช้ตำแหน่งในการส่งหลักฐาน', zh: '提交证据需要位置信息。' })); return; }
+      const wantsFix = await needsFix(node);
+      const fix = wantsFix ? await currentFix() : null;
+      if (wantsFix && !fix) { fail(t({ en: 'Location is required to submit evidence.', th: 'ต้องใช้ตำแหน่งในการส่งหลักฐาน', zh: '提交证据需要位置信息。' })); return; }
       const selectedPhotos = photo ? [{ uri: photo.uri, mimeType: photo.mimeType }] : [];
       const queued = {
         nodeId: node.id, clientRequestId, qrScanId: scanId,
