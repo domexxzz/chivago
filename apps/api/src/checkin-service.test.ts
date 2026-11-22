@@ -207,6 +207,23 @@ describe('the leg on foot', () => {
     assert.equal(getBalances(db, USER).trip, CHECKIN_TRIP_POINTS * 2);
   });
 
+  test('with the fence open a leg a minute long still pays: the pace is a presence signal', () => {
+    // The trial switch. Testers cross the island in a few taps from a hall,
+    // and the leg is what hatches a companion egg on a one-day visit.
+    addFisherman();
+    const before = process.env.CHIVAGO_FENCE_OFF;
+    process.env.CHIVAGO_FENCE_OFF = '1';
+    try {
+      checkIn(db, { userId: USER, placeId: PLACE, now: t0 });
+      const second = checkIn(db, { userId: USER, placeId: 'fisherman', now: new Date(t0.getTime() + 60_000) })!;
+      assert.ok(second.walk, 'no pace to judge, so the leg is walked');
+      assert.equal(second.walk!.points, LOW_CARBON_TRIP_POINTS);
+    } finally {
+      if (before === undefined) delete process.env.CHIVAGO_FENCE_OFF;
+      else process.env.CHIVAGO_FENCE_OFF = before;
+    }
+  });
+
   test('a second check-in at the same beach closes no leg and pays nothing more', () => {
     addFisherman();
     checkIn(db, { userId: USER, placeId: PLACE, ...SITE, now: t0 });

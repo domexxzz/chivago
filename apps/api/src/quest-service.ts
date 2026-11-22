@@ -399,11 +399,15 @@ export function submitProof(
   }
 
   // Dwell: needs only the clock, so it is enforced whether or not a position
-  // came with the proof.
-  const arrivedAt = progress.arrivedAt ? Date.parse(progress.arrivedAt) : Number.NaN;
-  const minutesSinceArrival = (at.getTime() - arrivedAt) / 60_000;
-  if (!Number.isFinite(minutesSinceArrival) || minutesSinceArrival < QUEST_MIN_DWELL_MIN) {
-    throw new TooSoonAfterArrival(minutesSinceArrival);
+  // came with the proof - but not while the fence is open for a trial, when
+  // the arrival itself was taken on trust and testers go from site to site
+  // in minutes. The host still reviews every proof. See fence.ts.
+  if (!fenceOff()) {
+    const arrivedAt = progress.arrivedAt ? Date.parse(progress.arrivedAt) : Number.NaN;
+    const minutesSinceArrival = (at.getTime() - arrivedAt) / 60_000;
+    if (!Number.isFinite(minutesSinceArrival) || minutesSinceArrival < QUEST_MIN_DWELL_MIN) {
+      throw new TooSoonAfterArrival(minutesSinceArrival);
+    }
   }
 
   // A second in-fence sample, when the client sent one and the fence is up.

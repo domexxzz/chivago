@@ -23,6 +23,16 @@ describe('a leg on foot', () => {
     assert.ok(leg.kmPerHour > WALK_MAX_KM_H);
   });
 
+  test('with the pace unchecked (a trial with the fence open) a fast leg pays, the floor still holds', () => {
+    const fast = lowCarbonLeg({ ...chaweng, at: at(0) }, { ...fisherman, at: at(1) }, LEG_MIN_M, false);
+    assert.equal(fast.qualifies, true);
+    assert.equal(fast.verdict, 'ok');
+    const short = lowCarbonLeg({ ...chaweng, at: at(0) }, { ...chaweng, placeId: 'next-door', lat: chaweng.lat + 0.001, at: at(1) }, LEG_MIN_M, false);
+    assert.equal(short.verdict, 'too-short', 'a different pin on the same beach is still not a journey');
+    const back = lowCarbonLeg({ ...chaweng, at: at(5) }, { ...fisherman, at: at(1) }, LEG_MIN_M, false);
+    assert.equal(back.verdict, 'out-of-order');
+  });
+
   test('the same beach twice is not a journey', () => {
     const leg = lowCarbonLeg({ ...chaweng, at: at(0) }, { ...chaweng, at: at(60) });
     assert.equal(leg.verdict, 'same-place');

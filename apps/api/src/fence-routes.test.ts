@@ -117,15 +117,22 @@ describe('routes that take a position', () => {
     assert.equal(proof.body.data.progress.stage, 'host_verification');
   });
 
-  test('the dwell still holds with the fence open: the switch is about place, not time', async () => {
-    db.prepare(`UPDATE quest_progress SET stage = 'joined', arrived_at = NULL WHERE user_id = ? AND quest_id = ?`)
+  test('no ten-minute wait before proof with the fence open; shut, it holds', async () => {
+    const photos = [{ uri: 'file://p1.jpg', lat: null, lng: null, takenAt: null }];
+    const rejoin = () => db.prepare(`UPDATE quest_progress SET stage = 'joined', arrived_at = NULL WHERE user_id = ? AND quest_id = ?`)
       .run(userId, QUEST);
-    openFence();
-    assert.equal((await send(`/quests/${QUEST}/arrive`, {})).body.data.stage, 'arrived');
-    const tooSoon = await send(`/quests/${QUEST}/proof`, {
-      photos: [{ uri: 'file://p1.jpg', lat: null, lng: null, takenAt: null }], weightKg: null,
-    });
+
+    rejoin();
+    assert.equal((await send(`/quests/${QUEST}/arrive`, SITE)).body.data.stage, 'arrived');
+    const tooSoon = await send(`/quests/${QUEST}/proof`, { photos, weightKg: null, position: SITE });
     assert.equal(tooSoon.status, 409);
     assert.equal(tooSoon.body.code, 'TOO_SOON');
+
+    rejoin();
+    openFence();
+    assert.equal((await send(`/quests/${QUEST}/arrive`, {})).body.data.stage, 'arrived');
+    const straightAway = await send(`/quests/${QUEST}/proof`, { photos, weightKg: null });
+    assert.equal(straightAway.status, 200);
+    assert.equal(straightAway.body.data.progress.stage, 'host_verification');
   });
 });

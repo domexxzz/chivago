@@ -18,6 +18,13 @@
  * requests with no position at all - which the routes accept only while the
  * fence is open. A position nobody checks is not worth collecting.
  *
+ * Two clock rules go with it, because they too only stand in for presence:
+ * the ten-minute dwell between a quest arrival and its proof, and the
+ * walking pace a leg between two check-ins must keep to pay. With the fence
+ * open a tester can do a quest straight through and cross the island in a
+ * few taps - walking legs, the travel journal and the companion eggs a leg
+ * hatches all work. Host review of quest proof does not change.
+ *
  * TWO RULES COME WITH IT, and they are not optional.
  *
  * 1. It is OFF unless the environment says otherwise. Not a database row, not
