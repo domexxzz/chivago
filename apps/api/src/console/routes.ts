@@ -46,7 +46,7 @@ import { inquiriesPage } from './inquiries.ts';
 import { kpiReading } from '../kpi-service.ts';
 import { statementMissingPage, statementPage } from './statement.ts';
 import { storiesPage } from './stories.ts';
-import { pendingStories, readStoryMedia, reviewStory, setStoriesOpen, storiesOpen } from '../story-service.ts';
+import { fetchStoryMedia, pendingStories, reviewStory, setStoriesOpen, storiesOpen } from '../story-service.ts';
 import {
   InvalidPeriod, draftStatement, issueStatement, readStatement, statementsFor,
 } from '../statement-service.ts';
@@ -2059,9 +2059,9 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
   });
 
   for (const which of ['media', 'poster'] as const) {
-    app.get(`/stories/:id/${which}`, (c) => {
+    app.get(`/stories/:id/${which}`, async (c) => {
       const session = currentSession(c)!;
-      const blob = readStoryMedia(db, c.req.param('id'), which, { forHost: session.hostId });
+      const blob = await fetchStoryMedia(db, c.req.param('id'), which, { forHost: session.hostId });
       if (!blob) return c.text('Not found', 404);
       return c.body(new Uint8Array(blob.bytes), 200, {
         'content-type': blob.mime,

@@ -28,10 +28,11 @@ import {
   areaByKey, areaOfPlace, inArea, isAreaKey,
   type AreaKey, type Bilingual,
 } from '@chivago/core';
+import { blobStore, isLegacyPath, type BlobStore } from './blob-store.ts';
 import { row, rows, type DB } from './db.ts';
 import { storiesAutoApprove } from './fence.ts';
 import { UnsupportedUpload, sniff, uploadRoot } from './uploads.ts';
-import { TranscoderUnavailable, transcoderFromEnv, type Encoded, type Transcoder } from './transcode.ts';
+import { TranscoderUnavailable, onWorkers, transcoderFromEnv, type Encoded, type Transcoder } from './transcode.ts';
 
 export const STORY_MAX_BYTES = 25 * 1024 * 1024;
 /**
@@ -252,7 +253,25 @@ const JOINED = `s.id, s.place_id, s.user_id, s.kind, s.caption, s.media_path, s.
  * tens, so this is cheaper than the request that fetches them.
  */
 const hasBytes = (r: StoryRow): boolean =>
-  r.has_blob === 1 || existsSync(r.poster_path ?? r.media_path);
+  r.has_blob === 1 || inStore(r.poster_path ?? r.media_path) || existsSync(r.poster_path ?? r.media_path);
+
+/*
+  STORIES IN THE OBJECT STORE.
+
+  On Cloudflare the database is a Durable Object: one row may hold two
+  megabytes, and the whole island shares ten gigabytes. A clip is up to
+  twenty-five. So on Workers a story's bytes go to the blob store (R2) and the
+  row keeps the key - in `media_path` and `poster_path`, which have held
+  nothing but a name since the bytes moved into the row, and which are
+  NOT NULL anyway. A key is told from an old filesystem path the same way
+  blob-store.ts tells them apart, plus the prefix, so a row from before this
+  can never be mistaken for one.
+*/
+const STORE_PREFIX = 'stories/';
+const inStore = (path: string): boolean => path.startsWith(STORE_PREFIX) && !isLegacyPath(path);
+const STORE_EXT: Record<string, string> = {
+  'video/mp4': 'mp4', 'image/jpeg': 'jpg', 'image/png': 'png',
+};
 
 const toStory = (r: StoryRow): Story => ({
   id: r.id,
@@ -302,6 +321,11 @@ export async function submitStory(
     transcoder?: Transcoder;
     /** Tests open the door without an env var. */
     open?: boolean;
+    /**
+     * Where the bytes go instead of the row. Left out, it is the blob store
+     * on Workers and the row everywhere else; tests hand in a store or null.
+     */
+    store?: BlobStore | null;
   },
 ): Promise<Story> {
   const now = args.now ?? new Date();
@@ -375,8 +399,19 @@ export async function submitStory(
   const mediaBytes = encoded.media;
   const posterBytes = encoded.poster;
   const durationS = encoded.durationS;
-  const media = join(storiesDir(), `${id}.${kind === 'video' ? 'mp4' : 'jpg'}`);
-  const poster = kind === 'video' ? join(storiesDir(), `${id}.poster.jpg`) : media;
+  const mime = encoded.mime ?? (kind === 'video' ? 'video/mp4' : 'image/jpeg');
+  const storedExt = STORE_EXT[mime] ?? (kind === 'video' ? 'mp4' : 'jpg');
+  // On Workers the bytes go to the object store and the row keeps the key.
+  // The objects are written BEFORE the row, so a row never names bytes that
+  // are not there; a failed insert leaves an orphan, which costs a few cents.
+  const store = args.store !== undefined ? args.store : (onWorkers() ? blobStore() : null);
+  const media = store ? `${STORE_PREFIX}${id}.${storedExt}` : join(storiesDir(), `${id}.${storedExt}`);
+  const poster = kind !== 'video' ? media
+    : store ? `${STORE_PREFIX}${id}.poster.jpg` : join(storiesDir(), `${id}.poster.jpg`);
+  if (store) {
+    await store.put(media, mediaBytes);
+    if (poster !== media) await store.put(poster, posterBytes);
+  }
 
   db.prepare(
     `INSERT INTO stories (id, place_id, user_id, kind, caption, media_path, media_mime, poster_path,
@@ -384,10 +419,10 @@ export async function submitStory(
        media_blob, poster_blob)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
   ).run(
-    id, place.id, args.userId, kind, caption, media, kind === 'video' ? 'video/mp4' : 'image/jpeg',
+    id, place.id, args.userId, kind, caption, media, mime,
     poster, durationS, auto ? 'approved' : 'pending', createdAt, expiresAt,
     auto ? createdAt : null, auto ? 'auto' : null, null,
-    mediaBytes, posterBytes,
+    store ? null : mediaBytes, store ? null : posterBytes,
   );
   return toStory(row<StoryRow>(db.prepare(`${SELECT} WHERE id = ?`).get(id))!);
 }
@@ -473,26 +508,64 @@ export interface StoryBlob { bytes: Buffer; mime: string }
 export function readStoryMedia(
   db: DB, storyId: string, which: 'media' | 'poster', opts: { forHost?: string; now?: Date } = {},
 ): StoryBlob | null {
+  const found = locateStoryMedia(db, storyId, which, opts);
+  return found?.bytes ? { bytes: Buffer.from(found.bytes), mime: found.mime } : null;
+}
+
+/** One side of a story's media: its type, and the bytes or the key they are stored under. */
+export interface StoryMediaSource {
+  mime: string;
+  /** The bytes, when they are in the row or on this machine's disk. */
+  bytes: Uint8Array | null;
+  /** The blob-store key, when they are in the object store instead. */
+  key: string | null;
+}
+
+/**
+ * Where one side of a story's media is, for somebody allowed to have it.
+ *
+ * Null for a story that is not live and not being reviewed by this host, and
+ * for one whose bytes are nowhere. Exactly one of `bytes` and `key` is set
+ * otherwise. The permission check is here, once, so the synchronous read
+ * above and the two async ones (the public route, by range; the console,
+ * whole) cannot disagree about who may see a pending clip.
+ */
+export function locateStoryMedia(
+  db: DB, storyId: string, which: 'media' | 'poster', opts: { forHost?: string; now?: Date } = {},
+): StoryMediaSource | null {
   const r = row<StoryRow>(db.prepare(`${SELECT} WHERE id = ?`).get(storyId));
   if (!r) return null;
   const now = opts.now ?? new Date();
   const live = r.status === 'approved' && r.expires_at > now.toISOString();
   const reviewing = opts.forHost !== undefined && r.status !== 'hidden' && canReviewStories(db, opts.forHost, r.place_id);
   if (!live && !reviewing) return null;
-  const mime = which === 'poster' ? 'image/jpeg' : r.media_mime;
+  // A photograph is its own poster, so they share a type; a clip's is a JPEG.
+  const mime = which === 'poster' && r.kind === 'video' ? 'image/jpeg' : r.media_mime;
 
   // The bytes are fetched HERE, for one row, and only when somebody asked for
-  // them — never in a listing (see SELECT).
+  // them - never in a listing (see SELECT).
   const blob = row<{ b: Uint8Array | null }>(
     db.prepare(`SELECT ${which === 'poster' ? 'poster_blob' : 'media_blob'} AS b FROM stories WHERE id = ?`)
       .get(storyId),
   )?.b ?? null;
-  if (blob) return { bytes: Buffer.from(blob), mime };
+  if (blob) return { mime, bytes: blob, key: null };
 
-  // Written before the bytes moved into the row: still on this machine's disk.
   const path = which === 'poster' ? (r.poster_path ?? r.media_path) : r.media_path;
+  if (inStore(path)) return { mime, bytes: null, key: path };
+  // Written before the bytes moved into the row: still on this machine's disk.
   if (!existsSync(path)) return null;
-  return { bytes: readFileSync(path), mime };
+  return { mime, bytes: readFileSync(path), key: null };
+}
+
+/** The whole of one side, wherever it lives. For the console, which shows a reviewer one clip at a time. */
+export async function fetchStoryMedia(
+  db: DB, storyId: string, which: 'media' | 'poster',
+  opts: { forHost?: string; now?: Date } = {}, store: BlobStore = blobStore(),
+): Promise<StoryBlob | null> {
+  const found = locateStoryMedia(db, storyId, which, opts);
+  if (!found) return null;
+  const bytes = found.bytes ?? (found.key ? await store.get(found.key) : null);
+  return bytes ? { bytes: Buffer.from(bytes), mime: found.mime } : null;
 }
 
 /**
@@ -514,8 +587,14 @@ export function storyEtag(db: DB, storyId: string, which: 'media' | 'poster', no
 export function expireStories(db: DB, now = new Date()): number {
   const gone = rows<StoryRow>(db.prepare(`${SELECT} WHERE expires_at <= ?`).all(now.toISOString()));
   for (const r of gone) {
-    rmSync(r.media_path, { force: true });
-    if (r.poster_path) rmSync(r.poster_path, { force: true });
+    for (const path of new Set([r.media_path, r.poster_path ?? r.media_path])) {
+      // An object in the store is removed by the same queue shop photographs
+      // use (media-store.ts `drainMediaDeletions`): this sweep is synchronous
+      // and the store is not.
+      if (inStore(path)) {
+        db.prepare('INSERT OR IGNORE INTO media_deletions (key, queued_at) VALUES (?, ?)').run(path, now.toISOString());
+      } else rmSync(path, { force: true });
+    }
     db.prepare('DELETE FROM stories WHERE id = ?').run(r.id);
   }
   return gone.length;

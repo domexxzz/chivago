@@ -54,7 +54,7 @@ import {
   listShopRewards, previewShopVoucher, redeemShopVoucher, saveShopReward,
 } from './shop-reward-service.ts';
 import { mediaBytes, storeMedia, type MediaTable } from './media-store.ts';
-import { blobStore } from './blob-store.ts';
+import { blobStore, openBlob, parseRange, sliceBytes } from './blob-store.ts';
 import { logger } from 'hono/logger';
 
 import { row, transact, type DB } from './db.ts';
@@ -116,7 +116,7 @@ import { airHistoryFor, checkinsLastHour } from './crowd-service.ts';
 import { readStatement, statementsIncluding } from './statement-service.ts';
 import { countersignaturesFor } from './countersign-service.ts';
 import {
-  STORY_FORM_MAX_BYTES, StoryTooLarge, readStoryMedia, storiesAt, storiesInArea, storiesOpen,
+  STORY_FORM_MAX_BYTES, StoryTooLarge, locateStoryMedia, storiesAt, storiesInArea, storiesOpen,
   storyEtag, submitStory,
 } from './story-service.ts';
 import { AREAS, areaByKey, inArea, isAreaKey, type TravelLocation } from '@chivago/core';
@@ -870,7 +870,7 @@ app.get('/statements/:id/pdf', (c) => {
   through the console.
 */
 for (const which of ['media', 'poster'] as const) {
-  app.get(`/stories/:id/${which}`, (c) => {
+  app.get(`/stories/:id/${which}`, async (c) => {
     const id = c.req.param('id');
     // Registered before the CORS middleware, like the statement, and public
     // for the same reason: a board on a laptop and the app on another origin
@@ -895,9 +895,28 @@ for (const which of ['media', 'poster'] as const) {
       'x-content-type-options': 'nosniff',
     };
     if (c.req.header('if-none-match') === tag) return c.body(null, 304, headers);
-    const blob = readStoryMedia(db, id, which);
-    if (!blob) return fail(c, 'NOT_FOUND', 'No such story.', 404);
-    return c.body(new Uint8Array(blob.bytes), 200, { ...headers, 'content-type': blob.mime });
+    const source = locateStoryMedia(db, id, which);
+    if (!source) return fail(c, 'NOT_FOUND', 'No such story.', 404);
+    /*
+      BY RANGE. A phone's player asks for a clip in pieces (`Range: bytes=`)
+      and iOS will not play one from a server that answers the whole file to
+      every piece. From the object store the piece is streamed, never held:
+      a clip is up to 25 MB and this Worker has 128.
+    */
+    const wanted = parseRange(c.req.header('range'));
+    const read = source.bytes
+      ? sliceBytes(source.bytes, wanted)
+      : await openBlob(blobStore(), source.key!, wanted);
+    if (!read) return fail(c, 'NOT_FOUND', 'No such story.', 404);
+    if (read === 'unsatisfiable') return c.body(null, 416, { ...headers, 'content-range': 'bytes */*' });
+    const body = read.body instanceof Uint8Array ? new Uint8Array(read.body) : read.body;
+    return c.body(body, wanted ? 206 : 200, {
+      ...headers,
+      'content-type': source.mime,
+      'accept-ranges': 'bytes',
+      'content-length': String(read.length),
+      ...(wanted ? { 'content-range': `bytes ${read.offset}-${read.offset + read.length - 1}/${read.size}` } : {}),
+    });
   });
 }
 

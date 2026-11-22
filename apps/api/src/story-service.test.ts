@@ -8,8 +8,10 @@ import { openTestDb, type DB } from './db-node.ts';
 import {
   STORIES_PER_DAY, STORY_MAX_BYTES, StoriesClosed, StoryNotFound, StoryQuotaReached, StoryTooLarge,
   UnsupportedStory, canReviewStories, expireStories, pendingStories,
-  readStoryMedia, reviewStory, setStoriesOpen, sniffStory, storiesAt, storiesInArea, storiesOpen, submitStory,
+  fetchStoryMedia, locateStoryMedia, readStoryMedia, reviewStory, setStoriesOpen, sniffStory, storiesAt, storiesInArea,
+  storiesOpen, submitStory,
 } from './story-service.ts';
+import type { BlobStore } from './blob-store.ts';
 import { TranscoderUnavailable, type Transcoder } from './transcode.ts';
 
 let db: DB;
@@ -450,5 +452,85 @@ describe('a story with no bytes behind it', () => {
     reviewStory(db, { storyId: s.id, hostId: 'h-ku', reviewer: 'Mod', decision: 'approve' });
     loseTheBytes(s.id);
     assert.equal(readStoryMedia(db, s.id, 'media', { now: T }), null);
+  });
+});
+
+/**
+ * On Workers the bytes cannot live in the row: a Durable Object row holds two
+ * megabytes and a clip is up to twenty-five. They go to the blob store and
+ * the row keeps the key. Everything a story does must still work from there.
+ */
+describe('a story whose bytes live in the object store', () => {
+  const memory = (): BlobStore & { keys: () => string[] } => {
+    const held = new Map<string, Uint8Array>();
+    return {
+      keys: () => [...held.keys()].sort(),
+      put: async (key, bytes) => { held.set(key, bytes); },
+      get: async (key) => held.get(key) ?? null,
+      delete: async (key) => { held.delete(key); },
+    };
+  };
+  const asPng: Transcoder = {
+    ...fake,
+    async photo() {
+      const media = bytesOf('PNG-BYTES');
+      return { media, poster: media, durationS: null, mime: 'image/png' };
+    },
+  };
+
+  test('a clip and its cover go to the store, and the row holds neither', async () => {
+    const store = memory();
+    const s = await submit({ store });
+    assert.deepEqual(store.keys(), [`stories/${s.id}.mp4`, `stories/${s.id}.poster.jpg`]);
+    const row = db.prepare('SELECT media_blob IS NULL AS empty, media_path, poster_path FROM stories WHERE id = ?')
+      .get(s.id) as { empty: number; media_path: string; poster_path: string };
+    assert.equal(row.empty, 1, 'nothing in the row to hit the two-megabyte ceiling');
+    assert.equal(row.media_path, `stories/${s.id}.mp4`);
+    assert.equal(readdirSync(dir).length, 0, 'and nothing on disk');
+  });
+
+  test('it is listed, located by key, and read back whole for a reviewer', async () => {
+    const store = memory();
+    const s = await submit({ store });
+    reviewStory(db, { hostId: 'h-ku', storyId: s.id, decision: 'approve', reviewer: 'Nok', now: later(1) });
+    assert.equal(storiesAt(db, 'ku-park', later(2)).length, 1, 'a story with a key is a story with bytes');
+    assert.deepEqual(locateStoryMedia(db, s.id, 'media', { now: later(2) }),
+      { mime: 'video/mp4', bytes: null, key: `stories/${s.id}.mp4` });
+    assert.equal(locateStoryMedia(db, s.id, 'poster', { now: later(2) })?.mime, 'image/jpeg');
+    assert.equal((await fetchStoryMedia(db, s.id, 'media', { now: later(2) }, store))?.bytes.toString(), 'MP4-BYTES');
+    assert.equal((await fetchStoryMedia(db, s.id, 'poster', { now: later(2) }, store))?.bytes.toString(), 'POSTER-BYTES');
+  });
+
+  test('a pending one is still nobody’s to read but its reviewer’s', async () => {
+    const store = memory();
+    const s = await submit({ store });
+    assert.equal(locateStoryMedia(db, s.id, 'media', { now: later(1) }), null);
+    assert.equal(await fetchStoryMedia(db, s.id, 'media', { now: later(1) }, store), null);
+    assert.ok(await fetchStoryMedia(db, s.id, 'media', { forHost: 'h-ku', now: later(1) }, store));
+  });
+
+  test('a PNG keeps its own type, once, as its own poster', async () => {
+    const store = memory();
+    const s = await submit({ store, bytes: jpeg(), transcoder: asPng });
+    assert.deepEqual(store.keys(), [`stories/${s.id}.png`], 'a photograph is stored once');
+    reviewStory(db, { hostId: 'h-ku', storyId: s.id, decision: 'approve', reviewer: 'Nok', now: later(1) });
+    assert.equal(locateStoryMedia(db, s.id, 'media', { now: later(2) })?.mime, 'image/png');
+    assert.equal(locateStoryMedia(db, s.id, 'poster', { now: later(2) })?.mime, 'image/png');
+  });
+
+  test('when it expires the row goes and its objects are queued for removal', async () => {
+    const store = memory();
+    const s = await submit({ store });
+    const week = new Date(T.getTime() + 7 * 24 * 3_600_000 + 1000);
+    assert.equal(expireStories(db, week), 1);
+    const queued = (db.prepare('SELECT key FROM media_deletions ORDER BY key').all() as { key: string }[]).map((r) => r.key);
+    assert.deepEqual(queued, [`stories/${s.id}.mp4`, `stories/${s.id}.poster.jpg`]);
+  });
+
+  test('with no store the bytes stay in the row, exactly as before', async () => {
+    const s = await submit({ store: null });
+    const row = db.prepare('SELECT media_blob IS NULL AS empty FROM stories WHERE id = ?').get(s.id) as { empty: number };
+    assert.equal(row.empty, 0);
+    assert.equal(readStoryMedia(db, s.id, 'media', { forHost: 'h-ku', now: later(1) })?.bytes.toString(), 'MP4-BYTES');
   });
 });

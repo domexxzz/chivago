@@ -68,6 +68,65 @@ export interface BlobStore {
   get(key: string): Promise<Uint8Array | null>;
   /** Remove bytes. Succeeds whether or not they were there. */
   delete(key: string): Promise<void>;
+  /**
+   * Read without holding the whole object, and only part of it if asked.
+   *
+   * Optional, and only R2 has it. A story clip is up to 25 MB and is read by
+   * every phone that plays it, several ranges at a time; buffering each one
+   * whole inside a 128 MB Worker is how five viewers take the API down.
+   * `openBlob` below falls back to `get` and a slice for a store without it.
+   */
+  open?(key: string, range?: ByteRange | null): Promise<BlobRead | 'unsatisfiable' | null>;
+}
+
+/** Part of an object: from an offset, or the last `suffix` bytes. */
+export type ByteRange = { offset: number; length?: number } | { suffix: number };
+
+/** What a ranged read hands back: the bytes, and where they sit in the whole. */
+export interface BlobRead {
+  body: ReadableStream<Uint8Array> | Uint8Array;
+  /** The whole object's size. */
+  size: number;
+  offset: number;
+  length: number;
+}
+
+/** A single `Range: bytes=` header, or null for none or one this does not serve (multi-range). */
+export function parseRange(header: string | undefined | null): ByteRange | null {
+  const m = /^bytes=(\d*)-(\d*)$/.exec((header ?? '').trim());
+  if (!m || (m[1] === '' && m[2] === '')) return null;
+  if (m[1] === '') return { suffix: Number(m[2]) };
+  const offset = Number(m[1]);
+  if (m[2] === '') return { offset };
+  const last = Number(m[2]);
+  return last < offset ? null : { offset, length: last - offset + 1 };
+}
+
+/** Where a range lands in an object of `size` bytes, or null when it lands nowhere. */
+export function resolveRange(range: ByteRange, size: number): { offset: number; length: number } | null {
+  if ('suffix' in range) {
+    const length = Math.min(range.suffix, size);
+    return length > 0 ? { offset: size - length, length } : null;
+  }
+  if (range.offset >= size) return null;
+  return { offset: range.offset, length: Math.min(range.length ?? Infinity, size - range.offset) };
+}
+
+/** A range of bytes already in memory, in the same shape a store's `open` gives. */
+export function sliceBytes(bytes: Uint8Array, range: ByteRange | null): BlobRead | 'unsatisfiable' {
+  if (!range) return { body: bytes, size: bytes.length, offset: 0, length: bytes.length };
+  const at = resolveRange(range, bytes.length);
+  if (!at) return 'unsatisfiable';
+  return { body: bytes.subarray(at.offset, at.offset + at.length), size: bytes.length, ...at };
+}
+
+/** Read a range from whichever store this is: streamed if it can, sliced if it cannot. */
+export async function openBlob(
+  store: BlobStore, key: string, range: ByteRange | null,
+): Promise<BlobRead | 'unsatisfiable' | null> {
+  if (store.open) return store.open(key, range);
+  const bytes = await store.get(key);
+  return bytes ? sliceBytes(bytes, range) : null;
 }
 
 /**
@@ -141,7 +200,11 @@ export function diskBlobStore(root: () => string = uploadRoot): BlobStore {
  */
 export interface R2Like {
   put(key: string, value: ArrayBuffer | Uint8Array): Promise<unknown>;
-  get(key: string): Promise<{ arrayBuffer(): Promise<ArrayBuffer> } | null>;
+  get(key: string, options?: { range?: ByteRange }): Promise<{
+    arrayBuffer(): Promise<ArrayBuffer>;
+    body?: ReadableStream<Uint8Array>;
+    size?: number;
+  } | null>;
   delete(key: string): Promise<void>;
 }
 
@@ -170,6 +233,27 @@ export function r2BlobStore(bucket: R2Like): BlobStore {
       if (isLegacyPath(key)) return;
       assertSafeKey(key);
       await bucket.delete(key);
+    },
+    async open(key, range) {
+      if (isLegacyPath(key)) return null;
+      assertSafeKey(key);
+      let object: Awaited<ReturnType<R2Like['get']>>;
+      try {
+        object = await bucket.get(key, range ? { range } : undefined);
+      } catch (err) {
+        // R2 refuses a range that starts past the end by throwing.
+        if (range) return 'unsatisfiable';
+        throw err;
+      }
+      if (!object) return null;
+      // A stand-in bucket in a test may hand back neither; read it whole then.
+      if (!object.body || object.size === undefined) {
+        return sliceBytes(new Uint8Array(await object.arrayBuffer()), range ?? null);
+      }
+      if (!range) return { body: object.body, size: object.size, offset: 0, length: object.size };
+      const at = resolveRange(range, object.size);
+      if (!at) return 'unsatisfiable';
+      return { body: object.body, size: object.size, ...at };
     },
   };
 }
