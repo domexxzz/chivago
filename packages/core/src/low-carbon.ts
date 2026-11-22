@@ -77,6 +77,14 @@ export function lowCarbonLeg(
   to: { placeId: string; lat: number; lng: number; at: Date },
   /** The area's own floor. Defaults to the island's, so old callers are unchanged. */
   minMetres: number = LEG_MIN_M,
+  /**
+   * False only while the fence is open for a trial (apps/api/src/fence.ts).
+   * No position stands behind either check-in then, so the minutes between
+   * them say nothing about how anybody moved - a tester crossing the island
+   * on a phone in a hall is not riding a songthaew. The distance floor, the
+   * order and the four-hour window still apply.
+   */
+  checkSpeed = true,
 ): Leg {
   const metres = Math.round(metresBetween(from, to));
   const minutes = (to.at.getTime() - from.at.getTime()) / 60_000;
@@ -87,6 +95,6 @@ export function lowCarbonLeg(
   if (from.placeId === to.placeId) return say('same-place');
   if (metres < minMetres) return say('too-short');
   if (minutes > LEG_MAX_MIN) return say('too-long');
-  if (kmPerHour > WALK_MAX_KM_H) return say('too-fast');
+  if (checkSpeed && kmPerHour > WALK_MAX_KM_H) return say('too-fast');
   return say('ok');
 }

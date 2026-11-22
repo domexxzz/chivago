@@ -259,12 +259,13 @@ describe('arrival and proof with the fence open', () => {
     assert.equal(withFenceOff(() => arriveAtQuest(db, USER, QUEST, namuang)).stage, 'arrived');
   });
 
-  test('proof with no position reaches the host, and the dwell still holds', () => {
+  test('proof with no position reaches the host straight after arriving: no dwell', () => {
+    // The ten minutes stand in for presence, and with the fence open the
+    // arrival was taken on trust. The host still decides.
     joinQuest(db, USER, QUEST);
     withFenceOff(() => arriveAtQuest(db, USER, QUEST, null));
     const proof = { photos: PHOTO, weightKg: null, position: null };
-    assert.throws(() => withFenceOff(() => submitProof(db, USER, QUEST, proof)), TooSoonAfterArrival);
-    const { progress } = withFenceOff(() => submitProof(db, USER, QUEST, proof, afterDwell()));
+    const { progress } = withFenceOff(() => submitProof(db, USER, QUEST, proof, new Date(Date.now() + 60_000)));
     assert.equal(progress.stage, 'host_verification');
   });
 

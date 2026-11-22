@@ -156,6 +156,9 @@ export function checkIn(
           { placeId: prev.placeId, lat: prev.lat, lng: prev.lng, at: prev.at },
           { placeId: place.id, lat: place.lat, lng: place.lng, at: now },
           area.legMinM,
+          // The walking pace is a presence signal; with the fence open there is
+          // no presence to judge. See fence.ts.
+          !fenceOff(),
         );
         if (leg.qualifies) {
           const paid = awardWalk(db, {

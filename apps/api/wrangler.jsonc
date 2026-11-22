@@ -151,8 +151,10 @@
     // THE FENCE IS OPEN, for the Spark Lab trial on 22 November: testers are
     // in a hall, not on Ko Sichang. No distance or presence check runs on a
     // quest, a check-in or an adventure stop, and the app stops reading the
-    // GPS for quests and the map (state/server-config.ts `locationOff`). The
-    // app wears a band saying so. See apps/api/src/fence.ts.
+    // GPS for quests and the map (state/server-config.ts `locationOff`).
+    // The clock rules go too: no ten-minute wait before quest proof, and no
+    // walking-pace cap on a leg between check-ins, so testers can travel the
+    // island in the app. The app wears a band saying so. See apps/api/src/fence.ts.
     // DELETE THIS LINE AND DEPLOY to put the fence back after the trial.
     "CHIVAGO_FENCE_OFF": "1",
 
