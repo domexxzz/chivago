@@ -22,7 +22,7 @@
  */
 
 import { randomUUID, timingSafeEqual } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   areaByKey, areaOfPlace, inArea, isAreaKey,
@@ -267,11 +267,13 @@ const toStory = (r: StoryRow): Story => ({
   poster: `/stories/${r.id}/poster`,
 });
 
-const storiesDir = (): string => {
-  const dir = join(uploadRoot(), 'stories');
-  mkdirSync(dir, { recursive: true });
-  return dir;
-};
+/*
+  Only a NAME now. Nothing has been written here since the bytes moved into
+  the row, and this used to `mkdirSync` it anyway - which a Cloudflare Worker
+  is not permitted to do (EPERM), so on the live site every story died here,
+  after its file had already been accepted.
+*/
+const storiesDir = (): string => join(uploadRoot(), 'stories');
 
 interface PlaceRef { id: string; lat: number; lng: number; province: string | null; name_en: string; name_th: string }
 
