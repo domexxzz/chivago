@@ -26,6 +26,9 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { cleanJpeg } from './jpeg-clean.ts';
+import { cleanMp4 } from './mp4-clean.ts';
+import { cleanPng } from './png-clean.ts';
+import { clipPoster } from './story-poster.ts';
 
 /**
  * ffmpeg could not be run at all - not installed, not executable, not on the
@@ -52,6 +55,12 @@ export interface Encoded {
   poster: Uint8Array;
   /** Seconds of media in the output, when ffmpeg said. */
   durationS: number | null;
+  /**
+   * The media's type, when it is not what a re-encode always produces
+   * (`video/mp4` for a clip, `image/jpeg` for a photograph). Only the Worker
+   * path sets it: it publishes a PNG as a PNG because it cannot convert one.
+   */
+  mime?: string;
 }
 
 /**
@@ -331,21 +340,38 @@ export const onWorkers = (): boolean =>
 /**
  * What a Worker can do with no encoder container behind it.
  *
- * A JPEG photo is published with its metadata stripped (jpeg-clean.ts): the
- * privacy half of the re-encode, without the resize. Everything else still
- * needs ffmpeg - a clip, and a HEIC, PNG, WebP or AVIF photo - and says so.
- * Before this, with `CHIVAGO_TRANSCODE_URL` unset, EVERY story failed on the
- * live site, photographs included.
+ * It cannot decode a pixel, so it does the half of the re-encode that is
+ * about privacy and leaves the half that is about size:
+ *
+ *  - a JPEG or PNG photo is published with its metadata stripped
+ *    (jpeg-clean.ts, png-clean.ts), at the size it arrived;
+ *  - an MP4 or MOV clip is published with everything but picture and sound
+ *    removed (mp4-clean.ts), at the length, size and codec it arrived in,
+ *    under a drawn cover instead of a frame (story-poster.ts).
+ *
+ * What still needs ffmpeg says so by name: a WebM clip, and a HEIC, WebP or
+ * AVIF photo. Before this, with `CHIVAGO_TRANSCODE_URL` unset, EVERY story
+ * failed on the live site.
+ *
+ * `video` CLEANS THE BUFFER IT IS GIVEN, in place - see mp4-clean.ts for why.
  */
 export const workersTranscoder: Transcoder = {
-  async video() {
-    throw new TranscoderUnavailable('clips need the encoder container (CHIVAGO_TRANSCODE_URL is not set)');
+  async video(bytes, ext) {
+    if (ext !== 'mp4') {
+      throw new Error(`only MP4 and MOV clips can be posted right now, and this one is ${ext.toUpperCase()}`);
+    }
+    const { durationS } = cleanMp4(bytes);
+    return { media: bytes, poster: clipPoster(), durationS, mime: 'video/mp4' };
   },
   async photo(bytes, ext) {
+    if (ext === 'png') {
+      const media = cleanPng(bytes);
+      return { media, poster: media, durationS: null, mime: 'image/png' };
+    }
     if (ext !== 'jpg') {
-      throw new Error(`only JPEG photos can be posted right now, and this one is ${ext.toUpperCase()}`);
+      throw new Error(`only JPEG and PNG photos can be posted right now, and this one is ${ext.toUpperCase()}`);
     }
     const media = cleanJpeg(bytes);
-    return { media, poster: media, durationS: null };
+    return { media, poster: media, durationS: null, mime: 'image/jpeg' };
   },
 };

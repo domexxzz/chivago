@@ -92,7 +92,11 @@ export async function boundedForm(c: Context, maxBytes: number): Promise<FormDat
     chunks.push(value);
   }
   const contentType = c.req.header('content-type') ?? '';
-  return new Response(Buffer.concat(chunks), { headers: { 'content-type': contentType } }).formData();
+  const body = Buffer.concat(chunks);
+  // Let the pieces go before the form is parsed. A 25 MB clip is otherwise in
+  // memory three times at once, in a Worker that has 128 MB for everything.
+  chunks.length = 0;
+  return new Response(body, { headers: { 'content-type': contentType } }).formData();
 }
 
 /**

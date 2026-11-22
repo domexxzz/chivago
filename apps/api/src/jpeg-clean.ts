@@ -10,7 +10,7 @@
  *
  * KEPT: SOI, the frame and Huffman/quantisation tables, APP0 (JFIF), an APP2
  * that is an ICC colour profile, APP14 (Adobe, which says how to read the
- * colour), the scan data up to the first EOI - and the orientation, rewritten
+ * colour), every scan up to the first EOI - and the orientation, rewritten
  * as a fresh EXIF block holding that one tag and nothing else, because an
  * iPhone photo without it shows up on its side.
  *
@@ -74,10 +74,24 @@ function orientationSegment(orientation: number): Uint8Array {
 
 const isIcc = (segment: Uint8Array): boolean => ascii(segment, 4, 12) === 'ICC_PROFILE\0';
 
-/** The first EOI after `from`, in entropy-coded data where 0xFF is always escaped. */
-function endOfImage(bytes: Uint8Array, from: number): number {
+/** More segments than any real JPEG has; a file made of empty ones is refused, not copied. */
+const MAX_SEGMENTS = 5_000;
+
+const isRestart = (marker: number): boolean => marker >= 0xd0 && marker <= 0xd7;
+
+/**
+ * Where a scan's entropy-coded data ends: the next real marker.
+ *
+ * Inside the data a 0xFF is always followed by 0x00 (a stuffed byte) or a
+ * restart marker, so anything else after a 0xFF is the next segment.
+ */
+function endOfScan(bytes: Uint8Array, from: number): number {
   for (let i = from; i + 1 < bytes.length; i++) {
-    if (bytes[i] === 0xff && bytes[i + 1] === EOI) return i + 2;
+    if (bytes[i] !== 0xff) continue;
+    const next = bytes[i + 1]!;
+    if (next === 0x00 || isRestart(next)) { i += 1; continue; }
+    if (next === 0xff) continue; // a fill byte; the marker is further on
+    return i;
   }
   throw new Error('the JPEG has no end-of-image marker');
 }
@@ -89,17 +103,19 @@ export function cleanJpeg(input: Uint8Array): Uint8Array {
   let orientation: number | null = null;
   let i = 2;
   let sawScan = false;
+  let ended = false;
+  /*
+    EVERY segment up to the picture's own end, not just the ones before the
+    first scan. A progressive JPEG has several scans with tables between
+    them, and a segment that can carry metadata is legal there too - so the
+    same keep-or-drop rule runs the whole way. Nothing after EOI is read:
+    that is where an iPhone appends its gain map and other secondary pictures.
+  */
   while (i + 1 < input.length) {
     if (input[i] !== 0xff) throw new Error('a JPEG segment is broken');
     const marker = input[i + 1]!;
     if (marker === 0xff) { i += 1; continue; } // fill byte before a marker
-    if (marker === SOS) {
-      // The scan and everything up to the picture's own end: further scans and
-      // tables of a progressive JPEG included, trailing secondary images not.
-      kept.push(input.subarray(i, endOfImage(input, i + 2)));
-      sawScan = true;
-      break;
-    }
+    if (marker === EOI) { ended = true; break; }
     if (i + 4 > input.length) throw new Error('a JPEG segment is cut short');
     const length = (input[i + 2]! << 8) | input[i + 3]!;
     if (length < 2 || i + 2 + length > input.length) throw new Error('a JPEG segment is cut short');
@@ -109,8 +125,17 @@ export function cleanJpeg(input: Uint8Array): Uint8Array {
     const keep = marker !== COM && (!isApp || marker === APP0 || marker === APP14 || (marker === APP2 && isIcc(segment)));
     if (keep) kept.push(segment);
     i += 2 + length;
+    if (marker === SOS) {
+      const scanEnd = endOfScan(input, i);
+      kept.push(input.subarray(i, scanEnd));
+      i = scanEnd;
+      sawScan = true;
+    }
+    if (kept.length > MAX_SEGMENTS) throw new Error('the JPEG has too many segments');
   }
   if (!sawScan) throw new Error('the JPEG has no image data');
+  if (!ended) throw new Error('the JPEG has no end-of-image marker');
+  kept.push(Uint8Array.from([0xff, EOI]));
 
   const parts: Uint8Array[] = [Uint8Array.from([0xff, SOI])];
   if (orientation !== null && orientation !== 1) parts.push(orientationSegment(orientation));

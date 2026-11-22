@@ -9,7 +9,7 @@ import { strict as assert } from 'node:assert';
 import { describe, test } from 'node:test';
 
 import { cleanJpeg, exifOrientation } from './jpeg-clean.ts';
-import { TranscoderUnavailable, workersTranscoder } from './transcode.ts';
+import { workersTranscoder } from './transcode.ts';
 
 const bytes = (...parts: (number[] | string)[]): Uint8Array =>
   Uint8Array.from(parts.flatMap((p) => (typeof p === 'string' ? [...p].map((c) => c.charCodeAt(0)) : p)));
@@ -64,6 +64,28 @@ describe('cleaning a JPEG', () => {
     assert.equal(exifOrientation(out.subarray(6, 6 + 32)), 6);
   });
 
+  test('a progressive JPEG keeps every scan and loses what sits between them', () => {
+    const progressive = bytes(
+      [0xff, 0xd8],
+      segment(0xc2, bytes([8, 0, 2, 0, 2, 1, 1, 0x11, 0])), // SOF2
+      segment(0xda, bytes([1, 1, 0, 0, 0, 0])), [0x11, 0xff, 0x00, 0x22],
+      segment(0xfe, bytes('GPS-BETWEEN-SCANS')),
+      segment(0xe1, bytes('Exif\0\0GPS-LATE-EXIF')),
+      segment(0xc4, bytes([0, ...Array(16).fill(0)])), // DHT
+      segment(0xda, bytes([1, 1, 0, 1, 5, 0])), [0x33, 0xff, 0xd3, 0x44],
+      [0xff, 0xd9],
+    );
+    const out = text(cleanJpeg(progressive));
+    assert.ok(!out.includes('GPS-BETWEEN-SCANS') && !out.includes('GPS-LATE-EXIF'));
+    assert.ok(out.includes('\x11\xff\x00\x22') && out.includes('\x33\xff\xd3\x44'), 'both scans intact');
+    assert.ok(out.endsWith('\xff\xd9'));
+  });
+
+  test('a file built of thousands of empty segments is refused, not copied', () => {
+    const flood = bytes([0xff, 0xd8], ...Array.from({ length: 6000 }, () => segment(0xdb, bytes([0]))), [0xff, 0xd9]);
+    assert.throws(() => cleanJpeg(flood), /too many segments/);
+  });
+
   test('an upright photo gets no EXIF at all', () => {
     const out = cleanJpeg(photo(1));
     assert.ok(!text(out).includes('Exif'));
@@ -91,11 +113,8 @@ describe('the Worker transcoder (no encoder container)', () => {
     assert.equal(encoded.durationS, null);
   });
 
-  test('a clip says the encoder is missing, which answers 503, not "your file is bad"', async () => {
-    await assert.rejects(workersTranscoder.video(photo(), 'mp4'), TranscoderUnavailable);
-  });
-
-  test('a photo in another format is refused by name', async () => {
-    await assert.rejects(workersTranscoder.photo(photo(), 'png'), /only JPEG photos/);
+  // Clips and PNGs are cleaned too now; media-clean.test.ts holds those.
+  test('a photo in a format it cannot clean is refused by name', async () => {
+    await assert.rejects(workersTranscoder.photo(photo(), 'webp'), /only JPEG and PNG photos/);
   });
 });
