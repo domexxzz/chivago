@@ -25,6 +25,7 @@ import { spawn } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { cleanJpeg } from './jpeg-clean.ts';
 
 /**
  * ffmpeg could not be run at all - not installed, not executable, not on the
@@ -319,5 +320,32 @@ export function httpTranscoder(
  */
 export function transcoderFromEnv(): Transcoder {
   const url = process.env.CHIVAGO_TRANSCODE_URL;
-  return url ? httpTranscoder(url) : ffmpegTranscoder;
+  if (url) return httpTranscoder(url);
+  return onWorkers() ? workersTranscoder : ffmpegTranscoder;
 }
+
+/** Running inside Cloudflare Workers, where no process can be spawned. */
+export const onWorkers = (): boolean =>
+  typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers';
+
+/**
+ * What a Worker can do with no encoder container behind it.
+ *
+ * A JPEG photo is published with its metadata stripped (jpeg-clean.ts): the
+ * privacy half of the re-encode, without the resize. Everything else still
+ * needs ffmpeg - a clip, and a HEIC, PNG, WebP or AVIF photo - and says so.
+ * Before this, with `CHIVAGO_TRANSCODE_URL` unset, EVERY story failed on the
+ * live site, photographs included.
+ */
+export const workersTranscoder: Transcoder = {
+  async video() {
+    throw new TranscoderUnavailable('clips need the encoder container (CHIVAGO_TRANSCODE_URL is not set)');
+  },
+  async photo(bytes, ext) {
+    if (ext !== 'jpg') {
+      throw new Error(`only JPEG photos can be posted right now, and this one is ${ext.toUpperCase()}`);
+    }
+    const media = cleanJpeg(bytes);
+    return { media, poster: media, durationS: null };
+  },
+};
