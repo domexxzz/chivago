@@ -81,6 +81,7 @@ import { GuestBand } from './src/components/GuestGate.tsx';
 import { GuestActionProvider } from './src/components/GuestActionGate.tsx';
 import { setGuestSandboxActive } from './src/demo/mode.ts';
 import { useServerConfig } from './src/state/server-config.ts';
+import { promoScreen } from './src/navigation/promo-link.ts';
 import { UnfencedBand } from './src/components/UnfencedBand.tsx';
 import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
 
@@ -321,6 +322,20 @@ export default function App() {
       if (place) nav.push('place', { placeId: place });
     }
   }, [profileLoaded, authReady, loggedIn, guest, nav]);
+
+  // Keep the requested destination through the existing sign-in/onboarding flow.
+  const promoOpened = React.useRef(false);
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !profileLoaded || !authReady || !localeReady || !(loggedIn || guest)) return;
+    if (['login', 'register', 'onboarding'].includes(nav.screen)) return;
+    const open = () => {
+      const screen = promoScreen(window.location.search);
+      if (screen) nav.push(screen);
+    };
+    if (!promoOpened.current) { promoOpened.current = true; open(); }
+    window.addEventListener('popstate', open);
+    return () => window.removeEventListener('popstate', open);
+  }, [profileLoaded, authReady, localeReady, loggedIn, guest, nav.screen, nav.push]);
 
   /*
     ABOVE THE EARLY RETURN, and it has to stay there.

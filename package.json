@@ -4,6 +4,8 @@
   "private": true,
   "description": "ChivarGo — Smart Wellness & Sustainable Tourism. Pilot: Koh Samui, Thailand.",
   "scripts": {
+    "promo:build": "node scripts/build-promo.mjs",
+    "promo": "node scripts/start-promo.mjs",
     "api": "pnpm --filter @chivago/api dev",
     "mobile": "pnpm --filter @chivago/mobile start",
     "test": "pnpm -r --workspace-concurrency=1 --no-bail test",

@@ -7,4 +7,12 @@
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
+  <url>
+    <loc>https://chivargo.com/th/en.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://chivargo.com/th/en.html"/>
+  </url>
+  <url>
+    <loc>https://chivargo.com/th/zh.html</loc>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://chivargo.com/th/zh.html"/>
+  </url>
 </urlset>
