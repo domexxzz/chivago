@@ -500,6 +500,11 @@ export const strings = {
       'รูป HEIC จาก iPhone ยังแปลงที่นี่ไม่ได้ ไปที่ การตั้งค่า › กล้อง › รูปแบบ แล้วเลือก เข้ากันได้มากที่สุด หรือส่งเป็น JPEG แทน',
       'iPhone 的 HEIC 照片暂时无法在此转换。请在 设置 › 相机 › 格式 中选择 兼容性最佳，或改发 JPEG。',
     ),
+    storyHevc: t(
+      'iPhone HEVC clips cannot be converted here yet. Set Settings › Camera › Formats to Most Compatible, then film it again.',
+      'คลิป HEVC จาก iPhone ยังแปลงที่นี่ไม่ได้ ไปที่ การตั้งค่า › กล้อง › รูปแบบ แล้วเลือก เข้ากันได้มากที่สุด แล้วถ่ายใหม่',
+      'iPhone 的 HEVC 视频暂时无法在此转换。请在 设置 › 相机 › 格式 中选择 兼容性最佳，然后重新拍摄。',
+    ),
     storyWebOnly: t('Video plays on the web for now.', 'วิดีโอเล่นบนเว็บก่อน', '视频目前只在网页端播放。'),
     storyViewerHint: t('tap to continue', 'แตะเพื่อดูต่อ', '点按继续'),
     storyPrev: t('Previous story', 'สตอรี่ก่อนหน้า', '上一条故事'),

@@ -72,6 +72,7 @@ export async function postStory(
   if (res.ok) return true;
   if (res.code === 'STORY_TOO_LARGE') onToast(t(strings.place.storyTooLarge));
   else if (res.code === 'STORY_HEIC') onToast(t(strings.place.storyHeic));
+  else if (res.code === 'STORY_HEVC') onToast(t(strings.place.storyHevc));
   else onToast(res.error);
   return false;
 }

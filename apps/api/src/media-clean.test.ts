@@ -141,6 +141,63 @@ describe('cleaning a clip', () => {
   });
 });
 
+/**
+ * The smallest clip `cleanMp4` accepts, with a named codec in its `stsd`.
+ *
+ * Separate from `clip()` above, whose sample table deliberately names no
+ * codec at all - which is itself one of the cases below.
+ */
+const codecClip = (codec: string | null): Uint8Array => {
+  const sample = ascii('VIDEO');
+  const table = box('stbl',
+    box('stsd', full(u32(codec ? 1 : 0), ...(codec ? [box(codec)] : []))),
+    box('stsz', full(u32(0), u32(1), u32(sample.length))),
+    box('stsc', full(u32(1), u32(1), u32(1), u32(1))),
+    box('stco', full(u32(1), u32(0))),
+  );
+  const ftyp = box('ftyp', ascii('isom'), u32(0), ascii('isom'));
+  const moov = box('moov',
+    box('mvhd', timed(u32(1000), u32(6000))),
+    box('trak',
+      box('tkhd', timed(u32(1))),
+      box('mdia', box('mdhd', timed(u32(1000), u32(6000))), hdlr('vide'), box('minf', table))),
+  );
+  return Uint8Array.from([...ftyp, ...moov, ...box('mdat', sample)]);
+};
+
+describe('a clip only the person who filmed it could play', () => {
+  test('cleanMp4 reports the codec it read, and null when it cannot', () => {
+    assert.equal(cleanMp4(codecClip('avc1')).videoCodec, 'avc1');
+    assert.equal(cleanMp4(codecClip('hvc1')).videoCodec, 'hvc1');
+    assert.equal(cleanMp4(codecClip(null)).videoCodec, null);
+  });
+
+  test('HEVC is refused, under every name it goes by', async () => {
+    for (const codec of ['hvc1', 'hev1', 'dvh1', 'dvhe']) {
+      await assert.rejects(
+        workersTranscoder.video(codecClip(codec), 'mp4'),
+        (e: Error) => e.name === 'UnplayableCodec' && e.message.includes(codec.toUpperCase()),
+        `${codec} went out as a clip most people cannot watch`,
+      );
+    }
+  });
+
+  test('H.264 goes out, which is what makes the refusal worth having', async () => {
+    const out = await workersTranscoder.video(codecClip('avc1'), 'mp4');
+    assert.equal(out.mime, 'video/mp4');
+  });
+
+  /*
+    THE REFUSAL IS FOR A CODEC THIS RECOGNISES, not for every one it cannot
+    name. A sample table it fails to read must not turn into a traveller who
+    cannot post at all - that is a worse failure than the one being fixed.
+  */
+  test('a table naming no codec is passed on, not refused', async () => {
+    const out = await workersTranscoder.video(codecClip(null), 'mp4');
+    assert.equal(out.mime, 'video/mp4');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // PNG
 // ---------------------------------------------------------------------------
