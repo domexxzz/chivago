@@ -1,0 +1,26 @@
+# ChivarGo
+
+> ChivarGo (ชีวาร์โก) is a healthy, low-impact island travel app for Koh Samui (Surat Thani) and Koh Sichang (Chonburi), Thailand. It is free for travellers on the web at https://chivargo.com/ and speaks Thai, English and Simplified Chinese.
+
+Core idea: a point is only worth something if somebody had to check it. Green Points are issued only when a named local host approves a geotagged submission made inside a geofence on a given date. Trip Points are self-verified and are always shown separately.
+
+## Features
+- Green Points (host-verified) and Trip Points (self-verified)
+- Quests and missions: beach clean-ups, waste drop-off, coral, local treasure, secret recipe, Trash Hero
+- Adventure Map across the island
+- Chivar Bot: AI concierge that recommends places from in-app data and says so when it has none
+- Maps, getting-there directions, on-foot navigation, offline use
+- SOS button and an island condition card
+- Party: find travel mates, shared proof for a team, coastal watch parties, event mode
+- Companions, 77 province mascots, capsule draws, backpack
+- Passport, medals, seasons and leaderboard
+- Local Picks: local restaurants, shops, markets, food courts
+- Stay inquiries with terms stated by the operator
+- Community feed and moderated reviews
+- Travel journal, mini games, points wallet
+- Hotels: a verifiable activity statement to attach to the sustainability/ESG report they already file (it measures no building and replaces no number)
+- Host console for operators to verify activity
+
+## Pages
+- [ChivarGo (Thai)](https://chivargo.com/th/): features, islands, partners, FAQ
+- [Open the app](https://chivargo.com/)

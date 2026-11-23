@@ -35,10 +35,19 @@
  */
 const PAGES = new Set(['/privacy', '/privacy.html', '/privacy/', '/about', '/about.html', '/about/']);
 
+/**
+ * The Thai promo page, `public/th/index.html`, written for search and answer
+ * engines. `/th` is listed so the asset server can redirect it to `/th/`
+ * rather than the API answering 401; everything else under it is a prefix.
+ * `/sitemap.xml` and `/llms.txt` are the two files crawlers ask for by name.
+ */
+const CRAWLER_FILES = new Set(['/th', '/sitemap.xml', '/llms.txt']);
+
 export const servedFromExport = (pathname: string): boolean =>
   pathname === '/'
   || pathname === '/favicon.ico'
   || pathname === '/robots.txt'
   || PAGES.has(pathname)
-  || ['/_expo/', '/assets/', '/icons/', '/islands/', '/media/', '/shops/media/', '/shops/guide-photos/', '/vendor/']
+  || CRAWLER_FILES.has(pathname)
+  || ['/_expo/', '/assets/', '/icons/', '/islands/', '/media/', '/shops/media/', '/shops/guide-photos/', '/th/', '/vendor/']
     .some((p) => pathname.startsWith(p));
