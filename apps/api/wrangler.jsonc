@@ -117,14 +117,37 @@
     // with a host console behind it is a wildcard on the console too.
     "CHIVAGO_ORIGINS": "https://chivargo.com,https://www.chivargo.com",
 
-    // NO OPENING BALANCE, and no registration limit, exactly as fly.toml has
-    // them and for the same reasons recorded there: a gift handed to every
-    // unauthenticated registration is a voucher printer, and a per-address
-    // limit refuses the back half of a hall that shares one address. The
-    // second is only safe because the first is zero.
+    // NO OPENING BALANCE, exactly as fly.toml has it and for the reason
+    // recorded there: a gift handed to every unauthenticated registration is
+    // a voucher printer.
     "CHIVAGO_OPENING_TRIP": "0",
     "CHIVAGO_OPENING_GREEN": "0",
-    "CHIVAGO_REGISTRATIONS_PER_HOUR": "0",
+
+    /*
+      A CEILING ON NEW KEYS, SET FOR A CROWD RATHER THAN FOR A SCRIPT.
+
+      This was "0" - no limit, and nothing counted - for the Spark Hack
+      semi-final, where a hall of testers shares one address and the back
+      half of the room would have met a 429 that reads as the app being
+      broken. The semi-final has happened.
+
+      It matters because a key is what a story quota is counted against.
+      Three stories a device a day, posting straight to a public screen with
+      `CHIVAGO_STORIES_AUTO_APPROVE` on, is three only while a fourth key
+      costs something. Unlimited keys is an unlimited quota by another route.
+
+      60, NOT THE 10 THE CODE DEFAULTS TO. The limit is per address per hour,
+      and the crowds this product is for - a pier, a festival, a group on one
+      cafe's wifi - share an address. Ten would refuse real travellers
+      arriving together, which is the failure we were avoiding by setting it
+      to zero in the first place. Sixty new phones in one hour on one
+      connection is not a group; it is a script.
+
+      IT IS A NUISANCE, NOT A WALL. The counter is a Map in the isolate's
+      memory, so a restart forgets it. A ceiling that survives restarts and
+      can be watched belongs at Cloudflare, in front of this Worker.
+    */
+    "CHIVAGO_REGISTRATIONS_PER_HOUR": "60",
 
     // THE SIX LANDMARKS THE ISLAND DRAWS BUT THE DATABASE NEVER HAD.
     //
