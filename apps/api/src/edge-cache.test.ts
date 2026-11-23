@@ -22,13 +22,40 @@ describe('what may be kept at the edge', () => {
       'the answer is the same whoever asks, signed in or not');
   });
 
+  test('the sea, which is also the same for everybody', () => {
+    assert.ok(edgeCacheable(req('/areas/koh-sichang/coastal-intelligence')));
+  });
+
+  /*
+    Its answer carries the CALLER'S origin in a header, because it is
+    registered after the cors() middleware. One stored copy would hand a
+    www visitor a header naming the apex, and the browser would refuse it.
+  */
+  test('not transit, whose header is different for www and for the apex', () => {
+    assert.ok(!edgeCacheable(req('/areas/koh-sichang/transit')));
+  });
+
   test('nothing personal, nothing written, nothing else', () => {
     assert.ok(!edgeCacheable(req('/areas/koh-sichang/weather', { method: 'POST' })));
     assert.ok(!edgeCacheable(req('/places')));
     assert.ok(!edgeCacheable(req('/impact/community')));
-    assert.ok(!edgeCacheable(req('/areas/koh-sichang/stories')));
     assert.ok(!edgeCacheable(req('/areas/koh-sichang/weather/extra')));
+    assert.ok(!edgeCacheable(req('/areas/koh-sichang/monsters')), 'it is scored for the caller');
     assert.ok(!edgeCacheable(req('/health')), 'a health check answered from a cache would hide an outage');
+  });
+
+  /*
+    HIDE HAS TO BE IMMEDIATE. Each of these answers with something a host can
+    hide, and the board is on a projector in a room: a minute of edge copy is
+    a minute of a hidden story still on the wall. They are the routes that
+    would most repay caching, which is exactly why the refusal needs a test
+    and not only a comment.
+  */
+  test('nothing that carries a story, however much it would repay caching', () => {
+    assert.ok(!edgeCacheable(req('/areas/koh-sichang/stories')));
+    assert.ok(!edgeCacheable(req('/areas/koh-sichang/board')));
+    assert.ok(!edgeCacheable(req('/stories/abc/media')));
+    assert.ok(!edgeCacheable(req('/stories/abc/poster')));
   });
 
   test('a query string is not cached, so it cannot fill the cache with copies', () => {
