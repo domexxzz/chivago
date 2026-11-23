@@ -142,6 +142,31 @@ function handlerOf(b: Uint8Array, trak: Box): string {
 }
 
 /**
+ * The four characters naming how the video is encoded, or null.
+ *
+ * `stsd` holds one entry per sample description and the entry is itself a
+ * box, so its type IS the codec: `avc1` for H.264, `hvc1` or `hev1` for
+ * HEVC. Nothing here decodes anything - it reads a name, four bytes deep in
+ * a table this file already walks.
+ *
+ * NULL IS NOT A REFUSAL. A clip whose table cannot be read is passed on
+ * exactly as it was before this existed. The caller refuses a codec it
+ * positively recognises as unplayable; refusing everything it cannot name
+ * would turn an unreadable table into a traveller who cannot post at all,
+ * which is a worse failure than the one this is here to stop.
+ */
+function videoCodec(b: Uint8Array, trak: Box): string | null {
+  const mdia = child(b, trak, 'mdia');
+  const minf = mdia && child(b, mdia, 'minf');
+  const stbl = minf && child(b, minf, 'stbl');
+  const stsd = stbl && child(b, stbl, 'stsd');
+  if (!stsd) return null;
+  // version+flags, entry count, then the first entry: its own size, its type.
+  if (u32(b, stsd.body + 4) === 0 || stsd.body + 16 > stsd.end) return null;
+  return fourcc(b, stsd.body + 12);
+}
+
+/**
  * Zero every sample a track points at.
  *
  * Erasing the `trak` box alone would leave its samples sitting in `mdat`,
@@ -211,6 +236,8 @@ export interface CleanedClip {
   durationS: number | null;
   /** How many non-video, non-sound tracks were removed. */
   droppedTracks: number;
+  /** How the video is encoded (`avc1`, `hvc1`, ...), or null when unreadable. */
+  videoCodec: string | null;
 }
 
 /**
@@ -247,11 +274,15 @@ export function cleanMp4(b: Uint8Array): CleanedClip {
   // walk, so an extra track's samples could not be found to zero.
   if (fragmented && others.length > 0) throw new UnreadableClip('a fragmented clip with an extra data track');
 
+  // Read before anything is erased, though `minf` survives cleaning anyway.
+  const vide = tracks.find((_, k) => kinds[k] === 'vide');
+  const codec = vide ? videoCodec(b, vide) : null;
+
   // Samples first, while the tables that locate them are still there.
   for (const trak of others) zeroSamples(b, trak);
   for (const trak of others) erase(b, trak);
   // A reference to a track that is gone would be a dangling one.
   for (const trak of playable) cleanTrack(b, trak, others.length > 0);
 
-  return { durationS, droppedTracks: others.length };
+  return { durationS, droppedTracks: others.length, videoCodec: codec };
 }
