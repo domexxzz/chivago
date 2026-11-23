@@ -66,7 +66,10 @@
           "cameraPermission": "ChivarGo uses the camera to scan signed activity QR codes and capture evidence photos when you choose to verify an activity.",
           "barcodeScannerEnabled": true
         }
-      ]
+      ],
+      "expo-font",
+      "expo-secure-store",
+      "expo-sqlite"
     ]
   }
 }

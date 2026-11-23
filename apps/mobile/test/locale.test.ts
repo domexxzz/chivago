@@ -194,23 +194,34 @@ describe('the heading face in Thai', () => {
     // Thai on the belief that the heading face had no Thai glyphs, and every
     // heading, numeral and button lost its weight the moment the language
     // changed - a regression only visible by opening the app in Thai.
-    const { create } = await import('react-test-renderer');
+    const { act, create } = await import('react-test-renderer');
     const { Text } = await import('react-native');
     const { Heading, Label } = await import('../src/components/Type.tsx');
     const { font } = await import('../src/theme/index.ts');
     const flat = (style: unknown): Record<string, unknown> =>
       Object.assign({}, ...(Array.isArray(style) ? style.flat(Infinity) : [style]).filter(Boolean));
+    /*
+      `create` INSIDE `act`, which react-test-renderer 19 requires: without it
+      the tree is never flushed and `.root` throws "Can't access .root on
+      unmounted test renderer". This is the same wrapping `test/interact.ts`
+      has always used to mount; only the mounting changed, not what is asserted.
+    */
+    const rootOf = (element: Parameters<typeof create>[0]) => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => { renderer = create(element); });
+      return renderer.root;
+    };
 
     __setLocaleForTests('th');
     try {
-      const heading = create(h(Heading, { size: 24 }, 'ภารกิจ')).root.findByType(Text as never);
+      const heading = rootOf(h(Heading, { size: 24 }, 'ภารกิจ')).findByType(Text as never);
       const hs = flat(heading.props.style);
       assert.equal(hs.fontFamily, font.heading, 'the heading face carries Thai; it must not drop to the body face');
       assert.equal(hs.lineHeight, Math.round(24 * 1.5), 'Thai leading still applies');
 
       // A Label is set in the body face by the tokens in every language; what
       // Thai must not change is the face it was given.
-      const label = create(h(Label, { size: 10 }, 'กระเป๋าแต้ม')).root.findByType(Text as never);
+      const label = rootOf(h(Label, { size: 10 }, 'กระเป๋าแต้ม')).findByType(Text as never);
       const ls = flat(label.props.style);
       assert.equal(ls.fontFamily, font.body);
       assert.equal(ls.lineHeight, Math.round(10 * 1.45));
@@ -220,15 +231,21 @@ describe('the heading face in Thai', () => {
 
 describe('the heading face in Chinese', () => {
   test('Chinese uses a platform CJK face and generous leading', async () => {
-    const { create } = await import('react-test-renderer');
+    const { act, create } = await import('react-test-renderer');
     const { Text } = await import('react-native');
     const { Heading } = await import('../src/components/Type.tsx');
     const { font } = await import('../src/theme/index.ts');
     const flat = (style: unknown): Record<string, unknown> =>
       Object.assign({}, ...(Array.isArray(style) ? style.flat(Infinity) : [style]).filter(Boolean));
+    // `create` inside `act`: see the Thai heading test above for why.
+    const rootOf = (element: Parameters<typeof create>[0]) => {
+      let renderer!: ReturnType<typeof create>;
+      act(() => { renderer = create(element); });
+      return renderer.root;
+    };
     __setLocaleForTests('zh');
     try {
-      const heading = create(h(Heading, { size: 24 }, '收藏')).root.findByType(Text as never);
+      const heading = rootOf(h(Heading, { size: 24 }, '收藏')).findByType(Text as never);
       const style = flat(heading.props.style);
       assert.notEqual(style.fontFamily, font.heading);
       assert.equal(style.fontWeight, '700');

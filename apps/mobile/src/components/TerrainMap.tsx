@@ -23,10 +23,12 @@ import React from 'react';
 import { View } from 'react-native';
 import type { Shop } from '../api/shops.ts';
 import type { Area } from '@chivago/core';
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import {
   AttributionControl, LngLatBounds, Map as MapLibreMap, Marker, NavigationControl,
 } from 'maplibre-gl';
+// Points MapLibre 6 at its vendored worker; must run before the first Map.
+import './maplibre-worker.ts';
 // MapLibre's own stylesheet. Without it the zoom/pitch control renders as
 // three unstyled buttons stacked in the corner.
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -1192,7 +1194,7 @@ export function TerrainMap({
     };
 
     m.on('error', (e) => {
-      const message = (e as { error?: Error }).error?.message ?? String(e);
+      const message = (e as unknown as { error?: { message?: string } }).error?.message ?? String(e);
       const source = (e as { sourceId?: string }).sourceId;
       console.error('[chivago] map:', message);
       if (source && DEM_SOURCES.includes(source)) { dropTheGround(); return; }
