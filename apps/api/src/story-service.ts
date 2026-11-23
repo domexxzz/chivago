@@ -32,7 +32,7 @@ import { blobStore, isLegacyPath, type BlobStore } from './blob-store.ts';
 import { row, rows, type DB } from './db.ts';
 import { storiesAutoApprove } from './fence.ts';
 import { UnsupportedUpload, sniff, uploadRoot } from './uploads.ts';
-import { TranscoderUnavailable, onWorkers, transcoderFromEnv, type Encoded, type Transcoder } from './transcode.ts';
+import { TranscoderUnavailable, UnplayableCodec, onWorkers, transcoderFromEnv, type Encoded, type Transcoder } from './transcode.ts';
 
 export const STORY_MAX_BYTES = 25 * 1024 * 1024;
 /**
@@ -76,12 +76,16 @@ export class StoryTooLarge extends Error {
 }
 export class UnsupportedStory extends Error {
   /**
-   * `UNSUPPORTED_STORY` for most refusals; `STORY_HEIC` when the file was an
-   * iPhone HEIC photograph this server's ffmpeg could not read, which the
-   * app answers with its own words (Settings › Camera › Most Compatible).
+   * `UNSUPPORTED_STORY` for most refusals. Two files get a code of their
+   * own, because both are an iPhone on the setting it ships with and both
+   * have the same one-line fix the app can state: `STORY_HEIC` for a HEIC
+   * photograph, `STORY_HEVC` for an HEVC clip.
    */
-  readonly code: 'UNSUPPORTED_STORY' | 'STORY_HEIC';
-  constructor(detail: string, code: 'UNSUPPORTED_STORY' | 'STORY_HEIC' = 'UNSUPPORTED_STORY') {
+  readonly code: 'UNSUPPORTED_STORY' | 'STORY_HEIC' | 'STORY_HEVC';
+  constructor(
+    detail: string,
+    code: 'UNSUPPORTED_STORY' | 'STORY_HEIC' | 'STORY_HEVC' = 'UNSUPPORTED_STORY',
+  ) {
     super(`That file could not be used as a story: ${detail}.`);
     this.name = 'UnsupportedStory';
     this.code = code;
@@ -366,6 +370,13 @@ export async function submitStory(
     if (e instanceof TranscoderUnavailable) throw e;
     // An iPhone photograph on a server whose ffmpeg predates HEIF is the one
     // refusal a person can do something about from where they stand.
+    // A codec nobody downstream could play. Not a bad file - a bad setting.
+    if (e instanceof UnplayableCodec) {
+      throw new UnsupportedStory(
+        'an iPhone HEVC clip cannot be converted here - set Settings › Camera › Formats to Most Compatible and film it again',
+        'STORY_HEVC',
+      );
+    }
     if (ext === 'heic') {
       throw new UnsupportedStory(
         'an iPhone HEIC photograph could not be converted here - set Settings › Camera › Formats to Most Compatible, or send it as a JPEG',

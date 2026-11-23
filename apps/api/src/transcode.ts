@@ -355,12 +355,42 @@ export const onWorkers = (): boolean =>
  *
  * `video` CLEANS THE BUFFER IT IS GIVEN, in place - see mp4-clean.ts for why.
  */
+/**
+ * HEVC, under its several names. Dolby Vision's are HEVC underneath.
+ *
+ * An iPhone left on Settings > Camera > Formats > High Efficiency - which is
+ * the setting it ships with - records these. Safari plays them. Chrome on
+ * Android and most desktop browsers do not.
+ */
+const HEVC = new Set(['hvc1', 'hev1', 'dvh1', 'dvhe']);
+
+/** A clip this deployment can publish but most people could not watch. */
+export class UnplayableCodec extends Error {
+  readonly codec: string;
+  constructor(codec: string) {
+    super(`this clip is ${codec.toUpperCase()}, which most browsers cannot play`);
+    this.name = 'UnplayableCodec';
+    this.codec = codec;
+  }
+}
+
 export const workersTranscoder: Transcoder = {
   async video(bytes, ext) {
     if (ext !== 'mp4') {
       throw new Error(`only MP4 and MOV clips can be posted right now, and this one is ${ext.toUpperCase()}`);
     }
-    const { durationS } = cleanMp4(bytes);
+    const { durationS, videoCodec } = cleanMp4(bytes);
+    /*
+      REFUSED, RATHER THAN PUBLISHED AS A BLACK BOX.
+
+      Without a decoder this cannot convert HEVC to H.264, and the file goes
+      out labelled `video/mp4` whatever is inside it. Published, it would
+      play for the person who posted it - they are on the iPhone that filmed
+      it - and show nothing to most of the people it was posted for, with
+      neither side told why. A refusal naming the setting to change is the
+      only honest option left until the encoder container is deployed.
+    */
+    if (videoCodec && HEVC.has(videoCodec)) throw new UnplayableCodec(videoCodec);
     return { media: bytes, poster: clipPoster(), durationS, mime: 'video/mp4' };
   },
   async photo(bytes, ext) {
