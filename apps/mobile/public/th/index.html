@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChivarGo ชีวาร์โก — แอปเที่ยวเกาะสมุย เกาะสีชัง แบบสุขภาพดี สะสม Green Points</title>
+<meta name="description" content="ChivarGo (ชีวาร์โก) แอปเที่ยวเกาะแบบสุขภาพดีและรักษ์โลก ทำเควสต์ เก็บขยะชายหาด สะสม Green Points ที่เจ้าบ้านตัวจริงยืนยัน มี AI ไกด์ Chivar Bot แผนที่ออฟไลน์ ปุ่ม SOS หาเพื่อนเที่ยว และร้านท้องถิ่น บนเกาะสมุยและเกาะสีชัง">
+<meta name="keywords" content="ChivarGo, ชีวาร์โก, แอปเที่ยวเกาะ, เที่ยวเกาะสมุย, เที่ยวเกาะสีชัง, เที่ยวรักษ์โลก, Green Points, ท่องเที่ยวยั่งยืน, เก็บขยะชายหาด, AI ไกด์เที่ยว, ESG โรงแรม">
+<link rel="canonical" href="https://chivargo.com/th/">
+<link rel="alternate" hreflang="th" href="https://chivargo.com/th/">
+<link rel="alternate" hreflang="x-default" href="https://chivargo.com/th/">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="theme-color" content="#0077B6">
+<link rel="icon" type="image/png" href="img/icon-512.png">
+<link rel="apple-touch-icon" href="img/icon-512.png">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ChivarGo">
+<meta property="og:locale" content="th_TH">
+<meta property="og:title" content="ChivarGo — เที่ยวเกาะให้สนุก แบบสุขภาพดี ในแอปเดียว">
+<meta property="og:description" content="ทำเควสต์ สะสม Green Points ที่มีคนยืนยันจริง AI ไกด์ แผนที่ออฟไลน์ และ SOS บนเกาะสมุยและเกาะสีชัง">
+<meta property="og:url" content="https://chivargo.com/th/">
+<meta property="og:image" content="https://chivargo.com/th/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Prompt:wght@600;700&display=swap" rel="stylesheet">
+<link rel="preload" as="image" href="img/hero.webp">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://chivargo.com/#org",
+      "name": "ChivarGo",
+      "alternateName": ["ชีวาร์โก", "ChivaGo"],
+      "url": "https://chivargo.com/",
+      "logo": "https://chivargo.com/th/img/icon-512.png",
+      "description": "ChivarGo คือแอปท่องเที่ยวเกาะแบบสุขภาพดีและยั่งยืน ที่ออก Green Points ให้เฉพาะกิจกรรมที่เจ้าบ้านตัวจริงยืนยันแล้ว",
+      "areaServed": [
+        {"@type": "Place", "name": "เกาะสมุย, สุราษฎร์ธานี"},
+        {"@type": "Place", "name": "เกาะสีชัง, ชลบุรี"}
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://chivargo.com/#site",
+      "url": "https://chivargo.com/",
+      "name": "ChivarGo",
+      "inLanguage": ["th", "en", "zh-Hans"],
+      "publisher": {"@id": "https://chivargo.com/#org"}
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://chivargo.com/#app",
+      "name": "ChivarGo",
+      "url": "https://chivargo.com/",
+      "applicationCategory": "TravelApplication",
+      "operatingSystem": "Web, iOS, Android",
+      "inLanguage": ["th", "en", "zh-Hans"],
+      "offers": {"@type": "Offer", "price": "0", "priceCurrency": "THB"},
+      "publisher": {"@id": "https://chivargo.com/#org"},
+      "featureList": [
+        "Green Points ที่เจ้าบ้านตัวจริงยืนยันในพื้นที่ (geofence)",
+        "Trip Points สำหรับกิจกรรมที่ยืนยันเอง",
+        "เควสต์และภารกิจรักษ์โลก เช่น เก็บขยะชายหาด และจุดทิ้งขยะ",
+        "Adventure Map ผจญภัยทั่วเกาะ",
+        "Chivar Bot ผู้ช่วย AI แนะนำสถานที่",
+        "แผนที่ นำทาง และใช้งานแบบออฟไลน์",
+        "ปุ่ม SOS และการ์ดสภาพเกาะ",
+        "Party หาเพื่อนเที่ยวและวอทช์ปาร์ตี้",
+        "เพื่อนร่วมทาง มาสคอต 77 จังหวัด แคปซูลสุ่ม และกระเป๋าเป้",
+        "พาสปอร์ต เหรียญ และซีซัน",
+        "Local Picks ร้านท้องถิ่น ตลาด และฟู้ดคอร์ท",
+        "สอบถามที่พัก",
+        "ฟีดชุมชนและรีวิวที่ผ่านการตรวจ",
+        "บันทึกการเดินทาง",
+        "มินิเกม",
+        "กระเป๋าแต้ม",
+        "รายงานหลักฐานกิจกรรมสำหรับรายงาน ESG ของโรงแรม",
+        "คอนโซลสำหรับเจ้าบ้านและผู้ประกอบการ"
+      ],
+      "screenshot": "https://chivargo.com/th/img/og.jpg"
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://chivargo.com/th/#page",
+      "url": "https://chivargo.com/th/",
+      "name": "ChivarGo — แอปเที่ยวเกาะแบบสุขภาพดี",
+      "inLanguage": "th",
+      "isPartOf": {"@id": "https://chivargo.com/#site"},
+      "about": {"@id": "https://chivargo.com/#app"},
+      "speakable": {"@type": "SpeakableSpecification", "cssSelector": ["#what-is", ".faq-a"]}
+    },
+    {
+      "@type": "HowTo",
+      "name": "เริ่มสะสม Green Points กับ ChivarGo",
+      "step": [
+        {"@type": "HowToStep", "position": 1, "name": "เปิดแอปและเลือกเกาะ", "text": "เปิด chivargo.com สมัครสมาชิก แล้วเลือกเกาะสมุยหรือเกาะสีชัง"},
+        {"@type": "HowToStep", "position": 2, "name": "รับเควสต์", "text": "เลือกเควสต์หรือภารกิจ เช่น เก็บขยะชายหาด เดินสำรวจ หรือชิมร้านท้องถิ่น"},
+        {"@type": "HowToStep", "position": 3, "name": "ส่งหลักฐานในพื้นที่", "text": "ถ่ายรูปและส่งจากจุดที่กำหนด ระบบตรวจตำแหน่งด้วย geofence"},
+        {"@type": "HowToStep", "position": 4, "name": "เจ้าบ้านยืนยัน รับ Green Points", "text": "เจ้าบ้านที่มีชื่อจริงตรวจและอนุมัติ แล้ว Green Points จะเข้ากระเป๋าของคุณ"}
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://chivargo.com/th/#faq",
+      "mainEntity": [
+        {"@type": "Question", "name": "ChivarGo คืออะไร", "acceptedAnswer": {"@type": "Answer", "text": "ChivarGo (ชีวาร์โก) คือแอปเที่ยวเกาะแบบสุขภาพดีและรักษ์โลก รวมเควสต์ แผนที่ AI ไกด์ ความปลอดภัย ร้านท้องถิ่น และการสะสมแต้มไว้ในแอปเดียว เริ่มที่เกาะสมุยและเกาะสีชัง ใช้ได้ทั้งภาษาไทย อังกฤษ และจีน"}},
+        {"@type": "Question", "name": "Green Points ต่างจาก Trip Points อย่างไร", "acceptedAnswer": {"@type": "Answer", "text": "Green Points ออกให้เมื่อเจ้าบ้านที่มีชื่อจริงอนุมัติกิจกรรมที่ส่งจากในพื้นที่ (geofence) แล้วเท่านั้น ส่วน Trip Points เป็นแต้มที่ยืนยันเอง และแอปแสดงแยกกันเสมอ ไม่ให้ดูเหมือนแต้มชนิดเดียวกัน"}},
+        {"@type": "Question", "name": "ChivarGo ใช้ฟรีไหม", "acceptedAnswer": {"@type": "Answer", "text": "นักท่องเที่ยวใช้ ChivarGo ได้ฟรีผ่านเว็บที่ chivargo.com"}},
+        {"@type": "Question", "name": "ChivarGo ช่วยแก้ปัญหาขยะบนเกาะได้อย่างไร", "acceptedAnswer": {"@type": "Answer", "text": "แอปมีเควสต์เก็บขยะชายหาดและเควสต์นำขยะไปทิ้งที่จุดรับ ทุกครั้งที่เจ้าบ้านยืนยัน จะกลายเป็นบันทึกว่ามีกิจกรรมเกิดขึ้นจริง ที่ไหน วันไหน และใครยืนยัน ซึ่งชุมชนและโรงแรมนำไปใช้เป็นหลักฐานได้"}},
+        {"@type": "Question", "name": "ใช้ ChivarGo ตอนไม่มีอินเทอร์เน็ตได้ไหม", "acceptedAnswer": {"@type": "Answer", "text": "ได้ แผนที่และข้อมูลสำคัญของการเดินทางถูกเก็บไว้ในเครื่อง ใช้นำทางช่วงที่สัญญาณหายได้"}},
+        {"@type": "Question", "name": "Chivar Bot คืออะไร", "acceptedAnswer": {"@type": "Answer", "text": "Chivar Bot คือผู้ช่วย AI ในแอป ถามได้ว่าจะไปไหน กินอะไร หรือเดินทางยังไง บอทจะแนะนำสถานที่จากข้อมูลจริงในแอป และบอกตรง ๆ เมื่อไม่มีข้อมูล"}},
+        {"@type": "Question", "name": "โรงแรมได้อะไรจาก ChivarGo", "acceptedAnswer": {"@type": "Answer", "text": "โรงแรมได้รายงานหลักฐานกิจกรรมที่ตรวจสอบได้ ว่ากิจกรรมใดเกิดขึ้นจริง ในพื้นที่ใด วันไหน และมีเจ้าบ้านคนใดยืนยัน ใช้แนบกับรายงานความยั่งยืนหรือ ESG ที่โรงแรมยื่นอยู่แล้ว ระบบไม่ได้วัดอาคารและไม่ได้แทนตัวเลขเดิมของโรงแรม"}},
+        {"@type": "Question", "name": "ร้านค้าหรือผู้จัดกิจกรรมจะเข้าร่วมได้อย่างไร", "acceptedAnswer": {"@type": "Answer", "text": "ร้านค้า ที่พัก และผู้จัดกิจกรรมสมัครเป็นพาร์ทเนอร์ได้ จะได้หน้าร้านในแอป และเจ้าบ้านจะได้คอนโซลสำหรับตรวจและอนุมัติกิจกรรมของนักท่องเที่ยว"}}
+      ]
+    }
+  ]
+}
+</script>
+
+<style>
+:root{
+  --brand:#0077B6;--brand-deep:#004E64;--brand-soft:#D9F3FA;--green:#25874c;--green-soft:#e3f4e9;--sun:#f2c24e;--coral:#ff7a59;
+  --bg:#ffffff;--bg-alt:#f4fafc;--card:#ffffff;--ink:#0d2530;--muted:#4b6470;--line:#dbe8ee;--shadow:0 10px 30px rgba(0,78,100,.10);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --brand:#3aa9e6;--brand-deep:#9bdaf3;--brand-soft:#0f3442;--green:#5cc58a;--green-soft:#12352a;
+  --bg:#081a22;--bg-alt:#0c232d;--card:#102c38;--ink:#e7f3f8;--muted:#9fb9c4;--line:#1d3e4b;--shadow:0 10px 30px rgba(0,0,0,.35);
+}}
+:root[data-theme="dark"]{
+  --brand:#3aa9e6;--brand-deep:#9bdaf3;--brand-soft:#0f3442;--green:#5cc58a;--green-soft:#12352a;
+  --bg:#081a22;--bg-alt:#0c232d;--card:#102c38;--ink:#e7f3f8;--muted:#9fb9c4;--line:#1d3e4b;--shadow:0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 "IBM Plex Sans Thai",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:Prompt,"IBM Plex Sans Thai",sans-serif;line-height:1.25;margin:0 0 .5em}
+h1{font-size:clamp(2rem,5.5vw,3.4rem)}
+h2{font-size:clamp(1.6rem,3.6vw,2.3rem)}
+h3{font-size:1.15rem}
+p{margin:0 0 1em}
+a{color:var(--brand)}
+img{max-width:100%;height:auto;display:block}
+.wrap{max-width:1160px;margin:0 auto;padding:0 16px}
+section{padding:72px 0}
+.alt{background:var(--bg-alt)}
+.eyebrow{display:inline-block;font-weight:600;font-size:.85rem;color:var(--green);background:var(--green-soft);padding:4px 12px;border-radius:99px;margin-bottom:12px}
+.lead{font-size:1.12rem;color:var(--muted);max-width:720px}
+.center{text-align:center}.center .lead{margin-left:auto;margin-right:auto}
+
+/* header */
+header{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:20px;height:64px}
+.logo{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink);font:700 1.25rem Prompt,sans-serif}
+.logo img{width:36px;height:36px;border-radius:10px}
+.nav ul{display:flex;gap:18px;list-style:none;margin:0 0 0 auto;padding:0}
+.nav ul a{text-decoration:none;color:var(--ink);font-weight:500;font-size:.95rem}
+.nav ul a:hover{color:var(--brand)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:99px;font-weight:600;text-decoration:none;border:2px solid transparent;transition:transform .15s}
+.btn:hover{transform:translateY(-2px)}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-green{background:var(--green);color:#fff}
+.btn-ghost{border-color:var(--line);color:var(--ink);background:var(--card)}
+.nav .btn{padding:8px 16px;font-size:.92rem}
+.menu-toggle{display:none;margin-left:auto;background:none;border:1px solid var(--line);border-radius:10px;padding:6px 10px;color:var(--ink);font-size:1.2rem}
+@media (max-width:900px){
+  .nav ul{display:none;position:absolute;top:64px;left:0;right:0;flex-direction:column;background:var(--bg);padding:16px;border-bottom:1px solid var(--line)}
+  .nav ul.open{display:flex}
+  .menu-toggle{display:block}
+  .nav>.btn{display:none}
+}
+
+/* hero */
+.hero{padding:56px 0 64px;background:radial-gradient(1200px 500px at 85% -10%,var(--brand-soft),transparent 60%),radial-gradient(700px 400px at 0% 100%,var(--green-soft),transparent 60%)}
+.hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+.hero h1 span{color:var(--brand)}
+.promise{font-weight:600;color:var(--green)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0}
+.chip{padding:6px 14px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-weight:500;text-decoration:none;color:var(--ink);font-size:.95rem}
+.chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.cta-row{display:flex;flex-wrap:wrap;gap:12px}
+.phone{background:var(--card);border-radius:36px;padding:14px;box-shadow:var(--shadow);border:1px solid var(--line);max-width:380px;margin-left:auto}
+.phone-hero{border-radius:24px;overflow:hidden;aspect-ratio:4/3;background:var(--brand-soft)}
+.phone-hero img{width:100%;height:100%;object-fit:cover}
+.phone-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 6px 6px;font-size:.9rem}
+.pts{display:flex;gap:6px}
+.pt{font-size:.78rem;font-weight:600;padding:3px 9px;border-radius:99px}
+.pt.g{background:var(--green-soft);color:var(--green)}.pt.t{background:var(--brand-soft);color:var(--brand)}
+.qa{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:6px}
+.qa a{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:16px;background:var(--bg-alt);text-decoration:none;color:var(--ink);font-size:.8rem;font-weight:500;text-align:center}
+.qa img{width:44px;height:44px;object-fit:contain}
+.qa .emoji{font-size:30px;line-height:44px}
+@media (max-width:860px){.hero-grid{grid-template-columns:1fr}.phone{margin:0 auto}}
+
+/* what-is */
+.define{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:28px;box-shadow:var(--shadow)}
+.define img{width:120px}
+@media (max-width:640px){.define{grid-template-columns:1fr}.define img{width:90px}}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:28px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;text-align:center}
+.stat b{display:block;font:700 1.8rem Prompt,sans-serif;color:var(--brand)}
+.stat span{color:var(--muted);font-size:.92rem}
+@media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}}
+
+/* features */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;margin-top:32px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;transition:transform .15s,box-shadow .15s}
+.tile:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.tile .ic{font-size:28px;width:52px;height:52px;display:grid;place-items:center;border-radius:14px;background:var(--brand-soft);margin-bottom:12px}
+.tile.g .ic{background:var(--green-soft)}
+.tile p{color:var(--muted);font-size:.95rem;margin:0}
+.tag{display:inline-block;font-size:.72rem;font-weight:600;color:var(--green);background:var(--green-soft);padding:2px 8px;border-radius:99px;margin-left:6px;vertical-align:middle}
+
+/* spotlight */
+.spot{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;padding:36px 0}
+.spot.rev .spot-img{order:2}
+.spot-img{border-radius:28px;overflow:hidden;box-shadow:var(--shadow);background:var(--brand-soft)}
+.spot-img img{width:100%;aspect-ratio:4/3;object-fit:cover}
+.ticks{list-style:none;padding:0;margin:0 0 1.2em}
+.ticks li{padding-left:28px;position:relative;margin-bottom:8px}
+.ticks li:before{content:"✓";position:absolute;left:0;top:0;color:#fff;background:var(--green);width:20px;height:20px;border-radius:50%;font-size:.75rem;display:grid;place-items:center;margin-top:4px}
+@media (max-width:820px){.spot{grid-template-columns:1fr;gap:24px}.spot.rev .spot-img{order:0}}
+
+/* islands */
+.islands{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:32px}
+.island{position:relative;border-radius:28px;overflow:hidden;min-height:340px;display:flex;align-items:flex-end;color:#fff;box-shadow:var(--shadow)}
+.island img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.island:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,30,40,.85))}
+.island div{position:relative;z-index:1;padding:24px}
+.island h3{font-size:1.6rem;color:#fff}
+.island p{margin:0;opacity:.92}
+@media (max-width:760px){.islands{grid-template-columns:1fr}}
+
+/* values / partners / steps */
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:32px}
+.four{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:32px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px}
+.box .ic{font-size:32px;margin-bottom:8px}
+.box p{color:var(--muted);margin:0}
+.box a.more{display:inline-block;margin-top:12px;font-weight:600;text-decoration:none}
+.step-n{width:40px;height:40px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font:700 1.1rem Prompt,sans-serif;margin-bottom:12px}
+@media (max-width:900px){.four{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:760px){.three{grid-template-columns:1fr}}
+@media (max-width:520px){.four{grid-template-columns:1fr}}
+
+/* faq */
+.faq{max-width:820px;margin:32px auto 0}
+.faq details{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:10px;padding:4px 20px}
+.faq summary{cursor:pointer;font-weight:600;padding:14px 0;list-style:none;display:flex;justify-content:space-between;gap:12px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:after{content:"+";font-size:1.4rem;color:var(--brand);line-height:1}
+.faq details[open] summary:after{content:"–"}
+.faq-a{color:var(--muted);padding-bottom:14px}
+
+/* cta */
+.cta{background:linear-gradient(135deg,var(--brand),var(--brand-deep));color:#fff;border-radius:32px;padding:48px 28px;text-align:center}
+:root[data-theme="dark"] .cta{background:linear-gradient(135deg,#0b5c88,#063a4a)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cta{background:linear-gradient(135deg,#0b5c88,#063a4a)}}
+.cta h2{color:#fff}.cta p{opacity:.9}
+.cta .btn-ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.5)}
+
+footer{border-top:1px solid var(--line);padding:48px 0 32px;color:var(--muted);font-size:.93rem}
+.fgrid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:24px}
+footer h3{font-size:1rem;color:var(--ink)}
+footer ul{list-style:none;padding:0;margin:0}
+footer li{margin-bottom:6px}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--brand)}
+.copy{margin-top:32px;padding-top:20px;border-top:1px solid var(--line);font-size:.85rem}
+@media (max-width:760px){.fgrid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap nav" aria-label="เมนูหลัก">
+    <a class="logo" href="/th/"><img src="img/logo.webp" alt="โลโก้ ChivarGo" width="36" height="36">ChivarGo</a>
+    <ul id="menu">
+      <li><a href="#features">ฟีเจอร์</a></li>
+      <li><a href="#green-points">Green Points</a></li>
+      <li><a href="#islands">เกาะสมุย · เกาะสีชัง</a></li>
+      <li><a href="#partners">สำหรับพาร์ทเนอร์</a></li>
+      <li><a href="#faq">คำถามที่พบบ่อย</a></li>
+    </ul>
+    <a class="btn btn-primary" href="https://chivargo.com/">เปิดแอป</a>
+    <button class="menu-toggle" aria-label="เปิดเมนู" aria-controls="menu" aria-expanded="false">☰</button>
+  </nav>
+</header>
+
+<main>
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">🌿 แอปเที่ยวเกาะแบบสุขภาพดี</span>
+      <h1>เที่ยวเกาะให้สนุก<br><span>แบบสุขภาพดี</span> ในแอปเดียว</h1>
+      <p class="lead">ทำเควสต์ เก็บขยะชายหาด ชิมร้านท้องถิ่น หาเพื่อนเที่ยว ถาม AI ไกด์ และดูสภาพเกาะกับความปลอดภัยได้บนหน้าจอเดียว บนเกาะสมุยและเกาะสีชัง</p>
+      <p class="promise">แต้มรักษ์โลกจะนับก็ต่อเมื่อมีคนตรวจจริงเท่านั้น</p>
+      <div class="chips" aria-label="เลือกเกาะ">
+        <a class="chip on" href="#samui">🏝️ เกาะสมุย</a>
+        <a class="chip" href="#sichang">⛵ เกาะสีชัง</a>
+        <span class="chip">🌐 ไทย · English · 中文</span>
+      </div>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://chivargo.com/">เริ่มเที่ยวฟรี →</a>
+        <a class="btn btn-ghost" href="#features">ดูฟีเจอร์ทั้งหมด</a>
+      </div>
+    </div>
+    <div class="phone" aria-label="ตัวอย่างหน้าแอป ChivarGo">
+      <div class="phone-hero"><img src="img/hero.webp" alt="นักท่องเที่ยวใช้แอป ChivarGo บนเกาะ" width="1200" height="900"></div>
+      <div class="phone-bar"><span>📍 เกาะสมุย</span><span class="pts"><span class="pt g">🌿 Green</span><span class="pt t">🎒 Trip</span></span></div>
+      <div class="qa">
+        <a href="#feat-map"><img src="img/i-map.webp" alt="" width="44" height="44" loading="lazy">แผนที่</a>
+        <a href="#feat-quests"><img src="img/i-quests.webp" alt="" width="44" height="44" loading="lazy">เควสต์</a>
+        <a href="#feat-ai"><span class="emoji">🤖</span>Chivar Bot</a>
+        <a href="#feat-picks"><img src="img/i-picks.webp" alt="" width="44" height="44" loading="lazy">ร้านท้องถิ่น</a>
+        <a href="#feat-party"><img src="img/i-party.webp" alt="" width="44" height="44" loading="lazy">ปาร์ตี้</a>
+        <a href="#feat-stays"><img src="img/i-stays.webp" alt="" width="44" height="44" loading="lazy">ที่พัก</a>
+        <a href="#feat-safety"><span class="emoji">🆘</span>SOS</a>
+        <a href="#feat-backpack"><img src="img/i-backpack.webp" alt="" width="44" height="44" loading="lazy">กระเป๋า</a>
+        <a href="#feat-community"><img src="img/i-community.webp" alt="" width="44" height="44" loading="lazy">ชุมชน</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT IS (GEO / AEO definition) -->
+<section id="about">
+  <div class="wrap">
+    <div class="define">
+      <img src="img/logo.webp" alt="ChivarGo" width="120" height="120" loading="lazy">
+      <div id="what-is">
+        <h2>ChivarGo คืออะไร</h2>
+        <p><strong>ChivarGo (ชีวาร์โก)</strong> คือแอปเที่ยวเกาะแบบสุขภาพดีและรักษ์โลก ที่รวมเควสต์ แผนที่ AI ไกด์ ความปลอดภัย ร้านท้องถิ่น และการสะสมแต้มไว้ในที่เดียว จุดที่ต่างจากแอปอื่นคือ <strong>Green Points</strong> ออกให้เฉพาะกิจกรรมที่ <strong>เจ้าบ้านตัวจริงที่มีชื่อ</strong> ตรวจและอนุมัติ ในพื้นที่ที่กำหนด และในวันที่เกิดขึ้นจริง</p>
+        <p style="margin:0">เริ่มต้นที่ <strong>เกาะสมุย</strong> (สุราษฎร์ธานี) และ <strong>เกาะสีชัง</strong> (ชลบุรี) ใช้งานฟรีผ่านเว็บที่ <a href="https://chivargo.com/">chivargo.com</a> รองรับภาษาไทย อังกฤษ และจีน</p>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>2</b><span>เกาะนำร่อง: สมุย · สีชัง</span></div>
+      <div class="stat"><b>3</b><span>ภาษา: ไทย อังกฤษ จีน</span></div>
+      <div class="stat"><b>77</b><span>มาสคอตประจำจังหวัด</span></div>
+      <div class="stat"><b>100%</b><span>Green Points มีคนยืนยัน</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURE GRID -->
+<section class="alt" id="features">
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow">ทุกอย่างที่ต้องใช้บนเกาะ</span>
+      <h2>ฟีเจอร์ทั้งหมดของ ChivarGo</h2>
+      <p class="lead">ตั้งแต่ก้าวลงเรือจนถึงวันกลับบ้าน ทั้งเที่ยว กิน เล่น ปลอดภัย และช่วยเกาะไปพร้อมกัน</p>
+    </div>
+    <div class="tiles">
+      <article class="tile g" id="feat-green"><div class="ic">🌿</div><h3>Green Points <span class="tag">ยืนยันจริง</span></h3><p>แต้มรักษ์โลกที่เจ้าบ้านอนุมัติ ส่งจากในพื้นที่ (geofence) ตรวจย้อนกลับได้ทุกแต้ม</p></article>
+      <article class="tile"><div class="ic">🎒</div><h3>Trip Points</h3><p>แต้มเดินทางที่ยืนยันเอง แสดงแยกจาก Green Points ชัดเจน ไม่ปนกัน</p></article>
+      <article class="tile g" id="feat-quests"><div class="ic">🗺️</div><h3>เควสต์ &amp; ภารกิจ</h3><p>เก็บขยะชายหาด อนุรักษ์ปะการัง ตามหาสมบัติท้องถิ่น และสูตรลับของเกาะ</p></article>
+      <article class="tile g"><div class="ic">♻️</div><h3>จุดทิ้งขยะ</h3><p>เควสต์นำขยะไปส่งจุดรับ ได้แต้มทุกครั้งที่มีคนยืนยันว่าส่งถึงจริง</p></article>
+      <article class="tile"><div class="ic">🧭</div><h3>Adventure Map</h3><p>แผนที่ผจญภัยทั่วเกาะ เปิดด่านใหม่ไปทีละจุด เหมือนเล่นเกมในโลกจริง</p></article>
+      <article class="tile" id="feat-ai"><div class="ic">🤖</div><h3>Chivar Bot ไกด์ AI</h3><p>ถามได้ว่าไปไหน กินอะไร เดินทางยังไง ตอบจากข้อมูลจริงในแอป</p></article>
+      <article class="tile" id="feat-map"><div class="ic">📍</div><h3>แผนที่ &amp; นำทาง</h3><p>วิธีเดินทางไปเกาะ นำทางช่วงเดินเท้า และใช้แบบออฟไลน์ได้ตอนสัญญาณหาย</p></article>
+      <article class="tile" id="feat-safety"><div class="ic">🆘</div><h3>SOS &amp; ความปลอดภัย</h3><p>ปุ่มขอความช่วยเหลือพร้อมตำแหน่ง และการ์ดสภาพเกาะที่บอกตามจริง</p></article>
+      <article class="tile" id="feat-party"><div class="ic">🎉</div><h3>Party หาเพื่อนเที่ยว</h3><p>รวมทีมทำเควสต์ เปิดวอทช์ปาร์ตี้ริมทะเล ใช้หลักฐานชุดเดียวกันทั้งทีม</p></article>
+      <article class="tile"><div class="ic">🐘</div><h3>เพื่อนร่วมทาง &amp; มาสคอต</h3><p>สัตว์ประจำถิ่นของสมุย และมาสคอต 77 จังหวัด แสดงผลแบบ 3D</p></article>
+      <article class="tile"><div class="ic">🎁</div><h3>แคปซูลสุ่ม</h3><p>ใช้แต้มสุ่มของรางวัลและไอเทมแต่งตัวให้เพื่อนร่วมทาง</p></article>
+      <article class="tile" id="feat-backpack"><div class="ic">🎒</div><h3>กระเป๋าเป้</h3><p>เก็บไอเทม รางวัล และของสะสมจากทุกทริปไว้ในที่เดียว</p></article>
+      <article class="tile"><div class="ic">🛂</div><h3>พาสปอร์ต &amp; เหรียญ</h3><p>ประทับตราทุกที่ที่ไป ปลดล็อกเหรียญ และไต่อันดับในแต่ละซีซัน</p></article>
+      <article class="tile" id="feat-picks"><div class="ic">🍜</div><h3>Local Picks</h3><p>ร้านอาหาร ร้านค้า ตลาด และฟู้ดคอร์ทของคนในพื้นที่ ค้นจากชื่อหรือเมนูได้</p></article>
+      <article class="tile" id="feat-stays"><div class="ic">🏠</div><h3>ที่พัก</h3><p>ดูเงื่อนไขที่พักที่เจ้าของบอกไว้เอง และส่งคำถามถึงเจ้าของโดยตรง</p></article>
+      <article class="tile" id="feat-community"><div class="ic">💬</div><h3>ฟีดชุมชน &amp; รีวิว</h3><p>แชร์ทริปและรีวิวสถานที่ มีผู้ตรวจดูแล รีวิวจึงน่าเชื่อถือ</p></article>
+      <article class="tile"><div class="ic">📔</div><h3>บันทึกการเดินทาง</h3><p>เก็บความทรงจำ รูป และเส้นทางของแต่ละวันไว้ดูย้อนหลัง</p></article>
+      <article class="tile"><div class="ic">🎮</div><h3>มินิเกม</h3><p>เกมสั้น ๆ ระหว่างรอเรือ ได้แต้มเพิ่มและเรียนรู้เรื่องเกาะไปด้วย</p></article>
+      <article class="tile"><div class="ic">👛</div><h3>กระเป๋าแต้ม</h3><p>ดูยอดแต้มทุกชนิด และนำไปแลกที่เคาน์เตอร์ร้านพาร์ทเนอร์</p></article>
+      <article class="tile g"><div class="ic">🏨</div><h3>รายงาน ESG ของโรงแรม</h3><p>ไฟล์หลักฐานกิจกรรมที่ใครก็ตรวจได้ ใช้แนบกับรายงานที่โรงแรมยื่นอยู่แล้ว</p></article>
+      <article class="tile"><div class="ic">🧑‍💼</div><h3>คอนโซลเจ้าบ้าน</h3><p>เจ้าบ้านตรวจและอนุมัติกิจกรรมจากมือถือ พร้อมดูการเดินทางของคนบนเกาะ</p></article>
+    </div>
+  </div>
+</section>
+
+<!-- SPOTLIGHTS -->
+<section id="green-points">
+  <div class="wrap">
+    <div class="spot">
+      <div class="spot-img"><img src="img/beach-cleanup.webp" alt="นักท่องเที่ยวเก็บขยะชายหาดเพื่อรับ Green Points" width="800" height="600" loading="lazy"></div>
+      <div>
+        <span class="eyebrow">หัวใจของ ChivarGo</span>
+        <h2>Green Points: แต้มที่มีคนรับรอง</h2>
+        <p class="lead">หลักการของเรามีข้อเดียว คือแต้มจะมีค่าก็ต่อเมื่อมีคนต้องตรวจมันจริง</p>
+        <ul class="ticks">
+          <li>ส่งรูปพร้อมตำแหน่งจากในพื้นที่ที่กำหนด</li>
+          <li>เจ้าบ้านที่มีชื่อจริงเป็นคนอนุมัติ</li>
+          <li>ทุกแต้มสืบกลับไปถึงกิจกรรม วันที่ และผู้ยืนยัน</li>
+          <li>ตารางอันดับ รายงานสปอนเซอร์ และรายงาน ESG ใช้บัญชีแต้มชุดเดียวกัน</li>
+        </ul>
+        <a class="btn btn-green" href="https://chivargo.com/">เริ่มสะสม Green Points</a>
+      </div>
+    </div>
+
+    <div class="spot rev">
+      <div class="spot-img"><img src="img/ai-bot.webp" alt="Chivar Bot ผู้ช่วย AI ของ ChivarGo" width="640" height="480" loading="lazy"></div>
+      <div>
+        <span class="eyebrow">ไกด์ AI ประจำเกาะ</span>
+        <h2>Chivar Bot ถามอะไรก็ได้เรื่องเกาะ</h2>
+        <p class="lead">อยากกินซีฟู้ดใกล้ ๆ หาดไหนคนน้อย หรือนั่งเรือไปยังไง ถาม Chivar Bot ได้เลย</p>
+        <ul class="ticks">
+          <li>แนะนำสถานที่จากข้อมูลจริงในแอป</li>
+          <li>จำบริบทของบทสนทนาตลอดทริป</li>
+          <li>ถ้าไม่มีข้อมูลก็บอกตรง ๆ ไม่แต่งคำตอบขึ้นมาเอง</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="spot">
+      <div class="spot-img"><img src="img/sichang-adventure.webp" alt="แผนที่ผจญภัยเกาะสีชังในแอป ChivarGo" width="900" height="675" loading="lazy"></div>
+      <div>
+        <span class="eyebrow">เที่ยวเหมือนเล่นเกม</span>
+        <h2>Adventure Map &amp; เควสต์ทั่วเกาะ</h2>
+        <p class="lead">เปิดแผนที่ เลือกเควสต์ แล้วออกเดินทางไปเจอของจริง ทั้งผู้คน ร้าน และธรรมชาติ</p>
+        <ul class="ticks">
+          <li>Trash Hero เก็บขยะ, Green Journey, ตามหาสมบัติท้องถิ่น, สูตรลับของเกาะ</li>
+          <li>เควสต์ช่วยพาคนออกจากจุดที่แออัดในวันหยุดยาว</li>
+          <li>ปลดล็อกเหรียญ ตราประทับ และของรางวัล</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="spot rev">
+      <div class="spot-img"><img src="img/companions.webp" alt="เพื่อนร่วมทางและมาสคอตใน ChivarGo" width="640" height="480" loading="lazy"></div>
+      <div>
+        <span class="eyebrow">สะสมให้ครบ</span>
+        <h2>เพื่อนร่วมทาง พาสปอร์ต และเหรียญ</h2>
+        <p class="lead">ทุกที่ที่ไปได้ตราประทับ ทุกภารกิจได้เหรียญ และมีเพื่อนตัวน้อยเดินทางไปด้วย</p>
+        <ul class="ticks">
+          <li>มาสคอต 77 ตัว จากสัญลักษณ์ของแต่ละจังหวัด</li>
+          <li>แคปซูลสุ่มไอเทม กระเป๋าเป้ และห้องของมาสคอต</li>
+          <li>ซีซันและตารางอันดับ เล่นต่อได้ทุกทริป</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="spot">
+      <div class="spot-img"><img src="img/party.webp" alt="ปาร์ตี้หาเพื่อนเที่ยวใน ChivarGo" width="800" height="600" loading="lazy"></div>
+      <div>
+        <span class="eyebrow">ไปด้วยกันสนุกกว่า</span>
+        <h2>Party หาเพื่อนเที่ยว &amp; วอทช์ปาร์ตี้</h2>
+        <p class="lead">ตั้งทีม ชวนเพื่อน หรือหาคนที่อยากทำเควสต์เดียวกัน แล้วออกไปพร้อมกัน</p>
+        <ul class="ticks">
+          <li>ส่งหลักฐานครั้งเดียว ได้แต้มทั้งทีม</li>
+          <li>วอทช์ปาร์ตี้ริมทะเลและโหมดอีเวนต์สำหรับงานใหญ่</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="spot rev">
+      <div class="spot-img"><img src="img/coastal.webp" alt="ความปลอดภัยและสภาพเกาะใน ChivarGo" width="800" height="600" loading="lazy"></div>
+      <div>
+        <span class="eyebrow">อุ่นใจทุกทริป</span>
+        <h2>SOS แผนที่ออฟไลน์ และสภาพเกาะ</h2>
+        <p class="lead">ความปลอดภัยและสภาพของเกาะอยู่บนหน้าจอเดียวกับการเที่ยว</p>
+        <ul class="ticks">
+          <li>ปุ่ม SOS ส่งตำแหน่งขอความช่วยเหลือ</li>
+          <li>แผนที่และเส้นทางเดินเท้าใช้ได้แม้ไม่มีสัญญาณ</li>
+          <li>การ์ดสภาพเกาะ บอกตามแหล่งข้อมูลจริง ไม่มีข้อมูลก็ไม่เดา</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ISLANDS -->
+<section class="alt" id="islands">
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow">เกาะที่เปิดให้เที่ยวแล้ว</span>
+      <h2>เที่ยวเกาะสมุยและเกาะสีชังกับ ChivarGo</h2>
+    </div>
+    <div class="islands">
+      <a class="island" id="samui" href="https://chivargo.com/" aria-label="เที่ยวเกาะสมุยกับ ChivarGo">
+        <img src="img/samui.webp" alt="เกาะสมุย สุราษฎร์ธานี" width="900" height="675" loading="lazy">
+        <div><h3>เกาะสมุย</h3><p>เกาะนำร่องของเรา หาด ป่า น้ำตก และสัตว์ประจำถิ่น พร้อมเควสต์รักษ์ชายฝั่ง</p></div>
+      </a>
+      <a class="island" id="sichang" href="https://chivargo.com/" aria-label="เที่ยวเกาะสีชังกับ ChivarGo">
+        <img src="img/sichang-adventure.webp" alt="เกาะสีชัง ชลบุรี" width="900" height="675" loading="lazy">
+        <div><h3>เกาะสีชัง</h3><p>นั่งเรือจากศรีราชาไม่นาน เควสต์ Trash Hero สมบัติท้องถิ่น และสูตรลับของเกาะ</p></div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- VALUES -->
+<section id="values">
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow">ทำไมต้อง ChivarGo</span>
+      <h2>สร้างเพื่อเกาะ และคนบนเกาะ</h2>
+    </div>
+    <div class="three">
+      <div class="box"><div class="ic">✅</div><h3>ตัวเลขที่ตรวจสอบได้</h3><p>แอปไม่รายงานตัวเลขที่สืบกลับไปหาต้นทางไม่ได้ ทุกแต้มมีกิจกรรม วันที่ และคนยืนยัน</p></div>
+      <div class="box"><div class="ic">🤝</div><h3>เงินอยู่กับคนท้องถิ่น</h3><p>พาไปร้านของคนในพื้นที่ แลกแต้มที่เคาน์เตอร์ร้าน และช่วยกระจายรายได้ทั่วเกาะ</p></div>
+      <div class="box"><div class="ic">🌊</div><h3>เที่ยวแล้วเกาะดีขึ้น</h3><p>ทุกเควสต์ช่วยลดขยะ ลดความแออัด และทิ้งบันทึกว่ามีการดูแลเกาะเกิดขึ้นจริง</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="alt" id="how">
+  <div class="wrap">
+    <div class="center"><h2>เริ่มใช้ ChivarGo ใน 4 ขั้นตอน</h2></div>
+    <div class="four">
+      <div class="box"><div class="step-n">1</div><h3>เปิดแอปและเลือกเกาะ</h3><p>เข้า chivargo.com สมัครฟรี แล้วเลือกสมุยหรือสีชัง</p></div>
+      <div class="box"><div class="step-n">2</div><h3>รับเควสต์</h3><p>เลือกภารกิจที่ชอบ เก็บขยะ เดินป่า หรือชิมร้านเด็ด</p></div>
+      <div class="box"><div class="step-n">3</div><h3>ส่งหลักฐานในพื้นที่</h3><p>ถ่ายรูปจากจุดที่กำหนด ระบบตรวจตำแหน่งให้อัตโนมัติ</p></div>
+      <div class="box"><div class="step-n">4</div><h3>รับ Green Points</h3><p>เจ้าบ้านอนุมัติ แต้มเข้ากระเป๋า นำไปแลกหรือสะสมต่อได้</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PARTNERS -->
+<section id="partners">
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow">ร่วมเป็นพาร์ทเนอร์</span>
+      <h2>ร่วมงานกับ ChivarGo</h2>
+      <p class="lead">ไม่ว่าคุณจะเป็นโรงแรม ร้านค้า ผู้จัดกิจกรรม หรือหน่วยงาน มีที่ให้คุณบนเกาะเสมอ</p>
+    </div>
+    <div class="four">
+      <div class="box"><div class="ic">🏨</div><h3>โรงแรม &amp; รีสอร์ท</h3><p>ได้หลักฐานกิจกรรมที่บุคคลที่สามตรวจได้ แนบกับรายงานความยั่งยืนหรือ ESG ที่ยื่นอยู่แล้ว</p></div>
+      <div class="box"><div class="ic">🍜</div><h3>ร้านอาหาร &amp; ร้านค้า</h3><p>มีหน้าร้านใน Local Picks ให้นักท่องเที่ยวค้นเจอ และรับแลกแต้มที่เคาน์เตอร์</p></div>
+      <div class="box"><div class="ic">🧑‍🌾</div><h3>เจ้าบ้าน &amp; ผู้จัดกิจกรรม</h3><p>สร้างเควสต์ของคุณเอง ตรวจและอนุมัติกิจกรรมผ่านคอนโซลบนมือถือ</p></div>
+      <div class="box"><div class="ic">🎓</div><h3>มหาวิทยาลัย &amp; อีเวนต์</h3><p>โหมดอีเวนต์ แผนที่งาน และตลาดในงาน สำหรับแคมปัสและงานแฟร์</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="alt" id="faq">
+  <div class="wrap">
+    <div class="center"><h2>คำถามที่พบบ่อยเกี่ยวกับ ChivarGo</h2></div>
+    <div class="faq">
+      <details open><summary>ChivarGo คืออะไร</summary><p class="faq-a">ChivarGo (ชีวาร์โก) คือแอปเที่ยวเกาะแบบสุขภาพดีและรักษ์โลก รวมเควสต์ แผนที่ AI ไกด์ ความปลอดภัย ร้านท้องถิ่น และการสะสมแต้มไว้ในแอปเดียว เริ่มที่เกาะสมุยและเกาะสีชัง ใช้ได้ทั้งภาษาไทย อังกฤษ และจีน</p></details>
+      <details><summary>Green Points ต่างจาก Trip Points อย่างไร</summary><p class="faq-a">Green Points ออกให้เมื่อเจ้าบ้านที่มีชื่อจริงอนุมัติกิจกรรมที่ส่งจากในพื้นที่ (geofence) แล้วเท่านั้น ส่วน Trip Points เป็นแต้มที่ยืนยันเอง และแอปแสดงแยกกันเสมอ ไม่ให้ดูเหมือนแต้มชนิดเดียวกัน</p></details>
+      <details><summary>ChivarGo ใช้ฟรีไหม</summary><p class="faq-a">นักท่องเที่ยวใช้ ChivarGo ได้ฟรีผ่านเว็บที่ chivargo.com</p></details>
+      <details><summary>ChivarGo ช่วยแก้ปัญหาขยะบนเกาะได้อย่างไร</summary><p class="faq-a">แอปมีเควสต์เก็บขยะชายหาดและเควสต์นำขยะไปทิ้งที่จุดรับ ทุกครั้งที่เจ้าบ้านยืนยัน จะกลายเป็นบันทึกว่ามีกิจกรรมเกิดขึ้นจริง ที่ไหน วันไหน และใครยืนยัน ซึ่งชุมชนและโรงแรมนำไปใช้เป็นหลักฐานได้</p></details>
+      <details><summary>ใช้ ChivarGo ตอนไม่มีอินเทอร์เน็ตได้ไหม</summary><p class="faq-a">ได้ แผนที่และข้อมูลสำคัญของการเดินทางถูกเก็บไว้ในเครื่อง ใช้นำทางช่วงที่สัญญาณหายได้</p></details>
+      <details><summary>Chivar Bot คืออะไร</summary><p class="faq-a">Chivar Bot คือผู้ช่วย AI ในแอป ถามได้ว่าจะไปไหน กินอะไร หรือเดินทางยังไง บอทจะแนะนำสถานที่จากข้อมูลจริงในแอป และบอกตรง ๆ เมื่อไม่มีข้อมูล</p></details>
+      <details><summary>โรงแรมได้อะไรจาก ChivarGo</summary><p class="faq-a">โรงแรมได้รายงานหลักฐานกิจกรรมที่ตรวจสอบได้ ว่ากิจกรรมใดเกิดขึ้นจริง ในพื้นที่ใด วันไหน และมีเจ้าบ้านคนใดยืนยัน ใช้แนบกับรายงานความยั่งยืนหรือ ESG ที่โรงแรมยื่นอยู่แล้ว ระบบไม่ได้วัดอาคารและไม่ได้แทนตัวเลขเดิมของโรงแรม</p></details>
+      <details><summary>ร้านค้าหรือผู้จัดกิจกรรมจะเข้าร่วมได้อย่างไร</summary><p class="faq-a">ร้านค้า ที่พัก และผู้จัดกิจกรรมสมัครเป็นพาร์ทเนอร์ได้ จะได้หน้าร้านในแอป และเจ้าบ้านจะได้คอนโซลสำหรับตรวจและอนุมัติกิจกรรมของนักท่องเที่ยว</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="download">
+  <div class="wrap">
+    <div class="cta">
+      <h2>พร้อมเที่ยวเกาะแบบสุขภาพดีหรือยัง</h2>
+      <p>เปิด ChivarGo ได้เลยบนมือถือหรือคอมพิวเตอร์ ไม่ต้องดาวน์โหลด</p>
+      <div class="cta-row" style="justify-content:center">
+        <a class="btn btn-green" href="https://chivargo.com/">เปิดแอป ChivarGo →</a>
+        <a class="btn btn-ghost" href="#partners">สมัครเป็นพาร์ทเนอร์</a>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div>
+        <a class="logo" href="/th/"><img src="img/logo.webp" alt="" width="36" height="36" loading="lazy">ChivarGo</a>
+        <p style="margin-top:10px">แอปเที่ยวเกาะแบบสุขภาพดี สะสม Green Points ที่มีคนยืนยันจริง บนเกาะสมุยและเกาะสีชัง</p>
+      </div>
+      <div><h3>ฟีเจอร์</h3><ul><li><a href="#green-points">Green Points</a></li><li><a href="#feat-ai">Chivar Bot</a></li><li><a href="#feat-quests">เควสต์</a></li><li><a href="#feat-safety">SOS</a></li></ul></div>
+      <div><h3>เกาะ</h3><ul><li><a href="#samui">เกาะสมุย</a></li><li><a href="#sichang">เกาะสีชัง</a></li></ul></div>
+      <div><h3>ChivarGo</h3><ul><li><a href="https://chivargo.com/">เปิดแอป</a></li><li><a href="#partners">พาร์ทเนอร์</a></li><li><a href="#faq">คำถามที่พบบ่อย</a></li></ul></div>
+    </div>
+    <!-- TODO: add contact (LINE / email / phone), company legal block, terms, privacy and delete-account links once confirmed -->
+    <p class="copy">© 2026 ChivarGo · ภาษาไทย · English · 中文</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var b=document.querySelector('.menu-toggle'),m=document.getElementById('menu');
+  if(!b||!m)return;
+  b.addEventListener('click',function(){var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);});
+  m.addEventListener('click',function(e){if(e.target.tagName==='A'){m.classList.remove('open');b.setAttribute('aria-expanded','false');}});
+})();
+</script>
+</body>
+</html>

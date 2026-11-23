@@ -94,6 +94,16 @@ describe('the Worker serves what the export carries', () => {
     assert.ok(servedFromExport('/media/01J9Zc4K2Q'));
   });
 
+  test('the promo page and the crawler files are served, and nothing near them is', () => {
+    for (const p of ['/th', '/th/', '/th/img/hero.webp', '/sitemap.xml', '/llms.txt', '/robots.txt']) {
+      assert.ok(servedFromExport(p), `${p} would reach the API`);
+    }
+    assert.ok(publicPaths().includes('/th/index.html'), 'public/th/index.html is missing');
+    for (const p of ['/thanks', '/thx', '/sitemap', '/llms']) {
+      assert.ok(!servedFromExport(p), `${p} would be served as a static file`);
+    }
+  });
+
   test('the privacy policy and about page are served by their short names, and nothing near them is', () => {
     // Google's OAuth consent screen links to these. A 401 from the device-key
     // middleware there is an app that cannot leave Testing mode.
