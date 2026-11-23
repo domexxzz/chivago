@@ -29,7 +29,7 @@ import {
   type AreaKey, type Bilingual,
 } from '@chivago/core';
 import { blobStore, isLegacyPath, type BlobStore } from './blob-store.ts';
-import { row, rows, type DB } from './db.ts';
+import { row, rows, transact, type DB } from './db.ts';
 import { storiesAutoApprove } from './fence.ts';
 import { UnsupportedUpload, sniff, uploadRoot } from './uploads.ts';
 import { TranscoderUnavailable, UnplayableCodec, onWorkers, transcoderFromEnv, type Encoded, type Transcoder } from './transcode.ts';
@@ -424,17 +424,57 @@ export async function submitStory(
     if (poster !== media) await store.put(poster, posterBytes);
   }
 
-  db.prepare(
-    `INSERT INTO stories (id, place_id, user_id, kind, caption, media_path, media_mime, poster_path,
-       duration_s, status, created_at, expires_at, reviewed_at, reviewed_by, reviewer_host,
-       media_blob, poster_blob)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-  ).run(
-    id, place.id, args.userId, kind, caption, media, mime,
-    poster, durationS, auto ? 'approved' : 'pending', createdAt, expiresAt,
-    auto ? createdAt : null, auto ? 'auto' : null, null,
-    store ? null : mediaBytes, store ? null : posterBytes,
-  );
+  /*
+    THE COUNT THAT REFUSES IS THIS ONE, NOT THE ONE AT THE TOP.
+
+    Two awaits sit between them - cleaning the file, and writing it to the
+    object store - and a Durable Object serves other requests while one of
+    its handlers is awaiting. So two uploads sent at the same moment both
+    read the same number, both find room, and both land. The ceiling was
+    whatever a burst made it, and with stories posting straight to a public
+    screen that is the difference between a limit and a suggestion.
+
+    Read again here, with NO await between reading the number and acting on
+    it. `transact` hands the nesting to the runtime that owns the storage,
+    and inside it nothing else gets a turn.
+
+    The count at the top stays. It refuses the fourth upload of the day
+    before the file is cleaned and stored, which is work nobody should pay
+    for twice; it is a courtesy, and this is the rule.
+  */
+  try {
+    transact(db, () => {
+      const taken = row<{ n: number }>(
+        db.prepare('SELECT COUNT(*) AS n FROM stories WHERE user_id = ? AND created_at >= ?')
+          .get(args.userId, since),
+      )?.n ?? 0;
+      if (taken >= STORIES_PER_DAY) throw new StoryQuotaReached();
+      db.prepare(
+        `INSERT INTO stories (id, place_id, user_id, kind, caption, media_path, media_mime, poster_path,
+           duration_s, status, created_at, expires_at, reviewed_at, reviewed_by, reviewer_host,
+           media_blob, poster_blob)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      ).run(
+        id, place.id, args.userId, kind, caption, media, mime,
+        poster, durationS, auto ? 'approved' : 'pending', createdAt, expiresAt,
+        auto ? createdAt : null, auto ? 'auto' : null, null,
+        store ? null : mediaBytes, store ? null : posterBytes,
+      );
+    });
+  } catch (e) {
+    /*
+      The bytes reached the store before the row, so a refusal here leaves
+      them with nothing naming them. They go on the same queue the delete
+      triggers use, and the alarm that drains it removes them.
+    */
+    if (store && e instanceof StoryQuotaReached) {
+      const queued = now.toISOString();
+      for (const key of poster === media ? [media] : [media, poster]) {
+        db.prepare('INSERT OR IGNORE INTO media_deletions(key, queued_at) VALUES (?, ?)').run(key, queued);
+      }
+    }
+    throw e;
+  }
   return toStory(row<StoryRow>(db.prepare(`${SELECT} WHERE id = ?`).get(id))!);
 }
 

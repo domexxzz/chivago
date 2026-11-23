@@ -125,6 +125,48 @@ describe('about the place, without claiming presence', () => {
     const s = await submit({ now: new Date(T.getTime() + 25 * 3_600_000) });
     assert.equal(s.status, 'pending');
   });
+
+  /*
+    SENT TOGETHER, NOT ONE AFTER THE OTHER. The gate holds both uploads
+    inside the transcoder - where the real one is slow, and where a Durable
+    Object hands the turn to whoever else is waiting - so both have passed
+    the early count before either reaches its insert. That is the shape of
+    the burst this used to let through, and there is nothing exotic about
+    sending it: two taps, or one tap on a flaky connection that retries.
+  */
+  test('two uploads sent together cannot both take the last place', async () => {
+    for (let i = 0; i < STORIES_PER_DAY - 1; i += 1) await submit({ now: later(i * 5) });
+
+    let open: () => void = () => {};
+    const gate = new Promise<void>((resolve) => { open = resolve; });
+    const slow: Transcoder = {
+      async video() {
+        await gate;
+        return { media: bytesOf('MP4-BYTES'), poster: bytesOf('POSTER-BYTES'), durationS: 8.2 };
+      },
+      async photo() {
+        await gate;
+        const media = bytesOf('JPG-BYTES');
+        return { media, poster: media, durationS: null };
+      },
+    };
+
+    const both = Promise.allSettled([
+      submit({ now: later(20), transcoder: slow }),
+      submit({ now: later(21), transcoder: slow }),
+    ]);
+    open();
+    const settled = await both;
+
+    const landed = settled.filter((r) => r.status === 'fulfilled');
+    const refused = settled.filter((r) => r.status === 'rejected');
+    assert.equal(landed.length, 1, 'both uploads took the same last place');
+    assert.equal(refused.length, 1);
+    assert.ok((refused[0] as PromiseRejectedResult).reason instanceof StoryQuotaReached);
+
+    const kept = db.prepare("SELECT COUNT(*) AS n FROM stories WHERE user_id = 'ana'").get() as { n: number };
+    assert.equal(kept.n, STORIES_PER_DAY, 'the ceiling did not hold');
+  });
 });
 
 describe('nothing shows until a host says so', () => {
