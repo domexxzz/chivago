@@ -149,16 +149,46 @@ describe('authentication gate', () => {
     assert.ok(!/key.*(invalid|unknown|not found)/i.test(body), body.slice(0, 200));
   });
 
+  const signIn = () => app.request('/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ key: MUNI_KEY, reviewer: 'Nok' }),
+  });
+
   test('the session cookie is HttpOnly, SameSite=Strict and console-scoped', async () => {
-    const res = await app.request('/login', {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ key: MUNI_KEY, reviewer: 'Nok' }),
-    });
-    const cookie = res.headers.get('set-cookie') ?? '';
+    const cookie = (await signIn()).headers.get('set-cookie') ?? '';
     assert.match(cookie, /HttpOnly/);
     assert.match(cookie, /SameSite=Strict/);
     assert.match(cookie, /Path=\/console/);
+  });
+
+  /*
+    HttpOnly STOPS A SCRIPT AND SameSite STOPS A CROSS-SITE POST. Neither
+    stops somebody on the same wifi reading a cookie that was sent in the
+    clear, which is the room a host reviews proof in. The flag exists so the
+    pilot can still run over a LAN on plain HTTP; the deployment sets it, and
+    this is here so that dropping it from the deployment is something a
+    person has to do on purpose rather than by not noticing.
+  */
+  test('and Secure, wherever the deployment says it is behind TLS', async () => {
+    const before = process.env.CHIVAGO_SECURE_COOKIES;
+    process.env.CHIVAGO_SECURE_COOKIES = '1';
+    try {
+      assert.match((await signIn()).headers.get('set-cookie') ?? '', /Secure/);
+    } finally {
+      if (before === undefined) delete process.env.CHIVAGO_SECURE_COOKIES;
+      else process.env.CHIVAGO_SECURE_COOKIES = before;
+    }
+  });
+
+  test('and not over plain HTTP, which is what the flag is for', async () => {
+    const before = process.env.CHIVAGO_SECURE_COOKIES;
+    delete process.env.CHIVAGO_SECURE_COOKIES;
+    try {
+      assert.doesNotMatch((await signIn()).headers.get('set-cookie') ?? '', /Secure/);
+    } finally {
+      if (before !== undefined) process.env.CHIVAGO_SECURE_COOKIES = before;
+    }
   });
 
   test('a forged cookie value is refused', async () => {

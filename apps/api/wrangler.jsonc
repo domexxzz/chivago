@@ -117,6 +117,27 @@
     // with a host console behind it is a wildcard on the console too.
     "CHIVAGO_ORIGINS": "https://chivargo.com,https://www.chivargo.com",
 
+    /*
+      THE CONSOLE'S COOKIES ARE HTTPS-ONLY HERE.
+
+      `console/routes.ts` omits `Secure` unless this says otherwise, so the
+      pilot could run over a LAN on plain HTTP - and it carries a note to set
+      this "the moment this is behind TLS". That moment was the move to
+      Cloudflare. The note was never acted on, so a reviewer's session cookie
+      has been leaving without it ever since.
+
+      It matters for this product's own users more than for most: a host
+      reviews quest proof from an island cafe's wifi, and that is the room in
+      which a cookie sent in the clear is read by somebody else. HttpOnly and
+      SameSite=Strict were already set; they stop a script and a cross-site
+      post, and neither of them stops a reader on the same network.
+
+      Only the Worker reads this. `server-node.ts` on a laptop or a LAN box
+      has its own environment and is unaffected, which is what the flag was
+      for.
+    */
+    "CHIVAGO_SECURE_COOKIES": "1",
+
     // NO OPENING BALANCE, exactly as fly.toml has it and for the reason
     // recorded there: a gift handed to every unauthenticated registration is
     // a voucher printer.
