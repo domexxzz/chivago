@@ -30,6 +30,13 @@
     "onlyBuiltDependencies": [
       "esbuild",
       "workerd"
-    ]
+    ],
+    "packageExtensions": {
+      "@expo/cli": {
+        "dependencies": {
+          "metro-runtime": "^0.83.3"
+        }
+      }
+    }
   }
 }

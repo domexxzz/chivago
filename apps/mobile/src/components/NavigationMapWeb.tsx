@@ -20,8 +20,10 @@
 
 import React from 'react';
 import { View } from 'react-native';
-import type maplibregl from 'maplibre-gl';
+import type * as maplibregl from 'maplibre-gl';
 import { AttributionControl, Map as MapLibreMap, Marker } from 'maplibre-gl';
+// Points MapLibre 6 at its vendored worker; must run before the first Map.
+import './maplibre-worker.ts';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 import { chivagoStyle } from './terrain-style.ts';

@@ -23,10 +23,17 @@ import { api } from '../api/client.ts';
  * A banner still shows while the app is open. The alternative - suppressing it
  * because "they can see the screen" - means someone browsing the map misses the
  * approval they have been waiting for.
+ *
+ * SDK 54 SPLIT `shouldShowAlert` IN TWO: `shouldShowBanner` is the thing that
+ * slides down over the app, and `shouldShowList` is whether it also lands in
+ * the OS notification centre. The old single flag meant both, so both are true
+ * here - a verification that arrives while the phone is in a pocket has to
+ * still be there when it comes back out.
  */
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),
