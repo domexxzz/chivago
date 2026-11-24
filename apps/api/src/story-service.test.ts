@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { openTestDb, type DB } from './db-node.ts';
 import {
   STORIES_PER_DAY, STORY_MAX_BYTES, StoriesClosed, StoryNotFound, StoryQuotaReached, StoryTooLarge,
-  UnsupportedStory, canReviewStories, expireStories, pendingStories,
+  UnsupportedStory, canReviewStories, decidedStories, expireStories, pendingStories,
   fetchStoryMedia, locateStoryMedia, readStoryMedia, reviewStory, setStoriesOpen, sniffStory, storiesAt, storiesInArea,
   storiesOpen, submitStory,
 } from './story-service.ts';
@@ -432,6 +432,71 @@ describe('the switch that takes the queue away', () => {
   test('on: the door still shuts, because that is a different question', async () => {
     setStoriesOpen(db, false, 'test');
     await assert.rejects(() => withAuto(() => submit({ open: undefined })), StoriesClosed);
+  });
+});
+
+/**
+ * What is already up, and what was taken down.
+ *
+ * With the queue off (above) a story is public before any host sees it, so
+ * the pending list is empty for good and this is the only place a person
+ * could ever take one down.
+ */
+describe('a host can see what is on the board, to take it down', () => {
+  const ids = (list: { id: string }[]) => list.map((s) => s.id);
+  const approve = (storyId: string, now = T, reviewer = 'Nok') =>
+    reviewStory(db, { hostId: 'h-ku', storyId, decision: 'approve', reviewer, now });
+
+  test('a live story is listed, newest first, with its place', async () => {
+    const first = await submit();
+    const second = await submit({ now: later(5), caption: 'second' });
+    approve(first.id, later(10));
+    approve(second.id, later(10));
+    const list = decidedStories(db, 'h-ku', later(11));
+    assert.deepEqual(ids(list), [second.id, first.id]);
+    assert.equal(list[0]!.placeName.en, 'Campus park');
+    assert.equal(list[0]!.autoApproved, false);
+  });
+
+  test('a story nobody looked at says so', async () => {
+    const before = process.env.CHIVAGO_STORIES_AUTO_APPROVE;
+    process.env.CHIVAGO_STORIES_AUTO_APPROVE = '1';
+    try { await submit(); } finally {
+      if (before === undefined) delete process.env.CHIVAGO_STORIES_AUTO_APPROVE;
+      else process.env.CHIVAGO_STORIES_AUTO_APPROVE = before;
+    }
+    assert.deepEqual(decidedStories(db, 'h-ku', later(1)).map((s) => s.autoApproved), [true]);
+  });
+
+  test('a reviewer who signs in as "auto" is still a person', async () => {
+    const s = await submit();
+    approve(s.id, later(1), 'auto');
+    assert.equal(decidedStories(db, 'h-ku', later(2))[0]!.autoApproved, false);
+  });
+
+  test('hidden, it leaves the board and stays here, so a slip can be undone', async () => {
+    const s = await submit();
+    approve(s.id);
+    reviewStory(db, { hostId: 'h-ku', storyId: s.id, decision: 'hide', reviewer: 'Nok', now: later(1) });
+    assert.deepEqual(storiesInArea(db, 'ku-sriracha', later(2)), []);
+    assert.deepEqual(decidedStories(db, 'h-ku', later(2)).map((x) => x.status), ['hidden']);
+
+    approve(s.id, later(3));
+    assert.deepEqual(ids(storiesInArea(db, 'ku-sriracha', later(4))), [s.id]);
+  });
+
+  test('only where this host hosts; a moderator anywhere', async () => {
+    const s = await submit();
+    approve(s.id);
+    assert.deepEqual(decidedStories(db, 'h-lab', T), []);
+    assert.deepEqual(ids(decidedStories(db, 'h-mod', T)), [s.id]);
+  });
+
+  test('pending and expired stories are not here', async () => {
+    const s = await submit();
+    assert.deepEqual(decidedStories(db, 'h-ku', T), [], 'pending is the other list');
+    approve(s.id);
+    assert.deepEqual(decidedStories(db, 'h-ku', later(8 * 24 * 60)), []);
   });
 });
 

@@ -1102,6 +1102,11 @@ describe('the stories page', () => {
     body: new URLSearchParams({ csrf }),
   });
 
+  const storiesText = async (token: string): Promise<string> =>
+    (await app.request('/stories', { headers: withCookie(token) })).text();
+  const liveSection = (page: string): string =>
+    page.split('id="live-stories"')[1]!.split('id="hidden-stories"')[0]!;
+
   test('the island host sees the island story, with its poster, and approves it', async () => {
     const muni = await signIn(MUNI_KEY, 'Nok');
     const page = await (await app.request('/stories', { headers: withCookie(muni) })).text();
@@ -1120,7 +1125,56 @@ describe('the stories page', () => {
     assert.equal(row.status, 'approved');
     assert.equal(row.reviewed_by, 'Nok');
     assert.equal(row.reviewer_host, 'h-muni');
-    assert.doesNotMatch(await (await app.request('/stories', { headers: withCookie(muni) })).text(), /low tide/, 'approved is no longer waiting');
+    const [waiting] = (await storiesText(muni)).split('id="live-stories"');
+    assert.doesNotMatch(waiting!, /low tide/, 'approved is no longer waiting');
+  });
+
+  /*
+    THE GAP THIS CLOSES. With auto-approve on, a story is public the moment
+    it is posted and never waits, so a page that lists only what waits gave
+    nobody a button. The route to hide it was always there.
+  */
+  test('a story on the board has a Hide button, and Put back undoes it', async () => {
+    const muni = await signIn(MUNI_KEY, 'Nok');
+    const csrf = __csrfFor(resolveSession(db, muni)!);
+    db.prepare("UPDATE stories SET status = 'approved', reviewed_by = 'auto', reviewed_at = created_at WHERE id = ?").run(storyId);
+
+    const live = liveSection(await storiesText(muni));
+    assert.match(live, /low tide/);
+    assert.match(live, new RegExp(`action="/console/stories/${storyId}/hide"`));
+    assert.match(live, new RegExp(`src="/stories/${storyId}/poster"`), 'the public poster: revalidated, not re-sent every reload');
+    assert.match(live, /ขึ้นอัตโนมัติ/, 'and it says no host saw it');
+    assert.doesNotMatch(live, new RegExp(`action="/console/stories/${storyId}/approve"`));
+
+    assert.equal((await post(muni, `/stories/${storyId}/hide`, csrf)).status, 303);
+    const after = await storiesText(muni);
+    assert.doesNotMatch(liveSection(after), /low tide/);
+    const hidden = after.split('id="hidden-stories"')[1]!;
+    assert.match(hidden, /low tide/);
+    assert.match(hidden, new RegExp(`action="/console/stories/${storyId}/approve"`));
+    assert.doesNotMatch(hidden, /<img/, 'nobody is served a hidden picture, the console included');
+
+    assert.equal((await post(muni, `/stories/${storyId}/approve`, csrf)).status, 303);
+    assert.match(liveSection(await storiesText(muni)), /low tide/);
+  });
+
+  test('a host with no quest there is not shown the live story, and a stale token hides nothing', async () => {
+    db.prepare("UPDATE stories SET status = 'approved' WHERE id = ?").run(storyId);
+    const ku = await signIn(KU_KEY, 'Fanta');
+    assert.doesNotMatch(await storiesText(ku), /low tide/);
+    assert.equal((await post(ku, `/stories/${storyId}/hide`, __csrfFor(resolveSession(db, ku)!))).status, 404);
+
+    const muni = await signIn(MUNI_KEY, 'Nok');
+    assert.equal((await post(muni, `/stories/${storyId}/hide`, 'not-this-session')).status, 403);
+    const row = db.prepare('SELECT status FROM stories WHERE id = ?').get(storyId) as unknown as { status: string };
+    assert.equal(row.status, 'approved');
+  });
+
+  test('a caption is text on this page, escaped once', async () => {
+    db.prepare("UPDATE stories SET status = 'approved', caption = '<b>x</b>' WHERE id = ?").run(storyId);
+    const page = await storiesText(await signIn(MUNI_KEY, 'Nok'));
+    assert.ok(!page.includes('<b>x</b>'));
+    assert.ok(page.includes('&lt;b&gt;x&lt;'), 'escaped, and not escaped twice');
   });
 
   test('the campus host sees nothing of the island, cannot read its bytes, and cannot decide', async () => {
