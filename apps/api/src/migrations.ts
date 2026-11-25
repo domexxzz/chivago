@@ -3063,6 +3063,72 @@ export function migrate(db: DB): string[] {
     applied.push('proof_files.fingerprint');
   }
 
+  /*
+    Activities a campus host writes (host-quest-service.ts). A draft lives here
+    and nowhere else; the row in `quests` is made when a reviewer from another
+    host approves it, with the same id.
+  */
+  if (!hasTable(db, 'host_quests')) {
+    db.exec(`
+      CREATE TABLE host_quests (
+        id               TEXT PRIMARY KEY,
+        host_id          TEXT NOT NULL REFERENCES hosts(id),
+        area             TEXT NOT NULL,
+        status           TEXT NOT NULL CHECK (status IN ('draft','submitted','returned','published','closed')),
+        name_en          TEXT NOT NULL,
+        name_th          TEXT NOT NULL,
+        where_en         TEXT NOT NULL,
+        where_th         TEXT NOT NULL,
+        minutes          INTEGER NOT NULL,
+        reward_points    INTEGER NOT NULL CHECK (reward_points >= 0),
+        reward_currency  TEXT NOT NULL CHECK (reward_currency IN ('trip','green')),
+        lat              REAL NOT NULL,
+        lng              REAL NOT NULL,
+        radius_m         INTEGER NOT NULL,
+        seats            INTEGER NOT NULL CHECK (seats > 0),
+        starts_at        TEXT NOT NULL,
+        ends_at          TEXT NOT NULL,
+        written_by       TEXT,
+        submitted_at     TEXT,
+        reviewed_by_host TEXT REFERENCES hosts(id),
+        reviewed_by      TEXT,
+        reviewed_at      TEXT,
+        return_reason    TEXT,
+        closed_at        TEXT,
+        created_at       TEXT NOT NULL,
+        updated_at       TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_host_quests_host ON host_quests(host_id);
+      CREATE INDEX IF NOT EXISTS idx_host_quests_waiting ON host_quests(submitted_at) WHERE status = 'submitted';
+    `);
+    applied.push('host_quests');
+  }
+
+  /*
+    Which campus a host may write activities for. NULL, which is every host
+    until the operator says otherwise (POST /internal/host-campus): a hotel on
+    an island is a host too, and it does not run a university's programme.
+  */
+  if (hasTable(db, 'hosts') && addColumn(db, 'hosts', 'campus', 'TEXT')) applied.push('hosts.campus');
+
+  /*
+    A self-declared faculty and year (student-service.ts). One row a person,
+    gone with the account, and no student number: nothing here could check one.
+  */
+  if (!hasTable(db, 'student_profiles')) {
+    db.exec(`
+      CREATE TABLE student_profiles (
+        user_id         TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        university      TEXT NOT NULL,
+        faculty         TEXT NOT NULL,
+        year            TEXT NOT NULL,
+        consent_version TEXT NOT NULL,
+        consented_at    TEXT NOT NULL
+      );
+    `);
+    applied.push('student_profiles');
+  }
+
   return applied;
 }
 

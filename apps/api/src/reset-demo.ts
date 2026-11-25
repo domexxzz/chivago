@@ -112,7 +112,7 @@ export const TRAVELLER_TABLES = [
   'seasonal_exchanges', 'seasonal_item_ownership', 'seasonal_progress_events',
   'pet_preferences', 'travel_trip_photos', 'travel_trip_entries', 'travel_trips',
   'travel_journal_entries', 'pet_memories', 'travel_events', 'adventure_unlocks',
-  'ledger', 'wallets', 'profiles',
+  'ledger', 'wallets', 'profiles', 'student_profiles',
   // The AI's opinion on a proof (docs/64) goes before the proof it is about.
   'proof_assists',
   'mood_checkins', 'quest_progress', 'proofs', 'proof_files', 'vouchers',
@@ -181,7 +181,7 @@ export const TRAVELLER_TABLES = [
  * network calls in the middle of a demo.
  */
 export const KEPT_TABLES = [
-  'places', 'quests', 'offers', 'hosts', 'host_sessions', 'host_invites',
+  'places', 'quests', 'host_quests', 'offers', 'hosts', 'host_sessions', 'host_invites',
   // Published Adventure content is operator-owned, like Places and Quests.
   'adventure_content_versions', 'adventure_arcs', 'adventure_chapters', 'adventure_nodes',
   'adventure_verification_policies', 'activity_qr_codes', 'activity_verification_audit',

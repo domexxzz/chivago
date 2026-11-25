@@ -24,6 +24,7 @@ import { inviteClosedPage, invitePage, inviteWelcomePage } from './invite.ts';
 import { sponsorPage } from './sponsor.ts';
 import { esgPage } from './esg.ts';
 import { questsPage } from './quests.ts';
+import { mountQuestDesk } from './quest-desk-routes.ts';
 import { reviewDeclaredPage } from './review-declared.ts';
 import {
   InvalidCountersignature, countersignaturesFor, recordCountersignature, withdrawCountersignature,
@@ -972,7 +973,7 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
     const counts = questCountsFor(db, sponsorships.map((s) => s.questId));
     const outcome = sponsorOutcome(sponsor, sponsorships, counts);
 
-    const names = new Map(listQuests(db).map((q) => [q.id, q.name.en]));
+    const names = new Map(listQuests(db, undefined, { everyHostQuest: true }).map((q) => [q.id, q.name.en]));
     const rows = sponsorships.map((s) => {
       const found = counts.find((x) => x.questId === s.questId);
       return {
@@ -1128,6 +1129,8 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
     agree an indicator - setting one is an act with a partner behind it, the
     same shape as funding.
   */
+  mountQuestDesk(app, { db, currentSession, localeFor, canModerate, csrfFor, csrfValid });
+
   app.get('/quests', (c) => {
     const session = currentSession(c)!;
     const period = readPeriod(c.req.query('from'), c.req.query('to'));
@@ -1709,7 +1712,7 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
             .filter((a) => a.orgId === org.id),
         };
       }),
-      quests: listQuests(db).map((q) => ({ id: q.id, name: q.name.en })),
+      quests: listQuests(db, undefined, { everyHostQuest: true }).map((q) => ({ id: q.id, name: q.name.en })),
       error: c.req.query('error') ?? null,
       notice: c.req.query('notice') ?? null,
     }));

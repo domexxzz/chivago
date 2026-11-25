@@ -81,7 +81,7 @@ interface LayoutOptions {
   /** Renders the nav only when signed in. */
   signedIn?: boolean;
   activeNav?: 'queue' | 'history' | 'moderation' | 'guides' | 'sponsor' | 'esg' | 'statement' | 'stories'
-    | 'organisations' | 'quests' | 'reviewDeclared' | 'inquiries' | 'applications' | 'admin';
+    | 'organisations' | 'quests' | 'questDesk' | 'reviewDeclared' | 'inquiries' | 'applications' | 'admin';
   pendingCount?: number;
   /** Shows the Reviews tab. Moderators only - see place-review-service.ts. */
   canModerate?: boolean;
@@ -280,6 +280,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
              ${canModerate ? `<a href="/console/organisations" class="${activeNav === 'organisations' ? 'on' : ''}">${tr('organisations')}</a>` : ''}
              ${canModerate ? `<a href="/console/applications" class="${activeNav === 'applications' ? 'on' : ''}">${tr('applications')}</a>` : ''}
              ${canAdmin ? `<a href="/console/admin" class="${activeNav === 'admin' ? 'on' : ''}">ADMIN</a>` : ''}
+             <a href="/console/quest-desk" class="${activeNav === 'questDesk' ? 'on' : ''}">${tr('questDesk')}</a>
              <a href="/console/quests" class="${activeNav === 'quests' ? 'on' : ''}">${tr('quests')}</a>
              <a href="/console/sponsor" class="${activeNav === 'sponsor' ? 'on' : ''}">${tr('sponsor')}</a>
              <a href="/console/esg" class="${activeNav === 'esg' ? 'on' : ''}">${tr('esg')}</a>

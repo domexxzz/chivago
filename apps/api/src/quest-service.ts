@@ -19,7 +19,7 @@ import { randomUUID } from 'node:crypto';
 import { rows, transact, type DB } from './db.ts';
 import { awardStands, notReversed } from './ledger-sql.ts';
 import { isRejectionReasonKey, rejectionMessage, QUEST_MIN_DWELL_MIN, type Fix, type QuestCounts, type ProofPhoto, type Balances, type Currency, type QuestProgress, type QuestStage,
-  type RejectionReasonKey } from '@chivago/core';
+  questEventArrivable, questEventState, type RejectionReasonKey } from '@chivago/core';
 import { assertPresence, recordFix } from './presence-service.ts';
 import { fenceOff } from './fence.ts';
 import { activePartyFor } from './party-service.ts';
@@ -27,6 +27,7 @@ import { awardQuestReward, getBalances } from './wallet-service.ts';
 import { recordQuestTravelCycle } from './travel-event-service.ts';
 import { enqueue } from './notification-service.ts';
 import { issueQuestCoupon } from './reward-voucher-service.ts';
+import { OutsideQuestHours, QuestNotJoinable, questWindow } from './host-quest-service.ts';
 
 export class InvalidTransition extends Error {
   constructor(from: QuestStage | null, to: QuestStage) {
@@ -245,15 +246,37 @@ export function questCountsFor(db: DB, questIds: string[]): QuestCounts[] {
   });
 }
 
-export function joinQuest(db: DB, userId: string, questId: string): QuestProgress {
+export function joinQuest(db: DB, userId: string, questId: string, now = new Date()): QuestProgress {
   const existing = getProgress(db, userId, questId);
   if (existing) return existing;
 
-  const now = new Date().toISOString();
-  db.prepare(
-    `INSERT INTO quest_progress (user_id, quest_id, stage, joined_at) VALUES (?, ?, 'joined', ?)`,
-  ).run(userId, questId, now);
-  return getProgress(db, userId, questId)!;
+  // One transaction, so the last seat is counted and taken in one step.
+  return transact(db, () => {
+    const window = questWindow(db, questId);
+    if (window) {
+      const state = questEventState({ ...window, closed: window.status === 'closed' }, now);
+      if (state !== 'open') throw new QuestNotJoinable(state);
+    }
+    db.prepare(
+      `INSERT INTO quest_progress (user_id, quest_id, stage, joined_at) VALUES (?, ?, 'joined', ?)`,
+    ).run(userId, questId, now.toISOString());
+    return getProgress(db, userId, questId)!;
+  });
+}
+
+/**
+ * Give a place up, so that somebody else may have it.
+ *
+ * Only before arriving: after that there is evidence in the row, and evidence
+ * is not something a tap removes.
+ */
+export function leaveQuest(db: DB, userId: string, questId: string): void {
+  const left = db.prepare(
+    "DELETE FROM quest_progress WHERE user_id = ? AND quest_id = ? AND stage = 'joined'",
+  ).run(userId, questId);
+  if (Number(left.changes) === 0) {
+    throw new InvalidTransition(getProgress(db, userId, questId)?.stage ?? null, 'joined');
+  }
 }
 
 interface QuestGeo {
@@ -280,6 +303,8 @@ export function arriveAtQuest(
   if (!progress || !ALLOWED[progress.stage].includes('arrived')) {
     throw new InvalidTransition(progress?.stage ?? null, 'arrived');
   }
+  const window = questWindow(db, questId);
+  if (window && !questEventArrivable(window, now)) throw new OutsideQuestHours(window.startsAt, window.endsAt);
 
   const quest = db
     .prepare('SELECT lat, lng, geofence_radius_m FROM quests WHERE id = ?')
@@ -352,6 +377,15 @@ export interface PartyPresence { userId: string; displayName: string }
  * host still decides, once, for all of them.
  */
 export function partyPresentAt(db: DB, userId: string, questId: string, at = new Date()): PartyPresence[] {
+  const present = partyInFence(db, userId, questId, at);
+  // An activity with seats is ridden only by whoever holds one. Without this a
+  // full or closed activity took in a whole party on one member's proof.
+  return questWindow(db, questId) === null
+    ? present
+    : present.filter((m) => getProgress(db, m.userId, questId) !== null);
+}
+
+function partyInFence(db: DB, userId: string, questId: string, at: Date): PartyPresence[] {
   const party = activePartyFor(db, userId);
   if (!party) return [];
   const quest = db.prepare('SELECT lat, lng, geofence_radius_m FROM quests WHERE id = ?').get(questId) as unknown as QuestGeo | undefined;
