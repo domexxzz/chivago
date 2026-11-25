@@ -54,7 +54,7 @@ const when = (q: HostQuest): string =>
 const post = (action: string, csrf: string, label: string, danger = false): Raw => html`
   <form method="post" action="${action}" style="display:inline-block;margin:0 6px 6px 0">
     <input type="hidden" name="csrf" value="${csrf}">
-    <button type="submit" class="${danger ? 'danger' : ''}">${label}</button>
+    <button type="submit" class="btn ${danger ? 'danger' : 'btn-primary'}">${label}</button>
   </form>`;
 
 function ownRow(q: HostQuest, csrf: string, th: boolean): Raw {
@@ -68,7 +68,7 @@ function ownRow(q: HostQuest, csrf: string, th: boolean): Raw {
       <td>${q.taken} / ${q.seats}</td>
       <td>${q.rewardPoints} ${q.rewardCurrency === 'green' ? 'Green' : 'Trip'}</td>
       <td>
-        ${mine ? html`<a href="/console/quest-desk?edit=${encodeURIComponent(q.id)}">${th ? 'แก้ไข' : 'Edit'}</a>
+        ${mine ? html`<a class="btn" href="/console/quest-desk?edit=${encodeURIComponent(q.id)}">${th ? 'แก้ไข' : 'Edit'}</a>
           ${post(`${at}/submit`, csrf, th ? 'ส่งขออนุมัติ' : 'Send for approval')}
           ${post(`${at}/discard`, csrf, th ? 'ลบฉบับร่าง' : 'Discard', true)}` : ''}
         ${q.status === 'published' ? post(`${at}/close`, csrf, th ? 'ปิดรับ' : 'Close', true) : ''}
@@ -93,7 +93,7 @@ function reviewCard(q: HostQuest, csrf: string, th: boolean): Raw {
         <input type="hidden" name="csrf" value="${csrf}">
         <label>${th ? 'ส่งกลับเพราะ' : 'Send back because'}<br>
           <input name="reason" type="text" required minlength="3" maxlength="300" style="width:100%"></label>
-        <p class="actions"><button type="submit" class="danger">${th ? 'ส่งกลับ' : 'Send back'}</button></p>
+        <p class="actions"><button type="submit" class="btn danger">${th ? 'ส่งกลับ' : 'Send back'}</button></p>
       </form>
     </section>`;
 }
@@ -137,7 +137,7 @@ function questForm(args: {
       <p class="note">${th
     ? 'แต้มเขียวใช้กับงานสิ่งแวดล้อมที่เจ้าภาพเห็นผลงานจริงเท่านั้น กิจกรรมที่แค่มาเข้าร่วมให้ใช้แต้มทริป'
     : 'Green is for environmental work the host sees done. An activity somebody only attends pays Trip.'}</p>
-      <p class="actions"><button type="submit">${editing ? (th ? 'บันทึกการแก้ไข' : 'Save changes') : (th ? 'บันทึกฉบับร่าง' : 'Save draft')}</button></p>
+      <p class="actions"><button type="submit" class="btn btn-primary">${editing ? (th ? 'บันทึกการแก้ไข' : 'Save changes') : (th ? 'บันทึกฉบับร่าง' : 'Save draft')}</button></p>
     </form>`;
 }
 

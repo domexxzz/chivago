@@ -19,11 +19,13 @@ import { PushHeader } from '../components/Shell.tsx';
 import { StudentPanel } from '../components/StudentPanel.tsx';
 import { Body, Heading, Label } from '../components/Type.tsx';
 import { useArea } from '../state/area.ts';
-import { color, gutter, onFill, radius, shadow } from '../theme/index.ts';
+import { color, gutter, onFill, shadow } from '../theme/index.ts';
 import { t } from '../i18n/locale.ts';
 import { formatDate } from '../i18n/format.ts';
 
 const SHOWN_AT_FIRST = 2;
+/** `radius.lg` is the capsule; a card is this, as on the quest page. */
+const CARD = 24;
 
 export function CampusServicesScreen({ onBack, onOpenQuests, onToast }: {
   onBack: () => void;
@@ -130,7 +132,7 @@ function Rooms({ services, onOpen, onToast }: {
   return (
     <View>
       <SectionTitle>{t({ en: 'Book a room', th: 'จองห้อง', zh: '预订房间' })}</SectionTitle>
-      <View style={[shadow.card, { marginTop: 8, padding: 18, borderRadius: radius.lg, backgroundColor: color.text }]}>
+      <View style={[shadow.card, { marginTop: 8, padding: 18, borderRadius: CARD, backgroundColor: color.text }]}>
         <Label size={10} tracking={0.12} colour={onFill.text}>{rooms.systemName}</Label>
         <Heading size={22} colour={onFill.text} style={{ marginTop: 4 }}>{t(lead!.name)}</Heading>
         {lead!.groupRooms ? (
@@ -188,9 +190,10 @@ function Rooms({ services, onOpen, onToast }: {
         <Button
           label={t({ en: `All ${rooms.buildings.length} buildings`, th: `ดูทั้ง ${rooms.buildings.length} แห่ง`, zh: `查看全部 ${rooms.buildings.length} 处` })}
           onPress={() => setAll(true)}
-          variant="ghost"
+          variant="secondary"
           icon={<ChevronDown size={16} color={color.brand} strokeWidth={2} />}
           height={44}
+          style={{ marginTop: 10 }}
         />
       ) : null}
       <Body size={13} colour={color.neutral700} style={{ marginTop: 6 }}>

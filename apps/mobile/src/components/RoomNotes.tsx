@@ -10,7 +10,7 @@ import React from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Clock, KeyRound } from 'lucide-react-native';
 import {
-  ROOM_SLOT_MIN, bangkokDay, clockOf, hoursNoted, roomPhase, secondsToCollect,
+  ROOM_LEAVE_WARNING_MIN, ROOM_SLOT_MIN, bangkokDay, clockOf, hoursNoted, roomPhase, secondsToCollect,
   type RoomBooking, type RoomPhase, type RoomReminder,
 } from '@chivago/core';
 import { color, onFill, radius, shadow } from '../theme/index.ts';
@@ -52,10 +52,12 @@ function RoomCard({ room, onCollected, onForget }: { room: RoomReminder; onColle
   const now = useClock(room);
   const phase = roomPhase(room, now);
   const left = secondsToCollect(room, now);
+  // A key is handed over a little early, not the day before.
+  const soon = phase === 'upcoming' && Date.parse(room.startsAt) - now.getTime() <= ROOM_LEAVE_WARNING_MIN * 60_000;
   const urgent = phase === 'collect' || phase === 'returning';
   return (
     <View style={[shadow.card, {
-      marginTop: 12, padding: 16, gap: 6, borderRadius: radius.lg,
+      marginTop: 12, padding: 16, gap: 6, borderRadius: 24,
       backgroundColor: urgent ? color.text : color.surface, borderWidth: 1, borderColor: urgent ? color.text : color.neutral300,
     }]}>
       <Label size={10} tracking={0.1} colour={urgent ? onFill.text : color.brand}>{t(room.buildingName)}</Label>
@@ -66,7 +68,7 @@ function RoomCard({ room, onCollected, onForget }: { room: RoomReminder; onColle
       ) : null}
       <Body size={14} colour={urgent ? onFill.text : color.neutral800}>{PHASE[phase]()}</Body>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
-        {room.collectWithinMin !== null && !room.collected && (phase === 'collect' || phase === 'upcoming') ? (
+        {room.collectWithinMin !== null && !room.collected && (phase === 'collect' || soon) ? (
           <Button
             label={t({ en: 'I have the key', th: 'รับกุญแจแล้ว', zh: '已领取钥匙' })}
             onPress={onCollected}
@@ -159,7 +161,7 @@ function NoteForm({ booking, rooms, onNoted, onCancel, onToast }: {
   };
 
   return (
-    <View style={{ marginTop: 12, padding: 16, borderRadius: radius.lg, backgroundColor: color.surface, borderWidth: 1, borderColor: color.neutral300 }}>
+    <View style={{ marginTop: 12, padding: 16, borderRadius: 24, backgroundColor: color.surface, borderWidth: 1, borderColor: color.neutral300 }}>
       <Heading size={17}>{t({ en: 'What you booked', th: 'ห้องที่จองไว้', zh: '您预订的房间' })}</Heading>
       <Body size={13} colour={color.neutral700} style={{ marginTop: 4 }}>
         {t({
@@ -203,7 +205,7 @@ function NoteForm({ booking, rooms, onNoted, onCancel, onToast }: {
           icon={<Clock size={16} color={onFill.brand} strokeWidth={2} />}
           height={48}
         />
-        <Button label={t({ en: 'Cancel', th: 'ยกเลิก', zh: '取消' })} onPress={onCancel} variant="ghost" icon={null} height={44} />
+        <Button label={t({ en: 'Cancel', th: 'ยกเลิก', zh: '取消' })} onPress={onCancel} variant="secondary" icon={null} height={44} />
       </View>
     </View>
   );

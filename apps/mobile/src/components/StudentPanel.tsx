@@ -14,7 +14,7 @@ import {
 } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
-import { color, onFill, radius } from '../theme/index.ts';
+import { color, onFill } from '../theme/index.ts';
 import { t } from '../i18n/locale.ts';
 import { useRequireAccount } from './GuestActionGate.tsx';
 import { Button } from './Button.tsx';
@@ -71,7 +71,7 @@ export function StudentPanel({ areaKey, onToast }: { areaKey: AreaKey; onToast: 
   };
 
   return (
-    <View style={{ marginTop: 28, padding: 16, borderRadius: radius.lg, backgroundColor: color.surface, borderWidth: 1, borderColor: color.neutral300 }}>
+    <View style={{ marginTop: 28, padding: 16, borderRadius: 24, backgroundColor: color.surface, borderWidth: 1, borderColor: color.neutral300 }}>
       <Heading size={17}>{t({ en: 'Your faculty and year', th: 'คณะและชั้นปีของคุณ', zh: '您的院系与年级' })}</Heading>
       {!editing ? (
         <>
@@ -93,7 +93,7 @@ export function StudentPanel({ areaKey, onToast }: { areaKey: AreaKey; onToast: 
               height={44}
             />
             {mine ? (
-              <Button label={t({ en: 'Remove it', th: 'ลบข้อมูลนี้', zh: '删除' })} onPress={() => { void remove(); }} disabled={busy} variant="ghost" icon={null} height={44} />
+              <Button label={t({ en: 'Remove it', th: 'ลบข้อมูลนี้', zh: '删除' })} onPress={() => { void remove(); }} disabled={busy} variant="secondary" icon={null} height={44} />
             ) : null}
           </View>
         </>
@@ -124,7 +124,7 @@ export function StudentPanel({ areaKey, onToast }: { areaKey: AreaKey; onToast: 
           </Pressable>
           <View style={{ gap: 8, marginTop: 12 }}>
             <Button label={t({ en: 'Save', th: 'บันทึก', zh: '保存' })} onPress={() => { void save(); }} disabled={!faculty || !year || !agreed || busy} busy={busy} height={48} />
-            <Button label={t({ en: 'Cancel', th: 'ยกเลิก', zh: '取消' })} onPress={() => setEditing(false)} variant="ghost" icon={null} height={44} />
+            <Button label={t({ en: 'Cancel', th: 'ยกเลิก', zh: '取消' })} onPress={() => setEditing(false)} variant="secondary" icon={null} height={44} />
           </View>
         </>
       )}
