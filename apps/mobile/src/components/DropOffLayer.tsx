@@ -73,9 +73,9 @@ export function DropOffLayer({ here, points = DROP_OFF_POINTS, onRoute }: Props)
         <View style={{ backgroundColor: color.neutral100, borderRadius: 14, padding: 14, gap: 6 }}>
           <Body>
             {t({
-              en: 'No drop-off point on this island yet.',
-              th: 'เกาะนี้ยังไม่มีจุดรับขยะแยกแล้ว',
-              zh: '本岛尚无分类垃圾投放点。',
+              en: 'No drop-off point in this area yet.',
+              th: 'พื้นที่นี้ยังไม่มีจุดรับขยะแยกแล้ว',
+              zh: '本区域尚无分类垃圾投放点。',
             })}
           </Body>
           <Label colour={color.neutral700}>

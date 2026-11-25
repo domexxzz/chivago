@@ -58,6 +58,8 @@ import { Body, Heading, Label } from '../components/Type.tsx';
 import { OceanBackdrop, TravelHeroBackdrop } from '../components/Shell.tsx';
 import { EmptyState, ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
+import { areaWords } from '../i18n/area-words.ts';
+import { useArea } from '../state/area.ts';
 import { formatInteger } from '../i18n/format.ts';
 import { ProfileButton } from '../components/ProfileButton.tsx';
 import { questArtworkSource } from '../components/QuestArtwork.tsx';
@@ -85,7 +87,11 @@ export function MissionsScreen({
   onInitialSectionConsumed?: () => void;
 }) {
   const [section, setSection] = React.useState<Section>(initialSection);
-  const [filter, setFilter] = React.useState<Filter>('sichang');
+  const area = useArea();
+  const words = areaWords(area);
+  const place = t(area.name);
+  const campus = area.university === true;
+  const [chosen, setFilter] = React.useState<Filter>('sichang');
 
   // Home can deep-link into the Party section without turning Party into the
   // permanent default for Game&Quest. Once this mounted screen has captured
@@ -120,7 +126,13 @@ export function MissionsScreen({
     `repo.ts`); this is a second opinion about retirement, not a second
     publishing rule.
   */
-  const all = (data.data?.quests ?? []).filter((q) => !isRetiredQuestCode(q.code));
+  const published = (data.data?.quests ?? []).filter((q) => !isRetiredQuestCode(q.code));
+  /*
+    On a campus, only the campus's own. Somebody standing at RMUTT was offered
+    five quests on an island in another province, because the pilot's filter
+    is the default and RMUTT has none of its own to show instead.
+  */
+  const all = campus ? published.filter((q) => inArea(area, q)) : published;
   /*
     The island's own quests, by where they are.
 
@@ -133,6 +145,9 @@ export function MissionsScreen({
     A quest carries its coordinates, so ask the question directly.
   */
   const sichangQuests = all.filter((q) => inArea(areaByKey('koh-sichang'), q));
+  // A campus in another province has no pilot to feature: it opens on its own.
+  const pilot = !campus || sichangQuests.length > 0;
+  const filter: Filter = !pilot && chosen === 'sichang' ? 'all' : chosen;
   const visible = filter === 'sichang'
     ? sichangQuests
     : filter === 'all'
@@ -167,11 +182,7 @@ export function MissionsScreen({
               {t(strings.tabs.quests)}
             </Heading>
             <Label size={11} tracking={0.12} colour="#E2F6FC" style={{ marginTop: 4 }}>
-              {t({
-                en: 'PLAY, EXPLORE & HELP THE ISLAND',
-                th: 'เล่นเกม ออกสำรวจ และช่วยดูแลเกาะ',
-                zh: '畅玩、探索并守护岛屿',
-              })}
+              {t(words.questsTagline)}
             </Label>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -196,12 +207,14 @@ export function MissionsScreen({
 
       {section === 'quests' ? (
         <>
-          <SichangFeatureButton
-            selected={filter === 'sichang'}
-            count={sichangQuests.length}
-            exp={sichangQuests.reduce((sum, quest) => sum + (quest.rewardExp ?? quest.rewardPoints), 0)}
-            onPress={() => setFilter('sichang')}
-          />
+          {!pilot ? null : (
+            <SichangFeatureButton
+              selected={filter === 'sichang'}
+              count={sichangQuests.length}
+              exp={sichangQuests.reduce((sum, quest) => sum + (quest.rewardExp ?? quest.rewardPoints), 0)}
+              onPress={() => setFilter('sichang')}
+            />
+          )}
           <SegmentedFilter
             value={filter === 'sichang' ? null : filter}
             total={all.length}
@@ -211,7 +224,16 @@ export function MissionsScreen({
           {data.loading ? <LoadingState /> : null}
           {data.error ? <ErrorState message={data.error} onRetry={data.reload} /> : null}
 
-          {!data.loading && visible.length === 0 ? (
+          {!data.loading && !data.error && campus && all.length === 0 ? (
+            <EmptyState
+              en={t({
+                en: `${place} has no quests yet. They appear here once a named host posts one.`,
+                th: `${place} ยังไม่มีเควส จะขึ้นที่นี่เมื่อมีเจ้าภาพที่ระบุชื่อได้เปิดเควสแรก`,
+                zh: `${place}尚无任务。有具名主办方发布后会显示在这里。`,
+              })}
+              th={`${area.name.th} ยังไม่มีเควส จะขึ้นที่นี่เมื่อมีเจ้าภาพที่ระบุชื่อได้เปิดเควสแรก`}
+            />
+          ) : !data.loading && visible.length === 0 ? (
             <EmptyState en={t(strings.quests.empty)} th={strings.quests.empty.th} />
           ) : null}
 
@@ -289,6 +311,7 @@ function SichangFeatureButton({
 function SectionTabs({
   value, onChange, expanded = false,
 }: { value: Section; onChange: (section: Section) => void; expanded?: boolean }) {
+  const area = useArea();
   const options: {
     key: Section; label: string; hint: string; icon: ImageSourcePropType;
   }[] = [
@@ -301,7 +324,7 @@ function SectionTabs({
     {
       key: 'quests',
       label: 'Quests',
-      hint: t({ en: 'Activities around the island', th: 'กิจกรรมที่ทำได้ทั่วเกาะ', zh: '岛上各处的活动' }),
+      hint: t(areaWords(area).questsHint),
       icon: questsTabIcon,
     },
     {
@@ -373,6 +396,7 @@ function GamesPanel({
   onOpenGame?: (key: MiniGameKey) => void;
   onOpenAdventure?: () => void;
 }) {
+  const area = useArea();
   return (
     <View style={{ width: '92%', maxWidth: 760, alignSelf: 'center', paddingTop: 14 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -388,7 +412,8 @@ function GamesPanel({
       </View>
 
       <View style={{ gap: 12 }}>
-        <AdventureGameCard onOpen={onOpenAdventure} />
+        {/* Koh Sichang's own story, and no university's. */}
+        {area.university ? null : <AdventureGameCard onOpen={onOpenAdventure} />}
         {MINI_GAMES.map((game) => (
           <Pressable
             key={game.key}

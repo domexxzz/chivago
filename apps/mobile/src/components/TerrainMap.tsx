@@ -55,7 +55,7 @@ import { t } from '../i18n/locale.ts';
 import { hourFrom, mix } from './island-clock.ts';
 import {
   CLOUD_PX, DRIFT, FOG_PX, HERO, MAX_PITCH, QUEST_MARK_OFFSET, REVEAL_FEATHER, ROUTE_PHASES,
-  TIDE_FPS, boundsOf, campusZoom, chivagoStyle, cloudField, cornersOf, crowdOffsets, islandExaggeration,
+  TIDE_FPS, boundsOf, GROUND_LAYERS, campusZoom, chivagoStyle, cloudField, cornersOf, crowdOffsets, islandExaggeration,
   fogBounds, heroPose, introPose, paletteFor,
   questMark, questOffsets, revealedPoints, reveals, rgba, routeDash, settleEasing, surfBreath, type MapPalette, type Pose,
 } from './terrain-style.ts';
@@ -678,7 +678,7 @@ export function TerrainMap({
     const slack = campus ? 0.01 : span * 0.6;
     const m = new MapLibreMap({
       container: holder.current,
-      style: chivagoStyle(hour),
+      style: chivagoStyle(hour, { flat: area?.flatGround }),
       // Fitted to the island's own bounding box - the same one the native
       // map projects through, so both implementations frame the same place.
       // Flat, first: the flat fit is the one thing that scales honestly with
@@ -912,7 +912,7 @@ export function TerrainMap({
       // and the ridge behind them now has somewhere to be. Bearing from the
       // south-west, which is the side the campus climbs from. The zoom is
       // taken from the frame's width, not fixed: see campusZoom.
-      ? { zoom: campusZoom(holder.current?.clientWidth ?? 0), pitch: 60, bearing: -24, center: [area.center.lng, area.center.lat] }
+      ? { zoom: campusZoom(holder.current?.clientWidth ?? 0, area.spanM), pitch: 60, bearing: -24, center: [(area.frameCenter ?? area.center).lng, (area.frameCenter ?? area.center).lat] }
       : heroPose(m.getZoom(), frame);
     const intro: Pose = campus
       ? { ...settled, zoom: settled.zoom - 0.8, pitch: 68, bearing: settled.bearing - 35 }
@@ -1029,10 +1029,15 @@ export function TerrainMap({
       is 180 m seen from a kilometre and needs almost none - at the island's
       figure the same hill reads as a cartoon alp behind the library.
     */
-    const lift = () => m.setTerrain({
-      source: 'terrain',
-      exaggeration: campus ? CAMPUS_EXAGGERATION : islandExaggeration(frame),
-    });
+    let groundGone = false;
+    const lift = () => {
+      // Level ground is drawn level: see `Area.flatGround`.
+      if (area?.flatGround || groundGone) { m.setTerrain(null); return; }
+      m.setTerrain({
+        source: 'terrain',
+        exaggeration: campus ? CAMPUS_EXAGGERATION : islandExaggeration(frame),
+      });
+    };
 
     /*
       The air, at the scale being looked through.
@@ -1104,7 +1109,7 @@ export function TerrainMap({
       const now = hourNow();
       if (Math.abs(now - hour) < 0.25) return;
       hour = now;
-      m.setStyle(chivagoStyle(hour), { diff: true });
+      m.setStyle(chivagoStyle(hour, { flat: area?.flatGround || groundGone }), { diff: true });
       holder.current?.classList.toggle('cg-night', paletteFor(hour).night);
       dressTheAir(grade.current, paletteFor(hour), still);
       m.once('style.load', () => {
@@ -1178,7 +1183,6 @@ export function TerrainMap({
     */
     const DEM_ERRORS_BEFORE_FLAT = 8;
     let demErrors = 0;
-    let groundGone = false;
     const dropTheGround = () => {
       demErrors += 1;
       if (demErrors < DEM_ERRORS_BEFORE_FLAT) return;
@@ -1187,7 +1191,7 @@ export function TerrainMap({
       console.warn(`[chivago] elevation unavailable after ${demErrors} tile errors - the map is flat for this session`);
       try {
         m.setTerrain(null);
-        for (const id of ['relief', 'hillshade', 'surf', 'sea-depth']) {
+        for (const id of GROUND_LAYERS) {
           if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', 'none');
         }
       } catch { /* the map is going away anyway */ }

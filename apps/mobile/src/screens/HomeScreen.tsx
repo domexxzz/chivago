@@ -40,6 +40,7 @@ import {
 } from 'react-native';
 import { AREAS, areaOfPlace, fairsIn, featuredFirst, hasFeatured, isFeatured, stallPlacesIn, type Area, type AreaKey, type Fair, type Localised } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
+import { areaWords } from '../i18n/area-words.ts';
 import { creditWord, fitsWhole, mascotBeachUri, photoBackdrop, photoUri } from '../api/photos.ts';
 import { SHOP_CATEGORIES, shopImageUri, type Shop } from '../api/shops.ts';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
@@ -592,7 +593,7 @@ function Hero({
             {t({ en: 'Discover. Travel. Remember.', th: 'ค้นหา เดินทาง และจดจำ', zh: '探索、旅行、铭记。' })}
           </Heading>
           <Body size={13} colour="#E8FBFF" style={{ marginTop: 6, maxWidth: 520 }}>
-            {t({ en: 'Island stories, local people and safer journeys — all in one place.', th: 'เรื่องราวของเกาะ ผู้คนท้องถิ่น และการเดินทางที่ปลอดภัยในที่เดียว', zh: '岛屿故事、当地人与安心旅程，尽在一处。' })}
+            {t(areaWords(area).homeTagline)}
           </Body>
         </View>
         <GreeterMark area={area.key} />
@@ -1009,6 +1010,7 @@ export const DOOR_MIN = 72;
  * on, not something a host verified.
  */
 function MarketPromoCard({ onOpenMarket }: { onOpenMarket: () => void }) {
+  const area = useArea();
   return (
     <View style={{ paddingTop: 20, paddingHorizontal: gutter }}>
       <Pressable
@@ -1045,11 +1047,7 @@ function MarketPromoCard({ onOpenMarket }: { onOpenMarket: () => void }) {
             {t({ en: 'Redeem local deals and perks', th: 'แลกสิทธิพิเศษร้านค้าชุมชน', zh: '兑换本地商家的优惠' })}
           </Heading>
           <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>
-            {t({
-              en: 'Use your Green and Trip points for café discounts, wellness and island tours.',
-              th: 'ใช้แต้มกรีนและแต้มทริป แลกรับส่วนลดคาเฟ่ ร้านอาหาร และกิจกรรมบนเกาะ',
-              zh: '用你的绿色积分和旅行积分，兑换咖啡馆折扣、康养和岛上行程。',
-            })}
+            {t(areaWords(area).perksBody)}
           </Body>
         </View>
         <ChevronRight size={18} color={color.brand} strokeWidth={2.2} />
@@ -1583,10 +1581,11 @@ function FairCard({ fair, onOpen }: { fair: Fair; onOpen: () => void }) {
 }
 
 /** What runs to this area, fetched here so Home owns one request for it. */
-function Bus({ areaKey, onToast }: { areaKey: string; onToast?: (m: string) => void }) {
+function Bus({ areaKey, onToast }: { areaKey: AreaKey; onToast?: (m: string) => void }) {
   const transit = useAsync(() => api.transit(areaKey), [areaKey]);
   return (
     <BusStrip
+      areaKey={areaKey}
       routes={transit.data?.routes ?? null}
       campus={transit.data?.campus ?? null}
       loading={transit.loading}

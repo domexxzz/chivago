@@ -28,6 +28,10 @@ export const isDropOffPin = (id: string): boolean => id.startsWith('do-');
 const inside = (point: { lat: number; lng: number }, bbox: Bbox): boolean =>
   point.lat >= bbox.minLat && point.lat <= bbox.maxLat && point.lng >= bbox.minLng && point.lng <= bbox.maxLng;
 
+/** The drop-off points inside `bbox`: the pins on the map and the list under it ask the same question. */
+export const dropOffPointsIn = (bbox: Bbox, points: readonly DropOffPoint[] = DROP_OFF_POINTS): DropOffPoint[] =>
+  points.filter((point) => inside(point, bbox));
+
 /**
  * The drop-off points inside `bbox`, shaped as service pins.
  *
@@ -39,7 +43,7 @@ export function dropOffPins(
   nameOf: (text: Bilingual) => string,
   points: readonly DropOffPoint[] = DROP_OFF_POINTS,
 ): Shop[] {
-  return points.filter((point) => inside(point, bbox)).map((point) => ({
+  return dropOffPointsIn(bbox, points).map((point) => ({
     id: point.id,
     name: nameOf(point.name),
     category: DROP_OFF_PIN_CATEGORY,
