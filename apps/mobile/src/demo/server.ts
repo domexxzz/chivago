@@ -599,6 +599,17 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
     });
   },
 
+  'GET /campus/student': () => ({ student: state.routes['/campus/student'] ?? null }),
+  'PUT /campus/student': (body) => {
+    const { university, faculty, year } = body as Json;
+    state.routes['/campus/student'] = { university, faculty, year };
+    return { student: state.routes['/campus/student'] };
+  },
+  'DELETE /campus/student': () => {
+    delete state.routes['/campus/student'];
+    return { removed: true };
+  },
+
   'PUT /profile': (body) => {
     state.routes['/profile'] = { ...(state.routes['/profile'] as Json), ...body };
     return state.routes['/profile'];

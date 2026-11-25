@@ -38,7 +38,7 @@ import Svg, { Defs, LinearGradient, Stop, Rect, Path } from 'react-native-svg';
 import {
   Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ImageSourcePropType,
 } from 'react-native';
-import { AREAS, areaOfPlace, fairsIn, featuredFirst, hasFeatured, isFeatured, stallPlacesIn, type Area, type AreaKey, type Fair, type Localised } from '@chivago/core';
+import { AREAS, areaOfPlace, campusServicesFor, fairsIn, featuredFirst, hasFeatured, isFeatured, stallPlacesIn, type Area, type AreaKey, type Fair, type Localised } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { areaWords } from '../i18n/area-words.ts';
 import { creditWord, fitsWhole, mascotBeachUri, photoBackdrop, photoUri } from '../api/photos.ts';
@@ -146,7 +146,7 @@ export function questOrder(
 }
 
 export function HomeScreen({
-  onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenMarket, onOpenFair, onOpenPassport,
+  onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenMarket, onOpenFair, onOpenCampus, onOpenPassport,
   onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenShop, onOpenMascots, onOpenStays, onOpenSummon, onOpenLocalPicks, onOpenCommunity,
   onToast, now = new Date(),
 }: {
@@ -190,6 +190,8 @@ export function HomeScreen({
   onOpenCommunity?: () => void;
   /** A fair's market in this area, lot by lot (docs/66). Optional so the older screen tests still render. */
   onOpenFair?: () => void;
+  /** A university's booking and services. Optional for the same reason. */
+  onOpenCampus?: () => void;
   /** A one-line acknowledgement, for actions that finish without leaving the screen. */
   onToast?: (message: string) => void;
   /** Injected so the greeting is testable rather than whatever the clock says. */
@@ -283,7 +285,7 @@ export function HomeScreen({
         student opened the app for. An area without one draws nothing here and
         asks for nothing, so the island's Home is unchanged.
       */}
-      <TopCards courts={courts} fair={fair} onOpenFair={onOpenFair} />
+      <TopCards courts={courts} fair={fair} onOpenFair={onOpenFair} onOpenCampus={campusServicesFor(area.key) ? onOpenCampus : undefined} />
       <View style={dashboard ? { flexDirection: 'row', alignItems: 'flex-start', gap: 18, paddingHorizontal: gutter, marginTop: -42 } : undefined}>
         <View style={dashboard ? { flex: 0.9, minWidth: 0 } : undefined}>
           <Conditions places={here} onOpenMap={onOpenMap} overHero={!dashboard && courts.length === 0 && fair === null} />
@@ -1534,17 +1536,42 @@ function NoPhotograph({ place }: { place: ScoredPlace }) {
  * curve, the way Conditions does when none of these is here: the card's own
  * 12 above, less 42, puts its top 30 into the header.
  */
-function TopCards({ courts, fair, onOpenFair }: {
+function TopCards({ courts, fair, onOpenFair, onOpenCampus }: {
   courts: ReturnType<typeof stallPlacesIn>;
   fair: Fair | null;
   onOpenFair?: () => void;
+  onOpenCampus?: () => void;
 }) {
-  if (courts.length === 0 && !fair) return null;
+  if (courts.length === 0 && !fair && !onOpenCampus) return null;
   return (
     <View style={{ marginTop: -42, paddingHorizontal: gutter }}>
+      {onOpenCampus ? <CampusCard onOpen={onOpenCampus} /> : null}
       {fair && onOpenFair ? <FairCard fair={fair} onOpen={onOpenFair} /> : null}
       {courts.map((c) => <StallsCard key={c.placeId} placeId={c.placeId} placeName={t(c.source.name)} />)}
     </View>
+  );
+}
+
+/** A university's own booking and services, one tap away. */
+function CampusCard({ onOpen }: { onOpen: () => void }) {
+  const title = t({ en: 'Booking and services', th: 'จองและบริการ', zh: '预订与服务' });
+  const about = t({ en: 'Rooms, buses, clinic, library', th: 'ห้อง รถ ห้องพยาบาล หอสมุด', zh: '教室、班车、医务室、图书馆' });
+  return (
+    <Pressable
+      onPress={onOpen}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${about}`}
+      style={[shadow.card, {
+        marginTop: 12, padding: 16, gap: 12, flexDirection: 'row', alignItems: 'center',
+        backgroundColor: color.text, borderRadius: radius.md,
+      }]}
+    >
+      <View style={{ flex: 1 }}>
+        <Heading size={18} tracking={-0.2} colour={onFill.text}>{title}</Heading>
+        <Body size={14} colour={onFill.text} style={{ marginTop: 2 }}>{about}</Body>
+      </View>
+      <ChevronRight size={20} color={onFill.text} strokeWidth={2.2} />
+    </Pressable>
   );
 }
 

@@ -35,6 +35,7 @@ import { MapScreen } from './src/screens/MapScreen.tsx';
 import { NavigateScreen } from './src/screens/NavigateScreen.tsx';
 import type { NavDestination } from './src/navigation/session.ts';
 import { ALL_OF_THE_FAIR, FairScreen, type FairView } from './src/screens/FairScreen.tsx';
+import { CampusServicesScreen } from './src/screens/CampusServicesScreen.tsx';
 import { PlaceScreen } from './src/screens/PlaceScreen.tsx';
 import { MissionsScreen } from './src/screens/MissionsScreen.tsx';
 import { QuestDetailScreen } from './src/screens/QuestDetail.tsx';
@@ -628,6 +629,7 @@ export default function App() {
             onOpenWallet={() => nav.push('wallet')}
             onOpenMarket={() => nav.push('market')}
             onOpenFair={openFair}
+            onOpenCampus={() => nav.push('campus')}
             onOpenPassport={() => nav.push('passport')}
             onOpenMascots={() => nav.push('mascots')}
             onOpenImpact={() => nav.push('impact')}
@@ -849,6 +851,15 @@ export default function App() {
 
       case 'stays':
         return <AskScreen onBack={nav.pop} onToast={toast.show} />;
+
+      case 'campus':
+        return (
+          <CampusServicesScreen
+            onBack={nav.pop}
+            onOpenQuests={() => nav.selectTab('quests')}
+            onToast={toast.show}
+          />
+        );
 
       case 'fair':
         return (
