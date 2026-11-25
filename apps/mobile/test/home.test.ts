@@ -6,7 +6,7 @@ import { Dimensions } from 'react-native';
 import {
   DOOR_MIN, HomeScreen, islandAverage, questOrder, weakestProvenance,
 } from '../src/screens/HomeScreen.tsx';
-import { act } from 'react-test-renderer';
+import { act, type ReactTestInstance } from 'react-test-renderer';
 import { mountScreen, server, offline } from './interact.ts';
 import { control, resetControl } from './stubs/native.mjs';
 import * as fx from './fixtures.ts';
@@ -766,6 +766,100 @@ describe('the door row fits the width it is given', () => {
 
     assert.equal(row.row.props.style.flexWrap, 'nowrap');
     assert.ok(row.doorWidths().every((w) => w === 1), 'each door should share one row equally');
+    ui.unmount();
+  });
+});
+
+/**
+ * Every door is a drawing, and its own drawing.
+ *
+ * The doors were lucide glyphs until 15 November, when they became seven
+ * pieces of artwork (PR #236). A glyph that went missing was a TypeScript
+ * error; a drawing that goes missing is an empty 52px box and a label, which
+ * looks like a door that has not loaded yet and says nothing to anybody.
+ *
+ * THE ROW HAD NO TEST OF ITS OWN CONTENT. The two above measure how it wraps,
+ * which is the question a phone asks; neither looks at what is inside a door.
+ * So an eighth door added without art, or an import pointed at the wrong
+ * file, would ship.
+ *
+ * The second half - that no two doors share a drawing - is not hypothetical
+ * either. `test/register.mjs` resolves an image import to its own FILE NAME
+ * precisely because every mini-game card once showed the waste game's badge
+ * and no test could see it. The same copy-paste reaches a row of seven
+ * near-identical imports more easily than it reached that one.
+ */
+describe('the doors carry their drawings', () => {
+  const doorRow = (ui: Awaited<ReturnType<typeof mountScreen>>) => ui.root.findAll(
+    (n) => typeof n.props.onLayout === 'function' && n.props.style?.paddingTop === 22,
+    { deep: true },
+  )[0]!;
+
+  /*
+    BY LABEL, NOT BY NODE. A Pressable appears three times in a
+    react-test-renderer tree - the component and the host views it renders -
+    so counting matching nodes counts each door three times and counting
+    images would have passed on a row that drew one icon seven times. The
+    door is the distinct LABEL, and the drawing is the distinct file name
+    under it.
+  */
+  const doorLabels = (ui: Awaited<ReturnType<typeof mountScreen>>): string[] => [...new Set(
+    doorRow(ui)
+      .findAll((n) => typeof n.props.accessibilityLabel === 'string', { deep: true })
+      .map((n) => String(n.props.accessibilityLabel)),
+  )];
+
+  const drawingsUnder = (node: ReactTestInstance): string[] => [...new Set(
+    node
+      .findAll((n) => typeof n.props.source === 'string', { deep: true })
+      .map((n) => String(n.props.source)),
+  )];
+
+  test('each door carries exactly one menu drawing, and no two carry the same one', async () => {
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, {
+      ...props, onOpenSummon: noop, onOpenCommunity: noop, onOpenStays: noop,
+    }));
+
+    const labels = doorLabels(ui);
+    assert.equal(labels.length, 7, `the row should hold seven doors, not ${labels.join(', ')}`);
+
+    const art = new Map<string, string>();
+    for (const label of labels) {
+      // The harness gives an image import its file name, so this asks WHICH
+      // drawing rather than merely whether something was passed.
+      const drawings = drawingsUnder(ui.find(label)!);
+      assert.equal(drawings.length, 1, `${label} should carry exactly one drawing, not ${drawings.length}`);
+      const file = String(drawings[0]);
+      assert.match(file, /^menu-[a-z0-9-]+\.png$/, `${label} is drawn by ${file}, which is not a menu drawing`);
+      art.set(label, file);
+    }
+
+    assert.equal(
+      new Set(art.values()).size,
+      labels.length,
+      `two doors share a drawing: ${[...art].map(([l, f]) => `${l}=${f}`).join(', ')}`,
+    );
+    ui.unmount();
+  });
+
+  test('a door that is not offered takes its drawing with it', async () => {
+    /*
+      The summoning and Community are conditional - `onOpenSummon` and
+      `onOpenCommunity` are optional props, and `home.test.ts` already pins
+      that a door is not drawn with nothing behind it. This is the other half:
+      no orphan drawing left in the row where the door used to be.
+    */
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, { ...props, onOpenStays: noop }));
+
+    const labels = doorLabels(ui);
+    assert.equal(labels.length, 5, `without the summoning and Community there are five doors, not ${labels.join(', ')}`);
+    assert.deepEqual(
+      drawingsUnder(doorRow(ui)).sort(),
+      labels.map((label) => drawingsUnder(ui.find(label)!)[0]!).sort(),
+      'a drawing is left in the row without a door around it',
+    );
     ui.unmount();
   });
 });
