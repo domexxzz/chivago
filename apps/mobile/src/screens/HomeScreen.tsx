@@ -1581,10 +1581,11 @@ function FairCard({ fair, onOpen }: { fair: Fair; onOpen: () => void }) {
 }
 
 /** What runs to this area, fetched here so Home owns one request for it. */
-function Bus({ areaKey, onToast }: { areaKey: string; onToast?: (m: string) => void }) {
+function Bus({ areaKey, onToast }: { areaKey: AreaKey; onToast?: (m: string) => void }) {
   const transit = useAsync(() => api.transit(areaKey), [areaKey]);
   return (
     <BusStrip
+      areaKey={areaKey}
       routes={transit.data?.routes ?? null}
       campus={transit.data?.campus ?? null}
       loading={transit.loading}

@@ -7,26 +7,29 @@
  *   the Thanyaburi campus and four stops stand at its edge. Real, checkable,
  *   and the card names the operator so the reader knows who to complain to.
  *
- *   WHEN IS THE NEXT ONE - nobody publishes a timetable, so the app measures
+ *   WHEN IS THE NEXT ONE - no timetable has been confirmed, so the app measures
  *   instead: riders tap when they see one, and this says how long ago and how
  *   far apart today's reports have been. `sayHeadway` in core writes the
  *   sentence and is careful to name whose knowledge it is. Nothing here
  *   rephrases it, because "every 21 min" without "that is what riders saw"
  *   is a promise the app cannot keep.
  *
- * AND THE EMPTY CASE IS THE POINT. A university with no published shuttle
- * route gets a line of text saying exactly that, not a hidden section. A
- * missing feature that says its own name is a question somebody can go and
- * ask; a section that quietly is not there is one nobody knows to ask about.
+ * AND THE EMPTY CASE IS THE POINT. A campus whose own shuttle this app cannot
+ * draw gets a line of text saying so and, where the university describes it on
+ * its site, a link there - not a hidden section. A missing feature that says
+ * its own name is a question somebody can go and ask; a section that quietly is
+ * not there is one nobody knows to ask about.
  */
 
 import React from 'react';
-import { Pressable, View } from 'react-native';
-import { BusFront, Check, MapPin } from 'lucide-react-native';
+import { Linking, Pressable, View } from 'react-native';
+import { BusFront, Check, ExternalLink, MapPin } from 'lucide-react-native';
 import {
-  NO_CAMPUS_ROUTE, nearestFirst, sayHeadway, type Headway, type TransitRoute,
+  CAMPUS_SHUTTLE_UNCONFIRMED, NO_CAMPUS_ROUTE, campusShuttlePage, nearestFirst, sayHeadway,
+  type AreaKey, type Headway, type TransitRoute,
 } from '@chivago/core';
 import { color, gutter, onFill, radius } from '../theme/index.ts';
+import { Button } from './Button.tsx';
 import { Body, Heading, Label } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
 import { api } from '../api/client.ts';
@@ -35,8 +38,9 @@ import { useHere, type Here } from '../state/here.ts';
 type RouteWithHeadway = TransitRoute & { headway: Headway };
 
 export function BusStrip({
-  routes, campus, loading, error, onToast,
+  areaKey, routes, campus, loading, error, onToast,
 }: {
+  areaKey: AreaKey;
   routes: RouteWithHeadway[] | null;
   campus: TransitRoute[] | null;
   loading: boolean;
@@ -56,16 +60,35 @@ export function BusStrip({
 
       <RouteCards routes={routes} onToast={onToast} />
 
-      {/*
-        The university's own shuttle, when there is not one. `campus` is empty
-        because nobody has published a route - said here in a full sentence
-        rather than left as a blank space somebody reads as a bug.
-      */}
-      {campus !== null && campus.length === 0 ? (
-        <View style={{ paddingTop: 4 }}>
-          <Body size={13} colour={color.neutral600}>{t(NO_CAMPUS_ROUTE)}</Body>
-        </View>
-      ) : null}
+      {campus !== null && campus.length === 0 ? <CampusShuttle areaKey={areaKey} /> : null}
+    </View>
+  );
+}
+
+/**
+ * The university's own shuttle, while there is no route to draw - said in a full
+ * sentence rather than left as a blank space somebody reads as a bug.
+ */
+function CampusShuttle({ areaKey }: { areaKey: AreaKey }) {
+  const page = campusShuttlePage(areaKey);
+  if (!page) {
+    return (
+      <View style={{ paddingTop: 4 }}>
+        <Body size={13} colour={color.neutral600}>{t(NO_CAMPUS_ROUTE)}</Body>
+      </View>
+    );
+  }
+  return (
+    <View style={{ paddingTop: 4 }}>
+      <Body size={13} colour={color.neutral600}>{t(CAMPUS_SHUTTLE_UNCONFIRMED)}</Body>
+      <Button
+        label={t({ en: 'University bus page', th: 'หน้ารถของมหาวิทยาลัย', zh: '校方班车页面' })}
+        onPress={() => { void Linking.openURL(page); }}
+        variant="secondary"
+        icon={<ExternalLink size={16} color={color.brand} strokeWidth={2} />}
+        height={44}
+        style={{ marginTop: 10 }}
+      />
     </View>
   );
 }

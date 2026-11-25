@@ -938,12 +938,14 @@ export const SEED_PLACES: Place[] = [
  * Those stops are real too and are not here: a student asking how to leave
  * campus needs the stop at the gate, and ninety of them would bury it.
  *
- * NO CAMPUS SHUTTLE. The university's own service is published nowhere this
- * app can read, so there is no `kind: 'campus'` route below and the screen
- * says so in words. A line drawn along the roads because the roads look right
- * would be believed, and somebody would stand at a stop that is not a stop.
+ * NO CAMPUS SHUTTLE. RMUTT describes its own service on its website, with no
+ * stop positions and two timetables that disagree, so there is no
+ * `kind: 'campus'` route below and the screen links to the university's page
+ * instead (see `campusShuttlePage` in transit.ts). A line drawn along the roads
+ * because the roads look right would be believed, and somebody would stand at a
+ * stop that is not a stop.
  *
- * Nothing here carries a timetable, because nobody publishes one. See
+ * Nothing here carries a timetable, because none has been confirmed. See
  * `headwayFrom` in transit.ts for what the app says instead.
  */
 export const SEED_TRANSIT: TransitRoute[] = [

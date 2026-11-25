@@ -9,24 +9,32 @@
  *     (1-24E), operated by smart bus, has its terminus at RMUTT Thanyaburi,
  *     and four stops stand at the campus edge. That is checkable, so it is
  *     here.
- *   - The UNIVERSITY'S OWN shuttle is published nowhere. Not in OpenStreetMap,
- *     not in any feed this app can read. So there is no campus route in the
- *     seed, and `campusRoutesIn` returns an empty list, and the screen says
- *     so in words.
+ *   - The UNIVERSITY'S OWN shuttle is in no feed and not in OpenStreetMap. So
+ *     there is no campus route in the seed, and `campusRoutesIn` returns an
+ *     empty list, and the screen says so in words.
+ *
+ * Read again on 2026-11-26: RMUTT does publish it, as web pages. One lists
+ * sixteen trips between 06.55 and 17.35; another, from June 2024, names three
+ * lines and their stops running 06.30 to 21.00. They disagree, neither gives a
+ * position for a stop, and nobody at the university has confirmed which holds.
+ * So there is still no route to draw and no time to show - but a screen saying
+ * the university had published nothing was wrong, and it now links to the page
+ * (`campusShuttlePage`).
  *
  * An empty list is the honest answer and a drawn line would not be. A route
  * invented from the shape of the roads would be believed - somebody would
  * stand at a stop that is not a stop - and the first thing the app would have
  * taught its users is that it makes things up.
  *
- * AND NOBODY PUBLISHES A TIMETABLE. Not the university, and not the operator
- * in any form this app can fetch. Rather than leave the useful question
- * unanswered, this measures what it cannot be told: riders report that they
- * saw one, and the app says how long ago and how far apart the reports have
- * been. That is an OBSERVATION, never a schedule, and `sayHeadway` is careful
+ * AND NOBODY PUBLISHES A TIMETABLE THIS APP CAN STAND BEHIND. Not the operator
+ * of route 538 in any form it can fetch, and not the university in one version.
+ * Rather than leave the useful question unanswered, this measures what it
+ * cannot be told: riders report that they saw one, and the app says how long
+ * ago and how far apart the reports have been. That is an OBSERVATION, never a schedule, and `sayHeadway` is careful
  * to word it as one - the same rule the rest of the app runs on (docs/29).
  */
 
+import type { AreaKey } from './areas.ts';
 import type { Bilingual } from './types.ts';
 import { islandDateKey } from './wallet.ts';
 
@@ -94,7 +102,7 @@ export interface TransitRoute {
 export const publicRoutesIn = (routes: TransitRoute[]): TransitRoute[] =>
   routes.filter((r) => r.kind === 'public');
 
-/** The university's own. Empty until the university publishes one. */
+/** The university's own. Empty until one can be drawn: stops with positions, and times it confirms. */
 export const campusRoutesIn = (routes: TransitRoute[]): TransitRoute[] =>
   routes.filter((r) => r.kind === 'campus');
 
@@ -226,9 +234,30 @@ export function sayHeadway(h: Headway): Bilingual {
   };
 }
 
-/** What the screen says where the university's own shuttle would go. */
+/**
+ * Where a university's own site describes its shuttle. Only a page somebody has
+ * opened and read is listed; a campus without one is not assumed to have no bus.
+ */
+const CAMPUS_SHUTTLE_PAGES: Readonly<Partial<Record<AreaKey, string>>> = {
+  rmutt: 'https://www.rmutt.ac.th/bus-service-center/',
+};
+
+/** The university's own page about its shuttle, or null where none has been read. */
+export const campusShuttlePage = (area: AreaKey): string | null => CAMPUS_SHUTTLE_PAGES[area] ?? null;
+
+/**
+ * What the screen says above that link. It gives no time: the two timetables
+ * RMUTT publishes disagree, and a time on this screen would be believed.
+ */
+export const CAMPUS_SHUTTLE_UNCONFIRMED: Bilingual = {
+  en: 'The university runs its own minibus. Its times are not shown here until the university confirms them.',
+  th: 'มหาวิทยาลัยมีรถมินิบัสภายใน แอปยังไม่แสดงเวลา จนกว่ามหาวิทยาลัยจะยืนยันตาราง',
+  zh: '校方设有校内小巴。在校方确认时刻表之前，这里不显示发车时间。',
+};
+
+/** And where no page has been read: about this app, never about the university. */
 export const NO_CAMPUS_ROUTE: Bilingual = {
-  en: 'The university has not published a shuttle route yet, so there is none to show.',
-  th: 'มหาวิทยาลัยยังไม่ได้เผยแพร่เส้นทางรถภายใน จึงยังไม่มีเส้นทางให้แสดง',
-  zh: '校方尚未公布校内班车路线，因此暂无路线可显示。',
+  en: 'This app has no shuttle route for this campus yet, so there is none to show.',
+  th: 'แอปยังไม่มีข้อมูลเส้นทางรถภายในของที่นี่ จึงยังไม่มีเส้นทางให้แสดง',
+  zh: '本应用暂无该校区的校内班车路线，因此没有路线可显示。',
 };
