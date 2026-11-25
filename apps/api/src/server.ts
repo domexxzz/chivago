@@ -136,7 +136,7 @@ import {
   JOIN_REFUSAL, PARTY_DOES_NOT, RANKED_BY, SPECIES_AS_OF, cheapestMonth, collectionSummary, companionsFor, forecastPrice, isRejectionReasonKey, isReportReasonKey, islandDay, outlookAhead, planDay, positionOf, rankHosts, routeBiasFor, smartRoute, statementCsv, statementPdf, summarise, type Fix,
 } from '@chivago/core';
 import {
-  arriveAtQuest, getAllProgress, getProgress, joinQuest, resolveVerification, submitProof,
+  arriveAtQuest, getAllProgress, getProgress, joinQuest, leaveQuest, resolveVerification, submitProof,
 } from './quest-service.ts';
 import { hostStandings, travellerStandings } from './standing-service.ts';
 import { treeImpactForUser } from './tree-impact-service.ts';
@@ -2553,7 +2553,7 @@ app.post('/reviews/:id/appeal', async (c) => {
 app.get('/quests', (c) => {
   const filter = c.req.query('filter');
   const kind = filter === 'today' || filter === 'weekend' ? filter : undefined;
-  const quests = listQuests(db, kind);
+  const quests = listQuests(db, kind, { userId: userId(c) });
   // Progress ships with the list so the quest rows can show "in progress"
   // without an N+1 of per-quest lookups.
   return ok(c, { quests, progress: getAllProgress(db, userId(c)) }, { total: quests.length });
@@ -2567,6 +2567,12 @@ app.get('/quests/:id', (c) => {
 
 app.post('/quests/:id/join', (c) =>
   ok(c, joinQuest(db, userId(c), c.req.param('id'))));
+
+/** Give a place up before arriving. After that there is evidence in it. */
+app.post('/quests/:id/leave', (c) => {
+  leaveQuest(db, userId(c), c.req.param('id'));
+  return ok(c, { left: true });
+});
 
 /**
  * The fix a client sends, with the two fields the second signal reads. A

@@ -24,6 +24,7 @@ import { inviteClosedPage, invitePage, inviteWelcomePage } from './invite.ts';
 import { sponsorPage } from './sponsor.ts';
 import { esgPage } from './esg.ts';
 import { questsPage } from './quests.ts';
+import { mountQuestDesk } from './quest-desk-routes.ts';
 import { reviewDeclaredPage } from './review-declared.ts';
 import {
   InvalidCountersignature, countersignaturesFor, recordCountersignature, withdrawCountersignature,
@@ -1128,6 +1129,8 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
     agree an indicator - setting one is an act with a partner behind it, the
     same shape as funding.
   */
+  mountQuestDesk(app, { db, currentSession, localeFor, canModerate, csrfFor, csrfValid });
+
   app.get('/quests', (c) => {
     const session = currentSession(c)!;
     const period = readPeriod(c.req.query('from'), c.req.query('to'));

@@ -64,6 +64,7 @@ export * from './greeters.ts';
 export * from './greeting.ts';
 export * from './medals.ts';
 export * from './transit.ts';
+export * from './host-quest.ts';
 export * from './proof-assist.ts';
 export * from './stalls.ts';
 export * from './courts.ts';
