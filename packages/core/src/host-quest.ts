@@ -76,55 +76,53 @@ const whole = (n: number, min: number, max: number): boolean =>
   Number.isInteger(n) && n >= min && n <= max;
 
 function wordProblems(q: HostQuestInput): Bilingual[] {
-  const fields: readonly (readonly [string, string, string])[] = [
-    [q.nameEn, 'English name', 'ชื่อภาษาอังกฤษ'],
-    [q.nameTh, 'Thai name', 'ชื่อภาษาไทย'],
-    [q.whereEn, 'English meeting point', 'จุดนัดพบภาษาอังกฤษ'],
-    [q.whereTh, 'Thai meeting point', 'จุดนัดพบภาษาไทย'],
-  ];
-  return fields
-    .filter(([value]) => value.trim().length < 3 || value.trim().length > 80)
-    .map(([, en, th]) => ({ en: `${en}: 3 to 80 characters.`, th: `${th}: 3 ถึง 80 ตัวอักษร` }));
+  const short = (value: string) => value.trim().length < 3 || value.trim().length > 80;
+  const out: Bilingual[] = [];
+  if (short(q.nameEn)) out.push({ en: 'English name: 3 to 80 characters.', th: 'ชื่อภาษาอังกฤษ: 3 ถึง 80 ตัวอักษร', zh: '英文名称：3 至 80 个字符。' });
+  if (short(q.nameTh)) out.push({ en: 'Thai name: 3 to 80 characters.', th: 'ชื่อภาษาไทย: 3 ถึง 80 ตัวอักษร', zh: '泰文名称：3 至 80 个字符。' });
+  if (short(q.whereEn)) out.push({ en: 'English meeting point: 3 to 80 characters.', th: 'จุดนัดพบภาษาอังกฤษ: 3 ถึง 80 ตัวอักษร', zh: '英文集合点：3 至 80 个字符。' });
+  if (short(q.whereTh)) out.push({ en: 'Thai meeting point: 3 to 80 characters.', th: 'จุดนัดพบภาษาไทย: 3 ถึง 80 ตัวอักษร', zh: '泰文集合点：3 至 80 个字符。' });
+  return out;
 }
 
 function numberProblems(q: HostQuestInput): Bilingual[] {
   const out: Bilingual[] = [];
   if (!whole(q.minutes, HOST_QUEST_MINUTES.min, HOST_QUEST_MINUTES.max)) {
-    out.push({ en: 'How long it takes: 10 to 480 minutes.', th: 'ระยะเวลา: 10 ถึง 480 นาที' });
+    out.push({ en: 'How long it takes: 10 to 480 minutes.', th: 'ระยะเวลา: 10 ถึง 480 นาที', zh: '时长：10 至 480 分钟。' });
   }
   if (!whole(q.rewardPoints, 0, HOST_QUEST_MAX_REWARD)) {
-    out.push({ en: `Points: 0 to ${HOST_QUEST_MAX_REWARD}.`, th: `แต้ม: 0 ถึง ${HOST_QUEST_MAX_REWARD}` });
+    out.push({ en: `Points: 0 to ${HOST_QUEST_MAX_REWARD}.`, th: `แต้ม: 0 ถึง ${HOST_QUEST_MAX_REWARD}`, zh: `积分：0 至 ${HOST_QUEST_MAX_REWARD}。` });
   }
   if (q.rewardCurrency !== 'green' && q.rewardCurrency !== 'trip') {
-    out.push({ en: 'Choose Green or Trip points.', th: 'เลือกแต้มเขียวหรือแต้มทริป' });
+    out.push({ en: 'Choose Green or Trip points.', th: 'เลือกแต้มเขียวหรือแต้มทริป', zh: '请选择绿色积分或旅行积分。' });
   }
   if (!whole(q.seats, 1, HOST_QUEST_MAX_SEATS)) {
-    out.push({ en: `Seats: 1 to ${HOST_QUEST_MAX_SEATS}.`, th: `จำนวนรับ: 1 ถึง ${HOST_QUEST_MAX_SEATS}` });
+    out.push({ en: `Seats: 1 to ${HOST_QUEST_MAX_SEATS}.`, th: `จำนวนรับ: 1 ถึง ${HOST_QUEST_MAX_SEATS}`, zh: `名额：1 至 ${HOST_QUEST_MAX_SEATS}。` });
   }
   if (!whole(q.radiusM, HOST_QUEST_RADIUS_M.min, HOST_QUEST_RADIUS_M.max)) {
-    out.push({ en: 'Check-in radius: 50 to 300 metres.', th: 'รัศมีเช็กอิน: 50 ถึง 300 เมตร' });
+    out.push({ en: 'Check-in radius: 50 to 300 metres.', th: 'รัศมีเช็กอิน: 50 ถึง 300 เมตร', zh: '签到半径：50 至 300 米。' });
   }
   return out;
 }
 
 function placeProblems(q: HostQuestInput): Bilingual[] {
-  if (!isHostQuestArea(q.area)) return [{ en: 'Choose a university.', th: 'เลือกมหาวิทยาลัย' }];
+  if (!isHostQuestArea(q.area)) return [{ en: 'Choose a university.', th: 'เลือกมหาวิทยาลัย', zh: '请选择大学。' }];
   const b = areaByKey(q.area).bbox;
   const inside = q.lat >= b.minLat && q.lat <= b.maxLat && q.lng >= b.minLng && q.lng <= b.maxLng;
-  return inside ? [] : [{ en: 'The meeting point is outside this campus.', th: 'จุดนัดพบอยู่นอกวิทยาเขตนี้' }];
+  return inside ? [] : [{ en: 'The meeting point is outside this campus.', th: 'จุดนัดพบอยู่นอกวิทยาเขตนี้', zh: '集合点不在该校区内。' }];
 }
 
 function timeProblems(q: HostQuestInput, now: Date): Bilingual[] {
   const starts = Date.parse(q.startsAt);
   const ends = Date.parse(q.endsAt);
   if (!Number.isFinite(starts) || !Number.isFinite(ends)) {
-    return [{ en: 'Give a start and an end.', th: 'ระบุเวลาเริ่มและเวลาสิ้นสุด' }];
+    return [{ en: 'Give a start and an end.', th: 'ระบุเวลาเริ่มและเวลาสิ้นสุด', zh: '请填写开始和结束时间。' }];
   }
-  if (ends <= starts) return [{ en: 'It must end after it starts.', th: 'เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม' }];
+  if (ends <= starts) return [{ en: 'It must end after it starts.', th: 'เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม', zh: '结束时间必须晚于开始时间。' }];
   const out: Bilingual[] = [];
-  if (ends <= now.getTime()) out.push({ en: 'It has already ended.', th: 'เวลาสิ้นสุดผ่านไปแล้ว' });
+  if (ends <= now.getTime()) out.push({ en: 'It has already ended.', th: 'เวลาสิ้นสุดผ่านไปแล้ว', zh: '结束时间已过。' });
   if (ends - starts > HOST_QUEST_MAX_SPAN_DAYS * DAY_MS) {
-    out.push({ en: `At most ${HOST_QUEST_MAX_SPAN_DAYS} days.`, th: `นานไม่เกิน ${HOST_QUEST_MAX_SPAN_DAYS} วัน` });
+    out.push({ en: `At most ${HOST_QUEST_MAX_SPAN_DAYS} days.`, th: `นานไม่เกิน ${HOST_QUEST_MAX_SPAN_DAYS} วัน`, zh: `最多 ${HOST_QUEST_MAX_SPAN_DAYS} 天。` });
   }
   return out;
 }
