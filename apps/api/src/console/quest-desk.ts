@@ -12,9 +12,10 @@
 
 import {
   HOST_QUEST_MAX_REWARD, HOST_QUEST_MAX_SEATS, HOST_QUEST_RADIUS_M, HOST_QUEST_STATUS_LABEL, mostItCanPay,
-  type Area, type Bilingual,
+  SMALLEST_GROUP, facultyName, type Area, type Bilingual, type ShownCount,
 } from '@chivago/core';
 import type { HostQuest } from '../host-quest-service.ts';
+import { FACULTY_NOT_SAID } from '../student-service.ts';
 import { html, layout, raw, type Raw } from './html.ts';
 import type { Locale } from './i18n.ts';
 
@@ -140,10 +141,28 @@ function questForm(args: {
     </form>`;
 }
 
+function facultyPanel(counts: ShownCount[], th: boolean): Raw {
+  const name = (key: string): string => {
+    if (key === FACULTY_NOT_SAID) return th ? 'ไม่ได้ระบุคณะ' : 'Faculty not said';
+    const found = facultyName('rmutt', key);
+    return found ? (th ? found.th : found.en) : key;
+  };
+  return html`
+    <section class="panel panel--muted">
+      <h2>${th ? 'ผู้เข้าร่วมตามคณะ' : 'Who took part, by faculty'}</h2>
+      <div class="scroll"><table><tbody>
+        ${counts.map((c) => html`<tr><td>${name(c.key)}</td><td>${c.count === null ? (th ? 'น้อย ไม่แสดง' : 'small, not shown') : c.count}</td></tr>`)}
+      </tbody></table></div>
+      <p class="note">${th
+    ? `นับจากคณะที่ผู้เข้าร่วมแจ้งเอง ไม่ได้ตรวจกับทะเบียน กลุ่มที่น้อยกว่า ${SMALLEST_GROUP} คน และกลุ่มถัดไปที่อาจทำให้เดาได้ จะไม่แสดง`
+    : `Self-declared, not checked against any register. A group under ${SMALLEST_GROUP}, and the next one where it could give that away, is not shown.`}</p>
+    </section>`;
+}
+
 export function questDeskPage(args: {
   locale: Locale; hostName: string; canModerate: boolean; csrf: string;
   own: HostQuest[]; toReview: HostQuest[]; editing: HostQuest | null; form: QuestForm;
-  areas: readonly Area[]; places: DeskPlace[]; problems: Bilingual[];
+  areas: readonly Area[]; places: DeskPlace[]; problems: Bilingual[]; faculties: ShownCount[];
 }): string {
   const { locale, hostName, canModerate, csrf, own, toReview, problems } = args;
   const th = locale === 'th';
@@ -168,6 +187,8 @@ export function questDeskPage(args: {
         <thead><tr><th>${th ? 'กิจกรรม' : 'Activity'}</th><th>${th ? 'สถานะ' : 'Status'}</th><th>${th ? 'ที่นั่ง' : 'Seats'}</th><th>${th ? 'แต้ม' : 'Points'}</th><th></th></tr></thead>
         <tbody>${own.map((q) => ownRow(q, csrf, th))}</tbody>
       </table></div>`}
+
+    ${args.faculties.length === 0 ? '' : facultyPanel(args.faculties, th)}
 
     <section class="panel">
       <h2>${args.editing ? (th ? 'แก้ไข' : 'Edit') : (th ? 'เขียนกิจกรรมใหม่' : 'Write a new one')}</h2>

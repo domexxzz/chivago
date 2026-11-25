@@ -49,6 +49,7 @@ export const GAME_ICON: Partial<Record<MiniGameKey, ImageSourcePropType>> = {
   'waste-sort': trashHeroLogo,
   'chef-shop': secretRecipeLogo,
 };
+import { QuestEventLine } from '../components/QuestEvent.tsx';
 import { areaByKey, greetingFor, inArea, isRetiredQuestCode, isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
@@ -623,6 +624,7 @@ export function QuestRow({
           </View>
           <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: color.brandSoft, alignItems: 'center', justifyContent: 'center' }}><ChevronRight size={18} color={color.brand} /></View>
         </View>
+        {quest.event ? <QuestEventLine event={quest.event} /> : null}
         <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginTop: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><MapPin size={15} color={color.brand} /><Body size={13} colour={color.neutral700}>{t(quest.where)}</Body></View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><Clock size={15} color={color.brand} /><Body size={13} colour={color.neutral700}>{t(quest.duration)}</Body></View>

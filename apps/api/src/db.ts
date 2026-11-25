@@ -378,7 +378,7 @@ CREATE TABLE IF NOT EXISTS camera_incident_evidence (
  * number. `db-schema-version.test.ts` fails when you forget, which is the only
  * reason this is safe to rely on.
  */
-export const SCHEMA_VERSION = 19;
+export const SCHEMA_VERSION = 20;
 
 /**
  * Open the API's database on Durable Object storage, building the schema and

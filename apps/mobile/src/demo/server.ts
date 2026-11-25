@@ -518,6 +518,7 @@ const writes: Record<string, (body: Json, m: RegExpMatchArray) => unknown> = {
   'POST /reviews/:id/appeal': () => ({ id: id('app') }),
 
   'POST /quests/:id/join': (_b, m) => stage(m[1]!, 'joined'),
+  'POST /quests/:id/leave': () => refuse('INVALID_TRANSITION', 'Nothing is saved in this demo, so there is no place to give up.'),
   'POST /quests/:id/arrive': (_b, m) => stage(m[1]!, 'arrived'),
   'POST /quests/:id/proof': (_b, m) => ({
     // Stops at host verification. Points are the HOST's to release, and a demo

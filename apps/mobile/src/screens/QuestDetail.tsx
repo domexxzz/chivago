@@ -21,7 +21,7 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { ArrowLeft, ArrowRight, Camera, Check, Send } from 'lucide-react-native';
 import {
-  QUEST_STAGES, stageIndex, strings,
+  QUEST_STAGES, questEventState, stageIndex, strings,
   type Bilingual, type Fix, type ProofPhoto, type Quest, type QuestProgress, type QuestStage,
 } from '@chivago/core';
 import { API_BASE, api, type FiledStatement, type Result } from '../api/client.ts';
@@ -33,6 +33,7 @@ import { color, gutter, layout, motion, onFill, radius, shadow } from '../theme/
 import { AccentNumeral, Body, Heading, Label } from '../components/Type.tsx';
 import { Button } from '../components/Button.tsx';
 import { OceanBackdrop } from '../components/Shell.tsx';
+import { QuestEventPanel } from '../components/QuestEvent.tsx';
 import { ErrorState, LoadingState } from '../components/States.tsx';
 import { t } from '../i18n/locale.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
@@ -63,6 +64,8 @@ export function QuestDetailScreen({
   const pilotBrief = quest ? sichangPilotBrief(quest.code) : null;
   const progress = data.data?.progress ?? null;
   const stage: QuestStage | null = progress?.stage ?? null;
+  // A quest with no dates is always open; one with them says when it is not.
+  const canJoin = !quest?.event || questEventState(quest.event, new Date()) === 'open';
 
   const shareQuest = async () => {
     if (!quest) return;
@@ -91,6 +94,14 @@ export function QuestDetailScreen({
     if (requireAccount({ en: 'Please sign in or create an account to join this quest.', th: 'กรุณาสมัครสมาชิกหรือเข้าสู่ระบบเพื่อเข้าร่วมเควสต์', zh: '请登录或注册账号，以加入这个任务。' })) return;
     setBusy(true);
     const res = await api.joinQuest(questId);
+    setBusy(false);
+    if (res.ok) data.reload();
+    else onToast(res.error);
+  };
+
+  const leave = async () => {
+    setBusy(true);
+    const res = await api.leaveQuest(questId);
     setBusy(false);
     if (res.ok) data.reload();
     else onToast(res.error);
@@ -279,9 +290,12 @@ export function QuestDetailScreen({
           </View>
 
           {pilotBrief ? <PilotBriefPanel brief={pilotBrief} /> : null}
+          {quest.event ? (
+            <QuestEventPanel event={quest.event} stage={stage} busy={busy} onLeave={() => { void leave(); }} />
+          ) : null}
           <Timeline
             stage={stage}
-            action={stage === null || stage === 'joined' ? {
+            action={(stage === null && canJoin) || stage === 'joined' ? {
               label: stage === null ? t(strings.quest.ctaJoin) : t(strings.quest.ctaArrive),
               onPress: stage === null ? join : arrive,
               busy,

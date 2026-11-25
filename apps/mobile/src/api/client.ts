@@ -910,6 +910,8 @@ export const api = {
   quest: (id: string) =>
     get<{ quest: Quest; progress: QuestProgress | null }>(`/quests/${id}`),
   joinQuest: (id: string) => post<QuestProgress>(`/quests/${id}/join`),
+  /** Give a place up. Only before arriving. */
+  leaveQuest: (id: string) => post<{ left: boolean }>(`/quests/${id}/leave`),
   /** `pos` is null only while the fence is open; see state/server-config.ts `locationOff`. */
   arriveAtQuest: (id: string, pos: Fix | null) =>
     post<QuestProgress>(`/quests/${id}/arrive`, pos ?? {}),

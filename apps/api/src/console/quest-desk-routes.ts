@@ -8,6 +8,7 @@ import {
   HostQuestRefused, closeHostQuest, createHostQuest, discardHostQuest, editHostQuest, hostQuestById,
   hostQuestsOf, hostQuestsToReview, publishHostQuest, returnHostQuest, submitHostQuest,
 } from '../host-quest-service.ts';
+import { participationByFaculty } from '../student-service.ts';
 import type { Locale } from './i18n.ts';
 import { EMPTY_QUEST_FORM, formOf, fromLocalInput, questDeskPage, type DeskPlace, type QuestForm } from './quest-desk.ts';
 import { messagePage } from './views.ts';
@@ -75,6 +76,7 @@ export function mountQuestDesk(app: Hono, deps: Deps): void {
       editing,
       form: shown.form ?? (editing ? formOf(editing) : { ...EMPTY_QUEST_FORM, area: universities[0]?.key ?? '' }),
       areas: universities, places: campusPlaces(db), problems,
+      faculties: participationByFaculty(db, session.hostId),
     }), problems.length > 0 ? 400 : 200);
   };
 

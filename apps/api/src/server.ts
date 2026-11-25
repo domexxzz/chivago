@@ -93,6 +93,7 @@ import { fenceOff, publicConfig } from './fence.ts';
 import { boardFeed, type BoardEntry } from '@chivago/core';
 import { monstersInArea } from './monster-service.ts';
 import { reportSighting, routesForArea } from './transit-service.ts';
+import { forgetStudent, saveStudent, studentOf } from './student-service.ts';
 import { reviewsInArea } from './place-review-service.ts';
 import {
   ForbiddenIncidentKind, IncidentAlreadyStored, InvalidIncident, receiveCameraIncident,
@@ -1921,6 +1922,17 @@ app.put('/profile', async (c) => {
 app.delete('/profile', (c) => {
   deleteAccount(db, userId(c));
   return ok(c, { deleted: true });
+});
+
+/** A self-declared faculty and year: read, said, and taken back. See core's student.ts. */
+app.get('/campus/student', (c) => ok(c, { student: studentOf(db, userId(c)) }));
+app.put('/campus/student', async (c) => {
+  const body = (await c.req.json().catch(() => null)) as Record<string, unknown> | null;
+  return ok(c, { student: saveStudent(db, userId(c), body, body?.consentVersion) });
+});
+app.delete('/campus/student', (c) => {
+  forgetStudent(db, userId(c));
+  return ok(c, { removed: true });
 });
 
 // ---------------------------------------------------------------------------

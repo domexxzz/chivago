@@ -20,6 +20,7 @@ import type { ApiFailure, ApiSuccess } from '@chivago/core';
 import { InsufficientPoints } from './wallet-service.ts';
 import { InvalidTransition, OutsideGeofence } from './quest-service.ts';
 import { OutsideQuestHours, QuestNotJoinable } from './host-quest-service.ts';
+import { InvalidStudent } from './student-service.ts';
 import { SelfVisitQuotaReached } from './visit-service.ts';
 import { FixTooCoarse, ImpossibleTravel, MockedLocation } from './presence-service.ts';
 import { TooSoonAfterArrival } from './quest-service.ts';
@@ -265,6 +266,9 @@ export function handleError(c: Context, err: unknown) {
       closed: 'The organiser has closed this activity.',
     }[err.reason];
     return fail(c, `QUEST_${err.reason.toUpperCase()}`, said, 409);
+  }
+  if (err instanceof InvalidStudent) {
+    return fail(c, 'STUDENT_INVALID', 'Choose a faculty and a year, and agree to how they are used.', 400);
   }
   if (err instanceof OutsideQuestHours) {
     return fail(c, 'OUTSIDE_QUEST_HOURS', 'Check-in opens half an hour before the activity and closes when it ends.', 409);

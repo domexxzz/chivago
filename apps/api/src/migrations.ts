@@ -3104,6 +3104,24 @@ export function migrate(db: DB): string[] {
     applied.push('host_quests');
   }
 
+  /*
+    A self-declared faculty and year (student-service.ts). One row a person,
+    gone with the account, and no student number: nothing here could check one.
+  */
+  if (!hasTable(db, 'student_profiles')) {
+    db.exec(`
+      CREATE TABLE student_profiles (
+        user_id         TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        university      TEXT NOT NULL,
+        faculty         TEXT NOT NULL,
+        year            TEXT NOT NULL,
+        consent_version TEXT NOT NULL,
+        consented_at    TEXT NOT NULL
+      );
+    `);
+    applied.push('student_profiles');
+  }
+
   return applied;
 }
 
