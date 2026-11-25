@@ -416,7 +416,32 @@ const seaDem = { ...dem, maxzoom: 10 };
  * a palette the island's clock chooses - and the only thing on the screen
  * that wears the evidence green is a place somebody measured.
  */
-export function chivagoStyle(hour = 12): StyleSpecification {
+/**
+ * Flat ground, in the style rather than done to the map afterwards. The map is
+ * relit by swapping the style for a later hour's, and MapLibre diffs the two:
+ * a layer hidden by hand is one the new style does not mention hiding, so the
+ * first change of light brought the needle and the surf back.
+ */
+function onFlatGround(style: StyleSpecification, sand: string): StyleSpecification {
+  const off: readonly string[] = GROUND_LAYERS;
+  return {
+    ...style,
+    layers: style.layers.map((layer) => {
+      if (off.includes(layer.id)) return { ...layer, layout: { ...layer.layout, visibility: 'none' } } as typeof layer;
+      // The relief coloured low ground as sand; without it the parks and the
+      // ground between them are one green.
+      if (layer.id === 'land') return { ...layer, paint: { 'background-color': sand } } as typeof layer;
+      return layer;
+    }),
+  };
+}
+
+export function chivagoStyle(hour = 12, { flat = false }: { flat?: boolean } = {}): StyleSpecification {
+  const style = litStyle(hour);
+  return flat ? onFlatGround(style, paletteFor(hour).sand) : style;
+}
+
+function litStyle(hour: number): StyleSpecification {
   const p = paletteFor(hour);
   return {
     version: 8,
@@ -1213,14 +1238,30 @@ export function questOffsets(
  * lecture hall.
  */
 export const CAMPUS_FRAME_PX = 620;
+/** The ground the first campus shows, east to west: KU Si Racha's outline. */
+export const CAMPUS_FRAME_SPAN_M = 694;
 export const CAMPUS_FRAME_ZOOM = 16.2;
 export const CAMPUS_ZOOM_RANGE = [15.4, 16.8] as const;
 
-export function campusZoom(widthPx: number): number {
+/**
+ * `spanM` is how much ground this campus needs. RMUTT is nearly twice as wide
+ * as Si Racha, and at Si Racha's zoom a phone lost its stadium off one side
+ * and all four bus stops off the other. The range moves with it: the floor is
+ * about how small a building may get, and a bigger campus is bigger buildings.
+ */
+export function campusZoom(widthPx: number, spanM: number = CAMPUS_FRAME_SPAN_M): number {
   const width = Math.max(240, widthPx || CAMPUS_FRAME_PX);
   const wanted = CAMPUS_FRAME_ZOOM + Math.log2(width / CAMPUS_FRAME_PX);
-  return Math.min(CAMPUS_ZOOM_RANGE[1], Math.max(CAMPUS_ZOOM_RANGE[0], Number(wanted.toFixed(2))));
+  const judged = Math.min(CAMPUS_ZOOM_RANGE[1], Math.max(CAMPUS_ZOOM_RANGE[0], wanted));
+  const standBack = Math.log2(Math.max(1, spanM / CAMPUS_FRAME_SPAN_M));
+  return Number((judged - standBack).toFixed(2));
 }
+
+/**
+ * Every layer drawn from the elevation model, which a flat campus - and any
+ * map whose elevation tiles have failed - does without.
+ */
+export const GROUND_LAYERS = ['relief', 'hillshade', 'surf', 'sea-depth'] as const;
 
 export const CROWD_M = 4000;
 

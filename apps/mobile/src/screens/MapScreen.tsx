@@ -27,7 +27,7 @@ import { WayBanner } from '../components/WayBanner.tsx';
 import { FairBanner } from '../components/FairBanner.tsx';
 import { AreaSwitch } from '../components/AreaSwitch.tsx';
 import { DropOffLayer } from '../components/DropOffLayer.tsx';
-import { dropOffForPin, dropOffPins } from '../components/drop-off-pins.ts';
+import { dropOffForPin, dropOffPins, dropOffPointsIn } from '../components/drop-off-pins.ts';
 import { useAsync, type LayerKey } from '../state/store.tsx';
 import { color, currencyTone, gutter, layout, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from '../components/Type.tsx';
@@ -865,7 +865,7 @@ export function MapScreen({
           */}
           {!driftMode ? (
             <View style={{ padding: gutter, paddingTop: 0 }}>
-              <DropOffLayer here={here} onRoute={onNavigateDropOff} />
+              <DropOffLayer here={here} points={dropOffPointsIn(area.bbox)} onRoute={onNavigateDropOff} />
             </View>
           ) : null}
         </>
@@ -1358,7 +1358,7 @@ export function MapHeader({
           <WaveSymbolBadge size={40} />
           <View>
             <Text style={{ fontSize: 13, fontWeight: '700', color: '#004B7E' }}>
-              {t({ en: "Today's Waves & Wind", th: 'คลื่นลมวันนี้', zh: '今日浪与风' })}
+              {t({ en: 'Your points', th: 'แต้มของคุณ', zh: '你的积分' })}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 2 }}>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
@@ -1368,9 +1368,6 @@ export function MapHeader({
                 <Label size={10} tracking={0.1} colour="#006EA8" style={{ fontWeight: '700' }}>
                   {t(strings.wallet.green)}
                 </Label>
-                <Text style={{ fontSize: 10, fontWeight: '500', color: '#52749D' }}>
-                  {t({ en: '(1,240 m)', th: '(1,240 ม.)', zh: '(1,240 米)' })}
-                </Text>
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3 }}>
                 <Heading size={13} colour="#396184" style={{ fontWeight: '700' }}>
@@ -1379,9 +1376,6 @@ export function MapHeader({
                 <Label size={9} tracking={0.1} colour="#52749D" style={{ fontWeight: '600' }}>
                   {t(strings.wallet.trip)}
                 </Label>
-                <Text style={{ fontSize: 9, fontWeight: '500', color: '#718EA8' }}>
-                  {t({ en: '(320 km/h)', th: '(320 กม/ชม)', zh: '(320 公里/小时)' })}
-                </Text>
               </View>
             </View>
           </View>
