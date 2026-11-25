@@ -9,7 +9,7 @@ import { consoleRoutes, __csrfFor } from './routes.ts';
 
 let db: DB;
 let app: ReturnType<typeof consoleRoutes>;
-const KEY = { faculty: 'chv_FACAA-FACBB-FACCC-FACDD', affairs: 'chv_AFFAA-AFFBB-AFFCC-AFFDD', shop: 'chv_SHOPA-SHOPB-SHOPC-SHOPD' };
+const KEY = { faculty: 'chv_FACAA-FACBB-FACCC-FACDD', affairs: 'chv_AFFAA-AFFBB-AFFCC-AFFDD', shop: 'chv_SHOPA-SHOPB-SHOPC-SHOPD', hotel: 'chv_HOTEA-HOTEB-HOTEC-HOTED' };
 
 beforeEach(() => {
   db = openTestDb();
@@ -20,6 +20,8 @@ beforeEach(() => {
   add('h-faculty', 'Faculty of Engineering', 'community', 'host', KEY.faculty);
   add('h-affairs', 'Student affairs', 'community', 'moderator', KEY.affairs);
   add('h-shop', 'A shop', 'operator', 'host', KEY.shop);
+  add('h-hotel', 'A hotel', 'hotel', 'host', KEY.hotel);
+  db.prepare("UPDATE hosts SET campus = 'rmutt' WHERE id IN ('h-faculty', 'h-affairs')").run();
 });
 
 async function signIn(key: string): Promise<string> {
@@ -95,6 +97,23 @@ describe('writing an activity in the console', () => {
 });
 
 describe('who may do what', () => {
+  test('a host nobody opened a campus to is shown no form, and cannot post one', async () => {
+    const hotel = await signIn(KEY.hotel);
+    const page = await (await get(hotel)).text();
+    assert.match(page, /has not been opened to write/);
+    assert.doesNotMatch(page, /name="nameEn"/);
+    const res = await post(hotel, '/quest-desk', fields());
+    assert.equal(res.status, 400);
+    assert.equal(hostQuestsOf(db, 'h-hotel').length, 0);
+  });
+
+  test('nor for a campus other than its own', async () => {
+    const writer = await signIn(KEY.faculty);
+    const res = await post(writer, '/quest-desk', { ...fields(), area: 'ku-bangkhen', lat: '13.8476', lng: '100.5724' });
+    assert.match(await res.text(), /another campus/);
+    assert.equal(hostQuestsOf(db, 'h-faculty').length, 0);
+  });
+
   test('a host that is not a reviewer is not offered the decision, and cannot take it', async () => {
     const writer = await signIn(KEY.faculty);
     await post(writer, '/quest-desk', fields());

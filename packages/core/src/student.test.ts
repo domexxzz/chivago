@@ -2,7 +2,7 @@ import { strict as assert } from 'node:assert';
 import { describe, test } from 'node:test';
 
 import {
-  STUDENT_CONSENT, STUDENT_YEARS, STUDENT_YEAR_LABEL, facultiesOf, facultyName, hideSmallGroups, isStudentProfile,
+  STUDENT_CONSENT, STUDENT_YEARS, STUDENT_YEAR_LABEL, facultiesOf, facultyBands, facultyName, isStudentProfile,
 } from './student.ts';
 
 describe('a faculty and a year', () => {
@@ -33,23 +33,26 @@ describe('a faculty and a year', () => {
 });
 
 describe('counts that are about a handful of people', () => {
-  const groups = (o: Record<string, number>) => Object.entries(o).map(([key, count]) => ({ key, count }));
+  const bands = (o: Record<string, number>) => facultyBands(Object.entries(o).map(([key, count]) => ({ key, count })));
 
-  test('five is shown and four is not', () => {
-    assert.deepEqual(hideSmallGroups(groups({ a: 5, b: 4, c: 3 })), [
-      { key: 'a', count: 5 }, { key: 'b', count: null }, { key: 'c', count: null },
-    ]);
+  test('nothing at all until twenty people have taken part', () => {
+    assert.equal(bands({ a: 19 }), null);
+    assert.equal(bands({}), null);
+    assert.ok(bands({ a: 20 }));
   });
 
-  test('one hidden group takes the next smallest with it, so a total gives nothing away', () => {
-    assert.deepEqual(hideSmallGroups(groups({ a: 40, b: 12, c: 2 })), [
-      { key: 'a', count: 40 }, { key: 'b', count: null }, { key: 'c', count: null },
-    ]);
+  test('a band, never a count: one more person changes nothing most of the time', () => {
+    assert.deepEqual(bands({ a: 21, b: 12 }), { bands: [{ key: 'a', from: 20, to: 24 }, { key: 'b', from: 10, to: 14 }], others: false });
+    assert.deepEqual(bands({ a: 22, b: 12 }), bands({ a: 21, b: 12 }));
   });
 
-  test('a lone small group is hidden, and nobody is left out of nothing', () => {
-    assert.deepEqual(hideSmallGroups(groups({ a: 2 })), [{ key: 'a', count: null }]);
-    assert.deepEqual(hideSmallGroups(groups({ a: 0 })), []);
-    assert.deepEqual(hideSmallGroups([]), []);
+  test('a small faculty is not named', () => {
+    const shown = bands({ a: 30, b: 4, c: 3 })!;
+    assert.deepEqual(shown, { bands: [{ key: 'a', from: 30, to: 34 }], others: true });
+  });
+
+  test('one small group takes the next smallest with it, so a total gives nothing away', () => {
+    assert.deepEqual(bands({ a: 40, b: 12, c: 2 }), { bands: [{ key: 'a', from: 40, to: 44 }], others: true });
+    assert.deepEqual(bands({ a: 40, c: 2 }), { bands: [], others: true });
   });
 });

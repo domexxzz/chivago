@@ -3105,6 +3105,13 @@ export function migrate(db: DB): string[] {
   }
 
   /*
+    Which campus a host may write activities for. NULL, which is every host
+    until the operator says otherwise (POST /internal/host-campus): a hotel on
+    an island is a host too, and it does not run a university's programme.
+  */
+  if (hasTable(db, 'hosts') && addColumn(db, 'hosts', 'campus', 'TEXT')) applied.push('hosts.campus');
+
+  /*
     A self-declared faculty and year (student-service.ts). One row a person,
     gone with the account, and no student number: nothing here could check one.
   */

@@ -324,14 +324,16 @@ function publishedWhere(db: DB): string {
  * A campus host's activity is published by its own approval, not by the seed's
  * list, so it is asked a different question: is it on, and is it not over. It
  * stays on the list of whoever is in it, because that is how they get back to
- * it to send their proof.
+ * it to send their proof. `everyHostQuest` is the console's: a report names an
+ * activity that is over.
  */
 export function listQuests(
-  db: DB, filter?: 'today' | 'weekend', opts: { userId?: string; now?: Date } = {},
+  db: DB, filter?: 'today' | 'weekend', opts: { userId?: string; now?: Date; everyHostQuest?: boolean } = {},
 ): Quest[] {
   const where = `(
     (hq.id IS NULL AND ${publishedWhere(db)})
     OR (hq.status = 'published' AND hq.ends_at > ?)
+    ${opts.everyHostQuest ? 'OR hq.id IS NOT NULL' : ''}
     OR (hq.status IN ('published', 'closed')
         AND EXISTS (SELECT 1 FROM quest_progress mine WHERE mine.quest_id = q.id AND mine.user_id = ?))
   )`;

@@ -377,6 +377,15 @@ export interface PartyPresence { userId: string; displayName: string }
  * host still decides, once, for all of them.
  */
 export function partyPresentAt(db: DB, userId: string, questId: string, at = new Date()): PartyPresence[] {
+  const present = partyInFence(db, userId, questId, at);
+  // An activity with seats is ridden only by whoever holds one. Without this a
+  // full or closed activity took in a whole party on one member's proof.
+  return questWindow(db, questId) === null
+    ? present
+    : present.filter((m) => getProgress(db, m.userId, questId) !== null);
+}
+
+function partyInFence(db: DB, userId: string, questId: string, at: Date): PartyPresence[] {
   const party = activePartyFor(db, userId);
   if (!party) return [];
   const quest = db.prepare('SELECT lat, lng, geofence_radius_m FROM quests WHERE id = ?').get(questId) as unknown as QuestGeo | undefined;

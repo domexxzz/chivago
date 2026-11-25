@@ -49,7 +49,6 @@ export const GAME_ICON: Partial<Record<MiniGameKey, ImageSourcePropType>> = {
   'waste-sort': trashHeroLogo,
   'chef-shop': secretRecipeLogo,
 };
-import { QuestEventLine } from '../components/QuestEvent.tsx';
 import { areaByKey, greetingFor, inArea, isRetiredQuestCode, isRankable, strings, type HostStanding, type Offer, type Quest, type QuestProgress } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
@@ -64,6 +63,7 @@ import { useArea } from '../state/area.ts';
 import { formatInteger } from '../i18n/format.ts';
 import { ProfileButton } from '../components/ProfileButton.tsx';
 import { questArtworkSource } from '../components/QuestArtwork.tsx';
+import { QuestEventLine } from '../components/QuestEvent.tsx';
 import { MINI_GAMES, type MiniGameKey } from '../games/index.ts';
 import { ChivarIcon, questStateIcon } from '../components/ChivarIcon.tsx';
 import { PartyHub } from '../components/party/PartyHub.tsx';

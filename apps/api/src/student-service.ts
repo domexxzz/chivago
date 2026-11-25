@@ -1,7 +1,7 @@
 /** A self-declared faculty and year, and the counts made from it. See core's student.ts. */
 
 import {
-  STUDENT_CONSENT_VERSION, hideSmallGroups, isStudentProfile, type ShownCount, type StudentProfile,
+  STUDENT_CONSENT_VERSION, facultyBands, isStudentProfile, type FacultyBands, type StudentProfile,
 } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
 
@@ -42,20 +42,21 @@ export function forgetStudent(db: DB, userId: string): void {
 export const FACULTY_NOT_SAID = 'not-said';
 
 /**
- * Who took part in a host's activities, by faculty, as counts only.
+ * Who took part in a host's activities, by faculty, roughly.
  *
- * Over everything the host has run and not per activity: an activity of twenty
- * people split twelve ways is twenty people.
+ * Over everything the host has FINISHED and not per activity: an activity of
+ * twenty people split twelve ways is twenty people, and a page that moved while
+ * somebody joined would say which faculty they were from.
  */
-export function participationByFaculty(db: DB, hostId: string): ShownCount[] {
+export function participationByFaculty(db: DB, hostId: string, now = new Date()): FacultyBands | null {
   const found = rows<{ faculty: string | null; n: number }>(
     db.prepare(
       `SELECT sp.faculty AS faculty, COUNT(DISTINCT qp.user_id) AS n
          FROM quest_progress qp
-         JOIN host_quests hq ON hq.id = qp.quest_id AND hq.host_id = ?
+         JOIN host_quests hq ON hq.id = qp.quest_id AND hq.host_id = ? AND hq.ends_at <= ?
          LEFT JOIN student_profiles sp ON sp.user_id = qp.user_id AND sp.university = hq.area
         GROUP BY sp.faculty`,
-    ).all(hostId),
+    ).all(hostId, now.toISOString()),
   );
-  return hideSmallGroups(found.map((f) => ({ key: f.faculty ?? FACULTY_NOT_SAID, count: f.n })));
+  return facultyBands(found.map((f) => ({ key: f.faculty ?? FACULTY_NOT_SAID, count: f.n })));
 }

@@ -94,6 +94,7 @@ import { boardFeed, type BoardEntry } from '@chivago/core';
 import { monstersInArea } from './monster-service.ts';
 import { reportSighting, routesForArea } from './transit-service.ts';
 import { forgetStudent, saveStudent, studentOf } from './student-service.ts';
+import { hostQuestById, setHostCampus } from './host-quest-service.ts';
 import { reviewsInArea } from './place-review-service.ts';
 import {
   ForbiddenIncidentKind, IncidentAlreadyStored, InvalidIncident, receiveCameraIncident,
@@ -120,7 +121,7 @@ import {
   STORY_FORM_MAX_BYTES, StoryTooLarge, locateStoryMedia, storiesAt, storiesInArea, storiesOpen,
   storyEtag, submitStory,
 } from './story-service.ts';
-import { AREAS, areaByKey, inArea, isAreaKey, type TravelLocation } from '@chivago/core';
+import { AREAS, areaByKey, inArea, isAreaKey, isHostQuestArea, type AreaKey, type TravelLocation } from '@chivago/core';
 import { openArea, refreshPhotos, refreshText } from './area-opening.ts';
 import { TEN_PULL_SIZE } from '@chivago/core';
 import { isLang } from '@chivago/core';
@@ -2577,8 +2578,12 @@ app.get('/quests/:id', (c) => {
   return ok(c, { quest, progress: getProgress(db, userId(c), quest.id) });
 });
 
-app.post('/quests/:id/join', (c) =>
-  ok(c, joinQuest(db, userId(c), c.req.param('id'))));
+app.post('/quests/:id/join', (c) => {
+  const id = c.req.param('id');
+  // Whoever is already in one that has since left the list keeps it.
+  if (!getQuest(db, id) && !getProgress(db, userId(c), id)) return fail(c, 'NOT_FOUND', 'No such quest', 404);
+  return ok(c, joinQuest(db, userId(c), id));
+});
 
 /** Give a place up before arriving. After that there is evidence in it. */
 app.post('/quests/:id/leave', (c) => {
@@ -2841,9 +2846,34 @@ app.post('/internal/quests/host', async (c) => {
   if (host.role === 'admin' || host.type === 'admin') {
     return fail(c, 'BAD_REQUEST', 'An admin does not verify quests.', 400);
   }
+  // Approved as one host's, by another. Moving it would undo who approved whom.
+  if (hostQuestById(db, quest.id)) {
+    return fail(c, 'BAD_REQUEST', 'A host wrote this activity. Close it and have the other host write its own.', 400);
+  }
   db.prepare('UPDATE quests SET host_id = ? WHERE id = ?').run(host.id, quest.id);
   console.log(`[chivago] quest ${quest.id} moved from ${quest.host_id} to ${host.id}`);
   return ok(c, { questId: quest.id, from: quest.host_id, to: host.id });
+});
+
+/**
+ * Which campus a host may write activities for (host-quest-service.ts). Null
+ * takes it away. An operator-type account is refused: it sells, it does not
+ * run a university's programme.
+ */
+app.post('/internal/host-campus', async (c) => {
+  const refused = operatorRefused(c);
+  if (refused) return refused;
+  const body = (await c.req.json().catch(() => ({}))) as { hostId?: unknown; campus?: unknown };
+  const hostId = typeof body.hostId === 'string' ? body.hostId.trim() : '';
+  if (body.campus !== null && !isHostQuestArea(body.campus)) {
+    return fail(c, 'BAD_REQUEST', 'campus must be a university area, or null.', 400);
+  }
+  const host = row<{ type: string }>(db.prepare('SELECT type FROM hosts WHERE id = ?').get(hostId));
+  if (!host) return fail(c, 'NOT_FOUND', 'No such host', 404);
+  if (host.type === 'operator') return fail(c, 'BAD_REQUEST', 'An operator does not write campus activities.', 400);
+  setHostCampus(db, hostId, body.campus as AreaKey | null);
+  console.log(`[chivago] host ${hostId} campus: ${body.campus ?? 'none'}`);
+  return ok(c, { hostId, campus: body.campus });
 });
 
 /**

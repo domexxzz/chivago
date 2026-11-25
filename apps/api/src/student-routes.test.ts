@@ -63,9 +63,9 @@ describe('saying a faculty and a year', () => {
 });
 
 describe('what a host is shown', () => {
-  test('counts, with the small ones hidden, over its own activities only', () => {
+  test('rough counts, the small ones unnamed, over its own finished activities only', () => {
     const now = new Date();
-    const host = (id: string) => db.prepare('INSERT INTO hosts (id,name,type,created_at) VALUES (?,?,?,?)').run(id, id, 'community', now.toISOString());
+    const host = (id: string) => db.prepare("INSERT INTO hosts (id,name,type,campus,created_at) VALUES (?,?,?,'rmutt',?)").run(id, id, 'community', now.toISOString());
     host('h-one'); host('h-two'); host('h-dean');
     const run = (hostId: string) => {
       const q = createHostQuest(db, hostId, null, {
@@ -85,13 +85,15 @@ describe('what a host is shown', () => {
           .run(id, 'rmutt', faculty, '1', STUDENT_CONSENT_VERSION, now.toISOString());
       }
     };
-    for (let i = 0; i < 9; i += 1) { person(`e${i}`, 'engineering'); joinQuest(db, `e${i}`, mine); }
+    for (let i = 0; i < 31; i += 1) { person(`e${i}`, 'engineering'); joinQuest(db, `e${i}`, mine); }
     for (let i = 0; i < 6; i += 1) { person(`n${i}`, null); joinQuest(db, `n${i}`, mine); }
     for (let i = 0; i < 2; i += 1) { person(`a${i}`, 'fine-arts'); joinQuest(db, `a${i}`, mine); }
     for (let i = 0; i < 7; i += 1) { person(`t${i}`, 'nursing'); joinQuest(db, `t${i}`, theirs); }
 
-    const shown = Object.fromEntries(participationByFaculty(db, 'h-one').map((c) => [c.key, c.count]));
-    assert.deepEqual(shown, { engineering: 9, 'fine-arts': null, 'not-said': null });
-    assert.deepEqual(participationByFaculty(db, 'h-dean'), []);
+    assert.equal(participationByFaculty(db, 'h-one'), null, 'not while it is running: the page would move as people join');
+    const after = new Date(now.getTime() + 10_800_000);
+    assert.deepEqual(participationByFaculty(db, 'h-one', after), { bands: [{ key: 'engineering', from: 30, to: 34 }], others: true });
+    assert.equal(participationByFaculty(db, 'h-two', after), null, 'seven people are too few');
+    assert.equal(participationByFaculty(db, 'h-dean', after), null);
   });
 });

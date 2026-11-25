@@ -973,7 +973,7 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
     const counts = questCountsFor(db, sponsorships.map((s) => s.questId));
     const outcome = sponsorOutcome(sponsor, sponsorships, counts);
 
-    const names = new Map(listQuests(db).map((q) => [q.id, q.name.en]));
+    const names = new Map(listQuests(db, undefined, { everyHostQuest: true }).map((q) => [q.id, q.name.en]));
     const rows = sponsorships.map((s) => {
       const found = counts.find((x) => x.questId === s.questId);
       return {
@@ -1712,7 +1712,7 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
             .filter((a) => a.orgId === org.id),
         };
       }),
-      quests: listQuests(db).map((q) => ({ id: q.id, name: q.name.en })),
+      quests: listQuests(db, undefined, { everyHostQuest: true }).map((q) => ({ id: q.id, name: q.name.en })),
       error: c.req.query('error') ?? null,
       notice: c.req.query('notice') ?? null,
     }));

@@ -37,17 +37,19 @@ const PHASE: Record<RoomPhase, () => string> = {
   over: () => t({ en: 'Finished', th: 'จบแล้ว', zh: '已结束' }),
 };
 
-function useClock(): Date {
+/** Every second while a countdown is on screen, and twice a minute otherwise. */
+function useClock(room: RoomReminder): Date {
   const [now, setNow] = React.useState(() => new Date());
+  const counting = secondsToCollect(room, now) !== null;
   React.useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    const timer = setInterval(() => setNow(new Date()), counting ? 1_000 : 30_000);
     return () => clearInterval(timer);
-  }, []);
+  }, [counting]);
   return now;
 }
 
 function RoomCard({ room, onCollected, onForget }: { room: RoomReminder; onCollected: () => void; onForget: () => void }) {
-  const now = useClock();
+  const now = useClock(room);
   const phase = roomPhase(room, now);
   const left = secondsToCollect(room, now);
   const urgent = phase === 'collect' || phase === 'returning';
@@ -123,7 +125,7 @@ function starts(dayOffset: 0 | 1, now: Date): string[] {
 
 const lengthLabel = (minutes: number) => (minutes % 60 === 0
   ? t({ en: `${minutes / 60} h`, th: `${minutes / 60} ชม.`, zh: `${minutes / 60} 小时` })
-  : t({ en: `${minutes / 60} h`, th: `${minutes} นาที`, zh: `${minutes} 分钟` }));
+  : t({ en: `${minutes} min`, th: `${minutes} นาที`, zh: `${minutes} 分钟` }));
 
 function NoteForm({ booking, rooms, onNoted, onCancel, onToast }: {
   booking: RoomBooking; rooms: RoomReminder[];

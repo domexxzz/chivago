@@ -6,9 +6,12 @@ import { openArea } from './area-opening.ts';
 import { hashApiKey } from './host-auth.ts';
 import {
   HostQuestRefused, OutsideQuestHours, QuestNotJoinable, closeHostQuest, createHostQuest, discardHostQuest,
-  editHostQuest, hostQuestById, hostQuestsOf, hostQuestsToReview, publishHostQuest, returnHostQuest, submitHostQuest,
+  MAX_UNPUBLISHED, editHostQuest, hostQuestById, hostQuestsOf, hostQuestsToReview, publishHostQuest, returnHostQuest, setHostCampus,
+  submitHostQuest,
 } from './host-quest-service.ts';
-import { arriveAtQuest, InvalidTransition, joinQuest, leaveQuest } from './quest-service.ts';
+import { arriveAtQuest, InvalidTransition, joinQuest, leaveQuest, submitProof } from './quest-service.ts';
+import { createParty, joinParty } from './party-service.ts';
+import { recordFix } from './presence-service.ts';
 import { getQuest, listQuests } from './repo.ts';
 
 const NOW = new Date('2026-12-01T02:00:00Z');
@@ -31,6 +34,7 @@ beforeEach(() => {
   for (const [id, name] of [['h-faculty', 'Faculty'], ['h-affairs', 'Student affairs']] as const) {
     db.prepare('INSERT INTO hosts (id,name,type,api_key_hash,created_at) VALUES (?,?,?,?,?)')
       .run(id, name, 'community', hashApiKey(id), NOW.toISOString());
+    setHostCampus(db, id, 'rmutt');
   }
   for (const id of ['a', 'b', 'c']) person(id);
 });
@@ -109,6 +113,25 @@ describe('from a draft to something a student can join', () => {
   });
 });
 
+describe('who may write, and how much', () => {
+  test('nobody until the operator says which campus', () => {
+    setHostCampus(db, 'h-faculty', null);
+    refused(() => createHostQuest(db, 'h-faculty', null, input, NOW), /not been opened/);
+  });
+
+  test('a right taken away while one waits stops it being published', () => {
+    const draft = createHostQuest(db, 'h-faculty', null, input, NOW);
+    submitHostQuest(db, 'h-faculty', draft.id, NOW);
+    setHostCampus(db, 'h-faculty', null);
+    refused(() => publishHostQuest(db, dean, draft.id, NOW), /not been opened/);
+  });
+
+  test('not without end', () => {
+    for (let i = 0; i < MAX_UNPUBLISHED; i += 1) createHostQuest(db, 'h-faculty', null, input, NOW);
+    refused(() => createHostQuest(db, 'h-faculty', null, input, NOW), /already waiting/);
+  });
+});
+
 describe('the list a traveller reads', () => {
   test('the island’s five do not hide a campus activity, nor a draft appear beside them', () => {
     openArea(db, 'koh-sichang', NOW);
@@ -174,6 +197,22 @@ describe('a seat', () => {
     const draft = createHostQuest(db, 'h-faculty', null, input, NOW);
     assert.throws(() => joinQuest(db, 'a', draft.id, NOW));
     assert.equal(db.prepare('SELECT COUNT(*) n FROM quest_progress').get()!.n, 0);
+  });
+});
+
+describe('a party', () => {
+  test('rides into an activity only with a seat each', () => {
+    const q = published({ seats: 2 });
+    for (const id of ['a', 'b']) joinQuest(db, id, q.id, NOW);
+    const party = createParty(db, 'a', 'Trip');
+    for (const id of ['b', 'c']) joinParty(db, id, party.code);
+    const here = { lat: 14.0334, lng: 100.7251, accuracyM: 8, mocked: false };
+    arriveAtQuest(db, 'a', q.id, here, DURING);
+    const later = new Date(DURING.getTime() + 30 * 60_000);
+    for (const id of ['b', 'c']) recordFix(db, id, here, later);
+    const { partyPresent } = submitProof(db, 'a', q.id, { photos: [{ uri: 'x.jpg', lat: null, lng: null, takenAt: later.toISOString() }], weightKg: null, position: here }, later);
+    assert.deepEqual(partyPresent.map((m) => m.userId), ['b']);
+    assert.equal(getQuest(db, q.id)!.event!.taken, 2);
   });
 });
 

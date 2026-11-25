@@ -12,9 +12,11 @@
  *
  *   SELF-DECLARED, AND SAID TO BE. No page calls this verified.
  *
- *   NEVER A PERSON. It is read as counts, and a count under five is not shown.
- *   Where only one group is that small the next smallest is hidden with it, so
- *   the hidden one cannot be worked out from a total (`hideSmallGroups`).
+ *   NEVER A PERSON. It is read as bands of five, over activities that are over,
+ *   and only once twenty people have taken part. A faculty with fewer than five
+ *   is not named at all: it is folded into "others", never alone, so it cannot
+ *   be worked out from a total or by watching the page while somebody joins
+ *   (`facultyBands`).
  *
  *   NOBODY HAS TO. Every activity works without it, and it can be taken back.
  */
@@ -26,9 +28,9 @@ import type { Localised } from './types.ts';
 export const STUDENT_CONSENT_VERSION = 'student-1';
 
 export const STUDENT_CONSENT: Localised = {
-  en: 'I agree that ChivarGo keeps my faculty and year, and shows organisers how many people from each faculty took part. Groups under five are not shown. I can remove this at any time.',
-  th: 'ยินยอมให้ ChivarGo เก็บคณะและชั้นปี และแสดงให้ผู้จัดเห็นเฉพาะจำนวนผู้เข้าร่วมของแต่ละคณะ กลุ่มที่น้อยกว่าห้าคนจะไม่แสดง ลบออกได้ทุกเมื่อ',
-  zh: '我同意 ChivarGo 保存我的院系和年级，并仅向主办方显示各院系的参与人数。少于五人的群体不予显示。我可随时删除。',
+  en: 'I agree that ChivarGo keeps my faculty and year, and shows organisers roughly how many people from each faculty took part. Groups under five are not named. I can remove this at any time.',
+  th: 'ยินยอมให้ ChivarGo เก็บคณะและชั้นปี และแสดงให้ผู้จัดเห็นจำนวนผู้เข้าร่วมโดยประมาณของแต่ละคณะ กลุ่มที่น้อยกว่าห้าคนจะไม่ระบุชื่อคณะ ลบออกได้ทุกเมื่อ',
+  zh: '我同意 ChivarGo 保存我的院系和年级，并仅向主办方显示各院系的大致参与人数。少于五人的院系不予列出。我可随时删除。',
 };
 
 export interface Faculty { key: string; name: Localised }
@@ -85,22 +87,38 @@ export function isStudentProfile(v: unknown): v is StudentProfile {
 
 /** Fewer than this and a count is about people rather than a group. */
 export const SMALLEST_GROUP = 5;
+/** Fewer people than this in all, and nothing is shown. */
+export const SMALLEST_AUDIENCE = 20;
 
 export interface GroupCount { key: string; count: number }
-export interface ShownCount { key: string; count: number | null }
+
+export interface FacultyBand { key: string; from: number; to: number }
+
+export interface FacultyBands {
+  bands: FacultyBand[];
+  /** Whether some people are in none of the bands. Never how many, never whose. */
+  others: boolean;
+}
 
 /**
- * Hide counts that are about a handful of people.
+ * Groups as bands of five, or null while there are too few people to show any.
  *
- * A single hidden group can be recovered by subtracting the others from any
- * total that is printed elsewhere, so it is never hidden alone.
+ * A single group left out could be recovered by subtracting the others from a
+ * total printed elsewhere, so one is never folded away alone.
  */
-export function hideSmallGroups(groups: readonly GroupCount[], smallest = SMALLEST_GROUP): ShownCount[] {
+export function facultyBands(groups: readonly GroupCount[]): FacultyBands | null {
   const present = groups.filter((g) => g.count > 0);
-  const hidden = new Set(present.filter((g) => g.count < smallest).map((g) => g.key));
-  if (hidden.size === 1) {
-    const next = present.filter((g) => !hidden.has(g.key)).sort((a, b) => a.count - b.count)[0];
-    if (next) hidden.add(next.key);
+  if (present.reduce((sum, g) => sum + g.count, 0) < SMALLEST_AUDIENCE) return null;
+  const folded = new Set(present.filter((g) => g.count < SMALLEST_GROUP).map((g) => g.key));
+  if (folded.size === 1) {
+    const next = present.filter((g) => !folded.has(g.key)).sort((a, b) => a.count - b.count)[0];
+    if (next) folded.add(next.key);
   }
-  return present.map((g) => ({ key: g.key, count: hidden.has(g.key) ? null : g.count }));
+  return {
+    bands: present.filter((g) => !folded.has(g.key)).map((g) => {
+      const from = Math.floor(g.count / SMALLEST_GROUP) * SMALLEST_GROUP;
+      return { key: g.key, from, to: from + SMALLEST_GROUP - 1 };
+    }),
+    others: folded.size > 0,
+  };
 }

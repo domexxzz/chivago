@@ -10,7 +10,7 @@
 
 import { randomBytes, randomUUID } from 'node:crypto';
 import {
-  hostQuestProblems, type Bilingual, type HostQuestInput, type HostQuestStatus,
+  hostQuestProblems, isHostQuestArea, type AreaKey, type Bilingual, type HostQuestInput, type HostQuestStatus,
 } from '@chivago/core';
 import { row, rows, transact, type DB } from './db.ts';
 
@@ -106,15 +106,31 @@ export function hostQuestById(db: DB, id: string): HostQuest | null {
   return r ? toHostQuest(r) : null;
 }
 
+/** The campus this host may write for, or null. */
+export function campusOf(db: DB, hostId: string): AreaKey | null {
+  const r = row<{ campus: string | null }>(db.prepare('SELECT campus FROM hosts WHERE id = ?').get(hostId));
+  return isHostQuestArea(r?.campus) ? r!.campus as AreaKey : null;
+}
+
+/** Tie a host to a campus, or untie it. The operator's act, never the host's. */
+export function setHostCampus(db: DB, hostId: string, campus: AreaKey | null): boolean {
+  return Number(db.prepare('UPDATE hosts SET campus = ? WHERE id = ?').run(campus, hostId).changes) > 0;
+}
+
+/** More than this unpublished at once is not a programme. */
+export const MAX_UNPUBLISHED = 30;
+const LISTED = 100;
+const REVIEWED_AT_ONCE = 50;
+
 /** A host's own, newest first. */
 export const hostQuestsOf = (db: DB, hostId: string): HostQuest[] =>
-  rows<HostQuestRow>(db.prepare(`${SELECT} WHERE hq.host_id = ? ORDER BY hq.created_at DESC, hq.id`).all(hostId))
+  rows<HostQuestRow>(db.prepare(`${SELECT} WHERE hq.host_id = ? ORDER BY hq.created_at DESC, hq.id LIMIT ${LISTED}`).all(hostId))
     .map(toHostQuest);
 
 /** What a reviewer may decide: submitted, and written by somebody else's host. Oldest first. */
 export const hostQuestsToReview = (db: DB, reviewerHostId: string): HostQuest[] =>
   rows<HostQuestRow>(
-    db.prepare(`${SELECT} WHERE hq.status = 'submitted' AND hq.host_id <> ? ORDER BY hq.submitted_at, hq.id`)
+    db.prepare(`${SELECT} WHERE hq.status = 'submitted' AND hq.host_id <> ? ORDER BY hq.submitted_at, hq.id LIMIT ${REVIEWED_AT_ONCE}`)
       .all(reviewerHostId),
   ).map(toHostQuest);
 
@@ -133,9 +149,14 @@ const values = (q: HostQuestInput) => [
   new Date(q.startsAt).toISOString(), new Date(q.endsAt).toISOString(),
 ] as const;
 
-function checked(input: HostQuestInput, now: Date): HostQuestInput {
+function checked(db: DB, hostId: string, input: HostQuestInput, now: Date): HostQuestInput {
   const q = clean(input);
+  const campus = campusOf(db, hostId);
+  if (campus === null) {
+    refuse('This host has not been opened to write campus activities. Ask the ChivarGo team.', 'หน่วยงานนี้ยังไม่ได้รับสิทธิ์เขียนกิจกรรมของวิทยาเขต ติดต่อทีม ChivarGo');
+  }
   const problems = hostQuestProblems(q, now);
+  if (q.area !== campus) problems.unshift({ en: 'This host writes for another campus.', th: 'หน่วยงานนี้มีสิทธิ์กับวิทยาเขตอื่น' });
   if (problems.length > 0) throw new HostQuestRefused(problems);
   return q;
 }
@@ -143,7 +164,13 @@ function checked(input: HostQuestInput, now: Date): HostQuestInput {
 export function createHostQuest(
   db: DB, hostId: string, writtenBy: string | null, input: HostQuestInput, now = new Date(),
 ): HostQuest {
-  const q = checked(input, now);
+  const q = checked(db, hostId, input, now);
+  const open = row<{ n: number }>(
+    db.prepare("SELECT COUNT(*) n FROM host_quests WHERE host_id = ? AND status IN ('draft','submitted','returned')").get(hostId),
+  )!.n;
+  if (open >= MAX_UNPUBLISHED) {
+    refuse(`Finish or discard some first: ${MAX_UNPUBLISHED} are already waiting.`, `มีรายการค้างอยู่ ${MAX_UNPUBLISHED} รายการแล้ว จัดการรายการเดิมก่อน`);
+  }
   const id = `hq-${randomUUID()}`;
   db.prepare(
     `INSERT INTO host_quests (id, host_id, status, written_by, created_at, updated_at,
@@ -158,7 +185,7 @@ export function createHostQuest(
 export function editHostQuest(
   db: DB, hostId: string, id: string, input: HostQuestInput, now = new Date(),
 ): HostQuest {
-  const q = checked(input, now);
+  const q = checked(db, hostId, input, now);
   const done = db.prepare(
     `UPDATE host_quests SET updated_at = ?, area = ?, name_en = ?, name_th = ?, where_en = ?, where_th = ?,
        minutes = ?, reward_points = ?, reward_currency = ?, lat = ?, lng = ?, radius_m = ?, seats = ?,
@@ -174,7 +201,7 @@ export function editHostQuest(
 export function submitHostQuest(db: DB, hostId: string, id: string, now = new Date()): HostQuest {
   const found = hostQuestById(db, id);
   if (!found || found.hostId !== hostId) return refuse('No such activity.', 'ไม่พบกิจกรรมนี้');
-  checked(found, now);
+  checked(db, hostId, found, now);
   const done = db.prepare(
     `UPDATE host_quests SET status = 'submitted', submitted_at = ?, updated_at = ?, return_reason = NULL
      WHERE id = ? AND host_id = ? AND status IN ('draft', 'returned')`,
@@ -204,7 +231,7 @@ const questCode = (): string => `H-${randomBytes(3).toString('hex').toUpperCase(
 export function publishHostQuest(db: DB, reviewer: Reviewer, id: string, now = new Date()): HostQuest {
   return transact(db, () => {
     const q = underReview(db, reviewer, id);
-    checked(q, now);
+    checked(db, q.hostId, q, now);
     db.prepare(
       `UPDATE host_quests SET status = 'published', reviewed_by_host = ?, reviewed_by = ?, reviewed_at = ?, updated_at = ?
        WHERE id = ? AND status = 'submitted'`,

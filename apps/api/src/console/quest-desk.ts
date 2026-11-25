@@ -12,7 +12,7 @@
 
 import {
   HOST_QUEST_MAX_REWARD, HOST_QUEST_MAX_SEATS, HOST_QUEST_RADIUS_M, HOST_QUEST_STATUS_LABEL, mostItCanPay,
-  SMALLEST_GROUP, facultyName, type Area, type Bilingual, type ShownCount,
+  SMALLEST_AUDIENCE, SMALLEST_GROUP, facultyName, type Area, type Bilingual, type FacultyBands,
 } from '@chivago/core';
 import type { HostQuest } from '../host-quest-service.ts';
 import { FACULTY_NOT_SAID } from '../student-service.ts';
@@ -141,7 +141,7 @@ function questForm(args: {
     </form>`;
 }
 
-function facultyPanel(counts: ShownCount[], th: boolean): Raw {
+function facultyPanel(shown: FacultyBands, th: boolean): Raw {
   const name = (key: string): string => {
     if (key === FACULTY_NOT_SAID) return th ? 'ไม่ได้ระบุคณะ' : 'Faculty not said';
     const found = facultyName('rmutt', key);
@@ -151,18 +151,21 @@ function facultyPanel(counts: ShownCount[], th: boolean): Raw {
     <section class="panel panel--muted">
       <h2>${th ? 'ผู้เข้าร่วมตามคณะ' : 'Who took part, by faculty'}</h2>
       <div class="scroll"><table><tbody>
-        ${counts.map((c) => html`<tr><td>${name(c.key)}</td><td>${c.count === null ? (th ? 'น้อย ไม่แสดง' : 'small, not shown') : c.count}</td></tr>`)}
+        ${shown.bands.map((b) => html`<tr><td>${name(b.key)}</td><td>${b.from}–${b.to}</td></tr>`)}
+        ${shown.others ? html`<tr><td>${th ? 'คณะอื่น' : 'Others'}</td><td class="muted">${th ? 'ไม่แสดงจำนวน' : 'not shown'}</td></tr>` : ''}
       </tbody></table></div>
       <p class="note">${th
-    ? `นับจากคณะที่ผู้เข้าร่วมแจ้งเอง ไม่ได้ตรวจกับทะเบียน กลุ่มที่น้อยกว่า ${SMALLEST_GROUP} คน และกลุ่มถัดไปที่อาจทำให้เดาได้ จะไม่แสดง`
-    : `Self-declared, not checked against any register. A group under ${SMALLEST_GROUP}, and the next one where it could give that away, is not shown.`}</p>
+    ? `โดยประมาณ จากคณะที่ผู้เข้าร่วมแจ้งเอง ไม่ได้ตรวจกับทะเบียน นับเฉพาะกิจกรรมที่จบแล้ว แสดงเมื่อมีตั้งแต่ ${SMALLEST_AUDIENCE} คน และไม่ระบุคณะที่น้อยกว่า ${SMALLEST_GROUP} คน`
+    : `Rough, self-declared and not checked against any register. Only activities that are over, only from ${SMALLEST_AUDIENCE} people up, and a faculty under ${SMALLEST_GROUP} is not named.`}</p>
     </section>`;
 }
 
 export function questDeskPage(args: {
   locale: Locale; hostName: string; canModerate: boolean; csrf: string;
   own: HostQuest[]; toReview: HostQuest[]; editing: HostQuest | null; form: QuestForm;
-  areas: readonly Area[]; places: DeskPlace[]; problems: Bilingual[]; faculties: ShownCount[];
+  places: DeskPlace[]; problems: Bilingual[]; faculties: FacultyBands | null;
+  /** The campus this host writes for, or null when it has not been opened to. */
+  campus: Area | null;
 }): string {
   const { locale, hostName, canModerate, csrf, own, toReview, problems } = args;
   const th = locale === 'th';
@@ -188,11 +191,14 @@ export function questDeskPage(args: {
         <tbody>${own.map((q) => ownRow(q, csrf, th))}</tbody>
       </table></div>`}
 
-    ${args.faculties.length === 0 ? '' : facultyPanel(args.faculties, th)}
+    ${args.faculties === null ? '' : facultyPanel(args.faculties, th)}
 
+    ${args.campus === null ? html`<p class="note">${th
+    ? 'หน่วยงานนี้ยังไม่ได้รับสิทธิ์เขียนกิจกรรมของวิทยาเขต ติดต่อทีม ChivarGo'
+    : 'This host has not been opened to write campus activities. Ask the ChivarGo team.'}</p>` : html`
     <section class="panel">
       <h2>${args.editing ? (th ? 'แก้ไข' : 'Edit') : (th ? 'เขียนกิจกรรมใหม่' : 'Write a new one')}</h2>
-      ${questForm({ ...args, th })}
+      ${questForm({ ...args, areas: [args.campus], th })}
       ${args.editing ? html`<p><a href="/console/quest-desk">${th ? 'ยกเลิกการแก้ไข' : 'Stop editing'}</a></p>` : ''}
-    </section>`);
+    </section>`}`);
 }

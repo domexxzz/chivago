@@ -1,11 +1,11 @@
 /** The routes behind `quest-desk.ts`. Mounted by `routes.ts`, behind its session check. */
 
 import type { Context, Hono } from 'hono';
-import { AREAS, inArea, type Bilingual, type HostQuestInput } from '@chivago/core';
+import { areaByKey, inArea, type Area, type Bilingual, type HostQuestInput } from '@chivago/core';
 import { row, rows, type DB } from '../db.ts';
 import type { HostSession } from '../host-auth.ts';
 import {
-  HostQuestRefused, closeHostQuest, createHostQuest, discardHostQuest, editHostQuest, hostQuestById,
+  HostQuestRefused, campusOf, closeHostQuest, createHostQuest, discardHostQuest, editHostQuest, hostQuestById,
   hostQuestsOf, hostQuestsToReview, publishHostQuest, returnHostQuest, submitHostQuest,
 } from '../host-quest-service.ts';
 import { participationByFaculty } from '../student-service.ts';
@@ -23,18 +23,17 @@ interface Deps {
 }
 
 const DESK = '/console/quest-desk';
-const universities = AREAS.filter((a) => a.university);
 
 interface PlaceRow { id: string; name_en: string; name_th: string; lat: number; lng: number }
 
-function campusPlaces(db: DB): DeskPlace[] {
+function campusPlaces(db: DB, area: Area): DeskPlace[] {
   const found = rows<PlaceRow>(
     db.prepare('SELECT id, name_en, name_th, lat, lng FROM places WHERE admin_hidden_at IS NULL ORDER BY name_en').all(),
   );
-  return universities.flatMap((area) => found
+  return found
     .filter((p) => inArea(area, p) && p.lat >= area.bbox.minLat && p.lat <= area.bbox.maxLat
       && p.lng >= area.bbox.minLng && p.lng <= area.bbox.maxLng)
-    .map((p) => ({ id: p.id, areaName: area.name, nameEn: p.name_en, nameTh: p.name_th })));
+    .map((p) => ({ id: p.id, areaName: area.name, nameEn: p.name_en, nameTh: p.name_th }));
 }
 
 function readForm(body: Record<string, unknown>): QuestForm {
@@ -69,13 +68,15 @@ export function mountQuestDesk(app: Hono, deps: Deps): void {
     const editing = wanted && wanted.hostId === session.hostId && (wanted.status === 'draft' || wanted.status === 'returned')
       ? wanted : null;
     const problems = shown.problems ?? [];
+    const key = campusOf(db, session.hostId);
+    const campus = key === null ? null : areaByKey(key);
     return c.html(questDeskPage({
       locale: localeFor(c), hostName: session.hostName, canModerate: canModerate(session), csrf: csrfFor(session),
       own: hostQuestsOf(db, session.hostId),
       toReview: canModerate(session) ? hostQuestsToReview(db, session.hostId) : [],
       editing,
-      form: shown.form ?? (editing ? formOf(editing) : { ...EMPTY_QUEST_FORM, area: universities[0]?.key ?? '' }),
-      areas: universities, places: campusPlaces(db), problems,
+      form: shown.form ?? (editing ? formOf(editing) : { ...EMPTY_QUEST_FORM, area: key ?? '' }),
+      campus, places: campus ? campusPlaces(db, campus) : [], problems,
       faculties: participationByFaculty(db, session.hostId),
     }), problems.length > 0 ? 400 : 200);
   };
