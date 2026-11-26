@@ -21,6 +21,25 @@ Core idea: a point is only worth something if somebody had to check it. Green Po
 - Hotels: a verifiable activity statement to attach to the sustainability/ESG report they already file (it measures no building and replaces no number)
 - Host console for operators to verify activity
 
+## Where
+Two islands, and nowhere else. A coordinate is the island's own point, not a map frame.
+- Koh Sichang (เกาะสีชัง), Chon Buri province (TH-20), 13.1599 N 100.8096 E. The pilot: the quests, the hosts and the verified activity are here. Twelve kilometres of sea west of Si Racha. About 6 x 2.8 km, walkable - the pier to the palace is 1.6 km.
+- Koh Samui (เกาะสมุย), Surat Thani province (TH-84), 9.495 N 100.0 E.
+The app also runs on three university campuses in Thailand: Kasetsart Si Racha, Kasetsart Bangkhen and Rajamangala Thanyaburi (RMUTT).
+
+## Questions
+- What is ChivarGo? A healthy, sustainable travel platform for exploring Koh Sichang and Koh Samui: collect points, complete quests, care for the island and connect with the community.
+- Which devices can I use? The website, on a phone, tablet or computer. No app-store download is required.
+- How do Green Points differ from Trip Points? Green Points require host approval. Trip Points follow travel activity rules. Balances and history are kept separate in Wallet.
+- Do I always need a connection? Previously cached information is available offline. Some maps and directions need a connection. Evidence and rewards require server verification.
+- How is personal data handled? Through the app's existing account controls. Location and camera access require device permission; see the privacy policy.
+- How can a business join? Submit the partner application. The team reviews operator details and permissions before console access.
+
 ## Pages
+URLs carry no .html suffix: that spelling answers a 307 to the one listed here.
 - [ChivarGo (Thai)](https://chivargo.com/th/): features, islands, partners, FAQ
+- [ChivarGo (English)](https://chivargo.com/th/en): the same page in English
+- [ChivarGo (Simplified Chinese)](https://chivargo.com/th/zh): the same page in Chinese
 - [Open the app](https://chivargo.com/)
+- [About](https://chivargo.com/about): who runs this
+- [Privacy policy](https://chivargo.com/privacy): what is collected and on what terms

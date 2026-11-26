@@ -25,6 +25,25 @@
     <title>%WEB_TITLE%</title>
 
     <!--
+      WHAT A CRAWLER GETS FROM THIS PAGE, which until now was a title and an
+      empty div. The app is client-rendered, so anything that does not run
+      JavaScript - and most of the crawlers behind generated answers do not -
+      sees the <noscript> below and nothing else. These three lines are the
+      whole of what such a reader can learn here, so they are worth writing:
+      a sentence describing the app, one address for it however it was
+      reached, and a link onward to the page that does have the content.
+
+      The canonical is the bare origin on purpose. Every screen in the app is
+      a query on this one URL (/?screen=...&area=...), and without this each
+      of those is a separate page saying the same thing.
+    -->
+    <meta
+      name="description"
+      content="ChivarGo is a healthy, low-impact island travel app for Koh Sichang and Koh Samui, Thailand. Complete quests, earn host-verified Green Points and explore with local communities. Free in your browser."
+    />
+    <link rel="canonical" href="https://chivargo.com/" />
+
+    <!--
       The tab icon, in the three forms that are actually read:
 
       - favicon.ico holds 16/32/48/64. Google's crawler wants 48 or a multiple
@@ -64,7 +83,20 @@
   <body>
     <!-- Use static rendering with Expo Router to support running without JavaScript. -->
     <noscript>
-      You need to enable JavaScript to run this app.
+      <h1>ChivarGo</h1>
+      <p>
+        A healthy, low-impact island travel app for Koh Sichang (Chon Buri) and
+        Koh Samui (Surat Thani), Thailand. Complete quests, earn Green Points
+        that a local host has verified, and explore with island communities.
+      </p>
+      <p>
+        The app itself needs JavaScript. Everything it does is described, with
+        no JavaScript required, on
+        <a href="/th/">the ChivarGo page</a>
+        (also in <a href="/th/en">English</a> and
+        <a href="/th/zh">Chinese</a>).
+      </p>
+      <p><a href="/about">About ChivarGo</a> &middot; <a href="/privacy">Privacy policy</a></p>
     </noscript>
     <!-- The root element for your Expo app. -->
     <div id="root"></div>

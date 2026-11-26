@@ -46,7 +46,7 @@ try {
  }
  await page.goto('http://127.0.0.1:4321/th/');
  await page.selectOption('#language','en');
- await page.waitForURL('**/en.html');
+ await page.waitForURL('**/th/en');
  assert.equal(await page.locator('html').getAttribute('lang'),'en');
  await page.goBack();
  assert.equal(await page.locator('html').getAttribute('lang'),'th');
