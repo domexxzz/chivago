@@ -40,10 +40,17 @@ const OFF_ISLAND = 'g-mainland';
  * and silently dropped it. Pinned here because nothing failed when it did.
  */
 const OFF_BBOX = 'g-ko-kham-yai';
+/**
+ * A row carrying the two payloads the review found: a name that closes the
+ * JSON-LD script element, and a photo source that is a `javascript:` URL.
+ * Both rendered before this was fixed - the first put a live <img> in the
+ * document, the second a clickable script link dressed as a photo credit.
+ */
+const HOSTILE = 'g-hostile';
 
 const insertPlace = (place: {
-  id: string; lat: number; lng: number;
-  photoUrl?: string | null; photoCredit?: string | null;
+  id: string; lat: number; lng: number; nameEn?: string;
+  photoUrl?: string | null; photoCredit?: string | null; photoSource?: string | null;
 }) => {
   db.prepare(
     `INSERT INTO places (
@@ -53,14 +60,16 @@ const insertPlace = (place: {
        crowd_density, aqi, safety_index, walkability
      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
   ).run(
-    place.id, 'Phra Chudadhuj Palace', 'พระจุฑาธุชราชฐาน', 'Palace', 'Wellness',
+    place.id, place.nameEn ?? 'Phra Chudadhuj Palace', 'พระจุฑาธุชราชฐาน', 'Palace', 'Wellness',
     place.lat, place.lng, '{}',
     'The only royal palace built on an island, with "quoted" grounds & gardens.',
     'พระราชฐานแห่งเดียวที่สร้างบนเกาะ',
     JSON.stringify(['History', 'Palace']),
     place.photoUrl ?? null, place.photoCredit ?? null,
     place.photoCredit ? 'CC BY 4.0' : null,
-    place.photoCredit ? 'https://commons.wikimedia.org/wiki/File:Example.jpg' : null,
+    place.photoCredit
+      ? (place.photoSource ?? 'https://commons.wikimedia.org/wiki/File:Example.jpg')
+      : null,
     'Staffed palace grounds', 'อยู่ในเขตพระราชฐาน',
     0.2, 30, 0.9, 0.8,
   );
@@ -93,6 +102,12 @@ before(() => {
   });
   // The real Ko Kham Yai coordinate, from the seed.
   insertPlace({ id: OFF_BBOX, lat: 13.1679437, lng: 100.8245248 });
+  insertPlace({
+    id: HOSTILE, lat: 13.1504, lng: 100.8180,
+    nameEn: '</script><img src=x onerror=alert(1)>',
+    photoUrl: 'https://commons.example/a.jpg', photoCredit: 'Someone',
+    photoSource: 'javascript:alert(document.cookie)',
+  });
   // The Si Racha campus, on the mainland twelve kilometres east: in the same
   // province, and outside `inArea`'s margin. This is the place the margin
   // must not sweep in.
@@ -187,8 +202,8 @@ describe('the URLs a crawler is told to trust', () => {
   test('the sitemap gives every page both languages and an x-default', async () => {
     const sitemap = await (await get('/guide/sitemap.xml')).text();
     const locs = sitemap.match(/<loc>/g) ?? [];
-    // Two index pages plus three island places in two languages.
-    assert.equal(locs.length, 2 + 3 * 2);
+    // Two index pages plus four island places in two languages.
+    assert.equal(locs.length, 2 + 4 * 2);
     assert.equal((sitemap.match(/<xhtml:link/g) ?? []).length, locs.length * 3);
     assert.ok(sitemap.includes(`${ORIGIN}/guide/th/${NO_CREDIT}`));
   });
@@ -212,12 +227,13 @@ describe('the structured data', () => {
   test('the index lists every published place in order', async () => {
     const graph = schemaOf(await (await get('/guide/th')).text());
     const list = nodeOf(graph, 'CollectionPage').mainEntity;
-    assert.equal(list.numberOfItems, 3);
-    assert.deepEqual(list.itemListElement.map((i: any) => i.position), [1, 2, 3]);
+    assert.equal(list.numberOfItems, 4);
+    assert.deepEqual(list.itemListElement.map((i: any) => i.position), [1, 2, 3, 4]);
     // Ordered by id, so the list is the same list on every request.
     assert.deepEqual(
       list.itemListElement.map((i: any) => i.url),
       [
+        `${ORIGIN}/guide/th/${HOSTILE}`,
         `${ORIGIN}/guide/th/${OFF_BBOX}`,
         `${ORIGIN}/guide/th/${NO_CREDIT}`,
         `${ORIGIN}/guide/th/${ON_ISLAND}`,
@@ -253,5 +269,35 @@ describe('a photograph is published with its credit or not at all', () => {
       'an uncredited photograph was claimed in the schema');
     // The page itself is still perfectly good; it just has no picture.
     assert.ok(html.includes('<h1>'), 'the page lost its heading with its photograph');
+  });
+});
+
+describe('nothing in a database row can become markup', () => {
+  test('a name holding </script> cannot end the JSON-LD element', async () => {
+    const html = await (await get(`/guide/en/${HOSTILE}`)).text();
+    assert.ok(!html.includes('</script><img src=x'), 'the script element was closed by the data');
+    assert.ok(!/<img src=x onerror=/.test(html), 'a live img tag reached the document');
+    // And the graph still carries the real name, escaped rather than mangled.
+    assert.equal(
+      nodeOf(schemaOf(html), 'TouristAttraction').name,
+      '</script><img src=x onerror=alert(1)>',
+    );
+  });
+
+  test('a javascript: photo source is not linked, and the licence is still named', async () => {
+    const html = await (await get(`/guide/en/${HOSTILE}`)).text();
+    assert.ok(!html.includes('javascript:'), 'a javascript: URL was rendered as an href');
+    assert.ok(html.includes('CC BY 4.0'), 'the licence lost its name along with its link');
+    assert.equal(
+      nodeOf(schemaOf(html), 'TouristAttraction').image.acquireLicensePage, undefined,
+      'a javascript: URL was published in the schema',
+    );
+  });
+
+  test('the image never claims a size nobody measured', async () => {
+    const html = await (await get(`/guide/en/${ON_ISLAND}`)).text();
+    assert.ok(html.includes('<img src='), 'the photograph is missing');
+    assert.ok(!/<img[^>]*\swidth="/.test(html),
+      'the image asserts a width that was a guess, which is what shifts the layout');
   });
 });

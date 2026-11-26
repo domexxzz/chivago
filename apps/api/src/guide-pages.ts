@@ -116,6 +116,60 @@ export const inGuide = (place: { lat: number; lng: number }): boolean =>
   inArea(areaByKey(GUIDE_AREA), place)
   && nearestArea(place.lat, place.lng).key === GUIDE_AREA;
 
+/**
+ * JSON for a `<script>` element.
+ *
+ * `JSON.stringify` escapes neither `<` nor `/`, so a value containing
+ * `</script>` ends the element and everything after it is parsed as HTML -
+ * a place name of `</script><img src=x onerror=...>` becomes live markup on
+ * a public page. Measured, not supposed: rendering that row put a working
+ * img tag in the document.
+ *
+ * `\u003c` is an ordinary JSON escape and parses back to `<`, so the graph a
+ * crawler reads is unchanged. Every `<` goes, not only the ones in
+ * `</script>`: JSON has no bare `<` outside a string, so there is nothing
+ * else for this to hit, and `<!--` would open a comment just as happily.
+ *
+ * The body text on this page has always gone through `esc`. This was the one
+ * path out that did not, which is what made it easy to miss.
+ */
+const ldJson = (value: unknown): string =>
+  JSON.stringify(value).replace(/</g, '\\u003c');
+
+/**
+ * A URL that may become an `href`, or null.
+ *
+ * `esc` stops a value breaking out of the attribute and does nothing at all
+ * about the scheme, so `javascript:alert(document.cookie)` in
+ * `photo_source` rendered a clickable script link dressed as a photo credit.
+ * Only http and https may be linked; anything else loses its link and keeps
+ * its text, because the licence still has to be named either way.
+ */
+const httpUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? url : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * A URL that may become an image.
+ *
+ * Same rule, plus the one `photo_url` actually relies on: some rows hold a
+ * path on this origin (`/media/places/...`) rather than an absolute URL, and
+ * a path is not a scheme anybody can abuse. A protocol-relative `//host/x`
+ * is NOT a path, so it is excluded rather than let through by the leading
+ * slash.
+ */
+const imageUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  if (url.startsWith('/') && !url.startsWith('//')) return url;
+  return httpUrl(url);
+};
+
 const esc = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -142,7 +196,7 @@ const tagsOf = (place: GuidePlace): string[] => {
  * template so there is one answer to it.
  */
 export const publishablePhoto = (place: GuidePlace): boolean =>
-  Boolean(place.photo_url && place.photo_credit && place.photo_licence);
+  Boolean(imageUrl(place.photo_url) && place.photo_credit && place.photo_licence);
 
 const WORDS = {
   guide: { th: 'คู่มือสถานที่', en: 'Place guide' },
@@ -189,7 +243,7 @@ h2{font-size:1.1rem;margin:28px 0 8px;color:var(--deep)}
 p{margin:10px 0}
 .lede{font-size:1.08rem;color:var(--ink)}
 figure{margin:20px 0 8px}
-figure img{width:100%;height:auto;border-radius:12px;display:block;background:var(--card)}
+figure img{width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:12px;display:block;background:var(--card)}
 figcaption{font-size:13px;color:var(--dim);margin-top:8px}
 figcaption a{color:var(--teal)}
 dl{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:10px 0;font-size:15px}
@@ -247,7 +301,7 @@ const page = ({ origin, lang, path, title, description, schema, body, image }: S
     + `<meta property="og:url" content="${origin}${path}">`
     + (image ? `<meta property="og:image" content="${esc(image)}"><meta name="twitter:card" content="summary_large_image">` : '')
     + `<style>${STYLE}</style>`
-    + `<script type="application/ld+json">${JSON.stringify(schema)}</script>`
+    + `<script type="application/ld+json">${ldJson(schema)}</script>`
     + `</head><body>${body}</body></html>\n`;
 };
 
@@ -358,10 +412,10 @@ export const placeSchema = (origin: string, lang: GuideLang, place: GuidePlace, 
       ? {
         image: {
           '@type': 'ImageObject',
-          contentUrl: place.photo_url,
+          contentUrl: imageUrl(place.photo_url),
           creditText: place.photo_credit,
           license: place.photo_licence,
-          ...(place.photo_source ? { acquireLicensePage: place.photo_source } : {}),
+          ...(httpUrl(place.photo_source) ? { acquireLicensePage: place.photo_source } : {}),
         },
       }
       : {}),
@@ -380,11 +434,20 @@ export function placePage(
   const path = guidePlacePath(lang, place.id);
   const shows = publishablePhoto(place);
 
+  /*
+    NO width/height ATTRIBUTES, because we do not know them. They were
+    1280x853 for every photograph: the Commons URL pins the width and says
+    nothing about the height, so that was a guess per image, and a wrong
+    guess reserves a wrong box and the page jumps when the real picture
+    decodes. The stylesheet reserves a stable 3:2 box instead, which shifts
+    nothing whatever the photograph turns out to be.
+  */
+  const source = httpUrl(place.photo_source);
   const figure = shows
-    ? `<figure><img src="${esc(place.photo_url!)}" alt="${esc(name)}" width="1280" height="853" loading="eager" decoding="async">`
+    ? `<figure><img src="${esc(imageUrl(place.photo_url)!)}" alt="${esc(name)}" loading="eager" decoding="async">`
       + `<figcaption>${word('photoBy', lang)} ${esc(place.photo_credit!)} · ${word('licence', lang)} `
-      + (place.photo_source
-        ? `<a href="${esc(place.photo_source)}" rel="license noopener nofollow">${esc(place.photo_licence!)}</a>`
+      + (source
+        ? `<a href="${esc(source)}" rel="license noopener nofollow">${esc(place.photo_licence!)}</a>`
         : esc(place.photo_licence!))
       + `</figcaption></figure>`
     : '';
@@ -408,7 +471,7 @@ export function placePage(
     origin, lang, path,
     title: `${name} · ${pick(lang, area.name.th, area.name.en)} · ChivarGo`,
     description: blurb,
-    image: shows ? place.photo_url! : undefined,
+    image: shows ? imageUrl(place.photo_url)! : undefined,
     schema: {
       '@context': 'https://schema.org',
       '@graph': [
