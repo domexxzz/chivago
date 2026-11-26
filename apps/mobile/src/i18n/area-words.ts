@@ -30,6 +30,15 @@ export interface AreaWords {
    * area is. A campus is not told about a marine model or about navigating.
    */
   weatherVia: Bilingual;
+  /**
+   * Who could agree to run a waste drop-off point here.
+   *
+   * On an island that is a shop or the municipality, which is who signs for
+   * what is handed in. A campus has neither: the university is its own
+   * authority, and a student told to wait for the municipality is being sent
+   * to the wrong desk.
+   */
+  dropOffHost: Bilingual;
 }
 
 const ISLAND: AreaWords = {
@@ -39,6 +48,11 @@ const ISLAND: AreaWords = {
     zh: '岛屿故事、当地人与安心旅程，尽在一处。',
   },
   questsTagline: { en: 'PLAY, EXPLORE & HELP THE ISLAND', th: 'เล่นเกม ออกสำรวจ และช่วยดูแลเกาะ', zh: '畅玩、探索并守护岛屿' },
+  dropOffHost: {
+    en: 'A point appears here when a shop or the municipality agrees to run one and to sign for what is handed in.',
+    th: 'จุดรับจะขึ้นที่นี่เมื่อมีร้านหรือเทศบาลรับเป็นผู้ดูแล และลงนามรับของที่ส่งมอบ',
+    zh: '当有商家或市政方同意负责并为所交付的物品签收时，投放点会显示在这里。',
+  },
   questsHint: { en: 'Activities around the island', th: 'กิจกรรมที่ทำได้ทั่วเกาะ', zh: '岛上各处的活动' },
   perksBody: {
     en: 'Use your Green and Trip points for café discounts, wellness and island tours.',
@@ -81,6 +95,11 @@ const CAMPUS: AreaWords = {
     zh: '校园故事、身边的人与安心旅程，尽在一处。',
   },
   questsTagline: { en: 'PLAY, EXPLORE & LOOK AFTER THE CAMPUS', th: 'เล่นเกม ออกสำรวจ และช่วยดูแลมหาวิทยาลัย', zh: '畅玩、探索并守护校园' },
+  dropOffHost: {
+    en: 'A point appears here when a shop or the university agrees to run one and to sign for what is handed in.',
+    th: 'จุดรับจะขึ้นที่นี่เมื่อมีร้านหรือมหาวิทยาลัยรับเป็นผู้ดูแล และลงนามรับของที่ส่งมอบ',
+    zh: '当有商家或校方同意负责并为所交付的物品签收时，投放点会显示在这里。',
+  },
   questsHint: { en: 'Activities around the campus', th: 'กิจกรรมที่ทำได้ในมหาวิทยาลัย', zh: '校园各处的活动' },
   perksBody: {
     en: 'Use your Green and Trip points for discounts at cafés, food stalls and local activities.',

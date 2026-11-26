@@ -42,6 +42,8 @@ import {
 import { color, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from './Type.tsx';
 import { t } from '../i18n/locale.ts';
+import { areaWords } from '../i18n/area-words.ts';
+import { useArea } from '../state/area.ts';
 
 interface Props {
   /** The traveller's own position, or null when location is off. */
@@ -52,6 +54,7 @@ interface Props {
 }
 
 export function DropOffLayer({ here, points = DROP_OFF_POINTS, onRoute }: Props) {
+  const area = useArea();
   const ordered = React.useMemo(() => dropOffsNearest(here, points), [here, points]);
 
   return (
@@ -79,11 +82,7 @@ export function DropOffLayer({ here, points = DROP_OFF_POINTS, onRoute }: Props)
             })}
           </Body>
           <Label colour={color.neutral700}>
-            {t({
-              en: 'A point appears here when a shop or the municipality agrees to run one and to sign for what is handed in.',
-              th: 'จุดรับจะขึ้นที่นี่เมื่อมีร้านหรือเทศบาลรับเป็นผู้ดูแล และลงนามรับของที่ส่งมอบ',
-              zh: '当有商家或市政方同意负责并为所交付的物品签收时，投放点会显示在这里。',
-            })}
+            {t(areaWords(area).dropOffHost)}
           </Label>
         </View>
       ) : (

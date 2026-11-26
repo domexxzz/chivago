@@ -31,6 +31,16 @@ import { r2BlobStore, setBlobStore } from './blob-store.ts';
 import { nextDueAt, runDueSweeps, type LastRunAt, type Sweep } from './sweeps.ts';
 import { servedFromExport } from './served-from-export.ts';
 import { edgeCacheKey, edgeCacheable, forClient, forEdge } from './edge-cache.ts';
+import { containerTranscoder, setTranscoder } from './transcode.ts';
+import type { ChivagoEncoder as ChivagoEncoderClass } from './encoder-container.ts';
+
+/*
+  The encoder's container. Re-exported rather than defined here: a Cloudflare
+  container is reached only through its own Durable Object class, and that
+  class has to be exported from the Worker's main module. See
+  encoder-container.ts for the measurements behind its instance size.
+*/
+export { ChivagoEncoder } from './encoder-container.ts';
 
 export interface Env {
   /** The one object. See the note above about why there is only one. */
@@ -39,7 +49,18 @@ export interface Env {
   UPLOADS: R2Bucket;
   /** The exported web app, served by Workers Assets. */
   ASSETS: Fetcher;
+  /**
+   * The encoder's container, through its Durable Object. Absent on a
+   * deployment that has not been given one, and the stories then fall back to
+   * what a Worker can do alone - see `workersTranscoder` in transcode.ts.
+   */
+  ENCODER?: DurableObjectNamespace<ChivagoEncoderClass>;
+  /** The encoder's shared secret, passed into the container when it starts. */
+  CHIVAGO_TRANSCODE_TOKEN?: string;
 }
+
+/** The pool. Three, matching `max_instances` in wrangler.jsonc. */
+const ENCODERS = 3;
 
 /** Where the sweep bookkeeping lives, so a restart does not re-run everything. */
 const LAST_RUN_KEY = 'sweeps:lastRunAt';
@@ -75,6 +96,24 @@ export class ChivagoPilot extends DurableObject<Env> {
       // Uploaded bytes go to R2 rather than a volume. Set before the routes
       // exist, so no handler can read the default disk store by accident.
       setBlobStore(r2BlobStore(env.UPLOADS));
+
+      /*
+        The encoder, when this deployment has one.
+
+        Without it a clip is published as it arrived (metadata stripped, but
+        not trimmed, scaled or converted) and an HEVC one is refused outright.
+        With it, every story goes through ffmpeg exactly as it did on the
+        single machine. A pool, because one encode holds its container for
+        tens of seconds and stories arrive together.
+      */
+      if (env.ENCODER && env.CHIVAGO_TRANSCODE_TOKEN) {
+        const pool = env.ENCODER;
+        const token = env.CHIVAGO_TRANSCODE_TOKEN;
+        setTranscoder(containerTranscoder({
+          fetch: (request: Request) =>
+            pool.getByName(`encoder-${Math.floor(Math.random() * ENCODERS)}`).fetch(request),
+        }, token));
+      }
 
       /*
         A DYNAMIC import, and the order matters.

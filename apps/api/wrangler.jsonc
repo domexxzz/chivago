@@ -65,9 +65,25 @@
         // one-machine rule exists to prevent.
         "name": "CHIVAGO",
         "class_name": "ChivagoPilot"
+      },
+      {
+        // The encoder's container, which is NOT a second database: it holds
+        // no storage and exists only to own a container's lifetime.
+        "name": "ENCODER",
+        "class_name": "ChivagoEncoder"
       }
     ]
   },
+
+  "containers": [
+    {
+      "class_name": "ChivagoEncoder",
+      "image": "../../Dockerfile.transcode",
+      "image_build_context": "../..",
+      "instance_type": "basic",
+      "max_instances": 3
+    }
+  ],
 
   "migrations": [
     {
@@ -76,6 +92,10 @@
       // run the schema at all.
       "tag": "v1",
       "new_sqlite_classes": ["ChivagoPilot"]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["ChivagoEncoder"]
     }
   ],
 
