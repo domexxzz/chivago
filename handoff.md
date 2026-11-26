@@ -7,17 +7,6 @@ Earlier versions are in git history: `git show a62c071:handoff.md` (23 Nov) · `
 
 ## 0. Do this first
 
-### `main` is one pull request ahead of production
-
-```
-live:  7eb60a55-c354-4f0c-b188-621f4921d1f2   deployed 26 Nov 13:06 UTC
-main:  49e5672                                merged   26 Nov 13:14 UTC  (#320)
-```
-
-#320 landed eight minutes after the last deploy, so ten commits are on `main` and not on the site: the RMUTT building directory and its map pins, the library-seat and queue counts, the ferry and marine model taken off a campus, and **`7c02477 fix(api): the schema digest is the same on every checkout`** — which is the one that matters, because a digest that differs per checkout is the kind of thing that fails in CI and nowhere else.
-
-Find out whether that was deliberate before deploying. Eight minutes looks like someone merged and stopped for the night, not like a decision — but a deploy carries every merged commit forward, and the campus work is new and visible.
-
 ### Nobody can take a live story down
 
 PR **#317** is open and unmerged. Production has `CHIVAGO_STORIES_AUTO_APPROVE=1`, so a story is public the moment it is posted and never waits for a host. `/console/stories` lists only `pending` rows — of which there are none — so the console shows an empty page while clips are live on the board. `POST /console/stories/:id/hide` has always worked; there was no button wired to it. The clip still expires by itself after seven days, which is the only thing standing in for moderation right now.
@@ -48,8 +37,17 @@ PR **#317** is open and unmerged. Production has `CHIVAGO_STORIES_AUTO_APPROVE=1
 ## 3. Repo state
 
 ```
-branch: main @ 49e5672   (clean, apart from the two untracked artifact folders)
-live:   7eb60a55         — see §0, it is one PR behind
+branch: main             (clean, apart from the two untracked artifact folders)
+live:   7eb60a55         — deployed 26 Nov 13:06 UTC, and it is current
+```
+
+**The site already runs `main`'s code, and the commit count says otherwise.** #320 was merged at 13:14, eight minutes *after* that deploy, which reads as a pull request that never shipped. It is not: the deploy was made from the branch tip (`57d091d`) a minute after it was built and seven before it was merged, and merging it moved no files — `git rev-parse 49e5672^{tree} 57d091d^{tree}` prints the same hash twice. Everything since is this document.
+
+So before concluding that production is behind, **diff the trees, not the log**, and check what the site is actually serving:
+
+```bash
+git diff --name-only <what-was-deployed> main -- apps packages scripts   # empty = nothing to ship
+curl -s https://chivargo.com/ | grep -o 'index-[a-f0-9]*\.js'            # against dist-live's own bundle name
 ```
 
 `artifacts/pitch/` and `artifacts/forecast/` are untracked on purpose: 72 MB of deck exports and forecast charts, including `ChivarGo-Sichang-motion.pptx`. Leave them out of git.
