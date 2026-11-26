@@ -537,6 +537,53 @@ export function pendingStories(db: DB, hostId: string, now = new Date()): Pendin
     .map((r) => ({ ...toStory(r), placeName: { en: r.name_en, th: r.name_th } }));
 }
 
+export interface DecidedStory extends PendingStory {
+  /** Nobody looked: the deployment's auto-approve put it up (fence.ts). */
+  autoApproved: boolean;
+}
+
+/**
+ * What is up, and what was taken down: approved or hidden, unexpired, in the
+ * areas this host reviews, newest first.
+ *
+ * THE OTHER HALF OF `pendingStories`, and with auto-approve on the only half
+ * with anything in it. A story that never waits is never on the waiting list,
+ * so a page built from that list alone gave nobody a way to take one down.
+ *
+ * Hidden ones are here because `reviewStory` can undo either decision by the
+ * other, and an undo nobody can find is not one. `hasBytes` is the board's
+ * own rule, so "live" here means what the board means by it.
+ *
+ * `autoApproved` reads `reviewer_host` too: a reviewer types their own name
+ * at sign-in, and one who typed "auto" still looked.
+ */
+export function decidedStories(db: DB, hostId: string, now = new Date()): DecidedStory[] {
+  // Asked once per PLACE, not per story: the answer depends on nothing else,
+  // it costs three queries, and the page asks again every ten seconds. A cap
+  // on the list would be cheaper still and would hide a story from the one
+  // page that can take it down.
+  const reviewable = new Map<string, boolean>();
+  const canReview = (placeId: string): boolean => {
+    const known = reviewable.get(placeId);
+    if (known !== undefined) return known;
+    const answer = canReviewStories(db, hostId, placeId);
+    reviewable.set(placeId, answer);
+    return answer;
+  };
+  return rows<StoryRow & { name_en: string; name_th: string }>(
+    db.prepare(
+      `SELECT ${JOINED}, p.name_en, p.name_th FROM stories s JOIN places p ON p.id = s.place_id
+       WHERE s.status IN ('approved', 'hidden') AND s.expires_at > ? ORDER BY s.created_at DESC`,
+    ).all(now.toISOString()),
+  )
+    .filter((r) => canReview(r.place_id) && hasBytes(r))
+    .map((r) => ({
+      ...toStory(r),
+      placeName: { en: r.name_en, th: r.name_th },
+      autoApproved: r.reviewed_by === 'auto' && r.reviewer_host === null,
+    }));
+}
+
 /** The host's decision, recorded with the reviewer's name. Approve, or hide - and either can be undone by the other. */
 export function reviewStory(
   db: DB,

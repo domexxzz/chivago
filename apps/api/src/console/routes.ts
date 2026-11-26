@@ -47,7 +47,7 @@ import { inquiriesPage } from './inquiries.ts';
 import { kpiReading } from '../kpi-service.ts';
 import { statementMissingPage, statementPage } from './statement.ts';
 import { storiesPage } from './stories.ts';
-import { fetchStoryMedia, pendingStories, reviewStory, setStoriesOpen, storiesOpen } from '../story-service.ts';
+import { decidedStories, fetchStoryMedia, pendingStories, reviewStory, setStoriesOpen, storiesOpen } from '../story-service.ts';
 import {
   InvalidPeriod, draftStatement, issueStatement, readStatement, statementsFor,
 } from '../statement-service.ts';
@@ -1672,6 +1672,7 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
       reviewer: session.reviewer,
       canModerate: canModerate(session),
       pending: pendingStories(db, session.hostId),
+      decided: decidedStories(db, session.hostId),
       csrf: csrfFor(session),
       open: storiesOpen(db),
     }));
