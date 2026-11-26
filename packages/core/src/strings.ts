@@ -618,10 +618,9 @@ export const strings = {
     /** The static demo: the stalls are named, their status is not read. */
     stallsNoStatus: t('Live status is not read here. Each stall\'s own page has it.', 'ที่นี่ไม่ได้อ่านสถานะสดของร้าน ดูได้ในหน้าของแต่ละร้าน', '此处不读取摊位的实时状态。详见各摊位自己的页面。'),
     // -- The queue, which is not the wait (canteen-queue.ts) --------------
-    queueTitle: t('The queue right now', 'คิวตอนนี้', '当前排队情况'),
-    queueAsk: t('Standing there? Tell people what you see.', 'อยู่ตรงนั้นอยู่ไหม บอกคนอื่นหน่อย', '你在现场吗？告诉大家你看到的情况。'),
+    /* The report control, for any kind of crowding. What a level IS CALLED
+       belongs to its kind, in CROWDING_WORDS; these two wrap it. */
     queueReport: (level: string) => t(`Report: ${level}`, `แจ้งว่า${level}`, `上报：${level}`),
-    queueDown: t('Could not read the queue reports.', 'อ่านรายงานคิวไม่ได้', '无法读取排队报告。'),
     queueFailed: t('That report did not go through. Try again.', 'แจ้งไม่สำเร็จ ลองอีกครั้ง', '上报未成功，请再试一次。'),
     stallsVia: t('Orders and payment go through สั่งก่อน, straight to the stall.', 'สั่งและจ่ายผ่านสั่งก่อน เงินเข้าร้านโดยตรง', '点单与付款通过 สั่งก่อน 完成，款项直接进摊位。'),
     /** Courts free now at a place you book before you go (courts.ts). */

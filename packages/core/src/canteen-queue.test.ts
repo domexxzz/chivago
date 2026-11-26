@@ -3,7 +3,8 @@ import { test, describe } from 'node:test';
 
 import {
   FRESH_FOR_MIN, NO_QUEUE_READING, QUEUE_LEVELS, REPORT_EVERY_MIN,
-  isQueueLevel, mayReportAgain, readQueue, sayQueue, type QueueLevel, type QueueReport,
+  CROWDING_WORDS, crowdingKindOf, isQueueLevel, mayReportAgain, readQueue, sayCrowding,
+  type QueueLevel, type QueueReport,
 } from './canteen-queue.ts';
 
 /**
@@ -35,7 +36,7 @@ describe('reading the reports', () => {
   test('a report under a minute old is "just now", never "1 min ago"', () => {
     const r = readQueue([{ placeId: 'c', level: 'short', at: new Date(NOW - 50_000).toISOString() }], NOW);
     assert.equal(r.minAgo, 0);
-    assert.match(sayQueue(r).en, /just now/);
+    assert.match(sayCrowding('queue', r).en, /just now/);
   });
 
   test('a report past the fresh window is not the current one', () => {
@@ -77,7 +78,7 @@ describe('reading the reports', () => {
 describe('what it says out loud', () => {
   test('every sentence names who said it and when - never the app itself', () => {
     for (const level of QUEUE_LEVELS) {
-      const said = sayQueue(readQueue([report(level, 3)], NOW));
+      const said = sayCrowding('queue', readQueue([report(level, 3)], NOW));
       for (const lang of ['en', 'th'] as const) {
         assert.match(said[lang], /3/, `the age is missing from the ${lang} sentence`);
       }
@@ -92,10 +93,10 @@ describe('what it says out loud', () => {
     // The stall's kitchen owns that number (docs/65). A queue report must not
     // compete with it, or two different "minutes" sit on one screen.
     const cases = [
-      sayQueue(NO_QUEUE_READING),
-      sayQueue(readQueue([report('long', 2)], NOW)),
-      sayQueue(readQueue([report('long', 2), report('none', 4)], NOW)),
-      sayQueue(readQueue([report('short', 0), report('short', 1)], NOW)),
+      sayCrowding('queue', NO_QUEUE_READING),
+      sayCrowding('queue', readQueue([report('long', 2)], NOW)),
+      sayCrowding('queue', readQueue([report('long', 2), report('none', 4)], NOW)),
+      sayCrowding('queue', readQueue([report('short', 0), report('short', 1)], NOW)),
     ];
     for (const said of cases) {
       assert.doesNotMatch(said.th, /รอประมาณ|รอ \d+ นาที/, 'a queue report is being worded as a wait');
@@ -104,21 +105,21 @@ describe('what it says out loud', () => {
   });
 
   test('nothing reported asks for a report, and admits the window', () => {
-    const said = sayQueue(NO_QUEUE_READING);
+    const said = sayCrowding('queue', NO_QUEUE_READING);
     assert.match(said.en, new RegExp(String(FRESH_FOR_MIN)));
     assert.match(said.th, new RegExp(String(FRESH_FOR_MIN)));
   });
 
   test('disagreement is said in words, in all three languages', () => {
-    const said = sayQueue(readQueue([report('long', 1), report('none', 2)], NOW));
+    const said = sayCrowding('queue', readQueue([report('long', 1), report('none', 2)], NOW));
     assert.match(said.en, /do not agree/);
     assert.match(said.th, /ไม่ตรงกัน/);
     assert.ok(said.zh && said.zh.length > 0);
   });
 
   test('agreement is said only when there is more than one report', () => {
-    assert.doesNotMatch(sayQueue(readQueue([report('long', 1)], NOW)).en, /agree/);
-    assert.match(sayQueue(readQueue([report('long', 1), report('long', 2)], NOW)).en, /2 reports agree/);
+    assert.doesNotMatch(sayCrowding('queue', readQueue([report('long', 1)], NOW)).en, /agree/);
+    assert.match(sayCrowding('queue', readQueue([report('long', 1), report('long', 2)], NOW)).en, /2 reports agree/);
   });
 });
 
@@ -153,5 +154,62 @@ describe('what arrives off the wire', () => {
   test('a prototype key is not a level', () => {
     assert.equal(isQueueLevel('constructor'), false);
     assert.equal(isQueueLevel('__proto__'), false);
+  });
+});
+describe('the library, which has no queue at all', () => {
+  /*
+    The same scale, a different thing to be about. 'long' at a food court is a
+    line out of the door; in a library it is no seat anywhere. Nothing about
+    the reading changes - what changes is every word, which is why the words
+    are a table per kind and not an `if` inside a sentence.
+  */
+  test('the library reports seats and the food court reports a queue', () => {
+    assert.equal(crowdingKindOf('rmutt-library'), 'seats');
+    assert.equal(crowdingKindOf('rmutt-canteen'), 'queue');
+    assert.equal(crowdingKindOf('rmutt-park'), null, 'a lawn is not reportable');
+    assert.equal(crowdingKindOf('constructor'), null, 'a prototype key is not a place');
+  });
+
+  test('the most crowded rung means no seat, not a long line', () => {
+    const r = readQueue([report('long', 2)], NOW);
+    const said = sayCrowding('seats', r);
+    assert.match(said.en, /no free seats/);
+    assert.match(said.th, /ไม่มีที่นั่งว่าง/);
+    // And it still says who and when, which is the whole discipline.
+    assert.match(said.en, /Somebody there reported/);
+    assert.match(said.en, /2 min ago/);
+  });
+
+  test('no kind of report ever offers a wait in minutes', () => {
+    for (const kind of ['queue', 'seats'] as const) {
+      for (const level of QUEUE_LEVELS) {
+        const said = sayCrowding(kind, readQueue([report(level, 1)], NOW));
+        for (const lang of [said.en, said.th, said.zh ?? '']) {
+          assert.doesNotMatch(lang, /wait|รอ.*นาที|等候/, `${kind}/${level} offered a wait`);
+        }
+      }
+    }
+  });
+
+  test('every kind has every word, in all three languages', () => {
+    for (const kind of ['queue', 'seats'] as const) {
+      const w = CROWDING_WORDS[kind];
+      for (const [name, value] of [['title', w.title], ['silent', w.silent], ['ask', w.ask], ['down', w.down]] as const) {
+        assert.ok(value.en && value.th && value.zh, `${kind}.${name} is missing a language`);
+      }
+      for (const level of QUEUE_LEVELS) {
+        assert.ok(w.level[level].en && w.level[level].th && w.level[level].zh, `${kind}.level.${level}`);
+        assert.ok(w.button[level].en && w.button[level].th && w.button[level].zh, `${kind}.button.${level}`);
+      }
+    }
+  });
+
+  test('a level reads as part of a sentence, so it is not capitalised', () => {
+    for (const kind of ['queue', 'seats'] as const) {
+      for (const level of QUEUE_LEVELS) {
+        const en = CROWDING_WORDS[kind].level[level].en;
+        assert.equal(en[0], en[0]!.toLowerCase(), `${kind}.${level} would read as "reported A long queue"`);
+      }
+    }
   });
 });

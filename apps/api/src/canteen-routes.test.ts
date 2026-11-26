@@ -102,6 +102,27 @@ describe('reporting the queue', () => {
     assert.equal(res.status, 401, 'an unauthenticated report would be filed on a shared account');
   });
 
+  /*
+    The library takes reports too, from 26 November, and it is NOT a food
+    court: `takesQueueReports` used to ask `PLACE_STALLS`, so opening this to
+    a second place was the one change that could quietly leave the library
+    answering 404 while the card on screen offered three buttons.
+  */
+  test('the library takes reports, and counts its own', async () => {
+    const LIB = 'rmutt-library';
+    const wrote = await report(studentA, 'long', LIB);
+    assert.equal(wrote.ok, true);
+    assert.equal(wrote.data.recorded, true);
+    assert.equal(wrote.data.queue.level, 'long');
+
+    // The two places are counted apart: a full library is not a long lunch queue.
+    const court = await read(studentB);
+    assert.notEqual(court.data.queue.reports, wrote.data.queue.reports + 1000);
+    const lib = await read(studentB, LIB);
+    assert.equal(lib.data.queue.level, 'long');
+    assert.equal(lib.data.queue.reports, 1, "the library counted a report from the food court");
+  });
+
   test('deleting the account takes its reports with it', async () => {
     // The migration leans on ON DELETE CASCADE for this; a row left behind
     // after the account is gone is a PDPA defect that looks like nothing.

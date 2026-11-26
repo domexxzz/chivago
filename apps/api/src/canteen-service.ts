@@ -7,15 +7,16 @@
  * own, read from its kitchen in สั่งก่อน (`stalls.ts`); this answers the
  * different question of whether the hall is worth walking to.
  *
- * Only a place that actually has a food court can be reported on. The ids come
- * from `PLACE_STALLS`, which is the seed's own list, so a caller cannot fill
- * the table with places nobody eats at and leave a reading behind that is
- * about nothing.
+ * Only a place somebody can stand in and look at can be reported on, and the
+ * list of them is `CROWDING_PLACES` in core - the food court, whose question is
+ * the length of the line, and the library, whose question is whether there is
+ * a seat. A caller cannot fill this table with places nobody goes to and leave
+ * a reading behind that is about nothing.
  */
 
 import { randomUUID } from 'node:crypto';
 import {
-  REPORT_EVERY_MIN, isQueueLevel, readQueue, stallSourceFor,
+  REPORT_EVERY_MIN, crowdingKindOf, isQueueLevel, readQueue,
   type QueueLevel, type QueueReading, type QueueReport,
 } from '@chivago/core';
 import { row, rows, type DB } from './db.ts';
@@ -23,8 +24,8 @@ import { row, rows, type DB } from './db.ts';
 /** How far back to read. The core decides what counts as current; this only limits the scan. */
 const SCAN_BACK_MIN = 180;
 
-/** Whether this place is one with a food court to queue at. */
-export const takesQueueReports = (placeId: string): boolean => stallSourceFor(placeId) !== null;
+/** Whether this is a place people may report the crowd at. */
+export const takesQueueReports = (placeId: string): boolean => crowdingKindOf(placeId) !== null;
 
 /** The reports that could still matter for a place, newest first. */
 export function queueReports(db: DB, placeId: string, now = new Date()): QueueReport[] {

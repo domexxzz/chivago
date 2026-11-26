@@ -16,7 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Image, Linking, Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import { ArrowLeft, Cloud, ExternalLink, Heart, MapPin, ShieldCheck, Sun, Trees, Waves, X } from 'lucide-react-native';
 import {
-  areaByKey, areaOfPlace, courtSourceFor, findProvince, isBookingLink, newlyEarned, stallSourceFor, strings,
+  areaByKey, areaOfPlace, courtSourceFor, crowdingKindOf, findProvince, isBookingLink, newlyEarned, stallSourceFor, strings,
   type Fix, type MedalState, type MedalsView, type ScoredPlace,
 } from '@chivago/core';
 import { api } from '../api/client.ts';
@@ -41,6 +41,7 @@ import { GettingThere } from '../components/GettingThere.tsx';
 import { StoriesBlock } from '../components/Stories.tsx';
 import { StallsCard } from '../components/Stalls.tsx';
 import { CourtsCard } from '../components/Courts.tsx';
+import { CrowdingCard } from '../components/CrowdingStrip.tsx';
 
 /*
   WHERE THE SECOND COLUMN STARTS, and why it is this number.
@@ -330,6 +331,16 @@ export function PlaceScreen({
         other place screen makes no extra request.
       */}
       {courtSourceFor(place.data.id) ? <CourtsCard placeId={place.data.id} /> : null}
+
+      {/*
+        How crowded it is, from the people in it. Only where somebody may
+        report (CROWDING_PLACES), so every other place screen makes no extra
+        request - and NOT at the food court, whose strip belongs under its
+        stalls, where the kitchen's own wait is.
+      */}
+      {crowdingKindOf(place.data.id) && !stallSourceFor(place.data.id)
+        ? <CrowdingCard placeId={place.data.id} kind={crowdingKindOf(place.data.id)!} />
+        : null}
 
       {/* The API checked this link; it is checked again here before a tap can take anyone anywhere. */}
       {isBookingLink(place.data.bookingUrl) ? (
