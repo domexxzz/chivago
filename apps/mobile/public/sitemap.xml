@@ -3,16 +3,31 @@
   <url>
     <loc>https://chivargo.com/th/</loc>
     <xhtml:link rel="alternate" hreflang="th" href="https://chivargo.com/th/"/>
-    <lastmod>2026-11-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://chivargo.com/th/en"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://chivargo.com/th/zh"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://chivargo.com/th/"/>
   </url>
   <url>
-    <loc>https://chivargo.com/th/en.html</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://chivargo.com/th/en.html"/>
+    <loc>https://chivargo.com/th/en</loc>
+    <xhtml:link rel="alternate" hreflang="th" href="https://chivargo.com/th/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://chivargo.com/th/en"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://chivargo.com/th/zh"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://chivargo.com/th/"/>
   </url>
   <url>
-    <loc>https://chivargo.com/th/zh.html</loc>
-    <xhtml:link rel="alternate" hreflang="zh" href="https://chivargo.com/th/zh.html"/>
+    <loc>https://chivargo.com/th/zh</loc>
+    <xhtml:link rel="alternate" hreflang="th" href="https://chivargo.com/th/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://chivargo.com/th/en"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://chivargo.com/th/zh"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://chivargo.com/th/"/>
+  </url>
+  <url>
+    <loc>https://chivargo.com/</loc>
+  </url>
+  <url>
+    <loc>https://chivargo.com/about</loc>
+  </url>
+  <url>
+    <loc>https://chivargo.com/privacy</loc>
   </url>
 </urlset>

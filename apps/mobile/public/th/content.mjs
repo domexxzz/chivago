@@ -63,3 +63,27 @@ export const faq = [
  [copy('ข้อมูลส่วนตัวจัดการอย่างไร?','How is personal data handled?','如何管理个人数据？'),copy('ใช้บัญชีและการตั้งค่าเดิมของแอป การใช้งานตำแหน่งและกล้องต้องได้รับสิทธิ์จากอุปกรณ์ อ่านรายละเอียดในนโยบายความเป็นส่วนตัว','Use the app’s existing account controls. Location and camera access require device permission. See the privacy policy for details.','使用应用现有账户设置。位置与相机访问需要设备授权，详见隐私政策。')],
  [copy('ผู้ประกอบการเข้าร่วมอย่างไร?','How can a business join?','企业如何加入？'),copy('ส่งใบสมัครผ่านแบบฟอร์มพันธมิตรเดิม ทีมงานจะพิจารณาข้อมูลและสิทธิ์ของผู้ประกอบการก่อนใช้งานคอนโซล','Submit the existing partner application. The team reviews operator details and permissions before console access.','通过现有合作申请表提交资料，团队审核经营者信息和权限后开放控制台。')],
 ];
+
+/**
+ * The two islands as geography, for the structured data this page publishes.
+ *
+ * WHY THE NUMBERS ARE HERE AND NOT IMPORTED. An answer engine asked "where is
+ * Koh Sichang" wants a coordinate and a province; it does not want the app's
+ * map frame, which is a different question - `packages/core/src/areas.ts` says
+ * so itself ("an area is NOT a province"). These are published facts about two
+ * islands, so they are stated here, beside the words that describe them, and
+ * this file is a browser module that cannot import TypeScript anyway.
+ *
+ * They do agree with that file, which is where the provenance is recorded:
+ * Koh Sichang's point is the town node in OpenStreetMap (node 487180518, by
+ * Tha Lang pier); Samui's is the centre of the bounding box the app has drawn
+ * since its first sixty commits.
+ *
+ * The ISO 3166-2:TH code travels with the province name because a province in
+ * three languages is three strings a reader has to trust, and one code they
+ * can look up.
+ */
+export const islands = [
+ { key:'sichang', slug:'koh-sichang', lat:13.1599, lng:100.8096, provinceCode:'TH-20', province:copy('ชลบุรี','Chon Buri','春武里府') },
+ { key:'samui', slug:'samui', lat:9.495, lng:100.0, provinceCode:'TH-84', province:copy('สุราษฎร์ธานี','Surat Thani','素叻他尼府') },
+];

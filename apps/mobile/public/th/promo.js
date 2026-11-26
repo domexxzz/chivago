@@ -7,7 +7,12 @@ const language = document.querySelector('#language');
 document.querySelector('.account-link').setAttribute('aria-label', { th:'บัญชีของฉัน / เข้าสู่ระบบ', en:'My account / Sign in', zh:'我的账户 / 登录' }[document.documentElement.lang]);
 language.addEventListener('change', () => {
  try { localStorage.setItem('chivago.locale', language.value); } catch {}
- location.assign((language.value === 'th' ? './' : language.value + '.html') + location.hash);
+ // No '.html': the asset server answers that spelling with a 307 to this
+ // one, so switching language used to cost every reader a wasted round trip
+ // and put a redirect in the middle of the clearest signal the page has that
+ // the three languages are one page. Resolved relatively, a bare name works
+ // from /th/ and from /th/en alike.
+ location.assign((language.value === 'th' ? './' : language.value) + location.hash);
 });
 const toggle = document.querySelector('.menu-toggle');
 const nav = document.querySelector('#navigation');

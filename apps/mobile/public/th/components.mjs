@@ -3,12 +3,25 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 const lucideNames = { flag:'flag', leaf:'leaf', star:'star', pin:'map-pin', compass:'compass', bot:'bot', map:'map', shield:'shield-check', users:'users', heart:'heart', gift:'gift', bag:'backpack', book:'book-open', shop:'store', bed:'bed', chat:'message-circle', game:'gamepad-2', wallet:'wallet', arrow:'arrow-right' };
 const iconCache = new Map();
+/*
+  How long one icon's node-array may take to evaluate.
+
+  It was 100 ms, and that is a wall-clock budget spent mostly on starting the
+  sandbox, not a measure of the work: evaluating a static array of SVG
+  attributes takes microseconds. On a loaded machine the start alone overran
+  it and the build died mid-run with ERR_SCRIPT_EXECUTION_TIMEOUT - measured
+  on 26 November 2026, while generating these very pages. A promo build that
+  dies writes nothing, so the symptom is a deploy that quietly carries the
+  previous pages. Five seconds still bounds a runaway script, and no longer
+  bounds a busy afternoon.
+*/
+const ICON_TIMEOUT_MS = 5_000;
 // Use the same installed Lucide icon package as the app, rendered at build time.
 // The sandbox evaluates only the package's static node-array, never browser input.
 export const icon = (name) => {
  if (iconCache.has(name)) return iconCache.get(name);
  const source = readFileSync(new URL('../../node_modules/lucide-react-native/dist/esm/icons/'+(lucideNames[name]||'compass')+'.js',import.meta.url),'utf8');
- const nodes = runInNewContext(source.match(/createLucideIcon\("[^"]+", ([\s\S]*?)\);/)[1],{}, {timeout:100});
+ const nodes = runInNewContext(source.match(/createLucideIcon\("[^"]+", ([\s\S]*?)\);/)[1],{}, {timeout:ICON_TIMEOUT_MS});
  const svg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+nodes.map(([tag,attrs])=>'<'+tag+' '+Object.entries(attrs).filter(([k])=>k!=='key').map(([k,v])=>k+'="'+esc(v)+'"').join(' ')+'/>').join('')+'</svg>';
  iconCache.set(name,svg); return svg;
 };

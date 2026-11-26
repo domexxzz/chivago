@@ -46,8 +46,25 @@ const server = createServer((request, response) => {
     let pathname = decodeURIComponent(requestUrl.pathname);
     if (pathname.endsWith('/')) pathname += 'index.html';
 
-    const filePath = path.resolve(publicRoot, `.${pathname}`);
-    const insidePublic = filePath === publicRoot || filePath.startsWith(`${publicRoot}${path.sep}`);
+    const resolve = (p) => path.resolve(publicRoot, `.${p}`);
+    const inside = (p) => p === publicRoot || p.startsWith(`${publicRoot}${path.sep}`);
+
+    /*
+      Extensionless, the way Workers Assets serves it: `/th/en` is `th/en.html`.
+      Production answers the `.html` spelling with a 307 to this one, so the
+      page's canonical, its hreflang set and its language switcher all use the
+      extensionless form - and this server has to understand it, or the
+      preview 404s on exactly the links production serves. Resolved and
+      bounds-checked before it is probed, so a `..` cannot ask whether a file
+      outside the directory exists.
+    */
+    if (!path.extname(pathname)) {
+      const candidate = resolve(`${pathname}.html`);
+      if (inside(candidate) && existsSync(candidate) && statSync(candidate).isFile()) pathname += '.html';
+    }
+
+    const filePath = resolve(pathname);
+    const insidePublic = inside(filePath);
 
     if (!insidePublic || !existsSync(filePath) || !statSync(filePath).isFile()) {
       response.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });

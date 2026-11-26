@@ -23,6 +23,42 @@ Disallow: /sos/
 # board, a story, and above all a statement: an evidence record nobody can
 # find is not evidence (docs/31).
 
-# The promo page (/th/) and its machine-readable summary (/llms.txt) are the
-# pages meant to be found and cited, by search engines and answer engines.
+# THE ANSWER ENGINES, NAMED - AND THE DISALLOWS REPEATED, WHICH IS THE POINT.
+#
+# The group above already allows every crawler below it, so naming them grants
+# nothing new. Two of these names are here because they do not govern crawling
+# at all: Google-Extended and Applebot-Extended decide whether pages already
+# fetched may be used to ground a generated answer, and each defaults to
+# allowed only for as long as nobody has said otherwise. Writing the decision
+# down is the difference between a policy and an accident.
+#
+# THE REPEATED Disallow LINES ARE NOT REDUNDANT. A crawler obeys exactly one
+# group - its own, if it has one - and ignores the wildcard group completely.
+# Naming GPTBot without repeating these two lines would hand it /sos/, whose
+# URL token is the entire credential protecting somebody sharing their live
+# location in an emergency. Every name added below must carry them.
+#
+# Saying yes is deliberate: an evidence record nobody can find is not evidence
+# (docs/31), and that holds whether the reader is a person, a search engine, or
+# something answering a question on their behalf.
+
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: Amazonbot
+User-agent: meta-externalagent
+Allow: /
+Disallow: /console
+Disallow: /sos/
+
+# The promo page (/th/, and /th/en and /th/zh beside it) and the
+# machine-readable summary (/llms.txt) are the pages meant to be found and
+# cited, by search engines and answer engines alike.
 Sitemap: https://chivargo.com/sitemap.xml
