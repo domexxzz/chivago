@@ -54,7 +54,7 @@ describe('what the campus can ride', () => {
     assert.ok(res.ok);
     assert.equal(res.data.routes.length, 1);
     assert.equal(res.data.routes[0].schedule, 'unpublished');
-    assert.deepEqual(res.data.campus, [], 'the university has published no shuttle');
+    assert.deepEqual(res.data.campus, [], 'no shuttle route can be drawn yet');
   });
 
   test('the read answers a browser on another origin', async () => {

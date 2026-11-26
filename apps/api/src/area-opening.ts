@@ -108,9 +108,12 @@ export function retireSupersededQuests(db: DB, key: AreaKey): RetireResult {
   */
   const seeded = new Set(ACTIVE_QUESTS.filter((q) => inArea(area, q)).map((q) => q.id));
 
+  // Not the seed's to retire: a campus host wrote it and a reviewer approved it.
+  const written = new Set(rows<{ id: string }>(db.prepare('SELECT id FROM host_quests').all()).map((q) => q.id));
+
   const live = rows<{ id: string; code: string; lat: number; lng: number }>(
     db.prepare('SELECT id, code, lat, lng FROM quests').all(),
-  ).filter((q) => inArea(area, q) && !seeded.has(q.id));
+  ).filter((q) => inArea(area, q) && !seeded.has(q.id) && !written.has(q.id));
 
   const result: RetireResult = { deleted: [], kept: [] };
 

@@ -1,0 +1,65 @@
+// Localised marketing content; the app retains its existing account and data services.
+export const copy = (th, en, zh) => ({ th, en, zh });
+export const features = [
+ ['wallet','leaf',copy('Green Points','Green Points','Green Points'),copy('แต้มรักษ์โลกที่เจ้าบ้านตรวจและยืนยัน','Environmental actions verified by a local host','由当地负责人审核环保活动')],
+ ['wallet','star',copy('Trip Points','Trip Points','Trip Points'),copy('แต้มเดินทาง แสดงแยกจากแต้มรักษ์โลก','Travel points, kept separate from Green Points','旅行积分，与环保积分分开显示')],
+ ['quests','flag',copy('เควสต์และภารกิจ','Quests & missions','任务与挑战'),copy('ออกสำรวจ เรียนรู้ และร่วมดูแลเกาะ','Explore, learn and care for the island','探索、学习并守护海岛')],
+ ['map','pin',copy('จุดทิ้งขยะ','Waste drop-off','垃圾投放点'),copy('ดูจุดรับขยะและเส้นทางบนแผนที่','Find collection points on the island map','在地图上查看垃圾收集点')],
+ ['adventure','compass',copy('Adventure Map','Adventure Map','冒险地图'),copy('ตามเบาะแส ปลดล็อกเรื่องราวจากสถานที่','Follow clues and discover local stories','寻找线索，解锁当地故事')],
+ ['concierge','bot',copy('Chivar Bot','Chivar Bot','Chivar Bot'),copy('ผู้ช่วยเที่ยวจากข้อมูลสถานที่ในแอป','Your guide to places in the app','根据应用内地点信息提供建议')],
+ ['map','map',copy('แผนที่และนำทาง','Maps & directions','地图与导航'),copy('วางแผนเส้นทางและสำรวจรอบตัว','Plan your route and explore nearby','规划路线，探索周边')],
+ ['safety','shield',copy('SOS และความปลอดภัย','SOS & safety','SOS 与安全'),copy('ข้อมูลช่วยเหลือและการแชร์ตำแหน่ง','Help information and location sharing','求助信息与位置分享')],
+ ['party','users',copy('Party หาเพื่อนเที่ยว','Travel parties','旅行小队'),copy('รวมทีม วางแผน และทำภารกิจร่วมกัน','Find a team and take on quests together','组队规划并一起完成任务')],
+ ['mascots','heart',copy('Mascot & Pet','Mascot & Pet','吉祥物与伙伴'),copy('พบเพื่อนร่วมทางและสะสมความทรงจำ','Meet companions and collect memories','结识伙伴，收集旅行回忆')],
+ ['summon','gift',copy('Gashapon','Gashapon','扭蛋'),copy('เปิดดูของสะสมและเงื่อนไขการสุ่ม','Discover collectibles and draw conditions','查看收藏品与抽取规则')],
+ ['wallet','bag',copy('กระเป๋า','Backpack','背包'),copy('ไอเทมและรางวัลจากการเดินทาง','Keep your travel items and rewards','保存旅行物品与奖励')],
+ ['passport','book',copy('Passport & Season','Passport & Season','护照与赛季'),copy('ตราประทับ เหรียญ และกิจกรรมฤดูกาล','Stamps, medals and seasonal activities','印章、徽章与季节活动')],
+ ['localPicks','shop',copy('Local Picks','Local Picks','当地精选'),copy('ร้านเด็ดและสินค้าจากคนในพื้นที่','Local food, shops and island products','当地美食、商店与特色商品')],
+ ['stays','bed',copy('ที่พัก','Places to stay','住宿'),copy('ดูที่พักและสอบถามผู้ประกอบการ','Explore stays and ask the operator','查看住宿并咨询经营者')],
+ ['community','chat',copy('ฟีดชุมชน','Community','社区动态'),copy('เรื่องเล่าและรีวิวที่มีผู้ดูแล','Travel stories and moderated reviews','旅行故事与经过管理的评价')],
+ ['journal','book',copy('สมุดบันทึกทริป','Travel Journal','旅行日志'),copy('เก็บภาพ เรื่องราว และบันทึกส่วนตัว','Save photos, stories and personal notes','保存照片、故事与个人笔记')],
+ ['game','game',copy('มินิเกม','Mini games','小游戏'),copy('พักเล่นระหว่างทริปและเรียนรู้เรื่องเกาะ','Take a break and learn about the island','旅途中放松并了解海岛')],
+ ['wallet','wallet',copy('Wallet','Wallet','积分钱包'),copy('ตรวจยอดแต้มและประวัติรายการจริง','Check your balances and transaction history','查看真实积分余额与交易记录')],
+ ['impact','leaf',copy('Hotel ESG','Hotel ESG','酒店 ESG'),copy('หลักฐานกิจกรรมสำหรับแนบรายงาน','Activity evidence for existing reports','为现有报告提供活动凭证')],
+ ['/console','shield',copy('Host Console','Host Console','负责人控制台'),copy('ตรวจหลักฐานและจัดการกิจกรรม','Review evidence and manage activities','审核凭证并管理活动')],
+];
+export const ui = {
+ home:copy('หน้าหลัก','Home','首页'), systems:copy('ทุกระบบ','Explore features','全部功能'), islands:copy('จุดหมาย','Destinations','目的地'), partners:copy('สำหรับพันธมิตร','For partners','合作伙伴'), community:copy('ชุมชน','Community','社区'), help:copy('ช่วยเหลือ','Help','帮助'),
+ open:copy('เปิดแอป ChivarGo','Open ChivarGo','打开 ChivarGo'), menu:copy('เมนู','Menu','菜单'), skip:copy('ข้ามไปเนื้อหา','Skip to content','跳至内容'), language:copy('ภาษา','Language','语言'),
+ headline:copy('เที่ยวเกาะให้สนุก','Make every island trip','每次海岛之旅'), highlight:copy('แบบสุขภาพดี','a feel-good adventure','都充满美好体验'), lastline:copy('ในแอปเดียว','All in one app.','尽在一个应用'),
+ intro:copy('แพลตฟอร์มท่องเที่ยวเชิงสุขภาพและยั่งยืน ที่พาคุณออกไปสำรวจเกาะสีชังและเกาะสมุย พร้อมสะสมแต้ม ทำภารกิจ ดูแลเกาะ และเชื่อมต่อชุมชน','Explore Koh Sichang and Koh Samui with a healthier, more sustainable way to travel. Discover quests, collect points and connect with the island community.','以健康、可持续的方式探索西昌岛与苏梅岛。完成任务、收集积分，与当地社区建立联系。'),
+ how:copy('ดูวิธีเริ่มใช้งาน','See how it works','了解使用方法'), ecosystem:copy('ทุกระบบของ ChivarGo','Your island, connected','海岛体验，一站相连'), ecosystemSub:copy('ครบทุกเรื่องการเที่ยวเกาะ สนุก ได้แต้ม ดูแลสิ่งแวดล้อม และเชื่อมต่อชุมชน','Explore, earn, care for the environment and connect with the community.','探索、收集积分、保护环境，与社区相连。'),
+ experiences:copy('มากกว่าเที่ยว คือเรื่องราวที่ได้กลับมา','Come home with more than a trip','带回的不只是一次旅行'), experiencesSub:copy('เลือกประสบการณ์ที่ใช่ แล้วออกไปค้นพบด้วยตัวเอง','Find your kind of adventure, then make it yours.','选择适合自己的体验，亲自发现精彩。'),
+ discover:copy('เข้าใช้งาน','Explore feature','查看功能'), destinations:copy('2 เกาะสุดพิเศษกับ ChivarGo','Two islands. Endless discoveries.','两座海岛，无尽发现'), sichang:copy('เกาะสีชัง','Koh Sichang','西昌岛'), samui:copy('เกาะสมุย','Koh Samui','苏梅岛'),
+ sichangDesc:copy('เสน่ห์ชุมชน ประวัติศาสตร์ริมทะเล และการผจญภัยใกล้ศรีราชา','Coastal heritage, island communities and adventures near Si Racha.','海岸历史、岛屿社区与是拉差附近的冒险。'), samuiDesc:copy('ชายหาด ป่า น้ำตก และรสชาติท้องถิ่นที่รอให้คุณค้นพบ','Beaches, forests, waterfalls and local flavours waiting to be discovered.','探索海滩、森林、瀑布与当地风味。'),
+ impact:copy('เที่ยวสนุก พร้อมดูแลเกาะไปด้วยกัน','Good journeys. A better island.','美好旅程，共护海岛'), impactText:copy('เริ่มจากสิ่งเล็ก ๆ ที่ทำได้จริง เลือกร้านท้องถิ่น ส่งขยะให้ถูกจุด และร่วมกิจกรรมที่มีคนตรวจยืนยัน ทุกการเดินทางคือโอกาสที่จะรู้จักและดูแลชุมชน','Choose a local shop, use a collection point and join a verified activity. Small choices make every journey an opportunity to care for the community.','选择当地商店、正确投放垃圾并参加经过核实的活动。让每次旅行成为关爱社区的机会。'),
+ steps:copy('เริ่มใช้งานง่าย ๆ ใน 4 ขั้นตอน','Your next adventure in four steps','四步开启下一段冒险'),
+ partnerTitle:copy('เติบโตไปกับคนบนเกาะ','Grow with the island community','与海岛社区共同成长'), partnerText:copy('สำหรับร้านค้า ที่พัก เจ้าบ้าน และองค์กรที่อยากสร้างประสบการณ์ท่องเที่ยวที่มีความหมาย','For shops, stays, local hosts and organisations creating meaningful travel experiences.','面向希望创造有意义旅行体验的商店、住宿、当地负责人和机构。'), apply:copy('สมัครเป็นพันธมิตร','Apply as a partner','申请成为合作伙伴'),
+ trust:copy('มั่นใจได้กับ ChivarGo','Travel with confidence','安心出行'), trustText:copy('Green Points ต้องมีผู้ตรวจยืนยัน • แยกแต้มเดินทางอย่างชัดเจน • จัดการข้อมูลส่วนตัวผ่านบัญชีเดิม','Host-verified Green Points. Separate travel points. Personal data controls through your existing account.','环保积分由负责人确认。旅行积分独立显示。通过现有账户管理个人数据。'),
+ faq:copy('คำถามที่พบบ่อย','Frequently asked questions','常见问题'), final:copy('พร้อมออกเดินทางไปด้วยกันหรือยัง?','Ready for your next island story?','准备好开启海岛新故事了吗？'), finalText:copy('เที่ยวเกาะสีชังและเกาะสมุยให้สนุก ได้แต้ม ดูแลเกาะ และเชื่อมต่อชุมชนในแอปเดียว','Explore Koh Sichang and Koh Samui, earn points and connect with the community in one app.','在一个应用中探索西昌岛与苏梅岛、收集积分并连接社区。'),
+ privacy:copy('นโยบายความเป็นส่วนตัว','Privacy policy','隐私政策'), about:copy('เกี่ยวกับเรา','About us','关于我们'), account:copy('บัญชีของฉัน / เข้าสู่ระบบ','My account / Sign in','我的账户 / 登录'),
+ free:copy('เปิดผ่านเว็บได้ฟรี','Free to open on the web','免费使用网页版'), verified:copy('กิจกรรมที่ตรวจสอบได้','Verifiable activities','可核实的活动'), local:copy('เชื่อมต่อชุมชนท้องถิ่น','Connected to local communities','连接当地社区'), illustration:copy('ภาพประกอบบรรยากาศการเดินทาง','Travel illustration','旅行主题插图'),
+ offline:copy('ออฟไลน์: ยังอ่านหน้านี้ได้ เปิดระบบเมื่อเชื่อมต่ออีกครั้ง','Offline: you can read this page. Reconnect to open app services.','离线：仍可阅读此页面，联网后可使用应用服务。'),
+ photoFallback:copy('ภาพไม่พร้อมแสดง','Image unavailable','图片暂不可用'),
+};
+export const steps = [
+ copy('เปิดเว็บ ChivarGo','Open ChivarGo on the web','打开 ChivarGo 网页'),
+ copy('สมัครและสร้างโปรไฟล์','Sign up and create a profile','注册并创建个人资料'),
+ copy('เลือกเกาะและเริ่มเที่ยว','Choose an island and explore','选择海岛并开始探索'),
+ copy('ทำภารกิจและรับแต้มตามเงื่อนไข','Complete quests and earn eligible points','完成任务并按规则获得积分'),
+];
+export const partners = [
+ copy('โรงแรมและที่พัก','Hotels & stays','酒店与住宿'),
+ copy('ร้านค้าและร้านอาหาร','Shops & restaurants','商店与餐厅'),
+ copy('ผู้ประกอบการท้องถิ่น','Local businesses','当地企业'),
+ copy('ผู้จัดกิจกรรม / Host','Activity hosts','活动负责人'),
+ copy('มหาวิทยาลัย / องค์กร','Universities & organisations','大学与机构'),
+];
+export const faq = [
+ [copy('ChivarGo คืออะไร?','What is ChivarGo?','ChivarGo 是什么？'),ui.intro],
+ [copy('ใช้ได้บนอุปกรณ์ไหน?','Which devices can I use?','支持哪些设备？'),copy('เปิดเว็บผ่านเบราว์เซอร์บนมือถือ แท็บเล็ต และคอมพิวเตอร์ได้ ไม่ต้องดาวน์โหลดจากสโตร์','Use the website on a phone, tablet or computer. No app-store download is required.','可在手机、平板和电脑浏览器使用，无需从应用商店下载。')],
+ [copy('Green Points ต่างจาก Trip Points อย่างไร?','How do Green Points differ from Trip Points?','环保积分与旅行积分有什么区别？'),copy('Green Points ต้องผ่านการตรวจยืนยันจากเจ้าบ้าน ส่วน Trip Points เป็นแต้มจากการเดินทางตามเงื่อนไขของกิจกรรม ยอดและประวัติแสดงแยกกันใน Wallet','Green Points require host approval. Trip Points follow travel activity rules. Balances and history are kept separate in Wallet.','环保积分需要负责人审核。旅行积分遵循旅行活动规则。余额与记录在钱包中分开显示。')],
+ [copy('ต้องออนไลน์ตลอดเวลาหรือไม่?','Do I always need a connection?','需要一直联网吗？'),copy('ข้อมูลที่แอปเก็บไว้ใช้ดูแบบออฟไลน์ได้ บางส่วนของแผนที่และการนำทางยังต้องใช้อินเทอร์เน็ต การส่งหลักฐานและรับรางวัลต้องรอเซิร์ฟเวอร์ตรวจยืนยัน','Previously cached information is available offline. Some maps and directions need a connection. Evidence and rewards require server verification.','已缓存的信息可离线查看。部分地图和导航需要网络，凭证提交与奖励需由服务器验证。')],
+ [copy('ข้อมูลส่วนตัวจัดการอย่างไร?','How is personal data handled?','如何管理个人数据？'),copy('ใช้บัญชีและการตั้งค่าเดิมของแอป การใช้งานตำแหน่งและกล้องต้องได้รับสิทธิ์จากอุปกรณ์ อ่านรายละเอียดในนโยบายความเป็นส่วนตัว','Use the app’s existing account controls. Location and camera access require device permission. See the privacy policy for details.','使用应用现有账户设置。位置与相机访问需要设备授权，详见隐私政策。')],
+ [copy('ผู้ประกอบการเข้าร่วมอย่างไร?','How can a business join?','企业如何加入？'),copy('ส่งใบสมัครผ่านแบบฟอร์มพันธมิตรเดิม ทีมงานจะพิจารณาข้อมูลและสิทธิ์ของผู้ประกอบการก่อนใช้งานคอนโซล','Submit the existing partner application. The team reviews operator details and permissions before console access.','通过现有合作申请表提交资料，团队审核经营者信息和权限后开放控制台。')],
+];

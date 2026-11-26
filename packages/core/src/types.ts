@@ -329,6 +329,8 @@ export interface Quest {
   lng: number;
   /** Metres. Arrival is geofence-verified against this. */
   geofenceRadiusM: number;
+  /** Dates and seats, on an activity a campus host wrote (host-quest.ts). */
+  event?: { startsAt: string; endsAt: string; seats: number; taken: number; closed: boolean };
 }
 
 /**

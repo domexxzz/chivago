@@ -1,6 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 import { readFileSync } from 'node:fs';
+import { URL } from 'node:url';
 
 import { MASCOTS } from '@chivago/core';
 

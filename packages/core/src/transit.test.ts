@@ -2,7 +2,8 @@ import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 
 import {
-  NO_CAMPUS_ROUTE, REPORTS_FOR_A_PATTERN, SAME_VEHICLE_MIN, campusRoutesIn, headwayFrom, publicRoutesIn,
+  CAMPUS_SHUTTLE_UNCONFIRMED, NO_CAMPUS_ROUTE, REPORTS_FOR_A_PATTERN, SAME_VEHICLE_MIN, campusRoutesIn,
+  campusShuttlePage, headwayFrom, publicRoutesIn,
   sayHeadway, type Sighting,
 } from './transit.ts';
 import { SEED_TRANSIT } from './seed.ts';
@@ -11,10 +12,11 @@ import { RMUTT_BBOX, areaByKey, inArea } from './areas.ts';
 /**
  * The route that exists, and the one that does not.
  *
- * The plan's first phase asks for the university's shuttle. It is published
- * nowhere, so the seed has none - and these hold that absence in place,
- * because the tempting fix is a line drawn along roads that look about right,
- * and somebody would then stand at a stop that is not a stop.
+ * The plan's first phase asks for the university's shuttle. RMUTT names its
+ * stops and prints times on its own site, but gives no stop positions and two
+ * timetables that disagree, so the seed has none - and these hold that absence
+ * in place, because the tempting fix is a line drawn along roads that look
+ * about right, and somebody would then stand at a stop that is not a stop.
  */
 describe('the seed carries what is mapped and nothing else', () => {
   test('the one route is real, named, and says where it was read from', () => {
@@ -27,7 +29,7 @@ describe('the seed carries what is mapped and nothing else', () => {
     assert.ok(route!.name.en && route!.name.th, 'a route a rider cannot read is not much of a route');
   });
 
-  test('no route claims a timetable, because nobody publishes one', () => {
+  test('no route claims a timetable, because none has been confirmed', () => {
     for (const r of SEED_TRANSIT) assert.equal(r.schedule, 'unpublished');
   });
 
@@ -35,6 +37,23 @@ describe('the seed carries what is mapped and nothing else', () => {
     assert.deepEqual(campusRoutesIn(SEED_TRANSIT), []);
     assert.ok(NO_CAMPUS_ROUTE.en.length > 0 && NO_CAMPUS_ROUTE.th.length > 0);
     assert.equal(publicRoutesIn(SEED_TRANSIT).length, 1);
+  });
+
+  test('RMUTT publishes its shuttle itself, so the app points there', () => {
+    const url = new URL(campusShuttlePage('rmutt')!);
+    assert.equal(url.protocol, 'https:');
+    assert.equal(url.hostname, 'www.rmutt.ac.th', "the university's own site, not somebody's copy of it");
+    assert.equal(campusShuttlePage('ku-sriracha'), null, 'nobody has read a page for this one');
+    assert.equal(campusShuttlePage('samui'), null);
+  });
+
+  test('no line claims the university has published nothing, and none gives a time', () => {
+    for (const words of [NO_CAMPUS_ROUTE, CAMPUS_SHUTTLE_UNCONFIRMED]) {
+      for (const said of [words.en, words.th, words.zh!]) {
+        assert.doesNotMatch(said, /not published|ยังไม่ได้เผยแพร่|尚未公布/);
+        assert.doesNotMatch(said, /\d/, 'an unconfirmed time would be believed');
+      }
+    }
   });
 
   test('every stop cites its OpenStreetMap node, and unnamed means null', () => {

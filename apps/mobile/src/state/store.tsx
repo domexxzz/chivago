@@ -41,7 +41,7 @@ export type ScreenKey =
   | 'login' | 'register' | 'onboarding' | 'home' | 'map' | 'place' | 'quests' | 'quest'
   | 'wallet' | 'market' | 'impact' | 'safety' | 'trip' | 'concierge'
   | 'companion' | 'passport' | 'account' | 'party' | 'findParty' | 'game' | 'adventure' | 'journal' | 'season'
-  | 'mascots' | 'mascot' | 'fashion' | 'profile' | 'medals' | 'stays' | 'fair'
+  | 'mascots' | 'mascot' | 'fashion' | 'profile' | 'medals' | 'stays' | 'fair' | 'campus'
   | 'summon' | 'editProfile' | 'connectApp' | 'community' | 'shop' | 'shopManage' | 'localPicks' | 'miniGame'
   /** Turn-by-turn, full screen. Reached from the way banner on the map. */
   | 'navigate';
@@ -108,7 +108,7 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   // no tab owns. `impact` in particular has no tab of its own any more.
   concierge: 'home', impact: 'home',
   // A fair's market (docs/66) is a card on Home, so Home stays lit behind it.
-  fair: 'home',
+  fair: 'home', campus: 'home',
   quests: 'quests', quest: 'quests',
   // The mini-games are cards on the Quests screen now, not on the Game tab, so
   // Quests is what owns them. Left as `game` this lit the Game tab while the

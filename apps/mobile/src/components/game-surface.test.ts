@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { test, describe } from 'node:test';
 import { readFileSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { URL, fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
 /**
@@ -101,6 +101,7 @@ const EVIDENCE_LAYER: Record<string, string> = {
   'TripScreen.tsx': 'a plan with prices in it',
   'ConciergeScreen.tsx': 'answers about the real island',
   'FairScreen.tsx': 'where a stall is, on the organiser’s plan',
+  'CampusServicesScreen.tsx': 'a university’s own services, and a health line is not play',
   /*
     Home is the hard case and it lands here on purpose.
 

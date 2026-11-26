@@ -181,8 +181,9 @@ async function persist(locale: Locale): Promise<void> {
  */
 export async function loadLocale(deviceTags?: readonly string[]): Promise<Locale> {
   const stored = await readStored();
-  current = stored ?? deviceLocale(deviceTags);
-  if (!stored) await persist(current);
+  const requested = typeof window !== 'undefined' ? new URLSearchParams(window.location?.search ?? '').get('lang') : null;
+  current = isLocale(requested) ? requested : stored ?? deviceLocale(deviceTags);
+  if (!stored || isLocale(requested)) await persist(current);
   listeners.forEach((l) => l());
   return current;
 }

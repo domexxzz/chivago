@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { MAX_IMAGE_BYTES, MAX_IMAGES } from './image-cache.ts';
 
 const folder = `${FileSystem.documentDirectory}chivago-public-covers/`;

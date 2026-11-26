@@ -22,3 +22,7 @@ Disallow: /sos/
 # Everything else is open on purpose - the app itself, an area's feed, the
 # board, a story, and above all a statement: an evidence record nobody can
 # find is not evidence (docs/31).
+
+# The promo page (/th/) and its machine-readable summary (/llms.txt) are the
+# pages meant to be found and cited, by search engines and answer engines.
+Sitemap: https://chivargo.com/sitemap.xml

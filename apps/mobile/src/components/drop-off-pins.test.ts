@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { describe } from 'node:test';
 
 import { DROP_OFF_POINTS, areaByKey } from '@chivago/core';
 
-import { DROP_OFF_PIN_CATEGORY, dropOffForPin, dropOffPins, isDropOffPin } from './drop-off-pins.ts';
+import { DROP_OFF_PIN_CATEGORY, dropOffForPin, dropOffPins, dropOffPointsIn, isDropOffPin } from './drop-off-pins.ts';
 
 const th = (text: { th: string }) => text.th;
 const sichang = areaByKey('koh-sichang');
@@ -35,4 +35,14 @@ test('the pin carries the name in the language it is given', () => {
   assert.ok(sichang);
   const [pin] = dropOffPins(sichang.bbox, (text) => text.en);
   assert.equal(pin.name, DROP_OFF_POINTS[0].name.en);
+});
+
+describe('the points listed under an area map', () => {
+  test('are only the ones in that area: a campus does not list an island pier', () => {
+    assert.deepEqual(dropOffPointsIn(areaByKey('rmutt').bbox), []);
+  });
+
+  test('and Ko Sichang still lists all of its own', () => {
+    assert.equal(dropOffPointsIn(areaByKey('koh-sichang').bbox).length, DROP_OFF_POINTS.length);
+  });
 });

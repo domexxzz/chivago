@@ -1,19 +1,21 @@
 /**
  * The bus strip on Home.
  *
- * What it must never do is read like a timetable. Nobody publishes one for
+ * What it must never do is read like a timetable. None has been confirmed for
  * either campus, so every number on this card came from riders tapping a
  * button, and the sentence has to keep saying so - especially on the days the
  * number looks confident, because that is when a reader stops asking where it
  * came from.
  *
- * And the absence has to speak. A university with no published shuttle route
- * gets a line saying exactly that; a section that quietly is not there is a
- * question nobody knows to ask.
+ * And the absence has to speak. A campus whose shuttle the app does not draw
+ * gets a line saying so, and a link to the university's own page where one has
+ * been read; a section that quietly is not there is a question nobody knows to
+ * ask.
  */
-import { describe, test, afterEach } from 'node:test';
+import { describe, test, afterEach, mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { createElement as h } from 'react';
+import { Linking } from 'react-native';
 
 import { HomeScreen } from '../src/screens/HomeScreen.tsx';
 import { MapScreen } from '../src/screens/MapScreen.tsx';
@@ -71,7 +73,7 @@ const routes = (headway = { lastSeenMinAgo: null, typicalGapMin: null, reports: 
 });
 
 let restore: (() => void) | null = null;
-afterEach(() => { restore?.(); restore = null; resetControl(); __setAreaForTests('samui'); __setLocaleForTests('en'); });
+afterEach(() => { mock.restoreAll(); restore?.(); restore = null; resetControl(); __setAreaForTests('samui'); __setLocaleForTests('en'); });
 
 describe('what runs to this campus', () => {
   test('the route, its number and who runs it', async () => {
@@ -93,11 +95,47 @@ describe('what runs to this campus', () => {
     ui.unmount();
   });
 
-  test('the university has published no shuttle, and the card says so', async () => {
+  test("the university's own minibus is said to exist, without a time the app has not confirmed", async () => {
     __setAreaForTests('rmutt');
     const s = server(routes()); restore = s.restore;
     const ui = await mountScreen(h(HomeScreen, { ...props }));
-    assert.match(ui.text(), /has not published a shuttle route/);
+    const said = ui.text();
+    assert.doesNotMatch(said, /has not published/, 'RMUTT publishes its shuttle on its own site');
+    assert.match(said, /runs its own minibus/);
+    assert.match(said, /University bus page/);
+    ui.unmount();
+  });
+
+  test("the link opens the university's page and nothing else", async () => {
+    __setAreaForTests('rmutt');
+    const s = server(routes()); restore = s.restore;
+    const opened = mock.method(Linking, 'openURL', async () => true);
+    const ui = await mountScreen(h(HomeScreen, { ...props }));
+    await ui.press(/University bus page/);
+    assert.deepEqual(opened.mock.calls.map((c) => c.arguments[0]), ['https://www.rmutt.ac.th/bus-service-center/']);
+    ui.unmount();
+  });
+
+  test('a Thai reader gets both the sentence and the link in Thai', async () => {
+    __setLocaleForTests('th');
+    __setAreaForTests('rmutt');
+    const s = server(routes()); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, { ...props }));
+    assert.match(ui.text(), /มหาวิทยาลัยมีรถมินิบัสภายใน/);
+    assert.match(ui.text(), /หน้ารถของมหาวิทยาลัย/);
+    ui.unmount();
+  });
+
+  test('a campus route, once there is one, replaces the line', async () => {
+    __setAreaForTests('rmutt');
+    const none = { lastSeenMinAgo: null, typicalGapMin: null, reports: 0, vehicles: 0 };
+    const s = server({
+      ...routes(),
+      '/areas/rmutt/transit': { routes: [route(none)], campus: [{ ...route(none), id: 'campus-1', kind: 'campus' }] },
+    }); restore = s.restore;
+    const ui = await mountScreen(h(HomeScreen, { ...props }));
+    assert.match(ui.text(), /538/);
+    assert.doesNotMatch(ui.text(), /runs its own minibus/);
     ui.unmount();
   });
 

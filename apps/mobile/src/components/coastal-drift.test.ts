@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { URL, fileURLToPath } from 'node:url';
 import { coastalDriftPoints, coastalSide, parseCoastalDrift } from './coastal-drift.ts';
 
 const fixture = JSON.parse(readFileSync(

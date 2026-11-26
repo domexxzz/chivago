@@ -58,6 +58,14 @@
 /icons/*
   cache-control: public, max-age=86400
 
+# The promo page. Its HTML revalidates like index.html so an edit shows at
+# once; its images are not content-hashed, so they get the /media hour.
+/th/
+  cache-control: no-cache
+
+/th/img/*
+  cache-control: public, max-age=3600
+
 /
   cache-control: no-cache
 

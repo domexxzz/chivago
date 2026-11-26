@@ -440,7 +440,7 @@ export function WebTerrainMap({
       ? [here.lng, here.lat]
       : [area.center.lng, area.center.lat];
     return page(
-      chivagoStyle(hour),
+      chivagoStyle(hour, { flat: area.flatGround }),
       places.map((p) => ({
         id: p.id, lat: p.lat, lng: p.lng,
         label: `${t(p.name)}, ${t({ en: 'category pin', th: 'หมุดแยกตามประเภท', zh: '分类图钉' })}`,

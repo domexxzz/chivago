@@ -4,7 +4,7 @@ import { test, describe } from 'node:test';
 import {
   CROWD_M, DRIFT, FOG_BOUNDS, FOG_CORNERS, HERO, PIN_NUDGE_PX, QUEST_FAN_PX, QUEST_MARK_OFFSET, REVEAL_M,
   MAX_PITCH, ROUTE_DASH, ROUTE_PHASES, SAMUI_BOUNDS, SURF_BREATH, TIDE_FPS, WIND, chivagoStyle, cloudField,
-  CAMPUS_FRAME_PX, CAMPUS_FRAME_ZOOM, CAMPUS_ZOOM_RANGE, campusZoom,
+  CAMPUS_FRAME_PX, CAMPUS_FRAME_SPAN_M, CAMPUS_FRAME_ZOOM, CAMPUS_ZOOM_RANGE, GROUND_LAYERS, campusZoom,
   crowdOffsets, heroPose, introPose, islandExaggeration, landColours, paletteFor, questMark, questOffsets, revealedPoints, reveals,
   routeDash, settleEasing, surfBreath,
 } from '../src/components/terrain-style.ts';
@@ -552,6 +552,18 @@ describe('the campus frame', () => {
     }
   });
 
+  test('a wider campus is stood further back from, on every screen', () => {
+    for (const width of [354, 390, 620, 1200]) {
+      const back = campusZoom(width) - campusZoom(width, CAMPUS_FRAME_SPAN_M * 2);
+      assert.ok(Math.abs(back - 1) < 0.02, `${width}px moved ${back}`);
+    }
+  });
+
+  test('a campus no wider than the one it was judged on is framed as before', () => {
+    assert.equal(campusZoom(390, CAMPUS_FRAME_SPAN_M), campusZoom(390));
+    assert.equal(campusZoom(390, 100), campusZoom(390));
+  });
+
   test('a container that has not been measured yet still gets a usable frame', () => {
     // The pose is built inside the mount effect, and a lazy chunk landing in
     // a scroll view can report zero width for one frame.
@@ -785,5 +797,43 @@ describe('the weather', () => {
       assert.ok(Math.abs(total - period) < 1e-9, 'the period never changes, only the phase');
       assert.ok(d[1]! > routeDash(p - 1)[1]! || p === 1, 'each phase is further along');
     }
+  });
+});
+
+/**
+ * A campus on the plain has no hillside to draw and no shore.
+ *
+ * The elevation archive reads two metres over Thanyaburi, which the shoreline
+ * bands paint as surf, and it carries one bad sample - 190 m in the middle of
+ * the Rama IX reservoir - that stood up as a needle over the campus.
+ */
+describe('the layers a flat campus does without', () => {
+  test('are exactly the ones drawn from the elevation model', () => {
+    const style = chivagoStyle(10);
+    const dem = new Set(Object.entries(style.sources).filter(([, v]) => v.type === 'raster-dem').map(([k]) => k));
+    const fromDem = style.layers.filter((l) => 'source' in l && dem.has(l.source as string)).map((l) => l.id).sort();
+    assert.deepEqual([...GROUND_LAYERS].sort(), fromDem);
+  });
+
+  test('are off in the style itself, so relighting the map cannot bring them back', () => {
+    for (const hour of [2, 10, 18]) {
+      const layers = chivagoStyle(hour, { flat: true }).layers;
+      for (const id of GROUND_LAYERS) {
+        assert.equal(layers.find((l) => l.id === id)?.layout?.visibility, 'none', `${id} at ${hour}:00`);
+      }
+      const land = layers.find((l) => l.id === 'land');
+      assert.deepEqual(land?.paint, { 'background-color': paletteFor(hour).sand });
+    }
+  });
+
+  test('and are on everywhere else, exactly as they were', () => {
+    for (const layer of chivagoStyle(10).layers) {
+      if ((GROUND_LAYERS as readonly string[]).includes(layer.id)) assert.notEqual(layer.layout?.visibility, 'none');
+    }
+    assert.deepEqual(chivagoStyle(10, { flat: false }), chivagoStyle(10));
+  });
+
+  test('do not include the mapped water: the reservoir beside RMUTT is real', () => {
+    assert.ok(!(GROUND_LAYERS as readonly string[]).includes('sea'));
   });
 });

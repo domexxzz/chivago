@@ -103,6 +103,7 @@ export const consoleStrings = {
   esg: c('รายงาน ESG', 'ESG', 'ESG 报告'),
   statement: c('รายการกิจกรรม', 'Statement', '报表'),
   quests: c('ภารกิจและตัวชี้วัด', 'Quests & KPI', '任务与 KPI'),
+  questDesk: c('สร้างกิจกรรม', 'Write activities', '创建活动'),
   reviewDeclared: c('ทบทวนไฟล์', 'Review a file', '审核文件'),
   stories: c('สตอรี่', 'Stories', '故事'),
   inquiries: c('คำสอบถาม', 'Inquiries', '咨询'),

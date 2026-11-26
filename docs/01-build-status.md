@@ -26,7 +26,9 @@ What exists, what runs, and what is honestly not there yet.
 > (`transit.ts`, `BusStrip.tsx`). The design decision is in the header and is
 > the same one this repository keeps making. A public service really does
 > serve the campus and is mapped, so it is here; **the university's own
-> shuttle is published nowhere**, in no feed the app can read, so
+> shuttle is in no feed the app can read** (corrected 26 Nov 2026: RMUTT does
+> describe it on its website, with two timetables that disagree and no stop
+> positions, so the screen now links there), so
 > `campusRoutesIn` returns an empty list and the screen says so in words. A
 > route invented from the shape of the roads would be believed — somebody
 > would stand at a stop that is not a stop — and the first thing the app would

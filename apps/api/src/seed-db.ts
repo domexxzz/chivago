@@ -184,7 +184,11 @@ function prune(table: string, keep: string[]): void {
 }
 
 prune('places', SEED_PLACES.map((p) => p.id));
-prune('quests', ACTIVE_QUESTS.map((q) => q.id));
+// And whatever a campus host wrote: it was never the seed's to list.
+prune('quests', [
+  ...ACTIVE_QUESTS.map((q) => q.id),
+  ...rows<{ id: string }>(db.prepare('SELECT id FROM host_quests').all()).map((q) => q.id),
+]);
 prune('offers', SEED_OFFERS.map((o) => o.id));
 
 const counts = {

@@ -245,6 +245,7 @@ interface QuestRow {
   duration: string; duration_th: string | null; reward_points: number; reward_exp: number | null; reward_currency: string; kind: string;
   lat: number; lng: number;
   geofence_radius_m: number; host_id: string; host_name: string; host_type: string;
+  hq_status: string | null; starts_at: string | null; ends_at: string | null; seats: number | null; taken: number | null;
 }
 
 const toQuest = (r: QuestRow): Quest => ({
@@ -261,14 +262,21 @@ const toQuest = (r: QuestRow): Quest => ({
   lat: r.lat,
   lng: r.lng,
   geofenceRadiusM: r.geofence_radius_m,
+  ...(r.hq_status !== null ? {
+    event: {
+      startsAt: r.starts_at!, endsAt: r.ends_at!, seats: r.seats!, taken: r.taken!, closed: r.hq_status === 'closed',
+    },
+  } : {}),
 });
 
 const QUEST_SELECT = `
   SELECT q.id, q.code, q.name_en, q.name_th, q.where_label, q.where_label_th, q.duration, q.duration_th, q.reward_points,
          q.reward_exp, q.reward_currency,
          q.kind, q.lat, q.lng, q.geofence_radius_m,
-         h.id AS host_id, h.name AS host_name, h.type AS host_type
-  FROM quests q JOIN hosts h ON h.id = q.host_id`;
+         h.id AS host_id, h.name AS host_name, h.type AS host_type,
+         hq.status AS hq_status, hq.starts_at, hq.ends_at, hq.seats,
+         (SELECT COUNT(*) FROM quest_progress qp WHERE hq.id IS NOT NULL AND qp.quest_id = hq.id) AS taken
+  FROM quests q JOIN hosts h ON h.id = q.host_id LEFT JOIN host_quests hq ON hq.id = q.id`;
 
 /**
  * Which quests the app publishes.
@@ -310,19 +318,39 @@ function publishedWhere(db: DB): string {
   return hasActive ? ACTIVE_QUEST_WHERE : NOT_RETIRED_WHERE;
 }
 
-export function listQuests(db: DB, filter?: 'today' | 'weekend'): Quest[] {
-  const where = publishedWhere(db);
+/**
+ * Every published quest, seeded and written alike.
+ *
+ * A campus host's activity is published by its own approval, not by the seed's
+ * list, so it is asked a different question: is it on, and is it not over. It
+ * stays on the list of whoever is in it, because that is how they get back to
+ * it to send their proof. `everyHostQuest` is the console's: a report names an
+ * activity that is over.
+ */
+export function listQuests(
+  db: DB, filter?: 'today' | 'weekend', opts: { userId?: string; now?: Date; everyHostQuest?: boolean } = {},
+): Quest[] {
+  const where = `(
+    (hq.id IS NULL AND ${publishedWhere(db)})
+    OR (hq.status = 'published' AND hq.ends_at > ?)
+    ${opts.everyHostQuest ? 'OR hq.id IS NOT NULL' : ''}
+    OR (hq.status IN ('published', 'closed')
+        AND EXISTS (SELECT 1 FROM quest_progress mine WHERE mine.quest_id = q.id AND mine.user_id = ?))
+  )`;
+  const args = [(opts.now ?? new Date()).toISOString(), opts.userId ?? ''];
   const questRows = filter
     ? rows<QuestRow>(
-        db.prepare(`${QUEST_SELECT} WHERE ${where} AND q.kind = ? ORDER BY q.reward_points DESC`).all(filter),
+        db.prepare(`${QUEST_SELECT} WHERE ${where} AND q.kind = ? ORDER BY q.reward_points DESC`).all(...args, filter),
       )
-    : rows<QuestRow>(db.prepare(`${QUEST_SELECT} WHERE ${where} ORDER BY q.reward_points DESC`).all());
+    : rows<QuestRow>(db.prepare(`${QUEST_SELECT} WHERE ${where} ORDER BY q.reward_points DESC`).all(...args));
   return questRows.map(toQuest);
 }
 
 export function getQuest(db: DB, questId: string): Quest | null {
   const found = row<QuestRow>(
-    db.prepare(`${QUEST_SELECT} WHERE q.id = ? AND ${publishedWhere(db)}`).get(questId),
+    db.prepare(
+      `${QUEST_SELECT} WHERE q.id = ? AND (hq.id IS NOT NULL OR ${publishedWhere(db)})`,
+    ).get(questId),
   );
   return found ? toQuest(found) : null;
 }

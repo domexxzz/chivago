@@ -23,6 +23,7 @@ import { constrainLauncherPoint, snapLauncherPoint } from './launcher-position.t
 export type { TabKey } from '../state/store.tsx';
 import type { TabKey } from '../state/store.tsx';
 import { t } from '../i18n/locale.ts';
+import { useArea } from '../state/area.ts';
 import travelHero from '../../assets/chivago-travel-hero-v2.png';
 import aiGuideRobot from '../../assets/chivargo-ai-robot-v1.png';
 /*
@@ -240,14 +241,19 @@ export function TravelHeroBackdrop({
   compact?: boolean;
   focalPoint?: 'left' | 'center' | 'right';
 }) {
+  // The photograph is a bay. A campus is not told it is one; until somebody has
+  // taken a picture there, it gets the colour and no picture.
+  const campus = useArea().university === true;
   const position = focalPoint === 'left' ? '20% center' : focalPoint === 'right' ? '80% center' : 'center';
   return (
     <View accessible={false} style={[StyleSheet.absoluteFillObject, { pointerEvents: 'none' }]}>
-      <Image
-        source={travelHero}
-        resizeMode="cover"
-        style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%', objectPosition: position } as never]}
-      />
+      {campus ? null : (
+        <Image
+          source={travelHero}
+          resizeMode="cover"
+          style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%', objectPosition: position } as never]}
+        />
+      )}
       <View style={[StyleSheet.absoluteFillObject, { backgroundColor: compact ? 'rgba(0,55,73,0.66)' : 'rgba(0,48,70,0.52)' }]} />
       <Svg width="100%" height="100%" viewBox="0 0 480 260" preserveAspectRatio="none">
         <Defs>
@@ -258,8 +264,8 @@ export function TravelHeroBackdrop({
           </LinearGradient>
         </Defs>
         <Rect width="480" height="260" fill="url(#travelVeil)" />
-        <Path d="M0 224 Q92 188 205 226 T480 214 V260 H0Z" fill="#48CAE4" opacity="0.25" />
-        <Path d="M0 242 Q110 215 250 245 T480 232 V260 H0Z" fill="#EDF6F9" opacity="0.18" />
+        {campus ? null : <Path d="M0 224 Q92 188 205 226 T480 214 V260 H0Z" fill="#48CAE4" opacity="0.25" />}
+        {campus ? null : <Path d="M0 242 Q110 215 250 245 T480 232 V260 H0Z" fill="#EDF6F9" opacity="0.18" />}
       </Svg>
     </View>
   );

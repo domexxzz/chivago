@@ -58,6 +58,7 @@ const run = (cmd, args) => {
   left in the cache would otherwise put the demo's in-process fake server into
   a LIVE build - a production site answering its own fetches from a snapshot.
 */
+run('node', [join(here, '../../../scripts/build-promo.mjs')]);
 run('npx', ['expo', 'export', '--platform', 'web', '--output-dir', out, '--clear', '--max-workers', workers]);
 run('node', [join(here, 'flatten-assets.mjs'), out]);
 run('node', [join(here, 'check-export.mjs'), out]);

@@ -18,7 +18,7 @@ import type {
   ApiResponse, Balances, Bilingual, ImpactStat, LedgerEntry, NotificationKind, Offer, Quest, TreeImpact,
   ChivaBalance, Companion, MonthOutlook, MoodCheckin, MoodKey, PriceCategory, PriceForecast,
   PlaceReview, QuestProgress, ScoredPlace, ShieldService, TripPlan, Voucher, Wallet,
-  WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
+  StudentProfile, WellnessProfile, HostStanding, TravellerStanding, ProvinceEvidence, PartySummary,
   InviteListing, PartyInvite, RequestOutcome, InquiryView, ListingCard, TravellerInquiry,
   MascotForm, Reply, Spirit, SpiritCourt, SpiritRarity, ConciergeChatData, TravelLocation,
   PartyItineraryItem, PartyLiveMember, PartyMeetingPoint, PartyMessage, PartyPingKind, PartyTripSummary,
@@ -910,6 +910,13 @@ export const api = {
   quest: (id: string) =>
     get<{ quest: Quest; progress: QuestProgress | null }>(`/quests/${id}`),
   joinQuest: (id: string) => post<QuestProgress>(`/quests/${id}/join`),
+  /** A self-declared faculty and year: said, changed, taken back. */
+  student: () => get<{ student: StudentProfile | null }>('/campus/student'),
+  saveStudent: (body: StudentProfile & { consentVersion: string }) =>
+    put<{ student: StudentProfile }>('/campus/student', body),
+  forgetStudent: () => call<{ removed: boolean }>('/campus/student', { method: 'DELETE' }, undefined, true),
+  /** Give a place up. Only before arriving. */
+  leaveQuest: (id: string) => post<{ left: boolean }>(`/quests/${id}/leave`),
   /** `pos` is null only while the fence is open; see state/server-config.ts `locationOff`. */
   arriveAtQuest: (id: string, pos: Fix | null) =>
     post<QuestProgress>(`/quests/${id}/arrive`, pos ?? {}),

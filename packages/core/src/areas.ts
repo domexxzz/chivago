@@ -49,6 +49,32 @@ export interface Area {
    * distance as a real journey across a campus. See `CAMPUS_LEG_MIN_M`.
    */
   legMinM: number;
+  /**
+   * A university, and spoken of as one.
+   *
+   * Not the same question as `map`: Ko Sichang is an island drawn with the
+   * street-zoom map, and calling it a campus would be wrong in every line.
+   */
+  university?: true;
+  /**
+   * The ground is level, so the map draws it level.
+   *
+   * Elevation over Bangkok's plain reads two metres with an error larger than
+   * that, and the shoreline bands - which are hung on height above the sea -
+   * painted surf across dry campus. At RMUTT the archive also holds a 190 m
+   * sample in the middle of the Rama IX reservoir (14.0461, 100.7230), which
+   * stood up as a needle. Decoded at zooms 12 to 15 on 2026-11-26; it is
+   * there at every one. Left out where the ground really does climb.
+   */
+  flatGround?: true;
+  /**
+   * East to west, in metres, what the opening view of a campus has to hold:
+   * its places and the stops at its edge. Left out, the frame is the one the
+   * first campus was judged at. See `campusZoom`.
+   */
+  spanM?: number;
+  /** What that view is centred on, where the things on the map are not centred on the outline. */
+  frameCenter?: { lat: number; lng: number };
 }
 
 /**
@@ -139,6 +165,7 @@ export const AREAS: Area[] = [
     center: { lat: 13.1205, lng: 100.9205 },
     bbox: KU_SRIRACHA_BBOX,
     map: 'campus',
+    university: true,
     legMinM: CAMPUS_LEG_MIN_M,
   },
   {
@@ -149,7 +176,14 @@ export const AREAS: Area[] = [
     center: { lat: 14.03556, lng: 100.72635 },
     bbox: RMUTT_BBOX,
     map: 'campus',
+    university: true,
     legMinM: CAMPUS_LEG_MIN_M,
+    flatGround: true,
+    // Between the stadium on the west side and the stops at gate 3 on the east,
+    // which is 994 m. The rest is slack: the view is turned and tilted, and a
+    // pin is drawn wider than the point it stands on.
+    frameCenter: { lat: 14.0345, lng: 100.7275 },
+    spanM: 1280,
   },
   {
     key: 'ku-bangkhen',
@@ -158,7 +192,9 @@ export const AREAS: Area[] = [
     center: { lat: 13.8476, lng: 100.5724 },
     bbox: KU_BANGKHEN_BBOX,
     map: 'campus',
+    university: true,
     legMinM: CAMPUS_LEG_MIN_M,
+    flatGround: true,
   },
   {
     // After KU Sriracha: a Chon Buri place on neither frame stays with the

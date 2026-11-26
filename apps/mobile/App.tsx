@@ -35,6 +35,7 @@ import { MapScreen } from './src/screens/MapScreen.tsx';
 import { NavigateScreen } from './src/screens/NavigateScreen.tsx';
 import type { NavDestination } from './src/navigation/session.ts';
 import { ALL_OF_THE_FAIR, FairScreen, type FairView } from './src/screens/FairScreen.tsx';
+import { CampusServicesScreen } from './src/screens/CampusServicesScreen.tsx';
 import { PlaceScreen } from './src/screens/PlaceScreen.tsx';
 import { MissionsScreen } from './src/screens/MissionsScreen.tsx';
 import { QuestDetailScreen } from './src/screens/QuestDetail.tsx';
@@ -81,6 +82,7 @@ import { GuestBand } from './src/components/GuestGate.tsx';
 import { GuestActionProvider } from './src/components/GuestActionGate.tsx';
 import { setGuestSandboxActive } from './src/demo/mode.ts';
 import { useServerConfig } from './src/state/server-config.ts';
+import { promoScreen } from './src/navigation/promo-link.ts';
 import { UnfencedBand } from './src/components/UnfencedBand.tsx';
 import { ErrorBoundary } from './src/components/ErrorBoundary.tsx';
 
@@ -321,6 +323,20 @@ export default function App() {
       if (place) nav.push('place', { placeId: place });
     }
   }, [profileLoaded, authReady, loggedIn, guest, nav]);
+
+  // Keep the requested destination through the existing sign-in/onboarding flow.
+  const promoOpened = React.useRef(false);
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !profileLoaded || !authReady || !localeReady || !(loggedIn || guest)) return;
+    if (['login', 'register', 'onboarding'].includes(nav.screen)) return;
+    const open = () => {
+      const screen = promoScreen(window.location.search);
+      if (screen) nav.push(screen);
+    };
+    if (!promoOpened.current) { promoOpened.current = true; open(); }
+    window.addEventListener('popstate', open);
+    return () => window.removeEventListener('popstate', open);
+  }, [profileLoaded, authReady, localeReady, loggedIn, guest, nav.screen, nav.push]);
 
   /*
     ABOVE THE EARLY RETURN, and it has to stay there.
@@ -613,6 +629,7 @@ export default function App() {
             onOpenWallet={() => nav.push('wallet')}
             onOpenMarket={() => nav.push('market')}
             onOpenFair={openFair}
+            onOpenCampus={() => nav.push('campus')}
             onOpenPassport={() => nav.push('passport')}
             onOpenMascots={() => nav.push('mascots')}
             onOpenImpact={() => nav.push('impact')}
@@ -834,6 +851,15 @@ export default function App() {
 
       case 'stays':
         return <AskScreen onBack={nav.pop} onToast={toast.show} />;
+
+      case 'campus':
+        return (
+          <CampusServicesScreen
+            onBack={nav.pop}
+            onOpenQuests={() => nav.selectTab('quests')}
+            onToast={toast.show}
+          />
+        );
 
       case 'fair':
         return (

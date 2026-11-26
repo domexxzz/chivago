@@ -36,4 +36,27 @@ config.resolver.unstable_enableSymlinks = true;
 // expo-modules-core and @babel/runtime.
 config.resolver.disableHierarchicalLookup = false;
 
+/*
+  `.wasm` AS AN ASSET, which Metro does not recognise on its own.
+
+  expo-sqlite 16 (SDK 54) builds its web driver on wa-sqlite and reaches it
+  with a static `import wasmModule from './wa-sqlite/wa-sqlite.wasm'`. Metro
+  resolves only extensions it knows, so the web export died on a file that was
+  sitting right there:
+
+    Unable to resolve module ./wa-sqlite/wa-sqlite.wasm ... None of these files
+    exist: .../web/wa-sqlite/wa-sqlite.wasm
+
+  expo-sqlite 15 loaded its wasm at runtime instead, which is why SDK 52 never
+  needed this.
+
+  NOTE THIS IS DEAD CODE ON WEB. `src/offline/storage.ts` chooses its adapter at
+  runtime and a browser gets `storage-web.ts` (IndexedDB); expo-sqlite is only
+  ever used on a device. But both branches are `import()`ed, so Metro still has
+  to RESOLVE the native one for web. The 604K wasm is therefore emitted as an
+  asset nobody requests - it costs deploy size, not a single byte of anyone's
+  data plan.
+*/
+config.resolver.assetExts.push('wasm');
+
 module.exports = config;
