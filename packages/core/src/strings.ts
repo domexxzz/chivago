@@ -1020,6 +1020,59 @@ export const strings = {
     noFair: t('No fair is on in this area.', 'พื้นที่นี้ยังไม่มีงานแฟร์', '该区域目前没有集市。'),
   },
 
+  // -- Campus buildings ---------------------------------------------------
+  buildings: {
+    kicker: t('On this campus', 'ในมหาวิทยาลัย', '在校园内'),
+    title: t('Buildings and places', 'อาคารและสถานที่', '建筑与地点'),
+    find: t(
+      'Find a faculty, an office, a hall of residence, a car park or a toilet.',
+      'หาคณะ สำนักงาน หอพัก ลานจอดรถ หรือห้องน้ำ',
+      '查找学院、办公室、宿舍、停车场或卫生间。',
+    ),
+    search: t('Search buildings', 'ค้นหาอาคาร', '搜索建筑'),
+    searchHint: t('e.g. nursing, dorm, car park', 'เช่น พยาบาล หอพัก ลานจอด', '例如：护理、宿舍、停车场'),
+    clear: t('Clear', 'ล้าง', '清除'),
+    all: t('All', 'ทั้งหมด', '全部'),
+    // Read from OpenStreetMap, and the date says how old that reading is.
+    readOn: (day: string) => t(
+      `Read from OpenStreetMap on ${day}`,
+      `อ่านจาก OpenStreetMap วันที่ ${day}`,
+      `于 ${day} 自 OpenStreetMap 读取`,
+    ),
+    directory: (n: number) => t(`${n} mapped`, `มีในแผนที่ ${n} แห่ง`, `地图上有 ${n} 处`),
+    found: (n: number) => t(`${n} found`, `เจอ ${n} แห่ง`, `找到 ${n} 处`),
+    none: (query: string) => t(
+      `Nothing for "${query}". Try a faculty's name, or what the place is.`,
+      `ไม่เจอ "${query}" ลองพิมพ์ชื่อคณะ หรือสิ่งที่มันเป็น`,
+      `找不到“${query}”。试试学院名称，或这个地方是什么。`,
+    ),
+    showOnMap: t('Show on the map', 'ดูบนแผนที่', '在地图上显示'),
+    showOneOnMap: (name: string) => t(`Show ${name} on the map`, `ดู ${name} บนแผนที่`, `在地图上显示 ${name}`),
+    onMap: (name: string) => t(name, name, name),
+    backToList: t('Back to the list', 'กลับไปที่รายการ', '返回列表'),
+    close: t('Close', 'ปิด', '关闭'),
+    open: t('Find a building', 'ค้นหาอาคาร', '查找建筑'),
+    none_mapped: t(
+      'No building on this campus is mapped yet.',
+      'ยังไม่มีอาคารของพื้นที่นี้ในแผนที่',
+      '该校园尚无建筑被收录。',
+    ),
+    // Said once, under the list: the honest limit of what this can answer.
+    noFloors: t(
+      'A floor and a room number are not in OpenStreetMap, so they are not shown here.',
+      'ชั้นและเลขห้องไม่มีใน OpenStreetMap จึงยังไม่แสดงที่นี่',
+      'OpenStreetMap 没有楼层和房间号，因此这里不显示。',
+    ),
+    kind: {
+      faculty: t('Faculty', 'คณะ', '学院'),
+      office: t('Office', 'สำนักงาน', '办公室'),
+      hall: t('Hall', 'หอประชุม', '礼堂'),
+      residence: t('Residence', 'หอพัก', '宿舍'),
+      parking: t('Car park', 'ลานจอดรถ', '停车场'),
+      toilets: t('Toilets', 'ห้องน้ำ', '卫生间'),
+    },
+  },
+
   // -- Marketplace --------------------------------------------------------
   market: {
     context: t('Marketplace', 'ใช้แต้ม', '积分商城'),

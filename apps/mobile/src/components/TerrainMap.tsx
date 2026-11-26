@@ -33,8 +33,8 @@ import './maplibre-worker.ts';
 // three unstyled buttons stacked in the corner.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import {
-  islandHour, strings,
-  type Bilingual, type ExploredPlace, type FairLot, type Quest, type QuestProgress, type ScoredPlace,
+  UNNAMED_KIND, islandHour, strings,
+  type Bilingual, type CampusBuilding, type ExploredPlace, type FairLot, type Quest, type QuestProgress, type ScoredPlace,
 } from '@chivago/core';
 import { color, onFill } from '../theme/index.ts';
 import { zoneTone } from './fair-tones.ts';
@@ -405,6 +405,17 @@ const MARK_CSS = `
   padding:5px 9px;border-radius:10px;background:${color.surface};color:${color.text};font-size:13px;font-weight:700;white-space:nowrap;
   box-shadow:0 0 0 2px ${color.brand},0 3px 10px rgba(8,26,48,.4)}
 .cg-lot-tag b{padding:1px 6px;border-radius:6px;background:var(--lot);color:#ffffff}
+
+/*
+  A campus building (campus-buildings.ts). The same discipline as a lot: a dot
+  is not a button, the directory is where one is chosen, and only the one asked
+  for wears its name. Round, so it is not mistaken for a fair lot, and in the
+  brand blue rather than any layer's colour, because a building carries no
+  score.
+*/
+.cg-bld{pointer-events:none;font-family:'Noto Sans Thai','Leelawadee UI',system-ui,sans-serif}
+.cg-bld i{display:block;width:11px;height:11px;border-radius:50%;background:${color.brand};border:2px solid #ffffff;box-shadow:0 1px 4px rgba(8,26,48,.45)}
+.cg-bld.cg-bld-on i{width:20px;height:20px;box-shadow:0 0 0 3px ${color.brand},0 3px 10px rgba(8,26,48,.5)}
 `;
 
 /**
@@ -523,6 +534,7 @@ export function TerrainMap({
   tales, onOpenStory, stops = [], interactive = true, fullScreenControls = false,
   onPickCoordinate, selectedCoordinate = null,
   here = null, way = null, wayIsRoute = false, fairLots = null, fairFocus = null,
+  buildings = null, buildingFocus = null,
   partyMembers = [], meetingPoint = null,
   driftPoints = [], onSelectDriftPoint,
 }: {
@@ -576,6 +588,10 @@ export function TerrainMap({
   fairLots?: FairLot[] | null;
   /** The lot asked for: labelled, and the camera flies to it. */
   fairFocus?: FairLot | null;
+  /** Every mapped building of the campus, drawn small and silent. */
+  buildings?: readonly CampusBuilding[] | null;
+  /** The one asked for on the directory screen: marked, named, and flown to. */
+  buildingFocus?: CampusBuilding | null;
   partyMembers?: { userId: string; displayName: string; profilePhotoUrl: string | null; lat: number; lng: number; you: boolean }[];
   meetingPoint?: { lat: number; lng: number; label: string } | null;
   driftPoints?: CoastalDriftPoint[];
@@ -587,6 +603,7 @@ export function TerrainMap({
   const focusRef = React.useRef<FairLot | null>(fairFocus);
   focusRef.current = fairFocus;
   const lotMarks = React.useRef<Marker[]>([]);
+  const bldMarks = React.useRef<Marker[]>([]);
   // Whether this map's 'load' has fired. Not `isStyleLoaded()`, which is false
   // whenever a tile is still on its way - during the drift, most of the time -
   // while 'load' fires once: waiting on it then would wait forever.
@@ -1947,6 +1964,54 @@ export function TerrainMap({
     }
     return clear;
   }, [fairLots, fairFocus]);
+
+  /*
+    The campus's buildings, and the one asked for.
+
+    Their own marks and their own effect, so choosing a building does not tear
+    down the place pins or the fair's lots.
+  */
+  React.useEffect(() => {
+    const m = map.current;
+    const clear = () => {
+      for (const mark of bldMarks.current) mark.remove();
+      bldMarks.current = [];
+    };
+    clear();
+    if (!m || !buildings?.length) return clear;
+    for (const b of buildings) {
+      const on = buildingFocus?.id === b.id;
+      const name = b.name ? t(b.name) : t(UNNAMED_KIND[b.kind]);
+      const el = document.createElement('div');
+      el.className = `cg-bld${on ? ' cg-bld-on' : ''}`;
+      el.innerHTML = on ? `<span class="cg-lot-tag">${esc(name)}</span><i></i>` : '<i></i>';
+      el.setAttribute('role', 'img');
+      el.setAttribute('aria-label', name);
+      if (on) el.style.zIndex = '4';
+      bldMarks.current.push(new Marker({ element: el, anchor: 'center' }).setLngLat([b.lng, b.lat]).addTo(m));
+    }
+    return clear;
+  }, [buildings, buildingFocus]);
+
+  /* Fly to the building asked for, on the same terms as a lot. */
+  React.useEffect(() => {
+    const m = map.current;
+    if (!m || !buildingFocus || !interactive) return;
+    const go = () => {
+      if (!map.current) return;
+      m.flyTo({
+        center: [buildingFocus.lng, buildingFocus.lat],
+        zoom: 18,
+        pitch: 50,
+        bearing: settledBearing.current,
+        duration: prefersReducedMotion() ? 0 : 1600,
+        essential: true,
+      });
+    };
+    if (loaded.current) go();
+    else m.once('load', go);
+    return () => { m.off('load', go); };
+  }, [buildingFocus, interactive]);
 
   /*
     Fly to the lot asked for.

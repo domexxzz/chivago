@@ -13,6 +13,7 @@ import { act } from 'react-test-renderer';
 import { MapScreen } from '../src/screens/MapScreen.tsx';
 import { MissionsScreen } from '../src/screens/MissionsScreen.tsx';
 import { SeaAndSkyCard } from '../src/components/SeaAndSky.tsx';
+import { BuildingsScreen } from '../src/screens/BuildingsScreen.tsx';
 import { areaWords } from '../src/i18n/area-words.ts';
 import { mountScreen, server } from './interact.ts';
 import * as fx from './fixtures.ts';
@@ -207,5 +208,62 @@ describe('the weather card inland', () => {
       assert.match(said, /waves: Open-Meteo Marine/);
       ui.unmount();
     });
+  });
+});
+
+describe('the campus directory', () => {
+  /*
+    The gap this closes: RMUTT had five seeded places on 1.23 km2 and not one
+    faculty, so a student looking for คณะพยาบาลศาสตร์ found nothing at all.
+  */
+  const open = async () => {
+    restore = server(routes([])).restore;
+    return mountScreen(h(BuildingsScreen, { onBack: noop, onShowOnMap: noop }));
+  };
+
+  test('opens on every mapped building of the campus', async () => {
+    __setAreaForTests('rmutt');
+    const ui = await open();
+    const said = ui.text();
+    assert.match(said, /Faculty of Nursing/);
+    assert.match(said, /Faculty of Engineering/);
+    assert.match(said, /Student residence 1/);
+    // The unnamed are listed as what they are, never with a name invented.
+    assert.match(said, /Car park with no name on the map/);
+    ui.unmount();
+  });
+
+  test('says plainly that it has no floor and no room', async () => {
+    __setAreaForTests('rmutt');
+    const ui = await open();
+    assert.match(ui.text(), /A floor and a room number are not in OpenStreetMap/);
+    // And when it was read, so the age of the reading is on screen.
+    assert.match(ui.text(), /Read from OpenStreetMap on 2026-11-26/);
+    ui.unmount();
+  });
+
+  test('every row carries the feature it was read from', async () => {
+    __setAreaForTests('rmutt');
+    const ui = await open();
+    assert.match(ui.text(), /OpenStreetMap way 544939376/, 'a row that cannot be checked is a claim');
+    ui.unmount();
+  });
+
+  test('typing narrows it, and the search box drives the list', async () => {
+    __setAreaForTests('rmutt');
+    const ui = await open();
+    await ui.type('พยาบาล', /Search buildings/);
+    const said = ui.text();
+    assert.match(said, /Faculty of Nursing/);
+    assert.doesNotMatch(said, /Student residence/, 'the search did not narrow anything');
+    assert.match(said, /1 found/);
+    ui.unmount();
+  });
+
+  test('an island is not offered a campus directory', async () => {
+    __setAreaForTests('koh-sichang');
+    const ui = await open();
+    assert.match(ui.text(), /No building on this campus is mapped yet/);
+    ui.unmount();
   });
 });

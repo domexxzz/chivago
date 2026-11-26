@@ -131,6 +131,7 @@ const EVIDENCE_LAYER: Record<string, string> = {
   'ShopManageScreen.tsx': 'business management and shop operations are not play',
   'ShopProfileScreen.tsx': 'real shop discovery and customer reviews are not play',
   'LocalPicksScreen.tsx': 'a directory of real businesses is not play',
+  'BuildingsScreen.tsx': 'a directory of real buildings, read from a public map, is not play',
   'AdventureScreen.tsx': 'story presentation is playful, but its check-in and server-confirmed reward are evidence',
   'AdventureVerificationScreen.tsx': 'camera, GPS, evidence and host approval are security decisions, not play',
   'TravelJournalScreen.tsx': 'personal notes sit on immutable verified travel events and privacy controls',

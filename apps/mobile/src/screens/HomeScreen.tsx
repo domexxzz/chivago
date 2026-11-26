@@ -38,7 +38,7 @@ import Svg, { Defs, LinearGradient, Stop, Rect, Path } from 'react-native-svg';
 import {
   Image, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ImageSourcePropType,
 } from 'react-native';
-import { AREAS, areaOfPlace, campusServicesFor, fairsIn, featuredFirst, hasFeatured, isFeatured, stallPlacesIn, type Area, type AreaKey, type Fair, type Localised } from '@chivago/core';
+import { AREAS, areaOfPlace, buildingsIn, campusServicesFor, fairsIn, featuredFirst, hasFeatured, isFeatured, stallPlacesIn, type Area, type AreaKey, type Fair, type Localised } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { areaWords } from '../i18n/area-words.ts';
 import { creditWord, fitsWhole, mascotBeachUri, photoBackdrop, photoUri } from '../api/photos.ts';
@@ -146,7 +146,7 @@ export function questOrder(
 }
 
 export function HomeScreen({
-  onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenMarket, onOpenFair, onOpenCampus, onOpenPassport,
+  onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenMarket, onOpenFair, onOpenCampus, onOpenBuildings, onOpenPassport,
   onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenShop, onOpenMascots, onOpenStays, onOpenSummon, onOpenLocalPicks, onOpenCommunity,
   onToast, now = new Date(),
 }: {
@@ -192,6 +192,8 @@ export function HomeScreen({
   onOpenFair?: () => void;
   /** A university's booking and services. Optional for the same reason. */
   onOpenCampus?: () => void;
+  /** The campus's mapped buildings. Optional, and offered only where some are. */
+  onOpenBuildings?: () => void;
   /** A one-line acknowledgement, for actions that finish without leaving the screen. */
   onToast?: (message: string) => void;
   /** Injected so the greeting is testable rather than whatever the clock says. */
@@ -285,7 +287,15 @@ export function HomeScreen({
         student opened the app for. An area without one draws nothing here and
         asks for nothing, so the island's Home is unchanged.
       */}
-      <TopCards courts={courts} fair={fair} onOpenFair={onOpenFair} onOpenCampus={campusServicesFor(area.key) ? onOpenCampus : undefined} />
+      <TopCards
+        courts={courts}
+        fair={fair}
+        onOpenFair={onOpenFair}
+        onOpenCampus={campusServicesFor(area.key) ? onOpenCampus : undefined}
+        // Offered only where a building is actually mapped: a directory that
+        // opens on nothing is worse than no card at all.
+        onOpenBuildings={buildingsIn(area.key).length > 0 ? onOpenBuildings : undefined}
+      />
       <View style={dashboard ? { flexDirection: 'row', alignItems: 'flex-start', gap: 18, paddingHorizontal: gutter, marginTop: -42 } : undefined}>
         <View style={dashboard ? { flex: 0.9, minWidth: 0 } : undefined}>
           <Conditions places={here} onOpenMap={onOpenMap} overHero={!dashboard && courts.length === 0 && fair === null} />
@@ -1536,16 +1546,18 @@ function NoPhotograph({ place }: { place: ScoredPlace }) {
  * curve, the way Conditions does when none of these is here: the card's own
  * 12 above, less 42, puts its top 30 into the header.
  */
-function TopCards({ courts, fair, onOpenFair, onOpenCampus }: {
+function TopCards({ courts, fair, onOpenFair, onOpenCampus, onOpenBuildings }: {
   courts: ReturnType<typeof stallPlacesIn>;
   fair: Fair | null;
   onOpenFair?: () => void;
   onOpenCampus?: () => void;
+  onOpenBuildings?: () => void;
 }) {
-  if (courts.length === 0 && !fair && !onOpenCampus) return null;
+  if (courts.length === 0 && !fair && !onOpenCampus && !onOpenBuildings) return null;
   return (
     <View style={{ marginTop: -42, paddingHorizontal: gutter }}>
       {onOpenCampus ? <CampusCard onOpen={onOpenCampus} /> : null}
+      {onOpenBuildings ? <BuildingsCard onOpen={onOpenBuildings} /> : null}
       {fair && onOpenFair ? <FairCard fair={fair} onOpen={onOpenFair} /> : null}
       {courts.map((c) => <StallsCard key={c.placeId} placeId={c.placeId} placeName={t(c.source.name)} />)}
     </View>
@@ -1571,6 +1583,35 @@ function CampusCard({ onOpen }: { onOpen: () => void }) {
         <Body size={14} colour={onFill.text} style={{ marginTop: 2 }}>{about}</Body>
       </View>
       <ChevronRight size={20} color={onFill.text} strokeWidth={2.2} />
+    </Pressable>
+  );
+}
+
+/**
+ * The campus's buildings, one tap away: which faculty, which car park, which
+ * hall of residence. Read from OpenStreetMap, so the card makes no claim about
+ * a floor or a room - the screen says why.
+ */
+function BuildingsCard({ onOpen }: { onOpen: () => void }) {
+  return (
+    <Pressable
+      onPress={onOpen}
+      accessibilityRole="button"
+      accessibilityLabel={`${t(strings.buildings.title)}. ${t(strings.buildings.open)}`}
+      style={[shadow.card, {
+        marginTop: 12, padding: 14, gap: 12, flexDirection: 'row', alignItems: 'center',
+        backgroundColor: color.surface, borderRadius: radius.md, borderWidth: 1, borderColor: color.neutral300,
+      }]}
+    >
+      <View style={{ width: 52, height: 52, borderRadius: radius.md, backgroundColor: color.brandSoft, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ fontSize: 26 }}>🏛️</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Label size={9} tracking={0.12} colour={color.brand}>{t(strings.buildings.kicker)}</Label>
+        <Heading size={16} tracking={-0.2} style={{ marginTop: 2 }}>{t(strings.buildings.title)}</Heading>
+        <Body size={13} colour={color.neutral700} style={{ marginTop: 2 }}>{t(strings.buildings.open)}</Body>
+      </View>
+      <ChevronRight size={20} color={color.neutral600} strokeWidth={2.2} />
     </Pressable>
   );
 }

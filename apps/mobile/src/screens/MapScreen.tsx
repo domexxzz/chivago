@@ -18,7 +18,7 @@ import {
 import { API_BASE, api } from '../api/client.ts';
 import { photoUri } from '../api/photos.ts';
 import { SHOP_CATEGORIES, shopImageUri, shopOpenNow, type Shop } from '../api/shops.ts';
-import { areaOfPlace, fairById, fairLots, fairsIn, inArea, nearestFirst, type DropOffPoint } from '@chivago/core';
+import { areaOfPlace, buildingById, buildingsIn, fairById, fairLots, fairsIn, inArea, nearestFirst, type DropOffPoint } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { useHere } from '../state/here.ts';
 import { useOnline } from '../state/online.ts';
@@ -68,6 +68,7 @@ export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
   onAskConcierge, onOpenStays, onOpenShop, onNavigateShop, onNavigateDropOff, onToast,
   onOpenWallet, onOpenProfile, wayTo = null, onClearWay, onNavigate, recommendedPlaces = [], onClearRecommendations, fairFocus = null, onClearFair, onOpenFair, onBackToFair,
+  buildingFocus = null, onOpenBuildings,
 }: {
   layers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
@@ -106,6 +107,10 @@ export function MapScreen({
   onOpenFair?: () => void;
   /** Back from the lot to the list it was found in, as it was left. */
   onBackToFair?: () => void;
+  /** A building chosen on the directory screen: the map flies to it and names it. */
+  buildingFocus?: { id: string } | null;
+  /** The campus directory, offered on the map of a campus that has buildings mapped. */
+  onOpenBuildings?: () => void;
 }) {
   const area = useArea();
   const [offlineStamp, setOfflineStamp] = React.useState<string | null>(null);
@@ -369,6 +374,20 @@ export function MapScreen({
     const lot = lots?.find((l) => l.code === fairFocus?.code);
     return lot ? { ...lot } : null;
   }, [lots, fairFocus]);
+  /*
+    The campus's buildings, and the one asked for. Static data, so this never
+    waits on /places - and only for the campus the building is on.
+  */
+  const buildingsHere = React.useMemo(() => {
+    const all = buildingsIn(area.key);
+    return all.length > 0 ? all : null;
+  }, [area.key]);
+  // A fresh object per ask, so asking for the same building again, after
+  // panning away, flies back to it.
+  const buildingShown = React.useMemo(() => {
+    const b = buildingFocus ? buildingById(buildingFocus.id) : null;
+    return b && b.area === area.key ? { ...b } : null;
+  }, [buildingFocus, area.key]);
   const fairHere = fairsIn(area.key)[0] ?? null;
   const questsHere = React.useMemo(
     () => (quests.data?.quests ?? NO_QUESTS).filter((q) => inArea(area, q)),
@@ -502,6 +521,8 @@ export function MapScreen({
     wayIsRoute={route !== null}
     fairLots={lots}
     fairFocus={lotShown}
+    buildings={buildingsHere}
+    buildingFocus={buildingShown}
     driftPoints={driftMode ? visibleDriftPoints : []}
     onSelectDriftPoint={onSelectDriftPoint}
     interactive
