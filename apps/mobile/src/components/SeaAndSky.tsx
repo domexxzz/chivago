@@ -15,7 +15,7 @@ import React from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
 import { Bell, ChevronRight, Cloud, CloudRain, CloudSun, Compass, Ship, Thermometer, Waves } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { categoriesFor, strings, weatherDescription, type AreaKey, type AreaWeather, type WeatherCategoryKey } from '@chivago/core';
+import { areaByKey, categoriesFor, strings, weatherDescription, type AreaKey, type AreaWeather, type WeatherCategoryKey } from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, platformShadow } from '../theme/index.ts';
@@ -23,6 +23,7 @@ import { Body, Heading, Label } from './Type.tsx';
 import { Button } from './Button.tsx';
 import { WeatherCategoriesBar } from './WeatherCategoriesBar.tsx';
 import { t } from '../i18n/locale.ts';
+import { areaWords, type AreaWords } from '../i18n/area-words.ts';
 import { formatDecimal, formatTime } from '../i18n/format.ts';
 
 /** "22:45" on the island's clock, whatever the phone's own is set to. */
@@ -30,28 +31,34 @@ function clock(iso: string): string {
   return formatTime(iso, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'Asia/Bangkok' });
 }
 
-function weatherSource(data: AreaWeather | null | undefined): string {
+function weatherSource(data: AreaWeather | null | undefined, sea: boolean, words: AreaWords): string {
+  // The marine model is named only where there is a sea to model.
+  const marine = sea ? t({ en: ' · waves: Open-Meteo Marine', th: ' · คลื่น: Open-Meteo Marine', zh: ' · 海浪：Open-Meteo Marine' }) : '';
   if (data?.provider === 'tmd-station') return t({
-    en: 'Thai Meteorological Department · Ko Sichang station (WMO 48460) · waves: Open-Meteo Marine',
-    th: 'กรมอุตุนิยมวิทยา · สถานีเกาะสีชัง (WMO 48460) · คลื่น: Open-Meteo Marine',
-    zh: '泰国气象局 · 西昌岛气象站（WMO 48460）· 海浪：Open-Meteo Marine',
-  });
+    en: 'Thai Meteorological Department · Ko Sichang station (WMO 48460)',
+    th: 'กรมอุตุนิยมวิทยา · สถานีเกาะสีชัง (WMO 48460)',
+    zh: '泰国气象局 · 西昌岛气象站（WMO 48460）',
+  }) + marine;
   if (data?.provider === 'tmd-nwp') return t({
-    en: 'Thai Meteorological Department · location NWP · waves: Open-Meteo Marine',
-    th: 'กรมอุตุนิยมวิทยา · แบบจำลอง NWP ตามพิกัด · คลื่น: Open-Meteo Marine',
-    zh: '泰国气象局 · 坐标 NWP 模型 · 海浪：Open-Meteo Marine',
-  });
-  if (data?.provider === 'open-meteo') return t({
+    en: 'Thai Meteorological Department · location NWP',
+    th: 'กรมอุตุนิยมวิทยา · แบบจำลอง NWP ตามพิกัด',
+    zh: '泰国气象局 · 坐标 NWP 模型',
+  }) + marine;
+  if (data?.provider === 'open-meteo') return t(sea ? {
     en: 'Open-Meteo · weather forecast and marine model',
     th: 'Open-Meteo · พยากรณ์อากาศและแบบจำลองคลื่น',
     zh: 'Open-Meteo · 天气预报与海浪模型',
+  } : {
+    en: 'Open-Meteo · weather forecast',
+    th: 'Open-Meteo · พยากรณ์อากาศ',
+    zh: 'Open-Meteo · 天气预报',
   }) + (data.tmdCheck === 'agrees' ? t({
     // Said only when a comparison was made and agreed; a disagreement has its own note.
     en: ' · checked against TMD',
     th: ' · ตรวจเทียบกับกรมอุตุนิยมวิทยาแล้ว',
     zh: ' · 已与泰国气象局核对',
   }) : '');
-  return data?.source || t(strings.place.weatherVia);
+  return (sea ? data?.source : null) || t(words.weatherVia);
 }
 
 /**
@@ -69,6 +76,11 @@ function useReceivedAt(data: unknown): number {
 
 export function SeaAndSkyCard({ area, liveForMs = LIVE_FOR_MS }: { area: AreaKey; liveForMs?: number }) {
   const res = useAsync(() => api.weather(area), [area]);
+  // A university is not a coast: it has no sea to report and no ferry to catch.
+  // One lookup, so the words and the icons cannot drift apart.
+  const here = areaByKey(area);
+  const words = areaWords(here);
+  const sea = here.university !== true;
   const data = res.data;
   const receivedAt = useReceivedAt(data);
   const [picked, setPicked] = React.useState<WeatherCategoryKey | null>(null);
@@ -104,14 +116,14 @@ export function SeaAndSkyCard({ area, liveForMs = LIVE_FOR_MS }: { area: AreaKey
   return (
     <View style={{ marginTop: 16, padding: 11, backgroundColor: '#F8FDFF', borderRadius: 22, borderWidth: 1, borderColor: '#BFE6EF', ...platformShadow('0 5px 16px rgba(0, 119, 182, 0.10)', { shadowColor: '#0077B6', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.10, shadowRadius: 16, elevation: 4 }) }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-        <View style={{ width: 32, height: 32, borderRadius: 11, backgroundColor: '#E1F8FC', alignItems: 'center', justifyContent: 'center' }}><Waves size={20} color="#08AFC3" /></View>
+        <View style={{ width: 32, height: 32, borderRadius: 11, backgroundColor: '#E1F8FC', alignItems: 'center', justifyContent: 'center' }}>{sea ? <Waves size={20} color="#08AFC3" /> : <CloudSun size={20} color="#08AFC3" />}</View>
         <Text
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.76}
           style={{ flex: 1, minWidth: 0, color: '#102F55', fontSize: 18, lineHeight: 26, fontWeight: '900' }}
         >
-          {t({ en: 'Today’s weather & sea', th: 'อากาศและทะเลวันนี้', zh: '今日天气与海况' })}
+          {t(words.weatherTitle)}
         </Text>
         {data ? (
           <View style={{ flexShrink: 0, alignItems: 'flex-end', gap: 2 }}>
@@ -157,9 +169,7 @@ export function SeaAndSkyCard({ area, liveForMs = LIVE_FOR_MS }: { area: AreaKey
 
           <View style={{ marginTop: 8, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 12, backgroundColor: '#FFF4DE', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <CloudSun size={20} color="#E99A14" />
-            <Body size={13} colour="#7C5819" style={{ flexShrink: 1, textAlign: 'center' }}>{data.readingKind === 'observation'
-              ? t({ en: 'Land conditions are observed by TMD; waves remain model data. Check official notices before sea travel.', th: 'สภาพอากาศบนบกตรวจวัดโดยกรมอุตุนิยมวิทยา ส่วนคลื่นเป็นข้อมูลแบบจำลอง ควรตรวจประกาศทางการก่อนเดินทางทางทะเล', zh: '陆地天气来自泰国气象局实测，海浪仍为模型数据；海上出行前请查看官方通知。' })
-              : t({ en: 'Model forecast — check official notices before travelling by sea.', th: 'ข้อมูลจากแบบจำลอง ควรตรวจประกาศทางการก่อนเดินทางทางทะเล', zh: '模型预报；海上出行前请查看官方通知。' })}</Body>
+            <Body size={13} colour="#7C5819" style={{ flexShrink: 1, textAlign: 'center' }}>{t(data.readingKind === 'observation' ? words.weatherNoteObserved : words.weatherNoteModel)}</Body>
           </View>
 
           <Pressable accessibilityRole="button" accessibilityState={{ expanded: detailsOpen }} onPress={() => setDetailsOpen((open) => !open)} style={({ pressed }) => ({ marginTop: 9, minHeight: 42, borderRadius: 21, paddingHorizontal: 16, backgroundColor: pressed ? '#008D98' : '#06A6B2', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 })}>
@@ -180,19 +190,17 @@ export function SeaAndSkyCard({ area, liveForMs = LIVE_FOR_MS }: { area: AreaKey
         onPress={() => { if (officialAlert?.url) void Linking.openURL(officialAlert.url); }}
         style={({ pressed }) => ({ marginTop: 9, paddingVertical: 9, paddingHorizontal: 10, borderRadius: 14, backgroundColor: officialAlert ? '#FFF4EA' : '#FFFFFF', borderWidth: 1, borderColor: officialAlert ? '#F3B27C' : '#D9EEF4', flexDirection: 'row', alignItems: 'center', gap: 9, opacity: pressed ? 0.82 : 1 })}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><Bell size={20} color="#E6A313" /><Ship size={21} color="#087FB7" /></View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><Bell size={20} color="#E6A313" />{sea ? <Ship size={21} color="#087FB7" /> : null}</View>
         <View style={{ flex: 1 }}>
-          <Heading size={13} colour="#173A5E">{t({ en: 'Alerts & ferry status', th: 'ประกาศเตือนและสถานะเรือ', zh: '预警与渡轮状态' })}</Heading>
+          <Heading size={13} colour="#173A5E">{t(words.alertsTitle)}</Heading>
           <Body size={13} colour={officialAlert ? '#8A461D' : '#60778C'} style={{ marginTop: 2 }}>{officialAlert
             ? `${t({ en: 'TMD: ', th: 'กรมอุตุนิยมวิทยา: ', zh: '泰国气象局：' })}${officialAlert.title}`
-            : data?.officialAlertStatus === 'none'
-              ? t({ en: 'No active TMD warning. Ferry status is not connected.', th: 'ไม่พบประกาศเตือนที่กำลังใช้งานจากกรมอุตุนิยมวิทยา ส่วนสถานะเรือยังไม่ได้เชื่อมต่อ', zh: '泰国气象局暂无有效预警；渡轮状态尚未接入。' })
-              : t({ en: 'Official TMD warnings or ferry status are unavailable.', th: 'ยังไม่สามารถอ่านประกาศเตือนจากกรมอุตุนิยมวิทยาหรือสถานะเรือได้', zh: '暂时无法读取泰国气象局预警或渡轮状态。' })}</Body>
+            : t(data?.officialAlertStatus === 'none' ? words.alertsNone : words.alertsUnavailable)}</Body>
         </View>
         {officialAlert?.url ? <ChevronRight size={18} color="#173A5E" /> : null}
       </Pressable>
 
-      <Label size={10} tracking={0.02} colour={color.neutral600} style={{ marginTop: 8, textTransform: 'none' }}>{weatherSource(data)}</Label>
+      <Label size={10} tracking={0.02} colour={color.neutral600} style={{ marginTop: 8, textTransform: 'none' }}>{weatherSource(data, sea, words)}</Label>
     </View>
   );
 }

@@ -12,9 +12,12 @@ import { act } from 'react-test-renderer';
 
 import { MapScreen } from '../src/screens/MapScreen.tsx';
 import { MissionsScreen } from '../src/screens/MissionsScreen.tsx';
+import { SeaAndSkyCard } from '../src/components/SeaAndSky.tsx';
+import { areaWords } from '../src/i18n/area-words.ts';
 import { mountScreen, server } from './interact.ts';
 import * as fx from './fixtures.ts';
 import { __setAreaForTests } from '../src/state/area.ts';
+import { AREAS } from '@chivago/core';
 
 const noop = () => {};
 const sichang = fx.quest({
@@ -116,5 +119,93 @@ describe('the points card on the map', () => {
     assert.match(ui.text(), /Drop-off points[\s\S]*No drop-off point in this area yet/);
     assert.doesNotMatch(ui.text(), /Tha Lang|ท่าล่าง/);
     ui.unmount();
+  });
+});
+
+describe('the weather card inland', () => {
+  /*
+    Found on 26 November 2026 on the deployed app at RMUTT, after the fixes
+    above: the card was still headed "Today's weather & sea", advised checking
+    notices before sea travel, offered ferry status, and named a marine model
+    in its source line - on a university forty kilometres from the coast.
+
+    Every assertion here is on the words a reader sees, because that is where
+    the bug was: the figures were right all along.
+  */
+  const reading = {
+    provenance: 'live', observedAt: '2026-11-26T08:00:00.000Z',
+    waveHeightM: null, wavePeriodS: null, tempC: 30.5, rainMm: 0, windKn: 1.6, weatherCode: 3,
+  };
+  /** What the server sends when it has no reading at all: island-worded, and no provider. */
+  const noProvider = { ...reading, source: 'Open-Meteo · forecast and marine' };
+  const atSea = /\bseas?\b|ferry|marine|navigation|เดินเรือ|ทะเล|คลื่น|เรือ/i;
+
+  const cardFor = async (area: string, weather: unknown) => {
+    restore = server({ [`/areas/${area}/weather`]: weather }).restore;
+    const ui = await mountScreen(h(SeaAndSkyCard, { area: area as Parameters<typeof areaWords>[0]['key'] }));
+    return ui;
+  };
+
+  for (const campus of AREAS.filter((a) => a.university)) {
+    test(`${campus.key} is told nothing about the sea, a ferry or a marine model`, async () => {
+      const ui = await cardFor(campus.key, { ...noProvider, provider: 'open-meteo', tmdCheck: 'agrees' });
+      const said = ui.text();
+      assert.match(said, /Today’s weather/, 'the card still has to name itself');
+      assert.match(said, /30\.5/, "the reading is the feed's own");
+      assert.match(said, /Weather alerts/, 'a weather warning still has to reach a campus');
+      assert.match(said, /checked against TMD/, 'the cross-check still has to be named');
+      assert.doesNotMatch(said, atSea, `${campus.key} is being addressed as a coast`);
+      ui.unmount();
+    });
+  }
+
+  test('a measured reading on a campus is not hung with a warning about sea travel', async () => {
+    const ui = await cardFor('rmutt', { ...reading, source: 'x', provider: 'tmd-nwp', readingKind: 'observation' });
+    const said = ui.text();
+    assert.match(said, /Land conditions are observed by TMD\./);
+    assert.match(said, /Thai Meteorological Department · location NWP/);
+    assert.doesNotMatch(said, atSea);
+    ui.unmount();
+  });
+
+  test('a quiet warning list on a campus mentions no ferry', async () => {
+    const ui = await cardFor('rmutt', { ...reading, source: 'x', provider: 'open-meteo', officialAlertStatus: 'none' });
+    const said = ui.text();
+    assert.match(said, /No active TMD warning\./);
+    assert.doesNotMatch(said, atSea);
+    ui.unmount();
+  });
+
+  test('with no provider a campus does not borrow the island wording the server sent', async () => {
+    const ui = await cardFor('rmutt', noProvider);
+    const said = ui.text();
+    assert.match(said, /Read from Open-Meteo\./);
+    assert.doesNotMatch(said, atSea, "the server's own source line reached a campus");
+    ui.unmount();
+  });
+
+  describe('and the island keeps every word of it', () => {
+    test('the sea, the ferries, the marine model and the navigation warning', async () => {
+      const ui = await cardFor('koh-sichang', {
+        ...reading, source: 'Open-Meteo · forecast and marine', provider: 'open-meteo', tmdCheck: 'agrees',
+        waveHeightM: 0.2, wavePeriodS: 4.4, officialAlertStatus: 'none',
+      });
+      const said = ui.text();
+      assert.match(said, /Today’s weather & sea/);
+      assert.match(said, /Alerts & ferry status/);
+      assert.match(said, /Ferry status is not connected\./);
+      assert.match(said, /Waves 0\.2 m/);
+      assert.match(said, /before travelling by sea/, 'the island lost its navigation warning');
+      assert.match(said, /weather forecast and marine model/, 'the island lost the marine model in its source');
+      ui.unmount();
+    });
+
+    test('a measured reading keeps the sea-travel warning and the marine suffix', async () => {
+      const ui = await cardFor('samui', { ...reading, source: 'x', provider: 'tmd-nwp', readingKind: 'observation' });
+      const said = ui.text();
+      assert.match(said, /Check official notices before sea travel\./);
+      assert.match(said, /waves: Open-Meteo Marine/);
+      ui.unmount();
+    });
   });
 });
