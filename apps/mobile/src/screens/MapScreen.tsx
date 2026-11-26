@@ -773,6 +773,13 @@ export function MapScreen({
               wayIsRoute={route !== null}
               fairLots={lots}
               fairFocus={lotShown}
+              /*
+                The buildings go to THIS map too, not only to the expanded
+                one. The Map tab opens here, so the directory's "See on the
+                map" landed on a map that had never been told what to draw.
+              */
+              buildings={buildingsHere}
+              buildingFocus={buildingShown}
               driftPoints={driftMode ? visibleDriftPoints : []}
               onSelectDriftPoint={onSelectDriftPoint}
               interactive={false}

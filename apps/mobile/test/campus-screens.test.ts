@@ -14,6 +14,7 @@ import { MapScreen } from '../src/screens/MapScreen.tsx';
 import { MissionsScreen } from '../src/screens/MissionsScreen.tsx';
 import { SeaAndSkyCard } from '../src/components/SeaAndSky.tsx';
 import { BuildingsScreen } from '../src/screens/BuildingsScreen.tsx';
+import { SamuiMap } from '../src/components/SamuiMap.tsx';
 import { areaWords } from '../src/i18n/area-words.ts';
 import { mountScreen, server } from './interact.ts';
 import * as fx from './fixtures.ts';
@@ -265,5 +266,64 @@ describe('the campus directory', () => {
     const ui = await open();
     assert.match(ui.text(), /No building on this campus is mapped yet/);
     ui.unmount();
+  });
+});
+describe('the building asked for, reaching the map', () => {
+  /*
+    FOUND ON THE LIVE SITE, within the hour the directory shipped: "See on the
+    map" switched to the Map tab and drew nothing at all.
+
+    The tab OPENS on the inline map, and only the expanded one had been given
+    the buildings - while the fair's lots, which this was modelled on, are
+    given to both. So the directory's one action did nothing unless somebody
+    first thought to tap Expand, which is the kind of failure that reads as
+    the button being dead.
+
+    These assert the PROPS rather than a marker on purpose: the browser's
+    MapLibre map needs a `document` this harness does not have, so no pin can
+    be counted here (`map-pins.test.ts` says the same of itself). What can be
+    held is that every map of the campus is told what to draw - which is the
+    half that was wrong.
+  */
+  const campusMaps = async (extra: Record<string, unknown> = {}) => {
+    restore = server(routes([])).restore;
+    const ui = await mountScreen(h(MapScreen, { ...mapProps, ...extra }));
+    return { ui, maps: ui.root.findAllByType(SamuiMap).map((n) => n.props as Record<string, any>) };
+  };
+
+  test('the map the tab opens on is given the buildings and the one asked for', async () => {
+    __setAreaForTests('rmutt');
+    const { ui, maps } = await campusMaps({ buildingFocus: { id: 'rmutt-nursing' } });
+    // interactive={false} is the inline map: the one the Map tab shows first.
+    const inline = maps.filter((p) => p.interactive !== true);
+    assert.ok(inline.length > 0, 'the Map tab rendered no inline map to check');
+    for (const p of inline) {
+      assert.ok(p.buildings?.length, 'the map the tab opens on was given no buildings to draw');
+      assert.equal(p.buildingFocus?.id, 'rmutt-nursing', 'it was not told which one was asked for');
+    }
+    ui.unmount();
+  });
+
+  /*
+    The focus must not cross a campus. `buildingById` is a lookup over every
+    campus at once, so a building asked for on one and then an area chip
+    tapped to another would otherwise leave the second campus's map flying to
+    a faculty seventy kilometres away - the island-pier mistake, again.
+  */
+  test('a building is not pointed at from an area it is not on', async () => {
+    for (const [area, focus] of [
+      ['ku-sriracha', { id: 'rmutt-nursing' }],
+      ['samui', null],
+    ] as const) {
+      __setAreaForTests(area);
+      const { ui, maps } = await campusMaps({ buildingFocus: focus });
+      assert.ok(maps.length > 0, `${area} rendered no map`);
+      for (const p of maps) {
+        assert.equal(p.buildings, null, `${area} was handed campus buildings`);
+        assert.equal(p.buildingFocus, null, `${area} was told to point at one`);
+      }
+      ui.unmount();
+      restore?.(); restore = null;
+    }
   });
 });
