@@ -598,10 +598,21 @@ export function TerrainMap({
   onSelectDriftPoint?: (point: CoastalDriftPoint) => void;
 }) {
   const holder = React.useRef<HTMLDivElement | null>(null);
-  // The lot to fly to, readable from the map's own load handler: when the map
-  // opens for a lot, the intro and the drift stand aside for it.
-  const focusRef = React.useRef<FairLot | null>(fairFocus);
-  focusRef.current = fairFocus;
+  /*
+    WHAT THIS MAP WAS OPENED FOR, readable from its own load handler: a lot
+    of the fair, or a building of the campus. When the map opens for one, the
+    intro and the drift stand aside and the focus effect takes the camera.
+
+    It held the LOT alone until the campus directory shipped. A map opened
+    for a BUILDING therefore played its intro and set off drifting while the
+    building's own flight tried to run - two cameras on one map, and the
+    building is wherever whichever of them finished last left it.
+
+    Only ever read as a yes or no: WHICH of the two it holds is the business
+    of the effects that fly, each of which has its own.
+  */
+  const focusRef = React.useRef<FairLot | CampusBuilding | null>(fairFocus ?? buildingFocus);
+  focusRef.current = fairFocus ?? buildingFocus;
   const lotMarks = React.useRef<Marker[]>([]);
   const bldMarks = React.useRef<Marker[]>([]);
   // Whether this map's 'load' has fired. Not `isStyleLoaded()`, which is false

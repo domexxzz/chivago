@@ -310,6 +310,45 @@ describe('the building asked for, reaching the map', () => {
     tapped to another would otherwise leave the second campus's map flying to
     a faculty seventy kilometres away - the island-pier mistake, again.
   */
+  /*
+    The flight needs the map that can fly. The inline map cannot be panned and
+    does not fly for a focus, so a building shown there is named and no nearer;
+    the expanded one is interactive, and its own back button is the way out -
+    which also lets go of the building, because an ask left lying around opens
+    this map full screen at somebody who has moved on.
+  */
+  test('asking for a building opens the map full screen', async () => {
+    __setAreaForTests('rmutt');
+    const { ui, maps } = await campusMaps({ buildingFocus: { id: 'rmutt-nursing' } });
+    assert.ok(
+      maps.some((p) => p.interactive === true),
+      'the big map stayed shut, so nothing flew anywhere',
+    );
+    ui.unmount();
+  });
+
+  test('with no building asked for, it stays shut', async () => {
+    __setAreaForTests('rmutt');
+    const { ui, maps } = await campusMaps();
+    assert.ok(maps.length > 0, 'no map rendered at all');
+    assert.ok(
+      !maps.some((p) => p.interactive === true),
+      'the map opened full screen on its own',
+    );
+    ui.unmount();
+  });
+
+  test('closing it lets go of the building, so it does not reopen later', async () => {
+    __setAreaForTests('rmutt');
+    let letGo = 0;
+    const { ui } = await campusMaps({
+      buildingFocus: { id: 'rmutt-nursing' }, onClearBuilding: () => { letGo += 1; },
+    });
+    await ui.press('Back to map');
+    assert.equal(letGo, 1, 'the ask outlived the map it was for');
+    ui.unmount();
+  });
+
   test('a building is not pointed at from an area it is not on', async () => {
     for (const [area, focus] of [
       ['ku-sriracha', { id: 'rmutt-nursing' }],

@@ -474,6 +474,7 @@ export default function App() {
             onOpenFair={openFair}
             onBackToFair={() => nav.push('fair')}
             buildingFocus={buildingFocus}
+            onClearBuilding={() => setBuildingFocus(null)}
             onOpenBuildings={openBuildings}
           />
         );
