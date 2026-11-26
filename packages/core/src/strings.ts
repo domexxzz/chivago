@@ -1031,12 +1031,12 @@ export const strings = {
     kicker: t('On this campus', 'ในมหาวิทยาลัย', '在校园内'),
     title: t('Buildings and places', 'อาคารและสถานที่', '建筑与地点'),
     find: t(
-      'Find a faculty, an office, a hall of residence, a car park or a toilet.',
-      'หาคณะ สำนักงาน หอพัก ลานจอดรถ หรือห้องน้ำ',
-      '查找学院、办公室、宿舍、停车场或卫生间。',
+      'Find the library, a faculty, an office, a hall of residence, a car park or a toilet.',
+      'หาหอสมุด คณะ สำนักงาน หอพัก ลานจอดรถ หรือห้องน้ำ',
+      '查找图书馆、学院、办公室、宿舍、停车场或卫生间。',
     ),
     search: t('Search buildings', 'ค้นหาอาคาร', '搜索建筑'),
-    searchHint: t('e.g. nursing, dorm, car park', 'เช่น พยาบาล หอพัก ลานจอด', '例如：护理、宿舍、停车场'),
+    searchHint: t('e.g. library, nursing, dorm', 'เช่น หอสมุด พยาบาล หอพัก', '例如：图书馆、护理、宿舍'),
     clear: t('Clear', 'ล้าง', '清除'),
     all: t('All', 'ทั้งหมด', '全部'),
     // Read from OpenStreetMap, and the date says how old that reading is.
@@ -1054,6 +1054,18 @@ export const strings = {
     ),
     showOnMap: t('Show on the map', 'ดูบนแผนที่', '在地图上显示'),
     showOneOnMap: (name: string) => t(`Show ${name} on the map`, `ดู ${name} บนแผนที่`, `在地图上显示 ${name}`),
+    /*
+      The campus's own places, listed above its buildings.
+
+      They are places and not buildings - each already has a page of its own,
+      with a score, a blurb and a check-in - so a row here opens that page
+      instead of dropping a pin. The two headings say which half of one list
+      somebody is looking at.
+    */
+    placesHere: t('Places with a page of their own', 'สถานที่ที่มีหน้าของตัวเอง', '设有独立页面的地点'),
+    mappedBuildings: t('Mapped buildings', 'อาคารในแผนที่', '地图上的建筑'),
+    openPlace: t('Open the place', 'เปิดหน้าสถานที่', '打开地点页面'),
+    openOnePlace: (name: string) => t(`Open ${name}`, `เปิด ${name}`, `打开 ${name}`),
     onMap: (name: string) => t(name, name, name),
     backToList: t('Back to the list', 'กลับไปที่รายการ', '返回列表'),
     close: t('Close', 'ปิด', '关闭'),

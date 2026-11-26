@@ -22,8 +22,8 @@ import React from 'react';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { MapPin, Search, X } from 'lucide-react-native';
 import {
-  BUILDINGS_READ_ON, UNNAMED_KIND, buildingsIn, findBuildings, strings,
-  type BuildingKind, type CampusBuilding,
+  BUILDINGS_READ_ON, UNNAMED_KIND, buildingsIn, findBuildings, findCampusPlaces, strings,
+  type BuildingKind, type CampusBuilding, type Place,
 } from '@chivago/core';
 import { Button } from '../components/Button.tsx';
 import { PushHeader } from '../components/Shell.tsx';
@@ -47,10 +47,17 @@ const KINDS: readonly BuildingKind[] = ['faculty', 'office', 'hall', 'residence'
 export const buildingLabel = (b: CampusBuilding): string =>
   b.name ? t(b.name) : t(UNNAMED_KIND[b.kind]);
 
-export function BuildingsScreen({ onBack, onShowOnMap, initialView = ALL_OF_THE_CAMPUS, onViewChange }: {
+export function BuildingsScreen({ onBack, onShowOnMap, onOpenPlace, initialView = ALL_OF_THE_CAMPUS, onViewChange }: {
   onBack: () => void;
   /** The Map tab takes it from here: it flies to the building and marks it. */
   onShowOnMap: (building: CampusBuilding) => void;
+  /**
+   * A place of the campus opens its own page, not a pin.
+   *
+   * The library, the food court and the rest are seeded places with a score,
+   * a blurb and a check-in; the map is one thing that page already offers.
+   */
+  onOpenPlace: (placeId: string) => void;
   /**
    * The list to open on. A trip to the map leaves this screen and takes the
    * search with it, so the app keeps it - the same reason the fair does.
@@ -72,6 +79,15 @@ export function BuildingsScreen({ onBack, onShowOnMap, initialView = ALL_OF_THE_
   };
   const found = React.useMemo(
     () => findBuildings(area.key, query).filter((b) => kind === null || b.kind === kind),
+    [area.key, query, kind],
+  );
+  /*
+    The campus's own places, which the chips do not describe: a kind chip is
+    about buildings ('faculty', 'car park'), and a place belongs to none of
+    them, so picking one hides the places rather than showing them unfiltered.
+  */
+  const places = React.useMemo(
+    () => (kind === null ? findCampusPlaces(area.key, query) : []),
     [area.key, query, kind],
   );
 
@@ -137,12 +153,31 @@ export function BuildingsScreen({ onBack, onShowOnMap, initialView = ALL_OF_THE_
 
         <View accessibilityLiveRegion="polite">
           <Label size={10} tracking={0.12} colour={color.neutral600}>
-            {typed || kind ? t(strings.buildings.found(found.length)) : t(strings.buildings.directory(all.length))}
+            {typed || kind
+              ? t(strings.buildings.found(found.length + places.length))
+              : t(strings.buildings.directory(all.length + places.length))}
           </Label>
         </View>
 
-        {found.length === 0 ? (
+        {found.length === 0 && places.length === 0 ? (
           <Body size={14} colour={color.neutral700} style={{ marginTop: 12 }}>{t(strings.buildings.none(typed))}</Body>
+        ) : null}
+
+        {/* The places first: a page beats a pin, and these are what gets looked for. */}
+        {places.length > 0 ? (
+          <Label size={10} tracking={0.12} colour={color.neutral600} style={{ marginTop: 14 }}>
+            {t(strings.buildings.placesHere)}
+          </Label>
+        ) : null}
+        {places.map((p) => (
+          <PlaceRow key={p.id} place={p} onOpen={() => onOpenPlace(p.id)} />
+        ))}
+
+        {/* Named only when something stands above it, or it is a heading over the whole list. */}
+        {places.length > 0 && found.length > 0 ? (
+          <Label size={10} tracking={0.12} colour={color.neutral600} style={{ marginTop: 18 }}>
+            {t(strings.buildings.mappedBuildings)}
+          </Label>
         ) : null}
         {found.map((b) => (
           <BuildingRow key={b.id} building={b} onShowOnMap={() => onShowOnMap(b)} />
@@ -172,6 +207,42 @@ function KindChip({ label, on, onPress }: { label: string; on: boolean; onPress:
     >
       <Body size={14} colour={on ? onFill.text : color.text} style={{ fontWeight: '700' }}>{label}</Body>
     </Pressable>
+  );
+}
+
+/*
+  One of the campus's own places.
+
+  It carries no OpenStreetMap citation, and that is not an omission: a place is
+  seeded, with a score behind it and a page that shows how the score was made,
+  which is a stronger thing to offer than a way id. What it says instead is
+  what the place IS - the seed's own short word for it.
+*/
+function PlaceRow({ place, onOpen }: { place: Place; onOpen: () => void }) {
+  const name = t(place.name);
+  return (
+    <View
+      style={[shadow.card, {
+        marginTop: 10, padding: 12, gap: 10,
+        backgroundColor: color.surface, borderRadius: radius.md,
+        borderWidth: 1, borderColor: '#DCEFF5',
+      }]}
+    >
+      <View>
+        <Heading size={16}>{name}</Heading>
+        <Label size={9} tracking={0.06} colour={color.neutral600} style={{ marginTop: 5, textTransform: 'none' }}>
+          {place.short ?? t(strings.buildings.placesHere)}
+        </Label>
+      </View>
+      <Button
+        label={t(strings.buildings.openPlace)}
+        accessibilityLabel={t(strings.buildings.openOnePlace(name))}
+        onPress={onOpen}
+        variant="secondary"
+        height={40}
+        icon={<MapPin size={16} color={color.brand} strokeWidth={2} />}
+      />
+    </View>
   );
 }
 

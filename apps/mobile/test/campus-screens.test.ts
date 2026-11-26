@@ -217,9 +217,10 @@ describe('the campus directory', () => {
     The gap this closes: RMUTT had five seeded places on 1.23 km2 and not one
     faculty, so a student looking for คณะพยาบาลศาสตร์ found nothing at all.
   */
-  const open = async () => {
+  let openedPlace: string | null = null;
+  const open = async (onOpenPlace: (id: string) => void = (id) => { openedPlace = id; }) => {
     restore = server(routes([])).restore;
-    return mountScreen(h(BuildingsScreen, { onBack: noop, onShowOnMap: noop }));
+    return mountScreen(h(BuildingsScreen, { onBack: noop, onShowOnMap: noop, onOpenPlace }));
   };
 
   test('opens on every mapped building of the campus', async () => {
@@ -231,6 +232,44 @@ describe('the campus directory', () => {
     assert.match(said, /Student residence 1/);
     // The unnamed are listed as what they are, never with a name invented.
     assert.match(said, /Car park with no name on the map/);
+    ui.unmount();
+  });
+
+  /*
+    The library was the hole in this screen. It is a seeded place, so it is
+    deliberately not among the buildings - and the search did not look at the
+    places either, so the campus's own "where is it" box answered nothing for
+    the building everybody looks for.
+  */
+  test('finds the library by the name people use, and opens its page', async () => {
+    __setAreaForTests('rmutt');
+    openedPlace = null;
+    const ui = await open();
+    await ui.type('หอสมุด', /Search buildings/);
+    const said = ui.text();
+    assert.match(said, /Academic resources library/, 'the library is still not findable');
+    assert.doesNotMatch(said, /Faculty of Nursing/, 'the search did not narrow');
+    // A place opens its page - the score, the blurb, the check-in - not a pin.
+    await ui.pressText('Open the place');
+    assert.equal(openedPlace, 'rmutt-library');
+    ui.unmount();
+  });
+
+  test('the places are listed above the buildings, under their own heading', async () => {
+    __setAreaForTests('rmutt');
+    const ui = await open();
+    const said = ui.text();
+    const places = said.indexOf('Places with a page of their own');
+    const buildings = said.indexOf('Mapped buildings');
+    assert.ok(places >= 0 && buildings > places, 'the two halves are not labelled in order');
+    ui.unmount();
+  });
+
+  test('a kind chip is about buildings, so it puts the places away', async () => {
+    __setAreaForTests('rmutt');
+    const ui = await open();
+    await ui.pressText('Faculty');
+    assert.doesNotMatch(ui.text(), /Academic resources library/, 'a place was filtered as if it had a kind');
     ui.unmount();
   });
 

@@ -3,9 +3,9 @@ import { test, describe } from 'node:test';
 
 import {
   BUILDINGS_READ_ON, CAMPUS_BUILDINGS, UNNAMED_KIND,
-  buildingById, buildingsIn, findBuildings,
+  buildingById, buildingsIn, campusPlacesIn, findBuildings, findCampusPlaces,
 } from './campus-buildings.ts';
-import { RMUTT_BBOX } from './areas.ts';
+import { RMUTT_BBOX, areaByKey, inArea } from './areas.ts';
 import { SEED_PLACES } from './seed.ts';
 
 /**
@@ -132,5 +132,55 @@ describe('finding one', () => {
 
   test('a query that matches nothing returns nothing', () => {
     assert.deepEqual(ids('โรงไฟฟ้านิวเคลียร์'), []);
+  });
+});
+describe("the campus's own places, which the directory can find but does not hold", () => {
+  /*
+    THE GAP THIS CLOSES, and it was one the directory made for itself.
+
+    "One source per thing" is right: the library is a seeded place, with a
+    score and a blurb and a check-in, and a second copy among the buildings
+    would drift from it. What that rule was wrongly read as meaning is that
+    the directory should not FIND it - so a student typed "หอสมุด" into the
+    campus's own "where is it" box and got nothing, on a campus whose library
+    is the most looked-for building on it.
+  */
+  test('the library is found by the name people actually use for it', () => {
+    for (const q of ['หอสมุด', 'ห้องสมุด', 'library', 'วิทยบริการ', 'สำนักวิทยบริการ']) {
+      const hits = findCampusPlaces('rmutt', q);
+      assert.equal(hits[0]?.id, 'rmutt-library', `"${q}" did not find the library`);
+    }
+  });
+
+  test('and it is still described once: found here, held in the seed', () => {
+    assert.equal(
+      buildingsIn('rmutt').some((b) => b.id === 'rmutt-library'),
+      false,
+      'the library became a building as well as a place',
+    );
+  });
+
+  test('every word has to match, exactly as it does for a building', () => {
+    assert.equal(findCampusPlaces('rmutt', 'หอสมุด ฟุตบอล').length, 0, 'the second word was ignored');
+    assert.equal(findCampusPlaces('rmutt', 'หอสมุด').length, 1);
+  });
+
+  test('an empty search is the whole short list, in the seed order', () => {
+    const all = campusPlacesIn('rmutt');
+    assert.ok(all.length > 0, 'this campus has no places at all');
+    assert.deepEqual(findCampusPlaces('rmutt', '   ').map((p) => p.id), all.map((p) => p.id));
+  });
+
+  test('every place offered really stands on that campus', () => {
+    const here = areaByKey('rmutt');
+    for (const p of campusPlacesIn('rmutt')) {
+      assert.ok(inArea(here, p), `${p.id} is offered by RMUTT and is not on it`);
+    }
+  });
+
+  test('somewhere that is not a university is offered none', () => {
+    // The island has places of its own; they are not a campus directory's.
+    assert.deepEqual(campusPlacesIn('koh-sichang'), []);
+    assert.deepEqual(findCampusPlaces('koh-sichang', 'library'), []);
   });
 });

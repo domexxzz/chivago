@@ -878,6 +878,7 @@ export default function App() {
             initialView={buildingsView}
             onViewChange={setBuildingsView}
             onShowOnMap={(b) => { setBuildingFocus({ id: b.id }); nav.selectTab('map'); }}
+            onOpenPlace={(id) => nav.push('place', { placeId: id })}
           />
         );
 

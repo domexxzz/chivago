@@ -43,8 +43,9 @@
  * Any of them becomes listable the moment the university confirms a name.
  */
 
-import type { AreaKey } from './areas.ts';
-import type { Localised } from './types.ts';
+import { areaByKey, inArea, type AreaKey } from './areas.ts';
+import { SEED_PLACES } from './seed.ts';
+import type { Localised, Place } from './types.ts';
 
 /** The day the features below were read from OpenStreetMap. */
 export const BUILDINGS_READ_ON = '2026-11-26';
@@ -282,20 +283,97 @@ export function findBuildings(area: AreaKey, query: string): CampusBuilding[] {
   const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const all = buildingsIn(area);
   if (words.length === 0) return all;
+  // A name beating an alias keeps "หอ" on the residences rather than on
+  // whatever happens to mention them. See rankBy.
+  return rankBy(all, words, (b) => (b.name?.th ?? '').toLowerCase() + ' ' + (b.name?.en ?? '').toLowerCase(), haystack);
+}
 
-  const scored: { b: CampusBuilding; score: number; i: number }[] = [];
-  all.forEach((b, i) => {
-    const hay = haystack(b);
-    const name = (b.name?.th ?? '').toLowerCase() + ' ' + (b.name?.en ?? '').toLowerCase();
+/*
+  THE CAMPUS'S OWN PLACES, offered by the directory beside its buildings.
+
+  A place is still not a building - the header's rule stands, and the test
+  below holds it: the library, the food court, the park, the stadium and the
+  fountain are described ONCE, in the seed, where they have a score, a blurb
+  and a check-in. Describing them again here would be two copies to drift.
+
+  What that rule did NOT mean, and was read as meaning, is that the directory
+  should not FIND them. A student typed "หอสมุด" into the campus's own "where
+  is it" box and got nothing at all - on a campus whose library is the single
+  most looked-for building on it. The directory is the place you go when you do
+  not know where something is; what it holds and what it can find are two
+  different questions.
+
+  So they are searched, and offered first, and a tap opens the PLACE rather
+  than dropping a pin: the place screen is the better answer and the pin is
+  already on it.
+*/
+
+/** The seeded places standing on this campus. Empty for anywhere that is not one. */
+export function campusPlacesIn(area: AreaKey): Place[] {
+  const here = areaByKey(area);
+  if (here.university !== true) return [];
+  return SEED_PLACES.filter((p) => inArea(here, p));
+}
+
+/*
+  WHAT PEOPLE CALL THESE PLACES, which is not always what the seed calls them.
+
+  The library is seeded as วิทยบริการ, its own formal name and the one on the
+  building. Nobody walking across campus says it: they say หอสมุด, and typing
+  that into the directory found nothing while the building stood two hundred
+  metres away. Buildings have `find` for exactly this; a place's name belongs
+  to the seed, so its spare words live here, with the search that needs them.
+
+  Only where the common name differs from the seeded one. A place whose name
+  people actually use needs no entry.
+*/
+const PLACE_ALIASES: Readonly<Record<string, string>> = {
+  'rmutt-library': 'หอสมุด ห้องสมุด สำนักวิทยบริการ arit library',
+  'rmutt-canteen': 'โรงอาหาร ศูนย์อาหาร โรงอาหารกลาง canteen food court',
+  'rmutt-stadium': 'สนามกีฬา สนามฟุตบอล ลู่วิ่ง stadium sports',
+  'rmutt-park': 'สวน สวนสาธารณะ park',
+  'rmutt-fountain': 'น้ำพุ fountain',
+};
+
+/** The words a search looks through for one place, lower-cased. */
+const placeHaystack = (p: Place): string => [
+  p.name.en, p.name.th, p.name.zh ?? '', p.short ?? '', (p.tags ?? []).join(' '),
+  PLACE_ALIASES[p.id] ?? '',
+].join(' ').toLowerCase();
+
+/**
+ * Places on this campus matching what somebody typed, best first.
+ *
+ * The same word rules as `findBuildings` - every word has to match something,
+ * a name beats an alias - so "หอสมุด" and "หอ สมุด" behave the same way here as
+ * they do there, and an empty query is the whole short list.
+ */
+export function findCampusPlaces(area: AreaKey, query: string): Place[] {
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const all = campusPlacesIn(area);
+  if (words.length === 0) return all;
+  return rankBy(all, words, (p) => (p.name.th + ' ' + p.name.en).toLowerCase(), placeHaystack);
+}
+
+/**
+ * Score a list against every word, drop anything a word misses, best first.
+ *
+ * Shared by the buildings and the places so the two halves of one search box
+ * cannot rank by different rules - which is the sort of difference nobody sees
+ * and everybody feels.
+ */
+function rankBy<T>(all: readonly T[], words: string[], nameOf: (x: T) => string, hayOf: (x: T) => string): T[] {
+  const scored: { x: T; score: number; i: number }[] = [];
+  all.forEach((x, i) => {
+    const name = nameOf(x);
+    const hay = hayOf(x);
     let total = 0;
     for (const w of words) {
-      // A name beating an alias keeps "หอ" on the residences rather than on
-      // whatever happens to mention them.
       const s = name.startsWith(w) ? 100 : name.includes(w) ? 80 : hay.includes(w) ? 50 : 0;
       if (s === 0) return;
       total += s;
     }
-    scored.push({ b, score: total, i });
+    scored.push({ x, score: total, i });
   });
-  return scored.sort((a, b) => b.score - a.score || a.i - b.i).map((x) => x.b);
+  return scored.sort((a, b) => b.score - a.score || a.i - b.i).map((s) => s.x);
 }
