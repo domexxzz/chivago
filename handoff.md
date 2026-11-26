@@ -5,11 +5,13 @@ Earlier versions are in git history: `git show a62c071:handoff.md` (23 Nov) · `
 
 ---
 
-## 0. Do this first
+## 0. Nothing is on fire
 
-### Nobody can take a live story down
+Rare enough to say plainly. The fence is closed, HEVC clips are refused rather than published as black boxes, a host can now take a live story down (#317, deployed 26 Nov), and production runs `main`.
 
-PR **#317** is open and unmerged. Production has `CHIVAGO_STORIES_AUTO_APPROVE=1`, so a story is public the moment it is posted and never waits for a host. `/console/stories` lists only `pending` rows — of which there are none — so the console shows an empty page while clips are live on the board. `POST /console/stories/:id/hide` has always worked; there was no button wired to it. The clip still expires by itself after seven days, which is the only thing standing in for moderation right now.
+So the next session gets to choose, and the choice worth making is **the encoder container** — §4, item 4. It is the one piece of infrastructure that is already written, already tested, and not running: deploy it anywhere that runs Node, set two variables, and all three story limits go, along with the Air4Thai cross-check being blind. Everything else on this page is smaller than that.
+
+What has no deadline but does have a person waiting: **RMUTT has been asked for data** (§5) and nothing more can be claimed about the campus until they answer.
 
 ---
 
@@ -38,12 +40,12 @@ PR **#317** is open and unmerged. Production has `CHIVAGO_STORIES_AUTO_APPROVE=1
 
 ```
 branch: main             (clean, apart from the two untracked artifact folders)
-live:   7eb60a55         — deployed 26 Nov 13:06 UTC, and it is current
+live:   6bc42348         — deployed 26 Nov, from main, and it is current
 ```
 
-**The site already runs `main`'s code, and the commit count says otherwise.** #320 was merged at 13:14, eight minutes *after* that deploy, which reads as a pull request that never shipped. It is not: the deploy was made from the branch tip (`57d091d`) a minute after it was built and seven before it was merged, and merging it moved no files — `git rev-parse 49e5672^{tree} 57d091d^{tree}` prints the same hash twice. Everything since is this document.
+**Count the trees, not the commits.** Earlier on the 26th this page said production was a whole pull request behind, because #320 was merged eight minutes after a deploy. It was not behind: that deploy had been made from the branch tip (`57d091d`), and merging it moved no files — `git rev-parse 49e5672^{tree} 57d091d^{tree}` printed the same hash twice. The commit count was right and meant nothing.
 
-So before concluding that production is behind, **diff the trees, not the log**, and check what the site is actually serving:
+So before concluding that production is behind, diff the trees and check what the site is actually serving:
 
 ```bash
 git diff --name-only <what-was-deployed> main -- apps packages scripts   # empty = nothing to ship
@@ -65,6 +67,7 @@ curl -s https://chivargo.com/ | grep -o 'index-[a-f0-9]*\.js'            # again
 | #314 | maplibre-gl 6.19.0 on Expo SDK 54 — clears the DOM.sanitize advisory | |
 | #315 #316 | the Thai promo page at `/th/`, and a responsive redesign of the promo site | |
 | #318 #319 #320 | **RMUTT phase one** — see §5 | |
+| #317 | **a host can take a live story down** — `/console/stories` lists what is on the board and what is hidden, with Hide and Put back | §0 of this page, earlier the same day |
 
 Both things the last handoff asked for were done by someone else within a day. The pattern works: put the one thing that must happen at the top, and say what it costs to leave it.
 
@@ -108,11 +111,11 @@ Built 24–26 Nov across #318, #319 and #320: a building directory read from Ope
 ## 6. Open
 
 ### Decisions for the owner
-- **Stories are open and auto-approved on the live database.** Anyone who taps "Continue as a guest" can put a photo or a clip on a public screen with nobody reviewing it. Three posts per device per 24 h, seven-day expiry, and — once #317 lands — a Hide button. The owner chose this deliberately for the event; it is worth re-asking now
+- **Stories are open and auto-approved on the live database.** Anyone who taps "Continue as a guest" can put a photo or a clip on a public screen with nobody reviewing it. Three posts per device per 24 h, seven-day expiry, and now a Hide button in the console (#317). The owner chose this deliberately for the event; it is worth re-asking now
 - **The encoder container** (§4) — it needs somewhere to run and a token
 
 ### Older open PRs
-#317 (see §0) · #238 · **#194** (proof photographs reach the server as files — still reads like a live bug) · #174 · #151 · #99 · #98 · #97
+#238 · **#194** (proof photographs reach the server as files — still reads like a live bug) · #174 · #151 · #99 · #98 · #97
 
 ### Stale remote branches
 `fix/hevc-clips-are-refused-not-published`, `fix/the-fence-closes-again`, `fix/a-ceiling-on-new-keys`, `fix/the-console-cookie-is-https-only`, `chore/close-the-geofence`, `chore/open-the-geofence` — all squash-merged, so their heads look unmerged to `git branch --contains` and are not. Safe to delete; nothing is parked in them.
