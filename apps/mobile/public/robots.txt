@@ -62,3 +62,9 @@ Disallow: /sos/
 # machine-readable summary (/llms.txt) are the pages meant to be found and
 # cited, by search engines and answer engines alike.
 Sitemap: https://chivargo.com/sitemap.xml
+
+# The guide's sitemap is SEPARATE because its pages are not in this
+# repository: each one is a row in the database, and a build script has no way
+# to read them, so the Worker serves that sitemap itself. robots.txt takes any
+# number of Sitemap lines, which is how two sources of truth stay honest.
+Sitemap: https://chivargo.com/guide/sitemap.xml

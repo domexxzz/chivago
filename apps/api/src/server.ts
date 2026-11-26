@@ -57,7 +57,7 @@ import { mediaBytes, storeMedia, type MediaTable } from './media-store.ts';
 import { blobStore, openBlob, parseRange, sliceBytes } from './blob-store.ts';
 import { logger } from 'hono/logger';
 
-import { row, transact, type DB } from './db.ts';
+import { row, rows, transact, type DB } from './db.ts';
 import {
   finishImportRun, importBatch, importBlockers, provisionedUserCount, recordBatch,
   type ImportBatch,
@@ -166,6 +166,10 @@ import {
 } from './host-auth.ts';
 import { isPrimary, onPrimary } from './primary.ts';
 import { bootstrapKohSichangBusinesses } from './bootstrap-koh-sichang.ts';
+import {
+  GUIDE_AREA, GUIDE_DEFAULT_LANG, GUIDE_LANGS, guideIndexPage, guideIndexPath,
+  guideSitemap, inGuide, isGuideLang, placePage, type GuidePlace,
+} from './guide-pages.ts';
 import { bootstrapKohSichangAdventure } from './adventure-bootstrap.ts';
 import { adventureOverviewFor } from './adventure-service.ts';
 import {
@@ -930,6 +934,81 @@ app.get('/board/:area', (c) => {
   return c.html(boardPage(areaByKey(key)), 200, { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' });
 });
 
+// ---------------------------------------------------------------------------
+// The guide: one crawlable HTML page per place. See `guide-pages.ts` for why
+// it is not served at /places/<id>, which is already the JSON API.
+// ---------------------------------------------------------------------------
+
+/**
+ * The places the guide publishes, in a stable order.
+ *
+ * Ordered by id so the index, the sitemap and the `position` in the
+ * ItemList agree with each other between requests: a list that reshuffles
+ * tells a crawler the page changed when nothing did.
+ *
+ * Read straight from the table rather than through `listScoredPlaces`, which
+ * wants a traveller to score for. A public page shows published facts, and
+ * there is nobody here to personalise them for.
+ */
+const guidePlaces = (): GuidePlace[] =>
+  rows<GuidePlace>(db.prepare(
+    `SELECT id, name_th, name_en, blurb_th, blurb_en, lat, lng, tags,
+            photo_url, photo_credit, photo_licence, photo_source,
+            safety_label_th, safety_label_en
+       FROM places ORDER BY id`,
+  ).all()).filter(inGuide);
+
+/** Where this deployment is, for the absolute URLs the markup has to carry. */
+const guideOrigin = (c: { req: { url: string } }): string =>
+  process.env.CHIVAGO_PUBLIC_URL ?? new URL(c.req.url).origin;
+
+const GUIDE_HEADERS = {
+  'cache-control': 'public, max-age=300',
+  'x-content-type-options': 'nosniff',
+} as const;
+
+/*
+  REGISTERED BEFORE `/guide/:lang`, because Hono takes the first route that
+  matches and `sitemap.xml` is a perfectly good `:lang` as far as the router
+  is concerned.
+*/
+app.get('/guide/sitemap.xml', (c) =>
+  c.body(guideSitemap(guideOrigin(c), guidePlaces()), 200, {
+    ...GUIDE_HEADERS,
+    'content-type': 'application/xml; charset=utf-8',
+  }));
+
+// A bare /guide, and the trailing-slash spellings, land on the real page
+// rather than a 404. 301 and not 302: these are the same page for good.
+app.get('/guide', (c) => c.redirect(guideIndexPath(GUIDE_DEFAULT_LANG), 301));
+app.get('/guide/', (c) => c.redirect(guideIndexPath(GUIDE_DEFAULT_LANG), 301));
+
+app.get('/guide/:lang', (c) => {
+  const lang = c.req.param('lang');
+  if (!isGuideLang(lang)) return c.text('No such guide', 404);
+  return c.html(guideIndexPage(guideOrigin(c), lang, guidePlaces()), 200, GUIDE_HEADERS);
+});
+
+app.get('/guide/:lang/', (c) => {
+  const lang = c.req.param('lang');
+  if (!isGuideLang(lang)) return c.text('No such guide', 404);
+  return c.redirect(guideIndexPath(lang), 301);
+});
+
+app.get('/guide/:lang/:id', (c) => {
+  const lang = c.req.param('lang');
+  if (!isGuideLang(lang)) return c.text('No such guide', 404);
+  const place = guidePlaces().find((candidate) => candidate.id === c.req.param('id'));
+  /*
+    A place that exists but is not on the island answers 404 here, the same as
+    one that does not exist at all. `guidePlaces` has already filtered it out,
+    and that is deliberate: the alternative is a page about a Si Racha
+    shophouse under a URL that says Koh Sichang.
+  */
+  if (!place) return c.text('No such place', 404);
+  return c.html(placePage(guideOrigin(c), lang, place), 200, GUIDE_HEADERS);
+});
+
 /** The board's feed: every approved story in an area. Public, for the screen in the room. */
 /**
  * The sea and the sky above an area, live from Open-Meteo (weather.ts).
@@ -1092,6 +1171,15 @@ function openIdentityAllowed(): boolean {
  */
 const PUBLIC_PREFIXES = [
   '/console', '/sos/live/', '/verify/', '/statements/', '/stories/', '/areas/', '/board/',
+  /*
+    THE GUIDE IS FOR STRANGERS AND CRAWLERS, so it cannot be handed a
+    traveller account on the way in. It is also registered above this
+    middleware, which would be enough on its own - but `/board/` is listed
+    here for the same reason and relying on registration order alone is a
+    rule nobody can see. A 401 here is the whole point of the page lost:
+    robots.txt itself used to answer 401 for want of being on a list.
+  */
+  '/guide',
   /*
     A summon receipt is checkable BY A STRANGER or it is not checkable at all
     (docs/68). The route said "public, deliberately" in a comment above it and
