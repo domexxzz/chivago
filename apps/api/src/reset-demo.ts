@@ -147,6 +147,9 @@ export const TRAVELLER_TABLES = [
   // A sighting is the rider's, like a check-in: it is their report that
   // they saw a bus, and a demo starts with nobody having seen one.
   'transit_sightings',
+  // And a queue report is the same thing about the food court: somebody's word
+  // about a moment, which a demo should not open with.
+  'canteen_queue_reports',
   // Summoned spirits are the traveller's collection (docs/68), and the
   // charms behind them are derived from a ledger this reset clears - so
   // leaving the rolls would hand the next demo a collection with no

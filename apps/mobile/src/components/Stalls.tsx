@@ -12,7 +12,10 @@
 import React from 'react';
 import { Linking, View } from 'react-native';
 import { ExternalLink } from 'lucide-react-native';
-import { islandDateKey, isOrderLink, stallState, strings, type PlaceStalls, type Stall } from '@chivago/core';
+import {
+  NO_QUEUE_READING, QUEUE_LEVELS, QUEUE_REPORT_WORDS, islandDateKey, isOrderLink, sayQueue, stallState, strings,
+  type PlaceStalls, type QueueLevel, type QueueReading, type Stall,
+} from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, onFill, radius, shadow } from '../theme/index.ts';
@@ -126,9 +129,82 @@ export function StallsCard({ placeId, placeName, liveForMs = LIVE_FOR_MS }: {
 
       {data?.stalls.map((s) => <StallRow key={s.slug} stall={s} live={fresh} now={now} />)}
 
+      {/*
+        The queue, which is a different question from the wait and answered by
+        different people. It sits below the stalls because the kitchen's own
+        figure is the better answer whenever there is one.
+      */}
+      <QueueStrip placeId={placeId} />
+
       <Label size={9} tracking={0.04} colour={color.neutral600} style={{ marginTop: 12, textTransform: 'none' }}>
         {t(strings.place.stallsVia)}
       </Label>
+    </View>
+  );
+}
+
+/**
+ * How long the queue is, as the people standing in it said.
+ *
+ * A level and its age, never minutes: minutes belong to the kitchen. A press
+ * records what you can see and redraws from the answer, so the count and the
+ * disagreement come from the server rather than from a guess made here. A
+ * second press inside the window answers 200 with `recorded: false`, which is
+ * not an error and must not look like one.
+ */
+function QueueStrip({ placeId }: { placeId: string }) {
+  const res = useAsync(() => api.queue(placeId), [placeId]);
+  const [said, setSaid] = React.useState<QueueReading | null>(null);
+  const [busy, setBusy] = React.useState<QueueLevel | null>(null);
+  const [failed, setFailed] = React.useState(false);
+  const reading = said ?? res.data?.queue ?? null;
+
+  const tell = async (level: QueueLevel) => {
+    setBusy(level);
+    setFailed(false);
+    try {
+      const answer = await api.reportQueue(placeId, level);
+      // A refusal is a refusal, including the ceiling that answers 200 with
+      // `recorded: false` - which carries a reading, so it is not a failure.
+      if (!answer.ok) { setFailed(true); return; }
+      setSaid(answer.data.queue);
+    } catch {
+      // Said once, beside the control. The app does not retry behind anybody's
+      // back, the rule `useAsync` holds everywhere else.
+      setFailed(true);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  if (res.loading && reading === null && !res.error) return null;
+
+  return (
+    <View style={{ marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: color.neutral300 }}>
+      <Label size={10} tracking={0.12}>{t(strings.place.queueTitle)}</Label>
+      <Body size={13} colour={color.neutral700} style={{ marginTop: 6 }}>
+        {res.error !== null && reading === null
+          ? t(strings.place.queueDown)
+          : t(sayQueue(reading ?? NO_QUEUE_READING))}
+      </Body>
+      <Body size={13} colour={color.neutral700} style={{ marginTop: 10 }}>{t(strings.place.queueAsk)}</Body>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        {QUEUE_LEVELS.map((level) => (
+          <Button
+            key={level}
+            label={t(QUEUE_REPORT_WORDS[level])}
+            accessibilityLabel={t(strings.place.queueReport(t(QUEUE_REPORT_WORDS[level])))}
+            onPress={() => { void tell(level); }}
+            variant="secondary"
+            height={40}
+            busy={busy === level}
+            style={{ flexGrow: 1 }}
+          />
+        ))}
+      </View>
+      {failed ? (
+        <Body size={13} colour={color.accent2} style={{ marginTop: 8 }}>{t(strings.place.queueFailed)}</Body>
+      ) : null}
     </View>
   );
 }

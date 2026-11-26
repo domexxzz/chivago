@@ -7,7 +7,7 @@
  */
 
 import { strings } from '@chivago/core';
-import type { DrawnItem, Lang } from '@chivago/core';
+import type { DrawnItem, Lang, QueueLevel, QueueReading } from '@chivago/core';
 import { Platform } from 'react-native';
 import type { Shop, ShopDetail, ShopInput, ShopReview, ShopStats } from './shops.ts';
 import { adoptKey, forgetKey, loadDeviceKey } from './account.ts';
@@ -895,6 +895,13 @@ export const api = {
   placeHistory: (id: string) => get<AirHistory>(`/places/${id}/history`),
   /** The stalls at a place that take orders ahead, live from สั่งก่อน (docs/65). */
   stalls: (id: string) => get<PlaceStalls>(`/places/${id}/stalls`),
+  /**
+   * How long the queue at a food court is, as the people there reported it.
+   * Not a wait in minutes - that is each stall's own, above.
+   */
+  queue: (id: string) => get<{ queue: QueueReading }>(`/places/${id}/queue`),
+  reportQueue: (id: string, level: QueueLevel) =>
+    post<{ recorded: boolean; because: string | null; queue: QueueReading }>(`/places/${id}/queue`, { level }),
   /** How many courts are free at a place you book before you go, live from its booking system. */
   courts: (id: string) => get<PlaceCourts>(`/places/${id}/courts`),
   /** The sea and sky above an area, live from Open-Meteo. */
