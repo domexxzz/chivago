@@ -11,7 +11,7 @@
     "types": ["@cloudflare/workers-types", "node"],
     "noEmit": true
   },
-  "include": ["src/worker.ts", "src/worker-alarm-fixture.ts"],
+  "include": ["src/worker.ts", "src/worker-alarm-fixture.ts", "src/encoder-container.ts"],
   // The base config excludes this very file; clear that, or there is nothing
   // left to check and tsc reports "no inputs were found".
   "exclude": []

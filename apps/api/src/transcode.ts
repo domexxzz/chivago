@@ -328,9 +328,39 @@ export function httpTranscoder(
  * rather than by which build it is running.
  */
 export function transcoderFromEnv(): Transcoder {
+  if (chosen) return chosen;
   const url = process.env.CHIVAGO_TRANSCODE_URL;
   if (url) return httpTranscoder(url);
   return onWorkers() ? workersTranscoder : ffmpegTranscoder;
+}
+
+/**
+ * The transcoder this process uses, when something has chosen one.
+ *
+ * The same shape as `setBlobStore` in blob-store.ts, and for the same reason:
+ * on Workers the encoder is reached through a binding that exists only on
+ * `env`, which `story-service.ts` never sees. `worker.ts` sets it once at
+ * startup, before any route exists.
+ */
+let chosen: Transcoder | null = null;
+
+export const setTranscoder = (transcoder: Transcoder | null): void => { chosen = transcoder; };
+
+/**
+ * The encoder running in a Cloudflare container.
+ *
+ * A container has no address - it is reached through its Durable Object, whose
+ * `fetch` this hands to `httpTranscoder` in place of the global one. The URL
+ * is a placeholder that carries only the path and query; see
+ * `encoder-container.ts`, which rewrites the host before forwarding.
+ */
+export function containerTranscoder(
+  encoder: { fetch(request: Request): Promise<Response> },
+  token: string,
+): Transcoder {
+  const through: typeof fetch = (input, init) =>
+    encoder.fetch(new Request(typeof input === 'string' ? input : String(input), init));
+  return httpTranscoder('http://container', { fetch: through, token });
 }
 
 /** Running inside Cloudflare Workers, where no process can be spawned. */
