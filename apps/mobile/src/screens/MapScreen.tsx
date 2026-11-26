@@ -18,7 +18,7 @@ import {
 import { API_BASE, api } from '../api/client.ts';
 import { photoUri } from '../api/photos.ts';
 import { SHOP_CATEGORIES, shopImageUri, shopOpenNow, type Shop } from '../api/shops.ts';
-import { areaOfPlace, fairById, fairLots, fairsIn, inArea, nearestFirst, type DropOffPoint } from '@chivago/core';
+import { areaOfPlace, buildingById, buildingsIn, fairById, fairLots, fairsIn, inArea, nearestFirst, type DropOffPoint } from '@chivago/core';
 import { setArea, useArea } from '../state/area.ts';
 import { useHere } from '../state/here.ts';
 import { useOnline } from '../state/online.ts';
@@ -68,6 +68,7 @@ export function MapScreen({
   layers, onToggleLayer, onPlanDay, onOpenPlace, onOpenQuest, onSeeAllQuests, balances,
   onAskConcierge, onOpenStays, onOpenShop, onNavigateShop, onNavigateDropOff, onToast,
   onOpenWallet, onOpenProfile, wayTo = null, onClearWay, onNavigate, recommendedPlaces = [], onClearRecommendations, fairFocus = null, onClearFair, onOpenFair, onBackToFair,
+  buildingFocus = null, onOpenBuildings, onClearBuilding,
 }: {
   layers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
@@ -106,6 +107,12 @@ export function MapScreen({
   onOpenFair?: () => void;
   /** Back from the lot to the list it was found in, as it was left. */
   onBackToFair?: () => void;
+  /** A building chosen on the directory screen: the map flies to it and names it. */
+  buildingFocus?: { id: string } | null;
+  /** The campus directory, offered on the map of a campus that has buildings mapped. */
+  onOpenBuildings?: () => void;
+  /** Let go of that building: the big map has been closed, and the ask is spent. */
+  onClearBuilding?: () => void;
 }) {
   const area = useArea();
   const [offlineStamp, setOfflineStamp] = React.useState<string | null>(null);
@@ -159,6 +166,22 @@ export function MapScreen({
   const explored = useAsync(() => api.explored(), []);
   const [mode, setMode] = React.useState<MapMode>('map');
   const [expandedMap, setExpandedMap] = React.useState(false);
+  /*
+    CLOSING THE BIG MAP IS ONE FUNCTION, not eight calls.
+
+    Closing it also lets go of the building the directory asked for, and the
+    two have to happen together: a focus left behind opens this map full
+    screen again the next time somebody walks back onto the Map tab, for a
+    building they asked about once, minutes ago.
+
+    Eight places close this map. Written as a pair at each of them, one of
+    the eight gets forgotten - which is exactly how the buildings reached the
+    expanded map and not the inline one.
+  */
+  const closeExpandedMap = React.useCallback(() => {
+    setExpandedMap(false);
+    onClearBuilding?.();
+  }, [onClearBuilding]);
   /*
     The island, drawn rather than tiled. Only Ko Sichang has an asset built
     for it (docs/76).
@@ -369,6 +392,33 @@ export function MapScreen({
     const lot = lots?.find((l) => l.code === fairFocus?.code);
     return lot ? { ...lot } : null;
   }, [lots, fairFocus]);
+  /*
+    The campus's buildings, and the one asked for. Static data, so this never
+    waits on /places - and only for the campus the building is on.
+  */
+  const buildingsHere = React.useMemo(() => {
+    const all = buildingsIn(area.key);
+    return all.length > 0 ? all : null;
+  }, [area.key]);
+  // A fresh object per ask, so asking for the same building again, after
+  // panning away, flies back to it.
+  const buildingShown = React.useMemo(() => {
+    const b = buildingFocus ? buildingById(buildingFocus.id) : null;
+    return b && b.area === area.key ? { ...b } : null;
+  }, [buildingFocus, area.key]);
+  /*
+    A BUILDING ASKED FOR OPENS THE MAP FULL SCREEN.
+
+    Because that is the map that flies. The inline one cannot be panned
+    (interactive={false}) and does not fly for a focus - the same terms the
+    fair's lots are on - so landing there leaves the building as one dot
+    among twenty-six, named but no closer than before.
+
+    `buildingFocus` is a fresh object per ask, so asking for the same
+    building twice opens it twice, and closing lets go of it (see
+    closeExpandedMap) so nothing re-opens on a later visit.
+  */
+  React.useEffect(() => { if (buildingFocus) setExpandedMap(true); }, [buildingFocus]);
   const fairHere = fairsIn(area.key)[0] ?? null;
   const questsHere = React.useMemo(
     () => (quests.data?.quests ?? NO_QUESTS).filter((q) => inArea(area, q)),
@@ -384,7 +434,7 @@ export function MapScreen({
     // to directions and never opens a shop card.
     const dropOff = dropOffForPin(shop.id);
     if (dropOff) {
-      if (onNavigateDropOff) { setExpandedMap(false); onNavigateDropOff(dropOff); }
+      if (onNavigateDropOff) { closeExpandedMap(); onNavigateDropOff(dropOff); }
       return;
     }
     setSelectedPlace(null);
@@ -486,7 +536,7 @@ export function MapScreen({
         area={area}
     storied={storied}
     tales={tales}
-    onOpenStory={(placeId) => { setExpandedMap(false); openStory(placeId); }}
+    onOpenStory={(placeId) => { closeExpandedMap(); openStory(placeId); }}
     places={driftMode ? [] : visible}
     highlightedPlaceIds={recommendedPlaceIds}
     shops={driftMode ? [] : mapShops}
@@ -494,7 +544,7 @@ export function MapScreen({
     onSelect={onSelect}
     quests={driftMode ? [] : questsHere}
     progress={quests.data?.progress ?? NO_PROGRESS}
-    onOpenQuest={(id) => { setExpandedMap(false); onOpenQuest(id); }}
+    onOpenQuest={(id) => { closeExpandedMap(); onOpenQuest(id); }}
     explored={explored.data?.places ?? NO_EXPLORED}
     stops={busStops}
     here={here}
@@ -502,6 +552,8 @@ export function MapScreen({
     wayIsRoute={route !== null}
     fairLots={lots}
     fairFocus={lotShown}
+    buildings={buildingsHere}
+    buildingFocus={buildingShown}
     driftPoints={driftMode ? visibleDriftPoints : []}
     onSelectDriftPoint={onSelectDriftPoint}
     interactive
@@ -752,6 +804,13 @@ export function MapScreen({
               wayIsRoute={route !== null}
               fairLots={lots}
               fairFocus={lotShown}
+              /*
+                The buildings go to THIS map too, not only to the expanded
+                one. The Map tab opens here, so the directory's "See on the
+                map" landed on a map that had never been told what to draw.
+              */
+              buildings={buildingsHere}
+              buildingFocus={buildingShown}
               driftPoints={driftMode ? visibleDriftPoints : []}
               onSelectDriftPoint={onSelectDriftPoint}
               interactive={false}
@@ -1018,7 +1077,7 @@ export function MapScreen({
           onClose={() => setTelling(null)}
         />
       ) : null}
-      <Modal visible={expandedMap} animationType="fade" presentationStyle="overFullScreen" statusBarTranslucent onRequestClose={() => setExpandedMap(false)}>
+      <Modal visible={expandedMap} animationType="fade" presentationStyle="overFullScreen" statusBarTranslucent onRequestClose={closeExpandedMap}>
       <View style={{ flex: 1, backgroundColor: '#EAF7FB' }}>
         {/*
           THE MAP FILLS THE SCREEN AND MOVES ITSELF.
@@ -1044,20 +1103,20 @@ export function MapScreen({
               place={selectedPlace}
               shop={selectedShop}
               onOpen={() => {
-                setExpandedMap(false);
+                closeExpandedMap();
                 if (selectedPlace) onOpenPlace(selectedPlace.id);
                 else if (selectedShop) onOpenShop?.(selectedShop.id);
               }}
               onNavigate={selectedPlace && onNavigate
-                ? () => { setExpandedMap(false); onNavigate(selectedPlace); }
+                ? () => { closeExpandedMap(); onNavigate(selectedPlace); }
                 : selectedShop && selectedShop.lat !== null && selectedShop.lng !== null && onNavigateShop
-                  ? () => { setExpandedMap(false); onNavigateShop(selectedShop); }
+                  ? () => { closeExpandedMap(); onNavigateShop(selectedShop); }
                   : undefined}
             />
           </View>
         ) : null}
         <Pressable
-          onPress={() => setExpandedMap(false)}
+          onPress={closeExpandedMap}
           accessibilityRole="button"
           accessibilityLabel={t({ en: 'Back to map', th: 'กลับไปหน้าแผนที่', zh: '返回地图' })}
           style={{ position: 'absolute', top: fullMapControlTop, left: 14, width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2EEF4', elevation: 5, shadowColor: '#123B64', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 3 } }}

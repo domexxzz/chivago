@@ -35,6 +35,7 @@ import { MapScreen } from './src/screens/MapScreen.tsx';
 import { NavigateScreen } from './src/screens/NavigateScreen.tsx';
 import type { NavDestination } from './src/navigation/session.ts';
 import { ALL_OF_THE_FAIR, FairScreen, type FairView } from './src/screens/FairScreen.tsx';
+import { ALL_OF_THE_CAMPUS, BuildingsScreen, type BuildingsView } from './src/screens/BuildingsScreen.tsx';
 import { CampusServicesScreen } from './src/screens/CampusServicesScreen.tsx';
 import { PlaceScreen } from './src/screens/PlaceScreen.tsx';
 import { MissionsScreen } from './src/screens/MissionsScreen.tsx';
@@ -203,6 +204,11 @@ export default function App() {
   const [fairFocus, setFairFocus] = React.useState<{ fairId: string; code: string } | null>(null);
   const [fairView, setFairView] = React.useState<FairView>(ALL_OF_THE_FAIR);
   const openFair = () => { setFairView(ALL_OF_THE_FAIR); nav.push('fair'); };
+  // The campus building asked for, kept beside the fair's lot and for the same
+  // reason: the map follows the request, and the way back finds the same list.
+  const [buildingFocus, setBuildingFocus] = React.useState<{ id: string } | null>(null);
+  const [buildingsView, setBuildingsView] = React.useState<BuildingsView>(ALL_OF_THE_CAMPUS);
+  const openBuildings = () => { setBuildingsView(ALL_OF_THE_CAMPUS); nav.push('buildings'); };
   // The language. Resolved once before the first screen (stored choice, else
   // the phone's), and a change re-renders from here, which reaches every
   // t() below: nothing in this tree is memoised against its parent.
@@ -467,6 +473,9 @@ export default function App() {
             onClearFair={() => setFairFocus(null)}
             onOpenFair={openFair}
             onBackToFair={() => nav.push('fair')}
+            buildingFocus={buildingFocus}
+            onClearBuilding={() => setBuildingFocus(null)}
+            onOpenBuildings={openBuildings}
           />
         );
 
@@ -630,6 +639,7 @@ export default function App() {
             onOpenMarket={() => nav.push('market')}
             onOpenFair={openFair}
             onOpenCampus={() => nav.push('campus')}
+            onOpenBuildings={openBuildings}
             onOpenPassport={() => nav.push('passport')}
             onOpenMascots={() => nav.push('mascots')}
             onOpenImpact={() => nav.push('impact')}
@@ -858,6 +868,17 @@ export default function App() {
             onBack={nav.pop}
             onOpenQuests={() => nav.selectTab('quests')}
             onToast={toast.show}
+          />
+        );
+
+      case 'buildings':
+        return (
+          <BuildingsScreen
+            onBack={nav.pop}
+            initialView={buildingsView}
+            onViewChange={setBuildingsView}
+            onShowOnMap={(b) => { setBuildingFocus({ id: b.id }); nav.selectTab('map'); }}
+            onOpenPlace={(id) => nav.push('place', { placeId: id })}
           />
         );
 

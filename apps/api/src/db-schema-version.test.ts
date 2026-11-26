@@ -32,16 +32,25 @@ import { test } from 'node:test';
 import { SCHEMA, SCHEMA_2, SCHEMA_VERSION } from './db.ts';
 
 /** The digest of the schema as it stood when `SCHEMA_VERSION` was last bumped. */
-const PINNED = '9fa663527ca569740c2678ec730547a276200bb2ed4837cf4de72ee917fde932';
+const PINNED = '815f90a88c088dd566fbf8f46b5a39810b47f2b429e3c2c15a67a2b6d321a625';
 
 /**
  * Strip what a reader needs and SQLite does not: line comments, block
  * comments, SQL comments and blank lines. A migration's PROSE should be free
  * to improve - most of the value of `migrations.ts` is in its prose - while
  * any change to what it executes is caught.
+ *
+ * CARRIAGE RETURNS GO FIRST, and that is not tidying. Without it this digest
+ * depends on how the checkout wrote its line endings: a Windows working tree
+ * holds `migrations.ts` with CRLF while the blob, and therefore CI, holds LF,
+ * and the two hash differently. A developer then pins the digest their machine
+ * prints, every CI run rejects it, and the guard is read as broken rather than
+ * as the warning it is. Hashing the same bytes everywhere is what makes the
+ * pinned value mean something.
  */
 function executableLines(source: string): string {
   return source
+    .replace(/\r/g, '')
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .split('\n')
     .map((line) => line.replace(/--.*$/, '').replace(/\/\/.*$/, '').trim())

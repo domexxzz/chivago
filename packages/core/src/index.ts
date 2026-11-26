@@ -75,6 +75,8 @@ export * from './featured.ts';
 export * from './weather.ts';
 export * from './booking.ts';
 export * from './fair.ts';
+export * from './campus-buildings.ts';
+export * from './canteen-queue.ts';
 export * from './operator-application.ts';
 export * from './adventure.ts';
 export * from './travel-events.ts';

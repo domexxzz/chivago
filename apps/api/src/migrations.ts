@@ -3129,6 +3129,37 @@ export function migrate(db: DB): string[] {
     applied.push('student_profiles');
   }
 
+  /*
+    Food court queue reports.
+    -------------------------
+    The same answer as the bus sightings above, to the same shape of problem.
+    docs/65 gets a wait in minutes from each stall's own kitchen queue in
+    สั่งก่อน - but on 26 November 2026 สั่งก่อน lists one shop, its own example,
+    so no stall in this court reports anything. The question "is it worth
+    walking over yet" does not need a kitchen; it needs somebody already
+    standing there.
+
+    `level` is one of three words, never a number of minutes: a person cannot
+    measure the minutes of a queue, and a number here would compete with the
+    one the kitchen measures. See packages/core/src/canteen-queue.ts, where
+    every sentence says who reported it and how long ago.
+
+    ON DELETE CASCADE for the reason the sightings have it: a report is
+    something a PERSON did, and `DELETE /profile` leans on these keys.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS canteen_queue_reports (
+      id       TEXT PRIMARY KEY,
+      user_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      place_id TEXT NOT NULL,
+      level    TEXT NOT NULL CHECK (level IN ('none','short','long')),
+      at       TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_canteen_place_at ON canteen_queue_reports(place_id, at DESC);
+    CREATE INDEX IF NOT EXISTS idx_canteen_user_at ON canteen_queue_reports(user_id, place_id, at DESC);
+  `);
+  applied.push('canteen_queue_reports');
+
   return applied;
 }
 

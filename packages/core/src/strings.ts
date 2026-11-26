@@ -617,6 +617,11 @@ export const strings = {
     stallsNone: t('No stall here is taking orders ahead right now.', 'ตอนนี้ยังไม่มีร้านที่นี่รับสั่งล่วงหน้า', '目前这里没有摊位接受提前点单。'),
     /** The static demo: the stalls are named, their status is not read. */
     stallsNoStatus: t('Live status is not read here. Each stall\'s own page has it.', 'ที่นี่ไม่ได้อ่านสถานะสดของร้าน ดูได้ในหน้าของแต่ละร้าน', '此处不读取摊位的实时状态。详见各摊位自己的页面。'),
+    // -- The queue, which is not the wait (canteen-queue.ts) --------------
+    /* The report control, for any kind of crowding. What a level IS CALLED
+       belongs to its kind, in CROWDING_WORDS; these two wrap it. */
+    queueReport: (level: string) => t(`Report: ${level}`, `แจ้งว่า${level}`, `上报：${level}`),
+    queueFailed: t('That report did not go through. Try again.', 'แจ้งไม่สำเร็จ ลองอีกครั้ง', '上报未成功，请再试一次。'),
     stallsVia: t('Orders and payment go through สั่งก่อน, straight to the stall.', 'สั่งและจ่ายผ่านสั่งก่อน เงินเข้าร้านโดยตรง', '点单与付款通过 สั่งก่อน 完成，款项直接进摊位。'),
     /** Courts free now at a place you book before you go (courts.ts). */
     courtsTitle: t('Courts right now', 'สนามตอนนี้', '场地实况'),
@@ -1018,6 +1023,71 @@ export const strings = {
     close: t('Close', 'ปิด', '关闭'),
     open: t('Find stalls and lots', 'ค้นหาร้านและล็อค', '查找摊位和铺位'),
     noFair: t('No fair is on in this area.', 'พื้นที่นี้ยังไม่มีงานแฟร์', '该区域目前没有集市。'),
+  },
+
+  // -- Campus buildings ---------------------------------------------------
+  buildings: {
+    kicker: t('On this campus', 'ในมหาวิทยาลัย', '在校园内'),
+    title: t('Buildings and places', 'อาคารและสถานที่', '建筑与地点'),
+    find: t(
+      'Find the library, a faculty, an office, a hall of residence, a car park or a toilet.',
+      'หาหอสมุด คณะ สำนักงาน หอพัก ลานจอดรถ หรือห้องน้ำ',
+      '查找图书馆、学院、办公室、宿舍、停车场或卫生间。',
+    ),
+    search: t('Search buildings', 'ค้นหาอาคาร', '搜索建筑'),
+    searchHint: t('e.g. library, nursing, dorm', 'เช่น หอสมุด พยาบาล หอพัก', '例如：图书馆、护理、宿舍'),
+    clear: t('Clear', 'ล้าง', '清除'),
+    all: t('All', 'ทั้งหมด', '全部'),
+    // Read from OpenStreetMap, and the date says how old that reading is.
+    readOn: (day: string) => t(
+      `Read from OpenStreetMap on ${day}`,
+      `อ่านจาก OpenStreetMap วันที่ ${day}`,
+      `于 ${day} 自 OpenStreetMap 读取`,
+    ),
+    directory: (n: number) => t(`${n} mapped`, `มีในแผนที่ ${n} แห่ง`, `地图上有 ${n} 处`),
+    found: (n: number) => t(`${n} found`, `เจอ ${n} แห่ง`, `找到 ${n} 处`),
+    none: (query: string) => t(
+      `Nothing for "${query}". Try a faculty's name, or what the place is.`,
+      `ไม่เจอ "${query}" ลองพิมพ์ชื่อคณะ หรือสิ่งที่มันเป็น`,
+      `找不到“${query}”。试试学院名称，或这个地方是什么。`,
+    ),
+    showOnMap: t('Show on the map', 'ดูบนแผนที่', '在地图上显示'),
+    showOneOnMap: (name: string) => t(`Show ${name} on the map`, `ดู ${name} บนแผนที่`, `在地图上显示 ${name}`),
+    /*
+      The campus's own places, listed above its buildings.
+
+      They are places and not buildings - each already has a page of its own,
+      with a score, a blurb and a check-in - so a row here opens that page
+      instead of dropping a pin. The two headings say which half of one list
+      somebody is looking at.
+    */
+    placesHere: t('Places with a page of their own', 'สถานที่ที่มีหน้าของตัวเอง', '设有独立页面的地点'),
+    mappedBuildings: t('Mapped buildings', 'อาคารในแผนที่', '地图上的建筑'),
+    openPlace: t('Open the place', 'เปิดหน้าสถานที่', '打开地点页面'),
+    openOnePlace: (name: string) => t(`Open ${name}`, `เปิด ${name}`, `打开 ${name}`),
+    onMap: (name: string) => t(name, name, name),
+    backToList: t('Back to the list', 'กลับไปที่รายการ', '返回列表'),
+    close: t('Close', 'ปิด', '关闭'),
+    open: t('Find a building', 'ค้นหาอาคาร', '查找建筑'),
+    none_mapped: t(
+      'No building on this campus is mapped yet.',
+      'ยังไม่มีอาคารของพื้นที่นี้ในแผนที่',
+      '该校园尚无建筑被收录。',
+    ),
+    // Said once, under the list: the honest limit of what this can answer.
+    noFloors: t(
+      'A floor and a room number are not in OpenStreetMap, so they are not shown here.',
+      'ชั้นและเลขห้องไม่มีใน OpenStreetMap จึงยังไม่แสดงที่นี่',
+      'OpenStreetMap 没有楼层和房间号，因此这里不显示。',
+    ),
+    kind: {
+      faculty: t('Faculty', 'คณะ', '学院'),
+      office: t('Office', 'สำนักงาน', '办公室'),
+      hall: t('Hall', 'หอประชุม', '礼堂'),
+      residence: t('Residence', 'หอพัก', '宿舍'),
+      parking: t('Car park', 'ลานจอดรถ', '停车场'),
+      toilets: t('Toilets', 'ห้องน้ำ', '卫生间'),
+    },
   },
 
   // -- Marketplace --------------------------------------------------------

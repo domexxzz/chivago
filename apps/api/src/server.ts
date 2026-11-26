@@ -93,6 +93,7 @@ import { fenceOff, publicConfig } from './fence.ts';
 import { boardFeed, type BoardEntry } from '@chivago/core';
 import { monstersInArea } from './monster-service.ts';
 import { reportSighting, routesForArea } from './transit-service.ts';
+import { queueFor, reportQueue, takesQueueReports } from './canteen-service.ts';
 import { forgetStudent, saveStudent, studentOf } from './student-service.ts';
 import { hostQuestById, setHostCampus } from './host-quest-service.ts';
 import { reviewsInArea } from './place-review-service.ts';
@@ -1964,6 +1965,32 @@ app.post('/transit/:routeId/seen', async (c) => {
   });
   if (result.because === 'unknown-route') return fail(c, 'NOT_FOUND', 'No such route', 404);
   if (result.because === 'unknown-stop') return fail(c, 'NOT_FOUND', 'That stop is not on this route', 404);
+  return ok(c, result);
+});
+
+/**
+ * The food court's queue, read and reported.
+ *
+ * The sibling of `/transit/:routeId/seen` and answered the same way: a second
+ * report from the same phone inside the window comes back 200 with
+ * `recorded: false`, because nothing went wrong - the app shows the same
+ * reading again rather than an error for a double tap.
+ *
+ * A place with no food court is a 404, not an empty reading: the two mean
+ * different things, and an empty reading for a place that cannot be queued at
+ * would read as "no queue right now".
+ */
+app.get('/places/:id/queue', (c) => {
+  const placeId = c.req.param('id');
+  if (!takesQueueReports(placeId)) return fail(c, 'NOT_FOUND', 'That place has no food court', 404);
+  return ok(c, { queue: queueFor(db, placeId) });
+});
+
+app.post('/places/:id/queue', async (c) => {
+  const body = await c.req.json().catch(() => ({})) as { level?: unknown };
+  const result = reportQueue(db, { userId: userId(c), placeId: c.req.param('id'), level: body.level });
+  if (result.because === 'unknown-place') return fail(c, 'NOT_FOUND', 'That place has no food court', 404);
+  if (result.because === 'bad-level') return fail(c, 'BAD_REQUEST', 'level must be none, short or long', 400);
   return ok(c, result);
 });
 

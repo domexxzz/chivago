@@ -27,6 +27,7 @@ import {
 } from '@chivago/core';
 import { t } from '../i18n/locale.ts';
 import { WebTerrainMap, type MapHandle } from './WebTerrainMap.tsx';
+import type { CampusBuilding } from '@chivago/core';
 import type { Shop } from '../api/shops.ts';
 import type { Here } from '../state/here.ts';
 import { CHIP, REVEAL_FEATHER, TALE_W, UNPINNED_NOTE, insideSamui, layoutPins, mappable, mistCircles, project, projectArea, servicePoints, tilt } from './map-geometry.ts';
@@ -466,6 +467,13 @@ export interface SamuiMapProps {
    */
   fairLots?: FairLot[] | null;
   fairFocus?: FairLot | null;
+  /**
+   * The campus's buildings and the one asked for (campus-buildings.ts). Drawn
+   * by the web map only, for the same reason as a fair's lots: the drawn
+   * island has nowhere true to put them.
+   */
+  buildings?: readonly CampusBuilding[] | null;
+  buildingFocus?: CampusBuilding | null;
   /** Consented party positions. Never populated from public invitation data. */
   partyMembers?: { userId: string; displayName: string; profilePhotoUrl: string | null; lat: number; lng: number; you: boolean }[];
   meetingPoint?: { lat: number; lng: number; label: string } | null;

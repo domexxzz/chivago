@@ -12,12 +12,16 @@
 import React from 'react';
 import { Linking, View } from 'react-native';
 import { ExternalLink } from 'lucide-react-native';
-import { islandDateKey, isOrderLink, stallState, strings, type PlaceStalls, type Stall } from '@chivago/core';
+import {
+  islandDateKey, isOrderLink, stallState, strings,
+  type PlaceStalls, type Stall,
+} from '@chivago/core';
 import { api } from '../api/client.ts';
 import { useAsync } from '../state/store.tsx';
 import { color, onFill, radius, shadow } from '../theme/index.ts';
 import { Body, Heading, Label } from './Type.tsx';
 import { Button } from './Button.tsx';
+import { CrowdingStrip } from './CrowdingStrip.tsx';
 import { t } from '../i18n/locale.ts';
 import { formatDate, formatTime } from '../i18n/format.ts';
 
@@ -125,6 +129,13 @@ export function StallsCard({ placeId, placeName, liveForMs = LIVE_FOR_MS }: {
       ) : null}
 
       {data?.stalls.map((s) => <StallRow key={s.slug} stall={s} live={fresh} now={now} />)}
+
+      {/*
+        The queue, which is a different question from the wait and answered by
+        different people. It sits below the stalls because the kitchen's own
+        figure is the better answer whenever there is one.
+      */}
+      <CrowdingStrip placeId={placeId} kind="queue" />
 
       <Label size={9} tracking={0.04} colour={color.neutral600} style={{ marginTop: 12, textTransform: 'none' }}>
         {t(strings.place.stallsVia)}

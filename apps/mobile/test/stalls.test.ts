@@ -43,8 +43,13 @@ const islandAt = (days: number, hhmm: string) =>
   new Date(`${islandDateKey(new Date(Date.now() + days * DAY))}T${hhmm}:00+07:00`).toISOString();
 
 /** The card alone, answered with this. */
-async function card(reply: unknown) {
-  const net = server({ 'GET /places/rmutt-canteen/stalls': reply });
+const noQueue = { queue: { level: null, minAgo: null, reports: 0, disagrees: false } };
+
+async function card(reply: unknown, queue: unknown = noQueue) {
+  const net = server({
+    'GET /places/rmutt-canteen/stalls': reply,
+    'GET /places/rmutt-canteen/queue': queue,
+  });
   const ui = await mountScreen(h(StallsCard, { placeId: 'rmutt-canteen' }));
   return { ui, done: () => { ui.unmount(); net.restore(); } };
 }
@@ -58,6 +63,7 @@ describe('order ahead at the food court', () => {
     const net = server({
       'GET /places/rmutt-canteen': canteen,
       'GET /places/rmutt-canteen/stalls': answer(),
+      'GET /places/rmutt-canteen/queue': noQueue,
       'GET /checkins/today': [],
       'GET /visits/self': { places: [], remainingThisYear: 10 },
       'GET /places/rmutt-canteen/reviews': { reviews: [], mine: null, canReview: false, reported: [] },
@@ -293,5 +299,73 @@ describe('order ahead in the static demo', () => {
       assert.match(ui.text(), /Example · not a stall in this food court/);
       assert.ok(ui.labels().includes('See the menu'));
     } finally { done(); }
+  });
+});
+
+describe('the queue at the food court', () => {
+  /*
+    A different question from the wait, answered by different people. These
+    guard the line: a level and its age, never a wait in minutes, and never the
+    app claiming to have looked.
+  */
+  test('says plainly that nobody has reported, and offers the three levels', async () => {
+    __setLocaleForTests('en');
+    const c = await card(answer());
+    const said = c.ui.text();
+    assert.match(said, /The queue right now/);
+    assert.match(said, /Nobody has reported the queue in the last 15 minutes/);
+    for (const level of ['No queue', 'Short', 'Long']) assert.match(said, new RegExp(level));
+    c.done();
+  });
+
+  test('a report redraws from the server\'s own reading, not from a guess here', async () => {
+    __setLocaleForTests('en');
+    const net = server({
+      'GET /places/rmutt-canteen/stalls': answer(),
+      'GET /places/rmutt-canteen/queue': { queue: { level: null, minAgo: null, reports: 0, disagrees: false } },
+      // The server is the one that counts: two reports, and they agree.
+      'POST /places/rmutt-canteen/queue': {
+        recorded: true, because: null,
+        queue: { level: 'long', minAgo: 0, reports: 2, disagrees: false },
+      },
+    });
+    try {
+      const ui = await mountScreen(h(StallsCard, { placeId: 'rmutt-canteen' }));
+      await ui.pressText(/^Long$/);
+      const said = ui.text();
+      assert.match(said, /reported a long queue just now/);
+      assert.match(said, /2 reports agree/);
+      assert.ok(
+        net.calls.some((call) => call.method === 'POST' && call.path === '/places/rmutt-canteen/queue'),
+        'the report never reached the server',
+      );
+      ui.unmount();
+    } finally { net.restore(); }
+  });
+
+  test('never offers a wait in minutes for the queue', async () => {
+    __setLocaleForTests('th');
+    const c = await card(answer(), { queue: { level: 'long', minAgo: 3, reports: 1, disagrees: false } });
+    const said = c.ui.text();
+    assert.match(said, /แจ้งว่าคิวยาวเมื่อ 3 นาทีที่แล้ว/);
+    // The stall's own wait may be on screen; the queue line must not add one.
+    assert.doesNotMatch(said, /คิวยาว.*รอประมาณ/, 'the queue is being worded as a wait');
+    c.done();
+  });
+
+  test('a refused report says so beside the control, and does not invent a reading', async () => {
+    __setLocaleForTests('en');
+    const net = server({
+      'GET /places/rmutt-canteen/stalls': answer(),
+      'GET /places/rmutt-canteen/queue': { queue: { level: null, minAgo: null, reports: 0, disagrees: false } },
+    });
+    try {
+      const ui = await mountScreen(h(StallsCard, { placeId: 'rmutt-canteen' }));
+      await ui.pressText(/^Long$/); // no POST handler: the call fails
+      const said = ui.text();
+      assert.match(said, /That report did not go through/);
+      assert.match(said, /Nobody has reported the queue/, 'a failed report must not leave a level on screen');
+      ui.unmount();
+    } finally { net.restore(); }
   });
 });
