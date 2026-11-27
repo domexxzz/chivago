@@ -319,6 +319,13 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
+/*
+  THE SKY IS NOT THE SEA. Both were the brand blue, the same flat value, so
+  NO BACKTICKS IN HERE: this whole program is a template literal in the
+  .tsx that builds it, and one in a comment ends the string early.
+  there was no horizon: the island sat on a single sheet of colour like a
+  sticker. The sky keeps the brand; the water is drawn below.
+*/
 scene.background = new THREE.Color('${color.brand}');
 
 /* docs/76 §light: one warm sun, a cool sky, the sea bouncing up. */
@@ -328,9 +335,44 @@ sun.position.set(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.
 scene.add(sun);
 scene.add(new THREE.HemisphereLight(0xa8c8e8, 0x3e8fc4, 1.05));
 
+/*
+  THE SEA IS NOT ONE COLOUR, and it was: a 60,000-unit plane of flat brand
+  blue under a background of the same flat brand blue, in an unlit material.
+  Real water round an island goes pale over the shelf and dark as it drops
+  away, and that shading is most of what tells an eye the island is IN
+  something rather than ON something.
+
+  Drawn on a canvas rather than fetched: this runs in a WebView with an
+  opaque origin (see the CORS note in public/_headers), the page already
+  costs 649 KB of island, and a radial gradient is four stops of arithmetic.
+  The island is about 6,000 units across on a 60,000-unit plane, so it
+  covers the middle tenth - which is why the pale water is spent inside the
+  first stop and the rest of the plane goes deep.
+
+  Unlit still, as it was: the gradient IS the shading, and letting
+  the sun fall on a flat plane as well would put a bright smear across one
+  half of it.
+*/
+const seaTexture = (() => {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const grd = ctx.createRadialGradient(size / 2, size / 2, 2, size / 2, size / 2, size / 2);
+  grd.addColorStop(0, '#2ba3d6');
+  grd.addColorStop(0.08, '${color.brand}');
+  grd.addColorStop(0.3, '#0a5b8c');
+  grd.addColorStop(1, '#063e63');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, size, size);
+  const texture = new THREE.CanvasTexture(canvas);
+  if ('colorSpace' in texture) texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+})();
+
 const sea = new THREE.Mesh(
   new THREE.PlaneGeometry(60000, 60000),
-  new THREE.MeshBasicMaterial({ color: new THREE.Color('${color.brand}') }),
+  new THREE.MeshBasicMaterial({ map: seaTexture }),
 );
 sea.rotation.x = -Math.PI / 2;
 sea.position.y = -2;

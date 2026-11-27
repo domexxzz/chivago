@@ -489,7 +489,17 @@ function litStyle(hour: number): StyleSpecification {
       anchor: 'map',
       position: [1.5, p.illumination, p.night ? 65 : 45],
       color: p.highlight,
-      intensity: p.night ? 0.25 : 0.45,
+      /*
+        0.25 AFTER DARK PUT THE TOWN OUT. This light shades the faces of the
+        extruded buildings, and at a quarter strength every face of every
+        building landed within a few per cent of the same near-black: at
+        village zoom the island read as a dark smear with a warm dot on it,
+        which is not what the lanterns below were written for. 0.36 is still
+        plainly night - the sea and the hillside barely move - but a roof and
+        a wall are once again two different colours, so the village has
+        shape. Measured against the live site on 28 November 2026.
+      */
+      intensity: p.night ? 0.36 : 0.45,
     },
     layers: [
       /*
@@ -860,8 +870,16 @@ function litStyle(hour: number): StyleSpecification {
             than a town at midday, because at midday the light is the sun's
             and at night it is somebody's.
           */
+          /*
+            0.52 after dark, not 0.38. The reasoning above is right and the
+            number was too timid to carry it: at 0.38, with the light at
+            night intensity, the walls still came out grey-brown rather than
+            lamp-lit. Half way to the lantern is what makes a town at night
+            warmer than a town at midday, which is the thing this says it is
+            doing.
+          */
           'fill-extrusion-color': ['coalesce', ['get', 'colour'],
-            p.night ? mix(p.building, p.lantern, 0.38) : p.building],
+            p.night ? mix(p.building, p.lantern, 0.52) : p.building],
           // Always present in these tiles; the coalesce is belt and braces
           // for a tile from somewhere the field is missing.
           'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 5],
@@ -988,6 +1006,12 @@ export const HERO = {
    * front of something. Past 75 the far tiles smear (see MAX_PITCH).
    */
   pitch: 72,
+  /**
+   * How steeply to look at the smallest island, where 72 would be a view of
+   * whatever stands nearest the camera. See `pitchFor`: below 45 the relief
+   * stops reading as relief and the hero becomes a plan.
+   */
+  pitchFloor: 45,
   bearing: -18,
   /**
    * A level above the flat fit. At the old 0.55 the island was 45% of the
@@ -1083,10 +1107,65 @@ export interface Pose {
  * the island, which would have walked the camera clean past the north
  * coast. One number stays true at both sizes; a degree does not.
  */
+/**
+ * How far above the flat fit to stand, for a box of this size.
+ *
+ * THE SAME MISTAKE `latAboveMiddle` ALREADY FIXED, in the other number.
+ * `zoomAboveFlat` was read on Samui, whose box is 0.23 degrees tall, and
+ * taken as true everywhere. At pitch 72 the camera is low and close, so a
+ * zoom above the flat fit spends itself on whatever is NEAREST - and on a
+ * small island that is the near coast.
+ *
+ * A box a quarter of Samui's gets a quarter of Samui's lift. Floored at 0.2
+ * because some lift is what keeps the relief from flattening; capped at the
+ * read value because nothing bigger than Samui has been looked at.
+ *
+ * NOTHING USES THIS YET BUT SAMUI, where it returns the number it always
+ * did. It is here because the only other island in the app, Ko Sichang,
+ * never reaches this function: `areas.ts` gives it `map: 'campus'`, and
+ * TerrainMap reads that one field to decide the pose, the intro AND the zoom
+ * range - so the island opens at a university's framing, centred on the
+ * pier, with `minZoom: 14` locking the whole island out of reach. That is
+ * the thing to fix, and it is not a number: it is which field the pose
+ * should be asking about. See the note on `university` in areas.ts, which
+ * already says `map` is a different question.
+ */
+export const zoomAboveFlatFor = (box: Box): number => {
+  const samui = SAMUI_BBOX.maxLat - SAMUI_BBOX.minLat;
+  const here = box.maxLat - box.minLat;
+  return Math.min(HERO.zoomAboveFlat, Math.max(0.2, HERO.zoomAboveFlat * (here / samui)));
+};
+
+/**
+ * How steeply to look, for a box of this size.
+ *
+ * PITCH IS WHAT ACTUALLY FRAMED THE VILLAGE, not zoom - the lift above the
+ * flat fit was only ever a few tenths of the answer. `HERO.pitch` says it
+ * itself: past 69 degrees there is no sky in the frame AT ANY ZOOM, because
+ * the camera is looking along the ground rather than down at it. Everything
+ * near the camera is then magnified and everything beyond it is compressed
+ * into a band at the top.
+ *
+ * On Samui that is the whole point: the near ground at 72 is still island,
+ * twelve kilometres of it, and the far coast rising out of the haze is the
+ * hero. On Ko Sichang the near ground is one village - Tha Bon's roofs
+ * across the frame - and the island never appears at any zoom, which is
+ * exactly what was measured on the live site on 28 November 2026.
+ *
+ * So the smaller the island, the more the camera looks DOWN at it. 45 is the
+ * floor: below that the relief stops reading as relief and the hero becomes
+ * a plan. Samui, at ratio 1, keeps the 72 it was judged at.
+ */
+export const pitchFor = (box: Box): number => {
+  const samui = SAMUI_BBOX.maxLat - SAMUI_BBOX.minLat;
+  const ratio = Math.min(1, (box.maxLat - box.minLat) / samui);
+  return Number((HERO.pitchFloor + (HERO.pitch - HERO.pitchFloor) * ratio).toFixed(1));
+};
+
 export function heroPose(flatZoom: number, box: Box = SAMUI_BBOX): Pose {
   return {
-    zoom: flatZoom + HERO.zoomAboveFlat,
-    pitch: HERO.pitch,
+    zoom: flatZoom + zoomAboveFlatFor(box),
+    pitch: pitchFor(box),
     bearing: HERO.bearing,
     center: [
       (box.minLng + box.maxLng) / 2,
