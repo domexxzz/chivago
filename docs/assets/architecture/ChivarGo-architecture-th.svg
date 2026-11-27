@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" font-family="Inter,'IBM Plex Sans Thai','Noto Sans Thai','Leelawadee UI','Segoe UI',system-ui,sans-serif" role="img" aria-label="ChivarGo — สถาปัตยกรรมระบบ">
+<rect width="1920" height="1080" fill="#F6F9F9"/>
+<rect x="0" y="0" width="1920" height="10" fill="#0E7C66"/>
+<text x="72" y="92" font-size="44" font-weight="700" fill="#0E2B33">ChivarGo — สถาปัตยกรรมระบบ</text>
+<text x="72" y="130" font-size="21" fill="#5B7079">ชั้นหลักฐานสำหรับการรายงานความยั่งยืนของโรงแรม · นำร่องที่เกาะสมุย</text>
+<rect x="1422" y="58" width="426" height="52" rx="26" fill="#E8F4F0" stroke="#BFDED5"/>
+<text x="1635" y="91" font-size="22" font-weight="600" fill="#0E7C66" text-anchor="middle">แต้มจะมีค่าก็ต่อเมื่อมีคนต้องตรวจมัน</text>
+<text x="72" y="168" font-size="15" font-weight="700" fill="#5B7079" letter-spacing="2">เส้นทางของหลักฐาน</text>
+<rect x="72" y="190" width="161" height="52" rx="10" fill="#FFFFFF" stroke="#D5E2E5"/>
+<text x="152" y="223" font-size="18" fill="#0E2B33" text-anchor="middle">เข้าเควส</text>
+<text x="260" y="224" font-size="22" fill="#0E7C66" text-anchor="middle">&#8594;</text>
+<rect x="287" y="190" width="253" height="52" rx="10" fill="#FFFFFF" stroke="#D5E2E5"/>
+<text x="413" y="223" font-size="18" fill="#0E2B33" text-anchor="middle">ตรวจพิกัดกับรั้วจริง</text>
+<text x="567" y="224" font-size="22" fill="#0E7C66" text-anchor="middle">&#8594;</text>
+<rect x="594" y="190" width="267" height="52" rx="10" fill="#FFFFFF" stroke="#D5E2E5"/>
+<text x="727" y="223" font-size="18" fill="#0E2B33" text-anchor="middle">ถ่ายหลักฐานพร้อม EXIF</text>
+<text x="888" y="224" font-size="22" fill="#0E7C66" text-anchor="middle">&#8594;</text>
+<rect x="915" y="190" width="230" height="52" rx="10" fill="#FFFFFF" stroke="#D5E2E5"/>
+<text x="1030" y="223" font-size="18" fill="#0E2B33" text-anchor="middle">เจ้าบ้านที่มีชื่ออนุมัติ</text>
+<text x="1171" y="224" font-size="22" fill="#0E7C66" text-anchor="middle">&#8594;</text>
+<rect x="1198" y="190" width="343" height="52" rx="10" fill="#FFFFFF" stroke="#D5E2E5"/>
+<text x="1370" y="223" font-size="18" fill="#0E2B33" text-anchor="middle">เซิร์ฟเวอร์ออกแต้ม จ่ายซ้ำไม่ได้</text>
+<text x="1568" y="224" font-size="22" fill="#0E7C66" text-anchor="middle">&#8594;</text>
+<rect x="1595" y="190" width="253" height="52" rx="10" fill="#FFFFFF" stroke="#D5E2E5"/>
+<text x="1722" y="223" font-size="18" fill="#0E2B33" text-anchor="middle">เอกสารที่แก้ไขไม่ได้</text>
+<rect x="72" y="258" width="1776" height="74" rx="16" fill="#FFFFFF" stroke="#D5E2E5" stroke-width="1"/>
+<rect x="72" y="258" width="6" height="74" rx="3" fill="#D5E2E5"/>
+<text x="106" y="298" font-size="27" font-weight="700" fill="#0E2B33">ฝั่งผู้ใช้</text>
+<text x="106" y="324" font-size="17" fill="#5B7079" font-family="Inter,'IBM Plex Sans Thai','Noto Sans Thai','Leelawadee UI','Segoe UI',system-ui,sans-serif">นักท่องเที่ยวและเจ้าบ้าน</text>
+<rect x="340" y="274" width="395" height="40" rx="20" fill="#EEF3F6" stroke="#CBDAE2"/>
+<text x="538" y="300" font-size="19" fill="#0E2B33" text-anchor="middle">Expo React Native — 17 หน้าจอ สองภาษา</text>
+<rect x="747" y="274" width="529" height="40" rx="20" fill="#EEF3F6" stroke="#CBDAE2"/>
+<text x="1011" y="300" font-size="19" fill="#0E2B33" text-anchor="middle">คอนโซลเจ้าบ้าน — เรนเดอร์ฝั่งเซิร์ฟเวอร์ ใช้บนมือถือได้</text>
+<rect x="1288" y="274" width="120" height="40" rx="20" fill="#EEF3F6" stroke="#CBDAE2"/>
+<text x="1348" y="300" font-size="19" fill="#0E2B33" text-anchor="middle">Dart SDK</text>
+<rect x="1420" y="274" width="130" height="40" rx="20" fill="#EEF3F6" stroke="#CBDAE2"/>
+<text x="1485" y="300" font-size="19" fill="#0E2B33" text-anchor="middle">Swift SDK</text>
+<text x="960" y="358" font-size="24" fill="#0E7C66" text-anchor="middle">&#8595;</text>
+<rect x="72" y="360" width="1776" height="124" rx="16" fill="#E8F4F0" stroke="#BFDED5" stroke-width="2"/>
+<rect x="72" y="360" width="6" height="124" rx="3" fill="#0E7C66"/>
+<text x="106" y="400" font-size="27" font-weight="700" fill="#0E2B33">API</text>
+<text x="106" y="426" font-size="17" fill="#5B7079" font-family="'JetBrains Mono','Cascadia Mono',Consolas,'Courier New',monospace">Hono · apps/api</text>
+<rect x="340" y="376" width="220" height="40" rx="20" fill="#0E7C66" stroke="#0E7C66"/>
+<text x="450" y="402" font-size="19" fill="#FFFFFF" text-anchor="middle">ที่เดียวที่เขียนแต้มได้</text>
+<rect x="572" y="376" width="277" height="40" rx="20" fill="#0E7C66" stroke="#0E7C66"/>
+<text x="710" y="402" font-size="19" fill="#FFFFFF" text-anchor="middle" font-family="'JetBrains Mono','Cascadia Mono',Consolas,'Courier New',monospace">POST /internal/verify</text>
+<rect x="861" y="376" width="290" height="40" rx="20" fill="#0E7C66" stroke="#0E7C66"/>
+<text x="1006" y="402" font-size="19" fill="#FFFFFF" text-anchor="middle">ใช้กุญแจร่วม ผู้เรียกคือเจ้าบ้าน</text>
+<rect x="1163" y="376" width="385" height="40" rx="20" fill="#0E7C66" stroke="#0E7C66"/>
+<text x="1356" y="402" font-size="19" fill="#FFFFFF" text-anchor="middle">ข้อผิดพลาดมีชนิด → รหัสที่แอปจัดการต่อได้</text>
+<rect x="340" y="426" width="341" height="40" rx="20" fill="#0E7C66" stroke="#0E7C66"/>
+<text x="511" y="452" font-size="19" fill="#FFFFFF" text-anchor="middle" font-family="'JetBrains Mono','Cascadia Mono',Consolas,'Courier New',monospace">contract/*.json กันสัญญาเพี้ยน</text>
+<text x="960" y="510" font-size="24" fill="#0E7C66" text-anchor="middle">&#8595;</text>
+<rect x="72" y="512" width="1776" height="124" rx="16" fill="#FFFFFF" stroke="#D5E2E5" stroke-width="1"/>
+<rect x="72" y="512" width="6" height="124" rx="3" fill="#D5E2E5"/>
+<text x="106" y="552" font-size="27" font-weight="700" fill="#0E2B33">โดเมน</text>
+<text x="106" y="578" font-size="17" fill="#5B7079" font-family="'JetBrains Mono','Cascadia Mono',Consolas,'Courier New',monospace">packages/core</text>
+<rect x="340" y="528" width="268" height="40" rx="20" fill="#E8F4F0" stroke="#BFDED5"/>
+<text x="474" y="554" font-size="19" fill="#0B5445" text-anchor="middle">กฎกระเป๋าแต้มและบัญชีแต้ม</text>
+<rect x="620" y="528" width="171" height="40" rx="20" fill="#E8F4F0" stroke="#BFDED5"/>
+<text x="706" y="554" font-size="19" fill="#0B5445" text-anchor="middle">Healthy Score</text>
+<rect x="803" y="528" width="293" height="40" rx="20" fill="#E8F4F0" stroke="#BFDED5"/>
+<text x="950" y="554" font-size="19" fill="#0B5445" text-anchor="middle">เควส · ปาร์ตี้ · เพื่อนร่วมทาง</text>
+<rect x="1109" y="528" width="285" height="40" rx="20" fill="#E8F4F0" stroke="#BFDED5"/>
+<text x="1251" y="554" font-size="19" fill="#0B5445" text-anchor="middle">ESG และเอกสารที่แก้ไขไม่ได้</text>
+<rect x="1406" y="528" width="329" height="40" rx="20" fill="#E8F4F0" stroke="#BFDED5"/>
+<text x="1570" y="554" font-size="19" fill="#0B5445" text-anchor="middle">ข้อความสองภาษาทุกบรรทัดอยู่ที่เดียว</text>
+<rect x="340" y="578" width="304" height="40" rx="20" fill="#E8F4F0" stroke="#BFDED5"/>
+<text x="492" y="604" font-size="19" fill="#0B5445" text-anchor="middle">โทเคนดีไซน์ที่วัดความคมชัดแล้ว</text>
+<text x="960" y="662" font-size="24" fill="#0E7C66" text-anchor="middle">&#8595;</text>
+<rect x="72" y="664" width="1776" height="124" rx="16" fill="#FFFFFF" stroke="#D5E2E5" stroke-width="1"/>
+<rect x="72" y="664" width="6" height="124" rx="3" fill="#D5E2E5"/>
+<text x="106" y="704" font-size="27" font-weight="700" fill="#0E2B33">ที่เก็บข้อมูล</text>
+<text x="106" y="730" font-size="17" fill="#5B7079" font-family="Inter,'IBM Plex Sans Thai','Noto Sans Thai','Leelawadee UI','Segoe UI',system-ui,sans-serif">ของจริงวันนี้ และที่พอร์ตไว้</text>
+<rect x="340" y="680" width="540" height="40" rx="20" fill="#FFF4E8" stroke="#F0D9BC"/>
+<text x="610" y="706" font-size="19" fill="#6B4A1F" text-anchor="middle" font-family="'JetBrains Mono','Cascadia Mono',Consolas,'Courier New',monospace">node:sqlite (WAL) บนวอลุ่ม Fly — รันอยู่จริงวันนี้</text>
+<rect x="892" y="680" width="577" height="40" rx="20" fill="#FFF4E8" stroke="#F0D9BC"/>
+<text x="1181" y="706" font-size="19" fill="#6B4A1F" text-anchor="middle">Durable Object SQLite — พอร์ตไว้หลังอะแดปเตอร์ตัวเดียว</text>
+<rect x="1481" y="680" width="190" height="40" rx="20" fill="#FFF4E8" stroke="#F0D9BC"/>
+<text x="1576" y="706" font-size="19" fill="#6B4A1F" text-anchor="middle">R2 เก็บภาพหลักฐาน</text>
+<rect x="340" y="730" width="353" height="40" rx="20" fill="#FFF4E8" stroke="#F0D9BC"/>
+<text x="516" y="756" font-size="19" fill="#6B4A1F" text-anchor="middle">งานแปลงวิดีโอยังอยู่ในคอนเทนเนอร์</text>
+<text x="960" y="814" font-size="24" fill="#0E7C66" text-anchor="middle">&#8595;</text>
+<rect x="72" y="816" width="1776" height="74" rx="16" fill="#FFFFFF" stroke="#D5E2E5" stroke-width="1"/>
+<rect x="72" y="816" width="6" height="74" rx="3" fill="#D5E2E5"/>
+<text x="106" y="856" font-size="27" font-weight="700" fill="#0E2B33">ภายนอก</text>
+<text x="106" y="882" font-size="17" fill="#5B7079" font-family="Inter,'IBM Plex Sans Thai','Noto Sans Thai','Leelawadee UI','Segoe UI',system-ui,sans-serif">ไม่มีตัวไหนที่ขาดไม่ได้</text>
+<rect x="340" y="832" width="396" height="40" rx="20" fill="#F2F0F7" stroke="#D9D4E6"/>
+<text x="538" y="858" font-size="19" fill="#403A57" text-anchor="middle">Open-Meteo (CAMS) + ทวนกับ Air4Thai</text>
+<rect x="748" y="832" width="195" height="40" rx="20" fill="#F2F0F7" stroke="#D9D4E6"/>
+<text x="846" y="858" font-size="19" fill="#403A57" text-anchor="middle">ข้อมูลอากาศกรมอุตุฯ</text>
+<rect x="955" y="832" width="305" height="40" rx="20" fill="#F2F0F7" stroke="#D9D4E6"/>
+<text x="1108" y="858" font-size="19" fill="#403A57" text-anchor="middle">ยืนยันตัวตน LINE และ Google</text>
+<rect x="1272" y="832" width="130" height="40" rx="20" fill="#F2F0F7" stroke="#D9D4E6"/>
+<text x="1337" y="858" font-size="19" fill="#403A57" text-anchor="middle">Expo push</text>
+<rect x="1414" y="832" width="289" height="40" rx="20" fill="#F2F0F7" stroke="#D9D4E6"/>
+<text x="1559" y="858" font-size="19" fill="#403A57" text-anchor="middle">คอนเซียร์จ Groq / Bedrock</text>
+<text x="72" y="926" font-size="15" font-weight="700" fill="#5B7079" letter-spacing="2">สี่อย่างที่ระบบนี้ไม่ยอมทำ</text>
+<rect x="72" y="940" width="430" height="92" rx="14" fill="#FFFFFF" stroke="#D5E2E5"/>
+<rect x="72" y="940" width="430" height="4" rx="2" fill="#0E7C66"/>
+<text x="94" y="976" font-size="19" font-weight="700" fill="#0E2B33">จ่ายแต้มตามที่ฝั่งผู้ใช้ขอ</text>
+<text x="94" y="1002" font-size="16" fill="#5B7079">มีปลายทางเดียวที่ออกแต้มได้ ป้องกันด้วยกุญแจร่วม</text>
+<text x="94" y="1024" font-size="16" fill="#5B7079">และเรียกจากคอนโซลเจ้าบ้าน</text>
+<rect x="520" y="940" width="430" height="92" rx="14" fill="#FFFFFF" stroke="#D5E2E5"/>
+<rect x="520" y="940" width="430" height="4" rx="2" fill="#0E7C66"/>
+<text x="542" y="976" font-size="19" font-weight="700" fill="#0E2B33">รายงานตัวเลขที่สืบกลับไม่ได้</text>
+<text x="542" y="1002" font-size="16" fill="#5B7079">กระดานอันดับ รายงานผู้สนับสนุน และเอกสาร ESG</text>
+<text x="542" y="1024" font-size="16" fill="#5B7079">มาจากบัญชีแต้มชุดเดียวกัน</text>
+<rect x="969" y="940" width="430" height="92" rx="14" fill="#FFFFFF" stroke="#D5E2E5"/>
+<rect x="969" y="940" width="430" height="4" rx="2" fill="#0E7C66"/>
+<text x="991" y="976" font-size="19" font-weight="700" fill="#0E2B33">ยื่นร่องรอยข้อผิดพลาดดิบให้ผู้ใช้</text>
+<text x="991" y="1002" font-size="16" fill="#5B7079">ข้อผิดพลาดเป็นรหัส พร้อมบอกระยะที่ห่างหรือจำนวนที่ขาด</text>
+<rect x="1418" y="940" width="430" height="92" rx="14" fill="#FFFFFF" stroke="#D5E2E5"/>
+<rect x="1418" y="940" width="430" height="4" rx="2" fill="#0E7C66"/>
+<text x="1440" y="976" font-size="19" font-weight="700" fill="#0E2B33">ทำให้การลบข้อมูลเป็นโปรเจกต์</text>
+<text x="1440" y="1002" font-size="16" fill="#5B7079">คีย์นอกลบต่อเนื่องทั้งหมด คำขอตาม PDPA จึงเป็น</text>
+<text x="1440" y="1024" font-size="16" fill="#5B7079">DELETE เดียว</text>
+<text x="72" y="1054" font-size="16" fill="#5B7079" font-family="'JetBrains Mono','Cascadia Mono',Consolas,'Courier New',monospace">ชุดทดสอบ 1,832 ข้อบน CI (Linux + macOS) · Dart 11 · Swift 10   ·   github.com/domexxzz/chivago</text>
+</svg>

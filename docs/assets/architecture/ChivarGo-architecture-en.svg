@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080" font-family="Inter,'IBM Plex Sans Thai','Noto Sans Thai','Leelawadee UI','Segoe UI',system-ui,sans-serif" role="img" aria-label="ChivarGo — System Architecture">
+<rect width="1920" height="1080" fill="#F6F9F9"/>
+<rect x="0" y="0" width="1920" height="10" fill="#0E7C66"/>
+<text x="72" y="92" font-size="44" font-weight="700" fill="#0E2B33">ChivarGo — System Architecture</text>
+<text x="72" y="130" font-size="21" fill="#5B7079">The evidence layer for hotel sustainability reporting · pilot region: Koh Samui</text>
+<rect x="1059" y="58" width="789" height="52" rx="26" fill="#E8F4F0" stroke="#BFDED5"/>
+<text x="1454" y="91" font-size="22" font-weight="600" fill="#0E7C66" text-anchor="middle">A point is only worth something if somebody had to check it.</text>
+<text x="72" y="168" font-size="15" font-weight="700" fill="#5B7079" letter-spacing="2">THE EVIDENCE LOOP</text>
+<rect x="72" y="190" width="151" height="52" rx="10" fill="#FFFFFF" stroke="#D5E2E5"/>
+<text x="147" y="223" font-size="18" fill="#0E2B33" text-anchor="middle">join a quest</text>
+<text x="250" y="224" font-size="22" fill="#0E7C66" text-anchor="middle">&#8594;</text>
+<rect x="277" y="190" width="413" height="52" rx="10" fill="#FFFFFF" stroke="#D5E2E5"/>
+<text x="483" y="223" font-size="18" fill="#0E2B33" text-anchor="middle">arrival checked against a real geofence</text>
+<text x="717" y="224" font-size="22" fill="#0E7C66" text-anchor="middle">&#8594;</text>
+<rect x="744" y="190" width="238" height="52" rx="10" fill="#FFFFFF" stroke="#D5E2E5"/>
+<text x="863" y="223" font-size="18" fill="#0E2B33" text-anchor="middle">photo proof with EXIF</text>
+<text x="1009" y="224" font-size="22" fill="#0E7C66" text-anchor="middle">&#8594;</text>
+<rect x="1036" y="190" width="238" height="52" rx="10" fill="#FFFFFF" stroke="#D5E2E5"/>
+<text x="1155" y="223" font-size="18" fill="#0E2B33" text-anchor="middle">a named host approves</text>
+<text x="1301" y="224" font-size="22" fill="#0E7C66" text-anchor="middle">&#8594;</text>
+<rect x="1328" y="190" width="357" height="52" rx="10" fill="#FFFFFF" stroke="#D5E2E5"/>
+<text x="1506" y="223" font-size="18" fill="#0E2B33" text-anchor="middle">server issues points — idempotent</text>
+<text x="1711" y="224" font-size="22" fill="#0E7C66" text-anchor="middle">&#8594;</text>
+<rect x="1738" y="190" width="219" height="52" rx="10" fill="#FFFFFF" stroke="#D5E2E5"/>
+<text x="1848" y="223" font-size="18" fill="#0E2B33" text-anchor="middle">immutable statement</text>
+<rect x="72" y="258" width="1776" height="74" rx="16" fill="#FFFFFF" stroke="#D5E2E5" stroke-width="1"/>
+<rect x="72" y="258" width="6" height="74" rx="3" fill="#D5E2E5"/>
+<text x="106" y="298" font-size="27" font-weight="700" fill="#0E2B33">Clients</text>
+<text x="106" y="324" font-size="17" fill="#5B7079" font-family="Inter,'IBM Plex Sans Thai','Noto Sans Thai','Leelawadee UI','Segoe UI',system-ui,sans-serif">traveller &amp; host</text>
+<rect x="340" y="274" width="419" height="40" rx="20" fill="#EEF3F6" stroke="#CBDAE2"/>
+<text x="550" y="300" font-size="19" fill="#0E2B33" text-anchor="middle">Expo React Native — 17 screens, EN/TH</text>
+<rect x="771" y="274" width="491" height="40" rx="20" fill="#EEF3F6" stroke="#CBDAE2"/>
+<text x="1017" y="300" font-size="19" fill="#0E2B33" text-anchor="middle">Host console — server-rendered, fits a phone</text>
+<rect x="1275" y="274" width="120" height="40" rx="20" fill="#EEF3F6" stroke="#CBDAE2"/>
+<text x="1335" y="300" font-size="19" fill="#0E2B33" text-anchor="middle">Dart SDK</text>
+<rect x="1407" y="274" width="130" height="40" rx="20" fill="#EEF3F6" stroke="#CBDAE2"/>
+<text x="1472" y="300" font-size="19" fill="#0E2B33" text-anchor="middle">Swift SDK</text>
+<text x="960" y="358" font-size="24" fill="#0E7C66" text-anchor="middle">&#8595;</text>
+<rect x="72" y="360" width="1776" height="124" rx="16" fill="#E8F4F0" stroke="#BFDED5" stroke-width="2"/>
+<rect x="72" y="360" width="6" height="124" rx="3" fill="#0E7C66"/>
+<text x="106" y="400" font-size="27" font-weight="700" fill="#0E2B33">API</text>
+<text x="106" y="426" font-size="17" fill="#5B7079" font-family="'JetBrains Mono','Cascadia Mono',Consolas,'Courier New',monospace">Hono · apps/api</text>
+<rect x="340" y="376" width="294" height="40" rx="20" fill="#0E7C66" stroke="#0E7C66"/>
+<text x="487" y="402" font-size="19" fill="#FFFFFF" text-anchor="middle">The only writer of points</text>
+<rect x="646" y="376" width="277" height="40" rx="20" fill="#0E7C66" stroke="#0E7C66"/>
+<text x="785" y="402" font-size="19" fill="#FFFFFF" text-anchor="middle" font-family="'JetBrains Mono','Cascadia Mono',Consolas,'Courier New',monospace">POST /internal/verify</text>
+<rect x="936" y="376" width="389" height="40" rx="20" fill="#0E7C66" stroke="#0E7C66"/>
+<text x="1130" y="402" font-size="19" fill="#FFFFFF" text-anchor="middle">Shared secret — caller is the host</text>
+<rect x="1337" y="376" width="440" height="40" rx="20" fill="#0E7C66" stroke="#0E7C66"/>
+<text x="1557" y="402" font-size="19" fill="#FFFFFF" text-anchor="middle">Typed errors → codes the app can act on</text>
+<rect x="340" y="426" width="371" height="40" rx="20" fill="#0E7C66" stroke="#0E7C66"/>
+<text x="525" y="452" font-size="19" fill="#FFFFFF" text-anchor="middle" font-family="'JetBrains Mono','Cascadia Mono',Consolas,'Courier New',monospace">contract/*.json — drift guard</text>
+<text x="960" y="510" font-size="24" fill="#0E7C66" text-anchor="middle">&#8595;</text>
+<rect x="72" y="512" width="1776" height="124" rx="16" fill="#FFFFFF" stroke="#D5E2E5" stroke-width="1"/>
+<rect x="72" y="512" width="6" height="124" rx="3" fill="#D5E2E5"/>
+<text x="106" y="552" font-size="27" font-weight="700" fill="#0E2B33">Domain</text>
+<text x="106" y="578" font-size="17" fill="#5B7079" font-family="'JetBrains Mono','Cascadia Mono',Consolas,'Courier New',monospace">packages/core</text>
+<rect x="340" y="528" width="253" height="40" rx="20" fill="#E8F4F0" stroke="#BFDED5"/>
+<text x="467" y="554" font-size="19" fill="#0B5445" text-anchor="middle">Wallet &amp; ledger rules</text>
+<rect x="605" y="528" width="171" height="40" rx="20" fill="#E8F4F0" stroke="#BFDED5"/>
+<text x="691" y="554" font-size="19" fill="#0B5445" text-anchor="middle">Healthy Score</text>
+<rect x="789" y="528" width="336" height="40" rx="20" fill="#E8F4F0" stroke="#BFDED5"/>
+<text x="957" y="554" font-size="19" fill="#0B5445" text-anchor="middle">Quests · parties · companions</text>
+<rect x="1136" y="528" width="305" height="40" rx="20" fill="#E8F4F0" stroke="#BFDED5"/>
+<text x="1289" y="554" font-size="19" fill="#0B5445" text-anchor="middle">ESG &amp; immutable statements</text>
+<rect x="340" y="578" width="356" height="40" rx="20" fill="#E8F4F0" stroke="#BFDED5"/>
+<text x="518" y="604" font-size="19" fill="#0B5445" text-anchor="middle">Every EN/TH string in one place</text>
+<rect x="708" y="578" width="366" height="40" rx="20" fill="#E8F4F0" stroke="#BFDED5"/>
+<text x="891" y="604" font-size="19" fill="#0B5445" text-anchor="middle">Design tokens, contrast measured</text>
+<text x="960" y="662" font-size="24" fill="#0E7C66" text-anchor="middle">&#8595;</text>
+<rect x="72" y="664" width="1776" height="124" rx="16" fill="#FFFFFF" stroke="#D5E2E5" stroke-width="1"/>
+<rect x="72" y="664" width="6" height="124" rx="3" fill="#D5E2E5"/>
+<text x="106" y="704" font-size="27" font-weight="700" fill="#0E2B33">Storage</text>
+<text x="106" y="730" font-size="17" fill="#5B7079" font-family="Inter,'IBM Plex Sans Thai','Noto Sans Thai','Leelawadee UI','Segoe UI',system-ui,sans-serif">today &amp; ported</text>
+<rect x="340" y="680" width="599" height="40" rx="20" fill="#FFF4E8" stroke="#F0D9BC"/>
+<text x="639" y="706" font-size="19" fill="#6B4A1F" text-anchor="middle" font-family="'JetBrains Mono','Cascadia Mono',Consolas,'Courier New',monospace">node:sqlite (WAL) on a Fly volume — running today</text>
+<rect x="951" y="680" width="543" height="40" rx="20" fill="#FFF4E8" stroke="#F0D9BC"/>
+<text x="1222" y="706" font-size="19" fill="#6B4A1F" text-anchor="middle">Durable Object SQLite — ported behind one adapter</text>
+<rect x="1505" y="680" width="284" height="40" rx="20" fill="#FFF4E8" stroke="#F0D9BC"/>
+<text x="1647" y="706" font-size="19" fill="#6B4A1F" text-anchor="middle">R2 for proof photographs</text>
+<rect x="340" y="730" width="438" height="40" rx="20" fill="#FFF4E8" stroke="#F0D9BC"/>
+<text x="559" y="756" font-size="19" fill="#6B4A1F" text-anchor="middle">ffmpeg transcoding stays in a container</text>
+<text x="960" y="814" font-size="24" fill="#0E7C66" text-anchor="middle">&#8595;</text>
+<rect x="72" y="816" width="1776" height="74" rx="16" fill="#FFFFFF" stroke="#D5E2E5" stroke-width="1"/>
+<rect x="72" y="816" width="6" height="74" rx="3" fill="#D5E2E5"/>
+<text x="106" y="856" font-size="27" font-weight="700" fill="#0E2B33">Outside</text>
+<text x="106" y="882" font-size="17" fill="#5B7079" font-family="Inter,'IBM Plex Sans Thai','Noto Sans Thai','Leelawadee UI','Segoe UI',system-ui,sans-serif">none of it load-bearing</text>
+<rect x="340" y="832" width="448" height="40" rx="20" fill="#F2F0F7" stroke="#D9D4E6"/>
+<text x="564" y="858" font-size="19" fill="#403A57" text-anchor="middle">Open-Meteo (CAMS) + Air4Thai cross-check</text>
+<rect x="800" y="832" width="151" height="40" rx="20" fill="#F2F0F7" stroke="#D9D4E6"/>
+<text x="876" y="858" font-size="19" fill="#403A57" text-anchor="middle">TMD weather</text>
+<rect x="963" y="832" width="264" height="40" rx="20" fill="#F2F0F7" stroke="#D9D4E6"/>
+<text x="1095" y="858" font-size="19" fill="#403A57" text-anchor="middle">LINE &amp; Google identity</text>
+<rect x="1239" y="832" width="130" height="40" rx="20" fill="#F2F0F7" stroke="#D9D4E6"/>
+<text x="1304" y="858" font-size="19" fill="#403A57" text-anchor="middle">Expo push</text>
+<rect x="1381" y="832" width="284" height="40" rx="20" fill="#F2F0F7" stroke="#D9D4E6"/>
+<text x="1523" y="858" font-size="19" fill="#403A57" text-anchor="middle">Groq / Bedrock concierge</text>
+<text x="72" y="904" font-size="15" font-weight="700" fill="#5B7079" letter-spacing="2">FOUR THINGS THE SYSTEM REFUSES TO DO</text>
+<rect x="72" y="918" width="430" height="114" rx="14" fill="#FFFFFF" stroke="#D5E2E5"/>
+<rect x="72" y="918" width="430" height="4" rx="2" fill="#0E7C66"/>
+<text x="94" y="954" font-size="19" font-weight="700" fill="#0E2B33">Award a point the client asked for.</text>
+<text x="94" y="980" font-size="16" fill="#5B7079">One endpoint issues points, guarded by a</text>
+<text x="94" y="1002" font-size="16" fill="#5B7079">shared secret and called by the host</text>
+<text x="94" y="1024" font-size="16" fill="#5B7079">console.</text>
+<rect x="520" y="918" width="430" height="114" rx="14" fill="#FFFFFF" stroke="#D5E2E5"/>
+<rect x="520" y="918" width="430" height="4" rx="2" fill="#0E7C66"/>
+<text x="542" y="954" font-size="19" font-weight="700" fill="#0E2B33">Report a number it cannot trace.</text>
+<text x="542" y="980" font-size="16" fill="#5B7079">Leaderboard, sponsor report and ESG filing</text>
+<text x="542" y="1002" font-size="16" fill="#5B7079">all derive from the one ledger.</text>
+<rect x="969" y="918" width="430" height="114" rx="14" fill="#FFFFFF" stroke="#D5E2E5"/>
+<rect x="969" y="918" width="430" height="4" rx="2" fill="#0E7C66"/>
+<text x="991" y="954" font-size="19" font-weight="700" fill="#0E2B33">Hand a user a stack trace.</text>
+<text x="991" y="980" font-size="16" fill="#5B7079">Errors are codes with the distance or the</text>
+<text x="991" y="1002" font-size="16" fill="#5B7079">shortfall in them.</text>
+<rect x="1418" y="918" width="430" height="114" rx="14" fill="#FFFFFF" stroke="#D5E2E5"/>
+<rect x="1418" y="918" width="430" height="4" rx="2" fill="#0E7C66"/>
+<text x="1440" y="954" font-size="19" font-weight="700" fill="#0E2B33">Make erasure a project.</text>
+<text x="1440" y="980" font-size="16" fill="#5B7079">Foreign keys cascade, so a PDPA deletion is</text>
+<text x="1440" y="1002" font-size="16" fill="#5B7079">one DELETE.</text>
+<text x="72" y="1054" font-size="16" fill="#5B7079" font-family="'JetBrains Mono','Cascadia Mono',Consolas,'Courier New',monospace">1,832 tests on CI (Linux + macOS) · +11 Dart · +10 Swift   ·   github.com/domexxzz/chivago</text>
+</svg>
