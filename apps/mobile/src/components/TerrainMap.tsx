@@ -683,7 +683,37 @@ export function TerrainMap({
       reason it is on for the island, at a gentler exaggeration because
       180 m over a kilometre and a half is already steep without help.
     */
+    /*
+      HOW THE GROUND IS DRAWN: street zoom, the surveyed buildings, no mist.
+      Ko Sichang is on this list on purpose - it is a walkable island whose
+      shops and stalls are the reason somebody zooms in, and `areas.ts` says
+      so: "Streets and paths, not the terrain hero".
+    */
     const campus = area?.map === 'campus';
+
+    /*
+      HOW THE CAMERA OPENS, which is NOT the same question, and asking `map`
+      for it cost Ko Sichang the view of itself.
+
+      One field was answering both. The island opened at a university's
+      framing, centred on the pier, and - the part no gesture could undo -
+      with `minZoom: 14` locking the whole island out of reach. Measured on
+      the live site on 28 November 2026: the hero was the roofs of Tha Bon,
+      and the island it is a view OF never appeared at any zoom.
+
+      `areas.ts` already carries the field that answers this one, and says
+      in as many words that it is a different question: "A university, and
+      spoken of as one. Not the same question as `map`: Ko Sichang is an
+      island drawn with the street-zoom map, and calling it a campus would
+      be wrong in every line."
+
+      So the frame asks `university` and the ground keeps asking `map`. Ko
+      Sichang gets the island's pose, the approach by sea and the room to
+      stand off it; it keeps the street zoom it is navigated at, its
+      buildings and its lack of mist, because those are the other question
+      and the answer to that one has not changed.
+    */
+    const campusFrame = area?.university === true;
     /*
       THE AREA'S OWN BOX, whichever map draws it.
 
@@ -697,13 +727,13 @@ export function TerrainMap({
       of sea that one off Samui does.
     */
     const frame = area?.bbox ?? SAMUI_FRAME;
-    const pad = campus ? 0.002 : 0;
+    const pad = campusFrame ? 0.002 : 0;
     const box: [[number, number], [number, number]] = boundsOf({
       minLng: frame.minLng - pad, minLat: frame.minLat - pad,
       maxLng: frame.maxLng + pad, maxLat: frame.maxLat + pad,
     });
     const span = Math.max(frame.maxLng - frame.minLng, frame.maxLat - frame.minLat);
-    const slack = campus ? 0.01 : span * 0.6;
+    const slack = campusFrame ? 0.01 : span * 0.6;
     const m = new MapLibreMap({
       container: holder.current,
       style: chivagoStyle(hour, { flat: area?.flatGround }),
@@ -720,7 +750,10 @@ export function TerrainMap({
         [box[0][0] - slack, box[0][1] - slack],
         [box[1][0] + slack, box[1][1] + slack],
       ],
-      minZoom: campus ? 14 : 9,
+      // The floor is the frame's question - how far out may somebody
+      // stand - and the ceiling is the ground's: how close is worth
+      // drawing. Ko Sichang answers 9 and 18.5, which is both.
+      minZoom: campusFrame ? 14 : 9,
       maxZoom: campus ? 18.5 : 15.5,
       maxPitch: MAX_PITCH,
       interactive,
@@ -935,14 +968,14 @@ export function TerrainMap({
       so the buildings read as buildings, and an intro that turns in place
       rather than approaching from the sea it does not have.
     */
-    const settled: Pose = campus && area
+    const settled: Pose = campusFrame && area
       // Sixty rather than fifty-five: the buildings still read as buildings,
       // and the ridge behind them now has somewhere to be. Bearing from the
       // south-west, which is the side the campus climbs from. The zoom is
       // taken from the frame's width, not fixed: see campusZoom.
       ? { zoom: campusZoom(holder.current?.clientWidth ?? 0, area.spanM), pitch: 60, bearing: -24, center: [(area.frameCenter ?? area.center).lng, (area.frameCenter ?? area.center).lat] }
       : heroPose(m.getZoom(), frame);
-    const intro: Pose = campus
+    const intro: Pose = campusFrame
       ? { ...settled, zoom: settled.zoom - 0.8, pitch: 68, bearing: settled.bearing - 35 }
       : introPose(settled, frame);
     settledBearing.current = settled.bearing;
@@ -1063,7 +1096,11 @@ export function TerrainMap({
       if (area?.flatGround || groundGone) { m.setTerrain(null); return; }
       m.setTerrain({
         source: 'terrain',
-        exaggeration: campus ? CAMPUS_EXAGGERATION : islandExaggeration(frame),
+        // The frame's question again: how hard to lift the land is set by
+        // how far the camera stands off it. `islandExaggeration` was
+        // written reasoning about Ko Sichang's west-coast cliffs by name,
+        // and `map: 'campus'` was quietly sending Ko Sichang past it.
+        exaggeration: campusFrame ? CAMPUS_EXAGGERATION : islandExaggeration(frame),
       });
     };
 
@@ -1082,7 +1119,10 @@ export function TerrainMap({
       hills beyond the campus really are further away.
     */
     const clearTheAir = () => {
-      if (!campus) return;
+      // Thinned for a campus, which is framed at street level. An island
+      // framed from two kilometres off keeps its haze: that is the thing
+      // it rises out of.
+      if (!campusFrame) return;
       const p = paletteFor(hour);
       m.setSky({
         'sky-color': p.sky,
