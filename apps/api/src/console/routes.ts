@@ -53,7 +53,7 @@ import {
   InvalidPeriod, draftStatement, issueStatement, readStatement, statementsFor,
 } from '../statement-service.ts';
 import { activityInPeriod } from '../esg-service.ts';
-import { coastalCalibration } from '../coastal-calibration.ts';
+import { coastalCalibration, recordDriftRun } from '../coastal-calibration.ts';
 import { publishedDriftRun } from '../drift-sidecar.ts';
 import { evidenceFor } from '../evidence-service.ts';
 import { evidenceCsv, evidencePage } from './evidence.ts';
@@ -1050,6 +1050,15 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
     const session = currentSession(c)!;
     const period = readPeriod(c.req.query('from'), c.req.query('to'));
     const run = await publishedDriftRun();
+    /*
+      Kept the moment it is seen, rather than by a cron somebody will not
+      notice has stopped. Until `drift_runs` existed every run but the latest
+      had been overwritten, so no cleanup in the whole history of this project
+      could be compared with the prediction it was supposed to test - see the
+      table's note in migrations.ts. Seeing the same run again is the normal
+      case and costs one ignored insert.
+    */
+    recordDriftRun(db, run, new Date().toISOString());
     const report = coastalCalibration(db, run, period.from, period.to);
     return c.html(coastalPage(localeFor(c), session.hostName, session.reviewer, report));
   });

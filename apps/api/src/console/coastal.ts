@@ -155,6 +155,44 @@ function agreementSection(report: CoastalCalibration, locale: Locale): Raw {
   stretch do we walk - and two rows that differ by 200 metres and 40 contacts
   look like the same row twice.
 */
+/**
+ * Where a real calibration actually stands, which is not what the agreement
+ * above measures.
+ *
+ * The agreement asks whether TODAY's run orders the shorelines the way the
+ * period's weights do - a sanity check, and a useful one. Calibration asks
+ * something stricter: did the run that was STANDING when somebody filled a bag
+ * predict that bag. Those are different questions and the page would mislead
+ * by answering only the easy one.
+ */
+function calibrationSection(report: CoastalCalibration, locale: Locale): Raw {
+  const set = report.calibrationSet;
+  return html`
+    <section class="card">
+      <h2>${en(locale) ? 'Towards a calibration' : 'ระยะทางสู่การสอบเทียบ'}</h2>
+      <div class="figures">
+        ${figure(whole(set.paired), 'Cleanups paired with their own run', 'การเก็บที่จับคู่กับผลจำลองของวันนั้นได้', true)}
+        ${figure(whole(set.unpaired), 'With no run kept for that moment', 'ไม่มีผลจำลองของช่วงเวลานั้นเก็บไว้')}
+        ${figure(whole(set.runsKept), 'Runs in the archive', 'ผลจำลองที่เก็บไว้ทั้งหมด')}
+      </div>
+      <p>${en(locale)
+        ? 'A cleanup tests the run that was standing when somebody filled the bag, not whichever '
+          + 'run happens to be on disk today. Until the archive existed, every run but the latest '
+          + 'was overwritten by the next one - so nothing collected before it can ever be paired, '
+          + 'and that is counted above rather than hidden.'
+        : 'การเก็บขยะหนึ่งครั้งทดสอบผลจำลองที่ยืนอยู่ตอนที่คนกำลังเก็บ ไม่ใช่ผลจำลองที่บังเอิญอยู่บนดิสก์วันนี้ '
+          + 'ก่อนจะมีคลัง ผลจำลองทุกชุดยกเว้นชุดล่าสุดถูกชุดถัดไปเขียนทับ '
+          + 'ของที่เก็บก่อนหน้านั้นจึงจับคู่ไม่ได้ตลอดไป และนับไว้ข้างบนแทนที่จะซ่อน'}</p>
+      ${set.archiveFrom
+        ? html`<p class="muted">${en(locale) ? 'Archive starts' : 'คลังเริ่มเก็บตั้งแต่'}: ${set.archiveFrom}</p>`
+        : html`<p class="warn">${en(locale)
+          ? 'The archive is empty. It fills the first time this page reads a published run, so it '
+            + 'starts today and not before.'
+          : 'คลังยังว่าง มันจะเริ่มเก็บครั้งแรกที่หน้านี้อ่านผลจำลองที่เผยแพร่อยู่ '
+            + 'จึงเริ่มนับจากวันนี้ ไม่ใช่ย้อนหลัง'}</p>`}
+    </section>`;
+}
+
 function table(report: CoastalCalibration, locale: Locale): Raw {
   if (report.segments.length === 0) {
     return html`<p class="muted">${en(locale)
@@ -213,6 +251,7 @@ export function coastalPage(
 
     ${runSection(report, locale)}
     ${agreementSection(report, locale)}
+    ${calibrationSection(report, locale)}
 
     <section class="card">
       <h2>${en(locale) ? 'Shoreline by shoreline' : 'ทีละชายฝั่ง'}</h2>
@@ -245,10 +284,13 @@ export function coastalPage(
           : 'ไม่ใช่น้ำหนักต่อชายหาด น้ำหนักถูกนับให้ชายฝั่งที่ใกล้หมุดเควสที่สุด '
             + 'และการเก็บที่เดินผ่านสองช่วงจะถูกนับให้ช่วงเดียวทั้งหมด'}</li>
         <li>${en(locale)
-          ? 'Not a calibrated model. Nothing here changes the run; it only measures how well the '
-            + 'run’s ordering matched the evidence in this period.'
-          : 'ไม่ใช่แบบจำลองที่สอบเทียบแล้ว สิ่งที่อยู่ที่นี่ไม่ได้แก้ตัวผลจำลอง '
-            + 'เพียงวัดว่าอันดับของผลจำลองตรงกับหลักฐานในช่วงนี้แค่ไหน'}</li>
+          ? 'Not a calibrated model, and nothing here can make it one: the model lives in '
+            + 'electiction/chivargo-sichang, and calibrating it means changing its seeding and '
+            + 'fitting its parameters there. What this page can do is keep the runs and count the '
+            + 'evidence, so that work has something to fit against.'
+          : 'ไม่ใช่แบบจำลองที่สอบเทียบแล้ว และไม่มีอะไรที่นี่ทำให้มันเป็นได้ '
+            + 'ตัวแบบจำลองอยู่ใน electiction/chivargo-sichang การสอบเทียบคือการเปลี่ยนการปล่อยอนุภาคและปรับพารามิเตอร์ที่นั่น '
+            + 'สิ่งที่หน้านี้ทำได้คือเก็บผลจำลองไว้และนับหลักฐาน เพื่อให้งานนั้นมีอะไรให้ปรับเข้าหา'}</li>
         <li>${en(locale)
           ? 'Not everything that was collected. Only approved proofs that carry a weight appear: '
             + 'an unreviewed proof is a claim and a rejected one is a claim that failed.'

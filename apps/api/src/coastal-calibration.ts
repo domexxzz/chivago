@@ -67,6 +67,29 @@ export interface SegmentComparison {
   nearestMetres: number | null;
 }
 
+/**
+ * How much of the evidence could be paired with the prediction it tests.
+ *
+ * THIS IS THE NUMBER THAT HAS TO GROW BEFORE `calibrated: false` CAN EVER
+ * CHANGE, and it is not the number of cleanups. A cleanup on 5 December tests
+ * the run that was standing on 5 December; comparing it with whatever run
+ * happens to be on disk today tests nothing. Until `drift_runs` existed, every
+ * run but the latest had been overwritten, so NOTHING in the whole history of
+ * this project could be paired - which is why this reads zero for everything
+ * collected before the archive started, and why that zero is reported rather
+ * than hidden.
+ */
+export interface CalibrationSet {
+  /** Weighed cleanups that happened inside some run we kept. */
+  paired: number;
+  /** Weighed cleanups with no kept run covering the moment they happened. */
+  unpaired: number;
+  /** Runs in the archive, ever. One is not a history. */
+  runsKept: number;
+  /** The oldest run we hold, which is the day calibration became possible. */
+  archiveFrom: string | null;
+}
+
 export interface CoastalCalibration {
   run: DriftRunHeader | null;
   /** True when the run has outlived its own window, so the ranking is history. */
@@ -84,6 +107,8 @@ export interface CoastalCalibration {
   unattributed: { cleanups: number; weightKg: number };
   /** Spearman rank correlation, or null when there is too little to rank. */
   agreement: { rho: number; segments: number } | null;
+  /** How far off a real calibration still is, counted honestly. */
+  calibrationSet: CalibrationSet;
 }
 
 /**
@@ -162,6 +187,66 @@ export function runExpired(run: DriftRun | null, now: number = Date.now()): bool
   return now < issued || now - issued > run.window * 3_600_000;
 }
 
+/**
+ * Keep this run, if it is one we have not seen.
+ *
+ * Called wherever a run is read, because the alternative is a cron nobody
+ * notices has stopped. Seeing the same run again is the normal case and costs
+ * one ignored insert; `(model, issued)` IS the run, so there is no version of
+ * this that can store two different answers under one key.
+ */
+export function recordDriftRun(db: DB, run: DriftRun | null, now: string): void {
+  if (!run?.issued || !run.model) return;
+  db.prepare(
+    'INSERT OR IGNORE INTO drift_runs'
+    + ' (model, issued, window_h, seeding, source, segments, first_seen)'
+    + ' VALUES (?, ?, ?, ?, ?, ?, ?)',
+  ).run(
+    run.model, run.issued, run.window, run.seeding, run.source,
+    JSON.stringify(run.segments), now,
+  );
+}
+
+interface KeptRun {
+  model: string;
+  issued: string;
+  window_h: number;
+  segments: string;
+}
+
+/**
+ * The run that was standing at a given instant, if we kept it.
+ *
+ * "Standing" means the instant falls inside `[issued, issued + window)`. A
+ * cleanup at a moment no kept run covers is unpaired, and saying so is the
+ * whole point: a silent fallback to the newest run would produce a
+ * calibration figure out of two things that never met.
+ */
+export function runInForceAt(db: DB, when: string): DriftRun | null {
+  const at = Date.parse(when);
+  if (!Number.isFinite(at)) return null;
+  const kept = rows<KeptRun>(
+    db.prepare(
+      'SELECT model, issued, window_h, segments FROM drift_runs'
+      + ' WHERE issued <= ? ORDER BY issued DESC LIMIT 8',
+    ).all(new Date(at).toISOString()),
+  );
+  for (const row of kept) {
+    const issued = Date.parse(row.issued);
+    if (!Number.isFinite(issued)) continue;
+    if (at >= issued && at < issued + row.window_h * 3_600_000) {
+      const parsed: unknown = JSON.parse(row.segments);
+      if (!Array.isArray(parsed)) return null;
+      return {
+        model: row.model, issued: row.issued, window: row.window_h,
+        calibrated: false, seeding: null, source: 'archive',
+        segments: parsed as DriftSegment[],
+      };
+    }
+  }
+  return null;
+}
+
 /** Metres between two coordinates, which at this scale needs no ellipsoid. */
 function metresBetween(aLat: number, aLng: number, bLat: number, bLng: number): number {
   const earth = 6_371_000;
@@ -192,6 +277,13 @@ interface WeighedProof {
   weight_kg: number;
   lat: number;
   lng: number;
+  /*
+    WHEN THE CLEANUP HAPPENED, not when a host got round to approving it. The
+    period on the page is bounded by approval, because that is when evidence
+    counts; the pairing with a six-hour run has to use the submission, because
+    that is when somebody was actually standing on the sand.
+  */
+  submitted_at: string;
 }
 
 /**
@@ -209,7 +301,8 @@ interface WeighedProof {
 export function weighedProofs(db: DB, from: string, to: string): WeighedProof[] {
   return rows<WeighedProof>(
     db.prepare(
-      'SELECT p.weight_kg AS weight_kg, q.lat AS lat, q.lng AS lng'
+      'SELECT p.weight_kg AS weight_kg, q.lat AS lat, q.lng AS lng,'
+      + ' p.submitted_at AS submitted_at'
       + '  FROM proofs p'
       + '  JOIN quests q ON q.id = p.quest_id'
       + ' WHERE p.approved = 1'
@@ -358,5 +451,31 @@ export function coastalCalibration(
       weightKg: Number(unattributedWeight.toFixed(3)),
     },
     agreement: rankAgreement(ordered),
+    calibrationSet: calibrationSet(db, proofs),
+  };
+}
+
+/**
+ * How many of these cleanups can be compared with the prediction they test.
+ *
+ * Counted rather than estimated, and reported even when it is zero, because
+ * zero is the true state of this project until the archive has been running
+ * as long as the cleanups have. A page that quietly compared every cleanup
+ * with today's run would show a number that looked like calibration and was
+ * not.
+ */
+function calibrationSet(db: DB, proofs: readonly WeighedProof[]): CalibrationSet {
+  let paired = 0;
+  for (const proof of proofs) {
+    if (runInForceAt(db, proof.submitted_at)) paired += 1;
+  }
+  const archive = rows<{ n: number; oldest: string | null }>(
+    db.prepare('SELECT COUNT(*) AS n, MIN(issued) AS oldest FROM drift_runs').all(),
+  )[0];
+  return {
+    paired,
+    unpaired: proofs.length - paired,
+    runsKept: archive?.n ?? 0,
+    archiveFrom: archive?.oldest ?? null,
   };
 }

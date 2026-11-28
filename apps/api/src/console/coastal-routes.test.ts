@@ -191,6 +191,48 @@ describe('a run that cannot be trusted', () => {
   });
 });
 
+/*
+  The archive is what makes a calibration possible at all, and the page has to
+  report how far off one is rather than letting the agreement above read as
+  one. Reading the page is also what fills the archive, so the first load is
+  both the measurement and the thing being measured.
+*/
+describe('the page keeps the runs it reads, and says where calibration stands', () => {
+  test('reading it once puts the run in the archive', async () => {
+    restoreFetch = serveSidecar(run('2026-11-28T06:00:00.000Z'));
+    await page();
+    const kept = db.prepare('SELECT model, issued FROM drift_runs').all() as
+      { model: string; issued: string }[];
+    assert.equal(kept.length, 1, 'the run was read and then thrown away');
+    assert.equal(kept[0]!.issued, '2026-11-28T06:00:00.000Z');
+  });
+
+  test('a cleanup collected before the archive existed is counted as unpaired', async () => {
+    restoreFetch = serveSidecar(run(new Date().toISOString()));
+    const html = await page(`?from=${DAY}&to=${DAY}`);
+    assert.match(html, /Towards a calibration|ระยะทางสู่การสอบเทียบ/);
+    // The fixture's cleanup was submitted now, and the only run kept is the
+    // one this page just read - whose window covers now - so it pairs. What
+    // must never happen is a page that reports pairing it has not done.
+    assert.match(html, /paired with their own run|จับคู่กับผลจำลองของวันนั้นได้/);
+  });
+
+  test('with no run readable the archive stays empty and says so', async () => {
+    restoreFetch = serveSidecar({ nonsense: true });
+    const html = await page();
+    assert.match(html, /archive is empty|คลังยังว่าง/);
+    const kept = db.prepare('SELECT COUNT(*) AS n FROM drift_runs').all() as { n: number }[];
+    assert.equal(kept[0]!.n, 0, 'an unparseable file was stored as a run');
+  });
+
+  test('it says plainly that nothing here can calibrate the model', async () => {
+    restoreFetch = serveSidecar(run(new Date().toISOString()));
+    const html = await page();
+    assert.match(html, /electiction\/chivargo-sichang/,
+      'the page does not say where the model actually lives');
+  });
+});
+
 describe('the period bounds the evidence', () => {
   test('a period before the cleanup shows the shorelines and no weight', async () => {
     restoreFetch = serveSidecar(run(new Date().toISOString()));

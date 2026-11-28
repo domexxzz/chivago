@@ -22,7 +22,7 @@ import { URL, fileURLToPath } from 'node:url';
 import { openTestDb, type DB } from './db-node.ts';
 import {
   MAX_ATTRIBUTION_M, MIN_SEGMENTS_FOR_AGREEMENT, coastalCalibration, parseDriftRun,
-  rankAgreement, runExpired, weighedProofs, type DriftRun,
+  rankAgreement, recordDriftRun, runExpired, runInForceAt, weighedProofs, type DriftRun,
 } from './coastal-calibration.ts';
 
 /** The run that shipped, read from the file the app serves. */
@@ -252,5 +252,138 @@ describe('the real island, with real geometry', () => {
     assert.ok(credited.nearestMetres !== null && credited.nearestMetres <= MAX_ATTRIBUTION_M);
     // One weighed proof is nowhere near enough to rank anything.
     assert.equal(result.agreement, null);
+  });
+});
+
+/*
+  THE ARCHIVE, AND WHY `calibrated: false` COULD NEVER HAVE CHANGED WITHOUT IT.
+
+  A run is published as one file and the next run overwrites it. So a cleanup
+  on 5 December could never be compared with the prediction that was standing
+  on 5 December - by the 6th that prediction did not exist anywhere, in this
+  repository or out of it. Calibration was never blocked on evidence alone.
+*/
+describe('every run we see is kept, because the next one overwrites the file', () => {
+  const RUN_AT = '2026-11-28T06:00:00.000Z';
+  let archive: DB;
+
+  const earlier: DriftRun = {
+    ...toy, model: 'sichang-rk2-sensitivity-v2', issued: '2026-11-28T00:00:00.000Z', window: 6,
+  };
+  const later: DriftRun = { ...earlier, issued: '2026-11-28T12:00:00.000Z' };
+
+  before(() => {
+    archive = openTestDb();
+    recordDriftRun(archive, earlier, RUN_AT);
+    recordDriftRun(archive, later, RUN_AT);
+  });
+
+  test('seeing the same run again is free and changes nothing', () => {
+    recordDriftRun(archive, earlier, '2026-11-29T00:00:00.000Z');
+    recordDriftRun(archive, earlier, '2026-11-30T00:00:00.000Z');
+    const kept = archive.prepare('SELECT COUNT(*) AS n FROM drift_runs').all() as { n: number }[];
+    assert.equal(kept[0]!.n, 2, 'the console reads this file on every page load');
+  });
+
+  test('a run with no issue time is not kept, because it cannot be found again', () => {
+    const scratch = openTestDb();
+    recordDriftRun(scratch, { ...earlier, issued: null }, RUN_AT);
+    const none = scratch.prepare('SELECT COUNT(*) AS n FROM drift_runs').all() as { n: number }[];
+    assert.equal(none[0]!.n, 0);
+    recordDriftRun(scratch, null, RUN_AT);
+    const still = scratch.prepare('SELECT COUNT(*) AS n FROM drift_runs').all() as { n: number }[];
+    assert.equal(still[0]!.n, 0);
+  });
+
+  test('the run standing at a moment is the one whose window covers it', () => {
+    assert.equal(runInForceAt(archive, '2026-11-28T03:00:00.000Z')?.issued, earlier.issued);
+    assert.equal(runInForceAt(archive, '2026-11-28T15:00:00.000Z')?.issued, later.issued);
+    // Its segments come back with it: a prediction with no numbers is not one.
+    assert.equal(runInForceAt(archive, '2026-11-28T03:00:00.000Z')?.segments.length, 4);
+  });
+
+  test('a moment no kept run covers is unpaired, not quietly given the nearest run', () => {
+    // Nine hours after the earlier run issued, three before the later one:
+    // nothing was standing. A fallback to the newest run would produce a
+    // calibration figure out of two things that never met.
+    assert.equal(runInForceAt(archive, '2026-11-28T09:00:00.000Z'), null);
+    // And before anything at all was ever issued.
+    assert.equal(runInForceAt(archive, '2026-11-01T00:00:00.000Z'), null);
+  });
+});
+
+describe('the calibration set is counted, and it starts at zero', () => {
+  /** A cleanup submitted at a given instant, approved at another. */
+  const cleanup = (
+    into: DB, id: string, submittedAt: string, weightKg: number, reviewedAt = submittedAt,
+  ): void => {
+    into.prepare(
+      `INSERT INTO quests (id, code, name_en, name_th, where_label, duration, reward_points,
+         host_id, kind, lat, lng, geofence_radius_m)
+       VALUES (?, ?, 'Cleanup', 'x', 'shore', '1h', 10, 'host-1', 'today', 13.150, 100.800, 120)`,
+    ).run(`q-${id}`, `C-${id}`);
+    into.prepare('INSERT INTO users (id, display_name, created_at) VALUES (?,?,?)')
+      .run(`u-${id}`, 'Cleaner', submittedAt);
+    into.prepare(
+      `INSERT INTO proofs (id, user_id, quest_id, photos, weight_kg, submitted_at,
+         reviewed_at, approved) VALUES (?, ?, ?, '[]', ?, ?, ?, 1)`,
+    ).run(`p-${id}`, `u-${id}`, `q-${id}`, weightKg, submittedAt, reviewedAt);
+  };
+
+  const host = (into: DB): void => {
+    into.prepare('INSERT INTO hosts (id, name, type) VALUES (?,?,?)')
+      .run('host-1', 'Ko Sichang Municipality', 'municipality');
+  };
+
+  const RUN: DriftRun = {
+    ...toy, model: 'sichang-rk2-sensitivity-v2', issued: '2026-11-28T00:00:00.000Z', window: 6,
+  };
+
+  let fresh: DB;
+  before(() => {
+    fresh = openTestDb();
+    host(fresh);
+  });
+
+  test('with no archive, nothing is paired however much was collected', () => {
+    cleanup(fresh, 'a', '2026-11-28T03:00:00.000Z', 10);
+    cleanup(fresh, 'b', '2026-11-28T04:00:00.000Z', 12);
+    const report = coastalCalibration(fresh, RUN, '2026-11-28', '2026-11-28');
+    assert.equal(report.calibrationSet.runsKept, 0);
+    assert.equal(report.calibrationSet.paired, 0,
+      'a cleanup was paired with a run that was never kept');
+    assert.equal(report.calibrationSet.unpaired, 2);
+    assert.equal(report.calibrationSet.archiveFrom, null);
+    // The weights are still there; only the pairing is missing.
+    assert.equal(report.totals.weightKg, 22);
+  });
+
+  test('once the run is kept, the cleanups inside its window pair with it', () => {
+    recordDriftRun(fresh, RUN, '2026-11-28T00:00:00.000Z');
+    // Outside the six-hour window: collected nine hours after it was issued.
+    cleanup(fresh, 'c', '2026-11-28T09:00:00.000Z', 5);
+    const report = coastalCalibration(fresh, RUN, '2026-11-28', '2026-11-28');
+    assert.equal(report.calibrationSet.runsKept, 1);
+    assert.equal(report.calibrationSet.paired, 2, 'the two inside the window did not pair');
+    assert.equal(report.calibrationSet.unpaired, 1, 'the one outside it was paired anyway');
+    assert.equal(report.calibrationSet.archiveFrom, RUN.issued);
+  });
+
+  test('pairing follows the submission, not the approval', () => {
+    /*
+      The period on the page is bounded by approval, because that is when
+      evidence counts. The pairing has to use the submission, because that is
+      when somebody was standing on the sand - and a host who approves a week
+      later must not move the cleanup into a different run, or out of every
+      run there is.
+    */
+    const late = openTestDb();
+    host(late);
+    recordDriftRun(late, RUN, '2026-11-28T00:00:00.000Z');
+    cleanup(late, 'l', '2026-11-28T03:00:00.000Z', 8, '2026-12-05T10:00:00.000Z');
+    const report = coastalCalibration(late, RUN, '2026-12-05', '2026-12-05');
+    assert.equal(report.totals.weightKg, 8, 'the period should count it by its approval');
+    assert.equal(report.calibrationSet.paired, 1,
+      'approving a week later moved the cleanup out of the run it actually tested');
   });
 });
