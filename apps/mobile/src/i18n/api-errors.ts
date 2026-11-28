@@ -121,8 +121,7 @@ const EXACT: Readonly<Record<string, Localised>> = {
   WEIGHT_REQUIRED: message('Weigh it first: the weight in kilograms, as the scale read.', 'ชั่งก่อน ใส่น้ำหนักเป็นกิโลกรัมตามที่ตาชั่งอ่านได้', '请先称重：填写秤上读数（公斤）。'),
   OUTCOME_REQUIRED: message('Say what is left on the sand: nothing, or how much.', 'ระบุว่าเหลืออะไรบนหาด ไม่เหลือ หรือเหลือมากแค่ไหน', '请说明沙滩上还剩什么：没有，或剩多少。'),
   LEFT_REQUIRED: message('Say how much is left, so the rest goes back on the queue.', 'ระบุว่าเหลือมากแค่ไหน ส่วนที่เหลือจะกลับเข้าคิว', '请说明剩余多少，以便重新排队。'),
-  // Older than this branch: the shop-interior gallery's cap in server.ts.
-  PHOTO_LIMIT: message('A shop can show up to 12 photos of its interior.', 'รูปภายในร้านได้สูงสุด 12 รูป', '店内照片最多 12 张。'),  PHOTO_LIMIT: message('The photo limit has been reached.', 'เพิ่มรูปภาพครบจำนวนสูงสุดแล้ว', '已达到照片数量上限。'),
+  PHOTO_LIMIT: message('The photo limit has been reached.', 'เพิ่มรูปภาพครบจำนวนสูงสุดแล้ว', '已达到照片数量上限。'),
   STORIES_CLOSED: message('Stories are not available here right now.', 'ยังไม่สามารถเพิ่มเรื่องราวที่นี่ได้ในขณะนี้', '此处暂时无法发布故事。'),
   STORY_QUOTA: message('The story limit has been reached for now.', 'เพิ่มเรื่องราวครบจำนวนที่กำหนดแล้ว', '目前已达到故事数量上限。'),
   NOT_ENOUGH_TRIP_POINTS: message(
