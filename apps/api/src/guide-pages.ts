@@ -170,6 +170,25 @@ const imageUrl = (url: string | null): string | null => {
   return httpUrl(url);
 };
 
+/**
+ * The same image, spelled the way a reader that is not on this page needs it.
+ *
+ * THE SAME CLASS OF BUG AS THE `.html` CANONICALS, and just as invisible: the
+ * page looks right, because `<img src="/media/...">` is resolved against the
+ * document. og:image and the schema's `contentUrl` are not. Facebook, LINE
+ * and X fetch the value exactly as written, and a path with no host is not
+ * something they can fetch, so the share card goes out with no picture at
+ * all - which for a Thai travel app mostly means LINE. Google says the same
+ * of `image`: it wants a URL it can crawl.
+ *
+ * Only the two machine-read spellings change. The `<img>` keeps its path,
+ * which is correct there and one fewer absolute URL to get wrong.
+ */
+const absoluteUrl = (origin: string, url: string | null): string | null => {
+  if (!url) return null;
+  return url.startsWith('/') && !url.startsWith('//') ? origin + url : url;
+};
+
 const esc = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -263,6 +282,20 @@ footer a{color:var(--teal)}
 a:focus-visible,.cta:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
 `.trim();
 
+/**
+ * The share card for a page with no photograph of its own.
+ *
+ * Four of the eighteen places have no picture - Commons holds nothing of
+ * them, and a photograph with no credit cannot be published at all - and a
+ * page with no og:image shares as a bare grey rectangle, which on LINE is
+ * most of what somebody sees before deciding whether to tap.
+ *
+ * It goes in og:image and NOWHERE ELSE. The schema's `image` means a picture
+ * of this place; the site's own card is not one, and claiming it there would
+ * be telling a search engine something untrue to fill a slot.
+ */
+const SHARE_CARD = '/th/img/og.jpg';
+
 interface Shell {
   origin: string;
   lang: GuideLang;
@@ -299,7 +332,9 @@ const page = ({ origin, lang, path, title, description, schema, body, image }: S
     + `<meta property="og:type" content="article"><meta property="og:site_name" content="ChivarGo">`
     + `<meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}">`
     + `<meta property="og:url" content="${origin}${path}">`
-    + (image ? `<meta property="og:image" content="${esc(image)}"><meta name="twitter:card" content="summary_large_image">` : '')
+    + `<meta property="og:image" content="${esc(image ?? origin + SHARE_CARD)}">`
+    + `<meta property="og:image:alt" content="${esc(title)}">`
+    + `<meta name="twitter:card" content="summary_large_image">`
     + `<style>${STYLE}</style>`
     + `<script type="application/ld+json">${ldJson(schema)}</script>`
     + `</head><body>${body}</body></html>\n`;
@@ -412,7 +447,7 @@ export const placeSchema = (origin: string, lang: GuideLang, place: GuidePlace, 
       ? {
         image: {
           '@type': 'ImageObject',
-          contentUrl: imageUrl(place.photo_url),
+          contentUrl: absoluteUrl(origin, imageUrl(place.photo_url)),
           creditText: place.photo_credit,
           license: place.photo_licence,
           ...(httpUrl(place.photo_source) ? { acquireLicensePage: place.photo_source } : {}),
@@ -471,7 +506,7 @@ export function placePage(
     origin, lang, path,
     title: `${name} · ${pick(lang, area.name.th, area.name.en)} · ChivarGo`,
     description: blurb,
-    image: shows ? imageUrl(place.photo_url)! : undefined,
+    image: shows ? absoluteUrl(origin, imageUrl(place.photo_url))! : undefined,
     schema: {
       '@context': 'https://schema.org',
       '@graph': [
