@@ -311,3 +311,68 @@ textarea.input { min-height: 90px; resize: vertical; }
 .dialog-body { font-size: 14px; opacity: 0.85; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
 
+/* ---------------------------------------------------------------- figures
+   THESE CLASSES WERE ALREADY IN USE AND NOTHING EVER STYLED THEM. esg.ts and
+   review-declared.ts have shipped .figure and .figures since they were
+   written, and the shoreline page uses the same ones; with no rules here a row
+   of headline numbers renders as a stack of plain divs, which on a page whose
+   whole job is a figure beside a caveat is the caveat winning by accident.
+   Added when the third page needed them rather than a fourth time.
+*/
+.figures { display: flex; flex-wrap: wrap; gap: var(--space-3); margin: var(--space-3) 0; }
+.figure {
+  flex: 1 1 140px; padding: var(--space-3); border-radius: var(--radius-sm);
+  background: var(--color-neutral-100); border: 1px solid var(--color-divider);
+}
+.figure--lead { background: var(--color-brand-100); border-color: var(--color-brand-300); }
+.figure__value {
+  font-size: 26px; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+.figure__value, .num { font-variant-numeric: tabular-nums; }
+.figure__label { font-size: 12px; color: var(--color-neutral-700); margin-top: var(--space-1); }
+.figure__label--th { color: var(--color-neutral-600); }
+
+/* A definition list read as label and value, not as prose. */
+.kv {
+  display: grid; grid-template-columns: max-content 1fr;
+  gap: var(--space-1) var(--space-3); margin: 0; font-size: 14px;
+}
+.kv dt { color: var(--color-neutral-700); }
+.kv dd { margin: 0; }
+
+.num { text-align: right; }
+
+/* The lede, and the two voices a page uses beside its numbers. */
+.lede { font-size: 16px; color: var(--color-neutral-800); max-width: 60ch; }
+.muted { font-size: 13px; color: var(--color-neutral-700); max-width: 72ch; }
+/* A caveat, not an error. It has to be read, so it is not grey. */
+.warn {
+  font-size: 13px; color: var(--color-accent-800); background: var(--color-accent-100);
+  border-left: 3px solid var(--color-accent); border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3); margin: var(--space-3) 0; max-width: 72ch;
+}
+.limits {
+  margin: 0; padding-left: var(--space-4); font-size: 13px;
+  color: var(--color-neutral-800); max-width: 72ch;
+}
+.limits li + li { margin-top: var(--space-2); }
+
+.period {
+  display: flex; flex-wrap: wrap; align-items: flex-end;
+  gap: var(--space-3); margin: var(--space-3) 0; font-size: 14px;
+}
+.period label {
+  display: flex; flex-direction: column; gap: var(--space-1); color: var(--color-neutral-700);
+}
+
+/* The rows carrying real evidence, so an eye finds them among 43. */
+.table tbody tr.has-evidence { background: color-mix(in srgb, var(--color-brand-600) 7%, transparent); }
+.table tbody tr.has-evidence td:first-child { font-weight: 700; }
+
+/* The segment number, which is the only thing that tells two rows apart. */
+.seg-id {
+  display: inline-block; min-width: 2.2em; margin-right: var(--space-2);
+  font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 700;
+  color: var(--color-neutral-600);
+}

@@ -46,7 +46,10 @@ import { formatDate, formatDateTime, formatInteger } from '../i18n/format.ts';
 import { useRequireAccount } from '../components/GuestActionGate.tsx';
 import { ProfileButton } from '../components/ProfileButton.tsx';
 import { IslandDiorama, pageBase } from '../components/IslandDiorama.tsx';
-import { coastalDriftPoints, loadCoastalDrift, type CoastalDriftFile, type CoastalDriftPoint, type CoastalSide } from '../components/coastal-drift.ts';
+import {
+  coastalDriftExpired, coastalDriftPoints, coastalDriftStaleHours, loadCoastalDrift,
+  type CoastalDriftFile, type CoastalDriftPoint, type CoastalSide,
+} from '../components/coastal-drift.ts';
 import { cachedPlaces, cachedShops, clearPublicCache, deleteAreaCache, inspectAreaCache, placesWithFallback, shopsWithFallback, storageInfo } from '../offline/public-cache.ts';
 import { clearCachedImages } from '../offline/image-cache.ts';
 
@@ -213,7 +216,34 @@ export function MapScreen({
     }),
     [area.key],
   );
-  const allDriftPoints = React.useMemo(() => coastalDriftPoints(driftSnapshot.data ?? null), [driftSnapshot.data]);
+  /*
+    AN EXPIRED RUN DRAWS NOTHING.
+
+    The published run has `window: 6` and was issued on 17 November; on 28
+    November it was still on the map, 279 hours behind a tab that says
+    "forecast". A drift run is a statement about one tide and one wind, so
+    past its window it is not a weaker forecast, it is a different sea. The
+    points go, the notice below says why, and the screen keeps working.
+
+    Recomputed per render on purpose: this is one comparison, and a value
+    memoised against `Date.now()` is a value that never expires while the
+    screen is open - which is exactly the bug being fixed.
+  */
+  const driftExpired = coastalDriftExpired(driftSnapshot.data ?? null);
+  /*
+    Drift mode hides the places, the shops and the quests so the shoreline
+    points stand on their own. With an expired run the points are gone, and
+    hiding everything else as well leaves a blank sea - an empty answer to a
+    question nobody asked. So the MODE stays on, keeping the heading and the
+    notice that explains itself, while the LAYER goes off and the ordinary
+    map comes back underneath it.
+  */
+  const driftLayer = driftMode && !driftExpired;
+  const driftStaleHours = coastalDriftStaleHours(driftSnapshot.data ?? null);
+  const allDriftPoints = React.useMemo(
+    () => (driftExpired ? [] : coastalDriftPoints(driftSnapshot.data ?? null)),
+    [driftSnapshot.data, driftExpired],
+  );
   const [driftSide, setDriftSide] = React.useState<'all' | CoastalSide>('all');
   const [selectedDriftPoint, setSelectedDriftPoint] = React.useState<CoastalDriftPoint | null>(null);
   const visibleDriftPoints = React.useMemo(
@@ -537,12 +567,12 @@ export function MapScreen({
     storied={storied}
     tales={tales}
     onOpenStory={(placeId) => { closeExpandedMap(); openStory(placeId); }}
-    places={driftMode ? [] : visible}
+    places={driftLayer ? [] : visible}
     highlightedPlaceIds={recommendedPlaceIds}
-    shops={driftMode ? [] : mapShops}
+    shops={driftLayer ? [] : mapShops}
     onSelectShop={onSelectShop}
     onSelect={onSelect}
-    quests={driftMode ? [] : questsHere}
+    quests={driftLayer ? [] : questsHere}
     progress={quests.data?.progress ?? NO_PROGRESS}
     onOpenQuest={(id) => { closeExpandedMap(); onOpenQuest(id); }}
     explored={explored.data?.places ?? NO_EXPLORED}
@@ -554,7 +584,7 @@ export function MapScreen({
     fairFocus={lotShown}
     buildings={buildingsHere}
     buildingFocus={buildingShown}
-    driftPoints={driftMode ? visibleDriftPoints : []}
+    driftPoints={driftLayer ? visibleDriftPoints : []}
     onSelectDriftPoint={onSelectDriftPoint}
     interactive
     fullScreenControls
@@ -711,7 +741,17 @@ export function MapScreen({
                 {([
                   ['map', t({ en: 'Map', th: 'แผนที่', zh: '地图' })],
                   ['island', t({ en: 'The island', th: 'มุมเกาะ', zh: '岛屿视角' })],
-                  ['drift', t({ en: 'Floating debris forecast', th: 'พยากรณ์ขยะลอย', zh: '海漂垃圾预报' })],
+                  /*
+                    IT WAS CALLED "พยากรณ์ขยะลอย" - a forecast of floating
+                    rubbish - and that is not what the run computes. Its own
+                    `seeding` field says so: "uniform offshore grid; no
+                    observed debris mass". The particles start on an even grid
+                    offshore, not from rubbish anybody saw, so the answer is
+                    about where the current puts floating things ashore. That
+                    is a question about the sea, and it is one this model can
+                    honestly answer.
+                  */
+                  ['drift', t({ en: 'Wind & current', th: 'ลมและกระแสน้ำ', zh: '风与洋流' })],
                 ] as const).map(([value, label]) => (
                   <Pressable
                     key={String(value)}
@@ -737,11 +777,17 @@ export function MapScreen({
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                   <View style={{ width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0F6177' }}><Waves size={22} color="#8DE8EA" /></View>
                   <View style={{ flex: 1 }}>
-                    <Heading size={18} colour="#FFFFFF">{t({ en: 'Floating debris forecast · Ko Sichang', th: 'พยากรณ์ขยะลอย · เกาะสีชัง', zh: '锡昌岛海漂垃圾预报' })}</Heading>
-                    <Body size={13} colour="#C9EEF2" style={{ marginTop: 3 }}>{t({ en: 'Tap a numbered point to see why that shoreline should be surveyed.', th: 'แตะจุดตัวเลขเพื่อดูว่าทำไมควรสำรวจชายฝั่งจุดนั้น', zh: '点击编号查看为何应该巡查该段海岸。' })}</Body>
+                    <Heading size={18} colour="#FFFFFF">{t({ en: 'Where the current lands · Ko Sichang', th: 'ลมและกระแสน้ำพัดเข้าฝั่งไหน · เกาะสีชัง', zh: '风与洋流推向哪片海岸 · 锡昌岛' })}</Heading>
+                    <Body size={13} colour="#C9EEF2" style={{ marginTop: 3 }}>{driftExpired
+                      ? t({ en: 'No run is current for this island right now.', th: 'ยังไม่มีผลจำลองที่ยังไม่หมดอายุสำหรับเกาะนี้', zh: '目前该岛没有有效的模拟结果。' })
+                      : t({ en: 'Modelled from this window’s wind and current: the shorelines floating things drift toward. Tap a numbered point.', th: 'คำนวณจากลมและกระแสน้ำช่วงเวลานี้ ว่าของที่ลอยน้ำจะถูกพัดเข้าฝั่งไหน แตะจุดตัวเลขเพื่อดู', zh: '依据此时段的风与洋流推算漂浮物会被推向哪片海岸。点击编号查看。' })}</Body>
                   </View>
                 </View>
-                <Body size={13} colour="#F9E5A9" style={{ marginTop: 10 }}>{t({ en: 'Planning model only · not a live litter report and not a litter count.', th: 'แบบจำลองเพื่อวางแผนเท่านั้น · ไม่ใช่รายงานพบขยะสด และไม่ใช่จำนวนชิ้นขยะ', zh: '仅供规划参考 · 不是实时垃圾报告，也不是垃圾数量。' })}</Body>
+                {driftExpired ? null : (
+                  <Body size={13} colour="#D8F3F6" style={{ marginTop: 9 }}>{t({ en: 'Joining a cleanup? These shorelines are the ones worth walking first.', th: 'ถ้าจะไปเก็บขยะ ชายฝั่งพวกนี้คุ้มแรงเดินก่อน', zh: '要参加净滩？这些海岸最值得先走一趟。' })}</Body>
+                )}
+                <Body size={13} colour="#F9E5A9" style={{ marginTop: 10 }}>{t({ en: 'A model of wind and current only · not a report of rubbish seen, and not a count of it.', th: 'เป็นแบบจำลองลมและกระแสน้ำเท่านั้น · ไม่ใช่รายงานว่าพบขยะ และไม่ใช่จำนวนชิ้นขยะ', zh: '仅为风与洋流的模型 · 不是垃圾发现报告，也不是垃圾数量。' })}</Body>
+                {driftExpired ? null : (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 7, paddingTop: 10 }}>
                   {([
                     ['all', { en: 'Whole island', th: 'ทั้งเกาะ', zh: '全岛' }],
@@ -751,10 +797,28 @@ export function MapScreen({
                     ['west', { en: 'West', th: 'ตะวันตก', zh: '西' }],
                   ] as const).map(([side, label]) => <Pressable key={side} onPress={() => { setDriftSide(side); setSelectedDriftPoint(null); }} style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 999, backgroundColor: driftSide === side ? '#FFFFFF' : '#155D72', borderWidth: 1, borderColor: driftSide === side ? '#FFFFFF' : '#4A8798' }}><Body size={13} colour={driftSide === side ? '#073E59' : '#E5F8FA'}>{t(label)}</Body></Pressable>)}
                 </ScrollView>
+                )}
               </View>
             ) : null}
             {driftMode && driftSnapshot.loading ? <View style={{ marginHorizontal: gutter, marginBottom: 10 }}><Body size={13}>{t({ en: 'Loading shoreline forecast…', th: 'กำลังโหลดพยากรณ์ชายฝั่ง...', zh: '正在加载海岸预报…' })}</Body></View> : null}
-            {driftMode && !driftSnapshot.loading && visibleDriftPoints.length === 0 ? <View style={{ marginHorizontal: gutter, marginBottom: 10, padding: 12, borderRadius: 14, backgroundColor: '#FFF3D6' }}><Body size={13} colour="#684B12">{t({ en: 'Forecast data is unavailable for this view. No debris location will be guessed.', th: 'ไม่มีข้อมูลพยากรณ์สำหรับมุมมองนี้ ระบบจะไม่คาดเดาตำแหน่งขยะ', zh: '当前视图无预报数据，系统不会猜测垃圾位置。' })}</Body></View> : null}
+            {/*
+              Two different silences, and they are not the same thing to say.
+              An expired run means the sea has moved on since it was computed;
+              no data for this view means there is nothing to show here. Both
+              end in the same promise - no position gets guessed.
+            */}
+            {driftMode && !driftSnapshot.loading && driftExpired && driftSnapshot.data ? (
+              <View style={{ marginHorizontal: gutter, marginBottom: 10, padding: 12, borderRadius: 14, backgroundColor: '#FFF3D6' }}>
+                <Body size={13} colour="#684B12">{t({ en: 'This run has expired. It described a 6-hour window of wind and current, and both have since changed, so no shoreline is shown rather than an out-of-date one.', th: 'ผลจำลองชุดนี้หมดอายุแล้ว มันอธิบายลมและกระแสน้ำช่วง 6 ชั่วโมง ซึ่งเปลี่ยนไปแล้วทั้งคู่ ระบบจึงไม่แสดงชายฝั่งจุดใดเลย ดีกว่าแสดงของเก่า', zh: '此次模拟已过期。它描述的是 6 小时窗口的风与洋流，两者皆已改变，因此不显示任何海岸，而非显示过期结果。' })}</Body>
+                {driftSnapshot.data.issued ? (
+                  <Body size={13} colour="#7A5B18" style={{ marginTop: 6 }}>
+                    {t({ en: 'Issued', th: 'ออกผล', zh: '发布' })}: {formatDateTime(driftSnapshot.data.issued)}
+                    {driftStaleHours === null ? '' : ` · ${formatInteger(driftStaleHours)} ${t({ en: 'hours past its window', th: 'ชั่วโมงหลังหมดอายุ', zh: '小时前已过期' })}`}
+                  </Body>
+                ) : null}
+              </View>
+            ) : null}
+            {driftMode && !driftSnapshot.loading && !driftExpired && visibleDriftPoints.length === 0 ? <View style={{ marginHorizontal: gutter, marginBottom: 10, padding: 12, borderRadius: 14, backgroundColor: '#FFF3D6' }}><Body size={13} colour="#684B12">{t({ en: 'No modelled shoreline for this view. No debris location will be guessed.', th: 'ไม่มีชายฝั่งที่แบบจำลองคำนวณไว้สำหรับมุมมองนี้ ระบบจะไม่คาดเดาตำแหน่งขยะ', zh: '当前视图没有模型计算的海岸。系统不会猜测垃圾位置。' })}</Body></View> : null}
             {hasDiorama && diorama ? (
               <View style={{ marginHorizontal: gutter }}>
                 <IslandDiorama
@@ -789,12 +853,12 @@ export function MapScreen({
               storied={storied}
               tales={tales}
               onOpenStory={openStory}
-              places={driftMode ? [] : visible}
+              places={driftLayer ? [] : visible}
               highlightedPlaceIds={recommendedPlaceIds}
-              shops={driftMode ? [] : mapShops}
+              shops={driftLayer ? [] : mapShops}
               onSelectShop={onSelectShop}
               onSelect={onSelect}
-              quests={driftMode ? [] : questsHere}
+              quests={driftLayer ? [] : questsHere}
               progress={quests.data?.progress ?? NO_PROGRESS}
               onOpenQuest={onOpenQuest}
               explored={explored.data?.places ?? NO_EXPLORED}
@@ -811,7 +875,7 @@ export function MapScreen({
               */
               buildings={buildingsHere}
               buildingFocus={buildingShown}
-              driftPoints={driftMode ? visibleDriftPoints : []}
+              driftPoints={driftLayer ? visibleDriftPoints : []}
               onSelectDriftPoint={onSelectDriftPoint}
               interactive={false}
             />
@@ -821,7 +885,7 @@ export function MapScreen({
               accessibilityLabel={t({ en: 'Expand map', th: 'ขยายแผนที่', zh: '展开地图' })}
               style={{ position: 'absolute', top: 12, right: 12, width: 42, height: 42, borderRadius: 14, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#D1E8EE', elevation: 4, shadowColor: '#123B64', shadowOpacity: 0.16, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } }}
             ><Expand size={20} color="#0077B6" /></Pressable>
-            {selectedDriftPoint && driftMode ? (
+            {selectedDriftPoint && driftLayer ? (
               <View style={{ position: 'absolute', left: 12, right: 12, bottom: 12 }}>
                 <CoastalDriftSelectionCard point={selectedDriftPoint} file={driftSnapshot.data ?? null} />
               </View>
@@ -848,7 +912,7 @@ export function MapScreen({
               MAP, where somebody is looking at a shape and asking where they
               are.
             */}
-            {!driftMode ? <NearYou places={visible} here={here} onSelect={(place) => onOpenPlace(place.id)} /> : null}
+            {!driftLayer ? <NearYou places={visible} here={here} onSelect={(place) => onOpenPlace(place.id)} /> : null}
             </>
           ) : (
             <View>
@@ -922,7 +986,7 @@ export function MapScreen({
             says why in words rather than hiding and leaving somebody to
             guess whether the island has none or the feature broke.
           */}
-          {!driftMode ? (
+          {!driftLayer ? (
             <View style={{ padding: gutter, paddingTop: 0 }}>
               <DropOffLayer here={here} points={dropOffPointsIn(area.bbox)} onRoute={onNavigateDropOff} />
             </View>

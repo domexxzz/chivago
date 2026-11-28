@@ -3160,6 +3160,47 @@ export function migrate(db: DB): string[] {
   `);
   applied.push('canteen_queue_reports');
 
+  /*
+    Every drift run we have ever seen.
+    -----------------------------------
+    WITHOUT THIS, `calibrated: false` CAN NEVER CHANGE, and not for want of
+    cleanups. A run is published as one file,
+    `apps/mobile/public/islands/koh-sichang.drift.json`, and the next run
+    overwrites it: one file, one commit, no archive anywhere. So a cleanup on
+    the 5th of December can never be compared with the prediction that was
+    standing on the 5th of December, because by the 6th that prediction does
+    not exist. Calibration is not blocked on evidence alone - it is blocked on
+    having kept the thing the evidence was supposed to test.
+
+    `issued` is the natural key with `model`, because that pair IS the run.
+    Seeing the same file twice is the normal case - the console reads it on
+    every page load - so the insert is OR IGNORE and costs nothing.
+
+    `segments` is the whole per-segment answer as published JSON rather than a
+    table of its own. It is forty-three numbers that are only ever read
+    together, with the run, and a run is immutable once issued: there is
+    nothing to query across and nothing to update.
+
+    NO USER DATA IS IN HERE AT ALL. It is a weather statement about the sea.
+    That matters for what may leave the building later: a run plus a
+    per-segment weight is a calibration set, and it carries no photograph and
+    nobody's identity.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS drift_runs (
+      model      TEXT NOT NULL,
+      issued     TEXT NOT NULL,
+      window_h   REAL NOT NULL,
+      seeding    TEXT,
+      source     TEXT NOT NULL,
+      segments   TEXT NOT NULL,
+      first_seen TEXT NOT NULL,
+      PRIMARY KEY (model, issued)
+    );
+    CREATE INDEX IF NOT EXISTS idx_drift_runs_issued ON drift_runs(issued DESC);
+  `);
+  applied.push('drift_runs');
+
   return applied;
 }
 

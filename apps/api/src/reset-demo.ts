@@ -233,6 +233,17 @@ export const KEPT_TABLES = [
   */
   'import_runs',
   /*
+    Every drift run the console has ever read.
+
+    Not a traveller's doing and not demo content - it is a statement about the
+    sea on a particular afternoon, with no user in it at all. And it is the
+    one thing here that cannot be recreated: the model publishes ONE file and
+    the next run overwrites it, so a run this archive loses is gone from the
+    world, not merely from the demo. Clearing it would throw away the only
+    record a cleanup could ever be calibrated against, to make a demo tidy.
+  */
+  'drift_runs',
+  /*
     The summoning's commit-reveal (docs/68).
 
     An epoch is a PUBLISHED promise - its commitment hash is out in the world

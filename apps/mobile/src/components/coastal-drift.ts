@@ -123,6 +123,45 @@ export async function loadCoastalDrift(url: string): Promise<CoastalDriftFile | 
 }
 
 /**
+ * Whether the run has outlived the window it forecasts.
+ *
+ * MEASURED ON THE LIVE SITE ON 28 NOVEMBER 2026: the published run was issued
+ * on 17 November with `window: 6`, so it was 279 hours - eleven and a half
+ * days - past the six hours it claimed to describe, sitting behind a tab
+ * labelled "พยากรณ์ขยะลอย". Nothing failed and nothing warned, because a
+ * stale file parses exactly as well as a fresh one and `issued` was only ever
+ * printed as a date, never compared against the clock.
+ *
+ * A drift run is a statement about a particular tide and a particular wind.
+ * Past its window it is not a weaker forecast, it is a different sea, and the
+ * honest thing to show is the empty state this screen already has.
+ *
+ * A file with no `issued` is expired too. Freshness cannot be shown, and a
+ * planning model that will not say when it was computed has not earned the
+ * word forecast. `parseCoastalDrift` does not require the field, so this is
+ * where the absence has to be answered.
+ */
+export function coastalDriftExpired(file: CoastalDriftFile | null, now: number = Date.now()): boolean {
+  if (!file) return true;
+  if (!file.issued) return true;
+  const issued = Date.parse(file.issued);
+  if (!Number.isFinite(issued)) return true;
+  // A run issued in the future is a clock nobody can trust either way.
+  return now < issued || now - issued > file.window * 3_600_000;
+}
+
+/** How far past its window the run is, in whole hours, or null if it is not. */
+export function coastalDriftStaleHours(
+  file: CoastalDriftFile | null, now: number = Date.now(),
+): number | null {
+  if (!file?.issued) return null;
+  const issued = Date.parse(file.issued);
+  if (!Number.isFinite(issued) || now < issued) return null;
+  const over = (now - issued) / 3_600_000 - file.window;
+  return over > 0 ? Math.floor(over) : null;
+}
+
+/**
  * Rank only segments reached by the research run.  Zero-contact segments are
  * retained in the file and its methodology, but do not become orange dots
  * that could be mistaken for a detected item of rubbish.

@@ -23,6 +23,7 @@ import { acceptInvite, HostInviteRefused, readInvite } from '../host-invite-serv
 import { inviteClosedPage, invitePage, inviteWelcomePage } from './invite.ts';
 import { sponsorPage } from './sponsor.ts';
 import { esgPage } from './esg.ts';
+import { coastalPage } from './coastal.ts';
 import { questsPage } from './quests.ts';
 import { mountQuestDesk } from './quest-desk-routes.ts';
 import { reviewDeclaredPage } from './review-declared.ts';
@@ -52,6 +53,8 @@ import {
   InvalidPeriod, draftStatement, issueStatement, readStatement, statementsFor,
 } from '../statement-service.ts';
 import { activityInPeriod } from '../esg-service.ts';
+import { coastalCalibration, recordDriftRun } from '../coastal-calibration.ts';
+import { publishedDriftRun } from '../drift-sidecar.ts';
 import { evidenceFor } from '../evidence-service.ts';
 import { evidenceCsv, evidencePage } from './evidence.ts';
 import {
@@ -1026,6 +1029,38 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
     return c.html(esgPage(
       localeFor(c), session.hostName, session.reviewer, report, organisations, basisFor(db, partner.id),
     ));
+  });
+
+  /**
+   * The field team's page: did the drift model point at the shorelines that
+   * turned out to matter?
+   *
+   * The run is read over HTTP from our own origin rather than from a copy, so
+   * the console and the traveller's map can never be ranking two different
+   * coastlines - see drift-sidecar.ts. A null run is a page that says so and
+   * reports every weighed kilo as unattributed, which is why nothing here
+   * refuses to render without one.
+   *
+   * NOT SCOPED BY HOST, unlike the statement below, and that is deliberate:
+   * a shoreline is not anybody's property, and a calibration computed from
+   * one host's approvals only would answer a question nobody is asking. The
+   * `/console` prefix is already behind the session gate.
+   */
+  app.get('/coastal', async (c) => {
+    const session = currentSession(c)!;
+    const period = readPeriod(c.req.query('from'), c.req.query('to'));
+    const run = await publishedDriftRun();
+    /*
+      Kept the moment it is seen, rather than by a cron somebody will not
+      notice has stopped. Until `drift_runs` existed every run but the latest
+      had been overwritten, so no cleanup in the whole history of this project
+      could be compared with the prediction it was supposed to test - see the
+      table's note in migrations.ts. Seeing the same run again is the normal
+      case and costs one ignored insert.
+    */
+    recordDriftRun(db, run, new Date().toISOString());
+    const report = coastalCalibration(db, run, period.from, period.to);
+    return c.html(coastalPage(localeFor(c), session.hostName, session.reviewer, report));
   });
 
   /**
