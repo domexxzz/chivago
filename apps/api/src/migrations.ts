@@ -3160,6 +3160,143 @@ export function migrate(db: DB): string[] {
   `);
   applied.push('canteen_queue_reports');
 
+  /*
+    Debris reports and the cases they become.
+    -----------------------------------------
+    A traveller photographs rubbish that washed up and answers three questions;
+    packages/core/src/debris-report.ts decides whether that is a new case, one
+    more pair of eyes on an open case, or something to send back.
+
+    TWO TABLES BECAUSE THEY ARE TWO THINGS. A report is something a PERSON did
+    and goes with them (`ON DELETE CASCADE`, which `DELETE /profile` leans on).
+    A case is the municipality's record of a pile - where, since when, what
+    became of it - and carries nobody's identity, so it outlives the reports
+    that opened it.
+
+    `lat`/`lng` on the case are the FIRST report's, never an average: an
+    officer walks to a point somebody stood on, not to the middle of four.
+
+    `photo_path` is NULL exactly when the report was sent back. A photograph we
+    refuse is a photograph we do not keep; the row stays so the triage board
+    can count what it turned away, and so the sender can see why. A row that
+    goes - with its account, usually - queues its photograph for the alarm
+    that drains `media_deletions`, as `proof_files` does: the cascade removes
+    rows, never bytes.
+
+    `number` is UNIQUE so two cases racing for the same month's next number
+    fail loudly rather than share one.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS debris_cases (
+      id             TEXT PRIMARY KEY,
+      number         TEXT NOT NULL UNIQUE,
+      area           TEXT NOT NULL,
+      lat            REAL NOT NULL,
+      lng            REAL NOT NULL,
+      status         TEXT NOT NULL DEFAULT 'open'
+                     CHECK (status IN ('open','assigned','closed','dismissed')),
+      opened_at      TEXT NOT NULL,
+      last_report_at TEXT NOT NULL,
+      -- A case opened for what a part-collection left behind: the case it came
+      -- from, and the signal it carries over until somebody reports it afresh.
+      follow_up_of      TEXT REFERENCES debris_cases(id),
+      carried_amount    TEXT CHECK (carried_amount IN ('bag','pile','strand')),
+      carried_access    TEXT CHECK (carried_access IN ('walk','climb','boat_only')),
+      carried_reporters INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_debris_cases_open ON debris_cases(area, status, last_report_at DESC);
+
+    CREATE TABLE IF NOT EXISTS debris_reports (
+      id            TEXT PRIMARY KEY,
+      user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      case_id       TEXT REFERENCES debris_cases(id),
+      lat           REAL NOT NULL,
+      lng           REAL NOT NULL,
+      accuracy_m    REAL,
+      taken_at      TEXT NOT NULL,
+      submitted_at  TEXT NOT NULL,
+      kinds         TEXT NOT NULL,
+      amount        TEXT NOT NULL CHECK (amount IN ('bag','pile','strand')),
+      access        TEXT NOT NULL CHECK (access IN ('walk','climb','boat_only')),
+      verdict       TEXT NOT NULL CHECK (verdict IN ('opened','merged','rejected')),
+      reject_reason TEXT CHECK (reject_reason IN ('mocked','outside_area','stale')),
+      photo_path    TEXT,
+      photo_mime    TEXT,
+      CHECK ((verdict = 'rejected') = (case_id IS NULL)),
+      CHECK ((verdict = 'rejected') = (photo_path IS NULL))
+    );
+    CREATE INDEX IF NOT EXISTS idx_debris_reports_case ON debris_reports(case_id);
+    CREATE INDEX IF NOT EXISTS idx_debris_reports_user ON debris_reports(user_id, submitted_at DESC);
+
+    CREATE TRIGGER IF NOT EXISTS debris_reports_queue_deleted_photo
+      AFTER DELETE ON debris_reports
+      WHEN old.photo_path IS NOT NULL
+      BEGIN INSERT OR IGNORE INTO media_deletions(key, queued_at) VALUES (old.photo_path, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')); END;
+  `);
+  applied.push('debris_reports');
+
+  /*
+    What an officer decided about a debris case, and who.
+    ---------------------------------------------------------
+    The desk suggests an order and never gives one; the officer who knows the
+    beach decides. So every decision is a row: which, by whom (the name the
+    console session carries), when, and the words they gave. A dismissal must
+    carry words - the reporter is shown that their case was closed, and "no
+    reason" is not something to show them.
+
+    Append-only. A decision is changed by a later decision, never by editing
+    the earlier one, so the record of what was decided stays what was decided.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS debris_case_events (
+      id       TEXT PRIMARY KEY,
+      case_id  TEXT NOT NULL REFERENCES debris_cases(id) ON DELETE CASCADE,
+      at       TEXT NOT NULL,
+      actor    TEXT NOT NULL,
+      action   TEXT NOT NULL CHECK (action IN ('assigned','dismissed','closed')),
+      note     TEXT NOT NULL DEFAULT ''
+    );
+    CREATE INDEX IF NOT EXISTS idx_debris_case_events_case ON debris_case_events(case_id, at);
+  `);
+  applied.push('debris_case_events');
+
+  /*
+    What came off the beach when a debris case was closed (board F7).
+    -----------------------------------------------------------------
+    One row a case, written once, by the officer who weighed it. `weight_kg`
+    is the one number in this whole flow that came off a scale, so it is
+    required and positive. `found_kinds` is what was really there, kept beside
+    what the reporters said, so the island learns how well a traveller's
+    report matches the beach.
+
+    A part-collection closes THIS case with what was carried away and opens a
+    new one for what is left (`follow_up_case_id`), rather than leaving a case
+    "closed" with rubbish still on the sand: a case closed while the rubbish
+    is still there makes every number after it a lie.
+
+    The after photograph is the desk's, like the reporters', and queues itself
+    for deletion with the row.
+  */
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS debris_collections (
+      case_id           TEXT PRIMARY KEY REFERENCES debris_cases(id) ON DELETE CASCADE,
+      at                TEXT NOT NULL,
+      actor             TEXT NOT NULL,
+      weight_kg         REAL NOT NULL CHECK (weight_kg > 0),
+      found_kinds       TEXT NOT NULL,
+      outcome           TEXT NOT NULL CHECK (outcome IN ('all','partial')),
+      follow_up_case_id TEXT REFERENCES debris_cases(id),
+      after_photo_path  TEXT,
+      after_photo_mime  TEXT,
+      CHECK ((outcome = 'partial') = (follow_up_case_id IS NOT NULL))
+    );
+    CREATE TRIGGER IF NOT EXISTS debris_collections_queue_deleted_photo
+      AFTER DELETE ON debris_collections
+      WHEN old.after_photo_path IS NOT NULL
+      BEGIN INSERT OR IGNORE INTO media_deletions(key, queued_at) VALUES (old.after_photo_path, strftime('%Y-%m-%dT%H:%M:%fZ', 'now')); END;
+  `);
+  applied.push('debris_collections');
+
   return applied;
 }
 

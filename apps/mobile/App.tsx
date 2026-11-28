@@ -69,6 +69,7 @@ import { GameScreen } from './src/screens/GameScreen.tsx';
 import { AdventureScreen } from './src/screens/AdventureScreen.tsx';
 import { TravelJournalScreen } from './src/screens/TravelJournalScreen.tsx';
 import { SeasonScreen } from './src/screens/SeasonScreen.tsx';
+import { DebrisReportScreen } from './src/screens/DebrisReportScreen.tsx';
 import { SafetyScreen } from './src/screens/SafetyScreen.tsx';
 import { TripScreen, type TripState } from './src/screens/TripScreen.tsx';
 import { ConciergeScreen } from './src/screens/ConciergeScreen.tsx';
@@ -653,9 +654,13 @@ export default function App() {
             onOpenProfile={() => nav.push('profile')}
             onOpenPlace={(id) => nav.push('place', { placeId: id })}
             onOpenShop={(id) => nav.push('shop', { shopId: id })}
+            onOpenDebrisReport={() => nav.push('debrisReport')}
             onToast={toast.show}
           />
         );
+
+      case 'debrisReport':
+        return <DebrisReportScreen onBack={nav.pop} onToast={toast.show} />;
 
       case 'localPicks':
         return (

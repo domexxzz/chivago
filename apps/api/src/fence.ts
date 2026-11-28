@@ -99,7 +99,25 @@ export interface PublicConfig {
    * so where somebody is about to send them.
    */
   aiAssist: boolean;
+  /**
+   * Who reads the debris-report queue, by name, or null when nobody does.
+   *
+   * The app shows the report button only when this is set, and the API
+   * refuses reports while it is not: a report nobody reads is worse than no
+   * button, because the person who sent it comes back, sees nothing happened,
+   * and never sends another. Set `CHIVAGO_DEBRIS_READER` to the office that
+   * has agreed to read it - "Ko Sichang Municipality", say - and to nothing
+   * before that has happened.
+   */
+  debrisReader: string | null;
 }
+
+/** The named reader of the debris queue, or null. Trimmed and bounded: it is shown on a phone. */
+export const debrisReader = (env: NodeJS.ProcessEnv = process.env): string | null => {
+  // By code point, not UTF-16 unit, so the cut never splits a character in two.
+  const name = Array.from((env.CHIVAGO_DEBRIS_READER ?? '').trim()).slice(0, 80).join('');
+  return name.length > 0 ? name : null;
+};
 
 export const publicConfig = (): PublicConfig => {
   // One read, two names: an alias that could disagree with the field it
@@ -110,5 +128,6 @@ export const publicConfig = (): PublicConfig => {
     storiesAutoApprove: stories,
     autoApprove: stories,
     aiAssist: assistConfig(process.env).enabled,
+    debrisReader: debrisReader(),
   };
 };

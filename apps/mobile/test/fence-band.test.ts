@@ -58,15 +58,25 @@ describe("reading the server's own description", () => {
   test('a server that says the fence is open is believed', async () => {
     const fake = server({ 'GET /config': { fenceOff: true, storiesAutoApprove: false } });
     try {
-      assert.deepEqual(await serverConfig(), { fenceOff: true, storiesAutoApprove: false, aiAssist: true });
+      assert.deepEqual(await serverConfig(), { fenceOff: true, storiesAutoApprove: false, aiAssist: true, debrisReader: null });
     } finally { fake.restore(); }
   });
 
   test('a server that reviews nothing is believed about that too', async () => {
     const fake = server({ 'GET /config': { fenceOff: false, storiesAutoApprove: true } });
     try {
-      assert.deepEqual(await serverConfig(), { fenceOff: false, storiesAutoApprove: true, aiAssist: true });
+      assert.deepEqual(await serverConfig(), { fenceOff: false, storiesAutoApprove: true, aiAssist: true, debrisReader: null });
     } finally { fake.restore(); }
+  });
+
+  test('a debris reader is a name or nobody: blank and absent both read as nobody', async () => {
+    for (const [sent, read] of [['Ko Sichang Municipality', 'Ko Sichang Municipality'], ['   ', null], [undefined, null]] as const) {
+      __resetServerConfig();
+      const fake = server({ 'GET /config': { fenceOff: false, debrisReader: sent } });
+      try {
+        assert.equal((await serverConfig()).debrisReader, read, String(sent));
+      } finally { fake.restore(); }
+    }
   });
 
   /*

@@ -111,6 +111,16 @@ const EXACT: Readonly<Record<string, Localised>> = {
   BODY_TOO_LARGE: message('The submitted content is too large.', 'ข้อมูลที่ส่งมีขนาดใหญ่เกินไป', '提交的内容过大。'),
   STORY_TOO_LARGE: message('This story file is too large.', 'ไฟล์เรื่องราวมีขนาดใหญ่เกินไป', '故事文件过大。'),
   TOO_MANY_PHOTOS: message('Too many photos were selected.', 'เลือกรูปภาพมากเกินไป', '选择的照片过多。'),
+  // Debris reports (packages/core/src/debris-report.ts).
+  NO_READER: message('Nobody is reading rubbish reports here yet, so this one was not sent.', 'ยังไม่มีผู้รับเรื่องรายงานขยะที่นี่ รายงานนี้จึงยังไม่ได้ส่ง', '这里暂时没有人处理垃圾报告，因此本报告未发送。'),
+  TOO_MANY_REPORTS: message('That is the most reports one person can send in an hour. Try again later.', 'ส่งรายงานครบจำนวนสูงสุดต่อชั่วโมงแล้ว ลองใหม่ภายหลัง', '已达到每小时可发送的报告上限，请稍后再试。'),
+  INVALID_REPORT: message('Check the answers: how much, and how a person gets to it.', 'ตรวจคำตอบอีกครั้ง: มากแค่ไหน และคนจะเข้าไปถึงยังไง', '请检查回答：数量，以及人要怎么过去。'),
+  // The desk's own refusals (debris-desk-service.ts). They are answered on the
+  // console page, but every backend code has its words here too.
+  NOT_OPEN: message('This case has already been decided.', 'เคสนี้ตัดสินไปแล้ว', '此案件已有决定。'),
+  WEIGHT_REQUIRED: message('Weigh it first: the weight in kilograms, as the scale read.', 'ชั่งก่อน ใส่น้ำหนักเป็นกิโลกรัมตามที่ตาชั่งอ่านได้', '请先称重：填写秤上读数（公斤）。'),
+  OUTCOME_REQUIRED: message('Say what is left on the sand: nothing, or how much.', 'ระบุว่าเหลืออะไรบนหาด ไม่เหลือ หรือเหลือมากแค่ไหน', '请说明沙滩上还剩什么：没有，或剩多少。'),
+  LEFT_REQUIRED: message('Say how much is left, so the rest goes back on the queue.', 'ระบุว่าเหลือมากแค่ไหน ส่วนที่เหลือจะกลับเข้าคิว', '请说明剩余多少，以便重新排队。'),
   PHOTO_LIMIT: message('The photo limit has been reached.', 'เพิ่มรูปภาพครบจำนวนสูงสุดแล้ว', '已达到照片数量上限。'),
   STORIES_CLOSED: message('Stories are not available here right now.', 'ยังไม่สามารถเพิ่มเรื่องราวที่นี่ได้ในขณะนี้', '此处暂时无法发布故事。'),
   STORY_QUOTA: message('The story limit has been reached for now.', 'เพิ่มเรื่องราวครบจำนวนที่กำหนดแล้ว', '目前已达到故事数量上限。'),
