@@ -81,6 +81,7 @@ interface LayoutOptions {
   /** Renders the nav only when signed in. */
   signedIn?: boolean;
   activeNav?: 'queue' | 'history' | 'moderation' | 'guides' | 'sponsor' | 'esg' | 'statement' | 'stories'
+    | 'coastal'
     | 'organisations' | 'quests' | 'questDesk' | 'reviewDeclared' | 'inquiries' | 'applications' | 'admin';
   pendingCount?: number;
   /** Shows the Reviews tab. Moderators only - see place-review-service.ts. */
@@ -284,6 +285,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
              <a href="/console/quests" class="${activeNav === 'quests' ? 'on' : ''}">${tr('quests')}</a>
              <a href="/console/sponsor" class="${activeNav === 'sponsor' ? 'on' : ''}">${tr('sponsor')}</a>
              <a href="/console/esg" class="${activeNav === 'esg' ? 'on' : ''}">${tr('esg')}</a>
+             <a href="/console/coastal" class="${activeNav === 'coastal' ? 'on' : ''}">${locale === 'en' ? 'Shoreline' : 'ชายฝั่ง'}</a>
              <a href="/console/statement" class="${activeNav === 'statement' ? 'on' : ''}">${tr('statement')}</a>
              <a href="/console/stories" class="${activeNav === 'stories' ? 'on' : ''}">${tr('stories')}</a>
              <a href="/console/inquiries" class="${activeNav === 'inquiries' ? 'on' : ''}">${tr('inquiries')}</a>
