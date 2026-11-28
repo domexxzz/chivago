@@ -296,6 +296,9 @@ export function server(routes: Record<string, Reply>): {
     if (isMarked(value, '__refuses')) {
       return envelope({ ok: false, ...value.__refuses });
     }
+    if (isMarked(value, '__raw')) {
+      return bare_({ ok: true, status: 200, body: (value as { __raw: unknown }).__raw });
+    }
     return envelope({ ok: true, data: value });
   }) as typeof fetch;
 
@@ -304,6 +307,22 @@ export function server(routes: Record<string, Reply>): {
 
 const envelope = (body: unknown): Response =>
   ({ ok: true, status: 200, json: async () => body }) as Response;
+
+/**
+ * A reply with NO API envelope, for the files that are not API routes.
+ *
+ * Not everything the app fetches is an endpoint. The drift sidecar is a
+ * static file served off the same origin - `/islands/koh-sichang.drift.json`
+ * - and `loadCoastalDrift` parses the file itself, never `{ ok, data }`.
+ * Wrapping it made the loader return null, and a null sidecar reads in the UI
+ * exactly like a forecast that is merely missing, so a test could not tell
+ * the two apart. Mark such a route with `raw(...)`.
+ */
+const bare_ = ({ ok, status, body }: { ok: boolean; status: number; body: unknown }): Response =>
+  ({ ok, status, json: async () => body }) as Response;
+
+/** Serve this route's body as-is, with no API envelope. See `bare_`. */
+export const raw = (body: unknown): { __raw: unknown } => ({ __raw: body });
 
 const isMarked = <K extends string>(v: unknown, key: K): v is Record<K, string & never> & Record<K, never> =>
   typeof v === 'object' && v !== null && key in v;
