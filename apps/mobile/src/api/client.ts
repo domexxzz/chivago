@@ -8,6 +8,7 @@
 
 import { strings } from '@chivago/core';
 import type { DrawnItem, Lang, QueueLevel, QueueReading } from '@chivago/core';
+import type { DebrisAccess, DebrisAmount, DebrisKind, DebrisReportView } from '@chivago/core';
 import { Platform } from 'react-native';
 import type { Shop, ShopDetail, ShopInput, ShopReview, ShopStats } from './shops.ts';
 import { adoptKey, forgetKey, loadDeviceKey } from './account.ts';
@@ -954,7 +955,35 @@ export const api = {
     storiesAutoApprove?: boolean;
     autoApprove?: boolean;
     aiAssist?: boolean;
+    /** Who reads the debris-report queue. Absent from an older server: read as nobody. */
+    debrisReader?: string | null;
   }>('/config'),
+
+  // -- debris reports (packages/core/src/debris-report.ts) -----------------
+  /**
+   * One photograph and three answers. The photo goes as the picker's own File
+   * on the web, as a URI on a phone; the position is the phone's, never typed.
+   */
+  submitDebrisReport: async (r: {
+    photo: { uri: string; file?: Blob | null; mimeType?: string | null };
+    position: Fix;
+    takenAt: string;
+    kinds: DebrisKind[];
+    amount: DebrisAmount;
+    access: DebrisAccess;
+  }) => {
+    const form = new FormData();
+    if (r.photo.file) form.append('photo', r.photo.file, 'debris.jpg');
+    else if (Platform.OS === 'web') form.append('photo', await fetch(r.photo.uri).then((res) => res.blob()), 'debris.jpg');
+    else form.append('photo', { uri: r.photo.uri, name: 'debris.jpg', type: r.photo.mimeType ?? 'image/jpeg' } as unknown as Blob);
+    form.append('position', JSON.stringify(r.position));
+    form.append('takenAt', r.takenAt);
+    form.append('kinds', JSON.stringify(r.kinds));
+    form.append('amount', r.amount);
+    form.append('access', r.access);
+    return upload<DebrisReportView>('/debris-reports', form);
+  },
+  debrisReports: () => get<{ reports: DebrisReportView[] }>('/debris-reports'),
   /** The area's board: approved stories and visible reviews, newest first. */
   board: (areaKey: string) => get<{ open: boolean; entries: BoardEntry[] }>(`/areas/${areaKey}/board`),
   /** The problems standing in an area, derived from real readings. */

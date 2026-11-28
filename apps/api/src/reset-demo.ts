@@ -150,6 +150,11 @@ export const TRAVELLER_TABLES = [
   // And a queue report is the same thing about the food court: somebody's word
   // about a moment, which a demo should not open with.
   'canteen_queue_reports',
+  // A debris report is a traveller's photograph and their word about a beach,
+  // and the case it opened exists only because they sent it - so both go, with
+  // the officer's decisions about it, everything that points at a case first.
+  // The photographs queue themselves in media_deletions on the way out.
+  'debris_reports', 'debris_collections', 'debris_case_events', 'debris_cases',
   // Summoned spirits are the traveller's collection (docs/68), and the
   // charms behind them are derived from a ledger this reset clears - so
   // leaving the rolls would hand the next demo a collection with no

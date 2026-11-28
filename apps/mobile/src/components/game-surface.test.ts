@@ -135,6 +135,12 @@ const EVIDENCE_LAYER: Record<string, string> = {
   'AdventureScreen.tsx': 'story presentation is playful, but its check-in and server-confirmed reward are evidence',
   'AdventureVerificationScreen.tsx': 'camera, GPS, evidence and host approval are security decisions, not play',
   'TravelJournalScreen.tsx': 'personal notes sit on immutable verified travel events and privacy controls',
+  /*
+    A debris report earns nothing on purpose, and a bevel would say the
+    opposite: it is a photograph the municipality decides tomorrow's rounds
+    from, and the screen has to look like the work queue it feeds.
+  */
+  'DebrisReportScreen.tsx': 'a report the municipality acts on, and it pays nothing by design',
 };
 
 const imports = (file: string): string => {

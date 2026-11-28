@@ -81,12 +81,18 @@ interface LayoutOptions {
   /** Renders the nav only when signed in. */
   signedIn?: boolean;
   activeNav?: 'queue' | 'history' | 'moderation' | 'guides' | 'sponsor' | 'esg' | 'statement' | 'stories'
-    | 'organisations' | 'quests' | 'questDesk' | 'reviewDeclared' | 'inquiries' | 'applications' | 'admin';
+    | 'organisations' | 'quests' | 'questDesk' | 'reviewDeclared' | 'inquiries' | 'applications' | 'admin' | 'debris';
   pendingCount?: number;
   /** Shows the Reviews tab. Moderators only - see place-review-service.ts. */
   canModerate?: boolean;
   /** Global data administration. Never inferred from moderator access. */
   canAdmin?: boolean;
+  /**
+   * Shows the Debris tab: the island's own municipality. Moderators see it
+   * wherever the moderation tabs show. Everybody else, never - see
+   * `debrisDeskScope` in debris-desk-service.ts.
+   */
+  debrisDesk?: boolean;
   /**
    * An operator's console (docs/62): the nav is its questions and the way
    * out, and the badge counts questions waiting on it rather than proofs -
@@ -280,6 +286,7 @@ export function layout(options: LayoutOptions, body: Raw | string): string {
              ${canModerate ? `<a href="/console/organisations" class="${activeNav === 'organisations' ? 'on' : ''}">${tr('organisations')}</a>` : ''}
              ${canModerate ? `<a href="/console/applications" class="${activeNav === 'applications' ? 'on' : ''}">${tr('applications')}</a>` : ''}
              ${canAdmin ? `<a href="/console/admin" class="${activeNav === 'admin' ? 'on' : ''}">ADMIN</a>` : ''}
+             ${canModerate || options.debrisDesk ? `<a href="/console/debris" class="${activeNav === 'debris' ? 'on' : ''}">${locale === 'en' ? 'Debris' : locale === 'zh' ? '垃圾报告' : 'รายงานขยะ'}</a>` : ''}
              <a href="/console/quest-desk" class="${activeNav === 'questDesk' ? 'on' : ''}">${tr('questDesk')}</a>
              <a href="/console/quests" class="${activeNav === 'quests' ? 'on' : ''}">${tr('quests')}</a>
              <a href="/console/sponsor" class="${activeNav === 'sponsor' ? 'on' : ''}">${tr('sponsor')}</a>

@@ -51,6 +51,7 @@ import { GreeterMark } from '../components/GreeterMark.tsx';
 import { MonsterFeed } from '../components/MonsterFeed.tsx';
 import { StallsCard } from '../components/Stalls.tsx';
 import { SeaAndSkyCard } from '../components/SeaAndSky.tsx';
+import { DebrisReportCard } from '../components/DebrisReportCard.tsx';
 import { GuideLanguageFlag, guideLanguageLabel } from '../components/GuideLanguageFlag.tsx';
 import { serviceAppearance, shopCategoryLabel } from '../components/ShopCategory.tsx';
 import {
@@ -148,7 +149,7 @@ export function questOrder(
 export function HomeScreen({
   onOpenMap, onOpenQuests, onOpenQuest, onOpenWallet, onOpenMarket, onOpenFair, onOpenCampus, onOpenBuildings, onOpenPassport,
   onOpenImpact, onOpenConcierge, onOpenSafety, onOpenParty, onOpenProfile, onOpenPlace, onOpenShop, onOpenMascots, onOpenStays, onOpenSummon, onOpenLocalPicks, onOpenCommunity,
-  onToast, now = new Date(),
+  onOpenDebrisReport, onToast, now = new Date(),
 }: {
   onOpenMap: () => void;
   onOpenQuests: () => void;
@@ -194,6 +195,8 @@ export function HomeScreen({
   onOpenCampus?: () => void;
   /** The campus's mapped buildings. Optional, and offered only where some are. */
   onOpenBuildings?: () => void;
+  /** Photographing washed-up rubbish. The card draws itself only where somebody reads the reports. */
+  onOpenDebrisReport?: () => void;
   /** A one-line acknowledgement, for actions that finish without leaving the screen. */
   onToast?: (message: string) => void;
   /** Injected so the greeting is testable rather than whatever the clock says. */
@@ -316,6 +319,7 @@ export function HomeScreen({
           />
           <View style={{ paddingHorizontal: gutter }}>
             <SeaAndSkyCard area={area.key} />
+            {onOpenDebrisReport ? <DebrisReportCard onOpen={onOpenDebrisReport} /> : null}
           </View>
         </View>
       </View>

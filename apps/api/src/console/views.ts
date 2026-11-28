@@ -222,6 +222,7 @@ export function queuePage(
   items: ReviewItem[],
   stats: { pending: number; overdue: number; oldestHours: number },
   canModerate = false,
+  debrisDesk = false,
 ): string {
   const tr = (k: Parameters<typeof t>[0]) => t(k, locale);
   const body = html`
@@ -301,7 +302,7 @@ export function queuePage(
     {
       title: tr('queue'), locale, hostName, reviewer,
       signedIn: true, activeNav: 'queue', pendingCount: stats.pending, path: '/console',
-      canModerate,
+      canModerate, debrisDesk,
     },
     body,
   );

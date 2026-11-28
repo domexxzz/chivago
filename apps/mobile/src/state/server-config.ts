@@ -25,6 +25,8 @@ export interface ServerConfig {
   storiesAutoApprove: boolean;
   /** Proof photos may be shown to an AI for the host (docs/64). Say so before somebody sends them. */
   aiAssist: boolean;
+  /** Who reads debris reports, or null: the report button exists only when somebody does. */
+  debrisReader: string | null;
 }
 
 /**
@@ -36,7 +38,7 @@ export interface ServerConfig {
  * be checked, nor into sending a photograph on the belief that no machine
  * will look at it. The notice says "may", so it stays true either way.
  */
-export const FENCED: ServerConfig = { fenceOff: false, storiesAutoApprove: false, aiAssist: true };
+export const FENCED: ServerConfig = { fenceOff: false, storiesAutoApprove: false, aiAssist: true, debrisReader: null };
 
 let inFlight: Promise<ServerConfig> | null = null;
 
@@ -54,6 +56,11 @@ export function serverConfig(): Promise<ServerConfig> {
           // Only an explicit false stands the notice down; an older server
           // that does not send the field gets the careful reading.
           aiAssist: res.data.aiAssist !== false,
+          // Only a name is a reader. Anything else - absent, empty, an older
+          // server - is nobody, and the button stays away.
+          debrisReader: typeof res.data.debrisReader === 'string' && res.data.debrisReader.trim()
+            ? res.data.debrisReader.trim()
+            : null,
         }
       : FENCED),
     () => FENCED,

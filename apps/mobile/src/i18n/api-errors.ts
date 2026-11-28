@@ -111,7 +111,9 @@ const EXACT: Readonly<Record<string, Localised>> = {
   BODY_TOO_LARGE: message('The submitted content is too large.', 'ข้อมูลที่ส่งมีขนาดใหญ่เกินไป', '提交的内容过大。'),
   STORY_TOO_LARGE: message('This story file is too large.', 'ไฟล์เรื่องราวมีขนาดใหญ่เกินไป', '故事文件过大。'),
   TOO_MANY_PHOTOS: message('Too many photos were selected.', 'เลือกรูปภาพมากเกินไป', '选择的照片过多。'),
-  PHOTO_LIMIT: message('The photo limit has been reached.', 'เพิ่มรูปภาพครบจำนวนสูงสุดแล้ว', '已达到照片数量上限。'),
+  // Debris reports (packages/core/src/debris-report.ts).
+  NO_READER: message('Nobody is reading rubbish reports here yet, so this one was not sent.', 'ยังไม่มีผู้รับเรื่องรายงานขยะที่นี่ รายงานนี้จึงยังไม่ได้ส่ง', '这里暂时没有人处理垃圾报告，因此本报告未发送。'),
+  TOO_MANY_REPORTS: message('That is the most reports one person can send in an hour. Try again later.', 'ส่งรายงานครบจำนวนสูงสุดต่อชั่วโมงแล้ว ลองใหม่ภายหลัง', '已达到每小时可发送的报告上限，请稍后再试。'),  PHOTO_LIMIT: message('The photo limit has been reached.', 'เพิ่มรูปภาพครบจำนวนสูงสุดแล้ว', '已达到照片数量上限。'),
   STORIES_CLOSED: message('Stories are not available here right now.', 'ยังไม่สามารถเพิ่มเรื่องราวที่นี่ได้ในขณะนี้', '此处暂时无法发布故事。'),
   STORY_QUOTA: message('The story limit has been reached for now.', 'เพิ่มเรื่องราวครบจำนวนที่กำหนดแล้ว', '目前已达到故事数量上限。'),
   NOT_ENOUGH_TRIP_POINTS: message(

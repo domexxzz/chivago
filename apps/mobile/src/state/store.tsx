@@ -43,6 +43,8 @@ export type ScreenKey =
   | 'companion' | 'passport' | 'account' | 'party' | 'findParty' | 'game' | 'adventure' | 'journal' | 'season'
   | 'mascots' | 'mascot' | 'fashion' | 'profile' | 'medals' | 'stays' | 'fair' | 'campus' | 'buildings'
   | 'summon' | 'editProfile' | 'connectApp' | 'community' | 'shop' | 'shopManage' | 'localPicks' | 'miniGame'
+  /** Photograph washed-up rubbish for the municipality. Reached from Home, only where somebody reads it. */
+  | 'debrisReport'
   /** Turn-by-turn, full screen. Reached from the way banner on the map. */
   | 'navigate';
 
@@ -109,6 +111,8 @@ const OWNING_TAB: Record<ScreenKey, TabKey> = {
   concierge: 'home', impact: 'home',
   // A fair's market (docs/66) is a card on Home, so Home stays lit behind it.
   fair: 'home', campus: 'home', buildings: 'home',
+  // The debris report is a card on Home too.
+  debrisReport: 'home',
   quests: 'quests', quest: 'quests',
   // The mini-games are cards on the Quests screen now, not on the Game tab, so
   // Quests is what owns them. Left as `game` this lit the Game tab while the

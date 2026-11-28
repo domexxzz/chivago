@@ -89,7 +89,7 @@ import { addHost, isHostType } from './add-host.ts';
 import { createInvite, HostInviteRefused } from './host-invite-service.ts';
 import { publicBase } from './sos-service.ts';
 import { BodyTooLarge, boundedForm, boundedJson, fail, handleError, num, ok, userId, type AppEnv } from './http.ts';
-import { fenceOff, publicConfig } from './fence.ts';
+import { debrisReader, fenceOff, publicConfig } from './fence.ts';
 import { boardFeed, type BoardEntry } from '@chivago/core';
 import { monstersInArea } from './monster-service.ts';
 import { reportSighting, routesForArea } from './transit-service.ts';
@@ -179,6 +179,9 @@ import {
   TravelTripError, addTravelTripPhoto, createTravelTrip, deleteTravelTripPhoto,
   readTravelTripPhoto, travelTripFor, travelTripsFor, updateTravelTrip,
 } from './travel-trip-service.ts';
+import {
+  DebrisReportError, debrisReportFor, debrisReportsOf, submitDebrisReport,
+} from './debris-report-service.ts';
 import {
   PetProgressionError, petProgressionForUser, petProgressionsForUser, selectPetGesture,
 } from './pet-progression-service.ts';
@@ -2385,6 +2388,51 @@ app.get('/travel/photos/:id', async (c) => {
   return c.body(new Uint8Array(photo.bytes), 200, {
     'content-type': photo.mime, 'cache-control': 'private, max-age=3600', 'x-content-type-options': 'nosniff',
   });
+});
+
+/*
+  Debris reports - packages/core/src/debris-report.ts. One photograph and
+  three answers become a case, join one, or come back with the reason. A
+  refusal is a 200 with `verdict: 'rejected'`: the report was received and
+  answered, and the phone shows the answer rather than an error.
+*/
+app.post('/debris-reports', async (c) => {
+  // Refused before the body is read: nobody is there to read the report.
+  if (!debrisReader()) {
+    return fail(c, 'NO_READER', 'Nobody reads debris reports here yet, so this one would go unanswered.', 409);
+  }
+  if (!(c.req.header('content-type') ?? '').includes('multipart/form-data')) {
+    return fail(c, 'MULTIPART_REQUIRED', 'Send the report as multipart form data, with the photo.');
+  }
+  const form = await boundedForm(c, MAX_BYTES + 64 * 1024);
+  const photo = form.get('photo');
+  const kinds = form.getAll('kinds').filter((k): k is string => typeof k === 'string');
+  try {
+    return ok(c, await submitDebrisReport(db, {
+      userId: userId(c),
+      raw: {
+        position: form.get('position') ?? undefined,
+        takenAt: form.get('takenAt') ?? undefined,
+        // One field holding a JSON list, one bare word, or the field repeated.
+        kinds: kinds.length > 1 ? kinds : kinds[0],
+        amount: form.get('amount') ?? undefined,
+        access: form.get('access') ?? undefined,
+      },
+      photo: photo instanceof File ? Buffer.from(await photo.arrayBuffer()) : null,
+    }));
+  } catch (err) {
+    if (err instanceof DebrisReportError) return fail(c, err.code, err.message, err.status);
+    if (err instanceof UnsupportedUpload) return fail(c, 'UNSUPPORTED_UPLOAD', err.message, 415);
+    throw err;
+  }
+});
+
+app.get('/debris-reports', (c) =>
+  ok(c, { reports: debrisReportsOf(db, userId(c), num(c.req.query('limit'), 50)) }));
+
+app.get('/debris-reports/:id', (c) => {
+  const found = debrisReportFor(db, userId(c), c.req.param('id'));
+  return found ? ok(c, found) : fail(c, 'NOT_FOUND', 'No such report.', 404);
 });
 
 app.delete('/travel/photos/:id', async (c) =>

@@ -25,6 +25,8 @@ import { sponsorPage } from './sponsor.ts';
 import { esgPage } from './esg.ts';
 import { questsPage } from './quests.ts';
 import { mountQuestDesk } from './quest-desk-routes.ts';
+import { mountDebrisDesk } from './debris-desk-routes.ts';
+import { debrisDeskScope } from '../debris-desk-service.ts';
 import { reviewDeclaredPage } from './review-declared.ts';
 import {
   InvalidCountersignature, countersignaturesFor, recordCountersignature, withdrawCountersignature,
@@ -736,7 +738,7 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
     return c.html(
       queuePage(
         localeFor(c), session.hostName, session.reviewer, items, stats,
-        canModerate(session),
+        canModerate(session), debrisDeskScope(db, session).length > 0,
       ),
     );
   });
@@ -1130,6 +1132,8 @@ export function consoleRoutes(database: DB | (() => DB), hooks: ConsoleHooks = {
     same shape as funding.
   */
   mountQuestDesk(app, { db, currentSession, localeFor, canModerate, csrfFor, csrfValid });
+  // The debris desk: the island's municipality and the platform's moderators (debris-desk-service.ts).
+  mountDebrisDesk(app, { db, currentSession, localeFor, canModerate, csrfFor, csrfValid });
 
   app.get('/quests', (c) => {
     const session = currentSession(c)!;
