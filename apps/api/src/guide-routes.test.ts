@@ -29,6 +29,15 @@ const ORIGIN = 'https://chivargo.example';
 
 /** On the island, with a photograph we are allowed to show. */
 const ON_ISLAND = 'g-palace';
+/**
+ * On the island, with its photograph held as a PATH on this origin.
+ *
+ * Which is what every real row holds - the seed writes
+ * `/media/places/sc-palace.jpg` - while every fixture above held an absolute
+ * Commons URL. That is exactly why the relative og:image shipped: the thing
+ * the tests exercised was not the thing the database contains.
+ */
+const PATH_PHOTO = 'g-pathphoto';
 /** On the island, photograph present but UNCREDITED, so unpublishable. */
 const NO_CREDIT = 'g-nocredit';
 /** A real place that is not on Koh Sichang: it must not get a page. */
@@ -99,6 +108,11 @@ before(() => {
     id: NO_CREDIT, lat: 13.1564464, lng: 100.8075131,
     photoUrl: 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Uncredited.jpg',
     photoCredit: null,
+  });
+  insertPlace({
+    id: PATH_PHOTO, lat: 13.1521963, lng: 100.8147057,
+    photoUrl: '/media/places/sc-marinestation.jpg',
+    photoCredit: 'ChivarGo team',
   });
   // The real Ko Kham Yai coordinate, from the seed.
   insertPlace({ id: OFF_BBOX, lat: 13.1679437, lng: 100.8245248 });
@@ -202,8 +216,8 @@ describe('the URLs a crawler is told to trust', () => {
   test('the sitemap gives every page both languages and an x-default', async () => {
     const sitemap = await (await get('/guide/sitemap.xml')).text();
     const locs = sitemap.match(/<loc>/g) ?? [];
-    // Two index pages plus four island places in two languages.
-    assert.equal(locs.length, 2 + 4 * 2);
+    // Two index pages plus five island places in two languages.
+    assert.equal(locs.length, 2 + 5 * 2);
     assert.equal((sitemap.match(/<xhtml:link/g) ?? []).length, locs.length * 3);
     assert.ok(sitemap.includes(`${ORIGIN}/guide/th/${NO_CREDIT}`));
   });
@@ -227,8 +241,8 @@ describe('the structured data', () => {
   test('the index lists every published place in order', async () => {
     const graph = schemaOf(await (await get('/guide/th')).text());
     const list = nodeOf(graph, 'CollectionPage').mainEntity;
-    assert.equal(list.numberOfItems, 4);
-    assert.deepEqual(list.itemListElement.map((i: any) => i.position), [1, 2, 3, 4]);
+    assert.equal(list.numberOfItems, 5);
+    assert.deepEqual(list.itemListElement.map((i: any) => i.position), [1, 2, 3, 4, 5]);
     // Ordered by id, so the list is the same list on every request.
     assert.deepEqual(
       list.itemListElement.map((i: any) => i.url),
@@ -237,6 +251,7 @@ describe('the structured data', () => {
         `${ORIGIN}/guide/th/${OFF_BBOX}`,
         `${ORIGIN}/guide/th/${NO_CREDIT}`,
         `${ORIGIN}/guide/th/${ON_ISLAND}`,
+        `${ORIGIN}/guide/th/${PATH_PHOTO}`,
       ],
     );
   });
@@ -269,6 +284,85 @@ describe('a photograph is published with its credit or not at all', () => {
       'an uncredited photograph was claimed in the schema');
     // The page itself is still perfectly good; it just has no picture.
     assert.ok(html.includes('<h1>'), 'the page lost its heading with its photograph');
+  });
+});
+
+/*
+  THE SAME CLASS OF BUG AS THE `.html` CANONICALS. A path is resolved against
+  the document, so the page looks right and the picture appears. og:image and
+  the schema's `contentUrl` are read by machines holding only the markup -
+  Facebook, LINE and X fetch the value as written - so a path with no host is
+  a share card with no picture, and for a Thai travel app that mostly means
+  LINE. Invisible on the page, which is how it shipped.
+*/
+describe('an off-site reader is given a URL it can actually fetch', () => {
+  test('og:image is absolute even when the row holds a path', async () => {
+    const html = await (await get(`/guide/th/${PATH_PHOTO}`)).text();
+    assert.ok(
+      html.includes(`<meta property="og:image" content="${ORIGIN}/media/places/sc-marinestation.jpg">`),
+      'og:image is not an absolute URL',
+    );
+    assert.ok(
+      !/<meta property="og:image" content="\//.test(html),
+      'og:image is a path, which an off-site reader cannot fetch',
+    );
+  });
+
+  test('the schema image is absolute, and the img tag keeps its path', async () => {
+    const html = await (await get(`/guide/th/${PATH_PHOTO}`)).text();
+    assert.equal(
+      nodeOf(schemaOf(html), 'TouristAttraction').image.contentUrl,
+      `${ORIGIN}/media/places/sc-marinestation.jpg`,
+    );
+    // The `<img>` is resolved against the page, so the path is right there -
+    // and one fewer absolute URL that can go stale with the origin.
+    assert.ok(
+      html.includes('<img src="/media/places/sc-marinestation.jpg"'),
+      'the img tag lost its origin-relative path',
+    );
+  });
+
+  test('an absolute photo URL is left exactly as it is', async () => {
+    const html = await (await get(`/guide/en/${ON_ISLAND}`)).text();
+    const url = 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Example.jpg?width=1280';
+    assert.equal(nodeOf(schemaOf(html), 'TouristAttraction').image.contentUrl, url);
+    assert.ok(!html.includes(`${ORIGIN}https://`), 'an absolute URL was prefixed with the origin');
+  });
+});
+
+/*
+  A page with no og:image shares as a bare grey rectangle, and on LINE that
+  rectangle is most of what somebody sees before deciding whether to tap.
+  Four of the eighteen real places have no photograph. The fallback is the
+  site's own card - and it must stay out of the schema, where `image` means a
+  picture OF this place and the card is not one.
+*/
+describe('a page with no photograph still has a share card', () => {
+  test('og:image falls back to the site card, absolute', async () => {
+    const html = await (await get(`/guide/th/${NO_CREDIT}`)).text();
+    assert.ok(
+      html.includes(`<meta property="og:image" content="${ORIGIN}/th/img/og.jpg">`),
+      'a page with no photograph has no share card',
+    );
+    assert.ok(!html.includes('<img src='), 'the fallback card leaked into the page body');
+  });
+
+  test('the fallback is never claimed as a picture of the place', async () => {
+    const graph = schemaOf(await (await get(`/guide/th/${NO_CREDIT}`)).text());
+    assert.equal(nodeOf(graph, 'TouristAttraction').image, undefined,
+      'the site card was published as a photograph of the place');
+  });
+
+  test('a place with its own photograph keeps it, not the card', async () => {
+    const html = await (await get(`/guide/th/${PATH_PHOTO}`)).text();
+    assert.ok(html.includes(`content="${ORIGIN}/media/places/sc-marinestation.jpg"`),
+      'the real photograph lost to the fallback');
+    assert.ok(!html.includes('/th/img/og.jpg'), 'both the photograph and the card were sent');
+  });
+
+  test('the index has one too', async () => {
+    const html = await (await get('/guide/th')).text();
+    assert.ok(html.includes(`<meta property="og:image" content="${ORIGIN}/th/img/og.jpg">`));
   });
 });
 
